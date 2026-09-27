@@ -48,6 +48,7 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_SOURCE_SCHEMA,
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
 )
+from gx1.execution.v12_canonical_incremental import _native_pair_lineage_descriptor
 from gx1.features.htf_features import (
     HTF_V4_CACHE_SCHEMA_VERSION,
     MULTI_TF_TIMEFRAMES_LOWER_M5_LAST,
@@ -560,15 +561,19 @@ def _preflight_native_source(
         # legacy duplicated fields here would reject the stronger V3 lineage.
         expected_bound_m5: Mapping[str, Any] = expected_pair_binding
     else:
-        expected_bound_m5 = {
+        # Use the publishing owner's full field set. The old hand-written
+        # subset rejected every canonical pair carrying its required approval,
+        # source interval, environment and producer provenance fields.
+        expected_bound_m5 = _native_pair_lineage_descriptor({
+            **source_manifest,
             **expected_pair_binding,
-            "instrument": "XAU_USD",
-            "timeframe": "M5",
-            "canonical_rows_sha256": source_manifest.get("canonical_rows_sha256"),
-            "manifest_payload_sha256": source_payload_sha256,
-            "year_rows": year_rows,
-            "year_sha256": year_sha256,
-        }
+            "requested_start_utc": pd.Timestamp(
+                source_manifest["requested_start_utc"]
+            ).isoformat(),
+            "requested_end_utc_exclusive": pd.Timestamp(
+                source_manifest["requested_end_utc_exclusive"]
+            ).isoformat(),
+        })
     if dict(bound_m5) != dict(expected_bound_m5):
         mismatched = next(
             (

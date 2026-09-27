@@ -458,6 +458,59 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_SIGNAL_INFERENCE_CHECK_20260917/REVIEW.json",
     "sha256": "3076db764620b9a55101d74fb3e4736bba9ee61dc5bbb4a6b61f860563cb76e9"
   },
+  "completed_frozen_entry_selector_probe": {
+    "cache": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/ENTRY_REPRESENTATIONS.pt",
+      "sha256": "790a285521c5c9d51e467ab29983be183902a3ebfef3fc2add0222e92adfe806"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
+        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
+        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
+        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
+      }
+    },
+    "completed_observation": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/OBSERVATION.json",
+      "sha256": "768caa5a99a4696a819aa1832cfd4f7c272306b5b1a9998d8149c61cdb68d729"
+    },
+    "completed_terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919_BOOT471/receipts/invocation-0001.json",
+      "sha256": "27aba274cd4afd73e4601e4fb0fa7d94f1916896b7380a30a845ea2f2e63c913"
+    },
+    "control_forwards": 0,
+    "exit_rollout_forwards": 0,
+    "max_entry_forwards": 16,
+    "max_invocations": 1,
+    "new_fits": 0,
+    "optimizer_steps": 0,
+    "origin_optimizer_steps": 512,
+    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/CANDIDATE_BUNDLE",
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/NATIVE_EXTRACTION_PREPARATION/PLAN.json",
+      "sha256": "cdec83b099f266b823b68566a716dad1489dc09a8e6e03e8d7785423bd3ab95b"
+    },
+    "run_id": "NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919",
+    "source_bindings_sha256": "19a2c8b68d28383343f64cb5e6faed50d073d12c34fb834c3e1aa28947b78e6e",
+    "status": "COMPLETE_PARITY_PASS",
+    "test_data_used": false,
+    "train_entries": 256,
+    "val_limits": {
+      "cpu_pipeline_workers": 8,
+      "max_model_forwards": 46573,
+      "max_state_views": 3375234,
+      "max_wall_seconds": 10800,
+      "policy_batch_size": 256,
+      "progress_interval_forwards": 64
+    }
+  },
   "completed_frozen_readout_evaluation": {
     "completed_retry_not_run_authority": {
       "arm": "candidate",
@@ -1216,9 +1269,73 @@
       "sha256": "b3b4e294234d46ec5f0326c418cfc2056f58040d5e47b956fc6adc58445c85ef"
     }
   },
+  "consolidation_20260926": {
+    "archive_tag": "archive/gx1-engine-audit-v9-20260926",
+    "archived_branch": "audit/v9-premiere-20260905",
+    "archived_worktree": "/home/andre2/src/GX1_ENGINE (shared .git storage; never a work location)",
+    "canonical": "/home/andre2/src/GX1_CURRENT work/gx1-current",
+    "decided_20260926": [
+      "settings guard ignores personal preferences (model, theme)",
+      "GPU native route: 85 C core stop; latch to 220 W at >= 80 C (was 200 W)"
+    ],
+    "decided_by": "operator 2026-09-26",
+    "direct_outcome_hypothesis_20260925": "closed_not_executed: labels identical to V9/V12 knee labels; Y_wait hindsight bias +13.7 bps",
+    "direction_timescale_evidence": "docs/DIRECTION_TIMESCALE_20260926.md",
+    "history_2005_decision": {
+      "decided_utc": "2026-09-26",
+      "interval": [
+        "2005-01-01T00:00:00Z",
+        "2026-07-01T00:00:00Z"
+      ],
+      "report": "docs/HISTORY_2005_INTAKE_20260926.md",
+      "status": "PUBLISHED_FROM_2006_03_19",
+      "tapes": {
+        "M1": {
+          "canonical_rows_sha256": "67bb206f484390d62d3bf10a98ad90026303f91c2f44ca4690d1e4305d7d12f0",
+          "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2005_20260701_PRETEST_20260926",
+          "rows": 7047777
+        },
+        "M5": {
+          "canonical_rows_sha256": "ae08e57b9696913eb40006b5b5182177201ef25b9476f90d94349271bb99c025",
+          "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2005_20260701_PRETEST_20260926",
+          "rows": 1446228
+        }
+      },
+      "vedtak": [
+        "OANDA_M5_PRETEST_2005_20260926",
+        "OANDA_M1_PRETEST_2005_20260926"
+      ]
+    },
+    "merge": "strategy ours + explicit per-file import (no silent merges)",
+    "open_operator_decisions": [
+      "longer XAU_USD history covering bear markets (named source + manifest)"
+    ],
+    "planned_steps": "VEIEN_VIDERE.md (M4 weekly instrument, M2 v36 surface, preregistered weekly walk-forward, weekly target contract, rebuild, M3 trainer fixes)",
+    "report": "docs/CONSOLIDATION_20260926.md",
+    "training_enabled": false,
+    "weekly_direction_preregistered": {
+      "decision": "NO_GO",
+      "evidence_root": "/home/andre2/GX1_RUNS/WEEKLY_DIRECTION_20260926",
+      "prereg": "docs/WEEKLY_DIRECTION_PREREG_20260926.md",
+      "result": "docs/WEEKLY_DIRECTION_RESULT_20260926.md"
+    }
+  },
   "cpu_stage_evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/CPU_CAPACITY_RESULT_20260914.json",
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
+  },
+  "early_decision_research_20260927": {
+    "active_job": false,
+    "decision": "NO_GO_OR_INCONCLUSIVE",
+    "do_not_restart": true,
+    "native_training_enabled": false,
+    "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/PREREGISTRATION.json",
+    "result": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/DECISION_GATE_STRICT.json",
+    "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927",
+    "source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
+    "status": "EARLY_CALIBRATED_DECISION_RESEARCH_COMPLETE_NO_GO",
+    "terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/STRICT_TERMINAL.json",
+    "verification": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/VERIFICATION.json"
   },
   "entry_complete_policy_target_alignment": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/TARGET_ALIGNMENT.json",
@@ -1272,9 +1389,53 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/NATIVE_EXTRACTION_PREPARATION/PREPARATION.json",
     "sha256": "93efab27aa6d0caec7576c878ec737a2eb5da0b7048f1f48c9077e93267c2269"
   },
+  "entry_representation_test_revalidation": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PREFLIGHT_TEST_20260924.json",
+    "sha256": "a2ad42122015beaf765d541a6e580ce19339a7208ded2314d175d2edfe48cc3b"
+  },
   "entry_representation_tests": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/TEST_REVIEW.json",
     "sha256": "5be5b6459dd09cc58c2f9cc1ed7e59647222b8dfbaa465dba861bafe8c4a2723"
+  },
+  "entry_selector_cache_fit": {
+    "check_net_gate_passed": false,
+    "check_rows": 129,
+    "check_value_gate_passed": false,
+    "coefficients": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/SELECTOR_COEFFICIENTS.pt",
+      "sha256": "118885443db1e7aa3e103b4ec2dfcbd742061e80b8810d1b439e9c3e8d86446a"
+    },
+    "fit_rows": 127,
+    "frozen_fit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/FROZEN_FIT.json",
+      "sha256": "12aadfea3b7997b60ad767bbc03aa652a2a35987e5c63aafab7e437ee57a4456"
+    },
+    "generalization_proven": false,
+    "new_fits": 1,
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "original_model_modified": false,
+    "plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PLAN.json",
+      "sha256": "e8adc89c5d6737f3519a73db7f45063388dc4ad72a88fd0e069e52e20a3cb526"
+    },
+    "profitability_proven": false,
+    "result": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
+      "sha256": "ea574902368cb4a812c8eb32c801cbb9c8708a88922ba4f384d2c0b93ff79690"
+    },
+    "run_id": "NATIVE_ENTRY_SELECTOR_CACHE_FIT_20260924",
+    "selector_binding": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/SELECTOR_BINDING.json",
+      "sha256": "98f42b1699cba876dbfa3e5458dd1fc418bf7a7ac8f6055591f194dc11155670"
+    },
+    "status": "STOP_SELECTOR_HYPOTHESIS",
+    "superseded_preflight_plan": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PLAN_ATTEMPT_001.json",
+      "sha256": "3bbf4f47e99c07ccf3ed765b73726cd913f4b1325039bc0f7f242bb9faeaf6af"
+    },
+    "test_data_used": false,
+    "training_enabled": false
   },
   "exit_reference_policy": {
     "hold_probability_denominator": 120,
@@ -1305,6 +1466,22 @@
   },
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "handover_resume_point": "docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md",
+  "handover_resume_point_before_consolidation_20260926": {
+    "entry_selector_cache_fit": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
+      "sha256": "ea574902368cb4a812c8eb32c801cbb9c8708a88922ba4f384d2c0b93ff79690"
+    },
+    "instructions": "VEIEN_VIDERE.md",
+    "new_native_run_bound": false,
+    "next_deliverable": "None is currently bound. Reuse docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md; do not refit or retune this selector. A future proposal must be a distinct hypothesis with a fresh predeclared plan.",
+    "optimizer_steps_completed": 512,
+    "status": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
+    "tests": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/TEST_REVIEW.json",
+      "sha256": "5be5b6459dd09cc58c2f9cc1ed7e59647222b8dfbaa465dba861bafe8c4a2723"
+    }
+  },
+  "historical_rule_before_early_decision_20260927": "Reuse these tests and the actual cohort/footprint. Add the minimal frozen ONLINE512 checkpoint binding and dedicated zero-optimizer TRAIN evaluation scope to the existing native campaign/dispatcher. Reuse native prefix TRAIN state factory, train_probe_ds, existing full evaluator and guards; do not use the old fitted-readout VAL5508 path or relaunch512. Bind one invocation, unchanged costs, batch256/workers8 and the existing three-hour window. No model, target or training changes. The fixed256 cohort is already bound. Its all-HOLD upper bound is3375234 shared state views and46573 native policy forwards at batch256; runtime is unmeasured. Three lifecycles meet the observation cutoff. Reuse these bounds, never reread CONTROL outcomes or repeat the completed cohort/gradient/learning audits. Keep the goal and Entry/Exit learning gate unchanged; this is technical measurement support, not evidence of new edge.",
   "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
   "last_diagnostic_failure": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/FAILURE.json",
@@ -1557,7 +1734,19 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
+  "native_preparation_20260927": {
+    "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M5_BINDING_20260927",
+    "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927",
+    "feature_complexity_review_requested": true,
+    "initial_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/TERMINAL.json",
+    "m5_reuse_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M5_REUSE_VERIFICATION.json",
+    "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PLAN.json",
+    "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927",
+    "status": "M5_BINDING_REPAIRED_CONTINUATION_PREPARED",
+    "training_enabled": false
+  },
   "next_action": "User authorized finishing native inputs, then complete repository cleanup/debug/inspection before considering training. Follow docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md. Reuse completed early research; do not reinterpret ridge/HGB NO_GO as a native capacity result. Native training, optimizer steps, TEST evaluation, live/paper and spending remain blocked.",
+  "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-27T19:21:09.537367+00:00",
   "outer_guard_seconds": 13800,
   "policy_consistent_entry_review": {
@@ -1723,190 +1912,5 @@
   },
   "train_population_scope": "latest_year_2025_2026_v1",
   "training_enabled": false,
-  "training_module": "gx1.scripts.run_unified_exit_native_candidate_window_v1",
-  "entry_representation_test_revalidation": {
-    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PREFLIGHT_TEST_20260924.json",
-    "sha256": "a2ad42122015beaf765d541a6e580ce19339a7208ded2314d175d2edfe48cc3b"
-  },
-  "entry_selector_cache_fit": {
-    "run_id": "NATIVE_ENTRY_SELECTOR_CACHE_FIT_20260924",
-    "status": "STOP_SELECTOR_HYPOTHESIS",
-    "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PLAN.json",
-      "sha256": "e8adc89c5d6737f3519a73db7f45063388dc4ad72a88fd0e069e52e20a3cb526"
-    },
-    "superseded_preflight_plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/PLAN_ATTEMPT_001.json",
-      "sha256": "3bbf4f47e99c07ccf3ed765b73726cd913f4b1325039bc0f7f242bb9faeaf6af"
-    },
-    "result": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
-      "sha256": "ea574902368cb4a812c8eb32c801cbb9c8708a88922ba4f384d2c0b93ff79690"
-    },
-    "frozen_fit": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/FROZEN_FIT.json",
-      "sha256": "12aadfea3b7997b60ad767bbc03aa652a2a35987e5c63aafab7e437ee57a4456"
-    },
-    "selector_binding": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/SELECTOR_BINDING.json",
-      "sha256": "98f42b1699cba876dbfa3e5458dd1fc418bf7a7ac8f6055591f194dc11155670"
-    },
-    "coefficients": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/SELECTOR_COEFFICIENTS.pt",
-      "sha256": "118885443db1e7aa3e103b4ec2dfcbd742061e80b8810d1b439e9c3e8d86446a"
-    },
-    "fit_rows": 127,
-    "check_rows": 129,
-    "check_value_gate_passed": false,
-    "check_net_gate_passed": false,
-    "new_fits": 1,
-    "new_model_forwards": 0,
-    "optimizer_steps": 0,
-    "test_data_used": false,
-    "original_model_modified": false,
-    "generalization_proven": false,
-    "profitability_proven": false,
-    "training_enabled": false
-  },
-  "consolidation_20260926": {
-    "decided_by": "operator 2026-09-26",
-    "canonical": "/home/andre2/src/GX1_CURRENT work/gx1-current",
-    "archived_branch": "audit/v9-premiere-20260905",
-    "archived_worktree": "/home/andre2/src/GX1_ENGINE (shared .git storage; never a work location)",
-    "archive_tag": "archive/gx1-engine-audit-v9-20260926",
-    "merge": "strategy ours + explicit per-file import (no silent merges)",
-    "report": "docs/CONSOLIDATION_20260926.md",
-    "direction_timescale_evidence": "docs/DIRECTION_TIMESCALE_20260926.md",
-    "direct_outcome_hypothesis_20260925": "closed_not_executed: labels identical to V9/V12 knee labels; Y_wait hindsight bias +13.7 bps",
-    "planned_steps": "VEIEN_VIDERE.md (M4 weekly instrument, M2 v36 surface, preregistered weekly walk-forward, weekly target contract, rebuild, M3 trainer fixes)",
-    "open_operator_decisions": [
-      "longer XAU_USD history covering bear markets (named source + manifest)"
-    ],
-    "training_enabled": false,
-    "decided_20260926": [
-      "settings guard ignores personal preferences (model, theme)",
-      "GPU native route: 85 C core stop; latch to 220 W at >= 80 C (was 200 W)"
-    ],
-    "weekly_direction_preregistered": {
-      "prereg": "docs/WEEKLY_DIRECTION_PREREG_20260926.md",
-      "result": "docs/WEEKLY_DIRECTION_RESULT_20260926.md",
-      "decision": "NO_GO",
-      "evidence_root": "/home/andre2/GX1_RUNS/WEEKLY_DIRECTION_20260926"
-    },
-    "history_2005_decision": {
-      "decided_utc": "2026-09-26",
-      "interval": [
-        "2005-01-01T00:00:00Z",
-        "2026-07-01T00:00:00Z"
-      ],
-      "vedtak": [
-        "OANDA_M5_PRETEST_2005_20260926",
-        "OANDA_M1_PRETEST_2005_20260926"
-      ],
-      "status": "PUBLISHED_FROM_2006_03_19",
-      "tapes": {
-        "M5": {
-          "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2005_20260701_PRETEST_20260926",
-          "rows": 1446228,
-          "canonical_rows_sha256": "ae08e57b9696913eb40006b5b5182177201ef25b9476f90d94349271bb99c025"
-        },
-        "M1": {
-          "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2005_20260701_PRETEST_20260926",
-          "rows": 7047777,
-          "canonical_rows_sha256": "67bb206f484390d62d3bf10a98ad90026303f91c2f44ca4690d1e4305d7d12f0"
-        }
-      },
-      "report": "docs/HISTORY_2005_INTAKE_20260926.md"
-    }
-  },
-  "handover_resume_point_before_consolidation_20260926": {
-    "instructions": "VEIEN_VIDERE.md",
-    "new_native_run_bound": false,
-    "next_deliverable": "None is currently bound. Reuse docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md; do not refit or retune this selector. A future proposal must be a distinct hypothesis with a fresh predeclared plan.",
-    "optimizer_steps_completed": 512,
-    "status": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
-    "tests": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/TEST_REVIEW.json",
-      "sha256": "5be5b6459dd09cc58c2f9cc1ed7e59647222b8dfbaa465dba861bafe8c4a2723"
-    },
-    "entry_selector_cache_fit": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
-      "sha256": "ea574902368cb4a812c8eb32c801cbb9c8708a88922ba4f384d2c0b93ff79690"
-    }
-  },
-  "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "completed_frozen_entry_selector_probe": {
-    "chronological_prefix": {
-      "design": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REFERENCE_POLICY_20260916_REFERENCE/FROZEN_READOUT_GENERALIZATION_20260916/CHRONOLOGICAL_LEARNING_DESIGN_20260917_V2/DESIGN.json",
-        "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36"
-      },
-      "labels_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_DEPENDENT_LABELS_20260917/RESULT.json",
-        "sha256": "0b4fc8b196488ec86c8774dfe0b4e60495064739c7ff2cb6c45fa005db7c8f6d"
-      },
-      "normalization_result": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PREFIX_NORMALIZATION_20260917/RESULT.json",
-        "sha256": "77cf7c898746be4a703ca87dc566f6401d8eb73c0bbadff6f311d6d675808404"
-      }
-    },
-    "control_forwards": 0,
-    "exit_rollout_forwards": 0,
-    "max_entry_forwards": 16,
-    "max_invocations": 1,
-    "new_fits": 0,
-    "optimizer_steps": 0,
-    "origin_optimizer_steps": 512,
-    "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/CANDIDATE_BUNDLE",
-    "plan": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/FROZEN_EXIT_TRAIN_POLICY_20260919/POLICY_CONSISTENT_ENTRY/NATIVE_EXTRACTION_PREPARATION/PLAN.json",
-      "sha256": "cdec83b099f266b823b68566a716dad1489dc09a8e6e03e8d7785423bd3ab95b"
-    },
-    "run_id": "NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919",
-    "source_bindings_sha256": "19a2c8b68d28383343f64cb5e6faed50d073d12c34fb834c3e1aa28947b78e6e",
-    "test_data_used": false,
-    "train_entries": 256,
-    "val_limits": {
-      "cpu_pipeline_workers": 8,
-      "max_model_forwards": 46573,
-      "max_state_views": 3375234,
-      "max_wall_seconds": 10800,
-      "policy_batch_size": 256,
-      "progress_interval_forwards": 64
-    },
-    "status": "COMPLETE_PARITY_PASS",
-    "completed_observation": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/OBSERVATION.json",
-      "sha256": "768caa5a99a4696a819aa1832cfd4f7c272306b5b1a9998d8149c61cdb68d729"
-    },
-    "cache": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/frozen_entry_representations/ENTRY_REPRESENTATIONS.pt",
-      "sha256": "790a285521c5c9d51e467ab29983be183902a3ebfef3fc2add0222e92adfe806"
-    },
-    "completed_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919_BOOT471/receipts/invocation-0001.json",
-      "sha256": "27aba274cd4afd73e4601e4fb0fa7d94f1916896b7380a30a845ea2f2e63c913"
-    }
-  },
-  "early_decision_research_20260927": {
-    "native_training_enabled": false,
-    "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/PREREGISTRATION.json",
-    "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927",
-    "status": "EARLY_CALIBRATED_DECISION_RESEARCH_COMPLETE_NO_GO",
-    "decision": "NO_GO_OR_INCONCLUSIVE",
-    "result": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/DECISION_GATE_STRICT.json",
-    "verification": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/VERIFICATION.json",
-    "terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/STRICT_TERMINAL.json",
-    "source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-    "active_job": false,
-    "do_not_restart": true
-  },
-  "historical_rule_before_early_decision_20260927": "Reuse these tests and the actual cohort/footprint. Add the minimal frozen ONLINE512 checkpoint binding and dedicated zero-optimizer TRAIN evaluation scope to the existing native campaign/dispatcher. Reuse native prefix TRAIN state factory, train_probe_ds, existing full evaluator and guards; do not use the old fitted-readout VAL5508 path or relaunch512. Bind one invocation, unchanged costs, batch256/workers8 and the existing three-hour window. No model, target or training changes. The fixed256 cohort is already bound. Its all-HOLD upper bound is3375234 shared state views and46573 native policy forwards at batch256; runtime is unmeasured. Three lifecycles meet the observation cutoff. Reuse these bounds, never reread CONTROL outcomes or repeat the completed cohort/gradient/learning audits. Keep the goal and Entry/Exit learning gate unchanged; this is technical measurement support, not evidence of new edge.",
-  "native_preparation_20260927": {
-    "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PLAN.json",
-    "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927",
-    "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927",
-    "training_enabled": false,
-    "status": "PREPARED_NOT_STARTED"
-  }
+  "training_module": "gx1.scripts.run_unified_exit_native_candidate_window_v1"
 }

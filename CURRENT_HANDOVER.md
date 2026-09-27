@@ -15,6 +15,13 @@ Nå: ferdigstill den eksisterende byggekjeden med tidlig kalibrering; deretter
 full kartlegging, nødvendige feilrettinger og dokumentert opprydding.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
+Siste målte byggefeil: M5-kildeleseren hadde en ufullstendig kopi av parprodusentens
+feltdefinisjon. Rettet; 22 fokuserte tester og hash-/kontraktkontroll av ferdig M5
+består. Par, squeeze og M5 gjenbrukes eksplisitt. Eget videreføringsbevis ligger under
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M5_BINDING_20260927`.
+Runtime-terminaler avgjør nåstatus. Feature-/modellslanking inngår i full repo-revisjon;
+ingen featurekontrakt eller modell er endret på grunnlag av antallet alene.
+
 ## Fullført forskningsresultat — ikke gjeldende startinstruks
 
 Codex har fullført tidlig kalibrering og én forhåndsbundet historisk sammenligning.

@@ -38,6 +38,8 @@ SQUEEZE_FIT_TRAIN_END=
 REGISTRY_FIT_INNER_END=
 VOLATILITY_SQUEEZE_MANIFEST=
 VOLATILITY_SQUEEZE_MANIFEST_SHA256=
+REUSE_M5_ENRICHED_MANIFEST=
+REUSE_M5_ENRICHED_MANIFEST_SHA256=
 
 usage() {
   printf '%s\n' \
@@ -54,6 +56,9 @@ usage() {
     "  Fit windows default to the dataset TRAIN window; explicit earlier calibration is allowed." \
     "  --volatility-squeeze-manifest /absolute/immutable/six-clock/manifest.json" \
     "  --volatility-squeeze-manifest-sha256 SHA256" \
+    "  [--reuse-m5-enriched-manifest /exact/event/m5_enriched.parquet.manifest.json" \
+    "   --reuse-m5-enriched-manifest-sha256 SHA256]" \
+    "  Reuse admits only a complete M5 lane; all later outputs must remain fresh." \
     "  --history-start UTC --train-start UTC --train-end UTC" \
     "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
@@ -189,6 +194,18 @@ while (($#)); do
       VOLATILITY_SQUEEZE_MANIFEST_SHA256=$2
       shift 2
       ;;
+    --reuse-m5-enriched-manifest)
+      (($# >= 2)) || die_args "--reuse-m5-enriched-manifest requires a value"
+      [[ -z $REUSE_M5_ENRICHED_MANIFEST ]] || die_args "duplicate --reuse-m5-enriched-manifest"
+      REUSE_M5_ENRICHED_MANIFEST=$2
+      shift 2
+      ;;
+    --reuse-m5-enriched-manifest-sha256)
+      (($# >= 2)) || die_args "--reuse-m5-enriched-manifest-sha256 requires a value"
+      [[ -z $REUSE_M5_ENRICHED_MANIFEST_SHA256 ]] || die_args "duplicate --reuse-m5-enriched-manifest-sha256"
+      REUSE_M5_ENRICHED_MANIFEST_SHA256=$2
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -207,6 +224,10 @@ for name in \
   VOLATILITY_SQUEEZE_MANIFEST_SHA256; do
   [[ -n ${!name} ]] || die_args "required argument missing: $name"
 done
+if [[ -n $REUSE_M5_ENRICHED_MANIFEST || -n $REUSE_M5_ENRICHED_MANIFEST_SHA256 ]]; then
+  [[ -n $REUSE_M5_ENRICHED_MANIFEST && $REUSE_M5_ENRICHED_MANIFEST_SHA256 =~ ^[0-9a-f]{64}$ ]] \
+    || die_args "M5 reuse requires both an exact manifest and its SHA256"
+fi
 # Explicit preprocessing windows may precede the model TRAIN population.
 # Omitted bounds reuse the dataset TRAIN bound itself, never an inferred date.
 # Registry and squeeze remain independently declared; every fit must end by TRAIN end.
@@ -760,7 +781,9 @@ if ! "$PY" - \
   "$M1_CHECKPOINT" "$M5_CHECKPOINT" "$SOURCE_CASCADE" \
   "$DATASET_REBUILD_TERMINAL" "$PREFREEZE_TEST_SEAL" \
   "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" "$VAL_START" "$VAL_END" \
-  "$TEST_START" "$TEST_END" >>"$LOG" 2>&1 <<'PYEOF'
+  "$TEST_START" "$TEST_END" "$REUSE_M5_ENRICHED_MANIFEST" \
+  "$REUSE_M5_ENRICHED_MANIFEST_SHA256" >>"$LOG" 2>&1 <<'PYEOF'
+import hashlib
 import re
 import sys
 from pathlib import Path
@@ -799,6 +822,8 @@ import pandas as pd
     raw_val_end,
     raw_test_start,
     raw_test_end,
+    raw_reuse_m5_manifest,
+    raw_reuse_m5_sha256,
 ) = sys.argv[1:]
 
 
@@ -1009,6 +1034,19 @@ fresh_paths = [
     *(output_dir / f"{output_stem}_{split}.parquet" for split in ("train", "val", "test")),
     *(output_dir / f"{output_stem}_{split}.manifest.json" for split in ("train", "val", "test")),
 ]
+# An operator can bind an already completed M5 lane by its immutable manifest.
+# This is not checkpoint inference: only these four upstream paths are exempt.
+# Registry windows are checked below; the next, mandatory M5 source producer
+# verifies native/pair identity, enriched bytes/schema/run and every cache file
+# before it publishes anything. No later-stage artifact is admitted here.
+if raw_reuse_m5_manifest:
+    reused = exact_path(raw_reuse_m5_manifest, label="reused M5 manifest")
+    if reused != Path(f"{m5_enriched}.manifest.json") or not reused.is_file():
+        raise RuntimeError("reused M5 manifest must be the exact event-owned manifest")
+    if hashlib.sha256(reused.read_bytes()).hexdigest() != raw_reuse_m5_sha256:
+        raise RuntimeError("reused M5 manifest SHA256 mismatch")
+    reusable = {mtf, m5_enriched, reused, m5_checkpoint}
+    fresh_paths = [path for path in fresh_paths if path not in reusable]
 existing = [str(path) for path in fresh_paths if path.exists() or path.is_symlink()]
 if audit.exists() or audit.is_symlink():
     existing.append(str(audit))
@@ -1146,6 +1184,7 @@ CURRENT_STEP=m5-enriched-feature-lane
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
+if [[ -z $REUSE_M5_ENRICHED_MANIFEST ]]; then
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m5-enriched-frame \
   --native-m5-root "$NATIVE_M5_ROOT" \
@@ -1166,6 +1205,11 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --expected-volatility-squeeze-manifest-sha256 "$VOLATILITY_SQUEEZE_MANIFEST_SHA256" \
   --workers 1 --checkpoint-chunk-rows 4096) >>"$LOG" 2>&1; then
   fail "native M5 enriched feature lane failed"
+fi
+else
+  require_unchanged "reused M5 enriched manifest" "$REUSE_M5_ENRICHED_MANIFEST" \
+    "$REUSE_M5_ENRICHED_MANIFEST_SHA256"
+  tg "Explicit complete M5 lane reuse: $REUSE_M5_ENRICHED_MANIFEST sha256=$REUSE_M5_ENRICHED_MANIFEST_SHA256; native/source/cache checks remain mandatory"
 fi
 [[ -f $M5_ENRICHED && ! -L $M5_ENRICHED \
    && -f ${M5_ENRICHED}.manifest.json && ! -L ${M5_ENRICHED}.manifest.json \

@@ -511,3 +511,68 @@ def test_explicit_early_calibration_bounds_execute_before_producers():
     assert source.count('--registry-fit-train-start "$REGISTRY_FIT_TRAIN_START"') == 2
     assert '"$PAIR_GENERATION_ID" "$SQUEEZE_FIT_TRAIN_START" "$SQUEEZE_FIT_TRAIN_END"' in source
     assert '"$lane" "$manifest" "$REGISTRY_FIT_TRAIN_START" "$REGISTRY_FIT_TRAIN_END"' in source
+
+
+def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
+    """Exercise the shell's actual Python guard, including downstream freshness."""
+    import hashlib
+    import sys
+
+    source = SCRIPT.read_text()
+    start = source.index("import hashlib\nimport re\n", source.index("CURRENT_STEP=contract-validation"))
+    code = source[start:source.index("\nPYEOF", start)]
+    event = tmp_path / "event"
+    event.mkdir()
+    native_m1, native_m5 = tmp_path / "native_m1", tmp_path / "native_m5"
+    native_m1.mkdir(); native_m5.mkdir()
+    gen = tmp_path / "generations"
+    gen.mkdir()
+    pair, canonical, base28 = gen / "PAIR_MANIFEST.json", gen / "canonical.parquet", gen / "base28.parquet"
+    for path in (pair, canonical, base28):
+        path.write_text("fixture")
+    enriched = event / "m5_enriched.parquet"
+    enriched.write_text("fixture")
+    manifest = event / "m5_enriched.parquet.manifest.json"
+    manifest.write_text("fixture")
+    mtf, checkpoint = event / "MULTI_TF_V4_CACHE", event / "m5_enriched_checkpoint"
+    mtf.mkdir(); checkpoint.mkdir()
+    sha = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    args = [
+        event, event / "ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_20200101T000000Z.json",
+        event / "preflight", event / "dataset/output.parquet", event / "audit",
+        event / "source.parquet", canonical, mtf, native_m5, pair, gen,
+        event / "exit_lifecycle", base28, native_m1, native_m5,
+        event / "m1_enriched.parquet", enriched, event / "m1_feature_base.parquet",
+        event / "m5_feature_base.parquet", event / "m1_checkpoint", checkpoint,
+        event / "cascade.json",
+        event / "rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_20200101.json",
+        event / "rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_20200101.json",
+        "2010-01-01Z", "2011-01-01Z", "2012-01-01Z", "2013-01-01Z", "2014-01-01Z",
+        "2015-01-01Z", "2016-01-01Z", "", "",
+    ]
+    args = [str(a).replace("-01-01Z", "-01-01T00:00:00Z") for a in args]
+
+    def run():
+        return subprocess.run([sys.executable, "-", *args], input=code, capture_output=True, text=True)
+
+    result = run()
+    assert result.returncode != 0 and "fresh event outputs required" in result.stderr
+    args[-2:] = [str(manifest), sha]
+    result = run()
+    assert result.returncode == 0, result.stderr
+    args[-1] = "0" * 64
+    result = run()
+    assert result.returncode != 0 and "reused M5 manifest SHA256 mismatch" in result.stderr
+    args[-1] = sha
+    downstream = event / "source.parquet"
+    downstream.write_text("partial")
+    result = run()
+    assert result.returncode != 0 and "fresh event outputs required" in result.stderr
+    downstream.unlink()
+    other = event / "other.json"
+    other.write_text(manifest.read_text())
+    args[-2] = str(other)
+    result = run()
+    assert result.returncode != 0 and "exact event-owned manifest" in result.stderr
+    assert source.index('require_registry_fit_windows M5') < source.index('CURRENT_STEP=m5-model-source')
+    assert 'model-native-m5-source-frame' in source

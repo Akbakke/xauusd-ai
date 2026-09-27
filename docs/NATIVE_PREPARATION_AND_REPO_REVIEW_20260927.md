@@ -57,3 +57,42 @@ oppstartsruter, gamle feilede tester og stale status-/artefaktreferanser. Én sa
 teststatus kan måles som del av denne bestilte revisjonen; gjenta deretter bare
 nødvendige kontroller. Lever funn med evidensklasse, rettelse, test og gjenværende
 usikkerhet. Teknisk ferdigstilling betyr ikke dokumentert edge eller treningstillatelse.
+
+## Målt M5-blokkering og kontrollert videreføring
+
+Første kjøring fra `f08497c8` avsluttet rødt 20:31 UTC i `m5-model-source`.
+Par, tidlig squeeze-fit og komplett M5-flate var ferdige. Leseren sammenlignet
+parprodusentens komplette native-deskriptor mot en eldre håndskrevet delmengde;
+`explicit_vedtak_id` var første av de ekstra feltene. Vedtaks-ID, native-manifest-
+hash og kilde stemmer. Leseren bruker nå parprodusentens eksakte feltprojeksjon;
+endrede eller ekstra bindinger avvises fortsatt.
+
+Kjeden har en eksplisitt, hash-bundet gjenbruksinngang for bare den komplette M5-
+flaten i samme event/run. Den unntar M5-parquet, manifest, cache og checkpoint fra
+freshness-kravet. Alle senere outputs må fortsatt være nye. Registerperioder,
+par/run/kildelinje, parquet-hash og skjema og full cache-kontroll utføres før ny
+modellkilde publiseres. Ingen automatisk oppdagelse eller delvis output godtas.
+Original rødt terminalbevis og logger bevares; videreføringen får egen kjøringsmappe.
+
+22 fokuserte tester består, inkludert ekte guard-eksekvering og endret/manglende
+lineage. Separat kontroll på faktiske bytes består: 1 153 078 M5-rader, komplett
+MTF-cache og uendrede inputbindinger (`M5_REUSE_VERIFICATION.json`). Dette er
+integritetsbevis, ikke læring. Videreføring:
+`HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M5_BINDING_20260927`.
+
+## Brukerens spørsmål om færre features
+
+Kompleksitet inngår nå uttrykkelig i repo-revisjonen. Aktiv kontrakteier returnerer
+241 signal-felt per M5-bar og 71 kontinuerlige kontekstfelt; tidsrammesekvenser
+kommer i tillegg. Antall inputverdier er ikke antall uavhengige signaler.
+Den tidligere formuleringen «altfor avansert» var sterkere enn evidensen.
+Heller ikke den eldre heuristikken «maks omtrent 15 felt» beviser en optimal grense.
+
+Undersøk eksakte/avledede duplikater, nesten konstante felt på faktiske
+beslutningsrader, overlapp mellom tidsrammer, endring mellom historiske perioder,
+parameterfordeling og aktive hjelpeoppgaver. Skill informasjonens innhold fra
+modellens kapasitet. Avhengighetsbevist død kode kan ryddes; prediktiv nytte og
+tap ved featurefjerning krever en avgrenset, forhåndsbundet sammenligning med
+samme senere perioder, kostmodell og baselines. Ingen featurefamilie slettes
+på mistanke, og ingen slik modelltrening startes automatisk. Byggingen bevarer
+komplette inputs slik at en senere begrunnet slanking kan gjenbruke dem.
