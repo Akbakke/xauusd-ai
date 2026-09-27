@@ -457,6 +457,21 @@ def load_cost_policy(path: Path, sha256: str) -> dict[str, Any]:
     return {"path": str(path), "sha256": sha256, "decision": policy.get("decision"), **parameters}
 
 
+def load_slippage_scenarios(path: Path, sha256: str) -> dict[str, float]:
+    """The bound policy's named latency-slippage sensitivity levels (bps per execution)."""
+    if _sha256_file(path) != sha256:
+        raise RuntimeError("WALKFORWARD_COST_POLICY_HASH_MISMATCH")
+    slippage = json.loads(path.read_text(encoding="utf-8"))["latency_slippage"]
+    scenarios = {str(s["name"]): float(s["bps_per_execution"]) for s in slippage["val_sensitivity_scenarios"]}
+    if (
+        set(scenarios) != {"low", "central", "high"}
+        or scenarios["central"] != float(slippage["central_bps_per_execution"])
+        or not all(np.isfinite(v) and v >= 0.0 for v in scenarios.values())
+    ):
+        raise RuntimeError("WALKFORWARD_COST_POLICY_SLIPPAGE_SCENARIOS_INVALID")
+    return scenarios
+
+
 def apply_cost_policy(long_bps: np.ndarray, short_bps: np.ndarray, elapsed_seconds: np.ndarray, policy: dict[str, Any]) -> tuple[np.ndarray, np.ndarray]:
     """Spread-inclusive outcomes minus two executions of slippage/commission and wall-clock financing."""
     executions = 2.0 * (policy["slippage_bps_per_execution"] + policy["commission_bps_per_execution"])

@@ -859,6 +859,23 @@ def test_cost_policy_nets_two_executions_and_side_financing(tmp_path: Path) -> N
         wf.load_cost_policy(path, "0" * 64)
 
 
+def test_slippage_scenarios_are_the_bound_policy_levels(tmp_path: Path) -> None:
+    import hashlib
+    slippage = {"central_bps_per_execution": 2.0, "val_sensitivity_scenarios": [
+        {"name": "low", "bps_per_execution": 1.0}, {"name": "central", "bps_per_execution": 2.0},
+        {"name": "high", "bps_per_execution": 4.0}]}
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps({"latency_slippage": slippage}), encoding="utf-8")
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert wf.load_slippage_scenarios(path, digest) == {"low": 1.0, "central": 2.0, "high": 4.0}
+    with pytest.raises(RuntimeError, match="COST_POLICY_HASH_MISMATCH"):
+        wf.load_slippage_scenarios(path, "0" * 64)
+    slippage["val_sensitivity_scenarios"][1]["bps_per_execution"] = 3.0
+    path.write_text(json.dumps({"latency_slippage": slippage}), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="SLIPPAGE_SCENARIOS_INVALID"):
+        wf.load_slippage_scenarios(path, hashlib.sha256(path.read_bytes()).hexdigest())
+
+
 def test_ridge_constant_alternative_wins_on_noise_and_loses_on_signal(monkeypatch: pytest.MonkeyPatch) -> None:
     rng = np.random.default_rng(3)
     n, p = 400, 300

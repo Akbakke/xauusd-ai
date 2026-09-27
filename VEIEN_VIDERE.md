@@ -32,7 +32,11 @@ seq513-bootstrapen (squeeze → C0 → par → kjede) står på pause; 2009-tape
 scalp-regler har null brutto retning etter spread (kost ~6 bps/rundtur); trendfiltre på D1 gir bare
 risikoreduksjon i bjørnemarkedet (beste t 1,87). Makrohendelser (FOMC/NFP/KPI) testet samme dag: **NO-GO 0/18**
 ([docs/MACRO_EVENT_BASELINES_RESULT_20260927.md](docs/MACRO_EVENT_BASELINES_RESULT_20260927.md)).
-Neste steg er et operatørvalg (se CURRENT_HANDOVER).
+**Bølge 1 (operatørvedtak 27.09):** fem intradag-mekanismer forhåndsregistrert i
+[docs/INTRADAY_MECHANISMS_PREREG_20260927.md](docs/INTRADAY_MECHANISMS_PREREG_20260927.md) — rundtall,
+oppsettene som speilede par over 2011–25, COMEX-momentum, LBMA-auksjonen og sesjoner/ORB på lokal klokke;
+beslutning på policyens low-slippage (1 bps per utførelse). Bølge 2 (OANDAs ordre-/posisjonsbok) krever
+operatørvedtak; bølge 3 (maskinlæring) bare innenfor en populasjon som blir GO/LOVENDE og bekreftes på VAL.
 
 ## Kodesteg
 

@@ -184,3 +184,20 @@ def test_build_end_to_end_on_synthetic_tape() -> None:
     assert len(frame) == 1000 and "M5:fvg_bull_event" in frame.columns and "H4:ema_stack" in frame.columns and "M5:pdh_dist_atr" in frame.columns
     assert np.isfinite(frame.drop(columns=["time"]).to_numpy(np.float64)).all()
     assert set(stats) == set(pp.TIMEFRAMES)
+
+
+def test_build_keep_columns_limits_output_and_fails_closed_on_unknown_names() -> None:
+    time = pd.date_range("2024-01-01T22:00:00Z", periods=5 * 288, freq="5min")
+    n = len(time)
+    rng = np.random.default_rng(1)
+    close = 2000 + np.cumsum(rng.normal(0, 0.5, n))
+    tape = pd.DataFrame({"time": time, "open": close, "high": close + 0.5, "low": close - 0.5, "close": close, "volume": np.ones(n)})
+    decision = pd.DatetimeIndex(time[300:1300])
+    full, _ = pp.build(tape, decision, _params())
+    keep = frozenset({"M5:pdh_break_event", "H4:ema_stack"})
+    frame, _ = pp.build(tape, decision, _params(), keep_columns=keep)
+    assert set(frame.columns) == {"time", *keep}
+    for column in keep:
+        assert frame[column].equals(full[column])
+    with pytest.raises(RuntimeError, match="PATTERN_KEEP_COLUMNS_MISSING"):
+        pp.build(tape, decision, _params(), keep_columns=frozenset({"H4:no_such_field"}))

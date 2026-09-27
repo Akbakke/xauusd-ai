@@ -585,7 +585,10 @@ def sample_last_closed(bar_labels: pd.DatetimeIndex, values: pd.DataFrame, decis
     return sampled
 
 
-def build(tape: pd.DataFrame, decision_time: pd.DatetimeIndex, params: Params) -> tuple[pd.DataFrame, dict[str, Any]]:
+def build(
+    tape: pd.DataFrame, decision_time: pd.DatetimeIndex, params: Params, *, keep_columns: frozenset[str] | None = None
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Primitives per decision row; ``keep_columns`` (``TF:name``) limits the sampled output."""
     blocks: list[pd.DataFrame] = []
     stats: dict[str, Any] = {}
     for tf in TIMEFRAMES:
@@ -593,12 +596,19 @@ def build(tape: pd.DataFrame, decision_time: pd.DatetimeIndex, params: Params) -
         frame = compute_timeframe_primitives(bars, params)
         if tf == "M5":
             frame = pd.concat([frame, session_anchored_levels(tape, frame["atr"].to_numpy(np.float64), age_cap=params.age_cap_bars)], axis=1)
-        sampled = sample_last_closed(pd.DatetimeIndex(bars.index), frame, decision_time, tf)
+        if keep_columns is not None:
+            wanted = [c for c in frame.columns if f"{tf}:{c}" in keep_columns]
+            frame_for_sampling = frame[wanted]
+        else:
+            frame_for_sampling = frame
+        sampled = sample_last_closed(pd.DatetimeIndex(bars.index), frame_for_sampling, decision_time, tf)
         blocks.append(sampled)
         stats[tf] = {"bars": int(len(bars)), "fields": int(frame.shape[1])}
         for name in ("fvg_bull_event", "fvg_bear_event", "ob_bull_event", "ob_bear_event", "eqh_form_event", "eql_form_event", "bull_flag_breakout_event", "bear_flag_breakout_event", "range_break_up_event"):
             stats[tf][f"rate_{name}"] = float(np.mean(frame[name].to_numpy()))
     out = pd.concat([pd.DataFrame({"time": decision_time})] + blocks, axis=1)
+    if keep_columns is not None and set(out.columns) - {"time"} != set(keep_columns):
+        raise RuntimeError("PATTERN_KEEP_COLUMNS_MISSING: " + ",".join(sorted(set(keep_columns) - set(out.columns))))
     if not np.isfinite(out.drop(columns=["time"]).to_numpy(np.float64)).all():
         raise RuntimeError("PATTERN_OUTPUT_NONFINITE")
     return out, stats
