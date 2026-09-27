@@ -41,6 +41,8 @@ VOLATILITY_SQUEEZE_MANIFEST_SHA256=
 REUSE_M5_ENRICHED_MANIFEST=
 REUSE_M5_ENRICHED_MANIFEST_SHA256=
 REUSE_M5_SOURCE_MANIFEST_SHA256=
+REUSE_SIGNAL_MANIFEST=
+REUSE_SIGNAL_MANIFEST_SHA256=
 
 usage() {
   printf '%s\n' \
@@ -60,7 +62,8 @@ usage() {
     "  [--reuse-m5-enriched-manifest /exact/event/m5_enriched.parquet.manifest.json" \
     "   --reuse-m5-enriched-manifest-sha256 SHA256]" \
     "  [--reuse-m5-source-manifest-sha256 SHA256] (requires explicit M5 lane reuse)" \
-    "  Reuse admits only complete M5 outputs; all later outputs must remain fresh." \
+    "  [--reuse-signal-manifest PATH --reuse-signal-manifest-sha256 SHA256]" \
+    "  Reuse admits exact complete upstream artifacts; M1 and later outputs remain fresh." \
     "  --history-start UTC --train-start UTC --train-end UTC" \
     "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
@@ -208,6 +211,18 @@ while (($#)); do
       REUSE_M5_ENRICHED_MANIFEST_SHA256=$2
       shift 2
       ;;
+    --reuse-signal-manifest)
+      (($# >= 2)) || die_args "--reuse-signal-manifest requires a value"
+      [[ -z $REUSE_SIGNAL_MANIFEST ]] || die_args "duplicate --reuse-signal-manifest"
+      REUSE_SIGNAL_MANIFEST=$2
+      shift 2
+      ;;
+    --reuse-signal-manifest-sha256)
+      (($# >= 2)) || die_args "--reuse-signal-manifest-sha256 requires a value"
+      [[ -z $REUSE_SIGNAL_MANIFEST_SHA256 ]] || die_args "duplicate --reuse-signal-manifest-sha256"
+      REUSE_SIGNAL_MANIFEST_SHA256=$2
+      shift 2
+      ;;
     --reuse-m5-source-manifest-sha256)
       (($# >= 2)) || die_args "--reuse-m5-source-manifest-sha256 requires a value"
       [[ -z $REUSE_M5_SOURCE_MANIFEST_SHA256 ]] || die_args "duplicate --reuse-m5-source-manifest-sha256"
@@ -247,6 +262,10 @@ fi
 [[ -n $REGISTRY_FIT_TRAIN_END ]] || REGISTRY_FIT_TRAIN_END=$TRAIN_END
 [[ -n $SQUEEZE_FIT_TRAIN_START ]] || SQUEEZE_FIT_TRAIN_START=$TRAIN_START
 [[ -n $SQUEEZE_FIT_TRAIN_END ]] || SQUEEZE_FIT_TRAIN_END=$TRAIN_END
+if [[ -n $REUSE_SIGNAL_MANIFEST || -n $REUSE_SIGNAL_MANIFEST_SHA256 ]]; then
+  [[ -n $REUSE_SIGNAL_MANIFEST && $REUSE_SIGNAL_MANIFEST_SHA256 =~ ^[0-9a-f]{64}$ && -n $REUSE_M5_SOURCE_MANIFEST_SHA256 ]] \
+    || die_args "signal reuse requires exact manifest/SHA256 and completed M5 source reuse"
+fi
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
 if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
   die_args "--run-id has invalid format"
@@ -294,6 +313,15 @@ PREFLIGHT_JSON=
 PREFLIGHT_SHA256=
 SOURCE_CASCADE="$EVENT/SEQ513_SOURCE_CASCADE_PROOF_${STAMP}.json"
 SOURCE_CASCADE_SHA256=
+if [[ -n $REUSE_SIGNAL_MANIFEST ]]; then
+  MANIFEST=$REUSE_SIGNAL_MANIFEST
+  SOURCE_CASCADE=$("$PY" - "$MANIFEST" <<'PY_REUSE_PATH'
+import json, sys
+print(json.load(open(sys.argv[1]))["feature_ranking"]["source_cascade"]["path"])
+PY_REUSE_PATH
+  ) || die_args "cannot read explicitly bound signal manifest"
+  M1_CHECKPOINT="$EVENT/m1_enriched_checkpoint_${STAMP}"
+fi
 PAIR_MANIFEST_SHA256=
 PAIR_GENERATION_ID=
 DATASET_REBUILD_TERMINAL_SHA256=
@@ -795,7 +823,7 @@ if ! "$PY" - \
   "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" "$VAL_START" "$VAL_END" \
   "$TEST_START" "$TEST_END" "$REUSE_M5_ENRICHED_MANIFEST" \
   "$REUSE_M5_ENRICHED_MANIFEST_SHA256" "$REUSE_M5_SOURCE_MANIFEST_SHA256" \
-  "$RUN_ID" >>"$LOG" 2>&1 <<'PYEOF'
+  "$RUN_ID" "$REUSE_SIGNAL_MANIFEST" "$REUSE_SIGNAL_MANIFEST_SHA256" >>"$LOG" 2>&1 <<'PYEOF'
 import hashlib
 import re
 import sys
@@ -839,6 +867,8 @@ import pandas as pd
     raw_reuse_m5_sha256,
     raw_reuse_m5_source_sha256,
     run_id,
+    raw_reuse_signal_manifest,
+    raw_reuse_signal_manifest_sha256,
 ) = sys.argv[1:]
 
 
@@ -939,7 +969,7 @@ ranking_pattern = re.compile(
     r"(?P<stamp>\d{8}T\d{6}(?:\d{6})?Z)\.json"
 )
 ranking_match = ranking_pattern.fullmatch(ranking.name)
-if ranking.exists() or ranking.is_symlink() or ranking_match is None:
+if (not raw_reuse_signal_manifest and ranking.exists()) or ranking.is_symlink() or ranking_match is None:
     raise RuntimeError(f"feature ranking output must be a fresh timestamped JSON: {ranking}")
 ranking_stamp_raw = ranking_match.group("stamp")
 ranking_stamp_format = (
@@ -1105,6 +1135,33 @@ if raw_reuse_m5_source_sha256:
     if completed.get("output_parquet_sha256") != output_seal.sha256 or completed.get("output_parquet_size_bytes") != output_seal.size_bytes:
         raise RuntimeError("reused M5 source parquet hash/size mismatch")
     fresh_paths = [path for path in fresh_paths if path not in {source, source_manifest_path}]
+if raw_reuse_signal_manifest:
+    from gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 import (
+        validate_signal_manifest_training_lineage,
+    )
+    from gx1.contracts.entry_causal_m1_target_policy_v1 import causal_m1_policy_fit_train_end
+    manifest = exact_path(raw_reuse_signal_manifest, label="reused signal manifest")
+    manifest.relative_to(event)
+    if not manifest.is_file() or hashlib.sha256(manifest.read_bytes()).hexdigest() != raw_reuse_signal_manifest_sha256:
+        raise RuntimeError("reused signal manifest SHA256 mismatch")
+    lineage = validate_signal_manifest_training_lineage(
+        manifest_path=manifest, feature_ranking_path=ranking,
+        expected_run_id=run_id, expected_source_parquet=source,
+        expected_source_sha256=output_seal.sha256,
+        expected_canonical_v2_parquet=canonical, expected_mtf_cache_dir=mtf,
+        expected_history_start_utc=raw_history_start,
+        expected_time_max_utc=raw_test_end,
+        expected_train_start_utc=raw_train_start,
+        expected_train_end_utc=causal_m1_policy_fit_train_end(pd.Timestamp(raw_train_end)).isoformat(),
+    )
+    if Path(lineage["source_cascade"]["path"]) != source_cascade:
+        raise RuntimeError("reused signal source cascade path mismatch")
+    if lineage["source_cascade"]["pair_generation_id"] != pair_meta["pair_generation_id"]:
+        raise RuntimeError("reused signal pair generation mismatch")
+    # These producers are complete and will not be invoked. Their checkpoints
+    # remain evidence only. M1 receives a new namespace; partial M1 is never read.
+    reusable = {ranking, source_cascade, event / "_ranker_checkpoint.npz", event / "_ranker_group_a_checkpoint"}
+    fresh_paths = [path for path in fresh_paths if path not in reusable]
 existing = [str(path) for path in fresh_paths if path.exists() or path.is_symlink()]
 if audit.exists() or audit.is_symlink():
     existing.append(str(audit))
@@ -1392,7 +1449,7 @@ CURRENT_STEP=source-cascade
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
-if ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
+if [[ -z $REUSE_SIGNAL_MANIFEST ]] && ! (cd "$ENG" && bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- \
   "$PY" -m gx1.scripts.materialize_current_pair_source_cascade_proof_v1 \
   --run-id "$RUN_ID" \
   --source-parquet "$SRC" \
@@ -1443,7 +1500,7 @@ run_feature_ranker() {
     --train-end "$TRAIN_END" \
     --out "$RANKING")
 }
-if ! run_feature_ranker >>"$LOG" 2>&1; then
+if [[ -z $REUSE_SIGNAL_MANIFEST ]] && ! run_feature_ranker >>"$LOG" 2>&1; then
   if [[ -f $EVENT/_ranker_checkpoint.npz || -f $EVENT/_ranker_group_a_checkpoint/CHECKPOINT_MANIFEST.json ]]; then
     CURRENT_STEP=feature-ranking-exact-checkpoint-resume
     write_status "$CURRENT_STEP" RUNNING "first capped attempt failed; exact checkpoint retry" 0
@@ -1470,20 +1527,26 @@ printf '[chain] ranking=%s sha256=%s\n' "$RANKING" "$RANKING_SHA256" >>"$LOG"
 # be newer than ranking and no more than five minutes old.  This is allocation,
 # never discovery; no glob, mtime, latest alias, or existing manifest is read.
 CURRENT_STEP=signal-manifest
+if [[ -z $REUSE_SIGNAL_MANIFEST ]]; then
 MANIFEST_STAMP=$("$PY" -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))')
 MANIFEST="$EVENT/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_${MANIFEST_STAMP}.json"
 [[ ! -e $MANIFEST && ! -L $MANIFEST ]] || fail "fresh signal manifest allocation collided"
+fi
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
-if ! (cd "$ENG" && "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 \
+if [[ -z $REUSE_SIGNAL_MANIFEST ]] && ! (cd "$ENG" && "$PY" -m gx1.scripts.materialize_entry_model_native_seq513_signal_manifest_v1 \
   --feature-ranking-json "$RANKING" \
   --out "$MANIFEST" \
   --run-id "$RUN_ID") >>"$LOG" 2>&1; then
   fail "signal manifest materialization failed"
 fi
 MANIFEST_SHA256=$(hash_file "$MANIFEST")
+if [[ -n $REUSE_SIGNAL_MANIFEST ]]; then
+  [[ $MANIFEST_SHA256 == "$REUSE_SIGNAL_MANIFEST_SHA256" ]] || fail "reused signal manifest changed"
+  printf '[chain] explicit completed signal lineage reused; no ranker/signal producer invoked\n' >>"$LOG"
+fi
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_source_cascade_unchanged
 require_pair_unchanged

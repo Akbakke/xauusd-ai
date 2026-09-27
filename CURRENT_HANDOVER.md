@@ -21,7 +21,7 @@ til målt fullt definert kontekst 2010-06-14 22:00 UTC. Det gir de påkrevde 252
 lukkede D1-barene før uendret TRAIN-start 2011-06-01. Markedsidentitet og komplett
 MTF-preflight består; se forberedelsesrapporten for bevis. Ferdige outputs
 gjenbrukes med eksplisitte manifest-hasher; runtime-terminaler avgjør nåstatus:
-`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_NATIVE_QUOTE_GEOMETRY_20260927`.
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_MEMORY_20260928`.
 En serialiseringsfeil i arkitekturkontrollen er rettet (JSON-nøkkelrekkefølge);
 32 tester og den faktiske gjenbruksvakten består.
 M1-geometrifeilen er lokalisert til noen låste BID/ASK-quotes 2012-12-12.
@@ -29,6 +29,14 @@ Leserne følger nå samme ASK >= BID-kontrakt som native-kilden; råpriser og ko
 er uendret. 189 tester og kontroll av faktisk M1/fill-flate består.
 Feature-/modellslanking inngår i repo-revisjonen. 241 signal-felt omfatter også
 71 kontinuerlige kontekstfelt; antall inputs alene er ikke bevis for overtilpasning.
+
+Rangering og signalmanifest er nå ferdige (67 kandidater, 994 500 TRAIN-rader).
+M1 stoppet kontrollert ved 9,50 GiB før Group-A. Valideringens midlertidige
+matriser og fullhistorikkbuffer for enkeltradskontroll er redusert uten å endre
+features. Syntetisk kontroll med 6 019 349 rader/ti felt: toppminne 1 502 → 595 MiB.
+Den ferdige signal-/rangeringslinjen kan gjenbrukes eksplisitt gjennom eksisterende
+lineage-validering; M1 bruker ferskt checkpoint-rom. Faktisk kjøring og terminal,
+ikke denne forberedelsesbeskrivelsen, avgjør om hele M1-løpet nå består.
 
 ## Fullført forskningsresultat — ikke gjeldende startinstruks
 

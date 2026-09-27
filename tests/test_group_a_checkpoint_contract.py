@@ -54,7 +54,10 @@ def _install_exact_fake_math(monkeypatch: pytest.MonkeyPatch) -> list[tuple[int,
 
     def serial(_ctx, ts, lo, hi, *, extract):
         out = {name: np.full(len(ts), np.nan, dtype=np.float32) for name in extract}
-        rows = np.arange(lo, hi, dtype=np.float32)
+        # Values belong to timestamps in the shared context, not positions
+        # within the requested output axis. Parity must request just one row.
+        assert len(ts) == 1 and lo == 0 and hi == 1
+        rows = ((ts.asi8[lo:hi] - _frame()["time"].iloc[0].value) / (5 * 60 * 10**9)).astype(np.float32)
         out["feature_a"][lo:hi] = rows
         out["feature_b"][lo:hi] = rows + 100.0
         return out

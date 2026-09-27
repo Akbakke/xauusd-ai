@@ -553,7 +553,7 @@ def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
     args = [str(a).replace("-01-01Z", "-01-01T00:00:00Z") for a in args]
 
     def run():
-        return subprocess.run([sys.executable, "-", *args], input=code, capture_output=True, text=True)
+        return subprocess.run([sys.executable, "-", *args, "", ""], input=code, capture_output=True, text=True)
 
     result = run()
     assert result.returncode != 0 and "fresh event outputs required" in result.stderr
@@ -630,3 +630,54 @@ def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
     downstream.write_text("modified bytes")
     result = run()
     assert result.returncode != 0 and "reused M5 source parquet hash/size mismatch" in result.stderr
+
+
+def test_signal_reuse_validates_lineage_and_fit_boundary_before_exempting_paths(tmp_path, monkeypatch):
+    import hashlib
+    from types import SimpleNamespace
+    import pandas as pd
+    import pytest
+    from gx1.scripts import materialize_entry_model_native_seq513_signal_manifest_v1 as owner
+
+    source = SCRIPT.read_text()
+    start = source.index('if raw_reuse_signal_manifest:\n')
+    block = source[start:source.index('existing = [str(path)', start)]
+    manifest = tmp_path / 'signal.json'
+    manifest.write_text('{}')
+    ranking = tmp_path / 'ranking.json'
+    cascade = tmp_path / 'cascade.json'
+    downstream = tmp_path / 'm1.parquet'
+    fresh = [ranking, cascade, tmp_path / '_ranker_checkpoint.npz', downstream]
+    calls = []
+    def validate(**kwargs):
+        calls.append(kwargs)
+        return {'source_cascade': {'path': str(cascade), 'pair_generation_id': 'pair'}}
+    monkeypatch.setattr(owner, 'validate_signal_manifest_training_lineage', validate)
+    def env():
+        return dict(raw_reuse_signal_manifest=str(manifest),
+                    raw_reuse_signal_manifest_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                    exact_path=lambda raw, **kwargs: Path(raw), event=tmp_path,
+                    hashlib=hashlib, Path=Path, pd=pd, ranking=ranking,
+                    run_id='fixture', source=tmp_path/'source.parquet',
+                    output_seal=SimpleNamespace(sha256='source-sha'), canonical=tmp_path/'canonical.parquet',
+                    mtf=tmp_path/'MTF', raw_history_start='2010-01-01T00:00:00Z',
+                    raw_test_end='2026-08-31T23:55:00Z', raw_train_start='2011-06-01T00:00:00Z',
+                    raw_train_end='2025-05-31T23:59:59Z', source_cascade=cascade,
+                    pair_meta={'pair_generation_id':'pair'}, fresh_paths=list(fresh))
+    scope = env()
+    exec(compile(block, 'actual_signal_reuse_guard', 'exec'), scope)
+    assert scope['fresh_paths'] == [downstream]
+    assert calls[-1]['expected_train_end_utc'] == '2025-05-31T23:54:59+00:00'
+    assert calls[-1]['feature_ranking_path'] == ranking
+    assert calls[-1]['expected_source_sha256'] == 'source-sha'
+    scope = env(); scope['raw_reuse_signal_manifest_sha256'] = '0'*64
+    with pytest.raises(RuntimeError, match='SHA256 mismatch'):
+        exec(compile(block, 'actual_signal_reuse_guard', 'exec'), scope)
+    assert scope['fresh_paths'] == fresh and len(calls) == 1
+    def rejected(**kwargs):
+        raise RuntimeError('lineage fixture rejected')
+    monkeypatch.setattr(owner, 'validate_signal_manifest_training_lineage', rejected)
+    scope = env()
+    with pytest.raises(RuntimeError, match='lineage fixture rejected'):
+        exec(compile(block, 'actual_signal_reuse_guard', 'exec'), scope)
+    assert scope['fresh_paths'] == fresh

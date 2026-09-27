@@ -154,3 +154,35 @@ og fill-surface-validering består på alle 5 648 218 M1- og 1 153 078 M5-rader;
 Det beviser datakontraktkonsistens, ikke virkelig meglerfill eller edge.
 Videreføring: `CONTINUE_NATIVE_QUOTE_GEOMETRY_20260927`, samme ferdige inputs
 og tidsvinduer. Historiske terminaler, output og source-cascade-bevis bevares.
+
+## M1-minne og gjenbruk av ferdig signalmanifest — 28.09
+
+Rangering fra `7f100ba2` ble ferdig: 67 kandidater, 994 500 TRAIN-rader, ingen
+helt konstante eller eksakt like felt innad i kandidatgruppen. Dette utelukker
+ikke informasjonsmessig overlapp med basefelter, obligatoriske felt eller MTF.
+Signalmanifestet er også ferdig. M1 stoppet 27.09 22:36 UTC med
+`before_group_a_attach rss_gib=9.50 ceiling_gib=9.00`. Hele native M1-roten har
+6 019 349 rader; parbundet BASE28 brukt i geometrikontrollen har 5 648 218.
+
+Warmup-validering bygget en full float64-matrise og pandas-mellomkopier av ti
+felt. Samme finitthets-/prefikskontroll gjøres nå kolonnevis. Group-A-sluttkontroll
+bruker også kolonnevis finitthet; serial parity bruker samme fulle kontekst,
+men allokerer bare den ene etterspurte outputraden. Uendrede featureverdier,
+kausalitetsregler og minnegrenser. 35 fokuserte tester består. Syntetisk
+6 019 349 × 10-kontroll ga identisk trim og topp-RSS 1 501,8 → 595,0 MiB;
+dette er ikke en måling av hele produksjonsløpet.
+
+`--reuse-signal-manifest` med eksakt SHA256 krever ferdig M5-gjenbruk. Den
+allerede eksisterende lineage-eieren revaliderer manifest/rangering/kilde/cache,
+par, gjeldende kontrakter og eksakte tidsvinduer. Fit-slutt kommer fra samme
+`causal_m1_policy_fit_train_end` som ranker og preflight. Rangering, signal og
+source-cascade gjenkjøres ikke. Delvis M1 og tomt gammelt checkpoint bevares;
+ny M1 bruker ferskt navn. M1-registry-fit ble ikke publisert før stopp og kan
+ikke gjenbrukes. Videreføringen ligger i `CONTINUE_M1_MEMORY_20260928` under
+forberedelsesroten. Trening er fortsatt deaktivert; full repo-revisjon gjenstår.
+
+Den faktiske gjenbruksvakten består på de ferdige filene
+(`actual_signal_reuse_guard.log`); feil SHA og run-identitet avvises av samme
+kjørte guard (`signal_reuse_negative_guard.log`). 19 eksisterende kjede-/signal-
+tester samt ny test av fit-grense og avvisning før gjenbruk består. Samlet 55
+målrettede tester for denne rettelsen. Ingen native optimizer eller epoch er kjørt.

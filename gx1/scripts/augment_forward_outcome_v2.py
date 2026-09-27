@@ -96,8 +96,14 @@ def trim_causal_context_warmup_prefix(
     missing = [name for name in required if name not in frame.columns]
     if missing:
         raise RuntimeError(f"[CTX_WARMUP_TRIM] required columns missing: {missing}")
-    values = frame[required].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=np.float64)
-    invalid = ~np.isfinite(values).all(axis=1)
+    # Validate one column at a time. A full float64 matrix plus pandas' copy
+    # adds hundreds of MiB on the native M1 clock, after feature construction
+    # has already reached the producer's RSS ceiling. Keep identical coercion
+    # and row validity without materializing another N-by-feature matrix.
+    invalid = np.zeros(len(frame), dtype=bool)
+    for name in required:
+        values = pd.to_numeric(frame[name], errors="coerce").to_numpy(dtype=np.float64)
+        invalid |= ~np.isfinite(values)
     if not invalid.any():
         return frame
     first_valid = int(np.argmax(~invalid)) if (~invalid).any() else len(frame)
@@ -1643,11 +1649,14 @@ def attach_group_a_ctx_columns_parallel(
         .astype(int)
     ]
     for i in picks:
+        # The serial owner uses the full context for every timestamp, but
+        # only this timestamp needs an output buffer. Passing the whole axis
+        # allocated N rows per feature for each single-row parity check.
         serial = compute_attach_rows(
-            ctx, ts_index, int(i), int(i) + 1, extract=extract
+            ctx, ts_index[int(i):int(i) + 1], 0, 1, extract=extract
         )
         for k in extract:
-            a = np.float32(serial[k][int(i)])
+            a = np.float32(serial[k][0])
             b = cols[k][int(i)]
             if not (a == b or (np.isnan(a) and np.isnan(b))):
                 raise RuntimeError(
@@ -1767,8 +1776,9 @@ def finalize_attach_columns(
         MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS as _GROUP_A,
     )
     out_cols = {k: cols[k] for k in _GROUP_A}
-    values = np.column_stack([out_cols[name] for name in _GROUP_A])
-    valid = np.isfinite(values).all(axis=1)
+    valid = np.ones(len(df), dtype=bool)
+    for values in out_cols.values():
+        valid &= np.isfinite(values)
     if not valid.any():
         raise RuntimeError("[CTX_CONT_PARITY] no complete causal context row exists")
     result = df.copy(deep=False)
