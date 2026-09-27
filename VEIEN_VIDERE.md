@@ -37,6 +37,11 @@ risikoreduksjon i bjørnemarkedet (beste t 1,87). Makrohendelser (FOMC/NFP/KPI) 
 oppsettene som speilede par over 2011–25, COMEX-momentum, LBMA-auksjonen og sesjoner/ORB på lokal klokke;
 beslutning på policyens low-slippage (1 bps per utførelse). Bølge 2 (OANDAs ordre-/posisjonsbok) krever
 operatørvedtak; bølge 3 (maskinlæring) bare innenfor en populasjon som blir GO/LOVENDE og bekreftes på VAL.
+**Resultat bølge 1: NO-GO 0/61** ([docs/INTRADAY_MECHANISMS_RESULT_20260927.md](docs/INTRADAY_MECHANISMS_RESULT_20260927.md)):
+ingen celle er positiv netto selv ved low-slippage. Etterpåanalysen viser et svakt fortsettelsessignal etter brudd
+(mid +1–2,5 bps, t 2,3–3,8) som er mindre enn rundtur-spreaden (2,3–2,7 bps). Bølge 3 har ingen populasjon.
+Neste er et operatørvalg: bølge 2 (ordre-/posisjonsbok), VAL-bekreftelse av fortsettelsescellene på mid, eller
+swing-sporet.
 
 ## Kodesteg
 

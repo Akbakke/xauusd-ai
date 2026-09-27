@@ -13,8 +13,9 @@
 - `docs/DIRECTION_TIMESCALE_20260926.md` — retning vs. tidsskala, svingninger, ukesmåling,
   8-timers-taket, direkte mål og vent-mål.
 - `docs/CONSOLIDATION_20260926.md` — sammenslåingen og planen for M2–M4.
-- `docs/INTRADAY_MECHANISMS_PREREG_20260927.md` — bølge 1: rundtall, oppsett med bjørnemarked,
-  COMEX-momentum, LBMA-auksjonen og lokale klokker (61 celler, kjøres).
+- `docs/INTRADAY_MECHANISMS_PREREG_20260927.md` + `docs/INTRADAY_MECHANISMS_RESULT_20260927.md` — bølge 1:
+  rundtall, oppsett med bjørnemarked, COMEX-momentum, LBMA-auksjonen og lokale klokker (NO-GO 0/61;
+  svakt fortsettelsessignal på mid, under spreaden).
 - `docs/MACRO_EVENT_BASELINES_PREREG_20260927.md` + `docs/MACRO_EVENT_BASELINES_RESULT_20260927.md` —
   planlagte makrohendelser (NO-GO 0/18).
 - `docs/MODEL_FREE_BASELINES_PREREG_20260927.md` + `docs/MODEL_FREE_BASELINES_RESULT_20260927.md` —
