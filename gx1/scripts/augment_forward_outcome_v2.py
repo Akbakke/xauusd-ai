@@ -28,7 +28,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-REPO = Path("/home/andre2/src/GX1_ENGINE")
+# The repository this module belongs to (the canonical codebase); never the archived worktree.
+REPO = Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
