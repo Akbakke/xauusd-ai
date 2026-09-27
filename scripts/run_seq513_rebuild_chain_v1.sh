@@ -31,7 +31,10 @@ TEST_START=
 TEST_END=
 M1_LIFECYCLE_PAIR_MANIFEST=
 M1_LIFECYCLE_PAIR_GENERATION_ROOT=
+REGISTRY_FIT_TRAIN_START=
 REGISTRY_FIT_TRAIN_END=
+SQUEEZE_FIT_TRAIN_START=
+SQUEEZE_FIT_TRAIN_END=
 REGISTRY_FIT_INNER_END=
 VOLATILITY_SQUEEZE_MANIFEST=
 VOLATILITY_SQUEEZE_MANIFEST_SHA256=
@@ -46,7 +49,9 @@ usage() {
     "  Exit target policy is fit and hash-bound from TRAIN native M1" \
     "  Entry direction/early-move policy is fit on TRAIN native M5" \
     "  --registry-fit-inner-end UTC (required chronological inner-TRAIN boundary)" \
-    "  [--registry-fit-train-end UTC (defaults to --train-end: same value, one origin)]" \
+    "  [--registry-fit-train-start UTC --registry-fit-train-end UTC]" \
+    "  [--volatility-squeeze-fit-start UTC --volatility-squeeze-fit-end UTC]" \
+    "  Fit windows default to the dataset TRAIN window; explicit earlier calibration is allowed." \
     "  --volatility-squeeze-manifest /absolute/immutable/six-clock/manifest.json" \
     "  --volatility-squeeze-manifest-sha256 SHA256" \
     "  --history-start UTC --train-start UTC --train-end UTC" \
@@ -148,6 +153,24 @@ while (($#)); do
       REGISTRY_FIT_INNER_END=$2
       shift 2
       ;;
+    --registry-fit-train-start)
+      (($# >= 2)) || die_args "--registry-fit-train-start requires a value"
+      [[ -z $REGISTRY_FIT_TRAIN_START ]] || die_args "duplicate --registry-fit-train-start"
+      REGISTRY_FIT_TRAIN_START=$2
+      shift 2
+      ;;
+    --volatility-squeeze-fit-start)
+      (($# >= 2)) || die_args "--volatility-squeeze-fit-start requires a value"
+      [[ -z $SQUEEZE_FIT_TRAIN_START ]] || die_args "duplicate --volatility-squeeze-fit-start"
+      SQUEEZE_FIT_TRAIN_START=$2
+      shift 2
+      ;;
+    --volatility-squeeze-fit-end)
+      (($# >= 2)) || die_args "--volatility-squeeze-fit-end requires a value"
+      [[ -z $SQUEEZE_FIT_TRAIN_END ]] || die_args "duplicate --volatility-squeeze-fit-end"
+      SQUEEZE_FIT_TRAIN_END=$2
+      shift 2
+      ;;
     --registry-fit-train-end)
       (($# >= 2)) || die_args "--registry-fit-train-end requires a value"
       [[ -z $REGISTRY_FIT_TRAIN_END ]] || die_args "duplicate --registry-fit-train-end"
@@ -184,14 +207,13 @@ for name in \
   VOLATILITY_SQUEEZE_MANIFEST_SHA256; do
   [[ -n ${!name} ]] || die_args "required argument missing: $name"
 done
-# The V29 registry TRAIN-fit window end defaults to the chain's one declared
-# --train-end: same value, one origin (the chain's split authority), so the
-# registry constants are fitted on exactly the TRAIN population the rebuild
-# declares (rule 2g).  An explicit --registry-fit-train-end overrides only by
-# operator decision.
-if [[ -z $REGISTRY_FIT_TRAIN_END ]]; then
-  REGISTRY_FIT_TRAIN_END=$TRAIN_END
-fi
+# Explicit preprocessing windows may precede the model TRAIN population.
+# Omitted bounds reuse the dataset TRAIN bound itself, never an inferred date.
+# Registry and squeeze remain independently declared; every fit must end by TRAIN end.
+[[ -n $REGISTRY_FIT_TRAIN_START ]] || REGISTRY_FIT_TRAIN_START=$TRAIN_START
+[[ -n $REGISTRY_FIT_TRAIN_END ]] || REGISTRY_FIT_TRAIN_END=$TRAIN_END
+[[ -n $SQUEEZE_FIT_TRAIN_START ]] || SQUEEZE_FIT_TRAIN_START=$TRAIN_START
+[[ -n $SQUEEZE_FIT_TRAIN_END ]] || SQUEEZE_FIT_TRAIN_END=$TRAIN_END
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
 if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
   die_args "--run-id has invalid format"
@@ -671,7 +693,7 @@ if ! "$PY" - \
   "$VOLATILITY_SQUEEZE_MANIFEST" \
   "$VOLATILITY_SQUEEZE_MANIFEST_SHA256" \
   "$M1_LIFECYCLE_PAIR_MANIFEST" "$PAIR_MANIFEST_SHA256" \
-  "$PAIR_GENERATION_ID" "$TRAIN_START" "$TRAIN_END" >>"$LOG" 2>&1 <<'PYEOF'
+  "$PAIR_GENERATION_ID" "$SQUEEZE_FIT_TRAIN_START" "$SQUEEZE_FIT_TRAIN_END" >>"$LOG" 2>&1 <<'PYEOF'
 import json
 import sys
 from pathlib import Path
@@ -703,15 +725,15 @@ PYEOF
 then
   fail "volatility-squeeze six-clock artifact identity validation failed"
 fi
-if ! "$PY" - "$TRAIN_START" "$REGISTRY_FIT_INNER_END" "$REGISTRY_FIT_TRAIN_END" \
-  "$TRAIN_END" <<'PYEOF'
+if ! "$PY" - "$REGISTRY_FIT_TRAIN_START" "$REGISTRY_FIT_INNER_END" "$REGISTRY_FIT_TRAIN_END" \
+  "$TRAIN_END" "$SQUEEZE_FIT_TRAIN_START" "$SQUEEZE_FIT_TRAIN_END" <<'PYEOF'
 import sys
 import pandas as pd
 
-start, inner, end, train_end = (pd.Timestamp(value) for value in sys.argv[1:])
+start, inner, end, train_end, squeeze_start, squeeze_end = (pd.Timestamp(value) for value in sys.argv[1:])
 if any(
     value.tzinfo is None or value.utcoffset() != pd.Timedelta(0)
-    for value in (start, inner, end, train_end)
+    for value in (start, inner, end, train_end, squeeze_start, squeeze_end)
 ):
     raise RuntimeError("registry fit split must use timezone-aware UTC timestamps")
 if not start < inner < end:
@@ -723,6 +745,8 @@ if end > train_end:
     raise RuntimeError(
         "registry fit TRAIN end must not exceed the chain's declared --train-end"
     )
+if not squeeze_start < squeeze_end <= train_end:
+    raise RuntimeError("squeeze fit window must be nonempty and end by dataset TRAIN end")
 PYEOF
 then
   fail "registry chronological inner-TRAIN boundary is invalid"
@@ -1037,7 +1061,7 @@ require_pair_unchanged() {
 require_registry_fit_windows() {
   local lane=$1
   local manifest=$2
-  if ! "$PY" - "$lane" "$manifest" "$TRAIN_START" "$REGISTRY_FIT_TRAIN_END" \
+  if ! "$PY" - "$lane" "$manifest" "$REGISTRY_FIT_TRAIN_START" "$REGISTRY_FIT_TRAIN_END" \
     "$REGISTRY_FIT_INNER_END" "$M1_LIFECYCLE_PAIR_MANIFEST" \
     "$PAIR_MANIFEST_SHA256" >>"$LOG" 2>&1 <<'PYEOF'
 import json
@@ -1133,7 +1157,7 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --checkpoint-dir "$M5_CHECKPOINT" \
   --dataset-run-id "$RUN_ID" \
   --pair-generation-id "$PAIR_GENERATION_ID" \
-  --registry-fit-train-start "$TRAIN_START" \
+  --registry-fit-train-start "$REGISTRY_FIT_TRAIN_START" \
   --registry-fit-train-end "$REGISTRY_FIT_TRAIN_END" \
   --registry-fit-inner-end "$REGISTRY_FIT_INNER_END" \
   --registry-fit-tape-manifest "$TAPE_MANIFEST" \
@@ -1376,7 +1400,7 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --checkpoint-dir "$M1_CHECKPOINT" \
   --dataset-run-id "$RUN_ID" \
   --pair-generation-id "$PAIR_GENERATION_ID" \
-  --registry-fit-train-start "$TRAIN_START" \
+  --registry-fit-train-start "$REGISTRY_FIT_TRAIN_START" \
   --registry-fit-train-end "$REGISTRY_FIT_TRAIN_END" \
   --registry-fit-inner-end "$REGISTRY_FIT_INNER_END" \
   --registry-fit-tape-manifest "$TAPE_MANIFEST" \

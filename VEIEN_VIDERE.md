@@ -4,7 +4,15 @@ Rekkefølgen under er bindende. Hvert steg avsluttes med fokuserte tester, `git 
 og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om gangen via
 `scripts/gx1_capped_run.sh`.
 
-## Gjeldende stoppunkt etter fullført sammenligning 27.09
+## Gjeldende vedtak: native-forberedelse, så full repo-revisjon
+
+Følg [NATIVE_PREPARATION_AND_REPO_REVIEW_20260927](docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md).
+Brukeren har åpnet ferdigstilling av native inputs og nødvendige feilrettinger,
+deretter full repo-gjennomgang/opprydding før eventuell trening. `training_enabled=false`.
+Forrige forskningsplan skal ikke gjenkjøres; dens resultat sier ikke hva det nye
+native sekvens-/Entry-/Exit-oppsettet kan lære. Ingen automatisk treningsstart.
+
+## Historisk stoppunkt før brukerens nye vedtak
 
 [Tidlig kalibrering og korrigert historisk kontroll er fullført](docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md):
 begge modeller feiler den forhåndsregistrerte beslutningsporten. Ingen aktiv jobb.

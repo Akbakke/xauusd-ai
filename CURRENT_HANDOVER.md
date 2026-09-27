@@ -1,11 +1,21 @@
-# Gjeldende status — 27.09.2026: tidlig kalibrering ferdig, beslutningsport NO-GO
+# Gjeldende status — 27.09.2026: native-forberedelse og full repo-gjennomgang
 
 **Les først:** [GX1_RULES.md](GX1_RULES.md) (bindende regler), [AGENTS.md](AGENTS.md)
 (arbeidsmåte), [GX1_ARBEIDSMAAL.md](GX1_ARBEIDSMAAL.md) (mål og vedtak) og
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
 
-## Gjeldende resultat — fullført 27.09, ingen aktiv jobb
+## Nytt operatørvedtak: ferdigstill inputs, revider hele repoet, ingen trening
+
+Brukeren har autorisert [native-forberedelse og full repo-gjennomgang](docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md)
+før eventuell trening. Dette overstyrer tidligere forbud mot videre datasetbygging.
+Den konsoliderte native modellen med de nye inputene er ikke epoch-trent.
+Ridge/HGB-porten under er avsluttet forskning, ikke et bevist tak for native læring.
+Nå: ferdigstill den eksisterende byggekjeden med tidlig kalibrering; deretter
+full kartlegging, nødvendige feilrettinger og dokumentert opprydding.
+Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
+
+## Fullført forskningsresultat — ikke gjeldende startinstruks
 
 Codex har fullført tidlig kalibrering og én forhåndsbundet historisk sammenligning.
 [Endelig resultat: NO-GO](docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md).

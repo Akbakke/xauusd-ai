@@ -48,7 +48,7 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
         "model-native-m1-enriched-frame",
         "model-native-m5-feature-base",
         "model-native-m1-feature-base",
-        '--registry-fit-train-start "$TRAIN_START"',
+        '--registry-fit-train-start "$REGISTRY_FIT_TRAIN_START"',
         '--registry-fit-inner-end "$REGISTRY_FIT_INNER_END"',
         '--registry-fit-tape-manifest "$TAPE_MANIFEST"',
         '--expected-registry-fit-tape-manifest-sha256 "$TAPE_MANIFEST_SHA256"',
@@ -490,3 +490,24 @@ def test_chain_enforces_the_d1_receptive_field_warmup_from_its_owner() -> None:
 
     # The pre-existing local M5 sequence check is kept, not replaced.
     assert "pre_train_rows < 96" in source
+
+
+def test_explicit_early_calibration_bounds_execute_before_producers():
+    """Execute the actual guard: early fits pass, future or malformed fits fail."""
+    import sys
+    source = SCRIPT.read_text()
+    start = source.index('if ! "$PY" - "$REGISTRY_FIT_TRAIN_START" "$REGISTRY_FIT_INNER_END"')
+    begin = source.index("<<'PYEOF'\n", start) + len("<<'PYEOF'\n")
+    code = source[begin:source.index("\nPYEOF", begin)]
+    valid = ["2009-06-01T00:00:00Z", "2012-04-11T22:00:00Z", "2013-01-01T22:00:00Z",
+             "2025-05-31T23:59:59Z", "2009-06-01T00:00:00Z", "2013-01-01T22:00:00Z"]
+    result = subprocess.run([sys.executable, "-", *valid], input=code, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+    for index, value in [(2, "2026-01-01T00:00:00Z"), (5, "2026-01-01T00:00:00Z"),
+                         (1, valid[2]), (4, valid[5]), (0, "2009-06-01")]:
+        invalid = valid.copy(); invalid[index] = value
+        result = subprocess.run([sys.executable, "-", *invalid], input=code, text=True, capture_output=True)
+        assert result.returncode != 0, (index, value)
+    assert source.count('--registry-fit-train-start "$REGISTRY_FIT_TRAIN_START"') == 2
+    assert '"$PAIR_GENERATION_ID" "$SQUEEZE_FIT_TRAIN_START" "$SQUEEZE_FIT_TRAIN_END"' in source
+    assert '"$lane" "$manifest" "$REGISTRY_FIT_TRAIN_START" "$REGISTRY_FIT_TRAIN_END"' in source

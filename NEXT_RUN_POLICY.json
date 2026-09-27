@@ -1304,7 +1304,7 @@
     "sha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a"
   },
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "handover_resume_point": "docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md",
+  "handover_resume_point": "docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md",
   "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
   "last_diagnostic_failure": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/FAILURE.json",
@@ -1557,8 +1557,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
-  "next_action": "Completed bounded early-calibrated research: NO_GO_OR_INCONCLUSIVE. Read docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md and reuse corrected evidence. No active job; do not relaunch. No native training or full dataset rebuild. A new attempt requires a reasoned change in information or execution economics and a separate bounded preregistration.",
-  "observed_utc": "2026-09-27T18:16:01.032180+00:00",
+  "next_action": "User authorized finishing native inputs, then complete repository cleanup/debug/inspection before considering training. Follow docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md. Reuse completed early research; do not reinterpret ridge/HGB NO_GO as a native capacity result. Native training, optimizer steps, TEST evaluation, live/paper and spending remain blocked.",
+  "observed_utc": "2026-09-27T19:21:09.537367+00:00",
   "outer_guard_seconds": 13800,
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -1708,13 +1708,13 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PLAN.json",
     "sha256": "a83582d40a32444e92e346a9a15fcfe50cabe4a77fd3310e579246909fdf2fce"
   },
-  "rule": "Completed bounded early-calibrated research: NO_GO_OR_INCONCLUSIVE. Read docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md and reuse corrected evidence. No active job; do not relaunch. No native training or full dataset rebuild. A new attempt requires a reasoned change in information or execution economics and a separate bounded preregistration.",
+  "rule": "User authorized finishing native inputs, then complete repository cleanup/debug/inspection before considering training. Follow docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md. Reuse completed early research; do not reinterpret ridge/HGB NO_GO as a native capacity result. Native training, optimizer steps, TEST evaluation, live/paper and spending remain blocked.",
   "saved_optimizer_cause_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "EARLY_CALIBRATED_DECISION_RESEARCH_COMPLETE_NO_GO",
+  "status": "NATIVE_INPUT_PREPARATION_AUTHORIZED_TRAINING_BLOCKED",
   "tf32_allowed": false,
   "train_batch_size": 16,
   "train_observation_cutoff_review": {
@@ -1901,5 +1901,12 @@
     "active_job": false,
     "do_not_restart": true
   },
-  "historical_rule_before_early_decision_20260927": "Reuse these tests and the actual cohort/footprint. Add the minimal frozen ONLINE512 checkpoint binding and dedicated zero-optimizer TRAIN evaluation scope to the existing native campaign/dispatcher. Reuse native prefix TRAIN state factory, train_probe_ds, existing full evaluator and guards; do not use the old fitted-readout VAL5508 path or relaunch512. Bind one invocation, unchanged costs, batch256/workers8 and the existing three-hour window. No model, target or training changes. The fixed256 cohort is already bound. Its all-HOLD upper bound is3375234 shared state views and46573 native policy forwards at batch256; runtime is unmeasured. Three lifecycles meet the observation cutoff. Reuse these bounds, never reread CONTROL outcomes or repeat the completed cohort/gradient/learning audits. Keep the goal and Entry/Exit learning gate unchanged; this is technical measurement support, not evidence of new edge."
+  "historical_rule_before_early_decision_20260927": "Reuse these tests and the actual cohort/footprint. Add the minimal frozen ONLINE512 checkpoint binding and dedicated zero-optimizer TRAIN evaluation scope to the existing native campaign/dispatcher. Reuse native prefix TRAIN state factory, train_probe_ds, existing full evaluator and guards; do not use the old fitted-readout VAL5508 path or relaunch512. Bind one invocation, unchanged costs, batch256/workers8 and the existing three-hour window. No model, target or training changes. The fixed256 cohort is already bound. Its all-HOLD upper bound is3375234 shared state views and46573 native policy forwards at batch256; runtime is unmeasured. Three lifecycles meet the observation cutoff. Reuse these bounds, never reread CONTROL outcomes or repeat the completed cohort/gradient/learning audits. Keep the goal and Entry/Exit learning gate unchanged; this is technical measurement support, not evidence of new edge.",
+  "native_preparation_20260927": {
+    "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PLAN.json",
+    "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927",
+    "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927",
+    "training_enabled": false,
+    "status": "PREPARED_NOT_STARTED"
+  }
 }
