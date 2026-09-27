@@ -1304,7 +1304,7 @@
     "sha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a"
   },
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "handover_resume_point": "VEIEN_VIDERE.md; docs/WEEKLY_DIRECTION_RESULT_20260926.md; docs/CONSOLIDATION_20260926.md",
+  "handover_resume_point": "docs/HISTORY2009W_EARLY_DECISION_20260927.md",
   "historical_subrecords_notice": "Only top-level next_action and current NEXT_RUN_POLICY scope are current instructions; nested older next_action fields are historical evidence.",
   "last_diagnostic_failure": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/FAILURE.json",
@@ -1557,7 +1557,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "native_invocation_seconds": 12000,
-  "next_action": "Native XAU_USD M5 and M1 from 2006-03-19 to 2026-06-30 are published (docs/HISTORY_2005_INTAKE_20260926.md). Next: rebuild the dataset on the 2006 tapes (source-identity gate needs gx1/monitoring removed; squeeze refit; earliest valid TRAIN start from the longest lookback), then rerun the preregistered weekly measurement. No native training, full epoch, full VAL, CONTROL or TEST.",
+  "next_action": "Codex takeover: docs/HISTORY2009W_EARLY_DECISION_20260927.md. Complete early-calibrated canonical M5 feature production and one preregistered chronological D1/one-week ridge-HGB comparison, 2015-2025. No native training, TEST, live, paper or spending.",
   "observed_utc": "2026-09-26T22:25:54.314488+00:00",
   "outer_guard_seconds": 13800,
   "policy_consistent_entry_review": {
@@ -1887,5 +1887,11 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919_BOOT471/receipts/invocation-0001.json",
       "sha256": "27aba274cd4afd73e4601e4fb0fa7d94f1916896b7380a30a845ea2f2e63c913"
     }
+  },
+  "early_decision_research_20260927": {
+    "native_training_enabled": false,
+    "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/PREREGISTRATION.json",
+    "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927",
+    "status": "PREREGISTERED_NOT_EXECUTED"
   }
 }

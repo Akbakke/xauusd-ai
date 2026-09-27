@@ -1,0 +1,96 @@
+{
+  "schema_version": "gx1_bounded_early_decision_research_v1",
+  "research_only": true,
+  "operator_authorization": "2026-09-27: Codex takes over; early calibration before evaluation; one bounded comparison; positive decision value before native training.",
+  "created_utc": "2026-09-27T17:02:52.126872+00:00",
+  "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927",
+  "run_id": "HISTORY2009W_EARLY_DECISION_20260927",
+  "native_m5_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+  "bootstrap_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts",
+  "calibration_start": "2009-06-01T00:00:00Z",
+  "calibration_end_exclusive": "2013-01-01T22:00:00Z",
+  "registry_inner_boundary_rule": "80 percent of chronologically ordered calibration M5 timestamps, rounded down to the existing D1 open label; timestamps only",
+  "research_start": "2011-06-01T00:00:00Z",
+  "research_end_exclusive": "2025-06-01T00:00:00Z",
+  "fold_boundaries": [
+    "2015-06-01T00:00:00Z",
+    "2016-06-01T00:00:00Z",
+    "2017-06-01T00:00:00Z",
+    "2018-06-01T00:00:00Z",
+    "2019-06-01T00:00:00Z",
+    "2020-06-01T00:00:00Z",
+    "2021-06-01T00:00:00Z",
+    "2022-06-01T00:00:00Z",
+    "2023-06-01T00:00:00Z",
+    "2024-06-01T00:00:00Z",
+    "2025-06-01T00:00:00Z"
+  ],
+  "decision_clock": "D1",
+  "horizon_bars": 1440,
+  "feature_arms": [
+    "snapshot_mtf"
+  ],
+  "learners": [
+    "ridge",
+    "hgb"
+  ],
+  "target_scalings": [
+    "raw"
+  ],
+  "decision_rules": [
+    "argmax_flat"
+  ],
+  "seeds": [
+    0
+  ],
+  "inner_fraction": 0.2,
+  "max_hgb_iter": 100,
+  "hgb_learning_rate": 0.1,
+  "hgb_min_samples_leaf": 20,
+  "min_fit_rows": 150,
+  "min_inner_rows": 30,
+  "ridge_constant_alternative": "on",
+  "statistics": "nonoverlap",
+  "baselines": [
+    "FLAT",
+    "always_LONG",
+    "LONG_SHORT_FLAT_constant_chosen_from_purged_past_fit"
+  ],
+  "cost_policy": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/PROSPECTIVE_COST_POLICY_V1/policy.json",
+  "cost_policy_sha256": "a48f8e56da21cfa670a80c3b4bfdf735d8ce0b29a25e269184bd5f44fb240a69",
+  "cost_semantics": "Existing prospective scenario; spread is in BID/ASK; 2 bps each execution; long 5.4 percent annual wall-clock, short zero; not current or historical broker execution proof. No broker access.",
+  "outcome_semantics": "Existing native M5 close-to-close executable-side research convention; fixed horizon is a research target, not a deployed maximum hold rule. Includes every nonoverlapping decision, FLAT=0; no closed-winner selection.",
+  "acceptance": {
+    "familywise_alpha": 0.05,
+    "policy_comparisons": 2,
+    "statistical_unit": "one equal-weight mean per chronological annual fold; Student t lower bound at 1-alpha/2, df=fold_count-1",
+    "required_positive_lower_bounds": [
+      "model_net_vs_flat",
+      "model_minus_always_long",
+      "model_minus_causal_constant"
+    ],
+    "positive_fold_fraction_at_least": 0.75,
+    "positive_fold_fraction_applies_to": [
+      "model_minus_always_long",
+      "model_minus_causal_constant"
+    ],
+    "regime_requirement": "positive model net and paired advantage vs both baselines in both positive and negative always-LONG fold groups; at least two annual folds in each group",
+    "go_meaning": "research decision-value gate only; native training remains disabled and future independent confirmation remains necessary",
+    "otherwise": "NO_GO_OR_INCONCLUSIVE; no retuning, extra arms, thresholds, horizons or native training"
+  },
+  "exposure_notice": "2011-2025 already inspected by earlier baseline/mechanism research. Later folds are chronological holdouts for these fits, not project-wide untouched data. June 2025 onward is excluded; TEST untouched by this study.",
+  "preserved": "Stopped late-calibrated squeeze/C0 artifacts and all original checkpoints remain unchanged.",
+  "limits": {
+    "one_heavy_job": true,
+    "producer_memory": "10G",
+    "audit_memory": "4G",
+    "swap": "512M",
+    "cpu_affinity": "0-7",
+    "numeric_threads": 1
+  },
+  "native_training_enabled": false,
+  "TEST": false,
+  "live": false,
+  "paper": false,
+  "spending": false
+}

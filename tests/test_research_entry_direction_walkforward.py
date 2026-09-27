@@ -931,3 +931,46 @@ def test_run_weekly_style_clock_and_nonoverlap_statistics(tmp_path: Path) -> Non
     # holdouts at <= 512 rows are omitted from the coverage grid instead of crashing the circular null
     metrics = pd.read_csv(out_dir / "metrics.csv") if (out_dir / "metrics.csv").stat().st_size > 1 else pd.DataFrame()
     assert metrics.empty or (metrics["holdout_rows"] > wf.CIRCULAR_SHIFT_NULL_DRAWS).all()
+
+
+def test_feature_base_rejects_invalid_window_and_wrong_resolution(tmp_path):
+    with pytest.raises(RuntimeError, match="RESEARCH_WINDOW_INVALID"):
+        wf.load_feature_base_research_inputs(tmp_path / "absent", start=pd.Timestamp("2020-01-01"), end=pd.Timestamp("2021-01-01"))
+    p = tmp_path / "m1.parquet"
+    p.write_bytes(b"not read")
+    p.with_suffix(".parquet.manifest.json").write_text(json.dumps({"anchor_timeframe": "M1"}))
+    with pytest.raises(RuntimeError, match="REQUIRES_M5"):
+        wf.load_feature_base_research_inputs(p, start=pd.Timestamp("2020-01-01T00:00:00Z"), end=pd.Timestamp("2021-01-01T00:00:00Z"))
+
+
+def test_feature_base_fixed_horizon_route_has_no_fabricated_knee(tmp_path, monkeypatch):
+    from dataclasses import replace
+    ds, tape = _write_synthetic_dataset_and_tape(tmp_path, train_rows=6000, val_rows=800)
+    real = wf.load_dataset(ds)
+    feature_only = replace(real, knee_long=None, knee_short=None, knee_horizon_bars=None)
+    fits = wf.feature_fit_lineage(_feature_fit_binding(tmp_path))
+    monkeypatch.setattr(wf, "load_feature_base_research_inputs", lambda *a, **kw: (feature_only, fits, tmp_path))
+    def forbidden(*a, **kw):
+        raise AssertionError("Feature-base route must not load native outcome labels")
+    monkeypatch.setattr(wf, "load_dataset", forbidden)
+    args = wf.build_parser().parse_args([
+        "--feature-base-parquet", str(tmp_path / "surface.parquet"),
+        "--research-start", "2024-01-01T00:00:00Z", "--research-end-exclusive", "2024-01-21T20:00:00Z",
+        "--native-m5-root", str(tape), "--out-dir", str(tmp_path / "feature_only"),
+        "--fold-boundaries", "2024-01-11T00:00:00Z", "2024-01-16T00:00:00Z", "2024-01-21T20:00:00Z",
+        "--horizons", "24", "--targets", "exec_close_h24", "--learners", "ridge", "hgb",
+        "--feature-arms", "snapshot", "--target-scalings", "raw", "--inner-fraction", "0.2",
+        "--max-hgb-iter", "3", "--decision-rules", "argmax_flat", "--decision-clock", "H1",
+        "--statistics", "nonoverlap", "--min-fit-rows", "100", "--min-inner-rows", "20",
+    ])
+    result = wf.run(args)
+    assert result["config"]["targets"] == ["exec_close_h24"]
+    assert result["config"]["knee_horizon_bars"] is None
+    assert result["config"]["purge_bars"] == 25
+    assert result["inputs"]["dataset_dir"] is None
+    assert result["nonoverlap_summary"]
+    # Later-fitted preprocessing must still fail before any learner is reached.
+    args.out_dir = str(tmp_path / "late_features")
+    fits[0]["fit_end_exclusive"] = "2024-01-12T00:00:00Z"
+    with pytest.raises(RuntimeError, match="FEATURE_FIT_AFTER_EVALUATION_START"):
+        wf.run(args)

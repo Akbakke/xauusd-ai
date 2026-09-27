@@ -1,9 +1,21 @@
-# Gjeldende status — 26.09.2026: én kodebase, retning på uker
+# Gjeldende status — 27.09.2026: Codex-overtakelse og tidlig kalibrering
 
 **Les først:** [GX1_RULES.md](GX1_RULES.md) (bindende regler), [AGENTS.md](AGENTS.md)
 (arbeidsmåte), [GX1_ARBEIDSMAAL.md](GX1_ARBEIDSMAAL.md) (mål og vedtak) og
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
+
+## Aktivt arbeid — vedtak 27.09
+
+Codex har overtatt etter operatørens stopp. V2-innhentingen er ferdig; senkalibrert
+squeeze er ferdig, C0 avbrutt uten ferdigmanifest. Neste autoriserte scope er
+[tidlig kalibrering og én beslutningsmåling](docs/HISTORY2009W_EARLY_DECISION_20260927.md).
+Kalibreringen slutter januar 2013; holdouts juni 2015–juni 2025. Alle kanoniske
+features bevares. Hele treningsdatasettet og native trening venter på positiv
+beslutningsverdi. Det gamle 2025-kalibrerte løpet skal ikke gjenstartes automatisk.
+
+Avsnittene under er historiske funn. Negativt resultat for målte oppsett beviser
+ikke at all retning bare finnes på uker eller at et bestemt marked er ulærbart.
 
 ## Konsolidering (operatørvedtak 26.09)
 

@@ -1,10 +1,19 @@
-# Veien videre — 26.09.2026
+# Veien videre — oppdatert 27.09.2026
 
 Rekkefølgen under er bindende. Hvert steg avsluttes med fokuserte tester, `git diff --check`
 og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om gangen via
 `scripts/gx1_capped_run.sh`.
 
-## Operatørvedtak som gjenstår
+## Gjeldende rekkefølge etter Codex-overtakelse 27.09
+
+Operatørens nye instruks overstyrer tidligere neste-steg nedenfor. Fullfør
+[tidlig kalibrering og én forhåndsbundet beslutningsmåling](docs/HISTORY2009W_EARLY_DECISION_20260927.md).
+V2-tapene er ferdige. Bygg kanonisk M5-featureflate med pre-2013-kalibrering,
+bevis både indre og ytre kronologi, og sammenlign netto med kausale baselines
+2015–2025. Full native datasettrebuild og trening venter på positiv beslutningsverdi.
+Ved NO-GO kreves en begrunnet endring i informasjon eller utførelsesøkonomi.
+
+## Tidligere operatørvedtak og historikk
 
 Ingen. **Vedtatt 26.09: hent fra 2005.** Native M5 + M1 XAU_USD fra OANDA, 2005-01-01 →
 2026-07-01 (TEST-grensen), via den eksisterende produsenten med manifest; parvedtaket

@@ -245,9 +245,9 @@ class Dataset:
     ctx_cat: np.ndarray
     ctx_cont_names: tuple[str, ...]
     signal_names: tuple[str, ...]
-    knee_long: np.ndarray
-    knee_short: np.ndarray
-    knee_horizon_bars: int
+    knee_long: np.ndarray | None
+    knee_short: np.ndarray | None
+    knee_horizon_bars: int | None
     manifest_sha256: str
     parquet_path: str
 
@@ -292,6 +292,76 @@ def load_dataset(dataset_dir: Path, *, split: str = "train") -> Dataset:
         knee_horizon_bars=int(horizons[0]), manifest_sha256=_sha256_file(manifest_path),
         parquet_path=str(parquet),
     )
+
+
+def load_feature_base_research_inputs(
+    parquet_path: Path, *, start: pd.Timestamp, end: pd.Timestamp,
+) -> tuple[Dataset, list[dict[str, str]], Path]:
+    """Read the canonical M5 surface without manufacturing native targets or splits.
+
+    Fixed-horizon research only. Rebuild the manifest through its existing owner,
+    including source, registry, squeeze and output hashes. No training dataset.
+    """
+    from gx1.contracts.entry_exit_feature_base_v1 import require_entry_exit_enriched_source_binding
+    from gx1.contracts.entry_exit_feature_surface_v1 import build_entry_exit_feature_surface_manifest
+    from gx1.contracts.entry_model_native_signal_v1 import require_model_native_manifest
+    from gx1.features.htf_features import load_multi_tf_v4_cache
+
+    if any(pd.isna(t) or t.tzinfo is None for t in (start, end)) or start >= end:
+        raise RuntimeError("WALKFORWARD_FEATURE_BASE_RESEARCH_WINDOW_INVALID")
+    parquet_path = Path(parquet_path).resolve(strict=True)
+    manifest_path = parquet_path.with_suffix(parquet_path.suffix + ".manifest.json")
+    manifest = json.loads(manifest_path.read_text())
+    if manifest.get("anchor_timeframe") != "M5":
+        raise RuntimeError("WALKFORWARD_FEATURE_BASE_REQUIRES_M5")
+    signal_path = Path(manifest["seq_structure_manifest"])
+    contract = require_model_native_manifest(json.loads(signal_path.read_text()), context="WALKFORWARD_FEATURE_BASE")
+    source = Path(manifest["source_parquet"])
+    source_binding = require_entry_exit_enriched_source_binding(
+        source, dataset_run_id=manifest["dataset_run_id"],
+        pair_generation_id=manifest["pair_generation_id"], timeframe="M5", context="WALKFORWARD_FEATURE_BASE",
+    )
+    expected = build_entry_exit_feature_surface_manifest(
+        timeframe="M5", dataset_run_id=manifest["dataset_run_id"], pair_generation_id=manifest["pair_generation_id"],
+        source=source, source_binding=source_binding, alignment=None, seq_structure_manifest=signal_path,
+        output=parquet_path, rows=int(manifest["rows"]), signal_contract=contract, extension=manifest["extension"],
+        registry_fit_binding=manifest["registry_fit_binding"],
+        volatility_squeeze_artifact_binding=manifest["volatility_squeeze_artifact_set"],
+        materialization=None, causal_warmup=manifest.get("causal_warmup"),
+    )
+    if manifest != expected:
+        raise RuntimeError("WALKFORWARD_FEATURE_BASE_MANIFEST_NOT_EXACT")
+    cache_path = Path(manifest["registry_fit_binding"]["artifact_path"])
+    cache_manifest = json.loads(cache_path.read_text())
+    if cache_manifest["volatility_squeeze_artifact_set"] != manifest["volatility_squeeze_artifact_set"]:
+        raise RuntimeError("WALKFORWARD_FEATURE_BASE_SQUEEZE_MISMATCH")
+    verified_cache = load_multi_tf_v4_cache(cache_path.parent)
+    del verified_cache
+    fits = feature_fit_lineage(cache_manifest)
+    table = pq.read_table(str(parquet_path), columns=["time", "signal", "ctx_cont", "ctx_cat"],
+                          filters=[("time", ">=", start.to_pydatetime()), ("time", "<", end.to_pydatetime())])
+    times = pd.DatetimeIndex(pd.to_datetime(table.column("time").to_pandas(), utc=True))
+    if not len(times) or times.has_duplicates or not times.is_monotonic_increasing:
+        raise RuntimeError("WALKFORWARD_FEATURE_BASE_TIME_INVALID")
+    if times.min() < start or times.max() >= end:
+        raise RuntimeError("WALKFORWARD_FEATURE_BASE_READ_BOUNDARY_INVALID")
+    def matrix(name: str, width: int, dtype: Any) -> np.ndarray:
+        column = table.column(name).combine_chunks()
+        if not pa.types.is_fixed_size_list(column.type) or column.type.list_size != width or column.null_count:
+            raise RuntimeError(f"WALKFORWARD_FEATURE_BASE_ARRAY_INVALID: {name}")
+        values = column.flatten().to_numpy(zero_copy_only=False).reshape(len(times), width)
+        if not np.isfinite(values).all() or (name == "ctx_cat" and not np.equal(values, np.rint(values)).all()):
+            raise RuntimeError(f"WALKFORWARD_FEATURE_BASE_ARRAY_INVALID: {name}")
+        return np.asarray(values, dtype=dtype)
+    dataset = Dataset(
+        time=times, snap=matrix("signal", MODEL_NATIVE_SIGNAL_DIM, np.float32),
+        ctx_cont=matrix("ctx_cont", MODEL_NATIVE_CTX_CONT_DIM, np.float32),
+        ctx_cat=matrix("ctx_cat", len(MODEL_NATIVE_CTX_CAT_FIELDS), np.int64),
+        ctx_cont_names=tuple(contract["ctx_cont_names"]), signal_names=tuple(contract["fields"]),
+        knee_long=None, knee_short=None, knee_horizon_bars=None,
+        manifest_sha256=_sha256_file(manifest_path), parquet_path=str(parquet_path),
+    )
+    return dataset, fits, cache_path.parent
 
 
 @dataclass(frozen=True)
@@ -373,7 +443,9 @@ def subset_dataset(dataset: Dataset, keep: np.ndarray) -> Dataset:
         raise RuntimeError("WALKFORWARD_DATASET_SUBSET_INVALID")
     return replace(
         dataset, time=dataset.time[keep], snap=dataset.snap[keep], ctx_cont=dataset.ctx_cont[keep],
-        ctx_cat=dataset.ctx_cat[keep], knee_long=dataset.knee_long[keep], knee_short=dataset.knee_short[keep],
+        ctx_cat=dataset.ctx_cat[keep],
+        knee_long=None if dataset.knee_long is None else dataset.knee_long[keep],
+        knee_short=None if dataset.knee_short is None else dataset.knee_short[keep],
     )
 
 
@@ -534,6 +606,8 @@ def evaluate_nonoverlap(
         "causal_constant": _mean_se(constant),
         "delta_vs_always_long": _mean_se(model - lo),
         "delta_vs_causal_constant": _mean_se(model - constant),
+        "block_model_net_bps": model.tolist(),
+        "block_always_long_net_bps": lo.tolist(),
         "block_deltas_vs_always_long": (model - lo).tolist(),
         "block_deltas_vs_causal_constant": (model - constant).tolist(),
     }
@@ -1205,40 +1279,57 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     }
     _check_run_binding(out_dir, run_spec)
 
-    dataset_dir = Path(args.dataset_dir)
-    train_manifest = json.loads((dataset_dir / "entry_dataset__ENTRY_FITTED_Q_train.manifest.json").read_text(encoding="utf-8"))
-    # Snapshot fields also include fitted registry/volatility outputs. Check before
-    # materializing price/features, even when no extra MTF arm was requested.
-    early = load_early_calibrated_inputs(Path(args.early_calibrated_inputs)) if args.early_calibrated_inputs else None
-    if early is not None:
-        # The regenerated local blocks and research MTF lanes replace every registry/volatility-fitted
-        # input, so their early lineage is the one the chronology guards must see.
-        if args.multi_tf_cache_dir:
-            raise RuntimeError("WALKFORWARD_EARLY_INPUTS_REPLACE_MTF_CACHE")
-        if args.final_holdout != "none":
-            raise RuntimeError("WALKFORWARD_EARLY_INPUTS_ARE_TRAIN_ONLY")
-        feature_fits = list(early["feature_fit_lineage"])
-        mtf_dir: Path | None = early["mtf_dir"]
+    feature_base = getattr(args, "feature_base_parquet", None)
+    if feature_base:
+        if args.dataset_dir or args.early_calibrated_inputs or args.multi_tf_cache_dir or args.final_holdout != "none":
+            raise RuntimeError("WALKFORWARD_FEATURE_BASE_SCOPE_INVALID")
+        if not args.research_start or not args.research_end_exclusive or not args.targets or KNEE_TARGET_NAME in args.targets:
+            raise RuntimeError("WALKFORWARD_FEATURE_BASE_EXPLICIT_WINDOW_AND_TARGETS_REQUIRED")
+        dataset_dir = None
+        train_start = pd.Timestamp(args.research_start)
+        train_end_exclusive = pd.Timestamp(args.research_end_exclusive)
+        val_end_exclusive = None
+        dataset, feature_fits, mtf_dir = load_feature_base_research_inputs(
+            Path(feature_base), start=train_start, end=train_end_exclusive,
+        )
+        require_feature_fit_before(feature_fits, pd.Timestamp(args.fold_boundaries[0]), context="first_outer_fold")
+        early_report = {}
     else:
-        feature_fits = feature_fit_lineage(train_manifest.get("extra", {}).get("multi_tf_cache_binding", {}))
-        mtf_dir = Path(args.multi_tf_cache_dir) if args.multi_tf_cache_dir else None
-        if any(arm in args.feature_arms for arm in ("snapshot_mtf", "snapshot_mtf_patterns", "snapshot_mtf_cross")):
-            if mtf_dir is None:
-                raise RuntimeError("WALKFORWARD_MTF_ARM_REQUIRES_CACHE_DIR")
-            cache_manifest = json.loads((mtf_dir / "manifest.json").read_text(encoding="utf-8"))
-            feature_fits.extend(feature_fit_lineage(cache_manifest))
-    require_feature_fit_before(feature_fits, pd.Timestamp(args.fold_boundaries[0]), context="first_outer_fold")
-    dataset = load_dataset(dataset_dir)
-    early_report: dict[str, Any] = {}
-    if early is not None:
-        dataset, early_report = apply_early_calibrated_blocks(dataset, early)
+        dataset_dir = Path(args.dataset_dir)
+        train_manifest = json.loads((dataset_dir / "entry_dataset__ENTRY_FITTED_Q_train.manifest.json").read_text(encoding="utf-8"))
+        # Snapshot fields also include fitted registry/volatility outputs. Check before
+        # materializing price/features, even when no extra MTF arm was requested.
+        early = load_early_calibrated_inputs(Path(args.early_calibrated_inputs)) if args.early_calibrated_inputs else None
+        if early is not None:
+            # The regenerated local blocks and research MTF lanes replace every registry/volatility-fitted
+            # input, so their early lineage is the one the chronology guards must see.
+            if args.multi_tf_cache_dir:
+                raise RuntimeError("WALKFORWARD_EARLY_INPUTS_REPLACE_MTF_CACHE")
+            if args.final_holdout != "none":
+                raise RuntimeError("WALKFORWARD_EARLY_INPUTS_ARE_TRAIN_ONLY")
+            feature_fits = list(early["feature_fit_lineage"])
+            mtf_dir: Path | None = early["mtf_dir"]
+        else:
+            feature_fits = feature_fit_lineage(train_manifest.get("extra", {}).get("multi_tf_cache_binding", {}))
+            mtf_dir = Path(args.multi_tf_cache_dir) if args.multi_tf_cache_dir else None
+            if any(arm in args.feature_arms for arm in ("snapshot_mtf", "snapshot_mtf_patterns", "snapshot_mtf_cross")):
+                if mtf_dir is None:
+                    raise RuntimeError("WALKFORWARD_MTF_ARM_REQUIRES_CACHE_DIR")
+                cache_manifest = json.loads((mtf_dir / "manifest.json").read_text(encoding="utf-8"))
+                feature_fits.extend(feature_fit_lineage(cache_manifest))
+        require_feature_fit_before(feature_fits, pd.Timestamp(args.fold_boundaries[0]), context="first_outer_fold")
+        dataset = load_dataset(dataset_dir)
+        early_report: dict[str, Any] = {}
+        if early is not None:
+            dataset, early_report = apply_early_calibrated_blocks(dataset, early)
     clock_keep = decision_clock_mask(dataset.time, args.decision_clock)
     decision_clock_report = {"clock": args.decision_clock, "dataset_rows": int(len(clock_keep)), "decision_rows": int(clock_keep.sum())}
     if args.decision_clock != "M5":
         dataset = subset_dataset(dataset, clock_keep)
-    train_start = pd.Timestamp(train_manifest["splits"]["train"]["start"])
-    train_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["start"])
-    val_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["end"])
+    if not feature_base:
+        train_start = pd.Timestamp(train_manifest["splits"]["train"]["start"])
+        train_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["start"])
+        val_end_exclusive = pd.Timestamp(train_manifest["splits"]["val"]["end"])
     final_holdout = str(args.final_holdout)
     if final_holdout not in ("none", "val"):
         raise RuntimeError("WALKFORWARD_FINAL_HOLDOUT_INVALID")
@@ -1263,7 +1354,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     horizons = [int(h) for h in args.horizons]
     if any(h <= 0 for h in horizons):
         raise RuntimeError("WALKFORWARD_HORIZON_INVALID")
-    purge_bars = max([dataset.knee_horizon_bars, *horizons]) + 1
+    purge_bars = max([h for h in [dataset.knee_horizon_bars, *horizons] if h is not None]) + 1
 
     ctx_cat_matrix, ctx_cat_names = one_hot_ctx_cat(dataset.ctx_cat)
     snapshot = np.concatenate([dataset.snap, dataset.ctx_cont, ctx_cat_matrix], axis=1)
@@ -1327,9 +1418,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if np.any(atr <= 0):
         raise RuntimeError("WALKFORWARD_ATR_SCALE_NONPOSITIVE")
 
-    targets: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, int]] = {
-        KNEE_TARGET_NAME: (dataset.knee_long, dataset.knee_short, np.ones(len(dataset.time), dtype=bool), dataset.knee_horizon_bars)
-    }
+    targets: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, int]] = {}
+    if dataset.knee_horizon_bars is not None:
+        targets[KNEE_TARGET_NAME] = (dataset.knee_long, dataset.knee_short, np.ones(len(dataset.time), dtype=bool), dataset.knee_horizon_bars)
     for h in horizons:
         long_bps, short_bps, valid = executable_horizon_targets(tape, positions, h)
         targets[f"exec_close_h{h}"] = (long_bps, short_bps, valid, h)
@@ -1678,7 +1769,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "instrument_source_sha256": _sha256_file(Path(__file__)),
         "git_head": _git_head(),
         "inputs": {
-            "dataset_dir": str(dataset_dir),
+            "dataset_dir": str(dataset_dir) if dataset_dir is not None else None,
+            "feature_base_parquet": feature_base,
             "dataset_train_parquet": dataset.parquet_path,
             "dataset_train_manifest_sha256": dataset.manifest_sha256,
             "native_m5_root": tape.root,
@@ -1829,7 +1921,11 @@ def render_markdown(report: dict[str, Any], metrics: pd.DataFrame) -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--dataset-dir", required=True)
+    source_group = parser.add_mutually_exclusive_group(required=True)
+    source_group.add_argument("--dataset-dir")
+    source_group.add_argument("--feature-base-parquet", help="Canonical M5 feature surface; fixed-horizon research only")
+    parser.add_argument("--research-start", help="Explicit feature-base research start, UTC inclusive")
+    parser.add_argument("--research-end-exclusive", help="Explicit feature-base research end, UTC exclusive")
     parser.add_argument("--native-m5-root", required=True)
     parser.add_argument("--multi-tf-cache-dir", default=None)
     parser.add_argument("--out-dir", required=True)
