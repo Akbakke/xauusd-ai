@@ -1,22 +1,26 @@
-# Gjeldende status — 27.09.2026: Codex-overtakelse og tidlig kalibrering
+# Gjeldende status — 27.09.2026: tidlig kalibrering ferdig, beslutningsport NO-GO
 
 **Les først:** [GX1_RULES.md](GX1_RULES.md) (bindende regler), [AGENTS.md](AGENTS.md)
 (arbeidsmåte), [GX1_ARBEIDSMAAL.md](GX1_ARBEIDSMAAL.md) (mål og vedtak) og
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
 
-## Aktivt arbeid — vedtak 27.09
+## Gjeldende resultat — fullført 27.09, ingen aktiv jobb
 
-Codex har overtatt etter operatørens stopp. V2-innhentingen er ferdig; senkalibrert
-squeeze er ferdig, C0 avbrutt uten ferdigmanifest. Neste autoriserte scope er
-[tidlig kalibrering og én beslutningsmåling](docs/HISTORY2009W_EARLY_DECISION_20260927.md).
-Kalibreringen slutter januar 2013; holdouts juni 2015–juni 2025. Alle kanoniske
-features bevares. Hele treningsdatasettet og native trening venter på positiv
-beslutningsverdi. Det gamle 2025-kalibrerte løpet skal ikke gjenstartes automatisk.
-Tidlig kalibrering og featureflate er nå ferdig. Separat kontroll fant en foldgrensefeil
-i den første sammenligningen; bare denne korte sammenligningen gjentas med eksakte
-råtapegrenser. `walkforward/` er erstattet; bruk `walkforward_strict/` og de nye
-sluttkvitteringene beskrevet i forskningsnotatet.
+Codex har fullført tidlig kalibrering og én forhåndsbundet historisk sammenligning.
+[Endelig resultat: NO-GO](docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md).
+Kalibrering slutter 2013-01-01 22:00 UTC; ti holdouts dekker juni 2015–juni 2025.
+En separat råpriskontroll avdekket og rettet en eldre D1-foldgrensefeil; bare
+modellsammenligningen ble beregnet på nytt, med samme artefakter og parametere.
+54 tester og den separate kontrollen består. Bruk kun `walkforward_strict/`,
+`DECISION_GATE_STRICT.json` og `VERIFICATION.json` under
+`/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927`.
+
+HGB: +5,71 netto bps per beslutningsblokk (år likt vektet), +1,34 mot LONG,
+men nedre grenser -5,12/-22,39 og bare 5/10 årsfordeler mot LONG. Ridge: -2,37.
+Begge feiler porten; ingen native trening eller større datasettbygging.
+Neste forsøk må begrunnes med endret informasjon eller utførelsesøkonomi.
+Ikke gjenstart denne fullførte planen eller den avbrutte senkalibrerte C0.
 
 Avsnittene under er historiske funn. Negativt resultat for målte oppsett beviser
 ikke at all retning bare finnes på uker eller at et bestemt marked er ulærbart.

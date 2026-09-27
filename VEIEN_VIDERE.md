@@ -4,14 +4,14 @@ Rekkefølgen under er bindende. Hvert steg avsluttes med fokuserte tester, `git 
 og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om gangen via
 `scripts/gx1_capped_run.sh`.
 
-## Gjeldende rekkefølge etter Codex-overtakelse 27.09
+## Gjeldende stoppunkt etter fullført sammenligning 27.09
 
-Operatørens nye instruks overstyrer tidligere neste-steg nedenfor. Fullfør
-[tidlig kalibrering og én forhåndsbundet beslutningsmåling](docs/HISTORY2009W_EARLY_DECISION_20260927.md).
-V2-tapene er ferdige. Bygg kanonisk M5-featureflate med pre-2013-kalibrering,
-bevis både indre og ytre kronologi, og sammenlign netto med kausale baselines
-2015–2025. Full native datasettrebuild og trening venter på positiv beslutningsverdi.
-Ved NO-GO kreves en begrunnet endring i informasjon eller utførelsesøkonomi.
+[Tidlig kalibrering og korrigert historisk kontroll er fullført](docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md):
+begge modeller feiler den forhåndsregistrerte beslutningsporten. Ingen aktiv jobb.
+Gjenbruk `DECISION_GATE_STRICT.json` og `VERIFICATION.json`; ikke relanser planen.
+Full native datasettrebuild og trening forblir stengt. Neste forsøk trenger en
+konkret, begrunnet endring i informasjonsgrunnlag eller utførelsesøkonomi og en
+ny avgrenset forhåndsregistrering. Ingen brede søk eller automatisk viderejobb.
 
 ## Tidligere operatørvedtak og historikk
 

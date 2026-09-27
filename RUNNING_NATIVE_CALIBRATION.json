@@ -1665,7 +1665,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "docs/HISTORY2009W_EARLY_DECISION_20260927.md",
+  "handover_resume_point": "docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1694,8 +1694,8 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_JOINT_UPDATE_DIAGNOSTIC_20260919/FAILURE.json",
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
-  "last_evaluation_source_commit": "8f0beb4e1aca1ab3eeec0fecaa8b88f25f3b9c64",
-  "latest_observation_utc": "2026-09-24T19:16:24+00:00",
+  "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
+  "latest_observation_utc": "2026-09-27T18:13:20.292217+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -1981,9 +1981,9 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "Codex takeover: docs/HISTORY2009W_EARLY_DECISION_20260927.md. Complete early-calibrated canonical M5 feature production and one preregistered chronological D1/one-week ridge-HGB comparison, 2015-2025. No native training, TEST, live, paper or spending.",
+  "next_action": "Completed bounded early-calibrated research: NO_GO_OR_INCONCLUSIVE. Read docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md and reuse corrected evidence. No active job; do not relaunch. No native training or full dataset rebuild. A new attempt requires a reasoned change in information or execution economics and a separate bounded preregistration.",
   "observed_processes": [],
-  "observed_utc": "2026-09-26T22:25:54.318049+00:00",
+  "observed_utc": "2026-09-27T18:16:01.032180+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -2141,9 +2141,9 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_RESUME_EQUIVALENCE_FCD03E88/RESULT.json",
     "sha256": "cd52dda262aebd33a8197db25850fa54a3ac2c4dfe6c354fa856c8316ec61b18"
   },
-  "run_id": "NATIVE_ENTRY_SELECTOR_CACHE_FIT_20260924",
-  "runtime_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS",
-  "runtime_root_scope": "One cached CPU Entry selector fit after exact-parity native representation extraction; decision STOP, no model update.",
+  "run_id": "HISTORY2009W_EARLY_DECISION_20260927",
+  "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927",
+  "runtime_root_scope": "Completed CPU-only historical decision research; corrected annual boundaries; NO_GO, no native model update.",
   "saved_optimizer_cause_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
@@ -2158,7 +2158,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "CONSOLIDATED_ONE_CODEBASE_DIRECTION_MOVED_TO_WEEKS",
+  "status": "EARLY_CALIBRATED_DECISION_RESEARCH_COMPLETE_NO_GO",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,
   "train_observation_cutoff_review": {
@@ -2313,6 +2313,20 @@
     "native_training_enabled": false,
     "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/PREREGISTRATION.json",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927",
-    "status": "PREREGISTERED_NOT_EXECUTED"
+    "status": "EARLY_CALIBRATED_DECISION_RESEARCH_COMPLETE_NO_GO",
+    "decision": "NO_GO_OR_INCONCLUSIVE",
+    "result": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/DECISION_GATE_STRICT.json",
+    "verification": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/VERIFICATION.json",
+    "terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/STRICT_TERMINAL.json",
+    "source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
+    "active_job": false,
+    "do_not_restart": true
+  },
+  "historical_native_selector_location_20260924": {
+    "run_id": "NATIVE_ENTRY_SELECTOR_CACHE_FIT_20260924",
+    "runtime_root": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS",
+    "runtime_root_scope": "One cached CPU Entry selector fit after exact-parity native representation extraction; decision STOP, no model update.",
+    "last_evaluation_source_commit": "8f0beb4e1aca1ab3eeec0fecaa8b88f25f3b9c64",
+    "latest_observation_utc": "2026-09-24T19:16:24+00:00"
   }
 }

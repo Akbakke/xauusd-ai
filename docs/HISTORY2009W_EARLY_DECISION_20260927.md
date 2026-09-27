@@ -1,5 +1,7 @@
 # Tidlig kalibrering og én beslutningsmåling — 27.09.2026
 
+**Fullført: NO_GO_OR_INCONCLUSIVE.** Se [endelig resultat og kontroll](HISTORY2009W_EARLY_DECISION_RESULT_20260927.md). Ingen aktiv jobb.
+
 Operatøren har overført arbeidet til Codex og autorisert tidlig kalibrering og én
 forhåndsbundet sammenligning. Eksakt oppsett og beslutningsregel:
 [PREREGISTRATION](HISTORY2009W_EARLY_DECISION_PREREG_20260927.json).
@@ -61,8 +63,8 @@ som beslutningsgrunnlag og skal ikke brukes som endelig resultat.
 
 Minste rettelse bruker råtapens tidsgrenser for både fit-purge og holdout-utfall.
 54 målrettede tester består, inkludert en regresjonstest for grove klokker.
-Kun modellsammenligningen beregnes på nytt i `walkforward_strict/`; ferdig squeeze,
+Kun modellsammenligningen ble beregnet på nytt i `walkforward_strict/`; ferdig squeeze,
 registerkalibrering, C0 og featureflate gjenbrukes uendret. Alle forhåndsbundne
-parametere og akseptkrav står fast. Ny kjøring bindes separat i
+parametere og akseptkrav står fast. Korrigert kjøring er bundet separat i
 `CORRECTION_BINDING.json`; sluttstatus følger `STRICT_TERMINAL.json`,
 `DECISION_GATE_STRICT.json` og `VERIFICATION.json`. Ingen native trening.
