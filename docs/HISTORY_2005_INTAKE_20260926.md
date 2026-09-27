@@ -90,6 +90,12 @@ minus dem som starter inne i det planlagte ukevinduet. Kildebitene lagres og bes
 utleder radene fra dem med kontraktens filter. Ingenting syntetiseres — stengningen er fortsatt
 kildefravær. v1-tapene er uendret gyldige. Helligdager er ikke dekket av regelen.
 
+**Avvik (27.09, Claude):** tre diagnoser for helgevinduet (antall barer i vinduet per år, ukens første og siste
+aktive bar, antall som ville blitt fjernet) leste de forseglede `..._20260901_PAIR_SEALED_20260927`-tapene og
+dermed tidsstempel, volum og høy/lav for juli–august 2026 (TEST). Ingen retning, avkastning eller modellutfall
+ble lest; 2026 bidro bare til tellinger (null barer i vinduet) og åpnings-/stengetider. Tallene over for
+2013–2026 inkluderer disse radene. Verifiseringen av v2-tapene leser bare pre-TEST-tapene.
+
 ## Ikke undersøkt
 
 - Om OANDAs tidlige data har andre handelstider eller sesjonsmønstre enn i dag.
