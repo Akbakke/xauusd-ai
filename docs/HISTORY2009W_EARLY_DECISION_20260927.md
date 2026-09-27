@@ -49,7 +49,20 @@ M1-utførelse. Kosthistorikk og quote-to-fill-latens er ikke kalibrert. Forsknin
 undersøker snapshot+MTF, ikke transformerens sekvenskapasitet. TEST-rader og
 markedsutfall fra juni 2025 eller senere brukes ikke i sammenligningen.
 
-Status: implementert og forhåndsbundet; kalibrering/featureproduksjon og markedsevaluering
-ikke fullført. 53 målrettede walk-forward-tester bestod (syntetisk mekanikk,
-ikke markedsbevis). Ekte featurebinding, innergrenser, aliasparitet og alle
-terminalkvitteringer må bestå før resultatet tolkes.
+## Kontroll av faktisk kjøring
+
+Kalibrering, C0 og M5-featureflate fullførte med rc0. Den første sammenligningen
+fullførte 20 konfigurasjoner, men en separat kontroll fant en eldre grensefeil:
+D1-klokken flyttet foldstart/slutt til neste valgte beslutningsrad. Åtte fit-sett
+inneholdt én rad med utfall etter deklarert start; sju holdouts hadde én for sen
+utfallsrad, hvorav fem inngikk i blokkstatistikken. `FOLD_BOUNDARY_AUDIT.json`
+bevarer målingen. Første `walkforward/` og `DECISION_GATE.json` er derfor erstattet
+som beslutningsgrunnlag og skal ikke brukes som endelig resultat.
+
+Minste rettelse bruker råtapens tidsgrenser for både fit-purge og holdout-utfall.
+54 målrettede tester består, inkludert en regresjonstest for grove klokker.
+Kun modellsammenligningen beregnes på nytt i `walkforward_strict/`; ferdig squeeze,
+registerkalibrering, C0 og featureflate gjenbrukes uendret. Alle forhåndsbundne
+parametere og akseptkrav står fast. Ny kjøring bindes separat i
+`CORRECTION_BINDING.json`; sluttstatus følger `STRICT_TERMINAL.json`,
+`DECISION_GATE_STRICT.json` og `VERIFICATION.json`. Ingen native trening.

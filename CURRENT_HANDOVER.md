@@ -13,6 +13,10 @@ squeeze er ferdig, C0 avbrutt uten ferdigmanifest. Neste autoriserte scope er
 Kalibreringen slutter januar 2013; holdouts juni 2015–juni 2025. Alle kanoniske
 features bevares. Hele treningsdatasettet og native trening venter på positiv
 beslutningsverdi. Det gamle 2025-kalibrerte løpet skal ikke gjenstartes automatisk.
+Tidlig kalibrering og featureflate er nå ferdig. Separat kontroll fant en foldgrensefeil
+i den første sammenligningen; bare denne korte sammenligningen gjentas med eksakte
+råtapegrenser. `walkforward/` er erstattet; bruk `walkforward_strict/` og de nye
+sluttkvitteringene beskrevet i forskningsnotatet.
 
 Avsnittene under er historiske funn. Negativt resultat for målte oppsett beviser
 ikke at all retning bare finnes på uker eller at et bestemt marked er ulærbart.

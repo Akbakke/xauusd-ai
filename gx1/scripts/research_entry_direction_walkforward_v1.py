@@ -825,13 +825,17 @@ def build_folds(boundaries: list[pd.Timestamp], train_start: pd.Timestamp) -> li
 
 def fold_masks(
     dataset_time: pd.DatetimeIndex, positions: np.ndarray, fold: Fold, *, purge_bars: int,
-    min_fit_rows: int = DEFAULT_MIN_FIT_ROWS,
+    min_fit_rows: int = DEFAULT_MIN_FIT_ROWS, fit_end_position: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Fit rows whose outcome windows end strictly before the first holdout row; holdout rows contained in the fold."""
+    """Purge before the bound tape cutoff, even when a coarse decision clock starts later."""
     holdout = np.asarray((dataset_time >= fold.holdout_start) & (dataset_time < fold.holdout_end), dtype=bool)
     if not holdout.any():
         raise RuntimeError(f"WALKFORWARD_FOLD_EMPTY_HOLDOUT: {fold.index}")
     first_holdout_position = int(positions[holdout].min())
+    if fit_end_position is not None:
+        if int(fit_end_position) < 0 or int(fit_end_position) > first_holdout_position:
+            raise RuntimeError("WALKFORWARD_FOLD_FIT_BOUNDARY_INVALID")
+        first_holdout_position = int(fit_end_position)
     fit = np.asarray(dataset_time >= fold.fit_start, dtype=bool) & np.asarray(dataset_time < fold.holdout_start, dtype=bool)
     fit &= (positions + int(purge_bars)) < first_holdout_position
     if fit.sum() < int(min_fit_rows):
@@ -1550,8 +1554,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 if np.any(hold_atr <= 0):
                     raise RuntimeError("WALKFORWARD_VAL_ATR_SCALE_NONPOSITIVE")
             else:
-                base_fit_mask, base_holdout_mask = fold_masks(dataset.time, positions, fold, purge_bars=purge_bars,
-                                                              min_fit_rows=args.min_fit_rows)
+                base_fit_mask, base_holdout_mask = fold_masks(
+                    dataset.time, positions, fold, purge_bars=purge_bars, min_fit_rows=args.min_fit_rows,
+                    fit_end_position=int(tape.time.searchsorted(fold.holdout_start, side="left")),
+                )
                 X_hold_all = X
                 hold_time = dataset.time
                 hold_atr = atr
@@ -1581,13 +1587,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     fit_mask &= arm_valid[arm]
                     holdout_mask &= (val_arm_valid[arm] if stage_kind == "final_val" else arm_valid[arm])
                 if stage_kind == "fold":
-                    # A fold holdout may never label a row with prices beyond its own end: the next
-                    # fold's first TRAIN row, or (for the last fold) the first tape row at/after the
-                    # TRAIN split end when the tape extends into VAL for the confirmation stage.
-                    if fold.holdout_end < train_end_exclusive:
-                        next_first = int(positions[np.asarray(dataset.time >= fold.holdout_end, dtype=bool)].min())
-                    else:
-                        next_first = int(tape.time.searchsorted(train_end_exclusive, side="left"))
+                    # Use the declared boundary on the raw tape. The next selected D1/H1 row
+                    # can be hours later and must never extend this fold's outcome window.
+                    next_first = int(tape.time.searchsorted(fold.holdout_end, side="left"))
                     holdout_mask &= (positions + int(horizon)) < next_first
                 # The inner model-selection population needs its own feature-fit bound.
                 _, inner_val = _inner_split(

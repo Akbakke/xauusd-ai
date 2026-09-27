@@ -917,6 +917,7 @@ def test_run_weekly_style_clock_and_nonoverlap_statistics(tmp_path: Path) -> Non
             "--horizons", "24", "--targets", "exec_close_h24", "--learners", "ridge", "hgb", "--feature-arms", "snapshot",
             "--target-scalings", "raw", "--inner-fraction", "0.2", "--max-hgb-iter", "3", "--decision-rules", "argmax_flat",
             "--decision-clock", "H1", "--statistics", "both", "--min-fit-rows", "100", "--min-inner-rows", "20",
+            "--persist-predictions",
         ]
     )
     report = wf.run(args)
@@ -928,6 +929,12 @@ def test_run_weekly_style_clock_and_nonoverlap_statistics(tmp_path: Path) -> Non
     for row in nonoverlap["rows"]:
         assert row["blocks"] <= row["holdout_rows"] and row["model_kind_long"] in {"ridge", "constant", "hist_gradient_boosting"}
     assert report["nonoverlap_summary"] and "Non-overlapping blocks" in (out_dir / "summary.md").read_text(encoding="utf-8")
+    tape = wf.load_tape(tape_dir, truncate_before=pd.Timestamp("2024-01-21T20:00:00Z"))
+    for row in nonoverlap["rows"]:
+        key = f"exec_close_h24__snapshot__raw__{row['learner']}__seed0__fold{row['fold']}"
+        pred = pd.read_parquet(out_dir / "predictions" / f"{key}.parquet")
+        pos = tape.time.get_indexer(pd.DatetimeIndex(pred.time))
+        assert (tape.time[pos + 24] < pd.Timestamp(row["holdout_end"])).all()
     # holdouts at <= 512 rows are omitted from the coverage grid instead of crashing the circular null
     metrics = pd.read_csv(out_dir / "metrics.csv") if (out_dir / "metrics.csv").stat().st_size > 1 else pd.DataFrame()
     assert metrics.empty or (metrics["holdout_rows"] > wf.CIRCULAR_SHIFT_NULL_DRAWS).all()
@@ -974,3 +981,16 @@ def test_feature_base_fixed_horizon_route_has_no_fabricated_knee(tmp_path, monke
     fits[0]["fit_end_exclusive"] = "2024-01-12T00:00:00Z"
     with pytest.raises(RuntimeError, match="FEATURE_FIT_AFTER_EVALUATION_START"):
         wf.run(args)
+
+
+def test_fold_masks_purge_at_raw_boundary_before_first_daily_decision():
+    time = pd.date_range("2024-01-01T22:00:00Z", periods=8, freq="24h")
+    positions = np.arange(8) * 288 + 264
+    fold = wf.Fold(index=0, fit_start=time[0], holdout_start=pd.Timestamp("2024-01-05T00:00:00Z"), holdout_end=pd.Timestamp("2024-01-08T00:00:00Z"))
+    legacy, hold = wf.fold_masks(time, positions, fold, purge_bars=50, min_fit_rows=1)
+    strict, strict_hold = wf.fold_masks(time, positions, fold, purge_bars=50, min_fit_rows=1, fit_end_position=4*288)
+    assert legacy.sum() == 4 and strict.sum() == 3
+    assert np.array_equal(hold, strict_hold)
+    assert (positions[strict] + 50 < 4*288).all()
+    with pytest.raises(RuntimeError, match="FOLD_FIT_BOUNDARY_INVALID"):
+        wf.fold_masks(time, positions, fold, purge_bars=50, min_fit_rows=1, fit_end_position=int(positions[hold][0])+1)
