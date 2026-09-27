@@ -613,7 +613,7 @@ def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
     def publish_receipt(payload):
         payload = dict(payload)
         payload["manifest_sha256"] = _canonical_sha256(payload)
-        source_manifest.write_text(json.dumps(payload))
+        source_manifest.write_text(json.dumps(payload, sort_keys=True))
         args[-2] = hashlib.sha256(source_manifest.read_bytes()).hexdigest()
 
     publish_receipt(completed)

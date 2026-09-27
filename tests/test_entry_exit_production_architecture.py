@@ -411,3 +411,18 @@ def test_bundle_cuda_load_requires_guard_before_bundle_path_read(
             bundle_dir="relative-path-must-not-be-inspected",
             device="cuda",
         )
+
+
+def test_architecture_accepts_producer_sorted_json_roundtrip():
+    import json
+    from gx1.contracts.entry_exit_production_architecture_v1 import (
+        entry_exit_production_architecture_contract,
+        require_entry_exit_production_architecture,
+    )
+    expected = entry_exit_production_architecture_contract()
+    persisted = json.loads(json.dumps(expected, sort_keys=True))
+    assert list(persisted) != list(expected)
+    assert require_entry_exit_production_architecture(persisted, context="PERSISTED") == expected
+    persisted["entry"]["mtf_route"].reverse()
+    with pytest.raises(RuntimeError, match="PRODUCTION_ARCHITECTURE_MISMATCH"):
+        require_entry_exit_production_architecture(persisted, context="PERSISTED")

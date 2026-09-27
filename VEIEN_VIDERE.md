@@ -18,7 +18,9 @@ til målt fullt definert kontekst 2010-06-14 22:00 UTC. Det gir de påkrevde 252
 lukkede D1-barene før uendret TRAIN-start 2011-06-01. Markedsidentitet og komplett
 MTF-preflight består; se forberedelsesrapporten for bevis. Ferdige outputs
 gjenbrukes med eksplisitte manifest-hasher; runtime-terminaler avgjør nåstatus:
-`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_HISTORY_GEOMETRY_20260927`.
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_SERIALIZED_ARCHITECTURE_20260927`.
+En serialiseringsfeil i arkitekturkontrollen er rettet (JSON-nøkkelrekkefølge);
+32 tester og den faktiske gjenbruksvakten består.
 Feature-/modellslanking inngår i repo-revisjonen. 241 signal-felt omfatter også
 71 kontinuerlige kontekstfelt; antall inputs alene er ikke bevis for overtilpasning.
 

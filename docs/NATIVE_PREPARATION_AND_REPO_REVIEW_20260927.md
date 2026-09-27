@@ -119,3 +119,13 @@ må stemme. Den etterfølgende markedskontrollen og fulle source-cascade kjøres
 fortsatt; rangering og alle senere outputs må være ferske. Ti kjedetester
 består, med endret run, par, input, cache og output avvist i ekte guard-kode.
 Ny runtime-mappe: `CONTINUE_HISTORY_GEOMETRY_20260927` under samme forberedelse.
+
+Lagringskontrollen i videreføringen avdekket at arkitektureieren sammenlignet
+rekkefølge på JSON-objektnøkler. Produsenten publiserer med `sort_keys=True`,
+så gyldig persistert arkitektur ble avvist. Eierens kontroll sammenligner nå
+nøkkelmengden; eksakte typer, verdier og rekkefølge i modellens lister bevares.
+32 fokuserte tester består, inkludert produsentens faktiske JSON-sortering og
+avvisning av snudde tidsrammer. Kjedenes faktiske freshness-/gjenbruksvakt er
+også eksekvert på de aktuelle ferdige filene og består (`actual_continuation_guard.log`).
+Ingen data ble endret. Neste eksplisitte videreføring ligger i
+`CONTINUE_SERIALIZED_ARCHITECTURE_20260927`; forrige røde terminal bevares.

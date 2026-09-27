@@ -2085,7 +2085,7 @@
     "status": "COMPLETE_AUDITED_SCOPE_CLOSED"
   },
   "native_preparation_20260927": {
-    "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_HISTORY_GEOMETRY_20260927",
+    "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_SERIALIZED_ARCHITECTURE_20260927",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927",
     "feature_complexity_review_requested": true,
     "history_geometry": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/HISTORY_GEOMETRY.json",
@@ -2094,7 +2094,7 @@
     "m5_reuse_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M5_REUSE_VERIFICATION.json",
     "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PLAN.json",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927",
-    "status": "HISTORY_GEOMETRY_VERIFIED_CONTINUATION_PREPARED",
+    "status": "SERIALIZED_ARCHITECTURE_VERIFIED_CONTINUATION_PREPARED",
     "training_enabled": false
   },
   "native_processes": [],

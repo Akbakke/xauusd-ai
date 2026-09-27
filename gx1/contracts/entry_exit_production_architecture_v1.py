@@ -187,7 +187,9 @@ def _first_mismatch(
             return path, expected, observed
         expected_keys = list(expected)
         observed_keys = list(observed)
-        if observed_keys != expected_keys:
+        # JSON object keys are unordered; producers serialize with sort_keys.
+        # Ordered model routes/fields remain lists and are checked below.
+        if set(observed_keys) != set(expected_keys):
             return f"{path}.__keys__", expected_keys, observed_keys
         for key in expected_keys:
             mismatch = _first_mismatch(
