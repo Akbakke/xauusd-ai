@@ -77,7 +77,8 @@ Rot-loaderen importerer nå denne kodebasens `CLAUDE.md`, som importerer `GX1_RU
 
 ## Tilstand
 
-Ingen jobb kjører. `training_enabled=false`; full epoch, full VAL, CONTROL, TEST, live og
+Aktivt steg må bekreftes i `GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/progress.log`
+og samme runs terminalkvitteringer. `training_enabled=false`; full epoch, full VAL, CONTROL, TEST, live og
 papirhandel er stengt. TEST er forseglet. Kildekoden har nå den reparerte featureflaten v36
 (signal 241, per-TF 190); datasettet må bygges på nytt. Eksisterende V9-/lifecycle-v2-artefakter
 og sjekkpunkter hører til v34-flaten og evalueres bare på commit 7c9421a5 eller eldre.
