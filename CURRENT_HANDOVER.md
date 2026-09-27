@@ -15,12 +15,15 @@ Nå: ferdigstill den eksisterende byggekjeden med tidlig kalibrering; deretter
 full kartlegging, nødvendige feilrettinger og dokumentert opprydding.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
-Siste målte byggefeil: M5-kildeleseren hadde en ufullstendig kopi av parprodusentens
-feltdefinisjon. Rettet; 22 fokuserte tester og hash-/kontraktkontroll av ferdig M5
-består. Par, squeeze og M5 gjenbrukes eksplisitt. Eget videreføringsbevis ligger under
-`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M5_BINDING_20260927`.
-Runtime-terminaler avgjør nåstatus. Feature-/modellslanking inngår i full repo-revisjon;
-ingen featurekontrakt eller modell er endret på grunnlag av antallet alene.
+Par, tidlig squeeze, M5-flate og M5-modellkilde er ferdige. Kildebeskrivelsen er
+rettet og verifisert. Siste kontroll fant for tidlig oppvarmingsstart: den settes
+til målt fullt definert kontekst 2010-06-14 22:00 UTC. Det gir de påkrevde 252
+lukkede D1-barene før uendret TRAIN-start 2011-06-01. Markedsidentitet og komplett
+MTF-preflight består; se forberedelsesrapporten for bevis. Ferdige outputs
+gjenbrukes med eksplisitte manifest-hasher; runtime-terminaler avgjør nåstatus:
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_HISTORY_GEOMETRY_20260927`.
+Feature-/modellslanking inngår i repo-revisjonen. 241 signal-felt omfatter også
+71 kontinuerlige kontekstfelt; antall inputs alene er ikke bevis for overtilpasning.
 
 ## Fullført forskningsresultat — ikke gjeldende startinstruks
 

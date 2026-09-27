@@ -40,6 +40,7 @@ VOLATILITY_SQUEEZE_MANIFEST=
 VOLATILITY_SQUEEZE_MANIFEST_SHA256=
 REUSE_M5_ENRICHED_MANIFEST=
 REUSE_M5_ENRICHED_MANIFEST_SHA256=
+REUSE_M5_SOURCE_MANIFEST_SHA256=
 
 usage() {
   printf '%s\n' \
@@ -58,7 +59,8 @@ usage() {
     "  --volatility-squeeze-manifest-sha256 SHA256" \
     "  [--reuse-m5-enriched-manifest /exact/event/m5_enriched.parquet.manifest.json" \
     "   --reuse-m5-enriched-manifest-sha256 SHA256]" \
-    "  Reuse admits only a complete M5 lane; all later outputs must remain fresh." \
+    "  [--reuse-m5-source-manifest-sha256 SHA256] (requires explicit M5 lane reuse)" \
+    "  Reuse admits only complete M5 outputs; all later outputs must remain fresh." \
     "  --history-start UTC --train-start UTC --train-end UTC" \
     "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
@@ -206,6 +208,12 @@ while (($#)); do
       REUSE_M5_ENRICHED_MANIFEST_SHA256=$2
       shift 2
       ;;
+    --reuse-m5-source-manifest-sha256)
+      (($# >= 2)) || die_args "--reuse-m5-source-manifest-sha256 requires a value"
+      [[ -z $REUSE_M5_SOURCE_MANIFEST_SHA256 ]] || die_args "duplicate --reuse-m5-source-manifest-sha256"
+      REUSE_M5_SOURCE_MANIFEST_SHA256=$2
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -227,6 +235,10 @@ done
 if [[ -n $REUSE_M5_ENRICHED_MANIFEST || -n $REUSE_M5_ENRICHED_MANIFEST_SHA256 ]]; then
   [[ -n $REUSE_M5_ENRICHED_MANIFEST && $REUSE_M5_ENRICHED_MANIFEST_SHA256 =~ ^[0-9a-f]{64}$ ]] \
     || die_args "M5 reuse requires both an exact manifest and its SHA256"
+fi
+if [[ -n $REUSE_M5_SOURCE_MANIFEST_SHA256 ]]; then
+  [[ -n $REUSE_M5_ENRICHED_MANIFEST && $REUSE_M5_SOURCE_MANIFEST_SHA256 =~ ^[0-9a-f]{64}$ ]] \
+    || die_args "M5 source reuse requires an explicit complete M5 lane and source manifest SHA256"
 fi
 # Explicit preprocessing windows may precede the model TRAIN population.
 # Omitted bounds reuse the dataset TRAIN bound itself, never an inferred date.
@@ -782,7 +794,8 @@ if ! "$PY" - \
   "$DATASET_REBUILD_TERMINAL" "$PREFREEZE_TEST_SEAL" \
   "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" "$VAL_START" "$VAL_END" \
   "$TEST_START" "$TEST_END" "$REUSE_M5_ENRICHED_MANIFEST" \
-  "$REUSE_M5_ENRICHED_MANIFEST_SHA256" >>"$LOG" 2>&1 <<'PYEOF'
+  "$REUSE_M5_ENRICHED_MANIFEST_SHA256" "$REUSE_M5_SOURCE_MANIFEST_SHA256" \
+  "$RUN_ID" >>"$LOG" 2>&1 <<'PYEOF'
 import hashlib
 import re
 import sys
@@ -824,6 +837,8 @@ import pandas as pd
     raw_test_end,
     raw_reuse_m5_manifest,
     raw_reuse_m5_sha256,
+    raw_reuse_m5_source_sha256,
+    run_id,
 ) = sys.argv[1:]
 
 
@@ -1047,6 +1062,49 @@ if raw_reuse_m5_manifest:
         raise RuntimeError("reused M5 manifest SHA256 mismatch")
     reusable = {mtf, m5_enriched, reused, m5_checkpoint}
     fresh_paths = [path for path in fresh_paths if path not in reusable]
+if raw_reuse_m5_source_sha256:
+    import json
+    from gx1.scripts.materialize_entry_model_native_m5_source_v1 import (
+        M5_SOURCE_SCHEMA_VERSION, OUTPUT_COLUMNS, _canonical_sha256,
+        _read_json_sealed, _require_regular_file, _seal_file,
+    )
+    from gx1.contracts.entry_exit_production_architecture_v1 import (
+        require_entry_exit_production_architecture,
+    )
+    from gx1.contracts.entry_exit_feature_base_v1 import require_entry_exit_shared_feature_base_contract
+
+    source_manifest_path = _require_regular_file(Path(f"{source}.manifest.json"), label="REUSE_MANIFEST")
+    completed, completed_seal = _read_json_sealed(source_manifest_path, label="REUSE_MANIFEST")
+    if completed_seal.sha256 != raw_reuse_m5_source_sha256:
+        raise RuntimeError("reused M5 source manifest SHA256 mismatch")
+    without_hash = dict(completed)
+    if without_hash.pop("manifest_sha256", None) != _canonical_sha256(without_hash):
+        raise RuntimeError("reused M5 source payload hash mismatch")
+    enriched_meta = json.loads(reused.read_text())
+    cache_binding = enriched_meta["multi_tf_cache_binding"]
+    pair_meta = json.loads(m1_lifecycle_pair_manifest.read_text())
+    expected = {
+        "schema_version": M5_SOURCE_SCHEMA_VERSION, "decision": "PASS",
+        "dataset_run_id": run_id, "pair_generation_id": pair_meta["pair_generation_id"],
+        "timeframe": "M5", "anchor_timeframe": "M5", "columns": list(OUTPUT_COLUMNS),
+        "enriched_source": str(m5_enriched),
+        "enriched_source_sha256": enriched_meta["output_parquet_sha256"],
+        "native_m5_source": enriched_meta["native_m5_source"],
+        "multi_tf_cache_dir": str(mtf),
+        "multi_tf_cache_manifest_sha256": cache_binding["cache_manifest_sha256"],
+        "multi_tf_cache_identity_sha256": cache_binding["cache_identity_sha256"],
+        "pair_manifest": str(m1_lifecycle_pair_manifest),
+        "pair_manifest_sha256": hashlib.sha256(m1_lifecycle_pair_manifest.read_bytes()).hexdigest(),
+        "output_parquet": str(source), "rows": enriched_meta["rows"],
+    }
+    if any(completed.get(key) != value for key, value in expected.items()):
+        raise RuntimeError("reused M5 source input/run/contract binding mismatch")
+    require_entry_exit_shared_feature_base_contract(completed.get("shared_feature_base_contract"), context="M5_SOURCE_REUSE")
+    require_entry_exit_production_architecture(completed.get("production_architecture"), context="M5_SOURCE_REUSE")
+    output_seal = _seal_file(_require_regular_file(source, label="REUSE_SOURCE"))
+    if completed.get("output_parquet_sha256") != output_seal.sha256 or completed.get("output_parquet_size_bytes") != output_seal.size_bytes:
+        raise RuntimeError("reused M5 source parquet hash/size mismatch")
+    fresh_paths = [path for path in fresh_paths if path not in {source, source_manifest_path}]
 existing = [str(path) for path in fresh_paths if path.exists() or path.is_symlink()]
 if audit.exists() or audit.is_symlink():
     existing.append(str(audit))
@@ -1221,6 +1279,7 @@ CURRENT_STEP=m5-model-source
 write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
+if [[ -z $REUSE_M5_SOURCE_MANIFEST_SHA256 ]]; then
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m5-source-frame \
   --enriched-parquet "$M5_ENRICHED" \
@@ -1231,6 +1290,11 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --dataset-run-id "$RUN_ID" \
   --pair-generation-id "$PAIR_GENERATION_ID") >>"$LOG" 2>&1; then
   fail "M5 model-source materialization failed"
+fi
+else
+  require_unchanged "reused M5 source manifest" "${SRC}.manifest.json" \
+    "$REUSE_M5_SOURCE_MANIFEST_SHA256"
+  tg "Explicit completed M5 source reuse: ${SRC}.manifest.json sha256=$REUSE_M5_SOURCE_MANIFEST_SHA256; market identity and full cache/source cascade checks remain mandatory"
 fi
 [[ -f $SRC && ! -L $SRC && -f ${SRC}.manifest.json && ! -L ${SRC}.manifest.json ]] \
   || fail "M5 model source/manifest is missing or non-regular"

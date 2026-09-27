@@ -14,8 +14,8 @@ forrige arbeidsregelen er ikke et absolutt forbud mot brukerens nye forberedelse
 ## Første mål: komplette og konsistente native inputs
 
 Bruk full-mode-kjeden som allerede eier M1/M5-par, signalmanifest, separate
-Entry/Exit-flater, sekvenser og forseglet TEST. De opprinnelige tidsvinduene beholdes:
-historikk fra juni 2010, TRAIN juni 2011–mai 2025, utviklings-VAL juni 2025–juni
+Entry/Exit-flater, sekvenser og forseglet TEST. TRAIN/VAL/TEST-vinduene beholdes. Målt gyldig oppvarmingshistorikk starter
+2010-06-14 22:00 UTC (se kontrollen under); TRAIN juni 2011–mai 2025, utviklings-VAL juni 2025–juni
 2026, mekanisk forseglet TEST juli–august 2026. Ingen TEST-resultater beregnes
 eller brukes til valg. Native modellvekter oppdateres ikke.
 
@@ -83,8 +83,11 @@ integritetsbevis, ikke læring. Videreføring:
 ## Brukerens spørsmål om færre features
 
 Kompleksitet inngår nå uttrykkelig i repo-revisjonen. Aktiv kontrakteier returnerer
-241 signal-felt per M5-bar og 71 kontinuerlige kontekstfelt; tidsrammesekvenser
-kommer i tillegg. Antall inputverdier er ikke antall uavhengige signaler.
+241 signal-felt per M5-bar. De 71 kontinuerlige kontekstfeltene er allerede
+representert i denne flaten (4 obligatoriske + 67 kandidater); ikke legg 71 til
+som ny informasjon. Tidsrammesekvenser kommer i tillegg. Antall inputverdier
+er ikke antall uavhengige signaler. Alle kandidatfelt tas med av kontrakten;
+rangeringen velger ingen bort.
 Den tidligere formuleringen «altfor avansert» var sterkere enn evidensen.
 Heller ikke den eldre heuristikken «maks omtrent 15 felt» beviser en optimal grense.
 
@@ -96,3 +99,23 @@ tap ved featurefjerning krever en avgrenset, forhåndsbundet sammenligning med
 samme senere perioder, kostmodell og baselines. Ingen featurefamilie slettes
 på mistanke, og ingen slik modelltrening startes automatisk. Byggingen bevarer
 komplette inputs slik at en senere begrunnet slanking kan gjenbruke dem.
+
+## Målt historikkgeometri, uten endring av TRAIN/VAL/TEST
+
+Videreføringen fra `b01a2d6a` publiserte gyldig M5-modellkilde, men stoppet i
+`model-source-identity` 20:46 UTC: første rad er 2010-06-13 22:00, etter planens
+historikkstart 2010-06-01. Fullt definerte kontekstfelt begynner 2010-06-14 22:00.
+Denne siste grensen brukes nå eksplisitt som oppvarmingsstart. Den eksisterende
+D1-eieren måler nøyaktig 252 lukkede D1-barer fra denne historikken før uendret
+TRAIN-start 2011-06-01; 252 er arkitektureierens krav. Både den faktiske
+kjedens marked-/tidsidentitetsvakt og preflightens komplette MTF-kontroll består
+med korrigert historikkstart. Ingen utfall brukes til datovalget, og ingen
+kontroll svekkes (`HISTORY_GEOMETRY.json`, `CORRECTED_HISTORY_MTF_PREFLIGHT.json`).
+
+En ekstra eksplisitt SHA256 binder det ferdige modellkildemanifestet. Bare da
+kan kilden gjenbrukes: manifest-/payload-hash, output-hash/størrelse, run/par,
+enriched-/cache-bindinger, feltliste og gjeldende arkitektur-/featurekontrakter
+må stemme. Den etterfølgende markedskontrollen og fulle source-cascade kjøres
+fortsatt; rangering og alle senere outputs må være ferske. Ti kjedetester
+består, med endret run, par, input, cache og output avvist i ekte guard-kode.
+Ny runtime-mappe: `CONTINUE_HISTORY_GEOMETRY_20260927` under samme forberedelse.

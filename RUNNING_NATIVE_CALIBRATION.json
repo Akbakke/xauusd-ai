@@ -2085,14 +2085,16 @@
     "status": "COMPLETE_AUDITED_SCOPE_CLOSED"
   },
   "native_preparation_20260927": {
-    "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M5_BINDING_20260927",
+    "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_HISTORY_GEOMETRY_20260927",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927",
     "feature_complexity_review_requested": true,
+    "history_geometry": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/HISTORY_GEOMETRY.json",
+    "history_start_utc": "2010-06-14T22:00:00+00:00",
     "initial_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/TERMINAL.json",
     "m5_reuse_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M5_REUSE_VERIFICATION.json",
     "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PLAN.json",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927",
-    "status": "M5_BINDING_REPAIRED_CONTINUATION_PREPARED",
+    "status": "HISTORY_GEOMETRY_VERIFIED_CONTINUATION_PREPARED",
     "training_enabled": false
   },
   "native_processes": [],

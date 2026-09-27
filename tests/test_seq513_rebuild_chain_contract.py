@@ -548,7 +548,7 @@ def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
         event / "rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_20200101.json",
         event / "rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_20200101.json",
         "2010-01-01Z", "2011-01-01Z", "2012-01-01Z", "2013-01-01Z", "2014-01-01Z",
-        "2015-01-01Z", "2016-01-01Z", "", "",
+        "2015-01-01Z", "2016-01-01Z", "", "", "", "UNIT_RUN_ID",
     ]
     args = [str(a).replace("-01-01Z", "-01-01T00:00:00Z") for a in args]
 
@@ -557,13 +557,13 @@ def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
 
     result = run()
     assert result.returncode != 0 and "fresh event outputs required" in result.stderr
-    args[-2:] = [str(manifest), sha]
+    args[-4:-2] = [str(manifest), sha]
     result = run()
     assert result.returncode == 0, result.stderr
-    args[-1] = "0" * 64
+    args[-3] = "0" * 64
     result = run()
     assert result.returncode != 0 and "reused M5 manifest SHA256 mismatch" in result.stderr
-    args[-1] = sha
+    args[-3] = sha
     downstream = event / "source.parquet"
     downstream.write_text("partial")
     result = run()
@@ -571,8 +571,62 @@ def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
     downstream.unlink()
     other = event / "other.json"
     other.write_text(manifest.read_text())
-    args[-2] = str(other)
+    args[-4] = str(other)
     result = run()
     assert result.returncode != 0 and "exact event-owned manifest" in result.stderr
     assert source.index('require_registry_fit_windows M5') < source.index('CURRENT_STEP=m5-model-source')
     assert 'model-native-m5-source-frame' in source
+
+    # A second explicit binding can preserve the complete model source too.
+    # These are synthetic receipt bytes; later market/cache guards are not
+    # bypassed by this filesystem-contract test.
+    from gx1.scripts.materialize_entry_model_native_m5_source_v1 import (
+        M5_SOURCE_SCHEMA_VERSION, OUTPUT_COLUMNS, _canonical_sha256,
+    )
+    from gx1.contracts.entry_exit_feature_base_v1 import entry_exit_shared_feature_base_contract
+    from gx1.contracts.entry_exit_production_architecture_v1 import current_entry_exit_architecture_observation
+    pair.write_text(json.dumps({"pair_generation_id": "a" * 64}))
+    enriched_meta = {
+        "output_parquet_sha256": hashlib.sha256(enriched.read_bytes()).hexdigest(),
+        "native_m5_source": {"root": str(native_m5)}, "rows": 2,
+        "multi_tf_cache_binding": {"cache_manifest_sha256": "b" * 64, "cache_identity_sha256": "c" * 64},
+    }
+    manifest.write_text(json.dumps(enriched_meta))
+    args[-4:-2] = [str(manifest), hashlib.sha256(manifest.read_bytes()).hexdigest()]
+    downstream.write_text("complete source fixture")
+    source_manifest = event / "source.parquet.manifest.json"
+    completed = {
+        "schema_version": M5_SOURCE_SCHEMA_VERSION, "decision": "PASS",
+        "dataset_run_id": "UNIT_RUN_ID", "pair_generation_id": "a" * 64,
+        "timeframe": "M5", "anchor_timeframe": "M5", "columns": list(OUTPUT_COLUMNS),
+        "enriched_source": str(enriched), "enriched_source_sha256": enriched_meta["output_parquet_sha256"],
+        "native_m5_source": enriched_meta["native_m5_source"], "multi_tf_cache_dir": str(mtf),
+        "multi_tf_cache_manifest_sha256": "b" * 64, "multi_tf_cache_identity_sha256": "c" * 64,
+        "pair_manifest": str(pair), "pair_manifest_sha256": hashlib.sha256(pair.read_bytes()).hexdigest(),
+        "output_parquet": str(downstream), "rows": 2,
+        "output_parquet_sha256": hashlib.sha256(downstream.read_bytes()).hexdigest(),
+        "output_parquet_size_bytes": downstream.stat().st_size,
+        "shared_feature_base_contract": entry_exit_shared_feature_base_contract(),
+        "production_architecture": current_entry_exit_architecture_observation(),
+    }
+
+    def publish_receipt(payload):
+        payload = dict(payload)
+        payload["manifest_sha256"] = _canonical_sha256(payload)
+        source_manifest.write_text(json.dumps(payload))
+        args[-2] = hashlib.sha256(source_manifest.read_bytes()).hexdigest()
+
+    publish_receipt(completed)
+    result = run()
+    assert result.returncode == 0, result.stderr
+    args[-2] = "0" * 64
+    result = run()
+    assert result.returncode != 0 and "reused M5 source manifest SHA256 mismatch" in result.stderr
+    for field in ("dataset_run_id", "pair_generation_id", "enriched_source_sha256", "multi_tf_cache_identity_sha256"):
+        publish_receipt({**completed, field: "changed"})
+        result = run()
+        assert result.returncode != 0 and "reused M5 source input/run/contract binding mismatch" in result.stderr
+    publish_receipt(completed)
+    downstream.write_text("modified bytes")
+    result = run()
+    assert result.returncode != 0 and "reused M5 source parquet hash/size mismatch" in result.stderr
