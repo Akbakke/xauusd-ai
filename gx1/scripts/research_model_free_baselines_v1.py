@@ -190,7 +190,7 @@ def swing_signals(close: np.ndarray) -> dict[str, np.ndarray]:
     return out
 
 
-def summarize(values: np.ndarray, times: pd.DatetimeIndex) -> dict[str, Any]:
+def summarize(values: np.ndarray, times: pd.DatetimeIndex, full_years: tuple[int, ...] = FULL_YEARS) -> dict[str, Any]:
     values = np.asarray(values, dtype=np.float64)
     n = int(len(values))
     out: dict[str, Any] = {"n": n}
@@ -202,9 +202,9 @@ def summarize(values: np.ndarray, times: pd.DatetimeIndex) -> dict[str, Any]:
     if sd > 0:
         out["t"] = mean / (sd / math.sqrt(n))
     years = times.year
-    per_year = {int(y): float(values[years == y].mean()) for y in FULL_YEARS if (years == y).any()}
+    per_year = {int(y): float(values[years == y].mean()) for y in full_years if (years == y).any()}
     out["per_year_mean_bps"] = per_year
-    out["positive_full_year_share"] = sum(1 for v in per_year.values() if v > 0) / len(FULL_YEARS)
+    out["positive_full_year_share"] = sum(1 for v in per_year.values() if v > 0) / len(full_years)
     return out
 
 
