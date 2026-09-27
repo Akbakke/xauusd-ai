@@ -62,6 +62,16 @@ Tidligste TRAIN-start (estimat, ikke målt): tapestart + ~220 D1-barer oppvarmin
 Nedstrøms lifecycle-v2/random-access-laget har hardkodet TRAIN-start 2021-06-01 og må endres før
 native trening, ikke før ukesmålingen.
 
+## Flate vinduer og ny start 2009-06 (målt 27.09, vedtak 27.09)
+
+C0-berikelsen stoppet på `[BASIC_V1_FEATURE_NONFINITE_GAP] _v1_range_z`: 48-barers z-scorer er
+udefinerte når alle 48 barer har null spenn. 2006-tapene har én slik M5-episode (langfredag
+2009-04-10 17:10 → 04-12 21:40) og 37 M1-episoder, den siste 2009-05-25; ingen etter. Andel
+null-spenn-barer M1: 2006 31 %, 2007 20 %, 2008–2009 ~5 %. Berikelsen regner fra tapens første
+bar, så en tape som starter før juni 2009 kan ikke bygges uten å finne på verdier (regel 2).
+Operatørvedtak: nytt parvedtak `OANDA_PAIR_PRETEST_2009_20260927` fra 2009-06-01. 2008-krakket
+faller ut; 2011–15, 2013, 2016, 2018, 2020–21 og 2022 er med.
+
 ## Ikke undersøkt
 
 - Om OANDAs tidlige data har andre handelstider eller sesjonsmønstre enn i dag.

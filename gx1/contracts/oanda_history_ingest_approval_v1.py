@@ -36,6 +36,11 @@ OANDA_HISTORY_INGEST_APPROVALS = {
     "OANDA_M1_PRETEST_CURRENT_20260829": (frozenset({"M1"}), "2019-01-01T00:00:00Z"),
     "OANDA_M5_PRETEST_CURRENT_20260829": (frozenset({"M5"}), "2019-01-01T00:00:00Z"),
     "OANDA_PAIR_PRETEST_2005_20260927": (frozenset({"M1", "M5"}), "2005-01-01T00:00:00Z"),
+    # 2026-09-27: operator decision "hent 09-06". The 2006 tapes hold 37 M1 and
+    # one M5 window of >= 48 zero-range bars (holiday and Sunday-open closures)
+    # through 2009-05-25, where the causal 48-bar z-score owners are undefined
+    # and fail closed; this intake starts at the first month after the last one.
+    "OANDA_PAIR_PRETEST_2009_20260927": (frozenset({"M1", "M5"}), "2009-06-01T00:00:00Z"),
 }
 _SUCCESSOR_MODE = CANONICAL_NATIVE_SUCCESSOR_MODE
 

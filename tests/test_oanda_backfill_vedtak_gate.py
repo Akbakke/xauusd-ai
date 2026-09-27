@@ -1464,3 +1464,27 @@ def test_history_authorization_binds_each_decision_to_its_own_start() -> None:
                     start_utc=start,
                     end_utc=end,
                 )
+
+
+def test_history_authorization_admits_the_2009_pair_interval_only() -> None:
+    from gx1.contracts.oanda_history_ingest_approval_v1 import (
+        require_approved_oanda_history_ingest,
+    )
+
+    vedtak = "OANDA_PAIR_PRETEST_2009_20260927"
+    for timeframe in ("M1", "M5"):
+        assert require_approved_oanda_history_ingest(
+            vedtak_id=vedtak,
+            timeframe=timeframe,
+            publication_mode="bootstrap",
+            start_utc="2009-06-01T00:00:00Z",
+            end_utc="2026-07-01T00:00:00Z",
+        ) == vedtak
+        with pytest.raises(GateError, match="GX1_OANDA_HISTORY_INGEST_FORBIDDEN"):
+            require_approved_oanda_history_ingest(
+                vedtak_id=vedtak,
+                timeframe=timeframe,
+                publication_mode="bootstrap",
+                start_utc="2005-01-01T00:00:00Z",
+                end_utc="2026-07-01T00:00:00Z",
+            )
