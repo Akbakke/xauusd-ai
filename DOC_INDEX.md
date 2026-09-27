@@ -13,6 +13,7 @@
 - `docs/DIRECTION_TIMESCALE_20260926.md` — retning vs. tidsskala, svingninger, ukesmåling,
   8-timers-taket, direkte mål og vent-mål.
 - `docs/CONSOLIDATION_20260926.md` — sammenslåingen og planen for M2–M4.
+- `docs/MODEL_FREE_BASELINES_PREREG_20260927.md` — forhåndsregistrerte modellfrie scalp-/swing-grunnlinjer.
 - `docs/FEATURE_SURFACE_SWING_REVIEW_20260927.md` — gjennomgang av alle felt og grunnmuren mot swing.
 - `docs/HISTORY_2005_INTAKE_20260926.md` — native M5/M1 fra 2006, overlappsrevisjon mot 2019.
 - `docs/WEEKLY_DIRECTION_PREREG_20260926.md` + `docs/WEEKLY_DIRECTION_RESULT_20260926.md` —

@@ -20,6 +20,15 @@ første bar), overlappet mot 2019-tapen er rad-identisk bortsett fra et fylt hul
 Vedtatt 26.09: guard-testen ignorerer preferanser (`model`, `theme`); GPU-kjernestopp 85 °C,
 nedtrekk til 220 W ved 80 °C.
 
+## Nå (27.09): modellfrie grunnlinjer før mer bygging
+
+Etter gjennomgangen ([docs/FEATURE_SURFACE_SWING_REVIEW_20260927.md](docs/FEATURE_SURFACE_SWING_REVIEW_20260927.md))
+måles først, forhåndsregistrert, om enkle regler gir retningsgevinst etter kost — scalp på M5
+(operatørens førstevalg) og swing på D1 — på 2009-tapen, TRAIN-perioden 2011-06 → 2025-05
+([docs/MODEL_FREE_BASELINES_PREREG_20260927.md](docs/MODEL_FREE_BASELINES_PREREG_20260927.md)).
+seq513-bootstrapen (squeeze → C0 → par → kjede) står på pause til resultatet foreligger; 2009-tapene,
+direkte kilder og lineage (`HISTORY2009_BOOTSTRAP_20260927`) er klare.
+
 ## Kodesteg
 
 1. ~~M1 — konsolidering~~ **ferdig 26.09** (809ba049, 755dd3aa). Se
