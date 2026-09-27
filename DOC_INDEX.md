@@ -13,7 +13,8 @@
 - `docs/DIRECTION_TIMESCALE_20260926.md` — retning vs. tidsskala, svingninger, ukesmåling,
   8-timers-taket, direkte mål og vent-mål.
 - `docs/CONSOLIDATION_20260926.md` — sammenslåingen og planen for M2–M4.
-- `docs/MACRO_EVENT_BASELINES_PREREG_20260927.md` — forhåndsregistrert test av planlagte makrohendelser.
+- `docs/MACRO_EVENT_BASELINES_PREREG_20260927.md` + `docs/MACRO_EVENT_BASELINES_RESULT_20260927.md` —
+  planlagte makrohendelser (NO-GO 0/18).
 - `docs/MODEL_FREE_BASELINES_PREREG_20260927.md` + `docs/MODEL_FREE_BASELINES_RESULT_20260927.md` —
   modellfrie scalp-/swing-grunnlinjer (NO-GO 0/62).
 - `docs/FEATURE_SURFACE_SWING_REVIEW_20260927.md` — gjennomgang av alle felt og grunnmuren mot swing.

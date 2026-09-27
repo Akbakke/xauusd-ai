@@ -45,6 +45,9 @@ Rot-loaderen importerer nå denne kodebasens `CLAUDE.md`, som importerer `GX1_RU
 - **Modellfrie grunnlinjer 27.09: NO-GO** (0/62): ingen enkel scalp- eller swingregel gir retningsgevinst
   etter kost på 2011–2025 ([docs/MODEL_FREE_BASELINES_RESULT_20260927.md](docs/MODEL_FREE_BASELINES_RESULT_20260927.md)).
 
+- **Makrohendelser 27.09: NO-GO** (0/18): FOMC-, NFP- og KPI-tidspunkt gir ingen handelbar retning
+  etter kost ([docs/MACRO_EVENT_BASELINES_RESULT_20260927.md](docs/MACRO_EVENT_BASELINES_RESULT_20260927.md)).
+
 ## Tilstand
 
 Ingen jobb kjører. `training_enabled=false`; full epoch, full VAL, CONTROL, TEST, live og
