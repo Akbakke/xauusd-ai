@@ -190,7 +190,7 @@ def _finite_entry_quotes(entry_bid: Any, entry_ask: Any) -> tuple[float, float]:
         ask = float(entry_ask)
     except (TypeError, ValueError) as exc:
         raise RuntimeError("UNIFIED_EXIT_OPTIMAL_ENTRY_QUOTES_INVALID") from exc
-    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask <= bid:
+    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask < bid:
         raise RuntimeError("UNIFIED_EXIT_OPTIMAL_ENTRY_QUOTES_INVALID")
     return bid, ask
 
@@ -276,7 +276,7 @@ def unified_exit_optimal_stopping_targets(
     bid, ask = _finite_entry_quotes(entry_bid, entry_ask)
     bids = _finite_close_vector(bid_close, label="BID_CLOSE")
     asks = _finite_close_vector(ask_close, label="ASK_CLOSE")
-    if np.any(asks <= bids):
+    if np.any(asks < bids):
         raise RuntimeError("UNIFIED_EXIT_OPTIMAL_EXECUTABLE_SPREAD_INVALID")
 
     exit_pnl = (

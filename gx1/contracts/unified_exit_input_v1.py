@@ -240,7 +240,7 @@ def build_unified_exit_input_envelope(
         ask = float(entry_ask)
     except (TypeError, ValueError) as exc:
         raise RuntimeError("UNIFIED_EXIT_INPUT_ENTRY_QUOTES_INVALID") from exc
-    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask <= bid:
+    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask < bid:
         raise RuntimeError("UNIFIED_EXIT_INPUT_ENTRY_QUOTES_INVALID")
     bundle_sha = _require_sha256(bundle_sha256, label="BUNDLE")
     if not isinstance(entry_snapshot, Mapping) or not entry_snapshot:
@@ -425,7 +425,7 @@ def require_unified_exit_input_envelope(value: Any) -> dict[str, Any]:
         ask = float(envelope["entry_ask"])
     except (TypeError, ValueError) as exc:
         raise RuntimeError("UNIFIED_EXIT_INPUT_ENTRY_QUOTES_INVALID") from exc
-    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask <= bid:
+    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask < bid:
         raise RuntimeError("UNIFIED_EXIT_INPUT_ENTRY_QUOTES_INVALID")
     for key in (
         "bundle_sha256",

@@ -286,3 +286,17 @@ def test_declared_non_integration_matches_the_production_source_scan() -> None:
         "integrated=False; wire the declaration and the call site as one "
         f"transaction: {callers}"
     )
+
+
+def test_locked_entry_and_path_quotes_preserve_exact_exit_rewards():
+    bid, ask = _quotes()
+    ask[0] = bid[0]
+    result = unified_exit_optimal_stopping_targets(
+        side_index=0, entry_bid=100.0, entry_ask=100.0, bid_close=bid, ask_close=ask,
+    )
+    assert result is not None
+    ask[0] = bid[0] - 0.01
+    with pytest.raises(RuntimeError):
+        unified_exit_optimal_stopping_targets(
+            side_index=0, entry_bid=100.0, entry_ask=100.0, bid_close=bid, ask_close=ask,
+        )

@@ -20,7 +20,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 
 
-def _snapshot() -> dict[str, object]:
+def _snapshot(*, entry_ask: float = 3350.3) -> dict[str, object]:
     token = np.linspace(-1.0, 1.0, ENTRY_DECISION_TOKEN_DIM, dtype=np.float32)
     return build_entry_decision_token_snapshot(
         token=token,
@@ -34,7 +34,7 @@ def _snapshot() -> dict[str, object]:
         model_direction="LONG",
         side="long",
         entry_bid=3350.1,
-        entry_ask=3350.3,
+        entry_ask=entry_ask,
         trade_identity="trade-token-unit",
     )
 
@@ -119,3 +119,10 @@ def test_rehashed_snapshot_still_rejects_wrong_fill_binding() -> None:
             trade_identity="trade-token-unit",
             context="UNIT",
         )
+
+
+def test_locked_quote_token_roundtrips_and_crossed_quote_is_rejected():
+    token = _snapshot(entry_ask=3350.1)
+    assert require_entry_decision_token_snapshot(token) == token
+    with pytest.raises(RuntimeError, match="ENTRY_QUOTES_INVALID"):
+        _snapshot(entry_ask=3350.0)

@@ -219,7 +219,7 @@ def lifetime_summary_from_path(
         or not math.isfinite(float(entry_bid))
         or not math.isfinite(float(entry_ask))
         or float(entry_bid) <= 0.0
-        or float(entry_ask) <= float(entry_bid)
+        or float(entry_ask) < float(entry_bid)
     ):
         raise RuntimeError("UNIFIED_EXIT_LIFETIME_PATH_INVALID")
     bh, bl, bc, ah, al, ac = arrays

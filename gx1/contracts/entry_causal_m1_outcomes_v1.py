@@ -127,14 +127,16 @@ def _m1_arrays(
         if not np.isfinite(values).all() or np.any(values <= 0.0):
             raise RuntimeError(f"ENTRY_CAUSAL_M1_SOURCE_VALUES_INVALID:{column}")
         numeric[column] = values
+    # Match canonical native geometry: positive prices and ask >= bid.
+    # Locked quotes are retained exactly; crossed quotes remain invalid.
     if (
         np.any(numeric["bid_high"] < numeric["bid_open"])
         or np.any(numeric["bid_low"] > numeric["bid_open"])
         or np.any(numeric["ask_high"] < numeric["ask_open"])
         or np.any(numeric["ask_low"] > numeric["ask_open"])
-        or np.any(numeric["ask_open"] <= numeric["bid_open"])
-        or np.any(numeric["ask_high"] <= numeric["bid_high"])
-        or np.any(numeric["ask_low"] <= numeric["bid_low"])
+        or np.any(numeric["ask_open"] < numeric["bid_open"])
+        or np.any(numeric["ask_high"] < numeric["bid_high"])
+        or np.any(numeric["ask_low"] < numeric["bid_low"])
     ):
         raise RuntimeError("ENTRY_CAUSAL_M1_SOURCE_QUOTE_GEOMETRY_INVALID")
     return times, numeric
@@ -235,7 +237,7 @@ def _require_surface(surface: pd.DataFrame) -> pd.DataFrame:
         & np.isfinite(result["entry_ask"].to_numpy(dtype=np.float64))
         & (result["entry_bid"].to_numpy(dtype=np.float64) > 0.0)
         & (result["entry_ask"].to_numpy(dtype=np.float64)
-           > result["entry_bid"].to_numpy(dtype=np.float64))
+           >= result["entry_bid"].to_numpy(dtype=np.float64))
     )
     if (
         np.any(bound & ~valid_quotes)

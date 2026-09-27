@@ -129,3 +129,28 @@ avvisning av snudde tidsrammer. Kjedenes faktiske freshness-/gjenbruksvakt er
 også eksekvert på de aktuelle ferdige filene og består (`actual_continuation_guard.log`).
 Ingen data ble endret. Neste eksplisitte videreføring ligger i
 `CONTINUE_SERIALIZED_ARCHITECTURE_20260927`; forrige røde terminal bevares.
+
+## Historiske låste quotes: én kildekontrakt gjennom Entry/Exit
+
+Kjeden fra `769e9080` bestod marked-/historie- og source-cascade-kontroll, men
+rangeringen stoppet før checkpoint i M1-geometrileseren. Måling av 5 648 218
+M1-rader viste ingen krysset BID/ASK eller brutt OHLC-geometri. Seks open/high/low-
+forekomster har lik BID/ASK 2012-12-12; fire M1-close og én M5-close er også låst
+på denne datoen. Alle er i TRAIN, ingen i VAL/TEST. Det er datakvalitetsmetadata,
+ikke retnings-/avkastningsmåling (`M1_QUOTE_GEOMETRY.json`, `LOCKED_CLOSES.json`).
+
+Kanonical native-eier tillater positive priser med ASK >= BID. Flere nedstrøms
+mål-, token-, Exit- og tilstandslesere krevde ASK > BID og ville derfor avvise
+den samme tillatte kilden. Disse sammenligningene følger nå native-kontrakten:
+lik pris bevares eksakt; kryssede, ikke-finite eller ikke-positive priser avvises.
+Per-rad spread kan være null; målenes tilpassede median-hurdle må fortsatt være
+strengt positiv. Persistens krever ikke-negativ, prisavstemt entry-spread.
+Ingen rådata, slippage, kommisjon, finansiering eller prisformel er endret.
+
+189 fokuserte tester består, inkludert låst quote, uendret pris gjennom M1-
+utfall, token-rundtur og fortsatt avvisning av krysset quote. Faktisk M1-leser
+og fill-surface-validering består på alle 5 648 218 M1- og 1 153 078 M5-rader;
+én M5-beslutning binder en låst M1-fill (`LOCKED_QUOTE_ADMISSION.json`).
+Det beviser datakontraktkonsistens, ikke virkelig meglerfill eller edge.
+Videreføring: `CONTINUE_NATIVE_QUOTE_GEOMETRY_20260927`, samme ferdige inputs
+og tidsvinduer. Historiske terminaler, output og source-cascade-bevis bevares.

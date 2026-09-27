@@ -600,7 +600,7 @@ def unified_exit_path_tensor_from_values(
         or not math.isfinite(parsed_entry_bid)
         or not math.isfinite(parsed_entry_ask)
         or parsed_entry_bid <= 0.0
-        or parsed_entry_ask <= parsed_entry_bid
+        or parsed_entry_ask < parsed_entry_bid
     ):
         raise ValueError("unified Exit path values are invalid")
     entry_mid = 0.5 * (parsed_entry_bid + parsed_entry_ask)

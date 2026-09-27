@@ -540,10 +540,10 @@ def _validate_persisted_trade_state_payload(
 
     entry_bid = _finite_persisted_number(payload, "entry_bid", positive=True)
     entry_ask = _finite_persisted_number(payload, "entry_ask", positive=True)
-    if entry_ask <= entry_bid:
-        raise ValueError("persisted trade state entry ask must exceed entry bid")
+    if entry_ask < entry_bid:
+        raise ValueError("persisted trade state entry ask must not be below entry bid")
     entry_spread_bps = _finite_persisted_number(
-        payload, "entry_spread_bps", positive=True
+        payload, "entry_spread_bps", nonnegative=True
     )
     expected_spread_bps = (entry_ask - entry_bid) / entry_bid * 10_000.0
     if not np.isclose(
@@ -1370,7 +1370,7 @@ class TradeState:
     ) -> "TradeState":
         if side not in SIDES:
             raise ValueError(f"side must be {SIDES}, got {side!r}")
-        if entry_bid <= 0 or entry_ask <= 0 or entry_ask <= entry_bid:
+        if entry_bid <= 0 or entry_ask <= 0 or entry_ask < entry_bid:
             raise ValueError(f"invalid prices: bid={entry_bid} ask={entry_ask}")
         raw_snapshot = dict(v10_snapshot or {})
         snapshot = _require_trade_entry_snapshot(

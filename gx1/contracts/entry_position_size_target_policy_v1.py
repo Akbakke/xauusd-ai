@@ -320,7 +320,7 @@ def fit_entry_position_size_target_policy(
         not np.isfinite(bid).all()
         or not np.isfinite(ask).all()
         or np.any(bid <= 0.0)
-        or np.any(ask <= bid)
+        or np.any(ask < bid)
     ):
         raise RuntimeError("ENTRY_POSITION_SIZE_TARGET_POLICY_QUOTES_INVALID")
 

@@ -214,3 +214,19 @@ def test_unbound_surface_row_cannot_hide_an_arbitrary_m1_pointer() -> None:
             closed_m1=m1,
             horizon_m5_bars=1,
         )
+
+
+@pytest.mark.parametrize("field", ("open", "high", "low"))
+def test_native_locked_quotes_are_exact_and_crossed_quotes_still_fail(field):
+    m1 = _m1_frame()
+    m1.loc[5, f"ask_{field}"] = m1.loc[5, f"bid_{field}"]
+    prepared = prepare_causal_m1_quote_source(m1)
+    assert prepared.values[f"ask_{field}"][5] == m1.loc[5, f"bid_{field}"]
+    surface = build_entry_m1_fill_surface(m5_decision_times=m1.time.iloc[[0]], closed_m1=prepared)
+    for owner in (causal_m1_outcomes_at_horizon, causal_m1_terminal_outcomes_at_horizon):
+        result = owner(fill_surface=surface, closed_m1=prepared, horizon_m5_bars=1)
+        assert bool(result.loc[0, "outcome_valid"])
+        assert surface.loc[0, "entry_ask"] == m1.loc[5, "ask_open"]
+    m1.loc[5, f"ask_{field}"] = m1.loc[5, f"bid_{field}"] - 0.01
+    with pytest.raises(RuntimeError, match="SOURCE_QUOTE_GEOMETRY_INVALID"):
+        prepare_causal_m1_quote_source(m1)

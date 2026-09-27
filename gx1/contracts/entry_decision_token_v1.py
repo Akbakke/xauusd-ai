@@ -231,7 +231,7 @@ def build_entry_decision_token_snapshot(
         ask = float(entry_ask)
     except (TypeError, ValueError) as exc:
         raise RuntimeError("ENTRY_DECISION_TOKEN_ENTRY_QUOTES_INVALID") from exc
-    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask <= bid:
+    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask < bid:
         raise RuntimeError("ENTRY_DECISION_TOKEN_ENTRY_QUOTES_INVALID")
     if (
         not isinstance(trade_identity, str)
@@ -331,7 +331,7 @@ def require_entry_decision_token_snapshot(value: Any) -> dict[str, Any]:
         ask = float(snapshot["entry_ask"])
     except (TypeError, ValueError) as exc:
         raise RuntimeError("ENTRY_DECISION_TOKEN_ENTRY_QUOTES_INVALID") from exc
-    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask <= bid:
+    if not math.isfinite(bid) or not math.isfinite(ask) or bid <= 0.0 or ask < bid:
         raise RuntimeError("ENTRY_DECISION_TOKEN_ENTRY_QUOTES_INVALID")
     if (
         not isinstance(snapshot["contract_mode"], str)

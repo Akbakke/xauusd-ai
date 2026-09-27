@@ -121,3 +121,16 @@ def test_materialized_auxiliary_evidence_retains_invalid_m1_rows() -> None:
     assert bool(output.loc[0, "outcome_valid"]) is False
     assert np.isnan(output.loc[0, "v11_pnl_long_at_dir_horizon_bps"])
     assert output.loc[0, "direction_side"] == -1
+
+
+def test_policy_retains_locked_fill_quote_without_zeroing_the_spread_hurdle():
+    m1 = _m1()
+    m1.loc[5, "ask_open"] = m1.loc[5, "bid_open"]
+    m5 = pd.DataFrame({"time": m1["time"].iloc[::5].reset_index(drop=True)})
+    policy = fit_causal_m1_target_policy(
+        closed_m5=m5, closed_m1=m1, train_start=m5.loc[0, "time"],
+        train_end=pd.Timestamp("2024-01-01T08:20:00Z"),
+        source_parquet_sha256=_sha("m5"), tape_provenance_sha256=_sha("tape"),
+        m1_source_sha256=_sha("locked-m1"),
+    )
+    assert require_causal_m1_target_policy(policy) == policy

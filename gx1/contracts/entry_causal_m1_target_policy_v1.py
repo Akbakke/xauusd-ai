@@ -312,7 +312,7 @@ def fit_causal_m1_target_policy(
     hurdle = float(np.median(spread_bps))
     if (
         not np.isfinite(spread_bps).all()
-        or np.any(spread_bps <= 0.0)
+        or np.any(spread_bps < 0.0)
         or not math.isfinite(hurdle)
         or hurdle <= 0.0
     ):

@@ -469,7 +469,7 @@ def fit_entry_direction_target_policy(
         not np.isfinite(bid).all()
         or not np.isfinite(ask).all()
         or np.any(bid <= 0.0)
-        or np.any(ask <= bid)
+        or np.any(ask < bid)
     ):
         raise RuntimeError("ENTRY_TARGET_POLICY_EXECUTABLE_QUOTES_INVALID")
     available = times + pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)
@@ -484,7 +484,7 @@ def fit_entry_direction_target_policy(
     hurdle = float(np.median(spread_bps))
     if (
         not np.isfinite(spread_bps).all()
-        or np.any(spread_bps <= 0.0)
+        or np.any(spread_bps < 0.0)
         or not math.isfinite(hurdle)
         or hurdle <= 0.0
     ):

@@ -378,7 +378,7 @@ def build_first_state_entry_bridge_witness(
         or not np.isfinite(bids).all()
         or not np.isfinite(asks).all()
         or np.any(bids <= 0.0)
-        or np.any(asks <= bids)
+        or np.any(asks < bids)
     ):
         raise RuntimeError("UNIFIED_EXIT_PILOT_FIRST_STATE_QUOTES_INVALID")
     selected_quotes = np.column_stack([bids[positions], asks[positions]]).astype(
