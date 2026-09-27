@@ -14,7 +14,9 @@ publisher must independently bind a source ending strictly before TEST.
 from __future__ import annotations
 
 from gx1.contracts.xau_tape_provenance_v1 import (
+    CANONICAL_NATIVE_CLOSURE_CONTRACT,
     CANONICAL_NATIVE_SUCCESSOR_MODE,
+    CANONICAL_NATIVE_WEEKLY_CLOSURE_EXCLUDED_CONTRACT,
 )
 from gx1_guards.gates import GateError, require_retrain_vedtak
 
@@ -41,7 +43,18 @@ OANDA_HISTORY_INGEST_APPROVALS = {
     # through 2009-05-25, where the causal 48-bar z-score owners are undefined
     # and fail closed; this intake starts at the first month after the last one.
     "OANDA_PAIR_PRETEST_2009_20260927": (frozenset({"M1", "M5"}), "2009-06-01T00:00:00Z"),
+    # 2026-09-27: operator decision "filtrer helgevinduet". The 2009 tapes hold
+    # stale weekend quotes (2011: every two hours all weekend, frozen price,
+    # volume 1) on which the causal SMC owners fail closed. Same interval, tape
+    # rows under the scheduled-weekly-closure-excluded contract (see below).
+    "OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927": (frozenset({"M1", "M5"}), "2009-06-01T00:00:00Z"),
 }
+# Decisions that bind the scheduled-weekly-closure-excluded tape contract (v2).
+# Every other decision publishes under the original v1 contract, as every tape
+# before 2026-09-27 did.
+OANDA_HISTORY_INGEST_WEEKLY_CLOSURE_EXCLUDED = frozenset(
+    {"OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927"}
+)
 _SUCCESSOR_MODE = CANONICAL_NATIVE_SUCCESSOR_MODE
 
 
@@ -99,3 +112,12 @@ def require_approved_oanda_history_ingest(
             "approved for the read-only history intake."
         )
     return vedtak
+
+
+def market_closure_contract_for_decision(vedtak_id: str | None) -> str:
+    """The market-closure contract a tape published under ``vedtak_id`` carries."""
+
+    vedtak = require_retrain_vedtak(vedtak_id)
+    if vedtak in OANDA_HISTORY_INGEST_WEEKLY_CLOSURE_EXCLUDED:
+        return CANONICAL_NATIVE_WEEKLY_CLOSURE_EXCLUDED_CONTRACT
+    return CANONICAL_NATIVE_CLOSURE_CONTRACT

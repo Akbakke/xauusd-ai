@@ -85,7 +85,7 @@ from gx1.contracts.entry_structural_aux_label_signal_v1 import (
     STRUCTURAL_AUX_LABEL_SIGNAL_REQUIREMENTS,
 )
 from gx1.contracts.xau_tape_provenance_v1 import (
-    CANONICAL_NATIVE_CLOSURE_CONTRACT,
+    CANONICAL_NATIVE_CLOSURE_CONTRACTS,
     XAU_INSTRUMENT,
     validate_xau_tape_provenance_v1,
 )
@@ -2184,7 +2184,7 @@ def build_unified_exit_lifecycle_episodes(
         architecture,
         context="UNIFIED_EXIT_LIFECYCLE_EPISODE_BUILD",
     )
-    if market_closure_contract != CANONICAL_NATIVE_CLOSURE_CONTRACT:
+    if market_closure_contract not in CANONICAL_NATIVE_CLOSURE_CONTRACTS:
         raise RuntimeError(
             "UNIFIED_EXIT_M1_MARKET_CLOSURE_PROOF_REQUIRED"
         )

@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from gx1.contracts.xau_tape_provenance_v1 import (
-    CANONICAL_NATIVE_CLOSURE_CONTRACT,
+    CANONICAL_NATIVE_CLOSURE_CONTRACTS,
     CANONICAL_NATIVE_REQUIRED_COLUMNS,
     CANONICAL_NATIVE_SOURCE_SCHEMA,
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
@@ -545,7 +545,7 @@ def require_unified_exit_pretest_m1_quote_authority(
         or observed_native.get("completion_field") != "complete"
         or observed_native.get("completion_value") is not True
         or observed_native.get("market_closure_contract")
-        != CANONICAL_NATIVE_CLOSURE_CONTRACT
+        not in CANONICAL_NATIVE_CLOSURE_CONTRACTS
     ):
         raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_COMPLETION_PROOF_INVALID")
     if (
@@ -772,7 +772,7 @@ def require_pretest_m5_quote_authority(
         observed_native.get("completion_field") != "complete"
         or observed_native.get("completion_value") is not True
         or observed_native.get("market_closure_contract")
-        != CANONICAL_NATIVE_CLOSURE_CONTRACT
+        not in CANONICAL_NATIVE_CLOSURE_CONTRACTS
         or _require_pretest_utc_boundary(
             observed_native.get("time_max_utc"),
             context="PRETEST_M5_NATIVE_MAX",
@@ -944,7 +944,7 @@ def require_unified_exit_m1_pair_authority(
         or observed_native.get("completion_field") != "complete"
         or observed_native.get("completion_value") is not True
         or observed_native.get("market_closure_contract")
-        != CANONICAL_NATIVE_CLOSURE_CONTRACT
+        not in CANONICAL_NATIVE_CLOSURE_CONTRACTS
     ):
         raise RuntimeError("UNIFIED_EXIT_M1_COMPLETION_PROOF_INVALID")
     source_path = base28_verified.binding.parquet_path

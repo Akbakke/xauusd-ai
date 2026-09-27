@@ -37,10 +37,10 @@ from gx1.contracts.entry_model_native_bundle_commit_v1 import (
     publish_bundle_directory_noreplace,
 )
 from gx1.contracts.oanda_history_ingest_approval_v1 import (
+    market_closure_contract_for_decision,
     require_approved_oanda_history_ingest,
 )
 from gx1.contracts.xau_tape_provenance_v1 import (
-    CANONICAL_NATIVE_CLOSURE_CONTRACT,
     CANONICAL_NATIVE_PRODUCER_OWNER,
     CANONICAL_NATIVE_PRODUCER_SOURCE_FILES,
     CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS,
@@ -51,6 +51,7 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     CANONICAL_NATIVE_SUCCESSOR_MODE,
     CANONICAL_NATIVE_SUCCESSOR_SOURCE_SCHEMA,
     XAU_INSTRUMENT,
+    apply_native_market_closure_contract,
     canonical_native_parent_binding_v1,
     canonical_json_sha256,
     canonical_native_frame_from_oanda_response,
@@ -254,7 +255,7 @@ def _load_parent_descriptor_cas(
         "decision_available_offset_seconds": policy["bar_seconds"],
         "completion_field": "complete",
         "completion_value": True,
-        "market_closure_contract": CANONICAL_NATIVE_CLOSURE_CONTRACT,
+        "market_closure_contract": market_closure_contract_for_decision(vedtak),
         "request_interval_semantics": (
             CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS
         ),
@@ -629,7 +630,9 @@ def _source_chunk(
     sequence: int,
     start: pd.Timestamp,
     end: pd.Timestamp,
+    closure_contract: str,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """One stored source response; its stats describe the response, the frame is the tape rows."""
     normalized, _policy = native_timeframe_policy(timeframe)
     request = {
         "instrument": INSTRUMENT,
@@ -680,7 +683,7 @@ def _source_chunk(
         "size_bytes": len(encoded),
         **stats,
     }
-    return frame, metadata
+    return apply_native_market_closure_contract(frame, contract=closure_contract), metadata
 
 
 def materialize_native_xau_snapshot(
@@ -698,6 +701,7 @@ def materialize_native_xau_snapshot(
     normalized, policy = native_timeframe_policy(timeframe)
     chunk_days = policy["request_chunk_days"]
     vedtak = require_retrain_vedtak(vedtak_id)
+    closure_contract = market_closure_contract_for_decision(vedtak)
     start = _utc_native(
         start_utc,
         timeframe=normalized,
@@ -808,6 +812,7 @@ def materialize_native_xau_snapshot(
                     sequence=sequence,
                     start=cursor,
                     end=chunk_end,
+                    closure_contract=closure_contract,
                 )
                 if not frame.empty:
                     first = pd.Timestamp(frame["time"].iloc[0])
@@ -894,7 +899,7 @@ def materialize_native_xau_snapshot(
             "decision_available_offset_seconds": policy["bar_seconds"],
             "completion_field": "complete",
             "completion_value": True,
-            "market_closure_contract": CANONICAL_NATIVE_CLOSURE_CONTRACT,
+            "market_closure_contract": closure_contract,
             "request_interval_semantics": CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS,
             "requested_start_utc": start.isoformat(),
             "requested_end_utc_exclusive": end.isoformat(),
@@ -980,6 +985,7 @@ def materialize_native_xau_successor(
     normalized, policy = native_timeframe_policy(timeframe)
     chunk_days = policy["request_chunk_days"]
     vedtak = require_retrain_vedtak(vedtak_id)
+    closure_contract = market_closure_contract_for_decision(vedtak)
     expected_parent_sha = str(expected_parent_manifest_sha256 or "").strip()
     if re.fullmatch(r"[0-9a-f]{64}", expected_parent_sha) is None:
         raise RuntimeError(
@@ -1188,6 +1194,7 @@ def materialize_native_xau_successor(
                 sequence=sequence,
                 start=cursor,
                 end=chunk_end,
+                closure_contract=closure_contract,
             )
             source_chunks.append(metadata)
             if not frame.empty:
@@ -1373,7 +1380,7 @@ def materialize_native_xau_successor(
             "decision_available_offset_seconds": policy["bar_seconds"],
             "completion_field": "complete",
             "completion_value": True,
-            "market_closure_contract": CANONICAL_NATIVE_CLOSURE_CONTRACT,
+            "market_closure_contract": closure_contract,
             "request_interval_semantics": (
                 CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS
             ),

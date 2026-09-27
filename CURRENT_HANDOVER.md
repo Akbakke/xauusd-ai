@@ -56,6 +56,13 @@ Rot-loaderen importerer nå denne kodebasens `CLAUDE.md`, som importerer `GX1_RU
   Walk-forward-eieren leser nå policyens navngitte slippage-scenarier (`load_slippage_scenarios`); primitiveieren
   har kolonnefilter (`build(..., keep_columns=)`). Neste: operatørvalg.
 
+- **Rebuild v36 på 2009-tapene (operatørvedtak 27.09 «Ja»):** squeeze → C0 → par → squeeze(par) → seq513-kjeden,
+  launcher `GX1_RUNS/HISTORY2009_REBUILD_20260927/`. Første forsøk stoppet i C0 på stillestående helgekvoter
+  (2011); rettet med stengningskontrakt v2 og nytt parvedtak `OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927`
+  ([docs/HISTORY_2005_INTAKE_20260926.md](docs/HISTORY_2005_INTAKE_20260926.md)). Neste: hent v2-tapene, bygg
+  kilder og lineage, kjør rebuilden på nytt; deretter forhåndsregistrert tak-måling (ridge/HGB, walk-forward
+  2015–25 med tidlig kalibrering) før noen native trening.
+
 ## Tilstand
 
 Ingen jobb kjører. `training_enabled=false`; full epoch, full VAL, CONTROL, TEST, live og

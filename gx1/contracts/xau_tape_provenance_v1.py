@@ -39,6 +39,24 @@ CANONICAL_NATIVE_SOURCE_ENDPOINT = "/instruments/XAU_USD/candles"
 CANONICAL_NATIVE_CLOSURE_CONTRACT = (
     "oanda_complete_true_source_absence_no_synthesis_v1"
 )
+# v2 (operator decision 2026-09-27): the same complete=true candles, minus every
+# candle whose bar start lies inside the scheduled weekly closure. The 2009-2013
+# OANDA history carries stale weekend quotes (2011: one candle every two hours
+# all weekend, frozen price, volume 1) that are not trading; causal owners fail
+# closed on them. Nothing is synthesized: the closure stays source absence.
+CANONICAL_NATIVE_WEEKLY_CLOSURE_EXCLUDED_CONTRACT = (
+    "oanda_complete_true_scheduled_weekly_closure_excluded_v2"
+)
+CANONICAL_NATIVE_CLOSURE_CONTRACTS = (
+    CANONICAL_NATIVE_CLOSURE_CONTRACT,
+    CANONICAL_NATIVE_WEEKLY_CLOSURE_EXCLUDED_CONTRACT,
+)
+# The weekly XAU session on the OANDA tape: the last active bar of the week
+# starts Friday 16:55 and the first starts Sunday 18:00 New York time (measured
+# on the 2009 pair tape, 2013-2026; the published CME/OANDA metals session).
+XAU_WEEKLY_CLOSURE_TIMEZONE = "America/New_York"
+XAU_WEEKLY_CLOSE_LOCAL = (4, 17 * 60)  # (weekday, minute of day): Friday 17:00
+XAU_WEEKLY_REOPEN_LOCAL = (6, 18 * 60)  # Sunday 18:00
 CANONICAL_NATIVE_SOURCE_CHUNK_SCHEMA = "xau_oanda_native_source_chunk_v2"
 CANONICAL_NATIVE_SOURCE_RESPONSE_ENCODING = "canonical_json_utf8_gzip_mtime0"
 CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS = "left_closed_right_open"
@@ -570,6 +588,38 @@ def canonical_native_frame_from_oanda_response(
         ),
     }
     return frame, stats
+
+
+def scheduled_weekly_closure_mask(times: Any) -> np.ndarray:
+    """True where a bar starts inside [Friday 17:00, Sunday 18:00) New York time."""
+
+    local = pd.DatetimeIndex(pd.to_datetime(times, utc=True)).tz_convert(
+        XAU_WEEKLY_CLOSURE_TIMEZONE
+    )
+    weekday = np.asarray(local.weekday)
+    minute = np.asarray(local.hour * 60 + local.minute)
+    close_day, close_minute = XAU_WEEKLY_CLOSE_LOCAL
+    open_day, open_minute = XAU_WEEKLY_REOPEN_LOCAL
+    return (
+        ((weekday == close_day) & (minute >= close_minute))
+        | ((weekday > close_day) & (weekday < open_day))
+        | ((weekday == open_day) & (minute < open_minute))
+    )
+
+
+def apply_native_market_closure_contract(
+    frame: pd.DataFrame, *, contract: Any
+) -> pd.DataFrame:
+    """The canonical tape rows of one parsed source frame under ``contract``."""
+
+    if contract == CANONICAL_NATIVE_CLOSURE_CONTRACT:
+        return frame
+    if contract == CANONICAL_NATIVE_WEEKLY_CLOSURE_EXCLUDED_CONTRACT:
+        if frame.empty:
+            return frame
+        keep = ~scheduled_weekly_closure_mask(frame["time"])
+        return frame.loc[keep].reset_index(drop=True)
+    raise RuntimeError(f"XAU_CANONICAL_MARKET_CLOSURE_CONTRACT_UNKNOWN: {contract!r}")
 
 
 def _safe_relative_path(
@@ -1195,6 +1245,7 @@ def _validate_native_successor_envelope(
         "explicit_vedtak_id",
         "source_environment",
         "source_base_url",
+        "market_closure_contract",
     ):
         if parent_manifest.get(field) != manifest.get(field):
             raise RuntimeError(
@@ -1347,14 +1398,20 @@ def _validate_canonical_native_source_contract_impl(
         "decision_available_offset_seconds": policy["bar_seconds"],
         "completion_field": "complete",
         "completion_value": True,
-        "market_closure_contract": CANONICAL_NATIVE_CLOSURE_CONTRACT,
         "request_interval_semantics": CANONICAL_NATIVE_REQUEST_INTERVAL_SEMANTICS,
         "source_response_encoding": CANONICAL_NATIVE_SOURCE_RESPONSE_ENCODING,
         "source_chunk_schema": CANONICAL_NATIVE_SOURCE_CHUNK_SCHEMA,
         "producer_repository_clean": True,
     }
+    closure_contract = manifest.get("market_closure_contract")
+    if closure_contract not in CANONICAL_NATIVE_CLOSURE_CONTRACTS:
+        raise RuntimeError(
+            "XAU_CANONICAL_M5_SOURCE_POLICY_MISMATCH: "
+            f"field='market_closure_contract' observed={closure_contract!r}"
+        )
     expected_keys = {
         *exact,
+        "market_closure_contract",
         "instrument",
         "timeframe",
         "out_root",
@@ -1644,6 +1701,9 @@ def _validate_canonical_native_source_contract_impl(
                     "XAU_CANONICAL_M5_SOURCE_CHUNK_STATS_MISMATCH: "
                     f"sequence={sequence} field={key}"
                 )
+        # Chunk stats describe the source response; the tape rows are that
+        # response under the manifest's closure contract.
+        frame = apply_native_market_closure_contract(frame, contract=closure_contract)
         if not frame.empty:
             first = pd.Timestamp(frame["time"].iloc[0])
             last = pd.Timestamp(frame["time"].iloc[-1])
@@ -1920,6 +1980,7 @@ def _validate_canonical_native_source_contract_impl(
         raise RuntimeError("XAU_CANONICAL_M5_MANIFEST_PAYLOAD_HASH_MISMATCH")
     descriptor = {
         **exact,
+        "market_closure_contract": closure_contract,
         "explicit_vedtak_id": vedtak,
         "source_environment": environment,
         "source_base_url": str(manifest["source_base_url"]),

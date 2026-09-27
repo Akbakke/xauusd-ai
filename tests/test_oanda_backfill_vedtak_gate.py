@@ -1488,3 +1488,78 @@ def test_history_authorization_admits_the_2009_pair_interval_only() -> None:
                 start_utc="2005-01-01T00:00:00Z",
                 end_utc="2026-07-01T00:00:00Z",
             )
+
+
+def test_scheduled_weekly_closure_window_follows_new_york_daylight_saving() -> None:
+    times = pd.DatetimeIndex(
+        [
+            "2024-01-05T21:55:00Z",  # Fri 16:55 EST: open
+            "2024-01-05T22:00:00Z",  # Fri 17:00 EST: closed
+            "2024-01-06T12:00:00Z",  # Saturday: closed
+            "2024-01-07T22:55:00Z",  # Sun 17:55 EST: closed
+            "2024-01-07T23:00:00Z",  # Sun 18:00 EST: open
+            "2024-07-05T20:55:00Z",  # Fri 16:55 EDT: open
+            "2024-07-05T21:00:00Z",  # Fri 17:00 EDT: closed
+            "2024-07-07T21:55:00Z",  # Sun 17:55 EDT: closed
+            "2024-07-07T22:00:00Z",  # Sun 18:00 EDT: open
+            "2024-07-08T12:00:00Z",  # Monday: open
+        ],
+        tz="UTC",
+    )
+    assert tape_contract.scheduled_weekly_closure_mask(times).tolist() == [
+        False, True, True, True, False, False, True, True, False, False,
+    ]
+
+
+def test_market_closure_contracts_keep_or_drop_only_the_weekly_closure() -> None:
+    frame = pd.DataFrame(
+        {"time": pd.DatetimeIndex(["2024-01-05T21:55:00Z", "2024-01-06T12:00:00Z", "2024-01-07T23:00:00Z"], tz="UTC")}
+    )
+    v1 = tape_contract.apply_native_market_closure_contract(
+        frame, contract=tape_contract.CANONICAL_NATIVE_CLOSURE_CONTRACT
+    )
+    assert v1 is frame
+    v2 = tape_contract.apply_native_market_closure_contract(
+        frame, contract=tape_contract.CANONICAL_NATIVE_WEEKLY_CLOSURE_EXCLUDED_CONTRACT
+    )
+    assert v2["time"].tolist() == [frame["time"][0], frame["time"][2]]
+    with pytest.raises(RuntimeError, match="MARKET_CLOSURE_CONTRACT_UNKNOWN"):
+        tape_contract.apply_native_market_closure_contract(frame, contract="other")
+
+
+def test_weekly_closure_decision_publishes_v2_rows_that_the_validator_rederives(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.contracts.oanda_history_ingest_approval_v1 import (
+        market_closure_contract_for_decision,
+    )
+
+    vedtak = "OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927"
+    assert market_closure_contract_for_decision(vedtak) == (
+        tape_contract.CANONICAL_NATIVE_WEEKLY_CLOSURE_EXCLUDED_CONTRACT
+    )
+    assert market_closure_contract_for_decision("OANDA_PAIR_PRETEST_2009_20260927") == (
+        tape_contract.CANONICAL_NATIVE_CLOSURE_CONTRACT
+    )
+    _allow_clean_repo(monkeypatch)
+    output = tmp_path / "native_m5_weekclosed"
+    manifest = canonical_backfill.materialize_native_xau_snapshot(
+        client=_FakeOandaClient(timeframe="M5"),
+        timeframe="M5",
+        vedtak_id=vedtak,
+        start_utc="2024-01-05T21:00:00Z",
+        end_utc="2024-01-08T00:00:00Z",
+        out_root=output,
+    )
+    # 51 hours of source candles; Friday 16:00-17:00 and Sunday 18:00-19:00 EST remain.
+    assert manifest["market_closure_contract"] == (
+        tape_contract.CANONICAL_NATIVE_WEEKLY_CLOSURE_EXCLUDED_CONTRACT
+    )
+    assert manifest["source_chunks"][0]["complete_candles"] == 51 * 12
+    assert manifest["row_count"] == 24
+    descriptor = canonical_xau_source_descriptor_v1(output, timeframe="M5")
+    assert descriptor["row_count"] == 24
+    assert descriptor["canonical_rows_sha256"] == manifest["canonical_rows_sha256"]
+    rows = pd.read_parquet(output / "year=2024" / "part-000.parquet")
+    assert not tape_contract.scheduled_weekly_closure_mask(rows["time"]).any()

@@ -72,6 +72,24 @@ bar, så en tape som starter før juni 2009 kan ikke bygges uten å finne på ve
 Operatørvedtak: nytt parvedtak `OANDA_PAIR_PRETEST_2009_20260927` fra 2009-06-01. 2008-krakket
 faller ut; 2011–15, 2013, 2016, 2018, 2020–21 og 2022 er med.
 
+## Stillestående helgekvoter og stengningskontrakt v2 (målt og vedtatt 27.09)
+
+Den første rebuilden på 2009-tapene stoppet i C0 (M5-lanen) på `[SMC_MTF_OUTPUT_AVAILABILITY_INVALID]`:
+alle fire pivoter var like, så SMC-kanalbredden ble null. Årsaken er målt på tapen:
+
+- Tapens egen ukesesjon: siste aktive bar starter fredag 16:55 og første søndag 18:00 New York-tid
+  (2013–2026, nesten hver uke; publisert CME/OANDA-metallsesjon).
+- Inne i vinduet [fre 17:00, søn 18:00) ligger 1 410 av 1 229 020 M5-barer (0,115 %) og 1 535 M1-barer,
+  91 % flate, medianvolum 1. 2011 har 1 020 av dem: én candle hver andre time hele helgen med frossen
+  pris (f.eks. 1342,73 hele 22.01.2011). Etter 2013 bare enkeltkvoter rett etter fredagsstengning.
+
+Operatørvedtak 27.09 («filtrer helgevinduet»): nytt parvedtak `OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927`
+med samme intervall og stengningskontrakt v2
+(`oanda_complete_true_scheduled_weekly_closure_excluded_v2`): tapens rader er OANDAs komplette candler
+minus dem som starter inne i det planlagte ukevinduet. Kildebitene lagres og beskrives uendret; validatoren
+utleder radene fra dem med kontraktens filter. Ingenting syntetiseres — stengningen er fortsatt
+kildefravær. v1-tapene er uendret gyldige. Helligdager er ikke dekket av regelen.
+
 ## Ikke undersøkt
 
 - Om OANDAs tidlige data har andre handelstider eller sesjonsmønstre enn i dag.
