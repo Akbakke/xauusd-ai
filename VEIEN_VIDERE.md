@@ -26,8 +26,11 @@ Etter gjennomgangen ([docs/FEATURE_SURFACE_SWING_REVIEW_20260927.md](docs/FEATUR
 måles først, forhåndsregistrert, om enkle regler gir retningsgevinst etter kost — scalp på M5
 (operatørens førstevalg) og swing på D1 — på 2009-tapen, TRAIN-perioden 2011-06 → 2025-05
 ([docs/MODEL_FREE_BASELINES_PREREG_20260927.md](docs/MODEL_FREE_BASELINES_PREREG_20260927.md)).
-seq513-bootstrapen (squeeze → C0 → par → kjede) står på pause til resultatet foreligger; 2009-tapene,
-direkte kilder og lineage (`HISTORY2009_BOOTSTRAP_20260927`) er klare.
+seq513-bootstrapen (squeeze → C0 → par → kjede) står på pause; 2009-tapene, direkte kilder og lineage
+(`HISTORY2009_BOOTSTRAP_20260927`) er klare. **Resultat 27.09: NO-GO på alle 62 celler**
+([docs/MODEL_FREE_BASELINES_RESULT_20260927.md](docs/MODEL_FREE_BASELINES_RESULT_20260927.md)):
+scalp-regler har null brutto retning etter spread (kost ~6 bps/rundtur); trendfiltre på D1 gir bare
+risikoreduksjon i bjørnemarkedet (beste t 1,87). Neste steg er et operatørvalg (se CURRENT_HANDOVER).
 
 ## Kodesteg
 
