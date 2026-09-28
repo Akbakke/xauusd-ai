@@ -15,6 +15,37 @@ SMC-rettelsen og prosjektvis låsing er kontrollert. Tidligere kilde-/testgjenno
 er dokumentert; ny v37-inputbygging og gjenstående avklaringer står nedenfor.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
+## Nå: rettet minnevekst i datasettskriving; fersk videreføring
+
+`CONTINUE_RESOURCE_WAIT_20260928` passerte de tidligere blokkeringene, men ble
+OOM-drept i sin 10 GiB cgroup kl. 20:51 UTC / 22:51 norsk tid. Siste loggførte
+TRAIN-flush var 496 640 rader. Delvis parquet, Group-A-checkpoints og alle røde
+kvitteringer bevares. Ingen split-manifest/ferdigkvittering godkjenner dette datasettet.
+
+Skriveren beholdt én dictionary med 97 identitets-/labelkolonner per rad. Den
+beholder nå kolonnebaserte batcher. På 100 000 syntetiske rader med faktisk feltsett
+falt beholdt summary-lagring fra 712 800 984 til 77 625 088 bytes (89,1 %).
+Verdier, datatyper og rekkefølge er eksakt like. Dette måler representasjonen,
+ikke toppminnet i en full rebuild. 22 fokuserte tester består. Parquet-skriving,
+features, labels, splitgrenser og minnetak er uendret.
+
+Ny engangsplan:
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_SUMMARY_MEMORY_20260928`.
+Ny outputrot:
+`/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_SUMMARY_RECOVERY_20260928`.
+Eksisterende kjedeeier kan nå motta en separat, eksplisitt tidligere inputrot.
+Den rehasher ferdige upstream-inputs, krever uendret produsentkode og tillater
+bare endret downstream-datasettfunksjon/summary-hjelper. Delte helpers/imports
+kontrolleres AST-identiske. Ny preflight kreves, og alle nye downstream-outputs
+må være ferske. Gammel preflight er kun kildebevis; rødt blir aldri grønt ved kopiering.
+
+Les PLAN/BINDING/WAITING/START/TERMINAL og prosesser i den nye runtime-roten.
+Tidligere plan er konsumert. Ny POST_BUILD bindes til den nye launcheren og den
+nye outputroten. Kilden fryses under kjøring. Automatisk oppfølging hver 30. minutt
+består; trening, optimizer, full VAL og TEST-utfall er fortsatt stengt.
+
+## Historikk for inputbyggingen nedenfor
+
 ## V37: ferdige featureflater; rettet preflight-leser og bundet videreføring
 
 Kjøringen stoppet 28.09 kl. 13:27 UTC / 15:27 norsk tid etter ferdig M1/M5.

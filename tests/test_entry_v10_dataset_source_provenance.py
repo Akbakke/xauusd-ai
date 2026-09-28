@@ -119,3 +119,43 @@ def test_missing_git_identity_fails_without_unknown_fallback(
     ):
         builder._require_producer_source_identity()
 
+
+
+def test_streamed_summary_preserves_legacy_values_dtypes_and_order() -> None:
+    import numpy as np
+
+    batches = []
+    old_records = []
+    for offset in (0, 3):
+        frame = pd.DataFrame({
+            "time": pd.date_range("2026-01-02", periods=3, freq="5min", tz="UTC") + pd.Timedelta(minutes=offset*5),
+            "seq": [[[float(offset)]]] * 3,
+            "snap": [[float(offset)]] * 3,
+            "ctx_cont": [[0.0]] * 3,
+            "ctx_cat": [[1]] * 3,
+            "y_float32": np.array([0.1, -0.5, np.nan], dtype=np.float32),
+            "y_float64": np.array([1e-12, 1e12, -0.0], dtype=np.float64),
+            "y_int8": np.array([0, 1, -1], dtype=np.int8),
+            "y_bool": np.array([True, False, True]),
+            "mode": ["causal"] * 3,
+        })
+        old_records.extend(frame.drop(columns=["seq", "snap", "ctx_cont", "ctx_cat"]).to_dict("records"))
+        batches.append(builder._dataset_summary_batch(frame))
+    actual = pd.concat(batches, ignore_index=True)
+    pd.testing.assert_frame_equal(actual, pd.DataFrame(old_records), check_exact=True)
+    assert not {"seq", "snap", "ctx_cont", "ctx_cat"}.intersection(actual.columns)
+
+
+def test_streamed_summary_retains_less_memory_than_row_dictionaries() -> None:
+    import sys
+    import numpy as np
+
+    frame = pd.DataFrame({f"target_{i}": np.arange(1024, dtype=np.float32) + i / 10 for i in range(80)})
+    records = frame.to_dict("records")
+    retained_records_bytes = sys.getsizeof(records) + sum(
+        sys.getsizeof(row) + sum(sys.getsizeof(value) for value in row.values())
+        for row in records
+    )
+    summary = builder._dataset_summary_batch(frame)
+    pd.testing.assert_frame_equal(summary, pd.DataFrame(records), check_exact=True)
+    assert int(summary.memory_usage(index=True, deep=True).sum()) < retained_records_bytes

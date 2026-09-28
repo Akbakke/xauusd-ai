@@ -3139,6 +3139,23 @@ def _align_native_m5_feature_surface(
     return {name: values[window] for name, values in surface_arrays.items()}
 
 
+def _dataset_summary_batch(frame: pd.DataFrame) -> pd.DataFrame:
+    """Retain scalar summaries in columns, preserving legacy Python-scalar inference.
+
+    A dict per emitted row retained several GiB on the full historical TRAIN.
+    List conversion is bounded to one write batch; the retained frame has the
+    same values/dtypes as the old records-to-DataFrame summary. Sequence/context
+    arrays are written to parquet above this boundary and are never retained here.
+    """
+    return pd.DataFrame(
+        {
+            name: frame[name].tolist()
+            for name in frame.columns
+            if name not in ("seq", "snap", "ctx_cont", "ctx_cat")
+        }
+    )
+
+
 def build_dataset_canonical(
     *,
     source_parquet: Path,
@@ -4790,9 +4807,7 @@ def build_dataset_canonical(
 
     pq_writer = None
     pq_schema = None
-    summary_rows: List[
-        Dict[str, Any]
-    ] = []  # only identity + labels (no seq/snap/ctx) — small
+    summary_batches: List[pd.DataFrame] = []  # compact identity/label columns
     total_written = 0
 
     def _emit_batch(rows_batch: List[Dict[str, Any]]) -> None:
@@ -4817,16 +4832,8 @@ def build_dataset_canonical(
                     df_b, schema=pq_schema, preserve_index=False, safe=False
                 )
                 pq_writer.write_table(table)
-        # Always keep tiny summary row (identity + labels) for downstream logging
-        summary_rows.extend(
-            df_b[
-                [
-                    c
-                    for c in df_b.columns
-                    if c not in ("seq", "snap", "ctx_cont", "ctx_cat")
-                ]
-            ].to_dict(orient="records")
-        )
+        # Keep scalar columns, not one growing Python dictionary per output row.
+        summary_batches.append(_dataset_summary_batch(df_b))
         total_written += len(df_b)
         del df_b, rows_batch[:]
 
@@ -4927,7 +4934,8 @@ def build_dataset_canonical(
         pq_writer.close()
         log.info("[V2_STREAMING_WRITE] closed writer, total_rows=%d", total_written)
 
-    df_out = pd.DataFrame(summary_rows)
+    df_out = pd.concat(summary_batches, ignore_index=True) if summary_batches else pd.DataFrame()
+    summary_batches.clear()
     if len(df_out) == 0:
         raise RuntimeError("BUILD_EMPTY_OUTPUT")
 

@@ -310,3 +310,21 @@ bygget. `CONTINUE_RESOURCE_WAIT_20260928` venter i runtime på den eksisterende
 capped-run-grensen hvert 15. minutt og starter samme kommando én gang.
 Egen duplikatlås og eksakt kilde-/filbinding består; post-build får ny forelder.
 Dette er kun drift av autorisert inputbygging, ingen modell-/produsentendring.
+
+## Datasettskriving: målt OOM og rettet summary-lagring 28.09
+
+Forrige videreføring ble OOM-drept i sin cgroup 20:51 UTC etter siste flush på
+496 640 TRAIN-rader. En voksende liste av dictionaries beholdt alle 97
+summary-felter per rad. Kolonnebaserte batcher erstatter denne representasjonen;
+selve parquet-emisjonen og targets er uendret. 22 fokuserte tester består.
+På 100 000 syntetiske rader med faktisk feltsett er beholdt minne 712 800 984
+mot 77 625 088 bytes, med eksakt verdi-/dtype-/rekkefølgeparitet. Dette er ikke
+full-run-toppminne eller kvalitetsbevis. Runtime-bevis: `DATASET_SUMMARY_OOM_REPAIR.json`
+og `SUMMARY_MEMORY_MEASUREMENT.json` i samme v37-runrot.
+
+`CONTINUE_SUMMARY_MEMORY_20260928` bruker ferdige, revaliderte upstream-inputs og
+ny `DATASET_SUMMARY_RECOVERY_20260928`-outputrot. Kjedens eksisterende eiere
+utfører ny preflight, rebuild og senere readiness. Oppstrøms kode må være
+uendret; kun downstream-datasettfunksjon og summary-helper kan avvike, mens
+delte helpers/imports forblir AST-identiske. 10 GiB/512 MiB cap og alle guards
+består. Delvis gammel output slettes/overskrives ikke. Trening er stengt.

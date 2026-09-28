@@ -4,6 +4,8 @@ import re
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 REPO = Path(__file__).resolve().parents[1]
 SCRIPT = REPO / "scripts" / "run_seq513_rebuild_chain_v1.sh"
@@ -554,7 +556,7 @@ def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
     args = [str(a).replace("-01-01Z", "-01-01T00:00:00Z") for a in args]
 
     def run():
-        return subprocess.run([sys.executable, "-", *args, "", "", "", "", "", "", str(REPO)], input=code, capture_output=True, text=True)
+        return subprocess.run([sys.executable, "-", *args, "", "", "", "", "", "", str(REPO), ""], input=code, capture_output=True, text=True)
 
     result = run()
     assert result.returncode != 0 and "fresh event outputs required" in result.stderr
@@ -657,7 +659,7 @@ def test_signal_reuse_validates_lineage_and_fit_boundary_before_exempting_paths(
     def env():
         return dict(raw_reuse_signal_manifest=str(manifest),
                     raw_reuse_signal_manifest_sha256=hashlib.sha256(manifest.read_bytes()).hexdigest(),
-                    exact_path=lambda raw, **kwargs: Path(raw), event=tmp_path,
+                    exact_path=lambda raw, **kwargs: Path(raw), event=tmp_path, input_event=tmp_path,
                     hashlib=hashlib, Path=Path, pd=pd, ranking=ranking,
                     run_id='fixture', source=tmp_path/'source.parquet',
                     output_seal=SimpleNamespace(sha256='source-sha'), canonical=tmp_path/'canonical.parquet',
@@ -739,7 +741,8 @@ def test_preflight_identity_rejects_missing_witness_and_multiple_events(tmp_path
     assert run().returncode != 0
 
 
-def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshness(tmp_path):
+@pytest.mark.parametrize("recovery", [False, True])
+def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshness(tmp_path, recovery):
     import hashlib
     import pandas as pd
     import pytest
@@ -750,6 +753,9 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
     event = tmp_path/'event'; event.mkdir()
     repo = tmp_path/'repo'; repo.mkdir(); (repo/'gx1').mkdir(); (repo/'scripts').mkdir()
     owner = repo/'gx1'/'owner.py'; owner.write_text('VALUE = 1\n')
+    (repo/'gx1/scripts').mkdir()
+    builder_file=repo/'gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py'
+    builder_file.write_text('VALUE = 1\ndef build_dataset_canonical():\n    return 1\n')
     def git(*args):
         return subprocess.check_output(['git','-C',str(repo),'-c','user.name=Test','-c','user.email=test@example.invalid',*args], text=True).strip()
     git('init','-q'); git('add','.'); git('commit','-qm','source')
@@ -790,24 +796,31 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
     prior={'terminal_event_path':str(prior_path),'event_root':str(event),'entry_run_id':'UNIT_PREFLIGHT_RUN',
         'state':'RED','step':'rebuild-preflight','reason':'preflight output identity validation failed',
         'preflight':{'out_dir':str(pre)},'git_head':old_head}
+    destination=event
+    if recovery:
+        destination=tmp_path/'fresh_event';destination.mkdir()
+        prior.update(step='dataset-rebuild',reason='dataset rebuild or post-build audit failed after immutable output materialization; fresh lineage required')
+        prior['preflight'].update(json_path=str(proof_path),sha256=sha(proof_path))
+        prior['outputs']={'dataset_output_stem':values['--output'],'audit_output_dir':values['--audit-out-dir'],'unified_exit_lifecycle_dir':values['--exit-lifecycle-dir']}
+    downstream=destination/'output.parquet'
     prior_path.write_text(json.dumps(prior))
     def env():
         return dict(raw_reuse_preflight_json=str(proof_path),raw_reuse_preflight_sha256=sha(proof_path),
             raw_reuse_chain_terminal_json=str(prior_path),raw_reuse_chain_terminal_sha256=sha(prior_path),
-            exact_path=lambda raw,**kwargs:Path(raw),event=event,preflight=pre,run_id='UNIT_PREFLIGHT_RUN',raw_repo=str(repo),
+            exact_path=lambda raw,**kwargs:Path(raw),event=destination,input_event=event,raw_reuse_input_event_root=str(event) if recovery else '',preflight=destination/'preflight' if recovery else pre,run_id='UNIT_PREFLIGHT_RUN',raw_repo=str(repo),
             source=source,canonical=canonical,raw_reuse_signal_manifest=str(signal),raw_reuse_signal_manifest_sha256=sha(signal),
             ranking=ranking,mtf=event/'cache',tape=event/'tape',m1_lifecycle_pair_manifest=pair,
             m1_lifecycle_pair_generation_root=event/'generations',m1_feature_base=bases[0],m5_feature_base=bases[1],
-            exit_lifecycle=event/'lifecycle',output=event/'output.parquet',audit=event/'audit',labels=labels,raw_times=times,
+            exit_lifecycle=destination/'lifecycle',output=downstream,audit=destination/'audit',labels=labels,raw_times=times,
             m1_enriched=m1,m5_enriched=m5,m1_checkpoint=event/'checkpoint',hashlib=hashlib,Path=Path,pd=pd,re=re,
-            fresh_paths=[m1,*bases,event/'output.parquet'])
+            fresh_paths=[m1,*bases,downstream])
     scope=env();exec(compile(code,'actual_preflight_reuse_guard','exec'),scope)
-    assert scope['fresh_paths']==[event/'output.parquet']
+    assert scope['fresh_paths']==[downstream]
     for path in (bases[0],m1,Path(str(bases[1])+'.manifest.json')):
         data=path.read_bytes();path.write_bytes(data+b'changed')
         scope=env()
         with pytest.raises(RuntimeError,match='SHA256 mismatch'):exec(compile(code,'actual_preflight_reuse_guard','exec'),scope)
-        assert scope['fresh_paths']==[m1,*bases,event/'output.parquet']
+        assert scope['fresh_paths']==[m1,*bases,downstream]
         path.write_bytes(data)
     scope=env();scope['raw_reuse_preflight_sha256']='0'*64
     with pytest.raises(RuntimeError,match='SHA256 mismatch'):exec(compile(code,'actual_preflight_reuse_guard','exec'),scope)
@@ -818,3 +831,21 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
     prior['state']='RED';prior_path.write_text(json.dumps(prior))
     owner.write_text('VALUE = 2\n');git('add','.');git('commit','-qm','owner changed')
     with pytest.raises(subprocess.CalledProcessError):exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+
+    owner.write_text('VALUE = 1\n');git('add','.');git('commit','-qm','restore upstream')
+    builder_file.write_text('VALUE = 1\ndef build_dataset_canonical():\n    return 2\ndef _dataset_summary_batch(frame):\n    return frame\n')
+    git('add','.');git('commit','-qm','downstream assembly repair')
+    if recovery:
+        exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+        changed=json.loads(prior_path.read_text());changed['preflight']['sha256']='0'*64
+        prior_path.write_text(json.dumps(changed))
+        with pytest.raises(RuntimeError,match='not bound'):
+            exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+        prior_path.write_text(json.dumps(prior))
+        builder_file.write_text(builder_file.read_text().replace('VALUE = 1', 'VALUE = 2'))
+        git('add','.');git('commit','-qm','shared upstream helper changed')
+        with pytest.raises(RuntimeError,match='shared upstream'):
+            exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+    else:
+        with pytest.raises(subprocess.CalledProcessError):
+            exec(compile(code,'actual_preflight_reuse_guard','exec'),env())

@@ -10,15 +10,14 @@ all test-/datakjøring bruker eksisterende capped-run-vakter.
    full lokal M1-kontroll og faktisk MTF-paritet på de sju berørte TRAIN-radene.
    Ny prosjektlås består 294 tester og faktisk parallell låsadgang. Bevisene
    gjenbrukes; ingen ny fullsuite eller gjentatt diagnose uten et nytt funn.
-2. Fullfør `CONTINUE_RESOURCE_WAIT_20260928` under
-   `HISTORY2009W_NATIVE_V37_20260928`. M1/M5 er ferdige; viderefør fra verifisert
-   preflight etter rettet hendelses-/kvitteringskontroll.
-   Første videreføring stoppet på ledig minne. Ny launcher venter automatisk
-   på uendret capped-run-minnekrav hvert 15. minutt. Les samme runs
-   WAITING/RESOURCE_CHECKS/START/TERMINAL og prosesser før oppfølging; ikke
-   dupliser en konsumert plan. Registry-/squeeze-gjenbruk består faktisk kontroll.
-   Bevar kildefrys under bygging og alle v36-artefaktene,
-   de ferdige Group-A-chunkene og terminalbevisene; ingen manifestomskriving.
+2. Fullfør `CONTINUE_SUMMARY_MEMORY_20260928` under
+   `HISTORY2009W_NATIVE_V37_20260928`, med fersk outputrot
+   `DATASET_SUMMARY_RECOVERY_20260928`. Forrige videreføring ble OOM-drept.
+   Summary-lagringen er rettet og kontrollert med 22 fokuserte tester; beholdt
+   representasjonsminne er redusert 89,1 % i målingen. Fullt toppminne er ubevist.
+   Les samme runs START/TERMINAL og prosesser; ikke dupliser planen.
+   Ferdige upstream-inputs gjenbrukes bare etter hash-/kodekontroll og ny preflight.
+   Bevar kildefrys, delvis gammelt datasett og originale checkpoints.
 3. Fullfør native-inputs, post-rebuild/readiness og lifecycle-bindinger innen
    [det autoriserte forberedelsesomfanget](docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md).
    Teknisk PASS er ikke en tillatelse til å starte trening.

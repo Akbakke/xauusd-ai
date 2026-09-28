@@ -47,6 +47,7 @@ REUSE_PREFLIGHT_JSON=
 REUSE_PREFLIGHT_SHA256=
 REUSE_CHAIN_TERMINAL_JSON=
 REUSE_CHAIN_TERMINAL_SHA256=
+REUSE_INPUT_EVENT_ROOT=
 
 usage() {
   printf '%s\n' \
@@ -69,7 +70,9 @@ usage() {
     "  [--reuse-signal-manifest PATH --reuse-signal-manifest-sha256 SHA256]" \
     "  [--reuse-preflight-json PATH --reuse-preflight-sha256 SHA256" \
     "   --reuse-chain-terminal-json PATH --reuse-chain-terminal-sha256 SHA256]" \
-    "  Preflight reuse requires complete M5/signal reuse and the exact prior identity-check failure." \
+    "  [--reuse-input-event-root /exact/prior/event] for fresh downstream recovery after failed dataset emission." \
+    "  Recovery revalidates completed input bytes and unchanged upstream owners; it always runs a new preflight." \
+    "  In-place preflight reuse requires the exact prior identity-check failure." \
     "  --history-start UTC --train-start UTC --train-end UTC" \
     "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
@@ -205,6 +208,12 @@ while (($#)); do
       VOLATILITY_SQUEEZE_MANIFEST_SHA256=$2
       shift 2
       ;;
+    --reuse-input-event-root)
+      (($# >= 2)) || die_args "--reuse-input-event-root requires a value"
+      [[ -z $REUSE_INPUT_EVENT_ROOT ]] || die_args "duplicate --reuse-input-event-root"
+      REUSE_INPUT_EVENT_ROOT=$2
+      shift 2
+      ;;
     --reuse-preflight-json)
       (($# >= 2)) || die_args "--reuse-preflight-json requires a value"
       [[ -z $REUSE_PREFLIGHT_JSON ]] || die_args "duplicate --reuse-preflight-json"
@@ -308,14 +317,20 @@ fi
 [[ $EVENT == /* ]] || die_args "--event-root must be absolute"
 [[ -d $EVENT && ! -L $EVENT ]] || die_args "--event-root must be an existing regular directory"
 
-SRC="$EVENT/FULL_PLUS_CTX_v3src.parquet"
-MTF="$EVENT/MULTI_TF_V4_CACHE"
-M1_ENRICHED="$EVENT/m1_enriched.parquet"
-M5_ENRICHED="$EVENT/m5_enriched.parquet"
-M1_FEATURE_BASE="$EVENT/m1_feature_base.parquet"
-M5_FEATURE_BASE="$EVENT/m5_feature_base.parquet"
+INPUT_EVENT=$EVENT
+if [[ -n $REUSE_INPUT_EVENT_ROOT ]]; then
+  [[ -n $REUSE_PREFLIGHT_JSON && $REUSE_INPUT_EVENT_ROOT != "$EVENT" ]] \
+    || die_args "downstream recovery requires completed input proofs and a distinct fresh event root"
+  INPUT_EVENT=$REUSE_INPUT_EVENT_ROOT
+fi
+SRC="$INPUT_EVENT/FULL_PLUS_CTX_v3src.parquet"
+MTF="$INPUT_EVENT/MULTI_TF_V4_CACHE"
+M1_ENRICHED="$INPUT_EVENT/m1_enriched.parquet"
+M5_ENRICHED="$INPUT_EVENT/m5_enriched.parquet"
+M1_FEATURE_BASE="$INPUT_EVENT/m1_feature_base.parquet"
+M5_FEATURE_BASE="$INPUT_EVENT/m5_feature_base.parquet"
 M1_CHECKPOINT="$EVENT/m1_enriched_checkpoint"
-M5_CHECKPOINT="$EVENT/m5_enriched_checkpoint"
+M5_CHECKPOINT="$INPUT_EVENT/m5_enriched_checkpoint"
 # The dataset stem suffix is owned by
 # gx1.scripts.materialize_entry_model_native_seq513_rebuild_preflight_v1
 # .ENTRY_FITTED_Q_DATASET_STEM_SUFFIX, and the preflight rejects any output whose
@@ -862,7 +877,7 @@ if ! bash "$ENG/scripts/gx1_capped_run.sh" --class audit --mem 4G --swap 512M --
   "$REUSE_M5_ENRICHED_MANIFEST_SHA256" "$REUSE_M5_SOURCE_MANIFEST_SHA256" \
   "$RUN_ID" "$REUSE_SIGNAL_MANIFEST" "$REUSE_SIGNAL_MANIFEST_SHA256" \
   "$REUSE_PREFLIGHT_JSON" "$REUSE_PREFLIGHT_SHA256" "$REUSE_CHAIN_TERMINAL_JSON" \
-  "$REUSE_CHAIN_TERMINAL_SHA256" "$ENG" >>"$LOG" 2>&1 <<'PYEOF'
+  "$REUSE_CHAIN_TERMINAL_SHA256" "$ENG" "$REUSE_INPUT_EVENT_ROOT" >>"$LOG" 2>&1 <<'PYEOF'
 import hashlib
 import re
 import sys
@@ -909,7 +924,7 @@ import pandas as pd
     raw_reuse_signal_manifest,
     raw_reuse_signal_manifest_sha256,
     raw_reuse_preflight_json, raw_reuse_preflight_sha256,
-    raw_reuse_chain_terminal_json, raw_reuse_chain_terminal_sha256, raw_repo,
+    raw_reuse_chain_terminal_json, raw_reuse_chain_terminal_sha256, raw_repo, raw_reuse_input_event_root,
 ) = sys.argv[1:]
 
 
@@ -928,6 +943,12 @@ def exact_path(raw: str, *, label: str) -> Path:
 event = exact_path(raw_event, label="event root")
 if not event.is_dir() or event.is_symlink():
     raise RuntimeError(f"event root is not a regular directory: {event}")
+
+input_event = exact_path(raw_reuse_input_event_root, label="reused input event") if raw_reuse_input_event_root else event
+if not input_event.is_dir() or input_event.is_symlink():
+    raise RuntimeError("reused input event must be a regular directory")
+if raw_reuse_input_event_root and (input_event == event or not raw_reuse_preflight_json):
+    raise RuntimeError("downstream recovery requires distinct input/output events and complete input proofs")
 
 ranking = exact_path(raw_ranking, label="feature ranking")
 preflight = exact_path(raw_preflight, label="preflight output directory")
@@ -1001,7 +1022,12 @@ for label, path in (
     ("Exit lifecycle output directory", exit_lifecycle),
 ):
     try:
-        path.relative_to(event)
+        input_paths = {ranking, source, mtf, m1_enriched, m5_enriched,
+                       m1_feature_base, m5_feature_base, m5_checkpoint, source_cascade}
+        if path in input_paths:
+            path.relative_to(input_event)
+        else:
+            path.relative_to(event)
     except ValueError as exc:
         raise RuntimeError(f"{label} must be below event root: {path}") from exc
 
@@ -1025,7 +1051,7 @@ if ranking_stamp > validation_now:
         "feature ranking timestamp cannot be in the future: "
         f"ranking={ranking_stamp.isoformat()} now={validation_now.isoformat()}"
     )
-if (preflight.exists() and not raw_reuse_preflight_json) or preflight.is_symlink():
+if (preflight.exists() and (not raw_reuse_preflight_json or raw_reuse_input_event_root)) or preflight.is_symlink():
     raise RuntimeError(f"preflight output directory must be fresh: {preflight}")
 if not canonical.is_file() or canonical.is_symlink():
     raise RuntimeError(f"canonical-v2 parquet is missing/non-regular: {canonical}")
@@ -1097,8 +1123,8 @@ output_dir = output.parent
 output_stem = output.stem
 fresh_paths = [
     ranking,
-    event / "_ranker_checkpoint.npz",
-    event / "_ranker_group_a_checkpoint",
+    input_event / "_ranker_checkpoint.npz",
+    input_event / "_ranker_group_a_checkpoint",
     source,
     Path(f"{source}.manifest.json"),
     mtf,
@@ -1182,7 +1208,7 @@ if raw_reuse_signal_manifest:
     )
     from gx1.contracts.entry_causal_m1_target_policy_v1 import causal_m1_policy_fit_train_end
     manifest = exact_path(raw_reuse_signal_manifest, label="reused signal manifest")
-    manifest.relative_to(event)
+    manifest.relative_to(input_event)
     if not manifest.is_file() or hashlib.sha256(manifest.read_bytes()).hexdigest() != raw_reuse_signal_manifest_sha256:
         raise RuntimeError("reused signal manifest SHA256 mismatch")
     lineage = validate_signal_manifest_training_lineage(
@@ -1201,7 +1227,7 @@ if raw_reuse_signal_manifest:
         raise RuntimeError("reused signal pair generation mismatch")
     # These producers are complete and will not be invoked. Their checkpoints
     # remain evidence only. M1 receives a new namespace; partial M1 is never read.
-    reusable = {ranking, source_cascade, event / "_ranker_checkpoint.npz", event / "_ranker_group_a_checkpoint"}
+    reusable = {ranking, source_cascade, input_event / "_ranker_checkpoint.npz", input_event / "_ranker_group_a_checkpoint"}
     fresh_paths = [path for path in fresh_paths if path not in reusable]
 if raw_reuse_preflight_json:
     import json
@@ -1223,23 +1249,47 @@ if raw_reuse_preflight_json:
     prior = json.loads(prior_path.read_text())
     preflight_path = sealed(raw_reuse_preflight_json, raw_reuse_preflight_sha256, "reused preflight")
     proof = json.loads(preflight_path.read_text())
-    if (prior_path.parent != event or prior.get("terminal_event_path") != str(prior_path)
-        or prior.get("event_root") != str(event) or prior.get("entry_run_id") != run_id
-        or prior.get("state") != "RED" or prior.get("step") != "rebuild-preflight"
-        or prior.get("reason") != "preflight output identity validation failed"
-        or prior.get("preflight", {}).get("out_dir") != str(preflight)
-        or preflight_path.parent != preflight or proof.get("entry_run_id") != run_id
+    recovery = bool(raw_reuse_input_event_root)
+    expected_step = "dataset-rebuild" if recovery else "rebuild-preflight"
+    expected_reason = ("dataset rebuild or post-build audit failed after immutable output materialization; fresh lineage required"
+                       if recovery else "preflight output identity validation failed")
+    old_preflight_dir = preflight_path.parent if recovery else preflight
+    if (prior_path.parent != input_event or prior.get("terminal_event_path") != str(prior_path)
+        or prior.get("event_root") != str(input_event) or prior.get("entry_run_id") != run_id
+        or prior.get("state") != "RED" or prior.get("step") != expected_step
+        or prior.get("reason") != expected_reason
+        or prior.get("preflight", {}).get("out_dir") != str(old_preflight_dir)
+        or preflight_path.parent != old_preflight_dir or proof.get("entry_run_id") != run_id
         or proof.get("json_path") != str(preflight_path)
         or proof.get("decision") != "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
         or proof.get("training_allowed") is not False or proof.get("failures") != []):
         raise RuntimeError("reused preflight/failed-chain identity mismatch")
-    # Reuse is deliberately narrow: only the chain driver may have changed.
-    # Every feature, preflight, dataset and contract owner stays byte-identical.
+    if recovery and (prior.get("preflight", {}).get("json_path") != str(preflight_path)
+                     or prior.get("preflight", {}).get("sha256") != raw_reuse_preflight_sha256):
+        raise RuntimeError("recovery preflight is not bound by the failed dataset chain")
+    # Upstream code remains identical. Fresh downstream recovery may change only
+    # the dataset assembly function/summary helper; shared target helpers/imports
+    # remain AST-identical because the ranker consumes them too.
     old_head = prior.get("git_head", "")
     if not re.fullmatch(r"[0-9a-f]{40}", old_head):
         raise RuntimeError("reused chain source revision invalid")
+    excludes = [":(exclude)scripts/run_seq513_rebuild_chain_v1.sh"]
+    if recovery:
+        import ast
+        builder_name = "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py"
+        old_builder = subprocess.check_output(["git", "-C", raw_repo, "show", f"{old_head}:{builder_name}"], text=True)
+        new_builder = (Path(raw_repo) / builder_name).read_text()
+        def upstream_ast(text):
+            tree = ast.parse(text)
+            tree.body = [node for node in tree.body if not (
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and node.name in {"build_dataset_canonical", "_dataset_summary_batch"})]
+            return ast.dump(tree, include_attributes=False)
+        if upstream_ast(old_builder) != upstream_ast(new_builder):
+            raise RuntimeError("recovery changed a shared upstream dataset helper/import")
+        excludes.append(":(exclude)" + builder_name)
     subprocess.run(["git", "-C", raw_repo, "diff", "--exit-code", old_head, "HEAD", "--",
-                    "gx1", "scripts", ":(exclude)scripts/run_seq513_rebuild_chain_v1.sh"],
+                    "gx1", "scripts", *excludes],
                    check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     argv = proof["rebuild_command_contract"]["argv_template"]
     expected = {
@@ -1252,6 +1302,12 @@ if raw_reuse_preflight_json:
         "--exit-lifecycle-dir": str(exit_lifecycle), "--output": str(output), "--audit-out-dir": str(audit),
         **{"--"+label.replace("_", "-"): raw for label, raw in zip(labels, raw_times)},
     }
+    if recovery:
+        for flag, key in (("--output", "dataset_output_stem"), ("--audit-out-dir", "audit_output_dir"),
+                          ("--exit-lifecycle-dir", "unified_exit_lifecycle_dir")):
+            old_output = exact_path(prior["outputs"][key], label="failed downstream output")
+            old_output.relative_to(input_event)
+            expected[flag] = str(old_output)
     observed = dict(zip(argv[1::2], argv[2::2]))
     if (argv[0] != "scripts/rebuild_entry_model_native_seq513_dataset.sh"
         or len(argv) != 1 + 2 * len(expected) or set(observed) != set(expected)):
@@ -1760,7 +1816,7 @@ write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
-if [[ -z $REUSE_PREFLIGHT_JSON ]]; then
+if [[ -z $REUSE_PREFLIGHT_JSON || -n $REUSE_INPUT_EVENT_ROOT ]]; then
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-preflight \
   --run-id "$RUN_ID" \
   --feature-ranking-json "$RANKING" \
@@ -1821,7 +1877,7 @@ PYEOF
 fi
 IFS=$'\t' read -r PREFLIGHT_JSON PREFLIGHT_SHA256 <<<"$PREFLIGHT_ID"
 [[ -n $PREFLIGHT_JSON && -n $PREFLIGHT_SHA256 ]] || fail "preflight identity is empty"
-if [[ -n $REUSE_PREFLIGHT_JSON ]]; then
+if [[ -n $REUSE_PREFLIGHT_JSON && -z $REUSE_INPUT_EVENT_ROOT ]]; then
   [[ $PREFLIGHT_JSON == "$REUSE_PREFLIGHT_JSON" && $PREFLIGHT_SHA256 == "$REUSE_PREFLIGHT_SHA256" ]] \
     || fail "reused preflight changed after validation"
 fi
