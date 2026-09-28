@@ -160,3 +160,8 @@ CPU 0–7 og én numerisk tråd. Kvittering: `PROJECT_LOCK_PARALLEL_PROOF.json`
 under native-forberedelsens kjøringsmappe. Dette er bevis for parallell
 låsadgang med per-jobb-vakter, ikke en reservasjon av samlet RAM for alle prosjekter.
 Produksjonsbygg/trening får ingen økt ressursgrense eller treningsautorisasjon.
+
+Den avsluttende referansesjekken fant én gammel låssti i rebuild-rutens test.
+Den forventer nå prosjektlåsen; alle 18 tester i den filen består
+(`PROJECT_LOCK_REBUILD_ROUTE_TESTS.log`). Ingen kjørende kode ble endret av
+oppfølgingen. Pre-commitens påkrevde guardrail-/modellkontrakttester besto også.

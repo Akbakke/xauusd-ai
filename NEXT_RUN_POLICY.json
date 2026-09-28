@@ -1916,6 +1916,7 @@
     "full_suite_skipped": 3,
     "metadata_tests_passed": 150,
     "native_input_complete": false,
+    "project_lock_rebuild_route_tests_passed": 18,
     "project_lock_tests_passed": 294,
     "report": "docs/REPO_REVIEW_20260928.md",
     "smc_tests_passed": 281,
