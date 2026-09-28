@@ -75,6 +75,7 @@ def test_chain_requires_explicit_fresh_immutable_inputs_without_discovery() -> N
     assert "materialize_entry_model_native_train_feature_ranker_v1" in source
     assert '--out "$RANKING"' in source
     assert "gx1_capped_run.sh --class audit --mem 4G --swap 512M" in source
+    assert 'if ! bash "$ENG/scripts/gx1_capped_run.sh" --class audit --mem 4G --swap 512M -- "$PY" -' in source
     for forbidden in (
         # The fixed top-133 TRAIN rank subsystem is retired: no producer, no
         # NPZ identity, no CLI surface and no dangling variable may remain.

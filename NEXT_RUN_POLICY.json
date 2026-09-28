@@ -1735,9 +1735,10 @@
   ],
   "native_invocation_seconds": 12000,
   "native_preparation_20260927": {
+    "arrow_release_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M1_ARROW_RELEASE_VERIFICATION.json",
     "context_memory_after": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTEXT_MEMORY_AFTER.json",
     "context_memory_before": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTEXT_MEMORY_BEFORE.json",
-    "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_MEMORY_20260928",
+    "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_ARROW_RELEASE_20260928",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927",
     "feature_complexity_review_requested": true,
     "history_geometry": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/HISTORY_GEOMETRY.json",
@@ -1746,9 +1747,10 @@
     "locked_quote_admission": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/LOCKED_QUOTE_ADMISSION.json",
     "m5_reuse_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M5_REUSE_VERIFICATION.json",
     "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PLAN.json",
+    "previous_failed_memory_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_MEMORY_20260928/TERMINAL.json",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927",
     "signal_reuse_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/actual_signal_reuse_guard.log",
-    "status": "M1_MEMORY_REPAIR_CONTINUATION_PREPARED",
+    "status": "M1_ARROW_RELEASE_VERIFIED_CONTINUATION_PREPARED",
     "training_enabled": false
   },
   "next_action": "User authorized finishing native inputs, then complete repository cleanup/debug/inspection before considering training. Follow docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md. Reuse completed early research; do not reinterpret ridge/HGB NO_GO as a native capacity result. Native training, optimizer steps, TEST evaluation, live/paper and spending remain blocked.",

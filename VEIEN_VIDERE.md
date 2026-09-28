@@ -18,7 +18,7 @@ til målt fullt definert kontekst 2010-06-14 22:00 UTC. Det gir de påkrevde 252
 lukkede D1-barene før uendret TRAIN-start 2011-06-01. Markedsidentitet og komplett
 MTF-preflight består; se forberedelsesrapporten for bevis. Ferdige outputs
 gjenbrukes med eksplisitte manifest-hasher; runtime-terminaler avgjør nåstatus:
-`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_MEMORY_20260928`.
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_ARROW_RELEASE_20260928`.
 En serialiseringsfeil i arkitekturkontrollen er rettet (JSON-nøkkelrekkefølge);
 32 tester og den faktiske gjenbruksvakten består.
 M1-geometrifeilen er lokalisert til noen låste BID/ASK-quotes 2012-12-12.
@@ -34,6 +34,14 @@ features. Syntetisk kontroll med 6 019 349 rader/ti felt: toppminne 1 502 → 59
 Den ferdige signal-/rangeringslinjen kan gjenbrukes eksplisitt gjennom eksisterende
 lineage-validering; M1 bruker ferskt checkpoint-rom. Faktisk kjøring og terminal,
 ikke denne forberedelsesbeskrivelsen, avgjør om hele M1-løpet nå består.
+
+Første minneendring var utilstrekkelig: ny terminal stoppet på 9,48 GiB.
+En isolert kontroll av faktisk kontekstbygging lokaliserte omtrent 2,5 GiB
+ubrukt Arrow-pool. Minste videre rettelse returnerer disse bufferne før Group-A.
+Med alle 131 kolonner beholdt falt RSS 8,88 → 6,40 GiB; featurehash var uendret,
+og kontekst-/checkpoint-bygging lå på 6,58 GiB. Dette segmentet refitter ikke
+M1-registry. Full kjøring må fortsatt bekrefte sluttresultatet. Ingen features
+eller mellomkolonner fjernes; RSS-grense 9 GiB og producer-cap 10 GiB er uendret.
 
 ## Historisk stoppunkt før brukerens nye vedtak
 

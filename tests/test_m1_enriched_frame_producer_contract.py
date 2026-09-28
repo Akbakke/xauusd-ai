@@ -362,6 +362,7 @@ def test_enriched_producer_can_satisfy_every_declared_ctx_cont_field() -> None:
     ordered_calls = (
         "_complete_v4_owned_context(",
         "_attach_ctx_cont_regime_projection(",
+        "_release_unused_arrow_buffers()",
         "attach_group_a_ctx_columns_parallel(",
         "_trim_group_a_causal_warmup(",
         "_finish_model_native_surface(",
@@ -561,3 +562,20 @@ def test_m1_exit_proof_requires_latest_closed_context_from_all_five_clocks() -> 
     for row in proof["per_timeframe"].values():
         assert row["rows_with_closed_context"] == len(frame)
         assert row["all_selected_are_latest_closed"] is True
+
+
+def test_releasing_unused_arrow_buffers_preserves_live_input_bytes() -> None:
+    import pyarrow as pa
+    from gx1.scripts import build_entry_exit_m1_enriched_frame_v1 as owner
+
+    live = pa.allocate_buffer(8192)
+    values = np.frombuffer(live, dtype=np.float64)
+    values[:] = np.arange(len(values), dtype=np.float64)
+    frame = pd.DataFrame({'feature': values}, copy=False)
+    frame.attrs['binding'] = {'identity': 'unchanged'}
+    before = bytes(live)
+    owner._release_unused_arrow_buffers()
+    assert bytes(live) == before
+    np.testing.assert_array_equal(frame['feature'].to_numpy(), values)
+    assert frame.attrs == {'binding': {'identity': 'unchanged'}}
+    assert np.shares_memory(frame['feature'].to_numpy(), values)

@@ -812,7 +812,9 @@ PYEOF
 then
   fail "registry chronological inner-TRAIN boundary is invalid"
 fi
-if ! "$PY" - \
+# Signal-lineage reuse loads verified MTF matrices: this validation is an
+# audit workload and must share the same exclusive lock and resource caps.
+if ! bash "$ENG/scripts/gx1_capped_run.sh" --class audit --mem 4G --swap 512M -- "$PY" - \
   "$EVENT" "$RANKING" "$PRE_OUT" "$OUTPUT" "$AUDIT" \
   "$SRC" "$CV2" "$MTF" "$TAPE" "$M1_LIFECYCLE_PAIR_MANIFEST" \
   "$M1_LIFECYCLE_PAIR_GENERATION_ROOT" "$EXIT_LIFECYCLE" \

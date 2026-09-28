@@ -186,3 +186,31 @@ Den faktiske gjenbruksvakten består på de ferdige filene
 kjørte guard (`signal_reuse_negative_guard.log`). 19 eksisterende kjede-/signal-
 tester samt ny test av fit-grense og avvisning før gjenbruk består. Samlet 55
 målrettede tester for denne rettelsen. Ingen native optimizer eller epoch er kjørt.
+
+## Bekreftet Arrow-bufferårsak — minimal videre rettelse
+
+Fullkjøringen fra `73672892` stoppet på samme sted ved 9,48 GiB; det første
+valideringsminnetiltaket løste ikke hele blokkeringen. Ingen M1-output eller
+Group-A-chunk ble publisert. Rangering og signal ble gjenbrukt korrekt.
+
+Avgrensede native kontekstkontroller brukte samme kilde og funksjoner, men
+utelot M1-registry-fit og selve lange Group-A-radløkka. Først ble mulig tidlig
+frigjøring av 45 mellomkolonner undersøkt; den er **ikke** innført. Måling av
+Arrow-poolen viste den større årsaken: omtrent 2,5 GiB frigjorte bygge-/lesebuffere
+ble fortsatt holdt fysisk i prosessen. `default_memory_pool().release_unused()`
+returnerer bare ubrukte buffere til operativsystemet.
+
+Endelig kontroll brukte den nye produksjonshjelperen og beholdt alle 131 kolonner:
+RSS 8,88 → 6,40 GiB, med identisk hash av alle featureverdier før/etter.
+Group-A-kontekst og checkpoint-digest ble deretter bygget ved 6,58 GiB.
+`M1_ARROW_RELEASE_VERIFICATION.json` og `m1_arrow_release_verification.log`
+inneholder bevis; de er segmentkontroll, ikke full kjøring eller læring.
+Ingen glibc/ctypes-operasjon brukes i produksjon, ingen kolonner fjernes, og
+RSS-/cgroup-grensene er uendret. Gjenbruksvakten som revaliderer MTF-data er
+også satt under eksisterende eksklusive audit-cap 4 GiB/512 MiB.
+
+Ny eksplisitt videreføring: `CONTINUE_M1_ARROW_RELEASE_20260928` under samme
+forberedelsesrot. Forrige røde terminal og alle tidligere bevis bevares.
+
+27 målrettede producer-/kjedetester består, inkludert bevaring av aktiv Arrow-
+buffer, byteidentiske frameverdier og riktig rekkefølge før Group-A.

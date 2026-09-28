@@ -887,6 +887,27 @@ def _log_rss(label: str, *, ceiling_gib: float = _RSS_CEILING_GIB) -> None:
         )
 
 
+def _release_unused_arrow_buffers() -> None:
+    """Return freed construction buffers before allocating the next context.
+
+    Arrow's pool retained about 2.5 GiB after the full native M1 transforms.
+    Those bytes contain no live frame data, but count against the same cgroup
+    and RSS guard as the next Group-A stage. Releasing the pool's unused pages
+    changes neither live arrays nor features; the existing limits stay intact.
+    """
+    import gc
+    import pyarrow as pa
+
+    before = _rss_gib()
+    gc.collect()
+    pa.default_memory_pool().release_unused()
+    print(
+        f"[m1_enriched_rss] unused_arrow_buffers_released "
+        f"before_gib={before:.2f} after_gib={_rss_gib():.2f}",
+        flush=True,
+    )
+
+
 def _complete_v4_owned_context(
     canonical_holder: "list[pd.DataFrame] | pd.DataFrame",
     *,
@@ -1333,6 +1354,7 @@ def _build_enriched_stage(
         multi_tf=multi_tf,
         decision_bar_duration=spec["duration"],
     )
+    _release_unused_arrow_buffers()
     _log_rss("before_group_a_attach")
     enriched = attach_group_a_ctx_columns_parallel(
         canonical,
