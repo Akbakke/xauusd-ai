@@ -1,4 +1,4 @@
-# Veien videre — oppdatert 28.09.2026
+# Veien videre — oppdatert 29.09.2026
 
 Gjeldende status eies av [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md). Bruk bare
 `/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Én agent og én tung jobb innen CURRENT;
@@ -10,14 +10,15 @@ all test-/datakjøring bruker eksisterende capped-run-vakter.
    full lokal M1-kontroll og faktisk MTF-paritet på de sju berørte TRAIN-radene.
    Ny prosjektlås består 294 tester og faktisk parallell låsadgang. Bevisene
    gjenbrukes; ingen ny fullsuite eller gjentatt diagnose uten et nytt funn.
-2. Fullfør `CONTINUE_SUMMARY_MEMORY_20260928` under
+2. Fullfør `CONTINUE_LOCKED_QUOTES_20260929` under
    `HISTORY2009W_NATIVE_V37_20260928`, med fersk outputrot
-   `DATASET_SUMMARY_RECOVERY_20260928`. Forrige videreføring ble OOM-drept.
-   Summary-lagringen er rettet og kontrollert med 22 fokuserte tester; beholdt
-   representasjonsminne er redusert 89,1 % i målingen. Fullt toppminne er ubevist.
+   `DATASET_LOCKED_QUOTES_RECOVERY_20260929`. Forrige TRAIN-skriver fullførte
+   652 552 rader uten OOM; lifecycle stoppet på BID lik ASK. Samme prisregel
+   som kanonisk tape er nå kontrollert med 44 tester og faktisk TRAIN-vindu.
+   Ingen priser er endret. Datasettet mangler fortsatt ferdigmanifest.
    Les samme runs START/TERMINAL og prosesser; ikke dupliser planen.
    Ferdige upstream-inputs gjenbrukes bare etter hash-/kodekontroll og ny preflight.
-   Bevar kildefrys, delvis gammelt datasett og originale checkpoints.
+   Bevar kildefrys, delvise gamle datasett og originale checkpoints.
 3. Fullfør native-inputs, post-rebuild/readiness og lifecycle-bindinger innen
    [det autoriserte forberedelsesomfanget](docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md).
    Teknisk PASS er ikke en tillatelse til å starte trening.

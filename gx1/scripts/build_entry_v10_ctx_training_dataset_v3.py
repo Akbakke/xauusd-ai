@@ -2262,10 +2262,11 @@ def build_unified_exit_lifecycle_episodes(
             raise RuntimeError(
                 f"UNIFIED_EXIT_M1_OHLC_GEOMETRY_INVALID: {prefix or 'mid_'}"
             )
+    # Canonical native quotes allow ask == bid; preserve locked quotes exactly.
     for suffix in ("open", "high", "low", "close"):
         if np.any(
             numeric[f"ask_{suffix}"].to_numpy(dtype=np.float64)
-            <= numeric[f"bid_{suffix}"].to_numpy(dtype=np.float64)
+            < numeric[f"bid_{suffix}"].to_numpy(dtype=np.float64)
         ):
             raise RuntimeError(
                 f"UNIFIED_EXIT_M1_EXECUTABLE_SPREAD_INVALID: {suffix}"

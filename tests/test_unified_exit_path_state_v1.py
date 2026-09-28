@@ -53,12 +53,12 @@ def _runtime_head(direction: str = "LONG") -> dict[str, object]:
     return json.loads(columns["runtime_head_evidence_json"][0])
 
 
-def _open(direction: str = "LONG") -> UnifiedExitPathState:
+def _open(direction: str = "LONG", *, entry_ask: float = 3300.2) -> UnifiedExitPathState:
     return UnifiedExitPathState.open_unit_normalized_research(
         entry_ts=_ENTRY_FILL,
         side="long" if direction == "LONG" else "short",
         entry_bid=3300.0,
-        entry_ask=3300.2,
+        entry_ask=entry_ask,
         v10_snapshot=_runtime_head(direction),
         replay_id=f"unit-{direction.lower()}",
         normalization_contract="unit_normalized_direction_exit_research_v1",
@@ -332,3 +332,12 @@ def test_path_state_rolls_tail_and_preserves_all_time_duration() -> None:
     assert tensor[-1, -2] == pytest.approx(
         np.log1p(UNIFIED_EXIT_MAX_PATH_BARS + 1)
     )
+
+
+def test_replay_preserves_locked_fill_quotes_and_rejects_crossed_quotes():
+    for direction in ("LONG", "SHORT"):
+        state = _open(direction, entry_ask=3300.0)
+        assert state.entry_ask == state.entry_bid == 3300.0
+        assert state.current_pnl_bps == 0.0
+        with pytest.raises(ValueError, match="must not be below"):
+            _open(direction, entry_ask=3299.99)

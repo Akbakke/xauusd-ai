@@ -1169,7 +1169,7 @@ def _validated_m1_arrays(
     for suffix in ("open", "high", "low", "close"):
         if np.any(
             numeric[f"ask_{suffix}"].to_numpy(dtype=np.float64)
-            <= numeric[f"bid_{suffix}"].to_numpy(dtype=np.float64)
+            < numeric[f"bid_{suffix}"].to_numpy(dtype=np.float64)
         ):
             raise RuntimeError(
                 f"UNIFIED_EXIT_M1_EXECUTABLE_SPREAD_INVALID: {suffix}"

@@ -1254,8 +1254,10 @@ if raw_reuse_preflight_json:
     expected_reason = ("dataset rebuild or post-build audit failed after immutable output materialization; fresh lineage required"
                        if recovery else "preflight output identity validation failed")
     old_preflight_dir = preflight_path.parent if recovery else preflight
-    if (prior_path.parent != input_event or prior.get("terminal_event_path") != str(prior_path)
-        or prior.get("event_root") != str(input_event) or prior.get("entry_run_id") != run_id
+    prior_event = exact_path(prior.get("event_root", ""), label="failed chain event")
+    if (prior_path.parent != prior_event or prior.get("terminal_event_path") != str(prior_path)
+        or (not recovery and prior_event != input_event) or (recovery and prior_event == event)
+        or prior.get("entry_run_id") != run_id
         or prior.get("state") != "RED" or prior.get("step") != expected_step
         or prior.get("reason") != expected_reason
         or prior.get("preflight", {}).get("out_dir") != str(old_preflight_dir)
@@ -1267,27 +1269,39 @@ if raw_reuse_preflight_json:
     if recovery and (prior.get("preflight", {}).get("json_path") != str(preflight_path)
                      or prior.get("preflight", {}).get("sha256") != raw_reuse_preflight_sha256):
         raise RuntimeError("recovery preflight is not bound by the failed dataset chain")
-    # Upstream code remains identical. Fresh downstream recovery may change only
-    # the dataset assembly function/summary helper; shared target helpers/imports
-    # remain AST-identical because the ranker consumes them too.
+    preflight_path.relative_to(prior_event)
+    # Recovery may follow an earlier recovery: its output event is separate from
+    # the original, hash-bound completed input event. Only downstream assembly,
+    # lifecycle quote validation and offline replay entry admission may differ;
+    # shared target helpers/imports and every upstream producer stay identical.
     old_head = prior.get("git_head", "")
     if not re.fullmatch(r"[0-9a-f]{40}", old_head):
         raise RuntimeError("reused chain source revision invalid")
     excludes = [":(exclude)scripts/run_seq513_rebuild_chain_v1.sh"]
     if recovery:
         import ast
-        builder_name = "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py"
-        old_builder = subprocess.check_output(["git", "-C", raw_repo, "show", f"{old_head}:{builder_name}"], text=True)
-        new_builder = (Path(raw_repo) / builder_name).read_text()
-        def upstream_ast(text):
-            tree = ast.parse(text)
-            tree.body = [node for node in tree.body if not (
-                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and node.name in {"build_dataset_canonical", "_dataset_summary_batch"})]
-            return ast.dump(tree, include_attributes=False)
-        if upstream_ast(old_builder) != upstream_ast(new_builder):
-            raise RuntimeError("recovery changed a shared upstream dataset helper/import")
-        excludes.append(":(exclude)" + builder_name)
+        downstream_functions = {
+            "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py": {
+                "build_dataset_canonical", "_dataset_summary_batch", "build_unified_exit_lifecycle_episodes"},
+            "gx1/contracts/unified_exit_lifecycle_v1.py": {"_validated_m1_arrays"},
+            "gx1/replay/unified_exit_path_state_v1.py": {"open_unit_normalized_research"},
+        }
+        changed = set(subprocess.check_output(
+            ["git", "-C", raw_repo, "diff", "--name-only", old_head, "HEAD", "--", "gx1"], text=True).splitlines())
+        for owner_name, allowed in downstream_functions.items():
+            if owner_name not in changed:
+                continue
+            old_owner = subprocess.check_output(["git", "-C", raw_repo, "show", f"{old_head}:{owner_name}"], text=True)
+            new_owner = (Path(raw_repo) / owner_name).read_text()
+            class UpstreamOnly(ast.NodeTransformer):
+                def visit_FunctionDef(self, node):
+                    return None if node.name in allowed else self.generic_visit(node)
+                visit_AsyncFunctionDef = visit_FunctionDef
+            def upstream_ast(text):
+                return ast.dump(UpstreamOnly().visit(ast.parse(text)), include_attributes=False)
+            if upstream_ast(old_owner) != upstream_ast(new_owner):
+                raise RuntimeError("recovery changed a shared upstream dataset helper/import")
+            excludes.append(":(exclude)" + owner_name)
     subprocess.run(["git", "-C", raw_repo, "diff", "--exit-code", old_head, "HEAD", "--",
                     "gx1", "scripts", *excludes],
                    check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1306,7 +1320,7 @@ if raw_reuse_preflight_json:
         for flag, key in (("--output", "dataset_output_stem"), ("--audit-out-dir", "audit_output_dir"),
                           ("--exit-lifecycle-dir", "unified_exit_lifecycle_dir")):
             old_output = exact_path(prior["outputs"][key], label="failed downstream output")
-            old_output.relative_to(input_event)
+            old_output.relative_to(prior_event)
             expected[flag] = str(old_output)
     observed = dict(zip(argv[1::2], argv[2::2]))
     if (argv[0] != "scripts/rebuild_entry_model_native_seq513_dataset.sh"

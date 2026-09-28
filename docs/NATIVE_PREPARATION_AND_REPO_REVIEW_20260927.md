@@ -328,3 +328,30 @@ utfører ny preflight, rebuild og senere readiness. Oppstrøms kode må være
 uendret; kun downstream-datasettfunksjon og summary-helper kan avvike, mens
 delte helpers/imports forblir AST-identiske. 10 GiB/512 MiB cap og alle guards
 består. Delvis gammel output slettes/overskrives ikke. Trening er stengt.
+
+## 29.09: konkret lifecycle-stopp etter fullført TRAIN-skriving
+
+Minne-reparasjonen passerte TRAIN-skrivingen: 652 552 rader ble lukket uten
+ny OOM. Deretter avviste lifecycle tre M1-open-rader fra desember 2012 med
+BID lik ASK. Før TEST-grensen hadde kilden ingen kryssede OHLC-priser;
+låste priser finnes i open/high/low/close med henholdsvis 3/1/2/4 forekomster.
+Kanonisk tape, Entry-utfall og optimal stopping tillater allerede slike priser.
+Bygger, lifecycle-leser og offline replay er rettet til samme regel, uten
+endring av inputpriser eller mål. Kryssede priser avvises fortsatt.
+
+44 fokuserte tester består. Et faktisk TRAIN-vindu med 2 732 rader og alle de
+observerte låste prisene besto kanonisk validering, bygging av fire episoder
+og lifecycle-innlasting med eksakt prisbevaring. Dette er teknisk evidens;
+TEST og handelsverdi er ikke undersøkt. Rapportene ligger under
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/`:
+`M1_SPREAD_FAILURE_AUDIT.json`, `LIFECYCLE_LOCKED_QUOTE_VERIFICATION.json`
+og `LIFECYCLE_LOCKED_QUOTE_REPAIR.json`.
+
+Ny engangsvidereføring er `CONTINUE_LOCKED_QUOTES_20260929`; ferske outputs
+bygges i `DATASET_LOCKED_QUOTES_RECOVERY_20260929`. Nyeste røde forelder og
+dens preflight bindes eksakt; ferdige inputs forblir i opprinnelig CHAIN.
+Samme kjedeeier tillater nå en tidligere recovery som forelder og kontrollerer
+at kun navngitte downstream-funksjoner avviker, aldri shared helpers/imports
+eller upstream-produsenter. Alle fysiske inputhasher kontrolleres og ny
+preflight kjøres. Ingen gamle delvise outputs gjenbrukes som ferdige datasett.
+Post-build venter på grønn kjede; ingen trening er åpnet.

@@ -756,6 +756,9 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
     (repo/'gx1/scripts').mkdir()
     builder_file=repo/'gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py'
     builder_file.write_text('VALUE = 1\ndef build_dataset_canonical():\n    return 1\n')
+    (repo/'gx1/contracts').mkdir()
+    loader_file=repo/'gx1/contracts/unified_exit_lifecycle_v1.py'
+    loader_file.write_text('VALUE = 1\ndef _validated_m1_arrays(path):\n    return 1\n')
     def git(*args):
         return subprocess.check_output(['git','-C',str(repo),'-c','user.name=Test','-c','user.email=test@example.invalid',*args], text=True).strip()
     git('init','-q'); git('add','.'); git('commit','-qm','source')
@@ -775,15 +778,17 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
         surfaces[lane+'_feature_base_parquet']={'path':str(base),'manifest_path':str(manifest),
             'dataset_run_id':'UNIT_PREFLIGHT_RUN','decision':'PASS','signal_manifest_path':str(signal),
             'signal_manifest_sha256':sha(signal),'output_parquet_sha256':sha(base),'manifest_sha256':sha(manifest)}
-    pre=event/'preflight';pre.mkdir();proof_path=pre/'proof.json';prior_path=event/'prior_terminal.json'
+    prior_event=tmp_path/'failed_recovery' if recovery else event
+    if recovery:prior_event.mkdir()
+    pre=prior_event/'preflight';pre.mkdir();proof_path=pre/'proof.json';prior_path=prior_event/'prior_terminal.json'
     labels=['history_start','train_start','train_end','val_start','val_end','test_start','test_end']
     times=['2010-01-01T00:00:00Z','2011-01-01T00:00:00Z','2012-01-01T00:00:00Z','2013-01-01T00:00:00Z','2014-01-01T00:00:00Z','2015-01-01T00:00:00Z','2016-01-01T00:00:00Z']
     values={'--run-id':'UNIT_PREFLIGHT_RUN','--source-parquet':str(source),'--canonical-v2-parquet':str(canonical),
         '--signal-manifest':str(signal),'--feature-ranking-json':str(ranking),'--mtf-cache-dir':str(event/'cache'),
         '--tape-root':str(event/'tape'),'--m1-lifecycle-pair-manifest-json':str(pair),
         '--m1-lifecycle-pair-generation-root':str(event/'generations'),'--m1-feature-base-parquet':str(bases[0]),
-        '--m5-feature-base-parquet':str(bases[1]),'--exit-lifecycle-dir':str(event/'lifecycle'),
-        '--output':str(event/'output.parquet'),'--audit-out-dir':str(event/'audit'),
+        '--m5-feature-base-parquet':str(bases[1]),'--exit-lifecycle-dir':str(prior_event/'lifecycle'),
+        '--output':str(prior_event/'output.parquet'),'--audit-out-dir':str(prior_event/'audit'),
         **{'--'+k.replace('_','-'):v for k,v in zip(labels,times)}}
     argv=['scripts/rebuild_entry_model_native_seq513_dataset.sh']
     for k,v in values.items():argv.extend([k,v])
@@ -793,7 +798,7 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
     for k,p in [('source_parquet',source),('canonical_v2_parquet',canonical),('signal_manifest',signal),('feature_ranking_json',ranking),('m1_lifecycle_pair_manifest_json',pair)]:
         proof['inputs'][k]={'path':str(p),'sha256':sha(p)}
     proof_path.write_text(json.dumps(proof))
-    prior={'terminal_event_path':str(prior_path),'event_root':str(event),'entry_run_id':'UNIT_PREFLIGHT_RUN',
+    prior={'terminal_event_path':str(prior_path),'event_root':str(prior_event),'entry_run_id':'UNIT_PREFLIGHT_RUN',
         'state':'RED','step':'rebuild-preflight','reason':'preflight output identity validation failed',
         'preflight':{'out_dir':str(pre)},'git_head':old_head}
     destination=event
@@ -844,6 +849,14 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
         prior_path.write_text(json.dumps(prior))
         builder_file.write_text(builder_file.read_text().replace('VALUE = 1', 'VALUE = 2'))
         git('add','.');git('commit','-qm','shared upstream helper changed')
+        with pytest.raises(RuntimeError,match='shared upstream'):
+            exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+        builder_file.write_text(builder_file.read_text().replace('VALUE = 2', 'VALUE = 1'))
+        loader_file.write_text('VALUE = 1\ndef _validated_m1_arrays(path):\n    return 2\n')
+        git('add','.');git('commit','-qm','downstream loader repair')
+        exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+        loader_file.write_text(loader_file.read_text().replace('VALUE = 1', 'VALUE = 2'))
+        git('add','.');git('commit','-qm','shared lifecycle constant changed')
         with pytest.raises(RuntimeError,match='shared upstream'):
             exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
     else:

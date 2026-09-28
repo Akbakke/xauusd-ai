@@ -1,4 +1,4 @@
-# Gjeldende status — 28.09.2026: native-forberedelse og full repo-gjennomgang
+# Gjeldende status — 29.09.2026: native-forberedelse og full repo-gjennomgang
 
 **Les først:** [GX1_RULES.md](GX1_RULES.md) (bindende regler), [AGENTS.md](AGENTS.md)
 (arbeidsmåte), [GX1_ARBEIDSMAAL.md](GX1_ARBEIDSMAAL.md) (mål og vedtak) og
@@ -15,7 +15,38 @@ SMC-rettelsen og prosjektvis låsing er kontrollert. Tidligere kilde-/testgjenno
 er dokumentert; ny v37-inputbygging og gjenstående avklaringer står nedenfor.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
-## Nå: rettet minnevekst i datasettskriving; fersk videreføring
+## Nå: lifecycle godtar samme låste priser som kanonisk tape
+
+`CONTINUE_SUMMARY_MEMORY_20260928` lukket TRAIN-skriveren med 652 552 rader,
+uten nytt minnedrap. Kjøringen stoppet 28.09 kl. 22:20 UTC / 29.09 kl. 00:20
+norsk tid: lifecycle avviste M1-rader med BID lik ASK. Ingen ferdigmanifest
+ble publisert; den lukkede TRAIN-parqueten er fortsatt ikke et godkjent datasett.
+
+Kanonisk tape, Entry-utfall og optimal-stopping-eieren tillater allerede BID lik
+ASK. Lifecycle-bygger, lifecycle-leser og offline replay bruker nå samme regel.
+Kryssede priser, ugyldige tall og OHLC-brudd avvises fortsatt. Ingen priser,
+features, mål, kostnader eller splitgrenser endres. 44 fokuserte tester består.
+Faktisk TRAIN-vindu fra desember 2012: 2 732 rader og fire lifecycle-episoder
+består tape-/bygger-/leserkontroll; alle priser er eksakt bevart. Kontrollen
+brukte ikke TEST og måler ingen handelsverdi.
+
+Ny engangsplan:
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_20260929`.
+Ny outputrot:
+`/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_LOCKED_QUOTES_RECOVERY_20260929`.
+Nyeste røde kjede og dens preflight er bundet som forelder; ferdige inputs
+beholdes i den opprinnelige CHAIN-roten. Gjenbrukseieren kontrollerer eksakte
+hashverdier og uendret upstream-kode. Bare de navngitte downstream-funksjonene
+kan avvike; delte helpers/imports er AST-identiske. Ny preflight er obligatorisk.
+
+Les nye PLAN/BINDING/WAITING/START/TERMINAL og prosesser før videre handling.
+Tidligere forsøk og delvise outputs bevares. Ny POST_BUILD venter på denne
+launcherens grønne kjede. Kilden fryses under venting/kjøring. Minnegrenser og
+alle vakter er uendret. Automatisk oppfølging hver 30. minutt består.
+Trening, optimizer, full VAL og TEST-utfall er fortsatt stengt. Post-rebuild,
+lifecycle-bindinger og gjenstående kompleksitetsvurdering gjenstår.
+
+## Historikk: rettet minnevekst i datasettskriving
 
 `CONTINUE_RESOURCE_WAIT_20260928` passerte de tidligere blokkeringene, men ble
 OOM-drept i sin 10 GiB cgroup kl. 20:51 UTC / 22:51 norsk tid. Siste loggførte

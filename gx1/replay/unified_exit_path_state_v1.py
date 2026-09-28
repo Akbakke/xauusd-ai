@@ -129,8 +129,8 @@ class UnifiedExitPathState:
 
         bid = _finite_positive_price(entry_bid, label="entry_bid")
         ask = _finite_positive_price(entry_ask, label="entry_ask")
-        if ask <= bid:
-            raise ValueError("entry_ask must exceed entry_bid")
+        if ask < bid:
+            raise ValueError("entry_ask must not be below entry_bid")
         first_full_closed_m1_bar_ts(entry_ts)
         raw_entry = pd.Timestamp(entry_ts).tz_convert("UTC")
 

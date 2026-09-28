@@ -2291,3 +2291,32 @@ def test_builder_has_one_model_native_signal_path_and_no_context_soft_pass() -> 
     )
     assert [token for token in forbidden if token in source] == []
     assert '"hard_negative_candidate_source": _hard_negative_candidate_source' in source
+
+
+@pytest.mark.parametrize("crossed_suffix", [None, "open", "high", "low", "close"])
+def test_lifecycle_builder_and_loader_share_canonical_locked_quote_rule(tmp_path, crossed_suffix):
+    source = _closed_m1_lifecycle_source()
+    for suffix in ("open", "high", "low", "close"):
+        source[f"ask_{suffix}"] = source[f"bid_{suffix}"]
+    if crossed_suffix is not None:
+        source.loc[0, f"ask_{crossed_suffix}"] -= 0.001
+    original = source.copy(deep=True)
+    path = tmp_path / "quotes.parquet"
+    source.to_parquet(path, index=False)
+    kwargs = dict(entry_rows=pd.DataFrame({"time": [source.time.iloc[0]-pd.Timedelta(minutes=5)]}),
+                  closed_m1=source, split_end=source.time.iloc[-1]+pd.Timedelta(minutes=1),
+                  market_closure_contract=CANONICAL_NATIVE_CLOSURE_CONTRACT, min_m1_start_row=0)
+    if crossed_suffix is not None:
+        with pytest.raises(RuntimeError, match="EXECUTABLE_SPREAD_INVALID"):
+            build_unified_exit_lifecycle_episodes(**kwargs)
+        with pytest.raises(RuntimeError, match="EXECUTABLE_SPREAD_INVALID"):
+            unified_exit_lifecycle._validated_m1_arrays(path)
+    else:
+        episodes, _ = build_unified_exit_lifecycle_episodes(**kwargs)
+        assert len(episodes) == 2
+        times, arrays = unified_exit_lifecycle._validated_m1_arrays(path)
+        assert len(times) == len(source)
+        for suffix in ("open", "high", "low", "close"):
+            np.testing.assert_array_equal(arrays[f"ask_{suffix}"], source[f"ask_{suffix}"])
+            np.testing.assert_array_equal(arrays[f"bid_{suffix}"], source[f"bid_{suffix}"])
+    pd.testing.assert_frame_equal(source, original, check_exact=True)
