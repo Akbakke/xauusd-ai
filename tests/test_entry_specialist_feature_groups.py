@@ -766,6 +766,7 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "level_round_number_dist_100_atr",
         "level_round_number_dist_50_atr",
         "smc_pivot_envelope_position",
+        "smc_pivot_envelope_width_atr",
         "smc_sweep_down_depth_atr",
         "smc_sweep_down_event",
         "smc_sweep_down_state",

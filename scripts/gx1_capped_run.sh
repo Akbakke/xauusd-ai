@@ -19,7 +19,7 @@
 #           pre-step host RSS baseline alone is ~10.1G, leaving no headroom under the
 #           old ceiling; host has 31G total, so 20G leaves 11G for everything else.
 #   --swap  MemorySwapMax. The immutable safety ceiling is 512M; swap storms are forbidden.
-# The runner also requires >=20G currently available RAM, serializes heavy jobs, binds the
+# The runner also requires >=20G currently available RAM, serializes heavy jobs within GX1_CURRENT, binds the
 # job to an explicit CPU set, lowers its CPU/I/O priority, and constrains common
 # numerical libraries. Trainer jobs and the one allow-listed CUDA inference
 # producer additionally pass through the fail-closed wall-clock/GPU guard below;

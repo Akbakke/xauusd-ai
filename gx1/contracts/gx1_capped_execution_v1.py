@@ -29,6 +29,9 @@ _LIMIT_ENV = {
 }
 _LOCK_PROC_MAX_BYTES = 65536
 _LOCK_MAX_ANCESTORS = 128
+# Operator decision 2026-09-28: independent projects may run concurrently.
+# Keep one CURRENT job and the same kernel/cgroup proof; never unlink a live lock.
+_PROJECT_LOCK_FILENAME = "gx1-current-heavy-job.lock"
 
 
 def _canonical_lock_state(*, required: bool) -> tuple[Path, os.stat_result | None]:
@@ -46,7 +49,7 @@ def _canonical_lock_state(*, required: bool) -> tuple[Path, os.stat_result | Non
             or (directory == runtime and stat.S_IMODE(metadata.st_mode) != 0o700)
         ):
             raise ValueError(f"unsafe canonical lock directory: {directory}")
-    lock_path = runtime / "gx1-heavy-job.lock"
+    lock_path = runtime / _PROJECT_LOCK_FILENAME
     try:
         metadata = lock_path.lstat()
     except FileNotFoundError:
@@ -64,7 +67,7 @@ def _canonical_lock_state(*, required: bool) -> tuple[Path, os.stat_result | Non
 
 
 def canonical_heavy_job_lock_path() -> Path:
-    """Use the protected per-UID runtime directory, never ambient XDG or /tmp."""
+    """Use CURRENT's protected per-UID lock, never ambient XDG or /tmp."""
 
     try:
         return _canonical_lock_state(required=False)[0]

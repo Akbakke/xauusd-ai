@@ -215,7 +215,7 @@ forberedelsesrot. Forrige røde terminal og alle tidligere bevis bevares.
 27 målrettede producer-/kjedetester består, inkludert bevaring av aktiv Arrow-
 buffer, byteidentiske frameverdier og riktig rekkefølge før Group-A.
 
-## Målt stopp 28.09: minnet rettet, SMC-kontrakten uavklart
+## Historisk stopp 28.09 før SMC-rettelsen: minnet rettet
 
 Fullkjøringen fra `10c78d70` fullførte alle 1 382 Group-A-chunks. Arrow-frigjøringen
 senket faktisk RSS 9,52 → 6,85 GiB; etter Group-A lå RSS på 5,75 GiB.
@@ -254,3 +254,15 @@ På den aktive trenerstien er følgende verifiserte feil rettet:
 alle feilede tilfeller består etter triage (133 tester). Metadata-kontroll: 150
 bestått. Ingen ny fullsuite. Dette er kilde-/integritetsarbeid, ikke læring.
 EMA-warmup og arkitektur-/featureendringer er ikke tatt inn som blind portering.
+
+## Videreføring etter brukerens rettings-/oppryddingsvedtak 28.09
+
+SMC-posisjon er nå implementert som par med observert bredde. Se den etterfølgende
+rettelsen i [repo-gjennomgangen](REPO_REVIEW_20260928.md). Kilden går til v37 / 242
+signalfelt; de tidligere 241-feltsartefaktene ovenfor er v36-bevis. Gamle outputs
+bevares, og gjenbruk må valideres av eksisterende eiere uten manifestomskriving.
+Etter første låsblokkering består 281 feature-/integrasjonstester og faktisk
+M1-kontroll på 6 019 349 rader, inkludert de sju nullbredderadene. Prosjektvis
+låsing er innført etter brukerens vedtak og kontrollert med 294 tester samt
+faktisk parallell låsadgang. V37-inputbygging er fortsatt ikke gjennomført.
+Dette endrer ikke fit-/TRAIN-/VAL-/TEST-grenser eller autoriserer trening.

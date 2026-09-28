@@ -14,8 +14,14 @@ forkortet og ligger i git.
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre
   worktrees og grener (inkludert den arkiverte `audit/v9-premiere-20260905` i
   `/home/andre2/src/GX1_ENGINE`) er historikk og git-lagring, aldri arbeidssteder.
-- Én agent (Claude eller Codex) og én tung jobb om gangen. Bygg på den andre agentens
+- Én agent (Claude eller Codex) og én tung jobb om gangen innen CURRENT. Bygg på den andre agentens
   commits; aldri et parallelt spor. Er noe i strid med dette, stopp og si fra.
+
+
+Operatørvedtak 28.09.2026: separate prosjekter kan arbeide parallelt. CURRENT
+bruker en egen prosjektlås; én tung jobb om gangen gjelder fortsatt innen CURRENT.
+Den tidligere maskinfelles låsen slettes ikke. Cgroup-tak, krav til ledig minne,
+CPU-/trådgrenser og GPU-/temperaturvakter består. Dette åpner ikke trening.
 
 ## Omfang
 

@@ -1,136 +1,48 @@
 # Veien videre — oppdatert 28.09.2026
 
-Rekkefølgen under er bindende. Hvert steg avsluttes med fokuserte tester, `git diff --check`
-og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om gangen via
-`scripts/gx1_capped_run.sh`.
+Gjeldende status eies av [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md). Bruk bare
+`/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Én agent og én tung jobb innen CURRENT;
+all test-/datakjøring bruker eksisterende capped-run-vakter.
 
-## Gjeldende vedtak: native-forberedelse, så full repo-revisjon
+## Gjeldende rekkefølge
 
-Følg [NATIVE_PREPARATION_AND_REPO_REVIEW_20260927](docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md).
-Brukeren har åpnet ferdigstilling av native inputs og nødvendige feilrettinger,
-deretter full repo-gjennomgang/opprydding før eventuell trening. `training_enabled=false`.
-Forrige forskningsplan skal ikke gjenkjøres; dens resultat sier ikke hva det nye
-native sekvens-/Entry-/Exit-oppsettet kan lære. Ingen automatisk treningsstart.
+1. SMC-rettelsen er kontrollert: 189 fokuserte og 92 integrasjonstester;
+   full lokal M1-kontroll og faktisk MTF-paritet på de sju berørte TRAIN-radene.
+   Ny prosjektlås består 294 tester og faktisk parallell låsadgang. Bevisene
+   gjenbrukes; ingen ny fullsuite eller gjentatt diagnose uten et nytt funn.
+2. Bind en ny videreføring for v37 etter beståtte kontroller. Gjenbruk bare det
+   de eksisterende kilde-/input-/kontraktvaktene godkjenner. Bevar v36-artefaktene,
+   de ferdige Group-A-chunkene og terminalbevisene; ingen manifestomskriving.
+3. Fullfør native-inputs, post-rebuild/readiness og lifecycle-bindinger innen
+   [det autoriserte forberedelsesomfanget](docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md).
+   Teknisk PASS er ikke en tillatelse til å starte trening.
+4. Avslutt gjenstående kompleksitetsvurdering: parameter-/beregningsfordeling,
+   redundans utover de 67 kandidatene og begrunnelse for hjelpeoppgavene.
+   [Vurderingen](docs/FEATURE_COMPLEXITY_REVIEW_20260928.md) foreslår færre
+   hjelpeoppgaver som én mulig senere sammenligning; ingen blind featurefjerning.
 
-Par, tidlig squeeze, M5-flate, M5-modellkilde, rangering og signalmanifest er
-ferdige. Oppvarmingsstart er målt til 2010-06-14 22:00 UTC, med 252 lukkede
-D1-barer før uendret TRAIN-start. Quotegeometri og kilde-/gjenbruksbindinger er
-rettet og kontrollert. Ferdige outputs og kvitteringer bevares.
+Den tidligere fullsuiten og triagen er dokumentert i [repo-gjennomgangen](docs/REPO_REVIEW_20260928.md);
+alle de 18 daværende feilede tilfellene besto avgrenset ny kontroll. Fullsuiten
+skal ikke gjentas uten en konkret ny grunn.
 
-[Repo-gjennomgangen 28.09](docs/REPO_REVIEW_20260928.md) dokumenterer full
-filinventering, samlet testkontroll, triage og rettet M3-diagnostikk. Alle de
-18 feilede testtilfellene består ved avgrenset ny kontroll; ingen ny fullsuite
-eller native trening er kjørt. [Kompleksitetsvurderingen](docs/FEATURE_COMPLEXITY_REVIEW_20260928.md)
-anbefaler å undersøke færre hjelpeoppgaver først. Ingen features/hoder er fjernet.
+## Opprydding og avslutning
 
-## Målt stopp 28.09: minnet rettet, SMC-kontrakten uavklart
+Rydd motstridende gjeldende status, frakoblet kode og dokumentert overflødige
+filer. Bevar unike resultater, data-/runtime-avhengigheter og checkpoints.
+Sletting under GX1_DATA må gjennom retention-eieren med rekkeviddebevis og
+hashbundet plan/godkjenning/kvittering. Katalogalder er ikke slettingsgrunnlag.
+Avslutt med fokuserte kontroller, `git diff --check`, oppdatert overlevering og
+commit/push av ferdig arbeid etter stående autorisasjon.
 
-Fullkjøringen fra `10c78d70` fullførte alle 1 382 Group-A-chunks. Arrow-frigjøringen
-senket faktisk RSS 9,52 → 6,85 GiB; etter Group-A lå RSS på 5,75 GiB.
-Terminalen 02:59:28 UTC er rød med `M1_ENRICHED_OUTPUT_NONFINITE:
-smc_pivot_envelope_position`. Det finnes ikke ferdig M1-parquet eller manifest.
+## Fullførte historiske spor
 
-Diagnosen finner sju TRAIN-rader etter oppvarmingsgrensen der alle fire bekreftede
-pivotpriser er like: to rader 2012-04-06 og fem rader 2019-03-07. Feature-eieren
-returnerer tilsiktet NaN ved null bredde; modellinput krever endelige verdier.
-Dette er en kontraktkonflikt, ikke begrunnelse for å fylle null, slette radene
-eller fjerne en feature uten å definere den nye representasjonen.
+- [Konsolidering og tidligere sletting](docs/CONSOLIDATION_20260926.md).
+- [Tidlig kalibrering og historisk beslutningskontroll: NO-GO](docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md).
+- [Modellfrie baselines](docs/MODEL_FREE_BASELINES_RESULT_20260927.md),
+  [makrohendelser](docs/MACRO_EVENT_BASELINES_RESULT_20260927.md) og
+  [intradag-mekanismer](docs/INTRADAY_MECHANISMS_RESULT_20260927.md).
 
-Ingen ny rebuild før kontrakten er avklart. Bevar ferdige Group-A-chunks og alle
-kvitteringer. Eventuelt gjenbruk må passere kilde-/input-/kontrakthasher; fullført
-checkpoint alene gir ikke kompatibilitet etter en featureendring. Repo-revisjonen
-fortsetter. Native trening og TEST-resultater forblir stengt.
-Se `M1_SMC_ENVELOPE_DIAGNOSIS.json` under native-forberedelsens kjøringsmappe.
-
-## Historisk stoppunkt før brukerens nye vedtak
-
-[Tidlig kalibrering og korrigert historisk kontroll er fullført](docs/HISTORY2009W_EARLY_DECISION_RESULT_20260927.md):
-begge modeller feiler den forhåndsregistrerte beslutningsporten. Ingen aktiv jobb.
-Gjenbruk `DECISION_GATE_STRICT.json` og `VERIFICATION.json`; ikke relanser planen.
-Full native datasettrebuild og trening forblir stengt. Neste forsøk trenger en
-konkret, begrunnet endring i informasjonsgrunnlag eller utførelsesøkonomi og en
-ny avgrenset forhåndsregistrering. Ingen brede søk eller automatisk viderejobb.
-
-## Tidligere operatørvedtak og historikk
-
-Ingen. **Vedtatt 26.09: hent fra 2005.** Native M5 + M1 XAU_USD fra OANDA, 2005-01-01 →
-2026-07-01 (TEST-grensen), via den eksisterende produsenten med manifest; parvedtaket
-`OANDA_PAIR_PRETEST_2005_20260927` (samme id på M1 og M5, som parprodusenten krever) er bundet i
-`gx1/contracts/oanda_history_ingest_approval_v1.py`. **Vedtatt 27.09 (B, erstatter A):** kjeden kjøres
-uendret i full modus; 2006-tapene forlenges i successor-modus til 2026-09-01, og juli–august 2026
-blir forseglet TEST (samme ordning som V46). A ble forlatt fordi en pretest-modus i kjeden krever
-endrede valideringer. Grunn: 2019–26 mangler de fallende
-gullmarkedene (2008, 2011–15, 2016, 2018). **Hentet 27.09**: M5 og M1 fra 2006-03-19 (OANDAs
-første bar), overlappet mot 2019-tapen er rad-identisk bortsett fra et fylt hull 2024-05-20; se
-[docs/HISTORY_2005_INTAKE_20260926.md](docs/HISTORY_2005_INTAKE_20260926.md).
-
-Vedtatt 26.09: guard-testen ignorerer preferanser (`model`, `theme`); GPU-kjernestopp 85 °C,
-nedtrekk til 220 W ved 80 °C.
-
-## Nå (27.09): modellfrie grunnlinjer før mer bygging
-
-Etter gjennomgangen ([docs/FEATURE_SURFACE_SWING_REVIEW_20260927.md](docs/FEATURE_SURFACE_SWING_REVIEW_20260927.md))
-måles først, forhåndsregistrert, om enkle regler gir retningsgevinst etter kost — scalp på M5
-(operatørens førstevalg) og swing på D1 — på 2009-tapen, TRAIN-perioden 2011-06 → 2025-05
-([docs/MODEL_FREE_BASELINES_PREREG_20260927.md](docs/MODEL_FREE_BASELINES_PREREG_20260927.md)).
-seq513-bootstrapen (squeeze → C0 → par → kjede) står på pause; 2009-tapene, direkte kilder og lineage
-(`HISTORY2009_BOOTSTRAP_20260927`) er klare. **Resultat 27.09: NO-GO på alle 62 celler**
-([docs/MODEL_FREE_BASELINES_RESULT_20260927.md](docs/MODEL_FREE_BASELINES_RESULT_20260927.md)):
-scalp-regler har null brutto retning etter spread (kost ~6 bps/rundtur); trendfiltre på D1 gir bare
-risikoreduksjon i bjørnemarkedet (beste t 1,87). Makrohendelser (FOMC/NFP/KPI) testet samme dag: **NO-GO 0/18**
-([docs/MACRO_EVENT_BASELINES_RESULT_20260927.md](docs/MACRO_EVENT_BASELINES_RESULT_20260927.md)).
-**Bølge 1 (operatørvedtak 27.09):** fem intradag-mekanismer forhåndsregistrert i
-[docs/INTRADAY_MECHANISMS_PREREG_20260927.md](docs/INTRADAY_MECHANISMS_PREREG_20260927.md) — rundtall,
-oppsettene som speilede par over 2011–25, COMEX-momentum, LBMA-auksjonen og sesjoner/ORB på lokal klokke;
-beslutning på policyens low-slippage (1 bps per utførelse). Bølge 2 (OANDAs ordre-/posisjonsbok) krever
-operatørvedtak; bølge 3 (maskinlæring) bare innenfor en populasjon som blir GO/LOVENDE og bekreftes på VAL.
-**Resultat bølge 1: NO-GO 0/61** ([docs/INTRADAY_MECHANISMS_RESULT_20260927.md](docs/INTRADAY_MECHANISMS_RESULT_20260927.md)):
-ingen celle er positiv netto selv ved low-slippage. Etterpåanalysen viser et svakt fortsettelsessignal etter brudd
-(mid +1–2,5 bps, t 2,3–3,8) som er mindre enn rundtur-spreaden (2,3–2,7 bps). Bølge 3 har ingen populasjon.
-Neste er et operatørvalg: bølge 2 (ordre-/posisjonsbok), VAL-bekreftelse av fortsettelsescellene på mid, eller
-swing-sporet.
-
-## Kodesteg
-
-1. ~~M1 — konsolidering~~ **ferdig 26.09** (809ba049, 755dd3aa). Se
-   [docs/CONSOLIDATION_20260926.md](docs/CONSOLIDATION_20260926.md).
-2. ~~M4 — forskningsinstrument for uker~~ **ferdig 26.09**: `--decision-clock {M5,H1,H4,D1}`,
-   statistikk på ikke-overlappende perioder med parvis differanse mot alltid-LONG og en kausal
-   konstant valgt på fit-perioden, vern mot sirkulær-null ved ≤ 512 rader, `model_kind` i
-   metadata. HAC/sirkulær-null brukes ikke som PASS på lange horisonter.
-3. ~~M2 — featureflaten v36~~ **ferdig 26.09**: signal 241, per-TF 190 (eierne eksekvert).
-   Gamle V9-/lifecycle-v2-artefakter (v34) kan ikke lastes på HEAD; evaluer dem på 7c9421a5.
-4. ~~Forhåndsregistrert ukesmåling~~ **ferdig 26.09: NO-GO**
-   ([resultat](docs/WEEKLY_DIRECTION_RESULT_20260926.md)): beslutning på H4/D1-slutt, horisonter
-   1/2/4 uker, ridge og HGB med konstant-alternativ, mot alltid-LONG, på de tidlig kalibrerte
-   v36-dataene. Kjørt på tre gyldige årsholdouts 2023-06..2026-05 med strengere GO-regel (3 av 3);
-   fold 0 stoppet på kronologivakten (avviket står i resultatet). 0 av 48 celler slo alltid-LONG.
-5. ~~Hent 2005–~~ **ferdig 27.09** (fra 2006-03-19), deretter rebuild på 2006-tapene med
-   tidligst mulig TRAIN-start (lengste lookback avgjør), deretter samme forhåndsregistrerte
-   måling på data med fallende markeder. Først ved GO/LOVENDE: **målkontrakt for
-   ukeshorisont** — nytt, eksplisitt kontraktvalg (ikke en stille økning av 96-barers-taket),
-   der Entry-verdien kommer fra direkte utførbare utfall og FLAT = 0 etter netto kost;
-   beslutningsklokke og horisont tas fra den målingen.
-6. **Rebuild** (kildeidentitetsporten er portert 26.09 og CURRENT har eget Python-miljø; porten
-   blokkerer til `gx1/monitoring/` med foreldreløs bytekode er fjernet, se Opprydding):
-   squeeze-refit (v4, lukket-bar-vindu) → `scripts/run_seq513_rebuild_chain_v1.sh`
-   med ny run-id → post-rebuild-audits → lifecycle-v2-laget (ENTRY_WINDOW, normalisering,
-   bindinger, random-access-indeks, recipes). Gjenbrukbart: tapene, M1-child-views, stengning,
-   kostpolicy og økonomi (etter egne hash-bindinger).
-7. **M3 — trenerfeil** før neste native trening (gate-entropi fail-open, active-head-diagnostikk,
-   gamma-metadata).
-8. **Native trening** først når målingen i steg 5 viser noe utover drift, og innenfor en ny,
-   bundet NEXT_RUN_POLICY.
-
-## Opprydding
-
-Gjort 26.09 (se konsolideringsrapporten). Gjenstår: triage av 17 eksisterende testfeil; fjerning av
-`gx1/monitoring/` (bare bytekode for en slettet modul), worktree-ene V22/V30/V31/V33/V37/V38/V39/V41
-og backup-tarballen (operatørens kommando; V30 trengs ikke etter at CURRENT fikk eget miljø);
-EXIT_LIFECYCLE_V2 og V40 når kostbevisene og handover-sjekken er flyttet hit.
-
-## Ikke gjør
-
-Ikke relanser selector-, direct-outcome- eller 512-planene. Ikke tren på 95-minuttersmålet
-igjen. Ikke gjør terskel-, horisont- eller featuresøk uten forhåndsregistrering. Ikke rydd
-artefakter fra den arkiverte grenen før en arkivautoritet dekker dem (regel 9).
+Disse planene skal ikke relanseres. De gamle operative instruksene finnes i
+Git-historikken; bare gjeldende omfang ovenfor er en videreføringsinstruks.
+`training_enabled=false`: ingen optimizer, native trening, full VAL, TEST-
+utfall, live/paper eller spending. En fremtidig trening krever egen bundet policy.

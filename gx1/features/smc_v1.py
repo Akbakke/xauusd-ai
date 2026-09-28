@@ -13,7 +13,8 @@ Features (all per-bar, lookahead-safe):
   smc_sweep_up_state     float32  1.0 if high > last swing high but close <= it (false breakout / liquidity hunt)
   smc_sweep_down_state   float32  1.0 if low  < last swing low  but close >= it
   smc_sweep_event_age_bars float32 raw bars since the most recent one-shot sweep event; NaN before it
-  smc_pivot_envelope_position float32 raw close position in the causal 4-pivot envelope
+  smc_pivot_envelope_position float32 raw position paired with observed width
+  smc_pivot_envelope_width_atr float32 width; zero marks undefined position
 
 Lookahead safety: a swing pivot at bar j is only considered "confirmed" once
 j + SWING_LOOKBACK bars have elapsed. So features at bar i only use swings
@@ -53,7 +54,8 @@ SMC_CAUSAL_REPLAY_SCHEMA_VERSION = "smc_causal_replay_v5"
 # emitted column spelling moves; SMC_CAUSAL_REPLAY_SCHEMA_VERSION and the
 # carried replay state keys are deliberately unchanged, so bounded-chunk state
 # written by the previous generation stays exchangeable.
-SMC_PRIMITIVE_CONTRACT_SCHEMA_VERSION = "smc_raw_primitives_v3"
+# v4: pair envelope position with observed width; replay state is unchanged.
+SMC_PRIMITIVE_CONTRACT_SCHEMA_VERSION = "smc_raw_primitives_v4"
 
 
 SMCLevelIdentity = tuple[str, int]
@@ -528,6 +530,20 @@ def _track_recent_swings(
     return last_sh, prev_sh, last_sl, prev_sl
 
 
+def _pivot_envelope_coordinates(close, lower, width, atr, available):
+    """Shared local/MTF encoding; width distinguishes undefined from position 0.
+
+    No epsilon, forward fill or row deletion. For a positive observed width
+    the original raw position is unchanged, including values outside [0, 1].
+    """
+    position = np.full(len(close), np.nan, dtype=np.float64)
+    width_atr = np.full(len(close), np.nan, dtype=np.float64)
+    position[available & (width == 0.0)] = 0.0
+    np.divide(close - lower, width, out=position, where=available & (width > 0.0))
+    np.divide(width, atr, out=width_atr, where=available)
+    return position, width_atr
+
+
 def compute_smc_features(
     df: pd.DataFrame,
     *,
@@ -544,7 +560,7 @@ def compute_smc_features(
     causally computed inputs; no ATR sentinel is permitted.
 
     ``include_v30_additions`` appends ``SMC_V30_ADDITION_NAMES_V1``. Default False
-    == the accepted canonical surface, byte-identical; the flag is a call-site
+    emits the current canonical base fields only; the flag is a call-site
     CONTRACT switch (the ``swing_structure_v1.include_v29_additions``
     precedent), never an environment gate. The native M5/M1 specialist layer
     enables it; the canonical M5 frame remains dynamically column/hash-bound
@@ -687,11 +703,9 @@ def compute_smc_features(
     sweep_up_event = replay["sweep_up_event"].astype(np.float32)
     sweep_down_event = replay["sweep_down_event"].astype(np.float32)
 
-    # Raw close position in the causal four-pivot envelope. Unknown warmup is
-    # NaN. Equal-width envelopes remain unavailable: a zero denominator has
-    # no honest numeric position, and the historical availability mask was a
-    # global-ever flag that became permanently one after the fourth pivot.
-    # Values outside [0, 1] are genuine close-beyond-envelope observations.
+    # Position and observed width form one representation. A known zero-width
+    # envelope has no numeric position: encode its position slot as zero and
+    # disambiguate it with width_atr == 0. Unknown warmup remains NaN in both.
     pivot_stack = np.vstack(
         (last_sh_price, prev_sh_price, last_sl_price, prev_sl_price)
     )
@@ -704,13 +718,8 @@ def compute_smc_features(
         & (prev_sl >= 0)
     )
     envelope_width = env_high - env_low
-    envelope_present = four_pivots_observed & (envelope_width > 0.0)
-    envelope_position = np.full(nb, np.nan, dtype=np.float64)
-    np.divide(
-        close - env_low,
-        envelope_width,
-        out=envelope_position,
-        where=envelope_present,
+    envelope_position, envelope_width_atr = _pivot_envelope_coordinates(
+        close, env_low, envelope_width, atr, four_pivots_observed & atr_available,
     )
 
     out_cols = {
@@ -722,6 +731,7 @@ def compute_smc_features(
         "smc_sweep_down_state": sweep_down,
         "smc_sweep_event_age_bars": sweep_event_age_bars,
         "smc_pivot_envelope_position": envelope_position.astype(np.float32),
+        "smc_pivot_envelope_width_atr": envelope_width_atr.astype(np.float32),
     }
     if include_v30_additions:
         out_cols["smc_bos_displacement_atr"] = bos_displacement_atr
@@ -762,6 +772,7 @@ SMC_FEATURE_NAMES = [
     "smc_sweep_down_state",
     "smc_sweep_event_age_bars",
     "smc_pivot_envelope_position",
+    "smc_pivot_envelope_width_atr",
 ]
 # V30 package 8A (2026-08-13) — owner-parity emissions for the M5 SMC block,
 # declared separately from SMC_FEATURE_NAMES because the canonical local block
@@ -790,7 +801,7 @@ if set(SMC_V30_ADDITION_NAMES_V1) & set(SMC_FEATURE_NAMES) or len(
     raise RuntimeError("[SMC_V30_ADDITION_NAMES_INVALID]")
 # Exact fixed-width primitives for the multi-resolution Entry surface.  Unlike
 # the historical M5 contract above, this contract is independent of ambient
-# environment flags and never emits numeric unknown/sentinel values.  Rows are
+# environment flags. A collapsed envelope uses its position/width pair. Rows are
 # NaN until two highs and two lows have been causally confirmed; the shared HTF
 # matrix owner trims that one chronological warmup prefix before a row can
 # reach training or serving.
@@ -892,8 +903,9 @@ SMC_PRIMITIVE_FORMULA_CONTRACT = (
     "events=one_shot_bos_choch_and_sweep_on_closed_native_clock",
     "sweep_age=raw_uncapped_native_bars_with_nan_before_first_event",
     "sweep_depth=separate_up_and_down_atr_depths",
-    "envelope=raw_close_position_in_four_confirmed_pivots_nan_if_zero_width",
-    "warmup=nan_until_four_pivots_for_envelope_surfaces",
+    "envelope=raw_close_position_paired_with_observed_width_atr",
+    "envelope_zero_width=position_slot_zero_decoded_only_with_width_atr_zero",
+    "warmup=nan_until_four_pivots_and_atr_for_envelope_surfaces",
 )
 
 
@@ -916,6 +928,14 @@ def smc_primitive_contract_metadata() -> dict[str, object]:
         "schema_version": SMC_PRIMITIVE_CONTRACT_SCHEMA_VERSION,
         "causal_replay_schema_version": SMC_CAUSAL_REPLAY_SCHEMA_VERSION,
         "formula_sha256": _smc_sha256_json(SMC_PRIMITIVE_FORMULA_CONTRACT),
+        "envelope_encoding": {
+            "local_pair": ["smc_pivot_envelope_position", "smc_pivot_envelope_width_atr"],
+            "mtf_pair": ["mtf_smc_pivot_envelope_position", "mtf_smc_range_width_atr"],
+            "position_defined_when": "observed_width_atr > 0",
+            "known_zero_width_pair": [0.0, 0.0],
+            "unknown_warmup": "both_nan",
+            "positive_width_position": "raw_unclipped_close_position",
+        },
         "local_base_names": list(SMC_FEATURE_NAMES),
         "local_base_names_sha256": _smc_sha256_json(SMC_FEATURE_NAMES),
         "local_addition_names": list(SMC_V30_ADDITION_NAMES_V1),
@@ -1005,8 +1025,8 @@ def compute_smc_mtf_primitives_v1(
     # only the latest high/low made a perfectly valid equal-pivot transition
     # collapse to zero width on real XAU M15 data (2025-08-18).  The previous
     # confirmed pivots are already required below and are known at the same
-    # decision time, so the envelope defines the geometry without an epsilon,
-    # sentinel, future observation, or dropped interior row.
+    # decision time. Four equal prices can still collapse the envelope; the
+    # position/width pair below explicitly represents that observed geometry.
     pivot_stack = np.vstack((last_high, prev_high, last_low, prev_low))
     range_low = np.min(pivot_stack, axis=0)
     range_high = np.max(pivot_stack, axis=0)
@@ -1072,13 +1092,8 @@ def compute_smc_mtf_primitives_v1(
     sweep_down_depth = np.where(sweep_down, (last_low - low) / atr, 0.0)
     sweep_up_event = replay["sweep_up_event"] > 0.0
     sweep_down_event = replay["sweep_down_event"] > 0.0
-    envelope_present = channel_width > 0.0
-    envelope_position = np.full(n_rows, np.nan, dtype=np.float64)
-    np.divide(
-        close - range_low,
-        channel_width,
-        out=envelope_position,
-        where=available & envelope_present,
+    envelope_position, envelope_width_atr = _pivot_envelope_coordinates(
+        close, range_low, channel_width, atr, available,
     )
 
     row_index = np.arange(n_rows, dtype=np.int64)
@@ -1115,7 +1130,7 @@ def compute_smc_mtf_primitives_v1(
         "mtf_smc_sweep_up_depth_atr": sweep_up_depth,
         "mtf_smc_sweep_down_depth_atr": sweep_down_depth,
         "mtf_smc_pivot_envelope_position": envelope_position,
-        "mtf_smc_range_width_atr": channel_width / atr,
+        "mtf_smc_range_width_atr": envelope_width_atr,
         "mtf_smc_bos_displacement_atr": bos_displacement,
         "mtf_smc_sweep_up_event": sweep_up_event.astype(np.float64),
         "mtf_smc_sweep_down_event": sweep_down_event.astype(np.float64),

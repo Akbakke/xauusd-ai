@@ -11,39 +11,50 @@ Brukeren har autorisert [native-forberedelse og full repo-gjennomgang](docs/NATI
 før eventuell trening. Dette overstyrer tidligere forbud mot videre datasetbygging.
 Den konsoliderte native modellen med de nye inputene er ikke epoch-trent.
 Ridge/HGB-porten under er avsluttet forskning, ikke et bevist tak for native læring.
-Nå: avklar den målte SMC-kontraktkonflikten før videre bygging. Kilde-/testgjennomgangen
-er dokumentert; resterende input- og kompleksitetsavklaringer står nedenfor.
+SMC-rettelsen og prosjektvis låsing er kontrollert. Tidligere kilde-/testgjennomgang
+er dokumentert; ny v37-inputbygging og gjenstående avklaringer står nedenfor.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
-Par, tidlig squeeze, M5-flate, M5-modellkilde, rangering og signalmanifest er
-ferdige. Oppvarmingsstart er målt til 2010-06-14 22:00 UTC, med 252 lukkede
-D1-barer før uendret TRAIN-start. Quotegeometri og kilde-/gjenbruksbindinger er
-rettet og kontrollert. Ferdige outputs og kvitteringer bevares.
+## SMC-rettelse 28.09: kontrollert; v37-inputbygging gjenstår
 
-[Repo-gjennomgangen 28.09](docs/REPO_REVIEW_20260928.md) dokumenterer full
-filinventering, samlet testkontroll, triage og rettet M3-diagnostikk. Alle de
-18 feilede testtilfellene består ved avgrenset ny kontroll; ingen ny fullsuite
-eller native trening er kjørt. [Kompleksitetsvurderingen](docs/FEATURE_COMPLEXITY_REVIEW_20260928.md)
-anbefaler å undersøke færre hjelpeoppgaver først. Ingen features/hoder er fjernet.
+Den målte konflikten er rettet hos den delte SMC-eieren: posisjon og observert
+intervallbredde er ett par. Positiv bredde beholder rå, uklippet posisjon; kjent
+null bredde gir paret `(0, 0)`. Ukjent oppvarming beholder NaN i begge felt.
+Lokalflaten får `smc_pivot_envelope_width_atr`; MTF bruker sitt eksisterende
+`mtf_smc_range_width_atr`. Ingen pivotregel eller markedsrad endres.
 
-## Målt stopp 28.09: minnet rettet, SMC-kontrakten uavklart
+Eksekverte eiere bekrefter signal v37 / SMC-primitiver v4: 242 signalfelt
+(25 basis, 150 obligatoriske, 67 kandidater), fortsatt 71 kontinuerlige
+kontekstfelt og 190 felt per høyere tidsramme. Ingen modellhoder er fjernet.
+189 fokuserte tester og 92 integrasjonstester består. Faktisk M1-kontroll på
+6 019 349 rader bekrefter bit-identiske posisjoner for alle 6 019 242 rader
+med positiv bredde, 32 ærlige oppvarmingsrader og endelige koordinater etter
+historikkgrensen. Alle sju berørte TRAIN-rader har bit-identisk lokal/MTF-
+representasjon i sine eksakte pivotnabolag. Toppminnet var 3,12 GiB under
+uendret 4 GiB-tak, uten cgroup-OOM. Dette er inputbevis, ikke læring eller edge.
 
-Fullkjøringen fra `10c78d70` fullførte alle 1 382 Group-A-chunks. Arrow-frigjøringen
-senket faktisk RSS 9,52 → 6,85 GiB; etter Group-A lå RSS på 5,75 GiB.
-Terminalen 02:59:28 UTC er rød med `M1_ENRICHED_OUTPUT_NONFINITE:
-smc_pivot_envelope_position`. Det finnes ikke ferdig M1-parquet eller manifest.
+De ferdige par-/M5-/rangerings-/signalartefaktene er **v36-bevis**, ikke ferdige
+v37-inputs. De faktiske gamle signal- og M5-kontraktene avvises av v37-eierne.
+Ingen manifest omskrives for å passere. De 1 382 ferdige Group-A-chunkene og
+alle kvitteringer bevares. M1-parquet/-manifest finnes ennå ikke. Neste steg
+er en ny, kilde-/artefaktbundet v37-videreføring innen autorisert native-
+forberedelse; ikke gjenstart den gamle planen. Ingen rebuild eller trening
+ble startet i rettings-/oppryddingsarbeidet.
 
-Diagnosen finner sju TRAIN-rader etter oppvarmingsgrensen der alle fire bekreftede
-pivotpriser er like: to rader 2012-04-06 og fem rader 2019-03-07. Feature-eieren
-returnerer tilsiktet NaN ved null bredde; modellinput krever endelige verdier.
-Dette er en kontraktkonflikt, ikke begrunnelse for å fylle null, slette radene
-eller fjerne en feature uten å definere den nye representasjonen.
+Bakgrunn: fullkjøringen fra `10c78d70` stoppet 02:59:28 UTC på sju TRAIN-rader
+med fire like pivotpriser (2012 og 2019). Arrow-rettelsen var vellykket: RSS
+9,52 → 6,85 GiB, alle Group-A-chunks fullført. Det første nye diagnoseforsøket
+fikk SIGKILL under full MTF-materialisering; det er bevart som ufullført.
+Den etterfølgende, avgrensede MTF-kontrollen besto med terminal exit 0.
 
-Ingen ny rebuild før kontrakten er avklart. Bevar ferdige Group-A-chunks og alle
-kvitteringer. Eventuelt gjenbruk må passere kilde-/input-/kontrakthasher; fullført
-checkpoint alene gir ikke kompatibilitet etter en featureendring. Repo-revisjonen
-fortsetter. Native trening og TEST-resultater forblir stengt.
-Se `M1_SMC_ENVELOPE_DIAGNOSIS.json` under native-forberedelsens kjøringsmappe.
+## Parallelt prosjektarbeid etter brukerens vedtak 28.09
+
+CURRENT har nå egen prosjektlås. Den gamle maskinfelles låsen og EURUSD-
+prosjektet er urørt. Én tung jobb innen CURRENT og alle ressurs-/maskinvare-
+vakter består. 294 vakttester og en faktisk kjøring mens den gamle låsen
+var holdt bekrefter at separate prosjekter kan arbeide parallelt.
+
+Detaljer, avgrensninger og kvitteringer: [repo-gjennomgang](docs/REPO_REVIEW_20260928.md).
 
 ## Fullført forskningsresultat — ikke gjeldende startinstruks
 
@@ -58,8 +69,8 @@ modellsammenligningen ble beregnet på nytt, med samme artefakter og parametere.
 
 HGB: +5,71 netto bps per beslutningsblokk (år likt vektet), +1,34 mot LONG,
 men nedre grenser -5,12/-22,39 og bare 5/10 årsfordeler mot LONG. Ridge: -2,37.
-Begge feiler porten; ingen native trening eller større datasettbygging.
-Neste forsøk må begrunnes med endret informasjon eller utførelsesøkonomi.
+Begge feilet porten. Ved dette historiske stoppunktet var videre bygging stengt;
+brukerens senere vedtak ovenfor åpnet native-forberedelse, fortsatt uten trening.
 Ikke gjenstart denne fullførte planen eller den avbrutte senkalibrerte C0.
 
 Avsnittene under er historiske funn. Negativt resultat for målte oppsett beviser
@@ -76,10 +87,10 @@ Rot-loaderen importerer nå denne kodebasens `CLAUDE.md`, som importerer `GX1_RU
 
 ## Hva vi vet
 
-- **Retningen ligger på uker–måneder, ikke på 95 minutter.** Trenden er ~1,6 % av bevegelsen
+- **Tidligere måling av tidsskala (avgrenset evidens):** Trenden er ~1,6 % av bevegelsen
   per 95-minutters vindu; bekreftede M1-svingninger fortsetter med 49–51 %; retningsmålet hadde
   et hardt tak på 8 timer. På ukeshorisont tjente alltid-LONG etter all kost i 3 av 4 år, og
-  ingenting (380 D1/H4-felt, trendregler) slo den — i 2021–26 er det lærbare driften. Se
+  ingenting (380 D1/H4-felt, trendregler) slo den — dette beskriver det undersøkte oppsettet og perioden 2021–26. Se
   [docs/DIRECTION_TIMESCALE_20260926.md](docs/DIRECTION_TIMESCALE_20260926.md).
 - **Den direkte M1-hypotesen** (25.–26.09) bruker samme etiketter som knee-målet, og vent-målet
   velger side i ettertid (+13,7 bps skjevhet); den kjøres ikke videre.
@@ -119,18 +130,13 @@ Rot-loaderen importerer nå denne kodebasens `CLAUDE.md`, som importerer `GX1_RU
 - **Rebuild v36 på 2009-tapene (operatørvedtak 27.09 «Ja»):** squeeze → C0 → par → squeeze(par) → seq513-kjeden,
   launcher `GX1_RUNS/HISTORY2009_REBUILD_20260927/`. Første forsøk stoppet i C0 på stillestående helgekvoter
   (2011); rettet med stengningskontrakt v2 og nytt parvedtak `OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927`
-  ([docs/HISTORY_2005_INTAKE_20260926.md](docs/HISTORY_2005_INTAKE_20260926.md)). Neste: hent v2-tapene, bygg
-  kilder og lineage, kjør rebuilden på nytt; deretter forhåndsregistrert tak-måling (ridge/HGB, walk-forward
-  2015–25 med tidlig kalibrering) før noen native trening.
+  ([docs/HISTORY_2005_INTAKE_20260926.md](docs/HISTORY_2005_INTAKE_20260926.md)). Det daværende neste steget var v2-taper og tidlig historisk kontroll;
+  disse er siden fullført. Dette er ikke en gjeldende startinstruks.
 
-## Tilstand
+## Operativ tilstand
 
-Aktivt steg må bekreftes i `GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927/progress.log`
-og samme runs terminalkvitteringer. `training_enabled=false`; full epoch, full VAL, CONTROL, TEST, live og
-papirhandel er stengt. TEST er forseglet. Kildekoden har nå den reparerte featureflaten v36
-(signal 241, per-TF 190); datasettet må bygges på nytt. Eksisterende V9-/lifecycle-v2-artefakter
-og sjekkpunkter hører til v34-flaten og evalueres bare på commit 7c9421a5 eller eldre.
-Walk-forward-instrumentet støtter ukeshorisont (beslutningsklokke, ikke-overlappende statistikk,
-kostpolicy, tidlig kalibrerte inputs). CURRENT har eget Python-miljø (`.venv`, identisk pakkesett,
-avhengighetssjekken består), og `gx1_handover.sh` skriver kildeidentiteten som tunge ruter krever
-(`source_identity_gate`).
+Gjeldende operativ status står øverst og i `NEXT_RUN_POLICY.json` /
+`RUNNING_NATIVE_CALIBRATION.json`, med terminalkvitteringer fra samme navngitte run.
+Gamle V9-/lifecycle-v2-checkpoints tilhører tidligere skjema og skal bevares som
+historikk. De er ikke gyldige v37-modeller. TEST-resultater, optimizersteg,
+full epoch/VAL og handel er stengt. Ingen ny rebuild er startet etter SMC-endringen.

@@ -52,3 +52,9 @@ positiv kostnadsjustert netto bps.
 
 Ingen antagelser der tilstanden kan måles. Når en nødvendig rettelse er kontrollert, gå videre
 mot målet uten å utvide jobben.
+
+
+Operatørvedtak 28.09.2026: separate prosjekter kan arbeide parallelt. CURRENT
+bruker en egen prosjektlås; én tung jobb om gangen gjelder fortsatt innen CURRENT.
+Den tidligere maskinfelles låsen slettes ikke. Cgroup-tak, krav til ledig minne,
+CPU-/trådgrenser og GPU-/temperaturvakter består. Dette åpner ikke trening.

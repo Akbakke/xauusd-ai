@@ -6,9 +6,9 @@ Dette er del av den bestilte repo-gjennomgangen, ikke en fullført revisjon elle
 Vi bør vurdere en enklere modell. Påstanden «altfor avansert» var sterkere enn
 bevisene: ingen kontroll har isolert featureantall som årsak til manglende edge.
 
-## Målt eller kontrollert i dagens kilde
+## Målt eller kontrollert i v36-kilden
 
-- M5-signalet har 241 felt: 24 basis, 150 obligatoriske og 67 kandidater.
+- M5-signalet ved denne målingen hadde 241 felt: 24 basis, 150 obligatoriske og 67 kandidater.
   De 71 kontinuerlige kontekstfeltene er allerede representert i disse 241.
 - Den ferdige TRAIN-rangeringen har 994 500 rader og 67 kandidater. Ingen av
   kandidatene er helt konstant eller et eksakt duplikat av en annen kandidat.
@@ -67,7 +67,7 @@ beslutningsverdi. Korrelasjon/rangering på TRAIN alene kan brukes til å formul
 hypotesen, men ikke erklære en forbedring. Bevar rådata og tidligere schema slik
 at reduksjonen kan etterprøves.
 
-## Konkret byggfeil og nåstatus
+## Byggfeilen før SMC-rettelsen
 
 Ingen feature, familie eller modellhode er fjernet. Native trening er deaktivert.
 Arrow-rettelsen ved `10c78d70` er bekreftet i fullkjøringen: faktisk RSS falt
@@ -92,3 +92,24 @@ og ugyldige hjelpeetiketter; 140 fokuserte tester besto. Én samlet suite ga
 etter triage (133 tester i berørte filer). En ny fullsuite er ikke kjørt.
 Inputkontrakten og siste parameter-/redundansvurdering gjenstår før eventuell
 arkitekturendring. Teknisk kontroll er ikke bevis for lønnsomhet.
+
+## SMC-rettelse og avgrensning av oppryddingen
+
+Brukerens etterfølgende vedtak 28.09 autoriserer retting og opprydding. Den
+målte SMC-konflikten er nå implementert som et eksplisitt posisjon-/breddepar:
+positiv bredde bevarer rå posisjon, kjent null bredde kodes `(0, 0)`, og ukjent
+oppvarming beholder NaN. Lokal bredde manglet og er lagt til; MTF hadde den
+allerede. V37 får dermed 242 signalfelt, ikke færre. Det er en korreksjon av
+inputsemantikk, ikke et valg om å øke modellkapasitet eller en ny edge-påstand.
+
+Det tidligere forslaget om en binær tilgjengelighetsindikator er erstattet av
+den allerede brukte kontinuerlige bredderepresentasjonen. En ny indikator
+ville vært konstant på tidsrammer uten nullbreddehendelser og måttet endre
+liveness-kontrakten. Nå gjenbrukes én eier og eksisterende MTF-felt.
+
+Kontrollstatus: 189 fokuserte og 92 integrasjonstester består. Faktisk lokal
+M1-kontroll dekker 6 019 349 rader; MTF-paritet er kontrollert på alle sju
+berørte TRAIN-rader. Den tidligere maskinfelles låsen er erstattet av en
+prosjektlås etter brukerens vedtak; ressursvaktene består. Ingen ferdig v37-datasettrebuild, ablasjon,
+parameterfordeling eller ny redundansmåling foreligger. Gamle v36-artefakter
+og alle checkpoints er bevart. Se gjeldende status i CURRENT_HANDOVER.md.

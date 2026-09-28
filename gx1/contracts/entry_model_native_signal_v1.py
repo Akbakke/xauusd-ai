@@ -150,7 +150,9 @@ from gx1.features.smc_v1 import smc_primitive_contract_metadata
 # v35 (2026-09-21 fidelity wave): base `_v1_atr14`->bps (F-20); local
 # price-derived layer loses the three exact-affine spread fields (F-9/F-10);
 # SMC local additions gain the sided CHoCH pair and last-sweep-side (F-18/19).
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v36"
+# v37: local SMC position now travels with observed envelope width, matching
+# the existing MTF pair; known width zero is distinct from unknown warmup.
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v37"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "entry_model_native_seq513_split_manifest_v20"
 )
@@ -300,6 +302,7 @@ MODEL_NATIVE_BASE_FIELDS = (
     "smc_sweep_down_state",
     "smc_sweep_event_age_bars",
     "smc_pivot_envelope_position",
+    "smc_pivot_envelope_width_atr",
     "vol_z_20",
     "vol_ratio_5_20",
     "vol_pct_96",

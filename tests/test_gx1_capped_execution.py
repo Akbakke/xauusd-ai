@@ -335,7 +335,7 @@ def lock_kernel(monkeypatch):
         "/run": _lock_metadata(stat.S_IFDIR | 0o755, user_id=0),
         "/run/user": _lock_metadata(stat.S_IFDIR | 0o755, user_id=0),
         "/run/user/1000": _lock_metadata(stat.S_IFDIR | 0o700),
-        "/run/user/1000/gx1-heavy-job.lock": _lock_metadata(),
+        "/run/user/1000/gx1-current-heavy-job.lock": _lock_metadata(),
         "/proc/100/fd/9": _lock_metadata(),
     }
     for process_pid, parent_pid in ((400, 300), (300, 200), (200, 100), (100, 1), (1, 0)):
@@ -407,9 +407,9 @@ def test_canonical_lock_ignores_xdg_and_preserves_existing_0644(lock_kernel, mon
         monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
     else:
         monkeypatch.setenv("XDG_RUNTIME_DIR", runtime)
-    assert canonical_heavy_job_lock_path() == Path("/run/user/1000/gx1-heavy-job.lock")
+    assert canonical_heavy_job_lock_path() == Path("/run/user/1000/gx1-current-heavy-job.lock")
     assert require_capped_lock_ancestry() == {
-        "lock_path": "/run/user/1000/gx1-heavy-job.lock",
+        "lock_path": "/run/user/1000/gx1-current-heavy-job.lock",
         "lock_device": 78,
         "lock_inode": 35,
         "owner_pid": 100,
@@ -420,8 +420,8 @@ def test_canonical_lock_ignores_xdg_and_preserves_existing_0644(lock_kernel, mon
 
 def test_lock_path_allows_creation_but_ancestry_requires_existing_lock(lock_kernel):
     _, metadata, _ = lock_kernel
-    del metadata["/run/user/1000/gx1-heavy-job.lock"]
-    assert canonical_heavy_job_lock_path() == Path("/run/user/1000/gx1-heavy-job.lock")
+    del metadata["/run/user/1000/gx1-current-heavy-job.lock"]
+    assert canonical_heavy_job_lock_path() == Path("/run/user/1000/gx1-current-heavy-job.lock")
     with pytest.raises(RuntimeError, match="GX1_CAPPED_LOCK_PROOF_INVALID"):
         require_capped_lock_ancestry()
 
@@ -434,13 +434,13 @@ def test_lock_path_allows_creation_but_ancestry_requires_existing_lock(lock_kern
     ("/run/user", _lock_metadata(stat.S_IFDIR | 0o777, user_id=0)),
     ("/run/user", _lock_metadata(stat.S_IFDIR | 0o755, user_id=1000)),
     ("/run", _lock_metadata(stat.S_IFLNK | 0o755, user_id=0)),
-    ("/run/user/1000/gx1-heavy-job.lock", _lock_metadata(stat.S_IFLNK | 0o644)),
-    ("/run/user/1000/gx1-heavy-job.lock", _lock_metadata(stat.S_IFIFO | 0o600)),
-    ("/run/user/1000/gx1-heavy-job.lock", _lock_metadata(stat.S_IFDIR | 0o700)),
-    ("/run/user/1000/gx1-heavy-job.lock", _lock_metadata(stat.S_IFREG | 0o666)),
-    ("/run/user/1000/gx1-heavy-job.lock", _lock_metadata(stat.S_IFREG | 0o2644)),
-    ("/run/user/1000/gx1-heavy-job.lock", _lock_metadata(user_id=999)),
-    ("/run/user/1000/gx1-heavy-job.lock", _lock_metadata(links=2)),
+    ("/run/user/1000/gx1-current-heavy-job.lock", _lock_metadata(stat.S_IFLNK | 0o644)),
+    ("/run/user/1000/gx1-current-heavy-job.lock", _lock_metadata(stat.S_IFIFO | 0o600)),
+    ("/run/user/1000/gx1-current-heavy-job.lock", _lock_metadata(stat.S_IFDIR | 0o700)),
+    ("/run/user/1000/gx1-current-heavy-job.lock", _lock_metadata(stat.S_IFREG | 0o666)),
+    ("/run/user/1000/gx1-current-heavy-job.lock", _lock_metadata(stat.S_IFREG | 0o2644)),
+    ("/run/user/1000/gx1-current-heavy-job.lock", _lock_metadata(user_id=999)),
+    ("/run/user/1000/gx1-current-heavy-job.lock", _lock_metadata(links=2)),
 ])
 def test_canonical_lock_rejects_unsafe_paths_without_fallback(lock_kernel, monkeypatch, path, replacement):
     _, metadata, _ = lock_kernel
@@ -667,7 +667,7 @@ def test_lock_rechecks_file_descriptor_and_ancestry_identity(lock_kernel, change
         reads += 1
         if reads == 1:
             if change == "lock_path":
-                metadata["/run/user/1000/gx1-heavy-job.lock"] = _lock_metadata(inode=36)
+                metadata["/run/user/1000/gx1-current-heavy-job.lock"] = _lock_metadata(inode=36)
             elif change == "descriptor":
                 metadata["/proc/100/fd/9"] = _lock_metadata(inode=36)
             elif change == "parent":
@@ -725,3 +725,16 @@ def test_producer_cannot_inherit_trainer_128_task_exception():
     files['/sys/fs/cgroup/gx1-cuda-test.scope/pids.max'] = '128'
     with pytest.raises(RuntimeError, match='ENV_LIMIT_EXCEEDED'):
         require_guarded_cuda_producer_execution(environ=env, read_text=lambda path: files[str(path)])
+
+
+def test_project_lock_is_independent_of_legacy_machine_lock(lock_kernel):
+    # An unrelated project may hold the legacy inode. CURRENT proves its own
+    # exact lock, not whatever path an environment variable or caller supplies.
+    _, metadata, _ = lock_kernel
+    metadata["/run/user/1000/gx1-heavy-job.lock"] = _lock_metadata(inode=999)
+    proof = require_capped_lock_ancestry()
+    assert proof["lock_path"] == "/run/user/1000/gx1-current-heavy-job.lock"
+    assert proof["lock_inode"] == 35
+    del metadata["/run/user/1000/gx1-current-heavy-job.lock"]
+    with pytest.raises(RuntimeError, match="GX1_CAPPED_LOCK_PROOF_INVALID"):
+        require_capped_lock_ancestry()

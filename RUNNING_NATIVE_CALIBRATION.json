@@ -2104,8 +2104,32 @@
     "previous_failed_memory_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_MEMORY_20260928/TERMINAL.json",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927",
     "signal_reuse_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/actual_signal_reuse_guard.log",
+    "smc_correction": {
+      "cgroup_memory_peak_bytes": 3347161088,
+      "completed_group_a_reuse_proven": false,
+      "first_test_attempt_exit_code": 75,
+      "focused_tests_passed": 189,
+      "integration_tests_passed": 92,
+      "local_added_field": "smc_pivot_envelope_width_atr",
+      "mtf_existing_width_field": "mtf_smc_range_width_atr",
+      "mtf_zero_width_parity_rows": 7,
+      "native_rebuild_started": false,
+      "old_signal_and_m5_contracts_rejected": true,
+      "positive_width_positions_bit_identical": true,
+      "primitive_schema": "smc_raw_primitives_v4",
+      "real_data_verification": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/SMC_PAIRED_WIDTH_VERIFICATION.json",
+        "sha256": "da55d156979e04ca6ab27045734ad08785b03a21f7bbe586f1f8083a2d7606b0"
+      },
+      "real_m1_first_attempt_exit_code": -9,
+      "real_m1_rows": 6019349,
+      "signal_dim": 242,
+      "signal_schema": "entry_model_native_signal_v37",
+      "v36_artifacts_preserved": true,
+      "validation_status": "PASS"
+    },
     "smc_envelope_diagnosis": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M1_SMC_ENVELOPE_DIAGNOSIS.json",
-    "status": "M1_GROUP_A_COMPLETE_SMC_UNDEFINED_CONTRACT_BLOCKED",
+    "status": "SMC_V37_VALIDATED_FRESH_BOUND_CONTINUATION_PENDING",
     "training_enabled": false
   },
   "native_processes": [],
@@ -2114,12 +2138,22 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "Resolve the measured zero-width SMC envelope representation contract before another native rebuild; preserve all 1382 completed Group-A chunks and prior outputs. The full-suite failures have been triaged and all failed cases pass targeted checks. Complete remaining input/readiness and complexity decisions before any training proposal. No native optimizer, TEST outcome evaluation, live/paper or spending.",
+  "next_action": "Bind a fresh v37 native-input continuation within the user-authorized preparation scope. Reuse only artifacts accepted by existing lineage owners; actual v36 signal and M5 contracts are rejected. Preserve the completed v36 outputs and 1382 Group-A chunks. SMC and lock corrections are validated; do not repeat passed checks without a new finding. CURRENT has a project-specific lock and unchanged resource guards. No native optimizer, training, full VAL, TEST outcomes, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
-  "observed_utc": "2026-09-27T19:21:09.537367+00:00",
+  "observed_utc": "2026-09-28T07:40:44.218645+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
+  "parallel_project_execution_20260928": {
+    "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
+    "legacy_global_lock_unchanged": true,
+    "lock_filename": "gx1-current-heavy-job.lock",
+    "lock_scope": "GX1_CURRENT",
+    "one_heavy_job_per_current": true,
+    "resource_guards_preserved": true,
+    "tests_passed": 294,
+    "user_instruction": "fjern lås så vi kan jobbe parallelt"
+  },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
     "sha256": "0b2d5bd8184d8c9c7f449e36a550142c607716fb50ab887228a5c127acf0308d"
@@ -2276,7 +2310,9 @@
     "full_suite_skipped": 3,
     "metadata_tests_passed": 150,
     "native_input_complete": false,
+    "project_lock_tests_passed": 294,
     "report": "docs/REPO_REVIEW_20260928.md",
+    "smc_tests_passed": 281,
     "training_enabled": false,
     "triage_tests_passed": 133
   },
@@ -2305,7 +2341,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "NATIVE_INPUT_SEMANTICS_BLOCKED_REPO_REVIEW_IN_PROGRESS",
+  "status": "SMC_V37_VALIDATED_NATIVE_INPUT_REBUILD_PENDING",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,

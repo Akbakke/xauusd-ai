@@ -1,31 +1,29 @@
-# GX1 arbeidsmål — oppdatert 26.09.2026
+# GX1 arbeidsmål — oppdatert 28.09.2026
 
 Målet er en ærlig XAUUSD-bot som tar retning på den tidsskalaen der retningen faktisk
 finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke oppnådd.
 
-## Operatørvedtak 26.09.2026
+## Gjeldende arbeidsomfang
 
-- **Én kodebase:** `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-  `audit/v9-premiere-20260905` (GX1_ENGINE) er arkivert; det som har verdi derfra slås inn
-  her. Aldri to parallelle spor igjen (se AGENTS.md).
-- **Retning på dager–uker, ikke 95 minutter.** Målt i
-  [docs/DIRECTION_TIMESCALE_20260926.md](docs/DIRECTION_TIMESCALE_20260926.md): trenden er
-  ~1,6 % av bevegelsen per 95-minutters vindu og blir dominerende først på uker–måneder;
-  svingninger fortsetter med sannsynlighet 49–51 % når de sees. Retningsmålet hadde et
-  hardt tak på 8 timer (96 M5-barer).
-- **Beslutningsklokke:** M5, eller en høyere tidsramme (H1/H4/D1) hvis målingene viser at
-  den er bedre. M5/M1 brukes til timing av inngang i trendens retning med lav MAE.
-- **Datasett bygges på nytt** når det nye målet er definert og målt; det er autorisert.
+Brukeren har autorisert feilretting, ferdigstilling av native inputs og full
+repo-gjennomgang/opprydding før eventuell trening. Se [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md)
+og [VEIEN_VIDERE.md](VEIEN_VIDERE.md) for målt tilstand og neste steg.
+Den tidlig kalibrerte ridge/HGB-kontrollen er fullført med NO-GO. Det er ikke
+et målt tak for den nye native modellen, som ikke er epoch-trent med disse inputene.
 
-## Suksesskriterier, i rekkefølge
+Modell- og featurekompleksitet skal begrunnes med målbar beslutningsverdi. Antall
+features alene forklarer ikke manglende edge. Rett først konkrete feil; vurder
+senere én begrunnet forenkling om gangen med samme kausale data og kostmodell.
+Ingen optimizersteg eller native trening er autorisert av forberedelsesarbeidet.
 
-1. Walk-forward på eksisterende features med ukeshorisont: retning *utover drift*, målt mot
-   alltid-LONG / kjøp-og-hold valgt før hver periode, per år, med ærlig antall uavhengige
-   uker. Myntkast er ikke referansen på lange horisonter.
-2. Bare ved robust resultat: ny målkontrakt, rebuild av datasettet og native trening.
-3. Økonomi med alle valgte handler og åpne posisjoner, BID/ASK og kostnader, risikojustert
-   mot kjøp-og-hold. TRAIN-fit, senere generalisering og samlet økonomi rapporteres hver for
-   seg. Konstant bias, all-FLAT/all-HOLD og bedre hjelpeprognoser alene er utilstrekkelig.
+## Suksesskriterier
+
+Senere LONG/SHORT/FLAT-valg må slå relevante kausale baselines etter kost, gjennom
+flere markedsperioder. Økonomi inkluderer alle valgte handler og åpne posisjoner,
+utførbare BID/ASK-priser og kostnader. TRAIN-fit, senere generalisering og samlet
+økonomi rapporteres hver for seg. Konstant bias, all-FLAT/all-HOLD, teknisk PASS
+og bedre hjelpeprognoser alene er utilstrekkelig. Tidligere tidsskalamålinger
+beskriver de undersøkte oppsettene; de beviser ikke at en hel markedstype er ulærbar.
 
 ## Bevares
 
@@ -34,7 +32,7 @@ BID/ASK-økonomi og kostnader. Ingen fast tapsgrense eller maksimal holdetid; en
 beregningshorisont er ikke en handelsregel. TEST er forseglet; ingen live/paper eller
 spending. Ingen modell loves å være lønnsom «evig».
 
-Én agent og én tung jobb om gangen, gjennom `scripts/gx1_capped_run.sh` og eksisterende
+Én agent og én tung jobb om gangen innen CURRENT, gjennom `scripts/gx1_capped_run.sh` og eksisterende
 vakter. Ingen blind trening, søk eller forebyggende refaktorering; mål før du bygger.
 Stående publiseringsautorisasjon gjelder ferdig kode, dokumentasjon og aggregater; rådata,
 vekter og hemmeligheter publiseres aldri.

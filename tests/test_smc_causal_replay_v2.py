@@ -382,7 +382,8 @@ def test_v30_wave2_sweep_state_rename_keeps_values_and_drops_old_spelling() -> N
         assert (state[valid] > 0.0).sum() > (event[valid] > 0.0).sum()
 
 
-def test_equal_width_envelope_is_honestly_unavailable(monkeypatch) -> None:
+@pytest.mark.parametrize("atr_prefix", (0, 7))
+def test_equal_width_envelope_uses_paired_width_not_an_unmarked_position(monkeypatch, atr_prefix) -> None:
     rows = 9
     high = np.full(rows, 100.0)
     low = np.full(rows, 100.0)
@@ -397,11 +398,19 @@ def test_equal_width_envelope_is_honestly_unavailable(monkeypatch) -> None:
 
     monkeypatch.setattr(smc, "_detect_swing_pivots", fixed_pivots)
     frame = _frame(high, low, close)
+    frame.loc[:atr_prefix - 1, "atr"] = np.nan
     local = smc.compute_smc_features(frame, swing_lookback=1)
     mtf = smc.compute_smc_mtf_primitives_v1(frame, swing_lookback=1)
 
-    assert local["smc_pivot_envelope_position"].isna().all()
-    assert mtf["mtf_smc_pivot_envelope_position"].isna().all()
+    # Four pivots are confirmed at row 5; ATR may have a longer warmup.
+    first_known = max(5, atr_prefix)
+    for result, position_name, width_name in (
+        (local, "smc_pivot_envelope_position", "smc_pivot_envelope_width_atr"),
+        (mtf, "mtf_smc_pivot_envelope_position", "mtf_smc_range_width_atr"),
+    ):
+        assert result.loc[:first_known - 1, [position_name, width_name]].isna().all().all()
+        assert (result.loc[first_known:, [position_name, width_name]] == 0.0).all().all()
+
 
 
 def test_replay_state_and_owner_source_guards_fail_closed() -> None:
@@ -492,3 +501,15 @@ def test_five_local_additions_are_an_active_model_native_contract() -> None:
     assert "include_v30_additions=True" in inspect.getsource(
         build_smc_local_event_layer
     )
+
+
+def test_envelope_encoding_preserves_raw_positions_and_distinguishes_true_zero():
+    close = np.array([100., 100., 99., 104., 100.])
+    lower = np.full(5, 100.)
+    width = np.array([0., 2., 2., 2., 0.])
+    atr = np.full(5, 2.)
+    available = np.array([True, True, True, True, False])
+    position, width_atr = smc._pivot_envelope_coordinates(close, lower, width, atr, available)
+    np.testing.assert_array_equal(position[:4], [0., 0., -0.5, 2.])
+    np.testing.assert_array_equal(width_atr[:4], [0., 1., 1., 1.])
+    assert np.isnan(position[4]) and np.isnan(width_atr[4])

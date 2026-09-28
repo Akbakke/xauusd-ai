@@ -1165,7 +1165,7 @@ def test_capacity_ceilings_are_enforced_before_nested_fast_path(
     assert "nested capped job" not in result.stderr
 
 
-def test_capped_runner_preserves_hard_limits_global_lock_and_validation_order() -> None:
+def test_capped_runner_preserves_hard_limits_project_lock_and_validation_order() -> None:
     source = RUNNER.read_text(encoding="utf-8")
     guard_source = TRAINER_GUARD.read_text(encoding="utf-8")
 
@@ -1319,7 +1319,7 @@ def test_matching_nested_audit_scope_can_execute_a_nontrainer_target(tmp_path: P
 
     assert result.returncode == 0, result.stderr
     assert result.stdout == "closed-fd-target\n"
-    assert not (alternate / "gx1-heavy-job.lock").exists()
+    assert not (alternate / "gx1-current-heavy-job.lock").exists()
 
 
 def test_cwd_changed_wrapper_preserves_actual_outer_capped_lock_owner(tmp_path: Path) -> None:
@@ -1374,8 +1374,8 @@ def test_alternate_xdg_cannot_start_a_second_top_level_job(tmp_path: Path) -> No
     )
     assert result.returncode == 75, result.stderr
     assert (
-        f"another GX1 heavy job owns the exclusive lock: /run/user/{os.getuid()}/gx1-heavy-job.lock"
+        f"another GX1 heavy job owns the exclusive lock: /run/user/{os.getuid()}/gx1-current-heavy-job.lock"
         in result.stderr
     )
     assert "UNEXPECTED_SCOPE_DISPATCH" not in result.stderr
-    assert not (alternate / "gx1-heavy-job.lock").exists()
+    assert not (alternate / "gx1-current-heavy-job.lock").exists()

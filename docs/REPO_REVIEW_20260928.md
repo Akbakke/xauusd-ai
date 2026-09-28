@@ -58,7 +58,7 @@ Dette er retting av målte feil, ikke ny arkitektur eller dokumentert edge.
   grønn fullsuite. Tre skips gjelder historiske targets som krever TRAIN-scope;
   omfanget ble ikke utvidet for å fjerne disse skipene.
 
-## Uavklart inputkontrakt — må løses før ny rebuild
+## Målte inputkonflikt før etterfølgende SMC-rettelse
 
 `smc_pivot_envelope_position` er udefinert på sju M1-TRAIN-rader fordi de fire
 bekreftede pivotprisene er like. NaN er tilsiktet hos feature-eieren og testet;
@@ -79,7 +79,7 @@ Post-rebuild/readiness/lifecycle-bindinger gjenstår. Ingen treningsklar-erklær
 ## Forenkling og diskopprydding
 
 [Feature- og kompleksitetsvurderingen](FEATURE_COMPLEXITY_REVIEW_20260928.md)
-skiller 241 signaler fra åtte hjelpeoppgaver og encoderkapasitet. Første foreslåtte
+skiller v36s 241 signaler fra åtte hjelpeoppgaver og encoderkapasitet. Første foreslåtte
 sammenligning er færre hjelpeoppgaver med samme inputs/økonomi. Dette er en hypotese,
 ikke gjennomført ablasjon eller tillatelse til å trene. Samlet parameterfordeling
 og redundans utenfor de 67 kandidatfeltene er ikke ferdig målt.
@@ -90,3 +90,73 @@ nå testet ved faktisk avvisning. Ingen eksterne data, gamle checkpoints eller u
 resultater er slettet. Den tidligere loggførte slettingen av 264 repo-filer er
 bevart som historikk; den telles ikke på nytt. Ekstern sletting krever bevis på
 redundans og kontroll av aktive avhengigheter gjennom retention-eieren.
+
+## Etterfølgende rettelse og dokumentopprydding 28.09
+
+SMC-eieren deler nå én posisjon-/breddeberegning mellom lokal og MTF-flate.
+Kjent nullbreddeintervallet representeres ved `(posisjon=0, bredde=0)`;
+et faktisk nedre endepunkt har `(posisjon=0, bredde>0)`. Positiv bredde
+beholder den opprinnelige rå, uklippede posisjonen. Ukjent oppvarming er NaN
+for begge felt. Dette endrer verken pivoter, hendelser, priser eller rader.
+
+Lokalflaten får `smc_pivot_envelope_width_atr`; MTF beholder sitt eksisterende
+`mtf_smc_range_width_atr`. SMC-primitivskjemaet går v3 → v4 og signalskjemaet
+v36 → v37. Kildens ordnede flate er 25 + 150 + 67 = 242 felt; kontekst 71 og
+per-TF 190 er uendret. Spesialistruting og kanoniske SMC-aliaser følger samme
+felt. Replay-/pivottilstandens algoritme og skjema er uendret.
+
+Konsekvenser for eksisterende bevis:
+
+- Gammel signalmetadata har annet skjema, ordnede felt og SMC-formelhash.
+- M5/M1 shared-feature-kontrakten binder dimensjonene og antall felt per eier;
+  den endres av det nye lokale breddefeltet.
+- Enriched-checkpointnøkkelen binder samme kontrakt, source og dataset-run-id.
+- Kanonisk pair-cache binder sine erklærte produsentfiler; endret kanonisk
+  SMC-alias/kolonneliste i augment-eieren gir ny produsenthash i denne rettelsen.
+- Gamle data/checkpoints skal derfor ikke ommerkes eller godtas ved redigering
+  av manifest. Konkrete artefakter kan bare gjenbrukes når eksisterende eiere
+  verifiserer dem. De 1 382 ferdige Group-A-chunkene er bevart.
+
+Regresjonskontrollen dekker null bredde, virkelig posisjon null, rå posisjon
+utenfor [0, 1], ATR-/pivotoppvarming, lokal/MTF-paritet og eksisterende kausal
+replay. Egen kontroll mot den navngitte native-M1-kilden er klargjort i
+`GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/verify_smc_paired_width.py`.
+Den har kontrollert alle posisjoner med positiv bredde mot originalformelen,
+de sju kjente TRAIN-radene, eksakte feltdimensjoner og avvisning av v36-kontrakter.
+
+**Kontrollstatus:** 189 fokuserte SMC-/feature-/rutingtester og 92
+integrasjonstester består. Full M1-kontroll kom gjennom rådata, Wilder ATR og
+lokal posisjonsparitet på 6 019 349 rader, men prosessen fikk SIGKILL i den
+etterfølgende fullhistoriske MTF-materialiseringen. Det er et ufullført forsøk,
+ikke full datagodkjenning. Den nye kontrollen beholder full M1-populasjon lokalt,
+men bruker de eksakte pivotnabolagene for alle sju berørte TRAIN-rader til
+faktisk MTF-paritet. Den besto med exit 0 under samme 4 GiB-tak: toppminne
+3 347 161 088 bytes (3,12 GiB), ingen cgroup-OOM eller treff på minnetaket.
+`SMC_PAIRED_WIDTH_VERIFICATION.json` bekrefter 6 019 349 rader, 6 019 242
+bit-identiske positive posisjoner og eksakt lokal/MTF-paritet for alle sju
+berørte TRAIN-rader (24 rader i deres pivotnabolag). Gamle signal- og M5-
+kontrakter er faktisk avvist. Det er inputverifikasjon, ikke modellresultater.
+Ingen v37-rebuild eller trening er startet.
+
+Dokumentoppryddingen fjerner foreldede neste-steg fra CURRENT_HANDOVER,
+VEIEN_VIDERE og GX1_ARBEIDSMAAL. Ferdige M3-/testfeil omtales ikke lenger som
+ugjort arbeid. Gamle forskningsplaner er lenket som historikk, ikke gjeldende
+startinstruks. Påstanden om at retning bare finnes på lange tidsskalaer er
+avgrenset til det som faktisk ble målt. Ingen unike bevis eller data er slettet.
+
+## Prosjektvis låsing — eksplisitt operatørvedtak 28.09
+
+Brukeren ba om å fjerne låsen som hindret parallelt arbeid. CURRENT bruker
+nå `/run/user/<uid>/gx1-current-heavy-job.lock`; den gamle maskinfelles låsen
+og EURUSD-jobben er urørt. Én tung jobb om gangen innen CURRENT består.
+Ingen ambient variabel eller CLI gir alternativ lås. Beskyttet runtime-sti,
+FD/inode, eksklusiv FLOCK, faktisk prosessforfedre, cgroup, CPU-/tråder,
+minne-/swap-tak og CUDA-vakter kontrolleres som før.
+
+294 tester i `test_gx1_capped_execution.py` og `test_gx1_capped_run_contract.py`
+består. En separat faktisk kjøring holdt den gamle maskinlåsen mens en CURRENT-
+audit startet og beviste prosjektlås, 4 GiB cgroup-tak, 512 MiB swap, 64 oppgaver,
+CPU 0–7 og én numerisk tråd. Kvittering: `PROJECT_LOCK_PARALLEL_PROOF.json`
+under native-forberedelsens kjøringsmappe. Dette er bevis for parallell
+låsadgang med per-jobb-vakter, ikke en reservasjon av samlet RAM for alle prosjekter.
+Produksjonsbygg/trening får ingen økt ressursgrense eller treningsautorisasjon.

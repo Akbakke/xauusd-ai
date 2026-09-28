@@ -159,7 +159,8 @@ GROUP_S_SMC_FEATURE_NAMES = (
     "smc_sweep_up_state_canon_v1",
     "smc_sweep_down_state_canon_v1",
     "smc_sweep_event_age_bars_canon_v2",
-    "smc_pivot_envelope_position_canon_v1",
+    "smc_pivot_envelope_position_canon_v2",
+    "smc_pivot_envelope_width_atr_canon_v1",
 )
 # --forward-outcome-dir is REQUIRED (no silent stale default; rule 8). The old hardcoded literal
 # (CANDIDATE_FORWARD_OUTCOME_V3PLUS_..._20260521 LOCK) is superseded 2x (v3+ -> COSTFIX -> fase2b)
@@ -1845,6 +1846,7 @@ def augment_week(week_pq: Path, out_pq: Path, ctx: AugmentContext,
             "smc_sweep_up_state", "smc_sweep_down_state",
             "smc_sweep_event_age_bars",
             "smc_pivot_envelope_position",
+            "smc_pivot_envelope_width_atr",
         ]
         missing_smc = [name for name in smc_sources if name not in merged.columns]
         if missing_smc:
@@ -1941,6 +1943,7 @@ def main() -> int:
         "smc_sweep_up_state","smc_sweep_down_state",
         "smc_sweep_event_age_bars",
         "smc_pivot_envelope_position",
+        "smc_pivot_envelope_width_atr",
     ]
     smc_cache = pd.read_parquet(args.m5_prebuilt, columns=smc_cols)
     smc_cache["time"] = pd.to_datetime(smc_cache["time"], utc=True, errors="coerce")
