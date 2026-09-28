@@ -15,7 +15,29 @@ SMC-rettelsen og prosjektvis låsing er kontrollert. Tidligere kilde-/testgjenno
 er dokumentert; ny v37-inputbygging og gjenstående avklaringer står nedenfor.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
-## SMC-rettelse 28.09: kontrollert; v37-inputbygging gjenstår
+## Ny v37-inputbygging bundet etter brukerens «Fortsett å bygge» 28.09
+
+Forberedt kjøring: `/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928`.
+`PLAN.json` avgrenser inputbyggingen; `BINDING.json` binder eksakt ren kilde
+og inputhasher etter denne dokumentasjonscommiten. `START.json`, prosessene,
+`progress.log` og `TERMINAL.json` avgjør om kjøringen faktisk er startet,
+aktiv eller ferdig. Ikke start en kopi hvis planen allerede er konsumert.
+Kilden fryses mens byggingen går; eventuell oppfølging skrives i runtime-mappen.
+
+Faktiske registry-/squeeze-eiere har godkjent gjenbruk av frosne konstanter og
+seks tidsrammers squeeze-parametre. Kalibrering er uendret 2009-06-01 til
+2013-01-01 22:00 UTC, med indre fit-slutt 2012-04-11 22:00 UTC. Gamle feature-
+matriser gjenbrukes ikke som v37-inputs. Nytt par, M5/M1, rangering og signal
+bygges i `GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928`.
+Historikkstart er målt 2010-06-14 22:00 UTC; TRAIN/VAL/TEST-grensene er uendret.
+Eksisterende capped-run og prosjektlås gjelder, én tung jobb innen CURRENT.
+
+Dette fullfører forutsetninger for en senere vurdert treningstest. Inputbygging
+alene dokumenterer ikke beslutningsverdi eller edge. Post-rebuild/readiness,
+lifecycle-bindinger og resterende kompleksitetsvurdering må fortsatt fullføres.
+`training_enabled=false`; TEST bygges og forsegles uten utfallsevaluering.
+
+## Kontrollert SMC-rettelse som den nye byggingen bruker
 
 Den målte konflikten er rettet hos den delte SMC-eieren: posisjon og observert
 intervallbredde er ett par. Positiv bredde beholder rå, uklippet posisjon; kjent
@@ -37,9 +59,9 @@ De ferdige par-/M5-/rangerings-/signalartefaktene er **v36-bevis**, ikke ferdige
 v37-inputs. De faktiske gamle signal- og M5-kontraktene avvises av v37-eierne.
 Ingen manifest omskrives for å passere. De 1 382 ferdige Group-A-chunkene og
 alle kvitteringer bevares. M1-parquet/-manifest finnes ennå ikke. Neste steg
-er en ny, kilde-/artefaktbundet v37-videreføring innen autorisert native-
-forberedelse; ikke gjenstart den gamle planen. Ingen rebuild eller trening
-ble startet i rettings-/oppryddingsarbeidet.
+er den nye, kilde-/artefaktbundne v37-kjøringen ovenfor. Den gamle planen
+skal ikke gjenstartes. Ingen rebuild eller trening ble startet i det tidligere
+rettings-/oppryddingsarbeidet.
 
 Bakgrunn: fullkjøringen fra `10c78d70` stoppet 02:59:28 UTC på sju TRAIN-rader
 med fire like pivotpriser (2012 og 2019). Arrow-rettelsen var vellykket: RSS
@@ -139,4 +161,5 @@ Gjeldende operativ status står øverst og i `NEXT_RUN_POLICY.json` /
 `RUNNING_NATIVE_CALIBRATION.json`, med terminalkvitteringer fra samme navngitte run.
 Gamle V9-/lifecycle-v2-checkpoints tilhører tidligere skjema og skal bevares som
 historikk. De er ikke gyldige v37-modeller. TEST-resultater, optimizersteg,
-full epoch/VAL og handel er stengt. Ingen ny rebuild er startet etter SMC-endringen.
+full epoch/VAL og handel er stengt. Den nye v37-planens runtime-kvitteringer
+avgjør nåværende byggestatus; gamle terminaler er historikk.

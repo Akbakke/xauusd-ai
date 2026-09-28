@@ -266,3 +266,19 @@ M1-kontroll på 6 019 349 rader, inkludert de sju nullbredderadene. Prosjektvis
 låsing er innført etter brukerens vedtak og kontrollert med 294 tester samt
 faktisk parallell låsadgang. V37-inputbygging er fortsatt ikke gjennomført.
 Dette endrer ikke fit-/TRAIN-/VAL-/TEST-grenser eller autoriserer trening.
+
+## Ny v37-inputbygging — vedtak 28.09 «Fortsett å bygge»
+
+Ny run: `/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928`;
+ny outputrot: `/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928`.
+Gamle v36-outputs og 1 382 Group-A-chunks bevares. De brukes ikke som ferdige
+v37-featurematriser. Den eksisterende par → squeeze(par) → seq513-kjeden
+brukes med uendrede fit- og splitgrenser og korrigert historikkstart.
+
+`CALIBRATION_REUSE_VERIFICATION.json` dokumenterer faktisk PASS fra begge
+registry-/squeeze-eiere under audit-cap 4 GiB/512 MiB. Bare tidlig frosne
+konstanter/parametre gjenbrukes; nye felt beregnes av dagens eiere.
+`BINDING.json` opprettes etter ren dokumentasjonscommit. Kilden er frosset
+under kjøringen; START/prosess/TERMINAL avgjør faktisk status. Ressursgrenser
+og vakter beholdes. Etterpå gjenstår post-build/readiness/lifecycle og resten
+av kompleksitetsvurderingen. Ingen trening eller TEST-utfall er autorisert.

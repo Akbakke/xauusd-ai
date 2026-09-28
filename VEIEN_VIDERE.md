@@ -10,8 +10,10 @@ all test-/datakjøring bruker eksisterende capped-run-vakter.
    full lokal M1-kontroll og faktisk MTF-paritet på de sju berørte TRAIN-radene.
    Ny prosjektlås består 294 tester og faktisk parallell låsadgang. Bevisene
    gjenbrukes; ingen ny fullsuite eller gjentatt diagnose uten et nytt funn.
-2. Bind en ny videreføring for v37 etter beståtte kontroller. Gjenbruk bare det
-   de eksisterende kilde-/input-/kontraktvaktene godkjenner. Bevar v36-artefaktene,
+2. Fullfør den bundne inputbyggingen `HISTORY2009W_NATIVE_V37_20260928`.
+   Les samme runs START/TERMINAL og prosesser før start eller oppfølging; ikke
+   dupliser en konsumert plan. Registry-/squeeze-gjenbruk består faktisk kontroll.
+   Bevar kildefrys under bygging og alle v36-artefaktene,
    de ferdige Group-A-chunkene og terminalbevisene; ingen manifestomskriving.
 3. Fullfør native-inputs, post-rebuild/readiness og lifecycle-bindinger innen
    [det autoriserte forberedelsesomfanget](docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md).
