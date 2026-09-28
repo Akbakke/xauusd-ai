@@ -31,13 +31,17 @@ består tape-/bygger-/leserkontroll; alle priser er eksakt bevart. Kontrollen
 brukte ikke TEST og måler ingen handelsverdi.
 
 Ny engangsplan:
-`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_20260929`.
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_ROOT_20260929`.
 Ny outputrot:
 `/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_LOCKED_QUOTES_RECOVERY_20260929`.
 Nyeste røde kjede og dens preflight er bundet som forelder; ferdige inputs
 beholdes i den opprinnelige CHAIN-roten. Gjenbrukseieren kontrollerer eksakte
 hashverdier og uendret upstream-kode. Bare de navngitte downstream-funksjonene
 kan avvike; delte helpers/imports er AST-identiske. Ny preflight er obligatorisk.
+
+Første oppstart (`CONTINUE_LOCKED_QUOTES_20260929`) ble avvist før kjeden
+startet fordi den tomme outputmappen manglet. Mappen er nå opprettet, uten
+data; nytt launcher-omfang er bundet ovenfor. Avbrutt oppstart bevares.
 
 Les nye PLAN/BINDING/WAITING/START/TERMINAL og prosesser før videre handling.
 Tidligere forsøk og delvise outputs bevares. Ny POST_BUILD venter på denne

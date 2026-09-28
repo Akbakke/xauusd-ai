@@ -355,3 +355,9 @@ at kun navngitte downstream-funksjoner avviker, aldri shared helpers/imports
 eller upstream-produsenter. Alle fysiske inputhasher kontrolleres og ny
 preflight kjøres. Ingen gamle delvise outputs gjenbrukes som ferdige datasett.
 Post-build venter på grønn kjede; ingen trening er åpnet.
+
+Første oppstart i `CONTINUE_LOCKED_QUOTES_20260929` ble avvist av CLI før
+kjeden startet: outputmappen måtte eksistere som en tom ordinær mappe. Ingen
+data ble skrevet. Klargjøringen er rettet; ny engangslauncher er
+`CONTINUE_LOCKED_QUOTES_ROOT_20260929`, med samme ennå ubrukte outputnamespace.
+Avbrutt oppstart og post-build-avvisning bevares; ingen produsentkode er endret.

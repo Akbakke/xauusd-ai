@@ -10,7 +10,7 @@ all test-/datakjøring bruker eksisterende capped-run-vakter.
    full lokal M1-kontroll og faktisk MTF-paritet på de sju berørte TRAIN-radene.
    Ny prosjektlås består 294 tester og faktisk parallell låsadgang. Bevisene
    gjenbrukes; ingen ny fullsuite eller gjentatt diagnose uten et nytt funn.
-2. Fullfør `CONTINUE_LOCKED_QUOTES_20260929` under
+2. Fullfør `CONTINUE_LOCKED_QUOTES_ROOT_20260929` under
    `HISTORY2009W_NATIVE_V37_20260928`, med fersk outputrot
    `DATASET_LOCKED_QUOTES_RECOVERY_20260929`. Forrige TRAIN-skriver fullførte
    652 552 rader uten OOM; lifecycle stoppet på BID lik ASK. Samme prisregel
