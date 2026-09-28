@@ -301,3 +301,12 @@ Ferdige inputs gjenbrukes; gammelt rødt løp og stoppet POST_BUILD bevares.
 Automatisk oppfølging hver 30. minutt er nå faktisk opprettet i samme oppgave.
 Tidligere var bare sluttrinn etter vellykket bygging automatisk, uten feiloppfølging.
 Trening og TEST-utfall er fortsatt stengt.
+
+## Ressursventing etter kontrollert videreføring
+
+Første videreføring besto fysisk gjenbruk, men stoppet 19:48 UTC på hostens
+uendrede minnekrav før model-source-identity. Ingen nye datasettoutputs ble
+bygget. `CONTINUE_RESOURCE_WAIT_20260928` venter i runtime på den eksisterende
+capped-run-grensen hvert 15. minutt og starter samme kommando én gang.
+Egen duplikatlås og eksakt kilde-/filbinding består; post-build får ny forelder.
+Dette er kun drift av autorisert inputbygging, ingen modell-/produsentendring.

@@ -30,7 +30,7 @@ aksepterer bare én hendelse med gyldig kvittering. 14 kjedetester består,
 inkludert ekte publisering og avvisning av endrede/manglende bevis, samt faktisk
 kontroll av denne kjøringens preflight. Ingen feature-/modell-/dataprodusent er endret.
 
-Forberedt videreføring ligger i
+Første videreføring lå i
 `/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928`.
 PLAN/BINDING/START/TERMINAL der eier ny kjøring. Eksplisitt preflight- og rød
 forelder-hash kreves; kode under gx1 og øvrige scripts må være identisk med
@@ -44,6 +44,28 @@ kjøre eksisterende readiness etter grønn kjede. Automatisk oppfølging i samme
 Codex-oppgave er opprettet hver 30. minutt (`gx1-v37-oppf-lging`): stabil drift
 skal være stille; feil og ferdigstillelse følges opp innen samme autoriserte scope.
 Det er ingen treningsautorisasjon. Under kjøring er kilden frosset.
+
+## Ressursventing etter første videreføring — 28.09 kl. 19:48 UTC
+
+`CONTINUE_PREFLIGHT_ORDER_20260928` besto den fysiske gjenbrukskontrollen,
+men stoppet før model-source-identity på uendret krav om minst 20 GiB tilgjengelig
+RAM. En separat EURUSD-produsent brukte omtrent 10 GiB; ingen av prosjektenes
+vakter eller jobber endres. Datasett/lifecycle er fortsatt ikke bygget.
+
+Ny engangsvidereføring ligger i
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_RESOURCE_WAIT_20260928`.
+Launcheren avventer minnekravet lest fra eksisterende capped-run-eier, kontrollerer
+hvert 15. minutt og starter deretter samme preflight-gjenbrukskommando én gang.
+WAITING/RESOURCE_CHECKS/START/TERMINAL og prosess avgjør faktisk status.
+Egen launcherlås avviser duplikater; kilde-/filbinding revalideres før start.
+POST_BUILD bindes til denne launcheren. Også commit-kontrollen ble avvist av
+minnevakten. En engangs runtime-kø binder den eksakte dokumentdiffen og venter
+før normal commit/push, kilde-/filbinding og dispatch. `QUEUE_STATUS.json`
+og `QUEUE_TERMINAL.json` viser dette fortrinnet. Ingen hook omgås.
+Kilden og den bundne dokumentdiffen er frosset også under venting.
+Tidligere røde terminaler og deres POST_BUILD bevares. Ingen ny tung jobb er
+startet før START/prosess bekrefter det. Codex-oppfølging er aktiv hver 30. minutt;
+den krever at Mac og Codex-appen kjører. Den eksterne launcheren venter på serveren.
 
 ## Opprinnelig v37-inputbygging — bevares som historikk
 
