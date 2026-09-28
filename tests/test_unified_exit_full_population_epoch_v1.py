@@ -71,13 +71,20 @@ def test_adapter_exposes_full_order_across_partial_chunk_boundaries():
         samples = adapter._random_access_train["samples_by_entry"][entry]
         assert len(samples) == 4
         assert all(sample["epoch_index"] == anchor["epoch_index"] for sample in samples)
+    # Advancing (or repeating) an epoch preserves explicit full-population mode.
     adapter.set_epoch_index(1)
     assert adapter.random_access_selected_entry_rows_v1() == tuple(
-        a["entry_row_index"] for a in schedule_random_access_entry_anchors(
-            sampler_contract=contract, epoch_index=1,
-        )
+        item["entry_row_index"] for item in anchors
     )
-    assert "full_population_schedule" not in adapter._random_access_train
+    adapter.set_epoch_index(2)
+    _, next_anchors, next_metadata = schedule_random_access_full_population_epoch(
+        sampler_contract=contract, epoch_index=2,
+        successor_transition_count_by_entry=counts,
+    )
+    assert adapter.random_access_selected_entry_rows_v1() == tuple(
+        item["entry_row_index"] for item in next_anchors
+    )
+    assert adapter._random_access_train["full_population_schedule"] == next_metadata
     with pytest.raises(RuntimeError, match="FULL_POPULATION_EPOCH_INVALID"):
         adapter.set_full_population_epoch_index(True)
     adapter._manifest = {"split": "val"}

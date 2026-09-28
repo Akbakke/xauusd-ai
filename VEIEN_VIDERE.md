@@ -1,4 +1,4 @@
-# Veien videre — oppdatert 27.09.2026
+# Veien videre — oppdatert 28.09.2026
 
 Rekkefølgen under er bindende. Hvert steg avsluttes med fokuserte tester, `git diff --check`
 og oppdatert handover i samme commit (GX1_RULES.md regel 12). Én tung jobb om gangen via
@@ -12,36 +12,35 @@ deretter full repo-gjennomgang/opprydding før eventuell trening. `training_enab
 Forrige forskningsplan skal ikke gjenkjøres; dens resultat sier ikke hva det nye
 native sekvens-/Entry-/Exit-oppsettet kan lære. Ingen automatisk treningsstart.
 
-Par, tidlig squeeze, M5-flate og M5-modellkilde er ferdige. Kildebeskrivelsen er
-rettet og verifisert. Siste kontroll fant for tidlig oppvarmingsstart: den settes
-til målt fullt definert kontekst 2010-06-14 22:00 UTC. Det gir de påkrevde 252
-lukkede D1-barene før uendret TRAIN-start 2011-06-01. Markedsidentitet og komplett
-MTF-preflight består; se forberedelsesrapporten for bevis. Ferdige outputs
-gjenbrukes med eksplisitte manifest-hasher; runtime-terminaler avgjør nåstatus:
-`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_ARROW_RELEASE_20260928`.
-En serialiseringsfeil i arkitekturkontrollen er rettet (JSON-nøkkelrekkefølge);
-32 tester og den faktiske gjenbruksvakten består.
-M1-geometrifeilen er lokalisert til noen låste BID/ASK-quotes 2012-12-12.
-Leserne følger nå samme ASK >= BID-kontrakt som native-kilden; råpriser og kost
-er uendret. 189 tester og kontroll av faktisk M1/fill-flate består.
-Feature-/modellslanking inngår i repo-revisjonen. 241 signal-felt omfatter også
-71 kontinuerlige kontekstfelt; antall inputs alene er ikke bevis for overtilpasning.
+Par, tidlig squeeze, M5-flate, M5-modellkilde, rangering og signalmanifest er
+ferdige. Oppvarmingsstart er målt til 2010-06-14 22:00 UTC, med 252 lukkede
+D1-barer før uendret TRAIN-start. Quotegeometri og kilde-/gjenbruksbindinger er
+rettet og kontrollert. Ferdige outputs og kvitteringer bevares.
 
-Rangering og signalmanifest er nå ferdige (67 kandidater, 994 500 TRAIN-rader).
-M1 stoppet kontrollert ved 9,50 GiB før Group-A. Valideringens midlertidige
-matriser og fullhistorikkbuffer for enkeltradskontroll er redusert uten å endre
-features. Syntetisk kontroll med 6 019 349 rader/ti felt: toppminne 1 502 → 595 MiB.
-Den ferdige signal-/rangeringslinjen kan gjenbrukes eksplisitt gjennom eksisterende
-lineage-validering; M1 bruker ferskt checkpoint-rom. Faktisk kjøring og terminal,
-ikke denne forberedelsesbeskrivelsen, avgjør om hele M1-løpet nå består.
+[Repo-gjennomgangen 28.09](docs/REPO_REVIEW_20260928.md) dokumenterer full
+filinventering, samlet testkontroll, triage og rettet M3-diagnostikk. Alle de
+18 feilede testtilfellene består ved avgrenset ny kontroll; ingen ny fullsuite
+eller native trening er kjørt. [Kompleksitetsvurderingen](docs/FEATURE_COMPLEXITY_REVIEW_20260928.md)
+anbefaler å undersøke færre hjelpeoppgaver først. Ingen features/hoder er fjernet.
 
-Første minneendring var utilstrekkelig: ny terminal stoppet på 9,48 GiB.
-En isolert kontroll av faktisk kontekstbygging lokaliserte omtrent 2,5 GiB
-ubrukt Arrow-pool. Minste videre rettelse returnerer disse bufferne før Group-A.
-Med alle 131 kolonner beholdt falt RSS 8,88 → 6,40 GiB; featurehash var uendret,
-og kontekst-/checkpoint-bygging lå på 6,58 GiB. Dette segmentet refitter ikke
-M1-registry. Full kjøring må fortsatt bekrefte sluttresultatet. Ingen features
-eller mellomkolonner fjernes; RSS-grense 9 GiB og producer-cap 10 GiB er uendret.
+## Målt stopp 28.09: minnet rettet, SMC-kontrakten uavklart
+
+Fullkjøringen fra `10c78d70` fullførte alle 1 382 Group-A-chunks. Arrow-frigjøringen
+senket faktisk RSS 9,52 → 6,85 GiB; etter Group-A lå RSS på 5,75 GiB.
+Terminalen 02:59:28 UTC er rød med `M1_ENRICHED_OUTPUT_NONFINITE:
+smc_pivot_envelope_position`. Det finnes ikke ferdig M1-parquet eller manifest.
+
+Diagnosen finner sju TRAIN-rader etter oppvarmingsgrensen der alle fire bekreftede
+pivotpriser er like: to rader 2012-04-06 og fem rader 2019-03-07. Feature-eieren
+returnerer tilsiktet NaN ved null bredde; modellinput krever endelige verdier.
+Dette er en kontraktkonflikt, ikke begrunnelse for å fylle null, slette radene
+eller fjerne en feature uten å definere den nye representasjonen.
+
+Ingen ny rebuild før kontrakten er avklart. Bevar ferdige Group-A-chunks og alle
+kvitteringer. Eventuelt gjenbruk må passere kilde-/input-/kontrakthasher; fullført
+checkpoint alene gir ikke kompatibilitet etter en featureendring. Repo-revisjonen
+fortsetter. Native trening og TEST-resultater forblir stengt.
+Se `M1_SMC_ENVELOPE_DIAGNOSIS.json` under native-forberedelsens kjøringsmappe.
 
 ## Historisk stoppunkt før brukerens nye vedtak
 

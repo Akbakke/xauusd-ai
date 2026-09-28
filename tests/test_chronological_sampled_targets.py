@@ -155,7 +155,11 @@ def test_entry_report_includes_all_fixed_samples_and_keeps_anchor_targets(tmp_pa
         'state_indices': args['candidate_sampled_state_indices']})
     assert len(diag['bounded_exit_anchor_observations']) == 256
     for row in diag['bounded_entry_observations']:
-        assert row['target_q_bps'] == [-4 + float(row['entry_row_index'] % 13), -4., 0.]
+        # Negative HOLD values are preserved; the reference is not a hindsight max.
+        assert row['target_q_bps'] == pytest.approx(
+            [-4. + (119./120.) * float(row['entry_row_index'] % 13),
+             -4. + (119./120.) * -2., 0.], abs=1e-6,
+        )
 
 
 @pytest.mark.parametrize('fault', ['rows', 'samples', 'negative', 'boolean', 'no_successor', 'cutoff'])

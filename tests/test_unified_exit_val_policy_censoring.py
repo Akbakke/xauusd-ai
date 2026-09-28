@@ -24,6 +24,7 @@ def test_actual_policy_censoring_round_trip(tmp_path, side, status, flat, author
     contract = {"model_state_sha256": "d" * 64, "contract_sha256": "e" * 64}
     adapter = SimpleNamespace(
         contract=contract,
+        objective={"reward_accounting": "terminal_cash_v2"},
         entries=[{"entry_row_index": i} for i in range(VAL_ENTRY_COHORT_SIZE)],
     )
     binding = _checkpoint_binding(contract, adapter, tmp_path)

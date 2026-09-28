@@ -162,7 +162,9 @@ def test_existing_entry_measurement_automatically_uses_frozen_role_and_samples(t
     assert reps[:, 0].tolist() == args['parent_rows']
     assert len(diag['bounded_exit_sampled_observations']) == 1024
     assert all(x == [7, 4, 7, 1] * 64 for x in calls if x is not None)
-    assert all(r['target_q_bps'] == [-3., -3., 0.] for r in diag['bounded_entry_observations'])
+    # V_mu weights the signed HOLD outcome by the stationary 119/120 policy.
+    for row in diag['bounded_entry_observations']:
+        assert row['target_q_bps'] == pytest.approx([-4. + 119./120., -4. + 119./120., 0.], abs=1e-6)
 
 
 @pytest.mark.parametrize('fault', ['sample_override', 'source_index'])

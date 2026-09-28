@@ -166,3 +166,36 @@ def test_retired_entry_hierarchy_heads_cannot_reenter_the_trainer() -> None:
         "trendline_rail_logits",
     ):
         assert retired_output not in trainer._MODEL_NATIVE_ACTIVE_OUTPUT_WIDTHS
+
+
+@pytest.mark.parametrize('bad', [-0.1, 0.5, 1.1, float('nan'), float('inf')])
+def test_event_supervised_labels_and_masks_fail_closed(bad: float) -> None:
+    out = {'trendline_event_logits': torch.zeros(1, 4)}
+    batch = _event_batch()
+    batch['y_line_support_touch_held'][0] = bad
+    with pytest.raises(RuntimeError, match='ENTRY_TRENDLINE_EVENT_TARGET_INVALID'):
+        trainer._trendline_event_aux_loss(out, batch, torch.device('cpu'))
+    batch = _event_batch()
+    batch['y_line_support_touch_mask'][0] = bad
+    with pytest.raises(RuntimeError, match='ENTRY_TRENDLINE_EVENT_MASK_INVALID'):
+        trainer._trendline_event_aux_loss(out, batch, torch.device('cpu'))
+
+
+def test_undefined_event_cells_are_excluded_before_loss_and_gradient() -> None:
+    batch = _event_batch()
+    batch['y_line_resistance_touch_held'][0] = float('nan')
+    logits = torch.tensor([[1.0, -9.0, 2.0, -3.0]], requires_grad=True)
+    loss, stats = trainer._trendline_event_aux_loss(
+        {'trendline_event_logits': logits}, batch, torch.device('cpu'),
+    )
+    expected = torch.nn.functional.binary_cross_entropy_with_logits(
+        logits[:, [0, 2, 3]], torch.tensor([[1.0, 1.0, 0.0]]),
+    )
+    assert loss.item() == pytest.approx(expected.item())
+    loss.backward()
+    assert torch.isfinite(logits.grad).all()
+    assert logits.grad[0, 1].item() == 0.0
+    assert stats['trendline_resistance_rows'] == 0
+    targets, mask = trainer._trendline_event_targets_and_mask(batch, torch.device('cpu'))
+    assert torch.isnan(targets[0, 1])
+    assert not mask[0, 1]

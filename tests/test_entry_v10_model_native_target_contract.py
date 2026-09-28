@@ -629,3 +629,17 @@ def test_entry_trainer_has_no_stale_warm_start_artifact_lane() -> None:
     assert "entry_admission_policy" not in source
     assert "OVERLAP_LONG_REPLACES" not in source
     assert not Path("gx1/scripts/warm_start_v10_v2_from_v1.py").exists()
+
+
+def test_one_hot_cooperation_has_exact_zero_entropy_even_when_all_routes_used() -> None:
+    widths = trainer._MODEL_NATIVE_COOPERATION_GATE_WIDTHS
+    accumulator = trainer._new_cooperation_gate_epoch_accumulator()
+    trainer._accumulate_cooperation_gate_epoch(
+        accumulator, {name: torch.eye(width) for name, width in widths.items()},
+    )
+    stats = trainer._finalize_cooperation_gate_epoch(accumulator)
+    for name in widths:
+        assert stats[f'{name}_min_mean'] > 0.0
+        assert stats[f'{name}_entropy_mean'] == 0.0
+    failures = trainer._cooperation_gate_health_failures(stats)
+    assert any('entropy' in value for value in failures)

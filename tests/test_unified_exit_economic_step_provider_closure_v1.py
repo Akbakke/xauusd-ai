@@ -14,6 +14,8 @@ def _provider(*, known: bool) -> LazyUnifiedExitEconomicStepProviderV1:
         LazyUnifiedExitEconomicStepProviderV1
     )
     times = pd.DatetimeIndex(["2026-07-03T21:59Z", "2026-07-05T22:00Z"])
+    # This fixture exercises terminal-cash accounting across a closure.
+    provider._mark_to_market = False
     provider._times_ns = np.asarray(times.asi8, dtype=np.int64)
     provider._prices = {
         "bid_close": np.asarray([100.0, 101.0]),

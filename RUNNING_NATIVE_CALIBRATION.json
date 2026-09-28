@@ -2086,9 +2086,13 @@
   },
   "native_preparation_20260927": {
     "arrow_release_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M1_ARROW_RELEASE_VERIFICATION.json",
+    "automatic_rebuild_authorized": false,
+    "completed_group_a_checkpoint": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927/CHAIN/m1_enriched_checkpoint_20260928T010701974050Z",
+    "completed_group_a_chunks": 1382,
     "context_memory_after": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTEXT_MEMORY_AFTER.json",
     "context_memory_before": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTEXT_MEMORY_BEFORE.json",
     "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_ARROW_RELEASE_20260928",
+    "continuation_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_ARROW_RELEASE_20260928/TERMINAL.json",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927",
     "feature_complexity_review_requested": true,
     "history_geometry": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/HISTORY_GEOMETRY.json",
@@ -2100,7 +2104,8 @@
     "previous_failed_memory_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_MEMORY_20260928/TERMINAL.json",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927",
     "signal_reuse_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/actual_signal_reuse_guard.log",
-    "status": "M1_ARROW_RELEASE_VERIFIED_CONTINUATION_PREPARED",
+    "smc_envelope_diagnosis": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M1_SMC_ENVELOPE_DIAGNOSIS.json",
+    "status": "M1_GROUP_A_COMPLETE_SMC_UNDEFINED_CONTRACT_BLOCKED",
     "training_enabled": false
   },
   "native_processes": [],
@@ -2109,7 +2114,7 @@
     "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f"
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
-  "next_action": "User authorized finishing native inputs, then complete repository cleanup/debug/inspection before considering training. Follow docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md. Reuse completed early research; do not reinterpret ridge/HGB NO_GO as a native capacity result. Native training, optimizer steps, TEST evaluation, live/paper and spending remain blocked.",
+  "next_action": "Resolve the measured zero-width SMC envelope representation contract before another native rebuild; preserve all 1382 completed Group-A chunks and prior outputs. The full-suite failures have been triaged and all failed cases pass targeted checks. Complete remaining input/readiness and complexity decisions before any training proposal. No native optimizer, TEST outcome evaluation, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2263,6 +2268,18 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/RESULT.json",
     "sha256": "fb811a190bb1d3d34f42abb4c27c907512ef23332e487b3ed87671fe2015535a"
   },
+  "repository_review_20260928": {
+    "all_failed_cases_pass_targeted_checks": true,
+    "full_suite_failed_before_triage": 18,
+    "full_suite_passed": 5628,
+    "full_suite_repeated": false,
+    "full_suite_skipped": 3,
+    "metadata_tests_passed": 150,
+    "native_input_complete": false,
+    "report": "docs/REPO_REVIEW_20260928.md",
+    "training_enabled": false,
+    "triage_tests_passed": 133
+  },
   "residual_normalization_trial": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_NORMALIZED_FIXED256_20260917/PLAN.json",
     "sha256": "a83582d40a32444e92e346a9a15fcfe50cabe4a77fd3310e579246909fdf2fce"
@@ -2288,7 +2305,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "NATIVE_INPUT_PREPARATION_AUTHORIZED_TRAINING_BLOCKED",
+  "status": "NATIVE_INPUT_SEMANTICS_BLOCKED_REPO_REVIEW_IN_PROGRESS",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,

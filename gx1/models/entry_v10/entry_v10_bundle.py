@@ -617,7 +617,7 @@ def _require_exact_model_native_bundle_metadata(
         != "train_fitted_raw_bps_q_iteration"
         or exit_evidence.get("exit_action_loss")
         != "mean_squared_error_over_valid_q_cells"
-        or exit_evidence.get("gamma") != 1.0
+        or exit_evidence.get("gamma") != fitted_q_contract["gamma"]
         or exit_evidence.get("intermediate_hold_reward_bps") != 0.0
         or exit_evidence.get("baseline_cross_entropy_authority") is not False
         or fitted_q_state["fitted_q_contract"] != fitted_q_contract
@@ -676,7 +676,7 @@ def _require_exact_model_native_bundle_metadata(
                 or full_trajectory_validation.get(
                     "predicted_exact_q_tie_runtime_policy"
                 ) != "fail_closed"
-                or full_trajectory_validation.get("gamma") != 1.0
+                or full_trajectory_validation.get("gamma") != fitted_q_contract["gamma"]
                 or full_trajectory_validation.get(
                     "intermediate_hold_reward_bps"
                 ) != 0.0

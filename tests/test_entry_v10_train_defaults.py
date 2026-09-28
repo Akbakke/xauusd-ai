@@ -44,6 +44,7 @@ def _live_active_head_epoch_accumulator() -> dict:
             accumulator["heads"][head_name]["components"][component_name] = {
                 "prediction": [prediction],
                 "target": [target],
+                "mask": [np.ones_like(prediction, dtype=bool)],
             }
     return accumulator
 
@@ -501,3 +502,46 @@ def test_local_forward_context_activates_only_declared_experiment(
     assert module._RAW_Q_FP32_SCOPE.get() is False
     assert module._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False
     assert torch.is_autocast_enabled("cpu") is False
+
+
+def test_active_head_evidence_requires_explicit_supervision_mask() -> None:
+    accumulator = _live_active_head_epoch_accumulator()
+    del accumulator['heads']['forecast']['components']['forecast_pred']['mask']
+    _, failures = trainer._active_head_epoch_diagnostics(accumulator)
+    assert any('COMPONENT_EVIDENCE_MISSING' in value and 'forecast' in value for value in failures)
+
+
+def test_tiny_varying_outputs_are_not_exact_constants() -> None:
+    accumulator = _live_active_head_epoch_accumulator()
+    component = accumulator['heads']['forecast']['components']['forecast_pred']
+    component['prediction'][0] *= 1e-12
+    component['target'][0] *= 1e-12
+    _, failures = trainer._active_head_epoch_diagnostics(accumulator)
+    assert failures == []
+    assert trainer._finite_pearson(component['prediction'][0][:, 0], component['target'][0][:, 0]) == pytest.approx(-1.0)
+
+
+def test_primary_q_uses_all_canonical_utc_sessions_at_boundaries() -> None:
+    times = pd.date_range('2025-06-01T00:00:00Z', periods=24, freq='h')
+    prediction = np.stack([np.arange(24), np.arange(24) - 1, np.arange(24) - 2], axis=1)
+    observed = trainer._entry_action_q_primary_validation_diagnostics(
+        prediction=prediction, target=prediction * 2,
+        valid=np.ones_like(prediction, dtype=bool),
+        entry_row_indices=np.arange(24),
+        dataset=SimpleNamespace(df=pd.DataFrame({'time': times})),
+    )
+    buckets = {row['bucket']: row for row in observed['utc_session_stability']}
+    assert {key: row['rows'] for key, row in buckets.items()} == {'ASIA': 9, 'EU': 5, 'OVERLAP': 4, 'US': 6}
+    assert buckets['OVERLAP']['prediction_mean_bps'] == pytest.approx(13.5)
+    assert buckets['US']['prediction_mean_bps'] == pytest.approx(18.5)
+
+
+@pytest.mark.parametrize('bad', [-1.0, float('inf'), float('-inf'), float('nan')])
+def test_side_mae_diagnostics_reject_corrupt_labels(bad: float) -> None:
+    batch = {name: torch.ones(2) for name in trainer._MODEL_NATIVE_ACTIVE_TARGET_COLS}
+    batch['y_long_expected_mae_bps'][0] = bad
+    out = {name: torch.zeros(2, width) for name, width in trainer._ACTIVE_HEAD_COMPONENT_WIDTHS.items()}
+    out['_entry_action_q_target'] = torch.zeros(2, 3)
+    out['_entry_action_q_valid'] = torch.ones(2, 3, dtype=torch.bool)
+    with pytest.raises(RuntimeError, match='ENTRY_TARGET_'):
+        trainer._active_head_target_surfaces(out, batch, torch.device('cpu'))

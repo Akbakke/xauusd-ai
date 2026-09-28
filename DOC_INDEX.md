@@ -39,3 +39,6 @@
   `docs/ENTRY_*_20260924.md`.
 - `docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md` — ikke kjør (se review-merknaden).
 - Den arkiverte grenen i sin helhet: tag `archive/gx1-engine-audit-v9-20260926`.
+
+- [Repo-gjennomgang 28.09](docs/REPO_REVIEW_20260928.md)
+- [Feature- og modellkompleksitet](docs/FEATURE_COMPLEXITY_REVIEW_20260928.md)

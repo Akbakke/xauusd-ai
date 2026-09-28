@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -56,19 +58,18 @@ def test_fresh_ema_round_trip_is_exact() -> None:
     )
 
 
-def test_capped_runner_allowlists_only_exact_fixed_step_module() -> None:
-    source = (
-        Path(__file__).resolve().parents[1] / "scripts/gx1_capped_run.sh"
-    ).read_text()
-    assert (
-        "RANDOM_ACCESS_FIXED_STEP_MODULE=gx1.scripts.run_unified_exit_random_access_fixed_step_v1"
-        in source
+def test_capped_runner_rejects_retired_fixed_step_route() -> None:
+    repo = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        ["bash", str(repo / "scripts/gx1_capped_run.sh"),
+         "--class", "trainer", "--mem", "10G", "--swap", "512M", "--",
+         sys.executable, "-m", "gx1.scripts.run_unified_exit_random_access_fixed_step_v1", "--device", "cpu"],
+        cwd=repo, text=True, capture_output=True, check=False,
     )
-    assert 'if [[ "$module" == "$RANDOM_ACCESS_FIXED_STEP_MODULE" ]]' in source
-    assert (
-        "random-access fixed-step smoke/train requires the exact attended CUDA stage contract"
-        in source
-    )
+    assert result.returncode == 75
+    assert "retired training route" in result.stderr
+    assert "nested capped job" not in result.stderr
+    assert result.stdout == ""
 
 
 def test_dataloader_iterator_does_not_advance_model_dropout_rng() -> None:
@@ -95,36 +96,18 @@ def test_checkpoint_global_step_counts_optimizer_steps_not_writes() -> None:
         )
 
 
-def test_capped_runner_has_exact_non_attended_full_val_allowlist() -> None:
-    source = (
-        Path(__file__).resolve().parents[1] / "scripts/gx1_capped_run.sh"
-    ).read_text()
-    assert "RANDOM_ACCESS_VAL_MODULE=gx1.scripts.run_unified_exit_random_access_val_v1" in source
-    assert 'if [[ "$module" == "$RANDOM_ACCESS_VAL_MODULE" ]]' in source
-    assert "random-access full VAL requires the exact guarded campaign contract" in source
-    assert "GX1_CAMPAIGN_GUARD_LOG_PATH" in source
-    assert "require_campaign_plan_environment" in source
-    assert "GX1_CAMPAIGN_PLAN_PATH" in source
-    assert "GX1_CAMPAIGN_PLAN_FILE_SHA256" in source
-    assert "/usr/bin/sha256sum \"$plan_path\"" in source
-    assert '--setenv=GX1_CAMPAIGN_PLAN_PATH=' in source
-    assert '--setenv=GX1_CAMPAIGN_PLAN_FILE_SHA256=' in source
-    assert "set -o noclobber" in source
-    for flag in (
-        "--launch-manifest",
-        "--final-train-checkpoint-authority",
-        "--final-train-checkpoint-authority-file-sha256",
-        "--checkpoint-pointer",
-        "--progress-path",
-        "--rollout-progress-path",
-        "--result-path",
-        "--max-forwards-this-invocation",
-        "--progress-interval-forwards",
-        "--compute-guard-max-model-forwards",
-        "--compute-guard-max-materialized-state-views",
-        "--compute-guard-max-wall-seconds",
-    ):
-        assert flag in source
+def test_capped_runner_rejects_retired_standalone_full_val_route() -> None:
+    repo = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        ["bash", str(repo / "scripts/gx1_capped_run.sh"),
+         "--class", "trainer", "--mem", "10G", "--swap", "512M", "--",
+         sys.executable, "-m", "gx1.scripts.run_unified_exit_random_access_val_v1", "--device", "cpu"],
+        cwd=repo, text=True, capture_output=True, check=False,
+    )
+    assert result.returncode == 75
+    assert "retired training route" in result.stderr
+    assert "nested capped job" not in result.stderr
+    assert result.stdout == ""
 
 
 def _multi_tf_cache_metadata(tmp_path: Path) -> dict:

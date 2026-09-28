@@ -214,3 +214,43 @@ forberedelsesrot. Forrige røde terminal og alle tidligere bevis bevares.
 
 27 målrettede producer-/kjedetester består, inkludert bevaring av aktiv Arrow-
 buffer, byteidentiske frameverdier og riktig rekkefølge før Group-A.
+
+## Målt stopp 28.09: minnet rettet, SMC-kontrakten uavklart
+
+Fullkjøringen fra `10c78d70` fullførte alle 1 382 Group-A-chunks. Arrow-frigjøringen
+senket faktisk RSS 9,52 → 6,85 GiB; etter Group-A lå RSS på 5,75 GiB.
+Terminalen 02:59:28 UTC er rød med `M1_ENRICHED_OUTPUT_NONFINITE:
+smc_pivot_envelope_position`. Det finnes ikke ferdig M1-parquet eller manifest.
+
+Diagnosen finner sju TRAIN-rader etter oppvarmingsgrensen der alle fire bekreftede
+pivotpriser er like: to rader 2012-04-06 og fem rader 2019-03-07. Feature-eieren
+returnerer tilsiktet NaN ved null bredde; modellinput krever endelige verdier.
+Dette er en kontraktkonflikt, ikke begrunnelse for å fylle null, slette radene
+eller fjerne en feature uten å definere den nye representasjonen.
+
+Ingen ny rebuild før kontrakten er avklart. Bevar ferdige Group-A-chunks og alle
+kvitteringer. Eventuelt gjenbruk må passere kilde-/input-/kontrakthasher; fullført
+checkpoint alene gir ikke kompatibilitet etter en featureendring. Repo-revisjonen
+fortsetter. Native trening og TEST-resultater forblir stengt.
+Se `M1_SMC_ENVELOPE_DIAGNOSIS.json` under native-forberedelsens kjøringsmappe.
+
+## M3: rettet diagnostikk, uendret modellflate
+
+På den aktive trenerstien er følgende verifiserte feil rettet:
+
+- Eksakt `xlogy`-entropi gir null for deterministiske rader; nullsannsynligheter
+  får ikke kunstig masse. Den separate kontrollen av brukte ruter består.
+- Manglende lagrede masker er manglende bevis, ikke implisitt full supervisjon.
+- Liveness skiller eksakt konstant fra liten variasjon uten terskelen 1e-8.
+  FLAT=0 er fortsatt et strukturelt konstant target etter gjeldende kontrakt.
+- Sesjonsrapporten bruker den eksisterende ASIA/EU/OVERLAP/US-eieren.
+- MAE-diagnostikk bruker samme ikke-negativitetskontroll som tapet. Også Inf
+  avvises. Eventtap og diagnostikk deler samme binære target-/maskeoverflate;
+  ugyldige observerte labels klippes ikke, og maskerte udefinerte cells kommer
+  ikke inn i BCE eller gradienten. Gyldige labels og handelsvalg er uendret.
+
+140 fokuserte tester besto. Samlet suite og rettet testgjeld er dokumentert i
+[repo-rapporten](REPO_REVIEW_20260928.md): 5 628 bestått / 18 feil / 3 skips;
+alle feilede tilfeller består etter triage (133 tester). Metadata-kontroll: 150
+bestått. Ingen ny fullsuite. Dette er kilde-/integritetsarbeid, ikke læring.
+EMA-warmup og arkitektur-/featureendringer er ikke tatt inn som blind portering.

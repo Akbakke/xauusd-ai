@@ -14,6 +14,7 @@ class _CompletedSession:
         self.directory = directory
         self.contract_sha256 = "a" * 64
         self._state = state
+        self.checkpoint_monitor = trainer.CHECKPOINT_MONITOR
 
     def load_checkpoint(self) -> dict[str, object]:
         return self._state
@@ -70,7 +71,7 @@ def test_completed_candidate_epoch_seal_admits_terminal_val_state(
     monkeypatch.setattr(
         trainer,
         "_require_candidate_training_progress",
-        lambda progress: progress,
+        lambda progress, *, checkpoint_monitor: progress,
     )
     monkeypatch.setattr(
         trainer.torch,

@@ -1098,7 +1098,7 @@ def test_trainer_class_rejects_noncanonical_python_before_nested_fast_path(
 
 
 @pytest.mark.parametrize("train_flags", [(), ("--train", "--train")])
-def test_trainer_class_requires_exactly_one_train_flag(
+def test_retired_direct_trainer_rejected_before_train_flag_validation(
     train_flags: tuple[str, ...],
 ) -> None:
     result = _run(
@@ -1112,7 +1112,7 @@ def test_trainer_class_requires_exactly_one_train_flag(
     )
 
     assert result.returncode == 75
-    assert "canonical --train mode exactly once" in result.stderr
+    assert "retired training route" in result.stderr
     assert "nested capped job" not in result.stderr
 
 
@@ -1120,7 +1120,7 @@ def test_trainer_class_requires_exactly_one_train_flag(
     "device_args",
     [(), ("--device", "other"), ("--device", "cpu", "--device", "cuda")],
 )
-def test_trainer_class_requires_one_canonical_device(
+def test_retired_direct_trainer_rejected_before_device_validation(
     device_args: tuple[str, ...],
 ) -> None:
     result = _run(
@@ -1135,7 +1135,7 @@ def test_trainer_class_requires_one_canonical_device(
     )
 
     assert result.returncode == 75
-    assert "requires exactly one canonical --device cpu|cuda" in result.stderr
+    assert "retired training route" in result.stderr
     assert "nested capped job" not in result.stderr
 
 

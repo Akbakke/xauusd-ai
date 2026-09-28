@@ -1736,9 +1736,13 @@
   "native_invocation_seconds": 12000,
   "native_preparation_20260927": {
     "arrow_release_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M1_ARROW_RELEASE_VERIFICATION.json",
+    "automatic_rebuild_authorized": false,
+    "completed_group_a_checkpoint": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927/CHAIN/m1_enriched_checkpoint_20260928T010701974050Z",
+    "completed_group_a_chunks": 1382,
     "context_memory_after": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTEXT_MEMORY_AFTER.json",
     "context_memory_before": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTEXT_MEMORY_BEFORE.json",
     "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_ARROW_RELEASE_20260928",
+    "continuation_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_ARROW_RELEASE_20260928/TERMINAL.json",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_EARLY_20260927",
     "feature_complexity_review_requested": true,
     "history_geometry": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/HISTORY_GEOMETRY.json",
@@ -1750,10 +1754,11 @@
     "previous_failed_memory_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/CONTINUE_M1_MEMORY_20260928/TERMINAL.json",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927",
     "signal_reuse_verification": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/actual_signal_reuse_guard.log",
-    "status": "M1_ARROW_RELEASE_VERIFIED_CONTINUATION_PREPARED",
+    "smc_envelope_diagnosis": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/M1_SMC_ENVELOPE_DIAGNOSIS.json",
+    "status": "M1_GROUP_A_COMPLETE_SMC_UNDEFINED_CONTRACT_BLOCKED",
     "training_enabled": false
   },
-  "next_action": "User authorized finishing native inputs, then complete repository cleanup/debug/inspection before considering training. Follow docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md. Reuse completed early research; do not reinterpret ridge/HGB NO_GO as a native capacity result. Native training, optimizer steps, TEST evaluation, live/paper and spending remain blocked.",
+  "next_action": "Resolve the measured zero-width SMC envelope representation contract before another native rebuild; preserve all 1382 completed Group-A chunks and prior outputs. The full-suite failures have been triaged and all failed cases pass targeted checks. Complete remaining input/readiness and complexity decisions before any training proposal. No native optimizer, TEST outcome evaluation, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-27T19:21:09.537367+00:00",
   "outer_guard_seconds": 13800,
@@ -1869,6 +1874,18 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_EXIT_PRIVATE_CLIP_20260916_REFERENCE/REFERENCE_POLICY_FROZEN_TARGETS_20260916/LEARNING_PLAN_RECIPE_CANONICAL.json",
     "sha256": "349c414634262926b37567605612dffdd97800cd15a88168703953539de397a3"
   },
+  "repository_review_20260928": {
+    "all_failed_cases_pass_targeted_checks": true,
+    "full_suite_failed_before_triage": 18,
+    "full_suite_passed": 5628,
+    "full_suite_repeated": false,
+    "full_suite_skipped": 3,
+    "metadata_tests_passed": 150,
+    "native_input_complete": false,
+    "report": "docs/REPO_REVIEW_20260928.md",
+    "training_enabled": false,
+    "triage_tests_passed": 133
+  },
   "required_evidence": {
     "checkpoint_transition": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_YEAR_CALIBRATION_EVIDENCE_128C55F2/CHECKPOINT_TRANSITION.json",
@@ -1911,7 +1928,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "NATIVE_INPUT_PREPARATION_AUTHORIZED_TRAINING_BLOCKED",
+  "status": "NATIVE_INPUT_SEMANTICS_BLOCKED_REPO_REVIEW_IN_PROGRESS",
   "tf32_allowed": false,
   "train_batch_size": 16,
   "train_observation_cutoff_review": {

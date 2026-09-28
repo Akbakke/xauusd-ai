@@ -38,6 +38,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from gx1.time.session_detector import get_session_vectorized
 from torch.utils.data import Dataset, DataLoader, Sampler
 from torch.utils.data._utils.collate import default_collate
 
@@ -833,7 +834,6 @@ _ACTIVE_HEAD_DIAGNOSTIC_MIN_ROWS = 16
 # smoke uses this only as a technical execution proof. Candidate training
 # keeps the stricter 16-row diagnostic above and never consults this floor.
 _ACTIVE_HEAD_TECHNICAL_SMOKE_MIN_ROWS = 2
-_ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS = 1e-8
 _ACTIVE_HEAD_STRUCTURAL_CONSTANT_COLUMNS = {
     "entry_action_q_bps": frozenset({2}),
 }
@@ -5743,12 +5743,11 @@ def _accumulate_cooperation_gate_epoch(
             raise RuntimeError(
                 f"[ENTRY_MODEL_NATIVE_GATE_NONFINITE] output={output_name}"
             )
-        clipped = detached.clamp(min=1e-12)
         state = accumulator[output_name]
         state["rows"] = int(state["rows"]) + int(detached.shape[0])
         state["sum"] += detached.sum(dim=0).cpu().numpy()
         state["entropy_sum"] = float(state["entropy_sum"]) + float(
-            (-(clipped * clipped.log()).sum(dim=1).sum()).cpu().item()
+            (-torch.special.xlogy(detached, detached).sum(dim=1).sum()).cpu().item()
         )
 
 
@@ -6103,6 +6102,30 @@ def _side_mae_auxiliary_loss(
 
 
 
+def _trendline_event_targets_and_mask(
+    batch: Dict[str, torch.Tensor], device: torch.device,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Preserve observed binary outcomes; undefined masked cells are not labels."""
+    names = (
+        "y_line_support_touch_held", "y_line_resistance_touch_held",
+        "y_countertrend_short_trap", "y_countertrend_long_trap",
+    )
+    targets = torch.stack(
+        [_active_head_batch_target(batch, name, device).reshape(-1) for name in names],
+        dim=1,
+    )
+    mask = torch.ones_like(targets, dtype=torch.bool)
+    for column, name in enumerate(("y_line_support_touch_mask", "y_line_resistance_touch_mask")):
+        values = _active_head_batch_target(batch, name, device).reshape(-1)
+        if not bool(((values == 0.0) | (values == 1.0)).all().item()):
+            raise RuntimeError(f"[ENTRY_TRENDLINE_EVENT_MASK_INVALID] {name}")
+        mask[:, column] = values.bool()
+    supervised = targets[mask]
+    if not bool(((supervised == 0.0) | (supervised == 1.0)).all().item()):
+        raise RuntimeError("[ENTRY_TRENDLINE_EVENT_TARGET_INVALID]")
+    return targets, mask
+
+
 def _trendline_event_aux_loss(
     out: Dict[str, torch.Tensor],
     batch: Dict[str, torch.Tensor],
@@ -6126,42 +6149,23 @@ def _trendline_event_aux_loss(
         "trendline_support_rows": 0.0,
         "trendline_resistance_rows": 0.0,
     }
-    non_blocking = device.type == "cuda"
-    rising = batch["y_line_support_touch_held"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-    rising_mask = batch["y_line_support_touch_mask"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-    falling = batch["y_line_resistance_touch_held"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-    falling_mask = batch["y_line_resistance_touch_mask"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-    short_trap = batch["y_countertrend_short_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-    long_trap = batch["y_countertrend_long_trap"].to(device, non_blocking=non_blocking).float().clamp(0.0, 1.0)
-    targets = torch.stack(
-        [rising, falling, short_trap, long_trap],
-        dim=1,
-    ).to(dtype=logits.dtype)
+    targets, element_mask = _trendline_event_targets_and_mask(batch, device)
+    targets = targets.to(dtype=logits.dtype)
     if logits.ndim != 2 or logits.shape[1] != targets.shape[1]:
         raise RuntimeError(
             "[ENTRY_TRENDLINE_EVENT_OUTPUT_DIM_MISMATCH] "
             f"logits_shape={tuple(logits.shape)} targets_shape={tuple(targets.shape)}"
         )
-    # V29 stage 2 masked objective: the two line-hold dims are supervised
-    # ONLY on registry touch-event rows (their forward outcome is defined
-    # there and nowhere else — the y_side_mask masking pattern); the four
-    # trap/early-failure dims stay dense.
-    element_mask = torch.ones_like(targets)
-    element_mask[:, 0] = rising_mask
-    element_mask[:, 1] = falling_mask
-    mask_total = element_mask.sum()
-    if float(mask_total.detach().cpu().item()) <= 0.0:
+    # Index before BCE: NaN in an undefined outcome must never enter the loss.
+    if not bool(element_mask.any().item()):
         raise RuntimeError("[ENTRY_TRENDLINE_EVENT_LOSS_MASK_EMPTY]")
-    per_element = nn.functional.binary_cross_entropy_with_logits(
-        logits,
-        targets,
-        reduction="none",
-    )
-    loss = (per_element * element_mask).sum() / mask_total
+    loss = nn.functional.binary_cross_entropy_with_logits(
+        logits[element_mask], targets[element_mask], reduction="none",
+    ).mean()
     stats["trendline_event_loss"] = float(loss.detach().cpu().item())
-    stats["trendline_event_rows"] = float(int((targets.max(dim=1).values > 0.5).sum().detach().cpu().item()))
-    stats["trendline_support_rows"] = float(int((rising_mask > 0.5).sum().detach().cpu().item()))
-    stats["trendline_resistance_rows"] = float(int((falling_mask > 0.5).sum().detach().cpu().item()))
+    stats["trendline_event_rows"] = float(((targets > 0.5) & element_mask).any(dim=1).sum().item())
+    stats["trendline_support_rows"] = float(element_mask[:, 0].sum().item())
+    stats["trendline_resistance_rows"] = float(element_mask[:, 1].sum().item())
     return loss, stats
 
 
@@ -9289,7 +9293,7 @@ def _finalize_unified_exit_full_trajectory_validation(
         "target_model_state_sha256": accumulator["target_model_state_sha256"],
         "future_outcomes_used_as_model_inputs": False,
         "predicted_exact_q_tie_runtime_policy": "fail_closed",
-        "gamma": 1.0,
+        "gamma": unified_exit_fitted_q_contract()["gamma"],
         "intermediate_hold_reward_bps": 0.0,
         **dict(exit_gate_stats),
     }
@@ -10108,43 +10112,14 @@ def _active_head_target_surfaces(
 
     side_mae_target = torch.stack(
         [
-            _active_head_batch_target(
-                batch, "y_long_expected_mae_bps", device
-            ).reshape(-1).clamp_min(0.0),
-            _active_head_batch_target(
-                batch, "y_short_expected_mae_bps", device
-            ).reshape(-1).clamp_min(0.0),
+            _require_nonnegative_target(
+                _active_head_batch_target(batch, name, device).reshape(-1), name=name,
+            )
+            for name in ("y_long_expected_mae_bps", "y_short_expected_mae_bps")
         ],
         dim=1,
     )
-    trendline_target = torch.stack(
-        [
-            _active_head_batch_target(
-                batch, "y_line_support_touch_held", device
-            ),
-            _active_head_batch_target(
-                batch, "y_line_resistance_touch_held", device
-            ),
-            _active_head_batch_target(batch, "y_countertrend_short_trap", device),
-            _active_head_batch_target(batch, "y_countertrend_long_trap", device),
-        ],
-        dim=1,
-    ).clamp(0.0, 1.0)
-    # Exact loss mask: the two line-hold outcomes only exist after their own
-    # registry touch events, while the two trap labels are dense.
-    trendline_mask = torch.stack(
-        [
-            _active_head_batch_target(
-                batch, "y_line_support_touch_mask", device
-            ).reshape(-1) > 0.5,
-            _active_head_batch_target(
-                batch, "y_line_resistance_touch_mask", device
-            ).reshape(-1) > 0.5,
-            torch.ones(batch_size, dtype=torch.bool, device=device),
-            torch.ones(batch_size, dtype=torch.bool, device=device),
-        ],
-        dim=1,
-    )
+    trendline_target, trendline_mask = _trendline_event_targets_and_mask(batch, device)
 
     surfaces: Dict[
         str,
@@ -10505,8 +10480,8 @@ def _finite_pearson(left: np.ndarray, right: np.ndarray) -> float | None:
         left.size < 2
         or not np.isfinite(left).all()
         or not np.isfinite(right).all()
-        or float(np.std(left)) <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
-        or float(np.std(right)) <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+        or float(np.ptp(left)) == 0.0
+        or float(np.ptp(right)) == 0.0
     ):
         return None
     value = float(np.corrcoef(left, right)[0, 1])
@@ -10760,12 +10735,7 @@ def _entry_action_q_primary_validation_diagnostics(
         return result
 
     month = times.dt.strftime("%Y-%m").to_numpy()
-    hour = times.dt.hour.to_numpy()
-    utc_session = np.select(
-        [hour < 7, hour < 13, hour < 22],
-        ["asia_utc", "london_utc", "new_york_utc"],
-        default="asia_utc",
-    )
+    utc_session = get_session_vectorized(times).to_numpy()
     return {
         "primary_head": "entry_action_q",
         "selection": "highest_valid_raw_bps_q",
@@ -10868,7 +10838,7 @@ def _active_head_epoch_diagnostics(
             mask_chunks = (
                 component.get("mask") if isinstance(component, dict) else None
             )
-            if not prediction_chunks or not target_chunks:
+            if not prediction_chunks or not target_chunks or not mask_chunks:
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_COMPONENT_EVIDENCE_MISSING] "
                     f"head={head_name} component={component_name}"
@@ -10883,16 +10853,9 @@ def _active_head_epoch_diagnostics(
                     [np.asarray(value, dtype=np.float64) for value in target_chunks],
                     axis=0,
                 )
-                # Compatibility for synthetic legacy test accumulators: real
-                # training always records a mask.  Missing mask data is only
-                # equivalent to dense supervision, never a partial mask.
-                element_mask = (
-                    np.concatenate(
-                        [np.asarray(value, dtype=bool) for value in mask_chunks],
-                        axis=0,
-                    )
-                    if mask_chunks
-                    else np.ones_like(prediction, dtype=bool)
+                element_mask = np.concatenate(
+                    [np.asarray(value, dtype=bool) for value in mask_chunks],
+                    axis=0,
                 )
             except Exception as exc:
                 failures.append(
@@ -10951,10 +10914,10 @@ def _active_head_epoch_diagnostics(
                 [np.std(target[element_mask[:, col], col]) for col in range(target.shape[1])]
             )
             dead_prediction_columns = np.flatnonzero(
-                prediction_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+                prediction_range == 0.0
             ).astype(int).tolist()
             dead_target_columns = np.flatnonzero(
-                target_range <= _ACTIVE_HEAD_DIAGNOSTIC_LIVENESS_EPS
+                target_range == 0.0
             ).astype(int).tolist()
             structural_constant_columns = set(
                 _ACTIVE_HEAD_STRUCTURAL_CONSTANT_COLUMNS.get(
@@ -11092,7 +11055,7 @@ def _require_nonnegative_target(values: torch.Tensor, *, name: str) -> torch.Ten
     audit. A violation is a corrupt dataset, not something to repair here.
     """
 
-    if bool(torch.isnan(values).any()):
+    if not bool(torch.isfinite(values).all()):
         raise RuntimeError(f"[ENTRY_TARGET_NONFINITE] {name}")
     minimum = float(values.min())
     if minimum < 0.0:
@@ -17079,7 +17042,7 @@ def run_train(
         "exit_action_task_name": "unified_exit_action",
         "exit_action_target": "train_fitted_raw_bps_q_iteration",
         "exit_action_loss": "mean_squared_error_over_valid_q_cells",
-        "gamma": 1.0,
+        "gamma": unified_exit_fitted_q_contract()["gamma"],
         "intermediate_hold_reward_bps": 0.0,
         "baseline_cross_entropy_authority": False,
         "fitted_q_contract": unified_exit_fitted_q_contract(),
