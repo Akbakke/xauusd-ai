@@ -15,7 +15,37 @@ SMC-rettelsen og prosjektvis låsing er kontrollert. Tidligere kilde-/testgjenno
 er dokumentert; ny v37-inputbygging og gjenstående avklaringer står nedenfor.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
-## Ny v37-inputbygging bundet etter brukerens «Fortsett å bygge» 28.09
+## V37: ferdige featureflater; rettet preflight-leser og bundet videreføring
+
+Kjøringen stoppet 28.09 kl. 13:27 UTC / 15:27 norsk tid etter ferdig M1/M5.
+Alle 1 382 M1-chunks og featureflatene er ferdige: M1 5 570 522 rader, M5
+1 152 859 rader, begge med 242 felt og PASS-manifest. Preflight har 29/29
+beståtte kontroller og `READY_FOR_MODEL_NATIVE_SEQ513_REBUILD`.
+Selve datasett-/lifecycle-rebuilden var ikke startet.
+
+Den konkrete blokkeringen var kjedens filkontroll: publiseringseieren skriver
+både JSON-hendelsen og obligatorisk `.json.order`-kvittering, men leseren krevde
+én katalogoppføring. Leseren bruker nå eksisterende immutable-event-eier og
+aksepterer bare én hendelse med gyldig kvittering. 14 kjedetester består,
+inkludert ekte publisering og avvisning av endrede/manglende bevis, samt faktisk
+kontroll av denne kjøringens preflight. Ingen feature-/modell-/dataprodusent er endret.
+
+Forberedt videreføring ligger i
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928`.
+PLAN/BINDING/START/TERMINAL der eier ny kjøring. Eksplisitt preflight- og rød
+forelder-hash kreves; kode under gx1 og øvrige scripts må være identisk med
+forelderens commit. Alle gjenbrukte filer rehashes, eksakte perioder/stier
+kontrolleres og senere outputs må fortsatt være ferske. Dette gjenbruker de
+ferdige v37-inputene uten ny M1/M5-bygging. Gamle terminaler bevares.
+
+Tidligere POST_BUILD stoppet korrekt på rød forelder og skal ikke gjenstartes.
+Ny post-build-videreføring skal bindes til den nye launcherens PID/kilde og bare
+kjøre eksisterende readiness etter grønn kjede. Automatisk oppfølging i samme
+Codex-oppgave er opprettet hver 30. minutt (`gx1-v37-oppf-lging`): stabil drift
+skal være stille; feil og ferdigstillelse følges opp innen samme autoriserte scope.
+Det er ingen treningsautorisasjon. Under kjøring er kilden frosset.
+
+## Opprinnelig v37-inputbygging — bevares som historikk
 
 Forberedt kjøring: `/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928`.
 `PLAN.json` avgrenser inputbyggingen; `BINDING.json` binder eksakt ren kilde
@@ -58,8 +88,9 @@ uendret 4 GiB-tak, uten cgroup-OOM. Dette er inputbevis, ikke læring eller edge
 De ferdige par-/M5-/rangerings-/signalartefaktene er **v36-bevis**, ikke ferdige
 v37-inputs. De faktiske gamle signal- og M5-kontraktene avvises av v37-eierne.
 Ingen manifest omskrives for å passere. De 1 382 ferdige Group-A-chunkene og
-alle kvitteringer bevares. M1-parquet/-manifest finnes ennå ikke. Neste steg
-er den nye, kilde-/artefaktbundne v37-kjøringen ovenfor. Den gamle planen
+alle kvitteringer bevares. På dette historiske stoppunktet manglet M1-output;
+v37-output er siden fullført som beskrevet øverst. Gjeldende videreføring
+står øverst. Den gamle planen
 skal ikke gjenstartes. Ingen rebuild eller trening ble startet i det tidligere
 rettings-/oppryddingsarbeidet.
 

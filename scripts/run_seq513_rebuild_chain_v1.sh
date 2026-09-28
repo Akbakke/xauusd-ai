@@ -43,6 +43,10 @@ REUSE_M5_ENRICHED_MANIFEST_SHA256=
 REUSE_M5_SOURCE_MANIFEST_SHA256=
 REUSE_SIGNAL_MANIFEST=
 REUSE_SIGNAL_MANIFEST_SHA256=
+REUSE_PREFLIGHT_JSON=
+REUSE_PREFLIGHT_SHA256=
+REUSE_CHAIN_TERMINAL_JSON=
+REUSE_CHAIN_TERMINAL_SHA256=
 
 usage() {
   printf '%s\n' \
@@ -63,7 +67,9 @@ usage() {
     "   --reuse-m5-enriched-manifest-sha256 SHA256]" \
     "  [--reuse-m5-source-manifest-sha256 SHA256] (requires explicit M5 lane reuse)" \
     "  [--reuse-signal-manifest PATH --reuse-signal-manifest-sha256 SHA256]" \
-    "  Reuse admits exact complete upstream artifacts; M1 and later outputs remain fresh." \
+    "  [--reuse-preflight-json PATH --reuse-preflight-sha256 SHA256" \
+    "   --reuse-chain-terminal-json PATH --reuse-chain-terminal-sha256 SHA256]" \
+    "  Preflight reuse requires complete M5/signal reuse and the exact prior identity-check failure." \
     "  --history-start UTC --train-start UTC --train-end UTC" \
     "  --val-start UTC --val-end UTC --test-start UTC --test-end UTC" \
     "The ranking and preflight targets must be fresh. The chain allocates the" \
@@ -199,6 +205,30 @@ while (($#)); do
       VOLATILITY_SQUEEZE_MANIFEST_SHA256=$2
       shift 2
       ;;
+    --reuse-preflight-json)
+      (($# >= 2)) || die_args "--reuse-preflight-json requires a value"
+      [[ -z $REUSE_PREFLIGHT_JSON ]] || die_args "duplicate --reuse-preflight-json"
+      REUSE_PREFLIGHT_JSON=$2
+      shift 2
+      ;;
+    --reuse-preflight-sha256)
+      (($# >= 2)) || die_args "--reuse-preflight-sha256 requires a value"
+      [[ -z $REUSE_PREFLIGHT_SHA256 ]] || die_args "duplicate --reuse-preflight-sha256"
+      REUSE_PREFLIGHT_SHA256=$2
+      shift 2
+      ;;
+    --reuse-chain-terminal-json)
+      (($# >= 2)) || die_args "--reuse-chain-terminal-json requires a value"
+      [[ -z $REUSE_CHAIN_TERMINAL_JSON ]] || die_args "duplicate --reuse-chain-terminal-json"
+      REUSE_CHAIN_TERMINAL_JSON=$2
+      shift 2
+      ;;
+    --reuse-chain-terminal-sha256)
+      (($# >= 2)) || die_args "--reuse-chain-terminal-sha256 requires a value"
+      [[ -z $REUSE_CHAIN_TERMINAL_SHA256 ]] || die_args "duplicate --reuse-chain-terminal-sha256"
+      REUSE_CHAIN_TERMINAL_SHA256=$2
+      shift 2
+      ;;
     --reuse-m5-enriched-manifest)
       (($# >= 2)) || die_args "--reuse-m5-enriched-manifest requires a value"
       [[ -z $REUSE_M5_ENRICHED_MANIFEST ]] || die_args "duplicate --reuse-m5-enriched-manifest"
@@ -265,6 +295,11 @@ fi
 if [[ -n $REUSE_SIGNAL_MANIFEST || -n $REUSE_SIGNAL_MANIFEST_SHA256 ]]; then
   [[ -n $REUSE_SIGNAL_MANIFEST && $REUSE_SIGNAL_MANIFEST_SHA256 =~ ^[0-9a-f]{64}$ && -n $REUSE_M5_SOURCE_MANIFEST_SHA256 ]] \
     || die_args "signal reuse requires exact manifest/SHA256 and completed M5 source reuse"
+fi
+if [[ -n $REUSE_PREFLIGHT_JSON || -n $REUSE_PREFLIGHT_SHA256 || -n $REUSE_CHAIN_TERMINAL_JSON || -n $REUSE_CHAIN_TERMINAL_SHA256 ]]; then
+  [[ -n $REUSE_SIGNAL_MANIFEST && -n $REUSE_PREFLIGHT_JSON && -n $REUSE_CHAIN_TERMINAL_JSON \
+     && $REUSE_PREFLIGHT_SHA256 =~ ^[0-9a-f]{64}$ && $REUSE_CHAIN_TERMINAL_SHA256 =~ ^[0-9a-f]{64}$ ]] \
+    || die_args "preflight reuse requires completed signal reuse and exact preflight/terminal SHA256 bindings"
 fi
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
 if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
@@ -825,7 +860,9 @@ if ! bash "$ENG/scripts/gx1_capped_run.sh" --class audit --mem 4G --swap 512M --
   "$HISTORY_START" "$TRAIN_START" "$TRAIN_END" "$VAL_START" "$VAL_END" \
   "$TEST_START" "$TEST_END" "$REUSE_M5_ENRICHED_MANIFEST" \
   "$REUSE_M5_ENRICHED_MANIFEST_SHA256" "$REUSE_M5_SOURCE_MANIFEST_SHA256" \
-  "$RUN_ID" "$REUSE_SIGNAL_MANIFEST" "$REUSE_SIGNAL_MANIFEST_SHA256" >>"$LOG" 2>&1 <<'PYEOF'
+  "$RUN_ID" "$REUSE_SIGNAL_MANIFEST" "$REUSE_SIGNAL_MANIFEST_SHA256" \
+  "$REUSE_PREFLIGHT_JSON" "$REUSE_PREFLIGHT_SHA256" "$REUSE_CHAIN_TERMINAL_JSON" \
+  "$REUSE_CHAIN_TERMINAL_SHA256" "$ENG" >>"$LOG" 2>&1 <<'PYEOF'
 import hashlib
 import re
 import sys
@@ -871,6 +908,8 @@ import pandas as pd
     run_id,
     raw_reuse_signal_manifest,
     raw_reuse_signal_manifest_sha256,
+    raw_reuse_preflight_json, raw_reuse_preflight_sha256,
+    raw_reuse_chain_terminal_json, raw_reuse_chain_terminal_sha256, raw_repo,
 ) = sys.argv[1:]
 
 
@@ -986,7 +1025,7 @@ if ranking_stamp > validation_now:
         "feature ranking timestamp cannot be in the future: "
         f"ranking={ranking_stamp.isoformat()} now={validation_now.isoformat()}"
     )
-if preflight.exists() or preflight.is_symlink():
+if (preflight.exists() and not raw_reuse_preflight_json) or preflight.is_symlink():
     raise RuntimeError(f"preflight output directory must be fresh: {preflight}")
 if not canonical.is_file() or canonical.is_symlink():
     raise RuntimeError(f"canonical-v2 parquet is missing/non-regular: {canonical}")
@@ -1163,6 +1202,90 @@ if raw_reuse_signal_manifest:
     # These producers are complete and will not be invoked. Their checkpoints
     # remain evidence only. M1 receives a new namespace; partial M1 is never read.
     reusable = {ranking, source_cascade, event / "_ranker_checkpoint.npz", event / "_ranker_group_a_checkpoint"}
+    fresh_paths = [path for path in fresh_paths if path not in reusable]
+if raw_reuse_preflight_json:
+    import json
+    import subprocess
+
+    def sealed(raw, expected, label):
+        path = exact_path(raw, label=label)
+        if not path.is_file() or path.is_symlink():
+            raise RuntimeError(f"{label} missing/non-regular")
+        h = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                h.update(chunk)
+        if h.hexdigest() != expected:
+            raise RuntimeError(f"{label} SHA256 mismatch")
+        return path
+
+    prior_path = sealed(raw_reuse_chain_terminal_json, raw_reuse_chain_terminal_sha256, "reused chain terminal")
+    prior = json.loads(prior_path.read_text())
+    preflight_path = sealed(raw_reuse_preflight_json, raw_reuse_preflight_sha256, "reused preflight")
+    proof = json.loads(preflight_path.read_text())
+    if (prior_path.parent != event or prior.get("terminal_event_path") != str(prior_path)
+        or prior.get("event_root") != str(event) or prior.get("entry_run_id") != run_id
+        or prior.get("state") != "RED" or prior.get("step") != "rebuild-preflight"
+        or prior.get("reason") != "preflight output identity validation failed"
+        or prior.get("preflight", {}).get("out_dir") != str(preflight)
+        or preflight_path.parent != preflight or proof.get("entry_run_id") != run_id
+        or proof.get("json_path") != str(preflight_path)
+        or proof.get("decision") != "READY_FOR_MODEL_NATIVE_SEQ513_REBUILD"
+        or proof.get("training_allowed") is not False or proof.get("failures") != []):
+        raise RuntimeError("reused preflight/failed-chain identity mismatch")
+    # Reuse is deliberately narrow: only the chain driver may have changed.
+    # Every feature, preflight, dataset and contract owner stays byte-identical.
+    old_head = prior.get("git_head", "")
+    if not re.fullmatch(r"[0-9a-f]{40}", old_head):
+        raise RuntimeError("reused chain source revision invalid")
+    subprocess.run(["git", "-C", raw_repo, "diff", "--exit-code", old_head, "HEAD", "--",
+                    "gx1", "scripts", ":(exclude)scripts/run_seq513_rebuild_chain_v1.sh"],
+                   check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    argv = proof["rebuild_command_contract"]["argv_template"]
+    expected = {
+        "--run-id": run_id, "--source-parquet": str(source),
+        "--canonical-v2-parquet": str(canonical), "--signal-manifest": raw_reuse_signal_manifest,
+        "--feature-ranking-json": str(ranking), "--mtf-cache-dir": str(mtf),
+        "--tape-root": str(tape), "--m1-lifecycle-pair-manifest-json": str(m1_lifecycle_pair_manifest),
+        "--m1-lifecycle-pair-generation-root": str(m1_lifecycle_pair_generation_root),
+        "--m1-feature-base-parquet": str(m1_feature_base), "--m5-feature-base-parquet": str(m5_feature_base),
+        "--exit-lifecycle-dir": str(exit_lifecycle), "--output": str(output), "--audit-out-dir": str(audit),
+        **{"--"+label.replace("_", "-"): raw for label, raw in zip(labels, raw_times)},
+    }
+    observed = dict(zip(argv[1::2], argv[2::2]))
+    if (argv[0] != "scripts/rebuild_entry_model_native_seq513_dataset.sh"
+        or len(argv) != 1 + 2 * len(expected) or set(observed) != set(expected)):
+        raise RuntimeError("reused preflight rebuild command mismatch")
+    time_flags = {"--"+label.replace("_", "-") for label in labels}
+    for flag, value in expected.items():
+        same = pd.Timestamp(observed[flag]) == pd.Timestamp(value) if flag in time_flags else observed[flag] == value
+        if not same:
+            raise RuntimeError(f"reused preflight command binding mismatch: {flag}")
+    for key, path in (("source_parquet", source), ("canonical_v2_parquet", canonical),
+                      ("signal_manifest", Path(raw_reuse_signal_manifest)), ("feature_ranking_json", ranking),
+                      ("m1_lifecycle_pair_manifest_json", m1_lifecycle_pair_manifest)):
+        meta = proof["inputs"][key]
+        if meta["path"] != str(path):
+            raise RuntimeError(f"reused preflight input path mismatch: {key}")
+        sealed(str(path), meta["sha256"], key)
+    for lane, path, enriched in (("m1", m1_feature_base, m1_enriched), ("m5", m5_feature_base, m5_enriched)):
+        meta = proof["inputs"][lane+"_feature_base_parquet"]
+        manifest_path = Path(str(path)+".manifest.json")
+        if (meta["path"] != str(path) or meta["manifest_path"] != str(manifest_path)
+            or meta["dataset_run_id"] != run_id or meta["decision"] != "PASS"
+            or meta["signal_manifest_path"] != raw_reuse_signal_manifest
+            or meta["signal_manifest_sha256"] != raw_reuse_signal_manifest_sha256):
+            raise RuntimeError("reused feature surface binding mismatch")
+        sealed(str(path), meta["output_parquet_sha256"], lane+" feature surface")
+        sealed(str(manifest_path), meta["manifest_sha256"], lane+" feature manifest")
+        surface = json.loads(manifest_path.read_text())
+        if surface["source_parquet"] != str(enriched) or surface["source_manifest"] != str(enriched)+".manifest.json":
+            raise RuntimeError("reused enriched source binding mismatch")
+        sealed(surface["source_manifest"], surface["source_manifest_sha256"], lane+" enriched manifest")
+        sealed(str(enriched), surface["source_sha256"], lane+" enriched source")
+    reusable = {m1_enriched, Path(str(m1_enriched)+".manifest.json"), m1_checkpoint,
+                m1_feature_base, Path(str(m1_feature_base)+".manifest.json"),
+                m5_feature_base, Path(str(m5_feature_base)+".manifest.json")}
     fresh_paths = [path for path in fresh_paths if path not in reusable]
 existing = [str(path) for path in fresh_paths if path.exists() or path.is_symlink()]
 if audit.exists() or audit.is_symlink():
@@ -1562,6 +1685,7 @@ write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
 require_source_cascade_unchanged
+if [[ -z $REUSE_PREFLIGHT_JSON ]]; then
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m1-enriched-frame \
   --native-m1-root "$NATIVE_M1_ROOT" \
@@ -1583,6 +1707,7 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --workers 1 --checkpoint-chunk-rows 4096) >>"$LOG" 2>&1; then
   fail "native M1 enriched feature lane failed"
 fi
+fi
 [[ -f $M1_ENRICHED && ! -L $M1_ENRICHED \
    && -f ${M1_ENRICHED}.manifest.json && ! -L ${M1_ENRICHED}.manifest.json ]] \
   || fail "native M1 enriched feature output is missing/non-regular"
@@ -1595,6 +1720,7 @@ write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_pair_unchanged
 require_source_cascade_unchanged
+if [[ -z $REUSE_PREFLIGHT_JSON ]]; then
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   model-native-m1-feature-base \
   --source-parquet "$M1_ENRICHED" \
@@ -1620,6 +1746,7 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh \
   --expected-volatility-squeeze-manifest-sha256 "$VOLATILITY_SQUEEZE_MANIFEST_SHA256") >>"$LOG" 2>&1; then
   fail "M5 Entry feature-surface materialization failed"
 fi
+fi
 for path in "$M1_FEATURE_BASE" "$M5_FEATURE_BASE"; do
   [[ -f $path && ! -L $path && -f ${path}.manifest.json \
      && ! -L ${path}.manifest.json ]] \
@@ -1633,6 +1760,7 @@ write_status "$CURRENT_STEP" RUNNING
 require_source_identity
 require_source_cascade_unchanged
 require_pair_unchanged
+if [[ -z $REUSE_PREFLIGHT_JSON ]]; then
 if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-preflight \
   --run-id "$RUN_ID" \
   --feature-ranking-json "$RANKING" \
@@ -1652,6 +1780,7 @@ if ! (cd "$ENG" && bash scripts/entry_next_edge_control.sh model-native-rebuild-
   --out-dir "$PRE_OUT" --quiet) >>"$LOG" 2>&1; then
   fail "rebuild preflight failed"
 fi
+fi
 
 if ! PREFLIGHT_ID=$("$PY" - "$PRE_OUT" "$RUN_ID" <<'PYEOF'
 import hashlib
@@ -1666,9 +1795,15 @@ pattern = re.compile(
     r"ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT_\d{8}T\d{6}(?:\d{6})?Z\.json"
 )
 entries = list(root.iterdir()) if root.is_dir() and not root.is_symlink() else []
-if len(entries) != 1:
+events = [path for path in entries if pattern.fullmatch(path.name)]
+if len(events) != 1:
     raise RuntimeError(f"preflight namespace must contain exactly one artifact: {entries}")
-path = entries[0]
+path = events[0]
+from gx1.contracts.immutable_event_authority_v1 import require_newest_immutable_event
+require_newest_immutable_event(path, "ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT", authority_root=root)
+witness = path.with_name(f".{path.name}.order")
+if set(entries) != {path, witness} or not witness.is_file() or witness.is_symlink():
+    raise RuntimeError("preflight namespace must contain only one witnessed artifact")
 if not path.is_file() or path.is_symlink() or not pattern.fullmatch(path.name):
     raise RuntimeError(f"unexpected preflight artifact: {path}")
 raw = path.read_bytes()
@@ -1686,6 +1821,10 @@ PYEOF
 fi
 IFS=$'\t' read -r PREFLIGHT_JSON PREFLIGHT_SHA256 <<<"$PREFLIGHT_ID"
 [[ -n $PREFLIGHT_JSON && -n $PREFLIGHT_SHA256 ]] || fail "preflight identity is empty"
+if [[ -n $REUSE_PREFLIGHT_JSON ]]; then
+  [[ $PREFLIGHT_JSON == "$REUSE_PREFLIGHT_JSON" && $PREFLIGHT_SHA256 == "$REUSE_PREFLIGHT_SHA256" ]] \
+    || fail "reused preflight changed after validation"
+fi
 require_unchanged "feature ranking" "$RANKING" "$RANKING_SHA256"
 require_source_cascade_unchanged
 require_pair_unchanged

@@ -1804,7 +1804,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-28T08:23:42.103568+00:00",
+  "latest_observation_utc": "2026-09-28T19:44:31.829654+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2139,31 +2139,41 @@
   },
   "native_runtime_from_preparation_result": "/home/andre2/GX1_RUNS/NATIVE_ENTRY_FUSE_NORMALIZED_FIXED256_20260919_BOOT466",
   "native_v37_preparation_20260928": {
+    "automatic_followup": {
+      "automation_id": "gx1-v37-oppf-lging",
+      "interval_minutes": 30,
+      "scope": "same thread; errors/completion only; no training"
+    },
     "binding": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/BINDING.json",
     "calibration_reuse_verification": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CALIBRATION_REUSE_VERIFICATION.json",
       "sha256": "414df35840a90e02b8bdb0bfe6f3e53dec5c4f6333fb7e800fa4eeaaa893daa7"
     },
+    "continuation_binding": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928/BINDING.json",
+    "continuation_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928/PLAN.json",
+    "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928",
+    "continuation_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928/TERMINAL.json",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928",
     "input_build_authorized": true,
     "native_training_enabled": false,
     "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
     "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/PLAN.json",
+    "repair_report": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/PREFLIGHT_ORDER_REPAIR.json",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928",
     "signal_dim": 242,
     "source_frozen_during_build": true,
     "source_schema": "entry_model_native_signal_v37",
     "start": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/START.json",
-    "status": "PREPARED_BINDING_AND_START_RECEIPTS_OWN_EXECUTION_STATE",
+    "status": "PARENT_RED_PREFLIGHT_IDENTITY_CORRECTED_CONTINUATION_PREPARED",
     "terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/TERMINAL.json",
     "test_handling": "Construction and immutable sealing only; no outcomes or tuning.",
     "training_launch_authority": false
   },
-  "next_action": "Execute the single fresh bound v37 native-input build in HISTORY2009W_NATIVE_V37_20260928. Before launch check START/TERMINAL/processes to avoid duplicates; BINDING.json owns exact clean source and file hashes. While running preserve source freeze and use sparse progress checks. After terminal verify all chain outputs, readiness and lifecycle bindings, then finish complexity review. Preserve v36 artifacts. No optimizer, native training, full VAL, TEST outcomes, live/paper or spending.",
+  "next_action": "Continue once from CONTINUE_PREFLIGHT_ORDER_20260928 after exact reuse guards pass. Read its START/TERMINAL and processes before any action. Preserve the original failed run and POST_BUILD receipts. Source stays frozen during the continuation. Existing post-rebuild readiness follows only GREEN chain completion. Automatic thread heartbeat every 30 minutes handles failures within the authorized input-preparation scope. No training, optimizer, full VAL, TEST outcomes or trading.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
-  "observed_utc": "2026-09-28T08:23:42.103568+00:00",
+  "observed_utc": "2026-09-28T19:44:31.829654+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2352,8 +2362,8 @@
     "sha256": "cd52dda262aebd33a8197db25850fa54a3ac2c4dfe6c354fa856c8316ec61b18"
   },
   "run_id": "HISTORY2009W_NATIVE_V37_20260928",
-  "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928",
-  "runtime_root_scope": "Prepared native v37 input build. START/TERMINAL and current processes own execution status. This is not a training run.",
+  "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928",
+  "runtime_root_scope": "Prepared continuation from verified preflight after prior identity-check failure; inspect exact runtime receipts.",
   "saved_optimizer_cause_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
@@ -2368,7 +2378,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "V37_NATIVE_INPUT_BUILD_PREPARED_READ_RUNTIME_RECEIPTS",
+  "status": "V37_PREFLIGHT_ORDER_REPAIRED_CONTINUATION_PREPARED",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,

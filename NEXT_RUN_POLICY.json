@@ -1783,29 +1783,39 @@
     "training_enabled": false
   },
   "native_v37_preparation_20260928": {
+    "automatic_followup": {
+      "automation_id": "gx1-v37-oppf-lging",
+      "interval_minutes": 30,
+      "scope": "same thread; errors/completion only; no training"
+    },
     "binding": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/BINDING.json",
     "calibration_reuse_verification": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CALIBRATION_REUSE_VERIFICATION.json",
       "sha256": "414df35840a90e02b8bdb0bfe6f3e53dec5c4f6333fb7e800fa4eeaaa893daa7"
     },
+    "continuation_binding": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928/BINDING.json",
+    "continuation_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928/PLAN.json",
+    "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928",
+    "continuation_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_PREFLIGHT_ORDER_20260928/TERMINAL.json",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928",
     "input_build_authorized": true,
     "native_training_enabled": false,
     "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
     "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/PLAN.json",
+    "repair_report": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/PREFLIGHT_ORDER_REPAIR.json",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928",
     "signal_dim": 242,
     "source_frozen_during_build": true,
     "source_schema": "entry_model_native_signal_v37",
     "start": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/START.json",
-    "status": "PREPARED_BINDING_AND_START_RECEIPTS_OWN_EXECUTION_STATE",
+    "status": "PARENT_RED_PREFLIGHT_IDENTITY_CORRECTED_CONTINUATION_PREPARED",
     "terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/TERMINAL.json",
     "test_handling": "Construction and immutable sealing only; no outcomes or tuning.",
     "training_launch_authority": false
   },
-  "next_action": "Execute the single fresh bound v37 native-input build in HISTORY2009W_NATIVE_V37_20260928. Before launch check START/TERMINAL/processes to avoid duplicates; BINDING.json owns exact clean source and file hashes. While running preserve source freeze and use sparse progress checks. After terminal verify all chain outputs, readiness and lifecycle bindings, then finish complexity review. Preserve v36 artifacts. No optimizer, native training, full VAL, TEST outcomes, live/paper or spending.",
+  "next_action": "Continue once from CONTINUE_PREFLIGHT_ORDER_20260928 after exact reuse guards pass. Read its START/TERMINAL and processes before any action. Preserve the original failed run and POST_BUILD receipts. Source stays frozen during the continuation. Existing post-rebuild readiness follows only GREEN chain completion. Automatic thread heartbeat every 30 minutes handles failures within the authorized input-preparation scope. No training, optimizer, full VAL, TEST outcomes or trading.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-09-28T08:23:42.103568+00:00",
+  "observed_utc": "2026-09-28T19:44:31.829654+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -1986,7 +1996,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "V37_NATIVE_INPUT_BUILD_PREPARED_READ_RUNTIME_RECEIPTS",
+  "status": "V37_PREFLIGHT_ORDER_REPAIRED_CONTINUATION_PREPARED",
   "tf32_allowed": false,
   "train_batch_size": 16,
   "train_observation_cutoff_review": {

@@ -554,7 +554,7 @@ def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
     args = [str(a).replace("-01-01Z", "-01-01T00:00:00Z") for a in args]
 
     def run():
-        return subprocess.run([sys.executable, "-", *args, "", ""], input=code, capture_output=True, text=True)
+        return subprocess.run([sys.executable, "-", *args, "", "", "", "", "", "", str(REPO)], input=code, capture_output=True, text=True)
 
     result = run()
     assert result.returncode != 0 and "fresh event outputs required" in result.stderr
@@ -642,7 +642,7 @@ def test_signal_reuse_validates_lineage_and_fit_boundary_before_exempting_paths(
 
     source = SCRIPT.read_text()
     start = source.index('if raw_reuse_signal_manifest:\n')
-    block = source[start:source.index('existing = [str(path)', start)]
+    block = source[start:source.index('if raw_reuse_preflight_json:', start)]
     manifest = tmp_path / 'signal.json'
     manifest.write_text('{}')
     ranking = tmp_path / 'ranking.json'
@@ -682,3 +682,139 @@ def test_signal_reuse_validates_lineage_and_fit_boundary_before_exempting_paths(
     with pytest.raises(RuntimeError, match='lineage fixture rejected'):
         exec(compile(block, 'actual_signal_reuse_guard', 'exec'), scope)
     assert scope['fresh_paths'] == fresh
+
+
+def _preflight_identity_code():
+    source = SCRIPT.read_text()
+    start = source.index("import hashlib\n", source.index('if ! PREFLIGHT_ID='))
+    return source[start:source.index('\nPYEOF', start)]
+
+
+def test_preflight_identity_accepts_real_publisher_and_rejects_bad_namespace(tmp_path):
+    import sys
+    from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+
+    path, payload = write_immutable_json_event(tmp_path, 'ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT', {
+        'created_utc': '2026-09-28T12:00:00+00:00', 'entry_run_id': 'TEST_PREFLIGHT_RUN',
+        'decision': 'READY_FOR_MODEL_NATIVE_SEQ513_REBUILD',
+    })
+    def run(run_id='TEST_PREFLIGHT_RUN'):
+        return subprocess.run([sys.executable, '-', str(tmp_path), run_id],
+                              input=_preflight_identity_code(), cwd=REPO, text=True, capture_output=True)
+    result = run()
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.split('\t')[0] == str(path)
+    assert run('WRONG_RUN').returncode != 0
+    unknown = tmp_path / 'unrelated.json'; unknown.write_text('{}')
+    assert run().returncode != 0
+    unknown.unlink()
+    witness = path.with_name('.'+path.name+'.order')
+    original = witness.read_bytes()
+    witness.write_text('{}')
+    assert run().returncode != 0
+    witness.write_bytes(original)
+    changed = dict(payload); changed['decision'] = 'CHANGED'
+    path.write_text(json.dumps(changed))
+    assert run().returncode != 0
+
+
+def test_preflight_identity_rejects_missing_witness_and_multiple_events(tmp_path):
+    import sys
+    from gx1.contracts.immutable_event_authority_v1 import write_immutable_json_event
+
+    def publish(created):
+        return write_immutable_json_event(tmp_path, 'ENTRY_MODEL_NATIVE_SEQ513_REBUILD_PREFLIGHT', {
+            'created_utc': created, 'entry_run_id': 'TEST_PREFLIGHT_RUN',
+            'decision': 'READY_FOR_MODEL_NATIVE_SEQ513_REBUILD',
+        })[0]
+    def run():
+        return subprocess.run([sys.executable, '-', str(tmp_path), 'TEST_PREFLIGHT_RUN'],
+                              input=_preflight_identity_code(), cwd=REPO, text=True, capture_output=True)
+    path = publish('2026-09-28T12:00:00+00:00')
+    witness = path.with_name('.'+path.name+'.order'); data = witness.read_bytes()
+    witness.unlink()
+    assert run().returncode != 0
+    witness.write_bytes(data)
+    publish('2026-09-28T12:01:00+00:00')
+    assert run().returncode != 0
+
+
+def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshness(tmp_path):
+    import hashlib
+    import pandas as pd
+    import pytest
+
+    source_code = SCRIPT.read_text()
+    begin = source_code.index('if raw_reuse_preflight_json:\n')
+    code = source_code[begin:source_code.index('existing = [str(path)', begin)]
+    event = tmp_path/'event'; event.mkdir()
+    repo = tmp_path/'repo'; repo.mkdir(); (repo/'gx1').mkdir(); (repo/'scripts').mkdir()
+    owner = repo/'gx1'/'owner.py'; owner.write_text('VALUE = 1\n')
+    def git(*args):
+        return subprocess.check_output(['git','-C',str(repo),'-c','user.name=Test','-c','user.email=test@example.invalid',*args], text=True).strip()
+    git('init','-q'); git('add','.'); git('commit','-qm','source')
+    old_head = git('rev-parse','HEAD')
+    def file(name):
+        p=event/name;p.write_text('exact input '+name);return p
+    def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
+    source, canonical, ranking, signal, pair = [file(n) for n in ('source.parquet','canonical.parquet','ranking.json','signal.json','pair.json')]
+    m1, m5 = file('m1_enriched.parquet'), file('m5_enriched.parquet')
+    surfaces={}; bases=[]
+    for lane,enriched in [('m1',m1),('m5',m5)]:
+        enriched_manifest=file(enriched.name+'.manifest.json')
+        base=file(lane+'_feature_base.parquet'); bases.append(base)
+        manifest=event/(base.name+'.manifest.json')
+        manifest.write_text(json.dumps({'source_parquet':str(enriched),'source_sha256':sha(enriched),
+            'source_manifest':str(enriched_manifest),'source_manifest_sha256':sha(enriched_manifest)}))
+        surfaces[lane+'_feature_base_parquet']={'path':str(base),'manifest_path':str(manifest),
+            'dataset_run_id':'UNIT_PREFLIGHT_RUN','decision':'PASS','signal_manifest_path':str(signal),
+            'signal_manifest_sha256':sha(signal),'output_parquet_sha256':sha(base),'manifest_sha256':sha(manifest)}
+    pre=event/'preflight';pre.mkdir();proof_path=pre/'proof.json';prior_path=event/'prior_terminal.json'
+    labels=['history_start','train_start','train_end','val_start','val_end','test_start','test_end']
+    times=['2010-01-01T00:00:00Z','2011-01-01T00:00:00Z','2012-01-01T00:00:00Z','2013-01-01T00:00:00Z','2014-01-01T00:00:00Z','2015-01-01T00:00:00Z','2016-01-01T00:00:00Z']
+    values={'--run-id':'UNIT_PREFLIGHT_RUN','--source-parquet':str(source),'--canonical-v2-parquet':str(canonical),
+        '--signal-manifest':str(signal),'--feature-ranking-json':str(ranking),'--mtf-cache-dir':str(event/'cache'),
+        '--tape-root':str(event/'tape'),'--m1-lifecycle-pair-manifest-json':str(pair),
+        '--m1-lifecycle-pair-generation-root':str(event/'generations'),'--m1-feature-base-parquet':str(bases[0]),
+        '--m5-feature-base-parquet':str(bases[1]),'--exit-lifecycle-dir':str(event/'lifecycle'),
+        '--output':str(event/'output.parquet'),'--audit-out-dir':str(event/'audit'),
+        **{'--'+k.replace('_','-'):v for k,v in zip(labels,times)}}
+    argv=['scripts/rebuild_entry_model_native_seq513_dataset.sh']
+    for k,v in values.items():argv.extend([k,v])
+    proof={'entry_run_id':'UNIT_PREFLIGHT_RUN','json_path':str(proof_path),
+        'decision':'READY_FOR_MODEL_NATIVE_SEQ513_REBUILD','training_allowed':False,'failures':[],
+        'rebuild_command_contract':{'argv_template':argv},'inputs':dict(surfaces)}
+    for k,p in [('source_parquet',source),('canonical_v2_parquet',canonical),('signal_manifest',signal),('feature_ranking_json',ranking),('m1_lifecycle_pair_manifest_json',pair)]:
+        proof['inputs'][k]={'path':str(p),'sha256':sha(p)}
+    proof_path.write_text(json.dumps(proof))
+    prior={'terminal_event_path':str(prior_path),'event_root':str(event),'entry_run_id':'UNIT_PREFLIGHT_RUN',
+        'state':'RED','step':'rebuild-preflight','reason':'preflight output identity validation failed',
+        'preflight':{'out_dir':str(pre)},'git_head':old_head}
+    prior_path.write_text(json.dumps(prior))
+    def env():
+        return dict(raw_reuse_preflight_json=str(proof_path),raw_reuse_preflight_sha256=sha(proof_path),
+            raw_reuse_chain_terminal_json=str(prior_path),raw_reuse_chain_terminal_sha256=sha(prior_path),
+            exact_path=lambda raw,**kwargs:Path(raw),event=event,preflight=pre,run_id='UNIT_PREFLIGHT_RUN',raw_repo=str(repo),
+            source=source,canonical=canonical,raw_reuse_signal_manifest=str(signal),raw_reuse_signal_manifest_sha256=sha(signal),
+            ranking=ranking,mtf=event/'cache',tape=event/'tape',m1_lifecycle_pair_manifest=pair,
+            m1_lifecycle_pair_generation_root=event/'generations',m1_feature_base=bases[0],m5_feature_base=bases[1],
+            exit_lifecycle=event/'lifecycle',output=event/'output.parquet',audit=event/'audit',labels=labels,raw_times=times,
+            m1_enriched=m1,m5_enriched=m5,m1_checkpoint=event/'checkpoint',hashlib=hashlib,Path=Path,pd=pd,re=re,
+            fresh_paths=[m1,*bases,event/'output.parquet'])
+    scope=env();exec(compile(code,'actual_preflight_reuse_guard','exec'),scope)
+    assert scope['fresh_paths']==[event/'output.parquet']
+    for path in (bases[0],m1,Path(str(bases[1])+'.manifest.json')):
+        data=path.read_bytes();path.write_bytes(data+b'changed')
+        scope=env()
+        with pytest.raises(RuntimeError,match='SHA256 mismatch'):exec(compile(code,'actual_preflight_reuse_guard','exec'),scope)
+        assert scope['fresh_paths']==[m1,*bases,event/'output.parquet']
+        path.write_bytes(data)
+    scope=env();scope['raw_reuse_preflight_sha256']='0'*64
+    with pytest.raises(RuntimeError,match='SHA256 mismatch'):exec(compile(code,'actual_preflight_reuse_guard','exec'),scope)
+    scope=env();scope['raw_times']=[*times[:-1],'2017-01-01T00:00:00Z']
+    with pytest.raises(RuntimeError,match='command binding mismatch'):exec(compile(code,'actual_preflight_reuse_guard','exec'),scope)
+    prior['state']='GREEN';prior_path.write_text(json.dumps(prior))
+    with pytest.raises(RuntimeError,match='identity mismatch'):exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+    prior['state']='RED';prior_path.write_text(json.dumps(prior))
+    owner.write_text('VALUE = 2\n');git('add','.');git('commit','-qm','owner changed')
+    with pytest.raises(subprocess.CalledProcessError):exec(compile(code,'actual_preflight_reuse_guard','exec'),env())

@@ -282,3 +282,22 @@ konstanter/parametre gjenbrukes; nye felt beregnes av dagens eiere.
 under kjøringen; START/prosess/TERMINAL avgjør faktisk status. Ressursgrenser
 og vakter beholdes. Etterpå gjenstår post-build/readiness/lifecycle og resten
 av kompleksitetsvurderingen. Ingen trening eller TEST-utfall er autorisert.
+
+## Preflight-publiseringskvittering og gjenbruk — 28.09 kveld
+
+V37 fullførte M1/M5 og 29/29 preflight-kontroller. Kjeden stoppet kl. 13:27 UTC
+fordi katalogkontrollen telte den påkrevde `.json.order`-kvitteringen som en
+uventet ekstra fil. Kontrollkoden bruker nå den eksisterende publiseringseieren
+og avviser endret kvittering/hendelse, flere hendelser og fremmede filer.
+
+14 kjedetester og den virkelige preflight-identiteten består. Videreføringen
+`CONTINUE_PREFLIGHT_ORDER_20260928` binder preflight og nøyaktig denne røde
+forelderen. Bare kjededriveren kan ha endret kjørende kode; gx1 og øvrige scripts
+må være identiske. Gjenbruk rehasher featureflater, manifester og enriched-kilder,
+bevarer tidligere M5/signal/cache-vakter og kontrollerer eksakte kommando-/datogrenser.
+Datasett/lifecycle/audit-output må fortsatt være ferskt. Ingen metadata omskrives.
+
+Ferdige inputs gjenbrukes; gammelt rødt løp og stoppet POST_BUILD bevares.
+Automatisk oppfølging hver 30. minutt er nå faktisk opprettet i samme oppgave.
+Tidligere var bare sluttrinn etter vellykket bygging automatisk, uten feiloppfølging.
+Trening og TEST-utfall er fortsatt stengt.

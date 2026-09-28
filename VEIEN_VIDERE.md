@@ -10,7 +10,9 @@ all test-/datakjøring bruker eksisterende capped-run-vakter.
    full lokal M1-kontroll og faktisk MTF-paritet på de sju berørte TRAIN-radene.
    Ny prosjektlås består 294 tester og faktisk parallell låsadgang. Bevisene
    gjenbrukes; ingen ny fullsuite eller gjentatt diagnose uten et nytt funn.
-2. Fullfør den bundne inputbyggingen `HISTORY2009W_NATIVE_V37_20260928`.
+2. Fullfør `CONTINUE_PREFLIGHT_ORDER_20260928` under
+   `HISTORY2009W_NATIVE_V37_20260928`. M1/M5 er ferdige; viderefør fra verifisert
+   preflight etter rettet hendelses-/kvitteringskontroll.
    Les samme runs START/TERMINAL og prosesser før start eller oppfølging; ikke
    dupliser en konsumert plan. Registry-/squeeze-gjenbruk består faktisk kontroll.
    Bevar kildefrys under bygging og alle v36-artefaktene,
