@@ -86,7 +86,7 @@ utførbar likvidasjonsverdi. Følg den kontrollerte kontantregnskapseieren.
 To ko-primære finansieringsscenarioer: null og historisk benchmark pluss
 1,29 prosentpoeng. Etter to bevarte FRED-lesetimeouter bindes direkte
 [New York Fed EFFR](https://www.newyorkfed.org/markets/reference-rates/effr) i
-TA_FUNDING_SOURCE_NYFED_20260929.json. Dette er USD effective federal funds,
+TA_FUNDING_VALIDATION_NYFED_20260929.json. Dette er USD effective federal funds,
 med offisielt JSON-API og uendret datovindu. Mottatte bytes hash-bindes.
 
 Hele serien må dekke eksakte Reserve Bank-virkedager uten duplikater eller
@@ -183,3 +183,13 @@ Features, folds, lærere, risiko, kostpåslag, nullscenario, inferens og domsreg
 er uendret. [API](https://markets.newyorkfed.org/static/docs/markets-api.html),
 [kalender](https://www.newyorkfed.org/aboutthefed/holiday_schedule) og
 [metodikk](https://www.newyorkfed.org/markets/reference-rates/additional-information-about-reference-rates).
+
+## Skjemareparasjon med gjenbrukte kildebytes
+
+Det første direkte API-svaret inneholdt 4 394 rader og 1 043 747 bytes.
+Kildens YAML oppgir percent; de mottatte JSON-bytene bruker percentRate.
+FUNDING_EFFR_001/FAILED.json og råfilen bevares. Eget valideringsmanifest
+binder korrekt felt, råfilens SHA-256 og ny kvitteringssti før videre bruk.
+Ingen ny nedlasting, ingen endring av effektive datoer/rentetall og ingen
+A-utfall er sett. Tre fokuserte tester besto; faktisk kalenderdekning
+skal fortsatt kontrolleres før A starter.

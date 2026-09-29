@@ -31,9 +31,13 @@ A og opprinnelig finansieringsmanifest er committet i c385c316.
 Begge FRED-hentinger fikk lesetimeout uten bytes; FUNDING_DFF_001 og 002
 med FAILED.json bevares. Før A starter er direkte New York Fed EFFR nå bundet
 i eget manifest, med eksakt virkedagskalender og dokumentert kostkonvensjon.
-To fokuserte finansieringstester besto. Ingen nye markedsutfall eller
-finansieringsdata er lest ennå. Neste steg etter commit er bundet EFFR-henting
-gjennom capped audit, deretter A gjennom capped producer. B/C gjenstår.
+API-svaret er mottatt og hash-bundet (4 394 rader), men dokumentert
+rentefelt avvek fra faktisk JSON: percent ble percentRate. Feilkvitteringen
+bevares. Eget valideringsmanifest gjenbruker nøyaktig de samme bytene uten
+ny henting. Tre fokuserte tester besto. Faktisk kalenderdekning er ennå
+ikke godkjent. Ingen A-markedsmåling er startet. Neste steg: capped
+validering av rentefilen, deretter A. B/C gjenstår.
+Skjemabevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_SCHEMA_REPAIR.json.
 Ny kildeverifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_PREP_VERIFICATION.json.
 Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/A_PREREG_IMPLEMENTATION_VERIFICATION.json.
 Mekaniske tester er ikke prognose- eller lønnsomhetsbevis.

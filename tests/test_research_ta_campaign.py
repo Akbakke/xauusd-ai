@@ -173,13 +173,13 @@ def test_funding_fetch_binds_bytes_dates_and_explicit_retry_timeout(tmp_path, mo
 
 def test_effr_calendar_exact_coverage_and_piecewise_weekend_funding(tmp_path, monkeypatch):
     import io
-    spec = {"series": "EFFR", "rate_field": "percent", "start_date": "2021-06-18",
+    spec = {"series": "EFFR", "rate_field": "percentRate", "start_date": "2021-06-18",
             "end_date": "2021-06-21", "output_directory": str(tmp_path / "effr"),
             "url": "https://markets.newyorkfed.org/api/rates/unsecured/effr/search.json",
             "maximum_bytes": 1000, "timeout_seconds": 60}
     # Saturday Juneteenth does not close the Reserve Bank on Friday.
-    records = [{"effectiveDate": "2021-06-21", "type": "EFFR", "percent": 2.0},
-               {"effectiveDate": "2021-06-18", "type": "EFFR", "percent": 1.0}]
+    records = [{"effectiveDate": "2021-06-21", "type": "EFFR", "percentRate": 2.0},
+               {"effectiveDate": "2021-06-18", "type": "EFFR", "percentRate": 1.0}]
     raw = json.dumps({"refRates": records}).encode()
     class Response(io.BytesIO):
         url = spec["url"]
@@ -199,3 +199,23 @@ def test_effr_calendar_exact_coverage_and_piecewise_weekend_funding(tmp_path, mo
         ta.parse_funding(json.dumps({"refRates": records + records[:1]}).encode(), spec)
     spec.update(start_date="2022-06-17", end_date="2022-06-21")
     assert list(ta.funding_dates(spec).strftime("%Y-%m-%d")) == ["2022-06-17", "2022-06-21"]
+
+
+def test_funding_recovery_reuses_bound_bytes_without_network(tmp_path, monkeypatch):
+    raw_path = tmp_path / "original.json"
+    raw_path.write_text(json.dumps({"refRates": [
+        {"effectiveDate": "2020-01-02", "type": "EFFR", "percentRate": 1.5}]}))
+    spec = {"series": "EFFR", "rate_field": "percentRate", "start_date": "2020-01-02",
+            "end_date": "2020-01-02", "url": "https://markets.newyorkfed.org/bound",
+            "maximum_bytes": 1000, "output_directory": str(tmp_path / "validated"),
+            "reuse_download": {"path": str(raw_path), "sha256": ta.sha(raw_path)}}
+    monkeypatch.setattr(ta, "urlopen", lambda *a, **k: pytest.fail("must not download again"))
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(spec))
+    receipt = ta.fetch_funding(spec, manifest)
+    assert receipt["raw_path"] == str(raw_path)
+    assert receipt["rows"] == 1
+    spec["output_directory"] = str(tmp_path / "rejected")
+    spec["reuse_download"]["sha256"] = "0" * 64
+    with pytest.raises(RuntimeError, match="TA_FUNDING_REUSED_BYTES_HASH"):
+        ta.fetch_funding(spec, manifest)

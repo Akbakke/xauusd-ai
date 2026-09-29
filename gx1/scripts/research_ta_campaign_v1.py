@@ -122,13 +122,20 @@ def fetch_funding(spec: dict, spec_path: Path) -> dict:
     out.mkdir(parents=True, exist_ok=False)
     request = Request(spec["url"], headers={"User-Agent": "GX1 offline research"})
     try:
-        with urlopen(request, timeout=spec.get("timeout_seconds", 30)) as response:
-            raw = response.read(spec["maximum_bytes"] + 1)
-            final_url = response.url
+        if "reuse_download" in spec:
+            raw_path = Path(spec["reuse_download"]["path"])
+            if sha(raw_path) != spec["reuse_download"]["sha256"]:
+                raise RuntimeError("TA_FUNDING_REUSED_BYTES_HASH")
+            raw = raw_path.read_bytes()
+            final_url = spec["url"]
+        else:
+            with urlopen(request, timeout=spec.get("timeout_seconds", 30)) as response:
+                raw = response.read(spec["maximum_bytes"] + 1)
+                final_url = response.url
+            raw_path = out / ("EFFR.json" if spec["series"] == "EFFR" else "DFF.csv")
+            raw_path.write_bytes(raw)
         if len(raw) > spec["maximum_bytes"]:
             raise RuntimeError("TA_FUNDING_RESPONSE_TOO_LARGE")
-        raw_path = out / ("EFFR.json" if spec["series"] == "EFFR" else "DFF.csv")
-        raw_path.write_bytes(raw)
         dates, _ = parse_funding(raw, spec)
         receipt = {"status": "COMPLETE", "fetched_utc": datetime.now(timezone.utc).isoformat(),
                    "manifest": str(spec_path), "manifest_sha256": sha(spec_path),

@@ -2222,11 +2222,11 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Commit/push direct NY Fed EFFR source binding after two preserved FRED timeouts. Fetch exact bound business-date history once under capped audit, verify receipt, then run A once under capped producer. No market experiment started; B/C pending. Native training, TEST, trading and spending blocked.",
+  "next_action": "Validate already received and hash-bound EFFR bytes using actual percentRate schema, with exact business-date coverage under capped audit. Preserve failed schema receipt; no refetch. Then run preregistered A once under capped producer. B/C pending; native training/TEST/trading/spending blocked.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
-  "observed_utc": "2026-09-29T20:54:55.586012+00:00",
+  "observed_utc": "2026-09-29T20:57:12.909533+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2440,7 +2440,7 @@
     },
     "a_preregistration": {
       "path": "configs/research/TA_A_PREREG_20260929.json",
-      "sha256": "d48b8ceec94b19f5bf3d9118f708e2648e2dc7655d082cb91285cb494ff1635b"
+      "sha256": "c299e53fcd39818d75d5e505838ba1196b4b1d217992201b772b43f28c2a5758"
     },
     "documentation_commit": "52c8761e8046fc12d7dc7d7cf0d881f1799e2a16",
     "documentation_verification": {
@@ -2461,9 +2461,13 @@
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_RETRY_VERIFICATION.json",
       "sha256": "d0dbc11fe96e57a258e2244a30b1a5a17efa7e7a3681715416b802d74191b47e"
     },
+    "funding_schema_repair": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_SCHEMA_REPAIR.json",
+      "sha256": "2829039628fa336ba1e1e50a34d09775f9ad3e049c5309155f38f2c28e195e37"
+    },
     "funding_source_manifest": {
-      "path": "configs/research/TA_FUNDING_SOURCE_NYFED_20260929.json",
-      "sha256": "ce51c49f3506c0c77d94c9f8de0b064ae2529b0b54044beb6fc90e69380fe34c"
+      "path": "configs/research/TA_FUNDING_VALIDATION_NYFED_20260929.json",
+      "sha256": "c708da18bf40342131582e6b054592bf0318e14c60d959b1b05553cee42a18de"
     },
     "instrument_review": "docs/TA_RESEARCH_INSTRUMENTS_20260929.md",
     "native_training_enabled": false,
@@ -2484,7 +2488,7 @@
       "measurement_a": "NOT_STARTED",
       "measurement_b": "NOT_STARTED",
       "measurement_c": "NOT_STARTED",
-      "preregistrations": "A_BOUND_DIRECT_EFFR_SOURCE_B_C_PENDING"
+      "preregistrations": "A_BOUND_REUSE_EFFR_VALIDATION_B_C_PENDING"
     },
     "test_outcomes_allowed": false
   },
