@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bounded A/B/C research orchestration. Currently implements the preregistered A arm.
+"""Bounded A/B/C research orchestration. Implements the preregistered A/C arms and B source admission.
 
 Reuses indicator, clock, learner, portfolio and inference owners. No native
 training, broker access, TEST, automatic parameter search or result promotion.
@@ -271,7 +271,7 @@ def load_funding(spec: dict) -> ResearchFinancingCurve:
     )
 
 
-def load_market(spec: dict) -> tuple[pd.DataFrame, dict]:
+def load_market(spec: dict, *, columns: list[str] | None = None) -> tuple[pd.DataFrame, dict]:
     root = Path(spec["tape"]["root"])
     if sha(root / "MANIFEST.json") != spec["tape"]["manifest_sha256"]:
         raise RuntimeError("TA_TAPE_MANIFEST_HASH")
@@ -289,7 +289,7 @@ def load_market(spec: dict) -> tuple[pd.DataFrame, dict]:
         if digest != manifest["year_sha256"][f"year={year}"]:
             raise RuntimeError(f"TA_TAPE_YEAR_HASH: {year}")
         frame = pq.read_table(
-            path, columns=["time", "open", "high", "low", "close", "bid_open", "ask_open"],
+            path, columns=columns if columns is not None else ["time", "open", "high", "low", "close", "bid_open", "ask_open"],
             filters=[("time", ">=", start.to_pydatetime()), ("time", "<", end.to_pydatetime())],
         ).to_pandas()
         frames.append(frame)
@@ -527,14 +527,381 @@ def run_a(spec: dict, spec_path: Path) -> dict:
         raise
 
 
+# C is one frozen composite. The source cell catalogue is not a new search grid.
+C_CELLS = (
+    "rn50_cross_follow_h12", "setup_pdh_break_trend_H4_pair_h12",
+    "setup_momentum_confluence_long_pair_h12",
+    "setup_range_break_up_H1_trend_H4_pair_h12", "orb_london_local",
+)
+
+
+def c_signal_panel(market: pd.DataFrame, spec: dict) -> tuple[pd.DataFrame, dict]:
+    from gx1.scripts.research_intraday_mechanisms_v1 import (
+        PRIMITIVE_PARAMS, SETUP_COLUMNS, build_primitives, setup_pair_sides,
+        round_number_sides, local_weekdays, local_instant, LONDON, LONDON_OPEN,
+        LONDON_ORB_EXIT, ORB_RANGE_BARS,
+    )
+    bar = M5_BAR_DURATION
+    start, end = pd.Timestamp(spec["evaluation_start"]), pd.Timestamp(spec["read_end_exclusive"])
+    time = market.index
+    chosen = (time + bar >= start) & (time + bar < end)
+    decision_rows = time[chosen]
+    primitives, _ = build_primitives(market.reset_index(names="time"), decision_rows, PRIMITIVE_PARAMS, keep_columns=SETUP_COLUMNS)
+    pairs = setup_pair_sides(primitives)
+    signal = pd.DataFrame(index=decision_rows)
+    signal["known_at"] = decision_rows + bar
+    cross, _ = round_number_sides(market.close.to_numpy(), market.high.to_numpy(),
+                                  market.low.to_numpy(), spec["round_grid_usd"])
+    signal[C_CELLS[0]] = cross[chosen]
+    for cell, pair in zip(C_CELLS[1:4], ["pdh_break_trend_H4", "momentum_confluence_long",
+                                      "range_break_up_H1_trend_H4"]):
+        signal[cell] = pairs[pair]
+    # Preserve the original prior-bar continuity requirement; never filter on future gaps.
+    prior_contiguous = np.concatenate([[False], np.diff(time.asi8) == bar.value])
+    signal.loc[~prior_contiguous[chosen], list(C_CELLS[:4])] = 0
+    signal[C_CELLS[4]] = 0
+    signal["orb_exit"] = pd.Series(pd.NaT, index=signal.index, dtype="datetime64[ns, UTC]")
+    for day in local_weekdays(LONDON, start, end):
+        opening = local_instant(day, LONDON_OPEN, LONDON)
+        range_end, target = opening + ORB_RANGE_BARS * bar, local_instant(day, LONDON_ORB_EXIT, LONDON)
+        expected = pd.date_range(opening, periods=ORB_RANGE_BARS, freq=bar)
+        if not expected.isin(time).all():
+            continue
+        levels = market.loc[expected, "close"]  # original range is close extrema, not high/low
+        candidates = signal.index[(signal.index >= range_end) & (signal.known_at < target)]
+        for t in candidates:
+            price = market.at[t, "close"]
+            side = 1 if price > levels.max() else -1 if price < levels.min() else 0
+            if side:
+                signal.at[t, C_CELLS[4]], signal.at[t, "orb_exit"] = side, target
+                break
+    daily = _resample_ohlc_for_model_native_scalars(market, "D1")
+    daily_units = causal_risk_units(
+        daily.close.to_numpy(), np.ones(len(daily)), initial_equity=spec["initial_equity"],
+        periods_per_year=spec["risk"]["periods_per_year"], lookback=spec["risk"]["lookback"],
+        target_annual_vol=spec["risk"]["target_annual_vol"],
+        max_gross_leverage=spec["risk"]["max_gross_leverage"],
+    )
+    scale = daily_units * daily.close.to_numpy() / spec["initial_equity"]
+    atr_bps = wilder_atr(daily.high, daily.low, daily.close, 14).to_numpy() / daily.close.to_numpy() * 1e4
+    closed = daily.index + TRADING_SESSION_DURATION
+    ix = closed.searchsorted(pd.DatetimeIndex(signal.known_at), side="right") - 1
+    if np.any(ix < 0):
+        raise RuntimeError("TA_C_DAILY_WARMUP_CLOCK")
+    signal["risk_scale"], signal["atr_bps"] = scale[ix], atr_bps[ix]
+    if not np.isfinite(signal[["risk_scale", "atr_bps"]].to_numpy()).all() or (signal.atr_bps <= 0).any():
+        raise RuntimeError("TA_C_RISK_WARMUP")
+    return signal, {cell: {"long": int((signal[cell] > 0).sum()),
+                          "short": int((signal[cell] < 0).sum())} for cell in C_CELLS}
+
+
+def c_select(market: pd.DataFrame, signals: pd.DataFrame, spec: dict) -> tuple[pd.DataFrame, dict]:
+    """One shared reservation cohort; fill outcomes never change later selection."""
+    time, bar = market.index, M5_BAR_DURATION
+    end = pd.Timestamp(spec["read_end_exclusive"])
+    terminal_time = time[-1] + bar
+    if terminal_time > end:
+        raise RuntimeError("TA_C_TERMINAL_CLOCK")
+    busy_until = pd.Timestamp(spec["evaluation_start"])
+    records, counts = [], {"conflicting_rows": 0, "same_side_duplicates": 0, "overlap_rows": 0}
+    for t, row in signals.iterrows():
+        active = [(name, int(row[name])) for name in C_CELLS if row[name] != 0]
+        if not active:
+            continue
+        if len({side for _, side in active}) > 1:
+            counts["conflicting_rows"] += 1
+            continue
+        if row.known_at < busy_until:
+            counts["overlap_rows"] += 1
+            continue
+        counts["same_side_duplicates"] += len(active) - 1
+        cell, side = active[0]  # frozen catalogue order; no quality ranking
+        target = row.orb_exit if cell == C_CELLS[-1] else row.known_at + spec["hold_bars"] * bar
+        entry = int(time.searchsorted(row.known_at, side="left"))
+        exit_ = int(time.searchsorted(target, side="left"))
+        censored = exit_ == len(time)
+        exit_time = terminal_time if censored else time[exit_]
+        busy_until = max(target, exit_time)
+        record = {"signal_bar_start": t, "known_at": row.known_at, "cell": cell, "side": side,
+                  "target_time": target, "exit_time": exit_time, "censored_at_end": censored,
+                  "risk_scale": row.risk_scale, "atr_bps": row.atr_bps,
+                  "executable": False, "passive_placed": False, "passive_touched": False}
+        if entry < len(time) and time[entry] < target and time[entry] < terminal_time:
+            m = market.iloc[entry]
+            close_row = market.iloc[-1] if censored else market.iloc[exit_]
+            suffix = "close" if censored else "open"
+            record.update(executable=True, entry_time=time[entry], decision_mid=float(m.open),
+                          entry_bid=float(m.bid_open), entry_ask=float(m.ask_open),
+                          exit_mid=float(close_row["close" if censored else "open"]),
+                          exit_bid=float(close_row["bid_" + suffix]), exit_ask=float(close_row["ask_" + suffix]))
+            window_end = time[entry] + bar
+            # Place only if the whole declared one-bar window fits before the known target.
+            if window_end < target and window_end <= terminal_time:
+                limit = float(m.bid_open if side > 0 else m.ask_open)
+                touched = bool(m.ask_low <= limit if side > 0 else m.bid_high >= limit)
+                record.update(passive_placed=True, passive_touched=touched,
+                              passive_limit=limit, passive_fill_time=window_end)
+        records.append(record)
+    if not records:
+        raise RuntimeError("TA_C_NO_SELECTED_SIGNALS")
+    return pd.DataFrame(records), counts
+
+
+def c_quotes(market: pd.DataFrame, start: pd.Timestamp) -> Tape:
+    """Actual open quotes plus actual closes at bar-end; opens win coincident timestamps."""
+    opened = market[["open", "bid_open", "ask_open"]].copy()
+    opened.columns = ["mid", "bid", "ask"]
+    closed = market[["close", "bid_close", "ask_close"]].copy()
+    closed.index += M5_BAR_DURATION
+    closed.columns = opened.columns
+    frame = pd.concat([opened, closed])
+    frame = frame.loc[~frame.index.duplicated(keep="first")].sort_index()
+    frame = frame.loc[frame.index >= start]
+    if (not np.isfinite(frame.to_numpy()).all() or np.any(frame.to_numpy() <= 0)
+            or np.any(frame.bid > frame.mid) or np.any(frame.mid > frame.ask)):
+        raise RuntimeError("TA_C_QUOTE_SIDES")
+    return Tape(frame.index, frame.mid.to_numpy(), frame.bid.to_numpy(),
+                frame.ask.to_numpy(), "source-bound-in-result", "C open/close valuation grid")
+
+
+def c_book(tape: Tape, cohort: pd.DataFrame, mode: str, slip: float,
+           curve: ResearchFinancingCurve | None, initial: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Event cash ledger with frozen entry quantity and bar-end passive fill-time assumption.
+
+    Each selected opportunity remains in the outcome frame, including zero PnL
+    for no placement/touch. A quote touch is never called an observed execution.
+    """
+    if mode not in {"active", "long", "passive"} or not np.isfinite(slip) or slip < 0:
+        raise RuntimeError("TA_C_BOOK_MODE")
+    n = len(tape.time)
+    arrays = {k: np.zeros(n) for k in ["held_units_after", "traded_units", "mid_pnl",
+              "spread_cost", "slippage_cost", "commission_cost", "financing_cost"]}
+    rows = []
+    for i, r in cohort.iterrows():
+        observed = {"opportunity": i, "known_at": r.known_at, "filled": False,
+                    "mid_bps": 0., "spread_bps": 0., "slippage_bps": 0., "financing_bps": 0.,
+                    "net_bps": 0., "normalized_net": 0., "risk_pnl": 0.}
+        if not r.executable or (mode == "passive" and not r.passive_touched):
+            rows.append(observed)
+            continue
+        side = 1 if mode == "long" else int(r.side)
+        entry_time = r.passive_fill_time if mode == "passive" else r.entry_time
+        entry_price = r.passive_limit if mode == "passive" else r.entry_ask if side > 0 else r.entry_bid
+        exit_price = r.exit_bid if side > 0 else r.exit_ask
+        entry_slip = 0. if mode == "passive" else slip
+        a, b = tape.time.get_indexer([entry_time, r.exit_time])
+        if (a < 0 or b < a or (b == a and not r.censored_at_end)
+                or np.any(arrays["held_units_after"][a:b] != 0)):
+            raise RuntimeError("TA_C_EVENT_CLOCK_OR_OVERLAP")
+        q = side * initial * r.risk_scale / r.decision_mid
+        arrays["held_units_after"][a:b] = q
+        arrays["traded_units"][a] += q
+        arrays["traded_units"][b] -= q
+        arrays["mid_pnl"][a] += q * (tape.mid[a] - r.decision_mid)
+        arrays["mid_pnl"][a + 1:b + 1] += q * np.diff(tape.mid[a:b + 1])
+        arrays["spread_cost"][a] += q * (entry_price - r.decision_mid)
+        arrays["spread_cost"][b] += q * (tape.mid[b] - exit_price)
+        arrays["slippage_cost"][a] += abs(q) * entry_price * entry_slip / 1e4
+        arrays["slippage_cost"][b] += abs(q) * exit_price * slip / 1e4
+        funding_rate = 0.
+        if curve is not None:
+            long_rate, short_rate = curve.integrated_cost_rates(tape.time[a:b], tape.time[a + 1:b + 1])
+            rates = long_rate if side > 0 else short_rate
+            arrays["financing_cost"][a + 1:b + 1] += abs(q) * entry_price * rates
+            funding_rate = float(rates.sum())
+        mid = side * (r.exit_mid - r.decision_mid) / r.decision_mid * 1e4
+        spread = side * ((entry_price - r.decision_mid) + (r.exit_mid - exit_price)) / r.decision_mid * 1e4
+        slip_cost = (entry_price * entry_slip + exit_price * slip) / r.decision_mid
+        funding = entry_price / r.decision_mid * funding_rate * 1e4
+        net = mid - spread - slip_cost - funding
+        observed.update(filled=True, mid_bps=float(mid), spread_bps=float(spread),
+                        slippage_bps=float(slip_cost), financing_bps=float(funding),
+                        net_bps=float(net), normalized_net=float(net / r.atr_bps),
+                        risk_pnl=float(initial * r.risk_scale * net / 1e4))
+        rows.append(observed)
+    frame = pd.DataFrame({"time": tape.time, **arrays})
+    frame["equity_mid"] = initial + np.cumsum(frame.mid_pnl - frame.spread_cost -
+                                              frame.slippage_cost - frame.financing_cost)
+    q = frame.held_units_after.to_numpy()
+    exit_quote = np.where(q > 0, tape.bid, tape.ask)
+    frame["liquidation_reserve"] = abs(q) * (abs(tape.mid - exit_quote) + exit_quote * slip / 1e4)
+    frame["equity_liquidation"] = frame.equity_mid - frame.liquidation_reserve
+    frame.attrs["initial_equity"] = initial
+    outcomes = pd.DataFrame(rows)
+    if not np.isclose(frame.equity_liquidation.iloc[-1] - initial, outcomes.risk_pnl.sum(), atol=1e-9, rtol=1e-10):
+        raise RuntimeError("TA_C_LEDGER_RECONCILIATION")
+    return frame, outcomes
+
+
+def c_daily(frame: pd.DataFrame) -> pd.DataFrame:
+    """Calendar-day accounting; carry marks across closed days, never fabricate an input quote."""
+    flow = ["mid_pnl", "spread_cost", "slippage_cost", "commission_cost", "financing_cost"]
+    states = ["held_units_after", "traded_units", "equity_mid", "liquidation_reserve", "equity_liquidation"]
+    grouped = frame.set_index("time").resample("D", closed="right", label="left")
+    daily = pd.concat([grouped[flow].sum(), grouped[states].last().ffill()], axis=1)
+    daily = daily.reset_index()
+    first = {name: 0. for name in flow + states}
+    first.update(time=daily.time.iloc[0] - pd.Timedelta(days=1),
+                 equity_mid=frame.attrs["initial_equity"], equity_liquidation=frame.attrs["initial_equity"])
+    daily = pd.concat([pd.DataFrame([first]), daily], ignore_index=True)
+    daily.attrs = frame.attrs.copy()
+    return daily
+
+
+def c_statistics(series: dict, comparisons: list[dict], counts: np.ndarray,
+                 annualization: float, ix: np.ndarray) -> np.ndarray:
+    result = []
+    denominator = counts[ix].sum()
+    for c in comparisons:
+        a, b = series[c["model"]], series.get(c["baseline"])
+        if c["metric"] in {"mean_net_bps", "normalized_net"}:
+            field = "raw" if c["metric"] == "mean_net_bps" else "normalized"
+            numerator = a[field][ix].sum() - (b[field][ix].sum() if b is not None else 0.)
+            value = numerator / denominator if denominator > 0 else np.nan
+        else:
+            def sharpe(x):
+                sd = x.std(ddof=1)
+                return x.mean() / sd * np.sqrt(annualization) if sd > 0 else np.nan
+            value = sharpe(a["returns"][ix])
+            if b is not None:
+                value -= sharpe(b["returns"][ix])
+        result.append(value)
+    return np.asarray(result)
+
+
+def run_c(spec: dict, spec_path: Path) -> dict:
+    if (spec["cells"] != list(C_CELLS) or spec["hold_bars"] != 12
+            or spec["slippage_scenarios"] != [0., .5, 1., 2.]
+            or spec["read_end_exclusive"] != "2026-07-01T00:00:00Z"):
+        raise RuntimeError("TA_C_PREREG_SCOPE")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"git_head": git("rev-parse", "HEAD"),
+                                     "preregistration": str(spec_path), "preregistration_sha256": sha(spec_path)})
+    try:
+        curve = load_funding(spec)
+        market, binding = load_market(spec, columns=[
+            "time", "open", "high", "low", "close", "volume", "bid_open", "ask_open",
+            "bid_close", "ask_close", "ask_low", "bid_high"])
+        signals, signal_counts = c_signal_panel(market, spec)
+        signals.to_parquet(out / "SIGNALS.parquet")
+        cohort, selection = c_select(market, signals, spec)
+        cohort.to_parquet(out / "COHORT.parquet", index=False)
+        tape = c_quotes(market, pd.Timestamp(spec["evaluation_start"]))
+        dates = pd.date_range(spec["evaluation_start"],
+                              pd.Timestamp(spec["read_end_exclusive"]) - pd.Timedelta(days=1), freq="D")
+        counts = cohort.groupby(cohort.known_at.dt.floor("D")).size().reindex(dates, fill_value=0).to_numpy()
+        series, portfolios, components, fill_comparison, period_detail = {}, {}, {}, {}, {}
+        for funding in ["historical_proxy", "zero"]:
+            for slip in spec["slippage_scenarios"]:
+                tag = f"s{slip:g}:{funding}"
+                mode_outcomes = {}
+                for mode in ["active", "long", "passive"]:
+                    key = f"{mode}:{tag}"
+                    book, outcomes = c_book(tape, cohort, mode, slip,
+                                            curve if funding == "historical_proxy" else None, spec["initial_equity"])
+                    daily = c_daily(book)
+                    if not pd.DatetimeIndex(daily.time.iloc[1:]).equals(dates):
+                        raise RuntimeError("TA_C_DAILY_POPULATION")
+                    # One file contains all dense accounting; summary never confuses M5 and daily Sharpe.
+                    daily.to_parquet(out / (key.replace(":", "_") + "_DAILY.parquet"), index=False)
+                    summary = portfolio_summary(daily, periods_per_year=spec["periods_per_year"])
+                    peak = np.maximum.accumulate(np.r_[spec["initial_equity"], book.equity_liquidation.to_numpy()])
+                    summary["max_drawdown_quote_grid"] = float((1 - np.r_[spec["initial_equity"], book.equity_liquidation.to_numpy()] / peak).max())
+                    summary["executed_round_trips"] = int(outcomes.filled.sum())
+                    # Event trades may exit and re-enter at one timestamp: net traded_units is not execution count.
+                    summary["execution_count"] = 2 * int(outcomes.filled.sum())
+                    portfolios[key] = summary
+                    outcomes.to_parquet(out / (key.replace(":", "_") + "_OUTCOMES.parquet"), index=False)
+                    mode_outcomes[mode] = outcomes
+                    sums = outcomes.groupby(outcomes.known_at.dt.floor("D"))[["net_bps", "normalized_net"]].sum().reindex(dates, fill_value=0)
+                    series[key] = {"raw": sums.net_bps.to_numpy(), "normalized": sums.normalized_net.to_numpy(),
+                                   "returns": (portfolio_period_returns(daily) if not summary["insolvent"]
+                                               else np.full(len(dates), np.nan))}
+                    components[key] = {"per_selected_opportunity": {
+                        col: float(outcomes[col].mean()) for col in
+                        ["mid_bps", "spread_bps", "slippage_bps", "financing_bps", "net_bps"]},
+                        "fills": int(outcomes.filled.sum()), "nonfills_or_unexecuted": int((~outcomes.filled).sum())}
+                    period_detail[key] = {str(month): {"selected": int(len(g)), "fills": int(g.filled.sum()),
+                                                      "mean_net_bps_per_selected": float(g.net_bps.mean()),
+                                                      "risk_pnl": float(g.risk_pnl.sum())}
+                                          for month, g in outcomes.groupby(outcomes.known_at.dt.strftime("%Y-%m"))}
+                touch = mode_outcomes["passive"].filled.to_numpy()
+                fill_comparison[tag] = {"touched": int(touch.sum()), "not_touched_or_not_placed": int((~touch).sum())}
+                for label, mask in [("touched", touch), ("not_touched_or_not_placed", ~touch)]:
+                    if mask.any():
+                        fill_comparison[tag][label + "_active_mean_net_bps"] = float(mode_outcomes["active"].loc[mask, "net_bps"].mean())
+                if touch.any():
+                    fill_comparison[tag]["touched_passive_mean_net_bps"] = float(mode_outcomes["passive"].loc[touch, "net_bps"].mean())
+        comparisons = []
+        for funding in ["historical_proxy", "zero"]:
+            for slip in spec["slippage_scenarios"]:
+                tag = f"s{slip:g}:{funding}"
+                for mode, baseline in [("active", "long"), ("passive", "long"), ("passive", "flat")]:
+                    for metric in spec["effects"]:
+                        comparisons.append({"name": f"{mode}:{tag}:vs_{baseline}:{metric}",
+                                            "model": f"{mode}:{tag}", "baseline": f"{baseline}:{tag}", "metric": metric})
+        point = c_statistics(series, comparisons, counts, spec["periods_per_year"], np.arange(len(dates)))
+        boot = np.array([c_statistics(series, comparisons, counts, spec["periods_per_year"], ix)
+                         for ix in stationary_bootstrap_indices(len(dates), draws=spec["bootstrap_draws"],
+                                   mean_block_length=spec["mean_block_length"], seed=spec["seed"])])
+        eligible = np.isfinite(point) & np.isfinite(boot).all(axis=0) & (boot.std(axis=0, ddof=1) > 0)
+        inference = {}
+        if eligible.any():
+            chosen = [c for c, ok in zip(comparisons, eligible) if ok]
+            inference = max_t_inference(point[eligible], boot[:, eligible], names=[c["name"] for c in chosen],
+                                       alpha=spec["alpha"], desired_power=spec["desired_power"],
+                                       effect_sizes=np.array([spec["effects"][c["metric"]] for c in chosen]),
+                                       minimum_relevant_effect=np.array([spec["effects"][c["metric"]][0] for c in chosen]))
+        endpoints = {r["name"]: r for r in inference.get("endpoints", [])}
+        for c, ok in zip(comparisons, eligible):
+            if not ok:
+                endpoints[c["name"]] = {"name": c["name"], "effect_verdict": "INKONKLUSIV",
+                                        "reason": "undefined_statistic_or_zero_bootstrap_variation"}
+        required = [f"passive:s1:{f}:vs_{b}:mean_net_bps" for f in ["historical_proxy", "zero"] for b in ["flat", "long"]]
+        verdicts = [endpoints[name]["effect_verdict"] for name in required]
+        positive_economics = all(not portfolios[f"passive:s1:{f}"]["insolvent"]
+                                 and portfolios[f"passive:s1:{f}"]["total_net_bps"] > 0
+                                 for f in ["historical_proxy", "zero"])
+        decision = ("GO" if all(v == "GO" for v in verdicts) and positive_economics else
+                    "NO_GO" if "NO_GO" in verdicts else "INKONKLUSIV")
+        np.savez_compressed(out / "BOOTSTRAP_STATISTICS.npz", estimates=point, bootstrap_estimates=boot)
+        pd.DataFrame({"day": dates, "selected": counts, **{
+            f"{key}:{metric}": values for key, block in series.items() for metric, values in block.items()
+        }}).to_parquet(out / "PAIRED_DAYS.parquet", index=False)
+        result = {"schema": "gx1_ta_measurement_c_v1", "git_head": git("rev-parse", "HEAD"),
+                  "preregistration_sha256": sha(spec_path), "inputs": binding,
+                  "test_outcomes_accessed": False, "native_training": False,
+                  "evidence_class": "measured_reused_development_quote_touch_simulation",
+                  "selection": {**selection, "selected": len(cohort), "executable": int(cohort.executable.sum()),
+                                "unexecuted": int((~cohort.executable).sum()), "censored": int(cohort.censored_at_end.sum()),
+                                "passive_placed": int(cohort.passive_placed.sum()), "passive_touched": int(cohort.passive_touched.sum()),
+                                "cell_counts": signal_counts, "calendar_days": len(dates)},
+                  "portfolios": portfolios, "components": components, "fill_selection": fill_comparison,
+                  "per_month": period_detail, "inference": inference,
+                  "declared_family": [c["name"] for c in comparisons], "endpoints": list(endpoints.values()),
+                  "decision": {"verdict": decision, "positive_economics": positive_economics, "required_endpoints": required,
+                               "scope": "GO could propose separate prospective execution research only; no observed fills or native training"},
+                  "limitations": spec["limitations"]}
+        result["artifacts"] = {p.name: {"sha256": sha(p), "bytes": p.stat().st_size} for p in sorted(out.iterdir()) if p.is_file()}
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": "COMPLETE", "result_sha256": sha(out / "RESULT.json"),
+                                         "finished_utc": datetime.now(timezone.utc).isoformat()})
+        return {"status": "COMPLETE", "out": str(out), "decision": decision}
+    except Exception as exc:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": str(exc),
+                                         "finished_utc": datetime.now(timezone.utc).isoformat()})
+        raise
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "run-a"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "run-a", "run-c"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     args = parser.parse_args()
     spec = checked_spec(args.spec, args.spec_sha256)
-    owner = {"fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a}[args.mode]
+    owner = {"fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

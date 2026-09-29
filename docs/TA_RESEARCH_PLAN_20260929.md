@@ -3,7 +3,7 @@
 Målet er å måle om en begrenset, kausal indikatorrepresentasjon gir bedre
 XAUUSD-beslutninger enn relevante baselines etter kostnader. Målet er aktivt.
 Dette dokumentet binder arbeidsomfanget; det er ikke en kjørbar forhåndsregistrering.
-A er fullført med INKONKLUSIV for begge modeller; B/C gjenstår.
+A er fullført med INKONKLUSIV; B er ikke målt grunnet kildebegrensning; C er registrert før måling.
 
 ## 0. Dokumentasjon og autoritet
 
@@ -32,7 +32,7 @@ er også mekanisk kontrollert: sammenhengende kontantregnskap, signert
 finansieringskurve, kausal risikostyring, porteføljestatistikk, paret stasjonær
 bootstrap og felles max-t med styrke/MDE. [A er nå målt](TA_A_RESULT_20260929.md) med fullstendig kildebinding og
 96 erklærte endepunkter. Begge primære modelldommer er INKONKLUSIV, uten GO.
-B/C-kildekontroll, registreringer og målinger gjenstår. A skal ikke gjentas.
+B er lukket med eksplisitt kildebegrensning. C-registrering og mekanikk er kontrollert; kjøring gjenstår. A skal ikke gjentas.
 
 ## 1. Reparer målte instrumentfeil hos eksisterende eiere
 

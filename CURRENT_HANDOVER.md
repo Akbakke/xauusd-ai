@@ -5,7 +5,7 @@
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
 
-## Nå: A fullført og inkonklusiv; B/C gjenstår
+## Nå: A inkonklusiv; B kildebegrenset; C registrert før måling
 
 Brukeren har vedtatt [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md) som aktivt
 mål. [Rotårsaksrapporten](docs/EDGE_ROOT_CAUSE_REVIEW_20260929.md) er publisert med
@@ -42,12 +42,17 @@ Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_VERIF
 Cached audit bekreftet de ytre fit-klokkene uten ny fit.
 Direkte EFFR har 4 394 kontrollerte virkedager. Begge FRED-timeouter og
 første EFFR-skjemaavvik er bevart; faktiske bytes ble gjenbrukt med bundet percentRate-felt.
-[B-kildeporten](docs/TA_B_SOURCE_ADMISSION_20260929.md) er nå bundet før henting:
-fire ALFRED-vintagearkiver, ingen modellfit. Kildemetadata begrenser USD til
-vintager fra 2019. GLD/COT har fortsatt uavklart publikasjon-/versjonsbevis.
-To fokuserte hentetester besto; ekte makroverdier er ennå ikke lastet ned.
-Hele sekskilders B-kontrakten beholdes; ingen stille reduksjon til fire kilder.
-C krever fortsatt egen registrering.
+[B er avsluttet som ikke målt](docs/TA_B_RESULT_20260929.md): de fire ALFRED-kallene
+fikk timeout; Mac-kontroll av skjemaet lyktes. Avgjørende begrensning er manglende
+bundet historisk publikasjon-/versjonsbevis for GLD/COT. Ingen B-fit, redusert
+erstatning eller konklusjon om null makroeffekt. Den terminale kildeauditen bevares.
+
+[C er registrert](docs/TA_C_PREREG_20260929.md), med én fast kombinasjon,
+utførbar open-klokke, felles utvalg og passiv berøringsmodell. Hele juni2025–
+juni2026 er gjenbrukt utviklingsevidens. Kontantregnskap, signalklokke, kildefilter
+og72-endepunkts inferens/artefaktkjede er mekanisk kontrollert på syntetiske data.
+Ingen ekte C-utfall er beregnet ennå. Manifest og kilde må være committet før
+MEASUREMENT_C_001 kjøres én gang gjennom capped producer8G.
 Mekaniske tester er ikke prognose- eller lønnsomhetsbevis.
 Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.
 Planen alene er ikke en preregistrering.

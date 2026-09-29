@@ -274,3 +274,150 @@ def test_alfred_rejects_changed_form_and_records_failure(tmp_path, monkeypatch):
     assert result["series_status"] == {"DFII10": "FAILED"}
     terminal = json.loads((tmp_path/"failed"/"TERMINAL.json").read_text())
     assert terminal["all_downloads_succeeded"] is False
+
+
+def _c_market():
+    times = pd.date_range("2026-06-01T09:00Z", periods=41, freq="5min")
+    mid = 100 + np.arange(len(times)) * .1
+    return pd.DataFrame({"open": mid, "high": mid + .3, "low": mid - .3, "close": mid + .05,
+                         "volume": 1., "bid_open": mid - .1, "ask_open": mid + .1,
+                         "bid_close": mid - .05, "ask_close": mid + .15,
+                         "bid_high": mid + .2, "ask_low": mid - .2}, index=times)
+
+
+def _c_signals(market, indices):
+    rows = market.index[indices]
+    frame = pd.DataFrame(0, index=rows, columns=ta.C_CELLS)
+    frame["known_at"] = rows + pd.Timedelta(minutes=5)
+    frame["orb_exit"] = pd.Series(pd.NaT, index=rows, dtype="datetime64[ns, UTC]")
+    frame["risk_scale"], frame["atr_bps"] = 1., 20.
+    return frame
+
+
+def test_c_selection_has_closed_bar_clock_conflicts_shared_slots_and_no_future_gap_filter():
+    market = _c_market().drop(pd.Timestamp("2026-06-01T10:05Z"))
+    signals = _c_signals(market, [0, 1, 2, 13])
+    signals[ta.C_CELLS[0]] = [1, 1, 1, -1]
+    signals[ta.C_CELLS[1]] = [1, -1, 0, 0]
+    spec = {"evaluation_start": "2026-06-01T09:00Z", "read_end_exclusive": "2026-06-02T00:00Z", "hold_bars": 12}
+    cohort, counts = ta.c_select(market, signals, spec)
+    assert counts == {"conflicting_rows": 1, "same_side_duplicates": 1, "overlap_rows": 1}
+    assert len(cohort) == 2
+    assert cohort.iloc[0].entry_time == pd.Timestamp("2026-06-01T09:05Z")
+    assert cohort.iloc[0].target_time == pd.Timestamp("2026-06-01T10:05Z")
+    assert cohort.iloc[0].exit_time == pd.Timestamp("2026-06-01T10:10Z")
+    assert cohort.iloc[1].entry_time >= cohort.iloc[0].exit_time
+    # A bid-only low cannot fill a passive buy: the ask must reach its bid limit.
+    changed = market.copy()
+    changed.loc[cohort.iloc[0].entry_time, "ask_low"] = 1000.
+    revised, _ = ta.c_select(changed, signals, spec)
+    assert not revised.iloc[0].passive_touched
+    assert revised.iloc[1].passive_touched
+    pd.testing.assert_frame_equal(cohort.drop(columns="passive_touched"),
+                                  revised.drop(columns="passive_touched"))
+
+
+def test_c_book_cash_reconciles_limit_price_costs_signed_funding_and_terminal_mark():
+    market = _c_market()
+    signals = _c_signals(market, [0, 30])
+    signals[ta.C_CELLS[0]] = [1, -1]
+    spec = {"evaluation_start": "2026-06-01T09:00Z", "read_end_exclusive": "2026-06-01T12:25Z", "hold_bars": 12}
+    cohort, _ = ta.c_select(market, signals, spec)
+    assert cohort.iloc[-1].censored_at_end  # still accounted at the last available close
+    tape = ta.c_quotes(market, pd.Timestamp(spec["evaluation_start"]))
+    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex(["2026-06-01T00:00Z"]), np.array([.04]),
+                                     pd.Timestamp("2026-06-02T00:00Z"), .0129, 31557600.)
+    for mode in ["active", "long", "passive"]:
+        book, outcomes = ta.c_book(tape, cohort, mode, 1., curve, 100.)
+        assert book.held_units_after.iloc[-1] == 0
+        assert book.equity_liquidation.iloc[-1] - 100. == pytest.approx(outcomes.risk_pnl.sum())
+        r = cohort.iloc[0]
+        entry = r.passive_limit if mode == "passive" else r.entry_ask
+        entry_time = r.passive_fill_time if mode == "passive" else r.entry_time
+        duration = (r.exit_time - entry_time).total_seconds()
+        expected_cash = 100 / r.decision_mid * (
+            r.exit_bid - entry - (0. if mode == "passive" else entry / 1e4)
+            - r.exit_bid / 1e4 - entry * (.04 + .0129) * duration / 31557600.)
+        assert outcomes.iloc[0].risk_pnl == pytest.approx(expected_cash)
+        if mode != "long":
+            assert outcomes.iloc[1].financing_bps < 0  # short credit stays signed
+        if mode == "passive":
+            assert outcomes.iloc[0].spread_bps < outcomes.iloc[0].slippage_bps
+
+
+def test_c_signal_owner_uses_row_start_plus_five_and_future_mutation_cannot_change_past():
+    market = _bars(310)
+    market["volume"] = 1.
+    spec = {"evaluation_start": str(market.index[560]), "read_end_exclusive": str(market.index[-1] + pd.Timedelta(minutes=5)),
+            "round_grid_usd": 50., "initial_equity": 100.,
+            "risk": {"periods_per_year": 252., "lookback": 21, "target_annual_vol": .1, "max_gross_leverage": 1.}}
+    signals, _ = ta.c_signal_panel(market, spec)
+    assert (signals.known_at == signals.index + pd.Timedelta(minutes=5)).all()
+    changed = market.copy()
+    changed.loc[changed.index >= market.index[600], ["open", "high", "low", "close"]] *= 2
+    revised, _ = ta.c_signal_panel(changed, spec)
+    pd.testing.assert_frame_equal(signals.loc[signals.index < market.index[598]],
+                                  revised.loc[revised.index < market.index[598]])
+
+
+def test_c_run_includes_nonfills_full_family_and_censored_positions(tmp_path, monkeypatch):
+    days = pd.date_range("2026-06-01", "2026-06-30", freq="D", tz="UTC")
+    market = pd.concat([_c_market().set_axis(day + (_c_market().index - _c_market().index[0].normalize()))
+                        for day in days])
+    # Deterministic nonconstant daily prices; no real market bytes.
+    multiplier = 1 + np.sin(np.arange(len(market)) / 31) * .01
+    price_columns = [c for c in market if c != "volume"]
+    market.loc[:, price_columns] = market[price_columns].mul(multiplier, axis=0)
+    last = market.iloc[-1:].copy()
+    last.index = pd.DatetimeIndex(["2026-06-30T23:55Z"])
+    market = pd.concat([market, last])
+    signal = _c_signals(market, np.arange(0, len(days) * 41, 41))
+    signal[ta.C_CELLS[0]] = np.where(np.arange(len(days)) % 2 == 0, 1, -1)
+    # Explicitly prevent half the passive touches, leaving the shared cohort unchanged.
+    for i, t in enumerate(signal.known_at):
+        if i % 3 == 0:
+            market.loc[t, ["ask_low", "bid_high"]] = [market.loc[t, "ask_open"], market.loc[t, "bid_open"]]
+    spec = {
+        "cells": list(ta.C_CELLS), "hold_bars": 12, "slippage_scenarios": [0., .5, 1., 2.],
+        "evaluation_start": "2026-06-01T00:00:00Z", "read_end_exclusive": "2026-07-01T00:00:00Z",
+        "output_directory": str(tmp_path / "c"), "initial_equity": 100., "periods_per_year": 365.25,
+        "bootstrap_draws": 39, "mean_block_length": 5., "seed": 0, "alpha": .05, "desired_power": .8,
+        "effects": {"mean_net_bps": [1., 2., 5.], "normalized_net": [.01, .02, .05], "sharpe_delta": [.1, .2, .3]},
+        "limitations": ["synthetic mechanics"],
+    }
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(json.dumps(spec))
+    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex(["2026-06-01T00:00Z"]), np.array([.04]),
+                                     pd.Timestamp("2026-07-01T00:00Z"), .0129, 31557600.)
+    monkeypatch.setattr(ta, "load_market", lambda spec, **kwargs: (market, {"test_accessed": False, "synthetic": True}))
+    monkeypatch.setattr(ta, "load_funding", lambda spec: curve)
+    monkeypatch.setattr(ta, "c_signal_panel", lambda market, spec: (signal, {}))
+    got = ta.run_c(spec, spec_path)
+    assert got["status"] == "COMPLETE"
+    out = Path(spec["output_directory"])
+    result = json.loads((out / "RESULT.json").read_text())
+    assert len(result["declared_family"]) == len(result["endpoints"]) == 72
+    assert result["selection"]["selected"] == 30
+    assert result["selection"]["passive_touched"] < result["selection"]["executable"]
+    assert result["selection"]["calendar_days"] == 30
+    assert len(result["decision"]["required_endpoints"]) == 4
+    assert result["test_outcomes_accessed"] is False
+    for name, binding in result["artifacts"].items():
+        assert ta.sha(out / name) == binding["sha256"]
+    terminal = json.loads((out / "TERMINAL.json").read_text())
+    assert terminal["result_sha256"] == ta.sha(out / "RESULT.json")
+
+
+def test_c_passive_terminal_touch_is_marked_even_when_assumed_fill_time_equals_cutoff():
+    market = _c_market()
+    signal = _c_signals(market, [39])
+    signal[ta.C_CELLS[0]] = 1
+    spec = {"evaluation_start": "2026-06-01T09:00Z", "read_end_exclusive": "2026-06-01T12:25Z", "hold_bars": 12}
+    cohort, _ = ta.c_select(market, signal, spec)
+    r = cohort.iloc[0]
+    assert r.passive_fill_time == r.exit_time and r.passive_touched and r.censored_at_end
+    tape = ta.c_quotes(market, pd.Timestamp(spec["evaluation_start"]))
+    book, outcomes = ta.c_book(tape, cohort, "passive", 0., None, 100.)
+    assert outcomes.iloc[0].filled
+    assert outcomes.iloc[0].risk_pnl == pytest.approx(100 / r.decision_mid * (r.exit_bid - r.passive_limit))
+    assert book.held_units_after.iloc[-1] == 0

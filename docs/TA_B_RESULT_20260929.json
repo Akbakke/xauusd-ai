@@ -1,0 +1,69 @@
+{
+  "conclusion": "Full six-source B has not passed source admission. No economic effect, power, or MDE estimated. This does not establish zero macro information or universal data unavailability.",
+  "decisive_admission_limitations": [
+    {
+      "missing": "No bound historical daily holdings vintages with their actual availability established in inspected official archive documentation.",
+      "source": "GLD"
+    },
+    {
+      "missing": "No bound original/revised historical versions with release availability. Official dated weekly pages are not proof of original vintage; gold report dated 2019-03-26 was corrected 2019-04-03.",
+      "source": "COT_088691_Legacy_Futures_Only"
+    }
+  ],
+  "measured_transport": {
+    "mac_form_only": {
+      "bytes": 435129,
+      "elapsed_seconds": 0.849,
+      "http_status": 200,
+      "series": "DFII10",
+      "sha256": "79cbee8c4855cbb4b120530a3f748c11ec17422ed5456d0d077cfa6019cc48e3"
+    },
+    "remote": [
+      {
+        "error": "TimeoutError: The read operation timed out",
+        "predictor_admitted": false,
+        "series": "DFII10",
+        "status": "FAILED",
+        "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=DFII10"
+      },
+      {
+        "error": "TimeoutError: The read operation timed out",
+        "predictor_admitted": false,
+        "series": "DTWEXBGS",
+        "status": "FAILED",
+        "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=DTWEXBGS"
+      },
+      {
+        "error": "TimeoutError: The read operation timed out",
+        "predictor_admitted": false,
+        "series": "T10YIE",
+        "status": "FAILED",
+        "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=T10YIE"
+      },
+      {
+        "error": "TimeoutError: The read operation timed out",
+        "predictor_admitted": false,
+        "series": "VIXCLS",
+        "status": "FAILED",
+        "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=VIXCLS"
+      }
+    ]
+  },
+  "model_fit": false,
+  "native_training": false,
+  "predictor_admitted": false,
+  "primary_sources": [
+    "https://www.spdrgoldshares.com/usa/gld/",
+    "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm",
+    "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalViewable/index.htm"
+  ],
+  "reopening_requires": "Document and bind the missing GLD/COT release-version evidence, then resolve transport and preregister matched A/B population before fits.",
+  "schema": "gx1_ta_b_source_limitation_v1",
+  "source_audit": {
+    "directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ALFRED_SOURCE_AUDIT_001",
+    "result_sha256": "88c19a3bef68bb911a4f77418084d98db555aaeb5724493b74820ab779805951",
+    "terminal_sha256": "188fe6b3e6a885f4ed286e34a4a1ff028b9c1fa6e80e8e387b69b4bcbeebf19d"
+  },
+  "status": "NOT_MEASURED_SOURCE_LIMITATION",
+  "test_outcomes_accessed": false
+}

@@ -27,14 +27,14 @@ Følg [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md).
 Terminal og artefaktinventar er verifisert; ikke gjenta kjøringen eller søk nye
 parametre på resultatet. Resultatet åpner ikke native trening.
 
-1. A-rapporten er publisert i c41ed952. Verifiser/synkroniser lokal overlevering.
-2. Fullfør B-kildekontroll for navngitte makrofelt: faktisk publisering,
-   historiske dataversjoner og minst ett handelsdøgn ekstra lag. En kilde uten
-   bevis lukkes eksplisitt. Ingen bruk av revidert sluttserie som as-of-fasit.
-3. Frys C-kombinasjonen av de fem vedtatte cellene, periodens tidligere VAL-bruk,
-   kostdekomponering og passiv berøringsmodell i egen registrering før kjøring.
-4. Kjør bare registrert B/C-omfang og dokumenter GO/NO_GO/INKONKLUSIV eller
-   eksplisitt kilde-/målebegrensning. Bind neste operatørbeslutning.
+1. Bevar fullført A og [B-kildebegrensningen](docs/TA_B_RESULT_20260929.md).
+   B har ingen målt modellmerverdi; nye transportforsøk alene løser ikke GLD/COT.
+2. Commit/push [C-registreringen](docs/TA_C_PREREG_20260929.md) og kontrollert kilde.
+   Kjør bare MEASUREMENT_C_001 fra ren kilde gjennom capped producer8G med
+   eksakt manifesthash. Gjenbruk finansieringen; ingen ekstern henting.
+3. Verifiser terminal, utfall, full artefaktkjede og kontantregnskap.
+   Publiser C-dom med utvalgs-/fyllingsbegrensningene og beslutning for hele A/B/C.
+4. Synkroniser lokal overlevering. Ingen ny parameterletning eller A-relansering.
 
 Native trening/full native VAL, TEST-utfall, handel og spending er stengt.
 Alle native familier og tidligere artefakter bevares.
