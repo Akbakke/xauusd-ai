@@ -2143,7 +2143,8 @@
     "automatic_followup": {
       "automation_id": "gx1-v37-oppf-lging",
       "interval_minutes": 30,
-      "scope": "same thread; errors/completion only; no training"
+      "scope": "same thread; errors/completion only; no training",
+      "disposition": "COMPLETED_STOP_AFTER_HANDOVER_SYNC"
     },
     "binding": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/BINDING.json",
     "calibration_reuse_verification": {
@@ -2169,11 +2170,11 @@
     "continuation_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929/TERMINAL.json",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928",
     "failed_launch_runtime": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_20260929",
-    "input_build_authorized": true,
+    "input_build_authorized": false,
     "launch_preparation_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_20260929/LAUNCH_FAILURE_REPAIR.json",
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
-    "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
+    "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
     "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/PLAN.json",
     "post_rebuild_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929/PLAN.json",
     "post_rebuild_result": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929/RESULT.json",
@@ -2186,16 +2187,42 @@
     "resource_wait_check_interval_seconds": 900,
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928",
     "signal_dim": 242,
-    "source_frozen_during_build": true,
+    "source_frozen_during_build": false,
     "source_schema": "entry_model_native_signal_v37",
     "start": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/START.json",
-    "status": "DATASET_COMPLETE_POST_REBUILD_CLOCK_REPAIR_PREPARED",
+    "status": "COMPLETE_INPUT_PREPARATION_NO_TRAINING_AUTHORITY",
     "summary_memory_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/DATASET_SUMMARY_OOM_REPAIR.json",
     "terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/TERMINAL.json",
     "test_handling": "Construction and immutable sealing only; no outcomes or tuning.",
-    "training_launch_authority": false
+    "training_launch_authority": false,
+    "input_build_authorization_consumed": true,
+    "final_preparation_report": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/FINAL_PREPARATION_REPORT.json",
+      "sha256": "f32522f20c2847552446661931376c5e5a59de9e42b160bf1731a44822ce2a84"
+    },
+    "post_rebuild_readiness": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929/post_rebuild_readiness_clock_repair_20260929/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260929T031348861446Z.json",
+      "sha256": "db629b76c0428f6979e50e6e2ef3e59569737ef28ce995d4fcfe7bf259b119b6"
+    },
+    "lifecycle_binding_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/LIFECYCLE_BINDING_REVIEW.json",
+      "sha256": "dc183d886e4b809b0b16ebf3480fcbf33e3d556768dff3bbfd9300b216008011"
+    },
+    "parameter_complexity_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
+      "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
+    },
+    "train_redundancy_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/TRAIN_REDUNDANCY_REVIEW.json",
+      "sha256": "2691cf37726115fe32254a09b4043afb47b0b5356dff28f9f3a28cd13c1e1e7c"
+    },
+    "completion_inventory": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/REPO_REVIEW_COMPLETION_INVENTORY.json",
+      "sha256": "35115357aa55016457b6244b0f6e474045098d4467b638d26b8da6a3d49b7558"
+    },
+    "remaining_authorized_preparation_work": []
   },
-  "next_action": "Dataset completion and sealed TEST exist; the chain ended RED only at the pretrain audit. DO NOT rebuild or relaunch CONTINUE_REGISTRY_BINDING_20260929. Observe POST_REBUILD_CLOCK_REPAIR_20260929 PLAN/BINDING/START/STATUS/TERMINAL/RESULT/process. Three metadata consumers now use the same causal_m1_policy_fit_train_end owner as the producer, for full and PRETEST builds. Actual TRAIN/VAL manifest/ECDF checks and targeted tests passed without changing dataset bytes. Run only the failed pretrain audit and readiness against exact completed artifacts, with fresh audit output, exact TEST seal and unchanged-producer source proof; preserve original RED. Source frozen while active; existing resource guards unchanged. After PASS finish lifecycle bindings and remaining complexity review. No optimizer, training, full VAL, TEST outcome access, trading or spending.",
+  "next_action": "Authorized v37 input preparation is complete. Reuse FINAL_PREPARATION_REPORT and exact post-rebuild readiness/lifecycle/complexity evidence. All input-build and audit continuations are consumed; do not relaunch or repeat them. Stop gx1-v37-oppf-lging after final handover sync. No v37 training recipe/launch is authorized. A later native research decision must separately bind one question, unchanged causal inputs/costs/baselines, capacity and budget through existing native owners; then fit full-TRAIN normalization and prove actual model/ONLINE/parity behavior. No optimizer, native training, full VAL, TEST outcome access, trading or spending now.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2209,7 +2236,7 @@
     "one_heavy_job_per_current": true,
     "resource_guards_preserved": true,
     "tests_passed": 294,
-    "user_instruction": "fjern l\u00e5s s\u00e5 vi kan jobbe parallelt"
+    "user_instruction": "fjern lås så vi kan jobbe parallelt"
   },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -2404,7 +2431,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "V37_DATASET_COMPLETE_POST_REBUILD_CLOCK_REPAIR_PREPARED",
+  "status": "V37_INPUT_PREPARATION_COMPLETE_TRAINING_DISABLED",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,

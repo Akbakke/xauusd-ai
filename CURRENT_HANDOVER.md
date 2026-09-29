@@ -12,42 +12,63 @@ før eventuell trening. Dette overstyrer tidligere forbud mot videre datasetbygg
 Den konsoliderte native modellen med de nye inputene er ikke epoch-trent.
 Ridge/HGB-porten under er avsluttet forskning, ikke et bevist tak for native læring.
 SMC-rettelsen og prosjektvis låsing er kontrollert. Tidligere kilde-/testgjennomgang
-er dokumentert; ny v37-inputbygging og gjenstående avklaringer står nedenfor.
+er dokumentert; fullført v37-inputbygging og resterende beslutningsgrense står nedenfor.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
-## Nå: ferdig datasett; rettet siste fit-klokkekobling i etterkontrollen
+## Nå: autorisert inputforberedelse og gjennomgang er fullført; trening er stengt
 
-Kjøringen på `abd9c2c9` publiserte dataset-completion og TEST-forsegling 29.09
-kl. 02:37 UTC / 04:37 norsk tid. TRAIN, VAL, TEST og lifecycle er fysisk bygget;
-full-input-liveness besto. Etterkontrollen stoppet kl. 02:44 UTC på
-`ENTRY_CAUSAL_M1_POSITION_SIZE_TARGET_MANIFEST_TRAIN_END_MISMATCH`.
-Kjedekvitteringen er derfor fortsatt RED og bevares uendret.
+V37-datasettet er ferdig. Fersk etterkontroll og readiness besto 29.09 kl.
+03:13 UTC / 05:13 norsk tid; lifecycle-eierens faktiske TRAIN/VAL-filadgang
+besto kl. 03:53 UTC / 05:53 norsk tid. Alle prosesser i denne videreføringen
+er avsluttet med terminalkvittering. Ingen bygging eller bestått audit skal gjentas.
 
-Byggeren følger den felles M5-fit-klokkeeieren: nominell TRAIN-slutt
-2025-05-31 23:59:59 gir policy-fit-slutt 23:54:59. Pretrain-audit,
-foundation-audit og trenerens manifestleser anvendte regelen bare ved
-PRETEST. Alle tre bruker nå samme eksisterende eier ved full bygging også.
-Målrettede tester og faktisk TRAIN/VAL-manifest-/ECDF-kontroll består uten
-endrede bytes. Produsent, features, fit, targets, splits og modell er uendret.
+Sluttrapport og maskinbevis:
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/FINAL_PREPARATION_REPORT.json`.
+Eksakt hash står i NEXT_RUN_POLICY.json. Datasettene ligger i den samme
+`DATASET_REGISTRY_BINDING_RECOVERY_20260929`-roten. TRAIN har 652 552 rader;
+VAL har 70 880. TEST er kun bundet gjennom completion og den uendrede forseglingen.
+Original RED-kjede bevares: builder var fullført, mens den gamle etterkontrollen
+feilet på fit-klokken. Ny readiness er en eksplisitt godkjent completion-recovery,
+ikke en omskrevet GREEN-kjede eller ny datasetbygging.
 
-Videreføringen er bare etterkontroll:
-`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929`.
-PLAN/BINDING/START/STATUS/TERMINAL/RESULT og prosess eier faktisk tilstand.
-Først kjøres den feilede TRAIN/VAL-pretrain-kontrollen på nytt i fersk auditrot;
-deretter eksisterende readiness med eksplisitt completed-dataset-terminal.
-Readiness krever full completion-/TEST-seal-binding, fersk PASS-audit og
-bevis for uendret produsent/delte helpers. Bare de tre navngitte metadata-
-leserne og readiness-eieren kan avvike i kode. Den røde kjeden omskrives aldri.
-Ingen ny dataset-/featurebygging skal startes for denne reparasjonen.
+Lifecycle-kontrollen brukte eksisterende `UnifiedExitLifecycleCorpus._require_file_admission`
+med bare TRAIN/VAL. Den validerte faktiske input-/lifecycle-hasher, splitgrenser,
+M1-kilde/featureflate og manifester. TEST-splitfilene ble verken åpnet eller statet;
+ingen modell, expanded state replay eller utfallsøkonomi ble kjørt.
 
-Datasettrøttene ligger fortsatt under
-`/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929`.
-TEST er bare representert ved den eksisterende forseglingens metadata;
-TEST-parquet og TEST-manifest åpnes ikke av etterkontrollen. Bestått liveness
-og alle gamle kvitteringer gjenbrukes/bevares. Uendrede capped-run-vakter og
-én tung jobb gjelder; kildefrys under etterkontrollen. Trening, optimizer,
-full VAL, TEST-utfall, handel og spending er stengt. Etter grønn readiness
-gjenstår lifecycle-bindinger og den bestilte kompleksitetsvurderingen.
+[Kompleksitetsvurderingen](docs/FEATURE_COMPLEXITY_REVIEW_20260928.md) er nå
+fullført innen det bestilte omfanget. Alle 242 signalfelt er målt på alle
+652 552 emitterte TRAIN-beslutninger: ingen globale konstanter eller eksakte
+innbyrdes duplikater; 71 kontekstaliaser er eksakt like. Sterke korrelasjoner
+og sjeldne hendelser er dokumentert uten automatisk featurefjerning.
+Kildens parametertelling er 9 633 055 ved eksisterende referansedybde
+(Ls=1, Lm=2); eksakt formel for annen eksplisitt dybde er rapportert.
+De åtte hjelpeprojeksjonene har 6 450 parametre, 0,067 prosent av totalen.
+Hjelpeoppgavenes merverdi er fortsatt ubevist; encoderne eier mest beregning.
+
+Tidligere full repo-inventering/testtriage gjenbrukes. Nytt inventar binder
+852 sporede filer og 49 endrede stier fra forrige inventarkilde; endret Python/JSON
+består strukturkontroll. De fokuserte reparasjonstestene og faktisk fullført
+bygg/readiness/lifecycle utgjør ny evidens. Ingen ny fullsuite er kjørt.
+Se [repo-rapporten](docs/REPO_REVIEW_20260928.md) for presis dekning og begrensning.
+
+Neste steg er en egen beslutning om én bundet native forskningskjøring.
+Det er ingen godkjent v37-treningsrecipe eller treningsstart. Fersk TRAIN-
+normalisering, native konstruksjon og senere train/serve-paritet hører til den
+bundet kjøringens eksisterende eiere og er ikke erklært utført her.
+`training_enabled=false`; optimizer, full VAL, TEST-utfall, handel og spending
+forblir stengt. Ingen features, familier eller heads er fjernet. Teknisk
+konsistens er ikke dokumentert edge. Denne inputforberedelsens automatiske
+oppfølging skal avsluttes etter commit/push og overleveringssynk.
+
+## Historikk: fit-klokkereparasjonen i etterkontrollen
+
+Kjøringen på `abd9c2c9` publiserte dataset-completion og TEST-forsegling 02:37 UTC.
+Etterkontrollen stoppet 02:44 UTC fordi tre lesere bare anvendte den felles
+M5-fit-klokken ved PRETEST. `ca6106a9` koblet alle tre til samme eier som
+byggeren, uten endring av data, features, fit eller mål. 34 målrettede target-/
+klokketester, 15 readiness-tester og faktisk TRAIN/VAL-manifest-/ECDF-kontroll
+besto. Post-rebuild-kjøringen er fullført og skal ikke relanseres.
 
 ## Historikk: split-manifest binder den vedtatte tidlige kalibreringen
 

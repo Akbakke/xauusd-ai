@@ -4,7 +4,27 @@ Autoritet: `/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Kildegrunnlag
 `10c78d7090b33a6926614cd9c13e4d02d93c626b` med rettelsene i denne commit.
 Ingen native trening, handelskjøring eller TEST-utfall er åpnet.
 
-## Dekning
+## Gjeldende sluttstatus 29.09
+
+V37-inputforberedelsen og den bestilte kompleksitetsvurderingen er fullført.
+Maskinbevis: `HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/FINAL_PREPARATION_REPORT.json`
+under `/home/andre2/GX1_RUNS`. Nytt inventar binder 852 filer og 49 stier endret
+fra forrige inventarkilde; endret Python/JSON består strukturkontroll. Siste
+rapport-/handoverdokumenter tilkommer i denne dokumentasjonscommitten.
+
+Bygget passerte etter konkrete rettelser av summary-minne, låste quote-lesere,
+registry-fit-binding og felles M5-fit-klokke. Fersk post-rebuild/readiness og
+lifecycle-eierens TRAIN/VAL-filadgang består. Alle kvitteringer er bevart.
+242-felts TRAIN-redundans, kildealgebra for parametre/beregning og helperrollen
+er ferdig vurdert i [kompleksitetsrapporten](FEATURE_COMPLEXITY_REVIEW_20260928.md).
+Ingen ny fullsuite, native modellkjøring, optimizer eller TEST-utfall.
+
+Avsnittene nedenfor beskriver tidligere kontrolltidspunkter og bevares som
+historikk. Deres daværende «ikke ferdig» er ikke gjeldende neste-steg.
+Kilde-/integritetskontroll, faktisk modellaksept og lønnsomhet er ulike grenser;
+de to siste er ikke erklært oppnådd.
+
+## Historisk dekning
 
 Alle 850 sporede filer før denne rapporten er hashbundet. Det omfatter 586 Python-
 filer, 105 JSON og 114 Markdown. Alle Python-/JSON-filer består strukturkontroll;

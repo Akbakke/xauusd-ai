@@ -16,6 +16,10 @@ features alene forklarer ikke manglende edge. Rett først konkrete feil; vurder
 senere én begrunnet forenkling om gangen med samme kausale data og kostmodell.
 Ingen optimizersteg eller native trening er autorisert av forberedelsesarbeidet.
 
+Den autoriserte v37-inputforberedelsen og repo-/kompleksitetsgjennomgangen er
+fullført 29.09.2026. Det etablerer teknisk konsistens, ikke edge eller tillatelse
+til ny trening. Neste grense er en egen bundet native forskningsbeslutning.
+
 ## Suksesskriterier
 
 Senere LONG/SHORT/FLAT-valg må slå relevante kausale baselines etter kost, gjennom
