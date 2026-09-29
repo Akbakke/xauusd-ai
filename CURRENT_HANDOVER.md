@@ -42,7 +42,12 @@ Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_VERIF
 Cached audit bekreftet de ytre fit-klokkene uten ny fit.
 Direkte EFFR har 4 394 kontrollerte virkedager. Begge FRED-timeouter og
 første EFFR-skjemaavvik er bevart; faktiske bytes ble gjenbrukt med bundet percentRate-felt.
-B krever kilde-/publiserings-/vintagekontroll; C krever egen registrering.
+[B-kildeporten](docs/TA_B_SOURCE_ADMISSION_20260929.md) er nå bundet før henting:
+fire ALFRED-vintagearkiver, ingen modellfit. Kildemetadata begrenser USD til
+vintager fra 2019. GLD/COT har fortsatt uavklart publikasjon-/versjonsbevis.
+To fokuserte hentetester besto; ekte makroverdier er ennå ikke lastet ned.
+Hele sekskilders B-kontrakten beholdes; ingen stille reduksjon til fire kilder.
+C krever fortsatt egen registrering.
 Mekaniske tester er ikke prognose- eller lønnsomhetsbevis.
 Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.
 Planen alene er ikke en preregistrering.

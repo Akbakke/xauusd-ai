@@ -1866,9 +1866,9 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "A result is published in c41ed952 and complete; do not rerun or tune. Synchronize local handover, then continue B named-source publication/vintage audit and C exact five-cell preregistration using existing owners and cached evidence. Native training/TEST/trading/spending remain disabled.",
+  "next_action": "Publish B source-admission manifest, retrieve four named ALFRED vintage archives once under capped audit and inspect schema/coverage. GLD/COT historical release/version evidence still required for full six-source B; no reduced-feature substitute or model fit. Preserve completed A; C preregistration remains. Native training/TEST/trading/spending disabled.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-09-29T21:05:53.030274+00:00",
+  "observed_utc": "2026-09-29T21:14:32.076507+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2073,6 +2073,15 @@
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_VERIFICATION.json",
       "sha256": "f15c9f71e6325c02580e76ef0bd9827cf00d131ca3e9d15d8065d3cfc0a09de5"
     },
+    "b_source_manifest": {
+      "path": "configs/research/TA_B_ALFRED_SOURCE_20260929.json",
+      "sha256": "e239fad9d2f45ca5fed07c6493b9b6906b09c5b6ca646ada02f815f0d7687910"
+    },
+    "b_source_report": "docs/TA_B_SOURCE_ADMISSION_20260929.md",
+    "b_source_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_SOURCE_FETCH_IMPLEMENTATION_VERIFICATION.json",
+      "sha256": "3fa7737828df5ec5915fc2dd492739223903d688b3091d186eb6407b3df3a06b"
+    },
     "documentation_commit": "52c8761e8046fc12d7dc7d7cf0d881f1799e2a16",
     "documentation_verification": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/DOCUMENTATION_VERIFICATION.json",
@@ -2121,9 +2130,9 @@
       "documentation": "PUBLISHED",
       "instrument_repair": "A_INTEGRATION_MECHANICS_VERIFIED_B_C_PENDING",
       "measurement_a": "COMPLETE_RIDGE_AND_HGB_INKONKLUSIV",
-      "measurement_b": "NOT_STARTED",
+      "measurement_b": "SOURCE_ADMISSION_PENDING_NO_MODEL_FIT",
       "measurement_c": "NOT_STARTED",
-      "preregistrations": "A_EXECUTED_B_C_PENDING"
+      "preregistrations": "A_COMPLETE_B_SOURCE_FETCH_BOUND_C_PENDING"
     },
     "test_outcomes_allowed": false
   },

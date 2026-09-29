@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 import hashlib
+from html.parser import HTMLParser
 import io
 import json
 import os
@@ -17,6 +18,8 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from urllib.request import Request, urlopen
+from urllib.parse import urlencode
+import zipfile
 
 import numpy as np
 import pandas as pd
@@ -73,6 +76,105 @@ def checked_spec(path: Path, digest: str) -> dict:
         if sha(ROOT / name) != expected:
             raise RuntimeError(f"TA_SOURCE_HASH: {name}")
     return spec
+
+
+class AlfredDownloadForm(HTMLParser):
+    """Read only the documented public vintage selector, never a latest alias."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.selected = None
+        self.options: dict[str, list[str]] = {}
+
+    def handle_starttag(self, tag: str, attrs: list) -> None:
+        attrs = dict(attrs)
+        if tag == "select":
+            self.selected = attrs.get("name")
+            self.options[self.selected] = []
+        elif tag == "option" and self.selected is not None and "value" in attrs:
+            self.options[self.selected].append(attrs["value"])
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "select":
+            self.selected = None
+
+
+def alfred_form_body(raw: bytes, spec: dict) -> tuple[bytes, list[str]]:
+    form = AlfredDownloadForm()
+    form.feed(raw.decode("utf-8"))
+    if ("lin" not in form.options.get("form[units]", [])
+            or "1" not in form.options.get("form[file_type]", [])
+            or "csv" not in form.options.get("form[file_format]", [])):
+        raise RuntimeError("TA_ALFRED_FORM_SCHEMA")
+    available = form.options["form[selected_vintage_dates][]"]
+    for date in available:
+        if datetime.strptime(date, "%Y-%m-%d").strftime("%Y-%m-%d") != date:
+            raise RuntimeError("TA_ALFRED_VINTAGE_FORMAT")
+    selected = [date for date in available if spec["vintage_start"] <= date <= spec["vintage_end"]]
+    if not selected or selected != sorted(set(selected)):
+        raise RuntimeError("TA_ALFRED_VINTAGE_COVERAGE")
+    values = [("form[units]", "lin"), ("form[obs_start_date]", spec["observation_start"]),
+              ("form[obs_end_date]", spec["observation_end"]),
+              ("form[entered_vintage_dates]", ""), ("form[file_type]", "1"),
+              ("form[file_format]", "csv")]
+    values += [("form[selected_vintage_dates][]", date) for date in selected]
+    return urlencode(values).encode(), selected
+
+
+def fetch_alfred(spec: dict, spec_path: Path) -> dict:
+    """Bound source-admission fetch only. Never admits a predictor or runs a fit."""
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    records = []
+    for series in spec["series"]:
+        directory = out / series["id"]
+        directory.mkdir()
+        record = {"series": series["id"], "url": series["url"], "predictor_admitted": False}
+        try:
+            request = Request(series["url"], headers={"User-Agent": "GX1 offline research"})
+            with urlopen(request, timeout=spec["timeout_seconds"]) as response:
+                form = response.read(spec["maximum_form_bytes"] + 1)
+            (directory / "FORM.html").write_bytes(form)
+            if len(form) > spec["maximum_form_bytes"]:
+                raise RuntimeError("TA_ALFRED_FORM_SIZE")
+            body, dates = alfred_form_body(form, spec)
+            (directory / "REQUEST.form").write_bytes(body)
+            record.update(vintages=len(dates), first_vintage=dates[0], last_vintage=dates[-1],
+                          form_sha256=sha(directory / "FORM.html"), request_sha256=sha(directory / "REQUEST.form"))
+            request = Request(series["url"], data=body,
+                              headers={"User-Agent": "GX1 offline research",
+                                       "Content-Type": "application/x-www-form-urlencoded"})
+            with urlopen(request, timeout=spec["timeout_seconds"]) as response:
+                raw = response.read(spec["maximum_response_bytes"] + 1)
+                record["final_url"] = response.url
+            raw_path = directory / "RESPONSE.zip"
+            raw_path.write_bytes(raw)
+            record.update(raw_path=str(raw_path), raw_sha256=sha(raw_path), raw_bytes=len(raw))
+            if len(raw) > spec["maximum_response_bytes"]:
+                raise RuntimeError("TA_ALFRED_RESPONSE_SIZE")
+            with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+                members = archive.infolist()
+                if sum(m.file_size for m in members) > spec["maximum_uncompressed_bytes"]:
+                    raise RuntimeError("TA_ALFRED_UNCOMPRESSED_SIZE")
+                if archive.testzip() is not None:
+                    raise RuntimeError("TA_ALFRED_ZIP_CRC")
+                record["members"] = {m.filename: {"bytes": m.file_size,
+                    "sha256": hashlib.sha256(archive.read(m)).hexdigest()} for m in members}
+            record["status"] = "RETRIEVED_NOT_ADMITTED"
+        except Exception as exc:
+            record.update(status="FAILED", error=f"{type(exc).__name__}: {exc}")
+        write_json(directory / "RECEIPT.json", record)
+        records.append(record)
+        print(f"[TA-B-source] {series['id']} {record['status']}", flush=True)
+    result = {"status": "RETRIEVAL_RECORDED", "manifest": str(spec_path),
+              "manifest_sha256": sha(spec_path), "records": records,
+              "predictor_admitted": False, "market_outcomes_read": False,
+              "test_accessed": False, "native_training": False}
+    write_json(out / "RESULT.json", result)
+    write_json(out / "TERMINAL.json", {"status": "COMPLETE_SOURCE_AUDIT",
+        "all_downloads_succeeded": all(r["status"] == "RETRIEVED_NOT_ADMITTED" for r in records),
+        "result_sha256": sha(out / "RESULT.json")})
+    return {"out": str(out), "series_status": {r["series"]: r["status"] for r in records}}
 
 
 def funding_dates(spec: dict) -> pd.DatetimeIndex:
@@ -427,12 +529,13 @@ def run_a(spec: dict, spec_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "run-a"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "run-a"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     args = parser.parse_args()
     spec = checked_spec(args.spec, args.spec_sha256)
-    result = fetch_funding(spec, args.spec) if args.mode == "fetch-funding" else run_a(spec, args.spec)
+    owner = {"fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a}[args.mode]
+    result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0
 

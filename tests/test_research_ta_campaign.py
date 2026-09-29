@@ -219,3 +219,58 @@ def test_funding_recovery_reuses_bound_bytes_without_network(tmp_path, monkeypat
     spec["reuse_download"]["sha256"] = "0" * 64
     with pytest.raises(RuntimeError, match="TA_FUNDING_REUSED_BYTES_HASH"):
         ta.fetch_funding(spec, manifest)
+
+
+def _alfred_form():
+    return b"""<select name="form[units]"><option value="lin">Levels</option></select>
+    <select name="form[file_type]"><option value="1">Real time</option></select>
+    <select name="form[file_format]"><option value="csv">ZIP</option></select>
+    <select name="form[selected_vintage_dates][]">
+    <option value="2008-12-31">old</option><option value="2009-01-02">first</option>
+    <option value="2025-12-31">last</option><option value="2026-01-02">excluded</option></select>"""
+
+
+def test_alfred_post_binds_vintages_and_preserves_raw_download_without_admitting_inputs(tmp_path, monkeypatch):
+    import io, zipfile
+    from urllib.parse import parse_qs
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, "w") as z:
+        z.writestr("DFII10.csv", "observation_date,value,realtime_start_date,realtime_end_date\\n")
+    class Response(io.BytesIO):
+        url = "https://alfred.stlouisfed.org/series/downloaddata?seid=DFII10"
+    requests = []
+    def fetch(req, timeout):
+        requests.append(req)
+        return Response(archive.getvalue() if req.data is not None else _alfred_form())
+    monkeypatch.setattr(ta, "urlopen", fetch)
+    spec = {"series": [{"id": "DFII10", "url": Response.url}], "output_directory": str(tmp_path/"fetch"),
+            "timeout_seconds": 60, "maximum_form_bytes": 10000, "maximum_response_bytes": 10000,
+            "maximum_uncompressed_bytes": 10000, "vintage_start": "2009-01-01",
+            "vintage_end": "2025-12-31", "observation_start": "2009-01-01", "observation_end": "2025-12-31"}
+    manifest = tmp_path / "source.json"
+    manifest.write_text(json.dumps(spec))
+    result = ta.fetch_alfred(spec, manifest)
+    assert result["series_status"] == {"DFII10": "RETRIEVED_NOT_ADMITTED"}
+    data = parse_qs(requests[1].data.decode())
+    assert data["form[selected_vintage_dates][]"] == ["2009-01-02", "2025-12-31"]
+    assert data["form[file_type]"] == ["1"]
+    receipt = json.loads((tmp_path/"fetch"/"DFII10"/"RECEIPT.json").read_text())
+    assert receipt["predictor_admitted"] is False
+    assert receipt["raw_sha256"] == ta.sha(Path(receipt["raw_path"]))
+    assert Path(receipt["raw_path"]).read_bytes() == archive.getvalue()
+
+
+def test_alfred_rejects_changed_form_and_records_failure(tmp_path, monkeypatch):
+    with pytest.raises(RuntimeError, match="TA_ALFRED_FORM_SCHEMA"):
+        ta.alfred_form_body(b"<html>unavailable</html>", {})
+    def unavailable(*args, **kwargs):
+        raise TimeoutError("source timeout")
+    monkeypatch.setattr(ta, "urlopen", unavailable)
+    spec = {"series": [{"id": "DFII10", "url": "https://alfred.stlouisfed.org/bound"}],
+            "output_directory": str(tmp_path/"failed"), "timeout_seconds": 60}
+    manifest = tmp_path / "source.json"
+    manifest.write_text(json.dumps(spec))
+    result = ta.fetch_alfred(spec, manifest)
+    assert result["series_status"] == {"DFII10": "FAILED"}
+    terminal = json.loads((tmp_path/"failed"/"TERMINAL.json").read_text())
+    assert terminal["all_downloads_succeeded"] is False
