@@ -1,24 +1,22 @@
-# GX1 arbeidsmål — oppdatert 28.09.2026
+# GX1 arbeidsmål — oppdatert 29.09.2026
 
 Målet er en ærlig XAUUSD-bot som tar retning på den tidsskalaen der retningen faktisk
 finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke oppnådd.
 
 ## Gjeldende arbeidsomfang
 
-Brukeren har autorisert feilretting, ferdigstilling av native inputs og full
-repo-gjennomgang/opprydding før eventuell trening. Se [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md)
-og [VEIEN_VIDERE.md](VEIEN_VIDERE.md) for målt tilstand og neste steg.
-Den tidlig kalibrerte ridge/HGB-kontrollen er fullført med NO-GO. Det er ikke
-et målt tak for den nye native modellen, som ikke er epoch-trent med disse inputene.
+Brukeren har vedtatt [A/B/C-planen](docs/TA_RESEARCH_PLAN_20260929.md) som aktivt mål:
+publiser rotårsaksrapporten, reparer konkrete forskningsinstrumenter, forhåndsregistrer
+og mål kompakte D1-indikatorer, et begrenset makrotillegg og fem frosne intradagsceller.
+Resultatet skal gi en dokumentert GO, NO-GO eller INKONKLUSIV beslutning om neste
+kontrakt eller utførelsesforskning. Ingen positiv økonomi er dokumentert av vedtaket.
 
-Modell- og featurekompleksitet skal begrunnes med målbar beslutningsverdi. Antall
-features alene forklarer ikke manglende edge. Rett først konkrete feil; vurder
-senere én begrunnet forenkling om gangen med samme kausale data og kostmodell.
-Ingen optimizersteg eller native trening er autorisert av forberedelsesarbeidet.
-
-Den autoriserte v37-inputforberedelsen og repo-/kompleksitetsgjennomgangen er
-fullført 29.09.2026. Det etablerer teknisk konsistens, ikke edge eller tillatelse
-til ny trening. Neste grense er en egen bundet native forskningsbeslutning.
+V37-inputforberedelse og repo-/kompleksitetsgjennomgang er fullført og gjenbrukes.
+Den tidligere ridge/HGB-portens NO-GO gjelder det undersøkte oppsettet, ikke et
+bevist tak for all læring. Rett først de målte instrumentfeilene.
+Ingen native optimizersteg eller trening er autorisert. Brede indikator-, modell-
+og terskelsøk er stengt. Eksterne forskningsinputs følger oppdatert regel 1.
+Se CURRENT_HANDOVER.md og VEIEN_VIDERE.md for status og neste arbeid.
 
 ## Suksesskriterier
 

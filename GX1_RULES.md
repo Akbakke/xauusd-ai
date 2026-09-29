@@ -33,11 +33,15 @@ moduler på disk.
 
 ## Ikke-forhandlbare regler
 
-1. **Kun XAUUSD.** Entry-kontrakter kan ikke avhenge av andre instrumenters markedsdata
-   eller eksponere andre instrumenter. Kryss-aktiva-data er bare tillatt i eksplisitte
-   forskningsarmer som gir evidens, ikke inputs, og krever navngitt kilde og immutabel
-   manifest før henting. Broker-, collector- og nedlastingsruter er stengt uten eksplisitt
-   operatørvedtak. Endring krever eksplisitt regelendring på et VAL-bekreftet resultat.
+1. **Kun XAUUSD-eksponering.** Operatørvedtak 29.09.2026 tillater kryss-aktiva- og
+   makrodata som inputs i navngitte offline forskningsarmer. Kilde, serie, hentemetode,
+   tilgjengelighet og tillatt omfang bindes i et immutabelt manifest før henting;
+   mottatte bytes og historiske dataversjoner hash-bindes før bruk. Faktisk
+   publikasjonstid og det vedtatte publikasjonslaget skal respekteres.
+   Andre instrumenter kan aldri handles eller eksponeres. Native Entry-kontrakter
+   endres ikke av forskningsunntaket; innføring der krever egen operatørbeslutning på
+   deklarert evidens. Kun manifestbundet forskningshenting innen det godkjente omfanget
+   åpnes. Broker, collector, live/paper, ordre og øvrige nedlastingsruter forblir stengt.
 2. **Ingen fallback, gjettet default, mutable `latest`, foreldet artefakt, syntetisk
    beslutningsinput eller myk gjennomslipp** — heller ikke i evidensen for beslutninger om
    koden:
@@ -137,6 +141,18 @@ moduler på disk.
     dato), *bevist konsistent* (sier ingenting om kvalitet) og *ikke undersøkt* (oppgis
     uoppfordret). Kjør dyprevisjonen før du påstår noe, sveip en funnet defektklasse over alle
     eiere i samme bølge, og dokumenter hva som ble og ikke ble verifisert.
+
+## Forskningsvedtak 29.09.2026
+
+Den avgrensede [A/B/C-planen](docs/TA_RESEARCH_PLAN_20260929.md) tillater reparasjon
+av eksisterende forskningsinstrumenter og forhåndsregistrerte CPU-fits i capped
+audit/producer. Sju D1-felt er en separat forskningsrepresentasjon; de erstatter
+ingen native familie. Forskningsbaselines kan ha egen enkel beslutningslogikk og
+utfallsmåling uten å endre native beslutningsautoritet eller head-kontrakter.
+Ingen optimizersteg på v37 eller ny native trening før egen mål-/horisontkontrakt
+og operatørbeslutning. Brede prisbaserte indikator-, modell-, terskel- og
+tapsvektsøk er stengt. TEST forblir forseglet; nye forsøk krever commit av
+forhåndsregistrering med populasjon, kostnader, baselines og beslutningsregel.
 
 ## Kapasitet og vakter
 

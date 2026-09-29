@@ -1767,7 +1767,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md",
+  "handover_resume_point": "docs/TA_RESEARCH_PLAN_20260929.md",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1804,7 +1804,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-28T19:44:31.829654+00:00",
+  "latest_observation_utc": "2026-09-29T19:11:55.676016+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2142,9 +2142,9 @@
     "active_chain_event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929",
     "automatic_followup": {
       "automation_id": "gx1-v37-oppf-lging",
+      "disposition": "COMPLETED_STOP_AFTER_HANDOVER_SYNC",
       "interval_minutes": 30,
-      "scope": "same thread; errors/completion only; no training",
-      "disposition": "COMPLETED_STOP_AFTER_HANDOVER_SYNC"
+      "scope": "same thread; errors/completion only; no training"
     },
     "binding": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/BINDING.json",
     "calibration_reuse_verification": {
@@ -2164,25 +2164,47 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_20260929T005132324434Z.json",
       "sha256": "747a130f70d177505046fe1a1609768e156a7b448a727600f3df956cbbef2231"
     },
+    "completion_inventory": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/REPO_REVIEW_COMPLETION_INVENTORY.json",
+      "sha256": "35115357aa55016457b6244b0f6e474045098d4467b638d26b8da6a3d49b7558"
+    },
     "continuation_binding": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929/BINDING.json",
     "continuation_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929/PLAN.json",
     "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929",
     "continuation_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929/TERMINAL.json",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928",
     "failed_launch_runtime": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_20260929",
+    "final_preparation_report": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/FINAL_PREPARATION_REPORT.json",
+      "sha256": "f32522f20c2847552446661931376c5e5a59de9e42b160bf1731a44822ce2a84"
+    },
+    "input_build_authorization_consumed": true,
     "input_build_authorized": false,
     "launch_preparation_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_20260929/LAUNCH_FAILURE_REPAIR.json",
+    "lifecycle_binding_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/LIFECYCLE_BINDING_REVIEW.json",
+      "sha256": "dc183d886e4b809b0b16ebf3480fcbf33e3d556768dff3bbfd9300b216008011"
+    },
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
     "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
+    "parameter_complexity_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
+      "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
+    },
     "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/PLAN.json",
     "post_rebuild_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929/PLAN.json",
+    "post_rebuild_readiness": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929/post_rebuild_readiness_clock_repair_20260929/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260929T031348861446Z.json",
+      "sha256": "db629b76c0428f6979e50e6e2ef3e59569737ef28ce995d4fcfe7bf259b119b6"
+    },
     "post_rebuild_result": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929/RESULT.json",
     "post_rebuild_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929",
     "post_rebuild_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929/TERMINAL.json",
     "previous_continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_ROOT_20260929",
     "previous_continuation_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_ROOT_20260929/TERMINAL.json",
     "registry_split_binding_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/REGISTRY_SPLIT_BINDING_REPAIR.json",
+    "remaining_authorized_preparation_work": [],
     "repair_report": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/PREFLIGHT_ORDER_REPAIR.json",
     "resource_wait_check_interval_seconds": 900,
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928",
@@ -2194,39 +2216,17 @@
     "summary_memory_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/DATASET_SUMMARY_OOM_REPAIR.json",
     "terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/TERMINAL.json",
     "test_handling": "Construction and immutable sealing only; no outcomes or tuning.",
-    "training_launch_authority": false,
-    "input_build_authorization_consumed": true,
-    "final_preparation_report": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/FINAL_PREPARATION_REPORT.json",
-      "sha256": "f32522f20c2847552446661931376c5e5a59de9e42b160bf1731a44822ce2a84"
-    },
-    "post_rebuild_readiness": {
-      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929/post_rebuild_readiness_clock_repair_20260929/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20260929T031348861446Z.json",
-      "sha256": "db629b76c0428f6979e50e6e2ef3e59569737ef28ce995d4fcfe7bf259b119b6"
-    },
-    "lifecycle_binding_review": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/LIFECYCLE_BINDING_REVIEW.json",
-      "sha256": "dc183d886e4b809b0b16ebf3480fcbf33e3d556768dff3bbfd9300b216008011"
-    },
-    "parameter_complexity_review": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
-      "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
-    },
     "train_redundancy_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/TRAIN_REDUNDANCY_REVIEW.json",
       "sha256": "2691cf37726115fe32254a09b4043afb47b0b5356dff28f9f3a28cd13c1e1e7c"
     },
-    "completion_inventory": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/REPO_REVIEW_COMPLETION_INVENTORY.json",
-      "sha256": "35115357aa55016457b6244b0f6e474045098d4467b638d26b8da6a3d49b7558"
-    },
-    "remaining_authorized_preparation_work": []
+    "training_launch_authority": false
   },
-  "next_action": "Authorized v37 input preparation is complete. Reuse FINAL_PREPARATION_REPORT and exact post-rebuild readiness/lifecycle/complexity evidence. All input-build and audit continuations are consumed; do not relaunch or repeat them. Stop gx1-v37-oppf-lging after final handover sync. No v37 training recipe/launch is authorized. A later native research decision must separately bind one question, unchanged causal inputs/costs/baselines, capacity and budget through existing native owners; then fit full-TRAIN normalization and prove actual model/ONLINE/parity behavior. No optimizer, native training, full VAL, TEST outcome access, trading or spending now.",
+  "next_action": "Follow docs/TA_RESEARCH_PLAN_20260929.md: publish reviewed root-cause evidence and the 29 September rule-1 research decision; repair measured research instrument defects; commit executable A/B/C preregistrations before bounded capped audit/producer runs. Research CPU fits and named research VAL access are authorized only within those registrations. Reuse completed v37 inputs and prior evidence; do not relaunch preparation. No native optimizer/training, full native VAL, TEST outcomes, trading or spending. Native objective/horizon changes require a later separate operator decision.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
-  "observed_utc": "2026-09-29T03:06:21.675596+00:00",
+  "observed_utc": "2026-09-29T19:11:55.676016+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2431,8 +2431,33 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "V37_INPUT_PREPARATION_COMPLETE_TRAINING_DISABLED",
+  "status": "TA_RESEARCH_ABC_INSTRUMENT_REPAIR_PENDING_TRAINING_DISABLED",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
+  "ta_research_20260929": {
+    "documentation_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/DOCUMENTATION_VERIFICATION.json",
+      "sha256": "23cd80acfcd4cf354dd299aaa2fdfee2d887b5f854fa652761f64c054fe5bf3e"
+    },
+    "external_manifest_bound_research_inputs_authorized": true,
+    "full_native_val_allowed": false,
+    "native_training_enabled": false,
+    "new_research_run_started": false,
+    "operator_authorized_on": "2026-09-29",
+    "plan": "docs/TA_RESEARCH_PLAN_20260929.md",
+    "research_cpu_fit_authorized_after_preregistration": true,
+    "run_root": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929",
+    "status": "INSTRUMENT_REPAIR_AND_PREREGISTRATION_PENDING",
+    "steps": {
+      "decision": "PENDING",
+      "documentation": "PREPARED_FOR_COMMIT",
+      "instrument_repair": "PENDING",
+      "measurement_a": "NOT_STARTED",
+      "measurement_b": "NOT_STARTED",
+      "measurement_c": "NOT_STARTED",
+      "preregistrations": "PENDING"
+    },
+    "test_outcomes_allowed": false
+  },
   "target_component_diagnosis": "docs/TARGET_COMPONENT_CAUSE_20260916.md",
   "test_data_used": false,
   "train_observation_cutoff_review": {

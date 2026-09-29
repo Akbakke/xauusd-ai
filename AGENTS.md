@@ -26,6 +26,10 @@ positiv kostnadsjustert netto bps.
   designskifte. Forklar blokkeringen og minste rettelse først. Ingen forebyggende
   refaktorering, nye rammeverk, brede regel-/terskel-/modell-/tapsvektsøk eller gjentatte
   fullsuiter.
+- Operatørvedtak 29.09.2026: følg docs/TA_RESEARCH_PLAN_20260929.md for avgrenset
+  instrumentreparasjon og A/B/C-forskning. Regel 1 åpner navngitte, manifestbundne
+  eksterne forskningsinputs. Forhåndsregistrerte CPU-fits i capped audit/producer er
+  forskning; dette åpner ingen native trening, optimizersteg eller TEST-utfall.
 - Tung trening bare via eksisterende native campaign gjennom `scripts/gx1_capped_run.sh` og
   etablerte maskinvarevakter; profil og tillatt omfang står i NEXT_RUN_POLICY.json.
   `training_enabled=false` stenger ny trening. Ingen full epoch eller full VAL mens

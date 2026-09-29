@@ -1,11 +1,30 @@
-# Gjeldende status — 29.09.2026: native-forberedelse og full repo-gjennomgang
+# Gjeldende status — 29.09.2026: instrumentreparasjon og A/B/C-forskning
 
 **Les først:** [GX1_RULES.md](GX1_RULES.md) (bindende regler), [AGENTS.md](AGENTS.md)
 (arbeidsmåte), [GX1_ARBEIDSMAAL.md](GX1_ARBEIDSMAAL.md) (mål og vedtak) og
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
 
-## Nytt operatørvedtak: ferdigstill inputs, revider hele repoet, ingen trening
+## Nå: godkjent A/B/C-plan; instrumentreparasjon før nye målinger
+
+Brukeren har vedtatt [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md) som aktivt
+mål. [Rotårsaksrapporten](docs/EDGE_ROOT_CAUSE_REVIEW_20260929.md) publiseres med
+kontrollert dommetelling og spreadpresisering; originalen er bevart. Regel 1 åpner
+navngitte, manifestbundne eksterne forskningsinputs med XAUUSD som eneste eksponering.
+
+Neste arbeid er avgrenset instrumentreparasjon hos eksisterende forsknings-eiere,
+deretter commit av kjørbare forhåndsregistreringer og capped A/B/C-målinger.
+Ingen ny forskningskjøring er startet. Planen alene er ikke en preregistrering.
+Dokumentasjonsbevis:
+ /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/DOCUMENTATION_VERIFICATION.json.
+NEXT_RUN_POLICY.json og RUNNING_NATIVE_CALIBRATION.json binder samme nye status.
+
+training_enabled=false: ingen native optimizer, native trening, full native VAL,
+TEST-utfall, handel eller spending. Avgrensede forhåndsregistrerte CPU-fits og
+navngitte forsknings-VAL-målinger er tillatt gjennom capped audit/producer.
+V37-inputforberedelsen er fullført og skal gjenbrukes, ikke relanseres.
+
+## Historisk operatørvedtak: ferdigstill inputs, revider hele repoet, ingen trening
 
 Brukeren har autorisert [native-forberedelse og full repo-gjennomgang](docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md)
 før eventuell trening. Dette overstyrer tidligere forbud mot videre datasetbygging.
@@ -15,7 +34,7 @@ SMC-rettelsen og prosjektvis låsing er kontrollert. Tidligere kilde-/testgjenno
 er dokumentert; fullført v37-inputbygging og resterende beslutningsgrense står nedenfor.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
-## Nå: autorisert inputforberedelse og gjennomgang er fullført; trening er stengt
+## Fullført historikk: autorisert inputforberedelse og gjennomgang; trening er stengt
 
 V37-datasettet er ferdig. Fersk etterkontroll og readiness besto 29.09 kl.
 03:13 UTC / 05:13 norsk tid; lifecycle-eierens faktiske TRAIN/VAL-filadgang
@@ -52,7 +71,8 @@ består strukturkontroll. De fokuserte reparasjonstestene og faktisk fullført
 bygg/readiness/lifecycle utgjør ny evidens. Ingen ny fullsuite er kjørt.
 Se [repo-rapporten](docs/REPO_REVIEW_20260928.md) for presis dekning og begrensning.
 
-Neste steg er en egen beslutning om én bundet native forskningskjøring.
+Den tidligere forberedelsesgrensen krevde en egen native forskningsbeslutning.
+Gjeldende neste steg er A/B/C-planen ovenfor; ingen native kjøring er vedtatt.
 Det er ingen godkjent v37-treningsrecipe eller treningsstart. Fersk TRAIN-
 normalisering, native konstruksjon og senere train/serve-paritet hører til den
 bundet kjøringens eksisterende eiere og er ikke erklært utført her.

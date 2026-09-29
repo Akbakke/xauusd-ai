@@ -20,23 +20,24 @@ Ingen ny fullsuite eller gjentatt bestått datakontroll uten konkret nytt funn.
 Alle features, åtte familier og tidsrammer beholdes. Ingen data/checkpoints slettes;
 ekstern diskopprydding krever retention-eierens rekkeviddebevis og godkjente plan.
 
-## Neste beslutning, uten automatisk treningsstart
+## Neste arbeid: godkjent A/B/C-forskning
 
-Avklar én forhåndsbundet native forskningskjøring og dens spørsmål, sammenligning,
-kapasitet, kronologiske perioder, kausale baselines, uendrede kostnader og budsjett.
-En eventuell forenkling bør endre én akse. Første hypotese er færre hjelpeoppgaver;
-vesentlig beregningsreduksjon krever vurdering av encoderkapasitet. Ingen av delene
-har bevist bedre senere beslutningsverdi. Ikke start modell-/taps-/terskelsøk.
+Følg [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md). Dokumentasjonsbølgen
+publiserer rotårsaksrapporten og synkroniserer operatørvedtaket. Neste steg er:
 
-En senere godkjent kjøring må få ferske v37-recipe-/launch-bindinger gjennom
-etablerte native eiere og capped-run. Fersk normalisering tilpasses én gang på
-hele fysiske TRAIN-populasjonen. Native konstruksjon, initial ONLINE-baseline,
-train/serve-paritet, senere generalisering og samlet nettoøkonomi må faktisk
-måles; inputreadiness erstatter ingen av disse bevisene.
+1. Reparer ridge/konstant-rapportering, sammenhengende kjøp-og-hold/finansiering,
+   risikosammenligning og inferens/styrke hos eksisterende instrumenteiere.
+2. Commit kjørbare forhåndsregistreringer for sju D1-felt (A), navngitt makrotillegg
+   (B) og fem frosne fortsettelsesceller med utførelsesdiagnostikk (C).
+3. Kjør avgrenset gjennom capped audit/producer. Gjenbruk gyldige cacher og
+   sammenlign på samme kausale populasjon. Ingen gamle planer relanseres.
+4. Dokumenter GO/NO-GO/INKONKLUSIV og foreslå neste operatørbeslutning.
 
-`training_enabled=false`: ingen optimizer, native trening, full VAL,
-TEST-utfall, live/paper eller spending er autorisert nå. Automatisk oppfølging
-av den avsluttede inputforberedelsen slås av etter ferdig overlevering.
+Planen er ikke en kjørbar forhåndsregistrering. Ingen nye A/B/C-resultater finnes
+ennå. Regel 1 tillater kun navngitte, manifestbundne eksterne forskningsinputs.
+training_enabled=false: native optimizer/trening, full native VAL, TEST-utfall,
+live/paper og spending er stengt. Bare den registrerte forskningens dataadgang
+og CPU-fits er åpnet. Native mål-/horisontkontrakt krever senere eget vedtak.
 
 ## Fullførte historiske spor
 
