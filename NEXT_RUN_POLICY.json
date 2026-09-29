@@ -1866,9 +1866,9 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Follow docs/TA_RESEARCH_PLAN_20260929.md: publish reviewed root-cause evidence and the 29 September rule-1 research decision; repair measured research instrument defects; commit executable A/B/C preregistrations before bounded capped audit/producer runs. Research CPU fits and named research VAL access are authorized only within those registrations. Reuse completed v37 inputs and prior evidence; do not relaunch preparation. No native optimizer/training, full native VAL, TEST outcomes, trading or spending. Native objective/horizon changes require a later separate operator decision.",
+  "next_action": "Ridge regularization/reporting repair is mechanics-verified; see bound RIDGE_REPAIR_VERIFICATION. Next repair continuous buy-and-hold and historical financing in research owners, risk-matched comparisons and paired block-bootstrap/multiplicity/power. Then commit executable A/B/C preregistrations before bounded capped research runs. Documentation published at 52c8761e. No new market measurement has started. Native optimizer/training, full native VAL, TEST outcomes, trading and spending remain blocked.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-09-29T19:11:55.676016+00:00",
+  "observed_utc": "2026-09-29T20:06:54.344053+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2051,6 +2051,7 @@
   "schema_version": "gx1_next_native_run_policy_v1",
   "status": "TA_RESEARCH_ABC_INSTRUMENT_REPAIR_PENDING_TRAINING_DISABLED",
   "ta_research_20260929": {
+    "documentation_commit": "52c8761e8046fc12d7dc7d7cf0d881f1799e2a16",
     "documentation_verification": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/DOCUMENTATION_VERIFICATION.json",
       "sha256": "23cd80acfcd4cf354dd299aaa2fdfee2d887b5f854fa652761f64c054fe5bf3e"
@@ -2062,12 +2063,16 @@
     "operator_authorized_on": "2026-09-29",
     "plan": "docs/TA_RESEARCH_PLAN_20260929.md",
     "research_cpu_fit_authorized_after_preregistration": true,
+    "ridge_repair_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json",
+      "sha256": "8e0b9e2bcb2eca9b23ea58e346bcf11b117ac3b7fbba5c7d8b3e0a359fa83afa"
+    },
     "run_root": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929",
     "status": "INSTRUMENT_REPAIR_AND_PREREGISTRATION_PENDING",
     "steps": {
       "decision": "PENDING",
-      "documentation": "PREPARED_FOR_COMMIT",
-      "instrument_repair": "PENDING",
+      "documentation": "PUBLISHED",
+      "instrument_repair": "PARTIAL_RIDGE_MECHANICS_VERIFIED",
       "measurement_a": "NOT_STARTED",
       "measurement_b": "NOT_STARTED",
       "measurement_c": "NOT_STARTED",

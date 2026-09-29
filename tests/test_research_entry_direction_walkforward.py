@@ -42,6 +42,51 @@ def test_ridge_inner_centering_matches_independent_reference() -> None:
     assert info["inner_val_mse"] < 0.01
     assert gram.inner_mean[0] == pytest.approx(X[gram.inner_fit].mean())
     assert info["inner_purged_rows"] == 24
+    assert info["alpha_at_grid_lower"] and not info["alpha_at_grid_upper"]
+
+
+def test_ridge_strong_regularization_and_pure_arm_match_independent_reference() -> None:
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    # Reversed validation slope: every finite ridge loses to the causal constant.
+    # This is a mechanics fixture, not evidence that a market signal exists.
+    X = np.tile([-1.0, 1.0], 200)[:, None]
+    y = X[:, 0].copy()
+    y[300:] *= -1.0
+    pred_X = np.array([[-2.0], [2.0]])
+    kwargs = dict(inner_fraction=0.25, fit_positions=np.arange(400), purge_bars=0)
+    selected = wf.RidgeGram(X, pred_X, **kwargs)
+    constant_pred, constant_info = selected.fit_predict(y)
+    pure = wf.RidgeGram(X, pred_X, constant_alternative=False, **kwargs)
+    ridge_pred, info = pure.fit_predict(y)
+
+    assert wf.RIDGE_ALPHA_GRID[-1] >= 1e7
+    assert info["alpha"] == wf.RIDGE_ALPHA_GRID[-1]
+    assert info["alpha_at_grid_upper"] and not info["alpha_at_grid_lower"]
+    assert info["constant_would_win"] and not info["constant_alternative_enabled"]
+    assert info["model_kind"] == "ridge" and constant_info["model_kind"] == "constant"
+    np.testing.assert_array_equal(constant_pred, np.full(2, y.mean()))
+    reference = make_pipeline(StandardScaler(), Ridge(alpha=info["alpha"]))
+    reference.fit(X, y)
+    np.testing.assert_allclose(ridge_pred, reference.predict(pred_X), rtol=1e-12)
+    assert np.ptp(ridge_pred) > 0
+    assert info["constant_inner_train_mean"] == 0.0
+    assert info["constant_full_fit_mean"] == y.mean()
+
+    # A supplied alpha is not evidence that model selection hit a search boundary.
+    _, fixed_info = pure.fit_predict(y, alpha=info["alpha"])
+    assert fixed_info["alpha_selection"] == "fixed"
+    assert "alpha_at_grid_upper" not in fixed_info and "constant_would_win" not in fixed_info
+    diagnostics = wf.summarize_fit_diagnostics([
+        {"long": constant_info, "short": info},
+        {"long": fixed_info, "short": fixed_info},
+    ])["ridge"]
+    assert diagnostics["side_fits"] == 4 and diagnostics["constant_fit_fraction"] == 0.25
+    assert diagnostics["alpha_grid_search_fits"] == 2
+    assert diagnostics["alpha_at_upper_fraction"] == 1.0
+    assert diagnostics["constant_would_win_fraction"] == 1.0
 
 
 def test_hgb_refits_full_fold_after_purged_model_selection(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -921,6 +966,13 @@ def test_run_weekly_style_clock_and_nonoverlap_statistics(tmp_path: Path) -> Non
         ]
     )
     report = wf.run(args)
+    assert set(report["fit_diagnostics"]) == {"ridge", "hgb"}
+    for learner, diag in report["fit_diagnostics"].items():
+        fits = [fit for fit in report["fits"] if f"__{learner}__" in fit["key"]]
+        constants = sum(fit[side]["model_kind"] == "constant" for fit in fits for side in ("long", "short"))
+        assert diag["side_fits"] == 2 * len(fits)
+        assert diag["constant_fit_fraction"] == constants / (2 * len(fits))
+    assert "## Fit diagnostics" in (out_dir / "summary.md").read_text()
     assert report["config"]["decision_clock"]["clock"] == "H1"
     assert report["config"]["decision_clock"]["decision_rows"] < report["config"]["decision_clock"]["dataset_rows"] // 10
     nonoverlap = json.loads((out_dir / "nonoverlap.json").read_text(encoding="utf-8"))

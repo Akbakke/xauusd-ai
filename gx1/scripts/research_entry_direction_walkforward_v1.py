@@ -145,7 +145,9 @@ EARLY_CALIBRATED_MTF_SCHEMA = "gx1_early_calibrated_research_mtf_v1"
 # Existing row minimums (unchanged defaults; explicit CLI inputs for coarse decision clocks).
 DEFAULT_MIN_FIT_ROWS = 1000
 DEFAULT_MIN_INNER_ROWS = 100
-RIDGE_ALPHA_GRID = tuple(float(v) for v in np.logspace(-2.0, 4.0, 13))
+# Operator research decision 2026-09-29: retain half-decade spacing and extend
+# the upper bound from 1e4 to 1e7; report boundary choices rather than hiding them.
+RIDGE_ALPHA_GRID = tuple(float(v) for v in np.logspace(-2.0, 7.0, 19))
 # scikit-learn 1.7 HistGradientBoostingRegressor library defaults (origin: the pinned library, not a tuned choice).
 HGB_LIBRARY_DEFAULT_LEARNING_RATE = 0.1
 HGB_LIBRARY_DEFAULT_MIN_SAMPLES_LEAF = 20
@@ -1025,11 +1027,24 @@ class RidgeGram:
             beta = np.zeros(self.n_features)
             beta[cols] = np.linalg.solve(gram_full + best_alpha * eye, xty_full)
             pred = _chunked_matvec(self.X_pred, beta, mean=self.mean, scale=self.scale) + full_mean
-        return pred, {"alpha": best_alpha, "inner_val_mse": best_mse, "constant_inner_val_mse": constant_mse,
-                      "model_kind": "constant" if use_constant else "ridge", "columns": int(len(cols)),
-                      "fit_rows": len(y), "inner_fit_rows": len(self.inner_fit_rows),
-                      "inner_val_rows": len(self.inner_val_rows),
-                      "inner_purged_rows": int((~(self.inner_fit | self.inner_val)).sum())}
+        info = {"alpha": best_alpha, "inner_val_mse": best_mse, "constant_inner_val_mse": constant_mse,
+                "alpha_selection": "grid" if alpha is None else "fixed",
+                "constant_alternative_enabled": self.constant_alternative,
+                "constant_full_fit_mean": full_mean,
+                "model_kind": "constant" if use_constant else "ridge", "columns": int(len(cols)),
+                "fit_rows": len(y), "inner_fit_rows": len(self.inner_fit_rows),
+                "inner_val_rows": len(self.inner_val_rows),
+                "inner_purged_rows": int((~(self.inner_fit | self.inner_val)).sum())}
+        if alpha is None:
+            info.update(
+                alpha_grid_min=float(min(RIDGE_ALPHA_GRID)),
+                alpha_grid_max=float(max(RIDGE_ALPHA_GRID)),
+                alpha_at_grid_lower=best_alpha == min(RIDGE_ALPHA_GRID),
+                alpha_at_grid_upper=best_alpha == max(RIDGE_ALPHA_GRID),
+                constant_inner_train_mean=inner_mean,
+                constant_would_win=not best_mse < constant_mse,
+            )
+        return pred, info
 
 
 def fit_hgb(
@@ -1820,6 +1835,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "val_arm_valid_rows": {arm: int(v.sum()) for arm, v in val_arm_valid.items()},
         },
         "fits": fit_reports,
+        "fit_diagnostics": summarize_fit_diagnostics(fit_reports),
         "summary": summary,
         "nonoverlap_summary": nonoverlap_summary,
         "elapsed_seconds": _time.monotonic() - started,
@@ -1827,6 +1843,32 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     (out_dir / "report.json").write_text(json.dumps(report, indent=2, default=_json_default), encoding="utf-8")
     (out_dir / "summary.md").write_text(render_markdown(report, metrics), encoding="utf-8")
     return report
+
+
+def summarize_fit_diagnostics(fits: list[dict[str, Any]]) -> dict[str, Any]:
+    """Count side/target/fold fits, not predictions or trades; fixed alpha is not a grid search."""
+    sides = [record[side] for record in fits for side in ("long", "short")]
+    out: dict[str, Any] = {}
+    for learner, identity in (("ridge", "alpha"), ("hgb", "best_iter")):
+        group = [info for info in sides if identity in info]
+        if not group:
+            continue
+        constants = sum(info["model_kind"] == "constant" for info in group)
+        summary: dict[str, Any] = {
+            "side_fits": len(group), "constant_fits": constants,
+            "constant_fit_fraction": constants / len(group),
+        }
+        if learner == "ridge":
+            searched = [info for info in group if info["alpha_selection"] == "grid"]
+            summary["alpha_grid_search_fits"] = len(searched)
+            if searched:
+                for boundary in ("lower", "upper"):
+                    count = sum(info[f"alpha_at_grid_{boundary}"] for info in searched)
+                    summary[f"alpha_at_{boundary}_count"] = count
+                    summary[f"alpha_at_{boundary}_fraction"] = count / len(searched)
+                summary["constant_would_win_fraction"] = sum(info["constant_would_win"] for info in searched) / len(searched)
+        out[learner] = summary
+    return out
 
 
 def summarize(metrics: pd.DataFrame) -> list[dict[str, Any]]:
@@ -1900,6 +1942,16 @@ def render_markdown(report: dict[str, Any], metrics: pd.DataFrame) -> str:
             f"{s['top_frac']:.2f} | {s['fold_seed_rows']} | {f(s['mean_pnl_bps_avg'])} | {f(s['mean_pnl_bps_min'])} | {f(s['excess_over_coin_avg'])} | "
             f"{s['primary_pass_count']} | {s['strict_pass_count']} | {f(s['hit_rate_avg'],3)} | {f(s['p_long_chosen_avg'],3)} | {f(s['n_avg'],0)} |"
         )
+    if report.get("fit_diagnostics"):
+        lines += ["", "## Fit diagnostics", "",
+                  "Fractions count side/target/fold fits, not holdout rows or trades."]
+        for learner, diag in report["fit_diagnostics"].items():
+            lines.append(f"- {learner}: {diag['constant_fits']}/{diag['side_fits']} constant fits "
+                         f"({diag['constant_fit_fraction']:.1%}).")
+            if learner == "ridge" and diag["alpha_grid_search_fits"]:
+                lines.append(f"  Alpha at lower/upper boundary: {diag['alpha_at_lower_fraction']:.1%} / "
+                             f"{diag['alpha_at_upper_fraction']:.1%}; constant would win inner selection: "
+                             f"{diag['constant_would_win_fraction']:.1%}.")
     if report.get("nonoverlap_summary"):
         lines += [
             "",
@@ -1962,7 +2014,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-fit-rows", type=int, default=DEFAULT_MIN_FIT_ROWS, help="explicit research input; rows, not independent outcomes")
     parser.add_argument("--min-inner-rows", type=int, default=DEFAULT_MIN_INNER_ROWS, help="explicit research input; rows, not independent outcomes")
     parser.add_argument("--ridge-constant-alternative", choices=["on", "off"], default="on",
-                        help="on: the chosen alpha must beat the inner-TRAIN constant (v2); off reproduces v1 selection for paired comparisons")
+                        help="on: select ridge or the inner-TRAIN constant; off: pure ridge, with the constant still reported as a separate comparator")
     return parser
 
 

@@ -19,6 +19,17 @@ scripts/gx1_capped_run.sh med eksisterende audit/producer-profiler og vakter.
 training_enabled=false gjelder native trening. Ingen native optimizer, full
 native VAL, TEST-utfall, live/paper eller spending. Native featurefamilier bevares.
 
+## Fremdrift 29.09.2026
+
+Dokumentasjonsvedtak og rotårsaksrapport er publisert i 52c8761e.
+Ridge-instrumentet har nå 19 alphaer fra 0,01 til 1e7, eksplisitt ren-ridge-modus
+via eksisterende --ridge-constant-alternative off og rapportering av konstantvalg
+og nedre/øvre søkegrense. Konstanten beholdes også når ren ridge måles.
+Fokuserte eiertester med uavhengig sklearn-referanse besto gjennom capped audit.
+Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.
+Dette er teknisk konsistens, ikke nye markedsresultater. Resten av instrumentene,
+kjørbare forhåndsregistreringer og alle A/B/C-målinger gjenstår.
+
 ## 1. Reparer målte instrumentfeil hos eksisterende eiere
 
 - Utvid ridge-regularisering til minst 1e7 eller deklarert Gram-relativ skala.

@@ -8,13 +8,21 @@ overstyrer prosa.
 ## Nå: godkjent A/B/C-plan; instrumentreparasjon før nye målinger
 
 Brukeren har vedtatt [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md) som aktivt
-mål. [Rotårsaksrapporten](docs/EDGE_ROOT_CAUSE_REVIEW_20260929.md) publiseres med
+mål. [Rotårsaksrapporten](docs/EDGE_ROOT_CAUSE_REVIEW_20260929.md) er publisert med
 kontrollert dommetelling og spreadpresisering; originalen er bevart. Regel 1 åpner
 navngitte, manifestbundne eksterne forskningsinputs med XAUUSD som eneste eksponering.
 
-Neste arbeid er avgrenset instrumentreparasjon hos eksisterende forsknings-eiere,
-deretter commit av kjørbare forhåndsregistreringer og capped A/B/C-målinger.
-Ingen ny forskningskjøring er startet. Planen alene er ikke en preregistrering.
+Dokumentasjonsbølgen er pushet som 52c8761e. Første instrumentrettelse er kontrollert:
+ridge-gridet går nå til 1e7, og rapporten skiller ren ridge, konstantvalg og valg
+på søkegrensen. Konstanten beholdes som synlig kausal referanse. Eierens fokuserte
+tester besto gjennom capped audit, inkludert uavhengig sklearn-sammenligning.
+
+Neste arbeid er sammenhengende kjøp-og-hold/historisk finansiering,
+risikosammenligning og inferens/styrke, deretter commit av kjørbare
+forhåndsregistreringer og capped A/B/C-målinger. Ingen ny markedskjøring er startet.
+Mekaniske tester beviser ingen bedre prognose eller lønnsomhet.
+Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.
+Planen alene er ikke en preregistrering.
 Dokumentasjonsbevis:
  /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/DOCUMENTATION_VERIFICATION.json.
 NEXT_RUN_POLICY.json og RUNNING_NATIVE_CALIBRATION.json binder samme nye status.
