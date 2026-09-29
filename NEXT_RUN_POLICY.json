@@ -1868,7 +1868,7 @@
   },
   "next_action": "A/B/C research plan complete: preserve terminal A/C and B source limitation. No run authorized. Next operator decision is whether documented historical GLD/COT release-vintage evidence justifies reopening full B; no automatic native training or execution research. TEST outcomes, trading and spending remain disabled.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-09-29T21:47:44.846630+00:00",
+  "observed_utc": "2026-09-29T21:49:05.274396+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2125,6 +2125,10 @@
       "sha256": "feabf85a91607e8b1709f1a6fe6fb96f8997cd011adb64a65dfa00ad8719b52f"
     },
     "external_manifest_bound_research_inputs_authorized": true,
+    "final_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FINAL_RESEARCH_VERIFICATION.json",
+      "sha256": "5107ab65af2337b0cf077195c5bf0c998fbc2a0e6b52c0084c42e7660f8307d3"
+    },
     "full_native_val_allowed": false,
     "funding_nyfed_preparation": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_PREP_VERIFICATION.json",
@@ -2152,6 +2156,7 @@
     "operator_authorized_on": "2026-09-29",
     "plan": "docs/TA_RESEARCH_PLAN_20260929.md",
     "research_cpu_fit_authorized_after_preregistration": true,
+    "result_publication_commit": "3609234932730bdf05b1c24c777d7240de1d1921",
     "ridge_repair_verification": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json",
       "sha256": "8e0b9e2bcb2eca9b23ea58e346bcf11b117ac3b7fbba5c7d8b3e0a359fa83afa"
@@ -2159,8 +2164,8 @@
     "run_root": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929",
     "status": "TA_RESEARCH_COMPLETE_A_C_INCONCLUSIVE_B_SOURCE_LIMITED_TRAINING_DISABLED",
     "steps": {
-      "decision": "DOCUMENTED_NO_GO_FOR_EXPANSION_NO_NEW_RUN",
-      "documentation": "COMPLETE_REPORTS_PENDING_PUBLICATION",
+      "decision": "DOCUMENTED_NO_EXPANSION_AUTHORIZED",
+      "documentation": "PUBLISHED",
       "instrument_repair": "COMPLETE_RESEARCH_MECHANICS_VERIFIED",
       "measurement_a": "COMPLETE_RIDGE_AND_HGB_INKONKLUSIV",
       "measurement_b": "NOT_MEASURED_SOURCE_LIMITATION",

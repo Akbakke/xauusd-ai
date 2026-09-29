@@ -1804,7 +1804,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-29T21:47:44.846630+00:00",
+  "latest_observation_utc": "2026-09-29T21:49:05.274396+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2507,6 +2507,10 @@
       "sha256": "feabf85a91607e8b1709f1a6fe6fb96f8997cd011adb64a65dfa00ad8719b52f"
     },
     "external_manifest_bound_research_inputs_authorized": true,
+    "final_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FINAL_RESEARCH_VERIFICATION.json",
+      "sha256": "5107ab65af2337b0cf077195c5bf0c998fbc2a0e6b52c0084c42e7660f8307d3"
+    },
     "full_native_val_allowed": false,
     "funding_nyfed_preparation": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_PREP_VERIFICATION.json",
@@ -2534,6 +2538,7 @@
     "operator_authorized_on": "2026-09-29",
     "plan": "docs/TA_RESEARCH_PLAN_20260929.md",
     "research_cpu_fit_authorized_after_preregistration": true,
+    "result_publication_commit": "3609234932730bdf05b1c24c777d7240de1d1921",
     "ridge_repair_verification": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json",
       "sha256": "8e0b9e2bcb2eca9b23ea58e346bcf11b117ac3b7fbba5c7d8b3e0a359fa83afa"
@@ -2541,8 +2546,8 @@
     "run_root": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929",
     "status": "TA_RESEARCH_COMPLETE_A_C_INCONCLUSIVE_B_SOURCE_LIMITED_TRAINING_DISABLED",
     "steps": {
-      "decision": "DOCUMENTED_NO_GO_FOR_EXPANSION_NO_NEW_RUN",
-      "documentation": "COMPLETE_REPORTS_PENDING_PUBLICATION",
+      "decision": "DOCUMENTED_NO_EXPANSION_AUTHORIZED",
+      "documentation": "PUBLISHED",
       "instrument_repair": "COMPLETE_RESEARCH_MECHANICS_VERIFIED",
       "measurement_a": "COMPLETE_RIDGE_AND_HGB_INKONKLUSIV",
       "measurement_b": "NOT_MEASURED_SOURCE_LIMITATION",
