@@ -86,7 +86,7 @@ utførbar likvidasjonsverdi. Følg den kontrollerte kontantregnskapseieren.
 To ko-primære finansieringsscenarioer: null og historisk benchmark pluss
 1,29 prosentpoeng. [FRED DFF](https://fred.stlouisfed.org/series/DFF) er en daglig
 USD overnight-serie i prosent per år; kilde er Federal Reserves H.15.
-Hentemetode/vindu er bundet separat i TA_FUNDING_SOURCE_20260929.json før henting.
+Hentemetode/vindu er bundet separat i TA_FUNDING_SOURCE_RETRY_20260929.json før henting.
 Mottatte bytes og full kalenderdagsdekning bindes i RECEIPT.json.
 
 DFF er kun en etterfølgende kostnadsmodell, aldri et prognoseinput.
@@ -152,3 +152,12 @@ JSON-filen binder endelige outputstier. STARTED, FITS, dagspanel, prognoser,
 parvise avkastninger, bootstrap-statistikker, RESULT og TERMINAL bevares.
 Terminalkvitteringen og resultatets filinventar må bekreftes før tolkning.
 Bare aggregerte bevis og dokumentasjon publiseres, aldri rådata.
+
+## Transportrecovery før første markedsmåling
+
+Første manifest i c385c316 fikk lesetimeout uten mottatte bytes. Originalt
+manifest og FUNDING_DFF_001/FAILED.json er bevart. Et nytt manifest
+TA_FUNDING_SOURCE_RETRY_20260929.json binder samme URL, kilde og datovindu,
+60 sekunders svartid og separat FUNDING_DFF_002-output. A-registreringens
+transport-/kildebinding oppdateres før første markedskjøring. Ingen numeriske
+forsøksvalg eller beslutningsregler endres.

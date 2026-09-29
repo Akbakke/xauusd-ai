@@ -78,7 +78,7 @@ def fetch_funding(spec: dict, spec_path: Path) -> dict:
     out.mkdir(parents=True, exist_ok=False)
     request = Request(spec["url"], headers={"User-Agent": "GX1 offline research"})
     try:
-        with urlopen(request, timeout=30) as response:
+        with urlopen(request, timeout=spec.get("timeout_seconds", 30)) as response:
             raw = response.read(spec["maximum_bytes"] + 1)
             final_url = response.url
         if len(raw) > spec["maximum_bytes"]:

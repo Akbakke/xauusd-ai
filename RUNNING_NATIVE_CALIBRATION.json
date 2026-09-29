@@ -1804,7 +1804,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-29T20:40:53.339620+00:00",
+  "latest_observation_utc": "2026-09-29T20:44:17.740742+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2222,11 +2222,11 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Commit and publish A executable preregistration and funding source manifest, then fetch only bound DFF source through capped audit and run A through capped producer. Verify receipt/inventory and interpret as reused-development evidence. B and C remain separate pending registrations. No native training/full native VAL/TEST/trading/spending.",
+  "next_action": "Publish bound funding retry after first retrieval timed out with no bytes. Retry same DFF source once at 60 s under capped audit into FUNDING_DFF_002; original failure remains. Then run preregistered A under capped producer and verify terminal/inventory. No scientific choices changed or market measurement started; B/C pending; native training/TEST/trading/spending blocked.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
-  "observed_utc": "2026-09-29T20:40:53.339620+00:00",
+  "observed_utc": "2026-09-29T20:44:17.740742+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2440,7 +2440,7 @@
     },
     "a_preregistration": {
       "path": "configs/research/TA_A_PREREG_20260929.json",
-      "sha256": "7037eec18d34ecfefa996170d067d583f431513510eeff00ab1bedb04c8f5c17"
+      "sha256": "748aa062ad468cb1f00cf461201f748799360943178af014ae06f7fb5d50dcb3"
     },
     "documentation_commit": "52c8761e8046fc12d7dc7d7cf0d881f1799e2a16",
     "documentation_verification": {
@@ -2453,9 +2453,13 @@
     },
     "external_manifest_bound_research_inputs_authorized": true,
     "full_native_val_allowed": false,
+    "funding_retry_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_RETRY_VERIFICATION.json",
+      "sha256": "d0dbc11fe96e57a258e2244a30b1a5a17efa7e7a3681715416b802d74191b47e"
+    },
     "funding_source_manifest": {
-      "path": "configs/research/TA_FUNDING_SOURCE_20260929.json",
-      "sha256": "e1eeec3b6d9649e7fa739df838fcea06588a76451e74324832eecda42700fdf4"
+      "path": "configs/research/TA_FUNDING_SOURCE_RETRY_20260929.json",
+      "sha256": "02f98eb983a454169660a66bbdfb010e4aa1f826d4ff3213751e27fd086d698a"
     },
     "instrument_review": "docs/TA_RESEARCH_INSTRUMENTS_20260929.md",
     "native_training_enabled": false,
@@ -2476,7 +2480,7 @@
       "measurement_a": "NOT_STARTED",
       "measurement_b": "NOT_STARTED",
       "measurement_c": "NOT_STARTED",
-      "preregistrations": "A_PREPARED_FOR_COMMIT_B_C_PENDING"
+      "preregistrations": "A_COMMITTED_TRANSPORT_RETRY_PREPARED_B_C_PENDING"
     },
     "test_outcomes_allowed": false
   },

@@ -49,8 +49,8 @@
     2025
   ],
   "funding": {
-    "manifest": "/home/andre2/src/GX1_CURRENT/configs/research/TA_FUNDING_SOURCE_20260929.json",
-    "manifest_sha256": "e1eeec3b6d9649e7fa739df838fcea06588a76451e74324832eecda42700fdf4",
+    "manifest": "/home/andre2/src/GX1_CURRENT/configs/research/TA_FUNDING_SOURCE_RETRY_20260929.json",
+    "manifest_sha256": "02f98eb983a454169660a66bbdfb010e4aa1f826d4ff3213751e27fd086d698a",
     "markup": 0.0129,
     "seconds_per_year": 31557600.0
   },
@@ -87,7 +87,7 @@
     "gx1/features/technical_indicators_v1.py": "e149423ca38c36ea77234e2173f7ea78e81a4bb0cb1dfd2b74576de76989f024",
     "gx1/scripts/research_entry_direction_walkforward_v1.py": "dffef5663437b629f77511f04255e186b4c303e7117159eae0d4caaa77c0136b",
     "gx1/scripts/research_model_free_baselines_v1.py": "ad66fe337ef294614acc6a9b46f6c72ecb2a299a6b760c08579035f93cc42f50",
-    "gx1/scripts/research_ta_campaign_v1.py": "0ad4feacd52ba4beda1856c3a6cbd26e9be9bdec1039f347209afeb9fb8eac4f",
+    "gx1/scripts/research_ta_campaign_v1.py": "8880b413eb03841f493c3bf23d258569e417dcaacca891a3c2769798247105cf",
     "gx1/time/session_detector.py": "aab11f91776aacfaa48272706807b58acdc7f6606078d5297b5e469bdca13b9e"
   },
   "tape": {

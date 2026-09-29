@@ -27,6 +27,9 @@ Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ECONOMICS_INFERENCE_VERIFICATI
 [A-registreringen](docs/TA_A_PREREG_20260929.md) er nå kjørbar og kontrollert
 med syntetisk ende-til-ende-kjøring, inkludert klokke/purge, fulle parvise
 porteføljer, 96 erklærte endepunkter, utdatahasher og terminalkvittering.
+A og opprinnelig finansieringsmanifest er committet i c385c316.
+Første FRED-henting fikk lesetimeout uten bytes; FUNDING_DFF_001/FAILED.json
+er bevart. Separat retry-manifest binder samme kilde/vindu og 60 sekunder.
 Ingen nye markedsutfall eller finansieringsdata er lest ennå.
 Neste steg etter commit er manifestbundet DFF-henting gjennom capped audit,
 deretter A gjennom capped producer. B og C krever fortsatt egne registreringer.

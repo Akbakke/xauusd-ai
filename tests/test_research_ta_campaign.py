@@ -148,3 +148,24 @@ def test_run_writes_terminal_bound_inventory_and_predictions(tmp_path, monkeypat
         assert binding["sha256"] == ta.sha(out / name)
     with pytest.raises(FileExistsError):
         ta.run_a(spec, spec_path)
+
+def test_funding_fetch_binds_bytes_dates_and_explicit_retry_timeout(tmp_path, monkeypatch):
+    import io
+    raw = b"observation_date,DFF\n2020-01-01,1.5\n2020-01-02,1.6\n"
+    class Response(io.BytesIO):
+        url = "https://fred.stlouisfed.org/bound-source"
+    observed = []
+    def fetch(request, timeout):
+        observed.append((request.full_url, timeout))
+        return Response(raw)
+    monkeypatch.setattr(ta, "urlopen", fetch)
+    spec = {"url": Response.url, "maximum_bytes": 1000,
+            "output_directory": str(tmp_path / "fetch"), "timeout_seconds": 60,
+            "start_date": "2020-01-01", "end_date": "2020-01-02"}
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(spec))
+    receipt = ta.fetch_funding(spec, manifest)
+    assert observed == [(Response.url, 60)]
+    assert receipt["raw_sha256"] == ta.sha(Path(receipt["raw_path"]))
+    assert receipt["rows"] == 2
+    assert Path(receipt["raw_path"]).read_bytes() == raw
