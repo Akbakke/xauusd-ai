@@ -10,12 +10,12 @@ all test-/datakjøring bruker eksisterende capped-run-vakter.
    full lokal M1-kontroll og faktisk MTF-paritet på de sju berørte TRAIN-radene.
    Ny prosjektlås består 294 tester og faktisk parallell låsadgang. Bevisene
    gjenbrukes; ingen ny fullsuite eller gjentatt diagnose uten et nytt funn.
-2. Fullfør `CONTINUE_LOCKED_QUOTES_ROOT_20260929` under
+2. Fullfør `CONTINUE_REGISTRY_BINDING_20260929` under
    `HISTORY2009W_NATIVE_V37_20260928`, med fersk outputrot
-   `DATASET_LOCKED_QUOTES_RECOVERY_20260929`. Forrige TRAIN-skriver fullførte
-   652 552 rader uten OOM; lifecycle stoppet på BID lik ASK. Samme prisregel
-   som kanonisk tape er nå kontrollert med 44 tester og faktisk TRAIN-vindu.
-   Ingen priser er endret. Datasettet mangler fortsatt ferdigmanifest.
+   `DATASET_REGISTRY_BINDING_RECOVERY_20260929`. Forrige TRAIN-skriver og
+   lifecycle passerte; split-manifestet stoppet på foreldet likhetskrav mellom
+   kalibrering og modell-TRAIN. Eksakt cache-binding og fit innen TRAIN er nå
+   kontrollert med målrettede tester og kjøringens faktiske metadata.
    Les samme runs START/TERMINAL og prosesser; ikke dupliser planen.
    Ferdige upstream-inputs gjenbrukes bare etter hash-/kodekontroll og ny preflight.
    Bevar kildefrys, delvise gamle datasett og originale checkpoints.

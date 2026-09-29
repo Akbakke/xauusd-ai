@@ -361,3 +361,32 @@ kjeden startet: outputmappen måtte eksistere som en tom ordinær mappe. Ingen
 data ble skrevet. Klargjøringen er rettet; ny engangslauncher er
 `CONTINUE_LOCKED_QUOTES_ROOT_20260929`, med samme ennå ubrukte outputnamespace.
 Avbrutt oppstart og post-build-avvisning bevares; ingen produsentkode er endret.
+
+## 29.09 kl. 00:13 UTC: split-manifestets kalibreringsbinding
+
+TRAIN-skriving (652 552 rader) og lifecycle passerte etter prisrettelsen.
+Deretter krevde en eldre split-manifestkontroll at registry-fit var identisk
+med modellens TRAIN-split. Dette motsa kjedens eksplisitte, tidligere kalibrering.
+Split-validatoren krever nå eiergodkjente konstanter, eksakt payload-likhet med
+hashbundet cache-manifest og fit-slutt senest ved modellens TRAIN-slutt.
+Kjedens uavhengige deklarasjon av eksakt fit-vindu og indre fit-slutt består.
+
+Målrettede writer-/rebuild-/kjedetester består. Senere fit inn i VAL, endrede
+cachebytes og avvikende frossen payload avvises. Faktisk cache og byggbevis
+fra den stoppede kjøringen består eksakt validator uten endrede metadata.
+`REGISTRY_SPLIT_BINDING_VERIFICATION.json` og `REGISTRY_SPLIT_BINDING_REPAIR.json`
+i kjøringens runtime-rot dokumenterer kontrollen. Builder-kode utenfor
+split-validatoren er AST-identisk; ingen data/fit/modell/split endres.
+
+Ny engangsvidereføring: `CONTINUE_REGISTRY_BINDING_20260929`; ferske outputs:
+`DATASET_REGISTRY_BINDING_RECOVERY_20260929`. Gjenbrukseieren tillater bare den
+navngitte downstream-validatorendringen; alle upstream-eiere og inputbytes
+kontrolleres fortsatt. Ny preflight og uendrede kapasitetsgrenser gjelder.
+Gamle delvise outputs bevares uten konstruert ferdigmanifest. Readiness,
+lifecycle-bindinger og kompleksitetsvurdering gjenstår. Ingen trening er åpnet.
+
+Normal commit ble avvist av uendret 20 GiB ledig-RAM-vakt. Eksisterende
+engangskø er brukt: eksakt staged diff og runtime bindes, køen venter hvert
+15. minutt og gjennomfører vanlig commit/push før engangsdispatch. Ingen
+hook eller ressursgrense omgås. QUEUE_STATUS/QUEUE_TERMINAL eier faktisk
+tilstand; kilden er frosset også under venting.

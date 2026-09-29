@@ -15,7 +15,46 @@ SMC-rettelsen og prosjektvis låsing er kontrollert. Tidligere kilde-/testgjenno
 er dokumentert; ny v37-inputbygging og gjenstående avklaringer står nedenfor.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
-## Nå: lifecycle godtar samme låste priser som kanonisk tape
+## Nå: split-manifest binder den vedtatte tidlige kalibreringen
+
+`CONTINUE_LOCKED_QUOTES_ROOT_20260929` lukket TRAIN-skriveren med 652 552
+rader og passerte lifecycle-byggingen. Den stoppet 29.09 kl. 00:13 UTC /
+02:13 norsk tid ved split-manifestet: en eldre kontroll krevde at registry-fit
+skulle være lik hele modellens TRAIN-vindu. Den autoriserte kjeden binder
+allerede tidligere fit: 2009-06-01 til 2013-01-01 22:00 UTC, med indre
+fit-slutt 2012-04-11 22:00 UTC. Disse kalibrerte verdiene endres ikke.
+
+Split-kontrollen bruker nå den uendrede registry-eieren, krever eksakt likhet
+mellom alle frosne konstanter og den hashbundne cache-manifesten, og avviser
+fortsatt fit etter modellens TRAIN-slutt. Målrettede manifest-/rebuild-/
+kjedetester består, inkludert avvisning av VAL-lekkasje og endrede cachebevis.
+Faktisk cache og denne kjøringens byggbevis består den eksakte split-kontrollen.
+Builder-kode utenfor split-validatoren er AST-identisk; priser, features,
+mål, splitgrenser og modell er uendret. Dette er teknisk evidens, ikke edge.
+
+Ny engangsplan:
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929`.
+Fersk outputrot:
+`/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929`.
+Den nyeste røde terminalen og dens preflight er eksplisitt bundet. Ferdige
+upstream-inputs i opprinnelig CHAIN gjenbrukes bare etter fysiske hasher og
+kildekontroll; ny preflight er obligatorisk. Det ufullførte datasettet og alle
+kvitteringer bevares. De har ingen ferdigmanifest og kan ikke godkjennes som
+split-input ved å kopiere filer.
+
+Normal commit-kontroll ble avvist av minnevakten: mindre enn 20 GiB ledig RAM.
+Eksisterende engangskø venter hvert 15. minutt på uendret minnekrav, binder
+nøyaktig staged diff/kilde/runtime, og gjør normal commit/push før dispatch.
+Ingen hook omgås. QUEUE_BINDING/QUEUE_STATUS/QUEUE_TERMINAL viser dette trinnet.
+Kilden og dokumentdiffen er frosset også mens køen venter.
+
+Les PLAN/BINDING/WAITING/START/TERMINAL og samme runs prosesser. Ikke dupliser
+konsumert plan. Kilde er frosset under venting/kjøring, og alle ressursvakter er
+uendret. POST_BUILD følger bare grønn kjede; automatisk oppfølging består.
+Readiness, lifecycle-bindinger og resterende kompleksitetsvurdering gjenstår.
+Trening, optimizer, full VAL, TEST-utfall, handel og spending er fortsatt stengt.
+
+## Historikk: lifecycle godtar samme låste priser som kanonisk tape
 
 `CONTINUE_SUMMARY_MEMORY_20260928` lukket TRAIN-skriveren med 652 552 rader,
 uten nytt minnedrap. Kjøringen stoppet 28.09 kl. 22:20 UTC / 29.09 kl. 00:20

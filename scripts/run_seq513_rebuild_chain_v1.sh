@@ -1272,7 +1272,7 @@ if raw_reuse_preflight_json:
     preflight_path.relative_to(prior_event)
     # Recovery may follow an earlier recovery: its output event is separate from
     # the original, hash-bound completed input event. Only downstream assembly,
-    # lifecycle quote validation and offline replay entry admission may differ;
+    # lifecycle/split-manifest validation and offline replay admission may differ;
     # shared target helpers/imports and every upstream producer stay identical.
     old_head = prior.get("git_head", "")
     if not re.fullmatch(r"[0-9a-f]{40}", old_head):
@@ -1282,7 +1282,8 @@ if raw_reuse_preflight_json:
         import ast
         downstream_functions = {
             "gx1/scripts/build_entry_v10_ctx_training_dataset_v3.py": {
-                "build_dataset_canonical", "_dataset_summary_batch", "build_unified_exit_lifecycle_episodes"},
+                "build_dataset_canonical", "_dataset_summary_batch", "build_unified_exit_lifecycle_episodes",
+                "_require_model_native_seq513_split_manifest_contract"},
             "gx1/contracts/unified_exit_lifecycle_v1.py": {"_validated_m1_arrays"},
             "gx1/replay/unified_exit_path_state_v1.py": {"open_unit_normalized_research"},
         }

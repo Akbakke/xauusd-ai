@@ -838,7 +838,7 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
     with pytest.raises(subprocess.CalledProcessError):exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
 
     owner.write_text('VALUE = 1\n');git('add','.');git('commit','-qm','restore upstream')
-    builder_file.write_text('VALUE = 1\ndef build_dataset_canonical():\n    return 2\ndef _dataset_summary_batch(frame):\n    return frame\n')
+    builder_file.write_text('VALUE = 1\ndef build_dataset_canonical():\n    return 2\ndef _dataset_summary_batch(frame):\n    return frame\ndef _require_model_native_seq513_split_manifest_contract():\n    return 3\n')
     git('add','.');git('commit','-qm','downstream assembly repair')
     if recovery:
         exec(compile(code,'actual_preflight_reuse_guard','exec'),env())

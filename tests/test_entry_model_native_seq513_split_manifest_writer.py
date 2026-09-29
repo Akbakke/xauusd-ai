@@ -48,9 +48,7 @@ _TAPE_PROVENANCE_FIXTURE = {
 
 def _splits() -> dict[str, dict[str, str]]:
     return {
-        # TRAIN aligns exactly with the synthetic V29 registry fixture's
-        # fitted window: the split-manifest contract now requires the frozen
-        # fit window to equal the declared TRAIN split (C-4).
+        # The fixture fits on TRAIN; a separate test covers earlier calibration.
         "train": {
             "start": "2026-01-01 00:00:00+00:00",
             "end": "2026-01-31 23:55:00+00:00",
@@ -82,7 +80,11 @@ def _extra(tmp_path: Path, *, artifact_label: str = "default") -> dict:
     cache_dir = tmp_path / "mtf_cache"
     cache_dir.mkdir(exist_ok=True)
     cache_manifest = cache_dir / "manifest.json"
-    cache_manifest.write_text('{"fixture":"v4"}\n', encoding="utf-8")
+    registry_constants = synthetic_v29_registry_constants()
+    cache_manifest.write_text(
+        json.dumps({"v29_registry_constants": registry_constants}) + "\n",
+        encoding="utf-8",
+    )
     cache_manifest_sha = hashlib.sha256(cache_manifest.read_bytes()).hexdigest()
     return {
         "xau_tape_provenance": dict(_TAPE_PROVENANCE_FIXTURE),
@@ -120,7 +122,7 @@ def _extra(tmp_path: Path, *, artifact_label: str = "default") -> dict:
             "m5_prebuilt_source_sha256": "e" * 64,
             # V29 split manifests freeze the TRAIN-fitted registry constants
             # inside the binding; the writer validates them via their owner.
-            "v29_registry_constants": synthetic_v29_registry_constants(),
+            "v29_registry_constants": registry_constants,
             "volatility_squeeze_artifact_set": (
                 make_volatility_squeeze_artifact_set(
                     tmp_path / f"squeeze_{artifact_label}"
@@ -365,3 +367,41 @@ def test_builder_state_contract_requires_run_id_and_ordered_window(
             train_start=pd.Timestamp("2020-11-09T00:00:00Z"),
             train_end=pd.Timestamp("2025-09-30T23:59:59Z"),
         )
+
+
+@pytest.mark.parametrize("train_start", ["2025-01-01T00:00:00Z", "2026-01-15T00:00:00Z", "2026-02-01T00:00:00Z"])
+def test_split_manifest_accepts_exact_cache_fit_before_or_within_train(tmp_path, train_start):
+    extra = _extra(tmp_path)
+    splits = {
+        "train": {"start": train_start, "end": "2026-02-28T23:55:00Z"},
+        "val": {"start": "2026-03-01T00:00:00Z", "end": "2026-03-31T23:55:00Z"},
+        "test": {"start": "2026-04-01T00:00:00Z", "end": "2026-04-30T23:55:00Z"},
+    }
+    before = copy.deepcopy(extra)
+    _require_model_native_seq513_split_manifest_contract(splits=splits, extra=extra)
+    assert extra == before
+
+
+def test_split_manifest_rejects_registry_fit_reaching_val(tmp_path):
+    extra = _extra(tmp_path)
+    splits = _splits()
+    splits["train"]["end"] = "2026-01-20T23:55:00Z"
+    splits["val"]["start"] = "2026-01-21T00:00:00Z"
+    with pytest.raises(RuntimeError, match="REGISTRY_FIT_AFTER_TRAIN_END"):
+        _require_model_native_seq513_split_manifest_contract(splits=splits, extra=extra)
+
+
+@pytest.mark.parametrize("rehash", [False, True])
+def test_split_manifest_rejects_cache_bytes_or_frozen_payload_mismatch(tmp_path, rehash):
+    extra = _extra(tmp_path)
+    binding = extra["multi_tf_cache_binding"]
+    manifest = Path(binding["manifest_path"])
+    data = json.loads(manifest.read_text())
+    # The split's valid frozen constants may never differ from their bound cache.
+    data["v29_registry_constants"] = None
+    manifest.write_text(json.dumps(data))
+    if rehash:
+        binding["manifest_sha256"] = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    error = "REGISTRY_FROZEN_CONSTANTS_MISMATCH" if rehash else "MTF_CACHE_MANIFEST_MISMATCH"
+    with pytest.raises(RuntimeError, match=error):
+        _require_model_native_seq513_split_manifest_contract(splits=_splits(), extra=extra)

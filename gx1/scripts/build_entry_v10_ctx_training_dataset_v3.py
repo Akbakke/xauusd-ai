@@ -2756,15 +2756,14 @@ def _require_model_native_seq513_split_manifest_contract(
         or set(mtf_binding) != MODEL_NATIVE_MTF_CACHE_BINDING_KEYS_V30
     ):
         raise RuntimeError("MODEL_NATIVE_SPLIT_MTF_CACHE_BINDING_INVALID")
-    # C-4 (docs/PROJECT_DEEP_REVIEW_20260919.md): the frozen registry-fit
-    # TRAIN window must equal this manifest's declared TRAIN split exactly —
-    # enforced here in the contract path, not only in the chain shell script,
-    # so a cache fitted on a different window cannot label this dataset.
-    require_v29_registry_constants(
-        mtf_binding["v29_registry_constants"],
-        expected_train_window_start=parsed["train_start"],
-        expected_train_window_end=parsed["train_end"],
+    # The fit window is declared by the immutable cache, independently of the
+    # model TRAIN split (the chain permits earlier calibration). Keep the
+    # exact frozen payload binding below and reject any fit reaching past TRAIN.
+    registry_constants = require_v29_registry_constants(
+        mtf_binding["v29_registry_constants"]
     )
+    if pd.Timestamp(registry_constants["declared_train_window_end"]) > parsed["train_end"]:
+        raise RuntimeError("MODEL_NATIVE_SPLIT_REGISTRY_FIT_AFTER_TRAIN_END")
     from gx1.features.volatility_squeeze_state_v1 import (
         require_volatility_squeeze_artifact_binding,
     )
@@ -2793,6 +2792,12 @@ def _require_model_native_seq513_split_manifest_contract(
         != Path(str(mtf_binding["cache_dir"])).expanduser().resolve()
     ):
         raise RuntimeError("MODEL_NATIVE_SPLIT_MTF_CACHE_MANIFEST_MISMATCH")
+    cache_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(cache_manifest, dict)
+        or cache_manifest.get("v29_registry_constants") != registry_constants
+    ):
+        raise RuntimeError("MODEL_NATIVE_SPLIT_REGISTRY_FROZEN_CONSTANTS_MISMATCH")
     return signal_contract
 
 
