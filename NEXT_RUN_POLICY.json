@@ -1794,10 +1794,19 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CALIBRATION_REUSE_VERIFICATION.json",
       "sha256": "414df35840a90e02b8bdb0bfe6f3e53dec5c4f6333fb7e800fa4eeaaa893daa7"
     },
+    "clock_repair_report": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929/CLOCK_REPAIR_REPORT.json",
     "commit_dispatch_queue_binding": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929/QUEUE_BINDING.json",
     "commit_dispatch_queue_status": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929/QUEUE_STATUS.json",
     "commit_dispatch_queue_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929/QUEUE_TERMINAL.json",
+    "completed_dataset_terminal": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_20260929T005132324434Z.json",
+      "sha256": "af1c41a08ae964a4816e6e9a232a251eaeefa531641e42ef7298e1ad3aa10089"
+    },
     "completed_input_event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/CHAIN",
+    "completed_test_seal": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_20260929T005132324434Z.json",
+      "sha256": "747a130f70d177505046fe1a1609768e156a7b448a727600f3df956cbbef2231"
+    },
     "continuation_binding": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929/BINDING.json",
     "continuation_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929/PLAN.json",
     "continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_REGISTRY_BINDING_20260929",
@@ -1810,6 +1819,10 @@
     "native_training_enabled": false,
     "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
     "plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/PLAN.json",
+    "post_rebuild_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929/PLAN.json",
+    "post_rebuild_result": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929/RESULT.json",
+    "post_rebuild_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929",
+    "post_rebuild_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929/TERMINAL.json",
     "previous_continuation_run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_ROOT_20260929",
     "previous_continuation_terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_LOCKED_QUOTES_ROOT_20260929/TERMINAL.json",
     "registry_split_binding_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/REGISTRY_SPLIT_BINDING_REPAIR.json",
@@ -1820,15 +1833,15 @@
     "source_frozen_during_build": true,
     "source_schema": "entry_model_native_signal_v37",
     "start": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/START.json",
-    "status": "WAITING_FOR_HOST_MEMORY_BEFORE_COMMIT_AND_DISPATCH",
+    "status": "DATASET_COMPLETE_POST_REBUILD_CLOCK_REPAIR_PREPARED",
     "summary_memory_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/DATASET_SUMMARY_OOM_REPAIR.json",
     "terminal": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/TERMINAL.json",
     "test_handling": "Construction and immutable sealing only; no outcomes or tuning.",
     "training_launch_authority": false
   },
-  "next_action": "First inspect the exact commit/dispatch queue in this runtime; the normal commit hook was rejected by the unchanged 20GiB free-RAM guard. Bound one-shot queue waits every 900 seconds, then commits/pushes normally and dispatches once. Do not change the frozen staged diff or duplicate the queue. Observe CONTINUE_REGISTRY_BINDING_20260929 and DATASET_REGISTRY_BINDING_RECOVERY_20260929. Prior TRAIN writer closed 652552 rows and lifecycle passed, then the split-manifest validator incorrectly required registry calibration to equal model TRAIN. Validator now binds exact frozen constants to the SHA-bound cache manifest and still rejects fit beyond TRAIN end. Targeted writer/rebuild/chain tests and the actual cache/build-proof check passed. Prices, features, fits, labels and split windows unchanged. Reuse only completed original CHAIN inputs after physical hashes and unchanged upstream source proof; new preflight required. Preserve failed outputs; no split completion exists. Read same-run START/TERMINAL/processes; never duplicate. Unchanged guards and source freeze. Existing post-build follows GREEN only; then remaining lifecycle binding and complexity review. No training, optimizer, full VAL, TEST outcomes, trading or spending.",
+  "next_action": "Dataset completion and sealed TEST exist; the chain ended RED only at the pretrain audit. DO NOT rebuild or relaunch CONTINUE_REGISTRY_BINDING_20260929. Observe POST_REBUILD_CLOCK_REPAIR_20260929 PLAN/BINDING/START/STATUS/TERMINAL/RESULT/process. Three metadata consumers now use the same causal_m1_policy_fit_train_end owner as the producer, for full and PRETEST builds. Actual TRAIN/VAL manifest/ECDF checks and targeted tests passed without changing dataset bytes. Run only the failed pretrain audit and readiness against exact completed artifacts, with fresh audit output, exact TEST seal and unchanged-producer source proof; preserve original RED. Source frozen while active; existing resource guards unchanged. After PASS finish lifecycle bindings and remaining complexity review. No optimizer, training, full VAL, TEST outcome access, trading or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-09-29T00:49:11.539909+00:00",
+  "observed_utc": "2026-09-29T03:06:21.675596+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2009,7 +2022,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "V37_REGISTRY_SPLIT_BINDING_REPAIR_QUEUED_BEHIND_MEMORY_GUARD",
+  "status": "V37_DATASET_COMPLETE_POST_REBUILD_CLOCK_REPAIR_PREPARED",
   "tf32_allowed": false,
   "train_batch_size": 16,
   "train_observation_cutoff_review": {

@@ -10,18 +10,13 @@ all test-/datakjøring bruker eksisterende capped-run-vakter.
    full lokal M1-kontroll og faktisk MTF-paritet på de sju berørte TRAIN-radene.
    Ny prosjektlås består 294 tester og faktisk parallell låsadgang. Bevisene
    gjenbrukes; ingen ny fullsuite eller gjentatt diagnose uten et nytt funn.
-2. Fullfør `CONTINUE_REGISTRY_BINDING_20260929` under
-   `HISTORY2009W_NATIVE_V37_20260928`, med fersk outputrot
-   `DATASET_REGISTRY_BINDING_RECOVERY_20260929`. Forrige TRAIN-skriver og
-   lifecycle passerte; split-manifestet stoppet på foreldet likhetskrav mellom
-   kalibrering og modell-TRAIN. Eksakt cache-binding og fit innen TRAIN er nå
-   kontrollert med målrettede tester og kjøringens faktiske metadata.
-   Les samme runs START/TERMINAL og prosesser; ikke dupliser planen.
-   Ferdige upstream-inputs gjenbrukes bare etter hash-/kodekontroll og ny preflight.
-   Bevar kildefrys, delvise gamle datasett og originale checkpoints.
-3. Fullfør native-inputs, post-rebuild/readiness og lifecycle-bindinger innen
-   [det autoriserte forberedelsesomfanget](docs/NATIVE_PREPARATION_AND_REPO_REVIEW_20260927.md).
-   Teknisk PASS er ikke en tillatelse til å starte trening.
+2. Datasettet og lifecycle er bygget; completion og TEST-forsegling er publisert.
+   Ikke relanser inputbyggingen. Kjedens RED skyldes etterkontrollens gamle
+   PRETEST-spesifikke fit-klokkekobling; produsentens verdier er uendret.
+3. Fullfør `POST_REBUILD_CLOCK_REPAIR_20260929` under samme runtime-rot:
+   fersk pretrain-audit og eksisterende readiness på ferdige, hashbundne bytes.
+   Les START/STATUS/TERMINAL/RESULT og prosess; bevar kildefrys og alle vakter.
+   Deretter fullføres lifecycle-bindingene. Teknisk PASS åpner ikke trening.
 4. Avslutt gjenstående kompleksitetsvurdering: parameter-/beregningsfordeling,
    redundans utover de 67 kandidatene og begrunnelse for hjelpeoppgavene.
    [Vurderingen](docs/FEATURE_COMPLEXITY_REVIEW_20260928.md) foreslår færre

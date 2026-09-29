@@ -15,7 +15,41 @@ SMC-rettelsen og prosjektvis låsing er kontrollert. Tidligere kilde-/testgjenno
 er dokumentert; ny v37-inputbygging og gjenstående avklaringer står nedenfor.
 Trening forblir deaktivert. Eksakt scope står i native-forberedelsens `PLAN.json`.
 
-## Nå: split-manifest binder den vedtatte tidlige kalibreringen
+## Nå: ferdig datasett; rettet siste fit-klokkekobling i etterkontrollen
+
+Kjøringen på `abd9c2c9` publiserte dataset-completion og TEST-forsegling 29.09
+kl. 02:37 UTC / 04:37 norsk tid. TRAIN, VAL, TEST og lifecycle er fysisk bygget;
+full-input-liveness besto. Etterkontrollen stoppet kl. 02:44 UTC på
+`ENTRY_CAUSAL_M1_POSITION_SIZE_TARGET_MANIFEST_TRAIN_END_MISMATCH`.
+Kjedekvitteringen er derfor fortsatt RED og bevares uendret.
+
+Byggeren følger den felles M5-fit-klokkeeieren: nominell TRAIN-slutt
+2025-05-31 23:59:59 gir policy-fit-slutt 23:54:59. Pretrain-audit,
+foundation-audit og trenerens manifestleser anvendte regelen bare ved
+PRETEST. Alle tre bruker nå samme eksisterende eier ved full bygging også.
+Målrettede tester og faktisk TRAIN/VAL-manifest-/ECDF-kontroll består uten
+endrede bytes. Produsent, features, fit, targets, splits og modell er uendret.
+
+Videreføringen er bare etterkontroll:
+`/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/POST_REBUILD_CLOCK_REPAIR_20260929`.
+PLAN/BINDING/START/STATUS/TERMINAL/RESULT og prosess eier faktisk tilstand.
+Først kjøres den feilede TRAIN/VAL-pretrain-kontrollen på nytt i fersk auditrot;
+deretter eksisterende readiness med eksplisitt completed-dataset-terminal.
+Readiness krever full completion-/TEST-seal-binding, fersk PASS-audit og
+bevis for uendret produsent/delte helpers. Bare de tre navngitte metadata-
+leserne og readiness-eieren kan avvike i kode. Den røde kjeden omskrives aldri.
+Ingen ny dataset-/featurebygging skal startes for denne reparasjonen.
+
+Datasettrøttene ligger fortsatt under
+`/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/DATASET_REGISTRY_BINDING_RECOVERY_20260929`.
+TEST er bare representert ved den eksisterende forseglingens metadata;
+TEST-parquet og TEST-manifest åpnes ikke av etterkontrollen. Bestått liveness
+og alle gamle kvitteringer gjenbrukes/bevares. Uendrede capped-run-vakter og
+én tung jobb gjelder; kildefrys under etterkontrollen. Trening, optimizer,
+full VAL, TEST-utfall, handel og spending er stengt. Etter grønn readiness
+gjenstår lifecycle-bindinger og den bestilte kompleksitetsvurderingen.
+
+## Historikk: split-manifest binder den vedtatte tidlige kalibreringen
 
 `CONTINUE_LOCKED_QUOTES_ROOT_20260929` lukket TRAIN-skriveren med 652 552
 rader og passerte lifecycle-byggingen. Den stoppet 29.09 kl. 00:13 UTC /

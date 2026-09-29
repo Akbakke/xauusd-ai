@@ -881,16 +881,15 @@ def _entry_position_size_policy_from_split_manifest(
         if extra.get("pretest_only") is True
         else canonical_json_sha256(provenance)
     )
-    if extra.get("pretest_only") is True:
-        # The M5 policy closes at the bar immediately preceding the nominal
-        # half-open split boundary.  Keeping the nominal boundary here would
-        # incorrectly demand a non-existent Saturday bar at 2025-06-01 00:00.
+    if expected_train_end is not None:
+        from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+            causal_m1_policy_fit_train_end,
+        )
+
+        # Every causal-M1 build uses this owner, including full TRAIN/VAL/TEST.
         boundary = pd.Timestamp(expected_train_end)
-        if boundary.tzinfo is None:
-            boundary = boundary.tz_localize("UTC")
-        else:
-            boundary = boundary.tz_convert("UTC")
-        expected_train_end = boundary - pd.Timedelta(minutes=5)
+        boundary = boundary.tz_localize("UTC") if boundary.tzinfo is None else boundary.tz_convert("UTC")
+        expected_train_end = causal_m1_policy_fit_train_end(boundary)
     return require_causal_m1_position_size_target_manifest_binding(
         extra,
         expected_source_parquet_sha256=source_sha256,

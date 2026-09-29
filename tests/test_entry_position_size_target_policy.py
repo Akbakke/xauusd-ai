@@ -152,9 +152,11 @@ def test_position_size_manifest_binding_checks_projection_and_train_window(
         )
 
 
+@pytest.mark.parametrize("pretest", [False, True])
 def test_pretest_target_audit_does_not_conflate_m5_and_m1_tape_authorities(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    pretest: bool,
 ) -> None:
     from gx1.scripts import audit_entry_foundation_targets_v1 as target_audit
 
@@ -164,7 +166,7 @@ def test_pretest_target_audit_does_not_conflate_m5_and_m1_tape_authorities(
             {
                 "splits": {"train": {"start": "2021-06-01", "end": "2025-06-01"}},
                 "extra": {
-                    "pretest_only": True,
+                    "pretest_only": pretest,
                     "source_frame": {"parquet_sha256": "1" * 64},
                     "xau_tape_provenance": {"authority": "direct_m5"},
                     "unified_exit_lifecycle": {"m1_source_sha256": "2" * 64},
@@ -190,7 +192,7 @@ def test_pretest_target_audit_does_not_conflate_m5_and_m1_tape_authorities(
         split_manifest,
         direction_policy={"policy_sha256": "3" * 64},
     )
-    assert result["expected_tape_provenance_sha256"] is None
+    assert (result["expected_tape_provenance_sha256"] is None) is pretest
     assert result["expected_m1_source_sha256"] == "2" * 64
     assert result["expected_source_parquet_sha256"] == "1" * 64
     assert result["expected_train_end"] == pd.Timestamp(
@@ -198,9 +200,11 @@ def test_pretest_target_audit_does_not_conflate_m5_and_m1_tape_authorities(
     )
 
 
+@pytest.mark.parametrize("pretest", [False, True])
 def test_pretest_trainer_uses_last_closed_m5_bar_for_causal_size_policy(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    pretest: bool,
 ) -> None:
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 
@@ -215,7 +219,7 @@ def test_pretest_trainer_uses_last_closed_m5_bar_for_causal_size_policy(
                     }
                 },
                 "extra": {
-                    "pretest_only": True,
+                    "pretest_only": pretest,
                     "unified_exit_lifecycle": {"m1_source_sha256": "2" * 64},
                     "entry_causal_m1_position_size_target_policy": {},
                 },

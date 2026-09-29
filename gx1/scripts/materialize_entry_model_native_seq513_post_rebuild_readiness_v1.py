@@ -622,6 +622,85 @@ def _manifest_contract(
     }, failures
 
 
+def _require_recovery_source_unchanged(repo_dir: Path, source_head: str) -> dict[str, Any]:
+    """Only metadata consumers may differ from the completed dataset producer."""
+    import ast
+
+    if len(source_head) != 40 or any(c not in _SHA256_HEX for c in source_head):
+        raise RuntimeError("completed rebuild source revision invalid")
+    consumer_functions = {
+        "gx1/scripts/audit_xau_direction_repair_pretrain_v1.py": "_position_size_target_policy",
+        "gx1/scripts/audit_entry_foundation_targets_v1.py": "_entry_position_size_policy_from_split_manifest",
+        "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "_entry_position_size_target_policy_from_manifest",
+    }
+    changed = set(subprocess.check_output(
+        ["git", "diff", "--name-only", source_head, "HEAD", "--", "gx1", "scripts"],
+        cwd=repo_dir, text=True,
+    ).splitlines())
+    gate_name = "gx1/scripts/materialize_entry_model_native_seq513_post_rebuild_readiness_v1.py"
+    if changed - set(consumer_functions) - {gate_name}:
+        raise RuntimeError("completed rebuild recovery changed a producer or shared owner")
+    for name, function_name in consumer_functions.items():
+        if name not in changed:
+            continue
+        old = subprocess.check_output(["git", "show", f"{source_head}:{name}"], cwd=repo_dir, text=True)
+        new = (repo_dir / name).read_text(encoding="utf-8")
+        def outside_consumer(text: str) -> str:
+            tree = ast.parse(text)
+            tree.body = [node for node in tree.body if not (
+                isinstance(node, ast.FunctionDef) and node.name == function_name)]
+            return ast.dump(tree, include_attributes=False)
+        if outside_consumer(old) != outside_consumer(new):
+            raise RuntimeError("completed rebuild recovery changed code outside metadata consumer")
+    return {"source_head": source_head, "producer_and_shared_code_unchanged": True,
+            "changed_consumer_files": sorted(changed)}
+
+
+def _completed_rebuild_recovery(
+    args: argparse.Namespace, terminal: dict[str, Any], terminal_path: Path,
+    event_root: Path, repo_dir: Path, pretrain: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    raw_path = getattr(args, "completed_rebuild_terminal_json", None)
+    raw_sha = getattr(args, "completed_rebuild_terminal_sha256", None)
+    if raw_path is None and raw_sha is None:
+        return terminal, None
+    if not raw_path or not raw_sha:
+        raise RuntimeError("completed rebuild recovery requires exact terminal path and hash")
+    if not (
+        terminal.get("schema_version") == CHAIN_SCHEMA
+        and terminal.get("state") == "RED" and terminal.get("step") == "dataset-rebuild"
+        and terminal.get("exit_code") == 2
+        and terminal.get("reason") == "dataset rebuild or post-build audit failed after immutable output materialization; fresh lineage required"
+        and terminal.get("entry_run_id") == args.run_id
+        and terminal.get("event_root") == str(event_root)
+        and terminal.get("terminal_event_path") == str(terminal_path)
+    ):
+        raise RuntimeError("completed rebuild recovery requires the exact failed dataset chain")
+    rebuild_path = _path(raw_path, label="completed rebuild terminal")
+    rebuild_sha = _sha256(raw_sha, label="completed rebuild terminal hash")
+    if (
+        terminal.get("dataset_rebuild_terminal", {}).get("path") != str(rebuild_path)
+        or _sha256_file(rebuild_path) != rebuild_sha
+        or terminal.get("dataset_rebuild_terminal", {}).get("sha256") not in (None, rebuild_sha)
+        or terminal.get("prefreeze_test_seal", {}).get("path") != args.test_seal_json
+        or terminal.get("prefreeze_test_seal", {}).get("sha256") not in (None, args.test_seal_sha256)
+        or pretrain.get("dataset_dir") != args.dataset_dir
+        or pretrain.get("decision") != "PASS" or pretrain.get("failures") != []
+    ):
+        raise RuntimeError("completed rebuild recovery artifact/audit binding mismatch")
+    if datetime.fromisoformat(pretrain["created_utc"]) <= datetime.fromisoformat(terminal["updated_utc"]):
+        raise RuntimeError("completed rebuild recovery audit must follow the failed chain")
+    source_proof = _require_recovery_source_unchanged(repo_dir, terminal.get("git_head", ""))
+    # This is only an in-memory input to the existing full completion/seal
+    # validator below. Never rewrite the RED event or mint a GREEN chain.
+    completion = dict(terminal)
+    completion["dataset_rebuild_terminal"] = {"path": str(rebuild_path), "sha256": rebuild_sha}
+    completion["prefreeze_test_seal"] = {"path": args.test_seal_json, "sha256": args.test_seal_sha256}
+    return completion, {"failed_chain": _artifact(terminal_path, terminal),
+                        "completed_rebuild_terminal": completion["dataset_rebuild_terminal"],
+                        "source_proof": source_proof, "failed_chain_preserved": True}
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     _reject_test_inputs(args)
     run_id = str(args.run_id or "").strip()
@@ -716,9 +795,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
         split_failures.extend(failures)
 
+    completion_payload, completion_recovery = _completed_rebuild_recovery(
+        args, terminal, terminal_path, event_root, repo_dir, pretrain,
+    )
     try:
         test_artifact, test_seal_details = _completion_bound_test_seal(
-            completion_payload=terminal,
+            completion_payload=completion_payload,
             supplied_seal_path=args.test_seal_json,
             supplied_seal_sha256=args.test_seal_sha256,
             event_root=event_root,
@@ -770,8 +852,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         and Path(str(terminal.get("terminal_event_path") or "")).resolve()
         == terminal_path
     )
-    terminal_ok = chain_terminal_ok
-    completion_mode = "seq513_rebuild_chain_v7" if chain_terminal_ok else "invalid"
+    completed_rebuild_recovery_ok = completion_recovery is not None and test_seal_ok
+    terminal_ok = chain_terminal_ok or completed_rebuild_recovery_ok
+    completion_mode = (
+        "seq513_rebuild_chain_v7" if chain_terminal_ok else
+        "completed_dataset_after_post_build_audit_repair" if completed_rebuild_recovery_ok else "invalid"
+    )
     terminal_preflight = (
         terminal.get("preflight")
         if isinstance(terminal.get("preflight"), dict)
@@ -834,6 +920,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "completion_mode": completion_mode,
                 "chain_terminal": chain_terminal_ok,
+                "completed_rebuild_recovery": completion_recovery,
                 "standalone_build_proof_allowed": False,
                 "standalone_build_proof_supplied": (
                     standalone_build_proof_supplied
@@ -877,6 +964,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "pretrain_audit": _artifact(pretrain_path, pretrain),
         "chain_terminal": _artifact(terminal_path, terminal),
         "rebuild_completion_mode": completion_mode,
+        "completed_rebuild_recovery": completion_recovery,
         "rebuild_preflight": _artifact(preflight_path, preflight),
         "split_artifacts_schema_version": PREFREEZE_SPLIT_ARTIFACTS_SCHEMA_VERSION,
         "prefreeze_physical_split_contract_schema_version": (
@@ -929,6 +1017,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--event-root", required=True)
     parser.add_argument("--repo-dir", required=True)
     parser.add_argument("--chain-terminal-json", required=True)
+    parser.add_argument("--completed-rebuild-terminal-json")
+    parser.add_argument("--completed-rebuild-terminal-sha256")
     parser.add_argument("--test-seal-json", required=True)
     parser.add_argument("--test-seal-sha256", required=True)
     parser.add_argument("--rebuild-preflight-json", required=True)

@@ -303,20 +303,16 @@ def _position_size_target_policy(
     if len(expected_m1_source) != 64:
         raise RuntimeError("manifest unified_exit_lifecycle M1 source hash missing")
     expected_train_end = train_window.get("end")
-    if extra.get("pretest_only") is True and expected_train_end is not None:
-        # The train window is half-open.  A PRETEST M5 build therefore fits
-        # the causal M1 sizing policy through the last closed M5 bar, five
-        # minutes before its nominal boundary.  The foundation-target audit
-        # already applies this rule; keep the pretrain gate identical so it
-        # does not reject a correctly bound PRETEST dataset at midnight.
-        boundary = datetime.fromisoformat(
-            str(expected_train_end).replace("Z", "+00:00")
+    if expected_train_end is not None:
+        from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+            causal_m1_policy_fit_train_end,
         )
-        if boundary.tzinfo is None:
-            boundary = boundary.replace(tzinfo=timezone.utc)
-        else:
-            boundary = boundary.astimezone(timezone.utc)
-        expected_train_end = (boundary - timedelta(minutes=5)).isoformat()
+        import pandas as pd
+
+        # Every causal-M1 build uses this owner, including full TRAIN/VAL/TEST.
+        boundary = pd.Timestamp(expected_train_end)
+        boundary = boundary.tz_localize("UTC") if boundary.tzinfo is None else boundary.tz_convert("UTC")
+        expected_train_end = causal_m1_policy_fit_train_end(boundary).isoformat()
     return require_causal_m1_position_size_target_manifest_binding(
         extra,
         expected_source_parquet_sha256=expected_source,

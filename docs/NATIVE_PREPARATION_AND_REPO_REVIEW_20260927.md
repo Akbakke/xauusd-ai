@@ -390,3 +390,22 @@ engangskø er brukt: eksakt staged diff og runtime bindes, køen venter hvert
 15. minutt og gjennomfører vanlig commit/push før engangsdispatch. Ingen
 hook eller ressursgrense omgås. QUEUE_STATUS/QUEUE_TERMINAL eier faktisk
 tilstand; kilden er frosset også under venting.
+
+## 29.09 kl. 02:37 UTC: dataset completion, etterkontroll og fit-klokke
+
+Alle tre splits og lifecycle er bygget. Dataset-terminal og TEST-seal finnes;
+full-input-liveness PASS. Etterkontroll stoppet 02:44 UTC fordi tre lesere
+bare brukte M5-policyens eier for fit-slutt ved PRETEST. Full builder brukte
+allerede korrekt eier. Leserne er rettet uten endret produsent/data/fit/model.
+Målrettede tester og faktisk kontroll av begge TRAIN/VAL-manifester med TRAIN-
+ECDF består. Den nominelle slutten 23:59:59 matcher nå policyens 23:54:59 via
+`causal_m1_policy_fit_train_end`, ikke en kopiert femminuttersliteral.
+
+`POST_REBUILD_CLOCK_REPAIR_20260929` gjenkjører bare feilet pretrain-audit og
+readiness. Readiness-eieren krever eksplisitt terminal-hash for completed
+rebuild, opprinnelig RED, fersk PASS-audit, full TRAIN/VAL- og metadata-only
+TEST-seal-binding, samt uendret produsent/delt kilde. Bare de tre metadata-
+funksjonene og readiness-eieren kan avvike. RED omskrives ikke; datasettene
+bygges ikke på nytt. Rapporter: `ACTUAL_MANIFEST_CLOCK_VERIFICATION.json`
+og `CLOCK_REPAIR_REPORT.json` i ny runtime-rot. Lifecycle-bindinger og
+kompleksitetsvurdering gjenstår etter readiness; ingen trening er åpnet.

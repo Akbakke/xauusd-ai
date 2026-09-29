@@ -458,8 +458,13 @@ def _read_immutable_audit(tmp_path: Path) -> dict:
     return json.loads(files[0].read_text(encoding="utf-8"))
 
 
-def test_pretrain_audit_uses_last_closed_m5_for_pretest_sizing_policy(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.mark.parametrize("pretest", [False, True])
+@pytest.mark.parametrize("train_end,fit_end", [
+    ("2025-06-01T00:00:00Z", "2025-05-31T23:55:00+00:00"),
+    ("2025-05-31T23:59:59Z", "2025-05-31T23:54:59+00:00"),
+])
+def test_pretrain_audit_uses_shared_fit_boundary_for_causal_sizing_policy(
+    monkeypatch: pytest.MonkeyPatch, pretest: bool, train_end: str, fit_end: str,
 ) -> None:
     captured: dict[str, object] = {}
 
@@ -477,11 +482,11 @@ def test_pretrain_audit_uses_last_closed_m5_for_pretest_sizing_policy(
             "splits": {
                 "train": {
                     "start": "2021-06-01T00:00:00Z",
-                    "end": "2025-06-01T00:00:00Z",
+                    "end": train_end,
                 }
             },
             "extra": {
-                "pretest_only": True,
+                "pretest_only": pretest,
                 "source_frame": {"parquet_sha256": "a" * 64},
                 "xau_tape_provenance": {},
                 "diagnostic_outcome_policy_sha256": "b" * 64,
@@ -492,7 +497,7 @@ def test_pretrain_audit_uses_last_closed_m5_for_pretest_sizing_policy(
     )
 
     assert captured["expected_train_start"] == "2021-06-01T00:00:00Z"
-    assert captured["expected_train_end"] == "2025-05-31T23:55:00+00:00"
+    assert captured["expected_train_end"] == fit_end
 
 
 def test_pretrain_audit_revalidates_direct_pretest_m5_quote_authority(

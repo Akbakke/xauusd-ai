@@ -268,10 +268,28 @@ def _fixture(
     )
 
 
+@pytest.mark.parametrize("recover", [False, True])
 def test_post_rebuild_readiness_binds_green_chain_and_exact_splits(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, recover: bool,
 ) -> None:
     args, xau = _fixture(tmp_path)
+    if recover:
+        path = Path(args.chain_terminal_json)
+        terminal = json.loads(path.read_text())
+        args.completed_rebuild_terminal_json = terminal["dataset_rebuild_terminal"]["path"]
+        args.completed_rebuild_terminal_sha256 = terminal["dataset_rebuild_terminal"]["sha256"]
+        terminal.update(state="RED", step="dataset-rebuild", exit_code=2,
+            reason="dataset rebuild or post-build audit failed after immutable output materialization; fresh lineage required",
+            updated_utc="2026-07-22T01:00:00+00:00", git_head="a" * 40)
+        terminal["dataset_rebuild_terminal"]["sha256"] = None
+        terminal["prefreeze_test_seal"]["sha256"] = None
+        _write_json(path, terminal)
+        audit_path = Path(args.pretrain_audit_json)
+        audit = json.loads(audit_path.read_text())
+        audit.update(dataset_dir=args.dataset_dir, created_utc="2026-07-22T02:00:00+00:00")
+        _write_json(audit_path, audit)
+        monkeypatch.setattr(gate, "_require_recovery_source_unchanged", lambda *a: {"producer_and_shared_code_unchanged": True})
+        original_red = path.read_bytes()
     monkeypatch.setattr(gate, "validate_xau_tape_provenance_v1", lambda *a, **k: xau)
     monkeypatch.setattr(
         gate,
@@ -326,7 +344,11 @@ def test_post_rebuild_readiness_binds_green_chain_and_exact_splits(
 
     assert report["schema_version"] == SCHEMA_VERSION
     assert report["decision"] == READY_DECISION
-    assert report["rebuild_completion_mode"] == "seq513_rebuild_chain_v7"
+    assert report["rebuild_completion_mode"] == (
+        "completed_dataset_after_post_build_audit_repair" if recover else "seq513_rebuild_chain_v7")
+    if recover:
+        assert Path(args.chain_terminal_json).read_bytes() == original_red
+        assert report["completed_rebuild_recovery"]["failed_chain_preserved"] is True
     assert report["dataset_dir"] == report["smoke_dataset_dir"]
     assert [row["name"] for row in report["checks"]] == list(REQUIRED_PROOF_CHECKS)
     assert all(row["ok"] for row in report["checks"])
@@ -587,3 +609,46 @@ def test_post_rebuild_parser_accepts_only_seal_not_direct_test_artifacts() -> No
         "--test-parquet",
         "--test-parquet-sha256",
     }.isdisjoint(option_strings)
+
+
+def test_completed_rebuild_recovery_rejects_missing_hash_and_wrong_chain(tmp_path):
+    args, _ = _fixture(tmp_path)
+    terminal_path = Path(args.chain_terminal_json)
+    terminal = json.loads(terminal_path.read_text())
+    args.completed_rebuild_terminal_json = terminal["dataset_rebuild_terminal"]["path"]
+    with pytest.raises(RuntimeError, match="exact terminal path and hash"):
+        gate._completed_rebuild_recovery(args, terminal, terminal_path, Path(args.event_root), tmp_path, {})
+    args.completed_rebuild_terminal_sha256 = "0" * 64
+    with pytest.raises(RuntimeError, match="exact failed dataset chain"):
+        gate._completed_rebuild_recovery(args, terminal, terminal_path, Path(args.event_root), tmp_path, {})
+    terminal.update(state="RED", step="dataset-rebuild", exit_code=2,
+        reason="dataset rebuild or post-build audit failed after immutable output materialization; fresh lineage required")
+    with pytest.raises(RuntimeError, match="artifact/audit binding mismatch"):
+        gate._completed_rebuild_recovery(args, terminal, terminal_path, Path(args.event_root), tmp_path, {})
+
+
+def test_completed_rebuild_recovery_source_guard_preserves_producers_and_helpers(tmp_path):
+    import subprocess
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    def git(*args):
+        return subprocess.check_output(["git", "-C", str(repo), "-c", "user.name=Test", "-c", "user.email=test@example.invalid", *args], text=True).strip()
+    owner = repo / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
+    owner.parent.mkdir(parents=True)
+    owner.write_text("VALUE = 1\ndef _entry_position_size_target_policy_from_manifest():\n    return 1\n")
+    producer = repo / "gx1/producer.py"
+    producer.write_text("VALUE = 1\n")
+    git("init", "-q");git("add", ".");git("commit", "-qm", "producer")
+    old = git("rev-parse", "HEAD")
+    owner.write_text(owner.read_text().replace("return 1", "return 2"))
+    git("add", ".");git("commit", "-qm", "consumer repair")
+    assert gate._require_recovery_source_unchanged(repo, old)["producer_and_shared_code_unchanged"]
+    owner.write_text(owner.read_text().replace("VALUE = 1", "VALUE = 2"))
+    git("add", ".");git("commit", "-qm", "shared change")
+    with pytest.raises(RuntimeError, match="outside metadata consumer"):
+        gate._require_recovery_source_unchanged(repo, old)
+    owner.write_text(owner.read_text().replace("VALUE = 2", "VALUE = 1"))
+    producer.write_text("VALUE = 2\n")
+    git("add", ".");git("commit", "-qm", "producer change")
+    with pytest.raises(RuntimeError, match="producer or shared owner"):
+        gate._require_recovery_source_unchanged(repo, old)
