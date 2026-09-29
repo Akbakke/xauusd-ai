@@ -184,6 +184,16 @@ def portfolio_path(
     return frame
 
 
+def portfolio_period_returns(frame: pd.DataFrame) -> np.ndarray:
+    """Return one value per interval, including initial execution costs in the first."""
+    initial = float(frame.attrs["initial_equity"])
+    equity = frame["equity_liquidation"].to_numpy(dtype=np.float64)
+    if len(equity) < 2 or not np.isfinite(equity).all() or np.any(equity <= 0):
+        raise RuntimeError("BASELINE_PORTFOLIO_RETURNS_INVALID")
+    previous = np.concatenate([[initial], equity[1:-1]])
+    return equity[1:] / previous - 1.0
+
+
 def portfolio_summary(frame: pd.DataFrame, *, periods_per_year: float) -> dict[str, Any]:
     """Daily/declared-clock portfolio statistics; include entry costs in the first interval.
 
@@ -195,7 +205,6 @@ def portfolio_summary(frame: pd.DataFrame, *, periods_per_year: float) -> dict[s
     if len(equity) < 2 or not np.isfinite(periods_per_year) or periods_per_year <= 0:
         raise RuntimeError("BASELINE_PORTFOLIO_SUMMARY_INVALID")
     # First interval starts from initial capital, not the already cost-debited first quote.
-    previous = np.concatenate([[initial], equity[1:-1]])
     peak = np.maximum.accumulate(np.concatenate([[initial], equity]))
     drawdown = 1.0 - np.concatenate([[initial], equity]) / peak
     out: dict[str, Any] = {
@@ -212,7 +221,7 @@ def portfolio_summary(frame: pd.DataFrame, *, periods_per_year: float) -> dict[s
         value = frame[name].iloc[-1] if name == "liquidation_reserve" else frame[name].sum()
         out[name + "_bps"] = float(value / initial * BPS)
     if not out["insolvent"]:
-        returns = equity[1:] / previous - 1.0
+        returns = portfolio_period_returns(frame)
         out["mean_period_net_bps"] = float(returns.mean() * BPS)
         if len(returns) > 1:
             sd = float(returns.std(ddof=1))

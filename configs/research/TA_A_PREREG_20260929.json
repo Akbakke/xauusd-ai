@@ -1,0 +1,98 @@
+{
+  "alpha": 0.05,
+  "arm": "A",
+  "bootstrap_draws": 1999,
+  "commission_bps_per_execution": 0.0,
+  "decision": "For either learner at h20, require simultaneous lower bounds above the first declared effect vs long, constant and trend for all three metrics in both funding scenarios, plus positive total net PnL in both. Any required NO_GO gives NO_GO; otherwise INKONKLUSIV. H5 and raw buyhold diagnostic only, included in family correction.",
+  "desired_power": 0.8,
+  "effects": {
+    "mean_delta_bps": [
+      1.0,
+      2.0,
+      5.0
+    ],
+    "normalized_delta": [
+      0.01,
+      0.02,
+      0.05
+    ],
+    "sharpe_delta": [
+      0.1,
+      0.2,
+      0.3
+    ]
+  },
+  "feature_names": [
+    "momentum_21_atr14",
+    "momentum_63_atr14",
+    "momentum_126_atr14",
+    "momentum_252_atr14",
+    "range_position_252",
+    "atr14_over_atr252",
+    "ema200_distance_atr14"
+  ],
+  "fold_years": [
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "funding": {
+    "manifest": "/home/andre2/src/GX1_CURRENT/configs/research/TA_FUNDING_SOURCE_20260929.json",
+    "manifest_sha256": "e1eeec3b6d9649e7fa739df838fcea06588a76451e74324832eecda42700fdf4",
+    "markup": 0.0129,
+    "seconds_per_year": 31557600.0
+  },
+  "hgb": {
+    "learning_rate": 0.1,
+    "max_iter": 100,
+    "min_samples_leaf": 20
+  },
+  "horizons": [
+    20,
+    5
+  ],
+  "initial_equity": 100.0,
+  "inner_fraction": 0.2,
+  "mean_block_length": 60.0,
+  "min_fit_rows": 100,
+  "min_inner_rows": 20,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001",
+  "periods_per_year": 252.0,
+  "population_classification": "reused development history, not untouched holdout; 2025-06 onward overlaps existing development VAL",
+  "primary_horizon": 20,
+  "read_end_exclusive": "2026-01-01T00:00:00Z",
+  "read_start": "2009-06-01T00:00:00Z",
+  "risk": {
+    "lookback": 21,
+    "max_gross_leverage": 1.0,
+    "target_annual_vol": 0.1
+  },
+  "schema": "gx1_ta_measurement_a_preregistration_v1",
+  "seed": 0,
+  "slippage_bps_per_execution": 2.0,
+  "source_files": {
+    "gx1/features/htf_features.py": "ad1910f99dcc6e73498c8ff47445e71b724ec5c7f06442d9957bd81de3965655",
+    "gx1/features/technical_indicators_v1.py": "e149423ca38c36ea77234e2173f7ea78e81a4bb0cb1dfd2b74576de76989f024",
+    "gx1/scripts/research_entry_direction_walkforward_v1.py": "dffef5663437b629f77511f04255e186b4c303e7117159eae0d4caaa77c0136b",
+    "gx1/scripts/research_model_free_baselines_v1.py": "ad66fe337ef294614acc6a9b46f6c72ecb2a299a6b760c08579035f93cc42f50",
+    "gx1/scripts/research_ta_campaign_v1.py": "0ad4feacd52ba4beda1856c3a6cbd26e9be9bdec1039f347209afeb9fb8eac4f",
+    "gx1/time/session_detector.py": "aab11f91776aacfaa48272706807b58acdc7f6606078d5297b5e469bdca13b9e"
+  },
+  "tape": {
+    "manifest_sha256": "83af4819543c638369eaef4cc23e3805e73d7f853c89fc94e58b5233d8befb4b",
+    "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_20260927"
+  },
+  "untestable_endpoint_policy": "Retain named endpoint in full declared family as INKONKLUSIV if nonfinite or bootstrap variance zero; no p or interval fabricated. Compute max-t on jointly resampled finite endpoints and disclose exact eligible subfamily. Any untestable required endpoint prevents GO for that learner."
+}

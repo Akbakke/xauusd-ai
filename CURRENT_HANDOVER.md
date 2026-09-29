@@ -24,11 +24,14 @@ risikoskalering, Sharpe/drawdown, paret stasjonær bootstrap og felles max-t med
 styrke/MDE og treveis effektbeslutning. De gamle registrerte kjøringene er bevart.
 Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ECONOMICS_INFERENCE_VERIFICATION.json.
 
-Neste arbeid er integrasjon i den avgrensede A/B/C-kjøringen: bind D1-klokke,
-utfall og kildemanifester, integrer normalisert delta og paret Sharpe-forskjell,
-og commit kjørbare forhåndsregistreringer før datahenting/markedskjøring.
-Historisk finansieringsserie er ennå ikke hentet. Ingen ny markedskjøring er
-startet. Mekaniske tester beviser ingen bedre prognose eller lønnsomhet.
+[A-registreringen](docs/TA_A_PREREG_20260929.md) er nå kjørbar og kontrollert
+med syntetisk ende-til-ende-kjøring, inkludert klokke/purge, fulle parvise
+porteføljer, 96 erklærte endepunkter, utdatahasher og terminalkvittering.
+Ingen nye markedsutfall eller finansieringsdata er lest ennå.
+Neste steg etter commit er manifestbundet DFF-henting gjennom capped audit,
+deretter A gjennom capped producer. B og C krever fortsatt egne registreringer.
+Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/A_PREREG_IMPLEMENTATION_VERIFICATION.json.
+Mekaniske tester er ikke prognose- eller lønnsomhetsbevis.
 Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.
 Planen alene er ikke en preregistrering.
 Dokumentasjonsbevis:
