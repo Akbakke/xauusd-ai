@@ -7,6 +7,7 @@ training, broker access, TEST, automatic parameter search or result promotion.
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import hashlib
 import io
 import json
@@ -19,6 +20,7 @@ from urllib.request import Request, urlopen
 
 import numpy as np
 import pandas as pd
+from pandas.tseries.holiday import USFederalHolidayCalendar, nearest_workday, sunday_to_monday
 import pyarrow.parquet as pq
 
 from gx1.features.htf_features import _resample_ohlc_for_model_native_scalars
@@ -73,6 +75,48 @@ def checked_spec(path: Path, digest: str) -> dict:
     return spec
 
 
+def funding_dates(spec: dict) -> pd.DatetimeIndex:
+    dates = pd.date_range(spec["start_date"], spec["end_date"], freq="D", tz="UTC")
+    if spec["series"] == "DFF":
+        return dates
+    if spec["series"] != "EFFR":
+        raise RuntimeError("TA_FUNDING_SERIES")
+    # Federal Reserve Banks observe Sunday holidays on Monday; Saturday stays
+    # Saturday (unlike federal-government offices). Juneteenth starts in 2021.
+    calendar = USFederalHolidayCalendar()
+    calendar.rules = deepcopy(calendar.rules)
+    for rule in calendar.rules:
+        if rule.observance is nearest_workday:
+            rule.observance = sunday_to_monday
+    holidays = calendar.holidays(dates[0], dates[-1])
+    return dates[(dates.dayofweek < 5) & ~dates.isin(holidays)]
+
+
+def parse_funding(raw: bytes, spec: dict) -> tuple[pd.DatetimeIndex, np.ndarray]:
+    if spec["series"] == "DFF":
+        frame = pd.read_csv(io.BytesIO(raw))
+        if list(frame.columns) != ["observation_date", "DFF"]:
+            raise RuntimeError(f"TA_FUNDING_SCHEMA: {list(frame.columns)}")
+        dates = pd.DatetimeIndex(pd.to_datetime(frame.observation_date, utc=True))
+        rates = pd.to_numeric(frame.DFF, errors="raise").to_numpy(float) / 100.0
+    elif spec["series"] == "EFFR":
+        frame = pd.DataFrame(json.loads(raw)["refRates"]).sort_values("effectiveDate")
+        if frame.empty or not (frame["type"] == "EFFR").all():
+            raise RuntimeError("TA_FUNDING_SCHEMA")
+        dates = pd.DatetimeIndex(pd.to_datetime(frame.effectiveDate, utc=True))
+        rates = pd.to_numeric(frame[spec["rate_field"]], errors="raise").to_numpy(float) / 100.0
+    else:
+        raise RuntimeError("TA_FUNDING_SERIES")
+    expected = funding_dates(spec)
+    if not dates.equals(expected) or not np.isfinite(rates).all():
+        raise RuntimeError("TA_FUNDING_COVERAGE: " + json.dumps({
+            "missing": [str(d) for d in expected.difference(dates)],
+            "extra": [str(d) for d in dates.difference(expected)],
+            "duplicates": bool(dates.has_duplicates), "nonfinite": bool(~np.isfinite(rates).all()),
+        }))
+    return dates, rates
+
+
 def fetch_funding(spec: dict, spec_path: Path) -> dict:
     out = Path(spec["output_directory"])
     out.mkdir(parents=True, exist_ok=False)
@@ -83,19 +127,12 @@ def fetch_funding(spec: dict, spec_path: Path) -> dict:
             final_url = response.url
         if len(raw) > spec["maximum_bytes"]:
             raise RuntimeError("TA_FUNDING_RESPONSE_TOO_LARGE")
-        raw_path = out / "DFF.csv"
+        raw_path = out / ("EFFR.json" if spec["series"] == "EFFR" else "DFF.csv")
         raw_path.write_bytes(raw)
-        frame = pd.read_csv(io.BytesIO(raw))
-        if list(frame.columns) != ["observation_date", "DFF"]:
-            raise RuntimeError(f"TA_FUNDING_SCHEMA: {list(frame.columns)}")
-        dates = pd.DatetimeIndex(pd.to_datetime(frame.observation_date, utc=True))
-        expected = pd.date_range(spec["start_date"], spec["end_date"], freq="D", tz="UTC")
-        rates = pd.to_numeric(frame.DFF, errors="raise").to_numpy(float) / 100.0
-        if not dates.equals(expected) or not np.isfinite(rates).all():
-            raise RuntimeError("TA_FUNDING_COVERAGE")
+        dates, _ = parse_funding(raw, spec)
         receipt = {"status": "COMPLETE", "fetched_utc": datetime.now(timezone.utc).isoformat(),
                    "manifest": str(spec_path), "manifest_sha256": sha(spec_path),
-                   "raw_path": str(raw_path), "raw_sha256": sha(raw_path), "rows": len(frame),
+                   "raw_path": str(raw_path), "raw_sha256": sha(raw_path), "rows": len(dates),
                    "first_date": str(dates[0]), "last_date": str(dates[-1]),
                    "final_url": final_url, "purpose": "cost_proxy_only_not_predictor"}
         write_json(out / "RECEIPT.json", receipt)
@@ -116,10 +153,10 @@ def load_funding(spec: dict) -> ResearchFinancingCurve:
     raw_path = Path(receipt["raw_path"])
     if sha(raw_path) != receipt["raw_sha256"]:
         raise RuntimeError("TA_FUNDING_BYTES_HASH")
-    frame = pd.read_csv(raw_path)
+    dates, rates = parse_funding(raw_path.read_bytes(), fetch)
     return ResearchFinancingCurve(
-        effective_at=pd.DatetimeIndex(pd.to_datetime(frame.observation_date, utc=True)),
-        benchmark_annual_rate=frame.DFF.to_numpy(float) / 100,
+        effective_at=dates,
+        benchmark_annual_rate=rates,
         coverage_end=pd.Timestamp(fetch["end_date"], tz="UTC") + pd.Timedelta(days=1),
         broker_markup=spec["funding"]["markup"], seconds_per_year=spec["funding"]["seconds_per_year"],
     )

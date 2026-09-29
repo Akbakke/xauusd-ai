@@ -27,8 +27,8 @@ er publisert som 52c8761e. Ridge/konstant-rapportering og sterkere regulariserin
 er nå mekanisk kontrollert. Ingen ny markedsmåling er gjort. Neste steg er:
 
 1. Publiser den kontrollerte [A-registreringen](docs/TA_A_PREREG_20260929.md)
-   og det navngitte finansieringsmanifestet før henting/kjøring.
-2. Hent bare bundet DFF-finansiering gjennom capped audit. Kjør deretter A
+   og direkte EFFR-finansieringsmanifest etter to bevarte FRED-timeouter.
+2. Hent bare bundet EFFR-finansiering gjennom capped audit. Kjør deretter A
    gjennom capped producer; verifiser terminalkvittering og alle resultatbindinger.
 3. Fullfør egne B/C-registreringer og målinger med samme evidenskrav.
 4. Dokumenter GO/NO_GO/INKONKLUSIV og neste operatørbeslutning.

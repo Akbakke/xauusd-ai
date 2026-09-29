@@ -28,11 +28,13 @@ Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ECONOMICS_INFERENCE_VERIFICATI
 med syntetisk ende-til-ende-kjøring, inkludert klokke/purge, fulle parvise
 porteføljer, 96 erklærte endepunkter, utdatahasher og terminalkvittering.
 A og opprinnelig finansieringsmanifest er committet i c385c316.
-Første FRED-henting fikk lesetimeout uten bytes; FUNDING_DFF_001/FAILED.json
-er bevart. Separat retry-manifest binder samme kilde/vindu og 60 sekunder.
-Ingen nye markedsutfall eller finansieringsdata er lest ennå.
-Neste steg etter commit er manifestbundet DFF-henting gjennom capped audit,
-deretter A gjennom capped producer. B og C krever fortsatt egne registreringer.
+Begge FRED-hentinger fikk lesetimeout uten bytes; FUNDING_DFF_001 og 002
+med FAILED.json bevares. Før A starter er direkte New York Fed EFFR nå bundet
+i eget manifest, med eksakt virkedagskalender og dokumentert kostkonvensjon.
+To fokuserte finansieringstester besto. Ingen nye markedsutfall eller
+finansieringsdata er lest ennå. Neste steg etter commit er bundet EFFR-henting
+gjennom capped audit, deretter A gjennom capped producer. B/C gjenstår.
+Ny kildeverifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_PREP_VERIFICATION.json.
 Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/A_PREREG_IMPLEMENTATION_VERIFICATION.json.
 Mekaniske tester er ikke prognose- eller lønnsomhetsbevis.
 Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.

@@ -84,12 +84,20 @@ evalueringsquote som regnskapsgrense. Åpne posisjoner underveis inngår i
 utførbar likvidasjonsverdi. Følg den kontrollerte kontantregnskapseieren.
 
 To ko-primære finansieringsscenarioer: null og historisk benchmark pluss
-1,29 prosentpoeng. [FRED DFF](https://fred.stlouisfed.org/series/DFF) er en daglig
-USD overnight-serie i prosent per år; kilde er Federal Reserves H.15.
-Hentemetode/vindu er bundet separat i TA_FUNDING_SOURCE_RETRY_20260929.json før henting.
-Mottatte bytes og full kalenderdagsdekning bindes i RECEIPT.json.
+1,29 prosentpoeng. Etter to bevarte FRED-lesetimeouter bindes direkte
+[New York Fed EFFR](https://www.newyorkfed.org/markets/reference-rates/effr) i
+TA_FUNDING_SOURCE_NYFED_20260929.json. Dette er USD effective federal funds,
+med offisielt JSON-API og uendret datovindu. Mottatte bytes hash-bindes.
 
-DFF er kun en etterfølgende kostnadsmodell, aldri et prognoseinput.
+Hele serien må dekke eksakte Reserve Bank-virkedager uten duplikater eller
+ugyldige renter. Lørdag flytter ikke høytidsdag til fredag; søndag flyttes
+til mandag, og Juneteenth gjelder fra 2021. Avvik stopper henting/bruk.
+Effektiv dagsrente gjelder fra 00:00 UTC til neste effektive dato som
+eksplisitt kostkonvensjon, også over helg. Ingen manglende virkedagsrente
+fylles. Kilden publiserer normalt omtrent 09:00 New York neste virkedag;
+denne framtidige publikasjonskunnskapen brukes aldri til en handelsbeslutning.
+
+EFFR er kun en etterfølgende kostnadsmodell, aldri et prognoseinput.
 Den fryste reviderte historien utgis ikke for å være vintage-riktige features
 eller faktisk historisk brokerfinansiering. LONG-kost = benchmark + påslag;
 SHORT-kost = påslag - benchmark. Negativ kost er kreditt. Basis er signert sides
@@ -161,3 +169,17 @@ TA_FUNDING_SOURCE_RETRY_20260929.json binder samme URL, kilde og datovindu,
 60 sekunders svartid og separat FUNDING_DFF_002-output. A-registreringens
 transport-/kildebinding oppdateres før første markedskjøring. Ingen numeriske
 forsøksvalg eller beslutningsregler endres.
+
+## Eksplisitt kildebytte etter to transportfeil
+
+Også FUNDING_DFF_002 fikk lesetimeout uten bytes. Ingen A-markedsmåling er startet.
+Begge feil og de opprinnelige manifestene bevares. Nytt manifest binder direkte
+EFFR-API før nedlasting. Kalender, JSON-felt og rentekurve testes på syntetiske
+bytes; det beviser mekanikk, ikke historisk dekning. Faktisk dekning må bestå
+før A kan kjøre. EFFR endret beregningsmetode fra 2016-03-01; dette rapporteres
+som en kildebegrensning. Kildebyttet er en dokumentert endring av finansierings-
+input før utfall, ikke en antakelse om byte-likhet med den utilgjengelige DFF-serien.
+Features, folds, lærere, risiko, kostpåslag, nullscenario, inferens og domsregler
+er uendret. [API](https://markets.newyorkfed.org/static/docs/markets-api.html),
+[kalender](https://www.newyorkfed.org/aboutthefed/holiday_schedule) og
+[metodikk](https://www.newyorkfed.org/markets/reference-rates/additional-information-about-reference-rates).

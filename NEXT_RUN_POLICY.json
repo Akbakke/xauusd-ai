@@ -1831,7 +1831,7 @@
     },
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
-    "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
+    "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
     "parameter_complexity_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
       "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
@@ -1866,9 +1866,9 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Publish bound funding retry after first retrieval timed out with no bytes. Retry same DFF source once at 60 s under capped audit into FUNDING_DFF_002; original failure remains. Then run preregistered A under capped producer and verify terminal/inventory. No scientific choices changed or market measurement started; B/C pending; native training/TEST/trading/spending blocked.",
+  "next_action": "Commit/push direct NY Fed EFFR source binding after two preserved FRED timeouts. Fetch exact bound business-date history once under capped audit, verify receipt, then run A once under capped producer. No market experiment started; B/C pending. Native training, TEST, trading and spending blocked.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-09-29T20:44:17.737760+00:00",
+  "observed_utc": "2026-09-29T20:54:55.582903+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -1878,7 +1878,7 @@
     "one_heavy_job_per_current": true,
     "resource_guards_preserved": true,
     "tests_passed": 294,
-    "user_instruction": "fjern lås så vi kan jobbe parallelt"
+    "user_instruction": "fjern l\u00e5s s\u00e5 vi kan jobbe parallelt"
   },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -2057,7 +2057,7 @@
     },
     "a_preregistration": {
       "path": "configs/research/TA_A_PREREG_20260929.json",
-      "sha256": "748aa062ad468cb1f00cf461201f748799360943178af014ae06f7fb5d50dcb3"
+      "sha256": "d48b8ceec94b19f5bf3d9118f708e2648e2dc7655d082cb91285cb494ff1635b"
     },
     "documentation_commit": "52c8761e8046fc12d7dc7d7cf0d881f1799e2a16",
     "documentation_verification": {
@@ -2070,13 +2070,17 @@
     },
     "external_manifest_bound_research_inputs_authorized": true,
     "full_native_val_allowed": false,
+    "funding_nyfed_preparation": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_PREP_VERIFICATION.json",
+      "sha256": "db5426ed0cfebae7f08926965a9aa6cb4896243cf0832d2278fa10d52e141519"
+    },
     "funding_retry_verification": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_RETRY_VERIFICATION.json",
       "sha256": "d0dbc11fe96e57a258e2244a30b1a5a17efa7e7a3681715416b802d74191b47e"
     },
     "funding_source_manifest": {
-      "path": "configs/research/TA_FUNDING_SOURCE_RETRY_20260929.json",
-      "sha256": "02f98eb983a454169660a66bbdfb010e4aa1f826d4ff3213751e27fd086d698a"
+      "path": "configs/research/TA_FUNDING_SOURCE_NYFED_20260929.json",
+      "sha256": "ce51c49f3506c0c77d94c9f8de0b064ae2529b0b54044beb6fc90e69380fe34c"
     },
     "instrument_review": "docs/TA_RESEARCH_INSTRUMENTS_20260929.md",
     "native_training_enabled": false,
@@ -2097,7 +2101,7 @@
       "measurement_a": "NOT_STARTED",
       "measurement_b": "NOT_STARTED",
       "measurement_c": "NOT_STARTED",
-      "preregistrations": "A_COMMITTED_TRANSPORT_RETRY_PREPARED_B_C_PENDING"
+      "preregistrations": "A_BOUND_DIRECT_EFFR_SOURCE_B_C_PENDING"
     },
     "test_outcomes_allowed": false
   },
