@@ -1804,7 +1804,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-29T20:44:17.740742+00:00",
+  "latest_observation_utc": "2026-09-29T21:05:53.030274+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2222,11 +2222,10 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "A is complete and verified; do not rerun or tune. Publish result and synchronize handover. Continue B named-source publication/vintage audit and C exact five-cell preregistration using existing owners and cached evidence. Native training/TEST/trading/spending remain disabled.",
+  "next_action": "A result is published in c41ed952 and complete; do not rerun or tune. Synchronize local handover, then continue B named-source publication/vintage audit and C exact five-cell preregistration using existing owners and cached evidence. Native training/TEST/trading/spending remain disabled.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
-  "observed_utc": "2026-09-29T21:03:21.992828+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2451,6 +2450,7 @@
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001/RESULT.json",
       "sha256": "7835eef9f8021ea63246973f2f3bd6179d0b299f8fa4ccccd357498d95cc0224"
     },
+    "a_result_publication_commit": "c41ed95298c368c3657579f004a4bdbfe29a9223",
     "a_verification": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_VERIFICATION.json",
       "sha256": "f15c9f71e6325c02580e76ef0bd9827cf00d131ca3e9d15d8065d3cfc0a09de5"

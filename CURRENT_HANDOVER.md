@@ -35,7 +35,8 @@ Primær meravkastning mot risiko-LONG er -0,67 / +0,018 bps per intervall,
 med brede simultane intervaller. Positiv netto alene er ikke indikatorverdi.
 Finansieringsproxy, varierende D1-kildedekning og gjenbrukt historie begrenser tolkningen.
 
-Kildecommit 0dc4a04b; A-resultat og alle 30 artefakter er verifisert.
+Kildecommit 0dc4a04b; rapporten er pushet i c41ed952. A-resultat og alle 30
+artefakter er verifisert.
 Terminal: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001/TERMINAL.json.
 Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_VERIFICATION.json.
 Cached audit bekreftet de ytre fit-klokkene uten ny fit.

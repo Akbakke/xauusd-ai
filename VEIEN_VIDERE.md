@@ -27,7 +27,7 @@ Følg [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md).
 Terminal og artefaktinventar er verifisert; ikke gjenta kjøringen eller søk nye
 parametre på resultatet. Resultatet åpner ikke native trening.
 
-1. Publiser A-rapport og synkroniser overleveringen.
+1. A-rapporten er publisert i c41ed952. Verifiser/synkroniser lokal overlevering.
 2. Fullfør B-kildekontroll for navngitte makrofelt: faktisk publisering,
    historiske dataversjoner og minst ett handelsdøgn ekstra lag. En kilde uten
    bevis lukkes eksplisitt. Ingen bruk av revidert sluttserie som as-of-fasit.
