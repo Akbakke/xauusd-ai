@@ -22,20 +22,22 @@ ekstern diskopprydding krever retention-eierens rekkeviddebevis og godkjente pla
 
 ## Neste arbeid: godkjent A/B/C-forskning
 
-Følg [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md). Dokumentasjonsbølgen
-er publisert som 52c8761e. Ridge/konstant-rapportering og sterkere regularisering
-er nå mekanisk kontrollert. Ingen ny markedsmåling er gjort. Neste steg er:
+Følg [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md).
+[A er fullført](docs/TA_A_RESULT_20260929.md), begge modeller INKONKLUSIV.
+Terminal og artefaktinventar er verifisert; ikke gjenta kjøringen eller søk nye
+parametre på resultatet. Resultatet åpner ikke native trening.
 
-1. Publiser den kontrollerte [A-registreringen](docs/TA_A_PREREG_20260929.md)
-   og valideringsmanifest for mottatte EFFR-bytes med korrekt percentRate-felt.
-2. Valider allerede mottatt EFFR-fil gjennom capped audit uten ny henting. Kjør A
-   gjennom capped producer; verifiser terminalkvittering og alle resultatbindinger.
-3. Fullfør egne B/C-registreringer og målinger med samme evidenskrav.
-4. Dokumenter GO/NO_GO/INKONKLUSIV og neste operatørbeslutning.
+1. Publiser A-rapport og synkroniser overleveringen.
+2. Fullfør B-kildekontroll for navngitte makrofelt: faktisk publisering,
+   historiske dataversjoner og minst ett handelsdøgn ekstra lag. En kilde uten
+   bevis lukkes eksplisitt. Ingen bruk av revidert sluttserie som as-of-fasit.
+3. Frys C-kombinasjonen av de fem vedtatte cellene, periodens tidligere VAL-bruk,
+   kostdekomponering og passiv berøringsmodell i egen registrering før kjøring.
+4. Kjør bare registrert B/C-omfang og dokumenter GO/NO_GO/INKONKLUSIV eller
+   eksplisitt kilde-/målebegrensning. Bind neste operatørbeslutning.
 
-Ingen nye markedsresultater finnes ennå. A har nå en kjørbar registrering;
-B og C gjenstår. Native trening/full native VAL, TEST-utfall, handel og spending
-er stengt. Alle native familier og eksisterende artefakter bevares.
+Native trening/full native VAL, TEST-utfall, handel og spending er stengt.
+Alle native familier og tidligere artefakter bevares.
 
 ## Fullførte historiske spor
 

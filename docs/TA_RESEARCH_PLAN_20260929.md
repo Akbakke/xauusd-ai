@@ -3,7 +3,7 @@
 Målet er å måle om en begrenset, kausal indikatorrepresentasjon gir bedre
 XAUUSD-beslutninger enn relevante baselines etter kostnader. Målet er aktivt.
 Dette dokumentet binder arbeidsomfanget; det er ikke en kjørbar forhåndsregistrering.
-Resultater eller GO er ennå ikke målt i denne planen.
+A er fullført med INKONKLUSIV for begge modeller; B/C gjenstår.
 
 ## 0. Dokumentasjon og autoritet
 
@@ -30,9 +30,9 @@ Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json
 De utvidede [økonomi-/inferensfunksjonene](TA_RESEARCH_INSTRUMENTS_20260929.md)
 er også mekanisk kontrollert: sammenhengende kontantregnskap, signert
 finansieringskurve, kausal risikostyring, porteføljestatistikk, paret stasjonær
-bootstrap og felles max-t med styrke/MDE. Dette er teknisk konsistens, ikke nye
-markedsresultater. Kildebinding, A/B/C-integrasjon (inkludert normalisert delta
-og paret Sharpe-forskjell), kjørbare registreringer og alle målinger gjenstår.
+bootstrap og felles max-t med styrke/MDE. [A er nå målt](TA_A_RESULT_20260929.md) med fullstendig kildebinding og
+96 erklærte endepunkter. Begge primære modelldommer er INKONKLUSIV, uten GO.
+B/C-kildekontroll, registreringer og målinger gjenstår. A skal ikke gjentas.
 
 ## 1. Reparer målte instrumentfeil hos eksisterende eiere
 

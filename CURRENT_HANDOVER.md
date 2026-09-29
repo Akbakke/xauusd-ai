@@ -5,7 +5,7 @@
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
 
-## Nå: godkjent A/B/C-plan; instrumentreparasjon før nye målinger
+## Nå: A fullført og inkonklusiv; B/C gjenstår
 
 Brukeren har vedtatt [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md) som aktivt
 mål. [Rotårsaksrapporten](docs/EDGE_ROOT_CAUSE_REVIEW_20260929.md) er publisert med
@@ -24,22 +24,24 @@ risikoskalering, Sharpe/drawdown, paret stasjonær bootstrap og felles max-t med
 styrke/MDE og treveis effektbeslutning. De gamle registrerte kjøringene er bevart.
 Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ECONOMICS_INFERENCE_VERIFICATION.json.
 
-[A-registreringen](docs/TA_A_PREREG_20260929.md) er nå kjørbar og kontrollert
-med syntetisk ende-til-ende-kjøring, inkludert klokke/purge, fulle parvise
-porteføljer, 96 erklærte endepunkter, utdatahasher og terminalkvittering.
-A og opprinnelig finansieringsmanifest er committet i c385c316.
-Begge FRED-hentinger fikk lesetimeout uten bytes; FUNDING_DFF_001 og 002
-med FAILED.json bevares. Før A starter er direkte New York Fed EFFR nå bundet
-i eget manifest, med eksakt virkedagskalender og dokumentert kostkonvensjon.
-API-svaret er mottatt og hash-bundet (4 394 rader), men dokumentert
-rentefelt avvek fra faktisk JSON: percent ble percentRate. Feilkvitteringen
-bevares. Eget valideringsmanifest gjenbruker nøyaktig de samme bytene uten
-ny henting. Tre fokuserte tester besto. Faktisk kalenderdekning er ennå
-ikke godkjent. Ingen A-markedsmåling er startet. Neste steg: capped
-validering av rentefilen, deretter A. B/C gjenstår.
-Skjemabevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_SCHEMA_REPAIR.json.
-Ny kildeverifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_PREP_VERIFICATION.json.
-Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/A_PREREG_IMPLEMENTATION_VERIFICATION.json.
+[Måling A er fullført](docs/TA_A_RESULT_20260929.md): ridge og HGB er begge
+INKONKLUSIV etter den fryste primære beslutningsregelen. 15 årsfolds per horisont,
+4 003 prognoser og 4 002 porteføljeintervaller på gjenbrukt 2011–2025-historikk.
+Ingen GO; ingen native treningsåpning. Ikke relanser eller tune A.
+
+Etter historisk EFFR-finansiering gir h20 ridge +14,50 %, HGB +59,21 %
+og samme risiko-LONG/kausale konstant +61,04 % samlet netto av initialkapital.
+Primær meravkastning mot risiko-LONG er -0,67 / +0,018 bps per intervall,
+med brede simultane intervaller. Positiv netto alene er ikke indikatorverdi.
+Finansieringsproxy, varierende D1-kildedekning og gjenbrukt historie begrenser tolkningen.
+
+Kildecommit 0dc4a04b; A-resultat og alle 30 artefakter er verifisert.
+Terminal: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001/TERMINAL.json.
+Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_VERIFICATION.json.
+Cached audit bekreftet de ytre fit-klokkene uten ny fit.
+Direkte EFFR har 4 394 kontrollerte virkedager. Begge FRED-timeouter og
+første EFFR-skjemaavvik er bevart; faktiske bytes ble gjenbrukt med bundet percentRate-felt.
+B krever kilde-/publiserings-/vintagekontroll; C krever egen registrering.
 Mekaniske tester er ikke prognose- eller lønnsomhetsbevis.
 Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.
 Planen alene er ikke en preregistrering.

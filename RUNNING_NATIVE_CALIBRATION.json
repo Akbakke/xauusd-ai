@@ -2222,11 +2222,11 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Validate already received and hash-bound EFFR bytes using actual percentRate schema, with exact business-date coverage under capped audit. Preserve failed schema receipt; no refetch. Then run preregistered A once under capped producer. B/C pending; native training/TEST/trading/spending blocked.",
+  "next_action": "A is complete and verified; do not rerun or tune. Publish result and synchronize handover. Continue B named-source publication/vintage audit and C exact five-cell preregistration using existing owners and cached evidence. Native training/TEST/trading/spending remain disabled.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
-  "observed_utc": "2026-09-29T20:57:12.909533+00:00",
+  "observed_utc": "2026-09-29T21:03:21.992828+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2431,9 +2431,13 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "TA_RESEARCH_ABC_INSTRUMENT_REPAIR_PENDING_TRAINING_DISABLED",
+  "status": "TA_RESEARCH_A_COMPLETE_INCONCLUSIVE_B_C_PENDING_TRAINING_DISABLED",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "ta_research_20260929": {
+    "a_cached_audit": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_CACHED_AUDIT.json",
+      "sha256": "6acf8337e4a9bf598f6ad6a7ef68db16fe4e26013ec04578d32a8b8cff4f44ed"
+    },
     "a_implementation_verification": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/A_PREREG_IMPLEMENTATION_VERIFICATION.json",
       "sha256": "035f5fb19a0214fe7471c1762a7db3688ea06635ecee8cabdd45bb9691e67d69"
@@ -2441,6 +2445,15 @@
     "a_preregistration": {
       "path": "configs/research/TA_A_PREREG_20260929.json",
       "sha256": "c299e53fcd39818d75d5e505838ba1196b4b1d217992201b772b43f28c2a5758"
+    },
+    "a_report": "docs/TA_A_RESULT_20260929.md",
+    "a_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001/RESULT.json",
+      "sha256": "7835eef9f8021ea63246973f2f3bd6179d0b299f8fa4ccccd357498d95cc0224"
+    },
+    "a_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_VERIFICATION.json",
+      "sha256": "f15c9f71e6325c02580e76ef0bd9827cf00d131ca3e9d15d8065d3cfc0a09de5"
     },
     "documentation_commit": "52c8761e8046fc12d7dc7d7cf0d881f1799e2a16",
     "documentation_verification": {
@@ -2457,6 +2470,10 @@
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_NYFED_PREP_VERIFICATION.json",
       "sha256": "db5426ed0cfebae7f08926965a9aa6cb4896243cf0832d2278fa10d52e141519"
     },
+    "funding_receipt": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_EFFR_VALIDATED_001/RECEIPT.json",
+      "sha256": "3672cac0d2b69387c95074038b40bd242f536dd36d91216c266e178de315bf68"
+    },
     "funding_retry_verification": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FUNDING_RETRY_VERIFICATION.json",
       "sha256": "d0dbc11fe96e57a258e2244a30b1a5a17efa7e7a3681715416b802d74191b47e"
@@ -2471,7 +2488,7 @@
     },
     "instrument_review": "docs/TA_RESEARCH_INSTRUMENTS_20260929.md",
     "native_training_enabled": false,
-    "new_research_run_started": false,
+    "new_research_run_started": true,
     "operator_authorized_on": "2026-09-29",
     "plan": "docs/TA_RESEARCH_PLAN_20260929.md",
     "research_cpu_fit_authorized_after_preregistration": true,
@@ -2480,15 +2497,15 @@
       "sha256": "8e0b9e2bcb2eca9b23ea58e346bcf11b117ac3b7fbba5c7d8b3e0a359fa83afa"
     },
     "run_root": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929",
-    "status": "INSTRUMENT_REPAIR_AND_PREREGISTRATION_PENDING",
+    "status": "A_COMPLETE_INCONCLUSIVE_B_C_PENDING",
     "steps": {
       "decision": "PENDING",
       "documentation": "PUBLISHED",
       "instrument_repair": "A_INTEGRATION_MECHANICS_VERIFIED_B_C_PENDING",
-      "measurement_a": "NOT_STARTED",
+      "measurement_a": "COMPLETE_RIDGE_AND_HGB_INKONKLUSIV",
       "measurement_b": "NOT_STARTED",
       "measurement_c": "NOT_STARTED",
-      "preregistrations": "A_BOUND_REUSE_EFFR_VALIDATION_B_C_PENDING"
+      "preregistrations": "A_EXECUTED_B_C_PENDING"
     },
     "test_outcomes_allowed": false
   },
