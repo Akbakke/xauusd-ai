@@ -5,7 +5,10 @@ Preregistered in docs/MODEL_FREE_BASELINES_PREREG_20260927.md; every cell, windo
 threshold below is that registration. Research evidence only: one pre-TEST native M5 tape is read
 up to the declared end, fills and costs go through the walk-forward instrument's owners
 (``load_tape``, ``load_cost_policy``, ``apply_cost_policy``), and per-cell statistics are written.
-No model, no feature surface, no VAL or TEST row.
+The legacy CLI retains that registration and reads no VAL or TEST row.
+The 2026-09-29 research helpers below provide continuous portfolio accounting,
+historical benchmark financing and causal risk sizing for separately registered
+A/B/C callers. They do not change native costs or authorize a market run.
 """
 from __future__ import annotations
 
@@ -15,7 +18,8 @@ import json
 import math
 import subprocess
 from pathlib import Path
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Iterator
 
 import numpy as np
 import pandas as pd
@@ -45,6 +49,205 @@ BEAR_FOLD = (pd.Timestamp("2011-09-01", tz="UTC"), pd.Timestamp("2016-01-01", tz
 BAR = pd.Timedelta(minutes=5)
 
 
+
+@dataclass(frozen=True)
+class ResearchFinancingCurve:
+    """Piecewise annual benchmark plus explicit markup; a research proxy, not broker history.
+
+    Positive values are costs: LONG = benchmark + markup; SHORT = markup - benchmark.
+    Rates apply from effective_at through the next change, including closed-market time.
+    The caller must bind source bytes, rate-date semantics and coverage_end in its prereg.
+    """
+
+    effective_at: pd.DatetimeIndex
+    benchmark_annual_rate: np.ndarray
+    coverage_end: pd.Timestamp
+    broker_markup: float
+    seconds_per_year: float
+
+    def __post_init__(self) -> None:
+        times = pd.DatetimeIndex(self.effective_at)
+        end = pd.Timestamp(self.coverage_end)
+        rates = np.array(self.benchmark_annual_rate, dtype=np.float64, copy=True)
+        if (len(times) == 0 or times.tz is None or times.hasnans
+                or times.has_duplicates or not times.is_monotonic_increasing
+                or rates.shape != (len(times),) or not np.isfinite(rates).all()
+                or pd.isna(end) or end.tzinfo is None or end <= times[-1]
+                or not np.isfinite(self.broker_markup) or self.broker_markup < 0
+                or not np.isfinite(self.seconds_per_year) or self.seconds_per_year <= 0):
+            raise RuntimeError("BASELINE_FINANCING_CURVE_INVALID")
+        rates.setflags(write=False)
+        object.__setattr__(self, "effective_at", times.tz_convert("UTC"))
+        object.__setattr__(self, "coverage_end", end.tz_convert("UTC"))
+        object.__setattr__(self, "benchmark_annual_rate", rates)
+
+    def integrated_cost_rates(
+        self, starts: pd.DatetimeIndex, ends: pd.DatetimeIndex,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Integral of each annual cost rate over [start, end), as fractions of opening notional."""
+        starts, ends = pd.DatetimeIndex(starts), pd.DatetimeIndex(ends)
+        if (starts.tz is None or ends.tz is None or starts.hasnans or ends.hasnans
+                or len(starts) != len(ends) or np.any(ends.asi8 < starts.asi8)
+                or np.any(starts.asi8 < self.effective_at[0].value)
+                or np.any(ends.asi8 > self.coverage_end.value)):
+            raise RuntimeError("BASELINE_FINANCING_COVERAGE_INVALID")
+        changes = self.effective_at.asi8
+        prefix = np.concatenate([[0.0], np.cumsum(
+            np.diff(changes) / 1e9 * self.benchmark_annual_rate[:-1]
+        )])
+
+        def primitive(times: pd.DatetimeIndex) -> np.ndarray:
+            index = np.searchsorted(changes, times.asi8, side="right") - 1
+            return prefix[index] + (times.asi8 - changes[index]) / 1e9 * self.benchmark_annual_rate[index]
+
+        benchmark = (primitive(ends) - primitive(starts)) / self.seconds_per_year
+        markup = (ends.asi8 - starts.asi8) / 1e9 / self.seconds_per_year * self.broker_markup
+        return benchmark + markup, markup - benchmark
+
+
+def portfolio_path(
+    tape: Tape, held_units: np.ndarray, *,
+    initial_equity: float, slippage_bps_per_execution: float,
+    commission_bps_per_execution: float,
+    financing_curve: ResearchFinancingCurve | None,
+    liquidate_at_end: bool,
+) -> pd.DataFrame:
+    """Cash ledger with q[i] held from quote i to quote i+1; no periodic forced round trips.
+
+    Quotes must carry their actual availability times (the caller owns the bar clock).
+    Spread is paid on quantity changes only. Slippage/commission are charged on
+    executed BID/ASK notional. Financing uses opening BID/ASK notional, with weighted
+    opening basis on adds and proportional release on reductions, matching the
+    existing open-notional financing convention. None explicitly means zero financing.
+    Remaining units are marked at executable liquidation value including exit costs.
+    This supplies both continuous buy-and-hold and the same ledger for model positions.
+    """
+    n = len(tape.time)
+    units = np.asarray(held_units, dtype=np.float64)
+    prices = [np.asarray(v, dtype=np.float64) for v in (tape.mid, tape.bid, tape.ask)]
+    mid, bid, ask = prices
+    if (n < 2 or tape.time.tz is None or tape.time.hasnans or tape.time.has_duplicates
+            or not tape.time.is_monotonic_increasing or units.shape != (n - 1,)
+            or not np.isfinite(units).all() or any(v.shape != (n,) for v in prices)
+            or not all(np.isfinite(v).all() and (v > 0).all() for v in prices)
+            or np.any(bid > mid) or np.any(mid > ask)
+            or not np.isfinite(initial_equity) or initial_equity <= 0
+            or not np.isfinite(slippage_bps_per_execution) or slippage_bps_per_execution < 0
+            or not np.isfinite(commission_bps_per_execution) or commission_bps_per_execution < 0
+            or not isinstance(liquidate_at_end, bool)):
+        raise RuntimeError("BASELINE_PORTFOLIO_INPUT_INVALID")
+    after = np.concatenate([units, [0.0 if liquidate_at_end else units[-1]]])
+    before = np.concatenate([[0.0], after[:-1]])
+    traded = after - before
+    execution_price = np.where(traded > 0, ask, bid)
+    executed_notional = np.abs(traded) * execution_price
+    spread_cost = np.where(traded > 0, traded * (ask - mid), -traded * (mid - bid))
+    slippage_cost = executed_notional * slippage_bps_per_execution / BPS
+    commission_cost = executed_notional * commission_bps_per_execution / BPS
+    mid_pnl = np.concatenate([[0.0], units * np.diff(mid)])
+    basis_after = np.zeros(n, dtype=np.float64)
+    for i, q in enumerate(after):
+        old = before[i]
+        if q == 0:
+            continue
+        if old * q > 0:
+            if abs(q) <= abs(old):
+                basis_after[i] = basis_after[i - 1] * abs(q / old)
+            else:
+                basis_after[i] = basis_after[i - 1] + abs(q - old) * execution_price[i]
+        else:
+            basis_after[i] = abs(q) * execution_price[i]
+    financing = np.zeros(n, dtype=np.float64)
+    if financing_curve is not None:
+        long_cost, short_cost = financing_curve.integrated_cost_rates(tape.time[:-1], tape.time[1:])
+        financing[1:] = basis_after[:-1] * np.where(units > 0, long_cost, np.where(units < 0, short_cost, 0.0))
+    net_cash_pnl = mid_pnl - spread_cost - slippage_cost - commission_cost - financing
+    equity_mid = initial_equity + np.cumsum(net_cash_pnl)
+    close_price = np.where(after > 0, bid, ask)
+    exit_spread = np.abs(after) * np.abs(mid - close_price)
+    exit_fees = np.abs(after) * close_price * (slippage_bps_per_execution + commission_bps_per_execution) / BPS
+    liquidation_reserve = exit_spread + exit_fees
+    frame = pd.DataFrame({
+        "time": tape.time, "held_units_after": after, "traded_units": traded,
+        "opening_notional_after": basis_after, "mid_pnl": mid_pnl,
+        "spread_cost": spread_cost, "slippage_cost": slippage_cost,
+        "commission_cost": commission_cost, "financing_cost": financing,
+        "equity_mid": equity_mid, "liquidation_reserve": liquidation_reserve,
+        "equity_liquidation": equity_mid - liquidation_reserve,
+    })
+    frame.attrs.update(
+        initial_equity=float(initial_equity),
+        financing="historical_benchmark_plus_markup_proxy" if financing_curve is not None else "zero",
+        historical_broker_cost_truth=False, liquidated_at_end=liquidate_at_end,
+        financing_notional="weighted_opening_bid_ask_notional",
+    )
+    return frame
+
+
+def portfolio_summary(frame: pd.DataFrame, *, periods_per_year: float) -> dict[str, Any]:
+    """Daily/declared-clock portfolio statistics; include entry costs in the first interval.
+
+    Sharpe is relative to zero cash return. An insolvent path retains cash PnL and
+    drawdown but does not receive a compounded return/Sharpe interpretation.
+    """
+    initial = float(frame.attrs["initial_equity"])
+    equity = frame["equity_liquidation"].to_numpy(dtype=np.float64)
+    if len(equity) < 2 or not np.isfinite(periods_per_year) or periods_per_year <= 0:
+        raise RuntimeError("BASELINE_PORTFOLIO_SUMMARY_INVALID")
+    # First interval starts from initial capital, not the already cost-debited first quote.
+    previous = np.concatenate([[initial], equity[1:-1]])
+    peak = np.maximum.accumulate(np.concatenate([[initial], equity]))
+    drawdown = 1.0 - np.concatenate([[initial], equity]) / peak
+    out: dict[str, Any] = {
+        "intervals": len(equity) - 1,
+        "total_net_bps": float((equity[-1] / initial - 1) * BPS),
+        "total_mid_pnl_bps": float(frame["mid_pnl"].sum() / initial * BPS),
+        "max_drawdown": float(drawdown.max()),
+        "insolvent": bool(np.any(equity <= 0)),
+        "open_units": float(frame["held_units_after"].iloc[-1]),
+        "execution_count": int((frame["traded_units"] != 0).sum()),
+        "periods_per_year": float(periods_per_year),
+    }
+    for name in ("spread_cost", "slippage_cost", "commission_cost", "financing_cost", "liquidation_reserve"):
+        value = frame[name].iloc[-1] if name == "liquidation_reserve" else frame[name].sum()
+        out[name + "_bps"] = float(value / initial * BPS)
+    if not out["insolvent"]:
+        returns = equity[1:] / previous - 1.0
+        out["mean_period_net_bps"] = float(returns.mean() * BPS)
+        if len(returns) > 1:
+            sd = float(returns.std(ddof=1))
+            out["realized_annual_vol"] = sd * math.sqrt(periods_per_year)
+            if sd > 0:
+                out["sharpe_zero_cash"] = float(returns.mean() / sd * math.sqrt(periods_per_year))
+    return out
+
+
+def causal_risk_units(
+    mid: np.ndarray, side: np.ndarray, *, lookback: int, periods_per_year: float,
+    target_annual_vol: float, max_gross_leverage: float, initial_equity: float,
+) -> np.ndarray:
+    """Same past-return volatility scale for each model and always-LONG.
+
+    q[i] uses returns ending at i and applies only after quote i. Capital is the
+    fixed declared initial budget, not future realized strategy risk. Warmup and
+    zero-variance windows remain NaN; callers must use a common valid population.
+    """
+    mid, side = np.asarray(mid, dtype=np.float64), np.asarray(side, dtype=np.float64)
+    parameters = (periods_per_year, target_annual_vol, max_gross_leverage, initial_equity)
+    if (mid.ndim != 1 or side.shape != mid.shape or not np.isfinite(mid).all()
+            or np.any(mid <= 0) or not np.isin(side[~np.isnan(side)], [-1, 0, 1]).all()
+            or not isinstance(lookback, int) or isinstance(lookback, bool) or lookback < 2
+            or not all(np.isfinite(x) and x > 0 for x in parameters)):
+        raise RuntimeError("BASELINE_RISK_INPUT_INVALID")
+    returns = pd.Series(mid).pct_change(fill_method=None)
+    sigma = returns.rolling(lookback, min_periods=lookback).std(ddof=1).to_numpy() * math.sqrt(periods_per_year)
+    units = np.full(len(mid), np.nan)
+    valid = np.isfinite(sigma) & (sigma > 0) & np.isfinite(side)
+    leverage = np.minimum(target_annual_vol / sigma[valid], max_gross_leverage)
+    units[valid] = side[valid] * leverage * initial_equity / mid[valid]
+    return units
+
+
 def trade_outcomes(
     tape: Tape,
     entry: np.ndarray,
@@ -53,6 +256,7 @@ def trade_outcomes(
     policy: dict[str, Any],
     *,
     financing: bool,
+    financing_curve: ResearchFinancingCurve | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Gross and net bps per trade; side +1 long, -1 short, 0 flat (flat costs nothing)."""
     entry = np.asarray(entry, dtype=np.int64)
@@ -66,10 +270,14 @@ def trade_outcomes(
     short_gross = (1.0 - tape.ask[exit_] / tape.bid[entry]) * BPS
     elapsed = np.asarray((tape.time[exit_] - tape.time[entry]).total_seconds(), dtype=np.float64)
     scenario = dict(policy)
-    if not financing:
+    if not financing or financing_curve is not None:
         scenario["long_annual_cost_rate"] = 0.0
         scenario["short_annual_cost_rate"] = 0.0
     long_net, short_net = apply_cost_policy(long_gross, short_gross, elapsed, scenario)
+    if financing and financing_curve is not None:
+        long_cost, short_cost = financing_curve.integrated_cost_rates(tape.time[entry], tape.time[exit_])
+        long_net -= long_cost * BPS
+        short_net -= short_cost * BPS
     gross = np.where(side > 0, long_gross, np.where(side < 0, short_gross, 0.0))
     net = np.where(side > 0, long_net, np.where(side < 0, short_net, 0.0))
     return gross, net
@@ -188,6 +396,104 @@ def swing_signals(close: np.ndarray) -> dict[str, np.ndarray]:
     sma[SMA_D1 - 1:] = (csum[SMA_D1:] - csum[:-SMA_D1]) / SMA_D1
     out["sma200"] = np.sign(close - sma)
     return out
+
+
+
+def stationary_bootstrap_indices(
+    observations: int, *, draws: int, mean_block_length: float, seed: int,
+) -> Iterator[np.ndarray]:
+    """Politis-Romano circular stationary bootstrap with geometric block lengths.
+
+    A caller uses each yielded index ONCE across every strategy, benchmark,
+    normalizer and endpoint in the declared family; never resample sides separately.
+    The block length and seed must be bound before outcome inspection.
+    """
+    if (not isinstance(observations, int) or observations < 2
+            or not isinstance(draws, int) or draws < 2
+            or not np.isfinite(mean_block_length) or not 1 <= mean_block_length <= observations
+            or not isinstance(seed, int) or seed < 0):
+        raise RuntimeError("BASELINE_BOOTSTRAP_INPUT_INVALID")
+    rng = np.random.default_rng(seed)
+    positions = np.arange(observations)
+    for _ in range(draws):
+        starts = rng.integers(observations, size=observations)
+        restart = rng.random(observations) < 1.0 / mean_block_length
+        restart[0] = True
+        latest_start = np.maximum.accumulate(np.where(restart, positions, 0))
+        yield (starts[latest_start] + positions - latest_start) % observations
+
+
+def max_t_inference(
+    estimates: np.ndarray, bootstrap_estimates: np.ndarray, *, names: list[str],
+    alpha: float, desired_power: float, effect_sizes: np.ndarray,
+    minimum_relevant_effect: np.ndarray,
+) -> dict[str, Any]:
+    """Single-step paired bootstrap max-|t| family inference, not an IID t-test.
+
+    Rows of bootstrap_estimates MUST come from shared stationary-bootstrap draws
+    of the complete declared family. SE is the bootstrap SD, held fixed for
+    centered bootstrap roots (not a nested/bootstrap-t variance estimate).
+    Two-sided simultaneous bands give direction-aware economic-effect decisions.
+    Power/MDE use a plug-in location-shift model and the joint max-|t| cutoff;
+    they are conditional precision diagnostics, not observed trading edge.
+    """
+    point = np.asarray(estimates, dtype=np.float64)
+    boot = np.asarray(bootstrap_estimates, dtype=np.float64)
+    effects = np.asarray(effect_sizes, dtype=np.float64)
+    minimum = np.asarray(minimum_relevant_effect, dtype=np.float64)
+    k = len(names)
+    if (k == 0 or len(set(names)) != k or any(not isinstance(n, str) or not n for n in names)
+            or point.shape != (k,) or boot.ndim != 2 or boot.shape[1] != k or len(boot) < 2
+            or effects.shape != (k, 3) or minimum.shape != (k,)
+            or not all(np.isfinite(x).all() for x in (point, boot, effects, minimum))
+            or np.any(effects <= 0) or np.any(np.diff(effects, axis=1) <= 0)
+            or np.any(minimum <= 0) or not 0 < alpha < 1 or not 0.5 < desired_power < 1):
+        raise RuntimeError("BASELINE_MAX_T_INPUT_INVALID")
+    se = boot.std(axis=0, ddof=1)
+    if np.any(se <= 0):
+        raise RuntimeError("BASELINE_MAX_T_DEGENERATE_ENDPOINT")
+    draws = len(boot)
+    errors = boot - point
+    roots = errors / se
+    maximum = np.max(np.abs(roots), axis=1)
+    # Match the (exceedances + 1)/(draws + 1) p-value resolution. A plain
+    # empirical percentile can yield a GO although the adjusted p exceeds alpha.
+    critical_rank = math.ceil((draws + 1) * (1 - alpha))
+    if critical_rank > draws:
+        raise RuntimeError("BASELINE_MAX_T_DRAWS_TOO_FEW_FOR_ALPHA")
+    critical = float(np.sort(maximum)[critical_rank - 1])
+    lower, upper = point - critical * se, point + critical * se
+    rows = []
+    for j, name in enumerate(names):
+        adjusted_p = (1 + int(np.sum(maximum >= abs(point[j] / se[j])))) / (draws + 1)
+        # The positive-direction test rejects at estimate > critical * SE.
+        powers = [float(np.mean(effect + errors[:, j] > critical * se[j])) for effect in effects[j]]
+        mde = max(0.0, float(critical * se[j] - np.quantile(errors[:, j], 1 - desired_power, method="lower")))
+        verdict = ("GO" if lower[j] > minimum[j] else
+                   "NO_GO" if upper[j] < minimum[j] else "INKONKLUSIV")
+        rows.append({
+            "name": name, "estimate": float(point[j]), "bootstrap_se": float(se[j]),
+            "simultaneous_lower": float(lower[j]), "simultaneous_upper": float(upper[j]),
+            "max_t_adjusted_two_sided_p": adjusted_p,
+            "minimum_relevant_effect": float(minimum[j]), "effect_verdict": verdict,
+            "power_at_declared_effects": [
+                {"effect": float(effect), "power": power,
+                 "conditional_monte_carlo_se": math.sqrt(power * (1 - power) / draws)}
+                for effect, power in zip(effects[j], powers)
+            ],
+            "mde_against_zero": mde,
+            "plug_in_power_at_mde": float(np.mean(mde + errors[:, j] > critical * se[j])),
+        })
+    return {
+        "method": "single_step_paired_stationary_bootstrap_max_abs_t_fixed_bootstrap_se",
+        "family": list(names), "family_size": k, "bootstrap_draws": draws,
+        "alpha": float(alpha), "desired_power": float(desired_power),
+        "simultaneous_critical_value": critical,
+        "minimum_resolvable_p": 1 / (draws + 1),
+        "power_model": "location_shift_of_centered_bootstrap_errors_under_joint_max_abs_t_cutoff",
+        "scope": "effect inference only; economic and data-admissibility gates remain separate",
+        "endpoints": rows,
+    }
 
 
 def summarize(values: np.ndarray, times: pd.DatetimeIndex, full_years: tuple[int, ...] = FULL_YEARS) -> dict[str, Any]:

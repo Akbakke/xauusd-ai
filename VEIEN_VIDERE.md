@@ -26,8 +26,9 @@ Følg [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md). Dokumentasjonsbølg
 er publisert som 52c8761e. Ridge/konstant-rapportering og sterkere regularisering
 er nå mekanisk kontrollert. Ingen ny markedsmåling er gjort. Neste steg er:
 
-1. Reparer sammenhengende kjøp-og-hold/finansiering, risikosammenligning og
-   inferens/styrke hos eksisterende instrumenteiere.
+1. Integrer de nå [kontrollerte økonomi-/inferensfunksjonene](docs/TA_RESEARCH_INSTRUMENTS_20260929.md)
+   i A/B/C: bind D1-klokke og utfall, kildemanifester før henting, normalisert
+   delta og paret Sharpe-forskjell. Historisk finansieringsserie er ikke hentet.
 2. Commit kjørbare forhåndsregistreringer for sju D1-felt (A), navngitt makrotillegg
    (B) og fem frosne fortsettelsesceller med utførelsesdiagnostikk (C).
 3. Kjør avgrenset gjennom capped audit/producer. Gjenbruk gyldige cacher og

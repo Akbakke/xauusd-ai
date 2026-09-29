@@ -1804,7 +1804,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-29T20:06:54.344053+00:00",
+  "latest_observation_utc": "2026-09-29T20:22:42.392949+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2222,11 +2222,11 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Ridge regularization/reporting repair is mechanics-verified; see bound RIDGE_REPAIR_VERIFICATION. Next repair continuous buy-and-hold and historical financing in research owners, risk-matched comparisons and paired block-bootstrap/multiplicity/power. Then commit executable A/B/C preregistrations before bounded capped research runs. Documentation published at 52c8761e. No new market measurement has started. Native optimizer/training, full native VAL, TEST outcomes, trading and spending remain blocked.",
+  "next_action": "Economics/inference helpers are mechanics-verified in existing research owner; bind ECONOMICS_INFERENCE_VERIFICATION. Next implement the bounded A/B/C campaign caller, verify D1 closed-bar/decision/fill and 5/20-trading-day outcome semantics, bind historical financing source manifest before fetching, integrate normalized delta and paired Sharpe difference, and commit executable preregistrations with effect sizes/family/risk/cost settings before market measurement. No new market data read or A/B/C run yet. Native training/full native VAL/TEST/trading/spending remain blocked.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
-  "observed_utc": "2026-09-29T20:06:54.344053+00:00",
+  "observed_utc": "2026-09-29T20:22:42.392949+00:00",
   "out_bundle_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/CANDIDATE_BUNDLE",
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2439,8 +2439,13 @@
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/DOCUMENTATION_VERIFICATION.json",
       "sha256": "23cd80acfcd4cf354dd299aaa2fdfee2d887b5f854fa652761f64c054fe5bf3e"
     },
+    "economics_inference_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ECONOMICS_INFERENCE_VERIFICATION.json",
+      "sha256": "feabf85a91607e8b1709f1a6fe6fb96f8997cd011adb64a65dfa00ad8719b52f"
+    },
     "external_manifest_bound_research_inputs_authorized": true,
     "full_native_val_allowed": false,
+    "instrument_review": "docs/TA_RESEARCH_INSTRUMENTS_20260929.md",
     "native_training_enabled": false,
     "new_research_run_started": false,
     "operator_authorized_on": "2026-09-29",
@@ -2455,7 +2460,7 @@
     "steps": {
       "decision": "PENDING",
       "documentation": "PUBLISHED",
-      "instrument_repair": "PARTIAL_RIDGE_MECHANICS_VERIFIED",
+      "instrument_repair": "PARTIAL_ECONOMICS_AND_INFERENCE_HELPERS_VERIFIED",
       "measurement_a": "NOT_STARTED",
       "measurement_b": "NOT_STARTED",
       "measurement_c": "NOT_STARTED",

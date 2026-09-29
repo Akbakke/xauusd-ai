@@ -27,8 +27,12 @@ via eksisterende --ridge-constant-alternative off og rapportering av konstantval
 og nedre/øvre søkegrense. Konstanten beholdes også når ren ridge måles.
 Fokuserte eiertester med uavhengig sklearn-referanse besto gjennom capped audit.
 Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.
-Dette er teknisk konsistens, ikke nye markedsresultater. Resten av instrumentene,
-kjørbare forhåndsregistreringer og alle A/B/C-målinger gjenstår.
+De utvidede [økonomi-/inferensfunksjonene](TA_RESEARCH_INSTRUMENTS_20260929.md)
+er også mekanisk kontrollert: sammenhengende kontantregnskap, signert
+finansieringskurve, kausal risikostyring, porteføljestatistikk, paret stasjonær
+bootstrap og felles max-t med styrke/MDE. Dette er teknisk konsistens, ikke nye
+markedsresultater. Kildebinding, A/B/C-integrasjon (inkludert normalisert delta
+og paret Sharpe-forskjell), kjørbare registreringer og alle målinger gjenstår.
 
 ## 1. Reparer målte instrumentfeil hos eksisterende eiere
 

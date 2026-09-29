@@ -17,10 +17,18 @@ ridge-gridet går nå til 1e7, og rapporten skiller ren ridge, konstantvalg og v
 på søkegrensen. Konstanten beholdes som synlig kausal referanse. Eierens fokuserte
 tester besto gjennom capped audit, inkludert uavhengig sklearn-sammenligning.
 
-Neste arbeid er sammenhengende kjøp-og-hold/historisk finansiering,
-risikosammenligning og inferens/styrke, deretter commit av kjørbare
-forhåndsregistreringer og capped A/B/C-målinger. Ingen ny markedskjøring er startet.
-Mekaniske tester beviser ingen bedre prognose eller lønnsomhet.
+[Økonomi- og inferensinstrumentene](docs/TA_RESEARCH_INSTRUMENTS_20260929.md) er
+nå mekanisk kontrollert: sammenhengende beholdning med utførbare kostnader,
+historisk rentekurve med signert SHORT-kreditt, åpne posisjoner, kausal
+risikoskalering, Sharpe/drawdown, paret stasjonær bootstrap og felles max-t med
+styrke/MDE og treveis effektbeslutning. De gamle registrerte kjøringene er bevart.
+Bevis: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ECONOMICS_INFERENCE_VERIFICATION.json.
+
+Neste arbeid er integrasjon i den avgrensede A/B/C-kjøringen: bind D1-klokke,
+utfall og kildemanifester, integrer normalisert delta og paret Sharpe-forskjell,
+og commit kjørbare forhåndsregistreringer før datahenting/markedskjøring.
+Historisk finansieringsserie er ennå ikke hentet. Ingen ny markedskjøring er
+startet. Mekaniske tester beviser ingen bedre prognose eller lønnsomhet.
 Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.
 Planen alene er ikke en preregistrering.
 Dokumentasjonsbevis:
