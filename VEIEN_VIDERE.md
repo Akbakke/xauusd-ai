@@ -20,24 +20,23 @@ Ingen ny fullsuite eller gjentatt bestått datakontroll uten konkret nytt funn.
 Alle features, åtte familier og tidsrammer beholdes. Ingen data/checkpoints slettes;
 ekstern diskopprydding krever retention-eierens rekkeviddebevis og godkjente plan.
 
-## Neste arbeid: godkjent A/B/C-forskning
+## Gjeldende grense: A/B/C-planen er avsluttet
 
-Følg [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md).
-[A er fullført](docs/TA_A_RESULT_20260929.md), begge modeller INKONKLUSIV.
-Terminal og artefaktinventar er verifisert; ikke gjenta kjøringen eller søk nye
-parametre på resultatet. Resultatet åpner ikke native trening.
+[Samlet beslutning](docs/TA_RESEARCH_DECISION_20260929.md):
+A/C INKONKLUSIV, B ikke målt grunnet kildebegrensning. Resultater, terminaler og
+etterkontroller er ferdige. Ingen GO og ingen ny kjøring autorisert.
+Bevar [A](docs/TA_A_RESULT_20260929.md), [B](docs/TA_B_RESULT_20260929.md)
+og [C](docs/TA_C_RESULT_20260929.md); ingen omkjøring eller parameterletning.
 
-1. Bevar fullført A og [B-kildebegrensningen](docs/TA_B_RESULT_20260929.md).
-   B har ingen målt modellmerverdi; nye transportforsøk alene løser ikke GLD/COT.
-2. Commit/push [C-registreringen](docs/TA_C_PREREG_20260929.md) og kontrollert kilde.
-   Kjør bare MEASUREMENT_C_001 fra ren kilde gjennom capped producer8G med
-   eksakt manifesthash. Gjenbruk finansieringen; ingen ekstern henting.
-3. Verifiser terminal, utfall, full artefaktkjede og kontantregnskap.
-   Publiser C-dom med utvalgs-/fyllingsbegrensningene og beslutning for hele A/B/C.
-4. Synkroniser lokal overlevering. Ingen ny parameterletning eller A-relansering.
+Neste mulige operatørbeslutning er om dokumenterbare historiske GLD/COT-versjoner
+kan kvalifiseres før full B eventuelt gjenåpnes. Datatilgjengelighet og
+felles A/B-populasjon må bindes før en ny fit. Ingen kostnad eller leverandørvalg
+er vedtatt. C ga ikke den nødvendige GO til utførelses-/ordrebokforskning;
+A ga ikke grunnlag for ny native mål-/horisontkontrakt.
 
-Native trening/full native VAL, TEST-utfall, handel og spending er stengt.
-Alle native familier og tidligere artefakter bevares.
+training_enabled=false. Native trening/full native VAL, TEST-utfall, handel og
+spending er stengt. Alle native familier, checkpoints og tidligere artefakter
+bevares. Målet om lønnsom bot er fortsatt ikke oppnådd.
 
 ## Fullførte historiske spor
 

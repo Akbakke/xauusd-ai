@@ -1,9 +1,9 @@
 # Forskningsplan for tekniske indikatorer — vedtatt 29.09.2026
 
 Målet er å måle om en begrenset, kausal indikatorrepresentasjon gir bedre
-XAUUSD-beslutninger enn relevante baselines etter kostnader. Målet er aktivt.
+XAUUSD-beslutninger enn relevante baselines etter kostnader. Planen er avsluttet med dokumenterte beslutninger/grenser; botens økonomiske mål er ikke oppnådd.
 Dette dokumentet binder arbeidsomfanget; det er ikke en kjørbar forhåndsregistrering.
-A er fullført med INKONKLUSIV; B er ikke målt grunnet kildebegrensning; C er registrert før måling.
+A/C er fullført med INKONKLUSIV; B er ikke målt grunnet kildebegrensning. Se [samlet beslutning](TA_RESEARCH_DECISION_20260929.md).
 
 ## 0. Dokumentasjon og autoritet
 
@@ -32,7 +32,7 @@ er også mekanisk kontrollert: sammenhengende kontantregnskap, signert
 finansieringskurve, kausal risikostyring, porteføljestatistikk, paret stasjonær
 bootstrap og felles max-t med styrke/MDE. [A er nå målt](TA_A_RESULT_20260929.md) med fullstendig kildebinding og
 96 erklærte endepunkter. Begge primære modelldommer er INKONKLUSIV, uten GO.
-B er lukket med eksplisitt kildebegrensning. C-registrering og mekanikk er kontrollert; kjøring gjenstår. A skal ikke gjentas.
+B er lukket med eksplisitt kildebegrensning. C er fullført og etterkontrollert: INKONKLUSIV og negativ observert økonomi. A/C skal ikke gjentas. Ingen ny kjøring følger av planen.
 
 ## 1. Reparer målte instrumentfeil hos eksisterende eiere
 

@@ -5,18 +5,17 @@ finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke
 
 ## Gjeldende arbeidsomfang
 
-Brukeren har vedtatt [A/B/C-planen](docs/TA_RESEARCH_PLAN_20260929.md) som aktivt mål:
-publiser rotårsaksrapporten, reparer konkrete forskningsinstrumenter, forhåndsregistrer
-og mål kompakte D1-indikatorer, et begrenset makrotillegg og fem frosne intradagsceller.
-Resultatet skal gi en dokumentert GO, NO-GO eller INKONKLUSIV beslutning om neste
-kontrakt eller utførelsesforskning. Ingen positiv økonomi er dokumentert av vedtaket.
+Den avtalte [A/B/C-planen](docs/TA_RESEARCH_PLAN_20260929.md) er avsluttet:
+A/C INKONKLUSIV, B umålt med dokumentert kildebegrensning. Instrumentrettelser,
+forhåndsregistreringer, autoriserte målinger og resultatkontroller er fullført.
+[Samlet beslutning](docs/TA_RESEARCH_DECISION_20260929.md) binder neste
+operatørgrense; planen er ferdig, botens økonomiske mål er ikke oppnådd.
 
-V37-inputforberedelse og repo-/kompleksitetsgjennomgang er fullført og gjenbrukes.
-Den tidligere ridge/HGB-portens NO-GO gjelder det undersøkte oppsettet, ikke et
-bevist tak for all læring. Rett først de målte instrumentfeilene.
-Ingen native optimizersteg eller trening er autorisert. Brede indikator-, modell-
-og terskelsøk er stengt. Eksterne forskningsinputs følger oppdatert regel 1.
-Se CURRENT_HANDOVER.md og VEIEN_VIDERE.md for status og neste arbeid.
+V37-inputforberedelse og repo-/kompleksitetsgjennomgang bevares.
+Ingen native optimizersteg, trening eller utførelsesforskning følger av resultatene.
+Brede indikator-, modell- og terskelsøk er stengt. Eventuell gjenåpning av full B
+krever dokumenterbar historisk GLD/COT-tilgjengelighet og nye manifestbindinger.
+Se CURRENT_HANDOVER.md og VEIEN_VIDERE.md. Ingen ny kjøring er autorisert.
 
 ## Suksesskriterier
 

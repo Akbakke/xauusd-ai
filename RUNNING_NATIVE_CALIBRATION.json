@@ -1804,7 +1804,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-29T21:39:40.329409+00:00",
+  "latest_observation_utc": "2026-09-29T21:47:44.846630+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2222,7 +2222,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Commit and publish C preregistration and verified source, then run exactly MEASUREMENT_C_001 through capped producer8G. B closed as not measured due source limitation; preserve A. No native training, TEST outcomes, trading or spending.",
+  "next_action": "A/B/C research plan complete: preserve terminal A/C and B source limitation. No run authorized. Next operator decision is whether documented historical GLD/COT release-vintage evidence justifies reopening full B; no automatic native training or execution research. TEST outcomes, trading and spending remain disabled.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2430,7 +2430,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "TA_RESEARCH_A_INCONCLUSIVE_B_SOURCE_LIMITATION_C_REGISTERED_TRAINING_DISABLED",
+  "status": "TA_RESEARCH_COMPLETE_A_C_INCONCLUSIVE_B_SOURCE_LIMITED_TRAINING_DISABLED",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "ta_research_20260929": {
     "a_cached_audit": {
@@ -2455,6 +2455,7 @@
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_VERIFICATION.json",
       "sha256": "f15c9f71e6325c02580e76ef0bd9827cf00d131ca3e9d15d8065d3cfc0a09de5"
     },
+    "active_job": null,
     "b_report": "docs/TA_B_RESULT_20260929.md",
     "b_result": {
       "path": "docs/TA_B_RESULT_20260929.json",
@@ -2469,6 +2470,10 @@
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_SOURCE_FETCH_IMPLEMENTATION_VERIFICATION.json",
       "sha256": "3fa7737828df5ec5915fc2dd492739223903d688b3091d186eb6407b3df3a06b"
     },
+    "c_cached_audit": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_C_001_CACHED_AUDIT.json",
+      "sha256": "b7f2102f043247527ebc59b1deaafc08b81eddd7a5ca523d45b6bbe1ec699a00"
+    },
     "c_implementation_verification": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/C_IMPLEMENTATION_VERIFICATION_002.json",
       "sha256": "809b9c9835b9454407cd8a36f01f756c3d1bdfb1d61cba1d5c3d18a5db0d90eb"
@@ -2476,6 +2481,21 @@
     "c_preregistration": {
       "path": "configs/research/TA_C_PREREG_20260929.json",
       "sha256": "3df9ab9e4800191c355a4a1e8784e83337facb385805c652fc4bae2e560fff95"
+    },
+    "c_report": {
+      "path": "docs/TA_C_RESULT_20260929.json",
+      "sha256": "28f6b10db378e24c6e5da881bda42f966a3c0adb3b47e4207ddb6c77f3bfbe73",
+      "summary": "docs/TA_C_RESULT_20260929.md"
+    },
+    "c_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_C_001/RESULT.json",
+      "sha256": "28f6b10db378e24c6e5da881bda42f966a3c0adb3b47e4207ddb6c77f3bfbe73",
+      "terminal": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_C_001/TERMINAL.json",
+      "terminal_sha256": "221e3ed0e09c1e022820dc6f0b153fcd937ea64b0d0002c137f61eb16d811ba0"
+    },
+    "completion_report": {
+      "path": "docs/TA_RESEARCH_DECISION_20260929.md",
+      "sha256": "0683d25629263b03ff3fcbd0fd43c2531d9f876914f7421bd0d63008299223c6"
     },
     "documentation_commit": "52c8761e8046fc12d7dc7d7cf0d881f1799e2a16",
     "documentation_verification": {
@@ -2519,15 +2539,15 @@
       "sha256": "8e0b9e2bcb2eca9b23ea58e346bcf11b117ac3b7fbba5c7d8b3e0a359fa83afa"
     },
     "run_root": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929",
-    "status": "TA_RESEARCH_A_INCONCLUSIVE_B_SOURCE_LIMITATION_C_REGISTERED_TRAINING_DISABLED",
+    "status": "TA_RESEARCH_COMPLETE_A_C_INCONCLUSIVE_B_SOURCE_LIMITED_TRAINING_DISABLED",
     "steps": {
-      "decision": "PENDING",
-      "documentation": "PUBLISHED",
-      "instrument_repair": "A_C_MECHANICS_VERIFIED",
+      "decision": "DOCUMENTED_NO_GO_FOR_EXPANSION_NO_NEW_RUN",
+      "documentation": "COMPLETE_REPORTS_PENDING_PUBLICATION",
+      "instrument_repair": "COMPLETE_RESEARCH_MECHANICS_VERIFIED",
       "measurement_a": "COMPLETE_RIDGE_AND_HGB_INKONKLUSIV",
       "measurement_b": "NOT_MEASURED_SOURCE_LIMITATION",
-      "measurement_c": "PREREGISTERED_MECHANICS_VERIFIED_NOT_RUN",
-      "preregistrations": "A_COMPLETE_B_CLOSED_C_REGISTERED"
+      "measurement_c": "COMPLETE_INCONCLUSIVE_NEGATIVE_OBSERVED_ECONOMICS",
+      "preregistrations": "A_C_COMPLETE_B_SOURCE_LIMITATION"
     },
     "test_outcomes_allowed": false
   },

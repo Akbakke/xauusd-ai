@@ -5,10 +5,18 @@
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
 
-## Nå: A inkonklusiv; B kildebegrenset; C registrert før måling
+## Nå: A/B/C-planen avsluttet; ingen ny kjøring autorisert
 
-Brukeren har vedtatt [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md) som aktivt
-mål. [Rotårsaksrapporten](docs/EDGE_ROOT_CAUSE_REVIEW_20260929.md) er publisert med
+[Samlet beslutning](docs/TA_RESEARCH_DECISION_20260929.md): A og C er INKONKLUSIV;
+B er ikke målt grunnet konkret kildebegrensning. Den avtalte forskningsplanen er
+avsluttet med dokumenterte resultater/grenser. Botens lønnsomhet er ikke etablert.
+Ingen GO til ny native kontrakt/trening eller utførelsesforskning.
+Neste mulige operatørvalg er dokumenterbar historisk GLD/COT-versjonsdata før
+eventuell gjenåpning av full B. Ingen automatisk ny arm eller henting.
+
+
+
+Brukeren vedtok [forskningsplanen](docs/TA_RESEARCH_PLAN_20260929.md); den er nå gjennomført. [Rotårsaksrapporten](docs/EDGE_ROOT_CAUSE_REVIEW_20260929.md) er publisert med
 kontrollert dommetelling og spreadpresisering; originalen er bevart. Regel 1 åpner
 navngitte, manifestbundne eksterne forskningsinputs med XAUUSD som eneste eksponering.
 
@@ -47,12 +55,19 @@ fikk timeout; Mac-kontroll av skjemaet lyktes. Avgjørende begrensning er mangle
 bundet historisk publikasjon-/versjonsbevis for GLD/COT. Ingen B-fit, redusert
 erstatning eller konklusjon om null makroeffekt. Den terminale kildeauditen bevares.
 
-[C er registrert](docs/TA_C_PREREG_20260929.md), med én fast kombinasjon,
-utførbar open-klokke, felles utvalg og passiv berøringsmodell. Hele juni2025–
-juni2026 er gjenbrukt utviklingsevidens. Kontantregnskap, signalklokke, kildefilter
-og72-endepunkts inferens/artefaktkjede er mekanisk kontrollert på syntetiske data.
-Ingen ekte C-utfall er beregnet ennå. Manifest og kilde må være committet før
-MEASUREMENT_C_001 kjøres én gang gjennom capped producer8G.
+[C er fullført](docs/TA_C_RESULT_20260929.md) fra dab10749 og kontrollert:
+1 649 muligheter /1 646 utførbare,1 291 passive berøringer. Alle53 artefakter
+og alle berøringer er verifisert;24 kost-/porteføljeregnskap er avstemt.
+Aktiv mid+1,465 bps blir netto−2,547 ved1 bps per utførelse og finansiering.
+Passiv netto−1,397 bps per valgt mulighet,−14,91 % av initialkapital.
+Berøringsutvalget har−0,751 bps mid, utførbare uten berøring+9,536:
+gunstigere inngangspris gjenopprettet ikke det opprinnelige signalutvalget.
+Primær passiv grense mot FLAT[−4,480;1,686], mot LONG[−3,332;5,179]:
+INKONKLUSIV og ingen GO. Hele juni2025–juni2026 er gjenbrukt utviklingsevidens.
+TERMINAL:/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_C_001/TERMINAL.json.
+Etterkontroll:/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_C_001_CACHED_AUDIT.json.
+Ingen åpne simulerte posisjoner ved slutt; ingen TEST-utfall eller native fit.
+Ikke relanser A/C eller tune reglene på resultatene.
 Mekaniske tester er ikke prognose- eller lønnsomhetsbevis.
 Verifikasjon: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/RIDGE_REPAIR_VERIFICATION.json.
 Planen alene er ikke en preregistrering.
