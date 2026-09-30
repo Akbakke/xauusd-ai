@@ -5,7 +5,21 @@
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
 
-## Nå: A/B/C-planen avsluttet; ingen ny kjøring autorisert
+## Oppfølging 30.09.2026: undersøk B-kildene
+
+Brukeren ba «Ja undersøk B». Dette åpner en avgrenset kildeundersøkelse:
+GLD/COT-versjoner, arkivmetadata og ALFRED-transport. Fullført A/C og tidligere
+B-resultat bevares. Ingen ny fit, native trening, TEST, handel eller spending.
+
+Før nye kildebytes hentes bindes
+configs/research/TA_B_SOURCE_REOPEN_PROBE_20260930.json: fem forespørsler om
+arkivmetadata og én liten DFII10-prøve for juni 2025. En byte-lik kopi av
+CURRENTs rene HTTP-hjelpere kjøres som transport på Mac fordi samme skjema
+tidligere svarte der og fikk timeout på WSL. Rå svar og hasher føres tilbake til
+CURRENTs runtime; Mac er ikke en forskningskodebase. Ingen arkivsnapshot eller
+modellinput godkjennes av denne transportprøven.
+
+## Historikk 29.09: A/B/C-planen avsluttet; ingen ny måling autorisert
 
 [Samlet beslutning](docs/TA_RESEARCH_DECISION_20260929.md): A og C er INKONKLUSIV;
 B er ikke målt grunnet konkret kildebegrensning. Den avtalte forskningsplanen er

@@ -3,6 +3,21 @@
 Gjeldende status eies av [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md). Bruk bare
 `/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Én agent og én tung jobb innen CURRENT.
 
+## Oppfølging 30.09.2026: undersøk B-kildene
+
+Brukeren ba «Ja undersøk B». Dette åpner en avgrenset kildeundersøkelse:
+GLD/COT-versjoner, arkivmetadata og ALFRED-transport. Fullført A/C og tidligere
+B-resultat bevares. Ingen ny fit, native trening, TEST, handel eller spending.
+
+Før nye kildebytes hentes bindes
+configs/research/TA_B_SOURCE_REOPEN_PROBE_20260930.json: fem forespørsler om
+arkivmetadata og én liten DFII10-prøve for juni 2025. En byte-lik kopi av
+CURRENTs rene HTTP-hjelpere kjøres som transport på Mac fordi samme skjema
+tidligere svarte der og fikk timeout på WSL. Rå svar og hasher føres tilbake til
+CURRENTs runtime; Mac er ikke en forskningskodebase. Ingen arkivsnapshot eller
+modellinput godkjennes av denne transportprøven.
+
+
 ## Fullført autorisert forberedelse
 
 V37-inputbygging, fersk post-rebuild/readiness, TRAIN/VAL lifecycle-filbindinger,

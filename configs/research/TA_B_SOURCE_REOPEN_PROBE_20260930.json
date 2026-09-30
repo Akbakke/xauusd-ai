@@ -1,0 +1,73 @@
+{
+  "alfred_method": "Reuse exact campaign AlfredDownloadForm, alfred_form_body, fetch_alfred via selected AST definitions only. One DFII10 June 2025 sample, GET form then POST all advertised vintages in the declared month; zipped CSV real-time periods.",
+  "alfred_probe": {
+    "maximum_form_bytes": 2000000,
+    "maximum_response_bytes": 2000000,
+    "maximum_uncompressed_bytes": 4000000,
+    "observation_end": "2025-06-30",
+    "observation_start": "2025-06-01",
+    "series": [
+      {
+        "economic_source": "Federal Reserve Board H.15, 10-year inflation-indexed Treasury yield",
+        "first_vintage_observed": "2005-10-12",
+        "id": "DFII10",
+        "unit": "percent",
+        "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=DFII10"
+      }
+    ],
+    "timeout_seconds": 20,
+    "vintage_end": "2025-06-30",
+    "vintage_start": "2025-06-01"
+  },
+  "archive_index_limit": 20000,
+  "archive_index_truncation_policy": "Hitting limit or response cap is incomplete coverage, never complete archive evidence.",
+  "archive_metadata_requests": [
+    {
+      "id": "GLD_CDX",
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&output=json&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&filter=statuscode%3A200&from=20090101&to=20251231&limit=20000"
+    },
+    {
+      "id": "COT_CDX",
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fwww.cftc.gov%2Fdea%2Ffutures%2Fdeacmxsf.htm&output=json&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&filter=statuscode%3A200&from=20090101&to=20251231&limit=20000"
+    },
+    {
+      "id": "GLD_CLOSEST_20190630",
+      "url": "https://archive.org/wayback/available?url=https%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20190630"
+    },
+    {
+      "id": "COT_BEFORE_20190403",
+      "url": "https://archive.org/wayback/available?url=https%3A%2F%2Fwww.cftc.gov%2Fdea%2Ffutures%2Fdeacmxsf.htm&timestamp=20190330"
+    },
+    {
+      "id": "COT_AFTER_20190403",
+      "url": "https://archive.org/wayback/available?url=https%3A%2F%2Fwww.cftc.gov%2Fdea%2Ffutures%2Fdeacmxsf.htm&timestamp=20190404"
+    }
+  ],
+  "archive_policy": "Index/availability metadata only. Candidate URLs require original source confirmation before data admission. Closest may be later than requested; capture timestamps are conservative known-by bounds, not original release times. No snapshot data request in this manifest; no Save Page Now or archive mutation.",
+  "authorized_on": "2026-09-30",
+  "availability_rule": "Only after schema, vintage periods and publication-date evidence are validated. Use upper bound end of release date in America/New_York and wait one additional complete canonical XAU D1 interval; never backfill a first-created series into earlier decisions.",
+  "canonical_branch": "work/gx1-current",
+  "canonical_receipt_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_SOURCE_REOPEN_20260930_001",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "fits_allowed": false,
+  "market_outcome_access": false,
+  "maximum_metadata_bytes": 2000000,
+  "operator_request": "Ja unders\u00f8k B",
+  "owner_path": "gx1/scripts/research_ta_campaign_v1.py",
+  "owner_sha256": "4d2460eeaa27f36482258fbd2e7c7a6743e2fdf9d351a951ed931ffa49a1f2ea",
+  "probe_path": "scripts/research_ta_b_source_probe_20260930.py",
+  "probe_sha256": "ce8c8077ed4c4f188da8d0998752ce39d7330f028bddc72b498e2539cc1b9eee",
+  "purpose": "Source qualification and transport only. No B fit, no reduced-source B, no predictor admission.",
+  "relay_output_directory": "/Users/andrekildalbakke/.codex/gx1_transport/B_SOURCE_REOPEN_20260930_001",
+  "schema": "gx1_b_source_reopen_probe_v1",
+  "source_docs": [
+    "https://archive.org/help/wayback_api.php",
+    "https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md",
+    "https://alfred.stlouisfed.org/help/downloaddata"
+  ],
+  "spending_allowed": false,
+  "test_accessed": false,
+  "timeout_seconds": 20,
+  "transport_hostname": "Andre-sin-MacBook-Air.local",
+  "transport_role": "Mac HTTP relay only; byte-identical canonical probe and owner; no research computation or code edits on relay"
+}
