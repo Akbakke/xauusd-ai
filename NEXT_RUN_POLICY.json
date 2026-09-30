@@ -1537,6 +1537,10 @@
     "verification": {
       "path": "docs/TA_B_FULL_GOAL_20260930.json",
       "sha256": "2226fdd3876ee92b0ad67093b950b552d9a4aa2cd719888d04acf8a13a6f83ce"
+    },
+    "vix_format_comparison_manifest": {
+      "path": "configs/research/TA_B_VIX_FORMAT_COMPARISON_20260930.json",
+      "sha256": "4a2efefc9760f11f9dcca6cb37a815271766a0d4bb72672b1d2244c074a601a5"
     }
   },
   "full_epoch_training_allowed": false,
@@ -1947,7 +1951,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Keep full B goal active. Resolve documented GLD/COT vintage coverage and 26 VIX future-observation clock conflicts using source evidence; do not backdate, substitute or silently drop values. Preserve failed macro component run and passed focused tests. No repeated archive requests while HTTP429 persists. Build/training/final evaluation require qualified inputs and frozen contracts.",
+  "next_action": "Run only the preregistered two-format VIX source comparison. No guessed chronology repair, predictor admission, fit, training or TEST. GLD/COT vintage blockers remain.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-30T05:49:29.223474+00:00",
   "outer_guard_seconds": 13800,
