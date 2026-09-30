@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bounded A/B/C research orchestration. Implements the preregistered A/C arms and B source admission.
+"""Bounded A/B/C research orchestration. Implements A/C, B source checks and the matched B research core.
 
 Reuses indicator, clock, learner, portfolio and inference owners. No native
 training, broker access, TEST, automatic parameter search or result promotion.
@@ -41,6 +41,14 @@ from gx1.scripts.research_model_free_baselines_v1 import (
 ROOT = Path(__file__).resolve().parents[2]
 FEATURES = [*(f"momentum_{n}_atr14" for n in (21, 63, 126, 252)),
             "range_position_252", "atr14_over_atr252", "ema200_distance_atr14"]
+
+# The six-source B contract adds exactly two fields per named source.
+B_MACRO_FEATURES = [
+    "real10y_level", "real10y_change21D1", "usd_log_level", "usd_log_change21D1",
+    "breakeven10y_level", "breakeven10y_change21D1", "gld_log_level", "gld_log_change21D1",
+    "cot_noncommercial_net_over_oi", "cot_change4reports", "vix_log_level", "vix_log_change21D1",
+]
+B_FEATURES = FEATURES + B_MACRO_FEATURES
 
 
 def sha(path: Path) -> str:
@@ -617,13 +625,47 @@ def daily_panel(frame: pd.DataFrame, end: pd.Timestamp) -> pd.DataFrame:
     return daily.reset_index(names="session_open")
 
 
+def join_b_components(panel: pd.DataFrame, components: pd.DataFrame) -> pd.DataFrame:
+    """Exact clock join only; does not qualify source versions or admit a B run."""
+    if (panel.columns.has_duplicates or components.columns.has_duplicates
+            or not set(FEATURES).issubset(panel)
+            or not set(B_MACRO_FEATURES).issubset(components)
+            or set(B_MACRO_FEATURES).intersection(panel)):
+        raise RuntimeError("TA_B_FEATURE_CONTRACT")
+    for frame in (panel, components):
+        opens, decisions = pd.DatetimeIndex(frame.session_open), pd.DatetimeIndex(frame.decision_time)
+        if (not len(opens) or opens.tz is None or decisions.tz is None or opens.has_duplicates
+                or not opens.is_monotonic_increasing
+                or not (decisions == opens + TRADING_SESSION_DURATION).all()):
+            raise RuntimeError("TA_B_CANONICAL_D1_CLOCK")
+    if (len(panel) != len(components)
+            or not np.array_equal(panel.session_open.array, components.session_open.array)
+            or not np.array_equal(panel.decision_time.array, components.decision_time.array)):
+        raise RuntimeError("TA_B_COMPONENT_CLOCK_MISMATCH")
+    result = panel.copy()
+    result[B_MACRO_FEATURES] = components[B_MACRO_FEATURES].to_numpy(float)
+    if np.isinf(result[B_FEATURES].to_numpy(float)).any():
+        raise RuntimeError("TA_B_NONFINITE_FEATURE")
+    return result
+
+
 def fit_predictions(panel: pd.DataFrame, spec: dict) -> tuple[dict, list[dict]]:
-    X = panel[FEATURES].to_numpy(float)
+    # Preserve A's original feature/population contract.
+    population = np.isfinite(panel[FEATURES].to_numpy(float)).all(axis=1)
+    return _fit_predictions(panel, spec, FEATURES, population)
+
+
+def _fit_predictions(panel: pd.DataFrame, spec: dict, feature_names: list[str],
+                     population: np.ndarray) -> tuple[dict, list[dict]]:
+    X = panel[feature_names].to_numpy(float)
+    if (population.dtype != bool or population.shape != (len(panel),)
+            or not np.isfinite(X[population]).all()):
+        raise RuntimeError("TA_SHARED_FIT_POPULATION_INVALID")
     mid, atr = panel.fill_mid.to_numpy(), panel.atr14.to_numpy()
     times = pd.DatetimeIndex(panel.fill_time)
     n, max_h = len(panel), max(spec["horizons"])
     positions = np.arange(n)
-    eligible = np.isfinite(X).all(axis=1) & (positions + max_h < n)
+    eligible = population & (positions + max_h < n)
     forecasts, fits = {}, []
     for horizon in spec["horizons"]:
         target = np.full(n, np.nan)
@@ -635,9 +677,13 @@ def fit_predictions(panel: pd.DataFrame, spec: dict) -> tuple[dict, list[dict]]:
             past = np.flatnonzero(eligible & (times < start))
             fit = past[times[past + max_h] < start]
             hold = np.flatnonzero(eligible & (times >= start) & (times < end))
+            row_binding = {
+                "fit_positions_sha256": hashlib.sha256(fit.astype("<i8").tobytes()).hexdigest(),
+                "hold_positions_sha256": hashlib.sha256(hold.astype("<i8").tobytes()).hexdigest(),
+            }
             if len(fit) < spec["min_fit_rows"] or not len(hold):
                 fits.append({"year": year, "horizon": horizon, "status": "INSUFFICIENT_CAUSAL_ROWS",
-                             "fit_rows": len(fit), "hold_rows": len(hold)})
+                             "fit_rows": len(fit), "hold_rows": len(hold), **row_binding})
                 continue
             gram = RidgeGram(X[fit], X[hold], inner_fraction=spec["inner_fraction"],
                              fit_positions=fit, purge_bars=max_h, min_inner_rows=spec["min_inner_rows"],
@@ -653,11 +699,53 @@ def fit_predictions(panel: pd.DataFrame, spec: dict) -> tuple[dict, list[dict]]:
                                ("constant", np.full(len(hold), target[fit].mean()))]:
                 forecasts[horizon][name][hold] = pred
             fits.append({"year": year, "horizon": horizon, "status": "FIT",
-                         "fit_rows": len(fit), "hold_rows": len(hold),
+                         "fit_rows": len(fit), "hold_rows": len(hold), **row_binding,
                          "last_fit_outcome_time": str(times[fit[-1] + max_h]),
                          "first_hold_time": str(times[hold[0]]), "ridge": ri, "hgb": hi})
-            print(f"[TA-A] fitted year={year} horizon={horizon} rows={len(fit)}/{len(hold)}", flush=True)
+            arm_name = "A" if feature_names == FEATURES else "B"
+            print(f"[TA-{arm_name}] fitted year={year} horizon={horizon} rows={len(fit)}/{len(hold)}", flush=True)
     return forecasts, fits
+
+
+def fit_matched_b(panel: pd.DataFrame, spec: dict) -> tuple[dict, list[dict]]:
+    """Fit A and full B on shared rows; source admission remains a separate prerequisite."""
+    if (spec["feature_names"] != B_FEATURES or spec["horizons"] != [20, 5]
+            or spec["primary_horizon"] != 20 or panel.columns.has_duplicates
+            or not set(B_FEATURES).issubset(panel)):
+        raise RuntimeError("TA_B_FEATURE_CONTRACT")
+    values = panel[B_FEATURES].to_numpy(float)
+    if np.isinf(values).any():
+        raise RuntimeError("TA_B_NONFINITE_FEATURE")
+    # Keep the full clock. Filtering the panel would shorten horizons across missing inputs.
+    population = np.isfinite(values).all(axis=1)
+    a, a_fits = _fit_predictions(panel, spec, FEATURES, population)
+    b, b_fits = _fit_predictions(panel, spec, B_FEATURES, population)
+    matched = []
+    if len(a_fits) != len(b_fits):
+        raise RuntimeError("TA_B_FOLD_MISMATCH")
+    for af, bf in zip(a_fits, b_fits):
+        a_rows = {k: v for k, v in af.items() if k not in ("ridge", "hgb")}
+        b_rows = {k: v for k, v in bf.items() if k not in ("ridge", "hgb")}
+        if a_rows != b_rows:
+            raise RuntimeError("TA_B_FOLD_MISMATCH")
+        row = dict(a_rows)
+        if af["status"] == "FIT":
+            row.update(a={"ridge": af["ridge"], "hgb": af["hgb"]},
+                       b={"ridge": bf["ridge"], "hgb": bf["hgb"]})
+        matched.append(row)
+    forecasts = {}
+    for horizon in spec["horizons"]:
+        if not np.array_equal(a[horizon]["constant"], b[horizon]["constant"], equal_nan=True):
+            raise RuntimeError("TA_B_CONSTANT_MISMATCH")
+        forecasts[horizon] = {
+            "a_ridge": a[horizon]["ridge"], "a_hgb": a[horizon]["hgb"],
+            "b_ridge": b[horizon]["ridge"], "b_hgb": b[horizon]["hgb"],
+            "constant": a[horizon]["constant"],
+        }
+        masks = [np.isfinite(v) for v in forecasts[horizon].values()]
+        if any(not np.array_equal(masks[0], m) for m in masks[1:]):
+            raise RuntimeError("TA_B_FORECAST_POPULATION_MISMATCH")
+    return forecasts, matched
 
 
 def statistics(values: dict[str, np.ndarray], comparisons: list[dict],
@@ -680,6 +768,34 @@ def statistics(values: dict[str, np.ndarray], comparisons: list[dict],
 
 
 def evaluate(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve, spec: dict, out: Path) -> dict:
+    return _evaluate(panel, forecasts, curve, spec, out,
+                     {"ridge": ["long", "constant", "trend", "buy_hold"],
+                      "hgb": ["long", "constant", "trend", "buy_hold"]})
+
+
+def evaluate_matched_b(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve,
+                       spec: dict, out: Path) -> dict:
+    """One paired portfolio/inference family, including each B learner minus its matched A."""
+    if (spec["feature_names"] != B_FEATURES or spec["horizons"] != [20, 5]
+            or spec["primary_horizon"] != 20 or set(forecasts) != set(spec["horizons"])):
+        raise RuntimeError("TA_B_EVALUATION_CONTRACT")
+    masks = []
+    for arm in forecasts.values():
+        if set(arm) != {"a_ridge", "a_hgb", "b_ridge", "b_hgb", "constant"}:
+            raise RuntimeError("TA_B_EVALUATION_ARMS")
+        for values in arm.values():
+            if np.asarray(values).shape != (len(panel),) or np.isinf(values).any():
+                raise RuntimeError("TA_B_FORECAST_POPULATION_MISMATCH")
+            masks.append(np.isfinite(values))
+    if any(not np.array_equal(masks[0], m) for m in masks[1:]):
+        raise RuntimeError("TA_B_FORECAST_POPULATION_MISMATCH")
+    return _evaluate(panel, forecasts, curve, spec, out,
+                     {"b_ridge": ["a_ridge", "long", "constant", "trend", "buy_hold"],
+                      "b_hgb": ["a_hgb", "long", "constant", "trend", "buy_hold"]})
+
+
+def _evaluate(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve,
+              spec: dict, out: Path, learner_baselines: dict[str, list[str]]) -> dict:
     common = np.logical_and.reduce([np.isfinite(v) for arm in forecasts.values() for v in arm.values()])
     rows = np.flatnonzero(common)
     if len(rows) < 2 or np.any(np.diff(rows) != 1):
@@ -722,9 +838,9 @@ def evaluate(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve
                 values[key] = portfolio_period_returns(path) * 1e4
     comparisons = []
     for horizon in spec["horizons"]:
-        for learner in ["ridge", "hgb"]:
+        for learner, baselines in learner_baselines.items():
             for funding in ["historical_proxy", "zero"]:
-                for baseline in ["long", "constant", "trend", "buy_hold"]:
+                for baseline in baselines:
                     for metric in spec["effects"]:
                         comparisons.append({
                             "name": f"h{horizon}:{learner}:{funding}:vs_{baseline}:{metric}",
@@ -757,7 +873,7 @@ def evaluate(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve
             endpoints[c["name"]] = {"name": c["name"], "effect_verdict": "INKONKLUSIV",
                                     "reason": "undefined_statistic_or_zero_bootstrap_variation"}
     decisions = {}
-    for learner in ["ridge", "hgb"]:
+    for learner in learner_baselines:
         required = [c["name"] for c in comparisons if
                     c["name"].startswith(f"h{spec['primary_horizon']}:{learner}:")
                     and ":vs_buy_hold:" not in c["name"]]

@@ -3,10 +3,10 @@
 Målet er en ærlig XAUUSD-bot som tar retning på den tidsskalaen der retningen faktisk
 finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke oppnådd.
 
-## Aktivt nytt mål: full B, bygge-/treningsklarhet og endelig evaluering
+## Ufullført mål: full B, nå blokkert på kildebevis
 
 Brukeren har bestilt [hele B-løpet og videre kvalifisert modelløp](docs/TA_B_FULL_GOAL_20260930.md).
-Målet er aktivt og ikke oppnådd. Alle seks kilder og faktisk tilgjengelighet
+Målet er ikke oppnådd og er blokkert på manglende kildebevis. Alle seks kilder og faktisk tilgjengelighet
 kreves før B-fit. Neste konkrete arbeid er GLD/COT-dekning og komplett kausal
 B-implementasjon. Fire ferdige ALFRED-arkiver gjenbrukes.
 Makroklokken er implementert; tre fokuserte mekaniske tester besto.
@@ -19,6 +19,10 @@ formater viser 04.07.2025-observasjonen allerede i 03.07-vintagen.
 Dette konkrete avviket er altså i kildeeksporten; klokkerettelse er fortsatt uavklart.
 Fullført v37-inputbygging (242 felt) og A-forskningens direkte prisfasit bevares.
 Det nye native læringsmålet er ennå ikke innført; se presiseringen i målplanen.
+Felles A/B-kjerne er nå implementert: eksakt klokke, samme TRAIN/eval-rader,
+bevarte prishorisonter og B-minus-A i felles inferens. Fem fokuserte mekaniske
+tester besto på syntetiske data. Kildeimport/fullt panel, ekte registrert B-kjøring
+og native mål/trening er fortsatt ufullført. Ingen ny markedsmåling er gjort.
 Full B er delvis implementert og umålt; build/trening/evaluering er ikke klare.
 Native trening/TEST er fortsatt stengt ved dagens uoppfylte porter.
 Ingen løfte om kunstig historikk, lønnsomhet eller et grønt treningsvedtak.

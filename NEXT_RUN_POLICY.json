@@ -1524,19 +1524,25 @@
       "sha256": "37619509d7e02882973835ce1216a5051f479df7afc03c35832c12c44194bff7"
     },
     "macro_components_ready": false,
+    "matched_b_cli_implemented": false,
+    "matched_b_core_implemented": true,
+    "matched_core_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_MATCHED_CORE_IMPLEMENTATION_20260930_001/RESULT.json",
+      "sha256": "abada0779080678a11f717bd51f6ce7d51321f04c293cddd46f4181c7b9b0579"
+    },
     "native_build_ready": false,
     "native_training_ready": false,
     "plan": "docs/TA_B_FULL_GOAL_20260930.md",
-    "plan_sha256": "9e07ca3eec4d866b34799a9d756fc5a800fad73bb46f5ab1a07e9cefd71fd067",
+    "plan_sha256": "adfa89068db9ea9410825ac7290c822bdfeb986542196023ca7c5fb7bd3672d6",
     "research_fit_ready": false,
     "source_manifest": "configs/research/TA_B_FULL_GOAL_SOURCE_20260930.json",
     "source_manifest_sha256": "0b3dc04221822ccfbc63d97c28c957222a89109a0f192f0f37a4cf11ac946e71",
     "source_retry_status": "HTTP429_FIRST_REQUEST_REMAINDER_SKIPPED",
     "staged_operator_authorization": true,
-    "status": "ACTIVE",
+    "status": "BLOCKED",
     "verification": {
       "path": "docs/TA_B_FULL_GOAL_20260930.json",
-      "sha256": "f862f62bf71c966fdb487fcb578bdb20496d24b6fa4e9024c9ed4b4103a5efd4"
+      "sha256": "79f8e77b73066e4edb666d6e5d70aa4d58772d8d213c44f6cabcc8f66bf101b2"
     },
     "vix_format_comparison_manifest": {
       "path": "configs/research/TA_B_VIX_FORMAT_COMPARISON_20260930.json",
@@ -1956,7 +1962,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Full B remains active: obtain documented GLD/COT historical versions and resolve the VIX source chronology (confirmed in both formats for one case). Do not repeat completed exports, A/C fits or v37 input build. Direct future-price targets exist in A research; the new native target contract and training are not yet implemented. Await existing provider-access clarification while pursuing only concrete independent work. No TEST or blind training.",
+  "next_action": "Await documented GLD/COT historical versions and source evidence resolving VIX chronology. Preserve completed matched A/B core and five focused mechanical tests. No repeated archive requests, no reduced-source B, no real fits or native training/TEST. Once qualified source bytes exist, finish the source-specific import/panel and commit a population-bound B preregistration before implementing/executing the run-b route. The full goal is blocked, not achieved.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-30T05:49:29.223474+00:00",
   "outer_guard_seconds": 13800,
@@ -2139,7 +2145,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "FULL_B_GOAL_ACTIVE_GLD_COT_VIX_SOURCE_BLOCKERS",
+  "status": "FULL_B_GOAL_BLOCKED_PENDING_QUALIFIED_SOURCE_EVIDENCE",
   "ta_research_20260929": {
     "a_cached_audit": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_CACHED_AUDIT.json",

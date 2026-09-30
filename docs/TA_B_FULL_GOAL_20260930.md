@@ -2,7 +2,8 @@
 
 Brukeren har uttrykkelig bestilt full implementasjon, deretter build/trening og
 til slutt VAL, endelig TEST og backtest over alle år med gyldige data. Målet er
-aktivt. Tidligere A/B/C-plan var avsluttet; dette er en ny videreføring.
+ufullført og nå blokkert på dokumentert kildebevis. Tidligere A/B/C-plan var
+avsluttet; dette er en ny videreføring.
 En kildebegrensning alene fullfører ikke dette målet.
 
 ## Rekkefølge og ferdigkriterier
@@ -135,3 +136,41 @@ den stopper ikke beregning av de eksisterende OHLC-indikatorene.
 Tidligere SMC-/klokke-/datasettreparasjoner og rettet risiko-, kostnads- og
 referanseregnskap beholdes. De gjør inputs og målinger mer pålitelige,
 men er ikke alene dokumentasjon på bedre handelsbeslutninger.
+
+## Tredje implementasjonsbølge: felles A/B-kjerne, fortsatt manglende kildebevis
+
+Eksisterende campaign-eier har nå en streng sammenkobling på identiske
+session_open-/decision_time-rader og nøyaktig de tolv navngitte B-feltene.
+Ufullstendig feltsett, ulik klokke og uendelige verdier avvises. Manglende
+publikasjoner kan gi NaN og en felles utilgjengelig rad, aldri oppdiktet input.
+
+A (sju felt) og B (nitten felt) tilpasses på samme TRAIN-/evalueringspopulasjon.
+Alle opprinnelige D1-rader beholdes når h20/h5-fasiten beregnes; et manglende
+makroinput kan dermed ikke forkorte målets faktiske horisont. De samme indre
+splittene, purge-posisjonene og kjente TRAIN-utfallene brukes. Posisjonslister
+hash-bindes per fold, og den lærte konstanten må være identisk i begge armer.
+
+Samme portefølje- og inferenseier vurderer B-ridge mot matchet A-ridge og
+B-HGB mot matchet A-HGB, i tillegg til LONG, konstant, trend og kjøp-og-hold.
+Alle 120 endepunkter inngår i samme erklærte familie med felles resampling;
+primærbeslutningen krever også merverdi over tilsvarende A. Rå kjøp-og-hold
+og h5 er fortsatt diagnostikk. Ulike prognosepopulasjoner avvises.
+
+Fem fokuserte tester besto gjennom capped audit. De dekker nye mekaniske
+egenskaper og eksisterende A-integrasjon/terminalpublisering. To ble gjentatt
+etter rettelse av armnavnet i logging og eksplisitt avvisning av tom klokke.
+Dette bruker bare syntetiske data. Ingen markedsutfall, ekte B-fit eller TEST
+ble lest. Hele A/C og inputbyggingen ble ikke kjørt på nytt.
+
+**Implementasjonen er fortsatt delvis.** Kildetilpasset GLD/COT-versjonsimport,
+komplett godkjent komponentpanel, faktisk B-forhåndsregistrering og run-b-
+integrasjon er ikke ferdige. Vi lager ikke en generisk leverandøradapter rundt
+en ubestemt dataleveranse eller en godkjenningskvittering uten kildebevis.
+Nytt native mål, build/trening og endelig evaluering er fortsatt ikke klare.
+
+Samme kildebegrensning er bekreftet gjennom minst tre målrettede arbeidsrunder.
+Uavhengig implementasjonsarbeid i denne bølgen er ferdigstilt og bevart.
+Målet markeres nå blokkert, ikke fullført, i påvente av dokumenterbar
+GLD/COT-versjonshistorikk og avklaring av VIX-klokken. Ingen leverandørtilgang
+er oppgitt, ingen henvendelse er sendt og intet abonnement er kjøpt.
+Den komplette sekskilde-kontrakten og det videre modellmålet beholdes.

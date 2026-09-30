@@ -521,3 +521,112 @@ def test_b_macro_rejects_numeric_values_dated_before_their_observation():
     clocks = pd.DataFrame({"session_open": opens, "decision_time": opens + ta.TRADING_SESSION_DURATION})
     with pytest.raises(RuntimeError, match="TA_B_FUTURE_OBSERVATION"):
         ta.alfred_asof_levels([("2025-07-04", "25", "2025-07-03", "")], clocks)
+
+
+def _b_fixture(tmp_path):
+    frame = _bars()
+    panel = ta.daily_panel(frame, frame.index[-1] + pd.Timedelta(minutes=5))
+    components = panel[["session_open", "decision_time"]].copy()
+    for i, name in enumerate(ta.B_MACRO_FEATURES):
+        components[name] = np.sin(np.arange(len(panel)) / (i + 7)) + i
+    components.loc[:279, ta.B_MACRO_FEATURES] = np.nan
+    # A missing publication inside TRAIN must exclude the same row from both fits,
+    # without shortening the outcome horizon to the next available B feature row.
+    components.loc[330, ta.B_MACRO_FEATURES[-1]] = np.nan
+    spec = _spec(tmp_path)
+    spec["feature_names"] = ta.B_FEATURES.copy()
+    return panel, components, spec
+
+
+def test_b_component_join_requires_all_sources_and_exact_clock_without_index_alignment(tmp_path):
+    panel, components, _ = _b_fixture(tmp_path)
+    components.index += 1000  # row labels are not the decision clock
+    got = ta.join_b_components(panel, components)
+    np.testing.assert_equal(got[ta.B_MACRO_FEATURES].to_numpy(),
+                            components[ta.B_MACRO_FEATURES].to_numpy())
+    pd.testing.assert_frame_equal(got[panel.columns], panel)
+    with pytest.raises(RuntimeError, match="TA_B_FEATURE_CONTRACT"):
+        ta.join_b_components(panel, components.drop(columns="cot_change4reports"))
+    with pytest.raises(RuntimeError, match="TA_B_CANONICAL_D1_CLOCK"):
+        ta.join_b_components(panel.iloc[:0], components.iloc[:0])
+    shifted = components.copy()
+    shifted["session_open"] += pd.Timedelta(days=1)
+    shifted["decision_time"] += pd.Timedelta(days=1)
+    with pytest.raises(RuntimeError, match="TA_B_COMPONENT_CLOCK_MISMATCH"):
+        ta.join_b_components(panel, shifted)
+    broken = components.copy()
+    broken.loc[1300, "vix_log_level"] = np.inf
+    with pytest.raises(RuntimeError, match="TA_B_NONFINITE_FEATURE"):
+        ta.join_b_components(panel, broken)
+
+
+def test_b_matched_fits_preserve_original_targets_and_use_identical_inner_and_outer_rows(tmp_path, monkeypatch, capsys):
+    panel, components, spec = _b_fixture(tmp_path)
+    joint = ta.join_b_components(panel, components)
+    calls = []
+    owner = ta.fit_hgb
+    def record(X, target, hold, **kwargs):
+        calls.append((X.copy(), target.copy(), hold.copy(), kwargs["fit_positions"].copy()))
+        return owner(X, target, hold, **kwargs)
+    monkeypatch.setattr(ta, "fit_hgb", record)
+    forecasts, fits = ta.fit_matched_b(joint, spec)
+    output = capsys.readouterr().out
+    assert "[TA-A]" in output and "[TA-B]" in output
+    assert len(calls) == 4  # h20/h5 for A, then h20/h5 for B; 2010 has insufficient history
+    cutoff = pd.Timestamp("2011-01-01", tz="UTC")
+    time = pd.DatetimeIndex(panel.fill_time)
+    # Derive the fixture's common rows independently of the fit owner.
+    expected = np.array([i for i in range(280, len(panel) - 20)
+                         if i != 330 and time[i] < cutoff and time[i + 20] < cutoff])
+    assert 330 not in expected and 329 in expected and 331 in expected
+    for k, horizon in enumerate([20, 5]):
+        ax, ay, ah, ap = calls[k]
+        bx, by, bh, bp = calls[k + 2]
+        assert ax.shape[1] == ah.shape[1] == 7
+        assert bx.shape[1] == bh.shape[1] == 19
+        np.testing.assert_array_equal(ap, expected)
+        np.testing.assert_array_equal(bp, expected)
+        np.testing.assert_array_equal(ax, bx[:, :7])
+        np.testing.assert_array_equal(ah, bh[:, :7])
+        expected_y = ((panel.fill_mid.to_numpy()[expected + horizon]
+                       - panel.fill_mid.to_numpy()[expected]) / panel.atr14.to_numpy()[expected])
+        np.testing.assert_array_equal(ay, expected_y)
+        np.testing.assert_array_equal(by, expected_y)
+        mask = np.isfinite(forecasts[horizon]["constant"])
+        for pred in forecasts[horizon].values():
+            np.testing.assert_array_equal(np.isfinite(pred), mask)
+    complete = [row for row in fits if row["status"] == "FIT"]
+    assert len(complete) == 2
+    assert all(pd.Timestamp(row["last_fit_outcome_time"]) < pd.Timestamp(row["first_hold_time"])
+               for row in complete)
+    assert complete[0]["fit_positions_sha256"] == complete[1]["fit_positions_sha256"]
+    with pytest.raises(RuntimeError, match="TA_B_FEATURE_CONTRACT"):
+        ta.fit_matched_b(joint.drop(columns="gld_log_level"), spec)
+
+
+def test_b_paired_evaluation_includes_matched_a_in_joint_family_and_rejects_row_drift(tmp_path):
+    panel, components, spec = _b_fixture(tmp_path)
+    joint = ta.join_b_components(panel, components)
+    forecasts, _ = ta.fit_matched_b(joint, spec)
+    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex([panel.fill_time.iloc[0]]), np.array([.04]),
+                                     panel.fill_time.iloc[-1] + pd.Timedelta(days=1), .0129, 31557600.)
+    result = ta.evaluate_matched_b(joint, forecasts, curve, spec, tmp_path)
+    assert len(result["declared_family"]) == len(result["endpoints"]) == 120
+    assert set(result["decisions"]) == {"b_ridge", "b_hgb"}
+    for learner in ("ridge", "hgb"):
+        decision = result["decisions"]["b_" + learner]
+        assert len(decision["required_endpoints"]) == 24
+        required_a = [n for n in decision["required_endpoints"] if f":vs_a_{learner}:" in n]
+        assert len(required_a) == 6
+        assert any(":historical_proxy:" in n for n in required_a)
+        assert any(":zero:" in n for n in required_a)
+        assert all(":vs_buy_hold:" not in n for n in decision["required_endpoints"])
+    paired = pd.read_parquet(tmp_path / "PAIRED_RETURNS.parquet")
+    assert len(paired) == result["evaluation"]["intervals"]
+    assert all(f"h{h}:a_{learner}:{funding}" in paired and f"h{h}:b_{learner}:{funding}" in paired
+               for h in (20, 5) for learner in ("ridge", "hgb") for funding in ("historical_proxy", "zero"))
+    # An absent B prediction cannot silently trim A to create a more favorable sample.
+    first = int(np.flatnonzero(np.isfinite(forecasts[20]["b_ridge"]))[0])
+    forecasts[20]["b_ridge"][first] = np.nan
+    with pytest.raises(RuntimeError, match="TA_B_FORECAST_POPULATION_MISMATCH"):
+        ta.evaluate_matched_b(joint, forecasts, curve, spec, tmp_path)
