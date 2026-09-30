@@ -630,3 +630,159 @@ def test_b_paired_evaluation_includes_matched_a_in_joint_family_and_rejects_row_
     forecasts[20]["b_ridge"][first] = np.nan
     with pytest.raises(RuntimeError, match="TA_B_FORECAST_POPULATION_MISMATCH"):
         ta.evaluate_matched_b(joint, forecasts, curve, spec, tmp_path)
+
+
+def _gld_snapshot(rows):
+    header = ["Date", "GLD Close",
+              "Total Net Asset Value Tonnes in the Trust as at 4.15 p.m. NYT"]
+    import csv
+    import io
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(["SPDR Gold Shares (New York Stock Exchange Arca)", ""])
+    writer.writerow(["Note: synthetic source-shape fixture"])
+    writer.writerow(header)
+    writer.writerows(rows)
+    return out.getvalue().encode()
+
+
+def _cot_snapshot():
+    return b"""<html><head><title>Synthetic fixture</title></head><body><pre>
+SILVER - COMMODITY EXCHANGE INC.                                     Code-084691
+FUTURES ONLY POSITIONS AS OF 04/02/19                         |
+GOLD - COMMODITY EXCHANGE INC.                                       Code-088691
+FUTURES ONLY POSITIONS AS OF 04/02/19                         |
+--------------------------------------------------------------| NONREPORTABLE
+      NON-COMMERCIAL      |   COMMERCIAL    |      TOTAL      |   POSITIONS
+--------------------------|-----------------|-----------------|-----------------
+  LONG  | SHORT  |SPREADS |  LONG  | SHORT  |  LONG  | SHORT  |  LONG  | SHORT
+--------------------------------------------------------------------------------
+(CONTRACTS OF 100 TROY OUNCES)                       OPEN INTEREST:      1,000
+COMMITMENTS
+  200   100   50   600   700   850   850   150   150
+
+CHANGES FROM 03/26/19 (CHANGE IN OPEN INTEREST: 99)
+  9 8 7 6 5 4 3 2 1
+
+ALUMINUM MW US TR PLATTS - COMMODITY EXCHANGE INC.                   Code-191693
+FUTURES ONLY POSITIONS AS OF 04/02/19                         |
+</pre></body></html>"""
+
+
+def test_gld_snapshot_preserves_observation_dates_units_and_source_missingness():
+    raw = _gld_snapshot([["03-Jul-2019", "9999", "798.44"],
+                         ["04-Jul-2019", "9999", "HOLIDAY"],
+                         ["05-Jul-2019", "9999", "796.97"]])
+    out = ta.parse_gld_holdings_snapshot(raw)
+    assert out.observation_date.tolist() == ["2019-07-03", "2019-07-04", "2019-07-05"]
+    np.testing.assert_allclose(out.gld_tonnes, [798.44, np.nan, 796.97], equal_nan=True)
+    assert out.source_value.iloc[1] == "HOLIDAY"
+    assert "evidence_available_at_utc" not in out  # never inferred from observation date
+    assert "9999" not in out.astype(str).to_numpy()
+
+
+@pytest.mark.parametrize("rows, error", [
+    ([["05-Jul-2019", "1", ""]], "TA_B_GLD_UNKNOWN_VALUE"),
+    ([["05-Jul-2019", "1", "-1"]], "TA_B_GLD_UNKNOWN_VALUE"),
+    ([["05-Jul-2019", "1", "0"]], "TA_B_GLD_NONPOSITIVE_TONNES"),
+    ([["05-Jul-2019", "1", "1"], ["05-Jul-2019", "1", "2"]], "TA_B_GLD_OBSERVATION_ORDER"),
+    ([["05-Jul-2019", "1", "1"], ["03-Jul-2019", "1", "2"]], "TA_B_GLD_OBSERVATION_ORDER"),
+])
+def test_gld_snapshot_rejects_unknown_values_and_duplicate_or_reordered_dates(rows, error):
+    with pytest.raises(RuntimeError, match=error):
+        ta.parse_gld_holdings_snapshot(_gld_snapshot(rows))
+
+
+def test_cot_snapshot_selects_gold_commitments_not_neighbor_or_change_rows():
+    out = ta.parse_cot_gold_snapshot(_cot_snapshot())
+    assert out.to_dict("records") == [{"observation_date": "2019-04-02",
+        "noncommercial_long": 200, "noncommercial_short": 100,
+        "open_interest": 1000, "noncommercial_net_over_oi": 0.1}]
+
+
+@pytest.mark.parametrize("old, new, error", [
+    (b"Code-088691", b"Code-084691", "TA_B_COT_GOLD_IDENTITY"),
+    (b"FUTURES ONLY", b"FUTURES AND OPTIONS", "TA_B_COT_LEGACY_FUTURES_ONLY_SCHEMA"),
+    (b"NON-COMMERCIAL", b"MANAGED MONEY", "TA_B_COT_LEGACY_FUTURES_ONLY_SCHEMA"),
+    (b"200   100   50", b"201   100   50", "TA_B_COT_ACCOUNTING_IDENTITY"),
+    (b"850   850   150   150", b"850   850   149   150", "TA_B_COT_ACCOUNTING_IDENTITY"),
+])
+def test_cot_snapshot_rejects_wrong_identity_category_and_broken_accounting(old, new, error):
+    with pytest.raises(RuntimeError, match=error):
+        ta.parse_cot_gold_snapshot(_cot_snapshot().replace(old, new))
+
+
+def _snapshot_import_spec(tmp_path):
+    snapshots = []
+    for series, raw, capture, original in [
+        ("GLD_TONNES", _gld_snapshot([["05-Jul-2019", "1", "796.97"]]),
+         "2019-07-08T14:45:03Z", "http://www.spdrgoldshares.com/assets/dynamic/GLD/GLD_US_archive_EN.csv"),
+        ("COT_088691_LEGACY_FUTURES_ONLY", _cot_snapshot(),
+         "2019-04-07T16:45:52Z", "https://www.cftc.gov/dea/futures/deacmxsf.htm"),
+    ]:
+        path = tmp_path / (series + ".raw")
+        path.write_bytes(raw)
+        receipt = tmp_path / (series + ".receipt.json")
+        url = "https://web.archive.org/web/" + pd.Timestamp(capture).strftime("%Y%m%d%H%M%S") + "id_/" + original
+        receipt.write_text(json.dumps({"url": url, "final_url": url, "http_status": 200,
+                                      "response_bytes": len(raw), "response_sha256": ta.sha(path),
+                                      "finished_utc": "2026-09-30T05:40:00Z"}))
+        snapshots.append({"series": series, "raw_path": str(path), "raw_sha256": ta.sha(path),
+                          "receipt_path": str(receipt), "receipt_sha256": ta.sha(receipt),
+                          "capture_utc": capture})
+    return {"snapshots": snapshots, "output_directory": str(tmp_path / "output")}
+
+
+def test_snapshot_import_binds_capture_clock_and_never_admits_isolated_sources(tmp_path, monkeypatch):
+    spec = _snapshot_import_spec(tmp_path)
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(json.dumps(spec))
+    monkeypatch.setattr(ta, "git", lambda *args: "synthetic")
+    ta.import_b_archived_snapshots(spec, spec_path)
+    out = Path(spec["output_directory"])
+    result = json.loads((out / "RESULT.json").read_text())
+    assert result["full_b_admitted"] is False and result["fits_run"] is False
+    assert result["network_requests"] == 0 and result["test_accessed"] is False
+    for record, item in zip(result["records"], spec["snapshots"]):
+        artifact = Path(record["artifact"]["path"])
+        assert ta.sha(artifact) == record["artifact"]["sha256"]
+        frame = pd.read_parquet(artifact)
+        assert (frame.evidence_available_at_utc == pd.Timestamp(item["capture_utc"])).all()
+        assert (frame.source_sha256 == item["raw_sha256"]).all()
+        assert frame.observation_date.max() < pd.Timestamp(item["capture_utc"]).date().isoformat()
+    with pytest.raises(FileExistsError):
+        ta.import_b_archived_snapshots(spec, spec_path)
+
+
+@pytest.mark.parametrize("failure", ["raw_hash", "redirected_capture", "future_observation"])
+def test_snapshot_import_fails_closed_and_preserves_terminal_receipt(tmp_path, monkeypatch, failure):
+    spec = _snapshot_import_spec(tmp_path)
+    item = spec["snapshots"][0]
+    if failure == "raw_hash":
+        item["raw_sha256"] = "0" * 64
+    elif failure == "redirected_capture":
+        receipt_path = Path(item["receipt_path"])
+        receipt = json.loads(receipt_path.read_text())
+        receipt["final_url"] = receipt["final_url"].replace("20190708144503", "20190808144503")
+        receipt_path.write_text(json.dumps(receipt))
+        item["receipt_sha256"] = ta.sha(receipt_path)
+    else:
+        path = Path(item["raw_path"])
+        raw = _gld_snapshot([["09-Jul-2019", "1", "796.97"]])
+        path.write_bytes(raw)
+        item["raw_sha256"] = ta.sha(path)
+        receipt_path = Path(item["receipt_path"])
+        receipt = json.loads(receipt_path.read_text())
+        receipt.update(response_bytes=len(raw), response_sha256=ta.sha(path))
+        receipt_path.write_text(json.dumps(receipt))
+        item["receipt_sha256"] = ta.sha(receipt_path)
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(json.dumps(spec))
+    monkeypatch.setattr(ta, "git", lambda *args: "synthetic")
+    with pytest.raises(RuntimeError, match={"raw_hash": "TA_B_SNAPSHOT_HASH",
+                                         "redirected_capture": "TA_B_SNAPSHOT_RECEIPT",
+                                         "future_observation": "TA_B_SNAPSHOT_FUTURE_OBSERVATION"}[failure]):
+        ta.import_b_archived_snapshots(spec, spec_path)
+    out = Path(spec["output_directory"])
+    assert json.loads((out / "TERMINAL.json").read_text())["status"] == "FAILED"
+    assert not (out / "RESULT.json").exists()

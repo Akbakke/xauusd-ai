@@ -28,6 +28,21 @@ Resultat: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_OANDA_COT_PROBE_20260930_
 Full B er fortsatt blokkert på kildebevis; ingen data er tatt inn som input,
 og trening/TEST/handel er ikke åpnet.
 
+## Videreføring: import av de to bevarte GLD/COT-kopiene
+
+Målet er gjenopptatt med uendret fullstendig omfang. Eksisterende campaign-eier
+har nå kildespesifikke parsere for de faktisk observerte GLD CSV- og CFTC
+Legacy Futures Only-formatene. GLD tonn skilles fra pris/volum/ounces; de to
+observerte helligdagsmarkørene bevares som manglende verdi. COT velger bare
+Gold 088691 og kontrollerer regnskapsidentiteter mot open interest.
+Kopier bindes til råfil/receipt-hash og eksakt arkivtid, aldri observasjonsdato
+som konstruert publiseringstid. Det senere komplette D1-laget er fortsatt påkrevd.
+Seksten fokuserte mekaniske tester besto gjennom capped audit; fire importtester
+besto på nytt etter atomisk Parquet-skriving.
+Manifest: configs/research/TA_B_ARCHIVED_SNAPSHOT_IMPORT_20260930.json.
+Neste konkrete kontroll er import av de to allerede bevarte originalfilene.
+Dette er kildeimport, ikke full GLD/COT-dekning, komplett B-panel eller B-fit.
+
 ## Ufullført mål: full B, nå blokkert på kildebevis
 
 Brukeren har bestilt [hele B-løpet og videre kvalifisert modelløp](docs/TA_B_FULL_GOAL_20260930.md).

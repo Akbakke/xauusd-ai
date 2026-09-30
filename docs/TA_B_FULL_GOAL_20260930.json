@@ -1,10 +1,11 @@
 {
-  "blocked_audit": {
-    "completed_independent_work": "Macro clock, exact component join, matched fit/portfolio/inference core and focused mechanics checks.",
-    "condition": "Missing qualified GLD/COT historical versions and unresolved VIX source chronology prevent real B admission; no new provider access or source evidence received.",
-    "not_completion": true,
-    "required_external_change": "Qualified named GLD/COT source exports/access plus source evidence resolving VIX chronology. Archive rate-limit route is stopped; no paid access or external outreach authorized.",
-    "same_condition_repeated_across_at_least_three_goal_work_turns": true
+  "archived_snapshot_import": {
+    "full_b_admitted": false,
+    "manifest": "configs/research/TA_B_ARCHIVED_SNAPSHOT_IMPORT_20260930.json",
+    "manifest_sha256": "3274a1b061ed2153173e91de5fa633159674e4b707c915deef2158dd40845e48",
+    "status": "IMPLEMENTED_ORIGINAL_FILE_VERIFICATION_PENDING",
+    "synthetic_verification": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ARCHIVED_SNAPSHOT_IMPORT_IMPLEMENTATION_20260930_001/RESULT.json",
+    "synthetic_verification_sha256": "45d4571657648943d362751055c1ffef2e34e7ea528106bf7980eef763acb733"
   },
   "blockers": [
     "GLD historical publication/vintage coverage unavailable",
@@ -25,10 +26,11 @@
     "macro_components_ready": false,
     "matched_b_cli_implemented": false,
     "matched_b_core_implemented": true,
+    "observed_archival_gld_cot_formats_implemented": true,
     "owner": "gx1/scripts/research_ta_campaign_v1.py",
-    "owner_sha256": "0c19eae6db17264e10aa4cb747a766f0a37d9c683a2ab6578f30a1202a835eab",
+    "owner_sha256": "6c2fed76ca76f8dc14a319d2598bbff8ea1caf34ad1d2864b67066d193770c71",
     "source_specific_gld_cot_adapters_complete": false,
-    "test_sha256": "7fbfdbeb0490a088a37505b68c9e85f20c949610351604b21ff083bc95b81976"
+    "test_sha256": "17bd28329cbabd413377c73ebc3606344edb4ce91eb8ff60cc9106fe9782e534"
   },
   "macro_component_attempt": {
     "error": "TA_B_FUTURE_OBSERVATION",
@@ -49,6 +51,13 @@
   },
   "native_training_started": false,
   "new_market_outcomes_read": false,
+  "prior_blocked_audit": {
+    "completed_independent_work": "Macro clock, exact component join, matched fit/portfolio/inference core and focused mechanics checks.",
+    "condition": "Missing qualified GLD/COT historical versions and unresolved VIX source chronology prevent real B admission; no new provider access or source evidence received.",
+    "not_completion": true,
+    "required_external_change": "Qualified named GLD/COT source exports/access plus source evidence resolving VIX chronology. Archive rate-limit route is stopped; no paid access or external outreach authorized.",
+    "same_condition_repeated_across_at_least_three_goal_work_turns": true
+  },
   "raw_values_published": false,
   "research_fits_started": false,
   "source_diagnosis": {
@@ -99,7 +108,7 @@
     "native_contract_build_training": "NOT_READY",
     "six_source_admission": "NOT_READY"
   },
-  "status": "GOAL_BLOCKED_SOURCE_EVIDENCE_IMPLEMENTATION_PARTIAL",
+  "status": "ACTIVE_GOAL_SOURCE_GATED_IMPLEMENTATION_PARTIAL",
   "technical_inputs_vs_research": {
     "a_conclusion": "INKONKLUSIV for ridge and HGB; no GO",
     "a_forward_price_target_horizons_observed_d1": [

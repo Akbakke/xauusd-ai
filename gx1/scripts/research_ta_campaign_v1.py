@@ -476,6 +476,177 @@ def prepare_b_macros(spec: dict, spec_path: Path) -> dict:
         raise
 
 
+
+def parse_gld_holdings_snapshot(raw: bytes) -> pd.DataFrame:
+    """Parse the observed SPDR archive format, without inventing vintage dates."""
+    rows = list(csv.reader(io.StringIO(raw.decode("utf-8-sig"))))
+    if not rows or rows[0][0] != "SPDR Gold Shares (New York Stock Exchange Arca)":
+        raise RuntimeError("TA_B_GLD_SOURCE_IDENTITY")
+    headers = [i for i, row in enumerate(rows) if row and row[0].strip() == "Date"]
+    if len(headers) != 1:
+        raise RuntimeError("TA_B_GLD_HEADER")
+    header = [value.strip() for value in rows[headers[0]]]
+    tonnes = "Total Net Asset Value Tonnes in the Trust as at 4.15 p.m. NYT"
+    if len(header) != len(set(header)) or tonnes not in header:
+        raise RuntimeError("TA_B_GLD_TONNES_COLUMN")
+    column, parsed = header.index(tonnes), []
+    for row in rows[headers[0] + 1:]:
+        if len(row) != len(header):
+            raise RuntimeError("TA_B_GLD_ROW_WIDTH")
+        observed = datetime.strptime(row[0].strip(), "%d-%b-%Y").date().isoformat()
+        value = row[column].strip()
+        if value in ("HOLIDAY", "NYSE Closed"):
+            amount = np.nan
+        elif re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", value):
+            amount = float(value)
+            if not np.isfinite(amount) or amount <= 0:
+                raise RuntimeError("TA_B_GLD_NONPOSITIVE_TONNES")
+        else:
+            raise RuntimeError("TA_B_GLD_UNKNOWN_VALUE")
+        parsed.append({"observation_date": observed, "gld_tonnes": amount,
+                       "source_value": value})
+    dates = [row["observation_date"] for row in parsed]
+    if not dates or dates != sorted(set(dates)):
+        raise RuntimeError("TA_B_GLD_OBSERVATION_ORDER")
+    return pd.DataFrame(parsed)
+
+
+class CotPreformattedReport(HTMLParser):
+    """Only the actual PRE report text; metadata/comments cannot set identity."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self.inside = False
+        self.count = 0
+
+    def handle_starttag(self, tag: str, attrs: list) -> None:
+        if tag == "pre":
+            if self.inside:
+                raise RuntimeError("TA_B_COT_NESTED_PRE")
+            self.inside = True
+            self.count += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "pre":
+            self.inside = False
+
+    def handle_data(self, data: str) -> None:
+        if self.inside:
+            self.parts.append(data)
+
+
+def parse_cot_gold_snapshot(raw: bytes) -> pd.DataFrame:
+    """Observed CFTC legacy futures-only text: exact Gold block and identities."""
+    parser = CotPreformattedReport()
+    parser.feed(raw.decode("iso-8859-1"))
+    parser.close()
+    if parser.count != 1 or parser.inside:
+        raise RuntimeError("TA_B_COT_PRE")
+    text = "".join(parser.parts).replace("\r\n", "\n")
+    starts = list(re.finditer(r"(?m)^GOLD - COMMODITY EXCHANGE INC\.\s+Code-088691\s*$", text))
+    if len(starts) != 1:
+        raise RuntimeError("TA_B_COT_GOLD_IDENTITY")
+    tail = text[starts[0].end():]
+    next_market = re.search(r"(?m)^.*Code-[0-9]{6}\s*$", tail)
+    block = tail[:next_market.start()] if next_market else tail
+    position = re.search(r"(?m)^FUTURES ONLY POSITIONS AS OF ([0-9]{2}/[0-9]{2}/[0-9]{2})[ \t]*\|", block)
+    category = re.search(r"(?m)^[ \t]*NON-COMMERCIAL[ \t]*\|[ \t]*COMMERCIAL[ \t]*\|[ \t]*TOTAL[ \t]*\|[ \t]*POSITIONS[ \t]*$", block)
+    columns = [line for line in block.splitlines() if "SPREADS" in line]
+    expected = ["LONG", "SHORT", "SPREADS", "LONG", "SHORT", "LONG", "SHORT", "LONG", "SHORT"]
+    if not position or not category or len(columns) != 1 or [x.strip() for x in columns[0].split("|")] != expected:
+        raise RuntimeError("TA_B_COT_LEGACY_FUTURES_ONLY_SCHEMA")
+    commitments = re.search(
+        r"\(CONTRACTS OF 100 TROY OUNCES\)[ \t]+OPEN INTEREST:[ \t]+([0-9,]+)\n"
+        r"COMMITMENTS\n([ \t0-9,]+)\n", block)
+    if not commitments:
+        raise RuntimeError("TA_B_COT_COMMITMENTS_ROW")
+    tokens = [commitments[1], *commitments[2].split()]
+    if len(tokens) != 10 or not all(re.fullmatch(r"(?:[0-9]+|[0-9]{1,3}(?:,[0-9]{3})+)", x) for x in tokens):
+        raise RuntimeError("TA_B_COT_INTEGER_SCHEMA")
+    oi, ncl, ncs, spread, cl, cs, tl, ts, nrl, nrs = [int(x.replace(",", "")) for x in tokens]
+    if oi <= 0 or (ncl + spread + cl, ncs + spread + cs, tl + nrl, ts + nrs) != (tl, ts, oi, oi):
+        raise RuntimeError("TA_B_COT_ACCOUNTING_IDENTITY")
+    return pd.DataFrame([{
+        "observation_date": datetime.strptime(position[1], "%m/%d/%y").date().isoformat(),
+        "noncommercial_long": ncl, "noncommercial_short": ncs, "open_interest": oi,
+        "noncommercial_net_over_oi": (ncl - ncs) / oi,
+    }])
+
+
+def import_b_archived_snapshots(spec: dict, spec_path: Path) -> dict:
+    """Import bound observed source formats only; isolated copies never admit B."""
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"source_commit": git("rev-parse", "HEAD"),
+                                     "manifest_sha256": sha(spec_path)})
+    try:
+        parsers = {"GLD_TONNES": parse_gld_holdings_snapshot,
+                   "COT_088691_LEGACY_FUTURES_ONLY": parse_cot_gold_snapshot}
+        originals = {
+            "GLD_TONNES": "http://www.spdrgoldshares.com/assets/dynamic/GLD/GLD_US_archive_EN.csv",
+            "COT_088691_LEGACY_FUTURES_ONLY": "https://www.cftc.gov/dea/futures/deacmxsf.htm",
+        }
+        if {x["series"] for x in spec["snapshots"]} != set(parsers):
+            raise RuntimeError("TA_B_SNAPSHOT_SERIES_SET")
+        records = []
+        for number, item in enumerate(spec["snapshots"]):
+            source, receipt_path = Path(item["raw_path"]), Path(item["receipt_path"])
+            if sha(source) != item["raw_sha256"] or sha(receipt_path) != item["receipt_sha256"]:
+                raise RuntimeError("TA_B_SNAPSHOT_HASH")
+            raw, receipt = source.read_bytes(), json.loads(receipt_path.read_text())
+            capture = pd.Timestamp(item["capture_utc"])
+            if capture.tz is None:
+                raise RuntimeError("TA_B_SNAPSHOT_CAPTURE_TIMEZONE")
+            capture = capture.tz_convert("UTC")
+            expected_url = ("https://web.archive.org/web/" + capture.strftime("%Y%m%d%H%M%S")
+                            + "id_/" + originals[item["series"]])
+            if (receipt["http_status"] != 200 or receipt["final_url"] != expected_url
+                    or receipt["url"] != expected_url
+                    or receipt["response_sha256"] != item["raw_sha256"]
+                    or receipt["response_bytes"] != len(raw)
+                    or capture > pd.Timestamp(receipt["finished_utc"])):
+                raise RuntimeError("TA_B_SNAPSHOT_RECEIPT")
+            frame = parsers[item["series"]](raw)
+            if frame.observation_date.max() > capture.tz_convert("America/New_York").date().isoformat():
+                raise RuntimeError("TA_B_SNAPSHOT_FUTURE_OBSERVATION")
+            frame["evidence_available_at_utc"] = capture
+            frame["source_sha256"] = item["raw_sha256"]
+            frame["availability_evidence"] = "archive_capture_upper_bound_not_original_publication"
+            # Availability plus the registered complete D1 lag is applied downstream,
+            # never by relabelling these historical rows as known on observation dates.
+            path = out / f"SNAPSHOT_{number:03d}.parquet"
+            temporary = path.with_suffix(".parquet.part")
+            frame.to_parquet(temporary, index=False)
+            with temporary.open("rb") as handle:
+                os.fsync(handle.fileno())
+            os.rename(temporary, path)
+            values = "gld_tonnes" if item["series"] == "GLD_TONNES" else "noncommercial_net_over_oi"
+            record = {"series": item["series"], "raw_path": str(source), "raw_sha256": item["raw_sha256"],
+                      "capture_utc": capture.isoformat(), "rows": len(frame),
+                      "numeric_rows": int(frame[values].notna().sum()),
+                      "missing_rows": int(frame[values].isna().sum()),
+                      "first_observation": frame.observation_date.min(),
+                      "last_observation": frame.observation_date.max(),
+                      "artifact": {"path": str(path), "sha256": sha(path)}}
+            records.append(record)
+        result = {"status": "COMPLETE_BOUND_SNAPSHOT_IMPORT_ONLY",
+                  "source_commit": git("rev-parse", "HEAD"), "manifest_sha256": sha(spec_path),
+                  "records": records, "full_b_admitted": False, "fits_run": False,
+                  "training_enabled": False, "test_accessed": False,
+                  "network_requests": 0, "market_outcomes_evaluated": False,
+                  "limitations": ["Isolated captures do not prove continuous GLD/COT vintage coverage.",
+                                  "Original publication timestamps remain unproved.",
+                                  "The additional canonical D1 lag has not been applied; these are source rows, not decision inputs.",
+                                  "Four published COT report changes require additional distinct reports."]}
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": result["status"], "result_sha256": sha(out / "RESULT.json")})
+        return {"out": str(out), "result_sha256": sha(out / "RESULT.json"), "full_b_admitted": False}
+    except Exception as error:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": str(error)})
+        raise
+
+
 def funding_dates(spec: dict) -> pd.DatetimeIndex:
     dates = pd.date_range(spec["start_date"], spec["end_date"], freq="D", tz="UTC")
     if spec["series"] == "DFF":
@@ -1303,7 +1474,7 @@ def run_c(spec: dict, spec_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "run-a", "run-c"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "import-b-archived-snapshots", "run-a", "run-c"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -1312,7 +1483,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

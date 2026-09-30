@@ -174,3 +174,19 @@ Målet markeres nå blokkert, ikke fullført, i påvente av dokumenterbar
 GLD/COT-versjonshistorikk og avklaring av VIX-klokken. Ingen leverandørtilgang
 er oppgitt, ingen henvendelse er sendt og intet abonnement er kjøpt.
 Den komplette sekskilde-kontrakten og det videre modellmålet beholdes.
+
+## Videreføring: import av de to bevarte GLD/COT-kopiene
+
+Målet er gjenopptatt med uendret fullstendig omfang. Eksisterende campaign-eier
+har nå kildespesifikke parsere for de faktisk observerte GLD CSV- og CFTC
+Legacy Futures Only-formatene. GLD tonn skilles fra pris/volum/ounces; de to
+observerte helligdagsmarkørene bevares som manglende verdi. COT velger bare
+Gold 088691 og kontrollerer regnskapsidentiteter mot open interest.
+Kopier bindes til råfil/receipt-hash og eksakt arkivtid, aldri observasjonsdato
+som konstruert publiseringstid. Det senere komplette D1-laget er fortsatt påkrevd.
+Seksten fokuserte mekaniske tester besto gjennom capped audit; fire importtester
+besto på nytt etter atomisk Parquet-skriving.
+Manifest: configs/research/TA_B_ARCHIVED_SNAPSHOT_IMPORT_20260930.json.
+Neste konkrete kontroll er import av de to allerede bevarte originalfilene.
+Dette er kildeimport, ikke full GLD/COT-dekning, komplett B-panel eller B-fit.
+
