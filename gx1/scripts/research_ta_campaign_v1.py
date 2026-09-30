@@ -339,6 +339,135 @@ def audit_alfred_chunks(spec: dict, spec_path: Path, receipt_sha256: str) -> dic
             "series_status": {r["series"]: r["status"] for r in records}}
 
 
+
+def alfred_asof_levels(rows: list[tuple[str, str, str, str]], clocks: pd.DataFrame) -> pd.DataFrame:
+    """Date-vintage publication bound + one whole canonical D1; no target access."""
+    alfred_version_summary(rows)
+    opens = pd.DatetimeIndex(clocks.session_open)
+    decisions = pd.DatetimeIndex(clocks.decision_time)
+    if (not len(opens) or opens.tz is None or decisions.tz is None or opens.has_duplicates
+            or decisions.has_duplicates or not opens.is_monotonic_increasing
+            or not decisions.is_monotonic_increasing
+            or not (decisions == opens + TRADING_SESSION_DURATION).all()):
+        raise RuntimeError("TA_B_CANONICAL_D1_CLOCK")
+    # realtime_end is checked for source integrity, never used to retire a value early.
+    versions = sorted(set(rows), key=lambda row: (row[2], row[0]))
+    ready = []
+    for obs, value, start, _end in versions:
+        if obs > start:
+            raise RuntimeError("TA_B_FUTURE_OBSERVATION")
+        published_bound = (pd.Timestamp(start).tz_localize("America/New_York")
+                           + pd.DateOffset(days=1) - pd.Timedelta(nanoseconds=1)).tz_convert("UTC")
+        slot = int(opens.searchsorted(published_bound, side="left"))
+        if slot < len(opens):
+            ready.append((slot, obs, value, start, published_bound))
+    state, index, result = {}, 0, []
+    for slot in range(len(opens)):
+        while index < len(ready) and ready[index][0] <= slot:
+            _, obs, value, start, bound = ready[index]
+            # Missing-value revisions remove that observation from the numeric state.
+            state[obs] = (float(value) if value else np.nan, start, bound)
+            index += 1
+        numeric = [obs for obs, value in state.items() if np.isfinite(value[0])]
+        if numeric:
+            selected = max(numeric)
+            value, start, bound = state[selected]
+            result.append({"value": value, "observation_date": selected,
+                           "realtime_start_date": start, "publication_upper_bound": bound,
+                           "first_permitted_decision": decisions[int(opens.searchsorted(bound, side="left"))]})
+        else:
+            result.append({"value": np.nan, "observation_date": None,
+                           "realtime_start_date": None, "publication_upper_bound": pd.NaT,
+                           "first_permitted_decision": pd.NaT})
+    return pd.DataFrame(result, index=clocks.index)
+
+
+def prepare_b_macros(spec: dict, spec_path: Path) -> dict:
+    """Prepare four validated B components; GLD/COT absence keeps full B closed."""
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"source_commit": git("rev-parse", "HEAD"),
+                                     "manifest_sha256": sha(spec_path)})
+    try:
+        audit_path = Path(spec["source_audit"]["path"])
+        if sha(audit_path) != spec["source_audit"]["sha256"]:
+            raise RuntimeError("TA_B_MACRO_AUDIT_HASH")
+        audit = json.loads(audit_path.read_text())
+        if not audit["all_archives_consistent"]:
+            raise RuntimeError("TA_B_MACRO_AUDIT_FAILED")
+        if [r["series"] for r in audit["records"]] != spec["macro_series"]:
+            raise RuntimeError("TA_B_MACRO_SERIES_SET")
+        cache_path = Path(spec["clock_cache"]["path"])
+        if sha(cache_path) != spec["clock_cache"]["sha256"]:
+            raise RuntimeError("TA_B_CLOCK_CACHE_HASH")
+        clocks = pd.read_parquet(cache_path, columns=["session_open", "decision_time"])
+        clocks = clocks.loc[(clocks.decision_time >= pd.Timestamp(spec["read_start"]))
+                            & (clocks.decision_time < pd.Timestamp(spec["read_end_exclusive"]))].reset_index(drop=True)
+        panel = clocks.copy()
+        coverage, provenance = {}, {}
+        for record in audit["records"]:
+            sid = record["series"]
+            rows = []
+            for entry in record["files"]:
+                path = Path(entry["path"])
+                if sha(path) != entry["sha256"]:
+                    raise RuntimeError("TA_B_MACRO_ZIP_HASH")
+                with zipfile.ZipFile(path) as archive:
+                    raw = archive.read("obs._by_real-time_period.csv")
+                if hashlib.sha256(raw).hexdigest() != entry["members"]["obs._by_real-time_period.csv"]["sha256"]:
+                    raise RuntimeError("TA_B_MACRO_MEMBER_HASH")
+                reader = csv.reader(io.StringIO(raw.decode("utf-8")))
+                if next(reader) != ["period_start_date", sid, "realtime_start_date", "realtime_end_date"]:
+                    raise RuntimeError("TA_B_MACRO_SCHEMA")
+                rows.extend(tuple(row) for row in reader)
+            known = alfred_asof_levels(rows, clocks)
+            level = known.value
+            if spec["transforms"][sid] == "log":
+                if (level.dropna() <= 0).any():
+                    raise RuntimeError("TA_B_NONPOSITIVE_LOG_INPUT")
+                level = np.log(level)
+            elif spec["transforms"][sid] != "level":
+                raise RuntimeError("TA_B_UNDECLARED_TRANSFORM")
+            names = spec["feature_names"][sid]
+            panel[names[0]], panel[names[1]] = level, level - level.shift(spec["change_d1"])
+            for column in ["observation_date", "realtime_start_date", "publication_upper_bound", "first_permitted_decision"]:
+                panel[f"{sid}__{column}"] = known[column]
+            finite = panel[names].notna().all(axis=1)
+            permitted = known.value.notna()
+            if not (known.loc[permitted, "first_permitted_decision"].array <= clocks.loc[permitted, "decision_time"].array).all():
+                raise RuntimeError("TA_B_INPUT_BEFORE_PERMITTED_DECISION")
+            coverage[sid] = {"feature_complete_rows": int(finite.sum()),
+                             "numeric_level_rows": int(permitted.sum()),
+                             "distinct_used_observation_dates": int(known.observation_date.nunique()),
+                             "distinct_used_realtime_dates": int(known.realtime_start_date.nunique())}
+            if finite.any():
+                coverage[sid].update(first_complete_decision=str(clocks.loc[finite, "decision_time"].iloc[0]),
+                                     last_complete_decision=str(clocks.loc[finite, "decision_time"].iloc[-1]))
+            provenance[sid] = {"archive_files": len(record["files"]), "source_rows": len(rows)}
+        names = [name for sid in spec["macro_series"] for name in spec["feature_names"][sid]]
+        common = panel[names].notna().all(axis=1)
+        panel.to_parquet(out / "MACRO_COMPONENTS.parquet", index=False)
+        result = {"status": "COMPLETE_FOUR_MACRO_COMPONENTS_ONLY", "source_commit": git("rev-parse", "HEAD"),
+                  "manifest_sha256": sha(spec_path), "source_audit": spec["source_audit"],
+                  "clock_cache": spec["clock_cache"], "clock_columns_read": ["session_open", "decision_time"],
+                  "clock_rows": len(clocks), "coverage": coverage, "provenance": provenance,
+                  "four_source_complete_rows": int(common.sum()), "full_b_admitted": False,
+                  "missing_full_b_sources": spec["missing_full_b_sources"], "feature_names": names,
+                  "fits_run": False, "new_market_outcomes_read": False, "test_accessed": False,
+                  "artifact": {"path": str(out / "MACRO_COMPONENTS.parquet"),
+                               "sha256": sha(out / "MACRO_COMPONENTS.parquet")}}
+        if common.any():
+            result["four_source_first_complete_decision"] = str(clocks.loc[common, "decision_time"].iloc[0])
+            result["four_source_last_complete_decision"] = str(clocks.loc[common, "decision_time"].iloc[-1])
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": result["status"], "result_sha256": sha(out / "RESULT.json")})
+        return {"out": str(out), "result_sha256": sha(out / "RESULT.json"),
+                "four_source_complete_rows": int(common.sum()), "full_b_admitted": False}
+    except Exception as error:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": str(error)})
+        raise
+
+
 def funding_dates(spec: dict) -> pd.DatetimeIndex:
     dates = pd.date_range(spec["start_date"], spec["end_date"], freq="D", tz="UTC")
     if spec["series"] == "DFF":
@@ -1058,7 +1187,7 @@ def run_c(spec: dict, spec_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "run-a", "run-c"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "run-a", "run-c"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -1067,7 +1196,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

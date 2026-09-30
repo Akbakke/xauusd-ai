@@ -9,6 +9,10 @@ Brukeren har bestilt [hele B-løpet og videre kvalifisert modelløp](docs/TA_B_F
 Målet er aktivt og ikke oppnådd. Alle seks kilder og faktisk tilgjengelighet
 kreves før B-fit. Neste konkrete arbeid er GLD/COT-dekning og komplett kausal
 B-implementasjon. Fire ferdige ALFRED-arkiver gjenbrukes.
+Kausal makroforberedelse er nå implementert hos campaign-eieren; to fokuserte
+klokke-/revisjonstester besto. Ekte datakontroll bindes i
+configs/research/TA_B_MACRO_COMPONENTS_20260930.json og bruker bare allerede
+hentede makroverdier samt de to klokkesøylene fra A-cachen.
 Native trening/TEST er fortsatt stengt ved dagens uoppfylte porter.
 Ingen løfte om kunstig historikk, lønnsomhet eller et grønt treningsvedtak.
 

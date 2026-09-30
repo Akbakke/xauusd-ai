@@ -1513,13 +1513,18 @@
     "current_stage": "SIX_SOURCE_QUALIFICATION",
     "final_test_ready": false,
     "full_b_admitted": false,
+    "macro_component_manifest": {
+      "path": "configs/research/TA_B_MACRO_COMPONENTS_20260930.json",
+      "sha256": "37619509d7e02882973835ce1216a5051f479df7afc03c35832c12c44194bff7"
+    },
     "native_build_ready": false,
     "native_training_ready": false,
     "plan": "docs/TA_B_FULL_GOAL_20260930.md",
-    "plan_sha256": "a4d62c01de66b217e87ff67f26a0affc390df19d269932e351785d54d491f4ae",
+    "plan_sha256": "1460d0eb7416cbb6c12e7c2e639303b24bd8a7f1ea5aef8f30d12117e1bb9c94",
     "research_fit_ready": false,
     "source_manifest": "configs/research/TA_B_FULL_GOAL_SOURCE_20260930.json",
     "source_manifest_sha256": "0b3dc04221822ccfbc63d97c28c957222a89109a0f192f0f37a4cf11ac946e71",
+    "source_retry_status": "HTTP429_FIRST_REQUEST_REMAINDER_SKIPPED",
     "staged_operator_authorization": true,
     "status": "ACTIVE"
   },

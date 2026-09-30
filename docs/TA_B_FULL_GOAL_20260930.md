@@ -48,3 +48,16 @@ Et nytt avgrenset metadataoppslag er bundet i
 configs/research/TA_B_FULL_GOAL_SOURCE_20260930.json etter nesten tre timer uten
 arkivkall. Resten av batchen stoppes ved første HTTP429; fullførte råfiler hentes
 ikke på nytt. Metadata er ikke predictor-admission.
+
+## Første videreføring
+
+Arkivtjenesten ga HTTP429 på første forsøk 10:51:16 UTC; to gjenstående
+forespørsler ble hoppet over av den kontrollerte eieren. Ingen nye rådata ble
+hentet. Ingen ny arkivprøve gjentas automatisk. Den frosne forespørselens felt
+prior_last_request_utc oppga 07:51:22Z; tidligere RESULT.json viser eksakt
+07:51:28.141925Z. Feltet var bakgrunnsmetadata, ikke tilgjengelighetsinput.
+Korrekt målt opphold før den nye forespørselen var 10 788,14 sekunder.
+
+Makroklokken implementeres og kontrolleres uavhengig av den blokkerte
+GLD/COT-tilgangen. Dette er åtte komponentfelt, ikke en redusert B-modell.
+Ingen XAU-priser eller utfall leses i denne komponentforberedelsen.

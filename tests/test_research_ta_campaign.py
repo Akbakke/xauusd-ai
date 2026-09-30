@@ -478,3 +478,38 @@ def test_source_probe_rate_limit_stops_remaining_network_requests(tmp_path, monk
     assert first["retry_after"] == "120"
     assert second["status"] == "SKIPPED_RATE_LIMIT"
     assert "http_status" not in second
+
+
+
+def test_b_macro_publication_requires_a_complete_later_session_and_preserves_prefix():
+    opens = pd.date_range("2019-02-01T22:00Z", periods=10, freq="D")
+    clocks = pd.DataFrame({"session_open": opens, "decision_time": opens + ta.TRADING_SESSION_DURATION})
+    old = [("2009-01-02", "100", "2019-02-04", "2019-02-07")]
+    revised = old + [("2009-01-02", "999", "2019-02-08", "")]
+    initial = ta.alfred_asof_levels(old, clocks)
+    full = ta.alfred_asof_levels(revised, clocks)
+    first = pd.Timestamp("2019-02-06T22:00Z")
+    revision = pd.Timestamp("2019-02-10T22:00Z")
+    assert full.loc[clocks.decision_time < first, "value"].isna().all()
+    assert (full.loc[(clocks.decision_time >= first) & (clocks.decision_time < revision), "value"] == 100).all()
+    assert (full.loc[clocks.decision_time >= revision, "value"] == 999).all()
+    pd.testing.assert_frame_equal(initial.loc[clocks.decision_time < revision],
+                                  full.loc[clocks.decision_time < revision])
+    # A known future end date never suppresses the currently known value.
+    pd.testing.assert_frame_equal(initial, ta.alfred_asof_levels([("2009-01-02", "100", "2019-02-04", "")], clocks))
+
+
+def test_b_macro_asof_uses_latest_observation_and_removes_missing_revision():
+    opens = pd.date_range("2020-01-01T22:00Z", periods=12, freq="D")
+    clocks = pd.DataFrame({"session_open": opens, "decision_time": opens + ta.TRADING_SESSION_DURATION})
+    rows = [("2020-01-01", "1", "2020-01-02", ""),
+            ("2020-01-02", "2", "2020-01-03", "2020-01-06"),
+            ("2020-01-02", "", "2020-01-07", "")]
+    result = ta.alfred_asof_levels(rows + rows[:1], clocks)
+    assert result.loc[clocks.decision_time == pd.Timestamp("2020-01-05T22:00Z"), "value"].item() == 2
+    assert result.loc[clocks.decision_time == pd.Timestamp("2020-01-09T22:00Z"), "value"].item() == 1
+    assert result.iloc[-1].observation_date == "2020-01-01"
+    broken = clocks.copy()
+    broken.loc[0, "decision_time"] += pd.Timedelta(minutes=1)
+    with pytest.raises(RuntimeError, match="CANONICAL_D1_CLOCK"):
+        ta.alfred_asof_levels(rows, broken)
