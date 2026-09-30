@@ -1800,19 +1800,34 @@
       "sha256": "37619509d7e02882973835ce1216a5051f479df7afc03c35832c12c44194bff7"
     },
     "macro_components_ready": false,
+    "matched_b_cli_implemented": false,
+    "matched_b_core_implemented": true,
+    "matched_core_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_MATCHED_CORE_IMPLEMENTATION_20260930_001/RESULT.json",
+      "sha256": "abada0779080678a11f717bd51f6ce7d51321f04c293cddd46f4181c7b9b0579"
+    },
     "native_build_ready": false,
     "native_training_ready": false,
     "plan": "docs/TA_B_FULL_GOAL_20260930.md",
-    "plan_sha256": "5ba1440b63b7d433483fc5e5f6992abd49cf9552e1aee4434e3f6d81a29b5479",
+    "plan_sha256": "adfa89068db9ea9410825ac7290c822bdfeb986542196023ca7c5fb7bd3672d6",
     "research_fit_ready": false,
     "source_manifest": "configs/research/TA_B_FULL_GOAL_SOURCE_20260930.json",
     "source_manifest_sha256": "0b3dc04221822ccfbc63d97c28c957222a89109a0f192f0f37a4cf11ac946e71",
     "source_retry_status": "HTTP429_FIRST_REQUEST_REMAINDER_SKIPPED",
     "staged_operator_authorization": true,
-    "status": "ACTIVE",
+    "status": "BLOCKED",
     "verification": {
       "path": "docs/TA_B_FULL_GOAL_20260930.json",
-      "sha256": "2226fdd3876ee92b0ad67093b950b552d9a4aa2cd719888d04acf8a13a6f83ce"
+      "sha256": "79f8e77b73066e4edb666d6e5d70aa4d58772d8d213c44f6cabcc8f66bf101b2"
+    },
+    "vix_format_comparison_manifest": {
+      "path": "configs/research/TA_B_VIX_FORMAT_COMPARISON_20260930.json",
+      "sha256": "4a2efefc9760f11f9dcca6cb37a815271766a0d4bb72672b1d2244c074a601a5"
+    },
+    "vix_format_comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_FORMAT_COMPARISON_20260930_001/AUDIT_002/RESULT.json",
+      "sha256": "4dba6f1e720633a55694437dd5926b7f6a8c6106ffdb1bbf5d8b64da4b2f3fa1",
+      "status": "COMPLETE_SOURCE_FORMAT_AGREEMENT_CHRONOLOGY_UNRESOLVED"
     }
   },
   "full_epoch_training_allowed": false,
@@ -1822,7 +1837,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "docs/TA_RESEARCH_PLAN_20260929.md",
+  "handover_resume_point": "docs/TA_B_FULL_GOAL_20260930.md",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1859,7 +1874,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-29T21:49:05.274396+00:00",
+  "latest_observation_utc": "2026-09-30T11:33:36.432190+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2277,7 +2292,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Keep full B goal active. Resolve documented GLD/COT vintage coverage and 26 VIX future-observation clock conflicts using source evidence; do not backdate, substitute or silently drop values. Preserve failed macro component run and passed focused tests. No repeated archive requests while HTTP429 persists. Build/training/final evaluation require qualified inputs and frozen contracts.",
+  "next_action": "Await documented GLD/COT historical versions and source evidence resolving VIX chronology. Preserve completed matched A/B core and five focused mechanical tests. No repeated archive requests, no reduced-source B, no real fits or native training/TEST. Once qualified source bytes exist, finish the source-specific import/panel and commit a population-bound B preregistration before implementing/executing the run-b route. The full goal is blocked, not achieved.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2485,7 +2500,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "FULL_B_GOAL_ACTIVE_GLD_COT_VIX_SOURCE_BLOCKERS",
+  "status": "FULL_B_GOAL_BLOCKED_PENDING_QUALIFIED_SOURCE_EVIDENCE",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "ta_research_20260929": {
     "a_cached_audit": {
