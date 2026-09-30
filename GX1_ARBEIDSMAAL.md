@@ -5,6 +5,12 @@ finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke
 
 ## Aktiv oppfølging: neste datasteg for B
 
+ALFRED-prøven gjennom vanlig nettleser lyktes; ZIP/CRC og historiske datoer er
+kontrollert. Fire komplette makroarkiver bindes nå i
+configs/research/TA_B_ALFRED_BROWSER_20260930.json. Internet Archive ga HTTP429;
+nye arkivforespørsler er stoppet. Henteeieren stopper nå resten av en batch ved429.
+Ingen historisk dekning utledes fra feilresponsene.
+
 Brukeren ba «Kjør neste steg». Kun den nye manifestbundne kildeprøven
 configs/research/TA_B_NEXT_SOURCE_STEP_20260930.json åpnes: ALFREDs vanlige
 nettleserskjema, årlige GLD-arkivoppslag og arkiv for den daterte COT-rapporten

@@ -1,9 +1,11 @@
 {
   "b_next_source_step_20260930": {
     "fits_allowed": false,
+    "macro_manifest": "configs/research/TA_B_ALFRED_BROWSER_20260930.json",
+    "macro_manifest_sha256": "83d3724292cba5d8a7d6a0adbd6b683ca205405fb57c147d77adf680e3d38eeb",
     "manifest": "configs/research/TA_B_NEXT_SOURCE_STEP_20260930.json",
     "manifest_sha256": "f26bf252225764af140e07f3df8e950eba0ed46aebc170ee3fa09ed90b87d3e4",
-    "status": "BOUND_BEFORE_FETCH",
+    "status": "ALFRED_SAMPLE_SUCCESS_ARCHIVE_RATE_LIMITED",
     "training_enabled": false
   },
   "b_source_investigation_20260930": {
@@ -1492,7 +1494,7 @@
     "sha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a"
   },
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "handover_resume_point": "configs/research/TA_B_NEXT_SOURCE_STEP_20260930.json",
+  "handover_resume_point": "configs/research/TA_B_ALFRED_BROWSER_20260930.json",
   "handover_resume_point_before_consolidation_20260926": {
     "entry_selector_cache_fit": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
@@ -1893,7 +1895,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Execute only TA_B_NEXT_SOURCE_STEP_20260930.json: public browser ALFRED form and new archived-source metadata. Reuse completed probes. No B fit, partial-source substitution, vendor message, purchase, native training, TEST or trading.",
+  "next_action": "Fetch the four named ALFRED series only through the committed browser manifest. No further Internet Archive calls in this round after HTTP429. Validate source archives; full B still needs GLD/COT evidence before any fit.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-30T05:49:29.223474+00:00",
   "outer_guard_seconds": 13800,
@@ -2076,7 +2078,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "B_NEXT_SOURCE_STEP_AUTHORIZED_NO_FITS_TRAINING_DISABLED",
+  "status": "B_ALFRED_BROWSER_RETRIEVAL_AUTHORIZED_ARCHIVE_RATE_LIMITED",
   "ta_research_20260929": {
     "a_cached_audit": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_CACHED_AUDIT.json",

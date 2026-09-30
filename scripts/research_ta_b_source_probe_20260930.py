@@ -35,10 +35,17 @@ out = Path(spec["relay_output_directory"])
 out.mkdir(parents=True, exist_ok=False)
 started = datetime.now(timezone.utc).isoformat()
 records = []
+rate_limited = False
 for entry in spec["archive_metadata_requests"]:
     record = {"id": entry["id"], "url": entry["url"],
               "started_utc": datetime.now(timezone.utc).isoformat()}
     begin = time.monotonic()
+    if rate_limited:
+        record.update(status="SKIPPED_RATE_LIMIT", elapsed_seconds=0,
+                      finished_utc=datetime.now(timezone.utc).isoformat())
+        records.append(record)
+        write_json(out / (entry["id"] + ".receipt.json"), record)
+        continue
     try:
         req = Request(entry["url"], headers={"User-Agent": "GX1 offline research source audit"})
         try:
@@ -48,12 +55,15 @@ for entry in spec["archive_metadata_requests"]:
         with response:
             raw = response.read(spec["maximum_metadata_bytes"] + 1)
             record.update(http_status=response.code, final_url=response.url,
-                          content_type=response.headers.get("Content-Type"))
+                          content_type=response.headers.get("Content-Type"),
+                          retry_after=response.headers.get("Retry-After"))
         path = out / (entry["id"] + ".response")
         path.write_bytes(raw)
         record.update(response_sha256=sha(path), response_bytes=len(raw))
         if len(raw) > spec["maximum_metadata_bytes"]:
             raise ValueError("METADATA_SIZE_LIMIT")
+        if record["http_status"] == 429:
+            rate_limited = True
         if record["http_status"] != 200:
             raise ValueError("HTTP_NON_200")
         if entry.get("expected_format", "json") == "json":

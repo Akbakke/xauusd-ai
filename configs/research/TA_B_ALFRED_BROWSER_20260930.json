@@ -1,0 +1,70 @@
+{
+  "availability": "Only use values when their realtime_start date was reached, then end of that date in America/New_York plus one complete canonical XAU D1 interval. Never backfill first-created series into prior decisions.",
+  "canonical_branch": "work/gx1-current",
+  "canonical_receipt_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ALFRED_BROWSER_20260930_001",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "download_directory": "/Users/andrekildalbakke/Downloads",
+  "entered_vintage_dates": "",
+  "file_format": "csv",
+  "file_type": "1",
+  "fits_allowed": false,
+  "full_b_scope": [
+    "DFII10",
+    "DTWEXBGS",
+    "T10YIE",
+    "GLD_gold_holdings_tonnes",
+    "COT_COMEX_088691_Legacy_Futures_Only",
+    "VIXCLS"
+  ],
+  "market_outcomes_read": false,
+  "maximum_download_bytes": 50000000,
+  "maximum_uncompressed_bytes": 100000000,
+  "observation_end": "2025-12-31",
+  "observation_start": "2009-01-01",
+  "operator_request": "Kj\u00f8r neste steg",
+  "predictor_admission": false,
+  "purpose": "Retrieve all four previously named ALFRED source archives via the verified public browser route; source validation only, not B predictor admission.",
+  "relay_receipt_directory": "/Users/andrekildalbakke/.codex/gx1_transport/B_ALFRED_BROWSER_20260930_001",
+  "sample_proof": {
+    "download_event_and_crc_passed": true,
+    "observed_schema": [
+      "period_start_date",
+      "DFII10",
+      "realtime_start_date",
+      "realtime_end_date"
+    ],
+    "sample_csv_sha256": "bf9b66ae32de339b5dcf3ef12a2a52b9f60a0b95757a06d439bbfb0fddccca4c",
+    "sample_zip_sha256": "81bcd9e2b8e26042a017ecd49c296436dda2b9a5e7d54d6b49bfd9a8a3862b9d",
+    "source_manifest": "configs/research/TA_B_NEXT_SOURCE_STEP_20260930.json",
+    "source_manifest_sha256": "f26bf252225764af140e07f3df8e950eba0ed46aebc170ee3fa09ed90b87d3e4"
+  },
+  "schema": "gx1_b_alfred_browser_vintage_download_v1",
+  "series": [
+    {
+      "id": "DFII10",
+      "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=DFII10"
+    },
+    {
+      "id": "DTWEXBGS",
+      "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=DTWEXBGS"
+    },
+    {
+      "id": "T10YIE",
+      "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=T10YIE"
+    },
+    {
+      "id": "VIXCLS",
+      "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=VIXCLS"
+    }
+  ],
+  "spending_allowed": false,
+  "submission": "One Download data click per series. Wait at most 60 seconds for the download event. Stop on rate limiting, authentication, CAPTCHA or other access gate; preserve any failed receipt. No urllib POST repetition.",
+  "test_accessed": false,
+  "training_enabled": false,
+  "transport": "Codex in-app browser on Mac, native public download form. No API key, account creation or billing.",
+  "units": "lin",
+  "validation": "ZIP CRC and byte hashes; exact source ID/units/format; all four CSV columns; parsed date bounds; finite numeric values or declared missing; ordered nonoverlapping real-time intervals per observation; no duplicate observation/start tuples; README vintages equal selected dates. Current open-ended intervals may have blank ends. Future revision end metadata is not a feature.",
+  "vintage_end": "2025-12-31",
+  "vintage_selection": "All unique advertised form[selected_vintage_dates][] options within declared bounds, sorted chronologically; verify exact selected list equals that set before clicking. Bind returned README vintage dates and archive bytes.",
+  "vintage_start": "2009-01-01"
+}
