@@ -3,7 +3,15 @@
 Målet er en ærlig XAUUSD-bot som tar retning på den tidsskalaen der retningen faktisk
 finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke oppnådd.
 
-## Nå: B-kildeundersøkelsen er fullført
+## Aktiv oppfølging: neste datasteg for B
+
+Brukeren ba «Kjør neste steg». Kun den nye manifestbundne kildeprøven
+configs/research/TA_B_NEXT_SOURCE_STEP_20260930.json åpnes: ALFREDs vanlige
+nettleserskjema, årlige GLD-arkivoppslag og arkiv for den daterte COT-rapporten
+26.03.2019. Tidligere prøver gjenbrukes og relanseres ikke. Ingen fit, kontakt med
+leverandør, kjøp, TEST eller handel er åpnet.
+
+## Tidligere kildeundersøkelse
 
 Brukeren ba 30.09.2026 «Ja undersøk B».
 [Undersøkelsen](docs/TA_B_SOURCE_INVESTIGATION_20260930.md) hentet og kontrollerte

@@ -3,7 +3,15 @@
 Gjeldende status eies av [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md). Bruk bare
 `/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Én agent og én tung jobb innen CURRENT.
 
-## Nå: B-kildeundersøkelsen er fullført
+## Aktiv oppfølging: neste datasteg for B
+
+Brukeren ba «Kjør neste steg». Kun den nye manifestbundne kildeprøven
+configs/research/TA_B_NEXT_SOURCE_STEP_20260930.json åpnes: ALFREDs vanlige
+nettleserskjema, årlige GLD-arkivoppslag og arkiv for den daterte COT-rapporten
+26.03.2019. Tidligere prøver gjenbrukes og relanseres ikke. Ingen fit, kontakt med
+leverandør, kjøp, TEST eller handel er åpnet.
+
+## Tidligere kildeundersøkelse
 
 Brukeren ba 30.09.2026 «Ja undersøk B».
 [Undersøkelsen](docs/TA_B_SOURCE_INVESTIGATION_20260930.md) hentet og kontrollerte

@@ -1,0 +1,122 @@
+{
+  "alfred_method": "No urllib ALFRED retry. Browser probe recorded separately under the browser_probe section.",
+  "alfred_probe": null,
+  "archive_index_limit": 200,
+  "archive_index_truncation_policy": "Reaching 200 records is incomplete. Need full index before coverage claim.",
+  "archive_metadata_requests": [
+    {
+      "expected_format": "json",
+      "id": "GLD_AVAILABLE_20190101",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20190101"
+    },
+    {
+      "expected_format": "json",
+      "id": "GLD_AVAILABLE_20200101",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20200101"
+    },
+    {
+      "expected_format": "json",
+      "id": "GLD_AVAILABLE_20210101",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20210101"
+    },
+    {
+      "expected_format": "json",
+      "id": "GLD_AVAILABLE_20220101",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20220101"
+    },
+    {
+      "expected_format": "json",
+      "id": "GLD_AVAILABLE_20230101",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20230101"
+    },
+    {
+      "expected_format": "json",
+      "id": "GLD_AVAILABLE_20240101",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20240101"
+    },
+    {
+      "expected_format": "json",
+      "id": "GLD_AVAILABLE_20250101",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20250101"
+    },
+    {
+      "expected_format": "json",
+      "id": "GLD_AVAILABLE_20251231",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20251231"
+    },
+    {
+      "expected_format": "json",
+      "id": "COT_DATED_AVAILABLE_BEFORE_REVISION",
+      "url": "https://archive.org/wayback/available?url=https%3A%2F%2Fwww.cftc.gov%2Ffiles%2Fdea%2Fcotarchives%2F2019%2Ffutures%2Fdeacmxsf032619.htm&timestamp=20190330"
+    },
+    {
+      "expected_format": "json",
+      "id": "COT_DATED_CDX",
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fwww.cftc.gov%2Ffiles%2Fdea%2Fcotarchives%2F2019%2Ffutures%2Fdeacmxsf032619.htm&from=20190326&to=20251231&output=json&limit=200"
+    }
+  ],
+  "archive_policy": "Metadata only. Dated COT URL is the Legacy Futures Only short-format link read from the official March 26 2019 report index via browser DOM. Annual GLD Availability requests are a coverage screen, never proof of daily completeness. Returned capture may be later than requested and will not be backdated. Existing July 2019 GLD snapshot is reused. Any new raw archive snapshot requires a separate immutable request binding.",
+  "authorized_on": "2026-09-30",
+  "availability_rule": "Only after schema, vintage periods and publication-date evidence are validated. Use upper bound end of release date in America/New_York and wait one additional complete canonical XAU D1 interval; never backfill a first-created series into earlier decisions.",
+  "browser_probe": {
+    "admission": "A download event is not source admission. Preserve any received bytes and hashes; check archive schema and date scope before use. No latest-value fallback.",
+    "file_format": "csv",
+    "file_type": "1",
+    "method": "Select levels, observations 2025-06-01 through 2025-06-30, the 20 advertised June 2025 vintage dates listed below, real-time periods and zipped CSV; click Download data once and record outcome. No other data selections. Maximum wait 60 seconds; no automatic repeated submission.",
+    "observation_end": "2025-06-30",
+    "observation_start": "2025-06-01",
+    "series": "DFII10",
+    "source_url": "https://alfred.stlouisfed.org/series/downloaddata?seid=DFII10",
+    "transport": "Codex in-app browser on Mac through normal ALFRED form, no authentication or API key",
+    "units": "lin",
+    "vintage_dates": [
+      "2025-06-02",
+      "2025-06-03",
+      "2025-06-04",
+      "2025-06-05",
+      "2025-06-06",
+      "2025-06-09",
+      "2025-06-10",
+      "2025-06-11",
+      "2025-06-12",
+      "2025-06-13",
+      "2025-06-16",
+      "2025-06-17",
+      "2025-06-18",
+      "2025-06-20",
+      "2025-06-23",
+      "2025-06-24",
+      "2025-06-25",
+      "2025-06-26",
+      "2025-06-27",
+      "2025-06-30"
+    ]
+  },
+  "canonical_branch": "work/gx1-current",
+  "canonical_receipt_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_SOURCE_NEXT_20260930_001",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "fits_allowed": false,
+  "market_outcome_access": false,
+  "maximum_metadata_bytes": 2000000,
+  "operator_request": "Kj\u00f8r neste steg",
+  "owner_path": "gx1/scripts/research_ta_campaign_v1.py",
+  "owner_sha256": "3c0c729324aa2986d5c97e757a8c52c05f1ba673381f6ca09de43778967d80fa",
+  "prior_probe_manifest_sha256": "dc739fc0fbfe69adb48956b9103f8046e93cc96a2fb2e070b8902d17aab09f7c",
+  "prior_probe_result_sha256": "7945ae7eb3b4e987f49febb0b34b2a33ded46055e2784b4463a225f1358a5a28",
+  "probe_path": "scripts/research_ta_b_source_probe_20260930.py",
+  "probe_sha256": "f9204fb177d56334c5467bce90159cad7eded894561534fe998c19dd5cf539a1",
+  "purpose": "Continue B source qualification: browser-based ALFRED public download, annual GLD archive availability and dated COT report archive. No fit, source substitution or predictor admission.",
+  "relay_output_directory": "/Users/andrekildalbakke/.codex/gx1_transport/B_SOURCE_NEXT_20260930_001",
+  "schema": "gx1_b_source_reopen_probe_v1",
+  "source_docs": [
+    "https://archive.org/help/wayback_api.php",
+    "https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md",
+    "https://alfred.stlouisfed.org/help/downloaddata",
+    "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalViewable/cot032619"
+  ],
+  "spending_allowed": false,
+  "test_accessed": false,
+  "timeout_seconds": 30,
+  "transport_hostname": "Andre-sin-MacBook-Air.local",
+  "transport_role": "Mac HTTP relay only; byte-identical canonical probe and owner; no research computation or code edits on relay"
+}
