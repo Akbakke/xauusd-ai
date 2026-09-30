@@ -1636,11 +1636,24 @@ def run_sweep(spec: dict, spec_path: Path) -> dict:
         curve = load_funding(spec)
         market, binding = load_market(spec, columns=["time", "open", "high", "low", "close", "volume",
                           "bid_open", "ask_open", "bid_close", "ask_close", "ask_low", "bid_high"])
-        signals = sweep_signal_panel(market, spec)
+        preparation = spec.get("reuse_preparation")
+        if preparation is not None:
+            import inspect
+            for name, expected in preparation["function_sha256"].items():
+                if hashlib.sha256(inspect.getsource(globals()[name]).encode()).hexdigest() != expected:
+                    raise RuntimeError("TA_SWEEP_PREPARATION_OWNER_CHANGED")
+            for item in preparation["bindings"]:
+                if sha(Path(item["path"])) != item["sha256"]:
+                    raise RuntimeError("TA_SWEEP_PREPARATION_HASH")
+            signals = pd.read_parquet(preparation["signals_path"])
+        else:
+            signals = sweep_signal_panel(market, spec)
         signals.to_parquet(out / "SIGNALS.parquet")
         cohort, selection = c_select(market, signals, spec, cells=("sweep",))
         for arm in ["rolling_activity", "anchored_activity"]:
             cohort[arm] = signals[arm].reindex(pd.DatetimeIndex(cohort.signal_bar_start)).to_numpy(bool)
+        if preparation is not None:
+            pd.testing.assert_frame_equal(cohort, pd.read_parquet(preparation["cohort_path"]))
         cohort.to_parquet(out / "COHORT.parquet", index=False)
         tape = c_quotes(market, pd.Timestamp(spec["evaluation_start"]))
         dates = pd.date_range(spec["evaluation_start"], pd.Timestamp(spec["read_end_exclusive"]) - pd.Timedelta(days=1), freq="D")
@@ -1677,7 +1690,8 @@ def run_sweep(spec: dict, spec_path: Path) -> dict:
                     portfolios[key]["executed_round_trips"] = int(outcomes.filled.sum())
                     sums = outcomes.groupby(outcomes.known_at.dt.floor("D"))[["net_bps", "normalized_net", "risk_pnl"]].sum().reindex(dates, fill_value=0)
                     series[key] = {"raw": sums.net_bps.to_numpy()[later], "normalized": sums.normalized_net.to_numpy()[later],
-                                   "returns": portfolio_period_returns(daily)[later],
+                                   "returns": (portfolio_period_returns(daily)[later] if not portfolios[key]["insolvent"]
+                                               else np.full(len(later), np.nan)),
                                    "risk_pnl": sums.risk_pnl.to_numpy()[later]}
                     components[key] = {col: float(outcomes[col].mean()) for col in
                                        ["mid_bps", "spread_bps", "slippage_bps", "financing_bps", "net_bps"]}

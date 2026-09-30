@@ -873,3 +873,39 @@ def test_sweep_shared_selection_reserves_filtered_opportunities():
     assert flat.known_at.equals(outcomes.known_at)
     assert flat_book.equity_liquidation.iloc[-1] == 100.
     assert book.equity_liquidation.iloc[-1] == pytest.approx(100.+outcomes.risk_pnl.sum())
+
+
+def test_sweep_full_report_retains_insolvent_losses_and_marks_sharpe_undefined(tmp_path, monkeypatch):
+    times = pd.DatetimeIndex(["2011-01-02T00:00Z","2011-01-02T01:00Z",
+                              "2021-01-02T00:00Z","2021-01-02T01:00Z",
+                              "2025-12-31T20:00Z","2025-12-31T21:00Z"])
+    mid = np.array([100.,1.,100.,1.,100.,1.])
+    market = pd.DataFrame({"open":mid,"close":mid,"bid_open":mid-.01,"ask_open":mid+.01,
+                           "bid_close":mid-.01,"ask_close":mid+.01},index=times)
+    signals = pd.DataFrame({"rolling_activity":True,"anchored_activity":True},index=times[::2])
+    cohort = pd.DataFrame([{
+        "signal_bar_start":times[i],"known_at":times[i],"entry_time":times[i],"exit_time":times[i+1],
+        "executable":True,"censored_at_end":False,"side":1,"risk_scale":1.,"atr_bps":10.,
+        "decision_mid":100.,"entry_bid":99.99,"entry_ask":100.01,
+        "exit_mid":1.,"exit_bid":.99,"exit_ask":1.01,
+    } for i in [0,2,4]])
+    monkeypatch.setattr(ta,"load_market",lambda *a,**k:(market,{}))
+    monkeypatch.setattr(ta,"sweep_signal_panel",lambda *a:signals)
+    monkeypatch.setattr(ta,"c_select",lambda *a,**k:(cohort.copy(),{}))
+    monkeypatch.setattr(ta,"load_funding",lambda *a:ta.ResearchFinancingCurve(
+        pd.DatetimeIndex(["2009-01-01T00:00Z"]),np.array([0.]),pd.Timestamp("2026-01-01T00:00Z"),0.,31557600.))
+    spec={"cells":["sweep"],"confirmation_bars":5,"hold_bars":12,"slippage_scenarios":[0.,.5,1.,2.],
+          "read_end_exclusive":"2026-01-01T00:00:00Z","evaluation_start":"2011-01-01T00:00:00Z",
+          "inference_start":"2021-01-01T00:00:00Z","output_directory":str(tmp_path/"run"),
+          "initial_equity":100.,"periods_per_year":365.25,"bootstrap_draws":19,"mean_block_length":20.,
+          "seed":0,"alpha":.05,"desired_power":.8,"effects":{"mean_net_bps":[1.,2.,5.],
+          "normalized_net":[.01,.02,.05],"sharpe_delta":[.1,.2,.3]},"limitations":["synthetic mechanics"]}
+    path=tmp_path/"spec.json";path.write_text(json.dumps(spec))
+    ta.run_sweep(spec,path)
+    result=json.loads((tmp_path/"run/RESULT.json").read_text())
+    assert result["portfolios_2011_2025"]["sweep:s0:zero"]["insolvent"]
+    assert result["cost_components_per_opportunity_2011_2025"]["sweep:s0:zero"]["net_bps"] < -9900
+    assert len(result["endpoints"])==96
+    sharpe=[x for x in result["endpoints"] if x["name"].endswith("sharpe_delta")]
+    assert sharpe and all(x["effect_verdict"]=="INKONKLUSIV" for x in sharpe)
+    assert result["decision"]!="GO"

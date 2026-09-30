@@ -39,3 +39,16 @@ Kjørbare autoriteter, committet før måling:
 - configs/research/TA_SWEEP_PREREG_20260930.json
 
 Status: implementert og fokusert mekanikk kontrollert; ekte målinger ikke kjørt ennå.
+
+
+Regnskapsrettelse: første måling stoppet ved BASELINE_PORTFOLIO_RETURNS_INVALID
+etter at sweep-baselinens egenkapital krysset null. Det bevarte regnskapet har
+ingen NaN-rader; laveste egenkapital er -475,46225 med start100. Dette er en
+insolvent fast-startkapital-diagnostikk, ikke en gjennomførbar videre portefølje.
+Eksisterende C-håndtering gjenbrukes: kontanttap beholdes, prosentavkastning og
+Sharpe blir udefinert. Fokusert ende-til-ende-test med insolvent syntetisk bok besto.
+
+Ny kjøringsbinding: configs/research/TA_SWEEP_ACCOUNTING_REPAIR_20260930.json.
+Originalmanifest, feilet terminal og første bok bevares. Ferdige signaler gjenbrukes,
+og det nye felles utvalget må være eksakt likt det gamle. Fire forberedelsesfunksjoner
+er kildeidentiske med 7c4983d2. Regel, populasjon, tidsgrenser og kostnader er uendret.

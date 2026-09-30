@@ -2381,7 +2381,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Run the committed bounded existing Dukascopy cache audit, then the single frozen OANDA sweep/anchored-VWAP/activity comparison under capped audit. Reuse current owners. No new download, parameter search, native training, TEST or trading. Full six-source B remains blocked.",
+  "next_action": "Complete the same frozen sweep hypothesis with established insolvency reporting, reusing hash-bound completed signals and verifying exact shared-cohort parity. Preserve the failed attempt. No parameter changes, native training or TEST; full B remains blocked.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2594,12 +2594,14 @@
   "sweep_research_20260930": {
     "cache_manifest": "configs/research/TA_SWEEP_DUKASCOPY_AUDIT_20260930.json",
     "cache_manifest_sha256": "1b8c665e689b22ce18bad966775c194d515c40df5549598181d4238406d3615e",
-    "measurement_manifest": "configs/research/TA_SWEEP_PREREG_20260930.json",
-    "measurement_manifest_sha256": "596e861175d2ab8205e20aec6871e9a9de5c8c11009fde3893e8878ba9b10357",
+    "initial_measurement_manifest": "configs/research/TA_SWEEP_PREREG_20260930.json",
+    "initial_measurement_manifest_sha256": "596e861175d2ab8205e20aec6871e9a9de5c8c11009fde3893e8878ba9b10357",
+    "measurement_manifest": "configs/research/TA_SWEEP_ACCOUNTING_REPAIR_20260930.json",
+    "measurement_manifest_sha256": "db2602545137dd0193a354dd074f972f9f1de654e7d114845f572f493f300dde",
     "native_training": false,
     "plan": "docs/TA_SWEEP_AVWAP_20260930.md",
-    "plan_sha256": "b867bc8d37e9259ca19bf74775e9906c30cd38c054414e10ac7c8889e311fb00",
-    "status": "PREREGISTERED_NOT_RUN",
+    "plan_sha256": "89f52f7ce6452f0d2f873626984ef92effc3306f42c94d68601f182dcb892f44",
+    "status": "ACCOUNTING_REPAIR_PREREGISTERED_REUSE_COMPLETED_SIGNALS",
     "test_outcomes_accessed": false
   },
   "ta_research_20260929": {

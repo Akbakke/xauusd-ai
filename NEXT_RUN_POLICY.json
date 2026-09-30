@@ -2051,7 +2051,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Run the committed bounded existing Dukascopy cache audit, then the single frozen OANDA sweep/anchored-VWAP/activity comparison under capped audit. Reuse current owners. No new download, parameter search, native training, TEST or trading. Full six-source B remains blocked.",
+  "next_action": "Complete the same frozen sweep hypothesis with established insolvency reporting, reusing hash-bound completed signals and verifying exact shared-cohort parity. Preserve the failed attempt. No parameter changes, native training or TEST; full B remains blocked.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-30T05:49:29.223474+00:00",
   "outer_guard_seconds": 13800,
@@ -2238,12 +2238,14 @@
   "sweep_research_20260930": {
     "cache_manifest": "configs/research/TA_SWEEP_DUKASCOPY_AUDIT_20260930.json",
     "cache_manifest_sha256": "1b8c665e689b22ce18bad966775c194d515c40df5549598181d4238406d3615e",
-    "measurement_manifest": "configs/research/TA_SWEEP_PREREG_20260930.json",
-    "measurement_manifest_sha256": "596e861175d2ab8205e20aec6871e9a9de5c8c11009fde3893e8878ba9b10357",
+    "initial_measurement_manifest": "configs/research/TA_SWEEP_PREREG_20260930.json",
+    "initial_measurement_manifest_sha256": "596e861175d2ab8205e20aec6871e9a9de5c8c11009fde3893e8878ba9b10357",
+    "measurement_manifest": "configs/research/TA_SWEEP_ACCOUNTING_REPAIR_20260930.json",
+    "measurement_manifest_sha256": "db2602545137dd0193a354dd074f972f9f1de654e7d114845f572f493f300dde",
     "native_training": false,
     "plan": "docs/TA_SWEEP_AVWAP_20260930.md",
-    "plan_sha256": "b867bc8d37e9259ca19bf74775e9906c30cd38c054414e10ac7c8889e311fb00",
-    "status": "PREREGISTERED_NOT_RUN",
+    "plan_sha256": "89f52f7ce6452f0d2f873626984ef92effc3306f42c94d68601f182dcb892f44",
+    "status": "ACCOUNTING_REPAIR_PREREGISTERED_REUSE_COMPLETED_SIGNALS",
     "test_outcomes_accessed": false
   },
   "ta_research_20260929": {

@@ -1,0 +1,143 @@
+{
+  "accounting_repair": {
+    "change": "Use established C insolvency handling: preserve all cash losses, undefined returns/Sharpe. No hypotheses, parameters, data selection or cost changes.",
+    "failure": "BASELINE_PORTFOLIO_RETURNS_INVALID",
+    "focused_regression_test_log_sha256": "8e1ffda79b32a4f0aed756cc407a349a07f78d52146417812cf16d8557bc5f74",
+    "parent_manifest": "configs/research/TA_SWEEP_PREREG_20260930.json",
+    "parent_sha256": "596e861175d2ab8205e20aec6871e9a9de5c8c11009fde3893e8878ba9b10357",
+    "preparation_definitions_bit_identical_to_commit": "7c4983d2"
+  },
+  "alpha": 0.05,
+  "anchor": "Sweep bar close weighted by its observed OANDA price-update count; include sweep bar through confirmation bar (six bars). Anchor is only published after the sweep closes. No backdating.",
+  "arm": "SWEEP_AVWAP_ACTIVITY",
+  "arms": {
+    "anchored_activity": "Same sweep direction; trade only if side*(close-event anchored price)>0 and vol_ratio_5_20>0.",
+    "long": "LONG at each shared sweep opportunity; FLAT is zero on the same population.",
+    "rolling_activity": "Same sweep direction; trade only if side*(close-rolling20 close*volume/sum(volume))>0 and vol_ratio_5_20>0.",
+    "sweep": "Every qualified one-sided sweep at identical five-bar confirmation time."
+  },
+  "bootstrap_draws": 1999,
+  "cells": [
+    "sweep"
+  ],
+  "commission_bps_per_execution": 0.0,
+  "confirmation_bars": 5,
+  "decision": "GO only if all eight primary s1 mean_net_bps endpoints (four baselines x two funding modes) have simultaneous lower bound above1 bps and positive solvent later-period risk-scaled economics. Any required upper bound below1 is NO_GO; otherwise INKONKLUSIV. GO permits proposal of fresh confirmation research only.",
+  "desired_power": 0.8,
+  "effects": {
+    "mean_net_bps": [
+      1.0,
+      2.0,
+      5.0
+    ],
+    "normalized_net": [
+      0.01,
+      0.02,
+      0.05
+    ],
+    "sharpe_delta": [
+      0.1,
+      0.2,
+      0.3
+    ]
+  },
+  "entry_clock": "Confirmation bar start+5min, first actual open at or after decision. Scheduled diagnostic exit decision+60min, first actual open thereafter. Expired entries remain counted; terminal positions liquidated at last pre-2026 close with costs.",
+  "evaluation_start": "2011-01-01T00:00:00Z",
+  "event_owner": "compute_smc_features(include_v30_additions=True), default SWING_LOOKBACK=3 and one-shot confirmed pivot identities; up sweep fades SHORT, down sweep fades LONG; double events create no candidate.",
+  "funding": {
+    "manifest": "/home/andre2/src/GX1_CURRENT/configs/research/TA_FUNDING_VALIDATION_NYFED_20260929.json",
+    "manifest_sha256": "c708da18bf40342131582e6b054592bf0318e14c60d959b1b05553cee42a18de",
+    "markup": 0.0129,
+    "seconds_per_year": 31557600.0
+  },
+  "hold_bars": 12,
+  "hypothesis": "A confirmed one-sided M5 sweep, followed by five closed contiguous bars, has higher net opportunity value when fade-direction close is beyond event-anchored quote-activity VWAP and vol_ratio_5_20>0.",
+  "inference_family": "96 simultaneous later-period endpoints: anchored_activity minus sweep/rolling_activity/LONG/FLAT, four slippage scenarios, two financing scenarios, raw opportunity bps/ATR-normalized bps/calendar-day Sharpe. One frozen rule; no scan.",
+  "inference_start": "2021-01-01T00:00:00Z",
+  "initial_equity": 100.0,
+  "invalidation": "Any intervening one- or two-sided sweep event invalidates the old candidate before its confirmation. Any missing M5 bar between event and confirmation invalidates candidate. Both are known at decision.",
+  "limitations": [
+    "OANDA volume counts price updates, not executed contracts. AVWAP is a quote-activity-weighted close proxy, not transaction VWAP.",
+    "Fixed five-bar confirmation and twelve-bar measurement horizon are one preregistered hypothesis, not native Entry/Exit rules or parameter optima.",
+    "Baseline is the same sweep opportunity policy and existing rolling-VWAP primitive, not a trained current native policy.",
+    "No Dukascopy economic transfer claim: sparse local cache is structurally audited separately, has no download receipts and is not admitted.",
+    "No untouched later holdout is established; 2021-2025 was used in prior project research. TEST remains sealed.",
+    "EFFR plus1.29pp is an existing research financing proxy, not verified historical OANDA swaps; zero financing is co-primary.",
+    "Observed bid/ask plus0/0.5/1/2bps per execution; no queue position, guaranteed execution or impact claim.",
+    "All opportunities including filtered zeros and censored terminal positions remain counted. No dependence-based sample inflation.",
+    "Yearly and2011-2020 results are descriptive; joint inference and decision use2021-2025 only.",
+    "No parameter fits, native model change, training, live/paper or spending."
+  ],
+  "mean_block_length": 20.0,
+  "operator_authorization": "User accepted the proposed bounded Dukascopy audit and separate sweep/anchored VWAP/activity test: ja gj\u00f8r dette.",
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002",
+  "periods_per_year": 365.25,
+  "population_classification": "2011-2020 descriptive history; 2021-2025 fixed later primary period. All reused development history, never untouched holdout. No fitted parameters or selection based on new outcomes.",
+  "read_end_exclusive": "2026-01-01T00:00:00Z",
+  "read_start": "2010-01-01T00:00:00Z",
+  "reuse_preparation": {
+    "bindings": [
+      {
+        "path": "configs/research/TA_SWEEP_PREREG_20260930.json",
+        "sha256": "596e861175d2ab8205e20aec6871e9a9de5c8c11009fde3893e8878ba9b10357"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_001/STARTED.json",
+        "sha256": "dae0e4869a983e9af723ed65756ce33e0caea3f8b79f7048380ab96acee14724"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_001/TERMINAL.json",
+        "sha256": "f0ed214be28efce012a4d287f94d0a0b6d3583679f594ef2d2016d7fb12cb0ab"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_001/SIGNALS.parquet",
+        "sha256": "74ea884cf98fa5f6876455e3ab41d3888f6342eab5490624788c5c63c8c26faf"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_001/COHORT.parquet",
+        "sha256": "59584f1933e0b14b99db9a1d062bdc001db4bb48e51e0457ba9b8864c3d502b9"
+      }
+    ],
+    "cohort_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_001/COHORT.parquet",
+    "function_sha256": {
+      "c_select": "1e83bcd90db16c0408136f3f25af63bf1fc09b82a17c50387f82e38a01594a7b",
+      "load_market": "4f89885968e57e0b6d08bf50771cbff13e3966ac97005417464133bc4330d7a5",
+      "sweep_confirmations": "3760b3db80804c9addf7d78834c3e461e3701a5d14e4d7138ab89e250cd480cc",
+      "sweep_signal_panel": "5d9f7636f447de9346f620a55b41734a3b176a7d0ca7a6bc04f7140d1bb3bbf9"
+    },
+    "signals_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_001/SIGNALS.parquet"
+  },
+  "risk": {
+    "lookback": 21,
+    "max_gross_leverage": 1.0,
+    "periods_per_year": 252.0,
+    "target_annual_vol": 0.1
+  },
+  "schema": "gx1_sweep_anchored_activity_prereg_v1",
+  "seed": 0,
+  "selection": "One shared nonoverlapping reservation cohort chosen by sweep-only rule, through actual exit quote. Rejected filters stay with zero PnL and still reserve the slot; no per-arm resampling.",
+  "slippage_scenarios": [
+    0.0,
+    0.5,
+    1.0,
+    2.0
+  ],
+  "source_files": {
+    "gx1/features/htf_features.py": "ad1910f99dcc6e73498c8ff47445e71b724ec5c7f06442d9957bd81de3965655",
+    "gx1/features/smc_v1.py": "cc2e795b682fc03a1b6a9bc3ca96915e4721269999eaf7608b38391c255244ce",
+    "gx1/features/technical_indicators_v1.py": "e149423ca38c36ea77234e2173f7ea78e81a4bb0cb1dfd2b74576de76989f024",
+    "gx1/features/volume_features.py": "f67ee6907c28c25dc87b7e0e8384c5263d22f1a7c2133e9108c877797542d2d7",
+    "gx1/scripts/research_entry_direction_walkforward_v1.py": "dffef5663437b629f77511f04255e186b4c303e7117159eae0d4caaa77c0136b",
+    "gx1/scripts/research_entry_pattern_primitives_v1.py": "930fc5bcaa3c67c2a18765a90522a9c86ecd3d02625b17ac46512b08b6b82c99",
+    "gx1/scripts/research_entry_pattern_setup_edge_v1.py": "9977616e20d9ade23708f503a75e2bfd0d0261f07fbf108c66fdd32af00fa6ea",
+    "gx1/scripts/research_intraday_mechanisms_v1.py": "dbc98035ccd4ffa1652437dd50daf0923a34888ab251c1cca0f7bb9c28d44c89",
+    "gx1/scripts/research_model_free_baselines_v1.py": "ad66fe337ef294614acc6a9b46f6c72ecb2a299a6b760c08579035f93cc42f50",
+    "gx1/scripts/research_ta_campaign_v1.py": "4521a763f8921edce4b4494c1a76af5ef5824d0b9ac4ee6ac6eb0f4d993170d9",
+    "gx1/time/session_detector.py": "aab11f91776aacfaa48272706807b58acdc7f6606078d5297b5e469bdca13b9e",
+    "tests/test_research_ta_campaign.py": "98784929ac800401f8c1d957f420704f2f9518db4071c7bb61f76dd365150614"
+  },
+  "tape": {
+    "manifest_sha256": "83af4819543c638369eaef4cc23e3805e73d7f853c89fc94e58b5233d8befb4b",
+    "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_20260927"
+  }
+}
