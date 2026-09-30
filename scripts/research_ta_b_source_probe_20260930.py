@@ -69,9 +69,10 @@ for entry in spec["archive_metadata_requests"]:
     records.append(record)
     write_json(out / (entry["id"] + ".receipt.json"), record)
     print(entry["id"], record["status"], flush=True)
-alfred = dict(spec["alfred_probe"])
-alfred["output_directory"] = str(out / "ALFRED")
-fetch_alfred(alfred, Path(manifest_path))
+if spec.get("alfred_probe") is not None:
+    alfred = dict(spec["alfred_probe"])
+    alfred["output_directory"] = str(out / "ALFRED")
+    fetch_alfred(alfred, Path(manifest_path))
 files = {str(path.relative_to(out)): sha(path) for path in sorted(out.rglob("*")) if path.is_file()}
 result = {"started_utc": started, "finished_utc": datetime.now(timezone.utc).isoformat(),
           "manifest_sha256": expected, "probe_sha256": spec["probe_sha256"],

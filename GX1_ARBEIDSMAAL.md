@@ -5,6 +5,12 @@ finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke
 
 ## Oppfølging 30.09.2026: undersøk B-kildene
 
+Andre prøve hentet ekte GLD- og COT-arkivbytes; ingen modellinput er godkjent.
+GLD-kopien er fra 08.07.2019 og COT-kopien fra 07.04.2019 viser uken 02.04.
+ALFRED-POST fikk fortsatt timeout med submit-feltet rettet og 60 s grense.
+Derfor bindes bare to smalere CDX-metadataspørringer i
+configs/research/TA_B_SOURCE_INDEX_PROBE_20260930.json. Ingen ny ALFRED-prøve.
+
 Første kildeprøve er fullført og bevart: arkivmetadata bekrefter to historiske
 kopier, men CDX og ALFRED-POST fikk timeout. Begge COT-datoforespørslene
 returnerte samme kopi 07.04.2019, etter gullrevisjonen. Oppfølgingen bindes i

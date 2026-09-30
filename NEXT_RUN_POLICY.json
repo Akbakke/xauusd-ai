@@ -3,11 +3,14 @@
     "fits_allowed": false,
     "followup_manifest": "configs/research/TA_B_SOURCE_SNAPSHOT_PROBE_20260930.json",
     "followup_manifest_sha256": "5f0c9f794e046e2a179557b5985235bae7d4f32c4f4adeb39b742508b9585f1e",
+    "index_manifest": "configs/research/TA_B_SOURCE_INDEX_PROBE_20260930.json",
+    "index_manifest_sha256": "dc739fc0fbfe69adb48956b9103f8046e93cc96a2fb2e070b8902d17aab09f7c",
     "manifest": "configs/research/TA_B_SOURCE_REOPEN_PROBE_20260930.json",
     "manifest_sha256": "f344d0041b0fad9a2c7441909cb23c6a8c8479ccc2f21bdfde81384c64ab174e",
     "probe_001_result_sha256": "fe66bcc7c59b7d43815dade2c8a3d0316c0fa5f746a6dbcd71381bdd2ae72456",
+    "probe_002_result_sha256": "817e0ad9c61abbf66d6275b5dbde269b21feac2bbd48c14723c6870967efdf83",
     "source_probe": "scripts/research_ta_b_source_probe_20260930.py",
-    "status": "FOLLOWUP_MANIFEST_BOUND_BEFORE_FETCH",
+    "status": "NARROW_ARCHIVE_INDEX_MANIFEST_BOUND",
     "training_enabled": false
   },
   "canonical_branch": "work/gx1-current",
@@ -1476,7 +1479,7 @@
     "sha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a"
   },
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "handover_resume_point": "configs/research/TA_B_SOURCE_SNAPSHOT_PROBE_20260930.json",
+  "handover_resume_point": "configs/research/TA_B_SOURCE_INDEX_PROBE_20260930.json",
   "handover_resume_point_before_consolidation_20260926": {
     "entry_selector_cache_fit": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",

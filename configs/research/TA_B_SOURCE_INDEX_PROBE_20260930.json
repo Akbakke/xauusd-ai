@@ -1,0 +1,47 @@
+{
+  "alfred_method": "No new ALFRED request. Both POST timeouts are preserved; submit parity repair did not resolve transport.",
+  "alfred_probe": null,
+  "archive_index_limit": 200,
+  "archive_index_truncation_policy": "Reaching 200 records is incomplete. Need full index before coverage claim.",
+  "archive_metadata_requests": [
+    {
+      "expected_format": "json",
+      "id": "GLD_INDEX_201907",
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&output=json&from=20190701&to=20190731&limit=200"
+    },
+    {
+      "expected_format": "json",
+      "id": "COT_INDEX_201903",
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fwww.cftc.gov%2Fdea%2Ffutures%2Fdeacmxsf.htm&output=json&from=20190301&to=20190407&limit=200"
+    }
+  ],
+  "archive_policy": "Metadata only. Two bounded exact-URL index requests with narrow known-capture windows and 200-record caps. No absence inference from timeout or truncation. No archive replay beyond previous manifest.",
+  "authorized_on": "2026-09-30",
+  "availability_rule": "Only after schema, vintage periods and publication-date evidence are validated. Use upper bound end of release date in America/New_York and wait one additional complete canonical XAU D1 interval; never backfill a first-created series into earlier decisions.",
+  "canonical_branch": "work/gx1-current",
+  "canonical_receipt_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_SOURCE_REOPEN_20260930_003",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "fits_allowed": false,
+  "market_outcome_access": false,
+  "maximum_metadata_bytes": 2000000,
+  "operator_request": "Ja unders\u00f8k B",
+  "owner_path": "gx1/scripts/research_ta_campaign_v1.py",
+  "owner_sha256": "3c0c729324aa2986d5c97e757a8c52c05f1ba673381f6ca09de43778967d80fa",
+  "prior_probe_manifest_sha256": "f344d0041b0fad9a2c7441909cb23c6a8c8479ccc2f21bdfde81384c64ab174e",
+  "prior_probe_result_sha256": "817e0ad9c61abbf66d6275b5dbde269b21feac2bbd48c14723c6870967efdf83",
+  "probe_path": "scripts/research_ta_b_source_probe_20260930.py",
+  "probe_sha256": "f9204fb177d56334c5467bce90159cad7eded894561534fe998c19dd5cf539a1",
+  "purpose": "Two narrow archive-index requests after actual snapshot retrieval succeeded. No repeated ALFRED request or model fit.",
+  "relay_output_directory": "/Users/andrekildalbakke/.codex/gx1_transport/B_SOURCE_REOPEN_20260930_003",
+  "schema": "gx1_b_source_reopen_probe_v1",
+  "source_docs": [
+    "https://archive.org/help/wayback_api.php",
+    "https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md",
+    "https://alfred.stlouisfed.org/help/downloaddata"
+  ],
+  "spending_allowed": false,
+  "test_accessed": false,
+  "timeout_seconds": 30,
+  "transport_hostname": "Andre-sin-MacBook-Air.local",
+  "transport_role": "Mac HTTP relay only; byte-identical canonical probe and owner; no research computation or code edits on relay"
+}
