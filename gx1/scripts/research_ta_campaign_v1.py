@@ -240,7 +240,7 @@ def audit_alfred_chunks(spec: dict, spec_path: Path, receipt_sha256: str) -> dic
         raise ValueError("ALFRED_SERIES_SET")
     if set(x["series"] for x in receipt["files"]) != set(expected_ids):
         raise ValueError("ALFRED_FILE_SERIES_SET")
-    out = root / "AUDIT_001"
+    out = root / spec["audit_output_subdirectory"]
     out.mkdir(exist_ok=False)
     records = []
     for summary in receipt["series"]:
@@ -273,7 +273,7 @@ def audit_alfred_chunks(spec: dict, spec_path: Path, receipt_sha256: str) -> dic
                 units = text.split("\nUnits\n", 1)[1].split("\nFrequency\n", 1)[0].strip()
                 frequency = text.split("\nFrequency\n", 1)[1].split("\nSeasonal Adjustment\n", 1)[0].strip()
                 unit_labels = [re.split(r"\s{2,}", line.strip())[0] for line in units.splitlines() if line.strip()]
-                if unit_labels != spec["expected_unit_labels"][sid]:
+                if unit_labels not in spec["expected_unit_label_variants"][sid]:
                     raise ValueError("ALFRED_UNITS")
                 if not frequency.startswith("Daily "):
                     raise ValueError("ALFRED_FREQUENCY")
