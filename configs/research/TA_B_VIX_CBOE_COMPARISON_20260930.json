@@ -1,0 +1,160 @@
+{
+  "alfred_source_audit": {
+    "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ALFRED_BROWSER_CHUNKS_20260930_001/AUDIT_003/RESULT.json",
+    "sha256": "9092bdb7a95742519e939a02321f86d00e62c4cd6b48d3f3918697bee8e80f29"
+  },
+  "analysis_end_exclusive": "2026-01-01",
+  "archive_metadata_requests": [
+    {
+      "expected_format": "bytes",
+      "id": "CBOE_VIX_HISTORY",
+      "url": "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+    }
+  ],
+  "canonical_branch": "work/gx1-current",
+  "canonical_receipt_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_CBOE_SOURCE_COMPARISON_20260930_001",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "comparison_fields": [
+    "CBOE CLOSE on the anomalous observation date",
+    "CBOE CLOSE on the declared realtime_start date",
+    "Last available CBOE CLOSE at or before declared realtime_start"
+  ],
+  "comparisons": [
+    {
+      "observation_date": "2018-10-08",
+      "realtime_start": "2018-10-05"
+    },
+    {
+      "observation_date": "2022-05-30",
+      "realtime_start": "2022-05-27"
+    },
+    {
+      "observation_date": "2022-06-20",
+      "realtime_start": "2022-06-17"
+    },
+    {
+      "observation_date": "2022-07-04",
+      "realtime_start": "2022-07-01"
+    },
+    {
+      "observation_date": "2022-09-05",
+      "realtime_start": "2022-09-02"
+    },
+    {
+      "observation_date": "2022-11-24",
+      "realtime_start": "2022-11-23"
+    },
+    {
+      "observation_date": "2023-01-16",
+      "realtime_start": "2023-01-13"
+    },
+    {
+      "observation_date": "2023-02-20",
+      "realtime_start": "2023-02-17"
+    },
+    {
+      "observation_date": "2023-05-29",
+      "realtime_start": "2023-05-26"
+    },
+    {
+      "observation_date": "2023-06-19",
+      "realtime_start": "2023-06-16"
+    },
+    {
+      "observation_date": "2023-07-04",
+      "realtime_start": "2023-07-03"
+    },
+    {
+      "observation_date": "2023-09-04",
+      "realtime_start": "2023-09-01"
+    },
+    {
+      "observation_date": "2023-11-23",
+      "realtime_start": "2023-11-22"
+    },
+    {
+      "observation_date": "2024-01-15",
+      "realtime_start": "2024-01-12"
+    },
+    {
+      "observation_date": "2024-02-19",
+      "realtime_start": "2024-02-16"
+    },
+    {
+      "observation_date": "2024-05-27",
+      "realtime_start": "2024-05-24"
+    },
+    {
+      "observation_date": "2024-06-19",
+      "realtime_start": "2024-06-18"
+    },
+    {
+      "observation_date": "2024-07-04",
+      "realtime_start": "2024-07-03"
+    },
+    {
+      "observation_date": "2024-09-02",
+      "realtime_start": "2024-08-30"
+    },
+    {
+      "observation_date": "2024-11-28",
+      "realtime_start": "2024-11-27"
+    },
+    {
+      "observation_date": "2025-01-20",
+      "realtime_start": "2025-01-17"
+    },
+    {
+      "observation_date": "2025-02-17",
+      "realtime_start": "2025-02-14"
+    },
+    {
+      "observation_date": "2025-05-26",
+      "realtime_start": "2025-05-23"
+    },
+    {
+      "observation_date": "2025-06-19",
+      "realtime_start": "2025-06-18"
+    },
+    {
+      "observation_date": "2025-07-04",
+      "realtime_start": "2025-07-03"
+    },
+    {
+      "observation_date": "2025-09-01",
+      "realtime_start": "2025-08-29"
+    }
+  ],
+  "download_scope_note": "Official public source exports the full file without a range parameter. Preserve exact response bytes; parse date first and evaluate only the declared pre-2026 dates and preceding comparator date.",
+  "fits_allowed": false,
+  "full_b_admitted": false,
+  "interpretation_limits": [
+    "Today's source file does not prove historical publication timestamps.",
+    "Value equality cannot authorize backward date assignment, future observations or a vintage replacement.",
+    "Do not read XAU outcomes or change any predictor from this diagnostic."
+  ],
+  "maximum_metadata_bytes": 5000000,
+  "maximum_new_download_requests": 1,
+  "native_training_enabled": false,
+  "observed_link_label": "VIX Index data for 1990 to present (Updated Daily)",
+  "on_transport_failure": "Preserve receipt and stop. No automatic retries or alternate hosts.",
+  "owner_path": "gx1/scripts/research_ta_campaign_v1.py",
+  "owner_sha256": "6c2fed76ca76f8dc14a319d2598bbff8ea1caf34ad1d2864b67066d193770c71",
+  "prior_anomaly_inventory": {
+    "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_MACRO_COMPONENTS_001/FUTURE_OBSERVATION_CARRY_COMPARISON.json",
+    "sha256": "c622f1d986c2d61366bb4c34500faa386b4b7a204eefc6d14e1b1a41b82e59e7"
+  },
+  "probe_path": "scripts/research_ta_b_source_probe_20260930.py",
+  "probe_sha256": "c90963cc8868cd8a28e0a96fe13fa09d58f656e028bf2c373dd7d74935a0542c",
+  "purpose": "Diagnose the 26 already observed VIXCLS future-dated versions against the VIX publisher's current daily history. This is source-clock qualification, never a replacement for ALFRED vintages.",
+  "relay_output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_CBOE_SOURCE_COMPARISON_20260930_001",
+  "schema": "gx1_b_vix_cboe_source_comparison_v1",
+  "source_docs": [
+    "https://www.cboe.com/tradable_products/vix/vix_historical_data",
+    "https://fred.stlouisfed.org/docs/api/fred/realtime_period.html"
+  ],
+  "spending_allowed": false,
+  "test_outcomes_accessed": false,
+  "timeout_seconds": 30,
+  "transport_hostname": "Andre2"
+}
