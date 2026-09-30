@@ -2,7 +2,7 @@
 
 Brukeren har uttrykkelig bestilt full implementasjon, deretter build/trening og
 til slutt VAL, endelig TEST og backtest over alle år med gyldige data. Målet er
-ufullført og nå blokkert på dokumentert kildebevis. Tidligere A/B/C-plan var
+ufullført og gjenopptatt; kildeporten er fortsatt stengt på manglende bevis. Tidligere A/B/C-plan var
 avsluttet; dette er en ny videreføring.
 En kildebegrensning alene fullfører ikke dette målet.
 
@@ -187,6 +187,13 @@ som konstruert publiseringstid. Det senere komplette D1-laget er fortsatt påkre
 Seksten fokuserte mekaniske tester besto gjennom capped audit; fire importtester
 besto på nytt etter atomisk Parquet-skriving.
 Manifest: configs/research/TA_B_ARCHIVED_SNAPSHOT_IMPORT_20260930.json.
-Neste konkrete kontroll er import av de to allerede bevarte originalfilene.
+Import og uavhengig kontroll av de to originalfilene er nå fullført:
+3814 GLD-rader (3680 numeriske, 134 HOLIDAY/NYSE Closed) og én COT-rapport
+for 02.04.2019. Alle kildeverdier og tilgjengelighetsgrenser stemmer.
+Resultat: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ARCHIVED_SNAPSHOT_IMPORT_20260930_001/RESULT.json
+(SHA256 b89071177855a3143eb0a97ec67127784a34acb5d271f5a762b741f1e5d1aa89).
+Uavhengig kontroll: samme katalog, VERIFICATION.json
+(SHA256 21311fb29ffc019d1d7da5c53cf53698111fc09002cadaef90b8ca996931745b).
+Ingen nye nettdata, markedsutfall, fits eller TEST er brukt. Den komplette
+sekskilde-porten er fortsatt stengt på GLD/COT-historikk og VIX-klokke.
 Dette er kildeimport, ikke full GLD/COT-dekning, komplett B-panel eller B-fit.
-

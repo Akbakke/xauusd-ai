@@ -1,9 +1,25 @@
 {
   "archived_snapshot_import": {
+    "additional_d1_lag_applied": false,
+    "cot_reports": 1,
     "full_b_admitted": false,
+    "gld_missing_holiday_rows": 134,
+    "gld_numeric_rows": 3680,
+    "gld_rows": 3814,
+    "independent_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ARCHIVED_SNAPSHOT_IMPORT_20260930_001/VERIFICATION.json",
+      "sha256": "21311fb29ffc019d1d7da5c53cf53698111fc09002cadaef90b8ca996931745b"
+    },
     "manifest": "configs/research/TA_B_ARCHIVED_SNAPSHOT_IMPORT_20260930.json",
     "manifest_sha256": "3274a1b061ed2153173e91de5fa633159674e4b707c915deef2158dd40845e48",
-    "status": "IMPLEMENTED_ORIGINAL_FILE_VERIFICATION_PENDING",
+    "original_publication_timestamps_proven": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ARCHIVED_SNAPSHOT_IMPORT_20260930_001/RESULT.json",
+      "sha256": "b89071177855a3143eb0a97ec67127784a34acb5d271f5a762b741f1e5d1aa89"
+    },
+    "source_commit": "8ab03a978de3cca3703e53a828457ae914f4a43e",
+    "source_continuity_proven": false,
+    "status": "COMPLETE_BOUND_SNAPSHOT_IMPORT_ONLY",
     "synthetic_verification": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ARCHIVED_SNAPSHOT_IMPORT_IMPLEMENTATION_20260930_001/RESULT.json",
     "synthetic_verification_sha256": "45d4571657648943d362751055c1ffef2e34e7ea528106bf7980eef763acb733"
   },
@@ -60,6 +76,13 @@
   },
   "raw_values_published": false,
   "research_fits_started": false,
+  "resumed_goal_audit": {
+    "current_turn": "PROGRESS_SOURCE_SPECIFIC_IMPORT_IMPLEMENTED_AND_VERIFIED_ON_BOUND_BYTES",
+    "full_scope_unchanged": true,
+    "goal_complete": false,
+    "previous_goal_turn": "PROGRESS_NEW_OANDA_TRANSPORT_EVIDENCE_AND_INDICATOR_AUDIT",
+    "same_blocker_no_progress_turns_since_resume": 0
+  },
   "source_diagnosis": {
     "comparison_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_MACRO_COMPONENTS_001/FUTURE_OBSERVATION_CARRY_COMPARISON.json",
     "comparison_sha256": "c622f1d986c2d61366bb4c34500faa386b4b7a204eefc6d14e1b1a41b82e59e7",
