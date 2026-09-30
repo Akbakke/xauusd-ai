@@ -164,3 +164,9 @@ native campaign og etablerte maskinvarevakter, innenfor scope i `NEXT_RUN_POLICY
 forespørsel over grensene, manglende host-tilstand, låskonflikt eller manglende cgroup er
 hard feil. Aldri omgå, svekk, bakgrunnsstart eller dupliser en tung jobb. Delvis output
 etter cap-kill, krasj eller reboot er ugyldig inntil completion-manifest og hasher består.
+
+
+Operatørvedtak 30.09.2026: «ja gjør dette» åpner den separat forhåndsregistrerte
+sweep-/hendelsesankret-VWAP-/aktivitetstesten i docs/TA_SWEEP_AVWAP_20260930.md,
+inkludert lesekontroll av eksisterende Dukascopy-cache og avgrenset OANDA-basert
+økonomimåling. Ingen brede søk eller native trening åpnes; full B endres ikke.

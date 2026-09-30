@@ -1,0 +1,1644 @@
+{
+  "authorized_scope": "Existing pre-July-2026 cache filenames, including four undated empty files. Date directories not accepted as original receipts.",
+  "files": [
+    {
+      "bytes": 0,
+      "filename_year": null,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy/xauusd_ticks/21h_ticks.bi5",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "filename_year": null,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy/xauusd_ticks/21h_ticks.bi5.1",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "filename_year": null,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy/xauusd_ticks/21h_ticks.bi5.2",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "filename_year": null,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy/xauusd_ticks/21h_ticks.bi5.3",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 13209,
+      "filename_year": 2025,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2025/03/03/22h_ticks.bi5",
+      "sha256": "7315296aa90e1bd4570c2dfa5c0394df3caab9916bfaf122b247d997390f7b73"
+    },
+    {
+      "bytes": 69806,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/00h_ticks.bi5",
+      "sha256": "3594fdc5b5a0ba43247573d42339d5b2d00701774192ba91ee1d0ce9c65c6762"
+    },
+    {
+      "bytes": 92040,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/01h_ticks.bi5",
+      "sha256": "f00f4b51b4605195ff00aebadc3f833881fec547f6b2729a2577e70ff206545e"
+    },
+    {
+      "bytes": 57751,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/02h_ticks.bi5",
+      "sha256": "66f260422713fdaab30482379fe22f3ae0c415c928294bb8d5620d1a1242b42e"
+    },
+    {
+      "bytes": 36934,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/03h_ticks.bi5",
+      "sha256": "ea20bfa737d56f609fe888645188658bf438a25df27d00830db1608deb9dbf62"
+    },
+    {
+      "bytes": 32246,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/04h_ticks.bi5",
+      "sha256": "2d4f75aa2f783f2129ec739d3ced7bb69b4f91a54937204cee23fdf9bea8301b"
+    },
+    {
+      "bytes": 47834,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/05h_ticks.bi5",
+      "sha256": "c1ed06f3529015094f1954ef2c7d495c1cfaa398ad138d073703e669aad30058"
+    },
+    {
+      "bytes": 74949,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/06h_ticks.bi5",
+      "sha256": "5dcf0c0539dcb2314589c202c58ab5ce17dd52e6cdd52929ed9392d2c2e4621d"
+    },
+    {
+      "bytes": 78691,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/07h_ticks.bi5",
+      "sha256": "8dd428cbeb8b6beb9180ba2dd9efc9521dcfe7b197309ca2bf3a255f91f4902a"
+    },
+    {
+      "bytes": 60802,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/08h_ticks.bi5",
+      "sha256": "f218fdf93d51176de41b5e03e841ab007cb825ba298afbcdf49b66cdc1a2bcaa"
+    },
+    {
+      "bytes": 41572,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/09h_ticks.bi5",
+      "sha256": "e8ba5b2b3e77c8cf24e1c096554fa9915066ae3dc1c4f337657bfd0e15458901"
+    },
+    {
+      "bytes": 37770,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/10h_ticks.bi5",
+      "sha256": "6b4b9167e2fab6d13e78dab51eb9ce6bfa86546776e637940d53e19d83b6391b"
+    },
+    {
+      "bytes": 48809,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/11h_ticks.bi5",
+      "sha256": "3f3d9a09834f6740eb0824708a886af6eac8bf50a23d2a1f21ab67bb54443644"
+    },
+    {
+      "bytes": 85908,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/12h_ticks.bi5",
+      "sha256": "dbac2ef9fb8dda4a453fd72b9456abc9ab7d4a093db271dfaab85f97f88068f5"
+    },
+    {
+      "bytes": 97817,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/13h_ticks.bi5",
+      "sha256": "e18c885a3eb2ad73f4fbc0245312972c0a317c7dc986ba23ea1298a766b4e749"
+    },
+    {
+      "bytes": 105426,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/14h_ticks.bi5",
+      "sha256": "a75fd3406117e248b1a16ab7d192a8570d9f1514a3c9c974927d6c4da072d65c"
+    },
+    {
+      "bytes": 82066,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/15h_ticks.bi5",
+      "sha256": "9a85e0f75477a3eca903528fe43baec25671c983b4948c2ac1afdc60e869a545"
+    },
+    {
+      "bytes": 67544,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/16h_ticks.bi5",
+      "sha256": "e722183ad98696a99e317427effbf0227a3d614d96be17b68d6976b16f9bd5fd"
+    },
+    {
+      "bytes": 73682,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/17h_ticks.bi5",
+      "sha256": "d4e7b569db5316f837353035a1a34e79d803ea42540e7ec7b1ccd5914db08819"
+    },
+    {
+      "bytes": 95987,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/18h_ticks.bi5",
+      "sha256": "4b5624d1936fb55d2a51340b1282078bff4af0ae750cd80c82dcb7ce22a85a22"
+    },
+    {
+      "bytes": 69325,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/19h_ticks.bi5",
+      "sha256": "87a5db2c0f505b67e018f3fcf3e68666c068bed9858083ff861364051fc2e3e3"
+    },
+    {
+      "bytes": 28314,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/20h_ticks.bi5",
+      "sha256": "3b456d32588b1dd95c8351bd9a03627de49756d599f49fbc15292345ed8b698f"
+    },
+    {
+      "bytes": 40375,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/22h_ticks.bi5",
+      "sha256": "f70ce6c111a56cb64d693bb7aea3b01b21950505f6ce4b879834978f0a900267"
+    },
+    {
+      "bytes": 53588,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/01/23h_ticks.bi5",
+      "sha256": "33ef815ea8264ec3e213ba7e98f63aec041eb7911c8284f9a576668a6d362f77"
+    },
+    {
+      "bytes": 68517,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/00h_ticks.bi5",
+      "sha256": "838af853c77919e4a4da5b4e3c000196308b4daaea5af29435aff3ed6b08b700"
+    },
+    {
+      "bytes": 189877,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/01h_ticks.bi5",
+      "sha256": "2606ccf14a24669b0a4bca595db543a4d5d6066b500f352cbe2b1641ed4e2716"
+    },
+    {
+      "bytes": 138903,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/02h_ticks.bi5",
+      "sha256": "6718af290a17cde5e78fa2de8205a506b6f5a7c6a9549c025592c08388b3df0f"
+    },
+    {
+      "bytes": 66085,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/03h_ticks.bi5",
+      "sha256": "7aaee33ddf6b0bf3d38b89eff8b758285189e7a206e1d7fdfda86df410eca57e"
+    },
+    {
+      "bytes": 44875,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/04h_ticks.bi5",
+      "sha256": "9bf11c487da7ae364f1aad85c27cafefdaa11d2a25aa1511c8fe0f711f952c8e"
+    },
+    {
+      "bytes": 96324,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/05h_ticks.bi5",
+      "sha256": "6725a0a8c7c0b0511712d46d7952e580642d2acfbe9dc26bbdfc2dc6889d7d6b"
+    },
+    {
+      "bytes": 130141,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/06h_ticks.bi5",
+      "sha256": "360b108e51f6466efc47257031b523e2729a5487a2136e74c6d3a2f4f998447d"
+    },
+    {
+      "bytes": 74680,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/07h_ticks.bi5",
+      "sha256": "dd457e3211d54943e883f39847274333b1e11b16105b5c14ee8fa9cc02d66c8c"
+    },
+    {
+      "bytes": 71418,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/08h_ticks.bi5",
+      "sha256": "1d2e17d372297d9c82657b2933bcf154f7cc446408c1a3dc7d39605a9a553ddb"
+    },
+    {
+      "bytes": 54177,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/09h_ticks.bi5",
+      "sha256": "0052ed7feb044addb29fa5af3dc245bc4c04d02fbd4c0c7fa75fcfba29cf3380"
+    },
+    {
+      "bytes": 55613,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/10h_ticks.bi5",
+      "sha256": "7a6745e12b442feab26c894c20026918b7ad4c575d9d30ffbb1d124aed09c362"
+    },
+    {
+      "bytes": 65171,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/11h_ticks.bi5",
+      "sha256": "794078689479207d3fb60c7d15334ffaa2becfffbff0076fc3bd0fe8a3c248d6"
+    },
+    {
+      "bytes": 83063,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/12h_ticks.bi5",
+      "sha256": "e15219a6d83bd2109a3230ac73176d6c72adf023cee71e47d3989bc685aa8f09"
+    },
+    {
+      "bytes": 139616,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/13h_ticks.bi5",
+      "sha256": "76eaf5c39d14f12dbf8a5f4a3beca4557c3f586352522d4485a66843a5763a3f"
+    },
+    {
+      "bytes": 166177,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/14h_ticks.bi5",
+      "sha256": "19ab7147a1c8648f8b10ec2d40afae18454474db5353593bb4c045af06c32315"
+    },
+    {
+      "bytes": 151326,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/15h_ticks.bi5",
+      "sha256": "1dd7bd57fda2c1b833682395e836fa1b8582ad94f40bbf802e65c2314516a68c"
+    },
+    {
+      "bytes": 123787,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/16h_ticks.bi5",
+      "sha256": "97683c750e78fcacb9a51649e3959f4b1de320825d19ec87a71b831dcb9abc9c"
+    },
+    {
+      "bytes": 105088,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/17h_ticks.bi5",
+      "sha256": "0c8b9291ac43bacaa4f7f8d30b5e1eefbd5aebf9efdaf1d253e68e650354e0a4"
+    },
+    {
+      "bytes": 78776,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/18h_ticks.bi5",
+      "sha256": "0b64a1259be995d55dd2bbd2e781878ac9874a1b8c7534dca0dda1cac423309b"
+    },
+    {
+      "bytes": 87973,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/19h_ticks.bi5",
+      "sha256": "480627c73c215f7956ea784247351c98089caac65f61a4f26429a1e97fbc12fd"
+    },
+    {
+      "bytes": 32932,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/02/20h_ticks.bi5",
+      "sha256": "23be3907c315504f73069d65da281a8362b853a968c2173ee849336892abca5b"
+    },
+    {
+      "bytes": 96180,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/05/22h_ticks.bi5",
+      "sha256": "fb5df16c4793ac2a018357a61c5877d9ad7a2b4239db1bb384b3515db80b08f8"
+    },
+    {
+      "bytes": 66925,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/05/23h_ticks.bi5",
+      "sha256": "278eb8b8d84d9c70fb2f5fb1d5fc69ec17a1c3941a95123452849ce891b92837"
+    },
+    {
+      "bytes": 79317,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/00h_ticks.bi5",
+      "sha256": "94fba5e633713f0f6f36f2df5fbe7a3c812400b91222c9086be0709fd388c3e5"
+    },
+    {
+      "bytes": 68301,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/01h_ticks.bi5",
+      "sha256": "1deac678584a2144495fb60d28d3cc1b734daf9c6cdd928caf78eeaca10ab451"
+    },
+    {
+      "bytes": 64401,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/02h_ticks.bi5",
+      "sha256": "eee84cbd446c0fdeb60ce829e0fc2af0af420c08d4c394b3dd0bce62fc3a57a8"
+    },
+    {
+      "bytes": 44131,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/03h_ticks.bi5",
+      "sha256": "f18087dfcc235b931ca2b7e638a126858b8ccb9ff746cc3438520f6792a13bfc"
+    },
+    {
+      "bytes": 25439,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/04h_ticks.bi5",
+      "sha256": "a006c0d56cc166479bf8bd1b4b5ddb2b35caff2bcdbb4a06ae348395e1ac8cfa"
+    },
+    {
+      "bytes": 34731,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/05h_ticks.bi5",
+      "sha256": "26b72b078694388c6780560eaa520952724709321a58f30cba7b308adeee5467"
+    },
+    {
+      "bytes": 46796,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/06h_ticks.bi5",
+      "sha256": "78ce698c722bbb0b7a296b9d6cc5c501cde1495584f83c76204ba9c2a264734c"
+    },
+    {
+      "bytes": 49553,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/07h_ticks.bi5",
+      "sha256": "4bab04b8cb1081822f2725f54e759ac1199b1a5163509bc19bbebf13537ee8f9"
+    },
+    {
+      "bytes": 44449,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/08h_ticks.bi5",
+      "sha256": "e598f7df6ec75894c1b9cc0b698e61a3a60db2452baecc26873fd937a823b809"
+    },
+    {
+      "bytes": 43339,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/09h_ticks.bi5",
+      "sha256": "2fe6175aaf8343601e750259e15b751929b7bc3e2cfe6135b84912e630183fa7"
+    },
+    {
+      "bytes": 38526,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/10h_ticks.bi5",
+      "sha256": "eba492cc4e25843e56554fe38be2bbf829c328ae476385ed9bdb69fa229456e9"
+    },
+    {
+      "bytes": 37544,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/11h_ticks.bi5",
+      "sha256": "cb0544031be6bcc7dd4eb264fd4811f8bdcaf4a479c5182246cba7bbd2820ce8"
+    },
+    {
+      "bytes": 53814,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/12h_ticks.bi5",
+      "sha256": "33878eea5cf10baa419c29687136c9f5e732da8e645ed900cccf57ab10017436"
+    },
+    {
+      "bytes": 106504,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/13h_ticks.bi5",
+      "sha256": "df15edbce122aae6d331fea2baf038a30bdace3b7ca2a23e8cdc3369af1b3f32"
+    },
+    {
+      "bytes": 145553,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/14h_ticks.bi5",
+      "sha256": "63ffeb7b28f76fc8429aa238b97d9916e6e59bb6dce3ae6077c9fa5a442a63f0"
+    },
+    {
+      "bytes": 86054,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/15h_ticks.bi5",
+      "sha256": "08db50d0c368796f150dccc90b8d1bb1ec75ab50fe93143bd884fe4d49843307"
+    },
+    {
+      "bytes": 59975,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/16h_ticks.bi5",
+      "sha256": "56531000c7dc5bc1ad70a01952d8d48b7675645e75be08710ecda00976c717f3"
+    },
+    {
+      "bytes": 80096,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/17h_ticks.bi5",
+      "sha256": "5cc27597ca69847b4879e1155fdc33e3a9e16b86784102aea0f6548018f3bdfa"
+    },
+    {
+      "bytes": 73680,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/18h_ticks.bi5",
+      "sha256": "e446672286cf3f9fd8b9e8572d8e630af399af574b6fd5d9b31150462147871a"
+    },
+    {
+      "bytes": 49119,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/19h_ticks.bi5",
+      "sha256": "a80a6137dd0801b96adfcae0945d681220393137db54a477f4bb594064c17db2"
+    },
+    {
+      "bytes": 20312,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/20h_ticks.bi5",
+      "sha256": "ff1f572fc40452237413bf653f792af139fe49addc67264622115a3ec090bf4e"
+    },
+    {
+      "bytes": 29857,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/22h_ticks.bi5",
+      "sha256": "ec7bb9ef75ded3e07296636f449f1119c2846f8026f9becb91d76af73a6b4df9"
+    },
+    {
+      "bytes": 18814,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/06/23h_ticks.bi5",
+      "sha256": "393d444f4aad32e0f69f235e91df8806335bd3a2d67b3fecc3d0e59f1a493c43"
+    },
+    {
+      "bytes": 40906,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/00h_ticks.bi5",
+      "sha256": "6dc9366a30926bca9a0e29c409028edc8020f09359ffc40c1fabe9d5249a7ff0"
+    },
+    {
+      "bytes": 115107,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/01h_ticks.bi5",
+      "sha256": "213b04f3d55756e062257578698843f1e6d7ffc99d2f4bf1e345ab5eb35a7c2f"
+    },
+    {
+      "bytes": 63495,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/02h_ticks.bi5",
+      "sha256": "6f1e7d02d9c7663dae15a9d6bc68993cedc27fdbb38092735d95a0c6aa578552"
+    },
+    {
+      "bytes": 42574,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/03h_ticks.bi5",
+      "sha256": "e12853c03e7a7ecacc2fc0086481ac678ec27b0b54d8f2677475394777fe3f36"
+    },
+    {
+      "bytes": 39492,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/04h_ticks.bi5",
+      "sha256": "372589a5b9df8c86a40b489eb5156626fba0ed1939423a4ead7c0038421bcc34"
+    },
+    {
+      "bytes": 61164,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/05h_ticks.bi5",
+      "sha256": "c8b9d517ef97023e1023bb2f78e465e9061def49e9551b901dd96be8dfb3b847"
+    },
+    {
+      "bytes": 75668,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/06h_ticks.bi5",
+      "sha256": "1e6bb5120063aea5c081e8efcb062bc8f9983b605ed36ef4cbf838371873deb6"
+    },
+    {
+      "bytes": 65143,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/07h_ticks.bi5",
+      "sha256": "6dd9616cde1d0ca63c3d6131df78dea8b3f768e635acfbb06cd5ea49ec368d75"
+    },
+    {
+      "bytes": 100459,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/08h_ticks.bi5",
+      "sha256": "f4b565b2ae5bca68f2f3b00f9141c70008a94cb7e52a5949c051d95aab83181d"
+    },
+    {
+      "bytes": 75399,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/09h_ticks.bi5",
+      "sha256": "c60375062d34ca7b5d83110b84e3dbbdcc5e50cfedc9690400cb8c96a606597f"
+    },
+    {
+      "bytes": 94288,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/10h_ticks.bi5",
+      "sha256": "56c7f7a47e7602fda25879ab13fbed5d70dc7009f7698186e042374e87cd2095"
+    },
+    {
+      "bytes": 75609,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/11h_ticks.bi5",
+      "sha256": "f4a2c54203145df81faab6682e7889eb36032be763afaa409656eacb3aa2db4d"
+    },
+    {
+      "bytes": 83850,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/12h_ticks.bi5",
+      "sha256": "9f2c7aaa2157dbc5863417df9b3f81ab45ff0600604fbebc02dbb61a556ce92c"
+    },
+    {
+      "bytes": 124509,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/13h_ticks.bi5",
+      "sha256": "628a4a02606a7de15e85d2c37e8e50775c60eb1df26d2bc30d4757c510582b15"
+    },
+    {
+      "bytes": 155918,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/14h_ticks.bi5",
+      "sha256": "a5f32071a1200bdad13bcf9f456ed8cc215891de32fa799610a2a8598ed737f6"
+    },
+    {
+      "bytes": 118417,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/15h_ticks.bi5",
+      "sha256": "5879f5b06aebb823da50a806305cafcd9576ad63ca2b828d14edfc0c4d96f395"
+    },
+    {
+      "bytes": 98436,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/16h_ticks.bi5",
+      "sha256": "70a414fe25cd2e067c3391fb588917e6b271f9fcc91d3a4404c1f9cfbf9b037a"
+    },
+    {
+      "bytes": 97793,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/17h_ticks.bi5",
+      "sha256": "2b3321e5d64c51f3017c92aecaa982d48dd97a83071b37723bc81e81685e5864"
+    },
+    {
+      "bytes": 81620,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/18h_ticks.bi5",
+      "sha256": "9fd6e288af88691f017753b43f8baa8506c753f5fc7183d74e51a430370e8a6f"
+    },
+    {
+      "bytes": 132661,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/19h_ticks.bi5",
+      "sha256": "ed437a734a21d5170c41bf3a7d171c2c40390f735c4f1efb1efa12783c3487e0"
+    },
+    {
+      "bytes": 64565,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/20h_ticks.bi5",
+      "sha256": "0080ba019c064af88b2a8093e7bdaca62f380bf9f1c897ac9b2eca550f4dd343"
+    },
+    {
+      "bytes": 121464,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/22h_ticks.bi5",
+      "sha256": "77e7b3dd6a99fc61c47575899d45f1b15446b3991319d84a8989df8ad32f7811"
+    },
+    {
+      "bytes": 113092,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/07/23h_ticks.bi5",
+      "sha256": "dbf3bac51e6613ad20327a2724653cb778c9d95f8b30567f0b33560af23b6bdc"
+    },
+    {
+      "bytes": 97080,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/00h_ticks.bi5",
+      "sha256": "8c51d4783762e64089579e1a0762ffc8afbd2ec4652ad2c5d61523f965420040"
+    },
+    {
+      "bytes": 92875,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/01h_ticks.bi5",
+      "sha256": "fb8466818b9cb9b16eef16256e486a49adcc07f6b7f081948b0270e99a43d0a4"
+    },
+    {
+      "bytes": 53997,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/02h_ticks.bi5",
+      "sha256": "656248cd90114d73e678d7b8adfd65188043ea456735a7dfd248056e85a7c1ef"
+    },
+    {
+      "bytes": 38387,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/03h_ticks.bi5",
+      "sha256": "b25bc6cbb65585ffaf0d29de192e60b53eae8e2233305e4d7ad8755ae6efd3e3"
+    },
+    {
+      "bytes": 34682,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/04h_ticks.bi5",
+      "sha256": "35405aacc10cf7bc5651be88ba792df38dbcf1caf528f76a03d4d78e70b1069e"
+    },
+    {
+      "bytes": 56895,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/05h_ticks.bi5",
+      "sha256": "975036e7aaabfafe544832c1be05c1ae72d87fc27e8c39c360f85a7713b95c93"
+    },
+    {
+      "bytes": 71351,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/06h_ticks.bi5",
+      "sha256": "6832af416a2d4934190905adf11dbcda9ea1f062a015adc330e1bdc23eda51dd"
+    },
+    {
+      "bytes": 63400,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/07h_ticks.bi5",
+      "sha256": "a8483bcdf0b0d83fd19c3ae086960aef745b306f59555c3866d3c8a8286c11bd"
+    },
+    {
+      "bytes": 57008,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/08h_ticks.bi5",
+      "sha256": "62ea2fca9fd7b0223b58bd2e735c8a788cb3bc0f6a056674ff5b21cdf2c26399"
+    },
+    {
+      "bytes": 55344,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/09h_ticks.bi5",
+      "sha256": "263fa8d57063da3174062866138b0066b72fd8869ab2eefff304a8603260e499"
+    },
+    {
+      "bytes": 49087,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/10h_ticks.bi5",
+      "sha256": "450dc1fd7c221929a7c3cf39eb1875dfa95f2c5b56d6c92048096832dbc7a7b3"
+    },
+    {
+      "bytes": 61668,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/11h_ticks.bi5",
+      "sha256": "f9f832e9827595df2ab6c06c49480040fe3db67550e773f0a887092cf322ed4a"
+    },
+    {
+      "bytes": 74056,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/12h_ticks.bi5",
+      "sha256": "5900977e2036ba99e3c951bbe02ed0c69408ec395a97352dc527f1afb85ef492"
+    },
+    {
+      "bytes": 117245,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/13h_ticks.bi5",
+      "sha256": "7c75a15b4ba6ec8f356f28a5b06fdfab8e3ab9cbdc9d4ab318b7fc4ed7388a41"
+    },
+    {
+      "bytes": 149994,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/14h_ticks.bi5",
+      "sha256": "0f9451f49172d72b8cd30e59ffd562b027e6bc9c498687c8955fa9796afa6a41"
+    },
+    {
+      "bytes": 99988,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/15h_ticks.bi5",
+      "sha256": "75a0452b8a13dcb4865fbb5dd8ea56f5d41ade7e3795aa8c4e995db7db416116"
+    },
+    {
+      "bytes": 75624,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/16h_ticks.bi5",
+      "sha256": "d45c64183a63324b3737a57a0bc23d638e72f7263c24d659a76f5506cad57411"
+    },
+    {
+      "bytes": 71567,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/17h_ticks.bi5",
+      "sha256": "1230722f5089df23133a33de4f5c17356de7940dbadc7438ad6741179d2058c4"
+    },
+    {
+      "bytes": 101198,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/18h_ticks.bi5",
+      "sha256": "684c4d2410e793735253b993585f54699db29b18d1f5b5bde66c7a06d9fbc2b5"
+    },
+    {
+      "bytes": 70405,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/19h_ticks.bi5",
+      "sha256": "fcd2d7655dccb6ee25b8f8e04fe0fe40363d3c3622dab3cbb1d2021cc9e6019f"
+    },
+    {
+      "bytes": 25366,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/20h_ticks.bi5",
+      "sha256": "0c9689a28eaef99a86c789f53e0f2267a04a495721c0fb601fe107caeea0e81c"
+    },
+    {
+      "bytes": 44988,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/22h_ticks.bi5",
+      "sha256": "3bca547237263ea18886f0f1cd33c5e0bc61500a0fbf39ee218adee2bba8407c"
+    },
+    {
+      "bytes": 33555,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/08/23h_ticks.bi5",
+      "sha256": "1ebfd94eec59dc4d54bfd44be306000cead19eff8ff3f33fd2ff806e9467e847"
+    },
+    {
+      "bytes": 46825,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/00h_ticks.bi5",
+      "sha256": "8e4a61647c21f05e437f85f17e1b6cf670fbf99690955b03cb402904d60498bc"
+    },
+    {
+      "bytes": 72384,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/01h_ticks.bi5",
+      "sha256": "12f941da904d76ae29fa481426ac0f0f03437ef6549e29716914369aea60729e"
+    },
+    {
+      "bytes": 37984,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/02h_ticks.bi5",
+      "sha256": "56aab090f61c8cc83a8fd63800f236b1fdc5fb24ea2a4c73667434c033a60172"
+    },
+    {
+      "bytes": 39236,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/03h_ticks.bi5",
+      "sha256": "0bfe92d64e87d5fde0b3029f52b144cd93ce18fec47084eb51946093f55c9ae6"
+    },
+    {
+      "bytes": 23315,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/04h_ticks.bi5",
+      "sha256": "ebc6a609bc3135f7b2cfc5f28dbf3d6884400dc5eab981a92623b08224dc73ae"
+    },
+    {
+      "bytes": 42340,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/05h_ticks.bi5",
+      "sha256": "e07d9e2d6c875c53b9d89b0bcb5da8f5f7b5b98d998155fb040ca741cb7fd96c"
+    },
+    {
+      "bytes": 58741,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/06h_ticks.bi5",
+      "sha256": "d45254054dc0fc871e2f9d4fb63c150399a701679e99398f0bec88076e9f0e46"
+    },
+    {
+      "bytes": 63700,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/07h_ticks.bi5",
+      "sha256": "377d233588e22f2946a7810f33c18a5b570e0460230f083429ef245338636419"
+    },
+    {
+      "bytes": 40186,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/08h_ticks.bi5",
+      "sha256": "60895a06e6162aa9676ca17452e7af3eb9c44c37a6abd6e400f580c0863a1864"
+    },
+    {
+      "bytes": 33704,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/09h_ticks.bi5",
+      "sha256": "122f45184e9e7b1a0bdba8bc358187cfa6c5530833bab29a77d6072b474e5cef"
+    },
+    {
+      "bytes": 36014,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/10h_ticks.bi5",
+      "sha256": "9abd286e5f797c1c2c7f47fd86721d77d949eab518fc701a606be1e5c665c6ad"
+    },
+    {
+      "bytes": 38942,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/11h_ticks.bi5",
+      "sha256": "05b663d4ac64671a7f07e98cd5df958183b8dbc8811724da084698eabdaaf5b2"
+    },
+    {
+      "bytes": 57898,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/12h_ticks.bi5",
+      "sha256": "e7003b9ca505faeb91d7d682949d99791d7c89536e425cba8758becd0eaab1f6"
+    },
+    {
+      "bytes": 98984,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/13h_ticks.bi5",
+      "sha256": "8420cf2a3c6f6738a4c3cf644a881e3c9501ea56767fa911d92787434a4aa762"
+    },
+    {
+      "bytes": 97449,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/14h_ticks.bi5",
+      "sha256": "ed843e65a5ddba8715d7f352f605b0809023829dc95ce3aeebab02abb3bb855c"
+    },
+    {
+      "bytes": 95797,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/15h_ticks.bi5",
+      "sha256": "bfc42f2b715dc6242b3f1b8351e00147758e90afa34cd523eb9378cf2154b770"
+    },
+    {
+      "bytes": 62646,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/16h_ticks.bi5",
+      "sha256": "6b12061fa7ec088850751658ed65d7587cf255e7413c627df814d24685fb3c1e"
+    },
+    {
+      "bytes": 50066,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/17h_ticks.bi5",
+      "sha256": "fb1ba1cf465e7a91d8fe68c9bcba7cb5867ec3e1397804f815409a2a54379fb4"
+    },
+    {
+      "bytes": 67388,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/18h_ticks.bi5",
+      "sha256": "6afbedb3a27a490ae30d7749aca1498da843ee12646bf80c0c0596d65aa16108"
+    },
+    {
+      "bytes": 47100,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/19h_ticks.bi5",
+      "sha256": "e437998d7fbc42072077490206046021b3f1f609e59cb59c23804d40fd216f4e"
+    },
+    {
+      "bytes": 20619,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/20h_ticks.bi5",
+      "sha256": "8dfea9a1b66bb9dac31b158a26c6bcbe71f2c99e2c49205f282a129ba0d1b5f6"
+    },
+    {
+      "bytes": 25479,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/22h_ticks.bi5",
+      "sha256": "fb9b95bd1f22ae1949dd28129aed9acc2fb4ed36369aec7f2a20a6ab33ea491e"
+    },
+    {
+      "bytes": 19568,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/09/23h_ticks.bi5",
+      "sha256": "3531321859c12dcdf749a9cb06917baa4dc874111c2ea7d7306756941d38fff5"
+    },
+    {
+      "bytes": 32874,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/10/00h_ticks.bi5",
+      "sha256": "a69cc438d308095fd90609c7b29c61508bf7c71cd528d340dd883ad17af727f8"
+    },
+    {
+      "bytes": 54154,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/10/01h_ticks.bi5",
+      "sha256": "ca665a93ac6a1e211cff7720a9e4e422868ce5485ad77ebc5bf09dd6aed5ef50"
+    },
+    {
+      "bytes": 52107,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/10/02h_ticks.bi5",
+      "sha256": "b26b6e7c4f0aa6822836ba5504bf50f87fa63ea8c69b38f815dbd977636e7702"
+    },
+    {
+      "bytes": 38235,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/10/03h_ticks.bi5",
+      "sha256": "f7f405bc7d9673d60eea95bf1ca4dfbd02602779e4077ae4c080fdfca31bfa8a"
+    },
+    {
+      "bytes": 20370,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/10/04h_ticks.bi5",
+      "sha256": "5ceef17e2b534691832bb7f80457994a9586e6ae39357fc7985feb351569d3c9"
+    },
+    {
+      "bytes": 31146,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/10/05h_ticks.bi5",
+      "sha256": "918bdfe0613f210b7381dd6ff8f572e9ef6ce4f3ddf8b7704526ef4cb39aee4e"
+    },
+    {
+      "bytes": 50305,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/10/06h_ticks.bi5",
+      "sha256": "d9bb89f0028e6bdae64267c97c09fc65a7fd4b58512f8b7f02a3e0f9cb81690f"
+    },
+    {
+      "bytes": 34862,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/03/10/07h_ticks.bi5",
+      "sha256": "386d1ea515ee478c136caf9be4867ad02ea8bf4973ffa90ce361b88b9c26022c"
+    },
+    {
+      "bytes": 102494,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/12/22h_ticks.bi5",
+      "sha256": "14ee80b658f5e56c926e38f5b25eaacf16a377560380a184b3e3532116f23236"
+    },
+    {
+      "bytes": 47757,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/12/23h_ticks.bi5",
+      "sha256": "0a1d8dd408aa7dc29587ed417a2b068f8cfec5007d1c6bd60769a40fdcb8657d"
+    },
+    {
+      "bytes": 48895,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/00h_ticks.bi5",
+      "sha256": "bbc8d8ba8272ca1917e59a5ece78af824eded4fe5f8e5cd7d1c01a48d204c9b9"
+    },
+    {
+      "bytes": 80230,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/01h_ticks.bi5",
+      "sha256": "d6569c071f01570c5b215b40d6b632a472fa6d0db0bb905e9c630dc0a81adb6b"
+    },
+    {
+      "bytes": 45378,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/02h_ticks.bi5",
+      "sha256": "de894f38bb05ca37515ae2abbbee4d2b8710cbb5c7743667a59afad90a1c669b"
+    },
+    {
+      "bytes": 24759,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/03h_ticks.bi5",
+      "sha256": "7071d370e25a01d395fa0e1fb9be0aaced52894f6ca1601c1034e253fcbd5b4c"
+    },
+    {
+      "bytes": 22670,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/04h_ticks.bi5",
+      "sha256": "794601fe571cfccf6a413fa4b3ee9d304761984c7cab20f6f7898d4732a48ddd"
+    },
+    {
+      "bytes": 34774,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/05h_ticks.bi5",
+      "sha256": "0ed211aaaee6c2212c1923b9b37a7544784e574fa755c7955998c7783e6589c3"
+    },
+    {
+      "bytes": 47323,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/06h_ticks.bi5",
+      "sha256": "2f8c7e13c543fa3398ca7a61690e839af820f47c16e4ee0b34037fe80cf3b488"
+    },
+    {
+      "bytes": 45360,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/07h_ticks.bi5",
+      "sha256": "ca3eb993f6912d41130280a7e770a74397294524dcb13776f8b1bb8699cccf26"
+    },
+    {
+      "bytes": 43644,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/08h_ticks.bi5",
+      "sha256": "42e53aab80eaf4eba79d44808d720311214a1987d728a13f96c41a131f4e3eb2"
+    },
+    {
+      "bytes": 38004,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/09h_ticks.bi5",
+      "sha256": "f811b160861a0689648b04c63c4a7182eec10f2b861efed2cb6b553c8fd30c0a"
+    },
+    {
+      "bytes": 31822,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/10h_ticks.bi5",
+      "sha256": "a99fb41bca032a811a5af19c4432d16e48e7f3ca43b9c14f2de0709138da666b"
+    },
+    {
+      "bytes": 47431,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/11h_ticks.bi5",
+      "sha256": "c935d5b32fa682f955dcf1017b6e7f8b9162b1912220145e3a42cc077e8c33b1"
+    },
+    {
+      "bytes": 55098,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/12h_ticks.bi5",
+      "sha256": "404eb3f7d557358c35a64c2b724c6c2e721e69c15932ba87116868ee4f04cad2"
+    },
+    {
+      "bytes": 99327,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/13h_ticks.bi5",
+      "sha256": "ef026dadcb4242fbb60b0a824dddc154d69aef9f0766e7e7dabb8de135f86dd1"
+    },
+    {
+      "bytes": 91745,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/14h_ticks.bi5",
+      "sha256": "aa52bfd32139ed6d0bd090347be4d3c3a290f011dfd17fa6f77e3ca7f009d1da"
+    },
+    {
+      "bytes": 71491,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/15h_ticks.bi5",
+      "sha256": "b8836b6c07ab5c5acea9d0c3f7b488cedbd0000ca96cfddc0c61281bffd4b01f"
+    },
+    {
+      "bytes": 85658,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/16h_ticks.bi5",
+      "sha256": "cf08858e8debea35713506b4ac8d719425674003e3f1a4d8f9651a75376048d5"
+    },
+    {
+      "bytes": 63956,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/17h_ticks.bi5",
+      "sha256": "82e756ab747372a2b531f39e0b91f9ff1827e7372c809352b0b1309e6041eb74"
+    },
+    {
+      "bytes": 43602,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/18h_ticks.bi5",
+      "sha256": "325c0a7a214435d7b1e7fafc577b47e311a698533de260fa61c619583d19dcc8"
+    },
+    {
+      "bytes": 48504,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/19h_ticks.bi5",
+      "sha256": "0017acfab78898f8627c081ac08a7f43e58be2420edf7173198450112cd278fd"
+    },
+    {
+      "bytes": 16608,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/20h_ticks.bi5",
+      "sha256": "a75b6170a5e0134c55ca2bae1b627cba8f1b793b6c66d1489dd2d21880a854ff"
+    },
+    {
+      "bytes": 32490,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/22h_ticks.bi5",
+      "sha256": "328feae4349543c08a7a35f0c5b77e63e053c69a3360846212cd42eb33c83906"
+    },
+    {
+      "bytes": 29015,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/13/23h_ticks.bi5",
+      "sha256": "8f8b0d70ec5310f4865eff762af5440404a1a43d818f95409f2b26249d8c9675"
+    },
+    {
+      "bytes": 44350,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/00h_ticks.bi5",
+      "sha256": "990e5a47bb64f92c596851312fc1b8d365b9e86f226a788d5fd7d9c2ee8479a7"
+    },
+    {
+      "bytes": 61071,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/01h_ticks.bi5",
+      "sha256": "9b1d7d87ff5fd639b2fbfc213ec75665553381afd56aaecdb7681aec22ec3cfa"
+    },
+    {
+      "bytes": 37940,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/02h_ticks.bi5",
+      "sha256": "5e4ac38ac7085196aa4a8e9fc7d81601e5520fbfc9b8e080d547dad157bc76d8"
+    },
+    {
+      "bytes": 25836,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/03h_ticks.bi5",
+      "sha256": "61c8300b9254d18f14bfb86884c342e45a7406b1f002987edc504f0539bb80fa"
+    },
+    {
+      "bytes": 19034,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/04h_ticks.bi5",
+      "sha256": "d12ab42e4c4227a79263b03c9fda47b288a3cef23524306db21f8a0bab9ff07a"
+    },
+    {
+      "bytes": 42773,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/05h_ticks.bi5",
+      "sha256": "67456f16fd254eddc9820418735cca5777ecb79d522ea81e14dbfcd4a6d259dd"
+    },
+    {
+      "bytes": 42882,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/06h_ticks.bi5",
+      "sha256": "8a0192378b89719ecbf7dfd1eb915602aa3a3d367e91a64fa50828aed3ea9728"
+    },
+    {
+      "bytes": 64002,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/07h_ticks.bi5",
+      "sha256": "26b939baf39ad7031ddd34dd6cadc95add2fbe32ad53743da259786c4ab480e3"
+    },
+    {
+      "bytes": 43339,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/08h_ticks.bi5",
+      "sha256": "093cb677c813107973b5d61d58442965394592f2f96e2c939d1c7319eff53db2"
+    },
+    {
+      "bytes": 37714,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/09h_ticks.bi5",
+      "sha256": "266950ea8034d38a836afabc2061475422508b213fa9b9c8bec60f79acce07ea"
+    },
+    {
+      "bytes": 42713,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/10h_ticks.bi5",
+      "sha256": "3fa94cb5cfd0cacd8e26d37eead90d87d235adecaaef9c939de803a9b375db3c"
+    },
+    {
+      "bytes": 38349,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/11h_ticks.bi5",
+      "sha256": "0aeea8907211df9fbfda4c94b6daf67ab9894f8100d357d16be568736910c408"
+    },
+    {
+      "bytes": 64497,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/12h_ticks.bi5",
+      "sha256": "f88eedf164ed9bdb994d6f00ac2738a1c8313fc16c9469099864ce14813d42c6"
+    },
+    {
+      "bytes": 104513,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/13h_ticks.bi5",
+      "sha256": "c266279c341a2e2e73058abc6f3d357df860fd7b73c3cdba27bc876b38be82f5"
+    },
+    {
+      "bytes": 92783,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/14h_ticks.bi5",
+      "sha256": "ac2bc84e9da32bfb794976daf42382f92d3b5e60bb0e057056eab9827abf8116"
+    },
+    {
+      "bytes": 73395,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/15h_ticks.bi5",
+      "sha256": "ab1a8973e570c91d89b8aba01ba05e791a87b865a46aa782e0e5281399798f26"
+    },
+    {
+      "bytes": 52557,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/16h_ticks.bi5",
+      "sha256": "34da7e7680965fb236f33d36c73d35387435588f91c6a11800e54e8fa041090c"
+    },
+    {
+      "bytes": 66593,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/17h_ticks.bi5",
+      "sha256": "3603d63064655c92543eb9fca1790b948d4225227b9c5e4524582c0a5954d39a"
+    },
+    {
+      "bytes": 55924,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/18h_ticks.bi5",
+      "sha256": "c216ed9712ea65eb50f96e7d535f44c49f5262c9bf34a000bcb353ffacfdd38e"
+    },
+    {
+      "bytes": 58106,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/19h_ticks.bi5",
+      "sha256": "d3f2da07956a4152cf9c562ade4dc8c56224b3ebb5dee9c58f166eacf9019fe6"
+    },
+    {
+      "bytes": 18738,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/20h_ticks.bi5",
+      "sha256": "f6509373b228ed2c526425148928d1ae7edcd168c0ddbc4c75239af955bc23fb"
+    },
+    {
+      "bytes": 32655,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/22h_ticks.bi5",
+      "sha256": "6053a89838d232369e9488bf94667091176222478f7ab16e0f1dc2c3f1fd8910"
+    },
+    {
+      "bytes": 29924,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/14/23h_ticks.bi5",
+      "sha256": "6812006dca339e7ab0c99206e5a6bb973d052c56ed6abf62a07f0a582f4af878"
+    },
+    {
+      "bytes": 34521,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/00h_ticks.bi5",
+      "sha256": "6be7a5db2a762509f37c4ceb7a2bd9051ab636c53690b50b49e94a2cecd23d2f"
+    },
+    {
+      "bytes": 76719,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/01h_ticks.bi5",
+      "sha256": "e96e3d1a19667168f99affef795c64ee16af0322059ceb8b4438eb47e8ac643d"
+    },
+    {
+      "bytes": 59060,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/02h_ticks.bi5",
+      "sha256": "d5a0c9a8d457b782d72d504a364a616d3c093ee54e56e7a7f9b68070cac3ae9f"
+    },
+    {
+      "bytes": 38175,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/03h_ticks.bi5",
+      "sha256": "9033eea2277d8aef687c8e7fcf9614f16f40945b6eba5ec9864c09e4924e4bf9"
+    },
+    {
+      "bytes": 20487,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/04h_ticks.bi5",
+      "sha256": "a8d4017a10f212c8298e68a3e6c5f998ecfd0039967bfc3c54abc0fcfb50125d"
+    },
+    {
+      "bytes": 47992,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/05h_ticks.bi5",
+      "sha256": "701c4e33bcec19552ce0873097f21416418f32b9fa9cd1890673d95dfe3a4254"
+    },
+    {
+      "bytes": 48869,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/06h_ticks.bi5",
+      "sha256": "308a1a7b88c9e24a0cf056c35af7c7885cc323626e8c3bb323aadc55dcc2c1a8"
+    },
+    {
+      "bytes": 47310,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/07h_ticks.bi5",
+      "sha256": "0301b325b5056f0068998c885a705b8cff531955b86b8c7c5b1507134b268369"
+    },
+    {
+      "bytes": 42453,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/08h_ticks.bi5",
+      "sha256": "6c3dc05a2ef7e6bc5f0ff7f516af202a1edb9d27cc296f05c696db6eb77f562f"
+    },
+    {
+      "bytes": 58405,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/09h_ticks.bi5",
+      "sha256": "08b58f607ad260d4914bada1ddff55e4d8028290df20974c277d5766194b8e88"
+    },
+    {
+      "bytes": 54430,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/10h_ticks.bi5",
+      "sha256": "ffb544d3e175f3e1fd4e1e27c45c91a56d2acf8082f87e44a717b2d265f80622"
+    },
+    {
+      "bytes": 50861,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/11h_ticks.bi5",
+      "sha256": "1c99a258c60b767d29de59e0b45912a3bc8fb1d9f4f5d6c4a154a80202c684ef"
+    },
+    {
+      "bytes": 45056,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/12h_ticks.bi5",
+      "sha256": "760f8a669bab19d54d320327e91e08be41ed55980def074c6ef34d9687532b87"
+    },
+    {
+      "bytes": 87204,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/13h_ticks.bi5",
+      "sha256": "06a36dd829652055d2784eab3f32b9ec4be579022e0a9d81b537c8b042e3e2b2"
+    },
+    {
+      "bytes": 71975,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/14h_ticks.bi5",
+      "sha256": "e0890cf1b79db0db25147a08c5ea7720d4038a16e1fdfa705c27b392a6eb8b3c"
+    },
+    {
+      "bytes": 76657,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/15h_ticks.bi5",
+      "sha256": "54bcb2bbf3d5b81e3abbeb3a82997412f7e1d6d09850a43ebe348a4fb66755ad"
+    },
+    {
+      "bytes": 54033,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/16h_ticks.bi5",
+      "sha256": "15c21b7a803754eace7b050ae37438b5c424dcb2c86d8044a5facffdbe17065a"
+    },
+    {
+      "bytes": 54634,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/17h_ticks.bi5",
+      "sha256": "621bd643f37ac42c8f47e21e646554034fdada13a664e25f69bce09cf10db4de"
+    },
+    {
+      "bytes": 51773,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/18h_ticks.bi5",
+      "sha256": "b4bd9d6c8bba50db072d31394c8ebc1ecf3544bebc70a849ff68443fdfd728ab"
+    },
+    {
+      "bytes": 46115,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/19h_ticks.bi5",
+      "sha256": "7973e114c9ee99e7a0b748338f539cd69b0a4ecce8138b5d1c1aac3309a91b05"
+    },
+    {
+      "bytes": 19064,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/20h_ticks.bi5",
+      "sha256": "6d2c3ed398e82445d8d4ca75eb3bd8cdcaead1225052de9a5809c5657e1ce06a"
+    },
+    {
+      "bytes": 28243,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/22h_ticks.bi5",
+      "sha256": "c1a2f82a3728ccbbb154e40f5f9f2d8c5952bd19f11ad8b77f7f894a092222f4"
+    },
+    {
+      "bytes": 24784,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/15/23h_ticks.bi5",
+      "sha256": "45997a9fdc671fb7ec4cffd053a5a5e6573e0d2baf741a24a89b0f9b4b860bce"
+    },
+    {
+      "bytes": 38346,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/00h_ticks.bi5",
+      "sha256": "1dcc761559a8c2fd8d8380a9f5b01ab57f617a62190613447f295fc7b0426bca"
+    },
+    {
+      "bytes": 49755,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/01h_ticks.bi5",
+      "sha256": "8ff35d1624d14286cc3c0ff0c0ac152ea85a39676707003981bfc2736589b935"
+    },
+    {
+      "bytes": 35475,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/02h_ticks.bi5",
+      "sha256": "cf8bb8f741f866e58dda75e7f8639983f645d401d794c3bf96fcdf72bb242978"
+    },
+    {
+      "bytes": 26124,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/03h_ticks.bi5",
+      "sha256": "fd57e751abba6652a12d98dfd23b4528d0e363481a5431ae4d220bec41b1e93d"
+    },
+    {
+      "bytes": 21159,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/04h_ticks.bi5",
+      "sha256": "3778f840ab55d4dfe46d3ca2c1b9427679fb30ecd7a9bc009d957511e8ebdfcd"
+    },
+    {
+      "bytes": 41009,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/05h_ticks.bi5",
+      "sha256": "29acf475dda66261a2412131897be0790084cabecfc002edb89575fded7f108c"
+    },
+    {
+      "bytes": 59656,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/06h_ticks.bi5",
+      "sha256": "eaa5bc3bf72495f4667f9faaa9507e949e5aba65d32c8672bfc0fae44fbdd9cd"
+    },
+    {
+      "bytes": 48003,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/07h_ticks.bi5",
+      "sha256": "562fc0019ed1d528724597ccd9d50ee890f35e29f50b7a7de01e6835dd2d1d1c"
+    },
+    {
+      "bytes": 42771,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/08h_ticks.bi5",
+      "sha256": "992f831212acf1e9167c7a4fd19af07aeb86893ab12a9e9930b7e873db4d1cab"
+    },
+    {
+      "bytes": 30446,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/09h_ticks.bi5",
+      "sha256": "12d13e074d4d092d3568c7c6e6eb1b73d7598f564a52f3596a81b6fdc1ab3379"
+    },
+    {
+      "bytes": 31555,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/10h_ticks.bi5",
+      "sha256": "786545fb0934c34515a0a6f0a33bc03d58c65e7b9d451e9f53fa986a86c0a208"
+    },
+    {
+      "bytes": 32712,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/11h_ticks.bi5",
+      "sha256": "5cc853c4e211fb457bf74acad019ed4b2feb9d132b793ca119258bdaaede364d"
+    },
+    {
+      "bytes": 44391,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/12h_ticks.bi5",
+      "sha256": "8b67816d867f0b9766166057af4b2f87944d2e381bbc6169c14c399c381e9d72"
+    },
+    {
+      "bytes": 88638,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/13h_ticks.bi5",
+      "sha256": "602b4d9d91174b509ac489204984fe1035d9bd029dad079785b9dc1c9746ddc2"
+    },
+    {
+      "bytes": 107630,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/14h_ticks.bi5",
+      "sha256": "c7e4c6a347a2585fc888bd28190f89eea2dc2d2cf3983383d132a36a019cf380"
+    },
+    {
+      "bytes": 76423,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/15h_ticks.bi5",
+      "sha256": "c929e5de9007185a37b5949f460bf87f4b42a546023ca28872d32e2b0c199e59"
+    },
+    {
+      "bytes": 64364,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/16h_ticks.bi5",
+      "sha256": "350718e1dc2b48231e6c885e475e1b6bb812f07e8f7104e2680be7fd2ce8e91f"
+    },
+    {
+      "bytes": 64358,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/17h_ticks.bi5",
+      "sha256": "ab580e68f360c68c57ad1cdea9318a51ca33fd16008340e1cb0946279cf81a85"
+    },
+    {
+      "bytes": 52678,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/18h_ticks.bi5",
+      "sha256": "83d2abb367ac7e0aeb2ea13acb05e860696741f5e2d537d1b4e56b3212f1d63a"
+    },
+    {
+      "bytes": 42210,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/19h_ticks.bi5",
+      "sha256": "89329774632e3ecf5dfecd8fd7ad917c5d8c49c4c1242b10bb7df69969208a98"
+    },
+    {
+      "bytes": 14481,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/20h_ticks.bi5",
+      "sha256": "9c4c9202521ff2c3b4d964ab1809a72aa0d295ccdef618710e8cd4a97d3f60b0"
+    },
+    {
+      "bytes": 22105,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/22h_ticks.bi5",
+      "sha256": "e2b27274e501322b2139de712b9772294211d6e91e2f0925dd3292f0f20845d8"
+    },
+    {
+      "bytes": 18156,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/16/23h_ticks.bi5",
+      "sha256": "7e20805cc86b90d8400371f1f362ac1da74dd9fec428cdd23601db4b97cea57f"
+    },
+    {
+      "bytes": 27849,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/00h_ticks.bi5",
+      "sha256": "a73c2a69deb8bef9ab892fa949081a2988d5b1996c04899886bf54cc3bfba6ec"
+    },
+    {
+      "bytes": 61913,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/01h_ticks.bi5",
+      "sha256": "fd13d835d89ec5cc6fa5ea0b74a88739490b178c008ba349f0347c908c70f2da"
+    },
+    {
+      "bytes": 31443,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/02h_ticks.bi5",
+      "sha256": "91d720ce6da13d3d779c9b04885e6619198589eb2a02ce64c75ef8ba080ce325"
+    },
+    {
+      "bytes": 29230,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/03h_ticks.bi5",
+      "sha256": "d5dc58cf499c9e20926c548f15d870f6753b646f928cd9a17188d1096f54fce6"
+    },
+    {
+      "bytes": 18488,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/04h_ticks.bi5",
+      "sha256": "c5d12062f226e8944bbb9ab6629194864dd60931407ffb8f2e5c888d5e333531"
+    },
+    {
+      "bytes": 37340,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/05h_ticks.bi5",
+      "sha256": "de4694e1fa980dd128f618a8deba50f391ba8c8805f35f9326fb77feba5c42b5"
+    },
+    {
+      "bytes": 45854,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/06h_ticks.bi5",
+      "sha256": "2303240e109ebd98c81e23636a487b9ec3d8222cc760187953ee25a8d0c208f6"
+    },
+    {
+      "bytes": 34393,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/07h_ticks.bi5",
+      "sha256": "404cf31972e526a009541cb695e4be1405b9d16fbf33cb5702db80b17b4681e2"
+    },
+    {
+      "bytes": 36155,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/08h_ticks.bi5",
+      "sha256": "2c19c7244bf8bfc908af6d633f4e2090e71a38a66f9703f457a45318cf5c0611"
+    },
+    {
+      "bytes": 29101,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/09h_ticks.bi5",
+      "sha256": "e2f957b324b0bfbfe0ae067b327b704c006fd4cd7fffaee9a3886bc6d0c60f2d"
+    },
+    {
+      "bytes": 29562,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/10h_ticks.bi5",
+      "sha256": "a6ef1c135d75ed07703ec14bd034e9cc6c125322e06a345478221f143b28c2a4"
+    },
+    {
+      "bytes": 35668,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/11h_ticks.bi5",
+      "sha256": "e89512aafb20393376a3685b9041b2873e25b536b27ee10aebda38bbe32de628"
+    },
+    {
+      "bytes": 84239,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/12h_ticks.bi5",
+      "sha256": "14afeb8468abc1710432705b22e7fe61a1563ce4ec0f4890ba79dac560046b00"
+    },
+    {
+      "bytes": 149809,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/13h_ticks.bi5",
+      "sha256": "a7c44752b39f1325659574337c5bc623d22f1a888af91f383070cf87a605494f"
+    },
+    {
+      "bytes": 114677,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/14h_ticks.bi5",
+      "sha256": "8143c365d1ae0658953d72bf1f135ca0e9353716caa629631d88c88b7bb049f7"
+    },
+    {
+      "bytes": 87714,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/15h_ticks.bi5",
+      "sha256": "58eb0051cb694960c020db13b1e9cc8b7fbcf8f0387e8bd242a402e0c1d73cab"
+    },
+    {
+      "bytes": 49073,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/16h_ticks.bi5",
+      "sha256": "95c68fc57a49cf33a1e87b2ba97bcb35a189fe6fe40e6ab92d1d9ca37fdd4915"
+    },
+    {
+      "bytes": 74621,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/17h_ticks.bi5",
+      "sha256": "0b28510f30c9e89d588ffb37af377c178fe99c4ae12bae1a24981c7a96e9c9a6"
+    },
+    {
+      "bytes": 62454,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/18h_ticks.bi5",
+      "sha256": "3e562444a72804005a081c5ae82572d9655c090e7c804869358fc446eda2e54f"
+    },
+    {
+      "bytes": 46444,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/19h_ticks.bi5",
+      "sha256": "5bb4a2c166d830c0f2802d8f86c920c67aeac83dde6a4b3b6e8c5e6248f1b04d"
+    },
+    {
+      "bytes": 55529,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/17/20h_ticks.bi5",
+      "sha256": "9345bfe0764cd69f0654928c7e61cc4cf2654cbc7bf176c6d35b7805bc2ead01"
+    },
+    {
+      "bytes": 76977,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/19/22h_ticks.bi5",
+      "sha256": "5eeb0622921c400d3d3f59c0497cc4d0e2bba5c247aff13f412d3f4a91fe6050"
+    },
+    {
+      "bytes": 58652,
+      "filename_year": 2026,
+      "path": "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD/2026/04/19/23h_ticks.bi5",
+      "sha256": "992ccef6b68af55190075e73384ba47b0e89c66603df9be48226dc9d216b3fc3"
+    }
+  ],
+  "format_reference": {
+    "commit": "4bb92bcbcd2edf7c7d75783173f1dae40bee7ef4",
+    "files": [
+      "src/decompressor/index.ts",
+      "src/data-normaliser/index.ts",
+      "src/utils/date.ts",
+      "src/url-generator/index.ts"
+    ],
+    "format": ">3i2f: millisecond offset, ask integer, bid integer, ask quoted size, bid quoted size",
+    "limitation": "Independent implementation reference, not proof of the provenance or dates of local cache bytes.",
+    "price_scale_xauusd": 1000,
+    "repository": "https://github.com/Leo4815162342/dukascopy-node"
+  },
+  "interpretation": "Legacy BI5 structural audit only; no inferred absolute hour is admitted. No economic outcomes computed.",
+  "network_requests": 0,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/DUKASCOPY_CACHE_AUDIT_001",
+  "schema": "gx1_dukascopy_existing_cache_manifest_v1",
+  "source_files": {
+    "gx1/features/htf_features.py": "ad1910f99dcc6e73498c8ff47445e71b724ec5c7f06442d9957bd81de3965655",
+    "gx1/features/smc_v1.py": "cc2e795b682fc03a1b6a9bc3ca96915e4721269999eaf7608b38391c255244ce",
+    "gx1/features/technical_indicators_v1.py": "e149423ca38c36ea77234e2173f7ea78e81a4bb0cb1dfd2b74576de76989f024",
+    "gx1/features/volume_features.py": "f67ee6907c28c25dc87b7e0e8384c5263d22f1a7c2133e9108c877797542d2d7",
+    "gx1/scripts/research_entry_direction_walkforward_v1.py": "dffef5663437b629f77511f04255e186b4c303e7117159eae0d4caaa77c0136b",
+    "gx1/scripts/research_entry_pattern_primitives_v1.py": "930fc5bcaa3c67c2a18765a90522a9c86ecd3d02625b17ac46512b08b6b82c99",
+    "gx1/scripts/research_entry_pattern_setup_edge_v1.py": "9977616e20d9ade23708f503a75e2bfd0d0261f07fbf108c66fdd32af00fa6ea",
+    "gx1/scripts/research_intraday_mechanisms_v1.py": "dbc98035ccd4ffa1652437dd50daf0923a34888ab251c1cca0f7bb9c28d44c89",
+    "gx1/scripts/research_model_free_baselines_v1.py": "ad66fe337ef294614acc6a9b46f6c72ecb2a299a6b760c08579035f93cc42f50",
+    "gx1/scripts/research_ta_campaign_v1.py": "bbba51a5430d953ca78eec766a2f78731330b6138645103ec6ede0d042833c26",
+    "gx1/time/session_detector.py": "aab11f91776aacfaa48272706807b58acdc7f6606078d5297b5e469bdca13b9e",
+    "tests/test_research_ta_campaign.py": "bf3646e1ed61aa9de16172fdcea8fe3468f6e91b562d79832ff6aa1e4b763e91"
+  }
+}

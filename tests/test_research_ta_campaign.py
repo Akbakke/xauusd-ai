@@ -786,3 +786,90 @@ def test_snapshot_import_fails_closed_and_preserves_terminal_receipt(tmp_path, m
     out = Path(spec["output_directory"])
     assert json.loads((out / "TERMINAL.json").read_text())["status"] == "FAILED"
     assert not (out / "RESULT.json").exists()
+
+
+def _sweep_market():
+    n = 90
+    t = pd.date_range("2020-01-01T00:00Z", periods=n, freq="5min")
+    close = 100. + np.sin(np.arange(n) / 4)
+    volume = np.full(n, 10)
+    close[25:31] = [100, 101, 100, 102, 101, 103]
+    volume[25:31] = [10, 12, 14, 16, 18, 20]
+    return pd.DataFrame({"open": close, "high": close + 1, "low": close - 1,
+                         "close": close, "volume": volume}, index=t)
+
+
+def test_sweep_anchor_is_weighted_from_event_and_only_known_after_confirmation():
+    market = _sweep_market()
+    up, down = np.zeros(len(market)), np.zeros(len(market))
+    down[25] = 1
+    panel = ta.sweep_confirmations(market, up, down, 5)
+    assert len(panel) == 1
+    row = panel.iloc[0]
+    assert panel.index[0] == market.index[30]
+    assert row.known_at == market.index[30] + pd.Timedelta(minutes=5)
+    assert row.anchor_known_at == market.index[25] + pd.Timedelta(minutes=5)
+    expected = sum(p*v for p,v in zip([100,101,100,102,101,103], [10,12,14,16,18,20])) / 90
+    assert row.anchored_vwap == pytest.approx(expected)
+    assert row.sweep == 1 and row.anchored_activity and row.rolling_activity
+
+
+def test_sweep_confirmation_prefix_invariance_and_future_mutation():
+    market = _sweep_market()
+    up, down = np.zeros(len(market)), np.zeros(len(market))
+    down[[25, 50]] = 1
+    a = ta.sweep_confirmations(market, up, down, 5)
+    prefix = ta.sweep_confirmations(market.iloc[:40], up[:40], down[:40], 5)
+    pd.testing.assert_frame_equal(a.iloc[:1], prefix)
+    changed = market.copy()
+    changed.loc[changed.index[40]:, ["close", "volume"]] *= 2
+    b = ta.sweep_confirmations(changed, up, down, 5)
+    pd.testing.assert_frame_equal(a.iloc[:1], b.iloc[:1])
+
+
+def test_sweep_rejects_superseded_anchor_ambiguous_event_and_source_gap():
+    market = _sweep_market()
+    up, down = np.zeros(len(market)), np.zeros(len(market))
+    down[[25, 50, 70]] = 1
+    up[[28, 50]] = 1  # newer event invalidates25; double event50 creates no anchor
+    a = ta.sweep_confirmations(market, up, down, 5)
+    assert set(a.anchor_bar_start) == {market.index[28], market.index[70]}
+    shifted = market.copy()
+    shifted.index = market.index + pd.to_timedelta(np.where(np.arange(len(market)) >= 73, 5, 0), unit="min")
+    b = ta.sweep_confirmations(shifted, up, down, 5)
+    assert set(b.anchor_bar_start) == {market.index[28]}
+
+
+def test_dukascopy_legacy_record_layout_and_fail_closed_length():
+    import lzma
+    import struct
+    raw = struct.pack(">3i2f", 1234, 3010123, 3010000, 1.25, 2.5)
+    decoded = ta.decode_dukascopy_bi5(lzma.compress(raw, format=lzma.FORMAT_ALONE))
+    np.testing.assert_array_equal(decoded, [[1234,3010123,3010000,1.25,2.5]])
+    with pytest.raises(RuntimeError, match="EMPTY_FILE"):
+        ta.decode_dukascopy_bi5(b"")
+    with pytest.raises(RuntimeError, match="BINARY_LENGTH"):
+        ta.decode_dukascopy_bi5(lzma.compress(raw+b"x", format=lzma.FORMAT_ALONE))
+    with pytest.raises(RuntimeError, match="BINARY_LENGTH"):
+        ta.decode_dukascopy_bi5(lzma.compress(raw, format=lzma.FORMAT_ALONE)+b"extra")
+
+
+def test_sweep_shared_selection_reserves_filtered_opportunities():
+    t = pd.date_range("2020-01-01T00:00Z", periods=25, freq="5min")
+    market = pd.DataFrame({"open":100., "close":100.1, "bid_open":99.99, "ask_open":100.01,
+                          "bid_close":100.09, "ask_close":100.11, "ask_low":99.95, "bid_high":100.15}, index=t)
+    signals = pd.DataFrame({"known_at":t[:4]+pd.Timedelta(minutes=5), "sweep":[1,-1,1,-1],
+                            "risk_scale":1., "atr_bps":10.}, index=t[:4])
+    spec = {"cells":["sweep"], "hold_bars":12, "evaluation_start":str(t[0]),
+            "read_end_exclusive":str(t[-1]+pd.Timedelta(minutes=5))}
+    cohort, counts = ta.c_select(market, signals, spec, cells=("sweep",))
+    assert len(cohort) == 1 and counts["overlap_rows"] == 3
+    tape = ta.c_quotes(market, t[0])
+    book, outcomes = ta.c_book(tape, cohort, "active", 1., None, 100.)
+    gated = cohort.copy()
+    gated["executable"] = False
+    flat_book, flat = ta.c_book(tape, gated, "active", 1., None, 100.)
+    assert len(flat) == len(outcomes) == 1 and flat.net_bps.iloc[0] == 0.
+    assert flat.known_at.equals(outcomes.known_at)
+    assert flat_book.equity_liquidation.iloc[-1] == 100.
+    assert book.equity_liquidation.iloc[-1] == pytest.approx(100.+outcomes.risk_pnl.sum())

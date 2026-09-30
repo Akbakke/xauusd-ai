@@ -1173,7 +1173,8 @@ def c_signal_panel(market: pd.DataFrame, spec: dict) -> tuple[pd.DataFrame, dict
                           "short": int((signal[cell] < 0).sum())} for cell in C_CELLS}
 
 
-def c_select(market: pd.DataFrame, signals: pd.DataFrame, spec: dict) -> tuple[pd.DataFrame, dict]:
+def c_select(market: pd.DataFrame, signals: pd.DataFrame, spec: dict, *,
+             cells: tuple[str, ...] = C_CELLS) -> tuple[pd.DataFrame, dict]:
     """One shared reservation cohort; fill outcomes never change later selection."""
     time, bar = market.index, M5_BAR_DURATION
     end = pd.Timestamp(spec["read_end_exclusive"])
@@ -1183,7 +1184,7 @@ def c_select(market: pd.DataFrame, signals: pd.DataFrame, spec: dict) -> tuple[p
     busy_until = pd.Timestamp(spec["evaluation_start"])
     records, counts = [], {"conflicting_rows": 0, "same_side_duplicates": 0, "overlap_rows": 0}
     for t, row in signals.iterrows():
-        active = [(name, int(row[name])) for name in C_CELLS if row[name] != 0]
+        active = [(name, int(row[name])) for name in cells if row[name] != 0]
         if not active:
             continue
         if len({side for _, side in active}) > 1:
@@ -1472,9 +1473,277 @@ def run_c(spec: dict, spec_path: Path) -> dict:
         raise
 
 
+# One operator-authorized technical hypothesis. These are research rules only.
+SWEEP_ARMS = ("sweep", "rolling_activity", "anchored_activity", "long")
+
+
+def decode_dukascopy_bi5(raw: bytes) -> np.ndarray:
+    """Legacy BI5 >3i2f, milliseconds/ask/bid/quoted sizes; not executed flow.
+
+    Layout independently checked against dukascopy-node v1.46.4 decompressor.
+    Absolute hour and instrument identity still require a source receipt.
+    """
+    import lzma
+    if not raw:
+        raise RuntimeError("TA_DUKA_EMPTY_FILE")
+    decoder = lzma.LZMADecompressor()
+    data = decoder.decompress(raw, max_length=64 * 1024 * 1024 + 1)
+    if not decoder.eof or decoder.unused_data or len(data) > 64 * 1024 * 1024 or len(data) % 20:
+        raise RuntimeError("TA_DUKA_BINARY_LENGTH")
+    dtype = np.dtype([("ms", ">i4"), ("ask", ">i4"), ("bid", ">i4"),
+                      ("ask_size", ">f4"), ("bid_size", ">f4")])
+    records = np.frombuffer(data, dtype=dtype)
+    if not len(records):
+        raise RuntimeError("TA_DUKA_NO_RECORDS")
+    return np.column_stack([records[name] for name in dtype.names]).astype(float)
+
+
+def audit_dukascopy_cache(spec: dict, spec_path: Path) -> dict:
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"git_head": git("rev-parse", "HEAD"),
+                                     "spec_sha256": sha(spec_path)})
+    rows = []
+    try:
+        for item in spec["files"]:
+            path = Path(item["path"])
+            if path.stat().st_size != item["bytes"] or sha(path) != item["sha256"]:
+                raise RuntimeError("TA_DUKA_SOURCE_CHANGED")
+            row = {**item}
+            try:
+                ticks = decode_dukascopy_bi5(path.read_bytes())
+                ms, ask, bid, av, bv = ticks.T
+                checks = {
+                    "nonfinite": int((~np.isfinite(ticks)).sum()),
+                    "offset_outside_hour": int(((ms < 0) | (ms >= 3600000)).sum()),
+                    "time_reversals": int((np.diff(ms) < 0).sum()),
+                    "nonpositive_prices": int(((ask <= 0) | (bid <= 0)).sum()),
+                    "crossed_quotes": int((ask < bid).sum()),
+                    "negative_quoted_sizes": int(((av < 0) | (bv < 0)).sum()),
+                }
+                valid = not any(checks.values())
+                row.update(status="STRUCTURALLY_VALID" if valid else "INVALID_RECORDS",
+                           records=len(ticks), checks=checks,
+                           same_millisecond_updates=int((np.diff(ms) == 0).sum()),
+                           exact_duplicate_records=int(len(ticks) - len(np.unique(ticks, axis=0))),
+                           zero_quoted_sizes=int(((av == 0) | (bv == 0)).sum()),
+                           quoted_size_unique_counts=[len(np.unique(av)), len(np.unique(bv))])
+                if valid:
+                    spread = (ask - bid) / ((ask + bid) / 2) * 1e4
+                    row.update(first_offset_ms=int(ms[0]), last_offset_ms=int(ms[-1]),
+                               max_intertick_gap_ms=float(np.diff(ms).max()) if len(ms) > 1 else None,
+                               spread_bps_quantiles=np.quantile(spread, [0, .5, .95, 1]).tolist())
+            except (RuntimeError, ValueError, EOFError) as exc:
+                row.update(status="DECODE_REJECTED", error=str(exc))
+            except __import__("lzma").LZMAError as exc:
+                row.update(status="DECODE_REJECTED", error=str(exc))
+            rows.append(row)
+        valid = [r for r in rows if r["status"] == "STRUCTURALLY_VALID"]
+        result = {
+            "schema": "gx1_dukascopy_existing_cache_audit_v1", "status": "COMPLETE_NOT_ADMITTED",
+            "files": rows, "file_count": len(rows), "total_bytes": sum(r["bytes"] for r in rows),
+            "empty_files": sum(r["bytes"] == 0 for r in rows),
+            "structurally_valid_files": len(valid), "records": sum(r["records"] for r in valid),
+            "invalid_or_rejected_files": len(rows) - len(valid),
+            "filename_years": {str(y): sum(r.get("filename_year") == y for r in rows) for y in [2025, 2026]},
+            "source_receipts_present": False, "absolute_timestamp_provenance_verified": False,
+            "continuous_coverage_proven": False, "admitted_to_economic_test": False,
+            "reason": "Sparse legacy cache lacks original download receipts/hour mapping; structural validity is not source qualification.",
+            "new_downloads": 0, "test_outcomes_accessed": False,
+            "format_reference": spec["format_reference"], "preregistration_sha256": sha(spec_path),
+        }
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": "COMPLETE", "result_sha256": sha(out / "RESULT.json")})
+        return {k: v for k, v in result.items() if k != "files"}
+    except Exception as exc:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": repr(exc)})
+        raise
+
+
+def sweep_confirmations(market: pd.DataFrame, up: np.ndarray, down: np.ndarray,
+                        confirmation_bars: int) -> pd.DataFrame:
+    """Same decision cohort, one named anchor, no future-dependent confirmation."""
+    from gx1.features.volume_features import compute_volume_features
+    if confirmation_bars != 5:
+        raise RuntimeError("TA_SWEEP_CONFIRMATION_SCOPE")
+    if len(up) != len(market) or len(down) != len(market):
+        raise RuntimeError("TA_SWEEP_EVENT_SHAPE")
+    volume = market.volume.to_numpy(float)
+    activity = compute_volume_features(market)["vol_ratio_5_20"]
+    rolling = (market.close * market.volume).rolling(20).sum() / market.volume.rolling(20).sum()
+    event = (up > 0) | (down > 0)
+    records = []
+    for i in np.flatnonzero((up > 0) ^ (down > 0)):
+        j = i + confirmation_bars
+        if j >= len(market):
+            continue
+        # All exclusions are observable when the confirmation bar closes.
+        if event[i + 1:j + 1].any() or np.any(np.diff(market.index.asi8[i:j + 1]) != M5_BAR_DURATION.value):
+            continue
+        if not np.isfinite(rolling.iloc[j]) or not np.isfinite(activity[j]):
+            continue
+        close = market.close.iloc[j]
+        anchored = float(np.dot(market.close.iloc[i:j + 1], volume[i:j + 1]) / volume[i:j + 1].sum())
+        side = 1 if down[i] > 0 else -1
+        records.append({
+            "signal_bar_start": market.index[j], "known_at": market.index[j] + M5_BAR_DURATION,
+            "anchor_bar_start": market.index[i], "anchor_known_at": market.index[i] + M5_BAR_DURATION,
+            "sweep": side, "rolling_activity": bool(side * (close - rolling.iloc[j]) > 0 and activity[j] > 0),
+            "anchored_activity": bool(side * (close - anchored) > 0 and activity[j] > 0),
+            "anchored_vwap": anchored, "rolling_vwap20": float(rolling.iloc[j]),
+            "activity_ratio5_20": float(activity[j]),
+        })
+    if not records:
+        raise RuntimeError("TA_SWEEP_NO_CONFIRMATIONS")
+    return pd.DataFrame(records).set_index("signal_bar_start")
+
+
+def sweep_signal_panel(market: pd.DataFrame, spec: dict) -> pd.DataFrame:
+    from gx1.features.smc_v1 import compute_smc_features
+    features = market[["high", "low", "close"]].copy()
+    features["atr"] = wilder_atr(market.high, market.low, market.close, 14)
+    smc = compute_smc_features(features, include_v30_additions=True)
+    signals = sweep_confirmations(market, smc.smc_sweep_up_event.to_numpy(),
+                                  smc.smc_sweep_down_event.to_numpy(), spec["confirmation_bars"])
+    signals = signals.loc[(signals.known_at >= pd.Timestamp(spec["evaluation_start"])) &
+                          (signals.known_at < pd.Timestamp(spec["read_end_exclusive"]))].copy()
+    daily = _resample_ohlc_for_model_native_scalars(market, "D1")
+    units = causal_risk_units(daily.close.to_numpy(), np.ones(len(daily)),
+                             initial_equity=spec["initial_equity"], **spec["risk"])
+    scale = units * daily.close.to_numpy() / spec["initial_equity"]
+    atr_bps = wilder_atr(daily.high, daily.low, daily.close, 14).to_numpy() / daily.close.to_numpy() * 1e4
+    ix = (daily.index + TRADING_SESSION_DURATION).searchsorted(pd.DatetimeIndex(signals.known_at), side="right") - 1
+    if np.any(ix < 0):
+        raise RuntimeError("TA_SWEEP_RISK_CLOCK")
+    signals["risk_scale"], signals["atr_bps"] = scale[ix], atr_bps[ix]
+    if not np.isfinite(signals[["risk_scale", "atr_bps"]].to_numpy()).all() or (signals.atr_bps <= 0).any():
+        raise RuntimeError("TA_SWEEP_RISK_WARMUP")
+    return signals
+
+
+def run_sweep(spec: dict, spec_path: Path) -> dict:
+    if (spec["cells"] != ["sweep"] or spec["confirmation_bars"] != 5 or spec["hold_bars"] != 12
+            or spec["slippage_scenarios"] != [0., .5, 1., 2.]
+            or spec["read_end_exclusive"] != "2026-01-01T00:00:00Z"
+            or spec["evaluation_start"] != "2011-01-01T00:00:00Z"
+            or spec["inference_start"] != "2021-01-01T00:00:00Z"):
+        raise RuntimeError("TA_SWEEP_PREREG_SCOPE")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"git_head": git("rev-parse", "HEAD"),
+                                     "preregistration_sha256": sha(spec_path)})
+    try:
+        curve = load_funding(spec)
+        market, binding = load_market(spec, columns=["time", "open", "high", "low", "close", "volume",
+                          "bid_open", "ask_open", "bid_close", "ask_close", "ask_low", "bid_high"])
+        signals = sweep_signal_panel(market, spec)
+        signals.to_parquet(out / "SIGNALS.parquet")
+        cohort, selection = c_select(market, signals, spec, cells=("sweep",))
+        for arm in ["rolling_activity", "anchored_activity"]:
+            cohort[arm] = signals[arm].reindex(pd.DatetimeIndex(cohort.signal_bar_start)).to_numpy(bool)
+        cohort.to_parquet(out / "COHORT.parquet", index=False)
+        tape = c_quotes(market, pd.Timestamp(spec["evaluation_start"]))
+        dates = pd.date_range(spec["evaluation_start"], pd.Timestamp(spec["read_end_exclusive"]) - pd.Timedelta(days=1), freq="D")
+        later = np.flatnonzero(dates >= pd.Timestamp(spec["inference_start"]))
+        counts = cohort.groupby(cohort.known_at.dt.floor("D")).size().reindex(dates, fill_value=0).to_numpy()
+        series, portfolios, components, years = {}, {}, {}, {}
+        for funding in ["historical_proxy", "zero"]:
+            for slip in spec["slippage_scenarios"]:
+                for arm in SWEEP_ARMS:
+                    key = f"{arm}:s{slip:g}:{funding}"
+                    chosen = cohort.copy()
+                    if arm in ["rolling_activity", "anchored_activity"]:
+                        chosen["executable"] &= chosen[arm]
+                    book, outcomes = c_book(tape, chosen, "long" if arm == "long" else "active", slip,
+                                           curve if funding == "historical_proxy" else None, spec["initial_equity"])
+                    daily = c_daily(book).set_index("time")
+                    # Calendar accounting only: before the first actual quote the
+                    # book is flat at initial cash. No input quote is fabricated.
+                    grid = pd.date_range(dates[0] - pd.Timedelta(days=1), dates[-1], freq="D")
+                    daily = daily.reindex(grid)
+                    for col in ["mid_pnl", "spread_cost", "slippage_cost", "commission_cost", "financing_cost"]:
+                        daily[col] = daily[col].fillna(0.)
+                    for col in ["held_units_after", "traded_units", "liquidation_reserve"]:
+                        daily[col] = daily[col].ffill().fillna(0.)
+                    for col in ["equity_mid", "equity_liquidation"]:
+                        daily[col] = daily[col].ffill().fillna(spec["initial_equity"])
+                    daily = daily.reset_index(names="time")
+                    daily.attrs["initial_equity"] = spec["initial_equity"]
+                    if not pd.DatetimeIndex(daily.time.iloc[1:]).equals(dates) or len(outcomes) != len(cohort):
+                        raise RuntimeError("TA_SWEEP_MATCHED_POPULATION")
+                    daily.to_parquet(out / (key.replace(":", "_") + "_DAILY.parquet"), index=False)
+                    outcomes.to_parquet(out / (key.replace(":", "_") + "_OUTCOMES.parquet"), index=False)
+                    portfolios[key] = portfolio_summary(daily, periods_per_year=spec["periods_per_year"])
+                    portfolios[key]["executed_round_trips"] = int(outcomes.filled.sum())
+                    sums = outcomes.groupby(outcomes.known_at.dt.floor("D"))[["net_bps", "normalized_net", "risk_pnl"]].sum().reindex(dates, fill_value=0)
+                    series[key] = {"raw": sums.net_bps.to_numpy()[later], "normalized": sums.normalized_net.to_numpy()[later],
+                                   "returns": portfolio_period_returns(daily)[later],
+                                   "risk_pnl": sums.risk_pnl.to_numpy()[later]}
+                    components[key] = {col: float(outcomes[col].mean()) for col in
+                                       ["mid_bps", "spread_bps", "slippage_bps", "financing_bps", "net_bps"]}
+                    years[key] = {str(y): {"opportunities": len(g), "trades": int(g.filled.sum()),
+                                           "mean_net_bps_per_opportunity": float(g.net_bps.mean()),
+                                           "risk_pnl": float(g.risk_pnl.sum())}
+                                  for y, g in outcomes.groupby(outcomes.known_at.dt.year)}
+                    del book, chosen
+        comparisons = [{"name": f"anchored_activity:s{slip:g}:{funding}:vs_{baseline}:{metric}",
+                        "model": f"anchored_activity:s{slip:g}:{funding}",
+                        "baseline": f"{baseline}:s{slip:g}:{funding}", "metric": metric}
+                       for funding in ["historical_proxy", "zero"] for slip in spec["slippage_scenarios"]
+                       for baseline in ["sweep", "rolling_activity", "long", "flat"] for metric in spec["effects"]]
+        later_counts = counts[later]
+        point = c_statistics(series, comparisons, later_counts, spec["periods_per_year"], np.arange(len(later)))
+        boot = np.array([c_statistics(series, comparisons, later_counts, spec["periods_per_year"], ix)
+                         for ix in stationary_bootstrap_indices(len(later), draws=spec["bootstrap_draws"],
+                                  mean_block_length=spec["mean_block_length"], seed=spec["seed"])])
+        eligible = np.isfinite(point) & np.isfinite(boot).all(axis=0) & (boot.std(axis=0, ddof=1) > 0)
+        selected = [c for c, ok in zip(comparisons, eligible) if ok]
+        inference = (max_t_inference(point[eligible], boot[:, eligible], names=[c["name"] for c in selected],
+                                    alpha=spec["alpha"], desired_power=spec["desired_power"],
+                                    effect_sizes=np.array([spec["effects"][c["metric"]] for c in selected]),
+                                    minimum_relevant_effect=np.array([spec["effects"][c["metric"]][0] for c in selected]))
+                     if selected else {})
+        endpoints = {r["name"]: r for r in inference.get("endpoints", [])}
+        for c, ok in zip(comparisons, eligible):
+            if not ok:
+                endpoints[c["name"]] = {"name": c["name"], "effect_verdict": "INKONKLUSIV",
+                                        "reason": "undefined_statistic_or_zero_bootstrap_variation"}
+        required = [f"anchored_activity:s1:{f}:vs_{b}:mean_net_bps"
+                    for f in ["historical_proxy", "zero"] for b in ["sweep", "rolling_activity", "long", "flat"]]
+        verdicts = [endpoints[n]["effect_verdict"] for n in required]
+        positive = all(series[f"anchored_activity:s1:{f}"]["risk_pnl"].sum() > 0 and
+                       not portfolios[f"anchored_activity:s1:{f}"]["insolvent"] for f in ["historical_proxy", "zero"])
+        decision = "GO" if all(v == "GO" for v in verdicts) and positive else "NO_GO" if "NO_GO" in verdicts else "INKONKLUSIV"
+        np.savez_compressed(out / "BOOTSTRAP_STATISTICS.npz", estimates=point, bootstrap_estimates=boot)
+        pd.DataFrame({"day": dates[later], "opportunities": later_counts, **{
+            f"{key}:{metric}": val for key, block in series.items() for metric, val in block.items()
+        }}).to_parquet(out / "PAIRED_DAYS.parquet", index=False)
+        result = {"schema": "gx1_sweep_anchored_activity_research_v1", "status": "COMPLETE",
+                  "decision": decision, "required_endpoints": required, "endpoints": list(endpoints.values()),
+                  "declared_family_count": len(comparisons), "inference": {k:v for k,v in inference.items() if k != "endpoints"},
+                  "portfolios_2011_2025": portfolios, "cost_components_per_opportunity_2011_2025": components,
+                  "yearly_results": years, "selection": {**selection, "selected": len(cohort),
+                  "later_selected": int(later_counts.sum()), "censored": int(cohort.censored_at_end.sum()),
+                  "unexecuted": int((~cohort.executable).sum())},
+                  "signal_counts": {"confirmations": len(signals), "rolling_activity": int(signals.rolling_activity.sum()),
+                                    "anchored_activity": int(signals.anchored_activity.sum())},
+                  "preregistration_sha256": sha(spec_path), "source_commit": git("rev-parse", "HEAD"),
+                  "inputs": binding, "test_outcomes_accessed": False, "native_training": False,
+                  "dukascopy_used": False, "parameters_fitted": False,
+                  "evidence_class": "fixed_rule_reused_development_history_not_untouched_oos",
+                  "primary_period": [spec["inference_start"], spec["read_end_exclusive"]],
+                  "limitations": spec["limitations"]}
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": "COMPLETE", "result_sha256": sha(out / "RESULT.json")})
+        return {"status": "COMPLETE", "decision": decision, "selection": result["selection"],
+                "result": str(out / "RESULT.json"), "sha256": sha(out / "RESULT.json")}
+    except Exception as exc:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": repr(exc)})
+        raise
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "import-b-archived-snapshots", "run-a", "run-c"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -1483,7 +1752,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

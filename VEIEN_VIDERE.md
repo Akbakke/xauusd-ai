@@ -1,5 +1,15 @@
 # Veien videre — oppdatert 30.09.2026
 
+## Godkjent neste steg: avgrenset sweep-/AVWAP-test
+
+Brukeren svarte «ja gjør dette» til datakontroll og separat teknisk hypotese.
+Følg docs/TA_SWEEP_AVWAP_20260930.md og de to hash-bundne TA_SWEEP-manifestene.
+Eksisterende Dukascopy-cache auditeres; økonomitesten bruker kvalifisert OANDA.
+Én frossen regel, felles populasjon og kostnader; 2021–2025 er gjenbrukt senere
+utviklingsperiode. Ingen parametersøk, native trening, TEST, handel eller spending.
+Full B er fortsatt blokkert og uendret. Denne godkjenningen erstatter formuleringen
+nedenfor om at sweep-testen bare var en anbefaling.
+
 Gjeldende status eies av [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md). Bruk bare
 `/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Én agent og én tung jobb innen CURRENT.
 

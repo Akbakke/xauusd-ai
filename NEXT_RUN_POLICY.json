@@ -2016,7 +2016,7 @@
     },
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
-    "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
+    "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
     "parameter_complexity_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
       "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
@@ -2051,7 +2051,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Full B awaits qualified GLD/COT historical versions and independently supported VIX availability evidence. The authorized OANDA probe returned HTTP403. User subsequently mentioned Dukascopy; existing tick cache paths and official documentation were inspected, but no account, coverage or B-source qualification is demonstrated. A bounded technical tick-data review is a recommendation only, not a source replacement or experiment launch. Reuse verified source imports and matched A/B core. Publisher value agreement and later views of the same ALFRED intervals do not repair original publication times. No automatic network retry, substituted/reduced B, real fits, native training or TEST. Full goal is blocked, not achieved.",
+  "next_action": "Run the committed bounded existing Dukascopy cache audit, then the single frozen OANDA sweep/anchored-VWAP/activity comparison under capped audit. Reuse current owners. No new download, parameter search, native training, TEST or trading. Full six-source B remains blocked.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-30T05:49:29.223474+00:00",
   "outer_guard_seconds": 13800,
@@ -2063,7 +2063,7 @@
     "one_heavy_job_per_current": true,
     "resource_guards_preserved": true,
     "tests_passed": 294,
-    "user_instruction": "fjern lås så vi kan jobbe parallelt"
+    "user_instruction": "fjern l\u00e5s s\u00e5 vi kan jobbe parallelt"
   },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -2234,7 +2234,18 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "FULL_B_GOAL_BLOCKED_PENDING_QUALIFIED_SOURCE_EVIDENCE",
+  "status": "BOUNDED_SWEEP_RESEARCH_PREREGISTERED_FULL_B_BLOCKED",
+  "sweep_research_20260930": {
+    "cache_manifest": "configs/research/TA_SWEEP_DUKASCOPY_AUDIT_20260930.json",
+    "cache_manifest_sha256": "1b8c665e689b22ce18bad966775c194d515c40df5549598181d4238406d3615e",
+    "measurement_manifest": "configs/research/TA_SWEEP_PREREG_20260930.json",
+    "measurement_manifest_sha256": "596e861175d2ab8205e20aec6871e9a9de5c8c11009fde3893e8878ba9b10357",
+    "native_training": false,
+    "plan": "docs/TA_SWEEP_AVWAP_20260930.md",
+    "plan_sha256": "b867bc8d37e9259ca19bf74775e9906c30cd38c054414e10ac7c8889e311fb00",
+    "status": "PREREGISTERED_NOT_RUN",
+    "test_outcomes_accessed": false
+  },
   "ta_research_20260929": {
     "a_cached_audit": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_CACHED_AUDIT.json",
