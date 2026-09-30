@@ -104,3 +104,34 @@ Primærkilder revidert i denne bølgen:
 [CFTCs dokumenterte unntak](https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm)
 og [GLDs offisielle holdings-/arkivside](https://www.spdrgoldshares.com/usa/gld/).
 Ingen av disse gir ennå komplett GLD/COT-versjonsdekning for vårt datasett.
+
+## Andre videreføring: kildeformatkontroll og presisering av hva som er ferdig
+
+To ALFRED-eksporter ble forhåndsbundet i commit a55f92e6: periodeformat og
+vintagematrise, observasjoner 01.–08.07.2025 og vintager 03./07.07.2025.
+Alle ti sammenlignede celler er like. Begge offisielle formater inneholder
+en numerisk 04.07-observasjon i 03.07-vintagen. Vår periodeparser skapte
+dermed ikke dette konkrete avviket. Årsaken og en forsvarlig datokontrakt
+er fortsatt uavklart; dette beviser ikke samme formatlikhet for alle 26 avvik.
+Ingen ny serie eller rad er godkjent som modellinput.
+
+Første lokale diagnoseaudit feilet fordi README-parseren også tok med
+strekseparatoren. Originalen er bevart. En separat audit med full ISO-dato-
+gjenkjenning besto gjennom capped wrapper. Ingen ny nedlasting eller omskriving
+av rådata var nødvendig. Resultat, kode- og filhasher er bundet i JSON-statusen.
+
+**Tekniske indikatorer og nytt læringsmål må skilles fra B-kildene.**
+Den fullførte v37-inputforberedelsen har 242 signalfelt, alle åtte familier,
+652 552 TRAIN-rader og 70 880 VAL-rader. Dette bygges ikke på nytt.
+A-forskningen testet sju avtalte D1-felt på 15 kronologiske årsfolds 2011–2025.
+Fasit var faktisk senere prisendring ved neste utførbare midpris, normalisert
+med kjent ATR14, over 20 og fem observerte D1-biner. Exit-lærerens estimat
+var ikke fasit i A. Ridge- og HGB-målingene var INKONKLUSIVE uten GO.
+
+Dette er ikke det samme som å ha trent hele v37-modellen på et nytt native mål.
+Den nye native mål-/horisontkontrakten og trening er fortsatt ikke innført.
+GLD/COT-versjonsdekning stopper det vedtatte fullstendige makrotillegget B;
+den stopper ikke beregning av de eksisterende OHLC-indikatorene.
+Tidligere SMC-/klokke-/datasettreparasjoner og rettet risiko-, kostnads- og
+referanseregnskap beholdes. De gjør inputs og målinger mer pålitelige,
+men er ikke alene dokumentasjon på bedre handelsbeslutninger.

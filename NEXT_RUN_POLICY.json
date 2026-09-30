@@ -1527,7 +1527,7 @@
     "native_build_ready": false,
     "native_training_ready": false,
     "plan": "docs/TA_B_FULL_GOAL_20260930.md",
-    "plan_sha256": "5ba1440b63b7d433483fc5e5f6992abd49cf9552e1aee4434e3f6d81a29b5479",
+    "plan_sha256": "9e07ca3eec4d866b34799a9d756fc5a800fad73bb46f5ab1a07e9cefd71fd067",
     "research_fit_ready": false,
     "source_manifest": "configs/research/TA_B_FULL_GOAL_SOURCE_20260930.json",
     "source_manifest_sha256": "0b3dc04221822ccfbc63d97c28c957222a89109a0f192f0f37a4cf11ac946e71",
@@ -1536,11 +1536,16 @@
     "status": "ACTIVE",
     "verification": {
       "path": "docs/TA_B_FULL_GOAL_20260930.json",
-      "sha256": "2226fdd3876ee92b0ad67093b950b552d9a4aa2cd719888d04acf8a13a6f83ce"
+      "sha256": "f862f62bf71c966fdb487fcb578bdb20496d24b6fa4e9024c9ed4b4103a5efd4"
     },
     "vix_format_comparison_manifest": {
       "path": "configs/research/TA_B_VIX_FORMAT_COMPARISON_20260930.json",
       "sha256": "4a2efefc9760f11f9dcca6cb37a815271766a0d4bb72672b1d2244c074a601a5"
+    },
+    "vix_format_comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_FORMAT_COMPARISON_20260930_001/AUDIT_002/RESULT.json",
+      "sha256": "4dba6f1e720633a55694437dd5926b7f6a8c6106ffdb1bbf5d8b64da4b2f3fa1",
+      "status": "COMPLETE_SOURCE_FORMAT_AGREEMENT_CHRONOLOGY_UNRESOLVED"
     }
   },
   "full_epoch_training_allowed": false,
@@ -1951,7 +1956,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Run only the preregistered two-format VIX source comparison. No guessed chronology repair, predictor admission, fit, training or TEST. GLD/COT vintage blockers remain.",
+  "next_action": "Full B remains active: obtain documented GLD/COT historical versions and resolve the VIX source chronology (confirmed in both formats for one case). Do not repeat completed exports, A/C fits or v37 input build. Direct future-price targets exist in A research; the new native target contract and training are not yet implemented. Await existing provider-access clarification while pursuing only concrete independent work. No TEST or blind training.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-30T05:49:29.223474+00:00",
   "outer_guard_seconds": 13800,
