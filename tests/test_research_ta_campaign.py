@@ -513,3 +513,11 @@ def test_b_macro_asof_uses_latest_observation_and_removes_missing_revision():
     broken.loc[0, "decision_time"] += pd.Timedelta(minutes=1)
     with pytest.raises(RuntimeError, match="CANONICAL_D1_CLOCK"):
         ta.alfred_asof_levels(rows, broken)
+
+
+
+def test_b_macro_rejects_numeric_values_dated_before_their_observation():
+    opens = pd.date_range("2025-07-01T22:00Z", periods=10, freq="D")
+    clocks = pd.DataFrame({"session_open": opens, "decision_time": opens + ta.TRADING_SESSION_DURATION})
+    with pytest.raises(RuntimeError, match="TA_B_FUTURE_OBSERVATION"):
+        ta.alfred_asof_levels([("2025-07-04", "25", "2025-07-03", "")], clocks)

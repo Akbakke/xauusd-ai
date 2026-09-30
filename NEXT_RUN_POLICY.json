@@ -1510,23 +1510,34 @@
   },
   "full_b_goal_20260930": {
     "active_heavy_job": null,
-    "current_stage": "SIX_SOURCE_QUALIFICATION",
+    "blockers": [
+      "GLD historical publication/vintage coverage unavailable",
+      "COT 088691 Legacy Futures Only historical publication/vintage coverage unavailable",
+      "26 VIX numeric observation versions precede their observation dates; no guessed date repair or synthetic replacement admitted"
+    ],
+    "current_stage": "SOURCE_QUALIFICATION_AND_PARTIAL_CAUSAL_IMPLEMENTATION",
     "final_test_ready": false,
     "full_b_admitted": false,
+    "macro_clock_implemented": true,
     "macro_component_manifest": {
       "path": "configs/research/TA_B_MACRO_COMPONENTS_20260930.json",
       "sha256": "37619509d7e02882973835ce1216a5051f479df7afc03c35832c12c44194bff7"
     },
+    "macro_components_ready": false,
     "native_build_ready": false,
     "native_training_ready": false,
     "plan": "docs/TA_B_FULL_GOAL_20260930.md",
-    "plan_sha256": "1460d0eb7416cbb6c12e7c2e639303b24bd8a7f1ea5aef8f30d12117e1bb9c94",
+    "plan_sha256": "5ba1440b63b7d433483fc5e5f6992abd49cf9552e1aee4434e3f6d81a29b5479",
     "research_fit_ready": false,
     "source_manifest": "configs/research/TA_B_FULL_GOAL_SOURCE_20260930.json",
     "source_manifest_sha256": "0b3dc04221822ccfbc63d97c28c957222a89109a0f192f0f37a4cf11ac946e71",
     "source_retry_status": "HTTP429_FIRST_REQUEST_REMAINDER_SKIPPED",
     "staged_operator_authorization": true,
-    "status": "ACTIVE"
+    "status": "ACTIVE",
+    "verification": {
+      "path": "docs/TA_B_FULL_GOAL_20260930.json",
+      "sha256": "2226fdd3876ee92b0ad67093b950b552d9a4aa2cd719888d04acf8a13a6f83ce"
+    }
   },
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -1936,7 +1947,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Complete full six-source B under the new goal, starting with manifest-bound GLD/COT coverage and causal implementation. Reuse validated macro archives. Research fits only after all-source admission and committed matched A/B preregistration. Native build/training and final TEST remain gated by measured evidence and frozen contracts.",
+  "next_action": "Keep full B goal active. Resolve documented GLD/COT vintage coverage and 26 VIX future-observation clock conflicts using source evidence; do not backdate, substitute or silently drop values. Preserve failed macro component run and passed focused tests. No repeated archive requests while HTTP429 persists. Build/training/final evaluation require qualified inputs and frozen contracts.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-30T05:49:29.223474+00:00",
   "outer_guard_seconds": 13800,
@@ -2119,7 +2130,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "FULL_B_GOAL_ACTIVE_SOURCE_QUALIFICATION",
+  "status": "FULL_B_GOAL_ACTIVE_GLD_COT_VIX_SOURCE_BLOCKERS",
   "ta_research_20260929": {
     "a_cached_audit": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_CACHED_AUDIT.json",

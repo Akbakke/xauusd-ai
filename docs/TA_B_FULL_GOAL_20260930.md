@@ -61,3 +61,46 @@ Korrekt målt opphold før den nye forespørselen var 10 788,14 sekunder.
 Makroklokken implementeres og kontrolleres uavhengig av den blokkerte
 GLD/COT-tilgangen. Dette er åtte komponentfelt, ikke en redusert B-modell.
 Ingen XAU-priser eller utfall leses i denne komponentforberedelsen.
+
+## Nåstatus etter første implementasjonsbølge
+
+Makroklokken er implementert og tre fokuserte tester består. Den bruker
+publikasjonsdagens slutt i New York og én komplett senere kanonisk XAU-D1-periode.
+En senere revisjon kan ikke endre tidligere input. Manglendeverdirevisjoner
+fjerner den aktuelle observasjonen fra kjent numerisk tilstand. Proveniens
+bevares ved hver beslutning; ingen antatt fredagspublisering eller framtidig
+revisjonsslutt får inputautoritet.
+
+Kjøring på ekte, hashbundne arkiver stoppet på TA_B_FUTURE_OBSERVATION.
+Alle fire kilder ble undersøkt for samme feilklasse: DFII10, DTWEXBGS og T10YIE
+hadde null slike rader. VIX hadde 26 numeriske observasjonsversjoner der
+realtime_start ligger før observasjonsdatoen. Ingen av de 26 verdiene er lik
+siste kjente numeriske observasjon ved den oppgitte vintagen. De kan derfor
+ikke forklares som ren videreføring av sist kjente verdi på denne evidensen.
+
+Første berørte observasjon er 08.10.2018, siste 01.09.2025.
+Datoene og verdiene er ikke omskrevet; ingen rad er stilletiende utelatt for
+å få et grønt resultat. Den avviste kjøringen, originalfilene og begge
+diagnosene bevares. Ingen komponentpanel ble publisert.
+
+Den tidligere grønne ZIP-/skjema-/intervallkontrollen gjelder fortsatt akkurat
+de kontrollene. Den beviste ikke at alle observasjoners publiseringsklokker var
+kausalt gyldige. Denne nyere kontrollen sperrer VIX videre inntil kildebevis
+eller en eksplisitt og dokumentert datakontrakt løser avviket.
+
+[Maskinlesbar status](TA_B_FULL_GOAL_20260930.json) binder kvitteringer, hasher og
+testresultater. Full B-kode er **delvis implementert**, B-minus-A er **ikke kjørt**,
+og build/trening/VAL/TEST/backtest er **ikke klare**. Ingen ny markedsutfallsmåling,
+fit eller TEST-tilgang er gjort i denne bølgen. Oppgaven/målet er fortsatt aktivt.
+
+Uavklarte datagrenser er nå GLD, COT og VIX-klokken. Leverandørtilgang er spurt om;
+ingen leverandør er kontaktet og intet kjøp er foretatt. Kilder som kaller data
+historiske eller point-in-time må fortsatt dokumentere akkurat våre felter,
+versjoner og tilgjengelighet.
+
+Primærkilder revidert i denne bølgen:
+[ALFREDs definisjon av gyldighetsperioder](https://alfred.stlouisfed.org/help/downloaddata),
+[CFTCs publiserings- og revisjons-FAQ](https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm),
+[CFTCs dokumenterte unntak](https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm)
+og [GLDs offisielle holdings-/arkivside](https://www.spdrgoldshares.com/usa/gld/).
+Ingen av disse gir ennå komplett GLD/COT-versjonsdekning for vårt datasett.

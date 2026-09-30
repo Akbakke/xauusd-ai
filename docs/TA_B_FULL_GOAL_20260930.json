@@ -1,0 +1,86 @@
+{
+  "blockers": [
+    "GLD historical publication/vintage coverage unavailable",
+    "COT 088691 Legacy Futures Only historical publication/vintage coverage unavailable",
+    "26 VIX numeric observation versions precede their observation dates; no guessed date repair or synthetic replacement admitted"
+  ],
+  "checks": {
+    "focused_test_scope": "publication bound, complete later session, prefix revision invariance, missing-value revision removal, valid session clock and future-observation rejection",
+    "focused_tests_passed": 3,
+    "source_diagnosis_uses_real_bound_archives": true,
+    "synthetic_tests_are_economics_evidence": false,
+    "test_log_sha256": "bc73c27e28ea37b43ef6248ba2d0226f71bac4af749ab043b177d2e4943e3d74"
+  },
+  "goal_scope": "Full six-source B, gated build/training, final frozen VAL/TEST and all valid years backtest",
+  "implementation": {
+    "complete_full_b_pipeline": false,
+    "macro_clock_implemented": true,
+    "macro_components_ready": false,
+    "owner": "gx1/scripts/research_ta_campaign_v1.py",
+    "owner_sha256": "cee15a715d29c9bb465023b361f060cede055600dd1fab074dcdd02ada0363c6",
+    "test_sha256": "149b9604bbb4ce52a75408c87d921d8b920a014b7ecc1c3370a28620cfd71ddd"
+  },
+  "macro_component_attempt": {
+    "error": "TA_B_FUTURE_OBSERVATION",
+    "manifest": "configs/research/TA_B_MACRO_COMPONENTS_20260930.json",
+    "manifest_sha256": "37619509d7e02882973835ce1216a5051f479df7afc03c35832c12c44194bff7",
+    "output_panel_published": false,
+    "status": "FAILED",
+    "terminal": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_MACRO_COMPONENTS_001/TERMINAL.json",
+    "terminal_sha256": "161d6e8050bfc9ed0ffe1ec4ff45d9126f80849fe7daec4d8659787162b766a8"
+  },
+  "native_training_started": false,
+  "new_market_outcomes_read": false,
+  "raw_values_published": false,
+  "research_fits_started": false,
+  "source_diagnosis": {
+    "comparison_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_MACRO_COMPONENTS_001/FUTURE_OBSERVATION_CARRY_COMPARISON.json",
+    "comparison_sha256": "c622f1d986c2d61366bb4c34500faa386b4b7a204eefc6d14e1b1a41b82e59e7",
+    "counts": {
+      "DFII10": {
+        "future_dated_observation_versions": 0,
+        "numeric_versions": 0
+      },
+      "DTWEXBGS": {
+        "future_dated_observation_versions": 0,
+        "numeric_versions": 0
+      },
+      "T10YIE": {
+        "future_dated_observation_versions": 0,
+        "numeric_versions": 0
+      },
+      "VIXCLS": {
+        "future_dated_observation_versions": 26,
+        "numeric_versions": 26
+      }
+    },
+    "diagnosis_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_MACRO_COMPONENTS_001/FUTURE_OBSERVATION_DIAGNOSIS.json",
+    "diagnosis_sha256": "56e88fa1c6c851c290fc17dd8b9996c2ee1d52eb589a1ba21e7547917a275585",
+    "first_affected_observation": "2018-10-08",
+    "last_affected_observation": "2025-09-01",
+    "vix_equal_to_last_numeric_at_vintage": 0
+  },
+  "source_manifest_metadata_erratum": {
+    "actual_prior_result_finished_utc": "2026-09-30T07:51:28.141925+00:00",
+    "field": "prior_last_request_utc",
+    "gap_seconds": 10788.142565,
+    "recorded": "2026-09-30T07:51:22Z"
+  },
+  "source_probe": {
+    "http_status": 429,
+    "network_attempts": 1,
+    "result_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_FULL_GOAL_SOURCE_20260930_001/RESULT.json",
+    "result_sha256": "8c261bc7768d018c63cfb31539d66e6b47ceb6189c6647dad3636c054eff2520",
+    "skipped_rate_limit": 2,
+    "terminal_sha256": "0adb0bfd22f00b7c5fc7a42b59c53d261f186f409c155f5d2771f99bc08f01f5"
+  },
+  "stages": {
+    "causal_b_implementation": "PARTIAL",
+    "final_val_test_all_year_backtest": "NOT_READY",
+    "matched_b_minus_a": "NOT_RUN",
+    "native_contract_build_training": "NOT_READY",
+    "six_source_admission": "NOT_READY"
+  },
+  "status": "GOAL_ACTIVE_IMPLEMENTATION_PARTIAL_SOURCES_NOT_READY",
+  "test_accessed": false
+}
