@@ -275,7 +275,7 @@ def audit_alfred_chunks(spec: dict, spec_path: Path, receipt_sha256: str) -> dic
                 unit_labels = [re.split(r"\s{2,}", line.strip())[0] for line in units.splitlines() if line.strip()]
                 if unit_labels not in spec["expected_unit_label_variants"][sid]:
                     raise ValueError("ALFRED_UNITS")
-                if not frequency.startswith("Daily "):
+                if [re.split(r"\s{2,}", line.strip())[0] for line in frequency.splitlines() if line.strip()] != spec["expected_frequency_labels"][sid]:
                     raise ValueError("ALFRED_FREQUENCY")
                 # Preserve exact dated units metadata rather than flattening unit revisions.
                 metadata.add((units, frequency))
