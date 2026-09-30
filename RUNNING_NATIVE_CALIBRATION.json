@@ -1833,16 +1833,56 @@
     "native_build_ready": false,
     "native_training_ready": false,
     "plan": "docs/TA_B_FULL_GOAL_20260930.md",
-    "plan_sha256": "1630e77179e2ccaf95e3401babce644370aff98f506575982e6abc12ceaae1ef",
+    "plan_sha256": "d2933800511760e2f545ec6cb6a00d4c902b493223d4ee9014ea13c29520aa0f",
     "research_fit_ready": false,
+    "source_access_confirmation": {
+      "additional_qualified_b_source_access_identified": false,
+      "additional_vendor_or_archive_access_identified": true,
+      "confirmed_on": "2026-09-30",
+      "dukascopy_review": {
+        "account_access_verified": false,
+        "checked_on": "2026-09-30",
+        "cot_documented_instruments": [
+          "EUR",
+          "GBP",
+          "JPY",
+          "CHF",
+          "AUD",
+          "NZD"
+        ],
+        "coverage_or_quality_verified": false,
+        "existing_directories": [
+          "/home/andre2/GX1_DATA/data/external/dukascopy/xauusd_ticks",
+          "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD"
+        ],
+        "full_b_source_gate_resolved": false,
+        "gold_088691_vintages_demonstrated": false,
+        "inspection_scope": "Directory names and file paths only; no tick values or TEST outcomes read",
+        "observed_cache_year_directories": [
+          2025,
+          2026
+        ],
+        "official_cot_page": "https://www.dukascopy.com/swiss/english/marketwatch/cot/",
+        "official_historical_export": "https://www.dukascopy.com/swiss/english/marketwatch/historical/",
+        "official_tick_contract": "https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/ITick.html",
+        "recommendation": "Bounded quality/utility review of existing tick data first; a separately preregistered causal sweep/event-anchored VWAP/activity hypothesis may merit research. No new feature or experiment implemented or authorized by this recommendation.",
+        "tick_semantics": "Best bid/ask and available quoted volume; historical price count is one per side, not an executed trade tape or full depth history"
+      },
+      "oanda_probe": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_OANDA_COT_PROBE_20260930_001/RESULT.json",
+        "sha256": "51f8903bb88189dc63b219e6b4addf33290f8d438ecd30b8f2b4145ce1bf0da5",
+        "status": "HTTP403_CLOUDFLARE_NO_DATA"
+      },
+      "user_answer": "Kun OANDA; subsequently mentioned possible Dukascopy access"
+    },
     "source_manifest": "configs/research/TA_B_FULL_GOAL_SOURCE_20260930.json",
     "source_manifest_sha256": "0b3dc04221822ccfbc63d97c28c957222a89109a0f192f0f37a4cf11ac946e71",
     "source_retry_status": "HTTP429_FIRST_REQUEST_REMAINDER_SKIPPED",
     "staged_operator_authorization": true,
-    "status": "ACTIVE_SOURCE_GATED",
+    "status": "BLOCKED",
     "verification": {
       "path": "docs/TA_B_FULL_GOAL_20260930.json",
-      "sha256": "979b2dc3f3fb268528ab39ca22ee506080348dc63be4d9896790134b924b6aba"
+      "sha256": "411cf5a27c763d769aaa4eca351ba90df690cb989aa4de78466e903ed314755a"
     },
     "vix_format_comparison_manifest": {
       "path": "configs/research/TA_B_VIX_FORMAT_COMPARISON_20260930.json",
@@ -1852,6 +1892,31 @@
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_FORMAT_COMPARISON_20260930_001/AUDIT_002/RESULT.json",
       "sha256": "4dba6f1e720633a55694437dd5926b7f6a8c6106ffdb1bbf5d8b64da4b2f3fa1",
       "status": "COMPLETE_SOURCE_FORMAT_AGREEMENT_CHRONOLOGY_UNRESOLVED"
+    },
+    "vix_publisher_comparison": {
+      "chronology_correction_admitted": false,
+      "comparison": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_CBOE_SOURCE_COMPARISON_20260930_001/COMPARISON.json",
+        "sha256": "32beca96942d0034a5386043543003c515b65806b134d64c4a20fab701b55717"
+      },
+      "counts": {
+        "equal_to_cboe_declared_vintage_day_close": 0,
+        "equal_to_cboe_observation_close": 26,
+        "equal_to_last_cboe_close_not_after_vintage": 0,
+        "observation_dates_present": 26
+      },
+      "historical_publication_time_proven": false,
+      "manifest": "configs/research/TA_B_VIX_CBOE_COMPARISON_20260930.json",
+      "manifest_sha256": "6dddceb90b5850ed80764ec9c458c1d27a3b674a7f1bba5038bc65d46f15f1b0",
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_CBOE_SOURCE_COMPARISON_20260930_001/REVIEW.json",
+        "sha256": "06802fe9a3a93eec39825cd47520aa6ca222cc55393e3e3351713c3298070e8b"
+      },
+      "source_replacement": false,
+      "transport_result": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_CBOE_SOURCE_COMPARISON_20260930_001/RESULT.json",
+        "sha256": "0d4180aa06c7a2efb480c976f05b4c7bcea78a2f0926b19c73894515026a9d34"
+      }
     }
   },
   "full_epoch_training_allowed": false,
@@ -1898,7 +1963,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-30T18:49:25.560120+00:00",
+  "latest_observation_utc": "2026-09-30T19:08:18.466258+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2281,7 +2346,7 @@
     },
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
-    "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
+    "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
     "parameter_complexity_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
       "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
@@ -2316,7 +2381,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Qualify documented GLD/COT historical versions and resolve VIX chronology. Reuse the completed exact-format GLD/COT snapshot import and matched A/B core. Isolated captures do not admit a panel or fit. No automatic archive/OANDA retry, reduced-source B, real fit, native training or TEST. Bind complete source coverage, decision clocks, actual common population and preregistration before run-b execution. Full end-to-end goal remains active and unachieved.",
+  "next_action": "Full B awaits qualified GLD/COT historical versions and independently supported VIX availability evidence. The authorized OANDA probe returned HTTP403. User subsequently mentioned Dukascopy; existing tick cache paths and official documentation were inspected, but no account, coverage or B-source qualification is demonstrated. A bounded technical tick-data review is a recommendation only, not a source replacement or experiment launch. Reuse verified source imports and matched A/B core. Publisher value agreement and later views of the same ALFRED intervals do not repair original publication times. No automatic network retry, substituted/reduced B, real fits, native training or TEST. Full goal is blocked, not achieved.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2329,7 +2394,7 @@
     "one_heavy_job_per_current": true,
     "resource_guards_preserved": true,
     "tests_passed": 294,
-    "user_instruction": "fjern l\u00e5s s\u00e5 vi kan jobbe parallelt"
+    "user_instruction": "fjern lås så vi kan jobbe parallelt"
   },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -2524,7 +2589,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "FULL_B_ACTIVE_GOAL_SOURCE_GATE_CLOSED",
+  "status": "FULL_B_GOAL_BLOCKED_PENDING_QUALIFIED_SOURCE_EVIDENCE",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "ta_research_20260929": {
     "a_cached_audit": {

@@ -2,7 +2,7 @@
 
 Brukeren har uttrykkelig bestilt full implementasjon, deretter build/trening og
 til slutt VAL, endelig TEST og backtest over alle år med gyldige data. Målet er
-ufullført og gjenopptatt; kildeporten er fortsatt stengt på manglende bevis. Tidligere A/B/C-plan var
+ufullført og igjen blokkert etter tre gjenopptatte arbeidsrunder med samme kildeavhengighet. Tidligere A/B/C-plan var
 avsluttet; dette er en ny videreføring.
 En kildebegrensning alene fullfører ikke dette målet.
 
@@ -197,3 +197,49 @@ Uavhengig kontroll: samme katalog, VERIFICATION.json
 Ingen nye nettdata, markedsutfall, fits eller TEST er brukt. Den komplette
 sekskilde-porten er fortsatt stengt på GLD/COT-historikk og VIX-klokke.
 Dette er kildeimport, ikke full GLD/COT-dekning, komplett B-panel eller B-fit.
+
+## Siste kildeavklaring 30.09: VIX-verdier bekreftet, publiseringsklokke uavklart
+
+En forhåndsbundet forespørsel hentet Cboes offisielle VIX-historikk (HTTP 200,
+473176 bytes). Alle 26 omstridte ALFRED-verdier stemmer med Cboe CLOSE på
+observasjonsdatoen. Ingen stemmer med Cboe CLOSE på eller senest før den
+tidligere realtime_start-datoen. Kontrollens siste vurderte dato er 01.09.2025;
+ingen XAU-utfall eller TEST-utfall er lest.
+Dagens Cboe-fil beviser ikke opprinnelig publiseringstid. En senere ALFRED-
+matrisekolonne bygger på samme versjonsintervaller og er ikke et uavhengig
+arkivbevis som kan rette den omstridte klokken. Ingen dato er flyttet, ingen
+rad er fjernet og ingen Cboe-serie er innført som erstatning for VIXCLS.
+
+Brukeren svarte først «Kun OANDA», og oppga deretter mulig Dukascopy-tilgang.
+En lesekontroll fant eksisterende XAUUSD-filer under GX1_DATA/data/external/
+dukascopy og dukascopy_cache (sistnevnte har mapper for 2025 og 2026).
+Bare filoversikten er kontrollert; ingen tickverdier, dekning eller konto er kvalifisert.
+Dukascopys offisielle ITick-kontrakt beskriver beste bid/ask og tilgjengelig
+kvotert volum, ikke utførte kjøp/salg; historiske ticks har ett prisnivå per side.
+Den offentlige COT-siden oppgir seks valutaer og dokumenterer ikke Gold 088691
+med historiske versjoner. Dette løser ikke de aktuelle GLD/COT/VIX-bevismanglene.
+Anbefalingen er en avgrenset kvalitets-/nyttevurdering av eksisterende tickdata
+før eventuell ny henting, og en separat forhåndsregistrert teknisk hypotese om
+sweep, kausalt hendelsesankret VWAP og aktivitet. Dette er en anbefaling,
+ikke et vedtak om ny indikator, redusert B eller åpning av trening.
+Primærkilder: https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/ITick.html
+og https://www.dukascopy.com/swiss/english/marketwatch/cot/.
+Den godkjente OANDA-prøven er avsluttet med HTTP 403/Cloudflare, uten COT-data.
+Ingen leverandørhenvendelse er sendt, ingen ny konto eller spending er opprettet.
+En usendt, presis feilrapport til FRED er klargjort i samme diagnosekatalog.
+
+Samme kildeavhengighet består gjennom den gjenopptatte OANDA-runden,
+GLD/COT-importen og denne Cboe-kontrollen. Uavhengig nødvendig arbeid er
+ferdigstilt der kildebeviset tillater det. Videre full B krever dokumenterbar
+GLD/COT-versjonshistorikk og kildeavklaring av VIX-tilgjengeligheten.
+Målet markeres blokkert, ikke fullført; hele sekskilde-/modellomfanget består.
+Ingen B-fit, native bygging/trening eller endelig TEST er klar eller startet.
+
+Diagnose: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_CBOE_SOURCE_COMPARISON_20260930_001/REVIEW.json
+(SHA256 06802fe9a3a93eec39825cd47520aa6ca222cc55393e3e3351713c3298070e8b).
+Sammenligning: samme katalog, COMPARISON.json
+(SHA256 32beca96942d0034a5386043543003c515b65806b134d64c4a20fab701b55717).
+Manifest: configs/research/TA_B_VIX_CBOE_COMPARISON_20260930.json,
+committet før henting i d1256f1c.
+Primærkilder: https://www.cboe.com/tradable_products/vix/vix_historical_data
+og https://alfred.stlouisfed.org/help/downloaddata.

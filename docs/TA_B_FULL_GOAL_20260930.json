@@ -23,6 +23,24 @@
     "synthetic_verification": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ARCHIVED_SNAPSHOT_IMPORT_IMPLEMENTATION_20260930_001/RESULT.json",
     "synthetic_verification_sha256": "45d4571657648943d362751055c1ffef2e34e7ea528106bf7980eef763acb733"
   },
+  "blocked_audit": {
+    "completed_independent_work": [
+      "ALFRED archive audits and macro-clock mechanics",
+      "Matched A/B fitting/evaluation core and focused synthetic checks",
+      "Observed GLD/COT source-format import and exact original-file verification",
+      "VIX period/matrix comparison and independent publisher-value comparison",
+      "Bounded OANDA COT probe; full objective and source gates retained"
+    ],
+    "condition": "Missing qualified GLD/COT historical versions and valid VIX availability evidence prevents complete source admission and dependent B/model/evaluation stages.",
+    "not_completion": true,
+    "required_external_change": "Qualified original source versions or contemporaneous archival evidence for GLD/COT, plus documented VIX availability correction/evidence. No paid source, external message or new broker probe is assumed authorized.",
+    "same_condition_repeated_across_at_least_three_resumed_goal_work_turns": true,
+    "turn_evidence": [
+      "Operator-authorized OANDA demo COT request returned HTTP403; no qualified GLD/COT or VIX availability evidence.",
+      "Observed-format GLD/COT import completed and verified, but isolated snapshots did not supply coverage; VIX gate remained closed.",
+      "All 26 VIX values corroborated against Cboe; publication clock still unsupported. User first reported only OANDA, then possible Dukascopy; existing tick cache directories and public documentation do not supply the missing B source evidence."
+    ]
+  },
   "blockers": [
     "GLD historical publication/vintage coverage unavailable",
     "COT 088691 Legacy Futures Only historical publication/vintage coverage unavailable",
@@ -77,11 +95,51 @@
   "raw_values_published": false,
   "research_fits_started": false,
   "resumed_goal_audit": {
-    "current_turn": "PROGRESS_SOURCE_SPECIFIC_IMPORT_IMPLEMENTED_AND_VERIFIED_ON_BOUND_BYTES",
+    "current_turn": "PROGRESS_PUBLISHER_VALUE_COMPARISON_AVAILABILITY_UNRESOLVED",
     "full_scope_unchanged": true,
     "goal_complete": false,
     "previous_goal_turn": "PROGRESS_NEW_OANDA_TRANSPORT_EVIDENCE_AND_INDICATOR_AUDIT",
     "same_blocker_no_progress_turns_since_resume": 0
+  },
+  "source_access_confirmation": {
+    "additional_qualified_b_source_access_identified": false,
+    "additional_vendor_or_archive_access_identified": true,
+    "confirmed_on": "2026-09-30",
+    "dukascopy_review": {
+      "account_access_verified": false,
+      "checked_on": "2026-09-30",
+      "cot_documented_instruments": [
+        "EUR",
+        "GBP",
+        "JPY",
+        "CHF",
+        "AUD",
+        "NZD"
+      ],
+      "coverage_or_quality_verified": false,
+      "existing_directories": [
+        "/home/andre2/GX1_DATA/data/external/dukascopy/xauusd_ticks",
+        "/home/andre2/GX1_DATA/data/external/dukascopy_cache/XAUUSD"
+      ],
+      "full_b_source_gate_resolved": false,
+      "gold_088691_vintages_demonstrated": false,
+      "inspection_scope": "Directory names and file paths only; no tick values or TEST outcomes read",
+      "observed_cache_year_directories": [
+        2025,
+        2026
+      ],
+      "official_cot_page": "https://www.dukascopy.com/swiss/english/marketwatch/cot/",
+      "official_historical_export": "https://www.dukascopy.com/swiss/english/marketwatch/historical/",
+      "official_tick_contract": "https://www.dukascopy.com/client/javadoc3/com/dukascopy/api/ITick.html",
+      "recommendation": "Bounded quality/utility review of existing tick data first; a separately preregistered causal sweep/event-anchored VWAP/activity hypothesis may merit research. No new feature or experiment implemented or authorized by this recommendation.",
+      "tick_semantics": "Best bid/ask and available quoted volume; historical price count is one per side, not an executed trade tape or full depth history"
+    },
+    "oanda_probe": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_OANDA_COT_PROBE_20260930_001/RESULT.json",
+      "sha256": "51f8903bb88189dc63b219e6b4addf33290f8d438ecd30b8f2b4145ce1bf0da5",
+      "status": "HTTP403_CLOUDFLARE_NO_DATA"
+    },
+    "user_answer": "Kun OANDA; subsequently mentioned possible Dukascopy access"
   },
   "source_diagnosis": {
     "comparison_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_MACRO_COMPONENTS_001/FUTURE_OBSERVATION_CARRY_COMPARISON.json",
@@ -131,7 +189,7 @@
     "native_contract_build_training": "NOT_READY",
     "six_source_admission": "NOT_READY"
   },
-  "status": "ACTIVE_GOAL_SOURCE_GATED_IMPLEMENTATION_PARTIAL",
+  "status": "GOAL_BLOCKED_SOURCE_EVIDENCE_IMPLEMENTATION_PARTIAL",
   "technical_inputs_vs_research": {
     "a_conclusion": "INKONKLUSIV for ridge and HGB; no GO",
     "a_forward_price_target_horizons_observed_d1": [
@@ -172,5 +230,30 @@
     "status": "COMPLETE_SOURCE_FORMAT_AGREEMENT_CHRONOLOGY_UNRESOLVED",
     "terminal_sha256": "a09e7f0382835d733e9c95d14f12f7bf4853e3ef0198a17145fddcafa5b4fdc3",
     "transport_receipt_sha256": "99eae58492fee77849db2683779736d7d4cf0e85808ae6ba66b05b5ad5fd5726"
+  },
+  "vix_publisher_comparison": {
+    "chronology_correction_admitted": false,
+    "comparison": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_CBOE_SOURCE_COMPARISON_20260930_001/COMPARISON.json",
+      "sha256": "32beca96942d0034a5386043543003c515b65806b134d64c4a20fab701b55717"
+    },
+    "counts": {
+      "equal_to_cboe_declared_vintage_day_close": 0,
+      "equal_to_cboe_observation_close": 26,
+      "equal_to_last_cboe_close_not_after_vintage": 0,
+      "observation_dates_present": 26
+    },
+    "historical_publication_time_proven": false,
+    "manifest": "configs/research/TA_B_VIX_CBOE_COMPARISON_20260930.json",
+    "manifest_sha256": "6dddceb90b5850ed80764ec9c458c1d27a3b674a7f1bba5038bc65d46f15f1b0",
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_CBOE_SOURCE_COMPARISON_20260930_001/REVIEW.json",
+      "sha256": "06802fe9a3a93eec39825cd47520aa6ca222cc55393e3e3351713c3298070e8b"
+    },
+    "source_replacement": false,
+    "transport_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_VIX_CBOE_SOURCE_COMPARISON_20260930_001/RESULT.json",
+      "sha256": "0d4180aa06c7a2efb480c976f05b4c7bcea78a2f0926b19c73894515026a9d34"
+    }
   }
 }
