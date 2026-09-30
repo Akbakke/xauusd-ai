@@ -7,6 +7,11 @@ overstyrer prosa.
 
 ## Aktiv oppfølging: neste datasteg for B
 
+ALFRED avviste samlet DFII10 med eksplisitt grense450 vintager per forespørsel.
+Den prøven bevares. Samme fire serier og fulle datoomfang hentes nå i fortløpende
+blokker på høyst450 etter configs/research/TA_B_ALFRED_BROWSER_CHUNKS_20260930.json.
+Ingen vintager utelates; duplikater og samlet dekning skal avstemmes.
+
 ALFRED-prøven gjennom vanlig nettleser lyktes; ZIP/CRC og historiske datoer er
 kontrollert. Fire komplette makroarkiver bindes nå i
 configs/research/TA_B_ALFRED_BROWSER_20260930.json. Internet Archive ga HTTP429;
