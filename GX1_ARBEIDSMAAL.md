@@ -1,49 +1,24 @@
-# GX1 arbeidsmål — oppdatert 29.09.2026
+# GX1 arbeidsmål — oppdatert 30.09.2026
 
 Målet er en ærlig XAUUSD-bot som tar retning på den tidsskalaen der retningen faktisk
 finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke oppnådd.
 
-## Oppfølging 30.09.2026: undersøk B-kildene
+## Nå: B-kildeundersøkelsen er fullført
 
-Andre prøve hentet ekte GLD- og COT-arkivbytes; ingen modellinput er godkjent.
-GLD-kopien er fra 08.07.2019 og COT-kopien fra 07.04.2019 viser uken 02.04.
-ALFRED-POST fikk fortsatt timeout med submit-feltet rettet og 60 s grense.
-Derfor bindes bare to smalere CDX-metadataspørringer i
-configs/research/TA_B_SOURCE_INDEX_PROBE_20260930.json. Ingen ny ALFRED-prøve.
+Brukeren ba 30.09.2026 «Ja undersøk B».
+[Undersøkelsen](docs/TA_B_SOURCE_INVESTIGATION_20260930.md) hentet og kontrollerte
+ekte historiske GLD- og COT-filer. Full B er fortsatt umålt: to enkeltkopier
+dokumenterer ikke sammenhengende publiserings-/versjonsdekning. Den kontrollerte
+COT-adressen har bare én arkivkopi 01.03–07.04.2019; GLD-indeksen fikk timeout.
+ALFRED-skjemaet virker på Mac, men POST fikk fortsatt timeout etter rettet
+submit-felt og 60 s grense. To fokuserte tester besto.
 
-Første kildeprøve er fullført og bevart: arkivmetadata bekrefter to historiske
-kopier, men CDX og ALFRED-POST fikk timeout. Begge COT-datoforespørslene
-returnerte samme kopi 07.04.2019, etter gullrevisjonen. Oppfølgingen bindes i
-configs/research/TA_B_SOURCE_SNAPSHOT_PROBE_20260930.json: bare disse to
-arkivkopiene og samme lille ALFRED-prøve med skjemaets manglende submit-felt
-rettet. Den rettelsen er ikke bevis for årsaken til timeouten.
-
-Brukeren ba «Ja undersøk B». Dette åpner en avgrenset kildeundersøkelse:
-GLD/COT-versjoner, arkivmetadata og ALFRED-transport. Fullført A/C og tidligere
-B-resultat bevares. Ingen ny fit, native trening, TEST, handel eller spending.
-
-Før nye kildebytes hentes bindes
-configs/research/TA_B_SOURCE_REOPEN_PROBE_20260930.json: fem forespørsler om
-arkivmetadata og én liten DFII10-prøve for juni 2025. En byte-lik kopi av
-CURRENTs rene HTTP-hjelpere kjøres som transport på Mac fordi samme skjema
-tidligere svarte der og fikk timeout på WSL. Rå svar og hasher føres tilbake til
-CURRENTs runtime; Mac er ikke en forskningskodebase. Ingen arkivsnapshot eller
-modellinput godkjennes av denne transportprøven.
-
-
-## Gjeldende arbeidsomfang
-
-Den avtalte [A/B/C-planen](docs/TA_RESEARCH_PLAN_20260929.md) er avsluttet:
-A/C INKONKLUSIV, B umålt med dokumentert kildebegrensning. Instrumentrettelser,
-forhåndsregistreringer, autoriserte målinger og resultatkontroller er fullført.
-[Samlet beslutning](docs/TA_RESEARCH_DECISION_20260929.md) binder neste
-operatørgrense; planen er ferdig, botens økonomiske mål er ikke oppnådd.
-
-V37-inputforberedelse og repo-/kompleksitetsgjennomgang bevares.
-Ingen native optimizersteg, trening eller utførelsesforskning følger av resultatene.
-Brede indikator-, modell- og terskelsøk er stengt. Eventuell gjenåpning av full B
-krever dokumenterbar historisk GLD/COT-tilgjengelighet og nye manifestbindinger.
-Se CURRENT_HANDOVER.md og VEIEN_VIDERE.md. Ingen ny kjøring er autorisert.
+Tre kildeprøver er avsluttet og hashkontrollert; ingen relansering er nødvendig.
+Neste datagrense er dokumenterte GLD/COT-versjoner og fungerende makrotilgang,
+eventuelt via registrert FRED/ALFRED-API-nøkkel. Leverandørens generelle
+vintagefunksjon alene er ikke godkjent dekning. Ingen B-fit eller redusert
+kildevariant er åpnet; A/C-resultatene bevares. Native trening, TEST, handel og
+spending forblir stengt.
 
 ## Suksesskriterier
 

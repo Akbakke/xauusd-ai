@@ -1,35 +1,24 @@
-# Veien videre — oppdatert 29.09.2026
+# Veien videre — oppdatert 30.09.2026
 
 Gjeldende status eies av [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md). Bruk bare
 `/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Én agent og én tung jobb innen CURRENT.
 
-## Oppfølging 30.09.2026: undersøk B-kildene
+## Nå: B-kildeundersøkelsen er fullført
 
-Andre prøve hentet ekte GLD- og COT-arkivbytes; ingen modellinput er godkjent.
-GLD-kopien er fra 08.07.2019 og COT-kopien fra 07.04.2019 viser uken 02.04.
-ALFRED-POST fikk fortsatt timeout med submit-feltet rettet og 60 s grense.
-Derfor bindes bare to smalere CDX-metadataspørringer i
-configs/research/TA_B_SOURCE_INDEX_PROBE_20260930.json. Ingen ny ALFRED-prøve.
+Brukeren ba 30.09.2026 «Ja undersøk B».
+[Undersøkelsen](docs/TA_B_SOURCE_INVESTIGATION_20260930.md) hentet og kontrollerte
+ekte historiske GLD- og COT-filer. Full B er fortsatt umålt: to enkeltkopier
+dokumenterer ikke sammenhengende publiserings-/versjonsdekning. Den kontrollerte
+COT-adressen har bare én arkivkopi 01.03–07.04.2019; GLD-indeksen fikk timeout.
+ALFRED-skjemaet virker på Mac, men POST fikk fortsatt timeout etter rettet
+submit-felt og 60 s grense. To fokuserte tester besto.
 
-Første kildeprøve er fullført og bevart: arkivmetadata bekrefter to historiske
-kopier, men CDX og ALFRED-POST fikk timeout. Begge COT-datoforespørslene
-returnerte samme kopi 07.04.2019, etter gullrevisjonen. Oppfølgingen bindes i
-configs/research/TA_B_SOURCE_SNAPSHOT_PROBE_20260930.json: bare disse to
-arkivkopiene og samme lille ALFRED-prøve med skjemaets manglende submit-felt
-rettet. Den rettelsen er ikke bevis for årsaken til timeouten.
-
-Brukeren ba «Ja undersøk B». Dette åpner en avgrenset kildeundersøkelse:
-GLD/COT-versjoner, arkivmetadata og ALFRED-transport. Fullført A/C og tidligere
-B-resultat bevares. Ingen ny fit, native trening, TEST, handel eller spending.
-
-Før nye kildebytes hentes bindes
-configs/research/TA_B_SOURCE_REOPEN_PROBE_20260930.json: fem forespørsler om
-arkivmetadata og én liten DFII10-prøve for juni 2025. En byte-lik kopi av
-CURRENTs rene HTTP-hjelpere kjøres som transport på Mac fordi samme skjema
-tidligere svarte der og fikk timeout på WSL. Rå svar og hasher føres tilbake til
-CURRENTs runtime; Mac er ikke en forskningskodebase. Ingen arkivsnapshot eller
-modellinput godkjennes av denne transportprøven.
-
+Tre kildeprøver er avsluttet og hashkontrollert; ingen relansering er nødvendig.
+Neste datagrense er dokumenterte GLD/COT-versjoner og fungerende makrotilgang,
+eventuelt via registrert FRED/ALFRED-API-nøkkel. Leverandørens generelle
+vintagefunksjon alene er ikke godkjent dekning. Ingen B-fit eller redusert
+kildevariant er åpnet; A/C-resultatene bevares. Native trening, TEST, handel og
+spending forblir stengt.
 
 ## Fullført autorisert forberedelse
 
@@ -48,23 +37,11 @@ Ingen ny fullsuite eller gjentatt bestått datakontroll uten konkret nytt funn.
 Alle features, åtte familier og tidsrammer beholdes. Ingen data/checkpoints slettes;
 ekstern diskopprydding krever retention-eierens rekkeviddebevis og godkjente plan.
 
-## Gjeldende grense: A/B/C-planen er avsluttet
+## Bevar de fullførte målingene
 
-[Samlet beslutning](docs/TA_RESEARCH_DECISION_20260929.md):
-A/C INKONKLUSIV, B ikke målt grunnet kildebegrensning. Resultater, terminaler og
-etterkontroller er ferdige. Ingen GO og ingen ny kjøring autorisert.
-Bevar [A](docs/TA_A_RESULT_20260929.md), [B](docs/TA_B_RESULT_20260929.md)
-og [C](docs/TA_C_RESULT_20260929.md); ingen omkjøring eller parameterletning.
-
-Neste mulige operatørbeslutning er om dokumenterbare historiske GLD/COT-versjoner
-kan kvalifiseres før full B eventuelt gjenåpnes. Datatilgjengelighet og
-felles A/B-populasjon må bindes før en ny fit. Ingen kostnad eller leverandørvalg
-er vedtatt. C ga ikke den nødvendige GO til utførelses-/ordrebokforskning;
-A ga ikke grunnlag for ny native mål-/horisontkontrakt.
-
-training_enabled=false. Native trening/full native VAL, TEST-utfall, handel og
-spending er stengt. Alle native familier, checkpoints og tidligere artefakter
-bevares. Målet om lønnsom bot er fortsatt ikke oppnådd.
+[Samlet beslutning 29.09](docs/TA_RESEARCH_DECISION_20260929.md): A/C er
+INKONKLUSIV og B er umålt. Oppfølgingen 30.09 gjelder bare kilder. Ingen omkjøring,
+ny native kontrakt, utførelsesforskning, modell- eller terskelsøk er åpnet.
 
 ## Fullførte historiske spor
 
