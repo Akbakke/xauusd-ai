@@ -1,14 +1,18 @@
 # Gjeldende status — 30.09.2026: oppfølging av B-kildene
 
-## Godkjent neste steg: avgrenset sweep-/AVWAP-test
+## Fullført sweep-/AVWAP-test: NO_GO
 
-Brukeren svarte «ja gjør dette» til datakontroll og separat teknisk hypotese.
-Følg docs/TA_SWEEP_AVWAP_20260930.md og de to hash-bundne TA_SWEEP-manifestene.
-Eksisterende Dukascopy-cache auditeres; økonomitesten bruker kvalifisert OANDA.
-Én frossen regel, felles populasjon og kostnader; 2021–2025 er gjenbrukt senere
-utviklingsperiode. Ingen parametersøk, native trening, TEST, handel eller spending.
-Full B er fortsatt blokkert og uendret. Denne godkjenningen erstatter formuleringen
-nedenfor om at sweep-testen bare var en anbefaling.
+Den godkjente datakontrollen og faste tekniske hypotesen er ferdig målt og kontrollert.
+Se docs/TA_SWEEP_AVWAP_20260930.md og docs/TA_SWEEP_RESULT_20260930.json.
+På 10 899 felles muligheter i gjenbrukt 2021–2025 ga ankret-kombinasjonen
+-0,919 bps etter spread, 1 bp per utførelse og finansieringsproxy. Den var
+0,269 bps svakere enn rullerende VWAP med samme aktivitet. Ingen positiv økonomi.
+32 regnskap og primære gjennomsnittsforskjeller er uavhengig kontrollert.
+Dukascopy-cachen har 3 903 452 strukturelt gyldige ticks, men mangler verifisert
+datokobling og sammenhengende dekning; den er ikke brukt i økonomitesten.
+Ingen innføring i native modell eller større trening følger. Ingen parametersøk.
+Full B er fortsatt blokkert; TEST, native trening, live/paper og spending er stengt.
+Denne seksjonen erstatter anbefalingen og kjøringsinstruksene lenger ned i historikken.
 
 **Les først:** [GX1_RULES.md](GX1_RULES.md) (bindende regler), [AGENTS.md](AGENTS.md)
 (arbeidsmåte), [GX1_ARBEIDSMAAL.md](GX1_ARBEIDSMAAL.md) (mål og vedtak) og

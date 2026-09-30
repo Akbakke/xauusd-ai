@@ -1,0 +1,426 @@
+{
+  "conclusion": "Do not promote this fixed rule or expand its training. It loses after costs and underperforms rolling VWAP with the same activity condition. No general verdict about all indicators or future learned models.",
+  "declared_endpoints": 96,
+  "defined_jointly_tested_endpoints": 64,
+  "dukascopy": {
+    "absolute_timestamp_provenance_verified": false,
+    "admitted_to_economic_test": false,
+    "continuous_coverage_proven": false,
+    "empty_files": 4,
+    "file_count": 268,
+    "filename_years": {
+      "2025": 1,
+      "2026": 263
+    },
+    "new_downloads": 0,
+    "records": 3903452,
+    "source_receipts_present": false,
+    "structurally_valid_files": 264,
+    "total_bytes": 16024354
+  },
+  "evidence": {
+    "dukascopy_audit": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/DUKASCOPY_CACHE_AUDIT_001/RESULT.json",
+      "sha256": "46f1f47cc86ad1602e7b6492947aebf18ff0d98e853a3585d1a88ee065f60968"
+    },
+    "dukascopy_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/DUKASCOPY_CACHE_AUDIT_001/TERMINAL.json",
+      "sha256": "e92bf14e5b1a465d8b8392de0ccdc1775a2fd1f00daefabcc546101cf92f08d1"
+    },
+    "independent_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/VERIFICATION.json",
+      "sha256": "64b75797ebc02ce3b8fb1d4661f7b1911af6ebd43b4a45d08fd79d9087c6813e"
+    },
+    "measurement": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/RESULT.json",
+      "sha256": "a55654e9885cbcf7b4bdc4ef266ed852c754efab141973f5bf67b08823d28eab"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/TERMINAL.json",
+      "sha256": "e829756df1ce899efa3afa4e6a03e601ed1301cb7a37e509c1344636060731a0"
+    },
+    "verification_script": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/VERIFY.py",
+      "sha256": "27989df054f6e4c2355b02c07c07cdc12fdaafd8b49760ac7d9e814cab187bc6"
+    }
+  },
+  "full_b_goal_status": "BLOCKED_UNCHANGED",
+  "implementation_checks": {
+    "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/IMPLEMENTATION_CHECKS_001/RESULT.json",
+    "sha256": "a53d59568d79e69b864121380bf79e794aa31d1f5d1f687543d75a3897dda54d"
+  },
+  "limitations": [
+    "OANDA volume counts price updates, not executed contracts. AVWAP is a quote-activity-weighted close proxy, not transaction VWAP.",
+    "Fixed five-bar confirmation and twelve-bar measurement horizon are one preregistered hypothesis, not native Entry/Exit rules or parameter optima.",
+    "Baseline is the same sweep opportunity policy and existing rolling-VWAP primitive, not a trained current native policy.",
+    "No Dukascopy economic transfer claim: sparse local cache is structurally audited separately, has no download receipts and is not admitted.",
+    "No untouched later holdout is established; 2021-2025 was used in prior project research. TEST remains sealed.",
+    "EFFR plus1.29pp is an existing research financing proxy, not verified historical OANDA swaps; zero financing is co-primary.",
+    "Observed bid/ask plus0/0.5/1/2bps per execution; no queue position, guaranteed execution or impact claim.",
+    "All opportunities including filtered zeros and censored terminal positions remain counted. No dependence-based sample inflation.",
+    "Yearly and2011-2020 results are descriptive; joint inference and decision use2021-2025 only.",
+    "No parameter fits, native model change, training, live/paper or spending."
+  ],
+  "native_features_changed": false,
+  "native_training": false,
+  "population_classification": "Reused development history; no untouched OOS claim",
+  "primary": {
+    "anchored_activity": {
+      "cost_components_bps_per_opportunity": {
+        "financing_bps": 0.0054870504742595945,
+        "mid_bps": -0.030583778018064393,
+        "net_bps": -0.9189147990430871,
+        "slippage_bps": 0.4749180848718238,
+        "spread_bps": 0.4079258856789395
+      },
+      "full_2011_2025_fixed_initial_book_insolvent": true,
+      "net_bps_per_opportunity": -0.9189147990430871,
+      "opportunities": 10899,
+      "trades": 2588
+    },
+    "long": {
+      "cost_components_bps_per_opportunity": {
+        "financing_bps": 0.07432057347092386,
+        "mid_bps": 0.27254599676019076,
+        "net_bps": -3.515575828069112,
+        "slippage_bps": 1.99103195538172,
+        "spread_bps": 1.722769295976659
+      },
+      "full_2011_2025_fixed_initial_book_insolvent": true,
+      "net_bps_per_opportunity": -3.515575828069112,
+      "opportunities": 10899,
+      "trades": 10850
+    },
+    "rolling_activity": {
+      "cost_components_bps_per_opportunity": {
+        "financing_bps": 0.0031122891288352422,
+        "mid_bps": -0.08667565497705657,
+        "net_bps": -0.6503626947798968,
+        "slippage_bps": 0.3000389575238587,
+        "spread_bps": 0.2605357931501462
+      },
+      "full_2011_2025_fixed_initial_book_insolvent": true,
+      "net_bps_per_opportunity": -0.6503626947798967,
+      "opportunities": 10899,
+      "trades": 1635
+    },
+    "sweep": {
+      "cost_components_bps_per_opportunity": {
+        "financing_bps": 0.0220249710836521,
+        "mid_bps": 0.026772601025380132,
+        "net_bps": -3.7090588587469973,
+        "slippage_bps": 1.9910351041354506,
+        "spread_bps": 1.7227713845532748
+      },
+      "full_2011_2025_fixed_initial_book_insolvent": true,
+      "net_bps_per_opportunity": -3.7090588587469973,
+      "opportunities": 10899,
+      "trades": 10850
+    }
+  },
+  "primary_endpoints": [
+    {
+      "bootstrap_se": 0.15657206929096865,
+      "effect_verdict": "GO",
+      "estimate": 2.7901440597039104,
+      "max_t_adjusted_two_sided_p": 0.0005,
+      "mde_against_zero": 0.5526129379749494,
+      "minimum_relevant_effect": 1.0,
+      "name": "anchored_activity:s1:historical_proxy:vs_sweep:mean_net_bps",
+      "plug_in_power_at_mde": 0.7998999499749875,
+      "power_at_declared_effects": [
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 1.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 2.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 5.0,
+          "power": 1.0
+        }
+      ],
+      "simultaneous_lower": 2.3691834217452294,
+      "simultaneous_upper": 3.2111046976625914
+    },
+    {
+      "bootstrap_se": 0.06596346952761539,
+      "effect_verdict": "NO_GO",
+      "estimate": -0.2685521042631906,
+      "max_t_adjusted_two_sided_p": 0.0015,
+      "mde_against_zero": 0.2315326335936626,
+      "minimum_relevant_effect": 1.0,
+      "name": "anchored_activity:s1:historical_proxy:vs_rolling_activity:mean_net_bps",
+      "plug_in_power_at_mde": 0.7998999499749875,
+      "power_at_declared_effects": [
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 1.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 2.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 5.0,
+          "power": 1.0
+        }
+      ],
+      "simultaneous_lower": -0.44590189813165987,
+      "simultaneous_upper": -0.09120231039472132
+    },
+    {
+      "bootstrap_se": 0.19451786408337293,
+      "effect_verdict": "GO",
+      "estimate": 2.5966610290260244,
+      "max_t_adjusted_two_sided_p": 0.0005,
+      "mde_against_zero": 0.6755528839155577,
+      "minimum_relevant_effect": 1.0,
+      "name": "anchored_activity:s1:historical_proxy:vs_long:mean_net_bps",
+      "plug_in_power_at_mde": 0.7998999499749875,
+      "power_at_declared_effects": [
+        {
+          "conditional_monte_carlo_se": 0.0016545707460454708,
+          "effect": 1.0,
+          "power": 0.9944972486243121
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 2.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 5.0,
+          "power": 1.0
+        }
+      ],
+      "simultaneous_lower": 2.073679091508642,
+      "simultaneous_upper": 3.119642966543407
+    },
+    {
+      "bootstrap_se": 0.11749868523572175,
+      "effect_verdict": "NO_GO",
+      "estimate": -0.9189147990430873,
+      "max_t_adjusted_two_sided_p": 0.0005,
+      "mde_against_zero": 0.4210642154656765,
+      "minimum_relevant_effect": 1.0,
+      "name": "anchored_activity:s1:historical_proxy:vs_flat:mean_net_bps",
+      "plug_in_power_at_mde": 0.7998999499749875,
+      "power_at_declared_effects": [
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 1.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 2.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 5.0,
+          "power": 1.0
+        }
+      ],
+      "simultaneous_lower": -1.2348224939475752,
+      "simultaneous_upper": -0.6030071041385994
+    },
+    {
+      "bootstrap_se": 0.1566624270952376,
+      "effect_verdict": "GO",
+      "estimate": 2.773606139094518,
+      "max_t_adjusted_two_sided_p": 0.0005,
+      "mde_against_zero": 0.5533249081889519,
+      "minimum_relevant_effect": 1.0,
+      "name": "anchored_activity:s1:zero:vs_sweep:mean_net_bps",
+      "plug_in_power_at_mde": 0.7998999499749875,
+      "power_at_declared_effects": [
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 1.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 2.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 5.0,
+          "power": 1.0
+        }
+      ],
+      "simultaneous_lower": 2.352402564582071,
+      "simultaneous_upper": 3.1948097136069653
+    },
+    {
+      "bootstrap_se": 0.06584928735537464,
+      "effect_verdict": "NO_GO",
+      "estimate": -0.26617734291776607,
+      "max_t_adjusted_two_sided_p": 0.0015,
+      "mde_against_zero": 0.23136849642666207,
+      "minimum_relevant_effect": 1.0,
+      "name": "anchored_activity:s1:zero:vs_rolling_activity:mean_net_bps",
+      "plug_in_power_at_mde": 0.7998999499749875,
+      "power_at_declared_effects": [
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 1.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 2.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 5.0,
+          "power": 1.0
+        }
+      ],
+      "simultaneous_lower": -0.44322014588876785,
+      "simultaneous_upper": -0.08913453994676429
+    },
+    {
+      "bootstrap_se": 0.19467342639873075,
+      "effect_verdict": "GO",
+      "estimate": 2.527827506029361,
+      "max_t_adjusted_two_sided_p": 0.0005,
+      "mde_against_zero": 0.6764979863212228,
+      "minimum_relevant_effect": 1.0,
+      "name": "anchored_activity:s1:zero:vs_long:mean_net_bps",
+      "plug_in_power_at_mde": 0.7998999499749875,
+      "power_at_declared_effects": [
+        {
+          "conditional_monte_carlo_se": 0.001727708084277674,
+          "effect": 1.0,
+          "power": 0.9939969984992496
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 2.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 5.0,
+          "power": 1.0
+        }
+      ],
+      "simultaneous_lower": 2.004427322704716,
+      "simultaneous_upper": 3.051227689354006
+    },
+    {
+      "bootstrap_se": 0.11749933136480141,
+      "effect_verdict": "NO_GO",
+      "estimate": -0.9134277485688277,
+      "max_t_adjusted_two_sided_p": 0.0005,
+      "mde_against_zero": 0.42104249223812906,
+      "minimum_relevant_effect": 1.0,
+      "name": "anchored_activity:s1:zero:vs_flat:mean_net_bps",
+      "plug_in_power_at_mde": 0.7998999499749875,
+      "power_at_declared_effects": [
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 1.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 2.0,
+          "power": 1.0
+        },
+        {
+          "conditional_monte_carlo_se": 0.0,
+          "effect": 5.0,
+          "power": 1.0
+        }
+      ],
+      "simultaneous_lower": -1.2293371806599722,
+      "simultaneous_upper": -0.5975183164776832
+    }
+  ],
+  "primary_period": [
+    "2021-01-01",
+    "2025-12-31"
+  ],
+  "reported_years": [
+    2011,
+    2025
+  ],
+  "selection": {
+    "censored": 1,
+    "conflicting_rows": 0,
+    "later_selected": 10899,
+    "overlap_rows": 7519,
+    "same_side_duplicates": 0,
+    "selected": 32774,
+    "unexecuted": 93
+  },
+  "signal_counts": {
+    "anchored_activity": 9534,
+    "confirmations": 40293,
+    "rolling_activity": 5915
+  },
+  "source_commit": "03cc53430ce56067027ba7cd6d2820b96f798d24",
+  "status": "COMPLETE_NO_GO",
+  "task_scope": "One frozen sweep/event-anchored quote-weighted VWAP/activity hypothesis and existing Dukascopy cache quality audit",
+  "test_outcomes_accessed": false,
+  "undefined_sharpe_endpoints": 32,
+  "verification": {
+    "all_32_ledgers_reconciled": true,
+    "all_cohort_outcomes_and_signed_funding_verified": true,
+    "does_not_prove": "Untouched OOS, profitability beyond measured history, Dukascopy transfer or native model learning.",
+    "measurement_result_sha256": "a55654e9885cbcf7b4bdc4ef266ed852c754efab141973f5bf67b08823d28eab",
+    "primary_mean_deltas_independently_verified": 32,
+    "samples": [
+      0,
+      1962,
+      1963,
+      3974,
+      3975,
+      6160,
+      6161,
+      8432,
+      8433,
+      10723,
+      10724,
+      13018,
+      13019,
+      15382,
+      15383,
+      17811,
+      17812,
+      19744,
+      19745,
+      21874,
+      21875,
+      23999,
+      24000,
+      26159,
+      26160,
+      28332,
+      28333,
+      30550,
+      30551,
+      32773
+    ],
+    "shared_cohort_and_clock_verified": true,
+    "source_hashes_verified": 12,
+    "source_quote_trade_samples": 30,
+    "status": "PASS",
+    "test_outcomes_accessed": false
+  }
+}

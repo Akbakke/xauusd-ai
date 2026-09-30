@@ -1,54 +1,94 @@
-# Avgrenset sweep-/AVWAP-/aktivitetstest — 30.09.2026
+# Sweep, ankret VWAP og aktivitet — fullført 30.09.2026
 
-Brukeren godkjente den foreslåtte datakontrollen og tekniske hypotesen med «ja gjør dette».
-Full B forblir blokkert på egne kildekrav. Denne armen erstatter ikke B.
+**Resultat: NO_GO for den ene forhåndsregistrerte regelen.** Den anbefales ikke
+innført i native modellen eller fulgt av større trening. Full B er fortsatt blokkert
+på egne kildekrav og er ikke erstattet av denne testen.
 
-Eksisterende Dukascopy-cache kontrolleres først for innhold, format, kronologi innen fil,
-bid/ask-spread, duplikater og kvotert volum. Fire udaterte filer er tomme; hovedcachen
-har 264 filer, hvorav én i 2025-mappe. Originale hentekvitteringer er ikke funnet.
-Dekoderkontrollen kan derfor ikke alene kvalifisere datoer eller sammenhengende dekning.
-Ingen ny nedlasting, kontotilgang eller tickbasert lønnsomhetstest er bestilt av manifestet.
+## Målt på OANDA
 
-Den økonomiske testen gjenbruker den bundne OANDA M5-historikken og eksisterende
-SMC-, volum-, risikostyrings-, kontantregnskaps- og inferenseiere. Bare forskningseieren
-endres. Én fast hypotese: en ensidig bekreftet sweep fades ved avslutningen av fem
-nye sammenhengende M5-barer, dersom prisen da er på fadesidens side av ankret VWAP
-og aktiviteten vol_ratio_5_20 er positiv. En ny sweep i mellomtiden ugyldiggjør kandidaten.
-AVWAP vekter close med antall prisoppdateringer fra sweepbaren til bekreftelsesbaren.
-Det er seks observerte barer og ingen tilbakedatering av ankeret.
+2011–2025 er gjennomgått; 2021–2025 er den forhåndsbestemte senere vurderingsperioden.
+Hele historikken er gjenbrukt utvikling, ikke urørt holdout. Ingen parametere er tilpasset.
+Den senere perioden har 10 899 felles muligheter. Tabellen bruker observerte bid/ask,
+1 bp slippage ved hver utførelse og eksisterende finansieringsproxy EFFR + 1,29 pp.
 
-Sammenlign på samme reserverte populasjon: sweep alene, rullerende VWAP20 med
-samme aktivitet, den foreslåtte kombinasjonen og LONG; FLAT er null på samme rader.
-Avviste filtre beholdes som nullresultater og frigjør ikke alternative handler.
-Utførelse bruker første observerte bid/ask ved eller etter beslutningen; målehorisont
-er 12 M5-barers veggklokketid. Dette innfører ingen maksimal native holdetid.
+| Variant | Utførte handler | Netto bps per felles mulighet |
+|---|---:|---:|
+| Sweep alene | 10850 | -3.709 |
+| Rullerende VWAP20 + aktivitet | 1635 | -0.650 |
+| Sweep + ankret VWAP + aktivitet | 2588 | -0.919 |
+| LONG på samme muligheter | 10850 | -3.516 |
 
-Les 2010 som oppvarming, rapporter 2011–2025 og vurder primært 2021–2025.
-Hele historikken er gjenbrukt utvikling; ingen del kalles urørt holdout.
-Ingen parametere tilpasses, og TEST åpnes ikke.
+Filtrerte og utløpte muligheter beholdes med nullresultat; tabellen er ikke snitt per
+utført handel. Totalt ble 32 774 muligheter valgt gjennom 2011–2025, med 93 uten
+utførelse og én avsluttende sensurert posisjon som ble gjort opp med kostnader.
+Alle armer reserverer de samme tidspunktene; et filter får ikke velge nye handler.
 
-Fire slippage-nivåer per utførelse (0/0,5/1/2 bps), faktisk bid/ask og to
-finansieringsscenarioer beholdes fra tidligere instrumenter. 96 endepunkter korrigeres
-samlet med paret stasjonær bootstrap/max-t (1999 trekk, 20 kalenderdagers forventet blokk).
-GO krever alle åtte primære s1-sammenligninger over 1 bps med simultan nedre grense,
-og positiv solvent økonomi i den senere perioden. Ellers NO_GO ved minst én relevant
-øvre grense under 1 bps, eller INKONKLUSIV. GO er bare grunnlag for ny bekreftelse.
+Ankret-kombinasjonen taper 0,919 bps per felles mulighet. Simultant intervall mot
+FLAT er [-1,235; -0,603] bps. Mot rullerende VWAP med samme aktivitet er forskjellen
+-0,269 bps, intervall [-0,446; -0,091]. Mot sweep alene er tapet redusert med 2,790 bps.
+Dette tilfredsstiller ikke det samlede kravet om bedre beslutninger og positiv økonomi.
+Uten slippage er kombinasjonen fortsatt negativ: -0,444 bps etter spread/finansiering.
+Målt mid-price-bidrag før kostnader er -0,031 bps per mulighet.
 
-Kjørbare autoriteter, committet før måling:
-- configs/research/TA_SWEEP_DUKASCOPY_AUDIT_20260930.json
-- configs/research/TA_SWEEP_PREREG_20260930.json
+96 endepunkter var deklarert. 64 definerte endepunkter ble korrigert samlet med
+paret stasjonær bootstrap/max-t (1999 trekk, forventet blokk 20 kalenderdager).
+32 Sharpe-endepunkter er udefinerte grunnet insolvens i de sammenhengende
+fast-startkapital-regnskapene. Tap etter slik insolvens er algebraisk
+mulighetsdiagnostikk, ikke en påstand om en fortsatt gjennomførbar portefølje.
+Ingen Sharpe ble konstruert for å få analysen gjennom.
 
-Status: implementert og fokusert mekanikk kontrollert; ekte målinger ikke kjørt ennå.
+## Regelen som faktisk ble testet
 
+Eksisterende kausale SMC-eier gir ensidige, bekreftede M5-sweephendelser.
+Up-sweep fades SHORT; down-sweep fades LONG. Etter fem nye lukkede sammenhengende
+M5-barer kreves close på fadesidens side av VWAP ankret ved sweepbaren, og
+vol_ratio_5_20 > 0. Enhver ny sweep før bekreftelsen ugyldiggjør den gamle kandidaten.
+VWAP bruker close × prisoppdateringsantall fra sweepbaren gjennom bekreftelsesbaren
+(seks barer). Det er en aktivitetsvektet prisproxy, ikke transaksjons-VWAP.
 
-Regnskapsrettelse: første måling stoppet ved BASELINE_PORTFOLIO_RETURNS_INVALID
-etter at sweep-baselinens egenkapital krysset null. Det bevarte regnskapet har
-ingen NaN-rader; laveste egenkapital er -475,46225 med start100. Dette er en
-insolvent fast-startkapital-diagnostikk, ikke en gjennomførbar videre portefølje.
-Eksisterende C-håndtering gjenbrukes: kontanttap beholdes, prosentavkastning og
-Sharpe blir udefinert. Fokusert ende-til-ende-test med insolvent syntetisk bok besto.
+Sweep alene og rullerende VWAP20 med samme aktivitetskrav vurderes på samme
+bekreftelsestidspunkt. Utførelse bruker første observerte quote ved/etter
+beslutningen. Målehorisonten er 12 M5-barers veggklokketid, med faktisk neste
+quote og eksplisitt sluttoppgjør. Dette er ikke en maksimal native holdetid.
+Ingen brede regel-/terskel-/horisontsøk er gjennomført.
 
-Ny kjøringsbinding: configs/research/TA_SWEEP_ACCOUNTING_REPAIR_20260930.json.
-Originalmanifest, feilet terminal og første bok bevares. Ferdige signaler gjenbrukes,
-og det nye felles utvalget må være eksakt likt det gamle. Fire forberedelsesfunksjoner
-er kildeidentiske med 7c4983d2. Regel, populasjon, tidsgrenser og kostnader er uendret.
+## Dukascopy
+
+268 eksisterende filer, 16 024 354 bytes, ble kontrollert. 264 filer inneholder
+3 903 452 strukturelt gyldige ticks; fire filer er tomme. Ingen observerte
+kryssede quotes, bakovergående relative tidsstempler eller negative kvoterte størrelser
+i de strukturelt gyldige filene. Én fil ligger i 2025-mappe, 263 i 2026-mapper.
+Originale hentekvitteringer og verifisert absolutt datokobling mangler.
+Sammenhengende dekning er derfor ikke dokumentert, og cachen er ikke brukt i
+økonomitesten. Ingen nye markedsdata ble lastet ned. Order flow fra utførte handler
+eller full historisk ordrebok er ikke etablert.
+
+## Kontroller og bevaring
+
+Åtte fokuserte syntetiske tester besto: klokke/ankring, eksakt vektet pris,
+prefiksinvarians/fremtidsmutasjon, ugyldiggjøring/gap, BI5-layout, felles reservasjon,
+eksisterende C-regnskap og ende-til-ende insolvensrapportering.
+
+Første kjøring stoppet på avkastning fra negativ egenkapital. Original manifest,
+terminal, signaler, utvalg og bok er bevart. Minste rettelse gjenbruker etablert
+insolvenshåndtering. Fire forberedelsesfunksjoner ble kontrollert kildeidentiske;
+regel, kostnader, perioder og parametere ble ikke endret. Ferdige signaler ble
+gjenbrukt, og det nye utvalget måtte være eksakt likt det lagrede.
+
+Uavhengig kontroll besto: alle utfall og signert finansiering i 32 bøker,
+kontantregnskapene, 32 gjennomsnittsforskjeller, felles klokke/utvalg og
+originale inn-/utgangsquotes for 30 handler fordelt over alle 15 årene.
+Dette er teknisk og økonomisk historikkevidens, ikke urørt OOS eller native læring.
+
+## Autoriteter
+
+- Opprinnelig forhåndsregistrering: configs/research/TA_SWEEP_PREREG_20260930.json
+- Uendret hypotese med regnskapsrettelse: configs/research/TA_SWEEP_ACCOUNTING_REPAIR_20260930.json
+- Cache-audit: configs/research/TA_SWEEP_DUKASCOPY_AUDIT_20260930.json
+- Aggregert rapport: docs/TA_SWEEP_RESULT_20260930.json
+- Måling: /home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/RESULT.json
+- Uavhengig kontroll: /home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/VERIFICATION.json
+
+Native features, modellvekter og treningskontrakter er ikke endret. TEST forblir
+forseglet. Neste steg er ingen automatisk utvidelse av denne regelen; en ny
+hypotese trenger en egen begrunnelse og forhåndsregistrering.

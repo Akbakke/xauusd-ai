@@ -1963,7 +1963,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-09-30T19:24:28.080697+00:00",
+  "latest_observation_utc": "2026-09-30T19:41:18.635192+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2381,7 +2381,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Complete the same frozen sweep hypothesis with established insolvency reporting, reusing hash-bound completed signals and verifying exact shared-cohort parity. Preserve the failed attempt. No parameter changes, native training or TEST; full B remains blocked.",
+  "next_action": "The bounded sweep/anchored-VWAP/activity test is complete and NO_GO on reused development history, independently verified. Do not expand this fixed rule, rerun completed analyses or launch native training. Dukascopy cache was audited but not admitted. Full six-source B remains blocked on qualified GLD/COT versions and valid VIX availability evidence. No automatic download, new hypothesis, TEST or trading.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2589,20 +2589,34 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "BOUNDED_SWEEP_RESEARCH_PREREGISTERED_FULL_B_BLOCKED",
+  "status": "SWEEP_RESEARCH_COMPLETE_NO_GO_FULL_B_BLOCKED",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "sweep_research_20260930": {
     "cache_manifest": "configs/research/TA_SWEEP_DUKASCOPY_AUDIT_20260930.json",
     "cache_manifest_sha256": "1b8c665e689b22ce18bad966775c194d515c40df5549598181d4238406d3615e",
+    "dukascopy_audit": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/DUKASCOPY_CACHE_AUDIT_001/RESULT.json",
+      "sha256": "46f1f47cc86ad1602e7b6492947aebf18ff0d98e853a3585d1a88ee065f60968"
+    },
     "initial_measurement_manifest": "configs/research/TA_SWEEP_PREREG_20260930.json",
     "initial_measurement_manifest_sha256": "596e861175d2ab8205e20aec6871e9a9de5c8c11009fde3893e8878ba9b10357",
     "measurement_manifest": "configs/research/TA_SWEEP_ACCOUNTING_REPAIR_20260930.json",
     "measurement_manifest_sha256": "db2602545137dd0193a354dd074f972f9f1de654e7d114845f572f493f300dde",
     "native_training": false,
     "plan": "docs/TA_SWEEP_AVWAP_20260930.md",
-    "plan_sha256": "89f52f7ce6452f0d2f873626984ef92effc3306f42c94d68601f182dcb892f44",
-    "status": "ACCOUNTING_REPAIR_PREREGISTERED_REUSE_COMPLETED_SIGNALS",
-    "test_outcomes_accessed": false
+    "plan_sha256": "bd01b5441cc662d2cd707bac9eb3940570f55a4d9f16a72fdf32698026e2b6eb",
+    "report": "docs/TA_SWEEP_RESULT_20260930.json",
+    "report_sha256": "6edf6afb8924133bd8f206482556768be6203202a9301ac1b680c1d41da519e5",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/RESULT.json",
+      "sha256": "a55654e9885cbcf7b4bdc4ef266ed852c754efab141973f5bf67b08823d28eab"
+    },
+    "status": "COMPLETE_NO_GO",
+    "test_outcomes_accessed": false,
+    "verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/VERIFICATION.json",
+      "sha256": "64b75797ebc02ce3b8fb1d4661f7b1911af6ebd43b4a45d08fd79d9087c6813e"
+    }
   },
   "ta_research_20260929": {
     "a_cached_audit": {
