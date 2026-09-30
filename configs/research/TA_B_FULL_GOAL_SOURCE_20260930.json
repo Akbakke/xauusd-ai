@@ -1,0 +1,53 @@
+{
+  "alfred_probe": null,
+  "archive_index_limit": 10000,
+  "archive_index_truncation_policy": "Reaching the limit is incomplete; never infer complete coverage from a capped index.",
+  "archive_metadata_requests": [
+    {
+      "expected_format": "json",
+      "id": "GLD_AVAILABLE_20190101",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20190101"
+    },
+    {
+      "expected_format": "json",
+      "id": "GLD_CDX_2019_2025",
+      "url": "https://web.archive.org/cdx/search/cdx?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&from=20190101&to=20251231&output=json&filter=statuscode%3A200&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&limit=10000"
+    },
+    {
+      "expected_format": "json",
+      "id": "COT_DATED_AVAILABLE_BEFORE_REVISION",
+      "url": "https://archive.org/wayback/available?url=https%3A%2F%2Fwww.cftc.gov%2Ffiles%2Fdea%2Fcotarchives%2F2019%2Ffutures%2Fdeacmxsf032619.htm&timestamp=20190330"
+    }
+  ],
+  "archive_policy": "No newly discovered raw file fetched until its URL/series/capture is bound in a committed manifest. First-seen snapshot time is availability evidence, never backdate to report date.",
+  "authorized_on": "2026-09-30",
+  "availability_rule": "Only after schema, vintage periods and publication-date evidence are validated. Use upper bound end of release date in America/New_York and wait one additional complete canonical XAU D1 interval; never backfill a first-created series into earlier decisions.",
+  "canonical_branch": "work/gx1-current",
+  "canonical_receipt_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_FULL_GOAL_SOURCE_20260930_001",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "fits_allowed": false,
+  "market_outcome_access": false,
+  "maximum_metadata_bytes": 2000000,
+  "operator_request": "Fullstendig B og nytt m\u00e5l: implementasjon, build/trening og til slutt VAL/TEST/backtest over alle gyldige \u00e5r.",
+  "owner_path": "gx1/scripts/research_ta_campaign_v1.py",
+  "owner_sha256": "dcca4a4c911585170ad927ceaaea5e3dbd0a82ed031b385c1bca8e210358d210",
+  "predictors_admitted": [],
+  "prior_last_request_utc": "2026-09-30T07:51:22Z",
+  "probe_path": "scripts/research_ta_b_source_probe_20260930.py",
+  "probe_sha256": "c90963cc8868cd8a28e0a96fe13fa09d58f656e028bf2c373dd7d74935a0542c",
+  "purpose": "Bounded archive recovery after almost three hours without archive calls; existing successful ALFRED archives reused. Stop remaining requests on first HTTP429. Index and availability metadata only.",
+  "registered_utc": "2026-09-30T10:50:44.455818+00:00",
+  "relay_output_directory": "/Users/andrekildalbakke/.codex/gx1_transport/B_FULL_GOAL_SOURCE_20260930_001",
+  "schema": "gx1_b_source_reopen_probe_v1",
+  "source_docs": [
+    "https://archive.org/help/wayback_api.php",
+    "https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md",
+    "https://alfred.stlouisfed.org/help/downloaddata",
+    "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalViewable/cot032619"
+  ],
+  "spending_allowed": false,
+  "test_accessed": false,
+  "timeout_seconds": 30,
+  "transport_hostname": "Andre-sin-MacBook-Air.local",
+  "transport_role": "Mac HTTP relay only; byte-identical canonical probe and owner; no research computation or code edits on relay"
+}

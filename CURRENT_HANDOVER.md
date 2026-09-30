@@ -5,6 +5,15 @@
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
 
+## Aktivt nytt mål: full B, bygge-/treningsklarhet og endelig evaluering
+
+Brukeren har bestilt [hele B-løpet og videre kvalifisert modelløp](docs/TA_B_FULL_GOAL_20260930.md).
+Målet er aktivt og ikke oppnådd. Alle seks kilder og faktisk tilgjengelighet
+kreves før B-fit. Neste konkrete arbeid er GLD/COT-dekning og komplett kausal
+B-implementasjon. Fire ferdige ALFRED-arkiver gjenbrukes.
+Native trening/TEST er fortsatt stengt ved dagens uoppfylte porter.
+Ingen løfte om kunstig historikk, lønnsomhet eller et grønt treningsvedtak.
+
 ## Fullført neste datasteg for B — 30.09.2026
 
 [Oppfølgingen](docs/TA_B_NEXT_SOURCE_STEP_20260930.md) har hentet og kontrollert

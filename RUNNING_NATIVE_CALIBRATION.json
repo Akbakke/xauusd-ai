@@ -1784,6 +1784,21 @@
     "sha256": "c4405568af34ee0d8072ab020e52286e7eda5314a85cceec1e94d3342aa174f5"
   },
   "frozen_val_numeric_review": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json",
+  "full_b_goal_20260930": {
+    "active_heavy_job": null,
+    "current_stage": "SIX_SOURCE_QUALIFICATION",
+    "final_test_ready": false,
+    "full_b_admitted": false,
+    "native_build_ready": false,
+    "native_training_ready": false,
+    "plan": "docs/TA_B_FULL_GOAL_20260930.md",
+    "plan_sha256": "a4d62c01de66b217e87ff67f26a0affc390df19d269932e351785d54d491f4ae",
+    "research_fit_ready": false,
+    "source_manifest": "configs/research/TA_B_FULL_GOAL_SOURCE_20260930.json",
+    "source_manifest_sha256": "0b3dc04221822ccfbc63d97c28c957222a89109a0f192f0f37a4cf11ac946e71",
+    "staged_operator_authorization": true,
+    "status": "ACTIVE"
+  },
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "github_publication_status": "standing_explicit_authorization_for_source_docs_and_aggregates",
@@ -2246,7 +2261,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Preserve 27 validated macro archives and completed audits. Qualify historical GLD tonnes and COT COMEX 088691 Legacy Futures Only release/vintage coverage before full B. No active job, automatic retry, reduced source arm, fit, TEST, native training, trading or spending. Any additional fetch must be manifest-bound; any later fit needs common A/B population and committed preregistration.",
+  "next_action": "Complete full six-source B under the new goal, starting with manifest-bound GLD/COT coverage and causal implementation. Reuse validated macro archives. Research fits only after all-source admission and committed matched A/B preregistration. Native build/training and final TEST remain gated by measured evidence and frozen contracts.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2454,7 +2469,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "B_MACRO_ARCHIVES_VERIFIED_GLD_COT_SOURCE_LIMITED",
+  "status": "FULL_B_GOAL_ACTIVE_SOURCE_QUALIFICATION",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "ta_research_20260929": {
     "a_cached_audit": {
