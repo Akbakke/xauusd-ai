@@ -422,3 +422,59 @@ def test_c_passive_terminal_touch_is_marked_even_when_assumed_fill_time_equals_c
     assert outcomes.iloc[0].filled
     assert outcomes.iloc[0].risk_pnl == pytest.approx(100 / r.decision_mid * (r.exit_bid - r.passive_limit))
     assert book.held_units_after.iloc[-1] == 0
+
+
+
+def test_alfred_version_summary_checks_duplicate_values_and_interval_boundaries():
+    rows = [("2020-01-01", "1", "2020-01-02", "2020-01-04"),
+            ("2020-01-01", "2", "2020-01-05", "")]
+    got = ta.alfred_version_summary(rows + rows[:1])
+    assert got["unique_observation_versions"] == 2
+    assert got["identical_chunk_duplicates"] == 1
+    assert got["revised_observations"] == 1
+    assert got["gaps_between_version_intervals"] == 0
+    with pytest.raises(ValueError, match="CONFLICTING_DUPLICATE"):
+        ta.alfred_version_summary(rows + [("2020-01-01", "3", "2020-01-02", "2020-01-04")])
+    with pytest.raises(ValueError, match="OVERLAPPING_INTERVALS"):
+        ta.alfred_version_summary([rows[0], ("2020-01-01", "2", "2020-01-04", "")])
+    with pytest.raises(ValueError, match="OVERLAPPING_INTERVALS"):
+        ta.alfred_version_summary([("2020-01-01", "1", "2020-01-02", ""), rows[1]])
+    with pytest.raises(ValueError, match="NONFINITE_VALUE"):
+        ta.alfred_version_summary([("2020-01-01", "nan", "2020-01-02", "")])
+
+
+def test_source_probe_rate_limit_stops_remaining_network_requests(tmp_path, monkeypatch):
+    import io
+    import runpy
+    import socket
+    import sys
+    from email.message import Message
+    from urllib.error import HTTPError
+    import urllib.request
+
+    probe = ta.ROOT / "scripts/research_ta_b_source_probe_20260930.py"
+    owner = Path(ta.__file__)
+    spec = {"probe_sha256": ta.sha(probe), "owner_sha256": ta.sha(owner),
+            "transport_hostname": socket.gethostname(),
+            "relay_output_directory": str(tmp_path / "receipt"), "timeout_seconds": 2,
+            "maximum_metadata_bytes": 1024, "alfred_probe": None,
+            "archive_metadata_requests": [{"id": "first", "url": "https://example.test/a"},
+                                          {"id": "second", "url": "https://example.test/b"}]}
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps(spec))
+    calls = []
+    def limited(req, timeout):
+        calls.append(req.full_url)
+        headers = Message()
+        headers["Retry-After"] = "120"
+        raise HTTPError(req.full_url, 429, "rate limited", headers, io.BytesIO(b"rate limited"))
+    monkeypatch.setattr(urllib.request, "urlopen", limited)
+    monkeypatch.setattr(sys, "argv", [str(probe), str(manifest), ta.sha(manifest), str(owner)])
+    runpy.run_path(str(probe), run_name="__main__")
+    result = json.loads((tmp_path / "receipt/RESULT.json").read_text())
+    assert calls == ["https://example.test/a"]
+    first, second = result["archive_requests"]
+    assert first["status"] == "FAILED" and first["http_status"] == 429
+    assert first["retry_after"] == "120"
+    assert second["status"] == "SKIPPED_RATE_LIMIT"
+    assert "http_status" not in second

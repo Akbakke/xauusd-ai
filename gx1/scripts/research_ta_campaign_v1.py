@@ -7,6 +7,9 @@ training, broker access, TEST, automatic parameter search or result promotion.
 from __future__ import annotations
 
 import argparse
+import csv
+import math
+import re
 from copy import deepcopy
 import hashlib
 from html.parser import HTMLParser
@@ -16,7 +19,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 import zipfile
@@ -175,6 +178,165 @@ def fetch_alfred(spec: dict, spec_path: Path) -> dict:
         "all_downloads_succeeded": all(r["status"] == "RETRIEVED_NOT_ADMITTED" for r in records),
         "result_sha256": sha(out / "RESULT.json")})
     return {"out": str(out), "series_status": {r["series"]: r["status"] for r in records}}
+
+
+
+def alfred_version_summary(rows: list[tuple[str, str, str, str]]) -> dict:
+    """Validate source intervals; exact chunk duplicates are audit-only deduplication."""
+    unique = {}
+    duplicates = 0
+    for obs, value, start, end in rows:
+        date.fromisoformat(obs)
+        date.fromisoformat(start)
+        if end:
+            date.fromisoformat(end)
+            if end < start:
+                raise ValueError("ALFRED_REVERSED_INTERVAL")
+        if value and not math.isfinite(float(value)):
+            raise ValueError("ALFRED_NONFINITE_VALUE")
+        key = (obs, start)
+        if key in unique:
+            if unique[key] != (value, end):
+                raise ValueError("ALFRED_CONFLICTING_DUPLICATE")
+            duplicates += 1
+        else:
+            unique[key] = (value, end)
+    grouped = {}
+    for (obs, start), (value, end) in sorted(unique.items()):
+        grouped.setdefault(obs, []).append((start, end, value))
+    gaps = 0
+    for versions in grouped.values():
+        for earlier, later in zip(versions, versions[1:]):
+            if not earlier[1] or earlier[1] >= later[0]:
+                raise ValueError("ALFRED_OVERLAPPING_INTERVALS")
+            if (date.fromisoformat(later[0]) - date.fromisoformat(earlier[1])).days > 1:
+                gaps += 1
+    if not unique:
+        raise ValueError("ALFRED_EMPTY_DATA")
+    return {
+        "input_rows": len(rows), "unique_observation_versions": len(unique),
+        "identical_chunk_duplicates": duplicates, "observations": len(grouped),
+        "first_observation": min(grouped), "last_observation": max(grouped),
+        "first_realtime_start": min(k[1] for k in unique),
+        "last_realtime_start": max(k[1] for k in unique),
+        "missing_value_versions": sum(not v[0] for v in unique.values()),
+        "revised_observations": sum(len(v) > 1 for v in grouped.values()),
+        "gaps_between_version_intervals": gaps,
+        "conflicting_duplicates": 0, "overlapping_intervals": 0,
+    }
+
+
+def audit_alfred_chunks(spec: dict, spec_path: Path, receipt_sha256: str) -> dict:
+    """Audit already downloaded, hash-bound archives. Does not build B inputs."""
+    root = Path(spec["canonical_receipt_directory"])
+    receipt_path = root / "TRANSPORT_RECEIPT.json"
+    if not receipt_sha256 or sha(receipt_path) != receipt_sha256:
+        raise ValueError("ALFRED_TRANSPORT_RECEIPT_HASH")
+    receipt = json.loads(receipt_path.read_text())
+    if receipt["manifest_sha256"] != spec["download_manifest_sha256"]:
+        raise ValueError("ALFRED_SOURCE_MANIFEST_HASH")
+    expected_ids = [x["id"] for x in spec["series"]]
+    if [x["series"] for x in receipt["series"]] != expected_ids:
+        raise ValueError("ALFRED_SERIES_SET")
+    if set(x["series"] for x in receipt["files"]) != set(expected_ids):
+        raise ValueError("ALFRED_FILE_SERIES_SET")
+    out = root / "AUDIT_001"
+    out.mkdir(exist_ok=False)
+    records = []
+    for summary in receipt["series"]:
+        sid = summary["series"]
+        record = {"series": sid, "predictor_admitted": False, "files": []}
+        try:
+            chunks = [x for x in receipt["files"] if x["series"] == sid]
+            if [x["chunk"] for x in chunks] != list(range(summary["chunks"])):
+                raise ValueError("ALFRED_CHUNK_SET")
+            rows, all_dates = [], []
+            metadata = set()
+            for chunk in chunks:
+                path = root / chunk["path"]
+                if path.parent != root or sha(path) != chunk["sha256"]:
+                    raise ValueError("ALFRED_ZIP_HASH_OR_PATH")
+                if path.stat().st_size != chunk["bytes"] or chunk["bytes"] > spec["maximum_download_bytes"]:
+                    raise ValueError("ALFRED_ZIP_SIZE")
+                with zipfile.ZipFile(path) as archive:
+                    members = archive.infolist()
+                    if len(members) != 2 or set(archive.namelist()) != {"README.txt", "obs._by_real-time_period.csv"}:
+                        raise ValueError("ALFRED_MEMBER_SET")
+                    if sum(m.file_size for m in members) > spec["maximum_uncompressed_bytes"]:
+                        raise ValueError("ALFRED_UNCOMPRESSED_SIZE")
+                    if archive.testzip() is not None:
+                        raise ValueError("ALFRED_CRC")
+                    data = {m.filename: archive.read(m) for m in members}
+                text = data["README.txt"].decode("utf-8")
+                if f"Series ID: {sid}\n" not in text or "Output Format: Observations by Real-Time Period\n" not in text:
+                    raise ValueError("ALFRED_ID_OR_FORMAT")
+                units = text.split("\nUnits\n", 1)[1].split("\nFrequency\n", 1)[0].strip()
+                frequency = text.split("\nFrequency\n", 1)[1].split("\nSeasonal Adjustment\n", 1)[0].strip()
+                unit_labels = [re.split(r"\s{2,}", line.strip())[0] for line in units.splitlines() if line.strip()]
+                if unit_labels != spec["expected_unit_labels"][sid]:
+                    raise ValueError("ALFRED_UNITS")
+                if not frequency.startswith("Daily "):
+                    raise ValueError("ALFRED_FREQUENCY")
+                # Preserve exact dated units metadata rather than flattening unit revisions.
+                metadata.add((units, frequency))
+                dates = re.findall(r"^\d{4}-\d{2}-\d{2}$", text.split("Vintage Dates Specified:", 1)[1], re.M)
+                dates_digest = hashlib.sha256(("\n".join(dates) + "\n").encode()).hexdigest()
+                if (dates_digest != chunk["vintage_sha256"] or len(dates) != chunk["count"]
+                        or len(dates) > spec["observed_source_limit"]["daily_vintages_per_request"]
+                        or dates[0] != chunk["first"] or dates[-1] != chunk["last"]):
+                    raise ValueError("ALFRED_VINTAGE_SELECTION")
+                all_dates.extend(dates)
+                reader = csv.reader(io.StringIO(data["obs._by_real-time_period.csv"].decode("utf-8")))
+                if next(reader) != ["period_start_date", sid, "realtime_start_date", "realtime_end_date"]:
+                    raise ValueError("ALFRED_CSV_SCHEMA")
+                chunk_rows = []
+                for row in reader:
+                    if len(row) != 4:
+                        raise ValueError("ALFRED_CSV_WIDTH")
+                    obs, value, start, end = row
+                    if not (spec["observation_start"] <= obs <= spec["observation_end"]):
+                        raise ValueError("ALFRED_OBSERVATION_BOUNDS")
+                    if not (spec["vintage_start"] <= start <= dates[-1]):
+                        raise ValueError("ALFRED_REALTIME_BOUNDS")
+                    chunk_rows.append(tuple(row))
+                within = alfred_version_summary(chunk_rows)
+                if within["identical_chunk_duplicates"]:
+                    raise ValueError("ALFRED_DUPLICATE_WITHIN_CHUNK")
+                rows.extend(chunk_rows)
+                record["files"].append({
+                    "path": str(path), "sha256": chunk["sha256"], "rows": len(chunk_rows),
+                    "members": {name: {"bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+                                for name, raw in data.items()},
+                })
+            full_hash = hashlib.sha256(("\n".join(all_dates) + "\n").encode()).hexdigest()
+            if (all_dates != sorted(set(all_dates)) or len(all_dates) != summary["count"]
+                    or full_hash != summary["vintage_sha256"]
+                    or all_dates[0] != summary["first"] or all_dates[-1] != summary["last"]
+                    or all_dates[0] < spec["vintage_start"] or all_dates[-1] > spec["vintage_end"]):
+                raise ValueError("ALFRED_FULL_VINTAGE_COVERAGE")
+            record.update(alfred_version_summary(rows))
+            record.update(status="ARCHIVE_CONSISTENT_NOT_PREDICTOR_ADMITTED",
+                          selected_vintages=len(all_dates), first_vintage=all_dates[0],
+                          last_vintage=all_dates[-1], vintage_sha256=full_hash,
+                          source_metadata=[{"units": u, "frequency": f} for u, f in sorted(metadata)])
+        except Exception as error:
+            record.update(status="FAILED", error=f"{type(error).__name__}: {error}")
+        records.append(record)
+    result = {
+        "status": "COMPLETE_SOURCE_ARCHIVE_AUDIT", "records": records,
+        "all_archives_consistent": all(r["status"] == "ARCHIVE_CONSISTENT_NOT_PREDICTOR_ADMITTED" for r in records),
+        "manifest_sha256": sha(spec_path), "transport_receipt_sha256": receipt_sha256,
+        "owner_sha256": sha(Path(__file__)), "source_commit": git("rev-parse", "HEAD"),
+        "availability_policy": spec["availability"], "predictors_admitted": [],
+        "fits_run": False, "market_outcomes_read": False, "test_accessed": False,
+        "finished_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    write_json(out / "RESULT.json", result)
+    write_json(out / "TERMINAL.json", {"status": result["status"], "result_sha256": sha(out / "RESULT.json"),
+                                     "all_archives_consistent": result["all_archives_consistent"]})
+    return {"out": str(out), "result_sha256": sha(out / "RESULT.json"),
+            "all_archives_consistent": result["all_archives_consistent"],
+            "series_status": {r["series"]: r["status"] for r in records}}
 
 
 def funding_dates(spec: dict) -> pd.DatetimeIndex:
@@ -896,11 +1058,15 @@ def run_c(spec: dict, spec_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "run-a", "run-c"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "run-a", "run-c"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
+    parser.add_argument("--receipt-sha256")
     args = parser.parse_args()
     spec = checked_spec(args.spec, args.spec_sha256)
+    if args.mode == "audit-alfred-chunks":
+        print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
+        return 0
     owner = {"fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
