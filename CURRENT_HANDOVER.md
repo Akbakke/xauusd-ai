@@ -7,6 +7,13 @@ overstyrer prosa.
 
 ## Oppfølging 30.09.2026: undersøk B-kildene
 
+Første kildeprøve er fullført og bevart: arkivmetadata bekrefter to historiske
+kopier, men CDX og ALFRED-POST fikk timeout. Begge COT-datoforespørslene
+returnerte samme kopi 07.04.2019, etter gullrevisjonen. Oppfølgingen bindes i
+configs/research/TA_B_SOURCE_SNAPSHOT_PROBE_20260930.json: bare disse to
+arkivkopiene og samme lille ALFRED-prøve med skjemaets manglende submit-felt
+rettet. Den rettelsen er ikke bevis for årsaken til timeouten.
+
 Brukeren ba «Ja undersøk B». Dette åpner en avgrenset kildeundersøkelse:
 GLD/COT-versjoner, arkivmetadata og ALFRED-transport. Fullført A/C og tidligere
 B-resultat bevares. Ingen ny fit, native trening, TEST, handel eller spending.

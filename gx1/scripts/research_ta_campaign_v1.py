@@ -116,7 +116,7 @@ def alfred_form_body(raw: bytes, spec: dict) -> tuple[bytes, list[str]]:
     values = [("form[units]", "lin"), ("form[obs_start_date]", spec["observation_start"]),
               ("form[obs_end_date]", spec["observation_end"]),
               ("form[entered_vintage_dates]", ""), ("form[file_type]", "1"),
-              ("form[file_format]", "csv")]
+              ("form[file_format]", "csv"), ("form[download_data]", "")]
     values += [("form[selected_vintage_dates][]", date) for date in selected]
     return urlencode(values).encode(), selected
 

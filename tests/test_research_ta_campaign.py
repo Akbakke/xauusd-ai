@@ -251,9 +251,10 @@ def test_alfred_post_binds_vintages_and_preserves_raw_download_without_admitting
     manifest.write_text(json.dumps(spec))
     result = ta.fetch_alfred(spec, manifest)
     assert result["series_status"] == {"DFII10": "RETRIEVED_NOT_ADMITTED"}
-    data = parse_qs(requests[1].data.decode())
+    data = parse_qs(requests[1].data.decode(), keep_blank_values=True)
     assert data["form[selected_vintage_dates][]"] == ["2009-01-02", "2025-12-31"]
     assert data["form[file_type]"] == ["1"]
+    assert data["form[download_data]"] == [""]
     receipt = json.loads((tmp_path/"fetch"/"DFII10"/"RECEIPT.json").read_text())
     assert receipt["predictor_admitted"] is False
     assert receipt["raw_sha256"] == ta.sha(Path(receipt["raw_path"]))

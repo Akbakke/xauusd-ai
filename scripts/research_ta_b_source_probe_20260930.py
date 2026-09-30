@@ -56,9 +56,12 @@ for entry in spec["archive_metadata_requests"]:
             raise ValueError("METADATA_SIZE_LIMIT")
         if record["http_status"] != 200:
             raise ValueError("HTTP_NON_200")
-        decoded = json.loads(raw)
-        record.update(status="METADATA_RECEIVED_NOT_ADMITTED",
-                      json_type=type(decoded).__name__)
+        if entry.get("expected_format", "json") == "json":
+            decoded = json.loads(raw)
+            record.update(status="METADATA_RECEIVED_NOT_ADMITTED",
+                          json_type=type(decoded).__name__)
+        else:
+            record["status"] = "SNAPSHOT_BYTES_RECEIVED_NOT_ADMITTED"
     except Exception as error:
         record.update(status="FAILED", error=f"{type(error).__name__}: {error}")
     record["elapsed_seconds"] = time.monotonic() - begin
