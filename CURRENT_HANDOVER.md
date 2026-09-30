@@ -5,6 +5,29 @@
 [VEIEN_VIDERE.md](VEIEN_VIDERE.md) (eksakt neste steg). `bash scripts/gx1_handover.sh --check`
 overstyrer prosa.
 
+## Avgrenset oppfølging 30.09: indikatorrevisjon og OANDA-prøve
+
+Brukeren bestilte en egen skrivebeskyttet agentrevisjon av liquidity sweep,
+order flow, anchored VWAP og volum. Revisjonen av HEAD 3947c778 fant aktiv sweep
+og rullerende tickvektet VWAP; ingen aktiv hendelsesankret VWAP eller ekte
+aggressor-/ordrebokflyt. Tre aktivitetsfelt varierer i de gjenbrukte 652552
+TRAIN-snapshotene. Sju fokuserte syntetiske tester besto; dette er struktur- og
+inputbevis, ikke lærings- eller lønnsomhetsbevis. Modell/kilde er ikke endret.
+Audit: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/LIQUIDITY_VOLUME_AUDIT_20260930_001/AUDIT.json
+(SHA256 7548b539559c6ce2e622acf9a425ce1c05de80063afae565ea44466c7b90433c).
+
+Brukeren godkjente uttrykkelig én manifestbundet, skrivebeskyttet COT-forespørsel
+mot OANDA practice med eksisterende demo-token. Manifestet
+configs/research/TA_B_OANDA_COT_PROBE_20260930.json ble committet i 6c0402c5 før
+henting. Den ene forespørselen ga HTTP 403 og en Cloudflare-blokkeringsside;
+ingen COT-data ble mottatt. Dette avgjør ikke tokenens gyldighet, kontorettigheter
+eller om den eldre COT-tjenesten fortsatt fungerer. Ingen automatisk retry eller
+alternativ rute er startet. Tillatelsen omfattet kun denne prøven.
+Resultat: /home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_OANDA_COT_PROBE_20260930_001/RESULT.json
+(SHA256 51f8903bb88189dc63b219e6b4addf33290f8d438ecd30b8f2b4145ce1bf0da5).
+Full B er fortsatt blokkert på kildebevis; ingen data er tatt inn som input,
+og trening/TEST/handel er ikke åpnet.
+
 ## Ufullført mål: full B, nå blokkert på kildebevis
 
 Brukeren har bestilt [hele B-løpet og videre kvalifisert modelløp](docs/TA_B_FULL_GOAL_20260930.md).

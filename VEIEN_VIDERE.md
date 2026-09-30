@@ -3,6 +3,13 @@
 Gjeldende status eies av [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md). Bruk bare
 `/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Én agent og én tung jobb innen CURRENT.
 
+Avgrenset oppfølging 30.09 er fullført: den bestilte indikatorrevisjonen og
+én uttrykkelig godkjent OANDA-demo-COT-prøve. Prøven ga HTTP 403/Cloudflare;
+ingen COT-data, ingen konklusjon om token eller tjenestens tilgjengelighet.
+Indikatorrevisjonen fant aktiv sweep/rullerende tick-VWAP, men ingen aktiv
+hendelsesankret VWAP eller ekte order flow. Se kilde-/testbevis og receipts i
+CURRENT_HANDOVER.md. Dette endrer ikke B-kildekravene eller treningsportene.
+
 ## Ufullført mål: full B, nå blokkert på kildebevis
 
 Brukeren har bestilt [hele B-løpet og videre kvalifisert modelløp](docs/TA_B_FULL_GOAL_20260930.md).

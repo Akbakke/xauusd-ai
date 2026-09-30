@@ -3,6 +3,13 @@
 Målet er en ærlig XAUUSD-bot som tar retning på den tidsskalaen der retningen faktisk
 finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke oppnådd.
 
+Avgrenset oppfølging 30.09 er fullført: den bestilte indikatorrevisjonen og
+én uttrykkelig godkjent OANDA-demo-COT-prøve. Prøven ga HTTP 403/Cloudflare;
+ingen COT-data, ingen konklusjon om token eller tjenestens tilgjengelighet.
+Indikatorrevisjonen fant aktiv sweep/rullerende tick-VWAP, men ingen aktiv
+hendelsesankret VWAP eller ekte order flow. Se kilde-/testbevis og receipts i
+CURRENT_HANDOVER.md. Dette endrer ikke B-kildekravene eller treningsportene.
+
 ## Ufullført mål: full B, nå blokkert på kildebevis
 
 Brukeren har bestilt [hele B-løpet og videre kvalifisert modelløp](docs/TA_B_FULL_GOAL_20260930.md).
