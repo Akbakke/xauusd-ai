@@ -3,26 +3,26 @@
 Gjeldende status eies av [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md). Bruk bare
 `/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Én agent og én tung jobb innen CURRENT.
 
-## Aktiv oppfølging: neste datasteg for B
+## Fullført neste datasteg for B — 30.09.2026
 
-ALFRED avviste samlet DFII10 med eksplisitt grense450 vintager per forespørsel.
-Den prøven bevares. Samme fire serier og fulle datoomfang hentes nå i fortløpende
-blokker på høyst450 etter configs/research/TA_B_ALFRED_BROWSER_CHUNKS_20260930.json.
-Ingen vintager utelates; duplikater og samlet dekning skal avstemmes.
+[Oppfølgingen](docs/TA_B_NEXT_SOURCE_STEP_20260930.md) har hentet og kontrollert
+alle fire ALFRED-arkivene: 27 filer og 11 249 valgte historiske versjonsdatoer.
+Offentlig nettlesereksport fungerer uten API-nøkkel. Alle fire har bestått
+endelig kildeaudit; ingen motstridende duplikater eller overlappende intervaller.
+Originalfiler, to avviste metadata-kontroller og den endelige kontrollen er bevart.
 
-ALFRED-prøven gjennom vanlig nettleser lyktes; ZIP/CRC og historiske datoer er
-kontrollert. Fire komplette makroarkiver bindes nå i
-configs/research/TA_B_ALFRED_BROWSER_20260930.json. Internet Archive ga HTTP429;
-nye arkivforespørsler er stoppet. Henteeieren stopper nå resten av en batch ved429.
-Ingen historisk dekning utledes fra feilresponsene.
+Full B er fortsatt umålt. GLD/COT har ikke tilstrekkelig historisk versjonsdekning;
+de nye arkivoppslagene ga ni HTTP 429 og én HTTP 503. Nye oppslag er stoppet.
+Henteeieren stopper nå resten av en batch etter HTTP 429; fokusert test besto.
+Ingen redusert kildevariant, B-fit, TEST, trening, handel eller spending er åpnet.
 
-Brukeren ba «Kjør neste steg». Kun den nye manifestbundne kildeprøven
-configs/research/TA_B_NEXT_SOURCE_STEP_20260930.json åpnes: ALFREDs vanlige
-nettleserskjema, årlige GLD-arkivoppslag og arkiv for den daterte COT-rapporten
-26.03.2019. Tidligere prøver gjenbrukes og relanseres ikke. Ingen fit, kontakt med
-leverandør, kjøp, TEST eller handel er åpnet.
+Dollarindeksens første vintage er 04.02.2019. Ingen tilbakefylling til tidligere
+beslutninger. Etter kildekvalifisering må A/B sammenlignes på samme faktiske
+TRAIN-/eval-populasjon med publikasjonslag og warmup, etter ny forhåndsregistrering.
+Neste datagrense er dokumenterbar GLD-tonnasje og COT 088691 Legacy Futures Only.
+Ferdige nedlastinger og kontroller gjenbrukes; ingen jobb kjører og ingen relanseres.
 
-## Tidligere kildeundersøkelse
+## Historikk: tidligere kildeundersøkelse før nettlesertilgangen ble løst
 
 Brukeren ba 30.09.2026 «Ja undersøk B».
 [Undersøkelsen](docs/TA_B_SOURCE_INVESTIGATION_20260930.md) hentet og kontrollerte
@@ -32,10 +32,9 @@ COT-adressen har bare én arkivkopi 01.03–07.04.2019; GLD-indeksen fikk timeou
 ALFRED-skjemaet virker på Mac, men POST fikk fortsatt timeout etter rettet
 submit-felt og 60 s grense. To fokuserte tester besto.
 
-Tre kildeprøver er avsluttet og hashkontrollert; ingen relansering er nødvendig.
-Neste datagrense er dokumenterte GLD/COT-versjoner og fungerende makrotilgang,
-eventuelt via registrert FRED/ALFRED-API-nøkkel. Leverandørens generelle
-vintagefunksjon alene er ikke godkjent dekning. Ingen B-fit eller redusert
+Tre tidligere kildeprøver er avsluttet og hashkontrollert. Makrotilgangen som
+manglet i denne historiske undersøkelsen er nå løst i oppfølgingen ovenfor.
+Leverandørens generelle vintagefunksjon alene er ikke godkjent GLD/COT-dekning. Ingen B-fit eller redusert
 kildevariant er åpnet; A/C-resultatene bevares. Native trening, TEST, handel og
 spending forblir stengt.
 

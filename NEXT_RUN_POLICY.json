@@ -1,14 +1,33 @@
 {
   "b_next_source_step_20260930": {
+    "active_job": null,
+    "audit_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ALFRED_BROWSER_CHUNKS_20260930_001/AUDIT_003/RESULT.json",
+      "sha256": "9092bdb7a95742519e939a02321f86d00e62c4cd6b48d3f3918697bee8e80f29"
+    },
+    "audit_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ALFRED_BROWSER_CHUNKS_20260930_001/AUDIT_003/TERMINAL.json",
+      "sha256": "555288a2c783d61d2d0d2e83e75a4eba19222d686798d20ef664de87f9f15762"
+    },
     "chunk_manifest": "configs/research/TA_B_ALFRED_BROWSER_CHUNKS_20260930.json",
     "chunk_manifest_sha256": "8f874e062976af6d6fb20de86f39ec01c46426de6421a234a79dfa3cd663bdd9",
     "fits_allowed": false,
+    "full_b_admitted": false,
+    "macro_archives_validated": 4,
     "macro_manifest": "configs/research/TA_B_ALFRED_BROWSER_20260930.json",
     "macro_manifest_sha256": "83d3724292cba5d8a7d6a0adbd6b683ca205405fb57c147d77adf680e3d38eeb",
     "manifest": "configs/research/TA_B_NEXT_SOURCE_STEP_20260930.json",
     "manifest_sha256": "f26bf252225764af140e07f3df8e950eba0ed46aebc170ee3fa09ed90b87d3e4",
-    "status": "SOURCE_450_VINTAGE_LIMIT_BOUND",
-    "training_enabled": false
+    "remaining_sources": [
+      "GLD_gold_holdings_tonnes",
+      "COT_COMEX_088691_Legacy_Futures_Only"
+    ],
+    "report": "docs/TA_B_NEXT_SOURCE_STEP_20260930.md",
+    "report_sha256": "2f924fb4bbbdfbe4fa0ba8a34dbfa3b11e6e929bc9086fe2bbaddd2972b9b709",
+    "status": "COMPLETE_MACROS_VERIFIED_FULL_B_NOT_ADMITTED",
+    "training_enabled": false,
+    "verification": "docs/TA_B_NEXT_SOURCE_STEP_20260930.json",
+    "verification_sha256": "5e12f576dd99180fa03970be174dec60721147842c75a3e987a51d988a6adce8"
   },
   "b_source_investigation_20260930": {
     "active_job": null,
@@ -1897,7 +1916,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Fetch all four ALFRED archives in at most450-vintage public browser chunks, preserving completed chunks and verifying exact vintage coverage. The single oversized attempt was rejected and is not repeated. No new archive calls, fits, TEST, trading or spending.",
+  "next_action": "Preserve 27 validated macro archives and completed audits. Qualify historical GLD tonnes and COT COMEX 088691 Legacy Futures Only release/vintage coverage before full B. No active job, automatic retry, reduced source arm, fit, TEST, native training, trading or spending. Any additional fetch must be manifest-bound; any later fit needs common A/B population and committed preregistration.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-30T05:49:29.223474+00:00",
   "outer_guard_seconds": 13800,
@@ -2080,7 +2099,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "B_ALFRED_BROWSER_CHUNKS_AUTHORIZED_ARCHIVE_RATE_LIMITED",
+  "status": "B_MACRO_ARCHIVES_VERIFIED_GLD_COT_SOURCE_LIMITED",
   "ta_research_20260929": {
     "a_cached_audit": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001_CACHED_AUDIT.json",

@@ -1,4 +1,28 @@
 {
+  "b_next_source_step_20260930": {
+    "active_job": null,
+    "audit_result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ALFRED_BROWSER_CHUNKS_20260930_001/AUDIT_003/RESULT.json",
+      "sha256": "9092bdb7a95742519e939a02321f86d00e62c4cd6b48d3f3918697bee8e80f29"
+    },
+    "audit_terminal": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/B_ALFRED_BROWSER_CHUNKS_20260930_001/AUDIT_003/TERMINAL.json",
+      "sha256": "555288a2c783d61d2d0d2e83e75a4eba19222d686798d20ef664de87f9f15762"
+    },
+    "fits_allowed": false,
+    "full_b_admitted": false,
+    "macro_archives_validated": 4,
+    "remaining_sources": [
+      "GLD_gold_holdings_tonnes",
+      "COT_COMEX_088691_Legacy_Futures_Only"
+    ],
+    "report": "docs/TA_B_NEXT_SOURCE_STEP_20260930.md",
+    "report_sha256": "2f924fb4bbbdfbe4fa0ba8a34dbfa3b11e6e929bc9086fe2bbaddd2972b9b709",
+    "status": "COMPLETE_MACROS_VERIFIED_FULL_B_NOT_ADMITTED",
+    "training_enabled": false,
+    "verification": "docs/TA_B_NEXT_SOURCE_STEP_20260930.json",
+    "verification_sha256": "5e12f576dd99180fa03970be174dec60721147842c75a3e987a51d988a6adce8"
+  },
   "bounded_val_core": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/BOUNDED_VAL_CORE_REVIEW_20260916.json",
     "sha256": "02590c20b837a76c78bacfd1b2250856753630844a568bb8a1d43a0b7406a517"
@@ -2222,7 +2246,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "A/B/C research plan complete: preserve terminal A/C and B source limitation. No run authorized. Next operator decision is whether documented historical GLD/COT release-vintage evidence justifies reopening full B; no automatic native training or execution research. TEST outcomes, trading and spending remain disabled.",
+  "next_action": "Preserve 27 validated macro archives and completed audits. Qualify historical GLD tonnes and COT COMEX 088691 Legacy Futures Only release/vintage coverage before full B. No active job, automatic retry, reduced source arm, fit, TEST, native training, trading or spending. Any additional fetch must be manifest-bound; any later fit needs common A/B population and committed preregistration.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2430,7 +2454,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "TA_RESEARCH_COMPLETE_A_C_INCONCLUSIVE_B_SOURCE_LIMITED_TRAINING_DISABLED",
+  "status": "B_MACRO_ARCHIVES_VERIFIED_GLD_COT_SOURCE_LIMITED",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "ta_research_20260929": {
     "a_cached_audit": {
