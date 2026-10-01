@@ -2580,6 +2580,41 @@
       "sha256": "d2117e2bb1236c7f8e58c2a8918f8f04d0813c7e3ef04da04fd0b25b18f87fc5"
     },
     "final_bindings": {
+      "artifacts": {
+        "COMPOSITE_NORMALIZATION.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/COMPOSITE_NORMALIZATION.json",
+          "sha256": "26be1942c28718fefcdf3790eda9fa94520f90a9d479833acc0b8636ea75d0e5"
+        },
+        "FINAL_BINDINGS_BUNDLE.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/FINAL_BINDINGS_BUNDLE.json",
+          "sha256": "a9dba4e5dc985cc265be5bc348f30f0df6c41054d35b0b139b587378730465e7"
+        },
+        "FIRST_STATE_ENTRY_BRIDGE_TRAIN.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/FIRST_STATE_ENTRY_BRIDGE_TRAIN.json",
+          "sha256": "543e29696960becf6182f2cad0d74a6e65d79e3e252be704a1fbd3071ea83c4f"
+        },
+        "FIRST_STATE_ENTRY_BRIDGE_VAL.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/FIRST_STATE_ENTRY_BRIDGE_VAL.json",
+          "sha256": "a80a6c8781b88532653105c492cfaed878ed6541605febbd7af5a2ebbcc7c5c7"
+        },
+        "SAMPLER_BENCHMARK_CANDIDATES.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/SAMPLER_BENCHMARK_CANDIDATES.json",
+          "sha256": "11617e0026fb50ddb9895faf87901950d76e315c0d3132cf9bc14618c1e23688"
+        },
+        "SPLIT_SEQUENCE_BINDING_TRAIN.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/SPLIT_SEQUENCE_BINDING_TRAIN.json",
+          "sha256": "da19090c6d5f8ff0c849c8b83e6e022400a369088bf4f6c0f54450730d135d32"
+        },
+        "SPLIT_SEQUENCE_BINDING_VAL.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/SPLIT_SEQUENCE_BINDING_VAL.json",
+          "sha256": "6c3ddcdd27d3b26d6e14ad6c8f3784b89741148ca517240825d188452258acc4"
+        }
+      },
+      "composite_normalization_sha256": "9a30939aa60041d91bc1bfdd0eede3c5afd7c691d801e0fc3e5049d553c73d37",
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/EVENTS/FINAL_BINDINGS_REVIEW_20261001T225810309909Z.json",
+        "sha256": "0bee59989c5fa28f6652c2a4127c755922622dfa8597226fc2e23104f9cf2814"
+      },
       "focused_tests_passed": 22,
       "model_forwards": 0,
       "native_training_enabled": false,
@@ -2598,8 +2633,31 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/RECIPE.json",
         "sha256": "6b05350485cd825e3b0dcbb296369a6ad05ebb40cfd7b0f291fea2994f56bad8"
       },
-      "source_frozen_while_running": true,
-      "status": "BOUND_AFTER_OBSERVED_ZERO_SPREAD_FIX"
+      "relaunch_authorized": false,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/EVENTS/RESULT_20261001T224313184213Z.json",
+        "sha256": "af45d48c081559777e8119f8cde0cfd2a1f077c416c48ee0800adb003f06900d"
+      },
+      "source_frozen_while_running": false,
+      "splits": {
+        "train": {
+          "entry_rows": 652552,
+          "first_state_geometry_exact": true,
+          "sequence_binding_sha256": "bfd3e256debbd4772eae0a7fe359388ab0c9a8ed0ac155609a358f245fd23414",
+          "successor_geometry_exact": true
+        },
+        "val": {
+          "entry_rows": 70880,
+          "first_state_geometry_exact": true,
+          "sequence_binding_sha256": "7a8729bab2347354b6e1c264500dd82a85bb13c4b1eadd02f4cb048a914caad0",
+          "successor_geometry_exact": true
+        }
+      },
+      "status": "COMPLETE_COMPOSITE_AND_ALL_FIRST_STATE_BINDINGS_NOT_NATIVE_ADMISSION",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/EVENTS/TERMINAL_20261001T224313203883Z.json",
+        "sha256": "9a1ded0f7026f35669206272974301bcd6f378fbe9d16f51324040fb21edb7e5"
+      }
     },
     "final_bindings_failed_attempts": [
       {
@@ -2643,7 +2701,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FULL_TRAIN_NORMALIZATION_COMPLETE_FINAL_BINDINGS_BOUND_INDEX_TARGETS_REQUIRED",
+    "learning_design_status": "NORMALIZATION_AND_FIRST_STATE_BINDINGS_COMPLETE_ECONOMICS_INDEX_TARGETS_REQUIRED",
     "learning_proven": false,
     "lifetime_summary_fit": {
       "authorization_consumed": true,
@@ -2950,7 +3008,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse the completed full TRAIN base and lifetime normalization; no refit. Execute only bound FINAL_BINDINGS_002 to publish composite normalization and first-state proofs using explicit current artifacts; preserve frozen source and require terminal plus independent geometry agreement. Then resolve prospective-cost coverage and broker-term revalidation under current closed-broker rules, and bind explicit-path random-access indexes, separate TRAIN/control coordinates and same-current-function TARGET. Native training, TEST, live/paper and spending remain closed. No learning or edge proven.",
+  "next_action": "Reuse completed base/lifetime normalization and FINAL_BINDINGS_002 artifacts; do not refit or relaunch completed producers. First repair the existing random-access index owner to consume explicit current paths and frozen 2011-2025 TRAIN / 2025-2026 control calendar, preserving canonical state/censor semantics. Before actual index publication resolve prospective-cost coverage (old policy starts 2021, required 2011) and its current broker-term revalidation condition without treating old terms as current or opening broker access. Complete no-cap economics, immutable index publication, separate TRAIN/control coordinates, native targets and same-current-function TARGET before a guarded native launch. Native training, TEST, broker, live/paper and spending remain closed. Learning, chronological generalization, net economics, parity, full B and derived-M5 production provenance remain unfinished.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],

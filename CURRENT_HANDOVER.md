@@ -1,53 +1,30 @@
-# Gjeldende status — 01.10.2026: native v38 og kontrollert kodeopprydding
+# Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
-Sluttbindingens første forsøk feilet før publisering: én ekte TRAIN-rad,
-12.12.2012 kl. 17:00 UTC, har BID=ASK. Ingen kryssede priser eller
-float32-kollaps ble funnet på 652 552 TRAIN-/70 880 VAL-førstetilstander.
-Entry-fill-eieren avviste likhet selv om de øvrige aktive kontraktene
-aksepterer ASK>=BID. Minste rettelse er <= til <; positive, endelige priser
-kreves fortsatt. 22 fokuserte tester består, inkludert ekte bridge-kode
-med nullspread og fortsatt avvisning av kryssede/ugyldige priser.
-FINAL_BINDINGS_001 og feilen er bevart. FINAL_BINDINGS_002 er bundet
-etter rettelsen; base-/lifetime-fit gjenbrukes uendret. Ingen nye modellsteg.
+Base- og lifetime-normaliseringen samt samlede førstetilstands-bindinger
+er fullført. Lifetime-fit: 8 053 838 siderader fra alle 652 552 TRAIN-entryer;
+VAL/TEST-fit = 0. FINAL_BINDINGS_002 sluttet med exit 0 og uendret kilde.
+Samtlige 652 552 TRAIN-/70 880 VAL-entryer kobles eksakt til første M1-bar;
+posisjoner og tilstandstelling matcher tidligere uavhengig geometri.
+Alle publiserte hasher og samlet normalisering er etterkontrollert.
 
-Lifetime-normaliseringen er fullført med exit 0 og strict-load PASS.
-4 026 919 samples fra alle 652 552 TRAIN-entryer gir 8 053 838 siderader.
-TRAIN-/VAL-counts matcher tidligere kontrollert geometri eksakt; VAL fikk
-ingen fit. Kilden var uendret, TEST-tilgangsforsøk = 0, modellsteg = 0.
-29 fokuserte tester består. Base- og lifetime-statistikk skal nå gjenbrukes.
-Sluttbindingens samme no-replace-publiseringsfeil er også rettet; 7 fokuserte
-tester består. FINAL_BINDINGS_002 er bundet til samlet normalisering og
-første M1-tilstand for hver Entry; dette åpner ingen fit eller modellkjøring.
-Kostnadsdekning/broker-revalidering, indekser og mål gjenstår. Ingen edge.
+Rettet: unødvendig lagring av over fire millioner sample-objekter,
+overskrivbar publisering hos lifetime-/sluttbindingseierne og én faktisk
+nullspread-mismatch i Entry-fill-kontrakten. Testene bevarer utvalg/hash,
+avviser korrupt staging og navnekollisjoner og godtar BID=ASK uten å
+godta kryssede eller ugyldige priser. Fokuserte tester: 29, 7 og 22 i
+de tre respektive endringsbølgene; påkrevde Git-kontraktssjekker består.
+Det feilede FINAL_BINDINGS_001 er bevart; ingen normalisering er refittet.
 
-Normaliseringskoden er nå bundet til de faktiske full-TRAIN-artefaktene før
-statistikkfit. Feil vitne, byttede filer, feil MTF-sti og endrede bytes avvises.
-Den eksisterende diskbaserte M1-innleseren erstatter store RAM-kopier;
-historikkunion beregnes per sammenhengende intervall i stedet for per rad.
-25 fokuserte tester består, inkludert eksakt normparitet og navnekollisjon.
-BASE_NORMALIZATION_FIT_001 er fullført med exit 0 og strict-load PASS:
-alle 254 signalfelt, kontekst og M5/M15/H1/H4/D1 er tilpasset på fryst TRAIN.
-5 748 166 lokale feature-rader og 4 647 700 kontekstrader inngår; null VAL/TEST.
-Alle MTF-utvalg er tilgjengelige før TRAIN-slutt. Ingen modellforward/optimizer.
-Basefitten skal gjenbrukes; tillatelsen er brukt opp. Før indeksbygg gjenstår
-lifetime-statistikk, no-cap-økonomibinding og samlet norm-/førstetilstandsbevis.
-Native trening og TEST er stengt; ingen edge er dokumentert.
+Neste: eksisterende indekseier må bindes til nye eksplisitte stier/kalender.
+Før faktisk indeksbygg må no-cap-kostnadsdekning fra 2011 og policyens
+krav til oppdaterte broker-vilkår avklares. Gammel policy starter i 2021
+og sist registrerte kontoverifisering er 10.09.2026. Broker er stengt.
+Deretter gjenstår mål, separate TRAIN/kontrollkoordinater og lærerparitet.
+Native trening, TEST, live/paper og spending er stengt. Ingen edge er bevist.
+Gjenbruk fullførte artefakter; ikke relanser produsentene.
 
-
-Hele TRAIN-sekvenskontrollen er fullført: alle 652 552 seq/snap-rader
-matcher bundet M5-flate eksakt. Terminal exit 0, uendret kilde og null
-VAL-/TEST-datasettilgang. Gjenbruk TRAIN_SEQUENCE_AUDIT_001; ikke relanser.
-Normaliseringsforberedelsen gjenbruker nå dette beviset bare ved eksakt
-fil-/hash-/populasjonsbinding; endrede bytes eller bevis avvises.
-Kun M5-klokken lastes der signalverdier allerede er kontrollert.
-19 fokuserte tester består. NORMALIZATION_POPULATION_001 er fullført med
-exit 0: hele TRAINs 652 552 entryer gir 955 670 unike M5-kontekstrader og
-3 995 148 unike observerbare M1-tilstander. M1-unionen matcher uavhengig
-den tidligere kontrollerte geometrien eksakt. Denne populasjonskontrollen
-tilpasset ingen statistikk; basefitten øverst er fullført senere.
-Gjenbruk de tre publiserte inputartefaktene; ikke relanser produsenten.
-Neste steg er tilstandsindekser og binding av normalisering/mål med separate
-TRAIN-/kontrollkoordinater. Native launch, læring og økonomi gjenstår.
+Historisk teknisk bakgrunn følger. Tidligere neste-steg-tekst nedenfor
+er erstattet av sammendraget over og gjeldende next_action i statusfilene.
 
 ## Native v38 — komplett M1-featureflate kontrollert, læring gjenstår
 

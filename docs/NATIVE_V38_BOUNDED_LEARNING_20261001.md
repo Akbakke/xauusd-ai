@@ -675,3 +675,60 @@ SHA256: 36da7d078c75cf53e5184b345ce0600e638b27b871c2775785dbd8b551c970a6.
 
 Den aldri kjørte første planen/operatoren i FINAL_BINDINGS_002 er bevart;
 aktiv PLAN_002 binder riktig testantall 22. Ingen beregning er relansert der.
+
+## Sluttbindinger fullført — 02.10.2026
+
+Base- og lifetime-normaliseringen samt samlede førstetilstands-bindinger
+er fullført. Lifetime-fit: 8 053 838 siderader fra alle 652 552 TRAIN-entryer;
+VAL/TEST-fit = 0. FINAL_BINDINGS_002 sluttet med exit 0 og uendret kilde.
+Samtlige 652 552 TRAIN-/70 880 VAL-entryer kobles eksakt til første M1-bar;
+posisjoner og tilstandstelling matcher tidligere uavhengig geometri.
+Alle publiserte hasher og samlet normalisering er etterkontrollert.
+
+Rettet: unødvendig lagring av over fire millioner sample-objekter,
+overskrivbar publisering hos lifetime-/sluttbindingseierne og én faktisk
+nullspread-mismatch i Entry-fill-kontrakten. Testene bevarer utvalg/hash,
+avviser korrupt staging og navnekollisjoner og godtar BID=ASK uten å
+godta kryssede eller ugyldige priser. Fokuserte tester: 29, 7 og 22 i
+de tre respektive endringsbølgene; påkrevde Git-kontraktssjekker består.
+Det feilede FINAL_BINDINGS_001 er bevart; ingen normalisering er refittet.
+
+Neste: eksisterende indekseier må bindes til nye eksplisitte stier/kalender.
+Før faktisk indeksbygg må no-cap-kostnadsdekning fra 2011 og policyens
+krav til oppdaterte broker-vilkår avklares. Gammel policy starter i 2021
+og sist registrerte kontoverifisering er 10.09.2026. Broker er stengt.
+Deretter gjenstår mål, separate TRAIN/kontrollkoordinater og lærerparitet.
+Native trening, TEST, live/paper og spending er stengt. Ingen edge er bevist.
+Gjenbruk fullførte artefakter; ikke relanser produsentene.
+
+Historisk teknisk bakgrunn følger. Tidligere neste-steg-tekst nedenfor
+er erstattet av sammendraget over og gjeldende next_action i statusfilene.
+
+FINAL_BINDINGS_002 fullført 01.10 kl. 22:43:13 UTC (02.10 kl. 00:43 Oslo),
+kilde b093fa254820e5d53fed0bbb64a8fa405340b733. Prosess-RSS maksimalt
+1 613 620 KiB; 4 GiB-cgroup aktiv. Ingen fit, modellforward eller optimizersteg.
+Samlet normkontrakt SHA256: 9a30939aa60041d91bc1bfdd0eede3c5afd7c691d801e0fc3e5049d553c73d37.
+
+result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/EVENTS/RESULT_20261001T224313184213Z.json
+SHA256: af45d48c081559777e8119f8cde0cfd2a1f077c416c48ee0800adb003f06900d.
+
+terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/EVENTS/TERMINAL_20261001T224313203883Z.json
+SHA256: 9a1ded0f7026f35669206272974301bcd6f378fbe9d16f51324040fb21edb7e5.
+
+final_review: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/EVENTS/FINAL_BINDINGS_REVIEW_20261001T225810309909Z.json
+SHA256: 0bee59989c5fa28f6652c2a4127c755922622dfa8597226fc2e23104f9cf2814.
+
+COMPOSITE_NORMALIZATION.json: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/COMPOSITE_NORMALIZATION.json
+SHA256: 26be1942c28718fefcdf3790eda9fa94520f90a9d479833acc0b8636ea75d0e5.
+
+FINAL_BINDINGS_BUNDLE.json: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/FINAL_BINDINGS_BUNDLE.json
+SHA256: a9dba4e5dc985cc265be5bc348f30f0df6c41054d35b0b139b587378730465e7.
+
+Avgrenset videre feilsøk: indekseierens _paths bruker fortsatt gamle
+ENTRY_WINDOW-parquet-, M1_CHILD_VIEWS_V1- og CLOSURE_AUTHORITY-navn.
+Ikke lag datakopier/aliaser; bind faktiske artefakter i eksisterende eier.
+Dens kalender og os.replace-publisering må også kontrolleres før bruk.
+Prospective cost-produsent har fortsatt os.rename før sluttsjekk og
+sletting av output i feilsti; no-cap-/readiness-eiere bruker replace.
+Disse ble kildeinspisert, ikke kjørt eller endret i denne bølgen;
+rett konkrete publiseringsblokker før de eventuelt tas i bruk.
