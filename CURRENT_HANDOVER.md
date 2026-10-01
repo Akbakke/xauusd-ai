@@ -1,5 +1,14 @@
 # Gjeldende status — 01.10.2026: native v38 og kontrollert kodeopprydding
 
+Normaliseringskoden er nå bundet til de faktiske full-TRAIN-artefaktene før
+statistikkfit. Feil vitne, byttede filer, feil MTF-sti og endrede bytes avvises.
+Den eksisterende diskbaserte M1-innleseren erstatter store RAM-kopier;
+historikkunion beregnes per sammenhengende intervall i stedet for per rad.
+25 fokuserte tester består, inkludert eksakt normparitet og navnekollisjon.
+BASE_NORMALIZATION_FIT_001 er nå bundet til én CPU-fit av basestatistikk på
+hele kvalifisert TRAIN, før sampling. Dette løser en forutsetning for indeksene.
+Bare denne normfitten er åpnet; lifetime-fit, modelltrening og TEST er stengt.
+
 
 Hele TRAIN-sekvenskontrollen er fullført: alle 652 552 seq/snap-rader
 matcher bundet M5-flate eksakt. Terminal exit 0, uendret kilde og null
@@ -72,8 +81,8 @@ Kontrollerte omstarter mellom ferdige, maskinfelles ledige kjøringer er
 nå stående operatørinstruks. Aldri avbryt en aktiv jobb for periodisk omstart.
 Gammel lærer fjerner dagens parameterfrie normalisering; ny fersk måling skal
 bruke samme aktuelle funksjon for ONLINE og TARGET. Indekser, normalisering
-og mål-/økonomibindinger gjenstår. Native trening og normaliseringsfit er
-fortsatt stengt; TEST er urørt. Eldre neste-steg-tekst er historikk.
+og mål-/økonomibindinger gjenstår. Native trening er
+fortsatt stengt; bare navngitt base-normaliseringsfit øverst er åpnet. Eldre neste-steg-tekst er historikk.
 
 ## Aktivt mål 01.10 — makrotest fullført, native læringsbevis gjenstår
 

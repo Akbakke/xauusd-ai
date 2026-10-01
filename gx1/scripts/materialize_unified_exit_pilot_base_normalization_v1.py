@@ -15,6 +15,11 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import require_pilot_child_calendar
+from gx1.contracts.entry_sequence_source_reconstruction_v1 import feature_surface_binding_from_split_manifest
+from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface
+from gx1.contracts.entry_exit_feature_base_v1 import EXIT_FEATURE_SEQUENCE_BARS
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS,
     EXPECTED_SURFACES,
@@ -42,7 +47,8 @@ from gx1.models.entry_v10.entry_v10_input_normalization import (
 )
 
 from gx1.scripts.materialize_unified_exit_pilot_normalization_inputs_v1 import (
-    _canonical_sha256, _clock_hash, _prefix_entry_rows,
+    _canonical_sha256, _clock_hash, _prefix_entry_rows, _merge_intervals,
+    _exact_file,
 )
 
 
@@ -72,6 +78,58 @@ def _matrix(table: Any, name: str, dtype: str) -> np.ndarray:
         raise RuntimeError("PILOT_BASE_NORMALIZATION_LIST_SHAPE_INVALID")
     width = len(flat) // len(column)
     return np.ascontiguousarray(flat.reshape(len(column), width), dtype=dtype)
+
+
+
+def _require_full_fit_bindings(
+    *, admission: dict[str, Any], view: dict[str, Any], population: dict[str, Any],
+    parent_manifest: dict[str, Any], child_admission_path: Path,
+    population_witness_path: Path, m5_feature_path: Path, m5_prebuilt_path: Path,
+    m1_feature_path: Path, mtf_cache_dir: Path,
+) -> None:
+    """Bind full physical TRAIN inputs before reading matrices or fitting."""
+    windows = require_pilot_child_calendar(admission)
+    for value, key in ((admission, "witness_sha256"), (view, "contract_sha256"),
+                       (population, "contract_sha256")):
+        if value.get(key) != _canonical_sha256({k: v for k, v in value.items() if k != key}):
+            raise RuntimeError("PILOT_BASE_NORMALIZATION_FULL_WITNESS_INVALID")
+    admission_sha = _sha(child_admission_path)
+    child = admission["splits"]["train"]
+    if (
+        view["child_admission"]["path"] != str(child_admission_path)
+        or view["child_admission"]["file_sha256"] != admission_sha
+        or view["child_admission"]["witness_sha256"] != admission["witness_sha256"]
+        or population["child_admission_file_sha256"] != admission_sha
+        or population["child_admission_witness_sha256"] != admission["witness_sha256"]
+        or view["child_train"] != child
+        or view["train_normalization_population_witness"]["file_sha256"] != _sha(population_witness_path)
+        or population["train_entry_decision_rows"] != child["rows"]
+        or population["train_entry_clock_sha256"] != child["clock_sha256"]
+        or any(value.get("test_accessed") is not False for value in (admission, view, population))
+        or (windows is not None and
+            population["train_end_utc_exclusive"] != windows["train"]["end_utc_exclusive"])
+    ):
+        raise RuntimeError("PILOT_BASE_NORMALIZATION_FULL_POPULATION_BINDING_INVALID")
+    m5 = feature_surface_binding_from_split_manifest(parent_manifest)
+    mtf = parent_manifest["extra"]["multi_tf_cache_binding"]
+    if (str(mtf_cache_dir) != mtf["cache_dir"]
+            or population["mtf_cache"] != {key: mtf[key] for key in population["mtf_cache"]}):
+        raise RuntimeError("PILOT_BASE_NORMALIZATION_FULL_MTF_BINDING_INVALID")
+    bindings = [
+        (Path(child["parquet_path"]), child["parquet_path"], child["parquet_sha256"]),
+        (Path(child["manifest_path"]), child["manifest_path"], child["manifest_file_sha256"]),
+        (m5_feature_path, m5["path"], m5["sha256"]),
+        (m1_feature_path, population["m1_feature_base"]["path"], population["m1_feature_base"]["sha256"]),
+        (Path(population["m1_source"]["path"]), population["m1_source"]["path"], population["m1_source"]["sha256"]),
+        (m5_prebuilt_path, mtf["m5_prebuilt_source"], mtf["m5_prebuilt_source_sha256"]),
+        (mtf_cache_dir / "manifest.json", mtf["manifest_path"], mtf["manifest_sha256"]),
+    ]
+    for supplied, expected_path, expected_sha in bindings:
+        # Reject wrong paths before opening them, then prove exact current bytes.
+        if str(supplied) != expected_path:
+            raise RuntimeError("PILOT_BASE_NORMALIZATION_FULL_SOURCE_BINDING_INVALID")
+        if _sha(_exact_file(supplied, "BASE_NORMALIZATION_SOURCE")) != expected_sha:
+            raise RuntimeError("PILOT_BASE_NORMALIZATION_FULL_SOURCE_BINDING_INVALID")
 
 
 def fit_base(
@@ -117,6 +175,14 @@ def fit_base(
         or population["test_fit_rows"] != 0
     ):
         raise RuntimeError("PILOT_BASE_NORMALIZATION_PARENT_INVALID")
+    if not prefix:
+        _require_full_fit_bindings(
+            admission=admission, view=view, population=population,
+            parent_manifest=parent_manifest, child_admission_path=child_admission_path,
+            population_witness_path=population_witness_path,
+            m5_feature_path=m5_feature_path, m5_prebuilt_path=m5_prebuilt_path,
+            m1_feature_path=m1_feature_path, mtf_cache_dir=mtf_cache_dir,
+        )
     entry_table = pq.read_table(child["parquet_path"], columns=["time", "snap", "ctx_cont", "ctx_cat"])
     entry_times = pd.DatetimeIndex(entry_table["time"].to_pandas()).as_unit("ns")
     entry_snap = _matrix(entry_table, "snap", "<f4")
@@ -131,94 +197,115 @@ def fit_base(
         if (population["train_entry_decision_rows"] != len(rows)
                 or population["train_entry_clock_sha256"] != _clock_hash(entry_times.asi8)):
             raise RuntimeError("PILOT_BASE_NORMALIZATION_PREFIX_ENTRY_CLOCK_INVALID")
+    if (len(entry_times) != population["train_entry_decision_rows"]
+            or _clock_hash(entry_times.asi8) != population["train_entry_clock_sha256"]):
+        raise RuntimeError("PILOT_BASE_NORMALIZATION_ENTRY_CLOCK_INVALID")
     m5_table = pq.read_table(m5_feature_path, columns=["time", "signal"])
     m5_times = pd.DatetimeIndex(m5_table["time"].to_pandas()).as_unit("ns")
     m5_signal = _matrix(m5_table, "signal", "<f4")
-    m1_table = pq.read_table(m1_feature_path, columns=["time", "signal", "ctx_cont", "ctx_cat"])
-    m1_times = pd.DatetimeIndex(m1_table["time"].to_pandas()).as_unit("ns")
-    m1_signal = _matrix(m1_table, "signal", "<f4")
-    m1_ctx = _matrix(m1_table, "ctx_cont", "<f4")
-    m1_cat = _matrix(m1_table, "ctx_cat", "<i8")
-    entry_positions = np.searchsorted(m5_times.asi8, entry_times.asi8)
-    if (
-        np.any(entry_positions >= len(m5_times))
-        or not np.array_equal(m5_times.asi8[entry_positions], entry_times.asi8)
-        or not np.array_equal(m5_signal[entry_positions], entry_snap)
-    ):
-        raise RuntimeError("PILOT_BASE_NORMALIZATION_ENTRY_MAPPING_INVALID")
-    entry_indices = np.concatenate([np.arange(item["start_row"], item["end_row_exclusive"], dtype=np.int64) for item in population["entry_m5_local_intervals"]])
-    child_m1_times = pd.DatetimeIndex(pq.read_table(population["m1_source"]["path"], columns=["time"])["time"].to_pandas()).as_unit("ns")
-    child_current = np.concatenate([np.arange(item["start_row"], item["end_row_exclusive"], dtype=np.int64) for item in population["exit_m1_current_intervals"]])
-    current = np.searchsorted(m1_times.asi8, child_m1_times.asi8[child_current])
-    if np.any(current >= len(m1_times)) or not np.array_equal(m1_times.asi8[current], child_m1_times.asi8[child_current]):
-        raise RuntimeError("PILOT_BASE_NORMALIZATION_M1_MAPPING_INVALID")
-    if prefix and (not len(current) or not len(entry_indices)
-            or int(entry_times.asi8.max()) + 300_000_000_000 > fit_cutoff_time_ns
-            or int(m5_times.asi8[entry_indices].max()) + 300_000_000_000 > fit_cutoff_time_ns
-            or int(m1_times.asi8[current].max()) + 60_000_000_000 > fit_cutoff_time_ns):
-        raise RuntimeError("PILOT_BASE_NORMALIZATION_PREFIX_CUTOFF_EXCEEDED")
-    expanded = [(max(0, int(left) - 479), int(right)) for left, right in zip(current, current + 1)]
-    expanded.sort()
-    merged: list[list[int]] = []
-    for left, right in expanded:
-        if not merged or left > merged[-1][1]:
-            merged.append([left, right])
-        else:
-            merged[-1][1] = max(merged[-1][1], right)
-    local = np.concatenate([np.arange(left, right, dtype=np.int64) for left, right in merged])
-    aliases = _derive_temporal_aliases(signal_fields)
-    signal_parts = [MatrixPopulationPart(m5_signal, row_indices=entry_indices, source="entry_m5"), MatrixPopulationPart(m1_signal, row_indices=local, source="exit_m1")]
-    ctx_parts = [MatrixPopulationPart(entry_ctx, source="entry"), MatrixPopulationPart(m1_ctx, row_indices=current, source="exit")]
-    cat_parts = [MatrixPopulationPart(entry_cat, source="entry"), MatrixPopulationPart(m1_cat, row_indices=current, source="exit")]
-    signal_surface = fit_surface_normalization(signal_parts, surface="signal", field_names=signal_fields, row_count=len(entry_indices) + len(local), semantic_categorical_domains=SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=prefix)
-    ctx_raw = fit_surface_normalization(ctx_parts, surface="ctx_cont", field_names=MODEL_NATIVE_CTX_CONT_FIELDS, row_count=len(entry_times) + len(current), semantic_categorical_domains=CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=prefix)
-    ctx_surface = share_temporal_alias_stats_from_signal(ctx_raw, signal_surface, temporal_aliases=aliases, ctx_cont_values=ctx_parts)
-    surfaces: dict[str, Any] = {"signal": signal_surface, "ctx_cont": ctx_surface}
-    cache = load_multi_tf_v4_cache(mtf_cache_dir)
-    windows: dict[str, Any] = {}
-    for tf in EXPECTED_TFS:
-        source = cache[tf]
-        selected, window, _proof = select_shared_causal_mtf_fit_population(tf=tf, source=source, entry_train_times_ns=np.asarray(entry_times.asi8), exit_train_times_ns=np.asarray(m1_times.asi8[current]), seq_len=PER_TF_SEQ_LENS[tf])
-        surfaces[f"mtf_{tf.lower()}"] = fit_surface_normalization(selected, surface=f"mtf_{tf.lower()}", field_names=MULTI_TF_PER_BAR_FEATURES_V4, row_count=window["selected_unique_row_count"], semantic_categorical_domains=MTF_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=prefix)
-        windows[tf] = window
-    if tuple(surfaces) != EXPECTED_SURFACES:
-        raise RuntimeError("PILOT_BASE_NORMALIZATION_SURFACE_ORDER_INVALID")
-    cache_manifest = mtf_cache_dir / "manifest.json"
-    cache_raw = _json(cache_manifest)
-    train_min = min(int(entry_times.asi8[0]), int(m1_times.asi8[current[0]]))
-    train_max = max(int(entry_times.asi8[-1]), int(m1_times.asi8[current[-1]]))
-    lineage = {
-        "dataset_run_id": admission["child_dataset_run_id"],
-        "train_parquet_path": child["parquet_path"], "train_parquet_sha256": child["parquet_sha256"],
-        "train_manifest_path": child["manifest_path"], "train_manifest_sha256": child["manifest_file_sha256"],
-        "train_row_count": len(entry_times) + len(current), "entry_train_decision_row_count": len(entry_times), "exit_train_decision_row_count": len(current),
-        "local_fit_row_count": len(entry_indices) + len(local), "context_fit_row_count": len(entry_times) + len(current),
-        "val_fit_row_count": 0, "test_fit_row_count": 0,
-        "train_time_min_utc": pd.Timestamp(train_min, tz="UTC").isoformat(), "train_time_max_utc": pd.Timestamp(train_max, tz="UTC").isoformat(),
-        "m5_prebuilt_path": str(m5_prebuilt_path), "m5_prebuilt_sha256": _sha(m5_prebuilt_path),
-        "mtf_cache_manifest_path": str(cache_manifest), "mtf_cache_manifest_sha256": _sha(cache_manifest),
-        "mtf_builder_version": cache_raw["builder_version"],
-        "mtf_feature_names_sha256": hashlib.sha256(json.dumps(list(cache_raw["feature_names"]), sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
-        "per_tf_seq_lens": PER_TF_SEQ_LENS,
-        "per_tf_shift_seconds": {tf: int(MULTI_TF_SHIFT[tf].total_seconds()) for tf in EXPECTED_TFS},
-        "per_tf_fit_windows": windows,
-    }
-    contract = build_input_normalization_contract(fit_start_utc=lineage["train_time_min_utc"], fit_end_utc=lineage["train_time_max_utc"], surfaces=surfaces, ctx_cat=fit_ctx_cat_contract(cat_parts, field_names=MODEL_NATIVE_CTX_CAT_FIELDS), lineage=lineage, temporal_aliases=aliases)
-    result = {"schema_version": SCHEMA_VERSION, "decision": "PASS", "contract": contract, "contract_sha256": contract["contract_sha256"], "population_witness_sha256": population["contract_sha256"], "val_fit_rows": 0, "test_fit_rows": 0, "test_accessed": False}
-    if prefix:
-        result["normalization_fit_population"] = scope
-    if publish:
-        if output_path.exists():
-            raise RuntimeError("PILOT_BASE_NORMALIZATION_OUTPUT_EXISTS")
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp = tempfile.mkstemp(prefix=f".{output_path.name}.", dir=output_path.parent)
-        with os.fdopen(fd, "w") as handle:
-            json.dump(result, handle, sort_keys=True, indent=2, allow_nan=False)
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.rename(tmp, output_path)
-    return result
+    with tempfile.TemporaryDirectory(prefix="gx1-base-normalization-") as storage:
+        m1_times, m1_arrays = load_m1_feature_surface(
+            m1_feature_path, context="PILOT_BASE_NORMALIZATION",
+            storage_dir=Path(storage) / "m1",
+        )
+        m1_signal, m1_ctx, m1_cat = (
+            m1_arrays[name] for name in ("signal", "ctx_cont", "ctx_cat")
+        )
+        entry_positions = np.searchsorted(m5_times.asi8, entry_times.asi8)
+        if (
+            np.any(entry_positions >= len(m5_times))
+            or not np.array_equal(m5_times.asi8[entry_positions], entry_times.asi8)
+            or not np.array_equal(m5_signal[entry_positions], entry_snap)
+        ):
+            raise RuntimeError("PILOT_BASE_NORMALIZATION_ENTRY_MAPPING_INVALID")
+        entry_indices = np.concatenate([np.arange(item["start_row"], item["end_row_exclusive"], dtype=np.int64) for item in population["entry_m5_local_intervals"]])
+        child_m1_times = pd.DatetimeIndex(pq.read_table(population["m1_source"]["path"], columns=["time"])["time"].to_pandas()).as_unit("ns")
+        child_current = np.concatenate([np.arange(item["start_row"], item["end_row_exclusive"], dtype=np.int64) for item in population["exit_m1_current_intervals"]])
+        current = np.searchsorted(m1_times.asi8, child_m1_times.asi8[child_current])
+        if np.any(current >= len(m1_times)) or not np.array_equal(m1_times.asi8[current], child_m1_times.asi8[child_current]):
+            raise RuntimeError("PILOT_BASE_NORMALIZATION_M1_MAPPING_INVALID")
+        if not prefix and (
+            len(entry_indices) != population["entry_m5_local_unique_rows"]
+            or _clock_hash(entry_indices) != population["entry_m5_local_indices_sha256"]
+            or len(child_current) != population["exit_m1_current_unique_rows"]
+            or _clock_hash(child_current) != population["exit_m1_current_indices_sha256"]
+            or _clock_hash(current) != population["exit_m1_feature_positions_sha256"]
+            or int(m1_times.asi8[current[-1]]) + 60_000_000_000
+                > pd.Timestamp(population["train_end_utc_exclusive"]).value
+        ):
+            raise RuntimeError("PILOT_BASE_NORMALIZATION_FULL_SELECTED_ROWS_INVALID")
+        if prefix and (not len(current) or not len(entry_indices)
+                or int(entry_times.asi8.max()) + 300_000_000_000 > fit_cutoff_time_ns
+                or int(m5_times.asi8[entry_indices].max()) + 300_000_000_000 > fit_cutoff_time_ns
+                or int(m1_times.asi8[current].max()) + 60_000_000_000 > fit_cutoff_time_ns):
+            raise RuntimeError("PILOT_BASE_NORMALIZATION_PREFIX_CUTOFF_EXCEEDED")
+        # A contiguous run of current rows has one union of causal history
+        # windows. Merge runs, not millions of per-row Python tuples.
+        breaks = np.flatnonzero(np.diff(current) != 1)
+        run_starts = np.concatenate((current[:1], current[breaks + 1]))
+        run_stops = np.concatenate((current[breaks] + 1, current[-1:] + 1))
+        merged = _merge_intervals([
+            (max(0, int(left) - EXIT_FEATURE_SEQUENCE_BARS + 1), int(right))
+            for left, right in zip(run_starts, run_stops)
+        ])
+        local = np.concatenate([np.arange(left, right, dtype=np.int64) for left, right in merged])
+        aliases = _derive_temporal_aliases(signal_fields)
+        signal_parts = [MatrixPopulationPart(m5_signal, row_indices=entry_indices, source="entry_m5"), MatrixPopulationPart(m1_signal, row_indices=local, source="exit_m1")]
+        ctx_parts = [MatrixPopulationPart(entry_ctx, source="entry"), MatrixPopulationPart(m1_ctx, row_indices=current, source="exit")]
+        cat_parts = [MatrixPopulationPart(entry_cat, source="entry"), MatrixPopulationPart(m1_cat, row_indices=current, source="exit")]
+        signal_surface = fit_surface_normalization(signal_parts, surface="signal", field_names=signal_fields, row_count=len(entry_indices) + len(local), semantic_categorical_domains=SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=prefix)
+        ctx_raw = fit_surface_normalization(ctx_parts, surface="ctx_cont", field_names=MODEL_NATIVE_CTX_CONT_FIELDS, row_count=len(entry_times) + len(current), semantic_categorical_domains=CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=prefix)
+        ctx_surface = share_temporal_alias_stats_from_signal(ctx_raw, signal_surface, temporal_aliases=aliases, ctx_cont_values=ctx_parts)
+        surfaces: dict[str, Any] = {"signal": signal_surface, "ctx_cont": ctx_surface}
+        cache = load_multi_tf_v4_cache(mtf_cache_dir)
+        windows: dict[str, Any] = {}
+        for tf in EXPECTED_TFS:
+            source = cache[tf]
+            selected, window, _proof = select_shared_causal_mtf_fit_population(tf=tf, source=source, entry_train_times_ns=np.asarray(entry_times.asi8), exit_train_times_ns=np.asarray(m1_times.asi8[current]), seq_len=PER_TF_SEQ_LENS[tf])
+            surfaces[f"mtf_{tf.lower()}"] = fit_surface_normalization(selected, surface=f"mtf_{tf.lower()}", field_names=MULTI_TF_PER_BAR_FEATURES_V4, row_count=window["selected_unique_row_count"], semantic_categorical_domains=MTF_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=prefix)
+            windows[tf] = window
+        if tuple(surfaces) != EXPECTED_SURFACES:
+            raise RuntimeError("PILOT_BASE_NORMALIZATION_SURFACE_ORDER_INVALID")
+        cache_manifest = mtf_cache_dir / "manifest.json"
+        cache_raw = _json(cache_manifest)
+        train_min = min(int(entry_times.asi8[0]), int(m1_times.asi8[current[0]]))
+        train_max = max(int(entry_times.asi8[-1]), int(m1_times.asi8[current[-1]]))
+        lineage = {
+            "dataset_run_id": admission["child_dataset_run_id"],
+            "train_parquet_path": child["parquet_path"], "train_parquet_sha256": child["parquet_sha256"],
+            "train_manifest_path": child["manifest_path"], "train_manifest_sha256": child["manifest_file_sha256"],
+            "train_row_count": len(entry_times) + len(current), "entry_train_decision_row_count": len(entry_times), "exit_train_decision_row_count": len(current),
+            "local_fit_row_count": len(entry_indices) + len(local), "context_fit_row_count": len(entry_times) + len(current),
+            "val_fit_row_count": 0, "test_fit_row_count": 0,
+            "train_time_min_utc": pd.Timestamp(train_min, tz="UTC").isoformat(), "train_time_max_utc": pd.Timestamp(train_max, tz="UTC").isoformat(),
+            "m5_prebuilt_path": str(m5_prebuilt_path), "m5_prebuilt_sha256": _sha(m5_prebuilt_path),
+            "mtf_cache_manifest_path": str(cache_manifest), "mtf_cache_manifest_sha256": _sha(cache_manifest),
+            "mtf_builder_version": cache_raw["builder_version"],
+            "mtf_feature_names_sha256": hashlib.sha256(json.dumps(list(cache_raw["feature_names"]), sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            "per_tf_seq_lens": PER_TF_SEQ_LENS,
+            "per_tf_shift_seconds": {tf: int(MULTI_TF_SHIFT[tf].total_seconds()) for tf in EXPECTED_TFS},
+            "per_tf_fit_windows": windows,
+        }
+        contract = build_input_normalization_contract(fit_start_utc=lineage["train_time_min_utc"], fit_end_utc=lineage["train_time_max_utc"], surfaces=surfaces, ctx_cat=fit_ctx_cat_contract(cat_parts, field_names=MODEL_NATIVE_CTX_CAT_FIELDS), lineage=lineage, temporal_aliases=aliases)
+        result = {"schema_version": SCHEMA_VERSION, "decision": "PASS", "contract": contract, "contract_sha256": contract["contract_sha256"], "population_witness_sha256": population["contract_sha256"], "val_fit_rows": 0, "test_fit_rows": 0, "test_accessed": False}
+        if prefix:
+            result["normalization_fit_population"] = scope
+        if publish:
+            if output_path.exists() or output_path.is_symlink():
+                raise RuntimeError("PILOT_BASE_NORMALIZATION_OUTPUT_EXISTS")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(prefix=f".{output_path.name}.", dir=output_path.parent)
+            try:
+                with os.fdopen(fd, "w") as handle:
+                    json.dump(result, handle, sort_keys=True, indent=2, allow_nan=False)
+                    handle.write("\n")
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                _publish_file_noreplace(Path(tmp), output_path)
+                _fsync_directory(output_path.parent)
+            finally:
+                Path(tmp).unlink(missing_ok=True)
+        return result
 
 
 def main(argv: Sequence[str] | None = None) -> int:

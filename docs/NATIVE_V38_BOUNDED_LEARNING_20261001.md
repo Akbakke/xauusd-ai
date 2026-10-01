@@ -509,3 +509,31 @@ CHILD_TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json: /home/andre2/GX1_RUNS/HISTORY200
 SHA256: fbbf2b5b2fae6e88b58fa5c238e3c01e4c020ea1480143308b222da1ca6ba70e.
 TRAIN_NORMALIZATION_POPULATION_WITNESS.json: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/TRAIN_NORMALIZATION_POPULATION_WITNESS.json
 SHA256: 451a9db012e96d274dcbb9fb2dd4c6d12ef6b15cf1341bd6b3396c2ddc5d5f86.
+
+## Bundet full-TRAIN-basefit før native indekser
+
+Normaliseringskoden er nå bundet til de faktiske full-TRAIN-artefaktene før
+statistikkfit. Feil vitne, byttede filer, feil MTF-sti og endrede bytes avvises.
+Den eksisterende diskbaserte M1-innleseren erstatter store RAM-kopier;
+historikkunion beregnes per sammenhengende intervall i stedet for per rad.
+25 fokuserte tester består, inkludert eksakt normparitet og navnekollisjon.
+BASE_NORMALIZATION_FIT_001 er nå bundet til én CPU-fit av basestatistikk på
+hele kvalifisert TRAIN, før sampling. Dette løser en forutsetning for indeksene.
+Bare denne normfitten er åpnet; lifetime-fit, modelltrening og TEST er stengt.
+
+Kildebevist: 5 523 147 M1-rader krever 7 224 276 276 bytes (6,73 GiB)
+for bare signal/ctx-matrisene. Den tidligere Arrow-pluss-sammenkopieringen
+beholder også originaltabellen. Nå gjenbrukes load_m1_feature_surface med
+komplett diskbacking og samme validering; den kanoniske robuste fitterens
+128 MiB arbeidsblokk, median/IQR og aliassemantikk endres ikke.
+Ingen populasjon kuttes. Alle Entry-rader og kvalifiserte M1-stater
+inngår, og MTF-utvalget gjøres av eksisterende kausal eier. 10 GiB/512 MiB
+producer-cap gjenbrukes. Normalisering er CPU-preprosessering; ingen modell.
+Plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/PLAN.json
+SHA256: e09500b4a7e75c451a0b047b8e2bdae30efc2fd90509a395e63387ba370dddf4.
+Operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/OPERATOR.py
+SHA256: 2cce496043e68a99fbb19c8712b3ea16fd4b4460799b50151e0f937cca2f2995.
+Full inputbygging og populasjonskontroller er ikke relansert. TEST- og
+VAL-datasett/manifester sperres for denne kjøringen. Delte prisfeature-/
+MTF-inputs kan omfatte senere rader og identitetskontrolleres; bare fryst
+TRAIN-union tilpasses. Terminal og strict-load kreves før videre binding.

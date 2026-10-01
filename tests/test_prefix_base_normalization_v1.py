@@ -21,7 +21,7 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
 from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4, MULTI_TF_SHIFT, MULTI_TF_RESAMPLE_RULES, multi_tf_bar_label
 
 
-def _prepare(root, monkeypatch, *, poison=False):
+def _prepare(root, monkeypatch, *, poison=False, full=False):
     root.mkdir()
     f, kwargs, _ = _population_fixture(root)
     names = _signal_names()
@@ -65,12 +65,12 @@ def _prepare(root, monkeypatch, *, poison=False):
     f['parent']['feature_contract']={'signal_bridge_fields':names}
     parent=root/'parent.json';_write_json(parent,f['parent'])
     admission=root/'admission.json';_write_json(admission,f['child'])
-    cutoff_args=dict(fit_entry_rows_path=rows_path,fit_cutoff_time_ns=cutoff)
+    cutoff_args={} if full else dict(fit_entry_rows_path=rows_path,fit_cutoff_time_ns=cutoff)
     pop=inputs.build_train_normalization_population_witness(**kwargs, **cutoff_args)
     pop_path=root/'population.json';_write_json(pop_path,pop)
     view={'decision':'PASS','parent_train_manifest':{'path':str(parent),'sha256':_sha256_file(parent)},
         'train_normalization_population_witness':{'contract_sha256':pop['contract_sha256'],'file_sha256':_sha256_file(pop_path)},
-        'normalization_fit_population':pop['normalization_fit_population']}
+        **({} if full else {'normalization_fit_population':pop['normalization_fit_population']})}
     view_path=root/'view.json';_write_json(view_path,view)
     cache={}
     for tf,rule in MULTI_TF_RESAMPLE_RULES.items():
@@ -84,6 +84,30 @@ def _prepare(root, monkeypatch, *, poison=False):
         cache[tf]=_mtf_frame(times.asi8,values)
     cache_dir=root/'cache';cache_dir.mkdir()
     _write_json(cache_dir/'manifest.json',{'builder_version':'synthetic', 'feature_names':list(MULTI_TF_PER_BAR_FEATURES_V4)})
+    if full:
+        f['child']['test_accessed'] = False
+        f['child']['witness_sha256'] = inputs._canonical_sha256({k:v for k,v in f['child'].items() if k!='witness_sha256'})
+        _write_json(admission, f['child'])
+        surface_binding = f['parent']['extra']['signal_bridge']['seq_structure_extension_v1']['feature_surface']
+        surface_binding['sha256'] = _sha256_file(f['surface'])
+        mtf_binding = dict(cache_dir=str(cache_dir), manifest_path=str(cache_dir/'manifest.json'),
+            manifest_sha256=_sha256_file(cache_dir/'manifest.json'), cache_identity_sha256='6'*64,
+            m5_prebuilt_source=str(f['surface']), m5_prebuilt_source_sha256=_sha256_file(f['surface']))
+        f['parent']['extra']['multi_tf_cache_binding'] = mtf_binding
+        _write_json(parent, f['parent'])
+        pop['child_admission_file_sha256'] = _sha256_file(admission)
+        pop['child_admission_witness_sha256'] = f['child']['witness_sha256']
+        pop['mtf_cache'] = {key:mtf_binding[key] for key in pop['mtf_cache']}
+        pop['contract_sha256'] = inputs._canonical_sha256({k:v for k,v in pop.items() if k!='contract_sha256'})
+        _write_json(pop_path, pop)
+        view.update(test_accessed=False, child_train=f['child']['splits']['train'],
+            child_admission=dict(path=str(admission),file_sha256=_sha256_file(admission),
+                witness_sha256=f['child']['witness_sha256']))
+        view['parent_train_manifest']['sha256'] = _sha256_file(parent)
+        view['train_normalization_population_witness'].update(
+            contract_sha256=pop['contract_sha256'], file_sha256=_sha256_file(pop_path))
+        view['contract_sha256'] = inputs._canonical_sha256(view)
+        _write_json(view_path, view)
     monkeypatch.setattr(base,'load_multi_tf_v4_cache',lambda path:cache)
     call=dict(child_admission_path=admission,normalization_view_path=view_path,population_witness_path=pop_path,
         m5_feature_path=f['surface'],m5_prebuilt_path=f['surface'],m1_feature_path=kwargs['m1_feature_base_path'],
@@ -139,3 +163,73 @@ def test_population_cutoff_uses_close_and_rejects_later_entry(tmp_path):
     np.save(rows,np.array([1],dtype='<i8'))
     with pytest.raises(RuntimeError,match='PREFIX_ENTRY_AFTER_CUTOFF'):
         inputs.build_train_normalization_population_witness(**kwargs,fit_entry_rows_path=rows,fit_cutoff_time_ns=cutoff)
+
+
+def test_disk_backed_full_m1_load_preserves_exact_fit_contract(tmp_path, monkeypatch):
+    call, _, _ = _prepare(tmp_path/'case', monkeypatch)
+    original_loader = base.load_m1_feature_surface
+    stores = []
+    def observed(path, **kwargs):
+        from pathlib import Path
+        stores.append(Path(kwargs['storage_dir']))
+        times, arrays = original_loader(path, **kwargs)
+        assert all(isinstance(value, np.memmap) for value in arrays.values())
+        return times, arrays
+    monkeypatch.setattr(base, 'load_m1_feature_surface', observed)
+    disk = base.fit_base(**call)
+    assert all(not directory.exists() for directory in stores)
+    def in_memory(path, **kwargs):
+        kwargs['storage_dir'] = None
+        return original_loader(path, **kwargs)
+    monkeypatch.setattr(base, 'load_m1_feature_surface', in_memory)
+    assert base.fit_base(**call) == disk
+
+
+def test_base_fit_publication_preserves_concurrent_result(tmp_path, monkeypatch):
+    from gx1.contracts.immutable_event_authority_v1 import ImmutableEventAuthorityError
+    call, _, _ = _prepare(tmp_path/'case', monkeypatch)
+    publish = base._publish_file_noreplace
+    def race(source, destination):
+        destination.write_bytes(b'concurrent evidence')
+        publish(source, destination)
+    monkeypatch.setattr(base, '_publish_file_noreplace', race)
+    call['publish'] = True
+    with pytest.raises(ImmutableEventAuthorityError, match='already exists'):
+        base.fit_base(**call)
+    assert call['output_path'].read_bytes() == b'concurrent evidence'
+
+
+@pytest.mark.parametrize('mutation', ['none', 'witness', 'entry_bytes', 'm1_bytes', 'm5_path', 'mtf_path', 'admission'])
+def test_full_population_fit_requires_exact_sources_before_statistics(tmp_path, monkeypatch, mutation):
+    from pathlib import Path
+    call, pop, view = _prepare(tmp_path/'case', monkeypatch, full=True)
+    admission = base._json(call['child_admission_path'])
+    parent = base._json(Path(view['parent_train_manifest']['path']))
+    if mutation == 'witness':
+        pop['train_entry_decision_rows'] += 1
+    elif mutation in ('entry_bytes', 'm1_bytes'):
+        path = Path(admission['splits']['train']['parquet_path']) if mutation == 'entry_bytes' else call['m1_feature_path']
+        with path.open('ab') as handle:
+            handle.write(b'changed')
+    elif mutation == 'm5_path':
+        call['m5_feature_path'] = tmp_path/'wrong.parquet'
+    elif mutation == 'mtf_path':
+        call['mtf_cache_dir'] = tmp_path/'wrong-cache'
+    elif mutation == 'admission':
+        admission['test_accessed'] = True
+    arguments = dict(admission=admission, view=view, population=pop, parent_manifest=parent,
+        **{key:call[key] for key in ('child_admission_path','population_witness_path','m5_feature_path',
+            'm5_prebuilt_path','m1_feature_path','mtf_cache_dir')})
+    if mutation == 'none':
+        base._require_full_fit_bindings(**arguments)
+        class FitReached(Exception): pass
+        def reached(*args, **kwargs): raise FitReached()
+        monkeypatch.setattr(base, 'fit_surface_normalization', reached)
+        with pytest.raises(FitReached):
+            base.fit_base(**call)
+    else:
+        error = ('FULL_WITNESS_INVALID' if mutation in ('witness', 'admission')
+                 else 'FULL_MTF_BINDING_INVALID' if mutation == 'mtf_path'
+                 else 'FULL_SOURCE_BINDING_INVALID')
+        with pytest.raises(RuntimeError, match=error):
+            base._require_full_fit_bindings(**arguments)
