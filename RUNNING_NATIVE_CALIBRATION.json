@@ -2639,6 +2639,22 @@
     "native_training_enabled": false,
     "new_dataset_complete": true,
     "normalization_fit_authorized": false,
+    "normalization_population": {
+      "model_forwards": 0,
+      "normalization_fit": false,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/OPERATOR.py",
+        "sha256": "99a3b1e21729fc6eea9663424de78618ad4bb34e13efc1d7c5eefa3ea0094e10"
+      },
+      "optimizer_steps": 0,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/PLAN.json",
+        "sha256": "140544c8dc247df62b8d6768ece6f87df17663468f4598a87d2d09381112e313"
+      },
+      "source_frozen_while_running": true,
+      "status": "BOUND_NOT_LAUNCHED",
+      "tests_passed": 19
+    },
     "normalization_population_admission_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/NORMALIZATION_ADMISSION_REVIEW_20261001T175753519716Z.json",
       "sha256": "d82ef0d98b14e6d49e7b0b7b95a5c4df8baa65904448f9528d30f2bf2aaefe48"
@@ -2691,6 +2707,10 @@
     "status": "COMPLETE_INPUT_PREPARATION_NO_LEARNING_AUTHORITY",
     "train_rows": 652552,
     "train_sequence_audit": {
+      "audit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/TRAIN_SEQUENCE_AUDIT_001/TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json",
+        "sha256": "559082adcc9726f9bd889e6d91254a8c900781ab80379988b22b64521fcc1a46"
+      },
       "model_forwards": 0,
       "normalization_fit": false,
       "operator": {
@@ -2703,8 +2723,16 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/TRAIN_SEQUENCE_AUDIT_001/PLAN.json",
         "sha256": "690347173cf65766e904a4a2b347288ddebe48e8e558972b38e42bcfba0a4687"
       },
-      "source_frozen_while_running": true,
-      "status": "BOUND_NOT_LAUNCHED",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/TRAIN_SEQUENCE_AUDIT_001/EVENTS/RESULT_20261001T205238714393Z.json",
+        "sha256": "1ac6e613a81fcc98fb2753cdce2756632f2fa3a01a8dc67efee13c625448401b"
+      },
+      "source_frozen_while_running": false,
+      "status": "COMPLETE_ALL_652552_TRAIN_ROWS_EXACT_NO_LEARNING",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/TRAIN_SEQUENCE_AUDIT_001/EVENTS/TERMINAL_20261001T205238732681Z.json",
+        "sha256": "accf9cbe181d6b5d67846b99b1f8ea402156f8f82d604e2d9db96f5044625a8c"
+      },
       "tests_passed": 13
     },
     "training_enabled": false

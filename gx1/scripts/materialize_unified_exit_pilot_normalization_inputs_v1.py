@@ -50,6 +50,7 @@ from gx1.contracts.unified_exit_market_closure_authority_v1 import (
 )
 from gx1.scripts.audit_entry_sequence_source_reconstruction_v1 import (
     _feature_surface_from_manifest,
+    _load_surface_clock,
     _load_surface_signal,
 )
 from gx1.scripts.prepare_unified_exit_lifecycle_v2_pilot_v1 import TRAIN_END
@@ -348,9 +349,37 @@ def build_child_sequence_reconstruction_audit(
         )
     except Exception as exc:
         raise RuntimeError("PILOT_NORMALIZATION_M5_FEATURE_SURFACE_CHANGED") from exc
-    source_times, source_signal = _load_surface_signal(
-        surface_path, expected_rows=int(surface_binding["rows"])
-    )
+    # An adopted full physical split is the exact file already exhaustively
+    # audited above. Revalidate its identity; do not decode all windows twice.
+    reuse_parent = str(child_path) == parent_sequence_audit.get("parquet_path")
+    if reuse_parent:
+        child_manifest = _read_json(Path(child["manifest_path"]), "CHILD_TRAIN_MANIFEST")
+        source_manifest = child_manifest["source_manifest"]
+        if _read_json(parent_sequence_audit_path, "PARENT_SEQUENCE_AUDIT") != dict(parent_sequence_audit):
+            raise RuntimeError("PILOT_NORMALIZATION_PARENT_SEQUENCE_AUDIT_CHANGED")
+        if (
+            _sha256_file(child_path) != child["parquet_sha256"]
+            or _sha256_file(Path(source_manifest["path"])) != source_manifest["sha256"]
+        ):
+            raise RuntimeError("PILOT_NORMALIZATION_CHILD_BYTES_CHANGED")
+        require_sequence_source_reconstruction_audit(
+            parent_sequence_audit,
+            expected_parquet_path=child_path,
+            expected_manifest_path=Path(source_manifest["path"]),
+            expected_parquet_sha256=child["parquet_sha256"],
+            expected_manifest_sha256=source_manifest["sha256"],
+            expected_feature_surface=parent_manifest,
+            expected_rows=int(child["rows"]),
+            expected_seq_len=MODEL_NATIVE_SEQ_LEN,
+            expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM,
+        )
+        source_times = _load_surface_clock(
+            surface_path, expected_rows=int(surface_binding["rows"])
+        )
+    else:
+        source_times, source_signal = _load_surface_signal(
+            surface_path, expected_rows=int(surface_binding["rows"])
+        )
 
     parquet = pq.ParquetFile(child_path)
     if not {"time", "seq", "snap"}.issubset(parquet.schema_arrow.names):
@@ -368,7 +397,7 @@ def build_child_sequence_reconstruction_audit(
     mapped_positions: list[np.ndarray] = []
     for batch in parquet.iter_batches(
         batch_size=ARROW_BATCH_ROWS,
-        columns=["time", "seq", "snap"],
+        columns=["time"] if reuse_parent else ["time", "seq", "snap"],
         use_threads=False,
     ):
         count = batch.num_rows
@@ -384,33 +413,34 @@ def build_child_sequence_reconstruction_audit(
             raise RuntimeError(
                 "PILOT_NORMALIZATION_CHILD_SEQUENCE_TIME_MAPPING_INVALID"
             )
-        sequence = (
-            batch.column("seq")
-            .flatten()
-            .flatten()
-            .to_numpy(zero_copy_only=False)
-            .reshape(count, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM)
-            .astype(np.float32, copy=False)
-        )
-        snapshot = (
-            batch.column("snap")
-            .flatten()
-            .to_numpy(zero_copy_only=False)
-            .reshape(count, MODEL_NATIVE_SIGNAL_DIM)
-            .astype(np.float32, copy=False)
-        )
-        expected = source_signal[positions[:, None] + history_offsets[None, :]]
-        if (
-            not np.isfinite(sequence).all()
-            or not np.isfinite(snapshot).all()
-            or not np.array_equal(sequence, expected)
-            or not np.array_equal(snapshot, source_signal[positions])
-        ):
-            raise RuntimeError("PILOT_NORMALIZATION_CHILD_SEQUENCE_VALUE_MISMATCH")
-        stream.update(np.ascontiguousarray(times, dtype="<i8").tobytes())
-        stream.update(np.ascontiguousarray(positions, dtype="<i8").tobytes())
-        stream.update(np.ascontiguousarray(sequence, dtype="<f4").tobytes())
-        stream.update(np.ascontiguousarray(snapshot, dtype="<f4").tobytes())
+        if not reuse_parent:
+            sequence = (
+                batch.column("seq")
+                .flatten()
+                .flatten()
+                .to_numpy(zero_copy_only=False)
+                .reshape(count, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM)
+                .astype(np.float32, copy=False)
+            )
+            snapshot = (
+                batch.column("snap")
+                .flatten()
+                .to_numpy(zero_copy_only=False)
+                .reshape(count, MODEL_NATIVE_SIGNAL_DIM)
+                .astype(np.float32, copy=False)
+            )
+            expected = source_signal[positions[:, None] + history_offsets[None, :]]
+            if (
+                not np.isfinite(sequence).all()
+                or not np.isfinite(snapshot).all()
+                or not np.array_equal(sequence, expected)
+                or not np.array_equal(snapshot, source_signal[positions])
+            ):
+                raise RuntimeError("PILOT_NORMALIZATION_CHILD_SEQUENCE_VALUE_MISMATCH")
+            stream.update(np.ascontiguousarray(times, dtype="<i8").tobytes())
+            stream.update(np.ascontiguousarray(positions, dtype="<i8").tobytes())
+            stream.update(np.ascontiguousarray(sequence, dtype="<f4").tobytes())
+            stream.update(np.ascontiguousarray(snapshot, dtype="<f4").tobytes())
         mapped_positions.append(positions.copy())
         prior = int(times[-1])
         observed += count
@@ -446,7 +476,6 @@ def build_child_sequence_reconstruction_audit(
         "m5_feature_surface_manifest_sha256": surface_binding["manifest_sha256"],
         "m5_feature_surface_rows": int(surface_binding["rows"]),
         "source_position_stream_sha256": _clock_hash(all_positions),
-        "sequence_value_stream_sha256": stream.hexdigest(),
         "sequence_shape": [
             expected_rows,
             MODEL_NATIVE_SEQ_LEN,
@@ -457,6 +486,13 @@ def build_child_sequence_reconstruction_audit(
         "val_rows_scanned": 0,
         "test_accessed": False,
     }
+    if _clock_hash(source_times[all_positions]) != child["clock_sha256"]:
+        raise RuntimeError("PILOT_NORMALIZATION_CHILD_TRAIN_CLOCK_INVALID")
+    if reuse_parent:
+        audit["sequence_value_verification"] = "inherited_exact_full_parent_audit"
+        audit["parent_sequence_source_chain_sha256"] = parent_sequence_audit["sequence_source_chain_sha256"]
+    else:
+        audit["sequence_value_stream_sha256"] = stream.hexdigest()
     audit["contract_sha256"] = _canonical_sha256(audit)
     return audit
 
@@ -701,7 +737,7 @@ def build_train_normalization_population_witness(
     exit_indices = _indices_from_intervals(merged_exit)
 
     source_binding = feature_surface_binding_from_split_manifest(parent_manifest)
-    m5_times, _ = _load_surface_signal(
+    m5_times = _load_surface_clock(
         _exact_file(Path(source_binding["path"]), "M5_FEATURE_SURFACE"),
         expected_rows=int(source_binding["rows"]),
     )

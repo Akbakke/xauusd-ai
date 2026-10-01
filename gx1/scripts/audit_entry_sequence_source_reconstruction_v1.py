@@ -139,7 +139,7 @@ def _feature_surface_from_manifest(manifest: dict[str, Any]) -> tuple[dict[str, 
     return binding, surface_path, surface_manifest_path
 
 
-def _load_surface_signal(surface_path: Path, *, expected_rows: int) -> tuple[np.ndarray, np.ndarray]:
+def _load_surface_clock(surface_path: Path, *, expected_rows: int) -> np.ndarray:
     feature_surface = pq.ParquetFile(surface_path)
     if tuple(feature_surface.schema_arrow.names) != _SURFACE_COLUMNS:
         raise RuntimeError(
@@ -160,6 +160,13 @@ def _load_surface_signal(surface_path: Path, *, expected_rows: int) -> tuple[np.
         raise RuntimeError(
             "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_TIME_INVALID]"
         )
+    return time_ns
+
+
+def _load_surface_signal(surface_path: Path, *, expected_rows: int) -> tuple[np.ndarray, np.ndarray]:
+    time_ns = _load_surface_clock(surface_path, expected_rows=expected_rows)
+    feature_surface = pq.ParquetFile(surface_path)
+    rows = len(time_ns)
     signal = np.empty((rows, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32)
     offset = 0
     for batch in feature_surface.iter_batches(

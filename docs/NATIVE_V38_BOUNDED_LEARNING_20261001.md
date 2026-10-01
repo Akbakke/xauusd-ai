@@ -463,3 +463,22 @@ VAL- og TEST-datasett/manifester blokkeres før I/O. Den delte M5-featureflaten
 fullhashes og valideres gjennom eksisterende eier, også med senere prisinputs.
 Ingen utfallsanalyse, modellforwards, normaliseringsfit eller optimizersteg.
 Kilden fryses under capped audit (4 GiB / 512 MiB swap); terminal kreves.
+
+Full sekvenskontroll avsluttet 01.10 kl. 20:52:38 UTC med exit 0.
+Hele TRAIN-sekvenskontrollen er fullført: alle 652 552 seq/snap-rader
+matcher bundet M5-flate eksakt. Terminal exit 0, uendret kilde og null
+VAL-/TEST-datasettilgang. Gjenbruk TRAIN_SEQUENCE_AUDIT_001; ikke relanser.
+Normaliseringsforberedelsen gjenbruker nå dette beviset bare ved eksakt
+fil-/hash-/populasjonsbinding; endrede bytes eller bevis avvises.
+Kun M5-klokken lastes der signalverdier allerede er kontrollert.
+19 fokuserte tester består. NORMALIZATION_POPULATION_001 er bundet for
+hele fysisk TRAIN gjennom eksisterende eier, uten statistikkfit eller trening.
+
+Audit SHA256: 559082adcc9726f9bd889e6d91254a8c900781ab80379988b22b64521fcc1a46.
+Normaliseringspopulasjonsplan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/PLAN.json
+SHA256: 140544c8dc247df62b8d6768ece6f87df17663468f4598a87d2d09381112e313.
+Dette publiserer bare fysisk populasjon og featureidentitet. Eksisterende
+TRAIN-geometri gjenbrukes som uavhengig differanse-/union-orakel. VAL-filen
+fullhashes kun for identitet; ingen VAL-utfall dekodes. Delt M5-kilde/MTF
+hashes, M5-klokke leses, og ny før-TEST-M1-flate kontrolleres for valgte
+TRAIN-verdier. Null fit/optimizer/model-forward; TEST-datasett forblir sperret.

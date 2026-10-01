@@ -318,8 +318,14 @@ def _population_fixture(
     return fixture, kwargs, closure
 
 
-def test_population_witness_scans_unique_rows_without_sampler_keys(tmp_path: Path) -> None:
+def test_population_witness_scans_unique_rows_without_sampler_keys(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
     fixture, kwargs, closure = _population_fixture(tmp_path)
+    from gx1.scripts import materialize_unified_exit_pilot_normalization_inputs_v1 as owner
+    def no_full_signal(*args, **kwargs):
+        raise AssertionError("population needs only the validated M5 clock")
+    monkeypatch.setattr(owner, "_load_surface_signal", no_full_signal)
     closure_path = kwargs["market_closure_authority_path"]
     witness = build_train_normalization_population_witness(**kwargs)
     assert witness["decision"] == "PASS"
@@ -552,3 +558,64 @@ def test_frozen_normalization_population_uses_calendar_end_before_source_io(
         owner.build_train_normalization_population_witness(
             **arguments,train_end="2026-06-01T00:00:00+00:00",
         )
+
+
+@pytest.mark.parametrize("corruption", ["none", "rows", "hash", "bytes", "record", "clock"])
+def test_adopted_full_split_reuses_only_exact_valid_parent_audit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, corruption: str,
+) -> None:
+    from gx1.scripts import materialize_unified_exit_pilot_normalization_inputs_v1 as owner
+    from gx1.scripts.audit_entry_sequence_source_reconstruction_v1 import audit_sequence_source_reconstruction
+
+    fixture = _sequence_fixture(tmp_path)
+    parent_manifest_path = tmp_path / "parent.manifest.json"
+    _write_json(parent_manifest_path, fixture["parent"])
+    parent_audit = audit_sequence_source_reconstruction(
+        parquet_path=fixture["child_path"], manifest_path=parent_manifest_path,
+    )
+    _write_json(fixture["parent_audit_path"], parent_audit)
+    _write_json(fixture["child_manifest"], {
+        "source_manifest": {"path": str(parent_manifest_path), "sha256": _sha256_file(parent_manifest_path)},
+    })
+    child = fixture["child"]["splits"]["train"]
+    child["manifest_file_sha256"] = _sha256_file(fixture["child_manifest"])
+    if corruption == "rows":
+        parent_audit["rows"] += 1
+        _write_json(fixture["parent_audit_path"], parent_audit)
+    elif corruption == "hash":
+        parent_audit["parquet_sha256"] = "0" * 64
+        _write_json(fixture["parent_audit_path"], parent_audit)
+    elif corruption == "bytes":
+        with fixture["child_path"].open("ab") as handle:
+            handle.write(b"changed")
+    elif corruption == "record":
+        _write_json(fixture["parent_audit_path"], {"replaced": True})
+    elif corruption == "clock":
+        child["clock_sha256"] = "0" * 64
+
+    def forbidden_signal_load(*args, **kwargs):
+        raise AssertionError("full M5 signal must not be decoded again")
+    monkeypatch.setattr(owner, "_load_surface_signal", forbidden_signal_load)
+    original_parquet = pq.ParquetFile
+    columns_read = []
+    class ClockOnlyParquet(original_parquet):
+        def iter_batches(self, *args, **kwargs):
+            columns_read.append(kwargs["columns"])
+            assert kwargs["columns"] == ["time"]
+            yield from super().iter_batches(*args, **kwargs)
+    monkeypatch.setattr(pq, "ParquetFile", ClockOnlyParquet)
+    arguments = dict(
+        child_admission=fixture["child"], child_admission_file_sha256="3" * 64,
+        parent_manifest=fixture["parent"], parent_sequence_audit=parent_audit,
+        parent_sequence_audit_path=fixture["parent_audit_path"],
+    )
+    if corruption != "none":
+        with pytest.raises(RuntimeError):
+            build_child_sequence_reconstruction_audit(**arguments)
+    else:
+        audit = build_child_sequence_reconstruction_audit(**arguments)
+        assert audit["sequence_value_verification"] == "inherited_exact_full_parent_audit"
+        assert audit["parent_sequence_source_chain_sha256"] == parent_audit["sequence_source_chain_sha256"]
+        assert "sequence_value_stream_sha256" not in audit
+        assert audit["child_train_rows"] == 2
+        assert columns_read == [["time"]]
