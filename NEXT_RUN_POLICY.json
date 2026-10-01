@@ -1,13 +1,27 @@
 {
   "automatic_bot_goal_20261001": {
     "active_job": null,
-    "fits_allowed": false,
+    "fits_allowed": true,
+    "fits_scope": "Only committed MACRO_CORE CPU ridge/HGB preregistration; no native optimizer steps.",
     "full_b_admitted": false,
     "manifest": "configs/research/TA_MACRO_CORE_COMPONENTS_20261001.json",
     "manifest_sha256": "24b90aca5be524e72d990fb6b48146bfde92c2b2a222d2f9a8caa454d51dae50",
+    "measurement_manifest": "configs/research/TA_MACRO_CORE_PREREG_20261001.json",
+    "measurement_manifest_sha256": "705e8737a376911218a02a26b7d3e5522c5063bb2dd8c36263e2f20a62ee7948",
     "native_training_enabled": false,
     "plan": "docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md",
-    "status": "PREREGISTERED_INPUT_QUALIFICATION_NOT_RUN",
+    "report": "docs/TA_MACRO_CORE_RESULT_20261001.json",
+    "report_sha256": "fdcdd97da07791374b4283c206203742e5fe663cf3b1bf982c939c7c12137912",
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/COMPONENTS_001/RESULT.json",
+      "sha256": "6905376ff71f005460dfa5d21760466c5b47849dcda83a4e2698993b44c19467",
+      "terminal_sha256": "473363b18495e30d0584a22284fee1b78ac5a170f2d2b881dda120fcff49fb27"
+    },
+    "source_verification": {
+      "path": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/COMPONENTS_001/INDEPENDENT_VERIFICATION.json",
+      "sha256": "12a6787a81d659c61a86f277d19cd1235540a80843c7b809e685f5eb1a50eb06"
+    },
+    "status": "INPUTS_VERIFIED_MEASUREMENT_PREREGISTERED_NOT_RUN",
     "test_accessed": false
   },
   "b_next_source_step_20260930": {
@@ -2062,9 +2076,9 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Run the committed MACRO_CORE three-source input qualification on existing archives and cached clocks; freeze the separate matched A-versus-macro measurement only after observed input coverage. Preserve full B and its blockers. Native v38 learning, later generalization, train/serve parity and offline operational qualification remain required. No native training, TEST or trading is opened.",
+  "next_action": "Run the committed MACRO_CORE matched price-versus-price-plus-three-macro measurement once, using verified components, cached A panel, frozen 2020-2025 folds, unchanged costs and 120-endpoint family. Then independently verify accounting and assess declared gates. Continue separate native v38 preparation; native training, TEST and trading remain closed.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-10-01T09:23:21.957674+00:00",
+  "observed_utc": "2026-10-01T09:29:53.341651+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2245,7 +2259,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_MACRO_CORE_INPUT_QUALIFICATION_PENDING",
+  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_MACRO_CORE_INPUTS_VERIFIED_MEASUREMENT_READY",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,
     "input_audit": {

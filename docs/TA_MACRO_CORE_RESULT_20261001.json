@@ -1,0 +1,95 @@
+{
+  "common_forecast_population": {
+    "positions_sha256": "120c29433801af5e7a1c675f7de404101b191d50b0250cfcd4e26ba27766cf05",
+    "rows": 1529
+  },
+  "common_input_population": {
+    "positions_sha256": "ef4a5bf9fa430619cdac64b08a0beaa3a41afaa5f40b9c3ead1cdbb14d5dd203",
+    "rows": 1761
+  },
+  "component_result": {
+    "path": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/COMPONENTS_001/RESULT.json",
+    "sha256": "6905376ff71f005460dfa5d21760466c5b47849dcda83a4e2698993b44c19467",
+    "terminal_sha256": "473363b18495e30d0584a22284fee1b78ac5a170f2d2b881dda120fcff49fb27"
+  },
+  "component_verification": {
+    "path": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/COMPONENTS_001/INDEPENDENT_VERIFICATION.json",
+    "sha256": "12a6787a81d659c61a86f277d19cd1235540a80843c7b809e685f5eb1a50eb06"
+  },
+  "coverage": {
+    "DFII10": {
+      "distinct_used_observation_dates": 3337,
+      "distinct_used_realtime_dates": 3337,
+      "feature_complete_rows": 4497,
+      "first_complete_decision": "2009-06-27 22:00:00+00:00",
+      "last_complete_decision": "2025-12-30 22:00:00+00:00",
+      "numeric_level_rows": 4518
+    },
+    "DTWEXBGS": {
+      "distinct_used_observation_dates": 360,
+      "distinct_used_realtime_dates": 360,
+      "feature_complete_rows": 1761,
+      "first_complete_decision": "2019-03-06 22:00:00+00:00",
+      "last_complete_decision": "2025-12-30 22:00:00+00:00",
+      "numeric_level_rows": 1782
+    },
+    "T10YIE": {
+      "distinct_used_observation_dates": 2351,
+      "distinct_used_realtime_dates": 2351,
+      "feature_complete_rows": 3059,
+      "first_complete_decision": "2014-02-27 22:00:00+00:00",
+      "last_complete_decision": "2025-12-30 22:00:00+00:00",
+      "numeric_level_rows": 3080
+    }
+  },
+  "full_b_admitted": false,
+  "measurement_manifest": "configs/research/TA_MACRO_CORE_PREREG_20261001.json",
+  "measurement_manifest_sha256": "705e8737a376911218a02a26b7d3e5522c5063bb2dd8c36263e2f20a62ee7948",
+  "native_training": false,
+  "pre_fit_clock_audit": [
+    {
+      "first_hold_time": "2020-01-01 23:00:00+00:00",
+      "fit_rows": 192,
+      "hold_rows": 259,
+      "last_fit_outcome_time": "2019-12-30 23:00:00+00:00",
+      "year": 2020
+    },
+    {
+      "first_hold_time": "2021-01-03 23:00:00+00:00",
+      "fit_rows": 451,
+      "hold_rows": 258,
+      "last_fit_outcome_time": "2020-12-30 23:00:00+00:00",
+      "year": 2021
+    },
+    {
+      "first_hold_time": "2022-01-02 23:00:00+00:00",
+      "fit_rows": 709,
+      "hold_rows": 258,
+      "last_fit_outcome_time": "2021-12-30 23:00:00+00:00",
+      "year": 2022
+    },
+    {
+      "first_hold_time": "2023-01-02 23:00:00+00:00",
+      "fit_rows": 967,
+      "hold_rows": 257,
+      "last_fit_outcome_time": "2022-12-29 23:00:00+00:00",
+      "year": 2023
+    },
+    {
+      "first_hold_time": "2024-01-01 23:00:00+00:00",
+      "fit_rows": 1224,
+      "hold_rows": 259,
+      "last_fit_outcome_time": "2023-12-28 23:00:00+00:00",
+      "year": 2024
+    },
+    {
+      "first_hold_time": "2025-01-01 23:00:00+00:00",
+      "fit_rows": 1483,
+      "hold_rows": 238,
+      "last_fit_outcome_time": "2024-12-30 23:00:00+00:00",
+      "year": 2025
+    }
+  ],
+  "status": "INPUTS_VERIFIED_MEASUREMENT_PREREGISTERED_NOT_RUN",
+  "test_accessed": false
+}

@@ -73,3 +73,20 @@ research_ta_campaign_v1-eier. 48 fokuserte syntetiske tester består, inkludert
 hele eksisterende A/B/C-testfilen, eksakt matchede rader og fortsatt stengt B.
 Kildekontroll på ekte bytes og læringsmåling er ennå ikke kjørt.
 Testlogg: /home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/CODE_REVIEW_001/TESTS.log.
+
+## Kildekontroll fullført, separat måling fryst
+
+Tre kilder er kvalifisert på ekte arkivbytes. En separat verifikator har
+kontrollert nivå, endring og valgte historiske versjoner på alle 4518
+beslutningsklokker per kilde. 1761 rader har alle seks felt, fra
+06.03.2019 til 30.12.2025. USD er begrensningen; ingen eldre verdier bakoverfylles.
+Median observasjonsalder for USD er 7,92 kalenderdager etter det konservative laget.
+Dette er langsom kontekst. Cachebyggerens daily_panel og gjenværende HTF-definisjoner
+har identisk AST med den fullførte A-byggingen; indikator- og klokkeeier er bundet.
+
+configs/research/TA_MACRO_CORE_PREREG_20261001.json fryser den separate målingen.
+Årlige folds 2020–2025, felles input- og prognoserader, samme mål/hyperparametre,
+kostnader og 120 sammenligningsendepunkter er bundet før fits.
+49 fokuserte tester består, inkludert komplett syntetisk kjøring med
+receipt-/cache-/populasjonskontroll. Ingen markedslæring er målt ennå.
+Kilde- og klokkebevis: docs/TA_MACRO_CORE_RESULT_20261001.json.

@@ -1,0 +1,182 @@
+{
+  "alpha": 0.05,
+  "arm": "MACRO_CORE",
+  "bootstrap_draws": 1999,
+  "cache_result": {
+    "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001/RESULT.json",
+    "sha256": "7835eef9f8021ea63246973f2f3bd6179d0b299f8fa4ccccd357498d95cc0224",
+    "terminal_sha256": "cd81ebacadf0b532b597a7355d3dc4da5492650751023952c823bfcda6e6c3e9"
+  },
+  "commission_bps_per_execution": 0.0,
+  "common_forecast_population": {
+    "positions_sha256": "120c29433801af5e7a1c675f7de404101b191d50b0250cfcd4e26ba27766cf05",
+    "rows": 1529
+  },
+  "common_input_population": {
+    "positions_sha256": "ef4a5bf9fa430619cdac64b08a0beaa3a41afaa5f40b9c3ead1cdbb14d5dd203",
+    "rows": 1761
+  },
+  "component_result": {
+    "path": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/COMPONENTS_001/RESULT.json",
+    "sha256": "6905376ff71f005460dfa5d21760466c5b47849dcda83a4e2698993b44c19467",
+    "terminal_sha256": "473363b18495e30d0584a22284fee1b78ac5a170f2d2b881dda120fcff49fb27"
+  },
+  "component_verification": {
+    "path": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/COMPONENTS_001/INDEPENDENT_VERIFICATION.json",
+    "sha256": "12a6787a81d659c61a86f277d19cd1235540a80843c7b809e685f5eb1a50eb06"
+  },
+  "daily_cache": {
+    "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/MEASUREMENT_A_001/DAILY_PANEL.parquet",
+    "sha256": "dba9665c6fc7d4e3375d9370e64916e0befbf3376afc3d190ce06ceab9436393"
+  },
+  "decision": "At h20 each macro learner must exceed its matched price-only learner, same-risk long, same-TRAIN constant and causal trend on all three inherited minimum effects in both funding scenarios under simultaneous family bounds, plus positive total net PnL in both. Any required NO_GO gives NO_GO, otherwise INKONKLUSIV. H5 and raw buyhold remain diagnostic but included in the same 120-endpoint family. No post-result tuning or promotion.",
+  "desired_power": 0.8,
+  "effects": {
+    "mean_delta_bps": [
+      1.0,
+      2.0,
+      5.0
+    ],
+    "normalized_delta": [
+      0.01,
+      0.02,
+      0.05
+    ],
+    "sharpe_delta": [
+      0.1,
+      0.2,
+      0.3
+    ]
+  },
+  "feature_names": [
+    "momentum_21_atr14",
+    "momentum_63_atr14",
+    "momentum_126_atr14",
+    "momentum_252_atr14",
+    "range_position_252",
+    "atr14_over_atr252",
+    "ema200_distance_atr14",
+    "real10y_level",
+    "real10y_change21D1",
+    "usd_log_level",
+    "usd_log_change21D1",
+    "breakeven10y_level",
+    "breakeven10y_change21D1"
+  ],
+  "fold_years": [
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "full_b_admitted": false,
+  "funding": {
+    "manifest": "/home/andre2/src/GX1_CURRENT/configs/research/TA_FUNDING_VALIDATION_NYFED_20260929.json",
+    "manifest_sha256": "c708da18bf40342131582e6b054592bf0318e14c60d959b1b05553cee42a18de",
+    "markup": 0.0129,
+    "seconds_per_year": 31557600.0
+  },
+  "hgb": {
+    "learning_rate": 0.1,
+    "max_iter": 100,
+    "min_samples_leaf": 20
+  },
+  "horizons": [
+    20,
+    5
+  ],
+  "initial_equity": 100.0,
+  "inner_fraction": 0.2,
+  "limitations": [
+    "DTWEXBGS is broad USD, not ICE DXY; archived release frequency is roughly weekly.",
+    "ALFRED date vintage plus a full observed session lag is conservative daily macro context, not an intraday release feed.",
+    "D1 research forecasts and daily resizing are not the native shared Entry/Exit policy.",
+    "The fixed 21-D1 changes, horizons, learners, costs and statistical effects are inherited, not optimized here.",
+    "Funding is a declared historical proxy; zero-funding is a sensitivity scenario, not realistic free carry.",
+    "All 2020-2025 history is reused development; later independent generalization remains unproven."
+  ],
+  "macro_series": [
+    "DFII10",
+    "DTWEXBGS",
+    "T10YIE"
+  ],
+  "mean_block_length": 60.0,
+  "min_fit_rows": 100,
+  "min_inner_rows": 20,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/MEASUREMENT_001",
+  "periods_per_year": 252.0,
+  "population_classification": "reused development history; initial causal fit starts from available 2019 inputs; annual walkforward 2020-2025 with outcome purge; no untouched OOS claim",
+  "pre_fit_clock_audit": [
+    {
+      "first_hold_time": "2020-01-01 23:00:00+00:00",
+      "fit_rows": 192,
+      "hold_rows": 259,
+      "last_fit_outcome_time": "2019-12-30 23:00:00+00:00",
+      "year": 2020
+    },
+    {
+      "first_hold_time": "2021-01-03 23:00:00+00:00",
+      "fit_rows": 451,
+      "hold_rows": 258,
+      "last_fit_outcome_time": "2020-12-30 23:00:00+00:00",
+      "year": 2021
+    },
+    {
+      "first_hold_time": "2022-01-02 23:00:00+00:00",
+      "fit_rows": 709,
+      "hold_rows": 258,
+      "last_fit_outcome_time": "2021-12-30 23:00:00+00:00",
+      "year": 2022
+    },
+    {
+      "first_hold_time": "2023-01-02 23:00:00+00:00",
+      "fit_rows": 967,
+      "hold_rows": 257,
+      "last_fit_outcome_time": "2022-12-29 23:00:00+00:00",
+      "year": 2023
+    },
+    {
+      "first_hold_time": "2024-01-01 23:00:00+00:00",
+      "fit_rows": 1224,
+      "hold_rows": 259,
+      "last_fit_outcome_time": "2023-12-28 23:00:00+00:00",
+      "year": 2024
+    },
+    {
+      "first_hold_time": "2025-01-01 23:00:00+00:00",
+      "fit_rows": 1483,
+      "hold_rows": 238,
+      "last_fit_outcome_time": "2024-12-30 23:00:00+00:00",
+      "year": 2025
+    }
+  ],
+  "primary_horizon": 20,
+  "read_end_exclusive": "2026-01-01T00:00:00Z",
+  "read_start": "2009-06-01T00:00:00Z",
+  "risk": {
+    "lookback": 21,
+    "max_gross_leverage": 1.0,
+    "target_annual_vol": 0.1
+  },
+  "schema": "gx1_ta_macro_core_preregistration_v1",
+  "seed": 0,
+  "slippage_bps_per_execution": 2.0,
+  "source_files": {
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/features/htf_features.py": "a63ea640ac0d68ff138c0582ff0ea7022b15c7310a8aba1801dff318bfb8b29a",
+    "gx1/features/technical_indicators_v1.py": "e149423ca38c36ea77234e2173f7ea78e81a4bb0cb1dfd2b74576de76989f024",
+    "gx1/scripts/research_entry_direction_walkforward_v1.py": "dffef5663437b629f77511f04255e186b4c303e7117159eae0d4caaa77c0136b",
+    "gx1/scripts/research_model_free_baselines_v1.py": "ad66fe337ef294614acc6a9b46f6c72ecb2a299a6b760c08579035f93cc42f50",
+    "gx1/scripts/research_ta_campaign_v1.py": "ddb5ad8c066c8167d4b53ea79b8139f117cad7dbb7f9eb13a5850018febb2ee2",
+    "gx1/time/session_detector.py": "aab11f91776aacfaa48272706807b58acdc7f6606078d5297b5e469bdca13b9e",
+    "tests/test_research_ta_campaign.py": "11ddaf8d5d30806acd05b4425c8732db918979d2da9137027f2d5910ffec6d04"
+  },
+  "tape": {
+    "manifest_sha256": "83af4819543c638369eaef4cc23e3805e73d7f853c89fc94e58b5233d8befb4b",
+    "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_20260927"
+  },
+  "test_accessed": false,
+  "untestable_endpoint_policy": "Retain named endpoint in full declared family as INKONKLUSIV if nonfinite or bootstrap variance zero; no p or interval fabricated. Compute max-t on jointly resampled finite endpoints and disclose exact eligible subfamily. Any untestable required endpoint prevents GO for that learner."
+}

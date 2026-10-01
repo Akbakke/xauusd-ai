@@ -1135,6 +1135,106 @@ def _evaluate(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurv
             "endpoints": list(endpoints.values()), "decisions": decisions}
 
 
+def _completed_research_result(binding: dict, status: str) -> dict:
+    path = Path(binding["path"])
+    terminal_path = path.with_name("TERMINAL.json")
+    if sha(path) != binding["sha256"] or sha(terminal_path) != binding["terminal_sha256"]:
+        raise RuntimeError("TA_MACRO_CORE_RESULT_HASH")
+    result = json.loads(path.read_text())
+    terminal = json.loads(terminal_path.read_text())
+    if terminal["status"] != status or terminal["result_sha256"] != binding["sha256"]:
+        raise RuntimeError("TA_MACRO_CORE_INCOMPLETE_INPUT")
+    return result
+
+
+def load_macro_core_panel(spec: dict) -> tuple[pd.DataFrame, dict]:
+    """Reuse complete cached bytes; admit neither a partial artifact nor a new clock."""
+    component = _completed_research_result(spec["component_result"], "COMPLETE_MACRO_CORE_COMPONENTS")
+    cached = _completed_research_result(spec["cache_result"], "COMPLETE")
+    proof_path = Path(spec["component_verification"]["path"])
+    if sha(proof_path) != spec["component_verification"]["sha256"]:
+        raise RuntimeError("TA_MACRO_CORE_VERIFICATION_HASH")
+    proof = json.loads(proof_path.read_text())
+    if (proof["status"] != "PASS"
+            or proof["component_result_sha256"] != spec["component_result"]["sha256"]
+            or component["status"] != "COMPLETE_MACRO_CORE_COMPONENTS"
+            or component["feature_names"] != MACRO_CORE_FEATURES
+            or component["test_accessed"] is not False or component["fits_run"] is not False
+            or component["full_b_admitted"] is not False
+            or cached["schema"] != "gx1_ta_measurement_a_v1" or cached["test_accessed"] is not False):
+        raise RuntimeError("TA_MACRO_CORE_INPUT_CONTRACT")
+    cache = spec["daily_cache"]
+    path = Path(cache["path"])
+    if (cached["artifacts"][path.name]["sha256"] != cache["sha256"]
+            or component["clock_cache"]["path"] != cache["path"]
+            or component["clock_cache"]["sha256"] != cache["sha256"]
+            or sha(path) != cache["sha256"]
+            or sha(Path(component["artifact"]["path"])) != component["artifact"]["sha256"]):
+        raise RuntimeError("TA_MACRO_CORE_CACHE_HASH")
+    panel = pd.read_parquet(path)
+    components = pd.read_parquet(component["artifact"]["path"])
+    panel = join_macro_core_components(panel, components)
+    if (pd.Timestamp(panel.decision_time.min()) < pd.Timestamp(spec["read_start"])
+            or pd.Timestamp(panel.decision_time.max()) >= pd.Timestamp(spec["read_end_exclusive"])
+            or pd.Timestamp(panel.fill_time.max()) >= pd.Timestamp(spec["read_end_exclusive"])):
+        raise RuntimeError("TA_MACRO_CORE_TIME_BOUNDS")
+    complete = np.flatnonzero(np.isfinite(panel[MACRO_CORE_ALL_FEATURES].to_numpy(float)).all(axis=1))
+    expected = spec["common_input_population"]
+    if (len(complete) != expected["rows"]
+            or hashlib.sha256(complete.astype("<i8").tobytes()).hexdigest() != expected["positions_sha256"]):
+        raise RuntimeError("TA_MACRO_CORE_POPULATION_DRIFT")
+    return panel, {"daily_cache": cache, "cache_result": spec["cache_result"],
+                   "component_result": spec["component_result"],
+                   "component_verification": spec["component_verification"],
+                   "original_market_inputs": cached["inputs"]}
+
+
+def run_macro_core(spec: dict, spec_path: Path) -> dict:
+    if (spec["arm"] != "MACRO_CORE" or spec["feature_names"] != MACRO_CORE_ALL_FEATURES
+            or spec["macro_series"] != list(MACRO_CORE_SERIES)
+            or spec["horizons"] != [20, 5] or spec["primary_horizon"] != 20
+            or spec["test_accessed"] is not False or spec["full_b_admitted"] is not False):
+        raise RuntimeError("TA_MACRO_CORE_PREREG_SCOPE")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"git_head": git("rev-parse", "HEAD"),
+                                     "preregistration": str(spec_path), "preregistration_sha256": sha(spec_path)})
+    try:
+        panel, binding = load_macro_core_panel(spec)
+        curve = load_funding(spec)
+        forecasts, fits = fit_matched_macro_core(panel, spec)
+        rows = np.flatnonzero(np.isfinite(forecasts[20]["constant"]))
+        expected = spec["common_forecast_population"]
+        if (len(rows) != expected["rows"]
+                or hashlib.sha256(rows.astype("<i8").tobytes()).hexdigest() != expected["positions_sha256"]):
+            raise RuntimeError("TA_MACRO_CORE_FORECAST_DRIFT")
+        write_json(out / "FITS.json", {"fits": fits})
+        write_parquet(out / "PREDICTIONS.parquet", pd.DataFrame({"fill_time": panel.fill_time, **{
+            f"h{h}:{name}": pred for h, arm in forecasts.items() for name, pred in arm.items()}}))
+        result = evaluate_matched_macro_core(panel, forecasts, curve, spec, out)
+        # Terminal publication follows full table readability, fsync and inventory.
+        artifacts = {}
+        for path in sorted(out.iterdir()):
+            if path.suffix == ".parquet":
+                pq.read_table(path)
+            with path.open("rb") as handle:
+                os.fsync(handle.fileno())
+            artifacts[path.name] = {"sha256": sha(path), "bytes": path.stat().st_size}
+        result.update(schema="gx1_ta_macro_core_measurement_v1", git_head=git("rev-parse", "HEAD"),
+                      preregistration_sha256=sha(spec_path), inputs=binding, artifacts=artifacts,
+                      primary_horizon=spec["primary_horizon"], test_accessed=False,
+                      native_training=False, full_b_admitted=False,
+                      evidence_class="measured_reused_development_walkforward")
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": "COMPLETE", "result_sha256": sha(out / "RESULT.json"),
+                                         "finished_utc": datetime.now(timezone.utc).isoformat()})
+        return {"status": "COMPLETE", "out": str(out), "decisions": result["decisions"]}
+    except Exception as exc:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": str(exc),
+                                         "finished_utc": datetime.now(timezone.utc).isoformat()})
+        raise
+
+
 def run_a(spec: dict, spec_path: Path) -> dict:
     if spec["horizons"] != [20, 5] or spec["feature_names"] != FEATURES:
         raise RuntimeError("TA_PREREG_SCOPE")
@@ -1823,7 +1923,7 @@ def run_sweep(spec: dict, spec_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -1832,7 +1932,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

@@ -5,9 +5,11 @@
 Brukeren har bedt om aktiv gjennomføring av hele veien til en automatisk bot.
 Gjeldende rekkefølge og gjenstående bevis:
 [aktiv målplan](docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md).
-Først kvalifiseres DFII10/DTWEXBGS/T10YIE fra eksisterende ALFRED-arkiv i en
-egen forhåndsregistrert MACRO_CORE-arm. Deretter bindes en sammenligning
-mot pris alene på identiske rader og kostnader. Full B er fortsatt et eget,
+DFII10/DTWEXBGS/T10YIE er kvalifisert fra eksisterende ALFRED-arkiv:
+1761 komplette makrorader fra mars 2019 til desember 2025; alle 4518
+klokker per kilde er uavhengig kontrollert. Den separate MACRO_CORE-målingen
+er nå fryst for 2020–2025 mot pris alene på identiske rader og kostnader.
+49 fokuserte tester består. Kjøringen er ennå ikke startet. Full B er fortsatt et eget,
 ufullført sekskildemål. Native v38-læring, senere generalisering, paritet og
 offline driftskvalifisering gjenstår. Ingen native trening, TEST eller handel
 åpnes av inputkontrollen. Neste steg står i målplanen; eldre neste-steg-tekst

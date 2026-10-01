@@ -1018,3 +1018,65 @@ def test_research_atomic_publication_preserves_existing_evidence(tmp_path):
         ta.write_parquet(path, frame * 2)
     assert path.read_bytes() == original
     pd.testing.assert_frame_equal(pd.read_parquet(path), frame)
+
+
+def test_macro_core_run_binds_completed_inputs_population_and_terminal(tmp_path, monkeypatch):
+    panel, components, spec = _b_fixture(tmp_path)
+    components = components[["session_open", "decision_time", *ta.MACRO_CORE_FEATURES]].copy()
+    source = tmp_path / "source"
+    source.mkdir()
+    cache = source / "DAILY_PANEL.parquet"
+    panel.to_parquet(cache, index=False)
+    macro = source / "MACRO_COMPONENTS.parquet"
+    components.to_parquet(macro, index=False)
+    def completed(directory, payload, status):
+        directory.mkdir()
+        result = directory / "RESULT.json"
+        terminal = directory / "TERMINAL.json"
+        ta.write_json(result, payload)
+        ta.write_json(terminal, {"status": status, "result_sha256": ta.sha(result)})
+        return {"path": str(result), "sha256": ta.sha(result), "terminal_sha256": ta.sha(terminal)}
+    daily_cache = {"path": str(cache), "sha256": ta.sha(cache)}
+    cache_result = completed(tmp_path / "cache_receipt", {
+        "schema": "gx1_ta_measurement_a_v1", "test_accessed": False,
+        "artifacts": {cache.name: {"sha256": ta.sha(cache)}}, "inputs": {"synthetic_fixture": True}}, "COMPLETE")
+    component_result = completed(tmp_path / "component_receipt", {
+        "status": "COMPLETE_MACRO_CORE_COMPONENTS", "feature_names": ta.MACRO_CORE_FEATURES,
+        "test_accessed": False, "fits_run": False, "full_b_admitted": False,
+        "clock_cache": daily_cache, "artifact": {"path": str(macro), "sha256": ta.sha(macro)}},
+        "COMPLETE_MACRO_CORE_COMPONENTS")
+    proof = source / "PROOF.json"
+    ta.write_json(proof, {"status": "PASS", "component_result_sha256": component_result["sha256"]})
+    joint = ta.join_macro_core_components(panel, components)
+    pos = np.flatnonzero(np.isfinite(joint[ta.MACRO_CORE_ALL_FEATURES].to_numpy()).all(axis=1))
+    # Only 2011 can fit this fixture; determine authorized forecast rows from clocks.
+    rows = pos[(pos + 20 < len(joint)) & (pd.DatetimeIndex(joint.fill_time)[pos].year == 2011)]
+    binding = lambda values: {"rows": len(values), "positions_sha256": ta.hashlib.sha256(values.astype("<i8").tobytes()).hexdigest()}
+    spec.update(arm="MACRO_CORE", feature_names=ta.MACRO_CORE_ALL_FEATURES,
+                macro_series=list(ta.MACRO_CORE_SERIES), test_accessed=False, full_b_admitted=False,
+                daily_cache=daily_cache, cache_result=cache_result, component_result=component_result,
+                component_verification={"path": str(proof), "sha256": ta.sha(proof)},
+                read_start="2009-01-01T00:00Z", read_end_exclusive="2012-01-01T00:00Z",
+                common_input_population=binding(pos), common_forecast_population=binding(rows),
+                output_directory=str(tmp_path / "measurement"))
+    path = source / "SPEC.json"
+    path.write_text(json.dumps(spec))
+    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex([panel.fill_time.iloc[0]]), np.array([.04]),
+                                     panel.fill_time.iloc[-1] + pd.Timedelta(days=1), .0129, 31557600.)
+    monkeypatch.setattr(ta, "load_funding", lambda _: curve)
+    result = ta.run_macro_core(spec, path)
+    out = Path(result["out"])
+    terminal = json.loads((out / "TERMINAL.json").read_text())
+    measured = json.loads((out / "RESULT.json").read_text())
+    assert terminal["status"] == "COMPLETE"
+    assert terminal["result_sha256"] == ta.sha(out / "RESULT.json")
+    assert measured["full_b_admitted"] is False and measured["native_training"] is False
+    assert measured["evaluation"]["intervals"] == len(rows) - 1
+    for name, item in measured["artifacts"].items():
+        assert item["sha256"] == ta.sha(out / name)
+    wrong_population = dict(spec, common_input_population=binding(pos[:-1]))
+    with pytest.raises(RuntimeError, match="TA_MACRO_CORE_POPULATION_DRIFT"):
+        ta.load_macro_core_panel(wrong_population)
+    (tmp_path / "component_receipt/TERMINAL.json").write_text("{}")
+    with pytest.raises(RuntimeError, match="TA_MACRO_CORE_RESULT_HASH"):
+        ta.load_macro_core_panel(spec)
