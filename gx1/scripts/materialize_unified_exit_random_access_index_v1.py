@@ -16,9 +16,13 @@ import pandas as pd
 
 from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import (
     file_sha256,
-    require_no_cap_authority,
-    require_no_cap_authority_sources,
 )
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
+from gx1.scripts.materialize_unified_exit_lifecycle_v2 import _load_terminal_counts
+from gx1.scripts.materialize_unified_exit_pilot_final_bindings_v1 import (
+    _binding as _require_bound_path, _verify_canonical,
+)
+from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import require_pilot_child_calendar
 from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
     require_composite_normalization_binding,
     require_split_sequence_binding,
@@ -70,6 +74,8 @@ def _sealed_json(path: Path, value: dict[str, Any], key: str) -> None:
         json.dumps(payload, sort_keys=True, indent=2, allow_nan=False) + "\n",
         encoding="utf-8",
     )
+    if _read_json(path) != payload:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_STAGED_JSON_INVALID")
 
 
 def _semantic_stream_sha256(frame: pd.DataFrame) -> str:
@@ -186,31 +192,109 @@ def _build_equivalence_receipt(
     return receipt
 
 
-def _paths(root: Path, split: str, final_bindings_dir: Path) -> dict[str, Path]:
+def _paths(
+    root: Path, split: str, final_bindings_dir: Path, final_bundle: dict[str, Any],
+) -> dict[str, Path]:
+    """Use the published recipe/admission paths, including adopted Entry bytes."""
+    if split not in {"train", "val"}:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_SPLIT_INVALID")
+    recipe_path = _require_bound_path(
+        {"path": final_bundle["recipe_path"], "sha256": final_bundle["recipe_file_sha256"]},
+        "INDEX_RECIPE",
+    )
+    recipe = _read_json(recipe_path)
+    _verify_canonical(recipe, "recipe_sha256", "INDEX_RECIPE")
+    if (recipe.get("schema_version") != "gx1_unified_exit_pilot_final_bindings_recipe_v1"
+            or recipe.get("test_accessed") is not False
+            or recipe["recipe_sha256"] != final_bundle["recipe_sha256"]
+            or recipe["child_admission"] != final_bundle["child_admission"]):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_RECIPE_INVALID")
+    admission_path = _require_bound_path(recipe["child_admission"], "INDEX_ADMISSION")
+    admission = _read_json(admission_path)
+    _verify_canonical(admission, "witness_sha256", "INDEX_ADMISSION")
+    if admission.get("decision") != "PASS" or admission.get("test_accessed") is not False:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ADMISSION_INVALID")
+    windows = require_pilot_child_calendar(admission)
+    child, spec = admission["splits"][split], recipe["splits"][split]
     suffix = split.upper()
-    return {
-        "entry_parquet": root / "ENTRY_WINDOW" / f"{split}.parquet",
-        "entry_manifest": root / "ENTRY_WINDOW" / f"{split}.manifest.json",
-        "m1_child": root / "M1_CHILD_VIEWS_V1" / f"{split}.m1.parquet",
-        "m1_child_manifest": root / "M1_CHILD_VIEWS_V1" / f"{split}.manifest.json",
-        "summary_manifest": root / f"SUMMARY_FIT_{suffix}_V1" / "manifest.json",
-        "successor_counts": root
-        / f"SUMMARY_FIT_{suffix}_V1"
-        / "successor_transition_counts.npy",
-        "closure_authority": root
-        / f"CLOSURE_AUTHORITY_{suffix}_V2"
-        / "market_closure_authority.json",
-        "sequence_binding": final_bindings_dir
-        / f"SPLIT_SEQUENCE_BINDING_{suffix}.json",
-        "first_state_bridge": final_bindings_dir
-        / f"FIRST_STATE_ENTRY_BRIDGE_{suffix}.json",
-        "economic_authority": root
-        / "ECONOMICS"
-        / f"{split}.economic_authority.no_cap.v1.json",
-        "economic_counts": root
-        / "ECONOMICS"
-        / f"{split}.economic_counts.no_cap.v1.json",
+    paths = {
+        "entry_parquet": Path(child["parquet_path"]),
+        "entry_manifest": _require_bound_path(
+            {"path": child["manifest_path"], "sha256": child["manifest_file_sha256"]},
+            "INDEX_ENTRY_MANIFEST"),
+        "m1_child": Path(spec["m1_source"]["path"]),
+        "m1_child_manifest": _require_bound_path(spec["m1_manifest"], "INDEX_M1_MANIFEST"),
+        "summary_manifest": _require_bound_path(spec["summary_manifest"], "INDEX_SUMMARY"),
+        "successor_counts": _require_bound_path(spec["successor_counts"], "INDEX_COUNTS"),
+        "closure_authority": _require_bound_path(spec["closure_authority"], "INDEX_CLOSURE"),
+        "sequence_binding": final_bindings_dir / f"SPLIT_SEQUENCE_BINDING_{suffix}.json",
+        "first_state_bridge": final_bindings_dir / f"FIRST_STATE_ENTRY_BRIDGE_{suffix}.json",
+        "economic_authority": root / "ECONOMICS" / f"{split}.economic_authority.no_cap.v1.json",
+        "economic_counts": root / "ECONOMICS" / f"{split}.economic_counts.no_cap.v1.json",
+        "final_recipe": recipe_path,
+        "child_admission": admission_path,
     }
+    entry = _read_json(paths["entry_manifest"])
+    m1 = _read_json(paths["m1_child_manifest"])
+    if (entry.get("output_parquet_path") != str(paths["entry_parquet"])
+            or entry.get("output_parquet_sha256") != child["parquet_sha256"]
+            or entry.get("manifest_sha256") != child["manifest_contract_sha256"]
+            or entry.get("rows") != child["rows"]
+            or m1.get("output_parquet") != str(paths["m1_child"])
+            or m1.get("output_parquet_sha256") != spec["m1_source"]["sha256"]
+            or m1.get("child_admission_sha256") != recipe["child_admission"]["sha256"]
+            or m1.get("child_parquet_sha256") != child["parquet_sha256"]):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ADOPTED_SOURCE_INVALID")
+    if windows is not None:
+        window = windows[split]
+        if (entry.get("window_start_utc") != window["start_utc"]
+                or entry.get("window_end_utc_exclusive") != window["end_utc_exclusive"]
+                or m1.get("fit_window_start_utc") != window["start_utc"]
+                or m1.get("fit_window_end_utc_exclusive") != window["end_utc_exclusive"]):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_CALENDAR_INVALID")
+        paths["learning_design"] = Path(admission["chronological_learning_design"]["path"])
+    return paths
+
+
+def _require_index_economics(
+    paths: dict[str, Path], *, split: str, entry_manifest: dict[str, Any], entry_rows: int,
+) -> dict[str, Any]:
+    # Reuse the lifecycle owner: it verifies every Entry/side count and its hash.
+    mapping, authority, _ = _load_terminal_counts(
+        paths["economic_authority"], split=split,
+        dataset_run_id=entry_manifest["pilot_dataset_run_id"], entry_rows=entry_rows,
+    )
+    del mapping
+    if (authority["authority_artifact_path"] != str(paths["economic_counts"])
+            or pd.Timestamp(authority["coverage_start_utc"]) != pd.Timestamp(entry_manifest["window_start_utc"])
+            or pd.Timestamp(authority["coverage_end_utc"]) != pd.Timestamp(entry_manifest["window_end_utc_exclusive"])):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ECONOMIC_BINDING_INVALID")
+    return authority
+
+
+def _publish_stage(stage: Path, output_dir: Path, expected_files: set[str]) -> None:
+    paths = {path.name: path for path in stage.iterdir()}
+    if set(paths) != expected_files or any(not path.is_file() or path.is_symlink() for path in paths.values()):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_STAGED_INVENTORY_INVALID")
+    for path in paths.values():
+        with path.open("rb") as handle:
+            os.fsync(handle.fileno())
+    _fsync_directory(stage)
+    _publish_file_noreplace(stage, output_dir)
+    _fsync_directory(output_dir.parent)
+
+
+def _read_staged_index(stage: Path, final_output_dir: Path, split: str) -> tuple[dict[str, Any], pd.DataFrame]:
+    path = stage / f"{split}.random_access_index.parquet"
+    manifest = _read_json(stage / f"{split}.manifest.json")
+    if (manifest.get("index_parquet_path") != str(final_output_dir / path.name)
+            or manifest.get("index_parquet_sha256") != file_sha256(path)):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_STAGED_FILE_INVALID")
+    frame = pd.read_parquet(path)
+    require_random_access_index_manifest(
+        manifest, expected_split=split, index_frame=frame, verify_sources=True,
+    )
+    return manifest, frame
 
 
 def _build_split(
@@ -221,16 +305,18 @@ def _build_split(
     final_output_dir: Path,
     composite: dict[str, Any],
     final_bundle_path: Path,
+    final_bundle: dict[str, Any],
     final_bindings_dir: Path,
     source_overrides: dict[str, Path] | None = None,
 ) -> dict[str, Any]:
-    paths = _paths(pilot_root, split, final_bindings_dir)
+    paths = _paths(pilot_root, split, final_bindings_dir, final_bundle)
     if source_overrides is not None:
         if split != "val" or set(source_overrides) != {
             "summary_manifest", "successor_counts", "closure_authority"
         }:
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_OVERRIDE_INVALID")
-        paths.update(source_overrides)
+        if any(paths[name] != path for name, path in source_overrides.items()):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_OVERRIDE_RECIPE_MISMATCH")
     if any(not path.is_file() or path.is_symlink() for path in paths.values()):
         raise RuntimeError(
             f"UNIFIED_EXIT_RANDOM_ACCESS_INDEX_{split.upper()}_SOURCE_MISSING"
@@ -240,7 +326,6 @@ def _build_split(
     summary = _read_json(paths["summary_manifest"])
     sequence = _read_json(paths["sequence_binding"])
     bridge = _read_json(paths["first_state_bridge"])
-    authority = _read_json(paths["economic_authority"])
     counts = np.load(paths["successor_counts"], allow_pickle=False)
     entries = pd.read_parquet(paths["entry_parquet"], columns=["time"])
     child = pd.read_parquet(paths["m1_child"], columns=["time", "bid_open", "ask_open"])
@@ -303,19 +388,13 @@ def _build_split(
         raise RuntimeError(
             f"UNIFIED_EXIT_RANDOM_ACCESS_INDEX_{split.upper()}_BRIDGE_INVALID"
         )
-    authority = require_no_cap_authority(
-        authority,
-        expected_split=split,
-        expected_dataset_run_id=authority.get("dataset_run_id"),
-        expected_terminal_state_counts_sha256=authority.get(
-            "terminal_state_counts_sha256"
-        ),
+    _verify_canonical(bridge, "witness_sha256", "INDEX_BRIDGE")
+    if (sequence != final_bundle["split_sequence_bindings"][split]
+            or bridge["witness_sha256"] != final_bundle["first_state_entry_bridges"][split]["witness_sha256"]):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_FINAL_SPLIT_BINDING_INVALID")
+    authority = _require_index_economics(
+        paths, split=split, entry_manifest=entry_manifest, entry_rows=len(entries),
     )
-    require_no_cap_authority_sources(authority)
-    if authority["no_observed_economic_terminals"] is not True:
-        raise RuntimeError(
-            f"UNIFIED_EXIT_RANDOM_ACCESS_INDEX_{split.upper()}_TERMINAL_INVALID"
-        )
     parent = pd.read_parquet(parent_path, columns=["time"])
     parent_entries = pd.read_parquet(parent_entry_path, columns=["time"])
     entry_clock = pd.DatetimeIndex(pd.to_datetime(entries["time"], utc=True)).as_unit(
@@ -324,6 +403,10 @@ def _build_split(
     child_clock = pd.DatetimeIndex(pd.to_datetime(child["time"], utc=True)).as_unit(
         "ns"
     )
+    if (len(entry_clock) != entry_manifest["rows"]
+            or np.any(entry_clock < pd.Timestamp(entry_manifest["window_start_utc"]))
+            or np.any(entry_clock >= pd.Timestamp(entry_manifest["window_end_utc_exclusive"]))):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_ENTRY_WINDOW_INVALID")
     first_state = entry_clock.asi8 + 300_000_000_000
     starts = np.searchsorted(child_clock.asi8, first_state)
     parent_entry_clock = pd.DatetimeIndex(
@@ -438,7 +521,7 @@ def _publish_latest_year_selection(*, output_dir: Path, source_root_path: Path) 
     stage = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", dir=output_dir.parent))
     try:
         _sealed_json(stage / "ROOT.json", {k: v for k, v in root.items() if k != "root_sha256"}, "root_sha256")
-        os.replace(stage, output_dir)
+        _publish_stage(stage, output_dir, {"ROOT.json"})
     except Exception:
         shutil.rmtree(stage, ignore_errors=True)
         raise
@@ -464,6 +547,8 @@ def publish(
         return _publish_latest_year_selection(output_dir=output_dir, source_root_path=population_source_root_path)
     pilot_root = pilot_root.expanduser().resolve()
     output_dir = output_dir.expanduser().resolve()
+    if output_dir.exists() or output_dir.is_symlink():
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_OUTPUT_EXISTS")
     bindings_dir = (
         final_bindings_dir.expanduser().resolve()
         if final_bindings_dir is not None
@@ -502,6 +587,7 @@ def publish(
                 final_output_dir=output_dir,
                 composite=composite,
                 final_bundle_path=final_bundle_path,
+                final_bundle=final_bundle,
                 final_bindings_dir=bindings_dir,
             )
             for split in ("train", "val")
@@ -580,23 +666,14 @@ def publish(
         }
         _sealed_json(stage / "ROOT.json", root, "root_sha256")
         require_random_access_index_root(_read_json(stage / "ROOT.json"))
-        if output_dir.exists():
-            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_INDEX_OUTPUT_EXISTS")
-        os.replace(stage, output_dir)
-        published_root = require_random_access_index_root(
-            _read_json(output_dir / "ROOT.json")
-        )
+        inventory = {"ROOT.json"}
+        if not full_train_population:
+            inventory.add("V3_TO_V4_EQUIVALENCE.json")
         for split in ("train", "val"):
-            published_index = output_dir / f"{split}.random_access_index.parquet"
-            published_frame = pd.read_parquet(published_index)
-            require_random_access_index_manifest(
-                _read_json(output_dir / f"{split}.manifest.json"),
-                expected_split=split,
-                index_frame=published_frame,
-                index_path=published_index,
-                verify_sources=True,
-            )
-        return published_root
+            _read_staged_index(stage, output_dir, split)
+            inventory.update({f"{split}.manifest.json", f"{split}.random_access_index.parquet"})
+        _publish_stage(stage, output_dir, inventory)
+        return _read_json(output_dir / "ROOT.json")
     except Exception:
         shutil.rmtree(stage, ignore_errors=True)
         raise
@@ -644,13 +721,10 @@ def publish_val_revision(
         manifest = _build_split(
             pilot_root=pilot_root, split="val", output_dir=stage,
             final_output_dir=output_dir, composite=composite,
-            final_bundle_path=bundle_path, final_bindings_dir=bindings_dir,
+            final_bundle_path=bundle_path, final_bundle=bundle, final_bindings_dir=bindings_dir,
             source_overrides=overrides,
         )
-        frame = pd.read_parquet(stage / "val.random_access_index.parquet")
-        require_random_access_index_manifest(
-            manifest, expected_split="val", index_frame=frame, verify_sources=True,
-        )
+        manifest, frame = _read_staged_index(stage, output_dir, "val")
         old_manifest = require_random_access_index_manifest(
             _read_json(Path(old["splits"]["val"]["manifest_path"])), expected_split="val",
         )
@@ -695,7 +769,7 @@ def publish_val_revision(
         require_val_index_revision_root(staged_root, expected_predecessor=predecessor_binding)
         _sealed_json(stage / "ROOT.json", root, "root_sha256")
         require_random_access_index_root(_read_json(stage / "ROOT.json"))
-        os.replace(stage, output_dir)
+        _publish_stage(stage, output_dir, {"ROOT.json", "val.manifest.json", "val.random_access_index.parquet"})
         return require_val_index_revision_root(
             _read_json(output_dir / "ROOT.json"), expected_predecessor=predecessor_binding,
         )

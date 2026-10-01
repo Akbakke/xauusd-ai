@@ -732,3 +732,29 @@ Prospective cost-produsent har fortsatt os.rename før sluttsjekk og
 sletting av output i feilsti; no-cap-/readiness-eiere bruker replace.
 Disse ble kildeinspisert, ikke kjørt eller endret i denne bølgen;
 rett konkrete publiseringsblokker før de eventuelt tas i bruk.
+
+## Indekseier: faktiske stier, kalender og økonomisk identitet — 02.10.2026
+
+Indekseieren bruker nå faktiske filstier fra de ferdige, hashbundne
+sluttbindingene og Entry-admission. Nye kalendergrenser kontrolleres mot
+det fryste designet. Ingen datakopier eller aliaser. Den separate gamle
+siste-år-modusen beholder sin kalender og skal ikke brukes for dette bygget.
+Økonomi valideres nå mot Entry-datasettets ID, radantall, begge sider og
+kalender, gjennom eksisterende livsløpseier. Den gamle sjekken brukte
+økonomiartefaktens egen ID som forventning.
+Alle tre indeks-publiseringsruter bruker fsync + no-replace; data og
+kildebindinger kontrolleres før endelig navn. 37 fokuserte tester består.
+INDEX_SOURCE_AUDIT_001 er bundet til kontroll på ekte metadata, uten
+Parquet-/TEST-tilgang, fit eller publisering. Kostnadsautoritet gjenstår.
+
+
+plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/PLAN.json
+SHA256: cdb191fdc42207663fea424ddef3a9095e9ffb16e3b57fef29a1451eeef64878.
+
+operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/OPERATOR.py
+SHA256: 72e5f352d6ae0aafdc18d0b60a6e40693bd50d8ddeae956732f02aa82403bc97.
+
+Korrigering til forrige neste-steg-beskrivelse: full-TRAIN-indeksbyggeren
+hadde ingen hardkodet 2021-start. Den gamle kalenderen tilhører separat
+latest-year-utvalg. Full-TRAIN-ruten bevares og kontrollerer nå eksplisitt
+kalenderen fra bundet admission/design. Dette er ingen ny populasjon.

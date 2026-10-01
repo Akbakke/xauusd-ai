@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
@@ -279,3 +280,155 @@ def test_native_adapter_constructor_does_not_require_compact_schema():
     assert adapter._manifest["full_prefix_states_stored"] is False
     assert adapter._manifest["chunk_pointers_stored"] is False
     assert adapter._rows["entry_m1_start_row"].tolist() == [10, 14]
+
+
+def _source_path_fixture(tmp_path):
+    import hashlib
+    import json
+    from gx1.scripts import materialize_unified_exit_random_access_index_v1 as owner
+    def write(path, value, seal=None):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if seal:
+            value = {k: v for k, v in value.items() if k != seal}
+            value[seal] = canonical_sha256(value)
+        path.write_text(json.dumps(value, sort_keys=True) + "\n")
+        return value
+    def bind(path):
+        return {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    data = tmp_path / "adopted_existing_bytes"
+    data.mkdir()
+    rows, clocks, children, entries = {}, {}, {}, {}
+    for split, count in [("train", 2), ("val", 1)]:
+        parquet = data / f"original_{split}.parquet"
+        parquet.write_bytes(f"synthetic {split} parquet identity".encode())
+        rows[split], clocks[split] = count, ("a" if split == "train" else "b") * 64
+        entries[split] = parquet
+        children[split] = {"parquet_path": str(parquet), "parquet_sha256": bind(parquet)["sha256"],
+                           "rows": count, "clock_sha256": clocks[split]}
+    windows = {"train": {"start_utc": "2011-06-01T00:00:00+00:00", "end_utc_exclusive": "2025-06-01T00:00:00+00:00"},
+               "val": {"start_utc": "2025-06-01T00:00:00+00:00", "end_utc_exclusive": "2026-07-01T00:00:00+00:00"}}
+    design_path = tmp_path / "design.json"
+    write(design_path, {"schema_version": "gx1_frozen_chronological_learning_design_v1", "calendar": {
+        "physical_source_splits": {"train": "train", "control": "val"},
+        "physical_coordinate_namespaces_are_separate": True,
+        "train_entry_start_inclusive": windows["train"]["start_utc"],
+        "train_control_cutoff": windows["val"]["start_utc"],
+        "development_control_entry_end_exclusive": windows["val"]["end_utc_exclusive"],
+        "source_bindings": {split: {"physical_rows": rows[split], "clock_sha256": clocks[split],
+                                   "parquet": bind(entries[split])} for split in rows}}})
+    for split, child in children.items():
+        path = tmp_path / "entry_metadata" / f"{split}.manifest.json"
+        m = write(path, {"output_parquet_path": child["parquet_path"],
+            "output_parquet_sha256": child["parquet_sha256"], "rows": child["rows"],
+            "window_start_utc": windows[split]["start_utc"],
+            "window_end_utc_exclusive": windows[split]["end_utc_exclusive"]}, "manifest_sha256")
+        child.update(manifest_path=str(path), manifest_file_sha256=bind(path)["sha256"],
+                     manifest_contract_sha256=m["manifest_sha256"])
+    admission_path = tmp_path / "admission.json"
+    admission = write(admission_path, {"decision": "PASS", "test_accessed": False,
+        "chronological_learning_design": bind(design_path), "windows": windows,
+        "parent_admission_scope": "frozen_entry_bytes_only_no_parent_m1_states",
+        "splits": children}, "witness_sha256")
+    recipe = {"schema_version": "gx1_unified_exit_pilot_final_bindings_recipe_v1",
+              "test_accessed": False, "child_admission": bind(admission_path), "splits": {}}
+    for split in children:
+        m1 = tmp_path / "actual_m1_views" / f"{split}.parquet"
+        m1.parent.mkdir(exist_ok=True); m1.write_bytes(f"synthetic {split} M1 identity".encode())
+        manifest = m1.with_suffix(".manifest.json")
+        write(manifest, {"output_parquet": str(m1), "output_parquet_sha256": bind(m1)["sha256"],
+            "child_admission_sha256": bind(admission_path)["sha256"],
+            "child_parquet_sha256": children[split]["parquet_sha256"],
+            "fit_window_start_utc": windows[split]["start_utc"],
+            "fit_window_end_utc_exclusive": windows[split]["end_utc_exclusive"]})
+        spec = {"m1_source": bind(m1), "m1_manifest": bind(manifest)}
+        for name in ["summary_manifest", "successor_counts", "closure_authority"]:
+            path = tmp_path / f"{split}_{name}.json";write(path, {"synthetic_identity": name})
+            spec[name] = bind(path)
+        recipe["splits"][split] = spec
+    recipe_path = tmp_path / "recipe.json"
+    recipe = write(recipe_path, recipe, "recipe_sha256")
+    bundle = {"recipe_path": str(recipe_path), "recipe_file_sha256": bind(recipe_path)["sha256"],
+              "recipe_sha256": recipe["recipe_sha256"], "child_admission": recipe["child_admission"]}
+    return owner, bundle, recipe, admission, write, bind
+
+
+def test_index_paths_reuse_exact_adopted_files_and_frozen_calendar(tmp_path):
+    owner, bundle, recipe, admission, _, _ = _source_path_fixture(tmp_path)
+    for split in ["train", "val"]:
+        paths = owner._paths(tmp_path, split, tmp_path/"final", bundle)
+        assert paths["entry_parquet"] == Path(admission["splits"][split]["parquet_path"])
+        assert paths["m1_child"] == Path(recipe["splits"][split]["m1_source"]["path"])
+        assert paths["closure_authority"] == Path(recipe["splits"][split]["closure_authority"]["path"])
+        assert paths["learning_design"] == tmp_path/"design.json"
+    assert not (tmp_path/"ENTRY_WINDOW").exists()
+
+
+@pytest.mark.parametrize("mutation", ["source_bytes", "m1_window", "recipe_hash", "design_bytes"])
+def test_index_paths_reject_changed_inputs_or_wrong_calendar(tmp_path, mutation):
+    owner, bundle, recipe, admission, write, bind = _source_path_fixture(tmp_path)
+    if mutation == "source_bytes":
+        Path(recipe["splits"]["train"]["summary_manifest"]["path"]).write_text("{}")
+    elif mutation == "m1_window":
+        import json
+        path = Path(recipe["splits"]["train"]["m1_manifest"]["path"])
+        m = json.loads(path.read_text());m["fit_window_start_utc"] = "2021-06-01T00:00:00+00:00"
+        write(path, m);recipe["splits"]["train"]["m1_manifest"] = bind(path)
+        recipe = write(Path(bundle["recipe_path"]), recipe, "recipe_sha256")
+        bundle.update(recipe_file_sha256=bind(Path(bundle["recipe_path"]))["sha256"],
+                      recipe_sha256=recipe["recipe_sha256"])
+    elif mutation == "recipe_hash":
+        bundle["recipe_sha256"] = "f" * 64
+    else:
+        (tmp_path/"design.json").write_text("{}")
+    with pytest.raises(RuntimeError):
+        owner._paths(tmp_path, "train", tmp_path/"final", bundle)
+
+
+def test_index_path_resolver_rejects_test_before_file_access(tmp_path, monkeypatch):
+    from gx1.scripts import materialize_unified_exit_random_access_index_v1 as owner
+    def forbidden(*args, **kwargs):
+        raise AssertionError("TEST must be rejected before filesystem access")
+    monkeypatch.setattr(Path, "stat", forbidden)
+    with pytest.raises(RuntimeError, match="SPLIT_INVALID"):
+        owner._paths(tmp_path, "test", tmp_path, {})
+
+
+@pytest.mark.parametrize("mutation", [None, "dataset", "rows", "start", "end", "counts_path"])
+def test_index_economics_uses_entry_identity_population_and_window(tmp_path, mutation):
+    from gx1.scripts import materialize_unified_exit_random_access_index_v1 as owner
+    from gx1.scripts.build_unified_exit_no_cap_authority_v1 import build_no_cap_authority
+    from tests.test_unified_exit_no_cap_authority_v1 import _readiness, _facts
+    readiness = tmp_path/"readiness.json";_readiness(readiness)
+    result = build_no_cap_authority(output_dir=tmp_path/"authority", dataset_run_id="physical-child",
+        split="train", entry_rows=3, coverage_start_utc="2024-01-01T00:00:00+00:00",
+        coverage_end_utc="2025-01-01T00:00:00+00:00", economics_readiness_path=readiness,
+        economics_fact_manifest_path=_facts(tmp_path), publish=True)
+    paths = {"economic_authority": Path(result["authority_path"]), "economic_counts": Path(result["counts_path"])}
+    entry = {"pilot_dataset_run_id": "physical-child", "window_start_utc": "2024-01-01T00:00:00+00:00",
+             "window_end_utc_exclusive": "2025-01-01T00:00:00+00:00"}
+    rows = 3
+    if mutation == "dataset":entry["pilot_dataset_run_id"] = "foreign-child"
+    elif mutation == "rows":rows = 2
+    elif mutation == "start":entry["window_start_utc"] = "2023-01-01T00:00:00+00:00"
+    elif mutation == "end":entry["window_end_utc_exclusive"] = "2026-01-01T00:00:00+00:00"
+    elif mutation == "counts_path":paths["economic_counts"] = tmp_path/"unbound_counts.json"
+    if mutation is None:
+        checked = owner._require_index_economics(paths, split="train", entry_manifest=entry, entry_rows=rows)
+        assert checked["no_observed_economic_terminals"] is True
+    else:
+        with pytest.raises(RuntimeError):
+            owner._require_index_economics(paths, split="train", entry_manifest=entry, entry_rows=rows)
+
+
+def test_index_stage_rejects_wrong_file_binding_before_publication(tmp_path):
+    import json
+    from gx1.scripts import materialize_unified_exit_random_access_index_v1 as owner
+    stage = tmp_path/"stage";stage.mkdir()
+    frame, _ = _built()
+    parquet = stage/"train.random_access_index.parquet";frame.to_parquet(parquet, index=False)
+    (stage/"train.manifest.json").write_text(json.dumps({
+        "index_parquet_path": str(tmp_path/"final"/parquet.name),
+        "index_parquet_sha256": "0"*64}))
+    with pytest.raises(RuntimeError, match="STAGED_FILE_INVALID"):
+        owner._read_staged_index(stage, tmp_path/"final", "train")
+    assert not (tmp_path/"final").exists()

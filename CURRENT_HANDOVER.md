@@ -1,5 +1,17 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Indekseieren bruker nå faktiske filstier fra de ferdige, hashbundne
+sluttbindingene og Entry-admission. Nye kalendergrenser kontrolleres mot
+det fryste designet. Ingen datakopier eller aliaser. Den separate gamle
+siste-år-modusen beholder sin kalender og skal ikke brukes for dette bygget.
+Økonomi valideres nå mot Entry-datasettets ID, radantall, begge sider og
+kalender, gjennom eksisterende livsløpseier. Den gamle sjekken brukte
+økonomiartefaktens egen ID som forventning.
+Alle tre indeks-publiseringsruter bruker fsync + no-replace; data og
+kildebindinger kontrolleres før endelig navn. 37 fokuserte tester består.
+INDEX_SOURCE_AUDIT_001 er bundet til kontroll på ekte metadata, uten
+Parquet-/TEST-tilgang, fit eller publisering. Kostnadsautoritet gjenstår.
+
 Base- og lifetime-normaliseringen samt samlede førstetilstands-bindinger
 er fullført. Lifetime-fit: 8 053 838 siderader fra alle 652 552 TRAIN-entryer;
 VAL/TEST-fit = 0. FINAL_BINDINGS_002 sluttet med exit 0 og uendret kilde.

@@ -177,3 +177,33 @@ def test_publisher_latest_year_writes_only_root_without_materializing_data(tmp_p
     assert root["splits"] == fixture["source"]["splits"]
     assert {str(path): _binding(path)["sha256"] for path in (tmp_path / "full_data").iterdir()} == original
     assert contract.require_latest_year_index_root(root) == root
+
+
+def test_index_publisher_preserves_a_late_empty_destination(tmp_path, monkeypatch):
+    from gx1.contracts.immutable_event_authority_v1 import ImmutableEventAuthorityError
+    fixture = _fixture(tmp_path)
+    publish = builder._publish_file_noreplace
+    collision = {}
+    output = tmp_path/"published"
+
+    def collide(source, destination):
+        destination.mkdir()
+        collision["inode"] = destination.stat().st_ino
+        return publish(source, destination)
+
+    monkeypatch.setattr(builder, "_publish_file_noreplace", collide)
+    with pytest.raises(ImmutableEventAuthorityError, match="already exists"):
+        builder.publish(pilot_root=tmp_path, output_dir=output, latest_year_population=True,
+                        population_source_root_path=Path(fixture["source_root_binding"]["path"]))
+    assert output.stat().st_ino == collision["inode"]
+    assert list(output.iterdir()) == []
+    assert list(tmp_path.glob(".published.*")) == []
+
+
+def test_index_publication_rejects_unexpected_staging_file(tmp_path):
+    stage = tmp_path/"stage";stage.mkdir()
+    (stage/"ROOT.json").write_text("{}")
+    (stage/"extra").write_bytes(b"unbound")
+    with pytest.raises(RuntimeError, match="STAGED_INVENTORY_INVALID"):
+        builder._publish_stage(stage, tmp_path/"output", {"ROOT.json"})
+    assert not (tmp_path/"output").exists()

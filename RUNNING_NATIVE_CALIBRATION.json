@@ -2691,6 +2691,22 @@
         }
       }
     ],
+    "index_source_audit": {
+      "focused_tests_passed": 37,
+      "index_publication_authorized": false,
+      "native_training_enabled": false,
+      "normalization_fit_authorized": false,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/OPERATOR.py",
+        "sha256": "72e5f352d6ae0aafdc18d0b60a6e40693bd50d8ddeae956732f02aa82403bc97"
+      },
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/PLAN.json",
+        "sha256": "cdb191fdc42207663fea424ddef3a9095e9ffb16e3b57fef29a1451eeef64878"
+      },
+      "source_frozen_while_running": true,
+      "status": "BOUND_REAL_METADATA_SOURCE_AUDIT_PENDING"
+    },
     "input_build_authorization_consumed": true,
     "input_build_authorized": false,
     "learning_design": {
@@ -2701,7 +2717,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "NORMALIZATION_AND_FIRST_STATE_BINDINGS_COMPLETE_ECONOMICS_INDEX_TARGETS_REQUIRED",
+    "learning_design_status": "NORMALIZATION_FINAL_BINDINGS_COMPLETE_INDEX_OWNER_FIXED_SOURCE_AUDIT_BOUND_ECONOMICS_PENDING",
     "learning_proven": false,
     "lifetime_summary_fit": {
       "authorization_consumed": true,
@@ -3008,7 +3024,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse completed base/lifetime normalization and FINAL_BINDINGS_002 artifacts; do not refit or relaunch completed producers. First repair the existing random-access index owner to consume explicit current paths and frozen 2011-2025 TRAIN / 2025-2026 control calendar, preserving canonical state/censor semantics. Before actual index publication resolve prospective-cost coverage (old policy starts 2021, required 2011) and its current broker-term revalidation condition without treating old terms as current or opening broker access. Complete no-cap economics, immutable index publication, separate TRAIN/control coordinates, native targets and same-current-function TARGET before a guarded native launch. Native training, TEST, broker, live/paper and spending remain closed. Learning, chronological generalization, net economics, parity, full B and derived-M5 production provenance remain unfinished.",
+  "next_action": "Execute the bound INDEX_SOURCE_AUDIT_001 on clean source to verify actual recipe/admission paths and frozen calendar, without raw parquet access or index publication. Reuse completed normalization and final bindings. Cost authority remains unresolved: coverage must extend to 2011, and fresh broker terms cannot be assumed while broker access is closed. Prepare the smallest reviewable terms-revalidation route and keep economics/index publication closed until its condition is met. Continue toward native targets, separate TRAIN/control coordinates and same-function TARGET; TEST/live/paper/spending remain closed and edge unproven.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
