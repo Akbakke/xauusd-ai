@@ -138,6 +138,40 @@ Bevis under runtime LEARNING_DESIGN_001:
   produksjonseieren. Ingen full pilot-admission eller native launch hevdes.
 - CODE_REVIEW.json: eksakt endret kode, 15 beståtte tester og syntakskontroll.
 
+## Forslag fra operatøren: én M1-råkilde for alle klokker
+
+Operatøren spurte 01.10 om én M1-kilde kan danne M5 Entry og M15/H1/H4/D1.
+Kildeforløpet er nå kontrollert: MTF-eieren bygger allerede M15/H1/H4/D1
+fra M5, mens M1 og M5 kommer fra separate native kilder. En felles autoritativ
+M1-råkilde kan dermed forenkle rådataproveniensen. Kildeskiftet er ikke utført.
+
+En avgrenset mekanikkmåling på hele TRAIN-året 2024 brukte faktiske,
+hash-kontrollerte native årsfiler og eksisterende multi_tf_resample-eier.
+354 866 M1-rader ga 71 208 M5-barer, nøyaktig samme klokker som native M5.
+Alle 13 markedsfelt var eksakt like på hver bar: mid/bid/ask OHLC og aktivitet.
+70 809 barer hadde fem observerte M1-rader; 399 hadde én til fire. Også disse
+399 samsvarte eksakt. Ingen minutter ble fylt inn, ingen barer ble lagt til.
+Målingen er rådatamekanikk, ikke mål-/modell-/lønnsomhetsevidens.
+
+Rapport:
+ /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_2024_AUDIT/RESULT.json
+SHA256: 37704fd5fc91e66fa67499eb96f3efb74db616f046600b4ebca4e2045c910ebb.
+Plan, kildehasher og original operator er bevart ved siden av resultatet.
+Kun 2024 TRAIN ble åpnet; TEST og trening er urørt. Året alene beviser ikke
+full historikk-, feature-, normaliserings- eller train/serve-paritet.
+
+Neste avgrensede kontroll bør kvalifisere resten av relevant historikk med
+de samme lukkede bargrensene og gapreglene før en eventuell kildeendring.
+Bruk den komplette M1-råkilden med mid/bid/ask; den feature-/warmup-trimmede
+base28-visningen er ikke hele råhistorikken. Bygg rå OHLC og aktivitet per
+tidsramme før de eksisterende feature-eierne beregner indikatorer. Aggreger
+aldri ferdige M1-features. Entry forblir M5 og Exit M1, med delte MTF-cacher.
+
+Ferdige v38-inputs og tidligere evidens bevares. En senere kildeendring må
+deklareres i eksisterende kildekontrakter; avledet M5 skal ikke påstås å være
+en separat native OANDA-M5-kilde. Det er ikke nødvendig å bygge alt på nytt
+uten først å måle hvilke eksisterende bytes som faktisk endres.
+
 ## Neste konkrete grense
 
 Kvalifiser M1-kilden og koble inn eksisterende validator for den faktiske

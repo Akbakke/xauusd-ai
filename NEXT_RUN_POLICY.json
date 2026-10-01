@@ -2157,6 +2157,18 @@
     },
     "learning_design_status": "FROZEN_PHYSICAL_CALENDAR_SOURCE_MIGRATION_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
+    "m1_single_source_review": {
+      "decision": "MEASURED_2024_TRAIN_ONLY_NO_SOURCE_SWITCH",
+      "exact_m5_bars_all_13_fields": 71208,
+      "further_scope": "Qualify remaining relevant pre-TEST history and feature/source parity before changing the authoritative source. Reuse this completed2024 comparison.",
+      "missing_native_or_derived_bars": 0,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_2024_AUDIT/RESULT.json",
+        "sha256": "37704fd5fc91e66fa67499eb96f3efb74db616f046600b4ebca4e2045c910ebb"
+      },
+      "source_switch_performed": false,
+      "window": "2024 TRAIN only"
+    },
     "native_training_enabled": false,
     "new_dataset_complete": true,
     "normalization_fit_authorized": false,
@@ -2185,9 +2197,9 @@
     "train_rows": 652552,
     "training_enabled": false
   },
-  "next_action": "Reuse the completed v38 inputs and frozen LEARNING_DESIGN_001; do not relaunch inputs or macro research. The admitted calendar owner now validates the exact physical TRAIN2011-06 to2025-06 and later VAL2025-06 to2026-07 clocks. First qualify native-pair M1 provenance and quote completeness and adopt the existing opaque TEST seal validator; do not relabel legacy source fields. Then propagate the bound windows and separate physical coordinates through existing state/index/normalization/measurement owners and bind a fresh current-function teacher. Normalization fitting and native training remain disabled until the full concrete bindings are complete. The bounded learner alone has economic_rollout=false; portfolio economics remains separate. TEST, live/paper and spending remain closed.",
+  "next_action": "User proposed one authoritative M1 raw source for Entry M5 and all higher clocks. The completed2024 TRAIN mechanics audit has exact equality for71208 derived/native M5 candles across all13 quote/activity fields. First qualify remaining relevant pre-TEST history and closed-bar source/feature parity; do not repeat2024 or replace completed v38 inputs without a measured dependency change. Preserve the frozen learning design/control IDs and completed macro/input results. Native-pair M1 versus pretest provenance, opaque TEST seal admission, remaining calendar/coordinate owners and current-function teacher bindings still need completion. No source switch, normalization fit or native training is authorized by a one-year mechanics result. Continue the active preparation goal through existing owners; TEST, live/paper and spending remain closed.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-10-01T17:07:28.132461+00:00",
+  "observed_utc": "2026-10-01T17:12:34.132905+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
