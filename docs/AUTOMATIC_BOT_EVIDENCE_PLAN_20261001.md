@@ -119,8 +119,9 @@ Det separate v38-designet og CONTROL256 er nå fryst før mål-/modellutfall.
 Se configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json og native-rapporten.
 TRAIN 2011–mai 2025 og senere fysisk VAL juni 2025–juni 2026 har separate
 radkoordinater. Første klargjøringseier er rettet og kontrollert på hele
-kalenderen; 15 fokuserte tester består. M1-/TEST-seal-admission og øvrige
-native eiere trenger fortsatt den dokumenterte migreringen. Det er ingen
+kalenderen; 15 fokuserte tester besto denne første rettelsen. M1-/TEST-seal-
+admission er senere landet som beskrevet nedenfor; øvrige native eiere
+trenger fortsatt den dokumenterte migreringen. Det er ingen
 native launch eller læring ennå; mål og trening er fortsatt separate statuser.
 
 
@@ -131,3 +132,12 @@ M1-kilden. Eksisterende komplett pre-TEST-M1-fil er kvalifisert og skal
 gjenbrukes. 21 fokuserte tester og ekte metadata beviser pilotens rettede
 TEST-seal-admission. Se native-rapporten og NATIVE_M1_SOURCE_PARITY_20261001.json.
 Kildebytte, øvrig native komponentklargjøring og læringsmålingen er ikke ferdige.
+
+
+Den komplette M1-kilden er nå bundet til en konkret klargjøringsrecipe gjennom
+sin genuine pre-TEST-parent. 144 tester og ekte samlet kilde-/kalender-/seal-
+kontroll består. Gammel filtrert M1-visning og komplett M1 har ulike fysiske
+radkoordinater; neste nødvendige rettelse er å føre disse og de fryste periodene
+gjennom child-views, tilstandsindekser og øvrige eksisterende eiere.
+Ingen ny rådatakopi eller kvalifiseringsrunde trengs. Klargjøring, normalisering
+og læringsmåling er fortsatt egne ufullførte porter; se native-rapporten.

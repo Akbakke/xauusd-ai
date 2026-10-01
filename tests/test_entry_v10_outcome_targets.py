@@ -1039,6 +1039,32 @@ def test_unified_exit_pretest_quote_authority_requires_exact_native_rows(
         )
 
 
+@pytest.mark.parametrize("source_key", [
+    "m1_source_path", "m1_source_manifest_path",
+    "pair_manifest_path", "native_m1_manifest_path",
+])
+def test_pretest_m1_authority_reuse_checks_bound_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, source_key: str,
+) -> None:
+    pair_path, quote_manifest, quote_parquet = (
+        _strict_pretest_quote_authority_fixture(tmp_path)
+    )
+    _, authority = unified_exit_lifecycle.require_unified_exit_pretest_m1_quote_authority(
+        pair_lineage_path=pair_path, quote_source_manifest_path=quote_manifest,
+    )
+    def no_rebuild(*args, **kwargs):
+        raise AssertionError("Completed row qualification must be reused")
+    monkeypatch.setattr(unified_exit_lifecycle, "_require_native_m1_subset_identity", no_rebuild)
+    monkeypatch.setattr(unified_exit_lifecycle, "canonical_xau_source_descriptor_v1", no_rebuild)
+    source, reused = unified_exit_lifecycle.reuse_unified_exit_pretest_m1_quote_authority(authority)
+    assert source == quote_parquet
+    assert reused == authority
+    changed = Path(authority[source_key])
+    changed.write_bytes(changed.read_bytes() + b" ")
+    with pytest.raises(RuntimeError, match="PRETEST_M1_REUSE_SOURCE_CHANGED"):
+        unified_exit_lifecycle.reuse_unified_exit_pretest_m1_quote_authority(authority)
+
+
 def test_unified_exit_lifecycle_envelope_binds_both_sides_and_target_stream() -> None:
     entries = pd.DataFrame(
         {

@@ -2078,7 +2078,7 @@
     },
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
-    "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
+    "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
     "parameter_complexity_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
       "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
@@ -2159,7 +2159,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FROZEN_PHYSICAL_CALENDAR_SOURCE_MIGRATION_REQUIRED_NO_LAUNCH",
+    "learning_design_status": "FROZEN_DESIGN_SOURCE_CALENDAR_SEAL_ADMITTED_DOWNSTREAM_BINDINGS_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
     "m1_single_source_pretest_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/RESULT.json",
@@ -2192,6 +2192,18 @@
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/post_rebuild_readiness_20261001/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20261001T162209088974Z.json",
       "sha256": "b4f743074e7d2d74dd3a9e3917bffb428328ab6f8eb4ea6709072331db2468b3"
     },
+    "preparation_readiness": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_READINESS_20261001T173846817860Z.json",
+      "sha256": "d70543ef9013378550c0b9f6500f374dd0fe6ed9370aa07b2b7627bd1c06f720"
+    },
+    "preparation_recipe": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_RECIPE_20261001T173806836787Z.json",
+      "sha256": "b64e7b2641a767bc680239d9f2d6b450515690b2c8148cd01430320a4142ae06"
+    },
+    "preparation_source_rebinding_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/SOURCE_REBINDING_REVIEW_20261001T173846858521Z.json",
+      "sha256": "f668abc946f0870a8af9b77f389ed2f29a66d6e7929c538d72754a68f8e585c4"
+    },
     "profitability_proven": false,
     "report": "docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
@@ -2214,9 +2226,9 @@
     "train_rows": 652552,
     "training_enabled": false
   },
-  "next_action": "The full pre-TEST M1-to-M5 mechanics audit is complete: all1215514 candles and13 market fields agree exactly for2009-06 to2026-07; reuse this result and the independently qualified existing5959045-row M1 quote source, do not rebuild it. The explicit frozen-design pilot route now admits the actual completion-bound opaque TEST seal;21focused tests and the real metadata owner passed, with no TEST artifact path access. Next bind the qualified existing M1 source through its genuine pretest parent lineage into the native preparation recipe, while preserving the frozen design/control IDs and completed v38 feature artifacts. Do not relabel the full native-pair source or alter original manifests. Complete remaining downstream calendar/physical-coordinate, index/normalization/target/current-function-teacher/economic bindings. Training, normalization fitting, TEST, live/paper and spending remain closed; full B and macro promotion remain separate incomplete gates.",
+  "next_action": "The full pre-TEST M1-to-M5 audit and 5,959,045-row M1 qualification are complete; reuse both. The existing complete M1 source is now admitted through its genuine pre-TEST parent in the bound preparation recipe. 144 focused tests and real full preparation source/calendar/seal checks passed on 652,552 TRAIN and 70,880 control rows; no TEST or TEST-containing original raw data access occurred. Reuse the preparation recipe/readiness and source rebinding review under native_v38_preparation_20261001. Next propagate the frozen TRAIN/control windows and separate physical coordinates through Entry child admission, M1 views, no-cap state/index/normalization and native learning owners. The previous filtered base28 row positions cannot index the complete M1 file. Preserve original v38 artifacts and frozen control IDs. Complete same-current-function TARGET, target and economic bindings before any native learning; no blind data rebuild. The actual derived-M5 production provenance remains unfinished. Training, normalization fitting, TEST, live/paper and spending remain closed; full B and macro promotion remain separate incomplete gates.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-10-01T17:29:21.748934+00:00",
+  "observed_utc": "2026-10-01T17:40:17.542523+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2226,7 +2238,7 @@
     "one_heavy_job_per_current": true,
     "resource_guards_preserved": true,
     "tests_passed": 294,
-    "user_instruction": "fjern lås så vi kan jobbe parallelt"
+    "user_instruction": "fjern l\u00e5s s\u00e5 vi kan jobbe parallelt"
   },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",

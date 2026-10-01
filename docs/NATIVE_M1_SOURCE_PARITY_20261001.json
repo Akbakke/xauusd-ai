@@ -9,8 +9,20 @@
     "sha256": "d2117e2bb1236c7f8e58c2a8918f8f04d0813c7e3ef04da04fd0b25b18f87fc5"
   },
   "independent_integer_grid_numpy_reducer": "Exact on all newly measured years; existing production M5 resampler used throughout.",
+  "preparation_readiness": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_READINESS_20261001T173846817860Z.json",
+    "sha256": "d70543ef9013378550c0b9f6500f374dd0fe6ed9370aa07b2b7627bd1c06f720"
+  },
+  "preparation_recipe": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_RECIPE_20261001T173806836787Z.json",
+    "sha256": "b64e7b2641a767bc680239d9f2d6b450515690b2c8148cd01430320a4142ae06"
+  },
+  "preparation_source_rebinding_review": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/SOURCE_REBINDING_REVIEW_20261001T173846858521Z.json",
+    "sha256": "f668abc946f0870a8af9b77f389ed2f29a66d6e7929c538d72754a68f8e585c4"
+  },
   "remaining": [
-    "Explicit one-M1 source provenance and compatible preparation recipe.",
+    "Declared derived-M5 production provenance; complete M1 is now admitted in the bound preparation recipe.",
     "Preserve existing v38 feature bytes until exact dependency/functional reuse is admitted.",
     "Separate physical TRAIN/control coordinates and windows in downstream state/index/normalization/native measurement owners.",
     "Fresh initial/current-function TARGET, shared causal targets, economic evidence, later generalization and train/serve parity."
@@ -20,6 +32,8 @@
     "feature_or_model_parity_claimed": false,
     "model_forwards": 0,
     "normalization_fits": 0,
+    "physical_m1_row_indices_reusable": false,
+    "preparation_source_calendar_seal_admitted": true,
     "price_and_activity_mechanics_only": true,
     "production_source_switch_performed": false,
     "test_accessed": false

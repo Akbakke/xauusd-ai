@@ -220,13 +220,49 @@ Runtime SEAL_ADMISSION_PATCH/REAL_SEAL_FINAL_REVIEW.json og CODE_REVIEW.json
 binder aktuell kilde og bevis. Den første før-korrigering-reviewen er bevart
 som historie; siste ferdige review er autoriteten.
 
+## Komplett M1-kilde bundet i faktisk klargjøring
+
+Den nye eksplisitte recipe-stien bruker den tidligere kvalifiserte M1-filen.
+Eksisterende lifecycle-kontrakteier gjenbruker sin hash-bundne kvittering og
+rehash-kontrollerer M1-filen, quote-manifestet, pair-lineage og native manifest.
+Den kostbare rad-for-rad-kvalifiseringen gjentas ikke. Eieren for native
+autoritet er gjenbrukt også for metadata-validering; ingen falsk trenings-
+eller legacy-evidens konstrueres.
+
+Pilot-eieren krever samme originale M1-autoritet i begge frosne Entry-splits.
+Den fullhash-kontrollerte successor-metadataen må navngi nøyaktig den kvalifiserte
+pre-TEST-parenten, inkludert kilde-/manifest-/kanoniske radhasher, produsent,
+radantall og tidsgrense. Originale v38-manifester og featurefiler er uendret.
+Ny proveniens og at fysiske M1-radnumre ikke kan gjenbrukes bindes i pilot-hashen.
+
+144 tester i de tre berørte testfilene består, inklusive historisk oppførsel,
+endrede kildebytes, feil parent, splittet autoritet, feil tidsgrense og manglende
+design/kvalifisering. Dette er syntetiske mekanikktester. En separat ekte
+klargjøring rehash-kontrollerte alle nødvendige TRAIN/VAL- og M1-inputs og
+kontrollerte alle 652 552/70 880 tidsstempler. Path.open/stat/resolve-sperrene
+registrerte null tilgangsforsøk til TEST-artefakter, gammel filtrert råfil
+eller successor-rådata med TEST-rader. Normer/modell/optimizer er ikke kjørt.
+
+Runtime M1_REBINDING_PATCH/OUTPUT:
+- PREPARATION_RECIPE_20261001T173806836787Z.json:
+  b64e7b2641a767bc680239d9f2d6b450515690b2c8148cd01430320a4142ae06.
+- PREPARATION_READINESS_20261001T173846817860Z.json:
+  d70543ef9013378550c0b9f6500f374dd0fe6ed9370aa07b2b7627bd1c06f720.
+- SOURCE_REBINDING_REVIEW_20261001T173846858521Z.json:
+  f668abc946f0870a8af9b77f389ed2f29a66d6e7929c538d72754a68f8e585c4.
+
+Kvitteringene er publisert gjennom eksisterende immutable event-eier.
+Klargjøringsrapporten er fortsatt BLOCKED ved entry_window_adoption:
+den innledende kilde-/kalenderadgangen er verifisert, men etterfølgende
+komponenter er ikke laget eller godkjent. M5s produksjonskilde er fortsatt
+den opprinnelige; rådataparitet åpner ikke en udeklarert ommerking.
+
 ## Neste konkrete grense
 
-M1-kilden er kvalifisert, og TEST-seal-validatoren er koblet inn og målt.
-Bind nå den eksisterende komplette M1-filen og dens genuine pre-TEST-parent
-til konkret ny klargjøringsrecipe. Ikke ommerk native-pair-data som det gamle
-formatet. Deretter må øvrige eksisterende eiere bruke samme bundne vinduer og separate
-fysiske koordinater: Entry-child, M1-views, summary-fit, normalisering,
+Kilde-, kalender- og TEST-seal-portene består nå samlet på ekte v38-data.
+Den konkrete recipe og klargjøringsrapporten er bundet i statusfilene; gjenbruk dem.
+Neste steg er å føre de samme vinduene og separate fysiske koordinatene gjennom
+øvrige eksisterende eiere: Entry-child, M1-views, summary-fit, normalisering,
 native indeks/trening/måling og frossen TARGET-funksjon. Call-site-sveip har
 funnet kalenderkrav også der; disse er dokumenterte ufullførte migreringer,
 ikke fjernet ved å lempe den første porten. Normer/indekser fra v37 kan ikke

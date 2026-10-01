@@ -678,6 +678,49 @@ def require_unified_exit_pretest_m1_quote_authority(
     return source_path, authority
 
 
+def reuse_unified_exit_pretest_m1_quote_authority(
+    value: Any,
+) -> tuple[Path, dict[str, Any]]:
+    """Reuse a hash-bound owner result while rehashing every input used here.
+
+    The caller must bind the completed qualification receipt. This checks its
+    immutable source, quote manifest, pair lineage and native manifest bytes;
+    it does not repeat native row reconstruction or read successor TEST data.
+    """
+
+    authority = require_unified_exit_m1_authority_evidence(value)
+    if authority.get("authority_mode") != "pretest_quote_complete_native_v1":
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_REUSE_MODE_INVALID")
+    subset = authority["base28_native_m1_subset_proof"]
+    if (
+        subset["rows"] != authority.get("m1_source_rows")
+        or any(
+            not isinstance(item, Mapping)
+            or type(item.get("rows")) is not int
+            or item["rows"] <= 0
+            for item in subset["years"].values()
+        )
+        or sum(item["rows"] for item in subset["years"].values()) != subset["rows"]
+    ):
+        raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_REUSE_POPULATION_INVALID")
+    for path_key, sha_key in (
+        ("pair_manifest_path", "pair_manifest_sha256"),
+        ("m1_source_manifest_path", "m1_source_manifest_sha256"),
+        ("native_m1_manifest_path", "native_m1_manifest_sha256"),
+        ("m1_source_path", "m1_source_sha256"),
+    ):
+        path = Path(str(authority.get(path_key) or ""))
+        if (
+            not path.is_absolute()
+            or path.is_symlink()
+            or not path.is_file()
+            or path.resolve() != path
+            or sha256_file(path) != authority.get(sha_key)
+        ):
+            raise RuntimeError("UNIFIED_EXIT_PRETEST_M1_REUSE_SOURCE_CHANGED")
+    return Path(authority["m1_source_path"]), authority
+
+
 def require_pretest_m5_quote_authority(
     *,
     pair_lineage_path: Path,
@@ -1048,6 +1091,19 @@ def require_unified_exit_lifecycle_authority_evidence(
         or value.get("extra_lookahead_beyond_trajectory") != 0
     ):
         raise RuntimeError("UNIFIED_EXIT_LIFECYCLE_AUTHORITY_EVIDENCE_INVALID")
+    require_unified_exit_m1_authority_evidence(authority)
+    return json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
+
+
+def require_unified_exit_m1_authority_evidence(value: Any) -> dict[str, Any]:
+    """Validate cached native-M1 proof metadata, without claiming file identity."""
+
+    if (
+        not isinstance(value, Mapping)
+        or value.get("schema_version") != UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION
+    ):
+        raise RuntimeError("UNIFIED_EXIT_M1_AUTHORITY_EVIDENCE_INVALID")
+    authority = value
     authority_mode = authority.get("authority_mode")
     expected_subset_method = (
         "exact_quote_complete_pretest_rows_are_native_m1_subset_v1"
@@ -1081,7 +1137,7 @@ def require_unified_exit_lifecycle_authority_evidence(
         != canonical_json_sha256(subset["years"])
     ):
         raise RuntimeError("UNIFIED_EXIT_M1_NATIVE_SUBSET_EVIDENCE_INVALID")
-    return json.loads(json.dumps(value, sort_keys=True, allow_nan=False))
+    return json.loads(json.dumps(authority, sort_keys=True, allow_nan=False))
 
 
 def _read_exact_json(path: Path) -> dict[str, Any]:

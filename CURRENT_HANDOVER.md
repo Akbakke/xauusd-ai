@@ -21,9 +21,13 @@ er også verifisert av den kanoniske eieren; ikke bygg en kopi.
 
 TEST-seal-admission er nå rettet i pilotens eksplisitte designsti: 21 tester
 og ekte metadata-kontroll består. Feil TEST-filpeker avvises før stat/hash/read.
-Full native admission og kildebytte er ikke utført. Neste steg er å binde den
-kvalifiserte M1-filen med riktig parent-proveniens og føre de frosne periodene
-og separate radkoordinatene gjennom øvrige eksisterende eiere.
+Den komplette M1-filen er nå bundet gjennom sin ekte pre-TEST-parent i en
+konkret klargjøringsrecipe. 144 tester og full klargjøringskontroll på de ekte
+652 552 TRAIN-/70 880 kontrollradene består kilde-, kalender- og seal-portene.
+TEST og original råkilde med TEST-rader fikk null tilgangsforsøk.
+Full native admission og M5-produksjonskildebytte er fortsatt ufullført.
+Neste steg er ferske M1-radkoordinater og bundne perioder i øvrige eiere;
+den gamle filtrerte base28-visningens radnumre kan ikke gjenbrukes direkte.
 Gammel lærer fjerner dagens parameterfrie normalisering; ny fersk måling skal
 bruke samme aktuelle funksjon for ONLINE og TARGET. Indekser, normalisering
 og mål-/økonomibindinger gjenstår. Native trening og normaliseringsfit er

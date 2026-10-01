@@ -19,6 +19,10 @@ from gx1.contracts.entry_model_native_post_rebuild_v1 import (
     SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
     require_prefreeze_test_seal_lineage,
 )
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    require_unified_exit_m1_authority_evidence,
+    reuse_unified_exit_pretest_m1_quote_authority,
+)
 from gx1.contracts.unified_exit_lifecycle_v2 import terminal_state_counts_sha256
 from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import (
     require_no_cap_authority,
@@ -172,6 +176,92 @@ def _m1_binding(
     ) is not False:
         raise RuntimeError("PILOT_SOURCE_M1_LINEAGE_INVALID")
     return result
+
+
+def _pretest_m1_rebinding(
+    recipe: Mapping[str, Any],
+    manifests: Mapping[str, Mapping[str, Any]],
+    scope: Mapping[str, Any],
+) -> tuple[dict[str, str], dict[str, Any]] | None:
+    """Admit the qualified pre-TEST parent without relabeling frozen Entry bytes."""
+
+    binding = recipe.get("pretest_m1_authority_review")
+    if binding is None:
+        return None
+    if (
+        "chronological_learning_design" not in scope
+        or not isinstance(binding, Mapping)
+        or set(binding) != {"path", "sha256"}
+    ):
+        raise RuntimeError("PILOT_PRETEST_M1_REBINDING_SCOPE_INVALID")
+    review = _read_bound_json(
+        Path(str(binding["path"])), str(binding["sha256"]), "PRETEST_M1_REVIEW",
+    )
+    if (
+        review.get("schema_version") != "gx1_native_v38_existing_m1_source_review_v1"
+        or review.get("decision") != "PASS_EXISTING_COMPLETE_PRETEST_M1_SOURCE_REUSE"
+        or review.get("existing_owner")
+        != "gx1.contracts.unified_exit_lifecycle_v1.require_unified_exit_pretest_m1_quote_authority"
+        or review.get("test_accessed") is not False
+    ):
+        raise RuntimeError("PILOT_PRETEST_M1_REVIEW_NOT_PASS")
+    original = None
+    for split in ("train", "val"):
+        lifecycle = manifests[split].get("extra", {}).get("unified_exit_lifecycle", {})
+        authority = require_unified_exit_m1_authority_evidence(lifecycle.get("m1_authority"))
+        if (
+            lifecycle.get("m1_authority_sha256") != _canonical_sha256(authority)
+            or lifecycle.get("m1_source_path") != authority.get("m1_source_path")
+            or lifecycle.get("m1_source_sha256") != authority.get("m1_source_sha256")
+            or (original is not None and authority != original)
+        ):
+            raise RuntimeError("PILOT_PRETEST_M1_ORIGINAL_LINEAGE_INVALID")
+        original = authority
+    assert original is not None
+    native_path = Path(str(original.get("native_m1_manifest_path") or ""))
+    native = _read_bound_json(
+        native_path, str(original.get("native_m1_manifest_sha256")),
+        "ORIGINAL_NATIVE_M1_MANIFEST",
+    )
+    qualified = require_unified_exit_m1_authority_evidence(review.get("authority"))
+    parent = native.get("parent_source")
+    parent_fields = {
+        "root": "native_m1_root",
+        "manifest_path": "native_m1_manifest_path",
+        "manifest_sha256": "native_m1_manifest_sha256",
+        "canonical_rows_sha256": "native_m1_canonical_rows_sha256",
+        "source_chunks_sha256": "native_m1_source_chunks_sha256",
+        "producer_source_inventory_sha256": "native_m1_producer_source_inventory_sha256",
+        "requested_end_utc_exclusive": "native_m1_requested_end_utc_exclusive",
+        "time_max_utc": "native_m1_time_max_utc",
+        "row_count": "m1_source_rows",
+    }
+    if (
+        native.get("out_root") != original.get("native_m1_root")
+        or native.get("canonical_rows_sha256") != original.get("native_m1_canonical_rows_sha256")
+        or not isinstance(parent, Mapping)
+        or any(parent.get(key) != qualified.get(field) for key, field in parent_fields.items())
+        or qualified.get("test_boundary_utc") != scope["windows"]["val"]["end_utc_exclusive"]
+        or qualified.get("native_m1_requested_end_utc_exclusive") != qualified.get("test_boundary_utc")
+        or review.get("source") != qualified.get("m1_source_path")
+    ):
+        raise RuntimeError("PILOT_PRETEST_M1_PARENT_LINEAGE_MISMATCH")
+    source_path, checked = reuse_unified_exit_pretest_m1_quote_authority(qualified)
+    result = {
+        "parquet_path": str(source_path),
+        "parquet_sha256": checked["m1_source_sha256"],
+        "manifest_path": checked["m1_source_manifest_path"],
+        "manifest_sha256": checked["m1_source_manifest_sha256"],
+    }
+    lineage = {
+        "qualification_review": dict(binding),
+        "original_m1_authority_sha256": _canonical_sha256(original),
+        "qualified_m1_authority": checked,
+        "qualified_m1_authority_sha256": _canonical_sha256(checked),
+        "relationship": "exact_pretest_native_parent_of_frozen_entry_native_source",
+        "physical_row_indices_reusable": False,
+    }
+    return result, lineage
 
 
 def _optional_stage_receipt(
@@ -575,7 +665,13 @@ def build_pilot_readiness(
         for split, window in windows.items()
     }
     _require_scope_populations(scope, selections)
-    m1_source = _m1_binding(train_manifest, val_manifest)
+    m1_rebinding = _pretest_m1_rebinding(
+        recipe, {"train": train_manifest, "val": val_manifest}, scope,
+    )
+    m1_source = (
+        _m1_binding(train_manifest, val_manifest)
+        if m1_rebinding is None else m1_rebinding[0]
+    )
     pilot_dataset_run_id = scope["dataset_run_id"]
     pilot_binding = {
         "schema_version": SCHEMA_VERSION,
@@ -592,6 +688,8 @@ def build_pilot_readiness(
         pilot_binding["chronological_learning_design"] = scope["chronological_learning_design"]
     if test_guard_lineage is not None:
         pilot_binding["source_test_guard_lineage"] = test_guard_lineage
+    if m1_rebinding is not None:
+        pilot_binding["pretest_m1_rebinding"] = m1_rebinding[1]
     pilot_binding_sha256 = _canonical_sha256(pilot_binding)
     plan_context = {
         **pilot_binding,

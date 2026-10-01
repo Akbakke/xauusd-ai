@@ -458,3 +458,148 @@ def test_unadmitted_test_artifact_pointer_is_rejected_before_any_io(tmp_path: Pa
         monkeypatch.setattr(Path, method, guard(getattr(Path, method)))
     with pytest.raises(RuntimeError, match="PILOT_TEST_SEAL_READINESS_NOT_EXACT"):
         owner._entry_test_guard_lineage(recipe, source, manifests, scope, dataset_run_id="SOURCE_RUN")
+
+
+def _m1_rebinding_fixture(tmp_path: Path):
+    """Synthetic provenance tests admission only, never native trading quality."""
+    from gx1.contracts.unified_exit_lifecycle_v1 import UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION
+
+    recipe_path, _, design_path = _chronological_fixture(tmp_path)
+    recipe = json.loads(recipe_path.read_text())
+    train_path = Path(recipe["artifact_bindings"]["train_manifest"]["path"])
+    old = json.loads(train_path.read_text())["extra"]["unified_exit_lifecycle"]["m1_authority"]
+    native_parent = tmp_path / "pretest-native.json"
+    pair = tmp_path / "pair.json"
+    _write_json(native_parent, {"synthetic": "qualified-parent"})
+    _write_json(pair, {"synthetic": "pretest-pair"})
+    years = {"year=2025": {"rows": 2, "canonical_rows_sha256": "a" * 64}}
+    qualified = {
+        **old, "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+        "authority_mode": "pretest_quote_complete_native_v1",
+        "m1_source_rows": 2,
+        "pair_manifest_path": str(pair), "pair_manifest_sha256": _file_sha(pair),
+        "native_m1_root": str(tmp_path / "pretest-root"),
+        "native_m1_manifest_path": str(native_parent),
+        "native_m1_manifest_sha256": _file_sha(native_parent),
+        "native_m1_canonical_rows_sha256": "b" * 64,
+        "native_m1_source_chunks_sha256": "c" * 64,
+        "native_m1_producer_source_inventory_sha256": "d" * 64,
+        "native_m1_requested_end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+        "native_m1_time_max_utc": "2026-06-30T23:59:00+00:00",
+        "test_boundary_utc": "2026-07-01T00:00:00+00:00",
+        "base28_native_m1_subset_proof": {
+            "method": "exact_quote_complete_pretest_rows_are_native_m1_subset_v1",
+            "rows": 2, "years": years, "proof_sha256": _canonical_sha256(years),
+        },
+    }
+    parent = {
+        "root": qualified["native_m1_root"],
+        "manifest_path": qualified["native_m1_manifest_path"],
+        "manifest_sha256": qualified["native_m1_manifest_sha256"],
+        "canonical_rows_sha256": qualified["native_m1_canonical_rows_sha256"],
+        "source_chunks_sha256": qualified["native_m1_source_chunks_sha256"],
+        "producer_source_inventory_sha256": qualified["native_m1_producer_source_inventory_sha256"],
+        "requested_end_utc_exclusive": qualified["native_m1_requested_end_utc_exclusive"],
+        "time_max_utc": qualified["native_m1_time_max_utc"],
+        "row_count": 2,
+    }
+    native = tmp_path / "successor-native.json"
+    _write_json(native, {
+        "out_root": str(tmp_path / "successor-root"),
+        "canonical_rows_sha256": "e" * 64, "parent_source": parent,
+    })
+    original = {
+        "schema_version": UNIFIED_EXIT_M1_AUTHORITY_SCHEMA_VERSION,
+        "m1_source_path": str(tmp_path / "old-filtered-source-not-opened.parquet"),
+        "m1_source_sha256": "f" * 64,
+        "native_m1_root": str(tmp_path / "successor-root"),
+        "native_m1_manifest_path": str(native), "native_m1_manifest_sha256": _file_sha(native),
+        "native_m1_canonical_rows_sha256": "e" * 64,
+        "base28_native_m1_subset_proof": {
+            "method": "exact_base28_rows_are_native_m1_subset_v1",
+            "rows": 2, "years": years, "proof_sha256": _canonical_sha256(years),
+        },
+    }
+    manifests = {}
+    design = json.loads(design_path.read_text())
+    for split in ("train", "val"):
+        path = Path(recipe["artifact_bindings"][f"{split}_manifest"]["path"])
+        value = json.loads(path.read_text())
+        value["extra"]["unified_exit_lifecycle"] = {
+            "m1_authority": original, "m1_authority_sha256": _canonical_sha256(original),
+            "m1_source_path": original["m1_source_path"],
+            "m1_source_sha256": original["m1_source_sha256"],
+        }
+        _write_json(path, value)
+        recipe["artifact_bindings"][f"{split}_manifest"]["sha256"] = _file_sha(path)
+        design["calendar"]["source_bindings"][split]["manifest"]["sha256"] = _file_sha(path)
+        manifests[split] = value
+    _write_json(design_path, design)
+    recipe["lifecycle_v2_data_scope"]["chronological_learning_design"]["sha256"] = _file_sha(design_path)
+    review = tmp_path / "review.json"
+    _write_json(review, {
+        "schema_version": "gx1_native_v38_existing_m1_source_review_v1",
+        "decision": "PASS_EXISTING_COMPLETE_PRETEST_M1_SOURCE_REUSE",
+        "existing_owner": "gx1.contracts.unified_exit_lifecycle_v1.require_unified_exit_pretest_m1_quote_authority",
+        "test_accessed": False, "source": qualified["m1_source_path"], "authority": qualified,
+    })
+    recipe["pretest_m1_authority_review"] = {"path": str(review), "sha256": _file_sha(review)}
+    _write_json(recipe_path, recipe)
+    scope = {
+        "chronological_learning_design": recipe["lifecycle_v2_data_scope"]["chronological_learning_design"],
+        "windows": {"val": {"end_utc_exclusive": qualified["test_boundary_utc"]}},
+    }
+    return recipe_path, recipe, manifests, scope, qualified
+
+
+def test_complete_pretest_m1_rebinding_preserves_frozen_entry_source(tmp_path: Path) -> None:
+    path, recipe, manifests, _, qualified = _m1_rebinding_fixture(tmp_path)
+    before = {split: json.dumps(value, sort_keys=True) for split, value in manifests.items()}
+    report = build_pilot_readiness(
+        source_recipe_path=path, source_recipe_sha256=_file_sha(path), pilot_root=tmp_path / "pilot",
+    )
+    assert report["m1_source_binding"]["parquet_path"] == qualified["m1_source_path"]
+    lineage = report["pilot_binding"]["pretest_m1_rebinding"]
+    assert lineage["qualified_m1_authority"] == qualified
+    assert lineage["physical_row_indices_reusable"] is False
+    assert report["missing_or_blocked_stages"][0] == "entry_window_adoption"
+    for split in ("train", "val"):
+        current = json.loads(Path(recipe["artifact_bindings"][f"{split}_manifest"]["path"]).read_text())
+        assert json.dumps(current, sort_keys=True) == before[split]
+
+
+@pytest.mark.parametrize("change", [
+    "review_hash", "missing_design", "split_authority", "parent",
+    "test_boundary", "unqualified_review", "source_bytes",
+])
+def test_m1_rebinding_fails_on_unqualified_or_unrelated_source(tmp_path: Path, change: str) -> None:
+    from gx1.scripts.prepare_unified_exit_lifecycle_v2_pilot_v1 import _pretest_m1_rebinding
+
+    _, recipe, manifests, scope, qualified = _m1_rebinding_fixture(tmp_path)
+    review_path = Path(recipe["pretest_m1_authority_review"]["path"])
+    if change == "review_hash":
+        review_path.write_bytes(review_path.read_bytes() + b" ")
+    elif change == "missing_design":
+        scope.pop("chronological_learning_design")
+    elif change == "split_authority":
+        manifests["val"]["extra"]["unified_exit_lifecycle"]["m1_authority_sha256"] = "0" * 64
+    elif change == "parent":
+        native = Path(manifests["train"]["extra"]["unified_exit_lifecycle"]["m1_authority"]["native_m1_manifest_path"])
+        value = json.loads(native.read_text())
+        value["parent_source"]["manifest_sha256"] = "0" * 64
+        _write_json(native, value)
+        for manifest in manifests.values():
+            lifecycle = manifest["extra"]["unified_exit_lifecycle"]
+            lifecycle["m1_authority"]["native_m1_manifest_sha256"] = _file_sha(native)
+            lifecycle["m1_authority_sha256"] = _canonical_sha256(lifecycle["m1_authority"])
+    elif change == "test_boundary":
+        scope["windows"]["val"]["end_utc_exclusive"] = "2026-09-01T00:00:00+00:00"
+    elif change == "unqualified_review":
+        value = json.loads(review_path.read_text())
+        value["decision"] = "BLOCKED"
+        _write_json(review_path, value)
+        recipe["pretest_m1_authority_review"]["sha256"] = _file_sha(review_path)
+    else:
+        Path(qualified["m1_source_path"]).write_bytes(b"changed")
+    with pytest.raises(RuntimeError, match="(PILOT_|UNIFIED_EXIT_PRETEST_M1_)"):
+        _pretest_m1_rebinding(recipe, manifests, scope)
