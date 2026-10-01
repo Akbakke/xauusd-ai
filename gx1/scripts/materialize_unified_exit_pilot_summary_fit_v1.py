@@ -16,6 +16,8 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import require_pilot_child_calendar
+
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     m1_clock_sha256,
     require_market_closure_authority,
@@ -121,18 +123,25 @@ def materialize(
     if split not in {"train", "val"}:
         raise RuntimeError("PILOT_SUMMARY_SPLIT_INVALID")
     admission = _json(child_admission_path)
+    windows = require_pilot_child_calendar(admission)
     child = admission["splits"][split]
     m1_manifest = _json(m1_manifest_path)
     m1_sha = _sha(m1_path)
     if (
         admission.get("decision") != "PASS"
         or type(child["rows"]) is not int or child["rows"] < 1
-        or (split == "val" and child["rows"] != 5_508)
+        or (windows is None and split == "val" and child["rows"] != 5_508)
         or _sha(Path(child["parquet_path"])) != child["parquet_sha256"]
         or m1_manifest.get("split") != split
         or m1_manifest.get("output_parquet_sha256") != m1_sha
         or m1_manifest.get("right_censor_time_utc_exclusive")
-        != ({"train": "2026-06-01T00:00:00+00:00", "val": "2026-07-01T00:00:00+00:00"}[split])
+        != (windows[split]["end_utc_exclusive"] if windows is not None else
+            {"train": "2026-06-01T00:00:00+00:00", "val": "2026-07-01T00:00:00+00:00"}[split])
+        or (windows is not None and (
+            m1_manifest.get("fit_window_start_utc") != windows[split]["start_utc"]
+            or m1_manifest.get("child_admission_sha256") != _sha(child_admission_path)
+            or m1_manifest.get("child_parquet_sha256") != child["parquet_sha256"]
+        ))
     ):
         raise RuntimeError("PILOT_SUMMARY_SOURCE_INVALID")
     table = pq.read_table(

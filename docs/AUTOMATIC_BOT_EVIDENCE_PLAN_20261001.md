@@ -137,7 +137,19 @@ Kildebytte, øvrig native komponentklargjøring og læringsmålingen er ikke fer
 Den komplette M1-kilden er nå bundet til en konkret klargjøringsrecipe gjennom
 sin genuine pre-TEST-parent. 144 tester og ekte samlet kilde-/kalender-/seal-
 kontroll består. Gammel filtrert M1-visning og komplett M1 har ulike fysiske
-radkoordinater; neste nødvendige rettelse er å føre disse og de fryste periodene
-gjennom child-views, tilstandsindekser og øvrige eksisterende eiere.
+radkoordinater. Child-views og videre kalenderadgang er senere rettet som
+beskrevet nedenfor; tilstandsindekser og øvrige native eiere gjenstår.
 Ingen ny rådatakopi eller kvalifiseringsrunde trengs. Klargjøring, normalisering
 og læringsmåling er fortsatt egne ufullførte porter; se native-rapporten.
+
+
+## Entry/M1-klargjøring fullført; tilstandsstøtte og læring gjenstår
+
+Den vedtatte recipe har nå Entry-adoption, child-admission og separate M1-views
+med fryste perioder. Alle 652 552 TRAIN-/70 880 kontrollrader har eksakt første
+M1-tilstand; alle M1-markedsfelt er identiske med råkildens korresponderende rader.
+21,16 GB Entry-data gjenbrukes direkte. 68 fokuserte tester og ekte
+normaliseringsadmission består. Ingen normer eller modell er tilpasset.
+Gjenbruk de ferdige komponentene; neste målte grense er markedslukking/gap,
+tilstandsstøtte og featuredekning før indekser, mål, normer og læringsmåling.
+Siste runtime-resultat og readiness er bundet i begge status-JSON-ene.

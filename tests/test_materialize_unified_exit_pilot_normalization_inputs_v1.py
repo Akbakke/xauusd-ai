@@ -456,3 +456,37 @@ def test_interval_merge_is_deterministic() -> None:
         (5, 9),
         (12, 13),
     ]
+
+
+def test_frozen_physical_population_replaces_only_implicit_legacy_row_counts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.scripts.materialize_unified_exit_pilot_normalization_inputs_v1 import _require_child_admission
+    from tests.test_validate_lifecycle_v2_pilot_child_view_v1 import _published_frozen_source
+
+    _, _, _, witness = _published_frozen_source(tmp_path, monkeypatch)
+    path = tmp_path/"frozen-admission.json"
+    _write_json(path, witness)
+    accepted, digest = _require_child_admission(
+        path, expected_train_rows=None, expected_val_rows=None,
+    )
+    assert accepted == witness
+    assert digest == _sha256_file(path)
+    with pytest.raises(RuntimeError, match="FROZEN_POPULATION_MISMATCH"):
+        _require_child_admission(path, expected_train_rows=None, expected_val_rows=5508)
+    with pytest.raises(RuntimeError, match="FROZEN_POPULATION_MISMATCH"):
+        _require_child_admission(path, expected_train_rows=65295, expected_val_rows=None)
+
+
+def test_legacy_normalization_still_requires_original_default_population(tmp_path: Path) -> None:
+    from gx1.scripts.materialize_unified_exit_pilot_normalization_inputs_v1 import _require_child_admission
+    path = tmp_path/"old-small-admission.json"
+    value = {
+        "schema_version": "gx1_lifecycle_v2_pilot_child_view_admission_v1",
+        "decision": "PASS", "test_accessed": False,
+        "splits": {"train": {"rows": 2}, "val": {"rows": 2}},
+    }
+    value["witness_sha256"] = _canonical_sha256(value)
+    _write_json(path,value)
+    with pytest.raises(RuntimeError, match="PILOT_NORMALIZATION_CHILD_ADMISSION_INVALID"):
+        _require_child_admission(path, expected_train_rows=None, expected_val_rows=None)

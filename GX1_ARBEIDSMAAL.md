@@ -1,6 +1,6 @@
 # GX1 arbeidsmål — oppdatert 01.10.2026
 
-## Native v38 — læringsdesign fryst, kalenderrettelse kontrollert
+## Native v38 — Entry/M1-klargjøring kontrollert, læring gjenstår
 
 Inputbygg og etterkontroll er ferdige; ikke relanser dem. Læringsdesignet er
 nå fryst med fysisk TRAIN 01.06.2011–31.05.2025, senere utviklingskontroll
@@ -26,8 +26,13 @@ konkret klargjøringsrecipe. 144 tester og full klargjøringskontroll på de ekt
 652 552 TRAIN-/70 880 kontrollradene består kilde-, kalender- og seal-portene.
 TEST og original råkilde med TEST-rader fikk null tilgangsforsøk.
 Full native admission og M5-produksjonskildebytte er fortsatt ufullført.
-Neste steg er ferske M1-radkoordinater og bundne perioder i øvrige eiere;
-den gamle filtrerte base28-visningens radnumre kan ikke gjenbrukes direkte.
+Entry-adoption og separate fysiske M1-visninger er nå publisert og kontrollert.
+Alle 652 552 TRAIN- og 70 880 kontrollrader finner eksakt første M1-tilstand.
+Samtlige markedsfelt i M1-visningene er identiske med råkildens respektive rader.
+Entry gjenbruker 21,16 GB ferdige bytes uten kopi. 68 fokuserte tester består.
+Normaliseringsadgangen godtar de faktiske radantallene fra det fryste designet;
+ingen normalisering er tilpasset. Neste steg er kalender for markedslukking,
+tilstandsstøtte og featuredekning før indekser og mål kan kvalifiseres.
 Gammel lærer fjerner dagens parameterfrie normalisering; ny fersk måling skal
 bruke samme aktuelle funksjon for ONLINE og TARGET. Indekser, normalisering
 og mål-/økonomibindinger gjenstår. Native trening og normaliseringsfit er

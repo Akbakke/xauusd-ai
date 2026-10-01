@@ -15,6 +15,10 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory
+from gx1.contracts.unified_exit_lifecycle_v1 import (
+    UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
+)
 from gx1.scripts.materialize_unified_exit_lifecycle_v2 import (
     _require_full_v1_admission,
 )
@@ -64,10 +68,14 @@ def _require_child_split(
     manifest_path = _regular_absolute(
         Path(str(manifest_binding["path"] or "")), f"CHILD_{split.upper()}_MANIFEST"
     )
+    reuse_complete = "pretest_m1_rebinding" in plan["pilot_binding"]
+    expected_parquet = (
+        Path(plan["source_bindings"][f"{split}_parquet"]["path"])
+        if reuse_complete else root_path.parent / f"{split}.parquet"
+    )
     if (
-        parquet_path.parent != root_path.parent
+        parquet_path != expected_parquet
         or manifest_path.parent != root_path.parent
-        or parquet_path.name != f"{split}.parquet"
         or manifest_path.name != f"{split}.manifest.json"
         or _sha256_file(parquet_path) != parquet_binding["sha256"]
         or _sha256_file(manifest_path) != manifest_binding["sha256"]
@@ -120,6 +128,11 @@ def _require_child_split(
     selected = parent_clock[indices]
     if (
         len(indices) != selection["selected_rows"]
+        or (reuse_complete and (
+            len(indices) != len(parent_clock)
+            or parquet_binding != source_parquet
+            or indices[0] != 0 or indices[-1] != len(parent_clock) - 1
+        ))
         or not child_clock.equals(selected)
         or pq.ParquetFile(parquet_path).metadata.num_rows != len(indices)
     ):
@@ -136,6 +149,108 @@ def _require_child_split(
     }
 
 
+def _require_parent_entry_admission(plan: Mapping[str, Any]) -> dict[str, Any]:
+    """Adopt Entry bytes; never carry old M1 state coordinates into the new source."""
+
+    rebinding = plan["pilot_binding"].get("pretest_m1_rebinding")
+    if rebinding is None:
+        return _require_full_v1_admission(
+            entry_paths={
+                split: Path(plan["source_bindings"][f"{split}_parquet"]["path"])
+                for split in ("train", "val")
+            },
+            entry_manifest_paths={
+                split: Path(plan["source_bindings"][f"{split}_manifest"]["path"])
+                for split in ("train", "val")
+            },
+            dataset_run_id=plan["dataset_run_id"],
+        )
+    if (
+        "chronological_learning_design" not in plan["pilot_binding"]
+        or not isinstance(plan["pilot_binding"].get("source_test_guard_lineage"), Mapping)
+        or rebinding.get("physical_row_indices_reusable") is not False
+    ):
+        raise RuntimeError("PILOT_CHILD_PARENT_ENTRY_SCOPE_INVALID")
+    binding = plan["source_bindings"]["unified_exit_lifecycle_manifest"]
+    path = Path(binding["path"])
+    root = _read_bound_json(path, binding["sha256"], "PARENT_ENTRY_LINEAGE")
+    original_sha = rebinding["original_m1_authority_sha256"]
+    if (
+        root.get("schema_version") != UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION
+        or root.get("decision") != "PASS"
+        or root.get("entry_run_id") != plan["dataset_run_id"]
+        or root.get("m1_authority_sha256") != original_sha
+        or _canonical_sha256(root.get("m1_authority")) != original_sha
+        or not isinstance(root.get("splits"), Mapping)
+        or any(
+            root["splits"].get(split, {}).get("entry_dataset_path")
+            != plan["source_bindings"][f"{split}_parquet"]["path"]
+            or root["splits"].get(split, {}).get("entry_dataset_sha256")
+            != plan["source_bindings"][f"{split}_parquet"]["sha256"]
+            for split in ("train", "val")
+        )
+    ):
+        raise RuntimeError("PILOT_CHILD_PARENT_ENTRY_LINEAGE_INVALID")
+    return {"root_manifest_path": path, "root_manifest_sha256": binding["sha256"]}
+
+
+def require_pilot_child_calendar(admission: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Return the frozen physical calendar for the explicit new preparation route."""
+
+    binding = admission.get("chronological_learning_design")
+    if binding is None:
+        return None
+    if (
+        not isinstance(binding, Mapping) or set(binding) != {"path", "sha256"}
+        or admission.get("decision") != "PASS"
+        or admission.get("test_accessed") is not False
+        or admission.get("parent_admission_scope") != "frozen_entry_bytes_only_no_parent_m1_states"
+        or admission.get("witness_sha256") != _canonical_sha256(
+            {k: v for k, v in admission.items() if k != "witness_sha256"}
+        )
+    ):
+        raise RuntimeError("PILOT_CHILD_CALENDAR_ADMISSION_INVALID")
+    design = _read_bound_json(Path(binding["path"]), binding["sha256"], "CHILD_CALENDAR_DESIGN")
+    calendar = design.get("calendar", {})
+    if (
+        design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
+        or calendar.get("physical_source_splits") != {"train": "train", "control": "val"}
+        or calendar.get("physical_coordinate_namespaces_are_separate") is not True
+    ):
+        raise RuntimeError("PILOT_CHILD_CALENDAR_DESIGN_INVALID")
+    boundaries = [
+        pd.Timestamp(calendar[key]) for key in (
+            "train_entry_start_inclusive", "train_control_cutoff",
+            "development_control_entry_end_exclusive",
+        )
+    ]
+    if (
+        any(pd.isna(t) or t.tzinfo is None for t in boundaries)
+        or not boundaries[0] < boundaries[1] < boundaries[2]
+    ):
+        raise RuntimeError("PILOT_CHILD_CALENDAR_BOUNDARIES_INVALID")
+    windows = {
+        split: {"start_utc": boundaries[i].tz_convert("UTC").isoformat(),
+                "end_utc_exclusive": boundaries[i + 1].tz_convert("UTC").isoformat()}
+        for i, split in enumerate(("train", "val"))
+    }
+    if admission.get("windows") != windows:
+        raise RuntimeError("PILOT_CHILD_CALENDAR_WINDOWS_CHANGED")
+    for split in ("train", "val"):
+        child = admission["splits"][split]
+        physical = calendar["source_bindings"][split]
+        # This route reuses the entire parent parquet: feature bytes as well
+        # as row counts and clocks remain bound to the frozen design.
+        if (
+            child["rows"] != physical["physical_rows"]
+            or child["clock_sha256"] != physical["clock_sha256"]
+            or {"path": child["parquet_path"], "sha256": child["parquet_sha256"]}
+            != physical["parquet"]
+        ):
+            raise RuntimeError("PILOT_CHILD_CALENDAR_PHYSICAL_SOURCE_CHANGED")
+    return windows
+
+
 def validate_pilot_child_view(
     *,
     source_recipe_path: Path,
@@ -150,17 +265,7 @@ def validate_pilot_child_view(
         source_recipe_sha256=source_recipe_sha256,
         pilot_root=pilot_root,
     )
-    parent = _require_full_v1_admission(
-        entry_paths={
-            split: Path(plan["source_bindings"][f"{split}_parquet"]["path"])
-            for split in ("train", "val")
-        },
-        entry_manifest_paths={
-            split: Path(plan["source_bindings"][f"{split}_manifest"]["path"])
-            for split in ("train", "val")
-        },
-        dataset_run_id=plan["dataset_run_id"],
-    )
+    parent = _require_parent_entry_admission(plan)
     root_path = _regular_absolute(
         child_root_path.expanduser().resolve(), "CHILD_ROOT"
     )
@@ -204,7 +309,14 @@ def validate_pilot_child_view(
         "m1_source_binding": plan["m1_source_binding"],
         "test_accessed": False,
     }
+    if "pretest_m1_rebinding" in plan["pilot_binding"]:
+        witness.update({
+            "chronological_learning_design": plan["pilot_binding"]["chronological_learning_design"],
+            "windows": plan["windows"],
+            "parent_admission_scope": "frozen_entry_bytes_only_no_parent_m1_states",
+        })
     witness["witness_sha256"] = _canonical_sha256(witness)
+    require_pilot_child_calendar(witness)
     return witness
 
 
@@ -235,7 +347,10 @@ def publish_pilot_child_view_admission(
     try:
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(raw)
+            handle.flush()
+            os.fsync(handle.fileno())
         os.link(temporary, output)
+        _fsync_directory(output.parent)
     finally:
         temporary.unlink(missing_ok=True)
     if _sha256_file(output) != hashlib.sha256(raw).hexdigest():

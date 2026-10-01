@@ -22,6 +22,8 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import require_pilot_child_calendar
+
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
@@ -182,11 +184,24 @@ def _time_ns(column: Any, label: str) -> np.ndarray:
 def _require_child_admission(
     path: Path,
     *,
-    expected_train_rows: int,
-    expected_val_rows: int,
+    expected_train_rows: int | None,
+    expected_val_rows: int | None,
 ) -> tuple[dict[str, Any], str]:
     admission_path = _exact_file(path, "CHILD_ADMISSION")
     observed = _read_json(admission_path, "CHILD_ADMISSION")
+    windows = require_pilot_child_calendar(observed)
+    if windows is not None:
+        physical_train = observed["splits"]["train"]["rows"]
+        physical_val = observed["splits"]["val"]["rows"]
+        if (
+            expected_train_rows is not None and expected_train_rows != physical_train
+            or expected_val_rows is not None and expected_val_rows != physical_val
+        ):
+            raise RuntimeError("PILOT_NORMALIZATION_FROZEN_POPULATION_MISMATCH")
+        expected_train_rows, expected_val_rows = physical_train, physical_val
+    else:
+        expected_train_rows = EXPECTED_TRAIN_ROWS if expected_train_rows is None else expected_train_rows
+        expected_val_rows = EXPECTED_VAL_ROWS if expected_val_rows is None else expected_val_rows
     claimed = observed.get("witness_sha256")
     if (
         observed.get("schema_version") != EXPECTED_CHILD_ADMISSION_SCHEMA
@@ -823,8 +838,8 @@ def build_normalization_inputs(
     mtf_cache_manifest_path: Path,
     market_closure_authority_path: Path,
     publish: bool,
-    expected_train_rows: int = EXPECTED_TRAIN_ROWS,
-    expected_val_rows: int = EXPECTED_VAL_ROWS,
+    expected_train_rows: int | None = None,
+    expected_val_rows: int | None = None,
     fit_entry_rows_path: Path | None = None,
     fit_cutoff_time_ns: int | None = None,
 ) -> dict[str, Any]:

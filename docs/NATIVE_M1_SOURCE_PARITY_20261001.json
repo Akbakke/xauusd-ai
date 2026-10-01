@@ -1,17 +1,54 @@
 {
+  "child_coordinate_preparation_result": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/RESULT_20261001T175552486447Z.json",
+    "sha256": "90a9c712c141476b756de4f05163c5023441d58fbe1ac7834d8559c638b80610"
+  },
   "code_review": {
     "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SEAL_ADMISSION_PATCH/CODE_REVIEW.json",
     "sha256": "e30206c8de48c7cec9fc62ef3550d45b410fa78d8d9b25ea3f6e70bababc732d"
   },
   "decision": "EXACT_PRETEST_RAW_M5_PARITY",
+  "entry_parquet_bytes_reused_without_copy": 21160180085,
   "existing_complete_m1_review": {
     "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/EXISTING_M1_AUTHORITY_REVIEW.json",
     "sha256": "d2117e2bb1236c7f8e58c2a8918f8f04d0813c7e3ef04da04fd0b25b18f87fc5"
   },
   "independent_integer_grid_numpy_reducer": "Exact on all newly measured years; existing production M5 resampler used throughout.",
+  "normalization_population_admission_review": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/NORMALIZATION_ADMISSION_REVIEW_20261001T175753519716Z.json",
+    "sha256": "d82ef0d98b14e6d49e7b0b7b95a5c4df8baa65904448f9528d30f2bf2aaefe48"
+  },
+  "physical_m1_view_audit": {
+    "train": {
+      "all_market_columns_equal_parent_slice": true,
+      "complete_parent_start_row": 692141,
+      "context_rows": 474,
+      "entry_rows": 652552,
+      "first_state_exact_rows": 652552,
+      "first_state_row_index_max": 4884158,
+      "first_state_row_index_min": 479,
+      "fit_rows": 4884164,
+      "m1_rows": 4884638,
+      "missing_first_state_entry_rows": [],
+      "view_max_utc": "2025-05-30T20:59:00+00:00"
+    },
+    "val": {
+      "all_market_columns_equal_parent_slice": true,
+      "complete_parent_start_row": 5576301,
+      "context_rows": 478,
+      "entry_rows": 70880,
+      "first_state_exact_rows": 70880,
+      "first_state_row_index_max": 382268,
+      "first_state_row_index_min": 479,
+      "fit_rows": 382266,
+      "m1_rows": 382744,
+      "missing_first_state_entry_rows": [],
+      "view_max_utc": "2026-06-30T23:59:00+00:00"
+    }
+  },
   "preparation_readiness": {
-    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_READINESS_20261001T173846817860Z.json",
-    "sha256": "d70543ef9013378550c0b9f6500f374dd0fe6ed9370aa07b2b7627bd1c06f720"
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/READINESS_20261001T175552467344Z.json",
+    "sha256": "7af4baa39e81abf1f10a95eb5d159743d8dc76e15ad47cde785478f147189669"
   },
   "preparation_recipe": {
     "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_RECIPE_20261001T173806836787Z.json",
@@ -24,11 +61,12 @@
   "remaining": [
     "Declared derived-M5 production provenance; complete M1 is now admitted in the bound preparation recipe.",
     "Preserve existing v38 feature bytes until exact dependency/functional reuse is admitted.",
-    "Separate physical TRAIN/control coordinates and windows in downstream state/index/normalization/native measurement owners.",
+    "Closure/gaps, complete eligible state support, M1/MTF feature coverage, normalization populations and remaining native physical-coordinate/index/measurement bindings.",
     "Fresh initial/current-function TARGET, shared causal targets, economic evidence, later generalization and train/serve parity."
   ],
   "schema_version": "gx1_pretest_m1_source_parity_report_v1",
   "scope": {
+    "entry_child_and_physical_m1_views_verified": true,
     "feature_or_model_parity_claimed": false,
     "model_forwards": 0,
     "normalization_fits": 0,

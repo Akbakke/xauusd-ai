@@ -17,6 +17,11 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from gx1.contracts.immutable_event_authority_v1 import (
+    _fsync_directory,
+    _publish_file_noreplace as _rename_noreplace,
+)
+
 from gx1.scripts.prepare_unified_exit_lifecycle_v2_pilot_v1 import (
     STAGE_RECEIPT_SCHEMA_VERSION,
     _canonical_sha256,
@@ -147,14 +152,31 @@ def materialize_pilot_entry_window(
         for split, (start, end) in windows.items():
             parquet = staging / f"{split}.parquet"
             source_parquet = Path(plan["source_bindings"][f"{split}_parquet"]["path"])
-            rows, digest, schema_sha = _materialize_split(
-                source_path=source_parquet,
-                output_path=parquet,
-                start=start,
-                end=end,
-                expected_rows=plan["selection_bindings"][split]["selected_rows"],
-            )
-            final_parquet = output / parquet.name
+            if "pretest_m1_rebinding" in plan["pilot_binding"]:
+                # The frozen design admits every physical Entry row. Bind the
+                # existing immutable bytes instead of rewriting the full corpus.
+                selection = plan["selection_bindings"][split]
+                source = pq.ParquetFile(source_parquet)
+                rows = int(source.metadata.num_rows)
+                if (
+                    rows != selection["selected_rows"]
+                    or rows != selection["source_rows"]
+                    or selection["first_source_row_index"] != 0
+                    or selection["last_source_row_index"] != rows - 1
+                ):
+                    raise RuntimeError("PILOT_ENTRY_COMPLETE_SOURCE_REUSE_INVALID")
+                digest = plan["source_bindings"][f"{split}_parquet"]["sha256"]
+                schema_sha = _schema_sha256(source.schema_arrow)
+                final_parquet = source_parquet
+            else:
+                rows, digest, schema_sha = _materialize_split(
+                    source_path=source_parquet,
+                    output_path=parquet,
+                    start=start,
+                    end=end,
+                    expected_rows=plan["selection_bindings"][split]["selected_rows"],
+                )
+                final_parquet = output / parquet.name
             manifest = {
                 "schema_version": SCHEMA_VERSION,
                 "decision": "PASS",
@@ -218,7 +240,12 @@ def materialize_pilot_entry_window(
         (staging / "ENTRY_WINDOW_ADOPTION_RECEIPT.json").write_bytes(
             _json_bytes(receipt)
         )
-        os.rename(staging, output)
+        for artifact in staging.iterdir():
+            with artifact.open("rb") as handle:
+                os.fsync(handle.fileno())
+        _fsync_directory(staging)
+        _rename_noreplace(staging, output)
+        _fsync_directory(output.parent)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise

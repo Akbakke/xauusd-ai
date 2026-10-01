@@ -17,6 +17,13 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from gx1.contracts.immutable_event_authority_v1 import (
+    _fsync_directory,
+    _publish_file_noreplace as _rename_noreplace,
+)
+
+from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import require_pilot_child_calendar
+
 
 VIEW_SCHEMA_VERSION = "gx1_unified_exit_pilot_m1_child_view_v1"
 ROOT_SCHEMA_VERSION = "gx1_unified_exit_pilot_m1_child_view_root_v1"
@@ -55,6 +62,7 @@ def build_views(
     publish: bool,
 ) -> dict[str, Any]:
     admission = _json(child_admission_path)
+    windows = require_pilot_child_calendar(admission)
     parent_manifest = _json(parent_m1_manifest_path)
     parent_sha = _sha(parent_m1_path)
     if (
@@ -66,13 +74,23 @@ def build_views(
         or parent_manifest.get("test_accessed") is not False
     ):
         raise RuntimeError("PILOT_M1_VIEW_PARENT_INVALID")
+    if windows is not None and admission.get("m1_source_binding") != {
+        "parquet_path": str(parent_m1_path), "parquet_sha256": parent_sha,
+        "manifest_path": str(parent_m1_manifest_path),
+        "manifest_sha256": _sha(parent_m1_manifest_path),
+    }:
+        raise RuntimeError("PILOT_M1_VIEW_ADMITTED_PARENT_CHANGED")
     parent = pq.read_table(parent_m1_path)
     times = pd.DatetimeIndex(parent["time"].to_pandas()).as_unit("ns")
     if times.hasnans or not times.is_unique or not times.is_monotonic_increasing:
         raise RuntimeError("PILOT_M1_VIEW_CLOCK_INVALID")
     manifests: dict[str, Any] = {}
     tables: dict[str, pa.Table] = {}
-    for split, expected_end in SPLIT_ENDS.items():
+    split_ends = (
+        {split: window["end_utc_exclusive"] for split, window in windows.items()}
+        if windows is not None else SPLIT_ENDS
+    )
+    for split, expected_end in split_ends.items():
         child = admission["splits"][split]
         manifest_path = Path(child["manifest_path"])
         if (type(child["rows"]) is not int or child["rows"] < 1
@@ -95,7 +113,10 @@ def build_views(
         start, end = pd.Timestamp(start_raw), pd.Timestamp(end_raw)
         if (start.tzinfo is None or end.tzinfo is None or not start < end
                 or end != pd.Timestamp(expected_end)
-                or (split == "val" and (start != pd.Timestamp(SPLIT_ENDS["train"]) or child["rows"] != 5508))):
+                or (windows is not None and start != pd.Timestamp(windows[split]["start_utc"]))
+                or (windows is None and split == "val" and (
+                    start != pd.Timestamp(SPLIT_ENDS["train"]) or child["rows"] != 5508
+                ))):
             raise RuntimeError("PILOT_M1_VIEW_ADMITTED_WINDOW_INVALID")
         entry_times = pd.DatetimeIndex(
             pq.read_table(child["parquet_path"], columns=["time"])["time"].to_pandas()
@@ -190,7 +211,12 @@ def build_views(
         }
         root["root_sha256"] = _canonical(root)
         (staging / "M1_CHILD_VIEW_ROOT.json").write_text(json.dumps(root, sort_keys=True, indent=2, allow_nan=False) + "\n")
-        os.rename(staging, output_root)
+        for artifact in staging.iterdir():
+            with artifact.open("rb") as handle:
+                os.fsync(handle.fileno())
+        _fsync_directory(staging)
+        _rename_noreplace(staging, output_root)
+        _fsync_directory(output_root.parent)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise

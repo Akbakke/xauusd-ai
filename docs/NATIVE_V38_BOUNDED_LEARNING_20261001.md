@@ -161,8 +161,8 @@ Plan, kildehasher og original operator er bevart ved siden av resultatet.
 Kun 2024 TRAIN ble åpnet; TEST og trening er urørt. Året alene beviser ikke
 full historikk-, feature-, normaliserings- eller train/serve-paritet.
 
-Neste avgrensede kontroll bør kvalifisere resten av relevant historikk med
-de samme lukkede bargrensene og gapreglene før en eventuell kildeendring.
+Neste steg etter denne årskontrollen var å kvalifisere resten av historikken.
+Den fullførte kontrollen med samme bargrenser og gapregler står nedenfor.
 Bruk den komplette M1-råkilden med mid/bid/ask; den feature-/warmup-trimmede
 base28-visningen er ikke hele råhistorikken. Bygg rå OHLC og aktivitet per
 tidsramme før de eksisterende feature-eierne beregner indikatorer. Aggreger
@@ -252,21 +252,76 @@ Runtime M1_REBINDING_PATCH/OUTPUT:
   f668abc946f0870a8af9b77f389ed2f29a66d6e7929c538d72754a68f8e585c4.
 
 Kvitteringene er publisert gjennom eksisterende immutable event-eier.
-Klargjøringsrapporten er fortsatt BLOCKED ved entry_window_adoption:
-den innledende kilde-/kalenderadgangen er verifisert, men etterfølgende
-komponenter er ikke laget eller godkjent. M5s produksjonskilde er fortsatt
+Denne første klargjøringsrapporten var BLOCKED ved entry_window_adoption:
+den beviste innledende kilde-/kalenderadgang. De etterfølgende komponentene
+og den nyere readiness-grensen er dokumentert nedenfor. M5s produksjonskilde er fortsatt
 den opprinnelige; rådataparitet åpner ikke en udeklarert ommerking.
+
+## Fryste perioder og fysiske M1-koordinater ført videre
+
+Entry-child-ruten med eksplisitt kildebytte adopterer bare de verifiserte
+Entry-bytene. Den gjenåpner ikke den gamle native-pair M1-kilden eller adopterer
+gamle M1-tilstander. Frosset readiness/seal, opprinnelig lifecycle-root,
+TRAIN-/VAL-path og hash, original M1-autoritet og den nye parent-proveniensen
+må fortsatt stemme. Historisk full-v1-admission er bevart for gamle oppskrifter.
+
+Alle fysiske Entry-rader inngår i de vedtatte vinduene. Child-manifestene peker
+derfor direkte på de samme ferdige parquet-filene, med samme SHA256 og samtlige
+features. 21 160 180 085 bytes blir gjenbrukt uten kopi eller omskriving.
+Dette er ingen ny beregning eller ommerking av de opprinnelige v38-manifestene.
+
+Én felles kalenderkontroll i eksisterende child-eier binder de faktiske
+TRAIN-/kontrollperiodene, separate fysiske kilder, radantall og klokker til
+det uendrede fryste designet. Den brukes av M1-view, compact-lifecycle,
+summary-fit og normaliseringsadmission. Den gamle TRAIN-slutten 01.06.2026 og
+VAL-forventningen 5 508 beholdes bare i den historiske ruten. Nye eksplisitte
+forventninger som motsier designet avvises; ingen stille radutvelgelse skjer.
+Publisering av Entry-/M1-views bruker fsync og eksisterende no-replace-eier;
+admission-kvitteringen er også fsync-kontrollert før publisering.
+
+Den faktiske klargjøringen er fullført under audit-cgroup 4 GiB/512 MiB swap:
+- TRAIN-view: 4 884 638 M1-rader, hvorav 474 kontekstrader og 4 884 164 rader
+  i fit-vinduet. Siste rad er 30.05.2025 kl. 20:59 UTC, før TRAIN-cutoff.
+- Kontroll-view: 382 744 M1-rader, hvorav 478 kontekstrader og 382 266 rader
+  i kontrollvinduet. Siste rad er 30.06.2026 kl. 23:59 UTC.
+- Alle 652 552/70 880 Entry-rader finner eksakt første M1-rad ved Entry+5 min.
+  Ingen manglende første tilstander. Dette beviser ikke senere tilstandsstøtte.
+- En separat Arrow-sammenligning mot riktig fysisk parent-slice bekrefter
+  nøyaktig likhet i alle tids-, mid-, bid-, ask- og aktivitetsfelt.
+- Null tilgangsforsøk til TEST-artefakter eller gammel råkilde med TEST-rader.
+  Ingen modeller, normaliseringsfit eller optimizersteg ble kjørt.
+
+62 fokuserte tester besto den sammenhengende kilde-/view-/kalenderrettelsen.
+Ytterligere seks tester og ekte metadata-/byte-admission bekrefter at
+normaliseringsklargjøringen bruker 652 552/70 880 fra designet i den nye ruten;
+gamle eksplisitte 65 295/5 508 avvises. Dette er admission, ikke full
+normaliseringspopulasjon, beregnede normer eller læring.
+
+Resultater under CHILD_COORDINATE_PREPARATION_001/EVENTS:
+- RESULT_20261001T175552486447Z.json:
+  90a9c712c141476b756de4f05163c5023441d58fbe1ac7834d8559c638b80610.
+- READINESS_20261001T175552467344Z.json:
+  7af4baa39e81abf1f10a95eb5d159743d8dc76e15ad47cde785478f147189669.
+- NORMALIZATION_ADMISSION_REVIEW_20261001T175753519716Z.json:
+  d82ef0d98b14e6d49e7b0b7b95a5c4df8baa65904448f9528d30f2bf2aaefe48.
+
+Ferdige Entry-metadata/admission og M1-views ligger under
+LEARNING_PREPARATION_001; eksakte stier/hashes finnes i resultatet og statusfilene.
+Ikke relanser produsentene. Den nye readiness er fortsatt BLOCKED ved
+train_economics, etter at Entry-adoption og child-admission har bestått.
 
 ## Neste konkrete grense
 
-Kilde-, kalender- og TEST-seal-portene består nå samlet på ekte v38-data.
-Den konkrete recipe og klargjøringsrapporten er bundet i statusfilene; gjenbruk dem.
-Neste steg er å føre de samme vinduene og separate fysiske koordinatene gjennom
-øvrige eksisterende eiere: Entry-child, M1-views, summary-fit, normalisering,
-native indeks/trening/måling og frossen TARGET-funksjon. Call-site-sveip har
-funnet kalenderkrav også der; disse er dokumenterte ufullførte migreringer,
-ikke fjernet ved å lempe den første porten. Normer/indekser fra v37 kan ikke
-brukes med 254 v38-felt.
+Kilde-, kalender- og TEST-seal-portene, Entry-child og M1-views er kontrollert.
+Gjenbruk den bundne recipe, de publiserte komponentene og siste readiness.
+Neste steg er å kvalifisere markedslukking/ukjente gap og full tilstandsstøtte
+på de nye fysiske M1-klokkene, samt faktisk M1-/MTF-featuredekning før
+normaliseringspopulasjon og tilstandsindekser bygges. Første M1-tilstand er
+bevist for alle Entry-rader; dette er ikke bevis for komplette fremtidige traces.
+Ingen gamle base28-radnumre eller v37-normer skal føres videre som om de gjaldt
+nye kilder og 254 felt. Native indeks/trening/måling har fortsatt gamle
+femårskrav og TRAIN/VAL-koordinatantakelser som må rettes gjennom eksplisitt scope.
+Frossen TARGET må følge samme aktuelle funksjon som ONLINE.
 
 Initial/final TRAIN og senere kontroll må måles mot samme-TRAIN-konstant,
 med sentrert feil, tilstandsavhengig variasjon og retnings-/handlingsfordeling.

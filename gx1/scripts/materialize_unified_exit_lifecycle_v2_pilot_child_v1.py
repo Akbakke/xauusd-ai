@@ -36,6 +36,7 @@ from gx1.scripts.prepare_unified_exit_lifecycle_v2_pilot_v1 import (
 )
 from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import (
     validate_pilot_child_view,
+    require_pilot_child_calendar,
 )
 
 
@@ -208,9 +209,14 @@ def materialize_pilot_child_lifecycle_v2(
             "m1_source_sha256": m1_sha,
             "test_accessed": False,
         }
+    windows = require_pilot_child_calendar(child_witness)
+    split_ends = (
+        {split: window["end_utc_exclusive"] for split, window in windows.items()}
+        if windows is not None else {"train": TRAIN_END, "val": VAL_END}
+    )
     built: dict[str, tuple[pd.DataFrame, dict[str, Any]]] = {}
     try:
-        for split, split_end in (("train", TRAIN_END), ("val", VAL_END)):
+        for split, split_end in split_ends.items():
             authority = Path(authorities[split]).expanduser().resolve()  # type: ignore[arg-type]
             if authority.is_symlink() or not authority.is_file():
                 raise RuntimeError("PILOT_COMPACT_AUTHORITY_FILE_INVALID")

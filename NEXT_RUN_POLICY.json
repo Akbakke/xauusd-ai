@@ -2122,6 +2122,14 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/CODE_REVIEW.json",
       "sha256": "4b04f1a22aa0284f5627dd762512899b1abd3896c0fb7e17de4b94f30efc40f9"
     },
+    "child_admission": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/ADMISSION/CHILD_VIEW_ADMISSION.json",
+      "sha256": "4e4bb547b0c4d027189ed1eb6f5c7b32adc2d7d57bc3c8a72e6ff3959db4dfbb"
+    },
+    "child_coordinate_preparation_result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/RESULT_20261001T175552486447Z.json",
+      "sha256": "90a9c712c141476b756de4f05163c5023441d58fbe1ac7834d8559c638b80610"
+    },
     "compatibility_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/COMPATIBILITY_REVIEW.json",
       "sha256": "b5c7f2d24053491574acd6433f910b5ffc051b7be210bf9edc4b293f18d27e31"
@@ -2144,6 +2152,14 @@
       "sha256": "8e051acad340de839f4d5613b35559849ed4f0763cc6b34199f0205ba3fd30b8"
     },
     "development_val_rows": 70880,
+    "entry_receipt": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/ENTRY_WINDOW/ENTRY_WINDOW_ADOPTION_RECEIPT.json",
+      "sha256": "d5daff7cb88594f02a776b6ef75693453627f4d5f9b8e946ae9a97043b902ee0"
+    },
+    "entry_root": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/ENTRY_WINDOW/ENTRY_WINDOW_ROOT.json",
+      "sha256": "12b6daa3e881d421e954a0be0d9c8826065fd4d3efa4803f62a086c34b4e17f4"
+    },
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN",
     "existing_complete_pretest_m1_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/EXISTING_M1_AUTHORITY_REVIEW.json",
@@ -2159,7 +2175,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FROZEN_DESIGN_SOURCE_CALENDAR_SEAL_ADMITTED_DOWNSTREAM_BINDINGS_REQUIRED_NO_LAUNCH",
+    "learning_design_status": "FROZEN_DESIGN_ENTRY_M1_VIEWS_VERIFIED_STATE_FEATURE_NORMALIZATION_TARGET_BINDINGS_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
     "m1_single_source_pretest_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/RESULT.json",
@@ -2178,9 +2194,17 @@
       "window": "2024 TRAIN only"
     },
     "m1_single_source_review_status": "EXACT_ALL_PRETEST_RAW_M5_PARITY_EXISTING_COMPLETE_M1_QUALIFIED_NO_SOURCE_SWITCH",
+    "m1_view_root": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_VIEWS/M1_CHILD_VIEW_ROOT.json",
+      "sha256": "2831b8855462c8961ffc6f0117d39df117b45307f3a4d6ea2e56345d9e8be10a"
+    },
     "native_training_enabled": false,
     "new_dataset_complete": true,
     "normalization_fit_authorized": false,
+    "normalization_population_admission_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/NORMALIZATION_ADMISSION_REVIEW_20261001T175753519716Z.json",
+      "sha256": "d82ef0d98b14e6d49e7b0b7b95a5c4df8baa65904448f9528d30f2bf2aaefe48"
+    },
     "opaque_test_seal_admission_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SEAL_ADMISSION_PATCH/REAL_SEAL_FINAL_REVIEW.json",
       "sha256": "85222e6726c3a5f5670e8cb856104f0b1368ffa594d611a9492c627093204591"
@@ -2193,12 +2217,16 @@
       "sha256": "b4f743074e7d2d74dd3a9e3917bffb428328ab6f8eb4ea6709072331db2468b3"
     },
     "preparation_readiness": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_READINESS_20261001T173846817860Z.json",
-      "sha256": "d70543ef9013378550c0b9f6500f374dd0fe6ed9370aa07b2b7627bd1c06f720"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/READINESS_20261001T175552467344Z.json",
+      "sha256": "7af4baa39e81abf1f10a95eb5d159743d8dc76e15ad47cde785478f147189669"
     },
     "preparation_recipe": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_RECIPE_20261001T173806836787Z.json",
       "sha256": "b64e7b2641a767bc680239d9f2d6b450515690b2c8148cd01430320a4142ae06"
+    },
+    "preparation_source_readiness": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_READINESS_20261001T173846817860Z.json",
+      "sha256": "d70543ef9013378550c0b9f6500f374dd0fe6ed9370aa07b2b7627bd1c06f720"
     },
     "preparation_source_rebinding_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/SOURCE_REBINDING_REVIEW_20261001T173846858521Z.json",
@@ -2226,9 +2254,9 @@
     "train_rows": 652552,
     "training_enabled": false
   },
-  "next_action": "The full pre-TEST M1-to-M5 audit and 5,959,045-row M1 qualification are complete; reuse both. The existing complete M1 source is now admitted through its genuine pre-TEST parent in the bound preparation recipe. 144 focused tests and real full preparation source/calendar/seal checks passed on 652,552 TRAIN and 70,880 control rows; no TEST or TEST-containing original raw data access occurred. Reuse the preparation recipe/readiness and source rebinding review under native_v38_preparation_20261001. Next propagate the frozen TRAIN/control windows and separate physical coordinates through Entry child admission, M1 views, no-cap state/index/normalization and native learning owners. The previous filtered base28 row positions cannot index the complete M1 file. Preserve original v38 artifacts and frozen control IDs. Complete same-current-function TARGET, target and economic bindings before any native learning; no blind data rebuild. The actual derived-M5 production provenance remains unfinished. Training, normalization fitting, TEST, live/paper and spending remain closed; full B and macro promotion remain separate incomplete gates.",
+  "next_action": "Reuse completed M1 parity, qualified complete M1 source, frozen learning design/control IDs and preparation recipe. Entry adoption and child admission are complete and reuse all 21,160,180,085 original Entry parquet bytes without copying. Physical M1 views are published: TRAIN 4,884,638 rows, control 382,744 rows; all 652,552/70,880 Entry rows have exact first M1 states and every view market value matches its parent slice. 68 focused tests passed; real normalization population admission accepts frozen physical counts and rejects old 65,295/5,508 counts. No normalization was fitted. Use the bound child_coordinate_preparation_result, entry/child/M1 bindings and new preparation_readiness; do not rerun these producers. Next qualify closure/unknown gaps, complete state support and M1/MTF feature coverage on the new clocks, then bind normalization populations, no-cap indexes, separate TRAIN/control coordinates, native targets and same-current-function TARGET. Old base28 row positions and old five-year/native prefix assumptions cannot be reused. Economic readiness and later portfolio/generalization/parity gates remain incomplete. Derived-M5 production provenance remains unfinished. Training, normalization fitting, TEST, live/paper and spending remain closed; full B and macro promotion remain separate unfinished goals.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-10-01T17:40:17.542523+00:00",
+  "observed_utc": "2026-10-01T17:59:09.333885+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",

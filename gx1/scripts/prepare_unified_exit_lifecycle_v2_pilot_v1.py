@@ -373,6 +373,12 @@ def _optional_child_admission(
         or set(splits) != {"train", "val"}
     ):
         raise RuntimeError("PILOT_CHILD_VIEW_ADMISSION_NOT_PASS")
+    if "pretest_m1_rebinding" in plan and (
+        value.get("chronological_learning_design") != plan["chronological_learning_design"]
+        or value.get("windows") != plan["windows"]
+        or value.get("parent_admission_scope") != "frozen_entry_bytes_only_no_parent_m1_states"
+    ):
+        raise RuntimeError("PILOT_CHILD_VIEW_CALENDAR_NOT_BOUND")
     for split in ("train", "val"):
         observed = splits[split]
         selection = plan["selection_bindings"][split]
