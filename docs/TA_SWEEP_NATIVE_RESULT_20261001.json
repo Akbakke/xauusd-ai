@@ -1,0 +1,304 @@
+{
+  "evidence_logs": {
+    "FOCUSED_TESTS_001.log": {
+      "path": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001/FOCUSED_TESTS_001.log",
+      "sha256": "a70e8d37d923b70407859ee91a01024f3e88414679342de44a1402c780fda757"
+    },
+    "IMPORT_FAILURE.json": {
+      "path": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001/IMPORT_FAILURE.json",
+      "sha256": "0cdcbc9dfb424abb7b6ee2b1721c9b0d452e930b2ab75b54034dd762c793dab9"
+    },
+    "PRECOMMIT_GUARDS.log": {
+      "path": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001/PRECOMMIT_GUARDS.log",
+      "sha256": "01e69d26b3aecac5b4495f9318d3154b3eed387a5519eb454cc4d8c348d4bb85"
+    },
+    "PRECOMMIT_NATIVE_CONTRACTS.log": {
+      "path": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001/PRECOMMIT_NATIVE_CONTRACTS.log",
+      "sha256": "15941cd3d44aa046a3c50ed4434f97bcc7c9076bc0c9d434029998929297c93a"
+    },
+    "driver_import_repaired.log": {
+      "path": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001/driver_import_repaired.log",
+      "sha256": "b0349e0296173896b8108422fc3c6cef87c96ddf16acb9e2876446f3f3b7962a"
+    }
+  },
+  "focused_synthetic_tests": {
+    "failed": 0,
+    "model_input_gradient_verified": true,
+    "optimizer_steps": 0,
+    "passed": 82
+  },
+  "historical_rule_verdict": "NO_GO_FOR_FIXED_RULE_ONLY",
+  "implementation_commit": "d3cd63c1305eb1ad83ef925107cf7b8515b79c85",
+  "input_audit": {
+    "path": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001/RESULT.json",
+    "sha256": "c1e226da55ce6096f3532ec053b20cefd1b1c22c82a362a1155b1e19022003b7"
+  },
+  "learned_feature_value": "NOT_MEASURED",
+  "mandatory_precommit_gates_passed": true,
+  "manifest": {
+    "path": "configs/research/TA_SWEEP_NATIVE_INPUT_AUDIT_20261001.json",
+    "sha256": "f36cac634575d1c8ea3c59461434289e83a6aa89df4c749e3fe8a4494ebb1b27"
+  },
+  "native_signal_dimension": 254,
+  "native_signal_schema": "entry_model_native_signal_v38",
+  "native_training": false,
+  "new_feature_count": 12,
+  "new_features": [
+    "smc_sweep_up_avwap_age_bars",
+    "smc_sweep_up_avwap_dist_atr",
+    "smc_sweep_up_avwap_dispersion_atr",
+    "smc_sweep_up_avwap_anchor_close_dist_atr",
+    "smc_sweep_up_avwap_level_dist_atr",
+    "smc_sweep_up_avwap_mean_activity_ratio",
+    "smc_sweep_down_avwap_age_bars",
+    "smc_sweep_down_avwap_dist_atr",
+    "smc_sweep_down_avwap_dispersion_atr",
+    "smc_sweep_down_avwap_anchor_close_dist_atr",
+    "smc_sweep_down_avwap_level_dist_atr",
+    "smc_sweep_down_avwap_mean_activity_ratio"
+  ],
+  "new_native_dataset_built": false,
+  "new_train_normalization_fitted": false,
+  "next_required_work": [
+    "Build and bind v38 feature/dataset/normalization artifacts",
+    "Specify a matched bounded baseline-versus-added-feature learning experiment",
+    "Measure fresh initial baseline and TRAIN learning separately from later validation",
+    "Keep final TEST sealed until model selection is frozen"
+  ],
+  "not_established": [
+    "Incremental predictive value",
+    "Profitable learned decisions",
+    "Untouched out-of-sample results",
+    "New native bundle train/serve parity",
+    "Coverage of new features outside the audited 2011 input population"
+  ],
+  "real_input_checks": {
+    "M1": {
+      "evaluated_end": "2011-12-30 21:59:00+00:00",
+      "evaluated_input_rows": 352256,
+      "evaluated_start": "2011-01-02 23:01:00+00:00",
+      "exact_chunk_carry": true,
+      "fields": {
+        "smc_sweep_down_avwap_age_bars": {
+          "finite_count": 352256,
+          "maximum": 471.0,
+          "minimum": 0.0,
+          "nonzero_fraction": 0.9840967932412791,
+          "unique_count": 472
+        },
+        "smc_sweep_down_avwap_anchor_close_dist_atr": {
+          "finite_count": 352256,
+          "maximum": 73.78367614746094,
+          "minimum": -50.58157730102539,
+          "nonzero_fraction": 0.9828789289607558,
+          "unique_count": 345571
+        },
+        "smc_sweep_down_avwap_dispersion_atr": {
+          "finite_count": 352256,
+          "maximum": 35.83027648925781,
+          "minimum": 0.0,
+          "nonzero_fraction": 0.9839122683502907,
+          "unique_count": 344554
+        },
+        "smc_sweep_down_avwap_dist_atr": {
+          "finite_count": 352256,
+          "maximum": 40.12128829956055,
+          "minimum": -21.91310691833496,
+          "nonzero_fraction": 0.98388671875,
+          "unique_count": 345883
+        },
+        "smc_sweep_down_avwap_level_dist_atr": {
+          "finite_count": 352256,
+          "maximum": 74.1154556274414,
+          "minimum": -49.86004638671875,
+          "nonzero_fraction": 0.9987452307412791,
+          "unique_count": 351074
+        },
+        "smc_sweep_down_avwap_mean_activity_ratio": {
+          "finite_count": 352256,
+          "maximum": 19.122806549072266,
+          "minimum": -0.9491676092147827,
+          "nonzero_fraction": 0.9825382676235465,
+          "unique_count": 235175
+        },
+        "smc_sweep_up_avwap_age_bars": {
+          "finite_count": 352256,
+          "maximum": 562.0,
+          "minimum": 0.0,
+          "nonzero_fraction": 0.983665288880814,
+          "unique_count": 563
+        },
+        "smc_sweep_up_avwap_anchor_close_dist_atr": {
+          "finite_count": 352256,
+          "maximum": 76.14527130126953,
+          "minimum": -66.16741943359375,
+          "nonzero_fraction": 0.9823878088662791,
+          "unique_count": 345404
+        },
+        "smc_sweep_up_avwap_dispersion_atr": {
+          "finite_count": 352256,
+          "maximum": 34.49031066894531,
+          "minimum": 0.0,
+          "nonzero_fraction": 0.9834949582122093,
+          "unique_count": 344381
+        },
+        "smc_sweep_up_avwap_dist_atr": {
+          "finite_count": 352256,
+          "maximum": 32.799766540527344,
+          "minimum": -31.26450538635254,
+          "nonzero_fraction": 0.9834694086119186,
+          "unique_count": 345772
+        },
+        "smc_sweep_up_avwap_level_dist_atr": {
+          "finite_count": 352256,
+          "maximum": 75.75729370117188,
+          "minimum": -66.16741943359375,
+          "nonzero_fraction": 0.9986288381177325,
+          "unique_count": 351087
+        },
+        "smc_sweep_up_avwap_mean_activity_ratio": {
+          "finite_count": 352256,
+          "maximum": 18.99280548095703,
+          "minimum": -0.9141366481781006,
+          "nonzero_fraction": 0.9819818541061046,
+          "unique_count": 230626
+        }
+      },
+      "independent_weighted_reference_checks": 64,
+      "native_reader_owner_bit_parity": true,
+      "new_field_exact_duplicate_pairs": [],
+      "same_side_anchor_events_2011": {
+        "down": 5602,
+        "up": 5754
+      },
+      "source_end": "2011-12-30 21:59:00+00:00",
+      "source_prefix_sha256": "2f87cdd384e7bd4858c3cc902294ce19109b9b7bbbcec448a5ad070f81d8932c",
+      "source_rows": 900480,
+      "source_start": "2009-06-01 00:00:00+00:00"
+    },
+    "M5": {
+      "evaluated_end": "2011-12-30 21:55:00+00:00",
+      "evaluated_input_rows": 72040,
+      "evaluated_start": "2011-01-02 23:00:00+00:00",
+      "exact_chunk_carry": true,
+      "fields": {
+        "smc_sweep_down_avwap_age_bars": {
+          "finite_count": 72040,
+          "maximum": 413.0,
+          "minimum": 0.0,
+          "nonzero_fraction": 0.9820516379789006,
+          "unique_count": 414
+        },
+        "smc_sweep_down_avwap_anchor_close_dist_atr": {
+          "finite_count": 72040,
+          "maximum": 51.11880111694336,
+          "minimum": -47.99131774902344,
+          "nonzero_fraction": 0.9816629650194336,
+          "unique_count": 70690
+        },
+        "smc_sweep_down_avwap_dispersion_atr": {
+          "finite_count": 72040,
+          "maximum": 20.117568969726562,
+          "minimum": 0.0,
+          "nonzero_fraction": 0.9819961132704054,
+          "unique_count": 70661
+        },
+        "smc_sweep_down_avwap_dist_atr": {
+          "finite_count": 72040,
+          "maximum": 22.48418426513672,
+          "minimum": -10.665925025939941,
+          "nonzero_fraction": 0.9819961132704054,
+          "unique_count": 70724
+        },
+        "smc_sweep_down_avwap_level_dist_atr": {
+          "finite_count": 72040,
+          "maximum": 51.56782150268555,
+          "minimum": -47.360939025878906,
+          "nonzero_fraction": 0.9995141588006663,
+          "unique_count": 71980
+        },
+        "smc_sweep_down_avwap_mean_activity_ratio": {
+          "finite_count": 72040,
+          "maximum": 63.625,
+          "minimum": -0.8738819360733032,
+          "nonzero_fraction": 0.9817601332593003,
+          "unique_count": 68384
+        },
+        "smc_sweep_up_avwap_age_bars": {
+          "finite_count": 72040,
+          "maximum": 403.0,
+          "minimum": 0.0,
+          "nonzero_fraction": 0.9803858967240422,
+          "unique_count": 404
+        },
+        "smc_sweep_up_avwap_anchor_close_dist_atr": {
+          "finite_count": 72040,
+          "maximum": 36.37857437133789,
+          "minimum": -39.782230377197266,
+          "nonzero_fraction": 0.979705719044975,
+          "unique_count": 70556
+        },
+        "smc_sweep_up_avwap_dispersion_atr": {
+          "finite_count": 72040,
+          "maximum": 17.48813247680664,
+          "minimum": 0.0,
+          "nonzero_fraction": 0.980330372015547,
+          "unique_count": 70543
+        },
+        "smc_sweep_up_avwap_dist_atr": {
+          "finite_count": 72040,
+          "maximum": 21.975353240966797,
+          "minimum": -17.23227310180664,
+          "nonzero_fraction": 0.980330372015547,
+          "unique_count": 70585
+        },
+        "smc_sweep_up_avwap_level_dist_atr": {
+          "finite_count": 72040,
+          "maximum": 35.4483642578125,
+          "minimum": -39.8909912109375,
+          "nonzero_fraction": 0.9994031093836757,
+          "unique_count": 71964
+        },
+        "smc_sweep_up_avwap_mean_activity_ratio": {
+          "finite_count": 72040,
+          "maximum": 27.174999237060547,
+          "minimum": -0.861798107624054,
+          "nonzero_fraction": 0.97994169905608,
+          "unique_count": 67581
+        }
+      },
+      "independent_weighted_reference_checks": 64,
+      "native_reader_owner_bit_parity": true,
+      "new_field_exact_duplicate_pairs": [],
+      "same_side_anchor_events_2011": {
+        "down": 1293,
+        "up": 1413
+      },
+      "source_end": "2011-12-30 21:55:00+00:00",
+      "source_prefix_sha256": "2a5c4fa7dad4ce247f9329030a9aa469c569c5f430c17d9c902c950885eaab37",
+      "source_rows": 186736,
+      "source_start": "2009-06-01 00:00:00+00:00"
+    }
+  },
+  "routing": {
+    "smc_sweep_down_avwap_age_bars": "smc_liquidity_encoder",
+    "smc_sweep_down_avwap_anchor_close_dist_atr": "smc_liquidity_encoder",
+    "smc_sweep_down_avwap_dispersion_atr": "smc_liquidity_encoder",
+    "smc_sweep_down_avwap_dist_atr": "smc_liquidity_encoder",
+    "smc_sweep_down_avwap_level_dist_atr": "smc_liquidity_encoder",
+    "smc_sweep_down_avwap_mean_activity_ratio": "smc_liquidity_encoder",
+    "smc_sweep_up_avwap_age_bars": "smc_liquidity_encoder",
+    "smc_sweep_up_avwap_anchor_close_dist_atr": "smc_liquidity_encoder",
+    "smc_sweep_up_avwap_dispersion_atr": "smc_liquidity_encoder",
+    "smc_sweep_up_avwap_dist_atr": "smc_liquidity_encoder",
+    "smc_sweep_up_avwap_level_dist_atr": "smc_liquidity_encoder",
+    "smc_sweep_up_avwap_mean_activity_ratio": "smc_liquidity_encoder"
+  },
+  "schema": "gx1_sweep_native_feature_completion_v1",
+  "status": "IMPLEMENTED_AND_INPUT_VERIFIED",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001/TERMINAL.json",
+    "sha256": "91467e3dc5d1aef9cf9fd498eac6e956610dc043116f4fba7816ee820a4d9386"
+  },
+  "test_outcomes_accessed": false
+}

@@ -1,15 +1,19 @@
 # Gjeldende status — 01.10.2026: oppfølging av B-kildene
 
-## Native sweep-/AVWAP-funksjon bestilt 01.10 — inputkontroll pågår
+## Native sweep-/AVWAP-funksjon 01.10 — implementert og inputkontrollert
 
 Brukerens bestilling er nå implementert i eksisterende feature- og kontrakteiere:
 to uavhengige sweep-ankere, 12 kontinuerlige målinger og obligatorisk native
 M5/M1-ruting til modellens likviditetsfamilie. Dette er ingen fast handelsregel.
 82 fokuserte tester har bestått, inkludert modellens gradientvei uten optimizer.
 Signal v38 krever nye bygg-/normaliseringsartefakter; ingen modell er trent med
-denne utvidelsen. Én avgrenset historisk inputkontroll er forhåndsbundet i
-configs/research/TA_SWEEP_NATIVE_INPUT_AUDIT_20261001.json.
+denne utvidelsen. Den manifestbundne inputkontrollen besto på hele 2011:
+352 256 M1-rader og 72 040 M5-rader, med prefiks fra 2009. Alle nye felt
+er endelige og varierende. Native innlesing og replay i deler er eksakt like.
+Signalbredden er 254. Rapport: docs/TA_SWEEP_NATIVE_RESULT_20261001.json.
 Detaljer: docs/TA_SWEEP_AVWAP_20260930.md. Ingen ny lærings- eller lønnsomhetspåstand.
+Neste steg er bundne v38-bygg-/normaliseringsartefakter og en avgrenset,
+sammenlignbar treningsmåling. Ny initialbaseline og senere validering gjenstår.
 
 ## Fast sweep-regel: NO_GO; lært featureverdi er ikke målt
 

@@ -2381,7 +2381,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Complete the manifest-bound native sweep anchored activity input audit only. The fixed-rule NO_GO does not evaluate learned feature value. Native v38 requires new dataset and normalization bindings, a matched bounded learning experiment and a fresh initial baseline before any learned-value claim. No native training has run on the new representation. Full six-source B remains blocked on its existing source requirements. TEST stays sealed; no trading or spending.",
+  "next_action": "Native sweep anchored activity is implemented and input-verified on M1/M5, with signal v38 (254 fields). Its learned feature value is unmeasured. Next prepare bound v38 feature/dataset/normalization artifacts and a matched bounded learning comparison with a fresh initial baseline; a training run is not yet specified or launched. The fixed-rule NO_GO is not a verdict on learned feature value. Full six-source B retains its source blockers. TEST stays sealed; no trading or spending.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2589,16 +2589,25 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "SWEEP_NATIVE_FEATURE_IMPLEMENTED_INPUT_AUDIT_PENDING_FULL_B_BLOCKED",
+  "status": "SWEEP_NATIVE_FEATURE_INPUT_VERIFIED_LEARNING_UNMEASURED_FULL_B_BLOCKED",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,
+    "input_audit": {
+      "path": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001/RESULT.json",
+      "sha256": "c1e226da55ce6096f3532ec053b20cefd1b1c22c82a362a1155b1e19022003b7"
+    },
     "input_audit_manifest": "configs/research/TA_SWEEP_NATIVE_INPUT_AUDIT_20261001.json",
     "input_audit_manifest_sha256": "f36cac634575d1c8ea3c59461434289e83a6aa89df4c749e3fe8a4494ebb1b27",
     "learned_feature_value": "NOT_MEASURED",
     "native_training": false,
+    "new_native_dataset_built": false,
+    "new_train_normalization_fitted": false,
+    "report": "docs/TA_SWEEP_NATIVE_RESULT_20261001.json",
+    "report_sha256": "bf7347dc3d36d81e6845a92883e54c81906f315e41a597c57b4278e9c6e36d18",
+    "signal_dimension": 254,
     "signal_schema": "entry_model_native_signal_v38",
-    "status": "IMPLEMENTED_INPUT_AUDIT_PENDING",
+    "status": "IMPLEMENTED_AND_INPUT_VERIFIED",
     "test_outcomes_accessed": false
   },
   "sweep_research_20260930": {
@@ -2616,7 +2625,7 @@
     "measurement_manifest_sha256": "db2602545137dd0193a354dd074f972f9f1de654e7d114845f572f493f300dde",
     "native_training": false,
     "plan": "docs/TA_SWEEP_AVWAP_20260930.md",
-    "plan_sha256": "0e388c9abf86b9a15e1cfbeaedf3bfa4dca6e0abceb5ecebfaf564f3efb8da14",
+    "plan_sha256": "720e269860c045ed0bc9bcaabb0a1c0755418e6c68c25dd44e64c94c990d5388",
     "report": "docs/TA_SWEEP_RESULT_20260930.json",
     "report_sha256": "3920d3d39c3bf54421baa03920193488564913b27bf7db523491191c9187873d",
     "result": {

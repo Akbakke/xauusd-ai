@@ -149,3 +149,23 @@ Sammenlign dagens features med de nye ankermålingene; rapporter faktisk TRAIN-
 læring og senere generalisering separat. Den kontrollen er ikke kjørt.
 En ny ONLINE-funksjon krever også ny initialbaseline. Urørt endelig TEST brukes
 først etter fryst modellvalg. Ingen 20-timers kjøring eller lønnsomhet er etablert.
+
+
+### Fullført kontroll av den native funksjonen
+
+Inputkontrollen besto på 352 256 M1-rader og 72 040 M5-rader fra hele 2011.
+900 480 M1-rader og 186 736 M5-rader fra juni 2009 til desember 2011 inngikk
+i beregningen, slik at tidligere hendelser var tilgjengelige som prefiks.
+Alle 12 nye felt er endelige og varierer i de vurderte radene; ingen av dem
+er en eksakt kopi av et annet nytt felt. Ingen påstand om full rang eller
+uavhengighet fra alle eksisterende features følger av dette.
+Native reader-paritet og eksakt chunk-carry besto på begge klokker; 128 direkte
+vektede referanseberegninger stemmer. Nåværende signalbredde er 254.
+82 fokuserte syntetiske tester samt de obligatoriske pre-commit-portene besto.
+Første audit-start feilet ved import før datalesing; feilloggen er bevart.
+Samme immutabelt bundne skript ble deretter kjørt med korrekt importsti.
+Rapport: docs/TA_SWEEP_NATIVE_RESULT_20261001.json.
+
+Dette er implementasjons- og inputbevis. Ingen ny treningsnormalisering,
+komplett v38-datasett, modelltrening, ny bundle-paritet eller økonomisk test
+av en lært v38-modell er ferdig. Regeltest og inputtest erstatter ikke disse.
