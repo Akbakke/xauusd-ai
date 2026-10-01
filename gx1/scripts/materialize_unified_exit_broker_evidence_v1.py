@@ -7,12 +7,15 @@ import hashlib
 import json
 import os
 import subprocess
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 import requests
+
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 
 from gx1.contracts.unified_exit_broker_evidence_v1 import (
     UNIFIED_EXIT_BROKER_EVIDENCE_CUTOFF_UTC,
@@ -49,9 +52,15 @@ def _load_env(path: Path) -> dict[str, str]:
 
 
 def _get(session: requests.Session, url: str, *, params: dict[str, str] | None = None) -> dict[str, Any]:
-    response = session.get(url, params=params, timeout=30)
-    response.raise_for_status()
-    value = response.json()
+    try:
+        response = session.get(url, params=params, timeout=30, allow_redirects=False)
+        response.raise_for_status()
+        if response.status_code != 200:
+            raise RuntimeError("BROKER_EVIDENCE_HTTP_STATUS_INVALID")
+        value = response.json()
+    except (requests.RequestException, ValueError):
+        # Requests errors can contain the account URL; never expose it in logs.
+        raise RuntimeError("BROKER_EVIDENCE_REQUEST_FAILED") from None
     if not isinstance(value, dict):
         raise RuntimeError("BROKER_EVIDENCE_RESPONSE_INVALID")
     return value
@@ -137,14 +146,35 @@ def materialize(
     observation_start_utc: str,
     cutoff_utc: str,
     policy_source: Path,
+    frozen_observations_path: Path | None = None,
+    frozen_observations_sha256: str | None = None,
 ) -> dict[str, Any]:
+    output_path = output_path.expanduser().absolute()
+    if output_path.exists() or output_path.is_symlink():
+        raise RuntimeError("BROKER_EVIDENCE_OUTPUT_ALREADY_EXISTS")
+    if (frozen_observations_path is None) != (frozen_observations_sha256 is None):
+        raise RuntimeError("BROKER_EVIDENCE_FROZEN_BINDING_REQUIRED")
+    frozen = None
+    if frozen_observations_path is not None:
+        if (_sha_file(frozen_observations_path) != frozen_observations_sha256
+                or frozen_observations_path.is_symlink()):
+            raise RuntimeError("BROKER_EVIDENCE_FROZEN_BINDING_INVALID")
+        frozen = require_unified_exit_broker_evidence_v1(
+            json.loads(frozen_observations_path.read_text()), verify_local_sources=True)
+        window = frozen["observation_window"]
+        if (pd.Timestamp(observation_start_utc) != pd.Timestamp(window["start_utc"])
+                or pd.Timestamp(cutoff_utc) != pd.Timestamp(window["cutoff_utc"])
+                or str(policy_source.resolve()) != frozen["market_order_no_gslo_policy"]["source"]["path"]):
+            raise RuntimeError("BROKER_EVIDENCE_FROZEN_SCOPE_INVALID")
     cutoff = pd.Timestamp(cutoff_utc)
     if cutoff.tz is None or cutoff.tz_convert("UTC").isoformat() != UNIFIED_EXIT_BROKER_EVIDENCE_CUTOFF_UTC:
         raise RuntimeError("BROKER_EVIDENCE_CUTOFF_INVALID")
     config = _load_env(env_file)
-    environment = config.get("OANDA_ENV", "practice").lower()
+    environment = config.get("OANDA_ENV", "").lower()
     if environment not in {"practice", "live"}:
         raise RuntimeError("BROKER_EVIDENCE_ENVIRONMENT_INVALID")
+    if frozen is not None and environment != frozen["current_prospective_terms"]["account"]["environment"]:
+        raise RuntimeError("BROKER_EVIDENCE_FROZEN_ENVIRONMENT_CHANGED")
     token = config.get("OANDA_API_TOKEN") or config.get("OANDA_API_KEY")
     account_ref = config.get("OANDA_ACCOUNT_ID")
     if not token or not account_ref:
@@ -164,18 +194,19 @@ def materialize(
     instrument = matches[0]
     now = datetime.now(timezone.utc).isoformat()
     cutoff_ts = pd.Timestamp(cutoff_utc)
-    transactions = _transactions(session, base, account_ref, start_utc=observation_start_utc, end_utc=cutoff_ts.tz_convert("UTC").isoformat())
-    all_fills = [row for row in transactions if row.get("type") == "ORDER_FILL" and row.get("instrument") == "XAU_USD"]
-    before = [row for row in all_fills if pd.Timestamp(row["time"]) <= cutoff_ts]
-    after = [row for row in all_fills if pd.Timestamp(row["time"]) > cutoff_ts]
-    if after:
-        raise RuntimeError("BROKER_EVIDENCE_POST_CUTOFF_TRANSACTION_RETURNED")
-    fills = [_sanitized_fill(row) for row in sorted(before, key=lambda row: row["time"])]
-    financing_rows = []
-    for row in sorted((row for row in transactions if row.get("type") == "DAILY_FINANCING" and pd.Timestamp(row["time"]) <= cutoff_ts), key=lambda row: row["time"]):
-        sanitized = _sanitized_financing(row)
-        if sanitized is not None:
-            financing_rows.append(sanitized)
+    if frozen is None:
+        transactions = _transactions(session, base, account_ref, start_utc=observation_start_utc, end_utc=cutoff_ts.tz_convert("UTC").isoformat())
+        all_fills = [row for row in transactions if row.get("type") == "ORDER_FILL" and row.get("instrument") == "XAU_USD"]
+        before = [row for row in all_fills if pd.Timestamp(row["time"]) <= cutoff_ts]
+        after = [row for row in all_fills if pd.Timestamp(row["time"]) > cutoff_ts]
+        if after:
+            raise RuntimeError("BROKER_EVIDENCE_POST_CUTOFF_TRANSACTION_RETURNED")
+        fills = [_sanitized_fill(row) for row in sorted(before, key=lambda row: row["time"])]
+        financing_rows = []
+        for row in sorted((row for row in transactions if row.get("type") == "DAILY_FINANCING" and pd.Timestamp(row["time"]) <= cutoff_ts), key=lambda row: row["time"]):
+            sanitized = _sanitized_financing(row)
+            if sanitized is not None:
+                financing_rows.append(sanitized)
 
     account_safe = {
         "environment": environment,
@@ -209,18 +240,21 @@ def materialize(
     }
     instrument_safe["sanitized_snapshot_sha256"] = _canonical_sha(instrument_safe)
 
-    policy_source = policy_source.resolve()
-    source_commit = subprocess.check_output(["git", "-C", str(policy_source.parents[2]), "rev-parse", "HEAD"], text=True).strip()
-    policy = {
-        "policy": "market_entry_and_market_trade_close_without_gslo",
-        "entry_order_type": "MARKET",
-        "exit_operation": "trade_close",
-        "gslo_order_attached": False,
-        "gslo_fee_treatment": "structural_zero_only_while_exact_no_gslo_policy_is_enforced",
-        "source": {"path": str(policy_source), "sha256": _sha_file(policy_source)},
-        "source_commit": source_commit,
-    }
-    policy["policy_sha256"] = _canonical_sha(policy)
+    if frozen is None:
+        policy_source = policy_source.resolve()
+        source_commit = subprocess.check_output(["git", "-C", str(policy_source.parents[2]), "rev-parse", "HEAD"], text=True).strip()
+        policy = {
+            "policy": "market_entry_and_market_trade_close_without_gslo",
+            "entry_order_type": "MARKET",
+            "exit_operation": "trade_close",
+            "gslo_order_attached": False,
+            "gslo_fee_treatment": "structural_zero_only_while_exact_no_gslo_policy_is_enforced",
+            "source": {"path": str(policy_source), "sha256": _sha_file(policy_source)},
+            "source_commit": source_commit,
+        }
+        policy["policy_sha256"] = _canonical_sha(policy)
+    else:
+        policy = frozen["market_order_no_gslo_policy"]
 
     manifest = json.loads(quote_manifest.read_text(encoding="utf-8"))
     columns = list(manifest["output_columns"])
@@ -239,33 +273,38 @@ def materialize(
     if manifest["output_parquet_sha256"] != quote_binding["parquet"]["sha256"] or manifest["output_parquet"] != quote_binding["parquet"]["path"]:
         raise RuntimeError("BROKER_EVIDENCE_QUOTE_MANIFEST_BINDING_INVALID")
 
-    execution = {
-        "scope": "xauusd_order_fill_at_or_before_cutoff",
-        "rows": fills,
-        "cutoff_fill_count": len(fills),
-        "post_cutoff_fill_count_excluded": 0,
-        "post_cutoff_observation_status": "NOT_QUERIED",
-        "safe_population_sha256": _canonical_sha(fills),
-        "commission_present_count": len(fills),
-        "commission_nonzero_count": sum(row["commission_account_units"] != 0.0 for row in fills),
-        "half_spread_cost_present_count": len(fills),
-        "half_spread_cost_nonzero_count": sum(row["half_spread_cost_account_units"] != 0.0 for row in fills),
-        "gslo_fee_present_count": len(fills),
-        "gslo_fee_nonzero_count": sum(row["guaranteed_execution_fee_account_units"] != 0.0 for row in fills),
-        "full_vwap_residual_count": len(fills),
-        "full_vwap_residual_nonzero_count": sum(row["price"] != row["full_vwap"] for row in fills),
-        "pricing_mode_conclusion": "observed_zero_commission_with_nonzero_spread_cost_not_broker_plan_label",
-        "latency_slippage_status": "UNKNOWN_NO_PRE_CUTOFF_DECISION_QUOTE_TO_FILL_CLOCK_BINDING",
-    }
-    financing = {
-        "scope": "xauusd_daily_financing_at_or_before_cutoff",
-        "rows": financing_rows,
-        "daily_financing_count": len(financing_rows),
-        "nonzero_daily_financing_count": sum(row["xau_position_financing_account_units"] != 0.0 for row in financing_rows),
-        "open_trade_financing_child_count": sum(row["open_trade_financing_count"] for row in financing_rows),
-        "safe_population_sha256": _canonical_sha(financing_rows),
-        "historical_rate_series_status": "INCOMPLETE_NO_FULL_TRAIN_YEAR_RATE_HISTORY",
-    }
+    if frozen is None:
+        execution = {
+            "scope": "xauusd_order_fill_at_or_before_cutoff",
+            "rows": fills,
+            "cutoff_fill_count": len(fills),
+            "post_cutoff_fill_count_excluded": 0,
+            "post_cutoff_observation_status": "NOT_QUERIED",
+            "safe_population_sha256": _canonical_sha(fills),
+            "commission_present_count": len(fills),
+            "commission_nonzero_count": sum(row["commission_account_units"] != 0.0 for row in fills),
+            "half_spread_cost_present_count": len(fills),
+            "half_spread_cost_nonzero_count": sum(row["half_spread_cost_account_units"] != 0.0 for row in fills),
+            "gslo_fee_present_count": len(fills),
+            "gslo_fee_nonzero_count": sum(row["guaranteed_execution_fee_account_units"] != 0.0 for row in fills),
+            "full_vwap_residual_count": len(fills),
+            "full_vwap_residual_nonzero_count": sum(row["price"] != row["full_vwap"] for row in fills),
+            "pricing_mode_conclusion": "observed_zero_commission_with_nonzero_spread_cost_not_broker_plan_label",
+            "latency_slippage_status": "UNKNOWN_NO_PRE_CUTOFF_DECISION_QUOTE_TO_FILL_CLOCK_BINDING",
+        }
+        financing = {
+            "scope": "xauusd_daily_financing_at_or_before_cutoff",
+            "rows": financing_rows,
+            "daily_financing_count": len(financing_rows),
+            "nonzero_daily_financing_count": sum(row["xau_position_financing_account_units"] != 0.0 for row in financing_rows),
+            "open_trade_financing_child_count": sum(row["open_trade_financing_count"] for row in financing_rows),
+            "safe_population_sha256": _canonical_sha(financing_rows),
+            "historical_rate_series_status": "INCOMPLETE_NO_FULL_TRAIN_YEAR_RATE_HISTORY",
+        }
+    else:
+        # Preserve the already qualified pre-cutoff observations byte for byte.
+        execution = frozen["execution_observations"]
+        financing = frozen["financing_observations"]
     payload = {
         "schema_version": UNIFIED_EXIT_BROKER_EVIDENCE_SCHEMA_VERSION,
         "decision": "PASS_SANITIZED_EVIDENCE_NOT_HISTORICAL_COST_TRUTH",
@@ -288,13 +327,24 @@ def materialize(
     }
     artifact = seal_unified_exit_broker_evidence_v1(payload)
     require_unified_exit_broker_evidence_v1(artifact, verify_local_sources=True)
-    output_path = output_path.resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    if output_path.exists():
-        raise RuntimeError("BROKER_EVIDENCE_OUTPUT_ALREADY_EXISTS")
-    temporary = output_path.with_name(f".{output_path.name}.tmp")
-    temporary.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    os.replace(temporary, output_path)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", prefix=f".{output_path.name}.",
+            suffix=".stage", dir=output_path.parent, delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(json.dumps(artifact, indent=2, sort_keys=True) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        if json.loads(temporary.read_text()) != artifact:
+            raise RuntimeError("BROKER_EVIDENCE_STAGED_BYTES_INVALID")
+        _publish_file_noreplace(temporary, output_path)
+        _fsync_directory(output_path.parent)
+    finally:
+        if temporary is not None and temporary.exists():
+            temporary.unlink()
     return artifact
 
 
@@ -305,10 +355,12 @@ def main() -> int:
     parser.add_argument("--quote-parquet", type=Path, required=True)
     parser.add_argument("--quote-manifest", type=Path, required=True)
     parser.add_argument("--policy-source", type=Path, required=True)
+    parser.add_argument("--frozen-observations", type=Path)
+    parser.add_argument("--frozen-observations-sha256")
     parser.add_argument("--observation-start-utc", default="2025-01-01T00:00:00+00:00")
     parser.add_argument("--cutoff-utc", default=UNIFIED_EXIT_BROKER_EVIDENCE_CUTOFF_UTC)
     args = parser.parse_args()
-    artifact = materialize(env_file=args.env_file, output_path=args.output, quote_parquet=args.quote_parquet, quote_manifest=args.quote_manifest, observation_start_utc=args.observation_start_utc, cutoff_utc=args.cutoff_utc, policy_source=args.policy_source)
+    artifact = materialize(env_file=args.env_file, output_path=args.output, quote_parquet=args.quote_parquet, quote_manifest=args.quote_manifest, observation_start_utc=args.observation_start_utc, cutoff_utc=args.cutoff_utc, policy_source=args.policy_source, frozen_observations_path=args.frozen_observations, frozen_observations_sha256=args.frozen_observations_sha256)
     print(json.dumps({"decision": artifact["decision"], "artifact_sha256": artifact["artifact_sha256"], "cutoff_fill_count": artifact["execution_observations"]["cutoff_fill_count"], "post_cutoff_fill_count_excluded": artifact["execution_observations"]["post_cutoff_fill_count_excluded"], "output": str(args.output.resolve())}, sort_keys=True))
     return 0
 

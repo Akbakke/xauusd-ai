@@ -2561,6 +2561,25 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COMPLETION_REVIEW.json",
       "sha256": "d8f6c847b6978846151de2ee7647594f06d07cb188469743f9c25cdb775a1139"
     },
+    "cost_terms_revalidation": {
+      "authorization_scope": "One current OANDA practice account-summary GET and one XAU_USD instrument-terms GET; no redirects, retries, transactions, orders, trading, spending or TEST data. Reuse the exact frozen pre-cutoff observations and policy; sanitize the two responses locally.",
+      "broker_requests_performed": 0,
+      "focused_tests_passed": 15,
+      "native_training_enabled": false,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/OPERATOR.py",
+        "sha256": "04346ae2429f8532a859b359e3f882b719780ec96724751becea4541a7be2de4"
+      },
+      "order_requests_authorized": false,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/PLAN.json",
+        "sha256": "22d5b8de8d166a4d0b75669d51bf348b203d128d19e8fb7f7da0dd68b0e0e343"
+      },
+      "read_only_broker_terms_authorized": false,
+      "source_frozen_while_running": false,
+      "status": "PREPARED_REQUIRES_EXPLICIT_USER_READ_ONLY_BROKER_EXCEPTION",
+      "transaction_requests_authorized": false
+    },
     "dependency_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INPUT_DEPENDENCY_REVIEW.json",
       "sha256": "8e051acad340de839f4d5613b35559849ed4f0763cc6b34199f0205ba3fd30b8"
@@ -2692,6 +2711,10 @@
       }
     ],
     "index_source_audit": {
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/EVENTS/FINAL_SOURCE_REVIEW_20261001T232144276281Z.json",
+        "sha256": "19f760a6772baba8bd4a8d3cf857b276470826ebbad8f1b0a994303d50b3e792"
+      },
       "focused_tests_passed": 37,
       "index_publication_authorized": false,
       "native_training_enabled": false,
@@ -2704,8 +2727,16 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/PLAN.json",
         "sha256": "cdb191fdc42207663fea424ddef3a9095e9ffb16e3b57fef29a1451eeef64878"
       },
-      "source_frozen_while_running": true,
-      "status": "BOUND_REAL_METADATA_SOURCE_AUDIT_PENDING"
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/EVENTS/RESULT_20261001T231110412906Z.json",
+        "sha256": "4c2a44c74fc67e71d0eef94ba2569904723826500c7b6aa0f92e7bd9d58b59ca"
+      },
+      "source_frozen_while_running": false,
+      "status": "COMPLETE_ACTUAL_METADATA_SOURCES_VERIFIED_ECONOMICS_REQUIRED",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/EVENTS/TERMINAL_20261001T231110432438Z.json",
+        "sha256": "720c7645c55e17988d5ac2cb52f3a5a8dc5eb0aeb6f78ed51e8fdaa97760c990"
+      }
     },
     "input_build_authorization_consumed": true,
     "input_build_authorized": false,
@@ -2717,7 +2748,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "NORMALIZATION_FINAL_BINDINGS_COMPLETE_INDEX_OWNER_FIXED_SOURCE_AUDIT_BOUND_ECONOMICS_PENDING",
+    "learning_design_status": "INDEX_SOURCES_VERIFIED_ECONOMIC_AUTHORITY_PENDING_READ_ONLY_TERMS_DECISION",
     "learning_proven": false,
     "lifetime_summary_fit": {
       "authorization_consumed": true,
@@ -3024,7 +3055,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Execute the bound INDEX_SOURCE_AUDIT_001 on clean source to verify actual recipe/admission paths and frozen calendar, without raw parquet access or index publication. Reuse completed normalization and final bindings. Cost authority remains unresolved: coverage must extend to 2011, and fresh broker terms cannot be assumed while broker access is closed. Prepare the smallest reviewable terms-revalidation route and keep economics/index publication closed until its condition is met. Continue toward native targets, separate TRAIN/control coordinates and same-function TARGET; TEST/live/paper/spending remain closed and edge unproven.",
+  "next_action": "The actual INDEX_SOURCE_AUDIT_001 completed with exit 0: exact current paths/calendar for 652552 TRAIN and 70880 VAL rows, no raw Parquet or TEST access. Reuse it and all completed normalization/final bindings. COST_TERMS_REVALIDATION_001 is fully prepared and mock-tested but read_only_broker_terms_authorized=false: ask for the narrow two-GET OANDA practice terms exception required by GX1_RULES before any broker request. While pending, safe local cost-policy/no-cap publication repairs may proceed. Never infer approval, use stale terms as current, publish indexes without economic authority, or refit completed inputs. Native training, TEST, live/paper and spending stay closed.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],

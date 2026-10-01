@@ -1,16 +1,26 @@
 # Veien videre — oppdatert 02.10.2026
 
-Indekseieren bruker nå faktiske filstier fra de ferdige, hashbundne
-sluttbindingene og Entry-admission. Nye kalendergrenser kontrolleres mot
-det fryste designet. Ingen datakopier eller aliaser. Den separate gamle
-siste-år-modusen beholder sin kalender og skal ikke brukes for dette bygget.
-Økonomi valideres nå mot Entry-datasettets ID, radantall, begge sider og
-kalender, gjennom eksisterende livsløpseier. Den gamle sjekken brukte
-økonomiartefaktens egen ID som forventning.
-Alle tre indeks-publiseringsruter bruker fsync + no-replace; data og
-kildebindinger kontrolleres før endelig navn. 37 fokuserte tester består.
-INDEX_SOURCE_AUDIT_001 er bundet til kontroll på ekte metadata, uten
-Parquet-/TEST-tilgang, fit eller publisering. Kostnadsautoritet gjenstår.
+Indekseierens nye kilde-/kalenderkontroll er kjørt på de ekte metadataene:
+652 552 TRAIN-/70 880 VAL-rader, exit 0, null Parquet-/TEST-tilgang.
+37 fokuserte tester består. Faktiske filstier gjenbrukes uten kopier; økonomi
+bindes til Entry-ID, alle rader/sider og kalender. Alle indeksruter publiserer
+nå med fsync/no-replace etter kontroll av data og kildebindinger.
+Selve indeksene er ikke bygget: kostnadsautoriteten mangler fortsatt.
+
+En konkret, testet lesekontroll er klargjort som COST_TERMS_REVALIDATION_001:
+maksimalt to GET-kall mot OANDA practice, ett for kontoens vilkår og ett
+for XAUUSD-instrumentets vilkår. De 258 lagrede historiske fyllene og
+finansieringsobservasjonene gjenbrukes byte for byte. Ingen nye
+transaksjonsoppslag, ordre, handel, redirects, retries eller spending.
+15 syntetiske tester består; ingen faktisk broker-forespørsel er gjort.
+HTTP-feil skjuler konto-URL, og publiseringen er atomisk no-replace.
+Manglende eller endret miljø avvises før forespørsel.
+
+GX1_RULES.md stenger broker-adgang. Denne ene avgrensede lesekontrollen
+krever derfor et uttrykkelig brukerunntak. read_only_broker_terms_authorized
+er false; klargjøring er ingen godkjenning. Kostnadspolicyen krever ferske
+vilkår og dekning fra 2011 før økonomi-/indeksbinding kan ferdigstilles.
+Native trening, TEST, live/paper og spending er fortsatt stengt.
 
 Base- og lifetime-normaliseringen samt samlede førstetilstands-bindinger
 er fullført. Lifetime-fit: 8 053 838 siderader fra alle 652 552 TRAIN-entryer;

@@ -758,3 +758,58 @@ Korrigering til forrige neste-steg-beskrivelse: full-TRAIN-indeksbyggeren
 hadde ingen hardkodet 2021-start. Den gamle kalenderen tilhører separat
 latest-year-utvalg. Full-TRAIN-ruten bevares og kontrollerer nå eksplisitt
 kalenderen fra bundet admission/design. Dette er ingen ny populasjon.
+
+## Kildekontroll fullført; konkret vilkårskontroll klar til beslutning — 02.10.2026
+
+Indekseierens nye kilde-/kalenderkontroll er kjørt på de ekte metadataene:
+652 552 TRAIN-/70 880 VAL-rader, exit 0, null Parquet-/TEST-tilgang.
+37 fokuserte tester består. Faktiske filstier gjenbrukes uten kopier; økonomi
+bindes til Entry-ID, alle rader/sider og kalender. Alle indeksruter publiserer
+nå med fsync/no-replace etter kontroll av data og kildebindinger.
+Selve indeksene er ikke bygget: kostnadsautoriteten mangler fortsatt.
+
+En konkret, testet lesekontroll er klargjort som COST_TERMS_REVALIDATION_001:
+maksimalt to GET-kall mot OANDA practice, ett for kontoens vilkår og ett
+for XAUUSD-instrumentets vilkår. De 258 lagrede historiske fyllene og
+finansieringsobservasjonene gjenbrukes byte for byte. Ingen nye
+transaksjonsoppslag, ordre, handel, redirects, retries eller spending.
+15 syntetiske tester består; ingen faktisk broker-forespørsel er gjort.
+HTTP-feil skjuler konto-URL, og publiseringen er atomisk no-replace.
+Manglende eller endret miljø avvises før forespørsel.
+
+GX1_RULES.md stenger broker-adgang. Denne ene avgrensede lesekontrollen
+krever derfor et uttrykkelig brukerunntak. read_only_broker_terms_authorized
+er false; klargjøring er ingen godkjenning. Kostnadspolicyen krever ferske
+vilkår og dekning fra 2011 før økonomi-/indeksbinding kan ferdigstilles.
+Native trening, TEST, live/paper og spending er fortsatt stengt.
+
+
+index_source_result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/EVENTS/RESULT_20261001T231110412906Z.json
+SHA256: 4c2a44c74fc67e71d0eef94ba2569904723826500c7b6aa0f92e7bd9d58b59ca.
+
+index_source_terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/EVENTS/TERMINAL_20261001T231110432438Z.json
+SHA256: 720c7645c55e17988d5ac2cb52f3a5a8dc5eb0aeb6f78ed51e8fdaa97760c990.
+
+index_source_review: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/EVENTS/FINAL_SOURCE_REVIEW_20261001T232144276281Z.json
+SHA256: 19f760a6772baba8bd4a8d3cf857b276470826ebbad8f1b0a994303d50b3e792.
+
+terms_plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/PLAN.json
+SHA256: 22d5b8de8d166a4d0b75669d51bf348b203d128d19e8fb7f7da0dd68b0e0e343.
+
+terms_operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/OPERATOR.py
+SHA256: 04346ae2429f8532a859b359e3f882b719780ec96724751becea4541a7be2de4.
+
+Begrunnelsen for brukeravklaring er GX1_RULES.md, Omfang: «Live, paper,
+demo, broker, daemon, collector, publisher, promotion, drift og
+online-adaptasjon er forbudt». Forslaget åpner bare de to nevnte
+lesekallene og lokal renset vilkårsevidens, ikke noen handelsfunksjon.
+Konfigurasjonen må være practice og samsvare med den bundne gamle
+evidensen; credentials leses først ved en autorisert kjøring. HTTP-redirects
+avvises. Kontonummer, token, saldo og råresponser lagres ikke i artefakten.
+
+Eksisterende full-observasjonsrute er beholdt og syntetisk testet, men er
+ikke autorisert av dette forslaget. Testfixturens feilskrevne API-feltnavn
+ble rettet før siste grønne testkjøring; produksjonsfeltet ble bevart.
+Ny vilkårsevidens blir fortsatt ikke historisk kostnadsfasit eller
+lønnsomhetsbevis. Hvis dagens gebyr-/finansieringsvilkår avviker fra den
+forhåndsregistrerte policyen, må policybindingen vurderes separat før bruk.
