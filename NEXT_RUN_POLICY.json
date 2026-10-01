@@ -2217,7 +2217,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FROZEN_DESIGN_M1_FEATURES_VERIFIED_NORMALIZATION_INDEX_TARGET_BINDINGS_REQUIRED_NO_LAUNCH",
+    "learning_design_status": "FROZEN_DESIGN_TRAIN_POPULATION_VERIFIED_STATE_INDEX_NORMALIZATION_FIT_TARGET_BINDINGS_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
     "m1_feature_base": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
@@ -2310,6 +2310,27 @@
     "new_dataset_complete": true,
     "normalization_fit_authorized": false,
     "normalization_population": {
+      "artifacts": {
+        "CHILD_NORMALIZATION_VIEW.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/CHILD_NORMALIZATION_VIEW.json",
+          "sha256": "e7c11c81a22e181c530fed02f9c56cc04481030fc4fd69d99a1e57d1edc85391"
+        },
+        "CHILD_TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/CHILD_TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json",
+          "sha256": "fbbf2b5b2fae6e88b58fa5c238e3c01e4c020ea1480143308b222da1ca6ba70e"
+        },
+        "TRAIN_NORMALIZATION_POPULATION_WITNESS.json": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/TRAIN_NORMALIZATION_POPULATION_WITNESS.json",
+          "sha256": "451a9db012e96d274dcbb9fb2dd4c6d12ef6b15cf1341bd6b3396c2ddc5d5f86"
+        }
+      },
+      "entry_m5_unique_rows": 955670,
+      "exit_m1_unique_rows": 3995148,
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/EVENTS/FINAL_METADATA_REVIEW_20261001T212637944404Z.json",
+        "sha256": "20a201a5854974f3383eb001dc00067b33a83f9e5330fc1848c4fad1d3983776"
+      },
+      "independent_geometry_union_exact": true,
       "model_forwards": 0,
       "normalization_fit": false,
       "operator": {
@@ -2321,9 +2342,18 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/PLAN.json",
         "sha256": "140544c8dc247df62b8d6768ece6f87df17663468f4598a87d2d09381112e313"
       },
-      "source_frozen_while_running": true,
-      "status": "BOUND_NOT_LAUNCHED",
-      "tests_passed": 19
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/EVENTS/RESULT_20261001T211130374293Z.json",
+        "sha256": "2bb931ede90755b4b58cfc08578a1ab59c09d1c51cb93607cc41b660ce63b082"
+      },
+      "source_frozen_while_running": false,
+      "status": "COMPLETE_FULL_TRAIN_POPULATION_AND_FEATURE_IDENTITY_NO_FIT",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/EVENTS/TERMINAL_20261001T211130398642Z.json",
+        "sha256": "2ae8ffdb8b0089f2eeeabb3300aeb122e95ba58e88549d846247b8b66bf0e86d"
+      },
+      "tests_passed": 19,
+      "train_entry_rows": 652552
     },
     "normalization_population_admission_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/NORMALIZATION_ADMISSION_REVIEW_20261001T175753519716Z.json",

@@ -7,8 +7,13 @@ VAL-/TEST-datasettilgang. Gjenbruk TRAIN_SEQUENCE_AUDIT_001; ikke relanser.
 Normaliseringsforberedelsen gjenbruker nå dette beviset bare ved eksakt
 fil-/hash-/populasjonsbinding; endrede bytes eller bevis avvises.
 Kun M5-klokken lastes der signalverdier allerede er kontrollert.
-19 fokuserte tester består. NORMALIZATION_POPULATION_001 er bundet for
-hele fysisk TRAIN gjennom eksisterende eier, uten statistikkfit eller trening.
+19 fokuserte tester består. NORMALIZATION_POPULATION_001 er fullført med
+exit 0: hele TRAINs 652 552 entryer gir 955 670 unike M5-kontekstrader og
+3 995 148 unike observerbare M1-tilstander. M1-unionen matcher uavhengig
+den tidligere kontrollerte geometrien eksakt. Ingen statistikk er tilpasset.
+Gjenbruk de tre publiserte inputartefaktene; ikke relanser produsenten.
+Neste steg er tilstandsindekser og binding av normalisering/mål med separate
+TRAIN-/kontrollkoordinater. Native launch, læring og økonomi gjenstår.
 
 ## Native v38 — komplett M1-featureflate kontrollert, læring gjenstår
 
@@ -56,8 +61,8 @@ registry-/squeeze-parametre og åtte familier er bevart. Ikke relanser bygget.
 Den delte berikede kilden ble fullhashet og kausalt transformert, også med
 senere inputrader; alle nye utdatarader er før TEST. Forseglet TEST-datasett
 og -manifest fikk null tilgangsforsøk; ingen modell, målfit eller tuning.
-Neste steg er å binde den verifiserte flaten i normaliseringspopulasjon,
-tilstandsindekser og målforberedelse uten å svekke eksisterende porter.
+Den verifiserte flaten er nå bundet i normaliseringspopulasjonen.
+Tilstandsindekser, statistikkfit og målforberedelse gjenstår.
 
 PC-en ble kontrollert omstartet etter fullført jobb og verifisert tomme
 prosjekt-/GPU-køer 01.10 kl. 20:22 UTC (22:22 Oslo). WSL, GPU, cgroup-vakter,

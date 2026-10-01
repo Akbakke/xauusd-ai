@@ -482,3 +482,30 @@ TRAIN-geometri gjenbrukes som uavhengig differanse-/union-orakel. VAL-filen
 fullhashes kun for identitet; ingen VAL-utfall dekodes. Delt M5-kilde/MTF
 hashes, M5-klokke leses, og ny før-TEST-M1-flate kontrolleres for valgte
 TRAIN-verdier. Null fit/optimizer/model-forward; TEST-datasett forblir sperret.
+
+Normaliseringspopulasjonen avsluttet 01.10 kl. 21:11:30 UTC, exit 0,
+kilde 3f2fb070 uendret. 19 fokuserte tester består. NORMALIZATION_POPULATION_001 er fullført med
+exit 0: hele TRAINs 652 552 entryer gir 955 670 unike M5-kontekstrader og
+3 995 148 unike observerbare M1-tilstander. M1-unionen matcher uavhengig
+den tidligere kontrollerte geometrien eksakt. Ingen statistikk er tilpasset.
+Gjenbruk de tre publiserte inputartefaktene; ikke relanser produsenten.
+Neste steg er tilstandsindekser og binding av normalisering/mål med separate
+TRAIN-/kontrollkoordinater. Native launch, læring og økonomi gjenstår.
+
+Faktisk kjøring gjenbrukte den komplette parent-sekvenskontrollen;
+full ny sekvensdekoding og en unødvendig ca. 1,17 GB M5-signalallokering
+er fjernet fra normaliseringsforberedelsen. Dette er målt inputkonsistens,
+ikke læringskvalitet eller lønnsomhet. Null TEST-tilgangsforsøk.
+
+result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/EVENTS/RESULT_20261001T211130374293Z.json
+SHA256: 2bb931ede90755b4b58cfc08578a1ab59c09d1c51cb93607cc41b660ce63b082.
+terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/EVENTS/TERMINAL_20261001T211130398642Z.json
+SHA256: 2ae8ffdb8b0089f2eeeabb3300aeb122e95ba58e88549d846247b8b66bf0e86d.
+final_review: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NORMALIZATION_POPULATION_001/EVENTS/FINAL_METADATA_REVIEW_20261001T212637944404Z.json
+SHA256: 20a201a5854974f3383eb001dc00067b33a83f9e5330fc1848c4fad1d3983776.
+CHILD_NORMALIZATION_VIEW.json: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/CHILD_NORMALIZATION_VIEW.json
+SHA256: e7c11c81a22e181c530fed02f9c56cc04481030fc4fd69d99a1e57d1edc85391.
+CHILD_TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/CHILD_TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json
+SHA256: fbbf2b5b2fae6e88b58fa5c238e3c01e4c020ea1480143308b222da1ca6ba70e.
+TRAIN_NORMALIZATION_POPULATION_WITNESS.json: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/TRAIN_NORMALIZATION_POPULATION_WITNESS.json
+SHA256: 451a9db012e96d274dcbb9fb2dd4c6d12ef6b15cf1341bd6b3396c2ddc5d5f86.

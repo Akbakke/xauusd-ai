@@ -174,3 +174,10 @@ binding av denne flaten til normaliseringspopulasjon, indekser og mål.
 Ingen læring eller økonomisk fordel er dokumentert av inputbygget.
 Brukerønsket PC-omstart er gjennomført ved trygg grense; WSL, GPU og capped-
 kjøring er kontrollert. LAN fungerer; opprinnelig Tailscale-rute er uavklart.
+
+01.10 kl. 21:11 UTC: hele TRAIN-sekvenskontrollen og fysisk
+normaliseringspopulasjon er fullført, med terminal exit 0. 652 552 entryer,
+955 670 unike M5-kontekstrader og 3 995 148 unike observerbare M1-rader;
+uavhengig geometri stemmer eksakt. 19 fokuserte tester består. Ingen
+normaliseringsfit, modellforwards eller optimizersteg. Neste avhengighet
+er native tilstandsindekser og norm-/målbinding; øvrige mål består.
