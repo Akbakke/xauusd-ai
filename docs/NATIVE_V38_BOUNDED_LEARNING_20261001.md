@@ -531,8 +531,10 @@ inngår, og MTF-utvalget gjøres av eksisterende kausal eier. 10 GiB/512 MiB
 producer-cap gjenbrukes. Normalisering er CPU-preprosessering; ingen modell.
 Plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/PLAN.json
 SHA256: e09500b4a7e75c451a0b047b8e2bdae30efc2fd90509a395e63387ba370dddf4.
-Operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/OPERATOR.py
-SHA256: 2cce496043e68a99fbb19c8712b3ea16fd4b4460799b50151e0f937cca2f2995.
+Operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/OPERATOR_002.py
+SHA256: df616634903101d26b9d2333c764af8a91cfa02bd6d282f17e0084b5967bc539.
+Den aldri kjørte OPERATOR.py er bevart; aktiv operator registrerer også
+fit-start korrekt hvis den første statistikkflaten feiler.
 Full inputbygging og populasjonskontroller er ikke relansert. TEST- og
 VAL-datasett/manifester sperres for denne kjøringen. Delte prisfeature-/
 MTF-inputs kan omfatte senere rader og identitetskontrolleres; bare fryst

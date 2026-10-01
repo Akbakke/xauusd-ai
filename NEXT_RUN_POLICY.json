@@ -2136,8 +2136,8 @@
       "normalization_fit_authorized": true,
       "normalization_fit_scope": "base physical TRAIN feature transforms only",
       "operator": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/OPERATOR.py",
-        "sha256": "2cce496043e68a99fbb19c8712b3ea16fd4b4460799b50151e0f937cca2f2995"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/OPERATOR_002.py",
+        "sha256": "df616634903101d26b9d2333c764af8a91cfa02bd6d282f17e0084b5967bc539"
       },
       "optimizer_steps": 0,
       "plan": {
