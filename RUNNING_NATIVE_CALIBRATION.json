@@ -2025,7 +2025,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-10-01T18:14:38.138089+00:00",
+  "latest_observation_utc": "2026-10-01T18:26:16.548747+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2038,7 +2038,7 @@
     "slot": 0,
     "state_sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
   },
-  "latest_readonly_audit_utc": "2026-10-01T18:14:38.138089+00:00",
+  "latest_readonly_audit_utc": "2026-10-01T18:26:16.548747+00:00",
   "learning_gate": {
     "broad_entry_fit_improved": false,
     "causal_entry_fixed256_verdict": {
@@ -2533,8 +2533,29 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FROZEN_DESIGN_M1_CLOCKS_AND_CLOSURES_VERIFIED_FEATURE_NORMALIZATION_TARGET_BINDINGS_REQUIRED_NO_LAUNCH",
+    "learning_design_status": "FROZEN_DESIGN_M1_FEATURE_REALIGNMENT_PREDECLARED_NO_NATIVE_TRAINING",
     "learning_proven": false,
+    "m1_feature_realignment": {
+      "native_training_enabled": false,
+      "normalization_fit": false,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/OPERATOR.py",
+        "sha256": "f42aef812fef60bcb0b122fd70ff71d0a2c1c45ef497dc267d4ddb603a9d2de6"
+      },
+      "output_parquet": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/PLAN.json",
+        "sha256": "0e65f67c5300be2bba1f2e0a15f21cb1519351ffd3a9f06f1eda7755bda6fc6f"
+      },
+      "relaunch_allowed": false,
+      "repository_plan": "configs/research/NATIVE_V38_M1_REALIGNMENT_20261001.json",
+      "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001",
+      "sealed_test_dataset_or_manifest_access_allowed": false,
+      "shared_enriched_source_contains_test_era_input_rows": true,
+      "source_frozen_while_running": true,
+      "source_read_scope": "Established causal feature construction plus full source identity hashing; all emitted rows must be before TEST. No outcomes, models, fits or TEST artifact access.",
+      "status": "AUTHORIZED_INPUT_PRODUCER_RUNTIME_START_AND_TERMINAL_ARE_AUTHORITY"
+    },
     "m1_single_source_pretest_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/RESULT.json",
       "sha256": "e3d89a140ae44a45c935ebc87421cdc92664510ff4c9c99186f9ef319806a8ad"

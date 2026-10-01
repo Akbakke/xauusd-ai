@@ -40,8 +40,13 @@ En gjenværende gammel TRAIN-sluttdato i normaliseringspopulasjonen er rettet,
 og publisering av pauseartefakter overskriver aldri eksisterende filer/kataloger.
 13 fokuserte tester består. Eksisterende M1-featuremanifest peker fortsatt på
 gammel filtrert base28; bindingen matcher ikke komplett M1. Neste steg er å
-kvalifisere faktisk før-TEST-featuredekning/gjenbruk gjennom eksisterende eiere
-før indekser, normaliseringspopulasjon og mål kan ferdigstilles.
+bygge bare M1-featureflaten mot komplett før-TEST-klokke gjennom eksisterende
+eier, med gjenbruk av ferdig beriket M1 og fryste parametre. Den separate
+forhåndsregistreringen M1_FEATURE_REALIGNMENT_001 gir ingen modell-/fit-adgang.
+Runtime START/TERMINAL avgjør faktisk status; ikke start en ny kopi.
+Den delte berikede kilden inneholder også senere inputrader og blir fullhashet
+og kausalt transformert av byggeieren. Alle nye utdatarader skal være før TEST;
+forseglet TEST-datasett/manifest og utfallsmåling forblir utilgjengelige.
 Gammel lærer fjerner dagens parameterfrie normalisering; ny fersk måling skal
 bruke samme aktuelle funksjon for ONLINE og TARGET. Indekser, normalisering
 og mål-/økonomibindinger gjenstår. Native trening og normaliseringsfit er

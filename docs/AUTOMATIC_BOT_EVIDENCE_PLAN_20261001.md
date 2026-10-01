@@ -159,3 +159,10 @@ gammel filtrert alignment. Neste grense er kvalifisert før-TEST-featuregjenbruk
 eller nødvendig rekonstruksjon, deretter indekser, mål, normer og læringsmåling.
 Gjenbruk ferdige Entry-/M1-visninger, schedules og geometriarrayer.
 Resultater og siste readiness er bundet i begge status-JSON-ene.
+
+Den konkrete M1-reparasjonen er nå forhåndsregistrert separat i
+configs/research/NATIVE_V38_M1_REALIGNMENT_20261001.json. Eksisterende eier
+gjenbruker beriket M1 og fryste parametre, med nye utdatarader bare på komplett
+før-TEST-klokke. Lesesomfang for den delte berikede kilden og krav til
+terminal/klokkedekning er eksplisitt bundet i native-rapporten. Ingen normfit
+eller læring er åpnet; faktisk runtime-status avgjør om produsenten lever.

@@ -1,0 +1,111 @@
+{
+  "alignment_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+    "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+  },
+  "alignment_parquet": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+    "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+  },
+  "closure_geometry_result": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CLOSURE_STATE_SUPPORT_001/EVENTS/RESULT_20261001T180740533994Z.json",
+    "sha256": "bf02567ac6a5b2a89651fd9cd0af7d23db93b214281dab5e159662c15baf12a3"
+  },
+  "created_utc": "2026-10-01T18:22:57.951734+00:00",
+  "dataset_run_id": "HISTORY2009W_NATIVE_V38_20261001",
+  "implementation_bindings": {
+    "gx1/contracts/entry_exit_feature_base_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_exit_feature_base_v1.py",
+      "sha256": "8bbd9913beda30c68dd08c4fa03cb2cd5fdeaee6fad68b01ed5abdec6d1e7b23"
+    },
+    "gx1/features/entry_model_native_feature_layers_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_model_native_feature_layers_v1.py",
+      "sha256": "0c31c38fd891185b1042b5373bbb71d7b01fbe895f5928a759c74fa8c568cb5b"
+    },
+    "gx1/features/smc_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/smc_v1.py",
+      "sha256": "a8c742634eb3e1d8414a062e28e6b8c420c791c9be1f7137bb021c51f7b70ebf"
+    },
+    "gx1/scripts/materialize_entry_exit_m1_feature_base_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_exit_m1_feature_base_v1.py",
+      "sha256": "0e113e789fdaa2c9e23d8748e96041a0a601858d1fcfd4e86516c2db6d1d981e"
+    },
+    "scripts/entry_next_edge_control.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/entry_next_edge_control.sh",
+      "sha256": "cb6965098249ba2311225bc04eca8a0b0bea851f5a2777a1be3d0a0b7dda3abe"
+    },
+    "scripts/gx1_capped_run.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "a85bf761e3607ead54dd806b4cf581febaeeeca5801e3060ffc1e76a289d5f3d"
+    }
+  },
+  "learning_design": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/DESIGN.json",
+    "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
+  },
+  "live_paper_broker_spending_allowed": false,
+  "memory_max": "10G",
+  "model_forwards": 0,
+  "native_training_enabled": false,
+  "normalization_fit": false,
+  "one_heavy_job_scope": "GX1_CURRENT",
+  "operator_authorization": "Active automatic-bot goal and user request for common authoritative M1 source.",
+  "optimizer_steps": 0,
+  "original_feature_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/m1_feature_base.parquet.manifest.json",
+    "sha256": "77ad2b3a42dfdd4d5ca919b6074d15887a1b803eb54887acc9d6a722c08b26a1"
+  },
+  "output_parquet": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
+  "output_time_end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+  "output_time_scope": "complete alignment clock after existing-owner causal warmup; no internal row omissions",
+  "pair_generation_id": "fc3333d71ca71d3916b3f6716bbfd36824a216dc15fb927efa8c03cac0594170",
+  "purpose": "Materialize the existing 254-field M1 owner on every covered complete pre-TEST M1 clock; reuse original enrichment and frozen fits, preserve original artifacts.",
+  "read_scope": {
+    "claim_zero_test_era_raw_input_bytes_read": false,
+    "frozen_fit_parameters_reused_without_refit": true,
+    "old_feature_surface_or_old_filtered_raw_access_allowed": false,
+    "reason": "Necessary feature construction on admitted source through established construction owner; separate from earlier clock-only audit. No TEST dataset/manifest access, target evaluation, outcome report, model or fit.",
+    "scope_owner": "gx1.scripts.materialize_entry_exit_m1_feature_base_v1._materialize_feature_base",
+    "source_enriched_contains_test_era_input_rows": true,
+    "source_enriched_full_causal_feature_construction_allowed": true,
+    "source_enriched_full_identity_hash_allowed": true
+  },
+  "registry_fit_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/m1_enriched.parquet.manifest.json",
+    "sha256": "00eca00a902025850b4c10cbb8fa4664819b4df607f5e9df82abe141448a9184"
+  },
+  "registry_params_contract_sha256": "e1a5d7dc35577e8d4149093b4587e203f12c75cb01308c91e74ea7705fcbdc88",
+  "resource_authority": "model-native-m1-feature-base producer cap in scripts/entry_next_edge_control.sh",
+  "resource_class": "producer",
+  "schema_version": "gx1_native_v38_m1_feature_realignment_plan_v1",
+  "sealed_test_artifacts_forbidden": [
+    "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_test.manifest.json",
+    "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_test.parquet"
+  ],
+  "sealed_test_dataset_or_manifest_access_allowed": false,
+  "signal_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20261001T104727301922Z.json",
+    "sha256": "a4a8b636e0e4f5e5cbcbcad4e11d80a065227782acb72e1d711e73a3200b0ed2"
+  },
+  "source_enriched_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/m1_enriched.parquet.manifest.json",
+    "sha256": "00eca00a902025850b4c10cbb8fa4664819b4df607f5e9df82abe141448a9184"
+  },
+  "source_enriched_parquet": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/m1_enriched.parquet",
+    "sha256": "6dc89ba01c95427fcb3e5aa2d3df4bd8d147446d63c3cab4f7801860e5e37fd5"
+  },
+  "source_pair_provenance_preserved": true,
+  "squeeze_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/manifest.json",
+    "sha256": "2f099d1974a6ffe3b9c1ae39680acdce5cc706aba954a2ce3523d74db2838d3e"
+  },
+  "swap_max": "512M",
+  "validation": [
+    "Existing owner strict-validates every emitted row, dtype, finite field and timestamp before publication.",
+    "Published manifest binds complete pre-TEST alignment, unchanged 254-field order and frozen parameters.",
+    "Independent timestamp oracle matches entire alignment suffix at causal warmup and exclusive TEST boundary.",
+    "Every TRAIN/control M1-view timestamp has feature coverage; no selection by outcomes.",
+    "Unchanged source commit, terminal receipt and hashes required before downstream admission."
+  ]
+}

@@ -361,18 +361,38 @@ uløst; denne klokkekontrollen er ingen økonomisk eller native launch-autoritet
 
 Kilde-, kalender- og TEST-seal-portene, Entry-child og M1-views er kontrollert.
 Gjenbruk den bundne recipe, de publiserte komponentene og siste readiness.
-Markedslukking/ukjente gap og observerbar tilstandsstøtte er nå kontrollert
-som beskrevet over. Neste steg er faktisk M1-/MTF-featuredekning gjennom
-fysisk før-TEST-input og eksisterende eiere. Eksisterende M1-featureflate er
-bundet til gammel filtrert base28, mens ny admission krever komplett M1.
-Originale manifester skal ikke ommerkes, og vaktens kildekrav skal ikke svekkes.
-Det berikede M1-manifestet binder ekte native M1, men kilden går inn i
-TEST-perioden. Dagens featureeier fullhasher den kilden og leser hele
-tidskolonnen; å bytte bare alignment er derfor ikke en før-TEST-begrenset
-gjenbruksrute. Checkpoint-metadata inneholder bare 14 kontekstfelt, ikke en
-dokumentert komplett erstatning. Kvalifiser trygg gjenbruk eller minste
-nødvendige før-TEST-rekonstruksjon før ny materialisering startes.
-Feature- eller berikede databytes er ikke åpnet i denne metadatakontrollen.
+Markedslukking/ukjente gap og observerbar tilstandsstøtte er kontrollert.
+Eksisterende M1-featureflate er bundet til gammel filtrert base28, mens ny
+admission krever komplett M1. Originale manifester skal ikke ommerkes, og
+vaktens kildekrav skal ikke svekkes. Metadatakontrollen over åpnet ingen
+feature- eller berikede databytes; checkpoints med 14 kontekstfelt er ingen
+dokumentert komplett erstatning for beriket M1.
+
+Kildegjennomgangen viser at vi kan bruke den etablerte featurebyggeieren
+direkte med komplett før-TEST-M1 som alignment og original beriket M1 som
+uendret beregningskilde. Bare M1-featureflaten materialiseres på nytt.
+Ingen ny Entry-bygging, M5/MTF-beregning, rangering eller parameterfit.
+configs/research/NATIVE_V38_M1_REALIGNMENT_20261001.json og runtime
+M1_FEATURE_REALIGNMENT_001/PLAN.json har identiske bytes, SHA256
+0e65f67c5300be2bba1f2e0a15f21cb1519351ffd3a9f06f1eda7755bda6fc6f.
+Dette er en separat deklarert inputreparasjon, ingen relansering av fullført bygg.
+
+Lesesomfanget er konstruksjon gjennom den eksisterende eieren, ikke den
+tidligere rene klokkerevisjonen: den delte berikede kilden omfatter juli/august
+2026 og blir fullhashet og kausalt transformert internt. Vi hevder ikke null
+lesing av rå inputbytes fra TEST-perioden i dette bygget. Forseglet TEST-datasett
+og -manifest blokkeres før I/O; ingen targets, handelsutfall, modell, fitting
+eller tuning brukes. Fryste registry-/squeeze-parametre gjenbrukes uendret.
+Original pair-proveniens beholdes. Den nye flaten må bare ha tidsstempler fra
+komplett M1 før 01.07.2026, etter faktisk kausal warmup, uten interne utelatelser.
+
+Produsenten bruker eksisterende 10 GiB/512 MiB capped-grense, én jobb.
+Alle utdatarader kontrolleres av eksisterende materializer; en separat
+tidsstempelkontroll krever eksakt alignment-suffiks og dekning av samtlige
+nye TRAIN-/kontroll-M1-visninger. Runtime START, RESULT og TERMINAL binder
+faktisk tilstand. Kilden fryses mens jobben kjører; aldri start en kopi.
+Ny output er LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet.
+Ingen nedstrøms admission før terminal og uavhengig resultat er kontrollert.
 Ingen gamle base28-radnumre eller v37-normer skal føres videre som om de gjaldt
 nye kilder og 254 felt. Native indeks/trening/måling har fortsatt gamle
 femårskrav og TRAIN/VAL-koordinatantakelser som må rettes gjennom eksplisitt scope.

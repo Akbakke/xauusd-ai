@@ -42,6 +42,10 @@
     "sha256": "d2117e2bb1236c7f8e58c2a8918f8f04d0813c7e3ef04da04fd0b25b18f87fc5"
   },
   "independent_integer_grid_numpy_reducer": "Exact on all newly measured years; existing production M5 resampler used throughout.",
+  "m1_feature_realignment_plan": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/PLAN.json",
+    "sha256": "0e65f67c5300be2bba1f2e0a15f21cb1519351ffd3a9f06f1eda7755bda6fc6f"
+  },
   "normalization_population_admission_review": {
     "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/NORMALIZATION_ADMISSION_REVIEW_20261001T175753519716Z.json",
     "sha256": "d82ef0d98b14e6d49e7b0b7b95a5c4df8baa65904448f9528d30f2bf2aaefe48"
@@ -88,7 +92,7 @@
   },
   "remaining": [
     "Declared derived-M5 production provenance; complete M1 is admitted in the bound preparation recipe.",
-    "Qualify physically pre-TEST M1/MTF feature coverage/reuse or necessary reconstruction; existing M1 feature alignment still points to the old filtered source. Preserve original manifests and outputs.",
+    "Execute the predeclared existing-owner M1 feature realignment, qualify exact pre-TEST clock and split-view coverage, then inspect terminal before downstream admission. Original enrichment includes later input rows; declared construction-only scope preserves sealed TEST artifacts.",
     "Complete target eligibility, normalization populations and remaining native physical-coordinate/index/measurement bindings; reuse measured closure schedules and support arrays.",
     "Fresh initial/current-function TARGET, shared causal targets, economic evidence, later generalization and train/serve parity."
   ],
