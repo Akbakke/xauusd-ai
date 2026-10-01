@@ -1,19 +1,24 @@
 # GX1 arbeidsmål — oppdatert 01.10.2026
 
-## Native v38 — inputbygg ferdig, læringsdesign gjenstår
+## Native v38 — læringsdesign fryst, kalenderrettelse kontrollert
 
-V38-bygget og den separate etterkontrollen er fullført fra kilde 5bdd75e0.
-Alle seks readiness-porter består. TRAIN har 652 552 rader og utviklings-VAL
-70 880; alle 12 nye sweep-/AVWAP-felt er endelige og varierer i begge.
-254 signalverdier og alle åtte familier er bevart. TEST er fortsatt forseglet;
-etterkontrollen har ikke åpnet TEST-datasettet eller dets manifest.
+Inputbygg og etterkontroll er ferdige; ikke relanser dem. Læringsdesignet er
+nå fryst med fysisk TRAIN 01.06.2011–31.05.2025, senere utviklingskontroll
+01.06.2025–30.06.2026 og 256 faste kontrollrader. Kontroll er gjenbrukt
+utviklingsdata. Alle 254 felt og åtte familier består.
 
-[Scope, bindinger og neste steg](docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md).
-Gjenbruk de ferdige inputartefaktene; byggingen skal ikke relanseres.
-Bind nå konkret kronologisk læringsdesign, normalisering, native
-tilstands-/mål-/økonomibindinger og fersk initialbaseline. Den avgrensede
-læringsmålingen alene utfører ikke porteføljeregnskap. Trening og
-normaliseringsfit er fortsatt stengt. Eldre neste-steg-tekst er historikk.
+En konkret gammel kalenderbinding i klargjøringen er rettet i eksisterende
+eier. 15 fokuserte tester består; faktisk ny eier har kontrollert samtlige
+652 552 TRAIN- og 70 880 VAL-tidsstempler mot det frosne designet.
+Dette er kalender-/populasjonsbevis, ikke full native admission eller læring.
+
+[Design, feilfunn og neste steg](docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md).
+Neste steg er riktig M1-/TEST-seal-proveniens, deretter gjennomføring av
+de bundne periodene og separate radkoordinatene i øvrige eksisterende eiere.
+Gammel lærer fjerner dagens parameterfrie normalisering; ny fersk måling skal
+bruke samme aktuelle funksjon for ONLINE og TARGET. Indekser, normalisering
+og mål-/økonomibindinger gjenstår. Native trening og normaliseringsfit er
+fortsatt stengt; TEST er urørt. Eldre neste-steg-tekst er historikk.
 
 ## Aktivt mål 01.10 — makrotest fullført, native læringsbevis gjenstår
 

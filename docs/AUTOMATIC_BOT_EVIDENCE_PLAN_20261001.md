@@ -111,3 +111,14 @@ Se [gjeldende native scope](NATIVE_V38_BOUNDED_LEARNING_20261001.md).
 Gjeldende Entry-/Exit-mål er kartlagt; observerte økonomiske utfall må
 rapporteres separat. Konkret normaliserings-/læringsrecipe gjenstår. Byggegodkjenningen er brukt;
 ikke relanser ferdig inputbygg. Økonomisk porteføljemåling er en egen port.
+
+
+## Native design fryst; første kalenderrettelse målt
+
+Det separate v38-designet og CONTROL256 er nå fryst før mål-/modellutfall.
+Se configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json og native-rapporten.
+TRAIN 2011–mai 2025 og senere fysisk VAL juni 2025–juni 2026 har separate
+radkoordinater. Første klargjøringseier er rettet og kontrollert på hele
+kalenderen; 15 fokuserte tester består. M1-/TEST-seal-admission og øvrige
+native eiere trenger fortsatt den dokumenterte migreringen. Det er ingen
+native launch eller læring ennå; mål og trening er fortsatt separate statuser.

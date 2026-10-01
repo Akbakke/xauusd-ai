@@ -301,19 +301,26 @@ def _optional_child_admission(
 def _entry_window_scope(
     recipe: Mapping[str, Any], train_manifest: Mapping[str, Any],
     *, dataset_run_id: str,
+    val_manifest: Mapping[str, Any] | None = None,
+    source_bindings: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Resolve full TRAIN adoption from the bound source, never an environment flag."""
+    """Resolve admitted windows; historical scopes keep their original calendar."""
+    windows = {
+        "train": {"start_utc": TRAIN_START, "end_utc_exclusive": TRAIN_END},
+        "val": {"start_utc": VAL_START, "end_utc_exclusive": VAL_END},
+    }
     scope = recipe.get("lifecycle_v2_data_scope")
     if scope is None:
         return {
             "run_id": PILOT_RUN_ID,
             "dataset_run_id": f"{dataset_run_id}__PILOT_20250601_20260630",
-            "train_start": TRAIN_START,
+            "windows": windows,
             "full_train": False,
         }
+    old_keys = {"schema_version", "train_coverage", "run_id"}
     if (
         not isinstance(scope, Mapping)
-        or set(scope) != {"schema_version", "train_coverage", "run_id"}
+        or set(scope) not in (old_keys, old_keys | {"chronological_learning_design"})
         or scope.get("schema_version") != "gx1_lifecycle_v2_full_train_data_scope_v1"
         or scope.get("train_coverage") != "entire_bound_train"
         or not isinstance(scope.get("run_id"), str)
@@ -321,6 +328,83 @@ def _entry_window_scope(
         or any(not (c.isascii() and (c.isalnum() or c in "_-")) for c in scope["run_id"])
     ):
         raise RuntimeError("LIFECYCLE_V2_FULL_TRAIN_SCOPE_INVALID")
+    result = {
+        "run_id": scope["run_id"],
+        "dataset_run_id": f"{dataset_run_id}__FULL_TRAIN_{_canonical_sha256(scope)[:12]}",
+        "full_train": True,
+    }
+    if "chronological_learning_design" in scope:
+        binding = scope["chronological_learning_design"]
+        if not isinstance(binding, Mapping) or set(binding) != {"path", "sha256"}:
+            raise RuntimeError("LIFECYCLE_V2_CHRONOLOGICAL_DESIGN_BINDING_INVALID")
+        design = _read_bound_json(
+            Path(str(binding["path"])), binding["sha256"], "CHRONOLOGICAL_DESIGN"
+        )
+        calendar = design.get("calendar")
+        if (
+            design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
+            or not isinstance(calendar, Mapping)
+            or calendar.get("physical_source_splits") != {"train": "train", "control": "val"}
+            or calendar.get("physical_coordinate_namespaces_are_separate") is not True
+            or not isinstance(calendar.get("source_bindings"), Mapping)
+            or set(calendar["source_bindings"]) != {"train", "val"}
+            or not isinstance(val_manifest, Mapping)
+            or not isinstance(source_bindings, Mapping)
+        ):
+            raise RuntimeError("LIFECYCLE_V2_CHRONOLOGICAL_DESIGN_INVALID")
+        try:
+            boundaries = [
+                pd.Timestamp(calendar[key])
+                for key in (
+                    "train_entry_start_inclusive", "train_control_cutoff",
+                    "development_control_entry_end_exclusive",
+                )
+            ]
+            if any(pd.isna(t) or t.tzinfo is None for t in boundaries):
+                raise ValueError("UTC-aware boundaries required")
+            if not boundaries[0] < boundaries[1] < boundaries[2]:
+                raise ValueError("chronological disjoint windows required")
+            windows = {
+                split: {
+                    "start_utc": boundaries[i].tz_convert("UTC").isoformat(),
+                    "end_utc_exclusive": boundaries[i + 1].tz_convert("UTC").isoformat(),
+                }
+                for i, split in enumerate(("train", "val"))
+            }
+            for split, manifest in (("train", train_manifest), ("val", val_manifest)):
+                declared = calendar["source_bindings"][split]
+                window = manifest["splits"][split]
+                start, end = pd.Timestamp(window["start"]), pd.Timestamp(window["end"])
+                if (
+                    not isinstance(declared, Mapping)
+                    or declared["manifest"] != source_bindings[f"{split}_manifest"]
+                    or declared["parquet"] != source_bindings[f"{split}_parquet"]
+                    or declared["declared_window"] != window
+                    or manifest["extra"]["entry_run_id"] != dataset_run_id
+                    or pd.isna(start) or pd.isna(end)
+                    or start.tzinfo is None or end.tzinfo is None
+                    or start != pd.Timestamp(windows[split]["start_utc"])
+                    or not start < end < pd.Timestamp(windows[split]["end_utc_exclusive"])
+                    or type(declared["physical_rows"]) is not int
+                    or declared["physical_rows"] <= 0
+                    or not isinstance(declared["clock_sha256"], str)
+                    or len(declared["clock_sha256"]) != 64
+                ):
+                    raise ValueError("physical source differs from frozen design")
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RuntimeError("LIFECYCLE_V2_CHRONOLOGICAL_SOURCE_WINDOW_INVALID") from exc
+        return {
+            **result,
+            "windows": windows,
+            "chronological_learning_design": dict(binding),
+            "physical_populations": {
+                split: {
+                    "rows": calendar["source_bindings"][split]["physical_rows"],
+                    "clock_sha256": calendar["source_bindings"][split]["clock_sha256"],
+                }
+                for split in ("train", "val")
+            },
+        }
     try:
         source_window = train_manifest["splits"]["train"]
         start = pd.Timestamp(source_window["start"])
@@ -332,12 +416,29 @@ def _entry_window_scope(
         or not start < end <= pd.Timestamp(TRAIN_END)
     ):
         raise RuntimeError("LIFECYCLE_V2_FULL_TRAIN_SOURCE_WINDOW_INVALID")
-    return {
-        "run_id": scope["run_id"],
-        "dataset_run_id": f"{dataset_run_id}__FULL_TRAIN_{_canonical_sha256(scope)[:12]}",
-        "train_start": start.tz_convert("UTC").isoformat(),
-        "full_train": True,
-    }
+    windows["train"]["start_utc"] = start.tz_convert("UTC").isoformat()
+    return {**result, "windows": windows}
+
+
+def _require_scope_populations(
+    scope: Mapping[str, Any], selections: Mapping[str, Any],
+) -> None:
+    if scope["full_train"] and (
+        selections["train"]["selected_rows"] != selections["train"]["source_rows"]
+    ):
+        raise RuntimeError("LIFECYCLE_V2_FULL_TRAIN_POPULATION_INCOMPLETE")
+    if "chronological_learning_design" in scope:
+        for split in ("train", "val"):
+            observed = selections[split]
+            expected = scope["physical_populations"][split]
+            if (
+                observed["source_rows"] != expected["rows"]
+                or observed["selected_rows"] != expected["rows"]
+                or observed["selected_clock_sha256"] != expected["clock_sha256"]
+                or observed["first_source_row_index"] != 0
+                or observed["last_source_row_index"] != expected["rows"] - 1
+            ):
+                raise RuntimeError("LIFECYCLE_V2_CHRONOLOGICAL_POPULATION_MISMATCH")
 
 
 def build_pilot_readiness(
@@ -392,27 +493,22 @@ def build_pilot_readiness(
         is not False
     ):
         raise RuntimeError("PILOT_SOURCE_ENTRY_LINEAGE_INVALID")
-    scope = _entry_window_scope(recipe, train_manifest, dataset_run_id=dataset_run_id)
-    train_start = scope["train_start"]
+    scope = _entry_window_scope(
+        recipe, train_manifest, dataset_run_id=dataset_run_id,
+        val_manifest=val_manifest, source_bindings=source,
+    )
+    windows = scope["windows"]
     run_id = scope["run_id"]
     selections = {
-        "train": _window_selection(
-            Path(source["train_parquet"]["path"]),
-            start=train_start,
-            end=TRAIN_END,
-            label="TRAIN",
-        ),
-        "val": _window_selection(
-            Path(source["val_parquet"]["path"]),
-            start=VAL_START,
-            end=VAL_END,
-            label="VAL",
-        ),
+        split: _window_selection(
+            Path(source[f"{split}_parquet"]["path"]),
+            start=window["start_utc"],
+            end=window["end_utc_exclusive"],
+            label=split.upper(),
+        )
+        for split, window in windows.items()
     }
-    if scope["full_train"] and (
-        selections["train"]["selected_rows"] != selections["train"]["source_rows"]
-    ):
-        raise RuntimeError("LIFECYCLE_V2_FULL_TRAIN_POPULATION_INCOMPLETE")
+    _require_scope_populations(scope, selections)
     m1_source = _m1_binding(train_manifest, val_manifest)
     pilot_dataset_run_id = scope["dataset_run_id"]
     pilot_binding = {
@@ -422,13 +518,12 @@ def build_pilot_readiness(
         "source_recipe_sha256": source_recipe_sha256,
         "source_bindings": source,
         "m1_source_binding": m1_source,
-        "windows": {
-            "train": {"start_utc": train_start, "end_utc_exclusive": TRAIN_END},
-            "val": {"start_utc": VAL_START, "end_utc_exclusive": VAL_END},
-        },
+        "windows": windows,
         "selection_bindings": selections,
         "planned_epochs": PILOT_EPOCHS,
     }
+    if "chronological_learning_design" in scope:
+        pilot_binding["chronological_learning_design"] = scope["chronological_learning_design"]
     pilot_binding_sha256 = _canonical_sha256(pilot_binding)
     plan_context = {
         **pilot_binding,
@@ -533,10 +628,7 @@ def build_pilot_readiness(
         },
         "dataset_run_id": dataset_run_id,
         "pilot_dataset_run_id": pilot_dataset_run_id,
-        "windows": {
-            "train": {"start_utc": train_start, "end_utc_exclusive": TRAIN_END},
-            "val": {"start_utc": VAL_START, "end_utc_exclusive": VAL_END},
-        },
+        "windows": windows,
         "source_bindings": source,
         "m1_source_binding": m1_source,
         "selection_bindings": selections,

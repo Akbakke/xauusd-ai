@@ -82,24 +82,83 @@ Eksakte readiness-/signal-/split-/TEST-seal-stier og hasher finnes i
 sluttkontrollen og native_v38_preparation_20261001 i begge status-JSON-ene.
 Byggegodkjenningen er brukt og stengt; aldri relanser denne kjøringen.
 
+## Fryst læringsdesign og målte kompatibilitetsfeil
+
+configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json er en byte-identisk
+kopi av runtime LEARNING_DESIGN_001/DESIGN.json, SHA256
+5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864.
+Design og kontroll-ID-er skal ikke endres etter utforskning av kontrollutfall.
+
+Fysisk TRAIN er 01.06.2011–31.05.2025; senere fysisk VAL/kontroll er
+01.06.2025–30.06.2026. Kontrollens 256 rader er valgt med eksisterende
+deterministiske selector, seed 20260911/salt 1, fra samtlige 70 880 VAL-rader.
+De ligger i separate fysiske radkoordinater, ikke som ommerkede TRAIN-rader.
+Kun tidskolonnen ble lest ved frysingen. Kontroll er gjenbrukt utvikling.
+
+Budsjettet er én fersk modell, 256 optimizersteg, batch 16 og høyst 4096
+TRAIN-Entries, ingen full epoch. TRAIN256 fryses fra den faktiske planlagte
+TRAIN4096 etter kontroll av mål- og tilstandsstøtte før cutoff. Normalisering
+skal tilpasses hele den eksplisitt kvalifiserte fysiske TRAIN-populasjonen
+før sampling, aldri bare de 4096 radene eller fysisk VAL/TEST.
+
+Entry-målet er første kjørbare likvidasjonsverdi pluss
+reference_policy_state_values fra samme trace: 119/120 ganger gyldig HOLD
+Q_mu, med FLAT=0 og bevarte negative verdier. Historisk max(observert verdi,0)
+er ikke gjeldende target. Exit bruker samme kausale kostnader, referansepolicy
+og frosne grenseverdi; 120 observerte backup-steg er ingen maksimal holdetid.
+ONLINE og TARGET skal starte med samme aktuelle funksjon og vekter.
+
+Faktisk kilde og bundne v38-manifester avdekket:
+- Native full-TRAIN-eieren krever fortsatt 2021–2026. Den eksakte eksisterende
+  vakten ble eksekvert på det nye manifestet og avviste det.
+- Historisk prefix-sti krever samme TRAIN-fil også for kontroll. Andre gamle
+  eiere krever 5508 VAL-rader. Ny fysisk VAL har 70 880 rader.
+- Pilotens Entry-admission krever pretest_test_guard. V38 har i stedet en
+  ekte, completion-bundet TEST-forsegling med eksisterende metadata-validator.
+- M1-piloten forventer et eget pre-TEST-manifest med komplette quote-kolonner;
+  v38 binder native-pair M1-proveniens. Ingen konstruerte legacy-felt eller
+  påstått quote-kompletthet kan erstatte faktisk kvalifisering.
+- Historisk frozen-prefix-lærer fjerner ONLINEs parameterfrie slutt-normer.
+  Denne historiske funksjonen skal bevares for gamle forsøk, men ikke brukes
+  som fersk v38 TARGET når designet krever samme aktuelle funksjon.
+
+Første minste rettelse er implementert i eksisterende
+prepare_unified_exit_lifecycle_v2_pilot_v1._entry_window_scope:
+et eksplisitt hash-bundet design styrer begge periodene. Fysiske manifest- og
+parquet-bindinger, run-ID, deklarerte vinduer, radantall og klokkehash må stemme.
+Standard og historisk full-TRAIN-sti beholder opprinnelige endepunkter.
+Samme eier kontrollerte nå alle 652 552/70 880 ekte tidsstempler; 15 fokuserte
+syntetiske tester består, inkludert feil kilde/rolle, overlap, naiv klokke,
+endret radantall/klokke/hash og historisk oppførsel. Ingen prisutfall ble lest.
+
+Bevis under runtime LEARNING_DESIGN_001:
+- COMPATIBILITY_REVIEW.json: reprodusert opprinnelig avvisning og eksakte
+  CONTROL256-ID-er.
+- CALENDAR_ADMISSION_REVIEW.json: ekte kalender/populasjon består den nye
+  produksjonseieren. Ingen full pilot-admission eller native launch hevdes.
+- CODE_REVIEW.json: eksakt endret kode, 15 beståtte tester og syntakskontroll.
+
 ## Neste konkrete grense
 
-Bind fysisk TRAIN-normalisering, konkrete TRAIN-/kontrollrader, fersk
-initialtilstand og faktisk økonomisk måleregel før én avgrenset native måling.
-Eksisterende prefix-eier krever felles parent-datasett, senere kontroll og
-full tidsstøtte før cutoff for både targets og Exit-states. En tilfeldig
-tidlig radliste er ikke nok. Feature-/policyfit må også være før kontrollen.
-Gjenbruk eksisterende eiere og tidligere låst forsøksbudsjett; gamle
-normaliserings-, indeks-, metadata- og modellartefakter er ikke v38.
+Kvalifiser M1-kilden og koble inn eksisterende validator for den faktiske
+TEST-seal-hendelsen. Ikke ommerk native-pair-data som det gamle pre-TEST-formatet.
+Deretter må øvrige eksisterende eiere bruke samme bundne vinduer og separate
+fysiske koordinater: Entry-child, M1-views, summary-fit, normalisering,
+native indeks/trening/måling og frossen TARGET-funksjon. Call-site-sveip har
+funnet kalenderkrav også der; disse er dokumenterte ufullførte migreringer,
+ikke fjernet ved å lempe den første porten. Normer/indekser fra v37 kan ikke
+brukes med 254 v38-felt.
 
-Kildegjennomgangen bekrefter at native initial-/sluttmåling eksplisitt har
-economic_rollout=false. Porteføljeøkonomi med alle valgte handler, åpne
-posisjoner og kapital-/overlappskontroll må derfor bindes separat. AVWAP-vekt
-er prisoppdateringsaktivitet, ikke omsatt volum. Source review ligger i runtime
-SOURCE_REVIEW_20261001T153932Z.json. Ingen ny produksjonskodefeil ble bekreftet
-i dette avgrensede utsnittet; dette er ikke en full revisjon av all aktiv kode.
+Initial/final TRAIN og senere kontroll må måles mot samme-TRAIN-konstant,
+med sentrert feil, tilstandsavhengig variasjon og retnings-/handlingsfordeling.
+For hver forhåndsdeklarert Entry/Exit-side må forbedringen også bestå den
+låste parvise uke-bootstrapen mot både initialisering og TRAIN-konstant.
+Manglende/inkonklusiv evidens åpner ingen utvidelse eller retuning.
 
-Normalisering og native trening er fortsatt stengt inntil konkret scope er
-bundet. Teknisk input-PASS er ikke læring eller lønnsomhet. Makro, senere
-uavhengig generalisering, train/serve-paritet og offline driftskvalifisering
-er fortsatt separate ufullførte delmål.
+Native initial-/sluttmåling har economic_rollout=false. Kostnadsjustert
+porteføljeøkonomi med alle valgte handler, åpne posisjoner og én posisjons
+kapasitet må bindes separat mot FLAT og forhåndsvalgt samme-risiko LONG.
+AVWAP-vekt er prisoppdateringsaktivitet, ikke omsatt volum.
+Normalisering og native trening er fortsatt stengt til faktiske bindinger
+er ferdige. Senere uavhengig generalisering, train/serve-paritet, full B og
+offline driftskvalifisering er fortsatt ufullført. Ingen edge er dokumentert.

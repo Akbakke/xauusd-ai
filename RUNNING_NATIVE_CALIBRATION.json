@@ -2025,7 +2025,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-10-01T16:41:52.553543+00:00",
+  "latest_observation_utc": "2026-10-01T17:07:28.132461+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2038,7 +2038,7 @@
     "slot": 0,
     "state_sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
   },
-  "latest_readonly_audit_utc": "2026-10-01T16:41:52.553543+00:00",
+  "latest_readonly_audit_utc": "2026-10-01T17:07:28.132461+00:00",
   "learning_gate": {
     "broad_entry_fit_improved": false,
     "causal_entry_fixed256_verdict": {
@@ -2444,6 +2444,18 @@
     "training_launch_authority": false
   },
   "native_v38_preparation_20261001": {
+    "calendar_admission_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/CALENDAR_ADMISSION_REVIEW.json",
+      "sha256": "ce50e5c41f1033c5d27c9e1d633cb6b9cb6deda31fafb8f6074cbae467077709"
+    },
+    "calendar_code_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/CODE_REVIEW.json",
+      "sha256": "4b04f1a22aa0284f5627dd762512899b1abd3896c0fb7e17de4b94f30efc40f9"
+    },
+    "compatibility_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/COMPATIBILITY_REVIEW.json",
+      "sha256": "b5c7f2d24053491574acd6433f910b5ffc051b7be210bf9edc4b293f18d27e31"
+    },
     "completed_dataset_terminal": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_20261001T095046965255Z.json",
       "sha256": "2ce054b1553d64c06f4011d987d3cb41f2bdbb19ccaa3dd5ceae5ae9ce3b55eb"
@@ -2465,6 +2477,15 @@
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN",
     "input_build_authorization_consumed": true,
     "input_build_authorized": false,
+    "learning_design": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/DESIGN.json",
+      "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
+    },
+    "learning_design_repository_copy": {
+      "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
+      "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
+    },
+    "learning_design_status": "FROZEN_PHYSICAL_CALENDAR_SOURCE_MIGRATION_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
     "native_training_enabled": false,
     "new_dataset_complete": true,
@@ -2494,7 +2515,7 @@
     "train_rows": 652552,
     "training_enabled": false
   },
-  "next_action": "Reuse the completed and independently reviewed v38 inputs; never relaunch their build or refit completed macro research. Bind one causal native v38 learning design, exact TRAIN/control row clocks, prefix-safe normalization/labels, native state/index/economics artifacts and a fresh initial baseline through existing owners before authorizing the bounded campaign. Current prefix measurement has economic_rollout=false, so observed portfolio economics remains a separate gate. Native training and normalization fit remain disabled until their concrete bindings are approved by the existing scope; TEST disclosure, live/paper and spending stay closed.",
+  "next_action": "Reuse the completed v38 inputs and frozen LEARNING_DESIGN_001; do not relaunch inputs or macro research. The admitted calendar owner now validates the exact physical TRAIN2011-06 to2025-06 and later VAL2025-06 to2026-07 clocks. First qualify native-pair M1 provenance and quote completeness and adopt the existing opaque TEST seal validator; do not relabel legacy source fields. Then propagate the bound windows and separate physical coordinates through existing state/index/normalization/measurement owners and bind a fresh current-function teacher. Normalization fitting and native training remain disabled until the full concrete bindings are complete. The bounded learner alone has economic_rollout=false; portfolio economics remains separate. TEST, live/paper and spending remain closed.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2707,7 +2728,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_NATIVE_V38_INPUTS_COMPLETE_LEARNING_DESIGN_PENDING",
+  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_NATIVE_V38_DESIGN_FROZEN_SOURCE_MIGRATION_ACTIVE",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,

@@ -1,0 +1,255 @@
+{
+  "budget": {
+    "cpu_workers": 8,
+    "epochs_completed": 0,
+    "hardware_limits": "Existing current capped/native guards; no replacement of their limits.",
+    "later_control_entries": 256,
+    "max_val_window_seconds": 10800,
+    "maximum_trained_entry_rows": 4096,
+    "native_campaign_only": true,
+    "native_val_batch": 256,
+    "planned_optimizer_steps": 256,
+    "precision": "FP32_TF32_OFF",
+    "repeat_or_automatic_extension": false,
+    "train_batch_size": 16,
+    "train_only_probe_entries": 256
+  },
+  "calendar": {
+    "bindings": {
+      "CONTROL256_PARENT_ROWS": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/CONTROL256_PARENT_ROWS.npy",
+        "sha256": "a33a97c612c3325cb9dbd44c1d8a3cafd40150523af32f345d63bdfb1ab8fa7f"
+      },
+      "CONTROL_CALENDAR_PARENT_ROWS": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/CONTROL_CALENDAR_PARENT_ROWS.npy",
+        "sha256": "516076eda48f23b23873ac2785e590692e3c0a004d79c933dc98db344dc82b6f"
+      },
+      "TRAIN_CALENDAR_PARENT_ROWS": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/TRAIN_CALENDAR_PARENT_ROWS.npy",
+        "sha256": "a87510bbd60c7133c8a71a6f980be22483c072db334554ec46955cb0f1487d09"
+      }
+    },
+    "control256": {
+      "by_month": {
+        "2025-06": 21,
+        "2025-07": 15,
+        "2025-08": 24,
+        "2025-09": 15,
+        "2025-10": 21,
+        "2025-11": 22,
+        "2025-12": 19,
+        "2026-01": 17,
+        "2026-02": 21,
+        "2026-03": 22,
+        "2026-04": 14,
+        "2026-05": 29,
+        "2026-06": 16
+      },
+      "first_utc": "2025-06-01T22:50:00+00:00",
+      "last_utc": "2026-06-29T14:50:00+00:00",
+      "rows": 256
+    },
+    "development_control_entry_end_exclusive": "2026-07-01T00:00:00+00:00",
+    "physical_coordinate_namespaces_are_separate": true,
+    "physical_source_splits": {
+      "control": "val",
+      "train": "train"
+    },
+    "reason": "Use the already frozen v38 physical TRAIN and later development VAL boundaries; no date or cohort choice uses outcome values. Control remains reused development. No VAL row is relabeled TRAIN.",
+    "source_bindings": {
+      "train": {
+        "clock_sha256": "45d1eb05b338a20317d4631c62247fb1de2f89df65ddc6d199386d2ef5105e55",
+        "declared_window": {
+          "end": "2025-05-31 23:59:59+00:00",
+          "start": "2011-06-01 00:00:00+00:00"
+        },
+        "first_entry_utc": "2011-06-01T00:00:00+00:00",
+        "last_entry_utc": "2025-05-30T12:55:00+00:00",
+        "manifest": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json",
+          "sha256": "1880544657f15b01895db5ad4c1080af605e070aaf757661fe0cfbbd28a34cdf"
+        },
+        "parquet": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.parquet",
+          "sha256": "9457938800191eb53c9de34eedce04e9029d392e43bb49d5b26ddfa84023593a"
+        },
+        "physical_rows": 652552
+      },
+      "val": {
+        "clock_sha256": "becd5ec706aed32434062196fa8e8d58491e1e8f961c29b53ef51a1e2e5e54e2",
+        "declared_window": {
+          "end": "2026-06-30 23:59:59+00:00",
+          "start": "2025-06-01 00:00:00+00:00"
+        },
+        "first_entry_utc": "2025-06-01T22:00:00+00:00",
+        "last_entry_utc": "2026-06-30T14:55:00+00:00",
+        "manifest": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json",
+          "sha256": "b49babe5584f2dbc740af4d1a137b47e9909c343d3beb0da0706ac945e1c7797"
+        },
+        "parquet": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.parquet",
+          "sha256": "2e2f8fb414044cad520703806774d5e0d6c612a8c4d046e4e68157f994bbca8d"
+        },
+        "physical_rows": 70880
+      }
+    },
+    "train_control_cutoff": "2025-06-01T00:00:00+00:00",
+    "train_entry_start_inclusive": "2011-06-01T00:00:00+00:00"
+  },
+  "created_utc": "2026-10-01T16:50:14.338060+00:00",
+  "decision": {
+    "economic_required": "Separate cost-adjusted all-selected and one-position portfolio evidence beyond relevant same-risk baselines with uncertainty and open-position accounting.",
+    "failure": "Preserve results and reject expansion; no same-control retuning, extra steps, thresholds or automatic restart.",
+    "later_required": "Every predeclared Entry/Exit-by-side aggregate paired MSE contrast versus initial and TRAIN constant has negative upper95percent week-block bound; report monthly conflicts and action collapse. Missing or ambiguous evidence is not GO.",
+    "success_limit": "Bounded v38 learning evidence only. Independent later generalization, train/serve parity and offline operational qualification remain required.",
+    "training_required": "Entry and Exit, both directions, improve over initial and same-TRAIN constants with centered error and state-dependent predictions; pure mean shift or all-FLAT/all-HOLD does not pass."
+  },
+  "hypothesis": "One bounded fresh native v38 shared Entry/Exit fit learns state-dependent causal reference value on the declared TRAIN population and transfers to the fixed later development control beyond initialization and same-TRAIN constants. This does not isolate the marginal effect of the 12 added fields.",
+  "implementation_blockers": [
+    {
+      "id": "PHYSICAL_SPLIT_BINDING",
+      "minimum_direction": "Extend the existing explicit fresh-design path to bind and validate role-specific physical sources and coordinate mappings; preserve legacy path.",
+      "observed": "Fresh prefix path requires entry_val files equal entry_train and copies its TRAIN dataset for CONTROL; v38 declares distinct physical TRAIN and VAL.",
+      "owner": "gx1/scripts/run_unified_exit_random_access_full_train_v1.py"
+    },
+    {
+      "id": "LEGACY_WINDOW_CONSTANTS",
+      "minimum_direction": "Require exact immutable admitted windows and populations in the new scope, not guessed dates or unbound dynamic lengths; keep historical named scopes unchanged.",
+      "observed": "Unconditional2021-06 to2026-05 TRAIN guard and legacy5508 VAL constants reject new windows/population; matching constants also occur in pilot M1/summary/normalization/VAL owners.",
+      "owner": "gx1/scripts/run_unified_exit_random_access_full_train_v1.py"
+    },
+    {
+      "id": "HISTORICAL_TEACHER_FUNCTION",
+      "minimum_direction": "Explicit new-design function binding through existing teacher copy and native checkpoint owners; no historical artifact rewrite.",
+      "observed": "Historical prefix teacher removes current parameter-free encoder/fuse norms; new fresh experiment requires same declared current function.",
+      "owner": "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
+    },
+    {
+      "id": "NATIVE_COMPONENT_ARTIFACTS",
+      "minimum_direction": "Reuse existing owners, preserve whole feature set, close observed compatibility gaps and verify each boundary before one native launch.",
+      "observed": "Fresh v38 no-cap index/state/normalization/target/economics/model metadata and native recipe are not yet built or admitted."
+    }
+  ],
+  "initialization": {
+    "ema": "Fresh copy and existing horizon rule from actual eligible TRAIN population.",
+    "mode": "fresh_existing_model_constructor_no_checkpoint_weights",
+    "online": "Fresh current v38 constructor with all shared modules; no inherited weights or optimizer.",
+    "optimizer": "Existing AdamW groups: lr0.0001,weight_decay0.0001,batch16,grad_accum1; existing scheduler and trainable task weighting.",
+    "seed": 20260911,
+    "selection_variant": "ONLINE at exactly256 optimizer steps; no best-checkpoint, EMA selection or automatic extension.",
+    "target": "Frozen copy of the same current initial ONLINE function and weights. Do not strip current parameter-free norms for historical compatibility. Bind function identity as well as state hashes."
+  },
+  "inputs": {
+    "completion_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COMPLETION_REVIEW.json",
+      "sha256": "d8f6c847b6978846151de2ee7647594f06d07cb188469743f9c25cdb775a1139"
+    },
+    "post_rebuild_readiness": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/post_rebuild_readiness_20261001/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20261001T162209088974Z.json",
+      "sha256": "b4f743074e7d2d74dd3a9e3917bffb428328ab6f8eb4ea6709072331db2468b3"
+    },
+    "signal_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20261001T104727301922Z.json",
+      "sha256": "a4a8b636e0e4f5e5cbcbcad4e11d80a065227782acb72e1d711e73a3200b0ed2"
+    }
+  },
+  "measurements": {
+    "economic": "After learning gate, separately bind native policy evaluation and portfolio accounting, all selected trades, open executable marks, actual costs and one-position capacity; compare FLAT and preselected same-risk always-LONG. No economic claim from teacher MSE or from only closed winners.",
+    "later_control": "Same paired outputs and TRAIN constants on locked physical VAL CONTROL256; report each calendar month and week without choosing a favorable subset.",
+    "training": "Paired fresh-initial/fixed-final ONLINE on TRAIN256 with identical frozen targets/masks. Entry/Exit LONG/SHORT MSE, centered MSE, target/prediction variance and action distributions. Baseline constants fitted from the same TRAIN only.",
+    "uncertainty": "Existing fixed paired calendar-week block bootstrap:5000 draws,seed20260911. Descriptive reused-development uncertainty, not pristine OOS."
+  },
+  "read_boundary": {
+    "data_file_full_hashes_reused_from_verified_readiness": true,
+    "fits": 0,
+    "model_forwards": 0,
+    "parquet_columns_opened": [
+      "time"
+    ],
+    "price_or_outcome_columns_read": false,
+    "test_dataset_or_manifest_accessed": false
+  },
+  "schema_version": "gx1_frozen_chronological_learning_design_v1",
+  "scope": {
+    "actual_model_forwards_authorized": false,
+    "all_existing_timeframes": true,
+    "existing_control_periods_are_reused_development": true,
+    "families": 8,
+    "features": 254,
+    "native_launch_authorized": false,
+    "no_fixed_loss_limit": true,
+    "no_holding_time_limit": true,
+    "normalization_fit_authorized": false,
+    "one_experiment": true,
+    "optimizer_steps": 0,
+    "same_architecture": true,
+    "test_sealed": true
+  },
+  "selection": {
+    "control": "existing deterministic_uniform_subsample_indices over the entire time-sorted physical VAL population",
+    "control_entries": 256,
+    "missing_control_targets": "Never replace control IDs after inspecting outcomes. Retain masks/censoring, report incomplete and fail the learning gate.",
+    "seed": 20260911,
+    "split_salt": 1,
+    "train": "existing native epoch0 order from the entire eligible physical TRAIN population before taking the first4096; no outcome ranking",
+    "training_probe": "Freeze256 from the actual planned4096 with the existing selector salt0 after target-clock eligibility. No optimizer before this is bound."
+  },
+  "source_commit": "a036a73fcb651c0cc1d67b38832bd51525f2ba8a",
+  "source_owners": {
+    "gx1/contracts/entry_model_native_training_run_lineage_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_training_run_lineage_v1.py",
+      "sha256": "cd16ecc3dcd1e401762235ac4edc7f749c8bc473d5f46b4446887b930aa45fb7"
+    },
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+      "sha256": "62b66ad330705a0842b6bbc4925c2b6f5e0d0bf809242bf285cae56318b318d0"
+    },
+    "gx1/contracts/unified_exit_random_access_training_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_training_v1.py",
+      "sha256": "780242c29eada15017a2bdeaf85ff1395d04dbf192f572f4cd46757a77740bab"
+    },
+    "gx1/contracts/unified_exit_reference_policy_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_reference_policy_v1.py",
+      "sha256": "f6c23e8b19b3d9c8a8277b9d7568b5c608f2202433b7a2a29012c21c31edeb35"
+    },
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+      "sha256": "43b0e3b9b4a4b35defced470643641858de0495133ec07bab3ed7c179a729ca5"
+    },
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+      "sha256": "7ef27ee0b678bffc7f837eb5673504cf17c8ebc6c8ca6e05572b85e0f7db3f9f"
+    }
+  },
+  "status": "DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE",
+  "targets": {
+    "auxiliary_heads": "All existing genuine objectives retained with exact TRAIN-owned policy and complete target-support bindings. No new loss-weight or threshold search.",
+    "economics_authority": "Existing native net-economics and cost owners must be bound before target generation; report financing proxy and capital hurdle separately. No stale bundle or relabeled policy receipt.",
+    "entry": "Executable first-state liquidation value plus reference_policy_state_values from the same anchor trace, namely119/120 times valid HOLD Q_mu; FLAT=0. Never max a realized reference outcome with zero.",
+    "entry_exit_consistency": "Same trace, clocks, net cost authority, elapsed-wall-clock gamma and frozen teacher. Use existing target owners.",
+    "exit": "Liquidation-relative Q_mu HOLD from existing analytical reference trace, actual net economic rewards and frozen boundary teacher; EXIT_NOW=0. Preserve signed values, masks and decomposition.",
+    "limitations": "Reference value under one declared stationary continuation policy, not optimal Q, learned-policy profit or proven edge.",
+    "reference_policy": {
+      "hold_probability_denominator": 120,
+      "hold_probability_numerator": 119,
+      "maximum_observed_backup_steps": 120,
+      "observation_boundary_policy": "preserve_valid_teacher_bootstrap",
+      "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
+      "schema_version": "gx1_exit_reference_policy_v1",
+      "selection": "analytical_expectation_no_random_action_draw",
+      "terminal_policy": "exit_if_economic_terminal",
+      "value_coordinates": "advantage_over_executable_liquidation_bps",
+      "value_semantics": "Q_mu_stationary_reference_after_first_action"
+    },
+    "reference_policy_search": false
+  },
+  "temporal_contract": {
+    "control": "CONTROL256 targets and state boundaries may use only declared physical VAL support ending before2026-07-01. No updates to teacher, normalization, thresholds or model.",
+    "feature_fits": "Existing registry and squeeze fit windows end2013; all upstream fitted feature contracts must end before this control cutoff.",
+    "input_context": "Only authoritative closed bars available at each decision. Earlier context may be read, never future decision inputs.",
+    "normalization": "Fit once on the entire explicitly eligible physical TRAIN population before optimizer sampling, with existing deduplicated base/context/MTF/lifetime owners; zero physical VAL/TEST fit rows. Do not fit on only the4096 sampled Entries.",
+    "supervision": "Every TRAIN auxiliary, observed reference reward and teacher-input boundary must be at or before TRAIN/control cutoff. Exclude crossing TRAIN supports before sampling without modifying physical successor counts or inventing terminals.",
+    "trading": "These boundaries limit information for learning and measurement; they are not maximum holding times or forced liquidation rules."
+  }
+}
