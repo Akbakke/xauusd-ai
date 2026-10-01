@@ -174,3 +174,41 @@ def test_first_state_bridge_rejects_test_split() -> None:
             m1_bid_open=[100.0],
             m1_ask_open=[100.1],
         )
+
+
+@pytest.mark.parametrize("limits,expected_sha", [
+    (None, "4f8fdd10d89bfffe11a629a5414994a6b7ff1ea87f36937025bcb43e2b6e0ff1"),
+    ([1, 3, 20, 100], "225c07cdcb69f888e85a3ec780dce1a75b353d4d562d474a2c39be56194c692f"),
+])
+def test_streaming_authority_preserves_prechange_contract(limits, expected_sha):
+    # Captured from the tuple-based owner, including stream order and all fields.
+    value = build_physical_summary_sample_authority(
+        successor_transition_count_by_entry=[1, 5, 70, 300_000],
+        source_lineage_sha256="b" * 64,
+        fit_state_stop_exclusive_by_entry=limits,
+    )
+    assert value["authority_sha256"] == expected_sha
+
+
+def test_authority_does_not_retain_the_sample_population(monkeypatch):
+    import weakref
+    from gx1.contracts import unified_exit_pilot_normalization_v1 as owner
+
+    class Sample(dict):
+        pass
+
+    previous = []
+    def samples(**kwargs):
+        for _ in range(100):
+            # A for-loop may still hold its last sample when it asks for the next.
+            assert sum(ref() is not None for ref in previous) <= 1
+            sample = Sample(sample_sha256="a" * 64)
+            previous.append(weakref.ref(sample))
+            yield sample
+            del sample
+
+    monkeypatch.setattr(owner, "iter_physical_summary_samples", samples)
+    value = owner.build_physical_summary_sample_authority(
+        successor_transition_count_by_entry=[100], source_lineage_sha256="b" * 64)
+    assert value["sample_count"] == 100
+    assert not any(ref() is not None for ref in previous)

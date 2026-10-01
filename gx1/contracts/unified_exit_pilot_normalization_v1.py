@@ -166,17 +166,17 @@ def build_physical_summary_sample_authority(
     fit_state_stop_exclusive_by_entry: Sequence[int] | None = None,
 ) -> dict[str, Any]:
     counts = tuple(successor_transition_count_by_entry)
-    samples = tuple(
-        iter_physical_summary_samples(
-            successor_transition_count_by_entry=counts,
-            source_lineage_sha256=source_lineage_sha256,
-            fit_state_stop_exclusive_by_entry=fit_state_stop_exclusive_by_entry,
-        )
-    )
     digest = hashlib.sha256()
-    for sample in samples:
+    sample_count = 0
+    # Retain only the current sample; the full TRAIN population has millions.
+    for sample in iter_physical_summary_samples(
+        successor_transition_count_by_entry=counts,
+        source_lineage_sha256=source_lineage_sha256,
+        fit_state_stop_exclusive_by_entry=fit_state_stop_exclusive_by_entry,
+    ):
         digest.update(sample["sample_sha256"].encode("ascii"))
         digest.update(b"\n")
+        sample_count += 1
     registry = lifetime_summary_registry()
     value = {
         "schema_version": SUMMARY_SAMPLE_AUTHORITY_SCHEMA_VERSION,
@@ -189,9 +189,9 @@ def build_physical_summary_sample_authority(
             np.asarray(counts, dtype="<i8").tobytes()
         ).hexdigest(),
         "selection": "one_hash_selected_state_per_entry_per_eligible_duration_bucket_v1",
-        "sample_count": len(samples),
+        "sample_count": sample_count,
         "side_rows_per_sample": 2,
-        "fit_row_count": len(samples) * 2,
+        "fit_row_count": sample_count * 2,
         "sample_stream_sha256": digest.hexdigest(),
         "lifetime_summary_registry_sha256": registry["registry_sha256"],
         "field_order_sha256": registry["field_order_sha256"],

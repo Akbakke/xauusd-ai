@@ -138,3 +138,38 @@ def test_prefix_scope_rejects_before_any_file_read(split, rows, cutoff):
         owner.materialize(split=split, child_admission_path=Path('/unused'), m1_path=Path('/unused'),
             m1_manifest_path=Path('/unused'), closure_path=Path('/unused'), output_dir=Path('/unused'),
             publish=False, fit_entry_rows_path=rows, fit_cutoff_time_ns=cutoff)
+
+
+def test_summary_publication_does_not_replace_late_empty_directory(tmp_path, monkeypatch):
+    from gx1.contracts.immutable_event_authority_v1 import ImmutableEventAuthorityError
+    kwargs = _fixture(tmp_path / "race")
+    original = owner._publish_file_noreplace
+    collision = {}
+
+    def collide(source, destination):
+        destination.mkdir()
+        collision["inode"] = destination.stat().st_ino
+        return original(source, destination)
+
+    monkeypatch.setattr(owner, "_publish_file_noreplace", collide)
+    with pytest.raises(ImmutableEventAuthorityError, match="already exists"):
+        owner.materialize(**kwargs)
+    output = kwargs["output_dir"]
+    assert output.stat().st_ino == collision["inode"]
+    assert list(output.iterdir()) == []
+    assert list(output.parent.glob(f".{output.name}.staging.*")) == []
+
+
+def test_summary_publication_rejects_corrupted_staged_array(tmp_path, monkeypatch):
+    kwargs = _fixture(tmp_path / "corrupt")
+    original = owner.np.save
+
+    def corrupt(path, values, **options):
+        values = values.copy()
+        values.flat[0] += 1
+        original(path, values, **options)
+
+    monkeypatch.setattr(owner.np, "save", corrupt)
+    with pytest.raises(RuntimeError, match="PUBLICATION_ARRAY_INVALID"):
+        owner.materialize(**kwargs)
+    assert not kwargs["output_dir"].exists()

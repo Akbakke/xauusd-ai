@@ -574,3 +574,35 @@ SHA256: 846a3042232dbf1a01c04ffbafe980243303cee131cf50314f3ab87f320ad033.
 Nøkterne grenser: dette er inputstatistikk og konsistens, ikke modellfit,
 læringsmåling, økonomi eller train/serve-paritet. Lifetime-normalisering og
 samlet førstetilstands-/indeksbinding gjenstår. Full B forblir ufullført.
+
+## Lifetime-normalisering — bundet 02.10.2026
+
+Lifetime-eieren er rettet: sample-autoriteten strømmer nå uten å beholde
+4 026 919 sample-objekter. Hashrekkefølge og utvalg er uendret. Publisering
+kontrollerer skrevet manifest/arrays, strict-loader normaliseringen og bruker
+fsync + atomisk no-replace. 29 fokuserte tester består, inkludert uendret
+kontrakthash, begrenset sample-retensjon, korrupt staging og katalogkollisjon.
+LIFETIME_SUMMARY_FIT_001 er bundet til én full-TRAIN-fit og VAL-telling uten
+VAL-fit, under eksisterende 10 GiB/512 MiB producer-cap. Kilden fryses under
+kjøring. Basefitten gjenbrukes; native trening, broker og TEST er stengt.
+No-cap-kostnadsbindingen dekker foreløpig ikke den nye historiske perioden.
+Indekser, læringsmåling, økonomi og edge er fortsatt ubevist.
+
+Kilde-/geometribevis: fire eksisterende sparse-tabeller krever 6 653 317 760 bytes;
+fitmatrisen har 8 053 838 × 7 float64 = 451 014 928 bytes. Dette er arraystørrelser,
+ikke målt minnetopp. Ingen populasjon, feature eller beregning er redusert.
+TRAIN: 652 552 Entry-par, 4 026 919 samples, begge sider per sample.
+VAL: 70 880 Entry-par; bare livsløpsantall og sample-autoritet, null fitrader.
+Eksakte count-arrays sammenlignes med fullført CLOSURE_STATE_SUPPORT_001.
+
+plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LIFETIME_SUMMARY_FIT_001/PLAN.json
+SHA256: ea47bf63c769fa8d16c7c0d0d1cd84b47c91379623a8965a0f25c94dab47c11f.
+
+operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LIFETIME_SUMMARY_FIT_001/OPERATOR.py
+SHA256: 6ba93350ba56f05d0dc14d379a16960cfef50721e7e245db1b6d5b48788593aa.
+
+Den eksisterende prospective kostnadspolicyen dekker 01.06.2021–01.07.2026,
+mens TRAIN nå starter 01.06.2011. Kostnadene er prospektive forskningsantakelser,
+ikke verifisert historisk kostnadsfasit. Dens krav om broker-revalidering
+åpner ikke broker under gjeldende prosjektregler. Dette er en separat
+uavklart binding; lifetime-statistikk avhenger ikke av disse kostnadene.

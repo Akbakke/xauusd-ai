@@ -17,6 +17,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import require_pilot_child_calendar
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     m1_clock_sha256,
@@ -27,6 +28,7 @@ from gx1.contracts.unified_exit_pilot_normalization_v1 import (
     canonical_sha256,
     fit_lifetime_summary_normalization,
     iter_physical_summary_samples,
+    require_lifetime_summary_normalization,
 )
 
 
@@ -157,7 +159,7 @@ def materialize(
     entry_times = pd.DatetimeIndex(
         pq.read_table(child["parquet_path"], columns=["time"])["time"].to_pandas()
     ).as_unit("ns")
-    # The admitted child determines TRAIN scope, including the full five-year view.
+    # The admitted child determines the complete physical TRAIN scope.
     # Verify its complete physical row population instead of a pilot-size constant.
     if (len(entry_times) != child["rows"] or entry_times.hasnans
             or not entry_times.is_unique or not entry_times.is_monotonic_increasing):
@@ -287,7 +289,32 @@ def materialize(
         if summary_values is not None:
             np.save(staging / "lifetime_summary_fit_values.npy", summary_values, allow_pickle=False)
         (staging / "manifest.json").write_text(json.dumps(manifest, sort_keys=True, indent=2, allow_nan=False) + "\n")
-        os.rename(staging, output_dir)
+        written = _json(staging / "manifest.json")
+        if written != manifest:
+            raise RuntimeError("PILOT_SUMMARY_PUBLICATION_MANIFEST_INVALID")
+        if normalization is not None:
+            require_lifetime_summary_normalization(
+                written["lifetime_summary_normalization"],
+                expected_sample_authority_sha256=authority["authority_sha256"],
+            )
+        arrays_to_verify = {"successor_transition_counts.npy": counts}
+        if fit_limits is not None:
+            arrays_to_verify["fit_state_stop_exclusive_by_entry.npy"] = np.asarray(fit_limits, dtype="<i8")
+        if summary_values is not None:
+            arrays_to_verify["lifetime_summary_fit_values.npy"] = summary_values
+        for name, expected in arrays_to_verify.items():
+            written_array = np.load(staging / name, mmap_mode="r", allow_pickle=False)
+            if (written_array.dtype != expected.dtype
+                    or written_array.shape != expected.shape
+                    or not np.array_equal(written_array, expected)):
+                raise RuntimeError("PILOT_SUMMARY_PUBLICATION_ARRAY_INVALID")
+            del written_array
+        for path in staging.iterdir():
+            with path.open("rb") as handle:
+                os.fsync(handle.fileno())
+        _fsync_directory(staging)
+        _publish_file_noreplace(staging, output_dir)
+        _fsync_directory(output_dir.parent)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise

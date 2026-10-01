@@ -2259,8 +2259,28 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FULL_TRAIN_BASE_NORMALIZATION_COMPLETE_LIFETIME_FINAL_BINDINGS_INDEX_TARGETS_REQUIRED_NO_LAUNCH",
+    "learning_design_status": "FULL_TRAIN_LIFETIME_FIT_BOUND_FINAL_BINDINGS_INDEX_TARGETS_REQUIRED_NO_NATIVE_LAUNCH",
     "learning_proven": false,
+    "lifetime_summary_fit": {
+      "authorization_consumed": false,
+      "base_refit_authorized": false,
+      "focused_tests_passed": 29,
+      "model_forwards": 0,
+      "native_training_enabled": false,
+      "normalization_fit_authorized": true,
+      "normalization_fit_scope": "whole physical TRAIN lifetime summaries only; VAL counts without fitting",
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LIFETIME_SUMMARY_FIT_001/OPERATOR.py",
+        "sha256": "6ba93350ba56f05d0dc14d379a16960cfef50721e7e245db1b6d5b48788593aa"
+      },
+      "optimizer_steps": 0,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LIFETIME_SUMMARY_FIT_001/PLAN.json",
+        "sha256": "ea47bf63c769fa8d16c7c0d0d1cd84b47c91379623a8965a0f25c94dab47c11f"
+      },
+      "source_frozen_while_running": true,
+      "status": "BOUND_WHOLE_TRAIN_LIFETIME_FIT_AND_VAL_COUNTS_PENDING"
+    },
     "m1_feature_base": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
       "sha256": "fad9b4997b8fe3d7d228b1c11cd33747f226423affbf3dbca7585b06f0da7636"
@@ -2350,8 +2370,8 @@
     },
     "native_training_enabled": false,
     "new_dataset_complete": true,
-    "normalization_fit_authorized": false,
-    "normalization_fit_scope": "Completed base fit authorization consumed; no refit or lifetime-summary fit bound yet",
+    "normalization_fit_authorized": true,
+    "normalization_fit_scope": "whole physical TRAIN lifetime summaries only; VAL counts without fitting",
     "normalization_population": {
       "artifacts": {
         "CHILD_NORMALIZATION_VIEW.json": {
@@ -2480,7 +2500,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse completed M1 parity, qualified complete M1 source, frozen learning design/control IDs and preparation recipe. Entry adoption and child admission are complete and reuse all 21,160,180,085 original Entry parquet bytes without copying. Physical M1 views are published: TRAIN 4,884,638 rows, control 382,744 rows; all 652,552/70,880 Entry rows have exact first M1 states and every view market value matches its parent slice. 68 focused tests passed; real normalization population admission accepts frozen physical counts and rejects old 65,295/5,508 counts. No normalization was fitted. Use the bound child_coordinate_preparation_result, entry/child/M1 bindings and new preparation_readiness; do not rerun these producers. Next qualify closure/unknown gaps, complete state support and M1/MTF feature coverage on the new clocks, then bind normalization populations, no-cap indexes, separate TRAIN/control coordinates, native targets and same-current-function TARGET. Old base28 row positions and old five-year/native prefix assumptions cannot be reused. Economic readiness and later portfolio/generalization/parity gates remain incomplete. Derived-M5 production provenance remains unfinished. Training, normalization fitting, TEST, live/paper and spending remain closed; full B and macro promotion remain separate unfinished goals.",
+  "next_action": "Execute the single bound LIFETIME_SUMMARY_FIT_001 preprocessing run on clean committed source. Preserve source while it runs; require terminal, strict normalization load and exact agreement with saved TRAIN/VAL geometry. Reuse completed base normalization without refit. No-cap cost coverage, final composite/first-state bindings and explicit-path random-access indexes remain required before native launch. Native training, TEST, broker, live/paper and spending stay closed; edge remains unproven.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-01T20:30:59.489150+00:00",
   "outer_guard_seconds": 13800,

@@ -1,5 +1,16 @@
 # GX1 arbeidsmål — oppdatert 01.10.2026
 
+Lifetime-eieren er rettet: sample-autoriteten strømmer nå uten å beholde
+4 026 919 sample-objekter. Hashrekkefølge og utvalg er uendret. Publisering
+kontrollerer skrevet manifest/arrays, strict-loader normaliseringen og bruker
+fsync + atomisk no-replace. 29 fokuserte tester består, inkludert uendret
+kontrakthash, begrenset sample-retensjon, korrupt staging og katalogkollisjon.
+LIFETIME_SUMMARY_FIT_001 er bundet til én full-TRAIN-fit og VAL-telling uten
+VAL-fit, under eksisterende 10 GiB/512 MiB producer-cap. Kilden fryses under
+kjøring. Basefitten gjenbrukes; native trening, broker og TEST er stengt.
+No-cap-kostnadsbindingen dekker foreløpig ikke den nye historiske perioden.
+Indekser, læringsmåling, økonomi og edge er fortsatt ubevist.
+
 Normaliseringskoden er nå bundet til de faktiske full-TRAIN-artefaktene før
 statistikkfit. Feil vitne, byttede filer, feil MTF-sti og endrede bytes avvises.
 Den eksisterende diskbaserte M1-innleseren erstatter store RAM-kopier;
