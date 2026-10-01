@@ -1,6 +1,6 @@
 # GX1 arbeidsmål — oppdatert 01.10.2026
 
-## Native v38 — M1-klokker kontrollert, featurebinding og læring gjenstår
+## Native v38 — komplett M1-featureflate kontrollert, læring gjenstår
 
 Inputbygg og etterkontroll er ferdige; ikke relanser dem. Læringsdesignet er
 nå fryst med fysisk TRAIN 01.06.2011–31.05.2025, senere utviklingskontroll
@@ -38,15 +38,23 @@ kontrollpunkter har minst 339 observerte etterfølgende overganger; dette er
 klokkestøtte, ikke mål-, feature- eller læringsbevis.
 En gjenværende gammel TRAIN-sluttdato i normaliseringspopulasjonen er rettet,
 og publisering av pauseartefakter overskriver aldri eksisterende filer/kataloger.
-13 fokuserte tester består. Eksisterende M1-featuremanifest peker fortsatt på
-gammel filtrert base28; bindingen matcher ikke komplett M1. Neste steg er å
-bygge bare M1-featureflaten mot komplett før-TEST-klokke gjennom eksisterende
-eier, med gjenbruk av ferdig beriket M1 og fryste parametre. Den separate
-forhåndsregistreringen M1_FEATURE_REALIGNMENT_001 gir ingen modell-/fit-adgang.
-Runtime START/TERMINAL avgjør faktisk status; ikke start en ny kopi.
-Den delte berikede kilden inneholder også senere inputrader og blir fullhashet
-og kausalt transformert av byggeieren. Alle nye utdatarader skal være før TEST;
-forseglet TEST-datasett/manifest og utfallsmåling forblir utilgjengelige.
+13 fokuserte tester består. M1_FEATURE_REALIGNMENT_001 er nå fullført med
+exit-kode 0. Den nye flaten har 5 523 147 rader og alle 254 ordnede felt,
+eksakt komplett før-TEST-klokke etter kausal warmup og null manglende rader i
+både TRAINs 4 884 638 og kontrollens 382 744 M1-rader. Originale beregninger,
+registry-/squeeze-parametre og åtte familier er bevart. Ikke relanser bygget.
+Den delte berikede kilden ble fullhashet og kausalt transformert, også med
+senere inputrader; alle nye utdatarader er før TEST. Forseglet TEST-datasett
+og -manifest fikk null tilgangsforsøk; ingen modell, målfit eller tuning.
+Neste steg er å binde den verifiserte flaten i normaliseringspopulasjon,
+tilstandsindekser og målforberedelse uten å svekke eksisterende porter.
+
+PC-en ble kontrollert omstartet etter fullført jobb og verifisert tomme
+prosjekt-/GPU-køer 01.10 kl. 20:22 UTC (22:22 Oslo). WSL, GPU, cgroup-vakter,
+feature-footer og kvitteringer er kontrollert etterpå. Bruk gx1-3090-lan nå;
+Tailscale-ruten gx1-3090 svarte fortsatt ikke, selv om tjenesten kjørte.
+Kontrollerte omstarter mellom ferdige, maskinfelles ledige kjøringer er
+nå stående operatørinstruks. Aldri avbryt en aktiv jobb for periodisk omstart.
 Gammel lærer fjerner dagens parameterfrie normalisering; ny fersk måling skal
 bruke samme aktuelle funksjon for ONLINE og TARGET. Indekser, normalisering
 og mål-/økonomibindinger gjenstår. Native trening og normaliseringsfit er

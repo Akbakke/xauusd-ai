@@ -35,6 +35,10 @@
     "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SEAL_ADMISSION_PATCH/CODE_REVIEW.json",
     "sha256": "e30206c8de48c7cec9fc62ef3550d45b410fa78d8d9b25ea3f6e70bababc732d"
   },
+  "controlled_host_restart_receipt": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/HOST_RESTART_001/POST_RESTART_20261001T202913477249Z.json",
+    "sha256": "a41d3ac1bdaa82916c3c1212926a3d1fa2c0316a83a5d4065b050e15af4a249a"
+  },
   "decision": "EXACT_PRETEST_RAW_M5_PARITY",
   "entry_parquet_bytes_reused_without_copy": 21160180085,
   "existing_complete_m1_review": {
@@ -45,6 +49,14 @@
   "m1_feature_realignment_plan": {
     "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/PLAN.json",
     "sha256": "0e65f67c5300be2bba1f2e0a15f21cb1519351ffd3a9f06f1eda7755bda6fc6f"
+  },
+  "m1_feature_realignment_result": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/EVENTS/RESULT_20261001T195526063354Z.json",
+    "sha256": "75c4bde0237f0153caf5a89cee0331108881233d9599930568ed5ce1b3ff445d"
+  },
+  "m1_feature_realignment_review": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/EVENTS/FINAL_RESULT_REVIEW_20261001T202027193820Z.json",
+    "sha256": "63c42b53f1c4de74e11edabc7167bab4f89cc4843c881723b82765b69e95173a"
   },
   "normalization_population_admission_review": {
     "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/NORMALIZATION_ADMISSION_REVIEW_20261001T175753519716Z.json",
@@ -92,7 +104,7 @@
   },
   "remaining": [
     "Declared derived-M5 production provenance; complete M1 is admitted in the bound preparation recipe.",
-    "Execute the predeclared existing-owner M1 feature realignment, qualify exact pre-TEST clock and split-view coverage, then inspect terminal before downstream admission. Original enrichment includes later input rows; declared construction-only scope preserves sealed TEST artifacts.",
+    "Complete M1 feature surface and full TRAIN/control view coverage are verified. Bind these exact bytes through normalization population, state indices and target preparation; do not rerun the producer.",
     "Complete target eligibility, normalization populations and remaining native physical-coordinate/index/measurement bindings; reuse measured closure schedules and support arrays.",
     "Fresh initial/current-function TARGET, shared causal targets, economic evidence, later generalization and train/serve parity."
   ],

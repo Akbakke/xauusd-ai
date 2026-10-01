@@ -166,3 +166,11 @@ gjenbruker beriket M1 og fryste parametre, med nye utdatarader bare på komplett
 før-TEST-klokke. Lesesomfang for den delte berikede kilden og krav til
 terminal/klokkedekning er eksplisitt bundet i native-rapporten. Ingen normfit
 eller læring er åpnet; faktisk runtime-status avgjør om produsenten lever.
+
+M1_FEATURE_REALIGNMENT_001 er fullført og kontrollert: 5 523 147 feature-
+rader på komplett før-TEST-klokke, med full dekning av alle nye TRAIN-/kontroll-
+M1-visninger. Parametre og ordnede felt er bevart. Neste aktive delmål er
+binding av denne flaten til normaliseringspopulasjon, indekser og mål.
+Ingen læring eller økonomisk fordel er dokumentert av inputbygget.
+Brukerønsket PC-omstart er gjennomført ved trygg grense; WSL, GPU og capped-
+kjøring er kontrollert. LAN fungerer; opprinnelig Tailscale-rute er uavklart.

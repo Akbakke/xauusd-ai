@@ -391,8 +391,43 @@ Alle utdatarader kontrolleres av eksisterende materializer; en separat
 tidsstempelkontroll krever eksakt alignment-suffiks og dekning av samtlige
 nye TRAIN-/kontroll-M1-visninger. Runtime START, RESULT og TERMINAL binder
 faktisk tilstand. Kilden fryses mens jobben kjører; aldri start en kopi.
-Ny output er LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet.
-Ingen nedstrøms admission før terminal og uavhengig resultat er kontrollert.
+Bygget er fullført 01.10 kl. 19:55:27 UTC med exit-kode 0; kilde fa71854a
+var uendret. Ikke relanser det. Ny output er
+LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet:
+5 523 147 rader, 06.09.2010 kl. 02:46 til 30.06.2026 kl. 23:59 UTC.
+435 898 innledende råklokker ligger før faktisk kausal warmup; deretter
+matcher samtlige featuretidsstempler komplett alignment uten interne hull.
+Alle 4 884 638 TRAIN- og 382 744 kontroll-M1-rader har eksakt featuredekning.
+Dette inkluderer kontekstrader og gir ingen tillatelse til å tilpasse på VAL.
+
+Eksisterende eier har kontrollert alle utdata før publisering; separat
+tidsstempelorakel og sluttkontroll bekrefter nye kilde-/klokkebindinger,
+uendrede 254 ordnede felt og eksakt samme registry-/squeeze-parametre.
+Ingen originale artefakter er endret. Ny Parquet SHA256:
+fad9b4997b8fe3d7d228b1c11cd33747f226423affbf3dbca7585b06f0da7636.
+Sidecar SHA256:
+1a71ad3ae54f616c0165863bbf7144bb886ffb0ea014b76b6290a90111c9e4ef.
+Under M1_FEATURE_REALIGNMENT_001/EVENTS:
+- RESULT_20261001T195526063354Z.json:
+  75c4bde0237f0153caf5a89cee0331108881233d9599930568ed5ce1b3ff445d.
+- TERMINAL_20261001T195526079697Z.json:
+  4051686456775223fed5e2ec005add99e63bb9666cc6cfa5daa18cf04e148b7a.
+- FINAL_RESULT_REVIEW_20261001T202027193820Z.json:
+  63c42b53f1c4de74e11edabc7167bab4f89cc4843c881723b82765b69e95173a.
+
+Neste konkrete jobb er å binde denne flaten i eksisterende normaliserings-,
+indeks- og måleiere. Materialisering/dekning er bestått; normalisering,
+mål-/økonomiadgang og læring er fortsatt ufullført.
+
+Operatørens nye ønske om sporadisk PC-omstart er utført etter terminal og
+maskinfelles tomme prosjekt-/GPU-køer. Windows startet 01.10 kl. 20:22:26 UTC;
+Linux boot-ID er ny. Kilde, kvitteringer og sidecar-hasher er bevart.
+En separat capped 4 GiB-kontroll etter omstart bekrefter gyldig Parquet-footer,
+5 523 147 rader og korrekt 254/71 feltbredde; ingen modellfit/forward.
+HOST_RESTART_001/POST_RESTART_20261001T202913477249Z.json har SHA256
+a41d3ac1bdaa82916c3c1212926a3d1fa2c0316a83a5d4065b050e15af4a249a.
+Eksisterende gx1-3090-lan fungerer. Tailscale-tjenesten kjører, men den
+opprinnelige SSH-ruten svarte fortsatt ikke; nettverkskonfigurasjonen er uendret.
 Ingen gamle base28-radnumre eller v37-normer skal føres videre som om de gjaldt
 nye kilder og 254 felt. Native indeks/trening/måling har fortsatt gamle
 femårskrav og TRAIN/VAL-koordinatantakelser som må rettes gjennom eksplisitt scope.

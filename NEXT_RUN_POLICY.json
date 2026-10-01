@@ -1432,6 +1432,20 @@
       "result": "docs/WEEKLY_DIRECTION_RESULT_20260926.md"
     }
   },
+  "controlled_host_restart_20261001": {
+    "operator_directive": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OPERATOR_DIRECTIVES/CONTROLLED_HOST_RESTART_20261001T185506089744Z.json",
+      "sha256": "97ed799cb9ab3939312d6f18ea1372f9ad4a5e091602305776ae9f676d29d6b8"
+    },
+    "policy": "Controlled occasional restart only between terminal-completed runs after all host project workloads, compute processes and locks are idle.",
+    "post_restart_receipt": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/HOST_RESTART_001/POST_RESTART_20261001T202913477249Z.json",
+      "sha256": "a41d3ac1bdaa82916c3c1212926a3d1fa2c0316a83a5d4065b050e15af4a249a"
+    },
+    "status": "HOST_AND_WSL_RECOVERED_VIA_LAN",
+    "tailscale_ssh_route_recovered": false,
+    "working_connection": "gx1-3090-lan"
+  },
   "cpu_stage_evidence": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/CPU_CAPACITY_RESULT_20260914.json",
     "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363"
@@ -2203,28 +2217,73 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FROZEN_DESIGN_M1_FEATURE_REALIGNMENT_PREDECLARED_NO_NATIVE_TRAINING",
+    "learning_design_status": "FROZEN_DESIGN_M1_FEATURES_VERIFIED_NORMALIZATION_INDEX_TARGET_BINDINGS_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
+    "m1_feature_base": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
+      "sha256": "fad9b4997b8fe3d7d228b1c11cd33747f226423affbf3dbca7585b06f0da7636"
+    },
+    "m1_feature_base_manifest": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet.manifest.json",
+      "sha256": "1a71ad3ae54f616c0165863bbf7144bb886ffb0ea014b76b6290a90111c9e4ef"
+    },
     "m1_feature_realignment": {
+      "completed_utc": "2026-10-01T19:55:26.063354+00:00",
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/EVENTS/FINAL_RESULT_REVIEW_20261001T202027193820Z.json",
+        "sha256": "63c42b53f1c4de74e11edabc7167bab4f89cc4843c881723b82765b69e95173a"
+      },
+      "input_repair_authorization_consumed": true,
       "native_training_enabled": false,
       "normalization_fit": false,
       "operator": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/OPERATOR.py",
         "sha256": "f42aef812fef60bcb0b122fd70ff71d0a2c1c45ef497dc267d4ddb603a9d2de6"
       },
+      "output_manifest": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet.manifest.json",
+        "sha256": "1a71ad3ae54f616c0165863bbf7144bb886ffb0ea014b76b6290a90111c9e4ef"
+      },
       "output_parquet": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
+      "output_parquet_binding": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
+        "sha256": "fad9b4997b8fe3d7d228b1c11cd33747f226423affbf3dbca7585b06f0da7636"
+      },
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/PLAN.json",
         "sha256": "0e65f67c5300be2bba1f2e0a15f21cb1519351ffd3a9f06f1eda7755bda6fc6f"
       },
       "relaunch_allowed": false,
       "repository_plan": "configs/research/NATIVE_V38_M1_REALIGNMENT_20261001.json",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/EVENTS/RESULT_20261001T195526063354Z.json",
+        "sha256": "75c4bde0237f0153caf5a89cee0331108881233d9599930568ed5ce1b3ff445d"
+      },
+      "rows": 5523147,
       "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001",
       "sealed_test_dataset_or_manifest_access_allowed": false,
       "shared_enriched_source_contains_test_era_input_rows": true,
-      "source_frozen_while_running": true,
+      "source_frozen_while_running": false,
       "source_read_scope": "Established causal feature construction plus full source identity hashing; all emitted rows must be before TEST. No outcomes, models, fits or TEST artifact access.",
-      "status": "AUTHORIZED_INPUT_PRODUCER_RUNTIME_START_AND_TERMINAL_ARE_AUTHORITY"
+      "split_feature_coverage": {
+        "train": {
+          "covered_rows": 4884638,
+          "feature_first_position": 256243,
+          "feature_last_position": 5140880,
+          "missing_rows": 0
+        },
+        "val": {
+          "covered_rows": 382744,
+          "feature_first_position": 5140403,
+          "feature_last_position": 5523146,
+          "missing_rows": 0
+        }
+      },
+      "status": "COMPLETE_FEATURE_SURFACE_AND_FULL_VIEW_COVERAGE_NO_LEARNING",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/EVENTS/TERMINAL_20261001T195526079697Z.json",
+        "sha256": "4051686456775223fed5e2ec005add99e63bb9666cc6cfa5daa18cf04e148b7a"
+      }
     },
     "m1_single_source_pretest_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/RESULT.json",
@@ -2305,7 +2364,7 @@
   },
   "next_action": "Reuse completed M1 parity, qualified complete M1 source, frozen learning design/control IDs and preparation recipe. Entry adoption and child admission are complete and reuse all 21,160,180,085 original Entry parquet bytes without copying. Physical M1 views are published: TRAIN 4,884,638 rows, control 382,744 rows; all 652,552/70,880 Entry rows have exact first M1 states and every view market value matches its parent slice. 68 focused tests passed; real normalization population admission accepts frozen physical counts and rejects old 65,295/5,508 counts. No normalization was fitted. Use the bound child_coordinate_preparation_result, entry/child/M1 bindings and new preparation_readiness; do not rerun these producers. Next qualify closure/unknown gaps, complete state support and M1/MTF feature coverage on the new clocks, then bind normalization populations, no-cap indexes, separate TRAIN/control coordinates, native targets and same-current-function TARGET. Old base28 row positions and old five-year/native prefix assumptions cannot be reused. Economic readiness and later portfolio/generalization/parity gates remain incomplete. Derived-M5 production provenance remains unfinished. Training, normalization fitting, TEST, live/paper and spending remain closed; full B and macro promotion remain separate unfinished goals.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-10-01T18:26:16.548747+00:00",
+  "observed_utc": "2026-10-01T20:30:59.489150+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",

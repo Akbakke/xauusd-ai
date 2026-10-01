@@ -184,3 +184,11 @@ prisbaseline og eksisterende kostnads-/mål-/inferenseiere. Dette er ikke reduse
 full B. Avgrenset native v38-læring og senere makroinnføring forberedes gjennom
 eksisterende kontrakter og evidensporter; trening er stengt til disse er bundet.
 Ingen åpning av TEST, broker, live/paper, spending eller uavgrenset trening.
+
+Operatørvedtak 01.10.2026: kontrollerte, sporadiske omstarter av GX1-PC-en
+gjøres mellom fullførte kjøringer for å forebygge driftsproblemer. Før omstart
+må terminalkvitteringer være bevart og alle prosjektjobber, GPU-beregninger og
+prosjektlåser på maskinen være ledige. Ingen fast omstartsperiode er vedtatt;
+en aktiv jobb avbrytes aldri for periodisk omstart. Etterpå bekreftes ny
+oppstartstid, fungerende tilkobling/WSL, uendret kilde og intakte artefakter
+gjennom eksisterende vakter før neste tunge jobb.

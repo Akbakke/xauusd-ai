@@ -1616,6 +1616,20 @@
     "status": "REFERENCE_NATIVE32_COMPLETE_INSUFFICIENT_LEARNING",
     "training_enabled": false
   },
+  "controlled_host_restart_20261001": {
+    "operator_directive": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OPERATOR_DIRECTIVES/CONTROLLED_HOST_RESTART_20261001T185506089744Z.json",
+      "sha256": "97ed799cb9ab3939312d6f18ea1372f9ad4a5e091602305776ae9f676d29d6b8"
+    },
+    "policy": "Controlled occasional restart only between terminal-completed runs after all host project workloads, compute processes and locks are idle.",
+    "post_restart_receipt": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/HOST_RESTART_001/POST_RESTART_20261001T202913477249Z.json",
+      "sha256": "a41d3ac1bdaa82916c3c1212926a3d1fa2c0316a83a5d4065b050e15af4a249a"
+    },
+    "status": "HOST_AND_WSL_RECOVERED_VIA_LAN",
+    "tailscale_ssh_route_recovered": false,
+    "working_connection": "gx1-3090-lan"
+  },
   "diagnostic_source_commit": "c71df2271863ec1fd118e4ae9e608841f7f6cfd0",
   "diagnostic_validation_fix": {
     "model_training_math_changed": false,
@@ -2025,7 +2039,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-10-01T18:26:16.548747+00:00",
+  "latest_observation_utc": "2026-10-01T20:30:59.489150+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2038,7 +2052,7 @@
     "slot": 0,
     "state_sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
   },
-  "latest_readonly_audit_utc": "2026-10-01T18:26:16.548747+00:00",
+  "latest_readonly_audit_utc": "2026-10-01T20:30:59.489150+00:00",
   "learning_gate": {
     "broad_entry_fit_improved": false,
     "causal_entry_fixed256_verdict": {
@@ -2533,28 +2547,73 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FROZEN_DESIGN_M1_FEATURE_REALIGNMENT_PREDECLARED_NO_NATIVE_TRAINING",
+    "learning_design_status": "FROZEN_DESIGN_M1_FEATURES_VERIFIED_NORMALIZATION_INDEX_TARGET_BINDINGS_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
+    "m1_feature_base": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
+      "sha256": "fad9b4997b8fe3d7d228b1c11cd33747f226423affbf3dbca7585b06f0da7636"
+    },
+    "m1_feature_base_manifest": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet.manifest.json",
+      "sha256": "1a71ad3ae54f616c0165863bbf7144bb886ffb0ea014b76b6290a90111c9e4ef"
+    },
     "m1_feature_realignment": {
+      "completed_utc": "2026-10-01T19:55:26.063354+00:00",
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/EVENTS/FINAL_RESULT_REVIEW_20261001T202027193820Z.json",
+        "sha256": "63c42b53f1c4de74e11edabc7167bab4f89cc4843c881723b82765b69e95173a"
+      },
+      "input_repair_authorization_consumed": true,
       "native_training_enabled": false,
       "normalization_fit": false,
       "operator": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/OPERATOR.py",
         "sha256": "f42aef812fef60bcb0b122fd70ff71d0a2c1c45ef497dc267d4ddb603a9d2de6"
       },
+      "output_manifest": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet.manifest.json",
+        "sha256": "1a71ad3ae54f616c0165863bbf7144bb886ffb0ea014b76b6290a90111c9e4ef"
+      },
       "output_parquet": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
+      "output_parquet_binding": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
+        "sha256": "fad9b4997b8fe3d7d228b1c11cd33747f226423affbf3dbca7585b06f0da7636"
+      },
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/PLAN.json",
         "sha256": "0e65f67c5300be2bba1f2e0a15f21cb1519351ffd3a9f06f1eda7755bda6fc6f"
       },
       "relaunch_allowed": false,
       "repository_plan": "configs/research/NATIVE_V38_M1_REALIGNMENT_20261001.json",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/EVENTS/RESULT_20261001T195526063354Z.json",
+        "sha256": "75c4bde0237f0153caf5a89cee0331108881233d9599930568ed5ce1b3ff445d"
+      },
+      "rows": 5523147,
       "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001",
       "sealed_test_dataset_or_manifest_access_allowed": false,
       "shared_enriched_source_contains_test_era_input_rows": true,
-      "source_frozen_while_running": true,
+      "source_frozen_while_running": false,
       "source_read_scope": "Established causal feature construction plus full source identity hashing; all emitted rows must be before TEST. No outcomes, models, fits or TEST artifact access.",
-      "status": "AUTHORIZED_INPUT_PRODUCER_RUNTIME_START_AND_TERMINAL_ARE_AUTHORITY"
+      "split_feature_coverage": {
+        "train": {
+          "covered_rows": 4884638,
+          "feature_first_position": 256243,
+          "feature_last_position": 5140880,
+          "missing_rows": 0
+        },
+        "val": {
+          "covered_rows": 382744,
+          "feature_first_position": 5140403,
+          "feature_last_position": 5523146,
+          "missing_rows": 0
+        }
+      },
+      "status": "COMPLETE_FEATURE_SURFACE_AND_FULL_VIEW_COVERAGE_NO_LEARNING",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_FEATURE_REALIGNMENT_001/EVENTS/TERMINAL_20261001T195526079697Z.json",
+        "sha256": "4051686456775223fed5e2ec005add99e63bb9666cc6cfa5daa18cf04e148b7a"
+      }
     },
     "m1_single_source_pretest_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/RESULT.json",
