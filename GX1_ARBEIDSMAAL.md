@@ -1,5 +1,13 @@
 # GX1 arbeidsmål — oppdatert 01.10.2026
 
+
+Sekvenskontrollen for hele TRAIN er nå bundet som TRAIN_SEQUENCE_AUDIT_001;
+ikke start en kopi hvis LAUNCH_CLAIM eller terminal allerede finnes.
+Eksisterende eier skal sammenligne alle 652 552 sekvenser/snapshots med M5-flaten.
+To konkrete publiseringsløp er rettet til atomisk no-replace med fsync.
+13 fokuserte tester består, inkludert samtidige fil-/katalogkollisjoner.
+Dette åpner ingen normaliseringsfit eller modelltrening.
+
 ## Native v38 — komplett M1-featureflate kontrollert, læring gjenstår
 
 Inputbygg og etterkontroll er ferdige; ikke relanser dem. Læringsdesignet er

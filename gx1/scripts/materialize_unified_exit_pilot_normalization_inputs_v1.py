@@ -24,6 +24,10 @@ import pyarrow.parquet as pq
 
 from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import require_pilot_child_calendar
 
+from gx1.contracts.immutable_event_authority_v1 import (
+    _fsync_directory,
+    _publish_file_noreplace,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
@@ -977,7 +981,9 @@ def build_normalization_inputs(
         for path in staging.iterdir():
             with path.open("rb") as handle:
                 os.fsync(handle.fileno())
-        os.rename(staging, output)
+        _fsync_directory(staging)
+        _publish_file_noreplace(staging, output)
+        _fsync_directory(output.parent)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise

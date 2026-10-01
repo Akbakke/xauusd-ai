@@ -21,6 +21,10 @@ from typing import Any
 import numpy as np
 import pyarrow.parquet as pq
 
+from gx1.contracts.immutable_event_authority_v1 import (
+    _fsync_directory,
+    _publish_file_noreplace,
+)
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
@@ -303,7 +307,8 @@ def _write_new_json(path: Path, payload: dict[str, Any]) -> None:
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary, target)
+        _publish_file_noreplace(temporary, target)
+        _fsync_directory(target.parent)
     finally:
         if temporary.exists():
             temporary.unlink()

@@ -446,3 +446,20 @@ AVWAP-vekt er prisoppdateringsaktivitet, ikke omsatt volum.
 Normalisering og native trening er fortsatt stengt til faktiske bindinger
 er ferdige. Senere uavhengig generalisering, train/serve-paritet, full B og
 offline driftskvalifisering er fortsatt ufullført. Ingen edge er dokumentert.
+
+## Full sekvenskontroll før normaliseringspopulasjon
+
+Sekvenskontrollen for hele TRAIN er nå bundet som TRAIN_SEQUENCE_AUDIT_001;
+ikke start en kopi hvis LAUNCH_CLAIM eller terminal allerede finnes.
+Eksisterende eier skal sammenligne alle 652 552 sekvenser/snapshots med M5-flaten.
+To konkrete publiseringsløp er rettet til atomisk no-replace med fsync.
+13 fokuserte tester består, inkludert samtidige fil-/katalogkollisjoner.
+Dette åpner ingen normaliseringsfit eller modelltrening.
+
+Plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/TRAIN_SEQUENCE_AUDIT_001/PLAN.json
+SHA256: 690347173cf65766e904a4a2b347288ddebe48e8e558972b38e42bcfba0a4687.
+Kontrollen leser bare time/seq/snap fra TRAIN og fullhasher filen;
+VAL- og TEST-datasett/manifester blokkeres før I/O. Den delte M5-featureflaten
+fullhashes og valideres gjennom eksisterende eier, også med senere prisinputs.
+Ingen utfallsanalyse, modellforwards, normaliseringsfit eller optimizersteg.
+Kilden fryses under capped audit (4 GiB / 512 MiB swap); terminal kreves.

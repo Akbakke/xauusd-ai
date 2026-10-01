@@ -2360,6 +2360,23 @@
     "source_frozen_while_running": false,
     "status": "COMPLETE_INPUT_PREPARATION_NO_LEARNING_AUTHORITY",
     "train_rows": 652552,
+    "train_sequence_audit": {
+      "model_forwards": 0,
+      "normalization_fit": false,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/TRAIN_SEQUENCE_AUDIT_001/OPERATOR.py",
+        "sha256": "384d64e4b3404efecf92412d20551f2748e01c6366240bf4fd75b6531789546d"
+      },
+      "optimizer_steps": 0,
+      "output": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/TRAIN_SEQUENCE_AUDIT_001/TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/TRAIN_SEQUENCE_AUDIT_001/PLAN.json",
+        "sha256": "690347173cf65766e904a4a2b347288ddebe48e8e558972b38e42bcfba0a4687"
+      },
+      "source_frozen_while_running": true,
+      "status": "BOUND_NOT_LAUNCHED",
+      "tests_passed": 13
+    },
     "training_enabled": false
   },
   "next_action": "Reuse completed M1 parity, qualified complete M1 source, frozen learning design/control IDs and preparation recipe. Entry adoption and child admission are complete and reuse all 21,160,180,085 original Entry parquet bytes without copying. Physical M1 views are published: TRAIN 4,884,638 rows, control 382,744 rows; all 652,552/70,880 Entry rows have exact first M1 states and every view market value matches its parent slice. 68 focused tests passed; real normalization population admission accepts frozen physical counts and rejects old 65,295/5,508 counts. No normalization was fitted. Use the bound child_coordinate_preparation_result, entry/child/M1 bindings and new preparation_readiness; do not rerun these producers. Next qualify closure/unknown gaps, complete state support and M1/MTF feature coverage on the new clocks, then bind normalization populations, no-cap indexes, separate TRAIN/control coordinates, native targets and same-current-function TARGET. Old base28 row positions and old five-year/native prefix assumptions cannot be reused. Economic readiness and later portfolio/generalization/parity gates remain incomplete. Derived-M5 production provenance remains unfinished. Training, normalization fitting, TEST, live/paper and spending remain closed; full B and macro promotion remain separate unfinished goals.",

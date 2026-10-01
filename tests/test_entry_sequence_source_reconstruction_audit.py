@@ -141,3 +141,28 @@ def test_source_reconstruction_audit_rejects_mutated_stored_window(tmp_path: Pat
         audit_sequence_source_reconstruction(
             parquet_path=split.resolve(), manifest_path=manifest.resolve()
         )
+
+
+@pytest.mark.parametrize("collision", [False, True])
+def test_sequence_audit_publication_never_replaces_concurrent_result(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, collision: bool,
+) -> None:
+    from gx1.contracts.immutable_event_authority_v1 import ImmutableEventAuthorityError
+
+    target = tmp_path / "audit.json"
+    publish = sequence_audit._publish_file_noreplace
+
+    def publish_after_race(source: Path, destination: Path) -> None:
+        if collision:
+            destination.write_bytes(b"concurrent evidence")
+        publish(source, destination)
+
+    monkeypatch.setattr(sequence_audit, "_publish_file_noreplace", publish_after_race)
+    if collision:
+        with pytest.raises(ImmutableEventAuthorityError, match="already exists"):
+            sequence_audit._write_new_json(target, {"decision": "PASS"})
+        assert target.read_bytes() == b"concurrent evidence"
+    else:
+        sequence_audit._write_new_json(target, {"decision": "PASS"})
+        assert json.loads(target.read_text()) == {"decision": "PASS"}
+    assert list(tmp_path.iterdir()) == [target]

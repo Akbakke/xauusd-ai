@@ -342,8 +342,9 @@ def test_population_witness_scans_unique_rows_without_sampler_keys(tmp_path: Pat
         build_train_normalization_population_witness(**kwargs)
 
 
-def test_view_is_explicitly_blocked_until_summary_registry(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("mode", ["validate", "publish", "concurrent_directory"])
+def test_view_binds_registry_and_publishes_without_replacing_existing_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mode: str,
 ) -> None:
     output = tmp_path / "pilot" / "NORMALIZATION_INPUTS"
     child_manifest = tmp_path / "child.manifest.json"
@@ -412,7 +413,7 @@ def test_view_is_explicitly_blocked_until_summary_registry(
         lambda **_kwargs: {"contract_sha256": "2" * 64},
     )
 
-    report = build_normalization_inputs(
+    arguments = dict(
         pilot_root=tmp_path / "pilot",
         output_dir=output,
         child_admission_path=tmp_path / "admission.json",
@@ -423,10 +424,42 @@ def test_view_is_explicitly_blocked_until_summary_registry(
         m1_feature_base_manifest_path=tmp_path / "m1_feature.json",
         mtf_cache_manifest_path=tmp_path / "mtf.json",
         market_closure_authority_path=tmp_path / "closure.json",
-        publish=False,
+        publish=mode != "validate",
         expected_train_rows=2,
         expected_val_rows=2,
     )
+    from gx1.contracts.immutable_event_authority_v1 import ImmutableEventAuthorityError
+    from gx1.scripts import materialize_unified_exit_pilot_normalization_inputs_v1 as owner
+
+    if mode == "concurrent_directory":
+        publish = owner._publish_file_noreplace
+        winner_inode = []
+
+        def publish_after_race(source: Path, destination: Path) -> None:
+            destination.mkdir()
+            winner_inode.append(destination.stat().st_ino)
+            publish(source, destination)
+
+        monkeypatch.setattr(owner, "_publish_file_noreplace", publish_after_race)
+        with pytest.raises(ImmutableEventAuthorityError, match="already exists"):
+            build_normalization_inputs(**arguments)
+        assert output.stat().st_ino == winner_inode[0]
+        assert list(output.iterdir()) == []
+        assert list(output.parent.iterdir()) == [output]
+        return
+    report = build_normalization_inputs(**arguments)
+    if mode == "publish":
+        assert report["published"] is True
+        assert sorted(path.name for path in output.iterdir()) == [
+            "CHILD_NORMALIZATION_VIEW.json",
+            "CHILD_TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json",
+            "TRAIN_NORMALIZATION_POPULATION_WITNESS.json",
+        ]
+        view = json.loads((output / "CHILD_NORMALIZATION_VIEW.json").read_text())
+        assert view["normalization_fit_status"] == "READY_FOR_TRAIN_ONLY_FIT"
+        assert view["final_normalization_published"] is False
+        return
+
     view = report["normalization_view"]
     assert report["published"] is False
     from gx1.contracts.unified_exit_lifetime_summary_v1 import (
