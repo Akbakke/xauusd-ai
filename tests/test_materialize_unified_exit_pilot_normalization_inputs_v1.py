@@ -490,3 +490,32 @@ def test_legacy_normalization_still_requires_original_default_population(tmp_pat
     _write_json(path,value)
     with pytest.raises(RuntimeError, match="PILOT_NORMALIZATION_CHILD_ADMISSION_INVALID"):
         _require_child_admission(path, expected_train_rows=None, expected_val_rows=None)
+
+
+def test_frozen_normalization_population_uses_calendar_end_before_source_io(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.scripts import materialize_unified_exit_pilot_normalization_inputs_v1 as owner
+    from tests.test_validate_lifecycle_v2_pilot_child_view_v1 import _published_frozen_source
+
+    _, _, _, witness = _published_frozen_source(tmp_path, monkeypatch)
+    arguments = dict(
+        child_admission=witness, child_admission_file_sha256="a"*64,
+        child_sequence_audit={}, m1_source_path=tmp_path/"m1",
+        m1_source_manifest_path=tmp_path/"manifest",
+        m1_feature_base_path=tmp_path/"feature", m1_feature_base_manifest_path=tmp_path/"feature-manifest",
+        market_closure_authority_path=tmp_path/"closure", parent_manifest={},
+        mtf_cache_binding={}, mtf_cache_manifest_path=tmp_path/"mtf",
+    )
+    class ReachedSourceIO(Exception):
+        pass
+    monkeypatch.setattr(owner,"_exact_file",lambda *args: (_ for _ in ()).throw(ReachedSourceIO()))
+    # The implicit and explicit correct cutoff both reach real input admission.
+    for end in (None,"2025-06-01T00:00:00+00:00"):
+        with pytest.raises(ReachedSourceIO):
+            owner.build_train_normalization_population_witness(**arguments,train_end=end)
+    # The previous default disagrees with the frozen TRAIN boundary.
+    with pytest.raises(RuntimeError,match="FROZEN_TRAIN_END_MISMATCH"):
+        owner.build_train_normalization_population_witness(
+            **arguments,train_end="2026-06-01T00:00:00+00:00",
+        )

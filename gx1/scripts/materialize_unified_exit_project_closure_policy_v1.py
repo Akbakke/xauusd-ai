@@ -15,6 +15,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.immutable_event_authority_v1 import (
+    _fsync_directory,
+    _publish_file_noreplace as _rename_noreplace,
+)
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     build_market_closure_authority,
     build_project_inferred_closure_policy,
@@ -113,7 +117,8 @@ def _publish_file(path: Path, payload: bytes) -> None:
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
-        os.rename(staging, path)
+        _rename_noreplace(staging, path)
+        _fsync_directory(path.parent)
     except Exception:
         staging.unlink(missing_ok=True)
         raise
@@ -208,11 +213,17 @@ def apply_project_closure_policy(
         try:
             (staging / schedule_path.name).write_bytes(schedule_bytes)
             (staging / authority_path.name).write_bytes(authority_bytes)
-            os.rename(staging, output)
+            for artifact in staging.iterdir():
+                with artifact.open("rb") as handle:
+                    os.fsync(handle.fileno())
+            _fsync_directory(staging)
+            _rename_noreplace(staging, output)
+            _fsync_directory(output.parent)
         except Exception:
-            for child in staging.iterdir():
-                child.unlink()
-            staging.rmdir()
+            if staging.exists():
+                for child in staging.iterdir():
+                    child.unlink()
+                staging.rmdir()
             raise
     return {
         "mode": "publish" if publish else "validate_no_publish",

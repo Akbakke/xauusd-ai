@@ -171,3 +171,45 @@ def test_fit_materializer_excludes_479_context_rows(tmp_path: Path) -> None:
             target_split="test",
             target_m1_times=_train_clock(),
         )
+
+
+
+@pytest.mark.parametrize("kind", ["file", "directory"])
+def test_publication_race_preserves_competing_output(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, kind: str,
+) -> None:
+    from gx1.scripts import materialize_unified_exit_project_closure_policy_v1 as owner
+    from gx1.contracts.immutable_event_authority_v1 import ImmutableEventAuthorityError
+
+    target = tmp_path / "published"
+    rename = owner._rename_noreplace
+
+    def competing_publication(staging: Path, destination: Path) -> None:
+        if kind == "file":
+            destination.write_bytes(b"original")
+        else:
+            destination.mkdir()
+        rename(staging, destination)
+
+    monkeypatch.setattr(owner, "_rename_noreplace", competing_publication)
+    with pytest.raises(ImmutableEventAuthorityError, match="already exists"):
+        if kind == "file":
+            owner._publish_file(target, b"replacement")
+        else:
+            policy = tmp_path / "policy.json"
+            policy.write_text(json.dumps(_policy()))
+            monkeypatch.setattr(
+                owner, "_load_clock",
+                lambda *args, **kwargs: (_train_clock(), "b" * 64, "c" * 64),
+            )
+            owner.apply_project_closure_policy(
+                policy_path=policy, target_split="val",
+                target_m1_source_path=tmp_path / "val.parquet",
+                target_m1_manifest_path=tmp_path / "val.manifest.json",
+                output_dir=target, publish=True,
+            )
+    if kind == "file":
+        assert target.read_bytes() == b"original"
+    else:
+        assert target.is_dir() and list(target.iterdir()) == []
+    assert list(tmp_path.glob(".published.staging.*")) == []

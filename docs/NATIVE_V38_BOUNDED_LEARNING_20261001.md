@@ -310,14 +310,69 @@ LEARNING_PREPARATION_001; eksakte stier/hashes finnes i resultatet og statusfile
 Ikke relanser produsentene. Den nye readiness er fortsatt BLOCKED ved
 train_economics, etter at Entry-adoption og child-admission har bestått.
 
+## TRAIN-tilpassede markedspauser og M1-støtte kontrollert
+
+Den eldre pausepolicyen var tilpasset til juni 2026 og omfattet dermed deler
+av den nye kontrollperioden. Den er ikke gjenbrukt. Samme deklarerte krav på
+12 observasjoner for daglige pauser og helger er tilpasset 4 884 164 faktiske
+TRAIN-tidsstempler før 01.06.2025, uten de 474 kontekstradene. Ingen terskelsøk,
+prisutfall eller kontrolltilpasning. Resultatet er 34 gjentakende signaturer;
+dette er en prosjektutledet policy, ikke en verifisert offisiell markedskalender.
+
+På alle 652 552 TRAIN-/70 880 kontroll-Entries er eksakt første tilstand,
+klassifisering av alle gap og antall observerbare overganger kontrollert
+uavhengig. TRAIN har 2471 kjente pauser og 63 806 ukjente gap; kontroll har
+263 og 49. Ukjente gap sensurerer forløpet. Ingen Entry mangler en observert
+etterfølger. 30 872 TRAIN- og 119 kontroll-Entries har færre enn de deklarerte
+120 backup-overgangene. Dette er ikke automatisk ugyldige mål: kontrakten
+kan bevare gyldig lærer-bootstrap ved en observasjonsgrense, og 120 er ingen
+maksimal holdetid. Alle 256 fryste kontrollpunkter har minst 339 overganger.
+
+Eksakte første tilstander, høyresensurgrenser og overgangstellinger er lagret
+som immutable NPY-artefakter. Gjenbruk dem. Kjent pause tillater observasjon
+etter gjenåpning; kostnader over faktisk veggklokketid må fortsatt følge
+økonomieieren. Klokkestøtte beviser ikke featuredekning eller komplette mål.
+
+En gjenværende TRAIN_END-default i normaliseringspopulasjonens eksisterende
+bygger er rettet til den fryste kalenderens sluttdato. Eksplisitt avvik avvises
+før kilde-I/O. Den gamle defaulten beholdes bare for den historiske ruten.
+Dette var en konkret kontraktmismatch, ikke målt lekkasje fra kontrollutfall.
+Pauseeieren bruker eksisterende atomisk no-replace-publisering med fsync.
+13 fokuserte tester består, inkludert faktiske fil-/katalogkollisjoner; ingen
+normalisering, modellforward eller optimizersteg er kjørt.
+
+Ekte audit er ferdig under capped 4 GiB/512 MiB swap. Alle gapavgjørelser og
+fit-støttetellinger har uavhengig kontroll, og overgangstellingene matcher en
+separat to-peker-orakelberegning. TEST og gamle blandede rå-/featurekilder
+fikk null tilgangsforsøk. Senere featurekildegjennomgang leste bare metadata.
+
+Under runtime CLOSURE_STATE_SUPPORT_001/EVENTS:
+- RESULT_20261001T180740533994Z.json:
+  bf02567ac6a5b2a89651fd9cd0af7d23db93b214281dab5e159662c15baf12a3.
+- FINAL_CODE_AND_METADATA_REVIEW_20261001T181339812965Z.json:
+  bf89f8a23461ab3c88d7f27d234577c2a570df752e53af0bb3190a5f4d15ed66.
+
+Policy og split-schedules/closure-authorities ligger under
+LEARNING_PREPARATION_001. Resultatet binder alle stier, hasher og arrayfiler.
+Ingen produsent skal relanseres. Readiness ved train_economics er fortsatt
+uløst; denne klokkekontrollen er ingen økonomisk eller native launch-autoritet.
+
 ## Neste konkrete grense
 
 Kilde-, kalender- og TEST-seal-portene, Entry-child og M1-views er kontrollert.
 Gjenbruk den bundne recipe, de publiserte komponentene og siste readiness.
-Neste steg er å kvalifisere markedslukking/ukjente gap og full tilstandsstøtte
-på de nye fysiske M1-klokkene, samt faktisk M1-/MTF-featuredekning før
-normaliseringspopulasjon og tilstandsindekser bygges. Første M1-tilstand er
-bevist for alle Entry-rader; dette er ikke bevis for komplette fremtidige traces.
+Markedslukking/ukjente gap og observerbar tilstandsstøtte er nå kontrollert
+som beskrevet over. Neste steg er faktisk M1-/MTF-featuredekning gjennom
+fysisk før-TEST-input og eksisterende eiere. Eksisterende M1-featureflate er
+bundet til gammel filtrert base28, mens ny admission krever komplett M1.
+Originale manifester skal ikke ommerkes, og vaktens kildekrav skal ikke svekkes.
+Det berikede M1-manifestet binder ekte native M1, men kilden går inn i
+TEST-perioden. Dagens featureeier fullhasher den kilden og leser hele
+tidskolonnen; å bytte bare alignment er derfor ikke en før-TEST-begrenset
+gjenbruksrute. Checkpoint-metadata inneholder bare 14 kontekstfelt, ikke en
+dokumentert komplett erstatning. Kvalifiser trygg gjenbruk eller minste
+nødvendige før-TEST-rekonstruksjon før ny materialisering startes.
+Feature- eller berikede databytes er ikke åpnet i denne metadatakontrollen.
 Ingen gamle base28-radnumre eller v37-normer skal føres videre som om de gjaldt
 nye kilder og 254 felt. Native indeks/trening/måling har fortsatt gamle
 femårskrav og TRAIN/VAL-koordinatantakelser som må rettes gjennom eksplisitt scope.

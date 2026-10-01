@@ -150,6 +150,12 @@ med fryste perioder. Alle 652 552 TRAIN-/70 880 kontrollrader har eksakt første
 M1-tilstand; alle M1-markedsfelt er identiske med råkildens korresponderende rader.
 21,16 GB Entry-data gjenbrukes direkte. 68 fokuserte tester og ekte
 normaliseringsadmission består. Ingen normer eller modell er tilpasset.
-Gjenbruk de ferdige komponentene; neste målte grense er markedslukking/gap,
-tilstandsstøtte og featuredekning før indekser, mål, normer og læringsmåling.
-Siste runtime-resultat og readiness er bundet i begge status-JSON-ene.
+Markedslukking/gap og klokkestøtte er senere kontrollert på alle Entries:
+34 pause-signaturer er tilpasset bare ny TRAIN og brukt uendret på kontroll.
+Alle 256 fryste kontrollpunkter har minst 339 observerte overganger.
+13 fokuserte tester består for normaliseringskalender og immutable publisering.
+Dette er ikke full feature-/målstøtte. Eksisterende M1-featureflate har fortsatt
+gammel filtrert alignment. Neste grense er kvalifisert før-TEST-featuregjenbruk
+eller nødvendig rekonstruksjon, deretter indekser, mål, normer og læringsmåling.
+Gjenbruk ferdige Entry-/M1-visninger, schedules og geometriarrayer.
+Resultater og siste readiness er bundet i begge status-JSON-ene.

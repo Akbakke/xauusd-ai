@@ -558,10 +558,18 @@ def build_train_normalization_population_witness(
     parent_manifest: Mapping[str, Any],
     mtf_cache_binding: Mapping[str, Any],
     mtf_cache_manifest_path: Path,
-    train_end: str = TRAIN_END,
+    train_end: str | None = None,
     fit_entry_rows_path: Path | None = None,
     fit_cutoff_time_ns: int | None = None,
 ) -> dict[str, Any]:
+    windows = require_pilot_child_calendar(child_admission)
+    if windows is not None:
+        expected_end = windows["train"]["end_utc_exclusive"]
+        if train_end is not None and pd.Timestamp(train_end) != pd.Timestamp(expected_end):
+            raise RuntimeError("PILOT_NORMALIZATION_FROZEN_TRAIN_END_MISMATCH")
+        train_end = expected_end
+    elif train_end is None:
+        train_end = TRAIN_END
     prefix = fit_entry_rows_path is not None
     if (prefix != (fit_cutoff_time_ns is not None)
             or (prefix and (type(fit_cutoff_time_ns) is not int or fit_cutoff_time_ns <= 0

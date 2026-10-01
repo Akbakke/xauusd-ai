@@ -3,6 +3,34 @@
     "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/RESULT_20261001T175552486447Z.json",
     "sha256": "90a9c712c141476b756de4f05163c5023441d58fbe1ac7834d8559c638b80610"
   },
+  "closure_state_support_review": {
+    "code_and_metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CLOSURE_STATE_SUPPORT_001/EVENTS/FINAL_CODE_AND_METADATA_REVIEW_20261001T181339812965Z.json",
+      "sha256": "bf89f8a23461ab3c88d7f27d234577c2a570df752e53af0bb3190a5f4d15ed66"
+    },
+    "decision": "PASS_TRAIN_ONLY_CLOSURE_AND_CLOCK_GEOMETRY_TARGET_FEATURE_GATES_INCOMPLETE",
+    "feature_alignment_matches_complete_pretest_m1": false,
+    "frozen_control256": {
+      "fewer_than_reference_backup_transitions": 0,
+      "minimum_successor_transitions": 339,
+      "rows": 256,
+      "short_control_parent_rows": [],
+      "without_observed_successor": 0
+    },
+    "model_forwards": 0,
+    "normalization_fit": false,
+    "optimizer_steps": 0,
+    "policy": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/PROJECT_CLOSURE_POLICY/POLICY.json",
+      "sha256": "4d2d9a4631f8acb595f22de6697c266821fc89d3324c3189ae01c28afb1474db"
+    },
+    "qualified_rules": 34,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CLOSURE_STATE_SUPPORT_001/EVENTS/RESULT_20261001T180740533994Z.json",
+      "sha256": "bf02567ac6a5b2a89651fd9cd0af7d23db93b214281dab5e159662c15baf12a3"
+    },
+    "test_accessed": false
+  },
   "code_review": {
     "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SEAL_ADMISSION_PATCH/CODE_REVIEW.json",
     "sha256": "e30206c8de48c7cec9fc62ef3550d45b410fa78d8d9b25ea3f6e70bababc732d"
@@ -59,9 +87,9 @@
     "sha256": "f668abc946f0870a8af9b77f389ed2f29a66d6e7929c538d72754a68f8e585c4"
   },
   "remaining": [
-    "Declared derived-M5 production provenance; complete M1 is now admitted in the bound preparation recipe.",
-    "Preserve existing v38 feature bytes until exact dependency/functional reuse is admitted.",
-    "Closure/gaps, complete eligible state support, M1/MTF feature coverage, normalization populations and remaining native physical-coordinate/index/measurement bindings.",
+    "Declared derived-M5 production provenance; complete M1 is admitted in the bound preparation recipe.",
+    "Qualify physically pre-TEST M1/MTF feature coverage/reuse or necessary reconstruction; existing M1 feature alignment still points to the old filtered source. Preserve original manifests and outputs.",
+    "Complete target eligibility, normalization populations and remaining native physical-coordinate/index/measurement bindings; reuse measured closure schedules and support arrays.",
     "Fresh initial/current-function TARGET, shared causal targets, economic evidence, later generalization and train/serve parity."
   ],
   "schema_version": "gx1_pretest_m1_source_parity_report_v1",

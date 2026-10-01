@@ -1,6 +1,6 @@
 # Gjeldende status — 01.10.2026: native v38 og kontrollert kodeopprydding
 
-## Native v38 — Entry/M1-klargjøring kontrollert, læring gjenstår
+## Native v38 — M1-klokker kontrollert, featurebinding og læring gjenstår
 
 Inputbygg og etterkontroll er ferdige; ikke relanser dem. Læringsdesignet er
 nå fryst med fysisk TRAIN 01.06.2011–31.05.2025, senere utviklingskontroll
@@ -31,8 +31,17 @@ Alle 652 552 TRAIN- og 70 880 kontrollrader finner eksakt første M1-tilstand.
 Samtlige markedsfelt i M1-visningene er identiske med råkildens respektive rader.
 Entry gjenbruker 21,16 GB ferdige bytes uten kopi. 68 fokuserte tester består.
 Normaliseringsadgangen godtar de faktiske radantallene fra det fryste designet;
-ingen normalisering er tilpasset. Neste steg er kalender for markedslukking,
-tilstandsstøtte og featuredekning før indekser og mål kan kvalifiseres.
+ingen normalisering er tilpasset. Markedspauser og observerbar M1-tilstandsstøtte
+er nå kontrollert på de nye klokkene. 34 gjentakende pauseregler er tilpasset bare
+på TRAIN før 01.06.2025 og brukt uendret på kontrollen. Alle 256 fryste
+kontrollpunkter har minst 339 observerte etterfølgende overganger; dette er
+klokkestøtte, ikke mål-, feature- eller læringsbevis.
+En gjenværende gammel TRAIN-sluttdato i normaliseringspopulasjonen er rettet,
+og publisering av pauseartefakter overskriver aldri eksisterende filer/kataloger.
+13 fokuserte tester består. Eksisterende M1-featuremanifest peker fortsatt på
+gammel filtrert base28; bindingen matcher ikke komplett M1. Neste steg er å
+kvalifisere faktisk før-TEST-featuredekning/gjenbruk gjennom eksisterende eiere
+før indekser, normaliseringspopulasjon og mål kan ferdigstilles.
 Gammel lærer fjerner dagens parameterfrie normalisering; ny fersk måling skal
 bruke samme aktuelle funksjon for ONLINE og TARGET. Indekser, normalisering
 og mål-/økonomibindinger gjenstår. Native trening og normaliseringsfit er

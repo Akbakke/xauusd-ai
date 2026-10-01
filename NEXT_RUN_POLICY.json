@@ -2130,6 +2130,34 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CHILD_COORDINATE_PREPARATION_001/EVENTS/RESULT_20261001T175552486447Z.json",
       "sha256": "90a9c712c141476b756de4f05163c5023441d58fbe1ac7834d8559c638b80610"
     },
+    "closure_state_support_review": {
+      "code_and_metadata_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CLOSURE_STATE_SUPPORT_001/EVENTS/FINAL_CODE_AND_METADATA_REVIEW_20261001T181339812965Z.json",
+        "sha256": "bf89f8a23461ab3c88d7f27d234577c2a570df752e53af0bb3190a5f4d15ed66"
+      },
+      "decision": "PASS_TRAIN_ONLY_CLOSURE_AND_CLOCK_GEOMETRY_TARGET_FEATURE_GATES_INCOMPLETE",
+      "feature_alignment_matches_complete_pretest_m1": false,
+      "frozen_control256": {
+        "fewer_than_reference_backup_transitions": 0,
+        "minimum_successor_transitions": 339,
+        "rows": 256,
+        "short_control_parent_rows": [],
+        "without_observed_successor": 0
+      },
+      "model_forwards": 0,
+      "normalization_fit": false,
+      "optimizer_steps": 0,
+      "policy": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/PROJECT_CLOSURE_POLICY/POLICY.json",
+        "sha256": "4d2d9a4631f8acb595f22de6697c266821fc89d3324c3189ae01c28afb1474db"
+      },
+      "qualified_rules": 34,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CLOSURE_STATE_SUPPORT_001/EVENTS/RESULT_20261001T180740533994Z.json",
+        "sha256": "bf02567ac6a5b2a89651fd9cd0af7d23db93b214281dab5e159662c15baf12a3"
+      },
+      "test_accessed": false
+    },
     "compatibility_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/COMPATIBILITY_REVIEW.json",
       "sha256": "b5c7f2d24053491574acd6433f910b5ffc051b7be210bf9edc4b293f18d27e31"
@@ -2175,7 +2203,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FROZEN_DESIGN_ENTRY_M1_VIEWS_VERIFIED_STATE_FEATURE_NORMALIZATION_TARGET_BINDINGS_REQUIRED_NO_LAUNCH",
+    "learning_design_status": "FROZEN_DESIGN_M1_CLOCKS_AND_CLOSURES_VERIFIED_FEATURE_NORMALIZATION_TARGET_BINDINGS_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
     "m1_single_source_pretest_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/RESULT.json",
@@ -2256,7 +2284,7 @@
   },
   "next_action": "Reuse completed M1 parity, qualified complete M1 source, frozen learning design/control IDs and preparation recipe. Entry adoption and child admission are complete and reuse all 21,160,180,085 original Entry parquet bytes without copying. Physical M1 views are published: TRAIN 4,884,638 rows, control 382,744 rows; all 652,552/70,880 Entry rows have exact first M1 states and every view market value matches its parent slice. 68 focused tests passed; real normalization population admission accepts frozen physical counts and rejects old 65,295/5,508 counts. No normalization was fitted. Use the bound child_coordinate_preparation_result, entry/child/M1 bindings and new preparation_readiness; do not rerun these producers. Next qualify closure/unknown gaps, complete state support and M1/MTF feature coverage on the new clocks, then bind normalization populations, no-cap indexes, separate TRAIN/control coordinates, native targets and same-current-function TARGET. Old base28 row positions and old five-year/native prefix assumptions cannot be reused. Economic readiness and later portfolio/generalization/parity gates remain incomplete. Derived-M5 production provenance remains unfinished. Training, normalization fitting, TEST, live/paper and spending remain closed; full B and macro promotion remain separate unfinished goals.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-10-01T17:59:09.333885+00:00",
+  "observed_utc": "2026-10-01T18:14:38.138089+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
