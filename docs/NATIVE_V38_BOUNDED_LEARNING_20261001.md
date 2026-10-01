@@ -539,3 +539,38 @@ Full inputbygging og populasjonskontroller er ikke relansert. TEST- og
 VAL-datasett/manifester sperres for denne kjøringen. Delte prisfeature-/
 MTF-inputs kan omfatte senere rader og identitetskontrolleres; bare fryst
 TRAIN-union tilpasses. Terminal og strict-load kreves før videre binding.
+
+Fullført 01.10 kl. 21:49:10 UTC med exit 0, kilde 300404cc uendret.
+BASE_NORMALIZATION_FIT_001 er fullført med exit 0 og strict-load PASS:
+alle 254 signalfelt, kontekst og M5/M15/H1/H4/D1 er tilpasset på fryst TRAIN.
+5 748 166 lokale feature-rader og 4 647 700 kontekstrader inngår; null VAL/TEST.
+Alle MTF-utvalg er tilgjengelige før TRAIN-slutt. Ingen modellforward/optimizer.
+Basefitten skal gjenbrukes; tillatelsen er brukt opp. Før indeksbygg gjenstår
+lifetime-statistikk, no-cap-økonomibinding og samlet norm-/førstetilstandsbevis.
+Native trening og TEST er stengt; ingen edge er dokumentert.
+
+TRAIN-beslutninger: 652 552 Entry og 3 995 148 M1-stater. Lokal union
+er 955 670 M5-rader + 4 792 496 M1-historikkrader. Kausal MTF-normalisering
+brukt unike M5=864 831, M15=331 256, H1=83 704, H4=21 727 og D1=3 867.
+Siste tilstandsbar er 30.05.2025 kl. 20:59 UTC; alle MTF-barer var
+tilgjengelige senest siste TRAIN-beslutning og før 01.06.2025. Historisk
+kontekst før første TRAIN-entry er del av kausale inputvinduer.
+Registrert maksimal prosess-RSS er 10 709 020 KiB. Dette er en annen
+regnskapsstørrelse enn cgroup-minne; den verifiserte 10 GiB-cgroup-grensen
+var aktiv, og jobben avsluttet normalt. Ikke kall RSS en målt cgroup-topp.
+
+normalization: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/BASE_NORMALIZATION/normalization.json
+SHA256: b2232f23f6e5c335b7102996427e9fcd6fbf51f11956afc5b3e7e0c20bd54a36.
+
+result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/EVENTS/RESULT_20261001T214910084388Z.json
+SHA256: ffd68318389cd6802a4082fe5c4d7e5ea121938361b9a4ccc193a042846c331c.
+
+terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/EVENTS/TERMINAL_20261001T214910104710Z.json
+SHA256: 400e1b69fc06682c7aa297b73cd4657e00d89eddc52a6a98dba71aee91af7fb6.
+
+final_review: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/EVENTS/FINAL_NORMALIZATION_REVIEW_20261001T215731942694Z.json
+SHA256: 846a3042232dbf1a01c04ffbafe980243303cee131cf50314f3ab87f320ad033.
+
+Nøkterne grenser: dette er inputstatistikk og konsistens, ikke modellfit,
+læringsmåling, økonomi eller train/serve-paritet. Lifetime-normalisering og
+samlet førstetilstands-/indeksbinding gjenstår. Full B forblir ufullført.

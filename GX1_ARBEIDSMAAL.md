@@ -5,9 +5,13 @@ statistikkfit. Feil vitne, byttede filer, feil MTF-sti og endrede bytes avvises.
 Den eksisterende diskbaserte M1-innleseren erstatter store RAM-kopier;
 historikkunion beregnes per sammenhengende intervall i stedet for per rad.
 25 fokuserte tester består, inkludert eksakt normparitet og navnekollisjon.
-BASE_NORMALIZATION_FIT_001 er nå bundet til én CPU-fit av basestatistikk på
-hele kvalifisert TRAIN, før sampling. Dette løser en forutsetning for indeksene.
-Bare denne normfitten er åpnet; lifetime-fit, modelltrening og TEST er stengt.
+BASE_NORMALIZATION_FIT_001 er fullført med exit 0 og strict-load PASS:
+alle 254 signalfelt, kontekst og M5/M15/H1/H4/D1 er tilpasset på fryst TRAIN.
+5 748 166 lokale feature-rader og 4 647 700 kontekstrader inngår; null VAL/TEST.
+Alle MTF-utvalg er tilgjengelige før TRAIN-slutt. Ingen modellforward/optimizer.
+Basefitten skal gjenbrukes; tillatelsen er brukt opp. Før indeksbygg gjenstår
+lifetime-statistikk, no-cap-økonomibinding og samlet norm-/førstetilstandsbevis.
+Native trening og TEST er stengt; ingen edge er dokumentert.
 
 
 Hele TRAIN-sekvenskontrollen er fullført: alle 652 552 seq/snap-rader
@@ -19,7 +23,8 @@ Kun M5-klokken lastes der signalverdier allerede er kontrollert.
 19 fokuserte tester består. NORMALIZATION_POPULATION_001 er fullført med
 exit 0: hele TRAINs 652 552 entryer gir 955 670 unike M5-kontekstrader og
 3 995 148 unike observerbare M1-tilstander. M1-unionen matcher uavhengig
-den tidligere kontrollerte geometrien eksakt. Ingen statistikk er tilpasset.
+den tidligere kontrollerte geometrien eksakt. Denne populasjonskontrollen
+tilpasset ingen statistikk; basefitten øverst er fullført senere.
 Gjenbruk de tre publiserte inputartefaktene; ikke relanser produsenten.
 Neste steg er tilstandsindekser og binding av normalisering/mål med separate
 TRAIN-/kontrollkoordinater. Native launch, læring og økonomi gjenstår.
@@ -82,7 +87,7 @@ nå stående operatørinstruks. Aldri avbryt en aktiv jobb for periodisk omstart
 Gammel lærer fjerner dagens parameterfrie normalisering; ny fersk måling skal
 bruke samme aktuelle funksjon for ONLINE og TARGET. Indekser, normalisering
 og mål-/økonomibindinger gjenstår. Native trening er
-fortsatt stengt; bare navngitt base-normaliseringsfit øverst er åpnet. Eldre neste-steg-tekst er historikk.
+fortsatt stengt; base-normaliseringsfitten øverst er fullført. Eldre neste-steg-tekst er historikk.
 
 ## Aktivt mål 01.10 — makrotest fullført, native læringsbevis gjenstår
 

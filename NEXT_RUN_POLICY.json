@@ -2128,12 +2128,27 @@
     "training_launch_authority": false
   },
   "native_v38_preparation_20261001": {
+    "base_normalization": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/BASE_NORMALIZATION/normalization.json",
+      "sha256": "b2232f23f6e5c335b7102996427e9fcd6fbf51f11956afc5b3e7e0c20bd54a36"
+    },
     "base_normalization_fit": {
+      "authorization_consumed": true,
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/EVENTS/FINAL_NORMALIZATION_REVIEW_20261001T215731942694Z.json",
+        "sha256": "846a3042232dbf1a01c04ffbafe980243303cee131cf50314f3ab87f320ad033"
+      },
       "focused_tests_passed": 25,
       "lifetime_summary_fit_authorized": false,
       "model_forwards": 0,
       "native_training_enabled": false,
-      "normalization_fit_authorized": true,
+      "normalization": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/BASE_NORMALIZATION/normalization.json",
+        "sha256": "b2232f23f6e5c335b7102996427e9fcd6fbf51f11956afc5b3e7e0c20bd54a36"
+      },
+      "normalization_contract_sha256": "a117287dad44bc255d719606c686ea2b59e6196df75118e3a8af0353ad6b7dba",
+      "normalization_fit_authorized": false,
+      "normalization_fit_completed": true,
       "normalization_fit_scope": "base physical TRAIN feature transforms only",
       "operator": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/OPERATOR_002.py",
@@ -2144,8 +2159,16 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/PLAN.json",
         "sha256": "e09500b4a7e75c451a0b047b8e2bdae30efc2fd90509a395e63387ba370dddf4"
       },
-      "source_frozen_while_running": true,
-      "status": "BOUND_NOT_LAUNCHED"
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/EVENTS/RESULT_20261001T214910084388Z.json",
+        "sha256": "ffd68318389cd6802a4082fe5c4d7e5ea121938361b9a4ccc193a042846c331c"
+      },
+      "source_frozen_while_running": false,
+      "status": "COMPLETE_FULL_TRAIN_BASE_NORMALIZATION_NO_MODEL_LEARNING",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/BASE_NORMALIZATION_FIT_001/EVENTS/TERMINAL_20261001T214910104710Z.json",
+        "sha256": "400e1b69fc06682c7aa297b73cd4657e00d89eddc52a6a98dba71aee91af7fb6"
+      }
     },
     "calendar_admission_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/CALENDAR_ADMISSION_REVIEW.json",
@@ -2236,7 +2259,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "FROZEN_DESIGN_TRAIN_POPULATION_VERIFIED_STATE_INDEX_NORMALIZATION_FIT_TARGET_BINDINGS_REQUIRED_NO_LAUNCH",
+    "learning_design_status": "FULL_TRAIN_BASE_NORMALIZATION_COMPLETE_LIFETIME_FINAL_BINDINGS_INDEX_TARGETS_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
     "m1_feature_base": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_FEATURE_BASE/m1_feature_base.parquet",
@@ -2327,8 +2350,8 @@
     },
     "native_training_enabled": false,
     "new_dataset_complete": true,
-    "normalization_fit_authorized": true,
-    "normalization_fit_scope": "BASE_NORMALIZATION_FIT_001 only; full qualified physical TRAIN before sampler; no lifetime summary fit or model training",
+    "normalization_fit_authorized": false,
+    "normalization_fit_scope": "Completed base fit authorization consumed; no refit or lifetime-summary fit bound yet",
     "normalization_population": {
       "artifacts": {
         "CHILD_NORMALIZATION_VIEW.json": {
