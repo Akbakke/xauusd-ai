@@ -2561,7 +2561,37 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COMPLETION_REVIEW.json",
       "sha256": "d8f6c847b6978846151de2ee7647594f06d07cb188469743f9c25cdb775a1139"
     },
+    "cost_publication_review": {
+      "broker_requests_performed": 0,
+      "existing_evidence_preserved_on_failure": true,
+      "failed_staging_preserved_for_retention": true,
+      "focused_tests_passed": 38,
+      "new_real_cost_authority_published": false,
+      "publication": "fsync_and_atomic_no_replace",
+      "reviewed_at_utc": "2026-10-01T23:37:22.003647+00:00",
+      "source_and_test_file_sha256": {
+        "gx1/contracts/unified_exit_no_cap_economic_authority_v1.py": "d0482c9a97d9ffc6c1e88740d8f798d7dba87f66b60938e64e7d7eb382593f05",
+        "gx1/contracts/unified_exit_prospective_cost_policy_v1.py": "086c515c348b53ffe32b7a4872d2f78adc1f9ac7e9d409b792fda416b593df7b",
+        "gx1/scripts/build_unified_exit_no_cap_authority_v1.py": "99bbde8d104bba1b451a979520874e9a04d752e47cc9ce2cfb9ece4d549ca108",
+        "gx1/scripts/build_unified_exit_training_economics_readiness_v1.py": "394513e9edfe6492145fc287bf1662a11627564e2376c35a1350064f2a6a958a",
+        "gx1/scripts/materialize_unified_exit_prospective_cost_policy_v1.py": "5528c3e46dbb52d3aa63edce0ccfbde001346cac9fdcfbee1dd26f95bfb867b9",
+        "tests/test_build_unified_exit_training_economics_readiness_v1.py": "4388f1ff31e313748b1dbda197365fdca05fd8e4f4a312b9553788bcfc51081b",
+        "tests/test_unified_exit_no_cap_authority_v1.py": "eef6adb98d64b3e211a93eb4a4b70b3e4d6fa523bd6c807434f19edb5fffbb16",
+        "tests/test_unified_exit_prospective_cost_policy_v1.py": "fe482250b69e9aec719b464dcec33f26c0e3fea779473c0b8112bd364d05ef95"
+      },
+      "status": "PASS_SOURCE_AND_SYNTHETIC_TESTS_NO_REAL_COST_AUTHORITY",
+      "strict_load_before_final_publication": true,
+      "test_data_accessed": false,
+      "test_files": [
+        "tests/test_unified_exit_prospective_cost_policy_v1.py",
+        "tests/test_unified_exit_no_cap_authority_v1.py",
+        "tests/test_build_unified_exit_training_economics_readiness_v1.py"
+      ],
+      "training_enabled": false,
+      "unchanged_economics_parameters": true
+    },
     "cost_terms_revalidation": {
+      "authorization_question_pending": true,
       "authorization_scope": "One current OANDA practice account-summary GET and one XAU_USD instrument-terms GET; no redirects, retries, transactions, orders, trading, spending or TEST data. Reuse the exact frozen pre-cutoff observations and policy; sanitize the two responses locally.",
       "broker_requests_performed": 0,
       "focused_tests_passed": 15,
@@ -3055,7 +3085,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "The actual INDEX_SOURCE_AUDIT_001 completed with exit 0: exact current paths/calendar for 652552 TRAIN and 70880 VAL rows, no raw Parquet or TEST access. Reuse it and all completed normalization/final bindings. COST_TERMS_REVALIDATION_001 is fully prepared and mock-tested but read_only_broker_terms_authorized=false: ask for the narrow two-GET OANDA practice terms exception required by GX1_RULES before any broker request. While pending, safe local cost-policy/no-cap publication repairs may proceed. Never infer approval, use stale terms as current, publish indexes without economic authority, or refit completed inputs. Native training, TEST, live/paper and spending stay closed.",
+  "next_action": "The actual INDEX_SOURCE_AUDIT_001 completed with exit 0; reuse it and all completed normalization/final bindings. The cost-policy/no-cap/readiness publication repair passes 38 focused tests, with strict load before fsync/no-replace and failed evidence retained. No new real economics authority or indexes exist. The narrow two-GET OANDA practice terms exception has been requested from the user and is pending; read_only_broker_terms_authorized=false. Do not repeat the question or infer approval. Upon explicit approval record only that scoped exception before the prepared COST_TERMS_REVALIDATION_001. Reconcile any observed cost drift before a new 2011-onward prospective policy and economic/index authority. Native training, TEST, live/paper and spending stay closed.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],

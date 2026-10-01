@@ -5,9 +5,13 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import tempfile
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
+
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     FROZEN_CAPITAL_HURDLE_SCHEMA_VERSION,
@@ -65,13 +69,21 @@ def _read_json(path: Path, label: str) -> dict[str, Any]:
 
 
 def _write_atomic(path: Path, value: Mapping[str, Any]) -> None:
+    if path.exists() or path.is_symlink():
+        raise RuntimeError("EXIT_HURDLE_OUTPUT_EXISTS")
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.tmp")
-    temporary.write_text(
-        json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    payload = (json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
+    fd, name = tempfile.mkstemp(prefix=f".{path.name}.staging.", dir=path.parent)
+    stage = Path(name)
+    # Keep failed staging for the retention owner.
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(payload)
+        stream.flush()
+        os.fsync(stream.fileno())
+    if stage.read_bytes() != payload or json.loads(stage.read_text()) != value:
+        raise RuntimeError("EXIT_HURDLE_STAGED_BYTES_INVALID")
+    _publish_file_noreplace(stage, path)
+    _fsync_directory(path.parent)
 
 
 def require_capital_hurdle_method_receipt(

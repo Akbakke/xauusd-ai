@@ -146,3 +146,102 @@ def test_resealed_nonzero_risk_penalty_is_not_this_baseline(tmp_path: Path) -> N
             expected_coverage_end_utc=END,
             verify_local_sources=False,
         )
+
+
+
+def test_invalid_quote_coverage_never_publishes(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="EXECUTABLE_QUOTES_INVALID"):
+        _build(tmp_path, coverage_start_utc="2011-06-01T00:00:00+00:00")
+    assert not (tmp_path / "policy_bundle").exists()
+    assert len(list(tmp_path.glob(".policy_bundle.staging.*"))) == 1
+
+
+@pytest.mark.parametrize("with_sentinel", [False, True])
+def test_late_output_collision_preserves_existing_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, with_sentinel: bool,
+) -> None:
+    from gx1.scripts import materialize_unified_exit_prospective_cost_policy_v1 as producer
+    publish = producer._publish_file_noreplace
+    output = tmp_path / "policy_bundle"
+
+    def collide(stage: Path, destination: Path) -> None:
+        destination.mkdir()
+        if with_sentinel:
+            (destination / "keep").write_bytes(b"other attempt")
+        publish(stage, destination)
+
+    monkeypatch.setattr(producer, "_publish_file_noreplace", collide)
+    with pytest.raises(RuntimeError, match="already exists"):
+        _build(tmp_path)
+    assert output.is_dir()
+    assert sorted(p.name for p in output.iterdir()) == (["keep"] if with_sentinel else [])
+    if with_sentinel:
+        assert (output / "keep").read_bytes() == b"other attempt"
+
+
+@pytest.mark.parametrize("defect", ["byte_drift", "extra_file", "symlink"])
+def test_staging_defects_fail_before_publication(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, defect: str,
+) -> None:
+    from gx1.scripts import materialize_unified_exit_prospective_cost_policy_v1 as producer
+    write = producer._write
+
+    def corrupt(path: Path, value: object) -> None:
+        write(path, value)
+        if path.name == "parameter_authority.json":
+            if defect == "byte_drift":
+                policy = path.parent / "policy.json"
+                policy.write_bytes(policy.read_bytes() + b" ")
+            elif defect == "extra_file":
+                (path.parent / "unbound.json").write_text("{}")
+            else:
+                fact = path.parent / "facts/commission.fact.json"
+                saved = tmp_path / "outside.fact.json"
+                fact.rename(saved)
+                fact.symlink_to(saved)
+
+    monkeypatch.setattr(producer, "_write", corrupt)
+    with pytest.raises(RuntimeError, match="SOURCE_INVALID|STAGED_INVENTORY_INVALID"):
+        _build(tmp_path)
+    assert not (tmp_path / "policy_bundle").exists()
+    assert len(list(tmp_path.glob(".policy_bundle.staging.*"))) == 1
+
+
+def test_full_strict_load_precedes_publication(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.scripts import materialize_unified_exit_prospective_cost_policy_v1 as producer
+    require = producer.require_cost_parameter_authority
+    calls = []
+
+    def inspect(*args, **kwargs):
+        assert not (tmp_path / "policy_bundle").exists()
+        assert kwargs["_staged_files"]
+        checked = require(*args, **kwargs)
+        calls.append(checked["authority_sha256"])
+        return checked
+
+    monkeypatch.setattr(producer, "require_cost_parameter_authority", inspect)
+    result = _build(tmp_path)
+    assert calls == [result["parameter_authority"]["authority_sha256"]]
+
+
+def test_postpublication_fsync_failure_never_deletes_bundle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.scripts import materialize_unified_exit_prospective_cost_policy_v1 as producer
+    fsync = producer._fsync_directory
+
+    def fail_parent(path: Path) -> None:
+        if path == tmp_path:
+            raise OSError("injected directory fsync failure")
+        fsync(path)
+
+    monkeypatch.setattr(producer, "_fsync_directory", fail_parent)
+    with pytest.raises(OSError, match="injected"):
+        _build(tmp_path)
+    authority = json.loads((tmp_path / "policy_bundle/parameter_authority.json").read_text())
+    require_cost_parameter_authority(
+        authority, expected_coverage_start_utc=START, expected_coverage_end_utc=END,
+        verify_local_sources=False,
+    )

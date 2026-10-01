@@ -813,3 +813,34 @@ ble rettet før siste grønne testkjøring; produksjonsfeltet ble bevart.
 Ny vilkårsevidens blir fortsatt ikke historisk kostnadsfasit eller
 lønnsomhetsbevis. Hvis dagens gebyr-/finansieringsvilkår avviker fra den
 forhåndsregistrerte policyen, må policybindingen vurderes separat før bruk.
+
+## Kostnadspublisering rettet; brukerunntak avventes — 02.10.2026
+
+Kostnadskjedens publisering er nå rettet i eksisterende eiere:
+sluttkontroll av alle hashbundne bytes før publisering, fsync og atomisk
+no-replace. Eksisterende bevis overskrives eller slettes ikke ved feil;
+mislykket staging bevares for retention-eieren. 38 fokuserte tester består.
+Ingen kostnadstall er endret, og ingen ny reell kostnadspakke er publisert.
+Brukerspørsmålet om den avgrensede vilkårskontrollen er sendt; svar avventes.
+
+Kildebevist feil: kostnadspolicyprodusenten brukte overskrivbar rename før
+strict-load og slettet målkatalogen ved unntak. No-cap- og readiness-eierne
+brukte fast midlertidig fil og replace. De bruker nå den eksisterende
+immutable-eierens no-replace-operasjon. Endelige filstier og hasher bevares
+gjennom en eksplisitt staging-lesekobling; ordinære lesere bruker fortsatt
+de endelige filene og strenge hasher. No-cap publiserer autoritet sist,
+etter ny kontroll av dens varige kildefiler. Feilet staging slettes bare
+gjennom retention-eieren.
+
+Målt på syntetiske testdata: 38 beståtte tester, inkludert for kort
+quotedekning, korrupte staging-bytes, ekstra filer/symlinker, kollisjon
+med tom eller fylt målkatalog, sen filkollisjon, kildeendring mellom
+counts og autoritet samt fsync-feil etter publisering. Syntaks,
+stale-path-kontroll og diff-sjekk består. Ingen parameterverdi, modell,
+mål eller populasjon ble endret. Omfattende innrykkdiff i policyprodusenten
+skyldes fjerning av try/except-grenen som slettet output; innholdet
+ellers er bevart. Gjeldende policy og økonomiske konklusjoner er uendret.
+
+Ubevist: ny faktisk kostnadsautoritet, nåværende brokervilkår, indeksbygg,
+native læring og handelsøkonomi. Det uttrykkelige brukerunntaket er
+fortsatt ikke mottatt; ingen brokerforespørsel er utført.

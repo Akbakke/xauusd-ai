@@ -206,3 +206,52 @@ def test_no_cap_authority_rejects_implicit_zero(tmp_path: Path) -> None:
             economics_fact_manifest_path=facts_path,
             publish=True,
         )
+
+
+
+def _publication_kwargs(tmp_path: Path) -> dict:
+    readiness = tmp_path / "economics.readiness.json"
+    _readiness(readiness)
+    return dict(
+        output_dir=tmp_path / "authority", dataset_run_id="pilot-one-year",
+        split="train", entry_rows=3,
+        coverage_start_utc="2024-01-01T00:00:00+00:00",
+        coverage_end_utc="2025-01-01T00:00:00+00:00",
+        economics_readiness_path=readiness,
+        economics_fact_manifest_path=_facts(tmp_path), publish=True,
+    )
+
+
+@pytest.mark.parametrize("existing", ["counts", "authority"])
+def test_no_cap_existing_artifact_is_preserved_before_any_publication(
+    tmp_path: Path, existing: str,
+) -> None:
+    kwargs = _publication_kwargs(tmp_path)
+    output = kwargs["output_dir"]
+    output.mkdir()
+    name = f"train.economic_{existing}.no_cap.v1.json"
+    (output / name).write_bytes(b"existing evidence")
+    with pytest.raises(RuntimeError, match="OUTPUT_EXISTS"):
+        build_no_cap_authority(**kwargs)
+    assert list(output.iterdir()) == [output / name]
+    assert (output / name).read_bytes() == b"existing evidence"
+
+
+def test_no_cap_source_drift_leaves_no_authority_and_preserves_counts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.scripts import build_unified_exit_no_cap_authority_v1 as producer
+    kwargs = _publication_kwargs(tmp_path)
+    write = producer._write_atomic
+
+    def drift(path: Path, value: object) -> None:
+        write(path, value)
+        if ".economic_counts." in path.name:
+            kwargs["economics_fact_manifest_path"].write_text("{}")
+
+    monkeypatch.setattr(producer, "_write_atomic", drift)
+    with pytest.raises(RuntimeError, match="AUTHORITY_SOURCE_INVALID"):
+        build_no_cap_authority(**kwargs)
+    output = kwargs["output_dir"]
+    assert (output / "train.economic_counts.no_cap.v1.json").is_file()
+    assert not (output / "train.economic_authority.no_cap.v1.json").exists()

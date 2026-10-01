@@ -54,6 +54,17 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _publication_source_path(
+    path: Path, staged_files: Mapping[str, Path] | None,
+) -> Path:
+    """Read final-bound bytes from their explicit staging location before publication."""
+    source = path if staged_files is None else staged_files.get(str(path), path)
+    if (not path.is_absolute() or path.is_symlink()
+            or not source.is_absolute() or source.is_symlink()):
+        raise RuntimeError("UNIFIED_EXIT_NO_CAP_STAGED_SOURCE_INVALID")
+    return source
+
+
 def _sha(value: Any, label: str) -> str:
     if (
         not isinstance(value, str)
@@ -85,6 +96,7 @@ def require_economics_component_fact(
     component: str,
     expected_coverage_start_utc: Any,
     expected_coverage_end_utc: Any,
+    _staged_files: Mapping[str, Path] | None = None,
 ) -> dict[str, Any]:
     keys = {
         "schema_version", "decision", "component", "verifier_schema_version",
@@ -96,7 +108,9 @@ def require_economics_component_fact(
     if not isinstance(value, Mapping) or set(value) != keys:
         raise RuntimeError("UNIFIED_EXIT_NO_CAP_ECONOMICS_FACT_INVALID")
     observed = dict(value)
-    source_path = Path(str(observed["source_evidence_path"] or ""))
+    source_path = _publication_source_path(
+        Path(str(observed["source_evidence_path"] or "")), _staged_files,
+    )
     start = _utc(observed["coverage_start_utc"], "FACT_COVERAGE_START")
     end = _utc(observed["coverage_end_utc"], "FACT_COVERAGE_END")
     expected_start = _utc(expected_coverage_start_utc, "EXPECTED_COVERAGE_START")
@@ -140,6 +154,7 @@ def require_economics_fact_manifest(
     *,
     expected_coverage_start_utc: Any,
     expected_coverage_end_utc: Any,
+    _staged_files: Mapping[str, Path] | None = None,
 ) -> dict[str, Any]:
     keys = {
         "schema_version", "decision", "coverage_start_utc", "coverage_end_utc",
@@ -171,7 +186,7 @@ def require_economics_fact_manifest(
             "path", "file_sha256", "artifact_sha256"
         }:
             raise RuntimeError("UNIFIED_EXIT_NO_CAP_FACT_MANIFEST_INVALID")
-        path = Path(str(binding["path"] or ""))
+        path = _publication_source_path(Path(str(binding["path"] or "")), _staged_files)
         if (
             not path.is_absolute()
             or not path.is_file()
@@ -184,6 +199,7 @@ def require_economics_fact_manifest(
             component=component,
             expected_coverage_start_utc=expected_coverage_start_utc,
             expected_coverage_end_utc=expected_coverage_end_utc,
+            _staged_files=_staged_files,
         )
         if checked["artifact_sha256"] != binding["artifact_sha256"]:
             raise RuntimeError("UNIFIED_EXIT_NO_CAP_FACT_MANIFEST_INVALID")

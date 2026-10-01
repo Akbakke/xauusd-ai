@@ -5,10 +5,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 
 from gx1.contracts.unified_exit_fitted_q_v1 import (
     require_unified_exit_unbounded_training_readiness,
@@ -20,6 +24,8 @@ from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import (
     canonical_sha256,
     file_sha256,
     require_economics_fact_manifest,
+    require_no_cap_authority,
+    require_no_cap_authority_sources,
     seal_no_cap_authority,
 )
 from gx1.scripts.materialize_unified_exit_lifecycle_v2 import (
@@ -47,10 +53,21 @@ def _bytes(value: Any) -> bytes:
 
 
 def _write_atomic(path: Path, value: Any) -> None:
+    if path.exists() or path.is_symlink():
+        raise RuntimeError("NO_CAP_AUTHORITY_OUTPUT_EXISTS")
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.tmp")
-    temporary.write_bytes(_bytes(value))
-    temporary.replace(path)
+    payload = _bytes(value)
+    fd, name = tempfile.mkstemp(prefix=f".{path.name}.staging.", dir=path.parent)
+    stage = Path(name)
+    # Keep failed staging for the retention owner.
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(payload)
+        stream.flush()
+        os.fsync(stream.fileno())
+    if stage.read_bytes() != payload or json.loads(stage.read_text()) != value:
+        raise RuntimeError("NO_CAP_AUTHORITY_STAGED_BYTES_INVALID")
+    _publish_file_noreplace(stage, path)
+    _fsync_directory(path.parent)
 
 
 def build_no_cap_authority(
@@ -174,11 +191,17 @@ def build_no_cap_authority(
             "test_data_used": False,
         }
     )
+    require_no_cap_authority(
+        authority, expected_split=split, expected_dataset_run_id=dataset_run_id,
+        expected_terminal_state_counts_sha256=terminal_hash,
+    )
     if publish:
+        if any(path.exists() or path.is_symlink() for path in (counts_path, authority_path)):
+            raise RuntimeError("NO_CAP_AUTHORITY_OUTPUT_EXISTS")
         _write_atomic(counts_path, counts)
+        # Authority is the last publication and refers only to verified durable sources.
+        require_no_cap_authority_sources(authority)
         _write_atomic(authority_path, authority)
-        if file_sha256(counts_path) != counts_sha256:
-            raise RuntimeError("NO_CAP_AUTHORITY_COUNTS_WRITE_INVALID")
     return {
         "decision": "PASS" if publish else "PASS_NOT_PUBLISHED",
         "counts_path": str(counts_path),

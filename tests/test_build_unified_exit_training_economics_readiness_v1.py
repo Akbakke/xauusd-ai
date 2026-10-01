@@ -94,3 +94,71 @@ def test_builder_rejects_tampered_source_method(tmp_path: Path) -> None:
             policy_sha256="4" * 64,
             publish=False,
         )
+
+
+
+def test_train_and_val_readiness_cannot_overwrite_existing_evidence(tmp_path: Path) -> None:
+    receipt = _receipt(tmp_path)
+    train = tmp_path / "train.json"
+    kwargs = dict(
+        output_path=train, method_receipt_path=receipt,
+        train_split_sha256="1" * 64, train_fold_sha256="2" * 64,
+        source_lineage_sha256="3" * 64, policy_sha256="4" * 64, publish=True,
+    )
+    build_training_economics_readiness(**kwargs)
+    before = train.read_bytes()
+    with pytest.raises(RuntimeError, match="OUTPUT_EXISTS"):
+        build_training_economics_readiness(**kwargs)
+    assert train.read_bytes() == before
+    val = tmp_path / "val.json"
+    val.write_bytes(b"preserved VAL evidence")
+    with pytest.raises(RuntimeError, match="OUTPUT_EXISTS"):
+        build_val_economics_reference(
+            output_path=val, train_readiness_path=train,
+            val_split_sha256="5" * 64, publish=True,
+        )
+    assert val.read_bytes() == b"preserved VAL evidence"
+
+
+@pytest.mark.parametrize("owner", ["build_unified_exit_training_economics_readiness_v1", "build_unified_exit_no_cap_authority_v1"])
+def test_late_file_collision_is_never_overwritten(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, owner: str,
+) -> None:
+    import importlib
+    module = importlib.import_module("gx1.scripts." + owner)
+    publish = module._publish_file_noreplace
+    destination = tmp_path / "immutable.json"
+
+    def collide(stage: Path, final: Path) -> None:
+        final.write_bytes(b"other attempt")
+        publish(stage, final)
+
+    monkeypatch.setattr(module, "_publish_file_noreplace", collide)
+    with pytest.raises(RuntimeError, match="already exists"):
+        module._write_atomic(destination, {"decision": "PASS"})
+    assert destination.read_bytes() == b"other attempt"
+    failed = list(tmp_path.glob(".immutable.json.staging.*"))
+    assert len(failed) == 1
+    assert json.loads(failed[0].read_text()) == {"decision": "PASS"}
+
+
+@pytest.mark.parametrize("owner", ["build_unified_exit_training_economics_readiness_v1", "build_unified_exit_no_cap_authority_v1"])
+def test_corrupt_staging_is_rejected_before_final_file_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, owner: str,
+) -> None:
+    import importlib
+    module = importlib.import_module("gx1.scripts." + owner)
+    read = Path.read_bytes
+    destination = tmp_path / "immutable.json"
+
+    def corrupt_read(path: Path) -> bytes:
+        payload = read(path)
+        return payload + b" " if ".staging." in path.name else payload
+
+    monkeypatch.setattr(Path, "read_bytes", corrupt_read)
+    with pytest.raises(RuntimeError, match="STAGED_BYTES_INVALID"):
+        module._write_atomic(destination, {"decision": "PASS"})
+    assert not destination.exists()
+    failed = list(tmp_path.glob(".immutable.json.staging.*"))
+    assert len(failed) == 1
+    assert json.loads(failed[0].read_text()) == {"decision": "PASS"}

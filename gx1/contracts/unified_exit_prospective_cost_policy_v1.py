@@ -14,6 +14,7 @@ import pandas as pd
 from gx1.contracts.unified_exit_broker_evidence_v1 import require_unified_exit_broker_evidence_v1
 from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import (
     REQUIRED_COMPONENTS,
+    _publication_source_path,
     canonical_sha256,
     file_sha256,
     require_economics_fact_manifest,
@@ -68,7 +69,10 @@ def _source(value: Any, label: str, verify: bool) -> dict[str, str]:
     return {"path": str(path), "sha256": digest}
 
 
-def _artifact(value: Any, label: str, key: str, verify: bool) -> dict[str, str]:
+def _artifact(
+    value: Any, label: str, key: str, verify: bool,
+    staged_files: Mapping[str, Path] | None = None,
+) -> dict[str, str]:
     if not isinstance(value, Mapping) or set(value) != {"path", "file_sha256", key}:
         raise RuntimeError(f"PROSPECTIVE_COST_{label}_BINDING_INVALID")
     path = Path(str(value["path"] or ""))
@@ -76,7 +80,8 @@ def _artifact(value: Any, label: str, key: str, verify: bool) -> dict[str, str]:
     artifact_digest = _sha(value[key], f"{label}_ARTIFACT")
     if not path.is_absolute() or path.is_symlink():
         raise RuntimeError(f"PROSPECTIVE_COST_{label}_BINDING_INVALID")
-    if verify and (not path.is_file() or file_sha256(path) != file_digest):
+    source = _publication_source_path(path, staged_files)
+    if verify and (not source.is_file() or file_sha256(source) != file_digest):
         raise RuntimeError(f"PROSPECTIVE_COST_{label}_SOURCE_INVALID")
     return {"path": str(path), "file_sha256": file_digest, key: artifact_digest}
 
@@ -270,6 +275,7 @@ def require_cost_method_receipt(value: Mapping[str, Any], *, expected_policy_sha
 def require_cost_parameter_authority(
     value: Mapping[str, Any], *, expected_coverage_start_utc: Any,
     expected_coverage_end_utc: Any, verify_local_sources: bool = True,
+    _staged_files: Mapping[str, Path] | None = None,
 ) -> dict[str, Any]:
     keys = {"schema_version", "decision", "historical_cost_truth_qualified", "economics_pass_claimed",
             "preregistered_at_utc", "coverage_start_utc", "coverage_end_utc_exclusive", "policy",
@@ -293,9 +299,9 @@ def require_cost_parameter_authority(
             or observed["future_train_only_risk_sweep_required"] is not True):
         raise RuntimeError("PROSPECTIVE_COST_AUTHORITY_HEADER_INVALID")
 
-    policy_binding = _artifact(observed["policy"], "AUTH_POLICY", "artifact_sha256", verify_local_sources)
+    policy_binding = _artifact(observed["policy"], "AUTH_POLICY", "artifact_sha256", True, _staged_files)
     policy = require_prospective_cost_policy(
-        json.loads(Path(policy_binding["path"]).read_text()),
+        json.loads(_publication_source_path(Path(policy_binding["path"]), _staged_files).read_text()),
         expected_coverage_start_utc=start, expected_coverage_end_utc=end,
         verify_local_sources=verify_local_sources,
     )
@@ -303,18 +309,19 @@ def require_cost_parameter_authority(
             or observed["preregistered_at_utc"] != policy["preregistered_at_utc"]):
         raise RuntimeError("PROSPECTIVE_COST_AUTHORITY_POLICY_INVALID")
 
-    method_binding = _artifact(observed["method_receipt"], "AUTH_METHOD", "receipt_sha256", verify_local_sources)
+    method_binding = _artifact(observed["method_receipt"], "AUTH_METHOD", "receipt_sha256", True, _staged_files)
     method = require_cost_method_receipt(
-        json.loads(Path(method_binding["path"]).read_text()),
+        json.loads(_publication_source_path(Path(method_binding["path"]), _staged_files).read_text()),
         expected_policy_sha256=policy["artifact_sha256"],
     )
     if method["receipt_sha256"] != method_binding["receipt_sha256"]:
         raise RuntimeError("PROSPECTIVE_COST_AUTHORITY_METHOD_INVALID")
 
-    manifest_binding = _artifact(observed["economics_fact_manifest"], "AUTH_MANIFEST", "manifest_sha256", verify_local_sources)
+    manifest_binding = _artifact(observed["economics_fact_manifest"], "AUTH_MANIFEST", "manifest_sha256", True, _staged_files)
     manifest = require_economics_fact_manifest(
-        json.loads(Path(manifest_binding["path"]).read_text()),
+        json.loads(_publication_source_path(Path(manifest_binding["path"]), _staged_files).read_text()),
         expected_coverage_start_utc=start, expected_coverage_end_utc=end,
+        _staged_files=_staged_files,
     )
     if manifest["manifest_sha256"] != manifest_binding["manifest_sha256"]:
         raise RuntimeError("PROSPECTIVE_COST_AUTHORITY_MANIFEST_INVALID")

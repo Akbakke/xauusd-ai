@@ -22,6 +22,13 @@ er false; klargjøring er ingen godkjenning. Kostnadspolicyen krever ferske
 vilkår og dekning fra 2011 før økonomi-/indeksbinding kan ferdigstilles.
 Native trening, TEST, live/paper og spending er fortsatt stengt.
 
+Kostnadskjedens publisering er nå rettet i eksisterende eiere:
+sluttkontroll av alle hashbundne bytes før publisering, fsync og atomisk
+no-replace. Eksisterende bevis overskrives eller slettes ikke ved feil;
+mislykket staging bevares for retention-eieren. 38 fokuserte tester består.
+Ingen kostnadstall er endret, og ingen ny reell kostnadspakke er publisert.
+Brukerspørsmålet om den avgrensede vilkårskontrollen er sendt; svar avventes.
+
 Base- og lifetime-normaliseringen samt samlede førstetilstands-bindinger
 er fullført. Lifetime-fit: 8 053 838 siderader fra alle 652 552 TRAIN-entryer;
 VAL/TEST-fit = 0. FINAL_BINDINGS_002 sluttet med exit 0 og uendret kilde.
@@ -37,13 +44,13 @@ godta kryssede eller ugyldige priser. Fokuserte tester: 29, 7 og 22 i
 de tre respektive endringsbølgene; påkrevde Git-kontraktssjekker består.
 Det feilede FINAL_BINDINGS_001 er bevart; ingen normalisering er refittet.
 
-Neste: eksisterende indekseier må bindes til nye eksplisitte stier/kalender.
-Før faktisk indeksbygg må no-cap-kostnadsdekning fra 2011 og policyens
-krav til oppdaterte broker-vilkår avklares. Gammel policy starter i 2021
-og sist registrerte kontoverifisering er 10.09.2026. Broker er stengt.
-Deretter gjenstår mål, separate TRAIN/kontrollkoordinater og lærerparitet.
+Neste: avklar det utsendte, snevre spørsmålet om ferske brokervilkår.
+Et uttrykkelig ja åpner bare den klargjorte lesekontrollen; eventuelt
+avvik i kostnadsvilkår må vurderes før en ny policy bindes fra 2011.
+Deretter ferdigstilles økonomiautoritet, faktiske indekser, mål, separate
+TRAIN/kontrollkoordinater og lærerparitet. Indekseierens kildekobling er
+allerede rettet og målt; ikke relanser ferdige produsenter.
 Native trening, TEST, live/paper og spending er stengt. Ingen edge er bevist.
-Gjenbruk fullførte artefakter; ikke relanser produsentene.
 
 Historisk teknisk bakgrunn følger. Tidligere neste-steg-tekst nedenfor
 er erstattet av sammendraget over og gjeldende next_action i statusfilene.
