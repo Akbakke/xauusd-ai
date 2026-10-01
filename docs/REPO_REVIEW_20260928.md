@@ -1,5 +1,72 @@
 # Repo-gjennomgang og konkret opprydding — 28.09.2026
 
+## Oppfølging 01.10.2026 — kildekontroll og minimal opprydding
+
+Gjennomgangen bygger på `4a04921a57ce33833bc4c4a71bf69e0e5c0033ac` i
+`/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Handover viste rent
+arbeidstre, ingen native prosess og stengt trening. Prosjektlåsen var ikke holdt.
+Målet er en fullstendig automatisk XAUUSD-bot; dagens godkjente omfang er fortsatt
+offline forskning. Ingen akseptert, lønnsom v38-modell eller handelsstart er etablert.
+
+### Konkrete funn og rettelser
+
+| Funn | Minste rettelse |
+|---|---|
+| Begge gjeldende JSON-filer hadde v38-status, men `handover_resume_point` pekte til blokkert full B. | Pekeren følger nå `docs/TA_SWEEP_AVWAP_20260930.md`, seksjonen om native funksjon og gjenstående arbeid. |
+| `_load_declared_gate_event` i Entry-adapteren hadde ingen kallere etter pensjoneringen av registerbasert launch. | Fjernet funksjonen, dens private SHA-hjelper og importer som bare denne døde kjeden brukte. De aktive bundle-/sizing-eierne består. |
+| `_require_finite_number` i MTF-eieren hadde ingen referanser. | Fjernet den frakoblede hjelperen. Ingen aktiv formel eller validering ble endret. |
+| Adapterens modultekst beskrev fortsatt lasting fra aktivt register. | Beskriver nå eksplisitt bundle-last for offline paritetsbevis og den eksisterende bundne Exit-recovery-ruten. |
+
+Kallstedssøk omfattet sporede kode-, test- og dokumentfiler. AST-sammenligning
+viser at alle gjenværende funksjoner og klasser i de to endrede kodefilene er
+uendret. Tre hjelpere med 69 funksjonslinjer er fjernet. Dette er mindre
+vedlikehold, ikke dokumentert raskere trening eller bedre økonomi.
+Filenes kildehasher endres; eldre artefakter skal ikke ommerkes eller antas å
+ha ny kildeidentitet. Eksisterende artefakteiere avgjør eventuell gjenbruk.
+
+### Kontrollert nå
+
+- 903 sporede filer er hashregistrert før endringen.
+- Alle 589 Python-filer består AST-syntaks; alle 139 JSON-filer kan parses.
+- Statisk kontroll av absolutte interne modulimporter under `gx1/` og
+  `scripts/` finner ingen manglende modulfiler. Dynamiske importer og alle
+  runtime-grener er ikke dermed bevist.
+- Eksekverte kontrakteiere gir signal v38: 25 basis + 162 obligatoriske +
+  67 kandidater = 254 felt og åtte familier. Alle 12 nye ankermålinger rutes
+  til `smc_liquidity_encoder`.
+- Eksisterende native inputaudit: manifest, resultat og terminal er
+  hashkontrollert på nytt. Ingen markedsberegning er kjørt om.
+- 222 fokuserte tester består gjennom capped audit med 4 GiB minnetak:
+  Entry-adapter, MTF-cacheintegritet, handover og felt-/familieruting.
+- Syntaks, gjenværende symbolreferanser og `git diff --check` er kontrollert.
+  Pre-commit kjører eksisterende obligatoriske porter før commit.
+
+Maskinbevis og logger i
+`/home/andre2/GX1_RUNS/REPO_REVIEW_20261001_001/`:
+`SOURCE_INVENTORY_BEFORE.json`, `DEAD_CODE_PROOF.json`, `REVIEW.json`,
+`FOCUSED_TESTS.log` og `FOCUSED_TESTS_TERMINAL.json`.
+
+### Gjenstående grenser mot automatisk handel
+
+Koden er v38, mens siste komplette native datasett er v37 med 242 felt.
+Dette er et eksplisitt kompatibilitetsbrudd: nye feature-/datasett-/
+normaliseringsartefakter og ny initialbaseline gjenstår. Lært tilleggsverdi,
+senere generalisering og nettoøkonomi er ikke målt for v38.
+Full B er fortsatt blokkert på GLD/COT-versjonshistorikk og VIX-klokke.
+
+Felles Entry/Exit-arkitektur og paritetsadapter finnes. Faktisk train/serve-
+paritet for en ny bundle er ikke bevist. Automatisk ordreutførelse, gjenstart
+og avstemming mot broker er heller ikke kvalifisert. Operative ruter er
+fortsatt stengt. Ingen brokerkall er gjort.
+
+Dette er en ny samlet strukturkontroll og målrettet semantisk kontroll av
+handover, siste featureendring og berørte eiere; ikke en ny fullsuite eller
+linjevis revisjon av hele kodebasen. Tidligere repo- og kompleksitetsbevis
+gjenbrukes. Ingen features, familier, hjelpeoppgaver, checkpoints eller
+datasett er slettet. Modellens læringsmål og beregning er uendret.
+
+## Historisk gjennomgang 28.–29.09.2026
+
 Autoritet: `/home/andre2/src/GX1_CURRENT`, `work/gx1-current`. Kildegrunnlag
 `10c78d7090b33a6926614cd9c13e4d02d93c626b` med rettelsene i denne commit.
 Ingen native trening, handelskjøring eller TEST-utfall er åpnet.

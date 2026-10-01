@@ -1,4 +1,14 @@
-# Gjeldende status — 01.10.2026: oppfølging av B-kildene
+# Gjeldende status — 01.10.2026: native v38 og kontrollert kodeopprydding
+
+## Kodegjennomgang 01.10 — handover rettet og frakoblet kode fjernet
+
+Handover-pekeren er rettet fra full B til det gjeldende native v38-sporet.
+Tre ubrukte hjelpere er fjernet; gjenværende funksjoner og klasser i de berørte
+kodefilene har identisk AST. 222 fokuserte tester består. Alle 589 sporede
+Python-filer og 139 JSON-filer består strukturkontroll.
+Detaljer og avgrensninger: [repo-gjennomgangen](docs/REPO_REVIEW_20260928.md).
+V38-datasett, normalisering, læring og ny train/serve-paritet gjenstår.
+Trening/TEST/handel er fortsatt stengt; ingen nye markedsmålinger er startet.
 
 ## Native sweep-/AVWAP-funksjon 01.10 — implementert og inputkontrollert
 

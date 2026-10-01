@@ -33,8 +33,9 @@ Den nye implementeringen og statusen står øverst; historiske målinger er beva
 Full B er fortsatt blokkert; TEST, native trening, live/paper og spending er stengt.
 Denne seksjonen erstatter anbefalingen og kjøringsinstruksene lenger ned i historikken.
 
-Målet er en ærlig XAUUSD-bot som tar retning på den tidsskalaen der retningen faktisk
-finnes, og som slår relevante baselines etter kostnad. Målet er aktivt og ikke oppnådd.
+Målet er en fullstendig automatisk XAUUSD-bot som tar retning på en dokumentert
+nyttig tidsskala og slår relevante baselines etter kostnad. Målet er aktivt og ikke
+oppnådd; dagens godkjente arbeidsomfang er fortsatt offline forskning.
 
 Avgrenset oppfølging 30.09 er fullført: den bestilte indikatorrevisjonen og
 én uttrykkelig godkjent OANDA-demo-COT-prøve. Prøven ga HTTP 403/Cloudflare;

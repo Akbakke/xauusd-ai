@@ -1321,17 +1321,6 @@ def _require_nonnegative_int(value: object, *, context: str) -> int:
     return observed
 
 
-def _require_finite_number(value: object, *, context: str) -> float:
-    if isinstance(value, bool) or not isinstance(
-        value, (int, float, np.integer, np.floating)
-    ):
-        raise RuntimeError(context)
-    observed = float(value)
-    if not math.isfinite(observed):
-        raise RuntimeError(context)
-    return observed
-
-
 def _require_canonical_utc_timestamp_label(
     value: object,
     *,

@@ -1,5 +1,10 @@
 # Veien videre — oppdatert 01.10.2026
 
+Handover-pekeren følger nå native v38. Den avgrensede kodegjennomgangen
+01.10 er fullført med 222 beståtte tester; se
+[repo-gjennomgangen](docs/REPO_REVIEW_20260928.md).
+Ingen ny kjøring er åpnet. Neste faglige steg beskrives nedenfor.
+
 ## Native sweep-/AVWAP-funksjon 01.10 — implementert og inputkontrollert
 
 Brukerens bestilling er nå implementert i eksisterende feature- og kontrakteiere:

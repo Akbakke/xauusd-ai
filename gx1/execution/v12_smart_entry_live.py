@@ -1,35 +1,18 @@
 #!/usr/bin/env python3
-"""LIVE model-native seq513 XAU Entry adapter.
+"""Model-native Entry/Exit adapter retained for offline parity evidence.
 
-Loads a contract-resolved, launch-admitted model-native v10_entry bundle through
-the one-truth offline loader, forwards it per M5 close on the exact
-owner-declared signal state
-(ModelNativeStateBuilder) + live multi-TF windows, and requires the PINNED
-operating point read from PROJECT_STATE_artifacts.json to select
-``entry_fitted_q_unique_argmax``. The three raw-bps
-``entry_action_q_bps`` values are the only LONG/SHORT/FLAT decision. No live
-session, threshold, calibration, utility, rail, or side overlay may change it.
+Loads an explicit bundle through the same strict loader as offline evaluation.
+The active-registry live launch route is retired; this module does not select
+a production bundle or authorize trading.
 
-Serving architecture: the only live Entry load path is
-load_entry_v10_ctx_bundle (full active-head reconstruction),
-which the offline evaluator
-(evaluate_entry_candidate_selective_edge_v1._predict_bundle) also uses. This
-adapter mirrors that forward exactly, so serve must equal the admitted evidence
-path.
-
-Entry SSOT:
-    action = unique_argmax(entry_action_q_bps)  # LONG=0, SHORT=1, FLAT=2
-
-An exact Q tie fails closed. Genuine auxiliary outcome heads remain learned
-representation diagnostics only. ``position_size_logit`` changes execution
-units only through the separately admitted sizing owner. The frozen snapshot
-binds raw Q, the learned Entry token representation, exact categorical state,
-and decision timing; it carries no probability/calibration alias.
+The model's unique argmax over entry_action_q_bps is the sole LONG/SHORT/FLAT
+decision. Exact ties fail closed. Auxiliary heads remain diagnostics, while
+position sizing has separate evidence requirements. The immutable Exit recovery
+loader preserves a previously bound bundle and grants no new Entry authority.
 """
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import threading
 import time
@@ -41,10 +24,6 @@ import numpy as np
 import pandas as pd
 import torch
 
-from gx1.contracts.immutable_event_authority_v1 import (
-    ImmutableEventAuthorityError,
-    require_newest_immutable_event,
-)
 from gx1.contracts.entry_fitted_q_v1 import (
     require_entry_fitted_q_production_economics_readiness,
 )
@@ -215,70 +194,6 @@ class SmartContextStaleError(RuntimeError):
 
 class SmartContextPairMismatchError(RuntimeError):
     """The completed context belongs to a different immutable pair generation."""
-
-
-def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _load_declared_gate_event(
-    declaration: object,
-    event_prefix: str,
-    *,
-    label: str,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    """Reload one launch-declared gate by exact path and content identity."""
-
-    if not isinstance(declaration, dict) or set(declaration) != {
-        "json_path",
-        "sha256",
-    }:
-        raise RuntimeError(
-            f"[SMART_GATE] {label} declaration must contain exact json_path/sha256"
-        )
-    raw_path = str(declaration.get("json_path") or "").strip()
-    path = Path(raw_path).expanduser()
-    if not path.is_absolute():
-        raise RuntimeError(f"[SMART_GATE] {label} path must be absolute: {raw_path!r}")
-    if path.is_symlink() or not path.is_file():
-        raise RuntimeError(f"[SMART_GATE] {label} path is not a regular file: {path}")
-    resolved = path.resolve()
-    if resolved != path or any("latest" in part.lower() for part in path.parts):
-        raise RuntimeError(
-            f"[SMART_GATE] {label} path is not canonical immutable identity: {path}"
-        )
-    expected_sha = str(declaration.get("sha256") or "").strip().lower()
-    if len(expected_sha) != 64 or any(
-        character not in "0123456789abcdef" for character in expected_sha
-    ):
-        raise RuntimeError(f"[SMART_GATE] {label} declaration lacks an exact SHA-256")
-    try:
-        require_newest_immutable_event(path, event_prefix)
-    except ImmutableEventAuthorityError as exc:
-        raise RuntimeError(f"[SMART_GATE] invalid {label} event authority: {exc}") from exc
-    raw = path.read_bytes()
-    observed_sha = hashlib.sha256(raw).hexdigest()
-    if observed_sha != expected_sha:
-        raise RuntimeError(
-            f"[SMART_GATE] {label} sha256 mismatch: "
-            f"declared={expected_sha} observed={observed_sha}"
-        )
-    try:
-        payload = json.loads(raw.decode("utf-8"))
-    except Exception as exc:
-        raise RuntimeError(f"[SMART_GATE] unreadable {label} event {path}: {exc}") from exc
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"[SMART_GATE] {label} event root is not an object: {path}")
-    declared_self = Path(str(payload.get("json_path") or "")).expanduser()
-    if not declared_self.is_absolute() or declared_self.resolve() != path:
-        raise RuntimeError(f"[SMART_GATE] {label} event json_path is not an exact self-reference")
-    if _sha256_file(path) != expected_sha:
-        raise RuntimeError(f"[SMART_GATE] {label} changed while being validated")
-    return payload, {"json_path": str(path), "sha256": expected_sha}
 
 
 def _np1d(value: Any) -> np.ndarray | None:
