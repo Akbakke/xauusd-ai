@@ -16,6 +16,7 @@
     "path": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/COMPONENTS_001/INDEPENDENT_VERIFICATION.json",
     "sha256": "12a6787a81d659c61a86f277d19cd1235540a80843c7b809e685f5eb1a50eb06"
   },
+  "conclusion": "Both predeclared learners are INKONKLUSIV. Macro HGB improves over matched price HGB but barely exceeds same-risk LONG; macro ridge deteriorates. No reliable incremental macro edge, native learning, untouched OOS or trading readiness established.",
   "coverage": {
     "DFII10": {
       "distinct_used_observation_dates": 3337,
@@ -42,10 +43,533 @@
       "numeric_level_rows": 3080
     }
   },
+  "decisions": {
+    "macro_core_hgb": {
+      "decision": "INKONKLUSIV",
+      "positive_net_both_funding_scenarios": true,
+      "required_endpoints": [
+        "h20:macro_core_hgb:historical_proxy:vs_a_hgb:mean_delta_bps",
+        "h20:macro_core_hgb:historical_proxy:vs_a_hgb:normalized_delta",
+        "h20:macro_core_hgb:historical_proxy:vs_a_hgb:sharpe_delta",
+        "h20:macro_core_hgb:historical_proxy:vs_long:mean_delta_bps",
+        "h20:macro_core_hgb:historical_proxy:vs_long:normalized_delta",
+        "h20:macro_core_hgb:historical_proxy:vs_long:sharpe_delta",
+        "h20:macro_core_hgb:historical_proxy:vs_constant:mean_delta_bps",
+        "h20:macro_core_hgb:historical_proxy:vs_constant:normalized_delta",
+        "h20:macro_core_hgb:historical_proxy:vs_constant:sharpe_delta",
+        "h20:macro_core_hgb:historical_proxy:vs_trend:mean_delta_bps",
+        "h20:macro_core_hgb:historical_proxy:vs_trend:normalized_delta",
+        "h20:macro_core_hgb:historical_proxy:vs_trend:sharpe_delta",
+        "h20:macro_core_hgb:zero:vs_a_hgb:mean_delta_bps",
+        "h20:macro_core_hgb:zero:vs_a_hgb:normalized_delta",
+        "h20:macro_core_hgb:zero:vs_a_hgb:sharpe_delta",
+        "h20:macro_core_hgb:zero:vs_long:mean_delta_bps",
+        "h20:macro_core_hgb:zero:vs_long:normalized_delta",
+        "h20:macro_core_hgb:zero:vs_long:sharpe_delta",
+        "h20:macro_core_hgb:zero:vs_constant:mean_delta_bps",
+        "h20:macro_core_hgb:zero:vs_constant:normalized_delta",
+        "h20:macro_core_hgb:zero:vs_constant:sharpe_delta",
+        "h20:macro_core_hgb:zero:vs_trend:mean_delta_bps",
+        "h20:macro_core_hgb:zero:vs_trend:normalized_delta",
+        "h20:macro_core_hgb:zero:vs_trend:sharpe_delta"
+      ]
+    },
+    "macro_core_ridge": {
+      "decision": "INKONKLUSIV",
+      "positive_net_both_funding_scenarios": true,
+      "required_endpoints": [
+        "h20:macro_core_ridge:historical_proxy:vs_a_ridge:mean_delta_bps",
+        "h20:macro_core_ridge:historical_proxy:vs_a_ridge:normalized_delta",
+        "h20:macro_core_ridge:historical_proxy:vs_a_ridge:sharpe_delta",
+        "h20:macro_core_ridge:historical_proxy:vs_long:mean_delta_bps",
+        "h20:macro_core_ridge:historical_proxy:vs_long:normalized_delta",
+        "h20:macro_core_ridge:historical_proxy:vs_long:sharpe_delta",
+        "h20:macro_core_ridge:historical_proxy:vs_constant:mean_delta_bps",
+        "h20:macro_core_ridge:historical_proxy:vs_constant:normalized_delta",
+        "h20:macro_core_ridge:historical_proxy:vs_constant:sharpe_delta",
+        "h20:macro_core_ridge:historical_proxy:vs_trend:mean_delta_bps",
+        "h20:macro_core_ridge:historical_proxy:vs_trend:normalized_delta",
+        "h20:macro_core_ridge:historical_proxy:vs_trend:sharpe_delta",
+        "h20:macro_core_ridge:zero:vs_a_ridge:mean_delta_bps",
+        "h20:macro_core_ridge:zero:vs_a_ridge:normalized_delta",
+        "h20:macro_core_ridge:zero:vs_a_ridge:sharpe_delta",
+        "h20:macro_core_ridge:zero:vs_long:mean_delta_bps",
+        "h20:macro_core_ridge:zero:vs_long:normalized_delta",
+        "h20:macro_core_ridge:zero:vs_long:sharpe_delta",
+        "h20:macro_core_ridge:zero:vs_constant:mean_delta_bps",
+        "h20:macro_core_ridge:zero:vs_constant:normalized_delta",
+        "h20:macro_core_ridge:zero:vs_constant:sharpe_delta",
+        "h20:macro_core_ridge:zero:vs_trend:mean_delta_bps",
+        "h20:macro_core_ridge:zero:vs_trend:normalized_delta",
+        "h20:macro_core_ridge:zero:vs_trend:sharpe_delta"
+      ]
+    }
+  },
+  "declared_family_count": 120,
+  "direction_counts": {
+    "h20:a_hgb:historical_proxy": {
+      "flat_intervals": 0,
+      "long_intervals": 1466,
+      "short_intervals": 62
+    },
+    "h20:a_ridge:historical_proxy": {
+      "flat_intervals": 0,
+      "long_intervals": 1471,
+      "short_intervals": 57
+    },
+    "h20:buy_hold:historical_proxy": {
+      "flat_intervals": 0,
+      "long_intervals": 1528,
+      "short_intervals": 0
+    },
+    "h20:constant:historical_proxy": {
+      "flat_intervals": 0,
+      "long_intervals": 1528,
+      "short_intervals": 0
+    },
+    "h20:long:historical_proxy": {
+      "flat_intervals": 0,
+      "long_intervals": 1528,
+      "short_intervals": 0
+    },
+    "h20:macro_core_hgb:historical_proxy": {
+      "flat_intervals": 0,
+      "long_intervals": 1469,
+      "short_intervals": 59
+    },
+    "h20:macro_core_ridge:historical_proxy": {
+      "flat_intervals": 0,
+      "long_intervals": 1318,
+      "short_intervals": 210
+    },
+    "h20:trend:historical_proxy": {
+      "flat_intervals": 245,
+      "long_intervals": 1018,
+      "short_intervals": 265
+    }
+  },
+  "endpoints": [
+    {
+      "bootstrap_se": 0.8795254915434929,
+      "effect_verdict": "INKONKLUSIV",
+      "estimate": -0.31228588858916373,
+      "mde_against_zero": 3.4151246415644945,
+      "minimum_relevant_effect": 1.0,
+      "name": "h20:macro_core_ridge:historical_proxy:vs_a_ridge:mean_delta_bps",
+      "simultaneous_lower": -2.995516609773861,
+      "simultaneous_upper": 2.3709448325955336
+    },
+    {
+      "bootstrap_se": 1.5257617610052416,
+      "effect_verdict": "INKONKLUSIV",
+      "estimate": -0.6134820901269806,
+      "mde_against_zero": 5.884874470738204,
+      "minimum_relevant_effect": 1.0,
+      "name": "h20:macro_core_ridge:historical_proxy:vs_long:mean_delta_bps",
+      "simultaneous_lower": -5.268231576868469,
+      "simultaneous_upper": 4.041267396614507
+    },
+    {
+      "bootstrap_se": 1.1043129811198777,
+      "effect_verdict": "INKONKLUSIV",
+      "estimate": 0.3855589047725579,
+      "mde_against_zero": 4.34547521708311,
+      "minimum_relevant_effect": 1.0,
+      "name": "h20:macro_core_hgb:historical_proxy:vs_a_hgb:mean_delta_bps",
+      "simultaneous_lower": -2.98344693443726,
+      "simultaneous_upper": 3.7545647439823755
+    },
+    {
+      "bootstrap_se": 0.48111827171683247,
+      "effect_verdict": "INKONKLUSIV",
+      "estimate": 0.01367159124139478,
+      "mde_against_zero": 1.8501309208497612,
+      "minimum_relevant_effect": 1.0,
+      "name": "h20:macro_core_hgb:historical_proxy:vs_long:mean_delta_bps",
+      "simultaneous_lower": -1.454110001908772,
+      "simultaneous_upper": 1.4814531843915615
+    }
+  ],
+  "evaluation": {
+    "first_fill": "2020-01-01 23:00:00+00:00",
+    "intervals": 1528,
+    "last_fill": "2025-12-01 23:00:00+00:00",
+    "reused_development_history": true
+  },
   "full_b_admitted": false,
+  "independent_verification_scope": {
+    "causal_sizing_from_quotes": true,
+    "chronological_fold_target_bindings_checked": 12,
+    "independent_cash_ledger_and_piecewise_funding": true,
+    "intervals_per_stream": 1528,
+    "limitations": "Checks accounting, input/target causality and cached point contrasts. Does not independently refit models or repeat bootstrap uncertainty.",
+    "paired_returns_and_all_mean_contrasts_checked": 40,
+    "portfolio_streams_checked": 32
+  },
+  "measurement": {
+    "path": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/MEASUREMENT_001/RESULT.json",
+    "sha256": "ca6867d1924a3b1d739a8831e189fd1764b835d42ac566a5599951a03dd2e340",
+    "terminal_sha256": "4efdf3978dd712329308fa553522fbede4a212d2b143f4a999b2f5b3b4dcdb54"
+  },
   "measurement_manifest": "configs/research/TA_MACRO_CORE_PREREG_20261001.json",
   "measurement_manifest_sha256": "705e8737a376911218a02a26b7d3e5522c5063bb2dd8c36263e2f20a62ee7948",
+  "measurement_verification": {
+    "path": "/home/andre2/GX1_RUNS/TA_MACRO_CORE_20261001/MEASUREMENT_001/INDEPENDENT_VERIFICATION.json",
+    "sha256": "d4aa2e901049a48653990d1ebaf4f6cedc23fbdeeb6cb9a633729a74e1240ea8"
+  },
   "native_training": false,
+  "per_year": {
+    "2020": {
+      "h20:a_hgb:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": 2.689393374035658
+      },
+      "h20:a_ridge:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -0.49813864310401634
+      },
+      "h20:buy_hold:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": 8.755725357776576
+      },
+      "h20:constant:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": 6.102052343797654
+      },
+      "h20:long:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": 6.102052343797654
+      },
+      "h20:macro_core_hgb:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": 6.102052343797654
+      },
+      "h20:macro_core_ridge:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -1.812611919440429
+      },
+      "h20:trend:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": 4.367439776170777
+      }
+    },
+    "2021": {
+      "h20:a_hgb:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -1.4910216570010877
+      },
+      "h20:a_ridge:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -1.6025722751054363
+      },
+      "h20:buy_hold:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -1.764693368772604
+      },
+      "h20:constant:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -1.3781081712528302
+      },
+      "h20:long:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -1.3781081712528302
+      },
+      "h20:macro_core_hgb:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -2.6571235780460087
+      },
+      "h20:macro_core_ridge:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -2.0429556378954468
+      },
+      "h20:trend:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -3.4822334261309993
+      }
+    },
+    "2022": {
+      "h20:a_hgb:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -0.2425887852366226
+      },
+      "h20:a_ridge:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -0.24155988293166333
+      },
+      "h20:buy_hold:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -0.5487765116941327
+      },
+      "h20:constant:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -0.2398717472272939
+      },
+      "h20:long:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -0.2398717472272939
+      },
+      "h20:macro_core_hgb:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": 1.1639685133593973
+      },
+      "h20:macro_core_ridge:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": 2.397020980962849
+      },
+      "h20:trend:historical_proxy": {
+        "intervals": 258,
+        "mean_net_bps": -2.472683170711191
+      }
+    },
+    "2023": {
+      "h20:a_hgb:historical_proxy": {
+        "intervals": 257,
+        "mean_net_bps": 2.170206381891509
+      },
+      "h20:a_ridge:historical_proxy": {
+        "intervals": 257,
+        "mean_net_bps": 2.3836152027859163
+      },
+      "h20:buy_hold:historical_proxy": {
+        "intervals": 257,
+        "mean_net_bps": 3.7969238875007965
+      },
+      "h20:constant:historical_proxy": {
+        "intervals": 257,
+        "mean_net_bps": 1.9651790558955775
+      },
+      "h20:long:historical_proxy": {
+        "intervals": 257,
+        "mean_net_bps": 1.9651790558955775
+      },
+      "h20:macro_core_hgb:historical_proxy": {
+        "intervals": 257,
+        "mean_net_bps": 1.9581775651238036
+      },
+      "h20:macro_core_ridge:historical_proxy": {
+        "intervals": 257,
+        "mean_net_bps": 2.3276464503291736
+      },
+      "h20:trend:historical_proxy": {
+        "intervals": 257,
+        "mean_net_bps": -1.083595828687613
+      }
+    },
+    "2024": {
+      "h20:a_hgb:historical_proxy": {
+        "intervals": 259,
+        "mean_net_bps": 5.309061599740327
+      },
+      "h20:a_ridge:historical_proxy": {
+        "intervals": 259,
+        "mean_net_bps": 5.752419438054119
+      },
+      "h20:buy_hold:historical_proxy": {
+        "intervals": 259,
+        "mean_net_bps": 8.647983348276643
+      },
+      "h20:constant:historical_proxy": {
+        "intervals": 259,
+        "mean_net_bps": 4.872011511077941
+      },
+      "h20:long:historical_proxy": {
+        "intervals": 259,
+        "mean_net_bps": 4.872011511077941
+      },
+      "h20:macro_core_hgb:historical_proxy": {
+        "intervals": 259,
+        "mean_net_bps": 4.857770488050563
+      },
+      "h20:macro_core_ridge:historical_proxy": {
+        "intervals": 259,
+        "mean_net_bps": 5.636473122310497
+      },
+      "h20:trend:historical_proxy": {
+        "intervals": 259,
+        "mean_net_bps": 5.584448633454266
+      }
+    },
+    "2025": {
+      "h20:a_hgb:historical_proxy": {
+        "intervals": 238,
+        "mean_net_bps": 10.929292248892283
+      },
+      "h20:a_ridge:historical_proxy": {
+        "intervals": 238,
+        "mean_net_bps": 14.245418867089667
+      },
+      "h20:buy_hold:historical_proxy": {
+        "intervals": 238,
+        "mean_net_bps": 22.323894717773182
+      },
+      "h20:constant:historical_proxy": {
+        "intervals": 238,
+        "mean_net_bps": 10.189095280371598
+      },
+      "h20:long:historical_proxy": {
+        "intervals": 238,
+        "mean_net_bps": 10.189095280371598
+      },
+      "h20:macro_core_hgb:historical_proxy": {
+        "intervals": 238,
+        "mean_net_bps": 10.164612873777319
+      },
+      "h20:macro_core_ridge:historical_proxy": {
+        "intervals": 238,
+        "mean_net_bps": 11.469117931814758
+      },
+      "h20:trend:historical_proxy": {
+        "intervals": 238,
+        "mean_net_bps": 10.590450695359074
+      }
+    }
+  },
+  "portfolios": {
+    "h20:a_hgb:historical_proxy": {
+      "commission_cost_bps": 0.0,
+      "execution_count": 1529,
+      "financing_cost_bps": 1677.686429462342,
+      "insolvent": false,
+      "intervals": 1528,
+      "liquidation_reserve_bps": 0.0,
+      "max_drawdown": 0.1991261878100209,
+      "mean_period_net_bps": 3.128634519711451,
+      "open_units": 0.0,
+      "periods_per_year": 252.0,
+      "realized_annual_vol": 0.09907183919131982,
+      "sharpe_zero_cash": 0.7958022233187358,
+      "slippage_cost_bps": 135.07391227805562,
+      "spread_cost_bps": 297.5746284416255,
+      "total_mid_pnl_bps": 7766.043835245609,
+      "total_net_bps": 5655.708865063587
+    },
+    "h20:a_ridge:historical_proxy": {
+      "commission_cost_bps": 0.0,
+      "execution_count": 1529,
+      "financing_cost_bps": 1670.84752894851,
+      "insolvent": false,
+      "intervals": 1528,
+      "liquidation_reserve_bps": 0.0,
+      "max_drawdown": 0.21804470454213631,
+      "mean_period_net_bps": 3.1993256317047973,
+      "open_units": 0.0,
+      "periods_per_year": 252.0,
+      "realized_annual_vol": 0.10677608082162625,
+      "sharpe_zero_cash": 0.7550661655548576,
+      "slippage_cost_bps": 112.21944459871355,
+      "spread_cost_bps": 213.08110252012295,
+      "total_mid_pnl_bps": 7746.005158416548,
+      "total_net_bps": 5749.857082349201
+    },
+    "h20:buy_hold:historical_proxy": {
+      "commission_cost_bps": 0.0,
+      "execution_count": 2,
+      "financing_cost_bps": 2385.9204458595605,
+      "insolvent": false,
+      "intervals": 1528,
+      "liquidation_reserve_bps": 0.0,
+      "max_drawdown": 0.24275391645608446,
+      "mean_period_net_bps": 6.6693887318503355,
+      "open_units": 0.0,
+      "periods_per_year": 252.0,
+      "realized_annual_vol": 0.16704031951946854,
+      "sharpe_zero_cash": 1.0061558582150587,
+      "slippage_cost_bps": 7.570217930424437,
+      "spread_cost_bps": 9.082628223015918,
+      "total_mid_pnl_bps": 17851.8794458807,
+      "total_net_bps": 15449.306153867708
+    },
+    "h20:constant:historical_proxy": {
+      "commission_cost_bps": 0.0,
+      "execution_count": 1529,
+      "financing_cost_bps": 1679.9804294722455,
+      "insolvent": false,
+      "intervals": 1528,
+      "liquidation_reserve_bps": 0.0,
+      "max_drawdown": 0.15818406108736205,
+      "mean_period_net_bps": 3.5005218332426136,
+      "open_units": 0.0,
+      "periods_per_year": 252.0,
+      "realized_annual_vol": 0.0916367727981764,
+      "sharpe_zero_cash": 0.9626392059004215,
+      "slippage_cost_bps": 77.75167097700408,
+      "spread_cost_bps": 105.81101967069047,
+      "total_mid_pnl_bps": 8505.327952417321,
+      "total_net_bps": 6641.784832297377
+    },
+    "h20:long:historical_proxy": {
+      "commission_cost_bps": 0.0,
+      "execution_count": 1529,
+      "financing_cost_bps": 1679.9804294722455,
+      "insolvent": false,
+      "intervals": 1528,
+      "liquidation_reserve_bps": 0.0,
+      "max_drawdown": 0.15818406108736205,
+      "mean_period_net_bps": 3.5005218332426136,
+      "open_units": 0.0,
+      "periods_per_year": 252.0,
+      "realized_annual_vol": 0.0916367727981764,
+      "sharpe_zero_cash": 0.9626392059004215,
+      "slippage_cost_bps": 77.75167097700408,
+      "spread_cost_bps": 105.81101967069047,
+      "total_mid_pnl_bps": 8505.327952417321,
+      "total_net_bps": 6641.784832297377
+    },
+    "h20:macro_core_hgb:historical_proxy": {
+      "commission_cost_bps": 0.0,
+      "execution_count": 1529,
+      "financing_cost_bps": 1678.8462918350056,
+      "insolvent": false,
+      "intervals": 1528,
+      "liquidation_reserve_bps": 0.0,
+      "max_drawdown": 0.15530771336155869,
+      "mean_period_net_bps": 3.5141934244840085,
+      "open_units": 0.0,
+      "periods_per_year": 252.0,
+      "realized_annual_vol": 0.09161671226355211,
+      "sharpe_zero_cash": 0.9666104808721447,
+      "slippage_cost_bps": 175.0593612475567,
+      "spread_cost_bps": 234.87174342012668,
+      "total_mid_pnl_bps": 8765.642363112122,
+      "total_net_bps": 6676.864966609428
+    },
+    "h20:macro_core_ridge:historical_proxy": {
+      "commission_cost_bps": 0.0,
+      "execution_count": 1529,
+      "financing_cost_bps": 1664.052978357594,
+      "insolvent": false,
+      "intervals": 1528,
+      "liquidation_reserve_bps": 0.0,
+      "max_drawdown": 0.24890295751439218,
+      "mean_period_net_bps": 2.887039743115633,
+      "open_units": 0.0,
+      "periods_per_year": 252.0,
+      "realized_annual_vol": 0.10667733325633046,
+      "sharpe_zero_cash": 0.6819949403093709,
+      "slippage_cost_bps": 166.1546909194467,
+      "spread_cost_bps": 284.1450850381484,
+      "total_mid_pnl_bps": 7131.560198089725,
+      "total_net_bps": 5017.207443774531
+    },
+    "h20:trend:historical_proxy": {
+      "commission_cost_bps": 0.0,
+      "execution_count": 1343,
+      "financing_cost_bps": 1210.689136640417,
+      "insolvent": false,
+      "intervals": 1528,
+      "liquidation_reserve_bps": 0.0,
+      "max_drawdown": 0.2839713574096967,
+      "mean_period_net_bps": 2.1458418284385954,
+      "open_units": 0.0,
+      "periods_per_year": 252.0,
+      "realized_annual_vol": 0.09648848360613352,
+      "sharpe_zero_cash": 0.5604317951289183,
+      "slippage_cost_bps": 262.6948042488633,
+      "spread_cost_bps": 265.19957576353477,
+      "total_mid_pnl_bps": 5231.890669471365,
+      "total_net_bps": 3493.30715281855
+    }
+  },
   "pre_fit_clock_audit": [
     {
       "first_hold_time": "2020-01-01 23:00:00+00:00",
@@ -90,6 +614,10 @@
       "year": 2025
     }
   ],
-  "status": "INPUTS_VERIFIED_MEASUREMENT_PREREGISTERED_NOT_RUN",
-  "test_accessed": false
+  "profitability_proven": false,
+  "promotion_allowed": false,
+  "status": "COMPLETE_INDEPENDENTLY_VERIFIED_INCONCLUSIVE_NO_PROMOTION",
+  "summary_scope": "Primary h20 historical financing portfolios and mean contrasts versus matched A and same-risk LONG. All 32 portfolios, 120 endpoints, h5 and zero-funding results remain in the hash-bound immutable measurement result.",
+  "test_accessed": false,
+  "untestable_endpoints": []
 }

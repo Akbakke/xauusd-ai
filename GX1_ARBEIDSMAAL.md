@@ -1,19 +1,19 @@
 # GX1 arbeidsmål — oppdatert 01.10.2026
 
-## Aktivt operatørmål 01.10 — egen makroarm og videre native evidens
+## Aktivt mål 01.10 — makrotest fullført, native læringsbevis gjenstår
 
-Brukeren har bedt om aktiv gjennomføring av hele veien til en automatisk bot.
-Gjeldende rekkefølge og gjenstående bevis:
-[aktiv målplan](docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md).
-DFII10/DTWEXBGS/T10YIE er kvalifisert fra eksisterende ALFRED-arkiv:
-1761 komplette makrorader fra mars 2019 til desember 2025; alle 4518
-klokker per kilde er uavhengig kontrollert. Den separate MACRO_CORE-målingen
-er nå fryst for 2020–2025 mot pris alene på identiske rader og kostnader.
-49 fokuserte tester består. Kjøringen er ennå ikke startet. Full B er fortsatt et eget,
-ufullført sekskildemål. Native v38-læring, senere generalisering, paritet og
-offline driftskvalifisering gjenstår. Ingen native trening, TEST eller handel
-åpnes av inputkontrollen. Neste steg står i målplanen; eldre neste-steg-tekst
-nedenfor beskriver historiske delmål.
+Den separate MACRO_CORE-armen er ferdig målt og uavhengig kontrollert.
+HGB med makro ga +66,77 % netto i gjenbrukt 2020–01.12.2025, mot +56,56 %
+for matchet pris-HGB og +66,42 % for samme-risiko LONG. Ridge ble svakere.
+Begge fikk INKONKLUSIV; ingen dokumentert makrofordel eller native promotion.
+49 tester består. [Resultat og begrensninger](docs/TA_MACRO_CORE_RESULT_20261001.md).
+
+Gjeldende [aktive målplan](docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md):
+land native v38-mål, matchede læringsrader og cache-/byggbinding før ny måling.
+Deretter gjenstår senere generalisering, ny paritet og offline driftskvalifisering.
+Makrotesten skal ikke relanseres. Full B er fortsatt et eget ufullført mål.
+Ingen native trening, TEST eller handel er åpnet.
+Eldre neste-steg-tekst nedenfor er historiske delmål.
 
 ## Native sweep-/AVWAP-funksjon 01.10 — implementert og inputkontrollert
 

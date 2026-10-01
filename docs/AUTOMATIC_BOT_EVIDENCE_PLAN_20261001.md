@@ -90,3 +90,15 @@ kostnader og 120 sammenligningsendepunkter er bundet før fits.
 49 fokuserte tester består, inkludert komplett syntetisk kjøring med
 receipt-/cache-/populasjonskontroll. Ingen markedslæring er målt ennå.
 Kilde- og klokkebevis: docs/TA_MACRO_CORE_RESULT_20261001.json.
+
+## Måling fullført — videre arbeid
+
+MACRO_CORE MEASUREMENT_001 er komplett og kontrollert. Begge learnerne er
+INKONKLUSIV, uten grunnlag for native makroinnføring. Se
+[full resultatrapport](TA_MACRO_CORE_RESULT_20261001.md) og JSON-bindingsrapporten.
+Kildekontroll og den matchede målingen er ferdige delmål; ikke gjenta dem.
+Neste aktive delmål er å binde native v38s faktiske læringsmål og uendrede
+gjenbrukbare inputdeler, deretter en konkret avgrenset læringskontrakt.
+Entry-Qs frosne Exit-verdi og observerte D1-mål må ikke behandles som samme fasit.
+training_enabled forblir false til den konkrete kontrakten og evidensporten er løst.
+Senere generalisering, paritet og operativ kvalifisering er ikke undersøkt her.
