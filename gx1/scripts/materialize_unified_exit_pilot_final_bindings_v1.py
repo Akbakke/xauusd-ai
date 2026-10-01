@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     m1_clock_sha256,
     require_market_closure_authority,
@@ -418,7 +419,22 @@ def materialize(*, recipe_path: Path, output_dir: Path, publish: bool) -> dict[s
                 staging / f"SPLIT_SEQUENCE_BINDING_{split.upper()}.json",
                 bundle["split_sequence_bindings"][split],
             )
-        os.rename(staging, output_dir)
+        expected = {
+            "FINAL_BINDINGS_BUNDLE.json": bundle,
+            "COMPOSITE_NORMALIZATION.json": bundle["composite_normalization"],
+            "SAMPLER_BENCHMARK_CANDIDATES.json": bundle["sampler_benchmark_candidates"],
+        }
+        for split in ("train", "val"):
+            expected[f"FIRST_STATE_ENTRY_BRIDGE_{split.upper()}.json"] = bundle["first_state_entry_bridges"][split]
+            expected[f"SPLIT_SEQUENCE_BINDING_{split.upper()}.json"] = bundle["split_sequence_bindings"][split]
+        if set(path.name for path in staging.iterdir()) != set(expected):
+            raise RuntimeError("UNIFIED_EXIT_FINAL_PUBLICATION_INVENTORY_INVALID")
+        for name, payload in expected.items():
+            if _json(staging / name) != payload:
+                raise RuntimeError("UNIFIED_EXIT_FINAL_PUBLICATION_BYTES_INVALID")
+        _fsync_directory(staging)
+        _publish_file_noreplace(staging, output_dir)
+        _fsync_directory(output_dir.parent)
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise

@@ -1,15 +1,14 @@
 # Gjeldende status — 01.10.2026: native v38 og kontrollert kodeopprydding
 
-Lifetime-eieren er rettet: sample-autoriteten strømmer nå uten å beholde
-4 026 919 sample-objekter. Hashrekkefølge og utvalg er uendret. Publisering
-kontrollerer skrevet manifest/arrays, strict-loader normaliseringen og bruker
-fsync + atomisk no-replace. 29 fokuserte tester består, inkludert uendret
-kontrakthash, begrenset sample-retensjon, korrupt staging og katalogkollisjon.
-LIFETIME_SUMMARY_FIT_001 er bundet til én full-TRAIN-fit og VAL-telling uten
-VAL-fit, under eksisterende 10 GiB/512 MiB producer-cap. Kilden fryses under
-kjøring. Basefitten gjenbrukes; native trening, broker og TEST er stengt.
-No-cap-kostnadsbindingen dekker foreløpig ikke den nye historiske perioden.
-Indekser, læringsmåling, økonomi og edge er fortsatt ubevist.
+Lifetime-normaliseringen er fullført med exit 0 og strict-load PASS.
+4 026 919 samples fra alle 652 552 TRAIN-entryer gir 8 053 838 siderader.
+TRAIN-/VAL-counts matcher tidligere kontrollert geometri eksakt; VAL fikk
+ingen fit. Kilden var uendret, TEST-tilgangsforsøk = 0, modellsteg = 0.
+29 fokuserte tester består. Base- og lifetime-statistikk skal nå gjenbrukes.
+Sluttbindingens samme no-replace-publiseringsfeil er også rettet; 7 fokuserte
+tester består. FINAL_BINDINGS_001 er bundet til samlet normalisering og
+første M1-tilstand for hver Entry; dette åpner ingen fit eller modellkjøring.
+Kostnadsdekning/broker-revalidering, indekser og mål gjenstår. Ingen edge.
 
 Normaliseringskoden er nå bundet til de faktiske full-TRAIN-artefaktene før
 statistikkfit. Feil vitne, byttede filer, feil MTF-sti og endrede bytes avvises.

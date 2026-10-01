@@ -209,3 +209,44 @@ def test_child_m1_manifest_requires_exact_real_schema_and_parquet_binding(
     swapped["manifest_payload_sha256"] = canonical_sha256(unsigned)
     with pytest.raises(RuntimeError, match="M1_MANIFEST_INVALID"):
         _require_m1_manifest(swapped, **kwargs)
+
+
+@pytest.mark.parametrize("failure", [None, "late_directory", "corrupt_bytes"])
+def test_final_publication_verifies_bytes_and_preserves_collisions(tmp_path, monkeypatch, failure):
+    from gx1.scripts import materialize_unified_exit_pilot_final_bindings_v1 as owner
+    from gx1.contracts.immutable_event_authority_v1 import ImmutableEventAuthorityError
+    bundle = {
+        "bundle_sha256": "a" * 64,
+        "composite_normalization": {"composite_normalization_sha256": "b" * 64},
+        "sampler_benchmark_candidates": {"selected": False},
+        "first_state_entry_bridges": {"train": {"rows": 3}, "val": {"rows": 2}},
+        "split_sequence_bindings": {"train": {"split": "train"}, "val": {"split": "val"}},
+    }
+    monkeypatch.setattr(owner, "build_bundle", lambda _: bundle)
+    output = tmp_path / "out"
+    collision = {}
+    if failure == "late_directory":
+        original = owner._publish_file_noreplace
+        def collide(source, destination):
+            destination.mkdir()
+            collision["inode"] = destination.stat().st_ino
+            return original(source, destination)
+        monkeypatch.setattr(owner, "_publish_file_noreplace", collide)
+        with pytest.raises(ImmutableEventAuthorityError, match="already exists"):
+            owner.materialize(recipe_path=tmp_path/"recipe.json", output_dir=output, publish=True)
+        assert output.stat().st_ino == collision["inode"]
+        assert list(output.iterdir()) == []
+    elif failure == "corrupt_bytes":
+        original = owner._write
+        def corrupt(path, value):
+            original(path, {**value, "unexpected": True})
+        monkeypatch.setattr(owner, "_write", corrupt)
+        with pytest.raises(RuntimeError, match="PUBLICATION_BYTES_INVALID"):
+            owner.materialize(recipe_path=tmp_path/"recipe.json", output_dir=output, publish=True)
+        assert not output.exists()
+    else:
+        result = owner.materialize(recipe_path=tmp_path/"recipe.json", output_dir=output, publish=True)
+        assert result["published"] is True
+        assert owner._json(output/"FINAL_BINDINGS_BUNDLE.json") == bundle
+        assert len(list(output.iterdir())) == 7
+    assert list(tmp_path.glob(".out.staging.*")) == []

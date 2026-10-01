@@ -606,3 +606,44 @@ mens TRAIN nå starter 01.06.2011. Kostnadene er prospektive forskningsantakelse
 ikke verifisert historisk kostnadsfasit. Dens krav om broker-revalidering
 åpner ikke broker under gjeldende prosjektregler. Dette er en separat
 uavklart binding; lifetime-statistikk avhenger ikke av disse kostnadene.
+
+Lifetime-kjøringen er fullført 01.10.2026 kl. 22:18:22 UTC (02.10 kl. 00:18 Oslo).
+Lifetime-normaliseringen er fullført med exit 0 og strict-load PASS.
+4 026 919 samples fra alle 652 552 TRAIN-entryer gir 8 053 838 siderader.
+TRAIN-/VAL-counts matcher tidligere kontrollert geometri eksakt; VAL fikk
+ingen fit. Kilden var uendret, TEST-tilgangsforsøk = 0, modellsteg = 0.
+29 fokuserte tester består. Base- og lifetime-statistikk skal nå gjenbrukes.
+Sluttbindingens samme no-replace-publiseringsfeil er også rettet; 7 fokuserte
+tester består. FINAL_BINDINGS_001 er bundet til samlet normalisering og
+første M1-tilstand for hver Entry; dette åpner ingen fit eller modellkjøring.
+Kostnadsdekning/broker-revalidering, indekser og mål gjenstår. Ingen edge.
+
+Maksimal prosess-RSS 8 701 396 KiB; dette er ikke målt cgroup-topp.
+Tillatelsen er brukt opp. Begge count-filer er byte-identiske med de
+tidligere geometrifilene, inkludert totalt 1 072 124 182 TRAIN-overganger
+og 977 163 449 VAL-overganger. Disse er observerbar støtte, ingen holdetidsregel.
+
+lifetime_result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LIFETIME_SUMMARY_FIT_001/EVENTS/RESULT_20261001T221822646265Z.json
+SHA256: 8033c8b4c656860531f9f07425d503ba42ea37f6b1f583aa2cf0b52af1be79ed.
+
+lifetime_terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LIFETIME_SUMMARY_FIT_001/EVENTS/TERMINAL_20261001T221822663357Z.json
+SHA256: 91395b324487818e0ac50c1b187db814160a8abfb518c043a4b2b4d608c70e4a.
+
+lifetime_review: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LIFETIME_SUMMARY_FIT_001/EVENTS/FINAL_LIFETIME_REVIEW_20261001T223127425594Z.json
+SHA256: 019a70575f2034400f426a49235c877fd0a9cb80354a2095d3b235e76c7ac513.
+
+## Samlet normalisering og førstetilstand — bundet 02.10.2026
+
+plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/PLAN.json
+SHA256: 0a88f45358bb7e486d86e7e3221daf69e2a613cff09ebb123e5b6d60ea1c36e2.
+
+operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/OPERATOR.py
+SHA256: a10ac82c3809420eac27dce259355c9c906577374382a9632688c01b631f971f.
+
+recipe: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/RECIPE.json
+SHA256: 6b05350485cd825e3b0dcbb296369a6ad05ebb40cfd7b0f291fea2994f56bad8.
+
+Eksisterende sluttbindingseier har nå verifisert staging-inventar og skrevne
+bytes før atomisk no-replace-rename og katalog-fsync. Kjøringen bruker 4 GiB
+audit-cap og sammenligner første M1-posisjon/count-hasher med tidligere
+uavhengig geometri. Ingen ny fit, sampler-valg, native admission eller økonomi.
