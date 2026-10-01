@@ -102,3 +102,11 @@ gjenbrukbare inputdeler, deretter en konkret avgrenset læringskontrakt.
 Entry-Qs frosne Exit-verdi og observerte D1-mål må ikke behandles som samme fasit.
 training_enabled forblir false til den konkrete kontrakten og evidensporten er løst.
 Senere generalisering, paritet og operativ kvalifisering er ikke undersøkt her.
+
+## Native v38-inputgrunnlag bundet
+
+Rådatapar og squeeze-kalibrering er kontrollert som uendrede avhengigheter.
+Ferske v38-inputartefakter bygges nå etter den separate inputplanen.
+Se [gjeldende native scope](NATIVE_V38_BOUNDED_LEARNING_20261001.md).
+Gjeldende Entry-/Exit-mål er kartlagt; observerte økonomiske utfall må
+rapporteres separat. Konkret normaliserings-/læringsrecipe gjenstår etter bygg.

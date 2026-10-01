@@ -1,0 +1,76 @@
+{
+  "automatic_next_training": false,
+  "canonical_branch": "work/gx1-current",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "completion_requirements": [
+    "terminal build receipt",
+    "complete immutable dataset/split inventory",
+    "strict post-build readiness using current v38 contracts",
+    "actual 254-field order and unchanged eight specialist families",
+    "no TEST disclosure",
+    "no native optimizer step"
+  ],
+  "created_utc": "2026-10-01T09:48:43.482161+00:00",
+  "dependency_review": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INPUT_DEPENDENCY_REVIEW.json",
+    "sha256": "8e051acad340de839f4d5613b35559849ed4f0763cc6b34199f0205ba3fd30b8"
+  },
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN",
+  "execution_owner": "scripts/run_seq513_rebuild_chain_v1.sh",
+  "forbidden_reuse": [
+    "v37 signal manifest as v38",
+    "v37 feature surfaces as v38",
+    "v37 dataset as v38",
+    "v37 normalization as v38",
+    "old checkpoints as new initial baseline"
+  ],
+  "fresh_outputs": [
+    "M5/M1 enriched features",
+    "closed MTF cache",
+    "ranking and v38 signal manifest",
+    "M5/M1 feature surfaces",
+    "Entry dataset",
+    "Exit lifecycle",
+    "existing post-build audits and report-only readiness"
+  ],
+  "history_start": "2010-06-14T22:00:00Z",
+  "model_forwards": 0,
+  "native_training_enabled": false,
+  "next_after_build": "Bind the bounded native learning design to these completed bytes, physical TRAIN normalization population, fresh initialization and observed economic measurement. No automatic optimizer launch.",
+  "normalization_fit_authorized": false,
+  "one_heavy_job_scope": "GX1_CURRENT",
+  "operator_authorization": "User 2026-10-01: create an active goal and land every point in AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.",
+  "optimizer_steps": 0,
+  "pair_generation_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS",
+  "pair_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS/fc3333d71ca71d3916b3f6716bbfd36824a216dc15fb927efa8c03cac0594170/PAIR_MANIFEST.json",
+    "sha256": "690786b030362d6f0e0bafdc4004d4a361b83e751c1a98a344c68e05cf0da425"
+  },
+  "purpose": "Fresh native v38 (254-field) Entry/Exit input artifacts through the existing rebuild chain, prerequisite for the bounded learning measurement.",
+  "registry_fit_inner_end": "2012-04-11T22:00:00+00:00",
+  "registry_fit_train_end": "2013-01-01T22:00:00+00:00",
+  "registry_fit_train_start": "2009-06-01T00:00:00+00:00",
+  "resource_authority": "scripts/gx1_capped_run.sh and existing per-stage entry_next_edge_control.sh caps; no override",
+  "reuse": [
+    "verified immutable raw pair",
+    "six-clock squeeze parameters and historical calibration window"
+  ],
+  "run_id": "HISTORY2009W_NATIVE_V38_20261001",
+  "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
+  "schema_version": "gx1_native_v38_input_preparation_v1",
+  "source_frozen_while_running": true,
+  "split_origin": "Exactly the existing approved HISTORY2009W native TRAIN/VAL/TEST windows; no reclassification or shorter replacement dataset.",
+  "squeeze_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/manifest.json",
+    "sha256": "2f099d1974a6ffe3b9c1ae39680acdce5cc706aba954a2ce3523d74db2838d3e"
+  },
+  "test_end": "2026-08-31T23:55:00Z",
+  "test_handling": "Existing canonical builder may construct and immutably seal the new TEST split. No TEST outcome inspection, measurement, model fitting, tuning, or TEST dataset/manifest byte access outside the established construction/sealing owners.",
+  "test_start": "2026-07-01T00:00:00Z",
+  "train_end": "2025-05-31T23:59:59Z",
+  "train_start": "2011-06-01T00:00:00Z",
+  "val_end": "2026-06-30T23:59:59Z",
+  "val_start": "2025-06-01T00:00:00Z",
+  "volatility_squeeze_fit_end": "2013-01-01T22:00:00+00:00",
+  "volatility_squeeze_fit_start": "2009-06-01T00:00:00+00:00"
+}

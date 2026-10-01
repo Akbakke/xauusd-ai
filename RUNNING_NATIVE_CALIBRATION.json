@@ -23,6 +23,29 @@
       "sha256": "d4aa2e901049a48653990d1ebaf4f6cedc23fbdeeb6cb9a633729a74e1240ea8"
     },
     "native_training_enabled": false,
+    "next_native_step": {
+      "dependency_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INPUT_DEPENDENCY_REVIEW.json",
+        "sha256": "8e051acad340de839f4d5613b35559849ed4f0763cc6b34199f0205ba3fd30b8"
+      },
+      "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN",
+      "input_build_authorized": true,
+      "native_training_enabled": false,
+      "new_dataset_complete": false,
+      "normalization_fit_authorized": false,
+      "optimizer_steps": 0,
+      "plan": "configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json",
+      "plan_sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e",
+      "report": "docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md",
+      "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
+      "runtime_plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PLAN.json",
+        "sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e"
+      },
+      "source_frozen_while_running": true,
+      "status": "DEPENDENCIES_VERIFIED_FRESH_V38_INPUT_BUILD_AUTHORIZED_NOT_COMPLETE",
+      "training_enabled": false
+    },
     "plan": "docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md",
     "report": "docs/TA_MACRO_CORE_RESULT_20261001.json",
     "report_sha256": "3e03948a684d82341aac5c988b10b3392ec3a66e12ea490963ebc554c62525fd",
@@ -1965,7 +1988,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md",
+  "handover_resume_point": "docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -2015,7 +2038,7 @@
     "slot": 0,
     "state_sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
   },
-  "latest_readonly_audit_utc": "2026-10-01T09:36:13.218401+00:00",
+  "latest_readonly_audit_utc": "2026-10-01T09:48:43.488335+00:00",
   "learning_gate": {
     "broad_entry_fit_improved": false,
     "causal_entry_fixed256_verdict": {
@@ -2420,7 +2443,30 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "MACRO_CORE is complete and independently verified, both learners INKONKLUSIV; do not relaunch, tune or promote it. Continue the active bot goal by binding the native v38 learning target, matched comparison rows and reusable unchanged input dependencies before dataset/normalization preparation. Distinguish frozen Exit first-state Entry-Q targets from observed D1 outcomes. Native learning, later independent generalization, train/serve parity and offline operational qualification remain unproven. Full B retains its blockers; native training, TEST and trading stay closed.",
+  "native_v38_preparation_20261001": {
+    "dependency_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INPUT_DEPENDENCY_REVIEW.json",
+      "sha256": "8e051acad340de839f4d5613b35559849ed4f0763cc6b34199f0205ba3fd30b8"
+    },
+    "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN",
+    "input_build_authorized": true,
+    "native_training_enabled": false,
+    "new_dataset_complete": false,
+    "normalization_fit_authorized": false,
+    "optimizer_steps": 0,
+    "plan": "configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json",
+    "plan_sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e",
+    "report": "docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md",
+    "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
+    "runtime_plan": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PLAN.json",
+      "sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e"
+    },
+    "source_frozen_while_running": true,
+    "status": "DEPENDENCIES_VERIFIED_FRESH_V38_INPUT_BUILD_AUTHORIZED_NOT_COMPLETE",
+    "training_enabled": false
+  },
+  "next_action": "Launch the single bound v38 input rebuild after committing this scope, using verified unchanged raw pair and six-clock squeeze artifacts. Read live process and START/CHAIN status/TERMINAL before any action; never relaunch a live or completed build. All changed v38 feature/dataset artifacts are fresh; source stays frozen during execution. Verify complete terminal and current v38 readiness before normalization or learning recipe. Native training, TEST disclosure, live/paper and spending remain closed.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2628,7 +2674,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_MACRO_CORE_INCONCLUSIVE_NATIVE_V38_CONTRACT_PENDING",
+  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_NATIVE_V38_INPUT_BUILD_AUTHORIZED",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,

@@ -1,5 +1,15 @@
 # Veien videre — oppdatert 01.10.2026
 
+## Native v38 — nye inputs før læringsmåling
+
+Gjeldende neste steg er det særskilt bundne v38-inputbygget:
+[scope og læringsmål](docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md).
+Rådatapar og seks-klokkers squeeze-parametre er kontrollert og gjenbrukes.
+V38-featureflater og datasett bygges i ny namespace med uendrede splitvinduer.
+Les levende prosess og terminal receipt før videre arbeid; kilde fryses under
+kjøringen. Trening og normaliseringsfit er ikke åpnet. Eldre neste-steg-tekst
+nedenfor er historikk inntil ny komplett evidens foreligger.
+
 ## Aktivt mål 01.10 — makrotest fullført, native læringsbevis gjenstår
 
 Den separate MACRO_CORE-armen er ferdig målt og uavhengig kontrollert.
