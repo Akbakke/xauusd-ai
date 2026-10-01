@@ -2025,7 +2025,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-10-01T05:38:40.460811+00:00",
+  "latest_observation_utc": "2026-10-01T16:41:52.553543+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2038,7 +2038,7 @@
     "slot": 0,
     "state_sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
   },
-  "latest_readonly_audit_utc": "2026-10-01T09:48:43.488335+00:00",
+  "latest_readonly_audit_utc": "2026-10-01T16:41:52.553543+00:00",
   "learning_gate": {
     "broad_entry_fit_improved": false,
     "causal_entry_fixed256_verdict": {
@@ -2444,29 +2444,57 @@
     "training_launch_authority": false
   },
   "native_v38_preparation_20261001": {
+    "completed_dataset_terminal": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_DATASET_REBUILD_TERMINAL_20261001T095046965255Z.json",
+      "sha256": "2ce054b1553d64c06f4011d987d3cb41f2bdbb19ccaa3dd5ceae5ae9ce3b55eb"
+    },
+    "completed_test_seal": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_20261001T095046965255Z.json",
+      "sha256": "827260453a8f4391eebc6290521e92c36076f862fe689a5089022282f4c528cf"
+    },
+    "completed_utc": "2026-10-01T16:22:09.395903+00:00",
+    "completion_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COMPLETION_REVIEW.json",
+      "sha256": "d8f6c847b6978846151de2ee7647594f06d07cb188469743f9c25cdb775a1139"
+    },
     "dependency_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INPUT_DEPENDENCY_REVIEW.json",
       "sha256": "8e051acad340de839f4d5613b35559849ed4f0763cc6b34199f0205ba3fd30b8"
     },
+    "development_val_rows": 70880,
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN",
-    "input_build_authorized": true,
+    "input_build_authorization_consumed": true,
+    "input_build_authorized": false,
+    "learning_proven": false,
     "native_training_enabled": false,
-    "new_dataset_complete": false,
+    "new_dataset_complete": true,
     "normalization_fit_authorized": false,
     "optimizer_steps": 0,
     "plan": "configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json",
     "plan_sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e",
+    "post_rebuild_readiness": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/post_rebuild_readiness_20261001/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20261001T162209088974Z.json",
+      "sha256": "b4f743074e7d2d74dd3a9e3917bffb428328ab6f8eb4ea6709072331db2468b3"
+    },
+    "profitability_proven": false,
     "report": "docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
     "runtime_plan": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PLAN.json",
       "sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e"
     },
-    "source_frozen_while_running": true,
-    "status": "DEPENDENCIES_VERIFIED_FRESH_V38_INPUT_BUILD_AUTHORIZED_NOT_COMPLETE",
+    "signal_dim": 254,
+    "signal_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20261001T104727301922Z.json",
+      "sha256": "a4a8b636e0e4f5e5cbcbcad4e11d80a065227782acb72e1d711e73a3200b0ed2"
+    },
+    "source_commit": "5bdd75e037385f86f2d1347319a15efc381cd39e",
+    "source_frozen_while_running": false,
+    "status": "COMPLETE_INPUT_PREPARATION_NO_LEARNING_AUTHORITY",
+    "train_rows": 652552,
     "training_enabled": false
   },
-  "next_action": "Launch the single bound v38 input rebuild after committing this scope, using verified unchanged raw pair and six-clock squeeze artifacts. Read live process and START/CHAIN status/TERMINAL before any action; never relaunch a live or completed build. All changed v38 feature/dataset artifacts are fresh; source stays frozen during execution. Verify complete terminal and current v38 readiness before normalization or learning recipe. Native training, TEST disclosure, live/paper and spending remain closed.",
+  "next_action": "Reuse the completed and independently reviewed v38 inputs; never relaunch their build or refit completed macro research. Bind one causal native v38 learning design, exact TRAIN/control row clocks, prefix-safe normalization/labels, native state/index/economics artifacts and a fresh initial baseline through existing owners before authorizing the bounded campaign. Current prefix measurement has economic_rollout=false, so observed portfolio economics remains a separate gate. Native training and normalization fit remain disabled until their concrete bindings are approved by the existing scope; TEST disclosure, live/paper and spending stay closed.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2580,6 +2608,11 @@
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_EARLY_DECISION_20260927",
     "runtime_root_scope": "Completed CPU-only historical decision research; corrected annual boundaries; NO_GO, no native model update."
   },
+  "previous_runtime_before_v38_preparation": {
+    "run_id": "HISTORY2009W_NATIVE_V37_20260928",
+    "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_SUMMARY_MEMORY_20260928",
+    "runtime_root_scope": "Prepared continuation from verified preflight after prior identity-check failure; inspect exact runtime receipts."
+  },
   "production_trade_execution_allowed": false,
   "profile": {
     "cpu_workers": 8,
@@ -2657,9 +2690,9 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_RESUME_EQUIVALENCE_FCD03E88/RESULT.json",
     "sha256": "cd52dda262aebd33a8197db25850fa54a3ac2c4dfe6c354fa856c8316ec61b18"
   },
-  "run_id": "HISTORY2009W_NATIVE_V37_20260928",
-  "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/CONTINUE_SUMMARY_MEMORY_20260928",
-  "runtime_root_scope": "Prepared continuation from verified preflight after prior identity-check failure; inspect exact runtime receipts.",
+  "run_id": "HISTORY2009W_NATIVE_V38_20261001",
+  "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
+  "runtime_root_scope": "Completed native v38 input preparation and post-rebuild readiness; not a training run. Exact terminal and completion review are bound in native_v38_preparation_20261001.",
   "saved_optimizer_cause_review": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_CAUSAL_ENTRY_FIXED256_20260917/SAVED_OPTIMIZER_CAUSE/REVIEW.json",
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
@@ -2668,13 +2701,13 @@
   "source_branch": "work/gx1-current",
   "source_commit": "0ad6aea43423a08f53f39622dc1196b08131d914",
   "source_commit_scope": "Training source of completed512; later commits may contain handover-only changes.",
-  "source_frozen_while_running": true,
+  "source_frozen_while_running": false,
   "source_repo": "/home/andre2/src/GX1_CURRENT",
   "split_checkpoint": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_NATIVE_V38_INPUT_BUILD_AUTHORIZED",
+  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_NATIVE_V38_INPUTS_COMPLETE_LEARNING_DESIGN_PENDING",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,

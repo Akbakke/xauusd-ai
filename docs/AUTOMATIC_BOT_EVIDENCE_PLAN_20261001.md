@@ -37,8 +37,8 @@ Seks-kilde B beholder opprinnelig mål og dokumenterte kildeblokkeringer.
 
 ## Separat native v38 og senere innføring
 
-Native v38 har 254 felt, men tilgjengelig fullført datasett har v37/242.
-Inputkontrollen fra 01.10 er bevart; den beviser ikke læring. Før native fits
+Native v38 har nå et fullført og kontrollert datasett med 254 felt.
+Inputkontrollene fra 01.10 er bevart; de beviser ikke læring. Før native fits
 må eksisterende kontrakteiere binde nye feature-/datasett-/normaliseringsbytes,
 ekte mål og sammenligningspopulasjon. Ny initialbaseline kreves ved endret
 ONLINE-funksjon. En avgrenset sammenligning må skille TRAIN-tilpasning fra
@@ -106,7 +106,8 @@ Senere generalisering, paritet og operativ kvalifisering er ikke undersøkt her.
 ## Native v38-inputgrunnlag bundet
 
 Rådatapar og squeeze-kalibrering er kontrollert som uendrede avhengigheter.
-Ferske v38-inputartefakter bygges nå etter den separate inputplanen.
+Ferske v38-inputartefakter og separat readiness er fullført og kontrollert.
 Se [gjeldende native scope](NATIVE_V38_BOUNDED_LEARNING_20261001.md).
 Gjeldende Entry-/Exit-mål er kartlagt; observerte økonomiske utfall må
-rapporteres separat. Konkret normaliserings-/læringsrecipe gjenstår etter bygg.
+rapporteres separat. Konkret normaliserings-/læringsrecipe gjenstår. Byggegodkjenningen er brukt;
+ikke relanser ferdig inputbygg. Økonomisk porteføljemåling er en egen port.

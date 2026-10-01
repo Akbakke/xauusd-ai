@@ -57,15 +57,49 @@ ingen inspeksjon av TEST-utfall, modellbruk, måling eller tuning.
 
 ## Nåstatus og kontroll ved overtakelse
 
-Inputavhengighetene er kvalifisert. Nytt v38-bygg er godkjent og bindes til
-kildecommit før start. Dette er ikke et fullført datasett eller læringsbevis.
-Kontroller START.json, levende prosess, CHAIN_STATUS og terminal receipt i
-/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001 og den bundne event-roten.
-Ikke relanser en levende eller fullført kjøring. Kilde fryses under bygging.
+Inputbygg er fullført 01.10 kl. 16:00 UTC fra kilde 5bdd75e0; den separate
+readiness-eieren ble ferdig kl. 16:22 UTC. Ingen prosess fra byggingen eller
+etterkontrollen lever. Originale outputs, kvitteringer og kilde er bevart.
 
-Etter grønt bygg: kontroller eksakt v38-inventar/readiness; bind deretter
-fysisk TRAIN-normalisering, konkrete TRAIN-/kontrollrader, fersk initialtilstand
-og økonomisk måleregel før en enkelt avgrenset native måling autoriseres.
-Teknisk input-PASS er ikke læring eller lønnsomhet. Makro, senere uavhengig
-generalisering, train/serve-paritet og offline driftskvalifisering er fortsatt
-separate ufullførte delmål.
+- TRAIN: 652 552 Entry-rader; utviklings-VAL: 70 880.
+- Signalbredde 254 og alle åtte familier. Alle 12 nye sweep-/AVWAP-felt er
+  endelige på hver Entry-rad og varierer i begge åpne splits.
+- Seks readiness-porter består: terminal, preflight, input-liveness,
+  pretrain-audit, fysiske TRAIN/VAL-bindinger og metadata-bundet TEST-forsegling.
+- Etterkontrollen har ikke lest, hashet eller stat-et TEST-datasett/manifest.
+  TEST har null disclosures. Ingen modellkjøring, normaliseringsfit eller trening.
+- En separat sluttkontroll bekrefter aktuelle kontrakteiere, ordnede felt,
+  Entry-/lifecycle-footere, samme datasetthasher og liveness-populasjonene.
+  De store Entry-filene ble fullhashkontrollert av readiness-eieren, ikke
+  duplisert av sluttkontrollen.
+
+Runtime: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001.
+COMPLETION_REVIEW.json SHA256:
+d8f6c847b6978846151de2ee7647594f06d07cb188469743f9c25cdb775a1139.
+Datasett-terminal SHA256:
+2ce054b1553d64c06f4011d987d3cb41f2bdbb19ccaa3dd5ceae5ae9ce3b55eb.
+Eksakte readiness-/signal-/split-/TEST-seal-stier og hasher finnes i
+sluttkontrollen og native_v38_preparation_20261001 i begge status-JSON-ene.
+Byggegodkjenningen er brukt og stengt; aldri relanser denne kjøringen.
+
+## Neste konkrete grense
+
+Bind fysisk TRAIN-normalisering, konkrete TRAIN-/kontrollrader, fersk
+initialtilstand og faktisk økonomisk måleregel før én avgrenset native måling.
+Eksisterende prefix-eier krever felles parent-datasett, senere kontroll og
+full tidsstøtte før cutoff for både targets og Exit-states. En tilfeldig
+tidlig radliste er ikke nok. Feature-/policyfit må også være før kontrollen.
+Gjenbruk eksisterende eiere og tidligere låst forsøksbudsjett; gamle
+normaliserings-, indeks-, metadata- og modellartefakter er ikke v38.
+
+Kildegjennomgangen bekrefter at native initial-/sluttmåling eksplisitt har
+economic_rollout=false. Porteføljeøkonomi med alle valgte handler, åpne
+posisjoner og kapital-/overlappskontroll må derfor bindes separat. AVWAP-vekt
+er prisoppdateringsaktivitet, ikke omsatt volum. Source review ligger i runtime
+SOURCE_REVIEW_20261001T153932Z.json. Ingen ny produksjonskodefeil ble bekreftet
+i dette avgrensede utsnittet; dette er ikke en full revisjon av all aktiv kode.
+
+Normalisering og native trening er fortsatt stengt inntil konkret scope er
+bundet. Teknisk input-PASS er ikke læring eller lønnsomhet. Makro, senere
+uavhengig generalisering, train/serve-paritet og offline driftskvalifisering
+er fortsatt separate ufullførte delmål.

@@ -1,14 +1,19 @@
 # Gjeldende status — 01.10.2026: native v38 og kontrollert kodeopprydding
 
-## Native v38 — nye inputs før læringsmåling
+## Native v38 — inputbygg ferdig, læringsdesign gjenstår
 
-Gjeldende neste steg er det særskilt bundne v38-inputbygget:
-[scope og læringsmål](docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md).
-Rådatapar og seks-klokkers squeeze-parametre er kontrollert og gjenbrukes.
-V38-featureflater og datasett bygges i ny namespace med uendrede splitvinduer.
-Les levende prosess og terminal receipt før videre arbeid; kilde fryses under
-kjøringen. Trening og normaliseringsfit er ikke åpnet. Eldre neste-steg-tekst
-nedenfor er historikk inntil ny komplett evidens foreligger.
+V38-bygget og den separate etterkontrollen er fullført fra kilde 5bdd75e0.
+Alle seks readiness-porter består. TRAIN har 652 552 rader og utviklings-VAL
+70 880; alle 12 nye sweep-/AVWAP-felt er endelige og varierer i begge.
+254 signalverdier og alle åtte familier er bevart. TEST er fortsatt forseglet;
+etterkontrollen har ikke åpnet TEST-datasettet eller dets manifest.
+
+[Scope, bindinger og neste steg](docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md).
+Gjenbruk de ferdige inputartefaktene; byggingen skal ikke relanseres.
+Bind nå konkret kronologisk læringsdesign, normalisering, native
+tilstands-/mål-/økonomibindinger og fersk initialbaseline. Den avgrensede
+læringsmålingen alene utfører ikke porteføljeregnskap. Trening og
+normaliseringsfit er fortsatt stengt. Eldre neste-steg-tekst er historikk.
 
 ## Aktivt mål 01.10 — makrotest fullført, native læringsbevis gjenstår
 
