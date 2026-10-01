@@ -686,8 +686,9 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 "purpose": (
                     "Native M5/M1 BOS displacement, sided CHoCH flags, "
                     "sided sweep depth, level-identity sweep events and the "
-                    "last sweep side; raw sweep age/seen live in the "
-                    "canonical local SMC owner."
+                    "last sweep side plus independent up/down event-anchored "
+                    "price, dispersion, level, age and activity memory. "
+                    "No field supplies trade direction or an entry veto."
                 ),
             },
         ),
@@ -813,8 +814,8 @@ _BASIC_V1_TREND_FIELDS = frozenset(
 
 # The tick-volume family is declared PARTICIPATION evidence by its owner
 # (gx1.features.volume_features): surge detection, fast-vs-slow activity,
-# percentile rank of activity and signed participation are order-flow
-# quantities, not unsigned volatility magnitudes.  Routing them through the
+# percentile rank of price-update activity are quote-activity quantities,
+# not observed aggressor flow or volatility magnitudes. Routing through the
 # lexical "vol" matcher handed them to the volatility specialist; the exact
 # declared field set belongs to the momentum/flow owner.
 _VOLUME_PARTICIPATION_FIELDS = frozenset(

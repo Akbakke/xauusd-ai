@@ -1,8 +1,11 @@
 # Sweep, ankret VWAP og aktivitet — fullført 30.09.2026
 
-**Resultat: NO_GO for den ene forhåndsregistrerte regelen.** Den anbefales ikke
-innført i native modellen eller fulgt av større trening. Full B er fortsatt blokkert
-på egne kildekrav og er ikke erstattet av denne testen.
+**Resultat: NO_GO for den ene forhåndsregistrerte handelsregelen.**
+Ingen modell ble trent på denne kombinasjonen; ingen 20-timers treningsøkt ble kjørt.
+Lært featureverdi er **ikke målt**. Den tidligere anbefalingen om å avvise større
+modelltrening på grunnlag av denne regeltesten trekkes tilbake 01.10.2026.
+Det negative regelresultatet og de opprinnelige målingsartefaktene endres ikke.
+Full B er fortsatt blokkert på egne kildekrav og er ikke erstattet av denne testen.
 
 ## Målt på OANDA
 
@@ -89,6 +92,60 @@ Dette er teknisk og økonomisk historikkevidens, ikke urørt OOS eller native l�
 - Måling: /home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/RESULT.json
 - Uavhengig kontroll: /home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/VERIFICATION.json
 
-Native features, modellvekter og treningskontrakter er ikke endret. TEST forblir
-forseglet. Neste steg er ingen automatisk utvidelse av denne regelen; en ny
-hypotese trenger en egen begrunnelse og forhåndsregistrering.
+Selve regeltesten endret ingen native features, modellvekter eller treningskontrakter.
+Brukerens etterfølgende bestilling 01.10 gjelder den separate native funksjonen nedenfor.
+TEST forblir forseglet.
+
+
+## Bestilt native funksjon 01.10.2026
+
+Brukeren ba uttrykkelig om å bygge en avansert funksjon i den lærte boten.
+Implementasjonen utvider eksisterende SMC-eier og eksisterende lokale featurelag;
+den innfører ingen ny beslutningsregel eller ny modellarkitektur.
+
+Hver ensidig, bekreftet sweep oppretter et anker på den lukkede hendelsesbaren.
+Opp- og ned-ankre huskes uavhengig. En ny sweep på samme side erstatter det ankeret;
+en motsatt eller dobbel sweep sletter ikke den andre sidens informasjon.
+Ingen fem-bars bekreftelse, fast handelsgrense, filter eller 60-minutters exit
+fra den avsluttede regeltesten følger med inn i modellen.
+
+Hver side gir seks kontinuerlige målinger (12 nye felt totalt):
+
+| Felt etter smc_sweep_{up,down}_avwap_ | Eksakt betydning |
+|---|---|
+| age_bars | Antall observerte lukkede native barer siden ankeret |
+| dist_atr | (close minus aktivitetsvektet close siden ankeret) / gjeldende ATR |
+| dispersion_atr | Aktivitetsvektet standardavvik siden ankeret / gjeldende ATR |
+| anchor_close_dist_atr | (close minus close på ankerbaren) / gjeldende ATR |
+| level_dist_atr | (close minus det bekreftede nivået som ble sveipet) / gjeldende ATR |
+| mean_activity_ratio | Gjennomsnittlig prisoppdateringsantall siden ankeret / ankerbarens antall minus 1 |
+
+Ankerbaren er inkludert. Volumvekten er OANDA prisoppdateringsantall, ikke
+utført volum eller aggressor-/ordrebokflyt. Ingen tak, sentinel eller nøytral
+utfylling erstatter manglende hendelseshistorikk. En sides målinger er NaN før
+dens første hendelse; prisnormalisering venter også på observert kausal ATR.
+Lagring med to ankertilstander og vektet Welford holder minnebruken konstant
+under replay og bevarer eksakt resultat over vilkårlige kronologiske chunks.
+Markedsstengning legger ikke inn syntetiske barer; alder teller observerte barer.
+
+Funksjonen er obligatorisk i eksisterende native lokale SMC-lag for M5 Entry
+og M1 Exit og rutes til smc_liquidity_encoder. De øvrige åtte-familie-rutene,
+høyere tidsrammene og den eksisterende lærte attention/fusion beholdes.
+Signalidentiteten er v38 og full-stack-identiteten v26. Gamle v37-datasett,
+normaliseringer og vekter kan ikke behandles som ferdige v38-artefakter.
+
+Kontrollen bruker syntetisk referanseregning, kausalitet, hendelsesidentitet,
+uendret eksisterende SMC-evidens, chunk-paritet, faktisk native reader på M1/M5,
+signalmanifest og gradientvei til modellens Entry-verdier uten optimizersteg.
+Deretter kjøres én manifestbundet inputkontroll på eksisterende 2009–2011-priser:
+2009–2010 er historisk prefiks, og 2011 måles for inputdekning. Ingen utfall
+eller økonomi evalueres. Manifest: configs/research/TA_SWEEP_NATIVE_INPUT_AUDIT_20261001.json.
+
+Dette implementerer en representasjon modellen kan lære fra. Før læring kan
+vurderes må de endrede feature-, normaliserings- og datasettartefaktene bygges
+og bindes, og en avgrenset treningssammenligning spesifiseres med samme
+kronologiske populasjon, mål, kostnader, initialisering og beregningsbudsjett.
+Sammenlign dagens features med de nye ankermålingene; rapporter faktisk TRAIN-
+læring og senere generalisering separat. Den kontrollen er ikke kjørt.
+En ny ONLINE-funksjon krever også ny initialbaseline. Urørt endelig TEST brukes
+først etter fryst modellvalg. Ingen 20-timers kjøring eller lønnsomhet er etablert.

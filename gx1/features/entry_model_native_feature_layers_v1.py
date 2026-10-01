@@ -38,6 +38,7 @@ from gx1.features.level_registry_v1 import (
 )
 from gx1.features.smc_v1 import (
     SMC_V30_ADDITION_NAMES_V1,
+    SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES,
     compute_smc_features,
 )
 from gx1.features.swing_structure_v1 import (
@@ -323,7 +324,9 @@ MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES = tuple(
 ) + tuple(
     LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES
 )
-SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES = tuple(SMC_V30_ADDITION_NAMES_V1)
+SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES = (
+    tuple(SMC_V30_ADDITION_NAMES_V1) + SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES
+)
 VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES = tuple(
     VOLATILITY_SQUEEZE_FEATURE_NAMES
 )
@@ -1145,7 +1148,7 @@ def build_smc_local_event_layer(
     *,
     raw_frame: bool = False,
 ) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
-    """Native M5/M1 SMC displacement, sided sweep-depth and event block."""
+    """Native M5/M1 SMC events and continuous, two-sided anchored activity memory."""
 
     context = "SMC_LOCAL_EVENT_LAYER"
     sample_times = (
@@ -1154,7 +1157,7 @@ def build_smc_local_event_layer(
     src = _read_v29_price_source(
         source_parquet,
         context=context,
-        columns=("time", "high", "low", "close", "atr"),
+        columns=("time", "high", "low", "close", "atr", "volume"),
     )
     source_index = pd.DatetimeIndex(src["time"])
     smc_source = pd.DataFrame(
@@ -1163,12 +1166,14 @@ def build_smc_local_event_layer(
             "low": _require_finite_positive_column(src, "low", context=context),
             "close": _require_finite_positive_column(src, "close", context=context),
             "atr": _require_finite_positive_column(src, "atr", context=context),
+            "volume": src["volume"].to_numpy(),
         },
         index=source_index,
     )
     computed = compute_smc_features(
         smc_source,
         include_v30_additions=True,
+        include_sweep_anchored_activity=True,
     )
     raw = computed.loc[:, list(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES)].astype(
         np.float64

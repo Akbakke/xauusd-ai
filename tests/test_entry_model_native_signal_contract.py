@@ -575,7 +575,20 @@ def test_model_native_transformer_entry_q_is_direct_and_anchor_free() -> None:
         f"seq_{tf}": torch.randn(2, 4, _TEST_MTF_DIM)
         for tf in ("m15", "h1", "h4", "d1")
     }
+    seq_x.requires_grad_(True)
+    snap_x.requires_grad_(True)
     out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)
+    # Technical connectivity only: no optimizer, fitting or market-value claim.
+    from gx1.features.smc_v1 import SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES
+    anchor_indices = [ordered_signal_names.index(name)
+                      for name in SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES]
+    seq_grad, snap_grad = torch.autograd.grad(
+        out["entry_action_q_bps"].square().sum(), (seq_x, snap_x),
+    )
+    signal = seq_grad[:, :, anchor_indices].abs().sum(dim=(0, 1))
+    signal += snap_grad[:, anchor_indices].abs().sum(dim=0)
+    assert torch.isfinite(signal).all()
+    assert (signal > 0).all()
 
     assert out["entry_action_q_bps"].shape == (2, 3)
     assert torch.isfinite(out["entry_action_q_bps"]).all()

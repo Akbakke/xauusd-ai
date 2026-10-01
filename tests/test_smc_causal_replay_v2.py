@@ -493,10 +493,12 @@ def test_five_local_additions_are_an_active_model_native_contract() -> None:
         build_smc_local_event_layer,
     )
 
-    assert SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES == smc.SMC_V30_ADDITION_NAMES_V1
+    assert SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES == (
+        smc.SMC_V30_ADDITION_NAMES_V1 + smc.SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES
+    )
     assert (
         "smc_local_event_layer",
-        smc.SMC_V30_ADDITION_NAMES_V1,
+        SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
     ) in MODEL_NATIVE_SPECIALIST_LAYER_FEATURES
     assert "include_v30_additions=True" in inspect.getsource(
         build_smc_local_event_layer
@@ -513,3 +515,127 @@ def test_envelope_encoding_preserves_raw_positions_and_distinguishes_true_zero()
     np.testing.assert_array_equal(position[:4], [0., 0., -0.5, 2.])
     np.testing.assert_array_equal(width_atr[:4], [0., 1., 1., 1.])
     assert np.isnan(position[4]) and np.isnan(width_atr[4])
+
+
+def test_sweep_anchor_replay_matches_independent_weighted_reference_and_chunks():
+    # Independent reference recomputes weighted moments directly from each
+    # anchor's slice; it does not reuse the online Welford update.
+    close = np.array([100., 102., 101., 103., 98., 105., 104., 103., 99.])
+    volume = np.array([2., 7., 3., 11., 5., 13., 2., 17., 19.])
+    atr = np.array([np.nan, np.nan, 2., 3., 4., 2., 1., 2., 3.])
+    up = np.array([0., 1., 0., 0., 0., 1., 0., 0., 0.])
+    down = np.array([0., 0., 0., 1., 0., 1., 0., 0., 0.])
+    up_level = np.where(up == 1., close + 1., np.nan)
+    down_level = np.where(down == 1., close - 1., np.nan)
+    def run(a, b, state=None):
+        return smc.replay_sweep_anchored_activity_v1(
+            close[a:b], volume[a:b], atr[a:b],
+            up_event=up[a:b], down_event=down[a:b],
+            up_level=up_level[a:b], down_level=down_level[a:b], state=state,
+        )
+    full, final = run(0, len(close))
+    assert tuple(full) == smc.SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES
+    for side, events, levels in (("up", up, up_level), ("down", down, down_level)):
+        anchor = None
+        for i in range(len(close)):
+            if events[i]:
+                anchor = i
+            prefix = f"smc_sweep_{side}_avwap_"
+            if anchor is None:
+                assert all(np.isnan(full[prefix + f][i])
+                           for f in smc.SWEEP_ANCHORED_ACTIVITY_FIELDS)
+                continue
+            prices, weights = close[anchor:i+1], volume[anchor:i+1]
+            mean = np.average(prices, weights=weights)
+            variance = np.average((prices - mean) ** 2, weights=weights)
+            expected = {
+                "age_bars": i-anchor,
+                "dist_atr": (close[i]-mean)/atr[i],
+                "dispersion_atr": np.sqrt(variance)/atr[i],
+                "anchor_close_dist_atr": (close[i]-close[anchor])/atr[i],
+                "level_dist_atr": (close[i]-levels[anchor])/atr[i],
+                "mean_activity_ratio": weights.mean()/volume[anchor]-1.,
+            }
+            for field, value in expected.items():
+                np.testing.assert_allclose(full[prefix+field][i], value, rtol=1e-6, atol=1e-7)
+    # Opposite anchors are independent; both reset on the double event.
+    assert full["smc_sweep_up_avwap_age_bars"][3] == 2
+    assert full["smc_sweep_down_avwap_age_bars"][3] == 0
+    assert full["smc_sweep_up_avwap_age_bars"][5] == 0
+    assert full["smc_sweep_down_avwap_age_bars"][5] == 0
+    for cuts in ((0, 1, 2, 3, 5, 6, 9), (0, 0, 4, 4, 9), tuple(range(10))):
+        parts, state = [], None
+        for a, b in zip(cuts[:-1], cuts[1:]):
+            part, state = run(a, b, state)
+            parts.append(part)
+        assert state == final
+        for name in full:
+            np.testing.assert_array_equal(
+                np.concatenate([part[name] for part in parts]), full[name],
+            )
+    for stop in range(1, len(close)):
+        prefix, _ = run(0, stop)
+        for name in full:
+            np.testing.assert_array_equal(prefix[name], full[name][:stop])
+
+
+def test_native_sweep_memory_is_causal_and_preserves_every_existing_smc_value():
+    high, low, close = _random_ohlc(700, seed=81)
+    frame = _frame(high, low, close)
+    frame["volume"] = 1 + (np.arange(len(frame)) * 17) % 113
+    before = smc.compute_smc_features(frame, include_v30_additions=True)
+    full = smc.compute_smc_features(
+        frame, include_v30_additions=True, include_sweep_anchored_activity=True,
+    )
+    pd.testing.assert_frame_equal(full[list(before)], before)
+    for stop in (97, 309, 550):
+        prefix = smc.compute_smc_features(
+            frame.iloc[:stop], include_v30_additions=True,
+            include_sweep_anchored_activity=True,
+        )
+        pd.testing.assert_frame_equal(prefix, full.iloc[:stop])
+    changed = frame.copy()
+    changed.loc[400:, ["high", "low", "close"]] += 100
+    changed.loc[400:, "volume"] *= 9
+    mutated = smc.compute_smc_features(
+        changed, include_v30_additions=True, include_sweep_anchored_activity=True,
+    )
+    pd.testing.assert_frame_equal(mutated.iloc[:400], full.iloc[:400])
+    for side in ("up", "down"):
+        age = full[f"smc_sweep_{side}_avwap_age_bars"]
+        events = full[f"smc_sweep_{side}_event"] == 1
+        assert events.any()
+        np.testing.assert_array_equal(age.eq(0), events)
+        for name in smc.SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES:
+            if f"_{side}_" in name:
+                assert full[name].iloc[np.flatnonzero(events)[0]:].notna().all()
+    with pytest.raises(RuntimeError, match="VOLUME_FEATURE_SOURCE_MISSING"):
+        smc.compute_smc_features(
+            frame.drop(columns="volume"), include_sweep_anchored_activity=True,
+        )
+    broken = frame.copy()
+    broken.loc[500, "volume"] = 0
+    with pytest.raises(RuntimeError, match="VOLUME_NOT_POSITIVE_INTEGER"):
+        smc.compute_smc_features(broken, include_sweep_anchored_activity=True)
+
+
+@pytest.mark.parametrize("fault", ("activity", "atr_gap", "event", "level", "state"))
+def test_sweep_memory_rejects_invalid_source_or_carry(fault):
+    args = dict(
+        close=np.array([100., 101., 99.]), activity=np.array([3., 7., 5.]),
+        atr=np.ones(3), up_event=np.array([1., 0., 0.]),
+        down_event=np.zeros(3), up_level=np.array([102., np.nan, np.nan]),
+        down_level=np.full(3, np.nan),
+    )
+    if fault == "activity":
+        args["activity"][1] = 2.5
+    elif fault == "atr_gap":
+        args["atr"][1] = np.nan
+    elif fault == "event":
+        args["up_event"][1] = 0.5
+    elif fault == "level":
+        args["up_level"][0] = np.nan
+    else:
+        args["state"] = smc.SweepAnchoredActivityStateV1(bars_seen=-1)
+    with pytest.raises(RuntimeError, match="SWEEP_ACTIVITY_"):
+        smc.replay_sweep_anchored_activity_v1(**args)

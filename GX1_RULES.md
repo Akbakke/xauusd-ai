@@ -170,3 +170,9 @@ Operatørvedtak 30.09.2026: «ja gjør dette» åpner den separat forhåndsregis
 sweep-/hendelsesankret-VWAP-/aktivitetstesten i docs/TA_SWEEP_AVWAP_20260930.md,
 inkludert lesekontroll av eksisterende Dukascopy-cache og avgrenset OANDA-basert
 økonomimåling. Ingen brede søk eller native trening åpnes; full B endres ikke.
+
+Operatørvedtak 01.10.2026: brukerens «bygg denne som en avansert funksjon»
+åpner kausal sweep-ankret pris-/aktivitetsrepresentasjon i eksisterende native
+SMC-eier og M5/M1-featurekjede, med bundne kontrakter og fokuserte inputkontroller.
+Den faste regelens NO_GO er ingen konklusjon om lært featureverdi.
+Dette designskiftet åpner ikke TEST, live/paper eller en uavgrenset treningskjøring.

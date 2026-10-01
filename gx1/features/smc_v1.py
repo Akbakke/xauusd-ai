@@ -45,6 +45,7 @@ import numpy as np
 import pandas as pd
 
 from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
+from gx1.features.volume_features import require_price_update_counts
 
 
 SWING_LOOKBACK = 3  # bars look-around for swing pivot detection (3 → 7-bar window centered)
@@ -55,7 +56,7 @@ SMC_CAUSAL_REPLAY_SCHEMA_VERSION = "smc_causal_replay_v5"
 # carried replay state keys are deliberately unchanged, so bounded-chunk state
 # written by the previous generation stays exchangeable.
 # v4: pair envelope position with observed width; replay state is unchanged.
-SMC_PRIMITIVE_CONTRACT_SCHEMA_VERSION = "smc_raw_primitives_v4"
+SMC_PRIMITIVE_CONTRACT_SCHEMA_VERSION = "smc_raw_primitives_v5"
 
 
 SMCLevelIdentity = tuple[str, int]
@@ -544,6 +545,191 @@ def _pivot_envelope_coordinates(close, lower, width, atr, available):
     return position, width_atr
 
 
+
+# Event-anchored memory for the learned local M5/M1 surface. These measurements
+# have no entry direction, confirmation delay, threshold or expiry authority.
+SWEEP_ANCHORED_ACTIVITY_SCHEMA_VERSION = "sweep_anchored_activity_v1"
+SWEEP_ANCHORED_ACTIVITY_FIELDS = (
+    "age_bars",
+    "dist_atr",
+    "dispersion_atr",
+    "anchor_close_dist_atr",
+    "level_dist_atr",
+    "mean_activity_ratio",
+)
+SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES = tuple(
+    f"smc_sweep_{side}_avwap_{field}"
+    for side in ("up", "down")
+    for field in SWEEP_ANCHORED_ACTIVITY_FIELDS
+)
+SWEEP_ANCHORED_ACTIVITY_FORMULAS = (
+    "anchor=one_shot_confirmed_sweep_event_at_its_closed_bar",
+    "sides=independent_latest_up_and_down_events_double_events_keep_both",
+    "weight=observed_positive_integer_price_update_count_not_traded_volume",
+    "price=closed_bar_close_weighted_with_inclusive_anchor",
+    "age_bars=observed_native_rows_since_same_side_anchor_no_cap_or_expiry",
+    "dist_atr=(close-weighted_mean)/current_native_atr",
+    "dispersion_atr=sqrt(weighted_population_variance)/current_native_atr",
+    "anchor_close_dist_atr=(close-anchor_close)/current_native_atr",
+    "level_dist_atr=(close-confirmed_level_swept_at_anchor)/current_native_atr",
+    "mean_activity_ratio=sum_activity/(observed_bar_count*anchor_activity)-1",
+    "warmup=nan_before_each_side_first_event_and_until_atr_available",
+    "carry=weighted_welford_float64_exact_chronological_chunk_replay",
+)
+
+
+@dataclass(frozen=True)
+class SweepActivityAnchorV1:
+    row: int
+    close: float
+    level: float
+    activity: float
+    weight: float
+    mean: float
+    m2: float
+
+
+@dataclass(frozen=True)
+class SweepAnchoredActivityStateV1:
+    schema_version: str = SWEEP_ANCHORED_ACTIVITY_SCHEMA_VERSION
+    bars_seen: int = 0
+    atr_seen: bool = False
+    up: SweepActivityAnchorV1 | None = None
+    down: SweepActivityAnchorV1 | None = None
+
+
+def _require_sweep_activity_state(state: SweepAnchoredActivityStateV1) -> None:
+    if (
+        not isinstance(state, SweepAnchoredActivityStateV1)
+        or state.schema_version != SWEEP_ANCHORED_ACTIVITY_SCHEMA_VERSION
+        or isinstance(state.bars_seen, bool)
+        or not isinstance(state.bars_seen, int)
+        or state.bars_seen < 0
+        or not isinstance(state.atr_seen, bool)
+    ):
+        raise RuntimeError("[SWEEP_ACTIVITY_STATE_INVALID]")
+    for anchor in (state.up, state.down):
+        if anchor is None:
+            continue
+        if (
+            not isinstance(anchor, SweepActivityAnchorV1)
+            or isinstance(anchor.row, bool)
+            or not isinstance(anchor.row, int)
+            or not 0 <= anchor.row < state.bars_seen
+        ):
+            raise RuntimeError("[SWEEP_ACTIVITY_ANCHOR_INVALID]")
+        values = (anchor.close, anchor.level, anchor.activity, anchor.weight,
+                  anchor.mean, anchor.m2)
+        if (
+            not np.isfinite(values).all()
+            or min(values[:-1]) <= 0.0
+            or anchor.m2 < 0.0
+            or anchor.activity != math.floor(anchor.activity)
+            or anchor.weight != math.floor(anchor.weight)
+            or anchor.weight < anchor.activity + state.bars_seen - anchor.row - 1
+        ):
+            raise RuntimeError("[SWEEP_ACTIVITY_ANCHOR_INVALID]")
+
+
+def replay_sweep_anchored_activity_v1(
+    close: np.ndarray,
+    activity: np.ndarray,
+    atr: np.ndarray,
+    *,
+    up_event: np.ndarray,
+    down_event: np.ndarray,
+    up_level: np.ndarray,
+    down_level: np.ndarray,
+    state: SweepAnchoredActivityStateV1 | None = None,
+) -> tuple[dict[str, np.ndarray], SweepAnchoredActivityStateV1]:
+    """Carry both causal sweep anchors through every observed closed bar.
+
+    Events and their confirmed levels come from replay_smc_causal_structure_v2;
+    this owner never detects a second kind of sweep or rewrites a past row.
+    An opposite event does not discard the other side's memory. A new same-side
+    event replaces that side at the current close. Gaps add no invented bars.
+    Callers must keep source order and retain this state across bounded chunks.
+    """
+    arrays = [np.asarray(a, dtype=np.float64) for a in
+              (close, activity, atr, up_event, down_event, up_level, down_level)]
+    close, activity, atr, up_event, down_event, up_level, down_level = arrays
+    n = len(close) if close.ndim == 1 else -1
+    if n < 0 or any(a.shape != (n,) for a in arrays):
+        raise RuntimeError("[SWEEP_ACTIVITY_SOURCE_SHAPE_INVALID]")
+    if (
+        not np.isfinite(close).all() or np.any(close <= 0.0)
+        or not np.isfinite(activity).all() or np.any(activity <= 0.0)
+        or not np.equal(activity, np.floor(activity)).all()
+        or not np.isin(up_event, (0.0, 1.0)).all()
+        or not np.isin(down_event, (0.0, 1.0)).all()
+        or np.isinf(atr).any()
+        or np.any(np.isfinite(atr) & (atr <= 0.0))
+    ):
+        raise RuntimeError("[SWEEP_ACTIVITY_SOURCE_INVALID]")
+    for event, level in ((up_event, up_level), (down_event, down_level)):
+        fired = event == 1.0
+        if not np.isfinite(level[fired]).all() or np.any(level[fired] <= 0.0):
+            raise RuntimeError("[SWEEP_ACTIVITY_EVENT_LEVEL_INVALID]")
+    current = SweepAnchoredActivityStateV1() if state is None else state
+    _require_sweep_activity_state(current)
+    available = np.isfinite(atr)
+    if ((current.atr_seen and not available.all())
+        or (available.any() and not available[np.argmax(available):].all())):
+        raise RuntimeError("[SWEEP_ACTIVITY_ATR_PREFIX_INVALID]")
+    out = {name: np.full(n, np.nan, dtype=np.float64)
+           for name in SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES}
+    anchors = [current.up, current.down]
+    for i in range(n):
+        row = current.bars_seen + i
+        price, weight = float(close[i]), float(activity[i])
+        for side_index, (side, event, level) in enumerate((
+            ("up", up_event, up_level), ("down", down_event, down_level),
+        )):
+            anchor = anchors[side_index]
+            if event[i] == 1.0:
+                anchor = SweepActivityAnchorV1(
+                    row, price, float(level[i]), weight, weight, price, 0.0,
+                )
+            elif anchor is not None:
+                total = anchor.weight + weight
+                delta = price - anchor.mean
+                anchor = SweepActivityAnchorV1(
+                    anchor.row, anchor.close, anchor.level, anchor.activity,
+                    total, anchor.mean + (weight / total) * delta,
+                    anchor.m2 + delta * delta * (anchor.weight / total) * weight,
+                )
+            anchors[side_index] = anchor
+            if anchor is None:
+                continue
+            age = row - anchor.row
+            prefix = f"smc_sweep_{side}_avwap_"
+            out[prefix + "age_bars"][i] = age
+            out[prefix + "mean_activity_ratio"][i] = (
+                anchor.weight / ((age + 1) * anchor.activity) - 1.0
+            )
+            if available[i]:
+                scale = float(atr[i])
+                out[prefix + "dist_atr"][i] = (price - anchor.mean) / scale
+                out[prefix + "dispersion_atr"][i] = math.sqrt(
+                    anchor.m2 / anchor.weight
+                ) / scale
+                out[prefix + "anchor_close_dist_atr"][i] = (
+                    price - anchor.close
+                ) / scale
+                out[prefix + "level_dist_atr"][i] = (price - anchor.level) / scale
+    next_state = SweepAnchoredActivityStateV1(
+        bars_seen=current.bars_seen + n,
+        atr_seen=current.atr_seen or bool(available.any()),
+        up=anchors[0], down=anchors[1],
+    )
+    _require_sweep_activity_state(next_state)
+    emitted = {name: values.astype(np.float32) for name, values in out.items()}
+    if any(np.isinf(values).any() for values in emitted.values()):
+        raise RuntimeError("[SWEEP_ACTIVITY_OUTPUT_OVERFLOW]")
+    return emitted, next_state
+
+
+
 def compute_smc_features(
     df: pd.DataFrame,
     *,
@@ -553,8 +739,12 @@ def compute_smc_features(
     atr_col: str = "atr",
     swing_lookback: int = SWING_LOOKBACK,
     include_v30_additions: bool = False,
+    include_sweep_anchored_activity: bool = False,
 ) -> pd.DataFrame:
     """Compute the raw local ``SMC_FEATURE_NAMES`` primitives.
+
+    With include_sweep_anchored_activity=True, positive integer volume is also
+    required and both causal sweep anchors enter the native specialist surface.
 
     Required columns on df: high, low, close and atr. All are exact observed or
     causally computed inputs; no ATR sentinel is permitted.
@@ -572,6 +762,8 @@ def compute_smc_features(
     exposes the frozen base block plus specialist-layer outputs. Per-TF
     siblings are produced by :func:`compute_smc_mtf_primitives_v1`.
     """
+    if not isinstance(include_sweep_anchored_activity, bool):
+        raise RuntimeError("[SMC_SWEEP_ACTIVITY_FLAG_INVALID]")
     if not isinstance(include_v30_additions, bool):
         raise RuntimeError("[SMC_V30_ADDITION_FLAG_INVALID]")
     nb = len(df)
@@ -745,8 +937,19 @@ def compute_smc_features(
         out_cols["smc_choch_up"] = choch_up_col
         out_cols["smc_choch_down"] = choch_down_col
         out_cols["smc_sweep_last_event_side"] = sweep_last_event_side_col
+    if include_sweep_anchored_activity:
+        anchored, _ = replay_sweep_anchored_activity_v1(
+            close, require_price_update_counts(df), atr,
+            up_event=replay["sweep_up_event"],
+            down_event=replay["sweep_down_event"],
+            up_level=replay["last_high_price"],
+            down_level=replay["last_low_price"],
+        )
+        out_cols.update(anchored)
     expected_columns = tuple(SMC_FEATURE_NAMES) + (
         SMC_V30_ADDITION_NAMES_V1 if include_v30_additions else ()
+    ) + (
+        SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES if include_sweep_anchored_activity else ()
     )
     if tuple(out_cols) != expected_columns:
         raise RuntimeError("[SMC_OUTPUT_ORDER_INVALID]")
@@ -935,6 +1138,13 @@ def smc_primitive_contract_metadata() -> dict[str, object]:
             "known_zero_width_pair": [0.0, 0.0],
             "unknown_warmup": "both_nan",
             "positive_width_position": "raw_unclipped_close_position",
+        },
+        "sweep_anchored_activity": {
+            "schema_version": SWEEP_ANCHORED_ACTIVITY_SCHEMA_VERSION,
+            "names": list(SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES),
+            "formula_sha256": _smc_sha256_json(SWEEP_ANCHORED_ACTIVITY_FORMULAS),
+            "source_semantics": "OANDA price update activity, not executed volume",
+            "clocks": ["native_M5_Entry", "native_M1_Exit"],
         },
         "local_base_names": list(SMC_FEATURE_NAMES),
         "local_base_names_sha256": _smc_sha256_json(SMC_FEATURE_NAMES),

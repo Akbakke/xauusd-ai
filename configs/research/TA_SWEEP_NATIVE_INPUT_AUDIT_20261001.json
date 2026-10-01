@@ -1,0 +1,76 @@
+{
+  "audit_script": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001/VERIFY_INPUTS.py",
+  "audit_script_sha256": "83237a6820c498a4fad06dc2af1b6e269e2230f7abc4c18695ec5864ef691dca",
+  "chunk_rows": 8192,
+  "chunk_rows_origin": "Audit memory partition only; not a feature window or trading threshold",
+  "direct_checks_origin": "Deterministic equally spaced input verification samples only; no economic inference",
+  "direct_checks_per_side": 32,
+  "evaluated_year": 2011,
+  "historical_prefix_years": [
+    2009,
+    2010
+  ],
+  "native_training": false,
+  "output_root": "/home/andre2/GX1_RUNS/TA_SWEEP_NATIVE_20261001/INPUT_AUDIT_001",
+  "schema": "gx1_sweep_native_input_audit_manifest_v1",
+  "scope": "Causal feature input verification only; no outcomes, fitting, optimizer or TEST",
+  "source_sha256": {
+    "gx1/contracts/entry_model_native_signal_v1.py": "db80bc1cc51d9232153c63d2395497763a6188fdd376341b78c3220a3812dac3",
+    "gx1/features/entry_model_native_feature_layers_v1.py": "0c31c38fd891185b1042b5373bbb71d7b01fbe895f5928a759c74fa8c568cb5b",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "67a879ac5c8d037840830b64779a31cc0b01d7e2c40ab2d05e18ab91197d3fc4",
+    "gx1/features/htf_features.py": "ad1910f99dcc6e73498c8ff47445e71b724ec5c7f06442d9957bd81de3965655",
+    "gx1/features/smc_v1.py": "a8c742634eb3e1d8414a062e28e6b8c420c791c9be1f7137bb021c51f7b70ebf",
+    "gx1/features/volume_features.py": "31433e540ada7808142805aca353c36fa8de566c88724e7f046aed8f03aef493"
+  },
+  "sources": [
+    {
+      "files": [
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260901_PAIR_WEEKCLOSED_SEALED_20260927/year=2009/part-000.parquet",
+          "rows": 203075,
+          "sha256": "9b56140dc5d7f33e4c90027986c9da8529ea652023d052c35c13842377548684"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260901_PAIR_WEEKCLOSED_SEALED_20260927/year=2010/part-000.parquet",
+          "rows": 345149,
+          "sha256": "25987111cd008513306448298da5cd01cb39f5a71f51610e3c240975d29f7a9c"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260901_PAIR_WEEKCLOSED_SEALED_20260927/year=2011/part-000.parquet",
+          "rows": 352256,
+          "sha256": "b8f8919e1f3a0ac5366b8d2aa6895c0d85befdfa932c1ad2b0f61e9df856e581"
+        }
+      ],
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260901_PAIR_WEEKCLOSED_SEALED_20260927/MANIFEST.json",
+        "sha256": "7a53e0705cd837986e19ad83048d20848ab16f4e007d41cd0817c0335ec30ef1"
+      },
+      "timeframe": "M1"
+    },
+    {
+      "files": [
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260901_PAIR_WEEKCLOSED_SEALED_20260927/year=2009/part-000.parquet",
+          "rows": 42471,
+          "sha256": "768566439ecdae2d75f9a4ded1fa95efe6ef65feffebf2a2190cbb2899be6373"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260901_PAIR_WEEKCLOSED_SEALED_20260927/year=2010/part-000.parquet",
+          "rows": 72225,
+          "sha256": "20a4b0f2e7d6005dbf4652b65d89744b94eed293eaa908c36b3f0af835474ee8"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260901_PAIR_WEEKCLOSED_SEALED_20260927/year=2011/part-000.parquet",
+          "rows": 72040,
+          "sha256": "af7e354c5689b80772e1e03749d78ce5534e22dee8db28c927a772c1d87d9c8c"
+        }
+      ],
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260901_PAIR_WEEKCLOSED_SEALED_20260927/MANIFEST.json",
+        "sha256": "398f76cd175c4eac2dc2b961907e2e2079c5df723dba079d7f46b959eb78f357"
+      },
+      "timeframe": "M5"
+    }
+  ],
+  "test_outcomes_accessed": false
+}

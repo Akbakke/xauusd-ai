@@ -152,7 +152,9 @@ from gx1.features.smc_v1 import smc_primitive_contract_metadata
 # SMC local additions gain the sided CHoCH pair and last-sweep-side (F-18/19).
 # v37: local SMC position now travels with observed envelope width, matching
 # the existing MTF pair; known width zero is distinct from unknown warmup.
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v37"
+# v38: continuous two-sided sweep-anchored activity memory on native M5/M1.
+# No fixed sweep trading policy or previously trained weight is promoted.
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v38"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "entry_model_native_seq513_split_manifest_v20"
 )
@@ -779,7 +781,7 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
 # families lost nine columns in the previous commit and this commit is where
 # their family registry gets its own identity; no family gains a member here.
 MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION = (
-    "entry_model_native_mandatory_full_stack_v25"
+    "entry_model_native_mandatory_full_stack_v26"
 )
 MODEL_NATIVE_MANDATORY_FULL_STACK_SHA256 = _sha256_json(
     MODEL_NATIVE_MANDATORY_FAMILY_FEATURES

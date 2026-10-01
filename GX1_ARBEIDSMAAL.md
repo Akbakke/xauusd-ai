@@ -1,6 +1,17 @@
-# GX1 arbeidsmål — oppdatert 30.09.2026
+# GX1 arbeidsmål — oppdatert 01.10.2026
 
-## Fullført sweep-/AVWAP-test: NO_GO
+## Native sweep-/AVWAP-funksjon bestilt 01.10 — inputkontroll pågår
+
+Brukerens bestilling er nå implementert i eksisterende feature- og kontrakteiere:
+to uavhengige sweep-ankere, 12 kontinuerlige målinger og obligatorisk native
+M5/M1-ruting til modellens likviditetsfamilie. Dette er ingen fast handelsregel.
+82 fokuserte tester har bestått, inkludert modellens gradientvei uten optimizer.
+Signal v38 krever nye bygg-/normaliseringsartefakter; ingen modell er trent med
+denne utvidelsen. Én avgrenset historisk inputkontroll er forhåndsbundet i
+configs/research/TA_SWEEP_NATIVE_INPUT_AUDIT_20261001.json.
+Detaljer: docs/TA_SWEEP_AVWAP_20260930.md. Ingen ny lærings- eller lønnsomhetspåstand.
+
+## Fast sweep-regel: NO_GO; lært featureverdi er ikke målt
 
 Den godkjente datakontrollen og faste tekniske hypotesen er ferdig målt og kontrollert.
 Se docs/TA_SWEEP_AVWAP_20260930.md og docs/TA_SWEEP_RESULT_20260930.json.
@@ -10,7 +21,11 @@ På 10 899 felles muligheter i gjenbrukt 2021–2025 ga ankret-kombinasjonen
 32 regnskap og primære gjennomsnittsforskjeller er uavhengig kontrollert.
 Dukascopy-cachen har 3 903 452 strukturelt gyldige ticks, men mangler verifisert
 datokobling og sammenhengende dekning; den er ikke brukt i økonomitesten.
-Ingen innføring i native modell eller større trening følger. Ingen parametersøk.
+Presisering 01.10: ingen modell ble trent på kombinasjonen. NO_GO gjelder bare den
+faste regelen, ikke indikatorenes mulige verdi som lærte inputs. Anbefalingen om
+å avvise videre modelltrening på dette grunnlaget trekkes tilbake.
+Brukeren har nå bestilt en avansert kausal funksjon i den faktiske modellkjeden.
+Den nye implementeringen og statusen står øverst; historiske målinger er bevart.
 Full B er fortsatt blokkert; TEST, native trening, live/paper og spending er stengt.
 Denne seksjonen erstatter anbefalingen og kjøringsinstruksene lenger ned i historikken.
 

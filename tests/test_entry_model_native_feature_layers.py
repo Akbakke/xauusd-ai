@@ -353,6 +353,12 @@ def test_native_smc_and_momentum_layers_use_full_exact_source_history(
         "2026-01-01", periods=len(source), freq=frequency, tz="UTC"
     )
     samples = pd.DataFrame({"time": source["time"].iloc[-len(samples):]})
+    # Two-sided observed structure gives both anchors an honest event warmup.
+    from tests.test_smc_causal_replay_v2 import _random_ohlc
+    high, low, close = _random_ohlc(len(source), seed=81)
+    source["high"], source["low"], source["close"] = high, low, close
+    source["open"] = close
+    source["volume"] = 1 + (np.arange(len(source)) * 17) % 113
     source_path = tmp_path / f"smc_{frequency}.parquet"
     source.to_parquet(source_path, index=False)
     source_index = pd.DatetimeIndex(source["time"])
@@ -361,8 +367,9 @@ def test_native_smc_and_momentum_layers_use_full_exact_source_history(
     smc_values, smc_names = build_smc_local_event_layer(samples, source_path)
     assert tuple(smc_names) == SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES
     expected_smc = compute_smc_features(
-        indexed[["high", "low", "close", "atr"]],
+        indexed[["high", "low", "close", "atr", "volume"]],
         include_v30_additions=True,
+        include_sweep_anchored_activity=True,
     ).loc[source_index[-len(samples):], list(smc_names)]
     np.testing.assert_array_equal(
         smc_values,

@@ -57,15 +57,8 @@ VOLUME_FEATURE_REQUIRED_HISTORY_ROWS = 1 + max(VOLUME_FEATURE_WARMUP_ROWS.values
 VOLUME_FEATURE_PREFIX_ROWS = VOLUME_FEATURE_REQUIRED_HISTORY_ROWS - 1
 
 
-def compute_volume_features(df: pd.DataFrame) -> Dict[str, np.ndarray]:
-    """Compute the VOLUME_FEATURE_NAMES from exact observed `df['volume']`.
-
-    Returns a dict name -> float32 ndarray (len == len(df)). Sources are exact,
-    numeric and finite. `volume` must match the admitted positive-integer tick
-    count source. Each feature emits NaN until its complete causal trailing
-    window exists; missing history is never converted into neutral evidence.
-    `vol_pct_96` uses the mid-rank tie convention on its complete window.
-    """
+def require_price_update_counts(df: pd.DataFrame) -> np.ndarray:
+    """Validate the admitted activity source shared by volume and sweep memory."""
     n = len(df)
     if n == 0:
         raise RuntimeError("VOLUME_FEATURE_SOURCE_EMPTY")
@@ -91,6 +84,20 @@ def compute_volume_features(df: pd.DataFrame) -> Dict[str, np.ndarray]:
         vol_values, np.floor(vol_values)
     ).all():
         raise RuntimeError("VOLUME_FEATURE_SOURCE_VOLUME_NOT_POSITIVE_INTEGER")
+    return vol_values
+
+
+def compute_volume_features(df: pd.DataFrame) -> Dict[str, np.ndarray]:
+    """Compute the VOLUME_FEATURE_NAMES from exact observed `df['volume']`.
+
+    Returns a dict name -> float32 ndarray (len == len(df)). Sources are exact,
+    numeric and finite. `volume` must match the admitted positive-integer tick
+    count source. Each feature emits NaN until its complete causal trailing
+    window exists; missing history is never converted into neutral evidence.
+    `vol_pct_96` uses the mid-rank tie convention on its complete window.
+    """
+    n = len(df)
+    vol_values = require_price_update_counts(df)
     vol = pd.Series(vol_values, index=df.index, dtype=np.float64)
 
     # z-score over trailing 20 bars

@@ -707,6 +707,18 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
     "smc_liquidity_encoder": (
         # 2026-09-21 (F-19): held side of the last sweep event.
         "smc_sweep_last_event_side",
+        "smc_sweep_up_avwap_age_bars",
+        "smc_sweep_up_avwap_dist_atr",
+        "smc_sweep_up_avwap_dispersion_atr",
+        "smc_sweep_up_avwap_anchor_close_dist_atr",
+        "smc_sweep_up_avwap_level_dist_atr",
+        "smc_sweep_up_avwap_mean_activity_ratio",
+        "smc_sweep_down_avwap_age_bars",
+        "smc_sweep_down_avwap_dist_atr",
+        "smc_sweep_down_avwap_dispersion_atr",
+        "smc_sweep_down_avwap_anchor_close_dist_atr",
+        "smc_sweep_down_avwap_level_dist_atr",
+        "smc_sweep_down_avwap_mean_activity_ratio",
         "ctx_cont.dist_to_R1_atr",
         "ctx_cont.dist_to_R2_atr",
         "ctx_cont.dist_to_S1_atr",

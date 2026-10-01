@@ -2016,7 +2016,7 @@
     },
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
-    "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
+    "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
     "parameter_complexity_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
       "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
@@ -2051,7 +2051,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "The bounded sweep/anchored-VWAP/activity test is complete and NO_GO on reused development history, independently verified. Do not expand this fixed rule, rerun completed analyses or launch native training. Dukascopy cache was audited but not admitted. Full six-source B remains blocked on qualified GLD/COT versions and valid VIX availability evidence. No automatic download, new hypothesis, TEST or trading.",
+  "next_action": "Complete the manifest-bound native sweep anchored activity input audit only. The fixed-rule NO_GO does not evaluate learned feature value. Native v38 requires new dataset and normalization bindings, a matched bounded learning experiment and a fresh initial baseline before any learned-value claim. No native training has run on the new representation. Full six-source B remains blocked on its existing source requirements. TEST stays sealed; no trading or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-09-30T05:49:29.223474+00:00",
   "outer_guard_seconds": 13800,
@@ -2063,7 +2063,7 @@
     "one_heavy_job_per_current": true,
     "resource_guards_preserved": true,
     "tests_passed": 294,
-    "user_instruction": "fjern l\u00e5s s\u00e5 vi kan jobbe parallelt"
+    "user_instruction": "fjern lås så vi kan jobbe parallelt"
   },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
@@ -2234,23 +2234,35 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "SWEEP_RESEARCH_COMPLETE_NO_GO_FULL_B_BLOCKED",
+  "status": "SWEEP_NATIVE_FEATURE_IMPLEMENTED_INPUT_AUDIT_PENDING_FULL_B_BLOCKED",
+  "sweep_native_feature_20261001": {
+    "existing_v37_artifacts_reusable_as_v38": false,
+    "input_audit_manifest": "configs/research/TA_SWEEP_NATIVE_INPUT_AUDIT_20261001.json",
+    "input_audit_manifest_sha256": "f36cac634575d1c8ea3c59461434289e83a6aa89df4c749e3fe8a4494ebb1b27",
+    "learned_feature_value": "NOT_MEASURED",
+    "native_training": false,
+    "signal_schema": "entry_model_native_signal_v38",
+    "status": "IMPLEMENTED_INPUT_AUDIT_PENDING",
+    "test_outcomes_accessed": false
+  },
   "sweep_research_20260930": {
     "cache_manifest": "configs/research/TA_SWEEP_DUKASCOPY_AUDIT_20260930.json",
     "cache_manifest_sha256": "1b8c665e689b22ce18bad966775c194d515c40df5549598181d4238406d3615e",
+    "decision_scope": "FIXED_PREREGISTERED_TRADING_RULE_ONLY",
     "dukascopy_audit": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/DUKASCOPY_CACHE_AUDIT_001/RESULT.json",
       "sha256": "46f1f47cc86ad1602e7b6492947aebf18ff0d98e853a3585d1a88ee065f60968"
     },
     "initial_measurement_manifest": "configs/research/TA_SWEEP_PREREG_20260930.json",
     "initial_measurement_manifest_sha256": "596e861175d2ab8205e20aec6871e9a9de5c8c11009fde3893e8878ba9b10357",
+    "learned_feature_value": "NOT_MEASURED",
     "measurement_manifest": "configs/research/TA_SWEEP_ACCOUNTING_REPAIR_20260930.json",
     "measurement_manifest_sha256": "db2602545137dd0193a354dd074f972f9f1de654e7d114845f572f493f300dde",
     "native_training": false,
     "plan": "docs/TA_SWEEP_AVWAP_20260930.md",
-    "plan_sha256": "bd01b5441cc662d2cd707bac9eb3940570f55a4d9f16a72fdf32698026e2b6eb",
+    "plan_sha256": "0e388c9abf86b9a15e1cfbeaedf3bfa4dca6e0abceb5ecebfaf564f3efb8da14",
     "report": "docs/TA_SWEEP_RESULT_20260930.json",
-    "report_sha256": "6edf6afb8924133bd8f206482556768be6203202a9301ac1b680c1d41da519e5",
+    "report_sha256": "3920d3d39c3bf54421baa03920193488564913b27bf7db523491191c9187873d",
     "result": {
       "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/MEASUREMENT_002/RESULT.json",
       "sha256": "a55654e9885cbcf7b4bdc4ef266ed852c754efab141973f5bf67b08823d28eab"

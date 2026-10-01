@@ -1,5 +1,6 @@
 {
-  "conclusion": "Do not promote this fixed rule or expand its training. It loses after costs and underperforms rolling VWAP with the same activity condition. No general verdict about all indicators or future learned models.",
+  "conclusion": "NO_GO applies only to the fixed preregistered trading rule. No model was fitted on this combination. The rule result neither establishes nor rules out learned feature value; the earlier recommendation against further model training on this basis is withdrawn.",
+  "decision_scope": "FIXED_PREREGISTERED_TRADING_RULE_ONLY",
   "declared_endpoints": 96,
   "defined_jointly_tested_endpoints": 64,
   "dukascopy": {
@@ -49,6 +50,7 @@
     "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260930_SWEEP/IMPLEMENTATION_CHECKS_001/RESULT.json",
     "sha256": "a53d59568d79e69b864121380bf79e794aa31d1f5d1f687543d75a3897dda54d"
   },
+  "learned_feature_value": "NOT_MEASURED",
   "limitations": [
     "OANDA volume counts price updates, not executed contracts. AVWAP is a quote-activity-weighted close proxy, not transaction VWAP.",
     "Fixed five-bar confirmation and twelve-bar measurement horizon are one preregistered hypothesis, not native Entry/Exit rules or parameter optima.",
@@ -63,6 +65,7 @@
   ],
   "native_features_changed": false,
   "native_training": false,
+  "parameters_fitted": false,
   "population_classification": "Reused development history; no untouched OOS claim",
   "primary": {
     "anchored_activity": {
@@ -360,6 +363,7 @@
     2011,
     2025
   ],
+  "scope_correction_date": "2026-10-01",
   "selection": {
     "censored": 1,
     "conflicting_rows": 0,
