@@ -13,14 +13,17 @@ eier. 15 fokuserte tester består; faktisk ny eier har kontrollert samtlige
 Dette er kalender-/populasjonsbevis, ikke full native admission eller læring.
 
 [Design, feilfunn og neste steg](docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md).
-Operatørens forslag om én M1-råkilde er under avgrenset kildekontroll.
-På hele 2024 er alle 71 208 avledede M5-barer eksakt like dagens M5-kilde
-i alle 13 markedsfelt. MTF bygges allerede fra M5. Resten av relevant
-historikk og featureparitet må kontrolleres før et kildebytte; ingen slik
-endring er utført. Gjenbruk den ferdige 2024-målingen.
+Full før-TEST-kontroll av M1-forslaget er ferdig: 5 959 045 M1-rader
+gjenskaper alle 1 215 514 M5-barer fra juni 2009 til juni 2026 eksakt i alle
+13 markedsfelt. 2024-beviset er gjenbrukt. Eksisterende komplett M1-quote-fil
+er også verifisert av den kanoniske eieren; ikke bygg en kopi.
+[Aggregert kildebevis](docs/NATIVE_M1_SOURCE_PARITY_20261001.json).
 
-Neste steg er riktig M1-/TEST-seal-proveniens, deretter gjennomføring av
-de bundne periodene og separate radkoordinatene i øvrige eksisterende eiere.
+TEST-seal-admission er nå rettet i pilotens eksplisitte designsti: 21 tester
+og ekte metadata-kontroll består. Feil TEST-filpeker avvises før stat/hash/read.
+Full native admission og kildebytte er ikke utført. Neste steg er å binde den
+kvalifiserte M1-filen med riktig parent-proveniens og føre de frosne periodene
+og separate radkoordinatene gjennom øvrige eksisterende eiere.
 Gammel lærer fjerner dagens parameterfrie normalisering; ny fersk måling skal
 bruke samme aktuelle funksjon for ONLINE og TARGET. Indekser, normalisering
 og mål-/økonomibindinger gjenstår. Native trening og normaliseringsfit er

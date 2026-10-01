@@ -122,3 +122,12 @@ radkoordinater. Første klargjøringseier er rettet og kontrollert på hele
 kalenderen; 15 fokuserte tester består. M1-/TEST-seal-admission og øvrige
 native eiere trenger fortsatt den dokumenterte migreringen. Det er ingen
 native launch eller læring ennå; mål og trening er fortsatt separate statuser.
+
+
+## En M1-kilde: rådataparitet fullført, TEST-admission rettet
+
+Alle 1 215 514 M5-barer før TEST gjenskapes eksakt fra den opprinnelige
+M1-kilden. Eksisterende komplett pre-TEST-M1-fil er kvalifisert og skal
+gjenbrukes. 21 fokuserte tester og ekte metadata beviser pilotens rettede
+TEST-seal-admission. Se native-rapporten og NATIVE_M1_SOURCE_PARITY_20261001.json.
+Kildebytte, øvrig native komponentklargjøring og læringsmålingen er ikke ferdige.

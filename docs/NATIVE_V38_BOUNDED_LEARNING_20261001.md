@@ -113,8 +113,9 @@ Faktisk kilde og bundne v38-manifester avdekket:
   vakten ble eksekvert på det nye manifestet og avviste det.
 - Historisk prefix-sti krever samme TRAIN-fil også for kontroll. Andre gamle
   eiere krever 5508 VAL-rader. Ny fysisk VAL har 70 880 rader.
-- Pilotens Entry-admission krever pretest_test_guard. V38 har i stedet en
-  ekte, completion-bundet TEST-forsegling med eksisterende metadata-validator.
+- Pilotens Entry-admission krevde pretest_test_guard. V38 har i stedet en
+  ekte, completion-bundet TEST-forsegling. Dette er nå rettet via eksisterende
+  metadata-validator, bundet til fryst design og fullført readiness.
 - M1-piloten forventer et eget pre-TEST-manifest med komplette quote-kolonner;
   v38 binder native-pair M1-proveniens. Ingen konstruerte legacy-felt eller
   påstått quote-kompletthet kan erstatte faktisk kvalifisering.
@@ -172,11 +173,59 @@ deklareres i eksisterende kildekontrakter; avledet M5 skal ikke påstås å vær
 en separat native OANDA-M5-kilde. Det er ikke nødvendig å bygge alt på nytt
 uten først å måle hvilke eksisterende bytes som faktisk endres.
 
+## Hele før-TEST-historikken kontrollert; eksisterende M1 kan gjenbrukes
+
+Den etterfølgende fullkontrollen er ferdig. Perioden 01.06.2009–30.06.2026
+har 5 959 045 M1-rader og 1 215 514 M5-barer. Alle klokker og alle 13 markedsfelt
+er eksakt like mellom aggregerte M1 og opprinnelige M5. Ingen manglende eller
+ekstra barer. 2024-resultatet ble gjenbrukt; de andre 17 årene/delårene ble
+kontrollert med eksisterende M5-resampler og en uavhengig heltalls-grid/
+numpy-reduceat-beregning.
+
+Fysiske pre-TEST-parentfiler ble brukt. Deres hasher er bundet til eksisterende
+successor-metadata; alle årshasher til og med 2025 er identiske. Ingen
+successor-2026-data med TEST-rader eller TEST-datasett/manifest ble åpnet.
+Dette er rå markedsverdier, ikke full feature-/normaliserings-/modellparitet.
+
+Den eksisterende filen
+HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet
+er nå kvalifisert av require_unified_exit_pretest_m1_quote_authority på samtlige
+5 959 045 rader mot den opprinnelige M1-kilden. Den har komplett mid/bid/ask
+og aktivitet, og fysisk slutt før TEST. Ingen ny fil eller featurebygning
+trengs for å skaffe dette rågrunnlaget. Kildeskifte i den aktive pipeline er
+ikke utført; tidligere v38-manifester skal aldri omskrives til ny proveniens.
+
+Aggregert rapport: docs/NATIVE_M1_SOURCE_PARITY_20261001.json.
+Detaljer ligger i runtime M1_SINGLE_SOURCE_PRETEST_AUDIT/RESULT.json og
+EXISTING_M1_AUTHORITY_REVIEW.json. Originale operatører, kildehasher og
+årsmålinger er bevart. Ferdige sammenligninger skal ikke gjentas.
+
+## TEST-seal-kompatibilitet rettet og målt
+
+Eksisterende pilot-eier bruker nå den eksplisitte test_guard_event-bindingen
+i recipe når designet er bundet. Den krever samme fullførte readiness,
+alle seks grønne bevispunkter, eksakte TRAIN/VAL-filer og samme seal-hendelse.
+Den faktiske forseglingen valideres av require_prefreeze_test_seal_lineage.
+Den historiske eksplisitte pre-TEST-stien beholder sin opprinnelige oppførsel.
+
+Under review ble rekkefølgen strammet: en oppgitt seal-peker sammenlignes med
+den frosne readiness før generisk filkontroll. En feilpeker til TEST-parquet
+skal aldri åpnes eller stat-es bare for å bli avvist etterpå. En ny
+regresjonstest beviser dette. 21 fokuserte tester består; syntaks og diff er
+kontrollert. Ekte v38-metadata består den nye produksjonseieren med
+Path.open/stat/resolve sperret for begge TEST-artefaktene: null forsøk.
+Dette beviser den lokale adgangsporten, ikke full native kjørbarhet.
+
+Runtime SEAL_ADMISSION_PATCH/REAL_SEAL_FINAL_REVIEW.json og CODE_REVIEW.json
+binder aktuell kilde og bevis. Den første før-korrigering-reviewen er bevart
+som historie; siste ferdige review er autoriteten.
+
 ## Neste konkrete grense
 
-Kvalifiser M1-kilden og koble inn eksisterende validator for den faktiske
-TEST-seal-hendelsen. Ikke ommerk native-pair-data som det gamle pre-TEST-formatet.
-Deretter må øvrige eksisterende eiere bruke samme bundne vinduer og separate
+M1-kilden er kvalifisert, og TEST-seal-validatoren er koblet inn og målt.
+Bind nå den eksisterende komplette M1-filen og dens genuine pre-TEST-parent
+til konkret ny klargjøringsrecipe. Ikke ommerk native-pair-data som det gamle
+formatet. Deretter må øvrige eksisterende eiere bruke samme bundne vinduer og separate
 fysiske koordinater: Entry-child, M1-views, summary-fit, normalisering,
 native indeks/trening/måling og frossen TARGET-funksjon. Call-site-sveip har
 funnet kalenderkrav også der; disse er dokumenterte ufullførte migreringer,

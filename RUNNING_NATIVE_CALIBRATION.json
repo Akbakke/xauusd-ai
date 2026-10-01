@@ -2025,7 +2025,7 @@
     "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d"
   },
   "last_evaluation_source_commit": "6523930204bd6966a96bf8ec5cda288822ad1768",
-  "latest_observation_utc": "2026-10-01T17:12:34.132905+00:00",
+  "latest_observation_utc": "2026-10-01T17:29:21.748934+00:00",
   "latest_observed_checkpoint": {
     "checkpoint_index": 9,
     "complete": false,
@@ -2038,7 +2038,7 @@
     "slot": 0,
     "state_sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
   },
-  "latest_readonly_audit_utc": "2026-10-01T17:12:34.132905+00:00",
+  "latest_readonly_audit_utc": "2026-10-01T17:29:21.748934+00:00",
   "learning_gate": {
     "broad_entry_fit_improved": false,
     "causal_entry_fixed256_verdict": {
@@ -2475,6 +2475,10 @@
     },
     "development_val_rows": 70880,
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN",
+    "existing_complete_pretest_m1_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/EXISTING_M1_AUTHORITY_REVIEW.json",
+      "sha256": "d2117e2bb1236c7f8e58c2a8918f8f04d0813c7e3ef04da04fd0b25b18f87fc5"
+    },
     "input_build_authorization_consumed": true,
     "input_build_authorized": false,
     "learning_design": {
@@ -2487,6 +2491,10 @@
     },
     "learning_design_status": "FROZEN_PHYSICAL_CALENDAR_SOURCE_MIGRATION_REQUIRED_NO_LAUNCH",
     "learning_proven": false,
+    "m1_single_source_pretest_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/RESULT.json",
+      "sha256": "e3d89a140ae44a45c935ebc87421cdc92664510ff4c9c99186f9ef319806a8ad"
+    },
     "m1_single_source_review": {
       "decision": "MEASURED_2024_TRAIN_ONLY_NO_SOURCE_SWITCH",
       "exact_m5_bars_all_13_fields": 71208,
@@ -2499,9 +2507,14 @@
       "source_switch_performed": false,
       "window": "2024 TRAIN only"
     },
+    "m1_single_source_review_status": "EXACT_ALL_PRETEST_RAW_M5_PARITY_EXISTING_COMPLETE_M1_QUALIFIED_NO_SOURCE_SWITCH",
     "native_training_enabled": false,
     "new_dataset_complete": true,
     "normalization_fit_authorized": false,
+    "opaque_test_seal_admission_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SEAL_ADMISSION_PATCH/REAL_SEAL_FINAL_REVIEW.json",
+      "sha256": "85222e6726c3a5f5670e8cb856104f0b1368ffa594d611a9492c627093204591"
+    },
     "optimizer_steps": 0,
     "plan": "configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json",
     "plan_sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e",
@@ -2516,6 +2529,10 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PLAN.json",
       "sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e"
     },
+    "seal_admission_code_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SEAL_ADMISSION_PATCH/CODE_REVIEW.json",
+      "sha256": "e30206c8de48c7cec9fc62ef3550d45b410fa78d8d9b25ea3f6e70bababc732d"
+    },
     "signal_dim": 254,
     "signal_manifest": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20261001T104727301922Z.json",
@@ -2527,7 +2544,7 @@
     "train_rows": 652552,
     "training_enabled": false
   },
-  "next_action": "User proposed one authoritative M1 raw source for Entry M5 and all higher clocks. The completed2024 TRAIN mechanics audit has exact equality for71208 derived/native M5 candles across all13 quote/activity fields. First qualify remaining relevant pre-TEST history and closed-bar source/feature parity; do not repeat2024 or replace completed v38 inputs without a measured dependency change. Preserve the frozen learning design/control IDs and completed macro/input results. Native-pair M1 versus pretest provenance, opaque TEST seal admission, remaining calendar/coordinate owners and current-function teacher bindings still need completion. No source switch, normalization fit or native training is authorized by a one-year mechanics result. Continue the active preparation goal through existing owners; TEST, live/paper and spending remain closed.",
+  "next_action": "The full pre-TEST M1-to-M5 mechanics audit is complete: all1215514 candles and13 market fields agree exactly for2009-06 to2026-07; reuse this result and the independently qualified existing5959045-row M1 quote source, do not rebuild it. The explicit frozen-design pilot route now admits the actual completion-bound opaque TEST seal;21focused tests and the real metadata owner passed, with no TEST artifact path access. Next bind the qualified existing M1 source through its genuine pretest parent lineage into the native preparation recipe, while preserving the frozen design/control IDs and completed v38 feature artifacts. Do not relabel the full native-pair source or alter original manifests. Complete remaining downstream calendar/physical-coordinate, index/normalization/target/current-function-teacher/economic bindings. Training, normalization fitting, TEST, live/paper and spending remain closed; full B and macro promotion remain separate incomplete gates.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],

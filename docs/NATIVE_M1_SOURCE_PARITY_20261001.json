@@ -1,0 +1,66 @@
+{
+  "code_review": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SEAL_ADMISSION_PATCH/CODE_REVIEW.json",
+    "sha256": "e30206c8de48c7cec9fc62ef3550d45b410fa78d8d9b25ea3f6e70bababc732d"
+  },
+  "decision": "EXACT_PRETEST_RAW_M5_PARITY",
+  "existing_complete_m1_review": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/EXISTING_M1_AUTHORITY_REVIEW.json",
+    "sha256": "d2117e2bb1236c7f8e58c2a8918f8f04d0813c7e3ef04da04fd0b25b18f87fc5"
+  },
+  "independent_integer_grid_numpy_reducer": "Exact on all newly measured years; existing production M5 resampler used throughout.",
+  "remaining": [
+    "Explicit one-M1 source provenance and compatible preparation recipe.",
+    "Preserve existing v38 feature bytes until exact dependency/functional reuse is admitted.",
+    "Separate physical TRAIN/control coordinates and windows in downstream state/index/normalization/native measurement owners.",
+    "Fresh initial/current-function TARGET, shared causal targets, economic evidence, later generalization and train/serve parity."
+  ],
+  "schema_version": "gx1_pretest_m1_source_parity_report_v1",
+  "scope": {
+    "feature_or_model_parity_claimed": false,
+    "model_forwards": 0,
+    "normalization_fits": 0,
+    "price_and_activity_mechanics_only": true,
+    "production_source_switch_performed": false,
+    "test_accessed": false
+  },
+  "seal_admission_review": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SEAL_ADMISSION_PATCH/REAL_SEAL_FINAL_REVIEW.json",
+    "sha256": "85222e6726c3a5f5670e8cb856104f0b1368ffa594d611a9492c627093204591"
+  },
+  "source_review": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_SINGLE_SOURCE_PRETEST_AUDIT/RESULT.json",
+    "sha256": "e3d89a140ae44a45c935ebc87421cdc92664510ff4c9c99186f9ef319806a8ad"
+  },
+  "totals": {
+    "common_bars": 1215514,
+    "derived_bars": 1215514,
+    "derived_missing_native": 0,
+    "exact_all12price": 1215514,
+    "exact_all13": 1215514,
+    "mismatches_by_field": {
+      "ask_close": 0,
+      "ask_high": 0,
+      "ask_low": 0,
+      "ask_open": 0,
+      "bid_close": 0,
+      "bid_high": 0,
+      "bid_low": 0,
+      "bid_open": 0,
+      "close": 0,
+      "high": 0,
+      "low": 0,
+      "open": 0,
+      "volume": 0
+    },
+    "native_missing_m1": 0,
+    "source_rows": {
+      "M1": 5959045,
+      "M5": 1215514
+    }
+  },
+  "window_exclusive_end": "2026-07-01T00:00:00+00:00",
+  "window_inclusive_start": "2009-06-01T00:00:00+00:00",
+  "year2024_reused": true,
+  "years_newly_measured": 17
+}

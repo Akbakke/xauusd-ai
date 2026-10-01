@@ -350,3 +350,111 @@ def test_legacy_full_train_calendar_keeps_original_endpoints(tmp_path: Path) -> 
     }
     assert scope["windows"]["val"] == {"start_utc": VAL_START, "end_utc_exclusive": VAL_END}
     assert "chronological_learning_design" not in scope
+
+
+def _seal_scope_fixture(tmp_path: Path) -> tuple[dict, dict, dict, dict]:
+    from gx1.scripts import prepare_unified_exit_lifecycle_v2_pilot_v1 as owner
+
+    recipe_path, _, design_path = _chronological_fixture(tmp_path)
+    recipe = json.loads(recipe_path.read_text())
+    source = recipe["artifact_bindings"]
+    guard_path = tmp_path / "opaque-seal-event.json"
+    _write_json(guard_path, {"unit_fixture": "canonical owner is mocked only in unit tests"})
+    source["test_guard_event"] = {"path": str(guard_path), "sha256": _file_sha(guard_path)}
+    manifests = {
+        split: json.loads(Path(source[f"{split}_manifest"]["path"]).read_text())
+        for split in ("train", "val")
+    }
+    for manifest in manifests.values():
+        manifest["extra"].pop("pretest_test_guard")
+    ready_path = tmp_path / "readiness.json"
+    ready = {
+        "schema_version": owner.POST_REBUILD_SCHEMA_VERSION,
+        "decision": owner.POST_REBUILD_READY_DECISION,
+        "entry_run_id": "SOURCE_RUN",
+        "dataset_dir": str(tmp_path),
+        "failures": [],
+        "checks": [{"name": name, "ok": True} for name in owner.REQUIRED_PROOF_CHECKS],
+        "test_isolation": {"authority": source["test_guard_event"]},
+        "split_artifacts": {
+            split: {
+                f"{kind}_{key}": source[f"{split}_{kind}"][key]
+                for kind in ("manifest", "parquet") for key in ("path", "sha256")
+            } for split in ("train", "val")
+        },
+    }
+    _write_json(ready_path, ready)
+    design = json.loads(design_path.read_text())
+    design["inputs"] = {"post_rebuild_readiness": {"path": str(ready_path), "sha256": _file_sha(ready_path)}}
+    _write_json(design_path, design)
+    scope = {"chronological_learning_design": {"path": str(design_path), "sha256": _file_sha(design_path)}}
+    return recipe, source, manifests, scope
+
+
+def test_explicit_seal_is_dispatched_to_existing_metadata_only_owner(tmp_path: Path, monkeypatch) -> None:
+    from gx1.scripts import prepare_unified_exit_lifecycle_v2_pilot_v1 as owner
+
+    recipe, source, manifests, scope = _seal_scope_fixture(tmp_path)
+    calls = []
+    def canonical(path, digest, **kwargs):
+        calls.append((path, digest, kwargs))
+        return {"verification": "owner-result"}
+    monkeypatch.setattr(owner, "require_prefreeze_test_seal_lineage", canonical)
+    result = owner._entry_test_guard_lineage(recipe, source, manifests, scope, dataset_run_id="SOURCE_RUN")
+    assert result == {"verification": "owner-result"}
+    assert calls == [(
+        Path(source["test_guard_event"]["path"]), source["test_guard_event"]["sha256"],
+        {"expected_dataset_run_id": "SOURCE_RUN", "expected_dataset_dir": tmp_path},
+    )]
+
+
+@pytest.mark.parametrize("change", ["red_check", "other_split", "other_seal"])
+def test_seal_cannot_bypass_bound_completed_readiness(tmp_path: Path, monkeypatch, change: str) -> None:
+    from gx1.scripts import prepare_unified_exit_lifecycle_v2_pilot_v1 as owner
+
+    recipe, source, manifests, scope = _seal_scope_fixture(tmp_path)
+    design_path = Path(scope["chronological_learning_design"]["path"])
+    design = json.loads(design_path.read_text())
+    ready_path = Path(design["inputs"]["post_rebuild_readiness"]["path"])
+    ready = json.loads(ready_path.read_text())
+    if change == "red_check":
+        ready["checks"][0]["ok"] = False
+    elif change == "other_split":
+        ready["split_artifacts"]["val"]["parquet_sha256"] = "0" * 64
+    else:
+        ready["test_isolation"]["authority"]["sha256"] = "0" * 64
+    _write_json(ready_path, ready)
+    design["inputs"]["post_rebuild_readiness"]["sha256"] = _file_sha(ready_path)
+    _write_json(design_path, design)
+    scope["chronological_learning_design"]["sha256"] = _file_sha(design_path)
+    def must_not_dispatch(*args, **kwargs):
+        raise AssertionError("Invalid admission reached seal validator")
+    monkeypatch.setattr(owner, "require_prefreeze_test_seal_lineage", must_not_dispatch)
+    with pytest.raises(RuntimeError, match="PILOT_TEST_SEAL_(READINESS_NOT_EXACT|SPLIT_BINDING_MISMATCH)"):
+        owner._entry_test_guard_lineage(recipe, source, manifests, scope, dataset_run_id="SOURCE_RUN")
+
+
+def test_missing_actual_test_proof_still_fails_closed(tmp_path: Path) -> None:
+    from gx1.scripts import prepare_unified_exit_lifecycle_v2_pilot_v1 as owner
+
+    recipe, source, manifests, scope = _seal_scope_fixture(tmp_path)
+    source.pop("test_guard_event")
+    with pytest.raises(RuntimeError, match="PILOT_SOURCE_ENTRY_LINEAGE_INVALID"):
+        owner._entry_test_guard_lineage(recipe, source, manifests, scope, dataset_run_id="SOURCE_RUN")
+
+
+def test_unadmitted_test_artifact_pointer_is_rejected_before_any_io(tmp_path: Path, monkeypatch) -> None:
+    from gx1.scripts import prepare_unified_exit_lifecycle_v2_pilot_v1 as owner
+
+    recipe, source, manifests, scope = _seal_scope_fixture(tmp_path)
+    forbidden = tmp_path / "sealed_test.parquet"
+    source["test_guard_event"] = {"path": str(forbidden), "sha256": "a" * 64}
+    def guard(original):
+        def checked(self, *args, **kwargs):
+            assert self != forbidden, "Unadmitted TEST artifact reached filesystem"
+            return original(self, *args, **kwargs)
+        return checked
+    for method in ("open", "stat", "resolve"):
+        monkeypatch.setattr(Path, method, guard(getattr(Path, method)))
+    with pytest.raises(RuntimeError, match="PILOT_TEST_SEAL_READINESS_NOT_EXACT"):
+        owner._entry_test_guard_lineage(recipe, source, manifests, scope, dataset_run_id="SOURCE_RUN")

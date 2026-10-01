@@ -13,6 +13,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from gx1.contracts.entry_model_native_post_rebuild_v1 import (
+    READY_DECISION as POST_REBUILD_READY_DECISION,
+    REQUIRED_PROOF_CHECKS,
+    SCHEMA_VERSION as POST_REBUILD_SCHEMA_VERSION,
+    require_prefreeze_test_seal_lineage,
+)
 from gx1.contracts.unified_exit_lifecycle_v2 import terminal_state_counts_sha256
 from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import (
     require_no_cap_authority,
@@ -441,6 +447,70 @@ def _require_scope_populations(
                 raise RuntimeError("LIFECYCLE_V2_CHRONOLOGICAL_POPULATION_MISMATCH")
 
 
+def _entry_test_guard_lineage(
+    recipe: Mapping[str, Any],
+    source: Mapping[str, Any],
+    manifests: Mapping[str, Any],
+    scope: Mapping[str, Any],
+    *, dataset_run_id: str,
+) -> dict[str, Any] | None:
+    """Admit the actual bound TEST proof; never open a TEST dataset or manifest."""
+    if "test_guard_event" not in recipe.get("artifact_bindings", {}):
+        if all(
+            manifest.get("extra", {}).get("pretest_test_guard", {}).get("test_accessed") is False
+            for manifest in manifests.values()
+        ):
+            return None  # Preserve the explicit historical pre-TEST route.
+        raise RuntimeError("PILOT_SOURCE_ENTRY_LINEAGE_INVALID")
+    binding = scope.get("chronological_learning_design")
+    if not isinstance(binding, Mapping):
+        raise RuntimeError("PILOT_TEST_SEAL_REQUIRES_BOUND_DESIGN")
+    design = _read_bound_json(
+        Path(binding["path"]), binding["sha256"], "CHRONOLOGICAL_DESIGN"
+    )
+    ready_binding = design.get("inputs", {}).get("post_rebuild_readiness")
+    if not isinstance(ready_binding, Mapping) or set(ready_binding) != {"path", "sha256"}:
+        raise RuntimeError("PILOT_TEST_SEAL_READINESS_BINDING_INVALID")
+    ready = _read_bound_json(
+        Path(ready_binding["path"]), ready_binding["sha256"], "POST_REBUILD_READINESS"
+    )
+    # Compare to frozen readiness before statting or opening the supplied path.
+    # A mistaken TEST parquet/manifest pointer must never reach generic file IO.
+    guard_binding = recipe["artifact_bindings"]["test_guard_event"]
+    dataset_dir = Path(source["train_manifest"]["path"]).parent
+    checks = ready.get("checks")
+    if (
+        ready.get("schema_version") != POST_REBUILD_SCHEMA_VERSION
+        or ready.get("decision") != POST_REBUILD_READY_DECISION
+        or ready.get("entry_run_id") != dataset_run_id
+        or ready.get("dataset_dir") != str(dataset_dir)
+        or ready.get("failures") != []
+        or not isinstance(checks, list)
+        or len(checks) != len(REQUIRED_PROOF_CHECKS)
+        or any(not isinstance(check, Mapping) or check.get("ok") is not True for check in checks)
+        or {check.get("name") for check in checks} != set(REQUIRED_PROOF_CHECKS)
+        or ready.get("test_isolation", {}).get("authority")
+        != guard_binding
+    ):
+        raise RuntimeError("PILOT_TEST_SEAL_READINESS_NOT_EXACT")
+    for split in ("train", "val"):
+        artifact = ready.get("split_artifacts", {}).get(split, {})
+        for kind in ("manifest", "parquet"):
+            admitted = source[f"{split}_{kind}"]
+            if (
+                Path(admitted["path"]).parent != dataset_dir
+                or artifact.get(f"{kind}_path") != admitted["path"]
+                or artifact.get(f"{kind}_sha256") != admitted["sha256"]
+            ):
+                raise RuntimeError("PILOT_TEST_SEAL_SPLIT_BINDING_MISMATCH")
+    guard_path, guard_sha = _source_binding(recipe, "test_guard_event")
+    return require_prefreeze_test_seal_lineage(
+        guard_path, guard_sha,
+        expected_dataset_run_id=dataset_run_id,
+        expected_dataset_dir=dataset_dir,
+    )
+
+
 def build_pilot_readiness(
     *,
     source_recipe_path: Path,
@@ -483,19 +553,15 @@ def build_pilot_readiness(
         or val_manifest.get("extra", {}).get("entry_run_id") != dataset_run_id
         or train_manifest.get("output_data_path") != source["train_parquet"]["path"]
         or val_manifest.get("output_data_path") != source["val_parquet"]["path"]
-        or train_manifest.get("extra", {}).get("pretest_test_guard", {}).get(
-            "test_accessed"
-        )
-        is not False
-        or val_manifest.get("extra", {}).get("pretest_test_guard", {}).get(
-            "test_accessed"
-        )
-        is not False
     ):
         raise RuntimeError("PILOT_SOURCE_ENTRY_LINEAGE_INVALID")
     scope = _entry_window_scope(
         recipe, train_manifest, dataset_run_id=dataset_run_id,
         val_manifest=val_manifest, source_bindings=source,
+    )
+    test_guard_lineage = _entry_test_guard_lineage(
+        recipe, source, {"train": train_manifest, "val": val_manifest}, scope,
+        dataset_run_id=dataset_run_id,
     )
     windows = scope["windows"]
     run_id = scope["run_id"]
@@ -524,6 +590,8 @@ def build_pilot_readiness(
     }
     if "chronological_learning_design" in scope:
         pilot_binding["chronological_learning_design"] = scope["chronological_learning_design"]
+    if test_guard_lineage is not None:
+        pilot_binding["source_test_guard_lineage"] = test_guard_lineage
     pilot_binding_sha256 = _canonical_sha256(pilot_binding)
     plan_context = {
         **pilot_binding,
