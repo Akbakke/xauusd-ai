@@ -1,12 +1,22 @@
 # Gjeldende status — 01.10.2026: native v38 og kontrollert kodeopprydding
 
+Sluttbindingens første forsøk feilet før publisering: én ekte TRAIN-rad,
+12.12.2012 kl. 17:00 UTC, har BID=ASK. Ingen kryssede priser eller
+float32-kollaps ble funnet på 652 552 TRAIN-/70 880 VAL-førstetilstander.
+Entry-fill-eieren avviste likhet selv om de øvrige aktive kontraktene
+aksepterer ASK>=BID. Minste rettelse er <= til <; positive, endelige priser
+kreves fortsatt. 22 fokuserte tester består, inkludert ekte bridge-kode
+med nullspread og fortsatt avvisning av kryssede/ugyldige priser.
+FINAL_BINDINGS_001 og feilen er bevart. FINAL_BINDINGS_002 er bundet
+etter rettelsen; base-/lifetime-fit gjenbrukes uendret. Ingen nye modellsteg.
+
 Lifetime-normaliseringen er fullført med exit 0 og strict-load PASS.
 4 026 919 samples fra alle 652 552 TRAIN-entryer gir 8 053 838 siderader.
 TRAIN-/VAL-counts matcher tidligere kontrollert geometri eksakt; VAL fikk
 ingen fit. Kilden var uendret, TEST-tilgangsforsøk = 0, modellsteg = 0.
 29 fokuserte tester består. Base- og lifetime-statistikk skal nå gjenbrukes.
 Sluttbindingens samme no-replace-publiseringsfeil er også rettet; 7 fokuserte
-tester består. FINAL_BINDINGS_001 er bundet til samlet normalisering og
+tester består. FINAL_BINDINGS_002 er bundet til samlet normalisering og
 første M1-tilstand for hver Entry; dette åpner ingen fit eller modellkjøring.
 Kostnadsdekning/broker-revalidering, indekser og mål gjenstår. Ingen edge.
 

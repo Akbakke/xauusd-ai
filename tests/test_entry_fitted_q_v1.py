@@ -165,3 +165,23 @@ def test_entry_iteration_is_exactly_bound_to_train_exit_teacher() -> None:
                 exit_fitted_q_iteration_state=_exit_iteration(),
                 context="TEST",
             )
+
+
+@pytest.mark.parametrize("quote,valid", [
+    ([2000.0, 2000.0], True),
+    ([2000.0, 2000.1], True),
+    ([2000.1, 2000.0], False),
+    ([0.0, 0.0], False),
+    ([-1.0, -1.0], False),
+    ([float("nan"), 2000.0], False),
+    ([2000.0, float("inf")], False),
+])
+def test_fill_binding_accepts_zero_spread_but_rejects_invalid_quotes(quote, valid):
+    kwargs = dict(entry_row_index=0, episode_pack_sha256=_SHA,
+                  first_exit_state_time_ns=1_700_000_000_000_000_000,
+                  exit_entry_bid_ask=np.asarray([quote, quote], dtype=np.float32))
+    if valid:
+        assert len(entry_fill_binding_sha256(**kwargs)) == 64
+    else:
+        with pytest.raises(RuntimeError, match="FILL_QUOTES_INVALID"):
+            entry_fill_binding_sha256(**kwargs)

@@ -152,6 +152,13 @@ def test_first_state_bridge_binds_exact_clock_and_sources() -> None:
     assert witness["test_accessed"] is False
     assert witness["bindings"]["child_parquet"] == "2" * 64
 
+    equal_ask = kwargs["m1_ask_open"].copy()
+    equal_ask[5] = kwargs["m1_bid_open"][5]
+    zero_spread = build_first_state_entry_bridge_witness(
+        **{**kwargs, "m1_ask_open": equal_ask})
+    assert zero_spread["entry_row_count"] == witness["entry_row_count"]
+    assert zero_spread["entry_fill_binding_stream_sha256"] != witness["entry_fill_binding_stream_sha256"]
+
     broken = np.delete(m1, 5)
     with pytest.raises(RuntimeError, match="FIRST_STATE_MISSING"):
         build_first_state_entry_bridge_witness(**{**kwargs, "m1_times": broken})

@@ -647,3 +647,31 @@ Eksisterende sluttbindingseier har nå verifisert staging-inventar og skrevne
 bytes før atomisk no-replace-rename og katalog-fsync. Kjøringen bruker 4 GiB
 audit-cap og sammenligner første M1-posisjon/count-hasher med tidligere
 uavhengig geometri. Ingen ny fit, sampler-valg, native admission eller økonomi.
+
+## Observert nullspread-mismatch — 02.10.2026
+
+Sluttbindingens første forsøk feilet før publisering: én ekte TRAIN-rad,
+12.12.2012 kl. 17:00 UTC, har BID=ASK. Ingen kryssede priser eller
+float32-kollaps ble funnet på 652 552 TRAIN-/70 880 VAL-førstetilstander.
+Entry-fill-eieren avviste likhet selv om de øvrige aktive kontraktene
+aksepterer ASK>=BID. Minste rettelse er <= til <; positive, endelige priser
+kreves fortsatt. 22 fokuserte tester består, inkludert ekte bridge-kode
+med nullspread og fortsatt avvisning av kryssede/ugyldige priser.
+FINAL_BINDINGS_001 og feilen er bevart. FINAL_BINDINGS_002 er bundet
+etter rettelsen; base-/lifetime-fit gjenbrukes uendret. Ingen nye modellsteg.
+
+
+diagnose: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/EVENTS/FILL_QUOTE_MISMATCH_DIAGNOSIS_20261001T223803594386Z.json
+SHA256: 85339887921ae83bc0547bb78723c8edfc6cfc9d4d608d07650451c821b99a49.
+
+failed_terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/EVENTS/TERMINAL_20261001T223622327500Z.json
+SHA256: b26c26c690de58b880d771a45f539aeb9616ecbec47f0cfcd1dfdd5c33dcc75c.
+
+active_plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/PLAN_002.json
+SHA256: ddf6a8526bfc34331fc3de2f5f6a2ccc37a1247a6b8a60c3ec11531fc313ce4a.
+
+active_operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/OPERATOR_002.py
+SHA256: 36da7d078c75cf53e5184b345ce0600e638b27b871c2775785dbd8b551c970a6.
+
+Den aldri kjørte første planen/operatoren i FINAL_BINDINGS_002 er bevart;
+aktiv PLAN_002 binder riktig testantall 22. Ingen beregning er relansert der.

@@ -2250,26 +2250,59 @@
       "sha256": "d2117e2bb1236c7f8e58c2a8918f8f04d0813c7e3ef04da04fd0b25b18f87fc5"
     },
     "final_bindings": {
-      "focused_tests_passed": 7,
+      "focused_tests_passed": 22,
       "model_forwards": 0,
       "native_training_enabled": false,
       "normalization_fit_authorized": false,
       "operator": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/OPERATOR.py",
-        "sha256": "a10ac82c3809420eac27dce259355c9c906577374382a9632688c01b631f971f"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/OPERATOR_002.py",
+        "sha256": "36da7d078c75cf53e5184b345ce0600e638b27b871c2775785dbd8b551c970a6"
       },
       "optimizer_steps": 0,
       "plan": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/PLAN.json",
-        "sha256": "0a88f45358bb7e486d86e7e3221daf69e2a613cff09ebb123e5b6d60ea1c36e2"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/PLAN_002.json",
+        "sha256": "ddf6a8526bfc34331fc3de2f5f6a2ccc37a1247a6b8a60c3ec11531fc313ce4a"
       },
+      "publication_tests_passed": 7,
       "recipe": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/RECIPE.json",
         "sha256": "6b05350485cd825e3b0dcbb296369a6ad05ebb40cfd7b0f291fea2994f56bad8"
       },
       "source_frozen_while_running": true,
-      "status": "BOUND_COMPOSITE_AND_FIRST_STATE_BINDINGS_PENDING"
+      "status": "BOUND_AFTER_OBSERVED_ZERO_SPREAD_FIX"
     },
+    "final_bindings_failed_attempts": [
+      {
+        "diagnosis": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/EVENTS/FILL_QUOTE_MISMATCH_DIAGNOSIS_20261001T223803594386Z.json",
+          "sha256": "85339887921ae83bc0547bb78723c8edfc6cfc9d4d608d07650451c821b99a49"
+        },
+        "focused_tests_passed": 7,
+        "model_forwards": 0,
+        "native_training_enabled": false,
+        "normalization_fit_authorized": false,
+        "operator": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/OPERATOR.py",
+          "sha256": "a10ac82c3809420eac27dce259355c9c906577374382a9632688c01b631f971f"
+        },
+        "optimizer_steps": 0,
+        "output_published": false,
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/PLAN.json",
+          "sha256": "0a88f45358bb7e486d86e7e3221daf69e2a613cff09ebb123e5b6d60ea1c36e2"
+        },
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/RECIPE.json",
+          "sha256": "6b05350485cd825e3b0dcbb296369a6ad05ebb40cfd7b0f291fea2994f56bad8"
+        },
+        "source_frozen_while_running": false,
+        "status": "FAILED_BEFORE_PUBLICATION_ZERO_SPREAD_FILL_MISMATCH",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_001/EVENTS/TERMINAL_20261001T223622327500Z.json",
+          "sha256": "b26c26c690de58b880d771a45f539aeb9616ecbec47f0cfcd1dfdd5c33dcc75c"
+        }
+      }
+    ],
     "input_build_authorization_consumed": true,
     "input_build_authorized": false,
     "learning_design": {
@@ -2587,7 +2620,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse the completed full TRAIN base and lifetime normalization; no refit. Execute only bound FINAL_BINDINGS_001 to publish composite normalization and first-state proofs using explicit current artifacts; preserve frozen source and require terminal plus independent geometry agreement. Then resolve prospective-cost coverage and broker-term revalidation under current closed-broker rules, and bind explicit-path random-access indexes, separate TRAIN/control coordinates and same-current-function TARGET. Native training, TEST, live/paper and spending remain closed. No learning or edge proven.",
+  "next_action": "Reuse the completed full TRAIN base and lifetime normalization; no refit. Execute only bound FINAL_BINDINGS_002 to publish composite normalization and first-state proofs using explicit current artifacts; preserve frozen source and require terminal plus independent geometry agreement. Then resolve prospective-cost coverage and broker-term revalidation under current closed-broker rules, and bind explicit-path random-access indexes, separate TRAIN/control coordinates and same-current-function TARGET. Native training, TEST, live/paper and spending remain closed. No learning or edge proven.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-01T20:30:59.489150+00:00",
   "outer_guard_seconds": 13800,

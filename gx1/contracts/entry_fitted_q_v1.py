@@ -235,7 +235,7 @@ def entry_fill_binding_sha256(
         quotes.shape != (2, 2)
         or not np.isfinite(quotes).all()
         or np.any(quotes <= 0.0)
-        or np.any(quotes[:, 1] <= quotes[:, 0])
+        or np.any(quotes[:, 1] < quotes[:, 0])
     ):
         raise RuntimeError("ENTRY_FITTED_Q_FILL_QUOTES_INVALID")
     digest = hashlib.sha256()
