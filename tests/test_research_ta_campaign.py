@@ -909,3 +909,112 @@ def test_sweep_full_report_retains_insolvent_losses_and_marks_sharpe_undefined(t
     sharpe=[x for x in result["endpoints"] if x["name"].endswith("sharpe_delta")]
     assert sharpe and all(x["effect_verdict"]=="INKONKLUSIV" for x in sharpe)
     assert result["decision"]!="GO"
+
+
+def test_macro_core_keeps_full_b_closed_and_compares_same_rows_and_cost_family(tmp_path, capsys):
+    panel, components, spec = _b_fixture(tmp_path)
+    components = components[["session_open", "decision_time", *ta.MACRO_CORE_FEATURES]].copy()
+    components.loc[330, "real10y_level"] = np.nan
+    spec["feature_names"] = ta.MACRO_CORE_ALL_FEATURES.copy()
+    joint = ta.join_macro_core_components(panel, components)
+    with pytest.raises(RuntimeError, match="TA_B_FEATURE_CONTRACT"):
+        ta.join_b_components(panel, components)
+    with pytest.raises(RuntimeError, match="TA_B_FEATURE_CONTRACT"):
+        ta.fit_matched_b(joint, spec)
+    forecasts, fits = ta.fit_matched_macro_core(joint, spec)
+    output = capsys.readouterr().out
+    assert "[TA-MACRO_CORE]" in output and "[TA-B]" not in output
+    assert all(set(row).issuperset({"a", "macro_core"}) for row in fits if row["status"] == "FIT")
+    assert all(set(arm) == {"a_ridge", "a_hgb", "macro_core_ridge", "macro_core_hgb", "constant"}
+               for arm in forecasts.values())
+    expected_population = np.isfinite(joint[ta.MACRO_CORE_ALL_FEATURES].to_numpy()).all(axis=1)
+    expected_a, expected_fits = ta._fit_predictions(joint, spec, ta.FEATURES, expected_population)
+    for row, expected in zip(fits, expected_fits):
+        assert row["fit_positions_sha256"] == expected["fit_positions_sha256"]
+        assert row["hold_positions_sha256"] == expected["hold_positions_sha256"]
+    for h in spec["horizons"]:
+        np.testing.assert_array_equal(forecasts[h]["a_ridge"], expected_a[h]["ridge"])
+        np.testing.assert_array_equal(forecasts[h]["a_hgb"], expected_a[h]["hgb"])
+    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex([panel.fill_time.iloc[0]]), np.array([.04]),
+                                     panel.fill_time.iloc[-1] + pd.Timedelta(days=1), .0129, 31557600.)
+    result = ta.evaluate_matched_macro_core(joint, forecasts, curve, spec, tmp_path)
+    assert len(result["declared_family"]) == 120
+    assert set(result["decisions"]) == {"macro_core_ridge", "macro_core_hgb"}
+    for learner in ("ridge", "hgb"):
+        required = result["decisions"]["macro_core_" + learner]["required_endpoints"]
+        assert len(required) == 24
+        assert len([n for n in required if ":vs_a_" + learner + ":" in n]) == 6
+    first = np.flatnonzero(np.isfinite(forecasts[20]["macro_core_ridge"]))[0]
+    forecasts[20]["macro_core_ridge"][first] = np.nan
+    with pytest.raises(RuntimeError, match="TA_B_FORECAST_POPULATION_MISMATCH"):
+        ta.evaluate_matched_macro_core(joint, forecasts, curve, spec, tmp_path)
+
+
+def test_macro_core_uses_only_declared_archives_and_b_still_rejects_future_vix(tmp_path):
+    import hashlib
+    import zipfile
+    opens = pd.date_range("2019-01-01T22:00Z", periods=40, freq="D")
+    clocks = pd.DataFrame({"session_open": opens, "decision_time": opens + pd.Timedelta(days=1)})
+    cache = tmp_path / "clock.parquet"
+    clocks.to_parquet(cache, index=False)
+    records = []
+    for sid in ta.ALFRED_COMPONENT_SERIES:
+        # VIX deliberately inadmissible: the separate arm cannot certify it or full B.
+        obs = "2019-01-04" if sid == "VIXCLS" else "2019-01-01"
+        raw = (f"period_start_date,{sid},realtime_start_date,realtime_end_date\n"
+               f"{obs},2.0,2019-01-02,9999-12-31\n").encode()
+        archive = tmp_path / (sid + ".zip")
+        with zipfile.ZipFile(archive, "w") as z:
+            z.writestr("obs._by_real-time_period.csv", raw)
+        records.append({"series": sid, "files": [{"path": str(archive), "sha256": ta.sha(archive),
+            "members": {"obs._by_real-time_period.csv": {"sha256": hashlib.sha256(raw).hexdigest()}}}]})
+    audit = tmp_path / "audit.json"
+    audit.write_text(json.dumps({"all_archives_consistent": True, "records": records}))
+    spec = {"source_audit": {"path": str(audit), "sha256": ta.sha(audit)},
+            "clock_cache": {"path": str(cache), "sha256": ta.sha(cache)},
+            "macro_series": list(ta.MACRO_CORE_SERIES),
+            "feature_names": dict(zip(ta.MACRO_CORE_SERIES, [ta.MACRO_CORE_FEATURES[i:i + 2] for i in (0, 2, 4)])),
+            "transforms": {"DFII10": "level", "DTWEXBGS": "log", "T10YIE": "level"},
+            "change_d1": 21, "read_start": "2019-01-01T00:00Z", "read_end_exclusive": "2020-01-01T00:00Z",
+            "output_directory": str(tmp_path / "core"), "fits_allowed": False,
+            "test_accessed": False, "full_b_admitted": False,
+            "missing_full_b_sources": ["VIXCLS", "GLD", "COT"]}
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(json.dumps(spec))
+    ta.prepare_macro_core(spec, spec_path)
+    result = json.loads((tmp_path / "core/RESULT.json").read_text())
+    assert result["status"] == "COMPLETE_MACRO_CORE_COMPONENTS"
+    assert result["full_b_admitted"] is False and result["fits_run"] is False
+    assert set(result["coverage"]) == set(ta.MACRO_CORE_SERIES)
+    got = pd.read_parquet(result["artifact"]["path"])
+    # Publication upper bound is Jan 3 04:59:59Z, full following session closes Jan 4 22Z.
+    first = got.loc[got.real10y_level.notna()].iloc[0]
+    assert first.decision_time == pd.Timestamp("2019-01-04T22:00Z")
+    assert first.real10y_level == 2.
+    assert first.usd_log_level == pytest.approx(np.log(2.))
+    assert result["three_source_first_complete_decision"] == "2019-01-25 22:00:00+00:00"
+    # The old entrypoint will not silently accept the three-source manifest.
+    with pytest.raises(RuntimeError, match="TA_B_MACRO_SERIES_SET"):
+        ta.prepare_b_macros(spec, spec_path)
+    b_spec = dict(spec, macro_series=list(ta.ALFRED_COMPONENT_SERIES),
+                  output_directory=str(tmp_path / "b"))
+    with pytest.raises(RuntimeError, match="TA_B_FUTURE_OBSERVATION"):
+        ta.prepare_b_macros(b_spec, spec_path)
+    assert json.loads((tmp_path / "b/TERMINAL.json").read_text())["status"] == "FAILED"
+    # Hash drift fails before any invalid table is published.
+    (tmp_path / "DFII10.zip").write_bytes(b"tampered")
+    bad = dict(spec, output_directory=str(tmp_path / "tampered"))
+    with pytest.raises(RuntimeError, match="TA_B_MACRO_ZIP_HASH"):
+        ta.prepare_macro_core(bad, spec_path)
+    assert not (tmp_path / "tampered/MACRO_COMPONENTS.parquet").exists()
+
+
+def test_research_atomic_publication_preserves_existing_evidence(tmp_path):
+    path = tmp_path / "table.parquet"
+    frame = pd.DataFrame({"v": [1., 2.]})
+    ta.write_parquet(path, frame)
+    original = path.read_bytes()
+    with pytest.raises(Exception, match="already exists"):
+        ta.write_parquet(path, frame * 2)
+    assert path.read_bytes() == original
+    pd.testing.assert_frame_equal(pd.read_parquet(path), frame)

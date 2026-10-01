@@ -176,3 +176,11 @@ Operatørvedtak 01.10.2026: brukerens «bygg denne som en avansert funksjon»
 SMC-eier og M5/M1-featurekjede, med bundne kontrakter og fokuserte inputkontroller.
 Den faste regelens NO_GO er ingen konklusjon om lært featureverdi.
 Dette designskiftet åpner ikke TEST, live/paper eller en uavgrenset treningskjøring.
+
+Operatørvedtak 01.10.2026: «Lag deg dette som et mål og jobb aktivt med å lande
+alle disse punktene» godkjenner docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md:
+egen manifestbundet MACRO_CORE-arm med DFII10, DTWEXBGS og T10YIE, matchet
+prisbaseline og eksisterende kostnads-/mål-/inferenseiere. Dette er ikke redusert
+full B. Avgrenset native v38-læring og senere makroinnføring forberedes gjennom
+eksisterende kontrakter og evidensporter; trening er stengt til disse er bundet.
+Ingen åpning av TEST, broker, live/paper, spending eller uavgrenset trening.

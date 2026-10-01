@@ -29,6 +29,7 @@ import pandas as pd
 from pandas.tseries.holiday import USFederalHolidayCalendar, nearest_workday, sunday_to_monday
 import pyarrow.parquet as pq
 
+from gx1.contracts.immutable_event_authority_v1 import _publish_file_noreplace, _fsync_directory
 from gx1.features.htf_features import _resample_ohlc_for_model_native_scalars
 from gx1.features.technical_indicators_v1 import classic_ema, wilder_atr
 from gx1.time.session_detector import M5_BAR_DURATION, TRADING_SESSION_DURATION
@@ -49,6 +50,10 @@ B_MACRO_FEATURES = [
     "cot_noncommercial_net_over_oi", "cot_change4reports", "vix_log_level", "vix_log_change21D1",
 ]
 B_FEATURES = FEATURES + B_MACRO_FEATURES
+ALFRED_COMPONENT_SERIES = ("DFII10", "DTWEXBGS", "T10YIE", "VIXCLS")
+MACRO_CORE_SERIES = ALFRED_COMPONENT_SERIES[:3]
+MACRO_CORE_FEATURES = B_MACRO_FEATURES[:6]
+MACRO_CORE_ALL_FEATURES = FEATURES + MACRO_CORE_FEATURES
 
 
 def sha(path: Path) -> str:
@@ -73,6 +78,18 @@ def write_json(path: Path, obj: dict) -> None:
         handle.flush()
         os.fsync(handle.fileno())
     os.rename(temp, path)
+
+
+def write_parquet(path: Path, frame: pd.DataFrame) -> None:
+    """Publish a complete, re-readable research table without replacing evidence."""
+    temp = path.with_suffix(path.suffix + ".part")
+    with temp.open("xb") as handle:
+        frame.to_parquet(handle, index=False)
+        handle.flush()
+        os.fsync(handle.fileno())
+    pd.testing.assert_frame_equal(pd.read_parquet(temp), frame.reset_index(drop=True))
+    _publish_file_noreplace(temp, path)
+    _fsync_directory(path.parent)
 
 
 def checked_spec(path: Path, digest: str) -> dict:
@@ -392,6 +409,23 @@ def alfred_asof_levels(rows: list[tuple[str, str, str, str]], clocks: pd.DataFra
 
 def prepare_b_macros(spec: dict, spec_path: Path) -> dict:
     """Prepare four validated B components; GLD/COT absence keeps full B closed."""
+    return _prepare_macro_components(spec, spec_path, ALFRED_COMPONENT_SERIES, "four")
+
+
+def prepare_macro_core(spec: dict, spec_path: Path) -> dict:
+    """Separate approved three-source arm, never admission of full B."""
+    expected_names = dict(zip(MACRO_CORE_SERIES, [MACRO_CORE_FEATURES[i:i + 2] for i in (0, 2, 4)]))
+    if (spec["feature_names"] != expected_names
+            or spec["transforms"] != {"DFII10": "level", "DTWEXBGS": "log", "T10YIE": "level"}
+            or spec["change_d1"] != 21 or spec["fits_allowed"] is not False
+            or spec["test_accessed"] is not False or spec["full_b_admitted"] is not False):
+        raise RuntimeError("TA_MACRO_CORE_COMPONENT_CONTRACT")
+    return _prepare_macro_components(spec, spec_path, MACRO_CORE_SERIES, "three")
+
+
+def _prepare_macro_components(spec: dict, spec_path: Path, series: tuple[str, ...], count: str) -> dict:
+    if spec["macro_series"] != list(series):
+        raise RuntimeError("TA_B_MACRO_SERIES_SET")
     out = Path(spec["output_directory"])
     out.mkdir(parents=True, exist_ok=False)
     write_json(out / "STARTED.json", {"source_commit": git("rev-parse", "HEAD"),
@@ -403,7 +437,7 @@ def prepare_b_macros(spec: dict, spec_path: Path) -> dict:
         audit = json.loads(audit_path.read_text())
         if not audit["all_archives_consistent"]:
             raise RuntimeError("TA_B_MACRO_AUDIT_FAILED")
-        if [r["series"] for r in audit["records"]] != spec["macro_series"]:
+        if [r["series"] for r in audit["records"]] != list(ALFRED_COMPONENT_SERIES):
             raise RuntimeError("TA_B_MACRO_SERIES_SET")
         cache_path = Path(spec["clock_cache"]["path"])
         if sha(cache_path) != spec["clock_cache"]["sha256"]:
@@ -415,6 +449,8 @@ def prepare_b_macros(spec: dict, spec_path: Path) -> dict:
         coverage, provenance = {}, {}
         for record in audit["records"]:
             sid = record["series"]
+            if sid not in series:
+                continue
             rows = []
             for entry in record["files"]:
                 path = Path(entry["path"])
@@ -454,23 +490,24 @@ def prepare_b_macros(spec: dict, spec_path: Path) -> dict:
             provenance[sid] = {"archive_files": len(record["files"]), "source_rows": len(rows)}
         names = [name for sid in spec["macro_series"] for name in spec["feature_names"][sid]]
         common = panel[names].notna().all(axis=1)
-        panel.to_parquet(out / "MACRO_COMPONENTS.parquet", index=False)
-        result = {"status": "COMPLETE_FOUR_MACRO_COMPONENTS_ONLY", "source_commit": git("rev-parse", "HEAD"),
+        write_parquet(out / "MACRO_COMPONENTS.parquet", panel)
+        result = {"status": ("COMPLETE_FOUR_MACRO_COMPONENTS_ONLY" if count == "four"
+                             else "COMPLETE_MACRO_CORE_COMPONENTS"), "source_commit": git("rev-parse", "HEAD"),
                   "manifest_sha256": sha(spec_path), "source_audit": spec["source_audit"],
                   "clock_cache": spec["clock_cache"], "clock_columns_read": ["session_open", "decision_time"],
                   "clock_rows": len(clocks), "coverage": coverage, "provenance": provenance,
-                  "four_source_complete_rows": int(common.sum()), "full_b_admitted": False,
+                  f"{count}_source_complete_rows": int(common.sum()), "full_b_admitted": False,
                   "missing_full_b_sources": spec["missing_full_b_sources"], "feature_names": names,
                   "fits_run": False, "new_market_outcomes_read": False, "test_accessed": False,
                   "artifact": {"path": str(out / "MACRO_COMPONENTS.parquet"),
                                "sha256": sha(out / "MACRO_COMPONENTS.parquet")}}
         if common.any():
-            result["four_source_first_complete_decision"] = str(clocks.loc[common, "decision_time"].iloc[0])
-            result["four_source_last_complete_decision"] = str(clocks.loc[common, "decision_time"].iloc[-1])
+            result[f"{count}_source_first_complete_decision"] = str(clocks.loc[common, "decision_time"].iloc[0])
+            result[f"{count}_source_last_complete_decision"] = str(clocks.loc[common, "decision_time"].iloc[-1])
         write_json(out / "RESULT.json", result)
         write_json(out / "TERMINAL.json", {"status": result["status"], "result_sha256": sha(out / "RESULT.json")})
         return {"out": str(out), "result_sha256": sha(out / "RESULT.json"),
-                "four_source_complete_rows": int(common.sum()), "full_b_admitted": False}
+                f"{count}_source_complete_rows": int(common.sum()), "full_b_admitted": False}
     except Exception as error:
         write_json(out / "TERMINAL.json", {"status": "FAILED", "error": str(error)})
         raise
@@ -798,10 +835,19 @@ def daily_panel(frame: pd.DataFrame, end: pd.Timestamp) -> pd.DataFrame:
 
 def join_b_components(panel: pd.DataFrame, components: pd.DataFrame) -> pd.DataFrame:
     """Exact clock join only; does not qualify source versions or admit a B run."""
+    return _join_macro_components(panel, components, B_MACRO_FEATURES)
+
+
+def join_macro_core_components(panel: pd.DataFrame, components: pd.DataFrame) -> pd.DataFrame:
+    return _join_macro_components(panel, components, MACRO_CORE_FEATURES)
+
+
+def _join_macro_components(panel: pd.DataFrame, components: pd.DataFrame,
+                           macro_features: list[str]) -> pd.DataFrame:
     if (panel.columns.has_duplicates or components.columns.has_duplicates
             or not set(FEATURES).issubset(panel)
-            or not set(B_MACRO_FEATURES).issubset(components)
-            or set(B_MACRO_FEATURES).intersection(panel)):
+            or not set(macro_features).issubset(components)
+            or set(macro_features).intersection(panel)):
         raise RuntimeError("TA_B_FEATURE_CONTRACT")
     for frame in (panel, components):
         opens, decisions = pd.DatetimeIndex(frame.session_open), pd.DatetimeIndex(frame.decision_time)
@@ -814,8 +860,8 @@ def join_b_components(panel: pd.DataFrame, components: pd.DataFrame) -> pd.DataF
             or not np.array_equal(panel.decision_time.array, components.decision_time.array)):
         raise RuntimeError("TA_B_COMPONENT_CLOCK_MISMATCH")
     result = panel.copy()
-    result[B_MACRO_FEATURES] = components[B_MACRO_FEATURES].to_numpy(float)
-    if np.isinf(result[B_FEATURES].to_numpy(float)).any():
+    result[macro_features] = components[macro_features].to_numpy(float)
+    if np.isinf(result[FEATURES + macro_features].to_numpy(float)).any():
         raise RuntimeError("TA_B_NONFINITE_FEATURE")
     return result
 
@@ -873,24 +919,34 @@ def _fit_predictions(panel: pd.DataFrame, spec: dict, feature_names: list[str],
                          "fit_rows": len(fit), "hold_rows": len(hold), **row_binding,
                          "last_fit_outcome_time": str(times[fit[-1] + max_h]),
                          "first_hold_time": str(times[hold[0]]), "ridge": ri, "hgb": hi})
-            arm_name = "A" if feature_names == FEATURES else "B"
+            arm_name = ("A" if feature_names == FEATURES else
+                        "MACRO_CORE" if feature_names == MACRO_CORE_ALL_FEATURES else "B")
             print(f"[TA-{arm_name}] fitted year={year} horizon={horizon} rows={len(fit)}/{len(hold)}", flush=True)
     return forecasts, fits
 
 
 def fit_matched_b(panel: pd.DataFrame, spec: dict) -> tuple[dict, list[dict]]:
     """Fit A and full B on shared rows; source admission remains a separate prerequisite."""
-    if (spec["feature_names"] != B_FEATURES or spec["horizons"] != [20, 5]
+    return _fit_matched_macro(panel, spec, B_FEATURES, "b")
+
+
+def fit_matched_macro_core(panel: pd.DataFrame, spec: dict) -> tuple[dict, list[dict]]:
+    return _fit_matched_macro(panel, spec, MACRO_CORE_ALL_FEATURES, "macro_core")
+
+
+def _fit_matched_macro(panel: pd.DataFrame, spec: dict, feature_names: list[str],
+                       arm_name: str) -> tuple[dict, list[dict]]:
+    if (spec["feature_names"] != feature_names or spec["horizons"] != [20, 5]
             or spec["primary_horizon"] != 20 or panel.columns.has_duplicates
-            or not set(B_FEATURES).issubset(panel)):
+            or not set(feature_names).issubset(panel)):
         raise RuntimeError("TA_B_FEATURE_CONTRACT")
-    values = panel[B_FEATURES].to_numpy(float)
+    values = panel[feature_names].to_numpy(float)
     if np.isinf(values).any():
         raise RuntimeError("TA_B_NONFINITE_FEATURE")
     # Keep the full clock. Filtering the panel would shorten horizons across missing inputs.
     population = np.isfinite(values).all(axis=1)
     a, a_fits = _fit_predictions(panel, spec, FEATURES, population)
-    b, b_fits = _fit_predictions(panel, spec, B_FEATURES, population)
+    b, b_fits = _fit_predictions(panel, spec, feature_names, population)
     matched = []
     if len(a_fits) != len(b_fits):
         raise RuntimeError("TA_B_FOLD_MISMATCH")
@@ -901,8 +957,8 @@ def fit_matched_b(panel: pd.DataFrame, spec: dict) -> tuple[dict, list[dict]]:
             raise RuntimeError("TA_B_FOLD_MISMATCH")
         row = dict(a_rows)
         if af["status"] == "FIT":
-            row.update(a={"ridge": af["ridge"], "hgb": af["hgb"]},
-                       b={"ridge": bf["ridge"], "hgb": bf["hgb"]})
+            row.update({"a": {"ridge": af["ridge"], "hgb": af["hgb"]},
+                        arm_name: {"ridge": bf["ridge"], "hgb": bf["hgb"]}})
         matched.append(row)
     forecasts = {}
     for horizon in spec["horizons"]:
@@ -910,7 +966,7 @@ def fit_matched_b(panel: pd.DataFrame, spec: dict) -> tuple[dict, list[dict]]:
             raise RuntimeError("TA_B_CONSTANT_MISMATCH")
         forecasts[horizon] = {
             "a_ridge": a[horizon]["ridge"], "a_hgb": a[horizon]["hgb"],
-            "b_ridge": b[horizon]["ridge"], "b_hgb": b[horizon]["hgb"],
+            f"{arm_name}_ridge": b[horizon]["ridge"], f"{arm_name}_hgb": b[horizon]["hgb"],
             "constant": a[horizon]["constant"],
         }
         masks = [np.isfinite(v) for v in forecasts[horizon].values()]
@@ -947,12 +1003,22 @@ def evaluate(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve
 def evaluate_matched_b(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve,
                        spec: dict, out: Path) -> dict:
     """One paired portfolio/inference family, including each B learner minus its matched A."""
-    if (spec["feature_names"] != B_FEATURES or spec["horizons"] != [20, 5]
+    return _evaluate_matched_macro(panel, forecasts, curve, spec, out, B_FEATURES, "b")
+
+
+def evaluate_matched_macro_core(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve,
+                                spec: dict, out: Path) -> dict:
+    return _evaluate_matched_macro(panel, forecasts, curve, spec, out, MACRO_CORE_ALL_FEATURES, "macro_core")
+
+
+def _evaluate_matched_macro(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve,
+                            spec: dict, out: Path, feature_names: list[str], arm_name: str) -> dict:
+    if (spec["feature_names"] != feature_names or spec["horizons"] != [20, 5]
             or spec["primary_horizon"] != 20 or set(forecasts) != set(spec["horizons"])):
         raise RuntimeError("TA_B_EVALUATION_CONTRACT")
     masks = []
     for arm in forecasts.values():
-        if set(arm) != {"a_ridge", "a_hgb", "b_ridge", "b_hgb", "constant"}:
+        if set(arm) != {"a_ridge", "a_hgb", f"{arm_name}_ridge", f"{arm_name}_hgb", "constant"}:
             raise RuntimeError("TA_B_EVALUATION_ARMS")
         for values in arm.values():
             if np.asarray(values).shape != (len(panel),) or np.isinf(values).any():
@@ -961,8 +1027,8 @@ def evaluate_matched_b(panel: pd.DataFrame, forecasts: dict, curve: ResearchFina
     if any(not np.array_equal(masks[0], m) for m in masks[1:]):
         raise RuntimeError("TA_B_FORECAST_POPULATION_MISMATCH")
     return _evaluate(panel, forecasts, curve, spec, out,
-                     {"b_ridge": ["a_ridge", "long", "constant", "trend", "buy_hold"],
-                      "b_hgb": ["a_hgb", "long", "constant", "trend", "buy_hold"]})
+                     {f"{arm_name}_ridge": ["a_ridge", "long", "constant", "trend", "buy_hold"],
+                      f"{arm_name}_hgb": ["a_hgb", "long", "constant", "trend", "buy_hold"]})
 
 
 def _evaluate(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve,
@@ -1757,7 +1823,7 @@ def run_sweep(spec: dict, spec_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -1766,7 +1832,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

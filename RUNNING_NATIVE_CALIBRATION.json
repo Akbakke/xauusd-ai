@@ -1,4 +1,15 @@
 {
+  "automatic_bot_goal_20261001": {
+    "active_job": null,
+    "fits_allowed": false,
+    "full_b_admitted": false,
+    "manifest": "configs/research/TA_MACRO_CORE_COMPONENTS_20261001.json",
+    "manifest_sha256": "24b90aca5be524e72d990fb6b48146bfde92c2b2a222d2f9a8caa454d51dae50",
+    "native_training_enabled": false,
+    "plan": "docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md",
+    "status": "PREREGISTERED_INPUT_QUALIFICATION_NOT_RUN",
+    "test_accessed": false
+  },
   "b_next_source_step_20260930": {
     "active_job": null,
     "audit_result": {
@@ -1926,7 +1937,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "docs/TA_SWEEP_AVWAP_20260930.md",
+  "handover_resume_point": "docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -1976,7 +1987,7 @@
     "slot": 0,
     "state_sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
   },
-  "latest_readonly_audit_utc": "2026-09-17T01:50:04.501140+00:00",
+  "latest_readonly_audit_utc": "2026-10-01T09:23:21.961215+00:00",
   "learning_gate": {
     "broad_entry_fit_improved": false,
     "causal_entry_fixed256_verdict": {
@@ -2381,7 +2392,7 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Native sweep anchored activity is implemented and input-verified on M1/M5, with signal v38 (254 fields). Its learned feature value is unmeasured. Next prepare bound v38 feature/dataset/normalization artifacts and a matched bounded learning comparison with a fresh initial baseline; a training run is not yet specified or launched. The fixed-rule NO_GO is not a verdict on learned feature value. Full six-source B retains its source blockers. TEST stays sealed; no trading or spending.",
+  "next_action": "Run the committed MACRO_CORE three-source input qualification on existing archives and cached clocks; freeze the separate matched A-versus-macro measurement only after observed input coverage. Preserve full B and its blockers. Native v38 learning, later generalization, train/serve parity and offline operational qualification remain required. No native training, TEST or trading is opened.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -2589,7 +2600,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "SWEEP_NATIVE_FEATURE_INPUT_VERIFIED_LEARNING_UNMEASURED_FULL_B_BLOCKED",
+  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_MACRO_CORE_INPUT_QUALIFICATION_PENDING",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,

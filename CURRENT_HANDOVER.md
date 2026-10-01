@@ -1,5 +1,18 @@
 # Gjeldende status — 01.10.2026: native v38 og kontrollert kodeopprydding
 
+## Aktivt operatørmål 01.10 — egen makroarm og videre native evidens
+
+Brukeren har bedt om aktiv gjennomføring av hele veien til en automatisk bot.
+Gjeldende rekkefølge og gjenstående bevis:
+[aktiv målplan](docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md).
+Først kvalifiseres DFII10/DTWEXBGS/T10YIE fra eksisterende ALFRED-arkiv i en
+egen forhåndsregistrert MACRO_CORE-arm. Deretter bindes en sammenligning
+mot pris alene på identiske rader og kostnader. Full B er fortsatt et eget,
+ufullført sekskildemål. Native v38-læring, senere generalisering, paritet og
+offline driftskvalifisering gjenstår. Ingen native trening, TEST eller handel
+åpnes av inputkontrollen. Neste steg står i målplanen; eldre neste-steg-tekst
+nedenfor beskriver historiske delmål.
+
 ## Kodegjennomgang 01.10 — handover rettet og frakoblet kode fjernet
 
 Handover-pekeren er rettet fra full B til det gjeldende native v38-sporet.

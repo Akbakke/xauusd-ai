@@ -1,4 +1,15 @@
 {
+  "automatic_bot_goal_20261001": {
+    "active_job": null,
+    "fits_allowed": false,
+    "full_b_admitted": false,
+    "manifest": "configs/research/TA_MACRO_CORE_COMPONENTS_20261001.json",
+    "manifest_sha256": "24b90aca5be524e72d990fb6b48146bfde92c2b2a222d2f9a8caa454d51dae50",
+    "native_training_enabled": false,
+    "plan": "docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md",
+    "status": "PREREGISTERED_INPUT_QUALIFICATION_NOT_RUN",
+    "test_accessed": false
+  },
   "b_next_source_step_20260930": {
     "active_job": null,
     "audit_result": {
@@ -1650,7 +1661,7 @@
     "sha256": "5ff5adf6f9e4033593724d6d72b91e2fad04e0b7150ad185762b5aa65590423a"
   },
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "handover_resume_point": "docs/TA_SWEEP_AVWAP_20260930.md",
+  "handover_resume_point": "docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md",
   "handover_resume_point_before_consolidation_20260926": {
     "entry_selector_cache_fit": {
       "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_POLICY_REPRESENTATIONS_20260919/ENTRY_SELECTOR_FIT/RESULTS/RESULT.json",
@@ -2051,9 +2062,9 @@
     },
     "training_launch_authority": false
   },
-  "next_action": "Native sweep anchored activity is implemented and input-verified on M1/M5, with signal v38 (254 fields). Its learned feature value is unmeasured. Next prepare bound v38 feature/dataset/normalization artifacts and a matched bounded learning comparison with a fresh initial baseline; a training run is not yet specified or launched. The fixed-rule NO_GO is not a verdict on learned feature value. Full six-source B retains its source blockers. TEST stays sealed; no trading or spending.",
+  "next_action": "Run the committed MACRO_CORE three-source input qualification on existing archives and cached clocks; freeze the separate matched A-versus-macro measurement only after observed input coverage. Preserve full B and its blockers. Native v38 learning, later generalization, train/serve parity and offline operational qualification remain required. No native training, TEST or trading is opened.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-10-01T05:38:40.460811+00:00",
+  "observed_utc": "2026-10-01T09:23:21.957674+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -2234,7 +2245,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "SWEEP_NATIVE_FEATURE_INPUT_VERIFIED_LEARNING_UNMEASURED_FULL_B_BLOCKED",
+  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_MACRO_CORE_INPUT_QUALIFICATION_PENDING",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,
     "input_audit": {
