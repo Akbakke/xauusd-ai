@@ -861,8 +861,8 @@ gir bit-identiske Entry-/Exit-utdata i testmodellen. Ulik requires_grad-
 status ga et lite CPU-avvik og er ikke dokumentert native train/serve-paritet.
 
 Dette er kilde-/testbevis. Reell v38-initialisering og læring er ikke kjørt.
-Separate fysiske TRAIN-/VAL-kilder, deres målrader og komplett native
-admission gjenstår. Nytt design avvises hvis TRAIN forsøkes gjenbrukt som
+Native kobling til separate fysiske TRAIN-/VAL-kilder, læringsmål og
+komplett admission gjenstår. Nytt design avvises hvis TRAIN forsøkes gjenbrukt som
 fysisk VAL. Vilkårsspørsmålet er fortsatt ubesvart; broker er stengt.
 
 Kildebevist: _copy_frozen_prefix_reference_model fjernet tidligere
@@ -906,8 +906,38 @@ kostnadsautoritet og læring er ufullført. training_enabled=false består.
 
 ## Gjenbruk av ferdige hjelpefasiter — forhåndskontroll 02.10
 
-En avgrenset lesekontroll er nå forhåndsbundet: AUXILIARY_REUSE_PRECHECK_001.
-De opprinnelige TRAIN-/VAL-policyene og alle måltidsstemplene skal kontrolleres
-før eventuell gjenbruk. Fem måleiere er byte-like produksjonskoden. Ingen ny
-fit, målberegning eller native trening åpnes; kun metadata og tidsstempler.
+AUXILIARY_REUSE_PRECHECK_001 er fullført med exit 0 og uendret kilde.
+Alle 652 552 TRAIN-/70 880 VAL-rader, inkludert CONTROL256, har komplett
+tidsstøtte innen egen periode. De 37 faste hjelpefasitene krever opptil
+96 observerte M5-barer; de fryste policyene bruker 19 M5 / 95 M1-minutter.
+TRAIN-policyene er identiske i begge datasett, og fem måleiere er byte-like
+produksjonskoden. Originale hjelpefasiter skal gjenbrukes uten ny policy-fit
+eller egen produsent for erstatningsetiketter.
+
+Dette er ekte klokke-/metadatabevis; målverdiene er ikke uavhengig beregnet
+på nytt. Native binding av separate fysiske kilder og radkoordinater samt
+Entry/Exit-reference-Q gjenstår. Ingen ny fit, modellkjøring eller TEST-tilgang.
 Vilkårsspørsmålet er fortsatt ubesvart og broker-adgang er stengt.
+
+Kilde: `AUXILIARY_REUSE_PRECHECK_001` under gjeldende run-root.
+Plan-SHA: `8902790fc1f805710c0c0f92b189e5a0a66c34cb09d965bd38b780d79dbc2efb`.
+Resultat-SHA: `a5175f4e2ef1db81e0d1d35fe66270dfd3f5ad69243cc37bf97d530670326f68`.
+Terminal-SHA: `dcff68749ded9f90c94910560b0ea4299fd152404fc8d20091f57668641acd8a`.
+Eksakte stier og sluttkontroll er bundet i begge statusfilene.
+
+Lesekontrollen hashet de bundne datafilene og leste bare tre tidskolonner:
+komplett før-TEST M1, opprinnelig fysisk TRAIN og fysisk VAL. 5 959 045 M1-
+tidsstempler gir 1 215 514 M5-tidsstempler, med gjenbruk av full råprisparitet.
+Retningspolicy og posisjonsstørrelses-ECDF består eksisterende strict-load.
+Tilpasningsperioden er 01.06.2011–31.05.2025; eksakt policy-fit-slutt
+23:54:59 kommer fra eksisterende eier, ikke en ny grense.
+
+Siste TRAIN-støtte for K96 stenger 30.05.2025 kl. 21:00 UTC. Siste VAL-
+støtte stenger 01.07.2026 kl. 00:00 UTC og tilhører M5-baren som åpnet
+30.06 kl. 23:55; ingen juli-/TEST-bar er lest. De eksakte M1-policyutfallene
+slutter senest henholdsvis 30.05.2025 og 30.06.2026 kl. 14:35/16:35 UTC.
+
+Nyeste hendelser, kvitteringer, hasher og alle rapporterte grensetider er
+etterkontrollert uten ny full datasettlesing. Dette beviser verken de
+numeriske etikettene uavhengig, aktuelle reference-Q-mål, læring, økonomi,
+train/serve-paritet eller bytte av M5-produksjonskilde.

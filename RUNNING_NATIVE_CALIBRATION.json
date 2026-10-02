@@ -2459,19 +2459,55 @@
   },
   "native_v38_preparation_20261001": {
     "auxiliary_reuse_precheck": {
+      "control_rows": 256,
+      "decision": "Reuse original immutable TRAIN/VAL auxiliary policies and targets through an explicit physical-split binding; no new prefix policy fit or replacement-label producer is indicated by this audit.",
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/EVENTS/FINAL_REVIEW_20261002T002513786927Z.json",
+        "sha256": "7a0b189345621b44f6336fd342d076e76f683f63c5e0cfdd31e43c0e961ba0a2"
+      },
+      "fixed_target_columns": 37,
+      "label_values_recomputed": false,
+      "launcher_terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/EVENTS/LAUNCHER_TERMINAL_20261002T002224875252Z.json",
+        "sha256": "b6557724bd9b4ad0abee22e2c2ef1d66588858b991e0b54386120bcd7a323045"
+      },
+      "limitations": [
+        "Clock and immutable metadata evidence only; target values have not been independently recomputed.",
+        "M5 support uses the complete observed M5 clock reconstructed from the already-qualified pre-TEST M1 source and the unchanged producer's timeline-preserving contract.",
+        "Entry/Exit learned-reference Q targets and native physical-split routing are not qualified by this precheck.",
+        "No economics, learning, edge, train/serve parity or production source migration is demonstrated."
+      ],
+      "model_forwards": 0,
+      "native_admission_complete": false,
       "native_training_enabled": false,
+      "new_policy_fits": 0,
       "normalization_fit_authorized": false,
+      "normalization_fits": 0,
       "operator": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/OPERATOR.py",
         "sha256": "64807013e4a906dead9517b5cb08d9b7932c15d3beb72d1d1bdd75e4c4d0a3a2"
       },
+      "optimizer_steps": 0,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/PLAN.json",
         "sha256": "8902790fc1f805710c0c0f92b189e5a0a66c34cb09d965bd38b780d79dbc2efb"
       },
-      "source_frozen_while_running": true,
-      "status": "PREPARED_READ_ONLY_POLICY_AND_CLOCK_PRECHECK",
-      "test_accessed": false
+      "policy_horizon_m1_bars": 95,
+      "policy_horizon_m5_bars": 19,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/EVENTS/RESULT_20261002T002224728274Z.json",
+        "sha256": "a5175f4e2ef1db81e0d1d35fe66270dfd3f5ad69243cc37bf97d530670326f68"
+      },
+      "source_frozen_while_running": false,
+      "source_head": "7d1423a2c4d7d17a9b1143aa26a8c860c771e201",
+      "status": "COMPLETE_FROZEN_POLICIES_AND_ALL_AUXILIARY_CLOCKS_VERIFIED",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/EVENTS/TERMINAL_20261002T002224746260Z.json",
+        "sha256": "dcff68749ded9f90c94910560b0ea4299fd152404fc8d20091f57668641acd8a"
+      },
+      "test_accessed": false,
+      "train_rows": 652552,
+      "val_rows": 70880
     },
     "base_normalization": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/BASE_NORMALIZATION/normalization.json",
@@ -3157,7 +3193,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Run the single committed AUXILIARY_REUSE_PRECHECK_001 audit over bound TRAIN/VAL and complete pre-TEST M1 clocks, with unchanged target owners and frozen TRAIN-only policies. Reuse passed inputs and fits; do not launch another producer or recompute labels before this evidence. Then land the smallest physical split/target binding change. The two-GET broker terms question remains pending and broker access is not authorized. No native training, TEST, live/paper or spending.",
+  "next_action": "Reuse completed AUXILIARY_REUSE_PRECHECK_001: all 652552 TRAIN/70880 VAL auxiliary clock supports and CONTROL256 pass, with unchanged TRAIN-only policies/target owners. Do not refit auxiliary policies or rebuild replacement labels; next extend existing native component/Dataset/coordinator owners to bind the original physical TRAIN and VAL sources, reuse their targets and preserve separate row coordinates and frozen teacher function. Actual reference-Q preparation, economics/indexes, initialization, learning and full native admission remain incomplete. The two-GET broker terms question remains pending; no approval is inferred. Native training, TEST, live/paper and spending stay closed.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],

@@ -1,9 +1,16 @@
 # GX1 arbeidsmål — oppdatert 02.10.2026
 
-En avgrenset lesekontroll er nå forhåndsbundet: AUXILIARY_REUSE_PRECHECK_001.
-De opprinnelige TRAIN-/VAL-policyene og alle måltidsstemplene skal kontrolleres
-før eventuell gjenbruk. Fem måleiere er byte-like produksjonskoden. Ingen ny
-fit, målberegning eller native trening åpnes; kun metadata og tidsstempler.
+AUXILIARY_REUSE_PRECHECK_001 er fullført med exit 0 og uendret kilde.
+Alle 652 552 TRAIN-/70 880 VAL-rader, inkludert CONTROL256, har komplett
+tidsstøtte innen egen periode. De 37 faste hjelpefasitene krever opptil
+96 observerte M5-barer; de fryste policyene bruker 19 M5 / 95 M1-minutter.
+TRAIN-policyene er identiske i begge datasett, og fem måleiere er byte-like
+produksjonskoden. Originale hjelpefasiter skal gjenbrukes uten ny policy-fit
+eller egen produsent for erstatningsetiketter.
+
+Dette er ekte klokke-/metadatabevis; målverdiene er ikke uavhengig beregnet
+på nytt. Native binding av separate fysiske kilder og radkoordinater samt
+Entry/Exit-reference-Q gjenstår. Ingen ny fit, modellkjøring eller TEST-tilgang.
 Vilkårsspørsmålet er fortsatt ubesvart og broker-adgang er stengt.
 
 Lærerfunksjonen er nå eksplisitt bundet gjennom de eksisterende native
@@ -20,8 +27,8 @@ gir bit-identiske Entry-/Exit-utdata i testmodellen. Ulik requires_grad-
 status ga et lite CPU-avvik og er ikke dokumentert native train/serve-paritet.
 
 Dette er kilde-/testbevis. Reell v38-initialisering og læring er ikke kjørt.
-Separate fysiske TRAIN-/VAL-kilder, deres målrader og komplett native
-admission gjenstår. Nytt design avvises hvis TRAIN forsøkes gjenbrukt som
+Native kobling til separate fysiske TRAIN-/VAL-kilder, læringsmål og
+komplett admission gjenstår. Nytt design avvises hvis TRAIN forsøkes gjenbrukt som
 fysisk VAL. Vilkårsspørsmålet er fortsatt ubesvart; broker er stengt.
 
 Indekseierens nye kilde-/kalenderkontroll er kjørt på de ekte metadataene:
