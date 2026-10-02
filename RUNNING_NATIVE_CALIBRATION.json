@@ -2985,6 +2985,107 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/M1_VIEWS/M1_CHILD_VIEW_ROOT.json",
       "sha256": "2831b8855462c8961ffc6f0117d39df117b45307f3a4d6ea2e56345d9e8be10a"
     },
+    "measured_sampler_admission_review": {
+      "broker_requests": 0,
+      "candidate_selection_performed": false,
+      "completed_utc": "2026-10-02T02:20:03.203735+00:00",
+      "frozen_design": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/DESIGN.json",
+        "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
+      },
+      "full_native_components_qualified": false,
+      "model_forwards": 0,
+      "native_coordinates_frozen": false,
+      "observed_native_admission_gate": "NATIVE_PREFIX_MEASURED_SAMPLER_REQUIRED",
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/MEASURED_SAMPLER_ADMISSION_REVIEW_001/OPERATOR.py",
+        "sha256": "8a10f3e50b2e72efddf594ce2fb5f53cb82e4bd57b5cc59962ab20d690f3a347"
+      },
+      "optimizer_steps": 0,
+      "parquet_reads": 0,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/MEASURED_SAMPLER_ADMISSION_REVIEW_001/PLAN.json",
+        "sha256": "70157ac3ff42401272ec08a8081921227104ce3b89c6d9df28995bc24d5444a2"
+      },
+      "reference_workload": {
+        "reference_cutoff_time_ns": 1748736000000000000,
+        "reference_policy": {
+          "hold_probability_denominator": 120,
+          "hold_probability_numerator": 119,
+          "maximum_observed_backup_steps": 120,
+          "observation_boundary_policy": "preserve_valid_teacher_bootstrap",
+          "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
+          "schema_version": "gx1_exit_reference_policy_v1",
+          "selection": "analytical_expectation_no_random_action_draw",
+          "terminal_policy": "exit_if_economic_terminal",
+          "value_coordinates": "advantage_over_executable_liquidation_bps",
+          "value_semantics": "Q_mu_stationary_reference_after_first_action"
+        }
+      },
+      "remaining": [
+        "No genuine current cost/index-admitted throughput or memory benchmark has run and no current sampler is selected.",
+        "Main component identity/routing, training and measurement owners still need separate physical TRAIN/VAL coordinates and completed preprocessing reuse.",
+        "Epoch0/first4096/TRAIN256 coordinates must be derived only after the actual workload-matched sampler is selected.",
+        "Current cost terms and actual indexes await the previously sent two-GET broker exception; authorization remains false.",
+        "No full current-native construction, initialization, learning, economics, edge or train/serve parity is qualified."
+      ],
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/MEASURED_SAMPLER_ADMISSION_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T022003203735Z.json",
+        "sha256": "c14316d18dc4269d3637a3ef65325d57f978834e180d62620ab0e7f209edf16a"
+      },
+      "reviewed_uncommitted_source_bytes": true,
+      "source_bindings": {
+        "gx1/contracts/unified_exit_random_access_train_factory_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_train_factory_v1.py",
+          "sha256": "9077fd53f985345659dab4c3179b45a33abd473f5bacf78d3863e9931bddc51c"
+        },
+        "gx1/contracts/unified_exit_selected_sampler_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_selected_sampler_v1.py",
+          "sha256": "f1d667d558bf021b04f284f0aa2e9fecb5b67dcff17c4de924ec78ebe5148ee9"
+        },
+        "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+          "sha256": "3db259786487b810fe37d96f75092af66216f9788459026208408639f07aa28f"
+        },
+        "gx1/scripts/benchmark_unified_exit_random_access_train_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/benchmark_unified_exit_random_access_train_v1.py",
+          "sha256": "ae360c2a489b1cfba0c27ab449b9450621927cdfdfe5041e1b2cf580353ee7a8"
+        },
+        "gx1/scripts/materialize_unified_exit_selected_sampler_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_unified_exit_selected_sampler_v1.py",
+          "sha256": "2241ec7c681c885498bfb0a1fff21da5b0384d2b099a0844735360a315f121a3"
+        },
+        "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+          "sha256": "da34dbd801945a498a1f4e414da932668782deb072c2d2aa8ee0bc5262d1d090"
+        },
+        "tests/test_benchmark_unified_exit_random_access_train_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_benchmark_unified_exit_random_access_train_v1.py",
+          "sha256": "41b93377a8b9777a68c6bad5cbbadf57b0528dd99d789528be99b06a19b37142"
+        },
+        "tests/test_unified_exit_selected_sampler_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_unified_exit_selected_sampler_v1.py",
+          "sha256": "3626414a503c93ece27156365971450cd7d516d22d0422bd6ac6a34d3cdff45d"
+        }
+      },
+      "source_frozen_while_running": false,
+      "source_parent_head": "d5d7c1566c176dae50046551e409bbb063b49a9d",
+      "status": "SOURCE_AND_SYNTHETIC_DIRECT_MEASURED_SAMPLER_ADMISSION_COMPLETE_REAL_BENCHMARK_PENDING",
+      "synthetic_tests": {
+        "combined_green": 148,
+        "final_affected_file": 34,
+        "skipped": 0,
+        "unique_cases": 149
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/MEASURED_SAMPLER_ADMISSION_REVIEW_001/EVENTS/TERMINAL_20261002T022003221189Z.json",
+        "sha256": "6cf7e9e53fe70c7d2fb8a0dfa1e6d1ed71f70586de72e93cd5c0e9d39b7463f7"
+      },
+      "test_accessed": false,
+      "throughput_measured": false,
+      "train_rows": 652552,
+      "training_enabled": false
+    },
     "native_training_enabled": false,
     "new_dataset_complete": true,
     "no_cap_economics_preflight": {
@@ -3489,7 +3590,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse completed physical TRAIN preprocessing and original Dataset targets. Sampler benchmark population/lineage admission and immutable publication are repaired and checked against genuine 652552-row candidate metadata. Actual throughput/memory selection remains pending current cost/index authority; do not assume the historical 65536 budget or freeze epoch0/first4096/TRAIN256 before selection. Next bind the current measured sampler and native component/training/measurement owners to separate physical TRAIN/VAL sources. Main-builder physical routing and full native admission remain unfinished. Do not refit or relaunch completed work. The previous two-GET broker question remains unanswered; no broker, native training, TEST, live/paper or spending.",
+  "next_action": "Reuse completed physical TRAIN preprocessing and original auxiliary targets in the existing main component identity/routing, training and measurement owners for separate TRAIN/VAL sources. Direct measured sampler admission is now implemented; it replays the same benchmark rank, binds exact index/candidate/final artifacts and requires the current frozen reference policy/cutoff and actual Dataset MTF geometry. No current benchmark or selection has run. Obtain current cost/index authority before one workload-matched benchmark; then freeze actual epoch0/first4096/TRAIN256 coordinates. Historical 65536/V3-to-V4 evidence cannot authorize current v38. Do not refit or relaunch completed work. The previous two-GET broker question remains unanswered; no broker, native training, TEST, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],

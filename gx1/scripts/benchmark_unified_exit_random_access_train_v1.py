@@ -90,6 +90,156 @@ def _selection_policy(entry_pair_population: int) -> dict[str, Any]:
     return value
 
 
+def _reference_workload(value: Mapping[str, Any]) -> dict[str, Any]:
+    from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
+    if not isinstance(value, Mapping) or set(value) - {"reference_policy", "reference_cutoff_time_ns"}:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_REFERENCE_INVALID")
+    workload = dict(value)
+    if "reference_policy" in workload:
+        workload["reference_policy"] = require_reference_policy_contract(workload["reference_policy"])
+    if "reference_cutoff_time_ns" in workload and (
+        "reference_policy" not in workload
+        or type(workload["reference_cutoff_time_ns"]) is not int
+        or workload["reference_cutoff_time_ns"] <= 0
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_REFERENCE_INVALID")
+    return workload
+
+
+def _reference_workload_from_design(design: Mapping[str, Any]) -> dict[str, Any]:
+    from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
+        _prefix_reference_model_functions, _PREFIX_CURRENT_MODEL_FUNCTIONS,
+    )
+    import pandas as pd
+    if _prefix_reference_model_functions(design) != _PREFIX_CURRENT_MODEL_FUNCTIONS:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_PHYSICAL_DESIGN_REQUIRED")
+    cutoff = pd.Timestamp(design["calendar"]["train_control_cutoff"])
+    if cutoff.tzinfo is None:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_REFERENCE_INVALID")
+    return _reference_workload({
+        "reference_policy": design["targets"]["reference_policy"],
+        "reference_cutoff_time_ns": int(cutoff.value),
+    })
+
+
+def select_measured_sampler_candidate(
+    candidates: Sequence[Mapping[str, Any]], *, entry_pair_population: int,
+) -> dict[str, Any]:
+    """Replay the existing outcome-blind rank on complete measured candidates."""
+    if (
+        type(entry_pair_population) is not int or entry_pair_population < 1
+        or not isinstance(candidates, (list, tuple))
+        or len(candidates) != len(BENCHMARK_BUDGETS)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_INCOMPLETE")
+    eligible = []
+    for budget, candidate in zip(BENCHMARK_BUDGETS, candidates):
+        entries = budget // BENCHMARK_TRANSITIONS_PER_ENTRY
+        if (
+            not isinstance(candidate, Mapping)
+            or type(candidate.get("transition_budget_per_epoch")) is not int
+            or candidate["transition_budget_per_epoch"] != budget
+            or type(candidate.get("full_selected_entry_pairs")) is not int
+            or candidate["full_selected_entry_pairs"] != entries
+            or candidate.get("full_budget_measured") is not True
+            or not isinstance(candidate.get("batch_size_sweep"), list)
+            or len(candidate["batch_size_sweep"]) != 1
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_INCOMPLETE")
+        row = candidate["batch_size_sweep"][0]
+        cycles = math.ceil(entry_pair_population / entries)
+        if (
+            not isinstance(row, Mapping)
+            or any(type(row.get(key)) is not int or row[key] < 0 for key in (
+                "batch_size", "measured_entry_pairs", "measured_transitions",
+                "peak_python_allocation_bytes", "peak_padded_model_input_bytes",
+                "population_cycle_epochs",
+            ))
+            or row["batch_size"] != AUTHORITATIVE_BATCH_SIZE
+            or row["measured_entry_pairs"] != entries
+            or row["measured_transitions"] != budget
+            or row["population_cycle_epochs"] != cycles
+            or any(type(row.get(key)) not in (int, float)
+                   or not math.isfinite(row[key]) or row[key] < 0 for key in (
+                "median_seconds", "materialize_seconds", "collate_seconds",
+                "measured_epoch_seconds", "projected_entry_population_cycle_seconds",
+                "entry_pairs_per_second", "transitions_per_second",
+            ))
+            or row["median_seconds"] <= 0
+            or row["measured_epoch_seconds"] != row["median_seconds"]
+            or row["projected_entry_population_cycle_seconds"] != row["median_seconds"] * cycles
+            or row["entry_pairs_per_second"] != entries / row["median_seconds"]
+            or row["transitions_per_second"] != budget / row["median_seconds"]
+        ):
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_MEASUREMENT_INVALID")
+        if (
+            row["measured_epoch_seconds"] > MAX_MEASURED_CPU_PREP_EPOCH_SECONDS
+            or row["peak_python_allocation_bytes"] > MAX_PEAK_PYTHON_ALLOCATION_BYTES
+            or row["peak_padded_model_input_bytes"] > MAX_PEAK_PADDED_MODEL_INPUT_BYTES
+        ):
+            continue
+        rank = (
+            cycles, row["measured_epoch_seconds"], row["peak_padded_model_input_bytes"],
+            row["peak_python_allocation_bytes"], budget,
+        )
+        eligible.append((rank, candidate))
+    if not eligible:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_NO_ELIGIBLE_CANDIDATE")
+    chosen = min(eligible, key=lambda item: item[0])[1]
+    row = chosen["batch_size_sweep"][0]
+    return {
+        "transition_budget_per_epoch": chosen["transition_budget_per_epoch"],
+        "sampler_contract_sha256": chosen["sampler_contract_sha256"],
+        "batch_size": row["batch_size"],
+        "population_cycle_epochs": row["population_cycle_epochs"],
+        "measured_epoch_seconds": row["measured_epoch_seconds"],
+        "projected_entry_population_cycle_seconds": row["projected_entry_population_cycle_seconds"],
+    }
+
+
+def require_measured_sampler_benchmark(
+    value: Mapping[str, Any], *, sampler_contracts: Mapping[int, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Admit a complete receipt by replaying the same producer's selection."""
+    if not isinstance(value, Mapping) or set(sampler_contracts) != set(BENCHMARK_BUDGETS):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_RECEIPT_INVALID")
+    contracts = {budget: require_random_access_sampler_contract(sampler_contracts[budget])
+                 for budget in BENCHMARK_BUDGETS}
+    populations = {contract["entry_pair_population"] for contract in contracts.values()}
+    lineages = {contract["source_lineage_sha256"] for contract in contracts.values()}
+    if len(populations) != 1 or len(lineages) != 1 or any(
+        c["split"] != "train" or c["transition_budget_per_epoch"] != budget
+        or c["transitions_per_entry"] != BENCHMARK_TRANSITIONS_PER_ENTRY
+        for budget, c in contracts.items()
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_CONTRACT_INVALID")
+    population = next(iter(populations))
+    data = dict(value)
+    claimed = data.pop("receipt_sha256", None)
+    if (
+        value.get("schema_version") != "gx1_unified_exit_random_access_train_benchmark_v2"
+        or value.get("decision") != "PASS" or claimed != _canonical_sha256(data)
+        or value.get("device") != "cpu"
+        or value.get("candidate_budgets") != list(BENCHMARK_BUDGETS)
+        or value.get("transitions_per_entry") != BENCHMARK_TRANSITIONS_PER_ENTRY
+        or value.get("batch_sizes") != [AUTHORITATIVE_BATCH_SIZE]
+        or type(value.get("repeats")) is not int or value["repeats"] != AUTHORITATIVE_REPEATS
+        or _canonical_sha256(value.get("selection_policy")) != _canonical_sha256(_selection_policy(population))
+        or value.get("candidate_selection_performed") is not True
+        or value.get("selection_uses_outcome_values") is not False
+        or value.get("test_data_used") is not False
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_RECEIPT_INVALID")
+    _reference_workload(value.get("reference_workload"))
+    selected = select_measured_sampler_candidate(value.get("candidates"), entry_pair_population=population)
+    if _canonical_sha256(value.get("selected_candidate")) != _canonical_sha256(selected) or any(
+        row.get("sampler_contract_sha256") != contracts[budget]["contract_sha256"]
+        for budget, row in zip(BENCHMARK_BUDGETS, value["candidates"])
+    ):
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_SELECTION_MISMATCH")
+    return dict(value)
+
+
 def benchmark_random_access_train_candidates_v1(
     *,
     adapter_factory: Callable[[int], Any],
@@ -134,6 +284,7 @@ def benchmark_random_access_train_candidates_v1(
         )
     policy = None
     source_lineage_sha256 = None
+    workload = None
     candidates: list[dict[str, Any]] = []
     for budget in BENCHMARK_BUDGETS:
         adapter = adapter_factory(budget)
@@ -158,6 +309,14 @@ def benchmark_random_access_train_candidates_v1(
             raise RuntimeError(
                 "UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_POPULATION_OR_LINEAGE_DRIFT"
             )
+        candidate_workload = _reference_workload({
+            key: bindings[key] for key in ("reference_policy", "reference_cutoff_time_ns")
+            if key in bindings
+        })
+        if workload is None:
+            workload = candidate_workload
+        elif workload != candidate_workload:
+            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_REFERENCE_DRIFT")
         selected = adapter.random_access_selected_entry_rows_v1()
         expected_entries = budget // BENCHMARK_TRANSITIONS_PER_ENTRY
         if len(selected) != expected_entries:
@@ -210,6 +369,7 @@ def benchmark_random_access_train_candidates_v1(
                             "economics_objective_contract_sha256"
                         ],
                         device=torch.device("cpu"),
+                        **candidate_workload,
                     )
                     collate_seconds += time.perf_counter() - collate_started
                     transition_count += int(collated["transition_count"])
@@ -294,45 +454,9 @@ def benchmark_random_access_train_candidates_v1(
     decision = "NON_AUTHORITATIVE_CAPPED_SMOKE"
     selected_result: dict[str, Any] | None = None
     if authoritative:
-        eligible: list[tuple[tuple[float | int, ...], dict[str, Any]]] = []
-        for candidate in candidates:
-            rows = candidate["batch_size_sweep"]
-            if not candidate["full_budget_measured"] or len(rows) != 1:
-                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_INCOMPLETE")
-            row = rows[0]
-            if (
-                row["batch_size"] != AUTHORITATIVE_BATCH_SIZE
-                or row["measured_epoch_seconds"] > MAX_MEASURED_CPU_PREP_EPOCH_SECONDS
-                or row["peak_python_allocation_bytes"]
-                > MAX_PEAK_PYTHON_ALLOCATION_BYTES
-                or row["peak_padded_model_input_bytes"]
-                > MAX_PEAK_PADDED_MODEL_INPUT_BYTES
-            ):
-                continue
-            rank = (
-                row["population_cycle_epochs"],
-                row["measured_epoch_seconds"],
-                row["peak_padded_model_input_bytes"],
-                row["peak_python_allocation_bytes"],
-                candidate["transition_budget_per_epoch"],
-            )
-            eligible.append((rank, candidate))
-        if not eligible:
-            raise RuntimeError(
-                "UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_NO_ELIGIBLE_CANDIDATE"
-            )
-        chosen = min(eligible, key=lambda item: item[0])[1]
-        chosen_row = chosen["batch_size_sweep"][0]
-        selected_result = {
-            "transition_budget_per_epoch": chosen["transition_budget_per_epoch"],
-            "sampler_contract_sha256": chosen["sampler_contract_sha256"],
-            "batch_size": chosen_row["batch_size"],
-            "population_cycle_epochs": chosen_row["population_cycle_epochs"],
-            "measured_epoch_seconds": chosen_row["measured_epoch_seconds"],
-            "projected_entry_population_cycle_seconds": chosen_row[
-                "projected_entry_population_cycle_seconds"
-            ],
-        }
+        selected_result = select_measured_sampler_candidate(
+            candidates, entry_pair_population=policy["entry_pair_population"],
+        )
         decision = "PASS"
     receipt = {
         "schema_version": "gx1_unified_exit_random_access_train_benchmark_v2",
@@ -343,6 +467,7 @@ def benchmark_random_access_train_candidates_v1(
         "batch_sizes": list(sizes),
         "repeats": repeats,
         "selection_policy": policy,
+        "reference_workload": workload,
         "candidate_selection_performed": selected_result is not None,
         "selected_candidate": selected_result,
         "selection_uses_outcome_values": False,
@@ -399,6 +524,8 @@ def _parser() -> argparse.ArgumentParser:
         "output-json",
     ):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--chronological-design", type=Path,
+                        help="Bind current reference-policy materialization to this frozen physical design.")
     parser.add_argument("--dataset-run-id", required=True)
     parser.add_argument("--seq-len", type=int, default=96)
     parser.add_argument("--m5-len", type=int, default=16)
@@ -423,6 +550,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     from gx1.models.entry_v10.entry_v10_ctx_train_v3 import EntryV10CtxDataset
 
+    workload = {}
+    design_path = None
+    if args.chronological_design is not None:
+        design_path = args.chronological_design.expanduser().resolve()
+        design = json.loads(design_path.read_text(encoding="utf-8"))
+        workload = _reference_workload_from_design(design)
+        source = design["calendar"]["source_bindings"]["train"]
+        for key, path in (("parquet", args.entry_train_parquet), ("manifest", args.entry_train_manifest)):
+            resolved = path.expanduser().resolve()
+            if source[key] != {"path": str(resolved), "sha256": file_sha256(resolved)}:
+                raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_DESIGN_SOURCE_MISMATCH")
     manifest_path = args.entry_train_manifest.expanduser().resolve()
     entry_path = args.entry_train_parquet.expanduser().resolve()
     corpus = UnifiedExitLifecycleCorpus(
@@ -456,6 +594,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         train_cost_authority_path=args.train_cost_authority,
         train_dataset=dataset,
         train_feature_source_owner=corpus.splits["train"],
+        **workload,
     )
     path_bindings = {
         key: {"path": str(path.expanduser().resolve()), "sha256": file_sha256(path)}
@@ -472,6 +611,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             "m5_prebuilt": args.m5_prebuilt,
         }.items()
     }
+    if design_path is not None:
+        path_bindings["chronological_design"] = {
+            "path": str(design_path), "sha256": file_sha256(design_path),
+        }
     receipt = benchmark_random_access_train_candidates_v1(
         adapter_factory=factory,
         batch_sizes=(args.batch_size,),
@@ -479,6 +622,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         max_selected_entries=args.max_selected_entries,
         run_bindings={
             "dataset_run_id": args.dataset_run_id,
+            "input_geometry": {
+                "seq_len": dataset.seq_len, "per_tf_seq_lens": dict(dataset.per_tf_seq_lens),
+                "multi_tf_closed_bar": True,
+            },
             "mtf_cache_dir": str(args.mtf_cache_dir.expanduser().resolve()),
             "files": path_bindings,
         },
@@ -495,4 +642,4 @@ if __name__ == "__main__":
     raise SystemExit(main())
 
 
-__all__ = ("benchmark_random_access_train_candidates_v1", "main")
+__all__ = ("benchmark_random_access_train_candidates_v1", "require_measured_sampler_benchmark", "select_measured_sampler_candidate", "main")

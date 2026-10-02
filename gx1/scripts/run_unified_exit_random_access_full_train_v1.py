@@ -93,7 +93,8 @@ def _require_native_full_train_recipe(
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
                                         "frozen_online_readout_evaluation_only" if "frozen_readout_evaluation" in recipe else _INITIALIZATION)
         or recipe["recipe_sha256"] != val.canonical_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})
-        or set(recipe["files"]) != _DATA_FILES
+        or (set(recipe["files"]) != _DATA_FILES
+            and not (prefix_mode and set(recipe["files"]) == _DATA_FILES | {"selected_sampler"}))
         or re.fullmatch(r"[A-Za-z0-9_-]{1,128}", str(recipe["run_id"])) is None
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_RECIPE_INVALID")
@@ -118,6 +119,7 @@ def _require_native_full_train_recipe(
         prefix = require_chronological_prefix_recipe(recipe)
         seed_launch = {"seed":prefix["design"]["initialization"]["seed"],
                        "learning_rate":0.0001, "weight_decay":0.0001}
+        _require_component_sampler(files=files, chronological_prefix=recipe["chronological_prefix"])
         _require_prefix_component_bindings(recipe["chronological_prefix"], files=files,
             batch_size=16, seed=seed_launch["seed"], learning_rate=0.0001, weight_decay=0.0001)
     else:
@@ -197,6 +199,50 @@ def _require_native_full_train_recipe(
     }, context="NATIVE_FULL_TRAIN")
     return recipe, files, provenance
 
+
+
+def _require_component_sampler(*, files, chronological_prefix):
+    """Current physical TRAIN consumes its measured choice; legacy stays frozen."""
+    current = False
+    if chronological_prefix is not None:
+        design = val._read(_bound_artifact(chronological_prefix["design"]))
+        current = trainer._prefix_reference_model_functions(design) == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
+    if not current:
+        if "selected_sampler" in files:
+            raise RuntimeError("NATIVE_FULL_TRAIN_LEGACY_SAMPLER_CHANGE_FORBIDDEN")
+        return None
+    if "selected_sampler" not in files:
+        raise RuntimeError("NATIVE_PREFIX_MEASURED_SAMPLER_REQUIRED")
+    from gx1.contracts.unified_exit_selected_sampler_v1 import (
+        DIRECT_SELECTION_MODE, require_selected_sampler_artifact,
+    )
+    selected = require_selected_sampler_artifact(val._read(files["selected_sampler"]))
+    if selected.get("selection_mode") != DIRECT_SELECTION_MODE:
+        raise RuntimeError("NATIVE_PREFIX_CURRENT_SAMPLER_REQUIRED")
+    for role, key in (("random_access_root", "random_access_root"),
+                      ("candidate_set", "sampler_candidate_set")):
+        binding = selected[role]
+        if (binding["path"] != str(files[key])
+                or binding["file_sha256"] != val.file_sha256(files[key])):
+            raise RuntimeError("NATIVE_PREFIX_MEASURED_SAMPLER_SOURCE_MISMATCH")
+    if selected["batch_size"] != design["budget"]["train_batch_size"]:
+        raise RuntimeError("NATIVE_PREFIX_MEASURED_SAMPLER_BATCH_MISMATCH")
+    from gx1.scripts.benchmark_unified_exit_random_access_train_v1 import _reference_workload_from_design
+    if (selected.get("reference_workload") != _reference_workload_from_design(design)
+            or selected.get("benchmark_design") != chronological_prefix["design"]):
+        raise RuntimeError("NATIVE_PREFIX_MEASURED_SAMPLER_WORKLOAD_MISMATCH")
+    metadata = val._read(files["source_bundle_metadata"])
+    expected_geometry = {
+        "seq_len": int(metadata["seq_len"]),
+        "per_tf_seq_lens": {
+            tf.upper(): int(metadata["multi_tf"][f"{tf}_seq_len"])
+            for tf in ("m5", "m15", "h1", "h4", "d1")
+        },
+        "multi_tf_closed_bar": True,
+    }
+    if selected.get("input_geometry") != expected_geometry:
+        raise RuntimeError("NATIVE_PREFIX_MEASURED_SAMPLER_INPUT_GEOMETRY_MISMATCH")
+    return selected
 
 
 def _require_prefix_component_bindings(value, *, files, seed, batch_size, learning_rate, weight_decay):
@@ -308,6 +354,9 @@ def _build_bound_full_train_components(
     elif device.type != "cpu":
         raise RuntimeError("NATIVE_FULL_TRAIN_DEVICE_INVALID")
     trainer._set_deterministic(seed, device, "deterministic_fp32")
+    selected_sampler = _require_component_sampler(
+        files=files, chronological_prefix=chronological_prefix,
+    )
     prefix = None
     if frozen_train_policy_scope is not None and (
             chronological_prefix is None
@@ -424,9 +473,16 @@ def _build_bound_full_train_components(
         reference_policy=exit_reference_policy,
         reference_cutoff_time_ns=(prefix["cutoff_time_ns"] if prefix is not None else None),
     )
-    # Keep the measured transition-sampler geometry, then select all Entry
-    # pairs through the same full-population owner used by the completed year.
-    adapter = factory(65_536)
+    # Historical recipes preserve their measured geometry. Current physical
+    # TRAIN must carry a fresh choice bound to these exact candidate/root bytes.
+    adapter = factory(selected_sampler["transition_budget_per_epoch"]
+                      if selected_sampler is not None else 65_536)
+    if selected_sampler is not None:
+        actual = adapter.random_access_training_bindings_v1()
+        if (actual["sampler_contract"] != selected_sampler["selected_sampler_contract"]
+                or {key: actual[key] for key in ("reference_policy", "reference_cutoff_time_ns") if key in actual}
+                    != selected_sampler["reference_workload"]):
+            raise RuntimeError("NATIVE_PREFIX_ADAPTER_SAMPLER_MISMATCH")
     schedule = adapter.set_full_population_epoch_index(0)
     datasets["train"].bind_unified_exit_lifecycle_v2(adapter)
     datasets["train"].bind_random_access_entry_coordinate_mapping_v1(

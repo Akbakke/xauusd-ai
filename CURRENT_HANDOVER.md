@@ -1,5 +1,40 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Ny sampler-admission er koblet til de eksisterende eierne. Et ferskt
+benchmark kan nå bindes direkte til sin eksakte full-TRAIN-indeks, kandidatfil,
+TRAIN-indeksmanifest og sluttbindinger. Vinneren etterkontrolleres med samme
+rangering som produsenten bruker. Den historiske V3→V4-ruten er bevart som
+historisk autoritet; den kan ikke brukes som dagens v38-valg.
+
+En ytterligere mismatch ble rettet: benchmarken materialiserte uten dagens
+fryste referansepolicy og tidsgrense. --chronological-design binder nå disse
+til samme factory/collator som native bruker, og kvitteringen registrerer
+faktiske Dataset-sekvenslengder. Native krever identisk design, policy,
+tidsgrense og MTF-geometri. Hovedbyggeren bruker budsjettet fra den kontrollerte
+kvitteringen og sjekker adapterens faktiske kontrakt/policy etter konstruksjon.
+Et ufullstendig benchmark eller feil budsjett, kilde, vinner eller arbeidsmengde
+slipper ikke gjennom. Publisering av valgt sampler bruker eksisterende
+atomiske no-replace-eier; den gamle overskrivbare writer-kopien er fjernet.
+
+149 unike fokuserte syntetiske tester består: 148 i samlet runde og 34 i
+berørt fil etter én ekstra CLI-koblingstest; ingen utelatte tester.
+MEASURED_SAMPLER_ADMISSION_REVIEW_001 sluttet med exit 0 og uendret kilde.
+Ekte fryst design binder referansepolicy 61c8aaaa… og cutoff 01.06.2025 UTC.
+Den faktiske native inngangskontrollen avviser designet uten målt sampler,
+før data-/modellkonstruksjon. Kandidatmetadata har fortsatt 652 552 TRAIN-rader.
+Dette er ekte metadatakontroll og kilde-/syntetisk integrasjonsbevis.
+
+Ingen reell throughput-/minnebenchmark eller sampler er valgt, og ingen
+native koordinater er fryst. Ferske kostnadsvilkår og faktiske indekser mangler;
+det tidligere, avgrensede brokerspørsmålet er fortsatt ubesvart.
+Fysisk komponentruting, trenings-/målekoordinater og full native admission
+gjenstår. Neste kodearbeid er å gjenbruke fullført fysisk preprocessing og
+originale hjelpefasiter i hovedbyggerens eksisterende komponentbinding.
+Ingen ny fit, modellkjøring, optimizer, TEST eller broker-tilgang er utført.
+Native trening er stengt. Ingen læring eller edge er bevist.
+
+## Tidligere kontroller — historikk, ikke startinstrukser
+
 Benchmarkens gamle binding til 65 295 TRAIN-rader er rettet. Populasjonen
 kommer nå fra den kanoniske sampler-kontrakten, og alle kandidater må ha
 samme kilde og populasjon. Kandidatfabrikken gjenbruker produsenteieren

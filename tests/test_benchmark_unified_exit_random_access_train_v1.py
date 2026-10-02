@@ -314,3 +314,93 @@ def test_candidate_factory_rejects_equal_python_values_with_changed_bytes(tmp_pa
     path.write_text(json.dumps(value))
     with pytest.raises(RuntimeError, match="CANDIDATES_INVALID"):
         _candidate_contracts(path)
+
+
+def test_benchmark_forwards_and_records_actual_reference_workload(monkeypatch):
+    from pathlib import Path
+    design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    workload = benchmark._reference_workload_from_design(design)
+    calls = []
+    class ReferenceAdapter(_Adapter):
+        def random_access_training_bindings_v1(self):
+            return {**super().random_access_training_bindings_v1(), **workload}
+    def collate(items, **kwargs):
+        calls.append({key: kwargs[key] for key in workload})
+        return _fake_collate(items)
+    monkeypatch.setattr(benchmark, "collate_random_access_training_items", collate)
+    receipt = benchmark.benchmark_random_access_train_candidates_v1(
+        adapter_factory=ReferenceAdapter, batch_sizes=(16,), repeats=1, max_selected_entries=1)
+    assert calls == [workload, workload, workload]
+    assert receipt["reference_workload"] == workload
+    assert receipt["candidate_selection_performed"] is False
+
+
+def test_benchmark_rejects_candidate_reference_workload_drift(monkeypatch):
+    from pathlib import Path
+    design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    workload = benchmark._reference_workload_from_design(design)
+    seen = []
+    def factory(budget):
+        adapter = _Adapter(budget)
+        get_binding = adapter.random_access_training_bindings_v1
+        adapter.random_access_training_bindings_v1 = lambda: {
+            **get_binding(), **workload,
+            "reference_cutoff_time_ns": workload["reference_cutoff_time_ns"] - (budget != 32768)}
+        return adapter
+    def collate(items, **kwargs):
+        seen.append(kwargs["sampler_contract"]["transition_budget_per_epoch"])
+        return _fake_collate(items)
+    monkeypatch.setattr(benchmark, "collate_random_access_training_items", collate)
+    with pytest.raises(RuntimeError, match="REFERENCE_DRIFT"):
+        benchmark.benchmark_random_access_train_candidates_v1(
+            adapter_factory=factory, batch_sizes=(16,), repeats=1, max_selected_entries=1)
+    assert seen == [32768]
+
+
+def test_benchmark_cli_binds_design_to_factory_collation_and_input_geometry(tmp_path, monkeypatch):
+    from pathlib import Path
+    from types import SimpleNamespace
+    import gx1.contracts.unified_exit_lifecycle_v1 as lifecycle
+    import gx1.contracts.unified_exit_random_access_train_factory_v1 as factory_owner
+    import gx1.models.entry_v10.entry_v10_ctx_train_v3 as trainer
+    file_keys = ("root_manifest", "candidate_set", "composite_normalization", "economics_readiness",
+                 "train_cost_authority", "feature_lifecycle_root", "entry_train_parquet",
+                 "entry_train_manifest", "sequence_source_audit", "m5_prebuilt")
+    paths = {key: tmp_path / (key + ".json") for key in file_keys}
+    for path in paths.values(): path.write_text("{}")
+    design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    design["calendar"]["source_bindings"]["train"].update({
+        key: {"path": str(paths["entry_train_" + key]), "sha256": benchmark.file_sha256(paths["entry_train_" + key])}
+        for key in ("parquet", "manifest")
+    })
+    dp = tmp_path / "DESIGN.json"; dp.write_text(json.dumps(design))
+    args = SimpleNamespace(**paths, chronological_design=dp, output_json=tmp_path / "SMOKE.json",
+        mtf_cache_dir=tmp_path, dataset_run_id="SYNTHETIC_ONLY", seq_len=96,
+        m5_len=16, m15_len=64, h1_len=96, h4_len=96, d1_len=252,
+        batch_size=16, repeats=1, max_selected_entries=1)
+    monkeypatch.setenv("GX1_V10_MULTI_TF_V4_CACHE_DIR", "")
+    monkeypatch.setattr(benchmark, "_parser", lambda: SimpleNamespace(parse_args=lambda argv: args))
+    monkeypatch.setattr(lifecycle, "UnifiedExitLifecycleCorpus",
+                        lambda **kwargs: SimpleNamespace(splits={"train": object()}))
+    def dataset(**kwargs):
+        assert kwargs["multi_tf_closed_bar"] is True
+        return SimpleNamespace(seq_len=kwargs["seq_len"], per_tf_seq_lens=kwargs["per_tf_seq_lens"])
+    monkeypatch.setattr(trainer, "EntryV10CtxDataset", dataset)
+    seen = {}
+    def factory(**kwargs):
+        seen["factory"] = kwargs
+        return object()
+    monkeypatch.setattr(factory_owner, "build_random_access_train_adapter_factory_v1", factory)
+    def measure(**kwargs):
+        seen["measure"] = kwargs
+        return {"decision": "NON_AUTHORITATIVE_CAPPED_SMOKE"}
+    monkeypatch.setattr(benchmark, "benchmark_random_access_train_candidates_v1", measure)
+    assert benchmark.main([]) == 0
+    workload = benchmark._reference_workload_from_design(design)
+    assert {key: seen["factory"][key] for key in workload} == workload
+    bindings = seen["measure"]["run_bindings"]
+    assert bindings["files"]["chronological_design"] == {"path": str(dp), "sha256": benchmark.file_sha256(dp)}
+    assert bindings["input_geometry"] == {
+        "seq_len": 96, "per_tf_seq_lens": {"M5":16, "M15":64, "H1":96, "H4":96, "D1":252},
+        "multi_tf_closed_bar": True,
+    }
