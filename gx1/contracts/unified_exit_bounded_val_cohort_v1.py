@@ -306,11 +306,49 @@ def _physical_measurement_inputs(design_binding, result, *, role):
         raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_DRAW_COVERAGE_INVALID")
     return {"design": design, "control": control, "expected": expected, "frame": frame,
             "source_index": index, "population_rows": population, "source_split": split,
-            "expected_samples": expected_samples,
+            "manifest": manifest, "expected_samples": expected_samples,
             "extra": {"source_index_manifest": manifest_binding,
                       "parent_entry_parquet": source["parquet"],
                       "sampler_contract_sha256": sampler["contract_sha256"],
                       **({"physical_control_cohort_sha256": control["cohort_sha256"]} if role == "control" else {})}}
+
+
+def _physical_measurement_arrays(inputs):
+    """Reconstruct the frozen draws' support from bound M1 rows, including gaps."""
+    from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
+    from gx1.contracts.unified_exit_random_access_index_v1 import _clock
+    manifest = inputs["manifest"]
+    split = inputs["source_split"]
+    bindings = manifest.get("source_bindings", {})
+    mb = require_binding(bindings.get("m1_child_manifest"), label="measurement M1 manifest", verify_file=True)
+    metadata = read_bound_json(Path(mb["path"]), mb["sha256"])
+    source = require_binding(bindings.get("m1_child"), label="measurement M1", verify_file=False)
+    if (metadata.get("split") != split or metadata.get("decision") != "PASS"
+            or metadata.get("output_parquet_sha256") != source["sha256"]
+            or metadata.get("test_accessed") is not False):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_M1_SOURCE_INVALID")
+    source = require_binding(source, label="measurement M1", verify_file=True)
+    times = _clock(pd.read_parquet(source["path"], columns=["time"])["time"], "MEASUREMENT_M1").asi8
+    rows = np.asarray(inputs["expected"], dtype=np.int64)
+    frame = inputs["frame"].iloc[rows]
+    starts = frame["child_m1_start_row"].to_numpy(dtype=np.int64)
+    counts = frame["successor_transition_count"].to_numpy(dtype=np.int64)
+    offsets = np.asarray(inputs["expected_samples"], dtype=np.int64)
+    policy = require_reference_policy_contract(inputs["design"]["targets"]["reference_policy"])
+    if (np.any(starts < 0) or np.any(starts + counts >= len(times))
+            or not np.array_equal(times[starts], frame["first_state_time_ns"])
+            or np.any(offsets < 0) or np.any(offsets >= counts[:, None])):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_M1_COORDINATES_INVALID")
+    lengths = np.minimum(policy["maximum_observed_backup_steps"], counts[:, None] - offsets)
+    boundaries = starts[:, None] + offsets + lengths
+    anchor = starts + np.minimum(policy["maximum_observed_backup_steps"], counts)
+    # Match native decision availability: the boundary M1 bar must have closed.
+    arrays = {"parent_rows": rows.copy(), "child_rows": frame["entry_row_index"].to_numpy(dtype=np.int64),
+              "entry_time_ns": frame["entry_time_ns"].to_numpy(dtype=np.int64),
+              "sampled_state_indices": offsets,
+              "sampled_reference_end_close_ns": times[boundaries] + 60_000_000_000,
+              "anchor_reference_end_close_ns": times[anchor] + 60_000_000_000}
+    return arrays, {"source_m1": source, "source_m1_manifest": mb}
 
 
 def build_chronological_measurement_cohort(
@@ -366,6 +404,12 @@ def build_chronological_measurement_cohort(
         raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_COORDINATES_INVALID")
     if physical and offsets.tolist() != inputs["expected_samples"]:
         raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_NATIVE_SAMPLES_CHANGED")
+    if physical:
+        actual, m1_bindings = _physical_measurement_arrays(inputs)
+        if any(not np.array_equal(data[key], actual[key]) for key in actual):
+            raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_M1_SUPPORT_MISMATCH")
+        inputs["extra"].update(m1_bindings)
+
     frame = inputs["frame"] if physical else pd.read_parquet(source_index["path"], columns=[
         "entry_row_index", "parent_entry_row_index", "entry_time_ns", "successor_transition_count"])
     selected = frame.iloc[children]

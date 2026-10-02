@@ -1,5 +1,42 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Koordinatprodusenten for fysisk TRAIN/VAL er implementert. Den gjenbruker
+fullført preprocessing, målt sampler-valg og eksisterende native eiere til å
+publisere full epoch0-rekkefølge, første 4096 rader, TRAIN256 og kontrollens
+allerede fryste ID-er. Native anker-chunks gjenbrukes uten å materialisere
+hele populasjonens overganger bare for å finne radrekkefølgen.
+
+En konkret mangel er rettet: tidligere kunne oppgitte referansesluttider
+være feilaktig tidlige og likevel passere periodegrensen. Nå rekonstrueres
+ankeret og alle fire trekk fra hash-bundet M1-klokke, faktisk start-/sluttrad
+og referansepolicyens beregningshorisont. Markedspauser inngår som faktiske
+klokkehull; 120 steg er ingen maksimal holdetid. Feil kildesplit, endrede
+M1-bytes, ugyldige koordinater og feilaktige sluttider avvises.
+Måleforbrukeren binder også tilstandsbyggerens M1-fil og manifest.
+
+Produsenten bruker atomisk publisering uten overskriving og streng lesing av
+staged bytes gjennom de eksisterende koordinatvalidatorene. COMPLETE.json
+kommer sist. Feil før fullføring gir ingen ferdig måleautoritet; gyldige
+delartefakter og feilstaging bevares for retention-eieren. Sampler-admission
+er delt mellom produsent og forbruker, uten en ny valgalgoritme.
+
+287 fokuserte tester består; tre eksisterende avledede målkombinasjoner
+utenfor TRAIN-only-omfanget er fortsatt deklarert utelatt. Publisering fra
+syntetiske kilder er kontrollert ende til ende, med native radrekkefølge også
+over ufullstendige sampler-chunks, klokkehull, observasjonsgrense, avbrudd og
+konkurrerende publisering. Dette er kode-/kontraktbevis, ikke markedslæring.
+
+PHYSICAL_COORDINATE_PRODUCER_REVIEW_001 sluttet med exit 0 og uendret kilde.
+Ekte fullført preprocessing når produsentens avvisning av manglende målt
+sampler. Ingen ekte koordinater, modellkjøring, fit, broker-kall eller
+TEST-lesing ble utført. Faktisk kostnads-/indekskvalifisering, benchmark,
+sampler-valg og fersk initial-/sluttmåling gjenstår. Det tidligere
+avgrensede brokerspørsmålet er ubesvart; native trening er fortsatt stengt.
+Uavhengig klargjøring av initialiserings- og målebindingene kan fortsette.
+Ingen læring, kostnadsjustert edge eller train/serve-paritet er bevist.
+
+## Tidligere kontroll av målekjeden — historikk
+
 Initial- og sluttmålingen er nå koblet til separate fysiske TRAIN-/VAL-kilder.
 To konkrete feil er rettet: TRAIN-proben brukte samme tilstandsbygger som
 kontrollmålingen, og fysisk kontroll sammenlignet målingens egen hash med

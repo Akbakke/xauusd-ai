@@ -243,9 +243,24 @@ def physical_measurement(physical_prepared, tmp_path):
     manifest["source_bindings"]["final_bindings_bundle"] = _binding(sc["bundle_path"])
     manifest["parent_entry_source_sha256"] = c["sources"]["train"]["parquet"]["sha256"]
     manifest["parent_entry_manifest_sha256"] = c["sources"]["train"]["manifest"]["sha256"]
-    _seal(sc["manifest_path"], manifest, "manifest_sha256")
     vc = p.context["evaluation_cohort"]
     vm = json.loads(Path(vc["source_index_manifest"]["path"]).read_text())
+    for split, m, mp in (("train", manifest, sc["manifest_path"]),
+                         ("val", vm, Path(vc["source_index_manifest"]["path"]))):
+        times = pd.date_range(c["sources"][split]["declared_window"]["start"],
+                             periods=m["entry_row_count"]*5+10, freq="min")
+        source = tmp_path / (split + "-m1.parquet")
+        pd.DataFrame({"time":times}).to_parquet(source, index=False)
+        m["source_bindings"]["m1_child"] = _binding(source)
+        m["source_bindings"]["m1_child_manifest"] = _write(tmp_path / (split + "-m1.json"), {
+            "split":split, "decision":"PASS", "test_accessed":False,
+            "output_parquet_sha256":_binding(source)["sha256"]})
+        _seal(mp, m, "manifest_sha256")
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_control_cohort
+    vc = build_chronological_control_cohort(p.value["design"], source_index_binding=vc["source_index"],
+        source_index_manifest_binding=_binding(Path(vc["source_index_manifest"]["path"])))
+    p.context["evaluation_cohort"] = vc
+    p.context["state_factory"].factory_receipt["physical_control_cohort_sha256"] = vc["cohort_sha256"]
     indexes = {"train": {"index": ib, "manifest": _binding(sc["manifest_path"])},
                "val": {"index": vc["source_index"], "manifest": vc["source_index_manifest"]}}
     for split, m in (("train", manifest), ("val", vm)):
@@ -355,7 +370,9 @@ def test_physical_measurement_consumer_routes_bound_source_before_forward(physic
     factory = args["candidate_state_factory"]; f = c.frames[split]
     factory.source_split = split
     factory.artifact_file_sha256 = {"random_access_index": cohort["source_index"]["sha256"],
-                                   "random_access_index_manifest": cohort["source_index_manifest"]["sha256"]}
+                                   "random_access_index_manifest": cohort["source_index_manifest"]["sha256"],
+                                   "child_m1":cohort["source_m1"]["sha256"],
+                                   "child_m1_manifest":cohort["source_m1_manifest"]["sha256"]}
     factory.factory_receipt = {"physical_control_cohort_sha256": cohort.get("physical_control_cohort_sha256")}
     factory.entries = [{"entry_row_index":int(row.entry_row_index),
         "entry_m1_start_row":int(row.child_m1_start_row), "available_state_count":int(row.lifecycle_state_count),
@@ -480,3 +497,16 @@ def test_physical_initial_and_final_measurement_preserve_source_teacher_and_sess
     assert h.pointer(output).read_bytes() == pointer and model.training
     equal_tree(h.state(output), saved)
     equal_tree(trainer._attended_session_rng_state(device=torch.device("cpu")), rng)
+
+
+def test_physical_measurement_rejects_fabricated_early_support(physical_measurement):
+    c = physical_measurement
+    path = Path(c.result["coordinates"]["train"]["path"])
+    for field in ("sampled_reference_end_close_ns", "anchor_reference_end_close_ns"):
+        data = {key:value.copy() for key,value in c.arrays["train"].items()}
+        data[field].flat[0] -= 60_000_000_000
+        np.savez(path, **data)
+        c.result["coordinates"]["train"] = _binding(path)
+        rb = _write(Path(c.binding["path"]), c.result)
+        with pytest.raises(RuntimeError, match="M1_SUPPORT_MISMATCH"):
+            owner.build_chronological_measurement_cohort(c.prepared.value["design"], rb, role="train")

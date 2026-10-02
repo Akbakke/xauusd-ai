@@ -505,15 +505,38 @@ def require_physical_chronological_preprocessing(
     }
 
 
+def _physical_native_sampler(selected_binding, *, artifacts, design, physical):
+    """One measured-sampler admission shared by coordinate production and use."""
+    from gx1.contracts.unified_exit_selected_sampler_v1 import (
+        DIRECT_SELECTION_MODE, require_selected_sampler_artifact,
+    )
+    def check(condition, reason):
+        if not condition:
+            raise RuntimeError("NATIVE_PHYSICAL_COORDINATES_" + reason)
+    def read(value):
+        value = require_binding(value, label="physical native sampler", verify_file=True)
+        return read_bound_json(Path(value["path"]), value["sha256"])
+    selected = require_selected_sampler_artifact(read(selected_binding))
+    check(selected.get("selection_mode") == DIRECT_SELECTION_MODE
+          and selected.get("benchmark_design") == artifacts["design"]
+          and selected["selected_sampler_contract"]["entry_pair_population"] == physical["train_rows"],
+          "SAMPLER_MISMATCH")
+    manifest_binding = selected["train_index_manifest"]
+    manifest = read({"path": manifest_binding["path"], "sha256": manifest_binding["file_sha256"]})
+    check(all(manifest["source_bindings"][f"parent_entry_{kind}"]
+              == physical["physical_sources"]["train"][kind] for kind in ("parquet", "manifest")),
+          "INDEX_PARENT_SOURCE_MISMATCH")
+    from gx1.scripts.benchmark_unified_exit_random_access_train_v1 import _reference_workload_from_design
+    check(selected["reference_workload"] == _reference_workload_from_design(design), "WORKLOAD_MISMATCH")
+    return selected
+
+
 def require_physical_native_training_coordinates(
     artifacts: Mapping[str, Any], *, design: Mapping[str, Any], physical: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Validate frozen parent coordinates; native construction replays the order."""
     import numpy as np
     from gx1.contracts.entry_model_native_training_run_lineage_v1 import deterministic_uniform_subsample_indices
-    from gx1.contracts.unified_exit_selected_sampler_v1 import (
-        DIRECT_SELECTION_MODE, require_selected_sampler_artifact,
-    )
 
     def check(condition, reason):
         if not condition:
@@ -543,18 +566,7 @@ def require_physical_native_training_coordinates(
         "IDENTITY_INVALID",
     )
     selected_binding = bound(value.get("selected_sampler"))
-    selected = require_selected_sampler_artifact(read(selected_binding))
-    check(selected.get("selection_mode") == DIRECT_SELECTION_MODE
-          and selected.get("benchmark_design") == artifacts["design"]
-          and selected["selected_sampler_contract"]["entry_pair_population"] == physical["train_rows"],
-          "SAMPLER_MISMATCH")
-    manifest_binding = selected["train_index_manifest"]
-    manifest = read({"path": manifest_binding["path"], "sha256": manifest_binding["file_sha256"]})
-    check(all(manifest["source_bindings"][f"parent_entry_{kind}"]
-              == physical["physical_sources"]["train"][kind] for kind in ("parquet", "manifest")),
-          "INDEX_PARENT_SOURCE_MISMATCH")
-    from gx1.scripts.benchmark_unified_exit_random_access_train_v1 import _reference_workload_from_design
-    check(selected["reference_workload"] == _reference_workload_from_design(design), "WORKLOAD_MISMATCH")
+    selected = _physical_native_sampler(selected_binding, artifacts=artifacts, design=design, physical=physical)
     bindings = value.get("bindings")
     keys = ("TRAIN_ELIGIBLE_PARENT_ROWS", "TRAIN_NATIVE_EPOCH0_ORDER",
             "TRAIN_NATIVE4096_PARENT_ROWS", "TRAIN256_PROBE_PARENT_ROWS")

@@ -563,8 +563,11 @@ def _entry_representations(
             if checked_cohort.get("measurement_only") is True:
                 if "parent_entry_parquet" in checked_cohort and (
                         str(getattr(dataset, "parquet_path", None)) != checked_cohort["parent_entry_parquet"]["path"]
-                        or getattr(candidate_state_factory, "artifact_file_sha256", {}).get("random_access_index_manifest")
-                           != checked_cohort["source_index_manifest"]["sha256"]):
+                        or any(getattr(candidate_state_factory, "artifact_file_sha256", {}).get(factory_key)
+                               != checked_cohort[cohort_key]["sha256"]
+                               for factory_key, cohort_key in (
+                                   ("random_access_index_manifest", "source_index_manifest"),
+                                   ("child_m1", "source_m1"), ("child_m1_manifest", "source_m1_manifest")))):
                     raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_SOURCE_MISMATCH")
                 if (getattr(candidate_state_factory, "artifact_file_sha256", {}).get("random_access_index")
                         != checked_cohort["source_index"]["sha256"]):
