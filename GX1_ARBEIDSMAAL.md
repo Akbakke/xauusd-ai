@@ -1,5 +1,41 @@
 # GX1 arbeidsmål — oppdatert 02.10.2026
 
+Treningskoordinatoren kan nå binde v38 til separate fysiske TRAIN-/VAL-kilder,
+fullført normalisering, originale hjelpefasiter og fryste native radkoordinater.
+Hver rad-ID kontrolleres mot sin egen kilde; like tall i to forskjellige
+filer er ikke lenger feilaktig behandlet som overlapp i samme populasjon.
+
+Dataset-roller, radmasker, målkolonner, policyhashene og den faktiske sampler-
+kontrakten må stemme med de fullførte bindingene. Sesjonskontrakten gjenbruker
+sine eksisterende filhasher til å avvise endrede TRAIN-/VAL-bytes, og bevarer
+design, kildefiler, valgt sampler, epoch0-rekkefølge og modellfunksjon ved
+gjenopptak. V38 kan ikke arve den historiske utvidelsen til 512 steg.
+
+234 fokuserte syntetiske tester består; ingen tester er utelatt.
+Sammenhengende 4 steg og 2+2 med gjenopptak gir identisk modell, lærer,
+optimizer, EMA, scheduler, RNG, radrekkefølge og fremdrift i den eksisterende
+sesjons-/checkpointkoden. Endrede kildebytes, rekkefølge eller koordinatbinding
+avvises uten nye optimizersteg eller endring av aktiv checkpointpeker.
+Treningsfunksjonen og lærerens kopieringsfunksjon er erstattet i denne testen;
+den bruker syntetiske rader og en liten lineær modell, ikke native CUDA.
+
+PHYSICAL_COORDINATOR_SOURCE_REVIEW_001 sluttet med exit 0 og uendret kilde.
+Koordinatorens faktiske inngangskontroll gjenbruker de ekte fullførte
+preprocessing-artefaktene og stopper på NATIVE_PHYSICAL_COORDINATES_REQUIRED,
+før Dataset-/modell-/optimizerobjekter. Kontrollens deklarerte kilder har
+652 552 TRAIN-/70 880 VAL-rader. Ingen rå-Parquet-/TEST-lesing, broker-kall,
+fit eller modellkjøring på ekte data er utført.
+
+Måleeierne og deres initial-/sluttmåling må fortsatt kobles til separate
+TRAIN-/VAL-kilder. Faktiske indekser, ferske kostnadsvilkår, benchmark,
+sampler-valg og native radkoordinater mangler. Det tidligere avgrensede
+brokerspørsmålet er ubesvart. Neste kodearbeid er den eksisterende målekjedens
+kilde- og koordinatbindinger; fullført preprocessing skal gjenbrukes.
+Native trening er stengt. Læring, edge og reell native gjenopptaksparitet
+er ikke bevist.
+
+## Tidligere kontroller — historikk, ikke startinstrukser
+
 Hovedbyggerens antakelse om felles TRAIN-/kontrollfil er rettet for v38.
 Den gjenbruker fullført normalisering og originale hjelpefasiter, og bygger
 separate TRAIN-/VAL-datasett med hver sin sekvenskontroll og featurekilde.
@@ -32,8 +68,6 @@ radkoordinater er fortsatt ikke kvalifisert. Det tidligere avgrensede
 brokerspørsmålet er ubesvart. Neste kodearbeid er koordinatorens binding av
 separate TRAIN-/VAL-kilder og originale mål, med gjenbruk av de nye
 koordinateierne. Native trening er stengt. Ingen læring eller edge er bevist.
-
-## Tidligere kontroller — historikk, ikke startinstrukser
 
 Ny sampler-admission er koblet til de eksisterende eierne. Et ferskt
 benchmark kan nå bindes direkte til sin eksakte full-TRAIN-indeks, kandidatfil,

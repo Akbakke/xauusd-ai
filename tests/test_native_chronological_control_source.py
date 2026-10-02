@@ -359,11 +359,11 @@ def test_evaluator_checks_physical_source_and_parent_ids_before_any_forward(tmp_
     with pytest.raises(RuntimeError,match='BOUND_FRAME_MISMATCH'):evaluator.evaluate_bound_full_val_v1(**args)
 
 
-def _physical_control_plan(tmp_path, population=320, factory_kwargs=None):
+def _physical_control_plan(tmp_path, population=320, factory_kwargs=None, entry_start="2025-06-01T00:00Z"):
     """Actual index-contract bytes over synthetic clocks; no production data."""
     import hashlib
     from gx1.contracts import unified_exit_random_access_index_v1 as index_owner
-    times = pd.date_range('2025-06-01T00:00Z', periods=population*5+10, freq='min')
+    times = pd.date_range(entry_start, periods=population*5+10, freq='min')
     entries = times[np.arange(population)*5]
     frame, _ = build_random_access_index_v2(
         split='val', entry_times=entries, parent_entry_times=entries,

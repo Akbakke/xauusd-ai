@@ -11741,6 +11741,14 @@ def _candidate_training_session_contract(
         recipe_source_provenance,
         context="CANDIDATE_TRAINING_SESSION",
     )
+    artifact_bindings = {
+        name: {"path": str(path), "sha256": _sha256_file(path)}
+        for name, path in artifact_paths.items()
+    }
+    if prefix_training_binding is not None and "physical_sources" in prefix_training_binding:
+        if any(artifact_bindings[f"{split}_parquet"]
+               != prefix_training_binding["physical_sources"][split]["parquet"] for split in ("train", "val")):
+            raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_SESSION_SOURCE_MISMATCH]")
     return {
         "schema_version": _CANDIDATE_TRAINING_SESSION_SCHEMA_VERSION,
         "authority": {
@@ -11762,10 +11770,7 @@ def _candidate_training_session_contract(
         "dataset_run_id": str(dataset_run_id),
         "profile": "candidate",
         "execution_tier": str(execution_tier),
-        "artifacts": {
-            name: {"path": str(path), "sha256": _sha256_file(path)}
-            for name, path in artifact_paths.items()
-        },
+        "artifacts": artifact_bindings,
         "input_normalization_sha256": normalization_sha256,
         **({("native_bounded_control" if prefix_training_binding is not None else "native_full_val"): dict(native_val_binding)}
            if native_val_binding is not None else {}),
@@ -13043,7 +13048,9 @@ def _prefix_candidate_training_binding(
         binding = checked(binding)
         return read_bound_json(Path(binding["path"]), binding["sha256"])
 
-    if not isinstance(chronological_prefix, Mapping) or set(chronological_prefix) != {"design", "normalization_result", "labels_result"}:
+    if (not isinstance(chronological_prefix, Mapping) or set(chronological_prefix) not in (
+            {"design", "normalization_result", "labels_result"},
+            {"design", "normalization_result", "labels_result", "native_coordinates"})):
         raise RuntimeError("[CANDIDATE_PREFIX_BINDING_INVALID]")
     artifacts = {key: checked(binding) for key, binding in chronological_prefix.items()}
     design = read(artifacts["design"])
@@ -13052,36 +13059,86 @@ def _prefix_candidate_training_binding(
             and Path(train_parquet) == Path(val_parquet)):
         raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_SPLIT_BINDING_REQUIRED]")
     normalization = read(artifacts["normalization_result"])
-    preparation = read(normalization["prefix_preparation"])
+    physical = None
+    if functions == _PREFIX_CURRENT_MODEL_FUNCTIONS:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+            require_physical_chronological_preprocessing,
+            require_physical_native_training_coordinates,
+        )
+        labels = read(artifacts["labels_result"])
+        physical = require_physical_chronological_preprocessing(
+            artifacts, design=design, normalization=normalization, labels=labels)
+        coordinates = require_physical_native_training_coordinates(
+            artifacts, design=design, physical=physical)
+        preparation = coordinates["artifact"]
+        normalization_identity = physical
+        for dataset, path, split in ((train_ds, train_parquet, "train"), (val_ds, val_parquet, "val")):
+            source = physical["physical_sources"][split]
+            if (str(path) != source["parquet"]["path"]
+                    or Path(dataset.parquet_path) != Path(path)
+                    or len(dataset) != source["physical_rows"]):
+                raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_SOURCE_MISMATCH]")
+            checked(source["manifest"])
+    else:
+        if "native_coordinates" in artifacts:
+            raise RuntimeError("[CANDIDATE_PREFIX_LEGACY_COORDINATES_FORBIDDEN]")
+        preparation = read(normalization["prefix_preparation"])
+        normalization_identity = normalization
+        if (Path(train_parquet) != Path(val_parquet)
+                or any(Path(dataset.parquet_path) != Path(train_parquet) for dataset in (train_ds, val_ds))
+                or preparation["frozen_design"] != artifacts["design"]
+                or normalization["frozen_design"] != artifacts["design"]):
+            raise RuntimeError("[CANDIDATE_PREFIX_SOURCE_OR_TARGET_MISMATCH]")
     cutoff = int(pd.Timestamp(design["calendar"]["train_control_cutoff"]).value)
     bindings = [getattr(dataset, "_policy_dependent_auxiliary_binding", None) for dataset in (train_ds, val_ds)]
     adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
     training = getattr(adapter, "_random_access_train", None)
-    if (train_ds is val_ds or Path(train_parquet) != Path(val_parquet)
-            or any(Path(dataset.parquet_path) != Path(train_parquet) for dataset in (train_ds, val_ds))
+    if (train_ds is val_ds
             or design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
             or design["initialization"].get("mode") != "fresh_existing_model_constructor_no_checkpoint_weights"
             or seed != design["initialization"]["seed"] or batch_size != 16
             or learning_rate != 0.0001 or weight_decay != 0.0001
             or design["budget"]["planned_optimizer_steps"] != 256
             or design["budget"]["maximum_trained_entry_rows"] != 4096
-            or preparation["frozen_design"] != artifacts["design"]
-            or normalization["frozen_design"] != artifacts["design"]
-            or normalization["fit_cutoff_time_ns"] != cutoff
-            or input_normalization["contract_sha256"] != normalization["base_contract_sha256"]
+            or (physical is None and normalization["fit_cutoff_time_ns"] != cutoff)
+            or input_normalization["contract_sha256"] != normalization_identity["base_contract_sha256"]
             or not isinstance(training, Mapping)
             or training.get("reference_cutoff_time_ns") != cutoff
             or training.get("reference_policy") != design["targets"]["reference_policy"]
-            or training.get("normalization_artifact", {}).get("normalization_sha256") != normalization["summary_normalization_sha256"]):
+            or training.get("normalization_artifact", {}).get("normalization_sha256") != normalization_identity["summary_normalization_sha256"]):
         raise RuntimeError("[CANDIDATE_PREFIX_SOURCE_OR_TARGET_MISMATCH]")
+    if physical is not None:
+        actual = adapter.random_access_training_bindings_v1()
+        selected = coordinates["selected_sampler"]
+        if (actual["sampler_contract"] != selected["selected_sampler_contract"]
+                or {key: actual[key] for key in ("reference_policy", "reference_cutoff_time_ns")}
+                != selected["reference_workload"]):
+            raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_SAMPLER_MISMATCH]")
     row_bindings = (preparation["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"],
                     design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"])
     populations = []
     for dataset, binding, role, row_binding in zip((train_ds, val_ds), bindings, ("TRAIN", "CONTROL256"), row_bindings):
         if (not isinstance(binding, Mapping) or binding.get("role") != role
                 or binding.get("result") != artifacts["labels_result"]
-                or binding.get("design") != artifacts["design"]
-                or binding.get("prefix_preparation") != normalization["prefix_preparation"]
+                or binding.get("design") != artifacts["design"]):
+            raise RuntimeError("[CANDIDATE_PREFIX_LABEL_ROLE_MISMATCH]")
+        if physical is not None:
+            split = "train" if role == "TRAIN" else "val"
+            source = physical["physical_sources"][split]
+            proof = labels["splits"][split]
+            if (binding.get("mode") != "original_physical_split_targets"
+                    or binding.get("source_split") != split
+                    or binding.get("parent_entry_parquet") != source["parquet"]
+                    or binding.get("parent_entry_manifest") != source["manifest"]
+                    or binding.get("row_binding") != row_binding
+                    or binding.get("targets_rewritten") is not False
+                    or binding.get("inactive_diagnostics_refreshed") is not False
+                    or binding.get("active_target_columns") != list(_MODEL_NATIVE_ACTIVE_TARGET_COLS)
+                    or any(binding.get("policies", {}).get(key, {}).get("policy_sha256") != proof[field]
+                           for key, field in (("direction_policy", "direction_policy_sha256"),
+                                              ("position_size_policy", "position_size_policy_sha256")))):
+                raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_LABEL_MISMATCH]")
+        elif (binding.get("prefix_preparation") != normalization["prefix_preparation"]
                 or binding.get("labels", {}).get("row_binding") != row_binding):
             raise RuntimeError("[CANDIDATE_PREFIX_LABEL_ROLE_MISMATCH]")
         rows = np.load(Path(checked(row_binding)["path"]), allow_pickle=False)
@@ -13089,29 +13146,34 @@ def _prefix_candidate_training_binding(
         if (rows.dtype != np.dtype("int64") or rows.ndim != 1
                 or not np.array_equal(rows, np.unique(rows))
                 or not isinstance(mask, np.ndarray) or mask.dtype != np.bool_ or mask.shape != (len(dataset),)
-                or not np.array_equal(np.flatnonzero(mask), rows)):
+                or not np.array_equal(np.flatnonzero(mask), rows)
+                or (physical is not None and (type(binding.get("rows")) is not int or binding["rows"] != len(rows)))):
             raise RuntimeError("[CANDIDATE_PREFIX_BOUND_ROWS_MISMATCH]")
         populations.append(_candidate_training_parent_rows(len(dataset), torch.as_tensor(rows.copy())))
     parents, control = populations
     order_binding = checked(preparation["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"])
     order = np.load(order_binding["path"], allow_pickle=False)
     if (parents.numel() <= 4096 or control.numel() != 256
-            or np.intersect1d(parents.numpy(), control.numpy()).size
+            or (physical is None and np.intersect1d(parents.numpy(), control.numpy()).size)
             or order.dtype != np.dtype("int64") or order.ndim != 1
             or not np.array_equal(np.sort(order), parents.numpy())
-            or normalization["fit_entry_rows"] != row_bindings[0]):
+            or (physical is None and normalization["fit_entry_rows"] != row_bindings[0])):
         raise RuntimeError("[CANDIDATE_PREFIX_POPULATION_INVALID]")
     binding = {
         "schema_version": "gx1_candidate_prefix_training_binding_v1",
         "model_functions": functions,
-        "artifacts": artifacts, "prefix_preparation": normalization["prefix_preparation"],
+        "artifacts": artifacts,
+        **({"physical_sources": physical["physical_sources"],
+            "native_coordinates": coordinates["binding"],
+            "selected_sampler": coordinates["selected_sampler_binding"]}
+           if physical is not None else {"prefix_preparation": normalization["prefix_preparation"]}),
         "train_parent_rows": row_bindings[0], "control_parent_rows": row_bindings[1],
         "epoch0_parent_order": order_binding, "train_rows": int(parents.numel()),
         "reference_cutoff_time_ns": cutoff, "maximum_optimizer_steps": 256,
         "maximum_completed_epochs": 0, "fixed_final_model_variant": "ONLINE",
         "initial_model_state_sha256": _model_state_sha256(model),
         "input_normalization_sha256": input_normalization["contract_sha256"],
-        "composite_normalization_sha256": normalization["composite_normalization_sha256"],
+        "composite_normalization_sha256": normalization_identity["composite_normalization_sha256"],
     }
     return binding, parents, torch.as_tensor(order.copy())
 
@@ -14153,6 +14215,8 @@ def _run_resumable_candidate_training(
             train_parquet=train_parquet, val_parquet=val_parquet, input_normalization=input_normalization,
             model=model, seed=seed, batch_size=batch_size, learning_rate=lr, weight_decay=weight_decay)
         if chronological_continuation is not None:
+            if prefix_binding["model_functions"] == _PREFIX_CURRENT_MODEL_FUNCTIONS:
+                raise RuntimeError("[CANDIDATE_PHYSICAL_PREFIX_CONTINUATION_FORBIDDEN]")
             prefix_binding.update(maximum_optimizer_steps=512, continuation=chronological_continuation["plan_binding"])
     if (candidate_resume_origin is not None
             and candidate_resume_origin.get("train_population_scope") == "latest_year_2025_2026_v1"):

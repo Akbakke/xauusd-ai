@@ -263,8 +263,11 @@ def physical_recipe(tmp_path, physical_normalization_templates):
         ("train",train_rows,"2021-01-01T00:00Z","2021-05-31T23:59:59Z"),
         ("val",320,"2021-06-01T00:00Z","2021-06-30T23:59:59Z"),
     ):
+        import pandas as pd
+        parquet = tmp_path/(split+".parquet")
+        pd.DataFrame({"time": pd.date_range(start, periods=count, freq="5min")}).to_parquet(parquet, index=False)
         sources[split] = {
-            "parquet": _write(tmp_path/(split+".parquet"), {"synthetic":split}),
+            "parquet": _bind(parquet),
             "manifest": _write(tmp_path/(split+".manifest.json"), {"synthetic":split}),
             "physical_rows":count,"clock_sha256":sequences[split]["entry_clock_sha256"],
             "declared_window":{"start":start,"end":end},
@@ -279,7 +282,8 @@ def physical_recipe(tmp_path, physical_normalization_templates):
     design={
         "schema_version":"gx1_frozen_chronological_learning_design_v1",
         "status":"DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE",
-        "scope":{"test_sealed":True,"same_architecture":True,"one_experiment":True},
+        "scope":{"test_sealed":True,"same_architecture":True,"one_experiment":True,
+                 "existing_control_periods_are_reused_development":True,"native_launch_authorized":False},
         "initialization":{"mode":"fresh_existing_model_constructor_no_checkpoint_weights","seed":20260911},
         "budget":{"planned_optimizer_steps":256,"maximum_trained_entry_rows":4096,
                   "epochs_completed":0,"repeat_or_automatic_extension":False,"later_control_entries":256},

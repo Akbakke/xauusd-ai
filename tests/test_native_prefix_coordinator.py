@@ -14,7 +14,9 @@ from gx1.contracts.entry_candidate_checkpoint_policy_v1 import MARKED_NET_CHECKP
 from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_control_cohort
 from gx1.contracts.unified_exit_random_access_val_factory_v1 import RandomAccessValStateFactoryV1
 from gx1.contracts.unified_exit_random_access_model_v1 import RANDOM_ACCESS_MODEL_SCHEMA_VERSION,RANDOM_ACCESS_MODEL_SCHEMA_SHA256
-from tests.test_native_fresh_prefix_components import _bindings,_bind,_write
+from tests.test_native_fresh_prefix_components import (
+    _bindings, _bind, _write, physical_component_templates, physical_component_case,
+)
 from tests.test_native_chronological_control_source import _control_plan
 from tests.test_candidate_execution_staging import Harness,Rows,equal_tree,digest
 from tests.test_candidate_training_session import _recipe_source_provenance
@@ -81,7 +83,7 @@ def _prepared(tmp_path):
 def _binding_args(data):
     torch.manual_seed(20260911)
     return dict(chronological_prefix=data.value,train_ds=data.train,val_ds=data.control,
-                train_parquet=data.files['entry_train_parquet'],val_parquet=data.files['entry_train_parquet'],
+                train_parquet=data.files['entry_train_parquet'],val_parquet=data.files['entry_val_parquet'],
                 input_normalization=data.composite['base_feature_normalization']['artifact']['contract'],
                 model=torch.nn.Linear(3,2),seed=20260911,batch_size=16,learning_rate=.0001,weight_decay=.0001)
 
@@ -148,11 +150,11 @@ class PrefixHarness(Harness):
                 'max_invocation_seconds':12000,'expected_active_pointer_sha256':expected_pointer}
         kwargs=dict(model=model,optimizer=optimizer,weight_ema=ema,
             lr_scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,T_max=30),device=torch.device('cpu'),
-            train_ds=d.train,val_ds=d.control,effective_train_rows=4500,batch_size=16,num_workers=0,
+            train_ds=d.train,val_ds=d.control,effective_train_rows=int(d.train._policy_dependent_auxiliary_bound_rows.sum()),batch_size=16,num_workers=0,
             pin_memory=False,persistent_workers=False,prefetch_factor=None,epochs=30,
             early_stopping_patience=5,early_stopping_min_delta=0.,minimum_epochs_before_stop=1,save_top_k=1,
             out_bundle_dir=output,gx1_data_override='',run_id='V46_20260825T170935Z_CANDIDATE',dataset_run_id='V46_20260825T170935Z',
-            train_parquet=d.files['entry_train_parquet'],val_parquet=d.files['entry_train_parquet'],
+            train_parquet=d.files['entry_train_parquet'],val_parquet=d.files['entry_val_parquet'],
             m5_prebuilt_path=d.files['m5_prebuilt'],unified_exit_lifecycle_manifest_path=d.files['random_access_root'],
             input_normalization=d.composite['base_feature_normalization']['artifact']['contract'],
             seed=20260911,grad_accum_steps=1,grad_clip_norm=1.,weight_decay=.0001,lr=.0001,dropout=0.,seq_len=96,
@@ -232,3 +234,176 @@ def test_current_design_cannot_relabel_legacy_same_source_control(tmp_path):
             data.value, files=data.files, seed=20260911, batch_size=16,
             learning_rate=.0001, weight_decay=.0001,
         )
+
+
+@pytest.fixture
+def physical_prepared(physical_component_case, tmp_path):
+    """Real contract/coordinate bytes with synthetic datasets and state owners."""
+    from tests.test_native_chronological_control_source import _physical_control_plan
+    from gx1.contracts.unified_exit_random_access_index_v1 import canonical_sha256
+    case=physical_component_case
+    value,files,design=case["value"],dict(case["files"]),case["design"]
+    for key in ("m5_prebuilt",):
+        files[key]=tmp_path/(key+".json");files[key].write_text("{}")
+    composite=case["composite"]
+    count=case["sources"]["train"]["physical_rows"]
+    class Adapter:
+        def __init__(self):
+            self._random_access_train={
+                **copy.deepcopy(case["selected"]["reference_workload"]),
+                "sampler_contract":copy.deepcopy(case["selected"]["selected_sampler_contract"]),
+                "normalization_artifact":composite["lifetime_summary_normalization"],
+            }
+            self._native_random_access_index=pd.DataFrame({
+                "entry_row_index":np.arange(count),"parent_entry_row_index":np.arange(count)})
+            self.order=case["order"].copy()
+        def random_access_training_bindings_v1(self):return self._random_access_train.copy()
+        def set_full_population_epoch_index(self,epoch):
+            assert epoch==0
+            return {"every_entry_pair_exactly_once":True,"entry_pair_count":count,"epoch_index":epoch}
+        def random_access_selected_entry_rows_v1(self):return tuple(self.order.tolist())
+    class Dataset(Rows):
+        def __init__(self,split,role):
+            source=case["sources"][split]
+            super().__init__(source["physical_rows"]);self.parquet_path=files[f"entry_{split}_parquet"]
+            row_binding=design["calendar"]["bindings"]["TRAIN_CALENDAR_PARENT_ROWS" if role=="TRAIN" else "CONTROL256_PARENT_ROWS"]
+            rows=np.load(row_binding["path"])
+            self._policy_dependent_auxiliary_bound_rows=np.zeros(len(self),dtype=np.bool_)
+            self._policy_dependent_auxiliary_bound_rows[rows]=True
+            proof=case["labels"]["splits"][split]
+            self._policy_dependent_auxiliary_binding={
+                "result":value["labels_result"],"design":value["design"],"role":role,
+                "mode":"original_physical_split_targets","source_split":split,
+                "parent_entry_parquet":source["parquet"],"parent_entry_manifest":source["manifest"],
+                "row_binding":row_binding,"rows":len(rows),
+                "active_target_columns":list(trainer._MODEL_NATIVE_ACTIVE_TARGET_COLS),
+                "policies":{"direction_policy":{"policy_sha256":proof["direction_policy_sha256"]},
+                            "position_size_policy":{"policy_sha256":proof["position_size_policy_sha256"]}},
+                "targets_rewritten":False,"inactive_diagnostics_refreshed":False,
+            }
+            if split=="train":
+                self._unified_exit_lifecycle_v2=Adapter()
+                self._random_access_child_index_by_parent=dict(zip(range(count),range(count)))
+        def __getitem__(self,index):
+            assert self._policy_dependent_auxiliary_bound_rows[index]
+            return super().__getitem__(index)
+    directory=tmp_path/"physical-control";directory.mkdir()
+    _,ib,mb,_,manifest,frame,_=_physical_control_plan(
+        directory,population=case["sources"]["val"]["physical_rows"],
+        entry_start=case["sources"]["val"]["declared_window"]["start"])
+    for kind in ("parquet","manifest"):
+        manifest["source_bindings"][f"entry_{kind}"]=case["sources"]["val"][kind]
+        manifest["source_bindings"][f"parent_entry_{kind}"]=case["sources"]["val"][kind]
+    manifest["parent_entry_source_sha256"]=case["sources"]["val"]["parquet"]["sha256"]
+    manifest["parent_entry_manifest_sha256"]=case["sources"]["val"]["manifest"]["sha256"]
+    manifest["manifest_sha256"]=canonical_sha256({k:v for k,v in manifest.items() if k!="manifest_sha256"})
+    mb=_write(Path(mb["path"]),manifest)
+    cohort=build_chronological_control_cohort(value["design"],source_index_binding=ib,source_index_manifest_binding=mb)
+    factory=RandomAccessValStateFactoryV1.__new__(RandomAccessValStateFactoryV1)
+    factory.source_split="val"
+    factory.artifact_file_sha256={"random_access_index":ib["sha256"]}
+    factory.factory_receipt={"split":"val","entry_pair_count":len(frame),
+        "composite_normalization_sha256":composite["composite_normalization_sha256"],
+        "physical_control_cohort_sha256":cohort["cohort_sha256"]}
+    context={"frame":frame.iloc[cohort["entry_row_indices"]].copy(),"state_factory":factory,
+        "parent_coordinate_evidence":{"synthetic":True},"val_sequence_audit":files["val_sequence_source_audit"],
+        "max_model_forwards":100000,"max_state_views":100000,"max_wall_seconds":10800,
+        "progress_interval_forwards":64,"policy_batch_size":256,"cpu_pipeline_workers":8,
+        "evaluation_cohort":cohort}
+    return SimpleNamespace(value=value,files=files,design=design,norm=case["normalization"],
+        composite=composite,train=Dataset("train","TRAIN"),control=Dataset("val","CONTROL256"),
+        context=context,case=case)
+
+
+def test_physical_training_binding_allows_shared_integers_only_in_separate_sources(physical_prepared):
+    data=physical_prepared
+    binding,parents,order=trainer._prefix_candidate_training_binding(**_binding_args(data))
+    assert binding["physical_sources"]==data.case["sources"]
+    assert binding["native_coordinates"]==data.value["native_coordinates"]
+    assert binding["selected_sampler"]==data.case["coordinates"]["selected_sampler"]
+    assert binding["model_functions"]==trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
+    assert "prefix_preparation" not in binding
+    assert np.array_equal(parents.numpy(),np.arange(len(data.train)))
+    assert np.array_equal(order.numpy(),data.case["order"])
+    control=np.flatnonzero(data.control._policy_dependent_auxiliary_bound_rows)
+    assert len(np.intersect1d(parents.numpy(),control))==256
+    assert trainer._native_candidate_val_context_binding(data.context)["factory_receipt"]["split"]=="val"
+
+
+@pytest.mark.parametrize("fault",[
+    "same_file","wrong_dataset","manifest_bytes","control_as_train","source_parent",
+    "partial_train","control_reselected","changed_policy","rewritten_targets",
+    "wrong_normalization","wrong_sampler","missing_coordinates",
+])
+def test_physical_training_binding_rejects_mixed_sources_or_supervision(physical_prepared,fault):
+    data=physical_prepared;args=_binding_args(data)
+    control=data.control._policy_dependent_auxiliary_binding
+    training=data.train._unified_exit_lifecycle_v2._random_access_train
+    if fault=="same_file":args["val_parquet"]=args["train_parquet"]
+    elif fault=="wrong_dataset":data.control.parquet_path=data.train.parquet_path
+    elif fault=="manifest_bytes":data.files["entry_val_manifest"].write_text("changed")
+    elif fault=="control_as_train":control["source_split"]="train"
+    elif fault=="source_parent":control["parent_entry_parquet"]=data.case["sources"]["train"]["parquet"]
+    elif fault=="partial_train":data.train._policy_dependent_auxiliary_bound_rows[0]=False
+    elif fault=="control_reselected":
+        data.control._policy_dependent_auxiliary_bound_rows[0]=False
+        data.control._policy_dependent_auxiliary_bound_rows[256]=True
+    elif fault=="changed_policy":control["policies"]["position_size_policy"]["policy_sha256"]="f"*64
+    elif fault=="rewritten_targets":control["targets_rewritten"]=True
+    elif fault=="wrong_normalization":training["normalization_artifact"]={}
+    elif fault=="wrong_sampler":training["sampler_contract"]["transition_budget_per_epoch"]=65536
+    elif fault=="missing_coordinates":data.value.pop("native_coordinates")
+    with pytest.raises(RuntimeError):trainer._prefix_candidate_training_binding(**args)
+
+
+def test_physical_prefix_resume_preserves_exact_sources_teacher_order_and_optimizer(physical_prepared,tmp_path):
+    data=physical_prepared;h=PrefixHarness(tmp_path/"physical-run",data)
+    direct,split=h.root/"DIRECT",h.root/"SPLIT"
+    h.run_prefix(direct,4);expected=h.state(direct);batches=list(h.batches)
+    h.batches.clear();h.run_prefix(split,2)
+    _,last=h.run_prefix(split,4,expected_pointer=digest(h.pointer(split)))
+    actual=h.state(split)
+    for key in ["model_state","target_model_state","optimizer_state","weight_ema_state",
+                "lr_scheduler_state","rng_state","epoch_order","training_progress"]:
+        equal_tree(expected[key],actual[key])
+    assert h.batches==batches
+    assert [i for batch in batches for i in batch]==data.case["order"][:64].tolist()
+    assert h.validation_batches==0 and len(set(h.teacher_hashes))==1
+    assert last["global_optimizer_steps"]==4 and last["epoch_index"]==0 and last["phase"]=="train"
+    contract=json.loads((h.pointer(split).parent/trainer._CANDIDATE_TRAINING_CONTRACT_FILENAME).read_text())
+    prefix=contract["chronological_prefix"]
+    assert prefix["artifacts"]==data.value and prefix["physical_sources"]==data.case["sources"]
+    assert prefix["initial_model_state_sha256"]==h.teacher_hashes[0]
+    assert contract["artifacts"]["train_parquet"]==data.case["sources"]["train"]["parquet"]
+    assert contract["artifacts"]["val_parquet"]==data.case["sources"]["val"]["parquet"]
+    assert contract["native_bounded_control"]["evaluation_cohort"]["source_split"]=="val"
+    assert prefix["maximum_optimizer_steps"]==256 and prefix["maximum_completed_epochs"]==0
+
+
+@pytest.mark.parametrize("fault",["source_bytes","native_order","coordinate_authority"])
+def test_physical_resume_rejects_changed_sources_or_coordinate_authority_without_updates(physical_prepared,tmp_path,fault):
+    data=physical_prepared;h=PrefixHarness(tmp_path/"physical-resume",data)
+    output=h.root/"SPLIT";h.run_prefix(output,2)
+    pointer_before=h.pointer(output).read_bytes();batches_before=list(h.batches)
+    if fault=="source_bytes":data.files["entry_val_parquet"].write_bytes(b"changed physical VAL")
+    elif fault=="native_order":
+        adapter=data.train._unified_exit_lifecycle_v2;adapter.order=adapter.order[::-1].copy()
+    else:
+        coordinates=data.case["coordinates"];source=Path(coordinates["selected_sampler"]["path"])
+        target=source.with_name("COPIED_SELECTED.json");target.write_bytes(source.read_bytes())
+        coordinates["selected_sampler"]=_bind(target);data.case["seal_coordinates"]()
+    with pytest.raises(RuntimeError,match={
+        "source_bytes":"PHYSICAL_SESSION_SOURCE_MISMATCH",
+        "native_order":"RESUME_ORDER_MISMATCH","coordinate_authority":"CONTRACT",
+    }[fault]):
+        h.run_prefix(output,4,expected_pointer=digest(h.pointer(output)))
+    assert h.pointer(output).read_bytes()==pointer_before and h.batches==batches_before
+
+
+def test_physical_current_design_cannot_inherit_historical_512_step_extension(physical_prepared,tmp_path):
+    h=PrefixHarness(tmp_path/"physical-extension",physical_prepared);output=h.root/"FORBIDDEN"
+    with pytest.raises(RuntimeError,match="PHYSICAL_PREFIX_CONTINUATION_FORBIDDEN"):
+        h.run_prefix(output,257,chronological_continuation={
+            "plan":{"from_optimizer_steps":256,"stop_after_optimizer_steps":512},
+            "plan_binding":{"path":"/historical/continuation.json","sha256":"1"*64}})
+    assert not h.pointer(output).exists() and h.batches==[]
