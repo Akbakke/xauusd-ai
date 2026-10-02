@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -523,7 +522,7 @@ def _publish_latest_year_selection(*, output_dir: Path, source_root_path: Path) 
         _sealed_json(stage / "ROOT.json", {k: v for k, v in root.items() if k != "root_sha256"}, "root_sha256")
         _publish_stage(stage, output_dir, {"ROOT.json"})
     except Exception:
-        shutil.rmtree(stage, ignore_errors=True)
+        # Preserve failed staging for the retention owner.
         raise
     return root
 
@@ -675,7 +674,7 @@ def publish(
         _publish_stage(stage, output_dir, inventory)
         return _read_json(output_dir / "ROOT.json")
     except Exception:
-        shutil.rmtree(stage, ignore_errors=True)
+        # Preserve failed staging for the retention owner.
         raise
 
 
@@ -774,7 +773,7 @@ def publish_val_revision(
             _read_json(output_dir / "ROOT.json"), expected_predecessor=predecessor_binding,
         )
     except Exception:
-        shutil.rmtree(stage, ignore_errors=True)
+        # Preserve failed staging for the retention owner.
         raise
 
 

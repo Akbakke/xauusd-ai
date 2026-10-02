@@ -1356,3 +1356,25 @@ result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POL
 SHA256: 7cff69e025586e4b06fc8889713ce51509c97936972c29e859428f0b7ebf0498
 terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/EVENTS/TERMINAL_20261002T050033050080Z.json
 SHA256: c038e2b2e11dc8ecee3bb0e6a07be80d9b5c3f567dd1101a12127f567a13097b
+
+## Faktisk økonomi-/indeksbygg klargjort — 02.10.2026
+
+Faktiske TRAIN/VAL-økonomibindinger og native indekser er klargjort i
+NATIVE_ECONOMIC_INDEX_001. Ferdige input og ny prospektiv kostnadsautoritet
+gjenbrukes. Kapitalkravet forblir den eksisterende fryste 10%-metoden;
+identitet bindes til faktisk TRAIN-parquet, fryste TRAIN-rad-ID-er og
+eksisterende lineage fra preprocessing. Ingen ny fit eller rateseleksjon.
+
+En konkret feil i indeksbyggeren er rettet før kjøring: failed staging
+skal bevares for retention-eieren. Feilen er reprodusert, og 30 fokuserte
+indeks-/økonomitester består. Alle tre publiseringsruter i samme eier
+bevarer nå feilede forsøk. Selve indeksene er ennå ikke bygget.
+
+Planen bruker producer 10G/swap512M, CPU0–7 og én numerisk tråd.
+Ingen modell, optimizer, normaliseringsfit, broker, TEST eller handel.
+Kilde fryses under kjøringen; ingen relansering av forbrukt plan.
+
+plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/PLAN.json
+SHA256: c55a035824f5379146ef06bf593938defdc4a4a422cdb1e40c3a986ad2d63763
+operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/OPERATOR.py
+SHA256: 2623968215f39279f242a746243d1f0d52ea3d8055f85a97f2ff0500805fb045

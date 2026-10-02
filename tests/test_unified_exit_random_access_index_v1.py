@@ -432,3 +432,29 @@ def test_index_stage_rejects_wrong_file_binding_before_publication(tmp_path):
     with pytest.raises(RuntimeError, match="STAGED_FILE_INVALID"):
         owner._read_staged_index(stage, tmp_path/"final", "train")
     assert not (tmp_path/"final").exists()
+
+
+def test_failed_full_population_build_preserves_partial_evidence(tmp_path, monkeypatch):
+    from gx1.scripts import materialize_unified_exit_random_access_index_v1 as producer
+    composite = {"composite_normalization_sha256": SHA_A}
+    bundle = {
+        "schema_version": "gx1_unified_exit_pilot_final_bindings_bundle_v1",
+        "test_accessed": False, "composite_normalization": composite,
+    }
+    bundle["bundle_sha256"] = canonical_sha256(bundle)
+    monkeypatch.setattr(producer, "require_composite_normalization_binding", lambda x: x)
+    monkeypatch.setattr(producer, "_read_json", lambda path:
+                        composite if path.name == "COMPOSITE_NORMALIZATION.json" else bundle)
+
+    def interrupted(**kwargs):
+        (kwargs["output_dir"] / "partial.json").write_bytes(b"partial evidence")
+        raise RuntimeError("injected index build failure")
+
+    monkeypatch.setattr(producer, "_build_split", interrupted)
+    output = tmp_path / "index"
+    with pytest.raises(RuntimeError, match="injected index build failure"):
+        producer.publish(pilot_root=tmp_path, output_dir=output, full_train_population=True)
+    assert not output.exists()
+    stages = list(tmp_path.glob(".index.*"))
+    assert len(stages) == 1
+    assert (stages[0] / "partial.json").read_bytes() == b"partial evidence"

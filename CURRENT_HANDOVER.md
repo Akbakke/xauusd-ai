@@ -1,5 +1,22 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Faktiske TRAIN/VAL-økonomibindinger og native indekser er klargjort i
+NATIVE_ECONOMIC_INDEX_001. Ferdige input og ny prospektiv kostnadsautoritet
+gjenbrukes. Kapitalkravet forblir den eksisterende fryste 10%-metoden;
+identitet bindes til faktisk TRAIN-parquet, fryste TRAIN-rad-ID-er og
+eksisterende lineage fra preprocessing. Ingen ny fit eller rateseleksjon.
+
+En konkret feil i indeksbyggeren er rettet før kjøring: failed staging
+skal bevares for retention-eieren. Feilen er reprodusert, og 30 fokuserte
+indeks-/økonomitester består. Alle tre publiseringsruter i samme eier
+bevarer nå feilede forsøk. Selve indeksene er ennå ikke bygget.
+
+Planen bruker producer 10G/swap512M, CPU0–7 og én numerisk tråd.
+Ingen modell, optimizer, normaliseringsfit, broker, TEST eller handel.
+Kilde fryses under kjøringen; ingen relansering av forbrukt plan.
+
+## Tidligere fullført kostnadsbinding — historikk
+
 De to godkjente OANDA practice-lesekallene er fullført. Ingen ordre,
 transaksjonsoppslag eller nye broker-kall er utført etter engangskontrollen.
 258 historiske fyll og lagrede finansieringsobservasjoner er bevart.

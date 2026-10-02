@@ -2922,6 +2922,25 @@
       "sha256": "8e051acad340de839f4d5613b35559849ed4f0763cc6b34199f0205ba3fd30b8"
     },
     "development_val_rows": 70880,
+    "economic_index_build": {
+      "active_job": null,
+      "broker_requests_authorized": false,
+      "focused_tests_passed": 30,
+      "native_training_enabled": false,
+      "normalization_fits": 0,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/OPERATOR.py",
+        "sha256": "2623968215f39279f242a746243d1f0d52ea3d8055f85a97f2ff0500805fb045"
+      },
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/PLAN.json",
+        "sha256": "c55a035824f5379146ef06bf593938defdc4a4a422cdb1e40c3a986ad2d63763"
+      },
+      "publication_authorized": true,
+      "source_frozen_while_running": true,
+      "status": "PLANNED_NATIVE_ECONOMIC_AND_FULL_TRAIN_VAL_INDEX_PUBLICATION",
+      "test_accessed": false
+    },
     "entry_receipt": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/ENTRY_WINDOW/ENTRY_WINDOW_ADOPTION_RECEIPT.json",
       "sha256": "d5daff7cb88594f02a776b6ef75693453627f4d5f9b8e946ae9a97043b902ee0"
@@ -4356,7 +4375,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "The two authorized OANDA practice terms reads and CURRENT_TERMS_POLICY_001 are complete; do not rerun them or make further broker requests. Reuse the new prospective cost parameter authority covering 2011-06-01 through 2026-07-01 with bound LONG cost 0.0569, SHORT cost 0, unchanged slippage and other policy controls. Next qualify actual TRAIN/VAL no-cap economic/index bindings against this authority, then measured sampler, coordinates and fresh initialization through existing capped owners. Historical cost truth, learning, independent generalization, net edge and operational qualification remain unproven. Native training, TEST, live/paper and spending remain closed.",
+  "next_action": "Execute NATIVE_ECONOMIC_INDEX_001 once through the capped producer (10G/swap512M), binding new TRAIN/VAL no-cap economics and full-population native indices to current cost authority, fixed existing 10% capital hurdle and completed preprocessing. No model forward, optimizer, refit, broker, TEST or live/paper. Freeze source during the run; do not relaunch a claimed or completed plan.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
