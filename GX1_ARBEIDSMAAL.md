@@ -1,5 +1,20 @@
 # GX1 arbeidsmål — oppdatert 02.10.2026
 
+Recipe-eieren kan nå binde de eksisterende resultatene fra full fysisk TRAIN:
+base-/lifetime-normalisering og originale hjelpefasiter. Den følger separate
+TRAIN-/VAL-kilder, hele TRAIN-populasjonen og kanonisk sampleautoritet.
+Ingen ny normalisering eller mellomliggende prefix-fit opprettes.
+
+119 syntetiske tester består; tre kombinasjoner av avledede mål
+hoppes over fordi de ligger utenfor deklarert TRAIN-only-scope. Historisk recipe-rute består.
+En oppdaget hashformat-mismatch er rettet ved å bruke normaliseringseierens
+egen hashfunksjon. RECIPE_PREPROCESSING_AUDIT_001 er klargjort for én capped
+kontroll av ekte metadata/radbindinger, men er ikke kjørt ennå.
+
+Dette kvalifiserer ikke full native recipe eller launch. Hovedbyggerens og
+treningssesjonens bindinger, faktisk samplerrekkefølge og målekoordinater
+gjenstår, sammen med indekser og kostnadsautoritet. Broker-spørsmålet er ubesvart.
+
 Dataset-bindingens gamle krav om erstatningsfasiter fra felles TRAIN er rettet.
 V38 gjenbruker nå originale mål fra hver fysisk TRAIN-/VAL-fil, med egen klokke,
 radbinding og kanoniske TRAIN-policyer. Historisk prefix-rute er bevart.

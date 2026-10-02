@@ -325,6 +325,186 @@ def require_optimizer_procedure_origin(
     return dict(origin)
 
 
+def require_physical_chronological_preprocessing(
+    artifacts: Mapping[str, Any],
+    *,
+    design: Mapping[str, Any],
+    normalization: Mapping[str, Any],
+    labels: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Join completed full-TRAIN preprocessing without reading market rows.
+
+    This validates data identity, not native coordinates or launch authority.
+    The original artifacts stay authoritative; no prefix-fit wrapper is made.
+    """
+    import numpy as np
+    import pandas as pd
+    from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
+        require_composite_normalization_binding, require_split_sequence_binding,
+    )
+    from gx1.contracts.unified_exit_pilot_normalization_v1 import (
+        require_lifetime_summary_normalization,
+        canonical_sha256 as normalization_sha256,
+        SUMMARY_SAMPLE_AUTHORITY_SCHEMA_VERSION,
+    )
+
+    def require(condition, reason):
+        if not condition:
+            raise RuntimeError("NATIVE_PHYSICAL_PREPROCESSING_" + reason)
+
+    def read(binding):
+        checked = require_binding(binding, label="physical preprocessing", verify_file=True)
+        return read_bound_json(Path(checked["path"]), checked["sha256"])
+
+    def utc(value):
+        stamp = pd.Timestamp(value)
+        require(not pd.isna(stamp) and stamp.tzinfo is not None
+                and stamp.utcoffset() == pd.Timedelta(0), "CLOCK_INVALID")
+        return stamp
+
+    calendar = design["calendar"]
+    sources = calendar.get("source_bindings")
+    require(
+        calendar.get("physical_source_splits") == {"train": "train", "control": "val"}
+        and calendar.get("physical_coordinate_namespaces_are_separate") is True
+        and "index" not in calendar and isinstance(sources, Mapping)
+        and set(sources) == {"train", "val"},
+        "PHYSICAL_SOURCES_INVALID",
+    )
+    require(
+        labels.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_v1"
+        and labels.get("decision") == "PASS_FROZEN_TRAIN_POLICIES_AND_COMPLETE_PRETEST_TARGET_CLOCK_SUPPORT"
+        and labels.get("identical_frozen_policies_across_physical_splits") is True
+        and labels.get("producer_code_unchanged_for_five_target_owners") is True
+        and labels.get("test_accessed") is False
+        and labels.get("forbidden_access_attempts") == []
+        and normalization.get("decision") == "PASS_COMPOSITE_AND_FIRST_STATE_BINDINGS_NOT_NATIVE_ADMISSION"
+        and normalization.get("test_accessed") is False
+        and normalization.get("forbidden_access_attempts") == []
+        and normalization.get("normalization_fit") is False
+        and all(event.get(key) == 0 for event in (labels, normalization)
+                for key in ("model_forwards", "optimizer_steps")),
+        "COMPLETED_RESULTS_REQUIRED",
+    )
+    plan = read(labels["plan"])
+    inputs = plan["input_bindings"]
+    require(plan.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_plan_v1"
+            and inputs["design"] == artifacts["design"], "DESIGN_MISMATCH")
+    # Compare frozen paths before following any source pointer. Market parquet
+    # files and source manifests are deliberately not resolved or opened here.
+    require(all(sources[split][kind] == inputs[split + "_" + kind]
+                for split in ("train", "val") for kind in ("parquet", "manifest"))
+            and all(sources["train"][kind]["path"] != sources["val"][kind]["path"]
+                    for kind in ("parquet", "manifest")), "SOURCE_MISMATCH")
+    start = utc(calendar["train_entry_start_inclusive"])
+    cutoff = utc(calendar["train_control_cutoff"])
+    end = utc(calendar["development_control_entry_end_exclusive"])
+    require(start < cutoff < end, "WINDOW_INVALID")
+    sequences = {}
+    for split, low, high in (("train", start, cutoff), ("val", cutoff, end)):
+        source, proof = sources[split], labels["splits"][split]
+        geometry = normalization["splits"][split]
+        require(type(source["physical_rows"]) is int and source["physical_rows"] > 0
+                and utc(source["declared_window"]["start"]) == low
+                and low < utc(source["declared_window"]["end"]) < high
+                and proof["rows"] == proof["exact_m1_fill_and_contiguous_outcome_rows"]
+                == geometry["entry_rows"] == source["physical_rows"]
+                and proof["entry_clock_sha256"] == source["clock_sha256"]
+                and utc(proof["supervision_boundary_exclusive_utc"]) == high
+                and geometry["first_state_geometry_exact"] is True
+                and geometry["successor_geometry_exact"] is True, "POPULATION_OR_CLOCK_MISMATCH")
+        sequence = require_split_sequence_binding(
+            read(normalization["artifacts"]["SPLIT_SEQUENCE_BINDING_" + split.upper() + ".json"]),
+            expected_split=split, expected_entry_rows=source["physical_rows"],
+        )
+        require(sequence["entry_clock_sha256"] == source["clock_sha256"]
+                and sequence["bindings"]["child_parquet"] == source["parquet"]["sha256"]
+                and sequence["binding_sha256"] == geometry["sequence_binding_sha256"],
+                "SEQUENCE_SOURCE_MISMATCH")
+        sequences[split] = sequence
+
+    composite_binding = normalization["artifacts"]["COMPOSITE_NORMALIZATION.json"]
+    composite = require_composite_normalization_binding(read(composite_binding))
+    require(composite["composite_normalization_sha256"]
+            == normalization["composite_normalization_sha256"], "COMPOSITE_MISMATCH")
+    base = composite["base_feature_normalization"]
+    require(read({"path": base["path"], "sha256": base["file_sha256"]}) == base["artifact"],
+            "BASE_FILE_MISMATCH")
+    contract = base["artifact"]["contract"]
+    lineage = contract["lineage"]
+    require(
+        lineage["train_parquet_path"] == sources["train"]["parquet"]["path"]
+        and lineage["train_parquet_sha256"] == sources["train"]["parquet"]["sha256"]
+        and lineage["entry_train_decision_row_count"] == sources["train"]["physical_rows"]
+        and lineage["val_fit_row_count"] == lineage["test_fit_row_count"] == 0
+        and start <= utc(contract["fit_start_utc"]) <= utc(contract["fit_end_utc"]) < cutoff,
+        "BASE_TRAIN_SCOPE_MISMATCH",
+    )
+    summary_binding = composite["summary_fit_manifest"]
+    summary = read({"path": summary_binding["path"], "sha256": summary_binding["file_sha256"]})
+    unsigned = {k: v for k, v in summary.items() if k != "manifest_sha256"}
+    require(summary.get("schema_version") == "gx1_unified_exit_pilot_summary_fit_inputs_v1"
+            and summary.get("decision") == "PASS" and summary.get("split") == "train"
+            and summary.get("manifest_sha256") == summary_binding["manifest_sha256"]
+            == normalization_sha256(unsigned)
+            and summary.get("child_parquet_sha256") == sources["train"]["parquet"]["sha256"]
+            and summary.get("entry_pair_population") == sources["train"]["physical_rows"]
+            and summary.get("val_fit_rows") == summary.get("test_fit_rows") == 0
+            and summary.get("test_accessed") is False, "SUMMARY_TRAIN_SCOPE_MISMATCH")
+    authority = summary["summary_sample_authority"]
+    require(authority.get("schema_version") == SUMMARY_SAMPLE_AUTHORITY_SCHEMA_VERSION
+            and authority.get("authority_sha256") == normalization_sha256(
+                {k: v for k, v in authority.items() if k != "authority_sha256"})
+            and authority["selection_uses_outcome_values"] is False
+            and authority["epoch_sampler_independent"] is True
+            and authority["successor_counts_sha256"] == summary["successor_counts_sha256"]
+            == sequences["train"]["successor_counts_sha256"]
+            and summary["successor_transition_total"] == sequences["train"]["successor_transition_total"],
+            "SUMMARY_POPULATION_AUTHORITY_MISMATCH")
+    lifetime = require_lifetime_summary_normalization(
+        summary["lifetime_summary_normalization"],
+        expected_sample_authority_sha256=authority["authority_sha256"],
+    )
+    require(lifetime == composite["lifetime_summary_normalization"]
+            and lifetime["train_fit_rows"] == authority["fit_row_count"]
+            and authority["entry_pair_population"]
+            == sources["train"]["physical_rows"], "SUMMARY_TRANSFORM_MISMATCH")
+    require(all(labels["splits"]["train"][key] == labels["splits"]["val"][key]
+                for key in ("direction_policy_sha256", "position_size_policy_sha256")),
+            "FROZEN_POLICY_MISMATCH")
+    control_proof = labels["splits"]["val"]["control256"]
+    require(control_proof["physical_coordinate_source"] == "val"
+            and control_proof["rows"] == 256
+            and control_proof["all_support_checks_passed"] is True, "CONTROL_SOURCE_MISMATCH")
+    train_binding = require_binding(calendar["bindings"]["TRAIN_CALENDAR_PARENT_ROWS"],
+                                    label="physical TRAIN rows", verify_file=True)
+    control_binding = require_binding(calendar["bindings"]["CONTROL256_PARENT_ROWS"],
+                                      label="physical control rows", verify_file=True)
+    train = np.load(train_binding["path"], allow_pickle=False)
+    control = np.load(control_binding["path"], allow_pickle=False)
+    require(
+        train.dtype == control.dtype == np.dtype("int64")
+        and train.shape == (sources["train"]["physical_rows"],)
+        and np.array_equal(train, np.arange(len(train), dtype=np.int64))
+        and len(train) > design["budget"]["maximum_trained_entry_rows"]
+        and control.shape == (design["selection"]["control_entries"],)
+        and len(control) == design["budget"]["later_control_entries"] == 256
+        and np.array_equal(control, np.unique(control)) and np.all(control >= 0)
+        and np.all(control < sources["val"]["physical_rows"])
+        and control_binding == inputs["control256"],
+        "ROW_BINDING_MISMATCH",
+    )
+    return {
+        "physical_sources": dict(sources), "train_parent_rows": train_binding,
+        "control_parent_rows": control_binding, "train_rows": len(train),
+        "composite_normalization": dict(composite_binding),
+        "base_contract_sha256": base["contract_sha256"],
+        "summary_normalization_sha256": lifetime["normalization_sha256"],
+        "composite_normalization_sha256": composite["composite_normalization_sha256"],
+        "native_coordinates_bound": False,
+    }
+
+
 def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, Any]:
     """Read the frozen prefix identity; this alone never grants run authority."""
     import numpy as np
@@ -338,8 +518,6 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
                  for key, binding in value.items()}
     design, normalization, labels = (read_bound_json(Path(artifacts[key]["path"]), artifacts[key]["sha256"])
                                      for key in ("design", "normalization_result", "labels_result"))
-    preparation_binding = require_binding(normalization.get("prefix_preparation"), label="native prefix preparation", verify_file=True)
-    preparation = read_bound_json(Path(preparation_binding["path"]), preparation_binding["sha256"])
     if (design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
             or design.get("initialization", {}).get("mode") != recipe["initialization"]
             or design.get("scope", {}).get("test_sealed") is not True
@@ -349,9 +527,6 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
             or design.get("budget", {}).get("maximum_trained_entry_rows") != 4096
             or design.get("budget", {}).get("epochs_completed") != 0
             or design.get("budget", {}).get("repeat_or_automatic_extension") is not False
-            or normalization.get("frozen_design") != artifacts["design"]
-            or preparation.get("frozen_design") != artifacts["design"]
-            or labels.get("prefix_preparation") != preparation_binding
             or require_reference_policy_contract(recipe.get("exit_reference_policy"))
                 != require_reference_policy_contract(design["targets"]["reference_policy"])):
         raise RuntimeError("NATIVE_PREFIX_DESIGN_OR_TARGET_MISMATCH")
@@ -360,6 +535,18 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
            for key, expected in {"seed":design["initialization"]["seed"], "batch_size":16,
                                  "learning_rate":0.0001, "weight_decay":0.0001, "grad_accum_steps":1}.items()):
         raise RuntimeError("NATIVE_PREFIX_TRAINING_CONTROLS_INVALID")
+    if any(key in design.get("calendar", {}) for key in (
+            "physical_source_splits", "physical_coordinate_namespaces_are_separate", "source_bindings")):
+        physical = require_physical_chronological_preprocessing(
+            artifacts, design=design, normalization=normalization, labels=labels)
+        return {"artifacts": artifacts, "design": design,
+                "train_rows": physical["train_rows"], "physical_preprocessing": physical}
+    preparation_binding = require_binding(normalization.get("prefix_preparation"), label="native prefix preparation", verify_file=True)
+    preparation = read_bound_json(Path(preparation_binding["path"]), preparation_binding["sha256"])
+    if (normalization.get("frozen_design") != artifacts["design"]
+            or preparation.get("frozen_design") != artifacts["design"]
+            or labels.get("prefix_preparation") != preparation_binding):
+        raise RuntimeError("NATIVE_PREFIX_DESIGN_OR_TARGET_MISMATCH")
     row_binding = require_binding(preparation["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"], label="native prefix rows", verify_file=True)
     rows = np.load(row_binding["path"], allow_pickle=False)
     if (rows.dtype != np.dtype("int64") or rows.ndim != 1 or len(rows) <= 4096

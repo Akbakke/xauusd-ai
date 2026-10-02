@@ -2868,6 +2868,28 @@
       "sha256": "f668abc946f0870a8af9b77f389ed2f29a66d6e7929c538d72754a68f8e585c4"
     },
     "profitability_proven": false,
+    "recipe_preprocessing_audit": {
+      "normalization_fit_authorized": false,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/OPERATOR.py",
+        "sha256": "725c5e1497251f57d26d7897d8b2c332415023a159b0b8f269404edc7d11f23c"
+      },
+      "optimizer_steps": 0,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/PLAN.json",
+        "sha256": "5233aad1179656f680d40a5f6834b9a736eac91a97c5e0f2102e6801d1decd29"
+      },
+      "source_frozen_while_running": true,
+      "status": "PREPARED_REAL_METADATA_ONLY_PREPROCESSING_AUDIT",
+      "synthetic_tests_passed": 119,
+      "synthetic_tests_skipped": 3,
+      "test_accessed": false,
+      "test_evidence": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/EVENTS/TEST_EVIDENCE_20261002T013445661282Z.json",
+        "sha256": "9d0273b630e4b7384ad9264c5193add637a075c91cf96c13de7c34f4761ab08b"
+      },
+      "training_enabled": false
+    },
     "report": "docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
     "runtime_plan": {
@@ -2975,7 +2997,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse completed physical auxiliary Dataset binding and its real audit (652552 TRAIN, 70880 VAL, CONTROL256, 47 unchanged valid targets) plus physical control factory/reference/replay support. Next adapt existing native recipe/component and training/measurement owners to consume the current final normalization and auxiliary reuse result on separate TRAIN and VAL files; bind actual sampler/epoch0/probe coordinates within each source and pass exact physical CONTROL256 into the factory. No refit or rerun of completed audits. Real indexes/economics and model initialization remain pending. The two-GET broker question is unanswered; no broker, native training, TEST, live/paper or spending.",
+  "next_action": "Run the single prepared RECIPE_PREPROCESSING_AUDIT_001 through capped audit using committed unchanged source; metadata and row-array reads only. The chronological recipe identity owner now consumes original full-TRAIN normalization and auxiliary reuse evidence. Native component/training owners, actual sampler/epoch0/probe coordinates and physical main-builder routing remain unfinished; real indexes and fresh economics are pending. Do not refit, relaunch completed audits, read TEST or initialize a model. The two-GET broker question remains unanswered; no broker, native training, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-01T23:59:29.186133+00:00",
   "outer_guard_seconds": 13800,
