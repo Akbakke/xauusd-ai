@@ -836,6 +836,28 @@ def require_entry_gradient_diagnostic(recipe, *, invocation_number=None, executi
             "cached_inputs":cached_inputs, "initial_observation":initial_observation}
 
 
+def require_prefix_measurement_source_binding(recipe, *, measurement=None):
+    """Bind physical v38 observations to the recipe's existing complete closure."""
+    if "native_coordinates" not in recipe.get("chronological_prefix", {}):
+        return {}
+    from gx1.contracts.entry_model_native_train_launch_v1 import canonical_json_sha256, artifact_binding
+    sources = recipe.get("source_bindings")
+    if not isinstance(sources, Mapping) or not sources:
+        raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_SOURCE_BINDING_REQUIRED")
+    if any(not isinstance(value, Mapping) or not isinstance(value.get("path"), str)
+           for value in sources.values()):
+        raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_SOURCE_BINDING_INVALID")
+    checked = {key: artifact_binding(Path(value["path"])) for key, value in sources.items()}
+    digest = canonical_json_sha256(checked)
+    if checked != sources or recipe.get("source_bindings_sha256") != digest:
+        raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_SOURCE_BINDING_INVALID")
+    expected = {"native_recipe_source_bindings": checked,
+                "native_recipe_source_bindings_sha256": digest}
+    if measurement is not None and any(measurement.get(key) != value for key, value in expected.items()):
+        raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_SOURCE_CHANGED")
+    return expected
+
+
 def require_chronological_initial_measurement(recipe, *, invocation_number=None, execution_budget=None):
     """One native initial measurement, using saved fresh weights and zero steps."""
     prefix = require_chronological_prefix_recipe(recipe)
@@ -968,6 +990,7 @@ def require_chronological_learning_measurement(recipe):
         checked = require_binding(value, label=label, verify_file=True)
         return read_bound_json(Path(checked["path"]), checked["sha256"])
     result = load(audit.get("result"), "initial measurement result")
+    require_prefix_measurement_source_binding(recipe, measurement=result)
     initial = load(result.get("initialization_result"), "saved fresh initialization")
     measurement = load(result.get("measurement_binding_result"), "frozen measurement coordinates")
     receipt = load(audit.get("receipt"), "initial native terminal receipt")

@@ -430,6 +430,11 @@ def test_physical_initial_and_final_measurement_preserve_source_teacher_and_sess
     from tests.test_native_prefix_coordinator import PrefixHarness, equal_tree, digest, trainer
     from gx1.scripts import run_unified_exit_random_access_full_train_v1 as runner
     p = physical_measurement.prepared
+    source = tmp_path / "synthetic-source.py"; source.write_text("synthetic measurement source")
+    sources = {"python:synthetic-source.py":runner.launch_owner.artifact_binding(source)}
+    recipe = {"chronological_prefix":p.value, "source_bindings":sources,
+              "source_bindings_sha256":runner.launch_owner.canonical_json_sha256(sources)}
+
     monkeypatch.setattr(trainer, "_copy_frozen_prefix_reference_model",
                         lambda m, **kw:copy.deepcopy(m).eval().requires_grad_(False))
     h = PrefixHarness(tmp_path / "run", p); output = h.root / "MEASURED"
@@ -469,7 +474,7 @@ def test_physical_initial_and_final_measurement_preserve_source_teacher_and_sess
         p.train._unified_exit_lifecycle_v2._random_access_train["samples_by_entry"][child][0]["state_index"] += 1
     def invoke(current, pause, steps=0):
         return runner._run_prefix_initial_measurement(components=current, scope=scope,
-            recipe={"chronological_prefix":p.value}, output=output, device=torch.device("cpu"),
+            recipe=recipe, output=output, device=torch.device("cpu"),
             invocation_started=time.monotonic(), pause_evidence=pause, optimizer_steps=steps)
     saved, pointer = h.state(output), h.pointer(output).read_bytes()
     rng = trainer._attended_session_rng_state(device=torch.device("cpu"))
@@ -492,6 +497,10 @@ def test_physical_initial_and_final_measurement_preserve_source_teacher_and_sess
     after = invoke(components(), pause, 256)
     result = json.loads(Path(after["path"]).read_text())
     assert result["frozen_targets_exactly_preserved"] is True
+    assert result["native_recipe_source_bindings"] == sources
+    assert result["native_recipe_source_bindings_sha256"] == recipe["source_bindings_sha256"]
+    assert scope["initial_measurement"]["native_recipe_source_bindings"] == sources
+
     assert result["measurement_roles"] == ["train","control"] and result["optimizer_steps"] == 256
     assert seen == ["train","control","train","control"]
     assert h.pointer(output).read_bytes() == pointer and model.training

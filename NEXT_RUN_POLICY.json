@@ -2461,6 +2461,94 @@
         }
       }
     ],
+    "fresh_state_source_review": {
+      "broker_requests": 0,
+      "created_utc": "2026-10-02T04:08:26.067925+00:00",
+      "full_native_admission_qualified": false,
+      "json_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FRESH_STATE_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T040826067925Z.json",
+      "limitations": [
+        "Restore/control mutation tests use synthetic states and small linear models.",
+        "The source-identity helper was exercised on the actual full native source inventory with a synthetic physical-mode marker, not a runnable recipe.",
+        "No fresh native initialization, genuine coordinate publication, initial observation or learning was performed.",
+        "Current cost/index authority, measured sampler and native qualification remain incomplete."
+      ],
+      "native_optimizer_steps": 0,
+      "native_source_inventory_entries": 159,
+      "native_source_inventory_sha256": "1460f4ee6be66ac50e3b154e6d2be22e9036d66d32d9f6a158c0aea26be97be5",
+      "next_action": "Current fresh-state restore and v38 observation-source admission are repaired and synthetically tested. Qualify the actual cost/index chain, measured sampler, genuine coordinates and fresh native initialization only when existing prerequisites are satisfied; the two-GET broker-terms authorization remains unanswered. Reuse completed preprocessing and preserve source identity between initial measurement and bounded learning. Before any further edit, identify a concrete remaining blocker in the declared preparation or another unfinished goal item; do not add generic guards or repeat successful tests. Native training, TEST, broker requests, live/paper and spending remain closed.",
+      "normalization_fits": 0,
+      "observed_changed_reference_source_gate": "NATIVE_PREFIX_MEASUREMENT_SOURCE_CHANGED",
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FRESH_STATE_SOURCE_REVIEW_001/OPERATOR.py",
+        "sha256": "494ddacd33eeac53cc2dec8b5c1738d73a3b021be1173d02c13e7cf8ea83992a"
+      },
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FRESH_STATE_SOURCE_REVIEW_001/PLAN.json",
+        "sha256": "fe8c3eb1d1c3eb38fa07af408a7bc399c715e2dc4d5ec8cbbc5d510ca9744a83"
+      },
+      "policy_fits": 0,
+      "real_data_model_forwards": 0,
+      "real_source_parquet_reads": 0,
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FRESH_STATE_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T040826067925Z.json",
+        "sha256": "50683882ad77e1b737e7b72c013ca97f3849564e6303ae057dcda3b47abe6539"
+      },
+      "source_bindings": {
+        "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+          "sha256": "7703ee0b34f1baf385117b42bae228bd9d5dd4bf2e3d76f94b0c1db0aecc899c"
+        },
+        "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+          "sha256": "6652027a6b86f53f8e42ffc96629a3780976f4e369093d2df8ca35cd2bdff762"
+        },
+        "tests/test_chronological_measurement_binding.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_chronological_measurement_binding.py",
+          "sha256": "d5bb4df5d30dd919385d1bdfe117fa54b32de8504356fa1c1a960d4e6f31fe90"
+        },
+        "tests/test_native_prefix_initial_measurement.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_prefix_initial_measurement.py",
+          "sha256": "7978f0e8e1729833a6d54e991a5e1923da785f8fe4111b3c933a2ddfeafa0aca"
+        },
+        "tests/test_native_prefix_learning_measurement.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_prefix_learning_measurement.py",
+          "sha256": "9d0145afaaea0830a86a6db36ddd570bfde3b90a9870778a0706445c82bc2287"
+        }
+      },
+      "source_frozen_while_running": false,
+      "source_identity_harness_only": true,
+      "source_parent_head": "f536eae5e723077c0a63bae5bea86d7211833d6c",
+      "source_unchanged_during_review": true,
+      "status": "FRESH_STATE_RESTORE_AND_MEASUREMENT_SOURCE_BINDINGS_VERIFIED_NO_NATIVE_LEARNING",
+      "synthetic_tests": {
+        "errors": 0,
+        "failures": 0,
+        "junit": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FRESH_STATE_SOURCE_REVIEW_001/PYTEST.xml",
+          "sha256": "dfbee5e97f72370567d29b9ea3d725a036459cd3b1fc3b6364ac09d3ef33e811"
+        },
+        "log": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FRESH_STATE_SOURCE_REVIEW_001/PYTEST.log",
+          "sha256": "ef0cd85dbe8a322254fd4320b38d84359db9f31023566eb02449f11128f57e77"
+        },
+        "passed": 149,
+        "skipped": 3,
+        "test_files": [
+          "tests/test_native_prefix_initial_measurement.py",
+          "tests/test_native_prefix_learning_measurement.py",
+          "tests/test_chronological_measurement_binding.py",
+          "tests/test_native_prefix_recipe.py"
+        ],
+        "tests": 152
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FRESH_STATE_SOURCE_REVIEW_001/EVENTS/TERMINAL_20261002T040826087681Z.json",
+        "sha256": "554bc2a524389ef9ea68fe39432662cadc9985c233658d245b7d5e51c2c1ecdd"
+      },
+      "test_dataset_accessed": false,
+      "training_enabled": false,
+      "working_source_uncommitted": true
+    },
     "index_source_audit": {
       "final_review": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/EVENTS/FINAL_SOURCE_REVIEW_20261001T232144276281Z.json",
@@ -3673,7 +3761,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Qualify the current cost/index chain and run the single workload-matched sampler benchmark only when its existing prerequisites are satisfied; the earlier two-GET broker-terms authorization remains unanswered. The physical coordinate producer is implemented and synthetically validated, but cannot publish genuine current coordinates without that selected-sampler authority. Continue only independent inspection/preparation of the fresh native initialization and measurement bindings; reuse completed normalization, targets and tests. Do not relaunch completed work or fabricate missing inputs. No broker requests, native training, TEST, live/paper or spending.",
+  "next_action": "Current fresh-state restore and v38 observation-source admission are repaired and synthetically tested. Qualify the actual cost/index chain, measured sampler, genuine coordinates and fresh native initialization only when existing prerequisites are satisfied; the two-GET broker-terms authorization remains unanswered. Reuse completed preprocessing and preserve source identity between initial measurement and bounded learning. Before any further edit, identify a concrete remaining blocker in the declared preparation or another unfinished goal item; do not add generic guards or repeat successful tests. Native training, TEST, broker requests, live/paper and spending remain closed.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-02T03:06:47.385534+00:00",
   "outer_guard_seconds": 13800,

@@ -1517,13 +1517,25 @@ def _restore_prefix_initial_measurement_state(*, components, scope, device):
             or components["seed_binding"]["model_state_sha256"] != expected
             or components["weight_ema_derivation"] != initial["ema_derivation"]):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_STATE_MISMATCH")
+    # Empty optimizer history does not bind its parameter groups or schedule.
+    # Compare with the fresh recipe-built components before mutating any object.
+    optimizer = components["optimizer"]
+    if val.canonical_sha256(state["optimizer_state"]) != val.canonical_sha256(optimizer.state_dict()):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_OPTIMIZER_STATE_MISMATCH")
+    scheduler = components["lr_scheduler"]
+    expected_schedule = None if scheduler is None else scheduler.state_dict()
+    if val.canonical_sha256(state["lr_scheduler_state"]) != val.canonical_sha256(expected_schedule):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_SCHEDULER_MISMATCH")
+    expected_ema = components["weight_ema"].checkpoint_state()
+    saved_ema = state["weight_ema_state"]
+    if (set(saved_ema) != set(expected_ema)
+            or any(type(saved_ema[key]) is not type(expected_ema[key]) or saved_ema[key] != expected_ema[key]
+                   for key in ("decay", "steps"))):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_EMA_STATE_MISMATCH")
     model = components["model"]
     model.load_state_dict(state["model_state"], strict=True)
-    components["optimizer"].load_state_dict(state["optimizer_state"])
-    components["weight_ema"].restore_checkpoint_state(state["weight_ema_state"], model=model)
-    scheduler = components["lr_scheduler"]
-    if (scheduler is None) != (state["lr_scheduler_state"] is None):
-        raise RuntimeError("NATIVE_PREFIX_INITIAL_SCHEDULER_MISMATCH")
+    optimizer.load_state_dict(state["optimizer_state"])
+    components["weight_ema"].restore_checkpoint_state(saved_ema, model=model)
     if scheduler is not None:
         scheduler.load_state_dict(state["lr_scheduler_state"])
     # The saved preparation ran on CPU. CUDA randomness starts from the same
@@ -1575,6 +1587,8 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
             or (functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
                 and scope["initialization"].get("model_functions") != functions)):
         raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_FUNCTION_BINDING_INVALID")
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_prefix_measurement_source_binding
+    source_binding = require_prefix_measurement_source_binding(recipe)
     factories = components.get("measurement_state_factories")
     if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS:
         if (not isinstance(factories, Mapping) or set(factories) != {"train", "control"}
@@ -1656,7 +1670,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         "measurement_binding_result": scope["artifacts"]["measurement_binding_result"],
         "training_pointer_sha256": before, "model_state_sha256": expected,
         "target_model_state_sha256": target_hash, "observations": observations,
-        "model_functions": dict(functions),
+        "model_functions": dict(functions), **source_binding,
         "measurement_roles": list(observations),
         "optimizer_steps": optimizer_steps, "teacher_refreshed": False, "economic_rollout": False,
         "test_data_used": False, "elapsed_native_seconds": time.monotonic() - invocation_started}

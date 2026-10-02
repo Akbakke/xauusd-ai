@@ -1245,3 +1245,43 @@ bindes i en egen plan og kjøres gjennom eksisterende capped producer; den er ik
 
 Kildekontroll: PHYSICAL_COORDINATE_PRODUCER_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T035119774721Z.json
 SHA256 4c4fd4de4efe394a03f590480e95c021d4c923f23b09a1f935631d386e246e9b.
+
+
+## 02.10: fersk optimizer-/schedulertilstand og kildebundet initialmåling
+
+To feil i fersk tilstand og gjenbruk av initialmåling er rettet.
+
+Gjenoppretting kontrollerte tidligere tom optimizerhistorikk, men kunne
+likevel laste andre parametergrupper, læringsrate eller scheduler-innstillinger.
+EMA-/schedulerfeil kunne dessuten oppdages etter at modellen var endret.
+Nå sammenlignes lagret optimizer, scheduler og EMA-metadata med de ferske
+komponentene recipe-en faktisk konstruerte, før innlasting muterer noe.
+
+V38-initialmålingen binder nå hele recipe-ens eksisterende kildeinventar,
+inkludert eierens filhash og filidentitet. Det samme inventaret kreves før
+avgrenset læring; en endret mål-/beregningsfunksjon kan ikke gjenbruke målingen
+bare fordi hovedmodellens fil og vekter er like. Innføringen gjelder fysisk
+v38; den historiske rutens eksisterende evidens beholdes. Ingen ny inventareier
+eller alternativ læringssløyfe er lagt til.
+
+149 fokuserte tester består; tre eksisterende avledede målkombinasjoner
+utenfor TRAIN-only-omfanget er fortsatt deklarert utelatt. Ni korrupte
+optimizer-/scheduler-/EMA-varianter avvises uten endring av modell, optimizer,
+scheduler, EMA eller RNG. Fysisk initial-/sluttmåling lagrer kildebindingen,
+og læringsadmission kaller kontrollen før videre behandling av kohortene.
+
+FRESH_STATE_SOURCE_REVIEW_001 sluttet med exit 0 og uendret kilde. Kontroll-
+harnessen bruker repoets faktiske native inventar med 159 oppføringer,
+og avviser en endret referansekilde med NATIVE_PREFIX_MEASUREMENT_SOURCE_CHANGED.
+Modusmarkøren i denne isolerte kontrollen er syntetisk; dette er ikke en
+kjørbar recipe eller full native admission. Tester av restore og sesjon bruker
+små syntetiske modeller. Ingen ekte data er målt gjennom modellen.
+
+Faktisk kostnads-/indekskvalifisering, benchmark, sampler-valg, koordinater og
+fersk native initialisering gjenstår. Det tidligere avgrensede brokerspørsmålet
+er ubesvart. Før mer kodearbeid må neste konkrete blokkering påvises; beståtte
+tester og fullført preprocessing gjenbrukes. Native trening er stengt og TEST
+forseglet. Læring, kostnadsjustert edge og train/serve-paritet er ikke bevist.
+
+Kildekontroll: FRESH_STATE_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T040826067925Z.json
+SHA256 50683882ad77e1b737e7b72c013ca97f3849564e6303ae057dcda3b47abe6539.

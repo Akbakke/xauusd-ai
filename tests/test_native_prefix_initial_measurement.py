@@ -325,3 +325,84 @@ def test_measurement_rejects_function_drift_before_teacher_copy_or_forward(tmp_p
     assert h.pointer(output).read_bytes() == original_pointer
     assert trainer._model_state_sha256(model) == original_hash
     assert not (Path(pause["session_directory"]) / "initial_measurement").exists()
+
+
+@pytest.mark.parametrize("fault", [
+    "learning_rate", "weight_decay", "betas", "parameter_order",
+    "scheduler_position", "scheduler_horizon", "scheduler_presence",
+    "ema_decay", "ema_schema",
+])
+def test_fresh_restore_rejects_changed_training_controls_before_any_mutation(tmp_path, fault):
+    torch.manual_seed(20260911)
+    model = torch.nn.Linear(3, 2)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.0001, weight_decay=.0001)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30)
+    ema = trainer._WeightEma(model, .5)
+    functions = dict(trainer._PREFIX_CURRENT_MODEL_FUNCTIONS)
+    initial_hash = trainer._model_state_sha256(model)
+    state = {"schema_version":"gx1_prefix_fresh_initial_state_v1",
+        "chronological_prefix":{"synthetic":True}, "model_functions":functions,
+        "model_forwards":0, "optimizer_steps":0, "checkpoint_loaded":False,
+        "model_state":copy.deepcopy(model.state_dict()), "target_model_state":copy.deepcopy(model.state_dict()),
+        "optimizer_state":copy.deepcopy(optimizer.state_dict()),
+        "lr_scheduler_state":copy.deepcopy(scheduler.state_dict()),
+        "weight_ema_state":copy.deepcopy(ema.checkpoint_state()),
+        "rng_state":trainer._attended_session_rng_state(device=torch.device("cpu"))}
+    group = state["optimizer_state"]["param_groups"][0]
+    if fault == "learning_rate": group["lr"] *= 10
+    elif fault == "weight_decay": group["weight_decay"] *= 10
+    elif fault == "betas": group["betas"] = (.5, .9)
+    elif fault == "parameter_order": group["params"].reverse()
+    elif fault == "scheduler_position": state["lr_scheduler_state"]["last_epoch"] += 1
+    elif fault == "scheduler_horizon": state["lr_scheduler_state"]["T_max"] += 1
+    elif fault == "scheduler_presence": state["lr_scheduler_state"] = None
+    elif fault == "ema_decay": state["weight_ema_state"]["decay"] = .75
+    else: state["weight_ema_state"]["unused"] = True
+    path = tmp_path/"INITIAL_STATE.pt"; torch.save(state,path)
+    components = {"model":model, "optimizer":optimizer, "weight_ema":ema, "lr_scheduler":scheduler,
+        "chronological_prefix":state["chronological_prefix"], "model_functions":functions,
+        "seed_binding":{"model_state_sha256":initial_hash}, "weight_ema_derivation":{"synthetic":True}}
+    initial = {"initial_state":_bind(path), "online_model_state_sha256":initial_hash,
+        "model_functions":functions, "ema_derivation":{"synthetic":True}, "seed_binding":{"seed":20260911}}
+    # A partial restore would visibly mutate the model before detecting a later mismatch.
+    with torch.no_grad(): model.weight.add_(3.)
+    torch.rand(5)
+    before_model = copy.deepcopy(model.state_dict())
+    before_optimizer = copy.deepcopy(optimizer.state_dict())
+    before_scheduler = copy.deepcopy(scheduler.state_dict())
+    before_ema = copy.deepcopy(ema.checkpoint_state())
+    before_rng = trainer._attended_session_rng_state(device=torch.device("cpu"))
+    with pytest.raises(RuntimeError, match="NATIVE_PREFIX_INITIAL_(OPTIMIZER|SCHEDULER|EMA)"):
+        runner._restore_prefix_initial_measurement_state(
+            components=components, scope={"initialization":initial}, device=torch.device("cpu"))
+    equal_tree(model.state_dict(),before_model)
+    equal_tree(optimizer.state_dict(),before_optimizer)
+    equal_tree(scheduler.state_dict(),before_scheduler)
+    equal_tree(ema.checkpoint_state(),before_ema)
+    equal_tree(trainer._attended_session_rng_state(device=torch.device("cpu")),before_rng)
+
+
+@pytest.mark.parametrize("fault", [None, "missing", "stale_digest", "changed_target_source", "old_measurement", "changed_source_bytes"])
+def test_physical_initial_observation_binds_complete_recipe_source_not_only_model(tmp_path, fault):
+    model = tmp_path/"model.py"; model.write_text("synthetic model unchanged")
+    targets = tmp_path/"targets.py"; targets.write_text("synthetic reference owner")
+    sources = {"python:model.py":budgets.artifact_binding(model), "python:targets.py":budgets.artifact_binding(targets)}
+    recipe = {"chronological_prefix":{"native_coordinates":{"synthetic":True}},
+              "source_bindings":sources,"source_bindings_sha256":budgets.canonical_json_sha256(sources)}
+    observation = native.require_prefix_measurement_source_binding(recipe)
+    if fault == "missing": recipe.pop("source_bindings")
+    elif fault == "stale_digest": recipe["source_bindings_sha256"] = "0"*64
+    elif fault == "changed_target_source":
+        targets.write_text("changed target implementation with identical model weights")
+        sources["python:targets.py"] = budgets.artifact_binding(targets)
+        recipe["source_bindings_sha256"] = budgets.canonical_json_sha256(sources)
+    elif fault == "old_measurement": observation.pop("native_recipe_source_bindings")
+    elif fault == "changed_source_bytes": targets.write_text("bytes changed without resealing")
+    if fault:
+        with pytest.raises(RuntimeError):
+            native.require_prefix_measurement_source_binding(recipe,measurement=observation)
+    else:
+        assert native.require_prefix_measurement_source_binding(recipe,measurement=observation) == observation
+        assert observation["native_recipe_source_bindings"] == sources
+    assert native.require_prefix_measurement_source_binding(
+        {"chronological_prefix":{"design":{"legacy":True}}}, measurement={}) == {}

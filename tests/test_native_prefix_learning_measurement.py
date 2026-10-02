@@ -230,3 +230,18 @@ def test_learning_accepts_train_only_initial_but_rejects_old_online_function(lea
     source.write_text('changed online function; initial tensor hash unchanged')
     with pytest.raises(RuntimeError, match='INITIAL_MODEL_SOURCE_CHANGED'):
         native.require_native_run_scope(recipe)
+
+
+def test_learning_admission_checks_observation_source_before_frozen_cohorts(learning_scope, monkeypatch):
+    # Reuse the existing admission fixture. A sentinel proves the check is
+    # reached before any later cohort or model construction.
+    _,recipe,_,_ = learning_scope
+    calls = []
+    def reject(value, *, measurement=None):
+        assert value is recipe and measurement["optimizer_steps"] == 0
+        calls.append(True)
+        raise RuntimeError("injected source mismatch")
+    monkeypatch.setattr(native,"require_prefix_measurement_source_binding",reject)
+    with pytest.raises(RuntimeError,match="injected source mismatch"):
+        native.require_chronological_learning_measurement(recipe)
+    assert calls == [True]
