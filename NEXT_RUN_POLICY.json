@@ -3135,6 +3135,119 @@
       "test_accessed": false,
       "training_enabled": false
     },
+    "physical_measurement_source_review": {
+      "broker_requests": 0,
+      "created_utc": "2026-10-02T03:35:23.636474+00:00",
+      "full_native_measurement_qualified": false,
+      "json_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_MEASUREMENT_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T033523636474Z.json",
+      "limitations": [
+        "Physical index/sampler/coordinate tests use synthetic clocks and canonical contract code.",
+        "Measurement dispatch preserves durable session state with a small linear model and mocked model/reference computations.",
+        "Actual current preprocessing bindings still lack native coordinates; only missing-authority rejection was checked.",
+        "Real index/cost authority, benchmark, selected sampler and coordinate production remain unfinished.",
+        "No native CUDA learning, economic quality or train/serve parity was measured."
+      ],
+      "native_coordinates_frozen": false,
+      "native_optimizer_steps": 0,
+      "next_action": "Prepare the bounded physical native coordinate producer through the existing index/sampler/measurement owners, including exact M1 reference-support timestamps and immutable publication; do not fabricate current coordinates or reuse a historical selection. Component, coordinator and measurement source routing is implemented and synthetically tested, but real cost/index authority, a workload-matched benchmark, sampler selection, fresh initialization and native measurement remain unqualified. Reuse completed normalization and original targets. The earlier two-GET broker-terms question remains unanswered; no broker requests, native training, TEST, live/paper or spending.",
+      "normalization_fits": 0,
+      "observed_missing_coordinate_gate": "CHRONOLOGICAL_MEASUREMENT_PHYSICAL_PREFIX_REQUIRED",
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_MEASUREMENT_SOURCE_REVIEW_001/OPERATOR.py",
+        "sha256": "3d4545e2c2dc5ea245415990eb642370815f02f6590659742394be5150de79df"
+      },
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_MEASUREMENT_SOURCE_REVIEW_001/PLAN.json",
+        "sha256": "51f8252255981dbe235065bed6b9a001dec8709071cc1e6d7632144430f34b58"
+      },
+      "policy_fits": 0,
+      "preprocessing_bindings": {
+        "design": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/DESIGN.json",
+          "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
+        },
+        "labels_result": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/EVENTS/RESULT_20261002T002224728274Z.json",
+          "sha256": "a5175f4e2ef1db81e0d1d35fe66270dfd3f5ad69243cc37bf97d530670326f68"
+        },
+        "normalization_result": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/EVENTS/RESULT_20261001T224313184213Z.json",
+          "sha256": "af45d48c081559777e8119f8cde0cfd2a1f077c416c48ee0800adb003f06900d"
+        }
+      },
+      "real_data_model_forwards": 0,
+      "real_source_parquet_reads": 0,
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_MEASUREMENT_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T033523636474Z.json",
+        "sha256": "aeac9a13e5cef9791321f30b51fd4117d59c0814f48b3b48899ca4776701a7b0"
+      },
+      "source_bindings": {
+        "gx1/contracts/unified_exit_bounded_val_cohort_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_bounded_val_cohort_v1.py",
+          "sha256": "bededbab2f743cdbb1cfbdb746b709fe0a0b9ea67f16e5010d9b78cd3478c351"
+        },
+        "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+          "sha256": "8c3fba5b174d8b181569c4ad65b710b3a21e77f3aeca749a35913c892e9a5af7"
+        },
+        "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+          "sha256": "2831eca4e13f2e70838dc6d6d9189bd625ca8c88b8712b897637f5938bff8026"
+        },
+        "gx1/scripts/run_unified_exit_random_access_val_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_val_v1.py",
+          "sha256": "625998cad8421fb28f8b7c4fa365d018f814bfb553bc02aca787e6838c8df1cf"
+        },
+        "tests/test_chronological_measurement_binding.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_chronological_measurement_binding.py",
+          "sha256": "4a3a3c1f9766dc6afb50ee355801138e7b571c3664351c6f09a74b7f3b758447"
+        },
+        "tests/test_native_chronological_control_source.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_chronological_control_source.py",
+          "sha256": "065eecac2b29ac597a983bf75408c6dedbcca2dcd6362fe3f244d793162f46d5"
+        },
+        "tests/test_native_fresh_prefix_components.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_fresh_prefix_components.py",
+          "sha256": "eb1ceca226f0f958471317ee8ae3f384e25ac71e3dbd9a0da3d7a3303f8d19a9"
+        }
+      },
+      "source_frozen_while_running": false,
+      "source_parent_head": "b51254b35cc6302ba68c3708c44f118a8d12817f",
+      "source_unchanged_during_review": true,
+      "status": "SOURCE_AND_SYNTHETIC_PHYSICAL_MEASUREMENT_COMPLETE_REAL_NATIVE_QUALIFICATION_PENDING",
+      "synthetic_tests": {
+        "errors": 0,
+        "failures": 0,
+        "junit": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_MEASUREMENT_SOURCE_REVIEW_001/PYTEST.xml",
+          "sha256": "9348688125027b21131bece46341f0cbf32b7e16fbf48533617eb14c4a38a56a"
+        },
+        "log": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_MEASUREMENT_SOURCE_REVIEW_001/PYTEST.log",
+          "sha256": "9764f1279ecfb5fa364ce80df13db32fb59ab811267705139ad16e7b3b00737d"
+        },
+        "passed": 274,
+        "skipped": 3,
+        "test_files": [
+          "tests/test_chronological_measurement_binding.py",
+          "tests/test_native_prefix_initial_measurement.py",
+          "tests/test_native_prefix_learning_measurement.py",
+          "tests/test_native_fresh_prefix_components.py",
+          "tests/test_native_chronological_control_source.py",
+          "tests/test_chronological_sampled_targets.py",
+          "tests/test_chronological_control_targets.py",
+          "tests/test_native_prefix_recipe.py"
+        ],
+        "tests": 277
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_MEASUREMENT_SOURCE_REVIEW_001/EVENTS/TERMINAL_20261002T033523658788Z.json",
+        "sha256": "7028339ff4e6a96dd256fd62ba8662e0b8291aeebacdfdb70023ae973cbc5f53"
+      },
+      "test_dataset_accessed": false,
+      "training_enabled": false,
+      "working_source_uncommitted": true
+    },
     "plan": "configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json",
     "plan_sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e",
     "post_rebuild_readiness": {
@@ -3449,7 +3562,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Bind the existing chronological measurement owners and initial/final dispatch to separate physical TRAIN/VAL sources and frozen native coordinates. Main component routing and the training coordinator now reuse completed preprocessing and original targets; session/resume contracts bind the physical sources, measured sampler and order. Synthetic 4-step versus 2+2 resume equality is verified, not real native CUDA parity. Current cost/index authority, one workload-matched benchmark, sampler choice and actual epoch0/first4096/TRAIN256 coordinates remain required. Do not refit or relaunch completed work. The previous two-GET broker question remains unanswered; no broker, native training, TEST, live/paper or spending.",
+  "next_action": "Prepare the bounded physical native coordinate producer through the existing index/sampler/measurement owners, including exact M1 reference-support timestamps and immutable publication; do not fabricate current coordinates or reuse a historical selection. Component, coordinator and measurement source routing is implemented and synthetically tested, but real cost/index authority, a workload-matched benchmark, sampler selection, fresh initialization and native measurement remain unqualified. Reuse completed normalization and original targets. The earlier two-GET broker-terms question remains unanswered; no broker requests, native training, TEST, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-02T03:06:47.385534+00:00",
   "outer_guard_seconds": 13800,

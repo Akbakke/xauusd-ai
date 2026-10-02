@@ -359,6 +359,33 @@ def _fresh_prefix_model(*, metadata, normalization, device, seed):
     }
 
 
+def _bound_measurement_state_factory(*, manifest, index_path, manifest_path, root_path,
+                                     frame, dataset, source_owner, readiness, cost_authority,
+                                     source_split, evaluation_cohort=None):
+    """Reuse the existing state factory with one explicit physical source."""
+    provider = val._build_provider(frame=frame, manifest=manifest, readiness=readiness,
+                                   cost_authority_path=cost_authority)
+    state_paths = {
+        key: val._source_path(manifest, name)
+        for key, name in {
+            "entry_parquet_path": "entry_parquet", "entry_manifest_path": "entry_manifest",
+            "child_m1_path": "m1_child", "child_m1_manifest_path": "m1_child_manifest",
+            "successor_counts_path": "successor_counts", "summary_manifest_path": "summary_manifest",
+            "first_state_bridge_path": "first_state_bridge", "split_sequence_binding_path": "sequence_binding",
+            "composite_normalization_path": "composite_normalization", "closure_authority_path": "closure_authority",
+        }.items()
+    }
+    return val.RandomAccessValStateFactoryV1.from_artifacts(
+        **state_paths, random_access_index_path=index_path,
+        random_access_index_manifest_path=manifest_path, random_access_index_root_path=root_path,
+        source_owner=source_owner, mtf_materializer=dataset._get_exit_multi_tf_episode_histories,
+        economic_step_provider=provider, economic_step_manifest=provider.economic_exit_step_manifest,
+        economics_objective_contract=readiness["economics_objective_contract"],
+        source_split=source_split,
+        **({"evaluation_cohort": evaluation_cohort} if evaluation_cohort is not None else {}),
+    )
+
+
 def _build_bound_full_train_components(
     *, files: Mapping[str, Path], dataset_run_id: str,
     seed_launch_path: Path | None, seed_authority_path: Path | None,
@@ -582,36 +609,21 @@ def _build_bound_full_train_components(
         parent_manifest=file_bindings["entry_val_manifest"],
     )
     readiness = val._load_val_economics_readiness(files["economics_readiness"])
-    provider = val._build_provider(
-        frame=frame, manifest=manifest, readiness=readiness,
-        cost_authority_path=files["train_cost_authority"],
+    val_factory = _bound_measurement_state_factory(
+        manifest=manifest, index_path=index_path, manifest_path=manifest_path, root_path=root_path,
+        frame=frame, dataset=datasets["val"], source_owner=corpus.splits[source_split],
+        readiness=readiness, cost_authority=files["train_cost_authority"], source_split=source_split,
+        evaluation_cohort=evaluation_cohort if physical_prefix else None,
     )
-    state_paths = {
-        key: val._source_path(manifest, name)
-        for key, name in {
-            "entry_parquet_path": "entry_parquet",
-            "entry_manifest_path": "entry_manifest",
-            "child_m1_path": "m1_child",
-            "child_m1_manifest_path": "m1_child_manifest",
-            "successor_counts_path": "successor_counts",
-            "summary_manifest_path": "summary_manifest",
-            "first_state_bridge_path": "first_state_bridge",
-            "split_sequence_binding_path": "sequence_binding",
-            "composite_normalization_path": "composite_normalization",
-            "closure_authority_path": "closure_authority",
-        }.items()
-    }
-    val_factory = val.RandomAccessValStateFactoryV1.from_artifacts(
-        **state_paths, random_access_index_path=index_path,
-        random_access_index_manifest_path=manifest_path,
-        random_access_index_root_path=root_path, source_owner=corpus.splits[source_split],
-        mtf_materializer=datasets["val"]._get_exit_multi_tf_episode_histories,
-        economic_step_provider=provider,
-        economic_step_manifest=provider.economic_exit_step_manifest,
-        economics_objective_contract=readiness["economics_objective_contract"],
-        **({"source_split": "val", "evaluation_cohort": evaluation_cohort} if physical_prefix
-           else {"source_split": "train"} if prefix is not None else {}),
-    )
+    if physical_prefix:
+        train_manifest_path = Path(train_binding["manifest_path"])
+        train_measurement_factory = _bound_measurement_state_factory(
+            manifest=val._read(train_manifest_path), index_path=Path(train_binding["index_parquet_path"]),
+            manifest_path=train_manifest_path, root_path=root_path,
+            frame=adapter._native_random_access_index, dataset=train_probe_ds,
+            source_owner=corpus.splits["train"], readiness=readiness,
+            cost_authority=files["train_cost_authority"], source_split="train",
+        )
     if frozen_train_policy_scope is not None:
         # Retain physical lifecycles; only the observation support is bounded.
         end = np.searchsorted(val_factory.times.asi8 + 60_000_000_000,
@@ -692,6 +704,8 @@ def _build_bound_full_train_components(
             "train_probe_ds": train_probe_ds,
             "prefix_epoch0_parent_order": prefix["epoch0_parent_order"]} if prefix is not None else {}),
         "effective_train_rows": effective_train_rows,
+        **({"measurement_state_factories": {"train": train_measurement_factory, "control": val_factory}}
+           if physical_prefix else {}),
         "unified_exit_lifecycle_evidence": {
             "schema_version": "gx1_native_candidate_input_lineage_v1",
             "root_manifest_sha256": root["root_sha256"],
@@ -1561,6 +1575,12 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
             or (functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
                 and scope["initialization"].get("model_functions") != functions)):
         raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_FUNCTION_BINDING_INVALID")
+    factories = components.get("measurement_state_factories")
+    if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS:
+        if (not isinstance(factories, Mapping) or set(factories) != {"train", "control"}
+                or any(getattr(factories[role], "source_split", None) != split
+                       for role, split in (("train", "train"), ("control", "val")))):
+            raise RuntimeError("NATIVE_PREFIX_PHYSICAL_MEASUREMENT_FACTORIES_REQUIRED")
     target = trainer._copy_frozen_prefix_reference_model(model, model_functions=functions).to(device)
     target.load_state_dict(state["target_model_state"], strict=True)
     out = directory / ("initial_measurement" if optimizer_steps == 0 else "final_online_measurement")
@@ -1579,9 +1599,15 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                 raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_WALL_LIMIT")
             cohort = build_chronological_measurement_cohort(recipe["chronological_prefix"]["design"],
                 scope["measurement"]["coordinate_result"], role=role)
+            if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS and role == "train":
+                samples = components["train_ds"]._unified_exit_lifecycle_v2._random_access_train["samples_by_entry"]
+                observed = [[int(item["state_index"]) for item in sorted(samples[child], key=lambda item: item["sample_slot"])]
+                            for child in cohort["entry_row_indices"]]
+                if observed != cohort["sampled_state_indices"]:
+                    raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_TRAIN_SAMPLES_CHANGED")
             _, diagnostics, _ = val._entry_representations(model=model, dataset=components[dataset_key],
                 parent_rows=cohort["parent_entry_row_indices"], device=device, batch_size=16,
-                candidate_target_model=target, candidate_state_factory=context["state_factory"],
+                candidate_target_model=target, candidate_state_factory=(factories[role] if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS else context["state_factory"]),
                 candidate_child_rows=cohort["entry_row_indices"], exit_boundary_model=target,
                 evaluation_cohort=cohort)
             if (len(diagnostics["bounded_entry_observations"]) != 256

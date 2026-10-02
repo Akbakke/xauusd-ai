@@ -216,34 +216,139 @@ def build_chronological_control_cohort(
     return value
 
 
+def _physical_measurement_inputs(design_binding, result, *, role):
+    """Join frozen measurement rows to actual physical indexes and native draws."""
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        require_physical_chronological_preprocessing, require_physical_native_training_coordinates,
+    )
+    from gx1.contracts import unified_exit_random_access_index_v1 as index_owner
+    from gx1.contracts.unified_exit_random_access_sampler_v1 import (
+        build_random_access_sampler_contract, schedule_random_access_epoch,
+    )
+
+    def bound(value):
+        return require_binding(value, label="physical measurement input", verify_file=True)
+    def read(value):
+        value = bound(value)
+        return read_bound_json(Path(value["path"]), value["sha256"])
+    artifacts = result.get("chronological_prefix")
+    if (not isinstance(artifacts, Mapping)
+            or set(artifacts) != {"design", "normalization_result", "labels_result", "native_coordinates"}
+            or artifacts["design"] != design_binding):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_PREFIX_REQUIRED")
+    design = read(design_binding)
+    physical = require_physical_chronological_preprocessing(
+        artifacts, design=design, normalization=read(artifacts["normalization_result"]),
+        labels=read(artifacts["labels_result"]))
+    coordinates = require_physical_native_training_coordinates(artifacts, design=design, physical=physical)
+    selected = coordinates["selected_sampler"]
+    root_binding = selected["random_access_root"]
+    root = read({"path": root_binding["path"], "sha256": root_binding["file_sha256"]})
+    indexes = result.get("source_indexes")
+    if not isinstance(indexes, Mapping) or set(indexes) != {"train", "val"}:
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_INDEXES_REQUIRED")
+    for split in ("train", "val"):
+        binding = root["splits"][split]
+        item = indexes[split]
+        if (not isinstance(item, Mapping) or set(item) != {"index", "manifest"}
+                or item["index"] != {"path": binding["index_parquet_path"], "sha256": binding["index_parquet_sha256"]}
+                or item["manifest"]["path"] != binding["manifest_path"]):
+            raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_INDEX_MISMATCH")
+    control = build_chronological_control_cohort(design_binding,
+        source_index_binding=indexes["val"]["index"],
+        source_index_manifest_binding=indexes["val"]["manifest"])
+    split = "train" if role == "train" else "val"
+    source = physical["physical_sources"][split]
+    index = bound(indexes[split]["index"])
+    manifest_binding = bound(indexes[split]["manifest"])
+    manifest = read(manifest_binding)
+    if (manifest.get("split") != split
+            or any(manifest.get("source_bindings", {}).get(f"parent_entry_{kind}") != source[kind]
+                   for kind in ("parquet", "manifest"))
+            or manifest.get("parent_entry_clock_sha256") != source["clock_sha256"]
+            or manifest.get("parent_entry_source_rows") != source["physical_rows"]
+            or manifest.get("manifest_sha256") != root["splits"][split]["manifest_sha256"]):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_PARENT_MISMATCH")
+    frame = pd.read_parquet(index["path"])
+    index_owner.require_random_access_index_manifest(manifest, expected_split=split,
+        index_frame=frame, index_path=Path(index["path"]), verify_sources=False)
+    population = source["physical_rows"]
+    identity = np.arange(population, dtype=np.int64)
+    clock = pd.DatetimeIndex(pd.to_datetime(frame["entry_time_ns"], unit="ns", utc=True))
+    if (len(frame) != population
+            or not np.array_equal(frame["entry_row_index"], identity)
+            or not np.array_equal(frame["parent_entry_row_index"], identity)
+            or index_owner._clock_sha256(clock) != source["clock_sha256"]
+            or manifest.get("child_entry_clock_sha256") != source["clock_sha256"]):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_MAPPING_MISMATCH")
+    expected = (coordinates["probe_parent_rows"] if role == "train"
+                else np.asarray(control["parent_entry_row_indices"], dtype=np.int64))
+    train_sampler = selected["selected_sampler_contract"]
+    # CONTROL has no optimizer stream. Freeze one native epoch over its whole
+    # physical population, with the existing four-draw policy and bound lineage.
+    sampler = (train_sampler if role == "train" else build_random_access_sampler_contract(
+        split="val", source_lineage_sha256=train_sampler["source_lineage_sha256"],
+        transition_budget_per_epoch=population * train_sampler["transitions_per_entry"],
+        transitions_per_entry=train_sampler["transitions_per_entry"], entry_pair_population=population))
+    if (not isinstance(result.get("sampler_contracts"), Mapping)
+            or set(result["sampler_contracts"]) != {"train", "val"}
+            or result["sampler_contracts"][split] != sampler):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_SAMPLER_MISMATCH")
+    samples = schedule_random_access_epoch(sampler_contract=sampler, epoch_index=0,
+        successor_transition_count_by_entry=frame["successor_transition_count"].astype("int64").tolist())
+    wanted = set(expected.tolist())
+    draws = {parent: [] for parent in wanted}
+    for sample in samples:
+        if sample["entry_row_index"] in wanted:
+            draws[sample["entry_row_index"]].append((sample["sample_slot"], sample["state_index"]))
+    expected_samples = [[offset for _, offset in sorted(draws[int(parent)])] for parent in expected]
+    if any(len(row) != 4 for row in expected_samples):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_DRAW_COVERAGE_INVALID")
+    return {"design": design, "control": control, "expected": expected, "frame": frame,
+            "source_index": index, "population_rows": population, "source_split": split,
+            "expected_samples": expected_samples,
+            "extra": {"source_index_manifest": manifest_binding,
+                      "parent_entry_parquet": source["parquet"],
+                      "sampler_contract_sha256": sampler["contract_sha256"],
+                      **({"physical_control_cohort_sha256": control["cohort_sha256"]} if role == "control" else {})}}
+
+
 def build_chronological_measurement_cohort(
     design_binding: Mapping[str, str], coordinates_binding: Mapping[str, str], *, role: str,
 ) -> dict[str, Any]:
     """Bind frozen TRAIN/control measurements, without authorizing a rollout."""
     if role not in {"train", "control"}:
         raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_ROLE_INVALID")
-    control = build_chronological_control_cohort(design_binding)
     binding = require_binding(coordinates_binding, label="measurement coordinates", verify_file=True)
     result = read_bound_json(Path(binding["path"]), binding["sha256"])
-    if (result.get("schema_version") != "gx1_prefix_measurement_coordinates_v1"
+    physical = result.get("schema_version") == "gx1_physical_prefix_measurement_coordinates_v1"
+    inputs = _physical_measurement_inputs(design_binding, result, role=role) if physical else None
+    control = inputs["control"] if physical else build_chronological_control_cohort(design_binding)
+    if (result.get("schema_version") not in ("gx1_prefix_measurement_coordinates_v1",
+                                           "gx1_physical_prefix_measurement_coordinates_v1")
             or result.get("decision") != "TRAIN_AND_CONTROL_COORDINATES_FROZEN_NO_MODEL_MEASUREMENTS"
             or result.get("design") != control["plan"]
-            or result.get("source_index") != control["source_index"]
-            or result.get("population_rows") != control["population_rows"]
+            or (not physical and (result.get("source_index") != control["source_index"]
+                                  or result.get("population_rows") != control["population_rows"]))
             or any(result.get(k) is not True for k in (
                 "train_samples_exactly_reused", "control_entry_ids_unchanged", "all_samples_preserved"))
             or result.get("test_data_used") is not False
             or any(result.get(k) != 0 for k in ("model_forwards", "optimizer_steps", "fits"))):
         raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_RESULT_INVALID")
-    design = read_bound_json(Path(control["plan"]["path"]), control["plan"]["sha256"])
-    aux_binding = require_binding(result["auxiliary_policies"], label="prefix policies", verify_file=True)
-    aux = read_bound_json(Path(aux_binding["path"]), aux_binding["sha256"])
-    if aux.get("frozen_design") != control["plan"]:
-        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PREFIX_MISMATCH")
-    row_binding = (aux["bindings"]["TRAIN256_PROBE_PARENT_ROWS"] if role == "train"
-                   else design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"])
-    row_binding = require_binding(row_binding, label="frozen measurement rows", verify_file=True)
-    expected = np.load(row_binding["path"], allow_pickle=False)
+    if physical:
+        design, expected = inputs["design"], inputs["expected"]
+        source_index, population = inputs["source_index"], inputs["population_rows"]
+    else:
+        design = read_bound_json(Path(control["plan"]["path"]), control["plan"]["sha256"])
+        aux_binding = require_binding(result["auxiliary_policies"], label="prefix policies", verify_file=True)
+        aux = read_bound_json(Path(aux_binding["path"]), aux_binding["sha256"])
+        if aux.get("frozen_design") != control["plan"]:
+            raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PREFIX_MISMATCH")
+        row_binding = (aux["bindings"]["TRAIN256_PROBE_PARENT_ROWS"] if role == "train"
+                       else design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"])
+        row_binding = require_binding(row_binding, label="frozen measurement rows", verify_file=True)
+        expected = np.load(row_binding["path"], allow_pickle=False)
+        source_index, population = control["source_index"], control["population_rows"]
     array_binding = require_binding(result["coordinates"][role], label="measurement array", verify_file=True)
     with np.load(array_binding["path"], allow_pickle=False) as arrays:
         required = {"parent_rows": (256,), "child_rows": (256,), "entry_time_ns": (256,),
@@ -257,9 +362,11 @@ def build_chronological_measurement_cohort(
     parents, children, offsets = data["parent_rows"], data["child_rows"], data["sampled_state_indices"]
     if (not np.array_equal(parents, expected) or len(np.unique(parents)) != 256
             or len(np.unique(children)) != 256 or np.any(children < 0)
-            or np.any(children >= control["population_rows"]) or np.any(offsets < 0)):
+            or np.any(children >= population) or np.any(offsets < 0)):
         raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_COORDINATES_INVALID")
-    frame = pd.read_parquet(control["source_index"]["path"], columns=[
+    if physical and offsets.tolist() != inputs["expected_samples"]:
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_NATIVE_SAMPLES_CHANGED")
+    frame = inputs["frame"] if physical else pd.read_parquet(source_index["path"], columns=[
         "entry_row_index", "parent_entry_row_index", "entry_time_ns", "successor_transition_count"])
     selected = frame.iloc[children]
     cutoff_key = "train_control_cutoff" if role == "train" else "development_control_entry_end_exclusive"
@@ -276,11 +383,12 @@ def build_chronological_measurement_cohort(
         raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_SUPPORT_INVALID")
     value = {
         "schema_version": MEASUREMENT_SCHEMA, "split": "train" if role == "train" else "val",
-        "source_split": "train", "measurement_only": True, "measurement_role": role,
+        "source_split": inputs["source_split"] if physical else "train", "measurement_only": True, "measurement_role": role,
         "evaluation_role": ("chronological_training_probe" if role == "train"
                             else "chronological_reused_development_control"),
         "plan": control["plan"], "measurement_coordinates": binding,
-        "source_index": control["source_index"], "population_rows": control["population_rows"],
+        "source_index": source_index, "population_rows": population,
+        **(inputs["extra"] if physical else {}),
         "entry_row_indices": children.tolist(), "parent_entry_row_indices": parents.tolist(),
         "sampled_state_indices": offsets.tolist(), "reference_cutoff_time_ns": int(cutoff.value),
         "test_data_used": False,

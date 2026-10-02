@@ -856,6 +856,12 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
     coordinate_result = read_bound_json(Path(coordinates["path"]), coordinates["sha256"])
     if coordinate_result.get("design") != prefix["artifacts"]["design"]:
         raise RuntimeError("NATIVE_PREFIX_INITIAL_DESIGN_MISMATCH")
+    if "physical_preprocessing" in prefix:
+        from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_measurement_cohort
+        if coordinate_result.get("chronological_prefix") != prefix["artifacts"]:
+            raise RuntimeError("NATIVE_PREFIX_INITIAL_PHYSICAL_COORDINATES_MISMATCH")
+        for role in ("train", "control"):
+            build_chronological_measurement_cohort(prefix["artifacts"]["design"], coordinates, role=role)
     binding = require_binding(recipe.get("next_run_policy"), label="initial measurement policy", verify_file=True)
     if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
@@ -994,6 +1000,11 @@ def require_chronological_learning_measurement(recipe):
                 or cohort.get("measurement_role") != role
                 or len(cohort.get("entry_row_indices", [])) != 256):
             raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_OBSERVATION_INVALID")
+        if "native_coordinates" in recipe["chronological_prefix"]:
+            from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_measurement_cohort
+            if cohort != build_chronological_measurement_cohort(
+                    recipe["chronological_prefix"]["design"], measurement["coordinate_result"], role=role):
+                raise RuntimeError("NATIVE_PREFIX_LEARNING_PHYSICAL_COHORT_MISMATCH")
     derived = {}
     if "chronological_entry_baseline" in recipe:
         entry_binding, entry_baseline = _require_derived_entry_baseline(

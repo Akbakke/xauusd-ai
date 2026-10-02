@@ -245,7 +245,11 @@ def _component_chain(tmp_path, monkeypatch, physical=None):
     monkeypatch.setattr(runner.val,'_load_val_economics_readiness',lambda path:{'economics_objective_contract':{}})
     monkeypatch.setattr(runner.val,'_build_provider',lambda **kw:SimpleNamespace(economic_exit_step_manifest={}))
     monkeypatch.setattr(runner.val,'_source_path',lambda manifest,name:tmp_path/name)
-    def val_factory(**kw):seen['control_factory']=kw;return object()
+    def val_factory(**kw):
+        role = "train" if physical is not None and kw["source_split"] == "train" else "control"
+        seen[role + "_factory"] = kw
+        return SimpleNamespace(source_split=kw["source_split"])
+
     monkeypatch.setattr(runner.val.RandomAccessValStateFactoryV1,'from_artifacts',val_factory)
     def model(meta,normalization,device):
         assert "control_context" in seen
@@ -462,6 +466,13 @@ def test_current_component_owner_routes_distinct_train_and_val_before_initializa
     assert seen["sampler_budget"]==case["selected"]["transition_budget_per_epoch"]
     assert seen["control_factory"]["source_split"]=="val"
     assert seen["control_factory"]["mtf_materializer"].__self__ is control
+    assert seen["train_factory"]["source_owner"] is seen["feature_sources"]["train"]
+    assert seen["train_factory"]["mtf_materializer"].__self__ is components["train_probe_ds"]
+    assert seen["train_factory"]["source_split"] == "train"
+    assert "evaluation_cohort" not in seen["train_factory"]
+    assert components["measurement_state_factories"]["control"] is components["native_val_context"]["state_factory"]
+    assert components["measurement_state_factories"]["train"].source_split == "train"
+
     assert seen["control_factory"]["evaluation_cohort"]==components["native_val_context"]["evaluation_cohort"]
     assert seen["cohort_arguments"][1]["source_index_manifest_binding"]==_bind(tmp_path/"val-index.json")
     assert seen["parent_equivalence"]["expected_split"]=="val"

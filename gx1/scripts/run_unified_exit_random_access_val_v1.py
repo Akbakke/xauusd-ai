@@ -549,7 +549,8 @@ def _entry_representations(
                     and (getattr(candidate_state_factory, "artifact_file_sha256", {}).get("random_access_index")
                          != checked_cohort["source_index"]["sha256"]
                          or getattr(candidate_state_factory, "factory_receipt", {}).get("physical_control_cohort_sha256")
-                         != checked_cohort["cohort_sha256"])):
+                         != (checked_cohort.get("physical_control_cohort_sha256")
+                             if checked_cohort.get("measurement_only") is True else checked_cohort["cohort_sha256"]))):
                 raise RuntimeError("CHRONOLOGICAL_CONTROL_PHYSICAL_SOURCE_MISMATCH")
             coherent_reference = {
                 "semantics":"observed_reference_anchor_V_mu_without_hindsight_action",
@@ -560,6 +561,11 @@ def _entry_representations(
                     else "development_control_entry_end_exclusive"]).value),
             }
             if checked_cohort.get("measurement_only") is True:
+                if "parent_entry_parquet" in checked_cohort and (
+                        str(getattr(dataset, "parquet_path", None)) != checked_cohort["parent_entry_parquet"]["path"]
+                        or getattr(candidate_state_factory, "artifact_file_sha256", {}).get("random_access_index_manifest")
+                           != checked_cohort["source_index_manifest"]["sha256"]):
+                    raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_PHYSICAL_SOURCE_MISMATCH")
                 if (getattr(candidate_state_factory, "artifact_file_sha256", {}).get("random_access_index")
                         != checked_cohort["source_index"]["sha256"]):
                     raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_SOURCE_BINDING_MISMATCH")

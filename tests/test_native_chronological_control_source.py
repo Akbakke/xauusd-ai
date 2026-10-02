@@ -359,14 +359,14 @@ def test_evaluator_checks_physical_source_and_parent_ids_before_any_forward(tmp_
     with pytest.raises(RuntimeError,match='BOUND_FRAME_MISMATCH'):evaluator.evaluate_bound_full_val_v1(**args)
 
 
-def _physical_control_plan(tmp_path, population=320, factory_kwargs=None, entry_start="2025-06-01T00:00Z"):
+def _physical_control_plan(tmp_path, population=320, factory_kwargs=None, entry_start="2025-06-01T00:00Z", split="val"):
     """Actual index-contract bytes over synthetic clocks; no production data."""
     import hashlib
     from gx1.contracts import unified_exit_random_access_index_v1 as index_owner
     times = pd.date_range(entry_start, periods=population*5+10, freq='min')
     entries = times[np.arange(population)*5]
     frame, _ = build_random_access_index_v2(
-        split='val', entry_times=entries, parent_entry_times=entries,
+        split=split, entry_times=entries, parent_entry_times=entries,
         child_m1_times=times, parent_m1_times=times,
         successor_transition_counts=np.full(population, 3, dtype='int64'),
         entry_bid=np.full(population, 100.), entry_ask=np.full(population, 100.1),
@@ -385,7 +385,7 @@ def _physical_control_plan(tmp_path, population=320, factory_kwargs=None, entry_
     clock_sha = index_owner._clock_sha256(entries)
     manifest = {
         'schema_version':index_owner.RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION,
-        'decision':'PASS','split':'val','entry_row_count':population,
+        'decision':'PASS','split':split,'entry_row_count':population,
         'successor_transition_total':int(frame.successor_transition_count.sum()),
         'economic_terminal_count':0,'split_end_is_right_censor':True,
         'storage_granularity':'one_row_per_entry','full_prefix_states_stored':False,

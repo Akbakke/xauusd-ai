@@ -1,5 +1,40 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Initial- og sluttmålingen er nå koblet til separate fysiske TRAIN-/VAL-kilder.
+To konkrete feil er rettet: TRAIN-proben brukte samme tilstandsbygger som
+kontrollmålingen, og fysisk kontroll sammenlignet målingens egen hash med
+hashen til det opprinnelige CONTROL256-utvalget.
+
+Hver rolle binder nå sin egen indeks, indeksmanifest, kildefil og native
+sampler. TRAIN256 følger den fryste proben fra de første 4096 native radene.
+Kontroll bruker de allerede fryste CONTROL256-ID-ene og eksisterende native
+fire-trekks-policy over fysisk VAL. Rekkefølge og gjentatte trekk bevares;
+TRAIN-målingen sammenlignes også med den faktiske adapterens trekk.
+En felles helper gjenbruker eksisterende tilstandsbygger uten duplisert
+provider-/filkobling. Native admission kontrollerer de fryste målekohortene.
+
+274 fokuserte tester består. Tre eksisterende kombinasjoner for avledede mål
+utenfor TRAIN-only-omfanget er fortsatt deklarert utelatt. Nye tester bruker
+syntetiske klokker, reelle indeks-/samplerkontrakter og eksisterende sesjonskode.
+Initial- og sluttmåling rutes til riktig kilde; kilde-/manifestbytte, endrede
+trekk og feil under kontrollmålingen avvises eller avbrytes uten endring av
+lagret checkpoint, modell eller RNG. Modell-/referanseberegning er mocket;
+256 små syntetiske optimizersteg i sesjonstesten er ikke native v38-trening.
+
+PHYSICAL_MEASUREMENT_SOURCE_REVIEW_001 sluttet med exit 0 og uendret kilde.
+Manglende faktisk koordinatbinding avvises med
+CHRONOLOGICAL_MEASUREMENT_PHYSICAL_PREFIX_REQUIRED. Ingen ekte
+målekoordinater er publisert, og ingen ekte data er målt gjennom modellen.
+
+Neste arbeid er avgrenset koordinatproduksjon med eksakte M1-støttetider og
+immutabel publisering gjennom eksisterende eiere. Faktisk indeks, ferske
+kostnadsvilkår, benchmark og sampler-valg må først kvalifiseres før produksjon
+eller måling. Det tidligere brokerspørsmålet er ubesvart. Fullført
+normalisering og originale hjelpefasiter skal gjenbrukes.
+Native trening er stengt; TEST er forseglet. Ingen læring eller edge er bevist.
+
+## Tidligere kontroll av treningskoordinatoren — historikk
+
 Treningskoordinatoren kan nå binde v38 til separate fysiske TRAIN-/VAL-kilder,
 fullført normalisering, originale hjelpefasiter og fryste native radkoordinater.
 Hver rad-ID kontrolleres mot sin egen kilde; like tall i to forskjellige
