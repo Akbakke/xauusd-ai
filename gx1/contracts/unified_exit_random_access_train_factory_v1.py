@@ -22,16 +22,12 @@ from gx1.contracts.unified_exit_pilot_final_bindings_v1 import (
     require_composite_normalization_binding,
 )
 from gx1.contracts.unified_exit_pilot_normalization_v1 import (
-    BENCHMARK_BUDGETS,
-    BENCHMARK_CANDIDATE_SET_SCHEMA_VERSION,
+    build_sampler_benchmark_candidate_set,
     canonical_sha256,
 )
 from gx1.contracts.unified_exit_random_access_index_v1 import (
     require_random_access_index_manifest,
     require_random_access_index_root,
-)
-from gx1.contracts.unified_exit_random_access_sampler_v1 import (
-    require_random_access_sampler_contract,
 )
 
 
@@ -66,37 +62,21 @@ def _source_path(manifest: Mapping[str, Any], key: str) -> Path:
 
 def _candidate_contracts(path: Path) -> dict[int, dict[str, Any]]:
     candidate_set = _read_json(path, "CANDIDATE_SET")
+    # Rebuild through the producer instead of separately checking a subset of
+    # its fields. All candidates must share the declared TRAIN population/source.
+    expected = build_sampler_benchmark_candidate_set(
+        source_lineage_sha256=candidate_set.get("source_lineage_sha256"),
+        entry_pair_population=candidate_set.get("entry_pair_population"),
+    )
     data = dict(candidate_set)
     claimed = data.pop("candidate_set_sha256", None)
-    candidates = candidate_set.get("candidates")
-    if (
-        candidate_set.get("schema_version") != BENCHMARK_CANDIDATE_SET_SCHEMA_VERSION
-        or candidate_set.get("decision") != "BLOCKED_PENDING_TRAIN_ONLY_BENCHMARK"
-        or candidate_set.get("selected_sampler_contract_sha256") is not None
-        or candidate_set.get("selection_requires_measured_throughput_and_memory")
-        is not True
-        or candidate_set.get("selection_uses_outcome_values") is not False
-        or candidate_set.get("test_data_used") is not False
-        or claimed != canonical_sha256(data)
-        or not isinstance(candidates, list)
-        or len(candidates) != len(BENCHMARK_BUDGETS)
-    ):
+    if candidate_set != expected or claimed != canonical_sha256(data):
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_FACTORY_CANDIDATES_INVALID")
-    by_budget: dict[int, dict[str, Any]] = {}
-    for candidate in candidates:
-        if (
-            not isinstance(candidate, Mapping)
-            or candidate.get("status") != "BENCHMARK_PENDING"
-            or candidate.get("selected") is not False
-        ):
-            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_FACTORY_CANDIDATES_INVALID")
-        contract = require_random_access_sampler_contract(
-            candidate.get("sampler_contract", {})
-        )
-        by_budget[int(contract["transition_budget_per_epoch"])] = contract
-    if set(by_budget) != set(BENCHMARK_BUDGETS):
-        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_FACTORY_CANDIDATES_INVALID")
-    return by_budget
+    return {
+        candidate["sampler_contract"]["transition_budget_per_epoch"]:
+        candidate["sampler_contract"]
+        for candidate in expected["candidates"]
+    }
 
 
 def build_random_access_train_adapter_factory_v1(

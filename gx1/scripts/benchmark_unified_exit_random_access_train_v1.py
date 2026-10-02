@@ -18,10 +18,17 @@ from typing import Any
 
 import torch
 
+from gx1.contracts.immutable_event_authority_v1 import (
+    _fsync_directory,
+    _publish_file_noreplace,
+)
 from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import file_sha256
 from gx1.contracts.unified_exit_pilot_normalization_v1 import (
     BENCHMARK_BUDGETS,
     BENCHMARK_TRANSITIONS_PER_ENTRY,
+)
+from gx1.contracts.unified_exit_random_access_sampler_v1 import (
+    require_random_access_sampler_contract,
 )
 from gx1.contracts.unified_exit_random_access_training_v1 import (
     collate_random_access_training_items,
@@ -33,7 +40,6 @@ AUTHORITATIVE_REPEATS = 1
 MAX_PEAK_PYTHON_ALLOCATION_BYTES = 2 * 1024**3
 MAX_PEAK_PADDED_MODEL_INPUT_BYTES = 1024**3
 MAX_MEASURED_CPU_PREP_EPOCH_SECONDS = 30 * 60
-ENTRY_PAIR_POPULATION = 65_295
 SELECTION_RULE_VERSION = "minimum_population_cycle_epochs_with_30m_cpu_cap_v1"
 
 
@@ -57,13 +63,13 @@ def _tensor_bytes(value: Mapping[str, Any]) -> int:
     )
 
 
-def _selection_policy() -> dict[str, Any]:
+def _selection_policy(entry_pair_population: int) -> dict[str, Any]:
     value = {
         "schema_version": "gx1_unified_exit_sampler_selection_policy_v1",
         "rule": SELECTION_RULE_VERSION,
         "authoritative_batch_size": AUTHORITATIVE_BATCH_SIZE,
         "authoritative_repeats": AUTHORITATIVE_REPEATS,
-        "entry_pair_population": ENTRY_PAIR_POPULATION,
+        "entry_pair_population": entry_pair_population,
         "max_peak_python_allocation_bytes": MAX_PEAK_PYTHON_ALLOCATION_BYTES,
         "max_peak_padded_model_input_bytes": MAX_PEAK_PADDED_MODEL_INPUT_BYTES,
         "max_measured_cpu_prep_epoch_seconds": MAX_MEASURED_CPU_PREP_EPOCH_SECONDS,
@@ -126,20 +132,32 @@ def benchmark_random_access_train_candidates_v1(
         raise RuntimeError(
             "UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_PREREGISTRATION_MISMATCH"
         )
-    policy = _selection_policy()
+    policy = None
+    source_lineage_sha256 = None
     candidates: list[dict[str, Any]] = []
     for budget in BENCHMARK_BUDGETS:
         adapter = adapter_factory(budget)
         bindings = adapter.random_access_training_bindings_v1()
-        contract = bindings["sampler_contract"]
+        contract = require_random_access_sampler_contract(bindings["sampler_contract"])
         if (
             contract.get("split") != "train"
             or contract.get("transition_budget_per_epoch") != budget
             or contract.get("transitions_per_entry") != BENCHMARK_TRANSITIONS_PER_ENTRY
-            or contract.get("entry_pair_population") != ENTRY_PAIR_POPULATION
             or contract.get("test_data_used") is not False
         ):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_CONTRACT_INVALID")
+        # The canonical adapter contract owns population and lineage. Historical
+        # corpus sizes cannot be used to rank a different physical TRAIN source.
+        if policy is None:
+            policy = _selection_policy(contract["entry_pair_population"])
+            source_lineage_sha256 = contract["source_lineage_sha256"]
+        elif (
+            contract["entry_pair_population"] != policy["entry_pair_population"]
+            or contract["source_lineage_sha256"] != source_lineage_sha256
+        ):
+            raise RuntimeError(
+                "UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_POPULATION_OR_LINEAGE_DRIFT"
+            )
         selected = adapter.random_access_selected_entry_rows_v1()
         expected_entries = budget // BENCHMARK_TRANSITIONS_PER_ENTRY
         if len(selected) != expected_entries:
@@ -238,7 +256,7 @@ def benchmark_random_access_train_candidates_v1(
             median = statistics.median(durations)
             full_budget_measured = len(measured) == expected_entries
             population_cycle_epochs = math.ceil(
-                ENTRY_PAIR_POPULATION / expected_entries
+                contract["entry_pair_population"] / expected_entries
             )
             measurements.append(
                 {
@@ -337,7 +355,10 @@ def benchmark_random_access_train_candidates_v1(
 
 
 def _atomic_write_new_json(path: Path, value: Mapping[str, Any]) -> None:
-    output = path.expanduser().resolve()
+    requested = path.expanduser().absolute()
+    if requested.is_symlink():
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_OUTPUT_EXISTS")
+    output = requested.resolve()
     if output.exists() or output.is_symlink():
         raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_OUTPUT_EXISTS")
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -347,15 +368,18 @@ def _atomic_write_new_json(path: Path, value: Mapping[str, Any]) -> None:
     descriptor, temporary = tempfile.mkstemp(
         prefix=f".{output.name}.", dir=output.parent
     )
-    try:
-        with os.fdopen(descriptor, "wb") as handle:
-            handle.write(payload)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, output)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
+    # Failed staging is preserved for the retention owner; final evidence
+    # becomes visible only after verification, through atomic no-replace.
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+    stage = Path(temporary)
+    staged = stage.read_bytes()
+    if staged != payload or json.loads(staged) != value:
+        raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_STAGING_INVALID")
+    _publish_file_noreplace(stage, output)
+    _fsync_directory(output.parent)
 
 
 def _parser() -> argparse.ArgumentParser:

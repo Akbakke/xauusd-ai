@@ -2422,7 +2422,7 @@
     },
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
-    "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
+    "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
     "parameter_complexity_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
       "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
@@ -3310,6 +3310,84 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PLAN.json",
       "sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e"
     },
+    "sampler_source_review": {
+      "broker_requests": 0,
+      "candidate_population_cycles": [
+        80,
+        40,
+        20
+      ],
+      "candidate_selection_performed": false,
+      "completed_utc": "2026-10-02T01:56:13.832707+00:00",
+      "diagnostic_prefixes_differ_between_budgets": true,
+      "failed_attempt_preserved": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_SOURCE_REVIEW_001/EVENTS/TERMINAL_20261002T015611776356Z.json",
+        "sha256": "3862719fd5bf1229699c16492571d3fb0c9efe0829f9d491850335e1f4f5e684"
+      },
+      "model_forwards": 0,
+      "native_coordinates_frozen": false,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_SOURCE_REVIEW_002/OPERATOR.py",
+        "sha256": "13c73f109d47827f6255ac9e447a1b406caa333c96f4c1fb507afbbdb3a1473c"
+      },
+      "optimizer_steps": 0,
+      "parquet_reads": 0,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_SOURCE_REVIEW_002/PLAN.json",
+        "sha256": "572e2241ccb323b5d2fae7df56df3a6b7de687d97a9f517bf6b17c2d78f7aea3"
+      },
+      "remaining": [
+        "Actual cost/index-admitted throughput and memory benchmark has not run; no candidate has been selected.",
+        "Historical selected-sampler transfer is tied to a specific V3/V4 root and 65536 budget; do not reuse it as current authority.",
+        "Main builder still fixes factory(65536); current measured sampler selection and native row coordinates must be bound explicitly.",
+        "Physical native component/training/measurement routing and full admission remain incomplete.",
+        "Current economics/index preparation awaits the unanswered two-GET broker-terms authorization."
+      ],
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_SOURCE_REVIEW_002/EVENTS/SOURCE_REVIEW_20261002T015613832707Z.json",
+        "sha256": "a3a9e0fb9847ce8b24c316c2afff513f0d5049241dbb1dc0b77a03486aedb698"
+      },
+      "reviewed_uncommitted_source_bytes": true,
+      "source_bindings": {
+        "gx1/contracts/unified_exit_pilot_normalization_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_pilot_normalization_v1.py",
+          "sha256": "4836b23594dc279190b1ffe57f2cea237ff15e77cbc8133531954f8ab023f628"
+        },
+        "gx1/contracts/unified_exit_random_access_sampler_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_sampler_v1.py",
+          "sha256": "61f11a8e6399d7a472ce69e1921f4b7fd4fe7d08ead8185f5fdd3e1ac436737e"
+        },
+        "gx1/contracts/unified_exit_random_access_train_factory_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_train_factory_v1.py",
+          "sha256": "9077fd53f985345659dab4c3179b45a33abd473f5bacf78d3863e9931bddc51c"
+        },
+        "gx1/scripts/benchmark_unified_exit_random_access_train_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/benchmark_unified_exit_random_access_train_v1.py",
+          "sha256": "2ca500e7541029c292bffe8d0b489bbc4d34f498bd80bcd7e4b132eb505bd3e0"
+        },
+        "tests/test_benchmark_unified_exit_random_access_train_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_benchmark_unified_exit_random_access_train_v1.py",
+          "sha256": "c2a45c29fcba52bd3ea768acbbc50dd1f24469117ea4138602d479220bc0bb69"
+        }
+      },
+      "source_frozen_while_running": false,
+      "source_parent_head": "020f8d3f4b97d77152a303506a20b1f5c9db797b",
+      "status": "SOURCE_AND_REAL_METADATA_REVIEW_COMPLETE_FULL_BENCHMARK_PENDING",
+      "synthetic_tests": {
+        "combined_before_final_hash_refinement": 44,
+        "final_affected_file": 31,
+        "skipped": 0,
+        "unique_cases": 46
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_SOURCE_REVIEW_002/EVENTS/TERMINAL_20261002T015613851102Z.json",
+        "sha256": "2c28691aee6d910ad2ef26815f5cd82374ecd002d0d8f4023b9a3a67a05b9fe6"
+      },
+      "test_accessed": false,
+      "throughput_measured": false,
+      "train_rows": 652552,
+      "training_enabled": false
+    },
     "seal_admission_code_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SEAL_ADMISSION_PATCH/CODE_REVIEW.json",
       "sha256": "e30206c8de48c7cec9fc62ef3550d45b410fa78d8d9b25ea3f6e70bababc732d"
@@ -3411,7 +3489,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse the completed physical preprocessing identity in the chronological recipe owner and the verified original Dataset targets. Next bind native component/training/measurement owners to these existing results, separate physical TRAIN/VAL files and actual native epoch0/first4096/TRAIN256 coordinates. Do not manufacture legacy prefix-normalization or replacement-label artifacts and do not refit. Main-builder physical routing and full native admission remain unfinished; actual indexes and fresh economics are pending. The two-GET broker question remains unanswered; no broker, native training, TEST, live/paper or spending.",
+  "next_action": "Reuse completed physical TRAIN preprocessing and original Dataset targets. Sampler benchmark population/lineage admission and immutable publication are repaired and checked against genuine 652552-row candidate metadata. Actual throughput/memory selection remains pending current cost/index authority; do not assume the historical 65536 budget or freeze epoch0/first4096/TRAIN256 before selection. Next bind the current measured sampler and native component/training/measurement owners to separate physical TRAIN/VAL sources. Main-builder physical routing and full native admission remain unfinished. Do not refit or relaunch completed work. The previous two-GET broker question remains unanswered; no broker, native training, TEST, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -3424,7 +3502,7 @@
     "one_heavy_job_per_current": true,
     "resource_guards_preserved": true,
     "tests_passed": 294,
-    "user_instruction": "fjern l\u00e5s s\u00e5 vi kan jobbe parallelt"
+    "user_instruction": "fjern lås så vi kan jobbe parallelt"
   },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",

@@ -1,5 +1,33 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Benchmarkens gamle binding til 65 295 TRAIN-rader er rettet. Populasjonen
+kommer nå fra den kanoniske sampler-kontrakten, og alle kandidater må ha
+samme kilde og populasjon. Kandidatfabrikken gjenbruker produsenteieren
+framfor en ufullstendig kopi av valideringen. Endrede kontrakthasher,
+utvalgsregler og blandede kilder avvises.
+
+Resultatpublisering er rettet til eksisterende fsync/no-replace-eier.
+Navnekollisjon, inkludert en fil som dukker opp under publisering, kan
+ikke overskrive tidligere evidens. Korrupt staging og dangling symlinker
+avvises; feilet staging bevares for retention.
+
+46 unike fokuserte syntetiske tester er dekket: 44 i samlet grønn runde,
+deretter 31 i berørt fil etter en siste hashkontroll. Ingen utelatte tester.
+SAMPLER_SOURCE_REVIEW_002 har kontrollert de ekte fryste kandidatene med
+652 552 TRAIN-rader. De gir 80/40/20 delrunder per populasjonssyklus og
+forskjellige første 4096 Entry-ID-er. Exit 0; kilde og inputs uendret.
+Bare metadata og den eksisterende kausale sampler-eieren ble brukt;
+ingen Parquet-/TEST-lesing, modellkjøring, optimizer eller broker-kall.
+Første review-forsøk feilet før målingen på et feil argumentnavn i
+kvitteringskallet; den opprinnelige operatoren og feilkvitteringen er bevart.
+
+Faktisk throughput-/minnebenchmark og sampler-valg er fortsatt ikke kjørt.
+Treningsrekkefølgen kan derfor ikke fryses ennå. Historisk 65 536-valg og
+V3→V4-overføringskvittering er ikke autoritet for v38. Hovedbyggerens faste
+budsjett, binding av nytt målt valg og separate TRAIN-/VAL-koordinater
+gjenstår. Ferske kostnadsvilkår og faktiske indekser mangler; det tidligere
+brokerspørsmålet er ubesvart. Native trening er stengt. Ingen edge er bevist.
+
 Recipe-eierens identitetskontroll kan nå gjenbruke ferdig normalisering fra
 hele fysisk TRAIN og beviset for originale hjelpefasiter. Den binder separate
 TRAIN-/VAL-kilder, kildeklokker, hele TRAIN-populasjonen og sampleautoriteten

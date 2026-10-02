@@ -1014,3 +1014,35 @@ Dette er datagrunnlagets identitet, ikke full native recipe eller launch.
 Hovedbygger-/trenings-/målebindinger og faktisk epoch0/4096/TRAIN256-rekkefølge
 gjenstår. Indekser og fersk kostnadsautoritet mangler fortsatt, og
 brokervilkårsspørsmålet er ubesvart. Ingen læring eller edge er bevist.
+
+## Sampler-populasjon og uforanderlig benchmarkkvittering — 02.10.2026
+
+Benchmarkens gamle binding til 65 295 TRAIN-rader er rettet. Populasjonen
+kommer nå fra den kanoniske sampler-kontrakten, og alle kandidater må ha
+samme kilde og populasjon. Kandidatfabrikken gjenbruker produsenteieren
+framfor en ufullstendig kopi av valideringen. Endrede kontrakthasher,
+utvalgsregler og blandede kilder avvises.
+
+Resultatpublisering er rettet til eksisterende fsync/no-replace-eier.
+Navnekollisjon, inkludert en fil som dukker opp under publisering, kan
+ikke overskrive tidligere evidens. Korrupt staging og dangling symlinker
+avvises; feilet staging bevares for retention.
+
+46 unike fokuserte syntetiske tester er dekket: 44 i samlet grønn runde,
+deretter 31 i berørt fil etter en siste hashkontroll. Ingen utelatte tester.
+SAMPLER_SOURCE_REVIEW_002 har kontrollert de ekte fryste kandidatene med
+652 552 TRAIN-rader. De gir 80/40/20 delrunder per populasjonssyklus og
+forskjellige første 4096 Entry-ID-er. Exit 0; kilde og inputs uendret.
+Bare metadata og den eksisterende kausale sampler-eieren ble brukt;
+ingen Parquet-/TEST-lesing, modellkjøring, optimizer eller broker-kall.
+Første review-forsøk feilet før målingen på et feil argumentnavn i
+kvitteringskallet; den opprinnelige operatoren og feilkvitteringen er bevart.
+
+Faktisk throughput-/minnebenchmark og sampler-valg er fortsatt ikke kjørt.
+Treningsrekkefølgen kan derfor ikke fryses ennå. Historisk 65 536-valg og
+V3→V4-overføringskvittering er ikke autoritet for v38. Hovedbyggerens faste
+budsjett, binding av nytt målt valg og separate TRAIN-/VAL-koordinater
+gjenstår. Ferske kostnadsvilkår og faktiske indekser mangler; det tidligere
+brokerspørsmålet er ubesvart. Native trening er stengt. Ingen edge er bevist.
+
+Evidens: `/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_SOURCE_REVIEW_002/EVENTS/SOURCE_REVIEW_20261002T015613832707Z.json`, SHA `a3a9e0fb9847ce8b24c316c2afff513f0d5049241dbb1dc0b77a03486aedb698`.
