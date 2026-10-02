@@ -1,5 +1,44 @@
 # Veien videre — oppdatert 02.10.2026
 
+Offline lagring av handelstilstand er rettet og testet med feilinjeksjon.
+
+Før rettelsen ble en katalog eller brutt lenke med forventet tilstandsnavn
+tolket som fravær av handel. To samtidige lagringer delte dessuten samme
+midlertidige fil og kunne skrive i en allerede publisert tilstand. Tre
+målrettede feiltilfeller ble først reprodusert på gammel kilde.
+
+Hver lagring bruker nå en eksklusivt opprettet midlertidig fil med 0600,
+før eksisterende fsync og atomisk replace. Ugyldig filtype, brutt lenke og
+feil ved filinspeksjon stopper innlesingen; det samme gjelder flytting fra
+den pensjonerte plasseringen. En faktisk manglende fil er fortsatt fravær.
+Ingen ny ordreautoritet, låseeier eller handelsregel er innført.
+
+136 fokuserte tester består med nettverksadgang sperret i testprosessen.
+Kontrollen dekker overlappende lagring, korte writes, skriveavbrudd,
+fil-/katalog-fsync og replace-feil. Ved feil er synlig tilstand en komplett
+gammel eller ny versjon. Dette er syntetisk feilinjeksjon, ikke målt
+strømbrudd eller OS-omstart. Ubrukte close-intent-testhjelpere er fjernet.
+
+OFFLINE_PERSISTENCE_REVIEW_001 sluttet med exit 0 og uendret kilde.
+Statisk AST-søk i 265 sporede produksjonsfiler fant ingen direkte kall til
+create_market_order, get_order_by_client_id eller get_open_trades.
+Full ordrekoordinering, idempotent gjenoppretting og brokeravstemming er
+derfor fortsatt ukvalifisert. Hjelpertestene er ikke ende-til-ende botbevis.
+
+Den foreldede next_native_step-kopien i målmetadata er samstemt med
+fullført inputbygging. Ingen fullført plan skal relanseres. Neste native
+avhengigheter er fortsatt faktiske kostnader/indekser, målt sampler,
+koordinater og fersk initialmåling. Det avgrensede brokerspørsmålet er
+ubesvart. Ikke legg til flere generelle sikkerhetskontroller uten påvist
+feil. Trening, TEST, broker og live/paper er fortsatt stengt.
+
+Kontrollerte PC-omstarter inngår fortsatt i driftshensynet og skal bare
+skje etter maskinvid kontroll av jobber, GPU og låser. Ingen PC-omstart ble
+gjort i denne kontrollen. Læring, økonomisk edge, train/serve-paritet og
+full operativ kvalifisering er fortsatt ubevist.
+
+## Tidligere kontroll av fersk tilstand og kildebinding — historikk
+
 To feil i fersk tilstand og gjenbruk av initialmåling er rettet.
 
 Gjenoppretting kontrollerte tidligere tom optimizerhistorikk, men kunne

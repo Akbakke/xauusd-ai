@@ -1270,3 +1270,128 @@ def test_trade_state_load_all_requires_filename_identity_and_sorts(tmp_path: Pat
     bad_path.write_text(json.dumps(bad_payload), encoding="utf-8")
     with pytest.raises(RuntimeError, match="filename/identity mismatch"):
         TradeState.load_all(state_dir)
+
+
+@pytest.mark.parametrize("invalid_kind", ["directory", "broken_symlink"])
+def test_restart_rejects_nonfile_trade_state(tmp_path: Path, invalid_kind: str) -> None:
+    path = tmp_path / "open_trade_broken.json"
+    if invalid_kind == "directory":
+        path.mkdir()
+    else:
+        path.symlink_to(tmp_path / "missing-state")
+    with pytest.raises(RuntimeError, match="trade state"):
+        TradeState.load_all(tmp_path)
+
+
+def test_trade_state_missing_file_is_explicitly_absent(tmp_path: Path) -> None:
+    assert TradeState.load(tmp_path / "never-created.json") is None
+
+
+def test_trade_state_interleaved_saves_use_distinct_staging(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import gx1.execution.v12_trade_state as owner
+    path = tmp_path / "state.json"
+    first = _open(trade_id="first")
+    second = _open(trade_id="second-longer-identity")
+    original_write = owner.os.write
+    interleaved = False
+
+    def interleave(descriptor: int, data: memoryview) -> int:
+        nonlocal interleaved
+        if not interleaved:
+            interleaved = True
+            second.save(path)
+            assert TradeState.load(path).to_dict() == second.to_dict()
+        return original_write(descriptor, data)
+
+    monkeypatch.setattr(owner.os, "write", interleave)
+    first.save(path)
+    assert interleaved
+    assert TradeState.load(path).to_dict() == first.to_dict()
+
+
+@pytest.mark.parametrize("failure_point", ["write", "file_fsync", "replace", "directory_fsync"])
+def test_trade_state_save_fault_keeps_complete_published_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure_point: str,
+) -> None:
+    import gx1.execution.v12_trade_state as owner
+    path = tmp_path / "state.json"
+    old = _open(trade_id="old")
+    new = _open(trade_id="new")
+    old.save(path)
+    original_write = owner.os.write
+    original_fsync = owner.os.fsync
+    writes = 0
+    syncs = 0
+
+    def fail_write(descriptor: int, data: memoryview) -> int:
+        nonlocal writes
+        writes += 1
+        if writes == 1:
+            return original_write(descriptor, data[:11])
+        raise OSError("injected write failure")
+
+    def fail_fsync(descriptor: int) -> None:
+        nonlocal syncs
+        syncs += 1
+        if syncs == (1 if failure_point == "file_fsync" else 2):
+            raise OSError("injected fsync failure")
+        original_fsync(descriptor)
+
+    def fail_replace(*args: object) -> None:
+        raise OSError("injected replace failure")
+
+    if failure_point == "write":
+        monkeypatch.setattr(owner.os, "write", fail_write)
+    elif failure_point == "replace":
+        monkeypatch.setattr(owner.os, "replace", fail_replace)
+    else:
+        monkeypatch.setattr(owner.os, "fsync", fail_fsync)
+    with pytest.raises(OSError, match="injected"):
+        new.save(path)
+    expected = new if failure_point == "directory_fsync" else old
+    assert TradeState.load(path).to_dict() == expected.to_dict()
+
+
+def test_trade_state_short_writes_remain_complete_and_private(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import stat
+    import gx1.execution.v12_trade_state as owner
+    path = tmp_path / "state.json"
+    original_write = owner.os.write
+    monkeypatch.setattr(owner.os, "write", lambda fd, data: original_write(fd, data[:31]))
+    trade = _open()
+    trade.save(path)
+    assert TradeState.load(path).to_dict() == trade.to_dict()
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+@pytest.mark.parametrize("invalid_kind", ["directory", "broken_symlink"])
+def test_retired_state_location_rejects_nonfile(
+    tmp_path: Path, invalid_kind: str,
+) -> None:
+    legacy = tmp_path / "retired.json"
+    if invalid_kind == "directory":
+        legacy.mkdir()
+    else:
+        legacy.symlink_to(tmp_path / "missing-state")
+    with pytest.raises(RuntimeError, match="trade state"):
+        TradeState.load_all(tmp_path / "states", legacy_single_file=legacy)
+
+
+def test_trade_state_inspection_failure_is_not_absence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / "state.json"
+    original_stat = Path.stat
+
+    def deny_inspection(candidate: Path, *args: object, **kwargs: object):
+        if candidate == path:
+            raise PermissionError("injected permission failure")
+        return original_stat(candidate, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", deny_inspection)
+    with pytest.raises(RuntimeError, match="failed to inspect trade state"):
+        TradeState.load(path)

@@ -1,75 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import pytest
-
-
-def _close_fill_response(
-    *,
-    trade_id: str = "trade-7",
-    units: str = "-7",
-) -> dict[str, object]:
-    return {
-        "orderFillTransaction": {
-            "id": "close-tx-1",
-            "orderID": "close-order-1",
-            "instrument": "XAU_USD",
-            "time": "2026-07-31T10:00:00.125000000Z",
-            "price": "3300.25",
-            "pl": "4.50",
-            "units": units,
-            "tradesClosed": [
-                {
-                    "tradeID": trade_id,
-                    "units": units,
-                    "realizedPL": "4.50",
-                }
-            ],
-        }
-    }
-
-
-def _broker_account_binding(
-    digest_character: str = "a",
-) -> dict[str, str]:
-    return {
-        "schema_version": "gx1_trade_state_broker_account_binding_v1",
-        "environment": "practice",
-        "account_id_sha256": digest_character * 64,
-    }
-
-
-class _CloseIntentTrade:
-    trade_id = "trade-7"
-    side = "long"
-    units = 7
-    last_exit_decision = {
-        "action": "EXIT_NOW",
-        "decision_ts": "2026-07-31T10:00:00+00:00",
-    }
-    broker_account_binding = _broker_account_binding("a")
-
-    def __init__(self, journal_path: Path | None = None) -> None:
-        self.deleted = False
-        self.journal_path = journal_path
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "trade_id": self.trade_id,
-            "side": self.side,
-            "units": self.units,
-            "last_exit_decision": self.last_exit_decision,
-            "broker_account_binding": self.broker_account_binding,
-        }
-
-    def delete_state_file(self, _directory: Path) -> None:
-        if self.journal_path is not None:
-            assert self.journal_path.is_file()
-        self.deleted = True
 
 
 def test_oanda_mutation_transport_failure_is_never_retried() -> None:

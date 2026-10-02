@@ -24,14 +24,16 @@
     },
     "native_training_enabled": false,
     "next_native_step": {
+      "current_status_owner": "native_v38_preparation_20261001",
       "dependency_review": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INPUT_DEPENDENCY_REVIEW.json",
         "sha256": "8e051acad340de839f4d5613b35559849ed4f0763cc6b34199f0205ba3fd30b8"
       },
       "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN",
-      "input_build_authorized": true,
+      "input_build_authorization_consumed": true,
+      "input_build_authorized": false,
       "native_training_enabled": false,
-      "new_dataset_complete": false,
+      "new_dataset_complete": true,
       "normalization_fit_authorized": false,
       "optimizer_steps": 0,
       "plan": "configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json",
@@ -42,9 +44,104 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PLAN.json",
         "sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e"
       },
-      "source_frozen_while_running": true,
-      "status": "DEPENDENCIES_VERIFIED_FRESH_V38_INPUT_BUILD_AUTHORIZED_NOT_COMPLETE",
+      "source_frozen_while_running": false,
+      "status": "COMPLETE_INPUT_PREPARATION_NO_LEARNING_AUTHORITY",
       "training_enabled": false
+    },
+    "operational_persistence_review": {
+      "broker_requests": 0,
+      "created_utc": "2026-10-02T04:19:01.367839+00:00",
+      "decision": "PASS_OFFLINE_PERSISTENCE_FAULT_INJECTION_ONLY",
+      "full_operational_qualification": false,
+      "json_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OFFLINE_PERSISTENCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T041901367839Z.json",
+      "limitations": [
+        "Synthetic state and deterministic I/O fault injection only.",
+        "No actual OS reboot or power-loss durability measurement.",
+        "No complete active order/reconciliation coordinator was qualified.",
+        "No broker, live/paper, model training or TEST access."
+      ],
+      "native_optimizer_steps": 0,
+      "network_attempts": 0,
+      "network_guard": "socket connect/connect_ex/create_connection and requests Session.request denied in process",
+      "next_action": "Offline persistence faults are repaired and 136 synthetic tests passed with network calls denied; reuse this evidence. Full order coordination, restart reconciliation and train/serve parity remain unqualified. Do not reopen retired live/paper paths to claim operational completion. The actual native cost/index chain, measured sampler, coordinates and fresh initialization remain the next learning dependencies; the two-GET broker-terms authorization is still unanswered. Reuse completed preprocessing, preserve observation source identity and only edit for a newly observed blocker or an explicitly scoped unfinished goal dependency. Never relaunch the completed input build. Native training, TEST, broker requests, live/paper and spending remain closed.",
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OFFLINE_PERSISTENCE_REVIEW_001/OPERATOR.py",
+        "sha256": "75d473713ffa6fa81bc9a9ccf48a3af54697348e9dedb6d2ba812ac14ab62044"
+      },
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OFFLINE_PERSISTENCE_REVIEW_001/PLAN.json",
+        "sha256": "2d76d206f3d75ee5588402a61df6878e46cde743b82e8f88f6832cffcac63752"
+      },
+      "production_direct_call_scan": {
+        "calls": [],
+        "limitation": "Does not prove absence of indirect dynamic calls or complete orchestration.",
+        "method": "AST Call attribute/name search in tracked gx1/ and scripts/ Python files",
+        "names": [
+          "create_market_order",
+          "get_order_by_client_id",
+          "get_open_trades"
+        ],
+        "tracked_python_files": 265
+      },
+      "real_data_model_forwards": 0,
+      "reproduction": {
+        "review": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OFFLINE_PERSISTENCE_REPRODUCTION_001/EVENTS/SOURCE_REVIEW_20261002T041814605485Z.json",
+          "sha256": "fdb939ea1ba67cab5f5a9bf0f0a96a45b175adeb1ce56e0981b82c19880b0162"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OFFLINE_PERSISTENCE_REPRODUCTION_001/EVENTS/TERMINAL_20261002T041814624403Z.json",
+          "sha256": "ef2e76d3c93adf75044ad4ab45804875a1f47c3d2607c47cb565c88c2bcf58cc"
+        }
+      },
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OFFLINE_PERSISTENCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T041901367839Z.json",
+        "sha256": "dc9a0462152b0ed7d3e2682299991bfd7a39156abd751686d128b724c4f016ba"
+      },
+      "source_bindings": {
+        "gx1/execution/v12_trade_state.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/execution/v12_trade_state.py",
+          "sha256": "1039e16e614107d5b95bd063237ffcd3637dce38bc3fb1cac6d68de697b1a31a"
+        },
+        "tests/test_v12_runtime_fail_closed_inputs.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_v12_runtime_fail_closed_inputs.py",
+          "sha256": "56d02c17b63fdf4f13c194d534a6b0b312b81cd774388fde84eea38938976892"
+        },
+        "tests/test_v12_trade_state_model_native_snapshot.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_v12_trade_state_model_native_snapshot.py",
+          "sha256": "33ae5427d678eb9f7369691ff30d1094c6a0d7782b19055ae4062e1cab4e2c20"
+        }
+      },
+      "source_frozen_while_running": false,
+      "source_parent_head": "30f5911ec796316b89af45bf694cddeeecb77de1",
+      "source_unchanged_during_review": true,
+      "status": "OFFLINE_PERSISTENCE_VERIFIED_FULL_OPERATIONAL_QUALIFICATION_INCOMPLETE",
+      "synthetic_tests": {
+        "errors": 0,
+        "failed_test_names": [],
+        "failures": 0,
+        "junit": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OFFLINE_PERSISTENCE_REVIEW_001/PYTEST.xml",
+          "sha256": "f92bcd6ba046ce34955a455df703a33d686368190a65eeaf3df55dd87e421ad3"
+        },
+        "log": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OFFLINE_PERSISTENCE_REVIEW_001/PYTEST.log",
+          "sha256": "cd9c149d197cd547376374a651d4576d5c7d1c01951c2226a78893e117a11134"
+        },
+        "passed": 136,
+        "skipped": 0,
+        "test_args": [
+          "tests/test_v12_trade_state_model_native_snapshot.py",
+          "tests/test_v12_runtime_fail_closed_inputs.py"
+        ],
+        "tests": 136
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/OFFLINE_PERSISTENCE_REVIEW_001/EVENTS/TERMINAL_20261002T041901387063Z.json",
+        "sha256": "b9a18dc12a349a0279c04b4a7b23ebe87851c6c02864e1a5cab8e597674514af"
+      },
+      "test_dataset_accessed": false,
+      "working_source_uncommitted": true
     },
     "plan": "docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md",
     "report": "docs/TA_MACRO_CORE_RESULT_20261001.json",
@@ -2422,7 +2519,7 @@
     },
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
-    "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
+    "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
     "parameter_complexity_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
       "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
@@ -4091,7 +4188,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Current fresh-state restore and v38 observation-source admission are repaired and synthetically tested. Qualify the actual cost/index chain, measured sampler, genuine coordinates and fresh native initialization only when existing prerequisites are satisfied; the two-GET broker-terms authorization remains unanswered. Reuse completed preprocessing and preserve source identity between initial measurement and bounded learning. Before any further edit, identify a concrete remaining blocker in the declared preparation or another unfinished goal item; do not add generic guards or repeat successful tests. Native training, TEST, broker requests, live/paper and spending remain closed.",
+  "next_action": "Offline persistence faults are repaired and 136 synthetic tests passed with network calls denied; reuse this evidence. Full order coordination, restart reconciliation and train/serve parity remain unqualified. Do not reopen retired live/paper paths to claim operational completion. The actual native cost/index chain, measured sampler, coordinates and fresh initialization remain the next learning dependencies; the two-GET broker-terms authorization is still unanswered. Reuse completed preprocessing, preserve observation source identity and only edit for a newly observed blocker or an explicitly scoped unfinished goal dependency. Never relaunch the completed input build. Native training, TEST, broker requests, live/paper and spending remain closed.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -4104,7 +4201,7 @@
     "one_heavy_job_per_current": true,
     "resource_guards_preserved": true,
     "tests_passed": 294,
-    "user_instruction": "fjern l\u00e5s s\u00e5 vi kan jobbe parallelt"
+    "user_instruction": "fjern lås så vi kan jobbe parallelt"
   },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",

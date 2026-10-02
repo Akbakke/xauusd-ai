@@ -14,6 +14,8 @@ import json
 import logging
 import os
 import hashlib
+import stat
+import tempfile
 from copy import deepcopy
 from collections import deque
 from dataclasses import dataclass, field
@@ -1966,17 +1968,15 @@ class TradeState:
         if path.is_dir():
             path = path / self.state_filename()
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(path.suffix + ".tmp")
         encoded = json.dumps(
             self.to_dict(),
             default=str,
             indent=2,
         ).encode("utf-8")
-        descriptor = os.open(
-            tmp,
-            os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
-            0o600,
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{path.name}.", suffix=".tmp", dir=path.parent,
         )
+        tmp = Path(temporary_name)
         try:
             view = memoryview(encoded)
             while view:
@@ -2013,8 +2013,16 @@ class TradeState:
     @classmethod
     def load(cls, path: Path) -> "TradeState | None":
         """Load a saved trade state, or fail closed on corrupt/stale evidence."""
-        if not path.is_file():
+        try:
+            metadata = path.stat()
+        except FileNotFoundError:
+            if path.is_symlink():
+                raise RuntimeError(f"broken trade state link: {path}")
             return None
+        except OSError as exc:
+            raise RuntimeError(f"failed to inspect trade state at {path}: {exc}") from exc
+        if not stat.S_ISREG(metadata.st_mode):
+            raise RuntimeError(f"trade state is not a regular file: {path}")
         try:
             return cls.from_dict(json.loads(path.read_text()))
         except Exception as exc:
@@ -2034,7 +2042,7 @@ class TradeState:
         directory.mkdir(parents=True, exist_ok=True)
         trades: list[TradeState] = []
 
-        if legacy_single_file is not None and legacy_single_file.is_file():
+        if legacy_single_file is not None:
             t = cls.load(legacy_single_file)
             if t is not None:
                 target = directory / t.state_filename()
