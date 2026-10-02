@@ -202,3 +202,5 @@ Den hash-bundne planen og operatoren gjenbrukes. Ingen retry, redirect,
 transaksjonsoppslag, ordre, handel eller spending. Trening og TEST er stengt.
 
 Unntaket kan ikke gjenbrukes til nye kall etter at denne kjøringen har brukt det.
+
+Engangsunntaket er brukt opp 02.10.2026: begge GET-kall lyktes, null ordre/transaksjonsoppslag. Ingen videre broker-adgang er autorisert.

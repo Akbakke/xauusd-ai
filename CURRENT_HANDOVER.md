@@ -1,5 +1,23 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Den autoriserte engangskontrollen er fullført med exit 0: nøyaktig to
+GET-kall til OANDA practice, null ordre og null nye transaksjonsoppslag.
+De 258 historiske fyllene og finansieringsobservasjonene er bevart.
+Kontovilkårene er uendret. Instrumentets finansieringsrate endret seg fra
+-0,054 til -0,0569 for LONG og fra +0,0282 til +0,0323 for SHORT.
+GSLO-minsteavstand endret seg fra 5,32 til 1,5; fryst no-GSLO-policy består.
+
+Tillatelsen er brukt opp. Ingen flere broker-kall er autorisert.
+Kostnadseieren avviser de nye vilkårene fordi gammel finansieringsrate er
+hardkodet i produsent, policyvalidator og parameterautoritet. Neste rettelse
+skal binde finansieringskostnaden til den eksakte nye vilkårsevidensen med
+samme vedtatte metode: negative renter blir kostnad, positive kreditter
+klippes til null, og faktisk veggklokketid brukes. Ingen endring av slippage,
+kommisjonsbevis, risiko, mål, TEST eller trening. Ny prospektiv policy er
+ikke historisk kostnadsfasit eller lønnsomhetsbevis.
+
+## Tidligere autorisasjon — brukt opp, historikk
+
 Operatøren godkjente 02.10.2026 den tidligere klargjorte lesekontrollen:
 «Ja kjør lesekall». Tillatelsen gjelder bare COST_TERMS_REVALIDATION_001,
 maksimalt ett GET for OANDA practice-kontovilkår og ett GET for XAUUSD-vilkår.

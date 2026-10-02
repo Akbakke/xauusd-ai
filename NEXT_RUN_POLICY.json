@@ -2409,12 +2409,23 @@
       "unchanged_economics_parameters": true
     },
     "cost_terms_revalidation": {
-      "authorization_consumed": false,
+      "authorization_consumed": true,
       "authorization_question_pending": false,
       "authorization_received_utc": "2026-10-02T04:53:50.627445+00:00",
       "authorization_scope": "One current OANDA practice account-summary GET and one XAU_USD instrument-terms GET; no redirects, retries, transactions, orders, trading, spending or TEST data. Reuse the exact frozen pre-cutoff observations and policy; sanitize the two responses locally.",
       "authorization_user_text": "Ja kjør lesekall",
-      "broker_requests_performed": 0,
+      "broker_requests_performed": 2,
+      "completed_utc": "2026-10-02T04:54:13.225232+00:00",
+      "cost_policy_qualified": false,
+      "current_account_terms_unchanged": true,
+      "evidence": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/BROKER_EVIDENCE.json",
+        "sha256": "e5b649b841bf4ac7114d355efb01ea1ddf0ea369e58c1c4fb49b721672caec59"
+      },
+      "financing_terms": {
+        "long": -0.0569,
+        "short": 0.0323
+      },
       "focused_tests_passed": 15,
       "native_training_enabled": false,
       "operator": {
@@ -2426,9 +2437,17 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/PLAN.json",
         "sha256": "22d5b8de8d166a4d0b75669d51bf348b203d128d19e8fb7f7da0dd68b0e0e343"
       },
-      "read_only_broker_terms_authorized": true,
-      "source_frozen_while_running": true,
-      "status": "EXPLICIT_USER_AUTHORIZED_ONCE_NOT_EXECUTED",
+      "read_only_broker_terms_authorized": false,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/EVENTS/RESULT_20261002T045413208824Z.json",
+        "sha256": "8426c51ebf69481a0a78659889bcbfc81d61910f44897a73d63663bd624d061a"
+      },
+      "source_frozen_while_running": false,
+      "status": "COMPLETE_CURRENT_TERMS_CAPTURED_FINANCING_DRIFT_REQUIRES_POLICY_REBINDING",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/EVENTS/TERMINAL_20261002T045413225232Z.json",
+        "sha256": "3f31510bfe224c6a27a92fa2d274ad22da423cbe53d3852d1b2eea406e14e8e4"
+      },
       "transaction_requests_authorized": false
     },
     "dependency_review": {
@@ -2687,7 +2706,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "INDEX_SOURCES_VERIFIED_ECONOMIC_AUTHORITY_PENDING_READ_ONLY_TERMS_DECISION",
+    "learning_design_status": "CURRENT_TERMS_VERIFIED_FINANCING_DRIFT_REQUIRES_PROSPECTIVE_COST_REBINDING",
     "learning_proven": false,
     "lifetime_summary_fit": {
       "authorization_consumed": true,
@@ -3861,7 +3880,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Execute the explicitly user-authorized COST_TERMS_REVALIDATION_001 once through the capped audit owner, limited to the two bound OANDA practice GET routes. Preserve historical observations and inspect sanitized terminal evidence before any cost-policy qualification. No retries, redirects, transaction lookups, orders, training or TEST access are authorized.",
+  "next_action": "The two authorized OANDA terms GET calls completed successfully and the one-time authorization is consumed. Existing cost policy rejects changed financing terms (-0.0569 long, +0.0323 short). Rebind the existing prospective financing method to this exact evidence before cost/index qualification, preserving adverse-credit clipping, frozen slippage, observed commission and all other policy controls. No further broker calls, training, TEST, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-02T03:06:47.385534+00:00",
   "outer_guard_seconds": 13800,

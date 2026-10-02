@@ -1296,3 +1296,26 @@ transaksjonsoppslag, ordre, handel eller spending. Trening og TEST er stengt.
 
 Neste steg er én capped audit-kjøring og kontroll av renset terminal evidens.
 Godkjenningen er ennå ikke brukt; ingen nye broker-kall er utført.
+
+## Lesekontroll fullført; målte finansieringsvilkår endret — 02.10.2026
+
+Den autoriserte engangskontrollen er fullført med exit 0: nøyaktig to
+GET-kall til OANDA practice, null ordre og null nye transaksjonsoppslag.
+De 258 historiske fyllene og finansieringsobservasjonene er bevart.
+Kontovilkårene er uendret. Instrumentets finansieringsrate endret seg fra
+-0,054 til -0,0569 for LONG og fra +0,0282 til +0,0323 for SHORT.
+GSLO-minsteavstand endret seg fra 5,32 til 1,5; fryst no-GSLO-policy består.
+
+Tillatelsen er brukt opp. Ingen flere broker-kall er autorisert.
+Kostnadseieren avviser de nye vilkårene fordi gammel finansieringsrate er
+hardkodet i produsent, policyvalidator og parameterautoritet. Neste rettelse
+skal binde finansieringskostnaden til den eksakte nye vilkårsevidensen med
+samme vedtatte metode: negative renter blir kostnad, positive kreditter
+klippes til null, og faktisk veggklokketid brukes. Ingen endring av slippage,
+kommisjonsbevis, risiko, mål, TEST eller trening. Ny prospektiv policy er
+ikke historisk kostnadsfasit eller lønnsomhetsbevis.
+
+result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/EVENTS/RESULT_20261002T045413208824Z.json
+SHA256: 8426c51ebf69481a0a78659889bcbfc81d61910f44897a73d63663bd624d061a
+terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/EVENTS/TERMINAL_20261002T045413225232Z.json
+SHA256: 3f31510bfe224c6a27a92fa2d274ad22da423cbe53d3852d1b2eea406e14e8e4
