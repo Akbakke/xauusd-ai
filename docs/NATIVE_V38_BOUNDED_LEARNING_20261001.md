@@ -844,3 +844,62 @@ ellers er bevart. Gjeldende policy og økonomiske konklusjoner er uendret.
 Ubevist: ny faktisk kostnadsautoritet, nåværende brokervilkår, indeksbygg,
 native læring og handelsøkonomi. Det uttrykkelige brukerunntaket er
 fortsatt ikke mottatt; ingen brokerforespørsel er utført.
+
+## Designbundet lærerfunksjon og gjenoppretting — 02.10.2026
+
+Lærerfunksjonen er nå eksplisitt bundet gjennom de eksisterende native
+eierne. V38 velger samme aktuelle funksjon for ONLINE og TARGET, med begge
+parameterfrie normer bevart; historiske forsøk beholder sin opprinnelige
+lærer. Vekthash alene slipper ikke gjennom feil eller manglende
+funksjonsidentitet. To overflødige modellkopier for strukturkontroll er fjernet.
+
+Fokuserte syntetiske tester består: 108 bestått/3 hoppet over i første
+samlede grønne runde; etter siste gjenopprettingsrettelse består de 51
+berørte målingstestene/3 hoppet over. Tre utelatte kombinasjoner gjelder
+avledede mål utenfor deres TRAIN-only-scope. Samme frosne evalueringsmodus
+gir bit-identiske Entry-/Exit-utdata i testmodellen. Ulik requires_grad-
+status ga et lite CPU-avvik og er ikke dokumentert native train/serve-paritet.
+
+Dette er kilde-/testbevis. Reell v38-initialisering og læring er ikke kjørt.
+Separate fysiske TRAIN-/VAL-kilder, deres målrader og komplett native
+admission gjenstår. Nytt design avvises hvis TRAIN forsøkes gjenbrukt som
+fysisk VAL. Vilkårsspørsmålet er fortsatt ubesvart; broker er stengt.
+
+Kildebevist: _copy_frozen_prefix_reference_model fjernet tidligere
+ONLINEs parameterfrie encoder.norm og siste fuse-norm ved alle prefix-kall.
+Det endret funksjonen uten å endre state-dict-hashen. Nå velger eksisterende
+eier funksjonsparet fra det hashbundne designets eksplisitte separate
+TRAIN/VAL-roller og aktuelle TARGET-deklarasjon. Den fryste runtime-designfilen
+er byte-identisk med repository-kopien (SHA256
+5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864).
+
+Kallstedsrevisjonen dekker alle tre læreropprettingene i native-koordinatoren
+(fersk, resume og epokeovergang) samt initial-/finalmåling. De får nå eksakt
+funksjonsparet fra bindingen. Den historiske joint-gradient-proben beholder
+sin opprinnelige lærer. De to gamle frozen-policy-/representasjonsrutene
+validerer fortsatt ONLINE-strukturen, men allokerer ikke lenger en full
+modellkopi bare for å kaste den. Ingen historiske checkpoints er omskrevet.
+
+Gjenoppretting krever komponentens funksjonsidentitet. I aktuell modus
+må også initialkvitteringen og fersk tilstandsfil deklarere samme funksjon.
+Lagringsskjemaet i gamle kvitteringer uten feltet bevares i historisk modus;
+et oppgitt felt som motsier bindingen avvises. Måling sjekker funksjonsparet
+mot både det fryste designet og den varige sesjonskontrakten før lærerkopi
+eller forward. Identiske vekthasher er utilstrekkelig.
+
+Testavklaring: første sammenligning hadde trainable ONLINE mot frozen
+TARGET, begge i no-grad/inference, og ga Exit-Q-avvik
+2.2351741790771484e-08 bps på syntetiske CPU-inputs. Gjentatt ONLINE var
+eksakt; både-frozen og både-trainable var eksakte. Avviket ved ulike
+requires_grad-flagg bestod også uten MHA-fastpath. Dette isolerer forskjellen
+til utførelsesmodusen, men beviser ikke en bestemt intern kernelårsak.
+Testen for funksjonskopiering sammenligner nå samme frosne modus og krever
+fortsatt bitlikhet, bevart RNG, like vekter og uavhengig parameterlagring.
+Ingen numerisk produksjonstoleranse er endret.
+
+Fokuserte regresjoner dekker avvikende/manglende funksjonsmetadata, ukjent
+funksjon, endret design, innblanding av samme fysiske kilde for kontroll,
+initial-/resume-semantikk, bevaring av pointer/RNG og avvisning før forward.
+Syntaks, stale-path-scan og diff-sjekk består. Ny faktisk initialbaseline,
+native train/serve-paritet, fysisk kontrollruting, etikettkoordinater,
+kostnadsautoritet og læring er ufullført. training_enabled=false består.

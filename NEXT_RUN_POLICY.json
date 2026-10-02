@@ -2723,6 +2723,63 @@
     "source_commit": "5bdd75e037385f86f2d1347319a15efc381cd39e",
     "source_frozen_while_running": false,
     "status": "COMPLETE_INPUT_PREPARATION_NO_LEARNING_AUTHORITY",
+    "teacher_function_review": {
+      "broker_requests_performed": 0,
+      "cross_requires_grad_boundary_bitwise_equal": false,
+      "current_design_functions": {
+        "online": "main_encoder_and_fuse_final_layernorm_no_affine_v1",
+        "target": "main_encoder_and_fuse_final_layernorm_no_affine_v1"
+      },
+      "current_design_rejects_same_source_physical_control": true,
+      "design_file_sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864",
+      "legacy_design_functions_preserved": true,
+      "native_optimizer_steps": 0,
+      "native_train_serve_parity_proven": false,
+      "physical_split_native_components_complete": false,
+      "real_data_model_forwards": 0,
+      "real_native_initialization_performed": false,
+      "reviewed_at_utc": "2026-10-01T23:59:29.186133+00:00",
+      "runtime_design_equals_repository_copy": true,
+      "same_frozen_mode_synthetic_entry_exit_bitwise_equal": true,
+      "skip_reason": "Derived target combinations require TRAIN-only scope; pre-existing parametrized exclusions.",
+      "source_and_test_file_sha256": {
+        "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "9c15d34cc680182568a588103724705155366e85a537a9ba2dadabe5bef693f1",
+        "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "a0a3dbde9b3e33065012dedd16bc2379ac06dd747c479102bec7d969f8e75a50",
+        "tests/test_entry_main_encoder_normalization.py": "1772963a189a72722aab43ec696a5ac34687b696bdd11d61ba7c222d629ec193",
+        "tests/test_native_prefix_coordinator.py": "a47dca3f8203366620263aa245238c9689dd74246a883959befd8f25199ba29d",
+        "tests/test_native_prefix_initial_measurement.py": "a781192b70bc40e5c0f614cef5bcd17eaeed3eb1f24dc0adde13796a59486d0e",
+        "tests/test_native_prefix_learning_measurement.py": "52cbb24b89da4c4f778601686416b415f0b0854d4f51436f21aa203e6bcc8ab4"
+      },
+      "status": "PASS_SOURCE_AND_SYNTHETIC_TESTS_REAL_NATIVE_ADMISSION_INCOMPLETE",
+      "synthetic_cpu_online_trainable_target_frozen_exit_q_max_abs_bps": 2.2351741790771484e-08,
+      "test_dataset_accessed": false,
+      "test_runs": [
+        {
+          "files": [
+            "tests/test_entry_main_encoder_normalization.py",
+            "tests/test_native_fresh_prefix_components.py",
+            "tests/test_native_prefix_coordinator.py",
+            "tests/test_native_prefix_initial_measurement.py",
+            "tests/test_native_prefix_learning_measurement.py"
+          ],
+          "passed": 108,
+          "scope": "full focused green run before final restore admission refinement",
+          "skipped": 3
+        },
+        {
+          "files": [
+            "tests/test_native_prefix_initial_measurement.py",
+            "tests/test_native_prefix_learning_measurement.py"
+          ],
+          "passed": 51,
+          "scope": "affected measurement and restore tests after final refinement",
+          "skipped": 3
+        }
+      ],
+      "training_enabled": false,
+      "training_restore_refresh_and_measurement_use_declared_function": true,
+      "unneeded_structure_only_model_copies_removed": 2
+    },
     "train_rows": 652552,
     "train_sequence_audit": {
       "audit": {
@@ -2755,9 +2812,9 @@
     },
     "training_enabled": false
   },
-  "next_action": "The actual INDEX_SOURCE_AUDIT_001 completed with exit 0; reuse it and all completed normalization/final bindings. The cost-policy/no-cap/readiness publication repair passes 38 focused tests, with strict load before fsync/no-replace and failed evidence retained. No new real economics authority or indexes exist. The narrow two-GET OANDA practice terms exception has been requested from the user and is pending; read_only_broker_terms_authorized=false. Do not repeat the question or infer approval. Upon explicit approval record only that scoped exception before the prepared COST_TERMS_REVALIDATION_001. Reconcile any observed cost drift before a new 2011-onward prospective policy and economic/index authority. Native training, TEST, live/paper and spending stay closed.",
+  "next_action": "Reuse all completed normalization/final bindings and the actual index source audit. The teacher function is now selected by the bound design and propagated to native initialization/resume/refresh/measurement, with current v38 norms retained and legacy semantics preserved; focused synthetic tests pass. This does not admit actual native execution: physical TRAIN/VAL component and target-coordinate support is still incomplete and the legacy same-source substitution is rejected. While the user's narrow two-GET broker-terms exception remains pending, continue only independent source preparation for the declared physical split/target owners. Do not repeat the question, infer approval, refit inputs or publish economics/indexes without current cost authority. On explicit approval record the exact scoped exception before COST_TERMS_REVALIDATION_001, then reconcile cost drift and 2011-onward coverage. Native training, TEST, live/paper and spending remain closed.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-10-01T23:37:22.003647+00:00",
+  "observed_utc": "2026-10-01T23:59:29.186133+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",

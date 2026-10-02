@@ -163,7 +163,8 @@ def test_saved_fresh_state_restore_includes_optimizer_scheduler_ema_and_rng(tmp_
     path = tmp_path / 'INITIAL_STATE.pt'; torch.save(state, path)
     components = {'model': model, 'optimizer': optimizer, 'weight_ema': ema, 'lr_scheduler': scheduler,
         'chronological_prefix': {'test': True}, 'weight_ema_derivation': {'test': True},
-        'seed_binding': {'model_state_sha256': model_hash}}
+        'seed_binding': {'model_state_sha256': model_hash},
+        'model_functions': dict(trainer._PREFIX_MODEL_FUNCTIONS)}
     initial = {'initial_state': _bind(path), 'online_model_state_sha256': model_hash,
                'ema_derivation': {'test': True}, 'seed_binding': {'seed': 20260911}}
     with torch.no_grad(): model.weight.add_(3.)
@@ -179,7 +180,7 @@ def test_saved_fresh_state_restore_includes_optimizer_scheduler_ema_and_rng(tmp_
 
 @pytest.mark.parametrize('train_only,fail_control', [(False,False),(False,True),(True,False)])
 def test_initial_measurement_preserves_native_state_even_on_partial_failure(tmp_path, monkeypatch, train_only, fail_control):
-    monkeypatch.setattr(trainer, "_copy_frozen_prefix_reference_model", lambda m: copy.deepcopy(m).eval().requires_grad_(False))
+    monkeypatch.setattr(trainer, "_copy_frozen_prefix_reference_model", lambda m, **kw: copy.deepcopy(m).eval().requires_grad_(False))
     artifacts = tmp_path / 'artifacts'; artifacts.mkdir()
     h = PrefixHarness(tmp_path / 'run', _prepared(artifacts))
     output = h.root / 'MEASURED'
@@ -244,3 +245,83 @@ def test_initial_train_only_is_bound_and_cannot_enable_updates(initial_scope, fa
         assert native.require_native_run_scope(recipe, invocation_number=1, execution_budget=budget) == 0
         with pytest.raises(RuntimeError, match='INITIAL_BUDGET'):
             native.require_native_run_scope(recipe, execution_budget={**budget, 'stop_after_optimizer_steps':1})
+
+
+
+@pytest.mark.parametrize("fault", [None, "initial_missing", "state_missing", "state_legacy", "unknown", "component_missing"])
+def test_current_initial_restore_binds_function_even_with_identical_weight_hashes(tmp_path, fault):
+    torch.manual_seed(20260911)
+    model = torch.nn.Linear(3, 2)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.0001)
+    ema = trainer._WeightEma(model, .5)
+    functions = dict(trainer._PREFIX_CURRENT_MODEL_FUNCTIONS)
+    model_hash = trainer._model_state_sha256(model)
+    state = {
+        "schema_version": "gx1_prefix_fresh_initial_state_v1",
+        "chronological_prefix": {"test": True}, "model_functions": functions,
+        "model_forwards": 0, "optimizer_steps": 0, "checkpoint_loaded": False,
+        "model_state": copy.deepcopy(model.state_dict()),
+        "target_model_state": copy.deepcopy(model.state_dict()),
+        "optimizer_state": optimizer.state_dict(), "weight_ema_state": ema.checkpoint_state(),
+        "lr_scheduler_state": None, "rng_state": trainer._attended_session_rng_state(device=torch.device("cpu")),
+    }
+    if fault == "state_missing":
+        state.pop("model_functions")
+    elif fault == "state_legacy":
+        state["model_functions"] = dict(trainer._PREFIX_MODEL_FUNCTIONS)
+    path = tmp_path / "INITIAL_STATE.pt"
+    torch.save(state, path)
+    initial = {
+        "initial_state": _bind(path), "online_model_state_sha256": model_hash,
+        "ema_derivation": {"test": True}, "seed_binding": {"seed": 20260911},
+        "model_functions": functions,
+    }
+    if fault == "initial_missing":
+        initial.pop("model_functions")
+    components = {
+        "model": model, "optimizer": optimizer, "weight_ema": ema, "lr_scheduler": None,
+        "chronological_prefix": {"test": True}, "weight_ema_derivation": {"test": True},
+        "seed_binding": {"model_state_sha256": model_hash},
+        "model_functions": functions if fault != "unknown" else {"online": "unknown", "target": "unknown"},
+    }
+    if fault == "component_missing":
+        components.pop("model_functions")
+    if fault is None:
+        runner._restore_prefix_initial_measurement_state(
+            components=components, scope={"initialization": initial}, device=torch.device("cpu"))
+    else:
+        with pytest.raises(RuntimeError, match="INITIAL_FUNCTION_BINDING_INVALID"):
+            runner._restore_prefix_initial_measurement_state(
+                components=components, scope={"initialization": initial}, device=torch.device("cpu"))
+    assert trainer._model_state_sha256(model) == model_hash
+
+
+
+def test_measurement_rejects_function_drift_before_teacher_copy_or_forward(tmp_path, monkeypatch):
+    artifacts = tmp_path / "artifacts"
+    artifacts.mkdir()
+    h = PrefixHarness(tmp_path / "run", _prepared(artifacts))
+    output = h.root / "FUNCTION_DRIFT"
+    model, pause = h.run_prefix(output, 0)
+    original_pointer = h.pointer(output).read_bytes()
+    original_hash = trainer._model_state_sha256(model)
+    functions = dict(trainer._PREFIX_CURRENT_MODEL_FUNCTIONS)
+    monkeypatch.setattr(trainer, "_prefix_reference_model_functions", lambda design: functions)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("no teacher copy before exact function admission")
+
+    monkeypatch.setattr(trainer, "_copy_frozen_prefix_reference_model", forbidden)
+    scope_value = {
+        "initialization": {"online_model_state_sha256": original_hash, "model_functions": functions},
+    }
+    with pytest.raises(RuntimeError, match="MEASUREMENT_FUNCTION_BINDING_INVALID"):
+        runner._run_prefix_initial_measurement(
+            components={**h.last_kwargs, "train_probe_ds": object()},
+            scope=scope_value, recipe={"chronological_prefix": h.data.value},
+            output=output, device=torch.device("cpu"), invocation_started=time.monotonic(),
+            pause_evidence=pause,
+        )
+    assert h.pointer(output).read_bytes() == original_pointer
+    assert trainer._model_state_sha256(model) == original_hash
+    assert not (Path(pause["session_directory"]) / "initial_measurement").exists()

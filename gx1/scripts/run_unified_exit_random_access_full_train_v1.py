@@ -205,6 +205,11 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
         raise RuntimeError("NATIVE_PREFIX_COMPONENT_BINDINGS_INVALID")
     design, normalization, labels = (val._read(_bound_artifact(value[name]))
                                     for name in ("design", "normalization_result", "labels_result"))
+    functions = trainer._prefix_reference_model_functions(design)
+    if (functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
+            and (files["entry_val_parquet"] == files["entry_train_parquet"]
+                 or files["entry_val_manifest"] == files["entry_train_manifest"])):
+        raise RuntimeError("NATIVE_PREFIX_PHYSICAL_SPLIT_BINDING_REQUIRED")
     if (design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
             or design.get("status") != "DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE"
             or design["scope"].get("test_sealed") is not True
@@ -254,7 +259,9 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
             or composite["base_feature_normalization"]["contract_sha256"] != normalization["base_contract_sha256"]
             or composite["lifetime_summary_normalization"]["normalization_sha256"] != normalization["summary_normalization_sha256"]):
         raise RuntimeError("NATIVE_PREFIX_COMPONENT_NORMALIZATION_INVALID")
-    return {"bindings": dict(value), "design": design, "normalization": normalization,
+    return {"bindings": dict(value), "design": design,
+            "model_functions": functions,
+            "normalization": normalization,
             "labels": labels, "preparation": preparation, "cutoff_time_ns": cutoff,
             "eligible_parent_rows": eligible, "epoch0_parent_order": order}
 
@@ -569,7 +576,8 @@ def _build_bound_full_train_components(
         "input_normalization": input_norm, "metadata": meta, "per_tf_seq_lens": per_tf,
         "seed_binding": seed_binding, "weight_ema_derivation": ema_derivation,
         "full_population_schedule": schedule,
-        **({"chronological_prefix": prefix["bindings"], "prefix_parent_population": prefix["eligible_parent_rows"],
+        **({"chronological_prefix": prefix["bindings"], "model_functions": prefix["model_functions"],
+            "prefix_parent_population": prefix["eligible_parent_rows"],
             "train_probe_ds": train_probe_ds,
             "prefix_epoch0_parent_order": prefix["epoch0_parent_order"]} if prefix is not None else {}),
         "effective_train_rows": effective_train_rows,
@@ -1367,6 +1375,13 @@ def _restore_prefix_initial_measurement_state(*, components, scope, device):
     initial = scope["initialization"]
     state = torch.load(_bound_artifact(initial["initial_state"]), map_location="cpu", weights_only=False)
     expected = initial["online_model_state_sha256"]
+    functions = components.get("model_functions")
+    if (functions not in (trainer._PREFIX_MODEL_FUNCTIONS, trainer._PREFIX_CURRENT_MODEL_FUNCTIONS)
+            or any("model_functions" in value and value["model_functions"] != functions
+                   for value in (initial, state))
+            or (functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
+                and any(value.get("model_functions") != functions for value in (initial, state)))):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_FUNCTION_BINDING_INVALID")
     if (state.get("schema_version") != "gx1_prefix_fresh_initial_state_v1"
             or state.get("chronological_prefix") != components["chronological_prefix"]
             or state.get("model_forwards") != 0 or state.get("optimizer_steps") != 0
@@ -1427,7 +1442,15 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                                            or state["weight_ema_state"]["steps"] != final_step))
             or val.canonical_model_state_sha256(state["target_model_state"]) != target_hash):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_CHECKPOINT_MISMATCH")
-    target = trainer._copy_frozen_prefix_reference_model(model).to(device)
+    functions = trainer._prefix_reference_model_functions(
+        val._read(_bound_artifact(recipe["chronological_prefix"]["design"])))
+    if (session._contract.get("chronological_prefix", {}).get("model_functions") != functions
+            or ("model_functions" in scope["initialization"]
+                and scope["initialization"]["model_functions"] != functions)
+            or (functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
+                and scope["initialization"].get("model_functions") != functions)):
+        raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_FUNCTION_BINDING_INVALID")
+    target = trainer._copy_frozen_prefix_reference_model(model, model_functions=functions).to(device)
     target.load_state_dict(state["target_model_state"], strict=True)
     out = directory / ("initial_measurement" if optimizer_steps == 0 else "final_online_measurement")
     if out.exists() or out.is_symlink():
@@ -1496,7 +1519,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         "measurement_binding_result": scope["artifacts"]["measurement_binding_result"],
         "training_pointer_sha256": before, "model_state_sha256": expected,
         "target_model_state_sha256": target_hash, "observations": observations,
-        "model_functions": dict(trainer._PREFIX_MODEL_FUNCTIONS),
+        "model_functions": dict(functions),
         "measurement_roles": list(observations),
         "optimizer_steps": optimizer_steps, "teacher_refreshed": False, "economic_rollout": False,
         "test_data_used": False, "elapsed_native_seconds": time.monotonic() - invocation_started}
@@ -1577,8 +1600,7 @@ def _run_frozen_entry_representation_probe(*, components, scope, recipe, device,
             or context["state_factory"].source_split != "train"):
         raise RuntimeError("FROZEN_ENTRY_PROBE_CONTEXT_INVALID")
     model = components["model"]
-    function_probe = trainer._copy_frozen_prefix_reference_model(model)
-    del function_probe
+    trainer._require_prefix_online_function(model)
     binding = bind_frozen_train_policy_checkpoint_v1(plan_binding=scope["plan_binding"], model=model)
     before = dict(scope["origin_resume_state"])
     directory.mkdir(parents=True)
@@ -1630,8 +1652,7 @@ def _run_frozen_train_policy_validation(*, components, scope, recipe, device, ou
         raise RuntimeError("FROZEN_TRAIN_POLICY_INSUFFICIENT_WINDOW")
     model = components["model"]
     # Reuse the existing function check for both parameter-free ONLINE norms.
-    function_probe = trainer._copy_frozen_prefix_reference_model(model)
-    del function_probe
+    trainer._require_prefix_online_function(model)
     binding = bind_frozen_train_policy_checkpoint_v1(plan_binding=scope["plan_binding"], model=model)
     before = dict(scope["origin_resume_state"])
     directory.mkdir(parents=True)

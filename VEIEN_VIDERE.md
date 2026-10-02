@@ -1,5 +1,23 @@
 # Veien videre — oppdatert 02.10.2026
 
+Lærerfunksjonen er nå eksplisitt bundet gjennom de eksisterende native
+eierne. V38 velger samme aktuelle funksjon for ONLINE og TARGET, med begge
+parameterfrie normer bevart; historiske forsøk beholder sin opprinnelige
+lærer. Vekthash alene slipper ikke gjennom feil eller manglende
+funksjonsidentitet. To overflødige modellkopier for strukturkontroll er fjernet.
+
+Fokuserte syntetiske tester består: 108 bestått/3 hoppet over i første
+samlede grønne runde; etter siste gjenopprettingsrettelse består de 51
+berørte målingstestene/3 hoppet over. Tre utelatte kombinasjoner gjelder
+avledede mål utenfor deres TRAIN-only-scope. Samme frosne evalueringsmodus
+gir bit-identiske Entry-/Exit-utdata i testmodellen. Ulik requires_grad-
+status ga et lite CPU-avvik og er ikke dokumentert native train/serve-paritet.
+
+Dette er kilde-/testbevis. Reell v38-initialisering og læring er ikke kjørt.
+Separate fysiske TRAIN-/VAL-kilder, deres målrader og komplett native
+admission gjenstår. Nytt design avvises hvis TRAIN forsøkes gjenbrukt som
+fysisk VAL. Vilkårsspørsmålet er fortsatt ubesvart; broker er stengt.
+
 Indekseierens nye kilde-/kalenderkontroll er kjørt på de ekte metadataene:
 652 552 TRAIN-/70 880 VAL-rader, exit 0, null Parquet-/TEST-tilgang.
 37 fokuserte tester består. Faktiske filstier gjenbrukes uten kopier; økonomi

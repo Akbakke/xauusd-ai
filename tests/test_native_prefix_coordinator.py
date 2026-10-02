@@ -130,7 +130,10 @@ def test_bounded_context_rejects_mismatched_factory_or_coordinates(tmp_path,faul
 class PrefixHarness(Harness):
     def __init__(self,root,data):
         super().__init__(root);self.data=data;self.last_kwargs=None;self.teacher_hashes=[]
-        self.ns["_copy_frozen_prefix_reference_model"] = copy.deepcopy
+        def teacher_copy(model, *, model_functions):
+            assert model_functions == trainer._prefix_reference_model_functions(data.design)
+            return copy.deepcopy(model)
+        self.ns["_copy_frozen_prefix_reference_model"] = teacher_copy
     def train(self,model,teacher,loader,optimizer,device,**kwargs):
         self.teacher_hashes.append(trainer._model_state_sha256(teacher))
         return super().train(model,teacher,loader,optimizer,device,**kwargs)
@@ -208,3 +211,24 @@ def test_prefix_fixed_scope_rejects_expansion_before_checkpoint_or_updates(tmp_p
     with pytest.raises(RuntimeError,match='PREFIX_FIXED_BUDGET_REQUIRED'):
         h.run_prefix(output,256,execution_budget=budget,**overrides)
     assert not h.pointer(output).exists() and h.batches==[]
+
+
+
+def test_current_design_cannot_relabel_legacy_same_source_control(tmp_path):
+    data = _prepared(tmp_path)
+    args = _binding_args(data)
+    current = json.loads((Path(__file__).resolve().parents[1] / "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    data.design["calendar"].update({
+        "physical_source_splits": current["calendar"]["physical_source_splits"],
+        "physical_coordinate_namespaces_are_separate": True,
+    })
+    data.design["initialization"].update(current["initialization"])
+    data.value["design"] = _write(Path(data.value["design"]["path"]), data.design)
+    with pytest.raises(RuntimeError, match="PHYSICAL_SPLIT_BINDING_REQUIRED"):
+        trainer._prefix_candidate_training_binding(**args)
+    from gx1.scripts import run_unified_exit_random_access_full_train_v1 as runner
+    with pytest.raises(RuntimeError, match="PHYSICAL_SPLIT_BINDING_REQUIRED"):
+        runner._require_prefix_component_bindings(
+            data.value, files=data.files, seed=20260911, batch_size=16,
+            learning_rate=.0001, weight_decay=.0001,
+        )

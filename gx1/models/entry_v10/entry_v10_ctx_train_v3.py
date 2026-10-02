@@ -12755,12 +12755,45 @@ _PREFIX_MODEL_FUNCTIONS = {
 }
 
 
-def _copy_frozen_prefix_reference_model(model):
-    """Preserve the pre-correction teacher function, not just its state tensors.
+_PREFIX_CURRENT_MODEL_FUNCTIONS = {
+    "online": _PREFIX_MODEL_FUNCTIONS["online"],
+    "target": _PREFIX_MODEL_FUNCTIONS["online"],
+}
 
-    The main encoder and Entry fuse add parameter-free final norms. Prefix
-    supervision remains tied to the original function without either norm.
+
+def _prefix_reference_model_functions(design):
+    """Select functions from the already hash-bound chronological design.
+
+    Historical single-source prefixes retain their original teacher. The
+    declared physical TRAIN/VAL design requires the current ONLINE function.
+    This is a function binding, never preprocessing or launch authorization.
     """
+    if (not isinstance(design, Mapping)
+            or design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"):
+        raise RuntimeError("[PREFIX_REFERENCE_DESIGN_INVALID]")
+    calendar = design.get("calendar", {})
+    initialization = design.get("initialization", {})
+    if not isinstance(calendar, Mapping) or not isinstance(initialization, Mapping):
+        raise RuntimeError("[PREFIX_REFERENCE_DESIGN_INVALID]")
+    current_target = (
+        "Frozen copy of the same current initial ONLINE function and weights. "
+        "Do not strip current parameter-free norms for historical compatibility. "
+        "Bind function identity as well as state hashes."
+    )
+    if ("physical_source_splits" not in calendar
+            and "physical_coordinate_namespaces_are_separate" not in calendar
+            and initialization.get("target") != current_target):
+        return dict(_PREFIX_MODEL_FUNCTIONS)
+    if (calendar.get("physical_source_splits") != {"train": "train", "control": "val"}
+            or calendar.get("physical_coordinate_namespaces_are_separate") is not True
+            or initialization.get("mode") != "fresh_existing_model_constructor_no_checkpoint_weights"
+            or initialization.get("target") != current_target):
+        raise RuntimeError("[PREFIX_REFERENCE_PHYSICAL_DESIGN_FUNCTION_INVALID]")
+    return dict(_PREFIX_CURRENT_MODEL_FUNCTIONS)
+
+
+def _require_prefix_online_function(model):
+    """Check parameter-free ONLINE norms without allocating a teacher copy."""
     encoder = getattr(model, "encoder", None)
     norm = getattr(encoder, "norm", None)
     if (not isinstance(encoder, nn.TransformerEncoder)
@@ -12774,9 +12807,19 @@ def _copy_frozen_prefix_reference_model(model):
             or tuple(fuse[-1].normalized_shape) != tuple(norm.normalized_shape)
             or fuse[-1].eps != 1e-5 or fuse[-1].state_dict()):
         raise RuntimeError("[PREFIX_REFERENCE_FUSE_FUNCTION_INVALID]")
+
+
+def _copy_frozen_prefix_reference_model(model, *, model_functions=None):
+    """Copy the declared teacher function; historical callers preserve v1."""
+    functions = _PREFIX_MODEL_FUNCTIONS if model_functions is None else model_functions
+    if (not isinstance(functions, Mapping)
+            or dict(functions) not in (_PREFIX_MODEL_FUNCTIONS, _PREFIX_CURRENT_MODEL_FUNCTIONS)):
+        raise RuntimeError("[PREFIX_REFERENCE_MODEL_FUNCTIONS_INVALID]")
+    _require_prefix_online_function(model)
     target = copy.deepcopy(model)
-    target.encoder.norm = None
-    target.fuse = target.fuse[:-1]
+    if functions == _PREFIX_MODEL_FUNCTIONS:
+        target.encoder.norm = None
+        target.fuse = target.fuse[:-1]
     return target.eval().requires_grad_(False)
 
 
@@ -12798,6 +12841,10 @@ def _prefix_candidate_training_binding(
         raise RuntimeError("[CANDIDATE_PREFIX_BINDING_INVALID]")
     artifacts = {key: checked(binding) for key, binding in chronological_prefix.items()}
     design = read(artifacts["design"])
+    functions = _prefix_reference_model_functions(design)
+    if (functions == _PREFIX_CURRENT_MODEL_FUNCTIONS
+            and Path(train_parquet) == Path(val_parquet)):
+        raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_SPLIT_BINDING_REQUIRED]")
     normalization = read(artifacts["normalization_result"])
     preparation = read(normalization["prefix_preparation"])
     cutoff = int(pd.Timestamp(design["calendar"]["train_control_cutoff"]).value)
@@ -12850,7 +12897,7 @@ def _prefix_candidate_training_binding(
         raise RuntimeError("[CANDIDATE_PREFIX_POPULATION_INVALID]")
     binding = {
         "schema_version": "gx1_candidate_prefix_training_binding_v1",
-        "model_functions": dict(_PREFIX_MODEL_FUNCTIONS),
+        "model_functions": functions,
         "artifacts": artifacts, "prefix_preparation": normalization["prefix_preparation"],
         "train_parent_rows": row_bindings[0], "control_parent_rows": row_bindings[1],
         "epoch0_parent_order": order_binding, "train_rows": int(parents.numel()),
@@ -14045,7 +14092,8 @@ def _run_resumable_candidate_training(
 
     if restored_state is None:
         epoch_order = _candidate_training_epoch_order(train_ds, epoch_index=0, parent_population=parent_population)
-        target_model = (_copy_frozen_prefix_reference_model(model)
+        target_model = (_copy_frozen_prefix_reference_model(
+                            model, model_functions=prefix_binding["model_functions"])
                         if prefix_binding is not None else copy.deepcopy(model)).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
@@ -14057,7 +14105,8 @@ def _run_resumable_candidate_training(
         checkpoint_index = 1
         complete = False
     else:
-        target_model = (_copy_frozen_prefix_reference_model(model)
+        target_model = (_copy_frozen_prefix_reference_model(
+                            model, model_functions=prefix_binding["model_functions"])
                         if prefix_binding is not None else copy.deepcopy(model)).to(device)
         restored = _restore_candidate_training_checkpoint(
             restored_state,
@@ -14700,7 +14749,8 @@ def _run_resumable_candidate_training(
         epoch_order = _candidate_training_epoch_order(
             train_ds, epoch_index=epoch_index, parent_population=parent_population,
         )
-        target_model = (_copy_frozen_prefix_reference_model(model)
+        target_model = (_copy_frozen_prefix_reference_model(
+                            model, model_functions=prefix_binding["model_functions"])
                         if prefix_binding is not None else copy.deepcopy(model)).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
