@@ -222,6 +222,10 @@ def test_native_campaign_materialization_window_and_final_review_stop(prefix_sco
 
 @pytest.fixture(scope="module")
 def physical_normalization_templates():
+    return _physical_normalization_templates_for_rows(4500)
+
+
+def _physical_normalization_templates_for_rows(train_rows):
     import numpy as np
     import pandas as pd
     from tests.model_native_input_normalization_support import input_normalization_fixture
@@ -229,13 +233,13 @@ def physical_normalization_templates():
         build_physical_summary_sample_authority, fit_lifetime_summary_normalization,
     )
     from gx1.contracts.unified_exit_pilot_final_bindings_v1 import build_split_sequence_binding
-    base = input_normalization_fixture(signal_names=["a", "b"], mtf_names=["m", "n"], rows=4501)
+    base = input_normalization_fixture(signal_names=["a", "b"], mtf_names=["m", "n"], rows=train_rows+1)
     authority = build_physical_summary_sample_authority(
-        successor_transition_count_by_entry=[1]*4500, source_lineage_sha256="1"*64)
+        successor_transition_count_by_entry=[1]*train_rows, source_lineage_sha256="1"*64)
     values = np.arange(authority["fit_row_count"]*7, dtype=np.float64).reshape(-1, 7)
     lifetime = fit_lifetime_summary_normalization(values=values, sample_authority=authority)
     sequences = {}
-    for split, first, count in (("train", "2021-01-01T00:00Z", 4500), ("val", "2021-06-01T00:00Z", 320)):
+    for split, first, count in (("train", "2021-01-01T00:00Z", train_rows), ("val", "2021-06-01T00:00Z", 320)):
         entry = pd.date_range(first, periods=count, freq="5min")
         m1 = pd.date_range(first, periods=count*5+10, freq="min")
         sequences[split] = build_split_sequence_binding(
@@ -253,9 +257,10 @@ def physical_recipe(tmp_path, physical_normalization_templates):
     from gx1.contracts.unified_exit_pilot_final_bindings_v1 import build_composite_normalization_binding
     from gx1.contracts.unified_exit_reference_policy_v1 import reference_policy_contract
     base, authority, lifetime, sequences = copy.deepcopy(physical_normalization_templates)
+    train_rows = base["lineage"]["entry_train_decision_row_count"]
     sources = {}
     for split, count, start, end in (
-        ("train",4500,"2021-01-01T00:00Z","2021-05-31T23:59:59Z"),
+        ("train",train_rows,"2021-01-01T00:00Z","2021-05-31T23:59:59Z"),
         ("val",320,"2021-06-01T00:00Z","2021-06-30T23:59:59Z"),
     ):
         sources[split] = {
@@ -268,7 +273,7 @@ def physical_recipe(tmp_path, physical_normalization_templates):
         sequences[split]["binding_sha256"] = native.native_sha256(
             {k:v for k,v in sequences[split].items() if k!="binding_sha256"})
     row_bindings={}
-    for key,rows in (("TRAIN_CALENDAR_PARENT_ROWS",np.arange(4500,dtype=np.int64)),
+    for key,rows in (("TRAIN_CALENDAR_PARENT_ROWS",np.arange(train_rows,dtype=np.int64)),
                      ("CONTROL256_PARENT_ROWS",np.arange(256,dtype=np.int64))):
         p=tmp_path/(key+".npy");np.save(p,rows);row_bindings[key]=_bind(p)
     design={
@@ -293,7 +298,7 @@ def physical_recipe(tmp_path, physical_normalization_templates):
         "decision":"PASS","contract":base,"contract_sha256":base["contract_sha256"],
         "population_witness_sha256":"2"*64,"val_fit_rows":0,"test_fit_rows":0,"test_accessed":False}
     summary={"schema_version":"gx1_unified_exit_pilot_summary_fit_inputs_v1","decision":"PASS",
-        "split":"train","entry_pair_population":4500,"child_parquet_sha256":sources["train"]["parquet"]["sha256"],
+        "split":"train","entry_pair_population":train_rows,"child_parquet_sha256":sources["train"]["parquet"]["sha256"],
         "summary_sample_authority":authority,"lifetime_summary_normalization":lifetime,
         "successor_counts_sha256":sequences["train"]["successor_counts_sha256"],
         "successor_transition_total":sequences["train"]["successor_transition_total"],

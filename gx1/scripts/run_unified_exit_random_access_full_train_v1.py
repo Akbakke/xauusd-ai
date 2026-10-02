@@ -94,7 +94,9 @@ def _require_native_full_train_recipe(
                                         "frozen_online_readout_evaluation_only" if "frozen_readout_evaluation" in recipe else _INITIALIZATION)
         or recipe["recipe_sha256"] != val.canonical_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})
         or (set(recipe["files"]) != _DATA_FILES
-            and not (prefix_mode and set(recipe["files"]) == _DATA_FILES | {"selected_sampler"}))
+            and not (prefix_mode and set(recipe["files"]) in (
+                _DATA_FILES | {"selected_sampler"},
+                _DATA_FILES | {"selected_sampler", "val_sequence_source_audit"})))
         or re.fullmatch(r"[A-Za-z0-9_-]{1,128}", str(recipe["run_id"])) is None
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_RECIPE_INVALID")
@@ -247,7 +249,9 @@ def _require_component_sampler(*, files, chronological_prefix):
 
 def _require_prefix_component_bindings(value, *, files, seed, batch_size, learning_rate, weight_decay):
     """Check completed preprocessing identity; never fit or grant launch authority."""
-    if not isinstance(value, Mapping) or set(value) != {"design", "normalization_result", "labels_result"}:
+    if (not isinstance(value, Mapping) or set(value) not in (
+            {"design", "normalization_result", "labels_result"},
+            {"design", "normalization_result", "labels_result", "native_coordinates"})):
         raise RuntimeError("NATIVE_PREFIX_COMPONENT_BINDINGS_INVALID")
     design, normalization, labels = (val._read(_bound_artifact(value[name]))
                                     for name in ("design", "normalization_result", "labels_result"))
@@ -264,8 +268,37 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
             or type(seed) is not int or seed != design["initialization"]["seed"]
             or batch_size != 16 or learning_rate != 0.0001 or weight_decay != 0.0001
             or design["budget"]["planned_optimizer_steps"] != 256
-            or design["budget"]["maximum_trained_entry_rows"] != 4096
-            or normalization.get("schema_version") != "gx1_prefix_normalization_preparation_result_v1"
+            or design["budget"]["maximum_trained_entry_rows"] != 4096):
+        raise RuntimeError("NATIVE_PREFIX_COMPONENT_IDENTITY_INVALID")
+    if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+            require_physical_chronological_preprocessing,
+            require_physical_native_training_coordinates,
+        )
+        physical = require_physical_chronological_preprocessing(
+            value, design=design, normalization=normalization, labels=labels)
+        for split in ("train", "val"):
+            for kind in ("parquet", "manifest"):
+                if str(files[f"entry_{split}_{kind}"]) != physical["physical_sources"][split][kind]["path"]:
+                    raise RuntimeError("NATIVE_PREFIX_COMPONENT_SOURCE_INVALID")
+        if _bound_artifact(physical["composite_normalization"]) != files["child_composite_normalization"]:
+            raise RuntimeError("NATIVE_PREFIX_COMPONENT_NORMALIZATION_INVALID")
+        coordinates = require_physical_native_training_coordinates(
+            value, design=design, physical=physical)
+        if (coordinates["selected_sampler_binding"]["path"] != str(files.get("selected_sampler"))
+                or coordinates["selected_sampler_binding"]["sha256"] != val.file_sha256(files["selected_sampler"])
+                or "val_sequence_source_audit" not in files):
+            raise RuntimeError("NATIVE_PREFIX_COMPONENT_COORDINATE_SOURCES_INVALID")
+        return {"bindings": dict(value), "design": design, "model_functions": functions,
+                "normalization": normalization, "labels": labels,
+                "physical_preprocessing": physical, "physical_coordinates": coordinates,
+                "preparation": coordinates["artifact"],
+                "cutoff_time_ns": int(val.pd.Timestamp(design["calendar"]["train_control_cutoff"]).value),
+                "eligible_parent_rows": coordinates["eligible_parent_rows"],
+                "epoch0_parent_order": coordinates["epoch0_parent_order"]}
+    if "native_coordinates" in value:
+        raise RuntimeError("NATIVE_PREFIX_LEGACY_COORDINATES_FORBIDDEN")
+    if (normalization.get("schema_version") != "gx1_prefix_normalization_preparation_result_v1"
             or normalization.get("decision") != "PREFIX_NORMALIZATION_READY_NOT_NATIVE_BOUND"
             or normalization["frozen_design"] != value["design"]
             or normalization["scope"].get("control_fit_rows") != 0
@@ -343,7 +376,8 @@ def _build_bound_full_train_components(
     Main training warm-starts from the completed smoke EMA. Its new candidate
     starts with a fresh optimizer and full-TRAIN EMA horizon; on subsequent
     invocations the coordinator restores its exact optimizer/EMA/target/RNG.
-    Prefix mode reuses completed preprocessing and physical TRAIN for CONTROL256.
+    Current prefix mode binds separate physical TRAIN/VAL and original targets.
+    Historical prefix mode preserves its shared TRAIN source for CONTROL256.
     No source checkpoint is modified and no sampler benchmark is rerun here.
     """
 
@@ -385,9 +419,18 @@ def _build_bound_full_train_components(
             != val.file_sha256(files["source_bundle_metadata"])
         ):
             raise RuntimeError("NATIVE_FULL_TRAIN_SEED_AUTHORITY_MISMATCH")
+    physical_prefix = prefix is not None and "physical_preprocessing" in prefix
+    if physical_prefix and frozen_train_policy_scope is not None:
+        raise RuntimeError("NATIVE_PHYSICAL_FROZEN_TRAIN_POLICY_COORDINATES_NOT_BOUND")
     train_window = val._read(files["entry_train_manifest"])["splits"]["train"]
     train_start, train_end = (val.pd.Timestamp(train_window[key]) for key in ("start", "end"))
-    if (
+    if physical_prefix:
+        for split in ("train", "val"):
+            declared = prefix["physical_preprocessing"]["physical_sources"][split]["declared_window"]
+            observed = val._read(files[f"entry_{split}_manifest"])["splits"][split]
+            if any(val.pd.Timestamp(observed[key]) != val.pd.Timestamp(declared[key]) for key in ("start", "end")):
+                raise RuntimeError("NATIVE_PHYSICAL_COMPONENT_WINDOW_MISMATCH")
+    elif (
         train_start != val.pd.Timestamp("2021-06-01T00:00:00Z")
         or train_end.tzinfo is None
         or not val.pd.Timestamp("2026-05-31T00:00:00Z") <= train_end <= val.pd.Timestamp("2026-06-01T00:00:00Z")
@@ -405,9 +448,15 @@ def _build_bound_full_train_components(
         for key, path in files.items()
         if key in {"entry_train_parquet", "entry_train_manifest", "entry_val_parquet", "entry_val_manifest"}
     }
-    val_audit = (files["sequence_source_audit"] if prefix is not None
+    if physical_prefix:
+        for split in ("train", "val"):
+            for kind in ("parquet", "manifest"):
+                if file_bindings[f"entry_{split}_{kind}"] != prefix["physical_preprocessing"]["physical_sources"][split][kind]:
+                    raise RuntimeError("NATIVE_PHYSICAL_COMPONENT_SOURCE_BYTES_MISMATCH")
+    val_audit = (files["val_sequence_source_audit"] if physical_prefix
+                 else files["sequence_source_audit"] if prefix is not None
                  else val._val_sequence_source_audit(meta, file_bindings))
-    physical_splits = ("train",) if prefix is not None else ("train", "val")
+    physical_splits = ("train",) if prefix is not None and not physical_prefix else ("train", "val")
     datasets = {
         split: val.EntryV10CtxDataset(
             files[f"entry_{split}_parquet"], seq_len=int(meta["seq_len"]),
@@ -417,9 +466,10 @@ def _build_bound_full_train_components(
         ) for split in physical_splits
     }
     if prefix is not None:
-        # Role-specific label replacement is atomic and shares unchanged input columns.
-        # The copy precedes any lifecycle or label binding; workers are not running.
-        datasets["val"] = copy.copy(datasets["train"])
+        # Physical TRAIN/VAL keep their own original target columns. Only the
+        # historical prefix uses two role masks over a shared physical TRAIN.
+        if not physical_prefix:
+            datasets["val"] = copy.copy(datasets["train"])
         label_roles = (("train", "TRAIN"),) if frozen_train_policy_scope is not None else (("train", "TRAIN"), ("val", "CONTROL256"))
         for split, role in label_roles:
             datasets[split].bind_policy_dependent_auxiliary_targets(
@@ -489,7 +539,7 @@ def _build_bound_full_train_components(
         parent_entry_row_indices=parents, child_entry_row_indices=children,
     )
 
-    source_split = "train" if prefix is not None else "val"
+    source_split = "train" if prefix is not None and not physical_prefix else "val"
     val_binding = root["splits"][source_split]
     index_path = Path(val_binding["index_parquet_path"])
     manifest_path = Path(val_binding["manifest_path"])
@@ -499,7 +549,7 @@ def _build_bound_full_train_components(
         index_path=index_path, verify_sources=False,
     )
     if (
-        frame["entry_row_index"].astype("int64").tolist() != list(range(len(datasets["train"]) if prefix is not None else 5_508))
+        frame["entry_row_index"].astype("int64").tolist() != list(range(len(datasets["val"]) if physical_prefix else len(datasets["train"]) if prefix is not None else 5_508))
         or val_binding["index_parquet_sha256"] != val.file_sha256(index_path)
         or val_binding["manifest_sha256"] != manifest["manifest_sha256"]
     ):
@@ -514,7 +564,11 @@ def _build_bound_full_train_components(
     elif prefix is not None:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_control_cohort
         evaluation_cohort = build_chronological_control_cohort(
-            chronological_prefix["design"], source_index_binding={"path": str(index_path), "sha256": val.file_sha256(index_path)})
+            chronological_prefix["design"],
+            source_index_binding={"path": str(index_path), "sha256": val.file_sha256(index_path)},
+            **({"source_index_manifest_binding": {"path": str(manifest_path), "sha256": val.file_sha256(manifest_path)}}
+               if physical_prefix else {}),
+        )
     control_frame = frame if evaluation_cohort is None else frame.iloc[evaluation_cohort["entry_row_indices"]].copy()
     all_val_states = int(control_frame["lifecycle_state_count"].sum())
     if frozen_train_policy_scope is None and (
@@ -555,7 +609,8 @@ def _build_bound_full_train_components(
         economic_step_provider=provider,
         economic_step_manifest=provider.economic_exit_step_manifest,
         economics_objective_contract=readiness["economics_objective_contract"],
-        **({"source_split": "train"} if prefix is not None else {}),
+        **({"source_split": "val", "evaluation_cohort": evaluation_cohort} if physical_prefix
+           else {"source_split": "train"} if prefix is not None else {}),
     )
     if frozen_train_policy_scope is not None:
         # Retain physical lifecycles; only the observation support is bounded.
@@ -567,6 +622,19 @@ def _build_bound_full_train_components(
                 or val_limits["max_state_views"] != int(counts.sum())
                 or val_limits["max_model_forwards"] != int(counts.max())):
             raise RuntimeError("FROZEN_TRAIN_POLICY_ACTUAL_FOOTPRINT_MISMATCH")
+    val_context = {
+        "frame": control_frame, "state_factory": val_factory,
+        "parent_coordinate_evidence": parent_evidence, "val_sequence_audit": val_audit,
+        **dict(val_limits),
+    }
+    if prefix is not None:
+        val_context["evaluation_cohort"] = evaluation_cohort
+        observed_order = trainer._candidate_training_epoch_order(
+            datasets["train"], epoch_index=0,
+            parent_population=torch.as_tensor(prefix["eligible_parent_rows"].copy(), dtype=torch.int64))
+        if not np.array_equal(observed_order.numpy(), prefix["epoch0_parent_order"]):
+            raise RuntimeError("NATIVE_PREFIX_NATIVE_ORDER_MISMATCH")
+    trainer._native_candidate_val_context_binding(val_context)
     child = val.require_composite_normalization_binding(
         val._read(files["child_composite_normalization"]),
     )
@@ -612,19 +680,6 @@ def _build_bound_full_train_components(
         torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.0)
         if trainer.ENTRY_TRAIN_LR_COSINE_DECAY == 1 else None
     )
-    val_context = {
-        "frame": control_frame, "state_factory": val_factory,
-        "parent_coordinate_evidence": parent_evidence, "val_sequence_audit": val_audit,
-        **dict(val_limits),
-    }
-    if prefix is not None:
-        val_context["evaluation_cohort"] = evaluation_cohort
-        observed_order = trainer._candidate_training_epoch_order(
-            datasets["train"], epoch_index=0,
-            parent_population=torch.as_tensor(prefix["eligible_parent_rows"].copy(), dtype=torch.int64))
-        if not np.array_equal(observed_order.numpy(), prefix["epoch0_parent_order"]):
-            raise RuntimeError("NATIVE_PREFIX_NATIVE_ORDER_MISMATCH")
-    trainer._native_candidate_val_context_binding(val_context)
     return {
         "model": model, "optimizer": optimizer, "weight_ema": weight_ema,
         "lr_scheduler": scheduler, "train_ds": datasets["train"],

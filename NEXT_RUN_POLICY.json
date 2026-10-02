@@ -2092,7 +2092,7 @@
     },
     "locked_quote_repair": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/LIFECYCLE_LOCKED_QUOTE_REPAIR.json",
     "native_training_enabled": false,
-    "operator_authorization": "User 2026-09-28: Fortsett å bygge.",
+    "operator_authorization": "User 2026-09-28: Fortsett \u00e5 bygge.",
     "parameter_complexity_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V37_20260928/FINAL_PREPARATION_REVIEW_20260929/PARAMETER_COMPLEXITY_REVIEW_EXACT_ROUTING.json",
       "sha256": "b5a8e399468371fcbed493a8afef6f6deeb75a2a070962036082b82671a24be8"
@@ -2886,6 +2886,97 @@
       "training_enabled": false,
       "val_rows": 70880
     },
+    "physical_component_source_review": {
+      "broker_requests": 0,
+      "candidate_selection_performed": false,
+      "completed_utc": "2026-10-02T02:48:36.958307+00:00",
+      "full_native_components_qualified": false,
+      "limitations": [
+        "Actual completed metadata admitted only up to the missing-coordinate gate; no dataset or native model construction.",
+        "Separate physical routing, selected-row identity and pre-model rejection were tested with synthetic metadata and mocked data/factory/model owners.",
+        "Training coordinator and measurement bindings still require separate physical source support. Costs/indexes/actual benchmark/coordinates remain absent."
+      ],
+      "model_forwards": 0,
+      "native_coordinates_frozen": false,
+      "next_action": "Bind the existing training coordinator and measurement owners to separate physical TRAIN/VAL sources, original auxiliary targets and the new measured-sampler coordinate authority. Main component routing now reuses completed physical preprocessing, joins the index parent to TRAIN, uses independent VAL feature/sequence sources and verifies actual epoch0/control identity before model/optimizer construction. Source and synthetic routing checks are complete, not real native qualification. Current cost/index authority, one workload-matched benchmark, selected sampler and actual epoch0/first4096/TRAIN256 coordinates remain required. Do not refit or relaunch completed work. The previous two-GET broker question is unanswered; no broker, native training, TEST, live/paper or spending.",
+      "normalization_fits": 0,
+      "observed_component_gate": "NATIVE_PHYSICAL_COORDINATES_REQUIRED",
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_COMPONENT_SOURCE_REVIEW_001/OPERATOR.py",
+        "sha256": "0fe9080eff7234e58376b33ada35c78781be3e555cdba6b79276101addec651e"
+      },
+      "optimizer_steps": 0,
+      "parquet_reads": 0,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_COMPONENT_SOURCE_REVIEW_001/PLAN.json",
+        "sha256": "266fdede19476551214a24cca76aaceabe0a58ae64e484c11decff00c357c2a9"
+      },
+      "policy_fits": 0,
+      "preprocessing_bindings": {
+        "design": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/DESIGN.json",
+          "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
+        },
+        "labels_result": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/EVENTS/RESULT_20261002T002224728274Z.json",
+          "sha256": "a5175f4e2ef1db81e0d1d35fe66270dfd3f5ad69243cc37bf97d530670326f68"
+        },
+        "normalization_result": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/FINAL_BINDINGS_002/EVENTS/RESULT_20261001T224313184213Z.json",
+          "sha256": "af45d48c081559777e8119f8cde0cfd2a1f077c416c48ee0800adb003f06900d"
+        }
+      },
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_COMPONENT_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T024836958307Z.json",
+        "sha256": "c31a35326435e387f8d5d14a12514c1866753026b23877e6ce890f3096edafbf"
+      },
+      "reviewed_uncommitted_source_bytes": true,
+      "source_bindings": {
+        "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+          "sha256": "fd583a132b96a5eceb08544680e529ebf623fe34090f31012568f595034d8875"
+        },
+        "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+          "sha256": "d62b6c83a22001636efa6285e87f23aaba71965ad946ad1075aa8c7f6425ddb7"
+        },
+        "tests/test_native_fresh_prefix_components.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_fresh_prefix_components.py",
+          "sha256": "53433d1bf4ebf51ee1399339eb18bad9b9e222894528246a2c59946f5f07ef2d"
+        },
+        "tests/test_native_prefix_recipe.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_prefix_recipe.py",
+          "sha256": "affc8c12e83e7c0cc367c9629b28619c37b5969370370a88076bec6ef2d7efdc"
+        },
+        "tests/test_unified_exit_selected_sampler_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_unified_exit_selected_sampler_v1.py",
+          "sha256": "0c15c8af296d70a7fc11c0ce47becd4c7a8fa7cb6d3fade4b5aae406f1f09352"
+        }
+      },
+      "source_frozen_while_running": false,
+      "source_parent_head": "a7f9684bfdf2635739d797e7f7e86d5026a46e83",
+      "status": "SOURCE_AND_SYNTHETIC_PHYSICAL_COMPONENT_ROUTING_COMPLETE_REAL_NATIVE_QUALIFICATION_PENDING",
+      "synthetic_tests": {
+        "combined_green": 134,
+        "evidence_class": "synthetic_metadata_and_mocked_native_component_routing",
+        "final_affected_file": 38,
+        "skipped": 0,
+        "test_files": [
+          "tests/test_native_fresh_prefix_components.py",
+          "tests/test_native_prefix_recipe.py",
+          "tests/test_unified_exit_selected_sampler_v1.py"
+        ],
+        "unique_cases": 134
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_COMPONENT_SOURCE_REVIEW_001/EVENTS/TERMINAL_20261002T024836976308Z.json",
+        "sha256": "b4d69826a5b8ba782bc07278732885d6f51dbd66dba8740568e2c1ff5ca8025a"
+      },
+      "test_accessed": false,
+      "train_rows": 652552,
+      "training_enabled": false,
+      "val_rows": 70880
+    },
     "physical_control_source_review": {
       "actual_model_forwards": 0,
       "combined_green_run": 131,
@@ -3260,9 +3351,9 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse completed physical TRAIN preprocessing and original auxiliary targets in the existing main component identity/routing, training and measurement owners for separate TRAIN/VAL sources. Direct measured sampler admission is now implemented; it replays the same benchmark rank, binds exact index/candidate/final artifacts and requires the current frozen reference policy/cutoff and actual Dataset MTF geometry. No current benchmark or selection has run. Obtain current cost/index authority before one workload-matched benchmark; then freeze actual epoch0/first4096/TRAIN256 coordinates. Historical 65536/V3-to-V4 evidence cannot authorize current v38. Do not refit or relaunch completed work. The previous two-GET broker question remains unanswered; no broker, native training, TEST, live/paper or spending.",
+  "next_action": "Bind the existing training coordinator and measurement owners to separate physical TRAIN/VAL sources, original auxiliary targets and the new measured-sampler coordinate authority. Main component routing now reuses completed physical preprocessing, joins the index parent to TRAIN, uses independent VAL feature/sequence sources and verifies actual epoch0/control identity before model/optimizer construction. Source and synthetic routing checks are complete, not real native qualification. Current cost/index authority, one workload-matched benchmark, selected sampler and actual epoch0/first4096/TRAIN256 coordinates remain required. Do not refit or relaunch completed work. The previous two-GET broker question is unanswered; no broker, native training, TEST, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
-  "observed_utc": "2026-10-02T02:21:50.043801+00:00",
+  "observed_utc": "2026-10-02T02:49:54.761403+00:00",
   "outer_guard_seconds": 13800,
   "parallel_project_execution_20260928": {
     "actual_parallel_lock_proof": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_PREPARATION_20260927/PROJECT_LOCK_PARALLEL_PROOF.json",
@@ -3272,7 +3363,7 @@
     "one_heavy_job_per_current": true,
     "resource_guards_preserved": true,
     "tests_passed": 294,
-    "user_instruction": "fjern lås så vi kan jobbe parallelt"
+    "user_instruction": "fjern l\u00e5s s\u00e5 vi kan jobbe parallelt"
   },
   "policy_consistent_entry_review": {
     "path": "/home/andre2/src/GX1_CURRENT/handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",

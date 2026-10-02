@@ -505,11 +505,88 @@ def require_physical_chronological_preprocessing(
     }
 
 
+def require_physical_native_training_coordinates(
+    artifacts: Mapping[str, Any], *, design: Mapping[str, Any], physical: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate frozen parent coordinates; native construction replays the order."""
+    import numpy as np
+    from gx1.contracts.entry_model_native_training_run_lineage_v1 import deterministic_uniform_subsample_indices
+    from gx1.contracts.unified_exit_selected_sampler_v1 import (
+        DIRECT_SELECTION_MODE, require_selected_sampler_artifact,
+    )
+
+    def check(condition, reason):
+        if not condition:
+            raise RuntimeError("NATIVE_PHYSICAL_COORDINATES_" + reason)
+    def bound(value):
+        return require_binding(value, label="physical native coordinates", verify_file=True)
+    def read(value):
+        value = bound(value)
+        return read_bound_json(Path(value["path"]), value["sha256"])
+
+    check("native_coordinates" in artifacts, "REQUIRED")
+    binding = bound(artifacts["native_coordinates"])
+    value = read(binding)
+    check(
+        value.get("schema_version") == "gx1_physical_native_training_coordinates_v1"
+        and value.get("decision") == "TRAIN_COORDINATES_FROZEN_NO_MODEL"
+        and value.get("coordinates_sha256") == native_sha256(
+            {key:item for key,item in value.items() if key != "coordinates_sha256"})
+        and value.get("design") == artifacts["design"]
+        and value.get("train_source") == physical["physical_sources"]["train"]["parquet"]
+        and value.get("control_source") == physical["physical_sources"]["val"]["parquet"]
+        and value.get("control_parent_rows") == physical["control_parent_rows"]
+        and value.get("test_data_used") is False
+        and value.get("selection_uses_outcome_values") is False
+        and all(type(value.get(key)) is int and value[key] == 0
+                for key in ("model_forwards", "optimizer_steps", "fits")),
+        "IDENTITY_INVALID",
+    )
+    selected_binding = bound(value.get("selected_sampler"))
+    selected = require_selected_sampler_artifact(read(selected_binding))
+    check(selected.get("selection_mode") == DIRECT_SELECTION_MODE
+          and selected.get("benchmark_design") == artifacts["design"]
+          and selected["selected_sampler_contract"]["entry_pair_population"] == physical["train_rows"],
+          "SAMPLER_MISMATCH")
+    manifest_binding = selected["train_index_manifest"]
+    manifest = read({"path": manifest_binding["path"], "sha256": manifest_binding["file_sha256"]})
+    check(all(manifest["source_bindings"][f"parent_entry_{kind}"]
+              == physical["physical_sources"]["train"][kind] for kind in ("parquet", "manifest")),
+          "INDEX_PARENT_SOURCE_MISMATCH")
+    from gx1.scripts.benchmark_unified_exit_random_access_train_v1 import _reference_workload_from_design
+    check(selected["reference_workload"] == _reference_workload_from_design(design), "WORKLOAD_MISMATCH")
+    bindings = value.get("bindings")
+    keys = ("TRAIN_ELIGIBLE_PARENT_ROWS", "TRAIN_NATIVE_EPOCH0_ORDER",
+            "TRAIN_NATIVE4096_PARENT_ROWS", "TRAIN256_PROBE_PARENT_ROWS")
+    check(isinstance(bindings, Mapping) and set(bindings) == set(keys)
+          and bindings["TRAIN_ELIGIBLE_PARENT_ROWS"] == physical["train_parent_rows"], "ROWS_INVALID")
+    arrays = {key: np.load(bound(bindings[key])["path"], allow_pickle=False) for key in keys}
+    eligible, order, planned, probe = (arrays[key] for key in keys)
+    check(all(array.dtype == np.dtype("int64") and array.ndim == 1 for array in arrays.values())
+          and np.array_equal(eligible, np.arange(physical["train_rows"], dtype=np.int64))
+          and np.array_equal(np.sort(order), eligible)
+          and planned.shape == (design["budget"]["maximum_trained_entry_rows"],)
+          and np.array_equal(planned, order[:len(planned)]), "ROWS_INVALID")
+    positions = deterministic_uniform_subsample_indices(
+        population_rows=len(planned), requested_rows=design["budget"]["train_only_probe_entries"],
+        seed=design["selection"]["seed"], split_salt=0,
+    )
+    check(probe.shape == (design["budget"]["train_only_probe_entries"],)
+          and np.array_equal(probe, planned[positions]), "PROBE_MISMATCH")
+    return {
+        "binding": binding, "artifact": value, "selected_sampler_binding": selected_binding,
+        "selected_sampler": selected, "eligible_parent_rows": eligible,
+        "epoch0_parent_order": order, "planned_parent_rows": planned, "probe_parent_rows": probe,
+    }
+
+
 def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, Any]:
     """Read the frozen prefix identity; this alone never grants run authority."""
     import numpy as np
     value = recipe.get("chronological_prefix")
-    if (not isinstance(value, Mapping) or set(value) != {"design", "normalization_result", "labels_result"}
+    if (not isinstance(value, Mapping)
+            or set(value) not in ({"design", "normalization_result", "labels_result"},
+                                  {"design", "normalization_result", "labels_result", "native_coordinates"})
             or recipe.get("initialization") != "fresh_existing_model_constructor_no_checkpoint_weights"
             or any(recipe.get(key) is not None for key in ("seed_launch", "seed_authority", "smoke_full_val"))
             or any(key in recipe for key in ("candidate_resume_origin", "native_calibration", "frozen_readout_evaluation", "exit_backup_steps"))):
@@ -539,8 +616,13 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
             "physical_source_splits", "physical_coordinate_namespaces_are_separate", "source_bindings")):
         physical = require_physical_chronological_preprocessing(
             artifacts, design=design, normalization=normalization, labels=labels)
+        coordinates = (require_physical_native_training_coordinates(
+            artifacts, design=design, physical=physical) if "native_coordinates" in artifacts else None)
         return {"artifacts": artifacts, "design": design,
-                "train_rows": physical["train_rows"], "physical_preprocessing": physical}
+                "train_rows": physical["train_rows"], "physical_preprocessing": physical,
+                **({"physical_coordinates": coordinates} if coordinates is not None else {})}
+    if "native_coordinates" in artifacts:
+        raise RuntimeError("NATIVE_PREFIX_LEGACY_COORDINATES_FORBIDDEN")
     preparation_binding = require_binding(normalization.get("prefix_preparation"), label="native prefix preparation", verify_file=True)
     preparation = read_bound_json(Path(preparation_binding["path"]), preparation_binding["sha256"])
     if (normalization.get("frozen_design") != artifacts["design"]

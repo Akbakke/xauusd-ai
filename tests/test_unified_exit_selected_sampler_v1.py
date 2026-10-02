@@ -144,8 +144,13 @@ def _file_binding(path):
     return {"path": str(path), "sha256": file_sha256(path)}
 
 
-def _direct_fixture(tmp_path, selected_budget=131072):
-    population = 652552
+def _direct_fixture(tmp_path, selected_budget=131072, *, population=652552, design_path=None):
+    if design_path is None:
+        design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+        design_path = tmp_path / "DESIGN.json"
+        _write(design_path, design)
+    else:
+        design = json.loads(design_path.read_text())
     candidates = build_sampler_benchmark_candidate_set(
         source_lineage_sha256="1" * 64, entry_pair_population=population)
     cp = tmp_path / "candidates.json"
@@ -169,13 +174,17 @@ def _direct_fixture(tmp_path, selected_budget=131072):
         "index_parquet_sha256": "3" * 64,
         "source_bindings": {
             **{key: source_binding.copy() for key in (
-                "entry_parquet", "entry_manifest", "parent_entry_parquet", "parent_entry_manifest")},
+                "entry_parquet", "entry_manifest")},
+            **{f"parent_entry_{kind}": design["calendar"]["source_bindings"]["train"][kind]
+               for kind in ("parquet", "manifest")},
             "final_bindings_bundle": _file_binding(bp),
         },
         **{key: "2" * 64 for key in (
             "child_entry_clock_sha256", "parent_entry_clock_sha256",
             "parent_entry_row_indices_sha256", "parent_entry_mapping_sha256",
-            "parent_entry_source_sha256", "parent_entry_manifest_sha256")},
+            )},
+        "parent_entry_source_sha256": design["calendar"]["source_bindings"]["train"]["parquet"]["sha256"],
+        "parent_entry_manifest_sha256": design["calendar"]["source_bindings"]["train"]["manifest"]["sha256"],
     }, "manifest_sha256")
     rp = tmp_path / "ROOT.json"
     root = _seal(rp, {
@@ -212,9 +221,6 @@ def _direct_fixture(tmp_path, selected_budget=131072):
             "transition_budget_per_epoch": budget, "sampler_contract_sha256": contract["contract_sha256"],
             "full_selected_entry_pairs": entries, "full_budget_measured": True, "batch_size_sweep": [row],
         })
-    design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
-    design_path = tmp_path / "DESIGN.json"
-    _write(design_path, design)
     geometry = {"seq_len": 96, "per_tf_seq_lens": {"M5": 16, "M15": 64, "H1": 96, "H4": 96, "D1": 252},
                 "multi_tf_closed_bar": True}
     metadata = {"seq_len": geometry["seq_len"],

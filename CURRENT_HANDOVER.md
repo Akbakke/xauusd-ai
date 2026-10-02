@@ -1,5 +1,40 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Hovedbyggerens antakelse om felles TRAIN-/kontrollfil er rettet for v38.
+Den gjenbruker fullført normalisering og originale hjelpefasiter, og bygger
+separate TRAIN-/VAL-datasett med hver sin sekvenskontroll og featurekilde.
+Kalendervinduene må stemme med det fryste designet. TRAIN-indeksens forelder
+bindes eksplisitt til den samme fysiske TRAIN-kilden.
+
+Native radkoordinater må bindes til et faktisk målt sampler-valg.
+Hele TRAIN-rekkefølgen, første 4096 rader og TRAIN256-proben kontrolleres;
+proben bruker den eksisterende deterministiske selectoren. Hovedbyggeren
+sammenligner fryst rekkefølge med den faktiske adapteren og validerer
+kontrollkonteksten før modell eller optimizer opprettes. Historisk prefix-rute
+beholder sine opprinnelige kilder og bindinger.
+
+134 unike fokuserte syntetiske tester består. Etter siste koblingstest
+består alle 38 tester i komponentfilen; ingen tester er utelatt.
+Testene dekker separate filer, feature-/sekvensruting, samplerbudsjett,
+normaliseringsgjenbruk og avvisning av endrede bytes, kalender og rekkefølge
+før initialisering. Dataset-, factory- og modellobjekter er mockede i
+rutingtesten; den er ikke en reell native gjennomkjøring.
+
+PHYSICAL_COMPONENT_SOURCE_REVIEW_001 sluttet med exit 0 og uendret kilde.
+Den faktiske komponentkontrollen gjenbruker de ekte fullførte
+preprocessing-artefaktene for 652 552 TRAIN-/70 880 VAL-rader og stopper
+på NATIVE_PHYSICAL_COORDINATES_REQUIRED. Ingen rå-Parquet eller TEST ble
+lest; ingen ny fit, reell modellkjøring, optimizer eller broker-tilgang.
+
+Treningskoordinatorens og måleeierens gamle fellesfilbindinger gjenstår.
+Faktiske indekser, ferske kostnadsvilkår, benchmark, sampler-valg og native
+radkoordinater er fortsatt ikke kvalifisert. Det tidligere avgrensede
+brokerspørsmålet er ubesvart. Neste kodearbeid er koordinatorens binding av
+separate TRAIN-/VAL-kilder og originale mål, med gjenbruk av de nye
+koordinateierne. Native trening er stengt. Ingen læring eller edge er bevist.
+
+## Tidligere kontroller — historikk, ikke startinstrukser
+
 Ny sampler-admission er koblet til de eksisterende eierne. Et ferskt
 benchmark kan nå bindes direkte til sin eksakte full-TRAIN-indeks, kandidatfil,
 TRAIN-indeksmanifest og sluttbindinger. Vinneren etterkontrolleres med samme
@@ -32,8 +67,6 @@ gjenstår. Neste kodearbeid er å gjenbruke fullført fysisk preprocessing og
 originale hjelpefasiter i hovedbyggerens eksisterende komponentbinding.
 Ingen ny fit, modellkjøring, optimizer, TEST eller broker-tilgang er utført.
 Native trening er stengt. Ingen læring eller edge er bevist.
-
-## Tidligere kontroller — historikk, ikke startinstrukser
 
 Benchmarkens gamle binding til 65 295 TRAIN-rader er rettet. Populasjonen
 kommer nå fra den kanoniske sampler-kontrakten, og alle kandidater må ha
