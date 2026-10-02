@@ -1,5 +1,37 @@
 # Aktivt mål: dokumentert automatisk XAUUSD-bot — 01.10.2026
 
+De to godkjente OANDA practice-lesekallene er fullført. Ingen ordre,
+transaksjonsoppslag eller nye broker-kall er utført etter engangskontrollen.
+258 historiske fyll og lagrede finansieringsobservasjoner er bevart.
+
+Dagens instrumentvilkår er -0,0569 for LONG og +0,0323 for SHORT.
+Kostnadskoden hadde hardkodet de gamle ratene. Eksisterende eier binder nå
+rater til hvert artefakts eksakte broker-evidens og bruker samme metode:
+negative renter belastes, gunstige kreditter klippes til null.
+Policy, komponentfakta og parameterautoritet bruker samme bundne tall.
+Gamle artefakter kontrolleres fortsatt mot sine opprinnelige kilder.
+
+CURRENT_TERMS_POLICY_001 publiserte en ny, separat prospektiv kostnadspolicy
+for 01.06.2011–01.07.2026. Årlig finansieringskostnad er 0,0569 LONG og
+0 SHORT. Kommisjonsgrunnlag, slippage 2 bps per utførelse, sensitivitet
+1/2/4 bps, no-GSLO-policy og null ekstra risikostraff er uendret.
+Policyen er forhåndsbundet før native måling og bruker ekte før-TEST-quotes.
+
+36 fokuserte tester består. Kontrollene dekker endrede fortegn/rater,
+avvisning av gamle eller underrapporterte kostnader, atomisk publisering
+og gammel evidens. Gamle ekte policybytes og den nye publiserte autoriteten
+er strengt lest med kildeverifisering. Kilde var uendret under kontrollen.
+Etter de to godkjente GET-kallene var nettverk sperret i policykontrollen.
+
+Dette kvalifiserer en prospektiv beregningspolicy, ikke historisk
+finansieringsfasit eller økonomisk edge. Neste avhengighet er nye faktiske
+TRAIN/VAL-økonomi-/indeksbindinger til denne autoriteten, deretter målt
+sampler, koordinater og fersk initialmåling. Ingen indeksbygg eller
+modellmåling er gjort i denne bølgen. Native trening og TEST er stengt;
+engangs broker-tillatelsen er brukt opp.
+
+## Tidligere målstatus — historikk
+
 Operatøren ba om å gjøre den foreslåtte veien til et aktivt mål og arbeide videre
 gjennom alle punktene. Målet er ikke oppnådd. Dette er gjeldende arbeidsrekkefølge;
 historiske forsøk er bevis og skal ikke relanseres.

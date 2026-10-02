@@ -245,3 +245,99 @@ def test_postpublication_fsync_failure_never_deletes_bundle(
         authority, expected_coverage_start_utc=START, expected_coverage_end_utc=END,
         verify_local_sources=False,
     )
+
+
+def _broker_with_financing(tmp_path: Path, long_rate: float, short_rate: float) -> Path:
+    from gx1.contracts.unified_exit_broker_evidence_v1 import (
+        _canonical_sha256, seal_unified_exit_broker_evidence_v1,
+    )
+    broker = json.loads(BROKER.read_text())
+    broker.pop("artifact_sha256")
+    instrument = broker["current_prospective_terms"]["instrument"]
+    instrument.pop("sanitized_snapshot_sha256")
+    instrument.update(long_financing_rate=long_rate, short_financing_rate=short_rate)
+    instrument["sanitized_snapshot_sha256"] = _canonical_sha256(instrument)
+    broker = seal_unified_exit_broker_evidence_v1(broker)
+    path = tmp_path / "synthetic_changed_terms.json"
+    path.write_text(json.dumps(broker))
+    return path
+
+
+@pytest.mark.parametrize(
+    ("long_rate", "short_rate", "long_cost", "short_cost"),
+    [(-0.0569, 0.0323, 0.0569, 0.0),
+     (-0.061, -0.023, 0.061, 0.023),
+     (0.015, 0.01, 0.0, 0.0),
+     (0.0, 0.0, 0.0, 0.0)],
+)
+def test_financing_costs_follow_exact_bound_terms(
+    tmp_path: Path, long_rate: float, short_rate: float,
+    long_cost: float, short_cost: float,
+) -> None:
+    broker = _broker_with_financing(tmp_path, long_rate, short_rate)
+    result = _build(tmp_path, broker_evidence_path=broker,
+                    long_financing_annual_cost_rate=long_cost,
+                    short_financing_annual_cost_rate=short_cost)
+    policy = _load(result, "policy")
+    rates = policy["financing_or_swap"]
+    assert rates["source_long_financing_rate"] == long_rate
+    assert rates["source_short_financing_rate"] == short_rate
+    assert rates["long_annual_cost_rate"] == long_cost
+    assert rates["short_annual_cost_rate"] == short_cost
+    assert rates["favorable_credit_clipped_to_zero"] is True
+    authority = require_cost_parameter_authority(
+        _load(result, "parameter_authority"),
+        expected_coverage_start_utc=START, expected_coverage_end_utc=END,
+        verify_local_sources=False,
+    )
+    assert authority["parameters"]["financing_or_swap"] == {
+        "long_annual_cost_rate": long_cost, "short_annual_cost_rate": short_cost,
+        "favorable_credit_clipped_to_zero": True,
+    }
+    from gx1.contracts.unified_exit_no_cap_economic_authority_v1 import canonical_sha256
+    fact_path = authority["component_artifacts"]["financing_or_swap"]["path"]
+    fact = json.loads(Path(fact_path).read_text())
+    assert fact["fact_population_sha256"] == canonical_sha256({
+        "component": "financing_or_swap",
+        "parameters": authority["parameters"]["financing_or_swap"],
+        "policy_artifact_sha256": policy["artifact_sha256"],
+    })
+
+
+def test_old_financing_cli_cannot_admit_current_terms(tmp_path: Path) -> None:
+    broker = _broker_with_financing(tmp_path, -0.0569, 0.0323)
+    with pytest.raises(RuntimeError, match="EXACT_PREREGISTERED_CLI"):
+        _build(tmp_path, broker_evidence_path=broker)
+    assert not (tmp_path / "policy_bundle").exists()
+    assert not list(tmp_path.glob(".policy_bundle.staging.*"))
+
+
+def test_resealed_policy_cannot_understate_observed_financing(tmp_path: Path) -> None:
+    broker = _broker_with_financing(tmp_path, -0.0569, 0.0323)
+    result = _build(tmp_path, broker_evidence_path=broker,
+                    long_financing_annual_cost_rate=0.0569)
+    policy = _load(result, "policy")
+    policy.pop("artifact_sha256")
+    policy["financing_or_swap"]["long_annual_cost_rate"] = 0.054
+    policy = seal_prospective_cost_policy(policy)
+    with pytest.raises(RuntimeError, match="FINANCING_INVALID"):
+        require_prospective_cost_policy(
+            policy, expected_coverage_start_utc=START,
+            expected_coverage_end_utc=END, verify_local_sources=False,
+        )
+
+
+def test_resealed_authority_cannot_reuse_old_financing(tmp_path: Path) -> None:
+    from gx1.contracts.unified_exit_prospective_cost_policy_v1 import seal_cost_parameter_authority
+    broker = _broker_with_financing(tmp_path, -0.0569, 0.0323)
+    result = _build(tmp_path, broker_evidence_path=broker,
+                    long_financing_annual_cost_rate=0.0569)
+    authority = _load(result, "parameter_authority")
+    authority.pop("authority_sha256")
+    authority["parameters"]["financing_or_swap"]["long_annual_cost_rate"] = 0.054
+    authority = seal_cost_parameter_authority(authority)
+    with pytest.raises(RuntimeError, match="AUTHORITY_PARAMETERS_INVALID"):
+        require_cost_parameter_authority(
+            authority, expected_coverage_start_utc=START,
+            expected_coverage_end_utc=END, verify_local_sources=False,
+        )

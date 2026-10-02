@@ -47,6 +47,18 @@ def _finite(value: Any, label: str, *, nonnegative: bool = False) -> float:
     return number
 
 
+def prospective_financing_rates(instrument: Mapping[str, Any]) -> dict[str, float]:
+    """Freeze observed financing costs; favorable credits are excluded."""
+    long_rate = _finite(instrument["long_financing_rate"], "LONG_FINANCING")
+    short_rate = _finite(instrument["short_financing_rate"], "SHORT_FINANCING")
+    return {
+        "long_annual_cost_rate": max(0.0, -long_rate),
+        "short_annual_cost_rate": max(0.0, -short_rate),
+        "source_long_financing_rate": long_rate,
+        "source_short_financing_rate": short_rate,
+    }
+
+
 def _utc(value: Any, label: str) -> pd.Timestamp:
     try:
         ts = pd.Timestamp(value)
@@ -200,10 +212,7 @@ def require_prospective_cost_policy(
 
     instrument = broker["current_prospective_terms"]["instrument"]
     financing_expected = {
-        "long_annual_cost_rate": 0.054,
-        "short_annual_cost_rate": 0.0,
-        "source_long_financing_rate": -0.054,
-        "source_short_financing_rate": 0.0282,
+        **prospective_financing_rates(instrument),
         "favorable_credit_clipped_to_zero": True,
         "accrual": "actual_elapsed_wall_clock",
         "seconds_per_year": SECONDS_PER_YEAR,
@@ -214,9 +223,7 @@ def require_prospective_cost_policy(
         "historical_rate_series_complete": False,
         "implicit_zero_used": False,
     }
-    if (observed["financing_or_swap"] != financing_expected
-            or float(instrument["long_financing_rate"]) != -0.054
-            or float(instrument["short_financing_rate"]) != 0.0282):
+    if observed["financing_or_swap"] != financing_expected:
         raise RuntimeError("PROSPECTIVE_COST_FINANCING_INVALID")
 
     broker_policy = broker["market_order_no_gslo_policy"]
@@ -334,7 +341,11 @@ def require_cost_parameter_authority(
         "executable_bid_ask": {"mode": "side_correct_executable_bid_ask_from_bound_m1_tape"},
         "commission": {"bps_per_execution": 0.0},
         "execution_slippage": {"central_bps_per_execution": 2.0, "val_sensitivity_bps_per_execution": [1.0, 2.0, 4.0]},
-        "financing_or_swap": {"long_annual_cost_rate": 0.054, "short_annual_cost_rate": 0.0, "favorable_credit_clipped_to_zero": True},
+        "financing_or_swap": {
+            "long_annual_cost_rate": policy["financing_or_swap"]["long_annual_cost_rate"],
+            "short_annual_cost_rate": policy["financing_or_swap"]["short_annual_cost_rate"],
+            "favorable_credit_clipped_to_zero": True,
+        },
         "guaranteed_execution_fee": {"account_currency_per_execution": 0.0, "zero_requires_hash_bound_no_gslo_policy": True},
     }
     if (observed["parameters"] != parameters

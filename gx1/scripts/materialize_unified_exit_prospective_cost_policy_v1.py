@@ -31,6 +31,7 @@ from gx1.contracts.unified_exit_prospective_cost_policy_v1 import (
     POLICY_DECISION,
     PROSPECTIVE_COST_POLICY_SCHEMA_VERSION,
     SECONDS_PER_YEAR,
+    prospective_financing_rates,
     require_cost_parameter_authority,
     seal_cost_method_receipt,
     seal_cost_parameter_authority,
@@ -73,8 +74,13 @@ def _exact_cli(
     val_slippage_bps: list[float], long_financing_rate: float,
     short_financing_rate: float, gslo_fee: float,
     long_risk_bps: float, short_risk_bps: float,
+    observed_financing: MappingLike,
 ) -> None:
-    expected = (0.0, 2.0, [1.0, 2.0, 4.0], 0.054, 0.0, 0.0, 0.0, 0.0)
+    expected = (
+        0.0, 2.0, [1.0, 2.0, 4.0],
+        observed_financing["long_annual_cost_rate"],
+        observed_financing["short_annual_cost_rate"], 0.0, 0.0, 0.0,
+    )
     observed = (
         commission_bps, central_slippage_bps, val_slippage_bps,
         long_financing_rate, short_financing_rate, gslo_fee,
@@ -97,16 +103,6 @@ def materialize_prospective_cost_policy(
     hold_risk_penalty_short_annual_bps: float,
     verify_local_sources: bool = True,
 ) -> dict[str, Any]:
-    _exact_cli(
-        commission_bps=commission_bps_per_execution,
-        central_slippage_bps=central_latency_slippage_bps_per_execution,
-        val_slippage_bps=val_latency_slippage_bps_per_execution,
-        long_financing_rate=long_financing_annual_cost_rate,
-        short_financing_rate=short_financing_annual_cost_rate,
-        gslo_fee=gslo_fee_account_currency_per_execution,
-        long_risk_bps=hold_risk_penalty_long_annual_bps,
-        short_risk_bps=hold_risk_penalty_short_annual_bps,
-    )
     start, end, prereg = (
         pd.Timestamp(coverage_start_utc),
         pd.Timestamp(coverage_end_utc),
@@ -125,13 +121,23 @@ def materialize_prospective_cost_policy(
     execution = broker["execution_observations"]
     account = broker["current_prospective_terms"]["account"]
     instrument = broker["current_prospective_terms"]["instrument"]
+    financing_rates = prospective_financing_rates(instrument)
+    _exact_cli(
+        commission_bps=commission_bps_per_execution,
+        central_slippage_bps=central_latency_slippage_bps_per_execution,
+        val_slippage_bps=val_latency_slippage_bps_per_execution,
+        long_financing_rate=long_financing_annual_cost_rate,
+        short_financing_rate=short_financing_annual_cost_rate,
+        gslo_fee=gslo_fee_account_currency_per_execution,
+        long_risk_bps=hold_risk_penalty_long_annual_bps,
+        short_risk_bps=hold_risk_penalty_short_annual_bps,
+        observed_financing=financing_rates,
+    )
     if (
         execution["cutoff_fill_count"] != 258
         or execution["commission_present_count"] != 258
         or execution["commission_nonzero_count"] != 0
         or float(account["lifetime_commission_account_units"]) != 0.0
-        or float(instrument["long_financing_rate"]) != -0.054
-        or float(instrument["short_financing_rate"]) != 0.0282
     ):
         raise RuntimeError("PROSPECTIVE_COST_BROKER_FACTS_CHANGED")
 
@@ -271,7 +277,11 @@ def materialize_prospective_cost_policy(
         "executable_bid_ask": {"mode": "side_correct_executable_bid_ask_from_bound_m1_tape"},
         "commission": {"bps_per_execution": 0.0},
         "execution_slippage": {"central_bps_per_execution": 2.0, "val_sensitivity_bps_per_execution": [1.0, 2.0, 4.0]},
-        "financing_or_swap": {"long_annual_cost_rate": 0.054, "short_annual_cost_rate": 0.0, "favorable_credit_clipped_to_zero": True},
+        "financing_or_swap": {
+            "long_annual_cost_rate": policy["financing_or_swap"]["long_annual_cost_rate"],
+            "short_annual_cost_rate": policy["financing_or_swap"]["short_annual_cost_rate"],
+            "favorable_credit_clipped_to_zero": True,
+        },
         "guaranteed_execution_fee": {"account_currency_per_execution": 0.0, "zero_requires_hash_bound_no_gslo_policy": True},
     }
     fact_bindings: dict[str, dict[str, str]] = {}

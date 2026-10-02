@@ -1319,3 +1319,40 @@ result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALI
 SHA256: 8426c51ebf69481a0a78659889bcbfc81d61910f44897a73d63663bd624d061a
 terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/EVENTS/TERMINAL_20261002T045413225232Z.json
 SHA256: 3f31510bfe224c6a27a92fa2d274ad22da423cbe53d3852d1b2eea406e14e8e4
+
+## Dagens vilkår bundet i ny prospektiv kostnadspolicy — 02.10.2026
+
+De to godkjente OANDA practice-lesekallene er fullført. Ingen ordre,
+transaksjonsoppslag eller nye broker-kall er utført etter engangskontrollen.
+258 historiske fyll og lagrede finansieringsobservasjoner er bevart.
+
+Dagens instrumentvilkår er -0,0569 for LONG og +0,0323 for SHORT.
+Kostnadskoden hadde hardkodet de gamle ratene. Eksisterende eier binder nå
+rater til hvert artefakts eksakte broker-evidens og bruker samme metode:
+negative renter belastes, gunstige kreditter klippes til null.
+Policy, komponentfakta og parameterautoritet bruker samme bundne tall.
+Gamle artefakter kontrolleres fortsatt mot sine opprinnelige kilder.
+
+CURRENT_TERMS_POLICY_001 publiserte en ny, separat prospektiv kostnadspolicy
+for 01.06.2011–01.07.2026. Årlig finansieringskostnad er 0,0569 LONG og
+0 SHORT. Kommisjonsgrunnlag, slippage 2 bps per utførelse, sensitivitet
+1/2/4 bps, no-GSLO-policy og null ekstra risikostraff er uendret.
+Policyen er forhåndsbundet før native måling og bruker ekte før-TEST-quotes.
+
+36 fokuserte tester består. Kontrollene dekker endrede fortegn/rater,
+avvisning av gamle eller underrapporterte kostnader, atomisk publisering
+og gammel evidens. Gamle ekte policybytes og den nye publiserte autoriteten
+er strengt lest med kildeverifisering. Kilde var uendret under kontrollen.
+Etter de to godkjente GET-kallene var nettverk sperret i policykontrollen.
+
+Dette kvalifiserer en prospektiv beregningspolicy, ikke historisk
+finansieringsfasit eller økonomisk edge. Neste avhengighet er nye faktiske
+TRAIN/VAL-økonomi-/indeksbindinger til denne autoriteten, deretter målt
+sampler, koordinater og fersk initialmåling. Ingen indeksbygg eller
+modellmåling er gjort i denne bølgen. Native trening og TEST er stengt;
+engangs broker-tillatelsen er brukt opp.
+
+result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/EVENTS/RESULT_20261002T050033032316Z.json
+SHA256: 7cff69e025586e4b06fc8889713ce51509c97936972c29e859428f0b7ebf0498
+terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/EVENTS/TERMINAL_20261002T050033050080Z.json
+SHA256: c038e2b2e11dc8ecee3bb0e6a07be80d9b5c3f567dd1101a12127f567a13097b
