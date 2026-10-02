@@ -903,3 +903,11 @@ initial-/resume-semantikk, bevaring av pointer/RNG og avvisning før forward.
 Syntaks, stale-path-scan og diff-sjekk består. Ny faktisk initialbaseline,
 native train/serve-paritet, fysisk kontrollruting, etikettkoordinater,
 kostnadsautoritet og læring er ufullført. training_enabled=false består.
+
+## Gjenbruk av ferdige hjelpefasiter — forhåndskontroll 02.10
+
+En avgrenset lesekontroll er nå forhåndsbundet: AUXILIARY_REUSE_PRECHECK_001.
+De opprinnelige TRAIN-/VAL-policyene og alle måltidsstemplene skal kontrolleres
+før eventuell gjenbruk. Fem måleiere er byte-like produksjonskoden. Ingen ny
+fit, målberegning eller native trening åpnes; kun metadata og tidsstempler.
+Vilkårsspørsmålet er fortsatt ubesvart og broker-adgang er stengt.

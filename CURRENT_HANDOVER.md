@@ -1,5 +1,11 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+En avgrenset lesekontroll er nå forhåndsbundet: AUXILIARY_REUSE_PRECHECK_001.
+De opprinnelige TRAIN-/VAL-policyene og alle måltidsstemplene skal kontrolleres
+før eventuell gjenbruk. Fem måleiere er byte-like produksjonskoden. Ingen ny
+fit, målberegning eller native trening åpnes; kun metadata og tidsstempler.
+Vilkårsspørsmålet er fortsatt ubesvart og broker-adgang er stengt.
+
 Lærerfunksjonen er nå eksplisitt bundet gjennom de eksisterende native
 eierne. V38 velger samme aktuelle funksjon for ONLINE og TARGET, med begge
 parameterfrie normer bevart; historiske forsøk beholder sin opprinnelige

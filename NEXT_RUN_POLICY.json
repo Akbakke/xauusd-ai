@@ -2128,6 +2128,21 @@
     "training_launch_authority": false
   },
   "native_v38_preparation_20261001": {
+    "auxiliary_reuse_precheck": {
+      "native_training_enabled": false,
+      "normalization_fit_authorized": false,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/OPERATOR.py",
+        "sha256": "64807013e4a906dead9517b5cb08d9b7932c15d3beb72d1d1bdd75e4c4d0a3a2"
+      },
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/AUXILIARY_REUSE_PRECHECK_001/PLAN.json",
+        "sha256": "8902790fc1f805710c0c0f92b189e5a0a66c34cb09d965bd38b780d79dbc2efb"
+      },
+      "source_frozen_while_running": true,
+      "status": "PREPARED_READ_ONLY_POLICY_AND_CLOCK_PRECHECK",
+      "test_accessed": false
+    },
     "base_normalization": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/BASE_NORMALIZATION/normalization.json",
       "sha256": "b2232f23f6e5c335b7102996427e9fcd6fbf51f11956afc5b3e7e0c20bd54a36"
@@ -2812,7 +2827,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse all completed normalization/final bindings and the actual index source audit. The teacher function is now selected by the bound design and propagated to native initialization/resume/refresh/measurement, with current v38 norms retained and legacy semantics preserved; focused synthetic tests pass. This does not admit actual native execution: physical TRAIN/VAL component and target-coordinate support is still incomplete and the legacy same-source substitution is rejected. While the user's narrow two-GET broker-terms exception remains pending, continue only independent source preparation for the declared physical split/target owners. Do not repeat the question, infer approval, refit inputs or publish economics/indexes without current cost authority. On explicit approval record the exact scoped exception before COST_TERMS_REVALIDATION_001, then reconcile cost drift and 2011-onward coverage. Native training, TEST, live/paper and spending remain closed.",
+  "next_action": "Run the single committed AUXILIARY_REUSE_PRECHECK_001 audit over bound TRAIN/VAL and complete pre-TEST M1 clocks, with unchanged target owners and frozen TRAIN-only policies. Reuse passed inputs and fits; do not launch another producer or recompute labels before this evidence. Then land the smallest physical split/target binding change. The two-GET broker terms question remains pending and broker access is not authorized. No native training, TEST, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-01T23:59:29.186133+00:00",
   "outer_guard_seconds": 13800,
