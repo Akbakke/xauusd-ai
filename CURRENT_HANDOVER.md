@@ -1,5 +1,16 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Operatøren godkjente 02.10.2026 den tidligere klargjorte lesekontrollen:
+«Ja kjør lesekall». Tillatelsen gjelder bare COST_TERMS_REVALIDATION_001,
+maksimalt ett GET for OANDA practice-kontovilkår og ett GET for XAUUSD-vilkår.
+Den hash-bundne planen og operatoren gjenbrukes. Ingen retry, redirect,
+transaksjonsoppslag, ordre, handel eller spending. Trening og TEST er stengt.
+
+Neste steg er én capped audit-kjøring og kontroll av renset terminal evidens.
+Godkjenningen er ennå ikke brukt; ingen nye broker-kall er utført.
+
+## Tidligere offline persistenskontroll — historikk
+
 Offline lagring av handelstilstand er rettet og testet med feilinjeksjon.
 
 Før rettelsen ble en katalog eller brutt lenke med forventet tilstandsnavn

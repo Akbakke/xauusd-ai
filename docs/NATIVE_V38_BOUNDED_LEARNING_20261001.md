@@ -1285,3 +1285,14 @@ forseglet. Læring, kostnadsjustert edge og train/serve-paritet er ikke bevist.
 
 Kildekontroll: FRESH_STATE_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T040826067925Z.json
 SHA256 50683882ad77e1b737e7b72c013ca97f3849564e6303ae057dcda3b47abe6539.
+
+## Lesekontroll uttrykkelig godkjent — 02.10.2026
+
+Operatøren godkjente 02.10.2026 den tidligere klargjorte lesekontrollen:
+«Ja kjør lesekall». Tillatelsen gjelder bare COST_TERMS_REVALIDATION_001,
+maksimalt ett GET for OANDA practice-kontovilkår og ett GET for XAUUSD-vilkår.
+Den hash-bundne planen og operatoren gjenbrukes. Ingen retry, redirect,
+transaksjonsoppslag, ordre, handel eller spending. Trening og TEST er stengt.
+
+Neste steg er én capped audit-kjøring og kontroll av renset terminal evidens.
+Godkjenningen er ennå ikke brukt; ingen nye broker-kall er utført.

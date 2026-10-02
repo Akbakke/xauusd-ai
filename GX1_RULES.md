@@ -192,3 +192,13 @@ prosjektlåser på maskinen være ledige. Ingen fast omstartsperiode er vedtatt;
 en aktiv jobb avbrytes aldri for periodisk omstart. Etterpå bekreftes ny
 oppstartstid, fungerende tilkobling/WSL, uendret kilde og intakte artefakter
 gjennom eksisterende vakter før neste tunge jobb.
+
+## Avgrenset operatørunntak 02.10.2026 — engangs lesekall
+
+Operatøren godkjente 02.10.2026 den tidligere klargjorte lesekontrollen:
+«Ja kjør lesekall». Tillatelsen gjelder bare COST_TERMS_REVALIDATION_001,
+maksimalt ett GET for OANDA practice-kontovilkår og ett GET for XAUUSD-vilkår.
+Den hash-bundne planen og operatoren gjenbrukes. Ingen retry, redirect,
+transaksjonsoppslag, ordre, handel eller spending. Trening og TEST er stengt.
+
+Unntaket kan ikke gjenbrukes til nye kall etter at denne kjøringen har brukt det.

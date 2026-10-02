@@ -2739,8 +2739,11 @@
       "unchanged_economics_parameters": true
     },
     "cost_terms_revalidation": {
-      "authorization_question_pending": true,
+      "authorization_consumed": false,
+      "authorization_question_pending": false,
+      "authorization_received_utc": "2026-10-02T04:53:50.627445+00:00",
       "authorization_scope": "One current OANDA practice account-summary GET and one XAU_USD instrument-terms GET; no redirects, retries, transactions, orders, trading, spending or TEST data. Reuse the exact frozen pre-cutoff observations and policy; sanitize the two responses locally.",
+      "authorization_user_text": "Ja kjør lesekall",
       "broker_requests_performed": 0,
       "focused_tests_passed": 15,
       "native_training_enabled": false,
@@ -2753,9 +2756,9 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/PLAN.json",
         "sha256": "22d5b8de8d166a4d0b75669d51bf348b203d128d19e8fb7f7da0dd68b0e0e343"
       },
-      "read_only_broker_terms_authorized": false,
-      "source_frozen_while_running": false,
-      "status": "PREPARED_REQUIRES_EXPLICIT_USER_READ_ONLY_BROKER_EXCEPTION",
+      "read_only_broker_terms_authorized": true,
+      "source_frozen_while_running": true,
+      "status": "EXPLICIT_USER_AUTHORIZED_ONCE_NOT_EXECUTED",
       "transaction_requests_authorized": false
     },
     "dependency_review": {
@@ -4188,7 +4191,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Offline persistence faults are repaired and 136 synthetic tests passed with network calls denied; reuse this evidence. Full order coordination, restart reconciliation and train/serve parity remain unqualified. Do not reopen retired live/paper paths to claim operational completion. The actual native cost/index chain, measured sampler, coordinates and fresh initialization remain the next learning dependencies; the two-GET broker-terms authorization is still unanswered. Reuse completed preprocessing, preserve observation source identity and only edit for a newly observed blocker or an explicitly scoped unfinished goal dependency. Never relaunch the completed input build. Native training, TEST, broker requests, live/paper and spending remain closed.",
+  "next_action": "Execute the explicitly user-authorized COST_TERMS_REVALIDATION_001 once through the capped audit owner, limited to the two bound OANDA practice GET routes. Preserve historical observations and inspect sanitized terminal evidence before any cost-policy qualification. No retries, redirects, transaction lookups, orders, training or TEST access are authorized.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
