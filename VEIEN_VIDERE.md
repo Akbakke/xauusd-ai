@@ -1,5 +1,17 @@
 # Veien videre — oppdatert 02.10.2026
 
+Dataset-bindingen kan nå gjenbruke de originale v38-hjelpefasitene fra
+separate fysiske TRAIN-/VAL-filer. Hele klokken, TRAIN-policyene, målverdienes
+domener og egne radkoordinater bindes før lesetilgangen avgrenses. Ingen
+fasiter, features eller samplerrekkefølge omskrives. Historisk prefix-rute består.
+
+81 fokuserte syntetiske tester består, inkludert ekte Dataset-konstruksjon
+på testdata og uendrede utdata gjennom __getitem__. PHYSICAL_AUXILIARY_BINDING_AUDIT_001
+er klargjort for én capped kontroll av tid og 47 målkolonner på ekte TRAIN/VAL.
+Denne kontrollen er ikke utført ennå og åpner ingen modellkjøring eller trening.
+Kilde holdes fryst under kontrollen. Hovedbyggerens øvrige recipe-/treningsbinding,
+indekser og kostnadsautoritet gjenstår. Brokervilkårsspørsmålet er ubesvart.
+
 Kontrollkjedens gamle TRAIN-/juni-binding er rettet hos seks eksisterende
 eiere. En eksplisitt fryst VAL-kontroll binder hele fysisk VAL, filstier,
 radmapping og CONTROL256 gjennom tilstandsbygger, referansemåling, native

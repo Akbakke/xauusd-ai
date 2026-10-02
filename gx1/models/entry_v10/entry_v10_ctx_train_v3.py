@@ -4430,6 +4430,204 @@ def _deterministic_liveness_storage_indices(
     return storage_indices
 
 
+def _physical_auxiliary_target_binding(
+    frame: pd.DataFrame,
+    *,
+    parquet_path: Path,
+    result_binding: Mapping[str, str],
+    expected_design_sha256: str,
+    role: str,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Validate original targets in one physical split without rewriting them.
+
+    The completed clock audit proves future support; this checks its immutable
+    sources against the Dataset's full scalar frame. TRAIN and CONTROL256 row
+    numbers belong to different files. It is not native launch authority.
+    """
+    from gx1.contracts.entry_causal_m1_target_policy_v1 import (
+        causal_m1_policy_fit_train_end, require_causal_m1_target_policy,
+    )
+    from gx1.contracts.entry_exit_feature_base_v1 import (
+        ENTRY_DECISION_BAR_SECONDS, EXIT_DECISION_BAR_SECONDS,
+    )
+
+    def require(condition: bool, reason: str) -> None:
+        if not condition:
+            raise RuntimeError(f"[ENTRY_PHYSICAL_AUX_{reason}]")
+
+    def bound_file(binding: Mapping[str, Any]) -> Path:
+        path = _sequence_source_exact_regular_file(
+            Path(binding["path"]), label="PHYSICAL_AUX"
+        )
+        require(_sha256_file(path) == binding["sha256"], "HASH_MISMATCH")
+        return path
+
+    def utc(value: Any) -> pd.Timestamp:
+        stamp = pd.Timestamp(value)
+        require(not pd.isna(stamp) and stamp.tzinfo is not None
+                and stamp.utcoffset() == pd.Timedelta(0), "CLOCK_INVALID")
+        return stamp.as_unit("ns")
+
+    def clock_hash(values: np.ndarray) -> str:
+        return hashlib.sha256(np.ascontiguousarray(values, dtype="<i8").tobytes()).hexdigest()
+
+    require(role in ("TRAIN", "CONTROL256"), "ROLE_INVALID")
+    result = _sequence_roll_read_json_object(bound_file(result_binding))
+    require(
+        result.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_v1"
+        and result.get("decision") == "PASS_FROZEN_TRAIN_POLICIES_AND_COMPLETE_PRETEST_TARGET_CLOCK_SUPPORT"
+        and result.get("identical_frozen_policies_across_physical_splits") is True
+        and result.get("producer_code_unchanged_for_five_target_owners") is True
+        and result.get("test_accessed") is False
+        and result.get("forbidden_access_attempts") == [],
+        "PRECHECK_INVALID",
+    )
+    plan = _sequence_roll_read_json_object(bound_file(result["plan"]))
+    inputs = plan["input_bindings"]
+    require(plan.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_plan_v1"
+            and inputs["design"]["sha256"] == expected_design_sha256, "DESIGN_MISMATCH")
+    design = _sequence_roll_read_json_object(bound_file(inputs["design"]))
+    calendar = design["calendar"]
+    sources = calendar.get("source_bindings")
+    require(
+        design.get("schema_version") == "gx1_frozen_chronological_learning_design_v1"
+        and calendar.get("physical_source_splits") == {"train": "train", "control": "val"}
+        and calendar.get("physical_coordinate_namespaces_are_separate") is True
+        and "index" not in calendar
+        and isinstance(sources, Mapping) and set(sources) == {"train", "val"},
+        "PHYSICAL_DESIGN_INVALID",
+    )
+    # Check role and all source identities before resolving any dataset pointer.
+    split = "train" if role == "TRAIN" else "val"
+    source = sources[split]
+    require(
+        all(sources[name][kind] == inputs[name + "_" + kind]
+            for name in ("train", "val") for kind in ("parquet", "manifest"))
+        and all(sources["train"][kind]["path"] != sources["val"][kind]["path"]
+                for kind in ("parquet", "manifest"))
+        and Path(source["parquet"]["path"]) == Path(parquet_path)
+        and Path(source["manifest"]["path"]) == Path(parquet_path).with_suffix(".manifest.json"),
+        "PHYSICAL_SOURCE_MISMATCH",
+    )
+    bound_file(source["parquet"])
+    manifest = _sequence_roll_read_json_object(bound_file(source["manifest"]))
+    extra = manifest["extra"]
+    start = utc(calendar["train_entry_start_inclusive"])
+    cutoff = utc(calendar["train_control_cutoff"])
+    end = utc(calendar["development_control_entry_end_exclusive"])
+    low, high = (start, cutoff) if split == "train" else (cutoff, end)
+    require(start < cutoff < end
+            and manifest["splits"]["train"] == sources["train"]["declared_window"]
+            and manifest["splits"][split] == source["declared_window"]
+            and utc(source["declared_window"]["start"]) == low
+            and utc(source["declared_window"]["end"]) < high,
+            "WINDOW_MISMATCH")
+    count = source["physical_rows"]
+    require(type(count) is int and count > 0 and len(frame) == count
+            and extra["rows"] == count and not frame.columns.duplicated().any(),
+            "POPULATION_MISMATCH")
+    times = pd.DatetimeIndex(frame["time"])
+    require(times.tz is not None and not times.hasnans, "CLOCK_INVALID")
+    ns = times.as_unit("ns").asi8
+    require(np.all(ns[1:] > ns[:-1]) and np.all(ns >= low.value)
+            and np.all(ns < high.value) and clock_hash(ns) == source["clock_sha256"],
+            "ENTRY_CLOCK_MISMATCH")
+
+    signal = _sequence_roll_read_json_object(bound_file(inputs["signal"]))
+    ranking = signal["feature_ranking"]
+    direction = require_causal_m1_target_policy(ranking["entry_direction_target_policy"])
+    fit_end = causal_m1_policy_fit_train_end(utc(sources["train"]["declared_window"]["end"]))
+    require(
+        direction["policy_sha256"] == ranking["entry_direction_target_policy_sha256"]
+        == extra["diagnostic_outcome_policy_sha256"]
+        and utc(direction["train_start_utc"]) == utc(result["fit_start_utc"]) == start
+        and utc(direction["train_end_utc"]) == utc(result["fit_end_utc"]) == fit_end
+        and start <= utc(direction["fit_first_m5_time_utc"])
+        <= utc(direction["fit_last_m5_time_utc"])
+        and utc(direction["fit_last_m5_time_utc"]) + pd.Timedelta(
+            seconds=ENTRY_DECISION_BAR_SECONDS * (1 + direction["candidate_horizon_max_bars"])
+        ) <= cutoff,
+        "POLICY_FIT_SCOPE_INVALID",
+    )
+    size = require_causal_m1_position_size_target_manifest_binding(
+        extra,
+        expected_source_parquet_sha256=direction["source_parquet_sha256"],
+        expected_tape_provenance_sha256=direction["tape_provenance_sha256"],
+        expected_m1_source_sha256=direction["m1_source_sha256"],
+        expected_direction_policy_sha256=direction["policy_sha256"],
+        expected_train_start=start, expected_train_end=fit_end,
+    )
+    fixed = _require_model_native_aux_target_emission_contract(
+        extra["aux_head_target_contract"], context="ENTRY_PHYSICAL_AUX"
+    )
+    horizon = direction["selected_direction_horizon_bars"]
+    proof = result["splits"][split]
+    require(
+        size["path_horizon_bars"] == direction["path_quality_horizon_bars"] == horizon
+        and proof["rows"] == proof["exact_m1_fill_and_contiguous_outcome_rows"] == count
+        and proof["entry_clock_sha256"] == source["clock_sha256"]
+        and proof["fixed_target_columns"] == len(fixed["columns"])
+        and extra["aux_head_target_contract"]["complete_rows_emitted"] == count
+        and proof["policy_horizon_m5_bars"] == horizon
+        and proof["policy_horizon_m1_bars"]
+        == horizon * (ENTRY_DECISION_BAR_SECONDS // EXIT_DECISION_BAR_SECONDS)
+        and proof["direction_policy_sha256"] == direction["policy_sha256"]
+        and proof["position_size_policy_sha256"] == size["policy_sha256"]
+        and utc(proof["supervision_boundary_exclusive_utc"]) == high
+        and utc(proof["last_exact_m1_outcome_utc"]) <= high,
+        "SUPPORT_BINDING_MISMATCH",
+    )
+    support = proof["observed_m5_support_by_horizon"]
+    require(set(support) == {str(h) for h in (
+        set(fixed["future_horizon_bars_by_column"].values()) | {horizon}
+    )}, "SUPPORT_HORIZONS_INVALID")
+    for item in support.values():
+        require(item["rows"] == count and item["all_before_or_at_split_boundary"] is True
+                and low < utc(item["first_support_close_utc"])
+                <= utc(item["last_support_close_utc"]) <= high,
+                "OUTCOME_CROSSES_BOUNDARY")
+
+    row_binding = calendar["bindings"][
+        "TRAIN_CALENDAR_PARENT_ROWS" if role == "TRAIN" else "CONTROL256_PARENT_ROWS"
+    ]
+    rows = np.load(bound_file(row_binding), allow_pickle=False)
+    require(rows.ndim == 1 and rows.dtype == np.dtype("int64") and rows.size > 0
+            and np.all(np.diff(rows) > 0) and rows[0] >= 0 and rows[-1] < count,
+            "PARENT_ROWS_INVALID")
+    if role == "TRAIN":
+        require(np.array_equal(rows, np.arange(count, dtype=np.int64)), "TRAIN_COHORT_MISMATCH")
+    else:
+        control = proof["control256"]
+        require(row_binding == inputs["control256"]
+                and len(rows) == control["rows"] == calendar["control256"]["rows"]
+                == design["selection"]["control_entries"] == design["budget"]["later_control_entries"]
+                and control["physical_coordinate_source"] == split
+                and control["entry_clock_sha256"] == clock_hash(ns[rows])
+                and control["all_support_checks_passed"] is True, "CONTROL_COHORT_MISMATCH")
+
+    columns = list(_MODEL_NATIVE_ACTIVE_TARGET_COLS)
+    require(all(name in frame and frame[name].dtype == np.dtype("float32")
+                for name in columns), "TARGET_DTYPE_INVALID")
+    failures = _model_native_active_target_failures(role, frame)
+    require(not failures, "TARGET_DOMAIN_INVALID: " + "; ".join(failures))
+    for domain in fixed["target_value_domains"].values():
+        require(all(np.all(frame[name].to_numpy() <= domain["upper_safety_cap_bps"])
+                    for name in domain["columns"]), "TARGET_UPPER_DOMAIN_INVALID")
+    require(np.all(frame.loc[frame["y_position_size_mask"] == 0, "y_position_size_target"]
+                   .to_numpy() == size["nontradable_storage_sentinel"]), "MASK_SENTINEL_INVALID")
+    mask = np.zeros(count, dtype=np.bool_)
+    mask[rows] = True
+    return mask, {
+        "result": dict(result_binding), "design": inputs["design"], "role": role,
+        "mode": "original_physical_split_targets", "source_split": split,
+        "parent_entry_parquet": source["parquet"], "parent_entry_manifest": source["manifest"],
+        "row_binding": row_binding, "rows": int(rows.size),
+        "active_target_columns": columns,
+        "policies": {"direction_policy": direction, "position_size_policy": size},
+        "targets_rewritten": False, "inactive_diagnostics_refreshed": False,
+    }
+
+
 class EntryV10CtxDataset(Dataset):
     """
     Builds rolling-window samples from canonical ENTRY_V10_CTX parquet.
@@ -5317,13 +5515,12 @@ class EntryV10CtxDataset(Dataset):
         expected_design_sha256: str,
         role: str,
     ) -> None:
-        """Bind prefix-only auxiliary labels to original parent coordinates.
+        """Bind chronological auxiliary supervision before DataLoader workers.
 
-        This opt-in binding changes only the ten policy-dependent active
-        targets. It neither selects rows nor changes features, raw targets,
-        the parent manifest, or inactive historical diagnostics. Every read
-        outside the bound cohort fails; callers must bind TRAIN and CONTROL
-        on separate dataset instances before starting DataLoader workers.
+        Legacy prefix evidence replaces ten targets in its shared parent.
+        Physical-split evidence reuses all original targets unchanged. Both
+        modes restrict reads to their own bound coordinates without selecting
+        or resequencing rows; TRAIN and CONTROL need separate instances.
         """
         if (
             not getattr(self, "_advanced", False)
@@ -5345,6 +5542,15 @@ class EntryV10CtxDataset(Dataset):
 
         result_binding = {"path": str(result_path), "sha256": expected_result_sha256}
         result = _sequence_roll_read_json_object(bound_file(result_binding))
+        if result.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_v1":
+            bound_rows, binding = _physical_auxiliary_target_binding(
+                self.df, parquet_path=self.parquet_path, result_binding=result_binding,
+                expected_design_sha256=expected_design_sha256, role=role,
+            )
+            # Commit only after all checks pass; do not copy or replace targets.
+            self._policy_dependent_auxiliary_bound_rows = bound_rows
+            self._policy_dependent_auxiliary_binding = binding
+            return
         require(
             result["schema_version"] == "gx1_prefix_policy_dependent_labels_v1"
             and tuple(result["active_target_columns"])
