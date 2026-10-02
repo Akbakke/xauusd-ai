@@ -1,19 +1,25 @@
 # GX1 arbeidsmål — oppdatert 02.10.2026
 
-Recipe-eieren kan nå binde de eksisterende resultatene fra full fysisk TRAIN:
-base-/lifetime-normalisering og originale hjelpefasiter. Den følger separate
-TRAIN-/VAL-kilder, hele TRAIN-populasjonen og kanonisk sampleautoritet.
-Ingen ny normalisering eller mellomliggende prefix-fit opprettes.
+Recipe-eierens identitetskontroll kan nå gjenbruke ferdig normalisering fra
+hele fysisk TRAIN og beviset for originale hjelpefasiter. Den binder separate
+TRAIN-/VAL-kilder, kildeklokker, hele TRAIN-populasjonen og sampleautoriteten
+for lifetime-normalisering. Historisk prefix-rute er bevart.
 
-119 syntetiske tester består; tre kombinasjoner av avledede mål
-hoppes over fordi de ligger utenfor deklarert TRAIN-only-scope. Historisk recipe-rute består.
-En oppdaget hashformat-mismatch er rettet ved å bruke normaliseringseierens
-egen hashfunksjon. RECIPE_PREPROCESSING_AUDIT_001 er klargjort for én capped
-kontroll av ekte metadata/radbindinger, men er ikke kjørt ennå.
+RECIPE_PREPROCESSING_AUDIT_001 sluttet med exit 0 og uendret kilde.
+Den faktiske funksjonen i recipe-eieren godtar de ekte ferdige artefaktene:
+652 552 TRAIN-/70 880 VAL-rader og de opprinnelige normaliseringshashene.
+Kontrollen leste metadata/radarrayer, ingen Parquet-data eller TEST. Ingen
+ny fit, modellkjøring eller optimizersteg. Native koordinater er eksplisitt ubundet.
 
-Dette kvalifiserer ikke full native recipe eller launch. Hovedbyggerens og
-treningssesjonens bindinger, faktisk samplerrekkefølge og målekoordinater
-gjenstår, sammen med indekser og kostnadsautoritet. Broker-spørsmålet er ubesvart.
+119 fokuserte syntetiske tester består; tre avledede måltilfeller utenfor
+deklarert TRAIN-only-scope er utelatt. Testene fanget forskjellen mellom
+prosjektets hashformater; den nye kontrollen bruker normaliseringsprodusentens
+egen hashfunksjon. Påkrevde Git-kontraktssjekker består.
+
+Dette er datagrunnlagets identitet, ikke full native recipe eller launch.
+Hovedbygger-/trenings-/målebindinger og faktisk epoch0/4096/TRAIN256-rekkefølge
+gjenstår. Indekser og fersk kostnadsautoritet mangler fortsatt, og
+brokervilkårsspørsmålet er ubesvart. Ingen læring eller edge er bevist.
 
 Dataset-bindingens gamle krav om erstatningsfasiter fra felles TRAIN er rettet.
 V38 gjenbruker nå originale mål fra hver fysisk TRAIN-/VAL-fil, med egen klokke,

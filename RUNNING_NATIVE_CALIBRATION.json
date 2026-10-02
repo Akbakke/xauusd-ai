@@ -3199,20 +3199,104 @@
     },
     "profitability_proven": false,
     "recipe_preprocessing_audit": {
+      "checked_identity": {
+        "base_contract_sha256": "a117287dad44bc255d719606c686ea2b59e6196df75118e3a8af0353ad6b7dba",
+        "composite_normalization": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/COMPOSITE_NORMALIZATION.json",
+          "sha256": "26be1942c28718fefcdf3790eda9fa94520f90a9d479833acc0b8636ea75d0e5"
+        },
+        "composite_normalization_sha256": "9a30939aa60041d91bc1bfdd0eede3c5afd7c691d801e0fc3e5049d553c73d37",
+        "control_parent_rows": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/CONTROL256_PARENT_ROWS.npy",
+          "sha256": "a33a97c612c3325cb9dbd44c1d8a3cafd40150523af32f345d63bdfb1ab8fa7f"
+        },
+        "native_coordinates_bound": false,
+        "physical_sources": {
+          "train": {
+            "clock_sha256": "45d1eb05b338a20317d4631c62247fb1de2f89df65ddc6d199386d2ef5105e55",
+            "declared_window": {
+              "end": "2025-05-31 23:59:59+00:00",
+              "start": "2011-06-01 00:00:00+00:00"
+            },
+            "first_entry_utc": "2011-06-01T00:00:00+00:00",
+            "last_entry_utc": "2025-05-30T12:55:00+00:00",
+            "manifest": {
+              "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json",
+              "sha256": "1880544657f15b01895db5ad4c1080af605e070aaf757661fe0cfbbd28a34cdf"
+            },
+            "parquet": {
+              "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.parquet",
+              "sha256": "9457938800191eb53c9de34eedce04e9029d392e43bb49d5b26ddfa84023593a"
+            },
+            "physical_rows": 652552
+          },
+          "val": {
+            "clock_sha256": "becd5ec706aed32434062196fa8e8d58491e1e8f961c29b53ef51a1e2e5e54e2",
+            "declared_window": {
+              "end": "2026-06-30 23:59:59+00:00",
+              "start": "2025-06-01 00:00:00+00:00"
+            },
+            "first_entry_utc": "2025-06-01T22:00:00+00:00",
+            "last_entry_utc": "2026-06-30T14:55:00+00:00",
+            "manifest": {
+              "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json",
+              "sha256": "b49babe5584f2dbc740af4d1a137b47e9909c343d3beb0da0706ac945e1c7797"
+            },
+            "parquet": {
+              "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.parquet",
+              "sha256": "2e2f8fb414044cad520703806774d5e0d6c612a8c4d046e4e68157f994bbca8d"
+            },
+            "physical_rows": 70880
+          }
+        },
+        "summary_normalization_sha256": "05c95194efbd475ef13cca3c38f5c766f61df4aa413eebb40efbae989314302d",
+        "train_parent_rows": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/TRAIN_CALENDAR_PARENT_ROWS.npy",
+          "sha256": "a87510bbd60c7133c8a71a6f980be22483c072db334554ec46955cb0f1487d09"
+        },
+        "train_rows": 652552
+      },
+      "completed_utc": "2026-10-02T01:37:40.534272+00:00",
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/EVENTS/FINAL_REVIEW_20261002T014000452922Z.json",
+        "sha256": "c3d0fe64b0a5468d912fb375c6b2ca2ede759d8305ad1d2091070995f99658c2"
+      },
+      "launcher_terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/EVENTS/LAUNCHER_TERMINAL_20261002T013740854764Z.json",
+        "sha256": "bcfd3ffaea1dd047828940478df48fff30316092db02a692da2aec6773f844cd"
+      },
+      "limitations": [
+        "The production helper used by the chronological recipe owner was measured on existing genuine immutable preprocessing artifacts.",
+        "No full native recipe, component construction, sampler coordinates, initialization, economics, learning or train/serve parity was qualified."
+      ],
+      "model_forwards": 0,
+      "native_admission_complete": false,
+      "new_policy_fits": 0,
       "normalization_fit_authorized": false,
+      "normalization_fits": 0,
       "operator": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/OPERATOR.py",
         "sha256": "725c5e1497251f57d26d7897d8b2c332415023a159b0b8f269404edc7d11f23c"
       },
       "optimizer_steps": 0,
+      "parquet_reads": 0,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/PLAN.json",
         "sha256": "5233aad1179656f680d40a5f6834b9a736eac91a97c5e0f2102e6801d1decd29"
       },
-      "source_frozen_while_running": true,
-      "status": "PREPARED_REAL_METADATA_ONLY_PREPROCESSING_AUDIT",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/EVENTS/RESULT_20261002T013740534272Z.json",
+        "sha256": "cd8e9a1e6698eaa022709e54087fd840e5f035ce439323154285401afcbe1d68"
+      },
+      "source_frozen_while_running": false,
+      "source_head": "5d99e4aba29699adcee75340d2149dea14707f3c",
+      "status": "COMPLETE_REAL_FULL_TRAIN_PREPROCESSING_IDENTITY_VERIFIED",
       "synthetic_tests_passed": 119,
       "synthetic_tests_skipped": 3,
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/EVENTS/TERMINAL_20261002T013740553462Z.json",
+        "sha256": "f0a080d2bdbcc60bd370d130af05576425c54ba45af2683b46906503605f0949"
+      },
       "test_accessed": false,
       "test_evidence": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/RECIPE_PREPROCESSING_AUDIT_001/EVENTS/TEST_EVIDENCE_20261002T013445661282Z.json",
@@ -3327,7 +3411,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Run the single prepared RECIPE_PREPROCESSING_AUDIT_001 through capped audit using committed unchanged source; metadata and row-array reads only. The chronological recipe identity owner now consumes original full-TRAIN normalization and auxiliary reuse evidence. Native component/training owners, actual sampler/epoch0/probe coordinates and physical main-builder routing remain unfinished; real indexes and fresh economics are pending. Do not refit, relaunch completed audits, read TEST or initialize a model. The two-GET broker question remains unanswered; no broker, native training, live/paper or spending.",
+  "next_action": "Reuse the completed physical preprocessing identity in the chronological recipe owner and the verified original Dataset targets. Next bind native component/training/measurement owners to these existing results, separate physical TRAIN/VAL files and actual native epoch0/first4096/TRAIN256 coordinates. Do not manufacture legacy prefix-normalization or replacement-label artifacts and do not refit. Main-builder physical routing and full native admission remain unfinished; actual indexes and fresh economics are pending. The two-GET broker question remains unanswered; no broker, native training, TEST, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
