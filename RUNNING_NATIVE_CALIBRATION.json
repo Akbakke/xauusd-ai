@@ -3063,6 +3063,66 @@
       "sha256": "85222e6726c3a5f5670e8cb856104f0b1368ffa594d611a9492c627093204591"
     },
     "optimizer_steps": 0,
+    "physical_control_source_review": {
+      "actual_model_forwards": 0,
+      "combined_green_run": 131,
+      "final_affected_file_green_run": 60,
+      "native_admission_complete": false,
+      "optimizer_steps": 0,
+      "remaining": [
+        "Top-level native recipe/component admission still expects legacy normalization/replacement-label preparation and shared TRAIN sources.",
+        "Entry Dataset needs explicit reuse of original frozen auxiliary targets with physical TRAIN and CONTROL256 role masks.",
+        "Native component constructor must use two physical datasets/corpora, VAL index and new factory cohort argument.",
+        "Training coordinator and measurement-coordinate preparation still need separate TRAIN/VAL namespace bindings.",
+        "Real indexes/economics require current broker cost terms; the previous two-GET authorization question is still unanswered.",
+        "No real current-native initialization, reference-Q calculation, learning, edge, or train/serve parity is demonstrated."
+      ],
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_CONTROL_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T004908392141Z.json",
+        "sha256": "7fecbea0e848190367e203c2c302168e78b7fbbf6a83ee76b5cbf4213c45e378"
+      },
+      "source_bindings": {
+        "gx1/contracts/unified_exit_bounded_val_cohort_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_bounded_val_cohort_v1.py",
+          "sha256": "84bab404bd7ba7530421d8a4309315d711dbcaba061dd4b0bce21e62d992f25b"
+        },
+        "gx1/contracts/unified_exit_random_access_val_evaluator_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_val_evaluator_v1.py",
+          "sha256": "7774920e14708b8a0e7e218d43370bd75a54e542f8c7f8f949f5641d16a9a733"
+        },
+        "gx1/contracts/unified_exit_random_access_val_factory_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_val_factory_v1.py",
+          "sha256": "78bb64e7ac311b9a53ea91a3b0ac60484035608b4a9ef4d714ec09c0e170d089"
+        },
+        "gx1/contracts/unified_exit_random_access_val_rollout_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_val_rollout_v1.py",
+          "sha256": "85b94d04ddb3892b297b107fb307045053403a4e2eb19e0978b6d4f74fb77071"
+        },
+        "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+          "sha256": "e5ac668ec8e74b72b06733bc847f7918449e64df775902058b844a3eadfe05a8"
+        },
+        "gx1/scripts/run_unified_exit_random_access_val_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_val_v1.py",
+          "sha256": "a2a167f749541dbaf7df2c06f292449646d068d2d1a4b08509fcd6c50ee56bbb"
+        },
+        "tests/test_chronological_control_targets.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_chronological_control_targets.py",
+          "sha256": "e786786e42a49315149c9c6b470d53ffc183c26c4160afcf46798c2d947fcbcc"
+        },
+        "tests/test_native_chronological_control_source.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_chronological_control_source.py",
+          "sha256": "ee6f40b7de9d146ac066d4afbd25d2aafb93afce9f51242e1ac6c05d69c02dd6"
+        }
+      },
+      "status": "SOURCE_AND_SYNTHETIC_CONTROL_CHAIN_VERIFIED_NATIVE_COMPONENTS_INCOMPLETE",
+      "test_accessed": false,
+      "test_evidence": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_CONTROL_SOURCE_REVIEW_001/EVENTS/TEST_EVIDENCE_20261002T004908370366Z.json",
+        "sha256": "d99bdd8fdf6dc7ff31c1a2f66de0d79f6daaf7ee16069dbef035143b42c3b5ef"
+      },
+      "unique_synthetic_tests": 132
+    },
     "plan": "configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json",
     "plan_sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e",
     "post_rebuild_readiness": {
@@ -3193,7 +3253,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Reuse completed AUXILIARY_REUSE_PRECHECK_001: all 652552 TRAIN/70880 VAL auxiliary clock supports and CONTROL256 pass, with unchanged TRAIN-only policies/target owners. Do not refit auxiliary policies or rebuild replacement labels; next extend existing native component/Dataset/coordinator owners to bind the original physical TRAIN and VAL sources, reuse their targets and preserve separate row coordinates and frozen teacher function. Actual reference-Q preparation, economics/indexes, initialization, learning and full native admission remain incomplete. The two-GET broker terms question remains pending; no approval is inferred. Native training, TEST, live/paper and spending stay closed.",
+  "next_action": "Reuse completed auxiliary policy/clock precheck and the new physical-control cohort/factory/reference/replay support. Next adapt existing native recipe/component and Entry Dataset owners to reuse original frozen targets on separate physical TRAIN and VAL files; bind native sampler/training/probe coordinates within their own sources, and pass the exact physical CONTROL256 scope into the existing factory. Preserve historical behavior and current same-function teacher. Do not claim full native admission from 132 synthetic checks; real indexes/economics and initialization remain pending. The two-GET broker-terms question remains unanswered; no broker access, native training, TEST, live/paper or spending is authorized.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from functools import lru_cache
+import hashlib
 
 import numpy as np
 import pandas as pd
@@ -89,10 +90,60 @@ def _chronological_control_coordinates(index_path, index_sha, original_path, ori
     return len(frame), tuple(int(i) for i in selected["entry_row_index"]), tuple(int(i) for i in rows)
 
 
+
+@lru_cache(maxsize=4)
+def _physical_control_coordinates(index_path, index_sha, manifest_path, manifest_sha,
+                                  source_identity, rows_path, rows_sha, cutoff_ns, end_ns):
+    """Verify the entire physical VAL mapping before selecting frozen controls.
+
+    The caller verifies immutable file hashes before each cache lookup. Only
+    coordinates are cached. Native input/economics admission remains separate.
+    """
+    from gx1.contracts import unified_exit_random_access_index_v1 as index_owner
+    parquet_path, parquet_sha, parent_manifest_path, parent_manifest_sha, population, clock_sha = source_identity
+    manifest = read_bound_json(Path(manifest_path), manifest_sha)
+    # Check the declared parent/split before following any index source pointer.
+    if (manifest.get("split") != "val"
+            or manifest.get("schema_version") != index_owner.RANDOM_ACCESS_INDEX_V2_SCHEMA_VERSION
+            or manifest.get("source_bindings", {}).get("parent_entry_parquet")
+               != {"path": parquet_path, "sha256": parquet_sha}
+            or manifest.get("source_bindings", {}).get("parent_entry_manifest")
+               != {"path": parent_manifest_path, "sha256": parent_manifest_sha}
+            or manifest.get("parent_entry_source_rows") != population
+            or manifest.get("parent_entry_clock_sha256") != clock_sha):
+        raise RuntimeError("BOUNDED_VAL_PHYSICAL_SOURCE_MISMATCH")
+    frame = pd.read_parquet(index_path)
+    checked = index_owner.require_random_access_index_manifest(
+        manifest, expected_split="val", index_frame=frame,
+        index_path=Path(index_path), verify_sources=False)
+    expected = np.arange(population, dtype="int64")
+    clock = pd.DatetimeIndex(pd.to_datetime(frame["entry_time_ns"], unit="ns", utc=True))
+    if (len(frame) != population
+            or any(frame[name].dtype != np.dtype("int64") for name in (
+                "entry_row_index", "parent_entry_row_index", "entry_time_ns"))
+            or not np.array_equal(frame["entry_row_index"].to_numpy(), expected)
+            or not np.array_equal(frame["parent_entry_row_index"].to_numpy(), expected)
+            or not clock.is_unique
+            or index_owner._clock_sha256(clock) != clock_sha
+            or checked["child_entry_clock_sha256"] != clock_sha
+            or checked["parent_entry_row_indices_sha256"] != hashlib.sha256(
+                np.ascontiguousarray(expected, dtype="<i8").tobytes()).hexdigest()
+            or np.any(clock.asi8 < cutoff_ns) or np.any(clock.asi8 >= end_ns)):
+        raise RuntimeError("BOUNDED_VAL_PHYSICAL_COORDINATES_INVALID")
+    rows = np.load(rows_path, allow_pickle=False)
+    if (rows.dtype != np.dtype("int64") or rows.shape != (256,)
+            or not np.array_equal(rows, np.unique(rows))
+            or np.any(rows < 0) or np.any(rows >= population)):
+        raise RuntimeError("BOUNDED_VAL_PHYSICAL_CONTROL_INVALID")
+    selected = frame.iloc[rows]
+    return population, tuple(int(i) for i in selected["entry_row_index"]), tuple(int(i) for i in rows)
+
+
 def build_chronological_control_cohort(
     design_binding: Mapping[str, str], *, source_index_binding: Mapping[str, str] | None = None,
+    source_index_manifest_binding: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Use exactly the preselected later TRAIN rows; this grants no run authority."""
+    """Bind controls to their declared physical source, never grant run authority."""
     binding = require_binding(design_binding, label="chronological design", verify_file=True)
     design = read_bound_json(Path(binding["path"]), binding["sha256"])
     scope = design.get("scope", {})
@@ -110,19 +161,57 @@ def build_chronological_control_cohort(
     end = pd.Timestamp(calendar["development_control_entry_end_exclusive"])
     if cutoff.tzinfo is None or end.tzinfo is None or cutoff >= end:
         raise RuntimeError("BOUNDED_VAL_CHRONOLOGICAL_WINDOW_INVALID")
-    original = require_binding(calendar["index"], label="design TRAIN index", verify_file=True)
-    index = require_binding(source_index_binding or original, label="control TRAIN index", verify_file=True)
-    rows = require_binding(calendar["bindings"]["CONTROL256_PARENT_ROWS"], label="fixed control rows", verify_file=True)
-    population, children, parents = _chronological_control_coordinates(
-        index["path"], index["sha256"], original["path"], original["sha256"],
-        rows["path"], rows["sha256"], int(cutoff.value), int(end.value), 256)
+    physical = any(key in calendar for key in (
+        "physical_source_splits", "physical_coordinate_namespaces_are_separate", "source_bindings"))
+    manifest_binding = None
+    if physical:
+        sources = calendar.get("source_bindings")
+        if (calendar.get("physical_source_splits") != {"train": "train", "control": "val"}
+                or calendar.get("physical_coordinate_namespaces_are_separate") is not True
+                or "index" in calendar
+                or not isinstance(sources, Mapping) or set(sources) != {"train", "val"}
+                or any(not isinstance(sources[name], Mapping) for name in ("train", "val"))):
+            raise RuntimeError("BOUNDED_VAL_PHYSICAL_DESIGN_INVALID")
+        bound_sources = {
+            split: {kind: require_binding(sources[split].get(kind),
+                    label=f"physical {split} {kind}", verify_file=False)
+                    for kind in ("parquet", "manifest")}
+            for split in ("train", "val")}
+        if (any(bound_sources["train"][kind]["path"] == bound_sources["val"][kind]["path"]
+                for kind in ("parquet", "manifest"))
+                or type(sources["val"].get("physical_rows")) is not int
+                or sources["val"]["physical_rows"] < 256):
+            raise RuntimeError("BOUNDED_VAL_PHYSICAL_SOURCE_MISMATCH")
+        index = require_binding(source_index_binding, label="physical control VAL index", verify_file=True)
+        manifest_binding = require_binding(source_index_manifest_binding,
+            label="physical control VAL index manifest", verify_file=True)
+        rows = require_binding(calendar["bindings"]["CONTROL256_PARENT_ROWS"],
+            label="fixed control rows", verify_file=True)
+        source = bound_sources["val"]
+        population, children, parents = _physical_control_coordinates(
+            index["path"], index["sha256"], manifest_binding["path"], manifest_binding["sha256"],
+            (source["parquet"]["path"], source["parquet"]["sha256"],
+             source["manifest"]["path"], source["manifest"]["sha256"],
+             sources["val"]["physical_rows"], sources["val"].get("clock_sha256")),
+            rows["path"], rows["sha256"], int(cutoff.value), int(end.value))
+    else:
+        if source_index_manifest_binding is not None:
+            raise RuntimeError("BOUNDED_VAL_LEGACY_INDEX_MANIFEST_UNEXPECTED")
+        original = require_binding(calendar["index"], label="design TRAIN index", verify_file=True)
+        index = require_binding(source_index_binding or original, label="control TRAIN index", verify_file=True)
+        rows = require_binding(calendar["bindings"]["CONTROL256_PARENT_ROWS"], label="fixed control rows", verify_file=True)
+        population, children, parents = _chronological_control_coordinates(
+            index["path"], index["sha256"], original["path"], original["sha256"],
+            rows["path"], rows["sha256"], int(cutoff.value), int(end.value), 256)
     value = {
-        "schema_version": CHRONOLOGICAL_SCHEMA, "split": "val", "source_split": "train",
+        "schema_version": CHRONOLOGICAL_SCHEMA, "split": "val", "source_split": "val" if physical else "train",
         "evaluation_role": "chronological_reused_development_control",
         "plan": binding, "source_index": index, "population_rows": population,
         "entry_row_indices": list(children), "parent_entry_row_indices": list(parents),
         "test_data_used": False,
     }
+    if manifest_binding is not None:
+        value["source_index_manifest"] = manifest_binding
     value["cohort_sha256"] = canonical_sha256(value)
     return value
 
@@ -239,7 +328,8 @@ def require_bounded_val_cohort(value: Any) -> dict[str, Any]:
         return expected
     if isinstance(value, Mapping) and value.get("schema_version") == CHRONOLOGICAL_SCHEMA:
         expected = build_chronological_control_cohort(
-            value.get("plan"), source_index_binding=value.get("source_index"))
+            value.get("plan"), source_index_binding=value.get("source_index"),
+            source_index_manifest_binding=value.get("source_index_manifest"))
         if dict(value) != expected:
             raise RuntimeError("BOUNDED_VAL_COHORT_BINDING_MISMATCH")
         return expected

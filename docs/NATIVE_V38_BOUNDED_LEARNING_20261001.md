@@ -941,3 +941,34 @@ Nyeste hendelser, kvitteringer, hasher og alle rapporterte grensetider er
 etterkontrollert uten ny full datasettlesing. Dette beviser verken de
 numeriske etikettene uavhengig, aktuelle reference-Q-mål, læring, økonomi,
 train/serve-paritet eller bytte av M5-produksjonskilde.
+
+## Fysisk VAL-kontroll i eksisterende eiere — 02.10
+
+Kontrollkjedens gamle TRAIN-/juni-binding er rettet hos seks eksisterende
+eiere. En eksplisitt fryst VAL-kontroll binder hele fysisk VAL, filstier,
+radmapping og CONTROL256 gjennom tilstandsbygger, referansemåling, native
+kontekst og gjenopptak av replay. Historisk standardrute er bevart.
+
+Syntetiske tester: 131 i samlet grønn runde; etter siste filstirettelse
+består alle 60 tester i berørt fil. Totalt 132 unike testtilfeller er dekket.
+Ekte fryst design gjenkjennes, men avvises uten bundet VAL-indeks før
+datalesing. Ingen reell modellkjøring, læring eller TEST-tilgang er utført.
+
+Hovedbyggerens recipe-/Dataset-/treningsbinding krever fortsatt den gamle
+felles TRAIN-kilden og må tilpasses før native kjøring. Gjenbruk av originale
+hjelpefasiter er neste nødvendige kobling. Ferske kostnadsvilkår og faktiske
+indekser mangler fortsatt; det tidligere brokervilkårsspørsmålet er ubesvart.
+
+Evidens: `/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_CONTROL_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T004908392141Z.json`, SHA `7fecbea0e848190367e203c2c302168e78b7fbbf6a83ee76b5cbf4213c45e378`.
+De opprinnelige JUnit-rapportene er bevart i hashbundet TEST_EVIDENCE-hendelse.
+Dette er kilde- og syntetisk integrasjonsbevis, ikke native admission.
+
+Feilklassen ble fulgt gjennom kohorteier, tilstandsbygger, Entry-referanse,
+native kontekst og replay-/resultatvalidering. Den nye kontrollen krever
+samme hashbundne VAL-indeks og -manifest samt full foreldretidsakse og
+identisk radmapping. En kopi på ubundet manifeststi avvises selv ved like bytes.
+Kohorten kan ikke fjernes eller byttes når tilstandsbyggeren er bundet.
+Ingen ny beslutningsregel, horisont, normalisering eller modell er innført.
+
+Full komponentrute, direkte gjenbruk av Dataset-hjelpefasiter og separate
+trenings-/målekoordinater gjenstår. Eksisterende kostnads-/kjøreporter er stengt.

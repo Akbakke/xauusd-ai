@@ -99,6 +99,25 @@ def _materialize_val_cpu_chunk(requests: list[tuple[dict[str, Any], int]]) -> li
     ) for entry, index in requests]
 
 
+
+def _physical_val_control(evaluation_cohort, *, source_split, population, hashes):
+    """Admit a non-June VAL population only through its exact frozen cohort."""
+    if evaluation_cohort is None:
+        return None
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import (
+        CHRONOLOGICAL_SCHEMA, require_bounded_val_cohort,
+    )
+    cohort = require_bounded_val_cohort(evaluation_cohort)
+    if (source_split != "val" or cohort["schema_version"] != CHRONOLOGICAL_SCHEMA
+            or cohort.get("source_split") != "val"
+            or cohort["population_rows"] != population
+            or cohort["source_index"]["sha256"] != hashes.get("random_access_index")
+            or cohort.get("source_index_manifest", {}).get("sha256")
+               != hashes.get("random_access_index_manifest")):
+        raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_PHYSICAL_CONTROL_INVALID")
+    return cohort
+
+
 class RandomAccessValStateFactoryV1:
     """Materialize causal evaluation states from an explicitly bound source split."""
 
@@ -120,14 +139,18 @@ class RandomAccessValStateFactoryV1:
         economics_objective_contract: Mapping[str, Any],
         artifact_file_sha256: Mapping[str, str],
         source_split: str = "val",
+        evaluation_cohort: Mapping[str, Any] | None = None,
     ) -> None:
         if source_split not in ("train", "val"):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_SOURCE_SPLIT_INVALID")
         entry_count = len(entry_rows)
+        cohort = _physical_val_control(evaluation_cohort, source_split=source_split,
+            population=entry_count, hashes=artifact_file_sha256)
         if (entry_count < 1 or len(child_m1) < _M1_HISTORY
-                or (source_split == "val" and entry_count != VAL_ENTRY_COHORT_SIZE)):
+                or (source_split == "val" and cohort is None and entry_count != VAL_ENTRY_COHORT_SIZE)):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_COHORT_INVALID")
         self.source_split = source_split
+        self._physical_control_cohort = cohort
         self.entry_rows = entry_rows.reset_index(drop=True)
         self.child_m1 = child_m1.reset_index(drop=True)
         self.times = pd.DatetimeIndex(
@@ -220,9 +243,18 @@ class RandomAccessValStateFactoryV1:
             or np.any(starts + counts >= len(self.times))
         ):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_ENTRY_CLOCK_INVALID")
-        index = require_random_access_index(
-            random_access_index, expected_split=source_split
-        ).reset_index(drop=True)
+        if cohort is not None:
+            from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+            bound_manifest = cohort["source_index_manifest"]
+            require_random_access_index_manifest(
+                read_bound_json(Path(bound_manifest["path"]), bound_manifest["sha256"]),
+                expected_split=source_split, index_frame=random_access_index,
+                verify_sources=False)
+            index = random_access_index.reset_index(drop=True)
+        else:
+            index = require_random_access_index(
+                random_access_index, expected_split=source_split
+            ).reset_index(drop=True)
         if (
             len(index) != entry_count
             or not np.array_equal(
@@ -423,6 +455,8 @@ class RandomAccessValStateFactoryV1:
             "artifact_file_sha256": self.artifact_file_sha256,
             "test_accessed": False,
         }
+        if cohort is not None:
+            self.factory_receipt["physical_control_cohort_sha256"] = cohort["cohort_sha256"]
         self.factory_receipt["factory_sha256"] = canonical_sha256(self.factory_receipt)
 
     @classmethod
@@ -448,6 +482,7 @@ class RandomAccessValStateFactoryV1:
         economic_step_manifest: Mapping[str, Any],
         economics_objective_contract: Mapping[str, Any],
         source_split: str = "val",
+        evaluation_cohort: Mapping[str, Any] | None = None,
     ) -> "RandomAccessValStateFactoryV1":
         if source_split not in ("train", "val"):
             raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_SOURCE_SPLIT_INVALID")
@@ -472,6 +507,13 @@ class RandomAccessValStateFactoryV1:
         entry_manifest = _read_json(paths["entry_manifest"], "ENTRY_MANIFEST")
         child_manifest = _read_json(paths["child_m1_manifest"], "M1_MANIFEST")
         summary = _read_json(paths["summary_manifest"], "SUMMARY_MANIFEST")
+        cohort = _physical_val_control(evaluation_cohort, source_split=source_split,
+            population=summary.get("entry_pair_population"), hashes=hashes)
+        if cohort is not None and any(
+                cohort[{"random_access_index": "source_index",
+                        "random_access_index_manifest": "source_index_manifest"}[key]] != {"path": str(paths[key]), "sha256": hashes[key]}
+                for key in ("random_access_index", "random_access_index_manifest")):
+            raise RuntimeError("UNIFIED_EXIT_VAL_FACTORY_PHYSICAL_CONTROL_PATH_INVALID")
         if (
             entry_manifest.get("split") != source_split
             or entry_manifest.get("decision") != "PASS"
@@ -485,7 +527,8 @@ class RandomAccessValStateFactoryV1:
             or summary.get("decision") != "PASS"
             or type(summary.get("entry_pair_population")) is not int
             or summary["entry_pair_population"] <= 0
-            or (source_split == "val" and summary["entry_pair_population"] != VAL_ENTRY_COHORT_SIZE)
+            or (source_split == "val" and cohort is None
+                and summary["entry_pair_population"] != VAL_ENTRY_COHORT_SIZE)
             or summary.get("m1_source_sha256") != hashes["child_m1"]
             or summary.get("m1_manifest_sha256") != hashes["child_m1_manifest"]
             or summary.get("test_accessed") is not False
@@ -542,6 +585,7 @@ class RandomAccessValStateFactoryV1:
             economics_objective_contract=economics_objective_contract,
             artifact_file_sha256=hashes,
             source_split=source_split,
+            evaluation_cohort=cohort,
         )
 
     def _summary(self, entry_start: int, side: int, state_index: int) -> dict[str, Any]:
@@ -743,6 +787,9 @@ class RandomAccessValStateFactoryV1:
         evaluation_cohort: Mapping[str, Any] | None = None,
     ) -> tuple[dict[str, Any], RandomAccessValRolloutAdapterV1]:
         entries = self.entries
+        bound_control = getattr(self, "_physical_control_cohort", None)
+        if bound_control is not None and evaluation_cohort != bound_control:
+            raise RuntimeError("UNIFIED_EXIT_VAL_PHYSICAL_CONTROL_REQUIRED")
         if self.source_split == "train" and evaluation_cohort is None:
             raise RuntimeError("UNIFIED_EXIT_VAL_TRAIN_SOURCE_REQUIRES_BOUND_COHORT")
         if evaluation_cohort is not None:

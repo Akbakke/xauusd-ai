@@ -135,7 +135,9 @@ def _require_entries(entries: Sequence[Mapping[str, Any]], evaluation_cohort=Non
         scope = require_bounded_val_cohort(evaluation_cohort)
         if scope.get("measurement_only") is True:
             raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DOES_NOT_AUTHORIZE_ROLLOUT")
-        if scope.get("source_split", "val") == "val" and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
+        if (scope.get("source_split", "val") == "val"
+                and scope.get("source_index_manifest") is None
+                and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE):
             raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_POPULATION_MISMATCH")
         expected_ids = scope["entry_row_indices"]
     count = VAL_ENTRY_COHORT_SIZE if expected_ids is None else len(expected_ids)
@@ -352,7 +354,9 @@ def require_random_access_val_rollout_contract(
         scope = require_bounded_val_cohort(observed["evaluation_cohort"])
         if scope.get("measurement_only") is True:
             raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DOES_NOT_AUTHORIZE_ROLLOUT")
-        if scope.get("source_split", "val") == "val" and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE:
+        if (scope.get("source_split", "val") == "val"
+                and scope.get("source_index_manifest") is None
+                and scope["population_rows"] != VAL_ENTRY_COHORT_SIZE):
             raise RuntimeError("UNIFIED_EXIT_VAL_COHORT_POPULATION_MISMATCH")
         count = len(scope["entry_row_indices"])
         required.add("evaluation_cohort")

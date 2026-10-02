@@ -12979,10 +12979,12 @@ def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[st
     if cohort_keys:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
         cohort = require_bounded_val_cohort(context["evaluation_cohort"])
-        if (cohort.get("source_split") != "train" or len(children) != 256
+        if (cohort.get("source_split") not in ("train", "val") or len(children) != 256
                 or children != cohort["entry_row_indices"] or parents != cohort["parent_entry_row_indices"]
-                or factory.source_split != "train"
-                or factory.factory_receipt.get("split") != "train"
+                or factory.source_split != cohort["source_split"]
+                or factory.factory_receipt.get("split") != cohort["source_split"]
+                or (cohort["source_split"] == "val"
+                    and factory.factory_receipt.get("physical_control_cohort_sha256") != cohort["cohort_sha256"])
                 or cohort["population_rows"] != factory.factory_receipt.get("entry_pair_count")
                 or cohort["source_index"]["sha256"] != factory.artifact_file_sha256["random_access_index"]):
             raise RuntimeError("[CANDIDATE_NATIVE_CONTROL_SOURCE_INVALID]")

@@ -1,5 +1,20 @@
 # GX1 arbeidsmål — oppdatert 02.10.2026
 
+Kontrollkjedens gamle TRAIN-/juni-binding er rettet hos seks eksisterende
+eiere. En eksplisitt fryst VAL-kontroll binder hele fysisk VAL, filstier,
+radmapping og CONTROL256 gjennom tilstandsbygger, referansemåling, native
+kontekst og gjenopptak av replay. Historisk standardrute er bevart.
+
+Syntetiske tester: 131 i samlet grønn runde; etter siste filstirettelse
+består alle 60 tester i berørt fil. Totalt 132 unike testtilfeller er dekket.
+Ekte fryst design gjenkjennes, men avvises uten bundet VAL-indeks før
+datalesing. Ingen reell modellkjøring, læring eller TEST-tilgang er utført.
+
+Hovedbyggerens recipe-/Dataset-/treningsbinding krever fortsatt den gamle
+felles TRAIN-kilden og må tilpasses før native kjøring. Gjenbruk av originale
+hjelpefasiter er neste nødvendige kobling. Ferske kostnadsvilkår og faktiske
+indekser mangler fortsatt; det tidligere brokervilkårsspørsmålet er ubesvart.
+
 AUXILIARY_REUSE_PRECHECK_001 er fullført med exit 0 og uendret kilde.
 Alle 652 552 TRAIN-/70 880 VAL-rader, inkludert CONTROL256, har komplett
 tidsstøtte innen egen periode. De 37 faste hjelpefasitene krever opptil

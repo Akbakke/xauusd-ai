@@ -14,7 +14,7 @@ from tests.test_liquidation_relative_learning_v1 import relative_fixture,_TwoRow
 from tests.test_coherent_reference_entry_v1 import _inputs,_collate,_run,CUTOFF
 from tests.test_unified_exit_random_access_training_v1 import _normalization
 from tests import test_unified_exit_random_access_state_view_v1 as states
-from tests.test_native_chronological_control_source import _control_plan,_binding
+from tests.test_native_chronological_control_source import _control_plan,_binding,_physical_control_plan
 
 
 def _factory(batch,count):
@@ -88,10 +88,16 @@ def test_reference_entry_rejects_invalid_detached_value_before_model_call(relati
     assert factory.calls==[]
 
 
-def _context(tmp_path):
-    binding,frame,children,parents,design=_control_plan(tmp_path)
+def _context(tmp_path, physical=False):
+    if physical:
+        binding,ib,mb,design,_,frame,parents=_physical_control_plan(tmp_path,population=6000)
+        children=parents.copy()
+    else:
+        binding,frame,children,parents,design=_control_plan(tmp_path)
     design['targets']={'reference_policy':reference_policy_contract()}
-    p=Path(binding['path']);p.write_text(json.dumps(design));scope=build_chronological_control_cohort(_binding(p))
+    p=Path(binding['path']);p.write_text(json.dumps(design))
+    scope=build_chronological_control_cohort(_binding(p),**(
+        {'source_index_binding':ib,'source_index_manifest_binding':mb} if physical else {}))
     model=torch.nn.Linear(1,3).eval().requires_grad_(False);teacher=copy.deepcopy(model)
     class Rows(torch.utils.data.Dataset):
         def __len__(self):return 10000
@@ -101,6 +107,10 @@ def _context(tmp_path):
     entries=[{'entry_row_index':i,'entry_episode_binding_sha256':'1'*64,'entry_fill_binding_sha256':'2'*64} for i in range(6000)]
     factory=SimpleNamespace(source_split='train',entries=entries,economics_objective_contract={'reward_accounting':'liquidation_advantage_v1'},
         economic_step_provider=SimpleNamespace(materialize_training_projection=lambda *a:{'exit_reward_bps':np.array([-4.])}))
+    if physical:
+        factory.source_split='val'
+        factory.artifact_file_sha256={'random_access_index':ib['sha256']}
+        factory.factory_receipt={'physical_control_cohort_sha256':scope['cohort_sha256']}
     return dict(model=model,dataset=Rows(),parent_rows=parents.tolist(),device=torch.device('cpu'),batch_size=64,
         candidate_target_model=teacher,exit_boundary_model=teacher,candidate_state_factory=factory,
         candidate_child_rows=children.tolist(),evaluation_cohort=scope)
@@ -121,15 +131,16 @@ def test_chronological_control_requires_same_frozen_teacher_and_coordinates_befo
     with pytest.raises(RuntimeError):val._entry_representations(**args)
 
 
-def test_entry_control_integration_reuses_same_exit_reference_and_exact_sparse_ids(tmp_path,monkeypatch):
-    args=_context(tmp_path);forward_calls=[];reference_rows=[]
+@pytest.mark.parametrize('physical',[False,True])
+def test_entry_control_integration_reuses_same_exit_reference_and_exact_sparse_ids(tmp_path,monkeypatch,physical):
+    args=_context(tmp_path,physical=physical);forward_calls=[];reference_rows=[]
     def forward(model,seq,snap,**kw):
         forward_calls.append(model)
         return {val.UNIFIED_EXIT_MODEL_REPRESENTATION_KEY:seq,'entry_action_q_bps':seq.expand(-1,3).contiguous()}
     def reference(**kw):
         assert kw['return_reference_targets'] is True
         assert kw['reference_policy']==reference_policy_contract()
-        assert kw['reference_cutoff_time_ns']==int(pd.Timestamp('2026-06-01T00:00Z').value)
+        assert kw['reference_cutoff_time_ns']==int(pd.Timestamp('2026-07-01T00:00Z' if physical else '2026-06-01T00:00Z').value)
         assert kw['boundary_model'] is args['candidate_target_model']
         children=kw['child_rows'];q=torch.tensor([[float(i%13),-2.] for i in children])
         rows=[{'entry_row_index':i,'state_index':0,'target_hold_bps':v} for i,v in zip(children,q.tolist())]
@@ -169,3 +180,14 @@ def test_reference_entry_requires_same_declared_policy(relative_fixture,fault):
             state_factory=factory,child_rows=[0],device=torch.device('cpu'),
             reference_hold_targets=q,reference_policy=policy)
     assert factory.calls==[]
+
+
+@pytest.mark.parametrize('fault',['source','index','cohort'])
+def test_physical_control_reference_rejects_factory_mismatch_before_forward(tmp_path,monkeypatch,fault):
+    args=_context(tmp_path,physical=True);factory=args['candidate_state_factory']
+    if fault=='source':factory.source_split='train'
+    elif fault=='index':factory.artifact_file_sha256['random_access_index']='0'*64
+    else:factory.factory_receipt['physical_control_cohort_sha256']='0'*64
+    def forbidden(*a,**kw):raise AssertionError('forward reached with wrong physical control')
+    monkeypatch.setattr(val,'_model_forward_fp32',forbidden)
+    with pytest.raises(RuntimeError):val._entry_representations(**args)

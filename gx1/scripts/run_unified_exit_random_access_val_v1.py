@@ -537,13 +537,20 @@ def _entry_representations(
             from gx1.contracts.unified_exit_reference_policy_v1 import require_reference_policy_contract
             plan_binding = checked_cohort["plan"]
             plan = read_bound_json(Path(plan_binding["path"]), plan_binding["sha256"])
-            if (checked_cohort.get("source_split") != "train"
+            if (checked_cohort.get("source_split") not in ("train", "val")
                     or list(parent_rows) != checked_cohort["parent_entry_row_indices"]
-                    or candidate_state_factory is None or candidate_state_factory.source_split != "train"
+                    or candidate_state_factory is None
+                    or candidate_state_factory.source_split != checked_cohort["source_split"]
                     or candidate_target_model is None or exit_boundary_model is None
                     or (candidate_target_model is not exit_boundary_model and
                         canonical_model_state_sha256(candidate_target_model.state_dict()) != canonical_model_state_sha256(exit_boundary_model.state_dict()))):
                 raise RuntimeError("CHRONOLOGICAL_CONTROL_SAME_FROZEN_TEACHER_REQUIRED")
+            if (checked_cohort["source_split"] == "val"
+                    and (getattr(candidate_state_factory, "artifact_file_sha256", {}).get("random_access_index")
+                         != checked_cohort["source_index"]["sha256"]
+                         or getattr(candidate_state_factory, "factory_receipt", {}).get("physical_control_cohort_sha256")
+                         != checked_cohort["cohort_sha256"])):
+                raise RuntimeError("CHRONOLOGICAL_CONTROL_PHYSICAL_SOURCE_MISMATCH")
             coherent_reference = {
                 "semantics":"observed_reference_anchor_V_mu_without_hindsight_action",
                 "frozen_design":plan_binding,
