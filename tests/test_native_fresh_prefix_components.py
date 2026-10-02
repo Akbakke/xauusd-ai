@@ -208,6 +208,11 @@ def _component_chain(tmp_path, monkeypatch, physical=None):
         def _get_exit_multi_tf_episode_histories(self,*args):raise AssertionError('No model input materialization')
     monkeypatch.setattr(runner.val,'EntryV10CtxDataset',Dataset)
     class Corpus:
+        @classmethod
+        def from_random_access_index(cls, **kw):
+            assert physical is not None
+            assert kw["root_manifest_path"] == files["random_access_root"]
+            return cls(**kw)
         def __init__(self,**kw):
             expected=("train",) if physical is None else ("train","val")
             assert kw['splits']==expected and set(kw['entry_parquets'])==set(expected)

@@ -1,5 +1,32 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
+Indeksbygget NATIVE_ECONOMIC_INDEX_001 er fullført med exit 0 og uendret
+kilde. Uavhengig kontroll bekrefter filhasher, manifest, alle 652 552 TRAIN-
+og 70 880 VAL-rader, eksakt foreldreindeks og ingen økonomisk sluttgrense.
+Nye kostnadsbindinger gjenbrukes; ingen modell eller optimizer er kjørt.
+
+Den neste forbrukeren hadde en konkret mismatch: gammel lifecycle-leser
+brukte den tidligere M1-kilden, mens nye indekser og normalisering bruker
+komplett før-TEST-M1. Faktiske tidsstempler passer ikke ved indeksens
+radposisjoner. Benchmark ble derfor ikke startet med feil kilde.
+
+Eksisterende lifecycle-eier kan nå laste pris og ferdig featureflate fra
+indeksens bundne preprocessing. Både fysisk native komponentbygging og
+benchmark bruker denne samme ruten. Historiske lifecycle-episoder beholdes;
+ingen episodefasit fabrikeres eller ny featureberegning/normalisering gjøres.
+79 fokuserte tester består, inkludert koblingen i begge forbrukere og
+avvisning av endrede filidentiteter, TEST-split og forskjøvede klokker.
+De nye lastetestene bruker syntetiske kilder; reell kildeinnlasting er ennå
+ikke kvalifisert.
+
+Neste jobb er INDEX_FEATURE_SOURCE_REVIEW_001, producer 10G/swap512M, for
+streng innlasting av de faktiske TRAIN-/VAL-kildene. Kilde fryses under
+jobben. Deretter gjenstår målt sampler, koordinater og fersk initialmåling.
+Ingen trening, refit, broker-kall, TEST eller live/paper er åpnet.
+Læring, generalisering, økonomisk edge og train/serve-paritet er ubevist.
+
+## Tidligere indeksplan — fullført, historikk
+
 Faktiske TRAIN/VAL-økonomibindinger og native indekser er klargjort i
 NATIVE_ECONOMIC_INDEX_001. Ferdige input og ny prospektiv kostnadsautoritet
 gjenbrukes. Kapitalkravet forblir den eksisterende fryste 10%-metoden;

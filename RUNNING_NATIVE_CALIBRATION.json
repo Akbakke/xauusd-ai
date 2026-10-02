@@ -2925,7 +2925,47 @@
     "economic_index_build": {
       "active_job": null,
       "broker_requests_authorized": false,
+      "economic_splits": {
+        "train": {
+          "authority": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/ECONOMICS/train.economic_authority.no_cap.v1.json",
+            "sha256": "1b19593514d6830d6a1b0307795bb75f23ef0dad9c8aca8c8f8e8efb39d1c00e"
+          },
+          "counts": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/ECONOMICS/train.economic_counts.no_cap.v1.json",
+            "sha256": "e9aac81a7a34f3b709dae488ece97d2db72b2ea326e775ef3b6005e6d36c5ba9"
+          },
+          "coverage": {
+            "end_utc_exclusive": "2025-06-01T00:00:00+00:00",
+            "start_utc": "2011-06-01T00:00:00+00:00"
+          },
+          "entry_rows": 652552
+        },
+        "val": {
+          "authority": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/ECONOMICS/val.economic_authority.no_cap.v1.json",
+            "sha256": "319472c2a644b09d1ce8606f259c401e3994a2713c553de0d146561290cb0ea1"
+          },
+          "counts": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/ECONOMICS/val.economic_counts.no_cap.v1.json",
+            "sha256": "9da7637a858c8c2b011c2ed68ab2998cfbd989bfffe8f04a47c3cbaa4e2de82b"
+          },
+          "coverage": {
+            "end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+            "start_utc": "2025-06-01T00:00:00+00:00"
+          },
+          "entry_rows": 70880
+        }
+      },
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/EVENTS/PUBLICATION_REVIEW_20261002T060703917118Z.json",
+        "sha256": "0a192198d9cbf96d0325939d68b48b2f40c7f08ff01d754959952568512c685f"
+      },
       "focused_tests_passed": 30,
+      "index_root": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/RANDOM_ACCESS_INDEX_V1/ROOT.json",
+        "sha256": "74f04289da5918663fdd625ca9b576736ccb8e982a37bcc4c039ec3610e60ac8"
+      },
       "native_training_enabled": false,
       "normalization_fits": 0,
       "operator": {
@@ -2936,9 +2976,48 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/PLAN.json",
         "sha256": "c55a035824f5379146ef06bf593938defdc4a4a422cdb1e40c3a986ad2d63763"
       },
-      "publication_authorized": true,
-      "source_frozen_while_running": true,
-      "status": "PLANNED_NATIVE_ECONOMIC_AND_FULL_TRAIN_VAL_INDEX_PUBLICATION",
+      "publication_authorized": false,
+      "readiness": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/ECONOMIC_METHOD/train_economics_readiness.json",
+        "sha256": "665d24430effd12f214932aff0f7582d6756e322b99fc2030b83311f8d3120c2"
+      },
+      "relaunch_allowed": false,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/EVENTS/RESULT_20261002T060119720832Z.json",
+        "sha256": "1fe10ce8874911f80d9c0d13ba2ba90e3da4d2c2b80fc5b416ef78011ce0a32d"
+      },
+      "source_frozen_while_running": false,
+      "splits": {
+        "train": {
+          "index": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/RANDOM_ACCESS_INDEX_V1/train.random_access_index.parquet",
+            "sha256": "771e0edf7fdcbb0d26aa594b99d409d4147f60237e40736ec7908c63743081b0"
+          },
+          "manifest": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/RANDOM_ACCESS_INDEX_V1/train.manifest.json",
+            "sha256": "ca18c98b6d541f909415a9dcc8cf260e7665586e5c3a61dde3cf6f4386e24558"
+          },
+          "rows": 652552,
+          "successor_transition_total": 1072124182
+        },
+        "val": {
+          "index": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/RANDOM_ACCESS_INDEX_V1/val.random_access_index.parquet",
+            "sha256": "d7dccc6bfd35e8acd2f4967721ed012d2175597f4486dcb043a11019d639c36c"
+          },
+          "manifest": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/RANDOM_ACCESS_INDEX_V1/val.manifest.json",
+            "sha256": "072da8099bf34ecf232556ea0e05823fe572b6217c1201ccc2303b81bdc92ad4"
+          },
+          "rows": 70880,
+          "successor_transition_total": 977163449
+        }
+      },
+      "status": "COMPLETE_NATIVE_FULL_TRAIN_VAL_ECONOMICS_AND_INDICES_NO_LEARNING",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/EVENTS/TERMINAL_20261002T060119740507Z.json",
+        "sha256": "626db8da298880980459d6b04eebe9e7b905163ac75600ef54d74de1fefe01c6"
+      },
       "test_accessed": false
     },
     "entry_receipt": {
@@ -3154,6 +3233,23 @@
       "training_enabled": false,
       "working_source_uncommitted": true
     },
+    "index_feature_source_review": {
+      "broker_requests_authorized": false,
+      "focused_tests_passed": 79,
+      "native_training_enabled": false,
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/OPERATOR.py",
+        "sha256": "9b53f72571492c7f95305bb4e7995c44e5ebeb0a19f3e00888c8688f18b2a604"
+      },
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/PLAN.json",
+        "sha256": "094f0cb2bed71d2653328185e51642765b71c74f6401c2b0ef83eac0e2d55848"
+      },
+      "source_frozen_while_running": true,
+      "source_review_authorized": true,
+      "status": "PLANNED_ACTUAL_INDEX_BOUND_FEATURE_SOURCE_REVIEW",
+      "test_accessed": false
+    },
     "index_source_audit": {
       "final_review": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_SOURCE_AUDIT_001/EVENTS/FINAL_SOURCE_REVIEW_20261001T232144276281Z.json",
@@ -3192,7 +3288,7 @@
       "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_status": "CURRENT_PROSPECTIVE_COST_POLICY_BOUND_NATIVE_ECONOMIC_INDEX_BINDINGS_PENDING",
+    "learning_design_status": "INDICES_COMPLETE_INDEX_FEATURE_SOURCE_CONNECTION_UNDER_REVIEW",
     "learning_proven": false,
     "lifetime_summary_fit": {
       "authorization_consumed": true,
@@ -3453,7 +3549,7 @@
     "new_dataset_complete": true,
     "no_cap_economics_preflight": {
       "broker_access_authorized": false,
-      "decision": "PROSPECTIVE_COST_COVERAGE_CURRENT_TERMS_VERIFIED_NATIVE_INDEX_AUTHORITY_PENDING",
+      "decision": "PROSPECTIVE_COST_AND_NATIVE_INDEX_AUTHORITY_COMPLETE",
       "existing_coverage": {
         "end_utc_exclusive": "2026-07-01T00:00:00+00:00",
         "start_utc": "2011-06-01T00:00:00+00:00",
@@ -4375,7 +4471,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Execute NATIVE_ECONOMIC_INDEX_001 once through the capped producer (10G/swap512M), binding new TRAIN/VAL no-cap economics and full-population native indices to current cost authority, fixed existing 10% capital hurdle and completed preprocessing. No model forward, optimizer, refit, broker, TEST or live/paper. Freeze source during the run; do not relaunch a claimed or completed plan.",
+  "next_action": "Run INDEX_FEATURE_SOURCE_REVIEW_001 once through capped producer 10G/swap512M to verify the index-bound complete M1 feature source. Reuse completed index and normalization. Then bind the actual workload-matched sampler benchmark. No refit, optimizer, TEST, broker or live/paper.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],

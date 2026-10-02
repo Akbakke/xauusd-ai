@@ -508,8 +508,11 @@ def _build_bound_full_train_components(
         train_probe_ds = copy.copy(datasets["train"])
         if frozen_train_policy_scope is not None:
             datasets["val"] = copy.copy(train_probe_ds)
-    corpus = val.UnifiedExitLifecycleCorpus(
-        root_manifest_path=files["feature_lifecycle_root"],
+    corpus_owner = (val.UnifiedExitLifecycleCorpus.from_random_access_index
+                    if physical_prefix else val.UnifiedExitLifecycleCorpus)
+    corpus = corpus_owner(
+        root_manifest_path=(files["random_access_root"] if physical_prefix
+                            else files["feature_lifecycle_root"]),
         entry_parquets={split: files[f"entry_{split}_parquet"] for split in physical_splits},
         entry_manifest_bindings={split: file_bindings[f"entry_{split}_manifest"] for split in physical_splits},
         dataset_run_id=dataset_run_id, splits=physical_splits,

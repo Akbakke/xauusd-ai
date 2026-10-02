@@ -1989,6 +1989,153 @@ def _require_entry_split_window_binding(
 class UnifiedExitLifecycleCorpus:
     """Load and cryptographically validate one immutable lifecycle directory."""
 
+    @classmethod
+    def from_random_access_index(
+        cls, *, root_manifest_path: Path, entry_parquets: Mapping[str, Path],
+        entry_manifest_bindings: Mapping[str, Mapping[str, str]],
+        dataset_run_id: str, splits: Sequence[str],
+    ) -> "UnifiedExitLifecycleCorpus":
+        """Reuse the exact normalized feature source behind a physical index.
+
+        This loads market inputs only. The index owns the unbounded episodes;
+        legacy fixed-envelope lifecycle files are neither read nor rewritten.
+        """
+        from types import SimpleNamespace
+        from gx1.contracts.unified_exit_random_access_index_v1 import (
+            require_random_access_index_root, require_random_access_index_manifest,
+        )
+
+        selected = tuple(splits)
+        if (not selected or len(set(selected)) != len(selected)
+                or not set(selected) <= {"train", "val"}
+                or set(entry_parquets) != set(selected)
+                or set(entry_manifest_bindings) != set(selected)):
+            raise RuntimeError("UNIFIED_EXIT_INDEX_FEATURE_SPLITS_INVALID")
+
+        manifest_files: dict[str, str] = {}
+        def bound(binding, hash_key="sha256"):
+            path = Path(binding["path"])
+            if (not path.is_absolute() or path.is_symlink() or not path.is_file()
+                    or sha256_file(path) != binding[hash_key]):
+                raise RuntimeError("UNIFIED_EXIT_INDEX_FEATURE_FILE_INVALID")
+            manifest_files[str(path)] = binding[hash_key]
+            return path
+
+        def canonical(value, key):
+            if value.get(key) != canonical_json_sha256(
+                    {k: v for k, v in value.items() if k != key}):
+                raise RuntimeError("UNIFIED_EXIT_INDEX_FEATURE_METADATA_INVALID")
+
+        root_path = Path(root_manifest_path).expanduser().absolute()
+        root_path = bound({"path": str(root_path), "sha256": sha256_file(root_path)})
+        root = require_random_access_index_root(_read_exact_json(root_path))
+        manifests = {}
+        for split in selected:
+            slot = root["splits"][split]
+            path = Path(slot["manifest_path"])
+            manifest = require_random_access_index_manifest(
+                _read_exact_json(path), expected_split=split)
+            if manifest["manifest_sha256"] != slot["manifest_sha256"]:
+                raise RuntimeError("UNIFIED_EXIT_INDEX_FEATURE_INDEX_BINDING_INVALID")
+            manifest_files[str(path)] = sha256_file(path)
+            sources = manifest["source_bindings"]
+            entry_path = Path(entry_parquets[split]).expanduser().absolute()
+            if (sources["parent_entry_parquet"]["path"] != str(entry_path)
+                    or sources["parent_entry_manifest"] != entry_manifest_bindings[split]):
+                raise RuntimeError("UNIFIED_EXIT_INDEX_FEATURE_ENTRY_BINDING_INVALID")
+            bound(sources["parent_entry_parquet"])
+            bound(sources["parent_entry_manifest"])
+            manifests[split] = manifest
+        first = manifests[selected[0]]
+        sources = first["source_bindings"]
+        shared = ("parent_m1", "parent_m1_manifest", "final_recipe", "final_bindings_bundle")
+        if any(any(m["source_bindings"][k] != sources[k] for k in shared)
+               for m in manifests.values()):
+            raise RuntimeError("UNIFIED_EXIT_INDEX_FEATURE_SHARED_SOURCE_INVALID")
+        recipe_path = bound(sources["final_recipe"])
+        recipe = _read_exact_json(recipe_path)
+        canonical(recipe, "recipe_sha256")
+        bundle = _read_exact_json(bound(sources["final_bindings_bundle"]))
+        canonical(bundle, "bundle_sha256")
+        if (bundle["bundle_sha256"] != root["final_bindings_bundle_sha256"]
+                or recipe.get("test_accessed") is not False):
+            raise RuntimeError("UNIFIED_EXIT_INDEX_FEATURE_FINAL_BINDING_INVALID")
+        view_path = bound(recipe["normalization_view"])
+        view = _read_exact_json(view_path)
+        canonical(view, "contract_sha256")
+        population = _read_exact_json(bound(
+            view["train_normalization_population_witness"], "file_sha256"))
+        canonical(population, "contract_sha256")
+        parent = population["m1_source"]["parent_full_tape"]
+        if (population.get("decision") != "PASS"
+                or population.get("test_accessed") is not False
+                or view.get("test_accessed") is not False
+                or sources["parent_m1"] != {"path": parent["parquet_path"],
+                                             "sha256": parent["parquet_sha256"]}
+                or sources["parent_m1_manifest"] != {"path": parent["manifest_path"],
+                                                      "sha256": parent["manifest_sha256"]}):
+            raise RuntimeError("UNIFIED_EXIT_INDEX_FEATURE_NORMALIZED_SOURCE_INVALID")
+        m1_path = bound(sources["parent_m1"])
+        bound(sources["parent_m1_manifest"])
+        feature = population["m1_feature_base"]
+        feature_path = bound(feature)
+        feature_manifest_path = bound({"path": feature["manifest_path"],
+                                       "sha256": feature["manifest_sha256"]})
+        feature_meta = _read_exact_json(feature_manifest_path)
+        require_exact_m1_feature_surface_manifest(
+            manifest_path=feature_manifest_path,
+            expected_manifest_sha256=feature["manifest_sha256"],
+            expected_parquet_path=feature_path, expected_parquet_sha256=feature["sha256"],
+            expected_dataset_run_id=dataset_run_id,
+            expected_pair_generation_id=feature_meta["pair_generation_id"],
+            expected_rows=feature["rows"], expected_m1_source_path=m1_path,
+            expected_m1_source_sha256=sources["parent_m1"]["sha256"],
+            context="UNIFIED_EXIT_INDEX_FEATURE_SURFACE",
+        )
+        # All immutable source identities pass before either matrix is allocated.
+        times, prices = _validated_m1_arrays(m1_path)
+        storage = tempfile.TemporaryDirectory(prefix="gx1_m1_feature_surface_")
+        try:
+            feature_times, features = load_m1_feature_surface(
+                feature_path, context="UNIFIED_EXIT_INDEX_FEATURE", storage_dir=Path(storage.name))
+            offset = int(np.searchsorted(times.asi8, feature_times.asi8[0]))
+            if not feature_times.equals(times[offset:]):
+                raise RuntimeError("UNIFIED_EXIT_INDEX_FEATURE_CLOCK_INVALID")
+            for split, manifest in manifests.items():
+                source = manifest["source_bindings"]
+                child_path = bound(source["m1_child"])
+                child = pd.DatetimeIndex(pd.to_datetime(
+                    pd.read_parquet(child_path, columns=["time"])["time"],
+                    utc=True, errors="coerce")).as_unit("ns")
+                start = manifest["parent_m1_row_offset"]
+                stop = start + len(child)
+                if (child.empty or start < offset or stop > len(times)
+                        or not times[start:stop].equals(child)):
+                    raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_PARENT_CLOCK_INVALID")
+            for suffix in ("open", "high", "low", "close"):
+                prices["mid_" + suffix] = prices[suffix]
+            for values in (*prices.values(), *features.values()):
+                values.setflags(write=False)
+        except Exception:
+            storage.cleanup()
+            raise
+        instance = cls.__new__(cls)
+        instance._m1_feature_tempdir = storage
+        instance.splits = {split: SimpleNamespace(
+            split=split, _m1_times=times, _m1=prices, _m1_feature_times=feature_times,
+            _m1_features=features, _feature_row_offset=offset,
+        ) for split in selected}
+        instance.evidence = {
+            "schema_version": "gx1_random_access_feature_source_evidence_v1",
+            "root_manifest_path": str(root_path), "root_manifest_sha256": sha256_file(root_path),
+            "m1_source_path": str(m1_path), "m1_source_sha256": sources["parent_m1"]["sha256"],
+            "m1_feature_base_path": str(feature_path), "m1_feature_base_sha256": feature["sha256"],
+            "m1_feature_base_manifest_path": str(feature_manifest_path),
+            "m1_feature_base_manifest_sha256": feature["manifest_sha256"],
+            "source_files": dict(manifest_files), "test_accessed": False,
+        }
+        return instance
+
     @staticmethod
     def _require_manifest_files_unchanged(
         manifest_files: Sequence[tuple[str, str]],

@@ -380,8 +380,12 @@ def test_benchmark_cli_binds_design_to_factory_collation_and_input_geometry(tmp_
         batch_size=16, repeats=1, max_selected_entries=1)
     monkeypatch.setenv("GX1_V10_MULTI_TF_V4_CACHE_DIR", "")
     monkeypatch.setattr(benchmark, "_parser", lambda: SimpleNamespace(parse_args=lambda argv: args))
+    def indexed_corpus(**kwargs):
+        assert kwargs["root_manifest_path"] == paths["root_manifest"]
+        assert kwargs["splits"] == ("train",)
+        return SimpleNamespace(splits={"train": object()})
     monkeypatch.setattr(lifecycle, "UnifiedExitLifecycleCorpus",
-                        lambda **kwargs: SimpleNamespace(splits={"train": object()}))
+                        SimpleNamespace(from_random_access_index=indexed_corpus))
     def dataset(**kwargs):
         assert kwargs["multi_tf_closed_bar"] is True
         return SimpleNamespace(seq_len=kwargs["seq_len"], per_tf_seq_lens=kwargs["per_tf_seq_lens"])
@@ -404,3 +408,124 @@ def test_benchmark_cli_binds_design_to_factory_collation_and_input_geometry(tmp_
         "seq_len": 96, "per_tf_seq_lens": {"M5":16, "M15":64, "H1":96, "H4":96, "D1":252},
         "multi_tf_closed_bar": True,
     }
+
+@pytest.fixture
+def indexed_feature_source(tmp_path, monkeypatch):
+    """Synthetic source/clock test; exact surface schema has separate tests."""
+    from pathlib import Path
+    import numpy as np
+    import pandas as pd
+    import gx1.contracts.unified_exit_lifecycle_v1 as owner
+    import gx1.contracts.unified_exit_random_access_index_v1 as index_owner
+    def write(name, value, key=None):
+        if key:
+            value = dict(value)
+            value[key] = owner.canonical_json_sha256(value)
+        p = tmp_path / name
+        p.write_text(json.dumps(value))
+        return {"path": str(p), "sha256": owner.sha256_file(p)}
+    def raw(name, value):
+        p=tmp_path/name; p.write_bytes(value)
+        return {"path":str(p), "sha256":owner.sha256_file(p)}
+    times=pd.date_range("2025-01-01",periods=12,freq="min",tz="UTC").delete(6)
+    parent=raw("parent.parquet",b"synthetic parent")
+    feature=raw("feature.parquet",b"synthetic features")
+    fm=write("feature.parquet.manifest.json",{"pair_generation_id":"pair"})
+    feature.update(manifest_path=fm["path"],manifest_sha256=fm["sha256"],rows=len(times)-1)
+    parent_manifest=write("parent.manifest.json",{})
+    population=write("population.json",{
+        "decision":"PASS","test_accessed":False,
+        "m1_source":{"parent_full_tape":{
+            "parquet_path":parent["path"],"parquet_sha256":parent["sha256"],
+            "manifest_path":parent_manifest["path"],"manifest_sha256":parent_manifest["sha256"]}},
+        "m1_feature_base":feature}, "contract_sha256")
+    view=write("view.json",{"test_accessed":False,
+        "train_normalization_population_witness":{"path":population["path"],"file_sha256":population["sha256"]}},
+        "contract_sha256")
+    recipe=write("recipe.json",{"test_accessed":False,"normalization_view":view},"recipe_sha256")
+    bundle=write("bundle.json",{},"bundle_sha256")
+    ep={}; em={}; slots={}; manifests={}; child_paths={}
+    for split in ("train","val"):
+        ep[split]=Path(raw(split+".entry.parquet",b"synthetic entry")["path"])
+        em[split]=write(split+".entry.manifest.json",{})
+        cp=tmp_path/(split+".child.parquet")
+        pd.DataFrame({"time":times[2:9]}).to_parquet(cp,index=False)
+        child_paths[split]=cp
+        sources={"parent_m1":parent,"parent_m1_manifest":parent_manifest,
+            "final_recipe":recipe,"final_bindings_bundle":bundle,
+            "parent_entry_parquet":{"path":str(ep[split]),"sha256":owner.sha256_file(ep[split])},
+            "parent_entry_manifest":em[split],
+            "m1_child":{"path":str(cp),"sha256":owner.sha256_file(cp)}}
+        manifests[split]={"split":split,"parent_m1_row_offset":2,"source_bindings":sources}
+        mp=write(split+".index.json",manifests[split],"manifest_sha256")
+        md=json.loads(Path(mp["path"]).read_text())
+        manifests[split]=md
+        slots[split]={"manifest_path":mp["path"],"manifest_sha256":md["manifest_sha256"]}
+    root=write("ROOT.json",{"splits":slots,
+        "final_bindings_bundle_sha256":json.loads(Path(bundle["path"]).read_text())["bundle_sha256"]})
+    monkeypatch.setattr(index_owner,"require_random_access_index_root",lambda x:x)
+    monkeypatch.setattr(index_owner,"require_random_access_index_manifest",lambda x,**kw:x)
+    calls=[]
+    monkeypatch.setattr(owner,"require_exact_m1_feature_surface_manifest",lambda **kw:calls.append(("admission",kw)))
+    prices={name:np.arange(len(times),dtype=float)+100 for name in ("open","high","low","close")}
+    features={"signal":np.ones((len(times)-1,owner.MODEL_NATIVE_SIGNAL_DIM),dtype=np.float32),
+              "ctx_cont":np.ones((len(times)-1,owner.MODEL_NATIVE_CTX_CONT_DIM),dtype=np.float32),
+              "ctx_cat":np.zeros((len(times)-1,owner.MODEL_NATIVE_CTX_CAT_DIM),dtype=np.int64)}
+    monkeypatch.setattr(owner,"_validated_m1_arrays",lambda p:(calls.append(("prices",p)) or (times,prices)))
+    monkeypatch.setattr(owner,"load_m1_feature_surface",lambda p,**kw:(calls.append(("features",p)) or (times[1:],features)))
+    return dict(owner=owner,kwargs={"root_manifest_path":Path(root["path"]),"entry_parquets":ep,
+        "entry_manifest_bindings":em,"dataset_run_id":"SYNTHETIC","splits":("train","val")},
+        root=root,manifests=manifests,times=times,features=features,calls=calls,feature=feature,
+        child_paths=child_paths)
+
+
+def test_index_feature_source_reuses_normalized_tape_for_both_splits(indexed_feature_source):
+    c=indexed_feature_source
+    corpus=c["owner"].UnifiedExitLifecycleCorpus.from_random_access_index(**c["kwargs"])
+    assert [x[0] for x in c["calls"]]==["admission","prices","features"]
+    for split in ("train","val"):
+        source=corpus.splits[split]
+        assert source._m1_times.equals(c["times"])
+        assert source._m1_feature_times.equals(c["times"][1:])
+        assert source._feature_row_offset==1
+        assert source._m1["mid_close"] is source._m1["close"]
+        assert source._m1_features["signal"] is c["features"]["signal"]
+        assert not source._m1_features["signal"].flags.writeable
+    assert corpus.evidence["test_accessed"] is False
+    corpus._m1_feature_tempdir.cleanup()
+
+
+@pytest.mark.parametrize("mutation",["feature_bytes","entry_binding","test_split","index_identity"])
+def test_index_feature_source_rejects_changed_identity_before_arrays(indexed_feature_source,mutation):
+    from pathlib import Path
+    c=indexed_feature_source
+    if mutation=="feature_bytes":Path(c["feature"]["path"]).write_bytes(b"changed")
+    elif mutation=="entry_binding":c["kwargs"]["entry_manifest_bindings"]["train"]={"path":"/wrong","sha256":"0"*64}
+    elif mutation=="test_split":c["kwargs"]["splits"]=("test",)
+    else:
+        p=Path(c["kwargs"]["root_manifest_path"]);d=json.loads(p.read_text())
+        d["splits"]["train"]["manifest_sha256"]="0"*64;p.write_text(json.dumps(d))
+    with pytest.raises(RuntimeError,match="UNIFIED_EXIT_INDEX_FEATURE"):
+        c["owner"].UnifiedExitLifecycleCorpus.from_random_access_index(**c["kwargs"])
+    assert not c["calls"]
+
+
+def test_index_feature_source_rejects_old_feature_clock(indexed_feature_source,monkeypatch):
+    import pandas as pd
+    c=indexed_feature_source
+    monkeypatch.setattr(c["owner"],"load_m1_feature_surface",
+        lambda *a,**kw:(c["times"][1:]+pd.Timedelta(minutes=1),c["features"]))
+    with pytest.raises(RuntimeError,match="FEATURE_CLOCK_INVALID"):
+        c["owner"].UnifiedExitLifecycleCorpus.from_random_access_index(**c["kwargs"])
+
+
+def test_index_feature_source_rejects_old_parent_coordinates(indexed_feature_source):
+    from pathlib import Path
+    c=indexed_feature_source
+    root_path=c["kwargs"]["root_manifest_path"];root=json.loads(root_path.read_text())
+    m=c["manifests"]["train"];m["parent_m1_row_offset"]=3
+    m["manifest_sha256"]=c["owner"].canonical_json_sha256({k:v for k,v in m.items() if k!="manifest_sha256"})
+    Path(root["splits"]["train"]["manifest_path"]).write_text(json.dumps(m))
+    root["splits"]["train"]["manifest_sha256"]=m["manifest_sha256"];root_path.write_text(json.dumps(root))
+    with pytest.raises(RuntimeError,match="RANDOM_ACCESS_PARENT_CLOCK_INVALID"):
+        c["owner"].UnifiedExitLifecycleCorpus.from_random_access_index(**c["kwargs"])

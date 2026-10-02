@@ -1378,3 +1378,42 @@ plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_IND
 SHA256: c55a035824f5379146ef06bf593938defdc4a4a422cdb1e40c3a986ad2d63763
 operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/OPERATOR.py
 SHA256: 2623968215f39279f242a746243d1f0d52ea3d8055f85a97f2ff0500805fb045
+
+
+## Indekser verifisert; faktisk featurekilde koblet — 02.10.2026
+
+Indeksbygget NATIVE_ECONOMIC_INDEX_001 er fullført med exit 0 og uendret
+kilde. Uavhengig kontroll bekrefter filhasher, manifest, alle 652 552 TRAIN-
+og 70 880 VAL-rader, eksakt foreldreindeks og ingen økonomisk sluttgrense.
+Nye kostnadsbindinger gjenbrukes; ingen modell eller optimizer er kjørt.
+
+Den neste forbrukeren hadde en konkret mismatch: gammel lifecycle-leser
+brukte den tidligere M1-kilden, mens nye indekser og normalisering bruker
+komplett før-TEST-M1. Faktiske tidsstempler passer ikke ved indeksens
+radposisjoner. Benchmark ble derfor ikke startet med feil kilde.
+
+Eksisterende lifecycle-eier kan nå laste pris og ferdig featureflate fra
+indeksens bundne preprocessing. Både fysisk native komponentbygging og
+benchmark bruker denne samme ruten. Historiske lifecycle-episoder beholdes;
+ingen episodefasit fabrikeres eller ny featureberegning/normalisering gjøres.
+79 fokuserte tester består, inkludert koblingen i begge forbrukere og
+avvisning av endrede filidentiteter, TEST-split og forskjøvede klokker.
+De nye lastetestene bruker syntetiske kilder; reell kildeinnlasting er ennå
+ikke kvalifisert.
+
+Neste jobb er INDEX_FEATURE_SOURCE_REVIEW_001, producer 10G/swap512M, for
+streng innlasting av de faktiske TRAIN-/VAL-kildene. Kilde fryses under
+jobben. Deretter gjenstår målt sampler, koordinater og fersk initialmåling.
+Ingen trening, refit, broker-kall, TEST eller live/paper er åpnet.
+Læring, generalisering, økonomisk edge og train/serve-paritet er ubevist.
+
+index_result: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/EVENTS/RESULT_20261002T060119720832Z.json
+SHA256: 1fe10ce8874911f80d9c0d13ba2ba90e3da4d2c2b80fc5b416ef78011ce0a32d
+index_terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/EVENTS/TERMINAL_20261002T060119740507Z.json
+SHA256: 626db8da298880980459d6b04eebe9e7b905163ac75600ef54d74de1fefe01c6
+publication_review: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_ECONOMIC_INDEX_001/EVENTS/PUBLICATION_REVIEW_20261002T060703917118Z.json
+SHA256: 0a192198d9cbf96d0325939d68b48b2f40c7f08ff01d754959952568512c685f
+source_review_plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/PLAN.json
+SHA256: 094f0cb2bed71d2653328185e51642765b71c74f6401c2b0ef83eac0e2d55848
+source_review_operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/OPERATOR.py
+SHA256: 9b53f72571492c7f95305bb4e7995c44e5ebeb0a19f3e00888c8688f18b2a604

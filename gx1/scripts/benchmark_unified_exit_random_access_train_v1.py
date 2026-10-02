@@ -563,8 +563,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_BENCHMARK_DESIGN_SOURCE_MISMATCH")
     manifest_path = args.entry_train_manifest.expanduser().resolve()
     entry_path = args.entry_train_parquet.expanduser().resolve()
-    corpus = UnifiedExitLifecycleCorpus(
-        root_manifest_path=args.feature_lifecycle_root,
+    corpus_owner = (UnifiedExitLifecycleCorpus.from_random_access_index
+                    if design_path is not None else UnifiedExitLifecycleCorpus)
+    corpus = corpus_owner(
+        root_manifest_path=(args.root_manifest if design_path is not None
+                            else args.feature_lifecycle_root),
         entry_parquets={"train": entry_path},
         entry_manifest_bindings={
             "train": {"path": str(manifest_path), "sha256": file_sha256(manifest_path)}
