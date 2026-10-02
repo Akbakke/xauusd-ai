@@ -954,10 +954,10 @@ består alle 60 tester i berørt fil. Totalt 132 unike testtilfeller er dekket.
 Ekte fryst design gjenkjennes, men avvises uten bundet VAL-indeks før
 datalesing. Ingen reell modellkjøring, læring eller TEST-tilgang er utført.
 
-Hovedbyggerens recipe-/Dataset-/treningsbinding krever fortsatt den gamle
-felles TRAIN-kilden og må tilpasses før native kjøring. Gjenbruk av originale
-hjelpefasiter er neste nødvendige kobling. Ferske kostnadsvilkår og faktiske
-indekser mangler fortsatt; det tidligere brokervilkårsspørsmålet er ubesvart.
+Hovedbyggerens recipe-/treningsbinding krever fortsatt den gamle felles
+TRAIN-kilden og må tilpasses før native kjøring. Dataset-eierens gjenbruk av
+originale hjelpefasiter er nå rettet og kontrollert som beskrevet øverst.
+Ferske kostnadsvilkår og faktiske indekser mangler fortsatt.
 
 Evidens: `/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_CONTROL_SOURCE_REVIEW_001/EVENTS/SOURCE_REVIEW_20261002T004908392141Z.json`, SHA `7fecbea0e848190367e203c2c302168e78b7fbbf6a83ee76b5cbf4213c45e378`.
 De opprinnelige JUnit-rapportene er bevart i hashbundet TEST_EVIDENCE-hendelse.
@@ -975,14 +975,19 @@ trenings-/målekoordinater gjenstår. Eksisterende kostnads-/kjøreporter er ste
 
 ## Fysisk Dataset-binding og avgrenset målkontroll — 02.10.2026
 
-Dataset-bindingen kan nå gjenbruke de originale v38-hjelpefasitene fra
-separate fysiske TRAIN-/VAL-filer. Hele klokken, TRAIN-policyene, målverdienes
-domener og egne radkoordinater bindes før lesetilgangen avgrenses. Ingen
-fasiter, features eller samplerrekkefølge omskrives. Historisk prefix-rute består.
+Dataset-bindingens gamle krav om erstatningsfasiter fra felles TRAIN er rettet.
+V38 gjenbruker nå originale mål fra hver fysisk TRAIN-/VAL-fil, med egen klokke,
+radbinding og kanoniske TRAIN-policyer. Historisk prefix-rute er bevart.
 
-81 fokuserte syntetiske tester består, inkludert ekte Dataset-konstruksjon
-på testdata og uendrede utdata gjennom __getitem__. PHYSICAL_AUXILIARY_BINDING_AUDIT_001
-er klargjort for én capped kontroll av tid og 47 målkolonner på ekte TRAIN/VAL.
-Denne kontrollen er ikke utført ennå og åpner ingen modellkjøring eller trening.
-Kilde holdes fryst under kontrollen. Hovedbyggerens øvrige recipe-/treningsbinding,
-indekser og kostnadsautoritet gjenstår. Brokervilkårsspørsmålet er ubesvart.
+PHYSICAL_AUXILIARY_BINDING_AUDIT_001 sluttet med exit 0 og uendret kilde.
+Den samme funksjonen som Dataset kaller, har kontrollert tid og alle 47 aktive
+målkolonner på ekte 652 552 TRAIN-/70 880 VAL-rader. Alle verdier/dtyper er
+gyldige og bevares eksakt; CONTROL256 bindes bare til fysisk VAL. Ingen ny fit,
+modellkjøring eller TEST-tilgang. Dette er en ekte målprojeksjon, ikke full
+native Dataset-konstruksjon eller uavhengig ny beregning av fasitene.
+
+81 fokuserte syntetiske tester og påkrevde Git-kontraktssjekker består.
+Testene dekker faktisk Dataset-konstruksjon og __getitem__ på testdata.
+Recipe-/hovedbygger-/trenings- og målebindingene må fortsatt tilpasses dagens
+normalisering, målbevis og separate radkoordinater. Indekser/kostnadsautoritet
+gjenstår, og brokervilkårsspørsmålet er ubesvart. Ingen læring eller edge er bevist.

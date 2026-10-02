@@ -1,16 +1,21 @@
 # Gjeldende status — 02.10.2026: native v38 og kontrollert kodeopprydding
 
-Dataset-bindingen kan nå gjenbruke de originale v38-hjelpefasitene fra
-separate fysiske TRAIN-/VAL-filer. Hele klokken, TRAIN-policyene, målverdienes
-domener og egne radkoordinater bindes før lesetilgangen avgrenses. Ingen
-fasiter, features eller samplerrekkefølge omskrives. Historisk prefix-rute består.
+Dataset-bindingens gamle krav om erstatningsfasiter fra felles TRAIN er rettet.
+V38 gjenbruker nå originale mål fra hver fysisk TRAIN-/VAL-fil, med egen klokke,
+radbinding og kanoniske TRAIN-policyer. Historisk prefix-rute er bevart.
 
-81 fokuserte syntetiske tester består, inkludert ekte Dataset-konstruksjon
-på testdata og uendrede utdata gjennom __getitem__. PHYSICAL_AUXILIARY_BINDING_AUDIT_001
-er klargjort for én capped kontroll av tid og 47 målkolonner på ekte TRAIN/VAL.
-Denne kontrollen er ikke utført ennå og åpner ingen modellkjøring eller trening.
-Kilde holdes fryst under kontrollen. Hovedbyggerens øvrige recipe-/treningsbinding,
-indekser og kostnadsautoritet gjenstår. Brokervilkårsspørsmålet er ubesvart.
+PHYSICAL_AUXILIARY_BINDING_AUDIT_001 sluttet med exit 0 og uendret kilde.
+Den samme funksjonen som Dataset kaller, har kontrollert tid og alle 47 aktive
+målkolonner på ekte 652 552 TRAIN-/70 880 VAL-rader. Alle verdier/dtyper er
+gyldige og bevares eksakt; CONTROL256 bindes bare til fysisk VAL. Ingen ny fit,
+modellkjøring eller TEST-tilgang. Dette er en ekte målprojeksjon, ikke full
+native Dataset-konstruksjon eller uavhengig ny beregning av fasitene.
+
+81 fokuserte syntetiske tester og påkrevde Git-kontraktssjekker består.
+Testene dekker faktisk Dataset-konstruksjon og __getitem__ på testdata.
+Recipe-/hovedbygger-/trenings- og målebindingene må fortsatt tilpasses dagens
+normalisering, målbevis og separate radkoordinater. Indekser/kostnadsautoritet
+gjenstår, og brokervilkårsspørsmålet er ubesvart. Ingen læring eller edge er bevist.
 
 Kontrollkjedens gamle TRAIN-/juni-binding er rettet hos seks eksisterende
 eiere. En eksplisitt fryst VAL-kontroll binder hele fysisk VAL, filstier,
@@ -22,10 +27,10 @@ består alle 60 tester i berørt fil. Totalt 132 unike testtilfeller er dekket.
 Ekte fryst design gjenkjennes, men avvises uten bundet VAL-indeks før
 datalesing. Ingen reell modellkjøring, læring eller TEST-tilgang er utført.
 
-Hovedbyggerens recipe-/Dataset-/treningsbinding krever fortsatt den gamle
-felles TRAIN-kilden og må tilpasses før native kjøring. Gjenbruk av originale
-hjelpefasiter er neste nødvendige kobling. Ferske kostnadsvilkår og faktiske
-indekser mangler fortsatt; det tidligere brokervilkårsspørsmålet er ubesvart.
+Hovedbyggerens recipe-/treningsbinding krever fortsatt den gamle felles
+TRAIN-kilden og må tilpasses før native kjøring. Dataset-eierens gjenbruk av
+originale hjelpefasiter er nå rettet og kontrollert som beskrevet øverst.
+Ferske kostnadsvilkår og faktiske indekser mangler fortsatt.
 
 AUXILIARY_REUSE_PRECHECK_001 er fullført med exit 0 og uendret kilde.
 Alle 652 552 TRAIN-/70 880 VAL-rader, inkludert CONTROL256, har komplett

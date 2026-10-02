@@ -3064,6 +3064,27 @@
     },
     "optimizer_steps": 0,
     "physical_auxiliary_binding_audit": {
+      "active_target_columns": 47,
+      "completed_utc": "2026-10-02T01:14:08.493773+00:00",
+      "control_rows": 256,
+      "final_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_AUXILIARY_BINDING_AUDIT_001/EVENTS/FINAL_REVIEW_20261002T011622059366Z.json",
+        "sha256": "f935fde12f19614caabe115c90f288ee8d95dc0d081846388466870d7b2721b8"
+      },
+      "full_dataset_construction_performed": false,
+      "label_values_independently_recomputed": false,
+      "launcher_terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_AUXILIARY_BINDING_AUDIT_001/EVENTS/LAUNCHER_TERMINAL_20261002T011408873322Z.json",
+        "sha256": "60116aab74630cfe7e01e2c350763d65dff628a6140bda75c0602543cde8a5a7"
+      },
+      "limitations": [
+        "The same binding function called by EntryV10CtxDataset was measured on genuine scalar projections; full native Dataset construction was not run.",
+        "Targets were validated and preserved, not independently recomputed. Entry/Exit learned-reference targets, native routing and economics remain unqualified."
+      ],
+      "model_forwards": 0,
+      "native_admission_complete": false,
+      "new_policy_fits": 0,
+      "normalization_fits": 0,
       "operator": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_AUXILIARY_BINDING_AUDIT_001/OPERATOR.py",
         "sha256": "841590d33f375bc31d461a23e81a51344d00ba872ca4fb66eabb09fc752d2b35"
@@ -3073,15 +3094,26 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_AUXILIARY_BINDING_AUDIT_001/PLAN.json",
         "sha256": "0ea7fa2981cbcb4a4365ad5f4b978eb490ec73235775e97d6aa22328ca1b3a4d"
       },
-      "source_frozen_while_running": true,
-      "status": "PREPARED_REAL_TARGET_PROJECTION_AUDIT_NOT_NATIVE_ADMISSION",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_AUXILIARY_BINDING_AUDIT_001/EVENTS/RESULT_20261002T011408493773Z.json",
+        "sha256": "3b2271b7745fd19128a77c1682f27611d7023e705224bc37f2310cee769ef660"
+      },
+      "source_frozen_while_running": false,
+      "source_head": "6355f51dcdd44cccd05d0d1c6406cd7c05be1ed8",
+      "status": "COMPLETE_REAL_PHYSICAL_TARGET_BINDINGS_AND_DOMAINS_VERIFIED",
       "synthetic_tests_passed": 81,
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_AUXILIARY_BINDING_AUDIT_001/EVENTS/TERMINAL_20261002T011408516027Z.json",
+        "sha256": "acb8da7e9b5d03f9b6f70789d39fa1f9c9ed0c585f0931a1a6d8d04386887c3a"
+      },
       "test_accessed": false,
       "test_evidence": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PHYSICAL_AUXILIARY_BINDING_AUDIT_001/EVENTS/TEST_EVIDENCE_20261002T011030305006Z.json",
         "sha256": "035279fd56afa899969f26453072e0082067a74b09db60c5a1074d52d5a0672e"
       },
-      "training_enabled": false
+      "train_rows": 652552,
+      "training_enabled": false,
+      "val_rows": 70880
     },
     "physical_control_source_review": {
       "actual_model_forwards": 0,
@@ -3273,7 +3305,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Run the single prepared PHYSICAL_AUXILIARY_BINDING_AUDIT_001 through the capped audit profile against genuine time plus 47 active target columns only, with committed unchanged source. Reuse completed clock/policy evidence; no label refit or model forward. Then adapt remaining native recipe/component, sampler and training/probe coordinates for separate TRAIN and VAL. Real indexes and fresh economics remain pending; the two-GET broker question is unanswered. No broker, native training, TEST, live/paper or spending.",
+  "next_action": "Reuse completed physical auxiliary Dataset binding and its real audit (652552 TRAIN, 70880 VAL, CONTROL256, 47 unchanged valid targets) plus physical control factory/reference/replay support. Next adapt existing native recipe/component and training/measurement owners to consume the current final normalization and auxiliary reuse result on separate TRAIN and VAL files; bind actual sampler/epoch0/probe coordinates within each source and pass exact physical CONTROL256 into the factory. No refit or rerun of completed audits. Real indexes/economics and model initialization remain pending. The two-GET broker question is unanswered; no broker, native training, TEST, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
