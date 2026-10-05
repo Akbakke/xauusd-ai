@@ -3,12 +3,14 @@
 Målet om punkt 1–6 i docs/NATIVE_V38_EXECUTION_20261005.md er aktivt, ikke fullført.
 CPU_WORKLOAD_PROFILE_003 er fullført med exit 0 og uendret kilde. Ikke relanser
 den. CPU-budsjettvalget er fortsatt ubekreftet og kreves før ny full benchmark.
-Uavhengig av dette er én manglende VAL-inputkontroll nå forhåndsregistrert:
-VAL_SEQUENCE_AUDIT_001, gjennom eksisterende auditeier, capped audit4G/512M.
-Den verifiserer bare time/seq/snap for alle70880 fysiske VAL-rader mot den
-bundne M5-kilden. TRAIN-beviset gjenbrukes; ingen utfall, modellvurdering,
-fits, forwards, optimizersteg eller TEST. Plan/operator er bundet i
-NEXT_RUN_POLICY.json; engangskravet hindrer relansering. CPU-grensen står.
+VAL_SEQUENCE_AUDIT_001 er også fullført med exit0, kilde7056bf56 uendret.
+Den eksisterende auditeieren verifiserte alle70880 fysiske VAL-raders
+time/seq/snap mot bundet M5-kilde, Seq96×254, capped audit4G/512M.
+Persisted proof og nyeste resultat/terminal er kontraktverifisert. Bevisene
+står hash-bundet i NEXT_RUN_POLICY.json og CURRENT_RESTART_POINT.json;
+engangsautoriteten er konsumert. Gjenbruk TRAIN og VAL; aldri relanser.
+Null fits/forwards/optimizersteg/TEST/nettverk; ingen utfallskolonner eller
+VAL-modellvurdering. CPU-grense/budsjettvalg og native porter er uendret.
 
 Målt på ekte, identiske TRAIN16-batcher for alle tre kandidatene:
 uinstrumentert tid er 6,53–7,17s, mot 12,25–13,01s før rettelsen (1,81–1,88x).

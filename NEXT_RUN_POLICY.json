@@ -1,8 +1,8 @@
 {
   "native_v38_execution_20261005": {
     "val_sequence_source_audit": {
-      "authorized": true,
-      "status": "PREREGISTERED_SINGLE_MISSING_INPUT_AUDIT_NOT_MODEL_EVALUATION",
+      "authorized": false,
+      "status": "COMPLETE_INPUT_PROOF_REUSE_ONLY_NO_RELAUNCH",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/PLAN.json",
         "sha256": "53515ebabfa5de790a4cde0eec70eb03a68ee08c113e3d89e49a5b94ca2113da"
@@ -28,7 +28,27 @@
       "cpu_budget_change_authorized": false,
       "test_authorized": false,
       "network_authorized": false,
-      "relaunch_allowed": false
+      "relaunch_allowed": false,
+      "consumed": true,
+      "audit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_COMPONENTS_001/VAL_SEQUENCE_SOURCE_AUDIT.json",
+        "sha256": "61cf4635369e996a98c57d4f1852d8576ad0e40b0ac2c027fcc0f3872b3b3258"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/EVENTS/RESULT_20261005T222127113701Z.json",
+        "sha256": "d3e98c0bb1f7d2b8587b613ffa23e27a73cbfef873989cbe8c6d64a560669ace"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/EVENTS/TERMINAL_20261005T222127135085Z.json",
+        "sha256": "7d389b0ec0964ac61713d312937ea590a07f7904edff2f4570821e485e2f775a"
+      },
+      "source_head": "7056bf5662a4353ba7f4e2bbc5a0cd95eb1cb330",
+      "source_unchanged": true,
+      "exit_code": 0,
+      "forbidden_access_attempts": [],
+      "network_attempts": [],
+      "sampler_selected": false,
+      "full_val_model_evaluation": false
     },
     "user_authorization": "Enig med deg. Lag deg et mål for å gjennomføre punkt 1 til 6 nå og knekk i gang",
     "user_authorized_steps": [1, 2, 3, 4, 5, 6],
@@ -167,7 +187,7 @@
       "sha256": "d4aa2e901049a48653990d1ebaf4f6cedc23fbdeeb6cb9a633729a74e1240ea8"
     },
     "native_training_enabled": false,
-    "next_native_step": "Consume only the preregistered VAL_SEQUENCE_AUDIT_001 missing physical VAL input reconstruction proof with the existing audit owner and capped audit 4G/512M; no outcome columns, fits, model forwards, optimizer steps or TEST. Reuse completed TRAIN proof and CPU_WORKLOAD_PROFILE_003 without relaunch. The operator CPU-budget decision remains unanswered and the 1800-second sampler eligibility gate unchanged; no new full benchmark, sampler selection or native window is authorized. Preserve all features, targets and guards; broker, trading and spending remain closed.",
+    "next_native_step": "VAL_SEQUENCE_AUDIT_001 completed with exit 0, unchanged source and the exact physical 70880-row VAL seq/snap source proof; reuse it and completed TRAIN/CPU parity evidence, never relaunch. Obtain the unanswered explicit operator CPU-budget decision before any new full sampler benchmark: the 1800-second eligibility gate remains unchanged and the 3-hour/18-hour proposal is not authorized. No sampler, frozen coordinates, fresh native initial measurement or optimizer trial is complete. Preserve all features, targets and guards; TEST, broker, trading and spending remain closed.",
     "operational_persistence_review": {
       "broker_requests": 0,
       "created_utc": "2026-10-02T04:19:01.367839+00:00",
@@ -4293,7 +4313,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Consume only the preregistered VAL_SEQUENCE_AUDIT_001 missing physical VAL input reconstruction proof with the existing audit owner and capped audit 4G/512M; no outcome columns, fits, model forwards, optimizer steps or TEST. Reuse completed TRAIN proof and CPU_WORKLOAD_PROFILE_003 without relaunch. The operator CPU-budget decision remains unanswered and the 1800-second sampler eligibility gate unchanged; no new full benchmark, sampler selection or native window is authorized. Preserve all features, targets and guards; broker, trading and spending remain closed.",
+  "next_action": "VAL_SEQUENCE_AUDIT_001 completed with exit 0, unchanged source and the exact physical 70880-row VAL seq/snap source proof; reuse it and completed TRAIN/CPU parity evidence, never relaunch. Obtain the unanswered explicit operator CPU-budget decision before any new full sampler benchmark: the 1800-second eligibility gate remains unchanged and the 3-hour/18-hour proposal is not authorized. No sampler, frozen coordinates, fresh native initial measurement or optimizer trial is complete. Preserve all features, targets and guards; TEST, broker, trading and spending remain closed.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-05T18:31:39+00:00",
   "outer_guard_seconds": 13800,

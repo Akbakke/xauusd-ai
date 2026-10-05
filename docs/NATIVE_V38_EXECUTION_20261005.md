@@ -163,3 +163,17 @@ jobb. Resultatet kan bare gjenbrukes ved senere bundet native forberedelse.
 
 1800-sekunders samplercap, uavklart operatørvalg, kandidater, mål, kvalitets-
 og maskinvaregrenser består. Ingen full benchmark eller native prøve åpnes.
+
+### Terminalt resultat
+
+VAL_SEQUENCE_AUDIT_001 fullførte22:21:27UTC med exit0 og uendret kilde7056bf56.
+Alle70880 Seq96×254 og snap254 er verifisert mot den bundne M5-featureflaten.
+Audit sha25661cf4635369e996a98c57d4f1852d8576ad0e40b0ac2c027fcc0f3872b3b3258.
+Nyeste immutable resultat/terminal og persisted audit er kontrollert gjennom
+de eksisterende kontrakteierne. Eksakte fil-/eventhasher står i NEXT_RUN_POLICY
+og CURRENT_RESTART_POINT. Engangsautoriteten er konsumert; ingen relansering.
+
+Ingen utfallskolonner, modellevaluering, fits/forwards/optimizersteg/TEST
+eller nettverk. Inputbeviset er ikke læring, full VAL-inferens eller sampler.
+CPU-budsjettspørsmålet er ubekreftet; grensen står1800s. Målet punkt1–6 er
+fortsatt ufullført. Ingen tung jobb kjører ved sluttkontroll.

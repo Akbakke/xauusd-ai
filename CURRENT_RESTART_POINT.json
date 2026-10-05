@@ -1,11 +1,11 @@
 {
   "schema_version": "gx1_current_restart_point_v1",
-  "observed_utc": "2026-10-05T22:19:21Z",
+  "observed_utc": "2026-10-05T22:24:59Z",
   "status": "NATIVE_V38_STEPS_1_TO_6_CPU_PARITY_PASSED_AWAITING_BUDGET_DECISION",
   "authority": {
     "source_repo": "/home/andre2/src/GX1_CURRENT",
     "branch": "work/gx1-current",
-    "source_head_before_documentation_update": "aa84cd7c2ddf7a529ae86dc37d3768b2956c853d",
+    "source_head_before_documentation_update": "7056bf5662a4353ba7f4e2bbc5a0cd95eb1cb330",
     "working_tree_clean_before_documentation_update": true,
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
     "mac_copy_is_authority": false
@@ -47,7 +47,7 @@
     "Macro core arm using price plus DFII10, DTWEXBGS and T10YIE completed; result was inconclusive and not promoted.",
     "INDEX_FEATURE_SOURCE_REVIEW_001 completed with actual index-bound sources."
   ],
-  "latest_completed_receipt": {
+  "completed_index_feature_source_receipt": {
     "job": "INDEX_FEATURE_SOURCE_REVIEW_001",
     "decision": "ACTUAL_INDEX_BOUND_FEATURE_SOURCE_COMPLETE_NO_BENCHMARK_OR_LEARNING",
     "result": {
@@ -120,10 +120,45 @@
     "model_forwards": 0,
     "optimizer_steps": 0
   },
-  "immediate_next_action": "Consume only the preregistered VAL_SEQUENCE_AUDIT_001 missing physical VAL input reconstruction proof with the existing audit owner and capped audit 4G/512M; no outcome columns, fits, model forwards, optimizer steps or TEST. Reuse completed TRAIN proof and CPU_WORKLOAD_PROFILE_003 without relaunch. The operator CPU-budget decision remains unanswered and the 1800-second sampler eligibility gate unchanged; no new full benchmark, sampler selection or native window is authorized. Preserve all features, targets and guards; broker, trading and spending remain closed.",
+  "immediate_next_action": "VAL_SEQUENCE_AUDIT_001 completed with exit 0, unchanged source and the exact physical 70880-row VAL seq/snap source proof; reuse it and completed TRAIN/CPU parity evidence, never relaunch. Obtain the unanswered explicit operator CPU-budget decision before any new full sampler benchmark: the 1800-second eligibility gate remains unchanged and the 3-hour/18-hour proposal is not authorized. No sampler, frozen coordinates, fresh native initial measurement or optimizer trial is complete. Preserve all features, targets and guards; TEST, broker, trading and spending remain closed.",
+  "latest_completed_receipt": {
+    "job": "VAL_SEQUENCE_AUDIT_001",
+    "decision": "PASS_FULL_PHYSICAL_VAL_SEQUENCE_SOURCE_RECONSTRUCTION_NO_LEARNING",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/EVENTS/RESULT_20261005T222127113701Z.json",
+      "sha256": "d3e98c0bb1f7d2b8587b613ffa23e27a73cbfef873989cbe8c6d64a560669ace"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/EVENTS/TERMINAL_20261005T222127135085Z.json",
+      "sha256": "7d389b0ec0964ac61713d312937ea590a07f7904edff2f4570821e485e2f775a",
+      "exit_code": 0
+    },
+    "audit": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_COMPONENTS_001/VAL_SEQUENCE_SOURCE_AUDIT.json",
+      "sha256": "61cf4635369e996a98c57d4f1852d8576ad0e40b0ac2c027fcc0f3872b3b3258"
+    },
+    "source_head": "7056bf5662a4353ba7f4e2bbc5a0cd95eb1cb330",
+    "source_unchanged": true,
+    "rows": 70880,
+    "sequence_shape": [
+      70880,
+      96,
+      254
+    ],
+    "snapshot_shape": [
+      70880,
+      254
+    ],
+    "test_accessed": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "normalization_fits": 0,
+    "sampler_selected": false,
+    "full_val_model_evaluation": false
+  },
   "val_sequence_source_audit": {
-    "authorized": true,
-    "status": "PREREGISTERED_SINGLE_MISSING_INPUT_AUDIT_NOT_MODEL_EVALUATION",
+    "authorized": false,
+    "status": "COMPLETE_INPUT_PROOF_REUSE_ONLY_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/PLAN.json",
       "sha256": "53515ebabfa5de790a4cde0eec70eb03a68ee08c113e3d89e49a5b94ca2113da"
@@ -149,7 +184,27 @@
     "cpu_budget_change_authorized": false,
     "test_authorized": false,
     "network_authorized": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "consumed": true,
+    "audit": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_COMPONENTS_001/VAL_SEQUENCE_SOURCE_AUDIT.json",
+      "sha256": "61cf4635369e996a98c57d4f1852d8576ad0e40b0ac2c027fcc0f3872b3b3258"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/EVENTS/RESULT_20261005T222127113701Z.json",
+      "sha256": "d3e98c0bb1f7d2b8587b613ffa23e27a73cbfef873989cbe8c6d64a560669ace"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/EVENTS/TERMINAL_20261005T222127135085Z.json",
+      "sha256": "7d389b0ec0964ac61713d312937ea590a07f7904edff2f4570821e485e2f775a"
+    },
+    "source_head": "7056bf5662a4353ba7f4e2bbc5a0cd95eb1cb330",
+    "source_unchanged": true,
+    "exit_code": 0,
+    "forbidden_access_attempts": [],
+    "network_attempts": [],
+    "sampler_selected": false,
+    "full_val_model_evaluation": false
   },
   "next_owner_inputs": {
     "benchmark_script": "gx1/scripts/benchmark_unified_exit_random_access_train_v1.py",

@@ -5,11 +5,11 @@ CURRENT_RESTART_POINT.json er den maskinlesbare tvillingen.
 Historiske dokumenter og COMPLETED_RUN.json er bevis, aldri startordre.
 
 Gjeldende CPU-blokkering: operatørens budsjettvalg før ny full benchmark.
-Mens dette er ubekreftet tas bare én uavhengig manglende inputforutsetning:
-VAL_SEQUENCE_AUDIT_001, eksisterende auditeier, capped audit4G/512M,
-alle70880 time/seq/snap-rader. Det er ikke full VAL-modellvurdering og leser
-ingen utfallskolonner. TRAIN-bevis og ferdige inputs gjenbrukes; ingen fits,
-forwards, optimizersteg, sampler eller TEST. Plan/operator i NEXT_RUN_POLICY.
+VAL_SEQUENCE_AUDIT_001 er fullført med exit0 og kilde7056bf56 uendret:
+70880 time/seq/snap-rader, Seq96×254, bundet M5-kilde, capped audit4G/512M.
+Persisted audit og nyeste resultat/terminal er kontraktverifisert og bundet
+i NEXT_RUN_POLICY.json. Ingen utfallskolonner, modellevaluering, fits,
+forwards, optimizersteg eller TEST/nettverk. Gjenbruk; aldri relanser.
 CPU_WORKLOAD_PROFILE_003 er fullført med exit0, fryst kilde og eksakt paritet
 mot alle tre gamle genuine TRAIN16-batchhasher. Tid6,53–7,17s uinstrumentert,
 13,89–15,76s instrumentert; rundt1,8x native forbedring. Ingen sampler eller læring.
@@ -47,7 +47,7 @@ Et større endelig budsjett er bare autorisert betinget av bestått læringsport
 
 Bruk bare /home/andre2/src/GX1_CURRENT på work/gx1-current.
 Mac-mappen er en overleveringskopi. Ved denne kontrollen var HEAD før
-dokumentoppdateringen aa84cd7c2ddf7a529ae86dc37d3768b2956c853d, arbeidsstreet rent, ingen native
+dokumentoppdateringen 7056bf5662a4353ba7f4e2bbc5a0cd95eb1cb330, arbeidsstreet rent, ingen native
 GX1-prosess kjørte og ingen GPU-prosess var registrert.
 
 ~~~bash
