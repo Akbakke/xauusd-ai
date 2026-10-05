@@ -23,7 +23,7 @@
       "sha256": "d4aa2e901049a48653990d1ebaf4f6cedc23fbdeeb6cb9a633729a74e1240ea8"
     },
     "native_training_enabled": false,
-    "next_native_step": "Execute only bound CPU_WORKLOAD_PROFILE_002 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
+    "next_native_step": "Execute only bound CPU_WORKLOAD_PROFILE_003 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
     "operational_persistence_review": {
       "broker_requests": 0,
       "created_utc": "2026-10-02T04:19:01.367839+00:00",
@@ -4479,7 +4479,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Execute only bound CPU_WORKLOAD_PROFILE_002 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
+  "next_action": "Execute only bound CPU_WORKLOAD_PROFILE_003 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],

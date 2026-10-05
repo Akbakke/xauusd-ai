@@ -66,24 +66,36 @@ def test_120_rewards_materialize_only_current_successor_and_boundary(relative_fi
     assert trace["steps"][4]["transition_closure"]["wall_clock_delta_seconds"] > 60
 
 
-def test_reference_economics_queries_the_same_contiguous_interval_once_per_side(relative_fixture, monkeypatch):
+def test_reference_projection_cache_preserves_all_original_slices(relative_fixture):
+    from gx1.contracts.unified_exit_economic_step_provider_v1 import LazyUnifiedExitEconomicStepProviderV1
     calls = []
-    original = states._EconomicProvider.materialize_training_projection
+    scalar_provider = states._EconomicProvider("1" * 64)
+    original = scalar_provider.materialize_training_projection
+    provider = LazyUnifiedExitEconomicStepProviderV1.__new__(LazyUnifiedExitEconomicStepProviderV1)
+    provider.economic_exit_step_manifest = {
+        "economic_step_model_sha256": "b" * 64,
+        "economic_step_source_manifest_sha256": "c" * 64,
+    }
 
-    def recording(self, entry, side, start, stop, hold_stop):
+    def recording(entry, side, start, stop, hold_stop):
         calls.append((entry, side, start, stop, hold_stop))
-        return original(self, entry, side, start, stop, hold_stop)
+        return original(entry, side, start, stop, hold_stop)
 
-    monkeypatch.setattr(states._EconomicProvider, "materialize_training_projection", recording)
-    view = states._materialize(2, reference_policy=reference_policy_contract())
+    provider._materialize_training_projection_uncached_v1 = recording
+    provider.configure_training_projection_window_v1((0, 2, 123, 122))
+    assert calls == []  # No projection before the state owner's cutoff check.
+    for first in range(2, 122):
+        for side in (0, 1):
+            actual = provider.materialize_training_projection(0, side, first, first + 2, first + 1)
+            expected = original(0, side, first, first + 2, first + 1)
+            assert _structured_sha256(actual) == _structured_sha256(expected)
     assert calls == [(0, 0, 2, 123, 122), (0, 1, 2, 123, 122)]
-    states.require_random_access_state_view(
-        view, sampler_contract=states._contract(), sample=states._sample(states._contract(), 2),
-        expected_m1_source_sha256=view["m1_source_sha256"],
-        expected_market_closure_authority_sha256=view["market_closure_authority_sha256"],
-        expected_economic_step_manifest_sha256=view["economic_step_manifest_sha256"],
-        expected_economics_objective_contract_sha256=view["economics_objective_contract_sha256"],
-    )
+    with pytest.raises(RuntimeError, match="SLICE_REQUEST_INVALID"):
+        provider.materialize_training_projection(0, 0, 121, 124, 122)
+    provider.configure_training_projection_window_v1(None)
+    actual = provider.materialize_training_projection(0, 0, 0, 2, 1)
+    assert _structured_sha256(actual) == _structured_sha256(original(0, 0, 0, 2, 1))
+    assert calls[-1] == (0, 0, 0, 2, 1)
 
 
 def test_invalid_batched_economic_projection_still_fails_closed(relative_fixture, monkeypatch):

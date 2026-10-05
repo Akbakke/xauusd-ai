@@ -12,7 +12,6 @@ import pandas as pd
 
 from gx1.contracts.unified_exit_dataset_adapter_v2 import (
     require_economic_training_projection,
-    seal_economic_training_projection,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import EXIT_MTF_CONTEXT_TIMEFRAMES
 from gx1.contracts.unified_exit_economics_objective_v2 import (
@@ -448,30 +447,6 @@ def materialize_random_access_state_view(
             "mtf": mtf,
         }
 
-    # The reference trace already declares a contiguous observed economic
-    # interval. Materialize that same interval once per side rather than making
-    # two one/two-row vectorized provider calls for each of its 120 transitions.
-    # Every derived slice is still sealed and checked by the original owner;
-    # transition hashes and all consumed arrays retain their original bytes.
-    reference_projections = None
-    if policy is not None:
-        available = min(policy["maximum_observed_backup_steps"], min(counts) - 1 - state_index)
-        fastpath = getattr(economic_step_provider, "materialize_training_projection", None)
-        if (not callable(fastpath)
-                or getattr(economic_step_provider, "market_closure_authority_sha256", None)
-                != authority["artifact_sha256"]):
-            raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_PROVIDER_INVALID")
-        reference_projections = [
-            require_economic_training_projection(
-                fastpath(entry_row_index, side, state_index,
-                         state_index + available + 1, state_index + available),
-                entry_row_index=entry_row_index, side_index=side,
-                start_state_index=state_index, stop_state_index=state_index + available + 1,
-                hold_stop_state_index=state_index + available,
-                economic_manifest=economic_step_manifest,
-            ) for side in range(2)
-        ]
-
     def one_transition(state_index: int, current: Mapping[str, Any] | None = None, *, compact: bool = False) -> dict[str, Any]:
         successor_index = state_index + 1
         state_row = entry_m1_start_row + state_index
@@ -496,26 +471,10 @@ def materialize_random_access_state_view(
         ):
             raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_PROVIDER_INVALID")
         for side in range(2):
-            if reference_projections is None:
-                raw_projection = fastpath(
-                    entry_row_index, side, state_index, state_index + (2 if relative else 1), state_index + 1
-                )
-            else:
-                parent = reference_projections[side]
-                offset = state_index - parent["start_state_index"]
-                raw_projection = seal_economic_training_projection({
-                    **{key: parent[key] for key in (
-                        "schema_version", "entry_row_index", "side_index",
-                        "economic_step_model_sha256", "economic_step_source_manifest_sha256")},
-                    "start_state_index": state_index, "stop_state_index": state_index + 2,
-                    "hold_stop_state_index": state_index + 1,
-                    "exit_event_kind_index": parent["exit_event_kind_index"][offset:offset + 2],
-                    "exit_reward_bps": parent["exit_reward_bps"][offset:offset + 2],
-                    "hold_event_kind_index": parent["hold_event_kind_index"][offset:offset + 1],
-                    "hold_reward_bps": parent["hold_reward_bps"][offset:offset + 1],
-                })
             projection = require_economic_training_projection(
-                raw_projection,
+                fastpath(
+                    entry_row_index, side, state_index, state_index + (2 if relative else 1), state_index + 1
+                ),
                 entry_row_index=entry_row_index,
                 side_index=side,
                 start_state_index=state_index,

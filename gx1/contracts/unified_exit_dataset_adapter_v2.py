@@ -919,6 +919,17 @@ class UnifiedExitDatasetAdapterV2:
             )
 
         def one_view(sample: Mapping[str, Any]) -> dict[str, Any]:
+            policy = (None if "anchor_sha256" in sample and "reference_cutoff_time_ns" not in binding
+                      else binding.get("reference_policy"))
+            configure = getattr(self._economic_provider, "configure_training_projection_window_v1", None)
+            if policy is not None:
+                if not callable(configure):
+                    raise RuntimeError("UNIFIED_EXIT_RANDOM_ACCESS_ECONOMIC_PROVIDER_INVALID")
+                first = sample["state_index"]
+                available = min(policy["maximum_observed_backup_steps"], count - 1 - first)
+                configure((entry_row_index, first, first + available + 1, first + available))
+            elif callable(configure):
+                configure(None)
             return materialize_random_access_state_view(
                 sampler_contract=binding["sampler_contract"],
                 sample=sample,
@@ -949,8 +960,7 @@ class UnifiedExitDatasetAdapterV2:
                 ],
                 prevalidated_m1_source=binding["prevalidated_m1_source"],
                 backup_steps=1 if "anchor_sha256" in sample else binding["backup_steps"],
-                reference_policy=(None if "anchor_sha256" in sample and "reference_cutoff_time_ns" not in binding
-                                  else binding.get("reference_policy")),
+                reference_policy=policy,
                 reference_cutoff_time_ns=binding.get("reference_cutoff_time_ns"),
             )
 

@@ -17,12 +17,20 @@ batchhash. Dette er småbatchdiagnose, ikke full kapasitet eller samplervalg.
 
 Profilen viser 18884 økonomiprojeksjoner og 113304 array-hasher i første
 16-entry-batch. Minste rettelse i eksisterende eiere beregner samme observerte
-referanseintervall samlet per side, og bruker uendrede forseglede/kontrollerte
-utsnitt per steg. Kanoniske skalarbytes kodes uten ny JSONEncoder per skalar.
+referanseintervall samlet per side i økonomileverandøren, og bruker uendrede
+forseglede/kontrollerte utsnitt per steg. Kanoniske skalarbytes kodes uten ny
+JSONEncoder per skalar. State-view-kilden beholdes byteidentisk til inputautoriteten.
 Alle originale slice-hasher, mål og masker skal forbli identiske; ingen gate
 fjernes. 51 fokuserte syntetiske kontrakttester består; ekte paritet gjenstår.
 
-Eksakt neste jobb er CPU_WORKLOAD_PROFILE_002, bundet i NEXT_RUN_POLICY.json.
+CPU_WORKLOAD_PROFILE_002 feilet før første kandidatmåling: den første rettelsen
+endret state-view-kildens hash, som ferdige bindingsartefakter korrekt avviste.
+Feil og rød terminal er bevart. Rettelsen flyttes til eksisterende adapter/
+økonomileverandør; ingen kontroll omgås og ingen ferdige data/fits bygges om.
+Adapteren deklarerer bare eksisterende referansevindu. Beregningen er lazy:
+original state-view eier kontrollerer cutoff før noen økonomiprojeksjon utføres.
+
+Eksakt neste jobb er CPU_WORKLOAD_PROFILE_003, bundet i NEXT_RUN_POLICY.json.
 Samme genuine TRAIN16-rader og gamle batchhasher må stemme, høyst 144
 materialiseringer. Null fits, forwards, optimizersteg og samplervalg. Kjør bare
 capped producer20G/512M med ren/fryst kilde. Alle kandidat-/tids-/minnegrenser

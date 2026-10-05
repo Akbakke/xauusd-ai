@@ -4,12 +4,16 @@ Dette er den korte menneskelesbare inngangen til gjeldende arbeid.
 CURRENT_RESTART_POINT.json er den maskinlesbare tvillingen.
 Historiske dokumenter og COMPLETED_RUN.json er bevis, aldri startordre.
 
-Gjeldende neste jobb: CPU_WORKLOAD_PROFILE_002, bundet i NEXT_RUN_POLICY.json.
+Gjeldende neste jobb: CPU_WORKLOAD_PROFILE_003, bundet i NEXT_RUN_POLICY.json.
 Første CPU-diagnoses målinger er bevart etter sluttpubliseringsfeil og verifisert
 i PUBLICATION_FAILURE_REVIEW; original rød terminal består. Samme genuine
 TRAIN16-batch tok 12,25–13,01s uten og 25,81–28,13s med tracemalloc.
-Målrettet rettelse i eksisterende eiere batcher økonomiprojeksjonen innen den
-uendrede horisonten og koder identiske kanoniske skalarbytes mer direkte.
+Målrettet rettelse i eksisterende adapter/økonomileverandør batcher projeksjonen
+lazy innen det eksplisitte uendrede referansevinduet, og koder identiske kanoniske
+skalarbytes mer direkte. Original state-view kilde beholdes byteidentisk.
+CPU_WORKLOAD_PROFILE_002 feilet før første måling fordi første rettelse endret
+den inputbundne state-view-hashen. Feilen og terminalen er bevart; ingen gate
+er omgått og ingen ferdige data, normalisering eller indeks bygges om.
 51 fokuserte syntetiske tester består. Ekte paritet mot gamle batchhasher og
 kapasitet etter rettelsen er ubevist inntil den nye avgrensede diagnosen består.
 Benchmark ATTEMPT_002 er bevart og stoppet uten samplervalg:1104/8192 Entries
@@ -94,9 +98,9 @@ Planen er konsumert og skal ikke relanseres.
 
 ## Eksakt neste arbeid
 
-Kjør bare planbundet CPU_WORKLOAD_PROFILE_002 først. Sammenlign gamle og nye
+Kjør bare planbundet CPU_WORKLOAD_PROFILE_003 først. Sammenlign gamle og nye
 genuine batchhasher, og mål CPU-kostnaden med og uten tracemalloc. Ingen
-samplervalg fra denne diagnosen. Ikke relanser CPU_WORKLOAD_PROFILE_001.
+samplervalg fra denne diagnosen. Ikke relanser CPU_WORKLOAD_PROFILE_001/002.
 Verifiser rettelsen før ny full workload-matchet
 benchmark bindes med uendrede kandidater, felt, mål og godkjenningsgrenser.
 

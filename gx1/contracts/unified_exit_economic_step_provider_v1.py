@@ -17,6 +17,7 @@ from gx1.contracts.unified_exit_dataset_adapter_v2 import (
     ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION,
     seal_economic_exit_step_manifest,
     seal_economic_training_projection,
+    require_economic_training_projection,
 )
 from gx1.contracts.unified_exit_economics_objective_v2 import (
     ECONOMIC_STEP_SCHEMA_VERSION,
@@ -573,7 +574,58 @@ class LazyUnifiedExitEconomicStepProviderV1:
                 raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_GAP_UNVERIFIED")
         return np.ascontiguousarray(elapsed_ns // 1_000_000_000, dtype=np.int64)
 
+    def configure_training_projection_window_v1(self, window: tuple[int, int, int, int] | None) -> None:
+        """One caller-declared observed interval; no implicit future prefetch."""
+        if window is not None and (
+            not isinstance(window, tuple) or len(window) != 4
+            or any(type(value) is not int for value in window)
+            or window[0] < 0 or window[1] < 0
+            or not window[1] < window[3] <= window[2]
+        ):
+            raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
+        self._training_projection_window = window
+        self._training_projection_by_side = {}
+
     def materialize_training_projection(
+        self, entry_row_index: int, side_index: int, start_state_index: int,
+        stop_state_index: int, hold_stop_state_index: int,
+    ) -> dict[str, Any]:
+        window = getattr(self, "_training_projection_window", None)
+        if window is None:
+            return self._materialize_training_projection_uncached_v1(
+                entry_row_index, side_index, start_state_index, stop_state_index, hold_stop_state_index)
+        entry, first, stop, hold_stop = window
+        if (entry_row_index != entry or side_index not in (0, 1)
+                or any(isinstance(value, bool) or not isinstance(value, int)
+                       for value in (start_state_index, stop_state_index, hold_stop_state_index))
+                or not first <= start_state_index <= hold_stop_state_index <= stop_state_index <= stop
+                or hold_stop_state_index > hold_stop):
+            raise RuntimeError("UNIFIED_EXIT_ECONOMIC_STEP_SLICE_REQUEST_INVALID")
+        # Computation is lazy: the state-view owner first verifies the sampler,
+        # observed clocks and supervision cutoff. Only then is this called.
+        parent = self._training_projection_by_side.get(side_index)
+        if parent is None:
+            parent = self._materialize_training_projection_uncached_v1(entry, side_index, first, stop, hold_stop)
+            parent = require_economic_training_projection(
+                parent, entry_row_index=entry, side_index=side_index,
+                start_state_index=first, stop_state_index=stop, hold_stop_state_index=hold_stop,
+                economic_manifest=self.economic_exit_step_manifest,
+            )
+            self._training_projection_by_side[side_index] = parent
+        offset = start_state_index - first
+        return seal_economic_training_projection({
+            **{key: parent[key] for key in (
+                "schema_version", "entry_row_index", "side_index",
+                "economic_step_model_sha256", "economic_step_source_manifest_sha256")},
+            "start_state_index": start_state_index, "stop_state_index": stop_state_index,
+            "hold_stop_state_index": hold_stop_state_index,
+            "exit_event_kind_index": parent["exit_event_kind_index"][offset:stop_state_index - first],
+            "exit_reward_bps": parent["exit_reward_bps"][offset:stop_state_index - first],
+            "hold_event_kind_index": parent["hold_event_kind_index"][offset:hold_stop_state_index - first],
+            "hold_reward_bps": parent["hold_reward_bps"][offset:hold_stop_state_index - first],
+        })
+
+    def _materialize_training_projection_uncached_v1(
         self,
         entry_row_index: int,
         side_index: int,

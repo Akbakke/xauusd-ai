@@ -1,11 +1,11 @@
 {
   "schema_version": "gx1_current_restart_point_v1",
-  "observed_utc": "2026-10-05T21:09:50.542464+00:00",
+  "observed_utc": "2026-10-05T21:26:50.807251+00:00",
   "status": "NATIVE_V38_STEPS_1_TO_6_ACTIVE_CPU_CORRECTION_PARITY_PREREGISTERED",
   "authority": {
     "source_repo": "/home/andre2/src/GX1_CURRENT",
     "branch": "work/gx1-current",
-    "source_head_before_documentation_update": "599b89d06195f32463e9cb17d961ba7c745bd13e",
+    "source_head_before_documentation_update": "c7a6b1ede664f279c2809675114966e7fee6caf5",
     "working_tree_clean_before_documentation_update": true,
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
     "mac_copy_is_authority": false
@@ -95,7 +95,13 @@
     "original_job_success": false,
     "sampler_selected": false
   },
-  "immediate_next_action": "Execute only bound CPU_WORKLOAD_PROFILE_002 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
+  "latest_cpu_diagnostic_failed_terminal": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_002/EVENTS/TERMINAL_20261005T212650807251Z.json",
+    "sha256": "bc429a3687c2b7f3f60609108b540bed4bea322918cc821f78f09ace908f71c2",
+    "exit_code": 1,
+    "before_first_candidate_measurement": true
+  },
+  "immediate_next_action": "Execute only bound CPU_WORKLOAD_PROFILE_003 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
   "next_owner_inputs": {
     "benchmark_script": "gx1/scripts/benchmark_unified_exit_random_access_train_v1.py",
     "candidate_manifest": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/SAMPLER_BENCHMARK_CANDIDATES.json",

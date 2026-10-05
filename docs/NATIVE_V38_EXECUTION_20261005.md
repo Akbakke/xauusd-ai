@@ -89,3 +89,24 @@ binder samme fullstendige kildeclosure med eksakte path/sha256-felt.
 Vurder ekte tidskostnad etter paritetskontrollen før ny full benchmark. Alle
 opprinnelige kandidat-/tids-/minnegrenser består. Hvis kapasiteten fortsatt
 ikke passer, dokumentér dette; ikke flytt en grense eller kasser signaler.
+
+CPU_WORKLOAD_PROFILE_002 stoppet før første kandidatmåling. Den første
+state-view-rettelsen kolliderte med den eksisterende inputautoritetens bundne
+kildehash; gaten feilet korrekt. Feil/terminal beholdes i NEXT_RUN_POLICY.
+Ingen genuine ytelses- eller paritetskonklusjon er målt etter rettelsen.
+
+Minste videre rettelse beholder state-view-kilden byteidentisk
+(sha2564315ac48e860cba4c83e246e5688564342e97da4a89376f015a5b1c552104436),
+bekreftet mot FINAL_BINDINGS_BUNDLE.json. Adapteren deklarerer det eksisterende
+referansevinduet for økonomileverandøren. Leverandøren beregner det lazy én gang
+per side, etter original state-view sine cutoff-/klokkekontroller, og emitter
+de samme forseglede slices. Parent og hver child valideres fortsatt av original
+projeksjonseier. Vinduet og høyst to sideprojeksjoner nullstilles per view.
+Ingen ny fit, indeksbygging, bindingsoverstyring eller svekket gate.
+
+CPU_WORKLOAD_PROFILE_003 har samme avgrensede oppgave og høyst144 besøk som
+002, men binder denne minimale plasseringen av rettelsen. Samme originale
+TRAIN16-rader/batchhasher er obligatoriske. Plan/operator står i NEXT_RUN_POLICY.
+51 fokuserte syntetiske tester består, inklusive alle120×2 byteidentiske
+cacheutsnitt, lazy beregning, avvisning utenfor eksplisitt vindu og reset til
+original usamplet projeksjonsvei. Ekte batchparitet og kapasitet gjenstår.

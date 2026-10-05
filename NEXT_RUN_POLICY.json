@@ -11,12 +11,12 @@
     },
     "cpu_workload_profile": {
       "plan": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_002/PLAN_002.json",
-        "sha256": "5415a3390700d6bae534381676994191a0230bdf6ac614f2dfb953e7d9d97854"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_003/PLAN.json",
+        "sha256": "a78bc7af8f833ac2d89d119d580bfe806c15b96e687c1f93eb729cace655478b"
       },
       "operator": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_002/OPERATOR.py",
-        "sha256": "cb4abe1dff8527246e496b5cabcba32817c353bba42e5f499e229e9360ed07f9"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_003/OPERATOR.py",
+        "sha256": "36e21358c64205f9ba0c5af313785b602f8c03c79d1e02022f9adf8748a77377"
       },
       "maximum_entry_materialization_visits": 144,
       "sampler_selection_authorized": false
@@ -34,6 +34,19 @@
       "relaunch_allowed": false,
       "batch_measurements_reviewed_without_rerunning": true,
       "sampler_selected": false
+    },
+    "cpu_workload_profile_failed_source_binding": {
+      "failure": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_002/EVENTS/FAILURE_20261005T212650788005Z.json",
+        "sha256": "ff8f49d6bc56cb7125af1e63538b0a4b392a42f430355bee4a36a8f9dbe98395"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_002/EVENTS/TERMINAL_20261005T212650807251Z.json",
+        "sha256": "bc429a3687c2b7f3f60609108b540bed4bea322918cc821f78f09ace908f71c2"
+      },
+      "before_first_candidate_measurement": true,
+      "relaunch_allowed": false,
+      "correction": "Keep the original input-bound state-view source byte-identical; perform lazy reference interval reuse inside the existing economic provider from the adapter-declared window. No binding bypass, data rebuild or fit."
     },
     "constructor_metadata": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_COMPONENTS_001/CONSTRUCTOR_METADATA.json",
@@ -97,7 +110,7 @@
       "sha256": "d4aa2e901049a48653990d1ebaf4f6cedc23fbdeeb6cb9a633729a74e1240ea8"
     },
     "native_training_enabled": false,
-    "next_native_step": "Execute only bound CPU_WORKLOAD_PROFILE_002 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
+    "next_native_step": "Execute only bound CPU_WORKLOAD_PROFILE_003 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
     "operational_persistence_review": {
       "broker_requests": 0,
       "created_utc": "2026-10-02T04:19:01.367839+00:00",
@@ -4223,7 +4236,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Execute only bound CPU_WORKLOAD_PROFILE_002 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
+  "next_action": "Execute only bound CPU_WORKLOAD_PROFILE_003 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-05T18:31:39+00:00",
   "outer_guard_seconds": 13800,

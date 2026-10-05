@@ -6,7 +6,10 @@ følg den bundne planen i NEXT_RUN_POLICY.json før den øvrige kjeden.
 ATTEMPT_002 er terminalt stoppet uten samplervalg etter bevist overskridelse
 av første kandidats tidsgrense. CPU_WORKLOAD_PROFILE_001s målinger er bevart
 og gjennomgått etter en sluttpubliseringsfeil; original rød terminal består.
-Kjør nå bare CPU_WORKLOAD_PROFILE_002: kontroller den målrettede CPU-rettelsen
+CPU_WORKLOAD_PROFILE_002 er bevart som feilet før måling: inputbundet kildehash
+ble korrekt avvist. Original state-view kilde er gjenopprettet byteidentisk;
+økonomileverandøren gjenbruker det eksplisitte referansevinduet i stedet.
+Kjør nå bare CPU_WORKLOAD_PROFILE_003: kontroller den målrettede CPU-rettelsen
 på identiske genuine TRAIN16-batchhasher. Bevar features, mål, bytes og grenser.
 Faktisk full kapasitet og samplervalg er fortsatt ubevist; rettelsen åpner dem
 ikke alene. Deretter full benchmark og den øvrige læringskjeden når portene består.
