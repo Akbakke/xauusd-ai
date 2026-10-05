@@ -4,7 +4,12 @@ Dette er den korte menneskelesbare inngangen til gjeldende arbeid.
 CURRENT_RESTART_POINT.json er den maskinlesbare tvillingen.
 Historiske dokumenter og COMPLETED_RUN.json er bevis, aldri startordre.
 
-Gjeldende CPU-blokkering: operatørens budsjettvalg før ny full benchmark.
+Gjeldende målstatus: blokkert på operatørens ubekreftede CPU-budsjettvalg.
+Valget har stått ubesvart etter minst tre målturner med sikre forberedelser.
+Ingen jobb kjører. Alle gjenstående faktiske modellsteg avhenger av full
+benchmark og faktisk sampler/koordinater, som fortsatt mangler. Gjenbruk
+ferdige bevis; ikke relanser eller flytt gate ved automatisk målfortsettelse.
+Blokkeringsaudit står i CURRENT_RESTART_POINT.json og NEXT_RUN_POLICY.json.
 VAL_SEQUENCE_AUDIT_001 er fullført med exit0 og kilde7056bf56 uendret:
 70880 time/seq/snap-rader, Seq96×254, bundet M5-kilde, capped audit4G/512M.
 Persisted audit og nyeste resultat/terminal er kontraktverifisert og bundet
@@ -53,7 +58,7 @@ Et større endelig budsjett er bare autorisert betinget av bestått læringsport
 
 Bruk bare /home/andre2/src/GX1_CURRENT på work/gx1-current.
 Mac-mappen er en overleveringskopi. Ved denne kontrollen var HEAD før
-dokumentoppdateringen b9eef1bdcc68affd235971960b530a0e8d438e6e, arbeidsstreet rent, ingen native
+dokumentoppdateringen 3a83236089d036563a1f3a9c8f23e3f866bf61d2, arbeidsstreet rent, ingen native
 GX1-prosess kjørte og ingen GPU-prosess var registrert.
 
 ~~~bash

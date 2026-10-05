@@ -202,3 +202,27 @@ Ingen genuine sampler, koordinater, komponentplan eller initialstate ble
 publisert. native_component_preparation_authorized=false, ingen native
 måling/trening. Dette er kilde-/syntetisk kontraktbevis, ikke læring/kapasitet.
 CPU-budsjettvalget er ubekreftet og1800s-grensen består.
+
+## Blokkert utføring — operatørvalg mangler
+
+Samme CPU-budsjettvalg har stått ubesvart etter minst tre sammenhengende
+målturner (aa84cd7c: CPU-paritet; b9eef1bd: VAL-inputbevis; 3a832360:
+samplersti-rettelse). Disse turnene gjorde faktisk sikker fremgang; det
+gjør ikke det ubesvarte valget til en godkjenning. De uavhengige observerte
+forutsetningene er nå ferdige. Avhengighetskontroll bekrefter at ingen
+full BENCHMARK.json eller SELECTED_SAMPLER.json finnes i benchmarkkjeden,
+coordinate-COMPLETE mangler, og verken komponentplan eller INITIAL_STATE
+eller INITIALIZATION_RESULT er produsert. Ingen aktiv jobb kan ventes på.
+
+Gjenstående ekte initial-/sluttmåling,256-stegs prøve og eventuell utvidelse
+avhenger av valgt sampler og fryste koordinater. Completed audits/profilering
+eller syntetiske koblingstester kan ikke erstatte en full målt benchmark.
+Målet punkt1–6 markeres derfor blokkert, ikke fullført eller innsnevret.
+Eksakt maskinlesbar audit står i NEXT_RUN_POLICY/CURRENT_RESTART_POINT.
+
+Operatøren må velge eksisterende1800s-grense eller eksplisitt godkjenne det
+tidligere foreslåtte finite3t-eligibilitets-/maks18t-benchmarkbudsjettet.
+Etter valget kreves eksakt forhåndsregistrering før ny kjøring. Ingen
+ny fullbenchmark eller nativejobb startes uten dette; ingen gate flyttes.
+Alle254 felt/åtte familier, mål, lærings-/maskinvarevakter og fryst TEST
+beholdes. Broker, handel og spending forblir stengt.

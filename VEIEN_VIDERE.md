@@ -1,6 +1,13 @@
 # Veien videre - oppdatert 06.10.2026
 
-Punkt 1–6 er nå autorisert for faktisk gjennomføring i
+Punkt 1–6 er autorisert, men utføringen er nå blokkert på operatørens
+ubekreftede CPU-budsjettvalg. Gjenstående faktiske steg krever full benchmark,
+valgt sampler og koordinater; ingen sikker uavhengig utføringsjobb gjenstår.
+Samme valg har stått ubesvart i minst tre målturner mens CPU-paritet,
+VAL-inputkontroll og samplersti-rettelse ble fullført. Blokkeringsaudit er
+bundet i NEXT_RUN_POLICY.json. Ingen automatisk relansering eller capendring.
+Ved eksplisitt valg bindes først eksakt budsjett og plan før utføringen
+gjenopptas gjennom de eksisterende eierne i
 docs/NATIVE_V38_EXECUTION_20261005.md. Benchmarken er forhåndsregistrert;
 følg den bundne planen i NEXT_RUN_POLICY.json før den øvrige kjeden.
 ATTEMPT_002 er terminalt stoppet uten samplervalg etter bevist overskridelse

@@ -1,6 +1,13 @@
 # Gjeldende status - 06.10.2026
 
-Målet om punkt 1–6 i docs/NATIVE_V38_EXECUTION_20261005.md er aktivt, ikke fullført.
+Målet om punkt 1–6 i docs/NATIVE_V38_EXECUTION_20261005.md er nå blokkert
+på operatørens ubekreftede CPU-budsjettvalg, ikke fullført. Samme valg har
+stått ubesvart etter CPU-paritet, VAL-inputbevis og samplersti-rettelse.
+De sikre, uavhengige forutsetningene er fullført; all gjenstående faktisk
+modellmåling/trening krever full benchmark, valgt sampler og koordinater.
+Blokkeringsaudit med eksakt manglende evidens står i NEXT_RUN_POLICY.json
+og CURRENT_RESTART_POINT.json. Ingen jobb kjører og ingen gate endres.
+Automatisk målfortsettelse er aldri en godkjenning av større CPU-budsjett.
 CPU_WORKLOAD_PROFILE_003 er fullført med exit 0 og uendret kilde. Ikke relanser
 den. CPU-budsjettvalget er fortsatt ubekreftet og kreves før ny full benchmark.
 VAL_SEQUENCE_AUDIT_001 er også fullført med exit0, kilde7056bf56 uendret.
