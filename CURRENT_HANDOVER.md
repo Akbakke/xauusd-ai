@@ -6,6 +6,12 @@ nullstegsbaseline, én256-stegs v38-prøve, læringsmåling og bare ved bestått
 port en endelig kontrollert utvidelse. Benchmarkens immutable plan er bundet;
 ingen ny jobb er startet ennå. Fullførte inputs/reviews gjenbrukes.
 
+SAMPLER_BENCHMARK_001s første oppstart stoppet før første kandidatmåling:
+operatoren ga økonomiautoritet i parameterautoritet-feltet. Feil-/terminalbevis
+er bevart i NEXT_RUN_POLICY.json. ATTEMPT_002 retter bare denne filrollen og
+kontrollerer eksisterende kostnadsskjema/policyhash før lasting. Kandidater,
+utvalgsregel, geometri og læringsdesign er uendret. Ingen sampler er valgt.
+
 Authority er /home/andre2/src/GX1_CURRENT på work/gx1-current.
 Les først docs/RESTART_POINT_20261005.md og CURRENT_RESTART_POINT.json.
 

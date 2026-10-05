@@ -6,13 +6,31 @@
     "status": "SAMPLER_BENCHMARK_PREREGISTERED_READY_TO_LAUNCH",
     "sampler_benchmark_authorized": true,
     "benchmark_plan": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/PLAN.json",
-      "sha256": "417a2956f107b976ed0f6d86886a64915afd5f027448cccf973acf8253b7fcfd"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_002/PLAN.json",
+      "sha256": "d3f3334919329723b3d25bdf09ccab96c921f6941ad21ebfb6218dd38e363397"
     },
     "benchmark_operator": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/OPERATOR.py",
-      "sha256": "ffd26793333344e4677efea807588db13d68083ab3f3ac0b5638fa17f47943bc"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/OPERATOR_002.py",
+      "sha256": "44bb0563797b95b6abfd852f7bcbbf2f9df9c2551dbe06132309715992b384d9"
     },
+    "benchmark_failed_startups": [
+      {
+        "failure": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/EVENTS/FAILURE_20261005T195543955779Z.json",
+          "sha256": "14a870e99a35abcdbe961397622cf88e143c2855e4b17b53198b40d2894cdf1a"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/EVENTS/TERMINAL_20261005T195543979596Z.json",
+          "sha256": "a3c05f2e591646490730fe8a6de0010290b62c9018ab102ecdfc6ff3b1b1921e"
+        },
+        "stage": "before_first_candidate_measurement",
+        "cause": "Operator supplied economic authority where the existing provider requires cost parameter authority.",
+        "correction": "Bind the unchanged verified CURRENT_TERMS_POLICY_001 parameter_authority and strict-check its schema and readiness policy hash before data loading.",
+        "model_forwards": 0,
+        "optimizer_steps": 0,
+        "selection_parameters_changed": false
+      }
+    ],
     "completed_work_relaunch_allowed": false,
     "conditional_extension": "Only after frozen Entry and Exit learning gates pass, with one finite source-bound budget preregistered before launch.",
     "test_authorized": false,
