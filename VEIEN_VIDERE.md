@@ -1,5 +1,9 @@
 # Veien videre - oppdatert 05.10.2026
 
+Punkt 1–6 er nå autorisert for faktisk gjennomføring i
+docs/NATIVE_V38_EXECUTION_20261005.md. Benchmarken er forhåndsregistrert;
+følg den bundne planen i NEXT_RUN_POLICY.json før den øvrige kjeden.
+
 1. Kjør obligatorisk read-only handover og kontroller branch, HEAD, status,
    prosesser, låser og terminalkvitteringer.
 2. Ikke relanser INDEX_FEATURE_SOURCE_REVIEW_001; den er fullført.

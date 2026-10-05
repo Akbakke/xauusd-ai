@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_current_restart_point_v1",
   "observed_utc": "2026-10-05T18:31:39+00:00",
-  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_INDEX_FEATURE_SOURCE_COMPLETE_SAMPLER_BENCHMARK_NEXT",
+  "status": "NATIVE_V38_STEPS_1_TO_6_AUTHORIZED_BENCHMARK_PREREGISTERED",
   "authority": {
     "source_repo": "/home/andre2/src/GX1_CURRENT",
     "branch": "work/gx1-current",
@@ -83,7 +83,7 @@
       }
     }
   },
-  "immediate_next_action": "Consume INDEX_FEATURE_SOURCE_REVIEW_001 as complete; do not rerun it. Inspect the existing benchmark owner and SAMPLER_BENCHMARK_CANDIDATES.json, then preregister exactly one workload-matched sampler benchmark against the actual index-bound 254-field TRAIN source. Run it only through the capped producer after plan/source identity review. No refit, optimizer, TEST, broker, live/paper or spending.",
+  "immediate_next_action": "Execute the single preregistered SAMPLER_BENCHMARK_001 through capped producer using native_v38_execution_20261005 in NEXT_RUN_POLICY.json; then freeze measured sampler/native coordinates, measure fresh initialization and run the one bounded 256-step learning comparison through the native campaign. Expand only if the frozen Entry/Exit learning gate passes and a finite budget is committed. Preserve completed work; no TEST, broker, trading or spending.",
   "next_owner_inputs": {
     "benchmark_script": "gx1/scripts/benchmark_unified_exit_random_access_train_v1.py",
     "candidate_manifest": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/SAMPLER_BENCHMARK_CANDIDATES.json",

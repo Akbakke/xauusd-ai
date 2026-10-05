@@ -1,5 +1,11 @@
 # Gjeldende status - 05.10.2026
 
+Operatøren har nå autorisert faktisk gjennomføring av punkt 1–6 i
+docs/NATIVE_V38_EXECUTION_20261005.md: benchmark, fryste koordinater, fersk
+nullstegsbaseline, én256-stegs v38-prøve, læringsmåling og bare ved bestått
+port en endelig kontrollert utvidelse. Benchmarkens immutable plan er bundet;
+ingen ny jobb er startet ennå. Fullførte inputs/reviews gjenbrukes.
+
 Authority er /home/andre2/src/GX1_CURRENT på work/gx1-current.
 Les først docs/RESTART_POINT_20261005.md og CURRENT_RESTART_POINT.json.
 

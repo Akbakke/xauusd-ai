@@ -4,6 +4,12 @@ Dette er den korte menneskelesbare inngangen til gjeldende arbeid.
 CURRENT_RESTART_POINT.json er den maskinlesbare tvillingen.
 Historiske dokumenter og COMPLETED_RUN.json er bevis, aldri startordre.
 
+Operatørens nye vedtak 05.10: gjennomfør punkt 1–6 i
+docs/NATIVE_V38_EXECUTION_20261005.md. SAMPLER_BENCHMARK_001 er
+forhåndsregistrert; følg den bundne planen/operatoren i NEXT_RUN_POLICY.json.
+Deretter fryste koordinater, fersk initialbaseline og én256-stegs prøve.
+Et større endelig budsjett er bare autorisert betinget av bestått læringsport.
+
 ## Authority og første kontroll
 
 Bruk bare /home/andre2/src/GX1_CURRENT på work/gx1-current.

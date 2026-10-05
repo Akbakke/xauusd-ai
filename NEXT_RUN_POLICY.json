@@ -1,4 +1,25 @@
 {
+  "native_v38_execution_20261005": {
+    "user_authorization": "Enig med deg. Lag deg et mål for å gjennomføre punkt 1 til 6 nå og knekk i gang",
+    "user_authorized_steps": [1, 2, 3, 4, 5, 6],
+    "preregistration": "docs/NATIVE_V38_EXECUTION_20261005.md",
+    "status": "SAMPLER_BENCHMARK_PREREGISTERED_READY_TO_LAUNCH",
+    "sampler_benchmark_authorized": true,
+    "benchmark_plan": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/PLAN.json",
+      "sha256": "417a2956f107b976ed0f6d86886a64915afd5f027448cccf973acf8253b7fcfd"
+    },
+    "benchmark_operator": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/OPERATOR.py",
+      "sha256": "ffd26793333344e4677efea807588db13d68083ab3f3ac0b5638fa17f47943bc"
+    },
+    "completed_work_relaunch_allowed": false,
+    "conditional_extension": "Only after frozen Entry and Exit learning gates pass, with one finite source-bound budget preregistered before launch.",
+    "test_authorized": false,
+    "broker_authorized": false,
+    "trading_authorized": false,
+    "spending_authorized": false
+  },
   "automatic_bot_goal_20261001": {
     "active_job": null,
     "fits_allowed": false,
@@ -23,7 +44,7 @@
       "sha256": "d4aa2e901049a48653990d1ebaf4f6cedc23fbdeeb6cb9a633729a74e1240ea8"
     },
     "native_training_enabled": false,
-    "next_native_step": "Consume INDEX_FEATURE_SOURCE_REVIEW_001 as complete; do not rerun it. Inspect the existing benchmark owner and SAMPLER_BENCHMARK_CANDIDATES.json, then preregister exactly one workload-matched sampler benchmark against the actual index-bound 254-field TRAIN source. Run it only through the capped producer after plan/source identity review. No refit, optimizer, TEST, broker, live/paper or spending.",
+    "next_native_step": "Execute the single preregistered SAMPLER_BENCHMARK_001 through capped producer using native_v38_execution_20261005; then freeze measured sampler/native coordinates, measure fresh initialization and run the one bounded 256-step learning comparison through the native campaign. Expand only if the frozen Entry/Exit learning gate passes and a finite budget is committed. Preserve completed work; no TEST, broker, trading or spending.",
     "operational_persistence_review": {
       "broker_requests": 0,
       "created_utc": "2026-10-02T04:19:01.367839+00:00",
@@ -4149,7 +4170,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Consume INDEX_FEATURE_SOURCE_REVIEW_001 as complete; do not rerun it. Inspect the existing benchmark owner and SAMPLER_BENCHMARK_CANDIDATES.json, then preregister exactly one workload-matched sampler benchmark against the actual index-bound 254-field TRAIN source. Run it only through the capped producer after plan/source identity review. No refit, optimizer, TEST, broker, live/paper or spending.",
+  "next_action": "Execute the single preregistered SAMPLER_BENCHMARK_001 through capped producer using native_v38_execution_20261005; then freeze measured sampler/native coordinates, measure fresh initialization and run the one bounded 256-step learning comparison through the native campaign. Expand only if the frozen Entry/Exit learning gate passes and a finite budget is committed. Preserve completed work; no TEST, broker, trading or spending.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-05T18:31:39+00:00",
   "outer_guard_seconds": 13800,
@@ -4332,7 +4353,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_INDEX_FEATURE_SOURCE_COMPLETE_SAMPLER_BENCHMARK_NEXT",
+  "status": "NATIVE_V38_STEPS_1_TO_6_AUTHORIZED_BENCHMARK_PREREGISTERED",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,
     "input_audit": {
