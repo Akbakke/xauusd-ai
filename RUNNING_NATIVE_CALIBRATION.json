@@ -1,4 +1,42 @@
 {
+  "native_component_template_review_20261006": {
+    "status": "DRAFT_SELECTION_SOURCE_CORRECTED_SYNTHETIC_CHECKED_NOT_PREPARED",
+    "operator": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_COMPONENTS_001/OPERATOR.py",
+      "sha256": "f968ed18888a008cccca60b73dea4f05effca0cd5cb60f34931229c59a6ad475"
+    },
+    "correction": "Remove the consumed ATTEMPT_002 selected-sampler path. Take the exact selected_sampler file binding from the existing coordinate publication COMPLETE.json; require the existing file-binding owner and component sampler semantics before preparation-plan publication.",
+    "binding_source": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/CHRONOLOGICAL_COORDINATES_V1/COMPLETE.json.selected_sampler",
+    "semantic_owner": "gx1/scripts/run_unified_exit_random_access_full_train_v1.py:_require_component_sampler",
+    "synthetic_check": {
+      "test_operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_COMPONENTS_001/SELECTION_BINDING_CHECK.py",
+        "sha256": "916807c8701069f056fd1d07f463d9220949cd1921af10d1180b61df0246eb4b"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_COMPONENTS_001/SELECTION_BINDING_CHECK_EVENTS/RESULT_20261005T223143756315Z.json",
+        "sha256": "6fbe0db4615074d6aa1edf67c97ebb6de7f264d2ba2a2196862c8201f3a62477"
+      },
+      "evidence_class": "Synthetic filesystem bindings and isolated prepare-call wiring only; actual semantic admission awaits a genuine complete selected sampler and coordinates.",
+      "tests_run": 10,
+      "failures": 0,
+      "errors": 0,
+      "exit_code": 0,
+      "source_unchanged": true
+    },
+    "constructor_metadata_changed": false,
+    "genuine_selected_sampler_present": false,
+    "coordinates_published": false,
+    "preparation_plan_published": false,
+    "model_initialized": false,
+    "initial_measurement_completed": false,
+    "launch_authorized": false,
+    "sampler_selected": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "fits": 0,
+    "test_data_used": false
+  },
   "native_v38_val_sequence_source_audit_20261006": {
     "authorized": false,
     "status": "COMPLETE_INPUT_PROOF_REUSE_ONLY_NO_RELAUNCH",

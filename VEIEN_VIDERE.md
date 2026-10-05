@@ -23,6 +23,12 @@ hash-bundet i NEXT_RUN_POLICY.json; autoriteten er konsumert. Gjenbruk dette
 og TRAIN-auditen; ikke relanser. CPU-grensen og trening er fortsatt stengt.
 Deretter koordinater/fersk nullbaseline/fixed256 når faktiske porter består.
 
+Komponentutkastets feilaktige ATTEMPT_002-samplersti er fjernet. Fremtidig
+prepare() må bruke eksakt binding fra coordinate-COMPLETE og eksisterende
+samplereier før videre arbeid. 10 syntetiske koblings-/filtester består;
+ingen genuine koordinater, klargjøringsplan, initialisering eller måling
+er kjørt. Uendret metadata gjenbrukes. Autoriteten er fortsatt false.
+
 1. Kjør obligatorisk read-only handover og kontroller branch, HEAD, status,
    prosesser, låser og terminalkvitteringer.
 2. Ikke relanser INDEX_FEATURE_SOURCE_REVIEW_001; den er fullført.

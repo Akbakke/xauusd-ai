@@ -10,6 +10,12 @@ VAL_SEQUENCE_AUDIT_001 er fullført med exit0 og kilde7056bf56 uendret:
 Persisted audit og nyeste resultat/terminal er kontraktverifisert og bundet
 i NEXT_RUN_POLICY.json. Ingen utfallskolonner, modellevaluering, fits,
 forwards, optimizersteg eller TEST/nettverk. Gjenbruk; aldri relanser.
+Komponentutkastets døde ATTEMPT_002-samplersti er også fjernet. Det tar
+eksakt binding fra fremtidig coordinate-COMPLETE og kaller eksisterende
+komponent-/samplereier før videre klargjøring. 10 syntetiske tester bestod
+i capped audit4G/512M; receipt/operator bundet i NEXT_RUN_POLICY.json.
+Ingen ekte sampler/koordinater/klargjøring/initialisering er produsert;
+native_component_preparation_authorized=false. Metadata er uendret.
 CPU_WORKLOAD_PROFILE_003 er fullført med exit0, fryst kilde og eksakt paritet
 mot alle tre gamle genuine TRAIN16-batchhasher. Tid6,53–7,17s uinstrumentert,
 13,89–15,76s instrumentert; rundt1,8x native forbedring. Ingen sampler eller læring.
@@ -47,7 +53,7 @@ Et større endelig budsjett er bare autorisert betinget av bestått læringsport
 
 Bruk bare /home/andre2/src/GX1_CURRENT på work/gx1-current.
 Mac-mappen er en overleveringskopi. Ved denne kontrollen var HEAD før
-dokumentoppdateringen 7056bf5662a4353ba7f4e2bbc5a0cd95eb1cb330, arbeidsstreet rent, ingen native
+dokumentoppdateringen b9eef1bdcc68affd235971960b530a0e8d438e6e, arbeidsstreet rent, ingen native
 GX1-prosess kjørte og ingen GPU-prosess var registrert.
 
 ~~~bash

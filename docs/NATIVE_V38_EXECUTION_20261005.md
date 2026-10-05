@@ -177,3 +177,28 @@ Ingen utfallskolonner, modellevaluering, fits/forwards/optimizersteg/TEST
 eller nettverk. Inputbeviset er ikke læring, full VAL-inferens eller sampler.
 CPU-budsjettspørsmålet er ubekreftet; grensen står1800s. Målet punkt1–6 er
 fortsatt ufullført. Ingen tung jobb kjører ved sluttkontroll.
+
+## Rettet samplersti i ubrukte komponentutkastet
+
+NATIVE_COMPONENTS_001/OPERATOR.py:prepare() hadde en hardkodet binding til
+SAMPLER_BENCHMARK_001/ATTEMPT_002/SELECTED_SAMPLER.json. Dette forsøket er
+terminalt stoppet uten sampler og kan aldri produsere denne forutsetningen.
+Minste rettelse gjenbruker den eksisterende koordinatprodusentens COMPLETE:
+ta dens eksakte selected_sampler path/sha256 med eksisterende require_binding,
+verify_file=true; ingen fallback, sti-søk eller gjettet nytt forsøk. Kall deretter
+full_train-eierens _require_component_sampler før videre klargjøring, slik at
+ekte full-benchmark, root/candidates, workload/design og geometri verifiseres.
+
+SELECTION_BINDING_CHECK: 10 fokuserte syntetiske fil-/kallkoblingstester
+bestod med exit0 og uendret repo, capped audit4G/512M. De dekker positiv
+binding, faktisk importert bindingseier, feil hash, manglende fil/felt,
+relativ sti, symlink, ekstranøkkel, muterte bytes og prepare-kobling til
+semantisk eier før datalesing/modellkonstruksjon. Den siste semantiske eieren
+er stubbet i koblingstesten; ekte samplersemantikk er fortsatt umålt her.
+Operator/testoperator/immutable result er hash-bundet i NEXT_RUN_POLICY.json.
+
+Konstruktørmetadata er byteuendret; ingen completed jobb ble relansert.
+Ingen genuine sampler, koordinater, komponentplan eller initialstate ble
+publisert. native_component_preparation_authorized=false, ingen native
+måling/trening. Dette er kilde-/syntetisk kontraktbevis, ikke læring/kapasitet.
+CPU-budsjettvalget er ubekreftet og1800s-grensen består.

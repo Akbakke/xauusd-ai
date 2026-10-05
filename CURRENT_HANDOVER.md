@@ -12,6 +12,16 @@ engangsautoriteten er konsumert. Gjenbruk TRAIN og VAL; aldri relanser.
 Null fits/forwards/optimizersteg/TEST/nettverk; ingen utfallskolonner eller
 VAL-modellvurdering. CPU-grense/budsjettvalg og native porter er uendret.
 
+En konkret feil i den ennå ubrukte komponentoperatoren er rettet: den
+hardkodede sampleren fra stoppet ATTEMPT_002 er fjernet. prepare() krever
+nå coordinate-COMPLETE sin eksakte selected_sampler-filbinding og kaller
+eksisterende komponent-/samplereier for ekte receipt, design og geometri
+før videre klargjøring. 10 syntetiske bindings-/kallkoblingstester består,
+capped audit4G/512M; resultathash og operator i NEXT_RUN_POLICY.json.
+Konstruktørmetadata er uendret. Ingen faktisk sampler, koordinater,
+klargjøringsplan, modellinitialisering eller native måling er produsert.
+native_component_preparation_authorized=false; CPU-budsjettvalget består.
+
 Målt på ekte, identiske TRAIN16-batcher for alle tre kandidatene:
 uinstrumentert tid er 6,53–7,17s, mot 12,25–13,01s før rettelsen (1,81–1,88x).
 Instrumentert tid er 13,89–15,76s. Alle originale og instrumenterte batchhasher
