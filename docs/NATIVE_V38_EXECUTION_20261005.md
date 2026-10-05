@@ -139,3 +139,27 @@ Målet punkt1–6 er fortsatt aktivt og ufullført: full benchmark, sampler,
 koordinater, fersk native initialmåling,256-stegs prøve og læringsreview gjenstår.
 Den betingede treningsutvidelsen er ikke åpnet. TEST, broker, handel og spending
 forblir stengt. Ingen tung/native jobb kjører ved sluttkontrollen.
+
+## Manglende VAL-sekvensbevis — 06.10 lokal tid
+
+CPU-budsjettvalget er fortsatt ubekreftet. Bare denne uavhengige forutsetningen
+for fersk initialmåling åpnes nå: én VAL_SEQUENCE_AUDIT_001 med eksisterende
+audit_entry_sequence_source_reconstruction_v1, capped audit4G/512M og fryst
+ren/pushet kilde. Eksakte plan-/operatorhasher står i NEXT_RUN_POLICY.json.
+
+Gjelder alle70880 fysiske VAL-rader, kun time/seq/snap, Seq96 og alle254 felt,
+mot den allerede bundne M5-featureflaten. Hele delt featureflate leses for
+kildeidentitet/signalhistorikk; dette gir ingen adgang til TEST-split eller
+framtidsutfall. Det er en lagrings-/inputkontroll, ikke full VAL-modellevaluering.
+Fullført TRAIN-sekvensbevis relanseres ikke. Ingen normaliseringsfit,
+utfallskolonner, modellimport/forwards, optimizersteg eller nettverk.
+
+Operatoren krever eksisterende cgroup-/låsbevis, eksakte filer, samme design
+og kildehashene før/etter; verifiserer auditen med eksisterende kontrakteier
+og JSON-roundtrip før atomisk no-replace publisering til
+NATIVE_COMPONENTS_001/VAL_SEQUENCE_SOURCE_AUDIT.json. Engangs LAUNCH_CLAIM,
+opprinnelige feilhendelser og terminal beholdes. Ingen relansering av completed
+jobb. Resultatet kan bare gjenbrukes ved senere bundet native forberedelse.
+
+1800-sekunders samplercap, uavklart operatørvalg, kandidater, mål, kvalitets-
+og maskinvaregrenser består. Ingen full benchmark eller native prøve åpnes.

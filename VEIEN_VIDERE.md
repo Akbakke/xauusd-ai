@@ -15,7 +15,12 @@ Full kapasitet/samplervalg er ubevist. Avklar operatørens CPU-budsjettvalg før
 en ny full benchmark: gjeldende30min/kandidat er uendret; småbatchfremskrivning
 gir rundt15,4t samlet, ikke målt full kjøretid. Forslag3t/kandidat og maksimalt18t
 for én full benchmark er ikke godkjent eller implementert. Behold alle øvrige
-grenser. Deretter koordinater/fersk nullbaseline/fixed256 når faktiske porter består.
+grenser. Én uavhengig manglende inputforutsetning tas mens dette avklares:
+VAL_SEQUENCE_AUDIT_001 verifiserer alle70880 time/seq/snap-rader mot samme
+bundne M5-kilde, capped audit4G/512M, ingen utfall eller modellmåling.
+TRAIN-auditen og alle ferdige inputs gjenbrukes. Plan/operator er bundet i
+NEXT_RUN_POLICY.json; kontrollen åpner ingen CPU-grenseflytting eller trening.
+Deretter koordinater/fersk nullbaseline/fixed256 når faktiske porter består.
 
 1. Kjør obligatorisk read-only handover og kontroller branch, HEAD, status,
    prosesser, låser og terminalkvitteringer.

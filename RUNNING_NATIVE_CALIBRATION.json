@@ -1,4 +1,34 @@
 {
+  "native_v38_val_sequence_source_audit_20261006": {
+    "authorized": true,
+    "status": "PREREGISTERED_SINGLE_MISSING_INPUT_AUDIT_NOT_MODEL_EVALUATION",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/PLAN.json",
+      "sha256": "53515ebabfa5de790a4cde0eec70eb03a68ee08c113e3d89e49a5b94ca2113da"
+    },
+    "operator": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/VAL_SEQUENCE_AUDIT_001/OPERATOR.py",
+      "sha256": "f869a770d639d189cbb19076612a8902caffed8487c87f1eb1594c211ebd9a08"
+    },
+    "output": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_COMPONENTS_001/VAL_SEQUENCE_SOURCE_AUDIT.json",
+    "resource_class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "physical_val_rows": 70880,
+    "read_columns": [
+      "time",
+      "seq",
+      "snap"
+    ],
+    "normalization_fit": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "sampler_selection_authorized": false,
+    "cpu_budget_change_authorized": false,
+    "test_authorized": false,
+    "network_authorized": false,
+    "relaunch_allowed": false
+  },
   "automatic_bot_goal_20261001": {
     "active_job": null,
     "fits_allowed": false,
@@ -23,7 +53,7 @@
       "sha256": "d4aa2e901049a48653990d1ebaf4f6cedc23fbdeeb6cb9a633729a74e1240ea8"
     },
     "native_training_enabled": false,
-    "next_native_step": "CPU_WORKLOAD_PROFILE_003 completed with exact original genuine batch parity, exit 0 and unchanged source; do not relaunch it. Review the bound capacity-planning evidence and obtain an explicit operator choice on the unchanged 30-minute sampled-epoch CPU gate before any new full benchmark. Linear small-batch estimates are not full capacity or sampler eligibility. No sampler, native initial measurement or optimizer trial has been completed. Preserve all features, targets and physical guards; TEST, broker, trading and spending remain closed.",
+    "next_native_step": "Consume only the preregistered VAL_SEQUENCE_AUDIT_001 missing physical VAL input reconstruction proof with the existing audit owner and capped audit 4G/512M; no outcome columns, fits, model forwards, optimizer steps or TEST. Reuse completed TRAIN proof and CPU_WORKLOAD_PROFILE_003 without relaunch. The operator CPU-budget decision remains unanswered and the 1800-second sampler eligibility gate unchanged; no new full benchmark, sampler selection or native window is authorized. Preserve all features, targets and guards; broker, trading and spending remain closed.",
     "operational_persistence_review": {
       "broker_requests": 0,
       "created_utc": "2026-10-02T04:19:01.367839+00:00",
@@ -4479,7 +4509,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "CPU_WORKLOAD_PROFILE_003 completed with exact original genuine batch parity, exit 0 and unchanged source; do not relaunch it. Review the bound capacity-planning evidence and obtain an explicit operator choice on the unchanged 30-minute sampled-epoch CPU gate before any new full benchmark. Linear small-batch estimates are not full capacity or sampler eligibility. No sampler, native initial measurement or optimizer trial has been completed. Preserve all features, targets and physical guards; TEST, broker, trading and spending remain closed.",
+  "next_action": "Consume only the preregistered VAL_SEQUENCE_AUDIT_001 missing physical VAL input reconstruction proof with the existing audit owner and capped audit 4G/512M; no outcome columns, fits, model forwards, optimizer steps or TEST. Reuse completed TRAIN proof and CPU_WORKLOAD_PROFILE_003 without relaunch. The operator CPU-budget decision remains unanswered and the 1800-second sampler eligibility gate unchanged; no new full benchmark, sampler selection or native window is authorized. Preserve all features, targets and guards; broker, trading and spending remain closed.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
