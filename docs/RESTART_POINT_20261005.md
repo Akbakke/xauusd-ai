@@ -4,6 +4,15 @@ Dette er den korte menneskelesbare inngangen til gjeldende arbeid.
 CURRENT_RESTART_POINT.json er den maskinlesbare tvillingen.
 Historiske dokumenter og COMPLETED_RUN.json er bevis, aldri startordre.
 
+Gjeldende neste jobb: CPU_WORKLOAD_PROFILE_001, bundet i NEXT_RUN_POLICY.json.
+Benchmark ATTEMPT_002 er bevart og stoppet uten samplervalg:1104/8192 Entries
+tok1800,23 sekunder, over den faste30-minuttersgrensen allerede før fullføring.
+Andre kandidater er uundersøkt. Diagnosen bruker de samme ekte TRAIN16-batchene
+med og uten måleinstrumentering, bitlikt innhold og høyst144 materialiseringer.
+Ingen fits, modellforwards, optimizersteg, samplervalg eller terskelendring.
+Ikke relanser noen av de forbrukte benchmarkplanene. Konstruktørmetadata er
+publisert; faktisk initialisering/initialmåling og256-stegs trening gjenstår.
+
 Operatørens nye vedtak 05.10: gjennomfør punkt 1–6 i
 docs/NATIVE_V38_EXECUTION_20261005.md. SAMPLER_BENCHMARK_001 er
 forhåndsregistrert; følg den bundne planen/operatoren i NEXT_RUN_POLICY.json.
@@ -78,10 +87,11 @@ Planen er konsumert og skal ikke relanseres.
 
 ## Eksakt neste arbeid
 
-Les benchmark_unified_exit_random_access_train_v1.py og den eksisterende
-SAMPLER_BENCHMARK_CANDIDATES.json. Forhåndsregistrer deretter nøyaktig én
-workload-matchet samplerbenchmark mot den faktiske indeksbundne 254-felts
-TRAIN-kilden.
+Kjør den planbundne CPU_WORKLOAD_PROFILE_001 først. Den observerte målingen
+inkluderer tracemalloc; skill måleinstrumentets kostnad fra den native
+dataprepareringen på identiske ekte TRAIN16-batcher. Ingen samplervalg fra
+denne diagnosen. Verifiser minste rettelse før ny full workload-matchet
+benchmark bindes med uendrede kandidater, felt, mål og godkjenningsgrenser.
 
 Gjenbruk:
 - gx1/scripts/benchmark_unified_exit_random_access_train_v1.py

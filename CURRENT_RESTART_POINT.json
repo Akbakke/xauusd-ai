@@ -1,11 +1,11 @@
 {
   "schema_version": "gx1_current_restart_point_v1",
-  "observed_utc": "2026-10-05T18:31:39+00:00",
-  "status": "NATIVE_V38_STEPS_1_TO_6_AUTHORIZED_BENCHMARK_PREREGISTERED",
+  "observed_utc": "2026-10-05T20:44:05.475344+00:00",
+  "status": "NATIVE_V38_STEPS_1_TO_6_ACTIVE_CPU_WORKLOAD_PROFILE_PREREGISTERED",
   "authority": {
     "source_repo": "/home/andre2/src/GX1_CURRENT",
     "branch": "work/gx1-current",
-    "source_head_before_documentation_update": "90ca4ac4e3a83174d35500c921e82c48c2bbe657",
+    "source_head_before_documentation_update": "fd29291680e2afd949cc0271784860e7c7665388",
     "working_tree_clean_before_documentation_update": true,
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
     "mac_copy_is_authority": false
@@ -83,7 +83,13 @@
       }
     }
   },
-  "immediate_next_action": "Execute the single preregistered SAMPLER_BENCHMARK_001 through capped producer using native_v38_execution_20261005 in NEXT_RUN_POLICY.json; then freeze measured sampler/native coordinates, measure fresh initialization and run the one bounded 256-step learning comparison through the native campaign. Expand only if the frozen Entry/Exit learning gate passes and a finite budget is committed. Preserve completed work; no TEST, broker, trading or spending.",
+  "latest_terminal_stop_review": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_002/EVENTS/STOP_REVIEW_20261005T204405475344Z.json",
+    "sha256": "4dcf7a2e93cefe7577dbbaf93d8a079a0727cbed1ec142ce67fe2ecbe987142f",
+    "full_benchmark_completed": false,
+    "sampler_selected": false
+  },
+  "immediate_next_action": "Execute the bound genuine TRAIN16 CPU_WORKLOAD_PROFILE_001 through capped producer using native_v38_execution_20261005 in NEXT_RUN_POLICY.json. Diagnose and verify the minimum correction before binding a new full benchmark with unchanged candidates, features, targets and caps. Then continue frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
   "next_owner_inputs": {
     "benchmark_script": "gx1/scripts/benchmark_unified_exit_random_access_train_v1.py",
     "candidate_manifest": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/SAMPLER_BENCHMARK_CANDIDATES.json",

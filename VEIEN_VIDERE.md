@@ -3,6 +3,10 @@
 Punkt 1–6 er nå autorisert for faktisk gjennomføring i
 docs/NATIVE_V38_EXECUTION_20261005.md. Benchmarken er forhåndsregistrert;
 følg den bundne planen i NEXT_RUN_POLICY.json før den øvrige kjeden.
+ATTEMPT_002 er terminalt stoppet uten samplervalg etter bevist overskridelse
+av første kandidats tidsgrense. Kjør nå bare den fryste TRAIN16-CPU-diagnosen
+CPU_WORKLOAD_PROFILE_001. Bevar alle features, mål, bytes og grenser; verifiser
+minste rettelse før full benchmark og den øvrige læringskjeden gjenåpnes.
 
 1. Kjør obligatorisk read-only handover og kontroller branch, HEAD, status,
    prosesser, låser og terminalkvitteringer.

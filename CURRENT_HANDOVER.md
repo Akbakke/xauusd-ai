@@ -1,10 +1,23 @@
 # Gjeldende status - 05.10.2026
 
-Operatøren har nå autorisert faktisk gjennomføring av punkt 1–6 i
-docs/NATIVE_V38_EXECUTION_20261005.md: benchmark, fryste koordinater, fersk
-nullstegsbaseline, én256-stegs v38-prøve, læringsmåling og bare ved bestått
-port en endelig kontrollert utvidelse. Benchmarkens immutable plan er bundet;
-ingen ny jobb er startet ennå. Fullførte inputs/reviews gjenbrukes.
+Punkt 1–6 i docs/NATIVE_V38_EXECUTION_20261005.md gjennomføres nå.
+ATTEMPT_002 er stoppet og bevart uten samplervalg: første kandidat nådde
+1800,23 målte sekunder allerede ved 1104/8192 Entries. Siste bevart fremdrift
+var 1200 Entries på1958,44 sekunder. Den faste30-minuttersgrensen er dermed
+bevist overskredet for denne kandidaten. De andre kandidatene er uundersøkt;
+hele benchmarken er ikke fullført. Ingen feature- eller læringskonklusjon følger.
+
+Eksakt neste jobb er CPU_WORKLOAD_PROFILE_001, bundet i NEXT_RUN_POLICY.json:
+samme ekte TRAIN16-batcher uten tracemalloc, med cProfile og gjennom den
+opprinnelige tracemalloc-målingen. Høyst144 Entry-materialiseringer, bitlikt
+batchinnhold kreves. Null samplervalg, fits, modellforwards og optimizersteg.
+Kjør bare capped producer20G/512M med ren, fryst kilde. Uferdig profilerutkast
+er bevart; PLAN_002 flytter paritetshashingen utenfor det målte tidsintervallet.
+Ingen ny tung jobb kjørte ved kontrollen etter benchmarkens terminalkvittering.
+
+Fersk254-felts/åttefamilie konstruktørmetadata er publisert. Native
+initialisering og initialmåling er ikke kjørt. Klargjøringsoperatorene er
+utkast, ikke launchtillatelser. Fullførte inputs/reviews gjenbrukes.
 
 SAMPLER_BENCHMARK_001s første oppstart stoppet før første kandidatmåling:
 operatoren ga økonomiautoritet i parameterautoritet-feltet. Feil-/terminalbevis
@@ -25,10 +38,11 @@ TEST er forseglet og live/paper, broker, ordre og spending er stengt.
 Læring, generalisering, positiv kostnadsjustert økonomi, paritet og full
 operativ botkvalifisering er ikke bevist.
 
-Neste arbeid er nøyaktig én forhåndsregistrert workload-matchet
-samplerbenchmark mot faktisk indeksbundet TRAIN-kilde. Deretter følger
-immutable koordinater, fersk nullstegs initialmåling og bare ved bestått
-port én avgrenset native v38-læringssammenligning.
+Diagnostiser den observerte CPU-/måleinstrumentkostnaden først. Verifiser
+minste nødvendige rettelse før en ny full benchmark bindes; samme kandidater,
+geometri, mål og godkjenningsgrenser beholdes. Deretter immutable koordinater,
+fersk nullstegsbaseline og én256-stegs native prøve. Bare bestått Entry/Exit-port
+åpner den betingede, endelige utvidelsen. Ingen omstart av forbrukte planer.
 
 Fullt mål, fremdrift, evidenshasher og videre porter:
 docs/RESTART_POINT_20261005.md.

@@ -37,3 +37,23 @@ native eieren skal få eksplisitt avgrenset autoritet ved hver faktisk måle-/tr
 Fullførte input-, normaliserings-, kostnads-, indeks- og featurekildereviews relanseres ikke.
 Ingen features kasseres, ingen tidsrammer fjernes, ingen maksimal holdetid eller fast
 tapsgrense innføres. Ingen edge-, økonomi- eller train/serve-påstand før egen måling.
+
+## Observert CPU-blokkering og avgrenset diagnose
+
+ATTEMPT_002 er terminalt stoppet, ikke fullført eller selektert. Første kandidat
+hadde brukt1800,23 sekunder på1104/8192 Entries; dermed kan denne kandidaten
+ikke bestå den eksisterende30-minuttersgrensen. Andre kandidater er uundersøkt.
+Den observerte timeren inkluderer tracemalloc. Ikke utled native kapasitet,
+featureverdi eller lønnsomhet fra denne ufullstendige instrumenterte målingen.
+
+CPU_WORKLOAD_PROFILE_001 er nødvendig diagnose innen dette gjennomføringsmålet:
+ett uendret TRAIN16-batchutvalg per eksisterende kandidat, tre faste pass
+(uinstrumentert CPU-tid, cProfile, opprinnelig tracemalloc-benchmark), høyst144
+Entry-materialiseringer. Eksisterende benchmark-/data-/kollasjonseiere brukes.
+Alle batchbytes må være like; paritetshashene beregnes etter det målte intervallet.
+Den begrensede kvitteringen er aldri samplervalg eller fullbudsjettbevis.
+Kjør capped producer20G/512M med fryst kilde, nettverk og TEST stengt,
+null modellforwards, fits og optimizersteg. PLAN_002 og operatorhasher står
+i NEXT_RUN_POLICY.json. Originale logger og begge uferdige oppstarter bevares.
+Diagnostiser først; verifiser minste rettelse før ny full benchmark bindes.
+Ingen nye kandidater, mål-/featureendringer eller flytting av godkjenningsgrenser.
