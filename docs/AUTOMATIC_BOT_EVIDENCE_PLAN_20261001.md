@@ -1,5 +1,14 @@
 # Aktivt mål: dokumentert automatisk XAUUSD-bot — 01.10.2026
 
+<!-- GX1_CURRENT_RESTART_POINTER -->
+## Statusoppdatering 05.10.2026
+
+Faktisk indeksbundet 254-felts TRAIN/VAL-featurekilde er kontrollert med
+exit 0, uendret kilde, null TEST og null modell-/optimizerarbeid.
+INDEX_FEATURE_SOURCE_REVIEW_001 er konsumert. Neste port er én
+forhåndsregistrert workload-matchet samplerbenchmark, så immutable
+koordinater og fersk nullstegs initialmåling. Se RESTART_POINT_20261005.md.
+
 De to godkjente OANDA practice-lesekallene er fullført. Ingen ordre,
 transaksjonsoppslag eller nye broker-kall er utført etter engangskontrollen.
 258 historiske fyll og lagrede finansieringsobservasjoner er bevart.

@@ -1417,3 +1417,21 @@ source_review_plan: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX
 SHA256: 094f0cb2bed71d2653328185e51642765b71c74f6401c2b0ef83eac0e2d55848
 source_review_operator: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/OPERATOR.py
 SHA256: 9b53f72571492c7f95305bb4e7995c44e5ebeb0a19f3e00888c8688f18b2a604
+
+## Featurekildereview fullført; samplerbenchmark er neste - 05.10.2026
+
+Restartkontrollen fant at status-JSON fortsatt omtalte
+INDEX_FEATURE_SOURCE_REVIEW_001 som planlagt, selv om runtime hadde resultat
+og terminal fra 02.10. Jobben er fullført med exit 0, uendret kilde, null
+TEST, 254 felt og eksakte klokker for 652 552 TRAIN- og 70 880 VAL-Entry-rader.
+Ingen modellforwards, optimizersteg eller normaliseringsfit ble kjørt.
+Ingen sampler ble valgt.
+
+Resultat: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/EVENTS/RESULT_20261002T062117624344Z.json
+SHA256: f7fbe63ad88230c6a7da65d76384f60276c17ad12895bd3ce00c5b4388cbf23b
+
+Terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/EVENTS/TERMINAL_20261002T062117642659Z.json
+SHA256: 2ffd811ee77d821dda0324ccca1889e4086bc004195663d75a10aa8803758fac
+
+Planen er konsumert. Neste arbeid er én forhåndsregistrert workload-matchet
+samplerbenchmark. Se RESTART_POINT_20261005.md.

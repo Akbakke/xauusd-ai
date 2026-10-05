@@ -1,5 +1,12 @@
 # Arbeidsregler for GX1 — oppdatert 2026-09-26
 
+<!-- GX1_CURRENT_RESTART_POINTER -->
+## Gjeldende restartpeker - 05.10.2026
+
+Etter obligatorisk handover-sjekk skal CURRENT_RESTART_POINT.json og
+docs/RESTART_POINT_20261005.md leses før historikk.
+INDEX_FEATURE_SOURCE_REVIEW_001 er fullført og må ikke relanseres.
+
 Gjelder alle agenter (Codex leser denne fila; Claude får den via `CLAUDE.md`). De bindende
 prosjektreglene står i [GX1_RULES.md](GX1_RULES.md) — les dem først. Krev målbar læring før
 mer omfattende trening. Teknisk PASS er ikke bevis på bedre handelsbeslutninger eller

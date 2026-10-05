@@ -1,0 +1,123 @@
+{
+  "schema_version": "gx1_current_restart_point_v1",
+  "observed_utc": "2026-10-05T18:31:39+00:00",
+  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_INDEX_FEATURE_SOURCE_COMPLETE_SAMPLER_BENCHMARK_NEXT",
+  "authority": {
+    "source_repo": "/home/andre2/src/GX1_CURRENT",
+    "branch": "work/gx1-current",
+    "source_head_before_documentation_update": "90ca4ac4e3a83174d35500c921e82c48c2bbe657",
+    "working_tree_clean_before_documentation_update": true,
+    "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
+    "mac_copy_is_authority": false
+  },
+  "objective": "Qualify a complete automatic XAUUSD bot with causal M1-based market data, M5 Entry, M1 Exit and M15/H1/H4/D1 context; prove selective decisions, chronological generalization, positive cost-adjusted economics, train/serve parity, restart safety and broker reconciliation before any TEST or trading.",
+  "verified_current_state": {
+    "native_processes": [],
+    "heavy_job_running": false,
+    "training_enabled": false,
+    "test_sealed": true,
+    "live_or_paper_enabled": false,
+    "profitability_proven": false,
+    "generalization_proven": false,
+    "train_serve_parity_proven_for_current_candidate": false,
+    "full_operational_bot_qualified": false
+  },
+  "market_data_architecture": {
+    "single_complete_pretest_m1_source_qualified": true,
+    "m5_reconstruction_from_m1_exact_before_test": true,
+    "m5_rows_reconstructed_exactly": 1215514,
+    "entry_clock": "M5",
+    "exit_clock": "M1",
+    "context_timeframes": [
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "signal_width": 254,
+    "feature_family_count": 8,
+    "causal_closed_clock_required_per_timeframe": true
+  },
+  "completed_progress": [
+    "Complete pre-TEST M1 source and exact M5 reconstruction qualified.",
+    "Native v38 sweep/AVWAP feature implementation and full input coverage qualified.",
+    "TRAIN/VAL preprocessing, normalization, cost policy and random-access economic index published and verified.",
+    "Current OANDA financing terms bound to the prospective cost policy; the two-read authorization is consumed.",
+    "Offline trade-state persistence repaired and fault-tested; this is not full broker reconciliation.",
+    "Macro core arm using price plus DFII10, DTWEXBGS and T10YIE completed; result was inconclusive and not promoted.",
+    "INDEX_FEATURE_SOURCE_REVIEW_001 completed with actual index-bound sources."
+  ],
+  "latest_completed_receipt": {
+    "job": "INDEX_FEATURE_SOURCE_REVIEW_001",
+    "decision": "ACTUAL_INDEX_BOUND_FEATURE_SOURCE_COMPLETE_NO_BENCHMARK_OR_LEARNING",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/EVENTS/RESULT_20261002T062117624344Z.json",
+      "sha256": "f7fbe63ad88230c6a7da65d76384f60276c17ad12895bd3ce00c5b4388cbf23b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/EVENTS/TERMINAL_20261002T062117642659Z.json",
+      "sha256": "2ffd811ee77d821dda0324ccca1889e4086bc004195663d75a10aa8803758fac",
+      "exit_code": 0
+    },
+    "source_head": "90ca4ac4e3a83174d35500c921e82c48c2bbe657",
+    "source_unchanged": true,
+    "test_accessed": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "normalization_fits": 0,
+    "sampler_selected": false,
+    "splits": {
+      "train": {
+        "child_rows": 4884638,
+        "entry_rows": 652552,
+        "feature_clock_exact": true,
+        "parent_clock_exact": true,
+        "signal_width": 254
+      },
+      "val": {
+        "child_rows": 382744,
+        "entry_rows": 70880,
+        "feature_clock_exact": true,
+        "parent_clock_exact": true,
+        "signal_width": 254
+      }
+    }
+  },
+  "immediate_next_action": "Consume INDEX_FEATURE_SOURCE_REVIEW_001 as complete; do not rerun it. Inspect the existing benchmark owner and SAMPLER_BENCHMARK_CANDIDATES.json, then preregister exactly one workload-matched sampler benchmark against the actual index-bound 254-field TRAIN source. Run it only through the capped producer after plan/source identity review. No refit, optimizer, TEST, broker, live/paper or spending.",
+  "next_owner_inputs": {
+    "benchmark_script": "gx1/scripts/benchmark_unified_exit_random_access_train_v1.py",
+    "candidate_manifest": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/SAMPLER_BENCHMARK_CANDIDATES.json",
+    "index_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/RANDOM_ACCESS_INDEX_V1/ROOT.json",
+    "completed_feature_source_receipt": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/EVENTS/RESULT_20261002T062117624344Z.json"
+  },
+  "ordered_remaining_gates": [
+    "One preregistered workload-matched sampler benchmark and sampler selection.",
+    "Publish immutable epoch0, first4096, TRAIN256 and CONTROL256 coordinates.",
+    "Run a fresh zero-step native initial measurement for the exact current ONLINE/TARGET functions.",
+    "Only after the learning gate permits it, run one bounded native v38 learning comparison.",
+    "Evaluate later chronological development data with all selected and open positions cost-adjusted.",
+    "Re-establish train/serve functional parity for the frozen candidate.",
+    "Qualify order intent, idempotent restart, reconciliation and failure recovery offline.",
+    "Freeze model choice before any sealed TEST access; live/paper and spending require later explicit authority."
+  ],
+  "separate_incomplete_scope": {
+    "full_macro_B_six_source_goal": "BLOCKED_ON_GLD_COT_VERSION_HISTORY_AND_VIX_AVAILABILITY_CLOCK",
+    "must_not_be_silently_reduced": true
+  },
+  "startup_order": [
+    "GX1_RULES.md",
+    "AGENTS.md",
+    "CURRENT_RESTART_POINT.json",
+    "docs/RESTART_POINT_20261005.md",
+    "CURRENT_HANDOVER.md",
+    "GX1_ARBEIDSMAAL.md",
+    "VEIEN_VIDERE.md",
+    "NEXT_RUN_POLICY.json"
+  ],
+  "first_readonly_commands": [
+    "git branch --show-current",
+    "git log -5 --oneline",
+    "git status --short",
+    "bash scripts/gx1_handover.sh --check"
+  ]
+}

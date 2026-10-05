@@ -1,5 +1,12 @@
 # GX1 XAUUSD — start her
 
+<!-- GX1_CURRENT_RESTART_POINTER -->
+## Gjeldende inngang
+
+Kjør read-only handover og les deretter docs/RESTART_POINT_20261005.md
+samt CURRENT_RESTART_POINT.json. INDEX_FEATURE_SOURCE_REVIEW_001 er fullført;
+samplerbenchmark-planlegging er neste steg.
+
 Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Én agent om gangen.
 Kjør `bash scripts/gx1_handover.sh --check` for fersk, lesende status (starter aldri trening).
 

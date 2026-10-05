@@ -1,5 +1,12 @@
 Status står bare i CURRENT_HANDOVER.md. Dette er arkitekturkartet (oppdatert 26.09.2026).
 
+<!-- GX1_CURRENT_RESTART_POINTER -->
+## Gjeldende arbeidsgrense
+
+Komplett før-TEST-M1 driver M5 Entry, M1 Exit og lukket M15/H1/H4/D1.
+Faktisk indeksbundet 254-felts TRAIN/VAL-innlasting er verifisert. Neste port
+er samplerbenchmark, ikke modelltrening. Se docs/RESTART_POINT_20261005.md.
+
 # GX1-systemkart
 
 Kode: /home/andre2/src/GX1_CURRENT, branch work/gx1-current (eneste kodebase).

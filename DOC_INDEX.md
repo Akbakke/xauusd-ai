@@ -1,5 +1,12 @@
 # Dokumentindeks — 26.09.2026
 
+<!-- GX1_CURRENT_RESTART_POINTER -->
+## Gjeldende restartpakke - 05.10.2026
+
+- docs/RESTART_POINT_20261005.md: authority, mål, fremdrift, kvittering og neste steg.
+- CURRENT_RESTART_POINT.json: samme restartpunkt maskinlesbart.
+- docs/REPO_CLEANUP_20261005.md og JSON: etterprøvbar repo-opprydding.
+
 ## Styring (les i rekkefølge)
 
 1. `GX1_RULES.md` — bindende regler (Claude og Codex).

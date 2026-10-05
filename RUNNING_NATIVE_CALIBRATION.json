@@ -23,31 +23,7 @@
       "sha256": "d4aa2e901049a48653990d1ebaf4f6cedc23fbdeeb6cb9a633729a74e1240ea8"
     },
     "native_training_enabled": false,
-    "next_native_step": {
-      "current_status_owner": "native_v38_preparation_20261001",
-      "dependency_review": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INPUT_DEPENDENCY_REVIEW.json",
-        "sha256": "8e051acad340de839f4d5613b35559849ed4f0763cc6b34199f0205ba3fd30b8"
-      },
-      "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261001/CHAIN",
-      "input_build_authorization_consumed": true,
-      "input_build_authorized": false,
-      "native_training_enabled": false,
-      "new_dataset_complete": true,
-      "normalization_fit_authorized": false,
-      "optimizer_steps": 0,
-      "plan": "configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json",
-      "plan_sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e",
-      "report": "docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md",
-      "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
-      "runtime_plan": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/PLAN.json",
-        "sha256": "1d4ba6ffa697a039c4aee916dc933c4bcc79c58ad35734b3389a2348b2c5198e"
-      },
-      "source_frozen_while_running": false,
-      "status": "COMPLETE_INPUT_PREPARATION_NO_LEARNING_AUTHORITY",
-      "training_enabled": false
-    },
+    "next_native_step": "Consume INDEX_FEATURE_SOURCE_REVIEW_001 as complete; do not rerun it. Inspect the existing benchmark owner and SAMPLER_BENCHMARK_CANDIDATES.json, then preregister exactly one workload-matched sampler benchmark against the actual index-bound 254-field TRAIN source. Run it only through the capped producer after plan/source identity review. No refit, optimizer, TEST, broker, live/paper or spending.",
     "operational_persistence_review": {
       "broker_requests": 0,
       "created_utc": "2026-10-02T04:19:01.367839+00:00",
@@ -2099,7 +2075,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_ENTRY_EXIT_CONVERGENCE512_20260919/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "297387794fad5977acf78cd5285d7d998774f1063f09ac1bf62b4118e63f3ee7"
   },
-  "handover_resume_point": "docs/NATIVE_V38_BOUNDED_LEARNING_20261001.md",
+  "handover_resume_point": "docs/RESTART_POINT_20261005.md",
   "historical_handover_operator_manifest": {
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_RESIDUAL_REPRESENTATION_20260918/OPERATOR_HANDOVER/OPERATORS_MANIFEST.json",
     "sha256": "89123b40301bb621a4fcf6c665563e49dbb377f1087735c310a8555fbaaeb3a6"
@@ -2149,7 +2125,7 @@
     "slot": 0,
     "state_sha256": "e38163df57451648decbc00f4a0747591a3cb839398a55158c94bb3108c1429a"
   },
-  "latest_readonly_audit_utc": "2026-10-01T20:30:59.489150+00:00",
+  "latest_readonly_audit_utc": "2026-10-05T18:31:39+00:00",
   "learning_gate": {
     "broad_entry_fit_improved": false,
     "causal_entry_fixed256_verdict": {
@@ -3234,21 +3210,53 @@
       "working_source_uncommitted": true
     },
     "index_feature_source_review": {
-      "broker_requests_authorized": false,
-      "focused_tests_passed": 79,
-      "native_training_enabled": false,
-      "operator": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/OPERATOR.py",
-        "sha256": "9b53f72571492c7f95305bb4e7995c44e5ebeb0a19f3e00888c8688f18b2a604"
-      },
+      "status": "COMPLETE_ACTUAL_INDEX_BOUND_FEATURE_SOURCE_NO_BENCHMARK_OR_LEARNING",
+      "completed_utc": "2026-10-02T06:21:17.624344+00:00",
+      "decision": "ACTUAL_INDEX_BOUND_FEATURE_SOURCE_COMPLETE_NO_BENCHMARK_OR_LEARNING",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/PLAN.json",
         "sha256": "094f0cb2bed71d2653328185e51642765b71c74f6401c2b0ef83eac0e2d55848"
       },
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/OPERATOR.py",
+        "sha256": "9b53f72571492c7f95305bb4e7995c44e5ebeb0a19f3e00888c8688f18b2a604"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/EVENTS/RESULT_20261002T062117624344Z.json",
+        "sha256": "f7fbe63ad88230c6a7da65d76384f60276c17ad12895bd3ce00c5b4388cbf23b"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/INDEX_FEATURE_SOURCE_REVIEW_001/EVENTS/TERMINAL_20261002T062117642659Z.json",
+        "sha256": "2ffd811ee77d821dda0324ccca1889e4086bc004195663d75a10aa8803758fac",
+        "exit_code": 0
+      },
+      "source_head": "90ca4ac4e3a83174d35500c921e82c48c2bbe657",
+      "source_unchanged": true,
       "source_frozen_while_running": true,
-      "source_review_authorized": true,
-      "status": "PLANNED_ACTUAL_INDEX_BOUND_FEATURE_SOURCE_REVIEW",
-      "test_accessed": false
+      "test_accessed": false,
+      "broker_requests": 0,
+      "normalization_fits": 0,
+      "model_forwards": 0,
+      "optimizer_steps": 0,
+      "sampler_selected": false,
+      "splits": {
+        "train": {
+          "child_rows": 4884638,
+          "entry_rows": 652552,
+          "feature_clock_exact": true,
+          "parent_clock_exact": true,
+          "signal_width": 254
+        },
+        "val": {
+          "child_rows": 382744,
+          "entry_rows": 70880,
+          "feature_clock_exact": true,
+          "parent_clock_exact": true,
+          "signal_width": 254
+        }
+      },
+      "native_training_enabled": false,
+      "focused_tests_passed_before_run": 79
     },
     "index_source_audit": {
       "final_review": {
@@ -4471,7 +4479,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Run INDEX_FEATURE_SOURCE_REVIEW_001 once through capped producer 10G/swap512M to verify the index-bound complete M1 feature source. Reuse completed index and normalization. Then bind the actual workload-matched sampler benchmark. No refit, optimizer, TEST, broker or live/paper.",
+  "next_action": "Consume INDEX_FEATURE_SOURCE_REVIEW_001 as complete; do not rerun it. Inspect the existing benchmark owner and SAMPLER_BENCHMARK_CANDIDATES.json, then preregister exactly one workload-matched sampler benchmark against the actual index-bound 254-field TRAIN source. Run it only through the capped producer after plan/source identity review. No refit, optimizer, TEST, broker, live/paper or spending.",
   "next_action_before_consolidation_20260926": "The policy-consistent native representation extraction completed with exact original Q and Exit-context parity. One frozen CPU Ledoit-Wolf readout (127 fit / 129 reused-TRAIN check rows) failed value and net gates. Close this selector hypothesis; do not repeat extraction or refit/tune features, lambda, thresholds, or splits. training_enabled remains false. Full epoch, VAL, CONTROL, TEST, live, and paper are closed. No run is bound; any future work requires a materially distinct, separately predeclared hypothesis.",
   "next_diagnostic": null,
   "observed_processes": [],
@@ -4684,7 +4692,7 @@
     "path": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_FROZEN_TRACE_MEMORY_FCD03E88_SPLIT/.gx1-candidate-training-session.CANDIDATE_BUNDLE/candidate_training_state_slot_0.pt",
     "sha256": "94bbb8101036f25d0e27bf272b4b30a2eb1dfccff41a0e56466de0acfbd088ef"
   },
-  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_NATIVE_V38_DESIGN_FROZEN_SOURCE_MIGRATION_ACTIVE",
+  "status": "AUTOMATIC_BOT_GOAL_ACTIVE_INDEX_FEATURE_SOURCE_COMPLETE_SAMPLER_BENCHMARK_NEXT",
   "status_before_consolidation_20260926": "ENTRY_SELECTOR_HYPOTHESIS_CLOSED_STOP",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,

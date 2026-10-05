@@ -1,4 +1,0 @@
-[capped_run] Class=audit MemoryMax=4G MemoryHigh=4G MemorySwapMax=512M CPUAffinity=0-7 NumericalThreads=1 TasksMax=64
-[capped_run] cmd: .venv/bin/python /home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/CACHED_VALUE_CAUSE_20260916/OPERATOR.py
-[capped_run_scope_verified] memory.max=4294967296 memory.high=4294967296 memory.swap.max=536870912 pids.max=64
-{"result": "/home/andre2/GX1_DATA/data/data/prebuilt/LIFECYCLE_V2_FULL_TRAIN_20260912/NATIVE_REAL_TRAIN_TO_VAL_FDD70E5C/OPERATOR_OBSERVATIONS/CACHED_VALUE_CAUSE_20260916/RESULT.json", "sha256": "de50f50bf2d81817cbfa0a033aa9143c213a415b71d67b692972bf7ff2f266e2", "elapsed_seconds": 1.0393151469997974, "peak_rss_kib": 584432, "decision": "CACHE_DIAGNOSIS_COMPLETE_TRAINING_REMAINS_DISABLED"}

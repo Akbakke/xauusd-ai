@@ -1,0 +1,666 @@
+{
+  "schema_version": "gx1_repo_cleanup_receipt_v1",
+  "created_utc": "2026-10-05T18:31:39+00:00",
+  "scope": "tracked repository handover_snapshot only",
+  "base_head": "90ca4ac4e3a83174d35500c921e82c48c2bbe657",
+  "user_authorized": true,
+  "data_or_run_paths_deleted": false,
+  "active_process_check": "NO_NATIVE_PROCESS_OBSERVED",
+  "selection_rule": "remove tracked handover_snapshot files with no references from code, scripts, tests, configs, .claude, COMPLETED_RUN.json, NEXT_RUN_POLICY.json, RUNNING_NATIVE_CALIBRATION.json, CURRENT_RESTART_POINT.json, GX1_RULES.md or AGENTS.md",
+  "removed_count": 78,
+  "removed_bytes": 3520440,
+  "kept_count": 18,
+  "kept_bytes": 171102,
+  "removed": [
+    {
+      "path": "handover_snapshot/AUXILIARY_POLICY_EXPOSURE_20260917.json",
+      "bytes": 8024,
+      "sha256": "673967d8626011c304d34348b153c0f2fe8166ad2bb7581c42ea0e065cab2753",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/BOUNDED_VAL_CORE_TESTS_20260916.xml",
+      "bytes": 2546,
+      "sha256": "e4b6d25a9f840e56351983c53697a1a737cb17d41017f33c9c679c581cac3593",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/BROAD_TRAIN95_134_TARGET_DECOMPOSITION_20260916.json",
+      "bytes": 5585,
+      "sha256": "0e9389498b1ee36552f71ad6b13cf24862d83df85343be6ad3bcc7fa3cc85103",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/CACHED_VALUE_CAUSE_20260916/ATTRIBUTION_OPERATOR.py",
+      "bytes": 7440,
+      "sha256": "4bb70f0b42945750ff6a837a5ff1476efb26e4b7135110bdbdf919aa37b52a52",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/CACHED_VALUE_CAUSE_20260916/ATTRIBUTION_PLAN.json",
+      "bytes": 912,
+      "sha256": "74fe97d34fc3abb4a3a786aa9385cb6c69b450957fc2b336ab9c7dde47a03128",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/CACHED_VALUE_CAUSE_20260916/ATTRIBUTION_RUN.log",
+      "bytes": 3954,
+      "sha256": "c03034e513b123f4d0415468d944e49f204d4c08142abc26b37b3fee06f4e037",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/CACHED_VALUE_CAUSE_20260916/MEASUREMENT_PLAN.json",
+      "bytes": 1108,
+      "sha256": "8d6e8625d1e9e4e83a448e83da74b3f3c12ef32c4c6cb5ba7e8dd94c3c779f33",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/CACHED_VALUE_CAUSE_20260916/RUN.log",
+      "bytes": 825,
+      "sha256": "cdf8e4eb6242b2fba5fa0f790fdfdf11ce37ea544a9016b8fae3f9e981ed5daa",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/CAUSAL_ENTRY_FIXED256_COMPLETION_20260917.json",
+      "bytes": 4207,
+      "sha256": "1922e9f1ca3548954d857d5d7d006b3c6a531a21d6dd6f7e680421411e92b872",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/CAUSAL_ENTRY_TRAIN_BASELINE_20260917.json",
+      "bytes": 15335,
+      "sha256": "f3860b8432bf7145c106e6ffbc3b7e64753cd2cc6254f580a0478495958749ca",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/CAUSAL_REFERENCE_ENTRY_FIX_20260917.json",
+      "bytes": 11064,
+      "sha256": "4d7cff0c46c3d4a633314fd6b3be68594b502dc12fbaacda6e76874f4b9a3727",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/CHRONOLOGICAL_LEARNING_DESIGN_20260917.json",
+      "bytes": 14690,
+      "sha256": "e073c0e976a348418c34258ef6e35c5483321d126005f2be77e08e2a8d435b36",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/COHERENT_CONTROL_TARGET_SYNTHETIC_20260917.json",
+      "bytes": 4295,
+      "sha256": "19217872f9f3649bd222fd90c39f0fa2f26d7a3fdaec2ab9cf1e336f1ccb595d",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/COHERENT_REFERENCE_ENTRY_SYNTHETIC_20260917.json",
+      "bytes": 4364,
+      "sha256": "2f788edc6da619a406a0b44e8f1c215e933462942a7006b30370880098300fbb",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/ENTRY_COMPLETE_POLICY_TARGET_ALIGNMENT_20260919.json",
+      "bytes": 5679,
+      "sha256": "6b8147658d7b13f1ce7d23def679ec8aa2910e9a7167ed9319906d50b1b52101",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/ENTRY_CONNECTED_FIXED256_PLAN_20260917.json",
+      "bytes": 6373,
+      "sha256": "df324afe693306a11e57be73351086ed0f7fce129d9e7e7996403f1813113ecd",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/ENTRY_DIRECT_OUTCOME_COVERAGE_20260926.json",
+      "bytes": 2534,
+      "sha256": "27c88ad10af38742c90b5d6c68bd9bf206fd16459b6f0510301c6b9d4f21e0c8",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/ENTRY_GRADIENT_DIAGNOSTIC_DISPATCH_20260917.json",
+      "bytes": 3730,
+      "sha256": "de1d49e9b61f875e5a02e40779bb16b87db0e574751e3a0967f60fa04f0d441e",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/ENTRY_GRADIENT_NUMERIC_REPAIR_20260917.json",
+      "bytes": 6014,
+      "sha256": "217a4f233e6a88591d3c5c235f2e584258bc799826dbc2041390ef443284c1f5",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/ENTRY_RANKING_AUDIT_20260919.json",
+      "bytes": 16421,
+      "sha256": "311868794bc7563eaf9bc0f49650acb3476fa8f9a22175515447a459e918464c",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/ENTRY_SIGNAL_FAILURE_20260917.json",
+      "bytes": 2858,
+      "sha256": "32c36627b90f7b38561887fa3ac25c10e600f52d4148e74f59566e36b1aa22c1",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/ACTUAL_TRAIN32_RESULT.json",
+      "bytes": 44803,
+      "sha256": "d46fa21903c3aa14c08714420455e32ab12b722b7005c84742d301a5ae6475e7",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/ENTRY_ANCHOR_CACHE_RESULT.json",
+      "bytes": 273331,
+      "sha256": "22fcb932cd106175e01add52910cbdf279616b7a90ba2d30b12304a0f2c9e304",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/ENTRY_OBSERVED_OUTPUT_SUMMARY.json",
+      "bytes": 59552,
+      "sha256": "90de1ac8c75b9a0fe8456682938766ecd41c2bf2c277b500c332a64634026e7a",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/FIVE_STEP128_REUSED_RESULT.json",
+      "bytes": 12636,
+      "sha256": "a3f77e1342bd1704c9f69a635f110dfb47e2d968ff86519e604e904c381a6376",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/LEARNING_RESULT.json",
+      "bytes": 646952,
+      "sha256": "fd0916b1e1dbfaf4974d152cb109f3287b9c5235536a46610e0a4a3ae5a1415c",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/SHAPE_REUSE_RESULT.json",
+      "bytes": 1859,
+      "sha256": "03a74ea6049ee7b8a6d083550ceea29886d40aa406e942a73a30246a61675c35",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/TARGET_COMPONENT_RESULT.json",
+      "bytes": 99841,
+      "sha256": "b34d6f7211b029eb8d4745284eb4bfa0b7a2cfe4e76196172dbdb71fc0ab6b53",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/TERMINAL_EVIDENCE.json",
+      "bytes": 11007,
+      "sha256": "b9113f1aeade893bfce4873ab7926e22ef61e7036a416097791f57c7993c43cd",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/FIXED_TARGET_LEARNING_RESULT_20260915.json",
+      "bytes": 31159,
+      "sha256": "49d1463244336c527bb4842e78a0bb05abbdf9753a134a415e5f7080063e6d4a",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/FORECAST_TRANSFER_EXISTING_OUTPUTS_20260917.json",
+      "bytes": 4057,
+      "sha256": "50720404dac3fd0fe2eb30ee071d1a5fd0ea51cc94b6aab0174bc63cd135485a",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/FQI_TARGET_LEARNING_RESULT_20260915.json",
+      "bytes": 37133,
+      "sha256": "73fcd2b35139b4c8b7b74fbe14f31604cee474e9fc1f6b60ff9d65d0d8a0d3da",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/FROZEN_EXIT_TRAIN_FOOTPRINT_20260919.json",
+      "bytes": 3224,
+      "sha256": "821aa8f2073d01380760e1009882033f9f3a59788bb0872c18818e045adfd9b8",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/FROZEN_NATIVE_COMPARISON_20260917.json",
+      "bytes": 59046,
+      "sha256": "c8e4fd44bfbac8719b4c44369d9cbfadcd1cae9c395ac087f2a5c8af142bb54e",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/FROZEN_TRACE_LEARNING95_96_REVIEW_20260916.json",
+      "bytes": 32236,
+      "sha256": "9f550c3061522ff1f068dd60dba61d30d4db7eb45f634d45781b049e3cb3d08d",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/FROZEN_TRAIN_POLICY_COMPLETION_20260919.json",
+      "bytes": 5042,
+      "sha256": "9802a476b5d113309d2875f64bb8a3b65c07ceb735c3cc9863f38675a18385c8",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/FROZEN_TRAIN_POLICY_REVIEW_20260919.json",
+      "bytes": 54682,
+      "sha256": "5a0c7b87d400c64d49826c0663aa5904c9fb6291b114e48871ee8e36baee0d0c",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.xml",
+      "bytes": 2379,
+      "sha256": "059a1e9ef7fd19381f93a09795c42ee3c4c890ddf61ca41c0b35a82612fa524e",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/HANDOVER_CHECKS_20260918.json",
+      "bytes": 1837,
+      "sha256": "15e17519c5bfa2af498db81e96b4a9ff61dad1a01517e4d94bb6c135b1fbd59f",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/HANDOVER_REFRESH_TESTS_20260916.log",
+      "bytes": 432,
+      "sha256": "a8b2b44a0a4083ab81d66f190097ba6e0221805ebed5d736ff661a6590a921a2",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/INITIALIZATION_EXPOSURE_20260917.json",
+      "bytes": 12350,
+      "sha256": "871674a608c39eff48b0f66b6391727bbb68c466ea1c5a27e523505c6ec65968",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/JOINT_UPDATE_FAILURE_20260919.json",
+      "bytes": 2227,
+      "sha256": "f2a3e66c1d15b2625157701f8cde48a20e30aed61e6a8df48657e9f266b4473d",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/JOINT_UPDATE_REVIEW_20260919.json",
+      "bytes": 7273,
+      "sha256": "d3a9d64b3c05085a0b06a86409640a28a69c351d2f4f780fa20826310846484e",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/LIQUIDATION_RELATIVE_LEARNING_VERIFICATION_20260914.json",
+      "bytes": 5513,
+      "sha256": "281993a7f7052388a2298ece25b81a7a327be98ebe10d84774f0c9b5b124ad8d",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/MAIN_ENCODER_FIXED256_COMPLETION_20260918.json",
+      "bytes": 8911,
+      "sha256": "27bf7ab8cdb34537b46016f6c3692149ad4460d7db91ec977fed6280e5267c42",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/MTM_OBJECTIVE_VERIFICATION_20260914.json",
+      "bytes": 3750,
+      "sha256": "561975df42a33f42305de836ce7b7a34f5372471b589d3004feaa04f2430106a",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/MTM_VAL_VERIFICATION_20260914.json",
+      "bytes": 3907,
+      "sha256": "3824b3c04d15d2ea7e24c0208432c5309df60f6ecb30916a6911d34e5d17e3d6",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/NATIVE_CONTROL_SOURCE_SYNTHETIC_20260917.json",
+      "bytes": 6100,
+      "sha256": "75b4df0e08a446367124e3818556fdfa5b9c7f1862db415f4f6c61ae2cc59ea3",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/NATIVE_FRESH_COMPONENTS_SYNTHETIC_20260917.json",
+      "bytes": 3934,
+      "sha256": "f14f1c63c6095eb10f150c5223d722e334e8df9d758794bb184ad2edafb5d00b",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/NATIVE_FROZEN_MATERIALIZER_TESTS_20260916.xml",
+      "bytes": 14382,
+      "sha256": "6c9a080bb331d6f31a643407638588d59ff681abfbff887132de40c05b9ff623",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/NATIVE_FROZEN_READOUT_TESTS_20260916.xml",
+      "bytes": 4161,
+      "sha256": "5c900b897e6caa3c55c0035ef3e133fbc6cb8250be8ea9b1fbc75dfa3e565125",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/NATIVE_FROZEN_REGRESSION_TESTS_20260916.xml",
+      "bytes": 28379,
+      "sha256": "49f6045e526f78a7343db33f6adba7989b6b5034d4fbfe52a84923d27c7a85ee",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/NATIVE_PREFIX_COORDINATOR_SYNTHETIC_20260917.json",
+      "bytes": 3885,
+      "sha256": "370c64cbbc99b7aaf4d0bd74d1163abfadf08c8944b1a009f56f4ea7ec33d84b",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/NATIVE_PREFIX_FIXED256_REVIEW_20260917.json",
+      "bytes": 1025887,
+      "sha256": "97e719be3505265da8b48c8a24894fa09aef4305dc6603b5afa1e472448ddcc3",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/NATIVE_PREFIX_RECIPE_SYNTHETIC_20260917.json",
+      "bytes": 6219,
+      "sha256": "20e920eb83b58857c61e97339c2282594b7112f816bd1b723ebc4172c8511285",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_AUXILIARY_POLICIES_20260917.json",
+      "bytes": 5455,
+      "sha256": "4370eafcb2d106031487b006e7e58e244167a26af24cc76edde88ae1ef70ee34",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_BASE_SYNTHETIC_20260917.json",
+      "bytes": 7117,
+      "sha256": "abd5325f5c612a698fc753598aed0727221ef1f603be1d738cf12d931ab37235",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_DEPENDENT_LABELS_SYNTHETIC_20260917.json",
+      "bytes": 2501,
+      "sha256": "f409edd1359cf516ac6d777dc3688584b97a9e0afe388815527af2740f0a6f9d",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_ENTRY_CLOCK_READ_FIX_20260917.json",
+      "bytes": 2114,
+      "sha256": "fde105d6c4a20bdff212cd8737ec4872cbb0dd647aa2822a34295e0e422c31ed",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_FRESH_INITIALIZATION_20260917.json",
+      "bytes": 14566,
+      "sha256": "e9d37b464946ab996a7cca4ac6771d499a52bbe98d47bb963795d7ca64baff3b",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_IMMUTABLE_BINDINGS_20260917.json",
+      "bytes": 6417,
+      "sha256": "83d0845f4d633c4d87defe3725d3e283aaf58882655476bd2e91a9d7fd86144d",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_LABEL_BINDING_SYNTHETIC_20260917.json",
+      "bytes": 2961,
+      "sha256": "32d1eb2ac2d5600ed8f9d6241b69cd0b44a27ade95c41f375f42abd294cb4d1c",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_NATIVE_MEASUREMENT_BINDING_20260917.json",
+      "bytes": 5534,
+      "sha256": "45522477226850720e77f6b3d7cfaf80731e0504ea6e36f49effb664218342de",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_NORMALIZATION_READY_20260917.json",
+      "bytes": 7145,
+      "sha256": "a9fd48c958f14c7be36cc746f83fe63a893f1809f0bbcb681260e09f937f43dc",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_SUMMARY_SYNTHETIC_20260917.json",
+      "bytes": 5255,
+      "sha256": "c9b3b88a712f9fca46ea5bda45ead57a3592d796fbecd86f8a78a15101cce9db",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/PREFIX_TARGET_CLOCK_ELIGIBILITY_20260917.json",
+      "bytes": 5022,
+      "sha256": "1ce7ec74192415c50fe8f051bae023793f9c01e24d873851b6f0ef50231e08dc",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/READOUT_LEARNING_REVIEW_20260916.json",
+      "bytes": 195053,
+      "sha256": "b9b16203a5f02d55646d44e243d7704f01efbc6c9f0716442af3a26a6cc63bd2",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/SAMPLED_REFERENCE_MEASUREMENT_20260917.json",
+      "bytes": 3877,
+      "sha256": "1be466a476b72536807066a2cc24ecb2e198bac2320ed4b5c4adc8b330813857",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/SHARED_TASK_GRADIENT_REVIEW_20260915.json",
+      "bytes": 207837,
+      "sha256": "d50afbd134236eea81dde86c54ed4a5e0ee4c5ac8e293e542bf194046eb9ec01",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/TRAIN_OBSERVATION_CUTOFF_REVIEW_20260919.json",
+      "bytes": 4213,
+      "sha256": "306090b3af9b0401100d715d807a211b77f28af7a0441c0925e1d57929cf61b3",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/TRAIN_TEMPORAL_OVERLAP_20260917.json",
+      "bytes": 32417,
+      "sha256": "9c67415c09f52fb2f550da31e4d4547c75fc7d2692b5a83f6956bc69ef53a304",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/TRAIN_VAL_SEMANTICS_AUDIT_20260917.json",
+      "bytes": 39393,
+      "sha256": "b3b4e294234d46ec5f0326c418cfc2056f58040d5e47b956fc6adc58445c85ef",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/gx1_liquidation_relative_fixture_repair.log",
+      "bytes": 527,
+      "sha256": "f12860da758eeed470ae080368a484304fb74b9a4b8110ea37e29c89e069f76b",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/gx1_liquidation_relative_fixture_repair.xml",
+      "bytes": 1188,
+      "sha256": "dd5540ea42a17d971c10b0b4bfd05a9d63c190cd208d7139225b3e3a259b546c",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/gx1_liquidation_relative_initial_tests.log.gz",
+      "bytes": 323728,
+      "sha256": "8cf3920614a96b562e41fd520c15a9038dab3bf67df1ce4f2784a357b010edb2",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/gx1_mtm_integration_tests.log",
+      "bytes": 787,
+      "sha256": "1ceefa54d1462b220f83a42b40d58084b62a79187fa157b6412bd8e84cc77ef4",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/gx1_mtm_nav_tests.log",
+      "bytes": 693,
+      "sha256": "dfc79af46fbee852d0fb06b51ddf2b8121446b14ed3ddb2b85b6c77b21804979",
+      "active_references": []
+    },
+    {
+      "path": "handover_snapshot/gx1_mtm_targeted_tests.log",
+      "bytes": 596,
+      "sha256": "2fc803174d90b454e5946b762d87101be3d572feb6a724e378f5c094f1ac2e71",
+      "active_references": []
+    }
+  ],
+  "kept": [
+    {
+      "path": "handover_snapshot/BOUNDED_VAL_CORE_REVIEW_20260916.json",
+      "bytes": 3726,
+      "sha256": "02590c20b837a76c78bacfd1b2250856753630844a568bb8a1d43a0b7406a517",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/CACHED_VALUE_CAUSE_20260916/ATTRIBUTION_RESULT.json",
+      "bytes": 3387,
+      "sha256": "98cbd1b223542f5a678265ba48f4910ed9596d1079f8937a5a5c5d12e0853559",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/CACHED_VALUE_CAUSE_20260916/OPERATOR.py",
+      "bytes": 11430,
+      "sha256": "11bc7211dfc124965cb9d7a04ad0bf4e0bc93657ebd8448ab6fb3769ace61273",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/CACHED_VALUE_CAUSE_20260916/RESULT.json",
+      "bytes": 74315,
+      "sha256": "de50f50bf2d81817cbfa0a033aa9143c213a415b71d67b692972bf7ff2f266e2",
+      "active_references": [
+        "COMPLETED_RUN.json",
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json",
+        "configs/research/TA_B_ALFRED_ARCHIVE_AUDIT_METADATA_20260930.json",
+        "configs/research/TA_B_ALFRED_ARCHIVE_AUDIT_VIX_UNITS_20260930.json",
+        "configs/research/TA_B_MACRO_COMPONENTS_20260930.json",
+        "configs/research/TA_B_VIX_CBOE_COMPARISON_20260930.json",
+        "configs/research/TA_MACRO_CORE_COMPONENTS_20261001.json",
+        "configs/research/TA_MACRO_CORE_PREREG_20261001.json",
+        "gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+        "gx1/scripts/materialize_local_random_access_campaign_v2.py",
+        "gx1/scripts/research_entry_direction_walkforward_v1.py",
+        "gx1/scripts/research_ta_campaign_v1.py",
+        "gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+        "scripts/collect_gx1_handover_readonly.py",
+        "scripts/research_ta_b_source_probe_20260930.py",
+        "tests/test_candidate_native_full_val.py",
+        "tests/test_collect_gx1_handover_readonly.py",
+        "tests/test_native_val_pause_receipts.py",
+        "tests/test_research_ta_campaign.py"
+      ]
+    },
+    {
+      "path": "handover_snapshot/CPU_CAPACITY_RESULT_20260914.json",
+      "bytes": 2359,
+      "sha256": "6b5b0bcd1747919c60c6b13b78646f13296b5de6ffd1a9fa8d28995bdda1f363",
+      "active_references": [
+        "COMPLETED_RUN.json",
+        "NEXT_RUN_POLICY.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/ENTRY_EXIT_SUMMARY_20260914.json",
+      "bytes": 14856,
+      "sha256": "e18ed9a396b286093bbc49f2cfc55950ff52f7e87646a7811d26b4c29d76973a",
+      "active_references": [
+        "COMPLETED_RUN.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/EXIT_PRIVATE_CLIP_20260916/REVIEW.json",
+      "bytes": 3292,
+      "sha256": "30d870dd694663d9a97c024ec9cafd3646af89f453410162bc97856259afe0dd",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json",
+        "configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json",
+        "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/FROZEN_VAL_NUMERIC_PREFLIGHT_20260917.json",
+      "bytes": 2902,
+      "sha256": "4275b6041ae874ec7a61673be0f0bd75a3564ba1c2ff7038f1c03ac335ae394e",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/MAIN_ENCODER_TEST_REVIEW_20260918.json",
+      "bytes": 2241,
+      "sha256": "6552b9439ca92e8b5a7fec32e6c6b509bd69c40f0894fe48acf7dd1bc6a9fec6",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/NATIVE_FROZEN_MATERIALIZER_REVIEW_20260916.json",
+      "bytes": 1176,
+      "sha256": "e727325e32934fbdad5beeb0b230b6c609e818a9583132a549cc1e9ad8eb57c3",
+      "active_references": [
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/NATIVE_FROZEN_READOUT_REVIEW_20260916.json",
+      "bytes": 3432,
+      "sha256": "d6cc4c29403a75cea164711c67a8f2cd8b4824b12ff26b06cf34a8effc1c4a7f",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/POLICY_CONSISTENT_ENTRY_REVIEW_20260919.json",
+      "bytes": 15082,
+      "sha256": "0b2d5bd8184d8c9c7f449e36a550142c607716fb50ab887228a5c127acf0308d",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/REFERENCE_POLICY_CPU_PROTOTYPE_20260916.json",
+      "bytes": 2316,
+      "sha256": "9f9e64fa2b10044f3bf287dc3c80d1f026930414930049099bbb1cb3a923ee6f",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/REFERENCE_POLICY_DATA_FLOW_20260916.json",
+      "bytes": 5323,
+      "sha256": "f9846fdc8b217568f062de18584eb11dd8faaff79145c781510a0173f142e213",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/REFERENCE_POLICY_LEARNING_20260916.json",
+      "bytes": 8044,
+      "sha256": "213a25c3213a398693196edb82ea1fdccbc169d45d63bcba6bf1f61c3f9803ab",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/REFERENCE_POLICY_NATIVE_BINDING_20260916.json",
+      "bytes": 4361,
+      "sha256": "027ab79dcf1893b0d2900592794d5c8ddcb0469031c2d140429d5b1de245e064",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/RISK_HEAD_SCOPE_20260914.json",
+      "bytes": 4065,
+      "sha256": "b23369d09de199021313f98347d1a889f8c85fe56587dc2e51eef79f7c3b891c",
+      "active_references": [
+        "COMPLETED_RUN.json"
+      ]
+    },
+    {
+      "path": "handover_snapshot/STABLE_READOUT_REVIEW_20260916.json",
+      "bytes": 8795,
+      "sha256": "e1d9b7b55621841279642d8be2fa0b003cf36823e4b4b275c3374a3cf6c4558b",
+      "active_references": [
+        "NEXT_RUN_POLICY.json",
+        "RUNNING_NATIVE_CALIBRATION.json"
+      ]
+    }
+  ],
+  "recovery": "Every removed file remains recoverable from Git base_head 90ca4ac4e3a83174d35500c921e82c48c2bbe657"
+}
