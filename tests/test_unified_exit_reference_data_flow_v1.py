@@ -66,6 +66,38 @@ def test_120_rewards_materialize_only_current_successor_and_boundary(relative_fi
     assert trace["steps"][4]["transition_closure"]["wall_clock_delta_seconds"] > 60
 
 
+def test_reference_economics_queries_the_same_contiguous_interval_once_per_side(relative_fixture, monkeypatch):
+    calls = []
+    original = states._EconomicProvider.materialize_training_projection
+
+    def recording(self, entry, side, start, stop, hold_stop):
+        calls.append((entry, side, start, stop, hold_stop))
+        return original(self, entry, side, start, stop, hold_stop)
+
+    monkeypatch.setattr(states._EconomicProvider, "materialize_training_projection", recording)
+    view = states._materialize(2, reference_policy=reference_policy_contract())
+    assert calls == [(0, 0, 2, 123, 122), (0, 1, 2, 123, 122)]
+    states.require_random_access_state_view(
+        view, sampler_contract=states._contract(), sample=states._sample(states._contract(), 2),
+        expected_m1_source_sha256=view["m1_source_sha256"],
+        expected_market_closure_authority_sha256=view["market_closure_authority_sha256"],
+        expected_economic_step_manifest_sha256=view["economic_step_manifest_sha256"],
+        expected_economics_objective_contract_sha256=view["economics_objective_contract_sha256"],
+    )
+
+
+def test_invalid_batched_economic_projection_still_fails_closed(relative_fixture, monkeypatch):
+    original = states._EconomicProvider.materialize_training_projection
+
+    def corrupted(self, entry, side, start, stop, hold_stop):
+        value = original(self, entry, side, start, stop, hold_stop)
+        return {**value, "projection_sha256": "0" * 64}
+
+    monkeypatch.setattr(states._EconomicProvider, "materialize_training_projection", corrupted)
+    with pytest.raises(RuntimeError, match="ECONOMIC_PROJECTION_HASH_INVALID"):
+        states._materialize(0, reference_policy=reference_policy_contract())
+
+
 @pytest.mark.parametrize("count", [2, 3, 121, 122])
 @pytest.mark.parametrize("terminal", [False, True])
 def test_boundary_inputs_and_bootstrap_use_actual_availability(relative_fixture, count, terminal):

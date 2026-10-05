@@ -150,6 +150,12 @@ def _array_mapping_sha256(value: Mapping[str, Any]) -> str:
             digest.update(b"\0")
             digest.update(np.asarray(item.shape, dtype="<i8").tobytes())
             digest.update(item.tobytes(order="C"))
+        elif type(item) is str:
+            # The existing canonical JSON encoder, without constructing a full
+            # JSONEncoder for every repeated scalar projection identity.
+            digest.update(json.encoder.encode_basestring_ascii(item).encode("utf-8"))
+        elif type(item) is int:
+            digest.update(str(item).encode("ascii"))
         else:
             digest.update(
                 json.dumps(

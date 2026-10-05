@@ -4,7 +4,14 @@ Dette er den korte menneskelesbare inngangen til gjeldende arbeid.
 CURRENT_RESTART_POINT.json er den maskinlesbare tvillingen.
 Historiske dokumenter og COMPLETED_RUN.json er bevis, aldri startordre.
 
-Gjeldende neste jobb: CPU_WORKLOAD_PROFILE_001, bundet i NEXT_RUN_POLICY.json.
+Gjeldende neste jobb: CPU_WORKLOAD_PROFILE_002, bundet i NEXT_RUN_POLICY.json.
+Første CPU-diagnoses målinger er bevart etter sluttpubliseringsfeil og verifisert
+i PUBLICATION_FAILURE_REVIEW; original rød terminal består. Samme genuine
+TRAIN16-batch tok 12,25–13,01s uten og 25,81–28,13s med tracemalloc.
+Målrettet rettelse i eksisterende eiere batcher økonomiprojeksjonen innen den
+uendrede horisonten og koder identiske kanoniske skalarbytes mer direkte.
+51 fokuserte syntetiske tester består. Ekte paritet mot gamle batchhasher og
+kapasitet etter rettelsen er ubevist inntil den nye avgrensede diagnosen består.
 Benchmark ATTEMPT_002 er bevart og stoppet uten samplervalg:1104/8192 Entries
 tok1800,23 sekunder, over den faste30-minuttersgrensen allerede før fullføring.
 Andre kandidater er uundersøkt. Diagnosen bruker de samme ekte TRAIN16-batchene
@@ -87,10 +94,10 @@ Planen er konsumert og skal ikke relanseres.
 
 ## Eksakt neste arbeid
 
-Kjør den planbundne CPU_WORKLOAD_PROFILE_001 først. Den observerte målingen
-inkluderer tracemalloc; skill måleinstrumentets kostnad fra den native
-dataprepareringen på identiske ekte TRAIN16-batcher. Ingen samplervalg fra
-denne diagnosen. Verifiser minste rettelse før ny full workload-matchet
+Kjør bare planbundet CPU_WORKLOAD_PROFILE_002 først. Sammenlign gamle og nye
+genuine batchhasher, og mål CPU-kostnaden med og uten tracemalloc. Ingen
+samplervalg fra denne diagnosen. Ikke relanser CPU_WORKLOAD_PROFILE_001.
+Verifiser rettelsen før ny full workload-matchet
 benchmark bindes med uendrede kandidater, felt, mål og godkjenningsgrenser.
 
 Gjenbruk:

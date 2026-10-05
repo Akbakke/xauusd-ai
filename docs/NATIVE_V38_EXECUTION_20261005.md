@@ -57,3 +57,35 @@ null modellforwards, fits og optimizersteg. PLAN_002 og operatorhasher står
 i NEXT_RUN_POLICY.json. Originale logger og begge uferdige oppstarter bevares.
 Diagnostiser først; verifiser minste rettelse før ny full benchmark bindes.
 Ingen nye kandidater, mål-/featureendringer eller flytting av godkjenningsgrenser.
+
+## Målt CPU-flaskehals og avgrenset paritetskontroll
+
+CPU_WORKLOAD_PROFILE_001 fullførte tre pass per kandidat, men sluttlagring
+feilet fordi heltallsnøkler ikke er objektlike etter JSON strict-load.
+Original rød terminal beholdes; logger, staging og pstats er kontrollert uten
+ny tung kjøring i den hash-bundne PUBLICATION_FAILURE_REVIEW i NEXT_RUN_POLICY.
+
+Målt på genuine TRAIN16: 12,25–13,01 sekunder uten instrumentering og
+25,81–28,13 med tracemalloc (1,98–2,27x). Første profilerte batch utførte
+18884 små økonomiprojeksjoner og 113304 array-hasher. Ikke fullbudsjettkapasitet,
+samplervalg, modellkvalitet eller økonomibevis.
+
+Minste rettelse utvider bare eksisterende data-/state-view-eiere: beregn den
+samme observerte referanseøkonomien samlet per side, avled samme forseglede
+og validerte stegutsnitt, og kod identiske kanoniske skalare JSON-bytes uten
+JSONEncoder-objekt per skalar. Ingen validering, hash, mål, maske, familie eller
+tidsramme fjernes. 51 fokuserte syntetiske kontrakttester består; ekte bytes
+og ytelse er fortsatt ubevist etter rettelsen.
+
+CPU_WORKLOAD_PROFILE_002 forhåndsregistrerer den nødvendige kontrollen:
+samme tre kandidatbudsjett og gamle TRAIN16-rader; tre faste pass, høyst144
+materialiseringer; alle batchhasher må være eksakt like de bevarte målingene.
+Ingen forwards, fits, optimizersteg eller samplervalg. Kjør capped producer
+20G/512M, ren/fryst kilde, nettverk og TEST stengt. Plan/operator står i
+NEXT_RUN_POLICY.json. JSON-nøkler er strengkodet før strict-load. Et ustartet
+planutkast som brukte rikere kildebindinger enn kontrollen er bevart; PLAN_002
+binder samme fullstendige kildeclosure med eksakte path/sha256-felt.
+
+Vurder ekte tidskostnad etter paritetskontrollen før ny full benchmark. Alle
+opprinnelige kandidat-/tids-/minnegrenser består. Hvis kapasiteten fortsatt
+ikke passer, dokumentér dette; ikke flytt en grense eller kasser signaler.

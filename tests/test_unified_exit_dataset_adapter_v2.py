@@ -19,6 +19,7 @@ from gx1.contracts.unified_exit_dataset_adapter_v2 import (
     ECONOMIC_EXIT_STEP_MANIFEST_SCHEMA_VERSION,
     ECONOMIC_TRAINING_PROJECTION_SCHEMA_VERSION,
     UnifiedExitDatasetAdapterV2,
+    _array_mapping_sha256,
     seal_economic_exit_step_manifest,
     seal_economic_training_projection,
 )
@@ -58,6 +59,29 @@ def _sha(value):
             value, sort_keys=True, separators=(",", ":"), allow_nan=False
         ).encode()
     ).hexdigest()
+
+
+@pytest.mark.parametrize("item", [
+    "", "plain_ascii_sha256", "quotes\"and\\slashes\n\t", "Æøå\u0000\u007f",
+    0, -1, 1748736000000000000, 10 ** 80, True, False, None, 1.25,
+    [1, "a"], {"b": 2, "a": "x"},
+])
+def test_projection_scalar_encoding_preserves_original_canonical_bytes(item):
+    value = {"identity": item, "array": np.asarray([1, 2], dtype="<f8")}
+    expected = hashlib.sha256()
+    for name in sorted(value):
+        raw = value[name]
+        expected.update(name.encode("ascii"))
+        expected.update(b"\0")
+        if isinstance(raw, np.ndarray):
+            expected.update(raw.dtype.str.encode("ascii"))
+            expected.update(b"\0")
+            expected.update(np.asarray(raw.shape, dtype="<i8").tobytes())
+            expected.update(raw.tobytes(order="C"))
+        else:
+            expected.update(json.dumps(raw, sort_keys=True, separators=(",", ":"),
+                                       allow_nan=False).encode("utf-8"))
+    assert _array_mapping_sha256(value) == expected.hexdigest()
 
 
 def _readiness(rho=0.05):
