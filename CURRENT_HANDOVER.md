@@ -1,72 +1,51 @@
-# Gjeldende status - 05.10.2026
+# Gjeldende status - 06.10.2026
 
-Punkt 1–6 i docs/NATIVE_V38_EXECUTION_20261005.md gjennomføres nå.
-ATTEMPT_002 er stoppet og bevart uten samplervalg: første kandidat nådde
-1800,23 målte sekunder allerede ved 1104/8192 Entries. Siste bevart fremdrift
-var 1200 Entries på1958,44 sekunder. Den faste30-minuttersgrensen er dermed
-bevist overskredet for denne kandidaten. De andre kandidatene er uundersøkt;
-hele benchmarken er ikke fullført. Ingen feature- eller læringskonklusjon følger.
+Målet om punkt 1–6 i docs/NATIVE_V38_EXECUTION_20261005.md er aktivt, ikke fullført.
+CPU_WORKLOAD_PROFILE_003 er fullført med exit 0 og uendret kilde. Ikke relanser
+den. Neste handling krever operatørens valg av CPU-budsjett før ny full benchmark.
 
-CPU_WORKLOAD_PROFILE_001 fullførte målepassene, men sluttpubliseringen feilet:
-Python-heltallsnøkler ble JSON-strengnøkler og strict-load avviste forskjellen.
-Original rød terminal består. Bevarte stagingbytes, logger og profilfiler er
-kontrollert i PUBLICATION_FAILURE_REVIEW; ingen tung jobb ble kjørt om igjen.
-Målt på ekte TRAIN16: 12,25–13,01s uinstrumentert og 25,81–28,13s med
-tracemalloc, altså 1,98–2,27x instrumentkostnad. Alle pass hadde identisk
-batchhash. Dette er småbatchdiagnose, ikke full kapasitet eller samplervalg.
+Målt på ekte, identiske TRAIN16-batcher for alle tre kandidatene:
+uinstrumentert tid er 6,53–7,17s, mot 12,25–13,01s før rettelsen (1,81–1,88x).
+Instrumentert tid er 13,89–15,76s. Alle originale og instrumenterte batchhasher
+er eksakt like. Alle 254 felt, åtte familier og tidsrammer beholdes. Null fits,
+modellforwards, optimizersteg og TEST. Dette er CPU-/batchparitet, ikke læring.
 
-Profilen viser 18884 økonomiprojeksjoner og 113304 array-hasher i første
-16-entry-batch. Minste rettelse i eksisterende eiere beregner samme observerte
-referanseintervall samlet per side i økonomileverandøren, og bruker uendrede
-forseglede/kontrollerte utsnitt per steg. Kanoniske skalarbytes kodes uten ny
-JSONEncoder per skalar. State-view-kilden beholdes byteidentisk til inputautoriteten.
-Alle originale slice-hasher, mål og masker skal forbli identiske; ingen gate
-fjernes. 51 fokuserte syntetiske kontrakttester består; ekte paritet gjenstår.
+Minste rettelse i eksisterende adapter/økonomileverandør gjenbruker ett
+eksplisitt referansevindu per view, lazy etter original state-view sin cutoff-
+og klokkekontroll. Parent og hvert stegutsnitt valideres. State-view-kilden er
+byteidentisk til inputautoriteten; ingen binding/gate omgås eller data refittes.
+51 fokuserte syntetiske tester og obligatoriske commitkontroller består.
 
-CPU_WORKLOAD_PROFILE_002 feilet før første kandidatmåling: den første rettelsen
-endret state-view-kildens hash, som ferdige bindingsartefakter korrekt avviste.
-Feil og rød terminal er bevart. Rettelsen flyttes til eksisterende adapter/
-økonomileverandør; ingen kontroll omgås og ingen ferdige data/fits bygges om.
-Adapteren deklarerer bare eksisterende referansevindu. Beregningen er lazy:
-original state-view eier kontrollerer cutoff før noen økonomiprojeksjon utføres.
+Den uendrede samplereieren tillater 1800 målte CPU-sekunder per full kandidat.
+Lineær fremskrivning fra bare én TRAIN16-batch per kandidat gir omtrent 2,0/
+4,4/9,0 timer instrumentert, samlet15,4 timer uten oppstart. Dette er kun
+planleggingsanslag: ingen konfidensgrense, fullkapasitetsmåling eller
+eligibilitetskonklusjon. CAPACITY_PLANNING_REVIEW skiller dette eksplisitt.
 
-Eksakt neste jobb er CPU_WORKLOAD_PROFILE_003, bundet i NEXT_RUN_POLICY.json.
-Samme genuine TRAIN16-rader og gamle batchhasher må stemme, høyst 144
-materialiseringer. Null fits, forwards, optimizersteg og samplervalg. Kjør bare
-capped producer20G/512M med ren/fryst kilde. Alle kandidat-/tids-/minnegrenser
-beholdes. Ingen tung jobb kjørte ved kontrollen før denne nye bindingen.
+Forslag til operatørvalg: behold alle kvalitets-/maskinvaregrenser, men bind
+én full benchmark med CPU-eligibilitetsgrense3 timer per samplerepoch og total
+hard kjøretid høyst18 timer. Dette er IKKE godkjent eller implementert.
+Alternativet er å beholde30 minutter og avklare videre CPU/designarbeid.
+Ingen automatisk flytting av grenser, ny sampler eller relansering.
 
-Fersk254-felts/åttefamilie konstruktørmetadata er publisert. Native
-initialisering og initialmåling er ikke kjørt. Klargjøringsoperatorene er
-utkast, ikke launchtillatelser. Fullførte inputs/reviews gjenbrukes.
+Resultat/terminal og planleggingsreview er hash-bundet i NEXT_RUN_POLICY.json
+og CURRENT_RESTART_POINT.json. Feil og partiale kjøringer består:
+- Benchmark første oppstart: feil filrolle, stoppet før kandidatmåling.
+- ATTEMPT_002: første kandidat overskred1800s allerede ved1104/8192 Entries;
+  stoppet bevart uten samplervalg. Andre kandidater uundersøkt på den kilden.
+- CPU_WORKLOAD_PROFILE_001: målinger fullført, sluttpublisering feilet på
+  JSON-nøkkeltyper; original rød terminal og verifiserte stagingbytes beholdes.
+- CPU_WORKLOAD_PROFILE_002: inputbundet state-view-kildehash avviste første
+  rettelse før måling; bevart. Rettelsen flyttet til adapter/økonomileverandør.
 
-SAMPLER_BENCHMARK_001s første oppstart stoppet før første kandidatmåling:
-operatoren ga økonomiautoritet i parameterautoritet-feltet. Feil-/terminalbevis
-er bevart i NEXT_RUN_POLICY.json. ATTEMPT_002 retter bare denne filrollen og
-kontrollerer eksisterende kostnadsskjema/policyhash før lasting. Kandidater,
-utvalgsregel, geometri og læringsdesign er uendret. Ingen sampler er valgt.
+Ingen tung/native GX1-jobb kjører ved sluttkontrollen. Ingen sampler er valgt,
+ingen koordinater eller fersk native initialisering/initialmåling er produsert,
+og ingen256-stegs trening er kjørt. Konstruktørmetadata er publisert; dette
+er ikke en initialmåling. Fullførte inputs, normalisering og indeks gjenbrukes.
 
 Authority er /home/andre2/src/GX1_CURRENT på work/gx1-current.
-Les først docs/RESTART_POINT_20261005.md og CURRENT_RESTART_POINT.json.
-
-INDEX_FEATURE_SOURCE_REVIEW_001 er fullført med exit 0 og uendret kilde.
-Den tidligere next_action var foreldet og er rettet. Faktisk indeksbundet
-TRAIN/VAL-innlasting har 254 felt, eksakte klokker, null TEST, null
-modellforwards, null optimizersteg og ingen valgt sampler.
-
-Ingen native GX1-prosess kjørte ved kontrollen. training_enabled=false,
-TEST er forseglet og live/paper, broker, ordre og spending er stengt.
-Læring, generalisering, positiv kostnadsjustert økonomi, paritet og full
-operativ botkvalifisering er ikke bevist.
-
-Verifiser CPU-rettelsens ekte paritet og mål kostnaden før en ny full benchmark
-bindes; samme kandidater,
-geometri, mål og godkjenningsgrenser beholdes. Deretter immutable koordinater,
-fersk nullstegsbaseline og én256-stegs native prøve. Bare bestått Entry/Exit-port
-åpner den betingede, endelige utvidelsen. Ingen omstart av forbrukte planer.
-
-Fullt mål, fremdrift, evidenshasher og videre porter:
-docs/RESTART_POINT_20261005.md.
-
-Historisk status finnes i Git før commitgrunnlaget 90ca4ac4e3a83174d35500c921e82c48c2bbe657.
-Historiske filer skal ikke brukes som startinstruks.
+Les CURRENT_RESTART_POINT.json og docs/RESTART_POINT_20261005.md.
+Global training_enabled=false; TEST, broker, live/paper, ordre og spending
+er stengt. Læring, generalisering, positiv økonomi og paritet for en faktisk
+modell er fortsatt ubevist. Utvidelse av treningsbudsjett er betinget av den
+senere Entry/Exit-læringsporten, ikke denne CPU-kontrollen.

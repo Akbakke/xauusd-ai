@@ -1,11 +1,11 @@
 {
   "schema_version": "gx1_current_restart_point_v1",
-  "observed_utc": "2026-10-05T21:26:50.807251+00:00",
-  "status": "NATIVE_V38_STEPS_1_TO_6_ACTIVE_CPU_CORRECTION_PARITY_PREREGISTERED",
+  "observed_utc": "2026-10-05T22:02:51.460948+00:00",
+  "status": "NATIVE_V38_STEPS_1_TO_6_CPU_PARITY_PASSED_AWAITING_BUDGET_DECISION",
   "authority": {
     "source_repo": "/home/andre2/src/GX1_CURRENT",
     "branch": "work/gx1-current",
-    "source_head_before_documentation_update": "c7a6b1ede664f279c2809675114966e7fee6caf5",
+    "source_head_before_documentation_update": "9ca9153c4244dd47c9bf72fa1fa5bffceb0b6da4",
     "working_tree_clean_before_documentation_update": true,
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
     "mac_copy_is_authority": false
@@ -101,7 +101,26 @@
     "exit_code": 1,
     "before_first_candidate_measurement": true
   },
-  "immediate_next_action": "Execute only bound CPU_WORKLOAD_PROFILE_003 through capped producer to verify the observed CPU correction against identical genuine TRAIN16 hashes from the retained failed-publication review. No sampler selection from this diagnosis. If parity holds, assess measured capacity before binding a full benchmark; candidates, features, targets and caps stay unchanged. Then frozen coordinates, fresh initialization and fixed256 native learning; extension remains conditional on the Entry/Exit gate. No TEST, broker, trading or spending.",
+  "latest_completed_cpu_parity": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_003/RESULT.json",
+      "sha256": "3c1a52e0bac63ed8e21280a5e028c1cdab15a42d9d3a70b16c8ee88e4a7c7bac"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_003/EVENTS/TERMINAL_20261005T215333960639Z.json",
+      "sha256": "6b65f90b16c443ce8f3aa718d8945d667db1e90ef2f0ad921855adda10ac450d"
+    },
+    "capacity_planning_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CPU_WORKLOAD_PROFILE_003/EVENTS/CAPACITY_PLANNING_REVIEW_20261005T220251460948Z.json",
+      "sha256": "7de16e103e9a256673df3ee700055a8442a65c1b34c272f9eaaa756db52302cb"
+    },
+    "exit_code": 0,
+    "full_capacity_measured": false,
+    "sampler_selected": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0
+  },
+  "immediate_next_action": "CPU_WORKLOAD_PROFILE_003 completed with exact original genuine batch parity, exit 0 and unchanged source; do not relaunch it. Review the bound capacity-planning evidence and obtain an explicit operator choice on the unchanged 30-minute sampled-epoch CPU gate before any new full benchmark. Linear small-batch estimates are not full capacity or sampler eligibility. No sampler, native initial measurement or optimizer trial has been completed. Preserve all features, targets and physical guards; TEST, broker, trading and spending remain closed.",
   "next_owner_inputs": {
     "benchmark_script": "gx1/scripts/benchmark_unified_exit_random_access_train_v1.py",
     "candidate_manifest": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/SAMPLER_BENCHMARK_CANDIDATES.json",

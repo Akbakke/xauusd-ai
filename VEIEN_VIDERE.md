@@ -1,4 +1,4 @@
-# Veien videre - oppdatert 05.10.2026
+# Veien videre - oppdatert 06.10.2026
 
 Punkt 1–6 er nå autorisert for faktisk gjennomføring i
 docs/NATIVE_V38_EXECUTION_20261005.md. Benchmarken er forhåndsregistrert;
@@ -9,10 +9,13 @@ og gjennomgått etter en sluttpubliseringsfeil; original rød terminal består.
 CPU_WORKLOAD_PROFILE_002 er bevart som feilet før måling: inputbundet kildehash
 ble korrekt avvist. Original state-view kilde er gjenopprettet byteidentisk;
 økonomileverandøren gjenbruker det eksplisitte referansevinduet i stedet.
-Kjør nå bare CPU_WORKLOAD_PROFILE_003: kontroller den målrettede CPU-rettelsen
-på identiske genuine TRAIN16-batchhasher. Bevar features, mål, bytes og grenser.
-Faktisk full kapasitet og samplervalg er fortsatt ubevist; rettelsen åpner dem
-ikke alene. Deretter full benchmark og den øvrige læringskjeden når portene består.
+CPU_WORKLOAD_PROFILE_003 er fullført med ekte batchparitet og exit0; ikke relanser.
+Målt CPU-tid er rundt1,8x bedre, med alle felt/mål/masker og originale hasher.
+Full kapasitet/samplervalg er ubevist. Avklar operatørens CPU-budsjettvalg før
+en ny full benchmark: gjeldende30min/kandidat er uendret; småbatchfremskrivning
+gir rundt15,4t samlet, ikke målt full kjøretid. Forslag3t/kandidat og maksimalt18t
+for én full benchmark er ikke godkjent eller implementert. Behold alle øvrige
+grenser. Deretter koordinater/fersk nullbaseline/fixed256 når faktiske porter består.
 
 1. Kjør obligatorisk read-only handover og kontroller branch, HEAD, status,
    prosesser, låser og terminalkvitteringer.

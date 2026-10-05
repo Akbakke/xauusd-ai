@@ -110,3 +110,32 @@ TRAIN16-rader/batchhasher er obligatoriske. Plan/operator står i NEXT_RUN_POLIC
 51 fokuserte syntetiske tester består, inklusive alle120×2 byteidentiske
 cacheutsnitt, lazy beregning, avvisning utenfor eksplisitt vindu og reset til
 original usamplet projeksjonsvei. Ekte batchparitet og kapasitet gjenstår.
+
+## Terminal CPU-paritet og gjenstående budsjettvalg — 06.10 lokal tid
+
+CPU_WORKLOAD_PROFILE_003 fullførte med exit0, uendret kilde9ca9153c og alle
+originale genuine batchhasher like i alle tre pass. Resultat/terminal og
+CAPACITY_PLANNING_REVIEW er hash-bundet i NEXT_RUN_POLICY. Ingen relansering.
+
+Målt på én TRAIN16-batch per kandidat: native7,169/6,995/6,526 sekunder og
+instrumentert13,893/15,533/15,758 sekunder for32768/65536/131072 overganger.
+Native forbedring1,81–1,88x; padded inputs79124544 bytes uendret. Null fits,
+forwards, optimizersteg og TEST. Dette er ikke målt full kapasitet eller læring.
+
+Lineær planleggingsfremskrivning gir instrumentert1,98/4,42/8,96 timer per
+full kandidat og15,36 timer samlet uten oppstart. n=16 per kandidat, ingen
+repetisjon/konfidensgrense; geometri/cache/belastning kan variere. Ingen kandidat
+er erklært eligible/ineligible etter denne rettelsen. Gjeldende eier har fortsatt
+1800-sekunders eligibilitycap; ingen ny full plan eller sampler er autorisert.
+
+Før videre utføring må operatøren velge CPU-budsjett. Forslag er3 timer CPU
+per samplerepoch og høyst18 timers total hard wall for én full benchmark,
+med uendrede kandidater, batch16, én full repetisjon, mål, felt, kvalitetsporter
+og maskinvarevakter. Forslaget er IKKE godkjent/implementert og kan ikke gjøre
+småbatch- eller partiale bevis grønne. Alternativet er å beholde30min og
+avklare videre CPU/designarbeid. Ingen stille grenseflytting eller feltkassering.
+
+Målet punkt1–6 er fortsatt aktivt og ufullført: full benchmark, sampler,
+koordinater, fersk native initialmåling,256-stegs prøve og læringsreview gjenstår.
+Den betingede treningsutvidelsen er ikke åpnet. TEST, broker, handel og spending
+forblir stengt. Ingen tung/native jobb kjører ved sluttkontrollen.
