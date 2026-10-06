@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-06T13:09:42Z",
-  "status": "BLOCKED_GC_SOURCE_ACCESS_REQUIRED_ALL_FOUR_STEPS_INCOMPLETE_NO_NATIVE_LAUNCH",
+  "observed_utc": "2026-10-06T19:20:46Z",
+  "status": "BLOCKED_GC_STRATEGY_SOURCE_FREE_SAMPLES_INSPECTED_NO_NATIVE_LAUNCH",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Operator explicitly requested thorough completion of all four GC research steps. Genuine source qualification, causal feature build, matched offline A/B/C and evidence-based extension review are the goal; no step is complete from synthetic tests alone. Offline fits are conditional on qualified actual sources and an exact frozen finite recipe. Current source files and recipe are unbound, so no fit or data fetch is ready. No native launch, TEST, broker, live/paper, orders, spending or unconditional ninth family is opened. Preserve all features and guards.",
-  "next_action": "External input is required: licensed genuine pre-TEST outright GC event BBO/trades with dated mapping/source receipts, or usable entitled provider access configured locally with verified terms/cost. Do not post credential values to chat. Revalidate that actual input/access before resuming all four unchanged steps in dependency order. The same missing-source/access condition persisted for three consecutive goal turns; there is no live CURRENT job to wait on. Do not repeat the empty source audit, substitute an advertised sample for qualification, relaunch consumed ATTEMPT_003, create accounts, accept licenses or incur charges from the goal alone.",
+  "rule": "All four GC research steps remain required and incomplete. Fits need qualified actual GC sources and an exact frozen finite recipe. The operator separately authorized investigation of named free samples only, without subscriptions or charges: the two public Databento/Portara technical samples were fetched and inventoried with immutable receipts; neither qualifies GC strategy data. AlgoSeek US6011 is advertised in the free Q1-2023 full-universe package, but concrete free GC expiry files, quota and demo rights are unverified. No new acquisition, fit, native launch, TEST, broker, live/paper, orders, spending or unconditional ninth family is ready. Preserve every family, period and guard.",
+  "next_action": "Resolve AlgoSeek US6011 entitled GC expiry identifiers/dates, numeric remaining free quota and applicable demo permission for local offline model training/backtest using existing access or operator-provided evidence. Bind a separate exact small free-GC manifest before downloading; never create an account, accept a license, activate even a free subscription or incur overage from this investigation. Public Databento sample is ESZ5 only; Portara is a 5m39s technical gold snippet without aggressor. Do not shrink or move research/test periods to fit either sample, repeat consumed probes or claim any of the four empirical steps complete. Native TEST/launch and paid Databento requests remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -114,7 +114,7 @@
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "BLOCKED_NO_GENUINE_SOURCE_OR_USABLE_ENTITLED_PROVIDER_ACCESS",
+    "status": "BLOCKED_GC_STRATEGY_SOURCE_FREE_SAMPLE_INVENTORY_COMPLETE",
     "goal_execution_requested": true,
     "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig",
     "required_steps": [1, 2, 3, 4],
@@ -126,6 +126,72 @@
     "audit_owner": "gx1.scripts.research_ta_campaign_v1",
     "audit_mode": "audit-gc-source",
     "source_root": "/home/andre2/GX1_DATA/research/GC_ORDER_FLOW_RESEARCH_001",
+    "free_source_investigation": {
+      "probe_id": "GC_FREE_SOURCE_PROBE_20261006_001",
+      "status": "COMPLETE_INVESTIGATION_ONLY_GC_SOURCE_BLOCKED",
+      "scope": "Operator-requested free sample/catalog/rights inspection only; no subscription, charge, fit, TEST, native change or period adjustment.",
+      "manifest": {
+        "path": "configs/research/GC_FREE_SOURCE_PROBE_20261006_001.json",
+        "sha256": "7cbadb871b885335bfdc0a549243dd608f14e2ee1fc64e9b36ad8886d48aa40e"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FREE_SOURCE_PROBE_20261006_001/RESULT_CORRECTED.json",
+        "sha256": "36b67185a225e738d9cbc5bbb85170a656760e6389c13e63421bcf0c98946535"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FREE_SOURCE_PROBE_20261006_001/TERMINAL_CORRECTED.json",
+        "sha256": "7e321d16b1127af79ed92167a4b47ecc7e0d24858894d959eceaf0c45b312678"
+      },
+      "whole_public_files_fetched": 2,
+      "qualified_GC_strategy_days": 0,
+      "algoseek": {
+        "dataset": "US6011",
+        "advertised_free_package": "USD 0 per month; No Download Fees",
+        "advertised_sample_dates": ["2023-01-01", "2023-03-31"],
+        "advertised_universe": "Full Universe",
+        "concrete_free_GC_expiry_identifiers_verified": false,
+        "actual_GC_file_downloads": 0,
+        "actual_GC_trading_day_count_verified": false,
+        "numeric_free_limit_and_remaining_quota_verified": false,
+        "demo_permission_for_local_training_backtest_verified": false,
+        "guest_preview_symbol_and_date": ["ESZ3", "2023-08-02"],
+        "Sandbox_terms_permit_over_quota_egress_compute_storage_costs": true,
+        "new_account_key_subscription_or_license_acceptance": false
+      },
+      "databento_public_CME_MBP1": {
+        "bytes": 350169102,
+        "sha256": "f004bc5d677837e05363fe294384d23723d82e505331325936c8b3144a34b252",
+        "records": 2185295,
+        "entire_file_symbols": ["ESZ5"],
+        "GC_contracts_or_rows": 0,
+        "receive_UTC_date": "2025-09-22",
+        "event_UTC_dates": ["2025-09-21", "2025-09-22"],
+        "last_ts_event_UTC": "2025-09-22T15:59:59.913306999Z",
+        "complete_GC_trading_days": 0,
+        "paid_or_authenticated_API_requests": 0
+      },
+      "portara_technical_sample": {
+        "source_label": "GCE2019V",
+        "bytes": 76200,
+        "sha256": "4a67d7be6634b1884991cb26255192f5b88f117a7234fbaeb4cfe0f15ec6ed34",
+        "records": 1999,
+        "source_date": "2019-08-06",
+        "source_time_window": ["00:00:00.664", "00:05:39.776"],
+        "trades": 11,
+        "bid_updates": 1112,
+        "ask_updates": 876,
+        "equal_adjacent_timestamps": 1249,
+        "backward_adjacent_timestamps": 0,
+        "aggressor_side_present": false,
+        "timezone_sequence_receive_clock_book_reset_and_full_BBO_verified": false,
+        "complete_GC_trading_days_qualified": 0,
+        "profitability_or_aggressor_truth_evidence": false
+      },
+      "consumed_probes_may_be_relaunched": false,
+      "new_source_download_authorized": false,
+      "research_periods_or_native_features_changed": false,
+      "strategy_source_qualified": false
+    },
     "source_access_readiness": {
       "observed_utc": "2026-10-06T12:46:16Z",
       "files_and_credential_presence_revalidated_utc": "2026-10-06T13:09:42Z",

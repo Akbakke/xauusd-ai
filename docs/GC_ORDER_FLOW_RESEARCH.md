@@ -264,7 +264,8 @@ ikke den ønskede GC-aggressorfasiten.
 Fullføres når genuine GC-bytes er tilgjengelige: kildekvittering og mapping,
 kausal klokke/rollover/OANDA-overlap, eksakt frosset A/B/C-kjøreplan,
 primitiver/featureparitet og parvise resultater med usikkerhet/kostnader.
-Det er ikke målt GC-kvalitet, ekstra edge, v38-læring eller lønnsomhet nå.
+Det er ikke etablert GC-kildekvalifisering, ekstra edge, v38-læring eller
+lønnsomhet. Teknisk prøvefilinventar er et eget, svakere bevisnivå.
 
 ## Verifisering av denne leveransen
 
@@ -278,3 +279,66 @@ Målregistreringen la til én fokusert protokollkontroll. 78 GC-/handover-tester
 bestod etter registreringen av de fire trinnene; de eksisterende 48 research-
 testene fra første bølge gjenbrukes fordi audit-/research-koden er byteuendret.
 Dette fullfører målplanens mekanikk, ikke noen av de fire empiriske trinnene.
+
+## Kostnadsfri kildeundersøkelse 06.10.2026
+
+Brukeren bestilte AlgoSeek Sandbox US6011 først, offentlig Databento CME MBP-1
+og Portara GCE2019V som teknisk prøve. Ingen abonnementer, betalt API-jobb,
+konto-/nøkkeloppretting, eksplisitt lisensaksept eller periodeendring.
+Prefetch-manifest: `configs/research/GC_FREE_SOURCE_PROBE_20261006_001.json`.
+Separate eksakte HTTP-planer/kvitteringer ble skrevet før hvert nytt uttak.
+Råbytes ligger bare under DATA; uforanderlige kvitteringer/inventarer under
+RUNS med samme probe-ID. Gjeldende resultat/hash eies av policyen, ikke denne prosaen.
+
+| Kilde | Konkret observert/hentet | GC-dager og mangler |
+| --- | --- | --- |
+| [AlgoSeek demo](https://sandbox.algoseek.com/data-packages/demo), US6011 | Gjestekatalog: USD 0/måned, januar–mars 2023, hele symboluniverset; ikke en faktisk GC-nedlasting | Ingen verifisert GC-utløpsliste eller handelsdagtelling. Gjenværende gratisgrense og demoens lokale trenings-/backtestrettigheter uavklart. |
+| [Databento offentlig CME MBP-1](https://databento.com/tick-data) | Hele CSV-filen: 350169102 byte, 2185295 rader, bare ESZ5. Mottak 22.09.2025 UTC kl. 00–16; første event er rett før midnatt 21.09. | 0 GC-kontrakter/rader. Én delvis mottaksdato, ikke to handelsdager eller en hel dag. |
+| [Portara Gold Level-1](https://portaracqg.com/sample-data/), GCE2019V | 76200 byte, 1999 rader, 06.08.2019 kl. 00:00:00.664–00:05:39.776; 11 handler, 1112 bid- og 876 ask-oppdateringer | Én dato med bare 5m39s. Ingen aggressorside, sekvens-/mottaksklokke eller eksplisitt resettfelt; tidssone og native GC-mapping ikke bevist. Kun innlesingstest. |
+
+Databento-fraværet av GC er målt på hele filen, ikke bare et prefiks. Den har
+20 felt med nanosekund-ISO-UTC og desimalpriser; eksisterende GC-audit krever
+heltalls-CSV. Ingen stille konvertering eller antatt formatparitet ble gjort.
+Første prefikslesing stanset på miljøets ISO-parser; samme mottatte prefiks ble
+gjenbrukt med eksplisitt formatkontroll før ny, separat bundet fullfilinspeksjon.
+
+Portara har ingen bakovergående tidsstempler, men 1249 like nabotidsstempler.
+Original filrekkefølge er bevart; uten børssekvens kan den ikke bevises som
+eksakt børsrekkefølge. Alle hendelser er merket regular/normal. Quote-størrelser
+varierer (bid 1–18, ask 1–19); handelsstørrelse er 1 i alle 11 handler.
+T/B/A er hendelsestype, ikke aggressorside. Ingen aggressor er beregnet fra pris
+eller quotes; bokkompletthet er ikke erklært bestått. Dette er ikke økonomibevis.
+
+AlgoSeek-pakken viser «No Download Fees», men Sandbox-vilkårenes §4 begrenser
+uttak til administrerte ruter og gratis kvoter; overskridelser kan gi egress-,
+compute- eller lagringskostnad. Numeriske grenser er ikke synlige/verifisert i
+gjestetilgangen. [Kvotedokumentasjonen](https://algoseek.com/docs/rest-api/intro/check-your-quotas)
+krever kontoens nøkkel for faktiske rettigheter/kvoter; eksempelgrenser er ikke
+denne brukerens kvoter. [Generelle nettsidevilkår](https://algoseek.com/terms-of-use/)
+gir ingen datalisens. [Lisens-FAQ](https://algoseek.com/licensing-faq/) gjelder
+generell internbruk, ikke en verifisert demoavtale. Eierskap til egen modellkode
+i Sandbox-vilkårene er heller ikke bevis for demo-dataenes lokale bruksrett.
+
+US6011s CSV-forhåndsvisning er ESZ3 fra 02.08.2023, ikke GC eller bevis for
+det annonserte Q1-utvalget. [Leverandørens TAQ-format](https://us-futures-market-data-docs.s3.amazonaws.com/algoseek.US.Futures.TAQ.pdf)
+beskriver aggressormerkede handler, ukjent initiator, separate beste bid/ask
+med quantity, tom bok og implied/calculated-hendelser. Tidsformatbeskrivelsene
+spriker mellom millisekunder og nanosekunder; TypeMask omtales både som ubrukt
+og bitmask i samme guide. Flags/type-labels er ikke Databentos normalisering.
+En faktisk GC-fil må derfor kontrollere klokke, like tidsstempler/filrekkefølge,
+resett/transaksjonsgrenser, ukjent aggressor og faktiske quote-størrelser før bruk.
+Ingen AlgoSeek-parser eller featuremotor er bygget på bare disse beskrivelsene.
+
+**Avgrenset konklusjon:** AlgoSeek er den sterkeste nye kandidaten for et større
+gratisutvalg med de dokumenterte feltene. Det er fortsatt ikke hentet/verifisert
+tilstrekkelig lisensavklart GC-historikk med aggressor og komplette BBO-hendelser
+til den uendrede strategitesten. Portara er en konkret teknisk prøve; den offentlige
+Databento MBP-1-prøven løser ikke GC-behovet. Ingen forsknings-/TEST-periode endres
+for disse utvalgene, og ingen av de fire empiriske trinnene merkes fullført.
+
+Prøvefilinventarene er målt på ekte mottatte bytes; AlgoSeek-funnene er
+katalog-/vilkårsevidens. Fokuserte mål-/status-/handover-regresjoner bestod
+under capped audit. JSON/syntaks, manifest-/resultathasher, uendrede kodeeiere,
+lukket trening/TEST og stale-path-søk i de endrede filene er kontrollert.
+Ingen ny parser-/modellkode ble endret. Feil/avbrutte prefiks og den korrigerte
+prisetikettens originalkvitteringer er beholdt uten omskriving eller sletting.

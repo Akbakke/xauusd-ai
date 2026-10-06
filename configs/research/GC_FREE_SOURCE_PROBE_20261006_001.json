@@ -1,0 +1,73 @@
+{
+  "schema": "gx1_public_gc_sample_inspection_manifest_v1",
+  "probe_id": "GC_FREE_SOURCE_PROBE_20261006_001",
+  "parent_research_id": "GC_ORDER_FLOW_RESEARCH_001",
+  "registered_utc": "2026-10-06T19:04:39Z",
+  "source_head_at_registration": "25682614d6c2fffea194523402b60df97588d5b2",
+  "operator_authorization": "Inspect AlgoSeek Sandbox US Futures Trade and Quote first, then the public Databento CME MBP-1 sample and the Portara GCE2019V technical sample. No subscriptions, paid requests, charges or research/test-period changes.",
+  "evidence_scope": "Public source inventory and technical ingestion only. Not source admission, aggressor ground truth, model fitting, economic backtest or profitability evidence.",
+  "source_directory": "/home/andre2/GX1_DATA/research/GC_ORDER_FLOW_RESEARCH_001/GC_FREE_SOURCE_PROBE_20261006_001",
+  "output_directory": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FREE_SOURCE_PROBE_20261006_001",
+  "method": "Unauthenticated HTTPS HEAD then at most one GET per named public sample. No auto-redirect, retries, vendor billing API, SDK, key, account creation, agreement acceptance or alternate endpoint. A returned public redirect requires a separately bound exact destination before following it.",
+  "head_requests_per_source": 1,
+  "get_requests_per_source": 1,
+  "request_timeout_seconds": 30,
+  "download_wall_seconds": 600,
+  "chunk_bytes": 1048576,
+  "maximum_records_per_file": 20000000,
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "test_read_allowed": false,
+  "periods_and_existing_GC_recipe_changed": false,
+  "publish_raw_data_to_git": false,
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "sources": [
+    {
+      "provider": "Databento",
+      "source_id": "PUBLIC_CME_MBP1",
+      "catalog_url": "https://databento.com/tick-data",
+      "url": "https://hist.databento.com/v0/dataset/sample/download/glbx.mdp3/mbp-1?sample_type=futures",
+      "dataset": "GLBX.MDP3",
+      "schema": "mbp-1",
+      "catalog_advertised_size": "350 MB",
+      "maximum_download_bytes": 536870912,
+      "contract_and_date_scope": "Inventory the publicly linked futures sample, not a GC-specific paid request. Contracts and dates must be measured in received bytes; a header must identify pre-TEST dates before GET.",
+      "historical_data_available_free": "Official public unauthenticated sample link; actual HTTP availability not yet measured.",
+      "licensing_scope": "Technical inspection only. No claim that public access grants unrestricted strategy/commercial/redistribution rights. Do not accept an agreement or start a billable job."
+    },
+    {
+      "provider": "PortaraCQG",
+      "source_id": "PORTARA_GCE2019V",
+      "catalog_url": "https://portaracqg.com/sample-data/",
+      "url": "https://portaradownloadersampledata.s3.amazonaws.com/PortaraCQG%20Sample%20Data/GCE2019V.txt",
+      "symbol_from_catalog": "GCE2019V",
+      "maximum_download_bytes": 33554432,
+      "contract_and_date_scope": "Named 2019 gold Level-1 snippet. File dates, rows and event labels must be measured; no asserted native GC identifier mapping.",
+      "historical_data_available_free": "Official freely linked technical sample; actual HTTP availability not yet measured.",
+      "licensing_scope": "Only the explicitly requested technical ingestion inspection. Never profit evidence or truth for aggressor classification."
+    }
+  ],
+  "algoseek": {
+    "dataset_id": "US6011",
+    "catalog_url": "https://sandbox.algoseek.com/datasets/futures/fut_taq",
+    "advertised_sample_start": "2023-01-01",
+    "advertised_sample_end": "2023-03-31",
+    "advertised_sample_universe": "Full universe of symbols",
+    "observed_preview_symbol": "ESZ3",
+    "observed_preview_date": "2023-08-02",
+    "preview_is_proof_of_free_GC_contracts": false,
+    "download_allowed_by_this_manifest": false,
+    "required_before_separate_small_download_manifest": [
+      "Concrete entitled GC expiry-contract identifier and date",
+      "Numeric free download allowance and current remaining quota; no overage charge",
+      "Applicable demo rights permitting the intended local offline training/backtest",
+      "Exact managed download route and finite file/byte scope"
+    ]
+  },
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "9006ade60f7e09e29c1899b7fdd67feef60ad472bd37ce1afa8e01656324348d",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "scripts/gx1_capped_run.sh": "a85bf761e3607ead54dd806b4cf581febaeeeca5801e3060ffc1e76a289d5f3d"
+  }
+}

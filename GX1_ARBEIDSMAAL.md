@@ -25,6 +25,12 @@ av NEXT_RUN_POLICY.json/current_work.gc_goal_progress; se også
 docs/GC_ORDER_FLOW_RESEARCH.md. Første avhengighet er genuine GC-kildefiler
 eller brukbar dataleverandørtilgang med avklarte vilkår. Kildeaudit er
 implementert, men ingen av de fire empiriske trinnene er fullført.
+Seneste presisering åpner bare en manifestbundet, kostnadsfri undersøkelse av
+AlgoSeek US6011, offentlig Databento CME MBP-1 og Portaras GCE2019V til teknisk
+innlesing. Ingen abonnementer/belastninger eller endrede forskningsperioder.
+Annonsert univers/historikk er ikke verifiserte GC-kontrakter/handelsdager eller
+demoens bruksrett; Portara er aldri profittbevis eller aggressorfasit.
+
 Historisk måling er TRAIN-fit → senere utviklings-VAL/backtest → særskilt åpnet,
 uberørt slutt-TEST etter frosset valg. «ALT» gjelder featurefamilier, ikke
 innblanding av VAL/TEST i fit. Full-native Entry/Exit-evidens er et eget

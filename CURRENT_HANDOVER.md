@@ -7,6 +7,33 @@ Den tidligere repo-oppryddingen er fullført.
 
 ## Nåstatus
 
+Seneste brukerpresisering bestilte en kostnadsfri kildeundersøkelse:
+AlgoSeek Sandbox US6011 først, deretter offentlig Databento CME MBP-1 og
+Portara GCE2019V kun for teknisk innlesing. Ingen abonnementer eller belastninger.
+Resultatet og alle kvitteringer er bundet i policyens free_source_investigation;
+det er ikke en erstatning for de fire empiriske trinnene.
+
+AlgoSeeks gjestekatalog viser US6011 i pakken til USD 0/måned, med januar–mars
+2023 og hele symboluniverset. Konkrete gratis GC-utløpsfiler, handelsdagantall,
+kontokvote og demoens lokale trenings-/backtestrettigheter er ikke verifisert.
+Pakkens «No Download Fees» overstyrer ikke Sandbox-vilkårenes §4 om kvoter og
+mulig overforbruksgebyr. Ingen AlgoSeek-GC-fil er hentet; ESZ3-forhåndsvisningen
+fra august 2023 er ikke bevis for gratis GC. Ingen konto, nøkkel, abonnement
+eller eksplisitt lisensaksept er opprettet. Målrettet plugin-søk ga ingen
+AlgoSeek-kobling; kontrollerte miljø-/dotenvflater viste ikke AlgoSeek-nøkkelnavn.
+
+To offentlig lenkede filer er faktisk hentet uten autentisering/betaling,
+hash-bundet og inspisert under capped audit. Hele Databento-filen, 350169102
+byte og 2185295 rader, inneholder bare ESZ5, ingen GC. Mottaksdato er
+22.09.2025 UTC; filen slutter kl. 15:59:59, altså ikke en hel handelsdag.
+Portara har 1999 hendelser, hvorav 11 handler, 1112 bid og 876 ask, fra
+06.08.2019 kl. 00:00:00.664–00:05:39.776 uten bevist tidssone. Ingen
+aggressorside, sekvens-/mottaksklokke eller eksplisitt bokresettfelt finnes;
+den er kun teknisk evidens, ikke profitt-/aggressorfasit. Ingen tilstrekkelig
+GC-strategihistorikk er kvalifisert. Originale prefiks-/feil-/metadatafiler
+er bevart; en feilskrevet prisetikett er korrigert i ny immutabel kvittering.
+Ingen forskningsperiode, native kode, TEST, fit eller backtest ble endret/åpnet.
+
 Alle fire trinn og deres ferdigkriterier er registrert i den eksisterende
 GC-protokollen. NEXT_RUN_POLICY/current_work.gc_goal_progress er eneste
 fremdriftsstatus. Ingen trinn er merket fullført uten genuine bevis.
@@ -23,7 +50,7 @@ lagringssteder. DATABENTO_API_KEY var ikke deklarert i CURRENTs .env eller
 Windows-prosessmiljøet og var ikke satt i WSL-prosessmiljøet. Bare nøkkelnavn/
 tilstedeværelse ble kontrollert; ingen verdi ble skrevet ut. Ingen tilgjengelig
 markedsdatakobling ble funnet i verktøyoversikten. Ingen vendor-API, kjøp,
-lisensaksept eller ny datanedlasting ble utført.
+lisensaksept eller ny datanedlasting ble utført i disse tidligere kontrollene.
 Videre kontroller dekket avgrensede Windows-filnavn, målrettet plugin-søk og
 offisiell CME-prøve-/tilgangsmetadata. En annonsert gullprøve fra 02.01.2020
 er ikke lastet ned, lisensavklart eller kvalifisert for A/B/C. Se protokollen
@@ -37,9 +64,10 @@ GC_ORDER_FLOW_RESEARCH_001 har en kildebundet protokoll og implementert lokal
 docs/GC_ORDER_FLOW_RESEARCH.md og configs/research/GC_ORDER_FLOW_RESEARCH_001.json.
 81 fokuserte tester i GC-kilde-/eksisterende research-eier bestod under capped
 audit. Syntetiske fixtures beviser mekanikk, ikke GC-kvalitet eller tradingverdi.
-Ingen genuine GC-fil er bundet. Den tomme kildeplanen rapporterer
+Ingen fil er bundet til selve GC-strategitesten. Den tomme kildeplanen rapporterer
 BLOCKED_NO_BOUND_GC_FILES, ikke godkjent dekning. Ingen empirisk A/B/C,
-ny datahenting, native endring, trening eller indikatorfjerning er gjennomført.
+native endring, trening eller indikatorfjerning er gjennomført. Den separate
+gratisprøveinspeksjonen beskrevet over gir ingen slik adgang.
 En eventuell niende spesialist er ikke vedtatt; dagens åtte bevares.
 
 Siste native terminal er bevart nedenfor og er ikke en GC-resultatkvittering.
@@ -96,7 +124,10 @@ rollover og OANDA-overlap; lås samme rader/targets/kostnader og konkret A/B/C-
 recipe før en empirisk fit. C−B er primærtesten, B−A priskontrollen.
 Bestillingen dekker en avgrenset offline forskningsfit etter kvalifiserte kilder
 og eksakt frosset recipe, men dagens tomme plan er ingen fit-/fetch-autoritet.
-Kildehenting er ikke klar; spending og konto-/lisensaksept er fortsatt stengt.
+Strategikildehenting er ikke klar; de særskilt bestilte offentlige gratisprøvene
+er konsumert og kan ikke relanseres. Før et lite AlgoSeek-GC-uttak kreves
+konkret gratis GC-identitet/dato, aktuell kvote, demoens tillatte lokale
+testbruk og et nytt eksakt manifest. Spending og konto-/lisensaksept er stengt.
 Gjenoppta først når den dokumenterte eksterne kilde-/tilgangsavhengigheten
 er løst og kontrollert; flere tomme audits eller nye stubs er ikke fremdrift.
 Absorption/profilinteraksjoner og indikatorablasjoner følger først senere.
