@@ -19,7 +19,8 @@ Dette er ikke en påstand om manuell linje-for-linje-kvalitetsrevisjon av 323500
 
 - Statusleseren lette etter native modellprosesser, men overså den faktisk
   aktive eksterne CPU-benchmarkoperatoren. Den observerer nå alle Python-jobber
-  med eksakt CURRENT-interpreter og verifisert cwd, uten egen prosess.
+  med CURRENT-interpreter og verifisert cwd, uten egen prosess. Både absolutt
+  og relativ .venv/bin/python-invokasjon fra eksisterende capped-runner er dekket.
   Prosess-exit mellom ps og /proc behandles som normal race.
 - Doble statusfiler kunne vise gamle «aktive» sesjoner/checkpoints og gamle
   inputbredder. NEXT_RUN_POLICY/current_work er nå eneste arbeidsstatuseier.
@@ -65,7 +66,7 @@ kan fjernes etter eksakt repoavgrensning; hemmeligheter og miljøet bevares.
 
 - Filer: 842 → 635, netto 207 færre (24,58 %).
 - Markdown: 136 → 20, 85,29 % færre.
-- Python: 590 → 579; linjer 323500 → 320758.
+- Python: 590 → 579; linjer 323500 → 320764.
 - Eksakt slettebølge: 207 foreldede filer / 2434850 bytes; tre eksisterende
   dokumentautoriteter er omdøpt/konsolidert, ikke et nytt historikkarkiv.
 - I tillegg er store status-/designdokumenter forkortet til gjeldende roller.
@@ -100,11 +101,12 @@ kontraktbevis, ikke genuine modell-/økonomiske målinger.
 - 304 bestått: capped execution/run og M1-/Claude-vakter.
 - 327 bestått: signal/feature-layers, modellhandling/sizing, sampler/benchmark,
   state-view/semantiske ruter og retention.
-- 52 bestått etter siste vakt-/statusrettelse: inkluderer seks nye M1-path-cases
+- 54 bestått etter siste vakt-/statusrettelse: inkluderer seks nye M1-path-cases
   og eksplisitt avvisning av gammel native calibration under dagens stop-policy.
+  Alle tre prosess-invokasjonsformer er også kontrollert mot fremmed cwd og exit-race.
   Grupper overlapper; disse tallene skal ikke summeres som unike tester.
 
-Hele testsamlingen på da 6170 cases ble samlet uten importfeil; sju senere
+Hele testsamlingen på da 6170 cases ble samlet uten importfeil; ni senere
 regresjonscases er også samlet og bestått i den siste fokuserte jobben.
 Ingen full suite er kjørt. Ingen manglende statiske lokale gx1-importer,
 Python-syntaksfeil, doble top-level-definisjoner, JSON-parsefeil eller brutte

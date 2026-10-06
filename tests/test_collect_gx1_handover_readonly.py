@@ -111,19 +111,23 @@ def test_symlink_parent_cannot_hide_test_path(tmp_path, kind):
             _repo(str(alias / 'repo'))
 
 
-def test_current_process_observer_includes_external_benchmark_operator(fixture, monkeypatch):
+@pytest.mark.parametrize('invocation', ['absolute', '.venv/bin/python', './.venv/bin/python'])
+def test_current_process_observer_includes_external_benchmark_operator(fixture, monkeypatch, invocation):
     import scripts.collect_gx1_handover_readonly as collector
     repo = fixture
-    prefix = str(repo) + '/.venv/bin/python '
+    prefix = (str(repo / '.venv/bin/python') if invocation == 'absolute' else invocation) + ' '
     snapshot = 'PID PPID ELAPSED PCPU RSS COMMAND\n'
     snapshot += '123 1 00:10 99.0 200 ' + prefix + '/outside/OPERATOR.py measure\n'
     snapshot += '124 1 00:10 99.0 200 /other/.venv/bin/python -m gx1.scripts.some_job\n'
     snapshot += '125 1 00:10 99.0 200 ' + prefix + '/outside/OPERATOR.py run\n'
+    snapshot += '126 1 00:10 99.0 200 ' + prefix + '/outside/OPERATOR.py run\n'
     monkeypatch.setattr(collector.subprocess, 'run', lambda *_a, **_k: subprocess.CompletedProcess([], 0, snapshot))
     monkeypatch.setattr(collector.os, 'getpid', lambda: 999)
     def cwd(path):
         if path == '/proc/125/cwd':
             raise FileNotFoundError(path)
+        if path == '/proc/126/cwd':
+            return '/other'
         return str(repo)
     monkeypatch.setattr(collector.os, 'readlink', cwd)
     processes = collector._current_processes(repo)

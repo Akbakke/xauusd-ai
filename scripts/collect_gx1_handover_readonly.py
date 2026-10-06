@@ -304,7 +304,9 @@ def _current_processes(source: Path) -> list[dict[str, str]]:
         if len(fields) != 6 or not fields[0].isdigit() or int(fields[0]) == os.getpid():
             continue
         command = fields[5]
-        if not command.startswith(str(source) + "/.venv/bin/python "):
+        program = command.split(maxsplit=1)[0]
+        if program not in (str(source / ".venv/bin/python"),
+                           ".venv/bin/python", "./.venv/bin/python"):
             continue
         # A process may exit between the ps snapshot and the cwd read.
         try:
