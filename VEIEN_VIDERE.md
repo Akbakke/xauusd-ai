@@ -30,6 +30,9 @@ leverandørtilgang: avgrenset DATA/RUNS-inventar fant ingen kandidat og ingen
 DATABENTO_API_KEY ble funnet i de kontrollerte miljø-/konfigurasjonsflatene.
 Ikke relanser tom kildeplan som gjentatt framdrift. Ingen konto/lisens/kjøp
 opprettes av målet alene. Nye resultater publiseres immutabelt og gjenbrukes.
+Ved blokkert mål: gjenoppta alle fire uendrede trinn etter at genuine filer
+eller faktisk leverandørtilgang foreligger og er kontrollert. Delvis kode og
+mekanikk-PASS kan ikke erstatte manglende markedsdata eller empiriske resultater.
 
 Repo-oppryddingen etter operatørens benchmarkstopp er fullført og verifisert;
 eksakte bevis står i docs/REPO_REVIEW.md. Ingen ny benchmark eller native

@@ -4,7 +4,7 @@ Målet er robuste, lærte XAUUSD Entry/Exit-beslutninger og positiv
 kostnadsjustert økonomi. Ingen slik konklusjon er etablert for dagens v38-oppsett.
 
 Aktuelt brukeroppdrag 06.10.2026: «Flott, fullfør dette målet med å legge inn
-disse 4 punktene. Vi skal gjøre dette grundig». Det aktive arbeidsmålet dekker:
+disse 4 punktene. Vi skal gjøre dette grundig». Arbeidsmålet dekker:
 
 1. Kvalifiser ekte, lisensavklarte pre-TEST GC-data med aggressor-side,
    event-BBO, tidssemantikk, dekning og kontraktmapping.

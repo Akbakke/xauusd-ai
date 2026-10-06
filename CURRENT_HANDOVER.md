@@ -1,7 +1,7 @@
 # Gjeldende overlevering — 06.10.2026
 
 Gjeldende bestilling: «Flott, fullfør dette målet med å legge inn disse 4
-punktene. Vi skal gjøre dette grundig». Et aktivt mål dekker kildekvalifisering,
+punktene. Vi skal gjøre dette grundig». Målet dekker kildekvalifisering,
 kausale features, matched A/B/C og evidensbasert LOCATION × FLOW × STATE-review.
 Den tidligere repo-oppryddingen er fullført.
 
@@ -10,6 +10,13 @@ Den tidligere repo-oppryddingen er fullført.
 Alle fire trinn og deres ferdigkriterier er registrert i den eksisterende
 GC-protokollen. NEXT_RUN_POLICY/current_work.gc_goal_progress er eneste
 fremdriftsstatus. Ingen trinn er merket fullført uten genuine bevis.
+Blokkeringsrevisjonen 13:09 UTC bekreftet samme manglende genuine GC-kilde/
+brukbare leverandørtilgang i tredje påfølgende målomgang. Kildeplanen har
+fortsatt null bundne filer; nytt avgrenset inventar og nøkkelnavnsjekk ga ingen
+input/tilgang. Handover viste ren kilde og ingen live CURRENT-jobb å vente på.
+Alle fire trinn er ufullførte. Videre empirisk arbeid krever lisensierte
+pre-TEST GC-filer eller faktisk brukbar leverandørtilgang konfigurert lokalt;
+ingen hemmeligheter skal sendes i chat. Omfang og ferdigkriterier er uendret.
 Ved overtakelsen 12:46 UTC ble ingen GC-/DBN-/flow-fil funnet i et avgrenset
 filnavnsøk i DATA/RUNS uten TEST/SOURCE_CHUNKS; det dekker ikke alle mulige
 lagringssteder. DATABENTO_API_KEY var ikke deklarert i CURRENTs .env eller
@@ -90,6 +97,8 @@ recipe før en empirisk fit. C−B er primærtesten, B−A priskontrollen.
 Bestillingen dekker en avgrenset offline forskningsfit etter kvalifiserte kilder
 og eksakt frosset recipe, men dagens tomme plan er ingen fit-/fetch-autoritet.
 Kildehenting er ikke klar; spending og konto-/lisensaksept er fortsatt stengt.
+Gjenoppta først når den dokumenterte eksterne kilde-/tilgangsavhengigheten
+er løst og kontrollert; flere tomme audits eller nye stubs er ikke fremdrift.
 Absorption/profilinteraksjoner og indikatorablasjoner følger først senere.
 Ingen benchmark eller native trening følger automatisk av GC-oppdraget.
 Punktene 1–6 i docs/NATIVE_LEARNING.md gjenstår; en senere gjenopptakelse krever

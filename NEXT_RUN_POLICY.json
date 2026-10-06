@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-06T13:04:51Z",
-  "status": "GC_SOURCE_ACCESS_ALTERNATIVES_AUDITED_GENUINE_INPUT_REQUIRED_NO_NATIVE_LAUNCH",
+  "observed_utc": "2026-10-06T13:09:42Z",
+  "status": "BLOCKED_GC_SOURCE_ACCESS_REQUIRED_ALL_FOUR_STEPS_INCOMPLETE_NO_NATIVE_LAUNCH",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator explicitly requested thorough completion of all four GC research steps. Genuine source qualification, causal feature build, matched offline A/B/C and evidence-based extension review are the goal; no step is complete from synthetic tests alone. Offline fits are conditional on qualified actual sources and an exact frozen finite recipe. Current source files and recipe are unbound, so no fit or data fetch is ready. No native launch, TEST, broker, live/paper, orders, spending or unconditional ninth family is opened. Preserve all features and guards.",
-  "next_action": "Resolve the first concrete dependency: licensed genuine pre-TEST GC files with event BBO/aggressors and receipts, or usable provider access with verified entitlement/cost. Bounded storage/key checks and targeted plugin-directory searches did not find that input/access. CME advertises a one-day Gold sample in FIX (MDP 3.0); its bytes, exact link and usage entitlement are not verified, its format is not the admitted vendor CSV, and it does not establish adequate OOS support. Do not substitute a sample advertisement for qualification or repeat the empty audit. Then complete steps 1–4 in dependency order using hash-bound inputs, exact recipe and genuine evidence. Do not relaunch consumed ATTEMPT_003, create accounts, accept licenses or incur charges from the goal alone.",
+  "next_action": "External input is required: licensed genuine pre-TEST outright GC event BBO/trades with dated mapping/source receipts, or usable entitled provider access configured locally with verified terms/cost. Do not post credential values to chat. Revalidate that actual input/access before resuming all four unchanged steps in dependency order. The same missing-source/access condition persisted for three consecutive goal turns; there is no live CURRENT job to wait on. Do not repeat the empty source audit, substitute an advertised sample for qualification, relaunch consumed ATTEMPT_003, create accounts, accept licenses or incur charges from the goal alone.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,13 +76,17 @@
     ],
     "gc_goal_dependency_audit": {
       "blocker_id": "LICENSED_GC_SOURCE_OR_ENTITLED_PROVIDER_ACCESS_REQUIRED",
-      "consecutive_goal_turns_observed": 2,
-      "observed_utc": "2026-10-06T13:04:51Z",
-      "new_checks_this_turn": ["targeted_plugin_directory_search", "bounded_windows_filename_inventory", "official_CME_public_sample_and_access_metadata_review"],
+      "consecutive_goal_turns_observed": 3,
+      "observed_utc": "2026-10-06T13:09:42Z",
+      "previous_goal_turn_classification": "progress",
+      "previous_goal_turn_evidence": "fd4cd3e56f089d02fa0cdd766189ca4f73dc53c3 documented targeted plugin searches, bounded Windows inventory and official alternative-source metadata; none established usable genuine input/access.",
+      "new_checks_this_turn": ["clean_canonical_source_and_explicit_terminal_revalidation", "no_live_CURRENT_job_observed", "bounded_DATA_RUNS_and_Windows_filename_inventory_revalidation", "declared_provider_credential_presence_revalidation", "zero_bound_source_files_revalidated"],
       "genuine_source_or_access_obtained": false,
       "empirical_work_can_continue_without_external_input": false,
+      "live_CURRENT_job_to_wait_on": false,
+      "blocked_audit_passed": true,
       "goal_marked_complete": false,
-      "goal_marked_blocked": false,
+      "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
     "latest_terminal_role": "Preserved terminal of the interrupted native sampler benchmark; not a GC quality or A/B/C result.",
@@ -110,7 +114,7 @@
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "SOURCE_ACCESS_ALTERNATIVES_CHECKED_NO_GENUINE_INPUT",
+    "status": "BLOCKED_NO_GENUINE_SOURCE_OR_USABLE_ENTITLED_PROVIDER_ACCESS",
     "goal_execution_requested": true,
     "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig",
     "required_steps": [1, 2, 3, 4],
@@ -124,6 +128,7 @@
     "source_root": "/home/andre2/GX1_DATA/research/GC_ORDER_FLOW_RESEARCH_001",
     "source_access_readiness": {
       "observed_utc": "2026-10-06T12:46:16Z",
+      "files_and_credential_presence_revalidated_utc": "2026-10-06T13:09:42Z",
       "evidence_class": "observed_access_metadata_not_market_data",
       "filename_inventory_roots": ["/home/andre2/GX1_DATA", "/home/andre2/GX1_RUNS"],
       "filename_inventory_excludes_TEST_and_SOURCE_CHUNKS": true,
