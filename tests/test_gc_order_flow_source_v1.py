@@ -192,3 +192,33 @@ def test_shared_json_writer_never_overwrites_existing_evidence(tmp_path):
     with pytest.raises(RuntimeError, match="OUTPUT_EXISTS"):
         ta.write_json(path, {"second": True})
     assert path.read_bytes() == before
+
+
+def test_registered_goal_covers_four_ordered_steps_without_claiming_completion():
+    root = Path(__file__).resolve().parents[1]
+    spec = json.loads((root / "configs/research/GC_ORDER_FLOW_RESEARCH_001.json").read_text())
+    policy = json.loads((root / "NEXT_RUN_POLICY.json").read_text())
+    packages = spec["work_packages"]
+    progress = policy["current_work"]["gc_goal_progress"]
+    assert [item["step"] for item in packages] == [1, 2, 3, 4]
+    assert [item["depends_on"] for item in packages] == [[], [1], [2], [3]]
+    assert all(item["completion_requires"] for item in packages)
+    assert [item["step"] for item in progress] == [item["step"] for item in packages]
+    assert spec["goal_completion"]["requires_all_four_steps_and_hash_bound_genuine_evidence"] is True
+    assert packages[0]["structural_audit_alone_completes_step"] is False
+    assert packages[1]["synthetic_tests_alone_complete_step"] is False
+    assert packages[3]["ninth_specialist_required_regardless_of_evidence"] is False
+    research = policy["gc_order_flow_research_20261006"]
+    assert research["required_steps"] == [item["step"] for item in packages]
+    if research["source_qualified"] is False:
+        assert all(item["completed"] is False for item in progress)
+    for item in progress:
+        if item["completed"]:
+            assert item["genuine_evidence"]
+    assert spec["scope"]["spending"] is False
+    assert spec["scope"]["native_training"] is False
+    assert spec["scope"]["test_access"] is False
+    validation = spec["historical_validation_design"]
+    assert validation["all_agreed_feature_families_not_all_time_splits_in_training"] is True
+    assert set(validation["evidence_levels"]) == {"snapshot_research", "native_v38", "final_TEST"}
+    assert validation["backtest_requirements"]

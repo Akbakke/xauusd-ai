@@ -1,10 +1,25 @@
 # Gjeldende overlevering — 06.10.2026
 
-Gjeldende bestilling: «Ja, gjør dette» om en avgrenset GC-order-flow-test etter
-agentutkastet. Kildekvalitet og baseline → GC-pris → ekte flow kommer før full
-pakke eller indikatorfjerning. Den tidligere repo-oppryddingen er fullført.
+Gjeldende bestilling: «Flott, fullfør dette målet med å legge inn disse 4
+punktene. Vi skal gjøre dette grundig». Et aktivt mål dekker kildekvalifisering,
+kausale features, matched A/B/C og evidensbasert LOCATION × FLOW × STATE-review.
+Den tidligere repo-oppryddingen er fullført.
 
 ## Nåstatus
+
+Alle fire trinn og deres ferdigkriterier er registrert i den eksisterende
+GC-protokollen. NEXT_RUN_POLICY/current_work.gc_goal_progress er eneste
+fremdriftsstatus. Ingen trinn er merket fullført uten genuine bevis.
+Ved overtakelsen 12:46 UTC ble ingen GC-/DBN-/flow-fil funnet i et avgrenset
+filnavnsøk i DATA/RUNS uten TEST/SOURCE_CHUNKS; det dekker ikke alle mulige
+lagringssteder. DATABENTO_API_KEY var ikke deklarert i CURRENTs .env eller
+Windows-prosessmiljøet og var ikke satt i WSL-prosessmiljøet. Bare nøkkelnavn/
+tilstedeværelse ble kontrollert; ingen verdi ble skrevet ut. Ingen tilgjengelig
+markedsdatakobling ble funnet i verktøyoversikten. Ingen vendor-API, kjøp,
+lisensaksept eller ny datanedlasting ble utført.
+Brukeren har presisert historisk TRAIN/VAL/TEST og backtest med alle avtalte
+features. Dette er dokumentert i protokollen som adskilte tidsperioder og
+bevisnivåer; ingen native launch eller TEST-åpning følger av presiseringen.
 
 GC_ORDER_FLOW_RESEARCH_001 har en kildebundet protokoll og implementert lokal
 `audit-gc-source` hos eksisterende research-eier. Se
@@ -68,7 +83,9 @@ Bind ekte outright-GC-kildefiler, kvitteringer, identitetsmapping, tidsintervall
 lisens og kostnadsestimat før kildeauditen. Kvalifiser så kausal klokke,
 rollover og OANDA-overlap; lås samme rader/targets/kostnader og konkret A/B/C-
 recipe før en empirisk fit. C−B er primærtesten, B−A priskontrollen.
-Kildehenting/spending og forskningsfit er ennå ikke åpnet av kildeplanen.
+Bestillingen dekker en avgrenset offline forskningsfit etter kvalifiserte kilder
+og eksakt frosset recipe, men dagens tomme plan er ingen fit-/fetch-autoritet.
+Kildehenting er ikke klar; spending og konto-/lisensaksept er fortsatt stengt.
 Absorption/profilinteraksjoner og indikatorablasjoner følger først senere.
 Ingen benchmark eller native trening følger automatisk av GC-oppdraget.
 Punktene 1–6 i docs/NATIVE_LEARNING.md gjenstår; en senere gjenopptakelse krever

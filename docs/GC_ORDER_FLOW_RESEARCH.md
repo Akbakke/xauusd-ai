@@ -5,6 +5,26 @@ agentutkastet: kvalitetssjekk ekte GC-data, sammenlign baseline / GC-pris /
 ekte flow, og vurder senere LOCATION × FLOW × STATE og kontrollerte ablasjoner.
 Forsknings-ID: GC_ORDER_FLOW_RESEARCH_001.
 
+## Aktivt mål og fire ferdigkriterier
+
+Oppfølgende bestilling: «Flott, fullfør dette målet med å legge inn disse 4
+punktene. Vi skal gjøre dette grundig». Alle fire arbeidspakker er lagt til i
+den eksisterende protokollen, med eksplisitte avhengigheter og ferdigkriterier.
+Aktiv status eies bare av NEXT_RUN_POLICY/current_work.gc_goal_progress.
+
+| Trinn | Nødvendig leveranse før trinnet er fullført |
+| --- | --- |
+| 1. Kildekvalifisering | Ekte, lisensavklarte bytes/kvitteringer; datert identitetsmapping; aggressor-/BBO-/klokkesemantikk; målt dekning/kvalitetsbeslutning og OANDA-overlap. |
+| 2. Kausale features | Frosne felt/formler/enheter; tilgjengelighet og rollover; prefix-/framtidsmutasjonskontroller; paritet målt på genuine kvalifiserte rader. |
+| 3. Matched A/B/C | Frosset recipe/populasjon før fit; faktiske identiske rader/kostnader; kronologisk kontroll; parvis C−B/B−A med støtte, usikkerhet og kostnadsfølsomhet. |
+| 4. Evidensbasert viderevalg | Resultat-/LFS-review og eksplisitt begrunnet valg av eksisterende flow-eier, foreslått niende spesialist eller ingen utvidelse; ingen automatisk native innføring. |
+
+Målet er ikke fullført bare fordi planen eller auditen finnes. Ukjent tilgang,
+ekstra edge eller dårlig støtte kan ikke fylles med syntetiske data eller
+gunstige antakelser. En negativ eller inkonklusiv empirisk konklusjon skal
+rapporteres ærlig; den er ingen grunn til å installere en niende familie.
+Nødvendige videre tester bindes før gjennomføring og holdes avgrenset.
+
 ## Gjennomførbar grense nå
 
 Kildekontroll er implementert som `audit-gc-source` i den eksisterende eieren
@@ -26,12 +46,29 @@ standardbiblioteket og eksisterende research-eier, så ny SDK er ikke nødvendig
 CLI-en returnerer exit 2 / BLOCKED_NO_BOUND_GC_FILES og lager ingen falsk
 kvalitetsrapport eller outputmappe. Empirisk A/B/C er ennå ikke gjennomført.
 
+Ved målregistreringen 12:46 UTC ble kilde-/tilgangsgrensen kontrollert igjen:
+ingen matchende filnavn i det avgrensede DATA/RUNS-søket, ingen deklarert
+DATABENTO_API_KEY i CURRENTs .env/Windows-prosessmiljø, ingen ikke-tom nøkkel
+i WSL-prosessmiljø, ingen installert Databento-SDK og ingen tilgjengelig
+markedsdatakobling i verktøyoversikten. Dette er tilgangsmetadata, ikke
+markedsdatakvalifisering, og ikke bevis for alle kontoer eller lagringssteder.
+Bare nøkkelnavn/tilstedeværelse ble lest ut. Ingen vendor-API, konto, lisens
+eller kjøp ble opprettet. GC-files/brukbar leverandørtilgang er nå den konkrete
+eksterne avhengigheten for første trinn.
+
 ## 1. Kilde og kvalitet før modellforsøk
 
 Databento GLBX.MDP3 er en kandidat, ikke en valgt/kjøpt datatjeneste. Bestill
 først en avgrenset historisk prøve når faktisk lisens, prisestimat, kontrakt,
 periode og leveringsformat er kjent. Kjøps-/nedlastingsruten er ikke implementert
 av denne bølgen. Ingen full historikk eller MBO følger automatisk.
+
+Providerens dokumentasjon skiller gratis metadata/symbologi fra fakturert
+timeseriedata og tilbyr get_cost før datakall. Den krever likevel en API-nøkkel.
+En offentlig prøve-/kredittbeskrivelse beviser ikke at denne brukeren har
+lisens, kredittramme eller gratis dekning for den ønskede perioden. Bind faktisk
+konto-/lisensstatus og estimat, ikke et gjettet prisbeløp. Ingen konto opprettes,
+vilkår aksepteres eller betalt/kredittbelastet nedlasting startes automatisk.
 
 Minimum for delta er `trades` med dokumentert aggressor-side. TBBO legger til
 BBO rett før hver handel. OFI trenger ordrebokendringene mellom handler;
@@ -77,7 +114,28 @@ dagens mest omsatte kontrakt med samme dags framtidige sluttvolum. Ingen
 backadjustert GC-pris skal brukes til spot/futures-basis. Reset CVD/profil/
 ordrebok ved kontraktskifte; ikke bland kontrakter i samme footprint.
 
-## 2. Hva A/B/C skal måle
+## 2. Kausale features og synkronisering mot OANDA
+
+Første kandidater er signed delta/totalvolum, kjent aggressorvolumandel,
+kort kausal CVD-endring og standard top-of-book OFI skalert med deklarert
+book depth. GC-pris/basis bygges separat slik at ekstra prisinformasjon kan
+kontrolleres i arm B. Feltnavn, ordning, enheter, dtype, aggregasjonsvindu og
+normaliseringseier bindes i featurekontrakten før resultater leses.
+
+OFI er pris-/størrelsesendringer i bid/ask, ikke handelsdelta. BBO før/etter
+hendelsen og vendorens event-end/snapshot-flagg må tolkes eksplisitt.
+Ingen observasjon uten kjent, komplett ordrebokprefiks gir oppfunnet null-OFI.
+Ukjent aggressor-side forblir ukjent, med rapportert volumandel.
+Book-/CVD-state resettes ved databrudd, session-/kontraktskifte etter bundne
+regler; warmup eies av formelen. Tilgjengelighetsklokken er ikke ts_event alene.
+
+Test mekanikk for prefix-invarians, framtidsmutasjon, lik mottakstid med
+erklært rekkefølge, snapshots, gap, ukjent side, rollover og splitgrenser.
+Bevis deretter featureparitet på eksakte genuine GC/OANDA-beslutningsrader.
+M5 Entry/M1 Exit og åtte native familier endres ikke av forskningsbyggeren.
+En prøve på toy-data alene fullfører ikke dette trinnet.
+
+## 3. Hva A/B/C skal måle
 
 | Arm | Inputs | Spørsmål |
 | --- | --- | --- |
@@ -104,11 +162,29 @@ omtales som en trent/native v38-baseline eller som ferdig botøkonomi.
 En etterfølgende native A/B/C trenger fersk initialisering, eksisterende
 læringsport og samme komplette baselinearkitektur/recipe i alle armer.
 
-Første kandidater i C er signed delta/totalvolum, kjent aggressorvolumandel,
-kort kausal CVD-endring og standard top-of-book OFI skalert med deklarert
-book depth. OFI-formelen omfatter pris-/størrelsesendringer i bid/ask og er
-en annen størrelse enn delta. Ingen observasjon uten kjent, komplett
-ordrebokprefiks må gi oppfunnet null-OFI. Warmup og reset eies av featureformelen.
+### Historisk TRAIN → VAL → TEST og backtest
+
+Brukerens presisering: «trener med ALT og så kjører en val/test» og backtest
+for å måle hva som fungerer. ALT betyr alle avtalte genuine featurefamilier
+og inputs i den aktuelle armen, ikke alle tidsperioder i treningssettet.
+TRAIN tilpasser modellen og nødvendig preprocessing. Senere utviklings-VAL
+kontrollerer generalisering og dokumenterte valg. En uberørt TEST må først
+åpnes særskilt etter frosset modell/recipe; den kan ikke brukes til tuning.
+Juni 2026 er allerede gjenbrukt utviklings-VAL, ikke en uberørt slutt-test.
+
+Backtest bruker bare informasjon som var tilgjengelig ved hver beslutning,
+samme OANDA bid/ask-/kostnadskontrakter og alle valgte handler/åpne posisjoner.
+Rapporter nettoavkastning, drawdown, handelsstøtte/expectancy, referanser,
+regime-/sesjonssprik og usikkerhet; treffprosent eller TRAIN-fit alene er ikke
+beslutningsgrunnlag. Separate TRAIN-fit-, senere VAL- og slutt-testresultater.
+
+To bevisnivåer må holdes fra hverandre: først matched snapshot-/ridge-forskning
+for inkrementell GC-informasjon, deretter en egen kildebundet native v38-
+validering før innføring kan vurderes. Native bevis omfatter alle genuine
+familier og samme lærte Entry/Exit-bundle, ikke en separat exit eller perfekt
+framtidig exitfasit. Dagens mål åpner ikke native launch eller forseglet TEST.
+Ingen modell-/preprocessing-fit skjer på VAL/TEST; manglende GC-historikk blir
+ikke konstruert som null-flow, og baseline må måles på de samme GC-dekkede radene.
 
 Bruk kronologisk TRAIN og senere utviklingskontroll; purge hvert måldomene
 og all overlappende framtidig utfallsinformasjon. Alle scalere/parametre
@@ -128,7 +204,7 @@ Et positivt punktestimat alene åpner ingen native utvidelse. Økonomitest
 må omfatte alle valgte handler og åpne posisjoner, samlet kapital og
 forhåndsvalgt samme-risiko alltid-LONG/FLAT-referanse.
 
-## 3. LOCATION × FLOW × STATE etter første signalbevis
+## 4. LOCATION × FLOW × STATE etter første signalbevis
 
 LOCATION gjenbruker dagens nivå-/sweep-/retest-/geometrieiere. FLOW gir delta,
 OFI og kausale forhold mellom prisrespons og aggressoraktivitet. STATE bruker
@@ -156,6 +232,8 @@ ingen indikator eller genuine familie fjernes av denne testen.
 - [CME-feedens historiske semantikk](https://databento.com/docs/knowledge-base/datasets)
 - [TradingView footprint-metode](https://www.tradingview.com/support/solutions/43000726164-volume-footprint-charts-a-complete-guide/)
 - [Cont/Kukanov/Stoikov: OFI](https://arxiv.org/abs/1011.6402)
+- [Databento historisk autentisering, metadata og get_cost](https://databento.com/docs/api-reference-historical/metadata/metadata-get-cost)
+- [Databento tilgang og API-nøkkel](https://databento.com/docs/quickstart)
 
 Leverandørbeskrivelsene beviser feltsemantikk, ikke lønnsomhet i GX1.
 OFI-studien gjelder aksjer og er en motivasjon, ikke GC-effektbevis.
@@ -174,3 +252,8 @@ eksisterende capped audit (4 GiB minne, 512 MiB swap, CPU 0–7, én numerisk tr
 Dette er syntetisk mekanikk-/regresjonsbevis, ikke en ekte GC-kvalifisering.
 Endrede Python-filer er syntakskontrollert; kildebindinger, policy og
 gjeldende handover er kontrollert. Native launch/trening/TEST forblir stengt.
+
+Målregistreringen la til én fokusert protokollkontroll. 78 GC-/handover-tester
+bestod etter registreringen av de fire trinnene; de eksisterende 48 research-
+testene fra første bølge gjenbrukes fordi audit-/research-koden er byteuendret.
+Dette fullfører målplanens mekanikk, ikke noen av de fire empiriske trinnene.

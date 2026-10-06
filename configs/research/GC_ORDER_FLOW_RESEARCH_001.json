@@ -5,6 +5,8 @@
   "created_utc": "2026-10-06T10:51:52Z",
   "source_head_at_intake": "75f20e07294ffa7fa16d46b33fb6b9e2a15c9e50",
   "operator_request": "Ja, gjør dette. Avgrenset ekte GC-order-flow-test etter agentutkastet, med kildekvalitet og baseline / GC-pris / ekte flow før full pakke eller indikatorfjerning.",
+  "goal_operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig",
+  "goal_scope_registered_utc": "2026-10-06T12:46:16Z",
   "status": "SOURCE_AUDIT_IMPLEMENTED_GENUINE_GC_INPUTS_REQUIRED",
   "documentation": "docs/GC_ORDER_FLOW_RESEARCH.md",
   "source_root": "/home/andre2/GX1_DATA/research/GC_ORDER_FLOW_RESEARCH_001",
@@ -39,6 +41,91 @@
     "coverage_locked_before_outcomes": true,
     "snapshot_probe_is_not_native_v38_evidence": true,
     "fit_recipe_not_yet_bound": ["cohort_ids", "chronological_folds", "ridge_recipe", "observed_M1_targets", "cost_authorities", "finite_CPU_budget", "paired_inference_and_acceptance_rule"]
+  },
+  "work_packages": [
+    {
+      "step": 1,
+      "name": "QUALIFY_GENUINE_GC_SOURCE",
+      "depends_on": [],
+      "completion_requires": [
+        "genuine_pre_TEST_outright_GC_bytes_and_hash_bound_receipts",
+        "license_and_exact_cost_or_existing_entitlement_verified_before_fetch",
+        "dated_raw_symbol_instrument_publisher_mapping_verified",
+        "observed_aggressors_and_event_BBO_semantics_verified",
+        "coverage_market_closures_gaps_unknown_side_and_vendor_flags_measured",
+        "explicit_quality_disposition_and_causal_OANDA_overlap_bound"
+      ],
+      "structural_audit_alone_completes_step": false
+    },
+    {
+      "step": 2,
+      "name": "BUILD_CAUSAL_FLOW_PRICE_AND_BASIS_FEATURES",
+      "depends_on": [1],
+      "completion_requires": [
+        "ordered_fields_units_dtypes_windows_and_formula_owners_frozen",
+        "availability_clock_and_delivery_lag_bound_at_OANDA_decisions",
+        "outright_rollover_and_book_CVD_warmup_reset_bound",
+        "unknown_aggressors_and_incomplete_books_never_replaced_by_zero_flow",
+        "prefix_future_mutation_split_boundary_and_rollover_mechanics_verified",
+        "feature_parity_measured_on_qualified_genuine_GC_and_OANDA_rows"
+      ],
+      "synthetic_tests_alone_complete_step": false
+    },
+    {
+      "step": 3,
+      "name": "MEASURE_MATCHED_BASELINE_GC_PRICE_AND_FLOW",
+      "depends_on": [2],
+      "completion_requires": [
+        "exact_cohort_folds_targets_learner_recipe_costs_and_finite_budget_bound_before_fit",
+        "identical_A_B_C_rows_clocks_warmup_and_missingness_selection_verified",
+        "TRAIN_only_fit_and_scaling_with_purged_chronological_development_control",
+        "C_minus_B_and_B_minus_A_evaluated_as_one_predeclared_test_family",
+        "paired_uncertainty_support_regime_session_and_cost_sensitivity_reported",
+        "all_selected_trades_open_positions_and_same_risk_references_accounted_for",
+        "actual_immutable_results_with_no_TEST_or_native_v38_learning_claim"
+      ],
+      "positive_point_estimate_alone_completes_step": false
+    },
+    {
+      "step": 4,
+      "name": "REVIEW_LOCATION_FLOW_STATE_AND_CONDITIONAL_EXTENSION",
+      "depends_on": [3],
+      "completion_requires": [
+        "ABC_support_or_rejection_or_inconclusive_disposition_documented",
+        "LOCATION_FLOW_STATE_primitive_ownership_and_causal_interactions_reviewed",
+        "absorption_failed_breakout_and_profiles_only_tested_after_evidence_supported_binding",
+        "explicit_decision_existing_flow_owner_or_proposed_ninth_specialist_or_no_extension",
+        "all_eight_families_single_bundle_and_single_decision_authority_preserved",
+        "indicator_ablation_and_native_adoption_not_inferred_from_research_result"
+      ],
+      "ninth_specialist_required_regardless_of_evidence": false
+    }
+  ],
+  "goal_completion": {
+    "requires_all_four_steps_and_hash_bound_genuine_evidence": true,
+    "missing_source_or_recipe_cannot_be_marked_complete": true,
+    "mechanics_pass_is_not_market_quality_or_trading_edge": true,
+    "supported_negative_or_inconclusive_empirical_result_must_be_reported_honestly": true,
+    "research_completion_is_not_native_or_live_admission": true
+  },
+  "historical_validation_design": {
+    "all_agreed_feature_families_not_all_time_splits_in_training": true,
+    "TRAIN": "Past fit-only rows; learned preprocessing and model parameters fitted here, never on future VAL/TEST.",
+    "development_VAL": "Later chronological control; record every model/recipe choice and purge label overlap. Reused development VAL is not untouched final evidence.",
+    "sealed_TEST": "One untouched final assessment of a frozen model/recipe after explicit admission; no fitting, tuning or repeated winner selection. Current access remains closed.",
+    "backtest_requirements": [
+      "identical_GC_covered_A_B_C_populations_and_execution_clocks",
+      "as_of_features_and_no_future_contract_or_profile_selection",
+      "OANDA_M1_bid_ask_execution_and_bound_spread_slippage_financing_commission",
+      "full_cash_capital_trade_and_open_position_accounting",
+      "net_returns_drawdown_trade_support_expectancy_and_regime_session_breakdowns",
+      "same_risk_always_LONG_FLAT_reference_and_paired_uncertainty"
+    ],
+    "evidence_levels": {
+      "snapshot_research": "Incremental signal/cost probe; not a trained full-native v38 strategy.",
+      "native_v38": "Any adoption claim needs fresh initialization, all genuine families, one learned Entry/Exit bundle, existing learning gates and its own source-bound native plan; not launched by this research goal.",
+      "final_TEST": "Requires explicit unsealing and frozen selection; current TEST authorization is false."
+    }
   },
   "scope": {
     "local_bound_source_audit": true,
