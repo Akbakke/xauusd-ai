@@ -3,7 +3,7 @@ import hashlib
 import json
 import subprocess
 import pytest
-from scripts.collect_gx1_handover_readonly import native_status, next_run_readiness
+from scripts.collect_gx1_handover_readonly import current_status, next_run_readiness
 
 
 def _git(repo, *args):
@@ -12,42 +12,28 @@ def _git(repo, *args):
 
 @pytest.fixture
 def fixture(tmp_path):
-    repo=tmp_path/'repo';repo.mkdir()
-    _git(repo,'init','-q','-b','work/gx1-current')
-    _git(repo,'config','user.name','Fixture');_git(repo,'config','user.email','fixture@example.invalid')
-    (repo/'source.txt').write_text('source\n')
-    _git(repo,'add','.');_git(repo,'commit','-qm','fixture')
-    artifact=tmp_path/'artifact.json';artifact.write_text('{"decision":"COMPLETE_WITH_RIGHT_CENSORING","entry_exit_policy_metrics":{"full_cohort_authoritative":false}}')
-    runtime=tmp_path/'runtime';runtime.mkdir()
-    session=tmp_path/'session';session.mkdir()
-    pointer={'session_contract_sha256':'session-digest','phase':'train','epoch_index':1,'global_optimizer_steps':19908}
-    (session/'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json').write_text(json.dumps(pointer))
-    b={'path':str(artifact),'sha256':hashlib.sha256(artifact.read_bytes()).hexdigest()}
-    binding={'schema_version':'gx1_native_handover_binding_v1','source_repo':str(repo),'source_commit':_git(repo,'rev-parse','HEAD'),
-             'runtime_root':str(runtime),'training_session':str(session),'session_contract_sha256':'session-digest',
-             'immutable_artifacts':{'plan':b},'completed_val_result':b,'observed_stop':{'reason':'user_requested_review'}}
-    path=tmp_path/'COMPLETED_RUN.json';path.write_text(json.dumps(binding))
-    return repo,path,artifact,pointer
-
-
-def test_completed_val_remains_visible_after_pointer_advanced(fixture,monkeypatch):
-    repo,path,artifact,pointer=fixture
-    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes',lambda _:[])
-    out=native_status(path)
-    assert out['checkpoint']==pointer
-    assert out['process_observation']=='NO_NATIVE_PROCESS_OBSERVED'
-    assert out['recorded_operator_stop']['reason']=='user_requested_review'
-    assert out['completed_val']['decision']=='COMPLETE_WITH_RIGHT_CENSORING'
-    assert not out['completed_val']['entry_exit_policy_metrics']['full_cohort_authoritative']
-    assert out['state_payload_rehashed'] is False and out['test_accessed'] is False
-    artifact.write_text('{}')
-    with pytest.raises(ValueError,match='hash mismatch'):native_status(path)
+    repo = tmp_path / 'repo'
+    repo.mkdir()
+    _git(repo, 'init', '-q', '-b', 'work/gx1-current')
+    _git(repo, 'config', 'user.name', 'Fixture')
+    _git(repo, 'config', 'user.email', 'fixture@example.invalid')
+    (repo / 'source.txt').write_text('source\n')
+    _git(repo, 'add', '.')
+    _git(repo, 'commit', '-qm', 'fixture')
+    return repo
 
 
 def _policy(repo):
     source=Path(__file__).resolve().parents[1]
     p=json.loads((source/'NEXT_RUN_POLICY.json').read_text())
     p['canonical_source_repo']=str(repo)
+    terminal = repo.parent / 'terminal.json'
+    terminal.write_text(json.dumps({'exit_code': 1, 'source_unchanged': True, 'test_data_used': False}))
+    p['current_work'] = {
+        'latest_terminal': {'path': str(terminal), 'sha256': hashlib.sha256(terminal.read_bytes()).hexdigest()},
+        'terminal_exit_code': 1, 'source_unchanged_at_terminal': True,
+        'full_benchmark_completed': False, 'sampler_selected': False,
+    }
     p['required_evidence']={role:None for role in ('risk_objective','checkpoint_transition','learning_calibration',
                                                  'gpu_batch256_parity','end_to_end_throughput','resume_equivalence')}
     clock=repo/'clock.ps1';clock.write_text('fixture')
@@ -57,119 +43,96 @@ def _policy(repo):
     return path,p
 
 
-def test_current_work_is_observed_separately_from_completed_run(fixture, monkeypatch):
-    repo, binding, _, old_pointer = fixture
-    current = binding.parent / 'current'; current.mkdir()
-    new_pointer = {'global_optimizer_steps': 5809, 'phase': 'train'}
-    (current/'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json').write_text(json.dumps(new_pointer))
-    status = {'status': 'RECORDED_IDLE', 'source_repo': str(repo),
-              'source_commit': 'training-source', 'session_directory': str(current),
-              'next_action': 'Measure learning before larger training',
-              'learning_gate': {'decision': 'NOT_PROVEN'}}
-    (binding.parent/'RUNNING_NATIVE_CALIBRATION.json').write_text(json.dumps(status))
-    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes',
-                        lambda _: [{'pid': '123'}])
-    out = native_status(binding)
-    assert out['checkpoint'] == old_pointer
-    assert out['current_work']['checkpoint'] == new_pointer
-    assert out['current_work']['recorded_status'] == 'RECORDED_IDLE'
-    assert out['current_work']['process_observation'] == 'RUNNING'
-    assert out['current_work']['observation_is_run_authority'] is False
-    assert out['current_work']['full_epoch_training_allowed'] is False
-    assert out['current_work']['learning_gate']['decision'] == 'NOT_PROVEN'
+def test_current_terminal_replaces_historical_checkpoint_selection(fixture, monkeypatch):
+    repo = fixture
+    _policy(repo)
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    out = current_status(repo)
+    assert out['latest_terminal_receipt']['exit_code'] == 1
+    assert out['process_observation'] == 'NO_CURRENT_PYTHON_WORKLOAD_OBSERVED'
+    assert not out['current_work']['full_benchmark_completed']
+    assert not out['current_work']['sampler_selected']
+    assert 'checkpoint' not in out
+    assert out['test_accessed'] is False and out['state_payload_rehashed'] is False
 
 
-def test_current_work_source_only_does_not_probe_processes_or_checkpoints(fixture, monkeypatch):
-    repo, binding, *_ = fixture
-    (binding.parent/'RUNNING_NATIVE_CALIBRATION.json').write_text(json.dumps({
-        'status': 'RECORDED_IDLE', 'source_repo': str(repo),
-        'session_directory': str(binding.parent/'missing-session')}))
-    def unexpected(_):
-        raise AssertionError('source-only must not inspect native processes')
-    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes', unexpected)
-    out = native_status(binding, source_only=True)
-    assert 'checkpoint' not in out['current_work']
-    assert 'process_observation' not in out['current_work']
-
-
-@pytest.mark.parametrize('scope_kind',['learning','diagnostic','initial','frozen_train_policy'])
-@pytest.mark.parametrize('case',['active','before_first_checkpoint','changed_recipe'])
-def test_current_policy_handover_never_reports_previous_run_checkpoint(fixture,monkeypatch,case,scope_kind):
-    diagnostic = scope_kind in {"diagnostic", "frozen_train_policy"}
-    from scripts.collect_gx1_handover_readonly import _current_work_status
-    repo,binding,*_=fixture
-    run=binding.parent/'CURRENT_RUN';run.mkdir();output=run/'CANDIDATE_BUNDLE'
-    session=run/'.gx1-candidate-training-session.CANDIDATE_BUNDLE';session.mkdir()
-    new={'global_optimizer_steps':128,'phase':'train'}
-    if case!='before_first_checkpoint':
-        (session/'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json').write_text(json.dumps(new))
-    (binding.parent/'RUNNING_NATIVE_CALIBRATION.json').write_text(json.dumps({
-        'status':'RECORDED_BEFORE_START','source_repo':str(repo),'source_commit':'old-source',
-        'session_directory':str(binding.parent/'session'),'next_action':'old note'}))
-    scope={'run_id':run.name,'out_bundle_dir':str(output)}
-    (binding.parent/'NEXT_RUN_POLICY.json').write_text(json.dumps({{'diagnostic':'entry_gradient_diagnostic','learning':'chronological_learning_run','initial':'chronological_initial_measurement','frozen_train_policy':'frozen_train_policy_evaluation'}[scope_kind]:scope}))
-    recipe=run/'recipe.json';recipe.write_text(json.dumps({**scope,'source_repo':str(repo),'source_commit':'current-source'}))
-    (run/'PREPARATION_RESULT.json').write_text(json.dumps({'source_commit':'current-source',
-        'recipe':{'path':str(recipe),'sha256':hashlib.sha256(recipe.read_bytes()).hexdigest()},
-        'runtime_root':str(binding.parent/'runtime')}))
-    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes',lambda _:[{'pid':'780'}])
-    if case=='changed_recipe':
-        recipe.write_text('{}')
-        with pytest.raises(ValueError,match='hash mismatch'):_current_work_status(binding.parent,source_only=False)
+@pytest.mark.parametrize('change', ['bytes', 'state', 'missing'])
+def test_current_terminal_fails_closed(fixture, monkeypatch, change):
+    repo = fixture
+    policy_path, policy = _policy(repo)
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    binding = policy['current_work']['latest_terminal']
+    terminal = Path(binding['path'])
+    if change == 'bytes':
+        terminal.write_text('{}')
+    elif change == 'state':
+        terminal.write_text(json.dumps({'exit_code': 0, 'source_unchanged': True, 'test_data_used': False}))
+        binding['sha256'] = hashlib.sha256(terminal.read_bytes()).hexdigest()
+        policy_path.write_text(json.dumps(policy))
     else:
-        out=_current_work_status(binding.parent,source_only=False)
-        if diagnostic:
-            assert out['checkpoint']['global_optimizer_steps']==19908
-            assert out['checkpoint_selection']=='preserved_training_origin_not_diagnostic_progress'
-            assert out['diagnostic_source_commit']=='current-source'
-            assert out['diagnostic_artifact_root']==str(run)
+        terminal.unlink()
+    with pytest.raises(ValueError):
+        current_status(repo)
+
+
+def test_source_only_never_reads_terminal_or_processes(fixture, monkeypatch):
+    repo = fixture
+    path, policy = _policy(repo)
+    Path(policy['current_work']['latest_terminal']['path']).unlink()
+    def unexpected(_):
+        raise AssertionError('source-only must not inspect workloads')
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', unexpected)
+    out = current_status(repo, source_only=True)
+    assert 'latest_terminal_receipt' not in out
+    assert 'current_processes' not in out
+
+
+def test_current_policy_has_no_historical_fallback(fixture):
+    path, policy = _policy(fixture)
+    policy.pop('current_work')
+    path.write_text(json.dumps(policy))
+    with pytest.raises(ValueError, match='NO_HISTORICAL_FALLBACK'):
+        current_status(fixture, source_only=True)
+
+
+@pytest.mark.parametrize('kind', ['file', 'repo'])
+def test_symlink_parent_cannot_hide_test_path(tmp_path, kind):
+    from scripts.collect_gx1_handover_readonly import _regular_file, _repo
+    sealed = tmp_path / 'TEST'
+    sealed.mkdir()
+    (sealed / 'terminal.json').write_text('{}')
+    (sealed / 'repo').mkdir()
+    alias = tmp_path / 'seemingly-safe'
+    alias.symlink_to(sealed, target_is_directory=True)
+    with pytest.raises(ValueError, match='canonical path'):
+        if kind == 'file':
+            _regular_file(str(alias / 'terminal.json'), label='terminal')
         else:
-            assert out['checkpoint']==(None if case=='before_first_checkpoint' else new)
-            assert out['session_directory']==str(session) and out['training_source_commit']=='current-source'
-        assert out['declared_run_id']=='CURRENT_RUN' and 'do not relaunch' in out['next_action']
+            _repo(str(alias / 'repo'))
 
 
-@pytest.mark.parametrize('latest_key', ['completed_main_encoder_fixed256','completed_entry_fuse_fixed256','completed_convergence512','completed_frozen_train_policy'])
-def test_closed_scope_keeps_latest_terminal_measurement(fixture, monkeypatch, latest_key):
-    from scripts.collect_gx1_handover_readonly import _current_work_status
-    repo, binding, *_ = fixture
-    session = binding.parent / 'completed-main'; session.mkdir()
-    steps = 512 if latest_key in {'completed_convergence512','completed_frozen_train_policy'} else 256
-    pointer = {'global_optimizer_steps': steps, 'phase': 'train'}
-    (session/'CANDIDATE_TRAINING_SESSION_RESUME_POINTER.json').write_text(json.dumps(pointer))
-    receipt = session/'receipt.json'; receipt.write_text('{"guard_decision":"PASS"}')
-    result = session/'result.json'; result.write_text(json.dumps({'optimizer_steps':steps}))
-    def bind(path):
-        return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
-    latest = {'run_id': 'MAIN256', 'receipt': bind(receipt), 'result': bind(result),
-              'learning_review_complete': False}
-    (binding.parent/'NEXT_RUN_POLICY.json').write_text('{"training_enabled":false}')
-    (binding.parent/'RUNNING_NATIVE_CALIBRATION.json').write_text(json.dumps({
-        'status': 'COMPLETE_REVIEW_PENDING', 'source_repo': str(repo),
-        'source_commit': 'training-source', 'session_directory': str(session),
-        'next_action': 'Review saved outputs; no relaunch',
-        'completed_residual_normalized_fixed256': {'run_id': 'OLD'},
-        'completed_main_encoder_fixed256': {'run_id':'OLDER_MAIN'},
-        **({'completed_entry_fuse_fixed256':{'run_id':'OLDER_FUSE'}} if latest_key=='completed_convergence512' else {}),
-        **({'completed_convergence512':{'run_id':'OLDER_512'}} if latest_key=='completed_frozen_train_policy' else {}),
-        latest_key: latest}))
-    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._native_processes', lambda _: [])
-    out = _current_work_status(binding.parent, source_only=False)
-    assert out['latest_completed_native'] == latest
-    assert out['last_completed_run_id'] == 'MAIN256' and 'declared_run_id' not in out
-    assert out['checkpoint'] == pointer and out['training_source_commit'] == 'training-source'
-    assert out['latest_terminal_receipt']['guard_decision'] == 'PASS'
-    assert out['latest_final_measurement']['optimizer_steps'] == steps
-    assert out['next_action'] == 'Review saved outputs; no relaunch'
-    assert out['observation_is_run_authority'] is False
-    receipt.write_text('{}')
-    with pytest.raises(ValueError, match='Completed native evidence hash mismatch'):
-        _current_work_status(binding.parent, source_only=False)
-    assert 'latest_terminal_receipt' not in _current_work_status(binding.parent, source_only=True)
+def test_current_process_observer_includes_external_benchmark_operator(fixture, monkeypatch):
+    import scripts.collect_gx1_handover_readonly as collector
+    repo = fixture
+    prefix = str(repo) + '/.venv/bin/python '
+    snapshot = 'PID PPID ELAPSED PCPU RSS COMMAND\n'
+    snapshot += '123 1 00:10 99.0 200 ' + prefix + '/outside/OPERATOR.py measure\n'
+    snapshot += '124 1 00:10 99.0 200 /other/.venv/bin/python -m gx1.scripts.some_job\n'
+    snapshot += '125 1 00:10 99.0 200 ' + prefix + '/outside/OPERATOR.py run\n'
+    monkeypatch.setattr(collector.subprocess, 'run', lambda *_a, **_k: subprocess.CompletedProcess([], 0, snapshot))
+    monkeypatch.setattr(collector.os, 'getpid', lambda: 999)
+    def cwd(path):
+        if path == '/proc/125/cwd':
+            raise FileNotFoundError(path)
+        return str(repo)
+    monkeypatch.setattr(collector.os, 'readlink', cwd)
+    processes = collector._current_processes(repo)
+    assert [p['pid'] for p in processes] == ['123']
+    assert processes[0]['command'].endswith('OPERATOR.py measure')
 
 
 def test_enabled_flag_alone_cannot_bypass_missing_proofs(fixture):
-    repo,*_=fixture;path,p=_policy(repo)
+    repo=fixture;path,p=_policy(repo)
     p['training_enabled']=True;path.write_text(json.dumps(p))
     out=next_run_readiness(repo)
     assert out['decision']=='BLOCKED'
@@ -180,7 +143,7 @@ def test_enabled_flag_alone_cannot_bypass_missing_proofs(fixture):
 
 @pytest.mark.parametrize('field,value',[('policy_batch_size',128),('cpu_pipeline_workers',4),('max_wall_seconds',4200)])
 def test_slower_profile_is_rejected(fixture,field,value):
-    repo,*_=fixture;path,p=_policy(repo)
+    repo=fixture;path,p=_policy(repo)
     p['required_val_profile'][field]=value;path.write_text(json.dumps(p))
     with pytest.raises(ValueError,match='PERFORMANCE_PROFILE_INVALID'):next_run_readiness(repo)
 
@@ -203,7 +166,8 @@ def test_native_route_cannot_start_while_review_is_pending():
 def test_handover_has_no_legacy_fallback():
     source=Path(__file__).resolve().parents[1]/'scripts/gx1_handover.sh'
     text=source.read_text()
-    assert 'COMPLETED_RUN.json' in text and 'NEXT_RUN_POLICY.json' in text
+    assert 'NEXT_RUN_POLICY.json' in text
+    assert 'COMPLETED_RUN.json' not in text and 'RUNNING_NATIVE_CALIBRATION.json' not in text
     assert 'PROJECT_STATE_xau_direction_launch' not in text
     assert '--require-next-run' not in text
 
@@ -211,7 +175,7 @@ def test_handover_has_no_legacy_fallback():
 @pytest.fixture
 def bound_window(fixture, monkeypatch):
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as owner
-    repo, *_ = fixture
+    repo = fixture
     policy_path, policy = _policy(repo)
     # Bind the original economics-origin fixture, not the current operator run.
     for field in ('exit_backup_steps', 'exit_value_initialization',
@@ -345,6 +309,16 @@ def test_bound_calibration_does_not_override_dirty_source_or_clock(bound_window)
         next_run_readiness(repo, **arguments)
 
 
+def test_current_cleanup_policy_has_no_legacy_calibration_exception(bound_window):
+    repo, policy, recipe, window, write, publish = bound_window
+    policy.pop('native_learning_calibration')
+    assert policy['training_enabled'] is False
+    assert policy['current_work']['full_benchmark_completed'] is False
+    assert policy['current_work']['sampler_selected'] is False
+    with pytest.raises(RuntimeError, match='NATIVE_TRAINING_BLOCKED_CALIBRATION_SCOPE_REQUIRED'):
+        next_run_readiness(repo, **publish())
+
+
 def test_bound_calibration_keeps_risk_and_canonical_branch_checks(bound_window):
     repo, policy, recipe, window, write, publish = bound_window
     arguments = publish()
@@ -363,7 +337,7 @@ def test_bound_calibration_keeps_risk_and_canonical_branch_checks(bound_window):
 @pytest.mark.parametrize('arguments', [{'native_window_policy': Path('/missing')},
                                      {'native_window_policy_file_sha256': 'a' * 64}])
 def test_native_window_keyword_pair_is_mandatory(fixture, arguments):
-    repo, *_ = fixture
+    repo = fixture
     with pytest.raises(ValueError, match='BINDING_PAIR_REQUIRED'):
         next_run_readiness(repo, **arguments)
 
@@ -469,9 +443,9 @@ def test_handover_prints_identity_lines_and_source_only_blocks(monkeypatch,capsy
     identity={'head_commit':'c'*40,'worktree_fingerprint':'f'*64,'changed_path_count':0,'ignored_path_count':1,
               'prunable_worktree_count':0,'reviewed_ignored_path_count':0,'unexpected_ignored_path_count':1,
               'source_identity_gate':'BLOCK_UNEXPECTED_IGNORED_CONTENT','unexpected_ignored_paths':['stale/']}
-    monkeypatch.setattr(collector,'native_status',lambda *_a,**_k:{'decision':'OBSERVATION_ONLY_NOT_RUN_AUTHORITY'})
+    monkeypatch.setattr(collector,'current_status',lambda *_a,**_k:{'decision':'OBSERVATION_ONLY_NOT_RUN_AUTHORITY'})
     monkeypatch.setattr(collector,'source_identity',lambda _repo:identity)
-    monkeypatch.setattr('sys.argv',['collector','--native-binding','/unused/COMPLETED_RUN.json',
+    monkeypatch.setattr('sys.argv',['collector',
                                     *(['--source-only'] if source_only else [])])
     assert collector.main()==expected
     lines=capsys.readouterr().out.splitlines()

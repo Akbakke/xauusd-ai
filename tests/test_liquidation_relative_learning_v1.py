@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tests.test_unified_exit_economic_step_provider_v1 import cost_authority
+
 import copy
 import math
 
@@ -175,10 +177,10 @@ def test_actual_model_keeps_legacy_outputs_and_relative_order():
     torch.testing.assert_close(relative, liquidation_relative_action_values(legacy), rtol=0, atol=0)
 
 
-def test_v4_provider_preserves_physical_projection_and_empty_hold_anchor():
+def test_v4_provider_preserves_physical_projection_and_empty_hold_anchor(cost_authority):
     from tests.test_unified_exit_economic_step_provider_v1 import _provider
-    marked, _ = _provider(reward_accounting=economics.MARK_TO_MARKET_REWARD_ACCOUNTING)
-    relative, readiness = _provider(reward_accounting=economics.LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING)
+    marked, _ = _provider(cost_authority, reward_accounting=economics.MARK_TO_MARKET_REWARD_ACCOUNTING)
+    relative, readiness = _provider(cost_authority, reward_accounting=economics.LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING)
     assert readiness["mode"] == "economics_objective_v4"
     for side in (0, 1):
         old = marked.materialize_training_projection(0, side, 0, 3, 2)

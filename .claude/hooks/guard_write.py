@@ -14,13 +14,12 @@ Two recurring smells from AGENTS.md:
 """
 
 import json
-import os
 import re
 import sys
 
-# Files that ARE the exit-transformer M1 pipeline.
+# Current M1 Exit owners; legacy names remain blocked if reintroduced.
 EXIT_FILE_RE = re.compile(
-    r"(exit_transformer|exit_io|/exits/|materialize_build_v3_training|train_exit_)",
+    r"(unified_exit|entry_exit_m1|lifecycle_v2|exit_transformer|exit_io|/exits/|materialize_build_v3_training|train_exit_)",
     re.IGNORECASE,
 )
 # Actual coarsening of the M1 grid (NOT the legit M5 multi-TF branch).
@@ -35,15 +34,12 @@ LEGIT_M5 = re.compile(
     r"seq_m5|m5_proj|m5_phase|m5_encoder|multi_tf|load_multi_tf|htf|MULTI_TF",
     re.IGNORECASE,
 )
-CORE_DIR_RE = re.compile(r"/GX1_ENGINE/(gx1|gx1_guards)/")
+CORE_DIR_RE = re.compile(r"/GX1_CURRENT/(gx1|gx1_guards)/")
 
-# Protected LIVE chain + SACRED transformer contracts (CLAUDE.md rule 1). Edits are FROZEN
-# unless the user drops a one-shot override marker. Matches the main checkout AND the
-# _cleanup worktree so the discipline holds everywhere.
+# Current offline contracts and model path: edits remain visible to the agent.
 PROTECTED_CORE_RE = re.compile(
-    r"/GX1_ENGINE(?:_cleanup)?/gx1/(?:execution|contracts|exits/contracts|models/entry_v10|core)/"
+    r"/GX1_CURRENT/gx1/(?:execution|contracts|models/entry_v10)/"
 )
-ALLOW_CORE_EDIT_MARKER = "/home/andre2/src/GX1_ENGINE/.claude/ALLOW_CORE_EDIT"
 
 
 def _content(event: dict) -> str:
@@ -78,18 +74,15 @@ def main() -> int:
                 )
                 return 2
 
-    # 1b) Protected live core / SACRED contracts (CLAUDE.md rule 1). The one-shot MARKER GATE was
-    # REMOVED 2026-06-05 (user vedtak — the per-edit `touch` friction was killing the rebuild workflow).
-    # Protected-core edits are now ALLOWED, but LOUDLY logged so live-chain / contract changes stay
-    # visible (never silent). The trust discipline still applies (CLAUDE.md: verify in-use, ONE truth,
-    # minimal change, train==serve, git-clean-before-run) — this only drops the hard block + the marker.
+    # 1b) Current core edits are allowed but visible; no retired marker gate.
+    # Preserve in-use ownership, one authority, minimal change and train==serve.
     if PROTECTED_CORE_RE.search(path):
         print(json.dumps({
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "additionalContext": (
-                    f"⚠ PROTECTED-CORE EDIT (no longer marker-gated, user vedtak 2026-06-05): {path} is part "
-                    "of the LIVE chain / SACRED transformer contracts. Allowed — but be deliberate: verify "
+                    f"⚠ PROTECTED-CORE EDIT: {path} is part "
+                    "of the current offline model/contract chain. Allowed — but be deliberate: verify "
                     "in-use, ONE truth, minimal change, train==serve. Logged for visibility."
                 ),
             }

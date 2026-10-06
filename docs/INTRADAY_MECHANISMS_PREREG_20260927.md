@@ -5,11 +5,14 @@ Formål: teste fem konkrete mekanismer for retning på intradaghorisont (1–5 t
 på et utvalg med både stigende og fallende gullmarked. Forskningsarm, aldri Entry-input (regel 1).
 Instrument: `gx1/scripts/research_intraday_mechanisms_v1.py`.
 
+Beholdt kodebundet spesifikasjon, ikke ny kjøretillatelse. Avsluttede rapporter
+finnes i Git; gjeldende launchomfang eies av NEXT_RUN_POLICY.json.
+
 ## Hva som er sett før registreringen
 
-- Sett: modellfrie UTC-sesjoner og ORB ([resultat](MODEL_FREE_BASELINES_RESULT_20260927.md): Asia
+- Sett: modellfrie UTC-sesjoner og ORB (Asia
   ≈ +2 bps mid per sesjon, ORB London +0,56 brutto); makrohendelsene
-  ([resultat](MACRO_EVENT_BASELINES_RESULT_20260927.md)); de 36 oppsettene på V12-radene 2021–26
+  (avsluttede rapporter i Git); de 36 oppsettene på V12-radene 2021–26
   (23.–24.09; eneste positive var `pdh_break_trend_H4`, LONG i oksemarked); spread og median |M5-avkastning|
   per UTC-time på 2011–25 og nødvendig treffprosent per holdetid (begge uten retning); 258 ekte
   fyllinger fra mai 2026 (null provisjon, halv spread 0,60 bps i snitt, se under).

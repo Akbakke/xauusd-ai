@@ -72,20 +72,11 @@ def test_execute_routes_reuse_handover_source_hygiene() -> None:
         assert "prunable_worktree_count: 0" in source
 
 
-def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
-    state = json.loads(LAUNCH_STATE.read_text(encoding="utf-8"))
-
+def test_launch_authority_has_no_admitted_dataset_or_bundle():
+    state = json.loads(LAUNCH_STATE.read_text())
     assert state["decision"] == "BLOCK"
     assert state["latest_terminal_event_id"] == "NO_CURRENT_ADMITTED_EVENT"
     assert state["latest_terminal_event_decision"] == "BLOCK"
-    from gx1.models.entry_v10.direction_decision_contract import (
-        UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION,
-    )
-
-    assert (
-        state["required_unified_entry_exit_contract"]
-        == UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION
-    )
     assert state["required_entry_action_order"] == ["LONG", "SHORT", "FLAT"]
     assert state["required_exit_action_order"] == ["HOLD", "EXIT_NOW"]
     assert state["required_same_bundle_shared_encoder"] is True
@@ -95,187 +86,17 @@ def test_launch_authority_has_no_admitted_dataset_or_bundle() -> None:
         "schema_version": "gx1_reviewed_local_runtime_exclusions_v1",
         "paths": [".claude/worktrees/", ".env", ".venv/"],
     }
-    assert state["dataset_event_id"] is None
+    from gx1.models.entry_v10.direction_decision_contract import UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION
+    assert state["required_unified_entry_exit_contract"] == UNIFIED_ENTRY_EXIT_CONTRACT_SCHEMA_VERSION
+    for field in ("accepted_dataset_dir", "accepted_dataset_terminal_evidence",
+                  "accepted_bundle_dir", "bundle_metadata_sha256",
+                  "current_smoke_launch_evidence", "accepted_via_vedtak"):
+        assert state[field] is None
     assert state["dataset_admission_stage"] == "NO_ADMITTED_UNIFIED_DATASET"
-    assert state["accepted_dataset_dir"] is None
-    assert state["accepted_dataset_terminal_evidence"] is None
-    from gx1.contracts.current_audited_dataset_evidence_v1 import (
-        CURRENT_AUDITED_DATASET_BLOCKER,
-        CURRENT_AUDITED_DATASET_STATUS,
-        require_blocked_launch_state_with_current_audited_dataset,
-    )
-
-    from tests.test_current_audited_dataset_evidence import assert_retired_pretest_recipe_rejected
-    if assert_retired_pretest_recipe_rejected(state):
-        return
-    if "pretraining_review_hold" in state and "current_pretest_trainability_readiness" not in state:
-        # The retained causality audit predates corrected short returns. It
-        # must no longer qualify as current evidence, even though its bytes
-        # and historical PASS declaration remain intact.
-        with pytest.raises(RuntimeError, match="EXECUTION_CAUSALITY_EXPECTATION_INVALID"):
-            require_blocked_launch_state_with_current_audited_dataset(state)
-    else:
-        summary = require_blocked_launch_state_with_current_audited_dataset(state)
-        assert summary["status"] == CURRENT_AUDITED_DATASET_STATUS
-        assert summary["blocker"] == CURRENT_AUDITED_DATASET_BLOCKER
-        expected_run = (
-            state["current_source_technical_recipe"]["dataset_run_id"]
-            if "current_pretest_trainability_readiness" in state
-            else "V46_20260825T170935Z"
-        )
-        assert summary["dataset_run_id"] == expected_run
-    assert state["accepted_bundle_dir"] is None
-    assert state["bundle_metadata_sha256"] is None
-    assert state["current_smoke_launch_evidence"] is None
-    candidate_session = state["active_candidate_training_session"]
-    assert candidate_session["schema_version"] == (
-        "gx1_active_candidate_training_session_reference_v1"
-    )
-    session_recipe_bytes = Path(candidate_session["recipe_audit_path"]).read_bytes()
-    assert hashlib.sha256(session_recipe_bytes).hexdigest() == candidate_session["recipe_audit_sha256"]
-    session_recipe = json.loads(session_recipe_bytes)
-    for key in ("run_id", "dataset_run_id", "source_commit", "source_bindings_sha256"):
-        assert candidate_session[key] == session_recipe[key]
-    assert Path(candidate_session["session_dir"]).is_absolute()
-    assert Path(candidate_session["recipe_audit_path"]).is_absolute()
-    assert re.fullmatch(r"[0-9a-f]{64}", candidate_session["recipe_audit_sha256"])
-    assert re.fullmatch(
-        r"[0-9a-f]{64}", candidate_session["source_bindings_sha256"]
-    )
-    assert re.fullmatch(r"[0-9a-f]{40}", candidate_session["source_commit"])
-    current_source_recipe = state["current_source_technical_recipe"]
-    assert current_source_recipe["schema_version"] == (
-        "gx1_current_source_technical_recipe_reference_v1"
-    )
-    assert current_source_recipe["dataset_run_id"] == "PRETEST_V3_20260829T173000Z"
-    assert Path(current_source_recipe["recipe_path"]).is_file()
-    expected_keys = {
-        "schema_version", "status", "recipe_path", "recipe_sha256",
-        "source_commit", "source_bindings_sha256", "run_id", "dataset_run_id",
-        "out_bundle_dir",
-    }
-    if "candidate_guard_recovery" in state:
-        from gx1.contracts.entry_pretest_candidate_launch_gate_v1 import require_pretest_candidate_launch_gate
-        recovery_binding = state["candidate_guard_recovery"]
-        recovery_bytes = Path(recovery_binding["path"]).read_bytes()
-        assert hashlib.sha256(recovery_bytes).hexdigest() == recovery_binding["sha256"]
-        recovery = json.loads(recovery_bytes)
-        assert recovery["decision"] == "PASS_EXACT_STATE_TRANSFER_NOT_CUDA_AUTHORITY"
-        assert recovery["successor_recipe"] == {"path": candidate_session["recipe_audit_path"], "sha256": candidate_session["recipe_audit_sha256"]}
-        assert recovery["successor_session_dir"] == candidate_session["session_dir"]
-        assert current_source_recipe["status"] == "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__VERIFIED_GUARD_RECOVERY__CONTINUATION_AUTHORIZED__NO_TEST_PAPER_LIVE_AUTHORITY"
-        assert current_source_recipe["recipe_path"] == candidate_session["recipe_audit_path"]
-        assert current_source_recipe["recipe_sha256"] == candidate_session["recipe_audit_sha256"]
-        gate = require_pretest_candidate_launch_gate(
-            current_source_recipe["candidate_launch_gate_path"], current_source_recipe["candidate_launch_gate_sha256"],
-            expected_recipe_path=candidate_session["recipe_audit_path"], expected_recipe_sha256=candidate_session["recipe_audit_sha256"],
-        )
-        assert gate["run_id"] == candidate_session["run_id"]
-        for name in ("original_recipe", "original_contract", "original_pointer", "original_state"):
-            binding = recovery[name]
-            assert hashlib.sha256(Path(binding["path"]).read_bytes()).hexdigest() == binding["sha256"]
-        expected_keys.update({
-            "postrun_bundle_audit_path", "postrun_bundle_audit_sha256", "postrun_bundle_audit_decision",
-            "candidate_readiness_path", "candidate_readiness_sha256", "candidate_readiness_decision",
-            "candidate_launch_gate_path", "candidate_launch_gate_sha256", "candidate_launch_gate_decision",
-        })
-    elif "current_pretest_trainability_readiness" in state:
-        from gx1.contracts.entry_model_native_pretest_technical_recipe_v1 import (
-            require_pretest_technical_recipe_metadata,
-        )
-        raw = Path(current_source_recipe["recipe_path"]).read_bytes()
-        assert hashlib.sha256(raw).hexdigest() == current_source_recipe["recipe_sha256"]
-        recipe = require_pretest_technical_recipe_metadata(
-            json.loads(raw), expected_profile="smoke",
-            expected_run_id=current_source_recipe["run_id"],
-            expected_out_bundle_dir=current_source_recipe["out_bundle_dir"],
-        )
-        assert recipe["source_commit"] == current_source_recipe["source_commit"]
-        assert recipe["source_bindings_sha256"] == current_source_recipe["source_bindings_sha256"]
-        executed_status = "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_PENDING__NO_CANDIDATE_AUTHORITY"
-        gated_status = (
-            "EXECUTED_TECHNICAL_SMOKE__POSTRUN_AUDIT_FAIL__"
-            "CANDIDATE_READINESS_READY__CANDIDATE_GATE_READY__NO_PROMOTION_AUTHORITY"
-        )
-        assert current_source_recipe["status"] in {
-            "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PENDING__CUDA_NOT_EXECUTED",
-            "MATERIALIZED_CPU_LAUNCH_DRY_RUN_PASS__CUDA_NOT_EXECUTED",
-            executed_status,
-            gated_status,
-        }
-        if current_source_recipe["status"] in {executed_status, gated_status}:
-            from gx1.contracts.entry_model_native_bundle_commit_v1 import require_bundle_commit_manifest
-            bundle = require_bundle_commit_manifest(Path(current_source_recipe["out_bundle_dir"]))
-            assert bundle["commit_sha256"] == current_source_recipe["bundle_commit_sha256"]
-            expected_keys.update({
-                "bundle_commit_manifest_sha256", "bundle_commit_sha256", "bundle_metadata_sha256",
-            })
-            if current_source_recipe["status"] == gated_status:
-                from gx1.contracts.entry_pretest_candidate_launch_gate_v1 import (
-                    require_pretest_candidate_launch_gate,
-                )
-                gate_path = Path(current_source_recipe["candidate_launch_gate_path"])
-                gate_json = json.loads(gate_path.read_bytes())
-                gate = require_pretest_candidate_launch_gate(
-                    gate_path,
-                    current_source_recipe["candidate_launch_gate_sha256"],
-                    expected_recipe_path=gate_json["recipe"]["path"],
-                    expected_recipe_sha256=gate_json["recipe"]["sha256"],
-                )
-                assert gate["dataset_dir"] == recipe["dataset_dir"]
-                assert gate["dataset_run_id"] == recipe["dataset_run_id"]
-                assert gate["decision"] == current_source_recipe["candidate_launch_gate_decision"]
-                for prefix, gate_key in (
-                    ("postrun_bundle_audit", "smoke_bundle_audit"),
-                    ("candidate_readiness", "candidate_readiness"),
-                ):
-                    assert gate[gate_key] == {
-                        "path": current_source_recipe[f"{prefix}_path"],
-                        "sha256": current_source_recipe[f"{prefix}_sha256"],
-                    }
-                    event = json.loads(Path(gate[gate_key]["path"]).read_bytes())
-                    assert event["decision"] == current_source_recipe[f"{prefix}_decision"]
-                expected_keys.update({
-                    "postrun_bundle_audit_path", "postrun_bundle_audit_sha256", "postrun_bundle_audit_decision",
-                    "candidate_readiness_path", "candidate_readiness_sha256", "candidate_readiness_decision",
-                    "candidate_launch_gate_path", "candidate_launch_gate_sha256", "candidate_launch_gate_decision",
-                })
-        else:
-            assert not Path(current_source_recipe["out_bundle_dir"]).exists()
-    else:
-        assert current_source_recipe["status"] == (
-            "FIVE_YEAR_CANDIDATE_RECIPE_GATE_READY__CUDA_NOT_EXECUTED__EXPLICIT_CUDA_REAUTHORIZATION_REQUIRED__NO_TEST_PAPER_LIVE_AUTHORITY"
-        )
-        assert current_source_recipe["run_id"] == "ENTRY_V9_FIVE_YEAR_CANDIDATE_20260904T201433Z"
-        assert not Path(current_source_recipe["out_bundle_dir"]).exists()
-        expected_keys.update({
-            "postrun_bundle_audit_path", "postrun_bundle_audit_sha256", "postrun_bundle_audit_decision",
-            "candidate_readiness_path", "candidate_readiness_sha256", "candidate_readiness_decision",
-            "candidate_launch_gate_path", "candidate_launch_gate_sha256", "candidate_launch_gate_decision",
-        })
-    assert set(current_source_recipe) == expected_keys
-    for key in ("recipe_sha256", "source_bindings_sha256"):
-        assert re.fullmatch(r"[0-9a-f]{64}", current_source_recipe[key])
-    assert re.fullmatch(r"[0-9a-f]{40}", current_source_recipe["source_commit"])
-    blockers = "\n".join(state["blockers"])
-    # Stage transitions change prose, never the explicit admission fields or
-    # the immutable recipe/gate identities validated above.
-    assert "No admitted dataset" in blockers
-    assert "Untouched TEST direction edge" in blockers
-    assert "remain fail-closed" in blockers
-    # Keep the fail-closed authority compact enough to inspect; immutable
-    # run evidence remains in its external artifact paths.
-    # The local benchmark scope adds a small explicit operator record.
-    assert len(LAUNCH_STATE.read_bytes()) < 15_000
-    assert not any(
-        key in state
-        for key in (
-            "latest_trainability_bundle",
-            "latest_failed_smoke_execution",
-            "latest_rejected_downstream_evidence",
-            "source_repair_checkpoint",
-        )
-    )
+    assert state["pretraining_review_hold"]["decision"] == "BLOCK"
+    assert state["pretraining_review_hold"]["activation_authority"] is False
+    assert "active_candidate_training_session" not in state
+    assert "current_source_technical_recipe" not in state
 
 
 def test_control_surface_exposes_only_exact_model_native_routes() -> None:

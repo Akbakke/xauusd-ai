@@ -66,5 +66,30 @@ def test_guard_artifact_matches_versioned_reference(live: Path, ref: Path):
     )
 
 
+@pytest.mark.parametrize("filename", [
+    "gx1/contracts/unified_exit_model_runtime_v1.py",
+    "gx1/scripts/materialize_entry_exit_m1_feature_base_v1.py",
+    "gx1/scripts/prepare_unified_exit_lifecycle_v2_pilot_v1.py",
+])
+@pytest.mark.parametrize("content,returncode", [
+    ("m1.resample('5min').last()", 2),
+    ("seq_m5 = load_multi_tf(cache)", 0),
+])
+def test_write_guard_protects_current_m1_paths(filename, content, returncode):
+    import subprocess
+    import sys
+
+    event = {"tool_name": "Edit", "tool_input": {
+        "file_path": str(REPO / filename), "new_string": content,
+    }}
+    result = subprocess.run(
+        [sys.executable, str(REPO / ".claude/hooks/guard_write.py")],
+        input=json.dumps(event), text=True, capture_output=True, check=False,
+    )
+    assert result.returncode == returncode
+    if returncode:
+        assert "M1-NATIVE" in result.stderr
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))

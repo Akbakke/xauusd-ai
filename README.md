@@ -1,22 +1,25 @@
-# GX1 XAUUSD — start her
+# GX1
 
-<!-- GX1_CURRENT_RESTART_POINTER -->
-## Gjeldende inngang
+Offline XAUUSD-forskning med én lært Entry/Exit-bundle:
+Entry på native M5, Exit på native M1, delte encoders og åtte kausale
+featurefamilier. Teknisk konsistens er ikke dokumentert læring eller lønnsomhet.
 
-Kjør read-only handover og les deretter docs/RESTART_POINT_20261005.md
-samt CURRENT_RESTART_POINT.json. INDEX_FEATURE_SOURCE_REVIEW_001 er fullført;
-samplerbenchmark-planlegging er neste steg.
+Eneste arbeidsrepo er /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+Les AGENTS.md og GX1_RULES.md før arbeid. Start med:
 
-Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Én agent om gangen.
-Kjør `bash scripts/gx1_handover.sh --check` for fersk, lesende status (starter aldri trening).
+```bash
+bash scripts/gx1_handover.sh --check
+```
 
-1. [GX1_RULES.md](GX1_RULES.md) — bindende regler for alle agenter.
-2. [AGENTS.md](AGENTS.md) — arbeidsmåte.
-3. [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md) — gjeldende status.
-4. [VEIEN_VIDERE.md](VEIEN_VIDERE.md) — eksakt neste steg og åpne operatørvedtak.
-5. [GX1_ARBEIDSMAAL.md](GX1_ARBEIDSMAAL.md) — mål og vedtak.
-6. [DOC_INDEX.md](DOC_INDEX.md) — evidens og historikk.
+CURRENT_HANDOVER.md beskriver nåstatus; NEXT_RUN_POLICY.json er eneste
+maskinlesbare arbeids-/kjøreautoritet. Ingen gamle checkpoints eller rapporter
+gir launchautorisasjon. Benchmarken er avbrutt etter brukerens ønske; trening,
+full epoch, full VAL, TEST og handel er stengt.
 
-`NEXT_RUN_POLICY.json` er maskinlesbart tillatt kjøreomfang; `training_enabled=false` stenger
-ny trening. Korrekt læring, generalisering og positiv kostnadsjustert økonomi er ikke
-dokumentert. Teknisk PASS er ikke handelsfordel.
+Dokumentasjon: DOC_INDEX.md. Arkitektur: SYSTEM_MAP.md.
+Datakontrakt: docs/DATA_CONTRACT.md. Gjenværende læring: docs/NATIVE_LEARNING.md.
+Repo-gjennomgang og opprydding: docs/REPO_REVIEW.md.
+
+Kilde, kontrakter og fokuserte tester versjoneres. Rådata, modellvekter,
+hemmeligheter og kjøringsoutput holdes utenfor repoet. Tunge jobber bruker
+scripts/gx1_capped_run.sh og de eksisterende maskinvarevaktene.

@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/andre2/src/GX1_ENGINE/.venv/bin/python /home/andre2/.claude/hooks/guard_bash.py"
+            "command": "/home/andre2/src/GX1_CURRENT/.venv/bin/python /home/andre2/.claude/hooks/guard_bash.py"
           }
         ]
       },
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/andre2/src/GX1_ENGINE/.venv/bin/python /home/andre2/.claude/hooks/guard_write.py"
+            "command": "/home/andre2/src/GX1_CURRENT/.venv/bin/python /home/andre2/.claude/hooks/guard_write.py"
           }
         ]
       }
@@ -52,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/andre2/src/GX1_ENGINE/.venv/bin/python /home/andre2/.claude/hooks/check_python.py"
+            "command": "/home/andre2/src/GX1_CURRENT/.venv/bin/python /home/andre2/.claude/hooks/check_python.py"
           }
         ]
       }

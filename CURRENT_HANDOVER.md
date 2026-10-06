@@ -1,68 +1,63 @@
-# Gjeldende status - 06.10.2026
+# Gjeldende overlevering — 06.10.2026
 
-Operatøren svarte «Ja jeg godkjenner» på spørsmålet om 3 timers
-CPU-eligibilitetsgrense per samplerepoch og maksimalt 18 timer samlet for
-én full benchmark. Budsjettblokkeringen er løst; punkt 1–6 er ufullført og
-arbeidet gjenopptas. Tidligere blokkeringsaudit bevares som historisk bevis,
-ikke som gjeldende stoppordre.
+Brukeren prioriterer en grundig gjennomgang og et minimalt repo:
+«Avbryt benchmarken kontrollert; rydd repoet nå».
 
-Én fersk SAMPLER_BENCHMARK_001/ATTEMPT_003 bindes nå gjennom eksisterende
-benchmarkeier. Bare CPU-eligibilitet endres: 1800 til 10800 sekunder.
-Alle tre kandidater (32768/65536/131072 overganger, 8192/16384/32768 Entries)
-skal måles fullt én gang på batch16, med original tracemalloc-måling.
-3-timersgrensen brukes ved utfallsblind rangering etter full måling,
-ikke til tidlig stopp eller avkorting. En supervisor kjører én måleprosess
-i samme verifiserte capped producer20G/512M-scope og dreper/venter på denne
-ved totalfrist 64800s, også hvis den sitter i C-kode. Feil/terminal bevares.
-Python-allokasjon2GiB, padded-input1GiB, CPU0–7, én numerisk tråd og TasksMax64
-er uendret. Ingen modellforwards, fits, optimizersteg, TEST eller nettverk.
+## Nåstatus
 
-Plan/operator, eksakte input-/kildehasher og godkjenningsomfang står i
-NEXT_RUN_POLICY.json og CURRENT_RESTART_POINT.json. Kode/dokumentasjon
-testes, committes og pushes før den ene tunge kjøringen starter. Fryst
-kilde endres ikke under kjøring; claim hindrer relansering. Ved overtakelse
-må faktisk prosess/lås og nyeste terminale bevis kontrolleres før ny launch.
-På dette forhåndsregistreringsstadiet er benchmarken ennå ikke fullført.
+SAMPLER_BENCHMARK_001/ATTEMPT_003 er kontrollert avbrutt, ikke fullført.
+Verifisert worker PID 10886 fikk SIGINT; KeyboardInterrupt ga exit 1.
+Supervisoren ventet inn prosessen og skrev FAILURE og TERMINAL.
+Siste rapport var 3200 av 8192 Entry-par for første kandidat (32768 overganger),
+etter 2868,03 sekunder. Andre kandidater er ikke fullmålt.
 
-Fullførte forutsetninger gjenbrukes:
-- CPU_WORKLOAD_PROFILE_003: exit0 og uendret kilde, alle originale genuine
-  TRAIN16-batchhasher like. Uinstrumentert6,53–7,17s mot12,25–13,01s før
-  rettelsen (1,81–1,88x); instrumentert13,89–15,76s. Dette er batchparitet,
-  ikke full kapasitet, samplervalg, læring eller økonomi.
-- CAPACITY_PLANNING_REVIEW: lineært småbatchanslag2,0/4,4/9,0 timer per
-  kandidat, samlet15,4 timer uten oppstart. n=16 per kandidat, ingen
-  konfidensgrense; faktisk fullmåling kan avvike.
-- VAL_SEQUENCE_AUDIT_001: exit0, uendret kilde7056bf56, alle70880
-  time/seq/snap-rader verifisert mot bundet M5, Seq96×254, capped audit4G.
-  Ingen utfall eller modellevaluering. TRAIN- og VAL-audit relanseres aldri.
-- Komponentutkastets døde ATTEMPT_002-samplersti er rettet. prepare() tar
-  eksakt selected_sampler fra coordinate-COMPLETE og kaller eksisterende
-  komponent-/samplereier før videre klargjøring. 10 syntetiske bindingstester
-  består; ekte semantisk sampleradgang gjenstår. Metadata er uendret.
+Terminal: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/EVENTS/TERMINAL_20261006T065527088266Z.json
+SHA-256: 87f3faf08038727f182dd591ca3e09a7092d139469adb030fe3c02b9c9dbdc20.
+Kilden var uendret ved terminalen; TEST ble ikke brukt. Originale logger,
+planer, delresultater og kvitteringer er bevart utenfor repoet.
+Prosessene er reaped og prosjektlåsen kontrollert ledig etter stopp.
+En aktuell prosessobservasjon må fortsatt tas ved ny overtakelse.
 
-Den minimale CPU-rettelsen gjenbruker ett eksplisitt referansevindu per
-view, lazy etter original cutoff-/klokkekontroll. Parent og hver child
-valideres fortsatt; original state-view-kilde er byteidentisk til
-inputautoriteten. Alle254 felt, åtte familier og tidsrammer beholdes.
-Ingen normalisering, økonomisk indeks, mål eller ferdige data bygges om.
+Ingen full benchmark, valgt sampler, koordinatpublisering, fersk initialmåling
+eller 256-stegs læringsprøve er etablert. training_enabled=false, full epoch
+og full VAL er stengt. Den claimede engangsplanen må aldri relanseres.
 
-Tidligere feil og partiale forsøk bevares og relanseres ikke:
-- Første benchmarkoppstart: feil kostnadsfilrolle, stoppet før måling.
-- ATTEMPT_002:1800,23s ved1104/8192 Entries, stoppet uten samplervalg.
-- CPU_WORKLOAD_PROFILE_001: målt, men JSON-sluttpublisering feilet;
-  original rød terminal og verifiserte stagingbytes består.
-- CPU_WORKLOAD_PROFILE_002: inputbundet state-view-kildehash avviste
-  første rettelse før måling; ingen binding eller gate ble omgått.
+## Bevarte nåværende inputs
 
-Ingen genuine sampler, koordinater, fersk native initialmåling eller
-256-stegs prøve er ferdig. Konstruktørmetadata er ikke modellmåling.
-native_component_preparation_authorized=false; hver native fase trenger
-sin eksakte bundne autoritet. Først full benchmark, så valgt sampler og
-fryste koordinater, fersk nullbaseline, én256-stegs prøve og Entry/Exit-
-review. Større endelig trening er betinget av den ekte læringsporten.
+NEXT_RUN_POLICY.json binder fullførte v38-inputs under
+/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001:
+652552 TRAIN-rader og 70880 utviklings-VAL-rader, fysisk separate M1-visninger,
+fullført normalisering, økonomiautoriteter/indekser og sekvenskontroller.
+Signalflaten har 254 felt i åtte familier. Disse tallene beskriver det bundne
+bygget; feltene og dimensjonene eies fortsatt av kontraktene, ikke dokumentet.
+Ingen inputbygger eller avsluttet audit skal kjøres om igjen uten ny grunn.
 
-Authority er /home/andre2/src/GX1_CURRENT på work/gx1-current.
-Les CURRENT_RESTART_POINT.json og docs/RESTART_POINT_20261005.md.
-Global training_enabled=false; TEST, broker, live/paper, ordre og spending
-er stengt. Læring, generalisering, positiv økonomi og faktisk train/serve-
-paritet er fortsatt ubevist. CPU-godkjenningen er ingen kvalitetsgodkjenning.
+## Opprydding
+
+Oppryddingen er fullført og verifisert: 842 → 635 repo-filer,
+136 → 20 Markdown-filer. Alle 257 beholdte gx1-filer er byteuendret.
+Ingen lokale importhull eller brutte dokumentlenker er funnet.
+
+Doble/historiske statuskilder erstattes av current_work i NEXT_RUN_POLICY.
+Statusleseren kontrollerer eksplisitt terminal/hash og CURRENT-prosesser;
+manglende autoritet feiler lukket, uten checkpointfallback.
+Claude-vaktene peker nå på CURRENT og er synkronisert med de installerte
+kopiene etter særskilt brukerautorisasjon. Andre globale innstillinger er urørt.
+Økonomiske enhetstester bruker isolerte syntetiske fixtures, ikke et gammelt worktree.
+Omfang, slettinger, kontroller og ubeviste grenser står i docs/REPO_REVIEW.md.
+
+Ingen DATA/RUNS, råkilder, normaliseringer, modeller, checkpoints, .env, .venv
+eller .git slettes i denne repo-oppryddingen. DATA/RUNS krever retention-ruten.
+Historiske repo-filer kan gjenopprettes fra Git ved behov; ingen ny arkivmappe opprettes.
+
+## Neste grense
+
+Oppryddingen leveres i Git innen stående push-autorisasjon; ingen ny jobb følger automatisk.
+Ikke start benchmark eller trening under dette oppdraget.
+Punktene 1–6 i docs/NATIVE_LEARNING.md gjenstår; en senere gjenopptakelse krever
+en ny eksplisitt, kildebundet plan, ikke gjenbruk av ATTEMPT_003.
+Full makro-B er separat og ufullført; den må ikke reduseres til MACRO_CORE.
+TEST, broker, live/paper, handel, spending og promotion er stengt.
+
+Kjør bash scripts/gx1_handover.sh --check ved overtakelse. Den maskinlesbare
+nåstatusen og faktisk prosess-/terminalbevis overstyrer dette dokumentet.

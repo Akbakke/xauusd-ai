@@ -1,9 +1,11 @@
 # Modellfrie grunnlinjer — forhåndsregistrering 27.09.2026
 
+Beholdt kodebundet spesifikasjon, ikke ny kjøretillatelse. Avsluttede rapporter
+finnes i Git; gjeldende launchomfang eies av NEXT_RUN_POLICY.json.
+
 Committet før noen resultatdata er lest. Formål: avgjøre med enkle, forhåndsbestemte regler om det
 finnes en retningsgevinst i XAUUSD etter kost — først på scalp-horisont (operatørens førstevalg),
-deretter på swing-horisont — før mer bygges (regel 22; se
-[FEATURE_SURFACE_SWING_REVIEW_20260927.md](FEATURE_SURFACE_SWING_REVIEW_20260927.md)).
+deretter på swing-horisont — før mer bygges (regel 22).
 Instrument: `gx1/scripts/research_model_free_baselines_v1.py` (gjenbruker tape-leser og kostfunksjoner
 fra `research_entry_direction_walkforward_v1.py`).
 

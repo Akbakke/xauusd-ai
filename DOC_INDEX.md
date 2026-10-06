@@ -1,51 +1,29 @@
-# Dokumentindeks — 26.09.2026
+# Dokumentindeks
 
-<!-- GX1_CURRENT_RESTART_POINTER -->
-## Gjeldende restartpakke - 05.10.2026
+## Gjeldende arbeidsautoritet
 
-- docs/RESTART_POINT_20261005.md: authority, mål, fremdrift, kvittering og neste steg.
-- CURRENT_RESTART_POINT.json: samme restartpunkt maskinlesbart.
-- docs/REPO_CLEANUP_20261005.md og JSON: etterprøvbar repo-opprydding.
+- GX1_RULES.md — bindende regler og lukkede omfang.
+- AGENTS.md / CLAUDE.md — samme regler for begge agenter.
+- CURRENT_HANDOVER.md / NEXT_RUN_POLICY.json — nåstatus og eksakte bindinger.
+- GX1_ARBEIDSMAAL.md / VEIEN_VIDERE.md — mål og neste grense.
+- SYSTEM_MAP.md — retained kildekjede og ansvarsgrenser.
+- docs/DATA_CONTRACT.md — kilder, kausalitet, lineage og normalisering.
+- docs/LEARNING_GATE.md — læring, generalisering og økonomi holdes adskilt.
+- docs/NATIVE_LEARNING.md — ufullførte punkter 1–6; ingen aktuell launchordre.
+- docs/REPO_REVIEW.md — funn, opprydding, kontroller og ubeviste grenser.
 
-## Styring (les i rekkefølge)
+## Bevarte kilde-/designbindinger
 
-1. `GX1_RULES.md` — bindende regler (Claude og Codex).
-2. `AGENTS.md` — arbeidsmåte.
-3. `CURRENT_HANDOVER.md` — status. 4. `VEIEN_VIDERE.md` — neste steg.
-5. `GX1_ARBEIDSMAAL.md` — mål og vedtak. 6. `SYSTEM_MAP.md` — arkitektur.
-7. `NEXT_RUN_POLICY.json` — tillatt kjøreomfang. `docs/LEARNING_GATE_20260916.md` — læringsport.
+configs/research/NATIVE_V38_{INPUT_PREPARATION,LEARNING_DESIGN,M1_REALIGNMENT}_20261001.json
+er frosne, fullførte v38-bindinger. Ikke rediger dem for dokumenthygiene.
 
-## Gjeldende evidens
+docs/RISK_OBJECTIVE_20260914.json er fortsatt eksplisitt hash-bundet av policy.
+V29_EVENT_SURFACE_DESIGN_20260811.md og INDICATOR_FIDELITY_AUDIT_20260813.md
+er fortsatt referert av de aktive feature-eierne. PROJECT_DEEP_REVIEW_20260919.md
+forklarer den beholdte kausale målkontrakten. PREREGISTERED_DIRECTION_TEST_20260820.md
+og de tre *BASELINES/MECHANISMS_PREREG_20260927.md-dokumentene binder fortsatt
+beholdte offline diagnoseinstrumenter. De er ikke nye kjøretillatelser.
 
-- `docs/DIRECTION_TIMESCALE_20260926.md` — retning vs. tidsskala, svingninger, ukesmåling,
-  8-timers-taket, direkte mål og vent-mål.
-- `docs/CONSOLIDATION_20260926.md` — sammenslåingen og planen for M2–M4.
-- `docs/INTRADAY_MECHANISMS_PREREG_20260927.md` + `docs/INTRADAY_MECHANISMS_RESULT_20260927.md` — bølge 1:
-  rundtall, oppsett med bjørnemarked, COMEX-momentum, LBMA-auksjonen og lokale klokker (NO-GO 0/61;
-  svakt fortsettelsessignal på mid, under spreaden).
-- `docs/MACRO_EVENT_BASELINES_PREREG_20260927.md` + `docs/MACRO_EVENT_BASELINES_RESULT_20260927.md` —
-  planlagte makrohendelser (NO-GO 0/18).
-- `docs/MODEL_FREE_BASELINES_PREREG_20260927.md` + `docs/MODEL_FREE_BASELINES_RESULT_20260927.md` —
-  modellfrie scalp-/swing-grunnlinjer (NO-GO 0/62).
-- `docs/FEATURE_SURFACE_SWING_REVIEW_20260927.md` — gjennomgang av alle felt og grunnmuren mot swing.
-- `docs/HISTORY_2005_INTAKE_20260926.md` — native M5/M1 fra 2006, overlappsrevisjon mot 2019.
-- `docs/WEEKLY_DIRECTION_PREREG_20260926.md` + `docs/WEEKLY_DIRECTION_RESULT_20260926.md` —
-  forhåndsregistrert ukesmåling og resultat (NO-GO på 2021–26).
-- `docs/ENTRY_DIRECTION_SNR_DIAGNOSIS_20260923.md` — kost/støy og walk-forward 23.–24.09, med
-  forbeholdene i `docs/ENTRY_FEATURE_FIT_CHRONOLOGY_20260924.md` og
-  `docs/ENTRY_MEASUREMENT_REPAIR_20260924.md`.
-- `docs/PIPELINE_FEATURE_FIDELITY_REVIEW_20260921.md`, `docs/PROJECT_DEEP_REVIEW_20260919.md` —
-  funnregistre; grunnlag for M2.
-
-## Historikk (bevis, aldri startordre)
-
-- Native lifecycle-v2 Entry/Exit 16.–24.09: `docs/ENTRY_SELECTOR_CACHE_FIT_20260924.md`,
-  `docs/ENTRY_EXIT_LINKAGE_AND_COST_20260919.md`, `docs/CONVERGENCE512_REVIEW_20260919.md` og
-  eldre `docs/*_2026091[6-9].md`; `COMPLETED_RUN.json`, `handover_snapshot/`.
-- Retningsforskning 23.–24.09 (fra den arkiverte grenen): `docs/ENTRY_*_20260923.md` og
-  `docs/ENTRY_*_20260924.md`.
-- `docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md` — ikke kjør (se review-merknaden).
-- Den arkiverte grenen i sin helhet: tag `archive/gx1-engine-audit-v9-20260926`.
-
-- [Repo-gjennomgang 28.09](docs/REPO_REVIEW_20260928.md)
-- [Feature- og modellkompleksitet](docs/FEATURE_COMPLEXITY_REVIEW_20260928.md)
+Avsluttede engangsrapporter, doble statusfiler og gamle forsøksconfigs lagres
+ikke som repo-fyll. Tidligere versjoner finnes i Git. Resultater, logger,
+checkpoints og aktive inputmanifester utenfor repoet er ikke slettet.

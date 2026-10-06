@@ -22,10 +22,10 @@ from gx1.contracts.unified_exit_market_closure_authority_v1 import (
 )
 
 
-AUTHORITY_PATH = Path(
-    "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/docs/evidence/"
-    "UNIFIED_EXIT_PROSPECTIVE_COST_POLICY_V1_20260910/parameter_authority.json"
-)
+@pytest.fixture
+def cost_authority(tmp_path: Path) -> Path:
+    from tests.test_unified_exit_prospective_cost_policy_v1 import _build
+    return Path(_build(tmp_path)["parameter_authority"]["path"])
 
 
 def _readiness(policy_sha256: str, reward_accounting: str = "terminal_cash_v2") -> dict:
@@ -73,12 +73,13 @@ def _readiness(policy_sha256: str, reward_accounting: str = "terminal_cash_v2") 
 
 
 def _provider(
+    authority_path: Path,
     *,
     readiness_policy_sha256: str | None = None,
     economic_terminal: bool = False,
     reward_accounting: str = "terminal_cash_v2",
 ):
-    authority = json.loads(AUTHORITY_PATH.read_text())
+    authority = json.loads(authority_path.read_text())
     policy = json.loads(Path(authority["policy"]["path"]).read_text())
     tape_path = Path(policy["executable_bid_ask"]["parquet"]["path"])
     times = pd.DatetimeIndex(
@@ -110,13 +111,13 @@ def _provider(
         compact_rows=compact,
         compact_manifest=manifest,
         economics_readiness=readiness,
-        cost_parameter_authority_path=AUTHORITY_PATH,
+        cost_parameter_authority_path=authority_path,
     )
     return provider, readiness
 
 
-def test_production_provider_consumes_committed_source_rich_authority() -> None:
-    provider, readiness = _provider()
+def test_provider_validates_synthetic_source_rich_authority(cost_authority) -> None:
+    provider, readiness = _provider(cost_authority)
     long_exit = provider(0, 0, "exit_now", 0, 1)["steps"][0]
     short_exit = provider(0, 1, "exit_now", 0, 1)["steps"][0]
     assert long_exit["execution_slippage"]["value_bps"] == 4.0
@@ -132,14 +133,14 @@ def test_production_provider_consumes_committed_source_rich_authority() -> None:
     )
 
 
-def test_provider_rejects_readiness_not_bound_to_cost_authority() -> None:
+def test_provider_rejects_readiness_not_bound_to_cost_authority(cost_authority) -> None:
     with pytest.raises(RuntimeError, match="POLICY_BINDING_INVALID"):
-        _provider(readiness_policy_sha256="f" * 64)
+        _provider(cost_authority, readiness_policy_sha256="f" * 64)
 
 
 @pytest.mark.parametrize("reward_accounting", ["terminal_cash_v2", economics.MARK_TO_MARKET_REWARD_ACCOUNTING])
-def test_vectorized_training_projection_is_byte_exact_to_scalar_composition(reward_accounting) -> None:
-    provider, readiness = _provider(reward_accounting=reward_accounting)
+def test_vectorized_training_projection_is_byte_exact_to_scalar_composition(reward_accounting, cost_authority) -> None:
+    provider, readiness = _provider(cost_authority, reward_accounting=reward_accounting)
     contract = readiness["economics_objective_contract"]
     for side_index in (0, 1):
         projection = provider.materialize_training_projection(0, side_index, 0, 3, 2)
@@ -169,8 +170,8 @@ def test_vectorized_training_projection_is_byte_exact_to_scalar_composition(rewa
         assert not projection["hold_reward_bps"].flags.writeable
 
 
-def test_terminal_event_identity_matches_scalar_and_vectorized_paths() -> None:
-    provider, _ = _provider(economic_terminal=True)
+def test_terminal_event_identity_matches_scalar_and_vectorized_paths(cost_authority) -> None:
+    provider, _ = _provider(cost_authority, economic_terminal=True)
     scalar = provider(0, 0, "exit_now", 0, 3)
     projection = provider.materialize_training_projection(0, 0, 0, 3, 2)
     assert [step["event_kind"] for step in scalar["steps"]] == [
@@ -182,8 +183,8 @@ def test_terminal_event_identity_matches_scalar_and_vectorized_paths() -> None:
 
 
 @pytest.mark.parametrize("reward_accounting", ["terminal_cash_v2", economics.MARK_TO_MARKET_REWARD_ACCOUNTING])
-def test_child_state_clock_translates_only_parent_price_rows(tmp_path: Path, reward_accounting) -> None:
-    authority = json.loads(AUTHORITY_PATH.read_text())
+def test_child_state_clock_translates_only_parent_price_rows(tmp_path: Path, reward_accounting, cost_authority) -> None:
+    authority = json.loads(cost_authority.read_text())
     policy = json.loads(Path(authority["policy"]["path"]).read_text())
     tape_path = Path(policy["executable_bid_ask"]["parquet"]["path"])
     tape = pd.read_parquet(tape_path, columns=["time"])
@@ -258,7 +259,7 @@ def test_child_state_clock_translates_only_parent_price_rows(tmp_path: Path, rew
         compact_rows=compact,
         compact_manifest=manifest,
         economics_readiness=_readiness(authority["authority_sha256"], reward_accounting),
-        cost_parameter_authority_path=AUTHORITY_PATH,
+        cost_parameter_authority_path=cost_authority,
         market_closure_authority_path=closure_path,
         market_closure_authority_file_sha256=file_sha256(closure_path),
         state_m1_source_path=child_path,
@@ -288,8 +289,8 @@ def test_child_state_clock_translates_only_parent_price_rows(tmp_path: Path, rew
 
 @pytest.mark.parametrize("terminal", [False, True])
 @pytest.mark.parametrize("reward_accounting", ["terminal_cash_v2", economics.MARK_TO_MARKET_REWARD_ACCOUNTING])
-def test_batched_val_economics_preserves_steps_costs_and_slice_hashes(terminal, reward_accounting):
-    provider, readiness = _provider(economic_terminal=terminal, reward_accounting=reward_accounting)
+def test_batched_val_economics_preserves_steps_costs_and_slice_hashes(terminal, reward_accounting, cost_authority):
+    provider, readiness = _provider(cost_authority, economic_terminal=terminal, reward_accounting=reward_accounting)
     other = provider._rows.copy()
     other.index = [1]
     other["entry_m1_start_row"] += 1
@@ -309,8 +310,8 @@ def test_batched_val_economics_preserves_steps_costs_and_slice_hashes(terminal, 
         provider.materialize_selected_actions([{**requests[0], "state_index": 3}])
 
 
-def test_marked_provider_cash_includes_fill_minute_and_bellman_tracks_price_change():
-    provider, readiness = _provider(reward_accounting=economics.MARK_TO_MARKET_REWARD_ACCOUNTING)
+def test_marked_provider_cash_includes_fill_minute_and_bellman_tracks_price_change(cost_authority):
+    provider, readiness = _provider(cost_authority, reward_accounting=economics.MARK_TO_MARKET_REWARD_ACCOUNTING)
     contract = readiness["economics_objective_contract"]
     for side in (0, 1):
         exits = [economics.compose_economic_step(s, contract=contract)
@@ -345,7 +346,7 @@ def test_marked_readiness_cannot_be_relabelled_as_legacy():
 
 
 
-def test_marked_rewards_reach_native_bellman_entry_bridge_and_val_cash_ledger():
+def test_marked_rewards_reach_native_bellman_entry_bridge_and_val_cash_ledger(cost_authority):
     import torch
     from gx1.contracts.entry_fitted_q_v1 import build_entry_fitted_q_targets
     from gx1.contracts.unified_exit_fitted_q_v1 import (
@@ -354,7 +355,7 @@ def test_marked_rewards_reach_native_bellman_entry_bridge_and_val_cash_ledger():
     from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import _new_trade, _accumulate_slice
 
     # This fixture declares a real terminal; it does not convert a chunk boundary.
-    provider, readiness = _provider(economic_terminal=True,
+    provider, readiness = _provider(cost_authority, economic_terminal=True,
                                    reward_accounting=economics.MARK_TO_MARKET_REWARD_ACCOUNTING)
     contract = readiness["economics_objective_contract"]
     projections = [provider.materialize_training_projection(0, side, 0, 3, 2) for side in (0, 1)]

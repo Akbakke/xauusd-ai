@@ -1,5 +1,5 @@
 param(
-    [string]$ControllerSourceWsl = '/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1',
+    [string]$ControllerSourceWsl = '/home/andre2/src/GX1_CURRENT/scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1',
     [string]$DistroName = 'Ubuntu-22.04',
     [string]$LinuxUserName = 'andre2'
 )

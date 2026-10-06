@@ -5,15 +5,13 @@ Status og neste steg står bare i `CURRENT_HANDOVER.md` og `VEIEN_VIDERE.md`, al
 Den eksekverbare statuseieren `bash scripts/gx1_handover.sh --check` overstyrer all prosa;
 er dokument og kode uenige: stopp, og reparer dokument og kode sammen.
 
-Reglene 1–25 er overført fra den arkiverte grenens konstitusjon
-(`archive/gx1-engine-audit-v9-20260926:CLAUDE.md`), uten svekkelse; historiske anekdoter er
-forkortet og ligger i git.
+Reglene gjelder beholdt kilde og alle nye planer. Tidligere versjoner finnes i Git;
+arkivfiler på disk er aldri kjøreautoritet.
 
 ## Én kodebase, én agent
 
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre
-  worktrees og grener (inkludert den arkiverte `audit/v9-premiere-20260905` i
-  `/home/andre2/src/GX1_ENGINE`) er historikk og git-lagring, aldri arbeidssteder.
+  worktrees og grener er git-lagring, aldri arbeidssteder.
 - Én agent (Claude eller Codex) og én tung jobb om gangen innen CURRENT. Bygg på den andre agentens
   commits; aldri et parallelt spor. Er noe i strid med dette, stopp og si fra.
 
@@ -142,65 +140,56 @@ moduler på disk.
     uoppfordret). Kjør dyprevisjonen før du påstår noe, sveip en funnet defektklasse over alle
     eiere i samme bølge, og dokumenter hva som ble og ikke ble verifisert.
 
-## Forskningsvedtak 29.09.2026
+## Beholdte forskningsgrenser
 
-Den avgrensede [A/B/C-planen](docs/TA_RESEARCH_PLAN_20260929.md) tillater reparasjon
-av eksisterende forskningsinstrumenter og forhåndsregistrerte CPU-fits i capped
-audit/producer. Sju D1-felt er en separat forskningsrepresentasjon; de erstatter
-ingen native familie. Forskningsbaselines kan ha egen enkel beslutningslogikk og
-utfallsmåling uten å endre native beslutningsautoritet eller head-kontrakter.
-Ingen optimizersteg på v37 eller ny native trening før egen mål-/horisontkontrakt
-og operatørbeslutning. Brede prisbaserte indikator-, modell-, terskel- og
-tapsvektsøk er stengt. TEST forblir forseglet; nye forsøk krever commit av
-forhåndsregistrering med populasjon, kostnader, baselines og beslutningsregel.
+Operatørvedtakene 29.09–01.10.2026 åpnet bare navngitt, forhåndsregistrert offline
+forskning med manifestbundne kilder, as-of/versjonshistorikk, populasjon, targets,
+kostnader, baselines, inferens og beslutningsregel før utførelse.
+CPU-fits må også gjennom capped audit/producer; de åpner ikke native trening.
+Sju D1-felt i forskningsarmen erstatter ingen native featurefamilie.
+Forskningsbaselines kan ha egen deklarert enkel logikk uten å endre native
+modell-/head-/handlingsautoritet. Brede indikator-/modell-/terskel-/tapsvektsøk
+er stengt. Fullførte engangsplaner skal aldri relanseres.
+
+Full B krever DFII10, DTWEXBGS, T10YIE, GLD, COT og VIX med kvalifisert
+historisk tilgjengelighet og dataversjoner, høyst 15 forhåndsnavngitte felt.
+Separat MACRO_CORE med de tre første er ikke redusert full B. Manglende kilder
+lukkes eksplisitt, ikke ved stille fjerning av målet. Native innføring krever
+egen vedtatt kontrakt/evidens. Gjeldende policy avgjør om ny henting/fit er åpnet.
+
+Kausal sweep-ankret pris-/aktivitetsrepresentasjon ble bestilt i eksisterende
+SMC-eier og M5/M1-featurekjede. Negativ håndskrevet regeltest beviser ikke
+manglende lært featureverdi. Ingen fast bekreftelses-, taps- eller holdetidsregel
+følger med. Prisoppdateringsantall er ikke ekte utført volum/order flow.
+Ingen ny modellarkitektur eller featurekassering.
 
 ## Kapasitet og vakter
 
 Hver tung produsent, datasett-build, audit, trening eller replay går gjennom
-`scripts/gx1_capped_run.sh`, som er eneste kapasitetsautoritet: én tung jobb om gangen,
-hard cgroup-grense, begrenset swap, CPU-affinitet og tråder. Grenseverdiene eies av skriptet
-og de bundne vaktene; les dem der, ikke fra prosa. Native GPU-trening går bare via eksisterende
-native campaign og etablerte maskinvarevakter, innenfor scope i `NEXT_RUN_POLICY.json`. En
-forespørsel over grensene, manglende host-tilstand, låskonflikt eller manglende cgroup er
-hard feil. Aldri omgå, svekk, bakgrunnsstart eller dupliser en tung jobb. Delvis output
-etter cap-kill, krasj eller reboot er ugyldig inntil completion-manifest og hasher består.
+scripts/gx1_capped_run.sh, eneste kapasitetsautoritet: én tung CURRENT-jobb,
+hard cgroup-grense, begrenset swap, CPU-affinitet og tråder. Verdiene eies av
+skriptet og bundne vakter, aldri av prosa eller ambient miljø.
+Native GPU-trening går bare via eksisterende native campaign og etablerte
+maskinvarevakter, innen NEXT_RUN_POLICY.json og eksakt kildebundet recipe.
+Manglende host-tilstand/cgroup, låskonflikt eller overskredet grense er hard feil.
+Aldri omgå, svekk, dupliser eller ubevoktet start en tung jobb.
+Delvis output etter stopp/krasj/reboot er ugyldig uten completion-manifest/hasher.
 
+Sporadisk PC-omstart kan gjøres ved trygg grense mellom fullførte kjøringer.
+Bevar terminalkvitteringer; alle prosjektjobber, GPU-beregninger og prosjektlåser
+på maskinen må være ledige. Ingen aktiv jobb avbrytes for periodisk omstart.
+Etterpå bekreftes ny boottid, WSL/tilkobling, uendret kilde og intakte artefakter
+gjennom eksisterende vakter. Native profiler kan kreve fersk fysisk Windows-boot.
 
-Operatørvedtak 30.09.2026: «ja gjør dette» åpner den separat forhåndsregistrerte
-sweep-/hendelsesankret-VWAP-/aktivitetstesten i docs/TA_SWEEP_AVWAP_20260930.md,
-inkludert lesekontroll av eksisterende Dukascopy-cache og avgrenset OANDA-basert
-økonomimåling. Ingen brede søk eller native trening åpnes; full B endres ikke.
+## Brukte engangstillatelser
 
-Operatørvedtak 01.10.2026: brukerens «bygg denne som en avansert funksjon»
-åpner kausal sweep-ankret pris-/aktivitetsrepresentasjon i eksisterende native
-SMC-eier og M5/M1-featurekjede, med bundne kontrakter og fokuserte inputkontroller.
-Den faste regelens NO_GO er ingen konklusjon om lært featureverdi.
-Dette designskiftet åpner ikke TEST, live/paper eller en uavgrenset treningskjøring.
+COST_TERMS_REVALIDATION_001 brukte det særskilte lesekall-unntaket 02.10.2026:
+maksimalt ett GET for practice-kontovilkår og ett for XAUUSD-vilkår, ingen retry,
+redirect, transaksjonsoppslag, ordre eller spending. Det er konsumert og kan
+aldri gjenbrukes som broker-adgang. Nye kall krever ny eksplisitt autorisasjon.
+Claimede benchmark-/auditplaner har samme ikke-relaunch-grense.
 
-Operatørvedtak 01.10.2026: «Lag deg dette som et mål og jobb aktivt med å lande
-alle disse punktene» godkjenner docs/AUTOMATIC_BOT_EVIDENCE_PLAN_20261001.md:
-egen manifestbundet MACRO_CORE-arm med DFII10, DTWEXBGS og T10YIE, matchet
-prisbaseline og eksisterende kostnads-/mål-/inferenseiere. Dette er ikke redusert
-full B. Avgrenset native v38-læring og senere makroinnføring forberedes gjennom
-eksisterende kontrakter og evidensporter; trening er stengt til disse er bundet.
-Ingen åpning av TEST, broker, live/paper, spending eller uavgrenset trening.
-
-Operatørvedtak 01.10.2026: kontrollerte, sporadiske omstarter av GX1-PC-en
-gjøres mellom fullførte kjøringer for å forebygge driftsproblemer. Før omstart
-må terminalkvitteringer være bevart og alle prosjektjobber, GPU-beregninger og
-prosjektlåser på maskinen være ledige. Ingen fast omstartsperiode er vedtatt;
-en aktiv jobb avbrytes aldri for periodisk omstart. Etterpå bekreftes ny
-oppstartstid, fungerende tilkobling/WSL, uendret kilde og intakte artefakter
-gjennom eksisterende vakter før neste tunge jobb.
-
-## Avgrenset operatørunntak 02.10.2026 — engangs lesekall
-
-Operatøren godkjente 02.10.2026 den tidligere klargjorte lesekontrollen:
-«Ja kjør lesekall». Tillatelsen gjelder bare COST_TERMS_REVALIDATION_001,
-maksimalt ett GET for OANDA practice-kontovilkår og ett GET for XAUUSD-vilkår.
-Den hash-bundne planen og operatoren gjenbrukes. Ingen retry, redirect,
-transaksjonsoppslag, ordre, handel eller spending. Trening og TEST er stengt.
-
-Unntaket kan ikke gjenbrukes til nye kall etter at denne kjøringen har brukt det.
-
-Engangsunntaket er brukt opp 02.10.2026: begge GET-kall lyktes, null ordre/transaksjonsoppslag. Ingen videre broker-adgang er autorisert.
+Repo-opprydding omfatter verifiserte repo-filer og regenererbare cacher;
+DATA/RUNS følger alltid regel 9. Brukerens særskilte godkjenning 06.10.2026
+tillater retting/synkronisering av konkrete CURRENT-referanser i installerte
+Claude-vakter og tilhørende hook-kommandoer. Andre globale innstillinger er urørt.

@@ -151,6 +151,58 @@ def _reseal(value: dict) -> dict:
     return owner.seal_unified_exit_broker_evidence_v1(payload)
 
 
+def prospective_broker_fixture(tmp_path: Path) -> Path:
+    """Build isolated synthetic quote/terms bytes, never historical broker rows."""
+    import copy
+    import json
+    import numpy as np
+    import pandas as pd
+
+    directory = tmp_path / "cost_inputs"
+    directory.mkdir(exist_ok=True)
+    broker_path = directory / "broker.json"
+    if broker_path.exists():
+        owner.require_unified_exit_broker_evidence_v1(
+            json.loads(broker_path.read_text()), verify_local_sources=True
+        )
+        return broker_path
+    broker = _fixture(directory)
+    broker.pop("artifact_sha256")
+    execution = broker["execution_observations"]
+    execution["rows"] = [copy.deepcopy(execution["rows"][0]) for _ in range(258)]
+    for key in ("cutoff_fill_count", "commission_present_count", "half_spread_cost_present_count",
+                "half_spread_cost_nonzero_count", "gslo_fee_present_count", "full_vwap_residual_count"):
+        execution[key] = len(execution["rows"])
+    execution["safe_population_sha256"] = owner._canonical_sha256(execution["rows"])
+    times = pd.DatetimeIndex([pd.Timestamp("2025-06-01T00:00Z"),
+                             *pd.date_range("2025-06-01T23:55Z", periods=16, freq="min"),
+                             pd.Timestamp("2026-06-30T23:59Z")])
+    bids = 2000.0 + np.arange(len(times), dtype=np.float64) * 0.1
+    tape = pd.DataFrame({"time": times, "bid_open": bids, "ask_open": bids + 0.5,
+                         "bid_close": bids + 0.1, "ask_close": bids + 0.6})
+    tape_path = directory / "quotes.parquet"
+    tape.to_parquet(tape_path, index=False)
+    tape_binding = {"path": str(tape_path), "sha256": hashlib.sha256(tape_path.read_bytes()).hexdigest()}
+    manifest_path = directory / "quotes.manifest.json"
+    manifest = {
+        "schema_version": "gx1_direct_native_pretest_source_v2", "instrument": "XAU_USD",
+        "timeframe": "M1", "timestamp_semantics": "bar_start_utc", "quote_complete_m1": True,
+        "test_accessed": False, "test_boundary_utc": "2026-07-01T00:00:00+00:00",
+        "output_parquet": str(tape_path), "output_parquet_sha256": tape_binding["sha256"],
+        "row_count": len(tape),
+    }
+    manifest["manifest_payload_sha256"] = owner._canonical_sha256(manifest)
+    manifest_path.write_text(json.dumps(manifest))
+    quote = broker["executable_quote_source"]
+    quote.update(parquet=tape_binding,
+                 manifest={"path": str(manifest_path), "sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest()},
+                 row_count=len(tape), time_min_utc=times[0].isoformat(), time_max_utc=times[-1].isoformat())
+    broker = owner.seal_unified_exit_broker_evidence_v1(broker)
+    owner.require_unified_exit_broker_evidence_v1(broker, verify_local_sources=True)
+    broker_path.write_text(json.dumps(broker))
+    return broker_path
+
+
 def test_valid_sanitized_evidence_and_local_sources(tmp_path: Path) -> None:
     artifact = _fixture(tmp_path)
     checked = owner.require_unified_exit_broker_evidence_v1(artifact, verify_local_sources=True)

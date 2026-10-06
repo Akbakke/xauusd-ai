@@ -1,71 +1,45 @@
-# Arbeidsregler for GX1 — oppdatert 2026-09-26
+# Arbeidsregler for GX1
 
-<!-- GX1_CURRENT_RESTART_POINTER -->
-## Gjeldende restartpeker - 05.10.2026
+Les [GX1_RULES.md](GX1_RULES.md) helt før arbeidet starter. Den er bindende for
+Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt.
 
-Etter obligatorisk handover-sjekk skal CURRENT_RESTART_POINT.json og
-docs/RESTART_POINT_20261005.md leses før historikk.
-INDEX_FEATURE_SOURCE_REVIEW_001 er fullført og må ikke relanseres.
+- Bruk bare /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+  Andre worktrees/grener er lagring, aldri arbeidssteder.
+- Én agent om gangen innen CURRENT. Ingen subagenter eller parallelle agentløp.
+  Start med git branch --show-current og git log -5; bygg på eksisterende arbeid.
+- Kjør bash scripts/gx1_handover.sh --check. Les CURRENT_HANDOVER.md,
+  GX1_ARBEIDSMAAL.md, VEIEN_VIDERE.md og NEXT_RUN_POLICY.json.
+  CURRENT_HANDOVER er gjeldende fortelling; NEXT_RUN_POLICY er eneste arbeidsstatus.
+  Prosessobservasjon og eksakte terminalkvitteringer overstyrer prosa.
+- Ikke relanser fullførte, claimede eller avbrutte engangsplaner. En ny plan er
+  ikke autorisert av en gammel godkjenning. training_enabled=false stenger trening.
+- Én tung jobb innen CURRENT, alltid gjennom scripts/gx1_capped_run.sh og
+  eksisterende maskinvarevakter. Separate prosjekter har separate prosjektlåser;
+  dette svekker ingen kapasitets-, minne-, CPU-, effekt- eller temperaturgrense.
+- Gjenbruk ferdige inputs, targets, outputs og beståtte kontroller. Stabil
+  langkjøring kontrolleres omtrent hver time, ikke med minuttvis modellpolling.
+- Modell-/treningskode endres bare for en konkret observert blokkering eller
+  vedtatt designendring. Begrunn minste rettelse før implementasjon. Ingen
+  forebyggende refaktorering, brede søk, nye rammeverk eller gjentatte fullsuiter.
+- Bevar genuine features, åtte familier, tidsrammer, kausalitet og alle vakter.
+  Ingen fast tapsgrense eller maksimal holdetid. En beregningshorisont er ikke
+  en handelsregel. Endret ONLINE-funksjon krever fersk initialbaseline.
+- Skill TRAIN-fit, senere generalisering, referanseverdi og realisert økonomi.
+  Alltid FLAT/HOLD beviser ikke selektivitet/tålmodighet. På lange horisonter
+  brukes forhåndsvalgt alltid-LONG/kjøp-og-hold, ikke myntkast, som referanse.
+- TEST er forseglet. Ingen live/paper, broker, ordre, spending eller promotion.
+  Juni 2026 er gjenbrukt utviklings-VAL. Økonomi omfatter alle valgte handler
+  og åpne posisjoner, ikke bare lukkede vinnere.
+- Ikke endre fryst kilde under kjøring. Bevar originalkvitteringer og checkpoints.
+  DATA/RUNS ryddes bare med retention-eieren etter GX1_RULES regel 9.
+- Fjern bevist frakoblet kode og foreldede repo-filer etter referanse-, import-,
+  test- og eierskapskontroll. Git er gjenopprettingskilden, ikke nye historikkmapper.
+- Oppdater overlevering i samme bølge som koden. Avslutt med fokuserte tester,
+  syntaks, stale-path-scan, git diff --check og ærlige ubeviste grenser.
+- Stående brukerautorisasjon fra 17.09.2026 tillater push av ferdig kode,
+  dokumentasjon, interne artefaktstier og aggregerte bevis til Akbakke/xauusd-ai,
+  work/gx1-current. Aldri rådata, vekter eller hemmeligheter; aldri force-push
+  uten eget vedtak. Ikke spør på nytt om allerede gitt relevant autorisasjon.
 
-Gjelder alle agenter (Codex leser denne fila; Claude får den via `CLAUDE.md`). De bindende
-prosjektreglene står i [GX1_RULES.md](GX1_RULES.md) — les dem først. Krev målbar læring før
-mer omfattende trening. Teknisk PASS er ikke bevis på bedre handelsbeslutninger eller
-positiv kostnadsjustert netto bps.
-
-- **Én kodebase:** bruk bare `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-  Andre worktrees og grener er git-lagring og historikk, aldri arbeidssteder. Den arkiverte
-  `audit/v9-premiere-20260905` (worktree `/home/andre2/src/GX1_ENGINE`) er slått inn her og
-  tagget `archive/gx1-engine-audit-v9-20260926`; ikke commit der. Mac-mappen er en
-  overleveringskopi.
-- **Én agent om gangen.** Claude og Codex jobber aldri parallelt eller på hvert sitt spor.
-  Start med `git branch --show-current` (må være `work/gx1-current`) og `git log -5`; bygg på
-  den forrige agentens commits.
-- Start med `bash scripts/gx1_handover.sh --check`. Les deretter CURRENT_HANDOVER.md,
-  GX1_ARBEIDSMAAL.md, VEIEN_VIDERE.md og NEXT_RUN_POLICY.json. Ikke relanser en aktiv
-  eller fullført plan.
-- CURRENT_HANDOVER.md er eneste gjeldende fortelling. Prosesser, checkpoints og receipts må
-  bekrefte nåstatus. COMPLETED_RUN.json og filer merket historikk er bevis, aldri
-  startinstrukser.
-- Én tung jobb samtidig. Gjenbruk ferdige analyser, cachede inputs, targets, outputs og
-  beståtte tester. Ingen minuttvis modellpolling. Kontroller stabil langkjøring omtrent
-  hver time; automatiske vakter håndterer hyppig maskinvarekontroll.
-- Endre modell-/treningskode bare for en konkret, observert blokkering eller et vedtatt
-  designskifte. Forklar blokkeringen og minste rettelse først. Ingen forebyggende
-  refaktorering, nye rammeverk, brede regel-/terskel-/modell-/tapsvektsøk eller gjentatte
-  fullsuiter.
-- Operatørvedtak 29.09.2026: følg docs/TA_RESEARCH_PLAN_20260929.md for avgrenset
-  instrumentreparasjon og A/B/C-forskning. Regel 1 åpner navngitte, manifestbundne
-  eksterne forskningsinputs. Forhåndsregistrerte CPU-fits i capped audit/producer er
-  forskning; dette åpner ingen native trening, optimizersteg eller TEST-utfall.
-- Tung trening bare via eksisterende native campaign gjennom `scripts/gx1_capped_run.sh` og
-  etablerte maskinvarevakter; profil og tillatt omfang står i NEXT_RUN_POLICY.json.
-  `training_enabled=false` stenger ny trening. Ingen full epoch eller full VAL mens
-  læringsporten er uavklart.
-- Bevar alle features, åtte familier, tidsrammer og kausalitet. Ingen fast tapsgrense eller
-  maksimal holdetid; en beregningshorisont er ikke en handelsregel.
-- Ved endret ONLINE-funksjon må ny initialbaseline måles; lik vekthash er ikke
-  funksjonsparitet.
-- Skill lærerens verdiestimat fra fasit i observerte markedsutfall. Alltid FLAT er ikke
-  dokumentert selektivitet; alltid HOLD er ikke dokumentert tålmodighet. TRAIN-tilpasning,
-  senere generalisering og samlet økonomi rapporteres hver for seg. På lange horisonter er
-  alltid-LONG / kjøp-og-hold valgt før perioden referansen, ikke myntkast.
-- TEST forblir forseglet. Ingen live-/papirhandel eller spending. Medregn alle valgte handler
-  og åpne posisjoner ved økonomivurdering. Juni 2026 er gjenbrukt utviklings-VAL.
-- Bevar fullførte resultater, originale checkpoints og aktiv kjøring. Ikke endre frosset kilde
-  under kjøring.
-- Stående autorisasjon gjelder nødvendig arbeid innen oppgaven; ikke spør om samme godkjenning
-  igjen. Oppdater overlevering ved vesentlige endringer i samme bølge som koden.
-  Brukeren ga 2026-09-17 stående godkjenning for push av ferdig GX1-kode, dokumentasjon,
-  interne artefaktstier og aggregerte bevis til Akbakke/xauusd-ai, `work/gx1-current`.
-  Rådata, modellvekter og hemmeligheter publiseres aldri. Force-push krever eget vedtak.
-- Diskopprydding: bare via retention-eieren (GX1_RULES.md regel 9), med etterprøvbar logg.
-- Skill lokale driftsgrenser fra produsentspesifikasjoner.
-
-Ingen antagelser der tilstanden kan måles. Når en nødvendig rettelse er kontrollert, gå videre
-mot målet uten å utvide jobben.
-
-
-Operatørvedtak 28.09.2026: separate prosjekter kan arbeide parallelt. CURRENT
-bruker en egen prosjektlås; én tung jobb om gangen gjelder fortsatt innen CURRENT.
-Den tidligere maskinfelles låsen slettes ikke. Cgroup-tak, krav til ledig minne,
-CPU-/trådgrenser og GPU-/temperaturvakter består. Dette åpner ikke trening.
+Ingen antagelser der tilstanden kan måles. Les [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md)
+for gjenværende læringsløp og [docs/REPO_REVIEW.md](docs/REPO_REVIEW.md) for oppryddingen.

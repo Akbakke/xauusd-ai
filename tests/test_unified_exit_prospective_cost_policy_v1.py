@@ -14,15 +14,14 @@ from gx1.scripts.materialize_unified_exit_prospective_cost_policy_v1 import (
     materialize_prospective_cost_policy,
 )
 
-ROOT = Path(__file__).resolve().parents[1]
-BROKER = ROOT / "docs/evidence/UNIFIED_EXIT_BROKER_EVIDENCE_V1_20260910.json"
+from tests.test_unified_exit_broker_evidence_v1 import prospective_broker_fixture
 START = "2025-06-01T00:00:00+00:00"
 END = "2026-07-01T00:00:00+00:00"
 
 
 def _build(tmp_path: Path, **overrides: object) -> dict[str, object]:
     kwargs: dict[str, object] = {
-        "broker_evidence_path": BROKER,
+        "broker_evidence_path": prospective_broker_fixture(tmp_path),
         "output_dir": tmp_path / "policy_bundle",
         "coverage_start_utc": START,
         "coverage_end_utc": END,
@@ -251,7 +250,7 @@ def _broker_with_financing(tmp_path: Path, long_rate: float, short_rate: float) 
     from gx1.contracts.unified_exit_broker_evidence_v1 import (
         _canonical_sha256, seal_unified_exit_broker_evidence_v1,
     )
-    broker = json.loads(BROKER.read_text())
+    broker = json.loads(prospective_broker_fixture(tmp_path).read_text())
     broker.pop("artifact_sha256")
     instrument = broker["current_prospective_terms"]["instrument"]
     instrument.pop("sanitized_snapshot_sha256")

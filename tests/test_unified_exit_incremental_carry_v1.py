@@ -122,7 +122,6 @@ def test_episode_native_exit_has_no_legacy_runtime_or_corpus_authority():
     root = Path(__file__).resolve().parents[1]
     production = tuple((root / "gx1").rglob("*.py"))
     allowed_audit_oracle = {
-        root / "gx1/contracts/unified_exit_optimal_stopping_v1.py",
         root / "gx1/contracts/entry_exit_feature_usefulness_v1.py",
         root / "gx1/scripts/audit_entry_exit_feature_usefulness_v1.py",
     }

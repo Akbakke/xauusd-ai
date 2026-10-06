@@ -18,7 +18,7 @@ import json
 import subprocess
 import sys
 
-VENV_PY = "/home/andre2/src/GX1_ENGINE/.venv/bin/python"
+VENV_PY = "/home/andre2/src/GX1_CURRENT/.venv/bin/python"
 # Error classes only — no style. E9=syntax/indentation, F821=undefined name,
 # F811=redefinition, F823=local used before assignment, F706=return outside fn,
 # F704=yield outside fn, F501-2=%-format errors.

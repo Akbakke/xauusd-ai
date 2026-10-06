@@ -186,62 +186,12 @@ def test_launch_reads_current_m1_feature_surface_schema_from_owner() -> None:
     assert '"gx1_entry_exit_m1_feature_surface_v1"' not in source
 
 
-def test_candidate_binding_requires_the_refreshed_current_liveness_before_training() -> None:
-    """Retained V46 evidence must never replace the current reviewed dataset."""
-
-    state = json.loads(
-        (REPO / "PROJECT_STATE_xau_direction_launch.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    evidence = state["current_audited_dataset_evidence"]
-    reports = evidence["reports"]
-    artifacts = {
-        artifact_key: Path(reports[report_name]["path"])
-        for artifact_key, report_name in launch._CURRENT_AUDITED_CANDIDATE_REPORTS.items()
-    }
-    arguments = {
-        "repo": REPO,
-        "dataset_dir": Path(evidence["dataset_dir"]),
-        "dataset_run_id": str(evidence["dataset_run_id"]),
-        "artifacts": artifacts,
-    }
-    from tests.test_current_audited_dataset_evidence import assert_retired_pretest_recipe_rejected
-    if assert_retired_pretest_recipe_rejected(state):
-        return
-    if "current_pretest_trainability_readiness" in state:
-        # The current TRAIN/VAL owner supersedes the retained three-split V46
-        # reports. A safety hold does not turn this back into the earlier
-        # target-correction boundary or make the old dataset current again.
-        current = launch.require_blocked_launch_state_with_current_audited_dataset(state)
-        selected = state["current_source_technical_recipe"]
-        recipe = json.loads(Path(selected["recipe_path"]).read_text(encoding="utf-8"))
-        assert current["dataset_dir"] == recipe["dataset_dir"]
-        assert current["dataset_run_id"] == recipe["dataset_run_id"]
-        assert Path(current["dataset_dir"]) != arguments["dataset_dir"]
-        without_hold = dict(state)
-        without_hold.pop("pretraining_review_hold", None)
-        # CPU evidence selection only; never remove the real launch hold.
-        assert launch.require_blocked_launch_state_with_current_audited_dataset(
-            without_hold,
-        ) == current
-        with pytest.raises(
-            launch.LaunchContractError,
-            match="candidate dataset does not match current audited dataset",
-        ):
-            launch._candidate_current_audited_dataset_binding(**arguments)
-        return
-    if "pretraining_review_hold" in state:
-        # Valid feature liveness cannot rescue a superseded target/causality
-        # contract. Retained V46 evidence must not bind a new candidate.
-        with pytest.raises(launch.LaunchContractError, match="EXECUTION_CAUSALITY_EXPECTATION_INVALID"):
-            launch._candidate_current_audited_dataset_binding(**arguments)
-        return
-    binding = launch._candidate_current_audited_dataset_binding(**arguments)
-    assert binding["reports"]["full_input_liveness_audit_json"] == {
-        "path": str(reports["full_input_liveness"]["path"]),
-        "sha256": str(reports["full_input_liveness"]["sha256"]),
-    }
+def test_candidate_binding_requires_the_refreshed_current_liveness_before_training():
+    """No historical dataset can fill the missing current admission."""
+    state = json.loads((REPO / "PROJECT_STATE_xau_direction_launch.json").read_text())
+    assert state["accepted_dataset_dir"] is None
+    with pytest.raises(RuntimeError, match="EVIDENCE_MISSING"):
+        launch.require_blocked_launch_state_with_current_audited_dataset(state)
 
 
 @pytest.mark.parametrize("mutation", ("missing", "extra", "changed"))
@@ -463,7 +413,7 @@ def _held_source_repo(tmp_path: Path) -> Path:
             "decision": "BLOCK",
             "reason": "successor dataset review is pending",
             "activation_authority": False,
-            "report_path": "docs/PREMIERE_CODE_REVIEW_20260905.md",
+            "report_path": "docs/REPO_REVIEW.md",
         }}),
         encoding="utf-8",
     )

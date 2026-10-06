@@ -1,93 +1,42 @@
-Status står bare i CURRENT_HANDOVER.md. Dette er arkitekturkartet (oppdatert 26.09.2026).
+# SYSTEM MAP — beholdt offline kjede
 
-<!-- GX1_CURRENT_RESTART_POINTER -->
-## Gjeldende arbeidsgrense
+Gjeldende bindinger eies av NEXT_RUN_POLICY.json; dokumentet er ikke en recipe.
 
-Komplett før-TEST-M1 driver M5 Entry, M1 Exit og lukket M15/H1/H4/D1.
-Faktisk indeksbundet 254-felts TRAIN/VAL-innlasting er verifisert. Neste port
-er samplerbenchmark, ikke modelltrening. Se docs/RESTART_POINT_20261005.md.
+```text
+hash-bundne native M1/M5-priser og lukket MTF-kontekst
+  → eksisterende feature-eiere / åtte familier
+  → native signalmanifest og uforanderlig TRAIN-normalisering
+  → Entry M5-vinduer + separate M1-views + økonomi/tilstandsindekser
+  → delte encoders og Entry-/Exit-fitted-Q i én bundle
+  → initial-/læringsmåling og fryste TRAIN/CONTROL-koordinater
+  → egne lærings-, generaliserings-, paritets- og økonomiporter
+```
 
-# GX1-systemkart
+## Eiere
 
-Kode: /home/andre2/src/GX1_CURRENT, branch work/gx1-current (eneste kodebase).
-GX1_ENGINE/.git er felles Git-lagring; grenen der er arkivert
-(`archive/gx1-engine-audit-v9-20260926`), aldri arbeidssted. Data: /home/andre2/GX1_DATA.
+- Feltorden/familier: gx1/contracts/entry_model_native_signal_v1.py og
+  gx1/features/entry_model_native_feature_layers_v1.py.
+- Featureformler: gx1/features; HTF beregnes på lukkede native candles, ikke
+  ved resampling av ferdige indikatorer. SMC sweep-AVWAP er markedsevidens,
+  aldri en separat handelsregel.
+- Normalisering: entry_model_native_input_normalization_v1 og eksisterende
+  unified_exit-native/composite normalization-eiere.
+- Fitted-Q/handlinger: entry_fitted_q_v1, unified_exit_fitted_q_v1 og
+  modellens eksisterende native trenings-/forwardeiere under gx1/models/entry_v10.
+- Kostnader, kapitalhurdle og lazy steg: unified_exit_*economic*,
+  unified_exit_prospective_cost_policy_v1 og hash-bundne splitautoritetene.
+- Datasett/indekser/sampler: eksisterende materialize/build/benchmark-eiere
+  under gx1/scripts; fryste outputs gjenbrukes, ikke parallelle implementasjoner.
+- Native kjøreautoritet: run_unified_exit_native_candidate_window_v1 og
+  native campaign-eiere; training_enabled=false holder dem lukket.
+- Kapasitet: scripts/gx1_capped_run.sh, gx1_guarded_trainer_exec.sh,
+  signert host-telemetri og den native Windows clock/profile-launcheren.
+- Nåstatus: scripts/collect_gx1_handover_readonly.py og gx1_handover.sh;
+  ingen historisk checkpointfallback.
+- Retention: gx1/contracts/evidence_retention_v1.py og
+  gx1.scripts.cleanup_gx1_evidence_v1. .env/.venv/.git er ikke oppryddingsfyll.
 
-## Modell og læringskjede
-
-Kausale native features og TRAIN-eid normalisering
-→ Entry: lokal M5-historikk + M15/H1/H4/D1, LONG/SHORT/FLAT
-→ Exit: lokal M1-historikk + M5/M15/H1/H4/D1, HOLD/EXIT_NOW
-→ samme V4 BID/ASK-, kostnads- og økonomiberegning i trening og evaluering.
-
-Alle features, åtte familier og tidsrammer bevares; dimensjonene leses ved å eksekvere
-`gx1/contracts/entry_model_native_signal_v1.py`, aldri fra dokumenter. Hver timeframe bruker
-sin tilgjengelige lukkede klokke. Antall features er ikke antall uavhengige
-signaler. Sammenkobling alene dokumenterer ingen prediksjons- eller handelsfordel.
-
-Entry-Q kan nå trene sin upstream representasjon: den blokkerende detach før
-Entry-Q-mikseren er fjernet. Exit-tokenets eksisterende detach beholdes.
-Dette innebærer ikke full isolasjon av alle delte parametere. Exit har egne
-exit_episode_family_tf-rutere; null Exit-gradient på Entry-ruteren er ikke
-bevis for at Exit-ruteren er frakoblet. Forecast er hjelpeoppgaver, ikke direkte
-handlingsfasit. Exit har også kausal prissti og livstidssammendrag.
-
-## Tidsskala i dagens mål
-
-Retningsmålet (`gx1/contracts/entry_direction_target_policy_v1.py`) velger horisont med et
-knee-søk over 1..`ENTRY_DIRECTION_TARGET_POLICY_MAX_HORIZON_BARS` = 96 M5-barer (8 timer); valgt
-19 (95 min). Exit-referansepolicyen holder med 119/120 per M1-steg (~2 t). Inputene dekker uker
-og år (H4 96, D1 252 barer), men målene gjør det ikke. Målt 26.09: retningen ligger på
-uker–måneder (docs/DIRECTION_TIMESCALE_20260926.md). En ukeshorisont krever en eksplisitt ny
-målkontrakt (VEIEN_VIDERE.md), ikke en stille økning av taket.
-
-## Gjeldende targets i det avsluttede forsøket
-
-- Exit-HOLD-target er et observert, diskontert Q_mu-returutfall under fast kausal
-  referansepolicy: HOLD119/120, EXIT1/120 etter første handling. Maksimalt120
-  observerte beregningssteg og gyldig frossen boundary-bootstrap bevares.
-- Entry-target er første gjennomførbare likvidasjonsverdi + V_mu(state0),
-  der V_mu=(119/120)*Q_mu(HOLD); ugyldig/terminal HOLD gir EXIT=0. FLAT=0.
-- Positive og negative observerte HOLD-utfall teller. Tidligere
-  max(observert HOLD-utfall,0) brukte framtidig informasjon til første
-  handlingsvalg og er rettet. Maks over critic-estimater i legacy-grenen
-  er en annen beregning og er bevart.
-
-Dette er referanse-policyverdier, ikke optimal verdi eller faktisk profitt
-under en lært greedy-policy. Framtidige utfall er targets, aldri online-input.
-Ingen fast holdetid eller tapsgrense er innført. Bootstrap, successors og
-kostnader er bevart. Femstegsoppsettet er historisk sammenligningsgrunnlag.
-
-## Aktuell forsøksstatus og drift
-
-Den tidligere korrigerte native256-prøven ble fullført på955abf19. Fersk lagret
-initialisering, normalisering/labels fittet på prefix-TRAIN, samme4096 Entries,
-frossen lærer og slutt-ONLINE. Bare TRAIN256/Exit-anker/samplede states er målt.
-Korrekt avledet Entry-baseline gjenbruker originale prediksjoner; Exit-målene
-beholdes. Paret analyse er ferdig og læringsporten ikke bestått: Entry all-FLAT,
-Exit alltid HOLD for LONG / EXIT for SHORT. Signaldiagnosen er fullført: kraftig
-vekst i nesten felles representasjoner og rundt ti ganger mindre variasjon i
-Entry-hidden. Dette er målt før residualnormaliseringen; den nye modellens
-representasjoner er nå målt separat: nesten felles main-fuse-norm117,71,
-9,51 ganger mindre variasjon etter joint-normalisering og7,07 ganger mindre
-i Entry-hidden. Se RESIDUAL_REPRESENTATION_REVIEW_20260918.md. Inputnormaliseringen er uendret.
-Normaliseringen før tre residualprojeksjoner ble prøvd på88310075 med native256 og
-avvist: samme FLAT/sidekonstante handlinger. Representasjonsdiagnosen er fullført
-og brukt scope er stengt. Hovedencoder har nå parameterfri final LayerNorm.
-Prefix-læreren kopieres uten denne nye normaliseringen; original lærerfunksjon
-og initialvekter/RNG er kontrollert. Entry-hidden/Q inngår i Exit-tokenet;
-full lærerparitet er testet for begge. Ny ONLINE-funksjon krever egen native
-nullstegsbaseline. Denne er nå målt med identiske frosne targets og bevart
-tilstand/RNG. Prøven på256 steg er nå fullført med guard PASS, final ONLINE
-og stengt scope. Paret analyse er ferdig: mer Entry-signal, uendrede Entry/Exit-valg og
-ikke bestått læringsport. Se docs/MAIN_ENCODER_FIXED256_REVIEW_20260919.md.
-
-Én kjørevei: eksplisitt NEXT_RUN_POLICY → bundet native campaign → etablert
-Windows-launcher/controller → gx1_capped_run.sh → native kandidatvindu.
-TRAIN16, VAL256/8CPU/3t når særskilt tillatt, FP32/TF32 av og etablerte vakter.
-Det brukte unntaket er stengt. Ingen ny trening/full VAL/TEST er åpnet.
-
-Handover er kun lesing. `current_work` gjelder dagens jobb; øvrige felt fra
-COMPLETED_RUN.json er historikk. Historiske smoker/kildekopier er avhengigheter
-og bevis, aldri alternative oppstartsveier. Se CURRENT_HANDOVER.md,
-VEIEN_VIDERE.md og docs/LEARNING_GATE_20260916.md.
+Offline serving/paritets- og persistenseiere beholdes for samme bundletilstand;
+de gir ingen adgang til live/paper/broker. Fokuserte tester ligger under tests/.
+Eksisterende research_ta_campaign-eier beholdes for det separate full-B-målet.
+En beholdt CLI er ikke autorisert bare fordi filen finnes.

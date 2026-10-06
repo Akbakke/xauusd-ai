@@ -1,29 +1,19 @@
-# GX1 arbeidsmål - oppdatert 05.10.2026
+# Arbeidsmål for GX1
 
-## Sluttmål
+Målet er robuste, lærte XAUUSD Entry/Exit-beslutninger og positiv
+kostnadsjustert økonomi. Ingen slik konklusjon er etablert for dagens v38-oppsett.
 
-Bygg og kvalifiser en fullstendig automatisk XAUUSD-bot med én kausal
-før-TEST-M1-kilde, M5 Entry, M1 Exit og lukket M15/H1/H4/D1-kontekst.
-Bevar 254 features, åtte familier, ingen fast tapsgrense og ingen maksimal
-holdetid.
+Gjennomført brukeroppdrag: stans benchmarken kontrollert, gå grundig gjennom repoet,
+rett konkrete feil og fjern bevist død kode, doble statuskilder og avsluttede
+rapporter/configs. Minimum betyr mindre vedlikeholdsflate, ikke færre genuine
+features, svakere sikkerhet eller sletting av nødvendige data.
 
-## Bevis som kreves
+Ferdigkriterium for oppryddingen: bevart nåværende input-/modell-/kostnads-/
+sikkerhetskjede; ingen levende referanser til slettede repo-filer; fokuserte
+tester, syntaks, kildeidentitet og handover kontrollert; eksakt rapport om
+slettinger, funn og ubeviste områder. Git bevarer gjenoppretting.
 
-1. Selektiv læring som slår relevante konstanter og samme-risiko-baselines.
-2. Senere kronologisk generalisering uten TEST.
-3. Positiv kostnadsjustert økonomi med alle valgte og åpne posisjoner.
-4. Funksjonell train/serve-paritet for den fryste kandidaten.
-5. Offline ordreintensjon, idempotent restart, brokeravstemming og recovery.
-6. Fryst modellvalg før forseglet TEST.
-7. Egen senere autorisasjon før live/paper, brokerordre eller spending.
-
-## Nåstatus
-
-Komplett M1/M5-grunnlag, v38-features, preprocessing, normalisering,
-kostnadspolicy, økonomisk indeks og faktisk featurekilde er kvalifisert.
-Makrokjernen DFII10/DTWEXBGS/T10YIE var inkonklusiv og er ikke promotert.
-Full B med seks kilder består som separat blokkert mål.
-
-Neste port er én workload-matchet samplerbenchmark. Se
-docs/RESTART_POINT_20261005.md og CURRENT_RESTART_POINT.json.
-Ingen edge eller lønnsomhet er bevist.
+Læringsmålene 1–6 i docs/NATIVE_LEARNING.md er fortsatt ufullført.
+Input-PASS og forkastede regelhypoteser kan ikke erstatte fersk initialisering,
+bundet læringsmåling eller økonomi. Bevar alle åtte familier og tidsrammer.
+Separate full-B-kildekrav består. Nåstatus: CURRENT_HANDOVER.md/NEXT_RUN_POLICY.json.

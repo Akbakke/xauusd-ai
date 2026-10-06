@@ -3,7 +3,9 @@
 Committet før noen pris rundt hendelsene er lest. Formål: teste om planlagte amerikanske
 makrohendelser gir en handelbar retning i XAUUSD etter kost, på scalp-/intradaghorisont — ny
 informasjon (tidspunkt), ikke flere prisfeatures. Forskningsarm, aldri Entry-input (regel 1).
-Følger NO-GO for de modellfrie grunnlinjene ([MODEL_FREE_BASELINES_RESULT_20260927.md](MODEL_FREE_BASELINES_RESULT_20260927.md)).
+Følger den avsluttede NO-GO-vurderingen for de modellfrie grunnlinjene.
+Dette er beholdt kodebundet spesifikasjon, ikke ny kjøretillatelse.
+Avsluttede rapporter finnes i Git; gjeldende scope eies av NEXT_RUN_POLICY.json.
 
 ## Kalender (kilde og manifest)
 

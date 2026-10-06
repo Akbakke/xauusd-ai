@@ -20,7 +20,7 @@ from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import (
     require_random_access_val_evaluation_result_v1,
     run_resumable_random_access_val_evaluation_v1,
 )
-from tests.test_unified_exit_economic_step_provider_v1 import _provider
+from tests.test_unified_exit_economic_step_provider_v1 import _provider, cost_authority
 from tests.test_unified_exit_economics_objective_v2 import _contract, _marked_step
 from tests.test_unified_exit_random_access_val_evaluator_v1 import (
     _checkpoint_binding,
@@ -164,10 +164,10 @@ def test_native_relative_val_pause_resume_preserves_cash_marked_metrics_and_coor
             require_complete_val_observation(changed)
 
 
-def test_val_entry_anchor_adds_executable_first_liquidation_exactly_once(monkeypatch):
+def test_val_entry_anchor_adds_executable_first_liquidation_exactly_once(monkeypatch, cost_authority):
     from gx1.scripts import run_unified_exit_random_access_val_v1 as val
 
-    provider, readiness = _provider(reward_accounting=economics.LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING)
+    provider, readiness = _provider(cost_authority, reward_accounting=economics.LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING)
     objective = readiness["economics_objective_contract"]
     expected = [economics.compose_economic_step(
         provider(0, side, "exit_now", 0, 1)["steps"][0], contract=objective,
