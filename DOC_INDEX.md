@@ -11,6 +11,8 @@
 - docs/LEARNING_GATE.md — læring, generalisering og økonomi holdes adskilt.
 - docs/NATIVE_LEARNING.md — ufullførte punkter 1–6; ingen aktuell launchordre.
 - docs/REPO_REVIEW.md — funn, opprydding, kontroller og ubeviste grenser.
+- docs/GC_ORDER_FLOW_RESEARCH.md — avgrenset GC-kildeaudit og A/B/C-protokoll;
+  ekte GC-inputs og empirisk effektmåling gjenstår, ingen native launch.
 
 ## Bevarte kilde-/designbindinger
 

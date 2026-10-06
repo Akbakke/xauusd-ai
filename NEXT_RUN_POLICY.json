@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-06T08:02:17Z",
-  "status": "REPOSITORY_CLEANUP_COMPLETE_BENCHMARK_STOPPED_NO_NATIVE_LAUNCH",
+  "observed_utc": "2026-10-06T11:00:22Z",
+  "status": "GC_ORDER_FLOW_SOURCE_AUDIT_PREPARED_GENUINE_INPUTS_REQUIRED_NO_NATIVE_LAUNCH",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Operator requested controlled benchmark cancellation and a thorough minimal-repository cleanup. No native launch, fits, optimizer steps, TEST, broker, live/paper, orders or spending are authorized by cleanup. Preserve bound inputs, model semantics and all execution/learning guards.",
-  "next_action": "Repository cleanup is complete and verified. Native points 1–6 remain incomplete; any resumption requires explicit operator direction and a new source-bound plan. Never relaunch consumed ATTEMPT_003. TEST, broker, trading and spending remain closed.",
+  "rule": "Operator requested the bounded GC order-flow research approach: source-quality preparation and matched baseline / GC price / genuine flow protocol. Local hash-bound source audit and synthetic mechanics verification only in this wave. No genuine GC files are bound, empirical fits are not ready, and this opens no native launch, optimizer steps, TEST, broker, live/paper, orders or spending. Preserve model semantics, all features and execution/learning guards.",
+  "next_action": "Bind an actual pre-TEST outright-GC sample and receipt/mapping, with explicit license, cost and availability, before source audit. Then qualify causal clocks/rollover/OANDA overlap and freeze the exact matched A/B/C recipe before any empirical fit. Native points 1–6 remain incomplete and require a new source-bound plan; never relaunch consumed ATTEMPT_003. No source-fetch or spending route is opened by this prepared source audit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66,7 +66,9 @@
     "required_before_more_extensive_training": true
   },
   "current_work": {
-    "operator_request": "Avbryt benchmarken kontrollert; rydd repoet nå",
+    "operator_request": "Ja, gjør dette: avgrenset ekte GC-order-flow-test etter agentutkastet; vurder baseline / GC-pris / ekte flow før full pakke eller indikatorfjerning.",
+    "current_research_id": "GC_ORDER_FLOW_RESEARCH_001",
+    "latest_terminal_role": "Preserved terminal of the interrupted native sampler benchmark; not a GC quality or A/B/C result.",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
     "latest_terminal": {
@@ -88,6 +90,31 @@
     "test_data_used": false,
     "cleanup_report": "docs/REPO_REVIEW.md",
     "repository_cleanup_complete": true
+  },
+  "gc_order_flow_research_20261006": {
+    "research_id": "GC_ORDER_FLOW_RESEARCH_001",
+    "status": "SOURCE_AUDIT_IMPLEMENTED_GENUINE_GC_INPUTS_REQUIRED",
+    "source_head_at_intake": "75f20e07294ffa7fa16d46b33fb6b9e2a15c9e50",
+    "preregistration": "configs/research/GC_ORDER_FLOW_RESEARCH_001.json",
+    "documentation": "docs/GC_ORDER_FLOW_RESEARCH.md",
+    "audit_owner": "gx1.scripts.research_ta_campaign_v1",
+    "audit_mode": "audit-gc-source",
+    "source_root": "/home/andre2/GX1_DATA/research/GC_ORDER_FLOW_RESEARCH_001",
+    "bound_genuine_source_files": 0,
+    "record_audit_performed_on_genuine_GC": false,
+    "source_qualified": false,
+    "empirical_ABC_performed": false,
+    "research_fit_ready": false,
+    "snapshot_probe_is_native_v38_learning_evidence": false,
+    "ninth_family_decided": false,
+    "source_fetch_authorized": false,
+    "native_architecture_change_authorized": false,
+    "native_training_authorized": false,
+    "indicator_removal_authorized": false,
+    "test_authorized": false,
+    "broker_authorized": false,
+    "trading_authorized": false,
+    "spending_authorized": false
   },
   "native_v38_execution_20261005": {
     "status": "INTERRUPTED_FOR_OPERATOR_REQUESTED_REPOSITORY_CLEANUP",

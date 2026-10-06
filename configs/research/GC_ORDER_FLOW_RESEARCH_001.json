@@ -1,0 +1,56 @@
+{
+  "schema_version": "gx1_gc_order_flow_research_protocol_v1",
+  "research_id": "GC_ORDER_FLOW_RESEARCH_001",
+  "source_audit_schema": "gx1_gc_order_flow_source_audit_v1",
+  "created_utc": "2026-10-06T10:51:52Z",
+  "source_head_at_intake": "75f20e07294ffa7fa16d46b33fb6b9e2a15c9e50",
+  "operator_request": "Ja, gjør dette. Avgrenset ekte GC-order-flow-test etter agentutkastet, med kildekvalitet og baseline / GC-pris / ekte flow før full pakke eller indikatorfjerning.",
+  "status": "SOURCE_AUDIT_IMPLEMENTED_GENUINE_GC_INPUTS_REQUIRED",
+  "documentation": "docs/GC_ORDER_FLOW_RESEARCH.md",
+  "source_root": "/home/andre2/GX1_DATA/research/GC_ORDER_FLOW_RESEARCH_001",
+  "files": [],
+  "source_files": {
+    "gx1/contracts/gc_order_flow_source_v1.py": "b3db1698b090f29b01e5f528833e0e0333243b3e9a266b792a340aa5254c1174",
+    "gx1/scripts/research_ta_campaign_v1.py": "9006ade60f7e09e29c1899b7fdd67feef60ad472bd37ce1afa8e01656324348d",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/contracts/oanda_history_ingest_approval_v1.py": "c49499c6934f54c743d76736fb9f98c98a21335a8277bcc85eade296cc432757",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "scripts/gx1_capped_run.sh": "a85bf761e3607ead54dd806b4cf581febaeeeca5801e3060ffc1e76a289d5f3d"
+  },
+  "candidate": {
+    "provider": "databento",
+    "dataset": "GLBX.MDP3",
+    "delta_schema": "tbbo",
+    "delta_and_ofi_schema": "mbp-1",
+    "symbology": "outright_raw_symbol_only",
+    "first_pilot_feed_regime": "MDP3_from_2017-05-21",
+    "sampling": "calendar_and_availability_only_before_outcome_access",
+    "download_not_yet_bound": ["raw_symbols", "UTC_intervals", "license", "cost_estimate", "delivery_receipt", "instrument_mapping"]
+  },
+  "arms": {
+    "A": "locked_254_field_native_signal_snapshot",
+    "B": "A_plus_GC_price_and_spot_futures_basis",
+    "C": "B_plus_observed_aggressor_delta_and_event_book_OFI"
+  },
+  "comparisons": {
+    "primary": "C_minus_B",
+    "price_control": "B_minus_A",
+    "identical_rows_clocks_targets_costs": true,
+    "coverage_locked_before_outcomes": true,
+    "snapshot_probe_is_not_native_v38_evidence": true,
+    "fit_recipe_not_yet_bound": ["cohort_ids", "chronological_folds", "ridge_recipe", "observed_M1_targets", "cost_authorities", "finite_CPU_budget", "paired_inference_and_acceptance_rule"]
+  },
+  "scope": {
+    "local_bound_source_audit": true,
+    "public_documentation_review": true,
+    "source_fetch": false,
+    "spending": false,
+    "research_fit_ready": false,
+    "native_architecture_change": false,
+    "native_training": false,
+    "test_access": false,
+    "broker_access": false,
+    "live_or_paper": false,
+    "indicator_removal": false
+  }
+}

@@ -1,10 +1,22 @@
 # Gjeldende overlevering — 06.10.2026
 
-Brukeren prioriterer en grundig gjennomgang og et minimalt repo:
-«Avbryt benchmarken kontrollert; rydd repoet nå».
+Gjeldende bestilling: «Ja, gjør dette» om en avgrenset GC-order-flow-test etter
+agentutkastet. Kildekvalitet og baseline → GC-pris → ekte flow kommer før full
+pakke eller indikatorfjerning. Den tidligere repo-oppryddingen er fullført.
 
 ## Nåstatus
 
+GC_ORDER_FLOW_RESEARCH_001 har en kildebundet protokoll og implementert lokal
+`audit-gc-source` hos eksisterende research-eier. Se
+docs/GC_ORDER_FLOW_RESEARCH.md og configs/research/GC_ORDER_FLOW_RESEARCH_001.json.
+81 fokuserte tester i GC-kilde-/eksisterende research-eier bestod under capped
+audit. Syntetiske fixtures beviser mekanikk, ikke GC-kvalitet eller tradingverdi.
+Ingen genuine GC-fil er bundet. Den tomme kildeplanen rapporterer
+BLOCKED_NO_BOUND_GC_FILES, ikke godkjent dekning. Ingen empirisk A/B/C,
+ny datahenting, native endring, trening eller indikatorfjerning er gjennomført.
+En eventuell niende spesialist er ikke vedtatt; dagens åtte bevares.
+
+Siste native terminal er bevart nedenfor og er ikke en GC-resultatkvittering.
 SAMPLER_BENCHMARK_001/ATTEMPT_003 er kontrollert avbrutt, ikke fullført.
 Verifisert worker PID 10886 fikk SIGINT; KeyboardInterrupt ga exit 1.
 Supervisoren ventet inn prosessen og skrev FAILURE og TERMINAL.
@@ -52,8 +64,13 @@ Historiske repo-filer kan gjenopprettes fra Git ved behov; ingen ny arkivmappe o
 
 ## Neste grense
 
-Oppryddingen leveres i Git innen stående push-autorisasjon; ingen ny jobb følger automatisk.
-Ikke start benchmark eller trening under dette oppdraget.
+Bind ekte outright-GC-kildefiler, kvitteringer, identitetsmapping, tidsintervall,
+lisens og kostnadsestimat før kildeauditen. Kvalifiser så kausal klokke,
+rollover og OANDA-overlap; lås samme rader/targets/kostnader og konkret A/B/C-
+recipe før en empirisk fit. C−B er primærtesten, B−A priskontrollen.
+Kildehenting/spending og forskningsfit er ennå ikke åpnet av kildeplanen.
+Absorption/profilinteraksjoner og indikatorablasjoner følger først senere.
+Ingen benchmark eller native trening følger automatisk av GC-oppdraget.
 Punktene 1–6 i docs/NATIVE_LEARNING.md gjenstår; en senere gjenopptakelse krever
 en ny eksplisitt, kildebundet plan, ikke gjenbruk av ATTEMPT_003.
 Full makro-B er separat og ufullført; den må ikke reduseres til MACRO_CORE.

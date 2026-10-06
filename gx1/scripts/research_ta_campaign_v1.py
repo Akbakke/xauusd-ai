@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
 import math
 import re
 from copy import deepcopy
@@ -30,6 +31,12 @@ from pandas.tseries.holiday import USFederalHolidayCalendar, nearest_workday, su
 import pyarrow.parquet as pq
 
 from gx1.contracts.immutable_event_authority_v1 import _publish_file_noreplace, _fsync_directory
+from gx1.contracts.gc_order_flow_source_v1 import (
+    GC_AUDIT_OUTPUT_ROOT, GC_LOCAL_SOURCE_ROOT, GC_RESEARCH_ID, GC_SOURCE_SCHEMA,
+    audit_gc_records, require_gc_file_declaration,
+    required_gc_fields,
+)
+from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execution
 from gx1.features.htf_features import _resample_ohlc_for_model_native_scalars
 from gx1.features.technical_indicators_v1 import classic_ema, wilder_atr
 from gx1.time.session_detector import M5_BAR_DURATION, TRADING_SESSION_DURATION
@@ -77,7 +84,8 @@ def write_json(path: Path, obj: dict) -> None:
         handle.write("\n")
         handle.flush()
         os.fsync(handle.fileno())
-    os.rename(temp, path)
+    _publish_file_noreplace(temp, path)
+    _fsync_directory(path.parent)
 
 
 def write_parquet(path: Path, frame: pd.DataFrame) -> None:
@@ -1921,14 +1929,93 @@ def run_sweep(spec: dict, spec_path: Path) -> dict:
         write_json(out / "TERMINAL.json", {"status": "FAILED", "error": repr(exc)})
         raise
 
+def _gc_bound_local_path(raw: str, source_root: Path) -> Path:
+    path = Path(raw)
+    path.relative_to(source_root)
+    if (not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents))
+            or path.resolve(strict=True) != path or not path.is_file()):
+        raise RuntimeError("GC_SOURCE_PATH_NOT_CANONICAL_FILE")
+    return path
+
+
+def audit_gc_source(spec: dict, spec_path: Path) -> dict:
+    """Audit hash-bound local vendor files; no fetch, fit or native input change."""
+    if spec.get("research_id") != GC_RESEARCH_ID or spec.get("source_audit_schema") != GC_SOURCE_SCHEMA:
+        raise RuntimeError("GC_RESEARCH_SPEC_REQUIRED")
+    files = spec.get("files")
+    if not isinstance(files, list):
+        raise RuntimeError("GC_EXPLICIT_FILES_LIST_REQUIRED")
+    if not files:
+        return {
+            "research_id": GC_RESEARCH_ID, "status": "BLOCKED_NO_BOUND_GC_FILES",
+            "record_audit_performed": False, "new_downloads": 0, "fits": 0,
+            "test_accessed": False, "admitted_to_model_or_economic_test": False,
+            "preregistration_sha256": sha(spec_path),
+        }
+    root = Path(spec["source_root"])
+    if (root != GC_LOCAL_SOURCE_ROOT or any(p.is_symlink() for p in (root, *root.parents))
+            or root.resolve(strict=True) != root or not root.is_dir()):
+        raise RuntimeError("GC_SOURCE_ROOT_NOT_CANONICAL")
+    out = Path(spec["output_directory"])
+    relative = out.relative_to(GC_AUDIT_OUTPUT_ROOT)
+    if (not relative.parts or any(p.is_symlink() for p in (out, *out.parents))
+            or out.resolve() != out):
+        raise RuntimeError("GC_OUTPUT_PATH_NOT_CANONICAL")
+    if out.exists():
+        raise FileExistsError("GC_OUTPUT_ALREADY_EXISTS")
+    # Validate every declared path before opening any source bytes.
+    declared = []
+    for raw in files:
+        item = require_gc_file_declaration(raw)
+        path = _gc_bound_local_path(item["path"], root)
+        receipt = _gc_bound_local_path(item["receipt_path"], root)
+        if any(path == previous_path for _, previous_path, _ in declared):
+            raise RuntimeError("GC_DUPLICATE_SOURCE_FILE")
+        declared.append((item, path, receipt))
+    for item, path, receipt in declared:
+        if path.stat().st_size != item["bytes"] or sha(path) != item["sha256"] or sha(receipt) != item["receipt_sha256"]:
+            raise RuntimeError("GC_SOURCE_OR_RECEIPT_HASH_MISMATCH")
+    reports = []
+    for item, path, receipt in declared:
+        opener = gzip.open if item["compression"] == "gzip" else Path.open
+        with opener(path, "rt", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            fields = reader.fieldnames
+            if fields is None or len(fields) != len(set(fields)) or not set(required_gc_fields(item["schema"])).issubset(fields):
+                raise RuntimeError("GC_CSV_HEADER_INVALID")
+            report = audit_gc_records(reader, item)
+        if sha(path) != item["sha256"] or sha(receipt) != item["receipt_sha256"]:
+            raise RuntimeError("GC_SOURCE_CHANGED_DURING_AUDIT")
+        reports.append({**report, "path": str(path), "sha256": item["sha256"],
+                        "receipt_sha256": item["receipt_sha256"]})
+    out.mkdir(parents=True, exist_ok=False)
+    result = {
+        "research_id": GC_RESEARCH_ID, "schema_version": GC_SOURCE_SCHEMA,
+        "status": "STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED", "files": reports,
+        "git_head": git("rev-parse", "HEAD"), "preregistration_sha256": sha(spec_path),
+        "record_audit_performed": True, "new_downloads": 0, "fits": 0,
+        "test_accessed": False, "admitted_to_model_or_economic_test": False,
+    }
+    write_json(out / "RESULT.json", result)
+    write_json(out / "TERMINAL.json", {
+        "status": "COMPLETE_NOT_ADMITTED", "result_sha256": sha(out / "RESULT.json"),
+    })
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
     args = parser.parse_args()
     spec = checked_spec(args.spec, args.spec_sha256)
+    if args.mode == "audit-gc-source":
+        require_capped_cpu_audit_execution()
+        result = audit_gc_source(spec, args.spec)
+        print(json.dumps(result))
+        return 2 if result["status"] == "BLOCKED_NO_BOUND_GC_FILES" else 0
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
