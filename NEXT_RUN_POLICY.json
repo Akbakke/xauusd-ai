@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-06T12:46:16Z",
-  "status": "GC_FOUR_STEP_GOAL_REGISTERED_GENUINE_SOURCE_ACCESS_REQUIRED_NO_NATIVE_LAUNCH",
+  "observed_utc": "2026-10-06T13:04:51Z",
+  "status": "GC_SOURCE_ACCESS_ALTERNATIVES_AUDITED_GENUINE_INPUT_REQUIRED_NO_NATIVE_LAUNCH",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator explicitly requested thorough completion of all four GC research steps. Genuine source qualification, causal feature build, matched offline A/B/C and evidence-based extension review are the goal; no step is complete from synthetic tests alone. Offline fits are conditional on qualified actual sources and an exact frozen finite recipe. Current source files and recipe are unbound, so no fit or data fetch is ready. No native launch, TEST, broker, live/paper, orders, spending or unconditional ninth family is opened. Preserve all features and guards.",
-  "next_action": "Resolve the first concrete dependency: licensed genuine pre-TEST GC files with event BBO/aggressors and receipts, or usable provider access with verified entitlement/cost. Bounded filename inventory found no GC/DBN candidate; the declared Databento key was absent in the checked environments/project configuration. Then complete steps 1–4 in dependency order using hash-bound inputs, exact recipe and genuine evidence. Do not repeatedly relaunch the empty source plan or consumed ATTEMPT_003; do not create a vendor account, accept licenses or incur charges from the goal alone.",
+  "next_action": "Resolve the first concrete dependency: licensed genuine pre-TEST GC files with event BBO/aggressors and receipts, or usable provider access with verified entitlement/cost. Bounded storage/key checks and targeted plugin-directory searches did not find that input/access. CME advertises a one-day Gold sample in FIX (MDP 3.0); its bytes, exact link and usage entitlement are not verified, its format is not the admitted vendor CSV, and it does not establish adequate OOS support. Do not substitute a sample advertisement for qualification or repeat the empty audit. Then complete steps 1–4 in dependency order using hash-bound inputs, exact recipe and genuine evidence. Do not relaunch consumed ATTEMPT_003, create accounts, accept licenses or incur charges from the goal alone.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -74,6 +74,17 @@
       {"step": 3, "status": "WAITING_FOR_STEP_2", "completed": false, "genuine_evidence": []},
       {"step": 4, "status": "WAITING_FOR_STEP_3", "completed": false, "genuine_evidence": []}
     ],
+    "gc_goal_dependency_audit": {
+      "blocker_id": "LICENSED_GC_SOURCE_OR_ENTITLED_PROVIDER_ACCESS_REQUIRED",
+      "consecutive_goal_turns_observed": 2,
+      "observed_utc": "2026-10-06T13:04:51Z",
+      "new_checks_this_turn": ["targeted_plugin_directory_search", "bounded_windows_filename_inventory", "official_CME_public_sample_and_access_metadata_review"],
+      "genuine_source_or_access_obtained": false,
+      "empirical_work_can_continue_without_external_input": false,
+      "goal_marked_complete": false,
+      "goal_marked_blocked": false,
+      "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
+    },
     "latest_terminal_role": "Preserved terminal of the interrupted native sampler benchmark; not a GC quality or A/B/C result.",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
@@ -99,7 +110,7 @@
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "FOUR_STEP_GOAL_REGISTERED_SOURCE_ACCESS_REQUIRED",
+    "status": "SOURCE_ACCESS_ALTERNATIVES_CHECKED_NO_GENUINE_INPUT",
     "goal_execution_requested": true,
     "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig",
     "required_steps": [1, 2, 3, 4],
@@ -124,6 +135,38 @@
       "windows_process_environment_declares_databento_variable": false,
       "provider_SDK_installed": false,
       "market_data_connector_found_in_available_tools": false,
+      "plugin_directory_search": {
+        "observed_utc": "2026-10-06T13:04:51Z",
+        "targeted_queries": ["Databento", "CME futures"],
+        "targeted_results_returned": 0,
+        "directory_is_exhaustive": false,
+        "plugins_suggested_or_installed": 0
+      },
+      "bounded_windows_filename_inventory": {
+        "downloads_path": "C:/Users/Andre/Downloads",
+        "downloads_direct_children_only": true,
+        "matched_GC_DBN_or_flow_filenames": 0,
+        "sierra_chart_data_path": "C:/SierraChart/Data",
+        "sierra_chart_data_path_exists": false,
+        "file_contents_read": false
+      },
+      "secondary_public_source_review": {
+        "provider": "CME Group",
+        "documentation_url": "https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457091894/Market+Depth",
+        "evidence_class": "official_indexed_documentation_not_source_bytes",
+        "advertised_gold_sample_date": "2020-01-02",
+        "advertised_format": "FIX (MDP 3.0)",
+        "advertised_secdef_dates": ["2020-01-02", "2019-12-29"],
+        "exact_sample_download_link_verified": false,
+        "usage_entitlement_verified": false,
+        "bytes_downloaded_or_audited": false,
+        "native_FIX_supported_by_current_CSV_audit": false,
+        "adequate_TRAIN_OOS_support_established": false,
+        "admitted_for_GC_goal": false,
+        "alternative_GCP_access_documentation_url": "https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457217625",
+        "GCP_documented_access_requires_onboarding_and_applicable_fee": true,
+        "account_created_license_accepted_or_sales_contacted": false
+      },
       "credential_values_printed": false,
       "vendor_account_API_requests": 0,
       "paid_requests_or_license_acceptance": 0

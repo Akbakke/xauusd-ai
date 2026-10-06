@@ -56,6 +56,25 @@ Bare nøkkelnavn/tilstedeværelse ble lest ut. Ingen vendor-API, konto, lisens
 eller kjøp ble opprettet. GC-files/brukbar leverandørtilgang er nå den konkrete
 eksterne avhengigheten for første trinn.
 
+Den videre tilgangssjekken undersøkte også direkte filnavn i Windows Downloads
+og om `C:/SierraChart/Data` finnes, uten å lese filinnhold eller TEST-data. Ingen
+matchende kandidat ble funnet i disse avgrensede sjekkene. Målrettede søk i
+plugin-katalogen etter Databento og CME futures returnerte ingen kobling;
+katalogsøkene er ikke uttømmende og beviser ikke at slike plugins aldri finnes.
+
+CMEs indekserte, offisielle Market Depth-dokumentasjon annonserer en gullprøve
+fra 02.01.2020 i FIX (MDP 3.0), samt dagens og forrige søndags SecDef.
+Prøvebytes, eksakt nedlastingslenke og brukerens bruksrett er ikke verifisert;
+den offentlige annonseringen er ikke en kildekvittering. Direkte sideoppslag
+ga ikke selve innholdet, så ingen nedlastingslenke er utledet fra et gjettet
+filnavn. Formatet passer ikke den implementerte vendor-CSV-auditen. Én dag
+etablerer heller ikke tilstrekkelig uavhengig TRAIN-/OOS-støtte for målet.
+En slik prøve kan senere være nyttig for mekanikk etter kvalifisering, men
+erstatter ikke den avtalte forskningen. CMEs alternative historikk i GCP har
+dokumentert onboarding/lisensiering og gjeldende avgift; det er ikke en åpen,
+kostnadsfri vei som er aktivert for denne brukeren. Ingen prøve, konto,
+lisensaksept, kontakt med salg eller kostnad ble utløst av tilgangssjekken.
+
 ## 1. Kilde og kvalitet før modellforsøk
 
 Databento GLBX.MDP3 er en kandidat, ikke en valgt/kjøpt datatjeneste. Bestill
@@ -234,6 +253,8 @@ ingen indikator eller genuine familie fjernes av denne testen.
 - [Cont/Kukanov/Stoikov: OFI](https://arxiv.org/abs/1011.6402)
 - [Databento historisk autentisering, metadata og get_cost](https://databento.com/docs/api-reference-historical/metadata/metadata-get-cost)
 - [Databento tilgang og API-nøkkel](https://databento.com/docs/quickstart)
+- [CME Market Depth og annonserte prøvefiler](https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457091894/Market+Depth)
+- [CME historisk Market Depth i GCP: tilgang](https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457217625)
 
 Leverandørbeskrivelsene beviser feltsemantikk, ikke lønnsomhet i GX1.
 OFI-studien gjelder aksjer og er en motivasjon, ikke GC-effektbevis.

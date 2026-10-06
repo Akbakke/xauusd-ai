@@ -17,6 +17,10 @@ Windows-prosessmiljøet og var ikke satt i WSL-prosessmiljøet. Bare nøkkelnavn
 tilstedeværelse ble kontrollert; ingen verdi ble skrevet ut. Ingen tilgjengelig
 markedsdatakobling ble funnet i verktøyoversikten. Ingen vendor-API, kjøp,
 lisensaksept eller ny datanedlasting ble utført.
+Videre kontroller dekket avgrensede Windows-filnavn, målrettet plugin-søk og
+offisiell CME-prøve-/tilgangsmetadata. En annonsert gullprøve fra 02.01.2020
+er ikke lastet ned, lisensavklart eller kvalifisert for A/B/C. Se protokollen
+og policyens source_access_readiness; dette er ikke en ny markedskvittering.
 Brukeren har presisert historisk TRAIN/VAL/TEST og backtest med alle avtalte
 features. Dette er dokumentert i protokollen som adskilte tidsperioder og
 bevisnivåer; ingen native launch eller TEST-åpning følger av presiseringen.
