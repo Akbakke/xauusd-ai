@@ -1,11 +1,52 @@
 {
   "schema_version": "gx1_current_restart_point_v1",
-  "observed_utc": "2026-10-05T22:39:32Z",
-  "status": "NATIVE_V38_STEPS_1_TO_6_BLOCKED_ON_OPERATOR_CPU_BUDGET_DECISION",
+  "observed_utc": "2026-10-06T05:52:27Z",
+  "status": "NATIVE_V38_STEPS_1_TO_6_CPU_BUDGET_APPROVED_FRESH_FULL_BENCHMARK_BINDING",
+  "benchmark_prelaunch_verification": {
+    "evidence_class": "Source and synthetic contract/deadline checks only; genuine full capacity remains unmeasured",
+    "focused_repository_tests_passed": 95,
+    "runtime_operator_tests_passed": 5,
+    "runtime_operator_check_result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/OPERATOR_CHECK_RESULT.json",
+      "sha256": "9c8c0f884da00420bdf624c0175279a6e57fd1bc4203e1db778f677197144594"
+    },
+    "hard_deadline_worker_kill_and_reap_synthetically_checked": true
+  },
+  "benchmark_runtime_authority": {
+    "attempt_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003",
+    "claim_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/LAUNCH_CLAIM.json",
+    "event_directory": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/EVENTS",
+    "benchmark_output": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/BENCHMARK.json",
+    "source_freeze_required": true,
+    "completed_or_claimed_plan_relaunch_allowed": false,
+    "observation": "Prelaunch snapshot only; actual claim/process/lock and newest immutable terminal event override this snapshot."
+  },
+  "approved_cpu_budget": {
+    "operator_approval": "Ja jeg godkjenner",
+    "approval_observed_utc": "2026-10-06T05:52:27Z",
+    "approval_scope": "The explicit preceding question offered 3-hour CPU eligibility per sampled epoch and a maximum 18-hour envelope for one full benchmark, with unchanged learning and hardware guards.",
+    "eligibility_seconds_per_sampled_epoch": 10800,
+    "max_total_benchmark_wall_seconds": 64800,
+    "candidate_transition_budgets": [
+      32768,
+      65536,
+      131072
+    ],
+    "batch_size": 16,
+    "repeats": 1,
+    "complete_all_candidates_required": true,
+    "stop_candidate_at_eligibility_limit": false,
+    "full_benchmark_attempt": "SAMPLER_BENCHMARK_001/ATTEMPT_003",
+    "prior_attempts_relaunch_allowed": false,
+    "learning_and_hardware_guards_changed": false,
+    "feature_fields": 254,
+    "feature_families": 8,
+    "economic_or_learning_evidence": false
+  },
   "authority": {
     "source_repo": "/home/andre2/src/GX1_CURRENT",
     "branch": "work/gx1-current",
-    "source_head_before_documentation_update": "3a83236089d036563a1f3a9c8f23e3f866bf61d2",
+    "source_head_before_documentation_update": "2fac0e3c40fc923f2e3c5ceddfb539003a6d9a19",
     "working_tree_clean_before_documentation_update": true,
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
     "mac_copy_is_authority": false
@@ -158,8 +199,11 @@
     "model_forwards": 0,
     "optimizer_steps": 0
   },
-  "immediate_next_action": "Blocked on the unanswered operator CPU-budget choice. No full benchmark, selected sampler, frozen training coordinates, fresh native baseline or 256-step trial exists. The existing 1800-second CPU eligibility gate and all hardware/quality guards remain unchanged. Do not relaunch completed jobs, substitute profiling or synthetic checks for a full benchmark, infer approval from automatic goal continuations, or open native training. Resume actual execution only after an explicit operator budget choice and its source-bound preregistration. Preserve all 254 fields and eight families; TEST, broker, trading and spending remain closed.",
+  "immediate_next_action": "Operator-approved 3-hour sampled-epoch CPU eligibility / maximum 18-hour total benchmark budget is bound for one fresh ATTEMPT_003 through the existing TRAIN-only benchmark owner and capped producer20G/512M. Measure all three complete candidates once at batch16; the eligibility limit is not an early-stop/truncation rule. Reuse completed inputs and audits; preserve all prior failures. Admit only a full genuine receipt, then publish selected sampler and frozen epoch0/first4096/TRAIN256/CONTROL256 coordinates through existing owners. Fresh native initial measurement and the bounded 256-step trial still require exact phase bindings; training_enabled remains false. Conditional finite expansion requires the genuine Entry/Exit learning gate. All 254 fields, eight families, targets and hardware/learning guards remain; TEST, broker, trading and spending remain closed.",
   "blocked_audit": {
+    "record_status": "HISTORICAL_BLOCKER_RESOLVED_BY_EXPLICIT_OPERATOR_APPROVAL",
+    "resolved_utc": "2026-10-06T05:52:27Z",
+    "resolution": "Ja jeg godkjenner: approved 10800s eligibility per complete candidate and 64800s total for fresh ATTEMPT_003; old observations below remain historical.",
     "observed_utc": "2026-10-05T22:39:32Z",
     "blocker": "Unanswered explicit operator CPU-budget choice before any new complete workload-matched benchmark; no authorized full benchmark or native preparation.",
     "condition_repeated_in_at_least_three_prior_goal_turns": true,
@@ -297,6 +341,14 @@
     "full_val_model_evaluation": false
   },
   "next_owner_inputs": {
+    "benchmark_plan": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/PLAN.json",
+      "sha256": "8404ad26642caaa294b95f6ced9bf7ae68d09efc3e6b71f4b2343e82b2773c85"
+    },
+    "benchmark_operator": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/OPERATOR_003.py",
+      "sha256": "621e0f221e8645189bb2e6e6d15ddc67278b04468991c3718985f720f32782a9"
+    },
     "benchmark_script": "gx1/scripts/benchmark_unified_exit_random_access_train_v1.py",
     "candidate_manifest": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/FINAL_BINDINGS_V1/SAMPLER_BENCHMARK_CANDIDATES.json",
     "index_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_PREPARATION_001/RANDOM_ACCESS_INDEX_V1/ROOT.json",

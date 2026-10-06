@@ -39,8 +39,10 @@ AUTHORITATIVE_BATCH_SIZE = 16
 AUTHORITATIVE_REPEATS = 1
 MAX_PEAK_PYTHON_ALLOCATION_BYTES = 2 * 1024**3
 MAX_PEAK_PADDED_MODEL_INPUT_BYTES = 1024**3
-MAX_MEASURED_CPU_PREP_EPOCH_SECONDS = 30 * 60
-SELECTION_RULE_VERSION = "minimum_population_cycle_epochs_with_30m_cpu_cap_v1"
+# Operator approval 2026-10-06: 3h eligibility per complete sampled epoch.
+# The separately bound one-shot launcher enforces the 18h total envelope.
+MAX_MEASURED_CPU_PREP_EPOCH_SECONDS = 3 * 60 * 60
+SELECTION_RULE_VERSION = "minimum_population_cycle_epochs_with_3h_cpu_cap_v1"
 
 
 def _canonical_sha256(value: Any) -> str:

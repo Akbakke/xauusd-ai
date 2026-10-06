@@ -207,7 +207,8 @@ def _direct_fixture(tmp_path, selected_budget=131072, *, population=652552, desi
     for candidate in candidates["candidates"]:
         contract = candidate["sampler_contract"]
         budget, entries = contract["transition_budget_per_epoch"], contract["entry_pairs_per_epoch"]
-        duration = 100.0 if budget <= selected_budget else 1801.0
+        duration = (100.0 if budget <= selected_budget
+                    else float(benchmark.MAX_MEASURED_CPU_PREP_EPOCH_SECONDS + 1))
         cycles = -(-population // entries)
         row = {
             "batch_size": 16, "measured_entry_pairs": entries, "measured_transitions": budget,

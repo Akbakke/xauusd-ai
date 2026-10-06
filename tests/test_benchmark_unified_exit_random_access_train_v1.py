@@ -123,6 +123,84 @@ def test_uncapped_benchmark_rejects_non_preregistered_shape() -> None:
         )
 
 
+def _complete_measurements(durations):
+    """Synthetic timing receipts only; no claim about genuine capacity."""
+    result = []
+    for budget, duration in zip(benchmark.BENCHMARK_BUDGETS, durations):
+        entries = budget // benchmark.BENCHMARK_TRANSITIONS_PER_ENTRY
+        cycles = math.ceil(652_552 / entries)
+        result.append({
+            "transition_budget_per_epoch": budget,
+            "sampler_contract_sha256": _Adapter(budget, population=652_552).contract["contract_sha256"],
+            "full_selected_entry_pairs": entries,
+            "full_budget_measured": True,
+            "batch_size_sweep": [{
+                "batch_size": 16, "measured_entry_pairs": entries,
+                "measured_transitions": budget, "population_cycle_epochs": cycles,
+                "median_seconds": duration, "measured_epoch_seconds": duration,
+                "materialize_seconds": duration / 2, "collate_seconds": duration / 2,
+                "projected_entry_population_cycle_seconds": duration * cycles,
+                "entry_pairs_per_second": entries / duration,
+                "transitions_per_second": budget / duration,
+                "peak_python_allocation_bytes": 123,
+                "peak_padded_model_input_bytes": 456,
+            }],
+        })
+    return result
+
+
+def test_approved_three_hour_policy_preserves_other_caps_and_rank():
+    policy = benchmark._selection_policy(652_552)
+    assert policy["rule"] == "minimum_population_cycle_epochs_with_3h_cpu_cap_v1"
+    assert policy["max_measured_cpu_prep_epoch_seconds"] == 10_800
+    assert policy["max_peak_python_allocation_bytes"] == 2 * 1024**3
+    assert policy["max_peak_padded_model_input_bytes"] == 1024**3
+    assert policy["authoritative_batch_size"] == 16
+    assert policy["authoritative_repeats"] == 1
+    assert policy["selection_uses_outcome_values"] is False
+    assert policy["test_data_used"] is False
+    # Largest eligible coverage wins, not the fastest or best outcome.
+    candidates = _complete_measurements([2_000.0, 3_000.0, 10_800.0])
+    assert benchmark.select_measured_sampler_candidate(
+        candidates, entry_pair_population=652_552,
+    )["transition_budget_per_epoch"] == 131_072
+
+
+@pytest.mark.parametrize("overage", [0.001, 1.0])
+def test_three_hour_cap_is_inclusive_but_excludes_any_overage(overage):
+    candidates = _complete_measurements([10_800.0, 10_800.0 + overage, 10_800.0 + overage])
+    assert benchmark.select_measured_sampler_candidate(
+        candidates, entry_pair_population=652_552,
+    )["transition_budget_per_epoch"] == 32_768
+
+
+@pytest.mark.parametrize("field,limit", [
+    ("peak_python_allocation_bytes", 2 * 1024**3),
+    ("peak_padded_model_input_bytes", 1024**3),
+])
+def test_approved_cpu_budget_does_not_relax_memory_caps(field, limit):
+    candidates = _complete_measurements([2_000.0, 3_000.0, 4_000.0])
+    candidates[1]["batch_size_sweep"][0][field] = limit + 1
+    candidates[2]["batch_size_sweep"][0][field] = limit + 1
+    assert benchmark.select_measured_sampler_candidate(
+        candidates, entry_pair_population=652_552,
+    )["transition_budget_per_epoch"] == 32_768
+
+
+def test_three_hour_cap_cannot_qualify_partial_measurements():
+    candidates = _complete_measurements([2_000.0, 3_000.0, 4_000.0])
+    candidates[2]["full_budget_measured"] = False
+    with pytest.raises(RuntimeError, match="BENCHMARK_INCOMPLETE"):
+        benchmark.select_measured_sampler_candidate(candidates, entry_pair_population=652_552)
+
+
+def test_three_hour_cap_rejects_all_over_budget_candidates():
+    with pytest.raises(RuntimeError, match="NO_ELIGIBLE_CANDIDATE"):
+        benchmark.select_measured_sampler_candidate(
+            _complete_measurements([10_801.0] * 3), entry_pair_population=652_552,
+        )
+
+
 
 def _fake_collate(items, **kwargs):
     return {

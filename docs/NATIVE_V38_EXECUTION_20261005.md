@@ -4,6 +4,42 @@ Brukeren ba: «Enig med deg. Lag deg et mål for å gjennomføre punkt 1 til 6 n
 Dette autoriserer gjennomføring av nedenstående avgrensede løp, ikke bare forberedelse.
 Eksisterende design, eiere og vakter gjenbrukes. TEST, broker, handel og spending er stengt.
 
+## Gjeldende CPU-vedtak — 06.10.2026
+
+Operatøren svarte «Ja jeg godkjenner» på det eksplisitte spørsmålet om
+3 timers CPU-eligibilitet per samplerepoch og maks18 timer samlet benchmark,
+med uendrede maskinvare- og læringsvakter. Den tidligere budsjettblokkeringen
+er løst; punktene1–6 er ufullført og gjennomføringen gjenopptas.
+
+Kun eksisterende benchmarkeiers eligibilitykonstant/rule-identitet endres
+fra1800s/30m til10800s/3h. Alle32768/65536/131072-overgangskandidater skal
+måles fullt én gang, batch16 og original tracemalloc. Tideligibilitet er
+ikke kandidatavkorting; først etter tre fullmålinger rangeres outcome-blindt
+etter eksisterende dekning/tid/minne/budsjettregel. Ingen utfallsvalg eller
+grensejustering etter resultat. Python-allokasjon2GiB, padded inputs1GiB,
+øvrige hardware-/læringsvakter, alle254 felt/åtte familier og targets består.
+
+Én fresh ATTEMPT_003 bruker eksisterende main/factory/collator/receipt-eier,
+originalt frosset design, ferdige inputs og byteuendret state-view-kilde.
+Plan/operator bindes i NEXT_RUN_POLICY før launch; tidligere forsøk og
+feil bevares og relanseres aldri. Kode/preregistrering committes/pushes før
+den ene tunge capped producer20G/512M-jobben; kilde fryses under kjøring.
+
+Runtimeoperator OPERATOR_003.py har én supervisor og én måleprosess i
+samme verifiserte cgroup/lås. Maks64800s starter ved run(), inkluderer
+autoritetssjekker, måleprosessens inputhashing/innlasting og alle kandidater.
+Supervisor bruker subprocess.run(timeout=gjenværende vedtatt tid),
+dreper og venter på måleprosessen ved fristen, også ved C-kodeblokkering.
+Da publiseres rød feil/terminal, aldri en avkortet autoritativ receipt.
+Supervisor stopper også ved ikke-null retur eller manglende/ugyldig receipt.
+Eksisterende measured-receipt-eier må innrømme resultatet før grønn terminal.
+TEST/nettverk og alle modellforwards er avvist i måleprosessen. Null fits,
+optimizersteg eller native launch. Engangsclaim hindrer oppstart på nytt.
+
+Etter ekte fullreceipt følger valgt sampler og fryste koordinater gjennom
+eksisterende eiere, deretter separate bundne native faser. Godkjenningen
+gjør ikke gamle profiler/partials til fullkapasitet eller læringsbevis.
+
 1. Én full workload-matchet, TRAIN-only CPU-samplerbenchmark gjennom capped producer.
    Bruk faktisk full-TRAIN-indeks, 652 552 Entry-rader, 254 felt og alle åtte familier.
    Kandidater og utfallsblind rangering kommer fra eksisterende eiere; ingen nye søk.
@@ -38,7 +74,13 @@ Fullførte input-, normaliserings-, kostnads-, indeks- og featurekildereviews re
 Ingen features kasseres, ingen tidsrammer fjernes, ingen maksimal holdetid eller fast
 tapsgrense innføres. Ingen edge-, økonomi- eller train/serve-påstand før egen måling.
 
-## Observert CPU-blokkering og avgrenset diagnose
+## Historisk forløp før CPU-godkjenningen — ikke gjeldende launchordre
+
+De følgende avsnittene bevarer opprinnelige autoriteter, feil og målinger
+kronologisk. Ubesvart budsjettvalg/1800s beskriver tilstanden da; gjeldende
+vedtak er06.10-seksjonen over og eksakte bindinger i NEXT_RUN_POLICY.
+
+### Observert CPU-blokkering og avgrenset diagnose
 
 ATTEMPT_002 er terminalt stoppet, ikke fullført eller selektert. Første kandidat
 hadde brukt1800,23 sekunder på1104/8192 Entries; dermed kan denne kandidaten

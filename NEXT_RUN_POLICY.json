@@ -1,6 +1,31 @@
 {
   "native_v38_execution_20261005": {
+    "approved_cpu_budget": {
+      "operator_approval": "Ja jeg godkjenner",
+      "approval_observed_utc": "2026-10-06T05:52:27Z",
+      "approval_scope": "The explicit preceding question offered 3-hour CPU eligibility per sampled epoch and a maximum 18-hour envelope for one full benchmark, with unchanged learning and hardware guards.",
+      "eligibility_seconds_per_sampled_epoch": 10800,
+      "max_total_benchmark_wall_seconds": 64800,
+      "candidate_transition_budgets": [
+        32768,
+        65536,
+        131072
+      ],
+      "batch_size": 16,
+      "repeats": 1,
+      "complete_all_candidates_required": true,
+      "stop_candidate_at_eligibility_limit": false,
+      "full_benchmark_attempt": "SAMPLER_BENCHMARK_001/ATTEMPT_003",
+      "prior_attempts_relaunch_allowed": false,
+      "learning_and_hardware_guards_changed": false,
+      "feature_fields": 254,
+      "feature_families": 8,
+      "economic_or_learning_evidence": false
+    },
     "blocked_audit": {
+      "record_status": "HISTORICAL_BLOCKER_RESOLVED_BY_EXPLICIT_OPERATOR_APPROVAL",
+      "resolved_utc": "2026-10-06T05:52:27Z",
+      "resolution": "Ja jeg godkjenner: approved 10800s eligibility per complete candidate and 64800s total for fresh ATTEMPT_003; old observations below remain historical.",
       "observed_utc": "2026-10-05T22:39:32Z",
       "blocker": "Unanswered explicit operator CPU-budget choice before any new complete workload-matched benchmark; no authorized full benchmark or native preparation.",
       "condition_repeated_in_at_least_three_prior_goal_turns": true,
@@ -144,8 +169,27 @@
     "user_authorization": "Enig med deg. Lag deg et mål for å gjennomføre punkt 1 til 6 nå og knekk i gang",
     "user_authorized_steps": [1, 2, 3, 4, 5, 6],
     "preregistration": "docs/NATIVE_V38_EXECUTION_20261005.md",
-    "status": "BLOCKED_AWAITING_OPERATOR_CPU_BUDGET_DECISION_NO_NEW_LAUNCH",
-    "sampler_benchmark_authorized": false,
+    "status": "OPERATOR_CPU_BUDGET_APPROVED_FRESH_FULL_BENCHMARK_BINDING",
+    "benchmark_prelaunch_verification": {
+      "evidence_class": "Source and synthetic contract/deadline checks only; genuine full capacity remains unmeasured",
+      "focused_repository_tests_passed": 95,
+      "runtime_operator_tests_passed": 5,
+      "runtime_operator_check_result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/OPERATOR_CHECK_RESULT.json",
+        "sha256": "9c8c0f884da00420bdf624c0175279a6e57fd1bc4203e1db778f677197144594"
+      },
+      "hard_deadline_worker_kill_and_reap_synthetically_checked": true
+    },
+    "benchmark_runtime_authority": {
+      "attempt_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003",
+      "claim_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/LAUNCH_CLAIM.json",
+      "event_directory": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/EVENTS",
+      "benchmark_output": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/BENCHMARK.json",
+      "source_freeze_required": true,
+      "completed_or_claimed_plan_relaunch_allowed": false,
+      "observation": "Prelaunch snapshot only; actual claim/process/lock and newest immutable terminal event override this snapshot."
+    },
+    "sampler_benchmark_authorized": true,
     "benchmark_partial_stop_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_002/EVENTS/STOP_REVIEW_20261005T204405475344Z.json",
       "sha256": "4dcf7a2e93cefe7577dbbaf93d8a079a0727cbed1ec142ce67fe2ecbe987142f"
@@ -213,8 +257,8 @@
       "optimizer_steps": 0,
       "fits": 0,
       "test_data_used": false,
-      "current_measured_cpu_epoch_cap_seconds": 1800,
-      "cpu_epoch_cap_change_authorized": false
+      "measured_cpu_epoch_cap_seconds_at_profile_time": 1800,
+      "cpu_epoch_cap_change_authorized_at_profile_time": false
     },
     "constructor_metadata": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/NATIVE_COMPONENTS_001/CONSTRUCTOR_METADATA.json",
@@ -222,10 +266,18 @@
     },
     "constructor_metadata_is_initial_model_measurement": false,
     "benchmark_plan": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/PLAN.json",
+      "sha256": "8404ad26642caaa294b95f6ced9bf7ae68d09efc3e6b71f4b2343e82b2773c85"
+    },
+    "benchmark_operator": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/OPERATOR_003.py",
+      "sha256": "621e0f221e8645189bb2e6e6d15ddc67278b04468991c3718985f720f32782a9"
+    },
+    "previous_consumed_benchmark_plan": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_002/PLAN.json",
       "sha256": "d3f3334919329723b3d25bdf09ccab96c921f6941ad21ebfb6218dd38e363397"
     },
-    "benchmark_operator": {
+    "previous_consumed_benchmark_operator": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/OPERATOR_002.py",
       "sha256": "44bb0563797b95b6abfd852f7bcbbf2f9df9c2551dbe06132309715992b384d9"
     },
@@ -278,7 +330,7 @@
       "sha256": "d4aa2e901049a48653990d1ebaf4f6cedc23fbdeeb6cb9a633729a74e1240ea8"
     },
     "native_training_enabled": false,
-    "next_native_step": "Blocked on the unanswered operator CPU-budget choice. No full benchmark, selected sampler, frozen training coordinates, fresh native baseline or 256-step trial exists. The existing 1800-second CPU eligibility gate and all hardware/quality guards remain unchanged. Do not relaunch completed jobs, substitute profiling or synthetic checks for a full benchmark, infer approval from automatic goal continuations, or open native training. Resume actual execution only after an explicit operator budget choice and its source-bound preregistration. Preserve all 254 fields and eight families; TEST, broker, trading and spending remain closed.",
+    "next_native_step": "Operator-approved 3-hour sampled-epoch CPU eligibility / maximum 18-hour total benchmark budget is bound for one fresh ATTEMPT_003 through the existing TRAIN-only benchmark owner and capped producer20G/512M. Measure all three complete candidates once at batch16; the eligibility limit is not an early-stop/truncation rule. Reuse completed inputs and audits; preserve all prior failures. Admit only a full genuine receipt, then publish selected sampler and frozen epoch0/first4096/TRAIN256/CONTROL256 coordinates through existing owners. Fresh native initial measurement and the bounded 256-step trial still require exact phase bindings; training_enabled remains false. Conditional finite expansion requires the genuine Entry/Exit learning gate. All 254 fields, eight families, targets and hardware/learning guards remain; TEST, broker, trading and spending remain closed.",
     "operational_persistence_review": {
       "broker_requests": 0,
       "created_utc": "2026-10-02T04:19:01.367839+00:00",
@@ -4404,7 +4456,7 @@
     },
     "training_enabled": false
   },
-  "next_action": "Blocked on the unanswered operator CPU-budget choice. No full benchmark, selected sampler, frozen training coordinates, fresh native baseline or 256-step trial exists. The existing 1800-second CPU eligibility gate and all hardware/quality guards remain unchanged. Do not relaunch completed jobs, substitute profiling or synthetic checks for a full benchmark, infer approval from automatic goal continuations, or open native training. Resume actual execution only after an explicit operator budget choice and its source-bound preregistration. Preserve all 254 fields and eight families; TEST, broker, trading and spending remain closed.",
+  "next_action": "Operator-approved 3-hour sampled-epoch CPU eligibility / maximum 18-hour total benchmark budget is bound for one fresh ATTEMPT_003 through the existing TRAIN-only benchmark owner and capped producer20G/512M. Measure all three complete candidates once at batch16; the eligibility limit is not an early-stop/truncation rule. Reuse completed inputs and audits; preserve all prior failures. Admit only a full genuine receipt, then publish selected sampler and frozen epoch0/first4096/TRAIN256/CONTROL256 coordinates through existing owners. Fresh native initial measurement and the bounded 256-step trial still require exact phase bindings; training_enabled remains false. Conditional finite expansion requires the genuine Entry/Exit learning gate. All 254 fields, eight families, targets and hardware/learning guards remain; TEST, broker, trading and spending remain closed.",
   "next_action_before_consolidation_20260926": "The 95-minute TRAIN-only direct M1 path audit is complete: M5 313399/313399, M15 104188/104188; weekly-block ESS 258.60/258.67. Direct LONG/SHORT net-target semantics and the next-decision wait opportunity are defined in docs/ENTRY_DIRECT_OUTCOME_HYPOTHESIS_20260925.md. Before measuring net outcomes, revalidate the exact prospective cost policy against current broker/instrument evidence, then bind one TRAIN-only capped CPU aggregate audit for complete 100-minute M5 and 110-minute M15 paths. Preserve gross and cost components separately; persist aggregates only. No fit, optimizer step, model change, VAL, or TEST; training_enabled remains false.",
   "observed_utc": "2026-10-05T18:31:39+00:00",
   "outer_guard_seconds": 13800,
@@ -4587,7 +4639,7 @@
     "sha256": "768e5537fa3fd69c8a032855664687fd8cc39a045fa5d46679ee1a5d8e9e086f"
   },
   "schema_version": "gx1_next_native_run_policy_v1",
-  "status": "NATIVE_V38_STEPS_1_TO_6_BLOCKED_ON_OPERATOR_CPU_BUDGET_DECISION",
+  "status": "NATIVE_V38_STEPS_1_TO_6_CPU_BUDGET_APPROVED_FRESH_FULL_BENCHMARK_BINDING",
   "sweep_native_feature_20261001": {
     "existing_v37_artifacts_reusable_as_v38": false,
     "input_audit": {

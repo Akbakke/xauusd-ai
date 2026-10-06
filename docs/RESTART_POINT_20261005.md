@@ -4,12 +4,16 @@ Dette er den korte menneskelesbare inngangen til gjeldende arbeid.
 CURRENT_RESTART_POINT.json er den maskinlesbare tvillingen.
 Historiske dokumenter og COMPLETED_RUN.json er bevis, aldri startordre.
 
-Gjeldende målstatus: blokkert på operatørens ubekreftede CPU-budsjettvalg.
-Valget har stått ubesvart etter minst tre målturner med sikre forberedelser.
-Ingen jobb kjører. Alle gjenstående faktiske modellsteg avhenger av full
-benchmark og faktisk sampler/koordinater, som fortsatt mangler. Gjenbruk
-ferdige bevis; ikke relanser eller flytt gate ved automatisk målfortsettelse.
-Blokkeringsaudit står i CURRENT_RESTART_POINT.json og NEXT_RUN_POLICY.json.
+Gjeldende målstatus: CPU-budsjettet er eksplisitt godkjent06.10.
+Operatøren svarte «Ja jeg godkjenner» på3t eligibilitet per samplerepoch
+og maksimalt18t samlet for én full benchmark. Punkt1–6 gjenopptas og er
+ufullført. Tidligere blokkeringsaudit er bevart som løst historikk.
+Én fersk SAMPLER_BENCHMARK_001/ATTEMPT_003 bindes gjennom eksisterende
+eier, capped producer20G/512M. Kilde committes/pushes før launch og fryses.
+Alle tre kandidater må måles fullt;3t er ikke en avkortingsregel.
+Supervisor dreper/venter på sin ene måleprosess ved64800s totalfrist.
+Kontroller faktisk claim/prosess/lås og terminal før eventuell oppstart;
+fullførte eller claimed planer relanseres aldri.
 VAL_SEQUENCE_AUDIT_001 er fullført med exit0 og kilde7056bf56 uendret:
 70880 time/seq/snap-rader, Seq96×254, bundet M5-kilde, capped audit4G/512M.
 Persisted audit og nyeste resultat/terminal er kontraktverifisert og bundet
@@ -24,10 +28,11 @@ native_component_preparation_authorized=false. Metadata er uendret.
 CPU_WORKLOAD_PROFILE_003 er fullført med exit0, fryst kilde og eksakt paritet
 mot alle tre gamle genuine TRAIN16-batchhasher. Tid6,53–7,17s uinstrumentert,
 13,89–15,76s instrumentert; rundt1,8x native forbedring. Ingen sampler eller læring.
-Gjeldende30-minuttersgrense er uendret. Kun lineært småbatchanslag: rundt2,0/
+Den opprinnelige30-minuttersgrensen erstattes bare for ny full måling av
+operatørgodkjent10800s eligibilitet. Kun lineært småbatchanslag: rundt2,0/
 4,4/9,0 timer per full instrumentert kandidat, samlet15,4t uten oppstart; ingen
-fullkapasitets-/eligibilitetskonklusjon. Forslag3t/kandidat og maks18t for én
-full benchmark krever nytt operatørvalg og forhåndsregistrering før utføring.
+fullkapasitets-/eligibilitetskonklusjon. Godkjent3t/kandidat og maks18t for én
+full benchmark bindes før utføring; alle øvrige grenser består.
 Ikke relanser profiler001/002/003. Bevar alle felt, mål og maskinvarevakter.
 Første CPU-diagnoses målinger er bevart etter sluttpubliseringsfeil og verifisert
 i PUBLICATION_FAILURE_REVIEW; original rød terminal består. Samme genuine
@@ -58,7 +63,7 @@ Et større endelig budsjett er bare autorisert betinget av bestått læringsport
 
 Bruk bare /home/andre2/src/GX1_CURRENT på work/gx1-current.
 Mac-mappen er en overleveringskopi. Ved denne kontrollen var HEAD før
-dokumentoppdateringen 3a83236089d036563a1f3a9c8f23e3f866bf61d2, arbeidsstreet rent, ingen native
+dokumentoppdateringen 2fac0e3c40fc923f2e3c5ceddfb539003a6d9a19, arbeidsstreet rent, ingen native
 GX1-prosess kjørte og ingen GPU-prosess var registrert.
 
 ~~~bash
@@ -122,12 +127,14 @@ Planen er konsumert og skal ikke relanseres.
 
 ## Eksakt neste arbeid
 
-CPU_WORKLOAD_PROFILE_003 er konsumert og fullført. Les den bundne
-CAPACITY_PLANNING_REVIEW og avklar operatørens CPU-budsjettvalg før ny full
-workload-matchet benchmark bindes. Ikke anta full kapasitet fra småbatchene.
-Kandidater, felt, mål, kvalitetsporter og maskinvarevakter beholdes. Gjeldende
-30min er ikke endret; et eventuelt nytt tidsbudsjett må godkjennes og fryses
-før måling. Ingen samplervalg fra profiler001/002/003 eller partiale receipts.
+CPU_WORKLOAD_PROFILE_003 er konsumert og fullført. Operatørens CPU-valg er
+godkjent:10800s eligibilitet per kandidat og64800s total hard wall.
+Følg eksakt fresh ATTEMPT_003-plan/operator i NEXT_RUN_POLICY.json.
+Alle tre fulle kandidater, batch16, én repetisjon; ingen smoke eller
+individuell tidlig stopp. Ikke anta full kapasitet fra småbatchene.
+Felt, mål, kvalitetsporter og maskinvarevakter beholdes. Ingen samplervalg
+fra profiler001/002/003 eller partiale receipts. Native faser trenger
+fortsatt egne eksakte bindinger; training_enabled=false.
 
 Gjenbruk:
 - gx1/scripts/benchmark_unified_exit_random_access_train_v1.py
