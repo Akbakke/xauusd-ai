@@ -64,8 +64,10 @@ def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
     execution = policy['native_v38_execution_20261005']
     prep = policy['native_v38_preparation_20261001']
     assert work['gc_goal_status'] == 'paused'
-    assert work['current_activity'] == 'NATIVE_V38_RETRAIN_PLAN_PREPARATION'
-    assert work['current_research_id'] == Path(prep['run_root']).name
+    rebuild = policy['native_v38_rebuild_20261007']
+    assert work['current_activity'] == 'NATIVE_V38_REPOSITORY_AUDIT_AND_FRESH_REBUILD'
+    assert work['current_research_id'] == Path(rebuild['run_root']).name
+    assert rebuild['run_root'] != prep['run_root']
     assert work['existing_indicator_surface_changed'] is False
     assert work['training_started'] is False
     assert gc['status'] == 'PAUSED_BY_OPERATOR'
@@ -90,6 +92,31 @@ def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
         assert scope['broker_authorized'] is False
         assert scope['trading_authorized'] is False
         assert scope['spending_authorized'] is False
+
+
+def test_new_rebuild_plan_preserves_periods_and_requires_complete_m1_before_smoke():
+    repo = Path(__file__).resolve().parents[1]
+    policy = json.loads((repo / 'NEXT_RUN_POLICY.json').read_text())
+    scope = policy['native_v38_rebuild_20261007']
+    plan_path = repo / scope['plan']['path']
+    assert hashlib.sha256(plan_path.read_bytes()).hexdigest() == scope['plan']['sha256']
+    plan = json.loads(plan_path.read_text())
+    prior = json.loads((repo / 'configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json').read_text())
+    assert scope['input_build_authorized'] is True
+    assert scope['native_launch_admitted'] is False
+    assert plan['run_id'] != prior['run_id']
+    assert plan['event_root'] != prior['event_root']
+    for key in ('history_start', 'train_start', 'train_end', 'val_start', 'val_end',
+                'test_start', 'test_end', 'registry_fit_train_start',
+                'registry_fit_train_end', 'registry_fit_inner_end'):
+        assert plan[key] == prior[key]
+    assert plan['pair_manifest'] == prior['pair_manifest']
+    assert plan['squeeze_manifest'] == prior['squeeze_manifest']
+    assert plan['complete_m1']['mandatory_before_normalization_or_smoke'] is True
+    assert plan['complete_m1']['sealed_test_dataset_or_manifest_access_allowed'] is False
+    assert plan['cleanup']['default_targets_authorized'] is False
+    assert plan['smoke']['native_launch_authorized_by_plan'] is False
+    assert plan['automatic_large_training'] is False
 
 
 @pytest.mark.parametrize('change', ['bytes', 'state', 'missing'])

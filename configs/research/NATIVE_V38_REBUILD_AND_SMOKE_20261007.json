@@ -1,0 +1,110 @@
+{
+  "schema_version": "gx1_native_v38_rebuild_and_smoke_plan_v1",
+  "created_utc": "2026-10-07T05:04:51Z",
+  "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "run_id": "HISTORY2009W_NATIVE_V38_20261007",
+  "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN",
+  "execution_owner": "scripts/run_seq513_rebuild_chain_v1.sh",
+  "one_shot_attempts": 1,
+  "max_build_wall_seconds": 64800,
+  "build_termination_grace_seconds": 10,
+  "termination_grace_origin": "Existing scripts/gx1_guarded_trainer_exec.sh TERM-to-KILL grace; same finite CPU supervisor grace, no GPU/cgroup override.",
+  "wall_budget_origin": "Explicit finite CPU build recipe; reuse the recorded 64800-second outer CPU safety ceiling as a new build bound, not the consumed ATTEMPT_003 permission.",
+  "resource_authority": "scripts/entry_next_edge_control.sh per-stage scripts/gx1_capped_run.sh; no nested heavy project lock and no overrides",
+  "source_frozen_while_running": true,
+  "reuse": [
+    "verified immutable raw pair and its native-source ancestors",
+    "immutable six-clock squeeze calibration",
+    "complete pre-TEST M1 quote source and its native provenance",
+    "existing cost-source receipts where strict current owners accept the bound bytes"
+  ],
+  "forbidden_reuse": [
+    "old enriched frames or feature surfaces",
+    "old ranking, datasets or split outputs",
+    "old normalization and learned checkpoints",
+    "consumed benchmark claim or partial selection as full benchmark proof"
+  ],
+  "pair_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS/fc3333d71ca71d3916b3f6716bbfd36824a216dc15fb927efa8c03cac0594170/PAIR_MANIFEST.json",
+    "sha256": "690786b030362d6f0e0bafdc4004d4a361b83e751c1a98a344c68e05cf0da425"
+  },
+  "pair_generation_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS",
+  "squeeze_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/manifest.json",
+    "sha256": "2f099d1974a6ffe3b9c1ae39680acdce5cc706aba954a2ce3523d74db2838d3e"
+  },
+  "history_start": "2010-06-14T22:00:00Z",
+  "train_start": "2011-06-01T00:00:00Z",
+  "train_end": "2025-05-31T23:59:59Z",
+  "val_start": "2025-06-01T00:00:00Z",
+  "val_end": "2026-06-30T23:59:59Z",
+  "test_start": "2026-07-01T00:00:00Z",
+  "test_end": "2026-08-31T23:55:00Z",
+  "registry_fit_train_start": "2009-06-01T00:00:00+00:00",
+  "registry_fit_train_end": "2013-01-01T22:00:00+00:00",
+  "registry_fit_inner_end": "2012-04-11T22:00:00+00:00",
+  "volatility_squeeze_fit_start": "2009-06-01T00:00:00+00:00",
+  "volatility_squeeze_fit_end": "2013-01-01T22:00:00+00:00",
+  "split_origin": "Unchanged historical native periods. June 2026 remains reused development VAL; no period is moved or shortened to make a gate pass.",
+  "complete_m1": {
+    "execution_owner": "gx1.scripts.materialize_entry_exit_m1_feature_base_v1",
+    "alignment_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+    },
+    "alignment_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    },
+    "output_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_M1/m1_feature_base.parquet",
+    "mandatory_before_normalization_or_smoke": true,
+    "role": "Complete native M1 training-state surface, separate from the pair-aligned legacy lifecycle surface constructed by the existing chain. Both bind the new dataset_run_id; no post hoc relabeling.",
+    "acceptance": "Independent complete alignment suffix equality after declared causal warmup; no internal omissions; every frozen physical TRAIN/VAL view clock covered.",
+    "source_test_era_feature_construction_allowed": true,
+    "sealed_test_dataset_or_manifest_access_allowed": false
+  },
+  "sequence_geometry_origin": "Existing owner and bound dataset: Seq96; M5=16, M15=64, H1=96, H4=96, D1=252. Verify by execution; do not infer from the Seq513 historical file names.",
+  "features": "All current owner-derived v38 fields, eight model specialists and native timeframes retained. No GC, new ninth family or new order-block features.",
+  "normalization": "Fresh immutable fit once on the entire physical TRAIN population after complete M1 coverage and split audits; VAL/TEST never refit. Old normalization remains retained until replacement acceptance.",
+  "cleanup": {
+    "execution_owner": "gx1.scripts.cleanup_gx1_evidence_v1",
+    "order": "After complete accepted replacement and dependency proof; before native model smoke.",
+    "scope": "Exact obsolete generated DATA/RUNS leaves, never parent-with-exclusions.",
+    "preserve": [
+      "new generation and transitive raw/calibration/cost dependencies",
+      "paused GC evidence",
+      "required source and terminal receipts",
+      "secrets, environments and Git history",
+      "any active process path"
+    ],
+    "authority": "Latest user request authorizes obsolete-output retirement; each exact target and byte count must be bound through plan, approval, execute and active-writer checks. Owner refusal remains binding.",
+    "separate_test_reachability": "Keep sealed TEST closed. If the existing retention owner cannot establish closure without TEST access, leave those targets untouched and report the exact blocker.",
+    "default_targets_authorized": false
+  },
+  "smoke": {
+    "order": "After accepted inputs and retention completion or explicit retention-block report; before larger training.",
+    "technical": "Current-shape contract tests plus genuine no-fit data/sequence/readiness checks. Synthetic hardware smoke proves mechanics only.",
+    "learning": "Existing fresh initial ONLINE/TARGET, batch16, 256 optimizer steps, at most4096 TRAIN Entries, seed20260911; identical frozen TRAIN256 and CONTROL256 paired initial/final evaluation through docs/LEARNING_GATE.md.",
+    "sampler": "New exact finite TRAIN-only workload benchmark and owner-published selection are prerequisites; old partial ATTEMPT_003 is never selected or relaunched.",
+    "hardware": "Existing recipe/campaign, cgroup and signed Windows GPU guards, FP32/TF32 off, fresh physical Windows boot required by owner.",
+    "native_launch_authorized_by_plan": false,
+    "full_epoch_or_full_val_authorized": false
+  },
+  "acceptance": [
+    "immutable completion/terminal receipts and source identity",
+    "owner-derived field order and eight specialist coverage",
+    "strict TRAIN/development-VAL split lineage and sealed TEST witness",
+    "sequence reconstruction and closed MTF availability",
+    "complete native M1 clock/physical-view coverage",
+    "fresh whole-TRAIN normalization and economics with no fixed loss or hold cap",
+    "safe exact-target retention receipts, or explicit unresolved closure with zero deletion",
+    "technical and paired learning smoke evidence before one finite expansion"
+  ],
+  "test_handling": "Existing canonical construction/sealing owners may create the same sealed TEST split. No outcome inspection, model fit, tuning or TEST dataset/manifest byte access outside construction/sealing owners.",
+  "automatic_large_training": false,
+  "broker_live_paper_trading_spending_promotion_allowed": false,
+  "gc_goal_status": "paused"
+}

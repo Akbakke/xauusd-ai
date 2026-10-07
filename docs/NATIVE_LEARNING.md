@@ -5,6 +5,45 @@ kontrollert benchmarkstopp og repo-opprydding. Den 07.10 ble GC/order-flow og
 nye order-block-/footprint-utvidelser satt på pause og ny trening med dagens
 tekniske indikatoroppsett prioritert. Dette dokumentet beskriver det gjenværende
 læringsløpet; faktisk kjøring krever fortsatt en ny eksakt plan i NEXT_RUN_POLICY.
+Senere samme dag bestilte brukeren ny repo-revisjon, ferskt datasett,
+retention-opprydding og liten smoke før større trening. Det eksplisitte nye
+byggevedtaket erstatter tidligere reuse-only for genererte inputs, ikke
+forbudet mot relaunch av forbrukte planer.
+
+## Ny kjøreplan — HISTORY2009W_NATIVE_V38_20261007
+
+1. Revider hele tracked inventaret og rett konkrete mismatches. Kjør fokuserte
+   regresjoner, ikke gjentatte fullsuiter. Bind ren/committet/pushet kilde før build.
+2. Bygg fersk M5/M1 enrichment, MTF, ranking/signalmanifest og Entry/Exit-datasett
+   gjennom `scripts/run_seq513_rebuild_chain_v1.sh`. Ny output-identitet;
+   gjenbruk kun verifiserte rå-/kalibreringsforeldre. Samme historiske perioder,
+   alle ekte v38-felt/åtte familier og uendrede maskinvarevakter.
+   Planen binder én CPU-build med 64800s endelig ytre sikkerhetsbudsjett;
+   dette er ikke gjenåpning av gammel benchmarkgodkjenning.
+3. Før normalisering eller modellsmoke: bygg den komplette pre-TEST M1-flaten
+   gjennom eksisterende feature-eier og komplett rå M1-alignmentskilde.
+   Den gamle chainens pair-alignerte lifecycle-flate er en annen rolle og er
+   ikke full M1-state-dekning. Gjør komplett M1 til obligatorisk byggefase,
+   ikke en etterfølgende uregistrert retting. Verifiser hele klokkesuffikset
+   etter målt warmup og alle fysiske TRAIN/VAL-visninger. Tilpass ny immutable
+   normalisering én gang på hele fysisk TRAIN; ingen gammel normalisering.
+4. Aksepter replacement med genuine completion-/sekvens-/økonomi-/readiness-
+   kvitteringer. Opplist så eksakte utdaterte DATA/RUNS-leaves med størrelser.
+   Bevar transitive råkilder/kalibrering/kostbevis, aktive stier og pausert GC.
+   Slett bare gjennom retention plan → godkjenn → utfør og writer-sjekk.
+   Dagens policy er hash-bundet fra eksisterende retention-launchrot.
+   Ufullstendig closure, ukjent metadata eller forseglet TEST stopper sletting;
+   en slik nektelse rapporteres og omgås aldri.
+5. Genuine teknisk input-smoke og deretter den eksisterende avgrensede
+   læringsprøven nedenfor. Ny sampler/koordinat-/recipe- og hostadgang må først
+   bestås; ATTEMPT_003s delresultat gir ingen sampler. Syntetisk hardware-smoke
+   demonstrerer kun mekanikk. Fersk Windows-boot/vakter svekkes ikke.
+6. Større trening bare etter samlet læringsport og én forhåndsbundet finite
+   utvidelse. Ingen automatisk full epoch/full VAL eller TEST-åpning.
+
+Eksakt ny plan: configs/research/NATIVE_V38_REBUILD_AND_SMOKE_20261007.json.
+Fremdrift og faktisk autorisasjon står kun i NEXT_RUN_POLICY/current_work og
+native_v38_rebuild_20261007, ikke i daterte resultater eller gamle claims.
 
 ATTEMPT_003 er terminal med exit 1 etter operatøravbrudd. Første kandidat
 rapporterte 3200/8192 Entry-par. Ingen full benchmark eller sampler er publisert.
@@ -43,8 +82,10 @@ GC-kvalifisering er ingen forutsetning for det eksisterende v38-oppsettet.
 
 ## Forutsetninger for eventuell gjenopptakelse
 
-Bruk ferdige v38-data, normaliseringer, sekvens-/feature-/økonomikontroller;
-ikke relanser avsluttede inputjobber. Gjeldende design bruker Seq96 og
+Det nye byggevedtaket bruker nye genererte data/normaliseringer; gammel
+inputkjøring relanseres aldri og dens artefakter er ikke nye outputs.
+Gjenbruk bare uendrede genuine rå-/kalibrerings-/kostforeldre med full binding.
+Gjeldende design bruker Seq96 og
 M5=16/M15=64/H1=96/H4=96/D1=252 fra den faktiske bundne geometrien.
 Reference-policy og cutoff kommer fra frosset DESIGN.json.
 

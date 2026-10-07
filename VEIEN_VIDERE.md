@@ -5,9 +5,20 @@
 Brukerens prioritering 07.10.2026 setter GC/order-flow og nye order-block-/
 footprint-utvidelser på pause. Arbeidet og kildebevisene bevares for senere.
 Dagens v38-indikatorer, SMC-primitiver, åtte modellspesialister, tidsrammer,
-TRAIN/development-VAL-perioder og ferdige normaliseringer endres ikke.
+TRAIN/development-VAL-perioder endres ikke. Den nyere bestillingen krever
+ferskt datasett og ny whole-TRAIN-normalisering, deretter trygg retention og
+liten smoke før større trening. Ingen relabeling av gammel v38-generation.
 
-Forbered en ny eksakt, kildebundet plan gjennom eksisterende eiere. Den avbrutte
+Ny kjøreplan er configs/research/NATIVE_V38_REBUILD_AND_SMOKE_20261007.json:
+repo-/mismatch-kontroll → fersk capped native build → obligatorisk komplett
+M1-state-klokke, fysiske visninger, normalisering og genuine audits →
+exact-target retention → liten teknisk/avgrenset læringssmoke → kun betinget
+større trening. Se docs/NATIVE_LEARNING.md for detaljene og NEXT_RUN_POLICY
+for faktisk fremdrift. Før sletting må nye outputs være akseptert og alle
+transitive rå-/kalibrerings-/kostforeldre og aktive stier være beskyttet.
+Ukjent closure/TEST-nektelse stopper sletting, aldri håndlaget unntak.
+
+Bind planen til ren/committet/pushet kilde før start. Den avbrutte
 ATTEMPT_003 er konsumert; ny samplerbenchmark trenger egen finite plan og
 budsjettautoritet, ikke gammel engangsgodkjenning. Ingen modelltrening er startet.
 Følg docs/NATIVE_LEARNING.md: full samplerbenchmark → valgt sampler/fryste

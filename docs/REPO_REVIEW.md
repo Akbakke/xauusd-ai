@@ -5,6 +5,72 @@ kode/fyll, og prioriterte kontrollert benchmarkstopp. Kildegrunnlag før bølgen
 8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91, work/gx1-current.
 Dette er gjeldende oppryddingsrapport, ikke en trenings- eller sletteautoritet for DATA/RUNS.
 
+## Ny bølge 07.10.2026 — ferskt datasett og smoke
+
+Nyere brukerbestilling: ny kjøreplan, gjennomgang av hele repoet for feil/
+mismatches, ferskt datasett og retirement av utdaterte genererte outputs,
+før en liten smoke og betinget større trening. GC forblir på pause.
+Den nye kjøreplanen ligger i docs/NATIVE_LEARNING.md og er eksakt bundet i
+NEXT_RUN_POLICY/native_v38_rebuild_20261007. Historikken nedenfor beskriver
+den tidligere repo-slettebølgen, ikke utført DATA/RUNS-sletting 07.10.
+
+Hele inventaret før endring: 640 tracked filer / 581 Python-filer,
+14413210 bytes. Mekanisk AST-/lokalimport-/JSON-/shell-/Markdown-/dependency-
+kontroll gir ingen syntaksfeil, importhull, doble toppnivådefinisjoner,
+brutte lenker, JSON-duplikater eller avhengighetsversjonsmismatches.
+69 Ruff-varsler er scope-/fixturefenomener: tre F821 på tidligere kontrollerte
+closures og 66 F811 på fixtureimports/parametre. Ingen blind lintopprydding.
+Kildereview er hash-bundet i policyen. Manuelt er de risikobærende build-/M1-/
+normaliserings-/lifecycle-/status-/retention-grensene og faktiske funn fulgt;
+ingen påstand om manuell gjennomgang av hver linje.
+
+Konkrete funn og minste endringer:
+
+- Hardware-testen hadde 242 fra v37 mens utført v38-eier har 254. Signal-/
+  context-/MTF-mål kommer nå fra de faktiske kontrakteierne; M5 kopieres ikke
+  inn som ekstra Entry-MTF. Ingen arkitekturreduksjon.
+- Den syntetiske bounded-parity-fixturen brukte bare price-warmup 219.
+  Tosidig sweep-AVWAP var først fullstendig på rad 262 av den deklarerte
+  syntetiske kilden. Fixture måler egen SMC-prefix og bevarer ønsket sample-
+  antall; produksjons-NaNs og warmup-vakter er uendret.
+- Retention-rootene var reelle bevarte sikkerhetsregistre, ikke manglende
+  filer. Den tidlige mistanken om slettede registre er trukket tilbake.
+  De fulgte imidlertid ikke dagens NEXT_RUN_POLICY-inputbindinger. Nå binder
+  samme launchrot eksakt policy/hash. Eksakte {path,sha256}-manifestbindings-
+  former følges transitivt og feil hash/ukjent shape feiler lukket. Nested
+  binding beholder TEST-rollen før metadataåpning (fire negative cases).
+  Den kanoniske kildedirens egen reelle policy følges; tilfeldige DATA-dirs
+  med samme filnavn avvises. Faktisk closure-diagnose stopper deretter på
+  den nye run-rooten som ennå ikke har genuine registrert completion.
+  Den samme exact-target-eieren tillater nå også GX1_RUNS etter brukerens
+  uttrykkelige retirement-vedtak; rootdelete, exclusions, aktive writers,
+  manglende closure, symlinks og TEST-nektelser er fortsatt forbudt.
+- Chainens pair-alignerte M1-lifecycle-flate er ikke komplett M1-state-
+  dekning. Nytt build har derfor komplett pre-TEST M1 via samme feature-eier
+  som en obligatorisk separat fase før normalisering/smoke. Legacy surface-
+  identitet/semantikk endres ikke og komplette raw-minutter fylles aldri inn
+  med syntetiske verdier. Selvstendig helt klokkesuffiks må bestås.
+
+Verifikasjon: én fullsuite forsøkt, stoppet fail-fast etter 19 PASS/1 gammel
+shape-feil. Ingen gjentatt fullsuite. Siste endrede-gruppe har 368 PASS;
+Siste retentiongruppe har 155 PASS. Case-sensitiv JUnit-dedup gir 544 unike
+testcases med siste status PASS, ikke full
+testsuite-PASS. Alle tunge audits bruker capped 4G/512M, én jobb/tråd.
+8 endrede/eksterne Python-filer og tre JSON-autoriteter består syntax/parse.
+Råpair-/squeeze-/direkte M1-avhengigheter er genuint revalidert: seks squeeze-
+klokker, kontrakteid 254/åtte og 5959045 komplette pre-TEST M1-rader.
+Ingen modell-forward, optimizersteg, normaliseringsfit eller TEST-evaluering.
+
+Storage-inventar: cirka 313G DATA og 11G RUNS; 306G ligger i prebuilt.
+Det er cirka 546G ledig. Hele v37/v38/BOOTSTRAP-roots kan ikke uten videre
+slettes: de inneholder fortsatt genuine rå-/squeeze-/M1-provenanceforeldre.
+Ingen DATA/RUNS er slettet i denne bølgen. Etter ny replacement-aksept skal
+eksakte foreldede leaves/størrelser tas gjennom retention; run-rooten må
+først ha genuine registrert completion og full closure. Ingen håndlagde
+unntak dersom current-policy-/directory-/TEST-closure ikke kan bevises.
+Bare en genuine completion/clock/readiness-receipt aksepterer nytt input;
+ingen modelleffekt, lønnsomhet, ny normalisering eller større trening er bevist.
+
 ## Gjennomgått omfang
 
 Hele tracked inventaret: 842 filer, 17219007 bytes, 590 Python-filer /

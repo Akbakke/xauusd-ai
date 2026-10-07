@@ -32,6 +32,108 @@ VEDTAK = "GX1-CLEANUP-TEST"
 CREATED_UTC = "2026-07-20T10:00:00+00:00"
 
 
+def test_canonical_retention_launch_root_binds_current_run_policy() -> None:
+    repo = Path(__file__).resolve().parents[1]
+    launch = json.loads((repo / "PROJECT_STATE_xau_direction_launch.json").read_text())
+    policy = repo / "NEXT_RUN_POLICY.json"
+    assert launch["retention_current_policy_manifest"] == str(policy)
+    assert launch["retention_current_policy_manifest_sha256"] == sha256_file(policy)
+
+
+def test_retention_uses_same_exact_target_owner_for_data_and_runs() -> None:
+    assert retention_contract.DEFAULT_ALLOWED_ROOTS == (
+        retention_contract.GX1_DATA_ROOT, retention_contract.GX1_RUNS_ROOT
+    )
+    for root in retention_contract.DEFAULT_ALLOWED_ROOTS:
+        with pytest.raises(EvidenceRetentionError):
+            retention_contract._allowed_target(root, retention_contract.DEFAULT_ALLOWED_ROOTS)
+
+
+def test_hash_bound_current_policy_references_protect_transitive_inputs(tmp_path: Path) -> None:
+    payload = tmp_path / "input.parquet"
+    payload.write_bytes(b"synthetic retention payload; not market data")
+    manifest = tmp_path / "input.manifest.json"
+    _write_json(manifest, {"parquet_path": str(payload)})
+    policy = tmp_path / "NEXT_RUN_POLICY.json"
+    _write_json(policy, {
+        "signal_manifest": {"path": str(manifest), "sha256": sha256_file(manifest)},
+    })
+    registry, launch = _authority_files(tmp_path, launch_extra={
+        "retention_current_policy_manifest": str(policy),
+        "retention_current_policy_manifest_sha256": sha256_file(policy),
+    })
+    with pytest.raises(EvidenceRetentionError, match="authority-protected"):
+        _published_plan(tmp_path, target=payload, registry=registry, launch=launch)
+    _write_json(policy, {"signal_manifest": {"path": str(manifest), "sha256": "0" * 64}})
+    _write_json(launch, {
+        "schema_version": "gx1_xau_direction_launch_state_v1", "project": "XAUUSD",
+        "retention_current_policy_manifest": str(policy),
+        "retention_current_policy_manifest_sha256": sha256_file(policy),
+    })
+    with pytest.raises(EvidenceRetentionError, match="SHA-256 mismatch"):
+        _published_plan(tmp_path, target=payload, registry=registry, launch=launch)
+
+
+def test_canonical_source_directory_follows_real_policy_not_an_opaque_stub(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repo = tmp_path / "current"
+    repo.mkdir()
+    payload = tmp_path / "input.bin"
+    payload.write_bytes(b"synthetic input")
+    policy = repo / "NEXT_RUN_POLICY.json"
+    _write_json(policy, {"canonical_source_repo": str(repo), "parquet_path": str(payload)})
+    monkeypatch.setattr(retention_contract, "REPO_ROOT", repo)
+    registry, launch = _authority_files(tmp_path, launch_extra={
+        "retention_current_policy_manifest": str(policy),
+        "retention_current_policy_manifest_sha256": sha256_file(policy),
+    })
+    with pytest.raises(EvidenceRetentionError, match="authority-protected"):
+        _published_plan(tmp_path, target=payload, registry=registry, launch=launch)
+    unrelated = tmp_path / "not_source"
+    unrelated.mkdir()
+    _write_json(unrelated / "NEXT_RUN_POLICY.json", {})
+    registry, launch = _authority_files(tmp_path, active={"artifact_dir": str(unrelated)})
+    with pytest.raises(EvidenceRetentionError, match="unresolved authority directory"):
+        _published_plan(tmp_path, target=payload, registry=registry, launch=launch)
+
+
+@pytest.mark.parametrize("binding", [
+    {"path": "x.json"},
+    {"path": "x.json", "sha256": None},
+    {"path": "x.json", "sha256": "0" * 64, "extra": "not authority"},
+    ["x.json"],
+])
+def test_retention_rejects_nonexact_current_policy_bindings(tmp_path: Path, binding: object) -> None:
+    target = tmp_path / "obsolete.bin"
+    target.write_bytes(b"synthetic obsolete payload")
+    registry, launch = _authority_files(tmp_path, active={"signal_manifest": binding})
+    with pytest.raises(EvidenceRetentionError):
+        _published_plan(tmp_path, target=target, registry=registry, launch=launch)
+
+
+@pytest.mark.parametrize("role", ["test_manifest", "TEST_MANIFEST", "test_json", "test_artifact"])
+def test_bound_test_role_remains_sealed_before_opening_child_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, role: str,
+) -> None:
+    target = tmp_path / "obsolete.bin"
+    target.write_bytes(b"synthetic obsolete payload")
+    child = tmp_path / "neutral.json"
+    _write_json(child, {})
+    registry, launch = _authority_files(tmp_path, active={
+        role: {"path": str(child), "sha256": sha256_file(child)},
+    })
+    original = retention_contract._authority_json
+
+    def guarded(path: Path, **kwargs: object):
+        assert path != child, "sealed child metadata must not be opened"
+        return original(path, **kwargs)
+
+    monkeypatch.setattr(retention_contract, "_authority_json", guarded)
+    with pytest.raises(EvidenceRetentionError, match="sealed TEST"):
+        _published_plan(tmp_path, target=target, registry=registry, launch=launch)
+
+
 def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.write_text(
         json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n",

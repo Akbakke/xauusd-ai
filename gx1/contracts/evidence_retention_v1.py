@@ -31,7 +31,10 @@ PLAN_EVENT_PREFIX = "GX1_EVIDENCE_RETENTION_CLEANUP_PLAN"
 PLAN_MODE = "EXACT_TARGETS_NO_EXCLUSIONS"
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GX1_DATA_ROOT = Path("/home/andre2/GX1_DATA")
-DEFAULT_ALLOWED_ROOTS = (GX1_DATA_ROOT,)
+GX1_RUNS_ROOT = Path("/home/andre2/GX1_RUNS")
+# Operator 2026-10-07 requested retirement of obsolete generated DATA/RUNS.
+# Root deletion, exclusions, reachable artifacts and open writers remain forbidden.
+DEFAULT_ALLOWED_ROOTS = (GX1_DATA_ROOT, GX1_RUNS_ROOT)
 CANONICAL_ARTIFACT_REGISTRY = REPO_ROOT / "PROJECT_STATE_artifacts.json"
 CANONICAL_LAUNCH_CONTRACT = REPO_ROOT / "PROJECT_STATE_xau_direction_launch.json"
 CANONICAL_DELETE_INCIDENT = REPO_ROOT / "PROJECT_STATE_entry_iql_delete_incident.json"
@@ -721,7 +724,12 @@ def authority_protected_paths(
             if fixed_key is None and not isinstance(raw_key, str):
                 raise EvidenceRetentionError("authority JSON keys must be strings")
             key = raw_key if fixed_key is None else fixed_key
-            sealed = inherited_seal or str(raw_key).lower() == "test"
+            # A bound {path, sha256} container must not erase its parent's
+            # TEST role before the nested path is examined.
+            sealed = (
+                inherited_seal or str(raw_key).lower() == "test"
+                or str(raw_key).lower().startswith("test_")
+            )
             values += 1
             if values > MAX_AUTHORITY_VALUES or depth > MAX_AUTHORITY_DEPTH:
                 raise EvidenceRetentionError("authority JSON value/depth limit exceeded")
@@ -731,9 +739,19 @@ def authority_protected_paths(
                 declared and key not in {"manifest", "artifact"}
                 and isinstance(value, (Mapping, list))
             ):
-                raise EvidenceRetentionError(
-                    f"authority reference {key} must be a path string"
-                )
+                # CURRENT policy uses exact {path, sha256} bindings, including
+                # keys such as signal_manifest. Traverse the same bound child;
+                # arbitrary mappings/lists are still not path authority.
+                if isinstance(value, Mapping) and set(value) == {"path", "sha256"}:
+                    if not isinstance(value["path"], str):
+                        raise EvidenceRetentionError(
+                            f"authority reference {key} must be a path string"
+                        )
+                    _exact_sha256(value["sha256"], context=f"authority {key} hash")
+                else:
+                    raise EvidenceRetentionError(
+                        f"authority reference {key} must be a path string"
+                    )
             if multiple and not isinstance(value, (Mapping, list)):
                 raise EvidenceRetentionError(f"authority reference {key} must be a path inventory")
             if isinstance(value, Mapping):
@@ -798,7 +816,13 @@ def authority_protected_paths(
                 if reference.is_dir() and reference not in directories:
                     directories.add(reference)
                     found = []
-                    for name in _DIRECTORY_MANIFEST_NAMES:
+                    manifest_names = _DIRECTORY_MANIFEST_NAMES
+                    if reference == REPO_ROOT:
+                        # The known canonical source directory exposes the
+                        # real CURRENT authority, not a fabricated manifest.
+                        # Do not admit this filename for arbitrary DATA dirs.
+                        manifest_names = (*manifest_names, "NEXT_RUN_POLICY.json")
+                    for name in manifest_names:
                         candidate = reference / name
                         if candidate.exists() or candidate.is_symlink():
                             found.append(str(candidate))

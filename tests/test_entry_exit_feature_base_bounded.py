@@ -33,7 +33,10 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     PRICE_DERIVED_FEATURE_NAMES,
     build_candle_primitive_derived_layer,
     build_price_derived_layer,
+    SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
+    v29_layer_first_complete_time,
 )
+from gx1.features.smc_v1 import compute_smc_features
 from gx1.features.entry_foundation_structure_v1 import (
     FOUNDATION_EVENT_AGE_CARRY_KEYS,
     FOUNDATION_STRUCTURE_SOURCE_FIELDS,
@@ -127,12 +130,31 @@ def _synthetic_enriched_frame(rows: int) -> pd.DataFrame:
 
 def _synthetic_enriched_sample_with_price_warmup(
     rows: int,
+    *,
+    include_smc: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Derived from the producing owner, never restated (rule 13): the local
     # EMA-slope repair of 2026-08-19 moved this floor 201 -> 204 and a literal
     # 202 here silently emitted rows the layer declares undefined.
     warmup = PRICE_DERIVED_CAUSAL_WARMUP_ROWS
     source_frame = _synthetic_enriched_frame(rows + warmup)
+    if include_smc:
+        # v38's two-sided anchored activity is undefined until BOTH first
+        # sweeps have occurred. Measure that prefix on this synthetic source;
+        # neither fill its NaNs nor guess a production warmup constant.
+        smc_source = source_frame.set_index("time")[
+            ["high", "low", "close", "atr", "volume"]
+        ].astype(np.float64)
+        smc_raw = compute_smc_features(
+            smc_source,
+            include_v30_additions=True,
+            include_sweep_anchored_activity=True,
+        ).loc[:, list(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES)]
+        first_complete = v29_layer_first_complete_time(
+            smc_raw, context="SYNTHETIC_BOUNDED_PARITY_SMC"
+        )
+        warmup = max(warmup, int(smc_raw.index.get_loc(first_complete)))
+        source_frame = _synthetic_enriched_frame(rows + warmup)
     sample_frame = source_frame.iloc[warmup:].reset_index(drop=True).copy()
     return sample_frame, source_frame
 
@@ -349,7 +371,9 @@ def test_bounded_owner_orchestration_matches_full_history_exactly(
 
     squeeze_artifacts = make_volatility_squeeze_artifact_set(tmp_path)
     _stub_sparse_registry_age_layer(monkeypatch)
-    frame, source_frame = _synthetic_enriched_sample_with_price_warmup(89)
+    frame, source_frame = _synthetic_enriched_sample_with_price_warmup(
+        89, include_smc=True
+    )
     source = tmp_path / "synthetic_enriched_m1.parquet"
     source_frame.to_parquet(source, index=False)
     requested = [
@@ -418,7 +442,9 @@ def test_foundation_event_ages_match_full_history_across_batch_boundary(
             95,
         ),
     )
-    frame, source_frame = _synthetic_enriched_sample_with_price_warmup(rows)
+    frame, source_frame = _synthetic_enriched_sample_with_price_warmup(
+        rows, include_smc=True
+    )
     for source_field, _, distance in events:
         frame[source_field] = np.zeros(rows, dtype=np.float32)
         frame.at[boundary - distance, source_field] = np.float32(1.0)

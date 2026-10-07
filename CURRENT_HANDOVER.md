@@ -1,17 +1,53 @@
 # Gjeldende overlevering — 07.10.2026
 
-Gjeldende bestilling: «Vi setter dette på pause. Vi trener på nytt med det nye
-oppsett av de tekniske indikatorene, så venter vi med order block og det.
-Vi tar dette igjen». GC-målet er satt til paused etter brukerens uttrykkelige
-beskjed. Nå prioriteres ny v38-trening med dagens tekniske indikatoroppsett;
-den tidligere repo-oppryddingen er fullført.
+Gjeldende bestilling: ny kjøreplan, gjennomgang av hele repoet for feil/mismatches,
+ferskt datasett, sletting av utdaterte genererte artefakter og liten smoketest
+før større trening. GC/order-flow og nye order-block-/footprint-utvidelser
+forblir paused. Planen heter HISTORY2009W_NATIVE_V38_20261007 og er bundet
+i NEXT_RUN_POLICY/native_v38_rebuild_20261007. Eldre repo-opprydding er fullført,
+men den nye DATA/RUNS-oppryddingen er ikke utført.
 
 ## Nåstatus
 
-Ingen treningsjobb kjører eller er startet av prioriteringsendringen.
+Ingen treningsjobb kjører eller er startet av den nye bestillingen.
+Hele kildeinventaret er kontrollert: 640 tracked filer / 581 Python-filer;
+ingen syntaksfeil, lokale importhull, doble toppnivådefinisjoner, brutte
+Markdown-lenker, JSON-duplikater, shell-syntaksfeil eller avhengighetsmismatches.
+Dette er mekanisk repo-dekning og risikoprioritert manuell gjennomgang, ikke
+manuell revisjon av hver linje. Source-review/hasher står i policyen.
+Én fullsuite startet fail-fast og stoppet etter 19 beståtte/1 feil på foreldet
+v37-smokebredde 242 mot utført v38-kontrakt 254. Rettet til kontrakteide mål.
+En fokusert build-test avslørte også for kort syntetisk SMC-warmup: ny
+tosidig AVWAP var først definert på rad 262, ikke price-prefix 219.
+Fixture måler nå egen SMC-prefix; produksjonsvakter/NaNs er ikke svekket.
+Endrede flater: 368 fokuserte tester bestod; siste retentiongruppe har 155 PASS.
+Samlet case-sensitiv JUnit-dedup av gruppene gir 544 unike cases med siste PASS; det er ikke
+fullsuite-PASS. Den første fullsuiten var avbrutt fail-fast som beskrevet over.
+8 endrede/eksterne Python-filer og tre JSON-autoriteter består syntakskontroll.
+Tre F821-lintvarsler er allerede vurderte lovlige closures; 66 F811 er
+fixtureimports/parametre. Ingen kode slettes kun på disse lintvarslene.
+Slettingsvernet manglet dagens policyrot. Eksisterende launch-register er nå
+hash-bundet til NEXT_RUN_POLICY; retention støtter eksakte {path,sha256}-
+bindingsformer og samme exact-target-eier for DATA/RUNS. Foreldres TEST-rolle
+bevares også i nested bindings før child-metadata kan åpnes. Kanonisk kilde-
+dir følger sin reelle policy; dette er ikke et nytt generisk manifestunntak.
+Faktisk read-only closure stopper nå på den ennå uregistrerte nye run-rooten,
+ikke på CURRENT-kildedir. Etter replacement må genuine run-registrering og
+full closure bestås; ingen håndlaget graph-stub. Ukjent closure og TEST
+blokkerer fortsatt, uten payloadlesing eller bypass. Ingen sletting nå.
+Rå-/kalibreringsreview er faktisk utført under capped audit: uendrede pair-
+bytes og seks squeeze-klokker er validert, og komplett pre-TEST M1-råkilde
+har 5959045 rader. Dette er kun avhengighets-/klokkeidentitet, ikke modellbevis.
+Én kildebundet supervisor bygger først eksisterende chain, deretter komplett
+M1 og selvstendig clock-oracle samt eksisterende post-build readiness. Den
+har felles 64800s budsjett, immutable START/PROCESS/stage-terminal/sluttterminal
+og stopper før ny normalisering, retention og native modellsmoke. Alle tunge
+faser bruker eksisterende capped-eier; kilden må være fryst hele løpet.
+Faktisk start/ferdigstilling er bare bevist av prosess-/terminalkvitteringer i
+INPUT_BUILD_001, ikke av at dette dokumentet eller planen finnes.
 Handover 07.10 kl. 04:31 UTC viste ren CURRENT-kilde og ingen Python-workload.
 Den eksekverte signaleieren bekreftet v38 og 254 signalfelt. Alle eksisterende
-features, spesialister, tidsrammer og ferdige inputs bevares; «order block og
+features, spesialister og tidsrammer bevares; «order block og
 det» tolkes som utsatte nye utvidelser, ikke fjerning av dagens SMC-primitiver.
 Forrige benchmark er terminal og konsumert. Ny samplerplan med egen endelig
 budsjettautoritet må bindes før kjøring; deretter følger læringsløpet i
@@ -107,7 +143,7 @@ Ingen full benchmark, valgt sampler, koordinatpublisering, fersk initialmåling
 eller 256-stegs læringsprøve er etablert. training_enabled=false, full epoch
 og full VAL er stengt. Den claimede engangsplanen må aldri relanseres.
 
-## Bevarte nåværende inputs
+## Tidligere inputs — beholdes til fersk replacement er akseptert
 
 NEXT_RUN_POLICY.json binder fullførte v38-inputs under
 /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001:
@@ -115,7 +151,10 @@ NEXT_RUN_POLICY.json binder fullførte v38-inputs under
 fullført normalisering, økonomiautoriteter/indekser og sekvenskontroller.
 Signalflaten har 254 felt i åtte familier. Disse tallene beskriver det bundne
 bygget; feltene og dimensjonene eies fortsatt av kontraktene, ikke dokumentet.
-Ingen inputbygger eller avsluttet audit skal kjøres om igjen uten ny grunn.
+Den eksplisitte nye bestillingen er grunnen til ny output-identitet, ikke
+relaunch/relabel av dette gamle bygget. Fersk fysisk TRAIN-normalisering og
+komplett pre-TEST M1-coverage er obligatorisk. Råkilder/kalibreringsforeldre
+beholdes også når genererte gamle outputs kan pensjoneres.
 
 ## Opprydding
 
@@ -131,15 +170,20 @@ kopiene etter særskilt brukerautorisasjon. Andre globale innstillinger er urør
 Økonomiske enhetstester bruker isolerte syntetiske fixtures, ikke et gammelt worktree.
 Omfang, slettinger, kontroller og ubeviste grenser står i docs/REPO_REVIEW.md.
 
-Ingen DATA/RUNS, råkilder, normaliseringer, modeller, checkpoints, .env, .venv
-eller .git slettes i denne repo-oppryddingen. DATA/RUNS krever retention-ruten.
+I den tidligere repo-oppryddingen ble ingen DATA/RUNS slettet. Den nye
+bestillingen tillater nå eksakt retirement av utdaterte genererte outputs,
+etter replacement-aksept, komplett avhengighetsbevis og retention-ruten.
+Råkilder/provenance som fortsatt trengs, .env, .venv, .git og GC-pausen bevares.
 Historiske repo-filer kan gjenopprettes fra Git ved behov; ingen ny arkivmappe opprettes.
 
 ## Neste grense — eksisterende v38-læring
 
-Forbered ny kildebundet plan gjennom eksisterende eiere. Gjenbruk fullførte
-inputs/normalisering; ingen datagjenbygging, featurekassering eller historiske
-modellvekter. En ny full TRAIN-only samplerbenchmark krever sin egen finite
+Bind ren kilde og fersk CPU-build gjennom eksisterende eiere, deretter
+genuine acceptance/komplett M1/ny normalisering og retention før modellsmoke.
+Den pair-alignerte M1-lifecycle-flaten alene dekker ikke komplett rå M1-klokke;
+den komplette state-flaten er derfor en planlagt obligatorisk byggefase.
+Ingen featurekassering eller historiske modellvekter. Ny full TRAIN-only
+samplerbenchmark krever sin egen finite
 plan/budsjettautoritet; gammel engangsgodkjenning fornyes ikke automatisk.
 ATTEMPT_003 og originalbevisene bevares, aldri relanseres.
 Deretter valgt sampler/fryste koordinater → fersk initialmåling → avgrenset

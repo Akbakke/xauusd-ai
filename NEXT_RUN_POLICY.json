@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-07T04:33:11Z",
-  "status": "PAUSED_GC_V38_RETRAIN_REQUESTED_NEW_PLAN_REQUIRED",
+  "observed_utc": "2026-10-07T05:04:51Z",
+  "status": "V38_FRESH_REBUILD_REVIEW_AND_PRELAUNCH_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "The operator paused GC/order-flow and proposed order-block/footprint expansions and prioritizes retraining the current technical-indicator setup. Preserve the existing v38 signal contract, all genuine features, eight model specialists, timeframes, frozen TRAIN/development-VAL periods, normalization and completed input evidence. This pause does not remove existing SMC primitives. The four GC steps and free-source receipts remain preserved and incomplete, with no new source investigation, fetch or fit while paused. Retraining is requested, not started or admitted: consumed ATTEMPT_003 cannot be relaunched and its one-attempt CPU budget is not renewed by this status update. Native launch still requires a new exact source-bound finite plan and established learning/hardware gates. TEST, broker, live/paper, orders, spending and promotion remain closed.",
-  "next_action": "Prepare a fresh source-bound v38 retraining plan through the existing owners, reusing completed current inputs and normalization without rebuilding/refitting. First resolve a new finite workload-matched TRAIN-only sampler benchmark plan and its budget authority; preserve consumed ATTEMPT_003 and do not claim a selected sampler from its partial result. Then follow docs/NATIVE_LEARNING.md: selected sampler/frozen coordinates, fresh initial ONLINE/TARGET measurement, the explicitly bound limited learning probe, separate TRAIN/CONTROL256 review, and only conditional finite expansion. No full epoch/full VAL, new GC acquisition or TEST access is opened by this priority change.",
+  "rule": "Latest operator request explicitly orders repo audit, a fresh dataset, obsolete generated-output retirement and a small smoke before larger training. Native v38 features, eight specialists, clocks, historical periods and safety owners are unchanged. Reuse only verified raw/calibration/cost ancestors, not old generated feature/dataset/normalization/model outputs. New DATA/RUNS outputs have a new identity and one source-bound finite build plan. Complete pre-TEST M1 state coverage is mandatory before normalization/model smoke. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof; preserve required ancestors, paused GC evidence, secrets and Git. Old ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training: existing paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
+  "next_action": "Finish focused mismatch fixes and bind clean committed/pushed source plus the new rebuild plan and one-shot launcher. Execute the existing fresh native chain under unchanged per-stage caps; preserve its terminal and independently verify completion/readiness. Then construct the mandatory complete pre-TEST M1 training-state surface and fresh whole-TRAIN normalization/physical views through existing owners. Establish exact reachable/raw preservation and retire obsolete generated DATA/RUNS only through retention. After genuine input/sampler/coordinate and host gates, bind fresh initialization and the limited native learning smoke from docs/NATIVE_LEARNING.md. Larger training remains conditional; neither a partial benchmark nor a synthetic hardware test opens it.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66,9 +66,12 @@
     "required_before_more_extensive_training": true
   },
   "current_work": {
-    "operator_request": "Vi setter dette på pause. Vi trener på nytt med det nye oppsett av de tekniske indikatorene, så venter vi med order block og det. Vi tar dette igjen",
-    "current_activity": "NATIVE_V38_RETRAIN_PLAN_PREPARATION",
-    "current_research_id": "HISTORY2009W_NATIVE_V38_20261001",
+    "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
+    "current_activity": "NATIVE_V38_REPOSITORY_AUDIT_AND_FRESH_REBUILD",
+    "current_research_id": "HISTORY2009W_NATIVE_V38_20261007",
+    "fresh_dataset_requested": true,
+    "replacement_dataset_accepted": false,
+    "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "paused",
     "existing_indicator_surface_changed": false,
     "training_started": false,
@@ -94,9 +97,9 @@
       "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
-    "latest_terminal_role": "Preserved terminal of the interrupted native sampler benchmark; not a GC quality or A/B/C result.",
+    "latest_terminal_role": "Preserved historical terminal of consumed ATTEMPT_003; not completion of the requested new dataset, cleanup or model smoke.",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
-    "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
+    "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/EVENTS/TERMINAL_20261006T065527088266Z.json",
       "sha256": "87f3faf08038727f182dd591ca3e09a7092d139469adb030fe3c02b9c9dbdc20"
@@ -325,7 +328,7 @@
     "spending_authorized": false
   },
   "native_v38_preparation_20261001": {
-    "status": "COMPLETE_INPUT_PREPARATION_REUSE_ONLY_NO_RELAUNCH",
+    "status": "PRIOR_GENERATED_INPUTS_RETAINED_UNTIL_FRESH_REPLACEMENT_ACCEPTANCE_NO_RELAUNCH",
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001",
     "signal_dim": 254,
     "train_rows": 652552,
@@ -471,6 +474,40 @@
     "input_build_authorized": false,
     "normalization_fit_authorized": false,
     "native_training_enabled": false
+  },
+  "native_v38_rebuild_20261007": {
+    "status": "ONE_SHOT_INPUT_BUILD_AUTHORIZED_FROZEN_SOURCE_RECEIPTS_OWN_PROGRESS",
+    "runtime_plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_001/PLAN.json", "sha256": "b15d52eb65b720068ddf8ab309fe6b956f3780dc025e5bf7778863866aac3ac0"},
+    "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/launch_inputs.py", "sha256": "59fc04b0a021ac6dbc552200a072e7738b13f202719ac31afb788c8afb3c1e20"},
+    "complete_input_verifier": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/verify_complete_inputs.py", "sha256": "6aaefb74d8b4fe4a0e7818857d3ea5acfe92d7cdc0d2f8c6afe37dd9986fcc2d"},
+    "dependency_review": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REVIEW/INPUT_DEPENDENCIES.json", "sha256": "030fb57e7277646409ade17ee0a4fe8e7c5caa5dccf0d4ee6b8464dc03add046"},
+    "plan": {
+      "path": "configs/research/NATIVE_V38_REBUILD_AND_SMOKE_20261007.json",
+      "sha256": "b15d52eb65b720068ddf8ab309fe6b956f3780dc025e5bf7778863866aac3ac0"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
+    "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN",
+    "input_build_authorized": true,
+    "progress_owner": "Exact immutable INPUT_BUILD_001 START, stage PROCESS/TERMINAL, RESULT and final TERMINAL receipts own execution progress. This frozen source policy authorizes one build, not a claim of start/completion.",
+    "retention_closure_review": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REVIEW/RETENTION_ROOTS_AFTER_SOURCE_FIX.json", "sha256": "a83b2e2db34c8cd98cd5eef46cef6b55c971ae41ccb6266769a8b421f9a741b1"},
+    "retention_current_blocker": "Run-root closure is not yet published/admitted for the fresh generation. Complete actual replacement/registration first; no fabricated manifest, no deletion before owner-proven closure.",
+    "complete_m1_preparation_required": true,
+    "normalization_fit_authorized_after_input_audits": true,
+    "cleanup_authorized_only_for_retention_admitted_exact_targets": true,
+    "cleanup_executed": false,
+    "native_model_smoke_requested": true,
+    "native_launch_admitted": false,
+    "native_training_enabled": false,
+    "full_training_enabled": false,
+    "max_build_wall_seconds": 64800,
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REVIEW/SOURCE_REVIEW.json",
+      "sha256": "1e92957e0b2a547851e97e7b6c3d7d18261b780cb9c6ce16c085a90d4a4cde9c"
+    },
+    "gc_research_paused": true,
+    "old_attempt_003_relaunch_allowed": false,
+    "test_outcome_access_authorized": false,
+    "broker_trading_spending_authorized": false
   },
   "separate_incomplete_scope": {
     "full_macro_B_six_source_goal": "BLOCKED_ON_GLD_COT_VERSION_HISTORY_AND_VIX_AVAILABILITY_CLOCK",
