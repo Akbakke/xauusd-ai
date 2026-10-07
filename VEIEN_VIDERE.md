@@ -41,8 +41,8 @@ bestått underporter. M1 mangler0 faktiske TRAIN/VAL-fill-/quote-feature-rader;
 alle392143437 aliaspar er bit-identiske.001-feilen og missing TEST-vitne
 beholdes uendret; ny002 har eksplisitte flags og konsumert launch-tillatelse.
 
-Nå: bind sannferdig unknown-gap/right-censor-disposisjon før fersk whole-
-TRAIN-normalisering og M1/M5/MTF-visninger/Entry-Exit-bro.335473 TRAIN-/
+Nå: bind fersk whole-TRAIN-normalisering og tilsvarende fysiske M1/M5/MTF-
+visninger/Entry-Exit-bro.335473 TRAIN-/
 4696 VAL-eksklusjoner overlapper minutters fravær i lagrede råsvar utenfor
 deklarert ukefilter; historisk vedlikeholds-/holiday-/providerårsak er ukjent.
 Fullpopulasjons review forklarer kildepredikat/år/sesjon/featuremomenter og
@@ -50,8 +50,11 @@ viser sesjonsskjev seleksjon, ikke tilfeldig fravær eller lønnsomhet.
 Ingen kalender gjettes fra hullform eller kopieres fra gammel inferred-fit.
 Eksisterende closure-eier har en testet observed_m1_clock_all_gaps_unknown_v1-
 rute med eksakt faktisk klokkehash/coverage og ingen erklærte stengninger.
-GAP_DISPOSITION_001 er separat bundet før claim; runtime-kvitteringer, ikke
-plan/kode alene, må bevise faktisk publisering.83 fokuserte tester PASS.
+GAP_DISPOSITION_001 er nå genuint fullført23:32:51 UTC exit0, kilde90e6e9bd
+uendret, prosessene borte og launch-tillatelsen konsumert. Faktisk authority
+binder5959045 rå M1-rader og86915 gap; alle beholdes ukjente uten carry.
+83 fokuserte tester PASS. Ny fysisk child-M1 får egen eksakt clock/source/
+manifest-binding gjennom samme eier, ikke relabeling av råforelder-authority.
 Deretter retention/nektelse og ny finite sampler-/smoke-plan; ingen modell
 er startet/åpnet. Original deadline23:44:34 UTC består uten fornyelse.
 Ved terminal er CURRENT idle, men Windows2648/2704 fortsatt uklassifisert:

@@ -17,9 +17,11 @@ plan utvides, uten å mutere de konsumerte runtime-kopiene/kvitteringene.
 Ingen treningsjobb kjører eller er startet av den nye bestillingen.
 INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
-er ikke fullført. Gjeldende terminal er nå INPUT_VALIDATION_002 exit0,
-07.10 kl.23:09:24 UTC (08.10 kl.01:09 Oslo). Kilde2c3d7b82 var uendret
-gjennom hele kjøringen; alle kvitteringsbundne prosesser er borte.
+er ikke fullført. Gjeldende terminal er nå GAP_DISPOSITION_001 exit0,
+07.10 kl.23:32:51 UTC (08.10 kl.01:32 Oslo), kilde90e6e9bd uendret gjennom
+26s ekte capped CPU-jobb. Alle kvitteringsbundne prosesser er borte.
+INPUT_VALIDATION_002 exit0 23:09:24 på uendret2c3d7b82 bevares som separat
+vellykket underport, ikke hel input-/modellaksept.
 COMPLETE_M1_001 er genuint fullført22:27:57 UTC,5523147 rader, ingen relaunch.
 Ny komplett-M1-oracle skannet hver feature-rad, alle254 felt/åtte eiere,
 392143437 bit-identiske aliaspar. Hele pre-TEST-klokken etter målt warmup
@@ -40,7 +42,7 @@ dekningsdiagnose23:05:48 → M1-oracle23:07:23 → kanonisk post-readiness23:09:
 RESULTfd009287/TERMINAL2a0b8774 binder COVERAGE49759efc, ORACLEfcb32eaa og
 READINESSbe2b462c. Hver engangstillatelse er konsumert. Dette er fullførte
 input-underporter, aldri whole-input/model GREEN eller smoke-launch.
-Fersk whole-TRAIN-normalisering, ukjent-gap-disposisjon, M1/M5/MTF-visninger/
+Fersk whole-TRAIN-normalisering, fysisk child-klokke-binding, M1/M5/MTF-visninger/
 broparitet, retention/nektelse og ny finite sampler-/smoke-binding gjenstår.
 Ingen normalisering, modell, henting, sletting eller omstart er startet.
 Opprinnelig deadline23:44:34 UTC består; ingen budsjettfornyelse.
@@ -94,10 +96,15 @@ dekning, tom liste over erklærte markedstengninger. Alle gap forblir ukjente,
 uten carry over gap, etter eksisterende right-censor-semantikk. Gamle eksterne/
 infererte ruter er uendret, men ikke brukt her.83 disjunkte fokuserte tester
 bestod under audit4G/512M; dette er mekanikk/kildebevis, ikke ekte ny fit.
-GAP_DISPOSITION_001 er separat bundet før claim til ny pre-TEST-output og
-opprinnelig deadline. Kode/plan er ikke faktisk publisert authority før
-genuine RESULT/TERMINAL. Ingen henting, periodeendring, imputering eller
-svekket vakt følger av den nye truthful unknown-only-kilderuten.
+GAP_DISPOSITION_001 er genuint exit0 23:32:51 UTC, kilde90e6e9bd uendret;
+tillatelsen er konsumert. RESULT101c9d5d/TERMINALe691b8a7 binder produsent-
+RESULTcfd41281, schedule91ea1108 og authority6edbbd92. Alle5959045 pre-TEST
+quote-tidspunkter er bundet;86915 observerte gap beholder ukjent årsak,
+ingen erklærte kjente markedstengninger og intet carry over gap. Dette er
+genuin råklokke-authority, ikke normalization-fit eller whole-input-green.
+Fysisk child-M1 krever sin egen eksakte clock/source/manifest-binding gjennom
+samme eier; råforelderens authority kan ikke relabeles på andre byter.
+Ingen henting, periodeendring, imputering eller svekket vakt følger av ruten.
 Økonomieieren erklærer fortsatt gross/research-only, ikke produksjonsadgang
 eller netto lønnsomhetsbevis; full kost-/fill-/kapasitetsaksept er ubevist.
 

@@ -42,15 +42,17 @@ forbudet mot relaunch av forbrukte planer.
    flags/grensevakter bestod57 fokuserte tester før ekte kjøring.
    Coverage beskriver ukjent råsvarfravær/ukefilter/splittgrense og faktisk
    år-/sesjonsseleksjon; ikke historisk kalender/profit/læringsbevis.
-   Sannferdig unknown-gap/right-censor-disposisjon og fresh normalisering/
-   fysiske visninger/broparitet gjenstår. Ingen inferert kalender fra
+   Fresh normalisering/fysisk child-clock-binding og visninger/broparitet
+   gjenstår. Ingen inferert kalender fra
    hullform eller ny henting. CURRENT idle ved terminal, men beskyttede
    Windows-prosesser er uklassifiserte: ingen trygg maskinvid omstart nå.
    Eksisterende closure-eier er minimalt utvidet med en observed-clock-only-
    kilderute: ingen kjent stengning, faktisk klokkehash/coverage, alle gap
    ukjent/right-censor uten carry.83 fokuserte mekanikk-/witness-tester PASS.
-   Separat GAP_DISPOSITION_001-binding gir bare én capped pre-TEST authority-
-   fase under original deadline; actual RESULT/TERMINAL kreves før forbruk.
+   GAP_DISPOSITION_001 er genuint exit0 23:32:51 UTC, kilde90e6e9bd uendret,
+   prosessene borte og tillatelsen konsumert. Authority på5959045 rå M1-rader
+   beholder alle86915 gap ukjente uten carry. Ny fysisk child-klokke må få
+   egen eksakt source/manifest/clock-authority, ikke relabeling av råforelder.
 
 3. Før normalisering eller modellsmoke: bygg den komplette pre-TEST M1-flaten
    gjennom eksisterende feature-eier og komplett rå M1-alignmentskilde.

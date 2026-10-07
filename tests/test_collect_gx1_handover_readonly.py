@@ -175,7 +175,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     goal = plan['pre_smoke_goal']
     progress = scope['pre_smoke_progress']
     assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
-    assert work['latest_terminal'] == scope['input_validation_stage']['terminal']
+    assert work['latest_terminal'] == scope['gap_disposition_stage']['terminal']
     assert work['terminal_exit_code'] == 0
     failed = scope['failed_input_validation_stage']
     assert failed['authorized'] is False and failed['relaunch_allowed'] is False
@@ -243,10 +243,16 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     from gx1.contracts.unified_exit_market_closure_authority_v1 import UNKNOWN_GAPS_ONLY_SOURCE_METHOD
     gaps = scope['gap_disposition_stage']
     assert gaps['stage_id'] == 'GAP_DISPOSITION_001'
-    assert gaps['authorized'] is True  # Separate unclaimed bounded CPU admission only.
+    assert gaps['authorized'] is False  # Genuine terminal consumed the one-shot CPU admission.
+    assert gaps['current_status'] == 'GENUINE_UNKNOWN_GAP_AUTHORITY_SUCCESS_PERMISSION_CONSUMED'
     assert gaps['source_method'] == UNKNOWN_GAPS_ONLY_SOURCE_METHOD
     assert gaps['actual_source_clock_reference_required'] is True
     assert gaps['known_market_closure_count_must_be_zero'] is True
+    assert gaps['known_market_closure_count'] == 0
+    assert gaps['observed_gap_count'] == gaps['unknown_source_gap_count']
+    assert gaps['whole_input_or_model_admission'] is False
+    assert gaps['historical_market_calendar_proved'] is False
+    assert gaps['source_absence_root_causes_resolved'] is False
     assert gaps['unknown_gap_semantics'] == 'right_censor_before_gap'
     assert gaps['common_build_deadline_utc'] == plan['common_build_deadline_utc']
     for field in ('declared_market_closure_intervals_allowed', 'inference_from_gap_shape_allowed',
