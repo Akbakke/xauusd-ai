@@ -14,6 +14,16 @@ Den nye kjøreplanen ligger i docs/NATIVE_LEARNING.md og er eksakt bundet i
 NEXT_RUN_POLICY/native_v38_rebuild_20261007. Historikken nedenfor beskriver
 den tidligere repo-slettebølgen, ikke utført DATA/RUNS-sletting 07.10.
 
+Recovery-bølge etter fysisk BSOD 0xA samme dag: eksisterende chain støttet
+RED-terminal recovery, men ikke hard boot-tap uten terminal. Minste retting
+tillater eksakt orphan-status på annen boot ved dataset-rebuild, uten gammel
+terminal, med uendrede upstreambytes og fersk downstream/preflight. 16 fokuserte
+kontrakttester PASS, inkludert åtte negative orphan-identitetsmutasjoner.
+Ingen gx1 feature-/modellkilde er endret. INPUT_BUILD_002 er én ny finite
+core-kjøring og stopper for trygg omstart før obligatorisk komplett M1.
+Gamle receipts beholdes; ingen påstand om gammel exitkode, samlet input-green
+eller at hyppig reboot er en dokumentert retting av ukjent driver/hardwareårsak.
+
 Hele inventaret før endring: 640 tracked filer / 581 Python-filer,
 14413210 bytes. Mekanisk AST-/lokalimport-/JSON-/shell-/Markdown-/dependency-
 kontroll gir ingen syntaksfeil, importhull, doble toppnivådefinisjoner,

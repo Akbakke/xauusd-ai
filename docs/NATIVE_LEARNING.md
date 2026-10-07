@@ -16,10 +16,17 @@ forbudet mot relaunch av forbrukte planer.
    regresjoner, ikke gjentatte fullsuiter. Bind ren/committet/pushet kilde før build.
 2. Bygg fersk M5/M1 enrichment, MTF, ranking/signalmanifest og Entry/Exit-datasett
    gjennom `scripts/run_seq513_rebuild_chain_v1.sh`. Ny output-identitet;
-   gjenbruk kun verifiserte rå-/kalibreringsforeldre. Samme historiske perioder,
+   gjenbruk kun verifiserte rå-/kalibreringsforeldre. Etter fysisk krasj 07.10
+   tillater ny recovery-bestilling kun ferdige samme-generation Oct7-features,
+   full byte-/upstreamkontroll og fersk preflight/downstream i CHAIN_RECOVERY_001.
+   INPUT_BUILD_001 er avbrutt uten terminal, ikke relaunchet. Ingen gammel
+   dataset/normalisering/modell gjenbrukes. Samme historiske perioder,
    alle ekte v38-felt/åtte familier og uendrede maskinvarevakter.
    Planen binder én CPU-build med 64800s endelig ytre sikkerhetsbudsjett;
-   dette er ikke gjenåpning av gammel benchmarkgodkjenning.
+   recovery deler opprinnelig deadline23:44:34 UTC inkl. downtime, ikke et nytt
+   18-timersbudsjett eller gjenåpning av gammel benchmarkgodkjenning.
+   INPUT_BUILD_002 stopper ved ekte core-terminal for trygg omstart mellom
+   ferdige steg, aldri under aktiv jobb. Dette er ikke komplett input-green.
 3. Før normalisering eller modellsmoke: bygg den komplette pre-TEST M1-flaten
    gjennom eksisterende feature-eier og komplett rå M1-alignmentskilde.
    Den gamle chainens pair-alignerte lifecycle-flate er en annen rolle og er

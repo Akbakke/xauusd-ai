@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-07T05:04:51Z",
-  "status": "V38_FRESH_REBUILD_REVIEW_AND_PRELAUNCH_GC_PAUSED",
+  "status": "V38_CORE_RECOVERY_AFTER_PHYSICAL_HOST_CRASH_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Latest operator request explicitly orders repo audit, a fresh dataset, obsolete generated-output retirement and a small smoke before larger training. Native v38 features, eight specialists, clocks, historical periods and safety owners are unchanged. Reuse only verified raw/calibration/cost ancestors, not old generated feature/dataset/normalization/model outputs. New DATA/RUNS outputs have a new identity and one source-bound finite build plan. Complete pre-TEST M1 state coverage is mandatory before normalization/model smoke. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof; preserve required ancestors, paused GC evidence, secrets and Git. Old ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training: existing paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
-  "next_action": "Finish focused mismatch fixes and bind clean committed/pushed source plus the new rebuild plan and one-shot launcher. Execute the existing fresh native chain under unchanged per-stage caps; preserve its terminal and independently verify completion/readiness. Then construct the mandatory complete pre-TEST M1 training-state surface and fresh whole-TRAIN normalization/physical views through existing owners. Establish exact reachable/raw preservation and retire obsolete generated DATA/RUNS only through retention. After genuine input/sampler/coordinate and host gates, bind fresh initialization and the limited native learning smoke from docs/NATIVE_LEARNING.md. Larger training remains conditional; neither a partial benchmark nor a synthetic hardware test opens it.",
+  "rule": "Operator orders the new dataset/retention/small-smoke workflow and explicitly requests recovery after the Oct7 physical host crash. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. One new INPUT_BUILD_002 may reuse only byte-validated completed same-generation Oct7 feature inputs, through the existing chain recovery owner with a different boot, exact orphan status and fresh downstream namespace/preflight. Never fabricate the old terminal or exit code, reuse partial outputs, relaunch INPUT_BUILD_001 or consume old Oct1 normalization/models. The original common 64800s deadline remains binding. Stop after a genuine core terminal at a safe reboot boundary; complete M1/oracle/post-readiness remain mandatory before normalization or smoke. No automatic mid-stage host reboot. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
+  "next_action": "Bind clean committed/pushed recovery source and launch one capped-owner INPUT_BUILD_002 core recovery into CHAIN_RECOVERY_001. Revalidate completed Oct7 inputs and publish fresh preflight/dataset/audit/terminal evidence. Stop at the genuine completed core boundary, verify no active writers before a safe physical reboot, then separately bind mandatory COMPLETE_M1, independent input oracle and post-rebuild-readiness. Continue fresh whole-TRAIN normalization/physical views and exact retention only after input acceptance. Native sampler/smoke and larger training remain gated; an old RUNNING status or core-only GREEN is not complete-input evidence.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -67,7 +67,8 @@
   },
   "current_work": {
     "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "NATIVE_V38_REPOSITORY_AUDIT_AND_FRESH_REBUILD",
+    "current_activity": "NATIVE_V38_INPUT_RECOVERY_AFTER_HOST_CRASH",
+    "recovery_operator_request": "Men du må jo begynne på nytt, og hvorfor krasjer den? Vi må restarte ofte!! Dette vet du jo?",
     "current_research_id": "HISTORY2009W_NATIVE_V38_20261007",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": false,
@@ -476,19 +477,34 @@
     "native_training_enabled": false
   },
   "native_v38_rebuild_20261007": {
-    "status": "ONE_SHOT_INPUT_BUILD_AUTHORIZED_FROZEN_SOURCE_RECEIPTS_OWN_PROGRESS",
-    "runtime_plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_001/PLAN.json", "sha256": "b15d52eb65b720068ddf8ab309fe6b956f3780dc025e5bf7778863866aac3ac0"},
-    "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/launch_inputs.py", "sha256": "59fc04b0a021ac6dbc552200a072e7738b13f202719ac31afb788c8afb3c1e20"},
-    "complete_input_verifier": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/verify_complete_inputs.py", "sha256": "6aaefb74d8b4fe4a0e7818857d3ea5acfe92d7cdc0d2f8c6afe37dd9986fcc2d"},
+    "status": "ONE_SHOT_CORE_RECOVERY_AUTHORIZED_NO_COMPLETE_INPUT_OR_MODEL_ADMISSION",
+    "runtime_plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/PLAN.json", "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"},
+    "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/launch_inputs.py", "sha256": "8f6abe9314b562b4463af3bbd93a4f48fa3a57fda3dd6133249bc097100005ca"},
+    "prior_attempt": {
+      "attempt_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_001",
+      "disposition": "OBSERVED_PHYSICAL_HOST_BUGCHECK_0xA_DIFFERENT_BOOT_NO_TERMINAL_AVAILABLE",
+      "relaunch_allowed": false,
+      "old_exit_code_known": false,
+      "runtime_plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_001/PLAN.json", "sha256": "b15d52eb65b720068ddf8ab309fe6b956f3780dc025e5bf7778863866aac3ac0"},
+      "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/launch_inputs.py", "sha256": "59fc04b0a021ac6dbc552200a072e7738b13f202719ac31afb788c8afb3c1e20"},
+      "unused_complete_input_verifier": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/verify_complete_inputs.py", "sha256": "6aaefb74d8b4fe4a0e7818857d3ea5acfe92d7cdc0d2f8c6afe37dd9986fcc2d"},
+      "interrupted_chain_status": {"path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN/CHAIN_STATUS.json", "sha256": "a4bfbee50750027253cc9c729f08d1b2c615c7ba042c9437f50e6fcb038dc736"}
+    },
     "dependency_review": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REVIEW/INPUT_DEPENDENCIES.json", "sha256": "030fb57e7277646409ade17ee0a4fe8e7c5caa5dccf0d4ee6b8464dc03add046"},
     "plan": {
       "path": "configs/research/NATIVE_V38_REBUILD_AND_SMOKE_20261007.json",
-      "sha256": "b15d52eb65b720068ddf8ab309fe6b956f3780dc025e5bf7778863866aac3ac0"
+      "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"
     },
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
-    "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN",
+    "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN_RECOVERY_001",
     "input_build_authorized": true,
-    "progress_owner": "Exact immutable INPUT_BUILD_001 START, stage PROCESS/TERMINAL, RESULT and final TERMINAL receipts own execution progress. This frozen source policy authorizes one build, not a claim of start/completion.",
+    "progress_owner": "Exact immutable INPUT_BUILD_002 START, CORE_CHAIN PROCESS/TERMINAL, RESULT and final TERMINAL plus CHAIN_RECOVERY_001 status/terminal own core recovery progress. Verify PID, boot-ID and process start ticks. A successful core-only terminal is a safe boundary, not whole-input completion. Missing old terminal remains unknown; never synthesize it.",
+    "recovery_core_only": true,
+    "whole_input_build_complete": false,
+    "mandatory_next_stages": ["COMPLETE_M1", "COMPLETE_INPUT_ORACLE", "POST_REBUILD_READINESS"],
+    "common_build_deadline_utc": "2026-10-07T23:44:34.296381+00:00",
+    "automatic_host_restart": false,
+    "crash_cause": "Windows System event1001 confirms bugcheck 0xA (unexpected shutdown 12:39:01 Europe/Oslo, boot12:40); ntoskrnl.exe event attribution is not the root cause. Minidump100726-12000-01.dmp was not readable at current permissions. Driver/hardware root cause and causal link to GX1 remain unproven. No BIOS/driver/memory change or ACL bypass.",
     "retention_closure_review": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REVIEW/RETENTION_ROOTS_AFTER_SOURCE_FIX.json", "sha256": "a83b2e2db34c8cd98cd5eef46cef6b55c971ae41ccb6266769a8b421f9a741b1"},
     "retention_current_blocker": "Run-root closure is not yet published/admitted for the fresh generation. Complete actual replacement/registration first; no fabricated manifest, no deletion before owner-proven closure.",
     "complete_m1_preparation_required": true,

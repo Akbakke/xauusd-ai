@@ -556,7 +556,7 @@ def test_chain_explicit_m5_reuse_executes_full_freshness_guard(tmp_path):
     args = [str(a).replace("-01-01Z", "-01-01T00:00:00Z") for a in args]
 
     def run():
-        return subprocess.run([sys.executable, "-", *args, "", "", "", "", "", "", str(REPO), ""], input=code, capture_output=True, text=True)
+        return subprocess.run([sys.executable, "-", *args, "", "", "", "", "", "", str(REPO), "", "", ""], input=code, capture_output=True, text=True)
 
     result = run()
     assert result.returncode != 0 and "fresh event outputs required" in result.stderr
@@ -741,11 +741,14 @@ def test_preflight_identity_rejects_missing_witness_and_multiple_events(tmp_path
     assert run().returncode != 0
 
 
-@pytest.mark.parametrize("recovery", [False, True])
-def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshness(tmp_path, recovery):
+@pytest.mark.parametrize("mode", ["in_place", "failed_terminal", "reboot"])
+def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshness(tmp_path, mode):
     import hashlib
     import pandas as pd
     import pytest
+
+    recovery = mode != "in_place"
+    interrupted = mode == "reboot"
 
     source_code = SCRIPT.read_text()
     begin = source_code.index('if raw_reuse_preflight_json:\n')
@@ -778,9 +781,9 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
         surfaces[lane+'_feature_base_parquet']={'path':str(base),'manifest_path':str(manifest),
             'dataset_run_id':'UNIT_PREFLIGHT_RUN','decision':'PASS','signal_manifest_path':str(signal),
             'signal_manifest_sha256':sha(signal),'output_parquet_sha256':sha(base),'manifest_sha256':sha(manifest)}
-    prior_event=tmp_path/'failed_recovery' if recovery else event
-    if recovery:prior_event.mkdir()
-    pre=prior_event/'preflight';pre.mkdir();proof_path=pre/'proof.json';prior_path=prior_event/'prior_terminal.json'
+    prior_event=tmp_path/'failed_recovery' if recovery and not interrupted else event
+    if prior_event != event:prior_event.mkdir()
+    pre=prior_event/'preflight';pre.mkdir();proof_path=pre/'proof.json';prior_path=prior_event/('CHAIN_STATUS.json' if interrupted else 'prior_terminal.json')
     labels=['history_start','train_start','train_end','val_start','val_end','test_start','test_end']
     times=['2010-01-01T00:00:00Z','2011-01-01T00:00:00Z','2012-01-01T00:00:00Z','2013-01-01T00:00:00Z','2014-01-01T00:00:00Z','2015-01-01T00:00:00Z','2016-01-01T00:00:00Z']
     values={'--run-id':'UNIT_PREFLIGHT_RUN','--source-parquet':str(source),'--canonical-v2-parquet':str(canonical),
@@ -807,11 +810,19 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
         prior.update(step='dataset-rebuild',reason='dataset rebuild or post-build audit failed after immutable output materialization; fresh lineage required')
         prior['preflight'].update(json_path=str(proof_path),sha256=sha(proof_path))
         prior['outputs']={'dataset_output_stem':values['--output'],'audit_output_dir':values['--audit-out-dir'],'unified_exit_lifecycle_dir':values['--exit-lifecycle-dir']}
+    if interrupted:
+        from gx1.scripts.materialize_entry_model_native_seq513_post_rebuild_readiness_v1 import CHAIN_SCHEMA
+        prior.update(schema_version=CHAIN_SCHEMA, state='RUNNING', terminal_event_path=None,
+            boot_id='11111111-1111-1111-1111-111111111111', chain_pid=321,
+            started_utc='2026-01-01T00:00:00Z', updated_utc='2026-01-01T00:10:00Z')
+        prior.pop('reason')
     downstream=destination/'output.parquet'
     prior_path.write_text(json.dumps(prior))
     def env():
         return dict(raw_reuse_preflight_json=str(proof_path),raw_reuse_preflight_sha256=sha(proof_path),
-            raw_reuse_chain_terminal_json=str(prior_path),raw_reuse_chain_terminal_sha256=sha(prior_path),
+            raw_reuse_chain_terminal_json='' if interrupted else str(prior_path),raw_reuse_chain_terminal_sha256='' if interrupted else sha(prior_path),
+            raw_reuse_interrupted_chain_status_json=str(prior_path) if interrupted else '',
+            raw_reuse_interrupted_chain_status_sha256=sha(prior_path) if interrupted else '',
             exact_path=lambda raw,**kwargs:Path(raw),event=destination,input_event=event,raw_reuse_input_event_root=str(event) if recovery else '',preflight=destination/'preflight' if recovery else pre,run_id='UNIT_PREFLIGHT_RUN',raw_repo=str(repo),
             source=source,canonical=canonical,raw_reuse_signal_manifest=str(signal),raw_reuse_signal_manifest_sha256=sha(signal),
             ranking=ranking,mtf=event/'cache',tape=event/'tape',m1_lifecycle_pair_manifest=pair,
@@ -821,6 +832,19 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
             fresh_paths=[m1,*bases,downstream])
     scope=env();exec(compile(code,'actual_preflight_reuse_guard','exec'),scope)
     assert scope['fresh_paths']==[downstream]
+    if interrupted:
+        for key, value in [('boot_id', Path('/proc/sys/kernel/random/boot_id').read_text().strip()),
+                           ('state', 'GREEN'), ('step', 'm1-feature-base'),
+                           ('terminal_event_path', str(prior_path)), ('chain_pid', 0),
+                           ('reason', 'a fabricated old exit'), ('exit_code', 1)]:
+            changed = {**prior, key: value}; prior_path.write_text(json.dumps(changed))
+            with pytest.raises(RuntimeError, match='different boot'):
+                exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+        prior_path.write_text(json.dumps(prior))
+        terminal = event/'CHAIN_TERMINAL_20260101T010000Z_RED.json'; terminal.write_text('{}')
+        with pytest.raises(RuntimeError, match='different boot'):
+            exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+        terminal.unlink()
     for path in (bases[0],m1,Path(str(bases[1])+'.manifest.json')):
         data=path.read_bytes();path.write_bytes(data+b'changed')
         scope=env()
@@ -832,8 +856,8 @@ def test_preflight_reuse_revalidates_bytes_command_source_and_downstream_freshne
     scope=env();scope['raw_times']=[*times[:-1],'2017-01-01T00:00:00Z']
     with pytest.raises(RuntimeError,match='command binding mismatch'):exec(compile(code,'actual_preflight_reuse_guard','exec'),scope)
     prior['state']='GREEN';prior_path.write_text(json.dumps(prior))
-    with pytest.raises(RuntimeError,match='identity mismatch'):exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
-    prior['state']='RED';prior_path.write_text(json.dumps(prior))
+    with pytest.raises(RuntimeError,match='identity mismatch|different boot'):exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
+    prior['state']='RUNNING' if interrupted else 'RED';prior_path.write_text(json.dumps(prior))
     owner.write_text('VALUE = 2\n');git('add','.');git('commit','-qm','owner changed')
     with pytest.raises(subprocess.CalledProcessError):exec(compile(code,'actual_preflight_reuse_guard','exec'),env())
 

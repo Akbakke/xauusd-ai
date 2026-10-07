@@ -38,13 +38,30 @@ blokkerer fortsatt, uten payloadlesing eller bypass. Ingen sletting nå.
 Rå-/kalibreringsreview er faktisk utført under capped audit: uendrede pair-
 bytes og seks squeeze-klokker er validert, og komplett pre-TEST M1-råkilde
 har 5959045 rader. Dette er kun avhengighets-/klokkeidentitet, ikke modellbevis.
-Én kildebundet supervisor bygger først eksisterende chain, deretter komplett
-M1 og selvstendig clock-oracle samt eksisterende post-build readiness. Den
-har felles 64800s budsjett, immutable START/PROCESS/stage-terminal/sluttterminal
-og stopper før ny normalisering, retention og native modellsmoke. Alle tunge
-faser bruker eksisterende capped-eier; kilden må være fryst hele løpet.
-Faktisk start/ferdigstilling er bare bevist av prosess-/terminalkvitteringer i
-INPUT_BUILD_001, ikke av at dette dokumentet eller planen finnes.
+INPUT_BUILD_001 startet 05:44:34 UTC på 7a514bc7. Windows krasjet med
+BSOD 0xA (System1001), uventet stopp 12:39:01 Oslo og ny boot 12:40.
+Ferdig enrichment/MTF/signal/feature-bases er bevart. Hoveddatasettet var
+påbegynt, men dataset-dir er tom og ingen ekte chain-/sluttterminal finnes.
+Den gamle RUNNING-statusen beviser ikke levende jobb. Forrige WSL-boot
+d4850e63 er erstattet; gamle PIDs er ikke aktive jobber på dagens boot.
+Konkret driver/hardwareårsak og forbindelse til GX1 er ikke bevist.
+ntoskrnl.exe i event1019 er ikke en rotårsaksdiagnose. Dump100726-12000-01.dmp
+er ikke lesbar med dagens rettigheter; ingen ACL-bypass, BIOS-/driverendring.
+
+Nyere eksplisitt brukerbestilling autoriserer ny INPUT_BUILD_002, ikke
+relaunch av gammel claim. Eksisterende chain-eier er utvidet minimalt for
+eksakt hash-bundet orphan-status etter annen boot uten terminal. Gamle
+exitkoder/terminaler oppfinnes ikke. Ferdige Oct7-inputs bytevalideres på nytt;
+upstreamkilde og perioder må være uendrede. Ny CHAIN_RECOVERY_001 får fersk
+preflight og alle downstreamoutputs. 16 fokuserte chain-kontrakttester PASS,
+inkludert negative boot-/state-/PID-/terminal-cases. Ingen feature-/modellendring.
+Felles opprinnelig 64800s deadline er 07.10 kl.23:44:34 UTC, også downtime.
+Supervisor stopper ved ekte hovedbyggterminal: trygt omstartspunkt før neste
+tunge steg. Ingen automatisk omstart under jobb. Komplett M1, selvstendig
+clock-oracle og post-build readiness er fortsatt obligatoriske; core-only
+GREEN er ikke hele inputbygget. Alle tunge faser bruker eksisterende caps.
+Kilden fryses etter clean commit/push. START/PROCESS/RESULT/TERMINAL i
+INPUT_BUILD_002 er faktisk fremdrift, ikke at denne planen finnes.
 Handover 07.10 kl. 04:31 UTC viste ren CURRENT-kilde og ingen Python-workload.
 Den eksekverte signaleieren bekreftet v38 og 254 signalfelt. Alle eksisterende
 features, spesialister og tidsrammer bevares; «order block og

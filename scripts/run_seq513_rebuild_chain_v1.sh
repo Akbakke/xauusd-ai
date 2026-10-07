@@ -48,6 +48,8 @@ REUSE_PREFLIGHT_SHA256=
 REUSE_CHAIN_TERMINAL_JSON=
 REUSE_CHAIN_TERMINAL_SHA256=
 REUSE_INPUT_EVENT_ROOT=
+REUSE_INTERRUPTED_CHAIN_STATUS_JSON=
+REUSE_INTERRUPTED_CHAIN_STATUS_SHA256=
 
 usage() {
   printf '%s\n' \
@@ -71,6 +73,8 @@ usage() {
     "  [--reuse-preflight-json PATH --reuse-preflight-sha256 SHA256" \
     "   --reuse-chain-terminal-json PATH --reuse-chain-terminal-sha256 SHA256]" \
     "  [--reuse-input-event-root /exact/prior/event] for fresh downstream recovery after failed dataset emission." \
+    "  A hard-reboot recovery instead binds --reuse-interrupted-chain-status-json PATH" \
+    "  and --reuse-interrupted-chain-status-sha256 SHA256; it requires a different boot and no prior terminal." \
     "  Recovery revalidates completed input bytes and unchanged upstream owners; it always runs a new preflight." \
     "  In-place preflight reuse requires the exact prior identity-check failure." \
     "  --history-start UTC --train-start UTC --train-end UTC" \
@@ -238,6 +242,18 @@ while (($#)); do
       REUSE_CHAIN_TERMINAL_SHA256=$2
       shift 2
       ;;
+    --reuse-interrupted-chain-status-json)
+      (($# >= 2)) || die_args "--reuse-interrupted-chain-status-json requires a value"
+      [[ -z $REUSE_INTERRUPTED_CHAIN_STATUS_JSON ]] || die_args "duplicate interrupted status"
+      REUSE_INTERRUPTED_CHAIN_STATUS_JSON=$2
+      shift 2
+      ;;
+    --reuse-interrupted-chain-status-sha256)
+      (($# >= 2)) || die_args "--reuse-interrupted-chain-status-sha256 requires a value"
+      [[ -z $REUSE_INTERRUPTED_CHAIN_STATUS_SHA256 ]] || die_args "duplicate interrupted status SHA256"
+      REUSE_INTERRUPTED_CHAIN_STATUS_SHA256=$2
+      shift 2
+      ;;
     --reuse-m5-enriched-manifest)
       (($# >= 2)) || die_args "--reuse-m5-enriched-manifest requires a value"
       [[ -z $REUSE_M5_ENRICHED_MANIFEST ]] || die_args "duplicate --reuse-m5-enriched-manifest"
@@ -305,10 +321,18 @@ if [[ -n $REUSE_SIGNAL_MANIFEST || -n $REUSE_SIGNAL_MANIFEST_SHA256 ]]; then
   [[ -n $REUSE_SIGNAL_MANIFEST && $REUSE_SIGNAL_MANIFEST_SHA256 =~ ^[0-9a-f]{64}$ && -n $REUSE_M5_SOURCE_MANIFEST_SHA256 ]] \
     || die_args "signal reuse requires exact manifest/SHA256 and completed M5 source reuse"
 fi
-if [[ -n $REUSE_PREFLIGHT_JSON || -n $REUSE_PREFLIGHT_SHA256 || -n $REUSE_CHAIN_TERMINAL_JSON || -n $REUSE_CHAIN_TERMINAL_SHA256 ]]; then
-  [[ -n $REUSE_SIGNAL_MANIFEST && -n $REUSE_PREFLIGHT_JSON && -n $REUSE_CHAIN_TERMINAL_JSON \
-     && $REUSE_PREFLIGHT_SHA256 =~ ^[0-9a-f]{64}$ && $REUSE_CHAIN_TERMINAL_SHA256 =~ ^[0-9a-f]{64}$ ]] \
-    || die_args "preflight reuse requires completed signal reuse and exact preflight/terminal SHA256 bindings"
+if [[ -n $REUSE_PREFLIGHT_JSON || -n $REUSE_PREFLIGHT_SHA256 || -n $REUSE_CHAIN_TERMINAL_JSON || -n $REUSE_CHAIN_TERMINAL_SHA256 || -n $REUSE_INTERRUPTED_CHAIN_STATUS_JSON || -n $REUSE_INTERRUPTED_CHAIN_STATUS_SHA256 ]]; then
+  [[ -n $REUSE_SIGNAL_MANIFEST && -n $REUSE_PREFLIGHT_JSON && $REUSE_PREFLIGHT_SHA256 =~ ^[0-9a-f]{64}$ ]] \
+    || die_args "preflight reuse requires completed signal reuse and exact preflight SHA256 binding"
+  if [[ -n $REUSE_INTERRUPTED_CHAIN_STATUS_JSON || -n $REUSE_INTERRUPTED_CHAIN_STATUS_SHA256 ]]; then
+    [[ -n $REUSE_INPUT_EVENT_ROOT && -n $REUSE_INTERRUPTED_CHAIN_STATUS_JSON \
+       && $REUSE_INTERRUPTED_CHAIN_STATUS_SHA256 =~ ^[0-9a-f]{64}$ \
+       && -z $REUSE_CHAIN_TERMINAL_JSON && -z $REUSE_CHAIN_TERMINAL_SHA256 ]] \
+      || die_args "hard-reboot recovery requires distinct inputs and exact status binding, never a terminal alias"
+  else
+    [[ -n $REUSE_CHAIN_TERMINAL_JSON && $REUSE_CHAIN_TERMINAL_SHA256 =~ ^[0-9a-f]{64}$ ]] \
+      || die_args "preflight reuse requires exact failed terminal binding"
+  fi
 fi
 [[ -x $PY ]] || die_args "repository Python is not executable: $PY"
 if [[ ! $RUN_ID =~ ^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$ ]]; then
@@ -877,7 +901,8 @@ if ! bash "$ENG/scripts/gx1_capped_run.sh" --class audit --mem 4G --swap 512M --
   "$REUSE_M5_ENRICHED_MANIFEST_SHA256" "$REUSE_M5_SOURCE_MANIFEST_SHA256" \
   "$RUN_ID" "$REUSE_SIGNAL_MANIFEST" "$REUSE_SIGNAL_MANIFEST_SHA256" \
   "$REUSE_PREFLIGHT_JSON" "$REUSE_PREFLIGHT_SHA256" "$REUSE_CHAIN_TERMINAL_JSON" \
-  "$REUSE_CHAIN_TERMINAL_SHA256" "$ENG" "$REUSE_INPUT_EVENT_ROOT" >>"$LOG" 2>&1 <<'PYEOF'
+  "$REUSE_CHAIN_TERMINAL_SHA256" "$ENG" "$REUSE_INPUT_EVENT_ROOT" \
+  "$REUSE_INTERRUPTED_CHAIN_STATUS_JSON" "$REUSE_INTERRUPTED_CHAIN_STATUS_SHA256" >>"$LOG" 2>&1 <<'PYEOF'
 import hashlib
 import re
 import sys
@@ -925,6 +950,7 @@ import pandas as pd
     raw_reuse_signal_manifest_sha256,
     raw_reuse_preflight_json, raw_reuse_preflight_sha256,
     raw_reuse_chain_terminal_json, raw_reuse_chain_terminal_sha256, raw_repo, raw_reuse_input_event_root,
+    raw_reuse_interrupted_chain_status_json, raw_reuse_interrupted_chain_status_sha256,
 ) = sys.argv[1:]
 
 
@@ -1245,7 +1271,12 @@ if raw_reuse_preflight_json:
             raise RuntimeError(f"{label} SHA256 mismatch")
         return path
 
-    prior_path = sealed(raw_reuse_chain_terminal_json, raw_reuse_chain_terminal_sha256, "reused chain terminal")
+    interrupted = bool(raw_reuse_interrupted_chain_status_json)
+    prior_path = sealed(
+        raw_reuse_interrupted_chain_status_json if interrupted else raw_reuse_chain_terminal_json,
+        raw_reuse_interrupted_chain_status_sha256 if interrupted else raw_reuse_chain_terminal_sha256,
+        "interrupted chain status" if interrupted else "reused chain terminal",
+    )
     prior = json.loads(prior_path.read_text())
     preflight_path = sealed(raw_reuse_preflight_json, raw_reuse_preflight_sha256, "reused preflight")
     proof = json.loads(preflight_path.read_text())
@@ -1255,11 +1286,37 @@ if raw_reuse_preflight_json:
                        if recovery else "preflight output identity validation failed")
     old_preflight_dir = preflight_path.parent if recovery else preflight
     prior_event = exact_path(prior.get("event_root", ""), label="failed chain event")
-    if (prior_path.parent != prior_event or prior.get("terminal_event_path") != str(prior_path)
+    if interrupted:
+        import uuid
+        from gx1.scripts.materialize_entry_model_native_seq513_post_rebuild_readiness_v1 import CHAIN_SCHEMA
+        current_boot = Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+        try:
+            old_boot = str(uuid.UUID(prior["boot_id"]))
+            start_time, update_time = (pd.Timestamp(prior[key]) for key in ("started_utc", "updated_utc"))
+        except (KeyError, TypeError, ValueError) as error:
+            raise RuntimeError("interrupted chain boot/time identity invalid") from error
+        if (not recovery or raw_reuse_chain_terminal_json or raw_reuse_chain_terminal_sha256
+            or prior_path != input_event / "CHAIN_STATUS.json" or prior_event != input_event
+            or prior.get("schema_version") != CHAIN_SCHEMA
+            or old_boot == current_boot or prior.get("state") != "RUNNING"
+            or prior.get("step") != "dataset-rebuild" or prior.get("terminal_event_path") is not None
+            or "exit_code" in prior or "reason" in prior
+            or type(prior.get("chain_pid")) is not int or prior["chain_pid"] <= 0
+            or start_time.tzinfo is None or update_time.tzinfo is None
+            or not start_time < update_time <= pd.Timestamp.now(tz="UTC")
+            or any(path.name.startswith("CHAIN_TERMINAL_") and path.name.endswith(".json")
+                   for path in prior_event.iterdir())):
+            raise RuntimeError("interrupted chain requires a different boot, exact orphan status and no terminal")
+        # This observes loss of the prior boot, never invents an old exit code or
+        # terminal. Completed inputs are still byte-validated below; every
+        # downstream output is new and a new preflight remains mandatory.
+    terminal_identity_bad = (not interrupted and (
+        prior.get("terminal_event_path") != str(prior_path)
+        or prior.get("state") != "RED" or prior.get("step") != expected_step
+        or prior.get("reason") != expected_reason))
+    if (prior_path.parent != prior_event or terminal_identity_bad
         or (not recovery and prior_event != input_event) or (recovery and prior_event == event)
         or prior.get("entry_run_id") != run_id
-        or prior.get("state") != "RED" or prior.get("step") != expected_step
-        or prior.get("reason") != expected_reason
         or prior.get("preflight", {}).get("out_dir") != str(old_preflight_dir)
         or preflight_path.parent != old_preflight_dir or proof.get("entry_run_id") != run_id
         or proof.get("json_path") != str(preflight_path)

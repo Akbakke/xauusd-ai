@@ -18,6 +18,14 @@ for faktisk fremdrift. Før sletting må nye outputs være akseptert og alle
 transitive rå-/kalibrerings-/kostforeldre og aktive stier være beskyttet.
 Ukjent closure/TEST-nektelse stopper sletting, aldri håndlaget unntak.
 
+Etter Windows-BSOD 0xA 07.10: ny INPUT_BUILD_002 gjenbruker bare fullstendig
+hash-validerte, ferdige Oct7-features. Samme perioder/felt; ny preflight og
+downstream i CHAIN_RECOVERY_001. Gamle INPUT_BUILD_001/logg/partials beholdes
+uten oppfunnet terminal. Core-kjøringen stopper ved et ekte ferdig steg for
+trygg fysisk omstart; M1/oracle/post-readiness kreves fortsatt før smoke.
+Ingen automatisk mid-stage omstart. Konkret crashårsak er fortsatt ukjent;
+gjentatt omstart er en driftsgrense, ikke dokumentert feilretting.
+
 Bind planen til ren/committet/pushet kilde før start. Den avbrutte
 ATTEMPT_003 er konsumert; ny samplerbenchmark trenger egen finite plan og
 budsjettautoritet, ikke gammel engangsgodkjenning. Ingen modelltrening er startet.

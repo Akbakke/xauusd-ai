@@ -65,7 +65,7 @@ def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
     prep = policy['native_v38_preparation_20261001']
     assert work['gc_goal_status'] == 'paused'
     rebuild = policy['native_v38_rebuild_20261007']
-    assert work['current_activity'] == 'NATIVE_V38_REPOSITORY_AUDIT_AND_FRESH_REBUILD'
+    assert work['current_activity'] == 'NATIVE_V38_INPUT_RECOVERY_AFTER_HOST_CRASH'
     assert work['current_research_id'] == Path(rebuild['run_root']).name
     assert rebuild['run_root'] != prep['run_root']
     assert work['existing_indicator_surface_changed'] is False
@@ -117,6 +117,16 @@ def test_new_rebuild_plan_preserves_periods_and_requires_complete_m1_before_smok
     assert plan['cleanup']['default_targets_authorized'] is False
     assert plan['smoke']['native_launch_authorized_by_plan'] is False
     assert plan['automatic_large_training'] is False
+    assert scope['recovery_core_only'] is True and scope['whole_input_build_complete'] is False
+    assert scope['prior_attempt']['relaunch_allowed'] is False
+    assert scope['prior_attempt']['old_exit_code_known'] is False
+    assert scope['automatic_host_restart'] is False
+    recovery = plan['recovery']
+    assert recovery['input_event_root'] != plan['event_root']
+    assert recovery['scope'] == 'CORE_CHAIN_ONLY_THEN_SAFE_REBOOT_BOUNDARY'
+    assert recovery['whole_input_build_complete_at_this_boundary'] is False
+    assert recovery['mandatory_next_stages'] == ['COMPLETE_M1', 'COMPLETE_INPUT_ORACLE', 'POST_REBUILD_READINESS']
+    assert plan['common_build_deadline_utc'] == scope['common_build_deadline_utc']
 
 
 @pytest.mark.parametrize('change', ['bytes', 'state', 'missing'])
