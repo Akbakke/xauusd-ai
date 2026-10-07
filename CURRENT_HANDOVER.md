@@ -7,9 +7,56 @@ forblir paused. Planen heter HISTORY2009W_NATIVE_V38_20261007 og er bundet
 i NEXT_RUN_POLICY/native_v38_rebuild_20261007. Eldre repo-opprydding er fullført,
 men den nye DATA/RUNS-oppryddingen er ikke utført.
 
+Nyeste bestilling er å stanse ferdig core-timeoppfølging og opprette et
+avgrenset mål for komplett M1 og nødvendige justeringer før smoke-trening.
+Arbeidsmålet og ferdigkriteriene står i GX1_ARBEIDSMAAL.md; samme eksisterende
+plan utvides, uten å mutere de konsumerte runtime-kopiene/kvitteringene.
+
 ## Nåstatus
 
 Ingen treningsjobb kjører eller er startet av den nye bestillingen.
+INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
+kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
+er ikke fullført. Nyest gjeldende terminal i policyen er nå denne core-
+terminalen, ikke den historiske Oct1-benchmarkterminalen. Ingen core-relaunch.
+Ingen komplett M1/oracle/readiness/normalisering eller modellsmoke er startet
+av denne planbølgen. Kildeendring etter terminal påvirker ikke identiteten
+til de immutabelt bundne ferdige bytene.
+
+Ny postbuild-review er målt på ekte Oct7 TRAIN/VAL-bytes: alle 254 signalfelt,
+åtte spesialister, feltorden og alias-koblinger; ingen uventet dødt signalfelt
+eller eksakt duplikat. Fersk full-populasjons kilde-rekonstruksjon er PASS
+for samtlige 652552 TRAIN-/70880 VAL-sekvenser og snapshots, Seq96.
+71 signal/kontekst-aliaser ble kontrollert bit-identiske på hele populasjonen
+i den avgrensede read-only-inspeksjonen. Disse konsistensbevisene er ikke
+modelllæring, økonomi, komplett M1-aksept eller produksjonsparitet.
+Eksakte specialist-/sekvens- og diagnosebevis er hash-bundet i policyen.
+
+Viktig uavklart dekningssak: tidslabel-eieren ekskluderer 341872/994500
+TRAIN-kandidater (34,38 %) og 5756/76692 VAL-kandidater (7,51 %).
+2015 har 45480/71107 ekskludert (63,96 %). En tidskolonne-basert hel-
+populasjonsdiagnose reproduserer byggepredikatet og samme gyldige rader med
+den komplette pre-TEST quote-klokken; ekstra M1-features alene løser det ikke.
+Stengte perioder, quote-kildehull og populasjonsbias er ikke klassifisert ennå.
+Diagnosen gir ingen kildebytte-, imputering-, periodetilpasning- eller
+inputakseptautoritet. Dette er en obligatorisk før-smoke-undersøkelse.
+Økonomieieren erklærer fortsatt gross/research-only, ikke produksjonsadgang
+eller netto lønnsomhetsbevis; full kost-/fill-/kapasitetsaksept er ubevist.
+
+Den gamle timeautomatiseringen er slettet etter brukerbestilling; ingen ny
+er opprettet. App-målverktøyet avviste nytt mål fordi pausert, ufullført GC
+fortsatt opptar målplassen. GC er bevart paused, aldri merket fullført.
+Nytt prosjektarbeidsmål er lagret; `/goal clear` er nødvendig for ny app-
+mållivssyklus. Ingen tilgangs- eller godkjenningsspørsmål gjenåpnes.
+Periodiske fysiske omstarter inngår ved terminale fasegrenser, bare etter
+maskinvid dokumentasjon på ledige prosjektjobber/writers/låser/GPU-beregninger.
+Ingen PC-omstart er utført i denne bølgen, og krasjårsaken er fortsatt ubevist.
+Plan-/statusendringen består 47 fokuserte status-/målgrensetester gjennom
+capped audit (4G/512M); JUnit ligger i POSTBUILD_REVIEW_001/PRE_SMOKE_PLAN_TESTS.xml.
+Eksisterende handover- og retentionregresjoner bestod også under samme caps.
+Gjeldende plan/hash, uendret immutabel core-runtime-plan, historiske perioder,
+opprinnelig fellesbudsjett og launch-registerets policy-hash er kontrollert.
+Dette er konsistens-/vernbevis, ikke fullført M1 eller trening.
 Hele kildeinventaret er kontrollert: 640 tracked filer / 581 Python-filer;
 ingen syntaksfeil, lokale importhull, doble toppnivådefinisjoner, brutte
 Markdown-lenker, JSON-duplikater, shell-syntaksfeil eller avhengighetsmismatches.
@@ -195,8 +242,9 @@ Historiske repo-filer kan gjenopprettes fra Git ved behov; ingen ny arkivmappe o
 
 ## Neste grense — eksisterende v38-læring
 
-Bind ren kilde og fersk CPU-build gjennom eksisterende eiere, deretter
-genuine acceptance/komplett M1/ny normalisering og retention før modellsmoke.
+Gjenbruk verifisert fullført Oct7-core. Bind ren kilde og separat komplett
+M1-fase gjennom eksisterende eier, deretter deknings-/labelårsaksreview,
+genuine input-oracle/readiness, ny normalisering og retention før modellsmoke.
 Den pair-alignerte M1-lifecycle-flaten alene dekker ikke komplett rå M1-klokke;
 den komplette state-flaten er derfor en planlagt obligatorisk byggefase.
 Ingen featurekassering eller historiske modellvekter. Ny full TRAIN-only

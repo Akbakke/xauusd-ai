@@ -18,6 +18,30 @@ for faktisk fremdrift. Før sletting må nye outputs være akseptert og alle
 transitive rå-/kalibrerings-/kostforeldre og aktive stier være beskyttet.
 Ukjent closure/TEST-nektelse stopper sletting, aldri håndlaget unntak.
 
+Core ble genuint fullført 07.10 kl.18:06 UTC. Gjenbruk det; INPUT_BUILD_002
+og den gamle claimen relanseres aldri. Brukerens nye mål stopper før smoke:
+komplett M1 → separat deknings-/labelårsaksreview og selvstendig input-oracle →
+post-rebuild-readiness → fersk whole-TRAIN-normalisering/fysiske visninger →
+samlet Entry/Exit-/MTF-/aliasparitet → ny eksakt sampler-/smoke-binding.
+Nyeste feature-/sekvensbevis gjenbrukes bare for uendrede bundne bytes.
+TRAINs tidslabel-eksklusjon er 341872/994500 kandidater; VAL 5756/76692.
+Komplett quote-alignment gir samme gyldige populasjon, ikke automatisk en
+reparasjon. Årsak og seleksjon må undersøkes før aksept; behold periodene,
+ukjent årsak og økonomiens research-only-begrensninger eksplisitt.
+
+Timeautomatiseringen for core/input-status er fjernet etter brukerbestilling;
+ingen ny timeplan er opprettet. Det nye arbeidsmålet er lagret, men appens
+målplass er fortsatt opptatt av pausert GC. `/goal clear` frigjør plassen
+uten å slette GC-arbeidet i repo/policy. Ingen tung M1-jobb er startet av
+planendringen. Separat kilde-/input-/output-/budsjettbinding og prosessvakt
+kreves før neste launch; det opprinnelige build-deadline-budsjettet består.
+
+Omstartspunkter er etter ferdig core, etter COMPLETE_M1, etter godkjent
+input/readiness og etter normalisering/visninger før native GPU-adgang.
+Vurder også mellom separat terminale langvarige CPU-faser. Aldri avbryt en
+jobb etter et gjettet timeintervall. Kontroller alle prosjekters writers,
+låser og GPU-beregninger før faktisk omstart, og kilde/artefakter/ny boot etter.
+
 Etter Windows-BSOD 0xA 07.10: ny INPUT_BUILD_002 gjenbruker bare fullstendig
 hash-validerte, ferdige Oct7-features. Samme perioder/felt; ny preflight og
 downstream i CHAIN_RECOVERY_001. Gamle INPUT_BUILD_001/logg/partials beholdes

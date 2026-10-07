@@ -1,6 +1,7 @@
 {
   "schema_version": "gx1_native_v38_rebuild_and_smoke_plan_v1",
   "created_utc": "2026-10-07T05:04:51Z",
+  "updated_utc": "2026-10-07T20:14:15Z",
   "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
   "canonical_repo": "/home/andre2/src/GX1_CURRENT",
   "canonical_branch": "work/gx1-current",
@@ -31,7 +32,7 @@
     "whole_input_build_complete_at_this_boundary": false,
     "mandatory_next_stages": ["COMPLETE_M1", "COMPLETE_INPUT_ORACLE", "POST_REBUILD_READINESS"],
     "automatic_host_restart": false,
-    "restart_policy": "Only at a genuine completed-stage terminal with no CURRENT heavy process/active writer or GPU guard. Preserve outputs, verify a new physical Windows boot and WSL/process identities before a separately bound next stage. No time-based mid-stage reboot and no unverified crash-cause claim."
+    "restart_policy": "Only at a genuine completed-stage terminal after all projects' jobs, active writers, project locks and GPU computations on the physical machine are verified idle. Preserve outputs, verify a new physical Windows boot, WSL/process identities, clean source and bound artifact hashes before a separately bound next stage. No guessed periodic interval, time-based mid-stage reboot, forced interruption or unverified crash-cause claim."
   },
   "build_termination_grace_seconds": 10,
   "termination_grace_origin": "Existing scripts/gx1_guarded_trainer_exec.sh TERM-to-KILL grace; same finite CPU supervisor grace, no GPU/cgroup override.",
@@ -92,6 +93,46 @@
   },
   "sequence_geometry_origin": "Existing owner and bound dataset: Seq96; M5=16, M15=64, H1=96, H4=96, D1=252. Verify by execution; do not infer from the Seq513 historical file names.",
   "features": "All current owner-derived v38 fields, eight model specialists and native timeframes retained. No GC, new ninth family or new order-block features.",
+  "pre_smoke_goal": {
+    "operator_request": "Stopp time oppdatering om denne er ferdig. Lag deg nytt mål med m1 og alle justeringene før smoke trening. Husk å restarte pc’ en en gang i blant",
+    "title": "Komplett M1 og konsistent v38-inputkjede før smoke-trening",
+    "finish_line": "READY_FOR_BOUNDED_RESEARCH_SMOKE_WITH_GENUINE_INPUT_EVIDENCE",
+    "progress_owner": "NEXT_RUN_POLICY.json/native_v38_rebuild_20261007/pre_smoke_progress",
+    "relaunch_completed_core_allowed": false,
+    "plan_itself_admits_heavy_execution": false,
+    "required_before_each_heavy_stage": [
+      "new exact stage/output/source/input binding through existing owner, never consumed claims",
+      "finite stage allowance within unchanged original common build deadline; no implicit renewed budget",
+      "clean committed source, source frozen during the actual job",
+      "existing capped runner, hardware guards and one CURRENT heavy-job lock",
+      "prior genuine result and terminal verified; preserved outputs after crash or stop",
+      "post-reboot host/WSL/source/artifact validation where restart has occurred"
+    ],
+    "stages": [
+      {"id": "COMPLETE_M1", "requirement": "Materialize complete causal pre-TEST M1 through existing owner and bound alignment, preserving current native fields and all eight families. Require exact clock suffix after owner-measured warmup, no internal omissions and complete physical TRAIN/VAL views."},
+      {"id": "LABEL_COVERAGE_REVIEW", "requirement": "Investigate measured exact-fill/native-minute-horizon exclusions across the full frozen TRAIN/VAL candidate populations. Bind year/session and exclusion-reason evidence; distinguish evidenced closures, genuine source holes and unknown causes. Assess selection on actual candidate/emitted populations. Complete feature coverage is not proof of repaired quote history."},
+      {"id": "COMPLETE_INPUT_ORACLE", "requirement": "Publish independent clock/field/availability/lineage checks using genuine core and complete M1. Reuse verified specialist/sequence audits only for unchanged exact bound source/data; invalidate and rerun affected checks after a demonstrated fix."},
+      {"id": "POST_REBUILD_READINESS", "requirement": "Existing readiness owner must bind genuine complete-input evidence and explicitly close missing prerequisites; core-only GREEN cannot stand in for whole-input acceptance."},
+      {"id": "NORMALIZATION_AND_PHYSICAL_VIEWS", "requirement": "Fit fresh immutable normalization exactly once over complete physical TRAIN through existing owners. Publish current-generation M1/M5/MTF views, exact clock/order, alias-owner identity, sequence/snapshot and first-state Entry/Exit bridge parity. VAL and TEST never refit."},
+      {"id": "RETENTION_AND_BOUNDED_SMOKE_BINDING", "requirement": "After replacement acceptance, retire only exact retention-admitted obsolete leaves, or explicitly record unresolved closure with zero deletion. Bind new genuine finite TRAIN-only sampler plan and source-bound research-smoke prerequisites through existing owners. Stop before smoke/model launch; larger training and TEST remain closed."}
+    ],
+    "label_coverage_acceptance": {
+      "diagnostic_is_input_acceptance": false,
+      "complete_m1_feature_build_assumed_to_recover_labels": false,
+      "unexplained_population_exclusion_may_be_silently_accepted": false,
+      "calendar_may_be_guessed_from_gap_shape": false,
+      "price_or_label_imputation_allowed": false,
+      "research_period_changes_allowed": false,
+      "source_substitution_authorized": false,
+      "missing_evidence_disposition": "Report exact unknown dependency and preserve all bytes; no fabricated prices, events, aggressor truth or zero targets. Do not bind ready-smoke until the required coverage review is genuinely concluded."
+    },
+    "economics_scope": "Gross spread-inclusive research only under existing owner. Verify causal fill/label wiring and expose missing net-cost, gap and lifecycle-capacity evidence explicitly. Technical/research readiness is never net profitability, serving parity or production acceptance; no new fixed loss/holding rule.",
+    "restart_checkpoints": ["AFTER_CORE_TERMINAL", "AFTER_COMPLETE_M1_TERMINAL", "AFTER_COMPLETE_INPUT_AND_READINESS_TERMINALS", "AFTER_NORMALIZATION_AND_VIEWS_BEFORE_NATIVE_GPU_ADMISSION"],
+    "restart_checkpoint_alone_admits_reboot": false,
+    "automatic_mid_stage_host_restart": false,
+    "smoke_training_started_by_goal": false,
+    "large_training_allowed": false
+  },
   "normalization": "Fresh immutable fit once on the entire physical TRAIN population after complete M1 coverage and split audits; VAL/TEST never refit. Old normalization remains retained until replacement acceptance.",
   "cleanup": {
     "execution_owner": "gx1.scripts.cleanup_gx1_evidence_v1",
@@ -123,6 +164,7 @@
     "strict TRAIN/development-VAL split lineage and sealed TEST witness",
     "sequence reconstruction and closed MTF availability",
     "complete native M1 clock/physical-view coverage",
+    "genuine exact-fill/horizon exclusion-cause and population-selection review on frozen TRAIN/VAL, not assumed repaired by COMPLETE_M1",
     "fresh whole-TRAIN normalization and economics with no fixed loss or hold cap",
     "safe exact-target retention receipts, or explicit unresolved closure with zero deletion",
     "technical and paired learning smoke evidence before one finite expansion"

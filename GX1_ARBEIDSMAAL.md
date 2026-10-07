@@ -8,8 +8,41 @@ utvidelser på pause, og prioriter ny trening med dagens tekniske indikatoroppse
 GC-målets status er paused; protokoll, prøver og ufullførte trinn bevares.
 Ingen flere kildesøk, nedlastinger eller GC-fits utføres mens det er på pause.
 
-Det aktive neste steget er en ny kildebundet v38-kjøreplan gjennom eksisterende
-eiere, med ferdige inputs/normalisering og hele eksisterende featureflaten.
+Nytt arbeidsmål bestilt 07.10: **komplett M1 og konsistent v38-inputkjede før
+avgrenset smoke-trening**. Gjenbruk genuint fullført Oct7-core; ikke bygg det
+på nytt. Målet er READY_FOR_BOUNDED_RESEARCH_SMOKE med følgende ferdigkriterier:
+
+1. Komplett kausal pre-TEST M1-featureflate fra eksisterende åtte eiere og den
+   bundne komplette quote-klokken, med eksakt suffix etter målt warmup og
+   dekning av samtlige fysiske TRAIN/VAL-state-visninger.
+2. Forklar den målte label-eksklusjonen i TRAIN/VAL, med årsak/dekning og
+   seleksjon per år/sesjon. Skill stengt marked, kildehull og ukjent årsak med
+   genuine kildebevis; ingen gjettet kalender, forward-fill eller nye perioder.
+   Mer M1-features alene reparerer ikke den allerede målte quote-klokken.
+3. Genuin selvstendig komplett-input-oracle og post-rebuild-readiness, deretter
+   fersk immutable whole-TRAIN-normalisering og tilsvarende M1/M5/MTF-visninger.
+   Bit-identiske aliaser, ordnede felt, åtte spesialister, lukkede klokker,
+   sekvenser og Entry/Exit-bro skal kontrolleres på de faktiske modellradene.
+4. Rett bare konkret påviste mismatches i eksisterende eiere og kjør fokuserte
+   regresjoner. Bevar beståtte kontroller når kilde/bytene de beviser er uendret.
+   Ingen indikatorfjerning eller forebyggende modellrefaktorering.
+5. Bind aktuelle artefakter, ren kilde og genuine terminaler; utfør bare
+   retention-admittert opprydding, eller rapporter presis nektelse uten sletting.
+   Bind deretter ny finite sampler-/smoke-plan. Selve smoke/større trening er
+   ikke startet eller åpnet av dette forberedelsesmålet.
+6. Legg fysiske PC-omstarter ved terminale fasegrenser. Alle prosjektjobber,
+   writers, låser og GPU-beregninger på maskinen må være dokumentert ledige;
+   etterpå kontrolleres ny Windows-boot, WSL, kilde og artefakter. Ingen
+   tidsstyrt omstart av aktiv jobb eller påstand om bevist krasjretting.
+
+Det gamle timevarselet er fjernet etter brukerbestilling og core-fullføring;
+det betyr ikke at komplett inputbygget er ferdig. Automatisk nytt app-mål
+kunne ikke opprettes fordi det ufullførte GC-målet fortsatt står paused.
+Dette er et app-livssyklusproblem, ikke manglende tilgang til repoet.
+Brukeren må frigjøre app-målplassen med `/goal clear`; GC-protokoll og
+ufullført fremdrift bevares uendret i repo/policy, aldri merkes ferdig.
+Faktisk prosjektstatus og eksakte bevis eies fortsatt bare av NEXT_RUN_POLICY.
+
 Ingen eksisterende SMC-primitiver fjernes ved tolkning av «order block og det».
 Læringsrekkefølgen og portene står i docs/NATIVE_LEARNING.md. Ny samplerbenchmark
 krever egen finite plan/budsjettautoritet; den avbrutte ATTEMPT_003 og dens

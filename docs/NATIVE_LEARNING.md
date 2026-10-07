@@ -27,12 +27,21 @@ forbudet mot relaunch av forbrukte planer.
    18-timersbudsjett eller gjenåpning av gammel benchmarkgodkjenning.
    INPUT_BUILD_002 stopper ved ekte core-terminal for trygg omstart mellom
    ferdige steg, aldri under aktiv jobb. Dette er ikke komplett input-green.
+   Core er nå genuint terminal og forbruker aldri en ny launch. Det nye
+   før-smoke-målet gjenbruker disse bytene; forberedelsesfremdrift eies av
+   native_v38_rebuild_20261007/pre_smoke_progress i samme policy.
 3. Før normalisering eller modellsmoke: bygg den komplette pre-TEST M1-flaten
    gjennom eksisterende feature-eier og komplett rå M1-alignmentskilde.
    Den gamle chainens pair-alignerte lifecycle-flate er en annen rolle og er
    ikke full M1-state-dekning. Gjør komplett M1 til obligatorisk byggefase,
    ikke en etterfølgende uregistrert retting. Verifiser hele klokkesuffikset
-   etter målt warmup og alle fysiske TRAIN/VAL-visninger. Tilpass ny immutable
+   etter målt warmup og alle fysiske TRAIN/VAL-visninger. Avklar også den
+   målte eksklusjonen fra eksakt fill/komplett native-minutt-labelhorisont
+   på hele den fryste TRAIN/VAL-kandidatpopulasjonen: årsak, år/sesjon og
+   seleksjon. Den komplette quote-klokken ga samme gyldige rader i ekte
+   tidsdiagnose; komplett featurebygg alene er ingen reparasjon. Ingen
+   gjettede stengninger, imputering eller periodeendring. Selvstendig
+   input-oracle og genuine post-rebuild-readiness kreves. Tilpass ny immutable
    normalisering én gang på hele fysisk TRAIN; ingen gammel normalisering.
 4. Aksepter replacement med genuine completion-/sekvens-/økonomi-/readiness-
    kvitteringer. Opplist så eksakte utdaterte DATA/RUNS-leaves med størrelser.
@@ -58,6 +67,12 @@ Engangsclaim og godkjenning er konsumert; må aldri relanseres.
 Eksakte terminal-, plan-, input- og operatorbindinger står i NEXT_RUN_POLICY.json.
 Ingen ny benchmark/trening er autorisert av oppryddingen. Den nye prioriteringen
 er heller ikke en fornyelse av ATTEMPT_003s konsumerte engangsbudsjett.
+Det nye målet avsluttes før smoke med genuine inputaksept/normalisering/
+paritet og eksakt finite sampler-/smoke-binding, ikke på en plan alene.
+Økonomieierens gross/research-only-grense må oppgis; dette er ikke en
+nettoøkonomisk eller produksjonsklar modell. Fysisk PC-omstart legges kun
+til ekte terminale faser etter dokumentert maskinvid jobb-/writer-/lås-/
+GPU-ledighet, med ny boot-/WSL-/kilde-/artefaktkontroll etterpå.
 GC-kvalifisering er ingen forutsetning for det eksisterende v38-oppsettet.
 
 ## Beholdt rekkefølge

@@ -65,7 +65,7 @@ def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
     prep = policy['native_v38_preparation_20261001']
     assert work['gc_goal_status'] == 'paused'
     rebuild = policy['native_v38_rebuild_20261007']
-    assert work['current_activity'] == 'NATIVE_V38_INPUT_RECOVERY_AFTER_HOST_CRASH'
+    assert work['current_activity'] == 'NATIVE_V38_COMPLETE_M1_PRE_SMOKE_PREPARATION'
     assert work['current_research_id'] == Path(rebuild['run_root']).name
     assert rebuild['run_root'] != prep['run_root']
     assert work['existing_indicator_surface_changed'] is False
@@ -102,7 +102,9 @@ def test_new_rebuild_plan_preserves_periods_and_requires_complete_m1_before_smok
     assert hashlib.sha256(plan_path.read_bytes()).hexdigest() == scope['plan']['sha256']
     plan = json.loads(plan_path.read_text())
     prior = json.loads((repo / 'configs/research/NATIVE_V38_INPUT_PREPARATION_20261001.json').read_text())
-    assert scope['input_build_authorized'] is True
+    assert scope['input_build_authorized'] is False
+    assert scope['core_complete'] is True
+    assert scope['completed_core_relaunch_allowed'] is False
     assert scope['native_launch_admitted'] is False
     assert plan['run_id'] != prior['run_id']
     assert plan['event_root'] != prior['event_root']
@@ -127,6 +129,47 @@ def test_new_rebuild_plan_preserves_periods_and_requires_complete_m1_before_smok
     assert recovery['whole_input_build_complete_at_this_boundary'] is False
     assert recovery['mandatory_next_stages'] == ['COMPLETE_M1', 'COMPLETE_INPUT_ORACLE', 'POST_REBUILD_READINESS']
     assert plan['common_build_deadline_utc'] == scope['common_build_deadline_utc']
+
+
+def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
+    repo = Path(__file__).resolve().parents[1]
+    policy = json.loads((repo / 'NEXT_RUN_POLICY.json').read_text())
+    work = policy['current_work']
+    scope = policy['native_v38_rebuild_20261007']
+    plan = json.loads((repo / scope['plan']['path']).read_text())
+    goal = plan['pre_smoke_goal']
+    progress = scope['pre_smoke_progress']
+    assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
+    assert work['latest_terminal']['path'] == str(Path(scope['runtime_plan']['path']).with_name('TERMINAL.json'))
+    assert work['terminal_exit_code'] == 0
+    assert scope['whole_input_build_complete'] is False
+    assert goal['relaunch_completed_core_allowed'] is False
+    assert goal['plan_itself_admits_heavy_execution'] is False
+    assert [stage['id'] for stage in goal['stages']] == [
+        'COMPLETE_M1', 'LABEL_COVERAGE_REVIEW', 'COMPLETE_INPUT_ORACLE',
+        'POST_REBUILD_READINESS', 'NORMALIZATION_AND_PHYSICAL_VIEWS',
+        'RETENTION_AND_BOUNDED_SMOKE_BINDING',
+    ]
+    for field, value in progress.items():
+        assert value is (True if field == 'project_goal_requested' else False)
+    for field in ('diagnostic_is_input_acceptance',
+                  'complete_m1_feature_build_assumed_to_recover_labels',
+                  'unexplained_population_exclusion_may_be_silently_accepted',
+                  'calendar_may_be_guessed_from_gap_shape',
+                  'price_or_label_imputation_allowed',
+                  'research_period_changes_allowed', 'source_substitution_authorized'):
+        assert goal['label_coverage_acceptance'][field] is False
+    assert scope['postbuild_review']['gap_cause_and_selection_review_complete'] is False
+    assert goal['restart_checkpoint_alone_admits_reboot'] is False
+    assert goal['automatic_mid_stage_host_restart'] is False
+    assert goal['smoke_training_started_by_goal'] is False
+    assert goal['large_training_allowed'] is False
+    assert policy['limits']['fresh_physical_windows_boot_before_every_invocation'] is True
+    assert work['hourly_monitor']['status'] == 'DELETED_BY_USER_REQUEST_AFTER_CORE_TERMINAL'
+    assert work['hourly_monitor']['whole_input_completion_claimed'] is False
+    assert work['app_goal_creation']['created'] is False
+    assert work['app_goal_creation']['existing_goal_status'] == work['gc_goal_status'] == 'paused'
+    assert work['app_goal_creation']['false_completion_allowed'] is False
 
 
 @pytest.mark.parametrize('change', ['bytes', 'state', 'missing'])

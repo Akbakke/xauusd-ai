@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-07T05:04:51Z",
-  "status": "V38_CORE_RECOVERY_AFTER_PHYSICAL_HOST_CRASH_GC_PAUSED",
+  "observed_utc": "2026-10-07T20:14:15Z",
+  "status": "V38_CORE_COMPLETE_M1_AND_PRE_SMOKE_PREPARATION_REQUESTED_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Operator orders the new dataset/retention/small-smoke workflow and explicitly requests recovery after the Oct7 physical host crash. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. One new INPUT_BUILD_002 may reuse only byte-validated completed same-generation Oct7 feature inputs, through the existing chain recovery owner with a different boot, exact orphan status and fresh downstream namespace/preflight. Never fabricate the old terminal or exit code, reuse partial outputs, relaunch INPUT_BUILD_001 or consume old Oct1 normalization/models. The original common 64800s deadline remains binding. Stop after a genuine core terminal at a safe reboot boundary; complete M1/oracle/post-readiness remain mandatory before normalization or smoke. No automatic mid-stage host reboot. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
-  "next_action": "Bind clean committed/pushed recovery source and launch one capped-owner INPUT_BUILD_002 core recovery into CHAIN_RECOVERY_001. Revalidate completed Oct7 inputs and publish fresh preflight/dataset/audit/terminal evidence. Stop at the genuine completed core boundary, verify no active writers before a safe physical reboot, then separately bind mandatory COMPLETE_M1, independent input oracle and post-rebuild-readiness. Continue fresh whole-TRAIN normalization/physical views and exact retention only after input acceptance. Native sampler/smoke and larger training remain gated; an old RUNNING status or core-only GREEN is not complete-input evidence.",
+  "rule": "Operator requests complete M1 and all observed pre-smoke adjustments after the successful Oct7 core terminal. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. INPUT_BUILD_001 has unknown old exit/terminal after physical crash; INPUT_BUILD_002 is genuinely successful core-only and its one-shot authority is consumed. Preserve immutable runtime copies/receipts and verified completed same-generation bytes, never relaunch either attempt or consume old Oct1 normalization/models. The original common 64800s deadline remains binding; each next stage needs a separately source/input/output/budget-bound existing owner. Complete M1, label-coverage/selection review, independent input oracle and post-readiness remain mandatory before fresh normalization and future smoke admission. Do not silently accept unexplained exclusions, impute quotes/labels, change periods or call a diagnostic input acceptance. Reboot only at verified idle terminal phase boundaries, never interrupt active jobs. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
+  "next_action": "Reuse genuinely terminal Oct7 core; never relaunch INPUT_BUILD_001/002. The old hourly automation was deleted on user request. New pre-smoke project goal requires complete M1, evidence-based label-coverage/selection review, independent complete-input oracle, post-rebuild-readiness, fresh whole-TRAIN normalization/physical views, exact parity, retention or explicit refusal, and a separately bound finite sampler/smoke plan. App goal creation was rejected because unfinished paused GC occupies the goal slot; user-controlled goal clear is required, not false GC completion. No new heavy stage is yet bound or launched. Preserve original common build deadline, all guards, sealed TEST and GC pause. Consider physical reboots only at genuine terminal phase boundaries with all machine projects/jobs/writers/locks/GPU computations verified idle, then validate new boot, WSL, source and artifact hashes.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -67,8 +67,11 @@
   },
   "current_work": {
     "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "NATIVE_V38_INPUT_RECOVERY_AFTER_HOST_CRASH",
+    "current_activity": "NATIVE_V38_COMPLETE_M1_PRE_SMOKE_PREPARATION",
     "recovery_operator_request": "Men du må jo begynne på nytt, og hvorfor krasjer den? Vi må restarte ofte!! Dette vet du jo?",
+    "pre_smoke_operator_request": "Stopp time oppdatering om denne er ferdig. Lag deg nytt mål med m1 og alle justeringene før smoke trening. Husk å restarte pc’ en en gang i blant",
+    "app_goal_creation": {"requested": true, "created": false, "observed_error": "cannot create a new goal because this thread has an unfinished goal; complete the existing goal first", "existing_goal_status": "paused", "existing_goal_scope": "GC-order-flow four-step research, all empirically incomplete", "required_user_lifecycle_action": "goal clear", "false_completion_allowed": false},
+    "hourly_monitor": {"automation_id": "gx1-sjekk-datasettbygget-hver-time", "status": "DELETED_BY_USER_REQUEST_AFTER_CORE_TERMINAL", "whole_input_completion_claimed": false},
     "current_research_id": "HISTORY2009W_NATIVE_V38_20261007",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": false,
@@ -98,22 +101,16 @@
       "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
-    "latest_terminal_role": "Preserved historical terminal of consumed ATTEMPT_003; not completion of the requested new dataset, cleanup or model smoke.",
+    "latest_terminal_role": "Genuine successful INPUT_BUILD_002 CORE_CHAIN terminal, source unchanged during that job. Core completion only; not complete M1/input acceptance, normalization, cleanup, sampler selection or model smoke.",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/EVENTS/TERMINAL_20261006T065527088266Z.json",
-      "sha256": "87f3faf08038727f182dd591ca3e09a7092d139469adb030fe3c02b9c9dbdc20"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/TERMINAL.json",
+      "sha256": "70ba1cd90562a3561a95fc95acfd267d189fcbe805dc8ae1174ba173da6c1c16"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "termination": "SIGINT sent to verified worker PID 10886; worker failed with KeyboardInterrupt and supervisor reaped it and emitted FAILURE/TERMINAL.",
-    "last_reported_progress": {
-      "candidate_transition_budget": 32768,
-      "completed_entry_pairs": 3200,
-      "total_entry_pairs": 8192,
-      "elapsed_seconds": 2868.032734581
-    },
+    "termination": "CORE_CHAIN and supervisor emitted genuine successful terminals at 18:06:36 UTC. Receipt-bound PIDs 12990/12997/12998 are absent on the same WSL boot; no new job or reboot has been launched by this preparation plan.",
     "full_benchmark_completed": false,
     "sampler_selected": false,
     "native_component_preparation_authorized": false,
@@ -271,6 +268,9 @@
   },
   "native_v38_execution_20261005": {
     "status": "INTERRUPTED_FOR_OPERATOR_REQUESTED_REPOSITORY_CLEANUP",
+    "interruption_terminal": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/EVENTS/TERMINAL_20261006T065527088266Z.json", "sha256": "87f3faf08038727f182dd591ca3e09a7092d139469adb030fe3c02b9c9dbdc20"},
+    "interruption": "Verified worker PID 10886 received operator-requested SIGINT, failed with KeyboardInterrupt and exit1; supervisor reaped it and emitted FAILURE/TERMINAL.",
+    "last_partial_progress": {"candidate_transition_budget": 32768, "completed_entry_pairs": 3200, "total_entry_pairs": 8192, "elapsed_seconds": 2868.032734581},
     "retraining_requested": true,
     "retraining_request_owner": "current_work.operator_request",
     "new_retraining_plan_bound": false,
@@ -477,7 +477,7 @@
     "native_training_enabled": false
   },
   "native_v38_rebuild_20261007": {
-    "status": "ONE_SHOT_CORE_RECOVERY_AUTHORIZED_NO_COMPLETE_INPUT_OR_MODEL_ADMISSION",
+    "status": "CORE_COMPLETE_COMPLETE_M1_AND_LABEL_COVERAGE_REVIEW_REQUIRED_NO_MODEL_ADMISSION",
     "runtime_plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/PLAN.json", "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"},
     "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/launch_inputs.py", "sha256": "8f6abe9314b562b4463af3bbd93a4f48fa3a57fda3dd6133249bc097100005ca"},
     "prior_attempt": {
@@ -493,11 +493,42 @@
     "dependency_review": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REVIEW/INPUT_DEPENDENCIES.json", "sha256": "030fb57e7277646409ade17ee0a4fe8e7c5caa5dccf0d4ee6b8464dc03add046"},
     "plan": {
       "path": "configs/research/NATIVE_V38_REBUILD_AND_SMOKE_20261007.json",
-      "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"
+      "sha256": "92f6ea39a4f16a31db5a47f0775c562cedf3a7ed668e09bb5b614acd240b25c1"
     },
     "run_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN_RECOVERY_001",
-    "input_build_authorized": true,
+    "input_build_authorized": false,
+    "completed_core_relaunch_allowed": false,
+    "core_complete": true,
+    "core_terminal": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/CORE_CHAIN.TERMINAL.json", "sha256": "3170b32ebd4ac7e7a0e1412c49f912ef6b8e614b39da565c5aa36d2643ac2999"},
+    "core_result": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/RESULT.json", "sha256": "83550ce57a8122c9bf7fbe6280ee3d1d73671f645d7b4a5c84f2953c627bec48"},
+    "postbuild_review": {
+      "specialist_audit": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20261007T193848376047Z.json", "sha256": "8f1d41500a658d7811a1f57cf4147fd87f391bd1ddd3c3e9d8f557ebe4a24561"},
+      "train_sequence_source_audit": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_TRAIN.json", "sha256": "8745c8f021debca51f4bde7324e3d02a11112a59e5534f85f7cf2b0b97c687e9"},
+      "val_sequence_source_audit": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_VAL.json", "sha256": "633197030ddf39b2f7393dd4677839bf9664a712e80a7574dd28211a51cc6650"},
+      "m1_label_clock_diagnostic": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/M1_LABEL_CLOCK_COVERAGE.json", "sha256": "89ad1a96fc8f02a115acd9e572566f61b3103348c5b4759cd416fa5453f94146"},
+      "diagnostic_is_input_acceptance": false,
+      "core_train_rows": 652552,
+      "core_development_val_rows": 70880,
+      "label_time_exclusion_counts": {"train": {"excluded": 341872, "candidates": 994500}, "val": {"excluded": 5756, "candidates": 76692}},
+      "complete_alignment_recovers_additional_time_valid_candidates": false,
+      "gap_cause_and_selection_review_complete": false,
+      "checks_reusable_only_for_unchanged_exact_bindings": true
+    },
+    "pre_smoke_progress": {
+      "project_goal_requested": true,
+      "app_goal_created": false,
+      "new_heavy_stage_bound": false,
+      "new_heavy_stage_started": false,
+      "complete_m1_complete": false,
+      "label_coverage_review_complete": false,
+      "complete_input_oracle_complete": false,
+      "post_rebuild_readiness_complete": false,
+      "fresh_whole_train_normalization_complete": false,
+      "physical_view_and_entry_exit_parity_complete": false,
+      "new_sampler_smoke_plan_bound": false,
+      "ready_for_bounded_research_smoke": false
+    },
     "progress_owner": "Exact immutable INPUT_BUILD_002 START, CORE_CHAIN PROCESS/TERMINAL, RESULT and final TERMINAL plus CHAIN_RECOVERY_001 status/terminal own core recovery progress. Verify PID, boot-ID and process start ticks. A successful core-only terminal is a safe boundary, not whole-input completion. Missing old terminal remains unknown; never synthesize it.",
     "recovery_core_only": true,
     "whole_input_build_complete": false,
