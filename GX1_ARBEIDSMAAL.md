@@ -40,8 +40,13 @@ det betyr ikke at komplett inputbygget er ferdig. Nytt app-mål for denne
 M1/før-smoke-forberedelsen er nå aktivt (07.10 kl.20:45:57 UTC), etter målt
 ledig målplass. Den tidligere avvisningen er ikke en gjeldende blokkering.
 GC-protokoll og ufullført fremdrift bevares på pause i repo/policy, aldri
-merkes ferdig. COMPLETE_M1_001 har separat bounded CPU-binding; genuine
-fasekvitteringer, ikke en planlagt start, avgjør om jobben faktisk kjører.
+merkes ferdig. COMPLETE_M1_001 har nå genuine exit0-kvitteringer og5523147
+rader; det er eierfullføring, ikke hele kriterium1 eller inputaksept.
+Separat INPUT_VALIDATION_001 er bundet for dekningsdiagnose, uavhengig M1-
+oracle og post-readiness, med samme opprinnelige finite deadline.
+Faktiske fasekvitteringer, ikke en planlagt start, avgjør om noe kjører.
+Omstart er ikke utført: CURRENT idle/GPU0% er målt, men beskyttede Windows-
+prosesser gjør maskinvid idle-/writer-proof ufullstendig. Ukjent er ikke idle.
 Faktisk prosjektstatus og eksakte bevis eies fortsatt bare av NEXT_RUN_POLICY.
 
 Ingen eksisterende SMC-primitiver fjernes ved tolkning av «order block og det».

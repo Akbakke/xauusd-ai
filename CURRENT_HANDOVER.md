@@ -1,4 +1,4 @@
-# Gjeldende overlevering — 07.10.2026
+# Gjeldende overlevering — 08.10.2026
 
 Gjeldende bestilling: ny kjøreplan, gjennomgang av hele repoet for feil/mismatches,
 ferskt datasett, sletting av utdaterte genererte artefakter og liten smoketest
@@ -19,12 +19,28 @@ INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
 er ikke fullført. Nyest gjeldende terminal i policyen er nå denne core-
 terminalen, ikke den historiske Oct1-benchmarkterminalen. Ingen core-relaunch.
-COMPLETE_M1_001 er nå separat bundet til eksisterende capped CPU-eier, med
-ren committet kilde før start og samme opprinnelige deadline23:44:34 UTC.
-Faktisk start/aktivitet/fullføring eies av fasens immutabelt publiserte
-START/PROCESS/TERMINAL/RESULT, ikke bindingens BOUND-status. Oracle/readiness,
-normalisering og modellsmoke er ikke startet. Kildeendring etter terminal påvirker ikke identiteten
-til de immutabelt bundne ferdige bytene.
+COMPLETE_M1_001 er genuint fullført 07.10 kl.22:27:57 UTC (08.10 kl.00:27 Oslo),
+exit0, 5523147 rader, uendret0c9fceb2-kilde gjennom87 minutter. Både eier og
+supervisor har ekte terminal/RESULT; tillatelsen er konsumert, ingen relaunch.
+PIDs149027/149085/149104 er borte på samme boot. Manifest7a71db4f og
+parquetfad9b499 er produsentbundet; full byte-/alias-/clock-oracle gjenstår.
+INPUT_VALIDATION_001 er separat bundet for seriell capped dekningsdiagnose →
+komplett M1-oracle → eksisterende post-readiness. Det er en binding, ikke
+launch eller inputaksept. Ren committet/pushet kilde og eksakte kontroller
+kreves før start; START/PROCESS/TERMINAL eier faktisk aktivitet. Samme
+opprinnelige deadline23:44:34 UTC, ingen nytt18h-budsjett. Normalisering,
+modellsmoke og stor trening er ikke startet. Kildeendring etter terminal
+påvirker ikke identiteten til de immutabelt bundne ferdige bytene.
+
+Core har allerede genuine samme-generasjons PASS-kvitteringer for full-input
+liveness, pretrain og cross-surface-overlap. De gjenbrukes bare med uendrede
+eksakte bytes/eiere og kanonisk readiness-aksept. Den grønne kjeden skal bruke
+normal post-readiness-rute, ikke RED/dataset-rebuild-recovery-flaggene fra
+den ubrukte gamle verifiseren. Nye eksterne avgrensede diagnostiske kilder
+har bare syntaks-/kildekontroll foreløpig, ikke full-populasjons resultater.
+De nye status-/fasegrensene består47 fokuserte tester gjennom capped
+audit4G/512M. Fersk JUnit: INPUT_VALIDATION_001/STAGE_BOUNDARY_TESTS.xml.
+Dette beviser binding-/vernkonsistens, ikke de ennå ukjørte inputkontrollene.
 
 M1-tids-/feltforhåndskontrollen er målt PASS under capped audit: 5583670
 source-rader og 5959045 pre-TEST-alignment-rader; 435898 ledende rader før
@@ -62,6 +78,10 @@ tilgangs- eller godkjenningsspørsmål gjenåpnes.
 Periodiske fysiske omstarter inngår ved terminale fasegrenser, bare etter
 maskinvid dokumentasjon på ledige prosjektjobber/writers/låser/GPU-beregninger.
 Ingen PC-omstart er utført i denne bølgen, og krasjårsaken er fortsatt ubevist.
+Ved M1-terminalgrensen er CURRENT-jobb/lås ledig og GPU-utnyttelse målt0%,
+men Windows-PIDs2648/2704 og beskyttede GPU-oppføringer er ikke klassifisert.
+Maskinvid writer-/jobb-/idle-proof er derfor ufullstendig; ingen omstart eller
+påstand om trygg omstart, ingen ACL/elevasjon eller stopp av ukjente jobber.
 Forrige plan-/statusendring bestod 47 fokuserte status-/målgrensetester gjennom
 capped audit (4G/512M); JUnit ligger i POSTBUILD_REVIEW_001/PRE_SMOKE_PLAN_TESTS.xml.
 Eksisterende handover- og retentionregresjoner bestod også under samme caps.

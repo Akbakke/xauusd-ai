@@ -33,6 +33,13 @@ forbudet mot relaunch av forbrukte planer.
    Nytt app-mål ble genuint aktivert 07.10 kl.20:45:57 UTC uten å fullføre
    det pausede GC-arbeidet. COMPLETE_M1_001 er separat CPU-/output-bundet;
    ekte fasekvitteringer eier kjøringen, og fellesbudsjettet fornyes ikke.
+   M1-eieren er nå genuint exit0 07.10 kl.22:27:57 UTC med5523147 rader og
+   uendret kilde; tillatelsen er konsumert. Separat INPUT_VALIDATION_001
+   binder seriell full-populasjons dekningsdiagnose, uavhengig M1-oracle og
+   normal GREEN-core post-readiness. Core-liveness/pretrain/overlap gjenbrukes
+   bare ved eksakt byte-/eieraksept. Binding er ikke faktisk start eller grønt
+   input. CURRENT-slot/GPU0% er målt ved terminal, men beskyttede Windows-
+   prosesser er uklassifiserte, derfor ingen maskinvid trygg omstart nå.
 3. Før normalisering eller modellsmoke: bygg den komplette pre-TEST M1-flaten
    gjennom eksisterende feature-eier og komplett rå M1-alignmentskilde.
    Den gamle chainens pair-alignerte lifecycle-flate er en annen rolle og er

@@ -140,7 +140,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     goal = plan['pre_smoke_goal']
     progress = scope['pre_smoke_progress']
     assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
-    assert work['latest_terminal']['path'] == str(Path(scope['runtime_plan']['path']).with_name('TERMINAL.json'))
+    assert work['latest_terminal'] == scope['complete_m1_stage']['terminal']
     assert work['terminal_exit_code'] == 0
     assert scope['whole_input_build_complete'] is False
     assert goal['relaunch_completed_core_allowed'] is False
@@ -151,7 +151,8 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
         'RETENTION_AND_BOUNDED_SMOKE_BINDING',
     ]
     for field, value in progress.items():
-        assert value is (field in {'project_goal_requested', 'app_goal_created', 'new_heavy_stage_bound'})
+        assert value is (field in {'project_goal_requested', 'app_goal_created', 'new_heavy_stage_bound',
+                                 'new_heavy_stage_started', 'complete_m1_complete'})
     for field in ('diagnostic_is_input_acceptance',
                   'complete_m1_feature_build_assumed_to_recover_labels',
                   'unexplained_population_exclusion_may_be_silently_accepted',
@@ -172,7 +173,10 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     assert work['gc_goal_status'] == 'paused'
     assert work['app_goal_creation']['false_completion_allowed'] is False
     stage = scope['complete_m1_stage']
-    assert stage['authorized'] is True
+    assert stage['authorized'] is False  # Genuine terminal consumed this permission.
+    assert stage['current_status'] == 'GENUINE_OWNER_TERMINAL_SUCCESS_PERMISSION_CONSUMED_ORACLE_PENDING'
+    assert stage['independent_oracle_accepted'] is False
+    assert stage['owner_emitted_rows'] == stage['preflight_alignment_rows_after_owner_price_warmup']
     assert stage['status_at_binding'] == 'BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS'
     assert stage['execution_owner'] == 'scripts/entry_next_edge_control.sh/model-native-m1-feature-base'
     assert stage['common_build_deadline_utc'] == plan['common_build_deadline_utc']
@@ -182,6 +186,19 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
                   'relaunch_allowed', 'whole_input_build_complete',
                   'native_training_started', 'automatic_host_restart'):
         assert stage[field] is False
+    validation = scope['input_validation_stage']
+    assert validation['authorized'] is True
+    assert validation['phase_order'] == ['LABEL_COVERAGE', 'COMPLETE_M1_ORACLE', 'POST_REBUILD_READINESS']
+    assert validation['common_build_deadline_utc'] == plan['common_build_deadline_utc']
+    assert validation['status_at_binding'] == 'BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS'
+    for field in ('budget_renewed', 'relaunch_allowed', 'normalization_fit_started',
+                  'native_training_started', 'automatic_host_restart'):
+        assert validation[field] is False
+    assert scope['label_coverage_stage']['authorized'] is True
+    assert scope['label_coverage_stage']['diagnostic_is_input_acceptance'] is False
+    assert scope['complete_input_oracle_stage']['whole_input_or_model_admission_by_subgate'] is False
+    assert scope['restart_boundary_observation']['machine_wide_idle_writer_proof_complete'] is False
+    assert scope['restart_boundary_observation']['physical_reboot_executed'] is False
 
 
 @pytest.mark.parametrize('change', ['bytes', 'state', 'missing'])
