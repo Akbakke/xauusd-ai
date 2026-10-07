@@ -301,10 +301,13 @@ def fit_base(
                     handle.write("\n")
                     handle.flush()
                     os.fsync(handle.fileno())
+                if _json(Path(tmp)) != json.loads(json.dumps(result, allow_nan=False)):
+                    raise RuntimeError("PILOT_BASE_NORMALIZATION_STAGING_INVALID")
                 _publish_file_noreplace(Path(tmp), output_path)
                 _fsync_directory(output_path.parent)
-            finally:
-                Path(tmp).unlink(missing_ok=True)
+            except Exception:
+                # Failed bytes belong to the retention owner, never this fit.
+                raise
         return result
 
 

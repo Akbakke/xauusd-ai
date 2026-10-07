@@ -53,6 +53,9 @@ forbudet mot relaunch av forbrukte planer.
    prosessene borte og tillatelsen konsumert. Authority på5959045 rå M1-rader
    beholder alle86915 gap ukjente uten carry. Ny fysisk child-klokke må få
    egen eksakt source/manifest/clock-authority, ikke relabeling av råforelder.
+   Fem kommende view-/fit-publisister er rettet minimalt: strict-load/fsync
+   før eksisterende no-replace-publisering, ingen sletting av feilpartials.
+   Kilde/syntetiske publisher-regresjoner er ikke ekte fysisk fit-/view-aksept.
 
 3. Før normalisering eller modellsmoke: bygg den komplette pre-TEST M1-flaten
    gjennom eksisterende feature-eier og komplett rå M1-alignmentskilde.

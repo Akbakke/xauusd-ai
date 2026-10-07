@@ -55,6 +55,10 @@ uendret, prosessene borte og launch-tillatelsen konsumert. Faktisk authority
 binder5959045 rå M1-rader og86915 gap; alle beholdes ukjente uten carry.
 83 fokuserte tester PASS. Ny fysisk child-M1 får egen eksakt clock/source/
 manifest-binding gjennom samme eier, ikke relabeling av råforelder-authority.
+Før neste tunge fase er fem view-/normaliseringspublisister rettet for
+konkret staging-sletting/replace-capable rename/manglende strict-load-fsync.
+Eksisterende publiseringseier brukes; alle feilpartials beholdes. Ingen
+endret feature-/fit-/samplerlogikk eller faktisk ny normalisering påstås.
 Deretter retention/nektelse og ny finite sampler-/smoke-plan; ingen modell
 er startet/åpnet. Original deadline23:44:34 UTC består uten fornyelse.
 Ved terminal er CURRENT idle, men Windows2648/2704 fortsatt uklassifisert:

@@ -13,7 +13,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -1014,6 +1013,11 @@ def build_normalization_inputs(
         (staging / sequence_path.name).write_bytes(sequence_bytes)
         (staging / population_path.name).write_bytes(population_bytes)
         (staging / "CHILD_NORMALIZATION_VIEW.json").write_bytes(_json_bytes(view))
+        for name, expected in ((sequence_path.name, sequence_bytes),
+                               (population_path.name, population_bytes),
+                               ("CHILD_NORMALIZATION_VIEW.json", _json_bytes(view))):
+            if _read_json(staging / name, "STAGED_NORMALIZATION_INPUT") != json.loads(expected):
+                raise RuntimeError("PILOT_NORMALIZATION_STAGING_INVALID")
         for path in staging.iterdir():
             with path.open("rb") as handle:
                 os.fsync(handle.fileno())
@@ -1021,7 +1025,7 @@ def build_normalization_inputs(
         _publish_file_noreplace(staging, output)
         _fsync_directory(output.parent)
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        # Preserve failed staging for the exact-target retention owner.
         raise
     return {
         "schema_version": BUNDLE_SCHEMA_VERSION,

@@ -105,6 +105,19 @@ genuin råklokke-authority, ikke normalization-fit eller whole-input-green.
 Fysisk child-M1 krever sin egen eksakte clock/source/manifest-binding gjennom
 samme eier; råforelderens authority kan ikke relabeles på andre byter.
 Ingen henting, periodeendring, imputering eller svekket vakt følger av ruten.
+Pre-normaliseringsrevisjonen fant konkret publiserings-/retention-feil i
+fem kommende eiere: child-lifecycle, M1-visninger, normaliseringsinputs,
+basefit og composite-normalisering. Feil kunne slette staging; to brukte
+replace-capable rename og manglet directory-fsync. Disse call-sites bruker
+nå eksisterende atomisk no-replace-eier, strict-load av staging og fsync,
+og bevarer feilede bytes for retention. Ingen feature/fit-/samplersemantikk
+endret, ingen ekte ny fysisk visning/normalisering er produsert. Kilde- og
+syntetiske publisher-regresjoner er kontrollert; første feilte på gammel
+fixtureforventning om slettet staging, deretter feil fixturefilnavn. Begge
+JUnit-bevis beholdes, ingen produksjonskjøring eller krasj var involvert.
+Siste fokuserte gruppe er101 PASS under audit4G/512M, inkludert8 nye
+source-/publishermekanikk-cases. Eksakte kilde-/JUnit-hasher står i policyens
+pre_normalization_source_review. Ingen whole-suite eller ekte fit-/view-PASS.
 Økonomieieren erklærer fortsatt gross/research-only, ikke produksjonsadgang
 eller netto lønnsomhetsbevis; full kost-/fill-/kapasitetsaksept er ubevist.
 

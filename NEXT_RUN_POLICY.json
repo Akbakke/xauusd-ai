@@ -794,6 +794,58 @@
       },
       "whole_input_or_model_acceptance": false
     },
+    "pre_normalization_source_review": {
+      "decision": "SOURCE_AND_SYNTHETIC_REGRESSION_PASS_NO_REAL_NORMALIZATION",
+      "observed_utc": "2026-10-07T23:41:47Z",
+      "scope": "Five upcoming lifecycle/M1/view/base/composite normalization publishers only; no claim of whole-suite or real physical normalization/view acceptance.",
+      "defect_class": "Failed staging erased outside retention, replace-capable directory rename, absent staging strict-load/directory fsync",
+      "minimal_changes": "Use existing no-replace/fsync owner, strict-load staged JSON/Parquet against owner-built payloads before publication, preserve all failed staging for retention. Feature/fit/sampler semantics unchanged.",
+      "tested_cases": 101,
+      "new_publisher_mechanism_cases": 8,
+      "successful_junit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/GAP_DISPOSITION_001/PRE_NORMALIZATION_PUBLICATION_VERIFIED_TESTS.xml",
+        "sha256": "b2d16c9db4e675a1dfa2da295280b5650b3f10eb906fb4bb05e348bf92836b38"
+      },
+      "reviewed_source_bindings": [
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_unified_exit_lifecycle_v2_pilot_child_v1.py",
+          "sha256": "3ffd9e94247bdc9748266679257294f30da4ec431c0a4e17ce02e62b13bdb490"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_unified_exit_pilot_m1_views_v1.py",
+          "sha256": "5b8d3398446c1c2c90f4ea62e4ec2bcbc4e2dd990201a487986bbcf86cf4b8f2"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_unified_exit_pilot_normalization_inputs_v1.py",
+          "sha256": "16074d83d47fb580112094cc9238f04d9f083b95704ff07a52f42f597754db4f"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_unified_exit_pilot_base_normalization_v1.py",
+          "sha256": "4f09996d678bbce35228e0cc65a165b41fe97d66b1f8ca2a59abdedc19dc8a36"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_unified_exit_pilot_normalization_v1.py",
+          "sha256": "80a93a88efb15b98b6acdf8c94ea1fe081683eec5ecce5b8be4d98f657f7dc9c"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_unified_exit_pilot_normalization_v1.py",
+          "sha256": "6778ad375023468260b68289ed1730bed2104c050440cfa63dc569c6aa6e826a"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/tests/test_materialize_unified_exit_pilot_normalization_inputs_v1.py",
+          "sha256": "ee6fdd7ff52809a14af3217d4231ab7d7b66b732876c98526c94d48649be28cc"
+        }
+      ],
+      "prior_test_failures_preserved": [
+        "PRE_NORMALIZATION_PUBLICATION_TESTS.xml",
+        "PRE_NORMALIZATION_PUBLICATION_REPAIRED_TESTS.xml"
+      ],
+      "failures_were_fixture_staging_deletion_expectation_then_fixture_filename_not_host_or_dataset_crashes": true,
+      "real_fresh_normalization_or_view_admission": false,
+      "heavy_normalization_started": false,
+      "training_started": false,
+      "test_accessed": false
+    },
     "restart_boundary_observation": {
       "observed_utc": "2026-10-07T23:13:02Z",
       "current_heavy_job_and_lock_observed_idle": true,

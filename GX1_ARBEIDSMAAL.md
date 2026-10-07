@@ -55,6 +55,9 @@ uendret, alle kvitteringsbundne prosesser borte og tillatelsen konsumert.
 Råklokke-authority binder5959045 pre-TEST-rader og86915 gap, alle ukjente
 uten kjentstengning/carry.83 fokuserte mekanikk-/witness-tester bestod;
 det er ikke fresh fit eller paritet på kommende fysisk child-M1.
+Fem kommende view-/normaliseringspublisister er rettet for målt kildefeil:
+strict-load, eksisterende no-replace/fsync og bevart staging ved feil. Ingen
+ekte ny normalisering/visning følger av kilde-/syntetiske regresjoner.
 Hele kriterium1/3 og målet er fortsatt ufullført, ingen modellstart.
 Omstart er ikke utført: CURRENT idle/GPU0% er målt, men beskyttede Windows-
 prosesser gjør maskinvid idle-/writer-proof ufullstendig. Ukjent er ikke idle.

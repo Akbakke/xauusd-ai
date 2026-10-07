@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import copy
+import ast
+import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -18,6 +21,61 @@ from gx1.contracts.unified_exit_pilot_normalization_v1 import (
     iter_physical_summary_samples,
     require_lifetime_summary_normalization,
 )
+
+
+@pytest.mark.parametrize('module', [
+    'materialize_unified_exit_lifecycle_v2_pilot_child_v1',
+    'materialize_unified_exit_pilot_m1_views_v1',
+    'materialize_unified_exit_pilot_normalization_inputs_v1',
+    'materialize_unified_exit_pilot_base_normalization_v1',
+    'materialize_unified_exit_pilot_normalization_v1',
+])
+def test_pre_normalization_publishers_have_no_destructive_staging_cleanup(module):
+    """Source proof only; this does not measure real normalization or views."""
+    path = Path(__file__).resolve().parents[1] / 'gx1' / 'scripts' / (module + '.py')
+    tree = ast.parse(path.read_text())
+    forbidden = [node.func.attr for node in ast.walk(tree)
+                 if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                 and node.func.attr in {'rmtree', 'rename', 'replace', 'unlink'}]
+    assert forbidden == []
+
+
+def test_normalization_publisher_strict_loads_before_atomic_publication(tmp_path, monkeypatch):
+    from gx1.scripts import materialize_unified_exit_pilot_normalization_v1 as owner
+    bundle = {'first_state_entry_bridge': {'train': {'split': 'train'}}, 'bundle_sha256': 'a' * 64}
+    monkeypatch.setattr(owner, 'build_bundle', lambda **_: bundle)
+    output = tmp_path / 'published'
+    owner.materialize(recipe_path=tmp_path / 'unused.json', output_dir=output, publish=True)
+    assert json.loads((output / 'TRAIN_NORMALIZATION_BUNDLE.json').read_text()) == bundle
+    assert json.loads((output / 'FIRST_STATE_ENTRY_BRIDGE_TRAIN.json').read_text()) == {'split': 'train'}
+
+
+@pytest.mark.parametrize('failure', ['corrupt-json', 'destination-race'])
+def test_normalization_publisher_keeps_failed_staging_and_existing_destination(tmp_path, monkeypatch, failure):
+    from gx1.scripts import materialize_unified_exit_pilot_normalization_v1 as owner
+    bundle = {'first_state_entry_bridge': {}, 'bundle_sha256': 'a' * 64}
+    monkeypatch.setattr(owner, 'build_bundle', lambda **_: bundle)
+    output = tmp_path / 'published'
+    if failure == 'corrupt-json':
+        monkeypatch.setattr(owner, '_json_bytes', lambda _: b'{invalid')
+        expected = json.JSONDecodeError
+    else:
+        original_publish = owner._publish_file_noreplace
+        def race(source, destination):
+            destination.mkdir()
+            (destination / 'existing.txt').write_text('keep')
+            original_publish(source, destination)
+        monkeypatch.setattr(owner, '_publish_file_noreplace', race)
+        expected = RuntimeError
+    with pytest.raises(expected):
+        owner.materialize(recipe_path=tmp_path / 'unused.json', output_dir=output, publish=True)
+    stages = list(tmp_path.glob('.published.staging.*'))
+    assert len(stages) == 1
+    assert (stages[0] / 'TRAIN_NORMALIZATION_BUNDLE.json').exists()
+    if failure == 'destination-race':
+        assert (output / 'existing.txt').read_text() == 'keep'
+    else:
+        assert not output.exists()
 
 
 def test_benchmark_candidates_are_explicit_and_unselected() -> None:

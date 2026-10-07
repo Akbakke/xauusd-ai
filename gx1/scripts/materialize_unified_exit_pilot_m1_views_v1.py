@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Sequence
@@ -188,6 +187,9 @@ def build_views(
             manifests[split]["output_parquet_sha256"] = _sha(parquet_path)
             manifests[split]["manifest_payload_sha256"] = _canonical(manifests[split])
             (staging / f"{split}.manifest.json").write_text(json.dumps(manifests[split], sort_keys=True, indent=2, allow_nan=False) + "\n")
+            if (not pq.read_table(parquet_path).equals(table, check_metadata=True)
+                    or json.loads((staging / f"{split}.manifest.json").read_text()) != manifests[split]):
+                raise RuntimeError("PILOT_M1_VIEW_STAGING_INVALID")
         root = {
             "schema_version": ROOT_SCHEMA_VERSION,
             "decision": "PASS",
@@ -211,6 +213,8 @@ def build_views(
         }
         root["root_sha256"] = _canonical(root)
         (staging / "M1_CHILD_VIEW_ROOT.json").write_text(json.dumps(root, sort_keys=True, indent=2, allow_nan=False) + "\n")
+        if json.loads((staging / "M1_CHILD_VIEW_ROOT.json").read_text()) != root:
+            raise RuntimeError("PILOT_M1_VIEW_STAGING_ROOT_INVALID")
         for artifact in staging.iterdir():
             with artifact.open("rb") as handle:
                 os.fsync(handle.fileno())
@@ -218,7 +222,7 @@ def build_views(
         _rename_noreplace(staging, output_root)
         _fsync_directory(output_root.parent)
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        # Preserve failed staging for the exact-target retention owner.
         raise
     return {"mode": "publish", "decision": "PASS", "published": True, "output_root": str(output_root), "root": root}
 

@@ -468,7 +468,12 @@ def test_view_binds_registry_and_publishes_without_replacing_existing_output(
             build_normalization_inputs(**arguments)
         assert output.stat().st_ino == winner_inode[0]
         assert list(output.iterdir()) == []
-        assert list(output.parent.iterdir()) == [output]
+        stages = list(output.parent.glob('.NORMALIZATION_INPUTS.staging.*'))
+        assert len(stages) == 1  # Failure evidence is retained, not erased by this publisher.
+        assert {path.name for path in stages[0].iterdir()} == {
+            'CHILD_NORMALIZATION_VIEW.json', 'CHILD_TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json',
+            'TRAIN_NORMALIZATION_POPULATION_WITNESS.json',
+        }
         return
     report = build_normalization_inputs(**arguments)
     if mode == "publish":

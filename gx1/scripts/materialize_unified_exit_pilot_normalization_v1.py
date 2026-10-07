@@ -12,9 +12,9 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import tempfile
 from pathlib import Path
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 from typing import Any, Mapping, Sequence
 
 import numpy as np
@@ -223,12 +223,19 @@ def materialize(*, recipe_path: Path, output_dir: Path, publish: bool) -> dict[s
         (staging / "TRAIN_NORMALIZATION_BUNDLE.json").write_bytes(_json_bytes(bundle))
         for split, witness in bundle["first_state_entry_bridge"].items():
             (staging / f"FIRST_STATE_ENTRY_BRIDGE_{split.upper()}.json").write_bytes(_json_bytes(witness))
+        for name, payload in (("TRAIN_NORMALIZATION_BUNDLE.json", bundle),
+                              *((f"FIRST_STATE_ENTRY_BRIDGE_{split.upper()}.json", witness)
+                                for split, witness in bundle["first_state_entry_bridge"].items())):
+            if json.loads((staging / name).read_bytes()) != json.loads(_json_bytes(payload)):
+                raise RuntimeError("PILOT_TRAIN_NORMALIZATION_STAGING_INVALID")
         for path in staging.iterdir():
             with path.open("rb") as handle:
                 os.fsync(handle.fileno())
-        os.rename(staging, output_dir)
+        _fsync_directory(staging)
+        _publish_file_noreplace(staging, output_dir)
+        _fsync_directory(output_dir.parent)
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        # Preserve failed staging for the exact-target retention owner.
         raise
     return {"mode": "publish", "published": True, "output_dir": str(output_dir), "bundle_sha256": bundle["bundle_sha256"]}
 

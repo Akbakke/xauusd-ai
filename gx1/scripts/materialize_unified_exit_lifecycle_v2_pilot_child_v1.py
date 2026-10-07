@@ -6,13 +6,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 from gx1.contracts.unified_exit_lifecycle_v2 import (
     UNIFIED_EXIT_CHUNK_ROWS,
     unified_exit_lifecycle_v2_contract,
@@ -311,6 +311,12 @@ def materialize_pilot_child_lifecycle_v2(
                 json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False).encode()
                 + b"\n"
             )
+            if json.loads(manifest_path.read_text()) != json.loads(json.dumps(manifest, allow_nan=False)):
+                raise RuntimeError("PILOT_COMPACT_STAGING_MANIFEST_INVALID")
+            staged_frame = pd.read_parquet(parquet)
+            pd.testing.assert_frame_equal(staged_frame, frame)
+            if _compact_pointer_stream_sha256(staged_frame) != manifest["compact_pointer_stream_sha256"]:
+                raise RuntimeError("PILOT_COMPACT_STAGING_POINTERS_INVALID")
             root_manifest["split_manifests"][split].update(
                 {
                     "manifest": manifest_path.name,
@@ -330,9 +336,16 @@ def materialize_pilot_child_lifecycle_v2(
             json.dumps(root_manifest, indent=2, sort_keys=True, allow_nan=False).encode()
             + b"\n"
         )
-        os.rename(staging, output)
+        if json.loads((staging / "UNIFIED_EXIT_LIFECYCLE_V2_MANIFEST.json").read_text()) != json.loads(json.dumps(root_manifest, allow_nan=False)):
+            raise RuntimeError("PILOT_COMPACT_STAGING_ROOT_INVALID")
+        for artifact in staging.iterdir():
+            with artifact.open("rb") as handle:
+                os.fsync(handle.fileno())
+        _fsync_directory(staging)
+        _publish_file_noreplace(staging, output)
+        _fsync_directory(output.parent)
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        # Failed bytes belong to the retention owner; never erase evidence here.
         raise
     return {
         "mode": "publish",
