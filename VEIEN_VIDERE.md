@@ -34,21 +34,28 @@ ingen ny timeplan er opprettet. Nytt M1/før-smoke-appmål er genuint aktivert;
 GC-arbeidet i repo/policy bevares på pause. COMPLETE_M1_001 er separat bundet
 til eksisterende capped materializer, eksakt ny output og opprinnelig
 deadline23:44:34 UTC. Eieren er nå genuint fullført22:27:57 UTC, 5523147
-rader, kilde uendret; tillatelsen er konsumert. INPUT_VALIDATION_001 feilet
-kontrollert22:49:53 UTC på diagnosekodens kalender/emission-grensesammenligning,
-ikke på et påvist data- eller hostkrasj. Originale kilder/kvitteringer bevares,
-claimen er konsumert. Ny INPUT_VALIDATION_002 korrigerer kun dette predikatet;
-seks fokuserte syntetiske grensetester er PASS. Den binder separat deknings-
-diagnose, uavhengig M1-oracle og normal GREEN-core post-readiness, ikke recovery.
-Core-liveness/pretrain/overlap er allerede genuine PASS og gjenbrukes bare
-for identiske bytes og kanonisk eieraksept. Ingen diagnose eller M1-exit0
-erstatter normalisering/fysiske visninger eller sampler-/smoke-portene.
-Tidsforhåndskontrollen finner null interne manglende
-alignment-rader etter owner-price-warmup. Ren committet kilde og eksakt
-input-byte-revalidering kreves ved launch; START/PROCESS/TERMINAL/RESULT
-avgjør faktisk fremdrift. Ingen input-green eller smoke følger av bindingen.
-M1-terminalens CURRENT-slot er ledig og GPU0%, men beskyttede Windows-
-prosesser er uklassifiserte: ikke dokumentert maskinvid idle, ingen omstart nå.
+rader, kilde uendret; tillatelsen er konsumert. Ny INPUT_VALIDATION_002
+er genuint fullført23:09:24 UTC, tre capped-faser exit0, kilde2c3d7b82 uendret.
+Dekningsdiagnose2080 råsvar, M1-oracle og normal GREEN-core post-readiness er
+bestått underporter. M1 mangler0 faktiske TRAIN/VAL-fill-/quote-feature-rader;
+alle392143437 aliaspar er bit-identiske.001-feilen og missing TEST-vitne
+beholdes uendret; ny002 har eksplisitte flags og konsumert launch-tillatelse.
+
+Nå: bind sannferdig unknown-gap/right-censor-disposisjon før fersk whole-
+TRAIN-normalisering og M1/M5/MTF-visninger/Entry-Exit-bro.335473 TRAIN-/
+4696 VAL-eksklusjoner overlapper minutters fravær i lagrede råsvar utenfor
+deklarert ukefilter; historisk vedlikeholds-/holiday-/providerårsak er ukjent.
+Fullpopulasjons review forklarer kildepredikat/år/sesjon/featuremomenter og
+viser sesjonsskjev seleksjon, ikke tilfeldig fravær eller lønnsomhet.
+Ingen kalender gjettes fra hullform eller kopieres fra gammel inferred-fit.
+Eksisterende closure-eier har en testet observed_m1_clock_all_gaps_unknown_v1-
+rute med eksakt faktisk klokkehash/coverage og ingen erklærte stengninger.
+GAP_DISPOSITION_001 er separat bundet før claim; runtime-kvitteringer, ikke
+plan/kode alene, må bevise faktisk publisering.83 fokuserte tester PASS.
+Deretter retention/nektelse og ny finite sampler-/smoke-plan; ingen modell
+er startet/åpnet. Original deadline23:44:34 UTC består uten fornyelse.
+Ved terminal er CURRENT idle, men Windows2648/2704 fortsatt uklassifisert:
+ingen maskinvid idle-proof eller fysisk omstart.
 
 Omstartspunkter er etter ferdig core, etter COMPLETE_M1, etter godkjent
 input/readiness og etter normalisering/visninger før native GPU-adgang.

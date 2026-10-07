@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-07T23:00:52Z",
-  "status": "V38_M1_COMPLETE_VALIDATION_DIAGNOSTIC_BOUNDARY_FIX_BOUND_GC_PAUSED",
+  "observed_utc": "2026-10-07T23:30:12Z",
+  "status": "V38_M1_ORACLE_AND_READINESS_COMPLETE_GAP_DISPOSITION_AND_NORMALIZATION_PENDING_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator requests complete M1 and all observed pre-smoke adjustments after the successful Oct7 core terminal. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. INPUT_BUILD_001 has unknown old exit/terminal after physical crash; INPUT_BUILD_002 is genuinely successful core-only and its one-shot authority is consumed. Preserve immutable runtime copies/receipts and verified completed same-generation bytes, never relaunch either attempt or consume old Oct1 normalization/models. The original common 64800s deadline remains binding; each next stage needs a separately source/input/output/budget-bound existing owner. Complete M1, label-coverage/selection review, independent input oracle and post-readiness remain mandatory before fresh normalization and future smoke admission. Do not silently accept unexplained exclusions, impute quotes/labels, change periods or call a diagnostic input acceptance. Reboot only at verified idle terminal phase boundaries, never interrupt active jobs. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
-  "next_action": "INPUT_VALIDATION_001 genuinely failed with exit1 at22:49:53 UTC on a diagnostic calendar/emission-end confusion; source unchanged, supervised processes absent, all original source/plans/receipts retained. Core and COMPLETE_M1_001 remain successful and are never relaunched. Separately bound INPUT_VALIDATION_002 corrects only that diagnostic predicate: compare frozen split calendar to project and last actual native M5 bar to the exact builder strict-before source-clock rule. Six focused synthetic boundary regressions pass; genuine coverage/oracle/readiness still pending. Commit/check/push clean source and bind exact controls before serial capped launch. Same original deadline23:44:34 UTC, no renewed budget. No normalization, smoke, model training, TEST payload, GC/broker/downloads, cleanup or physical reboot from this binding. Whole-TRAIN normalization/views/parity and future sampler/smoke remain required; unknown raw-source gaps never become guessed market closures.",
+  "next_action": "INPUT_VALIDATION_002 genuinely completed23:09:24 UTC exit0, source2c3d7b82 unchanged. Full2080-chunk coverage/selection diagnosis, complete-M1 independent oracle and canonical GREEN-core readiness succeeded; all consumed permissions closed. M1:5523147 rows,392143437 bit-identical alias pairs, all frozen physical quote/fill rows covered. Coverage proves335473 TRAIN/4696 VAL exclusions overlap missing stored response minutes outside the declared weekly filter, not their provider/daily/holiday root causes. Bind conservative existing unknown-gap right-censor disposition without guessing calendars before fresh whole-physical-TRAIN normalization, exact M1/M5/MTF views/bridge parity, retention or explicit refusal and new finite sampler/smoke planning. The existing closure owner now supports exact observed-clock-only provenance with no declared closures and all gaps unknown/right-censored;83 focused synthetic/witness tests passed. Separately bind/consume GAP_DISPOSITION_001 actual immutable authority/result/terminal before fresh normalization. No calendar inference or unknown-gap carry. No model launch/TEST/GC/broker/downloads/deletion. Original deadline23:44:34 UTC unchanged. CURRENT is idle, but protected Windows2648/2704 remain unclassified; no machine-wide safe reboot proof or host restart.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -101,16 +101,16 @@
       "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
-    "latest_terminal_role": "Genuine failed INPUT_VALIDATION_001 terminal, exit1 with unchanged source. A diagnostic boundary predicate failed; no oracle/readiness result was produced. Prior successful core and M1 receipts remain independently bound, but no whole-input or model admission follows.",
+    "latest_terminal_role": "Genuine successful INPUT_VALIDATION_002 terminal with unchanged source and explicit TEST-unused witness. Complete M1 and core readiness subgates only; fresh normalization, physical view/bridge parity, unknown-gap disposition, retention and new sampler/smoke bindings remain required. No whole-input or model admission.",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_001/TERMINAL.json",
-      "sha256": "ca9fe01bff8252f1b628bc1cbc46a55c1aa0e70e3f1c4fed4f2058b439a18dd9"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_002/TERMINAL.json",
+      "sha256": "2a0b877432ed8a5008eae2ec41c7b9729338f573ed42523e34e334a4339503f8"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "termination": "M1 genuinely completed22:27:57 UTC with5523147 rows. INPUT_VALIDATION_001 ran22:46:21-22:49:53 UTC then stopped exit1 in LABEL_COVERAGE: last actual bar was incorrectly compared to frozen calendar end. No host reboot or OOM indicated by this trace. Source373ebe4f unchanged, supervisor178196/timeout178245 absent and CURRENT idle. Failed attempt/source/output evidence retained, no same-claim relaunch. New002 binding does not prove a new launch or successful coverage.",
+    "termination": "INPUT_VALIDATION_002 ran23:02:00-23:09:24 UTC and completed all3 capped serial validations exit0, source2c3d7b82 unchanged and all receipt-bound processes absent. Fresh RESULT binds coverage49759efc/M1oraclefcb32eaa/readinessbe2b462c. No normalization, native model work, cleanup, download or host reboot. Older001 failed terminal/source preserved unchanged with its missing TEST receipt flag; no fabricated fields or relaunch.",
     "full_benchmark_completed": false,
     "sampler_selected": false,
     "native_component_preparation_authorized": false,
@@ -477,7 +477,7 @@
     "native_training_enabled": false
   },
   "native_v38_rebuild_20261007": {
-    "status": "M1_COMPLETE_DIAGNOSTIC_BOUNDARY_FAILURE_PRESERVED_CORRECTED_VALIDATION_BOUND_NO_MODEL_ADMISSION",
+    "status": "M1_ORACLE_AND_CORE_READINESS_COMPLETE_EXPLICIT_UNKNOWN_GAP_DISPOSITION_AND_FRESH_NORMALIZATION_PENDING",
     "runtime_plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/PLAN.json", "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"},
     "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/launch_inputs.py", "sha256": "8f6abe9314b562b4463af3bbd93a4f48fa3a57fda3dd6133249bc097100005ca"},
     "prior_attempt": {
@@ -503,17 +503,62 @@
     "core_terminal": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/CORE_CHAIN.TERMINAL.json", "sha256": "3170b32ebd4ac7e7a0e1412c49f912ef6b8e614b39da565c5aa36d2643ac2999"},
     "core_result": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/RESULT.json", "sha256": "83550ce57a8122c9bf7fbe6280ee3d1d73671f645d7b4a5c84f2953c627bec48"},
     "postbuild_review": {
-      "specialist_audit": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20261007T193848376047Z.json", "sha256": "8f1d41500a658d7811a1f57cf4147fd87f391bd1ddd3c3e9d8f557ebe4a24561"},
-      "train_sequence_source_audit": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_TRAIN.json", "sha256": "8745c8f021debca51f4bde7324e3d02a11112a59e5534f85f7cf2b0b97c687e9"},
-      "val_sequence_source_audit": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_VAL.json", "sha256": "633197030ddf39b2f7393dd4677839bf9664a712e80a7574dd28211a51cc6650"},
-      "m1_label_clock_diagnostic": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/M1_LABEL_CLOCK_COVERAGE.json", "sha256": "89ad1a96fc8f02a115acd9e572566f61b3103348c5b4759cd416fa5453f94146"},
+      "specialist_audit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_20261007T193848376047Z.json",
+        "sha256": "8f1d41500a658d7811a1f57cf4147fd87f391bd1ddd3c3e9d8f557ebe4a24561"
+      },
+      "train_sequence_source_audit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_TRAIN.json",
+        "sha256": "8745c8f021debca51f4bde7324e3d02a11112a59e5534f85f7cf2b0b97c687e9"
+      },
+      "val_sequence_source_audit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_VAL.json",
+        "sha256": "633197030ddf39b2f7393dd4677839bf9664a712e80a7574dd28211a51cc6650"
+      },
+      "m1_label_clock_diagnostic": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/POSTBUILD_REVIEW_001/M1_LABEL_CLOCK_COVERAGE.json",
+        "sha256": "89ad1a96fc8f02a115acd9e572566f61b3103348c5b4759cd416fa5453f94146"
+      },
       "diagnostic_is_input_acceptance": false,
       "core_train_rows": 652552,
       "core_development_val_rows": 70880,
-      "label_time_exclusion_counts": {"train": {"excluded": 341872, "candidates": 994500}, "val": {"excluded": 5756, "candidates": 76692}},
+      "label_time_exclusion_counts": {
+        "train": {
+          "excluded": 341872,
+          "candidates": 994500
+        },
+        "val": {
+          "excluded": 5756,
+          "candidates": 76692
+        }
+      },
       "complete_alignment_recovers_additional_time_valid_candidates": false,
-      "gap_cause_and_selection_review_complete": false,
-      "checks_reusable_only_for_unchanged_exact_bindings": true
+      "gap_cause_and_selection_review_complete": true,
+      "checks_reusable_only_for_unchanged_exact_bindings": true,
+      "coverage_selection_diagnostic": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LABEL_COVERAGE_REVIEW_002/COVERAGE_SELECTION.json",
+        "sha256": "49759efc776eb1a13ffa77a88b50a5e8ebaeb8166b1f1108943df482f2184f47"
+      },
+      "review_scope": "Full frozen candidate/emitted populations,2080 stored raw responses, source weekly-filter and exact horizon/boundary exclusion partitions, year/session counts and all254 actual input-field population moments. Unknown historical root causes are retained explicitly.",
+      "outside_weekly_source_absence_root_causes_resolved": false,
+      "source_absence_is_market_closure_proof": false,
+      "market_calendar_guessing_or_source_imputation_allowed": false,
+      "unknown_gap_disposition_required_before_smoke": true,
+      "measured_exclusion_partitions": {
+        "train": {
+          "source_or_boundary": 0,
+          "weekly_filter_only": 6399,
+          "overlaps_unknown_response_absence": 335473,
+          "aux_after_valid_label": 76
+        },
+        "val": {
+          "source_or_boundary": 20,
+          "weekly_filter_only": 1040,
+          "overlaps_unknown_response_absence": 4696,
+          "aux_after_valid_label": 56
+        }
+      },
+      "selection_observation": "Nonuniform session selection: TRAIN session0 share37.5153% candidate->31.9483% emitted; session2 17.4305%->24.9396%. 2015:45169/45480 label exclusions overlap outside-weekly response absence. No random-missingness, closure-root-cause, model-quality or profitability claim."
     },
     "pre_smoke_progress": {
       "project_goal_requested": true,
@@ -521,9 +566,9 @@
       "new_heavy_stage_bound": true,
       "new_heavy_stage_started": true,
       "complete_m1_complete": true,
-      "label_coverage_review_complete": false,
-      "complete_input_oracle_complete": false,
-      "post_rebuild_readiness_complete": false,
+      "label_coverage_review_complete": true,
+      "complete_input_oracle_complete": true,
+      "post_rebuild_readiness_complete": true,
       "fresh_whole_train_normalization_complete": false,
       "physical_view_and_entry_exit_parity_complete": false,
       "new_sampler_smoke_plan_bound": false,
@@ -533,7 +578,7 @@
       "stage_id": "COMPLETE_M1_001",
       "status_at_binding": "BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS",
       "authorized": false,
-      "current_status": "GENUINE_OWNER_TERMINAL_SUCCESS_PERMISSION_CONSUMED_ORACLE_PENDING",
+      "current_status": "GENUINE_COMPLETE_M1_ORACLE_PASS_PHYSICAL_NORMALIZED_VIEWS_PENDING",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_M1_001",
       "plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_M1_001/PLAN.json", "sha256": "1b25f093abadc5415d37f5a4292a510c75bebb75d220faffbb3402b9dcb17053"},
       "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_M1_001/launch_m1.py", "sha256": "8c0cfd85edc4053ce06e9646aeb30d1560ca0577465109e263c706085b8ea007"},
@@ -543,7 +588,7 @@
       "feature_manifest": {"path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_M1/m1_feature_base.parquet.manifest.json", "sha256": "7a71db4f02b74bd7c204e24dc6bd1aa509942e7434c760dded2e821fb1ba76bc"},
       "feature_parquet_sha256": "fad9b4997b8fe3d7d228b1c11cd33747f226423affbf3dbca7585b06f0da7636",
       "owner_emitted_rows": 5523147,
-      "independent_oracle_accepted": false,
+      "independent_oracle_accepted": true,
       "preflight_missing_alignment_rows_inside_source_span": 0,
       "preflight_alignment_rows_after_owner_price_warmup": 5523147,
       "preflight_is_complete_input_acceptance": false,
@@ -594,7 +639,7 @@
       "no_oracle_or_readiness_published": true
     },
     "label_coverage_stage": {
-      "authorized": true,
+      "authorized": false,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LABEL_COVERAGE_REVIEW_002/PLAN.json",
         "sha256": "cedb4f1e1ab79298c360305ea70f4009fd42d3e9f55e3a0e6280838c804df4ae"
@@ -608,10 +653,15 @@
       "relaunch_allowed": false,
       "stage_id": "LABEL_COVERAGE_REVIEW_002",
       "observed_boundary_defect_only": true,
-      "synthetic_boundary_regression_passed": 6
+      "synthetic_boundary_regression_passed": 6,
+      "current_status": "GENUINE_FULL_POPULATION_DIAGNOSTIC_COMPLETE_PERMISSION_CONSUMED",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LABEL_COVERAGE_REVIEW_002/COVERAGE_SELECTION.json",
+        "sha256": "49759efc776eb1a13ffa77a88b50a5e8ebaeb8166b1f1108943df482f2184f47"
+      }
     },
     "complete_input_oracle_stage": {
-      "authorized": true,
+      "authorized": false,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_INPUT_ORACLE_002/PLAN.json",
         "sha256": "6fe45746c8a1f7e7c3678a77926ca3d8b90f600b8438e7a8d75a784cabbb6cc4"
@@ -623,12 +673,17 @@
       "resource_owner": "scripts/gx1_capped_run.sh audit4G/512M; whole clock/field/alias/quote/fill population",
       "whole_input_or_model_admission_by_subgate": false,
       "relaunch_allowed": false,
-      "stage_id": "COMPLETE_INPUT_ORACLE_002"
+      "stage_id": "COMPLETE_INPUT_ORACLE_002",
+      "current_status": "GENUINE_COMPLETE_M1_SUBGATE_PASS_PERMISSION_CONSUMED",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_INPUT_ORACLE_002/COMPLETE_M1_ORACLE.json",
+        "sha256": "fcb32eaa897f287f19e562d39f9a0e6980b92fd416fd3ae34f6a21f4908743b3"
+      }
     },
     "input_validation_stage": {
       "stage_id": "INPUT_VALIDATION_002",
       "status_at_binding": "BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS",
-      "authorized": true,
+      "authorized": false,
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_002",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_002/PLAN.json",
@@ -651,21 +706,79 @@
       "native_training_started": false,
       "automatic_host_restart": false,
       "corrected_attempt_only_after_genuine_prior_failure": true,
-      "preclaim_explicit_test_receipt_fields": true
+      "preclaim_explicit_test_receipt_fields": true,
+      "current_status": "GENUINE_TERMINAL_SUCCESS_SUBGATES_COMPLETE_PERMISSION_CONSUMED",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_002/TERMINAL.json",
+        "sha256": "2a0b877432ed8a5008eae2ec41c7b9729338f573ed42523e34e334a4339503f8"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_002/RESULT.json",
+        "sha256": "fd009287d9d6c14da1aa556f24552c14052ad010b1e8e273f3c1df2fa76dc462"
+      }
+    },
+    "gap_disposition_stage": {
+      "stage_id": "GAP_DISPOSITION_001",
+      "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/GAP_DISPOSITION_001",
+      "status_at_binding": "BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS",
+      "authorized": true,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/GAP_DISPOSITION_001/PLAN.json",
+        "sha256": "462a589abee74a3782d305f834fc043b77d65d06e1447825fc2f6de36939c4ba"
+      },
+      "producer_plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/GAP_DISPOSITION_001/PRODUCER_PLAN.json",
+        "sha256": "7062809a5e1ce7ad76b8e55685322bd6b92c37770e320279ea52c2c936ea0917"
+      },
+      "producer": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/GAP_DISPOSITION_001/produce_unknown_gaps.py",
+        "sha256": "9a9d6a2cc554b94d6add26a93c96b06ead69336ae167b42c5aecb13568e02816"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/GAP_DISPOSITION_001/launch_gap_disposition.py",
+        "sha256": "c45fe2307143d4f7191329b9b90331688c8353b7be4965d12abfc85165b8ea83"
+      },
+      "source_method": "observed_m1_clock_all_gaps_unknown_v1",
+      "source_method_owner": "gx1.contracts.unified_exit_market_closure_authority_v1.UNKNOWN_GAPS_ONLY_SOURCE_METHOD",
+      "actual_source_clock_reference_required": true,
+      "declared_market_closure_intervals_allowed": false,
+      "inference_from_gap_shape_allowed": false,
+      "known_market_closure_count_must_be_zero": true,
+      "unknown_gap_semantics": "right_censor_before_gap",
+      "whole_train_population_or_periods_changed": false,
+      "output_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/GAP_DISPOSITION_001",
+      "resource_owner": "Existing audit4G/512M CURRENT lock, CPU0-7 and one numerical thread; no GPU",
+      "common_build_deadline_utc": "2026-10-07T23:44:34.296381+00:00",
+      "budget_renewed": false,
+      "relaunch_allowed": false,
+      "normalization_fit_started": false,
+      "native_training_started": false,
+      "automatic_host_restart": false,
+      "cleanup_started": false
+    },
+    "post_rebuild_readiness_stage": {
+      "accepted_existing_owner_subgate": true,
+      "result": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN_RECOVERY_001/post_rebuild_readiness_002/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20261007T230924465276Z.json",
+        "sha256": "be2b462c36f1f264fc988b1e1bfddbc1442b15acb9ef67feb84936671f55b37d"
+      },
+      "whole_input_or_model_acceptance": false
     },
     "restart_boundary_observation": {
-      "observed_utc": "2026-10-07T22:29:13Z",
+      "observed_utc": "2026-10-07T23:13:02Z",
       "current_heavy_job_and_lock_observed_idle": true,
-      "gpu_utilization_percent": 0,
-      "protected_windows_processes_not_classified": [2648, 2704],
+      "protected_windows_processes_not_classified": [
+        2648,
+        2704
+      ],
       "machine_wide_idle_writer_proof_complete": false,
       "physical_reboot_executed": false,
       "reason": "Read-only CIM/GPU inventory cannot classify protected processes. No ACL/elevation bypass, unknown-job stop or false safe-reboot claim. CPU admission still uses the unchanged existing available-memory/cgroup/lock owner."
     },
-    "progress_owner": "Immutable core/M1 receipts own completed stages. Failed INPUT_VALIDATION_001 terminal owns its consumed failed claim; corrected INPUT_VALIDATION_002 START/PROCESS/TERMINAL/RESULT owns any new serial validation. Source, PID, boot-ID and proc-startticks are required. No planned binding, diagnostic or M1 owner success substitutes for complete input/normalization/model admission.",
+    "progress_owner": "Genuine immutable core/M1/INPUT_VALIDATION_002 receipts bind completed input subgates. Failed001 remains consumed history, never edited or relaunched. Next gap-disposition/normalization/view stages require fresh exact source/input/output finite admission; no such heavy launch has occurred. Whole input, model parity and readiness remain incomplete.",
     "recovery_core_only": true,
     "whole_input_build_complete": false,
-    "mandatory_next_stages": ["LABEL_COVERAGE_REVIEW", "COMPLETE_INPUT_ORACLE", "POST_REBUILD_READINESS"],
+    "mandatory_next_stages": ["EXPLICIT_UNKNOWN_GAP_DISPOSITION", "NORMALIZATION_AND_PHYSICAL_VIEWS", "RETENTION_AND_BOUNDED_SMOKE_BINDING"],
     "common_build_deadline_utc": "2026-10-07T23:44:34.296381+00:00",
     "automatic_host_restart": false,
     "crash_cause": "Windows System event1001 confirms bugcheck 0xA (unexpected shutdown 12:39:01 Europe/Oslo, boot12:40); ntoskrnl.exe event attribution is not the root cause. Minidump100726-12000-01.dmp was not readable at current permissions. Driver/hardware root cause and causal link to GX1 remain unproven. No BIOS/driver/memory change or ACL bypass.",

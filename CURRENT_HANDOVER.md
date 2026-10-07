@@ -17,52 +17,50 @@ plan utvides, uten å mutere de konsumerte runtime-kopiene/kvitteringene.
 Ingen treningsjobb kjører eller er startet av den nye bestillingen.
 INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
-er ikke fullført. Nyest gjeldende terminal er den genuint feilede
-INPUT_VALIDATION_001-kontrollen nedenfor; core-beviset beholdes. Ingen core-relaunch.
-COMPLETE_M1_001 er genuint fullført 07.10 kl.22:27:57 UTC (08.10 kl.00:27 Oslo),
-exit0, 5523147 rader, uendret0c9fceb2-kilde gjennom87 minutter. Både eier og
-supervisor har ekte terminal/RESULT; tillatelsen er konsumert, ingen relaunch.
-PIDs149027/149085/149104 er borte på samme boot. Manifest7a71db4f og
-parquetfad9b499 er produsentbundet; full byte-/alias-/clock-oracle gjenstår.
-INPUT_VALIDATION_001 startet22:46:21 og stoppet genuint22:49:53 UTC, exit1,
-kilde373ebe4f uendret. Diagnosekoden forvekslet kalenderenden med faktisk
-siste M5-bar (TRAIN fredag20:55, kalender lørdag23:59:59). Dette er ikke et
-påvist datasett- eller hostkrasj. Alle originale bytes/kvitteringer er bevart;
-claimen relanseres aldri. Ny INPUT_VALIDATION_002 retter kun denne predikat-
-feilen: fryst splittkalender kontrolleres separat, faktisk emission_end
-replikerer bygge-eierens searchsorted(boundary,left)-1. Seks fokuserte
-syntetiske grensetester består; genuine dekningsresultater/oracle/readiness
-foreligger ikke ennå. Ny002 binder de samme tre capped-fasene separat.
-Ren committet/pushet kilde og eksakte kontroller kreves før ny start;
-START/PROCESS/TERMINAL eier faktisk aktivitet.
-Feilterminalen001 mangler test_data_used; originalen endres aldri. Status-
-eieren viser den genuine feilen med eksplisitt manglende TEST-vitne og
-BLOCKED native-adgang, aldri oppfunnet false eller eldre grønne som fallback.
-Ny002 får eksplisitte TEST-felt før claim. Fire nye fokuserte regresjoner
-består: failed-observation uten native-throughpass og uendret success-vakt.
-Samlet57 fokuserte status-/grensetester er PASS (syntetisk kontraktbevis),
-JUnit INPUT_VALIDATION_002/PRECLAIM_RECEIPT_SCHEMA_TESTS.xml. Ingen ny START
-er claimet før ren committet kilde og oppdaterte preclaim-bindinger.
-Samme opprinnelige deadline23:44:34 UTC, ingen nytt18h-budsjett. Normalisering,
-modellsmoke og stor trening er ikke startet. Kildeendring etter terminal
-påvirker ikke identiteten til de immutabelt bundne ferdige bytene.
+er ikke fullført. Gjeldende terminal er nå INPUT_VALIDATION_002 exit0,
+07.10 kl.23:09:24 UTC (08.10 kl.01:09 Oslo). Kilde2c3d7b82 var uendret
+gjennom hele kjøringen; alle kvitteringsbundne prosesser er borte.
+COMPLETE_M1_001 er genuint fullført22:27:57 UTC,5523147 rader, ingen relaunch.
+Ny komplett-M1-oracle skannet hver feature-rad, alle254 felt/åtte eiere,
+392143437 bit-identiske aliaspar. Hele pre-TEST-klokken etter målt warmup
+er eksakt bevart; alle4884164 TRAIN-/382266 VAL-quote-rader og samtlige
+652552/70880 faktiske Entry-fill-klokker har M1-features. Noe M5-bar-start
+mangler en faktisk M1-quote (1986/278); det er separat fra fill t+300 og
+forfalskes ikke. Normaliserte fysiske visninger/Entry-Exit-bro gjenstår.
+
+INPUT_VALIDATION_001 feilet22:49:53 UTC i diagnosekodens kalender/emission-
+sammenligning. Original kilde/plan/terminal og manglende TEST-felt beholdes
+uendret; claimen er konsumert. Status-eieren viser manglende vitne eksplisitt
+og blokkerer native-adgang. Ny002 rettet kun diagnosegrensen og fikk
+eksplisitte kvitteringsfelt før claim;57 fokuserte kontrakt-/grensetester
+bestod. Begge preclaim-bindingene er bevart, ikke produsert som runtime-bevis.
+
+Ny002 har genuine exit0 for tre serialiserte capped-faser:
+dekningsdiagnose23:05:48 → M1-oracle23:07:23 → kanonisk post-readiness23:09:24.
+RESULTfd009287/TERMINAL2a0b8774 binder COVERAGE49759efc, ORACLEfcb32eaa og
+READINESSbe2b462c. Hver engangstillatelse er konsumert. Dette er fullførte
+input-underporter, aldri whole-input/model GREEN eller smoke-launch.
+Fersk whole-TRAIN-normalisering, ukjent-gap-disposisjon, M1/M5/MTF-visninger/
+broparitet, retention/nektelse og ny finite sampler-/smoke-binding gjenstår.
+Ingen normalisering, modell, henting, sletting eller omstart er startet.
+Opprinnelig deadline23:44:34 UTC består; ingen budsjettfornyelse.
 
 Core har allerede genuine samme-generasjons PASS-kvitteringer for full-input
 liveness, pretrain og cross-surface-overlap. De gjenbrukes bare med uendrede
 eksakte bytes/eiere og kanonisk readiness-aksept. Den grønne kjeden skal bruke
 normal post-readiness-rute, ikke RED/dataset-rebuild-recovery-flaggene fra
-den ubrukte gamle verifiseren. Nye eksterne avgrensede diagnostiske kilder
-har bare syntaks-/kildekontroll foreløpig, ikke full-populasjons resultater.
+den ubrukte gamle verifiseren. De nye diagnostiske kildene har nå genuine full-populasjons resultater
+bundet ovenfor; ingen modellemisjon eller kvalitetspåstand følger av dem.
 De nye status-/fasegrensene består47 fokuserte tester gjennom capped
 audit4G/512M. Fersk JUnit: INPUT_VALIDATION_001/STAGE_BOUNDARY_TESTS.xml.
-Dette beviser binding-/vernkonsistens, ikke de ennå ukjørte inputkontrollene.
+Dette var binding-/vernkonsistens før launch, ikke inputaksept.
 
 M1-tids-/feltforhåndskontrollen er målt PASS under capped audit: 5583670
 source-rader og 5959045 pre-TEST-alignment-rader; 435898 ledende rader før
 source/price-warmup ekskluderes. De resterende 5523147 tidspunktene finnes
 alle i kilden, ingen interne klokkeutelatelser. Dette er bare det første
-byggepredikatet, ikke komplett feature-, label- eller inputaksept. Senere
-event-/registry-warmup og hele materialiseringen må fortsatt bestå eieren.
+byggepredikatet, ikke komplett feature-, label- eller inputaksept. Hele materialiseringen og uavhengig klokke-/felt-/alias-oracle har nå
+bestått; label-kildens hull og normaliserte modellvisninger er separate.
 
 Ny postbuild-review er målt på ekte Oct7 TRAIN/VAL-bytes: alle 254 signalfelt,
 åtte spesialister, feltorden og alias-koblinger; ingen uventet dødt signalfelt
@@ -73,14 +71,33 @@ i den avgrensede read-only-inspeksjonen. Disse konsistensbevisene er ikke
 modelllæring, økonomi, komplett M1-aksept eller produksjonsparitet.
 Eksakte specialist-/sekvens- og diagnosebevis er hash-bundet i policyen.
 
-Viktig uavklart dekningssak: tidslabel-eieren ekskluderer 341872/994500
-TRAIN-kandidater (34,38 %) og 5756/76692 VAL-kandidater (7,51 %).
-2015 har 45480/71107 ekskludert (63,96 %). En tidskolonne-basert hel-
-populasjonsdiagnose reproduserer byggepredikatet og samme gyldige rader med
-den komplette pre-TEST quote-klokken; ekstra M1-features alene løser det ikke.
-Stengte perioder, quote-kildehull og populasjonsbias er ikke klassifisert ennå.
-Diagnosen gir ingen kildebytte-, imputering-, periodetilpasning- eller
-inputakseptautoritet. Dette er en obligatorisk før-smoke-undersøkelse.
+Deknings-/seleksjonsreview er målt på hele fryst TRAIN/VAL og2080 lagrede
+råsvar:5960580 complete candles,0 incomplete,1535 ukefilter-rader og0 interne
+quote-clock-utelatelser ved kildeavkoding. Ukefilteret er en
+deklarert kildetransformasjon, ikke bevis på alle historiske markedskalendere.
+Utenfor filteret mangler405575 minutter i de lagrede svarene; hvorfor
+(daily maintenance, holiday, provider/kilde) er fortsatt ukjent.
+TRAIN341872/994500 label-eksklusjoner fordeles på335473 som overlapper
+ukjent svarfravær og6399 kun ukefilter. VAL5756/76692 fordeles på4696 ukjent,
+1040 filter og20 kilde-/splittgrense. Aux fjerner ytterligere76/56 gyldige
+kandidater.2015:45169/45480 eksklusjoner overlapper ukjent fravær.
+År/sesjon og alle254 inputfelts populasjonsmomenter er publisert; ingen
+samplet terskel eller fit. Seleksjonen er ikke sesjonsuniform: TRAIN sesjon0
+andel37,5153%→31,9483%, sesjon2 17,4305%→24,9396% etter utelatelse.
+Dette er målt populasjonsendring, ikke kausal forklaring eller modellverdi.
+
+Før normalisering/smoke må ukjente gap håndteres gjennom eksisterende
+right-censor-semantikk med sannferdig kildebinding, aldri en kalender gjettet
+fra formen på hull. Eksisterende schedule-eier er nå minimalt utvidet med
+observed_m1_clock_all_gaps_unknown_v1: eksakt faktisk source-clock-hash og
+dekning, tom liste over erklærte markedstengninger. Alle gap forblir ukjente,
+uten carry over gap, etter eksisterende right-censor-semantikk. Gamle eksterne/
+infererte ruter er uendret, men ikke brukt her.83 disjunkte fokuserte tester
+bestod under audit4G/512M; dette er mekanikk/kildebevis, ikke ekte ny fit.
+GAP_DISPOSITION_001 er separat bundet før claim til ny pre-TEST-output og
+opprinnelig deadline. Kode/plan er ikke faktisk publisert authority før
+genuine RESULT/TERMINAL. Ingen henting, periodeendring, imputering eller
+svekket vakt følger av den nye truthful unknown-only-kilderuten.
 Økonomieieren erklærer fortsatt gross/research-only, ikke produksjonsadgang
 eller netto lønnsomhetsbevis; full kost-/fill-/kapasitetsaksept er ubevist.
 

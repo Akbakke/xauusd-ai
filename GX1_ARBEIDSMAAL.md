@@ -42,13 +42,18 @@ ledig målplass. Den tidligere avvisningen er ikke en gjeldende blokkering.
 GC-protokoll og ufullført fremdrift bevares på pause i repo/policy, aldri
 merkes ferdig. COMPLETE_M1_001 har nå genuine exit0-kvitteringer og5523147
 rader; det er eierfullføring, ikke hele kriterium1 eller inputaksept.
-INPUT_VALIDATION_001 feilet genuint22:49:53 UTC i en diagnostisk datogrense:
-faktisk emission_end var feilaktig sammenlignet med kalenderenden. Originale
-kilder/kvitteringer beholdes og claimen er konsumert. INPUT_VALIDATION_002
-binder kun korrigert grensekontroll og samme dekningsdiagnose/M1-oracle/
-post-readiness, med uendret finite deadline. Seks syntetiske grenseregresjoner
-er PASS; ingen genuine inputaksept følger av dem.
-Faktiske fasekvitteringer, ikke en planlagt start, avgjør om noe kjører.
+INPUT_VALIDATION_002 er genuint fullført23:09:24 UTC, exit0 og uendret kilde.
+Dekningsreview, selvstendig M1-oracle og kanonisk post-readiness er bestått
+som separate input-underporter; tillatelsene er konsumert. M1-oracle beviser
+alle faktiske TRAIN/VAL-fill/quote-rader og392143437 bit-identiske aliaspar.
+001-feilen, originale kilder og manglende kvitteringsfelt er bevart uendret.
+Review beholder historisk årsak som ukjent der råsvar mangler minutter;
+ingen ukjent fravær blir markedskalender. Normalisering/visninger/bro,
+sannferdig unknown-gap/right-censor-binding og sampler-/smoke gjenstår.
+GAP_DISPOSITION_001 er separat forberedt/bundet til eksisterende eiers nye
+observed-clock-only-kilderute; alle kildegap beholdes ukjente.83 fokuserte
+mekanikk-/witness-tester bestod, men genuine authority/terminal gjenstår.
+Hele kriterium1/3 og målet er fortsatt ufullført, ingen modellstart.
 Omstart er ikke utført: CURRENT idle/GPU0% er målt, men beskyttede Windows-
 prosesser gjør maskinvid idle-/writer-proof ufullstendig. Ukjent er ikke idle.
 Faktisk prosjektstatus og eksakte bevis eies fortsatt bare av NEXT_RUN_POLICY.

@@ -19,6 +19,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.unified_exit_market_closure_authority_v1 import (
     build_market_closure_authority,
+    build_unknown_gap_only_schedule,
     seal_exact_market_schedule,
 )
 from gx1.scripts.materialize_unified_exit_pilot_normalization_inputs_v1 import (
@@ -318,10 +319,26 @@ def _population_fixture(
     return fixture, kwargs, closure
 
 
+@pytest.mark.parametrize('schedule_kind', ['external', 'observed_unknown_only'])
 def test_population_witness_scans_unique_rows_without_sampler_keys(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, schedule_kind: str,
 ) -> None:
     fixture, kwargs, closure = _population_fixture(tmp_path)
+    if schedule_kind == 'observed_unknown_only':
+        clock = pd.read_parquet(kwargs['m1_source_path'], columns=['time'])['time']
+        schedule_path = tmp_path / 'observed_unknown_only.schedule.json'
+        _write_json(schedule_path, build_unknown_gap_only_schedule(clock))
+        closure = build_market_closure_authority(
+            m1_times=clock,
+            m1_source_path=kwargs['m1_source_path'],
+            m1_source_sha256=_sha256_file(kwargs['m1_source_path']),
+            m1_source_manifest_path=kwargs['m1_source_manifest_path'],
+            m1_source_manifest_sha256=_sha256_file(kwargs['m1_source_manifest_path']),
+            exact_schedule=json.loads(schedule_path.read_text()),
+            exact_schedule_path=schedule_path,
+            exact_schedule_file_sha256=_sha256_file(schedule_path),
+        )
+        _write_json(kwargs['market_closure_authority_path'], closure)
     from gx1.scripts import materialize_unified_exit_pilot_normalization_inputs_v1 as owner
     def no_full_signal(*args, **kwargs):
         raise AssertionError("population needs only the validated M5 clock")

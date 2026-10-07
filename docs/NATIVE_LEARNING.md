@@ -34,15 +34,24 @@ forbudet mot relaunch av forbrukte planer.
    det pausede GC-arbeidet. COMPLETE_M1_001 er separat CPU-/output-bundet;
    ekte fasekvitteringer eier kjøringen, og fellesbudsjettet fornyes ikke.
    M1-eieren er nå genuint exit0 07.10 kl.22:27:57 UTC med5523147 rader og
-   uendret kilde; tillatelsen er konsumert. INPUT_VALIDATION_001 feilet genuint
-   22:49:53 UTC i diagnosekodens kalender/emission-grense; original kilde og
-   claim-kvitteringer bevares. Ny INPUT_VALIDATION_002 retter kun datogrense-
-   predikatet og binder de samme tre serialiserte capped-kontrollene. Seks
-   syntetiske grensetester er PASS, ingen genuine inputaksept. Normal GREEN-
-   core post-readiness gjelder fortsatt. Core-liveness/pretrain/overlap gjenbrukes
-   bare ved eksakt byte-/eieraksept. Binding er ikke faktisk start eller grønt
-   input. CURRENT-slot/GPU0% er målt ved terminal, men beskyttede Windows-
-   prosesser er uklassifiserte, derfor ingen maskinvid trygg omstart nå.
+   uendret kilde; tillatelsen er konsumert. INPUT_VALIDATION_002 er nå genuine
+   exit0 23:09:24 UTC: full2080-chunk/frozen-population coverage review,
+   komplett M1-oracle og normal GREEN-core post-readiness.392143437 M1-
+   aliaspar er bit-identiske, alle faktiske TRAIN/VAL-fill-/quote-rader
+   dekkes.001-feilen og manglende kvitteringsflag bevares uendret. Nye002-
+   flags/grensevakter bestod57 fokuserte tester før ekte kjøring.
+   Coverage beskriver ukjent råsvarfravær/ukefilter/splittgrense og faktisk
+   år-/sesjonsseleksjon; ikke historisk kalender/profit/læringsbevis.
+   Sannferdig unknown-gap/right-censor-disposisjon og fresh normalisering/
+   fysiske visninger/broparitet gjenstår. Ingen inferert kalender fra
+   hullform eller ny henting. CURRENT idle ved terminal, men beskyttede
+   Windows-prosesser er uklassifiserte: ingen trygg maskinvid omstart nå.
+   Eksisterende closure-eier er minimalt utvidet med en observed-clock-only-
+   kilderute: ingen kjent stengning, faktisk klokkehash/coverage, alle gap
+   ukjent/right-censor uten carry.83 fokuserte mekanikk-/witness-tester PASS.
+   Separat GAP_DISPOSITION_001-binding gir bare én capped pre-TEST authority-
+   fase under original deadline; actual RESULT/TERMINAL kreves før forbruk.
+
 3. Før normalisering eller modellsmoke: bygg den komplette pre-TEST M1-flaten
    gjennom eksisterende feature-eier og komplett rå M1-alignmentskilde.
    Den gamle chainens pair-alignerte lifecycle-flate er en annen rolle og er

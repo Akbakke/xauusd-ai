@@ -175,8 +175,8 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     goal = plan['pre_smoke_goal']
     progress = scope['pre_smoke_progress']
     assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
-    assert work['latest_terminal'] == scope['failed_input_validation_stage']['terminal']
-    assert work['terminal_exit_code'] == 1
+    assert work['latest_terminal'] == scope['input_validation_stage']['terminal']
+    assert work['terminal_exit_code'] == 0
     failed = scope['failed_input_validation_stage']
     assert failed['authorized'] is False and failed['relaunch_allowed'] is False
     assert failed['original_source_plan_and_receipts_preserved'] is True
@@ -191,7 +191,8 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     ]
     for field, value in progress.items():
         assert value is (field in {'project_goal_requested', 'app_goal_created', 'new_heavy_stage_bound',
-                                 'new_heavy_stage_started', 'complete_m1_complete'})
+                                 'new_heavy_stage_started', 'complete_m1_complete', 'label_coverage_review_complete',
+                                 'complete_input_oracle_complete', 'post_rebuild_readiness_complete'})
     for field in ('diagnostic_is_input_acceptance',
                   'complete_m1_feature_build_assumed_to_recover_labels',
                   'unexplained_population_exclusion_may_be_silently_accepted',
@@ -199,7 +200,9 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
                   'price_or_label_imputation_allowed',
                   'research_period_changes_allowed', 'source_substitution_authorized'):
         assert goal['label_coverage_acceptance'][field] is False
-    assert scope['postbuild_review']['gap_cause_and_selection_review_complete'] is False
+    assert scope['postbuild_review']['gap_cause_and_selection_review_complete'] is True
+    assert scope['postbuild_review']['outside_weekly_source_absence_root_causes_resolved'] is False
+    assert scope['postbuild_review']['unknown_gap_disposition_required_before_smoke'] is True
     assert goal['restart_checkpoint_alone_admits_reboot'] is False
     assert goal['automatic_mid_stage_host_restart'] is False
     assert goal['smoke_training_started_by_goal'] is False
@@ -213,8 +216,8 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     assert work['app_goal_creation']['false_completion_allowed'] is False
     stage = scope['complete_m1_stage']
     assert stage['authorized'] is False  # Genuine terminal consumed this permission.
-    assert stage['current_status'] == 'GENUINE_OWNER_TERMINAL_SUCCESS_PERMISSION_CONSUMED_ORACLE_PENDING'
-    assert stage['independent_oracle_accepted'] is False
+    assert stage['current_status'] == 'GENUINE_COMPLETE_M1_ORACLE_PASS_PHYSICAL_NORMALIZED_VIEWS_PENDING'
+    assert stage['independent_oracle_accepted'] is True
     assert stage['owner_emitted_rows'] == stage['preflight_alignment_rows_after_owner_price_warmup']
     assert stage['status_at_binding'] == 'BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS'
     assert stage['execution_owner'] == 'scripts/entry_next_edge_control.sh/model-native-m1-feature-base'
@@ -226,7 +229,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
                   'native_training_started', 'automatic_host_restart'):
         assert stage[field] is False
     validation = scope['input_validation_stage']
-    assert validation['authorized'] is True
+    assert validation['authorized'] is False  # Genuine terminal consumed it.
     assert validation['stage_id'] == 'INPUT_VALIDATION_002'
     assert validation['corrected_attempt_only_after_genuine_prior_failure'] is True
     assert validation['phase_order'] == ['LABEL_COVERAGE', 'COMPLETE_M1_ORACLE', 'POST_REBUILD_READINESS']
@@ -235,8 +238,21 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     for field in ('budget_renewed', 'relaunch_allowed', 'normalization_fit_started',
                   'native_training_started', 'automatic_host_restart'):
         assert validation[field] is False
-    assert scope['label_coverage_stage']['authorized'] is True
+    assert scope['label_coverage_stage']['authorized'] is False
     assert scope['label_coverage_stage']['diagnostic_is_input_acceptance'] is False
+    from gx1.contracts.unified_exit_market_closure_authority_v1 import UNKNOWN_GAPS_ONLY_SOURCE_METHOD
+    gaps = scope['gap_disposition_stage']
+    assert gaps['stage_id'] == 'GAP_DISPOSITION_001'
+    assert gaps['authorized'] is True  # Separate unclaimed bounded CPU admission only.
+    assert gaps['source_method'] == UNKNOWN_GAPS_ONLY_SOURCE_METHOD
+    assert gaps['actual_source_clock_reference_required'] is True
+    assert gaps['known_market_closure_count_must_be_zero'] is True
+    assert gaps['unknown_gap_semantics'] == 'right_censor_before_gap'
+    assert gaps['common_build_deadline_utc'] == plan['common_build_deadline_utc']
+    for field in ('declared_market_closure_intervals_allowed', 'inference_from_gap_shape_allowed',
+                  'whole_train_population_or_periods_changed', 'budget_renewed', 'relaunch_allowed',
+                  'normalization_fit_started', 'native_training_started', 'automatic_host_restart', 'cleanup_started'):
+        assert gaps[field] is False
     assert scope['complete_input_oracle_stage']['whole_input_or_model_admission_by_subgate'] is False
     assert scope['restart_boundary_observation']['machine_wide_idle_writer_proof_complete'] is False
     assert scope['restart_boundary_observation']['physical_reboot_executed'] is False

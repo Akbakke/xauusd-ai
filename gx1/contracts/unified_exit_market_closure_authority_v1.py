@@ -25,10 +25,12 @@ KNOWN_CLOSURE_KINDS = ("daily_maintenance", "weekend", "holiday")
 PROJECT_CLOSURE_POLICY_SCHEMA_VERSION = (
     "gx1_project_inferred_pretest_closure_policy_v1"
 )
+UNKNOWN_GAPS_ONLY_SOURCE_METHOD = "observed_m1_clock_all_gaps_unknown_v1"
 _SCHEDULE_SOURCE_METHODS = frozenset(
     {
         "externally_sourced_exact_xau_utc_closure_intervals_v1",
         "project_inferred_pretest_closure_policy_v1",
+        UNKNOWN_GAPS_ONLY_SOURCE_METHOD,
     }
 )
 
@@ -124,6 +126,8 @@ def seal_exact_market_schedule(value: Mapping[str, Any]) -> dict[str, Any]:
     raw_intervals = observed["intervals"]
     if not isinstance(raw_intervals, list):
         raise RuntimeError("UNIFIED_EXIT_MARKET_CLOSURE_SCHEDULE_INVALID")
+    if observed["source_method"] == UNKNOWN_GAPS_ONLY_SOURCE_METHOD and raw_intervals:
+        raise RuntimeError("UNIFIED_EXIT_MARKET_CLOSURE_UNKNOWN_GAP_POLICY_INVALID")
     intervals: list[dict[str, Any]] = []
     previous_end: pd.Timestamp | None = None
     for item in raw_intervals:
@@ -163,6 +167,32 @@ def seal_exact_market_schedule(value: Mapping[str, Any]) -> dict[str, Any]:
     }
     sealed["schedule_sha256"] = canonical_sha256(sealed)
     return sealed
+
+
+def build_unknown_gap_only_schedule(m1_times: Sequence[Any]) -> dict[str, Any]:
+    """Bind observed coverage, never declare a market closure from missing quotes.
+
+    This is not an external or fitted calendar: every source discontinuity
+    remains unknown and retains the existing right-censor-before-gap rule.
+    """
+    clock = _require_clock(m1_times)
+    return seal_exact_market_schedule(
+        {
+            "schema_version": MARKET_CLOSURE_SCHEDULE_SCHEMA_VERSION,
+            "decision": "PASS",
+            "instrument": "XAU_USD",
+            "timeframe": "M1",
+            "coverage_start_utc": clock[0].isoformat(),
+            "coverage_end_utc_exclusive": (
+                clock[-1] + pd.Timedelta(minutes=1)
+            ).isoformat(),
+            "interval_semantics": "left_closed_right_open_utc",
+            "source_method": UNKNOWN_GAPS_ONLY_SOURCE_METHOD,
+            "source_reference_sha256": m1_clock_sha256(clock),
+            "intervals": [],
+            "test_data_used": False,
+        }
+    )
 
 
 def _observed_gap_records(clock: pd.DatetimeIndex) -> list[dict[str, Any]]:
@@ -459,6 +489,12 @@ def build_market_closure_authority(
     coverage_end = _require_utc(schedule["coverage_end_utc_exclusive"], "COVERAGE_END")
     if clock[0] < coverage_start or clock[-1] + pd.Timedelta(minutes=1) > coverage_end:
         raise RuntimeError("UNIFIED_EXIT_MARKET_CLOSURE_SCHEDULE_COVERAGE_INVALID")
+    if schedule["source_method"] == UNKNOWN_GAPS_ONLY_SOURCE_METHOD and (
+        schedule["source_reference_sha256"] != m1_clock_sha256(clock)
+        or coverage_start != clock[0]
+        or coverage_end != clock[-1] + pd.Timedelta(minutes=1)
+    ):
+        raise RuntimeError("UNIFIED_EXIT_MARKET_CLOSURE_UNKNOWN_GAP_CLOCK_BINDING_INVALID")
     schedule_by_interval = {
         (
             _require_utc(item["start_utc"], "SCHEDULE_INTERVAL_START").value,
@@ -708,8 +744,10 @@ __all__ = (
     "MARKET_CLOSURE_INTERVAL_SCHEMA_VERSION",
     "MARKET_CLOSURE_SCHEDULE_SCHEMA_VERSION",
     "PROJECT_CLOSURE_POLICY_SCHEMA_VERSION",
+    "UNKNOWN_GAPS_ONLY_SOURCE_METHOD",
     "build_market_closure_authority",
     "build_project_inferred_closure_policy",
+    "build_unknown_gap_only_schedule",
     "canonical_sha256",
     "closure_intervals_by_gap_after_row",
     "exact_schedule_from_project_policy",
