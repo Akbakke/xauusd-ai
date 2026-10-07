@@ -30,6 +30,9 @@ forbudet mot relaunch av forbrukte planer.
    Core er nå genuint terminal og forbruker aldri en ny launch. Det nye
    før-smoke-målet gjenbruker disse bytene; forberedelsesfremdrift eies av
    native_v38_rebuild_20261007/pre_smoke_progress i samme policy.
+   Nytt app-mål ble genuint aktivert 07.10 kl.20:45:57 UTC uten å fullføre
+   det pausede GC-arbeidet. COMPLETE_M1_001 er separat CPU-/output-bundet;
+   ekte fasekvitteringer eier kjøringen, og fellesbudsjettet fornyes ikke.
 3. Før normalisering eller modellsmoke: bygg den komplette pre-TEST M1-flaten
    gjennom eksisterende feature-eier og komplett rå M1-alignmentskilde.
    Den gamle chainens pair-alignerte lifecycle-flate er en annen rolle og er

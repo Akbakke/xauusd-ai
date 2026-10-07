@@ -30,11 +30,13 @@ reparasjon. Årsak og seleksjon må undersøkes før aksept; behold periodene,
 ukjent årsak og økonomiens research-only-begrensninger eksplisitt.
 
 Timeautomatiseringen for core/input-status er fjernet etter brukerbestilling;
-ingen ny timeplan er opprettet. Det nye arbeidsmålet er lagret, men appens
-målplass er fortsatt opptatt av pausert GC. `/goal clear` frigjør plassen
-uten å slette GC-arbeidet i repo/policy. Ingen tung M1-jobb er startet av
-planendringen. Separat kilde-/input-/output-/budsjettbinding og prosessvakt
-kreves før neste launch; det opprinnelige build-deadline-budsjettet består.
+ingen ny timeplan er opprettet. Nytt M1/før-smoke-appmål er genuint aktivert;
+GC-arbeidet i repo/policy bevares på pause. COMPLETE_M1_001 er separat bundet
+til eksisterende capped materializer, eksakt ny output og opprinnelig
+deadline23:44:34 UTC. Tidsforhåndskontrollen finner null interne manglende
+alignment-rader etter owner-price-warmup. Ren committet kilde og eksakt
+input-byte-revalidering kreves ved launch; START/PROCESS/TERMINAL/RESULT
+avgjør faktisk fremdrift. Ingen input-green eller smoke følger av bindingen.
 
 Omstartspunkter er etter ferdig core, etter COMPLETE_M1, etter godkjent
 input/readiness og etter normalisering/visninger før native GPU-adgang.

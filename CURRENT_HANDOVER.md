@@ -19,9 +19,19 @@ INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
 er ikke fullført. Nyest gjeldende terminal i policyen er nå denne core-
 terminalen, ikke den historiske Oct1-benchmarkterminalen. Ingen core-relaunch.
-Ingen komplett M1/oracle/readiness/normalisering eller modellsmoke er startet
-av denne planbølgen. Kildeendring etter terminal påvirker ikke identiteten
+COMPLETE_M1_001 er nå separat bundet til eksisterende capped CPU-eier, med
+ren committet kilde før start og samme opprinnelige deadline23:44:34 UTC.
+Faktisk start/aktivitet/fullføring eies av fasens immutabelt publiserte
+START/PROCESS/TERMINAL/RESULT, ikke bindingens BOUND-status. Oracle/readiness,
+normalisering og modellsmoke er ikke startet. Kildeendring etter terminal påvirker ikke identiteten
 til de immutabelt bundne ferdige bytene.
+
+M1-tids-/feltforhåndskontrollen er målt PASS under capped audit: 5583670
+source-rader og 5959045 pre-TEST-alignment-rader; 435898 ledende rader før
+source/price-warmup ekskluderes. De resterende 5523147 tidspunktene finnes
+alle i kilden, ingen interne klokkeutelatelser. Dette er bare det første
+byggepredikatet, ikke komplett feature-, label- eller inputaksept. Senere
+event-/registry-warmup og hele materialiseringen må fortsatt bestå eieren.
 
 Ny postbuild-review er målt på ekte Oct7 TRAIN/VAL-bytes: alle 254 signalfelt,
 åtte spesialister, feltorden og alias-koblinger; ingen uventet dødt signalfelt
@@ -44,19 +54,22 @@ inputakseptautoritet. Dette er en obligatorisk før-smoke-undersøkelse.
 eller netto lønnsomhetsbevis; full kost-/fill-/kapasitetsaksept er ubevist.
 
 Den gamle timeautomatiseringen er slettet etter brukerbestilling; ingen ny
-er opprettet. App-målverktøyet avviste nytt mål fordi pausert, ufullført GC
-fortsatt opptar målplassen. GC er bevart paused, aldri merket fullført.
-Nytt prosjektarbeidsmål er lagret; `/goal clear` er nødvendig for ny app-
-mållivssyklus. Ingen tilgangs- eller godkjenningsspørsmål gjenåpnes.
+er opprettet. Målplassen var ledig ved kontroll, og nytt app-mål for komplett
+M1/før-smoke ble genuint aktivert 07.10 kl.20:45:57 UTC. Den tidligere
+avvisningen er historisk; ingen ny brukerhandling kreves for målaktivering.
+GC-protokoll/fremdrift er bevart paused, aldri merket fullført. Ingen
+tilgangs- eller godkjenningsspørsmål gjenåpnes.
 Periodiske fysiske omstarter inngår ved terminale fasegrenser, bare etter
 maskinvid dokumentasjon på ledige prosjektjobber/writers/låser/GPU-beregninger.
 Ingen PC-omstart er utført i denne bølgen, og krasjårsaken er fortsatt ubevist.
-Plan-/statusendringen består 47 fokuserte status-/målgrensetester gjennom
+Forrige plan-/statusendring bestod 47 fokuserte status-/målgrensetester gjennom
 capped audit (4G/512M); JUnit ligger i POSTBUILD_REVIEW_001/PRE_SMOKE_PLAN_TESTS.xml.
 Eksisterende handover- og retentionregresjoner bestod også under samme caps.
 Gjeldende plan/hash, uendret immutabel core-runtime-plan, historiske perioder,
 opprinnelig fellesbudsjett og launch-registerets policy-hash er kontrollert.
-Dette er konsistens-/vernbevis, ikke fullført M1 eller trening.
+Dette er konsistens-/vernbevis, ikke fullført M1 eller trening. Den nye
+appmål-/COMPLETE_M1_001-bindingen består også de 47 fokuserte grensetestene
+under uendrede caps; fersk JUnit ligger i COMPLETE_M1_001/STAGE_BOUNDARY_TESTS.xml.
 Hele kildeinventaret er kontrollert: 640 tracked filer / 581 Python-filer;
 ingen syntaksfeil, lokale importhull, doble toppnivådefinisjoner, brutte
 Markdown-lenker, JSON-duplikater, shell-syntaksfeil eller avhengighetsmismatches.

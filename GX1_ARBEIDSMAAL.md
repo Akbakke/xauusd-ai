@@ -36,11 +36,12 @@ på nytt. Målet er READY_FOR_BOUNDED_RESEARCH_SMOKE med følgende ferdigkriteri
    tidsstyrt omstart av aktiv jobb eller påstand om bevist krasjretting.
 
 Det gamle timevarselet er fjernet etter brukerbestilling og core-fullføring;
-det betyr ikke at komplett inputbygget er ferdig. Automatisk nytt app-mål
-kunne ikke opprettes fordi det ufullførte GC-målet fortsatt står paused.
-Dette er et app-livssyklusproblem, ikke manglende tilgang til repoet.
-Brukeren må frigjøre app-målplassen med `/goal clear`; GC-protokoll og
-ufullført fremdrift bevares uendret i repo/policy, aldri merkes ferdig.
+det betyr ikke at komplett inputbygget er ferdig. Nytt app-mål for denne
+M1/før-smoke-forberedelsen er nå aktivt (07.10 kl.20:45:57 UTC), etter målt
+ledig målplass. Den tidligere avvisningen er ikke en gjeldende blokkering.
+GC-protokoll og ufullført fremdrift bevares på pause i repo/policy, aldri
+merkes ferdig. COMPLETE_M1_001 har separat bounded CPU-binding; genuine
+fasekvitteringer, ikke en planlagt start, avgjør om jobben faktisk kjører.
 Faktisk prosjektstatus og eksakte bevis eies fortsatt bare av NEXT_RUN_POLICY.
 
 Ingen eksisterende SMC-primitiver fjernes ved tolkning av «order block og det».

@@ -151,7 +151,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
         'RETENTION_AND_BOUNDED_SMOKE_BINDING',
     ]
     for field, value in progress.items():
-        assert value is (True if field == 'project_goal_requested' else False)
+        assert value is (field in {'project_goal_requested', 'app_goal_created', 'new_heavy_stage_bound'})
     for field in ('diagnostic_is_input_acceptance',
                   'complete_m1_feature_build_assumed_to_recover_labels',
                   'unexplained_population_exclusion_may_be_silently_accepted',
@@ -167,9 +167,21 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     assert policy['limits']['fresh_physical_windows_boot_before_every_invocation'] is True
     assert work['hourly_monitor']['status'] == 'DELETED_BY_USER_REQUEST_AFTER_CORE_TERMINAL'
     assert work['hourly_monitor']['whole_input_completion_claimed'] is False
-    assert work['app_goal_creation']['created'] is False
-    assert work['app_goal_creation']['existing_goal_status'] == work['gc_goal_status'] == 'paused'
+    assert work['app_goal_creation']['created'] is True
+    assert work['app_goal_creation']['status_at_creation'] == 'active'
+    assert work['gc_goal_status'] == 'paused'
     assert work['app_goal_creation']['false_completion_allowed'] is False
+    stage = scope['complete_m1_stage']
+    assert stage['authorized'] is True
+    assert stage['status_at_binding'] == 'BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS'
+    assert stage['execution_owner'] == 'scripts/entry_next_edge_control.sh/model-native-m1-feature-base'
+    assert stage['common_build_deadline_utc'] == plan['common_build_deadline_utc']
+    assert stage['output_parquet'] == plan['complete_m1']['output_parquet']
+    assert stage['preflight_missing_alignment_rows_inside_source_span'] == 0
+    for field in ('preflight_is_complete_input_acceptance', 'budget_renewed',
+                  'relaunch_allowed', 'whole_input_build_complete',
+                  'native_training_started', 'automatic_host_restart'):
+        assert stage[field] is False
 
 
 @pytest.mark.parametrize('change', ['bytes', 'state', 'missing'])
