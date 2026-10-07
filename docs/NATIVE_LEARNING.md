@@ -1,14 +1,18 @@
 # Gjenværende avgrenset v38-læring
 
 Brukeren autoriserte punktene 1–6 05.10.2026, men prioriterte 06.10 deretter
-kontrollert benchmarkstopp og repo-opprydding. Dette dokumentet beskriver
-ufullført arbeid; det er ingen ny launchordre.
+kontrollert benchmarkstopp og repo-opprydding. Den 07.10 ble GC/order-flow og
+nye order-block-/footprint-utvidelser satt på pause og ny trening med dagens
+tekniske indikatoroppsett prioritert. Dette dokumentet beskriver det gjenværende
+læringsløpet; faktisk kjøring krever fortsatt en ny eksakt plan i NEXT_RUN_POLICY.
 
 ATTEMPT_003 er terminal med exit 1 etter operatøravbrudd. Første kandidat
 rapporterte 3200/8192 Entry-par. Ingen full benchmark eller sampler er publisert.
 Engangsclaim og godkjenning er konsumert; må aldri relanseres.
 Eksakte terminal-, plan-, input- og operatorbindinger står i NEXT_RUN_POLICY.json.
-Ingen ny benchmark/trening er autorisert av oppryddingen.
+Ingen ny benchmark/trening er autorisert av oppryddingen. Den nye prioriteringen
+er heller ikke en fornyelse av ATTEMPT_003s konsumerte engangsbudsjett.
+GC-kvalifisering er ingen forutsetning for det eksisterende v38-oppsettet.
 
 ## Beholdt rekkefølge
 

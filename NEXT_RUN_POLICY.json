@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-06T19:20:46Z",
-  "status": "BLOCKED_GC_STRATEGY_SOURCE_FREE_SAMPLES_INSPECTED_NO_NATIVE_LAUNCH",
+  "observed_utc": "2026-10-07T04:33:11Z",
+  "status": "PAUSED_GC_V38_RETRAIN_REQUESTED_NEW_PLAN_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "All four GC research steps remain required and incomplete. Fits need qualified actual GC sources and an exact frozen finite recipe. The operator separately authorized investigation of named free samples only, without subscriptions or charges: the two public Databento/Portara technical samples were fetched and inventoried with immutable receipts; neither qualifies GC strategy data. AlgoSeek US6011 is advertised in the free Q1-2023 full-universe package, but concrete free GC expiry files, quota and demo rights are unverified. No new acquisition, fit, native launch, TEST, broker, live/paper, orders, spending or unconditional ninth family is ready. Preserve every family, period and guard.",
-  "next_action": "Resolve AlgoSeek US6011 entitled GC expiry identifiers/dates, numeric remaining free quota and applicable demo permission for local offline model training/backtest using existing access or operator-provided evidence. Bind a separate exact small free-GC manifest before downloading; never create an account, accept a license, activate even a free subscription or incur overage from this investigation. Public Databento sample is ESZ5 only; Portara is a 5m39s technical gold snippet without aggressor. Do not shrink or move research/test periods to fit either sample, repeat consumed probes or claim any of the four empirical steps complete. Native TEST/launch and paid Databento requests remain closed.",
+  "rule": "The operator paused GC/order-flow and proposed order-block/footprint expansions and prioritizes retraining the current technical-indicator setup. Preserve the existing v38 signal contract, all genuine features, eight model specialists, timeframes, frozen TRAIN/development-VAL periods, normalization and completed input evidence. This pause does not remove existing SMC primitives. The four GC steps and free-source receipts remain preserved and incomplete, with no new source investigation, fetch or fit while paused. Retraining is requested, not started or admitted: consumed ATTEMPT_003 cannot be relaunched and its one-attempt CPU budget is not renewed by this status update. Native launch still requires a new exact source-bound finite plan and established learning/hardware gates. TEST, broker, live/paper, orders, spending and promotion remain closed.",
+  "next_action": "Prepare a fresh source-bound v38 retraining plan through the existing owners, reusing completed current inputs and normalization without rebuilding/refitting. First resolve a new finite workload-matched TRAIN-only sampler benchmark plan and its budget authority; preserve consumed ATTEMPT_003 and do not claim a selected sampler from its partial result. Then follow docs/NATIVE_LEARNING.md: selected sampler/frozen coordinates, fresh initial ONLINE/TARGET measurement, the explicitly bound limited learning probe, separate TRAIN/CONTROL256 review, and only conditional finite expansion. No full epoch/full VAL, new GC acquisition or TEST access is opened by this priority change.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66,8 +66,12 @@
     "required_before_more_extensive_training": true
   },
   "current_work": {
-    "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig",
-    "current_research_id": "GC_ORDER_FLOW_RESEARCH_001",
+    "operator_request": "Vi setter dette på pause. Vi trener på nytt med det nye oppsett av de tekniske indikatorene, så venter vi med order block og det. Vi tar dette igjen",
+    "current_activity": "NATIVE_V38_RETRAIN_PLAN_PREPARATION",
+    "current_research_id": "HISTORY2009W_NATIVE_V38_20261001",
+    "gc_goal_status": "paused",
+    "existing_indicator_surface_changed": false,
+    "training_started": false,
     "gc_goal_progress": [
       {"step": 1, "status": "WAITING_FOR_GENUINE_GC_SOURCE", "completed": false, "genuine_evidence": []},
       {"step": 2, "status": "WAITING_FOR_STEP_1", "completed": false, "genuine_evidence": []},
@@ -75,6 +79,7 @@
       {"step": 4, "status": "WAITING_FOR_STEP_3", "completed": false, "genuine_evidence": []}
     ],
     "gc_goal_dependency_audit": {
+      "historical_observation_only": true,
       "blocker_id": "LICENSED_GC_SOURCE_OR_ENTITLED_PROVIDER_ACCESS_REQUIRED",
       "consecutive_goal_turns_observed": 3,
       "observed_utc": "2026-10-06T13:09:42Z",
@@ -114,12 +119,14 @@
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "BLOCKED_GC_STRATEGY_SOURCE_FREE_SAMPLE_INVENTORY_COMPLETE",
-    "goal_execution_requested": true,
+    "status": "PAUSED_BY_OPERATOR",
+    "goal_execution_requested": false,
+    "pause_request_owner": "current_work.operator_request",
+    "pause_scope": "Suspend further source investigation, acquisition, features, fits and proposed flow/order-block extensions. Preserve the four-step protocol, progress, free-source receipts and every original artifact for an explicit later resumption. Existing native SMC primitives are not removed.",
     "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig",
     "required_steps": [1, 2, 3, 4],
     "progress_owner": "current_work.gc_goal_progress",
-    "research_fit_authorized_after_qualification_and_frozen_recipe": true,
+    "research_fit_authorized_after_qualification_and_frozen_recipe": false,
     "source_head_at_intake": "75f20e07294ffa7fa16d46b33fb6b9e2a15c9e50",
     "preregistration": "configs/research/GC_ORDER_FLOW_RESEARCH_001.json",
     "documentation": "docs/GC_ORDER_FLOW_RESEARCH.md",
@@ -260,6 +267,10 @@
   },
   "native_v38_execution_20261005": {
     "status": "INTERRUPTED_FOR_OPERATOR_REQUESTED_REPOSITORY_CLEANUP",
+    "retraining_requested": true,
+    "retraining_request_owner": "current_work.operator_request",
+    "new_retraining_plan_bound": false,
+    "retraining_readiness": "NEW_SOURCE_BOUND_FINITE_PLAN_AND_BUDGET_REQUIRED_BEFORE_SAMPLER_BENCHMARK; NO_NATIVE_LAUNCH",
     "user_authorization": "Enig med deg. Lag deg et mål for å gjennomføre punkt 1 til 6 nå og knekk i gang",
     "user_authorized_steps": [
       1,

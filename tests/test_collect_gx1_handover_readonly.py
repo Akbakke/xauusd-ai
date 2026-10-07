@@ -56,6 +56,42 @@ def test_current_terminal_replaces_historical_checkpoint_selection(fixture, monk
     assert out['test_accessed'] is False and out['state_payload_rehashed'] is False
 
 
+def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
+    repo = Path(__file__).resolve().parents[1]
+    policy = json.loads((repo / 'NEXT_RUN_POLICY.json').read_text())
+    work = policy['current_work']
+    gc = policy['gc_order_flow_research_20261006']
+    execution = policy['native_v38_execution_20261005']
+    prep = policy['native_v38_preparation_20261001']
+    assert work['gc_goal_status'] == 'paused'
+    assert work['current_activity'] == 'NATIVE_V38_RETRAIN_PLAN_PREPARATION'
+    assert work['current_research_id'] == Path(prep['run_root']).name
+    assert work['existing_indicator_surface_changed'] is False
+    assert work['training_started'] is False
+    assert gc['status'] == 'PAUSED_BY_OPERATOR'
+    assert gc['goal_execution_requested'] is False
+    assert gc['research_fit_authorized_after_qualification_and_frozen_recipe'] is False
+    assert gc['source_fetch_authorized'] is False
+    assert gc['free_source_investigation']['status'] == 'COMPLETE_INVESTIGATION_ONLY_GC_SOURCE_BLOCKED'
+    assert [step['step'] for step in work['gc_goal_progress']] == gc['required_steps']
+    assert all(step['completed'] is False for step in work['gc_goal_progress'])
+    assert execution['retraining_requested'] is True
+    assert execution['new_retraining_plan_bound'] is False
+    assert execution['approved_cpu_budget']['consumed'] is True
+    assert execution['approved_cpu_budget']['relaunch_allowed'] is False
+    assert execution['sampler_benchmark_authorized'] is False
+    assert policy['training_enabled'] is False
+    assert policy['full_epoch_training_allowed'] is False
+    assert policy['full_val_allowed'] is False
+    assert prep['input_build_authorized'] is False
+    assert prep['normalization_fit_authorized'] is False
+    for scope in (gc, execution):
+        assert scope['test_authorized'] is False
+        assert scope['broker_authorized'] is False
+        assert scope['trading_authorized'] is False
+        assert scope['spending_authorized'] is False
+
+
 @pytest.mark.parametrize('change', ['bytes', 'state', 'missing'])
 def test_current_terminal_fails_closed(fixture, monkeypatch, change):
     repo = fixture

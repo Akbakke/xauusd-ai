@@ -1,13 +1,32 @@
-# Gjeldende overlevering — 06.10.2026
+# Gjeldende overlevering — 07.10.2026
 
-Gjeldende bestilling: «Flott, fullfør dette målet med å legge inn disse 4
-punktene. Vi skal gjøre dette grundig». Målet dekker kildekvalifisering,
-kausale features, matched A/B/C og evidensbasert LOCATION × FLOW × STATE-review.
-Den tidligere repo-oppryddingen er fullført.
+Gjeldende bestilling: «Vi setter dette på pause. Vi trener på nytt med det nye
+oppsett av de tekniske indikatorene, så venter vi med order block og det.
+Vi tar dette igjen». GC-målet er satt til paused etter brukerens uttrykkelige
+beskjed. Nå prioriteres ny v38-trening med dagens tekniske indikatoroppsett;
+den tidligere repo-oppryddingen er fullført.
 
 ## Nåstatus
 
-Seneste brukerpresisering bestilte en kostnadsfri kildeundersøkelse:
+Ingen treningsjobb kjører eller er startet av prioriteringsendringen.
+Handover 07.10 kl. 04:31 UTC viste ren CURRENT-kilde og ingen Python-workload.
+Den eksekverte signaleieren bekreftet v38 og 254 signalfelt. Alle eksisterende
+features, spesialister, tidsrammer og ferdige inputs bevares; «order block og
+det» tolkes som utsatte nye utvidelser, ikke fjerning av dagens SMC-primitiver.
+Forrige benchmark er terminal og konsumert. Ny samplerplan med egen endelig
+budsjettautoritet må bindes før kjøring; deretter følger læringsløpet i
+docs/NATIVE_LEARNING.md. training_enabled=false; ingen full epoch/full VAL.
+GC-kildemangelen er ikke en avhengighet for dette eksisterende v38-oppsettet.
+
+Prioriteringsendringen er verifisert med 200 fokuserte status-/handover-/
+protokolltester under capped audit, JSON-/AST-kontroll, avgrenset stale-path-
+scan og git diff --check. Sammenligning mot forrige policy bekreftet uendrede
+input-/normaliseringsbindinger, konsumert native autoritet, GC-fremdrift og
+gratisprøvekvitteringer. Dette er konsistensbevis, ikke ny modellmåling.
+
+## Bevart GC-arbeid — på pause
+
+Den tidligere brukerpresiseringen bestilte en kostnadsfri kildeundersøkelse:
 AlgoSeek Sandbox US6011 først, deretter offentlig Databento CME MBP-1 og
 Portara GCE2019V kun for teknisk innlesing. Ingen abonnementer eller belastninger.
 Resultatet og alle kvitteringer er bundet i policyens free_source_investigation;
@@ -34,7 +53,7 @@ GC-strategihistorikk er kvalifisert. Originale prefiks-/feil-/metadatafiler
 er bevart; en feilskrevet prisetikett er korrigert i ny immutabel kvittering.
 Ingen forskningsperiode, native kode, TEST, fit eller backtest ble endret/åpnet.
 
-Alle fire trinn og deres ferdigkriterier er registrert i den eksisterende
+Alle fire utsatte trinn og deres ferdigkriterier er registrert i den eksisterende
 GC-protokollen. NEXT_RUN_POLICY/current_work.gc_goal_progress er eneste
 fremdriftsstatus. Ingen trinn er merket fullført uten genuine bevis.
 Blokkeringsrevisjonen 13:09 UTC bekreftet samme manglende genuine GC-kilde/
@@ -116,24 +135,22 @@ Ingen DATA/RUNS, råkilder, normaliseringer, modeller, checkpoints, .env, .venv
 eller .git slettes i denne repo-oppryddingen. DATA/RUNS krever retention-ruten.
 Historiske repo-filer kan gjenopprettes fra Git ved behov; ingen ny arkivmappe opprettes.
 
-## Neste grense
+## Neste grense — eksisterende v38-læring
 
-Bind ekte outright-GC-kildefiler, kvitteringer, identitetsmapping, tidsintervall,
-lisens og kostnadsestimat før kildeauditen. Kvalifiser så kausal klokke,
-rollover og OANDA-overlap; lås samme rader/targets/kostnader og konkret A/B/C-
-recipe før en empirisk fit. C−B er primærtesten, B−A priskontrollen.
-Bestillingen dekker en avgrenset offline forskningsfit etter kvalifiserte kilder
-og eksakt frosset recipe, men dagens tomme plan er ingen fit-/fetch-autoritet.
-Strategikildehenting er ikke klar; de særskilt bestilte offentlige gratisprøvene
-er konsumert og kan ikke relanseres. Før et lite AlgoSeek-GC-uttak kreves
-konkret gratis GC-identitet/dato, aktuell kvote, demoens tillatte lokale
-testbruk og et nytt eksakt manifest. Spending og konto-/lisensaksept er stengt.
-Gjenoppta først når den dokumenterte eksterne kilde-/tilgangsavhengigheten
-er løst og kontrollert; flere tomme audits eller nye stubs er ikke fremdrift.
-Absorption/profilinteraksjoner og indikatorablasjoner følger først senere.
-Ingen benchmark eller native trening følger automatisk av GC-oppdraget.
-Punktene 1–6 i docs/NATIVE_LEARNING.md gjenstår; en senere gjenopptakelse krever
-en ny eksplisitt, kildebundet plan, ikke gjenbruk av ATTEMPT_003.
+Forbered ny kildebundet plan gjennom eksisterende eiere. Gjenbruk fullførte
+inputs/normalisering; ingen datagjenbygging, featurekassering eller historiske
+modellvekter. En ny full TRAIN-only samplerbenchmark krever sin egen finite
+plan/budsjettautoritet; gammel engangsgodkjenning fornyes ikke automatisk.
+ATTEMPT_003 og originalbevisene bevares, aldri relanseres.
+Deretter valgt sampler/fryste koordinater → fersk initialmåling → avgrenset
+256-stegs prøve → separat TRAIN/CONTROL256-review → bare betinget, endelig
+utvidelse. Punktene 1–6 og eksisterende launch-/maskinvareporter står i
+docs/NATIVE_LEARNING.md; dagens policy åpner ingen modelltrening.
+
+GC/order-flow/footprint og nye order-block-utvidelser venter på uttrykkelig
+senere gjenopptakelse. Ingen flere kildesøk, nedlastinger eller GC-fits nå.
+Protokoll, kildekrav, perioder, prøver, hasher og ufullført fremdrift bevares.
+Ingen kilde eller niende familie er innført i den native modellen.
 Full makro-B er separat og ufullført; den må ikke reduseres til MACRO_CORE.
 TEST, broker, live/paper, handel, spending og promotion er stengt.
 
