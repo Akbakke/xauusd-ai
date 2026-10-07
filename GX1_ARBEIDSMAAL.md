@@ -42,8 +42,12 @@ ledig målplass. Den tidligere avvisningen er ikke en gjeldende blokkering.
 GC-protokoll og ufullført fremdrift bevares på pause i repo/policy, aldri
 merkes ferdig. COMPLETE_M1_001 har nå genuine exit0-kvitteringer og5523147
 rader; det er eierfullføring, ikke hele kriterium1 eller inputaksept.
-Separat INPUT_VALIDATION_001 er bundet for dekningsdiagnose, uavhengig M1-
-oracle og post-readiness, med samme opprinnelige finite deadline.
+INPUT_VALIDATION_001 feilet genuint22:49:53 UTC i en diagnostisk datogrense:
+faktisk emission_end var feilaktig sammenlignet med kalenderenden. Originale
+kilder/kvitteringer beholdes og claimen er konsumert. INPUT_VALIDATION_002
+binder kun korrigert grensekontroll og samme dekningsdiagnose/M1-oracle/
+post-readiness, med uendret finite deadline. Seks syntetiske grenseregresjoner
+er PASS; ingen genuine inputaksept følger av dem.
 Faktiske fasekvitteringer, ikke en planlagt start, avgjør om noe kjører.
 Omstart er ikke utført: CURRENT idle/GPU0% er målt, men beskyttede Windows-
 prosesser gjør maskinvid idle-/writer-proof ufullstendig. Ukjent er ikke idle.

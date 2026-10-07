@@ -140,8 +140,12 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     goal = plan['pre_smoke_goal']
     progress = scope['pre_smoke_progress']
     assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
-    assert work['latest_terminal'] == scope['complete_m1_stage']['terminal']
-    assert work['terminal_exit_code'] == 0
+    assert work['latest_terminal'] == scope['failed_input_validation_stage']['terminal']
+    assert work['terminal_exit_code'] == 1
+    failed = scope['failed_input_validation_stage']
+    assert failed['authorized'] is False and failed['relaunch_allowed'] is False
+    assert failed['original_source_plan_and_receipts_preserved'] is True
+    assert failed['no_oracle_or_readiness_published'] is True
     assert scope['whole_input_build_complete'] is False
     assert goal['relaunch_completed_core_allowed'] is False
     assert goal['plan_itself_admits_heavy_execution'] is False
@@ -188,6 +192,8 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
         assert stage[field] is False
     validation = scope['input_validation_stage']
     assert validation['authorized'] is True
+    assert validation['stage_id'] == 'INPUT_VALIDATION_002'
+    assert validation['corrected_attempt_only_after_genuine_prior_failure'] is True
     assert validation['phase_order'] == ['LABEL_COVERAGE', 'COMPLETE_M1_ORACLE', 'POST_REBUILD_READINESS']
     assert validation['common_build_deadline_utc'] == plan['common_build_deadline_utc']
     assert validation['status_at_binding'] == 'BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS'

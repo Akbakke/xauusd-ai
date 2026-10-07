@@ -17,17 +17,24 @@ plan utvides, uten å mutere de konsumerte runtime-kopiene/kvitteringene.
 Ingen treningsjobb kjører eller er startet av den nye bestillingen.
 INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
-er ikke fullført. Nyest gjeldende terminal i policyen er nå denne core-
-terminalen, ikke den historiske Oct1-benchmarkterminalen. Ingen core-relaunch.
+er ikke fullført. Nyest gjeldende terminal er den genuint feilede
+INPUT_VALIDATION_001-kontrollen nedenfor; core-beviset beholdes. Ingen core-relaunch.
 COMPLETE_M1_001 er genuint fullført 07.10 kl.22:27:57 UTC (08.10 kl.00:27 Oslo),
 exit0, 5523147 rader, uendret0c9fceb2-kilde gjennom87 minutter. Både eier og
 supervisor har ekte terminal/RESULT; tillatelsen er konsumert, ingen relaunch.
 PIDs149027/149085/149104 er borte på samme boot. Manifest7a71db4f og
 parquetfad9b499 er produsentbundet; full byte-/alias-/clock-oracle gjenstår.
-INPUT_VALIDATION_001 er separat bundet for seriell capped dekningsdiagnose →
-komplett M1-oracle → eksisterende post-readiness. Det er en binding, ikke
-launch eller inputaksept. Ren committet/pushet kilde og eksakte kontroller
-kreves før start; START/PROCESS/TERMINAL eier faktisk aktivitet. Samme
+INPUT_VALIDATION_001 startet22:46:21 og stoppet genuint22:49:53 UTC, exit1,
+kilde373ebe4f uendret. Diagnosekoden forvekslet kalenderenden med faktisk
+siste M5-bar (TRAIN fredag20:55, kalender lørdag23:59:59). Dette er ikke et
+påvist datasett- eller hostkrasj. Alle originale bytes/kvitteringer er bevart;
+claimen relanseres aldri. Ny INPUT_VALIDATION_002 retter kun denne predikat-
+feilen: fryst splittkalender kontrolleres separat, faktisk emission_end
+replikerer bygge-eierens searchsorted(boundary,left)-1. Seks fokuserte
+syntetiske grensetester består; genuine dekningsresultater/oracle/readiness
+foreligger ikke ennå. Ny002 binder de samme tre capped-fasene separat.
+Ren committet/pushet kilde og eksakte kontroller kreves før ny start;
+START/PROCESS/TERMINAL eier faktisk aktivitet. Samme
 opprinnelige deadline23:44:34 UTC, ingen nytt18h-budsjett. Normalisering,
 modellsmoke og stor trening er ikke startet. Kildeendring etter terminal
 påvirker ikke identiteten til de immutabelt bundne ferdige bytene.

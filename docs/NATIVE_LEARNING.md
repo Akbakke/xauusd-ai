@@ -34,9 +34,12 @@ forbudet mot relaunch av forbrukte planer.
    det pausede GC-arbeidet. COMPLETE_M1_001 er separat CPU-/output-bundet;
    ekte fasekvitteringer eier kjøringen, og fellesbudsjettet fornyes ikke.
    M1-eieren er nå genuint exit0 07.10 kl.22:27:57 UTC med5523147 rader og
-   uendret kilde; tillatelsen er konsumert. Separat INPUT_VALIDATION_001
-   binder seriell full-populasjons dekningsdiagnose, uavhengig M1-oracle og
-   normal GREEN-core post-readiness. Core-liveness/pretrain/overlap gjenbrukes
+   uendret kilde; tillatelsen er konsumert. INPUT_VALIDATION_001 feilet genuint
+   22:49:53 UTC i diagnosekodens kalender/emission-grense; original kilde og
+   claim-kvitteringer bevares. Ny INPUT_VALIDATION_002 retter kun datogrense-
+   predikatet og binder de samme tre serialiserte capped-kontrollene. Seks
+   syntetiske grensetester er PASS, ingen genuine inputaksept. Normal GREEN-
+   core post-readiness gjelder fortsatt. Core-liveness/pretrain/overlap gjenbrukes
    bare ved eksakt byte-/eieraksept. Binding er ikke faktisk start eller grønt
    input. CURRENT-slot/GPU0% er målt ved terminal, men beskyttede Windows-
    prosesser er uklassifiserte, derfor ingen maskinvid trygg omstart nå.

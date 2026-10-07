@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-07T22:35:27Z",
-  "status": "V38_CORE_AND_M1_OWNER_COMPLETE_INPUT_VALIDATION_BOUND_GC_PAUSED",
+  "observed_utc": "2026-10-07T22:56:50Z",
+  "status": "V38_M1_COMPLETE_VALIDATION_DIAGNOSTIC_BOUNDARY_FIX_BOUND_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator requests complete M1 and all observed pre-smoke adjustments after the successful Oct7 core terminal. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. INPUT_BUILD_001 has unknown old exit/terminal after physical crash; INPUT_BUILD_002 is genuinely successful core-only and its one-shot authority is consumed. Preserve immutable runtime copies/receipts and verified completed same-generation bytes, never relaunch either attempt or consume old Oct1 normalization/models. The original common 64800s deadline remains binding; each next stage needs a separately source/input/output/budget-bound existing owner. Complete M1, label-coverage/selection review, independent input oracle and post-readiness remain mandatory before fresh normalization and future smoke admission. Do not silently accept unexplained exclusions, impute quotes/labels, change periods or call a diagnostic input acceptance. Reboot only at verified idle terminal phase boundaries, never interrupt active jobs. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
-  "next_action": "Genuine COMPLETE_M1_001 terminal exit0 at22:27:57 UTC, 5523147 rows; source unchanged and receipt-bound processes absent. Its one-shot permission is consumed, as are INPUT_BUILD_001/002. INPUT_VALIDATION_001 binds serial capped full frozen TRAIN/VAL coverage diagnosis, independent complete-M1 oracle and normal GREEN-core post-readiness, all within unchanged deadline23:44:34 UTC. Commit/check/push clean source and exact control bindings before launch; START/PROCESS/TERMINAL own actual progress. Coverage diagnosis is never input acceptance or proof of closure root causes. Reuse genuine same-generation core liveness/pretrain only after exact owner acceptance. Fresh whole-TRAIN normalization/views/parity, retention or refusal and future finite sampler/smoke binding remain required. No model smoke/large training, TEST payload, GC or broker acquisition. Old hourly automation stays deleted. No physical reboot now: CURRENT idle and GPU0%, but Windows PIDs2648/2704 and protected GPU entries are unclassified, so machine-wide idle/writer proof is incomplete. Reboot only at a later genuinely verified idle boundary, then revalidate boot/WSL/source/artifacts.",
+  "next_action": "INPUT_VALIDATION_001 genuinely failed with exit1 at22:49:53 UTC on a diagnostic calendar/emission-end confusion; source unchanged, supervised processes absent, all original source/plans/receipts retained. Core and COMPLETE_M1_001 remain successful and are never relaunched. Separately bound INPUT_VALIDATION_002 corrects only that diagnostic predicate: compare frozen split calendar to project and last actual native M5 bar to the exact builder strict-before source-clock rule. Six focused synthetic boundary regressions pass; genuine coverage/oracle/readiness still pending. Commit/check/push clean source and bind exact controls before serial capped launch. Same original deadline23:44:34 UTC, no renewed budget. No normalization, smoke, model training, TEST payload, GC/broker/downloads, cleanup or physical reboot from this binding. Whole-TRAIN normalization/views/parity and future sampler/smoke remain required; unknown raw-source gaps never become guessed market closures.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -101,16 +101,16 @@
       "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
-    "latest_terminal_role": "Genuine successful COMPLETE_M1_001 terminal, source unchanged during its job. Existing M1 owner completion only; independent oracle/readiness, normalization/view parity, retention and future sampler/smoke remain incomplete.",
+    "latest_terminal_role": "Genuine failed INPUT_VALIDATION_001 terminal, exit1 with unchanged source. A diagnostic boundary predicate failed; no oracle/readiness result was produced. Prior successful core and M1 receipts remain independently bound, but no whole-input or model admission follows.",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_M1_001/TERMINAL.json",
-      "sha256": "936b802cdc94c288d0ec45c087f8d0647301305663551335c10fb603db9eac27"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_001/TERMINAL.json",
+      "sha256": "ca9fe01bff8252f1b628bc1cbc46a55c1aa0e70e3f1c4fed4f2058b439a18dd9"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
-    "termination": "Core completed18:06:36 UTC. COMPLETE_M1_001 genuinely ran21:00:59-22:27:57 UTC with unchanged source0c9fceb2, then emitted exit0/RESULT with5523147 rows. PIDs149027/149085/149104 are absent on the bound WSL boot; CURRENT heavy lock idle. No physical reboot or model training performed. New validation bindings are not launch evidence.",
+    "termination": "M1 genuinely completed22:27:57 UTC with5523147 rows. INPUT_VALIDATION_001 ran22:46:21-22:49:53 UTC then stopped exit1 in LABEL_COVERAGE: last actual bar was incorrectly compared to frozen calendar end. No host reboot or OOM indicated by this trace. Source373ebe4f unchanged, supervisor178196/timeout178245 absent and CURRENT idle. Failed attempt/source/output evidence retained, no same-claim relaunch. New002 binding does not prove a new launch or successful coverage.",
     "full_benchmark_completed": false,
     "sampler_selected": false,
     "native_component_preparation_authorized": false,
@@ -477,7 +477,7 @@
     "native_training_enabled": false
   },
   "native_v38_rebuild_20261007": {
-    "status": "CORE_AND_M1_OWNER_COMPLETE_INDEPENDENT_INPUT_VALIDATION_PENDING_NO_MODEL_ADMISSION",
+    "status": "M1_COMPLETE_DIAGNOSTIC_BOUNDARY_FAILURE_PRESERVED_CORRECTED_VALIDATION_BOUND_NO_MODEL_ADMISSION",
     "runtime_plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/PLAN.json", "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"},
     "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/launch_inputs.py", "sha256": "8f6abe9314b562b4463af3bbd93a4f48fa3a57fda3dd6133249bc097100005ca"},
     "prior_attempt": {
@@ -557,37 +557,98 @@
       "native_training_started": false,
       "automatic_host_restart": false
     },
-    "label_coverage_stage": {
-      "authorized": true,
-      "plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LABEL_COVERAGE_REVIEW_001/PLAN.json", "sha256": "cb5caec397327f3cf554e08f9f978f5ab8b8e269d5dd6317c344eb6e68f00edb"},
-      "diagnostic": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LABEL_COVERAGE_REVIEW_001/coverage_review.py", "sha256": "a50403d6bba61c118e8f0547fccc8582e839a2279637e2f92a66702000155c73"},
-      "diagnostic_is_input_acceptance": false,
-      "resource_owner": "scripts/gx1_capped_run.sh audit4G/512M; sequential validation stage",
-      "relaunch_allowed": false
-    },
-    "complete_input_oracle_stage": {
-      "authorized": true,
-      "plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_INPUT_ORACLE_001/PLAN.json", "sha256": "717256452911183e17d1c23465bfc69a29a63725aceaed5f8c87b036426720d8"},
-      "verifier": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_INPUT_ORACLE_001/verify_complete_inputs.py", "sha256": "60bf0f7bae36ed1d1f9acb79a4a4e24d9f9036d93a77a35787cbf7069f010fc1"},
-      "resource_owner": "scripts/gx1_capped_run.sh audit4G/512M; whole clock/field/alias/quote/fill population",
-      "whole_input_or_model_admission_by_subgate": false,
-      "relaunch_allowed": false
-    },
-    "input_validation_stage": {
+    "failed_input_validation_stage": {
       "stage_id": "INPUT_VALIDATION_001",
       "status_at_binding": "BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS",
-      "authorized": true,
+      "authorized": false,
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_001",
-      "plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_001/PLAN.json", "sha256": "2dd02ce3a324cb67b20be9961b1eb535963e5dc00d01b88a0c8c90e5a4c37bd2"},
-      "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_001/launch_validation.py", "sha256": "28f5bd364d160ef7171a0326d640655462932efb9ff975a46f811ea279d4f7e3"},
-      "phase_order": ["LABEL_COVERAGE", "COMPLETE_M1_ORACLE", "POST_REBUILD_READINESS"],
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_001/PLAN.json",
+        "sha256": "2dd02ce3a324cb67b20be9961b1eb535963e5dc00d01b88a0c8c90e5a4c37bd2"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_001/launch_validation.py",
+        "sha256": "28f5bd364d160ef7171a0326d640655462932efb9ff975a46f811ea279d4f7e3"
+      },
+      "phase_order": [
+        "LABEL_COVERAGE",
+        "COMPLETE_M1_ORACLE",
+        "POST_REBUILD_READINESS"
+      ],
       "common_build_deadline_utc": "2026-10-07T23:44:34.296381+00:00",
       "budget_renewed": false,
       "relaunch_allowed": false,
       "new_output_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN_RECOVERY_001/post_rebuild_readiness_001",
       "normalization_fit_started": false,
       "native_training_started": false,
-      "automatic_host_restart": false
+      "automatic_host_restart": false,
+      "current_status": "GENUINE_FAILED_TERMINAL_PERMISSION_CONSUMED",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_001/TERMINAL.json",
+        "sha256": "ca9fe01bff8252f1b628bc1cbc46a55c1aa0e70e3f1c4fed4f2058b439a18dd9"
+      },
+      "failure_reason": "Diagnostic compared actual emission_end with frozen calendar end instead of the builder's last actual source bar strictly before boundary",
+      "original_source_plan_and_receipts_preserved": true,
+      "no_oracle_or_readiness_published": true
+    },
+    "label_coverage_stage": {
+      "authorized": true,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LABEL_COVERAGE_REVIEW_002/PLAN.json",
+        "sha256": "cedb4f1e1ab79298c360305ea70f4009fd42d3e9f55e3a0e6280838c804df4ae"
+      },
+      "diagnostic": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LABEL_COVERAGE_REVIEW_002/coverage_review.py",
+        "sha256": "8bb4639448287119c149cc046d2c1292cb70618e7a7b6e0f9861f1d0f4c7c246"
+      },
+      "diagnostic_is_input_acceptance": false,
+      "resource_owner": "scripts/gx1_capped_run.sh audit4G/512M; sequential validation stage",
+      "relaunch_allowed": false,
+      "stage_id": "LABEL_COVERAGE_REVIEW_002",
+      "observed_boundary_defect_only": true,
+      "synthetic_boundary_regression_passed": 6
+    },
+    "complete_input_oracle_stage": {
+      "authorized": true,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_INPUT_ORACLE_002/PLAN.json",
+        "sha256": "6fe45746c8a1f7e7c3678a77926ca3d8b90f600b8438e7a8d75a784cabbb6cc4"
+      },
+      "verifier": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/COMPLETE_INPUT_ORACLE_002/verify_complete_inputs.py",
+        "sha256": "60bf0f7bae36ed1d1f9acb79a4a4e24d9f9036d93a77a35787cbf7069f010fc1"
+      },
+      "resource_owner": "scripts/gx1_capped_run.sh audit4G/512M; whole clock/field/alias/quote/fill population",
+      "whole_input_or_model_admission_by_subgate": false,
+      "relaunch_allowed": false,
+      "stage_id": "COMPLETE_INPUT_ORACLE_002"
+    },
+    "input_validation_stage": {
+      "stage_id": "INPUT_VALIDATION_002",
+      "status_at_binding": "BOUND_NOT_STARTED_RECEIPTS_OWN_ACTUAL_PROGRESS",
+      "authorized": true,
+      "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_002",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_002/PLAN.json",
+        "sha256": "0bac9b17209e6845d5c5cd0da8df2bcc49ac4fd56b7743594842592b42c2dd61"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_002/launch_validation.py",
+        "sha256": "28f5bd364d160ef7171a0326d640655462932efb9ff975a46f811ea279d4f7e3"
+      },
+      "phase_order": [
+        "LABEL_COVERAGE",
+        "COMPLETE_M1_ORACLE",
+        "POST_REBUILD_READINESS"
+      ],
+      "common_build_deadline_utc": "2026-10-07T23:44:34.296381+00:00",
+      "budget_renewed": false,
+      "relaunch_allowed": false,
+      "new_output_directory": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN_RECOVERY_001/post_rebuild_readiness_002",
+      "normalization_fit_started": false,
+      "native_training_started": false,
+      "automatic_host_restart": false,
+      "corrected_attempt_only_after_genuine_prior_failure": true
     },
     "restart_boundary_observation": {
       "observed_utc": "2026-10-07T22:29:13Z",
@@ -598,7 +659,7 @@
       "physical_reboot_executed": false,
       "reason": "Read-only CIM/GPU inventory cannot classify protected processes. No ACL/elevation bypass, unknown-job stop or false safe-reboot claim. CPU admission still uses the unchanged existing available-memory/cgroup/lock owner."
     },
-    "progress_owner": "Immutable core and COMPLETE_M1_001 receipts own actual completed phases; INPUT_VALIDATION_001 START/PROCESS/TERMINAL/RESULT will own new serial validation progress. Verify PID, boot-ID and proc-startticks; no RUNNING or BOUND file substitutes for live job or completion. No whole-input/model acceptance from M1 owner success alone. Missing old crash terminal remains unknown.",
+    "progress_owner": "Immutable core/M1 receipts own completed stages. Failed INPUT_VALIDATION_001 terminal owns its consumed failed claim; corrected INPUT_VALIDATION_002 START/PROCESS/TERMINAL/RESULT owns any new serial validation. Source, PID, boot-ID and proc-startticks are required. No planned binding, diagnostic or M1 owner success substitutes for complete input/normalization/model admission.",
     "recovery_core_only": true,
     "whole_input_build_complete": false,
     "mandatory_next_stages": ["LABEL_COVERAGE_REVIEW", "COMPLETE_INPUT_ORACLE", "POST_REBUILD_READINESS"],

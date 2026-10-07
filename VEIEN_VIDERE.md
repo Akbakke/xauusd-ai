@@ -34,9 +34,12 @@ ingen ny timeplan er opprettet. Nytt M1/før-smoke-appmål er genuint aktivert;
 GC-arbeidet i repo/policy bevares på pause. COMPLETE_M1_001 er separat bundet
 til eksisterende capped materializer, eksakt ny output og opprinnelig
 deadline23:44:34 UTC. Eieren er nå genuint fullført22:27:57 UTC, 5523147
-rader, kilde uendret; tillatelsen er konsumert. Ny INPUT_VALIDATION_001
-binder separat seriell capped dekningsdiagnose, uavhengig komplett M1-
-oracle og normal GREEN-core post-readiness, ikke feilet-build recovery.
+rader, kilde uendret; tillatelsen er konsumert. INPUT_VALIDATION_001 feilet
+kontrollert22:49:53 UTC på diagnosekodens kalender/emission-grensesammenligning,
+ikke på et påvist data- eller hostkrasj. Originale kilder/kvitteringer bevares,
+claimen er konsumert. Ny INPUT_VALIDATION_002 korrigerer kun dette predikatet;
+seks fokuserte syntetiske grensetester er PASS. Den binder separat deknings-
+diagnose, uavhengig M1-oracle og normal GREEN-core post-readiness, ikke recovery.
 Core-liveness/pretrain/overlap er allerede genuine PASS og gjenbrukes bare
 for identiske bytes og kanonisk eieraksept. Ingen diagnose eller M1-exit0
 erstatter normalisering/fysiske visninger eller sampler-/smoke-portene.
