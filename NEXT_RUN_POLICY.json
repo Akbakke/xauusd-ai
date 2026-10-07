@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-07T22:56:50Z",
+  "observed_utc": "2026-10-07T23:00:52Z",
   "status": "V38_M1_COMPLETE_VALIDATION_DIAGNOSTIC_BOUNDARY_FIX_BOUND_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -588,6 +588,8 @@
         "sha256": "ca9fe01bff8252f1b628bc1cbc46a55c1aa0e70e3f1c4fed4f2058b439a18dd9"
       },
       "failure_reason": "Diagnostic compared actual emission_end with frozen calendar end instead of the builder's last actual source bar strictly before boundary",
+      "test_isolation_receipt_field_missing": true,
+      "missing_proof_disposition": "Preserve genuine failed terminal unchanged; observational status exposes the missing witness and blocks native readiness. Never infer false or fall back to older GREEN.",
       "original_source_plan_and_receipts_preserved": true,
       "no_oracle_or_readiness_published": true
     },
@@ -634,7 +636,7 @@
       },
       "launcher": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VALIDATION_002/launch_validation.py",
-        "sha256": "28f5bd364d160ef7171a0326d640655462932efb9ff975a46f811ea279d4f7e3"
+        "sha256": "57e5801cc6bbba6de04cb3216e631b75e25269f1d70c99413af2d9fc31da5427"
       },
       "phase_order": [
         "LABEL_COVERAGE",
@@ -648,7 +650,8 @@
       "normalization_fit_started": false,
       "native_training_started": false,
       "automatic_host_restart": false,
-      "corrected_attempt_only_after_genuine_prior_failure": true
+      "corrected_attempt_only_after_genuine_prior_failure": true,
+      "preclaim_explicit_test_receipt_fields": true
     },
     "restart_boundary_observation": {
       "observed_utc": "2026-10-07T22:29:13Z",

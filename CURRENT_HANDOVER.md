@@ -34,8 +34,16 @@ replikerer bygge-eierens searchsorted(boundary,left)-1. Seks fokuserte
 syntetiske grensetester består; genuine dekningsresultater/oracle/readiness
 foreligger ikke ennå. Ny002 binder de samme tre capped-fasene separat.
 Ren committet/pushet kilde og eksakte kontroller kreves før ny start;
-START/PROCESS/TERMINAL eier faktisk aktivitet. Samme
-opprinnelige deadline23:44:34 UTC, ingen nytt18h-budsjett. Normalisering,
+START/PROCESS/TERMINAL eier faktisk aktivitet.
+Feilterminalen001 mangler test_data_used; originalen endres aldri. Status-
+eieren viser den genuine feilen med eksplisitt manglende TEST-vitne og
+BLOCKED native-adgang, aldri oppfunnet false eller eldre grønne som fallback.
+Ny002 får eksplisitte TEST-felt før claim. Fire nye fokuserte regresjoner
+består: failed-observation uten native-throughpass og uendret success-vakt.
+Samlet57 fokuserte status-/grensetester er PASS (syntetisk kontraktbevis),
+JUnit INPUT_VALIDATION_002/PRECLAIM_RECEIPT_SCHEMA_TESTS.xml. Ingen ny START
+er claimet før ren committet kilde og oppdaterte preclaim-bindinger.
+Samme opprinnelige deadline23:44:34 UTC, ingen nytt18h-budsjett. Normalisering,
 modellsmoke og stor trening er ikke startet. Kildeendring etter terminal
 påvirker ikke identiteten til de immutabelt bundne ferdige bytene.
 

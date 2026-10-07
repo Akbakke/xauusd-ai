@@ -56,6 +56,41 @@ def test_current_terminal_replaces_historical_checkpoint_selection(fixture, monk
     assert out['test_accessed'] is False and out['state_payload_rehashed'] is False
 
 
+def test_missing_test_witness_observes_failed_exit_but_blocks_any_native_readiness(fixture, monkeypatch):
+    repo = fixture
+    path, policy = _policy(repo)
+    terminal = Path(policy['current_work']['latest_terminal']['path'])
+    terminal.write_text(json.dumps({'exit_code': 1, 'source_unchanged': True}))
+    policy['current_work']['latest_terminal']['sha256'] = hashlib.sha256(terminal.read_bytes()).hexdigest()
+    path.write_text(json.dumps(policy))
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness',
+                        lambda _: {'decision': 'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES',
+                                   'blocked_reasons': []})
+    out = current_status(repo)
+    assert out['latest_terminal_receipt'] == {'exit_code': 1, 'source_unchanged': True}
+    assert out['latest_terminal_evidence_gaps'] == ['test_data_used_field_missing']
+    assert out['next_run']['decision'] == 'BLOCKED'
+    assert out['next_run']['blocked_reasons'] == ['latest_failed_terminal_test_isolation_unproven']
+
+
+@pytest.mark.parametrize('exit_code,test_flag', [(0, 'absent'), (1, True), (1, None)])
+def test_terminal_test_isolation_cannot_be_soft_passed(fixture, monkeypatch, exit_code, test_flag):
+    repo = fixture
+    path, policy = _policy(repo)
+    terminal = Path(policy['current_work']['latest_terminal']['path'])
+    value = {'exit_code': exit_code, 'source_unchanged': True}
+    if test_flag != 'absent':
+        value['test_data_used'] = test_flag
+    terminal.write_text(json.dumps(value))
+    policy['current_work']['terminal_exit_code'] = exit_code
+    policy['current_work']['latest_terminal']['sha256'] = hashlib.sha256(terminal.read_bytes()).hexdigest()
+    path.write_text(json.dumps(policy))
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    with pytest.raises(ValueError, match='CURRENT_TERMINAL_STATE_MISMATCH'):
+        current_status(repo)
+
+
 def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
     repo = Path(__file__).resolve().parents[1]
     policy = json.loads((repo / 'NEXT_RUN_POLICY.json').read_text())

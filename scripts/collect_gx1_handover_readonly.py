@@ -355,15 +355,30 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     if _sha256(terminal_path) != binding["sha256"]:
         raise ValueError("CURRENT_TERMINAL_HASH_MISMATCH")
     terminal = json.loads(terminal_path.read_text())
+    failed_without_test_witness = (
+        type(terminal.get("exit_code")) is int
+        and terminal["exit_code"] != 0
+        and "test_data_used" not in terminal
+    )
     if (type(terminal.get("exit_code")) is not int
             or terminal["exit_code"] != work["terminal_exit_code"]
             or terminal.get("source_unchanged") is not work["source_unchanged_at_terminal"]
-            or terminal.get("test_data_used") is not False):
+            or (terminal.get("test_data_used") is not False
+                and not failed_without_test_witness)):
         raise ValueError("CURRENT_TERMINAL_STATE_MISMATCH")
     out["latest_terminal_receipt"] = terminal
     out["current_processes"] = _current_processes(repo)
     out["process_observation"] = "RUNNING" if out["current_processes"] else "NO_CURRENT_PYTHON_WORKLOAD_OBSERVED"
     out["next_run"] = next_run_readiness(repo)
+    if failed_without_test_witness:
+        # Observe the genuine failed exit without inventing missing proof.
+        # Even a separately ready native scope cannot pass this unknown.
+        out["latest_terminal_evidence_gaps"] = ["test_data_used_field_missing"]
+        out["next_run"]["decision"] = "BLOCKED"
+        out["next_run"]["blocked_reasons"] = [
+            *out["next_run"]["blocked_reasons"],
+            "latest_failed_terminal_test_isolation_unproven",
+        ]
     return out
 
 
