@@ -23,9 +23,11 @@ kvitteringer eier start/progress/terminal. Native launch er fortsatt portbundet.
    capped producer:32768/65536/131072 transitions,4 per Entry,batch16,én
    full repetisjon,tracemalloc og eksisterende minne-/10800s eligibility.
    Utfallsblind rangering; delmåling eller ATTEMPT_003 gir ingen sampler.
-   SAMPLER_BENCHMARK_001 har nå ny separat64800s total wall04:55:12–22:55:12
+   SAMPLER_BENCHMARK_002 har samme64800s total wall04:55:12–22:55:12
    UTC08.10 inkl. forberedelse/nedetid. Eksakt ren/pushet kilde, operator/
    input/output og nye engangskvitteringer kreves; ingen NN-modeller i CPU-steget.
+   001 feilet før START/capped launch på UTC-Z-format; originale bytes/bevis
+   bevares.002 bruker støttet+00:00, uten deadlineforlengelse eller001-relaunch.
 2. Etter ekte sampleraksept: aktuelle kanoniske fysisk labels-/normalization-
    receipts og eksisterende koordinat-eier fryser epoch0/first4096/TRAIN256
    mot nytt CONTROL256. Ingen gammel receipt-/koordinatfallback.

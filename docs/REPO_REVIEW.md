@@ -1,7 +1,7 @@
 # Gjennomgang og opprydding av GX1
 
 08.10 ny direkte bestilling: full TRAIN-kapasitet og betinget bounded smoke.
-Ny ekstern SAMPLER_BENCHMARK_001-autoritet binder eksisterende benchmark-
+Ny ekstern SAMPLER_BENCHMARK_002-autoritet binder eksisterende benchmark-
 og receiptseleksjon, CPU20G/512M/0-7/1tråd/64tasks, separat18h hard wall.
 Ingen feature-/modell-/target-/samplersemantikk endres. Kilde/scalar-kontroll
 av benchmark og ny lukket scope/CLI har63 PASS under audit4G/512M; dette er
@@ -11,6 +11,12 @@ brukes; alle tre kandidater må fullføres med original tracemalloc. Inputbevis
 gjenbrukes bytebundet; ingen refits/TEST/NN-modell i CPU-kjøringen. Native
 smoke må fortsatt ha nye genuine preprocessing-/recipe-/window-/fresh-initial-
 /boot-/hostgates. Gamle claims, feilede tester og retention-nektelse bevares.
+001-startkontrollen feilet genuint før START/capped launch på Python3.10
+UTC-Z-format.002 bruker+00:00 innen samme absolutte18h/deadline, uten
+budsjettreset. Originalkilde/-kontroller/PRECLAIM_FAILURE beholdes.16 nye
+scope-/UTC-regresjoner PASS;48 uendrede benchmark-eiercases gjenbrukes.
+Siste endrede status-/scopegruppe etter formatretting:4 PASS, resten av den
+tidligere52-case-handoveren gjenbrukes med uendret kilde/mekanikk.
 
 08.10: før-smoke-forberedelsen er genuint fullført med exit0-terminal og
 READY_FOR_BOUNDED_RESEARCH_SMOKE for inputs/fremtidig plan, ikke native launch.

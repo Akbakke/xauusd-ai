@@ -133,13 +133,19 @@ def test_new_train_capacity_authority_preserves_conditional_smoke_gates():
     repo = Path(__file__).resolve().parents[1]
     policy = json.loads((repo / 'NEXT_RUN_POLICY.json').read_text())
     rebuild = policy['native_v38_rebuild_20261007']
-    capacity = rebuild['train_capacity_stage_001']
+    capacity = rebuild['train_capacity_stage_002']
+    previous = rebuild['train_capacity_stage_001']
+    assert previous['authorized'] is False
+    assert previous['capped_phase_started'] is False
+    assert capacity['original_absolute_budget_preserved'] is True
+    assert capacity['original_budget'] == previous['cpu_budget']
     smoke = rebuild['bounded_native_smoke_request_20261008']
     assert capacity['authorized'] is True and capacity['relaunch_allowed'] is False
     assert capacity['max_wall_seconds'] == 64800
     assert capacity['full_train_population'] == 652552
     assert capacity['cpu_budget'] != rebuild['pre_smoke_cpu_budget_001']['budget']
-    assert capacity['focused_control_cases_passed'] == 63
+    assert capacity['focused_control_cases_passed'] == 16
+    assert capacity['unchanged_existing_benchmark_owner_cases_passed'] == 48
     assert policy['training_enabled'] is False
     assert smoke['requested'] is True
     assert smoke['authorized_conditionally_on_existing_gates'] is True

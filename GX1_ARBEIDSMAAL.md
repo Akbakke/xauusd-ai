@@ -4,7 +4,7 @@ Målet er robuste, lærte XAUUSD Entry/Exit-beslutninger og positiv
 kostnadsjustert økonomi. Ingen slik konklusjon er etablert for dagens v38-oppsett.
 
 Aktuelt oppdrag08.10: kjør full TRAIN-kapasitet og deretter betinget bounded
-smoke. Ny SAMPLER_BENCHMARK_001 bruker separat64800s CPU-ramme04:55:12–
+smoke. Ny SAMPLER_BENCHMARK_002 bruker samme64800s CPU-ramme04:55:12–
 22:55:12 UTC; forberedelse/nedetid teller. Native preprocessing/koordinater,
 recipe/campaign, fresh-initial og fresh fysisk boot/host/GPU må bestås før
 modeller. Maks256 steg/4096 Entries; ingen større trening/fullVAL/TEST.
@@ -66,7 +66,7 @@ eksisterende eiere. BOUNDED_SAMPLER_SMOKE_PLAN.json er bundet i samme stage
 og policy. TRAIN4096/TRAIN256, valgt sampler, aktuelle kanoniske native
 preprocessing-kvitteringer/recipe og fersk initialmåling er ennå ikke produsert.
 Ny bestilling08.10 gir full TRAIN-only benchmark separat finite autoritet;
-64800s i SAMPLER_BENCHMARK_001 er ikke fornyelse av ATTEMPT_003 eller
+64800s i SAMPLER_BENCHMARK_002 er ikke fornyelse av ATTEMPT_003 eller
 inputbudsjettet. Det gamle immutabele planforslaget endres ikke.
 Senere smoke er høyst256 optimizersteg/4096 Entries, ikke full epoch/full VAL.
 
@@ -88,7 +88,7 @@ Læringsrekkefølgen og portene står i docs/NATIVE_LEARNING.md. Ny samplerbench
 krever egen finite plan/budsjettautoritet; den avbrutte ATTEMPT_003 og dens
 konsumerte engangsgodkjenning kan ikke gjenbrukes. Ingen trening er startet;
 full epoch/full VAL og TEST er fortsatt stengt. Ny scopeautoritet ligger
-bare i NEXT_RUN_POLICY/native_v38_rebuild_20261007/train_capacity_stage_001
+bare i NEXT_RUN_POLICY/native_v38_rebuild_20261007/train_capacity_stage_002
 og conditional-smoke-binding.
 
 ## Bevart GC-mål — på pause

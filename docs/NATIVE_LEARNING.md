@@ -13,7 +13,7 @@ forbudet mot relaunch av forbrukte planer.
 ## Ny utførelsesbestilling08.10
 
 «Ja, kjør videre train kapasitetstest og smoke» er direkte ny autoritet for
-full TRAIN-kapasitet og betinget bounded smoke. SAMPLER_BENCHMARK_001 får
+full TRAIN-kapasitet og betinget bounded smoke. SAMPLER_BENCHMARK_002 har
 separat64800s CPU-totalramme04:55:12–22:55:12 UTC08.10, inkludert
 forberedelse/nedetid. Nye kilde-/operator-/input-/output-bindinger og engangs-
 receipts kreves; gammel inputramme/ATTEMPT_003 forblir konsumert. CPU-kapasitet
@@ -22,6 +22,10 @@ eksisterende benchmark; original tracemalloc og seleksjonsgrenser består.
 Etter ekte kapasitet må eksisterende preprocessing-/koordinat-/recipe-/campaign-/
 fresh-initial-/Windows-boot-/host-/GPU-porter faktisk bestås før ny smoke.
 Ingen ny app-goal eller timeautomatisering opprettes av denne bestillingen.
+001 feilet genuint før START/capped launch fordi Python3.10 ikke tok UTC-Z;
+originale kontroller/kilde/PRECLAIM_FAILURE er bevart.002 normaliserer bare
+UTC-spelling til+00:00, innen identisk absolutt budsjett/deadline.16 nye
+scope-/datokontroller PASS; uendrede benchmark-/samplerbevis gjenbrukes.
 
 ## Fullført inputforberedelse — HISTORY2009W_NATIVE_V38_20261007
 
@@ -76,7 +80,7 @@ receiptfallback. Neste rekkefølge er bundet, ikke utført.
    kandidater 32768/65536/131072 overganger, batch16, én full repetisjon og
    utfallsblind rangering. Godkjent tidligere eligibility var 10800s per epoch,
    total hard wall64800s. Den nye scope-bindingen etter08.10-bestillingen,
-   ikke den historiske godkjenningen, autoriserer SAMPLER_BENCHMARK_001.
+   ikke den historiske godkjenningen, autoriserer SAMPLER_BENCHMARK_002.
    Original tracemalloc, 2GiB allokasjons-/1GiB padded-inputgrenser og øvrige
    eiergrenser består. Partial/småbatchbevis er ikke full kapasitetsmåling.
 2. Publiser valgt sampler og fryste epoch0/first4096/TRAIN256-koordinater

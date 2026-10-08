@@ -74,10 +74,13 @@ uendret. Juni2026 er gjenbrukt utviklings-VAL, ikke uberørt OOS. TEST forseglet
    kandidater32768/65536/131072 transitions,4 per Entry,batch16,én komplett
    repetisjon. Eksisterende tracemalloc/2GiB Python-/1GiB padded-input-/
    10800s eligibility og utfallsblind rangering består. Ny brukerautoritet
-   binder SAMPLER_BENCHMARK_001, én separat64800s CPU-totalramme08.10
+   binder SAMPLER_BENCHMARK_002, innen samme64800s CPU-totalramme08.10
    04:55:12–22:55:12 UTC inkl. forberedelse/nedetid. Ren pushet kilde og
    nye eksakte engangsreceipts kreves; de eier faktisk start/progress/terminal.
    Inputbudsjett/gamle claims kan ikke brukes; ingen NN-modeller i CPU-steget.
+   001 feilet genuint før START/capped launch på Python3.10 UTC-Z-spelling;
+   originale kontroller/kilde/PRECLAIM_FAILURE bevares.002 bruker+00:00,
+   samme absolutte start/deadline, ingen budsjettfornyelse eller001-relaunch.
 2. Bare etter komplett genuint målt sampler: aktuelle kanoniske fysisk
    preprocessing-kvitteringer og eksisterende native koordinat-eier binder
    epoch0/first4096/TRAIN256 mot det nye DESIGN/CONTROL256.
