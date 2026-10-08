@@ -3,7 +3,14 @@
 Målet er robuste, lærte XAUUSD Entry/Exit-beslutninger og positiv
 kostnadsjustert økonomi. Ingen slik konklusjon er etablert for dagens v38-oppsett.
 
-Aktuelt brukeroppdrag 07.10.2026: sett GC/order-flow og nye order-block-/footprint-
+Aktuelt oppdrag08.10: kjør full TRAIN-kapasitet og deretter betinget bounded
+smoke. Ny SAMPLER_BENCHMARK_001 bruker separat64800s CPU-ramme04:55:12–
+22:55:12 UTC; forberedelse/nedetid teller. Native preprocessing/koordinater,
+recipe/campaign, fresh-initial og fresh fysisk boot/host/GPU må bestås før
+modeller. Maks256 steg/4096 Entries; ingen større trening/fullVAL/TEST.
+Faktisk start/progress/terminal eies av nye kvitteringer, ikke denne prosaen.
+
+Bevart oppdrag07.10.2026: sett GC/order-flow og nye order-block-/footprint-
 utvidelser på pause, og prioriter ny trening med dagens tekniske indikatoroppsett.
 GC-målets status er paused; protokoll, prøver og ufullførte trinn bevares.
 Ingen flere kildesøk, nedlastinger eller GC-fits utføres mens det er på pause.
@@ -58,8 +65,9 @@ Fersk fysisk DESIGN og CONTROL256 er produsert uten utfallsvalg gjennom
 eksisterende eiere. BOUNDED_SAMPLER_SMOKE_PLAN.json er bundet i samme stage
 og policy. TRAIN4096/TRAIN256, valgt sampler, aktuelle kanoniske native
 preprocessing-kvitteringer/recipe og fersk initialmåling er ennå ikke produsert.
-Fremtidig full TRAIN-only benchmark krever egen finite kjøringstillatelse;
-64800s er et planforslag, ikke fornyelse av ATTEMPT_003 eller inputbudsjettet.
+Ny bestilling08.10 gir full TRAIN-only benchmark separat finite autoritet;
+64800s i SAMPLER_BENCHMARK_001 er ikke fornyelse av ATTEMPT_003 eller
+inputbudsjettet. Det gamle immutabele planforslaget endres ikke.
 Senere smoke er høyst256 optimizersteg/4096 Entries, ikke full epoch/full VAL.
 
 Retention-eieren nektet faktisk closure på den uregistrerte nye run-rootens
@@ -79,7 +87,9 @@ Ingen eksisterende SMC-primitiver fjernes ved tolkning av «order block og det»
 Læringsrekkefølgen og portene står i docs/NATIVE_LEARNING.md. Ny samplerbenchmark
 krever egen finite plan/budsjettautoritet; den avbrutte ATTEMPT_003 og dens
 konsumerte engangsgodkjenning kan ikke gjenbrukes. Ingen trening er startet;
-full epoch/full VAL og TEST er fortsatt stengt.
+full epoch/full VAL og TEST er fortsatt stengt. Ny scopeautoritet ligger
+bare i NEXT_RUN_POLICY/native_v38_rebuild_20261007/train_capacity_stage_001
+og conditional-smoke-binding.
 
 ## Bevart GC-mål — på pause
 

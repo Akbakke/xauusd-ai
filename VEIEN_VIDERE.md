@@ -1,6 +1,6 @@
 # Veien videre
 
-## Nå: inputs ferdige, neste kjøring fortsatt stengt
+## Nå: inputs ferdige, ny kapasitet autorisert før betinget smoke
 
 Forberedelsesmålet er fullført som READY_FOR_BOUNDED_RESEARCH_SMOKE:
 genuine core/komplett M1/dekningsreview/oracle/post-readiness, nye fysiske
@@ -15,14 +15,17 @@ Alle åtte familier,254 signalfelt,tidsrammer og TRAIN/VAL-perioder er bevart.
 Ny fysisk DESIGN/CONTROL256 og BOUNDED_SAMPLER_SMOKE_PLAN er immutabelt bundet
 i NEXT_RUN_POLICY/native_v38_rebuild_20261007/final_readiness_stage.
 Denne readiness er en input-/planoverlevering, ikke native launch-admission.
-Selve smoke eller ny CPU-benchmark er ikke startet av forberedelsesmålet.
+Selve smoke eller ny CPU-benchmark ble ikke startet av forberedelsesmålet.
+Ny direkte brukerbestilling08.10 åpner full TRAIN-kapasitet og betinget smoke;
+kvitteringer eier start/progress/terminal. Native launch er fortsatt portbundet.
 
 1. Full workload-matchet TRAIN-only samplerbenchmark gjennom eksisterende
    capped producer:32768/65536/131072 transitions,4 per Entry,batch16,én
    full repetisjon,tracemalloc og eksisterende minne-/10800s eligibility.
    Utfallsblind rangering; delmåling eller ATTEMPT_003 gir ingen sampler.
-   Forslaget om64800s total wall trenger egen eksplisitt finite autoritet,
-   eksakt ren/pushet kilde, operator/input/output og nye engangskvitteringer.
+   SAMPLER_BENCHMARK_001 har nå ny separat64800s total wall04:55:12–22:55:12
+   UTC08.10 inkl. forberedelse/nedetid. Eksakt ren/pushet kilde, operator/
+   input/output og nye engangskvitteringer kreves; ingen NN-modeller i CPU-steget.
 2. Etter ekte sampleraksept: aktuelle kanoniske fysisk labels-/normalization-
    receipts og eksisterende koordinat-eier fryser epoch0/first4096/TRAIN256
    mot nytt CONTROL256. Ingen gammel receipt-/koordinatfallback.
@@ -46,7 +49,8 @@ Retention-eieren nekter unresolved authority directory manifest på dagens
 GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007;0 DATA/RUNS-filer slettet.
 Kun ekte full closure/registered metadata/eksakte targets og retention
 plan→godkjenn→utfør kan åpne sletting, aldri håndlaget unntak.
-CURRENT-stager/lås er avsluttet, men Windows2648/2704 er beskyttede og
+Før ny binding er tidligere CURRENT-stager/lås avsluttet; ny aktiv jobb
+forbyr omstart. Windows2648/2704 er fortsatt beskyttede og
 uklassifiserte. Maskinvid writer-/GPU-ledighet er ubevist; ingen fysisk omstart,
 elevasjon/ACL-bypass eller stopp av ukjente jobber. BSOD0xA-rotårsak er ukjent.
 Timeautomatiseringen er slettet og ikke gjenskapt.

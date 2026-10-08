@@ -10,6 +10,19 @@ retention-opprydding og liten smoke før større trening. Det eksplisitte nye
 byggevedtaket erstatter tidligere reuse-only for genererte inputs, ikke
 forbudet mot relaunch av forbrukte planer.
 
+## Ny utførelsesbestilling08.10
+
+«Ja, kjør videre train kapasitetstest og smoke» er direkte ny autoritet for
+full TRAIN-kapasitet og betinget bounded smoke. SAMPLER_BENCHMARK_001 får
+separat64800s CPU-totalramme04:55:12–22:55:12 UTC08.10, inkludert
+forberedelse/nedetid. Nye kilde-/operator-/input-/output-bindinger og engangs-
+receipts kreves; gammel inputramme/ATTEMPT_003 forblir konsumert. CPU-kapasitet
+konstruerer ingen NN-modell og gir aldri native launch-admission. Kjør bare
+eksisterende benchmark; original tracemalloc og seleksjonsgrenser består.
+Etter ekte kapasitet må eksisterende preprocessing-/koordinat-/recipe-/campaign-/
+fresh-initial-/Windows-boot-/host-/GPU-porter faktisk bestås før ny smoke.
+Ingen ny app-goal eller timeautomatisering opprettes av denne bestillingen.
+
 ## Fullført inputforberedelse — HISTORY2009W_NATIVE_V38_20261007
 
 Genuin PRE_SMOKE_READINESS_001 exit0 kl.02:30:04 UTC08.10 på fryst2f415fd9:
@@ -49,7 +62,8 @@ PRE_SMOKE_CPU_001 var den særskilt godkjente18h inputrammen00:25:44–18:25:44
 UTC08.10 inkl. nedetid, nå konsumert ved fullført forberedelse. Original
 07.10-build-deadline og ATTEMPT_003 er konsumert; ingen ny18h per substage.
 Fullførte eller feilede engangsplaner relanseres aldri.
-Ny benchmark trenger egen finite autoritet; forslaget64800s er ikke tillatelse.
+Ny benchmark fikk nå egen finite autoritet via08.10-bestillingen; det tidligere
+immutabele64800s planforslaget alene var aldri tillatelse.
 Fortsatt mangler full sampler/valg, aktuelle kanoniske fysisk labels- og
 normalization-receipts, native TRAIN-koordinater/recipe/hostgates og fresh
 initialbaseline før faktisk modellsmoke. Ingen håndlaget PASS eller gammel
@@ -61,7 +75,8 @@ receiptfallback. Neste rekkefølge er bundet, ikke utført.
    faktisk full-TRAIN-indeks og alle 254 felt/åtte familier. Behold eksisterende
    kandidater 32768/65536/131072 overganger, batch16, én full repetisjon og
    utfallsblind rangering. Godkjent tidligere eligibility var 10800s per epoch,
-   total hard wall 64800s; dette er ikke en ny kjøringstillatelse.
+   total hard wall64800s. Den nye scope-bindingen etter08.10-bestillingen,
+   ikke den historiske godkjenningen, autoriserer SAMPLER_BENCHMARK_001.
    Original tracemalloc, 2GiB allokasjons-/1GiB padded-inputgrenser og øvrige
    eiergrenser består. Partial/småbatchbevis er ikke full kapasitetsmåling.
 2. Publiser valgt sampler og fryste epoch0/first4096/TRAIN256-koordinater

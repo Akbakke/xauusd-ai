@@ -2,8 +2,9 @@
 
 Faktisk status og eksakte bindinger eies bare av NEXT_RUN_POLICY.json.
 Eneste repo er /home/andre2/src/GX1_CURRENT, work/gx1-current, én agent.
-Gjeldende brukerbestilling er ferskt datasett, feil-/mismatch-revisjon og
-komplett M1/inputforberedelse med kjøreplan før smoke. GC/order-flow og nye
+Gjeldende bestilling08.10 er «Ja, kjør videre train kapasitetstest og smoke».
+Inputforberedelsen er fullført; ny finite CPU-kapasitet bindes før betinget
+native smoke. GC/order-flow og nye
 order-block-/footprint-utvidelser er fortsatt på pause.
 
 ## Resultat: forberedelsen er fullført, modellen er ikke startet
@@ -67,13 +68,16 @@ TRAIN4096/TRAIN256/valgt sampler og native recipe er ikke publisert.
 TRAIN2011-06-01–2025-06-01 og utviklings-VAL2025-06-01–2026-07-01 er
 uendret. Juni2026 er gjenbrukt utviklings-VAL, ikke uberørt OOS. TEST forseglet.
 
-## Neste avgrensede løp — kun plan, ingen kjøring
+## Neste avgrensede løp — ny kapasitet og betinget smoke
 
 1. Ny separat finite TRAIN-only CPU-samplerbenchmark på hele fysiske indeksen,
    kandidater32768/65536/131072 transitions,4 per Entry,batch16,én komplett
    repetisjon. Eksisterende tracemalloc/2GiB Python-/1GiB padded-input-/
-   10800s eligibility og utfallsblind rangering består. Foreslått64800s
-   totalramme er ikke autorisert; inputbudsjett/gamle claims kan ikke brukes.
+   10800s eligibility og utfallsblind rangering består. Ny brukerautoritet
+   binder SAMPLER_BENCHMARK_001, én separat64800s CPU-totalramme08.10
+   04:55:12–22:55:12 UTC inkl. forberedelse/nedetid. Ren pushet kilde og
+   nye eksakte engangsreceipts kreves; de eier faktisk start/progress/terminal.
+   Inputbudsjett/gamle claims kan ikke brukes; ingen NN-modeller i CPU-steget.
 2. Bare etter komplett genuint målt sampler: aktuelle kanoniske fysisk
    preprocessing-kvitteringer og eksisterende native koordinat-eier binder
    epoch0/first4096/TRAIN256 mot det nye DESIGN/CONTROL256.
@@ -81,12 +85,13 @@ uendret. Juni2026 er gjenbrukt utviklings-VAL, ikke uberørt OOS. TEST forseglet
    nullstegsinitialisering med samme nåværende ONLINE/TARGET-funksjon.
    Historiske checkpoints, constructor metadata eller lik vekthash er ikke
    et nytt initial-/funksjonsparitetsbevis.
-4. Bare særskilt admittet smoke:256 optimizersteg,høyst4096 Entries,batch16,
+4. Brukeren har nå bestilt betinget smoke, men bare et nytt særskilt
+   admittet native-vindu åpner256 optimizersteg,høyst4096 Entries,batch16,
    FP32/TF32 av,seed20260911. TRAIN256 og CONTROL256 vurderes separat etter
    docs/LEARNING_GATE.md; Entry/Exit begge sider, ikke bare bias/FLAT/HOLD.
    Større trening krever egen forhåndsbundet finite utvidelse etter læringsport.
 
-Brukerens «Ja» åpnet bare PRE_SMOKE_CPU_00100:25:44–18:25:44 UTC08.10
+Brukerens tidligere «Ja» åpnet bare PRE_SMOKE_CPU_00100:25:44–18:25:44 UTC08.10
 inkludert forberedelse/nedetid. Forberedelsesscopet er nå konsumert ved
 genuin fullføring. Ubrukt tid er ingen benchmark-/modellautoritet.
 Original build-deadline07.10 kl.23:44:34 og ATTEMPT_003 forblir konsumert.
@@ -101,8 +106,10 @@ Eiernektelsen omgås ikke av håndbygde graph-/manifest-unntak; eksakte targets,
 full transitiv closure/TEST-vern og plan→godkjenn→utfør må først bestås.
 Repo-slettebølgen/funn/testhistorikken står i docs/REPO_REVIEW.md og Git.
 
-Alle stagebundne prosesser er reaped/borte og CURRENT-låsen er ledig på
-WSL-boot e2c0e03d. Windows2648/2704 er fortsatt beskyttede, uklassifiserte
+Før ny kapasitetbinding var tidligere stageprosesser reaped/borte og
+CURRENT-låsen ledig på WSL-boot e2c0e03d. Nye prosessreceipts overstyrer
+idle-prosa; ingen omstart mens kapasitet kjører. Windows2648/2704 er fortsatt
+beskyttede, uklassifiserte
 PowerShell-prosesser; maskinvid writer-/job-/GPU-ledighet er ikke bevist.
 Ingen fysisk omstart, ACL/elevasjonsbypass eller stopp av ukjente jobber.
 Windows-BSOD0xA07.10 er dokumentert; konkret driver/hardwareårsak er ubevist.

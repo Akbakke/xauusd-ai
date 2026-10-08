@@ -100,7 +100,7 @@ def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
     prep = policy['native_v38_preparation_20261001']
     assert work['gc_goal_status'] == 'paused'
     rebuild = policy['native_v38_rebuild_20261007']
-    assert work['current_activity'] == 'NATIVE_V38_COMPLETE_M1_PRE_SMOKE_PREPARATION'
+    assert work['current_activity'] == 'NATIVE_V38_TRAIN_CAPACITY_THEN_BOUNDED_SMOKE'
     assert work['current_research_id'] == Path(rebuild['run_root']).name
     assert rebuild['run_root'] != prep['run_root']
     assert work['existing_indicator_surface_changed'] is False
@@ -127,6 +127,33 @@ def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
         assert scope['broker_authorized'] is False
         assert scope['trading_authorized'] is False
         assert scope['spending_authorized'] is False
+
+
+def test_new_train_capacity_authority_preserves_conditional_smoke_gates():
+    repo = Path(__file__).resolve().parents[1]
+    policy = json.loads((repo / 'NEXT_RUN_POLICY.json').read_text())
+    rebuild = policy['native_v38_rebuild_20261007']
+    capacity = rebuild['train_capacity_stage_001']
+    smoke = rebuild['bounded_native_smoke_request_20261008']
+    assert capacity['authorized'] is True and capacity['relaunch_allowed'] is False
+    assert capacity['max_wall_seconds'] == 64800
+    assert capacity['full_train_population'] == 652552
+    assert capacity['cpu_budget'] != rebuild['pre_smoke_cpu_budget_001']['budget']
+    assert capacity['focused_control_cases_passed'] == 63
+    assert policy['training_enabled'] is False
+    assert smoke['requested'] is True
+    assert smoke['authorized_conditionally_on_existing_gates'] is True
+    assert smoke['native_window_not_yet_bound'] is True
+    assert smoke['max_optimizer_steps'] == 256
+    assert smoke['max_trained_entry_rows'] == 4096
+    for item in (capacity, smoke):
+        assert item['native_launch_admitted'] is False
+        assert item['test_access_authorized'] is False
+    assert smoke['full_epoch_training_allowed'] is False
+    assert smoke['full_val_allowed'] is False
+    assert smoke['automatic_extension_allowed'] is False
+    assert smoke['broker_trading_spending_authorized'] is False
+    assert smoke['gc_resumed'] is False
 
 
 def test_new_rebuild_plan_preserves_periods_and_requires_complete_m1_before_smoke():
