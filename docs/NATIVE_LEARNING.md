@@ -42,8 +42,14 @@ koordinatpublikasjon, fresh-initial, Windows-boot eller læringsmåling.
 Sampler-/designmetadata-publikasjonen NATIVE_METADATA_HANDOFF_001 er genuint
 fullført20:54:48 UTC,exit0/5,304s/uendret87a35486, innen opprinnelig deadline.
 Ny DESIGN6b3be86b/valgt sampler e53a0af1 er publisert, originalene urørt.
-Nå gjenstår aktuelle fysiske target-/normaliseringsprechecks og native koordinater.
-Disse er nå særskilt bundet i NATIVE_PREPROCESSING_001 gjennom eksisterende
+Aktuelle fysiske target-/normaliseringsprechecks og native koordinater er nå
+genuine: NATIVE_PREPROCESSING_001 exit0 kl.21:31:56 UTC/223,100s/uendretb3b5baae,
+alle47 aktive targetfelt/hele TRAIN-VAL,1140982 pre-TEST M5-kildeklokker,
+faktiske347088456/51843121 successors og eksisterende consumer-admission.
+Original M1-emisjonskompletthet er byte-uendret-kilde-/algebrabevis fra genuine
+manifester, ikke ny raw quote-scan. Nye epoch0/first4096/TRAIN256 og separate
+CONTROL256-målekoordinater er publisert,0 refits/modeller/TEST-rader.
+Steget var særskilt bundet i NATIVE_PREPROCESSING_001 gjennom eksisterende
 forbrukere/koordinat-eier, capped audit4G/512M innen opprinnelig deadline.
 37 fokuserte scope-/clock-/outputkontroller PASS, ikke faktisk precheck/læring.
 22 lukkede scope-/output-/kildetester og5 aktuelle overleveringstester PASS.
@@ -91,10 +97,11 @@ Fullførte eller feilede engangsplaner relanseres aldri.
 Ny benchmark fikk nå egen finite autoritet via08.10-bestillingen; det tidligere
 immutabele64800s planforslaget alene var aldri tillatelse.
 Full målt samplerseleksjon og sampler-/metadatapublikasjon er ferdig.
-Fortsatt mangler aktuelle kanoniske fysisk labels- og
-normalization-receipts, native TRAIN-koordinater/recipe/hostgates og fresh
-initialbaseline før faktisk modellsmoke. Ingen håndlaget PASS eller gammel
-receiptfallback. Neste rekkefølge er bundet, ikke utført.
+Aktuelle kanoniske fysisk labels-/normalization-receipts og native TRAIN-
+koordinater er nå genuine. Native recipe/hostgates og fresh initialbaseline
+gjenstår før faktisk modellsmoke. Windows2648/2704 er fortsatt beskyttede;
+maskinvid writer-/GPU-idle-proof eller ny trygg fysisk boot krever ekstern
+lokal avklaring. Ingen omstart/NN-start eller håndlaget PASS.
 
 ## Beholdt rekkefølge
 

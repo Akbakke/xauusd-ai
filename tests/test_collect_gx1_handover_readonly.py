@@ -178,7 +178,7 @@ def test_post_capacity_metadata_authority_cannot_open_native_or_reset_budget():
     assert stage['terminal_exit_code'] == 0
     assert stage['source_unchanged_at_terminal'] is True
     assert stage['current_status'] == 'GENUINE_METADATA_PUBLICATION_COMPLETE_EXIT0_AUTHORITY_CONSUMED'
-    assert policy['current_work']['latest_terminal'] == stage['terminal']
+    assert policy['current_work']['latest_terminal'] == rebuild['native_preprocessing_stage_001']['terminal']
     assert policy['current_work']['selected_sampler_published'] is True
     assert stage['original_cpu_budget'] == capacity['cpu_budget']
     assert stage['cpu_deadline_utc'] == capacity['cpu_deadline_utc']
@@ -200,6 +200,13 @@ def test_native_preprocessing_scope_cannot_fit_open_test_or_admit_a_model():
     policy = json.loads((repo/'NEXT_RUN_POLICY.json').read_text())
     scope = policy['native_v38_rebuild_20261007']
     stage = scope['native_preprocessing_stage_001']
+    assert stage['authorized'] is False
+    assert stage['terminal_exit_code'] == 0 and stage['source_unchanged_at_terminal'] is True
+    assert stage['physical_preprocessing_complete'] is True and stage['native_coordinates_published'] is True
+    assert stage['genuine_learning_measured'] is False and stage['safe_machine_wide_restart_admitted'] is False
+    assert set(stage['chronological_prefix']) == {'design','labels_result','normalization_result','native_coordinates'}
+    assert stage['chronological_prefix']['design'] == scope['post_capacity_metadata_stage_001']['design']
+    assert policy['current_work']['latest_terminal'] == stage['terminal']
     assert stage['original_cpu_budget'] == scope['train_capacity_stage_002']['cpu_budget']
     assert stage['cpu_deadline_utc'] == scope['train_capacity_stage_002']['cpu_deadline_utc']
     assert stage['relaunch_allowed'] is False
@@ -260,7 +267,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     progress = scope['pre_smoke_progress']
     assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
     final_ready = progress['ready_for_bounded_research_smoke']
-    latest = scope['post_capacity_metadata_stage_001']
+    latest = scope['native_preprocessing_stage_001']
     assert work['full_benchmark_completed'] is True
     assert work['latest_terminal'] == latest['terminal']
     assert work['terminal_exit_code'] == 0

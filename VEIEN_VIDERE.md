@@ -13,11 +13,18 @@ begge native forbrukere; alle originale bytes/bindinger forblir urørt.
 mekanikkbevis. NATIVE_METADATA_HANDOFF_001 fullført20:54:48 UTC,
 exit0/5,304s/uendret87a35486; valgt sampler e53a0af1 og ny DESIGN6b3be86b
 er genuine, originalene urørt. Alle bundne metadata-prosesser er borte.
-Neste steg er genuine fysiske target-/normaliseringsprechecks og native
-koordinatpublikasjon gjennom eksisterende eiere/capped audit.
+Fysiske target-/normaliseringsprechecks og native koordinatpublikasjon er også
+genuine gjennom eksisterende eiere/capped audit.
 Opprinnelig22:55:12 UTC deadline beholdes; ingen NN/refit/rebenchmark/TEST.
 
-NATIVE_PREPROCESSING_001 er separat eksakt bundet til eksisterende target-/
+NATIVE_PREPROCESSING_001 fullført21:31:56 UTC,exit0/223,100s/uendretb3b5baae:
+alle47 aktive targetfelt på652552 TRAIN/70880 VAL,1140982 pre-TEST originale
+M5-clocks og faktisk successor-count-paritet bestod. M1-support gjenbrukes
+ærlig via uendret emitter/immutable manifests, ikke ny raw quote-scan.
+Eksisterende koordinat-eier publiserte epoch0/first4096/TRAIN256 og separat
+CONTROL256/measurement-koordinater. Norm ble ikke refittet; ingen NN/TEST.
+Autoriteten er konsumert og alle bundne prosesser/lås avsluttet.
+Steget var separat eksakt bundet til eksisterende target-/
 normaliseringsforbrukere og koordinatprodusent, capped4G/512M/én tråd.
 37 mekanikk-/scopekontroller PASS. Original target-M1-kilde og nyere komplette
 inputquotes er ulike roller; ingen falsk kildeekvivalens eller håndlaget PASS.
@@ -73,9 +80,14 @@ GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007;0 DATA/RUNS-filer slettet.
 Kun ekte full closure/registered metadata/eksakte targets og retention
 plan→godkjenn→utfør kan åpne sletting, aldri håndlaget unntak.
 Kapasitetsprosessene er avsluttet; ny aktiv jobb forbyr omstart.
-Windows2648/2704 er fortsatt beskyttede ved faktisk inventar20:39:58 UTC.
+Windows2648/2704 er fortsatt beskyttede ved faktisk inventar21:33:53 UTC.
 2704 har observert lokal telemetrikø,2648 ukjent rolle; ingen av delene
-beviser maskinvid writer-/GPU-ledighet. Ingen fysisk omstart,
+beviser maskinvid writer-/GPU-ledighet. WDDM compute-apps-forespørselen
+inneholder desktopprosesser og utilgjengelige minnemål; heller ikke idle-proof.
+Lesende omstartsgrense63520748 binder ekte terminal/prosess-/bootobservasjon.
+Alle CURRENT-jobber er avsluttet, men omstart krever lokal Windows rolle-/
+writer-avklaring eller brukerutført trygg fysisk omstart før ny boot-/hostkontroll.
+Ingen fysisk omstart,
 elevasjon/ACL-bypass eller stopp av ukjente jobber. BSOD0xA-rotårsak er ukjent.
 Timeautomatiseringen er slettet og ikke gjenskapt.
 

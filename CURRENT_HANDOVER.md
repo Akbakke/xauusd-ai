@@ -3,7 +3,8 @@
 Faktisk status og eksakte bindinger eies bare av NEXT_RUN_POLICY.json.
 Eneste repo er /home/andre2/src/GX1_CURRENT, work/gx1-current, én agent.
 Gjeldende bestilling08.10 er «Ja, kjør videre train kapasitetstest og smoke».
-Inputforberedelsen og komplett målt CPU-samplerkapasitet er fullført.
+Inputforberedelsen, komplett målt CPU-samplerkapasitet og fysisk native
+target-/normaliseringsprecheck med nye smoke-koordinater er fullført.
 Native smoke er fortsatt portbundet. GC/order-flow og nye
 order-block-/footprint-utvidelser er fortsatt på pause.
 
@@ -29,8 +30,8 @@ Begge native forbrukere gjenbygger og sammenligner hele den typede kroppen;
 bool→int, endret target/normalisering/kilde/budsjett/provenance avvises også
 etter ny hash.79 fokuserte sampler-/koblingskontroller og61 native recipe-/
 koordinatkontroller PASS på syntetiske mekanikkdata, ikke native læring.
-Ny komplett metadataartefakt er genuint publisert; koordinater/labels-/
-normalization-precheck/recipe/fresh-initial/host/boot må fortsatt bestås.
+Ny komplett metadataartefakt er genuint publisert; fysisk precheck og
+koordinater er nå også genuine. Recipe/fresh-initial/host/boot gjenstår.
 
 NATIVE_METADATA_HANDOFF_001 avsluttet20:54:48.713927 UTC,exit0/5,304s,
 uendret87a35486. TERMINAL7d0d917f / RESULT1d3cb62a / metadata33bcc58f
@@ -50,9 +51,27 @@ med produksjonscommit666431a0: builder og fire target-/M1-eiere er byte-uendret.
 Original mål-M1-kilde15c4 er ikke nyere komplett inputquote-kilde54b6.
 M5-inputforeldre omfatter også senere kalender; ny clockkontroll må bare bruke
 eksplisitt pre-TEST tidsprojeksjon og aldri følge forseglede TEST-datasett.
-Dette er kilde-/identitetsbevis, ikke ennå ny full target-/clock-aksept.
+Dette er kilde-/identitetsbevis; etterfølgende ekte dataaksept står nedenfor.
 
-NATIVE_PREPROCESSING_001 er nå særskilt plan-/kilde-/input-/output-bundet:
+NATIVE_PREPROCESSING_001 avsluttet genuint21:31:56.596053 UTC,exit0,
+223,100s/uendretb3b5baae. TERMad963d3e / RESULT97e379eb /
+preprocessing fe0fa4f2 binder LABELS9dcc1fa9 / NORMALIZATION3605e8bd og
+NATIVE_COORDINATES51ee650e / measurement b8c6e74b / COMPLETEb9830c67.
+Alle47 aktive targetkolonner på652552 TRAIN/70880 VAL har eksakt float32/
+domene-/maskeaksept gjennom eksisterende Dataset-forbruker.1140982 originale
+M5-kildeklokker er målt i eksplisitt pre-TEST tidsprojeksjon;0 TEST-rader
+returnert. Alle framtidige observed-row-horisonter/close-availability er
+innen fysisk splitgrense. Original M1-kompletthet er uendret-kilde-/algebra-
+bevis fra genuin emitter/immutable manifester, ikke ny raw quote-scan eller
+likhet med54b6. Begge frozen TRAIN-policyer er identiske mellom splittene.
+Norm-koeffisienter refittes ikke; faktiske successor-array-streams
+347088456/51843121 er koblet til genuine fullparitets-/indeks-/sekvensbevis.
+Eksisterende koordinat-eier publiserte epoch0/first4096/TRAIN256 og separat
+uendret CONTROL256; validatorene bestod. Ingen modeller/forwards/optimizer/
+refits/TEST-data. Alle bundne prosesser er borte, CURRENT-lås ledig.
+Autoriteten er konsumert; ingen relaunch eller budsjettreset.
+
+Steget var særskilt plan-/kilde-/input-/output-bundet:
 PLAN0aa73cf8, precheck b3b94d8d, launcher76c45df5,37 fokuserte mekanikk-
 kontroller PASS. Kun faktisk TRAIN/VAL-target-domene, pre-TEST original
 M5-clockprojeksjon, kildelik original M1-emisjonskompletthet og genuine
@@ -60,7 +79,7 @@ fullpopulasjons-normaliserings-/paritets-/indekskvitteringer. Etter vellykket
 precheck publiserer eksisterende koordinat-eier epoch0/first4096/TRAIN256
 og separat uendret CONTROL256. Ingen target-rewrite, refit, modell eller
 boot-admission. Capped4G/512M innen opprinnelig22:55:12 UTC CPU-deadline.
-NOT_STARTED er bindingstidstilstand; genuine nye receipts eier faktisk utfall.
+NOT_STARTED er historisk bindingstidstilstand; ekte terminal eier utfallet.
 
 READY_FOR_BOUNDED_RESEARCH_SMOKE betyr her verifiserte inputs og en bundet
 avgrenset fremtidig kjøreplan. Det er uttrykkelig ikke benchmark-/modell-
@@ -80,7 +99,7 @@ samme stage (SHA0da1a9f7). DESIGNaaa6027a / CONTROL256a33a97c6 er nyprodusert
 fra dagens fysiske VAL-clocks gjennom eksisterende selector, seed20260911,
 salt1. Ingen gamle koordinatbytes ble kopiert; at deterministic output har
 samme hash som tidligere generation er ikke gjenbruk av gamle outputs.
-TRAIN4096/TRAIN256 og native recipe gjenstår; valgt sampler er nå publisert.
+TRAIN4096/TRAIN256 og valgt sampler er nå publisert; native recipe gjenstår.
 
 ## Målt på ekte deklarerte data
 
@@ -162,13 +181,20 @@ Eiernektelsen omgås ikke av håndbygde graph-/manifest-unntak; eksakte targets,
 full transitiv closure/TEST-vern og plan→godkjenn→utfør må først bestås.
 Repo-slettebølgen/funn/testhistorikken står i docs/REPO_REVIEW.md og Git.
 
-Etter genuine kapasitetsterminal er CURRENT-kapasitetsprosessene borte på
-WSL-boot e2c0e03d. Ny Windows-inventar20:39:58 UTC viser fortsatt2648/2704
+Etter genuine kapasitet-/metadata-/preprocessing-terminaler er alle bundne
+CURRENT-prosesser/lås avsluttet på WSL-boot e2c0e03d. Ny Windows-inventar
+21:33:53 UTC viser fortsatt2648/2704
 med samme oppstartstider og utilgjengelig kommandolinje.2704 var tidligere
 bundet til den lokale GX1 HTTP.sys-telemetrikøen, ikke til kjørende kode/
 writer-ledighet;2648s rolle er fortsatt ukjent. Register-/TaskScheduler-
 tilgang gir AccessDenied; den signerte GPU-payloaden inneholder ikke
-prosessidentitet. Maskinvid writer-/job-/GPU-ledighet er ikke bevist.
+prosessidentitet. WDDM compute-apps-query har desktopprosesser/utilgjengelige
+minnemål og er ikke bevis for null GPU-beregning. Lesende omstartsgrense
+63520748 binder ekte terminal/prosess-/bootobservasjon. Maskinvid writer-/
+job-/GPU-ledighet er ikke bevist. Videre native arbeid krever lokal Windows
+rolle-/writer-avklaring eller brukerutført trygg fysisk omstart, deretter ny
+boot-/kilde-/artefakt-/hostkontroll. Ingen ny autorisasjon for samme omstart
+etterspørres; mangelen er faktisk innsyn, ikke brukerens tillatelse.
 Ingen fysisk omstart, ACL/elevasjonsbypass eller stopp av ukjente jobber.
 Windows-BSOD0xA07.10 er dokumentert; konkret driver/hardwareårsak er ubevist.
 INPUT_BUILD_001 har ukjent exit/manglende terminal etter boot-tap og

@@ -20,13 +20,20 @@ deklarasjon, uten å omskrive originaldesign/benchmark eller øvrige felt.
 79 koblingskontroller og61 native recipe-/koordinatkontroller PASS.
 NATIVE_METADATA_HANDOFF_001 har ekte exit0-terminal20:54:48 UTC/uendret87a35486;
 valgt sampler e53a0af1 og ny strict DESIGN6b3be86b er publisert, originalene
-urørt. Fysiske target-/normaliseringsprechecks, koordinater/recipe/initialmålinger
-og maskinvid ledighet gjenstår. Alle avsluttede engangsautoriter er konsumert.
+urørt. Fysiske target-/normaliseringsprechecks og koordinater er også fullført;
+recipe/initialmålinger og maskinvid ledighet gjenstår. Alle avsluttede
+engangsautoriteter er konsumert.
 
-Neste avgrensede CPU-autoritet er NATIVE_PREPROCESSING_001: faktisk original-
+Fullført avgrenset CPU-autoritet NATIVE_PREPROCESSING_001: faktisk original-
 target-/clock-/normaliseringskobling og eksisterende native koordinatpublikasjon,
 innen samme22:55:12 UTC deadline.37 closed-scope-/clock-/outputkontroller PASS
-på syntetiske mekanikkdata. Ingen NN/refit/TEST/omstart før faktisk admission.
+på syntetiske mekanikkdata. Ekte terminal21:31:56 UTC,exit0/223,100s på
+uendretb3b5baae binder alle47 aktive targetkolonner på hele TRAIN/VAL,
+1140982 pre-TEST M5-klokker, faktisk successor-count-paritet, gjenbrukt
+whole-TRAIN-normalisering og nye4096/TRAIN256/separate CONTROL256-koordinater.
+Original M1-support er kilde-/algebrabevis fra byte-uendret genuine emitter,
+ikke ny raw target-quote-scan eller falsk source-ekvivalens. Ingen NN/refit/
+TEST-rader eller fysisk omstart. Modellen er fortsatt utrent.
 
 Bevart oppdrag07.10.2026: sett GC/order-flow og nye order-block-/footprint-
 utvidelser på pause, og prioriter ny trening med dagens tekniske indikatoroppsett.
@@ -81,8 +88,8 @@ gjentatt per-vindu-måling. VAL/TEST-fit0, modellinstanser/forwards/optimizer0.
 
 Fersk fysisk DESIGN og CONTROL256 er produsert uten utfallsvalg gjennom
 eksisterende eiere. BOUNDED_SAMPLER_SMOKE_PLAN.json er bundet i samme stage
-og policy. TRAIN4096/TRAIN256 og aktuelle kanoniske native
-preprocessing-kvitteringer/recipe og fersk initialmåling er ennå ikke produsert.
+og policy. TRAIN4096/TRAIN256 og aktuelle kanoniske native preprocessing-
+kvitteringer er nå genuine; native recipe og fersk initialmåling gjenstår.
 Ny bestilling08.10 gir full TRAIN-only benchmark separat finite autoritet;
 64800s i SAMPLER_BENCHMARK_002 er ikke fornyelse av ATTEMPT_003 eller
 inputbudsjettet. Det gamle immutabele planforslaget endres ikke.
