@@ -154,7 +154,8 @@ def test_new_rebuild_plan_preserves_periods_and_requires_complete_m1_before_smok
     assert plan['cleanup']['default_targets_authorized'] is False
     assert plan['smoke']['native_launch_authorized_by_plan'] is False
     assert plan['automatic_large_training'] is False
-    assert scope['recovery_core_only'] is True and scope['whole_input_build_complete'] is False
+    assert scope['recovery_core_only'] is True  # The original core boundary was never full input admission.
+    assert scope['input_build_authorized'] is False  # Its genuine terminal consumed the launch.
     assert scope['prior_attempt']['relaunch_allowed'] is False
     assert scope['prior_attempt']['old_exit_code_known'] is False
     assert scope['automatic_host_restart'] is False

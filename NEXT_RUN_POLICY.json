@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-08T02:14:19.101115+00:00",
-  "status": "V38_FULL_PHYSICAL_INPUT_INDEX_COMPLETE_FINAL_PRE_SMOKE_HANDOFF_EXACTLY_BOUND_GC_PAUSED",
+  "observed_utc": "2026-10-08T02:30:04.633427+00:00",
+  "status": "V38_READY_FOR_BOUNDED_RESEARCH_SMOKE_INPUT_PREPARATION_ONLY_NO_NATIVE_LAUNCH_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator requests complete M1 and all observed pre-smoke adjustments after the successful Oct7 core terminal. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. INPUT_BUILD_001 has unknown old exit/terminal after physical crash; INPUT_BUILD_002 is genuinely successful core-only and its one-shot authority is consumed. Preserve immutable runtime copies/receipts and verified completed same-generation bytes, never relaunch either attempt or consume old Oct1 normalization/models. The original common 64800s build deadline is consumed and preserved unchanged. Human 'Ja' separately approves PRE_SMOKE_CPU_001: one new shared maximum 64800s CPU-only preparation window from 2026-10-08T00:25:44Z to 2026-10-08T18:25:44Z, including preparation and downtime, never reset per substage. Each next stage still needs a separately source/input/output/remaining-budget-bound existing owner. Complete M1, label-coverage/selection review, independent input oracle and post-readiness remain mandatory before fresh normalization and future smoke admission. Do not silently accept unexplained exclusions, impute quotes/labels, change periods or call a diagnostic input acceptance. Reboot only at verified idle terminal phase boundaries, never interrupt active jobs. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
-  "next_action": "NATIVE_INPUT_INDEX_001 genuine exit0/source unchanged, full652552/70880 index/no-cap identities accepted. PRE_SMOKE_READINESS_001 separately bound CPU audit completes exact genuine-preparation revalidation, fresh outcome-blind CONTROL256/current design, finite future sampler/smoke plan and exact retention closure/refusal. Same shared input CPU deadline, no models/refit/benchmark/TEST/deletion/reboot. Future sampler/native launch still need separate exact authority and existing gates.",
+  "next_action": "Verified pre-smoke input preparation is complete: genuine M1/core/oracle/readiness/views/wholeTRAIN base+summary/normalized physical parity/full index, fresh physical CONTROL256/design, exact finite future sampler/smoke plan and genuine retention refusal. Stop here before benchmark/model. Next workflow is a separately authorized finite full TRAIN-only samplerbenchmark, selected native coordinates/current canonical preprocessing receipts, native recipe/fresh initial/host gates, then only256 optimizersteps<=4096 Entries and pairedTRAIN256/CONTROL256 learning review. No implicit launch or budget renewal; no TEST/delete/reboot/profit claim.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -78,7 +78,9 @@
       "thread_id": "01a10ffd-150b-7443-963c-03314e5968bd",
       "scope": "Complete M1 and all genuine native v38 pre-smoke prerequisites; stop before model smoke",
       "prior_creation_rejection": "Paused unfinished GC previously occupied the app goal slot; get_goal returned null before this successful creation. No false GC completion.",
-      "false_completion_allowed": false
+      "false_completion_allowed": false,
+      "preparation_objective_achieved_utc": "2026-10-08T02:30:04.633427+00:00",
+      "completion_scope": "All declared input-preparation criteria plus exact finite future plan and precise retention refusal; no smoke/training started"
     },
     "hourly_monitor": {
       "automation_id": "gx1-sjekk-datasettbygget-hver-time",
@@ -87,7 +89,7 @@
     },
     "current_research_id": "HISTORY2009W_NATIVE_V38_20261007",
     "fresh_dataset_requested": true,
-    "replacement_dataset_accepted": false,
+    "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "paused",
     "existing_indicator_surface_changed": false,
@@ -140,22 +142,28 @@
       "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
-    "latest_terminal_role": "Genuine full physical index and no-cap input identities, not sampler/model admission",
+    "latest_terminal_role": "Genuine final pre-smoke input preparation and finite-plan handoff only; no sampler/model launch admission",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/TERMINAL.json",
-      "sha256": "a9330e8b250c2b5f3d2c0e516e752d34f30ce2db1224d5c77ca97a77474109b3"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/TERMINAL.json",
+      "sha256": "a7b5b5d0ab4c1371bcf543b53fb4d0591f480dcdd06aaf7ec9ec15670a7ed056"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "termination": "NATIVE_INPUT_INDEX_001 ran02:05:04.099133-02:14:19.101115 UTC,exit0/555.002s,source7c19bb08 unchanged. Full652552/70880 exact indexes347088456/51843121 successors and source-owned no-duration-cap economics accepted, no refit/model/sampler/TEST. Bound supervisor/timeout/writer reaped and absent on sameboot. Final finite handoff/retention next; no machine-wide idle proof or deletion.",
+    "termination": "PRE_SMOKE_READINESS_001 genuine exit0 at02:30:04.633427 UTC on frozen2f415fd9, elapsed2.787s: completed full-population receipts revalidated exactly,59 frozen source/control bindings, actual index population identities, fresh outcome-blind CONTROL256/current design/finite sampler-smoke plan through existing owners. No repeated feature-value scans, fit/model/benchmark/TEST. Retention owner genuinely refuses unresolved current run-root manifest; zero deletions. Supervisor/timeout reaped/absent, CURRENT lock idle; protectedWindows2648/2704 forbid machine-wide idle/reboot claim. Stop at prepared input/plan boundary.",
     "full_benchmark_completed": false,
     "sampler_selected": false,
     "native_component_preparation_authorized": false,
     "test_data_used": false,
     "cleanup_report": "docs/REPO_REVIEW.md",
-    "repository_cleanup_complete": true
+    "repository_cleanup_complete": true,
+    "replacement_dataset_acceptance_scope": "Verified current pre-TEST native input preparation only, no native model/recipe/launch/bundle/economic promotion",
+    "pre_smoke_goal_preparation_complete": true,
+    "pre_smoke_goal_completion_evidence": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PRE_SMOKE_READINESS.json",
+      "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -516,7 +524,7 @@
     "native_training_enabled": false
   },
   "native_v38_rebuild_20261007": {
-    "status": "FULL_PHYSICAL_INDEX_COMPLETE_FINAL_PRE_SMOKE_HANDOFF_EXACTLY_BOUND_NOT_STARTED",
+    "status": "READY_FOR_BOUNDED_RESEARCH_SMOKE_PREPARATION_COMPLETE_NOT_MODEL_ADMISSION",
     "runtime_plan": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/PLAN.json",
       "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"
@@ -637,8 +645,8 @@
       "post_rebuild_readiness_complete": true,
       "fresh_whole_train_normalization_complete": true,
       "physical_view_and_entry_exit_parity_complete": true,
-      "new_sampler_smoke_plan_bound": false,
-      "ready_for_bounded_research_smoke": false,
+      "new_sampler_smoke_plan_bound": true,
+      "ready_for_bounded_research_smoke": true,
       "fresh_whole_train_base_normalization_complete": true,
       "fresh_whole_train_summary_normalization_complete": true,
       "full_physical_input_index_complete": true
@@ -1578,38 +1586,45 @@
       "original_build_plan_or_deadline_mutated": false,
       "training_enabled": false,
       "test_access_authorized": false,
-      "automatic_host_restart": false
+      "automatic_host_restart": false,
+      "authorized": false,
+      "current_status": "GENUINE_INPUT_PREPARATION_COMPLETE_SCOPE_CONSUMED_UNUSED_TIME_NOT_NEW_AUTHORITY",
+      "sampler_or_model_execution_authorized": false
     },
     "restart_boundary_observation": {
-      "observed_utc": "2026-10-08T01:09:20Z",
-      "current_heavy_job_and_lock_observed_idle": true,
+      "observed_utc": "2026-10-08T02:30:04.633427+00:00",
+      "stage_terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/TERMINAL.json",
+        "sha256": "a7b5b5d0ab4c1371bcf543b53fb4d0591f480dcdd06aaf7ec9ec15670a7ed056"
+      },
+      "wsl_boot_id": "e2c0e03d-63af-408d-97a5-9c5b6ef67c92",
+      "physical_windows_last_boot_utc": "2026-10-07T10:40:16.335891Z",
+      "safe_to_restart": false,
+      "automatic_host_restart": false,
+      "decision": "RESTART_NOT_ADMITTED_UNKNOWN_PROTECTED_WINDOWS_WRITERS_NO_ELEVATION_OR_ACL_BYPASS",
+      "crash_root_cause_proven": false,
+      "machine_wide_idle_writer_proof_complete": false,
+      "physical_reboot_executed": false,
       "protected_windows_processes_not_classified": [
         2648,
         2704
       ],
-      "machine_wide_idle_writer_proof_complete": false,
-      "physical_reboot_executed": false,
-      "reason": "Read-only CIM/GPU inventory cannot classify protected processes. No ACL/elevation bypass, unknown-job stop or false safe-reboot claim. CPU admission still uses the unchanged existing available-memory/cgroup/lock owner.",
-      "gpu_utilization_percent": 0,
-      "gpu_memory_used_mib": 375,
-      "protected_windows_processes_parent_pid": 2152
+      "current_heavy_job_and_lock_observed_idle": true
     },
     "progress_owner": "Genuine INPUT_TENSOR_AUDIT_003 exit0/source unchanged: all M1/M5/Entry and shared causal MTF normalized inputs measured, every NumPy/Torch difference0,71 alias bits exact; raw full sequences reused byte-bound plus pointwise source/algebra. NATIVE_INPUT_INDEX_001 separately exact-bound/not started completes full physical TRAIN/VAL indexing via existing no-cap/economics owners and source-owned prospective constant, same shared CPU deadline. No refit, sampler benchmark or model. Retention/refusal and new finite sampler/smoke plan remain.",
     "recovery_core_only": true,
-    "whole_input_build_complete": false,
-    "mandatory_next_stages": [
-      "RETENTION_AND_BOUNDED_SMOKE_BINDING"
-    ],
+    "whole_input_build_complete": true,
+    "mandatory_next_stages": [],
     "common_build_deadline_utc": "2026-10-07T23:44:34.296381+00:00",
     "automatic_host_restart": false,
     "crash_cause": "Windows System event1001 confirms bugcheck 0xA (unexpected shutdown 12:39:01 Europe/Oslo, boot12:40); ntoskrnl.exe event attribution is not the root cause. Minidump100726-12000-01.dmp was not readable at current permissions. Driver/hardware root cause and causal link to GX1 remain unproven. No BIOS/driver/memory change or ACL bypass.",
     "retention_closure_review": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REVIEW/RETENTION_ROOTS_AFTER_SOURCE_FIX.json",
-      "sha256": "a83b2e2db34c8cd98cd5eef46cef6b55c971ae41ccb6266769a8b421f9a741b1"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RETENTION_REVIEW.json",
+      "sha256": "cab44eea3dc0d3b3e6020956446580bbaf85d9fd9aef1ca02388281461285929"
     },
-    "retention_current_blocker": "Run-root closure is not yet published/admitted for the fresh generation. Complete actual replacement/registration first; no fabricated manifest, no deletion before owner-proven closure.",
+    "retention_current_blocker": "unresolved authority directory manifest: /home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "complete_m1_preparation_required": true,
-    "normalization_fit_authorized_after_input_audits": true,
+    "normalization_fit_authorized_after_input_audits": false,
     "cleanup_authorized_only_for_retention_admitted_exact_targets": true,
     "cleanup_executed": false,
     "native_model_smoke_requested": true,
@@ -1750,8 +1765,8 @@
       "stage_id": "PRE_SMOKE_READINESS_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001",
       "status_at_binding": "EXACTLY_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
-      "current_status": "EXACTLY_BOUND_NOT_STARTED_CLEAN_SOURCE_AND_RECEIPTS_REQUIRED",
-      "authorized": true,
+      "current_status": "GENUINE_PRE_SMOKE_INPUT_PREPARATION_COMPLETE_PERMISSION_CONSUMED",
+      "authorized": false,
       "relaunch_allowed": false,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PLAN.json",
@@ -1795,10 +1810,77 @@
       "test_access_authorized": false,
       "cleanup_allowed": false,
       "automatic_host_restart": false,
-      "input_preparation_complete": false,
-      "ready_for_bounded_research_smoke": false,
+      "input_preparation_complete": true,
+      "ready_for_bounded_research_smoke": true,
       "native_launch_admitted": false,
-      "future_sampler_budget_authorized": false
+      "future_sampler_budget_authorized": false,
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/TERMINAL.json",
+        "sha256": "a7b5b5d0ab4c1371bcf543b53fb4d0591f480dcdd06aaf7ec9ec15670a7ed056"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RESULT.json",
+        "sha256": "24eff53e787f8472510d9fe58748af97eda251a78af9c67ca38dedb98dc65c88"
+      },
+      "pre_smoke_readiness": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PRE_SMOKE_READINESS.json",
+        "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/DESIGN.json",
+        "sha256": "aaa6027aa51dce4d66cedda5021da1b718569e4d5f0a62b42164c71663fc2bad"
+      },
+      "bounded_sampler_smoke_plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/BOUNDED_SAMPLER_SMOKE_PLAN.json",
+        "sha256": "0da1a9f7ae0b80912725a620646d49a8e81a6877771958b2aa5b75cd3be6ce32"
+      },
+      "control256": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/CONTROL256_PARENT_ROWS.npy",
+        "sha256": "a33a97c612c3325cb9dbd44c1d8a3cafd40150523af32f345d63bdfb1ab8fa7f"
+      },
+      "retention": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RETENTION_REVIEW.json",
+        "sha256": "cab44eea3dc0d3b3e6020956446580bbaf85d9fd9aef1ca02388281461285929"
+      },
+      "readiness_scope": "Input preparation complete and finite future handoff bound only; NOT sampler/model launch admission",
+      "source_at_execution": "2f415fd96a88ea190c68ef60fc7de5dbdc16363b",
+      "elapsed_seconds": 2.7867009399997187,
+      "bound_processes_reaped_and_absent_on_same_boot": true
+    },
+    "future_bounded_sampler_smoke_handoff": {
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/BOUNDED_SAMPLER_SMOKE_PLAN.json",
+        "sha256": "0da1a9f7ae0b80912725a620646d49a8e81a6877771958b2aa5b75cd3be6ce32"
+      },
+      "preparation_complete": true,
+      "execution_authorized": false,
+      "sampler_benchmark_budget_authorized": false,
+      "sampler_selected": false,
+      "canonical_native_preprocessing_and_recipe_bound": false,
+      "fresh_initial_model_measured": false,
+      "current_host_native_launch_admitted": false,
+      "max_optimizer_steps": 256,
+      "max_trained_entry_rows": 4096,
+      "full_epoch_or_full_val_allowed": false,
+      "unused_input_budget_or_consumed_old_attempt_authorizes_launch": false
+    },
+    "completion_source_validation": {
+      "scope": "Source/scalar/status regression only, no feature-value rescan, native model, benchmark or learning-quality admission",
+      "current_test_cases": 51,
+      "current_test_failures": 0,
+      "current_test_errors": 0,
+      "current_test_skipped": 0,
+      "verified_junit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/VERIFIED_COMPLETION_HANDOVER_TESTS.xml",
+        "sha256": "ce8c97c853ec6d5987602d36ce6012012f800f0981c0dbabe2876a4f584c10de"
+      },
+      "original_failed_junit_preserved": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/POST_COMPLETION_HANDOVER_TESTS.xml",
+        "sha256": "78af2927eafb259065bdee71e1bd72d60c9f691b44f7f2054b5526bc547e04ab"
+      },
+      "defect": "Completion observation used a renamed restart-safety field while existing owner/test requires machine_wide_idle_writer_proof_complete and physical_reboot_executed. Canonical fields restored; both remain false. Genuine final input proof unchanged.",
+      "model_or_feature_semantics_changed": false,
+      "failed_fixture_was_production_or_host_crash": false
     }
   },
   "separate_incomplete_scope": {

@@ -1,13 +1,5 @@
 # Arbeidsmål for GX1
 
-Siste fasegrense08.10: genuin full fysisk TRAIN/VAL-indeks652552/70880 og
-ferske no-cap-inputidentiteter er akseptert, claim konsumert. Ny separat
-PRE_SMOKE_READINESS_001 er eksakt bundet/not started under samme18:25:44
-CPU-frist: genuine inputrevalidering, fersk utfallsblind CONTROL256/design,
-finite fremtidig sampler-/smoke-plan og faktisk retention/nektelse. To
-fokuserte kilde-/scalar-kontroller PASS, ingen ekte final-aksept ennå.
-Modell, benchmark, TEST, sletting og omstart er ikke åpnet.
-
 Målet er robuste, lærte XAUUSD Entry/Exit-beslutninger og positiv
 kostnadsjustert økonomi. Ingen slik konklusjon er etablert for dagens v38-oppsett.
 
@@ -43,62 +35,45 @@ på nytt. Målet er READY_FOR_BOUNDED_RESEARCH_SMOKE med følgende ferdigkriteri
    etterpå kontrolleres ny Windows-boot, WSL, kilde og artefakter. Ingen
    tidsstyrt omstart av aktiv jobb eller påstand om bevist krasjretting.
 
-Det gamle timevarselet er fjernet etter brukerbestilling og core-fullføring;
-det betyr ikke at komplett inputbygget er ferdig. Nytt app-mål for denne
-M1/før-smoke-forberedelsen er nå aktivt (07.10 kl.20:45:57 UTC), etter målt
-ledig målplass. Den tidligere avvisningen er ikke en gjeldende blokkering.
-GC-protokoll og ufullført fremdrift bevares på pause i repo/policy, aldri
-merkes ferdig. COMPLETE_M1_001 har nå genuine exit0-kvitteringer og5523147
-rader; det er eierfullføring, ikke hele kriterium1 eller inputaksept.
-INPUT_VALIDATION_002 er genuint fullført23:09:24 UTC, exit0 og uendret kilde.
-Dekningsreview, selvstendig M1-oracle og kanonisk post-readiness er bestått
-som separate input-underporter; tillatelsene er konsumert. M1-oracle beviser
-alle faktiske TRAIN/VAL-fill/quote-rader og392143437 bit-identiske aliaspar.
-001-feilen, originale kilder og manglende kvitteringsfelt er bevart uendret.
-Review beholder historisk årsak som ukjent der råsvar mangler minutter;
-ingen ukjent fravær blir markedskalender. Normalisering/visninger/bro,
-fysisk child-clock-binding og sampler-/smoke gjenstår.
-GAP_DISPOSITION_001 er genuint fullført23:32:51 UTC exit0, kilde90e6e9bd
-uendret, alle kvitteringsbundne prosesser borte og tillatelsen konsumert.
-Råklokke-authority binder5959045 pre-TEST-rader og86915 gap, alle ukjente
-uten kjentstengning/carry.83 fokuserte mekanikk-/witness-tester bestod;
-det er ikke fresh fit eller paritet på kommende fysisk child-M1.
-Fem kommende view-/normaliseringspublisister er rettet for målt kildefeil:
-strict-load, eksisterende no-replace/fsync og bevart staging ved feil. Ingen
-ekte ny normalisering/visning følger av kilde-/syntetiske regresjoner.
-Hele kriterium1/3 og målet er fortsatt ufullført, ingen modellstart.
-Omstart er ikke utført: CURRENT idle/GPU0% er målt, men beskyttede Windows-
-prosesser gjør maskinvid idle-/writer-proof ufullstendig. Ukjent er ikke idle.
-Faktisk prosjektstatus og eksakte bevis eies fortsatt bare av NEXT_RUN_POLICY.
+## Fullført før-smoke-forberedelse08.10
 
-«Ja» 08.10 autoriserer én separat maks18h CPU-ramme for de resterende
-normaliserings-/visnings-/inputparitetsstegene. Fristen er18:25:44 UTC,
-og forberedelse/nedetid teller fra00:25:44. Original build-deadline/plan
-fornyes ikke; hvert delsteg trenger egen eksakt engangs-binding. Modelltrening
-og TEST forblir stengt. Dette vedtaket er ikke fullføring av noen inputport.
-INPUT_VIEWS_001 er nå genuint exit0,00:43:39 UTC, kilde d5d6ad24 uendret.
-Hele fysiske Entry-TRAIN/VAL og separate kildebit-identiske M1-quotes,
-ferske koordinater og egne all-gaps-unknown-authorities er publisert; ingen
-fit eller modellemisjon i view-steget. BASE_NORMALIZATION_001 er genuint
-exit0,01:04:52 UTC, uendret1af9a63c og claim konsumert. Fersk whole-TRAIN-
-basefit på alle652552 Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0.
-SUMMARY_NORMALIZATION_001 er genuint exit0,01:19:05 UTC på uendret1a8a0411,
-claim konsumert: whole-TRAIN-summary7613258 side-fit-rader, separate VAL-
-counts uten fit og composite/split/clock/quote-bindinger. Base ikke refittet.
-001 feilet før transformene på en håndkopiert VAL-digest; faktisk fil
-og kanonisk policy matcher, og originalfeilen bevares.002 feilet01:47:14 UTC
-på diagnose-dictens JSON-sortering mot strict MTF-eier, ikke endret geometri
-eller data. Originalkvitteringer/claim bevares konsumert. Ny003 bygger
-utført EXPECTED_TFS-rekkefølge med samme lengder; fire fokuserte tester PASS.
-INPUT_TENSOR_AUDIT_003 er genuint exit0,01:58:31 UTC på uendretb2ad509d,
-claim konsumert: hele M1/M5/Entry og fem kausale MTF-ruter, alle NumPy/Torch-
-maxabs0,71 aliasbits og første-state/480-observed-row mappings eksakte.
-NATIVE_INPUT_INDEX_001 er genuint exit0,02:14:19 UTC,555,002s, uendret7c19bb08; for full fysisk
-TRAIN/VAL-indeks og de ferske no-cap-økonomiidentitetene eieren krever.
-Eksisterende producer20G/512M/samme18:25:44 CPU-frist; ingen holdetidsregel,
-refit, benchmark, modell eller TEST. To fokuserte metodekontroller PASS.
-Retention/nektelse og finite sampler-/smoke-binding gjenstår.
-Dette målet er ikke fullført; ingen modelltrening eller TEST er åpnet.
+PRE_SMOKE_READINESS_001 har genuine exit0 kl.02:30:04 UTC på fryst2f415fd9,
+source_unchanged=true. READY_FOR_BOUNDED_RESEARCH_SMOKE gjelder verifiserte
+inputs og eksakt finite fremtidig kjøreplan, ikke benchmark-/modellstart.
+Alle ferdigkriterier1–5 er dokumentert med genuine målinger/konsistensbevis
+og presis retention-nektelse; ingen INPUT_BUILD-claim eller gammel normalisering
+relanseres. Omstartskriterium6 er håndtert ved eksplisitt fail-closed-grense:
+maskinvid writer-ledighet kan ikke bevises for beskyttede Windows2648/2704,
+derfor ingen fysisk omstart eller påstand om bevist krasjretting.
+
+Komplett M1/core/dekningsreview/oracle/post-readiness, separate fysiske
+M1/M5/MTF-visninger, ny whole-TRAIN base+summary-normalisering og full
+652552/70880-indeks er genuint fullført. NumPy/Torch maxabs0 på alle målte
+M1/M5/Entry/fem kausale MTF-flater,71 aliaspar bit-identiske, alle480
+observed-row-historier/første-state-mappinger eksakte. Rå full Seq96-bevis
+gjenbrukes byte-bundet; transform/index-kommutasjon er kilde/algebra, ikke
+gjentatt per-vindu-måling. VAL/TEST-fit0, modellinstanser/forwards/optimizer0.
+
+Fersk fysisk DESIGN og CONTROL256 er produsert uten utfallsvalg gjennom
+eksisterende eiere. BOUNDED_SAMPLER_SMOKE_PLAN.json er bundet i samme stage
+og policy. TRAIN4096/TRAIN256, valgt sampler, aktuelle kanoniske native
+preprocessing-kvitteringer/recipe og fersk initialmåling er ennå ikke produsert.
+Fremtidig full TRAIN-only benchmark krever egen finite kjøringstillatelse;
+64800s er et planforslag, ikke fornyelse av ATTEMPT_003 eller inputbudsjettet.
+Senere smoke er høyst256 optimizersteg/4096 Entries, ikke full epoch/full VAL.
+
+Retention-eieren nektet faktisk closure på den uregistrerte nye run-rootens
+manifest; original RETENTION_REVIEW.json og alle outputs bevares.0 DATA/RUNS-
+filer slettet, ingen håndbygde unntak. Ukjente kildegap og seleksjon beholdes
+eksplisitt/right-censored uten carry/imputering eller endrede perioder.
+Historisk kostfasit, læring/generaliserings-/PnL-bevis og lært train/serve-
+paritet er ikke etablert. Prosess-/kvitteringsbindinger og nåstatus eies bare
+av NEXT_RUN_POLICY.json; fullføring av forberedelsen åpner ingen launch.
+
+Den gamle timeautomatiseringen er fjernet. GC forblir paused, ufullført,
+med alle fire empiriske trinn bevart. Ingen nye kildesøk/nedlastinger eller
+modelltrening startet av dette målet. Se CURRENT_HANDOVER.md og
+docs/NATIVE_LEARNING.md for bevisklasser og neste portbundne rekkefølge.
 
 Ingen eksisterende SMC-primitiver fjernes ved tolkning av «order block og det».
 Læringsrekkefølgen og portene står i docs/NATIVE_LEARNING.md. Ny samplerbenchmark

@@ -1,61 +1,33 @@
 # Gjennomgang og opprydding av GX1
 
-Siste fasegrense08.10: genuin full fysisk TRAIN/VAL-indeks652552/70880 og
-ferske no-cap-inputidentiteter er akseptert, claim konsumert. Ny separat
-PRE_SMOKE_READINESS_001 er eksakt bundet/not started under samme18:25:44
-CPU-frist: genuine inputrevalidering, fersk utfallsblind CONTROL256/design,
-finite fremtidig sampler-/smoke-plan og faktisk retention/nektelse. To
-fokuserte kilde-/scalar-kontroller PASS, ingen ekte final-aksept ennå.
-Modell, benchmark, TEST, sletting og omstart er ikke åpnet.
+08.10: før-smoke-forberedelsen er genuint fullført med exit0-terminal og
+READY_FOR_BOUNDED_RESEARCH_SMOKE for inputs/fremtidig plan, ikke native launch.
+Fysisk full TRAIN/VAL/M1, whole-TRAIN base+summary, faktisk normalisert
+NumPy/Torch/alias/Entry-Exit-paritet og652552/70880-indeks er akseptert.
+Ny fysisk DESIGN/CONTROL256/finit sampler-smoke-plan bruker dagens foreldre,
+ikke gamle genererte outputs. Ingen ny feature-/fit-/modellsemantikk endret
+i siste bølge. Retention-eieren nektet faktisk unresolved authority directory
+manifest på dagens run-root;0 DATA/RUNS-filer slettet.
+Ingen reboot: beskyttede Windows2648/2704 uklassifiserte, maskinvid idle ubevist.
+Originale failed/claimed/completed receipts og publisher-fix/regresjoner
+bevares uendret. Fullpopulation Seq96-proof gjenbrukes; pointwise transform/
+index-kommutasjon er kilde/algebra, ikke ny per-vindu-måling. Ingen modell,
+læring/profit/fullsuite-/manuell hver-linje-/lærd serve-paritet er påstått.
 
-Dato: 06.10.2026. Brukeren ba om grundig repo-gjennomgang og minst mulig død
-kode/fyll, og prioriterte kontrollert benchmarkstopp. Kildegrunnlag før bølgen:
-8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91, work/gx1-current.
-Dette er gjeldende oppryddingsrapport, ikke en trenings- eller sletteautoritet for DATA/RUNS.
-08.10: INPUT_VIEWS_001 har genuine separate fysiske TRAIN/VAL/M1-inputs.
-BASE_NORMALIZATION_001 er genuine exit0 på uendret1af9a63c, alle652552
-TRAIN-Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0. SUMMARY_NORMALIZATION_001
-er genuint exit0,01:19:05 UTC på uendret1a8a0411, claim konsumert: whole-
-TRAIN-summary7613258 side-fit-rader, separate VAL-counts uten fit og composite/
-split/clock/quote-bindinger. Base ikke refittet. INPUT_TENSOR_AUDIT_003 er
-genuint exit0,01:58:31 UTC på uendretb2ad509d og claim konsumert. Hele
-M1/M5/Entry/fem kausale MTF-ruter: NumPy/Torch maxabs0,71 aliasbits eksakte,
-første-state/480-observed-row mappings source-eksakte. Ingen modell.
-NATIVE_INPUT_INDEX_001 er genuint exit0,02:14:19 UTC,555,002s, uendret7c19bb08; for full fysisk
-TRAIN/VAL-indeks og ferske no-cap-økonomiidentiteter gjennom eksisterende
-eiere/producer20G/512M/samme CPU-frist. To fokuserte metodekontroller PASS;
-ingen refit, ny holdetidsregel, samplerbenchmark, modell eller TEST.
-Ingen nye feature-/fit-/modellkodeendringer i denne status-/bindingsbølgen.
-Staging-feilrettelsene og originale 67/101-case-bevis bevares. Selve nye
-indekspublisering, retention og modell-/kvalitetsevidens er ennå ubevist.
-Ny status-/bindingsbølge:12 fokuserte handover-regresjoner PASS under4G/512M,
-eksterne stagekontroller består syntaks/JSON, diff/stale/source kontrolleres
-før ren commit/push. JUnit: BASE_NORMALIZATION_001/HANDOVER_BINDING_TESTS.xml.
-Summary-bindingsbølgen:26 fokuserte final-binding/prefix-boundary-regresjoner
-PASS under4G/512M; source/fixture-mekanikk, ikke ekte ny summary-fit/paritet.
-JUnit: SUMMARY_NORMALIZATION_001/FOCUSED_BINDING_TESTS.xml. Ingen feature-,
-fit- eller modellsemantikk endret; eksterne engangskontroller består syntaks.
-
-INPUT_TENSOR_AUDIT_001 feilet før transformene01:38:17 UTC: håndkopiert
-VAL-proof-digest var65 tegn, én ekstra bokstav. Kanonisk policy/faktiske
-bytes er uendret og matcher. Original exit1/kildebd1b9abc/plan/claim bevares;
-ny002 korrigerer kontrollbindingen og avviser malformed digest før hash.
-Ingen feature-/normaliserings-/modellkodefeil er påvist av dette stoppet.
-
-INPUT_TENSOR_AUDIT_002 feilet01:47:14 UTC,exit1/314,451s, uendret2e428cfa.
-JSON-sorterte nøkler kom i feil deklarasjonsrekkefølge til strict MTF-eier.
-Geometri/data uendret; original002 bevares konsumert, uten full inputaksept.
-Ny003 bygger bare utført EXPECTED_TFS-rekkefølge med fryste lengder og
-prechecker eksisterende eier før transformene. Fire fokuserte kontroller
-PASS under4G/512M; fryst scalar-geometri og kilde/syntetisk mekanikk, ikke
-full inputparitet. Read-only NumPy-buffere kopieres byte-identisk før Torch-
-view; ingen modellkonstruering eller endring av feature-/fit-/eiersemantikk.
-JUnit: INPUT_TENSOR_AUDIT_003/FOCUSED_GEOMETRY_TESTS.xml.
-
-Input-audit-bindingen bestod den fokuserte NumPy/Torch-asinh-regresjonen
-under audit4G/512M,1 PASS. Kilde-/syntetisk mekanikk, ikke ekte inputparitet.
-JUnit: INPUT_TENSOR_AUDIT_001/FOCUSED_TRANSFORM_TEST.xml. Ren kilde og eksakte
-eksterne kontroller bindes før claim; ingen feature-/fit-/modellkode endret.
+Siste source/scalar-scopekontroller:2 PASS under4G/512M, samt51 fokuserte
+handover-regresjoner etter binding. Første-state/geometry/sampler/kapital-
+metode kontroller er mekanikk, ikke læringskvalitet. Final stage revaliderte
+59 exact source/control-bindinger og alle genuine input-terminaler uten
+å gjenta full-value-scans. Eksterne kontroller/JSON og endret statusfixture
+består syntax/parse; ingen forebyggende modellrefaktorering eller fullsuite.
+Statusfixture ble konkret oppdatert fra gammel core-only/pending/gap-terminal
+til genuine senere input/fullføring, uten å åpne native-modellporter.
+Sluttgruppens første forsøk hadde50 PASS/1 feil på omstartsobservasjonens
+feltnavn. Eksisterende maskinvid-ledighet-/reboot-felt er gjenopprettet,
+beggefalse. Feil-JUnit er bevart; siste separate51-case-gruppe har0 feil.
+Originale test-/feilbevis er ikke overskrevet; de er bundet i policy.
+Gjeldende bevisklasser/fremtidige porter står i CURRENT_HANDOVER og
+docs/NATIVE_LEARNING; eksakt status eies bare av NEXT_RUN_POLICY.
 
 ## Ny bølge 07.10.2026 — ferskt datasett og smoke
 
