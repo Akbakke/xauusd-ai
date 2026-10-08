@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-08T01:47:14.401423Z",
-  "status": "V38_FRESH_NORMALIZATION_COMPLETE_INPUT_AUDIT_002_CONTROL_ORDER_FAILURE_003_EXACTLY_BOUND_GC_PAUSED",
+  "observed_utc": "2026-10-08T01:58:31.452290+00:00",
+  "status": "V38_NORMALIZED_INPUT_PARITY_COMPLETE_PHYSICAL_INPUT_INDEX_EXACTLY_BOUND_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator requests complete M1 and all observed pre-smoke adjustments after the successful Oct7 core terminal. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. INPUT_BUILD_001 has unknown old exit/terminal after physical crash; INPUT_BUILD_002 is genuinely successful core-only and its one-shot authority is consumed. Preserve immutable runtime copies/receipts and verified completed same-generation bytes, never relaunch either attempt or consume old Oct1 normalization/models. The original common 64800s build deadline is consumed and preserved unchanged. Human 'Ja' separately approves PRE_SMOKE_CPU_001: one new shared maximum 64800s CPU-only preparation window from 2026-10-08T00:25:44Z to 2026-10-08T18:25:44Z, including preparation and downtime, never reset per substage. Each next stage still needs a separately source/input/output/remaining-budget-bound existing owner. Complete M1, label-coverage/selection review, independent input oracle and post-readiness remain mandatory before fresh normalization and future smoke admission. Do not silently accept unexplained exclusions, impute quotes/labels, change periods or call a diagnostic input acceptance. Reboot only at verified idle terminal phase boundaries, never interrupt active jobs. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
-  "next_action": "Fresh base and summary complete. INPUT_TENSOR_AUDIT_002 genuine exit1 on diagnostic JSON-order vs exact MTF owner declaration, source/data unchanged; consumed/preserved. New003 reconstructs canonical EXPECTED_TFS order without changing frozen lengths, with four focused geometry/control tests passing. Separately exact-bound/not started, same shared CPU deadline. Input parity,retention/refusal and finite sampler/smoke remain; no model admission.",
+  "next_action": "Genuine INPUT_TENSOR_AUDIT_003 exit0/source unchanged: all M1/M5/Entry and shared causal MTF normalized inputs measured, every NumPy/Torch difference0,71 alias bits exact; raw full sequences reused byte-bound plus pointwise source/algebra. NATIVE_INPUT_INDEX_001 separately exact-bound/not started completes full physical TRAIN/VAL indexing via existing no-cap/economics owners and source-owned prospective constant, same shared CPU deadline. No refit, sampler benchmark or model. Retention/refusal and new finite sampler/smoke plan remain.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -140,16 +140,16 @@
       "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
-    "latest_terminal_role": "Genuine INPUT_TENSOR_AUDIT_002 exit1 after source transforms, before MTF/summary acceptance: diagnostic dict order differs from owner M5/M15/H1/H4/D1 requirement. No fresh-fit or learned-model acceptance.",
+    "latest_terminal_role": "Genuine actual whole normalized physical input parity complete, no learned bundle/model admission.",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_TENSOR_AUDIT_002/TERMINAL.json",
-      "sha256": "c9a25fac79c8c1d3e0da9edbc0f1e351d600fe620e56315f5fc78e693489351c"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_TENSOR_AUDIT_003/TERMINAL.json",
+      "sha256": "e8654a11ed276daca10a36ed0fccc18ea9fa7442174b62a2021e1251e7bb4625"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "termination": "INPUT_TENSOR_AUDIT_002 ran01:41:59.950117-01:47:14.401423 UTC,exit1/314.451s,source2e428cfa unchanged. Exact MTF order rejected; JSON key-sorting changed diagnostic dict order, not geometry/feature data. No full input acceptance. Old001/002 claims,controls,logs/failures remain immutable. New003 reorders via executed EXPECTED_TFS and prechecks exact owner before transforms; four focused tests pass, same shared deadline. No relaunch/reboot/deletion.",
+    "termination": "INPUT_TENSOR_AUDIT_003 ran01:52:53.281112-01:58:31.452290 UTC,exit0/338.171s,sourceb2ad509d unchanged. All source surfaces and actual causal MTF union/Entry snapshots normalized; NumPy/Torch maxabs0,71 aliases raw/norm bit-identical. All480 observed-row M1 histories and first-state mappings checked. Whole Seq96 raw receipts reused plus pointwise source/algebra. Zero fit/model/TEST. Bound processes reaped/absent, original failed001/002 preserved. Fresh physical full index next; no implicit benchmark, reboot or deletion.",
     "full_benchmark_completed": false,
     "sampler_selected": false,
     "native_component_preparation_authorized": false,
@@ -516,7 +516,7 @@
     "native_training_enabled": false
   },
   "native_v38_rebuild_20261007": {
-    "status": "SUMMARY_COMPLETE_INPUT_AUDIT_002_DIAGNOSTIC_ORDER_FAILED_NEW_003_EXACTLY_BOUND",
+    "status": "ACTUAL_NORMALIZED_INPUT_PARITY_COMPLETE_FULL_PHYSICAL_INDEX_EXACTLY_BOUND_NOT_STARTED",
     "runtime_plan": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/PLAN.json",
       "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"
@@ -636,7 +636,7 @@
       "complete_input_oracle_complete": true,
       "post_rebuild_readiness_complete": true,
       "fresh_whole_train_normalization_complete": true,
-      "physical_view_and_entry_exit_parity_complete": false,
+      "physical_view_and_entry_exit_parity_complete": true,
       "new_sampler_smoke_plan_bound": false,
       "ready_for_bounded_research_smoke": false,
       "fresh_whole_train_base_normalization_complete": true,
@@ -1324,9 +1324,9 @@
       "schema_version": "gx1_bound_native_v38_input_tensor_audit_stage_v1",
       "stage_id": "INPUT_TENSOR_AUDIT_003",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_TENSOR_AUDIT_003",
-      "authorized": true,
+      "authorized": false,
       "relaunch_allowed": false,
-      "current_status": "EXACTLY_BOUND_NOT_STARTED_CLEAN_SOURCE_AND_RECEIPTS_REQUIRED",
+      "current_status": "GENUINE_ACTUAL_WHOLE_NORMALIZED_INPUT_PARITY_COMPLETE_PERMISSION_CONSUMED",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_TENSOR_AUDIT_003/PLAN.json",
         "sha256": "27bf37eaebc3665081100b5d79b1c3003bb02ca52942ca9749f0c09b146316d4"
@@ -1368,7 +1368,144 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_TENSOR_AUDIT_003/FOCUSED_GEOMETRY_TESTS.xml",
         "sha256": "85e3dc4657ce281dbf0db8a402212a7d4b4c5fca3626c83bb6b33292eeb92a6f"
       },
-      "focused_geometry_test_cases_passed": 4
+      "focused_geometry_test_cases_passed": 4,
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_TENSOR_AUDIT_003/TERMINAL.json",
+        "sha256": "e8654a11ed276daca10a36ed0fccc18ea9fa7442174b62a2021e1251e7bb4625"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_TENSOR_AUDIT_003/RESULT.json",
+        "sha256": "78b9998028b4be7b597b3b5ddd28638ad6b5e4054df0c24d07a1bbb3f95d5f22"
+      },
+      "producer_result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_TENSOR_AUDIT_003/INPUT_PARITY.json",
+        "sha256": "df02a701fae5d9a81cc27e75905e5af848137f68e70d8395e791a043c9acb579"
+      },
+      "normalized_input_parity_complete": true,
+      "measured_full_population": {
+        "M1:ctx_cont": {
+          "max_abs_difference": 0,
+          "rows": 5523147,
+          "values": 392143437
+        },
+        "M1:signal": {
+          "max_abs_difference": 0,
+          "rows": 5523147,
+          "values": 1402879338
+        },
+        "M5:ctx_cont": {
+          "max_abs_difference": 0,
+          "rows": 1152859,
+          "values": 81852989
+        },
+        "M5:signal": {
+          "max_abs_difference": 0,
+          "rows": 1152859,
+          "values": 292826186
+        },
+        "train:D1": {
+          "max_abs_difference": 0,
+          "rows": 3867,
+          "values": 734730
+        },
+        "train:Entry:ctx_cont": {
+          "max_abs_difference": 0,
+          "rows": 652552,
+          "values": 46331192
+        },
+        "train:Entry:signal": {
+          "max_abs_difference": 0,
+          "rows": 652552,
+          "values": 165748208
+        },
+        "train:H1": {
+          "max_abs_difference": 0,
+          "rows": 83704,
+          "values": 15903760
+        },
+        "train:H4": {
+          "max_abs_difference": 0,
+          "rows": 21727,
+          "values": 4128130
+        },
+        "train:M15": {
+          "max_abs_difference": 0,
+          "rows": 331256,
+          "values": 62938640
+        },
+        "train:M5": {
+          "max_abs_difference": 0,
+          "rows": 864070,
+          "values": 164173300
+        },
+        "val:D1": {
+          "max_abs_difference": 0,
+          "rows": 530,
+          "values": 100700
+        },
+        "val:Entry:ctx_cont": {
+          "max_abs_difference": 0,
+          "rows": 70880,
+          "values": 5032480
+        },
+        "val:Entry:signal": {
+          "max_abs_difference": 0,
+          "rows": 70880,
+          "values": 18003520
+        },
+        "val:H1": {
+          "max_abs_difference": 0,
+          "rows": 6490,
+          "values": 1233100
+        },
+        "val:H4": {
+          "max_abs_difference": 0,
+          "rows": 1767,
+          "values": 335730
+        },
+        "val:M15": {
+          "max_abs_difference": 0,
+          "rows": 25627,
+          "values": 4869130
+        },
+        "val:M5": {
+          "max_abs_difference": 0,
+          "rows": 76668,
+          "values": 14566920
+        }
+      },
+      "measured_first_state_mappings": {
+        "train": {
+          "all_480_observed_row_histories_exact_source_windows": true,
+          "child_feature_position_sha256": "fe9974d7af821964970ec5832b5412d83f3bc853aacce065cdaac28e46025de1",
+          "entry_rows": 652552,
+          "exit_current_unique_rows": 3978505,
+          "first_state_clock_sha256": "1c68432dbbeb257d83fb508dd68c0f921545cb3e13f08c58b3254befd15587be",
+          "first_state_normalized_feature_stream_sha256": "35e72233483608702d61cc2efc0e68644cf0b063d2fe833b4c90994c7617ac0f",
+          "minimum_first_state_m1_position": 479,
+          "whole_entry_clock_sha256": "45d1eb05b338a20317d4631c62247fb1de2f89df65ddc6d199386d2ef5105e55"
+        },
+        "val": {
+          "all_480_observed_row_histories_exact_source_windows": true,
+          "child_feature_position_sha256": "074b58501654766f51abd7b5f3717dc2961fad8051c68819104f07c421775940",
+          "entry_rows": 70880,
+          "exit_current_unique_rows": 381529,
+          "first_state_clock_sha256": "b8f1784175a0decda7384ae75b9113375b73af5bcea6f7da9d87ced6fa371a03",
+          "first_state_normalized_feature_stream_sha256": "32c8986f1913ef88c8c95f63533b47c5622b87f39755f432d2e96c4f30c5306f",
+          "minimum_first_state_m1_position": 479,
+          "whole_entry_clock_sha256": "becd5ec706aed32434062196fa8e8d58491e1e8f961c29b53ef51a1e2e5e54e2"
+        }
+      },
+      "summary_actual_transform": {
+        "file": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/SUMMARY_FIT_TRAIN/lifetime_summary_fit_values.npy",
+          "sha256": "9be88c165051d41a4b95e432baac2b5a372752ece19697c94761204724f23303"
+        },
+        "normalized_f32_sha256": "0ad7516873c7c9f415a8feb2668718d7a15291341ddf7c6b02ca1bbf7cdb3ba8",
+        "owner": "Same apply_surface_normalization called by actual random-access training/VAL collators, float32 before transform.",
+        "raw_values_sha256": "fd5a87822e0ca8303be30ede6981e1bee4fdd61ece625cd84fcb3e0f34b1b269",
+        "rows": 7613258
+      }
     },
     "failed_input_tensor_audit_stage": {
       "schema_version": "gx1_bound_native_v38_input_tensor_audit_stage_v1",
@@ -1456,11 +1593,11 @@
       "gpu_memory_used_mib": 375,
       "protected_windows_processes_parent_pid": 2152
     },
-    "progress_owner": "Fresh base and summary complete. INPUT_TENSOR_AUDIT_002 genuine exit1 on diagnostic JSON-order vs exact MTF owner declaration, source/data unchanged; consumed/preserved. New003 reconstructs canonical EXPECTED_TFS order without changing frozen lengths, with four focused geometry/control tests passing. Separately exact-bound/not started, same shared CPU deadline. Input parity,retention/refusal and finite sampler/smoke remain; no model admission.",
+    "progress_owner": "Genuine INPUT_TENSOR_AUDIT_003 exit0/source unchanged: all M1/M5/Entry and shared causal MTF normalized inputs measured, every NumPy/Torch difference0,71 alias bits exact; raw full sequences reused byte-bound plus pointwise source/algebra. NATIVE_INPUT_INDEX_001 separately exact-bound/not started completes full physical TRAIN/VAL indexing via existing no-cap/economics owners and source-owned prospective constant, same shared CPU deadline. No refit, sampler benchmark or model. Retention/refusal and new finite sampler/smoke plan remain.",
     "recovery_core_only": true,
     "whole_input_build_complete": false,
     "mandatory_next_stages": [
-      "ACTUAL_NORMALIZED_INPUT_PARITY",
+      "FULL_PHYSICAL_INPUT_INDEX",
       "RETENTION_AND_BOUNDED_SMOKE_BINDING"
     ],
     "common_build_deadline_utc": "2026-10-07T23:44:34.296381+00:00",
@@ -1542,6 +1679,58 @@
       },
       "defect": "Consume genuine002 exit1: audit dictionary read from sorted JSON lost owner timeframe order. Reconstruct exact declaration with EXPECTED_TFS before invoking existing strict resolution/coverage owners; frozen geometry values unchanged. Precheck before transforms. Read-only NumPy buffers copied byte-identically before torch view to remove warning; no feature/fit/model change. Failed001/002 immutable, same CPU deadline.",
       "normalized_input_parity_complete": false
+    },
+    "physical_input_index_stage": {
+      "schema_version": "gx1_bound_native_v38_physical_input_index_plan_v1",
+      "stage_id": "NATIVE_INPUT_INDEX_001",
+      "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001",
+      "authorized": true,
+      "relaunch_allowed": false,
+      "current_status": "EXACTLY_BOUND_NOT_STARTED_CLEAN_SOURCE_AND_RECEIPTS_REQUIRED",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/PLAN.json",
+        "sha256": "0612e2b555cdba753f3b61ab1ddd3ffb5544d22fcbfb95551a29af594a5394d4"
+      },
+      "producer_plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/PRODUCER_PLAN.json",
+        "sha256": "501c8159872d5a10d2ce229c80c13f35a454ac1263f71b22c5f8a65f21fe193c"
+      },
+      "producer": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/produce_input_index.py",
+        "sha256": "c7bec19ad2acbdf2b022017703ee753f7e0b8424f9d37939cae25ce24cb92ee0"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/launch_input_index.py",
+        "sha256": "462aa2ce916691ef75e3b62da9cbf803df5b26488323f8b4516197c0cb8a15dc"
+      },
+      "cpu_budget": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_CPU_001/BUDGET.json",
+        "sha256": "fbcc0889d5873bc616e5f2701df832137a70d3516cef2866c2d9b108cae5a61f"
+      },
+      "cpu_deadline_utc": "2026-10-08T18:25:44+00:00",
+      "outputs": {
+        "result": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/INPUT_INDEX.json",
+        "method_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/ECONOMIC_METHOD",
+        "economics_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/ECONOMICS",
+        "index_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/RANDOM_ACCESS_INDEX"
+      },
+      "resource_owner": "Existing capped producer20G/512M,CPU0-7/one thread/64tasks,CURRENT lock and unchanged available-memory gate; same PRE_SMOKE_CPU_001 shared deadline.",
+      "normalization_fit_allowed": false,
+      "model_training_allowed": false,
+      "model_constructor_allowed": false,
+      "sampler_benchmark_allowed": false,
+      "test_access_authorized": false,
+      "cleanup_allowed": false,
+      "automatic_host_restart": false,
+      "whole_bound_physical_train_rows": 652552,
+      "whole_bound_physical_val_rows": 70880,
+      "method_authority": "Execute existing economics.OPERATOR_EFFECTIVE_ANNUAL_RETURN_HURDLE and objective.SECONDS_PER_YEAR constants, existing frozen-owner sealing/strict validation and exact current population/cost identities. No historical fit, old generated readiness or obsolete old method-basis dependency.",
+      "focused_method_controls": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/FOCUSED_METHOD_CONTROL_TESTS.xml",
+        "sha256": "30e77ed10a14840b7f04963b5866a1a1566a8b2c44bb304f6076bfd8dbd72466"
+      },
+      "focused_method_control_cases_passed": 2,
+      "whole_input_or_model_admission": false
     }
   },
   "separate_incomplete_scope": {

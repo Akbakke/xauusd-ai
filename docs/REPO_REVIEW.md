@@ -10,11 +10,16 @@ TRAIN-Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0. SUMMARY_NORMALIZATION
 er genuint exit0,01:19:05 UTC på uendret1a8a0411, claim konsumert: whole-
 TRAIN-summary7613258 side-fit-rader, separate VAL-counts uten fit og composite/
 split/clock/quote-bindinger. Base ikke refittet. INPUT_TENSOR_AUDIT_003 er
-exact-bound/not started gjennom audit4G/512M/samme CPU-frist: faktisk
-whole-input transform/alias/MTF/first-state-mapping, ingen modellkonstruering.
+genuint exit0,01:58:31 UTC på uendretb2ad509d og claim konsumert. Hele
+M1/M5/Entry/fem kausale MTF-ruter: NumPy/Torch maxabs0,71 aliasbits eksakte,
+første-state/480-observed-row mappings source-eksakte. Ingen modell.
+NATIVE_INPUT_INDEX_001 er separat exact-bound/not started for full fysisk
+TRAIN/VAL-indeks og ferske no-cap-økonomiidentiteter gjennom eksisterende
+eiere/producer20G/512M/samme CPU-frist. To fokuserte metodekontroller PASS;
+ingen refit, ny holdetidsregel, samplerbenchmark, modell eller TEST.
 Ingen nye feature-/fit-/modellkodeendringer i denne status-/bindingsbølgen.
 Staging-feilrettelsene og originale 67/101-case-bevis bevares. Selve nye
-inputparitet, retention og modell-/kvalitetsevidens er ennå ubevist.
+indekspublisering, retention og modell-/kvalitetsevidens er ennå ubevist.
 Ny status-/bindingsbølge:12 fokuserte handover-regresjoner PASS under4G/512M,
 eksterne stagekontroller består syntaks/JSON, diff/stale/source kontrolleres
 før ren commit/push. JUnit: BASE_NORMALIZATION_001/HANDOVER_BINDING_TESTS.xml.

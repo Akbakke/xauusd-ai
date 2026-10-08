@@ -57,18 +57,28 @@ eller data. Eksisterende strict M5/M15/H1/H4/D1-eier stoppet før MTF/summary-
 aksept; hele inputporten er derfor ikke bestått. Original plan/claim/TERM/
 FAILURE/logg bevares uendret og tillatelsen er konsumert.
 
-INPUT_TENSOR_AUDIT_003 er separat eksakt bundet, ikke startet. Den bygger
-rekkefølgen fra utført EXPECTED_TFS, med uendrede fryste lengder og tidlig
-strict-eierkontroll. Fire fokuserte geometri-/kontrolltester PASS; kilde/
-syntetisk mekanikk og fryst scalar-geometri, ikke full inputaksept. Eksisterende
-audit4G/512M,CPU0-7/én tråd/64tasks/minne-gate/CURRENT-lås uendret,
-samme18:25:44 UTC-deadline. Anvend fryste NumPy-/faktiske Torch-input-
-transformer på hele unike M1/M5/MTF og alle Entry TRAIN/VAL-snapshots/context;
-bit-identiske aliaser/feltorden/første-state mapping. Ingen modellkonstruering,
-forward, fit eller TEST. Genuin full rå Seq96-rekonstruksjon gjenbrukes byte-
-eksakt; pointwise transform/index-kommutasjon er kilde/algebra, ikke en ny
-per-vindu-måling. Ren commit/push/BINDING før claim. Retention/nektelse og
-finite TRAIN-only sampler/smoke gjenstår; lært bundle/serve-paritet ubevist.
+INPUT_TENSOR_AUDIT_003 er genuint exit0,01:58:31 UTC,338,171s, uendret
+b2ad509d; claim konsumert og bundne prosesser borte. TERMe8654a11/RESULT
+78b99980/INPUT_PARITYdf02a701: hele5523147 M1-/1152859 M5-rader og
+652552/70880 faktiske Entry-snapshots/context, alle fem kausale MTF-ruter.
+NumPy/Torch maxabs0 på alle målte flater;71 rå/normaliserte aliaser bit-
+identiske. Alle første-state clocks og480 observerte M1-radhistorier har
+eksakt source-mapping.7613258 summary-fit-rader transformert med samme
+collator-eier. Genuin full rå Seq96-rekonstruksjon gjenbrukes byte-eksakt;
+pointwise transform/index-kommutasjon er kilde/algebra, ikke ny per-vindu-
+måling. Ingen modellkonstruering/forward/fit/TEST eller lært bundleparitet.
+
+NATIVE_INPUT_INDEX_001 er separat exact-bound/not started. Full fysisk
+TRAIN/VAL-indeks gjennom eksisterende eier, med nye no-cap-økonomiidentiteter
+som indeks-eieren krever. Kapitalmetodens tall eksekveres fra eksisterende
+konstanteier; ingen gamle genererte readiness-/indeksbytes eller utdatert
+metodefil kopieres. Kostkilder er kun lokale uendrede prospective receipts,
+ikke brokerkall eller historisk kostfasit. Ingen maksimal holdetid innføres.
+To fokuserte metode-/identitetskontroller PASS, ikke faktisk indekspublisering.
+Producer20G/512M/CPU0-7/én tråd/64tasks/minne-gate/CURRENT-lås uendret,
+samme18:25:44 UTC-deadline. Ren commit/push/BINDING før claim. Ingen ny
+fit, samplerbenchmark eller modell. Retention/nektelse og finite TRAIN-only
+sampler/smoke gjenstår; ingen modelladgang eller profitt er bevist.
 Ytterligere fire nødvendige publisister (Entry, child-admission, summary-fit,
 final-bindings) hadde samme feilklasse med staging-sletting/manglende strict-
 load. Rettet minimalt gjennom eksisterende no-replace/fsync-eier; feilbytes
@@ -80,8 +90,8 @@ Bindings-/statusgruppen bestod51 cases før neste tunge claim.
 Ingen treningsjobb kjører eller er startet av den nye bestillingen.
 INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
-er ikke fullført. Nyeste terminal er INPUT_TENSOR_AUDIT_002 exit1 på
-diagnostisk MTF-rekkefølge; fersk summary-normalisering er genuint fullført som
+er ikke fullført. Nyeste terminal er INPUT_TENSOR_AUDIT_003 exit0 for
+faktiske normaliserte inputs; fersk summary-normalisering er genuint fullført som
 bundet ovenfor. INPUT_VIEWS_001 bevares som genuin fysisk-input-underport.
 GAP_DISPOSITION_001 exit0,07.10 kl.23:32:51 UTC, kilde90e6e9bd
 uendret gjennom26s, bevares som råklokke-underport. Prosessene er borte.

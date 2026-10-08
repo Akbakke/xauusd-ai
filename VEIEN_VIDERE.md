@@ -25,13 +25,16 @@ og kanonisk policy matcher, og originalfeilen bevares.002 feilet01:47:14 UTC
 på diagnostisk JSON-dictrekkefølge, ikke endrede MTF-lengder/data. Claim og
 feilkvitteringer bevares. Ny003 bygger utført EXPECTED_TFS-rekkefølge og
 prechecker strict eier; fire fokuserte tester PASS. INPUT_TENSOR_AUDIT_003
-er separat exact-bound/not started gjennom audit4G/
-512M/samme deadline. Faktisk whole-input NumPy/Torch-transform, aliasbits,
-ordnede felt/MTF/first-state mapping; ingen modellkonstruering/forward/TEST.
+er nå genuint exit0,01:58:31 UTC på uendretb2ad509d og claim konsumert.
+Hele M1/M5/Entry/fem MTF-ruter: NumPy/Torch maxabs0,71 aliaser bit-identiske,
+første-state og480-observed-row M1-historier source-eksakte. Ingen modell.
 Full rå Seq96-proofs byte-gjenbrukes med pointwise kilde/algebra; ingen
 gjentatt per-vindu-transform-måling eller lært bundle/serve-paritet påstås.
-Ren commit/push/BINDING før launch; retention/nektelse og finite sampler/
-smoke gjenstår. Ingen modelladgang følger av inputkontrollen.
+NATIVE_INPUT_INDEX_001 er separat exact-bound/not started for full fysisk
+TRAIN/VAL-indeks med ferske no-cap-økonomiidentiteter fra eksisterende eiere.
+Producer20G/512M/samme CPU-frist; to fokuserte metodekontroller PASS. Ingen
+refit, holdetidsregel, benchmark eller modell. Ren commit/push/BINDING før
+launch; retention/nektelse og finite sampler/smoke gjenstår.
 Fire ytterligere publisister bevarer staging/strict-load;67 fokuserte PASS.
 
 Brukerens prioritering 07.10.2026 setter GC/order-flow og nye order-block-/

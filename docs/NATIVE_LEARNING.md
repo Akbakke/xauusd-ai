@@ -32,10 +32,14 @@ og kanonisk policy matcher, og originalfeilen bevares.002 feilet01:47:14 UTC
 på diagnostisk JSON-dictrekkefølge, ikke endrede lengder/data. Original claim/
 feilkvitteringer bevares konsumert. Ny003 bygger utført EXPECTED_TFS-rekkefølge
 med samme geometri, strict precheck og fire fokuserte tester PASS.
-INPUT_TENSOR_AUDIT_003 er separat exact-bound,
-ikke startet, audit4G/512M/samme CPU-frist. Faktisk whole-input NumPy/Torch-
-transform-/alias-/MTF-/first-state mapping, ingen modellkonstruering,
-forward, fit eller TEST. Full rå Seq96-proof gjenbrukes byte-eksakt;
+INPUT_TENSOR_AUDIT_003 er genuint exit0,01:58:31 UTC på uendretb2ad509d,
+claim konsumert: hele M1/M5/Entry og fem kausale MTF-ruter, NumPy/Torch-
+maxabs0,71 aliasbits og første-state/480-observed-row mappings eksakte.
+NATIVE_INPUT_INDEX_001 er separat exact-bound/not started for full fysisk
+TRAIN/VAL-indeks og ferske no-cap-økonomiidentiteter gjennom eksisterende
+eiere/producer20G/512M/samme CPU-frist. To fokuserte metodekontroller PASS.
+Ingen ny holdetidsregel, refit, samplerbenchmark, modell eller TEST.
+Full rå Seq96-proof gjenbrukes byte-eksakt;
 pointwise transform/index-kommutasjon er kilde/algebra, ikke ny per-vindu-
 transform-måling. Retention/refusal og finite sampler/smoke følger først
 etter genuine inputparitet; ingen lært bundle-/serve-paritet eller modelladgang.
