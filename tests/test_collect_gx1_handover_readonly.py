@@ -140,7 +140,13 @@ def test_new_train_capacity_authority_preserves_conditional_smoke_gates():
     assert capacity['original_absolute_budget_preserved'] is True
     assert capacity['original_budget'] == previous['cpu_budget']
     smoke = rebuild['bounded_native_smoke_request_20261008']
-    assert capacity['authorized'] is True and capacity['relaunch_allowed'] is False
+    assert capacity['authorized'] is False and capacity['relaunch_allowed'] is False
+    assert capacity['current_status'] == 'GENUINE_COMPLETE_MEASURED_TRAIN_CAPACITY_EXIT0_AUTHORITY_CONSUMED'
+    assert capacity['terminal_exit_code'] == 0 and capacity['source_unchanged_at_terminal'] is True
+    assert capacity['full_candidates_measured'] == 3
+    assert capacity['selected_candidate']['transition_budget_per_epoch'] == 32768
+    assert capacity['selected_candidate']['batch_size'] == 16
+    assert capacity['entire_652552_population_or_nn_epoch_measured'] is False
     assert capacity['max_wall_seconds'] == 64800
     assert capacity['full_train_population'] == 652552
     assert capacity['cpu_budget'] != rebuild['pre_smoke_cpu_budget_001']['budget']
@@ -160,6 +166,27 @@ def test_new_train_capacity_authority_preserves_conditional_smoke_gates():
     assert smoke['automatic_extension_allowed'] is False
     assert smoke['broker_trading_spending_authorized'] is False
     assert smoke['gc_resumed'] is False
+
+
+def test_post_capacity_metadata_authority_cannot_open_native_or_reset_budget():
+    repo = Path(__file__).resolve().parents[1]
+    policy = json.loads((repo/'NEXT_RUN_POLICY.json').read_text())
+    rebuild = policy['native_v38_rebuild_20261007']
+    stage = rebuild['post_capacity_metadata_stage_001']
+    capacity = rebuild['train_capacity_stage_002']
+    assert stage['original_cpu_budget'] == capacity['cpu_budget']
+    assert stage['cpu_deadline_utc'] == capacity['cpu_deadline_utc']
+    assert stage['relaunch_allowed'] is False
+    assert stage['budget_reset_or_benchmark_relaunch_allowed'] is False
+    for field in ('model_constructor_allowed', 'model_training_allowed', 'normalization_fit_allowed',
+                  'test_access_authorized', 'cleanup_allowed', 'automatic_host_restart', 'native_launch_admitted'):
+        assert stage[field] is False
+    assert policy['training_enabled'] is False
+    goal = policy['current_work']['restart_and_smoke_goal']
+    assert goal['physical_reboot_executed'] is False
+    assert goal['machine_wide_idle_writer_proof_complete'] is False
+    assert goal['false_completion_allowed'] is False
+    assert goal['new_goal_or_hourly_automation_required'] is False
 
 
 def test_new_rebuild_plan_preserves_periods_and_requires_complete_m1_before_smoke():
@@ -210,8 +237,8 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     progress = scope['pre_smoke_progress']
     assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
     final_ready = progress['ready_for_bounded_research_smoke']
-    latest = (scope['final_readiness_stage'] if final_ready
-              else scope['physical_input_index_stage'])
+    latest = scope['train_capacity_stage_002']
+    assert work['full_benchmark_completed'] is True
     assert work['latest_terminal'] == latest['terminal']
     assert work['terminal_exit_code'] == 0
     failed = scope['failed_input_validation_stage']
@@ -238,7 +265,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
                                      final_ready and field in {
                                          'new_sampler_smoke_plan_bound', 'ready_for_bounded_research_smoke'}))
     assert scope['native_launch_admitted'] is False
-    assert work['sampler_selected'] is False and work['full_benchmark_completed'] is False
+    assert work['sampler_selected'] is False and work['selected_sampler_published'] is False
     assert policy['training_enabled'] is False
     final = scope['final_readiness_stage']
     assert final['ready_for_bounded_research_smoke'] is final_ready

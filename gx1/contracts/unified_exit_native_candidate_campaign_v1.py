@@ -505,6 +505,62 @@ def require_physical_chronological_preprocessing(
     }
 
 
+DESIGN_METADATA_COMPLETION_SCHEMA = "gx1_chronological_design_metadata_completion_v1"
+
+
+def complete_missing_chronological_design_metadata(original_design_binding):
+    """Complete only absent scope/status from the original's bound declaration.
+
+    This creates a new design body, not a rewritten benchmark or run authority.
+    Historical inputs, clocks, functions and source-owner receipts remain exact.
+    """
+    original_binding = require_binding(
+        original_design_binding, label="original chronological design", verify_file=True)
+    original = read_bound_json(Path(original_binding["path"]), original_binding["sha256"])
+    if (original.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
+            or any(key in original for key in ("scope", "status", "metadata_completion"))):
+        raise RuntimeError("NATIVE_DESIGN_METADATA_COMPLETION_ORIGINAL_INVALID")
+    procedure_binding = require_binding(
+        original.get("prospective_procedure_source"),
+        label="already bound prospective procedure", verify_file=True)
+    procedure = read_bound_json(Path(procedure_binding["path"]), procedure_binding["sha256"])
+    if (procedure.get("schema_version") != original["schema_version"]
+            or not isinstance(procedure.get("scope"), Mapping)
+            or not isinstance(procedure.get("status"), str)):
+        raise RuntimeError("NATIVE_DESIGN_METADATA_COMPLETION_PROCEDURE_INVALID")
+    return {
+        **original, "scope": dict(procedure["scope"]), "status": procedure["status"],
+        "metadata_completion": {
+            "schema_version": DESIGN_METADATA_COMPLETION_SCHEMA,
+            "original_design": original_binding,
+            "prospective_procedure_source": procedure_binding,
+        },
+    }
+
+
+def require_benchmarked_design_identity(benchmark_design_binding, *, design_binding, design):
+    """Admit exact identity or the single explicit metadata-only completion.
+
+    Rebuild the expected body from verified original/declaration files. Canonical
+    JSON preserves types (True is not 1); no other field or binding may change.
+    """
+    benchmark_binding = require_binding(
+        benchmark_design_binding, label="benchmarked chronological design", verify_file=True)
+    current_binding = require_binding(
+        design_binding, label="current chronological design", verify_file=True)
+    current = read_bound_json(Path(current_binding["path"]), current_binding["sha256"])
+    try:
+        if canonical_sha256(current) != canonical_sha256(design):
+            raise RuntimeError("NATIVE_BENCHMARK_DESIGN_BODY_MISMATCH")
+        if benchmark_binding == current_binding:
+            return
+        expected = complete_missing_chronological_design_metadata(benchmark_binding)
+        if canonical_sha256(design) != canonical_sha256(expected):
+            raise RuntimeError("NATIVE_BENCHMARK_DESIGN_METADATA_COMPLETION_MISMATCH")
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("NATIVE_BENCHMARK_DESIGN_JSON_INVALID") from exc
+
+
 def _physical_native_sampler(selected_binding, *, artifacts, design, physical):
     """One measured-sampler admission shared by coordinate production and use."""
     from gx1.contracts.unified_exit_selected_sampler_v1 import (
@@ -518,9 +574,13 @@ def _physical_native_sampler(selected_binding, *, artifacts, design, physical):
         return read_bound_json(Path(value["path"]), value["sha256"])
     selected = require_selected_sampler_artifact(read(selected_binding))
     check(selected.get("selection_mode") == DIRECT_SELECTION_MODE
-          and selected.get("benchmark_design") == artifacts["design"]
           and selected["selected_sampler_contract"]["entry_pair_population"] == physical["train_rows"],
           "SAMPLER_MISMATCH")
+    try:
+        require_benchmarked_design_identity(
+            selected.get("benchmark_design"), design_binding=artifacts["design"], design=design)
+    except RuntimeError as exc:
+        raise RuntimeError("NATIVE_PHYSICAL_COORDINATES_SAMPLER_MISMATCH") from exc
     manifest_binding = selected["train_index_manifest"]
     manifest = read({"path": manifest_binding["path"], "sha256": manifest_binding["file_sha256"]})
     check(all(manifest["source_bindings"][f"parent_entry_{kind}"]

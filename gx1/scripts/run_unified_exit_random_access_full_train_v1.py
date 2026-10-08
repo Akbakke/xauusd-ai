@@ -230,9 +230,14 @@ def _require_component_sampler(*, files, chronological_prefix):
     if selected["batch_size"] != design["budget"]["train_batch_size"]:
         raise RuntimeError("NATIVE_PREFIX_MEASURED_SAMPLER_BATCH_MISMATCH")
     from gx1.scripts.benchmark_unified_exit_random_access_train_v1 import _reference_workload_from_design
-    if (selected.get("reference_workload") != _reference_workload_from_design(design)
-            or selected.get("benchmark_design") != chronological_prefix["design"]):
+    if selected.get("reference_workload") != _reference_workload_from_design(design):
         raise RuntimeError("NATIVE_PREFIX_MEASURED_SAMPLER_WORKLOAD_MISMATCH")
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_benchmarked_design_identity
+    try:
+        require_benchmarked_design_identity(
+            selected.get("benchmark_design"), design_binding=chronological_prefix["design"], design=design)
+    except RuntimeError as exc:
+        raise RuntimeError("NATIVE_PREFIX_MEASURED_SAMPLER_WORKLOAD_MISMATCH") from exc
     metadata = val._read(files["source_bundle_metadata"])
     expected_geometry = {
         "seq_len": int(metadata["seq_len"]),

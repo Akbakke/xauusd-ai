@@ -1,6 +1,19 @@
 # Veien videre
 
-## Nå: inputs ferdige, ny kapasitet autorisert før betinget smoke
+## Nå: inputs og CPU-kapasitet ferdige før betinget smoke
+
+SAMPLER_BENCHMARK_002 har genuin exit0-terminal20:19:58 UTC08.10,
+uendret6d57b446. Alle tre fulle CPU-kandidater er målt; eksisterende10800s
+eligibility/rangering velger32768/batch16 (7275,518s). Dette er måling av
+8192 Entry-par fra full652552-indeks, ikke full populasjon eller NN-epoch.
+Original DESIGNaaa6027a mangler scope/status. Minste rettelse gjenbruker
+allerede bundet deklarasjon og strengt metadata-only identity-join hos
+begge native forbrukere; alle originale bytes/bindinger forblir urørt.
+79 sampler-/koblingstester og61 native recipe-/koordinattester er grønne
+mekanikkbevis. Nye native metadata-/precheck-/koordinatoutputs gjenstår.
+Neste eksakt bundne CPU-steg er NATIVE_METADATA_HANDOFF_001, kun sampler-
+publikasjon og metadatafullføring gjennom eksisterende eiere/capped audit.
+Opprinnelig22:55:12 UTC deadline beholdes; ingen NN/refit/rebenchmark/TEST.
 
 Forberedelsesmålet er fullført som READY_FOR_BOUNDED_RESEARCH_SMOKE:
 genuine core/komplett M1/dekningsreview/oracle/post-readiness, nye fysiske
@@ -19,13 +32,13 @@ Selve smoke eller ny CPU-benchmark ble ikke startet av forberedelsesmålet.
 Ny direkte brukerbestilling08.10 åpner full TRAIN-kapasitet og betinget smoke;
 kvitteringer eier start/progress/terminal. Native launch er fortsatt portbundet.
 
-1. Full workload-matchet TRAIN-only samplerbenchmark gjennom eksisterende
+1. Fullført workload-matchet TRAIN-only samplerbenchmark gjennom eksisterende
    capped producer:32768/65536/131072 transitions,4 per Entry,batch16,én
    full repetisjon,tracemalloc og eksisterende minne-/10800s eligibility.
    Utfallsblind rangering; delmåling eller ATTEMPT_003 gir ingen sampler.
    SAMPLER_BENCHMARK_002 har samme64800s total wall04:55:12–22:55:12
    UTC08.10 inkl. forberedelse/nedetid. Eksakt ren/pushet kilde, operator/
-   input/output og nye engangskvitteringer kreves; ingen NN-modeller i CPU-steget.
+   input/output og nye engangskvitteringer eier fullføringen; ingen NN-modeller i CPU-steget.
    001 feilet før START/capped launch på UTC-Z-format; originale bytes/bevis
    bevares.002 bruker støttet+00:00, uten deadlineforlengelse eller001-relaunch.
 2. Etter ekte sampleraksept: aktuelle kanoniske fysisk labels-/normalization-
@@ -51,9 +64,10 @@ Retention-eieren nekter unresolved authority directory manifest på dagens
 GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007;0 DATA/RUNS-filer slettet.
 Kun ekte full closure/registered metadata/eksakte targets og retention
 plan→godkjenn→utfør kan åpne sletting, aldri håndlaget unntak.
-Før ny binding er tidligere CURRENT-stager/lås avsluttet; ny aktiv jobb
-forbyr omstart. Windows2648/2704 er fortsatt beskyttede og
-uklassifiserte. Maskinvid writer-/GPU-ledighet er ubevist; ingen fysisk omstart,
+Kapasitetsprosessene er avsluttet; ny aktiv jobb forbyr omstart.
+Windows2648/2704 er fortsatt beskyttede ved faktisk inventar20:39:58 UTC.
+2704 har observert lokal telemetrikø,2648 ukjent rolle; ingen av delene
+beviser maskinvid writer-/GPU-ledighet. Ingen fysisk omstart,
 elevasjon/ACL-bypass eller stopp av ukjente jobber. BSOD0xA-rotårsak er ukjent.
 Timeautomatiseringen er slettet og ikke gjenskapt.
 

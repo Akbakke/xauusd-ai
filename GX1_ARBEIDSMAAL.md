@@ -10,6 +10,16 @@ recipe/campaign, fresh-initial og fresh fysisk boot/host/GPU må bestås før
 modeller. Maks256 steg/4096 Entries; ingen større trening/fullVAL/TEST.
 Faktisk start/progress/terminal eies av nye kvitteringer, ikke denne prosaen.
 
+Kapasitetens genuine exit0-terminal20:19:58 UTC08.10 er verifisert:
+alle tre komplette CPU-kandidater målt, eksisterende eier velger32768/
+batch16 under10800s-grensen. Dette er ikke full NN-trening eller læring.
+Det nye aktive app-målet fra05:28:18 UTC08.10 inkluderer trygg brukerbestilt
+fysisk omstart og én portbundet smoke; det er ikke fullført. Original
+DESIGNs manglende scope/status rettes metadata-only fra allerede bundet
+deklarasjon, uten å omskrive originaldesign/benchmark eller øvrige felt.
+79 koblingskontroller og61 native recipe-/koordinatkontroller PASS; ferske
+kanoniske outputs/initialmålinger og maskinvid ledighet gjenstår.
+
 Bevart oppdrag07.10.2026: sett GC/order-flow og nye order-block-/footprint-
 utvidelser på pause, og prioriter ny trening med dagens tekniske indikatoroppsett.
 GC-målets status er paused; protokoll, prøver og ufullførte trinn bevares.
@@ -68,6 +78,8 @@ preprocessing-kvitteringer/recipe og fersk initialmåling er ennå ikke produser
 Ny bestilling08.10 gir full TRAIN-only benchmark separat finite autoritet;
 64800s i SAMPLER_BENCHMARK_002 er ikke fornyelse av ATTEMPT_003 eller
 inputbudsjettet. Det gamle immutabele planforslaget endres ikke.
+Denne CPU-benchmarken er nå genuint fullført; valgt sampler må publiseres
+gjennom samme eier. Ingen fullført stage eller opprinnelig deadline relanseres.
 Senere smoke er høyst256 optimizersteg/4096 Entries, ikke full epoch/full VAL.
 
 Retention-eieren nektet faktisk closure på den uregistrerte nye run-rootens

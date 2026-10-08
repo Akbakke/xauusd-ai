@@ -27,6 +27,23 @@ originale kontroller/kilde/PRECLAIM_FAILURE er bevart.002 normaliserer bare
 UTC-spelling til+00:00, innen identisk absolutt budsjett/deadline.16 nye
 scope-/datokontroller PASS; uendrede benchmark-/samplerbevis gjenbrukes.
 
+Genuin kapasitetsterminal20:19:58 UTC08.10,exit0/uendret6d57b446:
+alle tre komplette kandidater er målt. Eksisterende eier velger32768/batch16
+under10800s eligibility,7275,518s for8192 Entry-par fra full652552-indeks.
+65536/131072 måles til15490,601/31225,945s og er tidsmessig ineligible.
+Ingen målt full-populasjons- eller NN-epoch, modellinstanser/refits/TEST0.
+Minimal konkret sourcefix fullfører original DESIGNs manglende scope/status
+fra dens allerede hash-bundne deklarasjon i en ny provenance-bundet kropp.
+Begge native forbrukere gjenbygger hele typede kroppen fra de genuine
+originalene; ingen rewrite av benchmark/benchmark_design eller øvrige felt.
+79 fokuserte koblings-/samplertester og61 recipe-/koordinattester PASS,
+syntetiske mekanikkbevis. Dette erstatter ingen faktisk native precheck,
+koordinatpublikasjon, fresh-initial, Windows-boot eller læringsmåling.
+Kun sampler-/designmetadata-publikasjon er neste eksakt bundne CPU-steg,
+NATIVE_METADATA_HANDOFF_001, innen samme opprinnelige22:55:12 UTC deadline.
+22 lukkede scope-/output-/kildetester og5 aktuelle overleveringstester PASS.
+Ingen relaunch eller fornyet budsjett, labels-PASS, modell-/normaliseringsfit.
+
 ## Fullført inputforberedelse — HISTORY2009W_NATIVE_V38_20261007
 
 Genuin PRE_SMOKE_READINESS_001 exit0 kl.02:30:04 UTC08.10 på fryst2f415fd9:
@@ -68,7 +85,8 @@ UTC08.10 inkl. nedetid, nå konsumert ved fullført forberedelse. Original
 Fullførte eller feilede engangsplaner relanseres aldri.
 Ny benchmark fikk nå egen finite autoritet via08.10-bestillingen; det tidligere
 immutabele64800s planforslaget alene var aldri tillatelse.
-Fortsatt mangler full sampler/valg, aktuelle kanoniske fysisk labels- og
+Full målt samplerseleksjon er ferdig. Fortsatt mangler valgt-sampler-
+publikasjon, aktuelle kanoniske fysisk labels- og
 normalization-receipts, native TRAIN-koordinater/recipe/hostgates og fresh
 initialbaseline før faktisk modellsmoke. Ingen håndlaget PASS eller gammel
 receiptfallback. Neste rekkefølge er bundet, ikke utført.
@@ -118,4 +136,4 @@ receipts før grønn terminal. Ingen håndlaget seleksjon eller gammelsti-fallba
 
 Alle genuine features/tidsrammer/targets bevares. Ingen fast tapsgrense eller
 maksimal holdetid. TEST, broker, handel, spending og promotion er stengt.
-Dette dokumentet demonstrerer ikke læring, full kapasitet eller lønnsomhet.
+Dette dokumentet demonstrerer ikke læring, full NN-kapasitet eller lønnsomhet.

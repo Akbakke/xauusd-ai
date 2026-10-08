@@ -472,3 +472,164 @@ def test_native_current_sampler_requires_measured_input_geometry(tmp_path, fault
                    "random_access_root": c["root_path"], "source_bundle_metadata": tmp_path / "SOURCE_BUNDLE.json"},
             chronological_prefix={"design": _file_binding(tmp_path / "DESIGN.json")},
         )
+
+
+def _metadata_completion_case(tmp_path):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as native
+    procedure = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    procedure_path = tmp_path / "PROCEDURE.json"
+    _write(procedure_path, procedure)
+    original = copy.deepcopy(procedure)
+    original.pop("scope")
+    original.pop("status")
+    original["prospective_procedure_source"] = _file_binding(procedure_path)
+    original["model_training_allowed"] = False
+    original["normalization_refit_allowed"] = False
+    original_path = tmp_path / "ORIGINAL_DESIGN.json"
+    _write(original_path, original)
+    case = _direct_fixture(tmp_path, selected_budget=32768, design_path=original_path)
+    selected = _direct_build(case)
+    selected_path = tmp_path / "SELECTED.json"
+    _write(selected_path, selected)
+    completed = native.complete_missing_chronological_design_metadata(_file_binding(original_path))
+    completed_path = tmp_path / "COMPLETED_DESIGN.json"
+    _write(completed_path, completed)
+    return {**case, "original": original, "original_path": original_path,
+            "procedure": procedure, "procedure_path": procedure_path,
+            "completed": completed, "completed_path": completed_path,
+            "selected": selected, "selected_path": selected_path}
+
+
+def _require_metadata_completion(case, *, design=None):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as native
+    native.require_benchmarked_design_identity(
+        case["selected"]["benchmark_design"],
+        design_binding=_file_binding(case["completed_path"]),
+        design=case["completed"] if design is None else design,
+    )
+
+
+def test_metadata_completion_preserves_original_bytes_and_every_other_typed_field(tmp_path):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as native
+    case = _metadata_completion_case(tmp_path)
+    paths = [case[key] for key in ("original_path", "procedure_path", "receipt_path", "selected_path")]
+    before = [path.read_bytes() for path in paths]
+    _require_metadata_completion(case)
+    stripped = {key: value for key, value in case["completed"].items()
+                if key not in ("scope", "status", "metadata_completion")}
+    assert native.canonical_sha256(stripped) == native.canonical_sha256(case["original"])
+    assert case["completed"]["scope"] == case["procedure"]["scope"]
+    assert case["completed"]["status"] == case["procedure"]["status"]
+    assert case["selected"]["benchmark_design"] == _file_binding(case["original_path"])
+    assert before == [path.read_bytes() for path in paths]
+    native.require_benchmarked_design_identity(
+        case["selected"]["benchmark_design"], design_binding=_file_binding(case["original_path"]),
+        design=case["original"],
+    )
+
+
+@pytest.mark.parametrize("fault", [
+    "scope", "status", "scope_bool_type", "test_bool_type", "budget", "initial_seed",
+    "target", "target_type", "normalization", "parent_source", "control_clock", "selection",
+    "source_owner", "missing_provenance", "extra_provenance", "provenance_schema",
+    "original_role", "declaration_role", "original_hash", "original_copy_path", "extra_body", "nan_body",
+])
+def test_metadata_completion_rejects_rehashed_scope_body_or_provenance_mutation(tmp_path, fault):
+    case = _metadata_completion_case(tmp_path)
+    changed = copy.deepcopy(case["completed"])
+    if fault == "scope": changed["scope"]["native_launch_authorized"] = True
+    if fault == "status": changed["status"] = "EXECUTABLE"
+    if fault == "scope_bool_type": changed["scope"]["test_sealed"] = 1
+    if fault == "test_bool_type": changed["read_boundary"]["test_dataset_or_manifest_accessed"] = 0
+    if fault == "budget": changed["budget"]["planned_optimizer_steps"] += 1
+    if fault == "initial_seed": changed["initialization"]["seed"] += 1
+    if fault == "target": changed["targets"]["reference_policy"]["hold_probability_numerator"] -= 1
+    if fault == "target_type":
+        changed["targets"]["reference_policy"]["hold_probability_numerator"] = float(
+            changed["targets"]["reference_policy"]["hold_probability_numerator"])
+    if fault == "normalization": changed["normalization_refit_allowed"] = True
+    if fault == "parent_source": changed["calendar"]["source_bindings"]["train"]["parquet"]["path"] += "-copy"
+    if fault == "control_clock": changed["calendar"]["train_cutoff_utc"] = "2026-06-01T00:00:00Z"
+    if fault == "selection": changed["selection"]["seed"] += 1
+    if fault == "source_owner": changed["source_owners"] = {}
+    if fault == "missing_provenance": changed.pop("metadata_completion")
+    if fault == "extra_provenance": changed["metadata_completion"]["native_launch_authorized"] = True
+    if fault == "provenance_schema": changed["metadata_completion"]["schema_version"] += "-other"
+    if fault == "original_role": changed["metadata_completion"]["original_design"] = _file_binding(case["procedure_path"])
+    if fault == "declaration_role": changed["metadata_completion"]["prospective_procedure_source"] = _file_binding(case["original_path"])
+    if fault == "original_hash": changed["metadata_completion"]["original_design"]["sha256"] = "f" * 64
+    if fault == "original_copy_path":
+        clone = tmp_path / "ORIGINAL_DESIGN_COPY.json"
+        clone.write_bytes(case["original_path"].read_bytes())
+        changed["metadata_completion"]["original_design"] = _file_binding(clone)
+    if fault == "extra_body": changed["new_model_permission"] = True
+    if fault == "nan_body": changed["new_nonfinite_field"] = float("nan")
+    _write(case["completed_path"], changed)
+    with pytest.raises(RuntimeError):
+        _require_metadata_completion(case, design=changed)
+
+
+@pytest.mark.parametrize("field", ["scope", "status", "metadata_completion"])
+def test_metadata_completion_cannot_overwrite_present_original_fields(tmp_path, field):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as native
+    case = _metadata_completion_case(tmp_path)
+    changed = {**case["original"], field: None}
+    _write(case["original_path"], changed)
+    with pytest.raises(RuntimeError, match="ORIGINAL_INVALID"):
+        native.complete_missing_chronological_design_metadata(_file_binding(case["original_path"]))
+
+
+@pytest.mark.parametrize("fault", ["original", "declaration", "current", "caller_body"])
+def test_metadata_completion_rejects_stale_files_or_unbound_caller_body(tmp_path, fault):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as native
+    case = _metadata_completion_case(tmp_path)
+    if fault in ("original", "declaration"):
+        path = case["original_path" if fault == "original" else "procedure_path"]
+        path.write_bytes(path.read_bytes() + b" ")
+        with pytest.raises(RuntimeError):
+            _require_metadata_completion(case)
+    elif fault == "current":
+        old_binding = _file_binding(case["completed_path"])
+        case["completed_path"].write_bytes(case["completed_path"].read_bytes() + b" ")
+        with pytest.raises(RuntimeError):
+            native.require_benchmarked_design_identity(
+                case["selected"]["benchmark_design"], design_binding=old_binding, design=case["completed"])
+    else:
+        changed = copy.deepcopy(case["completed"])
+        changed["budget"]["planned_optimizer_steps"] += 1
+        with pytest.raises(RuntimeError, match="BODY_MISMATCH"):
+            _require_metadata_completion(case, design=changed)
+
+
+@pytest.mark.parametrize("corrupt", [False, True])
+def test_both_native_consumers_use_the_same_strict_metadata_owner(tmp_path, monkeypatch, corrupt):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as native
+    from gx1.scripts import run_unified_exit_random_access_full_train_v1 as runner
+    case = _metadata_completion_case(tmp_path)
+    if corrupt:
+        case["completed"]["normalization_refit_allowed"] = True
+        _write(case["completed_path"], case["completed"])
+    current_binding = _file_binding(case["completed_path"])
+    real_owner = native.require_benchmarked_design_identity
+    calls = []
+    def observed_owner(benchmark_binding, *, design_binding, design):
+        calls.append((benchmark_binding, design_binding))
+        return real_owner(benchmark_binding, design_binding=design_binding, design=design)
+    monkeypatch.setattr(native, "require_benchmarked_design_identity", observed_owner)
+    physical = {"train_rows": 652552, "physical_sources": {"train": case["completed"]["calendar"]["source_bindings"]["train"]}}
+    def physical_consumer():
+        return native._physical_native_sampler(
+            _file_binding(case["selected_path"]), artifacts={"design": current_binding},
+            design=case["completed"], physical=physical)
+    def runner_consumer():
+        return runner._require_component_sampler(
+            files={"selected_sampler": case["selected_path"], "sampler_candidate_set": case["candidate_path"],
+                   "random_access_root": case["root_path"], "source_bundle_metadata": tmp_path / "SOURCE_BUNDLE.json"},
+            chronological_prefix={"design": current_binding})
+    for consumer in (physical_consumer, runner_consumer):
+        if corrupt:
+            with pytest.raises(RuntimeError):
+                consumer()
+        else:
+            assert consumer() == case["selected"]
+    assert calls == [(case["selected"]["benchmark_design"], current_binding)] * 2

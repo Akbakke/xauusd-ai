@@ -3,11 +3,42 @@
 Faktisk status og eksakte bindinger eies bare av NEXT_RUN_POLICY.json.
 Eneste repo er /home/andre2/src/GX1_CURRENT, work/gx1-current, én agent.
 Gjeldende bestilling08.10 er «Ja, kjør videre train kapasitetstest og smoke».
-Inputforberedelsen er fullført; ny finite CPU-kapasitet bindes før betinget
-native smoke. GC/order-flow og nye
+Inputforberedelsen og komplett målt CPU-samplerkapasitet er fullført.
+Native smoke er fortsatt portbundet. GC/order-flow og nye
 order-block-/footprint-utvidelser er fortsatt på pause.
 
-## Resultat: forberedelsen er fullført, modellen er ikke startet
+## Resultat: inputs og CPU-kapasitet fullført, modellen er ikke startet
+
+SAMPLER_BENCHMARK_002 avsluttet genuint20:19:58.863101 UTC08.10,
+exit0,54681,529s og uendret6d57b446. TERMINAL e612e3ff / RESULT9d306997 /
+CAPACITY_RESULT9859f510 / BENCHMARKfcea002d er verifisert gjennom eksisterende
+målt-seleksjonseier. Alle tre komplette kandidat-epoker er målt på dagens
+full652552-TRAIN-indeks:32768/65536/131072 transitions ga7275,518/
+15490,601/31225,945s. Dette er8192/16384/32768 Entry-par, ikke en målt
+hel652552-epoch eller NN-treningsytelse. Eksisterende10800s eligibility
+velger32768/batch16, kontrakt31d95d79; større kandidater er tidsmessig
+ineligible.80-epokes/582041,431s populasjonssyklus er projeksjon, ikke måling.
+Ingen modeller, forwards, refits, optimizersteg eller TEST. Alle bundne
+kapasitetsprosesser er borte. Ingen claim/deadline relanseres eller fornyes.
+
+Konkret native-koblingsfeil: original DESIGNaaa6027a mangler scope/status.
+Ny eksisterende kontrakteier fullfører bare disse to feltene fra originalens
+allerede hash-bundne prospective deklarasjon5235db5c, med eksplisitt provenance.
+Originaldesign, benchmark og valgt samplers benchmark_design forblir urørt.
+Begge native forbrukere gjenbygger og sammenligner hele den typede kroppen;
+bool→int, endret target/normalisering/kilde/budsjett/provenance avvises også
+etter ny hash.79 fokuserte sampler-/koblingskontroller og61 native recipe-/
+koordinatkontroller PASS på syntetiske mekanikkdata, ikke native læring.
+Ny komplett metadataartefakt er ennå ikke publisert; koordinater/labels-/
+normalization-precheck/recipe/fresh-initial/host/boot må fortsatt bestås.
+
+NATIVE_METADATA_HANDOFF_001 er særskilt source-/input-/output-bundet i policy:
+kun eksisterende samplerpublikasjon og metadatafullføring, capped audit4G/
+512M/CPU0–7/én tråd64tasks, innen opprinnelig22:55:12 UTC CPU-deadline.
+Plan5f02e414 / producer586b37a3 / launcher4c7de2f4.22 lukkede scope-/
+output-/kildekontroller og5 aktuelle overleveringskontroller PASS. Ingen
+budsjettreset, rebenchmark, labels-PASS, modell-/normaliseringsfit eller omstart.
+Bindingens NOT_STARTED er ikke kjøretidsstatus; nye receipts eier utfallet.
 
 READY_FOR_BOUNDED_RESEARCH_SMOKE betyr her verifiserte inputs og en bundet
 avgrenset fremtidig kjøreplan. Det er uttrykkelig ikke benchmark-/modell-
@@ -27,7 +58,7 @@ samme stage (SHA0da1a9f7). DESIGNaaa6027a / CONTROL256a33a97c6 er nyprodusert
 fra dagens fysiske VAL-clocks gjennom eksisterende selector, seed20260911,
 salt1. Ingen gamle koordinatbytes ble kopiert; at deterministic output har
 samme hash som tidligere generation er ikke gjenbruk av gamle outputs.
-TRAIN4096/TRAIN256/valgt sampler og native recipe er ikke publisert.
+TRAIN4096/TRAIN256, publikasjon av valgt sampler og native recipe gjenstår.
 
 ## Målt på ekte deklarerte data
 
@@ -70,13 +101,13 @@ uendret. Juni2026 er gjenbrukt utviklings-VAL, ikke uberørt OOS. TEST forseglet
 
 ## Neste avgrensede løp — ny kapasitet og betinget smoke
 
-1. Ny separat finite TRAIN-only CPU-samplerbenchmark på hele fysiske indeksen,
+1. Fullført separat finite TRAIN-only CPU-samplerbenchmark på hele fysiske indeksen,
    kandidater32768/65536/131072 transitions,4 per Entry,batch16,én komplett
    repetisjon. Eksisterende tracemalloc/2GiB Python-/1GiB padded-input-/
    10800s eligibility og utfallsblind rangering består. Ny brukerautoritet
    binder SAMPLER_BENCHMARK_002, innen samme64800s CPU-totalramme08.10
    04:55:12–22:55:12 UTC inkl. forberedelse/nedetid. Ren pushet kilde og
-   nye eksakte engangsreceipts kreves; de eier faktisk start/progress/terminal.
+   ekte nye engangsreceipts eier fullføringen ovenfor.
    Inputbudsjett/gamle claims kan ikke brukes; ingen NN-modeller i CPU-steget.
    001 feilet genuint før START/capped launch på Python3.10 UTC-Z-spelling;
    originale kontroller/kilde/PRECLAIM_FAILURE bevares.002 bruker+00:00,
@@ -109,11 +140,13 @@ Eiernektelsen omgås ikke av håndbygde graph-/manifest-unntak; eksakte targets,
 full transitiv closure/TEST-vern og plan→godkjenn→utfør må først bestås.
 Repo-slettebølgen/funn/testhistorikken står i docs/REPO_REVIEW.md og Git.
 
-Før ny kapasitetbinding var tidligere stageprosesser reaped/borte og
-CURRENT-låsen ledig på WSL-boot e2c0e03d. Nye prosessreceipts overstyrer
-idle-prosa; ingen omstart mens kapasitet kjører. Windows2648/2704 er fortsatt
-beskyttede, uklassifiserte
-PowerShell-prosesser; maskinvid writer-/job-/GPU-ledighet er ikke bevist.
+Etter genuine kapasitetsterminal er CURRENT-kapasitetsprosessene borte på
+WSL-boot e2c0e03d. Ny Windows-inventar20:39:58 UTC viser fortsatt2648/2704
+med samme oppstartstider og utilgjengelig kommandolinje.2704 var tidligere
+bundet til den lokale GX1 HTTP.sys-telemetrikøen, ikke til kjørende kode/
+writer-ledighet;2648s rolle er fortsatt ukjent. Register-/TaskScheduler-
+tilgang gir AccessDenied; den signerte GPU-payloaden inneholder ikke
+prosessidentitet. Maskinvid writer-/job-/GPU-ledighet er ikke bevist.
 Ingen fysisk omstart, ACL/elevasjonsbypass eller stopp av ukjente jobber.
 Windows-BSOD0xA07.10 er dokumentert; konkret driver/hardwareårsak er ubevist.
 INPUT_BUILD_001 har ukjent exit/manglende terminal etter boot-tap og
@@ -125,5 +158,5 @@ Kilde/syntetiske mekanikktester er ikke kvalitet på ekte data. Hele tracked
 inventaret er mekanisk revidert og risikobærende eiere manuelt prioritert,
 ikke hver linje eller fullsuite-PASS. Fokuserte publiserings-, status-,
 geometri- og kontrollbevis er bundet i policy. Ingen v38-læring,
-generalisering, netto strategi-PnL, full kapasitet eller lært train/serve-
+generalisering, netto strategi-PnL, full NN-kapasitet eller lært train/serve-
 paritet er målt. Ingen broker, nedlasting, spending, live/paper eller GC-fit.
