@@ -14,11 +14,15 @@ uendret og tillatelse konsumert. Hele652552/70880 Entry-populasjoner,
 fersk inputdesign/recipe/koordinater, source-bit-identiske separate M1-quotes
 og egne child-clock-authorities er publisert. Alle66277/312 gap ukjente,
 ingen carry eller imputering. Dette er fysiske inputs, ikke normalisering.
-BASE_NORMALIZATION_001 er eget exact-bound engangssteg, ikke startet:
-én capped producer20G/512M CPU-fase for fysisk whole-TRAIN-populasjon/
-sekvensvitner og fersk basefit, uten prefix eller VAL-fit. Samme godkjente
-deadline; ren commit/push/BINDING før launch. Deretter genuine summary-fit,
-faktisk normalisert inputparitet, retention/nektelse og finite sampler/smoke.
+BASE_NORMALIZATION_001 er genuint exit0,01:04:52 UTC på uendret1af9a63c,
+og claimen er konsumert. Fersk artifact0d1697d8/contract70e91e0f binder
+hele652552 TRAIN-Entries og fysisk M1/M5/alle fem MTF-flater, VAL/TEST-fit0.
+SUMMARY_NORMALIZATION_001 er eget exact-bound engangssteg, ikke startet,
+under samme deadline og producer20G/512M: whole-TRAIN-summary via eksisterende
+utfallsblind authority, separate VAL-counts uten fit, composite og ekte
+split/clock/quote-first-state-bindinger. Ingen refit av fersk base. Ren
+commit/push/BINDING før launch. Faktisk normalisert tensor/inputparitet,
+retention/nektelse og finite sampler/smoke gjenstår; ingen modellemisjon.
 Fire ytterligere publisister bevarer staging/strict-load;67 fokuserte PASS.
 
 Brukerens prioritering 07.10.2026 setter GC/order-flow og nye order-block-/

@@ -4,15 +4,21 @@ Dato: 06.10.2026. Brukeren ba om grundig repo-gjennomgang og minst mulig død
 kode/fyll, og prioriterte kontrollert benchmarkstopp. Kildegrunnlag før bølgen:
 8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91, work/gx1-current.
 Dette er gjeldende oppryddingsrapport, ikke en trenings- eller sletteautoritet for DATA/RUNS.
-08.10: INPUT_VIEWS_001 har genuine separate fysiske TRAIN/VAL/M1-inputs,
-ingen normalisering. BASE_NORMALIZATION_001 er eksakt bundet til eksisterende
-whole-TRAIN-eiere og producer20G/512M under særskilt godkjent CPU-deadline.
+08.10: INPUT_VIEWS_001 har genuine separate fysiske TRAIN/VAL/M1-inputs.
+BASE_NORMALIZATION_001 er genuine exit0 på uendret1af9a63c, alle652552
+TRAIN-Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0. SUMMARY_NORMALIZATION_001
+er eksakt bundet til eksisterende eiere/producer20G/512M/samme CPU-deadline;
+ikke startet. Base refittes ikke; ekte normalisert tensorparitet kreves senere.
 Ingen nye feature-/fit-/modellkodeendringer i denne status-/bindingsbølgen.
 Staging-feilrettelsene og originale 67/101-case-bevis bevares. Selve nye
-basefit/inputparitet, retention og modell-/kvalitetsevidens er ennå ubevist.
+summary-fit/inputparitet, retention og modell-/kvalitetsevidens er ennå ubevist.
 Ny status-/bindingsbølge:12 fokuserte handover-regresjoner PASS under4G/512M,
 eksterne stagekontroller består syntaks/JSON, diff/stale/source kontrolleres
 før ren commit/push. JUnit: BASE_NORMALIZATION_001/HANDOVER_BINDING_TESTS.xml.
+Summary-bindingsbølgen:26 fokuserte final-binding/prefix-boundary-regresjoner
+PASS under4G/512M; source/fixture-mekanikk, ikke ekte ny summary-fit/paritet.
+JUnit: SUMMARY_NORMALIZATION_001/FOCUSED_BINDING_TESTS.xml. Ingen feature-,
+fit- eller modellsemantikk endret; eksterne engangskontroller består syntaks.
 
 ## Ny bølge 07.10.2026 — ferskt datasett og smoke
 

@@ -31,15 +31,23 @@ Egne child-clock-authorities beholder66277/312 gap ukjente,0 kjente,
 uten imputering eller carry. Ingen normalisering/modellemisjon i delsteget.
 Claimen er konsumert og kvitteringsbundne prosesser er borte.
 
-BASE_NORMALIZATION_001 er eksakt bundet, ikke startet: eksisterende eiere
-publiserer hele fysisk TRAINs normaliseringspopulasjon/sekvensvitner og
-fersk basefit for alle652552 Entries med deres M1/M5/MTF-felter, før sampling.
-Én eksisterende capped producer20G/512M-fase; CPU0-7/én numerisk tråd,
-64tasks/ledig-minne-gate/CURRENT-lås uendret. Samme18:25:44 UTC-deadline,
-ingen prefix-fit, gamle normaliseringer eller VAL-fit. Ren commit/push og
-eksakt BINDING kreves før launch. Lifetime-summary-fit, faktisk normalisert
-input-/første-state-paritet, retention/nektelse og finite sampler/smoke
-gjenstår; ingen hel inputaksept eller modellstart.
+BASE_NORMALIZATION_001 er genuint exit0,01:04:52 UTC,443,272s, kilde
+1af9a63c uendret. TERM0bce31a6/RESULT92c8275f/produsent2cd0d873 binder
+fersk artifact0d1697d8/contract70e91e0f: alle652552 Entries,955670 unike
+M5-local og3978505 M1-current states. Local-fit5748113/context-fit4631057,
+alle254 signalfelt/71 kontekst-/aliasfelt og fem MTF-flater. VAL/TEST-fit0,
+ingen prefix/sampler/old-normalisering. Claimen er konsumert og prosessene borte.
+Dette er fersk basefit, ikke summary-fit eller faktisk normalisert inputparitet.
+
+SUMMARY_NORMALIZATION_001 er eksakt bundet, ikke startet: eksisterende eier
+tilpasser lifetime-summary på hele TRAINs utfallsblinde fysiske sample-
+authority, lager separat VAL-counts uten fit, og binder composite/split-
+sekvenser/første-state clock/quote. Fersk base overtas uendret, refittes aldri.
+Én capped producer20G/512M,CPU0-7/én tråd/64tasks/minne-gate/CURRENT-lås
+uendret. Samme18:25:44 UTC-deadline, ingen ny delstegsramme. Ren commit/
+push/BINDING før launch. Clock/quote-bridge er ikke faktisk normalisert
+tensor- eller lært model/serve-paritet. Denne inputkontrollen, retention/
+nektelse og finite sampler/smoke gjenstår; ingen hel input-/modellaksept.
 Ytterligere fire nødvendige publisister (Entry, child-admission, summary-fit,
 final-bindings) hadde samme feilklasse med staging-sletting/manglende strict-
 load. Rettet minimalt gjennom eksisterende no-replace/fsync-eier; feilbytes
@@ -51,8 +59,9 @@ Bindings-/statusgruppen bestod51 cases før neste tunge claim.
 Ingen treningsjobb kjører eller er startet av den nye bestillingen.
 INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
-er ikke fullført. Gjeldende terminal er INPUT_VIEWS_001 exit0 som bundet
-ovenfor. GAP_DISPOSITION_001 exit0,07.10 kl.23:32:51 UTC, kilde90e6e9bd
+er ikke fullført. Gjeldende terminal er BASE_NORMALIZATION_001 exit0 som
+bundet ovenfor. INPUT_VIEWS_001 bevares som genuin fysisk-input-underport.
+GAP_DISPOSITION_001 exit0,07.10 kl.23:32:51 UTC, kilde90e6e9bd
 uendret gjennom26s, bevares som råklokke-underport. Prosessene er borte.
 INPUT_VALIDATION_002 exit0 23:09:24 på uendret2c3d7b82 bevares som separat
 vellykket underport, ikke hel input-/modellaksept.
@@ -76,8 +85,9 @@ dekningsdiagnose23:05:48 → M1-oracle23:07:23 → kanonisk post-readiness23:09:
 RESULTfd009287/TERMINAL2a0b8774 binder COVERAGE49759efc, ORACLEfcb32eaa og
 READINESSbe2b462c. Hver engangstillatelse er konsumert. Dette er fullførte
 input-underporter, aldri whole-input/model GREEN eller smoke-launch.
-Fysisk child-klokke-binding/M1-quotes er nå genuine complete. Fersk whole-
-TRAIN-normalisering, normaliserte M1/M5/MTF-visninger/broparitet, retention/
+Fysisk child-klokke-binding/M1-quotes og whole-TRAIN-basefit er genuine
+complete. Summary/composite-normalisering, faktiske normaliserte input-/bro-
+visninger, retention/
 nektelse og ny finite sampler-/smoke-binding gjenstår. Ingen modell,
 henting, sletting eller omstart er startet. Opprinnelig build-deadline
 23:44:34 UTC er uendret; den særskilt godkjente CPU-rammen står ovenfor.

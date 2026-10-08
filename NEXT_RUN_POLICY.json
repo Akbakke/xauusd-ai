@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-08T00:55:00Z",
-  "status": "V38_PHYSICAL_INPUTS_COMPLETE_FRESH_BASE_NORMALIZATION_EXACTLY_BOUND_GC_PAUSED",
+  "observed_utc": "2026-10-08T01:09:20Z",
+  "status": "V38_FRESH_WHOLE_TRAIN_BASE_COMPLETE_SUMMARY_AND_SPLIT_BINDINGS_EXACTLY_BOUND_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator requests complete M1 and all observed pre-smoke adjustments after the successful Oct7 core terminal. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. INPUT_BUILD_001 has unknown old exit/terminal after physical crash; INPUT_BUILD_002 is genuinely successful core-only and its one-shot authority is consumed. Preserve immutable runtime copies/receipts and verified completed same-generation bytes, never relaunch either attempt or consume old Oct1 normalization/models. The original common 64800s build deadline is consumed and preserved unchanged. Human 'Ja' separately approves PRE_SMOKE_CPU_001: one new shared maximum 64800s CPU-only preparation window from 2026-10-08T00:25:44Z to 2026-10-08T18:25:44Z, including preparation and downtime, never reset per substage. Each next stage still needs a separately source/input/output/remaining-budget-bound existing owner. Complete M1, label-coverage/selection review, independent input oracle and post-readiness remain mandatory before fresh normalization and future smoke admission. Do not silently accept unexplained exclusions, impute quotes/labels, change periods or call a diagnostic input acceptance. Reboot only at verified idle terminal phase boundaries, never interrupt active jobs. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
-  "next_action": "Consume genuine INPUT_VIEWS_001 success and preserve completed receipts. BASE_NORMALIZATION_001 is exactly bound for one capped producer20G/512M CPU phase under the same PRE_SMOKE_CPU_001 deadline18:25:44 UTC Oct8, after clean commit/push and exact BINDING. Existing owners publish whole-TRAIN physical population/sequence witnesses and fit fresh immutable base normalization on all652552 TRAIN Entries and physical M5/M1/MTF inputs before sampling. No prefix/old normalization,VAL-fit,model,TEST,GC,broker,download,spending,cleanup or reboot. Genuine summary fit,actual normalized input/first-state parity,retention/refusal and finite sampler/smoke binding remain required.",
+  "next_action": "BASE_NORMALIZATION_001 genuinely completed01:04:52 UTC Oct8 exit0 with source1af9a63c unchanged, all652552 TRAIN Entries and physical M1/M5/MTF inputs, VAL/TEST-fit0. Permission consumed. SUMMARY_NORMALIZATION_001 is exactly bound, not started, for one existing producer20G/512M CPU phase under the same PRE_SMOKE_CPU_001 deadline18:25:44 UTC: fresh whole-TRAIN lifetime summary fit, separate VAL successor counts without fit, immutable composite/split-sequence and clock/quote first-state bindings through existing owners. Adopt this generation's completed fresh base, never refit it or use old normalization. Clean commit/push and exact BINDING required. Actual normalized tensor application/alias/geometry parity,retention/refusal and finite sampler/smoke binding still required. No model/TEST/GC/network/cleanup/reboot or new budget.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -140,16 +140,16 @@
       "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
-    "latest_terminal_role": "Genuine successful INPUT_VIEWS_001 terminal with complete physical TRAIN/VAL clocks, fresh coordinates, source-bit-identical separate M1 quotes and own all-unknown-gap authorities. No fit or input/model/smoke admission.",
+    "latest_terminal_role": "Genuine BASE_NORMALIZATION_001 terminal with fresh complete physical TRAIN base normalization. All254 signals/71 contexts/aliases and five MTF surfaces bound; VAL/TEST-fit0. Summary/composite and actual normalized input/first-state parity remain incomplete; no model/smoke admission.",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_VIEWS_001/TERMINAL.json",
-      "sha256": "59a689ea88222f7c07c5f33d1565a337d24c517d9a11f0adf6c883fa3b6c23d0"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/BASE_NORMALIZATION_001/TERMINAL.json",
+      "sha256": "0bce31a61a301ad08da319b77763c6195173744c35158499d1a748565dac1289"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "termination": "INPUT_VIEWS_001 ran00:39:16-00:43:39 UTC Oct8, exit0, source d5d6ad24 unchanged, receipt-bound supervisor/timeout absent. Complete652552/70880 Entry populations,4884638/382744 M1 views incl474/478 context;66277/312 own-clock gaps allunknown. No fit/model/TEST/cleanup/reboot. Prior receipts preserved. BASE_NORMALIZATION_001 is exactly bound, not yet launched.",
+    "termination": "BASE_NORMALIZATION_001 ran00:57:29-01:04:52 UTC Oct8 exit0,443.272s, source1af9a63c unchanged, receipt-bound supervisor/timeout absent. Whole652552 TRAIN Entries,955670 unique M5-local and3978505 unique M1-current states;local fit5748113/context fit4631057. Fresh artifact0d1697d8/contract70e91e0f, VAL/TEST-fit0, model forwards0. Summary and normalized input parity pending. SUMMARY_NORMALIZATION_001 exactly bound/not started. Old receipts preserved, no deletion or restart.",
     "full_benchmark_completed": false,
     "sampler_selected": false,
     "native_component_preparation_authorized": false,
@@ -516,7 +516,7 @@
     "native_training_enabled": false
   },
   "native_v38_rebuild_20261007": {
-    "status": "PHYSICAL_INPUT_VIEWS_COMPLETE_BASE_NORMALIZATION_EXACTLY_BOUND_NOT_STARTED",
+    "status": "FRESH_WHOLE_TRAIN_BASE_COMPLETE_SUMMARY_NORMALIZATION_EXACTLY_BOUND_NOT_STARTED",
     "runtime_plan": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/PLAN.json", "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"},
     "launcher": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/launch_inputs.py", "sha256": "8f6abe9314b562b4463af3bbd93a4f48fa3a57fda3dd6133249bc097100005ca"},
     "prior_attempt": {
@@ -611,7 +611,8 @@
       "fresh_whole_train_normalization_complete": false,
       "physical_view_and_entry_exit_parity_complete": false,
       "new_sampler_smoke_plan_bound": false,
-      "ready_for_bounded_research_smoke": false
+      "ready_for_bounded_research_smoke": false,
+      "fresh_whole_train_base_normalization_complete": true
     },
     "complete_m1_stage": {
       "stage_id": "COMPLETE_M1_001",
@@ -1040,9 +1041,9 @@
       "schema_version": "gx1_bound_native_v38_base_normalization_stage_v1",
       "stage_id": "BASE_NORMALIZATION_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/BASE_NORMALIZATION_001",
-      "authorized": true,
+      "authorized": false,
       "relaunch_allowed": false,
-      "current_status": "EXACTLY_BOUND_NOT_STARTED_CLEAN_SOURCE_AND_RECEIPTS_REQUIRED",
+      "current_status": "GENUINE_FRESH_WHOLE_TRAIN_BASE_FIT_SUCCESS_PERMISSION_CONSUMED",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/BASE_NORMALIZATION_001/PLAN.json",
         "sha256": "e07802c2283ce5c332bb7e467634ca3b0606e2baa7aba4e20aceb2f8977f6b09"
@@ -1076,8 +1077,97 @@
       "fit_population": "entire_bound_physical_train_before_sampling",
       "prefix_or_sampler_fit_allowed": false,
       "normalization_fit_allowed": true,
+      "normalization_fit_started": true,
+      "whole_normalization_complete": false,
+      "model_training_allowed": false,
+      "test_access_authorized": false,
+      "cleanup_allowed": false,
+      "automatic_host_restart": false,
+      "base_normalization_complete": true,
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/BASE_NORMALIZATION_001/TERMINAL.json",
+        "sha256": "0bce31a61a301ad08da319b77763c6195173744c35158499d1a748565dac1289"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/BASE_NORMALIZATION_001/RESULT.json",
+        "sha256": "92c8275f8839ea3778344422736d3987826eb413975e332c3f8e025a49410d77"
+      },
+      "producer_result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/BASE_NORMALIZATION_RESULT.json",
+        "sha256": "2cd0d8735802af3bb3d74dd4e74011d81577e2aa699e5abf24be6ccad4548c43"
+      },
+      "normalization": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/BASE_NORMALIZATION/normalization.json",
+        "sha256": "0d1697d8ba3e2af4e1389b742c1aa8b890370c6eaa345f758503ad93a9a4aa13"
+      },
+      "normalization_contract_sha256": "70e91e0f5a8607fc9d14d564c71a2b9abee69d3585c3b456ef8fdfa3e0227159",
+      "normalization_view": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/CHILD_NORMALIZATION_VIEW.json",
+        "sha256": "1d546ff224d443bb02bf0c753aa49a57769946823194d1325d97f0f92282c18b"
+      },
+      "population": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/TRAIN_NORMALIZATION_POPULATION_WITNESS.json",
+        "sha256": "7f00505c5059d6c92ddb49a7cde864822df400a44d107864c2e2d332aeb3d889"
+      },
+      "sequence_audit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/NORMALIZATION_INPUTS/CHILD_TRAIN_SEQUENCE_RECONSTRUCTION_AUDIT.json",
+        "sha256": "8821f34b88ebcfcab80968d8f0073c240b540fd0e12244053b15ed8924825ed3"
+      },
+      "entry_m5_local_unique_rows": 955670,
+      "exit_m1_current_unique_rows": 3978505,
+      "local_fit_row_count": 5748113,
+      "context_fit_row_count": 4631057,
+      "val_fit_rows": 0,
+      "test_fit_rows": 0,
+      "model_forwards": 0,
+      "whole_input_or_model_admission": false
+    },
+    "summary_normalization_stage": {
+      "schema_version": "gx1_bound_native_v38_summary_normalization_stage_v1",
+      "stage_id": "SUMMARY_NORMALIZATION_001",
+      "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SUMMARY_NORMALIZATION_001",
+      "authorized": true,
+      "relaunch_allowed": false,
+      "current_status": "EXACTLY_BOUND_NOT_STARTED_CLEAN_SOURCE_AND_RECEIPTS_REQUIRED",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SUMMARY_NORMALIZATION_001/PLAN.json",
+        "sha256": "7a30db7761112e872b8aa738307af1749aa46dde1b352fe2b54a7f358de52749"
+      },
+      "producer_plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SUMMARY_NORMALIZATION_001/PRODUCER_PLAN.json",
+        "sha256": "edc0d919d601ad838c8a1dd67ed6112d264ff5008d4621c6b411cafb07c4e7f3"
+      },
+      "producer": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SUMMARY_NORMALIZATION_001/produce_summary_normalization.py",
+        "sha256": "b91d78b70da46ce03582cb813b684171dab6b89429db293fd64cfa1e8ea065a8"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SUMMARY_NORMALIZATION_001/launch_summary_normalization.py",
+        "sha256": "5df2004d4103d13eb87ca2e60378a753a83b9b66f372f3508c4045e33b50eacc"
+      },
+      "cpu_budget": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_CPU_001/BUDGET.json",
+        "sha256": "fbcc0889d5873bc616e5f2701df832137a70d3516cef2866c2d9b108cae5a61f"
+      },
+      "cpu_deadline_utc": "2026-10-08T18:25:44+00:00",
+      "output_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001",
+      "outputs": {
+        "train_summary": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/SUMMARY_FIT_TRAIN",
+        "val_counts": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/SUMMARY_COUNTS_VAL",
+        "final_recipe": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/FINAL_BINDINGS_RECIPE.json",
+        "final_bindings": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/FINAL_BINDINGS",
+        "result": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/LEARNING_PREPARATION_001/SUMMARY_NORMALIZATION_RESULT.json"
+      },
+      "resource_owner": "Existing scripts/gx1_capped_run.sh producer20G/512M; kernel limits/lock/available-memory gate, CPU0-7, one numerical thread,64tasks,CPU-only. Ceiling unchanged.",
+      "whole_bound_physical_train_rows": 652552,
+      "whole_bound_physical_val_rows": 70880,
+      "completed_fresh_base_refit_allowed": false,
+      "whole_train_summary_fit_allowed": true,
+      "prefix_or_sampler_fit_allowed": false,
       "normalization_fit_started": false,
       "whole_normalization_complete": false,
+      "clock_quote_first_state_bindings_only": true,
+      "normalized_tensor_or_learned_model_parity_claimed": false,
       "model_training_allowed": false,
       "test_access_authorized": false,
       "cleanup_allowed": false,
@@ -1103,7 +1193,7 @@
       "automatic_host_restart": false
     },
     "restart_boundary_observation": {
-      "observed_utc": "2026-10-07T23:13:02Z",
+      "observed_utc": "2026-10-08T01:09:20Z",
       "current_heavy_job_and_lock_observed_idle": true,
       "protected_windows_processes_not_classified": [
         2648,
@@ -1111,9 +1201,12 @@
       ],
       "machine_wide_idle_writer_proof_complete": false,
       "physical_reboot_executed": false,
-      "reason": "Read-only CIM/GPU inventory cannot classify protected processes. No ACL/elevation bypass, unknown-job stop or false safe-reboot claim. CPU admission still uses the unchanged existing available-memory/cgroup/lock owner."
+      "reason": "Read-only CIM/GPU inventory cannot classify protected processes. No ACL/elevation bypass, unknown-job stop or false safe-reboot claim. CPU admission still uses the unchanged existing available-memory/cgroup/lock owner.",
+      "gpu_utilization_percent": 0,
+      "gpu_memory_used_mib": 375,
+      "protected_windows_processes_parent_pid": 2152
     },
-    "progress_owner": "Genuine immutable core/M1/INPUT_VALIDATION_002/GAP_DISPOSITION_001/INPUT_VIEWS_001 receipts bind completed subgates and physical views only. All claims consumed. Fresh whole-TRAIN base/summary normalization and normalized input/first-state parity plus finite sampler/smoke binding remain pending; no diagnostic replaces actual model admission.",
+    "progress_owner": "Genuine core/M1/coverage/oracle/readiness/gap/input-view/base-normalization terminals bind completed input subgates only; all claims consumed. Fresh summary/composite and exact split clock/quote bindings plus actual normalized tensor/input parity are still required before retention/refusal and finite sampler/smoke. No plan or diagnostic substitutes for model admission.",
     "recovery_core_only": true,
     "whole_input_build_complete": false,
     "mandatory_next_stages": ["FRESH_WHOLE_TRAIN_BASE_AND_SUMMARY_NORMALIZATION","ACTUAL_NORMALIZED_INPUT_PARITY","RETENTION_AND_BOUNDED_SMOKE_BINDING"],

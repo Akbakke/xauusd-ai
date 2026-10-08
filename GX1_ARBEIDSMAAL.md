@@ -71,10 +71,13 @@ og TEST forblir stengt. Dette vedtaket er ikke fullføring av noen inputport.
 INPUT_VIEWS_001 er nå genuint exit0,00:43:39 UTC, kilde d5d6ad24 uendret.
 Hele fysiske Entry-TRAIN/VAL og separate kildebit-identiske M1-quotes,
 ferske koordinater og egne all-gaps-unknown-authorities er publisert; ingen
-fit eller modellemisjon. BASE_NORMALIZATION_001 er eksakt bundet, ikke
-startet, for whole-TRAIN før sampling gjennom eksisterende producer20G/512M.
-Base- og summary-fit, faktisk normalisert inputparitet og øvrige ferdig-
-kriterier gjenstår. Dette målet er ikke fullført.
+fit eller modellemisjon i view-steget. BASE_NORMALIZATION_001 er genuint
+exit0,01:04:52 UTC, uendret1af9a63c og claim konsumert. Fersk whole-TRAIN-
+basefit på alle652552 Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0.
+SUMMARY_NORMALIZATION_001 er eksakt bundet, ikke startet, for whole-TRAIN-
+summary, VAL-counts uten fit og composite/split/clock/quote-bindinger.
+Faktisk normalisert tensor/inputparitet og øvrige ferdigkriterier gjenstår.
+Dette målet er ikke fullført; ingen modelltrening eller TEST er åpnet.
 
 Ingen eksisterende SMC-primitiver fjernes ved tolkning av «order block og det».
 Læringsrekkefølgen og portene står i docs/NATIVE_LEARNING.md. Ny samplerbenchmark

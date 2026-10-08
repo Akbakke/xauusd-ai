@@ -2,7 +2,7 @@
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
   "retention_current_policy_manifest": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
-  "retention_current_policy_manifest_sha256": "ed521cd90be84ef4faab000c09bded30297c54bcf12864a6b7d3d07f375bb820",
+  "retention_current_policy_manifest_sha256": "9e060efb950ba7e16f00e3a075c7f30494307aeb371bd631bae542681f00dd8a",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -37,11 +37,11 @@
   "bundle_metadata_sha256": null,
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
-  "updated_utc": "2026-10-08T00:55:43Z",
+  "updated_utc": "2026-10-08T01:09:20Z",
   "pretraining_review_hold": {
     "schema_version": "gx1_pretraining_review_hold_v1",
     "decision": "BLOCK",
-    "reason": "PHYSICAL_INPUT_SUBGATES_COMPLETE_FRESH_WHOLE_TRAIN_NORMALIZATION_AND_NORMALIZED_INPUT_PARITY_REQUIRED_NO_NATIVE_LAUNCH",
+    "reason": "FRESH_WHOLE_TRAIN_BASE_FIT_COMPLETE_SUMMARY_AND_ACTUAL_NORMALIZED_TENSOR_INPUT_PARITY_REQUIRED_NO_NATIVE_LAUNCH",
     "activation_authority": false
   },
   "note": "No admitted model or active legacy training session. NEXT_RUN_POLICY.json owns CURRENT work and exact future native scope; feature widths/versions come from executable owners, never historical mirrors."

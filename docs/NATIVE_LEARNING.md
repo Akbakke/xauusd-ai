@@ -21,10 +21,14 @@ TEST og modellsmoke/trening er fortsatt stengt; ferdigkriteriene består.
 INPUT_VIEWS_001 har genuin exit0-terminal00:43:39 UTC på d5d6ad24:
 hele fysiske TRAIN/VAL-clocks, nye koordinater/inputdesign/admission,
 separate source-bit-identiske M1-quotes og egne ukjent-gap-authorities.
-Claimen er konsumert. BASE_NORMALIZATION_001 er nå eksakt bundet, ikke
-startet, for whole-TRAIN-populasjon/sekvensvitner og fresh basefit gjennom
-eksisterende producer20G/512M. Ingen prefix/VAL-fit/gammel normalisering.
-Eget summary-fit og faktisk normalisert input-/første-state-paritet følger
+Claimen er konsumert. BASE_NORMALIZATION_001 har genuine exit0,01:04:52 UTC,
+uendret1af9a63c og konsumert claim. Fersk whole-TRAIN-base på alle652552
+Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0, uten prefix/old fit.
+SUMMARY_NORMALIZATION_001 er nå eksakt bundet, ikke startet: eksisterende
+whole-TRAIN-summary-authority, separate VAL-counts uten fit, composite og
+split/clock/quote-first-state-bindinger, énproducer20G/512M/samme CPU-frist.
+Fersk base refittes aldri. Clock/quote-binding er ikke faktisk normalisert
+tensor/input- eller lært model/serve-paritet. Genuin inputparitet følger
 før retention/refusal og finite sampler/smoke; ingen hel modelladgang.
 
 1. Revider hele tracked inventaret og rett konkrete mismatches. Kjør fokuserte
