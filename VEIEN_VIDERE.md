@@ -17,12 +17,16 @@ ingen carry eller imputering. Dette er fysiske inputs, ikke normalisering.
 BASE_NORMALIZATION_001 er genuint exit0,01:04:52 UTC på uendret1af9a63c,
 og claimen er konsumert. Fersk artifact0d1697d8/contract70e91e0f binder
 hele652552 TRAIN-Entries og fysisk M1/M5/alle fem MTF-flater, VAL/TEST-fit0.
-SUMMARY_NORMALIZATION_001 er eget exact-bound engangssteg, ikke startet,
-under samme deadline og producer20G/512M: whole-TRAIN-summary via eksisterende
-utfallsblind authority, separate VAL-counts uten fit, composite og ekte
-split/clock/quote-first-state-bindinger. Ingen refit av fersk base. Ren
-commit/push/BINDING før launch. Faktisk normalisert tensor/inputparitet,
-retention/nektelse og finite sampler/smoke gjenstår; ingen modellemisjon.
+SUMMARY_NORMALIZATION_001 er genuint exit0,01:19:05 UTC på uendret1a8a0411,
+claim konsumert: whole-TRAIN-summary7613258 side-fit-rader, VAL-counts uten
+fit, composite og split/clock/quote-first-state-bindinger. Ingen base-refit.
+INPUT_TENSOR_AUDIT_001 er separat exact-bound/not started gjennom audit4G/
+512M/samme deadline. Faktisk whole-input NumPy/Torch-transform, aliasbits,
+ordnede felt/MTF/first-state mapping; ingen modellkonstruering/forward/TEST.
+Full rå Seq96-proofs byte-gjenbrukes med pointwise kilde/algebra; ingen
+gjentatt per-vindu-transform-måling eller lært bundle/serve-paritet påstås.
+Ren commit/push/BINDING før launch; retention/nektelse og finite sampler/
+smoke gjenstår. Ingen modelladgang følger av inputkontrollen.
 Fire ytterligere publisister bevarer staging/strict-load;67 fokuserte PASS.
 
 Brukerens prioritering 07.10.2026 setter GC/order-flow og nye order-block-/

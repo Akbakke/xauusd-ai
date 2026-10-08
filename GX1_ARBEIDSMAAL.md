@@ -74,8 +74,12 @@ ferske koordinater og egne all-gaps-unknown-authorities er publisert; ingen
 fit eller modellemisjon i view-steget. BASE_NORMALIZATION_001 er genuint
 exit0,01:04:52 UTC, uendret1af9a63c og claim konsumert. Fersk whole-TRAIN-
 basefit på alle652552 Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0.
-SUMMARY_NORMALIZATION_001 er eksakt bundet, ikke startet, for whole-TRAIN-
-summary, VAL-counts uten fit og composite/split/clock/quote-bindinger.
+SUMMARY_NORMALIZATION_001 er genuint exit0,01:19:05 UTC på uendret1a8a0411,
+claim konsumert: whole-TRAIN-summary7613258 side-fit-rader, separate VAL-
+counts uten fit og composite/split/clock/quote-bindinger. Base ikke refittet.
+INPUT_TENSOR_AUDIT_001 er separat exact-bound/not started gjennom audit4G/
+512M/samme18:25:44 CPU-frist for faktisk whole-input transform-/alias-/MTF-
+og første-state mapping. Ingen fit/modellkonstruering/forward/TEST.
 Faktisk normalisert tensor/inputparitet og øvrige ferdigkriterier gjenstår.
 Dette målet er ikke fullført; ingen modelltrening eller TEST er åpnet.
 

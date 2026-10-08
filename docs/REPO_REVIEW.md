@@ -7,11 +7,14 @@ Dette er gjeldende oppryddingsrapport, ikke en trenings- eller sletteautoritet f
 08.10: INPUT_VIEWS_001 har genuine separate fysiske TRAIN/VAL/M1-inputs.
 BASE_NORMALIZATION_001 er genuine exit0 på uendret1af9a63c, alle652552
 TRAIN-Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0. SUMMARY_NORMALIZATION_001
-er eksakt bundet til eksisterende eiere/producer20G/512M/samme CPU-deadline;
-ikke startet. Base refittes ikke; ekte normalisert tensorparitet kreves senere.
+er genuint exit0,01:19:05 UTC på uendret1a8a0411, claim konsumert: whole-
+TRAIN-summary7613258 side-fit-rader, separate VAL-counts uten fit og composite/
+split/clock/quote-bindinger. Base ikke refittet. INPUT_TENSOR_AUDIT_001 er
+exact-bound/not started gjennom audit4G/512M/samme CPU-frist: faktisk
+whole-input transform/alias/MTF/first-state-mapping, ingen modellkonstruering.
 Ingen nye feature-/fit-/modellkodeendringer i denne status-/bindingsbølgen.
 Staging-feilrettelsene og originale 67/101-case-bevis bevares. Selve nye
-summary-fit/inputparitet, retention og modell-/kvalitetsevidens er ennå ubevist.
+inputparitet, retention og modell-/kvalitetsevidens er ennå ubevist.
 Ny status-/bindingsbølge:12 fokuserte handover-regresjoner PASS under4G/512M,
 eksterne stagekontroller består syntaks/JSON, diff/stale/source kontrolleres
 før ren commit/push. JUnit: BASE_NORMALIZATION_001/HANDOVER_BINDING_TESTS.xml.
@@ -19,6 +22,11 @@ Summary-bindingsbølgen:26 fokuserte final-binding/prefix-boundary-regresjoner
 PASS under4G/512M; source/fixture-mekanikk, ikke ekte ny summary-fit/paritet.
 JUnit: SUMMARY_NORMALIZATION_001/FOCUSED_BINDING_TESTS.xml. Ingen feature-,
 fit- eller modellsemantikk endret; eksterne engangskontroller består syntaks.
+
+Input-audit-bindingen bestod den fokuserte NumPy/Torch-asinh-regresjonen
+under audit4G/512M,1 PASS. Kilde-/syntetisk mekanikk, ikke ekte inputparitet.
+JUnit: INPUT_TENSOR_AUDIT_001/FOCUSED_TRANSFORM_TEST.xml. Ren kilde og eksakte
+eksterne kontroller bindes før claim; ingen feature-/fit-/modellkode endret.
 
 ## Ny bølge 07.10.2026 — ferskt datasett og smoke
 
