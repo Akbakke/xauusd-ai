@@ -1,5 +1,13 @@
 # Gjenværende avgrenset v38-læring
 
+Siste fasegrense08.10: genuin full fysisk TRAIN/VAL-indeks652552/70880 og
+ferske no-cap-inputidentiteter er akseptert, claim konsumert. Ny separat
+PRE_SMOKE_READINESS_001 er eksakt bundet/not started under samme18:25:44
+CPU-frist: genuine inputrevalidering, fersk utfallsblind CONTROL256/design,
+finite fremtidig sampler-/smoke-plan og faktisk retention/nektelse. To
+fokuserte kilde-/scalar-kontroller PASS, ingen ekte final-aksept ennå.
+Modell, benchmark, TEST, sletting og omstart er ikke åpnet.
+
 Brukeren autoriserte punktene 1–6 05.10.2026, men prioriterte 06.10 deretter
 kontrollert benchmarkstopp og repo-opprydding. Den 07.10 ble GC/order-flow og
 nye order-block-/footprint-utvidelser satt på pause og ny trening med dagens
@@ -35,7 +43,7 @@ med samme geometri, strict precheck og fire fokuserte tester PASS.
 INPUT_TENSOR_AUDIT_003 er genuint exit0,01:58:31 UTC på uendretb2ad509d,
 claim konsumert: hele M1/M5/Entry og fem kausale MTF-ruter, NumPy/Torch-
 maxabs0,71 aliasbits og første-state/480-observed-row mappings eksakte.
-NATIVE_INPUT_INDEX_001 er separat exact-bound/not started for full fysisk
+NATIVE_INPUT_INDEX_001 er genuint exit0,02:14:19 UTC,555,002s, uendret7c19bb08; for full fysisk
 TRAIN/VAL-indeks og ferske no-cap-økonomiidentiteter gjennom eksisterende
 eiere/producer20G/512M/samme CPU-frist. To fokuserte metodekontroller PASS.
 Ingen ny holdetidsregel, refit, samplerbenchmark, modell eller TEST.

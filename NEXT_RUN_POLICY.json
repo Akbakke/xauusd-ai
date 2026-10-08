@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-08T01:58:31.452290+00:00",
-  "status": "V38_NORMALIZED_INPUT_PARITY_COMPLETE_PHYSICAL_INPUT_INDEX_EXACTLY_BOUND_GC_PAUSED",
+  "observed_utc": "2026-10-08T02:14:19.101115+00:00",
+  "status": "V38_FULL_PHYSICAL_INPUT_INDEX_COMPLETE_FINAL_PRE_SMOKE_HANDOFF_EXACTLY_BOUND_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator requests complete M1 and all observed pre-smoke adjustments after the successful Oct7 core terminal. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. INPUT_BUILD_001 has unknown old exit/terminal after physical crash; INPUT_BUILD_002 is genuinely successful core-only and its one-shot authority is consumed. Preserve immutable runtime copies/receipts and verified completed same-generation bytes, never relaunch either attempt or consume old Oct1 normalization/models. The original common 64800s build deadline is consumed and preserved unchanged. Human 'Ja' separately approves PRE_SMOKE_CPU_001: one new shared maximum 64800s CPU-only preparation window from 2026-10-08T00:25:44Z to 2026-10-08T18:25:44Z, including preparation and downtime, never reset per substage. Each next stage still needs a separately source/input/output/remaining-budget-bound existing owner. Complete M1, label-coverage/selection review, independent input oracle and post-readiness remain mandatory before fresh normalization and future smoke admission. Do not silently accept unexplained exclusions, impute quotes/labels, change periods or call a diagnostic input acceptance. Reboot only at verified idle terminal phase boundaries, never interrupt active jobs. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion.",
-  "next_action": "Genuine INPUT_TENSOR_AUDIT_003 exit0/source unchanged: all M1/M5/Entry and shared causal MTF normalized inputs measured, every NumPy/Torch difference0,71 alias bits exact; raw full sequences reused byte-bound plus pointwise source/algebra. NATIVE_INPUT_INDEX_001 separately exact-bound/not started completes full physical TRAIN/VAL indexing via existing no-cap/economics owners and source-owned prospective constant, same shared CPU deadline. No refit, sampler benchmark or model. Retention/refusal and new finite sampler/smoke plan remain.",
+  "next_action": "NATIVE_INPUT_INDEX_001 genuine exit0/source unchanged, full652552/70880 index/no-cap identities accepted. PRE_SMOKE_READINESS_001 separately bound CPU audit completes exact genuine-preparation revalidation, fresh outcome-blind CONTROL256/current design, finite future sampler/smoke plan and exact retention closure/refusal. Same shared input CPU deadline, no models/refit/benchmark/TEST/deletion/reboot. Future sampler/native launch still need separate exact authority and existing gates.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -140,16 +140,16 @@
       "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
-    "latest_terminal_role": "Genuine actual whole normalized physical input parity complete, no learned bundle/model admission.",
+    "latest_terminal_role": "Genuine full physical index and no-cap input identities, not sampler/model admission",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_TENSOR_AUDIT_003/TERMINAL.json",
-      "sha256": "e8654a11ed276daca10a36ed0fccc18ea9fa7442174b62a2021e1251e7bb4625"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/TERMINAL.json",
+      "sha256": "a9330e8b250c2b5f3d2c0e516e752d34f30ce2db1224d5c77ca97a77474109b3"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "termination": "INPUT_TENSOR_AUDIT_003 ran01:52:53.281112-01:58:31.452290 UTC,exit0/338.171s,sourceb2ad509d unchanged. All source surfaces and actual causal MTF union/Entry snapshots normalized; NumPy/Torch maxabs0,71 aliases raw/norm bit-identical. All480 observed-row M1 histories and first-state mappings checked. Whole Seq96 raw receipts reused plus pointwise source/algebra. Zero fit/model/TEST. Bound processes reaped/absent, original failed001/002 preserved. Fresh physical full index next; no implicit benchmark, reboot or deletion.",
+    "termination": "NATIVE_INPUT_INDEX_001 ran02:05:04.099133-02:14:19.101115 UTC,exit0/555.002s,source7c19bb08 unchanged. Full652552/70880 exact indexes347088456/51843121 successors and source-owned no-duration-cap economics accepted, no refit/model/sampler/TEST. Bound supervisor/timeout/writer reaped and absent on sameboot. Final finite handoff/retention next; no machine-wide idle proof or deletion.",
     "full_benchmark_completed": false,
     "sampler_selected": false,
     "native_component_preparation_authorized": false,
@@ -516,7 +516,7 @@
     "native_training_enabled": false
   },
   "native_v38_rebuild_20261007": {
-    "status": "ACTUAL_NORMALIZED_INPUT_PARITY_COMPLETE_FULL_PHYSICAL_INDEX_EXACTLY_BOUND_NOT_STARTED",
+    "status": "FULL_PHYSICAL_INDEX_COMPLETE_FINAL_PRE_SMOKE_HANDOFF_EXACTLY_BOUND_NOT_STARTED",
     "runtime_plan": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/INPUT_BUILD_002/PLAN.json",
       "sha256": "babdd1c9fad33c07e196e8ececc9f9599480777b7b4dc4d35d9d2cfa7be4de53"
@@ -640,7 +640,8 @@
       "new_sampler_smoke_plan_bound": false,
       "ready_for_bounded_research_smoke": false,
       "fresh_whole_train_base_normalization_complete": true,
-      "fresh_whole_train_summary_normalization_complete": true
+      "fresh_whole_train_summary_normalization_complete": true,
+      "full_physical_input_index_complete": true
     },
     "complete_m1_stage": {
       "stage_id": "COMPLETE_M1_001",
@@ -1597,7 +1598,6 @@
     "recovery_core_only": true,
     "whole_input_build_complete": false,
     "mandatory_next_stages": [
-      "FULL_PHYSICAL_INPUT_INDEX",
       "RETENTION_AND_BOUNDED_SMOKE_BINDING"
     ],
     "common_build_deadline_utc": "2026-10-07T23:44:34.296381+00:00",
@@ -1684,9 +1684,9 @@
       "schema_version": "gx1_bound_native_v38_physical_input_index_plan_v1",
       "stage_id": "NATIVE_INPUT_INDEX_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001",
-      "authorized": true,
+      "authorized": false,
       "relaunch_allowed": false,
-      "current_status": "EXACTLY_BOUND_NOT_STARTED_CLEAN_SOURCE_AND_RECEIPTS_REQUIRED",
+      "current_status": "GENUINE_FULL_PHYSICAL_INPUT_INDEX_COMPLETE_PERMISSION_CONSUMED",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/PLAN.json",
         "sha256": "0612e2b555cdba753f3b61ab1ddd3ffb5544d22fcbfb95551a29af594a5394d4"
@@ -1730,7 +1730,75 @@
         "sha256": "30e77ed10a14840b7f04963b5866a1a1566a8b2c44bb304f6076bfd8dbd72466"
       },
       "focused_method_control_cases_passed": 2,
-      "whole_input_or_model_admission": false
+      "whole_input_or_model_admission": false,
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/TERMINAL.json",
+        "sha256": "a9330e8b250c2b5f3d2c0e516e752d34f30ce2db1224d5c77ca97a77474109b3"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/RESULT.json",
+        "sha256": "fce646a11114ea3cdf253ed7d324451bee0c4853f1166a5c3163295375b61da3"
+      },
+      "input_index": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INPUT_INDEX_001/INPUT_INDEX.json",
+        "sha256": "60fe6ac1ff1f2eebcf2c4ff58b6811ee1e5189253cd51ff12882b532287a9962"
+      },
+      "full_physical_input_index_complete": true
+    },
+    "final_readiness_stage": {
+      "schema_version": "gx1_bound_native_v38_pre_smoke_handoff_v1",
+      "stage_id": "PRE_SMOKE_READINESS_001",
+      "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001",
+      "status_at_binding": "EXACTLY_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
+      "current_status": "EXACTLY_BOUND_NOT_STARTED_CLEAN_SOURCE_AND_RECEIPTS_REQUIRED",
+      "authorized": true,
+      "relaunch_allowed": false,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PLAN.json",
+        "sha256": "8bbc0b7b53cfe0c2101b4b5f9484a53ff624227f3b283b75e951f85e991bc69b"
+      },
+      "producer_plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PRODUCER_PLAN.json",
+        "sha256": "da1bead09acfedc8783aaac2e82e53c5fbf08662901e165d95e806852ce95e63"
+      },
+      "producer": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/produce_readiness.py",
+        "sha256": "d25e89ceee782b1f0c46faa88459a5cc4b55bb8945dc360c5c7258c9cfd70497"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/launch_readiness.py",
+        "sha256": "c234c2d3b07f9684f180790e712a57ed4a8b450f04a0cdf09b76c8f0c8cfec83"
+      },
+      "cpu_budget": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_CPU_001/BUDGET.json",
+        "sha256": "fbcc0889d5873bc616e5f2701df832137a70d3516cef2866c2d9b108cae5a61f"
+      },
+      "cpu_deadline_utc": "2026-10-08T18:25:44+00:00",
+      "outputs": {
+        "design": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/DESIGN.json",
+        "control256": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/CONTROL256_PARENT_ROWS.npy",
+        "smoke_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/BOUNDED_SAMPLER_SMOKE_PLAN.json",
+        "retention": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RETENTION_REVIEW.json",
+        "result": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PRE_SMOKE_READINESS.json"
+      },
+      "scope": "Revalidate genuine exact-bound completed preparation, execute existing scalar/selection/reference owners without models, freshly freeze CONTROL256 from current physical VAL coordinates, bind finite future sampler/smoke plan, and report exact retention refusal. No benchmark, targets, fits, model or native admission.",
+      "focused_control_tests": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/FOCUSED_FINAL_CONTROL_TESTS.xml",
+        "sha256": "509bbe6e2aa8d061d07c15d0aefdfefc7640333981c5ee36b9798f6ec3fccc23"
+      },
+      "focused_control_cases_passed": 2,
+      "resource_owner": "Existing capped audit4G/512M,CPU0-7,one thread,64tasks,CURRENT project lock and unchanged available-memory gate; same shared input CPU deadline.",
+      "normalization_fit_allowed": false,
+      "model_training_allowed": false,
+      "model_constructor_allowed": false,
+      "sampler_benchmark_allowed": false,
+      "test_access_authorized": false,
+      "cleanup_allowed": false,
+      "automatic_host_restart": false,
+      "input_preparation_complete": false,
+      "ready_for_bounded_research_smoke": false,
+      "native_launch_admitted": false,
+      "future_sampler_budget_authorized": false
     }
   },
   "separate_incomplete_scope": {

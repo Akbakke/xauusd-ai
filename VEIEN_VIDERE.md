@@ -1,5 +1,13 @@
 # Veien videre
 
+Siste fasegrense08.10: genuin full fysisk TRAIN/VAL-indeks652552/70880 og
+ferske no-cap-inputidentiteter er akseptert, claim konsumert. Ny separat
+PRE_SMOKE_READINESS_001 er eksakt bundet/not started under samme18:25:44
+CPU-frist: genuine inputrevalidering, fersk utfallsblind CONTROL256/design,
+finite fremtidig sampler-/smoke-plan og faktisk retention/nektelse. To
+fokuserte kilde-/scalar-kontroller PASS, ingen ekte final-aksept ennå.
+Modell, benchmark, TEST, sletting og omstart er ikke åpnet.
+
 ## Nå: ny trening med eksisterende v38-indikatorer
 
 08.10 har brukeren godkjent én ny separat CPU-only maks18h ramme for fersk
@@ -30,7 +38,7 @@ Hele M1/M5/Entry/fem MTF-ruter: NumPy/Torch maxabs0,71 aliaser bit-identiske,
 første-state og480-observed-row M1-historier source-eksakte. Ingen modell.
 Full rå Seq96-proofs byte-gjenbrukes med pointwise kilde/algebra; ingen
 gjentatt per-vindu-transform-måling eller lært bundle/serve-paritet påstås.
-NATIVE_INPUT_INDEX_001 er separat exact-bound/not started for full fysisk
+NATIVE_INPUT_INDEX_001 er genuint exit0,02:14:19 UTC,555,002s, uendret7c19bb08; for full fysisk
 TRAIN/VAL-indeks med ferske no-cap-økonomiidentiteter fra eksisterende eiere.
 Producer20G/512M/samme CPU-frist; to fokuserte metodekontroller PASS. Ingen
 refit, holdetidsregel, benchmark eller modell. Ren commit/push/BINDING før

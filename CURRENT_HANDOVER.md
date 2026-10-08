@@ -1,5 +1,13 @@
 # Gjeldende overlevering — 08.10.2026
 
+Siste fasegrense08.10: genuin full fysisk TRAIN/VAL-indeks652552/70880 og
+ferske no-cap-inputidentiteter er akseptert, claim konsumert. Ny separat
+PRE_SMOKE_READINESS_001 er eksakt bundet/not started under samme18:25:44
+CPU-frist: genuine inputrevalidering, fersk utfallsblind CONTROL256/design,
+finite fremtidig sampler-/smoke-plan og faktisk retention/nektelse. To
+fokuserte kilde-/scalar-kontroller PASS, ingen ekte final-aksept ennå.
+Modell, benchmark, TEST, sletting og omstart er ikke åpnet.
+
 Gjeldende bestilling: ny kjøreplan, gjennomgang av hele repoet for feil/mismatches,
 ferskt datasett, sletting av utdaterte genererte artefakter og liten smoketest
 før større trening. GC/order-flow og nye order-block-/footprint-utvidelser
@@ -68,7 +76,7 @@ collator-eier. Genuin full rå Seq96-rekonstruksjon gjenbrukes byte-eksakt;
 pointwise transform/index-kommutasjon er kilde/algebra, ikke ny per-vindu-
 måling. Ingen modellkonstruering/forward/fit/TEST eller lært bundleparitet.
 
-NATIVE_INPUT_INDEX_001 er separat exact-bound/not started. Full fysisk
+NATIVE_INPUT_INDEX_001 er genuint exit0,02:14:19 UTC,555,002s, uendret7c19bb08;. Full fysisk
 TRAIN/VAL-indeks gjennom eksisterende eier, med nye no-cap-økonomiidentiteter
 som indeks-eieren krever. Kapitalmetodens tall eksekveres fra eksisterende
 konstanteier; ingen gamle genererte readiness-/indeksbytes eller utdatert

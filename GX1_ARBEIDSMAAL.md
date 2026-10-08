@@ -1,5 +1,13 @@
 # Arbeidsmål for GX1
 
+Siste fasegrense08.10: genuin full fysisk TRAIN/VAL-indeks652552/70880 og
+ferske no-cap-inputidentiteter er akseptert, claim konsumert. Ny separat
+PRE_SMOKE_READINESS_001 er eksakt bundet/not started under samme18:25:44
+CPU-frist: genuine inputrevalidering, fersk utfallsblind CONTROL256/design,
+finite fremtidig sampler-/smoke-plan og faktisk retention/nektelse. To
+fokuserte kilde-/scalar-kontroller PASS, ingen ekte final-aksept ennå.
+Modell, benchmark, TEST, sletting og omstart er ikke åpnet.
+
 Målet er robuste, lærte XAUUSD Entry/Exit-beslutninger og positiv
 kostnadsjustert økonomi. Ingen slik konklusjon er etablert for dagens v38-oppsett.
 
@@ -85,7 +93,7 @@ utført EXPECTED_TFS-rekkefølge med samme lengder; fire fokuserte tester PASS.
 INPUT_TENSOR_AUDIT_003 er genuint exit0,01:58:31 UTC på uendretb2ad509d,
 claim konsumert: hele M1/M5/Entry og fem kausale MTF-ruter, alle NumPy/Torch-
 maxabs0,71 aliasbits og første-state/480-observed-row mappings eksakte.
-NATIVE_INPUT_INDEX_001 er separat exact-bound/not started for full fysisk
+NATIVE_INPUT_INDEX_001 er genuint exit0,02:14:19 UTC,555,002s, uendret7c19bb08; for full fysisk
 TRAIN/VAL-indeks og de ferske no-cap-økonomiidentitetene eieren krever.
 Eksisterende producer20G/512M/samme18:25:44 CPU-frist; ingen holdetidsregel,
 refit, benchmark, modell eller TEST. To fokuserte metodekontroller PASS.

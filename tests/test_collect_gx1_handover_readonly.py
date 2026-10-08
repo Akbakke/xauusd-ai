@@ -175,13 +175,16 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     goal = plan['pre_smoke_goal']
     progress = scope['pre_smoke_progress']
     assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
-    assert work['latest_terminal'] == scope['gap_disposition_stage']['terminal']
+    final_ready = progress['ready_for_bounded_research_smoke']
+    latest = (scope['final_readiness_stage'] if final_ready
+              else scope['physical_input_index_stage'])
+    assert work['latest_terminal'] == latest['terminal']
     assert work['terminal_exit_code'] == 0
     failed = scope['failed_input_validation_stage']
     assert failed['authorized'] is False and failed['relaunch_allowed'] is False
     assert failed['original_source_plan_and_receipts_preserved'] is True
     assert failed['no_oracle_or_readiness_published'] is True
-    assert scope['whole_input_build_complete'] is False
+    assert scope['whole_input_build_complete'] is final_ready
     assert goal['relaunch_completed_core_allowed'] is False
     assert goal['plan_itself_admits_heavy_execution'] is False
     assert [stage['id'] for stage in goal['stages']] == [
@@ -192,7 +195,24 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     for field, value in progress.items():
         assert value is (field in {'project_goal_requested', 'app_goal_created', 'new_heavy_stage_bound',
                                  'new_heavy_stage_started', 'complete_m1_complete', 'label_coverage_review_complete',
-                                 'complete_input_oracle_complete', 'post_rebuild_readiness_complete'})
+                                 'complete_input_oracle_complete', 'post_rebuild_readiness_complete',
+                                 'fresh_whole_train_normalization_complete',
+                                 'fresh_whole_train_base_normalization_complete',
+                                 'fresh_whole_train_summary_normalization_complete',
+                                 'physical_view_and_entry_exit_parity_complete',
+                                 'full_physical_input_index_complete'} or (
+                                     final_ready and field in {
+                                         'new_sampler_smoke_plan_bound', 'ready_for_bounded_research_smoke'}))
+    assert scope['native_launch_admitted'] is False
+    assert work['sampler_selected'] is False and work['full_benchmark_completed'] is False
+    assert policy['training_enabled'] is False
+    final = scope['final_readiness_stage']
+    assert final['ready_for_bounded_research_smoke'] is final_ready
+    for field in ('model_training_allowed', 'model_constructor_allowed',
+                  'sampler_benchmark_allowed', 'test_access_authorized',
+                  'cleanup_allowed', 'automatic_host_restart',
+                  'native_launch_admitted', 'future_sampler_budget_authorized'):
+        assert final[field] is False
     for field in ('diagnostic_is_input_acceptance',
                   'complete_m1_feature_build_assumed_to_recover_labels',
                   'unexplained_population_exclusion_may_be_silently_accepted',

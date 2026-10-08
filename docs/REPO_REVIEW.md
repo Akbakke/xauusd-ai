@@ -1,5 +1,13 @@
 # Gjennomgang og opprydding av GX1
 
+Siste fasegrense08.10: genuin full fysisk TRAIN/VAL-indeks652552/70880 og
+ferske no-cap-inputidentiteter er akseptert, claim konsumert. Ny separat
+PRE_SMOKE_READINESS_001 er eksakt bundet/not started under samme18:25:44
+CPU-frist: genuine inputrevalidering, fersk utfallsblind CONTROL256/design,
+finite fremtidig sampler-/smoke-plan og faktisk retention/nektelse. To
+fokuserte kilde-/scalar-kontroller PASS, ingen ekte final-aksept ennå.
+Modell, benchmark, TEST, sletting og omstart er ikke åpnet.
+
 Dato: 06.10.2026. Brukeren ba om grundig repo-gjennomgang og minst mulig død
 kode/fyll, og prioriterte kontrollert benchmarkstopp. Kildegrunnlag før bølgen:
 8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91, work/gx1-current.
@@ -13,7 +21,7 @@ split/clock/quote-bindinger. Base ikke refittet. INPUT_TENSOR_AUDIT_003 er
 genuint exit0,01:58:31 UTC på uendretb2ad509d og claim konsumert. Hele
 M1/M5/Entry/fem kausale MTF-ruter: NumPy/Torch maxabs0,71 aliasbits eksakte,
 første-state/480-observed-row mappings source-eksakte. Ingen modell.
-NATIVE_INPUT_INDEX_001 er separat exact-bound/not started for full fysisk
+NATIVE_INPUT_INDEX_001 er genuint exit0,02:14:19 UTC,555,002s, uendret7c19bb08; for full fysisk
 TRAIN/VAL-indeks og ferske no-cap-økonomiidentiteter gjennom eksisterende
 eiere/producer20G/512M/samme CPU-frist. To fokuserte metodekontroller PASS;
 ingen refit, ny holdetidsregel, samplerbenchmark, modell eller TEST.
