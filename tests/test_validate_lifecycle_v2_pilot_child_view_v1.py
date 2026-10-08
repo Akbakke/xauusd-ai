@@ -41,6 +41,28 @@ def _parent_admission(recipe: Path) -> dict[str, object]:
     }
 
 
+def test_child_admission_publication_preserves_failed_staging(tmp_path, monkeypatch):
+    from gx1.scripts import validate_lifecycle_v2_pilot_child_view_v1 as owner
+    witness = {"decision": "PASS", "test_accessed": False}
+    monkeypatch.setattr(owner, "validate_pilot_child_view", lambda **_: witness)
+    pilot = tmp_path / "pilot"
+    output = pilot / "ADMISSION" / "CHILD_VIEW_ADMISSION.json"
+    original = owner._publish_file_noreplace
+    def collide(source, destination):
+        destination.write_text("keep")
+        return original(source, destination)
+    monkeypatch.setattr(owner, "_publish_file_noreplace", collide)
+    with pytest.raises(RuntimeError, match="already exists"):
+        owner.publish_pilot_child_view_admission(
+            source_recipe_path=tmp_path / "unused", source_recipe_sha256="a" * 64,
+            pilot_root=pilot, child_root_path=tmp_path / "unused", output_path=output,
+        )
+    assert output.read_text() == "keep"
+    stages = list(output.parent.glob(".CHILD_VIEW_ADMISSION.json.*.tmp"))
+    assert len(stages) == 1
+    assert json.loads(stages[0].read_text()) == witness
+
+
 def test_child_view_witness_binds_parent_child_and_exact_clocks(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -82,7 +104,7 @@ def test_child_view_witness_binds_parent_child_and_exact_clocks(
         child_view_admission=witness_path,
     )
     assert readiness["missing_or_blocked_stages"][0] == "train_economics"
-    with pytest.raises(FileExistsError):
+    with pytest.raises(RuntimeError, match="already exists"):
         publish_pilot_child_view_admission(
             source_recipe_path=recipe,
             source_recipe_sha256=digest,

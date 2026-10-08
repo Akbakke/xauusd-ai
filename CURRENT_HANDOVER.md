@@ -14,6 +14,25 @@ plan utvides, uten å mutere de konsumerte runtime-kopiene/kvitteringene.
 
 ## Nåstatus
 
+Brukerens «Ja» 08.10 godkjenner én ny separat 18-timers CPU-ramme for
+fersk whole-TRAIN-normalisering, fysiske datavisninger og input/broparitet.
+PRE_SMOKE_CPU_001/BUDGET.json binder 00:25:44–18:25:44 UTC 08.10,
+inkludert forberedelse og nedetid. Gammel plan/deadline/consumed receipts
+endres ikke; ingen ny ramme per delsteg. Eksakt kilde-/input-/outputbundet
+engangssteg må fortsatt fryses før tung jobb. Ingen modelltrening eller TEST.
+
+INPUT_VIEWS_001 er nå eksakt bundet, ikke startet: hele652552/70880
+Entry-klokker → nye fysisk beregnede kalenderkoordinater/inputdesign/recipe →
+Entry-admission → separate komplette M1-visninger → egne ekte child-clock-
+gap-authorities. Ingen normalisering eller modellemisjon i dette delsteget.
+Ytterligere fire nødvendige publisister (Entry, child-admission, summary-fit,
+final-bindings) hadde samme feilklasse med staging-sletting/manglende strict-
+load. Rettet minimalt gjennom eksisterende no-replace/fsync-eier; feilbytes
+beholdes, feature/fit-/targetsemantikk uendret.67 fokuserte kilde/syntetiske
+regresjoner PASS under4G/512M, ikke ekte view-/normaliseringsaksept.
+JUnit: PRE_SMOKE_CPU_001/COMPLETE_ADDITIONAL_PUBLICATION_TESTS.xml.
+Bindings-/statusgruppen bestod51 cases før neste tunge claim.
+
 Ingen treningsjobb kjører eller er startet av den nye bestillingen.
 INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget

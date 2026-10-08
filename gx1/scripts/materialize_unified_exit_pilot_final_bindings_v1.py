@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -436,7 +435,7 @@ def materialize(*, recipe_path: Path, output_dir: Path, publish: bool) -> dict[s
         _publish_file_noreplace(staging, output_dir)
         _fsync_directory(output_dir.parent)
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        # Preserve failed bytes; DATA/RUNS cleanup belongs to retention.
         raise
     return {
         "mode": "publish",

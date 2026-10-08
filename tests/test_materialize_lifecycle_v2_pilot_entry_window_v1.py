@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -81,3 +82,34 @@ def test_output_must_be_exact_pilot_entry_directory(tmp_path: Path) -> None:
             output_dir=tmp_path / "wrong",
             publish=False,
         )
+
+
+@pytest.mark.parametrize("failure", ["corrupt-json", "destination-race"])
+def test_entry_publisher_preserves_failed_staging(tmp_path, monkeypatch, failure):
+    from gx1.scripts import materialize_lifecycle_v2_pilot_entry_window_v1 as owner
+    recipe, digest = _source_fixture(tmp_path / "source")
+    pilot = tmp_path / "pilot"
+    output = pilot / "ENTRY_WINDOW"
+    if failure == "corrupt-json":
+        monkeypatch.setattr(owner, "_json_bytes", lambda _: b"{invalid")
+        expected = json.JSONDecodeError
+    else:
+        original = owner._rename_noreplace
+        def collide(source, destination):
+            destination.mkdir()
+            (destination / "existing.txt").write_text("keep")
+            return original(source, destination)
+        monkeypatch.setattr(owner, "_rename_noreplace", collide)
+        expected = RuntimeError
+    with pytest.raises(expected):
+        owner.materialize_pilot_entry_window(
+            source_recipe_path=recipe, source_recipe_sha256=digest,
+            pilot_root=pilot, output_dir=output, publish=True,
+        )
+    stages = list(pilot.glob(".ENTRY_WINDOW.staging.*"))
+    assert len(stages) == 1
+    assert (stages[0] / "ENTRY_WINDOW_ROOT.json").is_file()
+    if failure == "destination-race":
+        assert (output / "existing.txt").read_text() == "keep"
+    else:
+        assert not output.exists()

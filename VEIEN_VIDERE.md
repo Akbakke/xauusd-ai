@@ -2,6 +2,19 @@
 
 ## Nå: ny trening med eksisterende v38-indikatorer
 
+08.10 har brukeren godkjent én ny separat CPU-only maks18h ramme for fersk
+normalisering, fysiske visninger og inputparitet. PRE_SMOKE_CPU_001 gjelder
+00:25:44–18:25:44 UTC inkl. forberedelse/nedetid; den gamle build-planen og
+fristen bevares uendret. Ingen delsteg får ny18h, og hver tung fase krever
+eksakt kilde-/input-/output-/gjenstående-tid-binding før launch. Ingen modell
+eller TEST åpnes. Fortsett de faktiske inputeierne, ikke gamle normaliseringer.
+
+Første nye INPUT_VIEWS_001 er bundet til én4G/512M-fase: faktisk hele Entry-
+populasjoner, fersk inputdesign/recipe og fysiske M1-visninger med egne child-
+gap-authorities. Normalisering kommer som eget exact-bound steg etter genuin
+terminal. Fire ytterligere berørte publisister bevarer nå staging ved feil
+og strict-loader før eksisterende atomisk publisering;67 fokuserte PASS.
+
 Brukerens prioritering 07.10.2026 setter GC/order-flow og nye order-block-/
 footprint-utvidelser på pause. Arbeidet og kildebevisene bevares for senere.
 Dagens v38-indikatorer, SMC-primitiver, åtte modellspesialister, tidsrammer,

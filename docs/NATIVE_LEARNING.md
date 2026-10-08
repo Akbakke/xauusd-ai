@@ -12,6 +12,13 @@ forbudet mot relaunch av forbrukte planer.
 
 ## Ny kjøreplan — HISTORY2009W_NATIVE_V38_20261007
 
+08.10 godkjente brukeren («Ja») en separat maks18h CPU-forberedelsesramme
+for fersk whole-TRAIN-normalisering, fysiske datavisninger og inputparitet.
+Dette er PRE_SMOKE_CPU_001,00:25:44–18:25:44 UTC inkl. forberedelse/nedetid,
+ikke fornyelse av original build-frist eller treningstillatelse. Hvert nytt
+delsteg må binde eksakte inputs/ren kilde/output og gjenværende finite tid.
+TEST og modellsmoke/trening er fortsatt stengt; ferdigkriteriene består.
+
 1. Revider hele tracked inventaret og rett konkrete mismatches. Kjør fokuserte
    regresjoner, ikke gjentatte fullsuiter. Bind ren/committet/pushet kilde før build.
 2. Bygg fersk M5/M1 enrichment, MTF, ranking/signalmanifest og Entry/Exit-datasett

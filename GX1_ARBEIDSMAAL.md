@@ -63,6 +63,12 @@ Omstart er ikke utført: CURRENT idle/GPU0% er målt, men beskyttede Windows-
 prosesser gjør maskinvid idle-/writer-proof ufullstendig. Ukjent er ikke idle.
 Faktisk prosjektstatus og eksakte bevis eies fortsatt bare av NEXT_RUN_POLICY.
 
+«Ja» 08.10 autoriserer én separat maks18h CPU-ramme for de resterende
+normaliserings-/visnings-/inputparitetsstegene. Fristen er18:25:44 UTC,
+og forberedelse/nedetid teller fra00:25:44. Original build-deadline/plan
+fornyes ikke; hvert delsteg trenger egen eksakt engangs-binding. Modelltrening
+og TEST forblir stengt. Dette vedtaket er ikke fullføring av noen inputport.
+
 Ingen eksisterende SMC-primitiver fjernes ved tolkning av «order block og det».
 Læringsrekkefølgen og portene står i docs/NATIVE_LEARNING.md. Ny samplerbenchmark
 krever egen finite plan/budsjettautoritet; den avbrutte ATTEMPT_003 og dens

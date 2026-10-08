@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-from gx1.contracts.immutable_event_authority_v1 import _fsync_directory
+from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 from gx1.contracts.unified_exit_lifecycle_v1 import (
     UNIFIED_EXIT_LIFECYCLE_EPISODE_SCHEMA_VERSION,
 )
@@ -344,15 +344,15 @@ def publish_pilot_child_view_admission(
     temporary = output.with_name(f".{output.name}.{os.getpid()}.tmp")
     raw = json.dumps(witness, sort_keys=True, allow_nan=False).encode("utf-8") + b"\n"
     descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o444)
-    try:
-        with os.fdopen(descriptor, "wb") as handle:
-            handle.write(raw)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.link(temporary, output)
-        _fsync_directory(output.parent)
-    finally:
-        temporary.unlink(missing_ok=True)
+    # Strict-load and preserve failed staging before existing no-replace publication.
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(raw)
+        handle.flush()
+        os.fsync(handle.fileno())
+    if temporary.read_bytes() != raw or json.loads(temporary.read_text()) != witness:
+        raise RuntimeError("PILOT_CHILD_VIEW_ADMISSION_STAGING_INVALID")
+    _publish_file_noreplace(temporary, output)
+    _fsync_directory(output.parent)
     if _sha256_file(output) != hashlib.sha256(raw).hexdigest():
         raise RuntimeError("PILOT_CHILD_VIEW_ADMISSION_WRITE_INVALID")
     return {

@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Sequence
@@ -316,7 +315,7 @@ def materialize(
         _publish_file_noreplace(staging, output_dir)
         _fsync_directory(output_dir.parent)
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        # Preserve failed bytes; DATA/RUNS cleanup belongs to retention.
         raise
     return {"mode": "publish", "published": True, "output_dir": str(output_dir), "manifest_sha256": manifest["manifest_sha256"], "entry_pair_population": len(counts), "successor_transition_total": int(counts.sum()), "sample_count": authority["sample_count"], "normalization_sha256": normalization["normalization_sha256"] if normalization else None}
 

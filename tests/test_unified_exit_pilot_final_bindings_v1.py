@@ -249,4 +249,9 @@ def test_final_publication_verifies_bytes_and_preserves_collisions(tmp_path, mon
         assert result["published"] is True
         assert owner._json(output/"FINAL_BINDINGS_BUNDLE.json") == bundle
         assert len(list(output.iterdir())) == 7
-    assert list(tmp_path.glob(".out.staging.*")) == []
+    stages = list(tmp_path.glob(".out.staging.*"))
+    if failure is None:
+        assert stages == []
+    else:
+        assert len(stages) == 1
+        assert (stages[0] / "FINAL_BINDINGS_BUNDLE.json").is_file()

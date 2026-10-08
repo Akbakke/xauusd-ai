@@ -157,7 +157,9 @@ def test_summary_publication_does_not_replace_late_empty_directory(tmp_path, mon
     output = kwargs["output_dir"]
     assert output.stat().st_ino == collision["inode"]
     assert list(output.iterdir()) == []
-    assert list(output.parent.glob(f".{output.name}.staging.*")) == []
+    stages = list(output.parent.glob(f".{output.name}.staging.*"))
+    assert len(stages) == 1
+    assert (stages[0] / "manifest.json").is_file()
 
 
 def test_summary_publication_rejects_corrupted_staged_array(tmp_path, monkeypatch):

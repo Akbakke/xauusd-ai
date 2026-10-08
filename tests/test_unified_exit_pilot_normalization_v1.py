@@ -24,11 +24,15 @@ from gx1.contracts.unified_exit_pilot_normalization_v1 import (
 
 
 @pytest.mark.parametrize('module', [
+    'materialize_lifecycle_v2_pilot_entry_window_v1',
+    'validate_lifecycle_v2_pilot_child_view_v1',
     'materialize_unified_exit_lifecycle_v2_pilot_child_v1',
     'materialize_unified_exit_pilot_m1_views_v1',
     'materialize_unified_exit_pilot_normalization_inputs_v1',
     'materialize_unified_exit_pilot_base_normalization_v1',
     'materialize_unified_exit_pilot_normalization_v1',
+    'materialize_unified_exit_pilot_summary_fit_v1',
+    'materialize_unified_exit_pilot_final_bindings_v1',
 ])
 def test_pre_normalization_publishers_have_no_destructive_staging_cleanup(module):
     """Source proof only; this does not measure real normalization or views."""

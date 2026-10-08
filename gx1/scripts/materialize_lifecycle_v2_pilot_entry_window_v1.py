@@ -7,7 +7,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -149,6 +148,7 @@ def materialize_pilot_entry_window(
     staging = Path(tempfile.mkdtemp(prefix=f".{output.name}.staging.", dir=output.parent))
     try:
         split_bindings: dict[str, dict[str, Any]] = {}
+        staged_json_payloads: dict[str, dict[str, Any]] = {}
         for split, (start, end) in windows.items():
             parquet = staging / f"{split}.parquet"
             source_parquet = Path(plan["source_bindings"][f"{split}_parquet"]["path"])
@@ -203,6 +203,7 @@ def materialize_pilot_entry_window(
             manifest["manifest_sha256"] = _canonical_sha256(manifest)
             manifest_name = f"{split}.manifest.json"
             (staging / manifest_name).write_bytes(_json_bytes(manifest))
+            staged_json_payloads[manifest_name] = manifest
             split_bindings[split] = {
                 "parquet": {"path": str(final_parquet), "sha256": digest},
                 "manifest": {
@@ -240,6 +241,11 @@ def materialize_pilot_entry_window(
         (staging / "ENTRY_WINDOW_ADOPTION_RECEIPT.json").write_bytes(
             _json_bytes(receipt)
         )
+        staged_json_payloads[root_path.name] = root
+        staged_json_payloads["ENTRY_WINDOW_ADOPTION_RECEIPT.json"] = receipt
+        for name, expected in staged_json_payloads.items():
+            if json.loads((staging / name).read_text()) != expected:
+                raise RuntimeError("PILOT_ENTRY_WINDOW_STAGED_JSON_INVALID")
         for artifact in staging.iterdir():
             with artifact.open("rb") as handle:
                 os.fsync(handle.fileno())
@@ -247,7 +253,7 @@ def materialize_pilot_entry_window(
         _rename_noreplace(staging, output)
         _fsync_directory(output.parent)
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        # Preserve failed bytes; DATA/RUNS cleanup belongs to retention.
         raise
     for binding in receipt["artifact_bindings"].values():
         if _sha256_file(Path(binding["path"])) != binding["sha256"]:
