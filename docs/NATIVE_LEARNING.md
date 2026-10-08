@@ -28,7 +28,11 @@ SUMMARY_NORMALIZATION_001 er genuint exit0,01:19:05 UTC, kilde1a8a0411
 uendret, claim konsumert: whole-TRAIN-summary7613258 side-fit-rader,
 separate VAL-counts uten fit, composite og split/clock/quote-first-state.
 Fersk base ikke refittet. 001 feilet før transformene på en håndkopiert VAL-digest; faktisk fil
-og kanonisk policy matcher, og originalfeilen bevares. Ny INPUT_TENSOR_AUDIT_002 er separat exact-bound,
+og kanonisk policy matcher, og originalfeilen bevares.002 feilet01:47:14 UTC
+på diagnostisk JSON-dictrekkefølge, ikke endrede lengder/data. Original claim/
+feilkvitteringer bevares konsumert. Ny003 bygger utført EXPECTED_TFS-rekkefølge
+med samme geometri, strict precheck og fire fokuserte tester PASS.
+INPUT_TENSOR_AUDIT_003 er separat exact-bound,
 ikke startet, audit4G/512M/samme CPU-frist. Faktisk whole-input NumPy/Torch-
 transform-/alias-/MTF-/first-state mapping, ingen modellkonstruering,
 forward, fit eller TEST. Full rå Seq96-proof gjenbrukes byte-eksakt;

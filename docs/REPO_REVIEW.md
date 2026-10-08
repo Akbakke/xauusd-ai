@@ -9,7 +9,7 @@ BASE_NORMALIZATION_001 er genuine exit0 på uendret1af9a63c, alle652552
 TRAIN-Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0. SUMMARY_NORMALIZATION_001
 er genuint exit0,01:19:05 UTC på uendret1a8a0411, claim konsumert: whole-
 TRAIN-summary7613258 side-fit-rader, separate VAL-counts uten fit og composite/
-split/clock/quote-bindinger. Base ikke refittet. INPUT_TENSOR_AUDIT_002 er
+split/clock/quote-bindinger. Base ikke refittet. INPUT_TENSOR_AUDIT_003 er
 exact-bound/not started gjennom audit4G/512M/samme CPU-frist: faktisk
 whole-input transform/alias/MTF/first-state-mapping, ingen modellkonstruering.
 Ingen nye feature-/fit-/modellkodeendringer i denne status-/bindingsbølgen.
@@ -28,6 +28,16 @@ VAL-proof-digest var65 tegn, én ekstra bokstav. Kanonisk policy/faktiske
 bytes er uendret og matcher. Original exit1/kildebd1b9abc/plan/claim bevares;
 ny002 korrigerer kontrollbindingen og avviser malformed digest før hash.
 Ingen feature-/normaliserings-/modellkodefeil er påvist av dette stoppet.
+
+INPUT_TENSOR_AUDIT_002 feilet01:47:14 UTC,exit1/314,451s, uendret2e428cfa.
+JSON-sorterte nøkler kom i feil deklarasjonsrekkefølge til strict MTF-eier.
+Geometri/data uendret; original002 bevares konsumert, uten full inputaksept.
+Ny003 bygger bare utført EXPECTED_TFS-rekkefølge med fryste lengder og
+prechecker eksisterende eier før transformene. Fire fokuserte kontroller
+PASS under4G/512M; fryst scalar-geometri og kilde/syntetisk mekanikk, ikke
+full inputparitet. Read-only NumPy-buffere kopieres byte-identisk før Torch-
+view; ingen modellkonstruering eller endring av feature-/fit-/eiersemantikk.
+JUnit: INPUT_TENSOR_AUDIT_003/FOCUSED_GEOMETRY_TESTS.xml.
 
 Input-audit-bindingen bestod den fokuserte NumPy/Torch-asinh-regresjonen
 under audit4G/512M,1 PASS. Kilde-/syntetisk mekanikk, ikke ekte inputparitet.

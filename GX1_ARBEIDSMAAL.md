@@ -78,7 +78,11 @@ SUMMARY_NORMALIZATION_001 er genuint exit0,01:19:05 UTC på uendret1a8a0411,
 claim konsumert: whole-TRAIN-summary7613258 side-fit-rader, separate VAL-
 counts uten fit og composite/split/clock/quote-bindinger. Base ikke refittet.
 001 feilet før transformene på en håndkopiert VAL-digest; faktisk fil
-og kanonisk policy matcher, og originalfeilen bevares. Ny INPUT_TENSOR_AUDIT_002 er separat exact-bound/not started gjennom audit4G/
+og kanonisk policy matcher, og originalfeilen bevares.002 feilet01:47:14 UTC
+på diagnose-dictens JSON-sortering mot strict MTF-eier, ikke endret geometri
+eller data. Originalkvitteringer/claim bevares konsumert. Ny003 bygger
+utført EXPECTED_TFS-rekkefølge med samme lengder; fire fokuserte tester PASS.
+INPUT_TENSOR_AUDIT_003 er separat exact-bound/not started gjennom audit4G/
 512M/samme18:25:44 CPU-frist for faktisk whole-input transform-/alias-/MTF-
 og første-state mapping. Ingen fit/modellkonstruering/forward/TEST.
 Faktisk normalisert tensor/inputparitet og øvrige ferdigkriterier gjenstår.
