@@ -18,6 +18,14 @@ Dette er PRE_SMOKE_CPU_001,00:25:44–18:25:44 UTC inkl. forberedelse/nedetid,
 ikke fornyelse av original build-frist eller treningstillatelse. Hvert nytt
 delsteg må binde eksakte inputs/ren kilde/output og gjenværende finite tid.
 TEST og modellsmoke/trening er fortsatt stengt; ferdigkriteriene består.
+INPUT_VIEWS_001 har genuin exit0-terminal00:43:39 UTC på d5d6ad24:
+hele fysiske TRAIN/VAL-clocks, nye koordinater/inputdesign/admission,
+separate source-bit-identiske M1-quotes og egne ukjent-gap-authorities.
+Claimen er konsumert. BASE_NORMALIZATION_001 er nå eksakt bundet, ikke
+startet, for whole-TRAIN-populasjon/sekvensvitner og fresh basefit gjennom
+eksisterende producer20G/512M. Ingen prefix/VAL-fit/gammel normalisering.
+Eget summary-fit og faktisk normalisert input-/første-state-paritet følger
+før retention/refusal og finite sampler/smoke; ingen hel modelladgang.
 
 1. Revider hele tracked inventaret og rett konkrete mismatches. Kjør fokuserte
    regresjoner, ikke gjentatte fullsuiter. Bind ren/committet/pushet kilde før build.

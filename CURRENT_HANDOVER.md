@@ -21,10 +21,25 @@ inkludert forberedelse og nedetid. Gammel plan/deadline/consumed receipts
 endres ikke; ingen ny ramme per delsteg. Eksakt kilde-/input-/outputbundet
 engangssteg må fortsatt fryses før tung jobb. Ingen modelltrening eller TEST.
 
-INPUT_VIEWS_001 er nå eksakt bundet, ikke startet: hele652552/70880
-Entry-klokker → nye fysisk beregnede kalenderkoordinater/inputdesign/recipe →
-Entry-admission → separate komplette M1-visninger → egne ekte child-clock-
-gap-authorities. Ingen normalisering eller modellemisjon i dette delsteget.
+INPUT_VIEWS_001 er genuint fullført00:43:39 UTC 08.10, exit0 etter262,627s,
+kilde d5d6ad24 uendret. RESULTd27c6046/TERMINAL59a689ea og produsent-
+RESULTb0c4bbf5 binder hele652552/70880 Entry-klokker, ferske fysisk beregnede
+kalenderkoordinater/inputdesign/recipe/admission og separate komplette M1-
+quote-visninger. TRAIN4884638/VAL382744 rader inkluderer474/478 før-vindu-
+kontekst; vindusradene er4884164/382266. Strict reopen er kildebit-identisk.
+Egne child-clock-authorities beholder66277/312 gap ukjente,0 kjente,
+uten imputering eller carry. Ingen normalisering/modellemisjon i delsteget.
+Claimen er konsumert og kvitteringsbundne prosesser er borte.
+
+BASE_NORMALIZATION_001 er eksakt bundet, ikke startet: eksisterende eiere
+publiserer hele fysisk TRAINs normaliseringspopulasjon/sekvensvitner og
+fersk basefit for alle652552 Entries med deres M1/M5/MTF-felter, før sampling.
+Én eksisterende capped producer20G/512M-fase; CPU0-7/én numerisk tråd,
+64tasks/ledig-minne-gate/CURRENT-lås uendret. Samme18:25:44 UTC-deadline,
+ingen prefix-fit, gamle normaliseringer eller VAL-fit. Ren commit/push og
+eksakt BINDING kreves før launch. Lifetime-summary-fit, faktisk normalisert
+input-/første-state-paritet, retention/nektelse og finite sampler/smoke
+gjenstår; ingen hel inputaksept eller modellstart.
 Ytterligere fire nødvendige publisister (Entry, child-admission, summary-fit,
 final-bindings) hadde samme feilklasse med staging-sletting/manglende strict-
 load. Rettet minimalt gjennom eksisterende no-replace/fsync-eier; feilbytes
@@ -36,9 +51,9 @@ Bindings-/statusgruppen bestod51 cases før neste tunge claim.
 Ingen treningsjobb kjører eller er startet av den nye bestillingen.
 INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
-er ikke fullført. Gjeldende terminal er nå GAP_DISPOSITION_001 exit0,
-07.10 kl.23:32:51 UTC (08.10 kl.01:32 Oslo), kilde90e6e9bd uendret gjennom
-26s ekte capped CPU-jobb. Alle kvitteringsbundne prosesser er borte.
+er ikke fullført. Gjeldende terminal er INPUT_VIEWS_001 exit0 som bundet
+ovenfor. GAP_DISPOSITION_001 exit0,07.10 kl.23:32:51 UTC, kilde90e6e9bd
+uendret gjennom26s, bevares som råklokke-underport. Prosessene er borte.
 INPUT_VALIDATION_002 exit0 23:09:24 på uendret2c3d7b82 bevares som separat
 vellykket underport, ikke hel input-/modellaksept.
 COMPLETE_M1_001 er genuint fullført22:27:57 UTC,5523147 rader, ingen relaunch.
@@ -61,10 +76,11 @@ dekningsdiagnose23:05:48 → M1-oracle23:07:23 → kanonisk post-readiness23:09:
 RESULTfd009287/TERMINAL2a0b8774 binder COVERAGE49759efc, ORACLEfcb32eaa og
 READINESSbe2b462c. Hver engangstillatelse er konsumert. Dette er fullførte
 input-underporter, aldri whole-input/model GREEN eller smoke-launch.
-Fersk whole-TRAIN-normalisering, fysisk child-klokke-binding, M1/M5/MTF-visninger/
-broparitet, retention/nektelse og ny finite sampler-/smoke-binding gjenstår.
-Ingen normalisering, modell, henting, sletting eller omstart er startet.
-Opprinnelig deadline23:44:34 UTC består; ingen budsjettfornyelse.
+Fysisk child-klokke-binding/M1-quotes er nå genuine complete. Fersk whole-
+TRAIN-normalisering, normaliserte M1/M5/MTF-visninger/broparitet, retention/
+nektelse og ny finite sampler-/smoke-binding gjenstår. Ingen modell,
+henting, sletting eller omstart er startet. Opprinnelig build-deadline
+23:44:34 UTC er uendret; den særskilt godkjente CPU-rammen står ovenfor.
 
 Core har allerede genuine samme-generasjons PASS-kvitteringer for full-input
 liveness, pretrain og cross-surface-overlap. De gjenbrukes bare med uendrede

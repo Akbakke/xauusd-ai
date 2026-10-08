@@ -68,6 +68,13 @@ normaliserings-/visnings-/inputparitetsstegene. Fristen er18:25:44 UTC,
 og forberedelse/nedetid teller fra00:25:44. Original build-deadline/plan
 fornyes ikke; hvert delsteg trenger egen eksakt engangs-binding. Modelltrening
 og TEST forblir stengt. Dette vedtaket er ikke fullføring av noen inputport.
+INPUT_VIEWS_001 er nå genuint exit0,00:43:39 UTC, kilde d5d6ad24 uendret.
+Hele fysiske Entry-TRAIN/VAL og separate kildebit-identiske M1-quotes,
+ferske koordinater og egne all-gaps-unknown-authorities er publisert; ingen
+fit eller modellemisjon. BASE_NORMALIZATION_001 er eksakt bundet, ikke
+startet, for whole-TRAIN før sampling gjennom eksisterende producer20G/512M.
+Base- og summary-fit, faktisk normalisert inputparitet og øvrige ferdig-
+kriterier gjenstår. Dette målet er ikke fullført.
 
 Ingen eksisterende SMC-primitiver fjernes ved tolkning av «order block og det».
 Læringsrekkefølgen og portene står i docs/NATIVE_LEARNING.md. Ny samplerbenchmark
