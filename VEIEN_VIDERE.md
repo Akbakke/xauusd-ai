@@ -20,7 +20,8 @@ hele652552 TRAIN-Entries og fysisk M1/M5/alle fem MTF-flater, VAL/TEST-fit0.
 SUMMARY_NORMALIZATION_001 er genuint exit0,01:19:05 UTC på uendret1a8a0411,
 claim konsumert: whole-TRAIN-summary7613258 side-fit-rader, VAL-counts uten
 fit, composite og split/clock/quote-first-state-bindinger. Ingen base-refit.
-INPUT_TENSOR_AUDIT_001 er separat exact-bound/not started gjennom audit4G/
+001 feilet før transformene på en håndkopiert VAL-digest; faktisk fil
+og kanonisk policy matcher, og originalfeilen bevares. Ny INPUT_TENSOR_AUDIT_002 er separat exact-bound/not started gjennom audit4G/
 512M/samme deadline. Faktisk whole-input NumPy/Torch-transform, aliasbits,
 ordnede felt/MTF/first-state mapping; ingen modellkonstruering/forward/TEST.
 Full rå Seq96-proofs byte-gjenbrukes med pointwise kilde/algebra; ingen

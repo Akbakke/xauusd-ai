@@ -9,7 +9,7 @@ BASE_NORMALIZATION_001 er genuine exit0 på uendret1af9a63c, alle652552
 TRAIN-Entries/fysiske M1/M5/fem MTF-flater, VAL/TEST-fit0. SUMMARY_NORMALIZATION_001
 er genuint exit0,01:19:05 UTC på uendret1a8a0411, claim konsumert: whole-
 TRAIN-summary7613258 side-fit-rader, separate VAL-counts uten fit og composite/
-split/clock/quote-bindinger. Base ikke refittet. INPUT_TENSOR_AUDIT_001 er
+split/clock/quote-bindinger. Base ikke refittet. INPUT_TENSOR_AUDIT_002 er
 exact-bound/not started gjennom audit4G/512M/samme CPU-frist: faktisk
 whole-input transform/alias/MTF/first-state-mapping, ingen modellkonstruering.
 Ingen nye feature-/fit-/modellkodeendringer i denne status-/bindingsbølgen.
@@ -22,6 +22,12 @@ Summary-bindingsbølgen:26 fokuserte final-binding/prefix-boundary-regresjoner
 PASS under4G/512M; source/fixture-mekanikk, ikke ekte ny summary-fit/paritet.
 JUnit: SUMMARY_NORMALIZATION_001/FOCUSED_BINDING_TESTS.xml. Ingen feature-,
 fit- eller modellsemantikk endret; eksterne engangskontroller består syntaks.
+
+INPUT_TENSOR_AUDIT_001 feilet før transformene01:38:17 UTC: håndkopiert
+VAL-proof-digest var65 tegn, én ekstra bokstav. Kanonisk policy/faktiske
+bytes er uendret og matcher. Original exit1/kildebd1b9abc/plan/claim bevares;
+ny002 korrigerer kontrollbindingen og avviser malformed digest før hash.
+Ingen feature-/normaliserings-/modellkodefeil er påvist av dette stoppet.
 
 Input-audit-bindingen bestod den fokuserte NumPy/Torch-asinh-regresjonen
 under audit4G/512M,1 PASS. Kilde-/syntetisk mekanikk, ikke ekte inputparitet.

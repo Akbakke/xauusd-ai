@@ -46,7 +46,13 @@ utfallsblinde samples/7613258 side-fit-rader. VAL70880/51843121 successors,
 VAL/TEST-fit0. Compositecd1ca589, base uendret/ikke refittet, ferske split-
 og første-state clock/quote-bindinger. Dette er ikke normalisert tensorparitet.
 
-INPUT_TENSOR_AUDIT_001 er separat eksakt bundet, ikke startet. Eksisterende
+INPUT_TENSOR_AUDIT_001 feilet01:38:17 UTC,exit1/12,731s, uendretbd1b9abc.
+Operatøren hadde kopiert VAL-proofs digest med én ekstra bokstav; faktisk
+fil og kanonisk postbuild-policy matcher. Ingen transform/fit/modell/TEST
+før feilen. Original plan/claim/TERMf62cd6e7/FAILURE64ed5b25 bevares uendret.
+
+INPUT_TENSOR_AUDIT_002 er separat eksakt bundet, ikke startet. Bare ny
+korrekt kanonisk receipt-binding og digest-formkontroll; ingen dataendring. Eksisterende
 audit4G/512M,CPU0-7/én tråd/64tasks/minne-gate/CURRENT-lås uendret,
 samme18:25:44 UTC-deadline. Anvend fryste NumPy-/faktiske Torch-input-
 transformer på hele unike M1/M5/MTF og alle Entry TRAIN/VAL-snapshots/context;
@@ -66,7 +72,8 @@ Bindings-/statusgruppen bestod51 cases før neste tunge claim.
 Ingen treningsjobb kjører eller er startet av den nye bestillingen.
 INPUT_BUILD_002 har genuin exit0-terminal 07.10 kl.18:06:36 UTC, og de
 kvitteringsbundne prosessene er avsluttet. Core er fullført; hele inputbygget
-er ikke fullført. Gjeldende terminal er SUMMARY_NORMALIZATION_001 exit0 som
+er ikke fullført. Nyeste terminal er INPUT_TENSOR_AUDIT_001 exit1 før
+transformene; fersk summary-normalisering er fortsatt genuint fullført som
 bundet ovenfor. INPUT_VIEWS_001 bevares som genuin fysisk-input-underport.
 GAP_DISPOSITION_001 exit0,07.10 kl.23:32:51 UTC, kilde90e6e9bd
 uendret gjennom26s, bevares som råklokke-underport. Prosessene er borte.
