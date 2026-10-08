@@ -39,8 +39,13 @@ originalene; ingen rewrite av benchmark/benchmark_design eller øvrige felt.
 79 fokuserte koblings-/samplertester og61 recipe-/koordinattester PASS,
 syntetiske mekanikkbevis. Dette erstatter ingen faktisk native precheck,
 koordinatpublikasjon, fresh-initial, Windows-boot eller læringsmåling.
-Kun sampler-/designmetadata-publikasjon er neste eksakt bundne CPU-steg,
-NATIVE_METADATA_HANDOFF_001, innen samme opprinnelige22:55:12 UTC deadline.
+Sampler-/designmetadata-publikasjonen NATIVE_METADATA_HANDOFF_001 er genuint
+fullført20:54:48 UTC,exit0/5,304s/uendret87a35486, innen opprinnelig deadline.
+Ny DESIGN6b3be86b/valgt sampler e53a0af1 er publisert, originalene urørt.
+Nå gjenstår aktuelle fysiske target-/normaliseringsprechecks og native koordinater.
+Disse er nå særskilt bundet i NATIVE_PREPROCESSING_001 gjennom eksisterende
+forbrukere/koordinat-eier, capped audit4G/512M innen opprinnelig deadline.
+37 fokuserte scope-/clock-/outputkontroller PASS, ikke faktisk precheck/læring.
 22 lukkede scope-/output-/kildetester og5 aktuelle overleveringstester PASS.
 Ingen relaunch eller fornyet budsjett, labels-PASS, modell-/normaliseringsfit.
 
@@ -85,8 +90,8 @@ UTC08.10 inkl. nedetid, nå konsumert ved fullført forberedelse. Original
 Fullførte eller feilede engangsplaner relanseres aldri.
 Ny benchmark fikk nå egen finite autoritet via08.10-bestillingen; det tidligere
 immutabele64800s planforslaget alene var aldri tillatelse.
-Full målt samplerseleksjon er ferdig. Fortsatt mangler valgt-sampler-
-publikasjon, aktuelle kanoniske fysisk labels- og
+Full målt samplerseleksjon og sampler-/metadatapublikasjon er ferdig.
+Fortsatt mangler aktuelle kanoniske fysisk labels- og
 normalization-receipts, native TRAIN-koordinater/recipe/hostgates og fresh
 initialbaseline før faktisk modellsmoke. Ingen håndlaget PASS eller gammel
 receiptfallback. Neste rekkefølge er bundet, ikke utført.

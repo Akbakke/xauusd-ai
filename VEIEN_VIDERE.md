@@ -10,10 +10,18 @@ Original DESIGNaaa6027a mangler scope/status. Minste rettelse gjenbruker
 allerede bundet deklarasjon og strengt metadata-only identity-join hos
 begge native forbrukere; alle originale bytes/bindinger forblir urørt.
 79 sampler-/koblingstester og61 native recipe-/koordinattester er grønne
-mekanikkbevis. Nye native metadata-/precheck-/koordinatoutputs gjenstår.
-Neste eksakt bundne CPU-steg er NATIVE_METADATA_HANDOFF_001, kun sampler-
-publikasjon og metadatafullføring gjennom eksisterende eiere/capped audit.
+mekanikkbevis. NATIVE_METADATA_HANDOFF_001 fullført20:54:48 UTC,
+exit0/5,304s/uendret87a35486; valgt sampler e53a0af1 og ny DESIGN6b3be86b
+er genuine, originalene urørt. Alle bundne metadata-prosesser er borte.
+Neste steg er genuine fysiske target-/normaliseringsprechecks og native
+koordinatpublikasjon gjennom eksisterende eiere/capped audit.
 Opprinnelig22:55:12 UTC deadline beholdes; ingen NN/refit/rebenchmark/TEST.
+
+NATIVE_PREPROCESSING_001 er separat eksakt bundet til eksisterende target-/
+normaliseringsforbrukere og koordinatprodusent, capped4G/512M/én tråd.
+37 mekanikk-/scopekontroller PASS. Original target-M1-kilde og nyere komplette
+inputquotes er ulike roller; ingen falsk kildeekvivalens eller håndlaget PASS.
+Faktisk terminal/resultat, ikke planens historiske NOT_STARTED, eier utfallet.
 
 Forberedelsesmålet er fullført som READY_FOR_BOUNDED_RESEARCH_SMOKE:
 genuine core/komplett M1/dekningsreview/oracle/post-readiness, nye fysiske

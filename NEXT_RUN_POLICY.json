@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-08T20:45:10Z",
-  "status": "V38_TRAIN_CAPACITY_COMPLETE_METADATA_ONLY_HANDOFF_BOUND_NATIVE_GATES_PENDING_GC_PAUSED",
+  "observed_utc": "2026-10-08T21:26:00Z",
+  "status": "V38_CAPACITY_METADATA_COMPLETE_PHYSICAL_PRECHECK_AND_COORDINATES_BOUND_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator requests complete M1 and all observed pre-smoke adjustments after the successful Oct7 core terminal. Native v38 fields, eight specialists, clocks, periods and safety owners are unchanged. INPUT_BUILD_001 has unknown old exit/terminal after physical crash; INPUT_BUILD_002 is genuinely successful core-only and its one-shot authority is consumed. Preserve immutable runtime copies/receipts and verified completed same-generation bytes, never relaunch either attempt or consume old Oct1 normalization/models. The original common 64800s build deadline is consumed and preserved unchanged. Human 'Ja' separately approves PRE_SMOKE_CPU_001: one new shared maximum 64800s CPU-only preparation window from 2026-10-08T00:25:44Z to 2026-10-08T18:25:44Z, including preparation and downtime, never reset per substage. Each next stage still needs a separately source/input/output/remaining-budget-bound existing owner. Complete M1, label-coverage/selection review, independent input oracle and post-readiness remain mandatory before fresh normalization and future smoke admission. Do not silently accept unexplained exclusions, impute quotes/labels, change periods or call a diagnostic input acceptance. Reboot only at verified idle terminal phase boundaries, never interrupt active jobs. Delete only retention-admitted exact obsolete targets after replacement acceptance and dependency/process proof. ATTEMPT_003 remains consumed. Synthetic/technical PASS does not admit larger training; paired learning and hardware gates remain required. No TEST outcome access, GC acquisition, broker, live/paper, orders, spending or promotion. New human request 08.10 explicitly approves the full TRAIN capacity test then conditional bounded smoke. Bind one fresh SAMPLER_BENCHMARK_001 budget, maximum64800s including preparation/downtime until2026-10-08T22:55:12.000Z. This new permission never renews old claims or removes native recipe/window/physical preprocessing/fresh-initial/host/boot guards. CPU stage keeps training_enabled=false; only a later exact admitted native window may open<=256 optimizersteps/4096 Entries. Large training/fullVAL/TEST remain closed. SAMPLER_BENCHMARK_001 pre-claim launcher exit1 due to unsupported Python3.10 Z timestamp, before START/producer/benchmark. Preserve original control/source/preclaim receipt;002 has normalized+00:00 UTC spelling within the identical absolute04:55:12–22:55:12 UTC approved capacity budget; no reset, implicit extension or relaunch of001.",
-  "next_action": "SAMPLER_BENCHMARK_002 completed genuinely exit0 on unchanged6d57b446 at20:19:58 UTC; never relaunch. Existing measured owner chooses32768/batch16 after all three complete candidates. Execute separately exact-bound NATIVE_METADATA_HANDOFF_001 through unchanged capped4G audit within original22:55:12 UTC capacity deadline: existing selected-sampler publication plus strict missing scope/status completion from the original's already-bound declaration. Preserve original DESIGN/benchmark/benchmark_design and every other typed field. No refit/model/TEST/restart in this CPU step. Then genuine physical labels/normalization precheck, native coordinates/recipe/window/fresh initial and machine-wide safe physical restart/fresh boot/host/GPU admission remain mandatory before conditional256steps<=4096 Entries, TRAIN256/CONTROL256 separate. No larger training/fullVAL/TEST/GC/broker/downloads/cleanup, budget reset or guard waiver.",
+  "next_action": "Both SAMPLER_BENCHMARK_002 and NATIVE_METADATA_HANDOFF_001 have genuine exit0 terminals; never relaunch. Current measured32768/batch16 selected sampler and strictly completed DESIGN are published; original DESIGN/benchmark/benchmark_design and other typed fields remain exact. Next separately bind the real physical target/normalization precheck and existing native coordinate producer within the original22:55:12 UTC CPU deadline, without any fit or model. Validate unchanged target-producer bytes, actual physical TRAIN/VAL target domains and pre-TEST observed clock support; distinguish original target M1 source15c4 from newer complete input quotes54b6. Existing recipe/window/fresh initial and machine-wide safe physical restart/fresh boot/host/GPU admission remain mandatory before conditional256steps<=4096 Entries with separate TRAIN256/CONTROL256. No larger training/fullVAL/TEST/GC/broker/downloads/cleanup, budget reset or guard waiver.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -155,20 +155,20 @@
       "required_goal_disposition": "blocked",
       "required_external_change": "Licensed pre-TEST outright GC event BBO/trades plus dated identity mapping and source receipts, or usable entitled provider access configured locally. Credential values must not be posted to chat."
     },
-    "latest_terminal_role": "Genuine complete measured TRAIN-only CPU capacity and selection; no native model launch admission",
+    "latest_terminal_role": "Genuine publication of measured selected sampler and strict metadata-only DESIGN completion; no native model launch admission",
     "source_head_before_cleanup": "8f91ecaf006a9d4fa3e53c199a7b1b91ddce7f91",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SAMPLER_BENCHMARK_002/TERMINAL.json",
-      "sha256": "e612e3ffea2a827feaf87b8e8e970d5de7d2ddb87715b9b997ad4dfea1d83f1b"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/TERMINAL.json",
+      "sha256": "7d0d917feb66061bf07abc0f0fe50dda720c15cca8ee3b085f6684beb13606ae"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "termination": "SAMPLER_BENCHMARK_002 genuine exit0 at20:19:58.863101 UTC on frozen6d57b446, elapsed54681.529s, source_unchanged=true. All three complete CPU candidates measured; existing10800s eligibility chooses32768/batch16,7275.518s for8192 Entry-pairs from full652552 TRAIN index. Larger candidates15490.601/31225.945s are time-ineligible. No full652552 or NN-epoch measured. Selected sampler publication and all native gates remain pending. All bound capacity processes absent. Windows20:39:58 inventory still protected2648/2704; commandline unavailable,2704 historical local telemetry queue not code/idle proof,2648 role unknown. No physical reboot, relaunch, budget reset, refit/model/TEST or deletion.",
+    "termination": "NATIVE_METADATA_HANDOFF_001 genuine exit0 at20:54:48.713927 UTC on frozen87a35486, elapsed5.304s, source_unchanged=true. Measured selected32768/batch16 sampler e53a0af1 and strict metadata-completed DESIGN6b3be86b published by existing owners; original benchmark_design and original typed fields unchanged. Capacity remains genuinely complete, not full652552 or NN-epoch evidence. All bound capacity and metadata processes are absent. Physical preprocessing/coordinates/native gates remain pending. Windows20:39:58 inventory still protected2648/2704;2704 historical local telemetry queue not code/idle proof,2648 role unknown. No physical reboot, relaunch, budget reset, refit/model/TEST or deletion.",
     "full_benchmark_completed": true,
     "sampler_selection_measured": true,
-    "selected_sampler_published": false,
-    "sampler_selected": false,
+    "selected_sampler_published": true,
+    "sampler_selected": true,
     "native_component_preparation_authorized": false,
     "test_data_used": false,
     "cleanup_report": "docs/REPO_REVIEW.md",
@@ -1870,7 +1870,7 @@
       "preparation_complete": true,
       "execution_authorized": false,
       "sampler_benchmark_budget_authorized": false,
-      "sampler_selected": false,
+      "sampler_selected": true,
       "canonical_native_preprocessing_and_recipe_bound": false,
       "fresh_initial_model_measured": false,
       "current_host_native_launch_admitted": false,
@@ -2041,10 +2041,10 @@
       "stage_id": "NATIVE_METADATA_HANDOFF_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001",
       "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
-      "authorized": true,
+      "authorized": false,
       "relaunch_allowed": false,
       "status_at_binding": "EXACT_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
-      "current_status": "EXACT_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
+      "current_status": "GENUINE_METADATA_PUBLICATION_COMPLETE_EXIT0_AUTHORITY_CONSUMED",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/PLAN.json",
         "sha256": "5f02e414bd283e1351d161e8d55929646ccb68ab2c05535277321fa95e628536"
@@ -2084,7 +2084,87 @@
       "native_launch_admitted": false,
       "changed_owner_class_controls_passed": 79,
       "focused_native_recipe_coordinate_controls_passed": 61,
-      "control_evidence_class": "synthetic mechanics/source consistency, not actual native or learning quality"
+      "control_evidence_class": "synthetic mechanics/source consistency, not actual native or learning quality",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/TERMINAL.json",
+        "sha256": "7d0d917feb66061bf07abc0f0fe50dda720c15cca8ee3b085f6684beb13606ae"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/RESULT.json",
+        "sha256": "1d3cb62a46e91932cbc8547ae9dbf7ca807865c43a5b6e96ba5637eca0f41e03"
+      },
+      "metadata_result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/METADATA_RESULT.json",
+        "sha256": "33bcc58f7571fb3a0bc02a47ba6996d9313f95e85010c372f25105f8f0b0bd5d"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
+        "sha256": "6b3be86ba001dee31b9d0d02ad3385835a8ea34defc2f569d39d0269cb3b9f13"
+      },
+      "selected_sampler": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/SELECTED_SAMPLER.json",
+        "sha256": "e53a0af1c6cef76b54c3e517229810e365b056410c49d778574166905e7fefd1"
+      },
+      "terminal_exit_code": 0,
+      "finished_utc": "2026-10-08T20:54:48.713927+00:00",
+      "elapsed_seconds": 5.303979981996235,
+      "source_at_execution": "87a3548677558274494f21091eaf079f2eddffcb",
+      "source_unchanged_at_terminal": true,
+      "bound_metadata_processes_absent_at_terminal_review": true
+    },
+    "native_preprocessing_stage_001": {
+      "schema_version": "gx1_bound_native_v38_physical_preprocessing_scope_v1",
+      "stage_id": "NATIVE_PREPROCESSING_001",
+      "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001",
+      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
+      "authorized": true,
+      "relaunch_allowed": false,
+      "status_at_binding": "EXACT_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
+      "current_status": "EXACT_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/PLAN.json",
+        "sha256": "0aa73cf8d5d15cac79cf12f41fe63130e9c5aa820f5c2bebb597cdf9ec22c434"
+      },
+      "producer": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/precheck.py",
+        "sha256": "b3b94d8d5e25d6fb2cf450a9a2c9911e37e7260d4f185ed90c0bf219a6a242bf"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/launch.py",
+        "sha256": "76c45df5ffe88abc5251a45ecc2c630e8f8709109900f28a58c274a8b7f3cd36"
+      },
+      "focused_controls": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/FOCUSED_STRICT_CONTROLS.xml",
+        "sha256": "db3e1c6a6da6fde911e944b9224ebfd899bad396b6f93644a89a5799a5e18d21"
+      },
+      "focused_control_cases_passed": 37,
+      "focused_handover": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/FOCUSED_HANDOVER.xml",
+        "sha256": "a65b9c4f8cc1113fa61ab174f60158733b854fb68035a3a36acc1d30ada50765"
+      },
+      "focused_handover_cases_passed": 6,
+      "original_cpu_budget": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SAMPLER_BENCHMARK_002/BUDGET.json",
+        "sha256": "5e15ab0384819eb39c6c9f5cdb66d3e088930d2bf10ab412ffc32f70b06283e4"
+      },
+      "cpu_deadline_utc": "2026-10-08T22:55:12.000+00:00",
+      "budget_reset_or_benchmark_relaunch_allowed": false,
+      "scope": "Actual immutable physical TRAIN/VAL target-domain and pre-TEST original M5-clock support validation; M1 complete-mask evidence reused only with genuine current immutable outputs and exact unchanged emitter/target-owner bytes. Original target M1 source15c4 is not relabeled as input source54b6. Join completed whole-TRAIN normalization and genuine full parity/index evidence, verify actual successor arrays, then publish coordinates using the existing owner. No target rewrite, refit, model or native launch.",
+      "resource_owner": "scripts/gx1_capped_run.sh unchanged audit4G/512M CPU0-7 one numerical thread64tasks CURRENT lock",
+      "outputs": {
+        "labels": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+        "normalization": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+        "coordinates": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COORDINATES_001",
+        "result": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/PREPROCESSING_RESULT.json"
+      },
+      "model_constructor_allowed": false,
+      "model_training_allowed": false,
+      "normalization_fit_allowed": false,
+      "test_access_authorized": false,
+      "cleanup_allowed": false,
+      "automatic_host_restart": false,
+      "native_launch_admitted": false,
+      "control_evidence_class": "Synthetic closed-scope, exact output and observed-clock mechanics; no genuine preprocessing completion before actual terminal."
     },
     "bounded_native_smoke_request_20261008": {
       "schema_version": "gx1_new_operator_requested_conditional_bounded_smoke_v1",

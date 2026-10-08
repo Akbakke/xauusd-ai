@@ -174,6 +174,12 @@ def test_post_capacity_metadata_authority_cannot_open_native_or_reset_budget():
     rebuild = policy['native_v38_rebuild_20261007']
     stage = rebuild['post_capacity_metadata_stage_001']
     capacity = rebuild['train_capacity_stage_002']
+    assert stage['authorized'] is False
+    assert stage['terminal_exit_code'] == 0
+    assert stage['source_unchanged_at_terminal'] is True
+    assert stage['current_status'] == 'GENUINE_METADATA_PUBLICATION_COMPLETE_EXIT0_AUTHORITY_CONSUMED'
+    assert policy['current_work']['latest_terminal'] == stage['terminal']
+    assert policy['current_work']['selected_sampler_published'] is True
     assert stage['original_cpu_budget'] == capacity['cpu_budget']
     assert stage['cpu_deadline_utc'] == capacity['cpu_deadline_utc']
     assert stage['relaunch_allowed'] is False
@@ -187,6 +193,23 @@ def test_post_capacity_metadata_authority_cannot_open_native_or_reset_budget():
     assert goal['machine_wide_idle_writer_proof_complete'] is False
     assert goal['false_completion_allowed'] is False
     assert goal['new_goal_or_hourly_automation_required'] is False
+
+
+def test_native_preprocessing_scope_cannot_fit_open_test_or_admit_a_model():
+    repo = Path(__file__).resolve().parents[1]
+    policy = json.loads((repo/'NEXT_RUN_POLICY.json').read_text())
+    scope = policy['native_v38_rebuild_20261007']
+    stage = scope['native_preprocessing_stage_001']
+    assert stage['original_cpu_budget'] == scope['train_capacity_stage_002']['cpu_budget']
+    assert stage['cpu_deadline_utc'] == scope['train_capacity_stage_002']['cpu_deadline_utc']
+    assert stage['relaunch_allowed'] is False
+    assert stage['budget_reset_or_benchmark_relaunch_allowed'] is False
+    for key in ('model_constructor_allowed', 'model_training_allowed', 'normalization_fit_allowed',
+                'test_access_authorized', 'cleanup_allowed', 'automatic_host_restart', 'native_launch_admitted'):
+        assert stage[key] is False
+    assert stage['focused_control_cases_passed'] == 37
+    assert policy['training_enabled'] is False
+    assert policy['current_work']['training_started'] is False
 
 
 def test_new_rebuild_plan_preserves_periods_and_requires_complete_m1_before_smoke():
@@ -237,7 +260,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     progress = scope['pre_smoke_progress']
     assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
     final_ready = progress['ready_for_bounded_research_smoke']
-    latest = scope['train_capacity_stage_002']
+    latest = scope['post_capacity_metadata_stage_001']
     assert work['full_benchmark_completed'] is True
     assert work['latest_terminal'] == latest['terminal']
     assert work['terminal_exit_code'] == 0
@@ -265,7 +288,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
                                      final_ready and field in {
                                          'new_sampler_smoke_plan_bound', 'ready_for_bounded_research_smoke'}))
     assert scope['native_launch_admitted'] is False
-    assert work['sampler_selected'] is False and work['selected_sampler_published'] is False
+    assert work['sampler_selected'] is True and work['selected_sampler_published'] is True
     assert policy['training_enabled'] is False
     final = scope['final_readiness_stage']
     assert final['ready_for_bounded_research_smoke'] is final_ready

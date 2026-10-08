@@ -29,16 +29,38 @@ Begge native forbrukere gjenbygger og sammenligner hele den typede kroppen;
 bool→int, endret target/normalisering/kilde/budsjett/provenance avvises også
 etter ny hash.79 fokuserte sampler-/koblingskontroller og61 native recipe-/
 koordinatkontroller PASS på syntetiske mekanikkdata, ikke native læring.
-Ny komplett metadataartefakt er ennå ikke publisert; koordinater/labels-/
+Ny komplett metadataartefakt er genuint publisert; koordinater/labels-/
 normalization-precheck/recipe/fresh-initial/host/boot må fortsatt bestås.
 
-NATIVE_METADATA_HANDOFF_001 er særskilt source-/input-/output-bundet i policy:
+NATIVE_METADATA_HANDOFF_001 avsluttet20:54:48.713927 UTC,exit0/5,304s,
+uendret87a35486. TERMINAL7d0d917f / RESULT1d3cb62a / metadata33bcc58f
+binder ny DESIGN6b3be86b og valgt sampler e53a0af1. Alle originale designfelt
+og benchmark_design er bevart; ingen native admission. Alle bundne metadata-
+prosesser er borte. Engangsautoriteten er konsumert og relanseres aldri.
+Steget var særskilt source-/input-/output-bundet i policy:
 kun eksisterende samplerpublikasjon og metadatafullføring, capped audit4G/
 512M/CPU0–7/én tråd64tasks, innen opprinnelig22:55:12 UTC CPU-deadline.
 Plan5f02e414 / producer586b37a3 / launcher4c7de2f4.22 lukkede scope-/
 output-/kildekontroller og5 aktuelle overleveringskontroller PASS. Ingen
 budsjettreset, rebenchmark, labels-PASS, modell-/normaliseringsfit eller omstart.
-Bindingens NOT_STARTED er ikke kjøretidsstatus; nye receipts eier utfallet.
+Bindingens historiske NOT_STARTED er ikke kjøretidsstatus; ekte terminal eier utfallet.
+
+Før fysisk target-precheck er de faktiske producer-/target-eierne sammenlignet
+med produksjonscommit666431a0: builder og fire target-/M1-eiere er byte-uendret.
+Original mål-M1-kilde15c4 er ikke nyere komplett inputquote-kilde54b6.
+M5-inputforeldre omfatter også senere kalender; ny clockkontroll må bare bruke
+eksplisitt pre-TEST tidsprojeksjon og aldri følge forseglede TEST-datasett.
+Dette er kilde-/identitetsbevis, ikke ennå ny full target-/clock-aksept.
+
+NATIVE_PREPROCESSING_001 er nå særskilt plan-/kilde-/input-/output-bundet:
+PLAN0aa73cf8, precheck b3b94d8d, launcher76c45df5,37 fokuserte mekanikk-
+kontroller PASS. Kun faktisk TRAIN/VAL-target-domene, pre-TEST original
+M5-clockprojeksjon, kildelik original M1-emisjonskompletthet og genuine
+fullpopulasjons-normaliserings-/paritets-/indekskvitteringer. Etter vellykket
+precheck publiserer eksisterende koordinat-eier epoch0/first4096/TRAIN256
+og separat uendret CONTROL256. Ingen target-rewrite, refit, modell eller
+boot-admission. Capped4G/512M innen opprinnelig22:55:12 UTC CPU-deadline.
+NOT_STARTED er bindingstidstilstand; genuine nye receipts eier faktisk utfall.
 
 READY_FOR_BOUNDED_RESEARCH_SMOKE betyr her verifiserte inputs og en bundet
 avgrenset fremtidig kjøreplan. Det er uttrykkelig ikke benchmark-/modell-
@@ -58,7 +80,7 @@ samme stage (SHA0da1a9f7). DESIGNaaa6027a / CONTROL256a33a97c6 er nyprodusert
 fra dagens fysiske VAL-clocks gjennom eksisterende selector, seed20260911,
 salt1. Ingen gamle koordinatbytes ble kopiert; at deterministic output har
 samme hash som tidligere generation er ikke gjenbruk av gamle outputs.
-TRAIN4096/TRAIN256, publikasjon av valgt sampler og native recipe gjenstår.
+TRAIN4096/TRAIN256 og native recipe gjenstår; valgt sampler er nå publisert.
 
 ## Målt på ekte deklarerte data
 

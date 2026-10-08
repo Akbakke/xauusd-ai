@@ -17,8 +17,16 @@ Det nye aktive app-målet fra05:28:18 UTC08.10 inkluderer trygg brukerbestilt
 fysisk omstart og én portbundet smoke; det er ikke fullført. Original
 DESIGNs manglende scope/status rettes metadata-only fra allerede bundet
 deklarasjon, uten å omskrive originaldesign/benchmark eller øvrige felt.
-79 koblingskontroller og61 native recipe-/koordinatkontroller PASS; ferske
-kanoniske outputs/initialmålinger og maskinvid ledighet gjenstår.
+79 koblingskontroller og61 native recipe-/koordinatkontroller PASS.
+NATIVE_METADATA_HANDOFF_001 har ekte exit0-terminal20:54:48 UTC/uendret87a35486;
+valgt sampler e53a0af1 og ny strict DESIGN6b3be86b er publisert, originalene
+urørt. Fysiske target-/normaliseringsprechecks, koordinater/recipe/initialmålinger
+og maskinvid ledighet gjenstår. Alle avsluttede engangsautoriter er konsumert.
+
+Neste avgrensede CPU-autoritet er NATIVE_PREPROCESSING_001: faktisk original-
+target-/clock-/normaliseringskobling og eksisterende native koordinatpublikasjon,
+innen samme22:55:12 UTC deadline.37 closed-scope-/clock-/outputkontroller PASS
+på syntetiske mekanikkdata. Ingen NN/refit/TEST/omstart før faktisk admission.
 
 Bevart oppdrag07.10.2026: sett GC/order-flow og nye order-block-/footprint-
 utvidelser på pause, og prioriter ny trening med dagens tekniske indikatoroppsett.
@@ -73,13 +81,13 @@ gjentatt per-vindu-måling. VAL/TEST-fit0, modellinstanser/forwards/optimizer0.
 
 Fersk fysisk DESIGN og CONTROL256 er produsert uten utfallsvalg gjennom
 eksisterende eiere. BOUNDED_SAMPLER_SMOKE_PLAN.json er bundet i samme stage
-og policy. TRAIN4096/TRAIN256, valgt sampler, aktuelle kanoniske native
+og policy. TRAIN4096/TRAIN256 og aktuelle kanoniske native
 preprocessing-kvitteringer/recipe og fersk initialmåling er ennå ikke produsert.
 Ny bestilling08.10 gir full TRAIN-only benchmark separat finite autoritet;
 64800s i SAMPLER_BENCHMARK_002 er ikke fornyelse av ATTEMPT_003 eller
 inputbudsjettet. Det gamle immutabele planforslaget endres ikke.
-Denne CPU-benchmarken er nå genuint fullført; valgt sampler må publiseres
-gjennom samme eier. Ingen fullført stage eller opprinnelig deadline relanseres.
+Denne CPU-benchmarken og etterfølgende sampler-/metadatapublikasjon er genuint
+fullført gjennom eksisterende eiere. Ingen fullført stage eller opprinnelig deadline relanseres.
 Senere smoke er høyst256 optimizersteg/4096 Entries, ikke full epoch/full VAL.
 
 Retention-eieren nektet faktisk closure på den uregistrerte nye run-rootens
