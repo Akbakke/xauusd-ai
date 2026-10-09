@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-09T18:23:17.184036+00:00",
-  "status": "V38_ENTRY_OBSERVED_INITIAL_MEASUREMENT_AUTHORIZED",
+  "observed_utc": "2026-10-09T19:19:03.158443+00:00",
+  "status": "V38_ENTRY_OBSERVED_INITIAL_VERIFIED_FIXED256_SMOKE_PREPARATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Materialize and verify the explicitly bound NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001 recipe/campaign. Stage the current Windows controller, verify whole-host idle/writers and saved state, then physically reboot into one guarded zero-step native measurement. Reuse the original fresh constructor state only after exact canonical checks; newly measure observed Entry targets. Preserve old INITIAL003/SMOKE001. No optimizer, smoke, full epoch/full VAL, TEST or automatic extension under this initial scope.",
+  "next_action": "Materialize and verify the exact NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001 recipe/campaign from the completed independent Entry baseline. Reuse byte-verified Windows staging, install the new finite plan, prove whole-host idle and durable state, then physically reboot into one guarded Entry-only fixed256 smoke over4096 TRAIN rows. Evaluate paired frozen TRAIN256/CONTROL256 with the prebound operator and period/operational review. No full epoch/full VAL, TEST, blind retry or automatic expansion.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -58,16 +58,17 @@
     }
   },
   "learning_gate": {
-    "decision": "ENTRY_ONLY_WIRING_VERIFIED_NEW_TARGET_LEARNING_NOT_MEASURED",
+    "decision": "INDEPENDENT_ENTRY_INITIAL_VERIFIED_LEARNING_SMOKE_NOT_YET_RUN",
     "specification": "docs/LEARNING_GATE.md",
     "entry_exit_learning_demonstrated": false,
     "generalization_demonstrated": false,
     "profitability_demonstrated": false,
-    "required_before_more_extensive_training": true
+    "required_before_more_extensive_training": true,
+    "entry_learning_demonstrated": false
   },
   "current_work": {
     "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "Implement operator-authorized market-only independent Entry objective and staged gradient ownership, reusing existing causal targets and native training machinery.",
+    "current_activity": "Bind and execute one independent Entry-only fixed256 native smoke from verified fresh market-target baseline.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -79,13 +80,16 @@
       "false_completion_allowed": false,
       "new_goal_or_hourly_automation_required": false,
       "status": "blocked",
-      "status_observed_utc": "2026-10-09T10:50:17.290017+00:00"
+      "status_observed_utc": "2026-10-09T10:50:17.290017+00:00",
+      "historical_predecessor_goal": true,
+      "superseded_by_active_thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c"
     },
     "new_capacity_authority_does_not_admit_native_launch": true,
     "hourly_monitor": {
-      "automation_id": "gx1-sjekk-datasettbygget-hver-time",
-      "status": "DELETED_BY_USER_REQUEST_AFTER_CORE_TERMINAL",
-      "whole_input_completion_claimed": false
+      "cadence_minutes": 30,
+      "stable_run_policy": "No minute-level model polling; existing hardware guards own frequent telemetry.",
+      "thread_heartbeat_id": "gx1-f-lg-native-trening",
+      "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c"
     },
     "current_research_id": "HISTORY2009W_NATIVE_V38_20261007",
     "fresh_dataset_requested": true,
@@ -120,11 +124,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "Genuine guarded native initial measurement and exact full-state audit; no optimizer steps",
-    "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
+    "latest_terminal_role": "native_entry_observed_initial_completion_review",
+    "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_003/COMPLETION_REVIEW.json",
-      "sha256": "f2101499064e7702ac44370a6f6082fc31a42b12f69c06d83c5976146f877f0d"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/COMPLETION_REVIEW.json",
+      "sha256": "ba30c700f14730e4b78889b8c0062c8017ce89f777e75256b490ce0a712a589b"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -139,12 +143,12 @@
     "cleanup_report": "CURRENT_HANDOVER.md",
     "repository_cleanup_complete": true,
     "replacement_dataset_acceptance_scope": "Verified current pre-TEST native input preparation only, no native model/recipe/launch/bundle/economic promotion",
-    "pre_smoke_goal_preparation_complete": true,
+    "pre_smoke_goal_preparation_complete": false,
     "pre_smoke_goal_completion_evidence": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PRE_SMOKE_READINESS.json",
-      "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/COMPLETION_REVIEW.json",
+      "sha256": "ba30c700f14730e4b78889b8c0062c8017ce89f777e75256b490ce0a712a589b"
     },
-    "current_blocker": "Old smoke target still contains frozen untrained Exit bootstrap and shared Exit gradients; successor objective must be implemented and measured before any optimizer steps.",
+    "current_blocker": "Independent Entry learning and actual learned resume/efficiency are not yet measured; larger Entry training and the later preserved-Entry Exit phase remain closed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/HOST_RESTART_20261009_001/POST_RESTART.json",
       "sha256": "29a025862bd75d4ef654a65c4ea55d08f25d2844ea422f452215ce328c146921"
@@ -798,7 +802,7 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/ENTRY_INDEPENDENCE_DECISION_20261009.json",
         "sha256": "4f4dfeec38630eb1dbab73b9ab90e35afeebf12d3a25309d4f492591d4f084e6"
       },
-      "status": "ENTRY_ONLY_IMPLEMENTED_AND_FOCUSED_VERIFIED_NEW_NATIVE_BASELINE_REQUIRED",
+      "status": "ENTRY_ONLY_IMPLEMENTED_GENUINE_INITIAL_VERIFIED_SMOKE_NOT_YET_RUN",
       "entry_target_must_use_only_observed_market_outcomes": true,
       "entry_target_may_use_exit_model_estimate": false,
       "exit_loss_may_update_entry": false,
@@ -821,22 +825,180 @@
       "target_reference_elapsed_seconds": 5700,
       "target_score_unit": "raw_bps_not_calibrated_probability",
       "target_semantics": "Observed executable markout net of declared costs; no Exit model in labels",
-      "production_optimizer_steps": 0
+      "production_optimizer_steps": 0,
+      "fresh_native_initial_measured": true,
+      "baseline_completion": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/COMPLETION_REVIEW.json",
+        "sha256": "ba30c700f14730e4b78889b8c0062c8017ce89f777e75256b490ce0a712a589b"
+      }
     },
     "native_entry_observed_initial_20261009": {
-      "authorized": true,
-      "status": "EXACT_ZERO_STEP_SCOPE_BOUND_RECIPE_AND_CAMPAIGN_PENDING",
+      "authorized": false,
+      "status": "COMPLETED_VERIFIED_NO_LEARNING_MEASURED",
       "root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001",
       "optimizer_steps": 0,
       "max_invocations": 1,
       "new_targets_without_exit_teacher": true,
-      "fresh_native_measurement_required": true,
+      "fresh_native_measurement_required": false,
       "saved_untrained_constructor_state_reused_only_after_existing_exact_checks": true,
       "input_normalization_or_target_policy_refits": false,
       "relaunch_allowed": false,
       "physical_reboot_before_invocation_required": true,
       "training_window_seconds": 12000,
-      "test_data_used": false
+      "test_data_used": false,
+      "completed_scope": {
+        "chronological_prefix": {
+          "design": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
+            "sha256": "6b3be86ba001dee31b9d0d02ad3385835a8ea34defc2f569d39d0269cb3b9f13"
+          },
+          "labels_result": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+            "sha256": "9dcc1fa930534aeeee26410a569083f9956f3cbf2637e5faaf09a58fd88436df"
+          },
+          "native_coordinates": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COORDINATES_001/NATIVE_COORDINATES.json",
+            "sha256": "51ee650e37051b6c27087b78ad840ac8b87996dbf3d1c0005f325efd21e283a4"
+          },
+          "normalization_result": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+            "sha256": "3605e8bdc3040fddc70d5fffab19be254b23dcd41e71389639d23eb890af2211"
+          }
+        },
+        "entry_observed_market": {
+          "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ENTRY_OBSERVED_MARKET_20261009.json",
+          "sha256": "9a84418b23a9f95062036803ae96ffb413a7b1534a47108ddfc7a1414a57318d"
+        },
+        "full_epoch_training_allowed": false,
+        "full_val_allowed": false,
+        "initialization_result": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/INITIALIZATION_RESULT.json",
+          "sha256": "e24a53df97155ce89884877b5bcf2f2aea59477bf7b9dd5817ca22442722da6c"
+        },
+        "max_invocations": 1,
+        "measurement_binding_result": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/MEASUREMENT_BINDING_RESULT.json",
+          "sha256": "e189c4e194608b2d32f38e559d7eab12a7d1f1fa665c4454ad274d6f629e40f1"
+        },
+        "optimizer_steps": 0,
+        "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/CANDIDATE_BUNDLE",
+        "run_id": "NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001",
+        "source_bindings_sha256": "0122ac292eadee437ae47c0f196ae24e857c48c4475a653bca5784d4f492f23d",
+        "teacher_refresh_allowed": false,
+        "test_data_used": false
+      },
+      "completion_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/COMPLETION_REVIEW.json",
+        "sha256": "ba30c700f14730e4b78889b8c0062c8017ce89f777e75256b490ce0a712a589b"
+      },
+      "initial_audit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/INITIAL_MEASUREMENT_AUDIT.json",
+        "sha256": "280a97615c410c4e0f5d57047774032d557c2bbb50a95843945607ded0f88efc"
+      },
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/NATIVE_RECIPE.json",
+        "sha256": "1aa75f86cc6e69824298b2caec3e19deff5f0065b4f4c93cbd4610aecd2bc9f8"
+      },
+      "campaign": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+        "sha256": "7abe138f4820f55e3fea5f2a118b45f1b800cd5324fba77d057f86614863e1a1"
+      },
+      "native_receipt": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/RUNTIME/receipts/invocation-0001.json",
+        "sha256": "dbc979de1ee1c8da134feb35429e3d7f278398d12d1a69f189d27b2a33a6d46b"
+      },
+      "windows_task_terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/COMPLETED_TASK_DISABLED.json",
+        "sha256": "df842a131ba1d508f4da5b5e18e532b803db9412a8bbc7dab591c24e38d24e9e"
+      },
+      "windows_task_final_exit_code": 0,
+      "windows_task_disabled": true,
+      "source_unchanged_at_terminal": true
+    },
+    "native_entry_observed_smoke_20261009": {
+      "authorized": true,
+      "status": "EXACT_SCOPE_AND_REVIEW_BOUND_RECIPE_CAMPAIGN_NOT_YET_MATERIALIZED",
+      "policy_scope": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/POLICY_SCOPE.json",
+        "sha256": "03168ce53a5f52b1275d48b9615fecbd5e6f59a38b15ac3725996fd466a98fb1"
+      },
+      "prepare_operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/PREPARE.py",
+        "sha256": "7a7d75ce05c6c9c5027bea5e3a8ae0934d44ad23a3254d42553c1d379349c8f1"
+      },
+      "initial_audit": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/INITIAL_MEASUREMENT_AUDIT.json",
+        "sha256": "280a97615c410c4e0f5d57047774032d557c2bbb50a95843945607ded0f88efc"
+      },
+      "paired_review_operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/PAIRED_REVIEW_OPERATOR.py",
+        "sha256": "e09718c957de65ba311be66b1d8fbdd6beef708ca2b5e89797eca22a4b40f600"
+      },
+      "review_preregistration": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/REVIEW_PREREGISTRATION.json",
+        "sha256": "9d2b94bf3dcb78b0a1ecf3b9ae6f76cdd1176b1a4578105172072b639dbf9f24"
+      },
+      "review_helper_validation": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/REVIEW_HELPER_VALIDATION.json",
+        "sha256": "0b3bffaa3a38f8f293a04ac9575f9a83ebd8940b890fd9ac3e29360fbd277aa4"
+      },
+      "observed_target_design": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ENTRY_OBSERVED_MARKET_20261009.json",
+        "sha256": "9a84418b23a9f95062036803ae96ffb413a7b1534a47108ddfc7a1414a57318d"
+      },
+      "planned_recipe_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/NATIVE_RECIPE.json",
+      "planned_campaign_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "planned_runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/RUNTIME",
+      "optimizer_step_ceiling": 256,
+      "maximum_trained_entry_rows": 4096,
+      "max_invocations": 1,
+      "native_invocation_seconds": 12000,
+      "training_phase": "entry_only",
+      "exit_gradients_into_entry_allowed": false,
+      "teacher_refresh_allowed": false,
+      "control_is_reused_development": true,
+      "full_epoch_allowed": false,
+      "full_val_allowed": false,
+      "test_data_used": false,
+      "automatic_extension_allowed": false,
+      "large_training_admitted": false,
+      "relaunch_allowed": false,
+      "optimizer_steps_started": 0,
+      "actual_learned_resume_verified": false
+    },
+    "native_entry_observed_restart_20261009": {
+      "completed_windows_boot": {
+        "boot_id": 483,
+        "computer_name": "ANDRE2",
+        "identity_sha256": "722181247b2937767adc1e72c36e1330f22497e5262e3f25a82b919caac245bf",
+        "last_boot_utc": "2026-10-09T18:38:18.5000000Z",
+        "schema_version": "gx1_windows_boot_identity_v1"
+      },
+      "pre_reboot_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/PRE_REBOOT_REVIEW.json",
+        "sha256": "e48e562937d6799e7155993c63b960cb09c8a3001fb6003dbea6c0f5faac73c6"
+      },
+      "shutdown_request": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/SHUTDOWN_REQUEST.json",
+        "sha256": "e6021b4329ed3494bb16355b04425e65b626fddbea606927eb892492074cc694"
+      },
+      "wsl_post_reboot": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/WSL_POST_REBOOT.json",
+        "sha256": "354386bae397d853aeacc33b7fc9da5b68fddcb486ee3ca7b35085b11eb0913d"
+      },
+      "windows_post_reboot": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/WINDOWS_POST_REBOOT.json",
+        "sha256": "3c65b9050f894ad5273a4a2c236d12a0d71afc6b3bc3ad8b826ea13eab1440f3"
+      },
+      "windows_task_terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/COMPLETED_TASK_DISABLED.json",
+        "sha256": "df842a131ba1d508f4da5b5e18e532b803db9412a8bbc7dab591c24e38d24e9e"
+      },
+      "full_windows_native_completion_cycle_verified": true,
+      "native_window_seconds": 12000,
+      "outer_guard_seconds": 13800,
+      "task_scheduler_limit_seconds": 14400,
+      "next_campaign_requires_fresh_idle_review_and_physical_reboot": true
     }
   },
   "gc_order_flow_research_20261006": {
@@ -2977,7 +3139,11 @@
     "research_fit_authorized": false,
     "source_fetch_authorized": false
   },
-  "chronological_initial_measurement": {
+  "chronological_learning_run": {
+    "chronological_learning_measurement": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "280a97615c410c4e0f5d57047774032d557c2bbb50a95843945607ded0f88efc"
+    },
     "chronological_prefix": {
       "design": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
@@ -3000,20 +3166,14 @@
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ENTRY_OBSERVED_MARKET_20261009.json",
       "sha256": "9a84418b23a9f95062036803ae96ffb413a7b1534a47108ddfc7a1414a57318d"
     },
+    "final_model_variant": "ONLINE",
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
-    "initialization_result": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/INITIALIZATION_RESULT.json",
-      "sha256": "e24a53df97155ce89884877b5bcf2f2aea59477bf7b9dd5817ca22442722da6c"
-    },
     "max_invocations": 1,
-    "measurement_binding_result": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/MEASUREMENT_BINDING_RESULT.json",
-      "sha256": "e189c4e194608b2d32f38e559d7eab12a7d1f1fa665c4454ad274d6f629e40f1"
-    },
-    "optimizer_steps": 0,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/CANDIDATE_BUNDLE",
-    "run_id": "NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001",
+    "maximum_trained_entry_rows": 4096,
+    "optimizer_steps": 256,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/CANDIDATE_BUNDLE",
+    "run_id": "NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001",
     "source_bindings_sha256": "0122ac292eadee437ae47c0f196ae24e857c48c4475a653bca5784d4f492f23d",
     "teacher_refresh_allowed": false,
     "test_data_used": false

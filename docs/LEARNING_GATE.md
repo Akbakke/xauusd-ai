@@ -1,8 +1,10 @@
 # Læringsport for GX1
 
-Det uavhengige Entry-målet fra09.10 har ennå ingen native initial-/læringsmåling.
-Den fullførte nullmålingen med gammel Exit-basert Entry-fasit er historisk bevis. Samlet læring,
-generalisering og positiv kostnadsjustert økonomi er ubevist.
+Det uavhengige Entry-målet fra09.10 har nå en ekte, revidert native nullmåling.
+NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001 binder uendret starttilstand og
+eksakt observert netto Entry-fasit på TRAIN256/CONTROL256. Ingen
+produksjonsoptimizersteg er utført. Samlet læring, generalisering og positiv
+kostnadsjustert økonomi er ubevist. Gammel Exit-basert baseline er historikk.
 Nåstatus og launchomfang eies av NEXT_RUN_POLICY.json, ikke historiske resultater.
 
 ## Før mer omfattende trening
@@ -38,8 +40,17 @@ samlet Entry/Exit-port: den krever separat Exit-trening som bevarer godkjent
 Entry-funksjon, og etterfølgende komplett økonomivurdering.
 
 For v38 gjelder fryst TRAIN256 og CONTROL256, høyst4096 Entries/256 optimizersteg,
-før eventuell separat, endelig budsjettregistrering. Den nye målbaselinen og
-smoke-fasen er ennå ikke utført. Ingen full epoch/full VAL eller automatisk utvidelse er åpnet.
+før eventuell separat, endelig budsjettregistrering. Ny målbaseline er
+verifisert; smoke er ennå ikke utført. Det nye review er forhåndsbundet i
+NEXT_RUN_POLICY.current_work.native_entry_observed_smoke_20261009.
+LONG, SHORT og LONG-minus-SHORT må forbedre MSE og sentrert MSE mot
+initial og TRAIN-konstant på begge grupper. CONTROL krever også negativ
+øvre95-prosentgrense for parvis kvadratfeil-differanse under den opprinnelige
+uke-bootstrapen. Ties feiler lukket; konstant handlingsvalg og manglende
+usikkerhet er ikke PASS. Alle deklarerte perioder rapporteres; samlet
+numerisk PASS krever fortsatt periodestabilitets- og drifts-/resume-review.
+Exit-diagnoser godkjenner aldri Entry-læring eller samlet økonomi.
+Ingen full epoch/full VAL eller automatisk utvidelse er åpnet.
 
 ## Generalisering og økonomi
 
