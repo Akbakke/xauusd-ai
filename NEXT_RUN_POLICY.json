@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-09T10:50:17.290017+00:00",
+  "observed_utc": "2026-10-09T15:20:35.407418+00:00",
   "status": "V38_FRESH_COMPONENT_PREPARATION_REPO_REVIEW_COMPLETE_NATIVE_WINDOW_UNBOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Execute the single hash-bound CPU fresh-component plan in current_work.native_component_preparation_20261009 under its 1800-second/20G producer scope; no forwards or optimizer steps. Then bind the canonical zero-step native recipe/window and fresh host/GPU admission, followed by the separately bound <=256-step/4096-TRAIN smoke and paired TRAIN256/CONTROL256 review. Retain 12000-second windows, durable step-boundary wall pauses and whole-host idle review before each physical restart. Larger training remains gated; TEST/GC/broker/spending remain closed.",
+  "next_action": "Execute the newly bound NATIVE_COMPONENTS_20261009_003 once under its 1800-second/20G CPU producer scope. Both earlier consumed attempts remain terminal. Actual constructor/TARGET preflight now passes; all four JSON route maps preserve canonical family order. Then bind zero-step native recipe/window, install the existing workload-only GPU clock launcher with the 4h task limit, and obtain fresh physical boot/host/GPU admission. Only then the separately bound <=256-step/4096-TRAIN smoke and paired TRAIN256/CONTROL256 review; no larger training before learning and operational gates.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -123,8 +123,8 @@
     "latest_terminal_role": "Genuine complete physical target/normalization precheck and native TRAIN/CONTROL coordinate publication; no native model launch admission",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/TERMINAL.json",
-      "sha256": "ad963d3eb63ea4f8ce54a59dcc5d01a4334e22b1b087cffcc2421ca57ab84cfd"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/EXECUTION_TERMINAL.json",
+      "sha256": "87b418148eebbe57e7c86e3fe1ec85e8b0a6f39464893ec3a437642bf43d80c7"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -145,8 +145,8 @@
       "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
     },
     "current_blocker": {
-      "id": "NATIVE_FRESH_INITIAL_STATE_PENDING_AFTER_EXACT_PARENT_GUARD_REPAIR",
-      "observed_utc": "2026-10-09T14:38:03.720821+00:00",
+      "id": "NATIVE_FRESH_FULL_STATE_PENDING_AFTER_JSON_ROUTE_ORDER_REPAIR",
+      "observed_utc": "2026-10-09T15:12:37.122030+00:00",
       "physical_reboot_resolved": true,
       "remaining": [
         "Complete the newly bound corrected fresh CPU component plan; preserve failed attempt",
@@ -203,7 +203,9 @@
         "Windows task deadline 3h was shorter than native 3h20 and outer guard 3h50; installer now verifies 4h.",
         "Native wall pause was only checked at checkpoint cadence; reproduced and moved to every completed optimizer step with durable save only when due.",
         "Controller could reboot without whole-host idle proof; it now preserves the terminal boundary for existing external prepare/confirm reboot after fresh machine-wide review.",
-        "Retention launch root had stale NEXT_RUN_POLICY hash; synchronized with policy edits."
+        "Retention launch root had stale NEXT_RUN_POLICY hash; synchronized with policy edits.",
+        "Model metadata ingress relied on JSON mapping insertion order for signal and three context routes; canonical family order restored with strict family-set checks. Genuine constructor and frozen TARGET now pass on unchanged v38 metadata.",
+        "Generic Windows installer skipped the required workload-only GPU clock launcher; explicit UseNativeClockProfile now stages that existing entry point and records its hash."
       ],
       "pending": [],
       "baseline_source_commit": "96352895a4aced2fa6b1cd5e871a720457d0eb4b",
@@ -292,17 +294,56 @@
         "failures": 0,
         "datasets_manifests_coordinates_normalization_unchanged": true,
         "genuine_model_measurement_still_pending": true
+      },
+      "constructor_integration_followup": {
+        "failure": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/EVENTS/FAILURE_20261009T151237122030Z.json",
+          "sha256": "cd0bc362a6c6f6fd9e92f1c728d13e013aaad02cc8def6ad6a512af5ba100bf2"
+        },
+        "repair_owner": "gx1/scripts/run_unified_exit_random_access_fixed_step_v1.py",
+        "focused_controls": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/CONSTRUCTOR_ROUTING_FINAL.xml",
+          "sha256": "360cf0ee16a6b006e984ab7634cfd7e2fe668b1202a3f1be10544029f02ead67"
+        },
+        "tests": 28,
+        "failures": 0,
+        "genuine_constructor_preflight": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/CONSTRUCTOR_PREFLIGHT_CURRENT_V2.json",
+          "sha256": "c356efb10512ffc1627291fc4bf95fea65fcdbc414643814cbf7352559051150"
+        },
+        "model_parameters": 9637663,
+        "model_forwards": 0,
+        "optimizer_steps": 0,
+        "metadata_features_normalization_architecture_unchanged": true,
+        "partial_fix_context_order_failure_preserved": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/CONSTRUCTOR_PREFLIGHT.log",
+          "sha256": "5dd5e0d2d5d771f2c542790b217365f8a4e7ef1a3c5224f1f5039bb2e6e7f3b7"
+        }
+      },
+      "installer_clock_followup": {
+        "focused_controls": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/CONSTRUCTOR_AND_INSTALLER_FIX.xml",
+          "sha256": "fe7c46fe91a49c7fcd0b8106a0f9f66dd06dce68a28f488974c62aeef140611c"
+        },
+        "tests": 53,
+        "failures": 0,
+        "windows_parser": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/INSTALLER_CLOCK_PARSE_STAGED.json",
+          "sha256": "17f4dc123d431b452ba4827d6a51cb5f466ebdaec6f81f674163f26eb2ab57f0"
+        },
+        "task_installation_pending": true,
+        "existing_clock_launcher_unchanged": true
       }
     },
     "native_component_preparation_20261009": {
       "authorized": true,
       "plan": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/PLAN.json",
-        "sha256": "27914a3ba5a771ffae3b1cc73a84be63c8dafa4341f2edc9d0ab9ca9ba7a508d"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/PLAN.json",
+        "sha256": "5b246cb41125091cdebd2cc0918a1183507d1fc8a3aa7074a4b6e0db1e807244"
       },
       "operator": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/OPERATOR.py",
-        "sha256": "0eb31d8107b690e23ee9431fe16bf98404590f04ab0ad39834bc820607ec87b0"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/OPERATOR.py",
+        "sha256": "6f926eb6a2534208f7d0a10c7b324fc2b1cad35c89b0f6ff7d119e150f2bb634"
       },
       "constructor_metadata": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/CONSTRUCTOR_METADATA.json",
@@ -342,9 +383,36 @@
           "optimizer_steps": 0,
           "forbidden_access_attempts": [],
           "relaunch_allowed": false
+        },
+        {
+          "plan": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/PLAN.json",
+            "sha256": "27914a3ba5a771ffae3b1cc73a84be63c8dafa4341f2edc9d0ab9ca9ba7a508d"
+          },
+          "operator": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/OPERATOR.py",
+            "sha256": "0eb31d8107b690e23ee9431fe16bf98404590f04ab0ad39834bc820607ec87b0"
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/EXECUTION_TERMINAL.json",
+            "sha256": "87b418148eebbe57e7c86e3fe1ec85e8b0a6f39464893ec3a437642bf43d80c7"
+          },
+          "failure": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/EVENTS/FAILURE_20261009T151237122030Z.json",
+            "sha256": "cd0bc362a6c6f6fd9e92f1c728d13e013aaad02cc8def6ad6a512af5ba100bf2"
+          },
+          "decision": "FAILED_BEFORE_MODEL_ALLOCATION_JSON_SPECIALIST_MAPPING_ORDER",
+          "model_forwards": 0,
+          "optimizer_steps": 0,
+          "forbidden_access_attempts": [],
+          "relaunch_allowed": false
         }
       ],
-      "corrected_blocker": "Current v20 split manifests omit the old pretest_test_guard field. Only the exact original parent of a source-verified pre-TEST index may use that existing scope; altered parents and contradictory TEST flags remain rejected."
+      "corrected_blocker": "Canonical model ingress now restores all four JSON specialist route mappings to the owned eight-family order. Unknown/missing families still reject; original metadata, feature lists, normalization, architecture and weights remain unchanged.",
+      "constructor_preflight": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/CONSTRUCTOR_PREFLIGHT_CURRENT_V2.json",
+        "sha256": "c356efb10512ffc1627291fc4bf95fea65fcdbc414643814cbf7352559051150"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -354,7 +422,12 @@
     "pause_request_owner": "current_work.operator_request",
     "pause_scope": "Suspend further source investigation, acquisition, features, fits and proposed flow/order-block extensions. Preserve the four-step protocol, progress, free-source receipts and every original artifact for an explicit later resumption. Existing native SMC primitives are not removed.",
     "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig",
-    "required_steps": [1, 2, 3, 4],
+    "required_steps": [
+      1,
+      2,
+      3,
+      4
+    ],
     "progress_owner": "current_work.gc_goal_progress",
     "research_fit_authorized_after_qualification_and_frozen_recipe": false,
     "source_head_at_intake": "75f20e07294ffa7fa16d46b33fb6b9e2a15c9e50",
@@ -384,14 +457,20 @@
       "algoseek": {
         "dataset": "US6011",
         "advertised_free_package": "USD 0 per month; No Download Fees",
-        "advertised_sample_dates": ["2023-01-01", "2023-03-31"],
+        "advertised_sample_dates": [
+          "2023-01-01",
+          "2023-03-31"
+        ],
         "advertised_universe": "Full Universe",
         "concrete_free_GC_expiry_identifiers_verified": false,
         "actual_GC_file_downloads": 0,
         "actual_GC_trading_day_count_verified": false,
         "numeric_free_limit_and_remaining_quota_verified": false,
         "demo_permission_for_local_training_backtest_verified": false,
-        "guest_preview_symbol_and_date": ["ESZ3", "2023-08-02"],
+        "guest_preview_symbol_and_date": [
+          "ESZ3",
+          "2023-08-02"
+        ],
         "Sandbox_terms_permit_over_quota_egress_compute_storage_costs": true,
         "new_account_key_subscription_or_license_acceptance": false
       },
@@ -399,10 +478,15 @@
         "bytes": 350169102,
         "sha256": "f004bc5d677837e05363fe294384d23723d82e505331325936c8b3144a34b252",
         "records": 2185295,
-        "entire_file_symbols": ["ESZ5"],
+        "entire_file_symbols": [
+          "ESZ5"
+        ],
         "GC_contracts_or_rows": 0,
         "receive_UTC_date": "2025-09-22",
-        "event_UTC_dates": ["2025-09-21", "2025-09-22"],
+        "event_UTC_dates": [
+          "2025-09-21",
+          "2025-09-22"
+        ],
         "last_ts_event_UTC": "2025-09-22T15:59:59.913306999Z",
         "complete_GC_trading_days": 0,
         "paid_or_authenticated_API_requests": 0
@@ -413,7 +497,10 @@
         "sha256": "4a67d7be6634b1884991cb26255192f5b88f117a7234fbaeb4cfe0f15ec6ed34",
         "records": 1999,
         "source_date": "2019-08-06",
-        "source_time_window": ["00:00:00.664", "00:05:39.776"],
+        "source_time_window": [
+          "00:00:00.664",
+          "00:05:39.776"
+        ],
         "trades": 11,
         "bid_updates": 1112,
         "ask_updates": 876,
@@ -433,7 +520,10 @@
       "observed_utc": "2026-10-06T12:46:16Z",
       "files_and_credential_presence_revalidated_utc": "2026-10-06T13:09:42Z",
       "evidence_class": "observed_access_metadata_not_market_data",
-      "filename_inventory_roots": ["/home/andre2/GX1_DATA", "/home/andre2/GX1_RUNS"],
+      "filename_inventory_roots": [
+        "/home/andre2/GX1_DATA",
+        "/home/andre2/GX1_RUNS"
+      ],
       "filename_inventory_excludes_TEST_and_SOURCE_CHUNKS": true,
       "matched_GC_DBN_or_flow_filenames": 0,
       "inventory_is_exhaustive_of_all_possible_storage": false,
@@ -445,7 +535,10 @@
       "market_data_connector_found_in_available_tools": false,
       "plugin_directory_search": {
         "observed_utc": "2026-10-06T13:04:51Z",
-        "targeted_queries": ["Databento", "CME futures"],
+        "targeted_queries": [
+          "Databento",
+          "CME futures"
+        ],
         "targeted_results_returned": 0,
         "directory_is_exhaustive": false,
         "plugins_suggested_or_installed": 0
@@ -464,7 +557,10 @@
         "evidence_class": "official_indexed_documentation_not_source_bytes",
         "advertised_gold_sample_date": "2020-01-02",
         "advertised_format": "FIX (MDP 3.0)",
-        "advertised_secdef_dates": ["2020-01-02", "2019-12-29"],
+        "advertised_secdef_dates": [
+          "2020-01-02",
+          "2019-12-29"
+        ],
         "exact_sample_download_link_verified": false,
         "usage_entitlement_verified": false,
         "bytes_downloaded_or_audited": false,
@@ -497,9 +593,17 @@
   },
   "native_v38_execution_20261005": {
     "status": "INTERRUPTED_FOR_OPERATOR_REQUESTED_REPOSITORY_CLEANUP",
-    "interruption_terminal": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/EVENTS/TERMINAL_20261006T065527088266Z.json", "sha256": "87f3faf08038727f182dd591ca3e09a7092d139469adb030fe3c02b9c9dbdc20"},
+    "interruption_terminal": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/SAMPLER_BENCHMARK_001/ATTEMPT_003/EVENTS/TERMINAL_20261006T065527088266Z.json",
+      "sha256": "87f3faf08038727f182dd591ca3e09a7092d139469adb030fe3c02b9c9dbdc20"
+    },
     "interruption": "Verified worker PID 10886 received operator-requested SIGINT, failed with KeyboardInterrupt and exit1; supervisor reaped it and emitted FAILURE/TERMINAL.",
-    "last_partial_progress": {"candidate_transition_budget": 32768, "completed_entry_pairs": 3200, "total_entry_pairs": 8192, "elapsed_seconds": 2868.032734581},
+    "last_partial_progress": {
+      "candidate_transition_budget": 32768,
+      "completed_entry_pairs": 3200,
+      "total_entry_pairs": 8192,
+      "elapsed_seconds": 2868.032734581
+    },
     "retraining_requested": true,
     "retraining_request_owner": "current_work.operator_request",
     "new_retraining_plan_bound": false,

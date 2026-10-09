@@ -273,3 +273,46 @@ def test_guard_model_signal_follows_cpu_checkpoint_proof(
             os.read(fd, 256)
     finally:
         os.close(fd)
+
+
+@pytest.mark.parametrize("ordering", ["json_sorted", "reversed", "missing", "extra"])
+@pytest.mark.parametrize("route_key", ["input_indices", "ctx_cont_indices", "ctx_cont_nominal_indices", "ctx_cat_indices"])
+def test_model_metadata_roundtrip_preserves_owned_family_routes(monkeypatch, ordering, route_key) -> None:
+    from gx1.scripts import run_unified_exit_random_access_fixed_step_v1 as owner
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_SPECIALISTS
+
+    routes = {name: [i, i + 8] for i, name in enumerate(PRODUCTION_SPECIALISTS)}
+    observed = json.loads(json.dumps(routes, sort_keys=True))
+    if ordering == "reversed":
+        observed = dict(reversed(list(routes.items())))
+    elif ordering == "missing":
+        observed.pop(PRODUCTION_SPECIALISTS[0])
+    elif ordering == "extra":
+        observed["unowned_encoder"] = [16]
+    captured = {}
+    def construct(**kwargs):
+        captured.update(kwargs)
+        return torch.nn.Identity()
+    monkeypatch.setattr(owner, "EntryV10CtxHybridTransformer", construct)
+    monkeypatch.setattr(owner, "require_multi_tf_specialist_routing_v4", lambda fields: routes)
+    meta = {"seq_input_dim": 254, "snap_input_dim": 254, "seq_len": 96,
+        "ctx_cont_dim": 71, "ctx_cat_dim": 1, "dropout": 0.1,
+        "specialist_fusion": {"input_indices": json.loads(json.dumps(routes, sort_keys=True)), "num_layers": 1, "fusion_scale": 1.,
+            "cross_family_fusion_scale": 1., "context_routing": {
+                **{k: json.loads(json.dumps(routes, sort_keys=True))
+                   for k in ("ctx_cont_indices", "ctx_cont_nominal_indices", "ctx_cat_indices")},
+                "temporal_alias_policy": {"signal_indices": [], "ctx_cont_indices": []}}},
+        "multi_tf": {"feature_names": [], "multi_tf_num_layers": 1, "multi_tf_scale": 1.,
+            **{tf + "_seq_dim": 190 for tf in ("m5", "m15", "h1", "h4", "d1")},
+            **{tf + "_seq_len": 16 for tf in ("m5", "m15", "h1", "h4", "d1")}}}
+    destination = meta["specialist_fusion"] if route_key == "input_indices" else meta["specialist_fusion"]["context_routing"]
+    destination[route_key] = observed
+    if ordering in ("missing", "extra"):
+        with pytest.raises(RuntimeError, match="MODEL_SPECIALIST_FAMILIES_INVALID"):
+            owner._model(meta, {}, torch.device("cpu"))
+        assert not captured
+    else:
+        owner._model(meta, {}, torch.device("cpu"))
+        for key in ("input_indices", "ctx_cont_indices", "ctx_cont_nominal_indices", "ctx_cat_indices"):
+            assert tuple(captured["specialist_" + key]) == PRODUCTION_SPECIALISTS
+            assert captured["specialist_" + key] == routes

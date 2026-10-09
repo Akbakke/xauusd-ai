@@ -7,7 +7,8 @@ param(
     [string]$Distro = 'Ubuntu-22.04',
     [string]$LinuxUser = 'andre2',
     [string]$TaskName = 'GX1RandomAccessCampaignV2',
-    [string]$CampaignControlRepo = $SourceRepo
+    [string]$CampaignControlRepo = $SourceRepo,
+    [switch]$UseNativeClockProfile
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -16,7 +17,10 @@ if ($WindowsTaskUser -ieq 'SYSTEM' -or $WindowsTaskUser -match '^NT AUTHORITY\\'
 }
 $controller = Join-Path $WindowsSourceRepo 'scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1'
 $observer = Join-Path $WindowsSourceRepo 'scripts/windows/GX1-RandomAccessCampaignV2Progress.ps1'
-foreach ($path in @($controller, $observer)) {
+$launcher = if ($UseNativeClockProfile) {
+    Join-Path $WindowsSourceRepo 'scripts/windows/GX1-NativeClockProfileLauncher.ps1'
+} else { $controller }
+foreach ($path in @($controller, $observer, $launcher)) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Campaign source unavailable: $path" }
 }
 $controllerSha256 = (Get-FileHash -LiteralPath $controller -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -32,7 +36,7 @@ if ($null -ne $legacyWslTask) {
     }
 }
 $arguments = @(
-    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $controller + '"'),
+    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $launcher + '"'),
     '-PlanJson', ('"' + $PlanJson + '"'),
     '-PlanFileSha256', $PlanFileSha256,
     '-SourceRepo', ('"' + $SourceRepo + '"'),
@@ -77,6 +81,9 @@ if ($registered.Principal.UserId -cne $WindowsTaskUser -or
     source_repo = $SourceRepo
     campaign_control_repo = $CampaignControlRepo
     controller_path = $controller
+    launcher_path = $launcher
+    launcher_file_sha256 = (Get-FileHash -LiteralPath $launcher -Algorithm SHA256).Hash.ToLowerInvariant()
+    workload_only_gpu_clock_profile = [bool]$UseNativeClockProfile
     controller_file_sha256 = $controllerSha256
     legacy_wsl_ssh_bootstrap_disabled = ($null -eq $legacyWslTask -or [string]$legacyWslTask.State -ceq 'Disabled')
     boot_trigger_delay = [string]$registered.Triggers[0].Delay

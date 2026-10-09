@@ -46,6 +46,7 @@ from gx1.contracts.unified_exit_train_session_manifest_v1 import (
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import UnifiedExitLifecycleCorpus
 from gx1.features.entry_specialist_feature_groups_v1 import (
+    MODEL_NATIVE_TRAINING_SPECIALISTS,
     require_multi_tf_specialist_routing_v4,
 )
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
@@ -563,6 +564,11 @@ def _model(
     mtf = meta["multi_tf"]
     specialist = meta["specialist_fusion"]
     indices = specialist["input_indices"]
+    def ordered_routes(values):
+        if not isinstance(values, Mapping) or set(values) != set(MODEL_NATIVE_TRAINING_SPECIALISTS):
+            raise RuntimeError("UNIFIED_EXIT_MODEL_SPECIALIST_FAMILIES_INVALID")
+        # JSON key order is not model order; preserve every feature-index list.
+        return {name: list(values[name]) for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
     return EntryV10CtxHybridTransformer(
         seq_input_dim=int(meta["seq_input_dim"]),
         snap_input_dim=int(meta["snap_input_dim"]),
@@ -582,21 +588,10 @@ def _model(
         m5_seq_len=int(mtf["m5_seq_len"]),
         multi_tf_num_layers=int(mtf["multi_tf_num_layers"]),
         multi_tf_scale=float(mtf["multi_tf_scale"]),
-        specialist_input_indices={str(k): list(v) for k, v in indices.items()},
-        specialist_ctx_cont_indices={
-            str(k): list(v)
-            for k, v in specialist["context_routing"]["ctx_cont_indices"].items()
-        },
-        specialist_ctx_cont_nominal_indices={
-            str(k): list(v)
-            for k, v in specialist["context_routing"][
-                "ctx_cont_nominal_indices"
-            ].items()
-        },
-        specialist_ctx_cat_indices={
-            str(k): list(v)
-            for k, v in specialist["context_routing"]["ctx_cat_indices"].items()
-        },
+        specialist_input_indices=ordered_routes(indices),
+        specialist_ctx_cont_indices=ordered_routes(specialist["context_routing"]["ctx_cont_indices"]),
+        specialist_ctx_cont_nominal_indices=ordered_routes(specialist["context_routing"]["ctx_cont_nominal_indices"]),
+        specialist_ctx_cat_indices=ordered_routes(specialist["context_routing"]["ctx_cat_indices"]),
         multi_tf_specialist_input_indices={
             str(k): list(v)
             for k, v in require_multi_tf_specialist_routing_v4(

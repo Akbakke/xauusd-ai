@@ -41,11 +41,23 @@ endrede foreldre, ukjent skjema/variant og motstridende TEST-flagg avvises.
 ble endret. Originalt claim/FAILURE/TERMINAL i NATIVE_COMPONENTS_20261009_001
 bevares, uten relaunch; ingen modellforward eller optimizersteg er utført.
 
-Én ny korrigert CPU-komponentplan, NATIVE_COMPONENTS_20261009_002, er bundet i
-current_work.native_component_preparation_20261009. Samme ferdige constructor-
-metadata gjenbrukes. Omfanget er høyst 1800s, producer 20G/512M, null forwards/
-optimizersteg/refits og ingen arvede vekter. Faktisk initialstate og native
-nullstegsmåling gjenstår; dette åpner ingen GPU-launch.
+Andre CPU-forsøk stoppet 09.10 kl.15:12 UTC ved modellkonstruksjon.
+JSON sorterte de riktige familienavnene alfabetisk, mens modellen krevde
+kanonisk rekkefølge. Modellens metadata-inngang gjenoppretter nå eksisterende
+rekkefølge for signal og tre kontekstrutinger, med eksakt familiesett.
+Alle metadata-/feature-/normaliseringsbytes og selve arkitekturen er uendret.
+28 fokuserte kontroller og faktisk konstruksjon av modellen med 9637663
+parametere samt identisk fryst TARGET bestod; null forwards/optimizersteg.
+Den generiske Windows-installeren kan nå velge den allerede påkrevde
+workload-only klokke-launcheren; 53 relevante tester og Windows-parser bestod.
+Faktisk task-installasjon gjenstår.
+
+Ny korrigert CPU-komponentplan, NATIVE_COMPONENTS_20261009_003, er bundet i
+current_work.native_component_preparation_20261009. Constructor-metadata fra
+001 gjenbrukes byte-identisk. Begge tidligere claims/feil/terminaler bevares
+uten relaunch. Omfanget er høyst 1800s, producer 20G/512M, null forwards/
+optimizersteg/refits og ingen arvede vekter. Komplett varig initialstate og
+native nullstegsmåling gjenstår; dette åpner ingen GPU-launch.
 
 ## Gjort — målt på ekte data
 
@@ -64,15 +76,16 @@ nullstegsmåling gjenstår; dette åpner ingen GPU-launch.
   targetfelt og normaliseringskoblinger bestod. Epoch0/first4096/TRAIN256
   og separat CONTROL256 er publisert gjennom eksisterende koordinat-eier.
 
-Siste genuine terminal er NATIVE_PREPROCESSING_001, exit0,
+Siste vellykkede datasetforberedelse er NATIVE_PREPROCESSING_001, exit0,
 08.10 kl.21:31:56 UTC. ORIGINAL M1-target-support gjenbruker uendret
 emitter/manifester som kilde-/algebrabevis, ikke en ny raw quote-scan.
 Koordinater er ikke modellmålinger. Alle genuine features og tidsrammer består.
 
 ## Ikke gjort / aktuell hindring
 
-- Ingen aktuell native recipe/vindusbinding, fersk ONLINE/TARGET-initialisering,
+- Ingen aktuell native recipe/vindusbinding, komplett lagret initialstate,
   modellforward, optimizersteg, smoke, større trening eller full VAL.
+  En isolert faktisk constructor/TARGET-kontroll er bestått.
 - Omstartsblokkeringen er løst via eksisterende administrativ Windows-SSH.
   PID2648/2704 var GPU-effektvakt og telemetribro, bekreftet fra kommandolinjer,
   installert kilde og Task Scheduler-instanser. Ingen ACL-endring.
