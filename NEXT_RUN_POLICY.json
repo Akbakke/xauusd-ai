@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-09T17:45:48.030956+00:00",
-  "status": "V38_ENTRY_INDEPENDENT_TARGET_DESIGN_REQUIRED",
+  "observed_utc": "2026-10-09T18:19:52.228221+00:00",
+  "status": "V38_ENTRY_OBSERVED_NATIVE_BASELINE_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Complete the authorized Entry-independent target and gradient design using observed causal executable market outcomes and retained genuine auxiliary heads. Validate exact economics, TRAIN-only provenance, causal support, and staged ownership. Preserve the completed old-target initial baseline and unlaunched SMOKE001; neither authorizes training of the successor. Bind a fresh initial measurement and finite smoke through native campaign only after the new contract is tested. No Exit teacher in Entry labels and no Exit optimizer influence on accepted Entry. TEST sealed; no full epoch or larger training before the new learning gate.",
+  "next_action": "Bind a fresh native zero-step measurement for the explicit observed-market Entry design, reusing the bit-exact untrained constructor state only after existing source/state checks. Preserve original input normalization, all genuine auxiliaries and fixed physical TRAIN256/CONTROL256. Then prebind one Entry-only 256-step/4096-row smoke and paired Entry gate. Exit diagnostics are not Exit learning in this phase. Do not launch old SMOKE001. No more extensive Entry training before measured Entry learning/stability and operational gates; no combined Entry/Exit or profitability claim without the separate preserved-Entry Exit stage and complete economics. TEST sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -58,7 +58,7 @@
     }
   },
   "learning_gate": {
-    "decision": "ENTRY_INDEPENDENT_OBJECTIVE_NOT_YET_IMPLEMENTED_OR_MEASURED",
+    "decision": "ENTRY_ONLY_WIRING_VERIFIED_NEW_TARGET_LEARNING_NOT_MEASURED",
     "specification": "docs/LEARNING_GATE.md",
     "entry_exit_learning_demonstrated": false,
     "generalization_demonstrated": false,
@@ -798,7 +798,7 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/ENTRY_INDEPENDENCE_DECISION_20261009.json",
         "sha256": "4f4dfeec38630eb1dbab73b9ab90e35afeebf12d3a25309d4f492591d4f084e6"
       },
-      "status": "TARGET_AND_GRADIENT_DESIGN_IN_PROGRESS_NO_NATIVE_LAUNCH",
+      "status": "ENTRY_ONLY_IMPLEMENTED_AND_FOCUSED_VERIFIED_NEW_NATIVE_BASELINE_REQUIRED",
       "entry_target_must_use_only_observed_market_outcomes": true,
       "entry_target_may_use_exit_model_estimate": false,
       "exit_loss_may_update_entry": false,
@@ -806,7 +806,22 @@
       "same_bundle_and_genuine_feature_families_preserved": true,
       "implementation_complete": false,
       "fresh_bound_baseline_and_recipe_required": true,
-      "large_training_admitted": false
+      "large_training_admitted": false,
+      "observed_target_design": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ENTRY_OBSERVED_MARKET_20261009.json",
+        "sha256": "9a84418b23a9f95062036803ae96ffb413a7b1534a47108ddfc7a1414a57318d"
+      },
+      "implementation_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/ENTRY_OBSERVED_IMPLEMENTATION_REVIEW_001.json",
+        "sha256": "63272b6946e59bad579919d06c8495121beba60556053064a44567a6c010cb68"
+      },
+      "entry_only_implementation_complete": true,
+      "exit_preserving_entry_training_stage_complete": false,
+      "target_reference_horizon_m5_bars": 19,
+      "target_reference_elapsed_seconds": 5700,
+      "target_score_unit": "raw_bps_not_calibrated_probability",
+      "target_semantics": "Observed executable markout net of declared costs; no Exit model in labels",
+      "production_optimizer_steps": 0
     }
   },
   "gc_order_flow_research_20261006": {

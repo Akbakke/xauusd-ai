@@ -87,7 +87,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "frozen_train_policy_evaluation", "frozen_entry_selector_probe"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -402,6 +402,7 @@ def _build_bound_full_train_components(
     exit_reference_policy: Mapping[str, Any] | None = None,
     chronological_prefix: Mapping[str, Any] | None = None,
     frozen_train_policy_scope: Mapping[str, Any] | None = None,
+    observed_entry_scope: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bind legacy full TRAIN/June or explicit fresh-prefix components.
 
@@ -424,6 +425,8 @@ def _build_bound_full_train_components(
         files=files, chronological_prefix=chronological_prefix,
     )
     prefix = None
+    if observed_entry_scope is not None and chronological_prefix is None:
+        raise RuntimeError("NATIVE_OBSERVED_ENTRY_PREFIX_REQUIRED")
     if frozen_train_policy_scope is not None and (
             chronological_prefix is None
             or frozen_train_policy_scope["origin_recipe"]["chronological_prefix"] != chronological_prefix
@@ -508,6 +511,12 @@ def _build_bound_full_train_components(
                 result_path=Path(chronological_prefix["labels_result"]["path"]),
                 expected_result_sha256=chronological_prefix["labels_result"]["sha256"],
                 expected_design_sha256=chronological_prefix["design"]["sha256"], role=role)
+        if observed_entry_scope is not None:
+            from gx1.contracts.entry_observed_market_v1 import bind_entry_observed_market_dataset
+            if not physical_prefix or frozen_train_policy_scope is not None:
+                raise RuntimeError("NATIVE_OBSERVED_ENTRY_PHYSICAL_SCOPE_REQUIRED")
+            for split in ("train", "val"):
+                bind_entry_observed_market_dataset(datasets[split], observed_entry_scope)
         # Measurement shares the TRAIN inputs and bound labels, while lifecycle
         # materialization remains attached only to the optimizer's dataset.
         train_probe_ds = copy.copy(datasets["train"])
@@ -712,6 +721,8 @@ def _build_bound_full_train_components(
             "train_probe_ds": train_probe_ds,
             "prefix_epoch0_parent_order": prefix["epoch0_parent_order"]} if prefix is not None else {}),
         "effective_train_rows": effective_train_rows,
+        **({"entry_observed_market": datasets["train"]._entry_observed_market_binding["identity"]}
+           if observed_entry_scope is not None else {}),
         **({"measurement_state_factories": {"train": train_measurement_factory, "control": val_factory}}
            if physical_prefix else {}),
         "unified_exit_lifecycle_evidence": {
@@ -814,6 +825,10 @@ def run_guarded_native_candidate_invocation(
     output = Path(recipe["out_bundle_dir"])
     device = trainer._resolve_device("cuda")
     component_started = time.monotonic()
+    observed_entry_scope = None
+    if "entry_observed_market" in recipe:
+        from gx1.contracts.entry_observed_market_v1 import require_entry_observed_market_scope
+        observed_entry_scope = require_entry_observed_market_scope(recipe)
     components = _build_bound_full_train_components(
         files=files, dataset_run_id=recipe["dataset_run_id"],
         seed_launch_path=None if prefix_mode else Path(recipe["seed_launch"]["path"]),
@@ -826,6 +841,7 @@ def run_guarded_native_candidate_invocation(
         exit_reference_policy=recipe.get("exit_reference_policy"),
         **({"chronological_prefix":recipe["chronological_prefix"]} if prefix_mode else {}),
         **({"frozen_train_policy_scope":frozen_train_scope} if frozen_train_scope is not None else {}),
+        **({"observed_entry_scope":observed_entry_scope} if observed_entry_scope is not None else {}),
     )
     print(json.dumps({"event": "NATIVE_COMPONENT_SETUP", "report_only": True,
                       "component_wall_seconds": time.monotonic() - component_started,
@@ -1571,12 +1587,23 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                                     ("global_optimizer_steps", optimizer_steps)))):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_PAUSE_INVALID")
     context = components["native_val_context"]
+    entry_identity = components.get("entry_observed_market")
+    if ("entry_observed_market" in recipe) != (entry_identity is not None):
+        raise RuntimeError("NATIVE_PREFIX_OBSERVED_ENTRY_COMPONENT_MISMATCH")
+    entry_evidence = {} if entry_identity is None else {"entry_observed_market": entry_identity}
     deadline = min(invocation_started + 12000 - 60, time.monotonic() + context["max_wall_seconds"])
     if time.monotonic() >= deadline:
         raise RuntimeError("NATIVE_PREFIX_INITIAL_INSUFFICIENT_WINDOW")
     directory = Path(pause_evidence["session_directory"])
     session = trainer._CandidateTrainingSession(out_bundle_dir=output,
         contract=val._read(directory / trainer._CANDIDATE_TRAINING_CONTRACT_FILENAME), read_only=True)
+    if entry_identity is not None:
+        bound = session._contract.get("chronological_prefix", {}).get("entry_observed_market", {})
+        if (set(bound) != {"train", "control"}
+                or any(bound[role]["identity"] != entry_identity for role in bound)
+                or any(getattr(components[key], "_entry_observed_market_binding", {}).get("identity") != entry_identity
+                       for key in ("train_probe_ds", "val_ds"))):
+            raise RuntimeError("NATIVE_PREFIX_OBSERVED_ENTRY_SESSION_MISMATCH")
     before = val.file_sha256(session._active_path)
     if before != pause_evidence["active_pointer_sha256"]:
         raise RuntimeError("NATIVE_PREFIX_INITIAL_POINTER_MISMATCH")
@@ -1648,7 +1675,8 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                     if role != "train" or recipe.get("chronological_train_only_measurement") is not True:
                         raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_TRAIN_ONLY_REQUIRED")
                     baseline["diagnostics"]["bounded_entry_observations"] = scope["entry_baseline"]["entry_observations"]
-                if baseline["cohort"] != cohort or baseline["target_model_state_sha256"] != target_hash:
+                if (baseline["cohort"] != cohort or baseline["target_model_state_sha256"] != target_hash
+                        or baseline.get("entry_observed_market") != entry_identity):
                     raise RuntimeError("NATIVE_PREFIX_FINAL_COHORT_OR_TEACHER_CHANGED")
                 for key, prediction in (("bounded_entry_observations", "predicted_q_bps"),
                         ("bounded_exit_anchor_observations", "prediction_hold_bps"),
@@ -1662,7 +1690,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                                           else "gx1_prefix_final_online_prediction_observation_v1"),
                 "role": role, "cohort": cohort, "model_state_sha256": expected,
                 "target_model_state_sha256": target_hash, "diagnostics": diagnostics,
-                "optimizer_steps": optimizer_steps, "test_data_used": False}
+                "optimizer_steps": optimizer_steps, "test_data_used": False, **entry_evidence}
             path = out / (role.upper() + "_OBSERVATION.json")
             trainer._candidate_training_session_atomic_write_json(path, report)
             observations[role] = {"path": str(path), "sha256": val.file_sha256(path)}
@@ -1682,7 +1710,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         "measurement_binding_result": scope["artifacts"]["measurement_binding_result"],
         "training_pointer_sha256": before, "model_state_sha256": expected,
         "target_model_state_sha256": target_hash, "observations": observations,
-        "model_functions": dict(functions), **source_binding,
+        "model_functions": dict(functions), **source_binding, **entry_evidence,
         "measurement_roles": list(observations),
         "optimizer_steps": optimizer_steps, "teacher_refreshed": False, "economic_rollout": False,
         "test_data_used": False, "elapsed_native_seconds": time.monotonic() - invocation_started}

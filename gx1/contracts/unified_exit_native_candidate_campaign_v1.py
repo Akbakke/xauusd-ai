@@ -965,6 +965,9 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
         "out_bundle_dir": recipe.get("out_bundle_dir"), "source_bindings_sha256": recipe.get("source_bindings_sha256"),
         "optimizer_steps": 0, "max_invocations": 1, "teacher_refresh_allowed": False,
         "full_epoch_training_allowed": False, "full_val_allowed": False, "test_data_used": False}
+    if "entry_observed_market" in recipe:
+        from gx1.contracts.entry_observed_market_v1 import require_entry_observed_market_scope
+        expected["entry_observed_market"] = require_entry_observed_market_scope(recipe)["binding"]
     if "chronological_train_only_measurement" in recipe:
         if recipe["chronological_train_only_measurement"] is not True:
             raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
@@ -1059,6 +1062,14 @@ def require_chronological_learning_measurement(recipe):
     model_source = "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
     if initial.get("source_bindings", {}).get(model_source) != file_sha256(repo / model_source):
         raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_MODEL_SOURCE_CHANGED")
+    entry_identity = None
+    if "entry_observed_market" in recipe:
+        from gx1.contracts.entry_observed_market_v1 import (
+            require_entry_observed_market_scope, entry_observed_market_identity,
+        )
+        entry_identity = entry_observed_market_identity(require_entry_observed_market_scope(recipe))
+    if result.get("entry_observed_market") != entry_identity:
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_ENTRY_TARGET_IDENTITY_MISMATCH")
     initial_roles = set(result.get("observations", {}))
     allowed_roles = ({"train"}, {"train", "control"}) if recipe.get("chronological_train_only_measurement") is True else ({"train", "control"},)
     if (audit.get("schema_version") != "gx1_native_prefix_initial_measurement_audit_v1"
@@ -1087,6 +1098,7 @@ def require_chronological_learning_measurement(recipe):
         observed[role] = observation
         cohort = observation.get("cohort", {})
         if (observation.get("role") != role or observation.get("optimizer_steps") != 0
+                or observation.get("entry_observed_market") != entry_identity
                 or observation.get("model_state_sha256") != expected
                 or observation.get("target_model_state_sha256") != expected
                 or observation.get("test_data_used") is not False
@@ -1209,6 +1221,9 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
                 "optimizer_steps":ceiling, "maximum_trained_entry_rows":ceiling * 16, "max_invocations":windows,
                 "final_model_variant":"ONLINE", "teacher_refresh_allowed":False,
                 "full_epoch_training_allowed":False, "full_val_allowed":False, "test_data_used":False}
+    if "entry_observed_market" in recipe:
+        from gx1.contracts.entry_observed_market_v1 import require_entry_observed_market_scope
+        expected["entry_observed_market"] = require_entry_observed_market_scope(recipe)["binding"]
     if continuation:
         expected["chronological_learning_continuation"] = continuation["plan_binding"]
         if windows != 1: raise RuntimeError("NATIVE_PREFIX_CONTINUATION_INVOCATION_INVALID")
@@ -1540,6 +1555,14 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "entry_observed_market" in recipe and (
+            "chronological_prefix" not in recipe
+            or sum(key in recipe for key in ("chronological_initial_measurement", "chronological_learning_measurement")) != 1
+            or any(key in recipe for key in ("frozen_train_policy_evaluation", "frozen_entry_selector_probe",
+                "entry_gradient_diagnostic", "chronological_entry_baseline", "chronological_learning_continuation",
+                "chronological_train_only_measurement", "candidate_resume_origin", "frozen_readout_evaluation",
+                "native_calibration"))):
+        raise RuntimeError("NATIVE_OBSERVED_ENTRY_MIXED_OR_UNMEASURED_SCOPE")
     if "frozen_train_policy_evaluation" in recipe or "frozen_entry_selector_probe" in recipe:
         scope = require_frozen_train_policy_evaluation(recipe, invocation_number=invocation_number,
                                                       execution_budget=execution_budget)

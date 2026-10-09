@@ -46,10 +46,33 @@ uten Exit-lærer i fasiten. Exit-tap skal heller ikke endre Entry gjennom
 delte encodere. Lær og kontroller Entry først; senere Exit-trening må bevare
 den godkjente Entry-funksjonen innen samme bundle og genuine featuregrunnlag.
 
-Dette er vedtatt retning, ikke ferdig implementasjon. Kontroller eksisterende
-direkte M1-utfall, multihorisont-forecasts og risiko-heads før den minste
-nødvendige mål-/gradientendringen. Konfidens må dokumenteres på senere
-kontrollperioder; rå bps eller softmax er ikke i seg selv kalibrert sikkerhet.
+Entry-fasen er nå implementert og kontrollert i native-koden. Eksplisitt
+recipe-felt entry_observed_market binder
+configs/research/NATIVE_ENTRY_OBSERVED_MARKET_20261009.json. Entry LONG/SHORT
+lærer observerte, gjennomførbare BID/ASK-markouts ved den eksisterende
+TRAIN-eide horisonten19 M5-barer /95min, netto under deklarert kostpolicy.
+Spread ligger i prisutfallet; øvrig rundtur koster4bps og LONG-finansiering
+ca.0,102774bps ved95min. Negative utfall beholdes og FLAT=0. Dette er rå
+bps-regresjon, ikke optimal Q eller kalibrert sannsynlighet. Ingen ny
+horisont-/terskel-/tapsvektsøk. Alle47 genuine hjelpetargets er uendret.
+
+Entry-only train_epoch kaller verken Exit-trening eller TARGET for fasiten.
+Exit-spesifikke parametere skal ha grad=None før hvert optimizersteg,
+slik at også AdamW holder dem urørt. Delte encodere lærer fra Entry.
+Samme målidentitet bindes i datasett, recipe, varig checkpoint og måling;
+gamle teacher-baserte baselines og resume med endret target avvises.
+Ny initialmåling er ennå ikke kjørt. Senere Exit-trening med låst, godkjent
+Entry er fortsatt en separat uimplementert og ikke-admittert fase.
+
+REPO_AUDIT_20261009_001/ENTRY_OBSERVED_IMPLEMENTATION_REVIEW_001.json
+binder fokuserte tester, ekte targetkontroller og gjenværende avgrensning.
+Ekte datakobling bestod for652552 TRAIN-rader og256 låste CONTROL-rader;
+alle47 hjelpetargetkolonner forble identiske. Testene viser uendret Exit
+under AdamW, stopp av bevisst gradientlekkasje før steg, modellens faktiske
+gradientkobling med små syntetiske sekvenser og eksakt syntetisk resume.
+Dette er teknisk bevis; ingen produksjonsoptimizersteg eller ny læring.
+
+Konfidens og stabilitet må dokumenteres på senere kontrollperioder.
 En target-horisont er aldri maksimal holdetid eller en ny lukkeregel.
 
 Gammel fasit brukte observerte referanseutfall pluss fryst, utrent Exit TARGET
@@ -65,9 +88,9 @@ ingen chronological_learning_run er åpen. Planen skal ikke relanseres eller
 stille få nye targets. Nullmålingen og checkpointet bevares som historisk
 bevis. Ny funksjon/mål krever en ny bundet initialbaseline og smoke-recipe.
 
-Neste steg er å fullføre/teste den uavhengige mål- og gradientkontrakten,
-binde eksakte targets/kostnader/kausale klokker, deretter måle ny baseline
-og ett begrenset native smoke-forsøk. Samme3t20-vinduer og omstartskontroll.
+Neste steg er å binde og måle ny native baseline for det uavhengige
+Entry-målet, deretter ett begrenset Entry-only smoke-forsøk. Bevar den
+opprinnelige mål- og referansekontrakten for historiske Exit-diagnoser. Samme3t20-vinduer og omstartskontroll.
 Større trening krever faktisk læring, stabilitet og kostnadsjustert evidens;
 TRAIN-tilpasning, senere kontroll og samlet økonomi holdes atskilt.
 CONTROL/Juni2026 er gjenbrukt utvikling; TEST forblir forseglet.

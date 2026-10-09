@@ -1,0 +1,94 @@
+{
+  "chronological_prefix": {
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
+      "sha256": "6b3be86ba001dee31b9d0d02ad3385835a8ea34defc2f569d39d0269cb3b9f13"
+    },
+    "labels_result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+      "sha256": "9dcc1fa930534aeeee26410a569083f9956f3cbf2637e5faaf09a58fd88436df"
+    },
+    "native_coordinates": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COORDINATES_001/NATIVE_COORDINATES.json",
+      "sha256": "51ee650e37051b6c27087b78ad840ac8b87996dbf3d1c0005f325efd21e283a4"
+    },
+    "normalization_result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+      "sha256": "3605e8bdc3040fddc70d5fffab19be254b23dcd41e71389639d23eb890af2211"
+    }
+  },
+  "exit_updates_entry": false,
+  "files": {
+    "entry_train_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN_RECOVERY_001/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json",
+      "sha256": "d1f44fd0ee979a1b8052e17939abc0c46612b43e275c1791ec86318801a31764"
+    },
+    "entry_train_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN_RECOVERY_001/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.parquet",
+      "sha256": "9457938800191eb53c9de34eedce04e9029d392e43bb49d5b26ddfa84023593a"
+    },
+    "entry_val_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN_RECOVERY_001/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json",
+      "sha256": "b0e428f99400b4a1b5232725b0dc69c944e1aad9d545d4bf35a5bec8bd009055"
+    },
+    "entry_val_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V38_20261007/CHAIN_RECOVERY_001/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.parquet",
+      "sha256": "2e2f8fb414044cad520703806774d5e0d6c612a8c4d046e4e68157f994bbca8d"
+    },
+    "train_cost_authority": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/POLICY/parameter_authority.json",
+      "sha256": "54775694d3e102b8bdf4358ce4a8f72e4fd9fa6b98310e109c07e6b872052681"
+    }
+  },
+  "native_launch_authorized": false,
+  "schema_version": "gx1_entry_observed_market_v1_learning_design",
+  "target_contract": {
+    "action_order": [
+      "LONG",
+      "SHORT",
+      "FLAT"
+    ],
+    "capital_hurdle_is_cash_cost": false,
+    "contract_sha256": "95a48fb5ab2d3f3f6080403069d7cb62d8113320b8dacf7f1d32b125fbba7af2",
+    "exit_model_used": false,
+    "flat_target_bps": 0.0,
+    "future_outcomes_used_as_model_inputs": false,
+    "gross_target_columns": [
+      "y_long_final_pnl_at_direction_horizon_bps",
+      "y_short_final_pnl_at_direction_horizon_bps"
+    ],
+    "hindsight_best_exit_used": false,
+    "holding_time_limit": false,
+    "horizon_source": "frozen_TRAIN_causal_m1_policy.selected_direction_horizon_bars",
+    "horizon_unit_seconds": 300,
+    "negative_outcomes_clipped": false,
+    "quote_contract": {
+      "entry_decision_time": "authoritative_m5_bar_close_available_at",
+      "entry_fill_binding": "exact_m1_quote_time_and_bid_ask",
+      "long_entry_price": "ask_open_first_authoritative_m1_at_or_after_entry_decision",
+      "long_exit_price": "bid_open_first_authoritative_m1_at_or_after_fitted_exit_decision",
+      "long_pnl_bps_formula": "(exit_bid-entry_ask)/entry_ask*10000",
+      "missing_or_gapped_m1_path": "label_invalid_not_price_substituted",
+      "path_extrema": "authoritative_m1_bid_ask_ohlc_between_fill_and_exit",
+      "schema_version": "entry_causal_m1_outcomes_v2_entry_notional_pnl",
+      "short_entry_price": "bid_open_first_authoritative_m1_at_or_after_entry_decision",
+      "short_exit_price": "ask_open_first_authoritative_m1_at_or_after_fitted_exit_decision",
+      "short_pnl_bps_formula": "(entry_bid-exit_ask)/entry_bid*10000",
+      "target_affects_feature_availability": false
+    },
+    "reference_horizon_search_allowed": false,
+    "retained_forecast_horizons_m5": [
+      1,
+      5,
+      12,
+      24
+    ],
+    "schema_version": "gx1_entry_observed_market_v1",
+    "score_is_calibrated_probability": false,
+    "serving_authority_granted": false,
+    "target": "observed_executable_terminal_cash_return_net_of_declared_costs",
+    "target_unit": "raw_bps"
+  },
+  "test_data_used": false,
+  "training_phase": "entry_only"
+}

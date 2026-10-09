@@ -5804,6 +5804,10 @@ class EntryV10CtxDataset(Dataset):
                 "ctx_cont": torch.tensor(ctx_cont),
                 "ctx_cat": torch.tensor(ctx_cat),
             }
+            observed_targets = getattr(self, "_entry_observed_market_targets", None)
+            if observed_targets is not None:
+                # Output supervision only; never append future outcomes to inputs.
+                out_batch["entry_observed_market_target_bps"] = torch.tensor(observed_targets[t])
             # Every active target was validated in __init__ and is read
             # directly. There are no aliases, defaults, or compatibility rows.
             for target_name in _MODEL_NATIVE_ACTIVE_TARGET_COLS:
@@ -9543,6 +9547,14 @@ def train_epoch(
     if not isinstance(dataset, EntryV10CtxDataset):
         raise RuntimeError("[UNIFIED_EXIT_TRAIN_DATASET_INVALID]")
     entry_gradient_boundary_kwargs = _entry_training_gradient_boundary_kwargs(dataset)
+    observed_entry = getattr(dataset, "_entry_observed_market_binding", None)
+    entry_only = observed_entry is not None
+    if entry_only:
+        from gx1.contracts.entry_observed_market_v1 import (
+            entry_observed_market_batch_targets, require_entry_only_gradients,
+        )
+        if observed_entry["identity"]["training_phase"] != "entry_only":
+            raise RuntimeError("[ENTRY_OBSERVED_MARKET_TRAIN_PHASE_INVALID]")
     _accum_steps = int(grad_accum_steps)
     if _accum_steps < 1:
         raise RuntimeError(
@@ -9702,80 +9714,91 @@ def train_epoch(
         _profile_entry_online_forward = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
         )
-        with torch.no_grad():
-            target_out = _model_forward_fp32(
-                target_model,
-                seq_x,
-                snap_x,
-                ctx_cat=ctx_cat,
-                ctx_cont=ctx_cont,
-                **_multi_tf_kwargs_from_batch(batch, seq_x.device),
-            )
-        _profile_entry_target_forward = (
-            _synchronized_exit_profile_clock(device) if _profile_timing else None
-        )
-        if not _first_batch_logged:
-            log.info("[TRAIN_RSS] before_exit_loss rss_gib=%.2f", _train_rss_gib())
         entry_representations = out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
-        target_entry_representations = target_out.get(
-            UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
-        )
         entry_row_indices = batch.get("entry_row_index")
-        if (
-            not isinstance(entry_representations, torch.Tensor)
-            or not isinstance(target_entry_representations, torch.Tensor)
-            or not isinstance(entry_row_indices, torch.Tensor)
-        ):
+        if not isinstance(entry_row_indices, torch.Tensor):
             raise RuntimeError("[UNIFIED_EXIT_TRAIN_ENTRY_EVIDENCE_MISSING]")
-        (
-            exit_entry_gradients,
-            unified_exit_stats,
-            entry_action_q_targets,
-            entry_action_q_valid,
-        ) = (
-            _train_unified_exit_full_population(
-                model=model,
-                target_model=target_model,
-                entry_decision_representations=entry_representations,
-                target_entry_decision_representations=(
-                    target_entry_representations
-                ),
-                entry_row_indices=entry_row_indices,
-                dataset=dataset,
-                device=device,
-                grad_accum_steps=_accum_steps,
-                exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
-                exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
-                profile_timing=_profile_timing,
-                exit_action_forward_chunk_rows=(
-                    session_exit_action_forward_chunk_rows
-                    if (
-                        session_max_optimizer_steps is not None
-                        or getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None
-                    )
-                    else (
-                        (
-                            unified_exit_chunk_rows(
-                                _TRAINING_PRECISION_POLICY, batch_size=batch_rows
-                            )
-                            if _TRAINING_PRECISION_POLICY
-                            == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH
-                            else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
-                        )
-                        if device.type == "cuda"
-                        else None
-                    )
-                ),
+        if entry_only:
+            entry_action_q_targets, entry_action_q_valid = entry_observed_market_batch_targets(batch, device=device)
+            unified_exit_stats = None
+            _profile_entry_target_forward = (
+                _synchronized_exit_profile_clock(device) if _profile_timing else None
             )
-        )
+        else:
+            with torch.no_grad():
+                target_out = _model_forward_fp32(
+                    target_model,
+                    seq_x,
+                    snap_x,
+                    ctx_cat=ctx_cat,
+                    ctx_cont=ctx_cont,
+                    **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+                )
+            _profile_entry_target_forward = (
+                _synchronized_exit_profile_clock(device) if _profile_timing else None
+            )
+            if not _first_batch_logged:
+                log.info("[TRAIN_RSS] before_exit_loss rss_gib=%.2f", _train_rss_gib())
+            entry_representations = out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
+            target_entry_representations = target_out.get(
+                UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
+            )
+            entry_row_indices = batch.get("entry_row_index")
+            if (
+                not isinstance(entry_representations, torch.Tensor)
+                or not isinstance(target_entry_representations, torch.Tensor)
+                or not isinstance(entry_row_indices, torch.Tensor)
+            ):
+                raise RuntimeError("[UNIFIED_EXIT_TRAIN_ENTRY_EVIDENCE_MISSING]")
+            (
+                exit_entry_gradients,
+                unified_exit_stats,
+                entry_action_q_targets,
+                entry_action_q_valid,
+            ) = (
+                _train_unified_exit_full_population(
+                    model=model,
+                    target_model=target_model,
+                    entry_decision_representations=entry_representations,
+                    target_entry_decision_representations=(
+                        target_entry_representations
+                    ),
+                    entry_row_indices=entry_row_indices,
+                    dataset=dataset,
+                    device=device,
+                    grad_accum_steps=_accum_steps,
+                    exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
+                    exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+                    profile_timing=_profile_timing,
+                    exit_action_forward_chunk_rows=(
+                        session_exit_action_forward_chunk_rows
+                        if (
+                            session_max_optimizer_steps is not None
+                            or getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None
+                        )
+                        else (
+                            (
+                                unified_exit_chunk_rows(
+                                    _TRAINING_PRECISION_POLICY, batch_size=batch_rows
+                                )
+                                if _TRAINING_PRECISION_POLICY
+                                == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH
+                                else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
+                            )
+                            if device.type == "cuda"
+                            else None
+                        )
+                    ),
+                )
+            )
         _profile_exit_train = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
         )
-        unified_exit_loss = torch.tensor(
+        unified_exit_loss = (None if entry_only else torch.tensor(
             float(unified_exit_stats["raw_loss"]),
             device=device,
             dtype=entry_representations.dtype,
-        )
+        ))
         entry_action_q_bps = out["entry_action_q_bps"]
         if (
             not isinstance(entry_action_q_bps, torch.Tensor)
@@ -9827,7 +9850,7 @@ def train_epoch(
         for task_name in task_losses:
             task_supervision_observed[task_name] = True
         loss, _joint_task_stats = _joint_task_loss(model, task_losses)
-        exit_supervised = int(unified_exit_stats["q_valid_cells"]) > 0
+        exit_supervised = not entry_only and int(unified_exit_stats["q_valid_cells"]) > 0
         if exit_supervised:
             task_supervision_observed["unified_exit_action"] = True
             exit_log_variance = model.task_log_variances[
@@ -9864,7 +9887,16 @@ def train_epoch(
             scaled_main_loss = scaled_main_loss + (
                 entry_representations * exit_entry_gradients
             ).sum()
-        if (session_max_optimizer_steps is not None and _learning_diagnostics is None
+        if entry_only and _learning_diagnostics is None:
+            _learning_diagnostics = {
+                "schema_version": "gx1_entry_observed_market_first_batch_v1",
+                "scope": "first_batch_only_not_learning_or_profitability_evidence",
+                "target_identity": observed_entry["identity"],
+                "batch_offset": _absolute_batch_i, "batch_rows": batch_rows,
+                "entry_raw_bps_mse": float(entry_action_q_loss.detach()),
+                "exit_training_forwards": 0, "exit_teacher_used_for_entry_targets": False,
+            }
+        if (not entry_only and session_max_optimizer_steps is not None and _learning_diagnostics is None
                 and unified_exit_stats.get("random_access_value_coordinates")
                 == "advantage_over_executable_liquidation_bps"):
             weighted_tasks = {
@@ -9893,6 +9925,8 @@ def train_epoch(
             _synchronized_exit_profile_clock(device) if _profile_timing else None
         )
         scaled_main_loss.backward()
+        if entry_only:
+            require_entry_only_gradients(model)
         _main_backward_finished = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
         )
@@ -10061,27 +10095,28 @@ def train_epoch(
         trendline_resistance_rows_sum += int(
             trendline_stats["trendline_resistance_rows"]
         )
-        _exit_rows = int(unified_exit_stats["q_valid_cells"])
-        unified_exit_loss_sum += (
-            float(unified_exit_loss.detach().cpu().item()) * _exit_rows
-        )
-        unified_exit_population_rows += int(
-            unified_exit_stats["population_rows"]
-        )
-        unified_exit_rows += _exit_rows
-        unified_exit_tied_rows += int(
-            unified_exit_stats["target_equivalent_action_rows"]
-        )
-        unified_exit_eligible_entry_rows += int(
-            unified_exit_stats["eligible_entry_rows"]
-        )
-        unified_exit_hold_rows += int(unified_exit_stats["hold_target_greedy_rows"])
-        unified_exit_now_rows += int(
-            unified_exit_stats["exit_now_target_greedy_rows"]
-        )
-        unified_exit_correct += int(
-            unified_exit_stats["unique_target_action_agreement_rows"]
-        )
+        if not entry_only:
+            _exit_rows = int(unified_exit_stats["q_valid_cells"])
+            unified_exit_loss_sum += (
+                float(unified_exit_loss.detach().cpu().item()) * _exit_rows
+            )
+            unified_exit_population_rows += int(
+                unified_exit_stats["population_rows"]
+            )
+            unified_exit_rows += _exit_rows
+            unified_exit_tied_rows += int(
+                unified_exit_stats["target_equivalent_action_rows"]
+            )
+            unified_exit_eligible_entry_rows += int(
+                unified_exit_stats["eligible_entry_rows"]
+            )
+            unified_exit_hold_rows += int(unified_exit_stats["hold_target_greedy_rows"])
+            unified_exit_now_rows += int(
+                unified_exit_stats["exit_now_target_greedy_rows"]
+            )
+            unified_exit_correct += int(
+                unified_exit_stats["unique_target_action_agreement_rows"]
+            )
         n += bs
         _loader_wait_started = time.perf_counter()
 
@@ -10093,7 +10128,7 @@ def train_epoch(
             observed_steps=_accum_count,
             weight_ema=weight_ema,
         )
-    if (
+    if not entry_only and (
         unified_exit_rows <= 0
         or unified_exit_hold_rows <= 0
         or unified_exit_now_rows <= 0
@@ -10114,7 +10149,7 @@ def train_epoch(
         "trendline_support_rows": int(trendline_support_rows_sum),
         "trendline_resistance_rows": int(trendline_resistance_rows_sum),
         "unified_exit_raw_bps_q_mse_mean": (
-            unified_exit_loss_sum / unified_exit_rows
+            None if entry_only else unified_exit_loss_sum / unified_exit_rows
         ),
         "unified_exit_population_rows": int(unified_exit_population_rows),
         "unified_exit_q_valid_cells": int(unified_exit_rows),
@@ -10144,11 +10179,15 @@ def train_epoch(
         stats["candidate_learning_diagnostics"] = _learning_diagnostics
     stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
     stats.update(_finalize_feature_tf_gate_epoch(feature_tf_gate_epoch))
-    exit_gate_stats, _exit_gate_failures = _finalize_unified_exit_gate_epoch(
-        exit_cooperation_gate_epoch,
-        exit_feature_tf_gate_epoch,
-    )
-    stats.update(exit_gate_stats)
+    if entry_only:
+        stats["entry_observed_market"] = observed_entry["identity"]
+        stats["exit_training_active"] = False
+    else:
+        exit_gate_stats, _exit_gate_failures = _finalize_unified_exit_gate_epoch(
+            exit_cooperation_gate_epoch,
+            exit_feature_tf_gate_epoch,
+        )
+        stats.update(exit_gate_stats)
     if int(performance_warmup_optimizer_steps) > 0:
         measured_optimizer_steps = (
             _optimizer_steps_this_call - int(performance_warmup_optimizer_steps)
@@ -13175,6 +13214,15 @@ def _prefix_candidate_training_binding(
         "input_normalization_sha256": input_normalization["contract_sha256"],
         "composite_normalization_sha256": normalization_identity["composite_normalization_sha256"],
     }
+    observed = [getattr(dataset, "_entry_observed_market_binding", None) for dataset in (train_ds, val_ds)]
+    if any(value is not None for value in observed):
+        if (physical is None or any(not isinstance(value, Mapping) for value in observed)
+                or observed[0]["identity"] != observed[1]["identity"]
+                or [value["role"] for value in observed] != ["TRAIN", "CONTROL256"]
+                or any(value["physical_source"] != physical["physical_sources"][split]
+                       for value, split in zip(observed, ("train", "val")))):
+            raise RuntimeError("[CANDIDATE_PREFIX_OBSERVED_ENTRY_BINDING_MISMATCH]")
+        binding["entry_observed_market"] = {"train": observed[0], "control": observed[1]}
     return binding, parents, torch.as_tensor(order.copy())
 
 

@@ -697,14 +697,23 @@ def _entry_representations(
                             start_state_indices=[i for row in offsets for i in row], device=device,
                             reference_policy=coherent_reference["reference_policy"],
                             reference_cutoff_time_ns=coherent_reference["reference_cutoff_time_ns"]))
-                targets, target_valid, anchor_binding = _candidate_anchor_targets(
-                    target_model=candidate_target_model, target_entry_output=target_output,
-                    state_factory=candidate_state_factory,
-                    child_rows=candidate_child_rows[consumed:consumed + len(observed_rows)],
-                    device=device,
-                    **({"reference_hold_targets":reference_hold_targets,
-                        "reference_policy":coherent_reference["reference_policy"]} if coherent_reference is not None else {}),
-                )
+                observed_entry = getattr(dataset, "_entry_observed_market_binding", None)
+                if observed_entry is not None:
+                    from gx1.contracts.entry_observed_market_v1 import entry_observed_market_batch_targets
+                    targets, target_valid = entry_observed_market_batch_targets(batch, device=device)
+                    anchor_binding = {"binding_sha256": canonical_sha256({
+                        "dataset": observed_entry, "parent_rows": observed_rows,
+                        "observed_net_target_bps": targets.cpu().tolist(),
+                    })}
+                else:
+                    targets, target_valid, anchor_binding = _candidate_anchor_targets(
+                        target_model=candidate_target_model, target_entry_output=target_output,
+                        state_factory=candidate_state_factory,
+                        child_rows=candidate_child_rows[consumed:consumed + len(observed_rows)],
+                        device=device,
+                        **({"reference_hold_targets":reference_hold_targets,
+                            "reference_policy":coherent_reference["reference_policy"]} if coherent_reference is not None else {}),
+                    )
                 _accumulate_active_head_epoch(
                     active_heads, model,
                     {**output, "_entry_action_q_target": targets, "_entry_action_q_valid": target_valid},
@@ -761,8 +770,11 @@ def _entry_representations(
         head_stats, _ = _active_head_epoch_diagnostics(active_heads)
         diagnostics["candidate_active_head_evidence"] = {
             **head_stats,
-            "entry_q_target_semantics": (coherent_reference["semantics"] if coherent_reference is not None
+            "entry_q_target_semantics": (observed_entry["identity"]["target_contract"]["target"] if observed_entry is not None
+                                         else coherent_reference["semantics"] if coherent_reference is not None
                                          else "frozen_train_target_exit_first_state_values_long_short_flat"),
+            **({"entry_observed_market": observed_entry, "exit_model_used_for_entry_targets": False}
+               if observed_entry is not None else {}),
             **({"reference_measurement":coherent_reference} if coherent_reference is not None else {}),
             "target_model_state_sha256": canonical_model_state_sha256(candidate_target_model.state_dict()),
             "anchor_batch_binding_sha256": anchor_bindings,

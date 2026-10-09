@@ -1,6 +1,7 @@
 # Læringsport for GX1
 
-Dagens v38-modell har ingen ny initial-/læringsmåling. Samlet læring,
+Det uavhengige Entry-målet fra09.10 har ennå ingen native initial-/læringsmåling.
+Den fullførte nullmålingen med gammel Exit-basert Entry-fasit er historisk bevis. Samlet læring,
 generalisering og positiv kostnadsjustert økonomi er ubevist.
 Nåstatus og launchomfang eies av NEXT_RUN_POLICY.json, ikke historiske resultater.
 
@@ -25,9 +26,20 @@ Nåstatus og launchomfang eies av NEXT_RUN_POLICY.json, ikke historiske resultat
    Ingen terskel velges etter resultatet. Effekt, baselines, variasjon og
    usikkerhet avgjør; uklart utfall er ikke PASS og åpner ingen utvidelse.
 
-For v38 gjelder fryst TRAIN256 og CONTROL256, høyst 4096 Entries/256 optimizersteg,
-før eventuell separat, endelig budsjettregistrering. Disse fasene er ennå ikke
-utført. Ingen full epoch/full VAL eller automatisk utvidelse er åpnet.
+Operatørens designskifte09.10 bruker en eksplisitt Entry-only fase. Dens
+fasit er observert BID/ASK-markout netto under bundet kostpolicy ved den
+opprinnelige TRAIN-eide horisonten; ingen Exit-modell inngår i Entry-targetet.
+Eksisterende multihorisont- og risiko-hjelpemål består. I denne fasen gjelder
+de parvise læringskravene Entry LONG/SHORT og deres retningskontrast.
+Exit-målinger er rapporterte diagnoser, ikke et krav om eller bevis for
+Exit-læring uten Exit-optimizersteg. Større Entry-trening krever at Entry-
+læring, stabilitet, usikkerhet og driftskontroller består. Dette åpner ikke
+samlet Entry/Exit-port: den krever separat Exit-trening som bevarer godkjent
+Entry-funksjon, og etterfølgende komplett økonomivurdering.
+
+For v38 gjelder fryst TRAIN256 og CONTROL256, høyst4096 Entries/256 optimizersteg,
+før eventuell separat, endelig budsjettregistrering. Den nye målbaselinen og
+smoke-fasen er ennå ikke utført. Ingen full epoch/full VAL eller automatisk utvidelse er åpnet.
 
 ## Generalisering og økonomi
 
