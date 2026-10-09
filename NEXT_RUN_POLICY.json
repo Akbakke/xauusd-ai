@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-09T10:50:17.290017+00:00",
-  "status": "V38_PREPROCESSING_COMPLETE_HOST_RESTART_VERIFIED_NATIVE_WINDOW_UNBOUND_GC_PAUSED",
+  "status": "V38_FRESH_COMPONENT_PREPARATION_REPO_REVIEW_COMPLETE_NATIVE_WINDOW_UNBOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Reuse completed inputs, capacity and coordinates. Physical Windows restart and source/artifact hashes are verified; recheck host/GPU gates for next invocation. Bind current native recipe/window and fresh ONLINE/TARGET, then one <=256-step/4096-TRAIN smoke with paired TRAIN256/CONTROL256. Keep the operator-selected existing 12000-second window; measure durable resume and save/load timing before larger segmented training. No budget reset, larger training/fullVAL/TEST/GC/broker/spending or unadmitted deletion.",
+  "next_action": "Execute the single hash-bound CPU fresh-component plan in current_work.native_component_preparation_20261009 under its 1800-second/20G producer scope; no forwards or optimizer steps. Then bind the canonical zero-step native recipe/window and fresh host/GPU admission, followed by the separately bound <=256-step/4096-TRAIN smoke and paired TRAIN256/CONTROL256 review. Retain 12000-second windows, durable step-boundary wall pauses and whole-host idle review before each physical restart. Larger training remains gated; TEST/GC/broker/spending remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -134,7 +134,7 @@
     "sampler_selected": true,
     "physical_native_preprocessing_complete": true,
     "native_training_coordinates_published": true,
-    "native_component_preparation_authorized": false,
+    "native_component_preparation_authorized": true,
     "test_data_used": false,
     "cleanup_report": "CURRENT_HANDOVER.md",
     "repository_cleanup_complete": true,
@@ -181,14 +181,14 @@
       "status": "active",
       "created_utc": "2026-10-09T13:22:42Z",
       "scope": "Whole current repository review and minimal measured fixes; reuse complete v38 inputs; bind fresh native initialization, initial measurement, <=256-step/4096-Entry smoke and TRAIN256/CONTROL256 learning review; larger finite training only after learning and operational gates. Existing 12000-second windows and safe terminal-bound physical reboots.",
-      "current_stage": "WHOLE_REPOSITORY_REVIEW_AND_NATIVE_COMPONENT_BINDING",
+      "current_stage": "FRESH_NATIVE_COMPONENT_PREPARATION",
       "large_training_admitted": false,
       "test_access_authorized": false,
       "broker_trading_spending_authorized": false,
       "gc_resumed": false
     },
     "repository_review_20261009": {
-      "status": "IN_PROGRESS",
+      "status": "COMPLETE_FOR_PRE_SMOKE",
       "static_inventory": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/STATIC_AUDIT.json",
         "sha256": "d3e54084c417693f6b8f4d9debddc807da01f6633d845f9ed82b620a61d60991"
@@ -199,14 +199,111 @@
       "missing_local_import_modules": 0,
       "missing_markdown_links": 0,
       "confirmed_defects": [
-        "Write guard missing os import; reproduced and repaired with same event."
+        "Write guard missing os import; same-event reproduction and minimal repair.",
+        "Windows task deadline 3h was shorter than native 3h20 and outer guard 3h50; installer now verifies 4h.",
+        "Native wall pause was only checked at checkpoint cadence; reproduced and moved to every completed optimizer step with durable save only when due.",
+        "Controller could reboot without whole-host idle proof; it now preserves the terminal boundary for existing external prepare/confirm reboot after fresh machine-wide review.",
+        "Retention launch root had stale NEXT_RUN_POLICY hash; synchronized with policy edits."
       ],
-      "pending": [
-        "Triage deferred-closure lint warnings with existing diagnostic tests",
-        "PowerShell parse and host/campaign checks",
-        "Whole repository test baseline and manual active-owner review",
-        "Actual current native component and recipe binding"
-      ]
+      "pending": [],
+      "baseline_source_commit": "96352895a4aced2fa6b1cd5e871a720457d0eb4b",
+      "baseline_results": [
+        {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/BASELINE_TESTS.xml",
+          "sha256": "fcdae0e2d101d59e6009d55a4044bb4b52285a93d525717ab104f57362cf3438"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/BASELINE_REMAINING_V4.xml",
+          "sha256": "065dc7e7ea4c64d296e27fd921a2536854f474b64314ca4fd21ef2e36d787de9"
+        }
+      ],
+      "baseline_tests": {
+        "passed": 6290,
+        "failed": 6,
+        "skipped": 3,
+        "successful_subtests": 14,
+        "previously_reported_cases_not_repeated": 5728
+      },
+      "baseline_terminals": [
+        {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/BASELINE_TERMINAL.json",
+          "sha256": "88f3e7adc3ef4a300a09b23f2fff96d820908792f6f4ff91d630ae45ca80fa6e"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/BASELINE_REMAINING_V4_TERMINAL.json",
+          "sha256": "d03d28e7150077a34d06066ff8003178a72f5d713f01febbddd9a5a8054e76fd"
+        }
+      ],
+      "test_mismatches": [
+        "Two legacy-token assertions confused the y_direction token with the current entry_direction_target_policy name.",
+        "Two frozen TRAIN fixtures predated the direct ONLINE norm check and TRAIN-context route.",
+        "Publication collision test incorrectly required deletion of failed staging; retention owner is authoritative."
+      ],
+      "closure_lint_triage": "Existing signal/representation runtime tests completed without failures; closures are bound before hooks run and deleted only after hook removal. No production refactor.",
+      "powershell_before_repairs": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/POWERSHELL_PARSE_20261009.json",
+        "sha256": "8f339633d89aa2ca0588619a0523826bac36575a73287c124f32cadefcd775bd"
+      },
+      "windows_runtime_before_repairs": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/POWERSHELL_HARDENING_20261009.log",
+        "sha256": "ca851cfbf73a220ca7b2b16ed20c8e5d2233d2ac369030e1e08400146f73fa46"
+      },
+      "windows_campaign_preflight": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/WINDOWS_CAMPAIGN_PREFLIGHT_20261009.json",
+        "sha256": "cfcfd2e6df6fd42fa3be49751013a58b8389a46259be3e65dbee670c3e577549"
+      },
+      "deadline_before_repair": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/DEADLINE_BEFORE.xml",
+        "sha256": "5d5bc384c0bd84fd0aa8a28a3481cd0e5fa4bf77b63e9b0a3293ca4da1932b9b"
+      },
+      "audit_driver_failures_preserved": true,
+      "focused_controls": [
+        {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/FOCUSED_REPAIRS.xml",
+          "sha256": "0fb62230f066a335b2e787b97297093004dcfe2dcc2706790367631b52e58965"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/FOCUSED_COORDINATOR_FINAL.xml",
+          "sha256": "4e3da3f5c05e44dab9e6959da638d198d6cdfa4e543747bda191b9009190dddf"
+        }
+      ],
+      "focused_result": "Six baseline failures corrected. Focused 517-case report had one checkpoint-hook compatibility failure; final 90-case coordinator/storage/prefix report corrected it with zero failures. Three CUDA-dependent checks remain skipped; genuine native smoke is separate.",
+      "powershell_after_repairs": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/POWERSHELL_PARSE_AFTER.json",
+        "sha256": "aa068ad2391c28df783dd75b0bf9177715ddce036a80717e3f499d00047dd45e"
+      },
+      "windows_runtime_after_repairs": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/POWERSHELL_HARDENING_AFTER.log",
+        "sha256": "8aa30bc13b04175fcf657c72d918b58be89887966e03b1dee7295d37999ea16d"
+      },
+      "deadline_full_state_resume_regression_passed": true,
+      "native_v38_resume_measured": false
+    },
+    "native_component_preparation_20261009": {
+      "authorized": true,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/PLAN.json",
+        "sha256": "e6a5ad06012755690f12de11b0beb8a6cd085453621fa32c3b7d013699f15ebc"
+      },
+      "operator": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/OPERATOR.py",
+        "sha256": "924e7ce42ef74109e709c6571d125960e976b09cb7ebe4875a32b1bb5459fa64"
+      },
+      "constructor_metadata": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/CONSTRUCTOR_METADATA.json",
+        "sha256": "9d1c9e38d92b5c2f93935ffde1ac67cae26d7b766e1d31855560255f4172aa76"
+      },
+      "scope": "One fresh CPU initialization through existing native component and checkpoint owners; zero forwards/optimizer steps/normalization refits, no inherited checkpoint weights.",
+      "max_wall_seconds": 1800,
+      "memory_max": "20G",
+      "swap_max": "512M",
+      "execution_class": "producer",
+      "gpu_visible": false,
+      "model_forwards": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false,
+      "completed_plan_relaunch_allowed": false,
+      "native_gpu_launch_admitted": false
     }
   },
   "gc_order_flow_research_20261006": {

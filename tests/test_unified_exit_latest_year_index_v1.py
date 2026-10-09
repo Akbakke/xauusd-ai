@@ -197,7 +197,12 @@ def test_index_publisher_preserves_a_late_empty_destination(tmp_path, monkeypatc
                         population_source_root_path=Path(fixture["source_root_binding"]["path"]))
     assert output.stat().st_ino == collision["inode"]
     assert list(output.iterdir()) == []
-    assert list(tmp_path.glob(".published.*")) == []
+    # Publication collisions preserve both the destination and failed evidence.
+    # Only the retention owner may later remove the failed staging directory.
+    stages = list(tmp_path.glob(".published.*"))
+    assert len(stages) == 1
+    staged_root = json.loads((stages[0] / "ROOT.json").read_text())
+    assert contract.require_latest_year_index_root(staged_root) == staged_root
 
 
 def test_index_publication_rejects_unexpected_staging_file(tmp_path):

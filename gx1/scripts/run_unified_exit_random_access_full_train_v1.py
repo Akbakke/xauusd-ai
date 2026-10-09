@@ -813,6 +813,7 @@ def run_guarded_native_candidate_invocation(
     prefix_mode = "chronological_prefix" in recipe
     output = Path(recipe["out_bundle_dir"])
     device = trainer._resolve_device("cuda")
+    component_started = time.monotonic()
     components = _build_bound_full_train_components(
         files=files, dataset_run_id=recipe["dataset_run_id"],
         seed_launch_path=None if prefix_mode else Path(recipe["seed_launch"]["path"]),
@@ -826,6 +827,9 @@ def run_guarded_native_candidate_invocation(
         **({"chronological_prefix":recipe["chronological_prefix"]} if prefix_mode else {}),
         **({"frozen_train_policy_scope":frozen_train_scope} if frozen_train_scope is not None else {}),
     )
+    print(json.dumps({"event": "NATIVE_COMPONENT_SETUP", "report_only": True,
+                      "component_wall_seconds": time.monotonic() - component_started,
+                      "invocation_elapsed_seconds": time.monotonic() - started}), flush=True)
     if not prefix_mode:
         smoke = val._read(Path(recipe["smoke_full_val"]["path"]))
         if components["seed_binding"]["model_state_sha256"] != smoke["checkpoint_binding"]["model_state_sha256"]:

@@ -257,7 +257,8 @@ def _component_chain(tmp_path, monkeypatch, physical=None):
 
     monkeypatch.setattr(runner.val.RandomAccessValStateFactoryV1,'from_artifacts',val_factory)
     def model(meta,normalization,device):
-        assert "control_context" in seen
+        expected_context = "train_context" if "frozen_train_policy_scope" in args else "control_context"
+        assert expected_context in seen
         seen["model_constructed"]=True
         return TinyModel(normalization)
     monkeypatch.setattr(runner.val,'_model',model)

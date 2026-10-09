@@ -7,14 +7,15 @@ INSTALLER = ROOT / "scripts/windows/Install-GX1RandomAccessCampaignV2.ps1"
 HARDENING_TEST = ROOT / "tests/windows/Test-GX1-RandomAccessCampaignV2Controller.ps1"
 
 
-def test_controller_uses_physical_reboot_and_transactional_cli() -> None:
+def test_controller_preserves_terminal_before_machine_wide_reboot_review() -> None:
     source = CONTROLLER.read_text(encoding="utf-8")
-    assert "shutdown.exe /r" in source
-    assert "shutdown.exe /r /t 60" in source
-    assert "'prepare-reboot'" in source
-    assert "'confirm-reboot'" in source
+    assert "REBOOT_REQUIRES_MACHINE_WIDE_IDLE_REVIEW" in source
+    assert "automatic_shutdown_requested = $false" in source
+    assert "shutdown.exe" not in source
+    assert "'prepare-reboot'" not in source
+    assert "'confirm-reboot'" not in source
     assert source.index("'begin'") < source.index("Start-Process -FilePath 'wsl.exe'")
-    assert source.index("'record'") < source.rindex("Request-Gx1PhysicalReboot")
+    assert source.index("'record'") < source.rindex("Write-Gx1RebootBoundary")
     assert "trainer.ExitCode" in source
     assert "observer.ExitCode" in source
     assert "$env:GX1_CAMPAIGN_PLAN_SHA256" in source
@@ -239,3 +240,16 @@ def test_cold_wsl_call_fits_real_boot_identity_parameter_range() -> None:
     requested = int(re.search(r"Write-Gx1BootIdentity -WslTimeoutMilliseconds (\d+)", initial)[1])
     assert 1 <= lower <= requested <= upper <= 30000
     assert "boot_identity_parameter_binding=PASS" in HARDENING_TEST.read_text(encoding="utf-8")
+
+
+def test_task_deadline_preserves_native_guard_and_terminal_margin() -> None:
+    import json
+    import re
+
+    source = INSTALLER.read_text(encoding="utf-8")
+    hours = int(re.search(r"\$taskExecutionLimit = New-TimeSpan -Hours (\d+)", source)[1])
+    policy = json.loads((ROOT / "NEXT_RUN_POLICY.json").read_text())
+    assert policy["native_invocation_seconds"] < policy["outer_guard_seconds"]
+    assert policy["outer_guard_seconds"] + 300 <= hours * 3600 <= 14400
+    assert "-ExecutionTimeLimit $taskExecutionLimit" in source
+    assert "registered.Settings.ExecutionTimeLimit" in source

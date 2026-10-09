@@ -135,7 +135,11 @@ def test_guarded_dispatch_never_calls_trainer(frozen_train,tmp_path,monkeypatch)
         assert kw["frozen_train_policy_scope"]["cohort"]==cohort and kw["val_limits"]==recipe["val_limits"]
         return components
     monkeypatch.setattr(runner,"_build_bound_full_train_components",build)
-    monkeypatch.setattr(runner.trainer,"_copy_frozen_prefix_reference_model",lambda m:copy.deepcopy(m))
+    # This minimal policy double tests dispatch; native norm validation has its own tests.
+    def require_online(candidate):
+        assert candidate is model
+        calls.append("online_function")
+    monkeypatch.setattr(runner.trainer,"_require_prefix_online_function",require_online)
     def forbidden(**kw):pytest.fail("frozen evaluation reached the trainer")
     monkeypatch.setattr(runner,"_run_bound_full_train_candidate",forbidden)
     def evaluate(**kw):
@@ -149,7 +153,7 @@ def test_guarded_dispatch_never_calls_trainer(frozen_train,tmp_path,monkeypatch)
     monkeypatch.setattr(runner.val,"evaluate_bound_full_val_v1",evaluate)
     result=runner.run_guarded_native_candidate_invocation(recipe_path=tmp_path/"recipe.json",recipe_file_sha256="a"*64,
         execution_budget_path=tmp_path/"budget.json",execution_budget_file_sha256="b"*64)
-    assert calls==["guard","evaluate"] and result["resume_state"]==state and result["bundle_written"] is False
+    assert calls==["guard","online_function","evaluate"] and result["resume_state"]==state and result["bundle_written"] is False
     observation=json.loads(Path(result["observation"]["path"]).read_text())
     assert observation["optimizer_steps"]==0 and observation["training_enabled"] is False
 

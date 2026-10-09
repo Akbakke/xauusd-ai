@@ -494,20 +494,19 @@ function Confirm-Gx1SignedHostTelemetryReady {
     }
     throw (Format-Gx1CompletedWslFailure -Context 'Canonical signed HostTelemetryBridgeV4 readiness probe failed after bounded retry' -Result $probeResult)
 }
-function Request-Gx1PhysicalReboot {
+function Write-Gx1RebootBoundary {
     param([object]$Boot)
-    $prepared = Invoke-Gx1Json -Arguments @(
-        'prepare-reboot', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
-        '--boot-json', $Boot.Linux
-    )
-    & shutdown.exe /r /t 60 /d p:0:0 /c 'GX1 random-access campaign requires a fresh physical Windows boot'
-    $shutdownExit = $LASTEXITCODE
-    if ($shutdownExit -ne 0) { throw 'shutdown.exe rejected physical reboot request' }
-    [void](Invoke-Gx1Json -Arguments @(
-        'confirm-reboot', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
-        '--request-nonce', [string]$prepared.intent.request_nonce,
-        '--shutdown-exit-code', [string]$shutdownExit
-    ))
+    # A completed CURRENT segment does not prove that other projects are idle.
+    # The operator checks the whole host before the existing prepare/confirm
+    # reboot transaction. The next physical boot resumes the finite campaign.
+    [ordered]@{
+        decision = 'REBOOT_REQUIRES_MACHINE_WIDE_IDLE_REVIEW'
+        plan_json = $PlanJson
+        plan_file_sha256 = $PlanFileSha256
+        boot_identity_path = $Boot.Linux
+        checkpoint_and_receipts_preserved = $true
+        automatic_shutdown_requested = $false
+    } | ConvertTo-Json -Compress
 }
 $bootstrapStage = 'mutex'
 try {
@@ -555,7 +554,7 @@ if ((-not $legacyPower -and -not $nativePower) -or
 }
 $bootstrapStage = 'campaign_action'
 if ($status.action.decision -ceq 'REBOOT_REQUIRED') {
-    Request-Gx1PhysicalReboot -Boot $boot
+    Write-Gx1RebootBoundary -Boot $boot
     exit 0
 }
 if ($status.action.decision -ceq 'COMPLETE' -or $status.action.decision -like 'BLOCKED*') {
@@ -669,5 +668,5 @@ if ($after.action.decision -ceq 'COMPLETE' -or $after.action.decision -like 'BLO
     exit 0
 }
 if ($after.action.decision -cne 'REBOOT_REQUIRED') { throw 'Campaign returned no admissible reboot' }
-Request-Gx1PhysicalReboot -Boot $boot
+Write-Gx1RebootBoundary -Boot $boot
 $recorded | ConvertTo-Json -Depth 16 -Compress

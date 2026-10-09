@@ -14332,6 +14332,7 @@ def _run_resumable_candidate_training(
         candidate_resume_origin if candidate_resume_origin is not None
         and candidate_resume_origin.get("inference_only_cpu_pipeline") is True else None
     )
+    resume_started = time.monotonic()
     restored_state = session.load_checkpoint()
     if restored_state is None and chronological_continuation is not None:
         restored_state = _load_prefix_continuation_state(session=session, continuation=chronological_continuation)
@@ -14422,6 +14423,11 @@ def _run_resumable_candidate_training(
             raise RuntimeError("[CANDIDATE_TRAINING_GLOBAL_STEP_MISMATCH]")
         if device.type == "cuda":
             torch.cuda.empty_cache()
+        log.info(
+            "[CANDIDATE_TRAINING_RESUME] global_optimizer_steps=%d next_batch_offset=%d "
+            "load_restore_wall_seconds=%.6f",
+            global_optimizer_steps, next_batch_offset, time.monotonic() - resume_started,
+        )
 
     if prefix_binding is not None and (
             epoch_index != 0 or phase != "train" or complete
@@ -14484,6 +14490,7 @@ def _run_resumable_candidate_training(
         advance_checkpoint: bool = True,
     ) -> None:
         nonlocal checkpoint_index, global_optimizer_steps
+        checkpoint_started = time.monotonic()
         # Candidate accumulation is frozen at one.  At each durable boundary
         # the completed optimizer count follows from the persisted epoch order
         # and offset; retaining it makes resume evidence independently auditable.
@@ -14526,7 +14533,8 @@ def _run_resumable_candidate_training(
         )
         log.info(
             "[CANDIDATE_TRAINING_CHECKPOINT] directory=%s checkpoint_index=%d "
-            "phase=%s epoch_index=%d next_batch_offset=%d global_optimizer_steps=%d complete=%d",
+            "phase=%s epoch_index=%d next_batch_offset=%d global_optimizer_steps=%d complete=%d "
+            "checkpoint_wall_seconds=%.6f",
             session.directory,
             int(checkpoint_index),
             phase_value,
@@ -14534,6 +14542,7 @@ def _run_resumable_candidate_training(
             int(batch_offset_value),
             int(global_optimizer_steps),
             int(bool(complete_value)),
+            time.monotonic() - checkpoint_started,
         )
         if not complete_value:
             _pause_if_due(
@@ -14684,6 +14693,16 @@ def _run_resumable_candidate_training(
             def _checkpoint_train_step(
                 *, next_batch_offset: int, complete_epoch: bool
             ) -> None:
+                actual_steps = int(epoch_index) * int(expected_train_batches) + int(next_batch_offset)
+                pause_due = execution_budget is not None and candidate_execution_pause_reason(
+                    execution_budget,
+                    global_optimizer_steps=actual_steps,
+                    completed_val_epochs=int(progress["checkpoint_selection"]["last_epoch"]),
+                    elapsed_seconds=time.monotonic() - invocation_started_monotonic,
+                ) is not None
+                if (execution_budget is not None and not complete_epoch and not pause_due
+                        and actual_steps - global_optimizer_steps < train_checkpoint_interval):
+                    return
                 _save(
                     phase_value="train",
                     epoch_value=epoch_index,
@@ -14723,7 +14742,7 @@ def _run_resumable_candidate_training(
                     if getattr(train_ds, "_unified_exit_lifecycle_v2", None) is not None
                     else (exit_chunk_rows if device.type == "cuda" else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS)
                 ),
-                session_checkpoint_every_optimizer_step=False,
+                session_checkpoint_every_optimizer_step=execution_budget is not None,
                 session_checkpoint_interval_optimizer_steps=(
                     train_checkpoint_interval
                 ),

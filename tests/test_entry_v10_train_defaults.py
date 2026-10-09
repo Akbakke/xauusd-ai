@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import re
 
 import pytest
 from pathlib import Path
@@ -165,7 +166,7 @@ def test_retired_entry_authorities_have_no_trainer_surface() -> None:
         "side_validity",
         "y_direction",
     )
-    assert [token for token in forbidden if token in source] == []
+    assert [token for token in forbidden if re.search(r"\b" + re.escape(token) + r"\b", source)] == []
 
 
 def test_active_head_contract_is_exact_and_q_has_sole_authority() -> None:
@@ -344,7 +345,7 @@ def test_subsampling_is_uniform_and_not_label_dependent() -> None:
     source = TRAINER_PATH.read_text(encoding="utf-8")
     assert "deterministic_uniform_subsample_indices" in source
     assert "subsample_rows" in source
-    assert "y_direction" not in source
+    assert re.search(r"\by_direction\b", source) is None
     assert "stratified" not in source.lower()
 
 

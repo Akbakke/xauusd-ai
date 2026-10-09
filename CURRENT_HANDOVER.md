@@ -13,13 +13,31 @@ Git bevarer historikken. Ikke gjennomgå eller kjør alle gamle steg på nytt.
 
 ## Pågående repo-revisjon
 
-Alle638 sporede filer er inventert. Python-AST, JSON og shell-syntaks,
-lokale absolutte Python-importer og Markdown-lenker bestod. Skrivevakten
-manglet import os; samme hendelse bekreftet NameError før og korrekt
-ikke-blokkerende varsel etter rettelsen. Tre closure-lintvarsler vurderes
-mot eksisterende runtime-tester før eventuell endring. Hele revisjonen er
-ikke ferdig; statisk PASS erstatter ikke driftskontroll eller modellmåling.
-Bevis: REPO_AUDIT_20261009_001, bundet i current_work.
+Alle 638 sporede filer er inventert. Python-AST, JSON, shell/PowerShell-
+syntaks, lokale absolutte Python-importer og Markdown-lenker bestod.
+Hele testutvalget er gjennomført i to deler uten gjentakelse av rapporterte
+tester: 6290 PASS, 3 SKIP, 6 kartlagte feil. Fem var utdaterte testforventninger
+eller fixtures; én var en utdatert policyhash i retention-roten. Alle er rettet.
+Fokuserte kontroller bestod etter én korrigering av checkpoint-hookens
+bakoverkompatibilitet. Sluttkontrollen av koordinator/lagring/prefix hadde
+90 PASS; alle 13 PowerShell-filer parse-bestod og Windows-runtime-testen
+bestod også den nye omstartsgrensen. Closure-lintvarslene hadde beståtte runtime-
+tester og krevde ingen kodeendring.
+
+Skrivevakten er rettet og Windows-oppgavens ytre grense er tilpasset 4t
+rundt uendret native 3t20/guard 3t50. Tidsgrensen sjekkes nå etter hvert
+optimizersteg, med ekstra varig lagring ved pause; ordinær kadens er 64 steg.
+Kontrolleren bevarer segmentkvitteringen og stopper ved omstartsgrensen;
+agenten må kontrollere hele verten før eksisterende prepare/confirm-reboot.
+Oppstart, checkpoint og resume har separate tidslogger. Genuine v38-tider
+og læring er ikke målt ennå. Bevis: REPO_AUDIT_20261009_001 i current_work.
+
+Fersk constructor-metadata og én CPU-komponentplan er nå bundet i
+current_work.native_component_preparation_20261009: høyst 1800s, producer
+20G/512M, ingen model forwards, optimizersteg eller normaliseringsrefit.
+Planen gjenbruker aktuelle inputs/koordinater og lager fersk ONLINE/TARGET.
+Dette åpner ikke native GPU-launch; faktisk initialstate og nullstegsmåling
+gjenstår.
 
 ## Gjort — målt på ekte data
 
@@ -76,7 +94,7 @@ Koordinater er ikke modellmålinger. Alle genuine features og tidsrammer består
 
 Operatørkrav 09.10: hyppige trygge omstarter mellom målte segmenter, med
 varig mellomlagring og målt effektivitet. Nåværende kode har 12000s-vindu og
-FP32-checkpoint hver 64 optimizersteg. Operatøren har opplevd heng etter
+FP32-checkpoint hver 64 optimizersteg samt ved tidsgrensen. Operatøren har opplevd heng etter
 12 timer og valgte 09.10 å beholde eksisterende 3t20-vindu. Ingen forkorting
 kreves. V38 resume-ekvivalens og lagre-/lastetid skal fortsatt måles; se
 docs/NATIVE_LEARNING.md. Ingen kalenderstyrt omstart avbryter aktivt arbeid.

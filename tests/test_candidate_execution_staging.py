@@ -44,6 +44,7 @@ class Harness:
         root.mkdir(exist_ok=existing)
         self.root = root
         self.clock = 100.0
+        self.seconds_per_train_step = 0.0
         self.batches = []
         self.validation_batches = 0
         self.pause_in_validation = False
@@ -86,9 +87,11 @@ class Harness:
             optimizer.step()
             if kwargs["weight_ema"] is not None:
                 kwargs["weight_ema"].update(model)
+            self.clock += self.seconds_per_train_step
             final = index == len(loader)
             if (
-                final
+                kwargs["session_checkpoint_every_optimizer_step"]
+                or final
                 or index % kwargs["session_checkpoint_interval_optimizer_steps"] == 0
                 or (cap is not None and index >= cap)
             ):
@@ -475,3 +478,32 @@ h.run(output, steps=8, expected_pointer=digest(h.pointer(output)))
         "training_progress",
     ]:
         equal_tree(reference[key], actual[key])
+
+
+def test_wall_deadline_between_regular_checkpoints_saves_and_resumes_exactly(tmp_path):
+    h = Harness(tmp_path / "deadline")
+    reference = h.root / "CONTINUOUS"
+    split = h.root / "SPLIT"
+    torch.manual_seed(1337)
+    h.run(reference, steps=8)
+    expected = h.state(reference)
+    batches = list(h.batches)
+    h.batches.clear()
+
+    # The 5400s test window expires on step 3, well before cadence 64 or ceiling 8.
+    h.seconds_per_train_step = 1900.0
+    torch.manual_seed(1337)
+    _, paused = h.run(split, steps=8)
+    assert paused["reason"] == "invocation_wall_limit"
+    assert paused["global_optimizer_steps"] == 3
+    saved = h.state(split)
+    assert saved["next_batch_offset"] == 3 and saved["global_optimizer_steps"] == 3
+
+    h.seconds_per_train_step = 0.0
+    _, resumed = h.run(split, steps=8, expected_pointer=digest(h.pointer(split)))
+    assert resumed["reason"] == "optimizer_step_ceiling"
+    actual = h.state(split)
+    for key in ("model_state", "target_model_state", "optimizer_state", "weight_ema_state",
+                "lr_scheduler_state", "rng_state", "epoch_order", "training_progress"):
+        equal_tree(expected[key], actual[key])
+    assert h.batches == batches and h.validation_batches == 0

@@ -149,8 +149,26 @@ if ($script:bootCalls -ne 1 -or $script:inspectCalls -ne 1 -or $initial.Status.o
     throw "one_shot_initial_state boot_calls=$script:bootCalls inspect_calls=$script:inspectCalls"
 }
 
+# Exercise the boundary without issuing any reboot or campaign transaction.
+$boundaryFunction = $controllerAst.Find({
+    param($node)
+    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'Write-Gx1RebootBoundary'
+}, $true)
+if ($null -eq $boundaryFunction) { throw 'reboot boundary function was not found' }
+. ([ScriptBlock]::Create($boundaryFunction.Extent.Text))
+$boundary = Write-Gx1RebootBoundary -Boot $initial.Boot | ConvertFrom-Json
+if ($boundary.decision -cne 'REBOOT_REQUIRES_MACHINE_WIDE_IDLE_REVIEW' -or
+    $boundary.automatic_shutdown_requested -ne $false -or
+    $boundary.checkpoint_and_receipts_preserved -ne $true -or
+    $boundary.plan_json -cne $PlanJson -or
+    $boundary.plan_file_sha256 -cne $PlanFileSha256 -or
+    $boundary.boot_identity_path -cne $initial.Boot.Linux -or
+    $script:inspectCalls -ne 1) {
+    throw 'reboot boundary did not preserve the external whole-host review'
+}
+
 Write-Output (
     'POWERSHELL_HARDENING_PASS ' +
     "large_stdout=$($large.StdOut.Length) large_stderr=$($large.StdErr.Length) " +
-    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS observer_checkpoint_isolation=PASS observer_local_atomic_replace=PASS retained_child_exit_codes=PASS"
+    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS observer_checkpoint_isolation=PASS observer_local_atomic_replace=PASS retained_child_exit_codes=PASS whole_host_reboot_boundary=PASS"
 )
