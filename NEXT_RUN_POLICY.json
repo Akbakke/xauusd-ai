@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-09T05:45:14Z",
-  "status": "V38_CAPACITY_PREPROCESSING_COORDINATES_COMPLETE_NATIVE_RESTART_HOST_PROOF_MISSING_GC_PAUSED",
+  "observed_utc": "2026-10-09T10:50:17.290017+00:00",
+  "status": "V38_PREPROCESSING_COMPLETE_HOST_RESTART_VERIFIED_NATIVE_WINDOW_UNBOUND_GC_PAUSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Completed inputs, measured capacity and native coordinates are reused, never relaunched. Resolve Windows role/writer proof or safe user-performed reboot; verify fresh boot/source/artifacts/host guards. Bind current native recipe/window and fresh ONLINE/TARGET, then one <=256-step/4096-TRAIN smoke with separate TRAIN256/CONTROL256 review. No budget reset, larger training/fullVAL/TEST/GC/broker/spending or unadmitted deletion.",
+  "next_action": "Reuse completed inputs, capacity and coordinates. Physical Windows restart and source/artifact hashes are verified; recheck host/GPU gates for next invocation. Bind current native recipe/window and fresh ONLINE/TARGET, then one <=256-step/4096-TRAIN smoke with paired TRAIN256/CONTROL256. Measure durable resume and save/load timing before selecting shorter recurring segments. No budget reset, larger training/fullVAL/TEST/GC/broker/spending or unadmitted deletion.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -74,12 +74,12 @@
       "thread_id": "01a10ffd-150b-7443-963c-03314e5968bd",
       "status_at_creation": "active",
       "scope": "Genuine complete current TRAIN capacity, minimal observed metadata/source fix, canonical preprocessing/coordinates/current fresh ONLINE-TARGET, safely admitted physical reboot and one bounded native smoke with separate paired TRAIN256/CONTROL256 review",
-      "physical_reboot_executed": false,
-      "machine_wide_idle_writer_proof_complete": false,
+      "physical_reboot_executed": true,
+      "machine_wide_idle_writer_proof_complete": true,
       "false_completion_allowed": false,
       "new_goal_or_hourly_automation_required": false,
       "status": "blocked",
-      "status_observed_utc": "2026-10-09T05:45:14Z"
+      "status_observed_utc": "2026-10-09T10:50:17.290017+00:00"
     },
     "new_capacity_authority_does_not_admit_native_launch": true,
     "hourly_monitor": {
@@ -145,22 +145,33 @@
       "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
     },
     "current_blocker": {
-      "id": "PROTECTED_WINDOWS_ROLE_AND_MACHINE_WIDE_IDLE_PROOF_UNAVAILABLE",
-      "observed_utc": "2026-10-09T05:33:12.8295509Z",
-      "windows_boot_utc": "2026-10-07T10:40:16.3358910Z",
-      "protected_processes": [
-        {
-          "pid": 2648,
-          "started_utc": "2026-10-07T10:40:30.4581700Z",
-          "command_line_readable": false
-        },
-        {
-          "pid": 2704,
-          "started_utc": "2026-10-07T10:40:30.4639190Z",
-          "command_line_readable": false
-        }
+      "id": "NATIVE_RECIPE_WINDOW_FRESH_INITIAL_STATE_AND_RESUME_MEASUREMENT_REQUIRED",
+      "observed_utc": "2026-10-09T10:50:17.290017+00:00",
+      "physical_reboot_resolved": true,
+      "remaining": [
+        "Bind current native recipe and finite campaign window",
+        "Measure fresh same-function zero-step ONLINE/TARGET",
+        "Measure v38 resume equivalence and save/load timing before larger segmented training"
       ],
-      "required_external_change": "Readable local Windows role/writer-idle proof, or safe user-performed physical reboot after confirming other work is stopped; then verify new boot/source/artifacts and existing host/GPU guards."
+      "native_launch_admitted": false
+    },
+    "host_restart_observation": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/HOST_RESTART_20261009_001/POST_RESTART.json",
+      "sha256": "29a025862bd75d4ef654a65c4ea55d08f25d2844ea422f452215ce328c146921"
+    },
+    "restart_efficiency_request": {
+      "operator_request": "Omstartene må ikke komme for sent (unngå blå heng) men må deles opp hyppig nok. Samtidig må vi finne en god effektivitet og mellomlagre så vi ikke mister info",
+      "method": "docs/NATIVE_LEARNING.md",
+      "shorter_window_implemented": false,
+      "safe_cadence_and_v38_resume_measured": false,
+      "cache_and_original_checkpoints_preserved": true
+    },
+    "host_restart_controls": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/HOST_RESTART_20261009_001/HANDOVER_CONTROLS.xml",
+      "sha256": "0c89f1bad9389007fa7e108eb2d133f0e45705b137463861ce50a073e65806a1",
+      "tests": 63,
+      "failures": 0,
+      "errors": 0
     }
   },
   "gc_order_flow_research_20261006": {

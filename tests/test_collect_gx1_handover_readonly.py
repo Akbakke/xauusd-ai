@@ -189,8 +189,8 @@ def test_post_capacity_metadata_authority_cannot_open_native_or_reset_budget():
         assert stage[field] is False
     assert policy['training_enabled'] is False
     goal = policy['current_work']['restart_and_smoke_goal']
-    assert goal['physical_reboot_executed'] is False
-    assert goal['machine_wide_idle_writer_proof_complete'] is False
+    assert goal['physical_reboot_executed'] is True
+    assert goal['machine_wide_idle_writer_proof_complete'] is True
     assert goal['false_completion_allowed'] is False
     assert goal['new_goal_or_hourly_automation_required'] is False
 
@@ -781,8 +781,8 @@ def test_current_handover_records_blocked_goal_without_completed_ui_history():
     policy = json.loads((repo / "NEXT_RUN_POLICY.json").read_text())
     work = policy["current_work"]
     assert work["restart_and_smoke_goal"]["status"] == "blocked"
-    assert work["restart_and_smoke_goal"]["physical_reboot_executed"] is False
-    assert work["current_blocker"]["id"] == "PROTECTED_WINDOWS_ROLE_AND_MACHINE_WIDE_IDLE_PROOF_UNAVAILABLE"
+    assert work["restart_and_smoke_goal"]["physical_reboot_executed"] is True
+    assert work["current_blocker"]["id"] == "NATIVE_RECIPE_WINDOW_FRESH_INITIAL_STATE_AND_RESUME_MEASUREMENT_REQUIRED"
     assert work["training_started"] is False
     assert work["full_benchmark_completed"] is True
     assert work["physical_native_preprocessing_complete"] is True

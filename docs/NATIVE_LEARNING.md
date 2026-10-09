@@ -21,6 +21,27 @@ moduler. Historiske checkpoints, constructor metadata eller identiske
 vekthasher erstatter ikke genuine initial-/funksjonsparitetsmålinger.
 Endret ONLINE-funksjon krever en ny faktisk initialbaseline.
 
+## Omstart, mellomlagring og effektivitet
+
+Operatøren ba 09.10 om hyppige trygge segmentgrenser og mellomlagring. Bruk
+samme native campaign, checkpoint-eier og vedvarende inputs/cacher. Omstart
+kommer etter varig checkpoint/terminal og dokumentert maskinvid ledighet.
+
+Kildekontroll: deterministic_fp32 lagrer hver 64 optimizersteg og ved avgrenset
+slutt. Checkpointet bevarer ONLINE/TARGET, optimizer, EMA, scheduler, RNG,
+epoch-order, neste batch og fremdrift. Eksisterende to-slot-eier bruker
+temporær fil, fsync, atomisk rename, hash og atomisk aktiv peker. Diskcacher
+gjenbrukes; RAM-/GPU-cache må lastes på nytt. Ved krasj kan arbeid etter siste
+fullførte checkpoint gå tapt. Dagens v38 resume-ekvivalens er ennå ikke målt.
+
+Vinduseieren krever eksakt 12000s; tidspause vurderes etter checkpoint. Dette
+er ikke et bevist trygt fysisk rebootintervall. Smoke må måle step-/checkpoint-
+tid, kald gjenlasting og samme neste batch/tilstand etter resume. Bind deretter
+kortere endelige segmenter hos eksisterende recipe/campaign-eiere med margin
+til siste batch, checkpoint og terminal. Rapporter beregningstid og lagre-/
+laste-/oppstartstid separat. Kortere vinduer er ikke implementert her.
+Ingen kalenderjobb avbryter aktivt arbeid. Omstart beviser ikke løst BSOD-årsak.
+
 ## Avgrenset smoke og review
 
 1. Bruk den særskilt bundne native prøven: høyst256 optimizersteg og4096

@@ -1,7 +1,8 @@
 # GX1 — siste overlevering, 09.10.2026
 
 Inputs og CPU-kapasitet er ferdige. Native smoke er ikke startet.
-App-målet for omstart/smoke er **blokkert**, ikke fullført.
+Fysisk omstart er verifisert; native recipe/vindu og fersk initialmåling gjenstår.
+App-målet er fortsatt **blokkert**, ikke fullført.
 Kun /home/andre2/src/GX1_CURRENT, branch work/gx1-current, én agent.
 
 NEXT_RUN_POLICY.json eier nåstatus, eksakte bindinger og kjøregrenser.
@@ -33,12 +34,17 @@ Koordinater er ikke modellmålinger. Alle genuine features og tidsrammer består
 
 ## Ikke gjort / aktuell hindring
 
-- Ingen fysisk PC-omstart, fersk ONLINE/TARGET-initialisering, modellforward,
-  optimizersteg, smoke, større trening eller full VAL.
-- Lesende kontroll09.10 kl.05:33 UTC: ingen CURRENT Python-jobb; Windows har
-  fortsatt boot07.10 kl.10:40:16 UTC. Prosessene2648/2704 er beskyttede og
-  kommandolinje/rolle er ikke lesbar. Maskinvid writer-/jobb-/GPU-ledighet
-  er derfor ikke bevist. Omstartstillatelsen finnes; faktisk innsyn mangler.
+- Ingen aktuell native recipe/vindusbinding, fersk ONLINE/TARGET-initialisering,
+  modellforward, optimizersteg, smoke, større trening eller full VAL.
+- Omstartsblokkeringen er løst via eksisterende administrativ Windows-SSH.
+  PID2648/2704 var GPU-effektvakt og telemetribro, bekreftet fra kommandolinjer,
+  installert kilde og Task Scheduler-instanser. Ingen ACL-endring.
+  Prosjektjobber/låser og GPU-beregninger var ledige før omstart.
+- Ny Windows-boot 09.10 kl.10:47:48.500 UTC (12:47:48.500 Europe/Oslo);
+  WSL-boot 67c99398. Ren bae53257 og 37 bundne artefakthasher er bevart.
+  SSH via gx1-3090-lan, WSL og signert GPU-telemetri er verifisert etterpå.
+  HOST_RESTART_20261009_001/POST_RESTART.json er bundet i current_work.
+  Dette er kontroll av bundne kvitteringer/koordinater, ikke ny full datascan.
 - Krasjårsaken, v38-læring, generalisering, nettoøkonomi og lært train/serve-
   paritet er ikke dokumentert. Mekanikktester/input-PASS beviser ikke dette.
 - GC/order-flow og nye footprint/order-block-utvidelser er på pause.
@@ -47,24 +53,29 @@ Koordinater er ikke modellmålinger. Alle genuine features og tidsrammer består
 
 ## Neste steg — i denne rekkefølgen
 
-1. Avklar beskyttede Windows-jobber/writers lokalt, eller brukerutført trygg
-   fysisk omstart etter at andre jobber er avsluttet. Ingen ukjente jobber
-   stoppes og ingen midt-i-jobb-omstart.
-2. Verifiser ny fysisk boot, WSL, ren aktuell kilde, intakte artefakter og
-   eksisterende host-/GPU-vakter.
-3. Bind aktuell kanonisk native recipe/campaign og separat finite vindu.
+1. Gjenbruk ferdige inputs, kapasitet og koordinater. Omstart er fullført;
+   neste native-invokasjon må fortsatt bestå fersk-boot-/host-/GPU-gatene.
+2. Bind aktuell kanonisk native recipe/campaign og separat finite vindu.
    Mål fersk nullstegs ONLINE/TARGET med samme nåværende funksjon.
-4. Én portbundet smoke: høyst256 optimizersteg/4096 TRAIN-Entries, batch16,
+3. Én portbundet smoke: høyst256 optimizersteg/4096 TRAIN-Entries, batch16,
    FP32/TF32 av, seed20260911. Separate parvise initial-/sluttmålinger på
    fryste TRAIN256 og CONTROL256.
-5. Ærlig læringsreview etter docs/LEARNING_GATE.md. Mer trening krever egen
+4. Ærlig læringsreview etter docs/LEARNING_GATE.md. Mer trening krever egen
    finite autoritet og bestått læringsport, aldri automatisk utvidelse.
+
+Operatørkrav 09.10: hyppige trygge omstarter mellom målte segmenter, med
+varig mellomlagring og målt effektivitet. Nåværende kode har 12000s-vindu og
+FP32-checkpoint hver 64 optimizersteg. Trygg omstartsfrekvens, v38 resume-
+ekvivalens og lagre-/lastetid er umålt. Kortere vinduer må bindes i eksisterende
+eiere før større trening; se docs/NATIVE_LEARNING.md. Ingen kalenderstyrt
+omstart kan avbryte aktivt arbeid.
 
 ## Vedlikehold og grenser
 
 Tre overlappende status-/mål-/renselogger er fjernet; Git bevarer dem.
-Handover viser kun aktuell status.75 fokuserte kontroller bestod; ingen
-fullsuite eller modelltrening.15 verifiserte cachemapper er fortsatt bevart:
+Handover viser kun aktuell status. Etter omstart bestod 63 fokuserte
+handoverkontroller gjennom capped audit; ingen fullsuite eller modelltrening.
+15 verifiserte cachemapper er fortsatt bevart:
 vertens slettingsvern nektet fjerningen før launch. Ingen omgåelse.
 
 Oppstarten skal bare lese denne siste overleveringen og aktuell policy.
