@@ -1,10 +1,11 @@
 # Læringsport for GX1
 
-Det uavhengige Entry-målet fra09.10 har nå en ekte, revidert native nullmåling.
-NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001 binder uendret starttilstand og
-eksakt observert netto Entry-fasit på TRAIN256/CONTROL256. Ingen
-produksjonsoptimizersteg er utført. Samlet læring, generalisering og positiv
-kostnadsjustert økonomi er ubevist. Gammel Exit-basert baseline er historikk.
+Det uavhengige Entry-målet fra 09.10 er målt før/etter 256 native optimizersteg.
+NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001 feilet læringsporten: alle 256 TRAIN-
+og 256 CONTROL-rader gir FLAT, og CONTROL slår ikke TRAIN-konstantene.
+Teknisk native/Windows-PASS åpner ingen større trening. Samlet læring,
+generalisering og kostnadsjustert økonomi er ubevist. Originale targets,
+outputs, checkpoints og separat ekte nullmåling er bevart.
 Nåstatus og launchomfang eies av NEXT_RUN_POLICY.json, ikke historiske resultater.
 
 ## Før mer omfattende trening
@@ -41,8 +42,9 @@ Entry-funksjon, og etterfølgende komplett økonomivurdering.
 
 For v38 gjelder fryst TRAIN256 og CONTROL256, høyst4096 Entries/256 optimizersteg,
 før eventuell separat, endelig budsjettregistrering. Ny målbaseline er
-verifisert; smoke er ennå ikke utført. Det nye review er forhåndsbundet i
-NEXT_RUN_POLICY.current_work.native_entry_observed_smoke_20261009.
+verifisert og den ene smoken er konsumert. Review var forhåndsbundet i
+NEXT_RUN_POLICY.current_work.native_entry_observed_smoke_20261009 og er nå
+fullført med REJECT_EXPANSION_ENTRY_LEARNING_OR_ACTION_GATE_FAILED.
 LONG, SHORT og LONG-minus-SHORT må forbedre MSE og sentrert MSE mot
 initial og TRAIN-konstant på begge grupper. CONTROL krever også negativ
 øvre95-prosentgrense for parvis kvadratfeil-differanse under den opprinnelige

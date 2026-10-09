@@ -1,143 +1,145 @@
 # GX1 — siste overlevering, 09.10.2026
 
-Den nye native nullmålingen for Exit-uavhengig Entry er fullført og revidert.
-Ingen produksjonsoptimizersteg eller smoke er startet. NEXT_RUN_POLICY.json
-åpner nå bare det eksakte, avgrensede Entry-only smoke-forsøket nedenfor.
-Stor Entry-trening krever bestått lærings- og driftsport. Senere Exit-trening
-som bevarer godkjent Entry er fortsatt uimplementert og ikke admittert.
-App-målet i thread 01a1203d-4a95-7d03-bbd9-84017db6b29c er aktivt.
+Den Exit-uavhengige Entry-smoken er fullført: 256 optimizersteg/4096 TRAIN-rader.
+Native/Windows-syklusen bestod teknisk, men **læringsporten feilet**.
+Entry velger FLAT på alle 256 TRAIN- og 256 CONTROL-rader og slår ikke
+TRAIN-konstantene på CONTROL. Stor trening, full epoch/full VAL og
+Exit-trening er stengt. Den konsumerte engangstillatelsen er lukket.
+
+App-målet i thread 01a1203d-4a95-7d03-bbd9-84017db6b29c er fortsatt aktivt:
+ekte lært resume etter fysisk omstart er ikke verifisert. Ingen ny
+optimizerkjøring er åpnet av denne overleveringen. Ikke relanser brukt plan.
 
 Kun /home/andre2/src/GX1_CURRENT, branch work/gx1-current, én agent og
 én tung CURRENT-jobb. Mac er overleveringskopi. Les GX1_RULES.md og kjør
 scripts/gx1_handover.sh --check. NEXT_RUN_POLICY.json eier eksakte bindinger.
-Fullførte planer og receipts er bevis, aldri relaunch-autoritet.
 
-## Verifisert gjeldende baseline
+## Ferdig smoke og målt læring
 
-NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001 fullførte på kilde30708263,
-med native terminal 19:08:51 UTC /21:08:51 Oslo, guardPASS og trainer/observer0.
-Windows-tasken avsluttet også med0. Dens XML/terminal er bevart, og den brukte
-tasken er deaktivert. Hele Windows/native-avslutningen med den korrigerte
-post-record-fristen er dermed faktisk verifisert.
+NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001 kjørte på kilde 0ec2364c.
+Native terminal 20:10:18.879 UTC /22:10:18.879 Oslo: guard PASS,
+trainer 0, observer 0, optimizer 256, epoch 0, next_batch 256, RESUMABLE.
+Windows-tasken fullførte med 0 og er deaktivert. RESUMABLE beskriver lagret
+tilstand; det er ingen tillatelse til å fortsette eller bevis på testet resume.
 
-INITIAL_MEASUREMENT_AUDIT.json og COMPLETION_REVIEW.json i samme run-root
-binder eksakt resultat, recipe, receipt, operatør og original starttilstand.
-TRAIN256 og separat CONTROL256 er målt på de opprinnelig frosne koordinatene:
-256 Entry-ankre og256 Exit-ankre samt1024 samplede Exit-tilstander per gruppe.
-Begge gruppers Entry-target er uavhengig rekonstruert fra originale fysiske
-utfallskolonner, klokker og deklarerte kostnader; alle512 rader er eksakt like.
-Entry bruker ingen Exit-modell i fasiten. Exit-målingene er egne diagnoser.
+PAIRED_LEARNING_REVIEW.json, CHECKPOINT_READONLY_DIAGNOSTIC.json og
+COMPLETION_REVIEW_002.json i run-root binder originale mål, kohorter,
+outputs, ONLINE/TARGET, checkpoint, gradientflagg og native/Windows-kvitteringer.
+Review brukte ingen nye modellforwards, fits eller optimizersteg.
 
-Fersk CPU-starttilstand fra NATIVE_COMPONENTS_20261009_003 ble gjenbrukt etter
-de kanoniske konstruktør-/source-/state-/normkontrollene.9637663 parametere;
-ONLINE/TARGET/EMA startet med hash52cd7442. Native checkpoint og audit
-bevarer modell, TARGET, optimizer, EMA, scheduler og CPU/Python/NumPy RNG
-bit-likt; CUDA RNG er separat seedet og lagret. Optimizersteg0.
-Dette beviser ekte nullmåling og lagring, ikke læring eller lært resume.
+| CONTROL256 | Initial MSE | Slutt MSE | TRAIN-konstant |
+|---|---:|---:|---:|
+| LONG |992.9300|964.0220|962.7421|
+| SHORT |993.6276|957.0055|955.2976|
+| LONG−SHORT |3841.7931|3839.3332|3834.1503|
 
-Målt native komponentoppbygging1025,994s, initialmålingens samlede native
-elapsed1451,936s og checkpointlagring0,675139s. Samme-run guard målte
-maks49C core,56C memory-junction,138,04W og2764MiB VRAM.
-Første faktiske læringsforsøk må fortsatt måle fremdrift, last/lagring og
-resume. Ingen full epoch/full VAL eller generaliserings-/profittpåstand.
+92–93 prosent av side-MSE-forbedringen på CONTROL er redusert kvadrert bias.
+Retningskontrastens korrelasjon er −0.0123. Alle forhåndsdeklarerte CONTROL-
+sammenligninger mot begge referansene feiler den samlede numeriske porten.
+TRAIN har svakt forbedret tilstandsavhengig punktestimat; intervallene mot
+konstant inkluderer null. Det er ikke dokumentert stabil retningslæring.
 
-## Uavhengig Entry og neste smoke
+Alle perioder er rapportert: TRAIN 168 måneder, 126 med 1–5 kohortrader og 42
+uten rader; CONTROL 13 måneder med 14–29 rader. Alle observerte uker er med.
+Handlingene er FLAT i samtlige perioder med rader. Små periodeutvalg gir
+ikke selvstendig stabilitetsbevis. CONTROL er gjenbrukt utvikling, ikke urørt OOS.
 
-Operatøren vedtok09.10 at Entry finner retningsmuligheter fra markedet,
-uavhengig av et Exit-estimat, før Exit lærer posisjonshåndtering.
-configs/research/NATIVE_ENTRY_OBSERVED_MARKET_20261009.json binder målet.
-Entry bruker observerte eksekverbare BID/ASK-markouts etter deklarerte
-kostnader, LONG/SHORT og FLAT0. Den opprinnelige TRAIN-eide horisonten
-er19 M5-barer/95min; dette er ingen maksimal holdetid. Negative utfall
-bevares, og framtidsutfall inngår aldri som beslutningsinputs.
+ONLINE endret seg fra 52cd7442 til 2d49594b; TARGET forble 52cd7442.
+Alle 150 Exit-eide ONLINE-statefelter er bit-like starttilstanden.
+Checkpointen bekrefter 256 optimizer-/EMA-steg og gradient/supervisjon for
+Entry og åtte hjelpeoppgaver; Exit-gradientflagg er false. Mål og kohorter
+er uendret. Ingen konkret implementasjonsfeil er påvist som forklaring på
+svak læring. 256 steg kan heller ikke bevise at modellen aldri kan lære.
 
-Entry-only-treningen kaller ikke TARGET-forward eller Exit-tap. Eksisterende
-47 genuine hjelpeutfall, alle features og delte encodere består. Exit-eide
-parametere må ha grad=None før optimizersteg, også under AdamW. Delte
-encodere lærer fra Entry og kan dermed endre Exit-output; Exit-funksjonen
-er ikke frosset i denne fasen. Senere Exit-trening må bevare godkjent Entry.
-Samme targetidentitet bindes i recipe, datasett, checkpoint og målinger.
-Gamle teacher-baserte baselines eller resume med endret target avvises.
+## Hva Entry faktisk lærer
 
-NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001 har eksakt POLICY_SCOPE.json,
-PREPARE.py og forhåndsbundet REVIEW_PREREGISTRATION.json /
-PAIRED_REVIEW_OPERATOR.py. Recipe og campaign må fortsatt materialiseres
-og verifiseres, deretter installeres mot en ny, trygg fysisk Windows-boot.
-Én invocation, høyst256 optimizersteg/4096 TRAIN-rader; ingen refit,
-teacher-refresh, ny kohort, full epoch/full VAL eller automatisk utvidelse.
+Entry bruker kausale OHLC-/prisavledede inputs, alle features, åtte familier
+og tidsrammer. Fasit er observert eksekverbart BID/ASK-markout etter deklarerte
+kostnader for LONG/SHORT og FLAT 0; ingen Exit-modell inngår i Entry-targetet.
+TRAIN-eid referansehorisont er 19 M5-barer/95min, ingen maksimal holdetid.
+Negative utfall beholdes. Framtidsutfall er aldri beslutningsinputs.
 
-Review krever LONG, SHORT og LONG-minus-SHORT mot fersk initialmodell og
-TRAIN-konstanter, separat på TRAIN256 og CONTROL256. Rapporter MSE,
-sentrert feil, korrelasjon, handlinger, regret, alle deklarerte måneder og
-observerte uker. CONTROL krever samme parvise kalenderuke-bootstrap
-(5000 trekk, seed20260911) som tidligere bundet review. Manglende
-usikkerhet, bare biasflytting, tvetydige handlinger eller konstant
-handlingsvalg gir ikke PASS. Sju syntetiske kontroller av reviewlogikken
-bestod; de beviser bare måleinstrumentet.
+Entry-only-fasen kaller ikke TARGET-forward eller Exit-tap.47 genuine
+hjelpeutfall og delte encodere består. Exit-eide parametere har grad=None
+før AdamW. Delte encodere kan endre Exit-output; Exit-funksjonen er ikke
+frosset. Senere Exit-trening må bevare godkjent Entry og er uimplementert.
+Raw bps er ikke en kalibrert sannsynlighet; «sikker retning» er ikke bevist.
 
-Exit-diagnoser skal rapporteres, men kreves ikke forbedret uten Exit-steg.
-Samlet Entry/Exit-port forblir stengt. Numerisk Entry-PASS alene åpner heller
-ingen utvidelse: periodestabilitet og faktisk drifts-/resume-evidens må
-vurderes. Observert netto markout er ikke realisert porteføljeprofitt.
-Konfidens må måles; raw bps er ingen kalibrert sannsynlighet.
-CONTROL/Juni2026 er gjenbrukt utvikling. TEST forblir forseglet.
+NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001 er ekte nullmåling på kilde 30708263.
+Dens separate audit rekonstruerte alle 512 Entry-targets fra originale fysiske
+utfall, klokker og kostnader. Fersk start fra NATIVE_COMPONENTS_20261009_003:
+9637663 parametere, ONLINE/TARGET/EMA 52cd7442. Originale tilstander bevares.
 
-## Omstart og oppfølging
+## Omstart, checkpoints og effektivitet
 
-Siste verifiserte fysiske Windows-boot er483,18:38:18.500 UTC /
-20:38:18.500 Oslo. WSL-boot41f6a48a. Alle166 kode-/recipe-/
-starttilstandsbindinger bestod før/etter omstart; kilde forble uendret.
-Native-vindu12000s, ytre guard13800s, faktisk Task Scheduler-grense14400s.
-Tidsbudsjett sjekkes etter hvert optimizersteg; checkpoint normalt hvert64.
-steg samt ved tids-/sluttpause. Ingen aktiv jobb avbrytes for omstart.
+Siste verifiserte fysiske Windows-boot 484 var 19:37:07.500 UTC /
+21:37:07.500 Oslo; WSL-boot f2b68cf9. 173 kode-/recipe-/tilstandsbindinger
+bestod før/etter omstart. Begge siste native/Windows-sykluser avsluttet med 0.
+Guard målte maks 53C core,62C memory-junction,136.14W og3488MiB VRAM.
 
-Før hver neste fysiske reboot kreves maskinfelles idle-/writer-bevis,
-ledige prosjektjobber/låser/GPU, varige tilstander og bevarte terminaler.
-Andre prosjekter kan eksistere; de må også være ledige. Etterpå bekreftes
-ny fysisk boot, WSL, kode- og artefaktintegritet før native start.
+Checkpoint ble skrevet ved 0/64/128/192/256 steg; lagretid 0.656–1.881s.
+Alle 256 steg ligger i gyldig atomisk to-slot-checkpoint med optimizer,
+EMA, scheduler, RNG inklusive CUDA, epoch-order og neste batch.
+Kanonisk hashkontroll og CPU-deserialisering tok 0.697s med eksisterende
+filesystem-cache. Dette er ikke kald GPU-gjenlasting etter reboot.
 
-Verifisert Windows-staging er C:\Users\Andre\GX1_CURRENT_NATIVE_30708263.
-Gjenbruk ved byte-lik kode; ikke stol på katalognavnet. Ny task må bruke
-dagens recipe/campaign, UseNativeClockProfile og brukerAndre.
-GPU-effektvakt og signert telemetribro består. SSH gx1-3090-lan virker.
-WSL-shutdown erstatter aldri fysisk reboot.
-Thread-heartbeat gx1-f-lg-native-trening følger samme mål hvert30.minutt.
-Ingen minuttvis modellpolling; hardwarevaktene eier hyppig telemetri.
-Avslutt oppfølgingen når tilhørende mål og kjøring faktisk er ferdige.
+Målt komponentoppbygging 1003.140s; native elapsed 1571.497s.
+Logget treningssløyfe fra første hentede batch til siste step_done tok 142.631s
+for 4096 rader, 28.717 rader/s, inklusive warmup og mellomliggende checkpoints.
+Sluttlagring og sluttmålinger er utenfor denne sløyfetiden. Dette korte
+forsøket domineres av oppstart; tallet er ikke en langtidsbenchmark.
+
+Native-vindu 12000s/3t20, ytre guard 13800s/3t50, Windows-task 14400s/4t.
+Tid kontrolleres etter hvert steg; checkpoint hvert 64. steg og ved pause.
+Omstart skjer først etter varig terminal og ferskt maskinvidt idle-/writer-/
+lås-/GPU-bevis. En WSL-shutdown er ikke fysisk reboot, og vellykket reboot
+beviser ikke at årsaken til tidligere blå heng er løst.
+
+Windows-staging C:\Users\Andre\GX1_CURRENT_NATIVE_30708263 er byte-verifisert;
+gjenbruk bare når aktuelle skripthasher matcher. Native task er nå deaktivert.
+SSH gx1-3090-lan virker. Ingen bakgrunnstrening eller automatisk utvidelse.
+Heartbeat gx1-f-lg-native-trening følger målet hvert 30.minutt; ingen
+minuttvise modellrunder. Ingen idle-omstarter uten et konkret behov.
+
+## Gjenværende arbeid
+
+Bevar det negative læringsresultatet. Ingen flere optimizersteg, nye CONTROL-
+terskler, utvidet budsjett eller modellendring uten konkret hypotese og separat
+forhåndsbundet scope. Stor trening krever fortsatt bestått læringsport.
+
+Gjenstående driftsbevis er nøyaktig lært resume etter fysisk omstart.
+Dagens observed-Entry-scope avviser candidate_resume_origin; ikke fjern
+denne kontrollen eller bruk gammel scope som om den tillot ny kjøring.
+Avklar en smal kontroll av bevarte checkpoints gjennom eksisterende native
+eier, med uendret sluttgrense og vern av originalene, før noen slik test.
+CPU-deserialisering og tidligere syntetiske resume-tester erstatter den ikke.
 
 ## Helrepo-revisjon og bevart historikk
 
-De opprinnelige638 sporede filene ble inventert. Python-AST, JSON,
-shell/PowerShell, lokale importer og Markdown-lenker bestod. Hele testutvalget
-ga6290 PASS,3 SKIP og6 kartlagte feil. Alle seks ble rettet og kontrollert
+De opprinnelige 638 sporede filene er inventert; Python-AST, JSON,
+shell/PowerShell, lokale importer og Markdown-lenker bestod. Fullt testutvalg
+ga 6290 PASS, 3 SKIP og 6 kartlagte feil. Alle seks ble rettet og kontrollert
 fokusert. REPO_AUDIT_20261009_001 binder originalt bevis og senere rettelser.
-Entry-endringen ga deduplisert244 PASS,3 SKIP og ingen gjenstående feil
-i den fokuserte bølgen. Ekte datakobling for652552 TRAIN og256 CONTROL
-bevarte alle47 hjelpekolonner. Syntetisk AdamW-/gradient-/resume-bevis er
-separat fra faktisk native læring, som ennå ikke er utført.
+Entry-bølgen ga deduplisert 244 PASS, 3 SKIP og ingen gjenstående feil.
+Genuin datakobling for 652552 TRAIN/256 CONTROL bevarte alle 47 hjelpekolonner.
 
-Bevarte minimale rettelser: skrivevaktens os-import; eksakt fysisk
-foreldremanifest; kanonisk JSON-rekkefølge for åtte familier; checkpointpause
-mellom steg;4t Windows-task og riktig klokke-launcher; fersk fysisk campaign
-uten gammel full-VAL-modellautoritet. Dobbelt scope i sampler-adgangen ble
-fjernet etter måling. Post-record inspect fikk180s etter målt99,547s mot
-tidligere90s; oppstart/record90s og vindusgrenser består. Fokuserte tester,
-Windows-harness og nå en komplett ekte native-syklus bestod.
+Minimale rettelser omfatter os-import i skrivevakten; fysisk foreldremanifest;
+kanonisk JSON-familierekkefølge; checkpointpause mellom steg;4t Windows-task
+og riktig klokke-launcher; fersk fysisk campaign uten gammel modellautoritet.
+Dobbelt scope i sampler-adgangen ble fjernet etter måling. Post-record inspect
+fikk 180s etter målt 99.547s mot 90s; oppstart/record 90s og vindusgrenser består.
+To komplette genuine native-sykluser bekrefter nå Windows-rettelsen.
 
-NATIVE_INITIAL_20261009_003 med gammel Exit-basert Entry-fasit er historikk.
-NATIVE_SMOKE_20261009_001 ble forberedt, men aldri kjørt og er erstattet.
-Ingen av planene relanseres. Gamle feil/terminaler, originale checkpoints og
-metadataforsøk bevares. CURRENT_HANDOVER er eneste gjeldende fortelling.
+NATIVE_INITIAL_20261009_003 med Exit-basert Entry-fasit er historikk.
+NATIVE_SMOKE_20261009_001 ble aldri kjørt og er erstattet.
+Ingen fullført eller claimet plan relanseres. Én etterfølgende lesediagnose
+feilet JSON-rapportering av eksisterende ±inf checkpoint-sentineler;
+rapporteringen ble rettet uten endring av checkpoint eller treningskode.
+Begge operatørversjoner og terminaler er bevart.
 
-## Datasett og fortsatt avgrensning
-
-HISTORY2009W_NATIVE_V38_20261007:5523147 M1-rader,652552/70880 TRAIN/VAL,
+HISTORY2009W_NATIVE_V38_20261007 har 5523147 M1-rader,652552/70880 TRAIN/VAL,
 254 features, åtte familier, alle tidsrammer og47 kontrollerte targetfelt.
-Whole-TRAIN-normalisering,71 eksakte aliaspar og fysiske koordinater består.
-Valgt CPU-sampler målte8192 Entry-par på7275,518s; dette er ingen NN-epoch.
-Ingen full datarekonstruksjon eller ny feature-/modell-/terskelsøk nå.
-
-Originaldata, caches, checkpoints og ferdige/forkastede analyser bevares.
-GC/order-flow og nye footprint/order-block-utvidelser er på pause; de fire
-ufullførte GC-trinnene og separat full makro-B består. Ingen broker,
-live/paper, handel, spending eller diskopprydding er åpnet.
+Whole-TRAIN-normalisering, 71 aliaspar og fysiske koordinater består.
+Inputs, caches, originale checkpoints og fullførte analyser bevares.
+TEST, broker, live/paper, handel, spending og promotion forblir stengt.
+GC/order-flow, de fire ufullførte GC-trinnene og separat full makro-B er på pause.

@@ -2,7 +2,7 @@
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
   "retention_current_policy_manifest": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
-  "retention_current_policy_manifest_sha256": "c2fc3e9096a0f2d0e35c4b51d7aa786f58c74c8046b6d910d54b9bf22bb76e15",
+  "retention_current_policy_manifest_sha256": "d31bda6a046d6079135bdc38d2297df7b63391af23e9afdb7b0c6902c32eee1f",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -37,11 +37,11 @@
   "bundle_metadata_sha256": null,
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
-  "updated_utc": "2026-10-09T05:45:14Z",
+  "updated_utc": "2026-10-09T20:33:07.026849+00:00",
   "pretraining_review_hold": {
     "schema_version": "gx1_pretraining_review_hold_v1",
     "decision": "BLOCK",
-    "reason": "INPUTS_AND_CAPACITY_COMPLETE_NATIVE_RESTART_HOST_PROOF_AND_BOUND_WINDOW_REQUIRED",
+    "reason": "ENTRY_OBSERVED_FIXED256_LEARNING_GATE_FAILED_AND_LEARNED_RESUME_UNVERIFIED",
     "activation_authority": false
   },
   "note": "No admitted model or active legacy training session. NEXT_RUN_POLICY.json owns CURRENT work and exact future native scope; feature widths/versions come from executable owners, never historical mirrors."
