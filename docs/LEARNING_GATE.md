@@ -6,6 +6,9 @@ og 256 CONTROL-rader gir FLAT, og CONTROL slår ikke TRAIN-konstantene.
 Teknisk native/Windows-PASS åpner ingen større trening. Samlet læring,
 generalisering og kostnadsjustert økonomi er ubevist. Originale targets,
 outputs, checkpoints og separat ekte nullmåling er bevart.
+Den separate kontrollen av steg192–256 ga bit-for-bit identisk treningstilstand
+etter fysisk Windows-omstart; ingen nye unike TRAIN-rader eller CONTROL-forwards.
+Begge engangstillatelsene er lukket. Resume-PASS endrer ikke læringsporten.
 Nåstatus og launchomfang eies av NEXT_RUN_POLICY.json, ikke historiske resultater.
 
 ## Før mer omfattende trening

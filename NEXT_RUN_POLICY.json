@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-09T20:53:48.805894+00:00",
-  "status": "V38_ENTRY_LEARNING_FAILED_NATIVE_RESUME_EQUIVALENCE_PREPARATION",
+  "observed_utc": "2026-10-09T21:45:00.853452+00:00",
+  "status": "V38_ENTRY_SMOKE_AND_RESUME_COMPLETE_LEARNING_GATE_FAILED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Commit/push and materialize the exact separately bound native resume-equivalence recipe/campaign. After machine-wide idle/writer/lock/GPU proof and a fresh physical Windows reboot, replay only the existing TRAIN suffix from preserved step192 to256 in a separate session. Compare all learning/cursor state bitwise to the original step256 except the new session contract ID. No new unique TRAIN rows, CONTROL forwards, learning extension, full epoch/full VAL, TEST, consumed-plan relaunch or optimizer reset.",
+  "next_action": "Preserve completed negative learning evidence and bitwise native resume PASS. No launch authority remains. Any future learning experiment needs a concrete TRAIN-based hypothesis and a separate finite preregistered scope; no CONTROL tuning, blind budget extension, consumed-plan relaunch or optimizer reset. Larger training remains rejected until the learning gate passes.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "Prepare the separately bound native post-reboot192-to256 equivalence replay; original Entry learning gate remains failed.",
+    "current_activity": "Authorized whole-repository preparation, independent Entry smoke and physical native resume review are complete. All one-shot authorities are closed; no active training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -132,11 +132,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "entry_observed_fixed256_smoke_completion_review",
-    "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/RUNTIME",
+    "latest_terminal_role": "native_entry_observed_resume_equivalence_completion_review",
+    "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
-      "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/COMPLETION_REVIEW.json",
+      "sha256": "a3747d4267c59c6a041f037b85960b241f3b2a9af836c94320fb82fccaa1c887"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -156,10 +156,10 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual learned cross-reboot state equivalence is still unverified. Only the exact separately registered replay is admitted; larger training remains blocked by weak CONTROL direction learning and all-FLAT decisions.",
+    "current_blocker": "Stable Entry learning is unproven: all-FLAT on TRAIN256/CONTROL256 and CONTROL fails TRAIN-constant baselines. Native physical resume is now bitwise verified; larger training remains rejected.",
     "host_restart_observation": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/WINDOWS_POST_REBOOT.json",
-      "sha256": "3da94af6a9295092d9b988348de60f0cb4debda833db0e5a35a83a4a46ed9881"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
+      "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
     },
     "restart_efficiency_request": {
       "operator_request": "Omstartene må ikke komme for sent (unngå blå heng) men må deles opp hyppig nok. Samtidig må vi finne en god effektivitet og mellomlagre så vi ikke mister info",
@@ -180,16 +180,22 @@
     "training_preparation_goal": {
       "operator_request": "Flott, lag deg dette som et mål og få alt dette på plass, gå så igjennom HELE repoet etter feil/mismatches og forbedringer/tilpassinger etter beste evne for prosjektet, så kjører vi en smoke og så til slutt en stor trening",
       "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c",
-      "status": "active",
+      "status": "completed",
       "created_utc": "2026-10-09T13:22:42Z",
       "scope": "Whole current repository review and minimal measured fixes; reuse complete v38 inputs; bind fresh native initialization, initial measurement, <=256-step/4096-Entry smoke and TRAIN256/CONTROL256 learning review; larger finite training only after learning and operational gates. Existing 12000-second windows and safe terminal-bound physical reboots.",
-      "current_stage": "NATIVE_RESUME_EQUIVALENCE_PREPARATION",
+      "current_stage": "AUTHORIZED_SCOPE_COMPLETE_LARGE_TRAINING_REJECTED",
       "large_training_admitted": false,
       "test_access_authorized": false,
       "broker_trading_spending_authorized": false,
       "gc_resumed": false,
-      "actual_learned_resume_verified": false,
-      "smoke_review_complete": true
+      "actual_learned_resume_verified": true,
+      "smoke_review_complete": true,
+      "completed_utc": "2026-10-09T21:45:00.853452+00:00",
+      "completion_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/COMPLETION_REVIEW.json",
+        "sha256": "a3747d4267c59c6a041f037b85960b241f3b2a9af836c94320fb82fccaa1c887"
+      },
+      "outcome": "Authorized preparation, whole-repo audit, smoke review and physical native resume complete; conditional larger training rejected by learning gate."
     },
     "repository_review_20261009": {
       "status": "COMPLETE_FOR_PRE_SMOKE",
@@ -979,7 +985,7 @@
       "large_training_admitted": false,
       "relaunch_allowed": false,
       "optimizer_steps_started": 256,
-      "actual_learned_resume_verified": false,
+      "actual_learned_resume_verified": true,
       "campaign_plan": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/CAMPAIGN/CAMPAIGN_PLAN.json",
         "sha256": "449825b3516da64cc0cce88a4b2137e25f10c33f5f459c86faabdf2e77dfed76"
@@ -1082,7 +1088,11 @@
         "sha256": "addb9d5b9f88ec376a41a38e295831e06ca91252a8b01d28d22ebf813461d505"
       },
       "trained_entry_rows": 4096,
-      "windows_task_disabled": true
+      "windows_task_disabled": true,
+      "resume_verification": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/RESUME_EQUIVALENCE_REVIEW.json",
+        "sha256": "a78302c037244536973ed041b638f3d37a92edd37dbc7efd3b056e1580b43815"
+      }
     },
     "native_entry_observed_restart_20261009": {
       "completed_windows_boot": {
@@ -1120,11 +1130,11 @@
       "before_after_bindings_verified": 173
     },
     "native_entry_observed_resume_equivalence_20261009": {
-      "status": "SOURCE_AND_GENUINE_ORIGIN_VALIDATED_RECIPE_CAMPAIGN_PENDING",
-      "authorized": true,
+      "status": "CONSUMED_COMPLETE_BITWISE_NATIVE_RESUME_PASS",
+      "authorized": false,
       "operational_equivalence_only": true,
       "learning_extension_authorized": false,
-      "actual_learned_resume_verified": false,
+      "actual_learned_resume_verified": true,
       "from_optimizer_steps": 192,
       "stop_after_optimizer_steps": 256,
       "replayed_optimizer_steps": 64,
@@ -1195,7 +1205,108 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/PREFLIGHT_TERMINAL.json",
         "sha256": "e1f8eb3c39104f6882b2025edb9b1f1c8003ceb5a39d389451ae7c8d2a91942a"
       },
-      "preflight_correction": "TRAIN and CONTROL have source-local row IDs in different physical parquets; use source identity and preserved chronological clock proof, never raw ID intersection."
+      "preflight_correction": "TRAIN and CONTROL have source-local row IDs in different physical parquets; use source identity and preserved chronological clock proof, never raw ID intersection.",
+      "completed_scope": {
+        "chronological_learning_continuation": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/REPLAY_PLAN.json",
+          "sha256": "5b3ccb82ffdb55a6c9a444472b6d5f3620626892f95f2082b77bb5e9c5493d14"
+        },
+        "chronological_learning_measurement": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/INITIAL_MEASUREMENT_AUDIT.json",
+          "sha256": "280a97615c410c4e0f5d57047774032d557c2bbb50a95843945607ded0f88efc"
+        },
+        "chronological_prefix": {
+          "design": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
+            "sha256": "6b3be86ba001dee31b9d0d02ad3385835a8ea34defc2f569d39d0269cb3b9f13"
+          },
+          "labels_result": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+            "sha256": "9dcc1fa930534aeeee26410a569083f9956f3cbf2637e5faaf09a58fd88436df"
+          },
+          "native_coordinates": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COORDINATES_001/NATIVE_COORDINATES.json",
+            "sha256": "51ee650e37051b6c27087b78ad840ac8b87996dbf3d1c0005f325efd21e283a4"
+          },
+          "normalization_result": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+            "sha256": "3605e8bdc3040fddc70d5fffab19be254b23dcd41e71389639d23eb890af2211"
+          }
+        },
+        "entry_observed_market": {
+          "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ENTRY_OBSERVED_MARKET_20261009.json",
+          "sha256": "9a84418b23a9f95062036803ae96ffb413a7b1534a47108ddfc7a1414a57318d"
+        },
+        "final_model_variant": "ONLINE",
+        "full_epoch_training_allowed": false,
+        "full_val_allowed": false,
+        "max_invocations": 1,
+        "maximum_trained_entry_rows": 4096,
+        "optimizer_steps": 256,
+        "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/CANDIDATE_BUNDLE",
+        "run_id": "NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001",
+        "source_bindings_sha256": "597d85049859c10601b124e84a2f0e5908963f674d11e681f1f1fd91300e2701",
+        "teacher_refresh_allowed": false,
+        "test_data_used": false
+      },
+      "completion_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/COMPLETION_REVIEW.json",
+        "sha256": "a3747d4267c59c6a041f037b85960b241f3b2a9af836c94320fb82fccaa1c887"
+      },
+      "resume_equivalence_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/RESUME_EQUIVALENCE_REVIEW.json",
+        "sha256": "a78302c037244536973ed041b638f3d37a92edd37dbc7efd3b056e1580b43815"
+      },
+      "native_receipt": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/RUNTIME/receipts/invocation-0001.json",
+        "sha256": "8f566c929ba9533c5614d6e4294e5375c34c60f931849cc307a2cb3279a9dbe6"
+      },
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/NATIVE_RECIPE.json",
+        "sha256": "e2785f0e452c6e0dc9c8a9c6fd0b8dc855d892f35f1e9d1d52464e29807937d7"
+      },
+      "campaign_plan": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+        "sha256": "0c8e0bc6a65fd20465969b7aa1c4a265e9fc25653c96137a2d761a0d7df6e40f"
+      },
+      "consumed_policy": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/CONSUMED_NEXT_RUN_POLICY.json",
+        "sha256": "7cacc924c210ae039023e2e2f82418f5f5a5ed1a8db3b402d947a2d7ac19a7c7"
+      },
+      "windows_task_terminal": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_TASK_COMPLETED.json",
+        "sha256": "855ff4a530c344ca3988d93603510cd840afe861ce5c13b24b5c9968506d3e2d"
+      },
+      "windows_task_disabled": true,
+      "windows_boot": {
+        "boot_id": 485,
+        "computer_name": "ANDRE2",
+        "identity_sha256": "24977de1abb7acac0980f8a5952506465705f84422aff4b64cff567f63af3198",
+        "last_boot_utc": "2026-10-09T21:11:56.5000000Z",
+        "schema_version": "gx1_windows_boot_identity_v1"
+      },
+      "post_reboot_review": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/POST_REBOOT_REVIEW.json",
+        "sha256": "7a74e361b3e03f444148d3730097c5508035dd8db34ad9e56ac3faead68c26d9"
+      },
+      "performance": {
+        "canonical_load_restore_seconds": 73.803042,
+        "checkpoint_save_seconds": [
+          1.60159
+        ],
+        "load_scope": "Canonical full CUDA state restore, transfer publication and TRAIN order reconstruction after physical reboot; component setup measured separately.",
+        "native_component_setup_seconds": 1033.6673035949998,
+        "native_receipt_elapsed_seconds": 1530.653742,
+        "logged_replay_loop_seconds": 34.08,
+        "logged_replay_rows_per_second": 30.046948356807512,
+        "timing_scope": "From first resumed batch begin through step256 done, including warmup; excludes final save and component/restore setup."
+      },
+      "guard_peaks": {
+        "peak_core_temp_c": 49.0,
+        "peak_memory_temp_c": 56.0,
+        "peak_power_draw_w": 131.44,
+        "peak_memory_used_mib": 2164.0
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -3335,48 +3446,5 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
-  },
-  "chronological_learning_run": {
-    "chronological_learning_continuation": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/REPLAY_PLAN.json",
-      "sha256": "5b3ccb82ffdb55a6c9a444472b6d5f3620626892f95f2082b77bb5e9c5493d14"
-    },
-    "chronological_learning_measurement": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/INITIAL_MEASUREMENT_AUDIT.json",
-      "sha256": "280a97615c410c4e0f5d57047774032d557c2bbb50a95843945607ded0f88efc"
-    },
-    "chronological_prefix": {
-      "design": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
-        "sha256": "6b3be86ba001dee31b9d0d02ad3385835a8ea34defc2f569d39d0269cb3b9f13"
-      },
-      "labels_result": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
-        "sha256": "9dcc1fa930534aeeee26410a569083f9956f3cbf2637e5faaf09a58fd88436df"
-      },
-      "native_coordinates": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COORDINATES_001/NATIVE_COORDINATES.json",
-        "sha256": "51ee650e37051b6c27087b78ad840ac8b87996dbf3d1c0005f325efd21e283a4"
-      },
-      "normalization_result": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
-        "sha256": "3605e8bdc3040fddc70d5fffab19be254b23dcd41e71389639d23eb890af2211"
-      }
-    },
-    "entry_observed_market": {
-      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ENTRY_OBSERVED_MARKET_20261009.json",
-      "sha256": "9a84418b23a9f95062036803ae96ffb413a7b1534a47108ddfc7a1414a57318d"
-    },
-    "final_model_variant": "ONLINE",
-    "full_epoch_training_allowed": false,
-    "full_val_allowed": false,
-    "max_invocations": 1,
-    "maximum_trained_entry_rows": 4096,
-    "optimizer_steps": 256,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/CANDIDATE_BUNDLE",
-    "run_id": "NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001",
-    "source_bindings_sha256": "597d85049859c10601b124e84a2f0e5908963f674d11e681f1f1fd91300e2701",
-    "teacher_refresh_allowed": false,
-    "test_data_used": false
   }
 }

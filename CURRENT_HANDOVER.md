@@ -6,10 +6,10 @@ Entry velger FLAT på alle 256 TRAIN- og 256 CONTROL-rader og slår ikke
 TRAIN-konstantene på CONTROL. Stor trening, full epoch/full VAL og
 Exit-trening er stengt. Den konsumerte engangstillatelsen er lukket.
 
-App-målet i thread 01a1203d-4a95-7d03-bbd9-84017db6b29c er fortsatt aktivt:
-ekte lært resume etter fysisk omstart er ikke verifisert. Bare én separat
-kontroll av de allerede trente stegene 192–256 er nå forhåndsbundet; ingen
-utvidelse av læringen eller relaunch av brukt plan er tillatt.
+Oppgavens tillatte omfang er fullført: helrepo-revisjon, uavhengig Entry-smoke
+og bit-for-bit identisk lært resume etter fysisk Windows-omstart. Begge
+engangstillatelsene er konsumert og lukket; native-tasken er deaktivert.
+Den betingede store treningen ble ikke åpnet fordi læringsporten feilet.
 
 Kun /home/andre2/src/GX1_CURRENT, branch work/gx1-current, én agent og
 én tung CURRENT-jobb. Mac er overleveringskopi. Les GX1_RULES.md og kjør
@@ -21,7 +21,8 @@ NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001 kjørte på kilde 0ec2364c.
 Native terminal 20:10:18.879 UTC /22:10:18.879 Oslo: guard PASS,
 trainer 0, observer 0, optimizer 256, epoch 0, next_batch 256, RESUMABLE.
 Windows-tasken fullførte med 0 og er deaktivert. RESUMABLE beskriver lagret
-tilstand; det er ingen tillatelse til å fortsette eller bevis på testet resume.
+tilstand; det er ingen tillatelse til å fortsette. Ekte resume ble senere
+verifisert i en separat avgrenset kontroll, beskrevet nedenfor.
 
 PAIRED_LEARNING_REVIEW.json, CHECKPOINT_READONLY_DIAGNOSTIC.json og
 COMPLETION_REVIEW_002.json i run-root binder originale mål, kohorter,
@@ -73,10 +74,12 @@ utfall, klokker og kostnader. Fersk start fra NATIVE_COMPONENTS_20261009_003:
 
 ## Omstart, checkpoints og effektivitet
 
-Siste verifiserte fysiske Windows-boot 484 var 19:37:07.500 UTC /
-21:37:07.500 Oslo; WSL-boot f2b68cf9. 173 kode-/recipe-/tilstandsbindinger
-bestod før/etter omstart. Begge siste native/Windows-sykluser avsluttet med 0.
-Guard målte maks 53C core,62C memory-junction,136.14W og3488MiB VRAM.
+Siste verifiserte fysiske Windows-boot 485 var 21:11:56.500 UTC /
+23:11:56.500 Oslo; WSL-boot e5b3d977. Alle 182 kode-/recipe-/tilstandsbindinger
+bestod før/etter omstart. Resume-kjøringen avsluttet med native guard PASS,
+trainer/observer 0 og Windows-task 0; tasken ble deaktivert 21:43:24 UTC.
+Resume-guard målte maks 49C core,56C memory-junction,131.44W og2164MiB VRAM.
+Den opprinnelige smokens maksnivåer var 53C,62C,136.14W og3488MiB.
 
 Checkpoint ble skrevet ved 0/64/128/192/256 steg; lagretid 0.656–1.881s.
 Alle 256 steg ligger i gyldig atomisk to-slot-checkpoint med optimizer,
@@ -99,42 +102,49 @@ beviser ikke at årsaken til tidligere blå heng er løst.
 Windows-staging C:\Users\Andre\GX1_CURRENT_NATIVE_30708263 er byte-verifisert;
 gjenbruk bare når aktuelle skripthasher matcher. Native task er nå deaktivert.
 SSH gx1-3090-lan virker. Ingen bakgrunnstrening eller automatisk utvidelse.
-Heartbeat gx1-f-lg-native-trening følger målet hvert 30.minutt; ingen
-minuttvise modellrunder. Ingen idle-omstarter uten et konkret behov.
+Ingen aktiv kjøring skal følges videre. Ved senere godkjent trening brukes
+sjelden resultatkontroll og eksisterende automatiske maskinvarevakter.
+Ingen idle-omstarter uten et konkret behov.
 
-## Gjenværende arbeid
+## Verifisert resume og lukket omfang
+
+NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001 kjørte på 073fdd0c.
+Native terminal 21:41:09.345821 UTC /23:41:09.345821 Oslo. Den separate
+sesjonen gjenopprettet originalt steg192 og gjenskapte de samme64 stegene til256.
+Ingen nye unike TRAIN-rader, CONTROL-forwards, full epoch eller full VAL.
+Originalt steg192/256 og opprinnelig peker er eksakt bevart.
+
+RESUME_EQUIVALENCE_REVIEW.json ga BITWISE_NATIVE_RESUME_EQUIVALENCE_PASS:
+alle tilstandsfelt matcher, inklusive ONLINE/TARGET, optimizer, EMA,
+scheduler, Python/NumPy/Torch/CUDA RNG, epoch-order, checkpointindeks og
+fremdrift. Bare ny session_contract_sha256 skiller. COMPLETION_REVIEW.json
+binder dette til native/Windows-kvitteringer og avslutningen av tillatelsen.
+
+Kanonisk CUDA-restore, tilstandsoverføring og TRAIN-order tok73.803s etter
+fysisk omstart; komponentklargjøring tok1033.667s separat. De1024 gjentatte
+TRAIN-radene tok34.080s fra første hentede batch til siste step_done,
+30.047 rader/s inklusive warmup, men uten sluttlagring. Lagring tok1.602s.
+Native-kvitteringens totale varighet var1530.654s. Korte kjøringer domineres
+av oppstart; disse tallene er ikke en langtidsbenchmark eller læringsbevis.
+
+Forberedelsen endret bare eksisterende resume-/scope-kontroll. Alle andre
+trenerfunksjoner/klasser var AST-like, og treningssløyfen og resten av filen
+var byte-like originalen.151 dedupliserte fokuserte tester bestod med3 SKIP;
+seks kontroller av review-operatøren bestod. Den genuine testen bekrefter nå
+likhet etter fysisk omstart, utover syntetisk og CPU-basert evidens.
+
+Første preflight brukte feilaktig heltallsinterseksjon mellom TRAIN-/CONTROL-
+rad-IDer. IDene er lokale til forskjellige fysiske parqueter. Korrigert bevis
+bandt begge kilder og strengt atskilte originale klokkeområder. Feilet rapport
+er bevart; datasett og modell ble ikke endret.
+
+## Videre læring er ikke godkjent
 
 Bevar det negative læringsresultatet. Ingen flere optimizersteg, nye CONTROL-
 terskler, utvidet budsjett eller modellendring uten konkret hypotese og separat
-forhåndsbundet scope. Stor trening krever fortsatt bestått læringsport.
-
-Gjenstående driftsbevis er nøyaktig lært resume etter fysisk omstart.
-NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001 har REPLAY_PLAN.json,
-REPLAY_PREFLIGHT.json, SOURCE_PARITY.json og forhåndsbundet REVIEW_REPLAY.py.
-Native-eieren er utvidet kun for denne kontrollen gjennom eksisterende
-chronological_learning_continuation. candidate_resume_origin og andre
-blandede observed-Entry-ruter er fortsatt avvist.
-
-Den separate sesjonen gjenoppretter faktisk bevart steg192 og gjenskaper de
-samme 64 stegene til256. Ingen nye unike TRAIN-rader eller CONTROL-forwards.
-Originalt steg192/256 og peker bevares. Alle tilstandsfelt, inklusive
-ONLINE/TARGET, optimizer, EMA, scheduler, RNG, epoch-order og fremdrift,
-skal være bit-like originalt steg256; bare ny session_contract_sha256 skiller.
-Manglende eller ulik tilstand er feil og åpner ingen ny runde.
-
-Alle øvrige trenerfunksjoner/klasser er AST-like, og treningssløyfen samt
-resten av trenerfilen er byte-like originalen. Øvrig modell-/target-kilde er
-uendret. Ekte baseline-/origin-binding bestod;151 dedupliserte fokuserte tester
-bestod med3 SKIP, inklusive syntetisk siste64-replay og eldre scope-vakter.
-Seks syntetiske kontroller av sammenligningsoperatøren bestod.
-Recipe/campaign må fortsatt materialiseres og kontrolleres på committet,
-pushet kilde, deretter trygg fysisk reboot. Ingen faktisk replay er startet.
-
-Første preflight brukte feilaktig heltallsinterseksjon mellom TRAIN-/CONTROL-
-rad-IDer. Disse IDene er lokale til ulike fysiske parqueter. Det korrigerte
-beviset binder begge kildene og de strengt atskilte originale klokkeområdene.
-Feilet rapport er bevart; datasett og modell ble ikke endret.
-CPU-deserialisering og syntetiske tester erstatter ikke fysisk native resume.
+forhåndsbundet scope. Neste eventuelle hypotese må bygge på bevart TRAIN-bevis;
+stor trening krever fortsatt bestått læringsport. Ingen konkret kodefeil er
+påvist som forklaring på svak læring. Drifts-PASS endrer ikke dette utfallet.
 
 ## Helrepo-revisjon og bevart historikk
 
@@ -150,7 +160,7 @@ kanonisk JSON-familierekkefølge; checkpointpause mellom steg;4t Windows-task
 og riktig klokke-launcher; fersk fysisk campaign uten gammel modellautoritet.
 Dobbelt scope i sampler-adgangen ble fjernet etter måling. Post-record inspect
 fikk 180s etter målt 99.547s mot 90s; oppstart/record 90s og vindusgrenser består.
-To komplette genuine native-sykluser bekrefter nå Windows-rettelsen.
+Tre komplette genuine native-sykluser bekrefter nå Windows-rettelsen.
 
 NATIVE_INITIAL_20261009_003 med Exit-basert Entry-fasit er historikk.
 NATIVE_SMOKE_20261009_001 ble aldri kjørt og er erstattet.
