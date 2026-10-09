@@ -1,7 +1,8 @@
 # GX1 — siste overlevering, 09.10.2026
 
 Inputs og CPU-kapasitet er ferdige. Native smoke er ikke startet.
-Fysisk omstart er verifisert; native recipe/vindu og fersk initialmåling gjenstår.
+Fersk komplett ONLINE/TARGET-starttilstand er lagret og kontrollert.
+Native nullmålingens recipe/vindu og ny fysisk omstart før GPU gjenstår.
 Nytt app-mål 09.10 er **aktivt**: helrepo-revisjon, klargjøring, smoke og
 portbundet større trening. Det eldre blokkerte målet beholdes som historikk.
 Kun /home/andre2/src/GX1_CURRENT, branch work/gx1-current, én agent.
@@ -52,12 +53,20 @@ Den generiske Windows-installeren kan nå velge den allerede påkrevde
 workload-only klokke-launcheren; 53 relevante tester og Windows-parser bestod.
 Faktisk task-installasjon gjenstår.
 
-Ny korrigert CPU-komponentplan, NATIVE_COMPONENTS_20261009_003, er bundet i
-current_work.native_component_preparation_20261009. Constructor-metadata fra
-001 gjenbrukes byte-identisk. Begge tidligere claims/feil/terminaler bevares
-uten relaunch. Omfanget er høyst 1800s, producer 20G/512M, null forwards/
-optimizersteg/refits og ingen arvede vekter. Komplett varig initialstate og
-native nullstegsmåling gjenstår; dette åpner ingen GPU-launch.
+NATIVE_COMPONENTS_20261009_003 er fullført med ekte exit0 09.10 kl.15:38 UTC,
+1016,785s og peak RSS16341716 KiB innen producer20G/512M. Fresh ONLINE,
+fryst TARGET og EMA har samme hash52cd7442; optimizer/EMA-steg er0.
+Initialstate116539510 bytes er atomisk lagret og lastet/kontrollert igjen.
+Alle652552 TRAIN og70880 VAL Entries ble koblet til eksisterende eiere.
+Metadata, mål, normalisering og koordinater ble gjenbrukt; ingen refit,
+modellforward, optimizersteg eller TEST. Begge tidligere forsøk bevares
+uten relaunch. CPU-planen er lukket; ikke kjør den på nytt.
+
+NEXT_RUN_POLICY.json har nå eksakt chronological_initial_measurement:
+NATIVE_INITIAL_20261009_001, TRAIN256/CONTROL256, null optimizersteg,
+én native invokasjon på12000s, ingen læreroppdatering/full epoch/full VAL.
+Kanonisk recipe/campaign og ny fysisk boot/host-/GPU-adgang gjenstår.
+Dette er autoritet til den bundne nullmålingen, ikke til smoke eller stortrening.
 
 ## Gjort — målt på ekte data
 
@@ -76,16 +85,16 @@ native nullstegsmåling gjenstår; dette åpner ingen GPU-launch.
   targetfelt og normaliseringskoblinger bestod. Epoch0/first4096/TRAIN256
   og separat CONTROL256 er publisert gjennom eksisterende koordinat-eier.
 
-Siste vellykkede datasetforberedelse er NATIVE_PREPROCESSING_001, exit0,
+Datasetforberedelsen NATIVE_PREPROCESSING_001 er bevart med exit0,
 08.10 kl.21:31:56 UTC. ORIGINAL M1-target-support gjenbruker uendret
 emitter/manifester som kilde-/algebrabevis, ikke en ny raw quote-scan.
 Koordinater er ikke modellmålinger. Alle genuine features og tidsrammer består.
 
 ## Ikke gjort / aktuell hindring
 
-- Ingen aktuell native recipe/vindusbinding, komplett lagret initialstate,
-  modellforward, optimizersteg, smoke, større trening eller full VAL.
-  En isolert faktisk constructor/TARGET-kontroll er bestått.
+- Ingen aktuell native recipe/vindusbinding, modellforward, optimizersteg,
+  smoke, større trening eller full VAL. Komplett fersk starttilstand er lagret;
+  den faktiske nullstegsmålingen gjenstår.
 - Omstartsblokkeringen er løst via eksisterende administrativ Windows-SSH.
   PID2648/2704 var GPU-effektvakt og telemetribro, bekreftet fra kommandolinjer,
   installert kilde og Task Scheduler-instanser. Ingen ACL-endring.
