@@ -896,8 +896,9 @@ def run_guarded_native_candidate_invocation(
                 components=components, scope=initial_scope, recipe=recipe, output=output,
                 device=device, invocation_started=started, pause_evidence=paused.evidence)
         if ("chronological_learning_measurement" in recipe
+                and learning_scope.get("continuation", {}).get("resume_equivalence") is not True
                 and paused.evidence["reason"] == "optimizer_step_ceiling"
-                and paused.evidence["global_optimizer_steps"] == (512 if learning_scope.get("continuation") else 256)):
+                and paused.evidence["global_optimizer_steps"] == (learning_scope["continuation"]["plan"]["stop_after_optimizer_steps"] if learning_scope.get("continuation") else 256)):
             paused.evidence["chronological_final_measurement"] = _run_prefix_initial_measurement(
                 components=components, scope=learning_scope, recipe=recipe, output=output,
                 device=device, invocation_started=started, pause_evidence=paused.evidence, optimizer_steps=paused.evidence["global_optimizer_steps"])

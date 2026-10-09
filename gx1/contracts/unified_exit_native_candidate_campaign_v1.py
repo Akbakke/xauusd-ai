@@ -25,6 +25,7 @@ NATIVE_KIND = "native_candidate_window"
 NATIVE_PHASE = "native_candidate"
 NATIVE_MODULE = "gx1.scripts.run_unified_exit_native_candidate_window_v1"
 WINDOW_SCHEMA = "gx1_native_candidate_window_policy_v1"
+PREFIX_RESUME_EQUIVALENCE_SCHEMA = "gx1_prefix_resume_equivalence_plan_v1"
 
 
 OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA = "gx1_candidate_optimizer_procedure_transition_v1"
@@ -914,7 +915,17 @@ def require_prefix_measurement_source_binding(recipe, *, measurement=None):
     expected = {"native_recipe_source_bindings": checked,
                 "native_recipe_source_bindings_sha256": digest}
     if measurement is not None and any(measurement.get(key) != value for key, value in expected.items()):
-        raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_SOURCE_CHANGED")
+        continuation = require_chronological_continuation(recipe)
+        if not continuation or continuation.get("resume_equivalence") is not True:
+            raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_SOURCE_CHANGED")
+        # A pure suffix replay uses the frozen origin baseline only as provenance.
+        # Its current closure is still checked above, and the replay owner permits
+        # only the named control/restore files to differ from that exact origin.
+        origin = continuation["origin_recipe"]
+        original = {"native_recipe_source_bindings": origin["source_bindings"],
+                    "native_recipe_source_bindings_sha256": origin["source_bindings_sha256"]}
+        if any(measurement.get(key) != value for key, value in original.items()):
+            raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_SOURCE_CHANGED")
     return expected
 
 
@@ -1123,6 +1134,116 @@ def require_chronological_learning_measurement(recipe):
             "initialization": initial, "measurement": measurement, "initial_measurement": result}
 
 
+
+def _require_prefix_resume_equivalence(recipe, *, binding, plan):
+    """Replay only the preserved192..256 suffix; this never admits new learning."""
+    import numpy as np
+    from datetime import datetime
+    def load(value, label):
+        checked = require_binding(value, label=label, verify_file=True)
+        return checked, read_bound_json(Path(checked["path"]), checked["sha256"])
+    fixed = {"schema_version": PREFIX_RESUME_EQUIVALENCE_SCHEMA,
+        "from_optimizer_steps":192, "stop_after_optimizer_steps":256, "replayed_optimizer_steps":64,
+        "maximum_trained_entry_rows":4096, "maximum_additional_entry_rows":0,
+        "maximum_replayed_entry_rows":1024, "max_invocations":1, "teacher_refresh_allowed":False,
+        "control_forwards":0, "full_epoch_allowed":False, "full_val_allowed":False,
+        "test_data_used":False, "automatic_extension_allowed":False, "physical_reboot_required":True,
+        "learning_admission":False, "require_bitwise_state_equivalence":True, "run_authority_created":False}
+    forbidden = ("candidate_resume_origin", "native_calibration", "frozen_readout_evaluation",
+                 "chronological_initial_measurement", "chronological_train_only_measurement",
+                 "chronological_entry_baseline", "entry_gradient_diagnostic",
+                 "frozen_train_policy_evaluation", "frozen_entry_selector_probe")
+    if (any(type(plan.get(k)) is not type(v) or plan.get(k) != v for k,v in fixed.items())
+            or any(k in recipe for k in forbidden)
+            or "entry_observed_market" not in recipe
+            or "chronological_learning_measurement" not in recipe
+            or recipe.get("out_bundle_dir") != plan.get("out_bundle_dir")
+            or plan.get("comparison_state_fields") != ["model_state","target_model_state","optimizer_state",
+                "weight_ema_state","lr_scheduler_state","rng_state","epoch_order","training_progress"]
+            or plan.get("comparison_cursor_fields") != ["phase","epoch_index","next_batch_offset",
+                                                       "global_optimizer_steps","complete"]
+            or plan.get("only_allowed_state_metadata_difference") != ["session_contract_sha256"]):
+        raise RuntimeError("NATIVE_PREFIX_RESUME_EQUIVALENCE_SCOPE_INVALID")
+    _, review = load(plan.get("origin_review"), "resume equivalence origin review")
+    contract_binding, contract = load(plan.get("origin_contract"), "resume equivalence contract")
+    _, before = load(plan.get("origin_recipe"), "resume equivalence recipe")
+    _, audit = load(plan.get("preflight"), "resume equivalence preflight")
+    pointer_binding, pointer = load(plan.get("reference_pointer"), "resume equivalence reference pointer")
+    reference = require_binding(plan.get("reference_state"), label="resume equivalence reference state", verify_file=True)
+    origin = require_binding(plan.get("origin_state"), label="resume equivalence origin state", verify_file=True)
+    directory = Path(pointer_binding["path"]).parent
+    if (review.get("schema_version") != "gx1_native_entry_smoke_completion_review_v1"
+            or review.get("technical_native_cycle_passed") is not True
+            or review.get("source_unchanged") is not True
+            or review.get("optimizer_steps") != 256 or review.get("test_data_used") is not False
+            or review.get("training_expansion_authorized") is not False
+            or review.get("entry_exit_target_independence_verified") is not True
+            or review.get("target_model_exactly_preserved") is not True
+            or review.get("training_pointer") != pointer_binding
+            or review.get("training_state") != reference or review.get("recipe") != plan["origin_recipe"]
+            or pointer.get("global_optimizer_steps") != 256 or pointer.get("next_batch_offset") != 256
+            or pointer.get("epoch_index") != 0 or pointer.get("phase") != "train" or pointer.get("complete") is not False
+            or type(pointer.get("slot")) is not int or pointer["slot"] not in (0,1)
+            or pointer.get("session_contract_sha256") != contract_binding["sha256"]
+            or pointer.get("state_sha256") != reference["sha256"]
+            or Path(reference["path"]) != directory / f"candidate_training_state_slot_{pointer['slot']}.pt"
+            or Path(origin["path"]) != directory / f"candidate_training_state_slot_{1-pointer['slot']}.pt"
+            or contract.get("out_bundle_dir") != before.get("out_bundle_dir")
+            or before.get("out_bundle_dir") == recipe.get("out_bundle_dir")
+            or before.get("run_id") == recipe.get("run_id")
+            or contract.get("chronological_prefix",{}).get("artifacts") != recipe.get("chronological_prefix")):
+        raise RuntimeError("NATIVE_PREFIX_RESUME_EQUIVALENCE_ORIGIN_INVALID")
+    mutable = {"source_commit","source_bindings","source_bindings_sha256","run_id","out_bundle_dir",
+               "recipe_sha256","next_run_policy","chronological_learning_continuation"}
+    if {k:v for k,v in before.items() if k not in mutable} != {k:v for k,v in recipe.items() if k not in mutable}:
+        raise RuntimeError("NATIVE_PREFIX_RESUME_EQUIVALENCE_RECIPE_CHANGED")
+    allowed = {"wrapper", "python:gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+               "python:gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+               "python:gx1/contracts/unified_exit_native_candidate_campaign_v1.py"}
+    old_sources,new_sources = before["source_bindings"],recipe["source_bindings"]
+    if (old_sources.keys() != new_sources.keys()
+            or any(old_sources[k] != new_sources[k] for k in old_sources if k not in allowed)):
+        raise RuntimeError("NATIVE_PREFIX_RESUME_EQUIVALENCE_MODEL_OR_TARGET_SOURCE_CHANGED")
+    prefix=contract["chronological_prefix"]
+    expected_audit = {"schema_version":"gx1_prefix_resume_equivalence_preflight_v1",
+        "origin_contract":contract_binding,"origin_state":origin,"reference_state":reference,
+        "reference_pointer":pointer_binding,"origin_recipe":plan["origin_recipe"],"origin_review":plan["origin_review"],
+        "from_optimizer_steps":192,"stop_after_optimizer_steps":256,"replayed_optimizer_steps":64,
+        "previously_trained_entry_rows":4096,"new_unique_entry_rows":0,"replayed_entry_rows":1024,
+        "parent_order":prefix["epoch0_parent_order"],"train_rows":prefix["train_parent_rows"],
+        "control_rows":prefix["control_parent_rows"],"entry_order_exact":True,"control_overlap":0,
+        "target_model_state_sha256":review["target_model_state_sha256"],
+        "original_reference_model_state_sha256":review["model_state_sha256"],
+        "physical_sources":prefix["physical_sources"],"native_coordinates":prefix["native_coordinates"],
+        "torch_cuda_rng_preserved":True,"new_optimizer_steps":0,"new_model_forwards":0,"test_data_used":False}
+    if any(type(audit.get(k)) is not type(v) or audit.get(k) != v for k,v in expected_audit.items()):
+        raise RuntimeError("NATIVE_PREFIX_RESUME_EQUIVALENCE_PREFLIGHT_INVALID")
+    def rows(key):
+        b=require_binding(audit[key],label="resume equivalence rows",verify_file=True)
+        a=np.load(b["path"],allow_pickle=False)
+        if a.ndim!=1 or a.dtype!=np.dtype("int64"):
+            raise RuntimeError("NATIVE_PREFIX_RESUME_EQUIVALENCE_ORDER_INVALID")
+        return a
+    order,parents,control=(rows(k) for k in ("parent_order","train_rows","control_rows"))
+    physical=prefix["physical_sources"]
+    _,coordinates=load(prefix["native_coordinates"],"resume equivalence physical coordinates")
+    import hashlib
+    selected=order[192*16:256*16]
+    if (len(order)<4096 or not np.array_equal(np.sort(order),parents)
+            or len(np.unique(order[:4096]))!=4096 or len(selected)!=1024
+            or hashlib.sha256(selected.astype("<i8",copy=False).tobytes()).hexdigest()!=audit["replayed_parent_rows_sha256"]
+            or coordinates.get("train_source")!=physical["train"]["parquet"]
+            or coordinates.get("control_source")!=physical["val"]["parquet"]
+            or physical["train"]["parquet"]["path"]==physical["val"]["parquet"]["path"]
+            or len(order)!=physical["train"]["physical_rows"] or len(control)!=256
+            or control.min()<0 or control.max()>=physical["val"]["physical_rows"]
+            or datetime.fromisoformat(physical["train"]["last_entry_utc"])>=datetime.fromisoformat(physical["val"]["first_entry_utc"])):
+        raise RuntimeError("NATIVE_PREFIX_RESUME_EQUIVALENCE_ORDER_OR_SOURCE_INVALID")
+    return {"plan_binding":binding,"plan":plan,"origin_review":review,"origin_contract":contract,
+            "origin_contract_binding":contract_binding,"origin_pointer":pointer_binding,
+            "origin_recipe":before,"resume_equivalence":True}
+
+
 def require_chronological_continuation(recipe):
     """One separately bound256-to512 continuation; preserve the completed origin."""
     import numpy as np
@@ -1132,6 +1253,8 @@ def require_chronological_continuation(recipe):
         checked = require_binding(binding, label=label, verify_file=True)
         return checked, read_bound_json(Path(checked["path"]), checked["sha256"])
     binding, plan = load(value, "prefix continuation plan")
+    if plan.get("schema_version") == PREFIX_RESUME_EQUIVALENCE_SCHEMA:
+        return _require_prefix_resume_equivalence(recipe, binding=binding, plan=plan)
     fixed = {"schema_version":"gx1_prefix_learning_continuation_plan_v1",
         "from_optimizer_steps":256, "stop_after_optimizer_steps":512, "additional_optimizer_steps":256,
         "maximum_trained_entry_rows":8192, "maximum_additional_entry_rows":4096, "max_invocations":1,
@@ -1214,7 +1337,7 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
     if not isinstance(scope, Mapping):
         raise RuntimeError("NATIVE_PREFIX_RUN_NOT_AUTHORIZED")
     continuation = require_chronological_continuation(recipe)
-    ceiling = 512 if continuation else 256
+    ceiling = continuation["plan"]["stop_after_optimizer_steps"] if continuation else 256
     windows = scope.get("max_invocations")
     expected = {"chronological_prefix":prefix["artifacts"], "run_id":recipe.get("run_id"),
                 "out_bundle_dir":recipe.get("out_bundle_dir"), "source_bindings_sha256":recipe.get("source_bindings_sha256"),
@@ -1555,13 +1678,16 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    observed_replay = False
+    if "entry_observed_market" in recipe and "chronological_learning_continuation" in recipe:
+        observed_replay = require_chronological_continuation(recipe).get("resume_equivalence") is True
     if "entry_observed_market" in recipe and (
             "chronological_prefix" not in recipe
             or sum(key in recipe for key in ("chronological_initial_measurement", "chronological_learning_measurement")) != 1
             or any(key in recipe for key in ("frozen_train_policy_evaluation", "frozen_entry_selector_probe",
                 "entry_gradient_diagnostic", "chronological_entry_baseline", "chronological_learning_continuation",
                 "chronological_train_only_measurement", "candidate_resume_origin", "frozen_readout_evaluation",
-                "native_calibration"))):
+                "native_calibration") if not (key == "chronological_learning_continuation" and observed_replay))):
         raise RuntimeError("NATIVE_OBSERVED_ENTRY_MIXED_OR_UNMEASURED_SCOPE")
     if "frozen_train_policy_evaluation" in recipe or "frozen_entry_selector_probe" in recipe:
         scope = require_frozen_train_policy_evaluation(recipe, invocation_number=invocation_number,

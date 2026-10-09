@@ -2,7 +2,7 @@
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
   "retention_current_policy_manifest": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
-  "retention_current_policy_manifest_sha256": "d31bda6a046d6079135bdc38d2297df7b63391af23e9afdb7b0c6902c32eee1f",
+  "retention_current_policy_manifest_sha256": "7cacc924c210ae039023e2e2f82418f5f5a5ed1a8db3b402d947a2d7ac19a7c7",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -37,7 +37,7 @@
   "bundle_metadata_sha256": null,
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
-  "updated_utc": "2026-10-09T20:33:07.026849+00:00",
+  "updated_utc": "2026-10-09T20:53:48.805894+00:00",
   "pretraining_review_hold": {
     "schema_version": "gx1_pretraining_review_hold_v1",
     "decision": "BLOCK",

@@ -7,8 +7,9 @@ TRAIN-konstantene på CONTROL. Stor trening, full epoch/full VAL og
 Exit-trening er stengt. Den konsumerte engangstillatelsen er lukket.
 
 App-målet i thread 01a1203d-4a95-7d03-bbd9-84017db6b29c er fortsatt aktivt:
-ekte lært resume etter fysisk omstart er ikke verifisert. Ingen ny
-optimizerkjøring er åpnet av denne overleveringen. Ikke relanser brukt plan.
+ekte lært resume etter fysisk omstart er ikke verifisert. Bare én separat
+kontroll av de allerede trente stegene 192–256 er nå forhåndsbundet; ingen
+utvidelse av læringen eller relaunch av brukt plan er tillatt.
 
 Kun /home/andre2/src/GX1_CURRENT, branch work/gx1-current, én agent og
 én tung CURRENT-jobb. Mac er overleveringskopi. Les GX1_RULES.md og kjør
@@ -108,11 +109,32 @@ terskler, utvidet budsjett eller modellendring uten konkret hypotese og separat
 forhåndsbundet scope. Stor trening krever fortsatt bestått læringsport.
 
 Gjenstående driftsbevis er nøyaktig lært resume etter fysisk omstart.
-Dagens observed-Entry-scope avviser candidate_resume_origin; ikke fjern
-denne kontrollen eller bruk gammel scope som om den tillot ny kjøring.
-Avklar en smal kontroll av bevarte checkpoints gjennom eksisterende native
-eier, med uendret sluttgrense og vern av originalene, før noen slik test.
-CPU-deserialisering og tidligere syntetiske resume-tester erstatter den ikke.
+NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001 har REPLAY_PLAN.json,
+REPLAY_PREFLIGHT.json, SOURCE_PARITY.json og forhåndsbundet REVIEW_REPLAY.py.
+Native-eieren er utvidet kun for denne kontrollen gjennom eksisterende
+chronological_learning_continuation. candidate_resume_origin og andre
+blandede observed-Entry-ruter er fortsatt avvist.
+
+Den separate sesjonen gjenoppretter faktisk bevart steg192 og gjenskaper de
+samme 64 stegene til256. Ingen nye unike TRAIN-rader eller CONTROL-forwards.
+Originalt steg192/256 og peker bevares. Alle tilstandsfelt, inklusive
+ONLINE/TARGET, optimizer, EMA, scheduler, RNG, epoch-order og fremdrift,
+skal være bit-like originalt steg256; bare ny session_contract_sha256 skiller.
+Manglende eller ulik tilstand er feil og åpner ingen ny runde.
+
+Alle øvrige trenerfunksjoner/klasser er AST-like, og treningssløyfen samt
+resten av trenerfilen er byte-like originalen. Øvrig modell-/target-kilde er
+uendret. Ekte baseline-/origin-binding bestod;151 dedupliserte fokuserte tester
+bestod med3 SKIP, inklusive syntetisk siste64-replay og eldre scope-vakter.
+Seks syntetiske kontroller av sammenligningsoperatøren bestod.
+Recipe/campaign må fortsatt materialiseres og kontrolleres på committet,
+pushet kilde, deretter trygg fysisk reboot. Ingen faktisk replay er startet.
+
+Første preflight brukte feilaktig heltallsinterseksjon mellom TRAIN-/CONTROL-
+rad-IDer. Disse IDene er lokale til ulike fysiske parqueter. Det korrigerte
+beviset binder begge kildene og de strengt atskilte originale klokkeområdene.
+Feilet rapport er bevart; datasett og modell ble ikke endret.
+CPU-deserialisering og syntetiske tester erstatter ikke fysisk native resume.
 
 ## Helrepo-revisjon og bevart historikk
 

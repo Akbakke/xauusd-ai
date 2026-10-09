@@ -14156,23 +14156,44 @@ def _load_prefix_continuation_state(*, session, continuation):
     previous, requested = copy.deepcopy(contract), copy.deepcopy(session._contract)
     for value in (previous, requested):
         for key in ("source_commit", "run_id", "out_bundle_dir", "recipe_source_provenance"): value.pop(key)
-    previous["chronological_prefix"]["maximum_optimizer_steps"] = 512
+    replay = continuation.get("resume_equivalence") is True
+    start_steps = continuation["plan"]["from_optimizer_steps"]
+    stop_steps = continuation["plan"]["stop_after_optimizer_steps"]
+    previous["chronological_prefix"]["maximum_optimizer_steps"] = stop_steps
     if (requested["chronological_prefix"].pop("continuation", None) != continuation["plan_binding"]
             or previous != requested):
         raise RuntimeError("[CANDIDATE_PREFIX_CONTINUATION_CONTRACT_CHANGED]")
     state = old.load_checkpoint()
-    if (state is None or state["global_optimizer_steps"] != 256 or state["next_batch_offset"] != 256
+    state_binding = review["training_state"]
+    if replay:
+        reference = state
+        pointer = _candidate_training_session_read_json(old._active_path, label="ACTIVE")
+        state_binding = continuation["plan"]["origin_state"]
+        source = Path(state_binding["path"])
+        old._require_read_path(source)
+        if (reference is None or reference["global_optimizer_steps"] != stop_steps
+                or continuation["plan"]["reference_state"] != review["training_state"]
+                or source != old._slot_path(1-pointer["slot"])
+                or _sha256_file(source) != state_binding["sha256"]):
+            raise RuntimeError("[CANDIDATE_PREFIX_REPLAY_STATE_INVALID]")
+        state = torch.load(source, map_location="cpu", weights_only=True)
+        if (not isinstance(state, dict) or set(state) != _CANDIDATE_TRAINING_STATE_KEYS
+                or state["session_contract_sha256"] != old.contract_sha256
+                or state["checkpoint_index"] + 1 != reference["checkpoint_index"]):
+            raise RuntimeError("[CANDIDATE_PREFIX_REPLAY_STATE_INVALID]")
+    if (state is None or state["global_optimizer_steps"] != start_steps or state["next_batch_offset"] != start_steps
             or state["epoch_index"] != 0 or state["phase"] != "train" or state["complete"]
-            or state["weight_ema_state"]["steps"] != 256
-            or _sha256_file(Path(review["training_state"]["path"])) != review["training_state"]["sha256"]):
+            or state["weight_ema_state"]["steps"] != start_steps
+            or _sha256_file(Path(state_binding["path"])) != state_binding["sha256"]):
         raise RuntimeError("[CANDIDATE_PREFIX_CONTINUATION_STATE_INVALID]")
     # load_checkpoint returns a new in-memory object. All learning state and original files remain intact.
     state["session_contract_sha256"] = session.contract_sha256
     _candidate_training_session_atomic_write_json(session.directory / "PREFIX_CONTINUATION_RECEIPT.json", {
         "schema_version":"gx1_prefix_continuation_state_transfer_v1", "plan":continuation["plan_binding"],
-        "origin_pointer":continuation["origin_pointer"], "origin_state":review["training_state"],
+        "origin_pointer":continuation["origin_pointer"], "origin_state":state_binding,
+        "resume_equivalence":replay,
         "new_session_contract_sha256":session.contract_sha256, "changed_state_fields":["session_contract_sha256"],
-        "optimizer_steps_before":256, "stop_after_optimizer_steps":512,
+        "optimizer_steps_before":start_steps, "stop_after_optimizer_steps":stop_steps,
         "original_state_preserved":True, "target_refreshed":False, "optimizer_reset":False, "test_data_used":False})
     return state
 
@@ -14246,10 +14267,12 @@ def _run_resumable_candidate_training(
     prefix_epoch0_order = None
     prefix_ceiling = 256
     if chronological_continuation is not None:
-        if (chronological_prefix is None or chronological_continuation["plan"]["from_optimizer_steps"] != 256
-                or chronological_continuation["plan"]["stop_after_optimizer_steps"] != 512):
+        replay = chronological_continuation.get("resume_equivalence") is True
+        expected_start, expected_stop = (192,256) if replay else (256,512)
+        if (chronological_prefix is None or chronological_continuation["plan"]["from_optimizer_steps"] != expected_start
+                or chronological_continuation["plan"]["stop_after_optimizer_steps"] != expected_stop):
             raise RuntimeError("[CANDIDATE_PREFIX_CONTINUATION_SCOPE_INVALID]")
-        prefix_ceiling = 512
+        prefix_ceiling = expected_stop
     if chronological_prefix is not None:
         if (candidate_resume_origin is not None or execution_budget is None or native_val_context is None
                 or "evaluation_cohort" not in native_val_context
@@ -14263,9 +14286,10 @@ def _run_resumable_candidate_training(
             train_parquet=train_parquet, val_parquet=val_parquet, input_normalization=input_normalization,
             model=model, seed=seed, batch_size=batch_size, learning_rate=lr, weight_decay=weight_decay)
         if chronological_continuation is not None:
-            if prefix_binding["model_functions"] == _PREFIX_CURRENT_MODEL_FUNCTIONS:
+            if (prefix_binding["model_functions"] == _PREFIX_CURRENT_MODEL_FUNCTIONS
+                    and chronological_continuation.get("resume_equivalence") is not True):
                 raise RuntimeError("[CANDIDATE_PHYSICAL_PREFIX_CONTINUATION_FORBIDDEN]")
-            prefix_binding.update(maximum_optimizer_steps=512, continuation=chronological_continuation["plan_binding"])
+            prefix_binding.update(maximum_optimizer_steps=prefix_ceiling, continuation=chronological_continuation["plan_binding"])
     if (candidate_resume_origin is not None
             and candidate_resume_origin.get("train_population_scope") == "latest_year_2025_2026_v1"):
         from gx1.contracts.unified_exit_random_access_index_v1 import require_latest_year_index_root, latest_year_selected_entry_rows

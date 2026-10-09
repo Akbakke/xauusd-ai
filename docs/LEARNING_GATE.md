@@ -66,3 +66,9 @@ Svakt resultat skal diagnostiseres fra bevarte mål-, gradient- og outputbevis.
 Ingen blind ekstra trening, brede søk, featurekassering, fast tapsgrense eller
 maksimal holdetid. Native paritets-/resume-/ytelses-/maskinvareporter består.
 Syntetiske tester beviser kontrakter, aldri kvalitet på genuine markedsdata.
+
+En særskilt forhåndsbundet resume-ekvivalenstest kan gjenskape en allerede
+trent del av samme prefix i en separat sesjon, uten nye unike rader eller
+CONTROL-målinger. Den sammenligner komplett tilstand med originalen og er
+driftsbevis; den endrer ikke den negative læringsporten eller treningsbudsjettet
+til den opprinnelige kandidaten. Bare eksakt scope i NEXT_RUN_POLICY gjelder.
