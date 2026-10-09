@@ -61,7 +61,13 @@ Exit-spesifikke parametere skal ha grad=None før hvert optimizersteg,
 slik at også AdamW holder dem urørt. Delte encodere lærer fra Entry.
 Samme målidentitet bindes i datasett, recipe, varig checkpoint og måling;
 gamle teacher-baserte baselines og resume med endret target avvises.
-Ny initialmåling er ennå ikke kjørt. Senere Exit-trening med låst, godkjent
+Ny initialmåling er ennå ikke kjørt. NEXT_RUN_POLICY.json binder nå
+NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001: ett nytt native nullstegsvindu
+og faste TRAIN256/CONTROL256. Recipe/campaign og fysisk omstart må fortsatt
+verifiseres før kjøring. Den lagrede utrente CPU-starttilstanden kan gjenbrukes
+bare etter eksakte konstruktør-, state-, optimizer- og normkontroller; ny
+mål-/funksjonsbaseline må uansett måles. Ingen gamle planer relanseres.
+Senere Exit-trening med låst, godkjent
 Entry er fortsatt en separat uimplementert og ikke-admittert fase.
 
 REPO_AUDIT_20261009_001/ENTRY_OBSERVED_IMPLEMENTATION_REVIEW_001.json

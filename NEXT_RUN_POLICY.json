@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-09T18:19:52.228221+00:00",
-  "status": "V38_ENTRY_OBSERVED_NATIVE_BASELINE_REQUIRED",
+  "observed_utc": "2026-10-09T18:23:17.184036+00:00",
+  "status": "V38_ENTRY_OBSERVED_INITIAL_MEASUREMENT_AUTHORIZED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Bind a fresh native zero-step measurement for the explicit observed-market Entry design, reusing the bit-exact untrained constructor state only after existing source/state checks. Preserve original input normalization, all genuine auxiliaries and fixed physical TRAIN256/CONTROL256. Then prebind one Entry-only 256-step/4096-row smoke and paired Entry gate. Exit diagnostics are not Exit learning in this phase. Do not launch old SMOKE001. No more extensive Entry training before measured Entry learning/stability and operational gates; no combined Entry/Exit or profitability claim without the separate preserved-Entry Exit stage and complete economics. TEST sealed.",
+  "next_action": "Materialize and verify the explicitly bound NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001 recipe/campaign. Stage the current Windows controller, verify whole-host idle/writers and saved state, then physically reboot into one guarded zero-step native measurement. Reuse the original fresh constructor state only after exact canonical checks; newly measure observed Entry targets. Preserve old INITIAL003/SMOKE001. No optimizer, smoke, full epoch/full VAL, TEST or automatic extension under this initial scope.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -822,6 +822,21 @@
       "target_score_unit": "raw_bps_not_calibrated_probability",
       "target_semantics": "Observed executable markout net of declared costs; no Exit model in labels",
       "production_optimizer_steps": 0
+    },
+    "native_entry_observed_initial_20261009": {
+      "authorized": true,
+      "status": "EXACT_ZERO_STEP_SCOPE_BOUND_RECIPE_AND_CAMPAIGN_PENDING",
+      "root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001",
+      "optimizer_steps": 0,
+      "max_invocations": 1,
+      "new_targets_without_exit_teacher": true,
+      "fresh_native_measurement_required": true,
+      "saved_untrained_constructor_state_reused_only_after_existing_exact_checks": true,
+      "input_normalization_or_target_policy_refits": false,
+      "relaunch_allowed": false,
+      "physical_reboot_before_invocation_required": true,
+      "training_window_seconds": 12000,
+      "test_data_used": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -2961,5 +2976,46 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
+  },
+  "chronological_initial_measurement": {
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
+        "sha256": "6b3be86ba001dee31b9d0d02ad3385835a8ea34defc2f569d39d0269cb3b9f13"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+        "sha256": "9dcc1fa930534aeeee26410a569083f9956f3cbf2637e5faaf09a58fd88436df"
+      },
+      "native_coordinates": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COORDINATES_001/NATIVE_COORDINATES.json",
+        "sha256": "51ee650e37051b6c27087b78ad840ac8b87996dbf3d1c0005f325efd21e283a4"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+        "sha256": "3605e8bdc3040fddc70d5fffab19be254b23dcd41e71389639d23eb890af2211"
+      }
+    },
+    "entry_observed_market": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ENTRY_OBSERVED_MARKET_20261009.json",
+      "sha256": "9a84418b23a9f95062036803ae96ffb413a7b1534a47108ddfc7a1414a57318d"
+    },
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "initialization_result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/INITIALIZATION_RESULT.json",
+      "sha256": "e24a53df97155ce89884877b5bcf2f2aea59477bf7b9dd5817ca22442722da6c"
+    },
+    "max_invocations": 1,
+    "measurement_binding_result": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/MEASUREMENT_BINDING_RESULT.json",
+      "sha256": "e189c4e194608b2d32f38e559d7eab12a7d1f1fa665c4454ad274d6f629e40f1"
+    },
+    "optimizer_steps": 0,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001/CANDIDATE_BUNDLE",
+    "run_id": "NATIVE_ENTRY_OBSERVED_INITIAL_20261009_001",
+    "source_bindings_sha256": "0122ac292eadee437ae47c0f196ae24e857c48c4475a653bca5784d4f492f23d",
+    "teacher_refresh_allowed": false,
+    "test_data_used": false
   }
 }
