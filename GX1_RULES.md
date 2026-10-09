@@ -1,7 +1,8 @@
 # GX1-regler — bindende for alle agenter (konsolidert 26.09.2026)
 
 Dette er den ene regelkilden. Claude leser den via `CLAUDE.md`, Codex via `AGENTS.md`.
-Status og neste steg står bare i `CURRENT_HANDOVER.md` og `VEIEN_VIDERE.md`, aldri her.
+Status, gjort/ikke gjort og neste steg står bare i `CURRENT_HANDOVER.md` med
+maskinlesbare bindinger i `NEXT_RUN_POLICY.json`, aldri som daglig historikk her.
 Den eksekverbare statuseieren `bash scripts/gx1_handover.sh --check` overstyrer all prosa;
 er dokument og kode uenige: stopp, og reparer dokument og kode sammen.
 

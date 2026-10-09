@@ -7,9 +7,13 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
   Andre worktrees/grener er lagring, aldri arbeidssteder.
 - Én agent om gangen innen CURRENT. Ingen subagenter eller parallelle agentløp.
   Start med git branch --show-current og git log -5; bygg på eksisterende arbeid.
-- Kjør bash scripts/gx1_handover.sh --check. Les CURRENT_HANDOVER.md,
-  GX1_ARBEIDSMAAL.md, VEIEN_VIDERE.md og NEXT_RUN_POLICY.json.
-  CURRENT_HANDOVER er gjeldende fortelling; NEXT_RUN_POLICY er eneste arbeidsstatus.
+- Kjør bash scripts/gx1_handover.sh --check. Les kun siste CURRENT_HANDOVER.md
+  og aktuelle status-/scopefelt i NEXT_RUN_POLICY.json ved overtakelse.
+  Eldre kvitteringer åpnes bare ved konkret avvik eller nødvendig ny gatekontroll.
+  CURRENT_HANDOVER samler gjort,
+  ikke gjort, hindring og neste steg; NEXT_RUN_POLICY er eneste arbeidsstatus.
+  Les øvrige metode-/designdokumenter bare når den aktuelle oppgaven trenger dem.
+  Ingen daglige historikkvedlegg eller gjentatt gjennomgang av uendrede steg.
   Prosessobservasjon og eksakte terminalkvitteringer overstyrer prosa.
 - Ikke relanser fullførte, claimede eller avbrutte engangsplaner. En ny plan er
   ikke autorisert av en gammel godkjenning. training_enabled=false stenger trening.
@@ -41,5 +45,6 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
   work/gx1-current. Aldri rådata, vekter eller hemmeligheter; aldri force-push
   uten eget vedtak. Ikke spør på nytt om allerede gitt relevant autorisasjon.
 
-Ingen antagelser der tilstanden kan måles. Les [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md)
-for gjenværende læringsløp og [docs/REPO_REVIEW.md](docs/REPO_REVIEW.md) for oppryddingen.
+Ingen antagelser der tilstanden kan måles. Gjenværende læringsmetode:
+[docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md). Aktuell oppryddingsgrense
+står i [CURRENT_HANDOVER.md](CURRENT_HANDOVER.md); historikken finnes i Git.

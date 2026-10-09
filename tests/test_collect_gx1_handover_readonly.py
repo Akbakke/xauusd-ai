@@ -321,10 +321,10 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     assert policy['limits']['fresh_physical_windows_boot_before_every_invocation'] is True
     assert work['hourly_monitor']['status'] == 'DELETED_BY_USER_REQUEST_AFTER_CORE_TERMINAL'
     assert work['hourly_monitor']['whole_input_completion_claimed'] is False
-    assert work['app_goal_creation']['created'] is True
-    assert work['app_goal_creation']['status_at_creation'] == 'active'
+    assert work['pre_smoke_goal_preparation_complete'] is True
+    assert work['pre_smoke_goal_completion_evidence'] == scope['final_readiness_stage']['pre_smoke_readiness']
     assert work['gc_goal_status'] == 'paused'
-    assert work['app_goal_creation']['false_completion_allowed'] is False
+    assert work['restart_and_smoke_goal']['false_completion_allowed'] is False
     stage = scope['complete_m1_stage']
     assert stage['authorized'] is False  # Genuine terminal consumed this permission.
     assert stage['current_status'] == 'GENUINE_COMPLETE_M1_ORACLE_PASS_PHYSICAL_NORMALIZED_VIEWS_PENDING'
@@ -774,3 +774,132 @@ def test_handover_prints_identity_lines_and_source_only_blocks(monkeypatch,capsy
     lines=capsys.readouterr().out.splitlines()
     assert 'unexpected_ignored_path_count: 1' in lines and 'prunable_worktree_count: 0' in lines
     assert 'unexpected_ignored_paths: ["stale/"]' in lines
+
+
+def test_current_handover_records_blocked_goal_without_completed_ui_history():
+    repo = Path(__file__).resolve().parents[1]
+    policy = json.loads((repo / "NEXT_RUN_POLICY.json").read_text())
+    work = policy["current_work"]
+    assert work["restart_and_smoke_goal"]["status"] == "blocked"
+    assert work["restart_and_smoke_goal"]["physical_reboot_executed"] is False
+    assert work["current_blocker"]["id"] == "PROTECTED_WINDOWS_ROLE_AND_MACHINE_WIDE_IDLE_PROOF_UNAVAILABLE"
+    assert work["training_started"] is False
+    assert work["full_benchmark_completed"] is True
+    assert work["physical_native_preprocessing_complete"] is True
+    assert work["native_training_coordinates_published"] is True
+    for name in ("app_goal_creation", "gc_goal_dependency_audit",
+                 "source_head_before_cleanup", "termination"):
+        assert name not in work
+    assert work["cleanup_report"] == "CURRENT_HANDOVER.md"
+
+
+def test_one_latest_handover_replaces_redundant_goal_roadmap_and_cleanup_reports():
+    repo = Path(__file__).resolve().parents[1]
+    retired = ("GX1_ARBEIDSMAAL.md", "VEIEN_VIDERE.md", "docs/REPO_REVIEW.md")
+    consumers = ("AGENTS.md", "CLAUDE.md", "GX1_RULES.md", "README.md",
+                 "DOC_INDEX.md", "CURRENT_HANDOVER.md", "scripts/gx1_handover.sh")
+    for name in retired:
+        assert not (repo / name).exists()
+        for consumer in consumers:
+            assert name not in (repo / consumer).read_text()
+    script = (repo / "scripts/gx1_handover.sh").read_text()
+    assert "for required in NEXT_RUN_POLICY.json CURRENT_HANDOVER.md docs/LEARNING_GATE.md;" in script
+    assert "CURRENT_HANDOVER.md" in (repo / "AGENTS.md").read_text()
+
+
+@pytest.mark.parametrize("exit_code", [0, 1])
+@pytest.mark.parametrize("running", [False, True])
+def test_compact_handover_preserves_terminal_uncertainty_and_process_evidence(exit_code, running):
+    from scripts.collect_gx1_handover_readonly import handover_view
+    processes = [{"pid": "123", "command": "actual-observation"}] if running else []
+    status = {
+        "decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY",
+        "training_enabled": False,
+        "latest_terminal_receipt": {"exit_code": exit_code, "source_unchanged": True},
+        "latest_terminal_evidence_gaps": ["test_data_used_field_missing"],
+        "current_processes": processes,
+        "process_observation": "RUNNING" if running else "NO_CURRENT_PYTHON_WORKLOAD_OBSERVED",
+        "next_run": {"decision": "BLOCKED", "blocked_reasons": ["required_proof_missing"]},
+        "current_work": {
+            "current_activity": "native-smoke-blocked",
+            "full_benchmark_completed": True,
+            "training_started": False,
+            "current_blocker": {"id": "readable-windows-role-required"},
+            "restart_and_smoke_goal": {
+                "status": "blocked", "status_at_creation": "active",
+                "physical_reboot_executed": False,
+                "machine_wide_idle_writer_proof_complete": False,
+            },
+            "app_goal_creation": {"scope": "retired-ui-history"},
+            "termination": "retired-stage-walkthrough",
+            "gc_goal_dependency_audit": {"observed_utc": "old"},
+        },
+    }
+    before = json.loads(json.dumps(status))
+    view = handover_view(status)
+    assert status == before
+    for key, value in status.items():
+        if key != "current_work":
+            assert view[key] == value
+    assert view["current_work"]["current_blocker"] == status["current_work"]["current_blocker"]
+    assert view["current_work"]["restart_and_smoke_goal"] == {
+        "status": "blocked", "physical_reboot_executed": False,
+        "machine_wide_idle_writer_proof_complete": False,
+    }
+    assert "retired-" not in json.dumps(view)
+    assert "status_at_creation" not in json.dumps(view)
+
+
+def test_compact_source_only_view_does_not_invent_terminal_process_or_gate_evidence():
+    from scripts.collect_gx1_handover_readonly import handover_view
+    status = {"decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY", "current_work": {
+        "training_started": False, "termination": "obsolete",
+    }}
+    view = handover_view(status)
+    assert view["current_work"] == {"training_started": False}
+    for name in ("latest_terminal_receipt", "current_processes", "next_run",
+                 "latest_terminal_evidence_gaps"):
+        assert name not in view
+
+
+@pytest.mark.parametrize("source_only", [False, True])
+def test_default_cli_omits_history_but_retains_identity_and_current_gate(monkeypatch, capsys, source_only):
+    import scripts.collect_gx1_handover_readonly as collector
+    status = {
+        "decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY",
+        "training_enabled": False,
+        "current_work": {
+            "training_started": False,
+            "termination": "historical-walkthrough-do-not-print",
+            "restart_and_smoke_goal": {"status": "blocked", "physical_reboot_executed": False},
+        },
+    }
+    if not source_only:
+        status.update({
+            "latest_terminal_receipt": {"exit_code": 1},
+            "latest_terminal_evidence_gaps": ["test_data_used_field_missing"],
+            "current_processes": [{"pid": "123"}],
+            "next_run": {"decision": "BLOCKED", "blocked_reasons": ["proof_missing"]},
+        })
+    identity = dict.fromkeys(collector.SOURCE_IDENTITY_KEYS, 0)
+    identity.update({
+        "head_commit": "c" * 40, "worktree_fingerprint": "f" * 64,
+        "source_identity_gate": "READY_CLEAN_WORKTREE__REVIEWED_LOCAL_EXCLUSIONS",
+        "unexpected_ignored_paths": [],
+    })
+    def observe(_repo, **arguments):
+        assert arguments == {"source_only": source_only}
+        return status
+    monkeypatch.setattr(collector, "current_status", observe)
+    monkeypatch.setattr(collector, "source_identity", lambda _repo: identity)
+    monkeypatch.setattr("sys.argv", ["collector", *(["--source-only"] if source_only else [])])
+    assert collector.main() == 0
+    stdout = capsys.readouterr().out
+    payload, _ = json.JSONDecoder().raw_decode(stdout)
+    assert "historical-walkthrough" not in stdout
+    assert payload["current_work"]["restart_and_smoke_goal"]["status"] == "blocked"
+    assert "source_identity_gate: READY_CLEAN_WORKTREE__REVIEWED_LOCAL_EXCLUSIONS" in stdout
+    if not source_only:
+        assert payload["latest_terminal_evidence_gaps"] == ["test_data_used_field_missing"]
+        assert payload["current_processes"] == [{"pid": "123"}]
+        assert payload["next_run"]["decision"] == "BLOCKED"

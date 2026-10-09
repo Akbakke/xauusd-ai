@@ -59,9 +59,8 @@ def _git(repo: Path, *args: str) -> str:
     return completed.stdout.rstrip("\n")
 
 
-# Ported from the archived handover (archive/gx1-engine-audit-v9-20260926:
-# scripts/gx1_handover.sh). Ignored bytes are invisible to the worktree
-# fingerprint (GX1_RULES.md rule 24), so a heavy route may bind its source only
+# Ignored bytes are invisible to the worktree fingerprint (GX1_RULES.md
+# rule 24), so a heavy route may bind its source only
 # when every ignored path is a reviewed local runtime exclusion or a
 # regenerable cache. The launch state owns the exclusion list; this pins it.
 LAUNCH_STATE_NAME = "PROJECT_STATE_xau_direction_launch.json"
@@ -382,6 +381,35 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     return out
 
 
+def handover_view(status: dict[str, object]) -> dict[str, object]:
+    """Present only current work; retain full validation in current_status.
+
+    Historical scope/budget/input bindings remain in the sole policy. They are
+    not daily narrative, and omission here never grants a launch or hides a
+    terminal failure, evidence gap, live workload or next-run refusal.
+    """
+    out = {key: value for key, value in status.items() if key != "current_work"}
+    work = status.get("current_work")
+    if isinstance(work, dict):
+        visible = (
+            "current_activity", "current_research_id", "latest_terminal",
+            "pre_smoke_goal_preparation_complete", "full_benchmark_completed",
+            "sampler_selected", "physical_native_preprocessing_complete",
+            "native_training_coordinates_published", "training_started",
+            "gc_goal_status", "current_blocker",
+        )
+        out["current_work"] = {key: work[key] for key in visible if key in work}
+        goal = work.get("restart_and_smoke_goal")
+        if isinstance(goal, dict):
+            out["current_work"]["restart_and_smoke_goal"] = {
+                key: goal[key] for key in (
+                    "status", "physical_reboot_executed",
+                    "machine_wide_idle_writer_proof_complete",
+                ) if key in goal
+            }
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-only", action="store_true")
@@ -403,7 +431,7 @@ def main() -> int:
         return 0 if result["decision"] == "READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES" else 78
     status = current_status(repo, source_only=args.source_only)
     identity = source_identity(repo)
-    print(json.dumps(status, indent=2))
+    print(json.dumps(handover_view(status), indent=2))
     for key in SOURCE_IDENTITY_KEYS:
         print(f"{key}: {identity[key]}")
     if identity["unexpected_ignored_paths"]:

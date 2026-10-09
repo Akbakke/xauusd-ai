@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Read the sole current policy, its explicit terminal and CURRENT workloads.
+# Show compact current status, the explicit terminal and CURRENT workloads.
 # No historical checkpoint selection, native launch or model forward occurs.
 set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
@@ -10,7 +10,7 @@ case "${1:-}" in
   -h|--help) echo "Usage: scripts/gx1_handover.sh [--check|--verbose|--source-only]"; exit 0 ;;
   *) echo "Unsupported handover argument: $1" >&2; exit 2 ;;
 esac
-for required in NEXT_RUN_POLICY.json CURRENT_HANDOVER.md VEIEN_VIDERE.md GX1_ARBEIDSMAAL.md docs/LEARNING_GATE.md; do
+for required in NEXT_RUN_POLICY.json CURRENT_HANDOVER.md docs/LEARNING_GATE.md; do
   [[ -f "$REPO/$required" ]] || {
     echo "FATAL: required handover file missing: $required; no legacy fallback" >&2
     exit 78

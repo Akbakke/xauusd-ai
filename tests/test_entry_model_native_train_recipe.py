@@ -413,7 +413,7 @@ def _held_source_repo(tmp_path: Path) -> Path:
             "decision": "BLOCK",
             "reason": "successor dataset review is pending",
             "activation_authority": False,
-            "report_path": "docs/REPO_REVIEW.md",
+            "report_path": "CURRENT_HANDOVER.md",
         }}),
         encoding="utf-8",
     )
