@@ -140,6 +140,11 @@ er bevart; datasett og modell ble ikke endret.
 
 ## Videre læring er ikke godkjent
 
+Handover uten bundet native-vindu rapporterer fortsatt manglende generelle
+fullprofilartefakter i required_evidence, inklusive resume_equivalence. Disse
+krever egen evidens for VAL-profil256/8. Suffix-testen ovenfor verifiserer
+bare det navngitte Entry-prefixet; den fyller eller frafaller ikke fullportene.
+
 Bevar det negative læringsresultatet. Ingen flere optimizersteg, nye CONTROL-
 terskler, utvidet budsjett eller modellendring uten konkret hypotese og separat
 forhåndsbundet scope. Neste eventuelle hypotese må bygge på bevart TRAIN-bevis;
