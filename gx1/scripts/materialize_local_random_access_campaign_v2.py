@@ -786,14 +786,15 @@ def materialize_full_val_campaign(
 def materialize_native_candidate_campaign(
     *, repo: Path, output: Path, runtime: Path, gpu_uuid: str,
     prepared_boot_path: Path, prepared_boot_file_sha256: str, certificate_path: Path,
-    prior_campaign_path: Path, prior_campaign_file_sha256: str,
-    selection_path: Path, selection_file_sha256: str,
+    prior_campaign_path: Path | None = None, prior_campaign_file_sha256: str | None = None,
+    selection_path: Path | None = None, selection_file_sha256: str | None = None,
     recipe_path: Path, recipe_file_sha256: str, window_count: int,
 ) -> dict[str, Any]:
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         NATIVE_KIND, NATIVE_MODULE, NATIVE_PHASE, WINDOW_SCHEMA,
         require_native_completed_smoke, require_native_recipe_metadata, require_native_window_policy, require_native_run_scope,
+        require_fresh_physical_campaign_sampler,
         OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
         TRAINING_CONTINUATION_SCHEMA, TRAINING_CONTINUATION_ORIGIN_CURSOR,
         FQI_TARGET_REFRESH_SCHEMA, FQI_TARGET_REFRESH_ORIGIN_CURSOR,
@@ -824,15 +825,26 @@ def materialize_native_candidate_campaign(
             epoch_stop *= origin["epoch_index"] + 1
         if ceiling is not None and ceiling >= epoch_stop:
             raise RandomAccessCampaignError("native calibration cannot complete a TRAIN epoch")
-    prior = require_plan(read_bound_json(prior_campaign_path, prior_campaign_file_sha256), verify_files=True)
-    selection = require_selection(read_bound_json(selection_path, selection_file_sha256), verify_files=True)
-    if prior["selection_receipt"] != _binding(selection_path) or selection["selected_batch_size"] != 16:
-        raise RandomAccessCampaignError("native campaign measured selection differs")
-    if "chronological_prefix" not in recipe:
-        require_native_completed_smoke(plan={
-            "final_train_checkpoint_authority": recipe["seed_authority"],
-            "selection_receipt": _binding(selection_path),
-        }, prior=prior, recipe=recipe)
+    legacy_inputs = (prior_campaign_path, prior_campaign_file_sha256, selection_path, selection_file_sha256)
+    if "native_coordinates" in recipe.get("chronological_prefix", {}):
+        if any(value is not None for value in legacy_inputs):
+            raise RandomAccessCampaignError("fresh physical campaign cannot mix historical campaign/selection")
+        prior_binding = None
+        selection_binding, _ = require_fresh_physical_campaign_sampler(recipe)
+    else:
+        if any(value is None for value in legacy_inputs):
+            raise RandomAccessCampaignError("native historical campaign/selection inputs incomplete")
+        prior = require_plan(read_bound_json(prior_campaign_path, prior_campaign_file_sha256), verify_files=True)
+        selection = require_selection(read_bound_json(selection_path, selection_file_sha256), verify_files=True)
+        prior_binding = _binding(prior_campaign_path)
+        selection_binding = _binding(selection_path)
+        if prior["selection_receipt"] != selection_binding or selection["selected_batch_size"] != 16:
+            raise RandomAccessCampaignError("native campaign measured selection differs")
+        if "chronological_prefix" not in recipe:
+            require_native_completed_smoke(plan={
+                "final_train_checkpoint_authority": recipe["seed_authority"],
+                "selection_receipt": selection_binding,
+            }, prior=prior, recipe=recipe)
     boot = require_boot_identity(read_bound_json(prepared_boot_path, prepared_boot_file_sha256))
     guards, controllers = _sources(repo, certificate_path)
     target = Path(recipe["out_bundle_dir"])
@@ -896,7 +908,7 @@ def materialize_native_candidate_campaign(
     plan = _base_plan(
         phase=NATIVE_PHASE, campaign_id=f"GX1_NATIVE_CANDIDATE_{commit[:12]}", repo=repo, commit=commit,
         runtime=runtime, gpu_uuid=gpu_uuid, boot=boot, guards=guards, controllers=controllers,
-        prior=_binding(prior_campaign_path), selection=_binding(selection_path), selected_batch_size=16,
+        prior=prior_binding, selection=selection_binding, selected_batch_size=16,
         invocations=invocations, final_train_checkpoint_authority=recipe["seed_authority"],
     )
     plan.pop("plan_sha256")
@@ -971,16 +983,14 @@ def main(argv: list[str] | None = None) -> int:
     elif args.phase == "native-candidate":
         required = (
             args.native_recipe, args.native_recipe_file_sha256, args.native_window_count,
-            args.prior_campaign, args.prior_campaign_file_sha256,
-            args.gpu_selection, args.gpu_selection_file_sha256,
         )
         if any(value is None for value in required):
             raise RandomAccessCampaignError("native candidate inputs incomplete")
         result = materialize_native_candidate_campaign(
             **base, recipe_path=args.native_recipe.resolve(), recipe_file_sha256=args.native_recipe_file_sha256,
             window_count=args.native_window_count,
-            prior_campaign_path=args.prior_campaign.resolve(), prior_campaign_file_sha256=args.prior_campaign_file_sha256,
-            selection_path=args.gpu_selection.resolve(), selection_file_sha256=args.gpu_selection_file_sha256,
+            prior_campaign_path=args.prior_campaign.resolve() if args.prior_campaign else None, prior_campaign_file_sha256=args.prior_campaign_file_sha256,
+            selection_path=args.gpu_selection.resolve() if args.gpu_selection else None, selection_file_sha256=args.gpu_selection_file_sha256,
         )
     elif args.phase == "full-year-continuation":
         required = (

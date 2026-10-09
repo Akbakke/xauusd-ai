@@ -818,6 +818,8 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
             native_recipe, native_count = require_native_recipe_metadata(result["native_recipe"], source_repo=repo, source_commit=result["source_commit"])
             if result["entry_pairs_per_epoch"] != native_count or result["selected_batch_size"] != 16:
                 raise RandomAccessCampaignError("native campaign full TRAIN population differs")
+            if "native_coordinates" in native_recipe.get("chronological_prefix", {}) and result["prior_campaign"] is not None:
+                raise RandomAccessCampaignError("fresh physical campaign cannot mix historical campaign/selection")
     full_session = None
     full_session_binding = None
     prefix_campaign = None
@@ -833,6 +835,19 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
             raise RandomAccessCampaignError(
                 "GPU-selection plan cannot preselect a winner"
             )
+    elif phase == "native_candidate" and result["prior_campaign"] is None:
+        if result["selected_batch_size"] != 16 or result["final_train_checkpoint_authority"] is not None:
+            raise RandomAccessCampaignError("fresh physical campaign batch/seed authority invalid")
+        binding = require_binding(
+            result["selection_receipt"], label="current physical sampler", verify_file=verify_files)
+        result["selection_receipt"] = binding
+        result["selection_artifact_sha256"] = None
+        if verify_files:
+            from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_fresh_physical_campaign_sampler
+            expected, sampler_sha256 = require_fresh_physical_campaign_sampler(native_recipe)
+            if binding != expected:
+                raise RandomAccessCampaignError("fresh physical campaign sampler differs from recipe")
+            result["selection_artifact_sha256"] = sampler_sha256
     else:
         selected = result.get("selected_batch_size")
         if selected not in (4, 8, 16):
@@ -993,6 +1008,9 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
             output = Path(native_recipe["out_bundle_dir"])
             session = output.parent / (".gx1-candidate-training-session." + output.name)
             for item in invocations:
+                if result["prior_campaign"] is None:
+                    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_run_scope
+                    require_native_run_scope(native_recipe, invocation_number=item["invocation_number"])
                 policy = item["native_window_policy"]
                 if (
                     item["native_recipe"] != result["native_recipe"]

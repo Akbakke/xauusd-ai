@@ -63,10 +63,23 @@ modellforward, optimizersteg eller TEST. Begge tidligere forsøk bevares
 uten relaunch. CPU-planen er lukket; ikke kjør den på nytt.
 
 NEXT_RUN_POLICY.json har nå eksakt chronological_initial_measurement:
-NATIVE_INITIAL_20261009_001, TRAIN256/CONTROL256, null optimizersteg,
+NATIVE_INITIAL_20261009_002, TRAIN256/CONTROL256, null optimizersteg,
 én native invokasjon på12000s, ingen læreroppdatering/full epoch/full VAL.
 Kanonisk recipe/campaign og ny fysisk boot/host-/GPU-adgang gjenstår.
 Dette er autoritet til den bundne nullmålingen, ikke til smoke eller stortrening.
+
+Vinduets første materialisering stoppet før noen kjøring: gammel full-VAL-
+historikk forsøkte å validere gammel normalisering med dagens kontrakt.
+NATIVE_INITIAL_20261009_001/recipe og materialize-feil er bevart.
+Den ferske fysiske ruten binder nå verifisert dagens sampler/koordinater
+og eksakt finite null-/256-stegsscope. Historisk campaign, GPU-utvalg eller
+seed kan ikke blandes inn. Dette er CPU-samplerproveniens, ikke GPU-
+kapasitetsbevis. Hardwarevakter, batch16 og fresh-boot-krav er uendret.
+105 fokuserte kontroller bestod. Legacy-utvalget hadde
+171 direkte PASS; fem fixture-stopp ble rettet ved å bevare gammel
+leserekkefølge og alle fem bestod omkontroll. Modell-/trainerfunksjon,
+datasett, normalisering og INITIAL_STATE fra003 er uendret og gjenbrukes.
+Ny recipe/scope bruker002; faktisk Windows-task, ny boot og nullmåling gjenstår.
 
 ## Gjort — målt på ekte data
 

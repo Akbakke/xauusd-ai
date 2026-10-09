@@ -146,14 +146,15 @@
     },
     "current_blocker": {
       "id": "CANONICAL_ZERO_STEP_WINDOW_AND_FRESH_BOOT_PENDING",
-      "observed_utc": "2026-10-09T15:40:00.236651+00:00",
+      "observed_utc": "2026-10-09T15:56:16.515317+00:00",
       "physical_reboot_resolved": true,
       "native_launch_admitted": false,
       "remaining": [
-        "Publish canonical recipe and one zero-step finite native window",
-        "Install bound native clock task and prove whole-host idle before physical reboot",
-        "Genuine paired zero-step diagnostics, then separately bind fixed256 smoke and resume/learning review"
-      ]
+        "Publish current physical campaign and verify exact recipe/source",
+        "Install bound native clock task, prove whole-host idle, reboot and verify signed host telemetry",
+        "Run actual paired zero-step measurement; separately bind fixed256 smoke and review learning/resume"
+      ],
+      "code": "FRESH_PHYSICAL_CAMPAIGN_AND_HOST_RESTART_PENDING"
     },
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/HOST_RESTART_20261009_001/POST_RESTART.json",
@@ -337,6 +338,51 @@
       "actual_fresh_native_components": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/INITIALIZATION_RESULT.json",
         "sha256": "e24a53df97155ce89884877b5bcf2f2aea59477bf7b9dd5817ca22442722da6c"
+      },
+      "fresh_campaign_integration_followup": {
+        "observed_failure": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/MATERIALIZE_TERMINAL.json",
+          "sha256": "c30e668496ca915aef32f7f36c0512c919d4f9253f2f792ddf1cfccd0b6af90e"
+        },
+        "cause": "Fresh physical campaign recursively validated historical full-VAL model normalization",
+        "repair": "Current verified physical sampler and finite native scope bind fresh campaign; historical source chain forbidden for this route",
+        "reports": {
+          "FRESH_PHYSICAL_CAMPAIGN": {
+            "report": {
+              "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/FRESH_PHYSICAL_CAMPAIGN.xml",
+              "sha256": "7743aa9a14f7dfa90ed1c83306554235bbc7fb881de47d47eb24bf0b29019385"
+            },
+            "tests": 105,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "FRESH_CAMPAIGN_LEGACY_COMPAT": {
+            "report": {
+              "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/FRESH_CAMPAIGN_LEGACY_COMPAT.xml",
+              "sha256": "96e8309a48863cc0614a594f09f093201cf7d301795f9668fbdb590785919744"
+            },
+            "tests": 176,
+            "failures": 5,
+            "errors": 0,
+            "skipped": 0
+          },
+          "FRESH_CAMPAIGN_LEGACY_RECHECK": {
+            "report": {
+              "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/FRESH_CAMPAIGN_LEGACY_RECHECK.xml",
+              "sha256": "32f09eeca8c4d677226320aa13c8409703883dd0dbe66d687715f9c687457c5b"
+            },
+            "tests": 5,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          }
+        },
+        "legacy_read_order_restored_after_five_fixture_failures": true,
+        "fresh_initial_state_reused_unchanged": true,
+        "gpu_capacity_claimed": false,
+        "model_forwards": 0,
+        "optimizer_steps": 0
       }
     },
     "native_component_preparation_20261009": {
@@ -440,10 +486,10 @@
     },
     "fresh_native_initial_state_complete": true,
     "native_initial_measurement_20261009": {
-      "status": "SCOPE_BOUND_RECIPE_AND_CAMPAIGN_PENDING",
+      "status": "CURRENT_PHYSICAL_CAMPAIGN_RECIPE_AND_NATIVE_LAUNCH_PENDING",
       "policy_scope": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/POLICY_SCOPE.json",
-        "sha256": "f1aa1e5254f6eb8612f1814b2612f228e55b1524cd53811b1179cb014a7c143e"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/POLICY_SCOPE.json",
+        "sha256": "84062e3c82da365c4610f6a188e665a3930bf6774c6c1cabc75c840dc4e4de8e"
       },
       "initialization_result": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/INITIALIZATION_RESULT.json",
@@ -453,9 +499,9 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/MEASUREMENT_BINDING_RESULT.json",
         "sha256": "e189c4e194608b2d32f38e559d7eab12a7d1f1fa665c4454ad274d6f629e40f1"
       },
-      "planned_recipe_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/NATIVE_RECIPE.json",
-      "planned_campaign_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/CAMPAIGN/CAMPAIGN_PLAN.json",
-      "planned_runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/RUNTIME",
+      "planned_recipe_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/NATIVE_RECIPE.json",
+      "planned_campaign_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "planned_runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/RUNTIME",
       "windows_staging": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/WINDOWS_STAGING_CURRENT.json",
         "sha256": "436ee359a2b51910d0b761361bcf0c9082ccb31cfca9cf451e107bfe5876f95e"
@@ -465,7 +511,50 @@
       "native_invocation_seconds": 12000,
       "optimizer_steps": 0,
       "model_measurements_completed": false,
-      "test_data_used": false
+      "test_data_used": false,
+      "previous_attempts": [
+        {
+          "status": "RECIPE_VALIDATED_MATERIALIZATION_FAILED_HISTORICAL_MODEL_CHAIN_NO_EXECUTION",
+          "policy_scope": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/POLICY_SCOPE.json",
+            "sha256": "f1aa1e5254f6eb8612f1814b2612f228e55b1524cd53811b1179cb014a7c143e"
+          },
+          "initialization_result": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/INITIALIZATION_RESULT.json",
+            "sha256": "e24a53df97155ce89884877b5bcf2f2aea59477bf7b9dd5817ca22442722da6c"
+          },
+          "measurement_binding_result": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/MEASUREMENT_BINDING_RESULT.json",
+            "sha256": "e189c4e194608b2d32f38e559d7eab12a7d1f1fa665c4454ad274d6f629e40f1"
+          },
+          "planned_recipe_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/NATIVE_RECIPE.json",
+          "planned_campaign_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+          "planned_runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/RUNTIME",
+          "windows_staging": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/WINDOWS_STAGING_CURRENT.json",
+            "sha256": "436ee359a2b51910d0b761361bcf0c9082ccb31cfca9cf451e107bfe5876f95e"
+          },
+          "required_windows_installer_option": "UseNativeClockProfile",
+          "max_invocations": 1,
+          "native_invocation_seconds": 12000,
+          "optimizer_steps": 0,
+          "model_measurements_completed": false,
+          "test_data_used": false,
+          "recipe": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/NATIVE_RECIPE.json",
+            "sha256": "2f25691e116807017735f2e3a0df48d5b611d51877152c04b70a7d30e62c819f"
+          },
+          "materialize_terminal": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/MATERIALIZE_TERMINAL.json",
+            "sha256": "c30e668496ca915aef32f7f36c0512c919d4f9253f2f792ddf1cfccd0b6af90e"
+          },
+          "materialize_log": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/MATERIALIZE.log",
+            "sha256": "fb23e635a80688231b68c321cd1eabfa95a3cf7213661e0a507baf92af67cf30"
+          },
+          "relaunch_allowed": false
+        }
+      ]
     }
   },
   "gc_order_flow_research_20261006": {
@@ -2637,9 +2726,9 @@
       "sha256": "e189c4e194608b2d32f38e559d7eab12a7d1f1fa665c4454ad274d6f629e40f1"
     },
     "optimizer_steps": 0,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/CANDIDATE_BUNDLE",
-    "run_id": "NATIVE_INITIAL_20261009_001",
-    "source_bindings_sha256": "971d9221ff8facdf89fcdca92b79f784c9bd69cab06c3bdc29ab3bd74b6a01c5",
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/CANDIDATE_BUNDLE",
+    "run_id": "NATIVE_INITIAL_20261009_002",
+    "source_bindings_sha256": "372e361a572f10751e652aa4e10579fa8b4b386a703eb2531cef15d87817dff2",
     "teacher_refresh_allowed": false,
     "test_data_used": false
   }

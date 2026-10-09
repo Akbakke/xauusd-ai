@@ -1241,6 +1241,23 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
     return {**prefix, "optimizer_step_ceiling":ceiling, "continuation":continuation}
 
 
+def require_fresh_physical_campaign_sampler(recipe: Mapping[str, Any]) -> tuple[dict[str, str], str]:
+    """Bind current measured CPU sampler provenance, not historical GPU capacity.
+
+    Actual GPU capacity is measured by the guarded, finite native invocation.
+    This route grants no full epoch, full VAL, or inherited model authority.
+    """
+    prefix = require_chronological_prefix_recipe(recipe)
+    coordinates = prefix.get("physical_coordinates")
+    if coordinates is None or require_native_run_scope(recipe) not in (0, 256):
+        raise RuntimeError("NATIVE_FRESH_CAMPAIGN_PHYSICAL_FINITE_SCOPE_REQUIRED")
+    binding = coordinates["selected_sampler_binding"]
+    selected = coordinates["selected_sampler"]
+    if recipe.get("files", {}).get("selected_sampler") != binding or selected["batch_size"] != 16:
+        raise RuntimeError("NATIVE_FRESH_CAMPAIGN_SAMPLER_MISMATCH")
+    return binding, selected["artifact_sha256"]
+
+
 def require_native_recipe_metadata(
     binding: Mapping[str, str], *, source_repo: Path, source_commit: str,
 ) -> tuple[dict[str, Any], int]:
