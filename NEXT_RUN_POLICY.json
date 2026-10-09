@@ -145,13 +145,13 @@
       "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
     },
     "current_blocker": {
-      "id": "NATIVE_RECIPE_WINDOW_FRESH_INITIAL_STATE_AND_RESUME_MEASUREMENT_REQUIRED",
-      "observed_utc": "2026-10-09T10:50:17.290017+00:00",
+      "id": "NATIVE_FRESH_INITIAL_STATE_PENDING_AFTER_EXACT_PARENT_GUARD_REPAIR",
+      "observed_utc": "2026-10-09T14:38:03.720821+00:00",
       "physical_reboot_resolved": true,
       "remaining": [
-        "Bind current native recipe and finite campaign window",
-        "Measure fresh same-function zero-step ONLINE/TARGET",
-        "Measure v38 resume equivalence and save/load timing before larger segmented training"
+        "Complete the newly bound corrected fresh CPU component plan; preserve failed attempt",
+        "Bind native zero-step recipe and finite campaign window with fresh host/GPU admission",
+        "Measure current ONLINE/TARGET and bounded smoke, genuine resume and save/load overhead"
       ],
       "native_launch_admitted": false
     },
@@ -277,17 +277,32 @@
         "sha256": "8aa30bc13b04175fcf657c72d918b58be89887966e03b1dee7295d37999ea16d"
       },
       "deadline_full_state_resume_regression_passed": true,
-      "native_v38_resume_measured": false
+      "native_v38_resume_measured": false,
+      "runtime_integration_followup": {
+        "failure": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/EVENTS/FAILURE_20261009T143803720821Z.json",
+          "sha256": "47a171bb188895ddeafaf29ff8375703b6f640f509e383f7ac187fabe4614f17"
+        },
+        "repair_owner": "gx1/contracts/unified_exit_random_access_index_v1.py",
+        "focused_controls": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/CURRENT_PARENT_FIX.xml",
+          "sha256": "b9af80bdec6cb0b0cf76f360cffca9beaa7b40b5bb71417fc0d51db7143032ba"
+        },
+        "tests": 66,
+        "failures": 0,
+        "datasets_manifests_coordinates_normalization_unchanged": true,
+        "genuine_model_measurement_still_pending": true
+      }
     },
     "native_component_preparation_20261009": {
       "authorized": true,
       "plan": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/PLAN.json",
-        "sha256": "e6a5ad06012755690f12de11b0beb8a6cd085453621fa32c3b7d013699f15ebc"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/PLAN.json",
+        "sha256": "27914a3ba5a771ffae3b1cc73a84be63c8dafa4341f2edc9d0ab9ca9ba7a508d"
       },
       "operator": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/OPERATOR.py",
-        "sha256": "924e7ce42ef74109e709c6571d125960e976b09cb7ebe4875a32b1bb5459fa64"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_002/OPERATOR.py",
+        "sha256": "0eb31d8107b690e23ee9431fe16bf98404590f04ab0ad39834bc820607ec87b0"
       },
       "constructor_metadata": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/CONSTRUCTOR_METADATA.json",
@@ -303,7 +318,33 @@
       "optimizer_steps": 0,
       "test_data_used": false,
       "completed_plan_relaunch_allowed": false,
-      "native_gpu_launch_admitted": false
+      "native_gpu_launch_admitted": false,
+      "previous_attempts": [
+        {
+          "plan": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/PLAN.json",
+            "sha256": "e6a5ad06012755690f12de11b0beb8a6cd085453621fa32c3b7d013699f15ebc"
+          },
+          "operator": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/OPERATOR.py",
+            "sha256": "924e7ce42ef74109e709c6571d125960e976b09cb7ebe4875a32b1bb5459fa64"
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/EXECUTION_TERMINAL.json",
+            "sha256": "eeba0f29706b2ff6bbf9c05ec90dcece957a548e2851eb368163ebe7253f8b3b"
+          },
+          "failure": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_001/EVENTS/FAILURE_20261009T143803720821Z.json",
+            "sha256": "47a171bb188895ddeafaf29ff8375703b6f640f509e383f7ac187fabe4614f17"
+          },
+          "decision": "FAILED_BEFORE_MODEL_CONSTRUCTION_PARENT_MANIFEST_GUARD_MISMATCH",
+          "model_forwards": 0,
+          "optimizer_steps": 0,
+          "forbidden_access_attempts": [],
+          "relaunch_allowed": false
+        }
+      ],
+      "corrected_blocker": "Current v20 split manifests omit the old pretest_test_guard field. Only the exact original parent of a source-verified pre-TEST index may use that existing scope; altered parents and contradictory TEST flags remain rejected."
     }
   },
   "gc_order_flow_research_20261006": {

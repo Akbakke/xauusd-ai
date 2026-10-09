@@ -15,7 +15,11 @@ from gx1.contracts.unified_exit_random_access_index_v1 import (
 )
 
 
-def test_corrected_parent_requires_the_entire_original_clock(tmp_path):
+@pytest.mark.parametrize("mode", [
+    "legacy", "current", "current_rebound", "current_wrong_schema",
+    "current_wrong_variant", "current_test_true", "current_test_null",
+])
+def test_parent_coordinates_require_full_clock_and_exact_native_scope(tmp_path, mode):
     def bind(path):
         return {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
@@ -26,8 +30,23 @@ def test_corrected_parent_requires_the_entire_original_clock(tmp_path):
         parquet = tmp_path / f"{name}.parquet"
         pd.DataFrame({"time": clock, "target_correction": correction}).to_parquet(parquet)
         manifest = tmp_path / f"{name}.json"
-        manifest.write_text(json.dumps({"output_data_path": str(parquet),
-            "extra": {"pretest_test_guard": {"test_accessed": False}}}))
+        payload = {"output_data_path": str(parquet),
+                   "extra": {"pretest_test_guard": {"test_accessed": False}}}
+        if mode.startswith("current"):
+            from gx1.contracts.entry_model_native_signal_v1 import (
+                MODEL_NATIVE_CONTRACT_MODE, MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+            )
+            payload.update(schema_version=MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+                           manifest_variant=MODEL_NATIVE_CONTRACT_MODE, extra={})
+            if mode == "current_wrong_schema":
+                payload["schema_version"] = "unrecognized"
+            if mode == "current_wrong_variant":
+                payload["manifest_variant"] = "unrecognized"
+            if mode == "current_test_true":
+                payload["extra"]["pretest_test_guard"] = {"test_accessed": True}
+            if mode == "current_test_null":
+                payload["extra"]["pretest_test_guard"] = None
+        manifest.write_text(json.dumps(payload))
         return bind(parquet), bind(manifest)
 
     m1 = pd.date_range("2026-01-01", periods=30, freq="min", tz="UTC")
@@ -66,18 +85,26 @@ def test_corrected_parent_requires_the_entire_original_clock(tmp_path):
     manifest["manifest_sha256"] = canonical_sha256(manifest)
     current_parquet, current_manifest = parent_files("corrected", parent, [1.] * len(parent))
     args = dict(index_manifest=manifest, index_frame=frame, expected_split="val")
+    if mode.startswith("current") and mode != "current_rebound":
+        current_parquet, current_manifest = old_parquet, old_manifest
+    if mode not in {"legacy", "current"}:
+        with pytest.raises(RuntimeError, match="PARENT_ENTRY_MANIFEST_INVALID"):
+            require_parent_entry_coordinate_equivalence(
+                **args, parent_parquet=current_parquet, parent_manifest=current_manifest)
+        return
     evidence = require_parent_entry_coordinate_equivalence(
         **args, parent_parquet=current_parquet, parent_manifest=current_manifest,
     )
     assert evidence["decision"] == "PASS_EXACT_COORDINATES"
-    assert evidence["launch_parent_parquet"] != evidence["recorded_parent_parquet"]
+    assert (evidence["launch_parent_parquet"] == evidence["recorded_parent_parquet"]) is (mode == "current")
     assert evidence["row_coordinates_changed"] is False
 
     # Child entries and their positions are unchanged; a drift elsewhere in the
     # parent still invalidates the complete clock proof.
     shifted = pd.DatetimeIndex([m1[1], *parent[1:]])
     bad_parquet, bad_manifest = parent_files("bad_clock", shifted, [1.] * len(parent))
-    with pytest.raises(RuntimeError, match="COORDINATES_DIFFER"):
+    mismatch = "COORDINATES_DIFFER" if mode == "legacy" else "PARENT_ENTRY_MANIFEST_INVALID"
+    with pytest.raises(RuntimeError, match=mismatch):
         require_parent_entry_coordinate_equivalence(
             **args, parent_parquet=bad_parquet, parent_manifest=bad_manifest,
         )

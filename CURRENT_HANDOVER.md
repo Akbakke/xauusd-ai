@@ -24,7 +24,7 @@ bakoverkompatibilitet. Sluttkontrollen av koordinator/lagring/prefix hadde
 bestod også den nye omstartsgrensen. Closure-lintvarslene hadde beståtte runtime-
 tester og krevde ingen kodeendring.
 
-Skrivevakten er rettet og Windows-oppgavens ytre grense er tilpasset 4t
+Skrivevakten er rettet og Windows-installeren setter/verifiserer en ytre grense på 4t
 rundt uendret native 3t20/guard 3t50. Tidsgrensen sjekkes nå etter hvert
 optimizersteg, med ekstra varig lagring ved pause; ordinær kadens er 64 steg.
 Kontrolleren bevarer segmentkvitteringen og stopper ved omstartsgrensen;
@@ -32,12 +32,20 @@ agenten må kontrollere hele verten før eksisterende prepare/confirm-reboot.
 Oppstart, checkpoint og resume har separate tidslogger. Genuine v38-tider
 og læring er ikke målt ennå. Bevis: REPO_AUDIT_20261009_001 i current_work.
 
-Fersk constructor-metadata og én CPU-komponentplan er nå bundet i
-current_work.native_component_preparation_20261009: høyst 1800s, producer
-20G/512M, ingen model forwards, optimizersteg eller normaliseringsrefit.
-Planen gjenbruker aktuelle inputs/koordinater og lager fersk ONLINE/TARGET.
-Dette åpner ikke native GPU-launch; faktisk initialstate og nullstegsmåling
-gjenstår.
+Første CPU-initialisering stoppet 09.10 kl.14:38 UTC før modellkonstruksjon:
+koordinateieren krevde et eldre TEST-felt som dagens v20-manifester utelater.
+Foreldreparquet/manifest var eksakt de kildeverifiserte pre-TEST-indeksfilene.
+Minste rettelse godtar bare denne eksakte kanoniske forelderidentiteten;
+endrede foreldre, ukjent skjema/variant og motstridende TEST-flagg avvises.
+66 fokuserte kontroller bestod. Ingen databytes, mål, masker eller koordinater
+ble endret. Originalt claim/FAILURE/TERMINAL i NATIVE_COMPONENTS_20261009_001
+bevares, uten relaunch; ingen modellforward eller optimizersteg er utført.
+
+Én ny korrigert CPU-komponentplan, NATIVE_COMPONENTS_20261009_002, er bundet i
+current_work.native_component_preparation_20261009. Samme ferdige constructor-
+metadata gjenbrukes. Omfanget er høyst 1800s, producer 20G/512M, null forwards/
+optimizersteg/refits og ingen arvede vekter. Faktisk initialstate og native
+nullstegsmåling gjenstår; dette åpner ingen GPU-launch.
 
 ## Gjort — målt på ekte data
 

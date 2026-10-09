@@ -509,8 +509,24 @@ def require_parent_entry_coordinate_equivalence(
             raise RuntimeError("UNIFIED_EXIT_PARENT_ENTRY_BINDING_INVALID")
         paths.append(path)
     manifest = json.loads(paths[1].read_text())
+    extra = manifest.get("extra", {})
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CONTRACT_MODE, MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
+    )
+    # Current native manifests omit the retired guard. Only the exact original
+    # parent may inherit the already verified index's explicit pre-TEST scope.
+    # A replacement parent still requires its own legacy guard and full clock proof.
+    original_native_parent = (
+        isinstance(extra, Mapping) and "pretest_test_guard" not in extra
+        and manifest.get("schema_version") == MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION
+        and manifest.get("manifest_variant") == MODEL_NATIVE_CONTRACT_MODE
+        and parent_parquet == checked["source_bindings"]["parent_entry_parquet"]
+        and parent_manifest == checked["source_bindings"]["parent_entry_manifest"]
+    )
+    guard = extra.get("pretest_test_guard") if isinstance(extra, Mapping) else None
+    explicit_pretest_guard = isinstance(guard, Mapping) and guard.get("test_accessed") is False
     if (manifest.get("output_data_path") != str(paths[0])
-            or manifest.get("extra", {}).get("pretest_test_guard", {}).get("test_accessed") is not False):
+            or not (original_native_parent or explicit_pretest_guard)):
         raise RuntimeError("UNIFIED_EXIT_PARENT_ENTRY_MANIFEST_INVALID")
     clock = _clock(pd.read_parquet(paths[0], columns=["time"])["time"], "LAUNCH_PARENT_ENTRY")
     if (len(clock) != checked["parent_entry_source_rows"]
