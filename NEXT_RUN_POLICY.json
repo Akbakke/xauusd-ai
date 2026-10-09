@@ -120,11 +120,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "Genuine complete physical target/normalization precheck and native TRAIN/CONTROL coordinate publication; no native model launch admission",
+    "latest_terminal_role": "Verified aggregate of genuine native CPU initialization terminal/result artifacts; no new execution",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/EXECUTION_TERMINAL.json",
-      "sha256": "ef0bf47be92703e76cdf6b92e89bb2047fa4a38029cd6a0dba998820c758bf85"
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/CPU_COMPLETION_REVIEW.json",
+      "sha256": "095eb74c527c2c43f5e4e70d994dbcf9185df5c9f229b9c75ee29f5cb8012a9d"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -383,6 +383,17 @@
         "gpu_capacity_claimed": false,
         "model_forwards": 0,
         "optimizer_steps": 0
+      },
+      "terminal_reporting_followup": {
+        "completion_review": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/CPU_COMPLETION_REVIEW.json",
+          "sha256": "095eb74c527c2c43f5e4e70d994dbcf9185df5c9f229b9c75ee29f5cb8012a9d"
+        },
+        "observed_handover_failure": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/HANDOVER_CHECK.log",
+          "sha256": "f87b4cc1bcc89c6bb034a4367f806aace640aa7d4200e2c822c46da2becbfdb8"
+        },
+        "runtime_or_result_bytes_changed": false
       }
     },
     "native_component_preparation_20261009": {

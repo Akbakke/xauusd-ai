@@ -61,6 +61,10 @@ Alle652552 TRAIN og70880 VAL Entries ble koblet til eksisterende eiere.
 Metadata, mål, normalisering og koordinater ble gjenbrukt; ingen refit,
 modellforward, optimizersteg eller TEST. Begge tidligere forsøk bevares
 uten relaunch. CPU-planen er lukket; ikke kjør den på nytt.
+Handoverens latest_terminal peker på CPU_COMPLETION_REVIEW.json som binder
+begge ekte terminaler og resultatfiler: originalterminalene manglet noen
+rapporteringsfelt. Exit0/source_unchanged/TEST=false er verifisert fra disse
+bevarte bevisene; ingen historisk receipt eller resultat er omskrevet.
 
 NEXT_RUN_POLICY.json har nå eksakt chronological_initial_measurement:
 NATIVE_INITIAL_20261009_002, TRAIN256/CONTROL256, null optimizersteg,
