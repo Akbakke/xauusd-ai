@@ -34,12 +34,12 @@ temporær fil, fsync, atomisk rename, hash og atomisk aktiv peker. Diskcacher
 gjenbrukes; RAM-/GPU-cache må lastes på nytt. Ved krasj kan arbeid etter siste
 fullførte checkpoint gå tapt. Dagens v38 resume-ekvivalens er ennå ikke målt.
 
-Vinduseieren krever eksakt 12000s; tidspause vurderes etter checkpoint. Dette
-er ikke et bevist trygt fysisk rebootintervall. Smoke må måle step-/checkpoint-
-tid, kald gjenlasting og samme neste batch/tilstand etter resume. Bind deretter
-kortere endelige segmenter hos eksisterende recipe/campaign-eiere med margin
-til siste batch, checkpoint og terminal. Rapporter beregningstid og lagre-/
-laste-/oppstartstid separat. Kortere vinduer er ikke implementert her.
+Operatøren valgte 09.10 eksisterende 12000s (3t20) etter å ha opplevd heng
+etter 12 timer. Behold denne driftsgrensen; ingen forkorting er nødvendig.
+Tidspause vurderes etter checkpoint. Smoke skal måle step-/checkpoint-tid,
+kald gjenlasting og samme neste batch/tilstand etter resume, og kontrollere
+at siste batch, lagring og terminal får plass innen eksisterende ytre vakt.
+Rapporter beregningstid og lagre-/laste-/oppstartstid separat.
 Ingen kalenderjobb avbryter aktivt arbeid. Omstart beviser ikke løst BSOD-årsak.
 
 ## Avgrenset smoke og review

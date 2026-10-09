@@ -65,10 +65,10 @@ Koordinater er ikke modellmålinger. Alle genuine features og tidsrammer består
 
 Operatørkrav 09.10: hyppige trygge omstarter mellom målte segmenter, med
 varig mellomlagring og målt effektivitet. Nåværende kode har 12000s-vindu og
-FP32-checkpoint hver 64 optimizersteg. Trygg omstartsfrekvens, v38 resume-
-ekvivalens og lagre-/lastetid er umålt. Kortere vinduer må bindes i eksisterende
-eiere før større trening; se docs/NATIVE_LEARNING.md. Ingen kalenderstyrt
-omstart kan avbryte aktivt arbeid.
+FP32-checkpoint hver 64 optimizersteg. Operatøren har opplevd heng etter
+12 timer og valgte 09.10 å beholde eksisterende 3t20-vindu. Ingen forkorting
+kreves. V38 resume-ekvivalens og lagre-/lastetid skal fortsatt måles; se
+docs/NATIVE_LEARNING.md. Ingen kalenderstyrt omstart avbryter aktivt arbeid.
 
 ## Vedlikehold og grenser
 

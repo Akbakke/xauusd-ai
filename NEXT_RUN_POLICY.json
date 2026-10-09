@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Reuse completed inputs, capacity and coordinates. Physical Windows restart and source/artifact hashes are verified; recheck host/GPU gates for next invocation. Bind current native recipe/window and fresh ONLINE/TARGET, then one <=256-step/4096-TRAIN smoke with paired TRAIN256/CONTROL256. Measure durable resume and save/load timing before selecting shorter recurring segments. No budget reset, larger training/fullVAL/TEST/GC/broker/spending or unadmitted deletion.",
+  "next_action": "Reuse completed inputs, capacity and coordinates. Physical Windows restart and source/artifact hashes are verified; recheck host/GPU gates for next invocation. Bind current native recipe/window and fresh ONLINE/TARGET, then one <=256-step/4096-TRAIN smoke with paired TRAIN256/CONTROL256. Keep the operator-selected existing 12000-second window; measure durable resume and save/load timing before larger segmented training. No budget reset, larger training/fullVAL/TEST/GC/broker/spending or unadmitted deletion.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -164,7 +164,9 @@
       "method": "docs/NATIVE_LEARNING.md",
       "shorter_window_implemented": false,
       "safe_cadence_and_v38_resume_measured": false,
-      "cache_and_original_checkpoints_preserved": true
+      "cache_and_original_checkpoints_preserved": true,
+      "selected_existing_window_seconds": 12000,
+      "operator_window_decision": "09.10.2026: experienced hangs after 12 hours; accepts existing 3h20 native window. Retain current duration, verify durable checkpoints/resume and measured overhead."
     },
     "host_restart_controls": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/HOST_RESTART_20261009_001/HANDOVER_CONTROLS.xml",
