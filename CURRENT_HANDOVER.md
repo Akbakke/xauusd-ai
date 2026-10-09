@@ -67,7 +67,7 @@ rapporteringsfelt. Exit0/source_unchanged/TEST=false er verifisert fra disse
 bevarte bevisene; ingen historisk receipt eller resultat er omskrevet.
 
 NEXT_RUN_POLICY.json har nå eksakt chronological_initial_measurement:
-NATIVE_INITIAL_20261009_002, TRAIN256/CONTROL256, null optimizersteg,
+NATIVE_INITIAL_20261009_003, TRAIN256/CONTROL256, null optimizersteg,
 én native invokasjon på12000s, ingen læreroppdatering/full epoch/full VAL.
 Kanonisk recipe/campaign og ny fysisk boot/host-/GPU-adgang gjenstår.
 Dette er autoritet til den bundne nullmålingen, ikke til smoke eller stortrening.
@@ -83,7 +83,13 @@ kapasitetsbevis. Hardwarevakter, batch16 og fresh-boot-krav er uendret.
 171 direkte PASS; fem fixture-stopp ble rettet ved å bevare gammel
 leserekkefølge og alle fem bestod omkontroll. Modell-/trainerfunksjon,
 datasett, normalisering og INITIAL_STATE fra003 er uendret og gjenbrukes.
-Ny recipe/scope bruker002; faktisk Windows-task, ny boot og nullmåling gjenstår.
+002 recipe/campaign validerte og ble publisert, men aldri kjørt.
+Profilert inspect brukte146,861s fordi finite nullmålingsscope bygget hele
+TRAIN/CONTROL-indeksen to ganger. Dobbelkallet er fjernet; komplett
+finite scope-/indeks-/CONTROL-validering består én gang per invokasjon.
+49 fokuserte kontroller bestod. Ingen tidsfrist eller guard er svekket.
+003 binder samme ekte INITIAL_STATE til oppdatert kontrollerkode.
+Faktisk inspect-tid, Windows-task, ny boot og nullmåling gjenstår.
 
 ## Gjort — målt på ekte data
 

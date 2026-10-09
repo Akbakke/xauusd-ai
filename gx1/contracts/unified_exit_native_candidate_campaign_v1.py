@@ -1249,8 +1249,10 @@ def require_fresh_physical_campaign_sampler(recipe: Mapping[str, Any]) -> tuple[
     """
     prefix = require_chronological_prefix_recipe(recipe)
     coordinates = prefix.get("physical_coordinates")
-    if coordinates is None or require_native_run_scope(recipe) not in (0, 256):
-        raise RuntimeError("NATIVE_FRESH_CAMPAIGN_PHYSICAL_FINITE_SCOPE_REQUIRED")
+    # The materializer and campaign invocation loop own finite scope admission.
+    # Repeating it here rebuilds both full physical measurement indexes.
+    if coordinates is None:
+        raise RuntimeError("NATIVE_FRESH_CAMPAIGN_PHYSICAL_COORDINATES_REQUIRED")
     binding = coordinates["selected_sampler_binding"]
     selected = coordinates["selected_sampler"]
     if recipe.get("files", {}).get("selected_sampler") != binding or selected["batch_size"] != 16:

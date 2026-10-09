@@ -145,16 +145,15 @@
       "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
     },
     "current_blocker": {
-      "id": "CANONICAL_ZERO_STEP_WINDOW_AND_FRESH_BOOT_PENDING",
-      "observed_utc": "2026-10-09T15:56:16.515317+00:00",
+      "id": "SINGLE_SCOPE_CAMPAIGN_AND_FRESH_BOOT_PENDING",
+      "observed_utc": "2026-10-09T16:11:15.620907+00:00",
       "physical_reboot_resolved": true,
       "native_launch_admitted": false,
       "remaining": [
         "Publish current physical campaign and verify exact recipe/source",
         "Install bound native clock task, prove whole-host idle, reboot and verify signed host telemetry",
         "Run actual paired zero-step measurement; separately bind fixed256 smoke and review learning/resume"
-      ],
-      "code": "FRESH_PHYSICAL_CAMPAIGN_AND_HOST_RESTART_PENDING"
+      ]
     },
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/HOST_RESTART_20261009_001/POST_RESTART.json",
@@ -394,6 +393,27 @@
           "sha256": "f87b4cc1bcc89c6bb034a4367f806aace640aa7d4200e2c822c46da2becbfdb8"
         },
         "runtime_or_result_bytes_changed": false
+      },
+      "campaign_validation_efficiency": {
+        "profile": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/INSPECT_PROFILE.pstats",
+          "sha256": "e13df8c9fee9e07d16d9e04cff1e60dca0f4c461bcfca04cf6d767b04a977f73"
+        },
+        "measurement": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/INSPECT_RUNTIME.json",
+          "sha256": "e1694d17ae80b785e0097b9040f0975a3a511f4d861f7f074394b8baacfc0966"
+        },
+        "observed_profiled_seconds": 146.86131368599672,
+        "observed_duplicate_initial_scope_calls": 2,
+        "correction": "Finite scope checked once per native invocation; sampler helper validates sampler only",
+        "full_index_and_control_validation_preserved": true,
+        "windows_metadata_timeout_changed": false,
+        "focused_tests": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/FRESH_CAMPAIGN_SINGLE_SCOPE.xml",
+          "sha256": "69c8b8a5de7858eedfe016080adf92abe1ec4dbbd4fc5f3986ac9083503231f6"
+        },
+        "tests": 49,
+        "failures": 0
       }
     },
     "native_component_preparation_20261009": {
@@ -497,10 +517,10 @@
     },
     "fresh_native_initial_state_complete": true,
     "native_initial_measurement_20261009": {
-      "status": "CURRENT_PHYSICAL_CAMPAIGN_RECIPE_AND_NATIVE_LAUNCH_PENDING",
+      "status": "SINGLE_SCOPE_CURRENT_PHYSICAL_CAMPAIGN_PENDING",
       "policy_scope": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/POLICY_SCOPE.json",
-        "sha256": "84062e3c82da365c4610f6a188e665a3930bf6774c6c1cabc75c840dc4e4de8e"
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_003/POLICY_SCOPE.json",
+        "sha256": "34910f170031869a90594361a7f4cbc17589b22028b575a98b9f59c956cecb4c"
       },
       "initialization_result": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/INITIALIZATION_RESULT.json",
@@ -510,9 +530,9 @@
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/MEASUREMENT_BINDING_RESULT.json",
         "sha256": "e189c4e194608b2d32f38e559d7eab12a7d1f1fa665c4454ad274d6f629e40f1"
       },
-      "planned_recipe_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/NATIVE_RECIPE.json",
-      "planned_campaign_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/CAMPAIGN/CAMPAIGN_PLAN.json",
-      "planned_runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/RUNTIME",
+      "planned_recipe_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_003/NATIVE_RECIPE.json",
+      "planned_campaign_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_003/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "planned_runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_003/RUNTIME",
       "windows_staging": {
         "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/WINDOWS_STAGING_CURRENT.json",
         "sha256": "436ee359a2b51910d0b761361bcf0c9082ccb31cfca9cf451e107bfe5876f95e"
@@ -563,6 +583,52 @@
             "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/MATERIALIZE.log",
             "sha256": "fb23e635a80688231b68c321cd1eabfa95a3cf7213661e0a507baf92af67cf30"
           },
+          "relaunch_allowed": false
+        },
+        {
+          "status": "VALIDATED_UNEXECUTED_SUPERSEDED_DUPLICATE_SCOPE_COST",
+          "policy_scope": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/POLICY_SCOPE.json",
+            "sha256": "84062e3c82da365c4610f6a188e665a3930bf6774c6c1cabc75c840dc4e4de8e"
+          },
+          "initialization_result": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/INITIALIZATION_RESULT.json",
+            "sha256": "e24a53df97155ce89884877b5bcf2f2aea59477bf7b9dd5817ca22442722da6c"
+          },
+          "measurement_binding_result": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_COMPONENTS_20261009_003/MEASUREMENT_BINDING_RESULT.json",
+            "sha256": "e189c4e194608b2d32f38e559d7eab12a7d1f1fa665c4454ad274d6f629e40f1"
+          },
+          "planned_recipe_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/NATIVE_RECIPE.json",
+          "planned_campaign_path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+          "planned_runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/RUNTIME",
+          "windows_staging": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_001/WINDOWS_STAGING_CURRENT.json",
+            "sha256": "436ee359a2b51910d0b761361bcf0c9082ccb31cfca9cf451e107bfe5876f95e"
+          },
+          "required_windows_installer_option": "UseNativeClockProfile",
+          "max_invocations": 1,
+          "native_invocation_seconds": 12000,
+          "optimizer_steps": 0,
+          "model_measurements_completed": false,
+          "test_data_used": false,
+          "recipe": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/NATIVE_RECIPE.json",
+            "sha256": "268d3a62fbfaa2a249cdca1fcc6ce9d9378b32cfe21f7fd091ac8cace73e8504"
+          },
+          "campaign": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+            "sha256": "11384b0dbc46e346b72c2fc5c874ab01f630ed5f8e305eac9d911d4dbcdfbe60"
+          },
+          "materialization_terminal": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/MATERIALIZE_TERMINAL.json",
+            "sha256": "47b817b3cbe3e17671eac52e6b922857e93adf7e9693df52d23748e8122ab43f"
+          },
+          "inspect_runtime": {
+            "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/INSPECT_RUNTIME.json",
+            "sha256": "e1694d17ae80b785e0097b9040f0975a3a511f4d861f7f074394b8baacfc0966"
+          },
+          "model_forwards": 0,
           "relaunch_allowed": false
         }
       ]
@@ -2737,9 +2803,9 @@
       "sha256": "e189c4e194608b2d32f38e559d7eab12a7d1f1fa665c4454ad274d6f629e40f1"
     },
     "optimizer_steps": 0,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_002/CANDIDATE_BUNDLE",
-    "run_id": "NATIVE_INITIAL_20261009_002",
-    "source_bindings_sha256": "372e361a572f10751e652aa4e10579fa8b4b386a703eb2531cef15d87817dff2",
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_INITIAL_20261009_003/CANDIDATE_BUNDLE",
+    "run_id": "NATIVE_INITIAL_20261009_003",
+    "source_bindings_sha256": "e8d7577148469aa25b113cb1d6bc1de682b3bcfc72994baf98d215fd8ee57a44",
     "teacher_refresh_allowed": false,
     "test_data_used": false
   }
