@@ -174,6 +174,39 @@
       "tests": 63,
       "failures": 0,
       "errors": 0
+    },
+    "training_preparation_goal": {
+      "operator_request": "Flott, lag deg dette som et mål og få alt dette på plass, gå så igjennom HELE repoet etter feil/mismatches og forbedringer/tilpassinger etter beste evne for prosjektet, så kjører vi en smoke og så til slutt en stor trening",
+      "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c",
+      "status": "active",
+      "created_utc": "2026-10-09T13:22:42Z",
+      "scope": "Whole current repository review and minimal measured fixes; reuse complete v38 inputs; bind fresh native initialization, initial measurement, <=256-step/4096-Entry smoke and TRAIN256/CONTROL256 learning review; larger finite training only after learning and operational gates. Existing 12000-second windows and safe terminal-bound physical reboots.",
+      "current_stage": "WHOLE_REPOSITORY_REVIEW_AND_NATIVE_COMPONENT_BINDING",
+      "large_training_admitted": false,
+      "test_access_authorized": false,
+      "broker_trading_spending_authorized": false,
+      "gc_resumed": false
+    },
+    "repository_review_20261009": {
+      "status": "IN_PROGRESS",
+      "static_inventory": {
+        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/REPO_AUDIT_20261009_001/STATIC_AUDIT.json",
+        "sha256": "d3e54084c417693f6b8f4d9debddc807da01f6633d845f9ed82b620a61d60991"
+      },
+      "tracked_files": 638,
+      "tracked_python_files": 581,
+      "parse_errors": 0,
+      "missing_local_import_modules": 0,
+      "missing_markdown_links": 0,
+      "confirmed_defects": [
+        "Write guard missing os import; reproduced and repaired with same event."
+      ],
+      "pending": [
+        "Triage deferred-closure lint warnings with existing diagnostic tests",
+        "PowerShell parse and host/campaign checks",
+        "Whole repository test baseline and manual active-owner review",
+        "Actual current native component and recipe binding"
+      ]
     }
   },
   "gc_order_flow_research_20261006": {

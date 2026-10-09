@@ -14,6 +14,7 @@ Two recurring smells from AGENTS.md:
 """
 
 import json
+import os
 import re
 import sys
 

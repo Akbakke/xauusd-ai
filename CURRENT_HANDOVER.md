@@ -2,13 +2,24 @@
 
 Inputs og CPU-kapasitet er ferdige. Native smoke er ikke startet.
 Fysisk omstart er verifisert; native recipe/vindu og fersk initialmåling gjenstår.
-App-målet er fortsatt **blokkert**, ikke fullført.
+Nytt app-mål 09.10 er **aktivt**: helrepo-revisjon, klargjøring, smoke og
+portbundet større trening. Det eldre blokkerte målet beholdes som historikk.
 Kun /home/andre2/src/GX1_CURRENT, branch work/gx1-current, én agent.
 
 NEXT_RUN_POLICY.json eier nåstatus, eksakte bindinger og kjøregrenser.
 `bash scripts/gx1_handover.sh --check` leser siste terminal og faktiske
 CURRENT-prosesser. Denne siden erstatter tidligere mål-/veikart-/renselogger;
 Git bevarer historikken. Ikke gjennomgå eller kjør alle gamle steg på nytt.
+
+## Pågående repo-revisjon
+
+Alle638 sporede filer er inventert. Python-AST, JSON og shell-syntaks,
+lokale absolutte Python-importer og Markdown-lenker bestod. Skrivevakten
+manglet import os; samme hendelse bekreftet NameError før og korrekt
+ikke-blokkerende varsel etter rettelsen. Tre closure-lintvarsler vurderes
+mot eksisterende runtime-tester før eventuell endring. Hele revisjonen er
+ikke ferdig; statisk PASS erstatter ikke driftskontroll eller modellmåling.
+Bevis: REPO_AUDIT_20261009_001, bundet i current_work.
 
 ## Gjort — målt på ekte data
 
