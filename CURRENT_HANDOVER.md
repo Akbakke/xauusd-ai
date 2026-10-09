@@ -1,8 +1,10 @@
 # GX1 — siste overlevering, 09.10.2026
 
-Den ekte native nullmålingen er fullført og kontrollert. Smoke er ikke
-startet. Neste tillatte arbeid er ett fast256-forsøk gjennom dagens native
-campaign, med ny fysisk boot før vinduet. Stor trening er fortsatt portbundet.
+Den ekte native nullmålingen av den tidligere target-definisjonen er fullført.
+Ingen optimizersteg eller smoke er startet. Operatøren har09.10 vedtatt at
+Entry skal finne stabile retningsmuligheter uavhengig av Exit, som deretter
+håndterer posisjonen. Dette krever nytt mål og tydelig gradient-eierskap før
+smoke. Stor trening er fortsatt portbundet.
 App-målet i thread01a1203d-4a95-7d03-bbd9-84017db6b29c er aktivt.
 
 Kun /home/andre2/src/GX1_CURRENT, branch work/gx1-current, én agent og
@@ -35,31 +37,40 @@ Nullmålingens opprinnelige prediksjoner og targets er frosset. Initial
 Exit valgte HOLD på begge sider overalt; dette er ikke lært tålmodighet.
 Ingen profitable beslutninger, OOS-generalisering eller stortrening er bevist.
 
-## Neste forsøk
+## Gjeldende designbeslutning og neste arbeid
 
-NATIVE_SMOKE_20261009_001 er bundet i chronological_learning_run:
-maks256 optimizersteg/4096 TRAIN Entries, batch16, samme seed20260911,
-FP32/TF32 av, fryst TARGET, sluttmåling av ONLINE. Maks én invokasjon,
-12000s; full epoch, full VAL, automatisk forlengelse og TEST er stengt.
-Recipe-funksjonen krever nøyaktig samme komplette kildeclosure som
-nullmålingen. Initialisering, inputs og frosne observasjoner gjenbrukes.
+Brukeren presiserte: «entry skal være uavhengig av exit og heller finne
+muligheter der den er sikker på retningen til markedet ... det viktigste
+er en god og stabil entry». Entry skal trenes fra observerte markedsutfall,
+uten Exit-lærer i fasiten. Exit-tap skal heller ikke endre Entry gjennom
+delte encodere. Lær og kontroller Entry først; senere Exit-trening må bevare
+den godkjente Entry-funksjonen innen samme bundle og genuine featuregrunnlag.
 
-1. Publiser/verifiser recipe og campaign gjennom de kanoniske eierne.
-2. Installer den bundne workload-only klokke-launcheren. Kontroller hele
-   vertens jobber, filskrivere, låser og GPU; prepare/confirm fysisk omstart.
-3. Verifiser ny boot, uendret kilde/checkpoint og signert telemetri. Kjør kun
-   det bundne vinduet; bevar checkpoint hvis tidsgrensen nås.
-4. Bruk PAIRED_REVIEW_OPERATOR.py på de lagrede målingene. Verifiser også
-   lært tilstand ved lasting og mål reell oppstart/lagring/treningskostnad.
-5. Større finite trening krever både lærings- og driftsport. Ingen budsjettreset,
-   ingen tuning av samme CONTROL etter å ha sett utfallet.
+Dette er vedtatt retning, ikke ferdig implementasjon. Kontroller eksisterende
+direkte M1-utfall, multihorisont-forecasts og risiko-heads før den minste
+nødvendige mål-/gradientendringen. Konfidens må dokumenteres på senere
+kontrollperioder; rå bps eller softmax er ikke i seg selv kalibrert sikkerhet.
+En target-horisont er aldri maksimal holdetid eller en ny lukkeregel.
 
-Læringsporten krever forbedring mot initial og TRAIN-lærte konstanter,
-tilstandsavhengige/centrerte resultater og LONG–SHORT-kontrast. Alle
-forhåndsdeklarerte CONTROL-kontraster må ha negativ øvre95prosent-grense
-i parvis uke-bootstrap; rapporter også måneder og handlingskollaps.
-Alltid FLAT/HOLD og ren biasflytting er ikke PASS. Se dagens design og
-docs/LEARNING_GATE.md. CONTROL/Juni2026 er gjenbrukt utvikling, ikke urørt OOS.
+Gammel fasit brukte observerte referanseutfall pluss fryst, utrent Exit TARGET
+ved backup-grensen. Ved TRAIN256 Entry-ankre var gjennomsnittlig absolutt
+markedsbidrag13,24/13,35bps LONG/SHORT og bootstrap0,053/0,062bps. Lite
+gjennomsnittsbidrag er ikke uavhengighet eller bevis for hvert enkelt tilfelle.
+REPO_AUDIT_20261009_001/ENTRY_INDEPENDENCE_DECISION_20261009.json binder
+kilde, design, uendrede observasjoner og brukerens beslutning.
+
+NATIVE_SMOKE_20261009_001 fikk publisert/verifisert recipe og campaign, men
+ble aldri kjørt. Det gamle scope er flyttet til bevart historikk i policy;
+ingen chronological_learning_run er åpen. Planen skal ikke relanseres eller
+stille få nye targets. Nullmålingen og checkpointet bevares som historisk
+bevis. Ny funksjon/mål krever en ny bundet initialbaseline og smoke-recipe.
+
+Neste steg er å fullføre/teste den uavhengige mål- og gradientkontrakten,
+binde eksakte targets/kostnader/kausale klokker, deretter måle ny baseline
+og ett begrenset native smoke-forsøk. Samme3t20-vinduer og omstartskontroll.
+Større trening krever faktisk læring, stabilitet og kostnadsjustert evidens;
+TRAIN-tilpasning, senere kontroll og samlet økonomi holdes atskilt.
+CONTROL/Juni2026 er gjenbrukt utvikling; TEST forblir forseglet.
 
 ## Omstart og varig fremdrift
 
@@ -72,8 +83,11 @@ hvert64.steg samt ved tids-/sluttpause. Ingen blind Windows-omstart:
 kontrolleren beholder terminalen og stopper for maskinfelles idle-review.
 Andre prosjekter kan eksistere; omstart må ikke avbryte dem.
 
-Dagens Windows-staging er C:\Users\Andre\GX1_CURRENT_NATIVE_6D726F7A.
-Filhashene er verifisert mot den aktuelle planens controller/observer.
+Den fullførte initial-tasken med gammel plan er nå deaktivert og XML/exit1
+bevart i REPO_AUDIT_20261009_001/COMPLETED_INITIAL_TASK_DISABLED.json.
+Dette endrer ikke GPU-vakten eller telemetribroen. Ingen ny task er installert.
+Gammel Windows-staging C:\Users\Andre\GX1_CURRENT_NATIVE_6D726F7A er historikk;
+ny campaign må stage og verifisere dagens controller/observer.
 Installer med UseNativeClockProfile og korrekt brukerAndre.
 Den eksisterende GPU-effektvakten og signerte telemetribroen skal bestå.
 SSH gx1-3090-lan fungerer. Ikke gjør omstart om til wsl --shutdown.
@@ -91,8 +105,15 @@ Minste observerte rettelser: skrivevaktens manglende os-import; foreldremanifest
 mot eksakte verifiserte pre-TEST-kilder; JSON-rutingers kanoniske rekkefølge
 for alle åtte familier; varig pause mellom steg;4t Windows-task med riktig
 klokke-launcher; fersk fysisk campaign uten gammel full-VAL-modellautoritet.
-Dobbelt full indeks-/CONTROL-adgangskall ble fjernet: byggingen falt fra
-204 til107s; faktisk inspect57s, innen uendret90s Windows-frist.
+Tidligere dobbelt scope i sampler-adgangen ble fjernet: byggingen falt fra
+204 til107s og inspect før første receipt tok57s. Etter receipt validerer
+sluttkontrollen også det lagrede cursor-scope. Begge scope-kall ble nå målt
+til99,547s, over Windows-fristen90s. Kun post-record inspect har fått180s;
+oppstart/record90s, treningsvindu12000s, guard13800s og task14400s består.
+16 fokuserte tester og ekte Windows-harness bestod. Tasken fra nullmålingen
+hadde exit1 etter ekte trainer/observer0 og bevart receipt; dens eksakte
+exception er ikke bevart. Målt fristfeil er rettet, men en ny komplett
+Windows/native-syklus er ennå ikke verifisert.
 
 CPU-forsøk001/002 og metadataforberedelser INITIAL001/002 bevares med
 ekte feil/terminaler; ingen relaunch. Completion-review binder originale

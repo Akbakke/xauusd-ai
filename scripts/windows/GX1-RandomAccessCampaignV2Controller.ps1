@@ -14,9 +14,10 @@ $ErrorActionPreference = 'Stop'
 function Invoke-Gx1Json {
     param(
         [Parameter(Mandatory = $true)][string[]]$Arguments,
-        # Full-year authority verifies both the preserved prefix and final state.
-        # This bounds metadata work only; telemetry and GPU limits are unchanged.
-        [ValidateRange(1, 90000)][int]$TimeoutMilliseconds = 90000
+        # Keep startup/record at 90 s. The post-record native state inspection
+        # verifies scope plus the saved cursor (99.5 s measured on 2026-10-09).
+        # Its explicit 180 s allowance is metadata-only; GPU limits are unchanged.
+        [ValidateRange(1, 180000)][int]$TimeoutMilliseconds = 90000
     )
     $result = Invoke-Gx1WslBounded -Arguments (@(
         '--cd', $CampaignControlRepo, '--', $Python, '-m', 'gx1.scripts.local_random_access_campaign_v2'
@@ -660,7 +661,7 @@ if ($outcome -eq 'FAILED') {
 $after = Invoke-Gx1Json -Arguments @(
     'inspect', '--plan-json', $PlanJson, '--plan-file-sha256', $PlanFileSha256,
     '--boot-json', $boot.Linux
-)
+) -TimeoutMilliseconds 180000
 # Respect the inspected terminal/block decision after the last bounded window,
 # just as the pre-launch branch does. Exhausted windows never request a reboot.
 if ($after.action.decision -ceq 'COMPLETE' -or $after.action.decision -like 'BLOCKED*') {

@@ -30,6 +30,24 @@ foreach ($invalidTimeout in @(0, 30001)) {
     if (-not $rejectedTimeout) { throw "boot identity accepted invalid timeout: $invalidTimeout" }
 }
 
+# Verify the actual JSON-call parameter contract without running a campaign.
+$metadataFunction = $controllerAst.Find({
+    param($node)
+    $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'Invoke-Gx1Json'
+}, $true)
+if ($null -eq $metadataFunction) { throw 'metadata function was not found' }
+$metadataBindingOnly = [ScriptBlock]::Create($metadataFunction.Body.ParamBlock.Extent.Text + [Environment]::NewLine + 'return $TimeoutMilliseconds')
+if ((& $metadataBindingOnly -Arguments @('inspect')) -ne 90000 -or
+    (& $metadataBindingOnly -Arguments @('inspect') -TimeoutMilliseconds 180000) -ne 180000) {
+    throw 'metadata default or terminal deadline differs'
+}
+foreach ($invalidMetadataTimeout in @(0, 180001)) {
+    $rejectedMetadataTimeout = $false
+    try { & $metadataBindingOnly -Arguments @('inspect') -TimeoutMilliseconds $invalidMetadataTimeout | Out-Null }
+    catch [System.Management.Automation.ParameterBindingException] { $rejectedMetadataTimeout = $true }
+    if (-not $rejectedMetadataTimeout) { throw "metadata accepted invalid timeout: $invalidMetadataTimeout" }
+}
+
 # Exercise the real comparison predicate for zero and singleton differences.
 $comparison = [regex]::Match($source, '(?m)^\s*if \((.+Compare-Object[^\r\n]+) -or\r?$')
 if (-not $comparison.Success) { throw 'bridge configuration comparison was not found' }
@@ -170,5 +188,5 @@ if ($boundary.decision -cne 'REBOOT_REQUIRES_MACHINE_WIDE_IDLE_REVIEW' -or
 Write-Output (
     'POWERSHELL_HARDENING_PASS ' +
     "large_stdout=$($large.StdOut.Length) large_stderr=$($large.StdErr.Length) " +
-    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS observer_checkpoint_isolation=PASS observer_local_atomic_replace=PASS retained_child_exit_codes=PASS whole_host_reboot_boundary=PASS"
+    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS observer_checkpoint_isolation=PASS observer_local_atomic_replace=PASS retained_child_exit_codes=PASS whole_host_reboot_boundary=PASS metadata_deadline_parameter_binding=PASS"
 )

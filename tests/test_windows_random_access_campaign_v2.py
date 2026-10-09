@@ -253,3 +253,22 @@ def test_task_deadline_preserves_native_guard_and_terminal_margin() -> None:
     assert policy["outer_guard_seconds"] + 300 <= hours * 3600 <= 14400
     assert "-ExecutionTimeLimit $taskExecutionLimit" in source
     assert "registered.Settings.ExecutionTimeLimit" in source
+
+
+def test_post_record_metadata_deadline_preserves_startup_limit() -> None:
+    import re
+
+    source = CONTROLLER.read_text(encoding="utf-8")
+    start = source.index("function Invoke-Gx1Json {")
+    function = source[start:source.index("\nfunction ", start + 1)]
+    lower, upper, default = map(int, re.search(
+        r"ValidateRange\((\d+), (\d+)\)\]\[int\]\$TimeoutMilliseconds = (\d+)",
+        function,
+    ).groups())
+    terminal = source[source.index("$after = Invoke-Gx1Json"):source.index("# Respect the inspected terminal")]
+    requested = int(re.search(r"-TimeoutMilliseconds (\d+)", terminal)[1])
+    assert lower == 1 and default == 90000
+    assert requested == upper == 180000
+    assert source.count("-TimeoutMilliseconds 180000") == 1
+    assert source.index("'record'") < source.index("$after = Invoke-Gx1Json")
+    assert "metadata_deadline_parameter_binding=PASS" in HARDENING_TEST.read_text(encoding="utf-8")

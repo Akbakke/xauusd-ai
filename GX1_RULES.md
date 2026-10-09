@@ -141,6 +141,17 @@ moduler på disk.
     uoppfordret). Kjør dyprevisjonen før du påstår noe, sveip en funnet defektklasse over alle
     eiere i samme bølge, og dokumenter hva som ble og ikke ble verifisert.
 
+## Operatørvedtak09.10.2026: uavhengig Entry-læring
+
+Entry skal lære stabile retningsmuligheter fra observerte markedsutfall,
+uavhengig av et Exit-modellestimat. Dette åpner en eksplisitt bundet etterfølger
+til dagens Entry-target, samt trinnvis trening der Exit-tap ikke får endre
+Entry. Entry kontrolleres først; senere Exit-trening må bevare den godkjente
+Entry-funksjonen. Samme bundle, alle genuine features og kausale tidsrammer
+består. Ingen ny serving-autoritet finnes før kontrakt, native recipe og
+faktisk målt evidens er oppdatert. Targets med flere observasjonshorisonter
+innfører ingen maksimal holdetid. Konfidens må måles; den antas aldri.
+
 ## Beholdte forskningsgrenser
 
 Operatørvedtakene 29.09–01.10.2026 åpnet bare navngitt, forhåndsregistrert offline
