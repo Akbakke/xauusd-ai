@@ -1,91 +1,74 @@
 # CURRENT HANDOVER — 10.10.2026
 
-Ny bestilling: bygg de berørte dataene på nytt, kontroller dem og mål en fersk
-initialbaseline. Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current.
-NEXT_RUN_POLICY.json er eneste arbeidsstatus; prosess og terminal vinner over prosa.
+Rebuild-/baselinebestillingen er fullført. Ingen dokumentert Entry-edge.
+Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus; prosess og terminal overstyrer prosa.
 
-## Gjort
+## Gjort og akseptert
 
-Featureaudit og forrige firestegsstudie er avsluttet på 569d0054. Ingen kvalifisert
-Entry-edge: CONTROL4096 ga 4095 FLAT og én SHORT; forbedringen mot konstanten var
-ikke påvist. Alle 254 lokale felt, 71 aliaser, ett sesjonsfelt og 190 MTF-felt er
-individuelt revidert. Fire funksjonsfeil og misvisende metadata er rettet;
-141 fokuserte tester og Git-kontrakttestene består. Detaljer finnes i
-[docs/FEATURE_AUDIT.md](docs/FEATURE_AUDIT.md) og feltregisteret ved siden av.
+Featureauditen på 569d0054 reviderte alle 254 lokale signalfelt, 71 eksakte
+kontekstaliaser, ett sesjonsfelt og 190 MTF-felt. Fire funksjonsfeil og misvisende
+metadata er rettet. 141 fokuserte tester besto; metode, hvert felt og avgrensninger
+står i [docs/FEATURE_AUDIT.md](docs/FEATURE_AUDIT.md) og feltregisteret ved siden av.
 
-Brukerens nye bestilling åpner en egen bygge-/baselineplan:
-[configs/research/FEATURE_REPAIR_REBUILD_20261010.json](configs/research/FEATURE_REPAIR_REBUILD_20261010.json).
-Ny dataset_run_id: HISTORY2009W_FEATURE_REPAIR_20261010.
-Kjørebevis: /home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001.
-Dette er ikke relansering av en konsumert plan. Gamle bevis beholdes.
+Ny generasjon: HISTORY2009W_FEATURE_REPAIR_20261010. Korrigerte MTF-/M5-/M1-felt,
+berørte labels og immutable kildebindinger er publisert gjennom eksisterende eiere.
+Alle 5 523 147 komplette pre-TEST M1-rader og 392 143 437 aliasverdipar er kontrollert.
+Alle 652 552 TRAIN-/70 880 VAL-sekvenser og snapshots er rekonstruert mot korrigert M5.
+Kanonisk readiness, spesialistruting og hele fysiske TRAIN-/VAL-indeksen består.
 
-## Aktiv grense og neste steg
+Base-normalisering er tilpasset én gang på hele fysiske TRAIN før sampling:
+652 552 Entry-rader, 955 670 unike M5-inputrader og 3 978 505 unike M1-inputrader.
+Fersk TRAIN-summary-fit og splitbindinger er publisert uten ny basefit.
+VAL-/TEST-fit er null. Faktiske normaliserte NumPy-/PyTorch-input, bitlike aliaser,
+kausale MTF-ruter og Entry/Exit-førstetilstand består.
 
-Kjernebygget fullførte 17:16 UTC med exit 0 etter 22130 sekunder på uendret
-550b4116. M5/MTF/M1, datasett og labels er publisert; dette er ennå ikke komplett
-inputaksept. Trygg fysisk omstart er bekreftet ved ny Windows-/WSL-boot.
-Tre ferske kontrollfiler manglet fsync og var tomme etter omstart; tomme originaler
-er bevart, observasjonene er gjenopprettet fra Mac og publisert atomisk.
-Core-kvitteringene og kildeidentiteten er separat verifisert.
+FRESH_INITIAL_BASELINE_002 fullførte 21:36 UTC med exit 0 på uendret 25cde83c.
+Eksisterende komplette modell har 9 637 663 parametre, alle åtte familier,
+96 lokale M5-steg, 254 signalfelt og originale native MTF-vinduer.
+Fersk seed 20260911; ONLINE/TARGET har identiske vekter og samme aktuelle funksjon.
+Alle aktive output-head-kontrakter og bitidentisk ONLINE/TARGET-forward besto.
 
-COMPLETE_M1_001 fullførte 19:34 UTC med exit 0 på uendret 1b31c164:
-5 523 147 komplette pre-TEST M1-rader. Klokke- og bytekontrollen besto.
-Det korrigerte datasettet har 652 552 TRAIN-rader og 70 880 VAL-rader.
-INPUT_VERIFICATION_001 fullførte 19:50 UTC med exit 0 på uendret 73484ee5.
-Alle 5 523 147 M1-rader og 392 143 437 aliasverdipar er kontrollert; ingen manglende
-TRAIN-/VAL-quote-/fill-rader. Ny populasjonsdiagnose og canonical readiness består.
-Uendrede råresponsbevis er gjenbrukt etter byte- og parserkontroll; nye
-featurefordelinger er målt. Ukjente kildegap er ikke forklart som markedslukking.
-217 fokuserte overleveringstester består etter retting av foreldede statuskrav.
+4096 TRAIN- og 4096 CONTROL-rader er målt ved nøyaktig tidligere bundne tidspunkter;
+ingen manglende tidspunkt eller erstatningsrader. Netto-targetene er bitidentiske
+med forrige studie. Baseline ble målt på CPU gjennom producer20G/512M på 301 sekunder,
+med 512 ONLINE-forwards og én TARGET-paritetsforward. Ingen optimizer ble opprettet,
+null optimizersteg, ingen normaliseringsrefit, gamle vekter eller TEST-analyse.
+Tre av 8192 argmax-handlinger endret seg fra gammel initialbaseline. Sammenligningen
+inneholder også tidligere GPU mot nåværende CPU; den isolerer ikke kun featureeffekten.
+Initialprediksjoner og feilmål er ikke læring eller dokumentert edge.
 
-INPUT_VIEWS_001 fullførte 20:07 UTC med exit 0 på uendret 64964ed5.
-Fysiske TRAIN-/CONTROL-visninger dekker henholdsvis 4 884 638 og 382 744 M1-rader;
-652 552/70 880 Entry-rader er bevart. Nye egne klokkebundne gapautoriteter er
-publisert. POSTBUILD_REVIEW_001 verifiserte alle 652 552/70 880 lagrede
-seq/snap-rader mot korrigert M5 med PASS. Deretter ble spesialistkontrollen drept
-ved 4 GB cgroup-grensen; kernelbevis bekrefter OOM, exit 137. Kilden var uendret,
-alle originaler og begge beståtte sekvenskvitteringer er bevart.
-POSTBUILD_SPECIALIST_001 fullførte 20:40 UTC med exit 0 på uendret 1196222a;
-spesialistaudit PASS gjennom eksisterende producer10G/512M-eier. Ferdige nye
-sekvensbevis er gjenbrukt. Ingen feature-/modellendring eller budsjettfornyelse.
+Samlet aksept og uavhengig kontroll av metrics, koordinater, tilstandsbytes og ti
+vellykkede terminalkvitteringer:
+/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json
+Alle kjørebevis og originale avvik ligger i samme run-root.
 
-BASE_NORMALIZATION_001 fullførte 21:04 UTC med exit 0 på uendret 73001283.
-Én fersk basefit dekker hele fysiske TRAIN med 652 552 Entry-rader før sampling;
-VAL-/TEST-fit er null. Ferdig basefit kan ikke gjentas.
-SUMMARY_NORMALIZATION_001 fullførte 21:10 UTC med exit 0 på uendret 0fecbde5.
-TRAIN-summary-fit, VAL-telling uten fit og endelige split-/klokkebindinger er
-publisert. Basefit ble ikke gjentatt; VAL-/TEST-fit er null.
-INPUT_TENSOR_AUDIT_001 fullførte 21:16 UTC med exit 0 på uendret 6aeb38dd.
-Faktisk normalisert NumPy/PyTorch-input, bitidentiske aliaser, kausale MTF-ruter
-og Entry/Exit-førstetilstand besto. Ingen ny fit eller modellforward.
-NATIVE_INPUT_INDEX_001 fullførte 21:27 UTC med exit 0 på uendret 15f868d5.
-Komplette fysiske TRAIN-/VAL-indekser og nye økonomiske populasjonsidentiteter
-er publisert gjennom eksisterende eiere. Uendret kostmetode beviser ikke
-historisk kostsannhet eller avkastning.
-FRESH_INITIAL_BASELINE_001 binder nå eksisterende komplette modellkonstruktør,
-seed 20260911 og eksakt gamle TRAIN4096-/CONTROL4096-tidspunkter mot nye data.
-Nye koordinater publiseres før første forward; ingen erstatningsrader. CPU-måling
-gjennom eksisterende producer20G/512M og samme gjenværende tidsgrense.
-Ingen optimizer, ny fit, samplerbenchmark eller GPU. Dette gir baselinekoordinater,
-ikke native trenings-/samplerautoritet. ONLINE/TARGET-paritet og alle aktive
-head-kontrakter må bestå; ny baseline er ennå ikke målt.
-Første baselineoppstart stoppet 21:30 UTC før inputverifikasjon/konstruksjon:
-eksplisitt tom CUDA_VISIBLE_DEVICES manglet. Cgroup og CPU-vern virket.
-FRESH_INITIAL_BASELINE_002 setter CPU-synlighet før PyTorch-import; alle øvrige
-metoder og grenser er uendret. Første feilkvittering er bevart, ingen forwards
-eller optimizersteg ble utført, og samme absolutte tidsgrense gjelder.
+## Bevart avvik og grenser
 
-Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.
-Ingen nye inputs eller ny baseline er akseptert ennå. Rådata, perioder og de
-uendrede kalibreringene gjenbrukes der de eksisterende eierne tillater det.
-Gamle ukjente kildegap forblir ukjente; ingen imputering eller periodeflytting.
+Trygg Windows-/WSL-omstart ble gjennomført mellom core og komplett M1. Tre ferske
+kontrollfiler uten fsync var tomme etter omstart; tomme originaler er bevart,
+observasjoner gjenopprettet fra Mac og atomisk publisering brukt videre.
+POSTBUILD_REVIEW_001 fikk OOM ved feil 4 GB-klasse etter beståtte komplette
+sekvenskontroller. Kun uferdig spesialistaudit ble kjørt i eksisterende producer10G.
+Første baselineoppstart manglet eksplisitt CPU-synlighet og stoppet før konstruksjon.
+Etterfølgeren skjulte GPU før PyTorch-import; øvrige metoder og vakter var uendret.
 
-## Bevar
+Ukjente rådatagap er fortsatt ukjente; ingen imputering eller antatt markedslukking.
+Deklarerte kostvilkår er ikke bevis for historisk kostsannhet. CONTROL er gjenbrukt
+utviklingsdata. Ingen Exit-rollout, all-trades-/åpen-posisjonsøkonomi eller profitt
+ble målt. Nye baselinekoordinater gir ingen native trenings-/sampler-/GPU-autoritet.
+Tidligere benchmark- og treningsbevis tilhører sin gamle generasjon.
 
-Én agent og én tung CURRENT-jobb gjennom eksisterende capped-eier og vakter.
-Ingen kildeendring under kjøring. Alle genuine features, åtte familier og native
-klokker består. Ingen fast tapsgrense eller maksimal holdetid.
-training_enabled=false; null optimizersteg i dette målet. TEST er forseglet;
-kun eksisterende konstruksjons-/forseglingsansvarlig kan opprette det nye splitet.
-Ingen TEST-analyse, live/paper, broker, ordre, spending, promotion eller opprydding.
-Stabile langkjøringer observeres omtrent hver time; ingen minuttvis modellpolling.
+## Læring og neste beslutning
+
+Forrige læringsstudie ga REJECT_ENTRY_QUALIFICATION: CONTROL4096 valgte 4095 FLAT
+og én SHORT. Retnings-MSE 7357,64 mot konstantens 7360,93 ga ingen statistisk påvist
+forbedring. Den nye nullstegsbaselinen endrer ikke denne konklusjonen.
+
+Dette målet er ferdig; alle engangsplaner og felles byggebudsjett er lukket.
+Et neste avgrenset læringsforsøk må binde korrigerte inputs og egen eksakt autoritet.
+Ingen automatisk trening, forlengelse eller relansering av konsumerte planer.
+training_enabled=false; TEST er forseglet. Ingen live/paper, broker, ordre, spending,
+promotion eller opprydding. Bevar én agent, én tung CURRENT-jobb, alle genuine
+features, åtte familier, kausalitet, vakter, originalkvitteringer og checkpoints.
+Ingen fast tapsgrense eller maksimal holdetid.

@@ -268,7 +268,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     assert scope['runtime_plan']['sha256'] != scope['plan']['sha256']
     final_ready = progress['ready_for_bounded_research_smoke']
     latest = scope['native_preprocessing_stage_001']
-    assert work['full_benchmark_completed'] is True
+    assert latest['native_coordinates_published'] is True
     assert latest['terminal']['path'].startswith(scope['run_root'] + '/')
     assert latest['terminal_exit_code'] == 0
     failed = scope['failed_input_validation_stage']
@@ -295,7 +295,7 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
                                      final_ready and field in {
                                          'new_sampler_smoke_plan_bound', 'ready_for_bounded_research_smoke'}))
     assert scope['native_launch_admitted'] is False
-    assert work['sampler_selected'] is True and work['selected_sampler_published'] is True
+    assert latest['chronological_prefix']['native_coordinates']['path'].startswith(scope['run_root'] + '/')
     assert policy['training_enabled'] is False
     final = scope['final_readiness_stage']
     assert final['ready_for_bounded_research_smoke'] is final_ready
@@ -791,7 +791,7 @@ def test_current_handover_separates_new_rebuild_from_consumed_preprocessing():
     assert repair['test_outcome_access_authorized'] is False
     assert repair['completed_plan_relaunch_allowed'] is False
     assert work["training_started"] is False
-    assert work["full_benchmark_completed"] is True
+    assert repair['fresh_initial_baseline_stage']['training_sampler_admission'] is False
     previous = policy['native_v38_rebuild_20261007']['native_preprocessing_stage_001']
     assert previous['physical_preprocessing_complete'] is True
     assert previous['native_coordinates_published'] is True

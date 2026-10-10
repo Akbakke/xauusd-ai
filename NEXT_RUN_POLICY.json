@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T21:31:43.583719+00:00",
-  "status": "FRESH_BASELINE_CPU_VISIBILITY_CORRECTION_BOUND",
+  "observed_utc": "2026-10-10T21:41:11.499085+00:00",
+  "status": "CORRECTED_FEATURE_REBUILD_AND_FRESH_INITIAL_BASELINE_COMPLETE_NO_EDGE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Both finite learning phases are consumed. No further native launch, Exit training, TEST or adaptive extension is authorized. Feature corrections require fresh dependent inputs and a fresh initial baseline before later learning.",
-  "next_action": "Execute the bound CPU-only fresh complete-model initial measurement on exact prior TRAIN4096/CONTROL4096 timestamps; then aggregate acceptance and handover. Zero optimizer steps; no training/sampler admission.",
+  "next_action": "Rebuild/baseline goal complete. Preserve the accepted corrected generation and zero-step observations. A subsequent bounded learning study needs a separate exact design and native admission; no automatic training or consumed-plan relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: Ja gjør dette, lag nytt mål.",
-    "current_activity": "Baseline CPU visibility guard stopped before construction; explicit CPU-only successor bound.",
+    "current_activity": "Corrected input generation and fresh complete-model zero-step baseline accepted; no Entry edge demonstrated.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -101,7 +101,7 @@
     },
     "current_research_id": "FEATURE_REPAIR_REBUILD_20261010_001",
     "fresh_dataset_requested": true,
-    "replacement_dataset_accepted": false,
+    "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "paused",
     "existing_indicator_surface_changed": false,
@@ -132,31 +132,31 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "corrected_initial_baseline_cpu_start_failure",
+    "latest_terminal_role": "corrected_fresh_zero_step_baseline",
     "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/TERMINAL.json",
-      "sha256": "2f34d5b7a90a015954df1a9890fcd32a4dbd0694feff218ebe244915a4778090"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/TERMINAL.json",
+      "sha256": "e44a1f2f07e72e74ea5f2bfad019f67176ad6f571ed0e39754b3b14f2bd4639b"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "full_benchmark_completed": true,
-    "sampler_selection_measured": true,
-    "selected_sampler_published": true,
-    "sampler_selected": true,
+    "full_benchmark_completed": false,
+    "sampler_selection_measured": false,
+    "selected_sampler_published": false,
+    "sampler_selected": false,
     "physical_native_preprocessing_complete": false,
     "native_training_coordinates_published": false,
     "native_component_preparation_authorized": false,
     "test_data_used": false,
     "cleanup_report": "CURRENT_HANDOVER.md",
     "repository_cleanup_complete": true,
-    "replacement_dataset_acceptance_scope": "Previous generation retained as historical evidence; not current corrected-source inputs.",
+    "replacement_dataset_acceptance_scope": "HISTORY2009W_FEATURE_REPAIR_20261010: corrected inputs, once-fit whole-TRAIN normalization and fixed-cohort CPU initial baseline only; no native training, sampler, GPU, serving or profitability admission.",
     "pre_smoke_goal_preparation_complete": false,
     "pre_smoke_goal_completion_evidence": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "First baseline attempt lacked explicit empty CUDA visibility; corrected successor remains unmeasured.",
+    "current_blocker": "No implementation blocker remains in this goal. Entry learning/generalization and profitability remain unproved; subsequent training requires separate admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -529,7 +529,7 @@
       "elapsed_seconds": 1016.7850262550019,
       "peak_rss_kib": 16341716
     },
-    "fresh_native_initial_state_complete": false,
+    "fresh_native_initial_state_complete": true,
     "native_initial_measurement_20261009": {
       "status": "COMPLETED_VERIFIED_NO_RELAUNCH",
       "policy_scope": {
@@ -711,7 +711,7 @@
       "frozen_full_initial_state_exact": true,
       "learning_proven": false
     },
-    "native_initial_measurement_completed": false,
+    "native_initial_measurement_completed": true,
     "native_smoke_20261009": {
       "authorized": false,
       "status": "PREPARED_NOT_LAUNCHED_SUPERSEDED_ENTRY_INDEPENDENCE_DECISION",
@@ -1483,8 +1483,8 @@
       }
     },
     "feature_repair_rebuild_20261010": {
-      "status": "FRESH_BASELINE_CPU_VISIBILITY_CORRECTION_BOUND",
-      "authorized_goal": true,
+      "status": "COMPLETE_CORRECTED_INPUTS_AND_ZERO_STEP_BASELINE_NO_EDGE",
+      "authorized_goal": false,
       "core_build_authorized": false,
       "runtime_plan": {
         "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/PLAN.json",
@@ -1506,10 +1506,7 @@
       "test_outcome_access_authorized": false,
       "completed_plan_relaunch_allowed": false,
       "cleanup_authorized": false,
-      "next_required_stages": [
-        "FRESH_INITIAL_BASELINE",
-        "AGGREGATE_ACCEPTANCE_AND_HANDOVER"
-      ],
+      "next_required_stages": [],
       "core_relaunch_allowed": false,
       "core_result": {
         "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/RESULT.json",
@@ -1597,8 +1594,8 @@
         "raw_response_reuse_scope": "Exact unchanged native/quote/parser proof; rehash all source chunks. Recompute current candidate selection and feature distributions."
       },
       "pre_smoke_cpu_budget_001": {
-        "budget_authorized": true,
-        "authorized": true,
+        "budget_authorized": false,
+        "authorized": false,
         "budget": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/PREPARATION_CPU_001/BUDGET.json",
           "sha256": "473e04e47f916cb9aa0d3e491a40fb57d1900f4a6d003cb9887bd706ed667aba"
@@ -1606,7 +1603,9 @@
         "deadline_utc": "2026-10-11T05:04:20.353883+00:00",
         "max_wall_seconds": 64800,
         "new_budget_time_added": false,
-        "optimizer_authorized": false
+        "optimizer_authorized": false,
+        "status": "closed_after_goal_completion",
+        "closed_utc": "2026-10-10T21:41:11.499085+00:00"
       },
       "physical_input_views_stage": {
         "authorized": false,
@@ -1864,7 +1863,7 @@
         }
       },
       "fresh_initial_baseline_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/PLAN.json",
@@ -1903,7 +1902,16 @@
         "previous_failed_terminal": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/TERMINAL.json",
           "sha256": "2f34d5b7a90a015954df1a9890fcd32a4dbd0694feff218ebe244915a4778090"
-        }
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/TERMINAL.json",
+          "sha256": "e44a1f2f07e72e74ea5f2bfad019f67176ad6f571ed0e39754b3b14f2bd4639b"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/BASELINE_RESULT.json",
+          "sha256": "79a0ad75f70acd37cdfa5faa2fc235e89036fbfefe7c40528f6d91c10de36bbf"
+        },
+        "completed": true
       },
       "fresh_initial_baseline_failed_attempt_001": {
         "authorized": false,
@@ -1946,8 +1954,31 @@
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/FAILURE_REVIEW.json",
           "sha256": "1e751a8cae1654bc420c3346b51b5a834200e70a0c6778f71fc991a1bab2eea8"
         }
-      }
-    }
+      },
+      "goal_status": "complete",
+      "acceptance": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
+        "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
+      },
+      "completed_utc": "2026-10-10T21:41:11.499085+00:00",
+      "corrected_input_generation_accepted": true,
+      "whole_physical_train_normalization_complete": true,
+      "fresh_initial_baseline_complete": true,
+      "learning_demonstrated": false,
+      "entry_edge_demonstrated": false,
+      "current_native_training_coordinates_admitted": false,
+      "current_sampler_benchmark_complete": false
+    },
+    "fresh_baseline_coordinates_published": true,
+    "current_generation_initial_baseline": {
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/BASELINE_RESULT.json",
+      "sha256": "79a0ad75f70acd37cdfa5faa2fc235e89036fbfefe7c40528f6d91c10de36bbf"
+    },
+    "current_generation_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
+      "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
+    },
+    "sampler_generation_scope": "HISTORY2009W_FEATURE_REPAIR_20261010"
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",

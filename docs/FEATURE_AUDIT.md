@@ -97,10 +97,19 @@ på nytt. Null for første nivåankers recurrence har den eksisterende dokumente
 fraværs-/eksakt-treff-tvetydigheten. HTF-memoen forutsetter uforanderlige frames.
 Ingen nye hypotetiske funksjonsendringer er gjort for disse begrensningene.
 
-**Neste nødvendige arbeid før ny læring:** publisere avhengige MTF-/M5-/M1-felt
-og label-/normaliseringsartefakter med korrigert semantikk, kontrollere dem og
-måle en fersk initialbaseline. Dette er en ny kjøreplan; revisjonen gjenåpner
-ikke de konsumerte treningsplanene. Eksisterende modell har ingen dokumentert edge.
+**Etterfølgende rebuild og baseline er fullført.** Generasjonen
+`HISTORY2009W_FEATURE_REPAIR_20261010` har korrigerte avhengige MTF-/M5-/M1-felt,
+berørte labels, én fersk normalisering på hele fysiske TRAIN og beståtte komplette
+input-/sekvenskontroller. Fersk komplett ONLINE/TARGET-modell ble målt på de samme
+4096 TRAIN- og 4096 CONTROL-tidspunktene, med bitidentiske netto-targets og null
+optimizersteg. Alle aktive head-kontrakter og ONLINE/TARGET-paritet består.
+
+Bare tre av 8192 argmax-handlinger endret seg fra gammel initialbaseline; dette
+omfatter også tidligere GPU mot nåværende CPU-aritmetikk. Det er ingen målt læring
+eller ny edge. Beviset gir verken trenings-/samplerautoritet eller økonomisk
+aksept. Ukjente kildegap, gjenbrukt utviklings-CONTROL og historisk kostusikkerhet
+består. Samlet aksept:
+`/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json`.
 
 Autoritative maskinbevis: `/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001`.
 Læringsresultat: `/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/STUDY_REVIEW.json`.
