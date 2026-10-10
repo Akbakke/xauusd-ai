@@ -2260,9 +2260,288 @@ def run_entry_edge_diagnostic(spec, spec_path):
         raise
 
 
+def entry_edge_features(raw):
+    """One declared smooth interaction hypothesis; no fitted transform here."""
+    atr = raw["ctx_cont.atr_bps"].to_numpy(float)
+    if not np.isfinite(raw.to_numpy(float)).all() or np.any(atr <= 0):
+        raise RuntimeError("ENTRY_EDGE_FEATURE_COVERAGE_INVALID")
+    reaction = {
+        "return3_atr": np.arctan(raw["ctx_cont.close_return_3_bps"].to_numpy(float) / atr),
+        "acceleration1_atr": np.arctan(raw["ctx_cont.close_return_acceleration_1_bps"].to_numpy(float) / atr),
+        "wick_balance": raw["candle.raw_lower_wick_share"].to_numpy(float) - raw["candle.raw_upper_wick_share"].to_numpy(float),
+    }
+    context = {
+        name: np.arctan(raw[name].to_numpy(float)) for name in (
+            "level_above_dist_atr", "level_below_dist_atr",
+            "smc_sweep_up_avwap_dist_atr", "smc_sweep_down_avwap_dist_atr",
+            "ctx_cont._v1h4_ema_diff", "ctx_cont.d1_ema_slope_20_canon_v2")}
+    context["log_atr_bps"] = np.log(atr)
+    context["spread_atr"] = np.arctan(raw["ctx_cont.spread_bps"].to_numpy(float) / atr)
+    base = {**reaction, **context}
+    for name in ("level_below_present", "smc_sweep_up_avwap_age_bars", "smc_sweep_down_avwap_age_bars"):
+        base[name] = np.arctan(raw[name].to_numpy(float))
+    expanded = {**base, **{r + "*" + c: rv * cv
+                          for r, rv in reaction.items() for c, cv in context.items()}}
+    return pd.DataFrame(base), pd.DataFrame(expanded)
+
+
+def entry_edge_fold_rows(clock, start, end, elapsed_seconds, train_start):
+    decision = clock + pd.Timedelta(minutes=5)
+    outcome_end = decision + pd.Timedelta(seconds=elapsed_seconds)
+    fit = np.flatnonzero((clock >= train_start) & (outcome_end < start))
+    hold = np.flatnonzero((decision >= start) & (outcome_end < end))
+    if not len(fit) or not len(hold) or outcome_end[fit[-1]] >= decision[hold[0]]:
+        raise RuntimeError("ENTRY_EDGE_CHRONOLOGY_INVALID")
+    return fit, hold
+
+
+def entry_edge_actions(prediction):
+    """Unique positive argmax, FLAT on zero or any LONG/SHORT tie."""
+    p = np.asarray(prediction, dtype=float)
+    if p.ndim != 2 or p.shape[1] != 2 or not np.isfinite(p).all():
+        raise RuntimeError("ENTRY_EDGE_PREDICTION_INVALID")
+    return np.where((p[:, 0] > 0) & (p[:, 0] > p[:, 1]), 1,
+                    np.where((p[:, 1] > 0) & (p[:, 1] > p[:, 0]), -1, 0))
+
+
+def _entry_edge_portfolios(frame, spec, scope, out):
+    """Single-position research cash ledgers. The 95min label is not an exit rule."""
+    start = pd.Timestamp(frame.decision_time.iloc[0])
+    end = pd.Timestamp(spec["train_end_exclusive"])
+    m1 = pq.read_table(
+        str(_entry_edge_bound(spec["m1_source"])),
+        columns=["time", "open", "bid_open", "ask_open"],
+        filters=[("time", ">=", start.to_pydatetime()),
+                 ("time", "<", end.to_pydatetime())]).to_pandas()
+    times = pd.DatetimeIndex(m1.time)
+    decisions = pd.DatetimeIndex(frame.decision_time)
+    if (not times.is_monotonic_increasing or times.has_duplicates or len(times) < 2
+            or times[0] != start or times[-1] >= end):
+        raise RuntimeError("ENTRY_EDGE_PORTFOLIO_CLOCK_INVALID")
+    indices = times.get_indexer(decisions)
+    if np.any(indices < 0):
+        raise RuntimeError("ENTRY_EDGE_EXACT_M1_FILL_MISSING")
+    tape = Tape(times, m1.open.to_numpy(float), m1.bid_open.to_numpy(float),
+                m1.ask_open.to_numpy(float), spec["m1_source"]["sha256"], spec["m1_source"]["path"])
+    # One fixed physical unit for every active position and always-LONG.
+    # Initial capital equals the first executable ask, not later strategy risk.
+    capital = float(tape.ask[0])
+    rates = np.asarray(scope["economics"]["annual_financing_cost_bps"]) / 1e4
+    curve = ResearchFinancingCurve(
+        pd.DatetimeIndex([times[0]]), np.array([(rates[0] - rates[1]) / 2]),
+        end, float((rates[0] + rates[1]) / 2), scope["economics"]["seconds_per_year"])
+    authority = json.loads(_entry_edge_bound(spec["cost_authority"]).read_text())["parameters"]
+    summaries, monthly = {}, {}
+    previous_decision = np.searchsorted(indices, np.arange(len(times)-1), side="right") - 1
+    if np.any(previous_decision < 0):
+        raise RuntimeError("ENTRY_EDGE_POSITION_BEFORE_DECISION")
+    for arm in ("constant", "additive", "interaction", "always_long", "flat"):
+        if arm in ("always_long", "flat"):
+            side = np.full(len(frame), 1 if arm == "always_long" else 0, dtype=np.int8)
+        else:
+            side = frame[arm + "_action"].to_numpy(np.int8)
+        units = side[previous_decision].astype(float)
+        path = portfolio_path(
+            tape, units, initial_equity=capital,
+            slippage_bps_per_execution=authority["execution_slippage"]["central_bps_per_execution"],
+            commission_bps_per_execution=authority["commission"]["bps_per_execution"],
+            financing_curve=curve, liquidate_at_end=False)
+        summary = portfolio_summary(path, periods_per_year=(len(times)-1) * scope["economics"]["seconds_per_year"] / (times[-1]-times[0]).total_seconds())
+        for statistic in ("realized_annual_vol", "sharpe_zero_cash"):
+            summary.pop(statistic, None)
+        equity = path.equity_liquidation.to_numpy(float)
+        increments = np.diff(np.concatenate([[capital], equity])) / capital * 1e4
+        months = times.strftime("%Y-%m")
+        monthly[arm] = pd.Series(increments).groupby(months, sort=True).sum()
+        before = np.concatenate([[0], units[:-1]])
+        openings = (units != 0) & ((before == 0) | (before != units))
+        summary.update(
+            position_entries=int(openings.sum()),
+            active_minute_fraction=float(np.mean(units != 0)),
+            fixed_physical_units=1.0, initial_capital=capital,
+            max_open_notional_over_initial_capital=float(path.opening_notional_after.max() / capital),
+            open_position_included=True, cost_assumption="bound current-terms scenario, not historical broker truth",
+            annualized_statistics_scope="Sharpe/annualized volatility omitted for irregular M1 marks",
+            economics_scope="continuous M1-marked research Entry argmax policy, not native Exit")
+        summaries[arm] = summary
+        write_parquet(out / ("PORTFOLIO_" + arm + ".parquet"), path)
+        del path
+    return summaries, pd.DataFrame(monthly)
+
+
+def _entry_edge_monthly_intervals(values, spec):
+    """Reuse paired stationary bootstrap; intervals are conditional development estimates."""
+    X = values.to_numpy(float)
+    if not np.isfinite(X).all() or len(X) < spec["mean_block_months"]:
+        raise RuntimeError("ENTRY_EDGE_MONTHLY_INFERENCE_INVALID")
+    boot = np.array([X[i].mean(axis=0) for i in stationary_bootstrap_indices(
+        len(X), draws=spec["bootstrap_draws"], mean_block_length=spec["mean_block_months"],
+        seed=spec["seed"])])
+    # Bonferroni percentile intervals across the explicitly declared endpoint family.
+    tail = spec["alpha"] / (2 * X.shape[1])
+    bounds = np.quantile(boot, [tail, 1 - tail], axis=0)
+    return {name: {"equal_month_mean": float(X[:, i].mean()),
+                   "family_adjusted_lower": float(bounds[0, i]),
+                   "family_adjusted_upper": float(bounds[1, i]),
+                   "months": len(X)}
+            for i, name in enumerate(values.columns)}
+
+
+def run_entry_edge_probe(spec, spec_path):
+    """Two fixed ridge representations on the same purged TRAIN folds and cost targets."""
+    import time
+    import resource
+    import torch
+    from gx1.contracts.entry_observed_market_v1 import (
+        GROSS_TARGET_COLUMNS, require_entry_observed_market_scope, build_entry_observed_market_targets)
+    from gx1.scripts.research_entry_direction_walkforward_v1 import (
+        _list_column_to_matrix, feature_fit_lineage, require_feature_fit_before)
+    out, capped = _entry_edge_begin(spec, "entry-edge-probe", spec_path)
+    started, head = time.monotonic(), git("rev-parse", "HEAD")
+    try:
+        recipe = json.loads(_entry_edge_bound(spec["recipe"]).read_text())
+        scope = require_entry_observed_market_scope(recipe)
+        source = scope["physical_sources"]["train"]
+        if (scope["elapsed_wall_clock_seconds"] != spec["elapsed_seconds"]
+                or source["parquet"] != spec["train_parquet"] or source["manifest"] != spec["train_manifest"]
+                or recipe["files"]["train_cost_authority"] != spec["cost_authority"]
+                or scope["target_m1_source_sha256"] != spec["m1_source"]["sha256"]):
+            raise RuntimeError("ENTRY_EDGE_PROBE_TARGET_BINDING")
+        manifest = json.loads(_entry_edge_bound(spec["train_manifest"]).read_text())
+        lineage = feature_fit_lineage(manifest["extra"]["multi_tf_cache_binding"])
+        table = pq.read_table(str(_entry_edge_bound(spec["train_parquet"])),
+                              columns=["time", "snap", *GROSS_TARGET_COLUMNS])
+        clock = pd.DatetimeIndex(pd.to_datetime(table.column("time").to_pandas(), utc=True)).as_unit("ns")
+        if (len(clock) != source["physical_rows"] or clock.has_duplicates
+                or not clock.is_monotonic_increasing or
+                hashlib.sha256(np.asarray(clock.asi8, dtype="<i8").tobytes()).hexdigest() != source["clock_sha256"]):
+            raise RuntimeError("ENTRY_EDGE_PROBE_INPUT_CLOCK")
+        names = manifest["feature_contract"]["signal_bridge_fields"]
+        snap = _list_column_to_matrix(table, "snap", len(names), np.float64)
+        raw = pd.DataFrame(snap[:, [names.index(n) for n in spec["raw_feature_names"]]],
+                           columns=spec["raw_feature_names"])
+        gross = np.column_stack([table.column(n).to_numpy() for n in GROSS_TARGET_COLUMNS]).astype(np.float32)
+        targets = build_entry_observed_market_targets(
+            gross_return_bps=torch.from_numpy(gross),
+            elapsed_wall_clock_seconds=torch.full((len(clock),), spec["elapsed_seconds"], dtype=torch.int64),
+            economics=scope["economics"])["target_bps"].numpy()[:, :2].astype(float)
+        del table, snap, gross
+        additive, interaction = entry_edge_features(raw)
+        if [len(additive.columns), len(interaction.columns)] != spec["feature_widths"]:
+            raise RuntimeError("ENTRY_EDGE_PREREG_FEATURE_WIDTH")
+        coverage = {name: {"finite_rows": int(np.isfinite(raw[name]).sum()),
+                           "nonzero_rows": int((raw[name] != 0).sum())}
+                    for name in raw}
+        write_json(out / "INPUT_ACCEPTANCE.json", {
+            "rows": len(clock), "feature_coverage": coverage, "feature_fit_lineage": lineage,
+            "feature_names": {"additive": list(additive), "interaction": list(interaction)},
+            "native_features_changed": False, "test_accessed": False})
+        forecasts = {n: np.full((len(clock), 2), np.nan) for n in ("constant", "additive", "interaction")}
+        fold_id = np.full(len(clock), -1, dtype=int)
+        fits = []
+        for number, bounds in enumerate(spec["folds"]):
+            start, end = map(pd.Timestamp, bounds)
+            require_feature_fit_before(lineage, start, context="Entry-edge outer fold")
+            fit, hold = entry_edge_fold_rows(
+                clock, start, end, spec["elapsed_seconds"], pd.Timestamp(spec["train_start"]))
+            if len(fit) < spec["minimum_fit_rows"] or np.any(fold_id[hold] != -1):
+                raise RuntimeError("ENTRY_EDGE_PROBE_FOLD_INVALID")
+            row = {"fold": number, "start": str(start), "end": str(end),
+                   "fit_rows": len(fit), "hold_rows": len(hold),
+                   "last_fit_outcome_time": str(clock[fit[-1]] + pd.Timedelta(seconds=300+spec["elapsed_seconds"])),
+                   "first_hold_decision_time": str(clock[hold[0]] + pd.Timedelta(minutes=5)),
+                   "fit_rows_sha256": hashlib.sha256(fit.astype("<i8").tobytes()).hexdigest(),
+                   "hold_rows_sha256": hashlib.sha256(hold.astype("<i8").tobytes()).hexdigest()}
+            forecasts["constant"][hold] = targets[fit].mean(axis=0)
+            for arm, features in (("additive", additive), ("interaction", interaction)):
+                X = features.to_numpy(float)
+                gram = RidgeGram(X[fit], X[hold], inner_fraction=spec["inner_fraction"],
+                                 fit_positions=fit, purge_bars=spec["elapsed_seconds"]//300,
+                                 constant_alternative=False)
+                row[arm] = {}
+                for side in range(2):
+                    # alpha=N corresponds to unit L2 penalty in mean-squared-error units
+                    prediction, info = gram.fit_predict(targets[fit, side], alpha=float(len(fit)))
+                    forecasts[arm][hold, side] = prediction
+                    row[arm][str(side)] = info
+                del gram
+            fold_id[hold] = number
+            fits.append(row)
+            write_json(out / ("FOLD_" + str(number) + ".json"), row)
+            print(json.dumps({"event": "ENTRY_EDGE_FOLD_COMPLETE", "fold": number,
+                              "elapsed_seconds": time.monotonic()-started}), flush=True)
+        selected = np.flatnonzero(fold_id >= 0)
+        frame = pd.DataFrame({"parent_row": selected, "decision_time": clock[selected] + pd.Timedelta(minutes=5),
+                              "fold": fold_id[selected], "target_long": targets[selected, 0],
+                              "target_short": targets[selected, 1]})
+        metrics = {}
+        for arm, full in forecasts.items():
+            prediction = full[selected]
+            actions = entry_edge_actions(prediction)
+            frame[arm+"_long"], frame[arm+"_short"] = prediction[:, 0], prediction[:, 1]
+            frame[arm+"_action"] = actions
+            diff = prediction[:, 0] - prediction[:, 1]
+            truth = targets[selected, 0] - targets[selected, 1]
+            frame[arm+"_contrast_mse"] = (diff - truth)**2
+            frame[arm+"_target_markout"] = np.where(actions == 1, targets[selected, 0],
+                                                     np.where(actions == -1, targets[selected, 1], 0.0))
+            metrics[arm] = {
+                "rows": len(selected), "contrast_mse": float(np.mean((diff-truth)**2)),
+                "side_mse": np.mean((prediction-targets[selected])**2, axis=0).tolist(),
+                "prediction_contrast_std_bps": float(np.std(diff)),
+                "contrast_correlation": float(np.corrcoef(diff, truth)[0, 1]) if np.std(diff) else None,
+                "long_rows": int((actions == 1).sum()), "short_rows": int((actions == -1).sum()),
+                "flat_rows": int((actions == 0).sum()),
+                "overlapping_target_markout_mean_bps": float(frame[arm+"_target_markout"].mean()),
+                "overlapping_target_markout_is_portfolio": False}
+        write_parquet(out / "PREDICTIONS.parquet", frame)
+        summaries, economics = _entry_edge_portfolios(frame, spec, scope, out)
+        month = pd.DatetimeIndex(frame.decision_time).strftime("%Y-%m")
+        monthly = pd.DataFrame(index=economics.index)
+        for model, base in (("interaction", "constant"), ("interaction", "additive"), ("additive", "constant")):
+            monthly[model+"_contrast_improvement_vs_"+base] = (
+                frame[base+"_contrast_mse"] - frame[model+"_contrast_mse"]).groupby(month).mean()
+        for model in ("additive", "interaction"):
+            for base in ("flat", "always_long"):
+                monthly[model+"_net_bps_vs_"+base] = economics[model] - economics[base]
+        intervals = _entry_edge_monthly_intervals(monthly, spec)
+        write_parquet(out / "MONTHLY_COMPARISONS.parquet", monthly.reset_index(names="month"))
+        positive = {arm: all(intervals[key]["family_adjusted_lower"] > 0 for key in (
+            arm+"_contrast_improvement_vs_constant", arm+"_net_bps_vs_flat", arm+"_net_bps_vs_always_long"))
+                    for arm in ("additive", "interaction")}
+        for arm in positive:
+            positive[arm] = positive[arm] and not summaries[arm]["insolvent"]
+        result = {
+            "schema_version": "gx1_entry_edge_train_probe_v1", "status": "COMPLETE",
+            "source_commit": head, "spec": {"path": str(spec_path), "sha256": sha(spec_path)},
+            "feature_fit_lineage": lineage, "fits": fits, "prediction_metrics": metrics,
+            "per_fold_prediction_metrics": {str(f): {arm: {"contrast_mse": float(g[arm+"_contrast_mse"].mean()),
+                "long_rows": int((g[arm+"_action"] == 1).sum()), "short_rows": int((g[arm+"_action"] == -1).sum()),
+                "flat_rows": int((g[arm+"_action"] == 0).sum())} for arm in forecasts}
+                for f, g in frame.groupby("fold")},
+            "portfolio_metrics": summaries, "monthly_intervals": intervals,
+            "development_screen_pass": positive,
+            "native_training_admitted": False, "test_accessed": False,
+            "control_rows": 0, "optimizer_steps": 0, "cpu_ridge_fits": 4*len(fits),
+            "target_horizon_seconds": spec["elapsed_seconds"], "economic_holding_timeout": None,
+            "limitations": spec["limitations"], "elapsed_seconds": time.monotonic()-started,
+            "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+            "capped_execution": capped}
+        if git("rev-parse", "HEAD") != head or git("status", "--porcelain"):
+            raise RuntimeError("ENTRY_EDGE_SOURCE_CHANGED")
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"exit_code": 0, "source_unchanged": True,
+                   "result": {"path": str(out/"RESULT.json"), "sha256": sha(out/"RESULT.json")}})
+        return {"status": "COMPLETE", "output": str(out), "development_screen_pass": positive}
+    except BaseException as exc:
+        write_json(out / "TERMINAL.json", {"exit_code": 1, "error_type": type(exc).__name__,
+                                         "error": str(exc), "source_commit": head})
+        raise
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -2276,7 +2555,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

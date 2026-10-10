@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T03:41:36.000896+00:00",
-  "status": "ENTRY_EDGE_TRAIN_DIAGNOSTIC_PREPARED",
+  "observed_utc": "2026-10-10T03:57:10.496764+00:00",
+  "status": "ENTRY_EDGE_TRAIN_PROBE_PREPARED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Run the separately preregistered capped CPU Entry gradient diagnostic on frozen TRAIN batches, then bind one chronological TRAIN information probe. Preserve failed native learning evidence and all original states; no native optimizer extension, CONTROL tuning or TEST.",
+  "next_action": "Run one preregistered TRAIN-only fixed-ridge interaction probe with chronological folds and capacity-one M1 cash ledgers. No native training, CONTROL tuning or TEST.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "Operator authorized four bounded Entry-edge research steps on 10 October. Preparing TRAIN-only gradient diagnosis and a single preregistered information probe; native training remains closed.",
+    "current_activity": "Gradient diagnosis complete; no evidence of missing or overwhelmed Entry contrast gradients. Preparing a single fixed-representation information/economics probe.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1310,22 +1310,23 @@
     },
     "entry_edge_20261010": {
       "authorized": true,
-      "authorized_mode": "entry-edge-diagnostic",
+      "authorized_mode": "entry-edge-probe",
       "research_id": "ENTRY_EDGE_TRAIN_20261010_001",
       "operator_request": "Bra! Lag deg dette som et mål og fullfør disse 4 stegene",
       "spec": {
-        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010_002.json",
-        "sha256": "6f3f57224c39d767c213c65ef7d75a55c044eb1cd0fcd6e4580fbe68e206ef82"
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_EDGE_TRAIN_PROBE_20261010.json",
+        "sha256": "be64cdec048e07ecf3349a8f6f70fac4c99728c90d7476c06eddcf3e9438184a"
       },
       "goal_thread_id": "01a123d0-e7e1-79c3-900c-c56837ea0367",
       "stages": {
         "1": {
           "name": "TRAIN learning and task-gradient diagnosis",
-          "status": "prepared"
+          "status": "complete",
+          "conclusion": "Entry contrast reaches all538 connected shared tensors; auxiliary aggregate is weaker and not opposed in six measured batch/state pairs. No loss-weight intervention supported."
         },
         "2": {
           "name": "One preregistered chronological price-reaction/location/regime probe",
-          "status": "pending"
+          "status": "prepared"
         },
         "3": {
           "name": "Smallest evidence-supported follow-up or explicit rejection",
@@ -1342,6 +1343,14 @@
       "rejected_start": {
         "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/DIAGNOSTIC_001/TERMINAL.json",
         "sha256": "e2e51f0a36afbae448752c302703c986a3e67d780cb118768905b1c6263b0ef9"
+      },
+      "diagnostic_result": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/DIAGNOSTIC_002/RESULT.json",
+        "sha256": "85cdcf48c24d1d800c120a5d20e422b83fd6eafef63defed169d89b0225d8eae"
+      },
+      "diagnostic_terminal": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/DIAGNOSTIC_002/TERMINAL.json",
+        "sha256": "1f58b4e03341c8fb6fc124b0820b3e783efa5774b88edd4a504ccf05bd808dd0"
       }
     }
   },

@@ -1,21 +1,14 @@
-# GX1 — siste overlevering, 10.10.2026
+# CURRENT HANDOVER — 10.10.2026
 
-Operatøren har bestilt fire avgrensede steg for Entry-edge: TRAIN-/gradientdiagnose,
-én kausal hypoteseprøve av prisreaksjon betinget på plassering og regime,
-minste evidensbaserte oppfølging og økonomivurdering av eventuell kandidat.
-Første nye scope er forhåndsregistrert i
-configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010_002.json.
-Det måler originale initial-/sluttvekter på tre fryste TRAIN-batcher gjennom
-eksisterende CPU-eiere: seks forwards, null optimizersteg og null fits.
-Ingen CONTROL-forwards, TEST, broker eller ny native trening.
+Gjeldende arbeid er brukerens fire avgrensede Entry-edge-steg. Kilden er GX1_CURRENT / work/gx1-current. Native training_enabled=false og TEST er fortsatt forseglet.
 
-Den tidligere Entry-smoken og fysisk native resume er fullført og konsumert.
-Læringsporten feilet; originalresultatet og alle checkpoints bevares.
-Ny diagnostikk er ikke treningstillatelse eller bevis for edge.
-NEXT_RUN_POLICY.current_work.entry_edge_20261010 eier de fire stegenes status.
-Kun /home/andre2/src/GX1_CURRENT, work/gx1-current, én agent og én tung jobb.
+Steg1 er fullført med DIAGNOSTIC_002/RESULT.json (SHA85cdcf48c24d1d800c120a5d20e422b83fd6eafef63defed169d89b0225d8eae). Seks CPU-FP32 TRAIN-forwards, null optimizersteg/CONTROL-forwards, originalcheckpoint bevart, kilde uendret, terminal exit0. Entry contrast har ikke-null gradient til538 delte parametertensorer i alle målingene. Samlet hjelpegradient er svakere og positivt justert mot kontrasten (cos0.004–0.161); ingen målt begrunnelse for å endre tapsvekter. Dette er tre forhåndsvalgte batcher i to tilstander, ikke rekonstruksjon av AdamW eller generaliseringsbevis.
 
-Første start ble avvist før claim/forward fordi eksplisitt tom CUDA_VISIBLE_DEVICES manglet. DIAGNOSTIC_001/TERMINAL.json bevarer avvisningen; separat _002-plan bruker samme kilde og måling med korrekt CPU-miljø.
+Steg2–4: configs/research/ENTRY_EDGE_TRAIN_PROBE_20261010.json binder én hypotese og maksimalt48 faste CPU-ridge-fits:14 additive felt mot38 felt med prisreaksjon × plassering/regime, identiske data/mål/kostnader. Årlige purgede TRAIN-folds2014–mai2025. Ingen parameter-/horizontsøk. Merk at95-minuttersmålet er valgt med hele TRAIN: dette er betinget utviklingsevidens, aldri urørt OOS.
+
+Økonomi bruker eksisterende M1 BID/ASK-ledger, ett fysisk instrument som maksimal posisjon, identisk kapital/enhet for alltid-LONG, alle bytter/kostnader og åpen sluttposisjon. Det finnes ingen fast holdetidsregel. Forskningspolicyen er ikke native Exit eller produksjonsrisk sizing. Native endringer krever et konkret positivt resultat og eget avgrenset design; negativt resultat lukkes uten bredere søk.
+
+Diagnosens første start ble avvist før claim/forward fordi eksplisitt tom CUDA_VISIBLE_DEVICES manglet. DIAGNOSTIC_001/TERMINAL.json og opprinnelig plan bevares. Etter separat korrigert start fullførte DIAGNOSTIC_002 på332.64s med7.15GiB peakRSS. Alle nye kjøringer går gjennom eksisterende capped CPU producer20G,512MiB swap, én numerisk tråd, prosjektlås og veggtidstak12000s. Les NEXT_RUN_POLICY.json før start; fullførte/avviste planer relanseres aldri.
 
 ## Ferdig smoke og målt læring
 
