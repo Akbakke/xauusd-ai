@@ -1,0 +1,49 @@
+{
+  "schema_version": "gx1_corrected_entry_preparation_authorization_v1",
+  "operator_request": "ja gjør dette",
+  "dataset_run_id": "HISTORY2009W_FEATURE_REPAIR_20261010",
+  "accepted_generation": {
+    "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
+    "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
+  },
+  "preparation_plan": {
+    "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_PREPARATION_001/PREPARATION_PLAN.json",
+    "sha256": "6d51db8190306de633545e776f28cbb79f6c9ad49dc2dc56c286320db3039c51"
+  },
+  "design": {
+    "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_PREPARATION_001/DESIGN.json",
+    "sha256": "1fcb58acb61e33ccc10b872a028499e7c2a93edcdf9cff16240b064edcf9f4d4"
+  },
+  "capacity_plan": {
+    "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/PLAN.json",
+    "sha256": "2f1c034530620f411dfd3ea9bb3926740367365a42c7225a58af5072d33271cb"
+  },
+  "capacity_budget": {
+    "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/BUDGET.json",
+    "sha256": "0acefba80e1911d6df08b71a2569bfcb90279756e1b4ba349544bf30e719d47b"
+  },
+  "scope": "Complete current-generation sampler capacity, physical target/normalization joins and native coordinate/recipe startup checks. Existing data and normalization reused.",
+  "planned_finite_native_smoke": {
+    "planned_optimizer_steps": 256,
+    "maximum_trained_entry_rows": 4096,
+    "batch_size": 16,
+    "train_probe_rows": 256,
+    "later_control_rows": 256,
+    "seed": 20260911,
+    "entry_only": true,
+    "native_launch_authorized": false,
+    "initial_baseline_on_actual_training_and_control_rows_required": true,
+    "existing_current_zero_step_baseline_reused_as_function_and_data_evidence": true,
+    "no_full_epoch_or_full_val": true,
+    "no_automatic_extension": true
+  },
+  "native_launch_authorized": false,
+  "optimizer_steps_authorized": 0,
+  "training_enabled": false,
+  "full_epoch_allowed": false,
+  "full_val_allowed": false,
+  "test_access_allowed": false,
+  "cleanup_allowed": false,
+  "same_model_and_objectives": true,
+  "no_consumed_plan_relaunch": true
+}

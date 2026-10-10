@@ -1,8 +1,21 @@
-# CURRENT HANDOVER — 10.10.2026
+# CURRENT HANDOVER — 11.10.2026
 
-Rebuild-/baselinebestillingen er fullført. Ingen dokumentert Entry-edge.
+Rebuild og baseline er akseptert. Ny avgrenset treningsklargjøring er bestilt.
+Ingen dokumentert Entry-edge.
 Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current.
 NEXT_RUN_POLICY.json er eneste arbeidsstatus; prosess og terminal overstyrer prosa.
+
+## Pågående klargjøring
+
+Brukeren ba etter verifisert omstart om ny kjøreplan og nødvendige oppstartskontroller.
+configs/research/ENTRY_CORRECTED_PREPARATION_20261010.json binder én ny TRAIN-only
+CPU-samplermåling på korrigerte inputs. Eksisterende tre kandidater, batch16 og
+18 timers absolutt budsjett beholdes; forrige måling brukte omtrent15 timer.
+Ingen modell, optimizer, normaliseringsrefit eller TEST. START/prosess/terminal i
+samme run-root under SAMPLER_BENCHMARK_001 avgjør faktisk kjøretilstand.
+Deretter gjenstår valgt sampler, fysiske native koordinater og eksakt Entry-only
+recipe for planlagt høyst256 steg/4096 Entries. Dette er ikke stortreningsautoritet.
+Ferdig rebuild-/baselineplan og alle tidligere engangsplaner forblir lukket.
 
 ## Gjort og akseptert
 
@@ -73,8 +86,8 @@ Forrige læringsstudie ga REJECT_ENTRY_QUALIFICATION: CONTROL4096 valgte 4095 FL
 og én SHORT. Retnings-MSE 7357,64 mot konstantens 7360,93 ga ingen statistisk påvist
 forbedring. Den nye nullstegsbaselinen endrer ikke denne konklusjonen.
 
-Dette målet er ferdig; alle engangsplaner og felles byggebudsjett er lukket.
-Et neste avgrenset læringsforsøk må binde korrigerte inputs og egen eksakt autoritet.
+Rebuild-/baselinemålet er ferdig; tilhørende engangsplaner og byggebudsjett er lukket.
+Ny bestilt klargjøring har egen binding og CPU-grense ovenfor; native launch er stengt.
 Ingen automatisk trening, forlengelse eller relansering av konsumerte planer.
 training_enabled=false; TEST er forseglet. Ingen live/paper, broker, ordre, spending,
 promotion eller opprydding. Bevar én agent, én tung CURRENT-jobb, alle genuine

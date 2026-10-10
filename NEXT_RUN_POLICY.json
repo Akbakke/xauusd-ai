@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T21:53:51.698853+00:00",
-  "status": "CORRECTED_FEATURE_REBUILD_AND_FRESH_INITIAL_BASELINE_COMPLETE_NO_EDGE",
+  "observed_utc": "2026-10-10T22:01:18.936925+00:00",
+  "status": "CORRECTED_ENTRY_CAPACITY_AUTHORIZED_AWAITING_TERMINAL",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Both finite learning phases are consumed. No further native launch, Exit training, TEST or adaptive extension is authorized. Feature corrections require fresh dependent inputs and a fresh initial baseline before later learning.",
-  "next_action": "Rebuild/baseline goal complete. Preserve the accepted corrected generation and zero-step observations. A subsequent bounded learning study needs a separate exact design and native admission; no automatic training or consumed-plan relaunch.",
+  "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
+  "next_action": "Run the fresh one-shot bounded CPU sampler capacity; after genuine terminal, bind selected sampler and complete physical preprocessing/native coordinates. Prepare one bounded Entry-only recipe; no automatic large training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -75,8 +75,8 @@
     }
   },
   "current_work": {
-    "operator_request": "10.10.2026: Ja gjør dette, lag nytt mål.",
-    "current_activity": "Corrected input generation and fresh complete-model zero-step baseline accepted; no Entry edge demonstrated.",
+    "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
+    "current_activity": "Fresh one-shot corrected-generation CPU capacity admitted; START/process/terminal receipts determine actual execution state.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No implementation blocker remains in this goal. Entry learning/generalization and profitability remain unproved; subsequent training requires separate admission.",
+    "current_blocker": "Measured sampler and physical native training coordinates for corrected generation are not yet complete.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -1982,6 +1982,40 @@
     "latest_manual_host_restart": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/POST_REBOOT.json",
       "sha256": "73be90fe3a584540dc912f8b4756089f69d1908be10d207d9865036e4a1738f4"
+    },
+    "corrected_learning_preparation": {
+      "status": "CAPACITY_AUTHORIZED_AWAITING_TERMINAL",
+      "authorized": true,
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_CORRECTED_PREPARATION_20261010.json",
+        "sha256": "2977483d9dda47871ca59f610e4794e6038b9adb40d772bb422914d77159dfad"
+      },
+      "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_PREPARATION_001",
+      "native_launch_authorized": false,
+      "optimizer_steps_authorized": 0,
+      "capacity": {
+        "authorized": true,
+        "relaunch_allowed": false,
+        "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/PLAN.json",
+          "sha256": "2f1c034530620f411dfd3ea9bb3926740367365a42c7225a58af5072d33271cb"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/launch.py",
+          "sha256": "ea7973aa81f2530e5a19bc5755ac717a11ef7cd432544adefd5d7b013de0774a"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/benchmark.py",
+          "sha256": "000f101019796f6b52e2d76072eba882251c47216b9eba0fa0f08dad80dfbcd8"
+        },
+        "cpu_budget": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/BUDGET.json",
+          "sha256": "0acefba80e1911d6df08b71a2569bfcb90279756e1b4ba349544bf30e719d47b"
+        },
+        "native_training_started": false,
+        "test_data_used": false
+      }
     }
   },
   "gc_order_flow_research_20261006": {
