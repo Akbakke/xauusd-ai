@@ -21,10 +21,17 @@ Dette er ikke relansering av en konsumert plan. Gamle bevis beholdes.
 
 ## Aktiv grense og neste steg
 
-Første etappe er bundet til eksisterende core-chain og en ny, ren kildecommit.
-Reelle START/PROCESS/TERMINAL-filer avgjør om den er startet eller avsluttet.
-Deretter følger komplett M1, korrekthetskontroll, fysiske views og ny normalisering
-på hele fysiske TRAIN, og til slutt fersk nullstegs ONLINE/TARGET-baseline.
+Kjernebygget fullførte 17:16 UTC med exit 0 etter 22130 sekunder på uendret
+550b4116. M5/MTF/M1, datasett og labels er publisert; dette er ennå ikke komplett
+inputaksept. Trygg fysisk omstart er bekreftet ved ny Windows-/WSL-boot.
+Tre ferske kontrollfiler manglet fsync og var tomme etter omstart; tomme originaler
+er bevart, observasjonene er gjenopprettet fra Mac og publisert atomisk.
+Core-kvitteringene og kildeidentiteten er separat verifisert.
+
+COMPLETE_M1_001 binder ny klokkekontroll, full bytekontroll og eksisterende M1-eier.
+Reelle START/PROCESS/TERMINAL-filer avgjør framdriften. Deretter følger uavhengig
+inputkontroll, fysiske views, ny normalisering på hele fysiske TRAIN og fersk
+nullstegs ONLINE/TARGET-baseline.
 Hver etappe får eksakte input-/kilde-/outputbindinger før kjøring.
 
 Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.

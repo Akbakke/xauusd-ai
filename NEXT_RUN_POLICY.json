@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T11:02:58.690224+00:00",
-  "status": "CORRECTED_FEATURE_REBUILD_PREPARING_NEW_AUTHORIZED_PLAN",
+  "observed_utc": "2026-10-10T18:07:24.765932+00:00",
+  "status": "CORRECTED_CORE_COMPLETE_COMPLETE_M1_STAGE_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Both finite learning phases are consumed. No further native launch, Exit training, TEST or adaptive extension is authorized. Feature corrections require fresh dependent inputs and a fresh initial baseline before later learning.",
-  "next_action": "Execute newly bound corrected-input core build, then complete M1, input verification, whole-TRAIN normalization and a fresh zero-step baseline. No optimizer or consumed-plan relaunch.",
+  "next_action": "Execute exact complete-M1 clock/byte/owner stage, then independent input verification, fresh whole-TRAIN normalization and zero-step initialbaseline. Core plan consumed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: Ja gjør dette, lag nytt mål.",
-    "current_activity": "Preparing new source-bound rebuild and fresh initialbaseline after completed feature audit.",
+    "current_activity": "Corrected core complete; safe physical reboot verified; complete-M1 phase bound.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -132,14 +132,14 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "previous_completed_feature_audit; new build START/PROCESS/TERMINAL owns execution state",
-    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001",
+    "latest_terminal_role": "completed_corrected_core; next M1 stage START/PROCESS/TERMINAL owns actual execution",
+    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/COMPLETE_M1_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001/SCOPE_TERMINAL.json",
-      "sha256": "3059b53e06c6fbc54f3d0f15a5216f4ac9c1bdfd4e31286b40b114a068e4982d"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/TERMINAL.json",
+      "sha256": "0747041e80a205da83faef2b1cdc6fd71f3c0e73d4163d3e3ef93bf630c455d5"
     },
     "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": false,
+    "source_unchanged_at_terminal": true,
     "full_benchmark_completed": true,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Corrected-source input generation and fresh initialbaseline not yet built.",
+    "current_blocker": "Complete M1, independent acceptance, normalization and fresh baseline still required.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -1483,9 +1483,9 @@
       }
     },
     "feature_repair_rebuild_20261010": {
-      "status": "BOUND_CORE_READY_NOT_STARTED",
+      "status": "CORE_COMPLETE_COMPLETE_M1_BOUND",
       "authorized_goal": true,
-      "core_build_authorized": true,
+      "core_build_authorized": false,
       "runtime_plan": {
         "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/PLAN.json",
         "sha256": "a85702c49b10f304d6c291d5d02d97ff83436b62aecaa9d5ae58e60e89f1bc2a"
@@ -1510,7 +1510,36 @@
         "COMPLETE_M1_AND_INPUT_VERIFICATION",
         "PHYSICAL_VIEWS_AND_NORMALIZATION",
         "FRESH_INITIAL_BASELINE"
-      ]
+      ],
+      "core_relaunch_allowed": false,
+      "core_result": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/RESULT.json",
+        "sha256": "e85a3bef8c536f39c2ad9bab0d1c519cb32117c3e16b64eb84db58d359be110e"
+      },
+      "core_terminal": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/TERMINAL.json",
+        "sha256": "0747041e80a205da83faef2b1cdc6fd71f3c0e73d4163d3e3ef93bf630c455d5"
+      },
+      "post_reboot": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_001/POST_REBOOT.json",
+        "sha256": "4b4b1567d8499d7070d8b6fa23b1076da6bdc767da1bf1fa98026f72e44aa4f0"
+      },
+      "complete_m1_stage": {
+        "authorized": true,
+        "status_at_binding": "BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
+        "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/COMPLETE_M1_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/COMPLETE_M1_001/PLAN.json",
+          "sha256": "c8b81cf1e3f7d0dc5e2ba73b8ad0e6bcaa3cf6bdc72dd15d3c4a8f940cf41a1f"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/COMPLETE_M1_001/launch_m1.py",
+          "sha256": "e870ade630a200a1d1c63be1f81adba329991ed5d5d969e3d561990e8d214385"
+        },
+        "relaunch_allowed": false,
+        "optimizer_steps": 0,
+        "test_data_used": false
+      }
     }
   },
   "gc_order_flow_research_20261006": {
