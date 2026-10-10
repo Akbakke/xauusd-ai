@@ -1,51 +1,43 @@
 # CURRENT HANDOVER — 10.10.2026
 
-Entry-læringsstudien er fullført og avvist: **ingen kvalifisert Entry-edge**.
-Hele featureoverflaten er revidert; fire konkrete funksjonsfeil og misvisende
-metadata/dokumentasjon er rettet. Arbeidssted er /home/andre2/src/GX1_CURRENT,
-branch work/gx1-current. NEXT_RUN_POLICY.json er eneste arbeidsstatus.
+Ny bestilling: bygg de berørte dataene på nytt, kontroller dem og mål en fersk
+initialbaseline. Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus; prosess og terminal vinner over prosa.
 
 ## Gjort
 
-- FIT1024 viste tilpasning på256 gjentatte TRAIN-rader, ikke generalisering.
-- Fersk CURVE16384/262144 unike TRAIN-rader fullførte på fryst d17e3343,
-  boot487. Native guard PASS, trainer/observer0, Windows-task Disabled/0.
- 150 Exit-eide statefelt var bitlike; ingen full epoch/full VAL/økonomi.
-- CONTROL4096:4095 FLAT/1 SHORT; retnings-MSE7357.64 mot konstant7360.93.
-  Familiejustert ukeblokkintervall inkluderer null. Sluttvedtak:
-  REJECT_ENTRY_QUALIFICATION. HGB-referansen valgte konstant på begge sider.
-- Alle254 lokale felt,71 kontekstaliaser,1 sesjonsfelt og190 MTF-felt på fem
-  klokker er individuelt kartlagt. Hele TRAIN-overflaten varierer uten eksakte
-  dubletter innen flaten. Begrenset rå-/eierrekonstruksjon hadde null avvik.
-  Alle kontrollerte modellruter hadde numerisk effekt på8 ekte TRAIN-tilstander.
-- Rettelser: monotont trendlinjeberøringsminne; dagsnivåer ved lokal lukketid;
-  fremtidige line-hold-labels utelater samme-bar-brudd; sesjons-ID støtter
-  eksplisitte UTC-tidsenheter. Metadata beskriver faktisk slope5/20, warmup219,
-  ekstremumproxyer, rå aldre og faktisk lærte koblinger.
-- 141 fokuserte tester består. Ekte prefix131072 viste4637 gamle
-  berøringsregresjoner og0 etter rettelsen. Dagsnivåene endres bare ved128
-  døgnskifter i61282 TRAIN-rader. Gamle cacheartefakter avvises før arraylesing.
+Featureaudit og forrige firestegsstudie er avsluttet på 569d0054. Ingen kvalifisert
+Entry-edge: CONTROL4096 ga 4095 FLAT og én SHORT; forbedringen mot konstanten var
+ikke påvist. Alle 254 lokale felt, 71 aliaser, ett sesjonsfelt og 190 MTF-felt er
+individuelt revidert. Fire funksjonsfeil og misvisende metadata er rettet;
+141 fokuserte tester og Git-kontrakttestene består. Detaljer finnes i
+[docs/FEATURE_AUDIT.md](docs/FEATURE_AUDIT.md) og feltregisteret ved siden av.
 
-Detaljer: [docs/FEATURE_AUDIT.md](docs/FEATURE_AUDIT.md) og
-[docs/FEATURE_AUDIT_FIELDS.json](docs/FEATURE_AUDIT_FIELDS.json).
-Maskinbevis: /home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001.
-Studie: /home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/STUDY_REVIEW.json.
-Begge studiefaser er konsumert; aldri relanser dem. Originale bevis beholdes.
+Brukerens nye bestilling åpner en egen bygge-/baselineplan:
+[configs/research/FEATURE_REPAIR_REBUILD_20261010.json](configs/research/FEATURE_REPAIR_REBUILD_20261010.json).
+Ny dataset_run_id: HISTORY2009W_FEATURE_REPAIR_20261010.
+Kjørebevis: /home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001.
+Dette er ikke relansering av en konsumert plan. Gamle bevis beholdes.
 
-## Ikke gjort, hindring og neste steg
+## Aktiv grense og neste steg
 
-Gamle hele datasett, normalisering og checkpoints inneholder fremdeles gammel
-semantikk. Kildeendringer er ikke en oppdatert modell. Før ny læring trengs
-nytt bundet bygg av avhengige features/labels/normalisering, målrettet kontroll
-og fersk initialbaseline. Ingen ny tung bygge-/treningsplan er autorisert her.
-TEST er forseglet; CONTROL var gjenbrukt utviklingsdata. Profitt, stabil
-selektivitet og Exit-læring er ikke bevist. Ingen automatisk budsjettutvidelse.
+Første etappe er bundet til eksisterende core-chain og en ny, ren kildecommit.
+Reelle START/PROCESS/TERMINAL-filer avgjør om den er startet eller avsluttet.
+Deretter følger komplett M1, korrekthetskontroll, fysiske views og ny normalisering
+på hele fysiske TRAIN, og til slutt fersk nullstegs ONLINE/TARGET-baseline.
+Hver etappe får eksakte input-/kilde-/outputbindinger før kjøring.
+
+Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.
+Ingen nye inputs eller ny baseline er akseptert ennå. Rådata, perioder og de
+uendrede kalibreringene gjenbrukes der de eksisterende eierne tillater det.
+Gamle ukjente kildegap forblir ukjente; ingen imputering eller periodeflytting.
 
 ## Bevar
 
-Én agent og én tung CURRENT-jobb gjennom scripts/gx1_capped_run.sh med alle
-maskinvarevakter. Alle254 genuine felt, åtte familier og native tidsrammer
-består. Ingen fast tapsgrense eller maksimal holdetid;95min var kun studiens
-beregningshorisont. training_enabled=false, full epoch/full VAL stengt.
-Ingen live/paper, broker, ordre, spending, promotion eller TEST.
-DATA/RUNS er ikke ryddet; ingen ny retention-autorisasjon er gitt.
+Én agent og én tung CURRENT-jobb gjennom eksisterende capped-eier og vakter.
+Ingen kildeendring under kjøring. Alle genuine features, åtte familier og native
+klokker består. Ingen fast tapsgrense eller maksimal holdetid.
+training_enabled=false; null optimizersteg i dette målet. TEST er forseglet;
+kun eksisterende konstruksjons-/forseglingsansvarlig kan opprette det nye splitet.
+Ingen TEST-analyse, live/paper, broker, ordre, spending, promotion eller opprydding.
+Stabile langkjøringer observeres omtrent hver time; ingen minuttvis modellpolling.

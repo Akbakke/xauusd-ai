@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T10:30:48.477262+00:00",
-  "status": "ENTRY_STUDY_REJECTED_FEATURE_AUDIT_COMPLETE_INPUTS_STALE",
+  "observed_utc": "2026-10-10T11:02:58.690224+00:00",
+  "status": "CORRECTED_FEATURE_REBUILD_PREPARING_NEW_AUTHORIZED_PLAN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Both finite learning phases are consumed. No further native launch, Exit training, TEST or adaptive extension is authorized. Feature corrections require fresh dependent inputs and a fresh initial baseline before later learning.",
-  "next_action": "Before any later learning, a separately bound new plan must rebuild dependent corrected feature/label/normalization artifacts and measure a fresh initial baseline. Existing finite plans are consumed; no automatic launch.",
+  "next_action": "Execute newly bound corrected-input core build, then complete M1, input verification, whole-TRAIN normalization and a fresh zero-step baseline. No optimizer or consumed-plan relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -75,8 +75,8 @@
     }
   },
   "current_work": {
-    "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "Entry study and exhaustive field audit completed; no qualified edge; corrected source verified with focused checks.",
+    "operator_request": "10.10.2026: Ja gjør dette, lag nytt mål.",
+    "current_activity": "Preparing new source-bound rebuild and fresh initialbaseline after completed feature audit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -99,9 +99,9 @@
       "thread_heartbeat_id": "gx1-f-lg-native-trening",
       "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c"
     },
-    "current_research_id": "FEATURE_SEMANTIC_AUDIT_20261010_001",
+    "current_research_id": "FEATURE_REPAIR_REBUILD_20261010_001",
     "fresh_dataset_requested": true,
-    "replacement_dataset_accepted": true,
+    "replacement_dataset_accepted": false,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "paused",
     "existing_indicator_surface_changed": false,
@@ -132,8 +132,8 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "feature_semantic_audit_completion",
-    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001",
+    "latest_terminal_role": "previous_completed_feature_audit; new build START/PROCESS/TERMINAL owns execution state",
+    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001/SCOPE_TERMINAL.json",
       "sha256": "3059b53e06c6fbc54f3d0f15a5216f4ac9c1bdfd4e31286b40b114a068e4982d"
@@ -144,19 +144,19 @@
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
     "sampler_selected": true,
-    "physical_native_preprocessing_complete": true,
-    "native_training_coordinates_published": true,
+    "physical_native_preprocessing_complete": false,
+    "native_training_coordinates_published": false,
     "native_component_preparation_authorized": false,
     "test_data_used": false,
     "cleanup_report": "CURRENT_HANDOVER.md",
     "repository_cleanup_complete": true,
-    "replacement_dataset_acceptance_scope": "Verified current pre-TEST native input preparation only, no native model/recipe/launch/bundle/economic promotion",
-    "pre_smoke_goal_preparation_complete": true,
+    "replacement_dataset_acceptance_scope": "Previous generation retained as historical evidence; not current corrected-source inputs.",
+    "pre_smoke_goal_preparation_complete": false,
     "pre_smoke_goal_completion_evidence": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Old datasets/checkpoints do not include corrected feature/aux-label semantics; fresh dependent inputs and initial baseline are required before any future learning.",
+    "current_blocker": "Corrected-source input generation and fresh initialbaseline not yet built.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -529,7 +529,7 @@
       "elapsed_seconds": 1016.7850262550019,
       "peak_rss_kib": 16341716
     },
-    "fresh_native_initial_state_complete": true,
+    "fresh_native_initial_state_complete": false,
     "native_initial_measurement_20261009": {
       "status": "COMPLETED_VERIFIED_NO_RELAUNCH",
       "policy_scope": {
@@ -711,7 +711,7 @@
       "frozen_full_initial_state_exact": true,
       "learning_proven": false
     },
-    "native_initial_measurement_completed": true,
+    "native_initial_measurement_completed": false,
     "native_smoke_20261009": {
       "authorized": false,
       "status": "PREPARED_NOT_LAUNCHED_SUPERSEDED_ENTRY_INDEPENDENCE_DECISION",
@@ -1481,6 +1481,36 @@
         "path": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001/SCOPE_TERMINAL.json",
         "sha256": "3059b53e06c6fbc54f3d0f15a5216f4ac9c1bdfd4e31286b40b114a068e4982d"
       }
+    },
+    "feature_repair_rebuild_20261010": {
+      "status": "BOUND_CORE_READY_NOT_STARTED",
+      "authorized_goal": true,
+      "core_build_authorized": true,
+      "runtime_plan": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/PLAN.json",
+        "sha256": "a85702c49b10f304d6c291d5d02d97ff83436b62aecaa9d5ae58e60e89f1bc2a"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/launch_core.py",
+        "sha256": "03ebec0553fc675396238817789d9eeea58be59073d7481a57db45bf805987af"
+      },
+      "spec": {
+        "path": "configs/research/FEATURE_REPAIR_REBUILD_20261010.json",
+        "sha256": "a85702c49b10f304d6c291d5d02d97ff83436b62aecaa9d5ae58e60e89f1bc2a"
+      },
+      "run_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001",
+      "dataset_run_id": "HISTORY2009W_FEATURE_REPAIR_20261010",
+      "source_parent": "569d0054e789d85a00426d78473015f154602895",
+      "native_optimizer_authorized": false,
+      "baseline_optimizer_steps": 0,
+      "test_outcome_access_authorized": false,
+      "completed_plan_relaunch_allowed": false,
+      "cleanup_authorized": false,
+      "next_required_stages": [
+        "COMPLETE_M1_AND_INPUT_VERIFICATION",
+        "PHYSICAL_VIEWS_AND_NORMALIZATION",
+        "FRESH_INITIAL_BASELINE"
+      ]
     }
   },
   "gc_order_flow_research_20261006": {
