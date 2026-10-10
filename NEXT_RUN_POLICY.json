@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T04:06:18.401058+00:00",
+  "observed_utc": "2026-10-10T04:09:27.236859+00:00",
   "status": "FOUR_STEPS_COMPLETE_NO_ENTRY_EDGE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -99,13 +99,13 @@
       "thread_heartbeat_id": "gx1-f-lg-native-trening",
       "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c"
     },
-    "current_research_id": "HISTORY2009W_NATIVE_V38_20261007",
+    "current_research_id": "ENTRY_EDGE_TRAIN_20261010_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "paused",
     "existing_indicator_surface_changed": false,
-    "training_started": true,
+    "training_started": false,
     "gc_goal_progress": [
       {
         "step": 1,
@@ -135,8 +135,8 @@
     "latest_terminal_role": "native_entry_observed_resume_equivalence_completion_review",
     "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/COMPLETION_REVIEW.json",
-      "sha256": "a3747d4267c59c6a041f037b85960b241f3b2a9af836c94320fb82fccaa1c887"
+      "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/SCOPE_TERMINAL.json",
+      "sha256": "f9a441f69dea47223408046f9b1e1ca0028aa714fe1051a19838ba05fcb68a30"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Stable Entry learning is unproven: all-FLAT on TRAIN256/CONTROL256 and CONTROL fails TRAIN-constant baselines. Native physical resume is now bitwise verified; larger training remains rejected.",
+    "current_blocker": "Four-step Entry study found no qualified signal: 529545/529545 FLAT, uncertain 0.007524% contrast-MSE improvement. Original native learning gate remains failed; no native model intervention or larger training is justified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -1369,6 +1369,10 @@
         "sha256": "f16e7dcd6e4e90aeb3686d9e2a4e77cceb1a703d0c35578c333e83ed0488983c"
       },
       "closed_utc": "2026-10-10T04:06:18.401058+00:00"
+    },
+    "previous_native_terminal": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/COMPLETION_REVIEW.json",
+      "sha256": "a3747d4267c59c6a041f037b85960b241f3b2a9af836c94320fb82fccaa1c887"
     }
   },
   "gc_order_flow_research_20261006": {

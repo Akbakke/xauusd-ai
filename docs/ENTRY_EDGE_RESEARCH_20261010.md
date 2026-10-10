@@ -15,8 +15,8 @@ Diagnosen fullførte på 332.64 s med 7.15 GiB peakRSS. Første start ble avvist
 Hypotesen var at kjent prisreaksjon får mer retningsverdi når den kombineres med plassering ved nivåer og markedsregime.
 
 - Additiv probe: 14 deterministiske felt fra eksisterende pris-, nivå-, sweep-, trend-, ATR- og spreadinformasjon.
-- Samspillsprobe:de samme 14 feltene pluss 24 forhåndsdefinerte produkter.
-- Samme faste ridge-regularisering:alpha lik antall fit-rader; foldens egne sentrerings-/skaleringstall. Ingen parameter- eller horisontsøk.
+- Samspillsprobe: de samme 14 feltene pluss 24 forhåndsdefinerte produkter.
+- Samme faste ridge-regularisering: alpha lik antall fit-rader; foldens egne sentrerings-/skaleringstall. Ingen parameter- eller horisontsøk.
 - 12 ekspanderende kronologiske TRAIN-folds fra 2014 til mai 2025; fit-utfall måtte være ferdige før neste periode. 48 CPU-fits og 529545 evaluerte rader.
 - Register- og squeeze-kalibrering var tilgjengelig innen 2013-01-01T22:00Z. Alle 15 rå inputfelt var endelige på alle 652552 fysiske TRAIN-rader.
 - 95-minuttersmålet og kostnadsautoriteten var identiske med det observerte native Entry-målet. Negative utfall ble bevart.
@@ -41,7 +41,7 @@ Dette avviser ikke alle mulige prisrepresentasjoner, andre regulariseringer elle
 
 ## 4. Økonomi og kapasitet
 
-Eksisterende kontantregnskap ble brukt på 3967064 M1-markeringer fra 2014-01-02T00:50Z til 2025-05-30T20:59Z. Modellen kan ha én fysisk enhet LONG, SHORT eller FLAT; ingen overlappende posisjoner eller pyramider. Alle endringer fylles på observerte M1 BID/ASK ved beslutningen. Posisjonen videreføres mellom beslutninger;95 minutter brukes bare som målhorisont og er ingen tvungen exit.
+Eksisterende kontantregnskap ble brukt på 3967064 M1-markeringer fra 2014-01-02T00:50Z til 2025-05-30T20:59Z. Modellen kan ha én fysisk enhet LONG, SHORT eller FLAT; ingen overlappende posisjoner eller pyramider. Alle endringer fylles på observerte M1 BID/ASK ved beslutningen. Posisjonen videreføres mellom beslutninger; 95 minutter brukes bare som målhorisont og er ingen tvungen exit.
 
 Kapital og enhetsstørrelse er identiske med alltid-LONG. Kommisjon, slippage, kalenderbasert finansiering og likvidasjonsreserve for åpne sluttposisjoner inngår. Finansiering går til siste observerte pris, ikke til en senere helgegrense.
 
@@ -60,7 +60,7 @@ Kostnadene er den bundne current-terms-situasjonen, ikke dokumentert historisk b
 
 Seks målrettede tester består, inkludert tidsavgrensning, gradienter uten mutasjon, positiv unik argmax og prising av åpen sluttposisjon. En separat capped audit har kontrollert alle 529545 målrader mot opprinnelig gross BID/ASK-mål og kostnadsformelen, alle 12 tidsavgrensninger, alle ledger-klokker og bevaring av originalcheckpoint. Maksimalt avvik ved fp32-avrunding er 0.000015258789 bps. En separat analytisk alltid-LONG-beregning avviker fra ledgeren med 0.000000106 bps.
 
-TEST er forseglet. Ingen CONTROL-utfall eller native optimizersteg ble brukt.95-minuttersmålet var valgt på hele TRAIN til mai 2025; disse foldene er derfor gjenbrukt, betinget utviklingsevidens og aldri urørt OOS. Den tidligere negative native smoke-evidensen står uendret. Feilnivåer fra proben skal ikke sammenlignes direkte med native smoke fordi evalueringspopulasjonene er ulike.
+TEST er forseglet. Ingen CONTROL-utfall eller native optimizersteg ble brukt. 95-minuttersmålet var valgt på hele TRAIN til mai 2025; disse foldene er derfor gjenbrukt, betinget utviklingsevidens og aldri urørt OOS. Den tidligere negative native smoke-evidensen står uendret. Feilnivåer fra proben skal ikke sammenlignes direkte med native smoke fordi evalueringspopulasjonene er ulike.
 
 ## Bundne bevis
 
@@ -70,4 +70,5 @@ Alle kjøringer ligger under /home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001
 - PROBE_001/RESULT.json: SHA-256 3b3600abfa52a5cb34c3fe1eb692279c4f0bb480a3d3647f3b1f4c8bd8e04b91
 - FINAL_AUDIT_001/RESULT.json: SHA-256 e8ffad6379c05f7fe175c217601df4b031904800efc44907207b3496da291215
 - COMPLETION_REVIEW_001.json: SHA-256 f16e7dcd6e4e90aeb3686d9e2a4e77cceb1a703d0c35578c333e83ed0488983c
-- Kjøringskilde:diag6884dd1e;probe og sluttkontroll c606d882. Forhåndsregistreringer ligger i configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010_002.json og ENTRY_EDGE_TRAIN_PROBE_20261010.json.
+- Kjøringskilde: diagnose 6884dd1e; probe og sluttkontroll c606d882. Forhåndsregistreringer ligger i configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010_002.json og ENTRY_EDGE_TRAIN_PROBE_20261010.json.
+- SCOPE_TERMINAL.json: SHA-256 f9a441f69dea47223408046f9b1e1ca0028aa714fe1051a19838ba05fcb68a30; aktuell terminal i NEXT_RUN_POLICY.json.
