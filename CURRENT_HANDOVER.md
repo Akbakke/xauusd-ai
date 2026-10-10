@@ -55,10 +55,13 @@ VAL-/TEST-fit er null. Ferdig basefit kan ikke gjentas.
 SUMMARY_NORMALIZATION_001 fullførte 21:10 UTC med exit 0 på uendret 0fecbde5.
 TRAIN-summary-fit, VAL-telling uten fit og endelige split-/klokkebindinger er
 publisert. Basefit ble ikke gjentatt; VAL-/TEST-fit er null.
-INPUT_TENSOR_AUDIT_001 binder nå eksisterende faktisk NumPy/PyTorch-transform-
-kontroll på alle relevante flater, bitidentiske aliaser, kausale MTF-ruter og
-Entry/Exit-førstetilstand. Ingen ny fit, modellkonstruksjon eller optimizer.
-Native koordinater og fersk nullstegs ONLINE/TARGET-baseline gjenstår.
+INPUT_TENSOR_AUDIT_001 fullførte 21:16 UTC med exit 0 på uendret 6aeb38dd.
+Faktisk normalisert NumPy/PyTorch-input, bitidentiske aliaser, kausale MTF-ruter
+og Entry/Exit-førstetilstand besto. Ingen ny fit eller modellforward.
+NATIVE_INPUT_INDEX_001 binder nå komplette fysiske TRAIN-/VAL-indekser og de
+nye populasjonsidentitetene som eksisterende økonomi-/indekseier krever.
+Uendret kostmetode videreføres; dette beviser ikke historisk kostsannhet eller
+avkastning. Native koordinater og fersk nullstegs ONLINE/TARGET-baseline gjenstår.
 
 Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.
 Ingen nye inputs eller ny baseline er akseptert ennå. Rådata, perioder og de

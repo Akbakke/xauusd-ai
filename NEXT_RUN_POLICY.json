@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T21:11:12.228701+00:00",
-  "status": "FRESH_WHOLE_TRAIN_NORMALIZATION_COMPLETE_ACTUAL_INPUT_PARITY_BOUND",
+  "observed_utc": "2026-10-10T21:18:45.888455+00:00",
+  "status": "ACTUAL_NORMALIZED_INPUT_PARITY_COMPLETE_PHYSICAL_INDEX_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Both finite learning phases are consumed. No further native launch, Exit training, TEST or adaptive extension is authorized. Feature corrections require fresh dependent inputs and a fresh initial baseline before later learning.",
-  "next_action": "Audit actual normalized whole input surfaces and Entry/Exit first-state mapping through existing NumPy/PyTorch and causal MTF owners, then prepare exact fresh zero-step complete-model baseline.",
+  "next_action": "Publish current full TRAIN/VAL random-access mappings and required unchanged-method economic identities, then fixed population/native coordinates and fresh zero-step complete-model baseline.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: Ja gjør dette, lag nytt mål.",
-    "current_activity": "Fresh base and summary normalization complete; actual normalized input parity bound.",
+    "current_activity": "Actual normalized input parity passed; new full physical input index bound.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -132,11 +132,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "SUMMARY_NORMALIZATION_001",
-    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_TENSOR_AUDIT_001",
+    "latest_terminal_role": "INPUT_TENSOR_AUDIT_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SUMMARY_NORMALIZATION_001/TERMINAL.json",
-      "sha256": "0e9dc905384f7fd6aa477d8b82ee9a7c6de7efa9bf907c7721e835cd0557b9d2"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_TENSOR_AUDIT_001/TERMINAL.json",
+      "sha256": "32473689fc862e56fea69fcdaa8c8971c3868c5324cb2f9668ba07acec374970"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual normalized input parity, native coordinates and fresh zero-step complete-model baseline remain unproved.",
+    "current_blocker": "New index/native coordinates and fresh zero-step complete-model baseline remain unproved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -1483,7 +1483,7 @@
       }
     },
     "feature_repair_rebuild_20261010": {
-      "status": "FRESH_WHOLE_TRAIN_NORMALIZATION_COMPLETE_ACTUAL_INPUT_PARITY_BOUND",
+      "status": "ACTUAL_NORMALIZED_INPUT_PARITY_COMPLETE_PHYSICAL_INDEX_BOUND",
       "authorized_goal": true,
       "core_build_authorized": false,
       "runtime_plan": {
@@ -1795,7 +1795,7 @@
         "refit_authorized": false
       },
       "input_tensor_audit_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_TENSOR_AUDIT_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_TENSOR_AUDIT_001/PLAN.json",
@@ -1817,6 +1817,42 @@
         "normalization_fit_allowed": false,
         "optimizer_steps": 0,
         "model_constructor_allowed": false,
+        "test_data_used": false,
+        "status": "COMPLETED_ONCE_ACTUAL_NORMALIZED_INPUTS_PASS",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_TENSOR_AUDIT_001/TERMINAL.json",
+          "sha256": "32473689fc862e56fea69fcdaa8c8971c3868c5324cb2f9668ba07acec374970"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_TENSOR_AUDIT_001/INPUT_PARITY.json",
+          "sha256": "bdd5ce33a8cde596ed45800abcb2b128424e4b0cdc4a86032c41b68be0d488af"
+        }
+      },
+      "physical_input_index_stage": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001/PLAN.json",
+          "sha256": "3e44f417868a6127f334115db9ed67812fe8bf3421593af7c3b83bb996c6bdfe"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001/PRODUCER_PLAN.json",
+          "sha256": "17508e690cadea7f94d147ac46f0a366666765acb2e7d28c96815b84172bdbf5"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001/produce_input_index.py",
+          "sha256": "767d2377337ecab34a33b06322c55549b9a46f81cd938334b56387f6c3020b33"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001/launch_input_index.py",
+          "sha256": "daf1f62a246801f3cb25230dc95a373455abc70fae923a9a609cdc117dfda10a"
+        },
+        "relaunch_allowed": false,
+        "normalization_fit_allowed": false,
+        "model_training_allowed": false,
+        "model_constructor_allowed": false,
+        "sampler_benchmark_allowed": false,
+        "optimizer_steps": 0,
         "test_data_used": false
       }
     }
