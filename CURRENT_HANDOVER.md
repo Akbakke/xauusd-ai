@@ -31,13 +31,17 @@ Core-kvitteringene og kildeidentiteten er separat verifisert.
 COMPLETE_M1_001 fullførte 19:34 UTC med exit 0 på uendret 1b31c164:
 5 523 147 komplette pre-TEST M1-rader. Klokke- og bytekontrollen besto.
 Det korrigerte datasettet har 652 552 TRAIN-rader og 70 880 VAL-rader.
-INPUT_VERIFICATION_001 binder en ny uavhengig felt-/alias-/klokkekontroll,
-ny populasjonsdiagnose og eksisterende post-rebuild-readiness-eier.
-Kun tidligere rårespons-parsing gjenbrukes ved eksakt samme rådata og parser;
-alle råchunk-bytes kontrolleres på nytt og nye featurefordelinger beregnes.
-Reelle START/PROCESS/TERMINAL-filer avgjør framdriften. Deretter følger fysiske
-views, ny normalisering på hele fysiske TRAIN og fersk nullstegs ONLINE/TARGET.
-Hver etappe får eksakte input-/kilde-/outputbindinger før kjøring.
+INPUT_VERIFICATION_001 fullførte 19:50 UTC med exit 0 på uendret 73484ee5.
+Alle 5 523 147 M1-rader og 392 143 437 aliasverdipar er kontrollert; ingen manglende
+TRAIN-/VAL-quote-/fill-rader. Ny populasjonsdiagnose og canonical readiness består.
+Uendrede råresponsbevis er gjenbrukt etter byte- og parserkontroll; nye
+featurefordelinger er målt. Ukjente kildegap er ikke forklart som markedslukking.
+217 fokuserte overleveringstester består etter retting av foreldede statuskrav.
+
+INPUT_VIEWS_001 binder eksisterende eiere for fysiske TRAIN-/CONTROL-visninger og
+nye klokkebundne gapautoriteter. Samme endelige byggefrist beholdes uten ny tid.
+Deretter følger fersk normalisering på hele fysiske TRAIN, faktisk inputparitet
+og fersk nullstegs ONLINE/TARGET. Reelle kvitteringer avgjør framdriften.
 
 Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.
 Ingen nye inputs eller ny baseline er akseptert ennå. Rådata, perioder og de
