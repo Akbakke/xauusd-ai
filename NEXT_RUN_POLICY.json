@@ -1314,8 +1314,8 @@
       "research_id": "ENTRY_EDGE_TRAIN_20261010_001",
       "operator_request": "Bra! Lag deg dette som et mål og fullfør disse 4 stegene",
       "spec": {
-        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010.json",
-        "sha256": "e0b0cf06b132ba9703c6122c97f29396014a4fcaa317f8fc49fdecabbfad66d1"
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010_002.json",
+        "sha256": "6f3f57224c39d767c213c65ef7d75a55c044eb1cd0fcd6e4580fbe68e206ef82"
       },
       "goal_thread_id": "01a123d0-e7e1-79c3-900c-c56837ea0367",
       "stages": {
@@ -1338,7 +1338,11 @@
       },
       "native_training_authorized": false,
       "control_tuning_authorized": false,
-      "test_authorized": false
+      "test_authorized": false,
+      "rejected_start": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/DIAGNOSTIC_001/TERMINAL.json",
+        "sha256": "e2e51f0a36afbae448752c302703c986a3e67d780cb118768905b1c6263b0ef9"
+      }
     }
   },
   "gc_order_flow_research_20261006": {

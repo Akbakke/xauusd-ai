@@ -4,7 +4,7 @@ Operatøren har bestilt fire avgrensede steg for Entry-edge: TRAIN-/gradientdiag
 én kausal hypoteseprøve av prisreaksjon betinget på plassering og regime,
 minste evidensbaserte oppfølging og økonomivurdering av eventuell kandidat.
 Første nye scope er forhåndsregistrert i
-configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010.json.
+configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010_002.json.
 Det måler originale initial-/sluttvekter på tre fryste TRAIN-batcher gjennom
 eksisterende CPU-eiere: seks forwards, null optimizersteg og null fits.
 Ingen CONTROL-forwards, TEST, broker eller ny native trening.
@@ -14,6 +14,8 @@ Læringsporten feilet; originalresultatet og alle checkpoints bevares.
 Ny diagnostikk er ikke treningstillatelse eller bevis for edge.
 NEXT_RUN_POLICY.current_work.entry_edge_20261010 eier de fire stegenes status.
 Kun /home/andre2/src/GX1_CURRENT, work/gx1-current, én agent og én tung jobb.
+
+Første start ble avvist før claim/forward fordi eksplisitt tom CUDA_VISIBLE_DEVICES manglet. DIAGNOSTIC_001/TERMINAL.json bevarer avvisningen; separat _002-plan bruker samme kilde og måling med korrekt CPU-miljø.
 
 ## Ferdig smoke og målt læring
 
