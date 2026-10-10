@@ -49,11 +49,13 @@ POSTBUILD_SPECIALIST_001 fullførte 20:40 UTC med exit 0 på uendret 1196222a;
 spesialistaudit PASS gjennom eksisterende producer10G/512M-eier. Ferdige nye
 sekvensbevis er gjenbrukt. Ingen feature-/modellendring eller budsjettfornyelse.
 
-BASE_NORMALIZATION_001 binder eksisterende producer20G/512M-eier for én fersk
-normalisering på hele fysiske TRAIN, alle 652 552 Entry-rader før sampling.
-VAL-/TEST-fit er null. Deretter følger TRAIN-summary-normalisering, faktisk
-normalisert inputparitet og fersk nullstegs ONLINE/TARGET. Kvitteringene avgjør
-framdriften; ingen ny normalisering eller baseline er akseptert før de består.
+BASE_NORMALIZATION_001 fullførte 21:04 UTC med exit 0 på uendret 73001283.
+Én fersk basefit dekker hele fysiske TRAIN med 652 552 Entry-rader før sampling;
+VAL-/TEST-fit er null. Ferdig basefit kan ikke gjentas.
+SUMMARY_NORMALIZATION_001 binder eksisterende livsløps-summary-fit på TRAIN,
+VAL-telling uten fit og endelige split-/klokkebindinger. Deretter gjenstår
+faktisk normalisert inputparitet og fersk nullstegs ONLINE/TARGET.
+Full normalisering/inputaksept og ny baseline er fortsatt ikke erklært ferdig.
 
 Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.
 Ingen nye inputs eller ny baseline er akseptert ennå. Rådata, perioder og de
