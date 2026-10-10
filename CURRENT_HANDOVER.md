@@ -58,10 +58,17 @@ publisert. Basefit ble ikke gjentatt; VAL-/TEST-fit er null.
 INPUT_TENSOR_AUDIT_001 fullførte 21:16 UTC med exit 0 på uendret 6aeb38dd.
 Faktisk normalisert NumPy/PyTorch-input, bitidentiske aliaser, kausale MTF-ruter
 og Entry/Exit-førstetilstand besto. Ingen ny fit eller modellforward.
-NATIVE_INPUT_INDEX_001 binder nå komplette fysiske TRAIN-/VAL-indekser og de
-nye populasjonsidentitetene som eksisterende økonomi-/indekseier krever.
-Uendret kostmetode videreføres; dette beviser ikke historisk kostsannhet eller
-avkastning. Native koordinater og fersk nullstegs ONLINE/TARGET-baseline gjenstår.
+NATIVE_INPUT_INDEX_001 fullførte 21:27 UTC med exit 0 på uendret 15f868d5.
+Komplette fysiske TRAIN-/VAL-indekser og nye økonomiske populasjonsidentiteter
+er publisert gjennom eksisterende eiere. Uendret kostmetode beviser ikke
+historisk kostsannhet eller avkastning.
+FRESH_INITIAL_BASELINE_001 binder nå eksisterende komplette modellkonstruktør,
+seed 20260911 og eksakt gamle TRAIN4096-/CONTROL4096-tidspunkter mot nye data.
+Nye koordinater publiseres før første forward; ingen erstatningsrader. CPU-måling
+gjennom eksisterende producer20G/512M og samme gjenværende tidsgrense.
+Ingen optimizer, ny fit, samplerbenchmark eller GPU. Dette gir baselinekoordinater,
+ikke native trenings-/samplerautoritet. ONLINE/TARGET-paritet og alle aktive
+head-kontrakter må bestå; ny baseline er ennå ikke målt.
 
 Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.
 Ingen nye inputs eller ny baseline er akseptert ennå. Rådata, perioder og de

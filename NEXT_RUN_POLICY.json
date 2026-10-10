@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T21:18:45.888455+00:00",
-  "status": "ACTUAL_NORMALIZED_INPUT_PARITY_COMPLETE_PHYSICAL_INDEX_BOUND",
+  "observed_utc": "2026-10-10T21:29:30.366466+00:00",
+  "status": "CORRECTED_PHYSICAL_INDEX_COMPLETE_FRESH_ZERO_STEP_BASELINE_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Both finite learning phases are consumed. No further native launch, Exit training, TEST or adaptive extension is authorized. Feature corrections require fresh dependent inputs and a fresh initial baseline before later learning.",
-  "next_action": "Publish current full TRAIN/VAL random-access mappings and required unchanged-method economic identities, then fixed population/native coordinates and fresh zero-step complete-model baseline.",
+  "next_action": "Execute the bound CPU-only fresh complete-model initial measurement on exact prior TRAIN4096/CONTROL4096 timestamps; then aggregate acceptance and handover. Zero optimizer steps; no training/sampler admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: Ja gjør dette, lag nytt mål.",
-    "current_activity": "Actual normalized input parity passed; new full physical input index bound.",
+    "current_activity": "Corrected physical index complete. Fresh complete-model CPU baseline bound on prior fixed timestamps.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -132,11 +132,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "INPUT_TENSOR_AUDIT_001",
+    "latest_terminal_role": "corrected_full_physical_input_index",
     "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_TENSOR_AUDIT_001/TERMINAL.json",
-      "sha256": "32473689fc862e56fea69fcdaa8c8971c3868c5324cb2f9668ba07acec374970"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001/TERMINAL.json",
+      "sha256": "8a38c377a6fd4691c392a0511ff818a1a3346587792d4e7580af8b540abccf8e"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "New index/native coordinates and fresh zero-step complete-model baseline remain unproved.",
+    "current_blocker": "Fresh zero-step initialization and fixed-cohort measurement remain unproved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -1483,7 +1483,7 @@
       }
     },
     "feature_repair_rebuild_20261010": {
-      "status": "ACTUAL_NORMALIZED_INPUT_PARITY_COMPLETE_PHYSICAL_INDEX_BOUND",
+      "status": "CORRECTED_PHYSICAL_INDEX_COMPLETE_FRESH_ZERO_STEP_BASELINE_BOUND",
       "authorized_goal": true,
       "core_build_authorized": false,
       "runtime_plan": {
@@ -1507,8 +1507,8 @@
       "completed_plan_relaunch_allowed": false,
       "cleanup_authorized": false,
       "next_required_stages": [
-        "PHYSICAL_VIEWS_AND_NORMALIZATION",
-        "FRESH_INITIAL_BASELINE"
+        "FRESH_INITIAL_BASELINE",
+        "AGGREGATE_ACCEPTANCE_AND_HANDOVER"
       ],
       "core_relaunch_allowed": false,
       "core_result": {
@@ -1829,7 +1829,7 @@
         }
       },
       "physical_input_index_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001/PLAN.json",
@@ -1853,6 +1853,48 @@
         "model_constructor_allowed": false,
         "sampler_benchmark_allowed": false,
         "optimizer_steps": 0,
+        "test_data_used": false,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001/TERMINAL.json",
+          "sha256": "8a38c377a6fd4691c392a0511ff818a1a3346587792d4e7580af8b540abccf8e"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001/INPUT_INDEX.json",
+          "sha256": "109542201e7cc2df5602b746493b14df6b412e6fa424bf5ab624cb6f3c1977b3"
+        }
+      },
+      "fresh_initial_baseline_stage": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/PLAN.json",
+          "sha256": "3d5d02d28075bf435ad163bff84734b5e001f20d42bd5d119a36c718b618b057"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/PRODUCER_PLAN.json",
+          "sha256": "e8969d18bd92ce5e4cded69ffb1b62a6e9f853c88de98193d9d1e03eb00cbc91"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/produce_baseline.py",
+          "sha256": "accaca1f729bf05deaf6dff278de0f99d606ba8c43687ae61399ae9da6a8e77b"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/launch_baseline.py",
+          "sha256": "869974c5986c2a55c3d4a1c1e8d7c76d8bead4eff932e8ffad412b890635feef"
+        },
+        "constructor_metadata_producer": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/constructor_metadata.py",
+          "sha256": "74e2171524090ca21a3fbea62ee8443357d1c17be7222aaf43d4bceada954f37"
+        },
+        "model_constructor_allowed": true,
+        "device": "cpu",
+        "model_forwards": 513,
+        "optimizer_steps": 0,
+        "normalization_fit_allowed": false,
+        "model_training_allowed": false,
+        "native_gpu_allowed": false,
+        "training_sampler_admission": false,
+        "relaunch_allowed": false,
         "test_data_used": false
       }
     }
