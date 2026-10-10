@@ -38,8 +38,13 @@ Uendrede råresponsbevis er gjenbrukt etter byte- og parserkontroll; nye
 featurefordelinger er målt. Ukjente kildegap er ikke forklart som markedslukking.
 217 fokuserte overleveringstester består etter retting av foreldede statuskrav.
 
-INPUT_VIEWS_001 binder eksisterende eiere for fysiske TRAIN-/CONTROL-visninger og
-nye klokkebundne gapautoriteter. Samme endelige byggefrist beholdes uten ny tid.
+INPUT_VIEWS_001 fullførte 20:07 UTC med exit 0 på uendret 64964ed5.
+Fysiske TRAIN-/CONTROL-visninger dekker henholdsvis 4 884 638 og 382 744 M1-rader;
+652 552/70 880 Entry-rader er bevart. Nye egne klokkebundne gapautoriteter er
+publisert. POSTBUILD_REVIEW_001 binder nå full seq/snap-rekonstruksjon mot den
+korrigerte M5-kilden og eksisterende audit av de åtte spesialistfamiliene.
+Dette er nødvendig nytt kildebevis før normalisering; eldre sekvensbevis gjenbrukes
+ikke for endrede features. Samme endelige byggefrist beholdes uten ny tid.
 Deretter følger fersk normalisering på hele fysiske TRAIN, faktisk inputparitet
 og fersk nullstegs ONLINE/TARGET. Reelle kvitteringer avgjør framdriften.
 

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T20:03:34.385153+00:00",
-  "status": "CORRECTED_INPUT_SUBGATES_COMPLETE_PHYSICAL_VIEWS_BOUND",
+  "observed_utc": "2026-10-10T20:21:36.789916+00:00",
+  "status": "PHYSICAL_VIEWS_COMPLETE_CURRENT_SOURCE_RECONSTRUCTION_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Both finite learning phases are consumed. No further native launch, Exit training, TEST or adaptive extension is authorized. Feature corrections require fresh dependent inputs and a fresh initial baseline before later learning.",
-  "next_action": "Run bound physical input views through existing owner, then fresh whole-TRAIN normalization and actual normalized input parity before zero-step baseline.",
+  "next_action": "Exhaustively verify new TRAIN/VAL stored seq/snap against current M5 source and audit specialist routing; then fit whole-TRAIN normalization and fresh initialbaseline.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: Ja gjør dette, lag nytt mål.",
-    "current_activity": "Complete-M1 oracle, current coverage and canonical readiness passed; physical view stage bound.",
+    "current_activity": "Physical views completed; current-generation sequence reconstruction and specialist audits bound.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -132,11 +132,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "INPUT_VERIFICATION_001",
-    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_VIEWS_001",
+    "latest_terminal_role": "INPUT_VIEWS_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_VERIFICATION_001/TERMINAL.json",
-      "sha256": "12e30447203e3498c4f486dcb0f36cee36ac77c76d18b9342a6a88414ad86a82"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_VIEWS_001/TERMINAL.json",
+      "sha256": "5c8d0a5d06b5091ab6083da9f405f0345f131998ad9779de61c1b37a28094bad"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Fresh physical views, whole-TRAIN normalization and complete-model baseline remain unproved.",
+    "current_blocker": "New source reconstruction, whole-TRAIN normalization, normalized parity and fresh baseline remain unproved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -1483,7 +1483,7 @@
       }
     },
     "feature_repair_rebuild_20261010": {
-      "status": "CORRECTED_INPUT_SUBGATES_COMPLETE_PHYSICAL_VIEWS_BOUND",
+      "status": "PHYSICAL_VIEWS_COMPLETE_CURRENT_SOURCE_RECONSTRUCTION_BOUND",
       "authorized_goal": true,
       "core_build_authorized": false,
       "runtime_plan": {
@@ -1609,7 +1609,7 @@
         "optimizer_authorized": false
       },
       "physical_input_views_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_VIEWS_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_VIEWS_001/PLAN.json",
@@ -1629,6 +1629,38 @@
         },
         "relaunch_allowed": false,
         "normalization_fit_allowed": false,
+        "optimizer_steps": 0,
+        "test_data_used": false,
+        "status": "COMPLETED_ONCE",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_VIEWS_001/TERMINAL.json",
+          "sha256": "5c8d0a5d06b5091ab6083da9f405f0345f131998ad9779de61c1b37a28094bad"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/LEARNING_PREPARATION_001/INPUT_VIEWS_RESULT.json",
+          "sha256": "a8f7ca6ae2c9319275107efc51327c29abe430aad675800068c06d63df6e76bf"
+        }
+      },
+      "postbuild_source_audit_stage": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/PLAN.json",
+          "sha256": "957a72a8027d890c051dbff71352a01771958db8f81083fca93dfb288e288d77"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/PRODUCER_PLAN.json",
+          "sha256": "b6fd123a574dc1ee811bc0840d7d4df3214ebb91121fc9bed0a42a3e53633084"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/produce_postbuild.py",
+          "sha256": "4fe847c8eeabe6cf15f3e43175b88d2fb541fc22b59911ae29349bc0e3b7e40d"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/launch_postbuild.py",
+          "sha256": "7c23e23debc61a4c027f4912fe30b2fc5c321a8c2bc86b11e0526bfe2001db38"
+        },
+        "relaunch_allowed": false,
         "optimizer_steps": 0,
         "test_data_used": false
       }
