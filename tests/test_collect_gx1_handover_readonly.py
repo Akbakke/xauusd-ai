@@ -100,8 +100,8 @@ def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
     prep = policy['native_v38_preparation_20261001']
     assert work['gc_goal_status'] == 'paused'
     rebuild = policy['native_v38_rebuild_20261007']
-    assert work['current_activity'] == 'NATIVE_V38_TRAIN_CAPACITY_THEN_BOUNDED_SMOKE'
-    assert work['current_research_id'] == Path(rebuild['run_root']).name
+    # The retained V38 evidence is historical; a later active goal owns current_work.
+    assert Path(rebuild['run_root']).name == 'HISTORY2009W_NATIVE_V38_20261007'
     assert rebuild['run_root'] != prep['run_root']
     assert work['existing_indicator_surface_changed'] is False
     assert work['training_started'] is False
@@ -178,7 +178,7 @@ def test_post_capacity_metadata_authority_cannot_open_native_or_reset_budget():
     assert stage['terminal_exit_code'] == 0
     assert stage['source_unchanged_at_terminal'] is True
     assert stage['current_status'] == 'GENUINE_METADATA_PUBLICATION_COMPLETE_EXIT0_AUTHORITY_CONSUMED'
-    assert policy['current_work']['latest_terminal'] == rebuild['native_preprocessing_stage_001']['terminal']
+    assert rebuild['native_preprocessing_stage_001']['terminal']['path'].startswith(rebuild['run_root'] + '/')
     assert policy['current_work']['selected_sampler_published'] is True
     assert stage['original_cpu_budget'] == capacity['cpu_budget']
     assert stage['cpu_deadline_utc'] == capacity['cpu_deadline_utc']
@@ -206,7 +206,7 @@ def test_native_preprocessing_scope_cannot_fit_open_test_or_admit_a_model():
     assert stage['genuine_learning_measured'] is False and stage['safe_machine_wide_restart_admitted'] is False
     assert set(stage['chronological_prefix']) == {'design','labels_result','normalization_result','native_coordinates'}
     assert stage['chronological_prefix']['design'] == scope['post_capacity_metadata_stage_001']['design']
-    assert policy['current_work']['latest_terminal'] == stage['terminal']
+    assert stage['terminal']['path'].startswith(scope['run_root'] + '/')
     assert stage['original_cpu_budget'] == scope['train_capacity_stage_002']['cpu_budget']
     assert stage['cpu_deadline_utc'] == scope['train_capacity_stage_002']['cpu_deadline_utc']
     assert stage['relaunch_allowed'] is False
@@ -269,8 +269,8 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     final_ready = progress['ready_for_bounded_research_smoke']
     latest = scope['native_preprocessing_stage_001']
     assert work['full_benchmark_completed'] is True
-    assert work['latest_terminal'] == latest['terminal']
-    assert work['terminal_exit_code'] == 0
+    assert latest['terminal']['path'].startswith(scope['run_root'] + '/')
+    assert latest['terminal_exit_code'] == 0
     failed = scope['failed_input_validation_stage']
     assert failed['authorized'] is False and failed['relaunch_allowed'] is False
     assert failed['original_source_plan_and_receipts_preserved'] is True
@@ -319,10 +319,8 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     assert goal['smoke_training_started_by_goal'] is False
     assert goal['large_training_allowed'] is False
     assert policy['limits']['fresh_physical_windows_boot_before_every_invocation'] is True
-    assert work['hourly_monitor']['status'] == 'DELETED_BY_USER_REQUEST_AFTER_CORE_TERMINAL'
-    assert work['hourly_monitor']['whole_input_completion_claimed'] is False
-    assert work['pre_smoke_goal_preparation_complete'] is True
-    assert work['pre_smoke_goal_completion_evidence'] == scope['final_readiness_stage']['pre_smoke_readiness']
+    # The old completed scope owns its receipt; current monitoring/preparation can advance.
+    assert scope['final_readiness_stage']['pre_smoke_readiness']['path'].startswith(scope['run_root'] + '/')
     assert work['gc_goal_status'] == 'paused'
     assert work['restart_and_smoke_goal']['false_completion_allowed'] is False
     stage = scope['complete_m1_stage']
@@ -776,17 +774,28 @@ def test_handover_prints_identity_lines_and_source_only_blocks(monkeypatch,capsy
     assert 'unexpected_ignored_paths: ["stale/"]' in lines
 
 
-def test_current_handover_records_blocked_goal_without_completed_ui_history():
+def test_current_handover_separates_new_rebuild_from_consumed_preprocessing():
     repo = Path(__file__).resolve().parents[1]
     policy = json.loads((repo / "NEXT_RUN_POLICY.json").read_text())
     work = policy["current_work"]
     assert work["restart_and_smoke_goal"]["status"] == "blocked"
     assert work["restart_and_smoke_goal"]["physical_reboot_executed"] is True
-    assert work["current_blocker"]["id"] == "NATIVE_RECIPE_WINDOW_FRESH_INITIAL_STATE_AND_RESUME_MEASUREMENT_REQUIRED"
+    repair = work['feature_repair_rebuild_20261010']
+    assert work['current_research_id'] == Path(repair['run_root']).name
+    assert work['latest_terminal']['path'].startswith(repair['run_root'] + '/')
+    assert repair['core_build_authorized'] is False
+    assert repair['core_relaunch_allowed'] is False
+    assert repair['complete_m1_stage']['authorized'] is False
+    assert repair['native_optimizer_authorized'] is False
+    assert repair['baseline_optimizer_steps'] == 0
+    assert repair['test_outcome_access_authorized'] is False
+    assert repair['completed_plan_relaunch_allowed'] is False
     assert work["training_started"] is False
     assert work["full_benchmark_completed"] is True
-    assert work["physical_native_preprocessing_complete"] is True
-    assert work["native_training_coordinates_published"] is True
+    previous = policy['native_v38_rebuild_20261007']['native_preprocessing_stage_001']
+    assert previous['physical_preprocessing_complete'] is True
+    assert previous['native_coordinates_published'] is True
+    assert not previous['terminal']['path'].startswith(repair['run_root'] + '/')
     for name in ("app_goal_creation", "gc_goal_dependency_audit",
                  "source_head_before_cleanup", "termination"):
         assert name not in work

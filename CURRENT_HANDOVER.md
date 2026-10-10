@@ -28,10 +28,15 @@ Tre ferske kontrollfiler manglet fsync og var tomme etter omstart; tomme origina
 er bevart, observasjonene er gjenopprettet fra Mac og publisert atomisk.
 Core-kvitteringene og kildeidentiteten er separat verifisert.
 
-COMPLETE_M1_001 binder ny klokkekontroll, full bytekontroll og eksisterende M1-eier.
-Reelle START/PROCESS/TERMINAL-filer avgjør framdriften. Deretter følger uavhengig
-inputkontroll, fysiske views, ny normalisering på hele fysiske TRAIN og fersk
-nullstegs ONLINE/TARGET-baseline.
+COMPLETE_M1_001 fullførte 19:34 UTC med exit 0 på uendret 1b31c164:
+5 523 147 komplette pre-TEST M1-rader. Klokke- og bytekontrollen besto.
+Det korrigerte datasettet har 652 552 TRAIN-rader og 70 880 VAL-rader.
+INPUT_VERIFICATION_001 binder en ny uavhengig felt-/alias-/klokkekontroll,
+ny populasjonsdiagnose og eksisterende post-rebuild-readiness-eier.
+Kun tidligere rårespons-parsing gjenbrukes ved eksakt samme rådata og parser;
+alle råchunk-bytes kontrolleres på nytt og nye featurefordelinger beregnes.
+Reelle START/PROCESS/TERMINAL-filer avgjør framdriften. Deretter følger fysiske
+views, ny normalisering på hele fysiske TRAIN og fersk nullstegs ONLINE/TARGET.
 Hver etappe får eksakte input-/kilde-/outputbindinger før kjøring.
 
 Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.
