@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-09T21:45:00.853452+00:00",
-  "status": "V38_ENTRY_SMOKE_AND_RESUME_COMPLETE_LEARNING_GATE_FAILED",
+  "observed_utc": "2026-10-10T03:41:36.000896+00:00",
+  "status": "ENTRY_EDGE_TRAIN_DIAGNOSTIC_PREPARED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Preserve completed negative learning evidence and bitwise native resume PASS. No launch authority remains. Any future learning experiment needs a concrete TRAIN-based hypothesis and a separate finite preregistered scope; no CONTROL tuning, blind budget extension, consumed-plan relaunch or optimizer reset. Larger training remains rejected until the learning gate passes.",
+  "next_action": "Run the separately preregistered capped CPU Entry gradient diagnostic on frozen TRAIN batches, then bind one chronological TRAIN information probe. Preserve failed native learning evidence and all original states; no native optimizer extension, CONTROL tuning or TEST.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "Authorized whole-repository preparation, independent Entry smoke and physical native resume review are complete. All one-shot authorities are closed; no active training.",
+    "current_activity": "Operator authorized four bounded Entry-edge research steps on 10 October. Preparing TRAIN-only gradient diagnosis and a single preregistered information probe; native training remains closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1307,6 +1307,38 @@
         "peak_power_draw_w": 131.44,
         "peak_memory_used_mib": 2164.0
       }
+    },
+    "entry_edge_20261010": {
+      "authorized": true,
+      "authorized_mode": "entry-edge-diagnostic",
+      "research_id": "ENTRY_EDGE_TRAIN_20261010_001",
+      "operator_request": "Bra! Lag deg dette som et mål og fullfør disse 4 stegene",
+      "spec": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010.json",
+        "sha256": "e0b0cf06b132ba9703c6122c97f29396014a4fcaa317f8fc49fdecabbfad66d1"
+      },
+      "goal_thread_id": "01a123d0-e7e1-79c3-900c-c56837ea0367",
+      "stages": {
+        "1": {
+          "name": "TRAIN learning and task-gradient diagnosis",
+          "status": "prepared"
+        },
+        "2": {
+          "name": "One preregistered chronological price-reaction/location/regime probe",
+          "status": "pending"
+        },
+        "3": {
+          "name": "Smallest evidence-supported follow-up or explicit rejection",
+          "status": "pending"
+        },
+        "4": {
+          "name": "Cost-aware executable economic evaluation or explicit non-admission",
+          "status": "pending"
+        }
+      },
+      "native_training_authorized": false,
+      "control_tuning_authorized": false,
+      "test_authorized": false
     }
   },
   "gc_order_flow_research_20261006": {

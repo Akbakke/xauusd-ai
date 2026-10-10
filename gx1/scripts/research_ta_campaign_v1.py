@@ -2003,9 +2003,266 @@ def audit_gc_source(spec: dict, spec_path: Path) -> dict:
     return result
 
 
+def entry_edge_gradient_summary(model, weighted_losses):
+    """Read-only VJPs on genuine shared and Entry-private parameters.
+
+    Norms/cosines are pre-clipping gradients, not an AdamW update or evidence
+    of generalization. Disconnected and connected-zero gradients differ.
+    """
+    import torch
+    from gx1.contracts.entry_observed_market_v1 import is_exit_owned_parameter
+    named = [(n, p) for n, p in model.named_parameters()
+             if p.requires_grad and not is_exit_owned_parameter(n)
+             and not n.startswith("task_log_variances.")]
+    groups = {
+        "shared": [i for i, (n, _) in enumerate(named)
+                   if not n.startswith(("head_", "entry_q_joint_"))],
+        "routing": [i for i, (n, _) in enumerate(named)
+                    if n.startswith(("family_tf_context_gate.", "family_tf_token_gate."))],
+        "entry_head": [i for i, (n, _) in enumerate(named)
+                       if n.startswith(("head_entry_action_q.", "entry_q_joint_"))],
+    }
+    if not all(groups.values()) or any(p.grad is not None for _, p in named):
+        raise RuntimeError("ENTRY_EDGE_GRADIENT_SURFACE_INVALID")
+    vectors, report = {}, {}
+    for task, loss in weighted_losses.items():
+        if loss.numel() != 1 or not bool(torch.isfinite(loss)):
+            raise RuntimeError("ENTRY_EDGE_GRADIENT_LOSS_INVALID")
+        grads = torch.autograd.grad(loss, tuple(p for _, p in named),
+                                    retain_graph=True, allow_unused=True)
+        vectors[task], report[task] = {}, {}
+        for group, indices in groups.items():
+            vector = torch.cat([
+                grads[i].detach().cpu().double().reshape(-1)
+                if grads[i] is not None else torch.zeros(named[i][1].numel(), dtype=torch.float64)
+                for i in indices])
+            if not bool(torch.isfinite(vector).all()):
+                raise RuntimeError("ENTRY_EDGE_NONFINITE_GRADIENT")
+            norm = float(torch.linalg.vector_norm(vector))
+            connected = sum(grads[i] is not None for i in indices)
+            vectors[task][group] = vector
+            report[task][group] = {
+                "l2_norm": norm, "connected_tensors": connected,
+                "status": "nonzero" if norm else "connected_zero" if connected else "unused"}
+    alignments = {}
+    auxiliaries = [k for k in weighted_losses if k.startswith("aux:")]
+    for group in groups:
+        entry = vectors["entry"][group]
+        contrast = vectors["contrast"][group]
+        auxiliary = sum((vectors[k][group] for k in auxiliaries), torch.zeros_like(entry))
+        joint = entry + auxiliary
+        def cosine(a, b):
+            denominator = float(torch.linalg.vector_norm(a) * torch.linalg.vector_norm(b))
+            return float(torch.dot(a, b)) / denominator if denominator else None
+        alignments[group] = {
+            "entry_auxiliary_cosine": cosine(entry, auxiliary),
+            "contrast_auxiliary_cosine": cosine(contrast, auxiliary),
+            "contrast_joint_cosine": cosine(contrast, joint),
+            "entry_norm": float(torch.linalg.vector_norm(entry)),
+            "auxiliary_sum_norm": float(torch.linalg.vector_norm(auxiliary)),
+            "contrast_dot_joint": float(torch.dot(contrast, joint)),
+            "per_auxiliary_contrast_cosine": {
+                k: cosine(contrast, vectors[k][group]) for k in auxiliaries},
+        }
+    if any(p.grad is not None for _, p in named):
+        raise RuntimeError("ENTRY_EDGE_GRADIENT_ACCUMULATED")
+    return {
+        "groups": {k: [named[i][0] for i in indices] for k, indices in groups.items()},
+        "gradients": report, "alignment": alignments,
+        "routing_is_subset_of_shared": True,
+        "semantics": "actual weighted task VJPs; pre-clipping, not AdamW or causal intervention"}
+
+
+def _entry_edge_begin(spec, mode, spec_path):
+    from gx1.contracts.gx1_capped_execution_v1 import (
+        _require_capped_cgroup_limits, require_capped_lock_ancestry)
+    import signal
+    import socket
+    if os.environ.get("GX1_CAPPED_CLASS") != "producer" or os.environ.get("CUDA_VISIBLE_DEVICES") != "":
+        raise RuntimeError("ENTRY_EDGE_CAPPED_CPU_PRODUCER_REQUIRED")
+    capped = _require_capped_cgroup_limits(
+        environ=os.environ, read_text=None, max_memory_bytes=spec["memory_max_bytes"],
+        error_prefix="ENTRY_EDGE_CPU")
+    capped["lock"] = require_capped_lock_ancestry()
+    policy = json.loads((ROOT / "NEXT_RUN_POLICY.json").read_text())
+    scope = policy["current_work"]["entry_edge_20261010"]
+    if (scope["authorized_mode"] != mode or scope["authorized"] is not True
+            or scope["spec"] != {"path": str(spec_path.resolve()), "sha256": sha(spec_path)}):
+        raise RuntimeError("ENTRY_EDGE_MODE_NOT_AUTHORIZED")
+    out = Path(spec["output"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "CLAIM.json", {"source_commit": git("rev-parse", "HEAD"),
+                                  "pid": os.getpid(), "mode": mode})
+    def timeout(_sig, _frame):
+        raise RuntimeError("ENTRY_EDGE_WALL_LIMIT")
+    signal.signal(signal.SIGALRM, timeout)
+    signal.alarm(spec["max_wall_seconds"])
+    def deny(*args, **kwargs):
+        raise RuntimeError("ENTRY_EDGE_NETWORK_FORBIDDEN")
+    socket.socket.connect = deny
+    socket.socket.connect_ex = deny
+    socket.create_connection = deny
+    def audit(event, args):
+        if event == "open" and args and isinstance(args[0], (str, bytes)):
+            name = os.fsdecode(args[0]).lower()
+            if name.endswith(("_test.parquet", "_test.manifest.json")) or "/exit_lifecycle/test_" in name:
+                raise RuntimeError("ENTRY_EDGE_TEST_FORBIDDEN")
+    sys.addaudithook(audit)
+    return out, capped
+
+
+def _entry_edge_bound(binding):
+    path = Path(binding["path"])
+    if not path.is_absolute() or not path.is_file() or path.is_symlink() or sha(path) != binding["sha256"]:
+        raise RuntimeError("ENTRY_EDGE_BOUND_FILE_CHANGED: " + str(path))
+    return path
+
+
+def run_entry_edge_diagnostic(spec, spec_path):
+    """Observe initial/final Entry and all auxiliaries on frozen TRAIN batches."""
+    import time
+    import resource
+    import torch
+    from gx1.contracts.entry_observed_market_v1 import (
+        require_entry_observed_market_scope, bind_entry_observed_market_dataset,
+        entry_observed_market_batch_targets)
+    out, capped = _entry_edge_begin(spec, "entry-edge-diagnostic", spec_path)
+    started, head = time.monotonic(), git("rev-parse", "HEAD")
+    try:
+        recipe = json.loads(_entry_edge_bound(spec["recipe"]).read_text())
+        for key, value in recipe["recipe_env"].items():
+            os.environ[key] = value
+        from gx1.scripts import run_unified_exit_random_access_full_train_v1 as native
+        trainer, val = native.trainer, native.val
+        scope = require_entry_observed_market_scope(recipe)
+        files = recipe["files"]
+        meta = json.loads(_entry_edge_bound(files["source_bundle_metadata"]).read_text())
+        norm = json.loads(_entry_edge_bound(meta["v38_input_sources"]["normalization"]).read_text())["contract"]
+        val._bind_multi_tf_cache_from_source_bundle_metadata(meta)
+        coordinates = json.loads(_entry_edge_bound(recipe["chronological_prefix"]["native_coordinates"]).read_text())
+        batch_size = recipe["trainer_cli"]["batch_size"]
+        if batch_size != 16:
+            raise RuntimeError("ENTRY_EDGE_ORIGINAL_BATCH_REQUIRED")
+        parent_rows = {
+            name: np.load(_entry_edge_bound(coordinates["bindings"][binding]), allow_pickle=False)
+            for name, binding in {
+                "frozen_probe": "TRAIN256_PROBE_PARENT_ROWS",
+                "smoke": "TRAIN_NATIVE4096_PARENT_ROWS"}.items()}
+        selections = {
+            "frozen_probe_first_batch": parent_rows["frozen_probe"][:batch_size],
+            "smoke_first_batch": parent_rows["smoke"][:batch_size],
+            "smoke_last_batch": parent_rows["smoke"][-batch_size:]}
+        dataset = val.EntryV10CtxDataset(
+            _entry_edge_bound(files["entry_train_parquet"]), seq_len=int(meta["seq_len"]),
+            m5_prebuilt_path=_entry_edge_bound(files["m5_prebuilt"]),
+            per_tf_seq_lens={tf.upper(): int(meta["multi_tf"][tf + "_seq_len"])
+                            for tf in ("m5", "m15", "h1", "h4", "d1")},
+            multi_tf_closed_bar=True,
+            sequence_source_audit_json=_entry_edge_bound(files["sequence_source_audit"]))
+        prefix = recipe["chronological_prefix"]
+        dataset.bind_policy_dependent_auxiliary_targets(
+            result_path=_entry_edge_bound(prefix["labels_result"]),
+            expected_result_sha256=prefix["labels_result"]["sha256"],
+            expected_design_sha256=prefix["design"]["sha256"], role="TRAIN")
+        bind_entry_observed_market_dataset(dataset, scope)
+        batches = {}
+        for label, rows in selections.items():
+            batches[label] = next(iter(val.DataLoader(
+                dataset, batch_size=batch_size, sampler=val._ExactSampler(rows.tolist()),
+                num_workers=0, generator=torch.Generator().manual_seed(recipe["trainer_cli"]["seed"]))))
+            if batches[label]["entry_row_index"].tolist() != rows.tolist():
+                raise RuntimeError("ENTRY_EDGE_BATCH_COORDINATE_MISMATCH")
+        cache = out / "TRAIN_BATCHES.pt"
+        temporary = out / "TRAIN_BATCHES.pt.part"
+        with temporary.open("xb") as handle:
+            torch.save({"batches": batches, "selections": selections,
+                        "target_identity": dataset._entry_observed_market_binding}, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        _publish_file_noreplace(temporary, cache)
+        _fsync_directory(out)
+        print(json.dumps({"event": "ENTRY_EDGE_BATCHES_BOUND", "path": str(cache)}), flush=True)
+        del dataset
+        state_path = _entry_edge_bound(spec["training_state"])
+        state = torch.load(state_path, map_location="cpu", weights_only=False)
+        if state["global_optimizer_steps"] != 256:
+            raise RuntimeError("ENTRY_EDGE_ORIGINAL_STATE_MISMATCH")
+        device = torch.device("cpu")
+        model = val._model(meta, norm, device)
+        model.requires_grad_(True)
+        model.train()
+        measurements = {}
+        for variant, state_key in (("initial", "target_model_state"), ("final", "model_state")):
+            model.load_state_dict(state[state_key], strict=True)
+            before = trainer._model_state_sha256(model)
+            measurements[variant] = {}
+            for label, batch in batches.items():
+                trainer._set_deterministic(recipe["trainer_cli"]["seed"], device, recipe["trainer_cli"]["precision_policy"])
+                target, valid = entry_observed_market_batch_targets(batch, device=device)
+                prediction = trainer._model_forward_fp32(
+                    model, batch["seq_x"], batch["snap_x"], ctx_cat=batch["ctx_cat"],
+                    ctx_cont=batch["ctx_cont"], **trainer._multi_tf_kwargs_from_batch(batch, device),
+                    **spec["gradient_boundary"])
+                q = prediction["entry_action_q_bps"]
+                parts = native._entry_signal_losses(q, target, valid)
+                precision = torch.exp(-model.task_log_variances["entry_action_q"])
+                weighted = {k: precision * v for k, v in parts.items()}
+                weighted["entry"] = sum(weighted.values())
+                aux = trainer.dip_forecast_task_losses(prediction, batch, device)
+                aux["side_mae_bps"] = trainer._side_mae_auxiliary_loss(prediction, batch, device)[0]
+                aux["trendline_event"] = trainer._trendline_event_aux_loss(prediction, batch, device)[0]
+                position = trainer._require_active_aux_head_prediction(
+                    prediction, batch, output_name="position_size_logit",
+                    target_names=("y_position_size_target", "y_position_size_mask"))
+                mask = batch["y_position_size_mask"]
+                if bool((mask.reshape(-1) == 1).any()):
+                    aux["position_size"] = trainer._masked_position_size_mse(
+                        position, batch["y_position_size_target"], mask)
+                for task, value in aux.items():
+                    weighted["aux:" + task] = torch.exp(-model.task_log_variances[task]) * value
+                result = entry_edge_gradient_summary(model, weighted)
+                result.update(
+                    model_state_sha256=before, parent_rows=selections[label].tolist(),
+                    raw_entry_mse_decomposition={k: float(v.detach()) for k, v in parts.items()},
+                    raw_auxiliary_losses={k: float(v.detach()) for k, v in aux.items()},
+                    task_precision={k: float(torch.exp(-v.detach())) for k, v in model.task_log_variances.items()},
+                    target_mean_bps=target.double().mean(0).tolist(),
+                    prediction_mean_bps=q.detach().double().mean(0).tolist(),
+                    prediction_std_bps=q.detach().double().std(0, unbiased=False).tolist())
+                measurements[variant][label] = result
+                write_json(out / (variant + "_" + label + ".json"), result)
+                print(json.dumps({"event": "ENTRY_EDGE_GRADIENT_COMPLETE", "variant": variant,
+                                  "batch": label, "elapsed_seconds": time.monotonic()-started}), flush=True)
+                del prediction, q, parts, weighted, aux, result, position, precision
+                if trainer._model_state_sha256(model) != before:
+                    raise RuntimeError("ENTRY_EDGE_MODEL_MUTATED")
+        if git("rev-parse", "HEAD") != head or git("status", "--porcelain"):
+            raise RuntimeError("ENTRY_EDGE_SOURCE_CHANGED")
+        _entry_edge_bound(spec["training_state"])
+        result = {
+            "schema_version": "gx1_entry_edge_gradient_diagnostic_v1", "status": "COMPLETE",
+            "source_commit": head, "spec": {"path": str(spec_path), "sha256": sha(spec_path)},
+            "measurements": measurements, "input_cache": {"path": str(cache), "sha256": sha(cache)},
+            "model_forwards": len(selections)*2, "optimizer_steps": 0, "new_fits": 0,
+            "control_forwards": 0, "test_accessed": False, "original_checkpoint_preserved": True,
+            "mode": "CPU deterministic FP32 train-mode with same declared seed per paired batch",
+            "limitations": "Three preselected TRAIN batches, paired initial/final states. Pre-clipping task gradients; not reconstructed CUDA dropout, AdamW updates, intervention, generalization or economics.",
+            "elapsed_seconds": time.monotonic()-started,
+            "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+            "capped_execution": capped}
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"exit_code": 0, "result": {"path": str(out / "RESULT.json"), "sha256": sha(out / "RESULT.json")},
+                                         "source_unchanged": True})
+        return {k: v for k, v in result.items() if k != "measurements"}
+    except BaseException as exc:
+        write_json(out / "TERMINAL.json", {"exit_code": 1, "error_type": type(exc).__name__,
+                                         "error": str(exc), "source_commit": head})
+        raise
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -2019,7 +2276,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

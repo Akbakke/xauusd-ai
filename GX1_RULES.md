@@ -205,3 +205,13 @@ Repo-opprydding omfatter verifiserte repo-filer og regenererbare cacher;
 DATA/RUNS følger alltid regel 9. Brukerens særskilte godkjenning 06.10.2026
 tillater retting/synkronisering av konkrete CURRENT-referanser i installerte
 Claude-vakter og tilhørende hook-kommandoer. Andre globale innstillinger er urørt.
+
+## Operatørvedtak 10.10.2026: fire avgrensede Entry-edge-steg
+
+Brukeren bestilte gjennomføring av TRAIN-/gradientdiagnose, én kausal
+prisreaksjon/plassering/regime-probe, minste evidensbaserte oppfølging og
+økonomisk vurdering av eventuell kvalifisert kandidat. CPU-diagnostikk og
+forskningsfits forhåndsregistreres separat i eksisterende capped-eiere.
+Dette åpner ingen blind native treningsutvidelse, CONTROL-tuning, TEST,
+broker, handel eller spending. Negative og inkonklusive funn bevares; en
+fullført undersøkelse er ikke dokumentert edge.

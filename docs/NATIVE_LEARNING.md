@@ -36,7 +36,7 @@ og ved avgrenset slutt. Checkpointet bevarer ONLINE/TARGET, optimizer, EMA, sche
 epoch-order, neste batch og fremdrift. Eksisterende to-slot-eier bruker
 temporær fil, fsync, atomisk rename, hash og atomisk aktiv peker. Diskcacher
 gjenbrukes; RAM-/GPU-cache må lastes på nytt. Ved krasj kan arbeid etter siste
-fullførte checkpoint gå tapt. Dagens v38 resume-ekvivalens er ennå ikke målt.
+fullførte checkpoint gå tapt. Gjeldende resume-evidens og dens avgrensning står i CURRENT_HANDOVER.md.
 
 Operatøren valgte 09.10 eksisterende 12000s (3t20) etter å ha opplevd heng
 etter 12 timer. Behold denne driftsgrensen; ingen forkorting er nødvendig.

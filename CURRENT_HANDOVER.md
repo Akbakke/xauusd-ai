@@ -1,19 +1,19 @@
-# GX1 — siste overlevering, 09.10.2026
+# GX1 — siste overlevering, 10.10.2026
 
-Den Exit-uavhengige Entry-smoken er fullført: 256 optimizersteg/4096 TRAIN-rader.
-Native/Windows-syklusen bestod teknisk, men **læringsporten feilet**.
-Entry velger FLAT på alle 256 TRAIN- og 256 CONTROL-rader og slår ikke
-TRAIN-konstantene på CONTROL. Stor trening, full epoch/full VAL og
-Exit-trening er stengt. Den konsumerte engangstillatelsen er lukket.
+Operatøren har bestilt fire avgrensede steg for Entry-edge: TRAIN-/gradientdiagnose,
+én kausal hypoteseprøve av prisreaksjon betinget på plassering og regime,
+minste evidensbaserte oppfølging og økonomivurdering av eventuell kandidat.
+Første nye scope er forhåndsregistrert i
+configs/research/ENTRY_EDGE_TRAIN_DIAGNOSTIC_20261010.json.
+Det måler originale initial-/sluttvekter på tre fryste TRAIN-batcher gjennom
+eksisterende CPU-eiere: seks forwards, null optimizersteg og null fits.
+Ingen CONTROL-forwards, TEST, broker eller ny native trening.
 
-Oppgavens tillatte omfang er fullført: helrepo-revisjon, uavhengig Entry-smoke
-og bit-for-bit identisk lært resume etter fysisk Windows-omstart. Begge
-engangstillatelsene er konsumert og lukket; native-tasken er deaktivert.
-Den betingede store treningen ble ikke åpnet fordi læringsporten feilet.
-
-Kun /home/andre2/src/GX1_CURRENT, branch work/gx1-current, én agent og
-én tung CURRENT-jobb. Mac er overleveringskopi. Les GX1_RULES.md og kjør
-scripts/gx1_handover.sh --check. NEXT_RUN_POLICY.json eier eksakte bindinger.
+Den tidligere Entry-smoken og fysisk native resume er fullført og konsumert.
+Læringsporten feilet; originalresultatet og alle checkpoints bevares.
+Ny diagnostikk er ikke treningstillatelse eller bevis for edge.
+NEXT_RUN_POLICY.current_work.entry_edge_20261010 eier de fire stegenes status.
+Kun /home/andre2/src/GX1_CURRENT, work/gx1-current, én agent og én tung jobb.
 
 ## Ferdig smoke og målt læring
 
@@ -145,9 +145,9 @@ fullprofilartefakter i required_evidence, inklusive resume_equivalence. Disse
 krever egen evidens for VAL-profil256/8. Suffix-testen ovenfor verifiserer
 bare det navngitte Entry-prefixet; den fyller eller frafaller ikke fullportene.
 
-Bevar det negative læringsresultatet. Ingen flere optimizersteg, nye CONTROL-
-terskler, utvidet budsjett eller modellendring uten konkret hypotese og separat
-forhåndsbundet scope. Neste eventuelle hypotese må bygge på bevart TRAIN-bevis;
+Bevar det negative læringsresultatet. Ingen flere native optimizersteg, nye CONTROL-
+terskler eller blind budsjettutvidelse. Den nye bestillingen 10.10 åpner bare
+de fire avgrensede forskningsstegene ovenfor, med separat forhåndsbundet scope. Neste eventuelle hypotese må bygge på bevart TRAIN-bevis;
 stor trening krever fortsatt bestått læringsport. Ingen konkret kodefeil er
 påvist som forklaring på svak læring. Drifts-PASS endrer ikke dette utfallet.
 
