@@ -99,7 +99,7 @@
       "thread_heartbeat_id": "gx1-f-lg-native-trening",
       "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c"
     },
-    "current_research_id": "ENTRY_EDGE_TRAIN_20261010_001",
+    "current_research_id": "ENTRY_LEARNING_CURVE_20261010_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Four-step Entry study found no qualified signal: 529545/529545 FLAT, uncertain 0.007524% contrast-MSE improvement. Original native learning gate remains failed; no native model intervention or larger training is justified.",
+    "current_blocker": "No measured learning result yet for the new finite study; only fixed CPU baseline is currently admitted. Native fit/curve needs exact new recipe/campaign and fresh physical boot.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
