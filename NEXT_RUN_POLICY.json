@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T06:54:37.231928+00:00",
-  "status": "ENTRY_LEARNING_STUDY_CURVE_16384_AUTHORIZED",
+  "observed_utc": "2026-10-10T10:30:48.477262+00:00",
+  "status": "ENTRY_STUDY_REJECTED_FEATURE_AUDIT_COMPLETE_INPUTS_STALE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the new explicitly bound four-step Entry learning study is authorized. Generic/full-epoch/full-VAL training remains disabled; prior plans remain consumed. TEST sealed.",
-  "next_action": "Execute only the preregistered independent fresh curve:16384 optimizer steps,262144 unique TRAIN rows,CONTROL4096 at0/final, maximum2 guarded native windows with fresh physical boots.",
+  "rule": "Both finite learning phases are consumed. No further native launch, Exit training, TEST or adaptive extension is authorized. Feature corrections require fresh dependent inputs and a fresh initial baseline before later learning.",
+  "next_action": "Before any later learning, a separately bound new plan must rebuild dependent corrected feature/label/normalization artifacts and measure a fresh initial baseline. Existing finite plans are consumed; no automatic launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -58,7 +58,7 @@
     }
   },
   "learning_gate": {
-    "decision": "REJECT_EXPANSION_ENTRY_LEARNING_OR_ACTION_GATE_FAILED",
+    "decision": "BLOCK",
     "specification": "docs/LEARNING_GATE.md",
     "entry_exit_learning_demonstrated": false,
     "generalization_demonstrated": false,
@@ -66,8 +66,8 @@
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
     "completion_review": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
-      "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
+      "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/STUDY_REVIEW.json",
+      "sha256": "eeea3858a7fe2a43ff98ed3a150aa687ee4538eaeadea386c3dbb7ec4b36353d"
     },
     "paired_review": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/PAIRED_LEARNING_REVIEW.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "Small TRAIN fit completed and reviewed; prepare the separate fixed native learning curve without parameter changes.",
+    "current_activity": "Entry study and exhaustive field audit completed; no qualified edge; corrected source verified with focused checks.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -99,7 +99,7 @@
       "thread_heartbeat_id": "gx1-f-lg-native-trening",
       "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c"
     },
-    "current_research_id": "ENTRY_LEARNING_CURVE_20261010_001",
+    "current_research_id": "FEATURE_SEMANTIC_AUDIT_20261010_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -132,14 +132,14 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "native_entry_observed_resume_equivalence_completion_review",
-    "runtime_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/RUNTIME",
+    "latest_terminal_role": "feature_semantic_audit_completion",
+    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/SCOPE_TERMINAL.json",
-      "sha256": "f9a441f69dea47223408046f9b1e1ca0028aa714fe1051a19838ba05fcb68a30"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001/SCOPE_TERMINAL.json",
+      "sha256": "3059b53e06c6fbc54f3d0f15a5216f4ac9c1bdfd4e31286b40b114a068e4982d"
     },
     "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": true,
+    "source_unchanged_at_terminal": false,
     "full_benchmark_completed": true,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No later-data result yet; CURVE needs fresh-boot campaign. Fit result does not establish generalization or edge.",
+    "current_blocker": "Old datasets/checkpoints do not include corrected feature/aux-label semantics; fresh dependent inputs and initial baseline are required before any future learning.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -1371,13 +1371,13 @@
       "closed_utc": "2026-10-10T04:06:18.401058+00:00"
     },
     "previous_native_terminal": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/COMPLETION_REVIEW.json",
-      "sha256": "a3747d4267c59c6a041f037b85960b241f3b2a9af836c94320fb82fccaa1c887"
+      "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/CURVE/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "2da93ae99d2f90056ce3f9e1cd9b0a1cebeec8137b3aada45b47f01c561e885e"
     },
     "entry_learning_study_20261010": {
       "operator_request": "10.10.2026: Lag deg et nytt mål og kjør disse 4.",
       "goal_thread_id": "01a123d0-e7e1-79c3-900c-c56837ea0367",
-      "status": "FIT_COMPLETE_CURVE_PHASE_BOUND",
+      "status": "COMPLETE_REJECTED_ENTRY_QUALIFICATION",
       "authorized": false,
       "authorized_mode": null,
       "spec": {
@@ -1387,9 +1387,9 @@
       "native_launch_before_exact_recipe_binding": false,
       "stages": {
         "1": "COMPLETE_TRAIN_FIT_DEMONSTRATED_NOT_GENERALIZATION",
-        "2": "BASELINE_COMPLETE_CURVE16384_BOUND_FRESH_INITIALIZATION",
-        "3": "PENDING_LATER_CONTROL4096",
-        "4": "PENDING_EVIDENCE_REVIEW"
+        "2": "COMPLETE_FINITE_16384_STEPS_AND_SAME_TRAIN_REFERENCE",
+        "3": "COMPLETE_LATER_CONTROL4096_NO_QUALIFIED_GENERALIZATION",
+        "4": "COMPLETE_REJECTED_NO_EXIT_OR_AUTOMATIC_EXTENSION"
       },
       "generic_training_enabled": false,
       "test_authorized": false,
@@ -1404,7 +1404,7 @@
       "full_val_allowed": false,
       "no_adaptive_extension": true,
       "prior_failed_learning_gate_preserved": true,
-      "native_phase_authorized": "curve",
+      "native_phase_authorized": null,
       "baseline_result": {
         "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/BASELINE/RESULT.json",
         "sha256": "20e99b3213d11182567ec56eeb0391efb77d648b830990103884af5c983c8b95"
@@ -1438,7 +1438,49 @@
         "sha256": "0b9edf0efac10c9999875e7cf7ab2cb2429c78cefecc91d65aac457c7440c0cc"
       },
       "fit_run_consumed": true,
-      "fit_relaunch_allowed": false
+      "fit_relaunch_allowed": false,
+      "curve_run_consumed": true,
+      "curve_relaunch_allowed": false,
+      "curve_review": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/CURVE/PHASE_REVIEW.json",
+        "sha256": "bd38596fe2616eca67de0474dcb13d3def1a60ed2f9b8f6e7474572ba48f90cb"
+      },
+      "study_review": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/STUDY_REVIEW.json",
+        "sha256": "eeea3858a7fe2a43ff98ed3a150aa687ee4538eaeadea386c3dbb7ec4b36353d"
+      },
+      "curve_consumed_policy": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/CURVE/CONSUMED_NEXT_RUN_POLICY.json",
+        "sha256": "9ed22d2517c24e6a122d3ca3bec314ed5ecbd612de56601ca9dc1115137da515"
+      }
+    },
+    "feature_semantic_audit_20261010": {
+      "operator_request": "Double-check every feature/indicator, relationships, code and documentation.",
+      "status": "COMPLETE_SOURCE_REPAIRED_INPUTS_STALE",
+      "run_root": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001",
+      "local_signal_fields": 254,
+      "ctx_cont_aliases": 71,
+      "ctx_cat_fields": 1,
+      "mtf_fields_per_clock": 190,
+      "mtf_clocks": 5,
+      "single_agent": true,
+      "test_data_used": false,
+      "old_inputs_current_after_correction": false,
+      "future_input_build_authorized": false,
+      "field_ledger": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001/FIELD_LEDGER_FINAL.json",
+        "sha256": "f798767c09fe1d5ac95614762189d6ca1be12b4fa738ff41807861dfb9b144ce"
+      },
+      "source_report": "docs/FEATURE_AUDIT.md",
+      "repair_verification": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001/REPAIR_VERIFICATION.json",
+        "sha256": "b6c95ad055ef1bdf274dbd0e0b2524afa337c2e4ac4bc730283f51edf1c39580"
+      },
+      "focused_tests_passed": 141,
+      "scope_terminal": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_SEMANTIC_AUDIT_20261010_001/SCOPE_TERMINAL.json",
+        "sha256": "3059b53e06c6fbc54f3d0f15a5216f4ac9c1bdfd4e31286b40b114a068e4982d"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -3578,20 +3620,5 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
-  },
-  "entry_learning_study_run": {
-    "max_invocations": 2,
-    "optimizer_steps": 16384,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/CURVE/CANDIDATE_BUNDLE",
-    "run_id": "ENTRY_LEARNING_CURVE_NATIVE_20261010_001",
-    "selection": {
-      "phase": "curve",
-      "plan": {
-        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_LEARNING_STUDY_20261010.json",
-        "sha256": "47fbf7de1d9b4ed028316a74dc3d9d4844d5779fbd9099f6c1bb8fe8d6680e13"
-      }
-    },
-    "source_bindings_sha256": "087c6468416c7ce2b8a5cd24bf103085bdb3c2ce15ec23280e7c839418c7ff8f",
-    "test_data_used": false
   }
 }

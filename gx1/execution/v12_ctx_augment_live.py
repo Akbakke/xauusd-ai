@@ -29,7 +29,7 @@ Features added by the local context owner include:
     - d1_dist_change_1bar_atr_v4           # raw native-D1 first difference
     - h4_mid_ema50_dist_atr_canon_v2       # raw pre-sign H4 distance
 
-  Microstructure on M5 close (5):
+  Microstructure on native M5/M1 close (6):
     - close_return_3_bps                   # exact 3-bar close return
     - close_return_5_bps                   # exact 5-bar close return
     - close_return_acceleration_1_bps      # change in consecutive returns
@@ -49,7 +49,7 @@ Features added by the local context owner include:
     - dist_last_swing_low_atr              # (close - last pivot-low)  / ATR14
     - bars_since_swing_high
     - bars_since_swing_low
-    - retracement_from_last_impulse        # 0..1 retracement
+    - retracement_from_last_impulse        # raw uncapped retracement; presence mask owns absence
     - swing_high/low_break_event, swing_break_displacement_atr,
       bars_since_swing_high/low_break, swing_high/low_sequence_delta_atr,
       consecutive_higher_lows_count, consecutive_lower_highs_count

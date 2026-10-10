@@ -9,11 +9,8 @@ lines with immutable anchors, a CANDIDATE -> ACTIVE -> BROKEN ->
 (role-flipped back to ACTIVE | retired) state machine, and
 parallel/converging channel pairs.
 
-This module is stage 1 only: it declares the exact emission name tuples and
-the computation, and is NOT wired into any producer, contract owner or
-routing table.  Stage 2 (the V29 Phase-A wave) wires the emission through the
-existing HTF matrix owner and specialist routing, exactly as the design doc
-specifies.
+The registry is consumed by the native local feature layers and the shared
+190-field MTF matrix. Both routes use this same state machine.
 
 One pivot truth (rules 13/19/21): confirmed swing pivots come from
 ``smc_v1._detect_swing_pivots`` with the ``SWING_LOOKBACK`` confirmation-lag
@@ -26,22 +23,13 @@ every confirmable bar (proven by the parity test in
 
 Constant origins (rule 2a) — every decision-affecting number named:
 
-- ``band_atr`` (tolerance band, ATR fraction) and identity expiry are selected
-  per timeframe by :func:`fit_trendline_registry_hyperparameters_v1` using
-  chronological TRAIN-only competing-risk likelihood. A two-anchor
-  candidate gets exactly one validation opportunity: the next confirmed
-  same-side pivot.  Before that pivot, a close through the exact projected
-  line invalidates it.  Both lifecycle decisions are band-independent, so fit
-  and serve observe the same population without a circular bootstrap.  The
-  break margin REUSES the fitted band — one constant, no second number (rule
-  2b).  This module has no default; the caller must pass the frozen value.
-- ``seq_len`` (candidate window): the per-TF model sequence length —
-  an explicit recipe input (``per_tf_seq_lens``, validated upstream by
-  ``htf_features.require_multi_tf_resolution_pyramid``).  Line evidence never
-  reaches beyond the receptive field the model actually sees.
-- Retest has no fixed bar-window parameter. A BROKEN line remains armed for
-  its first re-entry until learned identity expiry; raw break age is emitted.
-- Counts and ages are emitted raw. Current active masks own current slot
+- ``band_atr`` is selected per timeframe by TRAIN-only competing-risk
+  likelihood. A candidate gets one next-pivot validation opportunity and dies
+  if price first closes through its exact projected line. ACTIVE staleness is
+  the declared ``seq_len``; the historical fitted expiry is lineage only.
+- ``TRENDLINE_RETEST_WINDOW_BARS_V1 = 2 * SWING_LOOKBACK + 1`` is the existing
+  seven-native-bar BROKEN retest clock, independent of ACTIVE staleness.
+- Counts and ages are emitted raw. Current active counts identify current slot
   absence; break age is NaN before the first genuine break, so no global
   ever-seen mask or numeric sentinel is needed.
 - Warmup: rows are NaN while ``bar_index < 2*swing_lookback + 2`` (the
@@ -70,7 +58,7 @@ Intra-bar order (fixed, documented; design B.1/B.3):
       line -> BROKEN), ACTIVE intra-band touch (first-entry-per-excursion),
       BROKEN retest hold (role flip back to ACTIVE) / fail / expiry
       (the last two retire the line).
-  (3) emission of the 33-field block from the post-update population
+  (3) emission of the 31-field block from the post-update population
       (V30 2026-08-13: + per-side ACTIVE counts and break memory).
 
 Documented design decisions inside the adopted spec:
@@ -99,7 +87,7 @@ Documented design decisions inside the adopted spec:
   of the band from the break side resolves the line: close still beyond the
   old line => RETEST_HOLD; close back through (or exactly on it
   — ambiguous evidence fails closed to FAIL) => RETEST_FAIL.  Re-entry stays
-  armed until receptive-field expiry. V30 package 8A (2026-08-13) PERFORMS the role
+  armed for the named seven-bar retest window. V30 package 8A (2026-08-13) PERFORMS the role
   flip this clause always named: a HOLD returns the line to ACTIVE with its
   ``side`` flipped and its touch history intact (the retest bar counts as
   the touch) instead of deleting it on the bar it proved itself as flipped
@@ -107,7 +95,9 @@ Documented design decisions inside the adopted spec:
 - Break-bar attribute fields: if several lines break on one bar, the
   reported touch_count/age belong to the line with the highest touch count
   (strongest evidence), ties to the older line (smaller line_id).  The
-  break impulses themselves are binary ORs.
+  break impulses themselves are binary ORs. Signed break-age memory uses
+  the last breaking line in stable active-line order; on a two-sided break
+  this may differ from the strongest line supplying the attribute fields.
 - Slot ties: projection exactly on the close goes to the ABOVE slot
   (keeps ``geomline_above_dist_atr >= 0`` exact); equal-distance line ties
   resolve to the smaller line_id (older identity).  Channel-route order on
@@ -171,7 +161,8 @@ from gx1.features.event_age_v1 import raw_event_age_from_last_observed_row
 # carried state gains ``last_break_side``; a V5 carry cannot supply it and is
 # rejected by the config-key mismatch.  Pre-first-break emission is unchanged:
 # the same honest NaN censoring as before, now via 0 * NaN.
-TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V6"
+# V7: touch memory is monotone; current-bar broken lines have no future hold label.
+TRENDLINE_REGISTRY_CONTRACT_V1 = "TRENDLINE_REGISTRY_TWO_POINT_ANCHOR_RAW_V7"
 
 TRENDLINE_SIDE_SUPPORT = 1
 TRENDLINE_SIDE_RESISTANCE = -1
@@ -713,7 +704,8 @@ def _ingest_confirmed_pivot(
         if pivot_bar not in line.touch_bars:
             line.touch_count += 1
             line.touch_bars.add(pivot_bar)
-            line.last_touch_bar = pivot_bar
+            # A newly confirmed old pivot cannot erase a more recent bar touch.
+            line.last_touch_bar = max(line.last_touch_bar, pivot_bar)
             events[touch_event] = 1.0
             if line_log is not None:
                 line_log.append(("touch", t, line.line_id, line.side, line.slope))
@@ -1388,7 +1380,8 @@ def compute_trendline_touch_hold_labels_v1(
     - ``y_line_support_touch_held``: defined (mask 1) on bars where a
       ``geomline_touch_below`` fired on an ACTIVE support-side line with
       slope > 0 (rising support) AND the full forward window of
-      ``horizon_bars`` bars is observed; label 1 iff every such touched line
+      ``horizon_bars`` bars is observed. Lines broken on the decision bar
+      are excluded before masking; label 1 iff every remaining touched line
       is not BROKEN within the next ``horizon_bars`` bars (a same-bar
       multi-line touch aggregates conservatively: any break fails the hold).
     - ``y_line_resistance_touch_held``: exact mirror on
@@ -1461,6 +1454,14 @@ def compute_trendline_touch_hold_labels_v1(
             if bar + horizon > n_rows - 1:
                 # Outcome window not fully observed: undecidable, stays
                 # masked out (rule 2e — no placeholder outcome).
+                continue
+            # Pivot confirmation precedes current-bar breaks in the registry.
+            # A line already broken at this decision has no future hold label.
+            line_ids = [
+                line_id for line_id in line_ids
+                if bar not in break_bars_by_line.get(line_id, ())
+            ]
+            if not line_ids:
                 continue
             out[mask_name][bar] = 1.0
             held = all(

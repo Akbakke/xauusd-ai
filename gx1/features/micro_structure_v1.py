@@ -259,16 +259,11 @@ def compute_micro_structure_features_chunk(
 # tape (N=537,861 rows, 2026-08-19) it had r=0.9259 with the mid bar range and
 # r=0.4941 with ``spread_bps``, median 7.83 bps against a 5.84 bps median mid
 # range.  A block introduced as the cure for "no quote-dynamics evidence" was
-# two thirds bar range.  It is replaced by the sum of the quote width at each
-# of the bar's own extremes, from the SAME declared source columns and with no
-# new constant: the mid path cancels inside each term
-# (ask_x - bid_x = the quote width at extreme x), so the range component is
-# gone by algebra, not by subtraction of an estimate.  Same tape, repaired
-# field: r=0.9334 with ``spread_bps``, r=0.2019 with the mid range, median
-# 3.4054 bps.  It is not a restatement of ``spread_bps``: the ratio to it runs
-# p1 1.381 / p50 2.000 / p99 3.678 and is never exactly 2, which is the
-# intrabar quote widening at the extremes that the close-quote level cannot
-# show.
+# two thirds bar range. The replacement sums ask/bid high offsets and low
+# offsets from the same bar. Those independently aggregated extrema need not
+# be simultaneous; this is an extrema-offset proxy, not an observed spread
+# at either extreme, and exact cancellation of the mid-price path is unproven.
+# The formula and existing source values are unchanged by this clarification.
 SPREAD_DYNAMICS_FEATURE_NAMES_V1 = (
     "spread_bps_delta_1",
     "spread_extremes_sum_bps",
@@ -311,7 +306,7 @@ class SpreadDynamicsCarryV1:
 
 
 MICRO_STRUCTURE_SCHEMA_VERSION = (
-    "micro_structure_primitives_v5_quote_width_at_extremes_20260819"
+    "micro_structure_primitives_v6_aggregated_extrema_offsets_20261010"
 )
 MICRO_PRICE_FORMULA_CONTRACT = (
     "close_return_3_bps[t]=(close[t]/close[t-3]-1)*10000",
@@ -329,6 +324,7 @@ SPREAD_DYNAMICS_FORMULA_CONTRACT = (
     "spread_bps_delta_1[t]=spread_bps[t]-spread_bps[t-1]",
     "spread_extremes_sum_bps[t]=((ask_high[t]-bid_high[t])+(ask_low[t]-bid_low[t]))/close[t]*10000",
     "quote_range_asymmetry_bps[t]=((ask_high[t]-ask_low[t])-(bid_high[t]-bid_low[t]))/close[t]*10000",
+    "extrema_offsets=independently_aggregated_not_simultaneous_quote_spreads",
     "warmup=causal_nan_prefix_for_spread_delta_only",
     "transform=no_epsilon_no_clip_no_static_boundary_value",
 )
@@ -523,8 +519,8 @@ def compute_spread_dynamics_features_chunk(
     # the ask series dominates the bid series.  Both are data-integrity facts of
     # a two-sided quote, not chosen tolerances; a violation is a broken tape and
     # fails closed.  ask_high >= bid_high and ask_low >= bid_low are exactly the
-    # two facts that make each term of ``spread_extremes_sum_bps`` below a
-    # non-negative quote width, so that field needs no separate guard.
+    # two facts that make each aggregated extrema offset non-negative.
+    # They do not prove simultaneous quote observations at those extrema.
     if (
         np.any(bid_high < bid_low)
         or np.any(ask_high < ask_low)
@@ -549,11 +545,8 @@ def compute_spread_dynamics_features_chunk(
     )
     spread_delta_1[1:] = spread_bps[1:] - spread_bps[:-1]
 
-    # Quote width at each of the bar's own extremes, summed.  Each term
-    # differences the SAME extreme of the two sides, so the mid path cancels
-    # inside the term and no range or level component survives; nothing is
-    # subtracted, estimated or clipped.  Non-negativity is already guaranteed by
-    # the ask_high >= bid_high / ask_low >= bid_low geometry enforced above.
+    # Sum independently aggregated ask/bid extrema offsets. Non-negativity
+    # follows from the source geometry; simultaneous spread is not observed.
     extremes_sum_bps = (
         (ask_high - bid_high) + (ask_low - bid_low)
     ) / close * 1e4

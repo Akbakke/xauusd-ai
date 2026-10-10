@@ -16,6 +16,7 @@ den siste overleveringen. Gamle mål-/veikart-/renselogger finnes i Git.
 - docs/DATA_CONTRACT.md — kilder, kausalitet, lineage og normalisering.
 - docs/LEARNING_GATE.md — læring, generalisering og økonomi.
 - docs/NATIVE_LEARNING.md — gjenværende metode, ikke launchordre/daglig logg.
+- docs/FEATURE_AUDIT.md og docs/FEATURE_AUDIT_FIELDS.json — individuell featurekontroll, rettelser og grenser.
 - docs/GC_ORDER_FLOW_RESEARCH.md — pauset GC-kildeaudit/A/B/C-protokoll.
 
 ## Beholdte immutable kilde-/designbindinger

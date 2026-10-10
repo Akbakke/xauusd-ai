@@ -165,3 +165,40 @@ def test_clock_source_guard_forbids_local_midnight_vwap_owner() -> None:
                     (module.__name__, node.func.attr, node.lineno)
                 )
     assert forbidden == []
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_session_ids_are_independent_of_explicit_utc_storage_unit(unit):
+    stamps = pd.DatetimeIndex(["2026-01-01T21:59:00Z", "2026-01-01T22:00:00Z"])
+    expected = session.trading_session_id_vectorized(stamps.as_unit("ns"), context="TEST_NS")
+    observed = session.trading_session_id_vectorized(stamps.as_unit(unit), context="TEST_UNIT")
+    assert observed.tolist() == expected.tolist()
+    assert observed[1] == observed[0] + 1
+    assert session.trading_session_label(stamps.as_unit(unit), context="TEST_LABEL").tolist() == [
+        pd.Timestamp("2025-12-31T22:00:00Z"), pd.Timestamp("2026-01-01T22:00:00Z")]
+
+
+@pytest.mark.parametrize("minutes", [1, 5])
+def test_daily_pivots_roll_at_local_close_availability(monkeypatch, minutes):
+    from types import SimpleNamespace
+    import numpy as np
+    duration = pd.Timedelta(minutes=minutes)
+    boundary = pd.Timestamp("2026-01-02T22:00:00Z")
+    older = {"R1": 103., "R2": 104., "S1": 97., "S2": 96.}
+    latest = {"R1": 102., "R2": 103., "S1": 98., "S2": 97.}
+    monkeypatch.setattr(outcome_context, "_closed_m5_index", lambda *_: 0)
+    monkeypatch.setattr(outcome_context, "_per_tf_all", lambda *_: {
+        name: 100. for name in outcome_context.PER_TF_FEATURE_NAMES})
+    monkeypatch.setattr(outcome_context, "_liquidity_zones", lambda *_: {
+        f"dist_to_{tf}_{side}_atr": 0. for tf in ("m5", "m15", "h1", "h4", "d1")
+        for side in ("hi", "lo")})
+    for bars_before, expected in ((2, older), (1, latest)):
+        opening = boundary - bars_before*duration
+        context = SimpleNamespace(
+            decision_ts_ns=np.array([opening.value]), decision_close=np.array([100.]),
+            m5_close=np.array([100.]), decision_bar_duration_ns=duration.value,
+            daily_pivot_by_date={boundary-pd.Timedelta(days=2): older,
+                                 boundary-pd.Timedelta(days=1): latest})
+        result = outcome_context.augment_candidate(context, opening, include_portfolio=False)
+        for name, value in expected.items():
+            assert result[f"dist_to_{name}_atr"] == 100.-value

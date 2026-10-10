@@ -835,7 +835,8 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 # mirroring the level registry's signed convention; pre-first-break NaN
 # censoring is unchanged.  A V21 matrix is four columns per lane wider and
 # holds the sign-blind break age under a name that no longer exists.
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V23"
+# V24: delayed pivot confirmations preserve the most recent touch memory.
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V24"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -880,7 +881,8 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V23"
 # break age, carries the sign-blind geomline break age under a retired name,
 # and binds a v1 squeeze manifest whose feature_names this owner no longer
 # emits.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v33"
+# v34 rejects cached values preceding the same-width trendline memory repair.
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v34"
 HTF_V4_CACHE_BUILDER_VERSION = (
     "prebuild_multi_tf_cache_v4_persisted_model_native_scalars_20260821"
 )
@@ -1809,8 +1811,8 @@ def fit_v29_registry_constants_from_m5(
 ) -> dict:
     """Fit the V29 registry constants once on the declared TRAIN window.
 
-    ``m5_df`` is the exact native-M5 OHLCV source; only rows inside the closed
-    interval ``[declared_train_window_start, declared_train_window_end]``
+    ``m5_df`` is the exact native-M5 OHLCV source; only rows inside the half-open
+    interval ``[declared_train_window_start, declared_train_window_end)``
     participate (rule 18: fit on the physical TRAIN population, freeze, never
     refit).  Both bounds are required and are the only TRAIN-population
     authority here — the lower bound was missing until 2026-08-15, which
@@ -3141,9 +3143,9 @@ def compute_per_bar_features_v4(
     """Compute the exact fixed-width V4 surface directly from one OHLCV TF.
 
     ``timeframe`` is the declared MULTI_TF_RESAMPLE_RULES key of ``ohlcv``. It
-    selects the local-cycle VWAP owner (D1 → rolling 5-bar, intraday TFs →
-    shared trading-session VWAP); the retired median-bar-spacing inference is
-    gone.  ``v29_registry_constants`` is the TRAIN-fitted registry-constants
+    selects the native registry/filter clock. VWAP uses rolling5/20/96
+    quote-update-weighted close windows on every timeframe.
+    ``v29_registry_constants`` is the TRAIN-fitted registry-constants
     payload (:func:`require_v29_registry_constants`); the level/trendline
     registry blocks cannot be computed without it and no default exists.
     """
@@ -3372,8 +3374,8 @@ def compute_per_bar_features_v4(
     # V29 Phase A per-TF EVENT additions (trend_ema GAP-1/2/3 + momentum
     # G1/G2, 2026-08-11 reports; design doc §3).  Every field is computed on
     # this one TF clock from series this owner already produces; every event
-    # is a closed-bar edge trigger; every age uses this file's log1p/500
-    # convention; every warmup is one honest NaN prefix.
+    # is a closed-bar edge trigger; ages count raw observed native bars.
+    # Every warmup is one honest NaN prefix.
     # ------------------------------------------------------------------
     v29 = pd.DataFrame(index=df.index, dtype=np.float64)
 
@@ -3412,7 +3414,7 @@ def compute_per_bar_features_v4(
     # GAP-3: price-vs-EMA cross events + side age (same sign-flip construction
     # as GAP-1, same age convention as GAP-2).  The side's sign is already
     # carried by ema50_dist_atr/ema200_dist_atr above, so the age is emitted
-    # unsigned in [0, 1] (rule 2e: no synthetic signed-zero packing).
+    # raw nonnegative observed-bar ages (no signed-zero packing).
     for ema_span, ema_line in ((20, ema20), (50, ema50), (200, ema200)):
         price_gap = close - ema_line
         v29[f"price_x_ema{ema_span}_cross_up"] = _cross_up_event(price_gap)
@@ -3897,8 +3899,9 @@ def build_multi_tf_per_bar_features_v4(
 # passed. The frames are immutable for a run, so the O(frame) equality and
 # finiteness checks below need to run once per frame, not once per sample. The
 # token binds the frame's exact identity (the two cache-array data pointers,
-# length and width); any replacement or in-place change misses the token and the
-# full validation runs again. The checks themselves are unchanged.
+# length and width). Array replacement or shape changes rerun validation.
+# In-place value mutation is not detected by this token; callers must preserve
+# frame immutability. Published disk-cache arrays are opened read-only.
 # 2026-08-09 soundness fix: values store ``(frame, token)``. Keying on
 # ``id(frame)`` alone was unsound — a freed frame's id can be reused by a new,
 # never-validated object (demonstrated). Storing the frame pins it so its id
@@ -5066,15 +5069,15 @@ _HTF_WINDOW_VALIDATED: dict = {}
 def slice_multi_tf_v4_window(
     feats: pd.DataFrame, target_ts: pd.Timestamp, n: int, tf_shift: pd.Timedelta,
 ) -> np.ndarray:
-    """Slice the last `n` per-bar feature rows whose close-time is <= (target_ts - tf_shift).
+    """Slice the last `n` start-labelled rows with start <= target_ts - tf_shift.
 
     Returns an exact finite ``(n, n_features)`` float32 array. Missing history,
     indicator warmup, malformed cache metadata, and non-finite evidence are hard
     errors; this owner never pads or substitutes a neutral value.
 
-    `tf_shift` enforces the "only closed bars" invariant: e.g. for H1, target=12:35
-    means we use H1 bars closing at-or-before 11:35 (the 11:00 H1 bar, since
-    12:00 H1 bar hasn't closed yet at 12:35).
+    `tf_shift` is the native bar duration. At decision 12:35 the latest H1
+    opening label is 11:00, whose bar closed 12:00; the 12:00-labelled H1 bar
+    remains unavailable until 13:00.
 
     Verified V4 fast path: when `feats.attrs["ts_int64"]` and `feats.attrs["feats_np"]`
     are present (set by build_multi_tf_per_bar_features), we use numpy

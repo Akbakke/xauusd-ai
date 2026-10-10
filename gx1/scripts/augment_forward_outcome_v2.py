@@ -545,7 +545,7 @@ def _closed_m5_index(ctx: AugmentContext, ts_ns: int) -> int:
 
 
 def _pivots(ctx: AugmentContext, ts: pd.Timestamp, current_atr: float, current_price: float) -> dict[str, float]:
-    """Lookup prior-day pivots — O(1) dict lookup."""
+    """Select the latest completed daily pivots at UTC decision availability."""
     ts = _require_utc_timestamp(ts, context="CTX_PIVOT")
     if not np.isfinite(current_atr) or current_atr <= 0.0 or not np.isfinite(current_price):
         raise RuntimeError("[CTX_PIVOT] price and ATR must be finite; ATR must be positive")
@@ -570,7 +570,12 @@ def _pivots(ctx: AugmentContext, ts: pd.Timestamp, current_atr: float, current_p
 
 
 def _liquidity_zones(ctx: AugmentContext, ts_ns: int, current_price: float, current_atr: float) -> dict[str, float]:
-    """Distance to nearest unswept high/low per TF — uses pre-resampled arrays."""
+    """Distance to trailing observed bar extrema, in current closed M5 ATR.
+
+    This proxy has no sweep-identity memory. An older high above the current
+    price may already have been crossed; independently sampled bar extrema
+    must not be described as unswept liquidity levels.
+    """
     if not np.isfinite(current_atr) or current_atr <= 0.0 or not np.isfinite(current_price):
         raise RuntimeError("[CTX_LIQUIDITY] price and ATR must be finite; ATR must be positive")
     out: dict[str, float] = {}
@@ -595,9 +600,9 @@ def _liquidity_zones(ctx: AugmentContext, ts_ns: int, current_price: float, curr
         left = right - lookback
         window_hi = hi_arr[left:right]
         window_lo = lo_arr[left:right]
-        # Positive means an unswept level still exists beyond price. If none
-        # exists, the nearest already-swept level is retained with a negative
-        # sign instead of a fabricated zero-distance level.
+        # Select the nearest historical extremum beyond current price. If
+        # none exists, retain the window extremum and its signed distance.
+        # This does not establish whether that level was previously swept.
         highs_above = window_hi[window_hi > current_price]
         nearest_hi = float(highs_above.min()) if len(highs_above) else float(window_hi.max())
         out[f"dist_to_{tf_name}_hi_atr"] = float((nearest_hi - current_price) / current_atr)
@@ -680,7 +685,8 @@ def augment_candidate(
     out: dict[str, float] = {}
     liq = _liquidity_zones(ctx, ts_ns, current_price, current_atr)
     out.update(per_tf)                                         # 125
-    out.update(_pivots(ctx, ts, current_atr, current_price))   # 4
+    availability = ts + pd.Timedelta(ctx.decision_bar_duration_ns, unit="ns")
+    out.update(_pivots(ctx, availability, current_atr, current_price))  # 4
     out.update(liq)                                            # 10 (5 TFs × hi/lo)
     if include_portfolio:
         out.update(_per_side_perf(ctx, ts))                    # 8
@@ -739,7 +745,7 @@ def compute_attach_rows(
 
 _PARALLEL_ATTACH_SHARED: tuple = ()
 
-_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "group_a_attach_checkpoint_v4"
+_GROUP_A_CHECKPOINT_SCHEMA_VERSION = "group_a_attach_checkpoint_v5"
 _GROUP_A_CHECKPOINT_CHUNK_ROWS = 4096
 _GROUP_A_CHECKPOINT_COMPLETE_KEYS = frozenset(
     {

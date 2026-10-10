@@ -583,7 +583,7 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 "purpose": (
                     "Exact local-resolution EMA50/200 state, crosses, "
                     "price-vs-EMA crosses, side/cross durations, slopes, "
-                    "acceleration, price location and the window-30 Kaufman "
+                    "price location and the window-30 Kaufman "
                     "efficiency ratio; M5 for Entry and M1 for Exit."
                 ),
             },
@@ -657,8 +657,8 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 },
                 "owned_specialists": ("momentum_flow_encoder",),
                 "purpose": (
-                    "RSI threshold crosses, extreme age, mom20 sign flips and "
-                    "confirmed-pivot RSI divergence plus continuous momentum "
+                    "RSI extreme age/side and confirmed-pivot regular/hidden "
+                    "RSI divergence plus continuous momentum "
                     "on the native M5 Entry or M1 Exit clock (G1/G2)."
                 ),
             },
@@ -706,7 +706,7 @@ MODEL_NATIVE_SMART_FAMILY_CONTRACT = OrderedDict(
                 "owned_specialists": ("vol_compression_encoder",),
                 "purpose": (
                     "TRAIN-fitted native-clock squeeze carriers: raw "
-                    "in-squeeze duration and left-censored release age "
+                    "in-squeeze duration, left-censored release age and relative bandwidth "
                     "(D-3 2026-09-20: the active flag, release edge and "
                     "duration-at-release are exact functions of these two "
                     "and are no longer emitted)."
@@ -777,8 +777,8 @@ def model_native_recommended_fusion_metadata() -> dict[str, object]:
         "blocked_heads": list(SPECIALIST_FUSION_BLOCKED_HEADS),
         "direction_path": (
             "family context -> pre-cross specialist token -> specialist "
-            "cross-attention -> dynamic specialist gate -> specialist+five-TF "
-            "cross-attention -> 96-value learned evidence fusion -> fitted-Q "
+            "cross-attention -> dynamic specialist gate -> specialist+four-Entry-TF "
+            "cross-attention -> 128-value learned evidence fusion -> fitted-Q "
             "LONG/SHORT/FLAT action-value head"
         ),
         "independent_timeframe_only_head": None,

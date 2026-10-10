@@ -67,42 +67,13 @@ from gx1.features.volatility_squeeze_state_v1 import (
 PRICE_DERIVED_SOURCE_PRICE_FIELD = "close"
 PRICE_DERIVED_SOURCE_OHLC_FIELDS = ("high", "low", "close")
 
-# The k-bar lookback of the two local EMA slope fields.  ORIGIN (rule 2a): it
-# is not chosen here.  ``htf_features`` computes ``ema20_slope_atr``,
-# ``ema50_slope_atr`` and ``ema200_slope_atr`` as ``(ema - ema.shift(5)) /
-# atr14_positive`` on every per-TF clock, and that file's own ``rsi14_delta_5``
-# comment names the number as "this file's existing EMA-slope lookback
-# convention (the shift(5) used by ema20/50/200_slope_atr)".  Restating the
-# literal here would be rule-13 non-ownership on its own, so the binding is
-# EXECUTABLE: tests/test_entry_model_native_feature_layers.py asserts the two
-# local slope columns are bit-identical to the per-TF owner's
-# ``ema{50,200}_slope_atr`` on the same native M5 frame, which fails the moment
-# either side moves.
+# Local slopes share the per-timeframe formula: EMA50 uses five closed bars,
+# EMA200 uses twenty. Same-clock bit-parity tests bind both owners.
 LOCAL_EMA_SLOPE_LOOKBACK_BARS = 5
-# 2026-09-21 (F-22): the slow span mirrors the per-TF owner's pre-existing
-# slow-span slope lookback (materialize_build_canonical_features_v1's
-# ema100_slope_atr k=20) — at k=5 the 200-EMA slope carried rho 0.985-0.990
-# with the 200-EMA distance on every measured lane.  One convention per
-# concept on both surfaces; the local/per-TF bit-parity test enforces it.
 LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS = 20
 
-# Leading rows of a source frame on which the price-derived layer is undefined.
-# classic EMA200 seeds from 200 closes so its first valid row is index 199; the
-# first derivative (ema50_200_spread_delta_atr) moves that to 200 and the
-# second (ema50_200_spread_accel_atr) to 201.  The V30
-# local_kama_efficiency_30 addition needs only 30 rows (window 30), and the V30
-# GAP-2/3 age fields inherit their EMA source's first valid row (index 199 for
-# the ema200-backed pair, 49 for the ema50 side).  The V30 package-3
-# price-vs-EMA cross events add one shift(1) on top of their EMA source (first
-# finite row: index 200 for the ema200 pair, 50 for the ema50 pair).
-#
-# 2026-08-19 fidelity repair: the floor moved 201 -> 204 (EMA200 first valid
-# row 199 plus the slope lookback 5), derived, never chosen.
-#
-# 2026-09-21 (F-10): the spread delta/accel are retired, so the longest
-# warmup returns to ``ema200_slope_atr`` = EMA200 first valid row (199) plus
-# the slope lookback — the 2026-08-19 floor.  Derived from the same
-# constants, never chosen.
+# EMA200 seeds at index199; its twenty-bar slope is first finite at index219.
+# Retired spread derivatives no longer participate in the warmup floor.
 PRICE_DERIVED_CAUSAL_WARMUP_ROWS = 199 + LOCAL_EMA_SLOW_SLOPE_LOOKBACK_BARS
 
 # V30 (2026-08-13): ``local_kama_efficiency_30`` is the Kaufman efficiency
@@ -269,14 +240,12 @@ PRICE_DERIVED_FEATURE_NAMES = (
 # ``spread_bps`` clause is gone with the column it described.  The layer no
 # longer divides anything by a price level, so no clause here names ``close``
 # as a denominator.
-PRICE_DERIVED_FORMULA_SCHEMA_VERSION = "entry_local_price_raw_primitives_v4"
+PRICE_DERIVED_FORMULA_SCHEMA_VERSION = "entry_local_price_raw_primitives_v5"
 PRICE_DERIVED_FORMULA_CONTRACT = (
     "ema50_200=shared_classic_sma_seeded_technical_owner",
-    "spread_atr=raw_spread_over_positive_wilder_atr_no_clip",
     "price_dist_atr=raw_close_minus_ema_over_positive_wilder_atr_no_clip",
     "ema_slope_atr=raw_k_bar_ema_change_over_positive_wilder_atr_no_clip",
-    "ema_slope_lookback=shared_per_tf_five_closed_bar_convention",
-    "spread_derivatives_atr=raw_spread_difference_over_current_positive_wilder_atr_no_clip",
+    "ema_slope_lookback=ema50_five_closed_bars_ema200_twenty_closed_bars",
     "kama_efficiency30=exact_change_over_positive_realized_path_else_unavailable",
     "events=closed_bar_cross_edges_and_causal_age_from_shared_owner",
     "warmup=causal_nan_prefix_then_exact_sample_alignment",

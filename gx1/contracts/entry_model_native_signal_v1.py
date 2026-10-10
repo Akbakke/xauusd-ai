@@ -40,6 +40,7 @@ from gx1.features.entry_model_native_feature_layers_v1 import (
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     price_derived_contract_metadata,
 )
+from gx1.features.trendline_registry_v1 import TRENDLINE_REGISTRY_CONTRACT_V1
 from gx1.features.entry_candle_primitives_v1 import (
     candle_primitive_contract_metadata,
 )
@@ -726,7 +727,7 @@ MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS_SHA256 = _sha256_json(
     MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
 )
 # v11 (2026-08-18, V30 wave 2): 17 ctx_cont names retired, 5 added, 4 renamed.
-MODEL_NATIVE_CONTEXT_SCHEMA_VERSION = "entry_model_native_context_v11"
+MODEL_NATIVE_CONTEXT_SCHEMA_VERSION = "entry_model_native_context_v12"
 MODEL_NATIVE_CONTEXT_TAG = (
     f"CTX{MODEL_NATIVE_CTX_CONT_DIM}CAT{MODEL_NATIVE_CTX_CAT_DIM}"
 )
@@ -798,6 +799,7 @@ def model_native_mandatory_full_stack_metadata() -> dict[str, Any]:
         "swing_structure_owner": swing_structure_contract_metadata(),
         "candle_primitive_owner": candle_primitive_contract_metadata(),
         "price_derived_owner": price_derived_contract_metadata(),
+        "trendline_registry_contract": TRENDLINE_REGISTRY_CONTRACT_V1,
         "smc_primitive_owner": smc_primitive_contract_metadata(),
         "family_count": len(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES),
         "mandatory_selected_feature_count": MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT,

@@ -1058,3 +1058,40 @@ def test_zero_deviation_candidate_is_excluded_from_the_fit_population():
     )
     assert np.all(off_stream.distance_atr > 0.0)
     assert len(off_stream.origin_row) >= len(stream.origin_row)
+
+
+@pytest.mark.parametrize("mirrored", [False, True])
+def test_delayed_pivot_preserves_a_more_recent_bar_touch(mirrored):
+    frame = _support_line_frame(74, {10: 0., 30: 0., 50: 0., 70: 0.})
+    projection = 100. + .05 * (np.arange(len(frame)) - 10.)
+    # Touch excursion starts69; pivot70 is inside it and not counted again.
+    # After leaving the band71, a new touch72 precedes confirmation70 at73.
+    for bar in (69, 72):
+        frame.loc[bar, "low"] = projection[bar] + .15
+    if mirrored:
+        frame = frame.assign(high=300-frame.low, low=300-frame.high,
+                             close=300-frame.close)
+    _, state = _compute(frame)
+    line = next(line for line in state.active_lines
+                if line.anchor1_bar == 10 and line.anchor2_bar == 30)
+    assert line.last_touch_bar == 72
+    assert 70 in line.touch_bars and 72 in line.touch_bars
+
+
+@pytest.mark.parametrize("mirrored", [False, True])
+def test_line_broken_at_touch_confirmation_has_no_future_hold_target(mirrored):
+    from gx1.features.trendline_registry_v1 import compute_trendline_touch_hold_labels_v1
+    frame = _support_line_frame(70, {10: 0., 30: 0., 50: -.29})
+    projection = 100. + .05 * (np.arange(len(frame)) - 10.)
+    frame.loc[53, ["high", "low", "close"]] = (
+        projection[53]+.2, projection[53]-.4, projection[53]-.35)
+    if mirrored:
+        frame = frame.assign(high=300-frame.low, low=300-frame.high,
+                             close=300-frame.close)
+    features, _ = _compute(frame)
+    touch = "geomline_touch_above" if mirrored else "geomline_touch_below"
+    broken = "geomline_break_up" if mirrored else "geomline_break_down"
+    assert features.loc[53, touch] == features.loc[53, broken] == 1.
+    labels = compute_trendline_touch_hold_labels_v1(
+        frame, seq_len=200, band_atr=.3, horizon_bars=10)
+    assert (labels.loc[53] == 0.).all()

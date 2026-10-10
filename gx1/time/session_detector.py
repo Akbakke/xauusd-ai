@@ -144,7 +144,7 @@ def trading_session_id_vectorized(
     index = _require_explicit_utc_index(timestamps, context=context)
     boundary_ns = int(TRADING_SESSION_BOUNDARY_OFFSET.value)
     duration_ns = int(TRADING_SESSION_DURATION.value)
-    return np.floor_divide(index.asi8 - boundary_ns, duration_ns).astype(
+    return np.floor_divide(index.as_unit("ns").asi8 - boundary_ns, duration_ns).astype(
         np.int64,
         copy=False,
     )

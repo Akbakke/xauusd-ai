@@ -293,10 +293,12 @@ def test_model_native_signal_contract_has_exact_derived_width_and_all_groups_liv
     # and it stays exactly recoverable as
     # `chart.local_ema50_200_spread_atr * ctx_cont.atr_bps` now that the ctx
     # owner divides its Wilder-14 ATR by `close` instead of the bar midpoint.
+    # 2026-10-10 v5 corrects EMA50/200 slopes to5/20 and removes retired
+    # spread/delta/acceleration clauses; emitted price-layer values are unchanged.
     # Re-derived over the new clause tuple; the literal is the drift guard, not
     # the source.
     assert PRICE_DERIVED_FORMULA_SHA256 == (
-        "d3fc5f9f927f5d5b7ab4b9744c1d0f66950748ccd56400a16a5447c37d02aa17"
+        "314ad2785ef4cf4d7c8c600c7304bb2584d15611116f8140bf6dc76bf184fef5"
     )
     assert (
         price_owner["ordered_feature_names_sha256"]
