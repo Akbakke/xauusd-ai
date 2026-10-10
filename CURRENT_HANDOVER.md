@@ -43,6 +43,14 @@ vellykkede terminalkvitteringer:
 /home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json
 Alle kjørebevis og originale avvik ligger i samme run-root.
 
+Brukerbestilt omstart etter ferdig baseline er verifisert: Windows boot
+10.10.2026 21:51:28 UTC (23:51 norsk tid), ny WSL-boot og signert GPU-telemetri.
+Maskinens prosjektjobber, GPU-beregninger og prosjektlåser var ledige før omstart.
+Alle 160 native kildebindinger og 30 sentrale filer, inkludert initialtilstandens
+bytes, er uendret. Fsync-publiserte kontrollkvitteringer er intakte. Native
+treningsoppgave er deaktivert; omstarten startet eller autoriserte ingen trening.
+Bevis: samme run-root, HOST_BOUNDARY_002/POST_REBOOT.json.
+
 ## Bevart avvik og grenser
 
 Trygg Windows-/WSL-omstart ble gjennomført mellom core og komplett M1. Tre ferske

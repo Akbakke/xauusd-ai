@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T21:41:11.499085+00:00",
+  "observed_utc": "2026-10-10T21:53:51.698853+00:00",
   "status": "CORRECTED_FEATURE_REBUILD_AND_FRESH_INITIAL_BASELINE_COMPLETE_NO_EDGE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -158,8 +158,8 @@
     },
     "current_blocker": "No implementation blocker remains in this goal. Entry learning/generalization and profitability remain unproved; subsequent training requires separate admission.",
     "host_restart_observation": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
-      "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
+      "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
     },
     "restart_efficiency_request": {
       "operator_request": "Omstartene må ikke komme for sent (unngå blå heng) men må deles opp hyppig nok. Samtidig må vi finne en god effektivitet og mellomlagre så vi ikke mister info",
@@ -1978,7 +1978,11 @@
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
       "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
     },
-    "sampler_generation_scope": "HISTORY2009W_FEATURE_REPAIR_20261010"
+    "sampler_generation_scope": "HISTORY2009W_FEATURE_REPAIR_20261010",
+    "latest_manual_host_restart": {
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/POST_REBOOT.json",
+      "sha256": "73be90fe3a584540dc912f8b4756089f69d1908be10d207d9865036e4a1738f4"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
