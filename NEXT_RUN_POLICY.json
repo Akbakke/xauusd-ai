@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T05:57:00.603508+00:00",
-  "status": "ENTRY_LEARNING_STUDY_PREREGISTERED_BASELINE_ONLY",
+  "observed_utc": "2026-10-10T06:05:06.439886+00:00",
+  "status": "ENTRY_LEARNING_STUDY_FIT_1024_AUTHORIZED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the new explicitly bound four-step Entry learning study is authorized. Generic/full-epoch/full-VAL training remains disabled; prior plans remain consumed. TEST sealed.",
-  "next_action": "Run the fixed matched-row CPU HGB baseline once, then bind the separate guarded fit and curve phases to clean committed source and fresh physical boots.",
+  "next_action": "Materialize and execute only the new 1024-step small TRAIN fit with existing native guards after fresh machine-wide idle review and physical boot.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No measured learning result yet for the new finite study; only fixed CPU baseline is currently admitted. Native fit/curve needs exact new recipe/campaign and fresh physical boot.",
+    "current_blocker": "FIT needs bound fresh-boot native campaign; baseline complete, no new native optimizer steps yet.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -1377,9 +1377,9 @@
     "entry_learning_study_20261010": {
       "operator_request": "10.10.2026: Lag deg et nytt mål og kjør disse 4.",
       "goal_thread_id": "01a123d0-e7e1-79c3-900c-c56837ea0367",
-      "status": "PREREGISTERED_BASELINE_ONLY",
-      "authorized": true,
-      "authorized_mode": "entry-learning-baseline",
+      "status": "BASELINE_COMPLETE_FIT_PHASE_BOUND",
+      "authorized": false,
+      "authorized_mode": null,
       "spec": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_LEARNING_STUDY_20261010.json",
         "sha256": "47fbf7de1d9b4ed028316a74dc3d9d4844d5779fbd9099f6c1bb8fe8d6680e13"
@@ -1387,7 +1387,7 @@
       "native_launch_before_exact_recipe_binding": false,
       "stages": {
         "1": "PENDING_SMALL_TRAIN_FIT_1024_STEPS",
-        "2": "PENDING_MATCHED_BASELINE_AND_NATIVE_CURVE_16384_STEPS",
+        "2": "MATCHED_BASELINE_COMPLETE_NATIVE_CURVE_PENDING",
         "3": "PENDING_LATER_CONTROL4096",
         "4": "PENDING_EVIDENCE_REVIEW"
       },
@@ -1403,7 +1403,32 @@
       "full_epoch_allowed": false,
       "full_val_allowed": false,
       "no_adaptive_extension": true,
-      "prior_failed_learning_gate_preserved": true
+      "prior_failed_learning_gate_preserved": true,
+      "native_phase_authorized": "fit",
+      "baseline_result": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/BASELINE/RESULT.json",
+        "sha256": "20e99b3213d11182567ec56eeb0391efb77d648b830990103884af5c983c8b95"
+      },
+      "baseline_terminal": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/BASELINE/TERMINAL.json",
+        "sha256": "e4616dd4f87b070c16a60f7102e0a7f33af3422234c69897a6df2614ff14eec1"
+      },
+      "prepare_operator": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/PREPARE.py",
+        "sha256": "64995422b71775dca9caeba381e2b122e57a5d7a9d92f37ea6edd026aebbe8ef"
+      },
+      "phase_review_operator": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/REVIEW_PHASE.py",
+        "sha256": "327f5faf9d0f8ef93e7c82d853a6a455ad260ade22437cdb985f0be2916306af"
+      },
+      "final_review_operator": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/REVIEW_STUDY.py",
+        "sha256": "637b697c75114c71ba6616a5756d1aa39e8f35bb721a95648e5feda77b9e31b5"
+      },
+      "source_review": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/SOURCE_REVIEW.json",
+        "sha256": "764ae3a0f937248f7d3aa374adbb2a4d4afc39204ea320d6fced214d516258f4"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -3543,5 +3568,20 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
+  },
+  "entry_learning_study_run": {
+    "max_invocations": 1,
+    "optimizer_steps": 1024,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/FIT/CANDIDATE_BUNDLE",
+    "run_id": "ENTRY_LEARNING_FIT_20261010_001",
+    "selection": {
+      "phase": "fit",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_LEARNING_STUDY_20261010.json",
+        "sha256": "47fbf7de1d9b4ed028316a74dc3d9d4844d5779fbd9099f6c1bb8fe8d6680e13"
+      }
+    },
+    "source_bindings_sha256": "087c6468416c7ce2b8a5cd24bf103085bdb3c2ce15ec23280e7c839418c7ff8f",
+    "test_data_used": false
   }
 }

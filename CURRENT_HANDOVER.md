@@ -27,9 +27,11 @@ beviser mekanikk, ikke læring. Ingen optimizersteg i den nye studien er kjørt.
 
 Plan: configs/research/ENTRY_LEARNING_STUDY_20261010.json.
 Run-root: /home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001.
-Neste konkrete jobb er én capped CPU-baseline. Native fit/curve krever
-etterpå separate rene kilde-/recipe-/policybindinger og fysisk ny boot;
-ingen native launch er ennå materialisert. training_enabled=false gjelder
+CPU-baseline er fullført på kilde4f92781e:262144 fit-rader,254 snapshotfelt,
+to HGB-fits. Ingen av100 tretrinn slo samme-indre-TRAIN-konstant på noen
+side; begge referanser ble konstante. RESULT/TERMINAL er bundet i policy.
+Neste jobb er kun FIT1024 med egen recipe/campaign og fersk fysisk boot.
+CURVE16384 har fortsatt ingen materialisert launch. training_enabled=false gjelder
 generisk trening; full epoch/full VAL er stengt.
 
 ## Bevarte data, funksjon og vakter
