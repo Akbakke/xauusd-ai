@@ -2085,7 +2085,8 @@ def _entry_edge_begin(spec, mode, spec_path):
         error_prefix="ENTRY_EDGE_CPU")
     capped["lock"] = require_capped_lock_ancestry()
     policy = json.loads((ROOT / "NEXT_RUN_POLICY.json").read_text())
-    scope = policy["current_work"]["entry_edge_20261010"]
+    scope_key = "entry_learning_study_20261010" if mode == "entry-learning-baseline" else "entry_edge_20261010"
+    scope = policy["current_work"][scope_key]
     if (scope["authorized_mode"] != mode or scope["authorized"] is not True
             or scope["spec"] != {"path": str(spec_path.resolve()), "sha256": sha(spec_path)}):
         raise RuntimeError("ENTRY_EDGE_MODE_NOT_AUTHORIZED")
@@ -2539,9 +2540,187 @@ def run_entry_edge_probe(spec, spec_path):
         raise
 
 
+
+
+
+def entry_learning_prediction_metrics(prediction, target):
+    """Prediction evidence only: signed outcomes and all rows, never portfolio PnL."""
+    q,y=np.asarray(prediction,dtype=float),np.asarray(target,dtype=float)
+    if (q.shape!=y.shape or q.ndim!=2 or q.shape[1]!=3 or len(q)==0
+            or not np.isfinite(q).all() or not np.isfinite(y).all() or np.any(y[:,2]!=0)):
+        raise RuntimeError("ENTRY_STUDY_REVIEW_ARRAY_INVALID")
+    p=np.column_stack([q[:,:2],q[:,0]-q[:,1]])
+    truth=np.column_stack([y[:,:2],y[:,0]-y[:,1]])
+    error=p-truth
+    unique=(q==q.max(axis=1,keepdims=True)).sum(axis=1)==1
+    action=np.argmax(q,axis=1)
+    action[~unique]=2
+    correlations=[float(np.corrcoef(p[:,i],truth[:,i])[0,1])
+                  if np.std(p[:,i])>0 and np.std(truth[:,i])>0 else None for i in range(3)]
+    chosen=y[np.arange(len(y)),action]
+    return {"rows":len(y),"mse":np.mean(error**2,axis=0).tolist(),
+            "centered_mse":np.var(error,axis=0).tolist(),"bias":np.mean(error,axis=0).tolist(),
+            "prediction_std":np.std(p,axis=0).tolist(),"target_std":np.std(truth,axis=0).tolist(),
+            "correlation":correlations,"action_counts":np.bincount(action,minlength=3).tolist(),
+            "ties":int((~unique).sum()),"nonconstant_unique_actions":len(np.unique(action[unique]))>1,
+            "positive_estimated_entry_rows":int(((action!=2)&unique&(q[:,:2].max(axis=1)>0)).sum()),
+            "overlapping_selected_target_mean_bps":float(chosen.mean()),
+            "economic_rollout":False}
+
+
+def entry_learning_paired_review(*,initial,final,target,constant,time_ns,review):
+    """Fixed paired week bootstrap across the six predeclared comparisons."""
+    y=np.asarray(target,dtype=float)
+    constant=np.broadcast_to(np.asarray(constant,dtype=float),y.shape)
+    forecasts={"initial":np.asarray(initial,dtype=float),"final":np.asarray(final,dtype=float),"constant":constant}
+    metrics={k:entry_learning_prediction_metrics(q,y) for k,q in forecasts.items()}
+    clock=pd.DatetimeIndex(pd.to_datetime(time_ns,unit="ns",utc=True))
+    if len(clock)!=len(y) or clock.has_duplicates or not clock.is_monotonic_increasing:
+        raise RuntimeError("ENTRY_STUDY_REVIEW_CLOCK")
+    truth=np.column_stack([y[:,:2],y[:,0]-y[:,1]])
+    squared={k:(np.column_stack([q[:,:2],q[:,0]-q[:,1]])-truth)**2 for k,q in forecasts.items()}
+    diff=np.concatenate([squared["final"]-squared[k] for k in ("initial","constant")],axis=1)
+    week=(clock.tz_localize(None).to_period("W-SUN").start_time).astype(str)
+    weekly=pd.DataFrame(diff,columns=review["primary_learning_comparisons"]).groupby(week,sort=True).mean()
+    if len(weekly)<review["expected_block_weeks"] or review["multiplicity_comparisons"]!=diff.shape[1]:
+        raise RuntimeError("ENTRY_STUDY_REVIEW_INFERENCE_SUPPORT")
+    boot=np.asarray([weekly.to_numpy()[indices].mean(axis=0)
+        for indices in stationary_bootstrap_indices(len(weekly),
+            draws=review["bootstrap_replicates"],mean_block_length=review["expected_block_weeks"],
+            seed=review["bootstrap_seed"])])
+    tail=review["familywise_alpha"]/(2*review["multiplicity_comparisons"])
+    lower,upper=np.quantile(boot,[tail,1-tail],axis=0)
+    intervals={name:{"equal_week_mean":float(weekly[name].mean()),"family_adjusted_lower":float(lower[i]),
+                     "family_adjusted_upper":float(upper[i]),"weeks":len(weekly)}
+               for i,name in enumerate(weekly)}
+    numerical=bool(np.all(upper<0))
+    centered=all(np.all(np.asarray(metrics["final"]["centered_mse"])<metrics[k]["centered_mse"])
+                 for k in ("initial","constant"))
+    action=bool(metrics["final"]["nonconstant_unique_actions"] and metrics["final"]["positive_estimated_entry_rows"]>0)
+    month=clock.strftime("%Y-%m")
+    monthly={period:{key:entry_learning_prediction_metrics(q[month==period],y[month==period])
+                     for key,q in forecasts.items()} for period in sorted(set(month))}
+    return {"metrics":metrics,"paired_intervals":intervals,"monthly":monthly,
+            "numerical_gate":numerical,"centered_gate":centered,"action_gate":action,
+            "statistical_screen_pass":numerical and centered and action,
+            "period_and_operational_review_still_required":True,
+            "control_role":review["control_role"],"test_data_used":False,"profitability_proven":False}
+
+def run_entry_learning_baseline(spec, spec_path):
+    """Two fixed, purged HGB fits on the native curve's identical TRAIN rows."""
+    import time
+    import resource
+    import torch
+    from gx1.contracts.entry_observed_market_v1 import (
+        GROSS_TARGET_COLUMNS, require_entry_observed_market_scope, build_entry_observed_market_targets)
+    from gx1.scripts.research_entry_direction_walkforward_v1 import (
+        _list_column_to_matrix, feature_fit_lineage, require_feature_fit_before, _inner_split)
+    baseline = spec["baseline"]
+    if (spec["schema_version"] != "gx1_entry_learning_study_v1"
+            or baseline["fits"] != 2 or baseline["full_fit_rows"] != 262144
+            or baseline["max_iter"] != 100 or baseline["purge_bars"] != 19
+            or baseline["inputs"] != "all_254_raw_snapshot_fields"
+            or spec["execution"]["test_data_used"] is not False):
+        raise RuntimeError("ENTRY_STUDY_BASELINE_BUDGET_INVALID")
+    run = {**spec, "output":str(Path(spec["root"])/"BASELINE"),
+           "memory_max_bytes":spec["execution"]["cpu_memory_max_bytes"],
+           "max_wall_seconds":baseline["cpu_wall_seconds"]}
+    out, capped = _entry_edge_begin(run, "entry-learning-baseline", spec_path)
+    started, head = time.monotonic(), git("rev-parse","HEAD")
+    try:
+        scope = require_entry_observed_market_scope(spec)
+        rows = {key:np.load(_entry_edge_bound(binding), allow_pickle=False)
+                for key,binding in spec["row_bindings"].items()}
+        fit = np.sort(rows["epoch_order"][:baseline["full_fit_rows"]])
+        if (len(np.unique(fit)) != baseline["full_fit_rows"]
+                or not np.array_equal(np.sort(rows["epoch_order"]),
+                                      np.arange(scope["physical_sources"]["train"]["physical_rows"]))):
+            raise RuntimeError("ENTRY_STUDY_BASELINE_FIT_ROWS")
+        inputs, targets, clocks, manifests = {}, {}, {}, {}
+        for split in ("train","val"):
+            source = scope["physical_sources"][split]
+            manifest = json.loads(_entry_edge_bound(source["manifest"]).read_text())
+            names = manifest["feature_contract"]["signal_bridge_fields"]
+            if len(names) != 254 or (split == "val" and names != manifests["train"]["feature_contract"]["signal_bridge_fields"]):
+                raise RuntimeError("ENTRY_STUDY_BASELINE_FEATURES")
+            table = pq.read_table(str(_entry_edge_bound(source["parquet"])),
+                                  columns=["time","snap",*GROSS_TARGET_COLUMNS])
+            clock = pd.DatetimeIndex(pd.to_datetime(table.column("time").to_pandas(),utc=True)).as_unit("ns")
+            if (len(clock) != source["physical_rows"] or clock.has_duplicates or not clock.is_monotonic_increasing
+                    or hashlib.sha256(np.asarray(clock.asi8,dtype="<i8").tobytes()).hexdigest() != source["clock_sha256"]):
+                raise RuntimeError("ENTRY_STUDY_BASELINE_CLOCK")
+            x = _list_column_to_matrix(table,"snap",len(names),np.float64)
+            if not np.isfinite(x).all():
+                raise RuntimeError("ENTRY_STUDY_BASELINE_NONFINITE_INPUT")
+            gross = np.column_stack([table.column(n).to_numpy() for n in GROSS_TARGET_COLUMNS]).astype(np.float32)
+            y = build_entry_observed_market_targets(
+                gross_return_bps=torch.from_numpy(gross),
+                elapsed_wall_clock_seconds=torch.full((len(clock),),scope["elapsed_wall_clock_seconds"],dtype=torch.int64),
+                economics=scope["economics"])["target_bps"].numpy()
+            selected = fit if split == "train" else rows["control"]
+            boundary = scope["train_control_cutoff" if split=="train" else "development_control_entry_end_exclusive"]
+            if (clock[selected[-1]] + pd.Timedelta(seconds=300+scope["elapsed_wall_clock_seconds"]) > pd.Timestamp(boundary)):
+                raise RuntimeError("ENTRY_STUDY_BASELINE_OUTCOME_BOUNDARY")
+            inputs[split], targets[split], clocks[split], manifests[split] = x,y,clock,manifest
+            del table,gross
+        if clocks["train"][fit[-1]]+pd.Timedelta(seconds=300+scope["elapsed_wall_clock_seconds"]) >= clocks["val"][rows["control"][0]]+pd.Timedelta(minutes=5):
+            raise RuntimeError("ENTRY_STUDY_BASELINE_FIT_CONTROL_OVERLAP")
+        lineage = feature_fit_lineage(manifests["train"]["extra"]["multi_tf_cache_binding"])
+        inner_fit,inner_val = _inner_split(len(fit),baseline["inner_fraction"],
+            fit_positions=fit,purge_bars=baseline["purge_bars"])
+        require_feature_fit_before(lineage, clocks["train"][fit[inner_val][0]],context="Entry study HGB inner hold")
+        require_feature_fit_before(lineage, clocks["val"][rows["control"][0]],context="Entry study CONTROL")
+        xpred = np.concatenate([inputs["train"][rows["train_probe"]],inputs["val"][rows["control"]]])
+        predictions = np.zeros((len(xpred),3),dtype=np.float64)
+        fits = []
+        for side in range(2):
+            predictions[:,side], info = fit_hgb(
+                inputs["train"][fit],targets["train"][fit,side].astype(float),xpred,
+                inner_fraction=baseline["inner_fraction"],max_iter=baseline["max_iter"],
+                seed=baseline["seed"],fit_positions=fit,purge_bars=baseline["purge_bars"],
+                learning_rate=baseline["learning_rate"],min_samples_leaf=baseline["min_samples_leaf"])
+            fits.append(info)
+            write_json(out / f"SIDE_{side}.json",info)
+            print(json.dumps({"event":"ENTRY_STUDY_BASELINE_SIDE","side":side,"fit":info,
+                              "elapsed_seconds":time.monotonic()-started}),flush=True)
+        if not np.isfinite(predictions).all():
+            raise RuntimeError("ENTRY_STUDY_BASELINE_PREDICTION_INVALID")
+        frames=[]
+        offset=0
+        for role,split,selection in (("train","train",rows["train_probe"]),("control","val",rows["control"])):
+            frame=pd.DataFrame({"role":role,"parent_row":selection,"time":clocks[split][selection]})
+            for side,name in enumerate(("long","short","flat")):
+                frame["target_"+name]=targets[split][selection,side]
+                frame["prediction_"+name]=predictions[offset:offset+len(selection),side]
+            frames.append(frame);offset+=len(selection)
+        write_parquet(out/"PREDICTIONS.parquet",pd.concat(frames,ignore_index=True))
+        result={"schema_version":"gx1_entry_learning_study_baseline_v1","status":"COMPLETE",
+            "plan":{"path":str(spec_path),"sha256":sha(spec_path)},"source_commit":head,
+            "fit_rows":len(fit),"fit_rows_sha256":hashlib.sha256(fit.astype("<i8").tobytes()).hexdigest(),
+            "fit_time_range":[str(clocks["train"][fit[0]]),str(clocks["train"][fit[-1]])],
+            "all_254_snapshot_fields":names,"feature_fit_lineage":lineage,"fits":fits,
+            "train_constant_bps":targets["train"][fit].astype(float).mean(axis=0).tolist(),
+            "small_fit_constant_bps":targets["train"][rows["fit"]].astype(float).mean(axis=0).tolist(),
+            "predictions":{"path":str(out/"PREDICTIONS.parquet"),"sha256":sha(out/"PREDICTIONS.parquet")},
+            "elapsed_seconds":time.monotonic()-started,"peak_rss_kib":resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+            "capped_execution":capped,"control_role":spec["review"]["control_role"],
+            "test_accessed":False,"native_training":False,"economic_rollout":False,
+            "sequence_equivalence_claimed":False}
+        if git("rev-parse","HEAD") != head or git("status","--porcelain"):
+            raise RuntimeError("ENTRY_STUDY_SOURCE_CHANGED")
+        write_json(out/"RESULT.json",result)
+        write_json(out/"TERMINAL.json",{"exit_code":0,"source_unchanged":True,
+            "result":{"path":str(out/"RESULT.json"),"sha256":sha(out/"RESULT.json")}})
+        return {"status":"COMPLETE","output":str(out)}
+    except BaseException as exc:
+        write_json(out/"TERMINAL.json",{"exit_code":1,"error_type":type(exc).__name__,"error":str(exc),
+                                       "source_commit":head})
+        raise
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -2555,7 +2734,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

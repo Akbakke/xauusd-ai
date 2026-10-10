@@ -75,3 +75,19 @@ trent del av samme prefix i en separat sesjon, uten nye unike rader eller
 CONTROL-målinger. Den sammenligner komplett tilstand med originalen og er
 driftsbevis; den endrer ikke den negative læringsporten eller treningsbudsjettet
 til den opprinnelige kandidaten. Bare eksakt scope i NEXT_RUN_POLICY gjelder.
+
+## Ny forhåndsregistrert læringsstudie
+
+Den senere bestillingen10.10 åpner bare den separate finite studien i
+configs/research/ENTRY_LEARNING_STUDY_20261010.json. Den endrer ikke smokens
+REJECT eller fulltreningsporten. Liten TRAIN-memorisering er en fit-diagnose.
+Den nye kurven har fersk initialbaseline, fast sluttpunkt, samme targets og
+kostnader og en TRAIN-konstant fra de samme 262144 radene.
+
+På senere CONTROL4096 er seks primære parvise sammenligninger forhåndsvalgt:
+LONG/SHORT/kontrast mot initial og TRAIN-konstant. Samme ukeblokktrekk brukes
+for alle seks; Bonferroni-justerte intervaller, sentrerte feil, handlinger og
+alle måneder rapporteres. HGB er enkel informasjonsreferanse, ikke ny
+beslutningsautoritet. Numerisk skjerm krever fortsatt periode- og driftsreview.
+Bare kvalifisert Entry kan begrunne etterfølgende Entry-bevarende Exit og
+komplett økonomi; manglende kriterier gir ingen forlengelse eller trading-PASS.

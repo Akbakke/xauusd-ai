@@ -48,7 +48,7 @@ at siste batch, lagring og terminal får plass innen eksisterende ytre vakt.
 Rapporter beregningstid og lagre-/laste-/oppstartstid separat.
 Ingen kalenderjobb avbryter aktivt arbeid. Omstart beviser ikke løst BSOD-årsak.
 
-## Avgrenset smoke og review
+## Avgrenset smoke og review (opprinnelig 256-stegsmetode)
 
 1. Bruk den særskilt bundne native prøven: høyst256 optimizersteg og4096
    TRAIN-Entries, batch16, seed20260911, eksisterende AdamW/scheduler,
@@ -83,3 +83,26 @@ Lokale prospective kostreceipts er ikke historisk kostfasit.
 
 Regler: GX1_RULES.md. TEST, broker, live/paper, handel, spending og promotion
 er stengt. GC og andre forskningsarmer åpnes ikke av denne metoden.
+
+## Separat avgrenset læringskurve
+
+En eksplisitt bestilt læringsstudie kan binde et eget endelig budsjett etter
+diagnose, uten å omskrive gammel negativ smoke til PASS. Planen
+configs/research/ENTRY_LEARNING_STUDY_20261010.json binder to ferske
+initialiseringer: 1024 steg med 256 faste TRAIN-rader og 16384 steg med
+262144 unike rader fra den opprinnelige epoch-rekkefølgen. Ingen full epoch.
+Arkitektur, alle 254 felt, åtte familier, tapsfunksjoner og optimizer er like.
+
+Nullmåling og faste mellomtrinn skjer i eval-modus på deklarerte rader;
+modelltilstand og RNG skal være uendret etter måling. Kontroll av 4096 senere
+CONTROL-rader skjer bare ved initialisering og det forhåndsvalgte sluttsteget.
+Ingen checkpoint eller parameter velges på CONTROL. Alle CONTROL-resultater
+er gjenbrukt utvikling; TEST åpnes ikke. HGB-referansen bruker alle 254 rå
+snapshotfelt og samme 262144 fit-rader, med purget indre kronologisk TRAIN-valg.
+Den representerer ikke sekvensmodellens fulle inputflate.
+
+Eksisterende atomiske to-slot-checkpoints eier resume. Mellomobservasjoner
+bevarer modellhash, RNG-hash, pekerinnhold, rader, mål og prognoser; en gammel
+mellomvekt beholdes ikke som separat checkpoint etter at eieren roterer sloten.
+Sluttcheckpoint og initial TARGET-state består. Review-metoden og eventuell
+videre kvalifisering er registrert før noen av de nye fits kjøres.

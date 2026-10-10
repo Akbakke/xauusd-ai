@@ -1678,6 +1678,10 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "entry_learning_study" in recipe:
+        return require_entry_learning_study_run(
+            recipe, invocation_number=invocation_number,
+            execution_budget=execution_budget)["phase_spec"]["optimizer_steps"]
     observed_replay = False
     if "entry_observed_market" in recipe and "chronological_learning_continuation" in recipe:
         observed_replay = require_chronological_continuation(recipe).get("resume_equivalence") is True
@@ -2150,3 +2154,98 @@ def build_native_cursor(
     }
     cursor["cursor_sha256"] = canonical_sha256(cursor)
     return require_native_cursor(cursor, expected_recipe=recipe)
+
+
+def require_entry_learning_study_run(recipe, *, invocation_number=None, execution_budget=None):
+    """Admit the separately authorized finite study; retain every native guard."""
+    import numpy as np
+    from gx1.contracts.entry_observed_market_v1 import require_entry_observed_market_scope
+    selection = recipe.get("entry_learning_study")
+    if (not isinstance(selection, Mapping) or set(selection) != {"plan", "phase"}
+            or selection.get("phase") not in ("fit", "curve")
+            or any(k in recipe for k in ("chronological_initial_measurement",
+                "chronological_learning_measurement", "chronological_learning_continuation",
+                "chronological_train_only_measurement", "chronological_entry_baseline",
+                "candidate_resume_origin", "native_calibration", "entry_gradient_diagnostic",
+                "frozen_readout_evaluation", "frozen_train_policy_evaluation", "frozen_entry_selector_probe"))):
+        raise RuntimeError("ENTRY_STUDY_MIXED_SCOPE")
+    binding = require_binding(selection["plan"], label="Entry learning study", verify_file=True)
+    plan = read_bound_json(Path(binding["path"]), binding["sha256"])
+    phase = selection["phase"]
+    if (plan.get("schema_version") != "gx1_entry_learning_study_v1"
+            or plan.get("files") != recipe.get("files")
+            or plan.get("chronological_prefix") != recipe.get("chronological_prefix")
+            or plan.get("entry_observed_market") != recipe.get("entry_observed_market")
+            or recipe.get("initialization") != "fresh_existing_model_constructor_no_checkpoint_weights"
+            or set(plan.get("phases", {})) != {"fit", "curve"}
+            or plan["execution"].get("test_data_used") is not False
+            or any(plan["execution"].get(k) is not False for k in (
+                "broker_access", "spending", "horizon_changes", "full_epoch_training_allowed",
+                "full_val_allowed", "exit_training_authorized_without_entry_qualification"))
+            or plan["model"] != {"unchanged_architecture":True, "signal_fields":254,
+                "feature_families":8, "fresh_initialization_each_phase":True,
+                "optimizer_and_loss_unchanged":True, "seed":20260911}):
+        raise RuntimeError("ENTRY_STUDY_INPUT_OR_OBJECTIVE_CHANGED")
+    prefix = require_chronological_prefix_recipe(recipe)
+    observed = require_entry_observed_market_scope(recipe)
+    rows = {}
+    for name, b in plan["row_bindings"].items():
+        checked = require_binding(b, label="Entry study rows " + name, verify_file=True)
+        a = np.load(checked["path"], allow_pickle=False)
+        if a.dtype != np.dtype("int64") or a.ndim != 1 or len(a) < 1 or np.any(a < 0):
+            raise RuntimeError("ENTRY_STUDY_ROWS_INVALID")
+        rows[name] = a
+    n = observed["physical_sources"]["train"]["physical_rows"]
+    nv = observed["physical_sources"]["val"]["physical_rows"]
+    if (set(rows) != {"epoch_order", "fit", "train_probe", "control"}
+            or not np.array_equal(np.sort(rows["epoch_order"]), np.arange(n))
+            or len(rows["fit"]) != 256 or len(np.unique(rows["fit"])) != 256
+            or not np.isin(rows["fit"], rows["epoch_order"][:4096]).all()
+            or not np.array_equal(rows["train_probe"], np.sort(rows["epoch_order"][:4096]))
+            or not np.array_equal(rows["control"], np.linspace(0,nv-1,4096,dtype=np.int64))
+            or plan["row_bindings"]["epoch_order"]
+               != prefix["physical_coordinates"]["artifact"]["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"]):
+        raise RuntimeError("ENTRY_STUDY_POPULATION_CHANGED")
+    phase_spec = plan["phases"][phase]
+    fixed = {
+        "fit": {"optimizer_steps":1024, "train_observation_steps":[0,64,256,1024],
+                "control_observation_steps":[], "max_invocations":1, "unique_train_rows":256},
+        "curve": {"optimizer_steps":16384, "train_observation_steps":[0,256,1024,4096,8192,16384],
+                  "control_observation_steps":[0,16384], "max_invocations":2,
+                  "unique_train_rows":262144},
+    }[phase]
+    if (set(phase_spec) != set(fixed) | {"run_id"}
+            or any(type(phase_spec.get(k)) is not type(v) or phase_spec.get(k) != v for k,v in fixed.items())
+            or recipe.get("run_id") != phase_spec["run_id"]
+            or recipe.get("out_bundle_dir") != str(Path(plan["root"]) / phase.upper() / "CANDIDATE_BUNDLE")):
+        raise RuntimeError("ENTRY_STUDY_FINITE_BUDGET_CHANGED")
+    repo = Path(__file__).resolve().parents[2]
+    pb = require_binding(recipe.get("next_run_policy"), label="Entry study policy", verify_file=True)
+    if Path(pb["path"]) != repo / "NEXT_RUN_POLICY.json":
+        raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
+    policy = read_bound_json(Path(pb["path"]), pb["sha256"])
+    _require_native_profile_and_economics(recipe, policy, repo)
+    expected = {"selection":selection, "run_id":recipe["run_id"],
+        "out_bundle_dir":recipe["out_bundle_dir"],
+        "source_bindings_sha256":recipe["source_bindings_sha256"],
+        "optimizer_steps":phase_spec["optimizer_steps"],
+        "max_invocations":phase_spec["max_invocations"], "test_data_used":False}
+    if (policy.get("training_enabled") is not False
+            or policy.get("full_epoch_training_allowed") is not False
+            or policy.get("full_val_allowed") is not False
+            or policy.get("entry_learning_study_run") != expected
+            or any(k in policy for k in ("chronological_learning_run", "chronological_initial_measurement",
+                "native_learning_calibration", "frozen_readout_evaluation"))):
+        raise RuntimeError("ENTRY_STUDY_NOT_AUTHORIZED")
+    if invocation_number is not None and (
+            type(invocation_number) is not int or not 1 <= invocation_number <= phase_spec["max_invocations"]):
+        raise RuntimeError("ENTRY_STUDY_INVOCATION_INVALID")
+    if execution_budget is not None and (
+            type(execution_budget.get("stop_after_optimizer_steps")) is not int
+            or execution_budget["stop_after_optimizer_steps"] != phase_spec["optimizer_steps"]
+            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or execution_budget.get("max_invocation_seconds") != 12000
+            or "resume_probe_val_rows" in execution_budget):
+        raise RuntimeError("ENTRY_STUDY_EXECUTION_BUDGET_INVALID")
+    return {"selection":selection, "plan":plan, "phase":phase, "phase_spec":phase_spec,
+            "rows":rows, "observed_scope":observed}

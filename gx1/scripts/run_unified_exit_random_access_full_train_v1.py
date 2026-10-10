@@ -87,7 +87,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -785,6 +785,8 @@ def _run_bound_full_train_candidate(
         ),
         candidate_resume_origin=candidate_resume_origin,
         chronological_continuation=components.get("chronological_continuation"),
+        entry_learning_study=components.get("entry_learning_study"),
+        entry_learning_observer=components.get("entry_learning_observer"),
         **({"chronological_prefix": components["chronological_prefix"]} if "chronological_prefix" in components else {}),
     )
 
@@ -878,6 +880,12 @@ def run_guarded_native_candidate_invocation(
             learning_scope["continuation"] = continuation
             components["chronological_continuation"] = continuation
         _restore_prefix_initial_measurement_state(components=components, scope=learning_scope, device=device)
+    if "entry_learning_study" in recipe:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_entry_learning_study_run
+        study = require_entry_learning_study_run(recipe, execution_budget=budget)
+        components["entry_learning_study"] = study
+        components["entry_learning_observer"] = _entry_learning_study_observer(
+            components=components, study=study, recipe=recipe, device=device, output=output)
     try:
         result = _run_bound_full_train_candidate(
             components=components, files=files, device=device,
@@ -933,6 +941,120 @@ def run_guarded_native_candidate_invocation(
         "bundle_written": False, "test_data_used": False,
     }
 
+
+
+def _entry_learning_study_observer(*, components, study, recipe, device, output):
+    """Observe only predeclared rows/steps, without changing training RNG or state."""
+    from gx1.contracts.entry_observed_market_v1 import (
+        entry_learning_study_control_dataset, entry_observed_market_batch_targets,
+    )
+    from gx1.contracts.unified_exit_random_access_state_view_v1 import _structured_sha256
+    from gx1.scripts.benchmark_unified_exit_random_access_train_v1 import _atomic_write_new_json
+    def rng_identity(value):
+        if isinstance(value, torch.Tensor):
+            return value.detach().cpu().numpy()
+        if isinstance(value, Mapping):
+            return {key:rng_identity(item) for key,item in value.items()}
+        if isinstance(value, (list,tuple)):
+            return [rng_identity(item) for item in value]
+        return value
+    def rng_hash():
+        return _structured_sha256(rng_identity(trainer._attended_session_rng_state(device=device)))
+    model = components["model"]
+    datasets = {"train":components["train_probe_ds"]}
+    if study["phase"] == "curve":
+        datasets["control"] = entry_learning_study_control_dataset(components["val_ds"], study=study)
+    directory = output.parent / "OBSERVATIONS"
+    directory.mkdir(exist_ok=True)
+    rows_by_role = {"train":study["rows"]["fit" if study["phase"] == "fit" else "train_probe"],
+                    "control":study["rows"]["control"]}
+    for role, dataset in datasets.items():
+        if not np.array_equal(dataset.indices, np.arange(len(dataset))):
+            raise RuntimeError("ENTRY_STUDY_NONIDENTITY_DATASET_INDEX")
+        if not dataset._policy_dependent_auxiliary_bound_rows[rows_by_role[role]].all():
+            raise RuntimeError("ENTRY_STUDY_UNBOUND_EVALUATION_ROWS")
+
+    def observe(*, optimizer_steps, session):
+        roles = [role for role in datasets
+                 if optimizer_steps in study["phase_spec"][role + "_observation_steps"]]
+        if not roles:
+            return
+        original_mode = model.training
+        state_hash = trainer._model_state_sha256(model)
+        original_rng_hash = rng_hash()
+        try:
+            model.eval()
+            for role in roles:
+                target_path = directory / f"step_{optimizer_steps:06d}_{role}.json"
+                if target_path.exists():
+                    old = val._read(target_path)
+                    if (old["model_state_sha256"] != state_hash
+                            or old["entry_learning_study"] != study["selection"]
+                            or old["optimizer_steps"] != optimizer_steps):
+                        raise RuntimeError("ENTRY_STUDY_OBSERVATION_COLLISION")
+                    continue
+                rows = rows_by_role[role]
+                dataset = datasets[role]
+                loader = val.DataLoader(dataset, batch_size=16, sampler=val._ExactSampler(rows.tolist()),
+                    num_workers=0, generator=torch.Generator().manual_seed(0))
+                predictions, targets = [], []
+                consumed = 0
+                for batch in loader:
+                    count = len(batch["entry_row_index"])
+                    if batch["entry_row_index"].tolist() != rows[consumed:consumed+count].tolist():
+                        raise RuntimeError("ENTRY_STUDY_OBSERVATION_ROW_MAPPING")
+                    with torch.inference_mode():
+                        result = trainer._model_forward_fp32(
+                            model, batch["seq_x"].to(device), batch["snap_x"].to(device),
+                            ctx_cat=batch["ctx_cat"].to(device), ctx_cont=batch["ctx_cont"].to(device),
+                            **trainer._multi_tf_kwargs_from_batch(batch, device))
+                        q = result["entry_action_q_bps"]
+                        y, valid = entry_observed_market_batch_targets(batch, device=device)
+                    if (q.shape != (count,3) or q.dtype != torch.float32
+                            or not bool(torch.isfinite(q).all()) or not bool(valid.all())):
+                        raise RuntimeError("ENTRY_STUDY_OBSERVATION_INVALID")
+                    predictions.append(q.detach().cpu().numpy().copy())
+                    targets.append(y.detach().cpu().numpy().copy())
+                    consumed += count
+                if consumed != len(rows):
+                    raise RuntimeError("ENTRY_STUDY_OBSERVATION_INCOMPLETE")
+                q, y = np.concatenate(predictions), np.concatenate(targets)
+                error = q.astype(float)-y.astype(float)
+                contrast_error = error[:,0]-error[:,1]
+                actions = np.argmax(q,axis=1)
+                unique = (q == q.max(axis=1,keepdims=True)).sum(axis=1) == 1
+                report = {"schema_version":"gx1_entry_learning_study_observation_v1",
+                    "entry_learning_study":study["selection"], "role":role,
+                    "optimizer_steps":optimizer_steps, "rows":rows.tolist(),
+                    "time_ns":val.pd.DatetimeIndex(val.pd.to_datetime(dataset.df.iloc[rows]["time"],utc=True)).as_unit("ns").asi8.tolist(),
+                    "source":study["observed_scope"]["physical_sources"]["train" if role=="train" else "val"],
+                    "model_state_sha256":state_hash,
+                    "native_recipe_source_bindings_sha256":recipe["source_bindings_sha256"],
+                    "training_pointer_snapshot":val._read(session._active_path),
+                    "training_pointer_origin":str(session._active_path),
+                    "checkpoint_retention":"existing two-slot owner; intermediate model identity and predictions preserved here",
+                    "training_rng_sha256":original_rng_hash,
+                    "predictions_bps":q.tolist(),"targets_bps":y.tolist(),
+                    "metrics":{"side_mse":np.mean(error[:,:2]**2,axis=0).tolist(),
+                        "side_centered_mse":np.mean((error[:,:2]-error[:,:2].mean(axis=0))**2,axis=0).tolist(),
+                        "contrast_mse":float(np.mean(contrast_error**2)),
+                        "contrast_centered_mse":float(np.mean((contrast_error-contrast_error.mean())**2)),
+                        "action_counts":np.bincount(actions,minlength=3).tolist(),
+                        "ties":int((~unique).sum()),
+                        "positive_estimated_entry_rows":int(((q[:,:2].max(axis=1)>0)&(actions!=2)&unique).sum())},
+                    "economic_rollout":False,"exit_forwards":0,"test_data_used":False}
+                if (trainer._model_state_sha256(model) != state_hash
+                        or rng_hash() != original_rng_hash):
+                    raise RuntimeError("ENTRY_STUDY_OBSERVATION_MUTATED_TRAINING")
+                _atomic_write_new_json(target_path,report)
+                print(json.dumps({"event":"ENTRY_STUDY_OBSERVATION","phase":study["phase"],
+                    "role":role,"optimizer_steps":optimizer_steps,"rows":len(rows),
+                    "metrics":report["metrics"]}),flush=True)
+        finally:
+            model.train(original_mode)
+        if rng_hash() != original_rng_hash:
+            raise RuntimeError("ENTRY_STUDY_OBSERVER_RNG_CHANGED")
+    return observe
 
 
 def _entry_gradient_pair(*, model, batch, target, valid, expected_prediction, device):

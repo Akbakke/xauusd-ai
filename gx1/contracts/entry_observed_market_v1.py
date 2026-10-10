@@ -277,7 +277,9 @@ def bind_entry_observed_market_dataset(dataset: Any, scope: Mapping[str, Any]) -
     mask = getattr(dataset, "_policy_dependent_auxiliary_bound_rows", None)
     if (
         not isinstance(auxiliary, Mapping) or auxiliary.get("mode") != "original_physical_split_targets"
-        or auxiliary.get("role") not in ("TRAIN", "CONTROL256")
+        or auxiliary.get("role") not in ("TRAIN", "CONTROL256", "CONTROL_STUDY")
+        or (auxiliary.get("role") == "CONTROL_STUDY"
+            and not isinstance(auxiliary.get("entry_learning_study"), Mapping))
         or not isinstance(mask, np.ndarray) or mask.dtype != np.bool_
         or mask.shape != (len(dataset.df),) or not bool(mask.any())
         or scope["training_phase"] != "entry_only"
@@ -359,3 +361,49 @@ def require_entry_only_gradients(model: torch.nn.Module) -> None:
                 if is_exit_owned_parameter(name)]
     if not inactive or any(parameter.grad is not None for _, parameter in inactive):
         raise RuntimeError("ENTRY_OBSERVED_MARKET_EXIT_GRADIENT_FORBIDDEN")
+
+
+def entry_learning_study_loader_order(epoch_order, *, study):
+    """Repeat only the declared fit cohort; preserve the durable epoch cursor."""
+    import numpy as np
+    if (epoch_order.dtype != torch.int64 or epoch_order.ndim != 1
+            or not np.array_equal(epoch_order.cpu().numpy(), study["rows"]["epoch_order"])):
+        raise RuntimeError("ENTRY_STUDY_NATIVE_ORDER_CHANGED")
+    if study["phase"] == "curve":
+        return epoch_order
+    if study["phase"] != "fit":
+        raise RuntimeError("ENTRY_STUDY_PHASE_INVALID")
+    order = epoch_order.clone()
+    draws = study["phase_spec"]["optimizer_steps"] * 16
+    cohort = study["rows"]["fit"]
+    if draws > len(order) or len(cohort) != 256 or len(np.unique(cohort)) != 256:
+        raise RuntimeError("ENTRY_STUDY_FIT_ORDER_INVALID")
+    order[:draws] = torch.as_tensor(np.resize(cohort, draws).copy(), dtype=torch.int64)
+    return order
+
+
+def entry_learning_study_control_dataset(dataset, *, study):
+    """Bind a separate read-only evaluation view of the original physical VAL."""
+    import copy
+    import numpy as np
+    original = getattr(dataset, "_policy_dependent_auxiliary_binding", None)
+    if (study["phase"] != "curve" or not isinstance(original, Mapping)
+            or original.get("role") != "CONTROL256"
+            or original.get("mode") != "original_physical_split_targets"
+            or original["parent_entry_parquet"] != study["observed_scope"]["physical_sources"]["val"]["parquet"]):
+        raise RuntimeError("ENTRY_STUDY_CONTROL_SOURCE_INVALID")
+    rows = study["rows"]["control"]
+    if len(rows) != 4096 or not np.array_equal(rows, np.unique(rows)) or rows[-1] >= len(dataset.df):
+        raise RuntimeError("ENTRY_STUDY_CONTROL_ROWS_INVALID")
+    view = copy.copy(dataset)
+    mask = np.zeros(len(dataset.df), dtype=bool)
+    mask[rows] = True
+    mask.setflags(write=False)
+    view._policy_dependent_auxiliary_bound_rows = mask
+    view._policy_dependent_auxiliary_binding = {
+        **original, "role":"CONTROL_STUDY", "rows":len(rows),
+        "row_binding":study["plan"]["row_bindings"]["control"],
+        "entry_learning_study":study["selection"]}
+    view._entry_observed_market_binding = None
+    bind_entry_observed_market_dataset(view, study["observed_scope"])
+    return view

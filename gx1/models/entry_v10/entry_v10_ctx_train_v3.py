@@ -14251,6 +14251,8 @@ def _run_resumable_candidate_training(
     candidate_resume_origin: Optional[Mapping[str, Any]] = None,
     chronological_prefix: Mapping[str, Any] | None = None,
     chronological_continuation: Mapping[str, Any] | None = None,
+    entry_learning_study: Mapping[str, Any] | None = None,
+    entry_learning_observer: Any = None,
 ) -> dict[str, Any]:
     """Run one full candidate through durable train/VAL phase checkpoints.
 
@@ -14266,6 +14268,14 @@ def _run_resumable_candidate_training(
     prefix_binding = None
     prefix_epoch0_order = None
     prefix_ceiling = 256
+    if entry_learning_study is not None:
+        if (chronological_prefix is None or chronological_continuation is not None
+                or candidate_resume_origin is not None or not callable(entry_learning_observer)
+                or getattr(train_ds, "_entry_observed_market_binding", None) is None):
+            raise RuntimeError("[CANDIDATE_ENTRY_STUDY_CONTEXT_INVALID]")
+        prefix_ceiling = entry_learning_study["phase_spec"]["optimizer_steps"]
+    elif entry_learning_observer is not None:
+        raise RuntimeError("[CANDIDATE_ENTRY_STUDY_UNBOUND_OBSERVER]")
     if chronological_continuation is not None:
         replay = chronological_continuation.get("resume_equivalence") is True
         expected_start, expected_stop = (192,256) if replay else (256,512)
@@ -14285,6 +14295,9 @@ def _run_resumable_candidate_training(
             chronological_prefix=chronological_prefix, train_ds=train_ds, val_ds=val_ds,
             train_parquet=train_parquet, val_parquet=val_parquet, input_normalization=input_normalization,
             model=model, seed=seed, batch_size=batch_size, learning_rate=lr, weight_decay=weight_decay)
+        if entry_learning_study is not None:
+            prefix_binding.update(maximum_optimizer_steps=prefix_ceiling,
+                                  entry_learning_study=entry_learning_study["selection"])
         if chronological_continuation is not None:
             if (prefix_binding["model_functions"] == _PREFIX_CURRENT_MODEL_FUNCTIONS
                     and chronological_continuation.get("resume_equivalence") is not True):
@@ -14616,6 +14629,8 @@ def _run_resumable_candidate_training(
             int(bool(complete_value)),
             time.monotonic() - checkpoint_started,
         )
+        if entry_learning_observer is not None:
+            entry_learning_observer(optimizer_steps=int(global_optimizer_steps), session=session)
         if not complete_value:
             _pause_if_due(
                 phase_value=phase_value,
@@ -14656,6 +14671,8 @@ def _run_resumable_candidate_training(
         )
         return _result()
 
+    if entry_learning_observer is not None:
+        entry_learning_observer(optimizer_steps=int(global_optimizer_steps), session=session)
     _pause_if_due(
         phase_value=phase,
         epoch_value=epoch_index,
@@ -14742,6 +14759,9 @@ def _run_resumable_candidate_training(
                     raise RuntimeError("[CANDIDATE_ENTRY_LEARNABILITY_SAMPLE_PLAN_MISMATCH]")
                 log.info("[CANDIDATE_ENTRY_LEARNABILITY_REPLAY] offset=%d ceiling=%d cohort_sha256=%s data_coverage_advanced=0",
                          next_batch_offset, control["step_ceiling"], origin["cohort"]["sha256"])
+            if entry_learning_study is not None:
+                from gx1.contracts.entry_observed_market_v1 import entry_learning_study_loader_order
+                loader_order = entry_learning_study_loader_order(epoch_order, study=entry_learning_study)
             train_loader = DataLoader(
                 train_ds,
                 batch_size=batch_size,

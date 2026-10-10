@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T04:09:27.236859+00:00",
-  "status": "FOUR_STEPS_COMPLETE_NO_ENTRY_EDGE_ADMITTED",
+  "observed_utc": "2026-10-10T05:57:00.603508+00:00",
+  "status": "ENTRY_LEARNING_STUDY_PREREGISTERED_BASELINE_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Scope consumed. Preserve evidence; a future attempt needs a distinct causal information hypothesis and its own finite preregistration. No automatic search, weaker gate, horizon change, or training extension.",
+  "rule": "Only the new explicitly bound four-step Entry learning study is authorized. Generic/full-epoch/full-VAL training remains disabled; prior plans remain consumed. TEST sealed.",
+  "next_action": "Run the fixed matched-row CPU HGB baseline once, then bind the separate guarded fit and curve phases to clean committed source and fresh physical boots.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "Four Entry-edge research steps complete. Measured gradient path works; fixed interaction probe not qualified; all 529545 decisions FLAT. No native change or launch authority remains.",
+    "current_activity": "New finite Entry learning study: small fixed TRAIN fit, native learning curve, later reused CONTROL measurement, evidence-based follow-up.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1373,6 +1373,37 @@
     "previous_native_terminal": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/COMPLETION_REVIEW.json",
       "sha256": "a3747d4267c59c6a041f037b85960b241f3b2a9af836c94320fb82fccaa1c887"
+    },
+    "entry_learning_study_20261010": {
+      "operator_request": "10.10.2026: Lag deg et nytt mål og kjør disse 4.",
+      "goal_thread_id": "01a123d0-e7e1-79c3-900c-c56837ea0367",
+      "status": "PREREGISTERED_BASELINE_ONLY",
+      "authorized": true,
+      "authorized_mode": "entry-learning-baseline",
+      "spec": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_LEARNING_STUDY_20261010.json",
+        "sha256": "47fbf7de1d9b4ed028316a74dc3d9d4844d5779fbd9099f6c1bb8fe8d6680e13"
+      },
+      "native_launch_before_exact_recipe_binding": false,
+      "stages": {
+        "1": "PENDING_SMALL_TRAIN_FIT_1024_STEPS",
+        "2": "PENDING_MATCHED_BASELINE_AND_NATIVE_CURVE_16384_STEPS",
+        "3": "PENDING_LATER_CONTROL4096",
+        "4": "PENDING_EVIDENCE_REVIEW"
+      },
+      "generic_training_enabled": false,
+      "test_authorized": false,
+      "control_tuning_authorized": false,
+      "focused_test_counts": {
+        "passed": 95,
+        "failed": 0,
+        "synthetic_contracts_only": true
+      },
+      "run_root": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001",
+      "full_epoch_allowed": false,
+      "full_val_allowed": false,
+      "no_adaptive_extension": true,
+      "prior_failed_learning_gate_preserved": true
     }
   },
   "gc_order_flow_research_20261006": {

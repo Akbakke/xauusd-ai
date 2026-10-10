@@ -215,3 +215,15 @@ forskningsfits forhåndsregistreres separat i eksisterende capped-eiere.
 Dette åpner ingen blind native treningsutvidelse, CONTROL-tuning, TEST,
 broker, handel eller spending. Negative og inkonklusive funn bevares; en
 fullført undersøkelse er ikke dokumentert edge.
+
+## Operatørvedtak 10.10.2026: ny endelig Entry-læringsundersøkelse
+
+Den senere bestillingen «Lag deg et nytt mål og kjør disse 4» åpner en separat,
+forhåndsbundet undersøkelse av liten ekte TRAIN-fit, eksisterende komplett
+native modell ved endelig budsjett, senere CONTROL-måling og evidensbasert
+oppfølging. Den målte gradientdiagnosen begrunner å teste læringskapasitet
+uten arkitektur-, target- eller tapsendring. Gammel negativ port består.
+Bare den nye studiens eksakte phase/recipe/policy gir finite optimizersteg;
+training_enabled=false gjelder generisk trening. Ingen automatisk utvidelse
+eller gjenåpning av konsumerte planer. Inputnormalisering, kausalitet,
+checkpoint-eier, alle maskinvarevakter og TEST-forsegling består.
