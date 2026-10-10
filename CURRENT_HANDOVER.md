@@ -45,11 +45,15 @@ publisert. POSTBUILD_REVIEW_001 verifiserte alle 652 552/70 880 lagrede
 seq/snap-rader mot korrigert M5 med PASS. Deretter ble spesialistkontrollen drept
 ved 4 GB cgroup-grensen; kernelbevis bekrefter OOM, exit 137. Kilden var uendret,
 alle originaler og begge beståtte sekvenskvitteringer er bevart.
-POSTBUILD_SPECIALIST_001 binder bare uferdig spesialistkontroll gjennom dens
-allerede eksisterende canonical producer10G/512M-kommando. Ingen feature-/modell-
-endring, relansering av gammel etappe eller ny tid. Ferdige sekvensbevis gjenbrukes.
-Deretter følger fersk normalisering på hele fysiske TRAIN, faktisk inputparitet
-og fersk nullstegs ONLINE/TARGET. Reelle kvitteringer avgjør framdriften.
+POSTBUILD_SPECIALIST_001 fullførte 20:40 UTC med exit 0 på uendret 1196222a;
+spesialistaudit PASS gjennom eksisterende producer10G/512M-eier. Ferdige nye
+sekvensbevis er gjenbrukt. Ingen feature-/modellendring eller budsjettfornyelse.
+
+BASE_NORMALIZATION_001 binder eksisterende producer20G/512M-eier for én fersk
+normalisering på hele fysiske TRAIN, alle 652 552 Entry-rader før sampling.
+VAL-/TEST-fit er null. Deretter følger TRAIN-summary-normalisering, faktisk
+normalisert inputparitet og fersk nullstegs ONLINE/TARGET. Kvitteringene avgjør
+framdriften; ingen ny normalisering eller baseline er akseptert før de består.
 
 Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.
 Ingen nye inputs eller ny baseline er akseptert ennå. Rådata, perioder og de
