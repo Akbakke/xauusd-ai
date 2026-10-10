@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T20:21:36.789916+00:00",
-  "status": "PHYSICAL_VIEWS_COMPLETE_CURRENT_SOURCE_RECONSTRUCTION_BOUND",
+  "observed_utc": "2026-10-10T20:39:30.959551+00:00",
+  "status": "CURRENT_SEQUENCES_VERIFIED_SPECIALIST_CANONICAL_OWNER_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Both finite learning phases are consumed. No further native launch, Exit training, TEST or adaptive extension is authorized. Feature corrections require fresh dependent inputs and a fresh initial baseline before later learning.",
-  "next_action": "Exhaustively verify new TRAIN/VAL stored seq/snap against current M5 source and audit specialist routing; then fit whole-TRAIN normalization and fresh initialbaseline.",
+  "next_action": "Only unfinished specialist audit via its existing producer10G owner; preserve passed current TRAIN/VAL sequence proofs. Then whole-TRAIN normalization and fresh baseline.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: Ja gjør dette, lag nytt mål.",
-    "current_activity": "Physical views completed; current-generation sequence reconstruction and specialist audits bound.",
+    "current_activity": "Current TRAIN/VAL sequences passed; separate specialist audit bound after measured 4G cgroup OOM.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -132,13 +132,13 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "INPUT_VIEWS_001",
-    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001",
+    "latest_terminal_role": "POSTBUILD_REVIEW_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_SPECIALIST_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/INPUT_VIEWS_001/TERMINAL.json",
-      "sha256": "5c8d0a5d06b5091ab6083da9f405f0345f131998ad9779de61c1b37a28094bad"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/TERMINAL.json",
+      "sha256": "68d6d498316a2c8bf17cc14746bcffb360acf4cf82a140eb2ed0012e2b41c6a2"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": true,
     "sampler_selection_measured": true,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "New source reconstruction, whole-TRAIN normalization, normalized parity and fresh baseline remain unproved.",
+    "current_blocker": "Specialist completion, fresh normalization, normalized input parity and fresh zero-step baseline remain unproved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -1483,7 +1483,7 @@
       }
     },
     "feature_repair_rebuild_20261010": {
-      "status": "PHYSICAL_VIEWS_COMPLETE_CURRENT_SOURCE_RECONSTRUCTION_BOUND",
+      "status": "CURRENT_SEQUENCES_VERIFIED_SPECIALIST_CANONICAL_OWNER_BOUND",
       "authorized_goal": true,
       "core_build_authorized": false,
       "runtime_plan": {
@@ -1642,7 +1642,7 @@
         }
       },
       "postbuild_source_audit_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/PLAN.json",
@@ -1659,6 +1659,40 @@
         "launcher": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/launch_postbuild.py",
           "sha256": "7c23e23debc61a4c027f4912fe30b2fc5c321a8c2bc86b11e0526bfe2001db38"
+        },
+        "relaunch_allowed": false,
+        "optimizer_steps": 0,
+        "test_data_used": false,
+        "status": "FAILED_SPECIALIST_4G_CGROUP_OOM_CURRENT_SEQUENCE_PROOFS_RETAINED",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/TERMINAL.json",
+          "sha256": "68d6d498316a2c8bf17cc14746bcffb360acf4cf82a140eb2ed0012e2b41c6a2"
+        },
+        "failure_review": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_SPECIALIST_001/FAILURE_REVIEW.json",
+          "sha256": "aa597e30d28ba2c8cff5d97030f63893bc90784b1f3256e8adf8b0152292f055"
+        },
+        "completed_sequence_audits": {
+          "train": {
+            "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_TRAIN.json",
+            "sha256": "7e07861784ca7d1ac5bf74964203592453c47a741dce82ad8027cb128bef14d9"
+          },
+          "val": {
+            "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_VAL.json",
+            "sha256": "61970a409b4341b3533f51c49b7f5ec908d9dc81d05b94115a127aee395cc675"
+          }
+        }
+      },
+      "specialist_audit_stage": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_SPECIALIST_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_SPECIALIST_001/PLAN.json",
+          "sha256": "df9e49d9701b5fa6b17765b189070e8a17954eb6f26d11b1c0c05fda9b115488"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/POSTBUILD_SPECIALIST_001/launch_specialist.py",
+          "sha256": "979bf08f167430b370f63e179fcc63fa7106b3910e90d6d9163add35b580b722"
         },
         "relaunch_allowed": false,
         "optimizer_steps": 0,

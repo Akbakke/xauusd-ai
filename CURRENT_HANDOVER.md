@@ -41,10 +41,13 @@ featurefordelinger er målt. Ukjente kildegap er ikke forklart som markedslukkin
 INPUT_VIEWS_001 fullførte 20:07 UTC med exit 0 på uendret 64964ed5.
 Fysiske TRAIN-/CONTROL-visninger dekker henholdsvis 4 884 638 og 382 744 M1-rader;
 652 552/70 880 Entry-rader er bevart. Nye egne klokkebundne gapautoriteter er
-publisert. POSTBUILD_REVIEW_001 binder nå full seq/snap-rekonstruksjon mot den
-korrigerte M5-kilden og eksisterende audit av de åtte spesialistfamiliene.
-Dette er nødvendig nytt kildebevis før normalisering; eldre sekvensbevis gjenbrukes
-ikke for endrede features. Samme endelige byggefrist beholdes uten ny tid.
+publisert. POSTBUILD_REVIEW_001 verifiserte alle 652 552/70 880 lagrede
+seq/snap-rader mot korrigert M5 med PASS. Deretter ble spesialistkontrollen drept
+ved 4 GB cgroup-grensen; kernelbevis bekrefter OOM, exit 137. Kilden var uendret,
+alle originaler og begge beståtte sekvenskvitteringer er bevart.
+POSTBUILD_SPECIALIST_001 binder bare uferdig spesialistkontroll gjennom dens
+allerede eksisterende canonical producer10G/512M-kommando. Ingen feature-/modell-
+endring, relansering av gammel etappe eller ny tid. Ferdige sekvensbevis gjenbrukes.
 Deretter følger fersk normalisering på hele fysiske TRAIN, faktisk inputparitet
 og fersk nullstegs ONLINE/TARGET. Reelle kvitteringer avgjør framdriften.
 
