@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T03:57:10.496764+00:00",
-  "status": "ENTRY_EDGE_TRAIN_PROBE_PREPARED",
+  "observed_utc": "2026-10-10T04:06:18.401058+00:00",
+  "status": "FOUR_STEPS_COMPLETE_NO_ENTRY_EDGE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Offline XAUUSD only. Current genuine features, eight specialists, native M5 Entry/M1 Exit, causal clocks, split periods, target/normalization owners and hardware guards are preserved. Completed inputs/capacity/publications are reused through exact immutable bindings; failed/completed/claimed one-shot plans never relaunch and expired budgets never reset. Each new native run needs current clean/pushed source, a canonical recipe/finite campaign window, physical preprocessing/coordinates, fresh same-function ONLINE/TARGET and fresh physical Windows boot/host/GPU admission. Reboot only with machine-wide idle/writer proof, never interrupt active jobs. No full epoch/full VAL, TEST, GC resumption, broker/live/paper/orders/spending/promotion or retention-bypassing deletion. Synthetic checks/input acceptance do not prove learning, generalization or profit.",
-  "next_action": "Run one preregistered TRAIN-only fixed-ridge interaction probe with chronological folds and capacity-one M1 cash ledgers. No native training, CONTROL tuning or TEST.",
+  "next_action": "Scope consumed. Preserve evidence; a future attempt needs a distinct causal information hypothesis and its own finite preregistration. No automatic search, weaker gate, horizon change, or training extension.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "Lag en ny kjøreplan, gå igjennom hele repoet og let etter feil/mismatches, lag nytt datasett, slett alt det gamle og så kjører vi til slutt en liten smoketest før stor trening",
-    "current_activity": "Gradient diagnosis complete; no evidence of missing or overwhelmed Entry contrast gradients. Preparing a single fixed-representation information/economics probe.",
+    "current_activity": "Four Entry-edge research steps complete. Measured gradient path works; fixed interaction probe not qualified; all 529545 decisions FLAT. No native change or launch authority remains.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -1309,8 +1309,8 @@
       }
     },
     "entry_edge_20261010": {
-      "authorized": true,
-      "authorized_mode": "entry-edge-probe",
+      "authorized": false,
+      "authorized_mode": null,
       "research_id": "ENTRY_EDGE_TRAIN_20261010_001",
       "operator_request": "Bra! Lag deg dette som et mål og fullfør disse 4 stegene",
       "spec": {
@@ -1320,21 +1320,20 @@
       "goal_thread_id": "01a123d0-e7e1-79c3-900c-c56837ea0367",
       "stages": {
         "1": {
-          "name": "TRAIN learning and task-gradient diagnosis",
           "status": "complete",
-          "conclusion": "Entry contrast reaches all538 connected shared tensors; auxiliary aggregate is weaker and not opposed in six measured batch/state pairs. No loss-weight intervention supported."
+          "conclusion": "Six paired CPU TRAIN gradient measurements show nonzero shared Entry contrast and weaker, non-opposing auxiliary aggregate; no gradient-routing or loss-weight fix justified."
         },
         "2": {
-          "name": "One preregistered chronological price-reaction/location/regime probe",
-          "status": "prepared"
+          "status": "complete_negative",
+          "conclusion": "Twelve purged chronological TRAIN folds, 48 fixed ridge fits, 529545 evaluation rows; interaction improvement over constant is 0.007524percent of pooled contrast MSE and conditional monthly intervals include zero."
         },
         "3": {
-          "name": "Smallest evidence-supported follow-up or explicit rejection",
-          "status": "pending"
+          "status": "complete_no_native_change",
+          "conclusion": "Reject this fixed representation/regularization hypothesis for native follow-up. No native model/weight/loss/feature change, no optimizer or training expansion."
         },
         "4": {
-          "name": "Cost-aware executable economic evaluation or explicit non-admission",
-          "status": "pending"
+          "status": "complete_no_admission",
+          "conclusion": "Both probes choose FLAT on all evaluation rows. M1 ledgers account for every choice and open position. No selective or profitable Entry candidate exists."
         }
       },
       "native_training_authorized": false,
@@ -1351,7 +1350,25 @@
       "diagnostic_terminal": {
         "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/DIAGNOSTIC_002/TERMINAL.json",
         "sha256": "1f58b4e03341c8fb6fc124b0820b3e783efa5774b88edd4a504ccf05bd808dd0"
-      }
+      },
+      "status": "FOUR_STEPS_COMPLETE_NO_ENTRY_EDGE_ADMITTED",
+      "probe_result": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/PROBE_001/RESULT.json",
+        "sha256": "3b3600abfa52a5cb34c3fe1eb692279c4f0bb480a3d3647f3b1f4c8bd8e04b91"
+      },
+      "probe_terminal": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/PROBE_001/TERMINAL.json",
+        "sha256": "a3dea3747916a120cef6cc0a8845cf84cfb3b27c339c19d30a5344f34f37919c"
+      },
+      "final_audit": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/FINAL_AUDIT_001/RESULT.json",
+        "sha256": "e8ffad6379c05f7fe175c217601df4b031904800efc44907207b3496da291215"
+      },
+      "completion_review": {
+        "path": "/home/andre2/GX1_RUNS/ENTRY_EDGE_TRAIN_20261010_001/COMPLETION_REVIEW_001.json",
+        "sha256": "f16e7dcd6e4e90aeb3686d9e2a4e77cceb1a703d0c35578c333e83ed0488983c"
+      },
+      "closed_utc": "2026-10-10T04:06:18.401058+00:00"
     }
   },
   "gc_order_flow_research_20261006": {

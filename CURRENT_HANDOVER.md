@@ -1,14 +1,15 @@
 # CURRENT HANDOVER — 10.10.2026
 
-Gjeldende arbeid er brukerens fire avgrensede Entry-edge-steg. Kilden er GX1_CURRENT / work/gx1-current. Native training_enabled=false og TEST er fortsatt forseglet.
+Brukerens fire avgrensede Entry-edge-steg er fullført. Ingen Entry-edge er dokumentert for den undersøkte hypotesen. Kilden er GX 1_CURRENT / work/gx 1-current. Ingen jobb eller ny launch-autorisasjon gjenstår; training_enabled=false og TEST er fortsatt forseglet.
 
-Steg1 er fullført med DIAGNOSTIC_002/RESULT.json (SHA85cdcf48c24d1d800c120a5d20e422b83fd6eafef63defed169d89b0225d8eae). Seks CPU-FP32 TRAIN-forwards, null optimizersteg/CONTROL-forwards, originalcheckpoint bevart, kilde uendret, terminal exit0. Entry contrast har ikke-null gradient til538 delte parametertensorer i alle målingene. Samlet hjelpegradient er svakere og positivt justert mot kontrasten (cos0.004–0.161); ingen målt begrunnelse for å endre tapsvekter. Dette er tre forhåndsvalgte batcher i to tilstander, ikke rekonstruksjon av AdamW eller generaliseringsbevis.
+1. Seks CPU-målinger på tre fryste TRAIN-batcher viste at Entry-kontrasten når 538 delte parametertensorer. Samlet hjelpegradient er svakere og ikke motrettet. Ingen tapsvekt-/gradientrettelse er begrunnet.
+2. Én fast ridge-probe med 14 additive felt mot 38 felt med samspill ble gjennomført over 12 purgede kronologiske TRAIN-perioder: 48 CPU-fits,529545 evaluerte rader. Samspillets MSE-forbedring mot historisk konstant var bare 0.007524%; månedsintervallet inkluderer null.
+3. Hypotesen avvises for native oppfølging. Native modell, tapsvekter,254 inputfelt, åtte familier og checkpoints er uendret.
+4. Begge prober valgte FLAT 529545/529545. Kontinuerlige M1 BID/ASK-ledgere med én maksimal posisjon, alle kostnader og åpne sluttposisjoner ga 0 handler/0 netto. Dette er ingen selektivitet eller handelsfordel.
 
-Steg2–4: configs/research/ENTRY_EDGE_TRAIN_PROBE_20261010.json binder én hypotese og maksimalt48 faste CPU-ridge-fits:14 additive felt mot38 felt med prisreaksjon × plassering/regime, identiske data/mål/kostnader. Årlige purgede TRAIN-folds2014–mai2025. Ingen parameter-/horizontsøk. Merk at95-minuttersmålet er valgt med hele TRAIN: dette er betinget utviklingsevidens, aldri urørt OOS.
+Full metode, usikkerhet, økonomi og SHA-bundne bevis står i [docs/ENTRY_EDGE_RESEARCH_20261010.md](docs/ENTRY_EDGE_RESEARCH_20261010.md). Sluttkontrollen bekrefter alle mål, perioder, ledgere og bevart originalcheckpoint. Autorisasjonen i NEXT_RUN_POLICY.json er brukt opp og stengt.
 
-Økonomi bruker eksisterende M1 BID/ASK-ledger, ett fysisk instrument som maksimal posisjon, identisk kapital/enhet for alltid-LONG, alle bytter/kostnader og åpen sluttposisjon. Det finnes ingen fast holdetidsregel. Forskningspolicyen er ikke native Exit eller produksjonsrisk sizing. Native endringer krever et konkret positivt resultat og eget avgrenset design; negativt resultat lukkes uten bredere søk.
-
-Diagnosens første start ble avvist før claim/forward fordi eksplisitt tom CUDA_VISIBLE_DEVICES manglet. DIAGNOSTIC_001/TERMINAL.json og opprinnelig plan bevares. Etter separat korrigert start fullførte DIAGNOSTIC_002 på332.64s med7.15GiB peakRSS. Alle nye kjøringer går gjennom eksisterende capped CPU producer20G,512MiB swap, én numerisk tråd, prosjektlås og veggtidstak12000s. Les NEXT_RUN_POLICY.json før start; fullførte/avviste planer relanseres aldri.
+En fremtidig undersøkelse trenger en særskilt kausal informasjonshypotese og egen avgrenset forhåndsregistrering. Ingen automatisk treningsutvidelse, terskel-/horizontsøk, CONTROL-tuning eller relansering av disse planene.95-minuttersmålet er valgt med hele TRAIN; dette er betinget utviklingsevidens, ikke urørt OOS eller endelig bevis for at alle Entry-hypoteser feiler.
 
 ## Ferdig smoke og målt læring
 
