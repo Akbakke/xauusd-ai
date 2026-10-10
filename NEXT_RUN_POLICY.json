@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T21:29:30.366466+00:00",
-  "status": "CORRECTED_PHYSICAL_INDEX_COMPLETE_FRESH_ZERO_STEP_BASELINE_BOUND",
+  "observed_utc": "2026-10-10T21:31:43.583719+00:00",
+  "status": "FRESH_BASELINE_CPU_VISIBILITY_CORRECTION_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: Ja gjør dette, lag nytt mål.",
-    "current_activity": "Corrected physical index complete. Fresh complete-model CPU baseline bound on prior fixed timestamps.",
+    "current_activity": "Baseline CPU visibility guard stopped before construction; explicit CPU-only successor bound.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -132,13 +132,13 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "corrected_full_physical_input_index",
+    "latest_terminal_role": "corrected_initial_baseline_cpu_start_failure",
     "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001/TERMINAL.json",
-      "sha256": "8a38c377a6fd4691c392a0511ff818a1a3346587792d4e7580af8b540abccf8e"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/TERMINAL.json",
+      "sha256": "2f34d5b7a90a015954df1a9890fcd32a4dbd0694feff218ebe244915a4778090"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": true,
     "sampler_selection_measured": true,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Fresh zero-step initialization and fixed-cohort measurement remain unproved.",
+    "current_blocker": "First baseline attempt lacked explicit empty CUDA visibility; corrected successor remains unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_RESUME_EQUIVALENCE_20261009_001/WINDOWS_POST_REBOOT.json",
       "sha256": "5d679c1d45dc863c2891163d9c591dcdde4668e87b67d17731f08ff7ff268709"
@@ -1483,7 +1483,7 @@
       }
     },
     "feature_repair_rebuild_20261010": {
-      "status": "CORRECTED_PHYSICAL_INDEX_COMPLETE_FRESH_ZERO_STEP_BASELINE_BOUND",
+      "status": "FRESH_BASELINE_CPU_VISIBILITY_CORRECTION_BOUND",
       "authorized_goal": true,
       "core_build_authorized": false,
       "runtime_plan": {
@@ -1865,6 +1865,48 @@
       },
       "fresh_initial_baseline_stage": {
         "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/PLAN.json",
+          "sha256": "23df6f1142d38e2b28ef6b629bac9c3514b1a0e32bed54254be89a7a7ce5568a"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/PRODUCER_PLAN.json",
+          "sha256": "21ccc480186cca6a9c0d75e84a5d884017cd3fc086c806e1862bea4f27473af8"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/produce_baseline.py",
+          "sha256": "5822fca55e950267687344fbb9a7b38566a261f3816fa42c0b18c2cda8ea7805"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/launch_baseline.py",
+          "sha256": "869974c5986c2a55c3d4a1c1e8d7c76d8bead4eff932e8ffad412b890635feef"
+        },
+        "constructor_metadata_producer": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/constructor_metadata.py",
+          "sha256": "74e2171524090ca21a3fbea62ee8443357d1c17be7222aaf43d4bceada954f37"
+        },
+        "model_constructor_allowed": true,
+        "device": "cpu",
+        "model_forwards": 513,
+        "optimizer_steps": 0,
+        "normalization_fit_allowed": false,
+        "model_training_allowed": false,
+        "native_gpu_allowed": false,
+        "training_sampler_admission": false,
+        "relaunch_allowed": false,
+        "test_data_used": false,
+        "failure_review": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/FAILURE_REVIEW.json",
+          "sha256": "1e751a8cae1654bc420c3346b51b5a834200e70a0c6778f71fc991a1bab2eea8"
+        },
+        "previous_failed_terminal": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/TERMINAL.json",
+          "sha256": "2f34d5b7a90a015954df1a9890fcd32a4dbd0694feff218ebe244915a4778090"
+        }
+      },
+      "fresh_initial_baseline_failed_attempt_001": {
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/PLAN.json",
@@ -1895,7 +1937,15 @@
         "native_gpu_allowed": false,
         "training_sampler_admission": false,
         "relaunch_allowed": false,
-        "test_data_used": false
+        "test_data_used": false,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_001/TERMINAL.json",
+          "sha256": "2f34d5b7a90a015954df1a9890fcd32a4dbd0694feff218ebe244915a4778090"
+        },
+        "failure_review": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/FAILURE_REVIEW.json",
+          "sha256": "1e751a8cae1654bc420c3346b51b5a834200e70a0c6778f71fc991a1bab2eea8"
+        }
       }
     }
   },

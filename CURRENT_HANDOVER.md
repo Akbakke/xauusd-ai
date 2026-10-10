@@ -69,6 +69,11 @@ gjennom eksisterende producer20G/512M og samme gjenværende tidsgrense.
 Ingen optimizer, ny fit, samplerbenchmark eller GPU. Dette gir baselinekoordinater,
 ikke native trenings-/samplerautoritet. ONLINE/TARGET-paritet og alle aktive
 head-kontrakter må bestå; ny baseline er ennå ikke målt.
+Første baselineoppstart stoppet 21:30 UTC før inputverifikasjon/konstruksjon:
+eksplisitt tom CUDA_VISIBLE_DEVICES manglet. Cgroup og CPU-vern virket.
+FRESH_INITIAL_BASELINE_002 setter CPU-synlighet før PyTorch-import; alle øvrige
+metoder og grenser er uendret. Første feilkvittering er bevart, ingen forwards
+eller optimizersteg ble utført, og samme absolutte tidsgrense gjelder.
 
 Gamle featuredata, normalisering og vekter er ikke korrigert av kildeendringene.
 Ingen nye inputs eller ny baseline er akseptert ennå. Rådata, perioder og de
