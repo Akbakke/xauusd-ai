@@ -10,7 +10,7 @@ NEXT_RUN_POLICY.json eier aktuell status og eksakt kjøreautorisasjon.
 Kode for endelig fit-/kurvebudsjett og tilstandsuavhengige målinger er lagt
 til eksisterende native eiere. 95 fokuserte syntetiske kontrakttester bestod:
 mål, masker, scope, observasjon, checkpoint/resume og bevart RNG. Dette
-beviser mekanikk, ikke læring. Ingen optimizersteg i den nye studien er kjørt.
+beviser mekanikk, ikke læring. FIT1024 er nå fullført og kontrollert; CURVE er neste separate kjøring.
 
 1. Liten fit: fersk komplett modell, 1024 optimizersteg på 256 faste ekte
    TRAIN-rader. Målinger0/64/256/1024; ingen CONTROL. Bare fit-diagnose.
@@ -30,8 +30,14 @@ Run-root: /home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001.
 CPU-baseline er fullført på kilde4f92781e:262144 fit-rader,254 snapshotfelt,
 to HGB-fits. Ingen av100 tretrinn slo samme-indre-TRAIN-konstant på noen
 side; begge referanser ble konstante. RESULT/TERMINAL er bundet i policy.
-Neste jobb er kun FIT1024 med egen recipe/campaign og fersk fysisk boot.
-CURVE16384 har fortsatt ingen materialisert launch. training_enabled=false gjelder
+FIT1024 fullførte på kildeab8f1368 etter fysisk boot486, native guard PASS
+og Windows-task0. PHASE_REVIEW binder1024 optimizer-/EMA-steg, uendrede
+targets og150 bit-like Exit-eide statefelter. På de256 gjentatte TRAIN-radene:
+kontrast-MSE3096.696→600.928, sentrert3092.499→241.162, korrelasjon0.96094,
+handlinger45 LONG/146 SHORT/65 FLAT. Dette er tilpasning på fit-rader.
+Fit-planen er konsumert og Windows-tasken deaktivert; aldri relanser den.
+Neste jobb er bare den allerede registrerte CURVE16384 fra fersk initialisering,
+med egen recipe/campaign og fysisk ny boot. Maksimalt to native vinduer. training_enabled=false gjelder
 generisk trening; full epoch/full VAL er stengt.
 
 ## Bevarte data, funksjon og vakter
