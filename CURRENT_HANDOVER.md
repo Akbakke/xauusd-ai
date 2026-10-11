@@ -80,6 +80,30 @@ med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
 innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
 NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
 
+## Swing stage C 11.10.2026: long-timing-spor på kanonisk rute, ikke bekreftet
+
+H.10-retry (_002) ga den daglige nominelle brede dollarindeksen 2009–2026 (pakke 1
+med fra/til og uten lastobs); pakkene 3/4 er månedlige. Eieren bærer indeksen som
+egen gruppe med ukentlig publikasjonslag (brukbar etter slutt på tirsdag uken etter)
+og gjør D1-lane valgfri. Forsøk 007 feilet ved start (eieren krevde D1-lane) og er
+bevart uten resultat. Forsøk 008 (73 felt: A, COT, panel, drivere, FOMC-kalender,
+dollar; 15 årsfolds) og 009 (samme inputs, to-års holdouts): ingen celle oppfyller
+regelen. XAU h20 swing_ridge er familiesignifikant på treff i 008 ved 5 % dekning
+(0,781, familie-p 0,043) og sterkere i 009 ved 2/5/10/25 % (0,872/0,831/0,784/0,698,
+familie-p 0,022/0,0085/0,007/0,026); fanget mål er aldri familiesignifikant under
+sirkulær-shift-nullen. Diagnose (post hoc, ikke forhåndsregistrert): de valgte radene
+er 87–90 % LONG; alltid-LONG på de samme radene treffer 0,79 mot modellens 0,78, så
+retningsvalget tilfører ingenting — effekten er NÅR en 20-dagers long betaler.
+Prisstate-ridge alene har ingen effekt, så posisjonering/panel/drivere/kalender/
+dollar bærer den. Blokkmatchet long-null (samme antall og lengde episoder per år,
+tilfeldig plassering): treff p < 0,0005 og fanget mål p 0,018/0,030 (008), 0,003/
+0,004 (009) ved 5/10 % — enkeltceller, ikke familiejustert. Episodeøkonomi 10 %/20 d:
+95 episoder +119 bps (008), 90 episoder +169 bps (009) ex finansiering (~30 bps per
+long-episode). Ni analyser på samme 2011–2025-historikk. Verdikt: ubekreftet
+long-timing-spor; neste er blokkmatchet null i eieren, én forhåndsregistrert
+forward-sjekk på 2026H1 (ubrukt, før TEST-forsegling, lav styrke oppgitt) og
+gruppeablasjon. Ingen prediktor innrømmet; TEST urørt; ingen native endring.
+
 ## Pooled instrumenter 11.10.2026: ingen konsistent signal på tvers
 
 Operatørens «Ja, kjør og hent inn resten»: eieren run-swing-pooled (9717ffbd) kjørte

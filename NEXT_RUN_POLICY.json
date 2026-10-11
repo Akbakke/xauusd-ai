@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-11T17:00:29.157548+00:00",
-  "status": "SWING_POOLED_NO_RULE_MET_XAU_RIDGE_HIT_RATE_LEAD_UNCONFIRMED",
+  "status": "SWING_STAGE_C_LONG_TIMING_LEAD_UNCONFIRMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) XAU canonical-route study without the D1 lane (68 features) plus FOMC calendar fields, same folds and family rule; 2) two-year holdout sensitivity on the same inputs; 3) H.10 index package retry; 4) GPU: fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
+  "next_action": "1) Preregister the block-matched long null as a secondary per-cell statistic in the owner; 2) one forward check on 2026-01-01..2026-06-30 (unused by all nine analyses, read before the TEST seal) with declared low power; 3) group ablation (drop positioning / drivers / panel / calendar / dollar one at a time) under the same family rule; 4) GPU: fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Pooled study: no cell meets the preregistered rule; XAU h20 ridge on the 68-feature set (no D1 lane) is hit-rate family-significant but not on captured mean, and the HGB effect does not replicate across instruments. Next: XAU canonical-route rerun without the D1 lane plus FOMC calendar, fold-structure sensitivity, H.10 index retry. Fresh zero-step v10 baseline still requires a new explicit budget.",
+    "current_blocker": "Stage C (008/009): XAU h20 ridge is a long-timing effect, hit-rate family-significant and fold-structure robust, captured mean not under the preregistered null; unconfirmed. Next: block-matched null in owner, 2026H1 forward check, group ablation; GPU zero-step v10 baseline still needs a new explicit budget.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -3078,6 +3078,243 @@
         "GLD holdings are a gold-specific driver applied to every instrument"
       ],
       "evidence_class": "measured on reused development history"
+    },
+    "swing_d1_stage_c_20261011": {
+      "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»",
+      "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1 (optional D1 lane, FOMC calendar, H.10 dollar group, fold_spans)",
+      "h10_retry": {
+        "manifest": "configs/research/FED_H10_PACKAGES_SOURCE_20261011_002.json",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FED_H10_PACKAGES_SOURCE_20261011_002/RESULT.json",
+          "sha256": "875000bbf0a6981ca6e024af5d2a7320d689126fce898a232967ae2b810d2d95"
+        },
+        "outcome": "daily Nominal Broad Dollar Index 2009-01-02..2026-06-30 retrieved (package 1 with from/to and no lastobs; ND on holidays); packages 3/4 are monthly indexes/rates, not used",
+        "availability_declared_in_owner": "weekly release: observation D usable strictly after the end of the Tuesday of the following week America/New_York; the manifest's D+1 sentence is superseded by the owner's declared rule"
+      },
+      "attempt_007": {
+        "preregistration": "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_007.json",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_007/TERMINAL.json",
+          "sha256": "ec2fbdc403fb4214208ed37dccd7fd216f9cbee2fefe638c3288611f95f6ed71"
+        },
+        "status": "FAILED_AT_LAUNCH",
+        "reason": "owner required the D1 lane the preregistration omitted; no fit, no result; directory preserved"
+      },
+      "attempt_008": {
+        "preregistration": "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_008.json",
+        "source_commit": null,
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_008/RESULT.json",
+          "sha256": "b4904a05118023ed3dc00b308e3c8bc46d794e5a9e520db291e965487814ac1d"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_008/TERMINAL.json",
+          "sha256": "e7e1f59ba59b680d5a65807f3f5f6fabb26ff14d2d85dc3eac165d22caaf7627"
+        },
+        "features": 73,
+        "folds": "15 yearly 2011-2025",
+        "group_complete_rows": {
+          "calendar": 4518,
+          "dollar": 4518,
+          "drivers": 4518,
+          "panel_oanda": 4495,
+          "positioning_cot": 4518,
+          "price_state_A": 4266
+        },
+        "family": {
+          "cells": 56,
+          "draws": 2000,
+          "minimum_family_p": {
+            "captured_mean": 0.279,
+            "hit_rate": 0.043
+          },
+          "below_0_05": {
+            "captured_mean": [],
+            "hit_rate": [
+              "h20:swing_ridge:cov0.05"
+            ]
+          }
+        },
+        "cells": {
+          "h20:swing_ridge:cov0.02": {
+            "rows": 78,
+            "hit": 0.782,
+            "hit_family_p": 0.2015,
+            "mean_atr": 1.61,
+            "mean_family_p": 0.7955
+          },
+          "h20:swing_ridge:cov0.05": {
+            "rows": 201,
+            "hit": 0.781,
+            "hit_family_p": 0.043,
+            "mean_atr": 1.44,
+            "mean_family_p": 0.7405
+          },
+          "h20:swing_ridge:cov0.1": {
+            "rows": 403,
+            "hit": 0.725,
+            "hit_family_p": 0.0715,
+            "mean_atr": 1.24,
+            "mean_family_p": 0.763
+          },
+          "h20:swing_ridge:cov0.25": {
+            "rows": 1000,
+            "hit": 0.639,
+            "hit_family_p": 0.3845,
+            "mean_atr": 1.03,
+            "mean_family_p": 0.7805
+          },
+          "h20:swing_hgb:cov0.05": {
+            "rows": 201,
+            "hit": 0.687,
+            "hit_family_p": 0.7835,
+            "mean_atr": 1.4,
+            "mean_family_p": 0.8985
+          },
+          "h20:swing_hgb:cov0.1": {
+            "rows": 403,
+            "hit": 0.667,
+            "hit_family_p": 0.5145,
+            "mean_atr": 1.45,
+            "mean_family_p": 0.486
+          }
+        },
+        "episode_economics_h20_swing_ridge_cov0_1": {
+          "episodes": 95,
+          "hit_rate": 0.6210526315789474,
+          "long_episodes": 85,
+          "mean_net_bps_ex_financing": 118.7046444925557,
+          "long_financing_estimate_bps": 2513.347022587269,
+          "worst_episode_bps": -636.8368605676604
+        },
+        "preregistered_rule_met": false
+      },
+      "attempt_009": {
+        "preregistration": "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_009.json",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_009/RESULT.json",
+          "sha256": "affd24add1fa0239eec4e9a493d4375cd35bafd0a46a2376f9eadf4d01c4a636"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_009/TERMINAL.json",
+          "sha256": "1ecbca4658b27160f617fea0486a612f190496f9e4e0c87cdb7e4588144c6116"
+        },
+        "fold_spans": [
+          [
+            2011,
+            2013
+          ],
+          [
+            2013,
+            2015
+          ],
+          [
+            2015,
+            2017
+          ],
+          [
+            2017,
+            2019
+          ],
+          [
+            2019,
+            2021
+          ],
+          [
+            2021,
+            2023
+          ],
+          [
+            2023,
+            2025
+          ],
+          [
+            2025,
+            2026
+          ]
+        ],
+        "family": {
+          "cells": 56,
+          "draws": 2000,
+          "minimum_family_p": {
+            "captured_mean": 0.061,
+            "hit_rate": 0.007
+          },
+          "below_0_05": {
+            "captured_mean": [],
+            "hit_rate": [
+              "h20:swing_ridge:cov0.25",
+              "h20:swing_ridge:cov0.1",
+              "h20:swing_ridge:cov0.05",
+              "h20:swing_ridge:cov0.02",
+              "h5:a_hgb:cov0.1"
+            ]
+          }
+        },
+        "cells": {
+          "h20:swing_ridge:cov0.02": {
+            "rows": 78,
+            "hit": 0.872,
+            "hit_family_p": 0.022,
+            "mean_atr": 2.13,
+            "mean_family_p": 0.322
+          },
+          "h20:swing_ridge:cov0.05": {
+            "rows": 201,
+            "hit": 0.831,
+            "hit_family_p": 0.0085,
+            "mean_atr": 1.83,
+            "mean_family_p": 0.3255
+          },
+          "h20:swing_ridge:cov0.1": {
+            "rows": 403,
+            "hit": 0.784,
+            "hit_family_p": 0.007,
+            "mean_atr": 1.62,
+            "mean_family_p": 0.2765
+          },
+          "h20:swing_ridge:cov0.25": {
+            "rows": 1000,
+            "hit": 0.698,
+            "hit_family_p": 0.0255,
+            "mean_atr": 1.37,
+            "mean_family_p": 0.198
+          },
+          "h20:swing_hgb:cov0.05": {
+            "rows": 201,
+            "hit": 0.692,
+            "hit_family_p": 0.818,
+            "mean_atr": 1.26,
+            "mean_family_p": 0.964
+          },
+          "h20:swing_hgb:cov0.1": {
+            "rows": 403,
+            "hit": 0.677,
+            "hit_family_p": 0.446,
+            "mean_atr": 1.36,
+            "mean_family_p": 0.665
+          }
+        },
+        "episode_economics_h20_swing_ridge_cov0_1": {
+          "episodes": 90,
+          "hit_rate": 0.6888888888888889,
+          "long_episodes": 82,
+          "mean_net_bps_ex_financing": 168.8499952767226,
+          "long_financing_estimate_bps": 2424.640657084189,
+          "worst_episode_bps": -646.360621953525
+        },
+        "preregistered_rule_met": false
+      },
+      "post_hoc_diagnostics_not_preregistered": {
+        "per_year_008_h20_swing_ridge_cov0_05": "selected rows are 87 % long; per-year hit 2011 0.94, 2012 0.80, 2013 0.77, 2014 0.00, 2015 0.46, 2016 0.31 (short), 2017 0.62 (short), 2018-2022 1.00, 2023 0.77, 2024 1.00, 2025 1.00; always-long on the same rows scores 0.791 vs the model's 0.781, so the direction call adds nothing and the effect is WHEN to be long",
+        "block_matched_long_null_008": "same number and lengths of contiguous episodes per year, random placement, long sign, 2000 draws: h20:swing_ridge cov0.05 hit p<0.0005, captured mean 1.44 ATR p=0.0175 (null p95 1.21); cov0.1 hit p<0.0005, captured p=0.030; h20:a_ridge (price state only) p=0.60/0.66",
+        "block_matched_long_null_009": "h20:swing_ridge cov0.05 hit 0.831 p<0.0005, captured 1.83 ATR p=0.003 (null p95 1.24); cov0.1 hit 0.784 p<0.0005, captured 1.62 p=0.004",
+        "caveat": "post hoc, single cells, not family-adjusted; the preregistered circular-shift null on captured mean remains not significant; nine analyses on overlapping 2011-2025 history"
+      },
+      "status": "SWING_STAGE_C_LONG_TIMING_LEAD_UNCONFIRMED",
+      "verdict": "No cell meets the preregistered rule in 008 or 009. XAU h20 swing_ridge is hit-rate family-significant on the canonical route (008: 5 % coverage hit 0.781, family p 0.043) and strengthens under two-year folds (009: 2/5/10/25 % hit 0.872/0.831/0.784/0.698, family p 0.022/0.0085/0.007/0.026), so the effect does not depend on yearly refits. Captured mean is never family-significant under the circular-shift null. Diagnosis: the selected rows are almost always long; the model finds WHEN a 20-day long pays, not direction. The price-state-only ridge has no such effect, so positioning/panel/driver/calendar/dollar fields carry it. Economics descriptive: 95 episodes, +119 bps per episode ex financing (008), 90 episodes, +169 (009), financing ~30 bps per long episode. Evidence class: measured on reused development walk-forward; unconfirmed.",
+      "next_action": "1) Preregister the block-matched long null as a secondary per-cell statistic in the owner; 2) one forward check on 2026-01-01..2026-06-30 (unused by all nine analyses, read before the TEST seal) with declared low power; 3) group ablation (drop positioning / drivers / panel / calendar / dollar one at a time) under the same family rule; 4) GPU: fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
+      "evidence_class": "measured_reused_development_walkforward"
     }
   },
   "gc_order_flow_research_20261006": {
