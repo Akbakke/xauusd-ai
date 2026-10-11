@@ -1,0 +1,35 @@
+{
+  "schema": "gx1_cftc_cot_archive_source_manifest_v1",
+  "manifest_id": "CFTC_COT_ARCHIVE_SOURCE_20261011_001",
+  "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "probe_evidence": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GC_DAILY_ACTIVITY_SOURCE_PROBE_20261011_001/CFTC_COT_HISTORICAL_COMPRESSED.receipt.json",
+  "registered_utc": "2026-10-11T14:11:37.497268+00:00",
+  "source_head_at_registration": "d92ffe54b7947f3b643b41d5bbeb1afc447b3d83",
+  "operator_authorization": "11.10.2026 swing-program: posisjonering (COT netto spek, open interest) som D1-forskningsinputs. Revidert provenanskrav: COT publiseres én gang per uke og revideres ikke etter publisering utover sjeldne, dokumenterte korreksjoner; dokumentert publikasjonsklokke pluss konservativt lag oppfyller regel 1.",
+  "provider": "U.S. Commodity Futures Trading Commission",
+  "report": "Legacy Commitments of Traders, Futures Only (deacot yearly archives as listed on the Historical Compressed page captured by the probe)",
+  "url_pattern": "https://www.cftc.gov/files/dea/history/deacot{year}.zip",
+  "first_year": 2009,
+  "last_year_inclusive": 2026,
+  "method": "One unauthenticated HTTPS GET per yearly archive, timeout 60 s, maximum_bytes enforced, no retries, no redirect following. The ZIP is stored as received and SHA-256 bound; member names, sizes and member SHA-256 are inventoried; CRC verified. No row is parsed into a research panel by this manifest.",
+  "maximum_bytes_per_archive": 33554432,
+  "maximum_uncompressed_bytes_per_archive": 268435456,
+  "timeout_seconds": 60,
+  "market_filter_declared_for_later_parse": {
+    "cftc_contract_market_code": "088691",
+    "market_and_exchange_names_contains": "GOLD - COMMODITY EXCHANGE INC."
+  },
+  "availability_rule": "Positions as of Tuesday are released Friday 15:30 America/New_York per the CFTC release schedule. The probe captured the explanatory-notes page (receipt bound above) but the schedule sentence was not machine-extracted; the parse step must bind the actual release date per report from the CFTC release calendar before any row is used. A report is usable at the first canonical XAU D1 decision strictly after the end of its release day in America/New_York plus one full session; never at its as-of date.",
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "rows_after_test_seal_parsed": false,
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "test_read_allowed": false,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001",
+  "declared_derived_fields": [
+    "cot_noncommercial_net_over_oi",
+    "cot_change4reports",
+    "cot_open_interest_log_change4reports"
+  ],
+  "owner": "gx1.scripts.research_ta_campaign_v1"
+}
