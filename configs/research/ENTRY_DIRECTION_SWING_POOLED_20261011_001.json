@@ -1,0 +1,284 @@
+{
+  "schema": "gx1_ta_swing_pooled_d1_preregistration_v1",
+  "read_start": "2009-06-01T00:00:00Z",
+  "read_end_exclusive": "2026-01-01T00:00:00Z",
+  "fold_years": [
+    2011,
+    2012,
+    2013,
+    2014,
+    2015,
+    2016,
+    2017,
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "horizons": [
+    20,
+    5
+  ],
+  "primary_horizon": 20,
+  "periods_per_year": 252.0,
+  "initial_equity": 100.0,
+  "risk": {
+    "lookback": 21,
+    "max_gross_leverage": 1.0,
+    "target_annual_vol": 0.1
+  },
+  "effects": {
+    "mean_delta_bps": [
+      1.0,
+      2.0,
+      5.0
+    ],
+    "normalized_delta": [
+      0.01,
+      0.02,
+      0.05
+    ],
+    "sharpe_delta": [
+      0.1,
+      0.2,
+      0.3
+    ]
+  },
+  "alpha": 0.05,
+  "desired_power": 0.8,
+  "bootstrap_draws": 1999,
+  "mean_block_length": 60.0,
+  "seed": 0,
+  "inner_fraction": 0.2,
+  "min_fit_rows": 100,
+  "min_inner_rows": 20,
+  "hgb": {
+    "learning_rate": 0.1,
+    "max_iter": 100,
+    "min_samples_leaf": 20
+  },
+  "slippage_bps_per_execution": 2.0,
+  "commission_bps_per_execution": 0.0,
+  "funding": {
+    "manifest": "/home/andre2/src/GX1_CURRENT/configs/research/TA_FUNDING_VALIDATION_NYFED_20260929.json",
+    "manifest_sha256": "c708da18bf40342131582e6b054592bf0318e14c60d959b1b05553cee42a18de",
+    "markup": 0.0129,
+    "seconds_per_year": 31557600.0
+  },
+  "cot": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/RESULT.json",
+      "sha256": "03be6df20a9cf338857cc49bfecb33fd7b4e3db1b26307ebdf88b844c84a8fe6"
+    },
+    "contract_market_code": "088691",
+    "availability_lag_days": 7,
+    "availability_rationale": "positions as of Tuesday are released Friday 15:30 ET; +7 calendar days is strictly after any holiday-delayed release and is used instead of a per-report release calendar"
+  },
+  "oanda_panel": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_003/RESULT.json",
+      "sha256": "f04dad2b31021ea9f156c16957a37ebfe276ddd24842e23d172f2a02e8ca43da"
+    },
+    "instruments": [
+      "BCO_USD",
+      "EUR_USD",
+      "SPX500_USD",
+      "USB10Y_USD",
+      "USD_JPY",
+      "WTICO_USD",
+      "XAG_USD",
+      "XAU_USD",
+      "XCU_USD",
+      "XPD_USD",
+      "XPT_USD"
+    ],
+    "resampling": "_resample_ohlc_for_model_native_scalars('D1') on the canonical XAU session clock; bar opening at session_open and closing at decision_time"
+  },
+  "drivers": {
+    "treasury": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/RESULT.json",
+      "sha256": "244b90d1f844fccaaead5c540581f70754fe29ca85b5418a83e77c00b9e724d4"
+    },
+    "vix": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CBOE_VIX_SOURCE_20261011_001/RESULT.json",
+      "sha256": "b5996ed6ac331825097e32c757e33e8a4994506866b8377322a6637612103b98"
+    },
+    "gld": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_002/RESULT.json",
+      "sha256": "e6d93acb6ccd0f2a84a63d3beb1ca6bb6afb78d846b6fa0c32e9b318d07349af"
+    },
+    "gld_item": "GLD_ARCHIVE_CSV_WAYBACK_20260214",
+    "availability": "observation dated D (NY close) usable strictly after the end of day D+1 America/New_York; each series carried across its own holidays, never backward",
+    "fields": [
+      "real10y_level",
+      "real10y_change1D",
+      "real10y_change5D",
+      "real10y_change21D",
+      "nominal10y_level",
+      "slope10y2y_level",
+      "slope10y2y_change21D",
+      "breakeven10y_level",
+      "breakeven10y_change21D",
+      "vix_log_level",
+      "vix_log_change5D",
+      "gld_log_level",
+      "gld_log_change21D"
+    ]
+  },
+  "selective": {
+    "seed": 0,
+    "minimum_rows": 200,
+    "coverage_grid": [
+      1.0,
+      0.5,
+      0.25,
+      0.1,
+      0.05,
+      0.02,
+      0.01
+    ],
+    "circular_shifts": 2000,
+    "selection": "within_fold_year",
+    "family_inference": true,
+    "family_draws": 2000
+  },
+  "episode_economics": {
+    "hold_days": 20,
+    "coverage": 0.1,
+    "learners": [
+      "swing_hgb",
+      "a_hgb",
+      "swing_ridge"
+    ],
+    "long_annual_cost_rate": 0.054,
+    "note": "descriptive single-position policy, one trade per selected episode at the first selected row; financing estimate reported separately; not inference"
+  },
+  "population_classification": "reused development history, not untouched holdout; 2025-06 onward overlaps existing development VAL",
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "study_id": "ENTRY_DIRECTION_SWING_POOLED_20261011_001",
+  "arm": "SWING_POOLED_D1",
+  "registered_utc": "2026-10-11T16:52:55.244298+00:00",
+  "source_head_at_registration": "9717ffbd1681c4fa175d8811ccd9084190a51040",
+  "program_document": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også» after the family-adjusted XAU result (min family p 0.23): pooled instruments as their own targets to multiply independent episodes (rule 1 opened).",
+  "hypothesis": "The stage-B swing design (price state, COT positioning, cross-asset panel, macro drivers) carries selective directional information at 5 and 20 trading days across precious and industrial metals and crude oil, measurable as family-adjusted selective hit rates with a joint null across all instruments and consistent signs across instruments.",
+  "targets": [
+    {
+      "instrument": "XAU_USD",
+      "cot_contract_market_code": "088691"
+    },
+    {
+      "instrument": "XAG_USD",
+      "cot_contract_market_code": "084691"
+    },
+    {
+      "instrument": "XPT_USD",
+      "cot_contract_market_code": "076651"
+    },
+    {
+      "instrument": "XPD_USD",
+      "cot_contract_market_code": "075651"
+    },
+    {
+      "instrument": "XCU_USD",
+      "cot_contract_market_code": "085692"
+    },
+    {
+      "instrument": "WTICO_USD",
+      "cot_contract_market_code": "067651"
+    }
+  ],
+  "instrument_source": "OANDA H1 candles per instrument (OANDA_PANEL_DAILY_SOURCE_20261011_003), daily_panel on the canonical D1 session clock with executable next-open bid/ask fills; XAU uses the same H1 route here for uniformity, not the canonical M5 tape",
+  "feature_names": [
+    "momentum_21_atr14",
+    "momentum_63_atr14",
+    "momentum_126_atr14",
+    "momentum_252_atr14",
+    "range_position_252",
+    "atr14_over_atr252",
+    "ema200_distance_atr14",
+    "cot_noncommercial_net_over_oi",
+    "cot_change4reports",
+    "cot_open_interest_log_change4reports",
+    "cot_commercial_net_over_oi",
+    "BCO_USD_logret_1D",
+    "BCO_USD_logret_5D",
+    "BCO_USD_logret_20D",
+    "BCO_USD_rv_20D",
+    "EUR_USD_logret_1D",
+    "EUR_USD_logret_5D",
+    "EUR_USD_logret_20D",
+    "EUR_USD_rv_20D",
+    "SPX500_USD_logret_1D",
+    "SPX500_USD_logret_5D",
+    "SPX500_USD_logret_20D",
+    "SPX500_USD_rv_20D",
+    "USB10Y_USD_logret_1D",
+    "USB10Y_USD_logret_5D",
+    "USB10Y_USD_logret_20D",
+    "USB10Y_USD_rv_20D",
+    "USD_JPY_logret_1D",
+    "USD_JPY_logret_5D",
+    "USD_JPY_logret_20D",
+    "USD_JPY_rv_20D",
+    "WTICO_USD_logret_1D",
+    "WTICO_USD_logret_5D",
+    "WTICO_USD_logret_20D",
+    "WTICO_USD_rv_20D",
+    "XAG_USD_logret_1D",
+    "XAG_USD_logret_5D",
+    "XAG_USD_logret_20D",
+    "XAG_USD_rv_20D",
+    "XAU_USD_logret_1D",
+    "XAU_USD_logret_5D",
+    "XAU_USD_logret_20D",
+    "XAU_USD_rv_20D",
+    "XCU_USD_logret_1D",
+    "XCU_USD_logret_5D",
+    "XCU_USD_logret_20D",
+    "XCU_USD_rv_20D",
+    "XPD_USD_logret_1D",
+    "XPD_USD_logret_5D",
+    "XPD_USD_logret_20D",
+    "XPD_USD_rv_20D",
+    "XPT_USD_logret_1D",
+    "XPT_USD_logret_5D",
+    "XPT_USD_logret_20D",
+    "XPT_USD_rv_20D",
+    "real10y_level",
+    "real10y_change1D",
+    "real10y_change5D",
+    "real10y_change21D",
+    "nominal10y_level",
+    "slope10y2y_level",
+    "slope10y2y_change21D",
+    "breakeven10y_level",
+    "breakeven10y_change21D",
+    "vix_log_level",
+    "vix_log_change5D",
+    "gld_log_level",
+    "gld_log_change21D"
+  ],
+  "feature_count": 68,
+  "d1_lane_included": false,
+  "learners": [
+    "ridge",
+    "hgb",
+    "constant"
+  ],
+  "pooled_coefficient_fit": false,
+  "family_decision": "A cell counts as confirmed only if its family-adjusted p for BOTH hit rate and captured mean is below 0.05 at h20 and coverage <= 25 % in the joint family over all instruments (6 x 2 x 4 x 7 = 336 cells); consistency across instruments is reported, never used to select cells.",
+  "test_accessed": false,
+  "native_training": false,
+  "fits_allowed": true,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_POOLED_20261011_001",
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "dc15ade519e3d29bbab9d4bd276f00caceb83e7da3632de0aa1703e0f0d473e6",
+    "gx1/scripts/research_entry_direction_walkforward_v1.py": "dffef5663437b629f77511f04255e186b4c303e7117159eae0d4caaa77c0136b",
+    "gx1/features/htf_features.py": "65bc2aa9b35987c3c8e5db765e0631f4c024a49cf811ff905f14c8cea9f880a6"
+  }
+}
