@@ -79,7 +79,21 @@ med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
 innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
 NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
 
-## Swing stage A målt 11.10.2026: ingen edge
+## Swing stage A forsøk 003: utvalg innen hvert år
+
+Med utvalg innen hvert fold-år (2624b635, d9781e41) forsvinner ridge-effekten helt
+(treff 0,55–0,58 ved 1–25 % dekning, under shift-null). swing_hgb ved h20 viser
+derimot treff 0,73/0,73/0,69 ved 1/2/10 % dekning (45/78/403 rader, 18/22/64
+episoder, alle 15 år, 87–96 % LONG), over sirkulær-shift p95 på de tre dekningene,
+med fanget mål +2,0/+2,0/+1,6 ATR over p95. 11 av 15 år har treff over 0,5,
+sterke år 2014/2016/2019/2022/2024/2025, svake 2013/2017/2018. h5 bekrefter ikke,
+porteføljefamilien er INKONKLUSIV og bulk rank-IC er −0,04, så den
+forhåndsregistrerte regelen er ikke oppfylt. Dette er prosjektets første positive,
+ikke-refuterte selektive effekt og er INKONKLUSIV til stage B har bekreftet den
+med HGB-seeds, FRED-drivere, episodenivå-økonomi med kost og familiejustert
+inferens over de 56 selektive cellene. Ingen prediktor innrømmet; TEST urørt.
+
+## Swing stage A målt 11.10.2026: ingen porteføljeedge
 
 ENTRY_DIRECTION_SWING_D1_20261011_002 (eier run-swing-d1, 4c475e92): 224 felt
 (7 A-felt, 4 COT, 44 panel over 11 instrumenter, 169 D1-lane uten candle), 15 årsfolds

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-11T15:09:35.348241+00:00",
-  "status": "SWING_STAGE_A_MEASURED_NO_EDGE_RELAY_AND_STAGE_B_PENDING",
+  "observed_utc": "2026-10-11T15:14:44.195061+00:00",
+  "status": "SWING_STAGE_A_NO_PORTFOLIO_EDGE_ONE_UNCONFIRMED_SELECTIVE_H20_HGB_EFFECT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) operator relays FRED CSVs and GLD file to /home/andre2/GX1_DATA/research/RELAY_20261011/ with sha256sums; 2) stage-B preregistration: drivers + GLD + calendar, fold-standardized selective endpoints, same folds/costs; 3) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget, then multi-horizon targets. No native launch, TEST, orders or spending.",
+  "next_action": "1) operator relays FRED CSVs and GLD file to /home/andre2/GX1_DATA/research/RELAY_20261011/ with sha256sums; 2) stage-B preregistration: identical folds/costs, drivers + GLD + calendar, HGB seeds x3, episode-level single-position selective economics, family-adjusted inference over the selective cells; 3) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Stage A of the swing study measured no edge (NO_GO/INKONKLUSIV; selective effect was a one-fold artifact). Stage B needs the operator relay of FRED drivers and GLD plus a fold-standardized selective endpoint. Fresh zero-step v10 baseline still requires a new explicit budget.",
+    "current_blocker": "Swing stage A: no portfolio edge; one unconfirmed selective h20 HGB effect (73 % hit at 1-2 % coverage, 69 % at 10 %, above circular-shift p95, all 15 years) that h5 does not confirm. Stage B needs the operator relay (FRED, GLD), HGB seeds, episode-level economics. Fresh zero-step v10 baseline still requires a new explicit budget.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -2267,7 +2267,8 @@
     "swing_d1_stage_a_20261011": {
       "preregistrations": [
         "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_001.json",
-        "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_002.json"
+        "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_002.json",
+        "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_003.json"
       ],
       "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1",
       "source_commit": "4c475e92950954279cff83d0bf248aa39e3f90e8",
@@ -2349,7 +2350,139 @@
       ],
       "predictors_admitted": [],
       "native_change": false,
-      "test_accessed": false
+      "test_accessed": false,
+      "attempt_003": {
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_003/RESULT.json",
+          "sha256": "e02bd1c5b3172913a7c273f09c0aaef5424cab19e6a66f2fa87a40105977f64d"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_003/TERMINAL.json",
+          "sha256": "99f886f52f45b6cdc6d1c89f4015f4207210008608abfb42dbbb94f69e34f41d"
+        },
+        "source_commit": "d9781e410b96918858f2671a72b45f56fc89f2f2",
+        "selection": "within_fold_year",
+        "decisions": {
+          "swing_hgb": "INKONKLUSIV",
+          "swing_ridge": "NO_GO"
+        },
+        "selective_h20_swing_ridge": {
+          "0.01": {
+            "rows": 45,
+            "episodes": 34,
+            "hit_rate": 0.578,
+            "shift_p95": 0.667,
+            "above_p95": false
+          },
+          "0.02": {
+            "rows": 78,
+            "episodes": 47,
+            "hit_rate": 0.564,
+            "shift_p95": 0.667,
+            "above_p95": false
+          },
+          "0.05": {
+            "rows": 201,
+            "episodes": 87,
+            "hit_rate": 0.552,
+            "shift_p95": 0.647,
+            "above_p95": false
+          },
+          "0.1": {
+            "rows": 403,
+            "episodes": 124,
+            "hit_rate": 0.556,
+            "shift_p95": 0.638,
+            "above_p95": false
+          },
+          "0.25": {
+            "rows": 1000,
+            "episodes": 221,
+            "hit_rate": 0.562,
+            "shift_p95": 0.606,
+            "above_p95": false
+          }
+        },
+        "selective_h20_swing_hgb": {
+          "0.01": {
+            "rows": 45,
+            "episodes": 18,
+            "years": 15,
+            "long_rows": 39,
+            "hit_rate": 0.733,
+            "z_vs_coin": 3.13,
+            "shift_p95": 0.711,
+            "captured_atr": 1.975,
+            "shift_mean_p95": 1.601,
+            "hit_above_p95": true,
+            "mean_above_p95": true
+          },
+          "0.02": {
+            "rows": 78,
+            "episodes": 22,
+            "years": 15,
+            "long_rows": 68,
+            "hit_rate": 0.731,
+            "z_vs_coin": 4.08,
+            "shift_p95": 0.706,
+            "captured_atr": 2.042,
+            "shift_mean_p95": 1.884,
+            "hit_above_p95": true,
+            "mean_above_p95": true
+          },
+          "0.05": {
+            "rows": 201,
+            "episodes": 38,
+            "years": 15,
+            "long_rows": 187,
+            "hit_rate": 0.657,
+            "z_vs_coin": 4.44,
+            "shift_p95": 0.677,
+            "captured_atr": 1.402,
+            "shift_mean_p95": 1.55,
+            "hit_above_p95": false,
+            "mean_above_p95": false
+          },
+          "0.1": {
+            "rows": 403,
+            "episodes": 64,
+            "years": 15,
+            "long_rows": 387,
+            "hit_rate": 0.692,
+            "z_vs_coin": 7.72,
+            "shift_p95": 0.645,
+            "captured_atr": 1.578,
+            "shift_mean_p95": 1.314,
+            "hit_above_p95": true,
+            "mean_above_p95": true
+          },
+          "0.25": {
+            "rows": 1000,
+            "episodes": 109,
+            "years": 15,
+            "long_rows": 926,
+            "hit_rate": 0.59,
+            "z_vs_coin": 5.69,
+            "shift_p95": 0.615,
+            "captured_atr": 0.679,
+            "shift_mean_p95": 0.993,
+            "hit_above_p95": false,
+            "mean_above_p95": false
+          }
+        },
+        "selective_h5_swing_hgb_max_hit": 0.564,
+        "year_stability_h20_swing_hgb_cov_0_10": "11/15 years hit > 0.5, 10/15 positive captured mean, 96 % LONG; strong years 2014/2016/2019/2022/2024/2025, weak 2013/2017/2018; 403 rows = 64 episodes (overlapping 20-day windows)",
+        "verdict": "preregistered rule NOT met (h5 does not confirm; portfolio family INKONKLUSIV; bulk rank-IC -0.04). Within-fold-year selection removes the ridge artifact entirely. swing_hgb at h20 is the first positive, non-refuted selective effect in the project: hit 0.73/0.73/0.69 at 1/2/10 % coverage above the circular-shift p95, spread over all 15 years. INKONKLUSIV pending confirmation",
+        "confirmation_required_stage_b": [
+          "HGB seeds x3 (random_state) on identical rows",
+          "FRED drivers and GLD added after relay",
+          "episode-level single-position economics with costs (one trade per episode, 20-day hold)",
+          "multiplicity: 56 selective cells; report family-adjusted p for the three above-p95 coverages",
+          "same measurement on the untouched 2025-06..2026-06 development VAL only as a last check, never for selection"
+        ],
+        "evidence_class": "measured on reused development history"
+      },
+      "verdict": "ridge NO_GO; hgb INKONKLUSIV on the portfolio family; selective: ridge artifact refuted by within-fold selection; hgb h20 positive and unconfirmed (see attempt_003)"
     }
   },
   "gc_order_flow_research_20261006": {
