@@ -4234,6 +4234,77 @@ def audit_d1_macro_context(spec: dict, spec_path: Path) -> dict:
         raise
 
 
+def audit_entry_horizon_clock(spec: dict, spec_path: Path) -> dict:
+    """Measure the trading-day horizon owner on the native M1 tape: validity, elapsed wall-clock,
+    weekend/holiday skipping and censoring for every M5 decision in a declared window."""
+    from gx1.contracts import entry_observed_market_horizons_v1 as hz
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import build_entry_m1_fill_surface, prepare_causal_m1_quote_source
+    if spec.get("schema") != "gx1_entry_horizon_clock_audit_v1" or spec.get("fit_allowed") is not False or "forward_journal" in spec:
+        raise RuntimeError("TA_HORIZON_CLOCK_AUDIT_SCOPE")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"git_head": git("rev-parse", "HEAD"), "spec": str(spec_path), "spec_sha256": sha(spec_path)})
+    try:
+        seal = pd.Timestamp(spec["test_seal_utc"])
+        m1_root = Path(spec["m1_tape"]["root"])
+        if sha(m1_root / "MANIFEST.json") != spec["m1_tape"]["manifest_sha256"]:
+            raise RuntimeError("TA_HORIZON_CLOCK_M1_MANIFEST_HASH")
+        m1_manifest = json.loads((m1_root / "MANIFEST.json").read_text())
+        if m1_manifest["timestamp_semantics"] != "bar_start_utc" or int(m1_manifest["bar_duration_seconds"]) != 60:
+            raise RuntimeError("TA_HORIZON_CLOCK_M1_CLOCK")
+        frames, m1_binding = [], []
+        for year in spec["m1_years"]:
+            path = m1_root / f"year={year}" / "part-000.parquet"
+            digest = sha(path)
+            if digest != m1_manifest["year_sha256"][f"year={year}"]:
+                raise RuntimeError(f"TA_HORIZON_CLOCK_M1_YEAR_HASH: {year}")
+            frame = pq.read_table(path, columns=["time", "bid_open", "bid_high", "bid_low", "ask_open", "ask_high", "ask_low"]).to_pandas()
+            frames.append(frame)
+            m1_binding.append({"path": str(path), "sha256": digest, "rows": int(len(frame))})
+        m1 = pd.concat(frames, ignore_index=True)
+        m1["time"] = pd.to_datetime(m1["time"], utc=True)
+        m1 = m1.loc[m1["time"] < seal].sort_values("time").reset_index(drop=True)
+        quotes = prepare_causal_m1_quote_source(m1)
+        market, tape_binding = load_market(spec, columns=["time", "open"])
+        window = market.loc[(market.index >= pd.Timestamp(spec["window_start"])) & (market.index < pd.Timestamp(spec["window_end_exclusive"]))]
+        m5_times = pd.DatetimeIndex(window.index)
+        surface = build_entry_m1_fill_surface(m5_decision_times=m5_times, closed_m1=quotes)
+        bound = int(surface["entry_fill_bound"].sum())
+        report = {}
+        for h in hz.OBSERVATION_HORIZONS_TRADING_DAYS:
+            o = hz.causal_m1_terminal_outcomes_at_trading_days(fill_surface=surface, closed_m1=quotes, horizon_trading_days=h)
+            valid = o["outcome_valid"].to_numpy(bool)
+            el = o[hz.ELAPSED_COLUMN_BY_HORIZON[h]].to_numpy(np.int64)[valid] / 86400.0
+            entry_dow = pd.DatetimeIndex(o["entry_decision_at"]).dayofweek.to_numpy()
+            exit_s = hz.session_day_index(pd.DatetimeIndex(o["exit_decision_at"][valid]))
+            entry_s = hz.session_day_index(pd.DatetimeIndex(o["entry_decision_at"][valid]))
+            long_bps = o[hz.GROSS_TARGET_COLUMNS_BY_HORIZON[h][0]].to_numpy(float)[valid]
+            per_dow = {int(d): {"rows": int((entry_dow[valid] == d).sum()), "elapsed_days_min": float(el[entry_dow[valid] == d].min()) if (entry_dow[valid] == d).any() else None,
+                                "elapsed_days_median": float(np.median(el[entry_dow[valid] == d])) if (entry_dow[valid] == d).any() else None}
+                       for d in range(7)}
+            report[f"h{h}d"] = {
+                "rows": int(len(o)), "fill_bound_rows": bound, "valid_rows": int(valid.sum()), "censored_bound_rows": int(bound - valid.sum()),
+                "elapsed_days": {"min": float(el.min()), "median": float(np.median(el)), "max": float(el.max())},
+                "calendar_days_between_sessions": {"min": int((exit_s - entry_s).min()), "max": int((exit_s - entry_s).max()), "all_at_least_h": bool((exit_s - entry_s >= h).all())},
+                "exit_before_seal": bool((pd.DatetimeIndex(o["exit_decision_at"][valid]) < seal).all()),
+                "last_valid_entry": str(pd.DatetimeIndex(o["entry_decision_at"][valid]).max()),
+                "long_gross_bps": {"mean": float(long_bps.mean()), "sd": float(long_bps.std(ddof=1)), "min": float(long_bps.min()), "max": float(long_bps.max())},
+                "per_entry_weekday": per_dow,
+            }
+        decision = "ENTRY_HORIZON_CLOCK_AUDIT_PASS" if all(r["calendar_days_between_sessions"]["all_at_least_h"] and r["exit_before_seal"] for r in report.values()) else "ENTRY_HORIZON_CLOCK_AUDIT_FAIL"
+        result = {"decision": decision, "contract": hz.entry_observed_market_horizons_contract(), "window": [spec["window_start"], spec["window_end_exclusive"]],
+                  "m5_rows": int(len(m5_times)), "m1_rows_before_seal": int(len(m1)), "m1_binding": m1_binding, "m5_tape": tape_binding,
+                  "horizons": report, "test_accessed": False, "evidence_class": "measured_on_real_hash_bound_bytes",
+                  "git_head": git("rev-parse", "HEAD"), "spec_sha256": sha(spec_path)}
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": "COMPLETE", "decision": decision, "result_sha256": sha(out / "RESULT.json"),
+                                          "finished_utc": datetime.now(timezone.utc).isoformat()})
+        return result
+    except Exception as exc:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": str(exc), "finished_utc": datetime.now(timezone.utc).isoformat()})
+        raise
+
+
 def run_swing_pooled(spec: dict, spec_path: Path) -> dict:
     if (spec["arm"] != "SWING_POOLED_D1" or spec["horizons"] != [20, 5] or spec["primary_horizon"] != 20
             or spec["test_accessed"] is not False or spec["native_training"] is not False):
@@ -4294,7 +4365,7 @@ def run_swing_pooled(spec: dict, spec_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files", "run-swing-d1", "run-swing-pooled", "run-swing-forward-journal", "audit-d1-macro-context"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files", "run-swing-d1", "run-swing-pooled", "run-swing-forward-journal", "audit-d1-macro-context", "audit-entry-horizon-clock"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -4308,7 +4379,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"audit-d1-macro-context": audit_d1_macro_context, "run-swing-forward-journal": run_swing_forward_journal, "run-swing-pooled": run_swing_pooled, "run-swing-d1": run_swing_d1, "fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"audit-entry-horizon-clock": audit_entry_horizon_clock, "audit-d1-macro-context": audit_d1_macro_context, "run-swing-forward-journal": run_swing_forward_journal, "run-swing-pooled": run_swing_pooled, "run-swing-d1": run_swing_d1, "fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0
