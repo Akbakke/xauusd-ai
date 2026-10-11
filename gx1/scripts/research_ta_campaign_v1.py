@@ -896,9 +896,12 @@ def _fit_predictions(panel: pd.DataFrame, spec: dict, feature_names: list[str],
         target = np.full(n, np.nan)
         target[:-horizon] = (mid[horizon:] - mid[:-horizon]) / atr[:-horizon]
         forecasts[horizon] = {name: np.full(n, np.nan) for name in ["ridge", "hgb", "constant"]}
-        for year in spec["fold_years"]:
+        # Holdouts are calendar years by default; ``fold_spans`` declares multi-year holdouts
+        # [start_year, end_year_exclusive] for fold-structure sensitivity (same purge rule).
+        spans = [tuple(int(v) for v in span) for span in spec["fold_spans"]] if spec.get("fold_spans") else [(y, y + 1) for y in spec["fold_years"]]
+        for year, end_year in spans:
             start = pd.Timestamp(f"{year}-01-01", tz="UTC")
-            end = pd.Timestamp(f"{year + 1}-01-01", tz="UTC")
+            end = pd.Timestamp(f"{end_year}-01-01", tz="UTC")
             past = np.flatnonzero(eligible & (times < start))
             fit = past[times[past + max_h] < start]
             hold = np.flatnonzero(eligible & (times >= start) & (times < end))
@@ -3137,6 +3140,13 @@ def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
             panel[column] = driver_rows[column].to_numpy(float)
         groups["drivers"] = list(SWING_DRIVER_FIELDS)
         group_order.append("drivers")
+    if spec.get("calendar"):
+        meetings = parse_fomc_meeting_dates(spec["calendar"]["fomc"])
+        calendar_rows = swing_calendar_fields(panel, meetings)
+        for column in SWING_CALENDAR_FIELDS:
+            panel[column] = calendar_rows[column].to_numpy(float)
+        groups["calendar"] = list(SWING_CALENDAR_FIELDS)
+        group_order.append("calendar")
     feature_names = [c for g in group_order for c in groups[g]]
     if panel.columns.has_duplicates or np.isinf(panel[feature_names].to_numpy(float)).any():
         raise RuntimeError("TA_SWING_FEATURE_SURFACE")
@@ -3276,6 +3286,74 @@ def swing_driver_fields(panel: pd.DataFrame, components: pd.DataFrame) -> pd.Dat
     """Last driver row available strictly before each XAU decision (same rule as COT)."""
     return align_asof(pd.DatetimeIndex(panel["decision_time"]), components["available_at"],
                       components[SWING_DRIVER_FIELDS], inclusive=False)
+
+
+# ---------------------------------------------------------------------------
+# Calendar input: FOMC meeting dates from the official pages (BLS schedules are
+# behind a bot wall and are not included). Dates are parsed per page year.
+# ---------------------------------------------------------------------------
+
+SWING_CALENDAR_FIELDS = ["days_to_next_fomc", "days_since_last_fomc"]
+_FOMC_MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August",
+                "September", "October", "November", "December")
+_FOMC_MONTH_ABBREV = {"Jan": "January", "Feb": "February", "Mar": "March", "Apr": "April", "Jun": "June",
+                      "Jul": "July", "Aug": "August", "Sep": "September", "Sept": "September", "Oct": "October",
+                      "Nov": "November", "Dec": "December"}
+
+
+def parse_fomc_meeting_dates(binding: dict) -> pd.DataFrame:
+    """Scheduled FOMC meeting end dates (second day of two-day meetings) per calendar year.
+
+    Historical pages carry one year each; the current calendars page carries several years
+    in year-labelled sections. Only month/day pairs adjacent to the words Meeting or
+    Statement are accepted; unscheduled meetings are included when listed the same way.
+    """
+    import html as _html
+    records = _retrieval_records(binding, "FOMC_")
+    month_re = "|".join(list(_FOMC_MONTHS) + list(_FOMC_MONTH_ABBREV))
+    pattern = re.compile(r"(?:(" + month_re + r")\s*(?:/\s*(" + month_re + r"))?)\s+(\d{1,2})(?:\s*-\s*(\d{1,2}))?[^0-9A-Za-z]{0,40}(?:Meeting|meeting|Statement|statement)")
+    rows = []
+    for record in records:
+        page = _html.unescape(Path(record["raw_path"]).read_text(encoding="utf-8", errors="replace"))
+        text = re.sub(r"<[^>]+>", " ", page)
+        text = re.sub(r"\s+", " ", text)
+        item = record["item"]
+        if item.startswith("FOMC_HISTORICAL_"):
+            segments = [(int(item.rsplit("_", 1)[1]), text)]
+        else:
+            # year-labelled sections on the current page: split on "YYYY FOMC Meetings"
+            parts = re.split(r"(20\d{2}) FOMC Meetings", text)
+            segments = [(int(parts[i]), parts[i + 1]) for i in range(1, len(parts) - 1, 2)]
+        for year, segment in segments:
+            for month1, month2, day1, day2 in pattern.findall(segment):
+                month = _FOMC_MONTH_ABBREV.get(month2 or month1, month2 or month1)
+                day = int(day2 or day1)
+                try:
+                    rows.append({"meeting_end": pd.Timestamp(year=year, month=_FOMC_MONTHS.index(month) + 1, day=day), "page_item": item})
+                except ValueError:
+                    continue
+    if not rows:
+        raise RuntimeError("TA_SWING_FOMC_EMPTY")
+    out = pd.DataFrame(rows).drop_duplicates("meeting_end").sort_values("meeting_end").reset_index(drop=True)
+    return out
+
+
+def swing_calendar_fields(panel: pd.DataFrame, meetings: pd.DataFrame) -> pd.DataFrame:
+    """days_to_next_fomc / days_since_last_fomc at each decision, calendar days, NY date basis."""
+    decisions = pd.DatetimeIndex(panel["decision_time"]).tz_convert(NY_TZ).tz_localize(None).normalize()
+    ends = pd.DatetimeIndex(meetings["meeting_end"]).sort_values()
+    nxt = ends.searchsorted(decisions, side="right")
+    prev = nxt - 1
+    out = pd.DataFrame(index=panel.index)
+    to_next = np.full(len(decisions), np.nan)
+    ok_next = nxt < len(ends)
+    to_next[ok_next] = (ends[nxt[ok_next]] - decisions[ok_next]).days
+    since = np.full(len(decisions), np.nan)
+    ok_prev = prev >= 0
+    since[ok_prev] = (decisions[ok_prev] - ends[prev[ok_prev]]).days
+    out["days_to_next_fomc"] = to_next
+    out["days_since_last_fomc"] = since
+    return out
 
 
 def _select_within_fold_year(f: np.ndarray, yrs: np.ndarray, coverage: float) -> np.ndarray:

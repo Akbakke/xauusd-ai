@@ -80,6 +80,23 @@ med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
 innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
 NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
 
+## Pooled instrumenter 11.10.2026: ingen konsistent signal på tvers
+
+Operatørens «Ja, kjør og hent inn resten»: eieren run-swing-pooled (9717ffbd) kjørte
+XAU, XAG, XPT, XPD, XCU og WTI som egne mål med egne COT-koder, delte drivere og
+kryss-panel, 68 felt uten D1-lane, samme folds og kost, én felles Westfall–Young-
+familie over 336 celler (7668f071). Ingen celle oppfyller regelen (h20, dekning
+≤ 25 %, familie-p < 0,05 på både treff og fanget mål). Treffrate alene er
+familiesignifikant for XAU swing_ridge h20 ved 2/5/10 % dekning (0,885/0,831/
+0,764, familie-p 0,022/0,015/0,044) og XPT a_ridge h20 ved 25 %; XPD a_ridge h5
+ved 2 % oppfyller begge metrikker, men ved h5. HGB-effekten replikeres ikke på
+tvers (h20 10 % treff: XAU 0,68, de andre 0,43–0,56), og dens episodeøkonomi er
+negativ for XPD, WTI og XAG. Eneste konkrete spor: XAU h20 ridge på 68 felt uten
+D1-lane. Forbehold: XAU gikk på H1-ruten her, ikke kanonisk M5; familiejusteringen
+dekker denne studiens celler, ikke dagens serie av sju analyser på overlappende
+data. FOMC-sider 2009–2028 er hentet; BLS er bak bot-sperre; H.10-indekspakkene
+kom tomme (bilaterale kurser hentet). Verdikt INKONKLUSIV.
+
 ## Swing stage B forsøk 006: familiejustert inferens, ikke bekreftet
 
 Westfall–Young max-t over alle 56 selektive celler med 2 000 felles sirkulære

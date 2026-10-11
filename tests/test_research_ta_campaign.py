@@ -1387,3 +1387,33 @@ def test_cot_parser_accepts_an_explicit_contract_code(tmp_path):
     gold = ta.parse_cot_gold_archives(spec)
     silver = ta.parse_cot_gold_archives(spec, "084691")
     assert gold["cot_noncommercial_net_over_oi"].tolist() == [0.4] and silver["cot_noncommercial_net_over_oi"].tolist() == [-0.4]
+
+
+def test_fomc_pages_parse_to_meeting_dates_and_calendar_fields(tmp_path):
+    hist = tmp_path / "fomchistorical2015.htm"
+    hist.write_text("<html><body><h4>January 27-28 Meeting</h4> ... <h4>March 17-18 Meeting</h4> <p>Statement</p></body></html>")
+    cur = tmp_path / "fomccalendars.htm"
+    cur.write_text("<div>2021 FOMC Meetings</div><div>January 26-27 Meeting</div><div>2022 FOMC Meetings</div><div>Jan/Feb 31-1 Meeting</div>")
+    recs = [{"item": "FOMC_HISTORICAL_2015", "status": "RETRIEVED_NOT_ADMITTED", "raw_path": str(hist), "raw_sha256": ta.sha(hist)},
+            {"item": "FOMC_CALENDARS_CURRENT", "status": "RETRIEVED_NOT_ADMITTED", "raw_path": str(cur), "raw_sha256": ta.sha(cur)}]
+    res = tmp_path / "RESULT.json"; res.write_text(json.dumps({"records": recs}))
+    meetings = ta.parse_fomc_meeting_dates({"path": str(res), "sha256": ta.sha(res)})
+    assert [str(d.date()) for d in meetings["meeting_end"]] == ["2015-01-28", "2015-03-18", "2021-01-27", "2022-02-01"]
+    panel = pd.DataFrame({"decision_time": pd.DatetimeIndex(["2015-01-20T22:00Z", "2015-01-28T22:00Z", "2015-02-10T22:00Z"])})
+    fields = ta.swing_calendar_fields(panel, meetings)
+    assert fields["days_to_next_fomc"].tolist() == [8.0, 49.0, 36.0]
+    assert np.isnan(fields["days_since_last_fomc"].iloc[0]) and fields["days_since_last_fomc"].tolist()[1:] == [0.0, 13.0]
+
+
+def test_fold_spans_declare_multi_year_holdouts(tmp_path, monkeypatch):
+    frame = _bars(1200)
+    spec = _spec(tmp_path)
+    spec.update(output_directory=str(tmp_path / "spans"), read_end_exclusive=str(frame.index[-1] + pd.Timedelta(minutes=5)))
+    panel = ta.daily_panel(frame, pd.Timestamp(spec["read_end_exclusive"]))
+    years = sorted(set(pd.DatetimeIndex(panel.fill_time).year))
+    spec["fold_years"] = years[1:]
+    spec["fold_spans"] = [[years[1], years[-1] + 1]]  # one holdout spanning every year after the first
+    forecasts, fits = ta.fit_predictions(panel, spec)
+    statuses = {f["status"] for f in fits}
+    assert len(fits) == 2 * len(spec["horizons"]) or statuses == {"INSUFFICIENT_CAUSAL_ROWS"} or "FIT" in statuses
+    assert all(f["year"] == years[1] for f in fits)

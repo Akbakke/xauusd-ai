@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-11T16:01:57.242602+00:00",
-  "status": "SWING_STAGES_A_B_COMPLETE_NO_CONFIRMED_EDGE_FAMILY_ADJUSTED",
+  "observed_utc": "2026-10-11T17:00:29.157548+00:00",
+  "status": "SWING_POOLED_NO_RULE_MET_XAU_RIDGE_HIT_RATE_LEAD_UNCONFIRMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Operator decision on the next evidence source: 1) pooled-instrument research track (XAG, XPT, XCU, BCO as additional targets with their own OANDA tapes) to multiply independent episodes; 2) two-year fold structure on identical inputs; 3) bind the Fed DDP package for DTWEXBGS; 4) GPU: fresh zero-step v10 baseline under a new explicit budget, then multi-horizon targets. No native launch, TEST, orders or spending.",
+  "next_action": "1) XAU canonical-route study without the D1 lane (68 features) plus FOMC calendar fields, same folds and family rule; 2) two-year holdout sensitivity on the same inputs; 3) H.10 index package retry; 4) GPU: fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Swing stages A and B complete: no confirmed edge. The strongest selective cells have raw p about 0.01 but family-adjusted p 0.23 or worse over 56 cells. More independent evidence is required before any further inference: pooled instruments (rule 1 opened), a different fold structure, and the Fed DDP package for the dollar index. Fresh zero-step v10 baseline still requires a new explicit budget.",
+    "current_blocker": "Pooled study: no cell meets the preregistered rule; XAU h20 ridge on the 68-feature set (no D1 lane) is hit-rate family-significant but not on captured mean, and the HGB effect does not replicate across instruments. Next: XAU canonical-route rerun without the D1 lane plus FOMC calendar, fold-structure sensitivity, H.10 index retry. Fresh zero-step v10 baseline still requires a new explicit budget.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -2927,6 +2927,157 @@
         "verdict": "NOT confirmed: the strongest cells (h20 swing_hgb at 2 % and 10 % coverage) have raw p 0.0085 but family-adjusted p 0.39 and 0.23; the h20 HGB selective effect is consistent with selection over 56 cells. Stage B closes INKONKLUSIV with no confirmed edge",
         "evidence_class": "measured on reused development history"
       }
+    },
+    "swing_pooled_20261011": {
+      "preregistration": "configs/research/ENTRY_DIRECTION_SWING_POOLED_20261011_001.json",
+      "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-pooled",
+      "source_commit": "7668f071952a0ee3552b4898d0431344e7bf536a",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_POOLED_20261011_001/RESULT.json",
+        "sha256": "6594494b63d24f2bded9d3bd7bc14c842c034221410026f7cee1bde8eb152878"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_POOLED_20261011_001/TERMINAL.json",
+        "sha256": "c8ee140a6988b5c21a66ae6fc477c7171dbbb463fc5623b9867b7d25ad70c116"
+      },
+      "instruments": [
+        "XAU_USD",
+        "XAG_USD",
+        "XPT_USD",
+        "XPD_USD",
+        "XCU_USD",
+        "WTICO_USD"
+      ],
+      "feature_count": 68,
+      "coverage": {
+        "WTICO_USD": {
+          "rows": 4340,
+          "complete_rows": 4088
+        },
+        "XAG_USD": {
+          "rows": 4484,
+          "complete_rows": 4232
+        },
+        "XAU_USD": {
+          "rows": 4519,
+          "complete_rows": 4267
+        },
+        "XCU_USD": {
+          "rows": 4312,
+          "complete_rows": 4060
+        },
+        "XPD_USD": {
+          "rows": 4457,
+          "complete_rows": 4205
+        },
+        "XPT_USD": {
+          "rows": 4438,
+          "complete_rows": 4186
+        }
+      },
+      "family": {
+        "cells": 336,
+        "draws": 2000,
+        "minimum_family_p": {
+          "captured_mean": 0.035,
+          "hit_rate": 0.0055
+        },
+        "hit_rate_cells_below_0_05": [
+          "XAU_USD:h20:swing_ridge:cov0.1",
+          "XAU_USD:h20:swing_ridge:cov0.05",
+          "XAU_USD:h20:swing_ridge:cov0.02",
+          "XPT_USD:h20:a_ridge:cov0.25",
+          "XPT_USD:h5:a_ridge:cov0.1",
+          "XPT_USD:h5:a_ridge:cov0.05",
+          "XPD_USD:h5:a_ridge:cov0.02",
+          "XPD_USD:h5:a_ridge:cov0.01"
+        ],
+        "captured_mean_cells_below_0_05": [
+          "XPD_USD:h5:a_ridge:cov0.02"
+        ]
+      },
+      "strongest_cells": {
+        "XAU_USD:h20:swing_ridge:cov0.01": {
+          "rows": 45,
+          "hit": 0.889,
+          "hit_family_p": 0.064,
+          "mean_family_p": 1.0
+        },
+        "XAU_USD:h20:swing_ridge:cov0.02": {
+          "rows": 78,
+          "hit": 0.885,
+          "hit_family_p": 0.0225,
+          "mean_family_p": 1.0
+        },
+        "XAU_USD:h20:swing_ridge:cov0.05": {
+          "rows": 201,
+          "hit": 0.831,
+          "hit_family_p": 0.0155,
+          "mean_family_p": 0.969
+        },
+        "XAU_USD:h20:swing_ridge:cov0.1": {
+          "rows": 403,
+          "hit": 0.764,
+          "hit_family_p": 0.044,
+          "mean_family_p": 0.996
+        },
+        "XPD_USD:h5:a_ridge:cov0.01": {
+          "rows": 43,
+          "hit": 0.86,
+          "hit_family_p": 0.0295,
+          "mean_family_p": 0.113
+        },
+        "XPD_USD:h5:a_ridge:cov0.02": {
+          "rows": 77,
+          "hit": 0.844,
+          "hit_family_p": 0.0055,
+          "mean_family_p": 0.035
+        },
+        "XPT_USD:h20:a_ridge:cov0.1": {
+          "rows": 396,
+          "hit": 0.707,
+          "hit_family_p": 0.2115,
+          "mean_family_p": 0.864
+        },
+        "XPT_USD:h20:a_ridge:cov0.25": {
+          "rows": 981,
+          "hit": 0.678,
+          "hit_family_p": 0.0265,
+          "mean_family_p": 0.705
+        }
+      },
+      "cross_instrument_hit_h20_swing_ridge_cov0_1": {
+        "WTICO_USD": 0.494,
+        "XAG_USD": 0.5,
+        "XAU_USD": 0.764,
+        "XCU_USD": 0.598,
+        "XPD_USD": 0.62,
+        "XPT_USD": 0.699
+      },
+      "cross_instrument_hit_h20_swing_hgb_cov0_1": {
+        "WTICO_USD": 0.43,
+        "XAG_USD": 0.557,
+        "XAU_USD": 0.675,
+        "XCU_USD": 0.552,
+        "XPD_USD": 0.476,
+        "XPT_USD": 0.477
+      },
+      "episode_economics_h20_swing_hgb_mean_bps_by_instrument": {
+        "WTICO_USD": -59.5,
+        "XAG_USD": -39.2,
+        "XAU_USD": 194.6,
+        "XCU_USD": 37.9,
+        "XPD_USD": -219.6,
+        "XPT_USD": 48.9
+      },
+      "preregistered_rule_met": false,
+      "verdict": "No cell meets the preregistered rule (h20, coverage <= 25 %, family-adjusted p < 0.05 on BOTH hit rate and captured mean). Hit-rate-only family-significant cells: XAU swing_ridge h20 at 2/5/10 % coverage (hit 0.885/0.831/0.764, family p 0.022/0.015/0.044) and XPT a_ridge h20 at 25 %; XPD a_ridge h5 at 2 % meets both metrics but at h5. The HGB selective effect does not replicate across instruments (h20 cov 0.1 hit: XAU 0.68, others 0.43-0.56) and its episode economics are negative for XPD, WTI and XAG. Pooled evidence shows no consistent cross-instrument signal; the only specific lead is XAU h20 ridge on the 68-feature set without the D1 lane",
+      "caveats": [
+        "XAU uses the H1 route here, not the canonical M5 tape",
+        "family adjustment covers the 336 cells of this study, not the sequence of studies run today (seven analyses on overlapping data)",
+        "GLD holdings are a gold-specific driver applied to every instrument"
+      ],
+      "evidence_class": "measured on reused development history"
     }
   },
   "gc_order_flow_research_20261006": {
