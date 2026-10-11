@@ -1315,3 +1315,31 @@ def test_episode_economics_takes_one_trade_per_episode_with_executable_fills():
     assert abs(long_row["net_bps_ex_financing"] - expected_long) < 1e-9
     assert short_row["side"] == -1 and short_row["net_bps_ex_financing"] < 0  # rising market punishes the short
     assert out["financing_charged"] is False and out["long_financing_estimate_bps"] > 0
+
+
+def test_driver_components_parse_primary_files_and_stamp_availability(tmp_path):
+    def bind(records):
+        path = tmp_path / f"RESULT_{len(list(tmp_path.iterdir()))}.json"
+        path.write_text(json.dumps({"records": records}))
+        return {"path": str(path), "sha256": ta.sha(path)}
+    def item(item_id, name, text):
+        p = tmp_path / name; p.write_text(text)
+        return {"item": item_id, "status": "RETRIEVED_NOT_ADMITTED", "raw_path": str(p), "raw_sha256": ta.sha(p)}
+    nominal = "Date,\"1 Mo\",\"2 Yr\",\"10 Yr\"\n01/03/2020,1.5,1.58,1.80\n01/02/2020,1.5,1.57,1.88\n"
+    real = "Date,\"5 YR\",\"10 YR\"\n01/03/2020,0.05,0.10\n01/02/2020,0.06,0.15\n"
+    vix = "DATE,OPEN,HIGH,LOW,CLOSE\n01/02/2020,13.5,14.0,12.1,12.47\n01/03/2020,14.9,16.2,13.1,14.02\n"
+    gld = ("Date, GLD Close, Total Net Asset Value Tonnes in the Trust as at 4.15 p.m. NYT\n"
+           "02-Jan-2020, 143.0, 893.25\n03-Jan-2020, 145.0, 895.30\n")
+    spec = {"test_seal_utc": "2026-07-01T00:00:00Z", "drivers": {
+        "treasury": bind([item("TREASURY_NOMINAL_2020", "n.csv", nominal), item("TREASURY_REAL_2020", "r.csv", real)]),
+        "vix": bind([item("VIX_HISTORY", "v.csv", vix)]),
+        "gld": bind([item("GLD_ARCHIVE_CSV_WAYBACK_20260214", "g.csv", gld)]), "gld_item": "GLD_ARCHIVE_CSV_WAYBACK_20260214"}}
+    comp = ta.build_driver_components(spec)
+    assert list(comp.columns[1:-1]) == ta.SWING_DRIVER_FIELDS and len(comp) == 2
+    assert abs(comp["breakeven10y_level"].iloc[1] - (1.80 - 0.10)) < 1e-9
+    assert abs(comp["slope10y2y_level"].iloc[0] - (1.88 - 1.57)) < 1e-9
+    # observation 2020-01-02 (NY) is usable strictly after end of 2020-01-03 NY, i.e. from 2020-01-04 05:00 UTC
+    assert str(comp["available_at"].iloc[0]) == "2020-01-04 05:00:00+00:00"
+    panel = pd.DataFrame({"decision_time": pd.DatetimeIndex(["2020-01-03T22:00Z", "2020-01-04T22:00Z", "2020-01-06T22:00Z"])})
+    joined = ta.swing_driver_fields(panel, comp)
+    assert np.isnan(joined["real10y_level"].iloc[0]) and joined["real10y_level"].iloc[1] == 0.15 and joined["real10y_level"].iloc[2] == 0.10

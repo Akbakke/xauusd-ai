@@ -3127,12 +3127,153 @@ def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
     for column in lane.columns:
         panel[column] = lane_rows[column].to_numpy(float)
     groups["d1_lane"] = list(lane.columns)
-    feature_names = [c for g in ("price_state_A", "positioning_cot", "panel_oanda", "d1_lane") for c in groups[g]]
+    group_order = ["price_state_A", "positioning_cot", "panel_oanda", "d1_lane"]
+    if spec.get("drivers"):
+        components = build_driver_components(spec)
+        driver_rows = swing_driver_fields(panel, components)
+        for column in SWING_DRIVER_FIELDS:
+            panel[column] = driver_rows[column].to_numpy(float)
+        groups["drivers"] = list(SWING_DRIVER_FIELDS)
+        group_order.append("drivers")
+    feature_names = [c for g in group_order for c in groups[g]]
     if panel.columns.has_duplicates or np.isinf(panel[feature_names].to_numpy(float)).any():
         raise RuntimeError("TA_SWING_FEATURE_SURFACE")
     coverage = {g: int(np.isfinite(panel[cols].to_numpy(float)).all(axis=1).sum()) for g, cols in groups.items()}
     return panel, feature_names, groups, {"market": binding, "group_complete_rows": coverage,
                                           "cot_reports": int(len(cot)), "instruments": sorted(daily)}
+
+
+# ---------------------------------------------------------------------------
+# Stage B drivers from primary publishers (Treasury par/real yields, Cboe VIX,
+# SPDR GLD holdings). Each parser reads only hash-bound bytes from a retrieval
+# RESULT.json; availability is "first XAU D1 decision strictly after the end of
+# day D+1 America/New_York", declared once here, never inferred per row.
+# ---------------------------------------------------------------------------
+
+SWING_DRIVER_FIELDS = ["real10y_level", "real10y_change1D", "real10y_change5D", "real10y_change21D",
+                       "nominal10y_level", "slope10y2y_level", "slope10y2y_change21D",
+                       "breakeven10y_level", "breakeven10y_change21D",
+                       "vix_log_level", "vix_log_change5D",
+                       "gld_log_level", "gld_log_change21D"]
+NY_TZ = "America/New_York"
+
+
+def _retrieval_records(binding: dict, prefix: str | None = None) -> list[dict]:
+    result_path = Path(binding["path"])
+    if sha(result_path) != binding["sha256"]:
+        raise RuntimeError("TA_SWING_DRIVER_RESULT_HASH")
+    result = json.loads(result_path.read_text())
+    records = [r for r in result["records"] if prefix is None or str(r["item"]).startswith(prefix)]
+    for record in records:
+        if record["status"] != "RETRIEVED_NOT_ADMITTED":
+            raise RuntimeError(f"TA_SWING_DRIVER_ITEM_INCOMPLETE: {record['item']}")
+        if sha(Path(record["raw_path"])) != record["raw_sha256"]:
+            raise RuntimeError(f"TA_SWING_DRIVER_BYTES_HASH: {record['item']}")
+    if not records:
+        raise RuntimeError("TA_SWING_DRIVER_NO_RECORDS")
+    return records
+
+
+def _driver_available_at(observation_dates: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """Observation dated D (NY close) is usable strictly after the end of day D+1 America/New_York."""
+    local_end = (observation_dates.tz_localize(NY_TZ) + pd.Timedelta(days=2)).normalize()
+    return local_end.tz_convert("UTC")
+
+
+def parse_treasury_yields(binding: dict) -> pd.DataFrame:
+    """Daily 2 Yr / 10 Yr nominal and 10 YR real par yields from the yearly Treasury CSVs."""
+    nominal, real = [], []
+    for record in _retrieval_records(binding, "TREASURY_"):
+        frame = pd.read_csv(Path(record["raw_path"]))
+        frame.columns = [str(c).strip() for c in frame.columns]
+        frame["Date"] = pd.to_datetime(frame["Date"], format="%m/%d/%Y")
+        if record["item"].startswith("TREASURY_NOMINAL_"):
+            nominal.append(frame[["Date", "2 Yr", "10 Yr"]].rename(columns={"2 Yr": "nominal2y", "10 Yr": "nominal10y"}))
+        elif record["item"].startswith("TREASURY_REAL_"):
+            real.append(frame[["Date", "10 YR"]].rename(columns={"10 YR": "real10y"}))
+        else:
+            raise RuntimeError("TA_SWING_TREASURY_ITEM")
+    table = pd.concat(nominal).merge(pd.concat(real), on="Date", how="outer").sort_values("Date").reset_index(drop=True)
+    if table["Date"].duplicated().any():
+        raise RuntimeError("TA_SWING_TREASURY_DUPLICATE_DATES")
+    for column in ("nominal2y", "nominal10y", "real10y"):
+        table[column] = pd.to_numeric(table[column], errors="coerce")
+    return table
+
+
+def parse_vix_history(binding: dict) -> pd.DataFrame:
+    record = _retrieval_records(binding, "VIX_HISTORY")[0]
+    frame = pd.read_csv(Path(record["raw_path"]))
+    frame.columns = [str(c).strip().upper() for c in frame.columns]
+    if "DATE" not in frame.columns or "CLOSE" not in frame.columns:
+        raise RuntimeError("TA_SWING_VIX_SCHEMA")
+    out = pd.DataFrame({"Date": pd.to_datetime(frame["DATE"]), "vix_close": pd.to_numeric(frame["CLOSE"], errors="coerce")})
+    out = out.sort_values("Date").reset_index(drop=True)
+    if out["Date"].duplicated().any() or (out["vix_close"].dropna() <= 0).any():
+        raise RuntimeError("TA_SWING_VIX_ROWS")
+    return out
+
+
+def parse_gld_archive_csv(binding: dict, item: str) -> pd.DataFrame:
+    """Header-first SPDR archive variant (2026 capture); tonnes column as published."""
+    record = [r for r in _retrieval_records(binding, item)][0]
+    rows = list(csv.reader(io.StringIO(Path(record["raw_path"]).read_text(encoding="utf-8-sig"))))
+    header = [v.strip() for v in rows[0]]
+    tonnes = "Total Net Asset Value Tonnes in the Trust as at 4.15 p.m. NYT"
+    if header[0] != "Date" or tonnes not in header:
+        raise RuntimeError("TA_SWING_GLD_HEADER")
+    column = header.index(tonnes)
+    dates, values = [], []
+    for row in rows[1:]:
+        if not row or not row[0].strip():
+            continue
+        if len(row) != len(header):
+            raise RuntimeError("TA_SWING_GLD_ROW_WIDTH")
+        value = row[column].strip()
+        dates.append(datetime.strptime(row[0].strip(), "%d-%b-%Y"))
+        values.append(float(value) if re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", value) else np.nan)
+    out = pd.DataFrame({"Date": pd.to_datetime(dates), "gld_tonnes": values}).sort_values("Date").reset_index(drop=True)
+    if out["Date"].duplicated().any() or (out["gld_tonnes"].dropna() <= 0).any():
+        raise RuntimeError("TA_SWING_GLD_ROWS")
+    return out
+
+
+def build_driver_components(spec: dict) -> pd.DataFrame:
+    """Daily driver fields on their own observation clock, with availability stamps."""
+    drv = spec["drivers"]
+    treasury = parse_treasury_yields(drv["treasury"])
+    vix = parse_vix_history(drv["vix"])
+    gld = parse_gld_archive_csv(drv["gld"], drv["gld_item"])
+    table = treasury.merge(vix, on="Date", how="outer").merge(gld, on="Date", how="outer").sort_values("Date").reset_index(drop=True)
+    table = table.loc[table["Date"] < pd.Timestamp(spec["test_seal_utc"]).tz_convert(None)].reset_index(drop=True)
+    # Carry the last known observation across each series' own holidays (never backward).
+    for column in ("nominal2y", "nominal10y", "real10y", "vix_close", "gld_tonnes"):
+        table[column] = table[column].ffill()
+    out = pd.DataFrame({"Date": table["Date"]})
+    out["real10y_level"] = table["real10y"]
+    for days in (1, 5, 21):
+        out[f"real10y_change{days}D"] = table["real10y"].diff(days)
+    out["nominal10y_level"] = table["nominal10y"]
+    slope = table["nominal10y"] - table["nominal2y"]
+    out["slope10y2y_level"] = slope
+    out["slope10y2y_change21D"] = slope.diff(21)
+    breakeven = table["nominal10y"] - table["real10y"]
+    out["breakeven10y_level"] = breakeven
+    out["breakeven10y_change21D"] = breakeven.diff(21)
+    out["vix_log_level"] = np.log(table["vix_close"])
+    out["vix_log_change5D"] = out["vix_log_level"].diff(5)
+    out["gld_log_level"] = np.log(table["gld_tonnes"])
+    out["gld_log_change21D"] = out["gld_log_level"].diff(21)
+    out["available_at"] = _driver_available_at(pd.DatetimeIndex(out["Date"]))
+    if list(out.columns[1:-1]) != SWING_DRIVER_FIELDS:
+        raise RuntimeError("TA_SWING_DRIVER_FIELD_ORDER")
+    return out
+
+
+def swing_driver_fields(panel: pd.DataFrame, components: pd.DataFrame) -> pd.DataFrame:
+    """Last driver row available strictly before each XAU decision (same rule as COT)."""
+    return align_asof(pd.DatetimeIndex(panel["decision_time"]), components["available_at"],
+                      components[SWING_DRIVER_FIELDS], inclusive=False)
 
 
 def _select_within_fold_year(f: np.ndarray, yrs: np.ndarray, coverage: float) -> np.ndarray:
@@ -3314,7 +3455,7 @@ def run_swing_d1(spec: dict, spec_path: Path) -> dict:
         result.update(schema="gx1_ta_swing_d1_stage_a_v1", git_head=git("rev-parse", "HEAD"),
                       preregistration_sha256=sha(spec_path), inputs=binding, artifacts=artifacts,
                       primary_horizon=spec["primary_horizon"], test_accessed=False, native_training=False,
-                      fred_drivers_included=False, evidence_class="measured_reused_development_walkforward")
+                      fred_drivers_included=bool(spec.get("drivers")), evidence_class="measured_reused_development_walkforward")
         write_json(out / "RESULT.json", result)
         write_json(out / "TERMINAL.json", {"status": "COMPLETE", "result_sha256": sha(out / "RESULT.json"),
                                          "finished_utc": datetime.now(timezone.utc).isoformat()})
