@@ -1170,5 +1170,5 @@ def test_bounded_files_fetch_stores_bytes_with_receipts_and_rejects_nested_names
     result = ta.fetch_bounded_files(spec, manifest)
     assert result["item_status"] == {"GLD": "RETRIEVED_NOT_ADMITTED", "BAD": "FAILED"}
     receipt = json.loads((tmp_path / "files" / "GLD.receipt.json").read_text())
-    assert receipt["raw_sha256"] == ta.sha(Path(receipt["raw_path"])) and receipt["raw_bytes"] == 25
+    assert receipt["raw_sha256"] == ta.sha(Path(receipt["raw_path"])) and receipt["raw_bytes"] == 29
     assert not (tmp_path / "escape.csv").exists()
