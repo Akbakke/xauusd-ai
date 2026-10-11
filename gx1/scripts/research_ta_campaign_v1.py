@@ -3127,12 +3127,14 @@ def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
             panel[column] = joined[column].to_numpy(float)
             panel_fields.append(column)
     groups["panel_oanda"] = panel_fields
-    labels, lane = load_d1_lane_fields(spec)
-    lane_rows = swing_d1_lane_at_decision(panel, labels, lane)
-    for column in lane.columns:
-        panel[column] = lane_rows[column].to_numpy(float)
-    groups["d1_lane"] = list(lane.columns)
-    group_order = ["price_state_A", "positioning_cot", "panel_oanda", "d1_lane"]
+    group_order = ["price_state_A", "positioning_cot", "panel_oanda"]
+    if spec.get("d1_lane"):
+        labels, lane = load_d1_lane_fields(spec)
+        lane_rows = swing_d1_lane_at_decision(panel, labels, lane)
+        for column in lane.columns:
+            panel[column] = lane_rows[column].to_numpy(float)
+        groups["d1_lane"] = list(lane.columns)
+        group_order.append("d1_lane")
     if spec.get("drivers"):
         components = build_driver_components(spec)
         driver_rows = swing_driver_fields(panel, components)
@@ -3147,6 +3149,13 @@ def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
             panel[column] = calendar_rows[column].to_numpy(float)
         groups["calendar"] = list(SWING_CALENDAR_FIELDS)
         group_order.append("calendar")
+    if spec.get("dollar"):
+        dollar = build_dollar_components(spec)
+        dollar_rows = swing_dollar_fields(panel, dollar)
+        for column in SWING_DOLLAR_FIELDS:
+            panel[column] = dollar_rows[column].to_numpy(float)
+        groups["dollar"] = list(SWING_DOLLAR_FIELDS)
+        group_order.append("dollar")
     feature_names = [c for g in group_order for c in groups[g]]
     if panel.columns.has_duplicates or np.isinf(panel[feature_names].to_numpy(float)).any():
         raise RuntimeError("TA_SWING_FEATURE_SURFACE")
@@ -3286,6 +3295,73 @@ def swing_driver_fields(panel: pd.DataFrame, components: pd.DataFrame) -> pd.Dat
     """Last driver row available strictly before each XAU decision (same rule as COT)."""
     return align_asof(pd.DatetimeIndex(panel["decision_time"]), components["available_at"],
                       components[SWING_DRIVER_FIELDS], inclusive=False)
+
+
+# ---------------------------------------------------------------------------
+# Dollar input: Federal Reserve H.10 nominal broad dollar index (daily) from the
+# hash-bound Data Download Program package. H.10 is a weekly release: the daily
+# values for the week ending Friday are posted the following Monday at 4:15 p.m.
+# (Tuesday when Monday is a holiday), so observation D is usable strictly after
+# the end of the Tuesday of the week after D, America/New_York.
+# ---------------------------------------------------------------------------
+
+SWING_DOLLAR_FIELDS = ["usd_broad_log_level", "usd_broad_log_change5D", "usd_broad_log_change21D"]
+_H10_BROAD_SERIES = "JRXWTFB_N.B"
+
+
+def parse_fed_h10_broad_index(binding: dict, item: str) -> pd.DataFrame:
+    """Daily H.10 package: a 'Time Period' header row, then dates with ND where no value was published."""
+    record = [r for r in _retrieval_records(binding, item)][0]
+    rows = list(csv.reader(io.StringIO(Path(record["raw_path"]).read_text(encoding="utf-8-sig"))))
+    header_index = next((i for i, row in enumerate(rows) if row and row[0].strip() == "Time Period"), None)
+    if header_index is None:
+        raise RuntimeError("TA_SWING_H10_HEADER")
+    header = [v.strip() for v in rows[header_index]]
+    if _H10_BROAD_SERIES not in header:
+        raise RuntimeError("TA_SWING_H10_SERIES")
+    column = header.index(_H10_BROAD_SERIES)
+    dates, values = [], []
+    for row in rows[header_index + 1:]:
+        if not row or not row[0].strip():
+            continue
+        if len(row) != len(header):
+            raise RuntimeError("TA_SWING_H10_ROW_WIDTH")
+        value = row[column].strip()
+        dates.append(datetime.strptime(row[0].strip(), "%Y-%m-%d"))
+        values.append(float(value) if re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", value) else np.nan)
+    out = pd.DataFrame({"Date": pd.to_datetime(dates), "usd_broad": values}).sort_values("Date").reset_index(drop=True)
+    if out["Date"].duplicated().any() or (out["usd_broad"].dropna() <= 0).any() or not out["usd_broad"].notna().any():
+        raise RuntimeError("TA_SWING_H10_ROWS")
+    return out
+
+
+def _h10_available_at(observation_dates: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """Weekly release: D is usable strictly after the end of the Tuesday of the following week (NY)."""
+    week_monday = observation_dates - pd.to_timedelta(observation_dates.weekday, unit="D")
+    local_end = (week_monday + pd.Timedelta(days=9)).tz_localize(NY_TZ)
+    return local_end.tz_convert("UTC")
+
+
+def build_dollar_components(spec: dict) -> pd.DataFrame:
+    """Broad dollar index on its published observation clock (ND days dropped, changes over published days)."""
+    dol = spec["dollar"]
+    table = parse_fed_h10_broad_index(dol["fed_h10"], dol["fed_h10_item"])
+    keep = table["usd_broad"].notna() & (table["Date"] < pd.Timestamp(spec["test_seal_utc"]).tz_convert(None))
+    table = table.loc[keep].reset_index(drop=True)
+    out = pd.DataFrame({"Date": table["Date"]})
+    out["usd_broad_log_level"] = np.log(table["usd_broad"].to_numpy(float))
+    out["usd_broad_log_change5D"] = out["usd_broad_log_level"].diff(5)
+    out["usd_broad_log_change21D"] = out["usd_broad_log_level"].diff(21)
+    out["available_at"] = _h10_available_at(pd.DatetimeIndex(out["Date"]))
+    if list(out.columns[1:-1]) != SWING_DOLLAR_FIELDS:
+        raise RuntimeError("TA_SWING_DOLLAR_FIELD_ORDER")
+    return out
+
+
+def swing_dollar_fields(panel: pd.DataFrame, components: pd.DataFrame) -> pd.DataFrame:
+    """Last dollar-index row available strictly before each XAU decision."""
+    return align_asof(pd.DatetimeIndex(panel["decision_time"]), components["available_at"],
+                      components[SWING_DOLLAR_FIELDS], inclusive=False)
 
 
 # ---------------------------------------------------------------------------

@@ -1417,3 +1417,24 @@ def test_fold_spans_declare_multi_year_holdouts(tmp_path, monkeypatch):
     statuses = {f["status"] for f in fits}
     assert len(fits) == 2 * len(spec["horizons"]) or statuses == {"INSUFFICIENT_CAUSAL_ROWS"} or "FIT" in statuses
     assert all(f["year"] == years[1] for f in fits)
+
+
+def test_fed_h10_broad_index_drops_nd_rows_and_stamps_weekly_availability(tmp_path):
+    text = ('"Series Description","Nominal Broad Dollar Index","Nominal AFE"\n"Unit:","Index","Index"\n'
+            '"Multiplier:","1","1"\n"Currency:","NA","NA"\n"Unique Identifier: ","H10/H10/JRXWTFB_N.B","H10/H10/JRXWTFN_N.B"\n'
+            '"Time Period","JRXWTFB_N.B","JRXWTFN_N.B"\n2020-01-01,ND,ND\n2020-01-02,98.5,94.0\n2020-01-03,99.0,94.5\n')
+    p = tmp_path / "h10.csv"; p.write_text(text)
+    res = tmp_path / "RESULT.json"
+    res.write_text(json.dumps({"records": [{"item": "H10_PACKAGE_1_FULL_NO_LASTOBS", "status": "RETRIEVED_NOT_ADMITTED",
+                                            "raw_path": str(p), "raw_sha256": ta.sha(p)}]}))
+    spec = {"test_seal_utc": "2026-07-01T00:00:00Z",
+            "dollar": {"fed_h10": {"path": str(res), "sha256": ta.sha(res)}, "fed_h10_item": "H10_PACKAGE_1_FULL_NO_LASTOBS"}}
+    comp = ta.build_dollar_components(spec)
+    assert list(comp.columns[1:-1]) == ta.SWING_DOLLAR_FIELDS and len(comp) == 2
+    assert abs(comp["usd_broad_log_level"].iloc[0] - np.log(98.5)) < 1e-12
+    # Thursday 2020-01-02 belongs to the week of Monday 2019-12-30; H.10 posts it Monday 2020-01-06,
+    # so it is usable strictly after the end of Tuesday 2020-01-07 NY = 2020-01-08 05:00 UTC.
+    assert str(comp["available_at"].iloc[0]) == "2020-01-08 05:00:00+00:00"
+    panel = pd.DataFrame({"decision_time": pd.DatetimeIndex(["2020-01-07T22:00Z", "2020-01-08T22:00Z"])})
+    joined = ta.swing_dollar_fields(panel, comp)
+    assert np.isnan(joined["usd_broad_log_level"].iloc[0]) and abs(joined["usd_broad_log_level"].iloc[1] - np.log(99.0)) < 1e-12
