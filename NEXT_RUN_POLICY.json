@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-11T17:00:29.157548+00:00",
-  "status": "FORWARD_JOURNAL_AUTHORIZED_SOURCES_PENDING",
+  "status": "FORWARD_JOURNAL_Q3_2026_SCORED_NO_FLAGS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) Forward journal: register the five sealed-period source manifests, fetch under capped audit, preregister the journal and score 2026-07..2026-09 once; 2) native D1 context + horizon: design bound, implementation wave needs its own contract and budget. No native launch, TEST split read, orders or spending.",
+  "next_action": "1) Forward journal: extend scored_end_utc by explicit policy edit each month, refetch the five sources, score the new month once; September resolves after 20 trading days; 2) native D1 context + horizon: implementation wave needs its own contract and budget. No native launch, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Forward journal authorized; sealed-period sources not yet fetched. Native D1 wave not started.",
+    "current_blocker": "Journal scored 2026-07..09 with zero flagged rows; year rule needs 12 months. Native D1 wave not started.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -3936,7 +3936,118 @@
       "fit_rule": "ridge fit on rows whose 20-day outcome closed before the scored month; never on scored rows",
       "rules_owner": "GX1_RULES.md (Operatørvedtak 11.10.2026 kveld)",
       "predictor_admitted": false,
-      "orders_sent": false
+      "orders_sent": false,
+      "preregistration": "configs/research/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011.json",
+      "first_run": {
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011/RUN_20261011T185700497848Z/RESULT.json",
+          "sha256": "f1c38abfa0b1110be5308e902a87a764f589c6474c33fe290b9dc362b6ef43ab"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011/RUN_20261011T185700497848Z/TERMINAL.json",
+          "sha256": "310ff19bfdf5c3a76f2c59ef0d95449ddeb47ceb9cf72ad8f70eb506594b7f6a"
+        },
+        "git_head": "012db459c378d53f595555f506bcf7a02ef40d7d"
+      },
+      "sources": {
+        "oanda": "OANDA_PANEL_DAILY_SOURCE_20261011_004 (11 instruments to 2026-10-09)",
+        "cot": "CFTC_COT_ARCHIVE_SOURCE_20261011_002 (2026 fetched, 2009-2025 reused under hash)",
+        "treasury": "TREASURY_YIELDS_SOURCE_20261011_002 (2026 to 2026-10-09)",
+        "vix": "CBOE_VIX_SOURCE_20261011_002 (to 2026-10-09)",
+        "gld": "GLD_HOLDINGS_SOURCE_20261011_003 (workbook to 2026-10-08, byte-identical to the earlier capture)"
+      },
+      "panel": {
+        "rows": 4718,
+        "last_fill_time": "2026-10-08 22:00:00+00:00",
+        "cot_reports": 927
+      },
+      "months": {
+        "2026-07": {
+          "entry": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011/JOURNAL_2026-07.json",
+            "sha256": "4337519efed1a0fd908c6e0465726bae0fedd78d7591407347790f3ba8a9dfc8"
+          },
+          "fit_rows": 4374,
+          "hold_rows": 22,
+          "last_fit_outcome_time": "2026-06-30 22:00:00+00:00",
+          "ridge_alpha": 3162.2776601683795,
+          "thresholds_h20_abs_forecast_atr": {
+            "0.05": 2.248,
+            "0.1": 2.14,
+            "0.25": 1.795
+          },
+          "long_share": 1.0,
+          "rows_with_known_target_at_scoring": 22,
+          "rank_ic_h20_at_scoring": 0.501,
+          "always_long_hit_rate": 0.818,
+          "flagged_rows_cov0.05_0.1_0.25": [
+            0,
+            0,
+            0
+          ],
+          "resolution": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011/RESOLUTION_2026-07.json",
+            "sha256": "de7f3d31d086689f5a58a2dfd5b8e9c932c1745746f9661aabd21ea075e0d6cc"
+          }
+        },
+        "2026-08": {
+          "entry": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011/JOURNAL_2026-08.json",
+            "sha256": "ee095cb0320ffb14195b1a85b60a278030c01952bce9fbd96b5feaefbd290fea"
+          },
+          "fit_rows": 4396,
+          "hold_rows": 22,
+          "last_fit_outcome_time": "2026-07-30 22:00:00+00:00",
+          "ridge_alpha": 3162.2776601683795,
+          "thresholds_h20_abs_forecast_atr": {
+            "0.05": 2.142,
+            "0.1": 2.056,
+            "0.25": 1.663
+          },
+          "long_share": 1.0,
+          "rows_with_known_target_at_scoring": 22,
+          "rank_ic_h20_at_scoring": 0.386,
+          "always_long_hit_rate": 0.318,
+          "flagged_rows_cov0.05_0.1_0.25": [
+            0,
+            0,
+            0
+          ],
+          "resolution": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011/RESOLUTION_2026-08.json",
+            "sha256": "be23efaf340456b7ff655376b8a8dd19396c6431a75c3dd91d6004a6bd601db6"
+          }
+        },
+        "2026-09": {
+          "entry": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011/JOURNAL_2026-09.json",
+            "sha256": "a208ca2d52a940ca08a21a2eaa91f7a8a3a70c40ea29bfe6bcca10f3db959a7e"
+          },
+          "fit_rows": 4418,
+          "hold_rows": 22,
+          "last_fit_outcome_time": "2026-08-31 22:00:00+00:00",
+          "ridge_alpha": 3162.2776601683795,
+          "thresholds_h20_abs_forecast_atr": {
+            "0.05": 2.07,
+            "0.1": 1.946,
+            "0.25": 1.544
+          },
+          "long_share": 1.0,
+          "rows_with_known_target_at_scoring": 8,
+          "rank_ic_h20_at_scoring": -0.095,
+          "always_long_hit_rate": 0.0,
+          "flagged_rows_cov0.05_0.1_0.25": [
+            0,
+            0,
+            0
+          ],
+          "resolution": null
+        }
+      },
+      "year_2026": "INCOMPLETE_YEAR (2 of 12 months resolved)",
+      "reading": "All Q3-2026 forecasts were long (long share 1.0 in every month), consistent with the long-timing diagnosis; no row reached the preregistered |forecast| flag thresholds (5/10/25 % of the fitted model's trailing-year magnitudes), so the journal flagged zero positions. Within-month rank-IC at h20: July 0.50 (22 rows), August 0.39 (22 rows), September -0.10 (8 rows known). Always-long hit: 0.82, 0.32, 0.00. Descriptive only; the year rule needs 12 resolved months.",
+      "status": "JOURNAL_RUNNING_Q3_2026_SCORED_NO_FLAGS",
+      "evidence_class": "forward_scored_once_after_the_fact_fit_strictly_before_each_month"
     },
     "operator_decision_20261011_native_d1_context": {
       "operator_request": "11.10.2026 «Ja, gjør begge»",

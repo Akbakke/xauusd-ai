@@ -77,16 +77,26 @@ policyblokkene swing_d1_stage_a/b/c, swing_pooled og swing_d1_stage_c_followups:
 
 Verdikt: ubekreftet long-timing-spor. Ingen prediktor innrømmet.
 
-## Forward-journal (vedtak 11.10 kveld)
+## Forward-journal (vedtak 11.10 kveld): Q3 2026 scoret, ingen flagg
 
 Eier `run-swing-forward-journal` (ada3b553) på den frosne 68-feltsflaten, XAU via
 H1-ruten, swing_ridge h20/h5. Policyblokk forward_journal_20261011 autoriserer
-lesing av forseglet periode bare for de navngitte kildene til scored_end_utc
-2026-10-11. Neste: fem kildemanifester (OANDA full refetch, COT 2026 med gjenbruk
-av 2009–2025, Treasury 2026 med gjenbruk, VIX, GLD-arbeidsbok), journal-
-forhåndsregistrering, henting under capped audit, scoring av 2026-07..2026-09 én
-gang. Fit skjer bare på historikk før hver måned; scorede rader brukes aldri til
-fit.
+lesing av forseglet periode bare for de fem navngitte kildene til scored_end_utc
+2026-10-11; forlengelse er en eksplisitt policyendring. Kildene ble hentet på nytt
+under egne manifester (COT 2026 og Treasury 2009–2025 gjenbrukt under hash;
+OANDA H1 for 11 instrumenter til 2026-10-09; VIX til 2026-10-09; SPDR-arbeidsbok
+til 2026-10-08). Panel 4 718 rader til 2026-10-08.
+
+Første kjøring (012db459): juli, august og september 2026 scoret nøyaktig én gang,
+hver med ridge fit på 4 374–4 418 rader hvis 20-dagersutfall lukket før måneden
+(alpha 3162 i alle tre). Alle prognoser var LONG i alle tre måneder, i tråd med
+long-timing-diagnosen. Ingen rad nådde de forhåndsregistrerte |prognose|-
+tersklene (5/10/25 % av modellens egne størrelser siste år), så journalen flagget
+null posisjoner. Rank-IC innen måneden ved h20: juli 0,50 (22 rader), august 0,39
+(22 rader), september −0,10 (8 kjente rader). Alltid-LONG-treff 0,82 / 0,32 / 0,00.
+Juli og august er løst; september løses etter 20 handelsdager. Årsregelen krever
+12 løste måneder. Beskrivende tall, ingen inferens, ingen prediktor innrømmet.
+Fit skjer bare på historikk før hver måned; scorede rader brukes aldri til fit.
 
 ## Native D1-kontekst og horisont (vedtak 11.10 kveld)
 
