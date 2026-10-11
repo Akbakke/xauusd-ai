@@ -1,0 +1,114 @@
+{
+  "acceptance": [
+    "genuine source-bound terminal and immutable complete publication",
+    "all current features/families/timeframes retained",
+    "whole physical TRAIN normalization and sealed TEST",
+    "corrected-source reconstruction/parity",
+    "fresh measured initialbaseline with zero optimizer steps",
+    "explicit unresolved limits and no inferred edge"
+  ],
+  "automatic_host_restart": false,
+  "automatic_relaunch_after_terminal_allowed": false,
+  "baseline_reference": {
+    "native_gpu_requires_separate_exact_recipe_and_guards": true,
+    "optimizer_steps": 0,
+    "population": "Prior fixed TRAIN4096/CONTROL4096 timestamps where exact mapping remains valid; inspect changed eligibility explicitly, never substitute favorable rows. Bind exact identities before measurement.",
+    "seed": 20260911,
+    "seed_origin": "Existing native learning-study recipe seed",
+    "study_spec": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_LEARNING_STUDY_20261010.json"
+  },
+  "broker_live_paper_orders_spending_promotion_allowed": false,
+  "budget_origin": "New user-authorized build (11.10.2026); finite ceiling reuses the accepted generation's 64800 s core limit. A new plan, never a renewal or relaunch of a consumed plan.",
+  "calibration": "Existing chain rebuilds source-bound registry artifacts on identical frozen TRAIN windows; squeeze calibration is reused. No new parameter/model/threshold sweep.",
+  "canonical_branch": "work/gx1-current",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "cleanup_authorized": false,
+  "complete_m1_alignment": {
+    "alignment_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+    },
+    "alignment_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    }
+  },
+  "corrections": [
+    "ninth context family: 61 D1 macro/positioning fields (CFTC COT, OANDA cross-asset panel, Treasury/VIX/GLD drivers) joined as-of to each M5 decision time by gx1/features/d1_macro_context_v1 under the pinned source spec configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json; context schema v13, signal schema unchanged",
+    "trading-day horizon targets: executable gross outcomes and elapsed seconds at 1/5/20 observed sessions (gx1/contracts/entry_observed_market_horizons_v1), NaN where the exit crosses the split boundary or the target session lacks the entry offset",
+    "the existing direction horizon, auxiliary targets, eight signal families and all guards are unchanged"
+  ],
+  "created_utc": "2026-10-11T20:17:25.120704+00:00",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011/CHAIN",
+  "execution_owner": "scripts/run_seq513_rebuild_chain_v1.sh",
+  "existing_chain_exact_checkpoint_resume_only": true,
+  "feature_ranking_output": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011/CHAIN/ENTRY_MODEL_NATIVE_TRAIN_FEATURE_RANKING_20261011T201725Z.json",
+  "forbidden_reuse": [
+    "the FEATURE_REPAIR generation's feature/cache/aux-label artifacts",
+    "old normalization",
+    "old model checkpoint as fresh initialization",
+    "old execution claims or launch permission"
+  ],
+  "full_epoch_training_allowed": false,
+  "full_val_allowed": false,
+  "history_start": "2010-06-14T22:00:00Z",
+  "max_core_wall_seconds": 64800,
+  "one_heavy_current_job": true,
+  "one_shot_core_launches": 1,
+  "operator_request": "11.10.2026 \u00abja, kj\u00f8r 3, 4 og 5\u00bb \u2014 rebuild the native dataset with the ninth context family (D1 macro/positioning) and trading-day horizon targets, then normalization and a fresh zero-step baseline.",
+  "pair_generation_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS",
+  "pair_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS/fc3333d71ca71d3916b3f6716bbfd36824a216dc15fb927efa8c03cac0594170/PAIR_MANIFEST.json",
+    "sha256": "690786b030362d6f0e0bafdc4004d4a361b83e751c1a98a344c68e05cf0da425"
+  },
+  "registry_fit_inner_end": "2012-04-11T22:00:00+00:00",
+  "registry_fit_train_end": "2013-01-01T22:00:00+00:00",
+  "registry_fit_train_start": "2009-06-01T00:00:00+00:00",
+  "resource_authority": "Existing entry_next_edge_control.sh and gx1_capped_run.sh per stage; existing producer10G/audit4G, swap512M, CPU0-7, one numerical thread and exclusive CURRENT lock. No nested supervisor lock.",
+  "reuse": [
+    "immutable raw native pair and ancestors",
+    "unchanged six-clock squeeze calibration",
+    "complete pre-TEST raw M1 quote alignment",
+    "hash-bound D1 context sources retrieved for the forward journal (read below the TEST seal for TRAIN/VAL; TEST construction under the explicit policy read end)"
+  ],
+  "run_id": "HISTORY2009W_NATIVE_D1_20261011",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001",
+  "schema_version": "gx1_native_d1_rebuild_plan_v1",
+  "source_frozen_while_running": true,
+  "source_parent": "a33077be80def77ebe17ee6840aa4d63afb3ee9c",
+  "squeeze_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/manifest.json",
+    "sha256": "2f099d1974a6ffe3b9c1ae39680acdce5cc706aba954a2ce3523d74db2838d3e"
+  },
+  "stages": [
+    {
+      "id": "CORE_CHAIN",
+      "scope": "Rebuild MTF/M5/M1 surfaces, Group-A daily fields, the D1 macro context family, auxiliary and trading-day horizon labels and current split lineage through the existing chain; canonical TEST construction/sealing only."
+    },
+    {
+      "id": "COMPLETE_M1_AND_INPUT_VERIFICATION",
+      "scope": "Publish complete pre-TEST M1 input surface with the new dataset_run_id; independently verify fields, clocks, aliases, the 61 context fields and all physical TRAIN/CONTROL rows."
+    },
+    {
+      "id": "PHYSICAL_VIEWS_AND_NORMALIZATION",
+      "scope": "Publish physical native views/index and fit normalization once on the entire physical TRAIN through existing owners (132 context fields); no VAL or TEST refit."
+    },
+    {
+      "id": "FRESH_INITIAL_BASELINE",
+      "scope": "Fresh zero-step ONLINE/TARGET with the complete existing model, the v13 context constructor and new normalization; exact genuine parity and fixed TRAIN/CONTROL initial measurement, no optimizer."
+    }
+  ],
+  "subagents_allowed": false,
+  "termination_grace_seconds": 10,
+  "test_end": "2026-08-31T23:55:00Z",
+  "test_handling": "Existing canonical construction/sealing owner may write and seal the same TEST split. Supervisor, diagnostics, normalization and model never open TEST data/manifests or outcomes. The builder constructs the TEST split's context fields under the policy's test_split_context_read_end_utc; no supervisor, diagnostic, normalization or model reads them.",
+  "test_outcome_access_allowed": false,
+  "test_start": "2026-07-01T00:00:00Z",
+  "train_end": "2025-05-31T23:59:59Z",
+  "train_start": "2011-06-01T00:00:00Z",
+  "training_enabled": false,
+  "val_end": "2026-06-30T23:59:59Z",
+  "val_start": "2025-06-01T00:00:00Z",
+  "volatility_squeeze_fit_end": "2013-01-01T22:00:00+00:00",
+  "volatility_squeeze_fit_start": "2009-06-01T00:00:00+00:00"
+}

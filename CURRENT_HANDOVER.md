@@ -98,6 +98,35 @@ Juli og august er løst; september løses etter 20 handelsdager. Årsregelen kre
 12 løste måneder. Beskrivende tall, ingen inferens, ingen prediktor innrømmet.
 Fit skjer bare på historikk før hver måned; scorede rader brukes aldri til fit.
 
+## Native D1-bølge: steg 3 kodet og testet, steg 4 admittert (11.10 natt)
+
+Steg 3 (a33077be): den niende kontekstfamilien er inne i native kontraktene.
+Feltnavn og as-of-join eies av gx1/features/d1_macro_context_v1 (forskningseieren
+importerer dem); kildespesifikasjonen configs/research/D1_MACRO_CONTEXT_SOURCES_
+20261011_001.json er pinnet med hash i koden. Kontekstskjema v13 (132 felt).
+Signalkontrakten eksponerer hvert kontinuerlig kontekstfelt til sekvensstien, så
+signalflaten vokser fra 254 til 315 felt (signalskjema v39). Alle 61 felt eies
+av session_regime_encoder; en kontekst-bare encoder ville vært ny arkitektur,
+som vedtaket ikke åpner. Den berikede M1-/M5-lane-produsenten legger familien på
+hver rad i avgrensede biter (float32) før felles warmup-trim; builderen regner
+den på nytt og krever bitparitet, og legger den selv på bare når en splits kilde
+mangler den (TEST-konstruksjon under policyens eksplisitte leseslutt
+2026-09-01). Builderen emitterer også y_long/short_gross_at_{1,5,20}d_bps og
+medgåtte sekunder (NaN ved splittgrense eller manglende sesjonsoffset). Fokuserte
+sweeps: kontrakt, ruting, fixtures, laner, preflight, readiness, modellformer,
+builder og forskningseier grønne (den kjente tråd-følsomme exit-token-testen
+er grønn ved én tråd).
+
+Steg 4: run-root /home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001 med
+PLAN.json lik configs/research/NATIVE_D1_REBUILD_20261011.json (run-id
+HISTORY2009W_NATIVE_D1_20261011, samme vinduer, pair-/squeeze-/M1-
+justeringsinputs og 64 800 s kjernetak som den aksepterte generasjonen),
+launch_core.py bundet i policyblokken native_d1_rebuild_20261011. Lanseringen
+fryser HEAD og NEXT_RUN_POLICY.json for hele kjernekjeden; ingen commit før
+terminal. Forrige kjernekjede tok 22 130 s. Etter kjernen følger COMPLETE_M1/
+inputverifisering, fysiske views og normalisering (132 kontekstfelt), og fersk
+nullstegsbaseline (steg 5), hver under egen binding.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren

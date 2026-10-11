@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-11T17:00:29.157548+00:00",
-  "status": "NATIVE_D1_WAVE_STEPS_1_2_MEASURED_JOURNAL_RUNNING",
+  "status": "NATIVE_D1_REBUILD_CORE_CHAIN_AUTHORIZED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) Native D1 wave step 3: signal manifest version with the ninth context family, specialist owner, normalization and constructor metadata, with contract tests; then step 4 dataset rebuild under its own producer budget. 2) Forward journal: extend scored_end_utc each month by explicit policy edit, refetch, score once. No native launch, orders or spending.",
+  "next_action": "Native D1 wave step 4: launch NATIVE_D1_REBUILD_20261011_001 core chain (frozen HEAD for its whole run), then COMPLETE_M1/input verification, physical views + normalization, fresh zero-step baseline (step 5). No native launch, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native D1 wave: steps 1-2 measured PASS on real bytes; step 3 (manifest/specialist/normalization) not started and needs a model-contract change. Journal: Q3 2026 scored, zero flags, year rule needs 12 months.",
+    "current_blocker": "Native D1 rebuild core chain authorized; not yet started. No commits while it runs.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -4185,7 +4185,56 @@
       },
       "steps_3_to_6": "not started: signal manifest + ninth specialist owner + normalization + constructor metadata (3), dataset rebuild (4), fresh zero-step baseline (5), recipe/budget/training (6); each needs its own binding and budget",
       "training_enabled": false,
-      "test_accessed": false
+      "test_accessed": false,
+      "test_split_context_construction_authorized": true,
+      "test_split_context_read_end_utc": "2026-09-01T00:00:00Z",
+      "test_split_context_note": "TEST split context fields are constructed from the hash-bound sources up to this end; nothing reads the TEST split for fitting or evaluation.",
+      "step_3_contracts": {
+        "status": "CODED_AND_TESTED",
+        "context_schema": "entry_model_native_context_v13",
+        "ctx_cont_dim": 132,
+        "specialist_owner_of_d1_fields": "session_regime_encoder",
+        "builder": "ninth family + trading-day horizon labels in build_entry_v10_ctx_training_dataset_v3"
+      },
+      "step_4_rebuild": {
+        "policy_block": "native_d1_rebuild_20261011",
+        "status": "AUTHORIZED_NOT_STARTED"
+      }
+    },
+    "native_d1_rebuild_20261011": {
+      "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
+      "status": "CORE_CHAIN_AUTHORIZED_NOT_STARTED",
+      "authorized_goal": true,
+      "core_build_authorized": true,
+      "runtime_plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001/PLAN.json",
+        "sha256": "3cdf4d94f9a09acde6da7f0dd7a6826f5671e2ddf0f25610554e2ee4b264c3a7"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001/launch_core.py",
+        "sha256": "6597119624b8587a39196a30a3f75b90854ca4da9d726394a0c2819ed546e9de"
+      },
+      "spec": {
+        "path": "configs/research/NATIVE_D1_REBUILD_20261011.json",
+        "sha256": "3cdf4d94f9a09acde6da7f0dd7a6826f5671e2ddf0f25610554e2ee4b264c3a7"
+      },
+      "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001",
+      "dataset_run_id": "HISTORY2009W_NATIVE_D1_20261011",
+      "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011/CHAIN",
+      "source_parent": "a33077be80def77ebe17ee6840aa4d63afb3ee9c",
+      "native_optimizer_authorized": false,
+      "baseline_optimizer_steps": 0,
+      "test_outcome_access_authorized": false,
+      "completed_plan_relaunch_allowed": false,
+      "core_relaunch_allowed": false,
+      "cleanup_authorized": false,
+      "next_required_stages": [
+        "COMPLETE_M1_AND_INPUT_VERIFICATION",
+        "PHYSICAL_VIEWS_AND_NORMALIZATION",
+        "FRESH_INITIAL_BASELINE"
+      ],
+      "max_core_wall_seconds": 64800,
+      "frozen_source_note": "launch_core.py binds HEAD and NEXT_RUN_POLICY.json for the whole core chain; no commit may land while it runs"
     }
   },
   "gc_order_flow_research_20261006": {
