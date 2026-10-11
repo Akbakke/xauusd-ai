@@ -59,6 +59,26 @@ og forskningseiere er grønne på rettet kilde; syntaks og `git diff --check` be
 Ubevist: ingen optimizersteg eller ekte-data-forward er kjørt på v10; læringseffekten
 av LayerNorm/readout er ikke målt. training_enabled=false; TEST er forseglet.
 
+## Swing-programmets kilder 11.10.2026
+
+Hentemoduser i research_ta_campaign_v1 (7636d0df): fetch-fred-current,
+fetch-cftc-cot-archives, fetch-oanda-panel-daily, fetch-bounded-files, alle med
+reuse_download for reléerte bytes under eksakt hash. Målt i dag:
+
+- **COT (CFTC):** 18 årsarkiver 2009–2026 hentet, CRC-verifisert, ingen rad parset.
+- **OANDA-panel:** 11 av 12 instrumenter som H1 2009-06 til 2026-06-30 (ca. 100 000
+  rader hver); USD_CNH ga ingen candles fra startdato og feilet lukket. Forsøk 001/002
+  er bevart (manglende seal-nøkkel; granularitet D støttes ikke av leseklienten).
+- **FRED:** lesetidsavbrudd på alle serier ved 60 s og 300 s fra forskningsverten.
+- **GLD:** arkiv-URL fra 30.09 gir nå PDF via API; ingen maskinlesbar lenke funnet.
+- **CME daglig volum/OI:** 403 bot-sperre på alle fire sider.
+
+Relé fra operatørens Mac kreves for FRED (seks CSV-URL-er i policyblokken) og GLD
+(nettleser-nedlasting). Filene legges i /home/andre2/GX1_DATA/research/RELAY_20261011/
+med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
+innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
+NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
+
 ## Gjort og akseptert
 
 Featureauditen på 569d0054 reviderte alle 254 lokale signalfelt, 71 eksakte

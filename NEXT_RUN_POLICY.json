@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-11T14:02:55.248988+00:00",
-  "status": "HEAD_FIXES_COMMITTED_V10_FUNCTION_FRESH_BASELINE_REQUIRED_SAMPLER_TERMINAL_RECORDED",
+  "observed_utc": "2026-10-11T14:53:26.045808+00:00",
+  "status": "SWING_SOURCES_PARTIAL_COT_OANDA_RETRIEVED_FRED_GLD_RELAY_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Swing program (operator 11.10.2026): 1) preregister and run the source audits for drivers (FRED), positioning (COT, GLD), activity (CME GC volume/OI probe) and the OANDA daily panel; 2) preregister ENTRY_DIRECTION_SWING_D1 on the D1 pipeline and run it on CPU; 3) re-score the 27.09 intraday cells under a futures-cost scenario; 4) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget, then build multi-horizon observed targets and train the transformer with CONTROL4096 rank-IC per epoch. No native launch, TEST, orders or spending; every fetch and fit needs its committed manifest first.",
+  "next_action": "1) operator relays the six FRED CSVs and the GLD holdings file to /home/andre2/GX1_DATA/research/RELAY_20261011/ with sha256sums; 2) register reuse_download manifests and import them; 3) build the D1 research panel (XAU daily_panel + D1-lane fields + macro + COT + OANDA panel resampled) under the ENTRY_DIRECTION_SWING_D1 preregistration; 4) run the swing study on CPU; 5) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Model function changed to entry_v10_ctx_hybrid_transformer_v10 (HEAD fixes 56d87f49); a fresh zero-step ONLINE/TARGET baseline on the same 4096 TRAIN/4096 CONTROL coordinates requires a new explicit finite budget before any Entry-only smoke. Swing-program source audits are not yet committed as manifests.",
+    "current_blocker": "FRED driver series and GLD holdings cannot be retrieved from the research host (timeouts; PDF/JS endpoints); they must be relayed by the operator and imported under exact hashes. COT archives and the 11-instrument OANDA H1 panel are retrieved and hash-bound. Fresh zero-step v10 baseline still requires a new explicit budget.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -2145,6 +2145,124 @@
       "source_fetch_authorized": false,
       "note": "each instrument/source/period requires its own preregistered manifest before any fetch; broker, collector, live/paper, orders and spending remain closed",
       "rules_owner": "GX1_RULES.md"
+    },
+    "swing_program_sources_20261011": {
+      "program_document": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+      "owner": "gx1.scripts.research_ta_campaign_v1",
+      "source_commit": "7636d0df62542a46ee144ce9768fcedf633ede95",
+      "provenance_rule": "unrevised series + documented publication lag; ALFRED vintages only for revised series (DTWEXBGS)",
+      "gc_daily_activity_probe": {
+        "manifest": "configs/research/GC_DAILY_ACTIVITY_SOURCE_PROBE_20261011_001.json",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GC_DAILY_ACTIVITY_SOURCE_PROBE_20261011_001/RESULT.json",
+          "sha256": "ebcd43445b642bd9733b7b7fad9fb984287c239d5fc54d0e59fa668e90d4d8fd"
+        },
+        "finding": "all four CME pages 403 (AkamaiGHost bot wall) for scripted access: daily GC volume/open interest is not a free scripted source; CFTC pages 200 with yearly deacot archives 1986-2026 listed"
+      },
+      "cftc_cot_archives": {
+        "manifest": "configs/research/CFTC_COT_ARCHIVE_SOURCE_20261011_001.json",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/RESULT.json",
+          "sha256": "03be6df20a9cf338857cc49bfecb33fd7b4e3db1b26307ebdf88b844c84a8fe6"
+        },
+        "status": "COMPLETE_COT_ARCHIVE_RETRIEVAL",
+        "items": {
+          "2009": "RETRIEVED_NOT_ADMITTED",
+          "2010": "RETRIEVED_NOT_ADMITTED",
+          "2011": "RETRIEVED_NOT_ADMITTED",
+          "2012": "RETRIEVED_NOT_ADMITTED",
+          "2013": "RETRIEVED_NOT_ADMITTED",
+          "2014": "RETRIEVED_NOT_ADMITTED",
+          "2015": "RETRIEVED_NOT_ADMITTED",
+          "2016": "RETRIEVED_NOT_ADMITTED",
+          "2017": "RETRIEVED_NOT_ADMITTED",
+          "2018": "RETRIEVED_NOT_ADMITTED",
+          "2019": "RETRIEVED_NOT_ADMITTED",
+          "2020": "RETRIEVED_NOT_ADMITTED",
+          "2021": "RETRIEVED_NOT_ADMITTED",
+          "2022": "RETRIEVED_NOT_ADMITTED",
+          "2023": "RETRIEVED_NOT_ADMITTED",
+          "2024": "RETRIEVED_NOT_ADMITTED",
+          "2025": "RETRIEVED_NOT_ADMITTED",
+          "2026": "RETRIEVED_NOT_ADMITTED"
+        },
+        "finding": "18 yearly archives 2009-2026 retrieved, CRC verified, member annual.txt 7-16 MB each; no row parsed; market filter 088691 declared for the parse step"
+      },
+      "oanda_panel_h1": {
+        "manifest": "configs/research/OANDA_PANEL_DAILY_SOURCE_20261011_001.json",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_003/RESULT.json",
+          "sha256": "f04dad2b31021ea9f156c16957a37ebfe276ddd24842e23d172f2a02e8ca43da"
+        },
+        "status": "COMPLETE_OANDA_PANEL_RETRIEVAL",
+        "items": {
+          "XAG_USD": "RETRIEVED_NOT_ADMITTED",
+          "XPT_USD": "RETRIEVED_NOT_ADMITTED",
+          "XPD_USD": "RETRIEVED_NOT_ADMITTED",
+          "XCU_USD": "RETRIEVED_NOT_ADMITTED",
+          "BCO_USD": "RETRIEVED_NOT_ADMITTED",
+          "WTICO_USD": "RETRIEVED_NOT_ADMITTED",
+          "SPX500_USD": "RETRIEVED_NOT_ADMITTED",
+          "USB10Y_USD": "RETRIEVED_NOT_ADMITTED",
+          "EUR_USD": "RETRIEVED_NOT_ADMITTED",
+          "USD_JPY": "RETRIEVED_NOT_ADMITTED",
+          "USD_CNH": "FAILED",
+          "XAU_USD": "RETRIEVED_NOT_ADMITTED"
+        },
+        "finding": "11 of 12 instruments retrieved as H1 candles 2009-06-01..2026-06-30 (about 96k-108k rows each, 14 columns); USD_CNH returned no candles for the requested start and failed closed; attempts _001/_002 preserved (missing seal key; unsupported granularity D)",
+        "resampling_owner": "_resample_ohlc_for_model_native_scalars('D1') on the canonical XAU session clock, applied per instrument in the research panel build"
+      },
+      "fred_drivers": {
+        "manifests": [
+          "configs/research/FRED_DRIVERS_SOURCE_20261011_001.json",
+          "configs/research/FRED_DRIVERS_SOURCE_20261011_002.json"
+        ],
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FRED_DRIVERS_SOURCE_20261011_002/RESULT.json",
+          "sha256": "d7bee1ffa931bd04f0a7ae16dca6083ed5183b9de658dc70b8f63a341b6a47ae"
+        },
+        "status": "COMPLETE_FRED_RETRIEVAL",
+        "items": {
+          "DFII10": "FAILED",
+          "DGS10": "FAILED",
+          "DGS2": "FAILED",
+          "T10YIE": "FAILED",
+          "VIXCLS": "FAILED",
+          "DTWEXBGS": "FAILED"
+        },
+        "finding": "read timeouts from the research host at 60 s and 300 s for every series (same transport limitation as the ALFRED work on 30.09); relay through the operator's Mac required; the owners accept reuse_download bytes under an exact hash"
+      },
+      "gld_holdings": {
+        "manifests": [
+          "configs/research/GLD_HOLDINGS_SOURCE_20261011_001.json",
+          "configs/research/GLD_SOURCE_DOC_PROBE_20261011_001.json"
+        ],
+        "retrieval_result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_001/RESULT.json",
+          "sha256": "89cda2e7450fa4abb9684b8156352e71d98d7f1c1866dec769ff8bde4255fd97"
+        },
+        "probe_result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_SOURCE_DOC_PROBE_20261011_001/RESULT.json",
+          "sha256": "37fed97211339cc1a4fc38d7d5cc129c6a9f4e111328311084b9f720ceb2a5a5"
+        },
+        "finding": "the archive CSV URL bound on 30.09 now redirects to api.spdrgoldshares.com/api/v1/barlist?underlying=gld and returns a PDF; home page has no machine-readable link; historical-data page redirects to a JS page; the media CSV guess is 404. Browser download on the operator's Mac plus hash-bound import required"
+      },
+      "relay_request_to_operator": {
+        "fred_csv_urls": [
+          "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFII10",
+          "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10",
+          "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS2",
+          "https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10YIE",
+          "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS",
+          "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS"
+        ],
+        "gld": "spdrgoldshares.com/usa/gld -> historical data download (CSV/XLS) saved as received",
+        "drop_directory": "/home/andre2/GX1_DATA/research/RELAY_20261011/",
+        "import_rule": "operator provides files + sha256sum output; a reuse_download manifest binds path and hash; the owner verifies the hash before any parse; provenance recorded as RELAYED_OPERATOR_BYTES"
+      },
+      "predictors_admitted": [],
+      "fits_run": false,
+      "test_accessed": false
     }
   },
   "gc_order_flow_research_20261006": {
