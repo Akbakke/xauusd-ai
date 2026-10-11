@@ -2,8 +2,8 @@
   "schema": "gx1_oanda_panel_daily_source_manifest_v1",
   "manifest_id": "OANDA_PANEL_DAILY_SOURCE_20261011_001",
   "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
-  "registered_utc": "2026-10-11T14:11:37.497762+00:00",
-  "source_head_at_registration": "d92ffe54b7947f3b643b41d5bbeb1afc447b3d83",
+  "registered_utc": "2026-10-11T14:25:49.226564+00:00",
+  "source_head_at_registration": "974ffd0ef5a6f25e69e5a0736dc7bde61a2f494d",
   "operator_authorization": "11.10.2026: «Du skal ha API fra Oanda for å hente inn mer info» og regel 1 åpnet for navngitte instrumenter som forskningsinputs og forskningsmål. Lesetilgang til historiske candles kun; ingen ordre, ingen kontoendring, ingen hemmelighet i logg eller kvittering.",
   "client": "gx1.execution.oanda_client.OandaClient.get_candles (existing read owner); credentials from .env via load_oanda_credentials; environment practice",
   "step_1_instrument_inventory": {
@@ -75,17 +75,15 @@
     }
   ],
   "candles": {
-    "granularity": "D",
+    "granularity": "H1",
     "price": "MBA",
-    "daily_alignment_hour": 17,
-    "alignment_timezone": "America/New_York",
-    "alignment_rationale": "17:00 New York is the canonical daily close used by the XAU D1 research clock (session end); the exact mapping to the canonical XAU D1 session_open/decision_time is verified row by row in the join, never assumed.",
     "include_incomplete": false,
     "from_utc": "2009-06-01T00:00:00Z",
     "to_utc_exclusive": "2026-07-01T00:00:00Z",
     "max_candles_per_request": 5000,
-    "max_requests_per_instrument": 4,
-    "timeout_seconds": 30
+    "max_requests_per_instrument": 40,
+    "timeout_seconds": 30,
+    "granularity_rationale": "The existing read client validates granularities M{n}/H{n} only and checks returned candle times against that grid; daily candles aligned at 17:00 New York would not pass a UTC day grid. H1 candles are fetched and the canonical XAU D1 session resampler (_resample_ohlc_for_model_native_scalars, 'D1') builds the daily panel for every instrument with the same clock as XAU; no finished indicator is resampled."
   },
   "receipts": "Per instrument: request parameters, HTTP status, candle count, first/last time, SHA-256 of the canonical JSON response and of the written parquet; no token or account id in any receipt.",
   "data_contract": "Columns time, open, high, low, close, volume for mid, plus bid/ask open/close. Non-finite, non-monotonic or duplicated times fail closed. Missing days are recorded, never filled.",
@@ -102,7 +100,7 @@
   "orders_allowed": false,
   "spending_allowed": false,
   "test_read_allowed": false,
-  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_002",
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_003",
   "data_directory": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011",
   "owner": "gx1.scripts.research_ta_campaign_v1",
   "source_files": {
@@ -111,8 +109,14 @@
     "gx1/execution/oanda_credentials.py": "e22b77fa333b98142d4c98d4ab5ba9fa5da6ec2a72c59ec770a5f2072ee19d0b"
   },
   "test_seal_utc": "2026-07-01T00:00:00Z",
-  "previous_attempt": {
-    "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_001",
-    "outcome": "failed closed on missing test_seal_utc after one instrument-inventory GET; INSTRUMENTS.json retained as evidence (123 instruments, all 12 candidates listed); no candle request, no order"
-  }
+  "previous_attempts": [
+    {
+      "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_001",
+      "outcome": "failed closed on missing test_seal_utc after one instrument-inventory GET; INSTRUMENTS.json retained as evidence (123 instruments, all 12 candidates listed); no candle request, no order"
+    },
+    {
+      "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_002",
+      "outcome": "inventory retrieved (123 instruments, all 12 candidates listed); every candle request failed closed in the client with 'OANDA candle request interval is invalid' because granularity 'D' is not supported by gx1.utils.granularity; no order"
+    }
+  ]
 }

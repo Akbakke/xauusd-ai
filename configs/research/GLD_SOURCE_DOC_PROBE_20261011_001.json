@@ -1,0 +1,56 @@
+{
+  "schema": "gx1_public_source_documentation_probe_manifest_v1",
+  "probe_id": "GLD_SOURCE_DOC_PROBE_20261011_001",
+  "parent_research_goal": "FULL_MACRO_B_ACTIVITY_POSITIONING_EXTENSION",
+  "registered_utc": "2026-10-11T14:25:49.226564+00:00",
+  "source_head_at_registration": "974ffd0ef5a6f25e69e5a0736dc7bde61a2f494d",
+  "operator_authorization": "11.10.2026 swing-program: GLD-beholdning som posisjoneringsinput. The archive CSV URL bound on 30.09.2026 now redirects to api.spdrgoldshares.com/api/v1/barlist?underlying=gld and returns a PDF (GLD_HOLDINGS_SOURCE_20261011_001 receipt). This probe inventories the current public pages to find the machine-readable historical-holdings download; documentation only.",
+  "evidence_scope": "Public documentation and listing inventory only. No data admission, no fit, no account, no download beyond maximum_bytes_per_get of the named pages.",
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_SOURCE_DOC_PROBE_20261011_001",
+  "method": "For each named candidate URL: one unauthenticated HTTPS HEAD, then at most one GET limited to maximum_bytes_per_get, timeout 30 s, no auto-redirect (a redirect is recorded and not followed), no retries. Record status, headers, content-type, byte count, SHA-256 of the received prefix and the first 4 KiB as text. Never parse a response as market data in this probe.",
+  "head_requests_per_source": 1,
+  "get_requests_per_source": 1,
+  "request_timeout_seconds": 30,
+  "maximum_bytes_per_get": 1048576,
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "test_read_allowed": false,
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "account_creation_allowed": false,
+  "publish_raw_data_to_git": false,
+  "candidates": [
+    {
+      "source_id": "SPDR_GLD_HOME",
+      "provider": "SPDR Gold Shares",
+      "url": "https://www.spdrgoldshares.com/",
+      "expected_content": "Landing page; links to historical data.",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "SPDR_GLD_USA_HISTORICAL",
+      "provider": "SPDR Gold Shares",
+      "url": "https://www.spdrgoldshares.com/usa/historical-data/",
+      "expected_content": "Historical data page with an archive download link (CSV/XLS).",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "SPDR_GLD_API_BARLIST_HEAD",
+      "provider": "SPDR Gold Shares",
+      "url": "https://api.spdrgoldshares.com/api/v1/barlist?underlying=gld",
+      "expected_content": "The redirect target observed on 11.10; record its content-type and headers only.",
+      "verification_status": "OBSERVED_REDIRECT_TARGET_RETURNS_PDF"
+    },
+    {
+      "source_id": "SPDR_GLD_MEDIA_ARCHIVE_CSV",
+      "provider": "SPDR Gold Shares",
+      "url": "https://www.spdrgoldshares.com/media/GLD/file/GLD_US_archive_EN.csv",
+      "expected_content": "Possible current location of the archive CSV.",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    }
+  ],
+  "required_before_separate_fetch_manifest": [
+    "Exact machine-readable URL returning the SPDR archive format (header 'SPDR Gold Shares (New York Stock Exchange Arca)', 'Date', tonnes column) with measured earliest date",
+    "Documented publication clock (holdings as at 4:15 p.m. NYT, posted next business day) to bind the availability lag",
+    "Per-file byte limit and SHA-256 receipt"
+  ]
+}
