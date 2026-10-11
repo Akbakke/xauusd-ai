@@ -4144,6 +4144,96 @@ def run_swing_forward_journal(spec: dict, spec_path: Path) -> dict:
         raise
 
 
+def audit_d1_macro_context(spec: dict, spec_path: Path) -> dict:
+    """Measure the D1 macro context owner on real bytes: parity with the journal panel at D1
+    decision times, the full native M5 decision clock, brute-force availability on sampled rows,
+    and pre-seal equality of the refetched OANDA panel against the earlier capture."""
+    from gx1.features import d1_macro_context_v1 as ctx
+    if spec.get("schema") != "gx1_d1_macro_context_audit_v1" or spec.get("fit_allowed") is not False or "forward_journal" in spec:
+        raise RuntimeError("TA_D1_CONTEXT_AUDIT_SCOPE")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"git_head": git("rev-parse", "HEAD"), "spec": str(spec_path), "spec_sha256": sha(spec_path)})
+    try:
+        seal = pd.Timestamp(spec["test_seal_utc"])
+        components = ctx.d1_macro_context_components(spec)
+        fields = list(ctx.D1_MACRO_CONTEXT_FIELDS)
+        # (a) parity with the forward-journal panel at its D1 decision times before the seal
+        jp = spec["journal_panel"]
+        if sha(Path(jp["path"])) != jp["sha256"]:
+            raise RuntimeError("TA_D1_CONTEXT_JOURNAL_PANEL_HASH")
+        journal = pd.read_parquet(jp["path"])
+        pre = journal.loc[pd.DatetimeIndex(journal["decision_time"]) < seal].reset_index(drop=True)
+        built = ctx.build_d1_macro_context(pd.DatetimeIndex(pre["decision_time"]), components)
+        expected = pre[fields].to_numpy(np.float64); got = built[fields].to_numpy(np.float64)
+        parity_equal = bool(np.array_equal(expected, got, equal_nan=True))
+        mismatch = {}
+        if not parity_equal:
+            for j, name in enumerate(fields):
+                bad = ~((expected[:, j] == got[:, j]) | (np.isnan(expected[:, j]) & np.isnan(got[:, j])))
+                if bad.any():
+                    mismatch[name] = int(bad.sum())
+        parity = {"rows": int(len(pre)), "bit_identical": parity_equal, "mismatching_fields": mismatch}
+        del journal, pre, built
+        # (b) the full native M5 decision clock
+        market, tape_binding = load_market(spec, columns=["time", "open"])
+        times = pd.DatetimeIndex(market.index) + M5_BAR_DURATION
+        del market
+        frame = ctx.build_d1_macro_context(times, components)
+        binding = ctx.d1_macro_context_binding(spec, frame)
+        values = frame[fields].to_numpy(np.float64)
+        complete = np.isfinite(values).all(axis=1)
+        per_group = {}
+        for group, names in ctx.D1_MACRO_CONTEXT_FIELDS_BY_GROUP.items():
+            idx = [fields.index(n) for n in names]
+            ok = np.isfinite(values[:, idx]).all(axis=1)
+            per_group[group] = {"complete_rows": int(ok.sum()), "first_complete": str(times[int(np.argmax(ok))]) if ok.any() else None}
+        # (c) brute-force availability on sampled rows after the first complete row
+        rng = np.random.default_rng(int(spec["seed"]))
+        candidates = np.flatnonzero(complete)
+        sample = np.sort(rng.choice(candidates, size=min(int(spec["sample_rows"]), len(candidates)), replace=False))
+        cot = components["cot"]; drivers = components["drivers"]
+        cot_avail = pd.DatetimeIndex(cot["available_at"]); drv_avail = pd.DatetimeIndex(drivers["available_at"])
+        checks = {"cot": 0, "drivers": 0, "panel": 0}
+        for i in sample:
+            t = times[i]
+            k = int((cot_avail < t).sum()) - 1
+            if not np.array_equal(values[i, :4], cot[list(SWING_COT_FIELDS)].to_numpy(float)[k]):
+                checks["cot"] += 1
+            k = int((drv_avail < t).sum()) - 1
+            if not np.array_equal(values[i, -13:], drivers[list(SWING_DRIVER_FIELDS)].to_numpy(float)[k], equal_nan=True):
+                checks["drivers"] += 1
+            for inst in ctx.D1_MACRO_PANEL_INSTRUMENTS:
+                feats = components["panel"][inst]
+                closes = pd.DatetimeIndex(feats.index) + TRADING_SESSION_DURATION
+                k = int((closes <= t).sum()) - 1
+                cols = [fields.index(c) for c in feats.columns]
+                if not np.array_equal(values[i, cols], feats.to_numpy(float)[k], equal_nan=True):
+                    checks["panel"] += 1
+        availability = {"sampled_rows": int(len(sample)), "mismatches": checks}
+        # (d) refetched OANDA panel equals the earlier capture before the seal
+        previous = dict(spec, oanda_panel=spec["oanda_previous"])
+        earlier = load_oanda_panel_d1(previous)
+        panel_equal = {}
+        for inst in ctx.D1_MACRO_PANEL_INSTRUMENTS:
+            a, b = components["panel"][inst], earlier[inst]
+            panel_equal[inst] = bool(len(a) == len(b) and a.index.equals(b.index) and np.array_equal(a.to_numpy(float), b.to_numpy(float), equal_nan=True))
+        decision = "D1_MACRO_CONTEXT_AUDIT_PASS" if (parity_equal and checks == {"cot": 0, "drivers": 0, "panel": 0} and all(panel_equal.values())) else "D1_MACRO_CONTEXT_AUDIT_FAIL"
+        result = {"decision": decision, "contract": ctx.d1_macro_context_contract(), "binding": binding, "parity_with_journal_panel": parity,
+                  "m5_clock": {"rows": int(len(times)), "first": str(times[0]), "last": str(times[-1]), "complete_rows": int(complete.sum()),
+                               "first_complete": str(times[int(np.argmax(complete))]) if complete.any() else None, "per_group": per_group},
+                  "availability_bruteforce": availability, "refetched_panel_equals_earlier_capture_before_seal": panel_equal,
+                  "tape": tape_binding, "sealed_period_read_end": str(components["read_end"]), "test_accessed": False,
+                  "evidence_class": "measured_on_real_hash_bound_bytes", "git_head": git("rev-parse", "HEAD"), "spec_sha256": sha(spec_path)}
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": "COMPLETE", "decision": decision, "result_sha256": sha(out / "RESULT.json"),
+                                          "finished_utc": datetime.now(timezone.utc).isoformat()})
+        return result
+    except Exception as exc:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": str(exc), "finished_utc": datetime.now(timezone.utc).isoformat()})
+        raise
+
+
 def run_swing_pooled(spec: dict, spec_path: Path) -> dict:
     if (spec["arm"] != "SWING_POOLED_D1" or spec["horizons"] != [20, 5] or spec["primary_horizon"] != 20
             or spec["test_accessed"] is not False or spec["native_training"] is not False):
@@ -4204,7 +4294,7 @@ def run_swing_pooled(spec: dict, spec_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files", "run-swing-d1", "run-swing-pooled", "run-swing-forward-journal"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files", "run-swing-d1", "run-swing-pooled", "run-swing-forward-journal", "audit-d1-macro-context"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -4218,7 +4308,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"run-swing-forward-journal": run_swing_forward_journal, "run-swing-pooled": run_swing_pooled, "run-swing-d1": run_swing_d1, "fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"audit-d1-macro-context": audit_d1_macro_context, "run-swing-forward-journal": run_swing_forward_journal, "run-swing-pooled": run_swing_pooled, "run-swing-d1": run_swing_d1, "fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0
