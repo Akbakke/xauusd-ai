@@ -1,0 +1,50 @@
+{
+  "schema": "gx1_bounded_files_source_manifest_v1",
+  "manifest_id": "FED_H10_PACKAGES_SOURCE_20261011_002",
+  "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "registered_utc": "2026-10-11T17:01:21.198606+00:00",
+  "source_head_at_registration": "17f1bacbfa48f9d2814299db1dceb5ef65ae3344",
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "provider": "Federal Reserve Board, Data Download Program",
+  "operator_authorization": "11.10.2026 «hent inn resten»: broad dollar index. Attempt _001 retrieved only package 2 (daily bilateral rates, 23 currencies); packages 1, 3 and 4 returned 0 bytes with from/to bounds and an empty lastobs. This attempt requests the three index packages exactly as the DDP Choose page links them (lastobs 10 or 120, no from/to) to identify their contents, and the daily index package again with explicit bounds and lastobs omitted.",
+  "availability_rule": "an index value for day D is usable at the first canonical XAU D1 decision strictly after the end of day D+1 America/New_York",
+  "timeout_seconds": 120,
+  "files": [
+    {
+      "id": "H10_PACKAGE_1_AS_LINKED",
+      "url": "https://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&series=122e3bcb627e8e53f1bf72a1a09cfb81&lastobs=10&from=&to=&filetype=csv&label=include&layout=seriescolumn&type=package",
+      "filename": "h10_package_1_as_linked.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": true
+    },
+    {
+      "id": "H10_PACKAGE_3_AS_LINKED",
+      "url": "https://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&series=847be2166a425bda9b4d92465f797544&lastobs=120&from=&to=&filetype=csv&label=include&layout=seriescolumn&type=package",
+      "filename": "h10_package_3_as_linked.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": true
+    },
+    {
+      "id": "H10_PACKAGE_4_AS_LINKED",
+      "url": "https://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&series=c5d6e0edf324b2fb28d73bcacafaaa02&lastobs=120&from=&to=&filetype=csv&label=include&layout=seriescolumn&type=package",
+      "filename": "h10_package_4_as_linked.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": true
+    },
+    {
+      "id": "H10_PACKAGE_1_FULL_NO_LASTOBS",
+      "url": "https://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&series=122e3bcb627e8e53f1bf72a1a09cfb81&from=01/01/2009&to=06/30/2026&filetype=csv&label=include&layout=seriescolumn&type=package",
+      "filename": "h10_package_1_full.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": true
+    }
+  ],
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "test_read_allowed": false,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FED_H10_PACKAGES_SOURCE_20261011_002",
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "8c7e99eaecafd25f8fcb401557b782f4e2032da628774ad3e9ff05c18b17f873"
+  }
+}
