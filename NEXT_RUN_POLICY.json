@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Stage C follow-ups done: forward check 2026H1 supportive but rule not met (low power); ablation: panel + drivers carry the effect, dollar group hurts, calendar inert. Next: v10 zero-step baseline under a new explicit budget, frozen 70-field candidate, monthly forward journal.",
+    "current_blocker": "v10 zero-step baseline measured (FRESH_INITIAL_BASELINE_003): fresh v10 ONLINE/TARGET function on the fixed TRAIN4096/CONTROL4096 cohorts, parity passed, no optimizer step. Native next step is an operator decision on target horizon and inputs (the D1 evidence places the effect in cross-asset panel + macro drivers, which native lacks), not blind epochs. D1: frozen 70-field candidate; confirmation needs a monthly forward journal, which touches the sealed period and therefore needs an operator decision.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -1969,8 +1969,8 @@
       "current_native_training_coordinates_admitted": false,
       "current_sampler_benchmark_complete": false,
       "v10_zero_step_baseline_cpu_budget_002": {
-        "budget_authorized": true,
-        "authorized": true,
+        "budget_authorized": false,
+        "authorized": false,
         "budget": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/PREPARATION_CPU_002/BUDGET.json",
           "sha256": "52be2adbbc3982eccc4345660a17e74f440509ad02eb359b16c55d50127e4d7e"
@@ -1979,11 +1979,11 @@
         "max_wall_seconds": 21600,
         "new_budget_time_added": true,
         "optimizer_authorized": false,
-        "status": "open_one_attempt",
+        "status": "closed_after_completion",
         "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»; program decision: native track alongside CPU research; next_action 4 fresh zero-step v10 baseline under a new explicit budget"
       },
       "fresh_initial_baseline_stage_v10": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/PLAN.json",
@@ -2017,8 +2017,89 @@
         "training_sampler_admission": false,
         "relaunch_allowed": false,
         "test_data_used": false,
-        "completed": false
-      }
+        "completed": true,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/TERMINAL.json",
+          "sha256": "49b10410138cb2013184ada2b90a44008b224a46aa864df78b4e8d25c1836841"
+        },
+        "binding": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/BINDING.json",
+          "sha256": "7ca3511787197db552ae698e629e36081f8cc71fde486a34a91049cdc410f0ff"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/BASELINE_RESULT.json",
+          "sha256": "ca96c47deec1a82f1f9a2c36d5f369d1d24fbc9966b29b69387b9b8390f95838"
+        },
+        "stage_result": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/RESULT.json",
+          "sha256": "c43f693672133706c04da338ecdd060bd1fa74e2f68561fbf2a68e248f33b4ae"
+        },
+        "observations": {
+          "train": {
+            "observation": {
+              "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/TRAIN_OBSERVATION.json",
+              "sha256": "0c2e65127a28230bd559964943920b2a47b6a66d617314255cba72b43e06ca65"
+            },
+            "action_counts_long_short_flat": [
+              1878,
+              733,
+              1485
+            ],
+            "ties": 0,
+            "side_mse": [
+              916.66,
+              877.67
+            ],
+            "contrast_mse": 3398.96,
+            "corrected_input_baseline_action_counts": [
+              2532,
+              717,
+              847
+            ],
+            "corrected_input_baseline_side_mse": [
+              917.38,
+              874.26
+            ],
+            "changed_unique_argmax_rows_vs_corrected_input": 1046,
+            "max_abs_prediction_change_vs_corrected_input_bps": 2.155,
+            "targets_bit_identical_to_prior": true
+          },
+          "control": {
+            "observation": {
+              "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/CONTROL_OBSERVATION.json",
+              "sha256": "2e5957c300e619796d65d43d51c9af534f23924fe903abdd14dd9ef768d2bf59"
+            },
+            "action_counts_long_short_flat": [
+              1779,
+              830,
+              1487
+            ],
+            "ties": 0,
+            "side_mse": [
+              1877.09,
+              1878.74
+            ],
+            "contrast_mse": 7362.39,
+            "corrected_input_baseline_action_counts": [
+              2317,
+              884,
+              895
+            ],
+            "corrected_input_baseline_side_mse": [
+              1875.83,
+              1875.19
+            ],
+            "changed_unique_argmax_rows_vs_corrected_input": 1139,
+            "max_abs_prediction_change_vs_corrected_input_bps": 2.358,
+            "targets_bit_identical_to_prior": true
+          }
+        },
+        "online_target_parity_all_heads_bit_identical": true,
+        "model_parameter_count": 9637663,
+        "elapsed_seconds": 339.2,
+        "decision": "FRESH_V10_FUNCTION_ZERO_STEP_BASELINE_COMPLETE_NO_EDGE_ADMISSION"
+      },
+      "fresh_initial_baseline_v10_complete": true
     },
     "fresh_baseline_coordinates_published": true,
     "current_generation_initial_baseline": {

@@ -80,6 +80,23 @@ med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
 innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
 NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
 
+## v10 nullstegsbaseline 11.10.2026: målt, ingen læring
+
+FRESH_INITIAL_BASELINE_003 (83adab26, nytt eksplisitt 6-timers CPU-budsjett
+PREPARATION_CPU_002) målte den ferske v10-funksjonen (parameterfri slutt-LayerNorm,
+mean+siste-bar-readout) på nøyaktig samme korrigerte inputs, normalisering og
+TRAIN4096/CONTROL4096-kohorter som FRESH_INITIAL_BASELINE_002; 9,637,663 parametre,
+512 ONLINE-forwards, én TARGET-paritetsforward (alle hoder bitidentiske),
+null optimizersteg, ingen normaliseringsrefit, 339 s i producer20G.
+TRAIN: argmax LONG/SHORT/FLAT [1878, 733, 1485] (_002: [2532, 717, 847]),
+side-MSE [916.66, 877.67] (_002 [917.38, 874.26]), 1046 av 4096
+argmax endret mot _002. CONTROL: [1779, 830, 1487] (_002 [2317, 884, 895]),
+side-MSE [1877.09, 1878.74] (_002 [1875.83, 1875.19]), 1139 endret.
+Targets bitidentiske med forrige studie. Dette er en utrent initialtilstand: ingen
+læring, ingen edge, ingen native treningsautoritet. Neste native steg er et
+operatørvedtak om målhorisont og inputs (D1-evidensen legger effekten i kryss-panel
+og makrodrivere, som native ikke har), ikke blinde epoker.
+
 ## Swing stage C oppfølging 11.10.2026: forward-sjekk støtter, ablasjon peker på panel + drivere
 
 Eieren fikk blokkmatchet long-null som deklarert sekundærstatistikk (d4d9229f) og
