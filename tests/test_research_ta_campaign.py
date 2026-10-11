@@ -1,4 +1,6 @@
 """Synthetic mechanics only; no market outcomes or TEST files."""
+import csv
+import hashlib
 import json
 from pathlib import Path
 import numpy as np
@@ -1197,3 +1199,69 @@ def test_relayed_bytes_replace_network_only_under_exact_hash(tmp_path, monkeypat
     result = ta.fetch_fred_current(tampered, manifest)
     assert result["item_status"] == {"DFII10": "FAILED"}
     assert "TA_RELAYED_BYTES_HASH" in json.loads((tmp_path / "fred2" / "DFII10.receipt.json").read_text())["error"]
+
+
+def _swing_cot_zip(tmp_path, rows):
+    import io, zipfile
+    header = list(ta.SWING_COT_HEADER.values()) + ["Other"]
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(header)
+    for r in rows:
+        writer.writerow([r["as_of"], r["code"], r["oi"], r["ncl"], r["ncs"], r["ncsp"], r["cl"], r["cs"], 0])
+    member = buffer.getvalue().encode()
+    zbuf = io.BytesIO()
+    with zipfile.ZipFile(zbuf, "w") as archive:
+        archive.writestr("annual.txt", member)
+    raw = zbuf.getvalue()
+    path = tmp_path / "deacot2020.zip"
+    path.write_bytes(raw)
+    receipt = {"item": "2020", "status": "RETRIEVED_NOT_ADMITTED", "raw_path": str(path), "raw_sha256": ta.sha(path),
+               "members": {"annual.txt": {"sha256": hashlib.sha256(member).hexdigest()}}}
+    result = tmp_path / "COT_RESULT.json"
+    result.write_text(json.dumps({"records": [receipt]}))
+    return {"result": {"path": str(result), "sha256": ta.sha(result)}, "contract_market_code": "088691",
+            "availability_lag_days": 7}
+
+
+def test_swing_cot_parse_filters_gold_rows_and_aligns_with_declared_lag(tmp_path):
+    import hashlib as _h
+    rows = [{"as_of": "2020-01-07", "code": "088691", "oi": 100, "ncl": 60, "ncs": 20, "ncsp": 5, "cl": 10, "cs": 50},
+            {"as_of": "2020-01-14", "code": "088691", "oi": 200, "ncl": 90, "ncs": 30, "ncsp": 5, "cl": 10, "cs": 50},
+            {"as_of": "2020-01-14", "code": "067651", "oi": 999, "ncl": 1, "ncs": 1, "ncsp": 1, "cl": 1, "cs": 1}]
+    spec = {"cot": _swing_cot_zip(tmp_path, rows), "test_seal_utc": "2026-07-01T00:00:00Z"}
+    cot = ta.parse_cot_gold_archives(spec)
+    assert len(cot) == 2 and cot["cot_noncommercial_net_over_oi"].tolist() == [0.4, 0.3]
+    assert str(cot["available_at"].iloc[0])[:10] == "2020-01-14"
+    decisions = pd.DatetimeIndex(["2020-01-13T22:00Z", "2020-01-14T22:00Z", "2020-01-22T22:00Z"])
+    aligned = ta.align_asof(decisions, cot["available_at"], cot[["cot_noncommercial_net_over_oi"]])
+    values = aligned["cot_noncommercial_net_over_oi"].tolist()
+    assert np.isnan(values[0]) and values[1] == 0.4 and values[2] == 0.3  # strictly-before availability
+
+
+def test_swing_d1_lane_uses_last_closed_bar_and_excludes_candle_fields(tmp_path):
+    labels = pd.DatetimeIndex(["2020-01-01T22:00Z", "2020-01-02T22:00Z", "2020-01-05T22:00Z"])
+    feats = pd.DataFrame({"d1:a": [1.0, 2.0, 3.0]})
+    panel = pd.DataFrame({"decision_time": pd.DatetimeIndex(["2020-01-02T22:00Z", "2020-01-03T22:00Z", "2020-01-06T22:00Z"])})
+    rows = ta.swing_d1_lane_at_decision(panel, labels, feats)
+    # a bar labelled L covers [L, L+1d) and is closed at L+1d: the 01-05 bar is known at the 01-06 decision
+    assert rows["d1:a"].tolist() == [1.0, 2.0, 3.0]
+    names = ["level_x", "mtf_candle_raw_body", "smc_y"]
+    keep = [n for n in names if not n.startswith(ta.SWING_D1_LANE_EXCLUDED_PREFIXES)]
+    assert keep == ["level_x", "smc_y"]
+
+
+def test_swing_selective_endpoints_measure_hit_rate_against_both_nulls():
+    rng = np.random.default_rng(0)
+    n = 400
+    mid = 100 + np.cumsum(rng.normal(size=n))
+    panel = pd.DataFrame({"fill_mid": mid, "atr14": np.ones(n)})
+    target = np.full(n, np.nan); target[:-5] = (mid[5:] - mid[:-5])
+    oracle = np.where(np.isfinite(target), target, np.nan)
+    forecasts = {5: {"swing_ridge": oracle, "constant": np.zeros(n)}}
+    spec = {"selective": {"seed": 1, "minimum_rows": 50, "coverage_grid": [1.0, 0.25], "circular_shifts": 50}}
+    report = ta.selective_endpoints(panel, forecasts, spec)
+    block = report["h5:swing_ridge"]
+    assert block["status"] == "MEASURED" and block["rank_ic"] > 0.99
+    assert block["coverage"]["1.0"]["hit_rate"] == 1.0 and block["coverage"]["0.25"]["hit_rate_above_shift_p95"]
+    assert "constant" not in "".join(report)

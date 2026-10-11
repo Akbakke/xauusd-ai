@@ -2946,9 +2946,279 @@ def fetch_bounded_files(spec: dict, spec_path: Path) -> dict:
     return _finish_retrieval(out, spec_path, records, "COMPLETE_BOUNDED_FILE_RETRIEVAL", {})
 
 
+# ---------------------------------------------------------------------------
+# Swing D1 study, stage A (operator 11.10.2026): positioning (COT), cross-asset
+# panel (OANDA H1 resampled on the canonical D1 clock) and the D1 lane of the
+# multi-TF cache joined to the existing XAU daily panel; matched two-arm fit
+# against the A price-state fields; selective hit-rate endpoints on taken trades.
+# No FRED drivers until relayed; no native change; TEST sealed.
+# ---------------------------------------------------------------------------
+
+SWING_COT_HEADER = {
+    "as_of": "As of Date in Form YYYY-MM-DD",
+    "code": "CFTC Contract Market Code",
+    "open_interest": "Open Interest (All)",
+    "noncomm_long": "Noncommercial Positions-Long (All)",
+    "noncomm_short": "Noncommercial Positions-Short (All)",
+    "noncomm_spread": "Noncommercial Positions-Spreading (All)",
+    "comm_long": "Commercial Positions-Long (All)",
+    "comm_short": "Commercial Positions-Short (All)",
+}
+SWING_COT_FIELDS = ["cot_noncommercial_net_over_oi", "cot_change4reports",
+                    "cot_open_interest_log_change4reports", "cot_commercial_net_over_oi"]
+SWING_PANEL_RETURN_DAYS = (1, 5, 20)
+SWING_PANEL_RV_DAYS = 20
+SWING_D1_LANE_EXCLUDED_PREFIXES = ("mtf_candle_",)
+
+
+def parse_cot_gold_archives(spec: dict) -> pd.DataFrame:
+    """Weekly COMEX gold (088691) legacy futures-only rows from the hash-bound archives."""
+    cot = spec["cot"]
+    result = json.loads(Path(cot["result"]["path"]).read_text())
+    if sha(Path(cot["result"]["path"])) != cot["result"]["sha256"]:
+        raise RuntimeError("TA_SWING_COT_RESULT_HASH")
+    rows = []
+    for record in result["records"]:
+        if record["status"] != "RETRIEVED_NOT_ADMITTED":
+            raise RuntimeError(f"TA_SWING_COT_ARCHIVE_INCOMPLETE: {record['item']}")
+        raw_path = Path(record["raw_path"])
+        if sha(raw_path) != record["raw_sha256"]:
+            raise RuntimeError("TA_SWING_COT_ARCHIVE_HASH")
+        with zipfile.ZipFile(raw_path) as archive:
+            member = archive.read("annual.txt")
+        if hashlib.sha256(member).hexdigest() != record["members"]["annual.txt"]["sha256"]:
+            raise RuntimeError("TA_SWING_COT_MEMBER_HASH")
+        reader = csv.reader(io.StringIO(member.decode("utf-8")))
+        header = [h.strip() for h in next(reader)]
+        index = {}
+        for key, name in SWING_COT_HEADER.items():
+            if name not in header:
+                raise RuntimeError(f"TA_SWING_COT_HEADER: {name}")
+            index[key] = header.index(name)
+        for row in reader:
+            if not row or row[index["code"]].strip() != str(cot["contract_market_code"]):
+                continue
+            rows.append({key: row[i].strip() for key, i in index.items()})
+    if not rows:
+        raise RuntimeError("TA_SWING_COT_EMPTY")
+    frame = pd.DataFrame(rows)
+    frame["as_of"] = pd.to_datetime(frame["as_of"], format="%Y-%m-%d", utc=True)
+    for key in ("open_interest", "noncomm_long", "noncomm_short", "noncomm_spread", "comm_long", "comm_short"):
+        frame[key] = frame[key].astype(np.int64)
+    frame = frame.drop(columns="code").sort_values("as_of").reset_index(drop=True)
+    if frame["as_of"].duplicated().any() or (frame["open_interest"] <= 0).any():
+        raise RuntimeError("TA_SWING_COT_ROWS")
+    seal = pd.Timestamp(spec["test_seal_utc"])
+    frame = frame.loc[frame["as_of"] < seal].reset_index(drop=True)
+    oi = frame["open_interest"].astype(float)
+    frame["cot_noncommercial_net_over_oi"] = (frame["noncomm_long"] - frame["noncomm_short"]) / oi
+    frame["cot_commercial_net_over_oi"] = (frame["comm_long"] - frame["comm_short"]) / oi
+    frame["cot_change4reports"] = frame["cot_noncommercial_net_over_oi"].diff(4)
+    frame["cot_open_interest_log_change4reports"] = np.log(oi).diff(4)
+    # Availability: declared lag after the as-of Tuesday (release Friday 15:30 ET, holiday-safe).
+    frame["available_at"] = frame["as_of"] + pd.Timedelta(days=int(cot["availability_lag_days"]))
+    return frame
+
+
+def align_asof(panel_times: pd.DatetimeIndex, available_at: pd.Series, values: pd.DataFrame) -> pd.DataFrame:
+    """Last row whose availability is strictly before each decision; NaN before the first."""
+    avail = pd.DatetimeIndex(available_at)
+    if not avail.is_monotonic_increasing:
+        raise RuntimeError("TA_SWING_ALIGN_ORDER")
+    pos = avail.searchsorted(panel_times, side="left") - 1
+    out = pd.DataFrame(index=range(len(panel_times)), columns=values.columns, dtype=float)
+    ok = pos >= 0
+    out.loc[ok, :] = values.to_numpy(float)[pos[ok]]
+    return out
+
+
+def load_oanda_panel_d1(spec: dict) -> dict[str, pd.DataFrame]:
+    """Each retrieved H1 instrument resampled on the canonical D1 session clock."""
+    panel = spec["oanda_panel"]
+    result = json.loads(Path(panel["result"]["path"]).read_text())
+    if sha(Path(panel["result"]["path"])) != panel["result"]["sha256"]:
+        raise RuntimeError("TA_SWING_OANDA_RESULT_HASH")
+    receipts = {r["item"]: r for r in result["records"]}
+    daily = {}
+    for name in panel["instruments"]:
+        record = receipts.get(name)
+        if record is None or record["status"] != "RETRIEVED_NOT_ADMITTED":
+            raise RuntimeError(f"TA_SWING_OANDA_INSTRUMENT_MISSING: {name}")
+        path = Path(record["parquet_path"])
+        if sha(path) != record["parquet_sha256"]:
+            raise RuntimeError("TA_SWING_OANDA_PARQUET_HASH")
+        frame = pd.read_parquet(path, columns=["time", "open", "high", "low", "close"])
+        frame["time"] = pd.to_datetime(frame["time"], utc=True)
+        frame = frame.set_index("time").sort_index()
+        if frame.index.has_duplicates or not np.isfinite(frame.to_numpy(float)).all():
+            raise RuntimeError("TA_SWING_OANDA_ROWS")
+        bars = _resample_ohlc_for_model_native_scalars(frame, "D1")
+        bars = bars.loc[bars.index + TRADING_SESSION_DURATION < pd.Timestamp(spec["test_seal_utc"])]
+        close = bars["close"]
+        features = pd.DataFrame(index=bars.index)
+        for days in SWING_PANEL_RETURN_DAYS:
+            features[f"{name}_logret_{days}D"] = np.log(close) - np.log(close.shift(days))
+        features[f"{name}_rv_{SWING_PANEL_RV_DAYS}D"] = np.log(close).diff().rolling(SWING_PANEL_RV_DAYS).std(ddof=1)
+        daily[name] = features
+    return daily
+
+
+def load_d1_lane_fields(spec: dict) -> tuple[pd.DatetimeIndex, pd.DataFrame]:
+    """D1 lane of the hash-bound multi-TF cache; candle fields excluded by operator decision."""
+    lane = spec["d1_lane"]
+    cache_dir = Path(lane["cache_dir"])
+    manifest_path = cache_dir / "manifest.json"
+    if sha(manifest_path) != lane["manifest_sha256"]:
+        raise RuntimeError("TA_SWING_D1_CACHE_MANIFEST_HASH")
+    manifest = json.loads(manifest_path.read_text())
+    info = manifest["tfs"]["D1"]
+    ts_path, feats_path = cache_dir / info["ts_npy"], cache_dir / info["feats_npy"]
+    if sha(ts_path) != info["ts_npy_sha256"] or sha(feats_path) != info["feats_npy_sha256"]:
+        raise RuntimeError("TA_SWING_D1_CACHE_ARRAY_HASH")
+    names = list(manifest["feature_names"])
+    keep = [i for i, n in enumerate(names) if not n.startswith(SWING_D1_LANE_EXCLUDED_PREFIXES)]
+    if lane["field_names"] != [names[i] for i in keep]:
+        raise RuntimeError("TA_SWING_D1_FIELD_LIST")
+    ts = pd.to_datetime(np.load(ts_path).astype(np.int64), utc=True)
+    feats = np.load(feats_path)[:, keep].astype(np.float64)
+    if pd.Timedelta(manifest["shift_contract"]["D1"]) != pd.Timedelta(days=1):
+        raise RuntimeError("TA_SWING_D1_SHIFT_CONTRACT")
+    return pd.DatetimeIndex(ts), pd.DataFrame(feats, columns=[f"d1:{names[i]}" for i in keep])
+
+
+def swing_d1_lane_at_decision(panel: pd.DataFrame, labels: pd.DatetimeIndex, feats: pd.DataFrame) -> pd.DataFrame:
+    """Last closed D1 bar: label <= decision_time - one day (cache shift contract)."""
+    decisions = pd.DatetimeIndex(panel["decision_time"])
+    pos = labels.searchsorted(decisions - pd.Timedelta(days=1), side="right") - 1
+    out = pd.DataFrame(index=panel.index, columns=feats.columns, dtype=float)
+    ok = pos >= 0
+    out.loc[ok, :] = feats.to_numpy(float)[pos[ok]]
+    return out
+
+
+def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
+    market, binding = load_market(spec)
+    panel = daily_panel(market, pd.Timestamp(spec["read_end_exclusive"]))
+    groups: dict[str, list[str]] = {"price_state_A": list(FEATURES)}
+    cot = parse_cot_gold_archives(spec)
+    cot_fields = align_asof(pd.DatetimeIndex(panel["decision_time"]), cot["available_at"], cot[SWING_COT_FIELDS])
+    for column in SWING_COT_FIELDS:
+        panel[column] = cot_fields[column].to_numpy(float)
+    groups["positioning_cot"] = list(SWING_COT_FIELDS)
+    daily = load_oanda_panel_d1(spec)
+    opens = pd.DatetimeIndex(panel["session_open"])
+    panel_fields = []
+    for name, features in daily.items():
+        joined = features.reindex(opens)
+        for column in features.columns:
+            panel[column] = joined[column].to_numpy(float)
+            panel_fields.append(column)
+    groups["panel_oanda"] = panel_fields
+    labels, lane = load_d1_lane_fields(spec)
+    lane_rows = swing_d1_lane_at_decision(panel, labels, lane)
+    for column in lane.columns:
+        panel[column] = lane_rows[column].to_numpy(float)
+    groups["d1_lane"] = list(lane.columns)
+    feature_names = [c for g in ("price_state_A", "positioning_cot", "panel_oanda", "d1_lane") for c in groups[g]]
+    if panel.columns.has_duplicates or np.isinf(panel[feature_names].to_numpy(float)).any():
+        raise RuntimeError("TA_SWING_FEATURE_SURFACE")
+    coverage = {g: int(np.isfinite(panel[cols].to_numpy(float)).all(axis=1).sum()) for g, cols in groups.items()}
+    return panel, feature_names, groups, {"market": binding, "group_complete_rows": coverage,
+                                          "cot_reports": int(len(cot)), "instruments": sorted(daily)}
+
+
+def selective_endpoints(panel: pd.DataFrame, forecasts: dict, spec: dict) -> dict:
+    """Hit rate and mean target on the top-coverage |forecast| rows versus coin-flip and circular-shift nulls."""
+    sel = spec["selective"]
+    rng = np.random.default_rng(int(sel["seed"]))
+    mid, atr = panel.fill_mid.to_numpy(float), panel.atr14.to_numpy(float)
+    n = len(panel)
+    report = {}
+    for horizon, arm in forecasts.items():
+        target = np.full(n, np.nan)
+        target[:-horizon] = (mid[horizon:] - mid[:-horizon]) / atr[:-horizon]
+        for learner, forecast in arm.items():
+            if learner == "constant":
+                continue
+            valid = np.isfinite(forecast) & np.isfinite(target) & (forecast != 0.0)
+            f, y = forecast[valid], target[valid]
+            if len(f) < int(sel["minimum_rows"]):
+                report[f"h{horizon}:{learner}"] = {"status": "INSUFFICIENT_ROWS", "rows": int(len(f))}
+                continue
+            order = np.argsort(-np.abs(f))
+            rows = {}
+            for coverage in sel["coverage_grid"]:
+                k = max(1, int(round(float(coverage) * len(f))))
+                take = order[:k]
+                side = np.sign(f[take])
+                hits = (side == np.sign(y[take]))
+                captured = side * y[take]
+                shifts = rng.integers(1, len(y), size=int(sel["circular_shifts"]))
+                null_hit = np.array([(side == np.sign(np.roll(y, s)[take])).mean() for s in shifts])
+                null_mean = np.array([(side * np.roll(y, s)[take]).mean() for s in shifts])
+                hit = float(hits.mean())
+                rows[str(coverage)] = {
+                    "rows": int(k), "hit_rate": hit,
+                    "coin_flip_hit_rate": 0.5,
+                    "coin_flip_se": float(np.sqrt(0.25 / k)),
+                    "hit_rate_minus_coin_flip_in_se": float((hit - 0.5) / np.sqrt(0.25 / k)),
+                    "mean_captured_target_atr": float(captured.mean()),
+                    "circular_shift_hit_rate_p95": float(np.quantile(null_hit, 0.95)),
+                    "circular_shift_mean_p95": float(np.quantile(null_mean, 0.95)),
+                    "hit_rate_above_shift_p95": bool(hit > np.quantile(null_hit, 0.95)),
+                    "mean_above_shift_p95": bool(captured.mean() > np.quantile(null_mean, 0.95)),
+                }
+            rank_ic = float(pd.Series(f).rank().corr(pd.Series(y).rank()))
+            report[f"h{horizon}:{learner}"] = {"status": "MEASURED", "rows": int(len(f)),
+                                                "rank_ic": rank_ic, "coverage": rows}
+    return report
+
+
+def run_swing_d1(spec: dict, spec_path: Path) -> dict:
+    if (spec["arm"] != "SWING_D1_STAGE_A" or spec["horizons"] != [20, 5] or spec["primary_horizon"] != 20
+            or spec["test_accessed"] is not False or spec["native_training"] is not False):
+        raise RuntimeError("TA_SWING_PREREG_SCOPE")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"git_head": git("rev-parse", "HEAD"),
+                                     "preregistration": str(spec_path), "preregistration_sha256": sha(spec_path)})
+    try:
+        panel, feature_names, groups, binding = build_swing_panel(spec)
+        if spec["feature_names"] != feature_names:
+            raise RuntimeError("TA_SWING_FEATURE_NAMES_DRIFT")
+        curve = load_funding(spec)
+        write_parquet(out / "SWING_PANEL.parquet", panel)
+        forecasts, fits = _fit_matched_macro(panel, spec, feature_names, "swing")
+        write_json(out / "FITS.json", {"fits": fits})
+        write_parquet(out / "PREDICTIONS.parquet", pd.DataFrame({"fill_time": panel.fill_time, **{
+            f"h{h}:{name}": pred for h, arm in forecasts.items() for name, pred in arm.items()}}))
+        result = _evaluate_matched_macro(panel, forecasts, curve, spec, out, feature_names, "swing")
+        result["selective"] = selective_endpoints(panel, forecasts, spec)
+        result["feature_groups"] = groups
+        artifacts = {}
+        for path in sorted(out.iterdir()):
+            if path.suffix == ".parquet":
+                pq.read_table(path)
+            with path.open("rb") as handle:
+                os.fsync(handle.fileno())
+            artifacts[path.name] = {"sha256": sha(path), "bytes": path.stat().st_size}
+        result.update(schema="gx1_ta_swing_d1_stage_a_v1", git_head=git("rev-parse", "HEAD"),
+                      preregistration_sha256=sha(spec_path), inputs=binding, artifacts=artifacts,
+                      primary_horizon=spec["primary_horizon"], test_accessed=False, native_training=False,
+                      fred_drivers_included=False, evidence_class="measured_reused_development_walkforward")
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": "COMPLETE", "result_sha256": sha(out / "RESULT.json"),
+                                         "finished_utc": datetime.now(timezone.utc).isoformat()})
+        return {"status": "COMPLETE", "out": str(out), "decisions": result["decisions"]}
+    except Exception as exc:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": str(exc),
+                                         "finished_utc": datetime.now(timezone.utc).isoformat()})
+        raise
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files", "run-swing-d1"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -2962,7 +3232,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"run-swing-d1": run_swing_d1, "fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0
