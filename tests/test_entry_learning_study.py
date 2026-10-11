@@ -226,6 +226,16 @@ def test_learning_review_rejects_bias_only_or_constant_actions_and_keeps_months(
     assert not result["profitability_proven"] and result["period_and_operational_review_still_required"]
 
 
+def test_prediction_metrics_flag_a_constant_reference():
+    from gx1.scripts.research_ta_campaign_v1 import entry_learning_prediction_metrics
+    rng=np.random.default_rng(3)
+    y=np.column_stack([rng.normal(size=64),rng.normal(size=64),np.zeros(64)])
+    constant=np.tile(np.array([-5.0,-6.0,0.0]),(64,1))
+    assert entry_learning_prediction_metrics(constant,y)["constant_prediction"] is True
+    varying=np.column_stack([rng.normal(size=64),rng.normal(size=64),np.zeros(64)])
+    assert entry_learning_prediction_metrics(varying,y)["constant_prediction"] is False
+
+
 def test_learning_review_rejects_row_reordering_and_wrong_flat_target():
     from gx1.scripts.research_ta_campaign_v1 import entry_learning_paired_review,entry_learning_prediction_metrics
     y=np.zeros((4,3));bad=y.copy();bad[0,2]=1

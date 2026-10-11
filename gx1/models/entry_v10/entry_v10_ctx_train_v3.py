@@ -81,6 +81,8 @@ from gx1.contracts.entry_position_size_target_policy_v1 import (
     require_entry_position_size_target_manifest_binding,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
+    ENTRY_ONLY_TRAINING_PHASE,
+    JOINT_FITTED_Q_TRAINING_PHASE,
     training_objective_contract_metadata,
 )
 from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
@@ -99,9 +101,12 @@ from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
     CHECKPOINT_MONITOR,
     COUPLED_NET_CHECKPOINT_MONITOR,
     MARKED_NET_CHECKPOINT_MONITOR,
+    CONSTANT_ACTION_INELIGIBLE_REASON,
     checkpoint_metric,
     checkpoint_policy_metadata,
+    constant_action_checkpoint_ineligible,
     metric_improved as candidate_metric_improved,
+    validation_entry_action_counts,
     require_checkpoint_policy,
     retain_top_k,
     should_early_stop as candidate_should_early_stop,
@@ -6422,12 +6427,18 @@ class _WeightEma:
         current = model.state_dict()
         if set(current) != set(self._shadow):
             raise RuntimeError("[ENTRY_TRAIN_WEIGHT_EMA_STATE_KEYS_CHANGED]")
+        # Initialization-bias correction. The shadow starts as a copy of the
+        # untrained initialization, so a fixed decay keeps decay**t of it in
+        # every exported average (36.8% after one averaging horizon). The
+        # effective decay min(decay, t/(t+1)) makes the shadow the exact
+        # running mean of the first updates and converges to the declared
+        # decay without any new constant; ``steps`` is persisted through
+        # checkpoint_state so a resumed session continues the same schedule.
+        decay = min(float(self.decay), float(self._steps) / float(self._steps + 1))
         for name, tensor in current.items():
             shadow = self._shadow[name]
             if name in self._parameter_names:
-                shadow.mul_(self.decay).add_(
-                    tensor.detach(), alpha=1.0 - self.decay
-                )
+                shadow.mul_(decay).add_(tensor.detach(), alpha=1.0 - decay)
             else:
                 shadow.copy_(tensor.detach())
         self._steps += 1
@@ -10481,6 +10492,7 @@ _CANDIDATE_VALIDATION_SNAPSHOT_KEYS = frozenset(
         "entry_unique_target_rows",
         "entry_target_equivalent_rows",
         "entry_unique_target_agreement_rows",
+        "entry_action_counts",
         "full_trajectory_accumulator",
     )
 )
@@ -12238,6 +12250,7 @@ def validate(
         entry_unique_target_rows = 0
         entry_target_equivalent_rows = 0
         entry_unique_target_agreement_rows = 0
+        entry_action_counts = [0, 0, 0]
     else:
         restored = _restore_candidate_validation_snapshot(resume_validation_state)
         total = float(restored["total"])
@@ -12269,6 +12282,9 @@ def validate(
         entry_unique_target_agreement_rows = int(
             restored["entry_unique_target_agreement_rows"]
         )
+        entry_action_counts = [int(count) for count in restored["entry_action_counts"]]
+        if len(entry_action_counts) != 3 or any(c < 0 for c in entry_action_counts):
+            raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_ACTION_COUNTS_INVALID]")
         full_trajectory_accumulator = restored["full_trajectory_accumulator"]
         if bool(collect_full_exit_trajectory) != bool(full_trajectory_accumulator):
             raise RuntimeError("[CANDIDATE_TRAINING_VALIDATION_MODE_MISMATCH]")
@@ -12455,6 +12471,10 @@ def validate(
             if bool((winner_count != 1).any().item()):
                 raise RuntimeError("[ENTRY_FITTED_Q_VALIDATION_PREDICTED_TIE]")
             entry_predictions = torch.argmax(masked_entry_q, dim=1)
+            for action_index, count in enumerate(
+                torch.bincount(entry_predictions, minlength=3).tolist()
+            ):
+                entry_action_counts[action_index] += int(count)
             realized_policy_pnl = entry_policy_realized_pnl_bps.gather(
                 1, entry_predictions[:, None]
             ).squeeze(1)
@@ -12505,6 +12525,7 @@ def validate(
                     entry_unique_target_agreement_rows=(
                         entry_unique_target_agreement_rows
                     ),
+                    entry_action_counts=list(entry_action_counts),
                     full_trajectory_accumulator=full_trajectory_accumulator,
                 )
                 return snapshot
@@ -12575,6 +12596,7 @@ def validate(
         ),
         "entry_unique_target_rows": int(entry_unique_target_rows),
         "entry_target_equivalent_rows": int(entry_target_equivalent_rows),
+        "entry_action_counts": [int(count) for count in entry_action_counts],
         "entry_unique_target_action_agreement": (
             entry_unique_target_agreement_rows
             / max(1, entry_unique_target_rows)
@@ -14968,13 +14990,20 @@ def _run_resumable_candidate_training(
             native_binding is not None
             and val_stats.get("native_checkpoint_metric_available") is False
         )
+        ineligible_reason = val_stats.get("checkpoint_selection_unavailable_reason")
+        if constant_action_checkpoint_ineligible(
+            validation_entry_action_counts(val_stats)
+        ):
+            # Constant Entry policy on VAL (all FLAT/LONG/SHORT): not selectable.
+            metric_available = False
+            ineligible_reason = CONSTANT_ACTION_INELIGIBLE_REASON
         policy_pnl = (
             checkpoint_metric(val_stats, checkpoint_monitor=checkpoint_monitor)
             if metric_available else None
         )
         if not metric_available:
             log.info("[CANDIDATE_CHECKPOINT_INELIGIBLE] epoch=%d reason=%s",
-                     int(epoch_index) + 1, val_stats["checkpoint_selection_unavailable_reason"])
+                     int(epoch_index) + 1, ineligible_reason)
         improved = bool(
             policy_pnl is not None and np.isfinite(policy_pnl)
             and (
@@ -15833,7 +15862,16 @@ def run_train(
         raise RuntimeError("[ENTRY_TRAIN_MODEL_NATIVE_DIRECTION_MODE_REQUIRED]")
     if normalized_specialist_contract_mode != MODEL_NATIVE_CONTRACT_MODE:
         raise RuntimeError("[ENTRY_TRAIN_SPECIALIST_CONTRACT_MODE_INVALID]")
-    model_native_training_objective = training_objective_contract_metadata()
+    # The persisted objective must name the phase actually trained: the
+    # Entry-only amendment binds observed market targets, the base design the
+    # frozen Exit teacher (rule 2a: contract text equals executed target).
+    model_native_training_objective = training_objective_contract_metadata(
+        entry_training_phase=(
+            ENTRY_ONLY_TRAINING_PHASE
+            if getattr(train_ds, "_entry_observed_market_binding", None) is not None
+            else JOINT_FITTED_Q_TRAINING_PHASE
+        ),
+    )
     for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
         contract = ds_obj.model_native_signal_contract
         require_model_native_signal_contract(

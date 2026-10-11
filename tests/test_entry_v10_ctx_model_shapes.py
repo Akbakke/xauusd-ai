@@ -194,9 +194,11 @@ def test_weight_ema_preserves_immutable_input_normalization_on_export() -> None:
     ema = trainer._WeightEma(model, 0.5)
     parameter_name, parameter = next(iter(model.named_parameters()))
     initial_parameter = parameter.detach().clone()
-    with torch.no_grad():
-        parameter.add_(1.0)
     for _ in range(60):
+        # Keep the parameter moving so a bias-corrected average differs from
+        # both the initialization and the final raw weights.
+        with torch.no_grad():
+            parameter.add_(1.0)
         ema.update(model)
 
     exported_state = ema.state_dict_clone()
@@ -207,6 +209,89 @@ def test_weight_ema_preserves_immutable_input_normalization_on_export() -> None:
     restored = _make_model()
     restored.load_state_dict(exported_state, strict=True)
     restored.require_input_normalization_state()
+
+
+def test_weight_ema_is_bias_corrected_from_the_first_update() -> None:
+    """The first update makes the shadow the raw weights; later updates are
+    the exact running mean until the declared decay takes over."""
+
+    torch.manual_seed(11)
+    model = torch.nn.Linear(3, 2)
+    ema = trainer._WeightEma(model, 0.9)
+    with torch.no_grad():
+        model.weight.fill_(1.0)
+    ema.update(model)
+    assert torch.equal(ema.state_dict_clone()["weight"], model.weight.detach().cpu())
+    with torch.no_grad():
+        model.weight.fill_(3.0)
+    ema.update(model)
+    # Second update: decay min(0.9, 1/2) = 0.5 -> exact mean of 1 and 3.
+    assert torch.allclose(ema.state_dict_clone()["weight"], torch.full((2, 3), 2.0))
+    assert ema.steps == 2
+    state = ema.checkpoint_state()
+    assert state["steps"] == 2
+    restored = trainer._WeightEma(model, 0.9)
+    restored.restore_checkpoint_state(state, model=model)
+    assert restored.steps == 2
+
+
+def test_sequence_readout_is_window_mean_plus_last_closed_bar() -> None:
+    encoded = torch.arange(24, dtype=torch.float32).view(2, 3, 4)
+    readout = model_module._sequence_readout(encoded)
+    assert torch.equal(readout, encoded.mean(dim=1) + encoded[:, -1, :])
+    with pytest.raises(RuntimeError, match="SEQUENCE_READOUT_SHAPE_INVALID"):
+        model_module._sequence_readout(torch.zeros(2, 4))
+
+
+def test_every_sequence_encoder_ends_with_parameter_free_layernorm() -> None:
+    model = _make_model()
+    encoders = [
+        model.encoder,
+        model.family_axis_attn,
+        model.timeframe_axis_attn,
+        *model.specialist_encoder.values(),
+        *model.mtf_family_encoder.values(),
+    ]
+    assert len(encoders) >= 3 + 2 * len(EXACT_SPECIALIST_NAMES)
+    for encoder in encoders:
+        assert isinstance(encoder.norm, torch.nn.LayerNorm)
+        assert encoder.norm.elementwise_affine is False
+
+
+def test_last_closed_bar_of_each_window_reaches_entry_action_q() -> None:
+    torch.manual_seed(1309)
+    model = _make_model(dropout=0.0).train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.05)
+    target = torch.tensor(
+        [[2.0, -1.0, 0.0], [-1.0, 2.0, 0.0], [1.0, 0.0, 0.0]],
+        dtype=torch.float32,
+    )
+    for _ in range(2):
+        optimizer.zero_grad(set_to_none=True)
+        output = _forward(model, batch_size=3)
+        torch.nn.functional.mse_loss(output["entry_action_q_bps"], target).backward()
+        optimizer.step()
+    model.eval()
+    seq_x, snap_x, ctx_cat, ctx_cont, mtf = _make_inputs(batch_size=3)
+    with torch.no_grad():
+        base = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)[
+            "entry_action_q_bps"
+        ]
+        for name in mtf:
+            moved = {key: value.clone() for key, value in mtf.items()}
+            moved[name][:, -1, :] += 1.0
+            out = model(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **moved)[
+                "entry_action_q_bps"
+            ]
+            assert torch.max(torch.abs(out - base)).item() > 1e-6, name
+        moved_seq = seq_x.clone()
+        moved_seq[:, -1, :] += 1.0
+        # The snapshot row is bit-identical to the last local bar by contract.
+        moved_snap = moved_seq[:, -1, :].clone()
+        out = model(moved_seq, moved_snap, ctx_cat=ctx_cat, ctx_cont=ctx_cont, **mtf)[
+            "entry_action_q_bps"
+        ]
+        assert torch.max(torch.abs(out - base)).item() > 1e-6
 
 
 def _make_exit_episode_inputs(

@@ -179,7 +179,10 @@ def test_post_capacity_metadata_authority_cannot_open_native_or_reset_budget():
     assert stage['source_unchanged_at_terminal'] is True
     assert stage['current_status'] == 'GENUINE_METADATA_PUBLICATION_COMPLETE_EXIT0_AUTHORITY_CONSUMED'
     assert rebuild['native_preprocessing_stage_001']['terminal']['path'].startswith(rebuild['run_root'] + '/')
-    assert policy['current_work']['selected_sampler_published'] is True
+    # The v38 stage binds its own selected sampler; the mutable current_work flags
+    # describe the live generation (reset for HISTORY2009W_FEATURE_REPAIR_20261010).
+    assert stage['selected_sampler']['path'].startswith(rebuild['run_root'] + '/')
+    assert len(stage['selected_sampler']['sha256']) == 64
     assert stage['original_cpu_budget'] == capacity['cpu_budget']
     assert stage['cpu_deadline_utc'] == capacity['cpu_deadline_utc']
     assert stage['relaunch_allowed'] is False

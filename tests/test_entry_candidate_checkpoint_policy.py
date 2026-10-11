@@ -16,7 +16,8 @@ def _record(epoch: int, metric: float) -> dict[str, object]:
 
 def test_policy_is_the_frozen_external_candidate_contract() -> None:
     observed = policy.checkpoint_policy_metadata()
-    assert observed["schema_version"] == "gx1_entry_candidate_checkpoint_policy_v3"
+    assert observed["schema_version"] == "gx1_entry_candidate_checkpoint_policy_v6"
+    assert observed["constant_action_checkpoint_eligible"] is False
     assert observed["max_epochs"] == 30
     assert observed["validation_frequency_epochs"] == 1
     assert observed["early_stop_patience"] == 5
@@ -47,6 +48,28 @@ def test_early_stop_waits_for_minimum_epochs_and_patience() -> None:
         patience=5,
         minimum_epochs_before_stop=2,
     )
+
+
+def test_constant_action_validation_is_never_selectable() -> None:
+    assert policy.constant_action_checkpoint_ineligible([0, 0, 256])
+    assert policy.constant_action_checkpoint_ineligible([256, 0, 0])
+    assert policy.constant_action_checkpoint_ineligible([0, 256, 0])
+    assert not policy.constant_action_checkpoint_ineligible([1, 0, 255])
+    assert not policy.constant_action_checkpoint_ineligible([100, 100, 56])
+    assert policy.validation_entry_action_counts(
+        {"entry_exit_policy_metrics": {"long_count": 3, "short_count": 0, "flat_count": 9}}
+    ) == [3, 0, 9]
+    assert policy.validation_entry_action_counts({"entry_action_counts": [1, 2, 3]}) == [1, 2, 3]
+    for bad in (
+        {},
+        {"entry_action_counts": [0, 0, 0]},
+        {"entry_action_counts": [1, 2]},
+        {"entry_action_counts": [1, -1, 2]},
+        {"entry_action_counts": [1.0, 2.0, 3.0]},
+        {"entry_exit_policy_metrics": {"long_count": 1, "short_count": 2}},
+    ):
+        with pytest.raises(RuntimeError, match="ACTION_COUNTS_MISSING"):
+            policy.validation_entry_action_counts(bad)
 
 
 def test_top_k_is_deterministic_and_retains_only_the_three_best() -> None:

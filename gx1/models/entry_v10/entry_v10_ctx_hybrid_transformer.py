@@ -261,7 +261,11 @@ class UnifiedExitIncrementalCarry:
 # fence in the trainer before this path is entered.
 TRAIN_ACTIVATION_CHECKPOINT_POLICY = "cuda_disabled_cpu_checkpointed_v2"
 CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED = False
-MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v9"
+# v10 (2026-10-11): every specialist/MTF/axis encoder ends with the same
+# parameter-free LayerNorm as the main encoder, and every window readout is
+# mean-plus-last-closed-bar. Same parameters and state_dict keys as v9; a v9
+# checkpoint computes a different function and is rejected by this version.
+MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v10"
 MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v9"
 _UNIT_TEST_ARCHITECTURE_SENTINEL = object()
 
@@ -315,6 +319,21 @@ def _memory_bounded_transformer_encoder(
     if encoder.norm is not None:
         hidden = encoder.norm(hidden)
     return hidden
+
+
+def _sequence_readout(encoded: torch.Tensor) -> torch.Tensor:
+    """Window mean plus the last closed bar, both at unit weight.
+
+    Every window tensor is time-ascending (``slice_multi_tf_v4_window`` and
+    the local M5 sequence), so index -1 is the most recent closed bar. A pure
+    mean over 96 or 252 bars dilutes that bar to 1/n of the token; adding it
+    back keeps the aggregate evidence and the current state in one
+    parameter-free readout. No new constant: both terms carry weight one.
+    """
+
+    if encoded.ndim != 3 or int(encoded.shape[1]) < 1:
+        raise RuntimeError("SEQUENCE_READOUT_SHAPE_INVALID")
+    return encoded.mean(dim=1) + encoded[:, -1, :]
 
 
 EXACT_TRENDLINE_EVENT_OUTPUT_DIM = 4
@@ -1076,9 +1095,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 activation="gelu",
                 norm_first=True,
             )
+            # Pre-norm layers return an un-normalized residual stream; the
+            # main encoder closes with a parameter-free LayerNorm and every
+            # gate that reads these encoders must see the same scale.
             return nn.TransformerEncoder(
                 layer,
                 num_layers=layers,
+                norm=nn.LayerNorm(d_model, elementwise_affine=False),
                 enable_nested_tensor=False,
             )
 
@@ -1964,7 +1987,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             seq_h = seq_h + embedding(seq_x[..., index].long())
         seq_h = self._add_pe(seq_h, positional_encoding)
         seq_h = _memory_bounded_transformer_encoder(self.encoder, seq_h)
-        seq_pool = seq_h.mean(dim=1)
+        seq_pool = _sequence_readout(seq_h)
 
         generic_snap_idx = self.generic_snap_idx.to(snap_x.device)
         snap_h = self.snap_proj(
@@ -1995,10 +2018,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 index = int(index_text)
                 if index in specialist_index_set:
                     spec_h = spec_h + embedding(seq_x[..., index].long())
-            temporal_pool = _memory_bounded_transformer_encoder(
-                self.specialist_encoder[name],
-                spec_h,
-            ).mean(dim=1)
+            temporal_pool = _sequence_readout(
+                _memory_bounded_transformer_encoder(
+                    self.specialist_encoder[name],
+                    spec_h,
+                )
+            )
             pools.append(temporal_pool + family_context_tokens[:, specialist_position, :])
         specialist_tokens = torch.stack(pools, dim=1)
         specialist_tokens = _memory_bounded_transformer_encoder(
@@ -2136,7 +2161,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     encoded = _memory_bounded_transformer_encoder(
                         self.mtf_family_encoder[specialist], projected,
                     )
-                    family_tokens.append(encoded.mean(dim=1))
+                    family_tokens.append(_sequence_readout(encoded))
             if not batch_eval:
                 family_grid_rows.append(torch.stack(family_tokens, dim=1))
             feature_gate_rows.append(full_feature_gate)
@@ -2160,7 +2185,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     pieces = encoded.split(batch_size, dim=0)
                     assert len(pieces) == len(suffixes)
                     for suffix, piece in zip(suffixes, pieces):
-                        pooled[(suffix, specialist)] = piece.mean(dim=1)
+                        pooled[(suffix, specialist)] = _sequence_readout(piece)
             family_grid_rows = [
                 torch.stack([pooled[(suffix, specialist)] for specialist in self._specialist_names], dim=1)
                 for suffix in route

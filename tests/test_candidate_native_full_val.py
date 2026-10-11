@@ -165,7 +165,7 @@ def test_native_coordinator_resumes_val_before_next_epoch_and_selects_net(tmp_pa
         available = not (censoring == "all_epochs" or (censoring == "first_epoch" and epoch == 0))
         best_epoch_index = 1 if censoring == "first_epoch" else 0
         return {"decision": "PASS_COMPLETE" if available else "COMPLETE_WITH_RIGHT_CENSORING", "fixture_stats": {
-            "entry_exit_policy_metrics": {"mean_net_bps_per_entry": (2.0 if epoch == best_epoch_index else (100.0 if monitor == MARKED_NET_CHECKPOINT_MONITOR else 1.0)) if available else None},
+            "entry_exit_policy_metrics": {"long_count": 1, "short_count": 1, "flat_count": 2, "mean_net_bps_per_entry": (2.0 if epoch == best_epoch_index else (100.0 if monitor == MARKED_NET_CHECKPOINT_MONITOR else 1.0)) if available else None},
             "native_checkpoint_monitor": monitor,
             "marked_policy_evaluation": {"single_position_replay": {
                 "full_cohort_authoritative": available,

@@ -33,6 +33,8 @@ def test_training_objective_contract_is_exact_and_learned() -> None:
     assert payload["unified_exit_action_q_loss"] == (
         "masked_raw_bps_mean_squared_error"
     )
+    assert payload["entry_training_phase"] == "joint_fitted_q"
+    assert payload["exit_gradients_active"] is True
     assert payload["entry_action_q_target"] == (
         "stop_gradient_frozen_train_exit_target_model_first_state_value"
     )
@@ -46,9 +48,37 @@ def test_training_objective_contract_is_exact_and_learned() -> None:
     assert require_training_objective_contract(payload, context="TEST") == payload
 
 
+def test_entry_only_phase_declares_observed_market_target_without_exit() -> None:
+    payload = training_objective_contract_metadata(entry_training_phase="entry_only")
+
+    assert payload["schema_version"] == "entry_model_native_training_objective_v11"
+    assert payload["entry_training_phase"] == "entry_only"
+    assert payload["exit_gradients_active"] is False
+    assert payload["entry_action_q_target"] == (
+        "observed_executable_terminal_cash_return_net_of_declared_costs_"
+        "at_frozen_train_horizon_without_exit_model"
+    )
+    assert payload["entry_action_q_loss"] == "masked_raw_bps_mean_squared_error"
+    assert require_training_objective_contract(payload, context="TEST") == payload
+    # A phase may not borrow the other phase's target or gradient flag.
+    for field, bad in (
+        ("entry_action_q_target", "stop_gradient_frozen_train_exit_target_model_first_state_value"),
+        ("exit_gradients_active", True),
+        ("entry_training_phase", "joint_fitted_q"),
+    ):
+        drifted = dict(payload)
+        drifted[field] = bad
+        with pytest.raises(RuntimeError, match="TRAINING_OBJECTIVE_CONTRACT_INVALID"):
+            require_training_objective_contract(drifted, context="TEST")
+    with pytest.raises(RuntimeError, match="ENTRY_TRAINING_PHASE_INVALID"):
+        training_objective_contract_metadata(entry_training_phase="exit_only")
+
+
 @pytest.mark.parametrize(
     "field,bad",
     [
+        ("entry_training_phase", "exit_only"),
+        ("exit_gradients_active", False),
         ("fixed_relative_task_weights", True),
         ("handwritten_rank_losses", True),
         ("handwritten_composite_weights", True),

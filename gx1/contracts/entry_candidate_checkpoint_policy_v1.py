@@ -12,9 +12,18 @@ import math
 from typing import Any, Mapping, Sequence
 
 
-SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v3"
-COUPLED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v4"
-MARKED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v5"
+SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v6"
+COUPLED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v7"
+MARKED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v8"
+# A validation epoch whose Entry argmax is one action for every row (all
+# FLAT, all LONG or all SHORT) is a constant policy, never a selectable
+# optimum (docs/LEARNING_GATE.md: constant action choice is not PASS).
+# All-FLAT scores exactly 0.0 on every net monitor and would otherwise absorb
+# selection whenever each trading epoch is negative; this rule removes that
+# absorbing state without introducing any new numeric threshold.
+CONSTANT_ACTION_CHECKPOINT_ELIGIBLE = False
+CONSTANT_ACTION_INELIGIBLE_REASON = "constant_validation_entry_action_distribution"
+ENTRY_ACTION_COUNT_KEYS = ("long_count", "short_count", "flat_count")
 # The external candidate is permitted at most thirty complete TRAIN/VAL
 # epochs. This upper bound belongs in the frozen policy so a resumed process
 # cannot silently exceed the hash-bound candidate budget.
@@ -53,7 +62,44 @@ def checkpoint_policy_metadata(
         "early_stop_min_delta": EARLY_STOP_MIN_DELTA,
         "checkpoint_monitor": checkpoint_monitor,
         "checkpoint_mode": CHECKPOINT_MODE,
+        "constant_action_checkpoint_eligible": CONSTANT_ACTION_CHECKPOINT_ELIGIBLE,
     }
+
+
+def validation_entry_action_counts(stats: Mapping[str, Any]) -> list[int]:
+    """Read [LONG, SHORT, FLAT] argmax counts from either validation owner.
+
+    The in-trainer ``validate`` emits ``entry_action_counts``; the native full
+    VAL evaluator emits ``entry_exit_policy_metrics.{long,short,flat}_count``.
+    Missing or malformed counts fail closed: selection may never assume a
+    non-constant policy it has not observed.
+    """
+
+    if not isinstance(stats, Mapping):
+        raise RuntimeError("[ENTRY_CANDIDATE_VALIDATION_STATS_INVALID]")
+    counts: Any = stats.get("entry_action_counts")
+    if counts is None:
+        metrics = stats.get("entry_exit_policy_metrics")
+        if isinstance(metrics, Mapping) and all(
+            key in metrics for key in ENTRY_ACTION_COUNT_KEYS
+        ):
+            counts = [metrics[key] for key in ENTRY_ACTION_COUNT_KEYS]
+    if (
+        not isinstance(counts, (list, tuple))
+        or len(counts) != 3
+        or any(isinstance(c, bool) or not isinstance(c, int) or c < 0 for c in counts)
+        or sum(int(c) for c in counts) <= 0
+    ):
+        raise RuntimeError("[ENTRY_CANDIDATE_VALIDATION_ACTION_COUNTS_MISSING]")
+    return [int(c) for c in counts]
+
+
+def constant_action_checkpoint_ineligible(action_counts: Any) -> bool:
+    """True when at most one action was ever chosen on the validation rows."""
+
+    counts = validation_entry_action_counts({"entry_action_counts": action_counts})
+    distinct_actions = sum(1 for count in counts if count > 0)
+    return distinct_actions <= 1 and not CONSTANT_ACTION_CHECKPOINT_ELIGIBLE
 
 
 def native_checkpoint_monitor(objective: Mapping[str, Any]) -> str:

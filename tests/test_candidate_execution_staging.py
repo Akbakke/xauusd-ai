@@ -128,6 +128,7 @@ class Harness:
             float("nan"),
             {
                 "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean": 2.0,
+                "entry_action_counts": [1, 1, 2],
                 "active_head_health_ok": True,
                 "cooperation_gate_health_ok": True,
                 "exit_cooperation_gate_health_ok": True,

@@ -552,6 +552,7 @@ def _validation_snapshot_fixture(*, rows: int = 1) -> dict[str, object]:
         entry_unique_target_rows=1,
         entry_target_equivalent_rows=0,
         entry_unique_target_agreement_rows=1,
+        entry_action_counts=[1, 0, 1],
         full_trajectory_accumulator={
             "state_stream_chain_sha256": "0" * 64,
             "learned_realized": [1.0],
@@ -659,6 +660,7 @@ def test_candidate_runner_resumes_interrupted_hash_bound_frozen_policy_session(
             float("nan"),
             {
                 "entry_policy_realized_gross_spread_inclusive_pnl_bps_mean": 2.0,
+                "entry_action_counts": [1, 1, 2],
                 "active_head_health_ok": True,
                 "cooperation_gate_health_ok": True,
                 "exit_cooperation_gate_health_ok": True,

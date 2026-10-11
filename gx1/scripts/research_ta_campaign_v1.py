@@ -2563,6 +2563,7 @@ def entry_learning_prediction_metrics(prediction, target):
             "prediction_std":np.std(p,axis=0).tolist(),"target_std":np.std(truth,axis=0).tolist(),
             "correlation":correlations,"action_counts":np.bincount(action,minlength=3).tolist(),
             "ties":int((~unique).sum()),"nonconstant_unique_actions":len(np.unique(action[unique]))>1,
+            "constant_prediction":bool(np.all(np.std(p,axis=0)==0)),
             "positive_estimated_entry_rows":int(((action!=2)&unique&(q[:,:2].max(axis=1)>0)).sum()),
             "overlapping_selected_target_mean_bps":float(chosen.mean()),
             "economic_rollout":False}
@@ -2699,6 +2700,8 @@ def run_entry_learning_baseline(spec, spec_path):
             "fit_rows":len(fit),"fit_rows_sha256":hashlib.sha256(fit.astype("<i8").tobytes()).hexdigest(),
             "fit_time_range":[str(clocks["train"][fit[0]]),str(clocks["train"][fit[-1]])],
             "all_254_snapshot_fields":names,"feature_fit_lineage":lineage,"fits":fits,
+            "reference_model_kinds":[info["model_kind"] for info in fits],
+            "reference_degenerate_constant":any(info["model_kind"]=="constant" for info in fits),
             "train_constant_bps":targets["train"][fit].astype(float).mean(axis=0).tolist(),
             "small_fit_constant_bps":targets["train"][rows["fit"]].astype(float).mean(axis=0).tolist(),
             "predictions":{"path":str(out/"PREDICTIONS.parquet"),"sha256":sha(out/"PREDICTIONS.parquet")},
