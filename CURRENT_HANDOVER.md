@@ -117,11 +117,18 @@ sweeps: kontrakt, ruting, fixtures, laner, preflight, readiness, modellformer,
 builder og forskningseier grønne (den kjente tråd-følsomme exit-token-testen
 er grønn ved én tråd).
 
-Steg 4: run-root /home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001 med
-PLAN.json lik configs/research/NATIVE_D1_REBUILD_20261011.json (run-id
-HISTORY2009W_NATIVE_D1_20261011, samme vinduer, pair-/squeeze-/M1-
+Steg 4, forsøk 001 (3fbb95c7) stoppet lukket etter 2 013 s i M5-lanen:
+D1_MACRO_CONTEXT_BEYOND_READ_END. Lanen kuttet den niende familiens kilder ved
+TEST-forseglingen, mens de forseglede pair-rotene går til 2026-08-31 23:55 fordi
+kjeden konstruerer og forsegler TEST-splitten. Rettet i lanen (a631e69c): samme
+policybundne test-konstruksjonsslutt 2026-09-01 som builderen; eieren nekter
+fortsatt enhver slutt policyen ikke autoriserer. Alt fra 001 er bevart.
+
+Steg 4, forsøk 002: run-root /home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_002 med
+PLAN.json lik configs/research/NATIVE_D1_REBUILD_20261011_002.json (run-id
+HISTORY2009W_NATIVE_D1_20261011_002, samme vinduer, pair-/squeeze-/M1-
 justeringsinputs og 64 800 s kjernetak som den aksepterte generasjonen),
-launch_core.py bundet i policyblokken native_d1_rebuild_20261011. Lanseringen
+launch_core.py bundet i policyblokken native_d1_rebuild_20261011_002. Lanseringen
 fryser HEAD og NEXT_RUN_POLICY.json for hele kjernekjeden; ingen commit før
 terminal. Forrige kjernekjede tok 22 130 s. Etter kjernen følger COMPLETE_M1/
 inputverifisering, fysiske views og normalisering (132 kontekstfelt), og fersk
