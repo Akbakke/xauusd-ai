@@ -3156,7 +3156,11 @@ def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
             panel[column] = dollar_rows[column].to_numpy(float)
         groups["dollar"] = list(SWING_DOLLAR_FIELDS)
         group_order.append("dollar")
-    feature_names = [c for g in group_order for c in groups[g]]
+    excluded = [str(g) for g in spec.get("exclude_groups", [])]
+    if any(g not in groups or g == "price_state_A" for g in excluded):
+        raise RuntimeError("TA_SWING_EXCLUDE_GROUPS")
+    feature_names = [c for g in group_order if g not in excluded for c in groups[g]]
+    groups = {g: cols for g, cols in groups.items() if g not in excluded}
     if panel.columns.has_duplicates or np.isinf(panel[feature_names].to_numpy(float)).any():
         raise RuntimeError("TA_SWING_FEATURE_SURFACE")
     coverage = {g: int(np.isfinite(panel[cols].to_numpy(float)).all(axis=1).sum()) for g, cols in groups.items()}

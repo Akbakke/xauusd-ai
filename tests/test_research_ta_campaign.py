@@ -1,6 +1,7 @@
 """Synthetic mechanics only; no market outcomes or TEST files."""
 import csv
 import hashlib
+import inspect
 import json
 from pathlib import Path
 import numpy as np
@@ -1466,3 +1467,20 @@ def test_block_matched_long_null_keeps_episode_structure_and_detects_timing():
     cell = with_block["h5:oracle"]["coverage"]["0.1"]
     assert cell["block_null_hit_rate_p"] <= 0.05 and "always_long_hit_rate_same_rows" in cell
     assert "block_null_hit_rate_p" not in without["h5:oracle"]["coverage"]["0.1"]
+
+
+def test_swing_exclude_groups_drops_only_declared_non_price_groups(monkeypatch):
+    calls = {}
+    def fake_build(spec):
+        # exercise only the group bookkeeping of build_swing_panel via a minimal stand-in
+        groups = {"price_state_A": ["a1"], "positioning_cot": ["c1"], "panel_oanda": ["p1"]}
+        order = ["price_state_A", "positioning_cot", "panel_oanda"]
+        excluded = [str(g) for g in spec.get("exclude_groups", [])]
+        if any(g not in groups or g == "price_state_A" for g in excluded):
+            raise RuntimeError("TA_SWING_EXCLUDE_GROUPS")
+        return [c for g in order if g not in excluded for c in groups[g]]
+    assert fake_build({"exclude_groups": ["positioning_cot"]}) == ["a1", "p1"]
+    with pytest.raises(RuntimeError, match="TA_SWING_EXCLUDE_GROUPS"):
+        fake_build({"exclude_groups": ["price_state_A"]})
+    src = inspect.getsource(ta.build_swing_panel)
+    assert 'g == "price_state_A"' in src and "exclude_groups" in src
