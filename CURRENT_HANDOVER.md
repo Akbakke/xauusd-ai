@@ -80,6 +80,30 @@ med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
 innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
 NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
 
+## Swing stage C oppfølging 11.10.2026: forward-sjekk støtter, ablasjon peker på panel + drivere
+
+Eieren fikk blokkmatchet long-null som deklarert sekundærstatistikk (d4d9229f) og
+deklarert gruppeablasjon (b07918b9). Forward-sjekk 010 på 2026H1 (108 gyldige h20-
+rader, ubrukt av de ni foregående analysene, lest før TEST-forseglingen; fit på alt
+før 2026): h20 swing_ridge rank-IC 0,44, treff 0,91 ved 10 % (11 rader, 5 episoder)
+og 0,70 ved 25 % (27 rader) i et halvår der bare 36 % av 20-dagersbevegelsene var
+positive; alltid-LONG på samme rader scorer likt (timing av long). Pris-alene-ridge
+0,44 ved 25 %, HGB invertert (0,37). Den forhåndsregistrerte støtteregelen (10 % og
+25 %: treff over shift-p95 og blokk-null-p for fanget mål < 0,05) ble IKKE oppfylt
+(0,035 ved 10 %, 0,065 ved 25 %) → INKONKLUSIV etter deklarert lav styrke, men
+støttende på alle metrikker. Episodeøkonomi: 5 episoder, +803 bps/episode (beskrivende).
+Ablasjon (h20 swing_ridge 5 %, treff/familie-p): full 0,781/0,043; uten panel
+0,647/0,83 (effekten borte); uten drivere 0,721/0,27 (sterkt svekket; 013 feilet
+lukket i porteføljefamilien fordi den fullt dekkede ridge-porteføljen gikk til null
+egenkapital fra 2017-04, selektive tall beregnet post hoc fra lagrede prognoser med
+eierens funksjon); uten COT 0,746/0,14; uten kalender 0,776/0,050 (inert); uten
+dollarindeks 0,831/0,011 (sterkere; informasjonen ligger alt i FX-panelet). 15
+analyser på 2011–2025. Verdikt: long-timing-effekten bæres av kryss-panel + makro-
+drivere, er foldrobust og retningsstøttet forward, men ikke regelbekreftet. Neste:
+frys 70-feltsflaten (uten dollar) som eneste kandidat, månedlig forward-journal
+som eneste bekreftelsesrute, v10 nullstegsbaseline under nytt eksplisitt budsjett.
+Ingen prediktor innrømmet; TEST urørt; ingen native endring.
+
 ## Swing stage C 11.10.2026: long-timing-spor på kanonisk rute, ikke bekreftet
 
 H.10-retry (_002) ga den daglige nominelle brede dollarindeksen 2009–2026 (pakke 1

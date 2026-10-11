@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-11T17:00:29.157548+00:00",
-  "status": "SWING_STAGE_C_LONG_TIMING_LEAD_UNCONFIRMED",
+  "status": "SWING_STAGE_C_LONG_TIMING_LEAD_FORWARD_INCONCLUSIVE_SUPPORTIVE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) Preregister the block-matched long null as a secondary per-cell statistic in the owner; 2) one forward check on 2026-01-01..2026-06-30 (unused by all nine analyses, read before the TEST seal) with declared low power; 3) group ablation (drop positioning / drivers / panel / calendar / dollar one at a time) under the same family rule; 4) GPU: fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
+  "next_action": "1) GPU/CPU: fresh zero-step v10 baseline under a new explicit budget (FRESH_INITIAL_BASELINE_003); 2) freeze the 70-field surface (no dollar) as the single candidate and run no further surface changes; 3) preregister a monthly forward journal on the same owner (each new month of data scored once, never refit on it) as the only confirmation route; 4) native: design the multi-horizon observed-market target contract for the transformer. No native launch, TEST, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Stage C (008/009): XAU h20 ridge is a long-timing effect, hit-rate family-significant and fold-structure robust, captured mean not under the preregistered null; unconfirmed. Next: block-matched null in owner, 2026H1 forward check, group ablation; GPU zero-step v10 baseline still needs a new explicit budget.",
+    "current_blocker": "Stage C follow-ups done: forward check 2026H1 supportive but rule not met (low power); ablation: panel + drivers carry the effect, dollar group hurts, calendar inert. Next: v10 zero-step baseline under a new explicit budget, frozen 70-field candidate, monthly forward journal.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -3315,6 +3315,461 @@
       "verdict": "No cell meets the preregistered rule in 008 or 009. XAU h20 swing_ridge is hit-rate family-significant on the canonical route (008: 5 % coverage hit 0.781, family p 0.043) and strengthens under two-year folds (009: 2/5/10/25 % hit 0.872/0.831/0.784/0.698, family p 0.022/0.0085/0.007/0.026), so the effect does not depend on yearly refits. Captured mean is never family-significant under the circular-shift null. Diagnosis: the selected rows are almost always long; the model finds WHEN a 20-day long pays, not direction. The price-state-only ridge has no such effect, so positioning/panel/driver/calendar/dollar fields carry it. Economics descriptive: 95 episodes, +119 bps per episode ex financing (008), 90 episodes, +169 (009), financing ~30 bps per long episode. Evidence class: measured on reused development walk-forward; unconfirmed.",
       "next_action": "1) Preregister the block-matched long null as a secondary per-cell statistic in the owner; 2) one forward check on 2026-01-01..2026-06-30 (unused by all nine analyses, read before the TEST seal) with declared low power; 3) group ablation (drop positioning / drivers / panel / calendar / dollar one at a time) under the same family rule; 4) GPU: fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
       "evidence_class": "measured_reused_development_walkforward"
+    },
+    "swing_d1_stage_c_followups_20261011": {
+      "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»",
+      "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1 (block-matched long null d4d9229f, exclude_groups b07918b9)",
+      "forward_check_010": {
+        "preregistration": "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_010.json",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_010/RESULT.json",
+          "sha256": "2270e4592e295e9d8c4acc310f20d1a65c433a26b66e07f90b88f07ef3127bcd"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_010/TERMINAL.json",
+          "sha256": "67b1384e3c5b77a626716c7ac1e01a64012efe5d544069ff68ae8af61dfcc119"
+        },
+        "holdout": "2026-01-01..2026-06-30, 108 valid h20 rows, unused by the nine prior swing analyses; fit on everything before 2026 with the same purge",
+        "share_of_positive_20d_moves_in_holdout": 0.361,
+        "h20_swing_ridge": {
+          "rank_ic": 0.442,
+          "minimum_family_p": {
+            "captured_mean": 0.0685,
+            "hit_rate": 0.0
+          },
+          "below_0_05": {
+            "captured_mean": [],
+            "hit_rate": [
+              "h20:swing_ridge:cov0.5",
+              "h20:swing_ridge:cov0.25",
+              "h20:swing_ridge:cov0.1",
+              "h5:swing_ridge:cov0.5"
+            ]
+          },
+          "cov0.05": {
+            "rows": 5,
+            "episodes": 2,
+            "hit": 1.0,
+            "hit_family_p": 0.2395,
+            "mean_atr": 3.76,
+            "mean_family_p": 0.572,
+            "block_null_hit_p": 0.0945,
+            "block_null_mean_p": 0.0555,
+            "always_long_same_rows": 1.0
+          },
+          "cov0.1": {
+            "rows": 11,
+            "episodes": 5,
+            "hit": 0.909,
+            "hit_family_p": 0.0055,
+            "mean_atr": 2.62,
+            "mean_family_p": 0.4225,
+            "block_null_hit_p": 0.019,
+            "block_null_mean_p": 0.035,
+            "always_long_same_rows": 0.909
+          },
+          "cov0.25": {
+            "rows": 27,
+            "episodes": 12,
+            "hit": 0.704,
+            "hit_family_p": 0.0,
+            "mean_atr": 0.99,
+            "mean_family_p": 0.519,
+            "block_null_hit_p": 0.02,
+            "block_null_mean_p": 0.065,
+            "always_long_same_rows": 0.704
+          },
+          "cov0.5": {
+            "rows": 54,
+            "episodes": 17,
+            "hit": 0.593,
+            "hit_family_p": 0.0,
+            "mean_atr": 0.53,
+            "mean_family_p": 0.2515,
+            "block_null_hit_p": 0.0475,
+            "block_null_mean_p": 0.0785,
+            "always_long_same_rows": 0.593
+          },
+          "cov1.0": {
+            "rows": 108,
+            "episodes": 1,
+            "hit": 0.361,
+            "hit_family_p": 1.0,
+            "mean_atr": -0.51,
+            "mean_family_p": 1.0,
+            "block_null_hit_p": 1.0,
+            "block_null_mean_p": 1.0,
+            "always_long_same_rows": 0.361
+          },
+          "h5_swing_ridge_cov0.25": {
+            "block_null_hit_rate_p": 0.024,
+            "block_null_mean_p": 0.01,
+            "hit_rate": 0.889,
+            "mean_captured_target_atr": 2.005,
+            "rows": 27
+          },
+          "h20_swing_hgb_cov0.25_hit": 0.37,
+          "h20_a_ridge_cov0.25_hit": 0.444,
+          "episode_economics_h20_swing_ridge_cov0_1": {
+            "episodes": 5,
+            "hit_rate": 0.8,
+            "mean_net_bps_ex_financing": 803.1084092649091,
+            "long_financing_estimate_bps": 147.84394250513344,
+            "worst_episode_bps": -189.60933067883644
+          }
+        },
+        "preregistered_supported_rule": "coverage 0.1 and 0.25 both: hit above circular-shift p95 AND block_null_mean_p < 0.05",
+        "rule_outcome": "NOT MET: block_null_mean_p 0.035 at 0.1 but 0.065 at 0.25; by the declared rule INCONCLUSIVE (low power)",
+        "reading": "directionally supportive on every metric: rank-IC 0.44 over 108 overlapping rows (about five independent 20-day windows), hit 0.91 at 10 % (11 rows, 5 episodes) and 0.70 at 25 % (27 rows) in a half-year where only 36 % of 20-day moves were positive; always-long on the same rows scores the same, so again timing of longs; price-state-only ridge 0.44 at 25 %, HGB inverted (0.37); hit-rate family p 0.0 for h20 ridge at 10/25/50 % within this study's 56 cells; captured-mean family p 0.069"
+      },
+      "ablations": {
+        "011_without_positioning_cot": {
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_011/RESULT.json",
+            "sha256": "ec53df7f8a7790b1f3f451bcb5be7676099c2a02c8f9e4b8051f2ee9443fc716"
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_011/TERMINAL.json",
+            "sha256": "8329859bd8aa12372b26c5f3ff0f65d344c5f190a220cef6a54d40eeefffef65"
+          },
+          "h20_swing_ridge": {
+            "rank_ic": 0.074,
+            "minimum_family_p": {
+              "captured_mean": 0.2505,
+              "hit_rate": 0.068
+            },
+            "below_0_05": {
+              "captured_mean": [],
+              "hit_rate": []
+            },
+            "cov0.02": {
+              "rows": 78,
+              "episodes": 37,
+              "hit": 0.769,
+              "hit_family_p": 0.3335,
+              "mean_atr": 1.73,
+              "mean_family_p": 0.7085,
+              "block_null_hit_p": 0.003,
+              "block_null_mean_p": 0.025,
+              "always_long_same_rows": 0.718
+            },
+            "cov0.05": {
+              "rows": 201,
+              "episodes": 65,
+              "hit": 0.746,
+              "hit_family_p": 0.1355,
+              "mean_atr": 1.42,
+              "mean_family_p": 0.7605,
+              "block_null_hit_p": 0.0005,
+              "block_null_mean_p": 0.0195,
+              "always_long_same_rows": 0.726
+            },
+            "cov0.1": {
+              "rows": 403,
+              "episodes": 108,
+              "hit": 0.705,
+              "hit_family_p": 0.1265,
+              "mean_atr": 1.13,
+              "mean_family_p": 0.8585,
+              "block_null_hit_p": 0.0005,
+              "block_null_mean_p": 0.036,
+              "always_long_same_rows": 0.692
+            },
+            "cov0.25": {
+              "rows": 1000,
+              "episodes": 143,
+              "hit": 0.631,
+              "hit_family_p": 0.4485,
+              "mean_atr": 0.96,
+              "mean_family_p": 0.8565,
+              "block_null_hit_p": 0.0065,
+              "block_null_mean_p": 0.031,
+              "always_long_same_rows": 0.627
+            }
+          }
+        },
+        "012_without_panel_oanda": {
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_012/RESULT.json",
+            "sha256": "1d01a445193caa0f7f4e044cd61d67ee4af22f5b26849516c1db6d896e1c6512"
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_012/TERMINAL.json",
+            "sha256": "ddf32ce424da29b8d3de1e4cce76844544ded25cdcbbe03a1cbe90c512d70a87"
+          },
+          "h20_swing_ridge": {
+            "rank_ic": 0.039,
+            "minimum_family_p": {
+              "captured_mean": 0.2395,
+              "hit_rate": 0.0645
+            },
+            "below_0_05": {
+              "captured_mean": [],
+              "hit_rate": []
+            },
+            "cov0.02": {
+              "rows": 78,
+              "episodes": 30,
+              "hit": 0.59,
+              "hit_family_p": 0.997,
+              "mean_atr": 1.14,
+              "mean_family_p": 0.966,
+              "block_null_hit_p": 0.3475,
+              "block_null_mean_p": 0.185,
+              "always_long_same_rows": 0.718
+            },
+            "cov0.05": {
+              "rows": 201,
+              "episodes": 69,
+              "hit": 0.647,
+              "hit_family_p": 0.8245,
+              "mean_atr": 1.08,
+              "mean_family_p": 0.9585,
+              "block_null_hit_p": 0.064,
+              "block_null_mean_p": 0.121,
+              "always_long_same_rows": 0.706
+            },
+            "cov0.1": {
+              "rows": 403,
+              "episodes": 96,
+              "hit": 0.628,
+              "hit_family_p": 0.856,
+              "mean_atr": 1.02,
+              "mean_family_p": 0.9585,
+              "block_null_hit_p": 0.0575,
+              "block_null_mean_p": 0.094,
+              "always_long_same_rows": 0.663
+            },
+            "cov0.25": {
+              "rows": 1000,
+              "episodes": 167,
+              "hit": 0.581,
+              "hit_family_p": 0.9745,
+              "mean_atr": 0.75,
+              "mean_family_p": 0.985,
+              "block_null_hit_p": 0.085,
+              "block_null_mean_p": 0.1135,
+              "always_long_same_rows": 0.608
+            }
+          }
+        },
+        "014_without_calendar": {
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_014/RESULT.json",
+            "sha256": "69e66eab01403676f05f5783bd7709dbedc51b19db59ddedc010d0d0deebc484"
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_014/TERMINAL.json",
+            "sha256": "162285e4ecb36cf8a3bea7117beb376411fb516cb2244667d2f85287db935ab7"
+          },
+          "h20_swing_ridge": {
+            "rank_ic": 0.083,
+            "minimum_family_p": {
+              "captured_mean": 0.2665,
+              "hit_rate": 0.0495
+            },
+            "below_0_05": {
+              "captured_mean": [],
+              "hit_rate": [
+                "h20:swing_ridge:cov0.05"
+              ]
+            },
+            "cov0.02": {
+              "rows": 78,
+              "episodes": 36,
+              "hit": 0.795,
+              "hit_family_p": 0.1235,
+              "mean_atr": 1.47,
+              "mean_family_p": 0.8595,
+              "block_null_hit_p": 0.001,
+              "block_null_mean_p": 0.0565,
+              "always_long_same_rows": 0.821
+            },
+            "cov0.05": {
+              "rows": 201,
+              "episodes": 67,
+              "hit": 0.776,
+              "hit_family_p": 0.0495,
+              "mean_atr": 1.47,
+              "mean_family_p": 0.674,
+              "block_null_hit_p": 0.0,
+              "block_null_mean_p": 0.019,
+              "always_long_same_rows": 0.786
+            },
+            "cov0.1": {
+              "rows": 403,
+              "episodes": 84,
+              "hit": 0.715,
+              "hit_family_p": 0.1455,
+              "mean_atr": 1.2,
+              "mean_family_p": 0.8395,
+              "block_null_hit_p": 0.0,
+              "block_null_mean_p": 0.0335,
+              "always_long_same_rows": 0.725
+            },
+            "cov0.25": {
+              "rows": 1000,
+              "episodes": 152,
+              "hit": 0.642,
+              "hit_family_p": 0.337,
+              "mean_atr": 1.05,
+              "mean_family_p": 0.75,
+              "block_null_hit_p": 0.0035,
+              "block_null_mean_p": 0.02,
+              "always_long_same_rows": 0.624
+            }
+          }
+        },
+        "015_without_dollar": {
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_015/RESULT.json",
+            "sha256": "50b135b88b0793ae665c90c5900bb1eec1334c1279fc60385a5860b683a4beec"
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_015/TERMINAL.json",
+            "sha256": "2cac2e29651424ead046fd24845a6c237bb005b5ea481bd893fd5964cc746080"
+          },
+          "h20_swing_ridge": {
+            "rank_ic": 0.034,
+            "minimum_family_p": {
+              "captured_mean": 0.22,
+              "hit_rate": 0.0105
+            },
+            "below_0_05": {
+              "captured_mean": [],
+              "hit_rate": [
+                "h20:swing_ridge:cov0.1",
+                "h20:swing_ridge:cov0.05",
+                "h20:swing_ridge:cov0.02"
+              ]
+            },
+            "cov0.02": {
+              "rows": 78,
+              "episodes": 38,
+              "hit": 0.846,
+              "hit_family_p": 0.0315,
+              "mean_atr": 1.43,
+              "mean_family_p": 0.8775,
+              "block_null_hit_p": 0.0,
+              "block_null_mean_p": 0.071,
+              "always_long_same_rows": 0.808
+            },
+            "cov0.05": {
+              "rows": 201,
+              "episodes": 66,
+              "hit": 0.831,
+              "hit_family_p": 0.0105,
+              "mean_atr": 1.55,
+              "mean_family_p": 0.5775,
+              "block_null_hit_p": 0.0,
+              "block_null_mean_p": 0.0105,
+              "always_long_same_rows": 0.776
+            },
+            "cov0.1": {
+              "rows": 403,
+              "episodes": 95,
+              "hit": 0.747,
+              "hit_family_p": 0.0335,
+              "mean_atr": 1.3,
+              "mean_family_p": 0.6855,
+              "block_null_hit_p": 0.0,
+              "block_null_mean_p": 0.013,
+              "always_long_same_rows": 0.695
+            },
+            "cov0.25": {
+              "rows": 1000,
+              "episodes": 168,
+              "hit": 0.639,
+              "hit_family_p": 0.3605,
+              "mean_atr": 0.94,
+              "mean_family_p": 0.883,
+              "block_null_hit_p": 0.006,
+              "block_null_mean_p": 0.0375,
+              "always_long_same_rows": 0.613
+            }
+          }
+        },
+        "013_without_drivers": {
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_013/TERMINAL.json",
+            "sha256": "cb45580957d4452f6ec801c6fd816a1bfec11a92c8a69a9c176988eaed5f4041"
+          },
+          "status": "FAILED_CLOSED_IN_PORTFOLIO_FAMILY",
+          "reason": "BASELINE_PORTFOLIO_RETURNS_INVALID: the full-coverage sized swing_ridge portfolio (historical financing) reached non-positive liquidation equity from 2017-04-11 (281 rows), so the portfolio family failed closed before the selective endpoints",
+          "selective_computed_post_hoc_from_saved_forecasts": {
+            "predictions": {
+              "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_013/PREDICTIONS.parquet",
+              "sha256": "0aa5445367953e53c4d3cfaa79b10e890070b519ecf9fe73155ad236219f0d39"
+            },
+            "panel": {
+              "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_013/SWING_PANEL.parquet",
+              "sha256": "efb4f1271234ac3cc83837f55c12fe315016d56245e678d76b61707d8734c1a2"
+            },
+            "owner_function": "selective_endpoints with the 013 preregistration (same seed, draws and cells)",
+            "h20_swing_ridge": {
+              "rank_ic": 0.011,
+              "minimum_family_p": {
+                "hit_rate": 0.079,
+                "captured_mean": 0.2655
+              },
+              "below_0_05": {
+                "hit_rate": [],
+                "captured_mean": []
+              },
+              "cov0.02": {
+                "rows": 78,
+                "episodes": 37,
+                "hit": 0.705,
+                "hit_family_p": 0.7145,
+                "mean_atr": 1.24,
+                "mean_family_p": 0.974,
+                "block_null_hit_p": 0.038,
+                "block_null_mean_p": 0.1365,
+                "always_long_same_rows": 0.692
+              },
+              "cov0.05": {
+                "rows": 201,
+                "episodes": 77,
+                "hit": 0.721,
+                "hit_family_p": 0.271,
+                "mean_atr": 1.12,
+                "mean_family_p": 0.969,
+                "block_null_hit_p": 0.0015,
+                "block_null_mean_p": 0.067,
+                "always_long_same_rows": 0.682
+              },
+              "cov0.1": {
+                "rows": 403,
+                "episodes": 101,
+                "hit": 0.665,
+                "hit_family_p": 0.481,
+                "mean_atr": 0.68,
+                "mean_family_p": 1.0,
+                "block_null_hit_p": 0.0115,
+                "block_null_mean_p": 0.258,
+                "always_long_same_rows": 0.638
+              },
+              "cov0.25": {
+                "rows": 1000,
+                "episodes": 178,
+                "hit": 0.592,
+                "hit_family_p": 0.9315,
+                "mean_atr": 0.67,
+                "mean_family_p": 0.997,
+                "block_null_hit_p": 0.063,
+                "block_null_mean_p": 0.2145,
+                "always_long_same_rows": 0.596
+              }
+            }
+          }
+        }
+      },
+      "ablation_reading": "h20 swing_ridge at 5 % coverage, hit (family p): full 0.781 (0.043); without cross-asset panel 0.647 (0.83) = effect gone; without drivers 0.721 (0.27) = strongly weakened; without COT 0.746 (0.14) = weakened; without calendar 0.776 (0.050) = unchanged; without dollar index 0.831 (0.011) = stronger. The effect rests on the cross-asset panel and the Treasury/VIX/GLD drivers, with COT contributing; FOMC calendar is inert; the H.10 dollar group adds noise (its information is already in the FX panel). The 70-field surface without the dollar group equals the pooled study's XAU surface and reproduces its 0.831.",
+      "analysis_count_on_2011_2025": "15 swing analyses (002-009, 011-015, pooled) on overlapping history; the forward check is the only unused-period evidence",
+      "status": "SWING_STAGE_C_LONG_TIMING_LEAD_FORWARD_INCONCLUSIVE_SUPPORTIVE",
+      "verdict": "Measured on reused development history plus one low-power forward half-year. The long-timing effect (when a 20-day XAU long pays) is hit-rate family-significant in-sample, robust to fold structure, carried by the cross-asset panel and macro drivers, and directionally confirmed but not rule-confirmed on 2026H1. Captured mean is never family-significant under the circular-shift null. No predictor is admitted; no native change; TEST sealed.",
+      "next_action": "1) GPU/CPU: fresh zero-step v10 baseline under a new explicit budget (FRESH_INITIAL_BASELINE_003); 2) freeze the 70-field surface (no dollar) as the single candidate and run no further surface changes; 3) preregister a monthly forward journal on the same owner (each new month of data scored once, never refit on it) as the only confirmation route; 4) native: design the multi-horizon observed-market target contract for the transformer. No native launch, TEST, orders or spending.",
+      "evidence_class": "measured_reused_development_walkforward_plus_low_power_forward_half_year"
     }
   },
   "gc_order_flow_research_20261006": {
