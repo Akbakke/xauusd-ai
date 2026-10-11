@@ -2721,9 +2721,188 @@ def run_entry_learning_baseline(spec, spec_path):
         raise
 
 
+# ---------------------------------------------------------------------------
+# Swing-program source retrieval (operator 11.10.2026). Retrieval only: no fit,
+# no predictor admission, no TEST outcome access, no orders.
+# ---------------------------------------------------------------------------
+
+def _bounded_https_get(url: str, *, maximum_bytes: int, timeout_seconds: int) -> tuple[bytes, str]:
+    """One GET, no retry, no redirect policy beyond urllib's default, size enforced before use."""
+    request = Request(url, headers={"User-Agent": "GX1 offline research"})
+    with urlopen(request, timeout=timeout_seconds) as response:
+        raw = response.read(int(maximum_bytes) + 1)
+        final_url = response.url
+    if len(raw) > int(maximum_bytes):
+        raise RuntimeError("TA_SOURCE_RESPONSE_TOO_LARGE")
+    return raw, final_url
+
+
+def _retrieval_scope_or_raise(spec: dict, schema: str, label: str) -> None:
+    if (spec.get("schema") != schema or spec.get("fit_allowed") is not False
+            or spec.get("spending_allowed") is not False or spec.get("test_read_allowed") is not False):
+        raise RuntimeError(f"{label}_MANIFEST_SCOPE")
+
+
+def _finish_retrieval(out: Path, spec_path: Path, records: list[dict], status: str, extra: dict) -> dict:
+    result = {"status": status, "manifest": str(spec_path), "manifest_sha256": sha(spec_path),
+              "records": records, "predictor_admitted": False, "fits_run": False,
+              "market_outcomes_read": False, "test_accessed": False, "native_training": False,
+              "orders_sent": False, "source_commit": git("rev-parse", "HEAD"),
+              "finished_utc": datetime.now(timezone.utc).isoformat(), **extra}
+    write_json(out / "RESULT.json", result)
+    write_json(out / "TERMINAL.json", {"status": status,
+        "all_items_retrieved": all(r.get("status") == "RETRIEVED_NOT_ADMITTED" for r in records),
+        "result_sha256": sha(out / "RESULT.json")})
+    return {"out": str(out), "status": status,
+            "item_status": {r.get("item"): r.get("status") for r in records}}
+
+
+def fetch_fred_current(spec: dict, spec_path: Path) -> dict:
+    """Current-vintage FRED CSV per declared series; unrevised series only are later admissible."""
+    _retrieval_scope_or_raise(spec, "gx1_fred_current_vintage_source_manifest_v1", "TA_FRED")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    records = []
+    for series in spec["series"]:
+        sid = str(series["id"])
+        record = {"item": sid, "series": sid, "predictor_admitted": False,
+                  "revised_after_publication": series.get("revised_after_publication"),
+                  "admitted_as_input_from_this_manifest": series.get("admitted_as_input_from_this_manifest", True)}
+        try:
+            url = spec["endpoint_pattern"].format(series_id=sid)
+            raw, final_url = _bounded_https_get(url, maximum_bytes=spec["maximum_bytes_per_series"],
+                                                timeout_seconds=spec["timeout_seconds"])
+            raw_path = out / f"{sid}.csv"
+            raw_path.write_bytes(raw)
+            reader = csv.reader(io.StringIO(raw.decode("utf-8")))
+            header = next(reader)
+            if header != ["observation_date", sid]:
+                raise RuntimeError("TA_FRED_SCHEMA")
+            rows = [row for row in reader if row]
+            dates = [row[0] for row in rows]
+            for row in rows:
+                if len(row) != 2:
+                    raise RuntimeError("TA_FRED_ROW_SHAPE")
+                date.fromisoformat(row[0])
+                if row[1] not in ("", ".") and not math.isfinite(float(row[1])):
+                    raise RuntimeError("TA_FRED_NONFINITE")
+            if dates != sorted(dates) or len(set(dates)) != len(dates):
+                raise RuntimeError("TA_FRED_CLOCK")
+            record.update(url=url, final_url=final_url, raw_path=str(raw_path), raw_sha256=sha(raw_path),
+                          raw_bytes=len(raw), rows=len(rows),
+                          numeric_rows=sum(1 for row in rows if row[1] not in ("", ".")),
+                          first_date=dates[0] if dates else None, last_date=dates[-1] if dates else None,
+                          status="RETRIEVED_NOT_ADMITTED")
+        except Exception as exc:
+            record.update(status="FAILED", error=f"{type(exc).__name__}: {exc}")
+        records.append(record)
+        write_json(out / f"{sid}.receipt.json", record)
+        print(f"[TA-FRED] {sid} {record['status']}", flush=True)
+    return _finish_retrieval(out, spec_path, records, "COMPLETE_FRED_RETRIEVAL", {})
+
+
+def fetch_cftc_cot_archives(spec: dict, spec_path: Path) -> dict:
+    """Yearly COT ZIP archives stored as received with a member inventory; no row parsed."""
+    _retrieval_scope_or_raise(spec, "gx1_cftc_cot_archive_source_manifest_v1", "TA_COT")
+    if spec.get("rows_after_test_seal_parsed") is not False:
+        raise RuntimeError("TA_COT_MANIFEST_SCOPE")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    records = []
+    for year in range(int(spec["first_year"]), int(spec["last_year_inclusive"]) + 1):
+        record = {"item": str(year), "year": year, "predictor_admitted": False}
+        try:
+            url = spec["url_pattern"].format(year=year)
+            raw, final_url = _bounded_https_get(url, maximum_bytes=spec["maximum_bytes_per_archive"],
+                                                timeout_seconds=spec["timeout_seconds"])
+            raw_path = out / f"deacot{year}.zip"
+            raw_path.write_bytes(raw)
+            with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+                members = archive.infolist()
+                if sum(m.file_size for m in members) > int(spec["maximum_uncompressed_bytes_per_archive"]):
+                    raise RuntimeError("TA_COT_UNCOMPRESSED_SIZE")
+                if archive.testzip() is not None:
+                    raise RuntimeError("TA_COT_ZIP_CRC")
+                inventory = {m.filename: {"bytes": m.file_size,
+                                          "sha256": hashlib.sha256(archive.read(m)).hexdigest()}
+                             for m in members}
+            record.update(url=url, final_url=final_url, raw_path=str(raw_path), raw_sha256=sha(raw_path),
+                          raw_bytes=len(raw), members=inventory, status="RETRIEVED_NOT_ADMITTED")
+        except Exception as exc:
+            record.update(status="FAILED", error=f"{type(exc).__name__}: {exc}")
+        records.append(record)
+        write_json(out / f"deacot{year}.receipt.json", record)
+        print(f"[TA-COT] {year} {record['status']}", flush=True)
+    return _finish_retrieval(out, spec_path, records, "COMPLETE_COT_ARCHIVE_RETRIEVAL", {})
+
+
+def fetch_oanda_panel_daily(spec: dict, spec_path: Path) -> dict:
+    """Read-only OANDA daily candles for verified instrument names; no orders, no secrets written."""
+    from gx1.execution.oanda_client import OandaClient
+    _retrieval_scope_or_raise(spec, "gx1_oanda_panel_daily_source_manifest_v1", "TA_OANDA_PANEL")
+    if spec.get("orders_allowed") is not False or spec["candles"]["include_incomplete"] is not False:
+        raise RuntimeError("TA_OANDA_PANEL_MANIFEST_SCOPE")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    data_dir = Path(spec["data_directory"])
+    data_dir.mkdir(parents=True, exist_ok=True)
+    candles = spec["candles"]
+    client = OandaClient.from_env(timeout=int(candles["timeout_seconds"]))
+    inventory = client._request("GET", f"/accounts/{client.account_id}/instruments")
+    listed = {str(item["name"]): {k: item.get(k) for k in ("name", "type", "displayName", "pipLocation")}
+              for item in inventory.get("instruments", [])}
+    write_json(out / "INSTRUMENTS.json", {"instrument_count": len(listed), "instruments": listed,
+                                           "environment": client.env})
+    from_ts, to_ts = pd.Timestamp(candles["from_utc"]), pd.Timestamp(candles["to_utc_exclusive"])
+    if to_ts > pd.Timestamp(spec["test_seal_utc"]):
+        raise RuntimeError("TA_OANDA_PANEL_TEST_SEAL")
+    records = []
+    for candidate in spec["candidate_instruments"]:
+        name = str(candidate["name"])
+        record = {"item": name, "instrument": name, "role": candidate.get("role"), "predictor_admitted": False}
+        if name not in listed:
+            record.update(status="NOT_LISTED_DROPPED")
+            records.append(record)
+            write_json(out / f"{name}.receipt.json", record)
+            print(f"[TA-OANDA] {name} NOT_LISTED_DROPPED", flush=True)
+            continue
+        try:
+            frame = client.get_candles_chunked(
+                name, candles["granularity"], from_ts, to_ts,
+                chunk_size=int(candles["max_candles_per_request"]), max_retries=1,
+                include_mid=True, exclude_incomplete=True,
+            )
+            frame = frame.sort_index() if not isinstance(frame.index, pd.RangeIndex) else frame
+            times = pd.DatetimeIndex(frame.index if not isinstance(frame.index, pd.RangeIndex) else frame["time"])
+            if times.tz is None:
+                times = times.tz_localize("UTC")
+            if times.has_duplicates or not times.is_monotonic_increasing or not len(times):
+                raise RuntimeError("TA_OANDA_PANEL_CLOCK")
+            if times[-1] >= to_ts:
+                raise RuntimeError("TA_OANDA_PANEL_BEYOND_TO")
+            numeric = frame.select_dtypes(include=[np.number])
+            if not np.isfinite(numeric.to_numpy(float)).all():
+                raise RuntimeError("TA_OANDA_PANEL_NONFINITE")
+            path = data_dir / f"{name}_D.parquet"
+            frame.reset_index().to_parquet(path, index=False)
+            record.update(granularity=candles["granularity"], rows=int(len(frame)),
+                          first_time=str(times[0]), last_time=str(times[-1]),
+                          columns=[str(c) for c in frame.reset_index().columns],
+                          parquet_path=str(path), parquet_sha256=sha(path),
+                          alignment="client default: dailyAlignment 17 America/New_York (not parameterized)",
+                          status="RETRIEVED_NOT_ADMITTED")
+        except Exception as exc:
+            record.update(status="FAILED", error=f"{type(exc).__name__}: {exc}")
+        records.append(record)
+        write_json(out / f"{name}.receipt.json", record)
+        print(f"[TA-OANDA] {name} {record['status']}", flush=True)
+    extra = {"instruments_listed": len(listed), "orders_sent": False, "account_mutations": 0}
+    return _finish_retrieval(out, spec_path, records, "COMPLETE_OANDA_PANEL_RETRIEVAL", extra)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -2737,7 +2916,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

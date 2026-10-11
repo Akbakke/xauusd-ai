@@ -1045,3 +1045,109 @@ def test_macro_core_run_binds_completed_inputs_population_and_terminal(tmp_path,
     (tmp_path / "component_receipt/TERMINAL.json").write_text("{}")
     with pytest.raises(RuntimeError, match="TA_MACRO_CORE_RESULT_HASH"):
         ta.load_macro_core_panel(spec)
+
+
+def test_fred_current_fetch_binds_bytes_schema_and_clock(tmp_path, monkeypatch):
+    import io
+    payload = {"DFII10": b"observation_date,DFII10\n2020-01-02,0.15\n2020-01-03,.\n2020-01-06,0.10\n",
+               "VIXCLS": b"observation_date,VIXCLS\n2020-01-02,13.2\n"}
+    class Response(io.BytesIO):
+        url = "bound"
+    seen = []
+    def fetch(request, timeout):
+        sid = request.full_url.rsplit("=", 1)[1]
+        seen.append((sid, timeout))
+        return Response(payload[sid])
+    monkeypatch.setattr(ta, "urlopen", fetch)
+    monkeypatch.setattr(ta, "git", lambda *a: "deadbeef")
+    spec = {"schema": "gx1_fred_current_vintage_source_manifest_v1", "fit_allowed": False,
+            "spending_allowed": False, "test_read_allowed": False,
+            "endpoint_pattern": "https://fred.example/graph/fredgraph.csv?id={series_id}",
+            "maximum_bytes_per_series": 4096, "timeout_seconds": 60,
+            "series": [{"id": "DFII10", "revised_after_publication": False},
+                       {"id": "VIXCLS", "revised_after_publication": False}],
+            "output_directory": str(tmp_path / "fred")}
+    manifest = tmp_path / "fred.json"
+    manifest.write_text(json.dumps(spec))
+    result = ta.fetch_fred_current(spec, manifest)
+    assert seen == [("DFII10", 60), ("VIXCLS", 60)]
+    assert result["item_status"] == {"DFII10": "RETRIEVED_NOT_ADMITTED", "VIXCLS": "RETRIEVED_NOT_ADMITTED"}
+    receipt = json.loads((tmp_path / "fred" / "DFII10.receipt.json").read_text())
+    assert receipt["rows"] == 3 and receipt["numeric_rows"] == 2 and receipt["predictor_admitted"] is False
+    assert receipt["raw_sha256"] == ta.sha(Path(receipt["raw_path"]))
+    final = json.loads((tmp_path / "fred" / "RESULT.json").read_text())
+    assert final["fits_run"] is False and final["test_accessed"] is False
+    bad = dict(spec, output_directory=str(tmp_path / "fred2"))
+    payload["DFII10"] = b"observation_date,DFII10\n2020-01-06,0.1\n2020-01-02,0.2\n"
+    manifest.write_text(json.dumps(bad))
+    result = ta.fetch_fred_current(bad, manifest)
+    assert result["item_status"]["DFII10"] == "FAILED"
+    assert "TA_FRED_CLOCK" in json.loads((tmp_path / "fred2" / "DFII10.receipt.json").read_text())["error"]
+    with pytest.raises(RuntimeError, match="TA_FRED_MANIFEST_SCOPE"):
+        ta.fetch_fred_current(dict(spec, fit_allowed=True), manifest)
+
+
+def test_cot_archive_fetch_inventories_members_without_parsing_rows(tmp_path, monkeypatch):
+    import io, zipfile
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("annual.txt", "Market_and_Exchange_Names,As_of_Date_In_Form_YYMMDD\nGOLD - COMMODITY EXCHANGE INC.,200107\n")
+    raw = buffer.getvalue()
+    class Response(io.BytesIO):
+        url = "bound"
+    monkeypatch.setattr(ta, "urlopen", lambda request, timeout: Response(raw))
+    monkeypatch.setattr(ta, "git", lambda *a: "deadbeef")
+    spec = {"schema": "gx1_cftc_cot_archive_source_manifest_v1", "fit_allowed": False,
+            "spending_allowed": False, "test_read_allowed": False, "rows_after_test_seal_parsed": False,
+            "url_pattern": "https://cftc.example/files/dea/history/deacot{year}.zip",
+            "first_year": 2020, "last_year_inclusive": 2021, "maximum_bytes_per_archive": 65536,
+            "maximum_uncompressed_bytes_per_archive": 65536, "timeout_seconds": 60,
+            "output_directory": str(tmp_path / "cot")}
+    manifest = tmp_path / "cot.json"
+    manifest.write_text(json.dumps(spec))
+    result = ta.fetch_cftc_cot_archives(spec, manifest)
+    assert result["item_status"] == {"2020": "RETRIEVED_NOT_ADMITTED", "2021": "RETRIEVED_NOT_ADMITTED"}
+    receipt = json.loads((tmp_path / "cot" / "deacot2020.receipt.json").read_text())
+    assert set(receipt["members"]) == {"annual.txt"} and receipt["raw_sha256"] == ta.sha(Path(receipt["raw_path"]))
+    assert "rows" not in receipt  # inventory only, never parsed here
+
+
+def test_oanda_panel_fetch_drops_unlisted_names_and_never_sends_orders(tmp_path, monkeypatch):
+    import gx1.execution.oanda_client as oc
+    calls = []
+    class Fake:
+        account_id = "001-xxx"
+        env = "practice"
+        def _request(self, method, path, **kwargs):
+            calls.append((method, path))
+            assert method == "GET"
+            return {"instruments": [{"name": "XAG_USD", "type": "METAL", "displayName": "Silver", "pipLocation": -4}]}
+        def get_candles_chunked(self, name, granularity, from_ts, to_ts, **kwargs):
+            calls.append(("candles", name, granularity, kwargs["max_retries"]))
+            index = pd.DatetimeIndex(["2020-01-02T22:00:00Z", "2020-01-03T22:00:00Z"], name="time")
+            return pd.DataFrame({"open": [1.0, 1.1], "high": [1.2, 1.3], "low": [0.9, 1.0], "close": [1.1, 1.2],
+                                 "volume": [10, 11], "bid_close": [1.09, 1.19], "ask_close": [1.11, 1.21]}, index=index)
+    monkeypatch.setattr(oc.OandaClient, "from_env", classmethod(lambda cls, timeout: Fake()))
+    monkeypatch.setattr(ta, "git", lambda *a: "deadbeef")
+    spec = {"schema": "gx1_oanda_panel_daily_source_manifest_v1", "fit_allowed": False, "spending_allowed": False,
+            "test_read_allowed": False, "orders_allowed": False, "test_seal_utc": "2026-07-01T00:00:00Z",
+            "candles": {"granularity": "D", "include_incomplete": False, "from_utc": "2020-01-01T00:00:00Z",
+                        "to_utc_exclusive": "2020-02-01T00:00:00Z", "max_candles_per_request": 5000,
+                        "timeout_seconds": 30},
+            "candidate_instruments": [{"name": "XAG_USD", "role": "panel_metal"},
+                                      {"name": "NOT_AN_INSTRUMENT", "role": "panel_fx"}],
+            "output_directory": str(tmp_path / "oanda"), "data_directory": str(tmp_path / "data")}
+    manifest = tmp_path / "oanda.json"
+    manifest.write_text(json.dumps(spec))
+    result = ta.fetch_oanda_panel_daily(spec, manifest)
+    assert result["item_status"] == {"XAG_USD": "RETRIEVED_NOT_ADMITTED", "NOT_AN_INSTRUMENT": "NOT_LISTED_DROPPED"}
+    assert calls[0] == ("GET", "/accounts/001-xxx/instruments") and calls[1] == ("candles", "XAG_USD", "D", 1)
+    receipt = json.loads((tmp_path / "oanda" / "XAG_USD.receipt.json").read_text())
+    assert receipt["rows"] == 2 and receipt["parquet_sha256"] == ta.sha(Path(receipt["parquet_path"]))
+    assert "token" not in json.dumps(receipt).lower()
+    final = json.loads((tmp_path / "oanda" / "RESULT.json").read_text())
+    assert final["orders_sent"] is False and final["account_mutations"] == 0
+    with pytest.raises(RuntimeError, match="TA_OANDA_PANEL_TEST_SEAL"):
+        bad = json.loads(json.dumps(spec)); bad["candles"]["to_utc_exclusive"] = "2026-08-01T00:00:00Z"
+        bad["output_directory"] = str(tmp_path / "oanda2")
+        ta.fetch_oanda_panel_daily(bad, manifest)
