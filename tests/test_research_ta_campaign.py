@@ -1438,3 +1438,31 @@ def test_fed_h10_broad_index_drops_nd_rows_and_stamps_weekly_availability(tmp_pa
     panel = pd.DataFrame({"decision_time": pd.DatetimeIndex(["2020-01-07T22:00Z", "2020-01-08T22:00Z"])})
     joined = ta.swing_dollar_fields(panel, comp)
     assert np.isnan(joined["usd_broad_log_level"].iloc[0]) and abs(joined["usd_broad_log_level"].iloc[1] - np.log(99.0)) < 1e-12
+
+
+def test_block_matched_long_null_keeps_episode_structure_and_detects_timing():
+    rng = np.random.default_rng(11)
+    n = 800
+    times = pd.date_range("2019-01-01", periods=n, freq="D", tz="UTC")
+    y = rng.normal(size=n)
+    years = times.year.to_numpy()
+    # two selected episodes per year (lengths 3 and 2), placed where y is large: a timing signal
+    take = []
+    for year in np.unique(years):
+        m = np.flatnonzero(years == year)
+        order = m[np.argsort(-y[m])]
+        take.extend([order[0], order[0] + 1, order[0] + 2, order[5], order[5] + 1])
+    take = np.sort(np.unique([t for t in take if t < n]))
+    null_hit, null_mean = ta._block_matched_long_null(y, years, take, draws=300, rng=np.random.default_rng(0))
+    assert null_hit.shape == (300,) and null_mean.shape == (300,)
+    assert abs(null_hit.mean() - 0.5) < 0.1  # random long placement on symmetric noise
+    assert (null_mean >= y[take].mean()).mean() < 0.05  # the timing selection beats random placement
+    # declared draws add the block fields to the selective report; undeclared leaves them out
+    panel = pd.DataFrame({"fill_time": times, "fill_mid": 100 + np.cumsum(rng.normal(size=n)), "atr14": np.ones(n)})
+    forecast = np.full(n, np.nan); forecast[:-5] = panel.fill_mid.to_numpy()[5:] - panel.fill_mid.to_numpy()[:-5]
+    base = {"seed": 1, "minimum_rows": 50, "coverage_grid": [0.1], "circular_shifts": 20, "selection": "within_fold_year"}
+    with_block = ta.selective_endpoints(panel, {5: {"oracle": forecast}}, {"selective": dict(base, block_null_draws=50)})
+    without = ta.selective_endpoints(panel, {5: {"oracle": forecast}}, {"selective": base})
+    cell = with_block["h5:oracle"]["coverage"]["0.1"]
+    assert cell["block_null_hit_rate_p"] <= 0.05 and "always_long_hit_rate_same_rows" in cell
+    assert "block_null_hit_rate_p" not in without["h5:oracle"]["coverage"]["0.1"]

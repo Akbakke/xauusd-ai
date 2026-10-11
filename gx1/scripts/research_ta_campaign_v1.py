@@ -3432,6 +3432,34 @@ def swing_calendar_fields(panel: pd.DataFrame, meetings: pd.DataFrame) -> pd.Dat
     return out
 
 
+def _block_matched_long_null(y: np.ndarray, yrs: np.ndarray, take: np.ndarray, *, draws: int, rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
+    """Null hit rate and captured mean of random contiguous long episodes matched per year.
+
+    For every holdout year the number and lengths of the selected contiguous episodes are
+    kept; each episode is placed uniformly at random inside that year's valid rows and
+    scored as a long position. Returns (null_hit_rates, null_captured_means) over draws.
+    """
+    starts = np.flatnonzero(np.concatenate(([True], np.diff(take) > 1)))
+    ends = np.append(starts[1:], len(take))
+    lengths_by_year: dict[int, list[int]] = {}
+    for s, e in zip(starts, ends):
+        lengths_by_year.setdefault(int(yrs[take[s]]), []).append(int(take[e - 1] - take[s] + 1))
+    members = {year: np.flatnonzero(yrs == year) for year in lengths_by_year}
+    null_hit = np.empty(int(draws))
+    null_mean = np.empty(int(draws))
+    for d in range(int(draws)):
+        rows = []
+        for year, lengths in lengths_by_year.items():
+            m = members[year]
+            for length in lengths:
+                start = rng.integers(0, max(1, len(m) - length + 1))
+                rows.append(m[start:start + length])
+        r = np.concatenate(rows)
+        null_hit[d] = float((y[r] > 0).mean())
+        null_mean[d] = float(y[r].mean())
+    return null_hit, null_mean
+
+
 def _select_within_fold_year(f: np.ndarray, yrs: np.ndarray, coverage: float) -> np.ndarray:
     """Top-|forecast| rows taken inside every holdout year at the declared coverage."""
     parts = []
@@ -3543,7 +3571,18 @@ def selective_endpoints(panel: pd.DataFrame, forecasts: dict, spec: dict) -> dic
                 null_hit = np.array([(side == np.sign(np.roll(y, s)[take])).mean() for s in shifts])
                 null_mean = np.array([(side * np.roll(y, s)[take]).mean() for s in shifts])
                 hit = float(hits.mean())
+                block = {}
+                if sel.get("block_null_draws"):
+                    block_hit, block_mean = _block_matched_long_null(y, yrs, take, draws=int(sel["block_null_draws"]), rng=rng)
+                    block = {
+                        "block_null_long_hit_rate_p95": float(np.quantile(block_hit, 0.95)),
+                        "block_null_long_mean_p95": float(np.quantile(block_mean, 0.95)),
+                        "block_null_hit_rate_p": float((block_hit >= hit).mean()),
+                        "block_null_mean_p": float((block_mean >= captured.mean()).mean()),
+                        "always_long_hit_rate_same_rows": float((y[take] > 0).mean()),
+                    }
                 rows[str(coverage)] = {
+                    **block,
                     "rows": int(k),
                     "episodes": int(1 + (np.diff(take) > 1).sum()),
                     "years_covered": int(len(np.unique(yrs[take]))),
