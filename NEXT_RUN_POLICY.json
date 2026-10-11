@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-11T14:53:26.045808+00:00",
-  "status": "SWING_SOURCES_PARTIAL_COT_OANDA_RETRIEVED_FRED_GLD_RELAY_REQUIRED",
+  "observed_utc": "2026-10-11T15:09:35.348241+00:00",
+  "status": "SWING_STAGE_A_MEASURED_NO_EDGE_RELAY_AND_STAGE_B_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) operator relays the six FRED CSVs and the GLD holdings file to /home/andre2/GX1_DATA/research/RELAY_20261011/ with sha256sums; 2) register reuse_download manifests and import them; 3) build the D1 research panel (XAU daily_panel + D1-lane fields + macro + COT + OANDA panel resampled) under the ENTRY_DIRECTION_SWING_D1 preregistration; 4) run the swing study on CPU; 5) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
+  "next_action": "1) operator relays FRED CSVs and GLD file to /home/andre2/GX1_DATA/research/RELAY_20261011/ with sha256sums; 2) stage-B preregistration: drivers + GLD + calendar, fold-standardized selective endpoints, same folds/costs; 3) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget, then multi-horizon targets. No native launch, TEST, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "FRED driver series and GLD holdings cannot be retrieved from the research host (timeouts; PDF/JS endpoints); they must be relayed by the operator and imported under exact hashes. COT archives and the 11-instrument OANDA H1 panel are retrieved and hash-bound. Fresh zero-step v10 baseline still requires a new explicit budget.",
+    "current_blocker": "Stage A of the swing study measured no edge (NO_GO/INKONKLUSIV; selective effect was a one-fold artifact). Stage B needs the operator relay of FRED drivers and GLD plus a fold-standardized selective endpoint. Fresh zero-step v10 baseline still requires a new explicit budget.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -2262,6 +2262,93 @@
       },
       "predictors_admitted": [],
       "fits_run": false,
+      "test_accessed": false
+    },
+    "swing_d1_stage_a_20261011": {
+      "preregistrations": [
+        "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_001.json",
+        "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_002.json"
+      ],
+      "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1",
+      "source_commit": "4c475e92950954279cff83d0bf248aa39e3f90e8",
+      "attempt_001": {
+        "outcome": "30 folds fitted; evaluation failed closed on a non-contiguous population (instrument holidays)",
+        "root": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_001"
+      },
+      "attempt_002": {
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_002/RESULT.json",
+          "sha256": "3d4e6dada468a51b7dd264528e97cdd9056027cd1b5da9d80747494a50126dcd"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_002/TERMINAL.json",
+          "sha256": "cad9aa4a42b70449d46ef71eaabf09efbb18e984696ffcc78adf80f46b384133"
+        },
+        "feature_count": 224,
+        "instruments": 11,
+        "cot_reports": 913,
+        "evaluation_intervals": 4002,
+        "decisions": {
+          "swing_hgb": "INKONKLUSIV",
+          "swing_ridge": "NO_GO"
+        },
+        "h20_mean_delta_bps_vs_long_historical_proxy": {
+          "h20:swing_ridge:historical_proxy:vs_long:mean_delta_bps": {
+            "estimate": -0.6678210502211146,
+            "lower": -2.279308212688761,
+            "upper": 0.943666112246532,
+            "verdict": "NO_GO"
+          },
+          "h20:swing_hgb:historical_proxy:vs_long:mean_delta_bps": {
+            "estimate": -0.4022273420905288,
+            "lower": -3.4643056438037636,
+            "upper": 2.6598509596227062,
+            "verdict": "INKONKLUSIV"
+          }
+        },
+        "selective_h20_swing_ridge": {
+          "0.01": {
+            "rows": 40,
+            "hit_rate": 0.925,
+            "shift_p95": 0.8762499999999995,
+            "captured_atr": 4.259502668610369
+          },
+          "0.02": {
+            "rows": 80,
+            "hit_rate": 0.8625,
+            "shift_p95": 0.8375,
+            "captured_atr": 3.959806718931334
+          },
+          "0.05": {
+            "rows": 200,
+            "hit_rate": 0.755,
+            "shift_p95": 0.75,
+            "captured_atr": 2.5199915255370104
+          },
+          "0.1": {
+            "rows": 400,
+            "hit_rate": 0.6775,
+            "shift_p95": 0.6663749999999996,
+            "captured_atr": 1.5786930917498523
+          },
+          "0.25": {
+            "rows": 1001,
+            "hit_rate": 0.5724275724275725,
+            "shift_p95": 0.6469030969030967,
+            "captured_atr": 0.81119763132433
+          }
+        },
+        "selective_diagnosis": "the top-coverage rows are almost entirely the 2011 holdout (39/40 at 1 %, 133/200 at 5 %), nearly all LONG, from the fold with the smallest fit set (2010-06..2010-12) during a one-directional rally; |forecast| magnitudes are not comparable across folds, so pooled coverage ranking selects the wildest fold, not skill. h5 does not confirm. Verdict: no selective signal demonstrated",
+        "verdict": "NO_GO (swing_ridge) / INKONKLUSIV (swing_hgb) on the preregistered family; selective endpoint INKONKLUSIV with a measured one-fold artifact",
+        "evidence_class": "measured on reused development history, not untouched OOS"
+      },
+      "stage_b_requirements": [
+        "FRED drivers, GLD and calendar after operator relay",
+        "per-fold (within-year) coverage selection or fold-standardized forecasts before pooling selective endpoints",
+        "minimum fit rows reconsidered for the first fold under the declared rule only"
+      ],
+      "predictors_admitted": [],
+      "native_change": false,
       "test_accessed": false
     }
   },

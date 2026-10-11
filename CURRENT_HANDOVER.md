@@ -79,6 +79,22 @@ med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
 innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
 NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
 
+## Swing stage A målt 11.10.2026: ingen edge
+
+ENTRY_DIRECTION_SWING_D1_20261011_002 (eier run-swing-d1, 4c475e92): 224 felt
+(7 A-felt, 4 COT, 44 panel over 11 instrumenter, 169 D1-lane uten candle), 15 årsfolds
+2011–2025, h5/h20, ridge/HGB matched mot A. Porteføljefamilien ved h20: swing_ridge
+NO_GO mot alltid-LONG (−0,67 bps/dag, simultant intervall [−2,28; +0,94]), swing_hgb
+INKONKLUSIV (−0,40, [−3,46; +2,66]). Selektiv treffprosent for swing_ridge var høy ved
+1–5 % dekning (0,93/0,86/0,76), men diagnosen viser at radene nesten utelukkende er
+2011-folden (39 av 40, 133 av 200), nesten bare LONG, fra folden med minst fit-sett
+under en ensrettet oppgang; h5 bekrefter ikke. Prognosestørrelser er ikke
+sammenlignbare på tvers av folds, så pooled dekningsrangering velger den villeste
+folden, ikke ferdighet. Verdikt: ingen selektiv edge dokumentert. Forsøk 001 feilet
+lukket i evalueringen på instrumentenes helligdager og er bevart; eieren bærer nå
+siste lukkede instrumentbar. Stage B krever relé (FRED, GLD), kalender og
+fold-standardiserte selektive endepunkter. Ingen prediktor innrømmet; TEST urørt.
+
 ## Gjort og akseptert
 
 Featureauditen på 569d0054 reviderte alle 254 lokale signalfelt, 71 eksakte
