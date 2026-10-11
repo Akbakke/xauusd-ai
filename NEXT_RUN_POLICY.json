@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-11T17:00:29.157548+00:00",
-  "status": "SWING_STAGE_C_LONG_TIMING_LEAD_FORWARD_INCONCLUSIVE_SUPPORTIVE",
+  "status": "FORWARD_JOURNAL_AUTHORIZED_SOURCES_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) GPU/CPU: fresh zero-step v10 baseline under a new explicit budget (FRESH_INITIAL_BASELINE_003); 2) freeze the 70-field surface (no dollar) as the single candidate and run no further surface changes; 3) preregister a monthly forward journal on the same owner (each new month of data scored once, never refit on it) as the only confirmation route; 4) native: design the multi-horizon observed-market target contract for the transformer. No native launch, TEST, orders or spending.",
+  "next_action": "1) Forward journal: register the five sealed-period source manifests, fetch under capped audit, preregister the journal and score 2026-07..2026-09 once; 2) native D1 context + horizon: design bound, implementation wave needs its own contract and budget. No native launch, TEST split read, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "v10 zero-step baseline measured (FRESH_INITIAL_BASELINE_003): fresh v10 ONLINE/TARGET function on the fixed TRAIN4096/CONTROL4096 cohorts, parity passed, no optimizer step. Native next step is an operator decision on target horizon and inputs (the D1 evidence places the effect in cross-asset panel + macro drivers, which native lacks), not blind epochs. D1: frozen 70-field candidate; confirmation needs a monthly forward journal, which touches the sealed period and therefore needs an operator decision.",
+    "current_blocker": "Forward journal authorized; sealed-period sources not yet fetched. Native D1 wave not started.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -3902,6 +3902,50 @@
       "verdict": "Measured on reused development history plus one low-power forward half-year. The long-timing effect (when a 20-day XAU long pays) is hit-rate family-significant in-sample, robust to fold structure, carried by the cross-asset panel and macro drivers, and directionally confirmed but not rule-confirmed on 2026H1. Captured mean is never family-significant under the circular-shift null. No predictor is admitted; no native change; TEST sealed.",
       "next_action": "1) GPU/CPU: fresh zero-step v10 baseline under a new explicit budget (FRESH_INITIAL_BASELINE_003); 2) freeze the 70-field surface (no dollar) as the single candidate and run no further surface changes; 3) preregister a monthly forward journal on the same owner (each new month of data scored once, never refit on it) as the only confirmation route; 4) native: design the multi-horizon observed-market target contract for the transformer. No native launch, TEST, orders or spending.",
       "evidence_class": "measured_reused_development_walkforward_plus_low_power_forward_half_year"
+    },
+    "forward_journal_20261011": {
+      "operator_request": "11.10.2026 «Ja, gjør begge» og «ja ja bash tillatelsesregel så gjør du det»",
+      "authorized": true,
+      "journal_id": "ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011",
+      "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-forward-journal",
+      "scored_end_utc": "2026-10-11T00:00:00Z",
+      "extension_rule": "every later scored_end_utc is an explicit edit of this block; the owner refuses any spec whose end exceeds it",
+      "sealed_period_sources_allowed": [
+        "OANDA H1 candles for XAU_USD and the panel instruments (read-only, manifest-bound)",
+        "CFTC deacot2026 archive",
+        "Treasury daily par and real yield 2026",
+        "Cboe VIX_History.csv",
+        "SPDR GLD historical-archive workbook"
+      ],
+      "native_test_split_read": false,
+      "frozen_surface": {
+        "fields": 68,
+        "groups": [
+          "price_state_A",
+          "positioning_cot",
+          "panel_oanda",
+          "drivers"
+        ],
+        "learner": "swing_ridge",
+        "horizons": [
+          20,
+          5
+        ],
+        "route": "OANDA H1 resampled on the canonical D1 session clock"
+      },
+      "fit_rule": "ridge fit on rows whose 20-day outcome closed before the scored month; never on scored rows",
+      "rules_owner": "GX1_RULES.md (Operatørvedtak 11.10.2026 kveld)",
+      "predictor_admitted": false,
+      "orders_sent": false
+    },
+    "operator_decision_20261011_native_d1_context": {
+      "operator_request": "11.10.2026 «Ja, gjør begge»",
+      "decided": "observed-market target on 1/5/20 trading days (explicitly bound successor) and a new D1 context family (COT positioning, cross-asset panel, macro drivers) with the research surface's as-of availability",
+      "not_launched": "contract, signal manifest, normalization owner, dataset rebuild, recipe and training each need their own binding and budget; nothing is started by this decision",
+      "design_document": "docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md",
+      "rules_owner": "GX1_RULES.md",
+      "training_enabled": false,
+      "test_sealed_for_fitting": true
     }
   },
   "gc_order_flow_research_20261006": {

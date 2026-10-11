@@ -31,7 +31,9 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
 - Skill TRAIN-fit, senere generalisering, referanseverdi og realisert økonomi.
   Alltid FLAT/HOLD beviser ikke selektivitet/tålmodighet. På lange horisonter
   brukes forhåndsvalgt alltid-LONG/kjøp-og-hold, ikke myntkast, som referanse.
-- TEST er forseglet. Ingen live/paper, broker, ordre, spending eller promotion.
+- TEST er forseglet for all tilpasning og alt utvalg. Bare forward-journalen
+  (GX1_RULES.md, vedtak 11.10 kveld) scorer forseglet periode, én gang per måned,
+  uten refit. Ingen live/paper, broker, ordre, spending eller promotion.
   Juni 2026 er gjenbrukt utviklings-VAL. Økonomi omfatter alle valgte handler
   og åpne posisjoner, ikke bare lukkede vinnere.
 - Ikke endre fryst kilde under kjøring. Bevar originalkvitteringer og checkpoints.

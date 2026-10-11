@@ -165,17 +165,18 @@ Forskningsbaselines kan ha egen deklarert enkel logikk uten å endre native
 modell-/head-/handlingsautoritet. Brede indikator-/modell-/terskel-/tapsvektsøk
 er stengt. Fullførte engangsplaner skal aldri relanseres.
 
-Full B krever DFII10, DTWEXBGS, T10YIE, GLD, COT og VIX med kvalifisert
-historisk tilgjengelighet og dataversjoner, høyst 15 forhåndsnavngitte felt.
-Separat MACRO_CORE med de tre første er ikke redusert full B. Manglende kilder
-lukkes eksplisitt, ikke ved stille fjerning av målet. Native innføring krever
-egen vedtatt kontrakt/evidens. Gjeldende policy avgjør om ny henting/fit er åpnet.
+Den tidligere forskningsarmen B (FRED-serier, høyst 15 felt) og MACRO_CORE er
+avløst av swing-programmets manifestbundne primærkilder (CFTC, OANDA, Treasury,
+Cboe, SPDR). Gjeldende flate, kilder og tilgjengelighetsregler står i
+NEXT_RUN_POLICY.json. Manglende kilder lukkes eksplisitt, ikke ved stille
+fjerning av målet. Native innføring krever egen vedtatt kontrakt/evidens.
 
 Kausal sweep-ankret pris-/aktivitetsrepresentasjon ble bestilt i eksisterende
 SMC-eier og M5/M1-featurekjede. Negativ håndskrevet regeltest beviser ikke
 manglende lært featureverdi. Ingen fast bekreftelses-, taps- eller holdetidsregel
 følger med. Prisoppdateringsantall er ikke ekte utført volum/order flow.
-Ingen ny modellarkitektur eller featurekassering.
+Ingen ny modellarkitektur eller featurekassering utover det vedtaket
+11.10.2026 (kveld) binder nedenfor.
 
 ## Kapasitet og vakter
 
@@ -208,27 +209,13 @@ DATA/RUNS følger alltid regel 9. Brukerens særskilte godkjenning 06.10.2026
 tillater retting/synkronisering av konkrete CURRENT-referanser i installerte
 Claude-vakter og tilhørende hook-kommandoer. Andre globale innstillinger er urørt.
 
-## Operatørvedtak 10.10.2026: fire avgrensede Entry-edge-steg
+## Konsumerte vedtak 10.10.2026
 
-Brukeren bestilte gjennomføring av TRAIN-/gradientdiagnose, én kausal
-prisreaksjon/plassering/regime-probe, minste evidensbaserte oppfølging og
-økonomisk vurdering av eventuell kvalifisert kandidat. CPU-diagnostikk og
-forskningsfits forhåndsregistreres separat i eksisterende capped-eiere.
-Dette åpner ingen blind native treningsutvidelse, CONTROL-tuning, TEST,
-broker, handel eller spending. Negative og inkonklusive funn bevares; en
-fullført undersøkelse er ikke dokumentert edge.
-
-## Operatørvedtak 10.10.2026: ny endelig Entry-læringsundersøkelse
-
-Den senere bestillingen «Lag deg et nytt mål og kjør disse 4» åpner en separat,
-forhåndsbundet undersøkelse av liten ekte TRAIN-fit, eksisterende komplett
-native modell ved endelig budsjett, senere CONTROL-måling og evidensbasert
-oppfølging. Den målte gradientdiagnosen begrunner å teste læringskapasitet
-uten arkitektur-, target- eller tapsendring. Gammel negativ port består.
-Bare den nye studiens eksakte phase/recipe/policy gir finite optimizersteg;
-training_enabled=false gjelder generisk trening. Ingen automatisk utvidelse
-eller gjenåpning av konsumerte planer. Inputnormalisering, kausalitet,
-checkpoint-eier, alle maskinvarevakter og TEST-forsegling består.
+De fire avgrensede Entry-edge-stegene og den endelige Entry-læringsundersøkelsen
+(ENTRY_LEARNING_CURVE_20261010_001) er gjennomført og lukket; resultat og
+bindinger står i NEXT_RUN_POLICY.json. De autoriserer ingen ny kjøring.
+Operatørvedtaket 09.10 om uavhengig Entry-læring (observert markedsmål uten
+Exit-estimat, trinnvis trening) består som grunnlag for etterfølgeren nedenfor.
 
 ## Operatørvedtak 11.10.2026: regel 1 åpnes for navngitte instrumenter
 
@@ -251,3 +238,30 @@ candles for navngitte instrumenter, aldri ordre eller kontoendring; (d)
 candlestick-/mønsterfelt pauses ut av D1-forskningens inputsett uten sletting,
 native beholder alle åtte familier. Programmet står i
 docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md.
+
+## Operatørvedtak 11.10.2026 (kveld): forward-journal og native D1-kontekst
+
+Brukeren vedtok «Ja, gjør begge» på de to forslagene etter stage C:
+
+(1) **Forward-journal.** Den frosne 68-feltsflaten (A-pristilstand, COT 088691,
+kryss-panel over 11 OANDA-instrumenter, Treasury/VIX/GLD-drivere) med
+swing_ridge h20/h5 på XAU D1 (H1-rute) scores én kalendermåned om gangen av
+eieren `run-swing-forward-journal`: fit bare på rader hvis 20-dagersutfall
+lukket før måneden, hver måned scores nøyaktig én gang, immutable hashlenkede
+månedsfiler, utfall løses i egne filer, og et fullført journalår evalueres med
+den forhåndsregistrerte innen-år-regelen. Journalen leser forseglet periode
+etter 2026-07-01 bare for de navngitte manifestbundne kildene og bare til
+`scored_end_utc` i policyblokken `forward_journal_20261011`; hver forlengelse
+er en eksplisitt policyendring. Native TEST-split leses aldri. Ingen refit på
+scorede rader, ingen flateendring, ingen prediktor innrømmes av journalen.
+Dette er den eneste bekreftelsesruten for D1-signalet.
+
+(2) **Native D1-kontekst og horisont.** Transformerens neste steg er ikke flere
+epoker på 95-minuttersmålet. Vedtatt: observert markedsmål på 1/5/20
+handelsdager (eksplisitt bundet etterfølger etter vedtaket 09.10) og en ny
+kontekstfamilie med D1-posisjonering, kryss-panel og makrodrivere med samme
+as-of-tilgjengelighet som forskningsflaten. Dette krever egen kontrakt,
+signalmanifest, normaliseringseier, datasett-rebuild og treningsbudsjett;
+ingenting av dette er lansert av vedtaket. Åtte eksisterende familier,
+kausalitet, vakter og TEST-forsegling for tilpasning består. Designet står i
+docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md.
