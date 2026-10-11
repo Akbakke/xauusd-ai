@@ -1,0 +1,204 @@
+{
+  "schema": "gx1_ta_swing_forward_journal_preregistration_v1",
+  "study_id": "ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011",
+  "arm": "SWING_FORWARD_JOURNAL",
+  "registered_utc": "2026-10-11T18:56:54.480767+00:00",
+  "source_head_at_registration": "a788717f1a34c117282bf7f42301a678276e2382",
+  "program_document": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "operator_request": "11.10.2026 «Ja, gjør begge» (forward-journal as the only confirmation route for the D1 long-timing lead)",
+  "hypothesis": "The frozen 68-field XAU surface with swing_ridge h20 identifies months/rows where a 20-day long pays; scored once per month after the fact, fit strictly before each month, this either accumulates into the preregistered within-year selective rule or it does not.",
+  "frozen_surface": {
+    "groups": [
+      "price_state_A",
+      "positioning_cot",
+      "panel_oanda",
+      "drivers"
+    ],
+    "fields": 68,
+    "frozen_at": "11.10.2026 after ablation 011-015 (calendar inert, dollar group harmful)",
+    "route": "XAU_USD via OANDA H1 resampled on the canonical D1 session clock (same as the pooled study's XAU arm, hit 0.831 at 5 % in-sample)"
+  },
+  "forward_journal": {
+    "journal_id": "ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011",
+    "policy_block": "forward_journal_20261011",
+    "scored_end_utc": "2026-10-11T00:00:00Z",
+    "learner": "swing_ridge",
+    "months": [
+      "2026-07",
+      "2026-08",
+      "2026-09"
+    ],
+    "threshold_rows": 252,
+    "threshold_rule": "|forecast| quantiles (coverage 5/10/25 %) of the same fitted model on its most recent 252 fit rows; flags are descriptive until a journal year is complete",
+    "fit_rule": "ridge fit on rows whose max-horizon outcome closed before the month start (same purge as the in-sample owner); never refit on scored rows",
+    "year_rule": "a journal year with 12 resolved months is evaluated with within_fold_year selection at the coverage grid, circular-shift and block-matched long nulls",
+    "scoring_is_retrospective": "2026-07..2026-09 are scored on 2026-10-11 after their rows exist; the fit for each month uses only rows whose outcome closed before that month, and no post-seal byte was read before this registration"
+  },
+  "read_start": "2009-06-01T00:00:00Z",
+  "read_end_exclusive": "2026-10-11T00:00:00Z",
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "horizons": [
+    20,
+    5
+  ],
+  "primary_horizon": 20,
+  "periods_per_year": 252.0,
+  "inner_fraction": 0.2,
+  "min_fit_rows": 100,
+  "min_inner_rows": 20,
+  "slippage_bps_per_execution": 2.0,
+  "commission_bps_per_execution": 0.0,
+  "cot": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/RESULT.json",
+      "sha256": "97c6d4ef84db17f2655622033e6820ec4192abedb993a42366996bea635ab00b"
+    },
+    "contract_market_code": "088691",
+    "availability_lag_days": 7,
+    "availability_rationale": "positions as of Tuesday are released Friday 15:30 ET; +7 calendar days is strictly after any holiday-delayed release and is used instead of a per-report release calendar"
+  },
+  "oanda_panel": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_004/RESULT.json",
+      "sha256": "d6a575464a1d9a43c013443575b931cb29b8a8fb43130e2cabe226322a986ab1"
+    },
+    "instruments": [
+      "BCO_USD",
+      "EUR_USD",
+      "SPX500_USD",
+      "USB10Y_USD",
+      "USD_JPY",
+      "WTICO_USD",
+      "XAG_USD",
+      "XAU_USD",
+      "XCU_USD",
+      "XPD_USD",
+      "XPT_USD"
+    ],
+    "resampling": "_resample_ohlc_for_model_native_scalars('D1') on the canonical XAU session clock; bar opening at session_open and closing at decision_time"
+  },
+  "drivers": {
+    "treasury": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/RESULT.json",
+      "sha256": "9267700c213da15ce9a5746556ef751fc92d1d828b7d0154f1bb7b4937309c68"
+    },
+    "vix": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CBOE_VIX_SOURCE_20261011_002/RESULT.json",
+      "sha256": "bf8464b6e9c44c03769d50bdfc3c98c9768ba9823df8e5bcfc7655d1ee9103b7"
+    },
+    "gld": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_003/RESULT.json",
+      "sha256": "d54c28e1169c7719a1bcc01abe423b71942c8dd78bfae42f3bbebd4b75c45b88"
+    },
+    "gld_item": "GLD_HISTORICAL_ARCHIVE_XLSX",
+    "gld_format": "xlsx",
+    "availability": "observation dated D (NY close) usable strictly after the end of day D+1 America/New_York; each series carried across its own holidays, never backward",
+    "fields": [
+      "real10y_level",
+      "real10y_change1D",
+      "real10y_change5D",
+      "real10y_change21D",
+      "nominal10y_level",
+      "slope10y2y_level",
+      "slope10y2y_change21D",
+      "breakeven10y_level",
+      "breakeven10y_change21D",
+      "vix_log_level",
+      "vix_log_change5D",
+      "gld_log_level",
+      "gld_log_change21D"
+    ]
+  },
+  "feature_names": [
+    "momentum_21_atr14",
+    "momentum_63_atr14",
+    "momentum_126_atr14",
+    "momentum_252_atr14",
+    "range_position_252",
+    "atr14_over_atr252",
+    "ema200_distance_atr14",
+    "cot_noncommercial_net_over_oi",
+    "cot_change4reports",
+    "cot_open_interest_log_change4reports",
+    "cot_commercial_net_over_oi",
+    "BCO_USD_logret_1D",
+    "BCO_USD_logret_5D",
+    "BCO_USD_logret_20D",
+    "BCO_USD_rv_20D",
+    "EUR_USD_logret_1D",
+    "EUR_USD_logret_5D",
+    "EUR_USD_logret_20D",
+    "EUR_USD_rv_20D",
+    "SPX500_USD_logret_1D",
+    "SPX500_USD_logret_5D",
+    "SPX500_USD_logret_20D",
+    "SPX500_USD_rv_20D",
+    "USB10Y_USD_logret_1D",
+    "USB10Y_USD_logret_5D",
+    "USB10Y_USD_logret_20D",
+    "USB10Y_USD_rv_20D",
+    "USD_JPY_logret_1D",
+    "USD_JPY_logret_5D",
+    "USD_JPY_logret_20D",
+    "USD_JPY_rv_20D",
+    "WTICO_USD_logret_1D",
+    "WTICO_USD_logret_5D",
+    "WTICO_USD_logret_20D",
+    "WTICO_USD_rv_20D",
+    "XAG_USD_logret_1D",
+    "XAG_USD_logret_5D",
+    "XAG_USD_logret_20D",
+    "XAG_USD_rv_20D",
+    "XAU_USD_logret_1D",
+    "XAU_USD_logret_5D",
+    "XAU_USD_logret_20D",
+    "XAU_USD_rv_20D",
+    "XCU_USD_logret_1D",
+    "XCU_USD_logret_5D",
+    "XCU_USD_logret_20D",
+    "XCU_USD_rv_20D",
+    "XPD_USD_logret_1D",
+    "XPD_USD_logret_5D",
+    "XPD_USD_logret_20D",
+    "XPD_USD_rv_20D",
+    "XPT_USD_logret_1D",
+    "XPT_USD_logret_5D",
+    "XPT_USD_logret_20D",
+    "XPT_USD_rv_20D",
+    "real10y_level",
+    "real10y_change1D",
+    "real10y_change5D",
+    "real10y_change21D",
+    "nominal10y_level",
+    "slope10y2y_level",
+    "slope10y2y_change21D",
+    "breakeven10y_level",
+    "breakeven10y_change21D",
+    "vix_log_level",
+    "vix_log_change5D",
+    "gld_log_level",
+    "gld_log_change21D"
+  ],
+  "feature_count": 68,
+  "selective": {
+    "seed": 0,
+    "minimum_rows": 50,
+    "coverage_grid": [
+      0.25,
+      0.1,
+      0.05
+    ],
+    "circular_shifts": 2000,
+    "selection": "within_fold_year",
+    "block_null_draws": 2000
+  },
+  "test_accessed": false,
+  "native_training": false,
+  "fits_allowed": true,
+  "predictor_admitted": false,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011",
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "16a19457e23be551da061f4ab03ed7030c1977c25b05c27fddc7cf0f0f14883e",
+    "gx1/scripts/research_entry_direction_walkforward_v1.py": "dffef5663437b629f77511f04255e186b4c303e7117159eae0d4caaa77c0136b"
+  }
+}
