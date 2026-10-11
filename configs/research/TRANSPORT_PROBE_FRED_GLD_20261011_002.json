@@ -1,0 +1,71 @@
+{
+  "schema": "gx1_public_source_documentation_probe_manifest_v1",
+  "probe_id": "TRANSPORT_PROBE_FRED_GLD_20261011_002",
+  "parent_research_goal": "SWING_PROGRAM_STAGE_B_SOURCES",
+  "registered_utc": "2026-10-11T15:44:49.896997+00:00",
+  "source_head_at_registration": "bb0698dd85a0d62e123274445f49785333fe1574",
+  "operator_authorization": "11.10.2026 «Kan ikke du kjøre dette?»: primary publishers for the driver series (US Treasury par yield and real yield curves, CBOE VIX history) and the two GLD leads found by probe _001 (SPDR historical-archive API; Internet Archive snapshot 2026-02-14 of the GLD archive CSV). Documentation/transport probe: one HEAD and one bounded GET per candidate; no account, no key, no fit.",
+  "evidence_scope": "Received prefixes are format evidence only; admission requires a separate fetch manifest with declared schema, availability clock and hash receipts.",
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TRANSPORT_PROBE_FRED_GLD_20261011_002",
+  "method": "Per candidate: one HTTPS HEAD then one GET limited to maximum_bytes_per_get, timeout 90 s, no auto-redirect, no retries, Accept header where declared.",
+  "head_requests_per_source": 1,
+  "get_requests_per_source": 1,
+  "request_timeout_seconds": 90,
+  "maximum_bytes_per_get": 8388608,
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "test_read_allowed": false,
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "account_creation_allowed": false,
+  "publish_raw_data_to_git": false,
+  "candidates": [
+    {
+      "source_id": "GLD_HISTORICAL_ARCHIVE_API",
+      "provider": "SPDR Gold Shares",
+      "url": "https://api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en",
+      "expected_content": "historical holdings archive (CSV/XLS/JSON) as linked from /usa/gld/",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "GLD_HISTORICAL_ARCHIVE_API_JSON",
+      "provider": "SPDR Gold Shares",
+      "url": "https://api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en",
+      "accept": "application/json",
+      "expected_content": "same endpoint with JSON negotiation",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "WAYBACK_GLD_ARCHIVE_CSV_20260214",
+      "provider": "Internet Archive",
+      "url": "http://web.archive.org/web/20260214205620id_/https://www.spdrgoldshares.com/assets/dynamic/GLD/GLD_US_archive_EN.csv",
+      "expected_content": "the SPDR archive CSV as captured 2026-02-14 (id_ suffix returns original bytes without the archive banner)",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "TREASURY_NOMINAL_PAR_YIELD_2025_CSV",
+      "provider": "U.S. Department of the Treasury",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_yield_curve&field_tdr_date_value=2025&page&_format=csv",
+      "expected_content": "daily par yield curve CSV incl. 2 Yr and 10 Yr (source of DGS2/DGS10)",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "TREASURY_REAL_PAR_YIELD_2025_CSV",
+      "provider": "U.S. Department of the Treasury",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2025&page&_format=csv",
+      "expected_content": "daily real yield curve CSV incl. 10 Yr (source of DFII10)",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "CBOE_VIX_HISTORY_CSV",
+      "provider": "Cboe",
+      "url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+      "expected_content": "VIX daily OHLC history CSV (source of VIXCLS)",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    }
+  ],
+  "required_before_separate_fetch_manifest": [
+    "endpoint returning the declared machine-readable format with measured earliest date",
+    "documented publication clock per source",
+    "per-file byte limit and SHA-256 receipt"
+  ]
+}
