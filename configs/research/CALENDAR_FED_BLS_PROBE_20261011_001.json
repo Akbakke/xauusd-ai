@@ -1,0 +1,90 @@
+{
+  "schema": "gx1_public_source_documentation_probe_manifest_v1",
+  "probe_id": "CALENDAR_FED_BLS_PROBE_20261011_001",
+  "parent_research_goal": "SWING_PROGRAM_STAGE_B_SOURCES",
+  "registered_utc": "2026-10-11T16:46:41.858834+00:00",
+  "source_head_at_registration": "b7a184463ff4bb017ef29a3db63e0a1aa4894ffa",
+  "operator_authorization": "11.10.2026 «Ja, kjør og hent inn resten også»: calendar inputs (FOMC meeting dates, BLS CPI and Employment Situation release dates) and the Fed DDP H.10 series listing; documentation probe only, one HEAD and one bounded GET per page.",
+  "evidence_scope": "page inventory; nothing admitted",
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CALENDAR_FED_BLS_PROBE_20261011_001",
+  "method": "one HEAD and one GET per candidate, timeout 60 s, maximum 2 MiB, no redirect following, no retries",
+  "head_requests_per_source": 1,
+  "get_requests_per_source": 1,
+  "request_timeout_seconds": 60,
+  "maximum_bytes_per_get": 2097152,
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "test_read_allowed": false,
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "account_creation_allowed": false,
+  "publish_raw_data_to_git": false,
+  "candidates": [
+    {
+      "source_id": "FOMC_CALENDAR_CURRENT",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "expected_content": "current and recent FOMC meeting calendars",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "FOMC_HISTORICAL_2011",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2011.htm",
+      "expected_content": "historical FOMC meeting list 2011",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "FOMC_HISTORICAL_2015",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2015.htm",
+      "expected_content": "historical FOMC meeting list 2015",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "FOMC_HISTORICAL_2020",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+      "expected_content": "historical FOMC meeting list 2020",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "FOMC_HISTORICAL_2024",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2024.htm",
+      "expected_content": "historical FOMC meeting list 2024",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "BLS_CPI_SCHEDULE",
+      "provider": "U.S. Bureau of Labor Statistics",
+      "url": "https://www.bls.gov/schedule/news_release/cpi.htm",
+      "expected_content": "CPI release schedule (current year) and links to prior years",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "BLS_EMPSIT_SCHEDULE",
+      "provider": "U.S. Bureau of Labor Statistics",
+      "url": "https://www.bls.gov/schedule/news_release/empsit.htm",
+      "expected_content": "Employment Situation (NFP) release schedule",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "BLS_SCHEDULE_ARCHIVE",
+      "provider": "U.S. Bureau of Labor Statistics",
+      "url": "https://www.bls.gov/schedule/archives/all_nr.htm",
+      "expected_content": "archive of past release schedules by year",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "FED_DDP_H10_DOWNLOAD_FORM",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/datadownload/Build.aspx?rel=H10",
+      "expected_content": "DDP build page listing H.10 series identifiers (nominal broad index daily)",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    }
+  ],
+  "required_before_separate_fetch_manifest": [
+    "machine-parsable schedule pages per year with measured coverage 2009-2026",
+    "documented publication clock for schedules (published in advance)"
+  ]
+}
