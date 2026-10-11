@@ -1297,3 +1297,21 @@ def test_selective_within_fold_year_prevents_one_fold_from_dominating():
     spec["selective"]["selection"] = "pooled_magnitude"
     pooled = ta.selective_endpoints(panel, {5: {"swing_ridge": forecast, "constant": np.zeros(n)}}, spec)
     assert pooled["h5:swing_ridge"]["coverage"]["0.1"]["years_covered"] == 1
+
+
+def test_episode_economics_takes_one_trade_per_episode_with_executable_fills():
+    n = 60
+    times = pd.date_range("2022-01-01", periods=n, freq="D", tz="UTC")
+    mid = np.linspace(100.0, 112.0, n)
+    panel = pd.DataFrame({"fill_time": times, "fill_mid": mid, "fill_bid": mid - 0.01, "fill_ask": mid + 0.01, "atr14": np.ones(n)})
+    forecast = np.full(n, 0.1); forecast[5:8] = 3.0; forecast[30:32] = -2.0  # two episodes: long, short
+    # 55 rows have an exit inside the panel; 5/55 coverage selects exactly the five spike rows
+    spec = {"slippage_bps_per_execution": 2.0,
+            "episode_economics": {"hold_days": 5, "coverage": 5 / 55, "learners": ["x"], "long_annual_cost_rate": 0.054}}
+    out = ta.episode_economics(panel, forecast, spec)
+    assert out["status"] == "MEASURED" and out["episodes"] == 2 and out["long_episodes"] == 1
+    long_row, short_row = out["episodes_table"]
+    expected_long = (panel.fill_bid[10] / panel.fill_ask[5] - 1.0) * 1e4 - 4.0
+    assert abs(long_row["net_bps_ex_financing"] - expected_long) < 1e-9
+    assert short_row["side"] == -1 and short_row["net_bps_ex_financing"] < 0  # rising market punishes the short
+    assert out["financing_charged"] is False and out["long_financing_estimate_bps"] > 0

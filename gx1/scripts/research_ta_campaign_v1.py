@@ -3135,6 +3135,74 @@ def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
                                           "cot_reports": int(len(cot)), "instruments": sorted(daily)}
 
 
+def _select_within_fold_year(f: np.ndarray, yrs: np.ndarray, coverage: float) -> np.ndarray:
+    """Top-|forecast| rows taken inside every holdout year at the declared coverage."""
+    parts = []
+    for year in np.unique(yrs):
+        members = np.flatnonzero(yrs == year)
+        k_year = max(1, int(round(coverage * len(members))))
+        parts.append(members[np.argsort(-np.abs(f[members]))][:k_year])
+    return np.sort(np.concatenate(parts))
+
+
+def episode_economics(panel: pd.DataFrame, forecast: np.ndarray, spec: dict) -> dict:
+    """One executable trade per selected episode (first selected row, fixed hold), bid/ask fills, slippage.
+
+    Financing is not charged here; its long-side estimate from the declared annual rate is
+    reported separately. Episodes whose exit lies beyond the panel are right-censored and
+    excluded with their count reported. Descriptive economics, not inference.
+    """
+    ep = spec["episode_economics"]
+    hold = int(ep["hold_days"])
+    years = pd.DatetimeIndex(panel.fill_time).year.to_numpy()
+    valid = np.flatnonzero(np.isfinite(forecast) & (forecast != 0.0) & (np.arange(len(panel)) + hold < len(panel)))
+    if len(valid) == 0:
+        return {"status": "NO_ROWS"}
+    f, yrs = forecast[valid], years[valid]
+    take = valid[_select_within_fold_year(f, yrs, float(ep["coverage"]))]
+    starts = take[np.concatenate(([True], np.diff(take) > 1))]
+    bid, ask, mid = panel.fill_bid.to_numpy(float), panel.fill_ask.to_numpy(float), panel.fill_mid.to_numpy(float)
+    times = pd.DatetimeIndex(panel.fill_time)
+    slip = float(spec["slippage_bps_per_execution"])
+    rows = []
+    censored = 0
+    for i0 in starts:
+        i1 = i0 + hold
+        if i1 >= len(panel):
+            censored += 1
+            continue
+        side = 1.0 if forecast[i0] > 0 else -1.0
+        if side > 0:
+            net = (bid[i1] / ask[i0] - 1.0) * 1e4 - 2.0 * slip
+        else:
+            net = (bid[i0] / ask[i1] - 1.0) * 1e4 - 2.0 * slip
+        gross_mid = side * (mid[i1] / mid[i0] - 1.0) * 1e4
+        rows.append({"entry_time": str(times[i0]), "exit_time": str(times[i1]), "side": int(side),
+                     "gross_mid_bps": float(gross_mid), "net_bps_ex_financing": float(net),
+                     "year": int(times[i0].year)})
+    if not rows:
+        return {"status": "NO_EPISODES", "right_censored_episodes": censored}
+    frame = pd.DataFrame(rows)
+    per_year = frame.groupby("year")["net_bps_ex_financing"].agg(["count", "sum", "mean"])
+    long_days = int((frame["side"] > 0).sum()) * hold
+    return {
+        "status": "MEASURED", "coverage": float(ep["coverage"]), "hold_days": hold,
+        "episodes": int(len(frame)), "right_censored_episodes": censored,
+        "long_episodes": int((frame["side"] > 0).sum()),
+        "hit_rate": float((frame["net_bps_ex_financing"] > 0).mean()),
+        "mean_net_bps_ex_financing": float(frame["net_bps_ex_financing"].mean()),
+        "median_net_bps_ex_financing": float(frame["net_bps_ex_financing"].median()),
+        "sum_net_bps_ex_financing": float(frame["net_bps_ex_financing"].sum()),
+        "mean_gross_mid_bps": float(frame["gross_mid_bps"].mean()),
+        "worst_episode_bps": float(frame["net_bps_ex_financing"].min()),
+        "per_year": {int(y): {"episodes": int(r["count"]), "sum_net_bps": float(r["sum"]), "mean_net_bps": float(r["mean"])}
+                     for y, r in per_year.iterrows()},
+        "long_financing_estimate_bps": float(long_days / 365.25 * float(ep["long_annual_cost_rate"]) * 1e4),
+        "financing_charged": False, "inference": "none; descriptive",
+        "episodes_table": rows,
+    }
+
+
 def selective_endpoints(panel: pd.DataFrame, forecasts: dict, spec: dict) -> dict:
     """Hit rate and captured target on the top-coverage |forecast| rows versus coin-flip and circular-shift nulls.
 
@@ -3166,12 +3234,7 @@ def selective_endpoints(panel: pd.DataFrame, forecasts: dict, spec: dict) -> dic
             rows = {}
             for coverage in sel["coverage_grid"]:
                 if mode == "within_fold_year":
-                    parts = []
-                    for year in np.unique(yrs):
-                        members = np.flatnonzero(yrs == year)
-                        k_year = max(1, int(round(float(coverage) * len(members))))
-                        parts.append(members[np.argsort(-np.abs(f[members]))][:k_year])
-                    take = np.sort(np.concatenate(parts))
+                    take = _select_within_fold_year(f, yrs, float(coverage))
                 else:
                     k_all = max(1, int(round(float(coverage) * len(f))))
                     take = np.sort(np.argsort(-np.abs(f))[:k_all])
@@ -3225,6 +3288,22 @@ def run_swing_d1(spec: dict, spec_path: Path) -> dict:
         result = _evaluate_matched_macro(panel, forecasts, curve, spec, out, feature_names, "swing")
         result["selective"] = selective_endpoints(panel, forecasts, spec)
         result["feature_groups"] = groups
+        if spec.get("seeds"):
+            sensitivity = {}
+            population = np.isfinite(panel[feature_names].to_numpy(float)).all(axis=1)
+            for seed in spec["seeds"]:
+                seeded = dict(spec, seed=int(seed))
+                b, _ = _fit_predictions(panel, seeded, feature_names, population)
+                a, _ = _fit_predictions(panel, seeded, FEATURES, population)
+                arms = {h: {"swing_hgb": b[h]["hgb"], "a_hgb": a[h]["hgb"], "constant": b[h]["constant"]} for h in spec["horizons"]}
+                sensitivity[str(seed)] = selective_endpoints(panel, arms, spec)
+            result["seed_sensitivity"] = sensitivity
+        if spec.get("episode_economics"):
+            ep = spec["episode_economics"]
+            result["episode_economics"] = {
+                f"h{h}:{learner}": episode_economics(panel, forecasts[h][learner], spec)
+                for h in spec["horizons"] for learner in ep["learners"]
+            }
         artifacts = {}
         for path in sorted(out.iterdir()):
             if path.suffix == ".parquet":
