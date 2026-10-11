@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-10T22:01:18.936925+00:00",
-  "status": "CORRECTED_ENTRY_CAPACITY_AUTHORIZED_AWAITING_TERMINAL",
+  "observed_utc": "2026-10-11T14:02:55.248988+00:00",
+  "status": "HEAD_FIXES_COMMITTED_V10_FUNCTION_FRESH_BASELINE_REQUIRED_SAMPLER_TERMINAL_RECORDED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Run the fresh one-shot bounded CPU sampler capacity; after genuine terminal, bind selected sampler and complete physical preprocessing/native coordinates. Prepare one bounded Entry-only recipe; no automatic large training.",
+  "next_action": "Swing program (operator 11.10.2026): 1) preregister and run the source audits for drivers (FRED), positioning (COT, GLD), activity (CME GC volume/OI probe) and the OANDA daily panel; 2) preregister ENTRY_DIRECTION_SWING_D1 on the D1 pipeline and run it on CPU; 3) re-score the 27.09 intraday cells under a futures-cost scenario; 4) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget, then build multi-horizon observed targets and train the transformer with CONTROL4096 rank-IC per epoch. No native launch, TEST, orders or spending; every fetch and fit needs its committed manifest first.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -132,16 +132,16 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "corrected_fresh_zero_step_baseline",
+    "latest_terminal_role": "sampler_capacity_terminal_corrected_generation",
     "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/TERMINAL.json",
-      "sha256": "e44a1f2f07e72e74ea5f2bfad019f67176ad6f571ed0e39754b3b14f2bd4639b"
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
+      "sha256": "aaebabb90f62d94f412819988be6a8bd1cc8397d847ecc2722223c733a298935"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "full_benchmark_completed": false,
-    "sampler_selection_measured": false,
+    "full_benchmark_completed": true,
+    "sampler_selection_measured": true,
     "selected_sampler_published": false,
     "sampler_selected": false,
     "physical_native_preprocessing_complete": false,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Measured sampler and physical native training coordinates for corrected generation are not yet complete.",
+    "current_blocker": "Model function changed to entry_v10_ctx_hybrid_transformer_v10 (HEAD fixes 56d87f49); a fresh zero-step ONLINE/TARGET baseline on the same 4096 TRAIN/4096 CONTROL coordinates requires a new explicit finite budget before any Entry-only smoke. Swing-program source audits are not yet committed as manifests.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -529,7 +529,7 @@
       "elapsed_seconds": 1016.7850262550019,
       "peak_rss_kib": 16341716
     },
-    "fresh_native_initial_state_complete": true,
+    "fresh_native_initial_state_complete": false,
     "native_initial_measurement_20261009": {
       "status": "COMPLETED_VERIFIED_NO_RELAUNCH",
       "policy_scope": {
@@ -1984,7 +1984,7 @@
       "sha256": "73be90fe3a584540dc912f8b4756089f69d1908be10d207d9865036e4a1738f4"
     },
     "corrected_learning_preparation": {
-      "status": "CAPACITY_AUTHORIZED_AWAITING_TERMINAL",
+      "status": "CAPACITY_TERMINAL_RECORDED_FRESH_V10_BASELINE_REQUIRED",
       "authorized": true,
       "plan": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_CORRECTED_PREPARATION_20261010.json",
@@ -2014,8 +2014,137 @@
           "sha256": "0acefba80e1911d6df08b71a2569bfcb90279756e1b4ba349544bf30e719d47b"
         },
         "native_training_started": false,
-        "test_data_used": false
+        "test_data_used": false,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
+          "sha256": "aaebabb90f62d94f412819988be6a8bd1cc8397d847ecc2722223c733a298935",
+          "exit_code": 0,
+          "source_unchanged": true
+        }
       }
+    },
+    "head_deviation_fixes_20261011": {
+      "operator_request": "11.10.2026: Ja, rett opp i Avvik i HEAD som står uløst, dette må uansett på plass.",
+      "source_commit": "56d87f49a552f273397d0b0bbb13a411ac0a373a",
+      "changed_source_files": {
+        "gx1/contracts/entry_model_native_training_objective_v1.py": "4e8db5982dc5276a52bad4becd2ba144ccf9a765139e733eefdb8e84de4a633e",
+        "gx1/contracts/entry_candidate_checkpoint_policy_v1.py": "f1cf83915482e3245c2cfb14da6441809263f4deb53b54b21e6094fd8e7b769a",
+        "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "bbda5accd3caba52c85ce2fb69f56e3c129a4ac092335e9ac7f2e648841aed40",
+        "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "01ee31b0de25f14af38666074bd11503f1ee32abd102bfeacfc487ccee273674",
+        "gx1/scripts/research_ta_campaign_v1.py": "e6b44061041f6fbca929c0344bea768c3a0496ffc19d6fce73ef372e190365ee"
+      },
+      "fixes": {
+        "training_objective_contract": {
+          "schema_version": "entry_model_native_training_objective_v11",
+          "change": "entry_training_phase persisted; entry_only declares observed executable net market target without Exit model and exit_gradients_active=false; joint_fitted_q keeps the frozen Exit-teacher target; trainer passes the phase it actually runs",
+          "defect": "objective v10 advertised the frozen Exit-teacher target while the Entry-only amendment trained observed market targets (contract text != executed target)"
+        },
+        "sequence_encoder_final_layernorm": {
+          "model_architecture_schema_version": "entry_v10_ctx_hybrid_transformer_v10",
+          "change": "every specialist, MTF-family, family-axis and timeframe-axis encoder ends with the same parameter-free LayerNorm as the main encoder (applied on both the ordinary and the memory-bounded path)",
+          "defect": "pre-norm encoders returned an un-normalized residual stream to the softmax gates (root-cause review 29.09 F12)"
+        },
+        "window_readout_mean_plus_last_closed_bar": {
+          "model_architecture_schema_version": "entry_v10_ctx_hybrid_transformer_v10",
+          "change": "local M5 sequence, specialist temporal pools and all MTF family windows read out as window mean plus the last closed bar at unit weight; parameter-free, no new constant",
+          "defect": "pure mean over 96/252 bars diluted the most recent closed bar to 1/n (root-cause review 29.09 F27)"
+        },
+        "weight_ema_initialization_bias_correction": {
+          "change": "effective decay min(decay, t/(t+1)); steps already persisted in checkpoint_state so resume continues the same schedule",
+          "defect": "fixed decay kept decay**t of the untrained initialization in every exported average (root-cause review 29.09 F18)"
+        },
+        "constant_action_checkpoint_ineligible": {
+          "checkpoint_policy_schema_versions": {
+            "base": "gx1_entry_candidate_checkpoint_policy_v6",
+            "coupled_net": "gx1_entry_candidate_checkpoint_policy_v7",
+            "marked_net": "gx1_entry_candidate_checkpoint_policy_v8"
+          },
+          "change": "a VAL epoch whose Entry argmax is one action for every row (all FLAT/LONG/SHORT) is never selectable as best checkpoint; in-trainer validate emits entry_action_counts, native full VAL supplies long/short/flat_count; missing counts fail closed",
+          "defect": "all-FLAT scored exactly 0.0 on every net monitor with MIN_DELTA 0.0 and absorbed selection whenever trading epochs were negative (root-cause review 29.09 F15); no new numeric threshold introduced"
+        },
+        "degenerate_reference_visible": {
+          "change": "entry_learning_prediction_metrics reports constant_prediction; the learning-study baseline records reference_model_kinds and reference_degenerate_constant",
+          "defect": "the HGB reference in ENTRY_LEARNING_CURVE_20261010_001 collapsed to the inner-TRAIN constant (prediction_std 0) and the review did not flag it"
+        }
+      },
+      "not_changed_by_decision": {
+        "auxiliary_heads_in_entry_only_phase": "operator decision 09.10.2026 keeps multi-horizon and risk auxiliary targets; not altered",
+        "execution_slippage_2_bps_per_execution": "cost authority unchanged; a scenario grid {0.5,1,2} needs an explicit cost-owner decision and re-materialized observed targets",
+        "early_stop_patience_and_min_delta": "no numeric constant invented; the absorbing all-FLAT state is removed by ineligibility instead"
+      },
+      "consequences": {
+        "online_target_function_changed": true,
+        "fresh_initial_baseline_required_before_any_smoke": true,
+        "fresh_initial_baseline_002_role": "targets, coordinates and data evidence remain valid; its ONLINE/TARGET function and predictions are superseded by v10",
+        "sampler_capacity_measurement_model_independent": true,
+        "existing_v9_checkpoints_rejected_by_v10_bundle_load": true,
+        "native_launch_authorized": false,
+        "training_enabled": false
+      },
+      "verification": {
+        "focused_tests": "focused pytest set on contracts, model, trainer, resume, native full-VAL and research owners green on the patched source (see handover for counts)",
+        "syntax_check": true,
+        "git_diff_check": true,
+        "unproven": [
+          "effect of LayerNorm/readout change on learning: no optimizer step has been run on v10",
+          "no real-data forward of v10 has been measured; the fresh zero-step baseline is the first such measurement"
+        ]
+      },
+      "test_data_used": false
+    },
+    "current_generation_initial_baseline_role": "targets_coordinates_and_data_evidence_only; ONLINE/TARGET function superseded by entry_v10_ctx_hybrid_transformer_v10 at 56d87f49a552f273397d0b0bbb13a411ac0a373a",
+    "sampler_capacity_terminal_20261011": {
+      "observed": true,
+      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
+      "sha256": "aaebabb90f62d94f412819988be6a8bd1cc8397d847ecc2722223c733a298935",
+      "exit_code": 0,
+      "source_unchanged": true,
+      "source_head": "20ab5fe5b55a6ddd9adb28abd6ca223461e035b1",
+      "finished_utc": "2026-10-11T13:51:22.609473+00:00",
+      "elapsed_seconds": 57417.958720549,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/RESULT.json",
+        "sha256": "cb8d48c48dd9e5991e8c1627221f15765cb9545817bb4f77897972a277147693",
+        "decision": "FULL_TRAIN_CAPACITY_COMPLETE_NOT_NATIVE_ADMISSION",
+        "selected_candidate": {
+          "batch_size": 16,
+          "measured_epoch_seconds": 7678.674018307,
+          "population_cycle_epochs": 80,
+          "projected_entry_population_cycle_seconds": 614293.92146456,
+          "sampler_contract_sha256": "5f69fe9e168983d3c1e39a321c12dc11f6aaf86b0bfb1c3cec48b79a58a5b72e",
+          "transition_budget_per_epoch": 32768
+        }
+      },
+      "capacity_result": {
+        "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/CAPACITY_RESULT.json",
+        "sha256": "c7dbf4ca6ec2b4acd6f14367b664b6338736aba38f5022af39a0046c44eba008",
+        "decision": "PASS_COMPLETE_MEASURED_TRAIN_CAPACITY_NOT_NATIVE_ADMISSION",
+        "full_candidates_completed": 3,
+        "model_forwards": 0,
+        "optimizer_steps": 0
+      },
+      "model_independent": true,
+      "native_launch_admitted": false,
+      "sampler_selected_in_policy": false,
+      "note": "capacity measured sampler/collation only (model_forwards 0); remains valid for the v10 function; binding the selected sampler into a recipe is a separate step after the fresh v10 baseline"
+    },
+    "operator_decisions_20261011_program": {
+      "swing_primary_track": "«Ja, 1»: D1 decision clock, 5 and 20 day horizons, research owner research_ta_campaign_v1 D1 pipeline extended; preregistration required before any fit",
+      "parallel_gpu_and_cpu_research": "«forskningsjobben kan så klart gå samtidig»: one native GPU job and one CPU research job may run concurrently within CURRENT; each keeps its own capped cgroup, memory and thread limits; two GPU jobs or two CPU heavy jobs remain forbidden",
+      "oanda_read_access": "«Du skal ha API fra Oanda for å hente inn mer info»: manifest-bound read-only historical candle fetches for named instruments through the existing OandaClient; no orders, no account changes, secrets never logged",
+      "pattern_fields_pause": "«Ikke slett candlesticks og slikt da, men vi kan vel sette dem på pause»: candle/pattern fields are excluded from the D1 research input set; native keeps all eight families (training time is not driven by these fields); nothing deleted",
+      "dead_code_removal": "«Husk å slette unødvendig kode»: import-graph scan 11.10 found 8 modules/980 lines with zero importers and zero references outside conversation transcripts; removed in a separate commit",
+      "program_document": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+      "source_fetch_authorized": false,
+      "fits_authorized": false
+    },
+    "operator_decision_20261011_rule_1_instruments": {
+      "operator_request": "Åpne regel 1 med andre instrumenter (det var initielt for å ikke blande EURUSD men dette er parkert).",
+      "bound_scope": "named instruments as manifest-bound research inputs and as offline research backtest targets (pooled/hierarchical estimation across a panel, portfolio research track)",
+      "native_entry_exit_and_serving_instrument": "XAUUSD unchanged until a separate evidence-based decision",
+      "source_fetch_authorized": false,
+      "note": "each instrument/source/period requires its own preregistered manifest before any fetch; broker, collector, live/paper, orders and spending remain closed",
+      "rules_owner": "GX1_RULES.md"
     }
   },
   "gc_order_flow_research_20261006": {

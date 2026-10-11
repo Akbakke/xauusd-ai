@@ -1,6 +1,7 @@
 # CURRENT HANDOVER — 11.10.2026
 
-Rebuild og baseline er akseptert. Ny avgrenset treningsklargjøring er bestilt.
+Rebuild og baseline er akseptert. HEAD-avvik er rettet (modellfunksjon v10);
+fersk nullstegsbaseline kreves før smoke. Ny avgrenset treningsklargjøring er bestilt.
 Ingen dokumentert Entry-edge.
 Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current.
 NEXT_RUN_POLICY.json er eneste arbeidsstatus; prosess og terminal overstyrer prosa.
@@ -16,6 +17,47 @@ samme run-root under SAMPLER_BENCHMARK_001 avgjør faktisk kjøretilstand.
 Deretter gjenstår valgt sampler, fysiske native koordinater og eksakt Entry-only
 recipe for planlagt høyst256 steg/4096 Entries. Dette er ikke stortreningsautoritet.
 Ferdig rebuild-/baselineplan og alle tidligere engangsplaner forblir lukket.
+
+## Rettelser i HEAD 11.10.2026 (operatørbestilt)
+
+Brukeren bestilte retting av de uløste HEAD-avvikene. Kode og tester ligger i
+56d87f49; eksakte filhasher og begrunnelse per rettelse står i
+NEXT_RUN_POLICY.current_work.head_deviation_fixes_20261011.
+
+1. Objective-kontrakt v11 bærer `entry_training_phase`. Entry-only deklarerer
+   observert utførbart nettomål uten Exit-modell og uten Exit-gradienter; joint
+   beholder den frosne Exit-læreren. Treneren sender fasen den faktisk kjører.
+2. Alle spesialist-, MTF- og akse-encodere avsluttes med samme parameterfrie
+   LayerNorm som hovedencoderen (F12).
+3. Vindus-readout er middel pluss siste lukkede bar på alle fire steder (F27).
+   Arkitekturversjon v9 → v10; samme parametre og state_dict-nøkler, annen funksjon.
+4. Vekt-EMA er bias-korrigert med min(decay, t/(t+1)); steg-telleren lå allerede
+   i checkpoint-state, så resume følger samme skjema (F18).
+5. Checkpoint-policy v6/v7/v8: en VAL-epoke med konstant Entry-handling kan aldri
+   velges som beste checkpoint. Validering teller handlingsfordelingen; native
+   full-VAL leser long/short/flat-count; manglende telling feiler lukket (F15).
+   Ingen ny numerisk terskel er innført.
+6. Forskningseieren merker en konstant (degenerert) referanse eksplisitt.
+
+Ikke endret: hjelpehodene i Entry-only (operatørvedtak 09.10), slippage 2,0 bps
+(krever eget kostvedtak og nye målrader), patience/min_delta (ingen oppfunnet tall).
+
+Konsekvens: ONLINE-/TARGET-funksjonen er endret. FRESH_INITIAL_BASELINE_002 gjelder
+videre som mål-, koordinat- og databevis, men ikke som funksjonsbaseline. En fersk
+nullstegsbaseline på v10 ved samme 4096 TRAIN-/4096 CONTROL-koordinater kreves under
+nytt eksplisitt budsjett før noen Entry-only-smoke. Gamle v9-checkpoints avvises ved
+bundle-last. Samplerbenchmarkens terminal er observert: SAMPLER_BENCHMARK_001/TERMINAL.json, exit 0, source_unchanged=True på
+20ab5fe5. Tre kandidater fullførte; valgt sampler batch 16 med målt
+CPU-epoke 7679 s og null modellforwards. Kapasitetsmålingen er modelluavhengig og gjelder
+fortsatt for v10; sampleren bindes i recipe først etter fersk v10-baseline.
+
+Samme bølge binder operatørvedtaket om regel 1: navngitte instrumenter som
+forskningsinputs og forskningsmål (GX1_RULES.md, siste avsnitt). Native forblir XAUUSD.
+
+Verifisert: fokuserte tester for kontrakter, modell, trener, resume, native full-VAL
+og forskningseiere er grønne på rettet kilde; syntaks og `git diff --check` består.
+Ubevist: ingen optimizersteg eller ekte-data-forward er kjørt på v10; læringseffekten
+av LayerNorm/readout er ikke målt. training_enabled=false; TEST er forseglet.
 
 ## Gjort og akseptert
 

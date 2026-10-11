@@ -37,8 +37,10 @@ moduler på disk.
    tilgjengelighet og tillatt omfang bindes i et immutabelt manifest før henting;
    mottatte bytes og historiske dataversjoner hash-bindes før bruk. Faktisk
    publikasjonstid og det vedtatte publikasjonslaget skal respekteres.
-   Andre instrumenter kan aldri handles eller eksponeres. Native Entry-kontrakter
-   endres ikke av forskningsunntaket; innføring der krever egen operatørbeslutning på
+   Operatørvedtak 11.10.2026 åpner navngitte andre instrumenter som manifestbundne
+   forskningsinputs og som forskningsmål i offline backtest (pooled estimering,
+   porteføljespor); se eget avsnitt nederst. Native Entry-/Exit-kontrakter og
+   serving forblir XAUUSD; innføring der krever egen operatørbeslutning på
    deklarert evidens. Kun manifestbundet forskningshenting innen det godkjente omfanget
    åpnes. Broker, collector, live/paper, ordre og øvrige nedlastingsruter forblir stengt.
 2. **Ingen fallback, gjettet default, mutable `latest`, foreldet artefakt, syntetisk
@@ -227,3 +229,25 @@ Bare den nye studiens eksakte phase/recipe/policy gir finite optimizersteg;
 training_enabled=false gjelder generisk trening. Ingen automatisk utvidelse
 eller gjenåpning av konsumerte planer. Inputnormalisering, kausalitet,
 checkpoint-eier, alle maskinvarevakter og TEST-forsegling består.
+
+## Operatørvedtak 11.10.2026: regel 1 åpnes for navngitte instrumenter
+
+Brukeren vedtok: «Åpne regel 1 med andre instrumenter (det var initielt for å
+ikke blande EURUSD men dette er parkert).» Bundet omfang: navngitte instrumenter
+kan brukes som manifestbundne forskningsinputs og som forskningsmål i offline
+backtest, herunder pooled/hierarkisk estimering av delte signaler over et panel
+og et porteføljespor der et svakt signal måles på flere instrumenter. Hvert
+instrument, hver kilde og hver periode forhåndsregistreres med kilde, serie,
+hentemetode, tilgjengelighet, publikasjonslag og hashbundne bytes før bruk.
+Native Entry-/Exit-kontrakter, serving og eventuell handel forblir XAUUSD til
+et eget vedtak på målt evidens. Broker, collector, live/paper, ordre og spending
+forblir stengt; ingen ny nedlastingsrute åpnes uten manifest.
+
+Samme dag vedtok brukeren: (a) swing på D1 med 5 og 20 dagers horisont er
+primærspor; (b) én native GPU-jobb og én CPU-forskningsjobb kan gå samtidig
+innen CURRENT, hver under egen capped cgroup, minne- og trådgrense, aldri to av
+samme slag; (c) OANDA-API brukes som manifestbundet lesetilgang til historiske
+candles for navngitte instrumenter, aldri ordre eller kontoendring; (d)
+candlestick-/mønsterfelt pauses ut av D1-forskningens inputsett uten sletting,
+native beholder alle åtte familier. Programmet står i
+docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md.

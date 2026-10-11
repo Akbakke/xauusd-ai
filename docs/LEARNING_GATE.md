@@ -23,7 +23,9 @@ Nåstatus og launchomfang eies av NEXT_RUN_POLICY.json, ikke historiske resultat
    kontrast. Ren biasflytting er ikke tilstandsavhengig læring.
 3. Behold handlingenes fordeling, referanseverdi/regret og tidsblokk-usikkerhet.
    Alltid FLAT er ikke dokumentert selektivitet; alltid HOLD er ikke dokumentert
-   tålmodighet. Entry alene består ikke samlet Entry/Exit-port.
+   tålmodighet. Entry alene består ikke samlet Entry/Exit-port. Siden 11.10.2026
+   håndhever checkpoint-policyen dette ved valg: en VAL-epoke med konstant
+   Entry-handling kan aldri bli beste checkpoint.
 4. Skill gjenbrukt TRAIN-fit fra senere CONTROL/VAL-generaliseringsmåling.
    Reference-policyverdier og lærerestimater er ikke realisert strategiprofitt.
    Rapportér alle deklarerte perioder i faktisk gjeldende populasjon, ikke en

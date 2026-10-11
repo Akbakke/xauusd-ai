@@ -18,6 +18,7 @@ den siste overleveringen. Gamle mål-/veikart-/renselogger finnes i Git.
 - docs/NATIVE_LEARNING.md — gjenværende metode, ikke launchordre/daglig logg.
 - docs/FEATURE_AUDIT.md og docs/FEATURE_AUDIT_FIELDS.json — individuell featurekontroll, rettelser og grenser.
 - docs/GC_ORDER_FLOW_RESEARCH.md — pauset GC-kildeaudit/A/B/C-protokoll.
+- docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md — operatørvedtak 11.10 og swing-programmet (rekkefølge, lag, inputs, endepunkt).
 
 ## Beholdte immutable kilde-/designbindinger
 
