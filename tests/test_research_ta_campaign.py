@@ -1484,3 +1484,78 @@ def test_swing_exclude_groups_drops_only_declared_non_price_groups(monkeypatch):
         fake_build({"exclude_groups": ["price_state_A"]})
     src = inspect.getsource(ta.build_swing_panel)
     assert 'g == "price_state_A"' in src and "exclude_groups" in src
+
+
+def test_sealed_period_read_end_requires_exact_policy_authorization(monkeypatch):
+    spec = {"test_seal_utc": "2026-07-01T00:00:00Z"}
+    assert str(ta.sealed_period_read_end(spec)) == "2026-07-01 00:00:00+00:00"
+    journal = dict(spec, forward_journal={"journal_id": "J1", "scored_end_utc": "2026-10-01T00:00:00Z"})
+    monkeypatch.setattr(ta, "_forward_journal_policy", lambda: {})
+    with pytest.raises(RuntimeError, match="TA_FORWARD_JOURNAL_NOT_AUTHORIZED"):
+        ta.sealed_period_read_end(journal)
+    monkeypatch.setattr(ta, "_forward_journal_policy", lambda: {"authorized": True, "journal_id": "J1", "scored_end_utc": "2026-10-11T00:00:00Z", "native_test_split_read": False})
+    assert str(ta.sealed_period_read_end(journal)) == "2026-10-01 00:00:00+00:00"
+    monkeypatch.setattr(ta, "_forward_journal_policy", lambda: {"authorized": True, "journal_id": "J2", "scored_end_utc": "2026-10-11T00:00:00Z", "native_test_split_read": False})
+    with pytest.raises(RuntimeError, match="TA_FORWARD_JOURNAL_NOT_AUTHORIZED"):
+        ta.sealed_period_read_end(journal)
+    monkeypatch.setattr(ta, "_forward_journal_policy", lambda: {"authorized": True, "journal_id": "J1", "scored_end_utc": "2026-09-01T00:00:00Z", "native_test_split_read": False})
+    with pytest.raises(RuntimeError, match="TA_FORWARD_JOURNAL_NOT_AUTHORIZED"):
+        ta.sealed_period_read_end(journal)
+
+
+def test_gld_xlsx_parser_reads_sheet_two_tonnes(tmp_path):
+    import zipfile
+    shared = ["Date", "Closing Price", "Tonnes of Gold", "18-Nov-2004", "19-Nov-2004", "ND"]
+    ss = "<sst>" + "".join(f"<si><t>{s}</t></si>" for s in shared) + "</sst>"
+    sheet2 = ('<worksheet><sheetData>'
+              '<row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="J1" t="s"><v>2</v></c></row>'
+              '<row r="2"><c r="A2" t="s"><v>3</v></c><c r="B2"><v>44.38</v></c><c r="J2"><v>8.09</v></c></row>'
+              '<row r="3"><c r="A3" t="s"><v>4</v></c><c r="B3"><v>44.78</v></c><c r="J3" t="s"><v>5</v></c></row>'
+              '</sheetData></worksheet>')
+    x = tmp_path / "gld.xlsx"
+    with zipfile.ZipFile(x, "w") as z:
+        z.writestr("xl/sharedStrings.xml", ss); z.writestr("xl/worksheets/sheet1.xml", "<worksheet/>"); z.writestr("xl/worksheets/sheet2.xml", sheet2)
+    res = tmp_path / "RESULT.json"
+    res.write_text(json.dumps({"records": [{"item": "GLD_HISTORICAL_ARCHIVE_XLSX", "status": "RETRIEVED_NOT_ADMITTED", "raw_path": str(x), "raw_sha256": ta.sha(x)}]}))
+    out = ta.parse_gld_archive_xlsx({"path": str(res), "sha256": ta.sha(res)}, "GLD_HISTORICAL_ARCHIVE_XLSX")
+    assert [str(d.date()) for d in out["Date"]] == ["2004-11-18", "2004-11-19"]
+    assert out["gld_tonnes"].iloc[0] == 8.09 and np.isnan(out["gld_tonnes"].iloc[1])
+
+
+def test_forward_journal_scores_each_month_once_and_resolves_later(tmp_path, monkeypatch):
+    rng = np.random.default_rng(3)
+    n = 900
+    times = pd.date_range("2024-01-01", periods=n, freq="B", tz="UTC")
+    signal = rng.normal(size=n)
+    mid = 100 + np.cumsum(rng.normal(size=n) * 0.3)
+    # a planted relation: next-20-day move follows the signal
+    for i in range(n - 20):
+        mid[i + 20] = mid[i] + 2.0 * signal[i] + rng.normal() * 0.5
+    panel = pd.DataFrame({"fill_time": times, "decision_time": times - pd.Timedelta(hours=1), "fill_mid": mid,
+                          "fill_bid": mid - 0.01, "fill_ask": mid + 0.01, "atr14": np.ones(n), "s": signal, "noise": rng.normal(size=n)})
+    names = ["s", "noise"]
+    spec = {"arm": "SWING_FORWARD_JOURNAL", "horizons": [20, 5], "primary_horizon": 20, "test_accessed": False, "native_training": False,
+            "test_seal_utc": "2026-07-01T00:00:00Z", "read_end_exclusive": "2026-09-01T00:00:00Z",
+            "forward_journal": {"journal_id": "J", "scored_end_utc": "2026-09-01T00:00:00Z", "learner": "swing_ridge", "months": ["2026-06", "2026-07"], "threshold_rows": 252},
+            "inner_fraction": 0.2, "min_fit_rows": 100, "min_inner_rows": 20, "slippage_bps_per_execution": 2.0,
+            "feature_names": names, "cot": {}, "oanda_panel": {}, "drivers": {},
+            "selective": {"seed": 0, "minimum_rows": 50, "coverage_grid": [0.1, 0.25], "circular_shifts": 50, "selection": "within_fold_year", "block_null_draws": 50},
+            "output_directory": str(tmp_path / "journal")}
+    monkeypatch.setattr(ta, "_forward_journal_policy", lambda: {"authorized": True, "journal_id": "J", "scored_end_utc": "2026-09-01T00:00:00Z", "native_test_split_read": False})
+    monkeypatch.setattr(ta, "build_journal_panel", lambda s: (panel, names, {"rows": n}))
+    monkeypatch.setattr(ta, "git", lambda *a: "deadbeef")
+    sp = tmp_path / "spec.json"; sp.write_text(json.dumps(spec))
+    first = ta.run_swing_forward_journal(spec, sp)
+    assert [s["month"] for s in first["scored"]] == ["2026-06", "2026-07"] and first["skipped_already_scored"] == []
+    june = json.loads((tmp_path / "journal" / "JOURNAL_2026-06.json").read_text())
+    assert june["status"] == "SCORED" and june["previous_entry_sha256"] is None and june["fit_rows"] >= 100
+    assert pd.Timestamp(june["last_fit_outcome_time"]) < pd.Timestamp("2026-06-01", tz="UTC")
+    july = json.loads((tmp_path / "journal" / "JOURNAL_2026-07.json").read_text())
+    assert july["previous_entry_sha256"] == ta.sha(tmp_path / "journal" / "JOURNAL_2026-06.json")
+    # the planted relation is visible at scoring time where targets are already known
+    assert june["summary_at_scoring"]["h20"]["rank_ic"] > 0.5
+    # June resolves (its 20-day outcomes are inside the panel); July's last rows are not yet resolvable
+    assert first["resolved_months"] == ["2026-06"] or first["resolved_months"] == ["2026-06", "2026-07"]
+    second = ta.run_swing_forward_journal(spec, sp)
+    assert second["scored"] == [] and second["skipped_already_scored"] == ["2026-06", "2026-07"]
+    assert len(list((tmp_path / "journal").glob("JOURNAL_2026-06.json"))) == 1

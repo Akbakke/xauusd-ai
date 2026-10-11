@@ -2832,8 +2832,11 @@ def fetch_cftc_cot_archives(spec: dict, spec_path: Path) -> dict:
         record = {"item": str(year), "year": year, "predictor_admitted": False}
         try:
             url = spec["url_pattern"].format(year=year)
-            raw, final_url = _bounded_https_get(url, maximum_bytes=spec["maximum_bytes_per_archive"],
-                                                timeout_seconds=spec["timeout_seconds"])
+            relayed = _relayed_bytes({"reuse_download": spec.get("reuse_download_by_year", {}).get(str(year))},
+                                     maximum_bytes=spec["maximum_bytes_per_archive"])
+            raw, final_url = relayed if relayed is not None else _bounded_https_get(
+                url, maximum_bytes=spec["maximum_bytes_per_archive"], timeout_seconds=spec["timeout_seconds"])
+            record["provenance"] = "RELAYED_OPERATOR_BYTES" if relayed is not None else "DIRECT_HTTPS"
             raw_path = out / f"deacot{year}.zip"
             raw_path.write_bytes(raw)
             with zipfile.ZipFile(io.BytesIO(raw)) as archive:
@@ -2864,7 +2867,7 @@ def fetch_oanda_panel_daily(spec: dict, spec_path: Path) -> dict:
     candles = spec["candles"]
     from_ts, to_ts = pd.Timestamp(candles["from_utc"]), pd.Timestamp(candles["to_utc_exclusive"])
     # Scope and seal are checked before any directory or network side effect.
-    if to_ts > pd.Timestamp(spec["test_seal_utc"]):
+    if to_ts > sealed_period_read_end(spec):
         raise RuntimeError("TA_OANDA_PANEL_TEST_SEAL")
     out = Path(spec["output_directory"])
     out.mkdir(parents=True, exist_ok=False)
@@ -3013,7 +3016,7 @@ def parse_cot_gold_archives(spec: dict, contract_market_code: str | None = None)
     frame = frame.drop(columns="code").sort_values("as_of").reset_index(drop=True)
     if frame["as_of"].duplicated().any() or (frame["open_interest"] <= 0).any():
         raise RuntimeError("TA_SWING_COT_ROWS")
-    seal = pd.Timestamp(spec["test_seal_utc"])
+    seal = sealed_period_read_end(spec)
     frame = frame.loc[frame["as_of"] < seal].reset_index(drop=True)
     oi = frame["open_interest"].astype(float)
     frame["cot_noncommercial_net_over_oi"] = (frame["noncomm_long"] - frame["noncomm_short"]) / oi
@@ -3063,7 +3066,7 @@ def load_oanda_panel_d1(spec: dict) -> dict[str, pd.DataFrame]:
         if frame.index.has_duplicates or not np.isfinite(frame.to_numpy(float)).all():
             raise RuntimeError("TA_SWING_OANDA_ROWS")
         bars = _resample_ohlc_for_model_native_scalars(frame, "D1")
-        bars = bars.loc[bars.index + TRADING_SESSION_DURATION < pd.Timestamp(spec["test_seal_utc"])]
+        bars = bars.loc[bars.index + TRADING_SESSION_DURATION < sealed_period_read_end(spec)]
         close = bars["close"]
         features = pd.DataFrame(index=bars.index)
         for days in SWING_PANEL_RETURN_DAYS:
@@ -3183,6 +3186,34 @@ SWING_DRIVER_FIELDS = ["real10y_level", "real10y_change1D", "real10y_change5D", 
 NY_TZ = "America/New_York"
 
 
+# ---------------------------------------------------------------------------
+# Forward journal authorization (operator decision 11.10.2026). The TEST seal is
+# the read end for every spec unless NEXT_RUN_POLICY.json authorizes the named
+# journal to read the sealed period up to a bound end. Nothing else may read it.
+# ---------------------------------------------------------------------------
+
+FORWARD_JOURNAL_POLICY_KEY = "forward_journal_20261011"
+
+
+def _forward_journal_policy() -> dict:
+    policy = json.loads((ROOT / "NEXT_RUN_POLICY.json").read_text())
+    return policy["current_work"].get(FORWARD_JOURNAL_POLICY_KEY, {})
+
+
+def sealed_period_read_end(spec: dict) -> pd.Timestamp:
+    """TEST seal, or the journal's bound end when the policy authorizes exactly this journal."""
+    seal = pd.Timestamp(spec["test_seal_utc"])
+    journal = spec.get("forward_journal")
+    if journal is None:
+        return seal
+    end = pd.Timestamp(journal["scored_end_utc"])
+    block = _forward_journal_policy()
+    if (block.get("authorized") is not True or block.get("journal_id") != journal.get("journal_id")
+            or end > pd.Timestamp(block["scored_end_utc"]) or block.get("native_test_split_read") is not False):
+        raise RuntimeError("TA_FORWARD_JOURNAL_NOT_AUTHORIZED")
+    return max(seal, end)
+
+
 def _retrieval_records(binding: dict, prefix: str | None = None) -> list[dict]:
     result_path = Path(binding["path"])
     if sha(result_path) != binding["sha256"]:
@@ -3263,14 +3294,61 @@ def parse_gld_archive_csv(binding: dict, item: str) -> pd.DataFrame:
     return out
 
 
+def parse_gld_archive_xlsx(binding: dict, item: str) -> pd.DataFrame:
+    """Live SPDR historical-archive workbook: sheet 2 carries Date and 'Tonnes of Gold'.
+
+    Parsed with the standard library (zip + XML regex); shared strings resolved; the
+    disclaimer sheet is ignored. Same output contract as parse_gld_archive_csv.
+    """
+    import zipfile
+    import html as _html
+    record = [r for r in _retrieval_records(binding, item)][0]
+    with zipfile.ZipFile(Path(record["raw_path"])) as book:
+        names = book.namelist()
+        shared = []
+        if "xl/sharedStrings.xml" in names:
+            shared = [_html.unescape(re.sub(r"<[^>]+>", "", s))
+                      for s in re.findall(r"<si>(.*?)</si>", book.read("xl/sharedStrings.xml").decode("utf-8", "replace"), flags=re.S)]
+        if "xl/worksheets/sheet2.xml" not in names:
+            raise RuntimeError("TA_SWING_GLD_XLSX_SHEET")
+        xml = book.read("xl/worksheets/sheet2.xml").decode("utf-8", "replace")
+    rows = []
+    for row in re.findall(r"<row[^>]*>(.*?)</row>", xml, flags=re.S):
+        cells = {}
+        for col, attrs, inner in re.findall(r'<c r="([A-Z]+)\d+"([^>]*?)(?:/>|>(.*?)</c>)', row, flags=re.S):
+            value = re.search(r"<v>(.*?)</v>", inner or "")
+            value = value.group(1) if value else ""
+            if 't="s"' in attrs and value:
+                value = shared[int(value)]
+            cells[col] = value.strip()
+        rows.append(cells)
+    if not rows or rows[0].get("A") != "Date":
+        raise RuntimeError("TA_SWING_GLD_XLSX_HEADER")
+    tonnes_col = next((c for c, v in rows[0].items() if v == "Tonnes of Gold"), None)
+    if tonnes_col is None:
+        raise RuntimeError("TA_SWING_GLD_XLSX_TONNES")
+    dates, values = [], []
+    for cells in rows[1:]:
+        if not cells.get("A"):
+            continue
+        value = cells.get(tonnes_col, "")
+        dates.append(datetime.strptime(cells["A"], "%d-%b-%Y"))
+        values.append(float(value) if re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", value) else np.nan)
+    out = pd.DataFrame({"Date": pd.to_datetime(dates), "gld_tonnes": values}).sort_values("Date").reset_index(drop=True)
+    if out["Date"].duplicated().any() or (out["gld_tonnes"].dropna() <= 0).any() or not out["gld_tonnes"].notna().any():
+        raise RuntimeError("TA_SWING_GLD_ROWS")
+    return out
+
+
 def build_driver_components(spec: dict) -> pd.DataFrame:
     """Daily driver fields on their own observation clock, with availability stamps."""
     drv = spec["drivers"]
     treasury = parse_treasury_yields(drv["treasury"])
     vix = parse_vix_history(drv["vix"])
-    gld = parse_gld_archive_csv(drv["gld"], drv["gld_item"])
+    gld = (parse_gld_archive_xlsx(drv["gld"], drv["gld_item"]) if drv.get("gld_format") == "xlsx"
+           else parse_gld_archive_csv(drv["gld"], drv["gld_item"]))
     table = treasury.merge(vix, on="Date", how="outer").merge(gld, on="Date", how="outer").sort_values("Date").reset_index(drop=True)
-    table = table.loc[table["Date"] < pd.Timestamp(spec["test_seal_utc"]).tz_convert(None)].reset_index(drop=True)
+    table = table.loc[table["Date"] < sealed_period_read_end(spec).tz_convert(None)].reset_index(drop=True)
     # Carry the last known observation across each series' own holidays (never backward).
     for column in ("nominal2y", "nominal10y", "real10y", "vix_close", "gld_tonnes"):
         table[column] = table[column].ffill()
@@ -3350,7 +3428,7 @@ def build_dollar_components(spec: dict) -> pd.DataFrame:
     """Broad dollar index on its published observation clock (ND days dropped, changes over published days)."""
     dol = spec["dollar"]
     table = parse_fed_h10_broad_index(dol["fed_h10"], dol["fed_h10_item"])
-    keep = table["usd_broad"].notna() & (table["Date"] < pd.Timestamp(spec["test_seal_utc"]).tz_convert(None))
+    keep = table["usd_broad"].notna() & (table["Date"] < sealed_period_read_end(spec).tz_convert(None))
     table = table.loc[keep].reset_index(drop=True)
     out = pd.DataFrame({"Date": table["Date"]})
     out["usd_broad_log_level"] = np.log(table["usd_broad"].to_numpy(float))
@@ -3804,6 +3882,268 @@ def build_pooled_panels(spec: dict) -> tuple[dict[str, pd.DataFrame], list[str],
     return panels, feature_names, coverage
 
 
+# ---------------------------------------------------------------------------
+# Forward journal: the frozen 68-field XAU surface scored one calendar month at a
+# time. A month is scored exactly once, with a ridge fit on rows whose 20-day
+# outcome closed before the month; entries are immutable and hash-chained;
+# outcomes are resolved later in separate files; a completed journal year is
+# evaluated with the preregistered within-year selective rule.
+# ---------------------------------------------------------------------------
+
+JOURNAL_COVERAGES = (0.05, 0.1, 0.25)
+
+
+def build_journal_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict]:
+    """XAU_USD through the OANDA H1 route with COT, cross-asset panel and drivers (68 fields)."""
+    end = sealed_period_read_end(spec)
+    if pd.Timestamp(spec["read_end_exclusive"]) > end:
+        raise RuntimeError("TA_JOURNAL_READ_END")
+    panel = daily_panel(load_instrument_h1(spec, "XAU_USD"), pd.Timestamp(spec["read_end_exclusive"]))
+    groups = {"price_state_A": list(FEATURES)}
+    cot = parse_cot_gold_archives(spec, spec["cot"]["contract_market_code"])
+    cot_fields = align_asof(pd.DatetimeIndex(panel["decision_time"]), cot["available_at"], cot[SWING_COT_FIELDS])
+    for column in SWING_COT_FIELDS:
+        panel[column] = cot_fields[column].to_numpy(float)
+    groups["positioning_cot"] = list(SWING_COT_FIELDS)
+    decisions = pd.DatetimeIndex(panel["decision_time"])
+    panel_fields = []
+    for inst, features in load_oanda_panel_d1(spec).items():
+        closes = pd.Series(pd.DatetimeIndex(features.index) + TRADING_SESSION_DURATION)
+        joined = align_asof(decisions, closes, features, inclusive=True)
+        for column in features.columns:
+            panel[column] = joined[column].to_numpy(float)
+            panel_fields.append(column)
+    groups["panel_oanda"] = panel_fields
+    driver_rows = swing_driver_fields(panel, build_driver_components(spec))
+    for column in SWING_DRIVER_FIELDS:
+        panel[column] = driver_rows[column].to_numpy(float)
+    groups["drivers"] = list(SWING_DRIVER_FIELDS)
+    names = [c for g in ("price_state_A", "positioning_cot", "panel_oanda", "drivers") for c in groups[g]]
+    if panel.columns.has_duplicates or np.isinf(panel[names].to_numpy(float)).any():
+        raise RuntimeError("TA_JOURNAL_FEATURE_SURFACE")
+    coverage = {g: int(np.isfinite(panel[cols].to_numpy(float)).all(axis=1).sum()) for g, cols in groups.items()}
+    return panel, names, {"group_complete_rows": coverage, "cot_reports": int(len(cot)), "rows": int(len(panel)),
+                          "last_fill_time": str(panel.fill_time.iloc[-1]), "sealed_period_read_end": str(end)}
+
+
+def _month_bounds(month: str) -> tuple[pd.Timestamp, pd.Timestamp]:
+    start = pd.Timestamp(f"{month}-01", tz="UTC")
+    return start, start + pd.offsets.MonthBegin(1)
+
+
+def _finite_or_none(value: float):
+    return float(value) if np.isfinite(value) else None
+
+
+def score_journal_month(panel: pd.DataFrame, feature_names: list[str], spec: dict, month: str) -> dict:
+    """Fit on rows whose max-horizon outcome closed before the month; score every month row once."""
+    X = panel[feature_names].to_numpy(float)
+    population = np.isfinite(X).all(axis=1)
+    mid, atr = panel.fill_mid.to_numpy(float), panel.atr14.to_numpy(float)
+    times = pd.DatetimeIndex(panel.fill_time)
+    n, max_h = len(panel), max(spec["horizons"])
+    positions = np.arange(n)
+    start, end = _month_bounds(month)
+    hold = np.flatnonzero(population & (times >= start) & (times < end))
+    if not len(hold):
+        return {"month": month, "status": "NO_ROWS"}
+    eligible = population & (positions + max_h < n)
+    past = np.flatnonzero(eligible & (times < start))
+    fit = past[times[past + max_h] < start]
+    if len(fit) < int(spec["min_fit_rows"]):
+        return {"month": month, "status": "INSUFFICIENT_CAUSAL_ROWS", "fit_rows": int(len(fit))}
+    recent = fit[-int(spec["forward_journal"]["threshold_rows"]):]
+    entry = {"month": month, "status": "SCORED", "fit_rows": int(len(fit)), "hold_rows": int(len(hold)),
+             "fit_positions_sha256": hashlib.sha256(fit.astype("<i8").tobytes()).hexdigest(),
+             "last_fit_outcome_time": str(times[fit[-1] + max_h]), "first_hold_time": str(times[hold[0]]),
+             "last_hold_time": str(times[hold[-1]]), "feature_names": list(feature_names), "horizons": list(spec["horizons"]),
+             "thresholds": {}, "ridge": {}, "rows": []}
+    forecasts = {}
+    for horizon in spec["horizons"]:
+        target = np.full(n, np.nan)
+        target[:-horizon] = (mid[horizon:] - mid[:-horizon]) / atr[:-horizon]
+        gram = RidgeGram(X[fit], X[hold], inner_fraction=spec["inner_fraction"], fit_positions=fit,
+                         purge_bars=max_h, min_inner_rows=spec["min_inner_rows"], constant_alternative=False)
+        pred, info = gram.fit_predict(target[fit])
+        # Thresholds: |forecast| quantiles of the same fitted model (fixed alpha) on the most recent fit rows.
+        recent_gram = RidgeGram(X[fit], X[recent], inner_fraction=spec["inner_fraction"], fit_positions=fit,
+                                purge_bars=max_h, min_inner_rows=spec["min_inner_rows"], constant_alternative=False)
+        recent_pred, _ = recent_gram.fit_predict(target[fit], alpha=float(info["alpha"]))
+        entry["thresholds"][f"h{horizon}"] = {str(c): float(np.quantile(np.abs(recent_pred), 1.0 - c)) for c in JOURNAL_COVERAGES}
+        entry["ridge"][f"h{horizon}"] = {k: (float(v) if isinstance(v, (int, float, np.floating)) and v is not None else v)
+                                        for k, v in info.items() if k in ("alpha", "inner_val_mse", "alpha_selection")}
+        forecasts[horizon] = (pred, target)
+    bid, ask = panel.fill_bid.to_numpy(float), panel.fill_ask.to_numpy(float)
+    for j, i in enumerate(hold):
+        row = {"fill_time": str(times[i]), "decision_time": str(pd.Timestamp(panel.decision_time.iloc[i])),
+               "fill_mid": float(mid[i]), "fill_bid": float(bid[i]), "fill_ask": float(ask[i]), "atr14": float(atr[i])}
+        for horizon, (pred, target) in forecasts.items():
+            f = float(pred[j])
+            row[f"forecast_h{horizon}"] = f
+            row[f"target_h{horizon}"] = _finite_or_none(target[i])
+            for c in JOURNAL_COVERAGES:
+                row[f"flag_h{horizon}_cov{c}"] = bool(abs(f) >= entry["thresholds"][f"h{horizon}"][str(c)])
+        entry["rows"].append(row)
+    return entry
+
+
+def _journal_summary(rows: list[dict], horizon: int) -> dict:
+    """Descriptive statistics over rows whose target is known (never inference)."""
+    known = [r for r in rows if r.get(f"target_h{horizon}") is not None]
+    if not known:
+        return {"rows_with_known_target": 0}
+    f = np.array([r[f"forecast_h{horizon}"] for r in known]); y = np.array([r[f"target_h{horizon}"] for r in known])
+    out = {"rows_with_known_target": int(len(known)), "rank_ic": float(pd.Series(f).rank().corr(pd.Series(y).rank())) if len(known) > 2 else None,
+           "long_share": float((f > 0).mean()), "hit_rate_all_rows": float((np.sign(f) == np.sign(y)).mean()),
+           "always_long_hit_rate": float((y > 0).mean())}
+    for c in JOURNAL_COVERAGES:
+        mask = np.array([r[f"flag_h{horizon}_cov{c}"] for r in known])
+        out[f"flagged_cov{c}"] = {"rows": int(mask.sum()),
+                                  "hit_rate": float((np.sign(f[mask]) == np.sign(y[mask])).mean()) if mask.any() else None,
+                                  "mean_captured_target_atr": float((np.sign(f[mask]) * y[mask]).mean()) if mask.any() else None}
+    return out
+
+
+def resolve_journal_month(panel: pd.DataFrame, spec: dict, entry: dict) -> dict | None:
+    """Targets and long economics for an entry once every row's outcome is known; None when not yet."""
+    mid, bid, ask = panel.fill_mid.to_numpy(float), panel.fill_bid.to_numpy(float), panel.fill_ask.to_numpy(float)
+    atr = panel.atr14.to_numpy(float)
+    times = pd.DatetimeIndex(panel.fill_time)
+    slip = float(spec["slippage_bps_per_execution"])
+    rows = []
+    for row in entry["rows"]:
+        i = times.get_indexer([pd.Timestamp(row["fill_time"])])[0]
+        if i < 0 or mid[i] != row["fill_mid"]:
+            raise RuntimeError("TA_JOURNAL_ROW_IDENTITY")
+        resolved = {"fill_time": row["fill_time"]}
+        for horizon in entry["horizons"]:
+            if i + horizon >= len(panel):
+                return None
+            resolved[f"target_h{horizon}"] = float((mid[i + horizon] - mid[i]) / atr[i])
+            resolved[f"forecast_h{horizon}"] = row[f"forecast_h{horizon}"]
+            for c in JOURNAL_COVERAGES:
+                resolved[f"flag_h{horizon}_cov{c}"] = row[f"flag_h{horizon}_cov{c}"]
+            gross = (bid[i + horizon] - ask[i]) / ask[i] * 1e4
+            resolved[f"long_net_bps_h{horizon}"] = float(gross - 2.0 * slip)
+        rows.append(resolved)
+    return {"month": entry["month"], "status": "RESOLVED", "rows": rows,
+            "summary": {f"h{h}": _journal_summary(rows, h) for h in entry["horizons"]}}
+
+
+def evaluate_journal_year(entries: list[dict], resolutions: dict[str, dict], spec: dict, year: int) -> dict:
+    """Preregistered within-year selective rule over a completed journal year (12 resolved months)."""
+    months = [f"{year}-{m:02d}" for m in range(1, 13)]
+    if any(m not in resolutions for m in months):
+        return {"year": year, "status": "INCOMPLETE_YEAR", "resolved_months": sum(m in resolutions for m in months)}
+    rows = [r for m in months for r in resolutions[m]["rows"]]
+    fill_time = pd.DatetimeIndex([pd.Timestamp(r["fill_time"]) for r in rows])
+    frame = pd.DataFrame({"fill_time": fill_time, "fill_mid": 0.0, "atr14": 1.0})
+    # selective_endpoints recomputes targets from fill_mid/atr14; feed the stored targets through an
+    # identity construction: mid[i+h] - mid[i] = target * atr is not reconstructible per horizon, so
+    # evaluate directly with the owner's selection and nulls per horizon.
+    sel = {"selective": {**spec["selective"], "family_inference": False}}
+    report = {"year": year, "status": "EVALUATED", "rows": int(len(rows))}
+    rng = np.random.default_rng(int(spec["selective"]["seed"]))
+    years = fill_time.year.to_numpy()
+    for horizon in spec["horizons"]:
+        f = np.array([r[f"forecast_h{horizon}"] for r in rows]); y = np.array([r[f"target_h{horizon}"] for r in rows])
+        valid = np.flatnonzero(np.isfinite(f) & np.isfinite(y) & (f != 0.0))
+        cells = {}
+        for coverage in sel["selective"]["coverage_grid"]:
+            take = _select_within_fold_year(f[valid], years[valid], float(coverage))
+            side = np.sign(f[valid][take]); yy = y[valid]
+            hit = float((side == np.sign(yy[take])).mean()); captured = float((side * yy[take]).mean())
+            shifts = rng.integers(1, len(yy), size=int(sel["selective"]["circular_shifts"]))
+            null_hit = np.array([(side == np.sign(np.roll(yy, s)[take])).mean() for s in shifts])
+            null_mean = np.array([(side * np.roll(yy, s)[take]).mean() for s in shifts])
+            block_hit, block_mean = _block_matched_long_null(yy, years[valid], take, draws=int(sel["selective"].get("block_null_draws", 0) or 1), rng=rng)
+            cells[str(coverage)] = {"rows": int(len(take)), "hit_rate": hit, "mean_captured_target_atr": captured,
+                                    "circular_shift_hit_rate_p95": float(np.quantile(null_hit, 0.95)),
+                                    "circular_shift_mean_p95": float(np.quantile(null_mean, 0.95)),
+                                    "block_null_hit_rate_p": float((block_hit >= hit).mean()),
+                                    "block_null_mean_p": float((block_mean >= captured).mean())}
+        report[f"h{horizon}"] = cells
+    return report
+
+
+def run_swing_forward_journal(spec: dict, spec_path: Path) -> dict:
+    if (spec["arm"] != "SWING_FORWARD_JOURNAL" or spec["horizons"] != [20, 5] or spec["primary_horizon"] != 20
+            or spec["test_accessed"] is not False or spec["native_training"] is not False
+            or spec["forward_journal"]["learner"] != "swing_ridge"):
+        raise RuntimeError("TA_JOURNAL_PREREG_SCOPE")
+    end = sealed_period_read_end(spec)  # raises unless the policy authorizes this journal
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=True)
+    run_dir = out / ("RUN_" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ"))
+    run_dir.mkdir(parents=False, exist_ok=False)
+    write_json(run_dir / "STARTED.json", {"git_head": git("rev-parse", "HEAD"), "preregistration": str(spec_path),
+                                         "preregistration_sha256": sha(spec_path), "sealed_period_read_end": str(end)})
+    try:
+        panel, feature_names, binding = build_journal_panel(spec)
+        if spec["feature_names"] != feature_names:
+            raise RuntimeError("TA_JOURNAL_FEATURE_NAMES_DRIFT")
+        write_parquet(run_dir / "JOURNAL_PANEL.parquet", panel)
+        scored, skipped, resolved = [], [], []
+        previous = sorted(out.glob("JOURNAL_*.json"))
+        chain = sha(previous[-1]) if previous else None
+        for month in spec["forward_journal"]["months"]:
+            path = out / f"JOURNAL_{month}.json"
+            if path.exists():
+                skipped.append(month)
+                continue
+            entry = score_journal_month(panel, feature_names, spec, month)
+            entry.update({"created_utc": datetime.now(timezone.utc).isoformat(), "git_head": git("rev-parse", "HEAD"),
+                          "preregistration_sha256": sha(spec_path), "previous_entry_sha256": chain,
+                          "panel_identity_sha256": hashlib.sha256(pd.util.hash_pandas_object(panel[["fill_time", "fill_mid", *feature_names]], index=False).to_numpy().tobytes()).hexdigest(),
+                          "sources": {k: spec[k] for k in ("cot", "oanda_panel", "drivers")}})
+            if entry["status"] == "SCORED":
+                entry["summary_at_scoring"] = {f"h{h}": _journal_summary(entry["rows"], h) for h in spec["horizons"]}
+            write_json(path, entry)
+            chain = sha(path)
+            scored.append({"month": month, "status": entry["status"], "entry_sha256": chain})
+        resolutions = {}
+        for path in sorted(out.glob("JOURNAL_*.json")):
+            entry = json.loads(path.read_text())
+            if entry["status"] != "SCORED":
+                continue
+            rpath = out / f"RESOLUTION_{entry['month']}.json"
+            if rpath.exists():
+                resolutions[entry["month"]] = json.loads(rpath.read_text())
+                continue
+            resolution = resolve_journal_month(panel, spec, entry)
+            if resolution is not None:
+                resolution.update({"created_utc": datetime.now(timezone.utc).isoformat(), "entry_sha256": sha(path)})
+                write_json(rpath, resolution)
+                resolutions[entry["month"]] = resolution
+                resolved.append(entry["month"])
+        years = sorted({int(m[:4]) for m in resolutions})
+        year_reports = {}
+        for year in years:
+            ypath = out / f"JOURNAL_YEAR_{year}.json"
+            if ypath.exists():
+                year_reports[str(year)] = json.loads(ypath.read_text())
+                continue
+            report = evaluate_journal_year([], resolutions, spec, year)
+            if report["status"] == "EVALUATED":
+                write_json(ypath, report)
+            year_reports[str(year)] = report
+        result = {"status": "COMPLETE_FORWARD_JOURNAL_RUN", "scored": scored, "skipped_already_scored": skipped,
+                  "resolved_months": resolved, "year_reports": year_reports, "inputs": binding,
+                  "feature_count": len(feature_names), "sealed_period_read_end": str(end),
+                  "test_seal_utc": spec["test_seal_utc"], "native_test_split_read": False,
+                  "preregistration_sha256": sha(spec_path), "git_head": git("rev-parse", "HEAD"),
+                  "evidence_class": "forward_scored_once_after_the_fact_fit_strictly_before_each_month",
+                  "predictor_admitted": False, "orders_sent": False}
+        write_json(run_dir / "RESULT.json", result)
+        write_json(run_dir / "TERMINAL.json", {"status": "COMPLETE", "result_sha256": sha(run_dir / "RESULT.json"),
+                                              "finished_utc": datetime.now(timezone.utc).isoformat()})
+        return result
+    except Exception as exc:
+        write_json(run_dir / "TERMINAL.json", {"status": "FAILED", "error": str(exc),
+                                              "finished_utc": datetime.now(timezone.utc).isoformat()})
+        raise
+
+
 def run_swing_pooled(spec: dict, spec_path: Path) -> dict:
     if (spec["arm"] != "SWING_POOLED_D1" or spec["horizons"] != [20, 5] or spec["primary_horizon"] != 20
             or spec["test_accessed"] is not False or spec["native_training"] is not False):
@@ -3864,7 +4204,7 @@ def run_swing_pooled(spec: dict, spec_path: Path) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files", "run-swing-d1", "run-swing-pooled"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files", "run-swing-d1", "run-swing-pooled", "run-swing-forward-journal"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -3878,7 +4218,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"run-swing-pooled": run_swing_pooled, "run-swing-d1": run_swing_d1, "fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"run-swing-forward-journal": run_swing_forward_journal, "run-swing-pooled": run_swing_pooled, "run-swing-d1": run_swing_d1, "fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0
