@@ -1,0 +1,108 @@
+{
+  "schema": "gx1_public_source_documentation_probe_manifest_v1",
+  "probe_id": "GC_DAILY_ACTIVITY_SOURCE_PROBE_20261011_001",
+  "parent_research_goal": "FULL_MACRO_B_ACTIVITY_POSITIONING_EXTENSION",
+  "registered_utc": "2026-10-11T14:05:33.675173+00:00",
+  "source_head_at_registration": "faa1faa3958c6b5e624490fb6178e4042a933c23",
+  "operator_authorization": "11.10.2026: 'daglig GC-volum og open interest er gratis fra CME ja! Dette kjører vi.' Scope admitted by this manifest: identify and document free, unrevised daily COMEX GC futures volume/open-interest sources and the CFTC COT open-interest archive, with their publication clocks and licence terms. No account, key, agreement acceptance, payment, bulk data download, model fit, period change, native change or TEST access.",
+  "evidence_scope": "Public documentation and directory-listing inventory only. Not source admission, not predictor admission, not profitability evidence. A separate manifest-bound fetch with an exact URL, byte limit, schema and availability clock is required before any series enters the research panel.",
+  "why_this_source": "Daily futures volume, open interest and delta-open-interest are activity/positioning inputs for the D1/weekly macro-B arm (positioning x price change). They are published once per day and not revised after the final report, so the provenance requirement is a documented publication lag, not an ALFRED-style vintage chain (rule 1: declared publication lag respected).",
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GC_DAILY_ACTIVITY_SOURCE_PROBE_20261011_001",
+  "method": "For each named candidate URL: one unauthenticated HTTPS HEAD, then at most one GET limited to maximum_bytes, timeout 30 s, no auto-redirect (a redirect is recorded and not followed), no retries, no alternate endpoints, no query parameters beyond those listed. Record status, headers, content-type, byte count, SHA-256 of the received prefix and the first 4 KiB as text evidence. Never parse a response as market data in this probe.",
+  "head_requests_per_source": 1,
+  "get_requests_per_source": 1,
+  "request_timeout_seconds": 30,
+  "maximum_bytes_per_get": 1048576,
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "test_read_allowed": false,
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "account_creation_allowed": false,
+  "publish_raw_data_to_git": false,
+  "candidates": [
+    {
+      "source_id": "CME_DAILY_BULLETIN_LANDING",
+      "provider": "CME Group",
+      "url": "https://www.cmegroup.com/market-data/daily-bulletin.html",
+      "expected_content": "Landing page for the Daily Bulletin (per-day PDF sections incl. metals futures volume/open interest) and any archive link.",
+      "verification_status": "CANDIDATE_UNVERIFIED",
+      "questions": [
+        "Is a historical archive linked?",
+        "Which section covers COMEX GC?",
+        "Is the format PDF-only or also CSV/XLS?",
+        "Published preliminary vs final clock?",
+        "Licence/terms for offline research use?"
+      ]
+    },
+    {
+      "source_id": "CME_BULLETIN_ARCHIVE_LISTING",
+      "provider": "CME Group",
+      "url": "https://www.cmegroup.com/ftp/bulletin/",
+      "expected_content": "HTTP mirror listing of the FTP bulletin archive, if public.",
+      "verification_status": "CANDIDATE_UNVERIFIED",
+      "questions": [
+        "Does a public listing exist?",
+        "File naming per date/section?",
+        "Earliest available date?",
+        "Zip/PDF only?"
+      ]
+    },
+    {
+      "source_id": "CME_VOLUME_OPEN_INTEREST_LANDING",
+      "provider": "CME Group",
+      "url": "https://www.cmegroup.com/market-data/volume-open-interest.html",
+      "expected_content": "Volume & Open Interest report landing page; documents report timing (preliminary/final) and any downloadable history.",
+      "verification_status": "CANDIDATE_UNVERIFIED",
+      "questions": [
+        "Downloadable historical daily series?",
+        "Depth of history in the web tool?",
+        "Final-OI publication time?"
+      ]
+    },
+    {
+      "source_id": "CME_GOLD_VOLUME_PAGE",
+      "provider": "CME Group",
+      "url": "https://www.cmegroup.com/markets/metals/precious/gold.volume.html",
+      "expected_content": "Gold futures volume/OI page (product 437).",
+      "verification_status": "CANDIDATE_UNVERIFIED",
+      "questions": [
+        "Export/CSV link?",
+        "History depth?"
+      ]
+    },
+    {
+      "source_id": "CFTC_COT_HISTORICAL_COMPRESSED",
+      "provider": "CFTC",
+      "url": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalCompressed/index.htm",
+      "expected_content": "Yearly compressed COT archives (futures-only and combined) including total open interest per market, Tuesday as-of dates.",
+      "verification_status": "CANDIDATE_UNVERIFIED",
+      "questions": [
+        "Exact file names for futures-only yearly archives?",
+        "Earliest year?",
+        "Does the archive contain the as-published values (unrevised)?"
+      ]
+    },
+    {
+      "source_id": "CFTC_COT_EXPLANATORY_NOTES",
+      "provider": "CFTC",
+      "url": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/ExplanatoryNotes/index.htm",
+      "expected_content": "Release schedule (Friday 15:30 ET for Tuesday positions) and revision policy; needed to bind the publication lag.",
+      "verification_status": "CANDIDATE_UNVERIFIED",
+      "questions": [
+        "Documented release time?",
+        "Documented correction/revision policy?"
+      ]
+    }
+  ],
+  "required_before_separate_fetch_manifest": [
+    "Exact machine-readable URL pattern per date or per year with measured earliest date",
+    "Documented publication clock (preliminary vs final) to bind availability lag per field",
+    "Licence/terms statement permitting offline research use",
+    "Per-file byte limit, schema (columns/units), contract identity (front month vs aggregate) and SHA-256 receipts"
+  ],
+  "not_admitted_by_this_probe": [
+    "Any series as predictor input",
+    "Any fit, backtest or native change",
+    "Any paid vendor, account or SDK"
+  ]
+}
