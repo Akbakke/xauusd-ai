@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-11T15:14:44.195061+00:00",
-  "status": "SWING_STAGE_A_NO_PORTFOLIO_EDGE_ONE_UNCONFIRMED_SELECTIVE_H20_HGB_EFFECT",
+  "observed_utc": "2026-10-11T15:21:19.330911+00:00",
+  "status": "SWING_STAGE_A_COMPLETE_INKONKLUSIV_RELAY_AND_STAGE_B_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Swing stage A: no portfolio edge; one unconfirmed selective h20 HGB effect (73 % hit at 1-2 % coverage, 69 % at 10 %, above circular-shift p95, all 15 years) that h5 does not confirm. Stage B needs the operator relay (FRED, GLD), HGB seeds, episode-level economics. Fresh zero-step v10 baseline still requires a new explicit budget.",
+    "current_blocker": "Swing stage A complete: no portfolio edge; the h20 HGB selective effect has hit rate above null but episode economics indistinguishable from unconditional long (64 episodes, t about 1). Stage B needs the operator relay (FRED, GLD), calendar inputs and a confirmation design with more independent episodes (longer history or pooled instruments). Fresh zero-step v10 baseline still requires a new explicit budget.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -2268,7 +2268,8 @@
       "preregistrations": [
         "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_001.json",
         "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_002.json",
-        "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_003.json"
+        "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_003.json",
+        "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_004.json"
       ],
       "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1",
       "source_commit": "4c475e92950954279cff83d0bf248aa39e3f90e8",
@@ -2482,7 +2483,115 @@
         ],
         "evidence_class": "measured on reused development history"
       },
-      "verdict": "ridge NO_GO; hgb INKONKLUSIV on the portfolio family; selective: ridge artifact refuted by within-fold selection; hgb h20 positive and unconfirmed (see attempt_003)"
+      "verdict": "ridge NO_GO; hgb INKONKLUSIV; selective h20 HGB positive on hit rate, economically unconfirmed (attempt_004)",
+      "attempt_004": {
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_004/RESULT.json",
+          "sha256": "7b4e6c01d8a409fa9e04e8ff465182c748ab67af270f9f6f3214f7b30ff3ad98"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_004/TERMINAL.json",
+          "sha256": "3b271bc6094ed4dfae3be3499ea656dffbd45f5b0c7603bfbfb51651642fa58c"
+        },
+        "source_commit": "da5df96389e724e68cea12d21a2f6ad696d4aa33",
+        "seed_sensitivity": {
+          "seeds": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h20_swing_hgb_hit_at_10pct_by_seed": {
+            "1": 0.6923076923076923,
+            "2": 0.6923076923076923,
+            "3": 0.6923076923076923
+          },
+          "finding": "identical to the last digit across seeds: HistGradientBoostingRegressor with early_stopping=False and no subsampling is deterministic, so random_state does not perturb the fit; this check is vacuous for the declared learner, the variation to test is the fold/inner-selection structure"
+        },
+        "unconditional_reference_long_20d_executable_ex_financing": {
+          "rows": 4498,
+          "mean_bps": 62.698,
+          "std_bps": 412.535,
+          "hit_rate": 0.548
+        },
+        "episode_economics_10pct_20d_one_trade_per_episode": {
+          "h20:swing_hgb": {
+            "episodes": 64,
+            "hit_rate": 0.641,
+            "mean_net_bps_ex_financing": 90.9,
+            "median": 92.0,
+            "sum": 5815,
+            "worst": -844.6,
+            "excess_over_unconditional_long_bps": 28.2,
+            "approx_t_vs_unconditional": 0.55,
+            "long_financing_estimate_bps_at_5p4": 1804
+          },
+          "h20:swing_ridge": {
+            "episodes": 124,
+            "hit_rate": 0.597,
+            "mean_net_bps_ex_financing": 88.4,
+            "median": 113.3,
+            "sum": 10956,
+            "worst": -831.9,
+            "excess_over_unconditional_long_bps": 25.7,
+            "approx_t_vs_unconditional": 0.69,
+            "long_financing_estimate_bps_at_5p4": 3400
+          },
+          "h20:a_hgb": {
+            "episodes": 91,
+            "hit_rate": 0.495,
+            "mean_net_bps_ex_financing": 28.8,
+            "median": -2.0,
+            "sum": 2616,
+            "worst": -857.5,
+            "excess_over_unconditional_long_bps": -33.9,
+            "approx_t_vs_unconditional": -0.78,
+            "long_financing_estimate_bps_at_5p4": 2572
+          },
+          "h5:swing_hgb": {
+            "episodes": 100,
+            "hit_rate": 0.45,
+            "mean_net_bps_ex_financing": -37.7,
+            "median": -33.6,
+            "sum": -3770,
+            "worst": -953.0,
+            "excess_over_unconditional_long_bps": -100.4,
+            "approx_t_vs_unconditional": -2.43,
+            "long_financing_estimate_bps_at_5p4": 2159
+          },
+          "h5:swing_ridge": {
+            "episodes": 126,
+            "hit_rate": 0.532,
+            "mean_net_bps_ex_financing": 53.9,
+            "median": 31.8,
+            "sum": 6789,
+            "worst": -831.9,
+            "excess_over_unconditional_long_bps": -8.8,
+            "approx_t_vs_unconditional": -0.24,
+            "long_financing_estimate_bps_at_5p4": 3193
+          }
+        },
+        "h20_swing_hgb_per_year_sum_net_bps": {
+          "2011": 2751.7405658782723,
+          "2012": 700.7376668471878,
+          "2013": -352.45045760915,
+          "2014": 208.41244258228778,
+          "2015": -2253.7021742016846,
+          "2016": 768.6076112454834,
+          "2017": -348.2093940363964,
+          "2018": -270.0379102200459,
+          "2019": 431.92430982639166,
+          "2020": 625.9641004465002,
+          "2021": 104.40132999342234,
+          "2022": 595.5556945891597,
+          "2023": 626.8930914417155,
+          "2024": 1725.530343594437,
+          "2025": 499.2086070646491
+        },
+        "finding": "swing_hgb h20: 64 episodes in 15 years, hit 0.64, +91 bps per episode before financing versus +63 bps for an unconditional 20-day long (same fills and slippage); excess about +28 bps with t about 0.6; 2011 (+2752) and 2015 (-2254) dominate; worst episode -845 bps. swing_ridge: 124 episodes, +88 bps, t about 0.7, although its row-level hit rate is not above the null. Economically unconfirmed",
+        "verdict": "INKONKLUSIV; the h20 HGB selective hit rate is above the circular-shift null at 1/2/10 % coverage, but its episode economics are not distinguishable from unconditional long with 64 episodes (t about 1), and h5 contradicts. Not a GO; a stage-B hypothesis",
+        "evidence_class": "measured on reused development history; descriptive economics without inference"
+      }
     }
   },
   "gc_order_flow_research_20261006": {

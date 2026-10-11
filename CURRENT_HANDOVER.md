@@ -79,6 +79,22 @@ med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
 innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
 NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
 
+## Swing stage A forsøk 004: seeds og episodeøkonomi
+
+Seeds 1–3 (f481c993, da5df963) ga bit-identiske HGB-resultater: med early_stopping
+av og uten subsampling er HistGradientBoostingRegressor deterministisk, så
+seed-kontrollen er tom for denne læreren. Episodeøkonomi ved 10 % dekning, 20
+dagers hold, én utførbar handel per episode, bid/ask og 2 bps slippage, uten
+finansiering: swing_hgb h20 64 episoder på 15 år, treff 0,64, +91 bps per episode
+mot +63 bps for ubetinget 20-dagers long med samme fyll; overskudd
++28 bps med t ≈ 0.6; 2011 (+2 752) og 2015 (−2 254) dominerer; verste
+episode −845 bps; long-finansiering ved 5,4 % ville tatt ca. 1 800 bps. swing_ridge
+124 episoder, +88 bps, t ≈ 0.7, uten at radnivå-treffen er over null. a_hgb
++29 bps, altså lik driften. h5-økonomien for swing_hgb er negativ. Verdikt:
+INKONKLUSIV. Treffraten er over null, økonomien kan ikke skilles fra ubetinget
+long med 64 episoder. Ikke GO; stage B-hypotese med behov for flere uavhengige
+episoder (lengre historikk eller pooled instrumenter) og driverne fra reléet.
+
 ## Swing stage A forsøk 003: utvalg innen hvert år
 
 Med utvalg innen hvert fold-år (2624b635, d9781e41) forsvinner ridge-effekten helt
