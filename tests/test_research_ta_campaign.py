@@ -1172,3 +1172,28 @@ def test_bounded_files_fetch_stores_bytes_with_receipts_and_rejects_nested_names
     receipt = json.loads((tmp_path / "files" / "GLD.receipt.json").read_text())
     assert receipt["raw_sha256"] == ta.sha(Path(receipt["raw_path"])) and receipt["raw_bytes"] == 29
     assert not (tmp_path / "escape.csv").exists()
+
+
+def test_relayed_bytes_replace_network_only_under_exact_hash(tmp_path, monkeypatch):
+    relay = tmp_path / "DFII10_relay.csv"
+    relay.write_bytes(b"observation_date,DFII10\n2020-01-02,0.15\n")
+    monkeypatch.setattr(ta, "urlopen", lambda *a, **k: pytest.fail("relayed item must not touch the network"))
+    monkeypatch.setattr(ta, "git", lambda *a: "deadbeef")
+    spec = {"schema": "gx1_fred_current_vintage_source_manifest_v1", "fit_allowed": False,
+            "spending_allowed": False, "test_read_allowed": False,
+            "endpoint_pattern": "https://fred.example/graph/fredgraph.csv?id={series_id}",
+            "maximum_bytes_per_series": 4096, "timeout_seconds": 60,
+            "series": [{"id": "DFII10", "reuse_download": {"path": str(relay), "sha256": ta.sha(relay)}}],
+            "output_directory": str(tmp_path / "fred")}
+    manifest = tmp_path / "fred.json"
+    manifest.write_text(json.dumps(spec))
+    result = ta.fetch_fred_current(spec, manifest)
+    assert result["item_status"] == {"DFII10": "RETRIEVED_NOT_ADMITTED"}
+    receipt = json.loads((tmp_path / "fred" / "DFII10.receipt.json").read_text())
+    assert receipt["provenance"] == "RELAYED_OPERATOR_BYTES" and receipt["final_url"].startswith("relay://")
+    tampered = dict(spec, output_directory=str(tmp_path / "fred2"))
+    tampered["series"] = [{"id": "DFII10", "reuse_download": {"path": str(relay), "sha256": "0" * 64}}]
+    manifest.write_text(json.dumps(tampered))
+    result = ta.fetch_fred_current(tampered, manifest)
+    assert result["item_status"] == {"DFII10": "FAILED"}
+    assert "TA_RELAYED_BYTES_HASH" in json.loads((tmp_path / "fred2" / "DFII10.receipt.json").read_text())["error"]

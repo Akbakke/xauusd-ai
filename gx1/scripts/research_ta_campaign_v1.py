@@ -2726,6 +2726,20 @@ def run_entry_learning_baseline(spec, spec_path):
 # no predictor admission, no TEST outcome access, no orders.
 # ---------------------------------------------------------------------------
 
+def _relayed_bytes(item: dict, *, maximum_bytes: int) -> tuple[bytes, str] | None:
+    """Bytes relayed by the operator under an exact hash; None when the item has no relay."""
+    relay = item.get("reuse_download")
+    if relay is None:
+        return None
+    path = Path(relay["path"])
+    if sha(path) != relay["sha256"]:
+        raise RuntimeError("TA_RELAYED_BYTES_HASH")
+    raw = path.read_bytes()
+    if len(raw) > int(maximum_bytes):
+        raise RuntimeError("TA_SOURCE_RESPONSE_TOO_LARGE")
+    return raw, f"relay://{path}"
+
+
 def _bounded_https_get(url: str, *, maximum_bytes: int, timeout_seconds: int) -> tuple[bytes, str]:
     """One GET, no retry, no redirect policy beyond urllib's default, size enforced before use."""
     request = Request(url, headers={"User-Agent": "GX1 offline research"})
@@ -2770,8 +2784,10 @@ def fetch_fred_current(spec: dict, spec_path: Path) -> dict:
                   "admitted_as_input_from_this_manifest": series.get("admitted_as_input_from_this_manifest", True)}
         try:
             url = spec["endpoint_pattern"].format(series_id=sid)
-            raw, final_url = _bounded_https_get(url, maximum_bytes=spec["maximum_bytes_per_series"],
-                                                timeout_seconds=spec["timeout_seconds"])
+            relayed = _relayed_bytes(series, maximum_bytes=spec["maximum_bytes_per_series"])
+            raw, final_url = relayed if relayed is not None else _bounded_https_get(
+                url, maximum_bytes=spec["maximum_bytes_per_series"], timeout_seconds=spec["timeout_seconds"])
+            record["provenance"] = "RELAYED_OPERATOR_BYTES" if relayed is not None else "DIRECT_HTTPS"
             raw_path = out / f"{sid}.csv"
             raw_path.write_bytes(raw)
             reader = csv.reader(io.StringIO(raw.decode("utf-8")))
@@ -2912,8 +2928,10 @@ def fetch_bounded_files(spec: dict, spec_path: Path) -> dict:
         record = {"item": fid, "url": item["url"], "predictor_admitted": False,
                   "revised_after_publication": item.get("revised_after_publication")}
         try:
-            raw, final_url = _bounded_https_get(item["url"], maximum_bytes=item["maximum_bytes"],
-                                                timeout_seconds=spec["timeout_seconds"])
+            relayed = _relayed_bytes(item, maximum_bytes=item["maximum_bytes"])
+            raw, final_url = relayed if relayed is not None else _bounded_https_get(
+                item["url"], maximum_bytes=item["maximum_bytes"], timeout_seconds=spec["timeout_seconds"])
+            record["provenance"] = "RELAYED_OPERATOR_BYTES" if relayed is not None else "DIRECT_HTTPS"
             raw_path = out / str(item["filename"])
             if raw_path.parent != out:
                 raise RuntimeError("TA_FILES_FILENAME")
