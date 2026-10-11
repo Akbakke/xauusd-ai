@@ -1195,15 +1195,24 @@ _D1_MACRO_ATTACH_CHUNK_ROWS = 262_144
 def _attach_d1_macro_context(enriched: pd.DataFrame, *, timeframe: str) -> pd.DataFrame:
     """Attach the ninth context family (61 D1 macro/positioning fields) as-of each decision time.
 
-    One pinned committed source spec (hash-bound in the owner); every source is cut at the
-    TEST seal because both native tapes end there. Computed in bounded row chunks so the M1
+    One pinned committed source spec (hash-bound in the owner), read up to the policy's
+    test-construction end because the sealed pair roots include the TEST split that this
+    lane constructs for sealing. Computed in bounded row chunks so the M1
     lane never holds a second full-width frame; values are stored float32 like every other
     context field. NaN before a source's first usable row is trimmed by the shared warmup
     owner together with the Group-A prefix.
     """
     spec = TIMEFRAME_SPECS[timeframe]
     label = spec["label"].upper()
-    source_spec = _d1ctx.load_d1_macro_context_source_spec(Path(__file__).resolve().parents[2])
+    repo_root = Path(__file__).resolve().parents[2]
+    source_spec = _d1ctx.load_d1_macro_context_source_spec(repo_root)
+    # The sealed native pair roots carry the TEST split this lane constructs (never reads), so
+    # the context sources are read up to the policy's explicit test-construction end; the
+    # owner refuses any end the policy block does not authorize.
+    wave = json.loads((repo_root / "NEXT_RUN_POLICY.json").read_text())["current_work"]["native_d1_wave_20261011"]
+    source_spec = dict(source_spec, native_test_construction={
+        "policy_block": "native_d1_wave_20261011", "read_end_utc": wave["test_split_context_read_end_utc"],
+    })
     components = _d1ctx.d1_macro_context_components(source_spec)
     decision_ts = decision_availability(
         enriched.index, bar_duration=spec["duration"], context=f"{label}_ENRICHED_D1_MACRO_CONTEXT",
