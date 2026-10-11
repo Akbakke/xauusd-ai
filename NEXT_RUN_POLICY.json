@@ -1967,7 +1967,58 @@
       "learning_demonstrated": false,
       "entry_edge_demonstrated": false,
       "current_native_training_coordinates_admitted": false,
-      "current_sampler_benchmark_complete": false
+      "current_sampler_benchmark_complete": false,
+      "v10_zero_step_baseline_cpu_budget_002": {
+        "budget_authorized": true,
+        "authorized": true,
+        "budget": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/PREPARATION_CPU_002/BUDGET.json",
+          "sha256": "52be2adbbc3982eccc4345660a17e74f440509ad02eb359b16c55d50127e4d7e"
+        },
+        "deadline_utc": "2026-10-11T23:30:36.080481+00:00",
+        "max_wall_seconds": 21600,
+        "new_budget_time_added": true,
+        "optimizer_authorized": false,
+        "status": "open_one_attempt",
+        "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»; program decision: native track alongside CPU research; next_action 4 fresh zero-step v10 baseline under a new explicit budget"
+      },
+      "fresh_initial_baseline_stage_v10": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/PLAN.json",
+          "sha256": "e040983a1a477c0ae2e18e7670d5f50b19baa139d64d5b108a3ec1fb5b0bbad4"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/PRODUCER_PLAN.json",
+          "sha256": "3b6f72206be6876804f5df5890cffc4a400a6c346664a0222b85b7bb3814f03c"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/produce_baseline.py",
+          "sha256": "31dac1fdf1ac54df1a4b802ee7a364870582eb03789b8358461e3d6ee2c95684"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/launch_baseline.py",
+          "sha256": "193f743185f8c9281124f3fd243c8390279549031223d6fb52f95aa711ace9cf"
+        },
+        "constructor_metadata_producer": {
+          "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_003/constructor_metadata.py",
+          "sha256": "1b3d6028b2c03dbcd1f8b4dd76381566dc629823af3c1f2daf5e732142dcfc8c"
+        },
+        "architecture_schema_version": "entry_v10_ctx_hybrid_transformer_v10",
+        "previous_stage": "fresh_initial_baseline_stage (FRESH_INITIAL_BASELINE_002, pre-v10 function, same inputs)",
+        "model_constructor_allowed": true,
+        "device": "cpu",
+        "model_forwards": 513,
+        "optimizer_steps": 0,
+        "normalization_fit_allowed": false,
+        "model_training_allowed": false,
+        "native_gpu_allowed": false,
+        "training_sampler_admission": false,
+        "relaunch_allowed": false,
+        "test_data_used": false,
+        "completed": false
+      }
     },
     "fresh_baseline_coordinates_published": true,
     "current_generation_initial_baseline": {
