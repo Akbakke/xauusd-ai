@@ -3020,12 +3020,17 @@ def parse_cot_gold_archives(spec: dict) -> pd.DataFrame:
     return frame
 
 
-def align_asof(panel_times: pd.DatetimeIndex, available_at: pd.Series, values: pd.DataFrame) -> pd.DataFrame:
-    """Last row whose availability is strictly before each decision; NaN before the first."""
+def align_asof(panel_times: pd.DatetimeIndex, available_at: pd.Series, values: pd.DataFrame,
+               *, inclusive: bool = False) -> pd.DataFrame:
+    """Last row available before each decision (strictly, or at the decision when inclusive); NaN before the first.
+
+    Known values are carried between publications, as the macro components do; a
+    row is never filled from a later observation.
+    """
     avail = pd.DatetimeIndex(available_at)
     if not avail.is_monotonic_increasing:
         raise RuntimeError("TA_SWING_ALIGN_ORDER")
-    pos = avail.searchsorted(panel_times, side="left") - 1
+    pos = avail.searchsorted(panel_times, side="right" if inclusive else "left") - 1
     out = pd.DataFrame(index=range(len(panel_times)), columns=values.columns, dtype=float)
     ok = pos >= 0
     out.loc[ok, :] = values.to_numpy(float)[pos[ok]]
@@ -3106,10 +3111,13 @@ def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
         panel[column] = cot_fields[column].to_numpy(float)
     groups["positioning_cot"] = list(SWING_COT_FIELDS)
     daily = load_oanda_panel_d1(spec)
-    opens = pd.DatetimeIndex(panel["session_open"])
+    decisions = pd.DatetimeIndex(panel["decision_time"])
     panel_fields = []
     for name, features in daily.items():
-        joined = features.reindex(opens)
+        # Instrument bars close at label + session; the last closed bar at or before the XAU
+        # decision is carried across that instrument's holidays (no fill from later bars).
+        closes = pd.Series(pd.DatetimeIndex(features.index) + TRADING_SESSION_DURATION)
+        joined = align_asof(decisions, closes, features, inclusive=True)
         for column in features.columns:
             panel[column] = joined[column].to_numpy(float)
             panel_fields.append(column)

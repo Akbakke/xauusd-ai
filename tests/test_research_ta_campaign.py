@@ -1265,3 +1265,15 @@ def test_swing_selective_endpoints_measure_hit_rate_against_both_nulls():
     assert block["status"] == "MEASURED" and block["rank_ic"] > 0.99
     assert block["coverage"]["1.0"]["hit_rate"] == 1.0 and block["coverage"]["0.25"]["hit_rate_above_shift_p95"]
     assert "constant" not in "".join(report)
+
+
+def test_swing_panel_asof_carries_instrument_holidays_without_future_fill():
+    decisions = pd.DatetimeIndex(["2020-01-02T22:00Z", "2020-01-03T22:00Z", "2020-01-06T22:00Z", "2020-01-07T22:00Z"])
+    # instrument closed on 01-03 (no bar); bars close 24 h after their 22:00 label
+    labels = pd.DatetimeIndex(["2020-01-01T22:00Z", "2020-01-05T22:00Z", "2020-01-06T22:00Z"])
+    values = pd.DataFrame({"x_logret_1D": [0.1, 0.2, 0.3]}, index=labels)
+    closes = pd.Series(labels + ta.TRADING_SESSION_DURATION)
+    out = ta.align_asof(decisions, closes, values, inclusive=True)
+    assert out["x_logret_1D"].tolist() == [0.1, 0.1, 0.2, 0.3]
+    strict = ta.align_asof(decisions, closes, values, inclusive=False)
+    assert np.isnan(strict["x_logret_1D"].iloc[0]) and strict["x_logret_1D"].tolist()[1:] == [0.1, 0.1, 0.2]
