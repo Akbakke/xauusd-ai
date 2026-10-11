@@ -295,11 +295,8 @@ def _build_fixture(tmp_path: Path, *, smoke_manifest_provenance: bool = True) ->
             },
         },
     )
-    specialist_indices = {name: [] for name in readiness.REQUIRED_SPECIALISTS}
-    for index in range(MODEL_NATIVE_SIGNAL_DIM):
-        specialist_indices[
-            readiness.REQUIRED_SPECIALISTS[index % len(readiness.REQUIRED_SPECIALISTS)]
-        ].append(index)
+    from tests.model_native_context_routing_support import specialist_indices_with_alias_slots
+    specialist_indices = specialist_indices_with_alias_slots(MODEL_NATIVE_SIGNAL_DIM)
     specialist_liveness = [
         {
             "split": split,

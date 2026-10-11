@@ -670,6 +670,8 @@ def test_specialist_audit_recomputes_and_rejects_same_group_mandatory_swap(
 # NOT VACUOUS: the expected side is a frozen literal, not a re-read of the
 # module's own tables, so it fails if the routing arithmetic changes.
 # ---------------------------------------------------------------------------
+from gx1.features.d1_macro_context_v1 import D1_MACRO_CONTEXT_FIELDS as _D1_MACRO_CONTEXT_FIELDS  # noqa: E402
+
 EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
     "structure_swing_encoder": (
         # 2026-09-21 (F-18): the sided CHoCH flags on the local clock.
@@ -894,6 +896,12 @@ EXPECTED_LIVE_SPECIALIST_ROUTING: dict[str, tuple[str, ...]] = {
         "vol_z_20",
     ),
     "session_regime_encoder": (
+        # ADJUDICATED 2026-10-11 (operator decision «Ja, gjør begge» / «kjør 3, 4 og 5»):
+        # the D1 macro/positioning family (COT, cross-asset panel, macro drivers) is
+        # regime context; the model contract requires every specialist to own
+        # sequence, multi-timeframe and context partitions, so a context-only
+        # encoder would be new architecture. One owner for all 61 fields.
+        *(f"ctx_cont.{name}" for name in _D1_MACRO_CONTEXT_FIELDS),
         "ctx_cat.session_id",
         "ctx_cont.dow_sin",
         "ctx_cont.hour_cos",

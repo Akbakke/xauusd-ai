@@ -1000,6 +1000,47 @@ def _utc_now_iso() -> str:
     return datetime.utcnow().isoformat() + "Z"
 
 
+from gx1.features import d1_macro_context_v1 as _d1ctx  # noqa: E402
+from gx1.contracts import entry_observed_market_horizons_v1 as _hz  # noqa: E402
+
+TRADING_DAY_HORIZON_LABEL_COLUMNS: tuple[str, ...] = tuple(
+    column
+    for h in _hz.OBSERVATION_HORIZONS_TRADING_DAYS
+    for column in (*_hz.GROSS_TARGET_COLUMNS_BY_HORIZON[h], _hz.ELAPSED_COLUMN_BY_HORIZON[h])
+)
+
+
+def _trading_day_horizon_label_frame(
+    *, m5_decision_times: pd.Series | pd.DatetimeIndex, closed_m1: pd.DataFrame, split_end: pd.Timestamp,
+) -> pd.DataFrame:
+    """One row per M5 decision with the 1/5/20 trading-day gross outcomes and elapsed seconds.
+
+    A horizon whose exit lies beyond the split end, or whose target session lacks the entry's
+    offset, is NaN for that row: the row stays valid history and may still supervise the
+    other targets; the trainer-side owner masks NaN per horizon. Nothing is filled.
+    """
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import build_entry_m1_fill_surface
+    surface = build_entry_m1_fill_surface(m5_decision_times=m5_decision_times, closed_m1=closed_m1)
+    out = pd.DataFrame({"time": surface["time"].to_numpy()})
+    end = pd.Timestamp(split_end)
+    end = end.tz_localize("UTC") if end.tzinfo is None else end.tz_convert("UTC")
+    for h in _hz.OBSERVATION_HORIZONS_TRADING_DAYS:
+        o = _hz.causal_m1_terminal_outcomes_at_trading_days(fill_surface=surface, closed_m1=closed_m1, horizon_trading_days=h)
+        exit_at = pd.DatetimeIndex(pd.to_datetime(o["exit_decision_at"], utc=True))
+        keep = o["outcome_valid"].to_numpy(bool) & np.asarray(exit_at.notna()) & np.asarray(exit_at <= end)
+        long_col, short_col = _hz.GROSS_TARGET_COLUMNS_BY_HORIZON[h]
+        elapsed_col = _hz.ELAPSED_COLUMN_BY_HORIZON[h]
+        for column, source in ((long_col, long_col), (short_col, short_col)):
+            values = o[source].to_numpy(np.float64)
+            values = np.where(keep, values, np.nan)
+            out[column] = values.astype(np.float32)
+        elapsed = o[elapsed_col].to_numpy(np.float64)
+        out[elapsed_col] = np.where(keep, elapsed, np.nan).astype(np.float32)
+    if list(out.columns) != ["time", *TRADING_DAY_HORIZON_LABEL_COLUMNS]:
+        raise RuntimeError("TRADING_DAY_HORIZON_LABEL_COLUMNS_ORDER")
+    return out
+
+
 def _hard_gate_model_native_context() -> Dict[str, Any]:
     """Return the exact Entry-owned context contract or fail closed."""
 
@@ -3176,6 +3217,7 @@ def build_dataset_canonical(
     entry_position_size_target_policy: Mapping[str, Any],
     closed_m1: pd.DataFrame,
     canonical_v2_parquet: Path,
+    d1_macro_context: Mapping[str, Any],
     seq_structure_manifest_path: Path,
     m5_feature_surface_times: pd.DatetimeIndex,
     m5_feature_surface_arrays: Mapping[str, np.ndarray],
@@ -3654,6 +3696,23 @@ def build_dataset_canonical(
         )
     )
     del _causal_m1_labels_complete_after_join
+    # Operator decision 11.10.2026: trading-day horizon outcomes (1/5/20 observed sessions)
+    # from the same M1 source, left-joined on the preserved feature timeline; NaN where the
+    # exit would cross this split's boundary or the target session lacks the entry offset.
+    _horizon_frame = _trading_day_horizon_label_frame(
+        m5_decision_times=merged["time"], closed_m1=closed_m1, split_end=end,
+    )
+    _overlap = set(merged2.columns) & set(TRADING_DAY_HORIZON_LABEL_COLUMNS)
+    if _overlap:
+        raise RuntimeError(f"TRADING_DAY_HORIZON_LABEL_OWNER_OVERLAP: {sorted(_overlap)}")
+    merged2 = merged2.merge(_horizon_frame, on="time", how="left", validate="one_to_one")
+    log.info(
+        "[TRADING_DAY_HORIZON_LABELS] rows=%d valid_h1=%d valid_h5=%d valid_h20=%d",
+        len(merged2),
+        int(np.isfinite(merged2[_hz.ELAPSED_COLUMN_BY_HORIZON[1]].to_numpy(np.float64)).sum()),
+        int(np.isfinite(merged2[_hz.ELAPSED_COLUMN_BY_HORIZON[5]].to_numpy(np.float64)).sum()),
+        int(np.isfinite(merged2[_hz.ELAPSED_COLUMN_BY_HORIZON[20]].to_numpy(np.float64)).sum()),
+    )
 
     # Re-attach ctx to merged2 (align by time)
     df_ctx = pd.DataFrame({"time": df["time"].to_numpy()})
@@ -3946,9 +4005,41 @@ def build_dataset_canonical(
     _causal_group_a_warmup_rows = int(
         merged3.attrs.get("causal_context_warmup_rows", 0)
     )
+    # Operator decision 11.10.2026: the ninth context family (D1 macro/positioning) joined
+    # as-of to each M5 decision time by its owner; part of the causal warmup trim below.
+    _d1_decisions = pd.DatetimeIndex(pd.to_datetime(merged3["time"], utc=True)) + pd.Timedelta(minutes=5)
+    _d1_frame = _d1ctx.build_d1_macro_context(_d1_decisions, d1_macro_context["components"])
+    _d1_present = [name for name in _d1ctx.D1_MACRO_CONTEXT_FIELDS if name in merged3.columns]
+    if _d1_present and len(_d1_present) != _d1ctx.D1_MACRO_CONTEXT_DIM:
+        raise RuntimeError(f"D1_MACRO_CONTEXT_PARTIAL_SOURCE: {len(_d1_present)} of {_d1ctx.D1_MACRO_CONTEXT_DIM}")
+    if _d1_present:
+        # The enriched lane materialized the family (float32); the builder recomputes it from the
+        # pinned sources and requires bit parity at float32, exactly like the Group-A recompute.
+        _d1_mismatch = {}
+        for _name in _d1ctx.D1_MACRO_CONTEXT_FIELDS:
+            _lane = merged3[_name].to_numpy(np.float32)
+            _own = _d1_frame[_name].to_numpy(np.float64).astype(np.float32)
+            _bad = ~((_lane == _own) | (np.isnan(_lane) & np.isnan(_own)))
+            if _bad.any():
+                _d1_mismatch[_name] = int(_bad.sum())
+        if _d1_mismatch:
+            raise RuntimeError(f"D1_MACRO_CONTEXT_PARITY_MISMATCH: {_d1_mismatch}")
+        _d1_mode = "parity_with_enriched_lane"
+    else:
+        for _name in _d1ctx.D1_MACRO_CONTEXT_FIELDS:
+            merged3[_name] = _d1_frame[_name].to_numpy(np.float64).astype(np.float32)
+        _d1_mode = "attached_by_builder"
+    _d1_macro_context_meta = {**_d1ctx.d1_macro_context_binding(d1_macro_context["spec"], _d1_frame), "mode": _d1_mode}
+    del _d1_frame
+    log.info(
+        "[D1_MACRO_CONTEXT] mode=%s fields=%d complete_rows=%d first_complete=%s",
+        _d1_mode, _d1ctx.D1_MACRO_CONTEXT_DIM, _d1_macro_context_meta["complete_rows"],
+        _d1_macro_context_meta["first_complete_decision_time"],
+    )
     _causal_required = list(
         dict.fromkeys(
             _group_a_required
+            + list(_d1ctx.D1_MACRO_CONTEXT_FIELDS)
             + list(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS)
             # Honest five-row local change/EMA prefix from the sole micro
             # owner; never rely on a longer unrelated warmup to hide it.
@@ -4185,6 +4276,12 @@ def build_dataset_canonical(
         )
     _pnl_long_at_h = merged3[_dir_long_col].astype(np.float32).to_numpy()
     _pnl_short_at_h = merged3[_dir_short_col].astype(np.float32).to_numpy()
+    _missing_horizon = [c for c in TRADING_DAY_HORIZON_LABEL_COLUMNS if c not in merged3.columns]
+    if _missing_horizon:
+        raise RuntimeError(f"TRADING_DAY_HORIZON_LABELS_MISSING: {_missing_horizon}")
+    _horizon_arrays = {
+        name: merged3[name].to_numpy(np.float32) for name in TRADING_DAY_HORIZON_LABEL_COLUMNS
+    }
 
     _direction_targets = causal_m1_direction_targets_from_policy(
         policy=direction_target_policy,
@@ -4878,6 +4975,7 @@ def build_dataset_canonical(
                 "bad_path_short_first_n": float(_bad_path_short[i]),
                 "y_long_final_pnl_at_direction_horizon_bps": _pnl_long_at_h[i],
                 "y_short_final_pnl_at_direction_horizon_bps": _pnl_short_at_h[i],
+                **{name: float(arr[i]) for name, arr in _horizon_arrays.items()},
                 "y_direction_target_mode_id": ENTRY_DIRECTION_TARGET_MODE_ID,
                 "y_direction_long_score_bps": y_long_path_utility_bps[i],
                 "y_direction_short_score_bps": y_short_path_utility_bps[i],
@@ -4974,6 +5072,16 @@ def build_dataset_canonical(
         "causal_context_warmup_rows_trimmed": int(_causal_context_warmup_rows_trimmed),
         "causal_group_a_warmup_rows": int(_causal_group_a_warmup_rows),
         "group_a_checkpoint": _group_a_checkpoint_meta,
+        "d1_macro_context": _d1_macro_context_meta,
+        "observed_market_horizons": {
+            "contract": _hz.entry_observed_market_horizons_contract(),
+            "label_columns": list(TRADING_DAY_HORIZON_LABEL_COLUMNS),
+            "emitted_rows_with_target_by_horizon": {
+                str(h): int(np.isfinite(_horizon_arrays[_hz.ELAPSED_COLUMN_BY_HORIZON[h]][emit_mask]).sum())
+                for h in _hz.OBSERVATION_HORIZONS_TRADING_DAYS
+            },
+            "censored_or_boundary_rows_are_nan": True,
+        },
         "multi_tf_cache_binding": _multi_tf_cache_binding,
         "clean_history_rows_before_emission": int(pre_emit_history_rows),
         "seq_len": int(seq_len),
@@ -6159,6 +6267,18 @@ def main() -> None:
     # Each split is emitted from the same history anchor.  The computation end
     # advances only to that split's own boundary, so no later split can affect
     # either features or labels and label horizons cannot cross a boundary.
+    # Ninth context family sources: one pinned committed spec; TRAIN/VAL cut at the TEST seal,
+    # the TEST split constructed under the policy's explicit test-construction read end.
+    _d1_repo_root = Path(__file__).resolve().parents[2]
+    _d1_spec = _d1ctx.load_d1_macro_context_source_spec(_d1_repo_root)
+    _d1_pre_seal = {"spec": _d1_spec, "components": _d1ctx.d1_macro_context_components(_d1_spec)}
+    _d1_by_split = {"train": _d1_pre_seal, "val": _d1_pre_seal}
+    if not args.pretest_only:
+        _d1_test_spec = dict(_d1_spec, native_test_construction={
+            "policy_block": "native_d1_wave_20261011",
+            "read_end_utc": (pd.Timestamp(test_end) + pd.Timedelta(days=1)).isoformat(),
+        })
+        _d1_by_split["test"] = {"spec": _d1_test_spec, "components": _d1ctx.d1_macro_context_components(_d1_test_spec)}
     for split_name, (s0, s1) in {
         "train": (train_start, train_effective_end),
         "val": (val_start, val_effective_end),
@@ -6175,6 +6295,7 @@ def main() -> None:
         )
         out = out_dir / f"{stem}_{split_name}.parquet"
         df_built, meta = build_dataset_canonical(
+            d1_macro_context=_d1_by_split[split_name],
             source_parquet=source_parquet_path,
             tape_root=tape_root,
             tape_provenance=xau_tape_provenance,

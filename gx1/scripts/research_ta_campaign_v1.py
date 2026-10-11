@@ -2696,7 +2696,8 @@ def run_entry_learning_baseline(spec, spec_path):
             for side,name in enumerate(("long","short","flat")):
                 frame["target_"+name]=targets[split][selection,side]
                 frame["prediction_"+name]=predictions[offset:offset+len(selection),side]
-            frames.append(frame);offset+=len(selection)
+            frames.append(frame)
+            offset+=len(selection)
         write_parquet(out/"PREDICTIONS.parquet",pd.concat(frames,ignore_index=True))
         result={"schema_version":"gx1_entry_learning_study_baseline_v1","status":"COMPLETE",
             "plan":{"path":str(spec_path),"sha256":sha(spec_path)},"source_commit":head,
@@ -2970,10 +2971,12 @@ SWING_COT_HEADER = {
     "comm_long": "Commercial Positions-Long (All)",
     "comm_short": "Commercial Positions-Short (All)",
 }
-SWING_COT_FIELDS = ["cot_noncommercial_net_over_oi", "cot_change4reports",
-                    "cot_open_interest_log_change4reports", "cot_commercial_net_over_oi"]
-SWING_PANEL_RETURN_DAYS = (1, 5, 20)
-SWING_PANEL_RV_DAYS = 20
+# Field names and panel clock are owned by the native context owner (one truth for research and native).
+from gx1.features.d1_macro_context_v1 import (  # noqa: E402
+    D1_MACRO_COT_FIELDS as _D1_COT, D1_MACRO_DRIVER_FIELDS as _D1_DRIVERS,
+    D1_MACRO_PANEL_RETURN_DAYS as SWING_PANEL_RETURN_DAYS, D1_MACRO_PANEL_RV_DAYS as SWING_PANEL_RV_DAYS,
+)
+SWING_COT_FIELDS = list(_D1_COT)
 SWING_D1_LANE_EXCLUDED_PREFIXES = ("mtf_candle_",)
 
 
@@ -3178,11 +3181,7 @@ def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
 # day D+1 America/New_York", declared once here, never inferred per row.
 # ---------------------------------------------------------------------------
 
-SWING_DRIVER_FIELDS = ["real10y_level", "real10y_change1D", "real10y_change5D", "real10y_change21D",
-                       "nominal10y_level", "slope10y2y_level", "slope10y2y_change21D",
-                       "breakeven10y_level", "breakeven10y_change21D",
-                       "vix_log_level", "vix_log_change5D",
-                       "gld_log_level", "gld_log_change21D"]
+SWING_DRIVER_FIELDS = list(_D1_DRIVERS)
 NY_TZ = "America/New_York"
 
 
@@ -3203,6 +3202,16 @@ def _forward_journal_policy() -> dict:
 def sealed_period_read_end(spec: dict) -> pd.Timestamp:
     """TEST seal, or the journal's bound end when the policy authorizes exactly this journal."""
     seal = pd.Timestamp(spec["test_seal_utc"])
+    construction = spec.get("native_test_construction")
+    if construction is not None:
+        # Native TEST split construction (never read for fitting): the policy block names the
+        # exact read end for context sources; the builder passes this only for the TEST split.
+        policy = json.loads((ROOT / "NEXT_RUN_POLICY.json").read_text())["current_work"].get(construction["policy_block"], {})
+        end = pd.Timestamp(construction["read_end_utc"])
+        if (policy.get("test_split_context_construction_authorized") is not True
+                or end > pd.Timestamp(policy["test_split_context_read_end_utc"])):
+            raise RuntimeError("TA_NATIVE_TEST_CONSTRUCTION_NOT_AUTHORIZED")
+        return max(seal, end)
     journal = spec.get("forward_journal")
     if journal is None:
         return seal
@@ -3992,7 +4001,8 @@ def _journal_summary(rows: list[dict], horizon: int) -> dict:
     known = [r for r in rows if r.get(f"target_h{horizon}") is not None]
     if not known:
         return {"rows_with_known_target": 0}
-    f = np.array([r[f"forecast_h{horizon}"] for r in known]); y = np.array([r[f"target_h{horizon}"] for r in known])
+    f = np.array([r[f"forecast_h{horizon}"] for r in known])
+    y = np.array([r[f"target_h{horizon}"] for r in known])
     out = {"rows_with_known_target": int(len(known)), "rank_ic": float(pd.Series(f).rank().corr(pd.Series(y).rank())) if len(known) > 2 else None,
            "long_share": float((f > 0).mean()), "hit_rate_all_rows": float((np.sign(f) == np.sign(y)).mean()),
            "always_long_hit_rate": float((y > 0).mean())}
@@ -4037,7 +4047,6 @@ def evaluate_journal_year(entries: list[dict], resolutions: dict[str, dict], spe
         return {"year": year, "status": "INCOMPLETE_YEAR", "resolved_months": sum(m in resolutions for m in months)}
     rows = [r for m in months for r in resolutions[m]["rows"]]
     fill_time = pd.DatetimeIndex([pd.Timestamp(r["fill_time"]) for r in rows])
-    frame = pd.DataFrame({"fill_time": fill_time, "fill_mid": 0.0, "atr14": 1.0})
     # selective_endpoints recomputes targets from fill_mid/atr14; feed the stored targets through an
     # identity construction: mid[i+h] - mid[i] = target * atr is not reconstructible per horizon, so
     # evaluate directly with the owner's selection and nulls per horizon.
@@ -4046,13 +4055,16 @@ def evaluate_journal_year(entries: list[dict], resolutions: dict[str, dict], spe
     rng = np.random.default_rng(int(spec["selective"]["seed"]))
     years = fill_time.year.to_numpy()
     for horizon in spec["horizons"]:
-        f = np.array([r[f"forecast_h{horizon}"] for r in rows]); y = np.array([r[f"target_h{horizon}"] for r in rows])
+        f = np.array([r[f"forecast_h{horizon}"] for r in rows])
+        y = np.array([r[f"target_h{horizon}"] for r in rows])
         valid = np.flatnonzero(np.isfinite(f) & np.isfinite(y) & (f != 0.0))
         cells = {}
         for coverage in sel["selective"]["coverage_grid"]:
             take = _select_within_fold_year(f[valid], years[valid], float(coverage))
-            side = np.sign(f[valid][take]); yy = y[valid]
-            hit = float((side == np.sign(yy[take])).mean()); captured = float((side * yy[take]).mean())
+            side = np.sign(f[valid][take])
+            yy = y[valid]
+            hit = float((side == np.sign(yy[take])).mean())
+            captured = float((side * yy[take]).mean())
             shifts = rng.integers(1, len(yy), size=int(sel["selective"]["circular_shifts"]))
             null_hit = np.array([(side == np.sign(np.roll(yy, s)[take])).mean() for s in shifts])
             null_mean = np.array([(side * np.roll(yy, s)[take]).mean() for s in shifts])
@@ -4165,7 +4177,8 @@ def audit_d1_macro_context(spec: dict, spec_path: Path) -> dict:
         journal = pd.read_parquet(jp["path"])
         pre = journal.loc[pd.DatetimeIndex(journal["decision_time"]) < seal].reset_index(drop=True)
         built = ctx.build_d1_macro_context(pd.DatetimeIndex(pre["decision_time"]), components)
-        expected = pre[fields].to_numpy(np.float64); got = built[fields].to_numpy(np.float64)
+        expected = pre[fields].to_numpy(np.float64)
+        got = built[fields].to_numpy(np.float64)
         parity_equal = bool(np.array_equal(expected, got, equal_nan=True))
         mismatch = {}
         if not parity_equal:
@@ -4192,8 +4205,10 @@ def audit_d1_macro_context(spec: dict, spec_path: Path) -> dict:
         rng = np.random.default_rng(int(spec["seed"]))
         candidates = np.flatnonzero(complete)
         sample = np.sort(rng.choice(candidates, size=min(int(spec["sample_rows"]), len(candidates)), replace=False))
-        cot = components["cot"]; drivers = components["drivers"]
-        cot_avail = pd.DatetimeIndex(cot["available_at"]); drv_avail = pd.DatetimeIndex(drivers["available_at"])
+        cot = components["cot"]
+        drivers = components["drivers"]
+        cot_avail = pd.DatetimeIndex(cot["available_at"])
+        drv_avail = pd.DatetimeIndex(drivers["available_at"])
         checks = {"cot": 0, "drivers": 0, "panel": 0}
         for i in sample:
             t = times[i]

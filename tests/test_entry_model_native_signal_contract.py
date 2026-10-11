@@ -22,6 +22,7 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME,
     MODEL_NATIVE_CTX_CONT_REGIME_FIELDS,
+    MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS,
     MODEL_NATIVE_CTX_CONT_DIM,
     MODEL_NATIVE_MANDATORY_FULL_STACK_SCHEMA_VERSION,
     MODEL_NATIVE_SIGNAL_DIM,
@@ -376,8 +377,11 @@ def test_active_context_contract_always_contains_full_regime_stack(
     assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM
     assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
+    # v13: the D1 macro/positioning family is appended after the regime stack.
+    d1 = len(MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS)
+    assert MODEL_NATIVE_CTX_CONT_FIELDS[-d1:] == MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS
     assert MODEL_NATIVE_CTX_CONT_FIELDS[
-        -len(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS) :
+        -d1 - len(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS) : -d1
     ] == (MODEL_NATIVE_CTX_CONT_REGIME_FIELDS)
     assert "trend_regime_id" not in MODEL_NATIVE_CTX_CAT_FIELDS
     assert tuple(context["ctx_cont_names"]) == MODEL_NATIVE_CTX_CONT_FIELDS

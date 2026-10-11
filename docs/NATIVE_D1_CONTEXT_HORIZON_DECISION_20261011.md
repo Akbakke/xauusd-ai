@@ -37,11 +37,18 @@ uavhengig Entry-læring.
 
 ## Vedtatt endring B: ny kontekstfamilie «D1 macro/positioning»
 
-Eier: én ny spesialisteier i `gx1/features/entry_specialist_feature_groups_v1.py`
-og nye `MODEL_NATIVE_CTX_CONT_*`-felt i `entry_model_native_signal_v1.py`
-(regel 19: hvert kontekstfelt har nøyaktig én eier). Feltene er de samme som
-forskningsflaten, med samme tilgjengelighetsregler, lest fra de samme
-manifestbundne kildene:
+Eier: feltnavn og as-of-join i `gx1/features/d1_macro_context_v1.py`,
+tilføyd som `MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS` i
+`entry_model_native_signal_v1.py` (kontekstskjema v13). Spesialisteier er
+`session_regime_encoder` for alle 61 felt (regel 19: nøyaktig én eier): modell-
+kontrakten krever at hver spesialist eier sekvens-, MTF- og kontekstpartisjoner,
+så en kontekst-bare encoder ville vært ny arkitektur, som vedtaket ikke åpner.
+Fordi signalkontrakten eksponerer hvert kontinuerlig kontekstfelt til den lokale
+sekvens-/snapshot-stien (regel 13: dimensjoner avledes av eiere), vokser
+signalflaten fra 254 til 315 felt (signalskjema v39); de 61 feltene er
+trappefunksjoner innen M5-vinduet. Feltene er de samme som forskningsflaten,
+med samme tilgjengelighetsregler, lest fra de samme manifestbundne kildene
+(pinnet kildespesifikasjon `configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json`):
 
 | Gruppe | Felt | Tilgjengelig ved M5-beslutning |
 |---|---|---|
@@ -54,7 +61,14 @@ manifestbundne kildene:
 - Normalisering tilpasses én gang på hele fysiske TRAIN (regel 18); VAL/TEST
   og serve refitter aldri. Kategoriske domener uendret.
 - Åtte eksisterende familier består uendret (regel 4). Dette er en niende
-  kontekstfamilie, ikke en erstatning.
+  inputfamilie (datalinje), rutet til sesjons-/regime-spesialisten, ikke en
+  erstatning og ikke en ny encoder.
+- Materialisering: den berikede M1-/M5-lane-produsenten
+  (`build_entry_exit_m1_enriched_frame_v1`) legger feltene på hver rad i
+  avgrensede biter som float32; datasett-builderen regner dem på nytt fra de
+  pinnede kildene og krever bitparitet (som Group-A), og legger dem selv på
+  bare når en splits kilde mangler dem (TEST-konstruksjon under policyens
+  eksplisitte leseslutt).
 - Train = serve (regel 6): serving-ruten må bygge de samme feltene fra de
   samme as-of-reglene før noen paritetshendelse kan bestås.
 

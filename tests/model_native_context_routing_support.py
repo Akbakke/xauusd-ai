@@ -53,6 +53,31 @@ _FILLER_PREFIX_BY_SPECIALIST = {
 }
 
 
+def specialist_indices_with_alias_slots(signal_dim: int) -> dict[str, list[int]]:
+    """Deterministic specialist partition of ``signal_dim`` slots.
+
+    Each specialist first receives as many slots as temporal-alias signal fields it
+    owns (the D1 macro family gives the session/regime specialist 61 of them), so
+    ``ordered_signal_names_for_specialist_indices`` can always place every alias in its
+    owner's partition; the remaining slots are dealt round-robin.
+    """
+    needed = {name: 0 for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    for alias in TEMPORAL_ALIAS_SIGNAL_FIELDS:
+        needed[classify_entry_specialist_feature(alias)] += 1
+    grouped = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    cursor = 0
+    if sum(needed.values()) > signal_dim:
+        # A deliberately narrow synthetic width carries no alias population; deal it round-robin.
+        needed = {name: 0 for name in needed}
+    for name in MODEL_NATIVE_TRAINING_SPECIALISTS:
+        for _ in range(needed[name]):
+            grouped[name].append(cursor)
+            cursor += 1
+    for index in range(cursor, signal_dim):
+        grouped[MODEL_NATIVE_TRAINING_SPECIALISTS[index % len(grouped)]].append(index)
+    return grouped
+
+
 def ordered_signal_names_for_specialist_indices(
     specialist_indices: dict[str, list[int]],
     *,

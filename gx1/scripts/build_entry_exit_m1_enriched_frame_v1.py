@@ -71,6 +71,7 @@ from gx1.features.htf_features import (  # noqa: E402
     validate_causal_feature_matrix,
 )
 from gx1.time.session_detector import decision_availability  # noqa: E402
+from gx1.features import d1_macro_context_v1 as _d1ctx  # noqa: E402
 from gx1.scripts.augment_forward_outcome_v2 import (  # noqa: E402
     attach_group_a_ctx_columns_parallel,
     trim_causal_context_warmup_prefix,
@@ -1188,6 +1189,49 @@ def _finish_model_native_surface(
     return enriched
 
 
+_D1_MACRO_ATTACH_CHUNK_ROWS = 262_144
+
+
+def _attach_d1_macro_context(enriched: pd.DataFrame, *, timeframe: str) -> pd.DataFrame:
+    """Attach the ninth context family (61 D1 macro/positioning fields) as-of each decision time.
+
+    One pinned committed source spec (hash-bound in the owner); every source is cut at the
+    TEST seal because both native tapes end there. Computed in bounded row chunks so the M1
+    lane never holds a second full-width frame; values are stored float32 like every other
+    context field. NaN before a source's first usable row is trimmed by the shared warmup
+    owner together with the Group-A prefix.
+    """
+    spec = TIMEFRAME_SPECS[timeframe]
+    label = spec["label"].upper()
+    source_spec = _d1ctx.load_d1_macro_context_source_spec(Path(__file__).resolve().parents[2])
+    components = _d1ctx.d1_macro_context_components(source_spec)
+    decision_ts = decision_availability(
+        enriched.index, bar_duration=spec["duration"], context=f"{label}_ENRICHED_D1_MACRO_CONTEXT",
+    )
+    overlap = [name for name in _d1ctx.D1_MACRO_CONTEXT_FIELDS if name in enriched.columns]
+    if overlap:
+        raise RuntimeError(f"{label}_ENRICHED_D1_MACRO_CONTEXT_OWNER_OVERLAP: {overlap[:5]}")
+    rows = len(enriched)
+    columns = {name: np.empty(rows, dtype=np.float32) for name in _d1ctx.D1_MACRO_CONTEXT_FIELDS}
+    for start in range(0, rows, _D1_MACRO_ATTACH_CHUNK_ROWS):
+        stop = min(rows, start + _D1_MACRO_ATTACH_CHUNK_ROWS)
+        chunk = _d1ctx.build_d1_macro_context(pd.DatetimeIndex(decision_ts[start:stop]), components)
+        for name in _d1ctx.D1_MACRO_CONTEXT_FIELDS:
+            columns[name][start:stop] = chunk[name].to_numpy(np.float64).astype(np.float32)
+        del chunk
+    for name in _d1ctx.D1_MACRO_CONTEXT_FIELDS:
+        enriched[name] = columns[name]
+    complete = np.isfinite(np.column_stack([columns[name] for name in _d1ctx.D1_MACRO_CONTEXT_FIELDS])).all(axis=1)
+    print(
+        f"[{label.lower()}_enriched_d1_macro_context] fields={_d1ctx.D1_MACRO_CONTEXT_DIM} rows={rows} "
+        f"complete_rows={int(complete.sum())} "
+        f"first_complete={str(decision_ts[int(np.argmax(complete))]) if complete.any() else None} "
+        f"source_spec={_d1ctx.D1_MACRO_CONTEXT_SOURCE_SPEC['sha256'][:16]}",
+        flush=True,
+    )
+    return enriched
+
+
 def _trim_group_a_causal_warmup(enriched: pd.DataFrame) -> pd.DataFrame:
     """Remove only the declared Group-A whole-row causal warmup prefix.
 
@@ -1200,7 +1244,7 @@ def _trim_group_a_causal_warmup(enriched: pd.DataFrame) -> pd.DataFrame:
 
     return trim_causal_context_warmup_prefix(
         enriched,
-        list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS),
+        list(MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS) + list(_d1ctx.D1_MACRO_CONTEXT_FIELDS),
     )
 
 
@@ -1369,6 +1413,8 @@ def _build_enriched_stage(
     )
     del canonical, context_m5
     _log_rss("after_group_a_attach")
+    enriched = _attach_d1_macro_context(enriched, timeframe=timeframe)
+    _log_rss("after_d1_macro_context_attach")
     enriched = _trim_group_a_causal_warmup(enriched)
     _log_rss("after_group_a_warmup_trim")
     enriched = _finish_model_native_surface(enriched, timeframe=timeframe)

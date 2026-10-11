@@ -315,7 +315,22 @@ SPECIALIST_SHARED_REACHABLE_HEADS = SPECIALIST_FUSION_ACTIVE_HEADS
 FORBIDDEN_LEGACY_BRIDGE_SPECIALIST = "forbidden_legacy_bridge"
 _FORBIDDEN_LEGACY_BRIDGE_FIELDS = frozenset(FORBIDDEN_LEGACY_BRIDGE_FIELDS)
 
+from gx1.features.d1_macro_context_v1 import D1_MACRO_CONTEXT_FIELDS as _D1_MACRO_CONTEXT_FIELDS  # noqa: E402
+
+# 2026-10-11 (operator decision): the D1 macro/positioning family (COT, cross-asset
+# panel, macro drivers) is regime context. The model contract requires every
+# specialist to own sequence, multi-timeframe and context partitions, so a
+# context-only encoder would be new architecture; the session/regime specialist
+# is the one declared owner of all 61 fields.
+D1_MACRO_CONTEXT_SPECIALIST = "session_regime_encoder"
+# Keys are stored lower-cased because the classifier normalizes names that way.
+_D1_MACRO_CONTEXT_OVERRIDES = {
+    **{f"ctx_cont.{name}".lower(): D1_MACRO_CONTEXT_SPECIALIST for name in _D1_MACRO_CONTEXT_FIELDS},
+    **{name.lower(): D1_MACRO_CONTEXT_SPECIALIST for name in _D1_MACRO_CONTEXT_FIELDS},
+}
+
 CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
+    **_D1_MACRO_CONTEXT_OVERRIDES,
     # Distance from the D1 EMA200 is trend alignment evidence.  The ``_atr``
     # suffix denotes normalization only and must not transfer semantic
     # ownership to the volatility specialist.

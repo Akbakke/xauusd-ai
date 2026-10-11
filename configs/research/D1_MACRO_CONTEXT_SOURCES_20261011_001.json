@@ -1,0 +1,70 @@
+{
+  "schema": "gx1_d1_macro_context_sources_v1",
+  "spec_id": "D1_MACRO_CONTEXT_SOURCES_20261011_001",
+  "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
+  "design_document": "docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md",
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "cot": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/RESULT.json",
+      "sha256": "97c6d4ef84db17f2655622033e6820ec4192abedb993a42366996bea635ab00b"
+    },
+    "contract_market_code": "088691",
+    "availability_lag_days": 7,
+    "availability_rationale": "positions as of Tuesday are released Friday 15:30 ET; +7 calendar days is strictly after any holiday-delayed release and is used instead of a per-report release calendar"
+  },
+  "oanda_panel": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_004/RESULT.json",
+      "sha256": "d6a575464a1d9a43c013443575b931cb29b8a8fb43130e2cabe226322a986ab1"
+    },
+    "instruments": [
+      "BCO_USD",
+      "EUR_USD",
+      "SPX500_USD",
+      "USB10Y_USD",
+      "USD_JPY",
+      "WTICO_USD",
+      "XAG_USD",
+      "XAU_USD",
+      "XCU_USD",
+      "XPD_USD",
+      "XPT_USD"
+    ],
+    "resampling": "_resample_ohlc_for_model_native_scalars('D1') on the canonical XAU session clock; bar opening at session_open and closing at decision_time"
+  },
+  "drivers": {
+    "treasury": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/RESULT.json",
+      "sha256": "9267700c213da15ce9a5746556ef751fc92d1d828b7d0154f1bb7b4937309c68"
+    },
+    "vix": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CBOE_VIX_SOURCE_20261011_002/RESULT.json",
+      "sha256": "bf8464b6e9c44c03769d50bdfc3c98c9768ba9823df8e5bcfc7655d1ee9103b7"
+    },
+    "gld": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_003/RESULT.json",
+      "sha256": "d54c28e1169c7719a1bcc01abe423b71942c8dd78bfae42f3bbebd4b75c45b88"
+    },
+    "gld_item": "GLD_HISTORICAL_ARCHIVE_XLSX",
+    "gld_format": "xlsx",
+    "availability": "observation dated D (NY close) usable strictly after the end of day D+1 America/New_York; each series carried across its own holidays, never backward",
+    "fields": [
+      "real10y_level",
+      "real10y_change1D",
+      "real10y_change5D",
+      "real10y_change21D",
+      "nominal10y_level",
+      "slope10y2y_level",
+      "slope10y2y_change21D",
+      "breakeven10y_level",
+      "breakeven10y_change21D",
+      "vix_log_level",
+      "vix_log_change5D",
+      "gld_log_level",
+      "gld_log_change21D"
+    ]
+  },
+  "note": "Sources are the hash-bound forward-journal retrievals; every parser cuts at the TEST seal unless the builder passes native_test_construction for the TEST split only. The GLD workbook replaces the Internet Archive CSV that ended 2026-02-13.",
+  "audited_by": "configs/research/D1_MACRO_CONTEXT_AUDIT_20261011_001.json (D1_MACRO_CONTEXT_AUDIT_PASS)"
+}

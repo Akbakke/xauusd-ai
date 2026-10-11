@@ -51,10 +51,8 @@ MTF_DIM = len(MODEL_NATIVE_TRAINING_SPECIALISTS)
 def _specialist_indices(
     signal_dim: int = MODEL_NATIVE_SIGNAL_DIM,
 ) -> dict[str, list[int]]:
-    grouped = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
-    for index in range(signal_dim):
-        grouped[MODEL_NATIVE_TRAINING_SPECIALISTS[index % len(grouped)]].append(index)
-    return grouped
+    from tests.model_native_context_routing_support import specialist_indices_with_alias_slots
+    return specialist_indices_with_alias_slots(signal_dim)
 
 
 def _multi_tf_specialist_indices() -> dict[str, list[int]]:

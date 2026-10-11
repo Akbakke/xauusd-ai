@@ -14,11 +14,13 @@ def test_field_order_is_cot_panel_drivers_and_contract_hash_is_stable():
     assert ctx.D1_MACRO_CONTEXT_DIM == 4 + 44 + 13 == 61
     assert len(set(ctx.D1_MACRO_CONTEXT_FIELDS)) == 61
     a, b = ctx.d1_macro_context_contract(), ctx.d1_macro_context_contract()
-    assert a == b and a["admitted_to_native_signal_manifest"] is False and len(a["contract_sha256"]) == 64
+    assert a == b and a["specialist_owner"] == "session_regime_encoder" and len(a["contract_sha256"]) == 64
+    assert a["source_spec"]["path"].endswith("D1_MACRO_CONTEXT_SOURCES_20261011_001.json")
 
 
 def _components():
-    utc = lambda s: pd.Timestamp(s, tz="UTC")
+    def utc(s):
+        return pd.Timestamp(s, tz="UTC")
     cot = pd.DataFrame({f: [1.0, 2.0] for f in ta.SWING_COT_FIELDS})
     cot["available_at"] = pd.Series([utc("2024-01-09"), utc("2024-01-16")])
     panel = {}
