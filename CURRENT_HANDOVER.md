@@ -1,7 +1,8 @@
 # CURRENT HANDOVER — 11.10.2026
 
 Rebuild og baseline er akseptert. HEAD-avvik er rettet (modellfunksjon v10);
-fersk nullstegsbaseline kreves før smoke. Ny avgrenset treningsklargjøring er bestilt.
+fersk nullstegsbaseline kreves før smoke. Swing stage A og B er målt 11.10 uten
+bekreftet edge etter familiejustering; neste evidenskilde er et operatørvedtak.
 Ingen dokumentert Entry-edge.
 Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current.
 NEXT_RUN_POLICY.json er eneste arbeidsstatus; prosess og terminal overstyrer prosa.
@@ -78,6 +79,17 @@ Relé fra operatørens Mac kreves for FRED (seks CSV-URL-er i policyblokken) og 
 med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
 innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
 NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
+
+## Swing stage B forsøk 006: familiejustert inferens, ikke bekreftet
+
+Westfall–Young max-t over alle 56 selektive celler med 2 000 felles sirkulære
+shift (5ca376e5, d92eb260): de sterkeste cellene, swing_hgb h20 ved 2 % og 10 %
+dekning, har rå p 0,0085, men familiejustert p 0,39 og 0,23; minste familie-p i
+hele familien er 0,23 for treff og 0,38 for fanget mål. Ingen celle under 0,05.
+Den selektive h20-effekten er forenlig med utvalg over 56 celler. Stage A og B
+lukkes INKONKLUSIV uten bekreftet edge. Mer uavhengig evidens kreves før ny
+inferens: pooled instrumenter som egne mål, annen foldstruktur, Fed DDP for
+dollarindeksen. Ingen prediktor innrømmet; TEST urørt; ingen native endring.
 
 ## Swing stage B 11.10.2026: drivere fra primærkilder, sterkere h20-effekt
 

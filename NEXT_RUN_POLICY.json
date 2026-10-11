@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-11T15:55:59.818190+00:00",
-  "status": "SWING_STAGE_B_INKONKLUSIV_STRONGER_H20_HGB_SELECTIVE_EFFECT_FAMILY_ADJUSTMENT_PENDING",
+  "observed_utc": "2026-10-11T16:01:57.242602+00:00",
+  "status": "SWING_STAGES_A_B_COMPLETE_NO_CONFIRMED_EDGE_FAMILY_ADJUSTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) family-adjusted inference over all selective cells (joint circular-shift null, 2000 shifts, max statistic) on attempt 005 outputs under a new preregistration; 2) fold-structure sensitivity and driver-group ablation on identical inputs; 3) bind the Fed DDP package for DTWEXBGS; 4) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
+  "next_action": "Operator decision on the next evidence source: 1) pooled-instrument research track (XAG, XPT, XCU, BCO as additional targets with their own OANDA tapes) to multiply independent episodes; 2) two-year fold structure on identical inputs; 3) bind the Fed DDP package for DTWEXBGS; 4) GPU: fresh zero-step v10 baseline under a new explicit budget, then multi-horizon targets. No native launch, TEST, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Stage B: preregistered rule not met (h5 unconfirmed), but the h20 HGB selective effect strengthened with the primary-publisher drivers (hit 0.80 at 1-2 % coverage, episode t about 2.1). Family-adjusted inference over the selective cells and fold-structure sensitivity are required before any further claim. Fresh zero-step v10 baseline still requires a new explicit budget.",
+    "current_blocker": "Swing stages A and B complete: no confirmed edge. The strongest selective cells have raw p about 0.01 but family-adjusted p 0.23 or worse over 56 cells. More independent evidence is required before any further inference: pooled instruments (rule 1 opened), a different fold structure, and the Fed DDP package for the dollar index. Fresh zero-step v10 baseline still requires a new explicit budget.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -2849,14 +2849,84 @@
         },
         "long_financing_estimate_bps_at_5p4": 1301
       },
-      "verdict": "INKONKLUSIV by the preregistered rule (h5 unconfirmed; portfolio family INKONKLUSIV), with a materially stronger h20 selective HGB effect than stage A: hit 0.80/0.80/0.71/0.69 at 1/2/5/10 % coverage above the circular-shift p95 across all 15 years, rank-IC +0.006, episode economics +184 bps per episode versus +63 unconditional (51 episodes, t about 2.1; +105 excluding 2011 and 2023). Multiplicity over 56 selective cells is not yet family-adjusted",
+      "verdict": "INKONKLUSIV; the h20 HGB selective effect does not survive family adjustment (min family p 0.23)",
       "next": [
         "family-adjusted inference over all selective cells with a joint circular-shift null (2000 shifts, max statistic)",
         "fold-structure sensitivity (two-year holdouts) on identical inputs",
         "feature-group ablation of the drivers within the preregistered design",
         "only after those: the untouched 2025-06..2026-06 development VAL as a last check, never for selection"
       ],
-      "evidence_class": "measured on reused development history; episode economics descriptive"
+      "evidence_class": "measured on reused development history; episode economics descriptive",
+      "attempt_006_family_inference": {
+        "preregistration": "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_006.json",
+        "source_commit": "d92eb260db0e97b86bf5f1a448121111b340f63f",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_006/RESULT.json",
+          "sha256": "5801389827426e18342c27fdb7fb9af21b76c31e8953352ca69273b2d9a474e4"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_006/TERMINAL.json",
+          "sha256": "e8c0338375cb334cae9b9a8896c9a4a4bb09a855eed98027b64df60c8828d966"
+        },
+        "method": "Westfall-Young max-t over 56 selective cells (2 horizons x 4 learners x 7 coverages), 2000 joint circular shifts, cells standardized by their own null moments",
+        "minimum_family_p": {
+          "captured_mean": 0.381,
+          "hit_rate": 0.2265
+        },
+        "cells_confirmed_below_0_05": {
+          "captured_mean": [],
+          "hit_rate": []
+        },
+        "h20_swing_hgb_cells": {
+          "h20:swing_hgb:cov0.01": {
+            "rows": 45,
+            "hit": 0.8,
+            "hit_raw_p": 0.017,
+            "hit_family_p": 0.4805,
+            "mean_atr": 2.188,
+            "mean_raw_p": 0.018,
+            "mean_family_p": 0.474
+          },
+          "h20:swing_hgb:cov0.02": {
+            "rows": 78,
+            "hit": 0.795,
+            "hit_raw_p": 0.0085,
+            "hit_family_p": 0.3875,
+            "mean_atr": 2.2,
+            "mean_raw_p": 0.015,
+            "mean_family_p": 0.411
+          },
+          "h20:swing_hgb:cov0.05": {
+            "rows": 201,
+            "hit": 0.706,
+            "hit_raw_p": 0.061,
+            "hit_family_p": 0.7185,
+            "mean_atr": 1.494,
+            "mean_raw_p": 0.0795,
+            "mean_family_p": 0.8455
+          },
+          "h20:swing_hgb:cov0.1": {
+            "rows": 403,
+            "hit": 0.692,
+            "hit_raw_p": 0.0085,
+            "hit_family_p": 0.2265,
+            "mean_atr": 1.527,
+            "mean_raw_p": 0.024,
+            "mean_family_p": 0.381
+          },
+          "h20:swing_hgb:cov0.25": {
+            "rows": 1000,
+            "hit": 0.598,
+            "hit_raw_p": 0.0865,
+            "hit_family_p": 0.8835,
+            "mean_atr": 0.844,
+            "mean_raw_p": 0.1215,
+            "mean_family_p": 0.922
+          }
+        },
+        "verdict": "NOT confirmed: the strongest cells (h20 swing_hgb at 2 % and 10 % coverage) have raw p 0.0085 but family-adjusted p 0.39 and 0.23; the h20 HGB selective effect is consistent with selection over 56 cells. Stage B closes INKONKLUSIV with no confirmed edge",
+        "evidence_class": "measured on reused development history"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
