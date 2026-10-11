@@ -1,0 +1,73 @@
+{
+  "schema": "gx1_public_source_documentation_probe_manifest_v1",
+  "probe_id": "TRANSPORT_PROBE_FRED_GLD_20261011_001",
+  "parent_research_goal": "SWING_PROGRAM_STAGE_B_SOURCES",
+  "registered_utc": "2026-10-11T15:41:28.949840+00:00",
+  "source_head_at_registration": "188564698e87136b436528440eee313acd43db76",
+  "operator_authorization": "11.10.2026 «Kan ikke du kjøre dette?»: try to retrieve the FRED drivers and the GLD holdings file from this host before asking for a manual relay. Documentation/transport probe: one HEAD and one bounded GET per named variant; no account, no key, no fit.",
+  "evidence_scope": "Transport diagnosis (IPv4 vs IPv6 vs default) and content negotiation; received prefixes are evidence, not admitted data.",
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TRANSPORT_PROBE_FRED_GLD_20261011_001",
+  "method": "Per candidate: one HTTPS HEAD then one GET limited to maximum_bytes_per_get, timeout 60 s, no auto-redirect, no retries; address family forced per candidate where declared; Accept header set where declared.",
+  "head_requests_per_source": 1,
+  "get_requests_per_source": 1,
+  "request_timeout_seconds": 60,
+  "maximum_bytes_per_get": 4194304,
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "test_read_allowed": false,
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "account_creation_allowed": false,
+  "publish_raw_data_to_git": false,
+  "candidates": [
+    {
+      "source_id": "FRED_VIXCLS_IPV4",
+      "provider": "FRED",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS",
+      "ip_version": "ipv4",
+      "expected_content": "CSV observation_date,VIXCLS",
+      "verification_status": "TRANSPORT_TEST"
+    },
+    {
+      "source_id": "FRED_VIXCLS_IPV6",
+      "provider": "FRED",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS",
+      "ip_version": "ipv6",
+      "expected_content": "same; diagnoses the default-route hang",
+      "verification_status": "TRANSPORT_TEST"
+    },
+    {
+      "source_id": "FRED_API_HOST_IPV4_HEAD",
+      "provider": "FRED",
+      "url": "https://api.stlouisfed.org/",
+      "ip_version": "ipv4",
+      "expected_content": "reachability only; the API needs a key and is not used",
+      "verification_status": "TRANSPORT_TEST"
+    },
+    {
+      "source_id": "GLD_API_BARLIST_JSON",
+      "provider": "SPDR Gold Shares",
+      "url": "https://api.spdrgoldshares.com/api/v1/barlist?underlying=gld",
+      "accept": "application/json",
+      "expected_content": "JSON bar list if the API negotiates content; PDF was returned without an Accept header",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "GLD_USA_PAGE",
+      "provider": "SPDR Gold Shares",
+      "url": "https://www.spdrgoldshares.com/usa/gld/",
+      "expected_content": "redirect target of the historical-data page; look for data endpoints",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "WAYBACK_AVAILABLE_GLD_ARCHIVE_CSV",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/wayback/available?url=http%3A%2F%2Fwww.spdrgoldshares.com%2Fassets%2Fdynamic%2FGLD%2FGLD_US_archive_EN.csv&timestamp=20260601",
+      "expected_content": "JSON with the closest archived snapshot of the GLD archive CSV; the B work used a 2019 capture",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    }
+  ],
+  "required_before_separate_fetch_manifest": [
+    "a transport variant that completes the FRED GET",
+    "a GLD endpoint or archived snapshot returning the SPDR CSV format"
+  ]
+}
