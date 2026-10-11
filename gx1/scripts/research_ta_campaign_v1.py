@@ -3136,28 +3136,46 @@ def build_swing_panel(spec: dict) -> tuple[pd.DataFrame, list[str], dict, dict]:
 
 
 def selective_endpoints(panel: pd.DataFrame, forecasts: dict, spec: dict) -> dict:
-    """Hit rate and mean target on the top-coverage |forecast| rows versus coin-flip and circular-shift nulls."""
+    """Hit rate and captured target on the top-coverage |forecast| rows versus coin-flip and circular-shift nulls.
+
+    ``selection`` = ``within_fold_year`` ranks |forecast| inside each holdout year so every
+    fold contributes its share (forecast magnitudes are not comparable across folds);
+    ``pooled_magnitude`` is the legacy pooled ranking, kept only for comparison. Episode
+    and year counts are reported so clustered selections cannot pass as many trades.
+    """
     sel = spec["selective"]
+    mode = sel.get("selection", "pooled_magnitude")
+    if mode not in ("within_fold_year", "pooled_magnitude"):
+        raise RuntimeError("TA_SWING_SELECTION_MODE")
     rng = np.random.default_rng(int(sel["seed"]))
     mid, atr = panel.fill_mid.to_numpy(float), panel.atr14.to_numpy(float)
+    years = pd.DatetimeIndex(panel.fill_time).year.to_numpy()
     n = len(panel)
-    report = {}
+    report = {"selection": mode}
     for horizon, arm in forecasts.items():
         target = np.full(n, np.nan)
         target[:-horizon] = (mid[horizon:] - mid[:-horizon]) / atr[:-horizon]
         for learner, forecast in arm.items():
             if learner == "constant":
                 continue
-            valid = np.isfinite(forecast) & np.isfinite(target) & (forecast != 0.0)
-            f, y = forecast[valid], target[valid]
-            if len(f) < int(sel["minimum_rows"]):
-                report[f"h{horizon}:{learner}"] = {"status": "INSUFFICIENT_ROWS", "rows": int(len(f))}
+            valid = np.flatnonzero(np.isfinite(forecast) & np.isfinite(target) & (forecast != 0.0))
+            if len(valid) < int(sel["minimum_rows"]):
+                report[f"h{horizon}:{learner}"] = {"status": "INSUFFICIENT_ROWS", "rows": int(len(valid))}
                 continue
-            order = np.argsort(-np.abs(f))
+            f, y, yrs = forecast[valid], target[valid], years[valid]
             rows = {}
             for coverage in sel["coverage_grid"]:
-                k = max(1, int(round(float(coverage) * len(f))))
-                take = order[:k]
+                if mode == "within_fold_year":
+                    parts = []
+                    for year in np.unique(yrs):
+                        members = np.flatnonzero(yrs == year)
+                        k_year = max(1, int(round(float(coverage) * len(members))))
+                        parts.append(members[np.argsort(-np.abs(f[members]))][:k_year])
+                    take = np.sort(np.concatenate(parts))
+                else:
+                    k_all = max(1, int(round(float(coverage) * len(f))))
+                    take = np.sort(np.argsort(-np.abs(f))[:k_all])
+                k = len(take)
                 side = np.sign(f[take])
                 hits = (side == np.sign(y[take]))
                 captured = side * y[take]
@@ -3166,7 +3184,11 @@ def selective_endpoints(panel: pd.DataFrame, forecasts: dict, spec: dict) -> dic
                 null_mean = np.array([(side * np.roll(y, s)[take]).mean() for s in shifts])
                 hit = float(hits.mean())
                 rows[str(coverage)] = {
-                    "rows": int(k), "hit_rate": hit,
+                    "rows": int(k),
+                    "episodes": int(1 + (np.diff(take) > 1).sum()),
+                    "years_covered": int(len(np.unique(yrs[take]))),
+                    "long_rows": int((side > 0).sum()),
+                    "hit_rate": hit,
                     "coin_flip_hit_rate": 0.5,
                     "coin_flip_se": float(np.sqrt(0.25 / k)),
                     "hit_rate_minus_coin_flip_in_se": float((hit - 0.5) / np.sqrt(0.25 / k)),

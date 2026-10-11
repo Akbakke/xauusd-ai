@@ -1255,7 +1255,8 @@ def test_swing_selective_endpoints_measure_hit_rate_against_both_nulls():
     rng = np.random.default_rng(0)
     n = 400
     mid = 100 + np.cumsum(rng.normal(size=n))
-    panel = pd.DataFrame({"fill_mid": mid, "atr14": np.ones(n)})
+    panel = pd.DataFrame({"fill_time": pd.date_range("2021-01-01", periods=n, freq="D", tz="UTC"),
+                          "fill_mid": mid, "atr14": np.ones(n)})
     target = np.full(n, np.nan); target[:-5] = (mid[5:] - mid[:-5])
     oracle = np.where(np.isfinite(target), target, np.nan)
     forecasts = {5: {"swing_ridge": oracle, "constant": np.zeros(n)}}
@@ -1277,3 +1278,22 @@ def test_swing_panel_asof_carries_instrument_holidays_without_future_fill():
     assert out["x_logret_1D"].tolist() == [0.1, 0.1, 0.2, 0.3]
     strict = ta.align_asof(decisions, closes, values, inclusive=False)
     assert np.isnan(strict["x_logret_1D"].iloc[0]) and strict["x_logret_1D"].tolist()[1:] == [0.1, 0.1, 0.2]
+
+
+def test_selective_within_fold_year_prevents_one_fold_from_dominating():
+    rng = np.random.default_rng(3)
+    n = 500
+    times = pd.date_range("2020-01-01", periods=n, freq="D", tz="UTC")
+    mid = 100 + np.cumsum(rng.normal(size=n))
+    panel = pd.DataFrame({"fill_time": times, "fill_mid": mid, "atr14": np.ones(n)})
+    target = np.full(n, np.nan); target[:-5] = mid[5:] - mid[:-5]
+    forecast = np.where(np.isfinite(target), np.sign(target) * 0.1, np.nan)
+    forecast[times.year == 2020] *= 100.0  # one fold with wild magnitudes
+    spec = {"selective": {"seed": 1, "minimum_rows": 50, "coverage_grid": [0.1], "circular_shifts": 20,
+                          "selection": "within_fold_year"}}
+    within = ta.selective_endpoints(panel, {5: {"swing_ridge": forecast, "constant": np.zeros(n)}}, spec)
+    block = within["h5:swing_ridge"]["coverage"]["0.1"]
+    assert block["years_covered"] == 2 and block["episodes"] >= 2 and block["hit_rate"] == 1.0
+    spec["selective"]["selection"] = "pooled_magnitude"
+    pooled = ta.selective_endpoints(panel, {5: {"swing_ridge": forecast, "constant": np.zeros(n)}}, spec)
+    assert pooled["h5:swing_ridge"]["coverage"]["0.1"]["years_covered"] == 1
