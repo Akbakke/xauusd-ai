@@ -1,0 +1,36 @@
+{
+  "schema": "gx1_bounded_files_source_manifest_v1",
+  "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "registered_utc": "2026-10-11T15:46:28.508836+00:00",
+  "source_head_at_registration": "862d756df71c1b4e93703afdafc59d6adccf8027",
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "test_read_allowed": false,
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "2f5eb45b32f86d18afa1d2303343c9ad1dc64d7be38e0e894241c96b8ba06485"
+  },
+  "manifest_id": "GLD_HOLDINGS_SOURCE_20261011_002",
+  "provider": "SPDR Gold Shares via Internet Archive capture and the live historical-archive API",
+  "operator_authorization": "GLD holdings (tonnes): the archive CSV captured by the Internet Archive on 2026-02-14 (header-first variant, 2004-11-18..2026-02-13, tonnes column present) and the live XLSX from api.spdrgoldshares.com historical-archive (stored unparsed; openpyxl is not installed). Attempt _001 retrieved a PDF from the redirected old URL.",
+  "availability_rule": "holdings as at 4:15 p.m. NYT on day D are usable at the first canonical XAU D1 decision strictly after the end of business day D+1 America/New_York",
+  "timeout_seconds": 120,
+  "files": [
+    {
+      "id": "GLD_ARCHIVE_CSV_WAYBACK_20260214",
+      "url": "http://web.archive.org/web/20260214205620id_/https://www.spdrgoldshares.com/assets/dynamic/GLD/GLD_US_archive_EN.csv",
+      "filename": "GLD_US_archive_EN_wayback_20260214.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": false
+    },
+    {
+      "id": "GLD_HISTORICAL_ARCHIVE_XLSX",
+      "url": "https://api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en",
+      "filename": "GLD_historical_archive_live.xlsx",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": false
+    }
+  ],
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_002"
+}

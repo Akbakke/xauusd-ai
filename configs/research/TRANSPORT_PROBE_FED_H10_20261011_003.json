@@ -1,0 +1,54 @@
+{
+  "schema": "gx1_public_source_documentation_probe_manifest_v1",
+  "probe_id": "TRANSPORT_PROBE_FED_H10_20261011_003",
+  "parent_research_goal": "SWING_PROGRAM_STAGE_B_SOURCES",
+  "registered_utc": "2026-10-11T15:46:28.508836+00:00",
+  "source_head_at_registration": "862d756df71c1b4e93703afdafc59d6adccf8027",
+  "operator_authorization": "primary publisher for the broad dollar index (DTWEXBGS): Federal Reserve H.10; documentation probe only",
+  "evidence_scope": "page/listing inventory; nothing admitted",
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TRANSPORT_PROBE_FED_H10_20261011_003",
+  "method": "one HEAD and one bounded GET per candidate, timeout 60 s, no redirect following",
+  "head_requests_per_source": 1,
+  "get_requests_per_source": 1,
+  "request_timeout_seconds": 60,
+  "maximum_bytes_per_get": 4194304,
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "test_read_allowed": false,
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "account_creation_allowed": false,
+  "publish_raw_data_to_git": false,
+  "candidates": [
+    {
+      "source_id": "FED_H10_LANDING",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/releases/h10/current/",
+      "expected_content": "H.10 release landing",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "FED_H10_SUMMARY_BROAD_TXT",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/releases/h10/summary/indexbc_b.txt",
+      "expected_content": "daily nominal broad dollar index text series, if this path still exists",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "FED_H10_HIST_INDEX",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/releases/h10/hist/",
+      "expected_content": "historical data listing",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "source_id": "FED_DDP_H10",
+      "provider": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/datadownload/Choose.aspx?rel=H10",
+      "expected_content": "Data Download Program page for H.10 (package/series selection)",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    }
+  ],
+  "required_before_separate_fetch_manifest": [
+    "exact machine-readable URL for the daily nominal broad dollar index with measured earliest date"
+  ]
+}
