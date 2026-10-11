@@ -2842,20 +2842,21 @@ def fetch_oanda_panel_daily(spec: dict, spec_path: Path) -> dict:
     _retrieval_scope_or_raise(spec, "gx1_oanda_panel_daily_source_manifest_v1", "TA_OANDA_PANEL")
     if spec.get("orders_allowed") is not False or spec["candles"]["include_incomplete"] is not False:
         raise RuntimeError("TA_OANDA_PANEL_MANIFEST_SCOPE")
+    candles = spec["candles"]
+    from_ts, to_ts = pd.Timestamp(candles["from_utc"]), pd.Timestamp(candles["to_utc_exclusive"])
+    # Scope and seal are checked before any directory or network side effect.
+    if to_ts > pd.Timestamp(spec["test_seal_utc"]):
+        raise RuntimeError("TA_OANDA_PANEL_TEST_SEAL")
     out = Path(spec["output_directory"])
     out.mkdir(parents=True, exist_ok=False)
     data_dir = Path(spec["data_directory"])
     data_dir.mkdir(parents=True, exist_ok=True)
-    candles = spec["candles"]
     client = OandaClient.from_env(timeout=int(candles["timeout_seconds"]))
     inventory = client._request("GET", f"/accounts/{client.account_id}/instruments")
     listed = {str(item["name"]): {k: item.get(k) for k in ("name", "type", "displayName", "pipLocation")}
               for item in inventory.get("instruments", [])}
     write_json(out / "INSTRUMENTS.json", {"instrument_count": len(listed), "instruments": listed,
                                            "environment": client.env})
-    from_ts, to_ts = pd.Timestamp(candles["from_utc"]), pd.Timestamp(candles["to_utc_exclusive"])
-    if to_ts > pd.Timestamp(spec["test_seal_utc"]):
-        raise RuntimeError("TA_OANDA_PANEL_TEST_SEAL")
     records = []
     for candidate in spec["candidate_instruments"]:
         name = str(candidate["name"])
@@ -2900,9 +2901,36 @@ def fetch_oanda_panel_daily(spec: dict, spec_path: Path) -> dict:
     return _finish_retrieval(out, spec_path, records, "COMPLETE_OANDA_PANEL_RETRIEVAL", extra)
 
 
+def fetch_bounded_files(spec: dict, spec_path: Path) -> dict:
+    """Named public files stored as received with SHA-256 receipts; nothing parsed, nothing admitted."""
+    _retrieval_scope_or_raise(spec, "gx1_bounded_files_source_manifest_v1", "TA_FILES")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    records = []
+    for item in spec["files"]:
+        fid = str(item["id"])
+        record = {"item": fid, "url": item["url"], "predictor_admitted": False,
+                  "revised_after_publication": item.get("revised_after_publication")}
+        try:
+            raw, final_url = _bounded_https_get(item["url"], maximum_bytes=item["maximum_bytes"],
+                                                timeout_seconds=spec["timeout_seconds"])
+            raw_path = out / str(item["filename"])
+            if raw_path.parent != out:
+                raise RuntimeError("TA_FILES_FILENAME")
+            raw_path.write_bytes(raw)
+            record.update(final_url=final_url, raw_path=str(raw_path), raw_sha256=sha(raw_path),
+                          raw_bytes=len(raw), status="RETRIEVED_NOT_ADMITTED")
+        except Exception as exc:
+            record.update(status="FAILED", error=f"{type(exc).__name__}: {exc}")
+        records.append(record)
+        write_json(out / f"{fid}.receipt.json", record)
+        print(f"[TA-FILES] {fid} {record['status']}", flush=True)
+    return _finish_retrieval(out, spec_path, records, "COMPLETE_BOUNDED_FILE_RETRIEVAL", {})
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -2916,7 +2944,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

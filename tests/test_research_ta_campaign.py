@@ -1151,3 +1151,24 @@ def test_oanda_panel_fetch_drops_unlisted_names_and_never_sends_orders(tmp_path,
         bad = json.loads(json.dumps(spec)); bad["candles"]["to_utc_exclusive"] = "2026-08-01T00:00:00Z"
         bad["output_directory"] = str(tmp_path / "oanda2")
         ta.fetch_oanda_panel_daily(bad, manifest)
+
+
+def test_bounded_files_fetch_stores_bytes_with_receipts_and_rejects_nested_names(tmp_path, monkeypatch):
+    import io
+    class Response(io.BytesIO):
+        url = "bound"
+    monkeypatch.setattr(ta, "urlopen", lambda request, timeout: Response(b"Date,Tonnes\n2020-01-02,900.1\n"))
+    monkeypatch.setattr(ta, "git", lambda *a: "deadbeef")
+    spec = {"schema": "gx1_bounded_files_source_manifest_v1", "fit_allowed": False, "spending_allowed": False,
+            "test_read_allowed": False, "timeout_seconds": 60, "output_directory": str(tmp_path / "files"),
+            "files": [{"id": "GLD", "url": "https://gld.example/archive.csv", "filename": "GLD_archive.csv",
+                       "maximum_bytes": 4096, "revised_after_publication": False},
+                      {"id": "BAD", "url": "https://gld.example/x.csv", "filename": "../escape.csv",
+                       "maximum_bytes": 4096}]}
+    manifest = tmp_path / "files.json"
+    manifest.write_text(json.dumps(spec))
+    result = ta.fetch_bounded_files(spec, manifest)
+    assert result["item_status"] == {"GLD": "RETRIEVED_NOT_ADMITTED", "BAD": "FAILED"}
+    receipt = json.loads((tmp_path / "files" / "GLD.receipt.json").read_text())
+    assert receipt["raw_sha256"] == ta.sha(Path(receipt["raw_path"])) and receipt["raw_bytes"] == 25
+    assert not (tmp_path / "escape.csv").exists()

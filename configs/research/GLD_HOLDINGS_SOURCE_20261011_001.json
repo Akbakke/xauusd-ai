@@ -1,0 +1,30 @@
+{
+  "schema": "gx1_bounded_files_source_manifest_v1",
+  "manifest_id": "GLD_HOLDINGS_SOURCE_20261011_001",
+  "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "registered_utc": "2026-10-11T14:21:17.454413+00:00",
+  "source_head_at_registration": "3bf1439325866b8db28f3ce97857f0e6ba7f295f",
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "operator_authorization": "11.10.2026 swing-program: GLD-beholdning (tonn) som posisjonerings-/strøminput på D1. Revidert provenanskrav: daglige beholdningstall publiseres én gang og revideres ikke; dokumentert publikasjonsklokke pluss konservativt lag oppfyller regel 1. Versjonshistorikk (ALFRED-stil) kreves ikke for en urevidert serie.",
+  "provider": "SPDR Gold Trust (State Street Global Advisors)",
+  "method": "One unauthenticated HTTPS GET of the published archive CSV, timeout 120 s, maximum_bytes enforced, no retries, bytes stored as received and SHA-256 bound. Parsing is a separate step with its own owner (parse_gld_holdings_snapshot exists from the B work); nothing is admitted by this manifest.",
+  "timeout_seconds": 120,
+  "files": [
+    {
+      "id": "GLD_ARCHIVE",
+      "url": "http://www.spdrgoldshares.com/assets/dynamic/GLD/GLD_US_archive_EN.csv",
+      "filename": "GLD_US_archive_EN.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": false,
+      "note": "Same original URL the B import step bound on 30.09.2026; availability: a holdings figure for day D is usable at the first canonical XAU D1 decision strictly after the end of business day D+1 America/New_York."
+    }
+  ],
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "test_read_allowed": false,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_001",
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "881dd021dd9bf76670e87aafd15dad2c77d3adf6738eeee3e0ca471ab428dc3e"
+  }
+}
