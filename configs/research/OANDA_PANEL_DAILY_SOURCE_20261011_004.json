@@ -1,0 +1,121 @@
+{
+  "schema": "gx1_oanda_panel_daily_source_manifest_v1",
+  "manifest_id": "OANDA_PANEL_DAILY_SOURCE_20261011_004",
+  "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "registered_utc": "2026-10-11T18:46:55.651836+00:00",
+  "source_head_at_registration": "78f8f8be256d440b5dd0e916cad31312586e1e0a",
+  "operator_authorization": "11.10.2026 «Ja, gjør begge» / «ja ja bash tillatelsesregel så gjør du det»: forward-journal (GX1_RULES.md vedtak 11.10 kveld, policyblokk forward_journal_20261011). Sealed-period bytes are read only to score the frozen surface once per month; no fit on scored rows; native TEST split untouched. 11.10.2026: «Du skal ha API fra Oanda for å hente inn mer info» og regel 1 åpnet for navngitte instrumenter som forskningsinputs og forskningsmål. Lesetilgang til historiske candles kun; ingen ordre, ingen kontoendring, ingen hemmelighet i logg eller kvittering.",
+  "client": "gx1.execution.oanda_client.OandaClient.get_candles (existing read owner); credentials from .env via load_oanda_credentials; environment practice",
+  "step_1_instrument_inventory": {
+    "endpoint": "/v3/accounts/{account_id}/instruments",
+    "requests": 1,
+    "purpose": "Verify the exact instrument names below before any candle request; unknown names are dropped from the manifest, never guessed.",
+    "writes": "INSTRUMENTS.json with name, type, displayName, pipLocation, marginRate only"
+  },
+  "candidate_instruments": [
+    {
+      "name": "XAG_USD",
+      "role": "panel_metal",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "XPT_USD",
+      "role": "panel_metal",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "XPD_USD",
+      "role": "panel_metal",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "XCU_USD",
+      "role": "panel_metal",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "BCO_USD",
+      "role": "panel_energy",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "WTICO_USD",
+      "role": "panel_energy",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "SPX500_USD",
+      "role": "panel_equity",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "USB10Y_USD",
+      "role": "panel_rates",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "EUR_USD",
+      "role": "panel_fx",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "USD_JPY",
+      "role": "panel_fx",
+      "verification_status": "CANDIDATE_UNVERIFIED"
+    },
+    {
+      "name": "XAU_USD",
+      "role": "reference_consistency_check_only",
+      "verification_status": "KNOWN"
+    }
+  ],
+  "candles": {
+    "granularity": "H1",
+    "price": "MBA",
+    "include_incomplete": false,
+    "from_utc": "2009-06-01T00:00:00Z",
+    "to_utc_exclusive": "2026-10-11T00:00:00Z",
+    "max_candles_per_request": 5000,
+    "max_requests_per_instrument": 40,
+    "timeout_seconds": 30,
+    "granularity_rationale": "The existing read client validates granularities M{n}/H{n} only and checks returned candle times against that grid; daily candles aligned at 17:00 New York would not pass a UTC day grid. H1 candles are fetched and the canonical XAU D1 session resampler (_resample_ohlc_for_model_native_scalars, 'D1') builds the daily panel for every instrument with the same clock as XAU; no finished indicator is resampled."
+  },
+  "receipts": "Per instrument: request parameters, HTTP status, candle count, first/last time, SHA-256 of the canonical JSON response and of the written parquet; no token or account id in any receipt.",
+  "data_contract": "Columns time, open, high, low, close, volume for mid, plus bid/ask open/close. Non-finite, non-monotonic or duplicated times fail closed. Missing days are recorded, never filled.",
+  "declared_derived_fields": [
+    "{inst}_logret_1D",
+    "{inst}_logret_5D",
+    "{inst}_logret_20D",
+    "{inst}_rv_20D",
+    "gold_silver_ratio_log_level",
+    "gold_silver_ratio_change_20D"
+  ],
+  "availability_rule": "A daily candle closing at alignment hour on day D is usable at the first canonical XAU D1 decision at or after that close plus the declared one-session lag; same rule as the macro components.",
+  "fit_allowed": false,
+  "orders_allowed": false,
+  "spending_allowed": false,
+  "test_read_allowed": false,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_004",
+  "data_directory": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD",
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "16a19457e23be551da061f4ab03ed7030c1977c25b05c27fddc7cf0f0f14883e"
+  },
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "previous_attempts": [
+    {
+      "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_001",
+      "outcome": "failed closed on missing test_seal_utc after one instrument-inventory GET; INSTRUMENTS.json retained as evidence (123 instruments, all 12 candidates listed); no candle request, no order"
+    },
+    {
+      "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_002",
+      "outcome": "inventory retrieved (123 instruments, all 12 candidates listed); every candle request failed closed in the client with 'OANDA candle request interval is invalid' because granularity 'D' is not supported by gx1.utils.granularity; no order"
+    }
+  ],
+  "previous_manifest": "configs/research/OANDA_PANEL_DAILY_SOURCE_20261011_001.json (run _003, to 2026-06-30; USD_CNH dropped after it returned no candles)",
+  "forward_journal": {
+    "journal_id": "ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011",
+    "scored_end_utc": "2026-10-11T00:00:00Z",
+    "policy_block": "forward_journal_20261011"
+  }
+}

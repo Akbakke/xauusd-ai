@@ -1,0 +1,114 @@
+{
+  "schema": "gx1_cftc_cot_archive_source_manifest_v1",
+  "manifest_id": "CFTC_COT_ARCHIVE_SOURCE_20261011_002",
+  "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "probe_evidence": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GC_DAILY_ACTIVITY_SOURCE_PROBE_20261011_001/CFTC_COT_HISTORICAL_COMPRESSED.receipt.json",
+  "registered_utc": "2026-10-11T18:46:55.651836+00:00",
+  "source_head_at_registration": "78f8f8be256d440b5dd0e916cad31312586e1e0a",
+  "operator_authorization": "11.10.2026 «Ja, gjør begge» / «ja ja bash tillatelsesregel så gjør du det»: forward-journal (GX1_RULES.md vedtak 11.10 kveld, policyblokk forward_journal_20261011). Sealed-period bytes are read only to score the frozen surface once per month; no fit on scored rows; native TEST split untouched. 11.10.2026 swing-program: posisjonering (COT netto spek, open interest) som D1-forskningsinputs. Revidert provenanskrav: COT publiseres én gang per uke og revideres ikke etter publisering utover sjeldne, dokumenterte korreksjoner; dokumentert publikasjonsklokke pluss konservativt lag oppfyller regel 1.",
+  "provider": "U.S. Commodity Futures Trading Commission",
+  "report": "Legacy Commitments of Traders, Futures Only (deacot yearly archives as listed on the Historical Compressed page captured by the probe)",
+  "url_pattern": "https://www.cftc.gov/files/dea/history/deacot{year}.zip",
+  "first_year": 2009,
+  "last_year_inclusive": 2026,
+  "method": "One unauthenticated HTTPS GET per yearly archive, timeout 60 s, maximum_bytes enforced, no retries, no redirect following. The ZIP is stored as received and SHA-256 bound; member names, sizes and member SHA-256 are inventoried; CRC verified. No row is parsed into a research panel by this manifest.",
+  "maximum_bytes_per_archive": 33554432,
+  "maximum_uncompressed_bytes_per_archive": 268435456,
+  "timeout_seconds": 60,
+  "market_filter_declared_for_later_parse": {
+    "cftc_contract_market_code": "088691",
+    "market_and_exchange_names_contains": "GOLD - COMMODITY EXCHANGE INC."
+  },
+  "availability_rule": "Positions as of Tuesday are released Friday 15:30 America/New_York per the CFTC release schedule. The probe captured the explanatory-notes page (receipt bound above) but the schedule sentence was not machine-extracted; the parse step must bind the actual release date per report from the CFTC release calendar before any row is used. A report is usable at the first canonical XAU D1 decision strictly after the end of its release day in America/New_York plus one full session; never at its as-of date.",
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "rows_after_test_seal_parsed": false,
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "test_read_allowed": false,
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002",
+  "declared_derived_fields": [
+    "cot_noncommercial_net_over_oi",
+    "cot_change4reports",
+    "cot_open_interest_log_change4reports"
+  ],
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "16a19457e23be551da061f4ab03ed7030c1977c25b05c27fddc7cf0f0f14883e"
+  },
+  "reuse_download_by_year": {
+    "2009": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2009.zip",
+      "sha256": "5558e169e558ee15a861fb623e2a986aaafcdc178d7ab2eaf7dc628ed217b32b"
+    },
+    "2010": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2010.zip",
+      "sha256": "ba52af024b2cc24f4bf7699950b70b0ae70ce2a123fca63e88c93f5d67561253"
+    },
+    "2011": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2011.zip",
+      "sha256": "8872d6e7d43cc09d5d5834122dcbf4dd426dc0590faa394d041f603234e8d16a"
+    },
+    "2012": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2012.zip",
+      "sha256": "018de1a8b9c8c87ccdcac31652f56828f9af3b44f89df2de474fd460a0dfd6de"
+    },
+    "2013": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2013.zip",
+      "sha256": "881bed5906e156c23dc2036f6b4312f3c2215a7b9aebe51ee7973458ec0bf845"
+    },
+    "2014": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2014.zip",
+      "sha256": "65e8c7111bc628c1bc2801a246e7872c574fdead67f210a5dd58303b384dba1a"
+    },
+    "2015": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2015.zip",
+      "sha256": "768b7be61d0f9895dd6c3ddcef9f1449c85773bd61dc8cc656fd43d30531871b"
+    },
+    "2016": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2016.zip",
+      "sha256": "186c95a12c71fdbd241b83679afcfff2cc900c779b67bfe9bcd091d16a7ca0ce"
+    },
+    "2017": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2017.zip",
+      "sha256": "5e910b93b5af5e1c8f4006eaeee10109754ee5dd2c7f9d04520bd9770c8ece2b"
+    },
+    "2018": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2018.zip",
+      "sha256": "adaecbfadf54f117308cc8a135cd9ba827deac3eb1489a5febc642c403728527"
+    },
+    "2019": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2019.zip",
+      "sha256": "3f2707b5fcab1491329684c82cc03759ab66899839f533e09ff0a5dcf517b0c5"
+    },
+    "2020": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2020.zip",
+      "sha256": "8c83c820e5f6fd193a0923aa02cfe520d20dbe74bba571a576c92baf7a186317"
+    },
+    "2021": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2021.zip",
+      "sha256": "423d20412ec3fb629500fcbfbaa7b6973c5868965000d13963e9b63700c90952"
+    },
+    "2022": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2022.zip",
+      "sha256": "206364f467eb0013b0a5f8e9526426cc6fcfc5bad4e4f91b25e00311a0184cfa"
+    },
+    "2023": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2023.zip",
+      "sha256": "fd17a44cb7c9acb068515380f5c9ff450052d4a89f45d6b97f0d71ca2d69425c"
+    },
+    "2024": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2024.zip",
+      "sha256": "3a33564a5677a4dad90b2513b07a81d8d55308318f9dcd6c8e80690a25c6b768"
+    },
+    "2025": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2025.zip",
+      "sha256": "e5ae323dadda5ebbf69b6989af0d912fb1a4aebd954372f999eccb3a692352f9"
+    }
+  },
+  "previous_manifest": "configs/research/CFTC_COT_ARCHIVE_SOURCE_20261011_001.json",
+  "forward_journal": {
+    "journal_id": "ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011",
+    "scored_end_utc": "2026-10-11T00:00:00Z",
+    "policy_block": "forward_journal_20261011"
+  }
+}

@@ -1,0 +1,416 @@
+{
+  "schema": "gx1_bounded_files_source_manifest_v1",
+  "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "registered_utc": "2026-10-11T18:46:55.651836+00:00",
+  "source_head_at_registration": "78f8f8be256d440b5dd0e916cad31312586e1e0a",
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "test_read_allowed": false,
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "16a19457e23be551da061f4ab03ed7030c1977c25b05c27fddc7cf0f0f14883e"
+  },
+  "manifest_id": "TREASURY_YIELDS_SOURCE_20261011_002",
+  "provider": "U.S. Department of the Treasury",
+  "operator_authorization": "11.10.2026 «Ja, gjør begge» / «ja ja bash tillatelsesregel så gjør du det»: forward-journal (GX1_RULES.md vedtak 11.10 kveld, policyblokk forward_journal_20261011). Sealed-period bytes are read only to score the frozen surface once per month; no fit on scored rows; native TEST split untouched. 11.10.2026 «Kan ikke du kjøre dette?»: primary publisher for DGS2/DGS10 (par yield curve, 2 Yr and 10 Yr) and DFII10 (real par yield curve, 10 YR); T10YIE is derived as 10 Yr nominal minus 10 YR real. Verified format in TRANSPORT_PROBE_FRED_GLD_20261011_002 (newest-first CSV, m/d/Y dates, blank for missing).",
+  "availability_rule": "a row dated D (close of business, America/New_York) is usable at the first canonical XAU D1 decision strictly after the end of day D+1 America/New_York (same one-business-day lag declared for FRED)",
+  "timeout_seconds": 90,
+  "files": [
+    {
+      "id": "TREASURY_NOMINAL_2009",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2009/all?type=daily_treasury_yield_curve&field_tdr_date_value=2009&page&_format=csv",
+      "filename": "treasury_nominal_2009.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2009.csv",
+        "sha256": "3c9294cfa71136e1d5330b09a00bf996ecf86c865d593d7ee954d11984a5bdb1"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2009",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2009/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2009&page&_format=csv",
+      "filename": "treasury_real_2009.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2009.csv",
+        "sha256": "68f1f8b2de5234e2e4650de06c6786dbb4fbec6ea3894bd4edb73930e32843c4"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2010",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2010/all?type=daily_treasury_yield_curve&field_tdr_date_value=2010&page&_format=csv",
+      "filename": "treasury_nominal_2010.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2010.csv",
+        "sha256": "f973bd3988989d3e408655cbc7fed89faefbaa8a1c111ec313241fb47fc75e2d"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2010",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2010/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2010&page&_format=csv",
+      "filename": "treasury_real_2010.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2010.csv",
+        "sha256": "c16d0db0208b7e016a35c93cd1b354cbe735002683fe66063fa6371aae3f3bc2"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2011",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2011/all?type=daily_treasury_yield_curve&field_tdr_date_value=2011&page&_format=csv",
+      "filename": "treasury_nominal_2011.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2011.csv",
+        "sha256": "224eaf29d6fe7cbccc746c7a8c845f189cf91424bab43f46ca386a74e98d81f7"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2011",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2011/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2011&page&_format=csv",
+      "filename": "treasury_real_2011.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2011.csv",
+        "sha256": "d1bd695b0764e2af85373f6b2909a57217cb575ba21e131853a512af5d3ec63b"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2012",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2012/all?type=daily_treasury_yield_curve&field_tdr_date_value=2012&page&_format=csv",
+      "filename": "treasury_nominal_2012.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2012.csv",
+        "sha256": "9c889b6e3cb87f40f3760bddb69f05f7525800ac480ef5712b2cf318765fa184"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2012",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2012/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2012&page&_format=csv",
+      "filename": "treasury_real_2012.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2012.csv",
+        "sha256": "6ee991ccdbdaa615bf329cdfd79fcd813a9fbd88e1795b13e77ff0c76c905ec4"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2013",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2013/all?type=daily_treasury_yield_curve&field_tdr_date_value=2013&page&_format=csv",
+      "filename": "treasury_nominal_2013.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2013.csv",
+        "sha256": "1e1a98426d9274afcc68467962f9238104db775b8765e48f45ac7488b33ff338"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2013",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2013/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2013&page&_format=csv",
+      "filename": "treasury_real_2013.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2013.csv",
+        "sha256": "6819c5fbbbbfbd511dd7fef270857db7cf2c97f862805fd24589af7af2df8c15"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2014",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2014/all?type=daily_treasury_yield_curve&field_tdr_date_value=2014&page&_format=csv",
+      "filename": "treasury_nominal_2014.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2014.csv",
+        "sha256": "8d560698e03e4c0d8d22ff8be7f5f7c5c0d472b1e33a22b6a75373a57e84aa0f"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2014",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2014/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2014&page&_format=csv",
+      "filename": "treasury_real_2014.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2014.csv",
+        "sha256": "1b7365254bdc3bd75a1fef774c9bba0a39fa3d499a13ae80e65a4eda4c61a92d"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2015",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2015/all?type=daily_treasury_yield_curve&field_tdr_date_value=2015&page&_format=csv",
+      "filename": "treasury_nominal_2015.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2015.csv",
+        "sha256": "b7665d1ce46d6ed6d08fbda34aae1831de38e274e3c7caed81904042aac9b5bc"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2015",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2015/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2015&page&_format=csv",
+      "filename": "treasury_real_2015.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2015.csv",
+        "sha256": "aec6d36e527bab697717aea76a04113e168392a15944bc8461690d05f9aa0b47"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2016",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2016/all?type=daily_treasury_yield_curve&field_tdr_date_value=2016&page&_format=csv",
+      "filename": "treasury_nominal_2016.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2016.csv",
+        "sha256": "b4d0a8d86e2734bc64d84d9a9824434d841737621582daeac58f13c7129f325c"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2016",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2016/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2016&page&_format=csv",
+      "filename": "treasury_real_2016.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2016.csv",
+        "sha256": "b38e72f59b7edbc660b00be57e1a82e1a49bc7f3128fcb520faddd05d99f7c49"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2017",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2017/all?type=daily_treasury_yield_curve&field_tdr_date_value=2017&page&_format=csv",
+      "filename": "treasury_nominal_2017.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2017.csv",
+        "sha256": "56074da7c32103a28cf4ba2bdf5eaa12f98fd49852047aef1a6eb16e64bd6e83"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2017",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2017/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2017&page&_format=csv",
+      "filename": "treasury_real_2017.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2017.csv",
+        "sha256": "94b310fafe718ca3f6717b7da4cd7d7bf335faecf1a302793f0f34733f164473"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2018",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2018/all?type=daily_treasury_yield_curve&field_tdr_date_value=2018&page&_format=csv",
+      "filename": "treasury_nominal_2018.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2018.csv",
+        "sha256": "e8375524a7a8d3e8091bbe7690d0378b9365be09efff5b18b8eefddc25f718d3"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2018",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2018/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2018&page&_format=csv",
+      "filename": "treasury_real_2018.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2018.csv",
+        "sha256": "d1ef01905a1608957d06cbcd26593eac1e8b9bff9e92a1fa3a1b142a97ef0a95"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2019",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2019/all?type=daily_treasury_yield_curve&field_tdr_date_value=2019&page&_format=csv",
+      "filename": "treasury_nominal_2019.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2019.csv",
+        "sha256": "83fc47c17325e222c45fd3a1eb26c69ae01f62d33b793030b4b8b350ca0a290b"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2019",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2019/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2019&page&_format=csv",
+      "filename": "treasury_real_2019.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2019.csv",
+        "sha256": "593741b038e0970fe5be65a04e0047e17f00809da64e84948d1d306ab032e207"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2020",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2020/all?type=daily_treasury_yield_curve&field_tdr_date_value=2020&page&_format=csv",
+      "filename": "treasury_nominal_2020.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2020.csv",
+        "sha256": "edcf1c8be9622f3cd92eb7de1847aefc3977e2118e2ff9af67f46614a5c306a7"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2020",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2020/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2020&page&_format=csv",
+      "filename": "treasury_real_2020.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2020.csv",
+        "sha256": "30c98a2d75a4474e08a338bc3874745241d63be8f4a0d07a7f04a454a332921c"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2021",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2021/all?type=daily_treasury_yield_curve&field_tdr_date_value=2021&page&_format=csv",
+      "filename": "treasury_nominal_2021.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2021.csv",
+        "sha256": "1be57e49c63a99f6002431a1030c8fbe539b71066c3eaf14f9f58ddc34492cea"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2021",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2021/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2021&page&_format=csv",
+      "filename": "treasury_real_2021.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2021.csv",
+        "sha256": "9c614f8b16db601f1dc01ddd77db42d4e4a54b7243db4b4fc228270a08f747d3"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2022",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2022/all?type=daily_treasury_yield_curve&field_tdr_date_value=2022&page&_format=csv",
+      "filename": "treasury_nominal_2022.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2022.csv",
+        "sha256": "c33cb2758e5e34c2c23b7ab759d18681091860f3f9e5960112859f64f31cd814"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2022",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2022/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2022&page&_format=csv",
+      "filename": "treasury_real_2022.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2022.csv",
+        "sha256": "70b21a92a05801c479f1ddaee21137b7f842d43d883d32d57f9bbae272111a48"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2023",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2023/all?type=daily_treasury_yield_curve&field_tdr_date_value=2023&page&_format=csv",
+      "filename": "treasury_nominal_2023.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2023.csv",
+        "sha256": "edb7f3904e11dcaa502cdcc03ad9b1b16c893802d166ce9bc5fa1118251249d4"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2023",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2023/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2023&page&_format=csv",
+      "filename": "treasury_real_2023.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2023.csv",
+        "sha256": "ef28bcafaca75c45bb6b3491b4df4bd1b5e2ab7ff35ac014b6f8362df330c0ca"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2024",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2024/all?type=daily_treasury_yield_curve&field_tdr_date_value=2024&page&_format=csv",
+      "filename": "treasury_nominal_2024.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2024.csv",
+        "sha256": "6775840b76cd7fd41121f61d6f6c60184eca6b2ba49954ec7372c463cbeef34d"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2024",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2024/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2024&page&_format=csv",
+      "filename": "treasury_real_2024.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2024.csv",
+        "sha256": "d3ff00a9287ebf68fdc80e72fb2d1895a73c84b3ff2a6ca8c6d64648cb470f16"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2025",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_yield_curve&field_tdr_date_value=2025&page&_format=csv",
+      "filename": "treasury_nominal_2025.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2025.csv",
+        "sha256": "cf2fa3da7f160384b63d2ead698532b1d76cd9f789ce4911e2304db85b14e6d5"
+      }
+    },
+    {
+      "id": "TREASURY_REAL_2025",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2025&page&_format=csv",
+      "filename": "treasury_real_2025.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false,
+      "reuse_download": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2025.csv",
+        "sha256": "d3d3131c41e1f93f4661d227ce7079049d51888b395aaff863b6ad8e08838b64"
+      }
+    },
+    {
+      "id": "TREASURY_NOMINAL_2026",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+      "filename": "treasury_nominal_2026.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false
+    },
+    {
+      "id": "TREASURY_REAL_2026",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+      "filename": "treasury_real_2026.csv",
+      "maximum_bytes": 1048576,
+      "revised_after_publication": false
+    }
+  ],
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002",
+  "previous_manifest": "configs/research/TREASURY_YIELDS_SOURCE_20261011_001.json",
+  "forward_journal": {
+    "journal_id": "ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011",
+    "scored_end_utc": "2026-10-11T00:00:00Z",
+    "policy_block": "forward_journal_20261011"
+  }
+}
