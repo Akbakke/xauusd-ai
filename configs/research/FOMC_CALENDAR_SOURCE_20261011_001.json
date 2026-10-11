@@ -1,0 +1,113 @@
+{
+  "schema": "gx1_bounded_files_source_manifest_v1",
+  "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "registered_utc": "2026-10-11T16:50:51.860449+00:00",
+  "source_head_at_registration": "60be7666a7bc9b7cd61b11d7c7fa439ba129bc71",
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "test_read_allowed": false,
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "357ef4f469714af88f567bad757ef539fd07260070b823b3e8f61ac52acd2ec3"
+  },
+  "manifest_id": "FOMC_CALENDAR_SOURCE_20261011_001",
+  "provider": "Federal Reserve Board",
+  "operator_authorization": "calendar input: FOMC meeting dates 2009-2026 from the official historical pages (2009-2020) and the current calendars page (2021-2028). Schedules are published a year in advance; BLS CPI/Employment Situation schedules returned 403 to scripted access and are not included.",
+  "availability_rule": "scheduled meeting dates are known from the prior year's calendar publication; days-to-next-meeting at a decision uses only meetings whose schedule was published before the decision year",
+  "timeout_seconds": 90,
+  "files": [
+    {
+      "id": "FOMC_CALENDARS_CURRENT",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "filename": "fomccalendars.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2009",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2009.htm",
+      "filename": "fomchistorical2009.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2010",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2010.htm",
+      "filename": "fomchistorical2010.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2011",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2011.htm",
+      "filename": "fomchistorical2011.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2012",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2012.htm",
+      "filename": "fomchistorical2012.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2013",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2013.htm",
+      "filename": "fomchistorical2013.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2014",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2014.htm",
+      "filename": "fomchistorical2014.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2015",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2015.htm",
+      "filename": "fomchistorical2015.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2016",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2016.htm",
+      "filename": "fomchistorical2016.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2017",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2017.htm",
+      "filename": "fomchistorical2017.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2018",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2018.htm",
+      "filename": "fomchistorical2018.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2019",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2019.htm",
+      "filename": "fomchistorical2019.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    },
+    {
+      "id": "FOMC_HISTORICAL_2020",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+      "filename": "fomchistorical2020.htm",
+      "maximum_bytes": 4194304,
+      "revised_after_publication": false
+    }
+  ],
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FOMC_CALENDAR_SOURCE_20261011_001"
+}

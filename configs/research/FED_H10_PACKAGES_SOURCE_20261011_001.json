@@ -1,0 +1,54 @@
+{
+  "schema": "gx1_bounded_files_source_manifest_v1",
+  "parent_program": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
+  "registered_utc": "2026-10-11T16:50:51.860449+00:00",
+  "source_head_at_registration": "60be7666a7bc9b7cd61b11d7c7fa439ba129bc71",
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "test_seal_utc": "2026-07-01T00:00:00Z",
+  "fit_allowed": false,
+  "spending_allowed": false,
+  "test_read_allowed": false,
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "357ef4f469714af88f567bad757ef539fd07260070b823b3e8f61ac52acd2ec3"
+  },
+  "manifest_id": "FED_H10_PACKAGES_SOURCE_20261011_001",
+  "provider": "Federal Reserve Board, Data Download Program",
+  "operator_authorization": "11.10.2026 «hent inn resten»: broad dollar index (DTWEXBGS equivalent BRD). The index is revised when trade weights update; this current pull is bound as the current vintage and must be used with that caveat (ALFRED vintages for 2020-2025 exist from the B work for comparison).",
+  "availability_rule": "an index value for day D is usable at the first canonical XAU D1 decision strictly after the end of day D+1 America/New_York; H.10 daily values are released the following business day",
+  "timeout_seconds": 120,
+  "files": [
+    {
+      "id": "H10_PACKAGE_1",
+      "url": "https://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&series=122e3bcb627e8e53f1bf72a1a09cfb81&lastobs=&from=01/01/2009&to=06/30/2026&filetype=csv&label=include&layout=seriescolumn&type=package",
+      "filename": "h10_package_1.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": true,
+      "note": "preformatted H.10 package as listed on the DDP Choose page; the package containing the daily Nominal Broad Dollar Index (BRD) is identified from the received headers, never guessed"
+    },
+    {
+      "id": "H10_PACKAGE_2",
+      "url": "https://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&series=60f32914ab61dfab590e0e470153e3ae&lastobs=&from=01/01/2009&to=06/30/2026&filetype=csv&label=include&layout=seriescolumn&type=package",
+      "filename": "h10_package_2.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": true,
+      "note": "preformatted H.10 package as listed on the DDP Choose page; the package containing the daily Nominal Broad Dollar Index (BRD) is identified from the received headers, never guessed"
+    },
+    {
+      "id": "H10_PACKAGE_3",
+      "url": "https://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&series=847be2166a425bda9b4d92465f797544&lastobs=&from=01/01/2009&to=06/30/2026&filetype=csv&label=include&layout=seriescolumn&type=package",
+      "filename": "h10_package_3.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": true,
+      "note": "preformatted H.10 package as listed on the DDP Choose page; the package containing the daily Nominal Broad Dollar Index (BRD) is identified from the received headers, never guessed"
+    },
+    {
+      "id": "H10_PACKAGE_4",
+      "url": "https://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&series=c5d6e0edf324b2fb28d73bcacafaaa02&lastobs=&from=01/01/2009&to=06/30/2026&filetype=csv&label=include&layout=seriescolumn&type=package",
+      "filename": "h10_package_4.csv",
+      "maximum_bytes": 8388608,
+      "revised_after_publication": true,
+      "note": "preformatted H.10 package as listed on the DDP Choose page; the package containing the daily Nominal Broad Dollar Index (BRD) is identified from the received headers, never guessed"
+    }
+  ],
+  "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FED_H10_PACKAGES_SOURCE_20261011_001"
+}
