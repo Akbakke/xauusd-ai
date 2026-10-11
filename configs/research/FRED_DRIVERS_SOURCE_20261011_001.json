@@ -78,5 +78,8 @@
   "test_read_allowed": false,
   "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/FRED_DRIVERS_SOURCE_20261011_001",
   "licence_note": "FRED data are provided for research use under the FRED terms of use; the receipts record the exact URL and time of retrieval.",
-  "owner": "gx1.scripts.research_ta_campaign_v1"
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "99cd730ddb92ade3ad8cf98d9f8f220c0d190b2856f0d578d18b5db5acff9277"
+  }
 }

@@ -104,5 +104,10 @@
   "test_read_allowed": false,
   "output_directory": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_001",
   "data_directory": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011",
-  "owner": "gx1.scripts.research_ta_campaign_v1"
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "99cd730ddb92ade3ad8cf98d9f8f220c0d190b2856f0d578d18b5db5acff9277",
+    "gx1/execution/oanda_client.py": "715b7b87e0bcfe549926a957b7d45534dc2d1245ebdf325cc5acedfb261c19c4",
+    "gx1/execution/oanda_credentials.py": "e22b77fa333b98142d4c98d4ab5ba9fa5da6ec2a72c59ec770a5f2072ee19d0b"
+  }
 }

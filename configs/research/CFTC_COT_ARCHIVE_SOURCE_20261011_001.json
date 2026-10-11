@@ -31,5 +31,8 @@
     "cot_change4reports",
     "cot_open_interest_log_change4reports"
   ],
-  "owner": "gx1.scripts.research_ta_campaign_v1"
+  "owner": "gx1.scripts.research_ta_campaign_v1",
+  "source_files": {
+    "gx1/scripts/research_ta_campaign_v1.py": "99cd730ddb92ade3ad8cf98d9f8f220c0d190b2856f0d578d18b5db5acff9277"
+  }
 }
