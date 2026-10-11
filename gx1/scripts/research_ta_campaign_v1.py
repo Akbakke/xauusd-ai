@@ -3405,7 +3405,74 @@ def selective_endpoints(panel: pd.DataFrame, forecasts: dict, spec: dict) -> dic
             rank_ic = float(pd.Series(f).rank().corr(pd.Series(y).rank()))
             report[f"h{horizon}:{learner}"] = {"status": "MEASURED", "rows": int(len(f)),
                                                 "rank_ic": rank_ic, "coverage": rows}
+    if sel.get("family_inference"):
+        report["family"] = selective_family_inference(panel, forecasts, spec, mode)
     return report
+
+
+def selective_family_inference(panel: pd.DataFrame, forecasts: dict, spec: dict, mode: str) -> dict:
+    """Joint circular-shift null over every declared selective cell with a max-t family adjustment.
+
+    One shift per draw is applied to every horizon's target, so the draws are joint across
+    cells. Each cell's statistic (hit rate, captured mean) is standardized by its own null
+    mean and sd; the family statistic per draw is the maximum standardized value across all
+    cells, and a cell's family-adjusted p is the share of draws whose maximum reaches the
+    cell's observed standardized value (Westfall-Young max-t). Cells below the row minimum
+    are excluded and listed.
+    """
+    sel = spec["selective"]
+    draws = int(sel["family_draws"])
+    rng = np.random.default_rng(int(sel["seed"]) + 1)
+    mid, atr = panel.fill_mid.to_numpy(float), panel.atr14.to_numpy(float)
+    years = pd.DatetimeIndex(panel.fill_time).year.to_numpy()
+    n = len(panel)
+    cells = []
+    for horizon, arm in forecasts.items():
+        target = np.full(n, np.nan)
+        target[:-horizon] = (mid[horizon:] - mid[:-horizon]) / atr[:-horizon]
+        for learner, forecast in arm.items():
+            if learner == "constant":
+                continue
+            valid = np.flatnonzero(np.isfinite(forecast) & np.isfinite(target) & (forecast != 0.0))
+            if len(valid) < int(sel["minimum_rows"]):
+                continue
+            f, y, yrs = forecast[valid], target[valid], years[valid]
+            for coverage in sel["coverage_grid"]:
+                take = (_select_within_fold_year(f, yrs, float(coverage)) if mode == "within_fold_year"
+                        else np.sort(np.argsort(-np.abs(f))[:max(1, int(round(float(coverage) * len(f))))]))
+                cells.append({"name": f"h{horizon}:{learner}:cov{coverage}", "y": y, "take": take, "side": np.sign(f[take])})
+    if not cells:
+        return {"status": "NO_CELLS"}
+    shifts = rng.integers(1, min(len(c["y"]) for c in cells), size=draws)
+    stats = {"hit_rate": np.empty((draws, len(cells))), "captured_mean": np.empty((draws, len(cells)))}
+    observed = {"hit_rate": np.empty(len(cells)), "captured_mean": np.empty(len(cells))}
+    for j, c in enumerate(cells):
+        y, take, side = c["y"], c["take"], c["side"]
+        observed["hit_rate"][j] = (side == np.sign(y[take])).mean()
+        observed["captured_mean"][j] = (side * y[take]).mean()
+        for i, s in enumerate(shifts):
+            rolled = np.roll(y, int(s))[take]
+            stats["hit_rate"][i, j] = (side == np.sign(rolled)).mean()
+            stats["captured_mean"][i, j] = (side * rolled).mean()
+    out = {"status": "MEASURED", "draws": draws, "family_size": len(cells), "cells": {}}
+    for metric in ("hit_rate", "captured_mean"):
+        null = stats[metric]
+        mu, sd = null.mean(axis=0), null.std(axis=0, ddof=1)
+        usable = sd > 0
+        z_null = np.where(usable, (null - mu) / np.where(usable, sd, 1.0), -np.inf)
+        z_obs = np.where(usable, (observed[metric] - mu) / np.where(usable, sd, 1.0), -np.inf)
+        family_max = z_null.max(axis=1)
+        for j, c in enumerate(cells):
+            entry = out["cells"].setdefault(c["name"], {"rows": int(len(c["take"]))})
+            raw_p = float((null[:, j] >= observed[metric][j]).mean())
+            entry[metric] = {"observed": float(observed[metric][j]), "null_mean": float(mu[j]), "null_sd": float(sd[j]),
+                             "z": float(z_obs[j]) if usable[j] else None, "raw_p": raw_p,
+                             "family_p": float((family_max >= z_obs[j]).mean()) if usable[j] else None}
+    out["minimum_family_p"] = {metric: min(v[metric]["family_p"] for v in out["cells"].values() if v[metric]["family_p"] is not None)
+                               for metric in ("hit_rate", "captured_mean")}
+    out["cells_with_family_p_below_0_05"] = {metric: [name for name, v in out["cells"].items() if v[metric]["family_p"] is not None and v[metric]["family_p"] < 0.05]
+                                             for metric in ("hit_rate", "captured_mean")}
+    return out
 
 
 def run_swing_d1(spec: dict, spec_path: Path) -> dict:

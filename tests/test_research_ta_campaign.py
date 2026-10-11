@@ -1343,3 +1343,23 @@ def test_driver_components_parse_primary_files_and_stamp_availability(tmp_path):
     panel = pd.DataFrame({"decision_time": pd.DatetimeIndex(["2020-01-03T22:00Z", "2020-01-04T22:00Z", "2020-01-06T22:00Z"])})
     joined = ta.swing_driver_fields(panel, comp)
     assert np.isnan(joined["real10y_level"].iloc[0]) and joined["real10y_level"].iloc[1] == 0.15 and joined["real10y_level"].iloc[2] == 0.10
+
+
+def test_selective_family_inference_adjusts_over_all_cells_and_detects_an_oracle():
+    rng = np.random.default_rng(5)
+    n = 600
+    times = pd.date_range("2019-01-01", periods=n, freq="D", tz="UTC")
+    mid = 100 + np.cumsum(rng.normal(size=n))
+    panel = pd.DataFrame({"fill_time": times, "fill_mid": mid, "atr14": np.ones(n)})
+    target5 = np.full(n, np.nan); target5[:-5] = mid[5:] - mid[:-5]
+    oracle = np.where(np.isfinite(target5), target5, np.nan)
+    noise = np.where(np.isfinite(target5), rng.normal(size=n), np.nan)
+    spec = {"selective": {"seed": 1, "minimum_rows": 50, "coverage_grid": [0.1, 0.25], "circular_shifts": 20,
+                          "selection": "within_fold_year", "family_inference": True, "family_draws": 300}}
+    report = ta.selective_endpoints(panel, {5: {"oracle": oracle, "noise": noise, "constant": np.zeros(n)}}, spec)
+    fam = report["family"]
+    assert fam["status"] == "MEASURED" and fam["family_size"] == 4 and fam["draws"] == 300
+    assert fam["cells"]["h5:oracle:cov0.1"]["hit_rate"]["family_p"] < 0.05
+    assert fam["cells"]["h5:noise:cov0.1"]["hit_rate"]["family_p"] > 0.05
+    assert fam["cells"]["h5:noise:cov0.1"]["hit_rate"]["raw_p"] <= fam["cells"]["h5:noise:cov0.1"]["hit_rate"]["family_p"]
+    assert "h5:oracle:cov0.1" in fam["cells_with_family_p_below_0_05"]["hit_rate"]
