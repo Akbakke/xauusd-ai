@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-11T17:00:29.157548+00:00",
-  "status": "FORWARD_JOURNAL_Q3_2026_SCORED_NO_FLAGS",
+  "status": "NATIVE_D1_WAVE_STEPS_1_2_MEASURED_JOURNAL_RUNNING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) Forward journal: extend scored_end_utc by explicit policy edit each month, refetch the five sources, score the new month once; September resolves after 20 trading days; 2) native D1 context + horizon: implementation wave needs its own contract and budget. No native launch, orders or spending.",
+  "next_action": "1) Native D1 wave step 3: signal manifest version with the ninth context family, specialist owner, normalization and constructor metadata, with contract tests; then step 4 dataset rebuild under its own producer budget. 2) Forward journal: extend scored_end_utc each month by explicit policy edit, refetch, score once. No native launch, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Journal scored 2026-07..09 with zero flagged rows; year rule needs 12 months. Native D1 wave not started.",
+    "current_blocker": "Native D1 wave: steps 1-2 measured PASS on real bytes; step 3 (manifest/specialist/normalization) not started and needs a model-contract change. Journal: Q3 2026 scored, zero flags, year rule needs 12 months.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -4057,6 +4057,135 @@
       "rules_owner": "GX1_RULES.md",
       "training_enabled": false,
       "test_sealed_for_fitting": true
+    },
+    "native_d1_wave_20261011": {
+      "operator_request": "11.10.2026 «Ja, kjør steg 1 og 2»",
+      "design_document": "docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md",
+      "step_1_d1_macro_context": {
+        "status": "MEASURED_PASS",
+        "owner": "gx1/features/d1_macro_context_v1.py (83c8d4f5)",
+        "audit_spec": "configs/research/D1_MACRO_CONTEXT_AUDIT_20261011_001.json",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/D1_MACRO_CONTEXT_AUDIT_20261011_001/RESULT.json",
+          "sha256": "8ed8395c18996ed1fce1d81ff4071d97489289c1c5e35b5c80fe68a4f029db8d"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/D1_MACRO_CONTEXT_AUDIT_20261011_001/TERMINAL.json",
+          "sha256": "2c058b46b62e84030fc5067569deae8bc1f22fd49bd20a96b0725c10db53df6e"
+        },
+        "contract_sha256": "16a29ce685fcd7c040d122dbd216bb1631c391e73553598dd5a9080f6f4e0218",
+        "fields": 61,
+        "parity_with_journal_panel": {
+          "bit_identical": true,
+          "mismatching_fields": {},
+          "rows": 4646
+        },
+        "m5_clock": {
+          "complete_rows": 1211069,
+          "first": "2009-06-01 00:05:00+00:00",
+          "first_complete": "2009-06-29 22:05:00+00:00",
+          "last": "2026-07-01 00:00:00+00:00",
+          "rows": 1216924
+        },
+        "availability_bruteforce": {
+          "mismatches": {
+            "cot": 0,
+            "drivers": 0,
+            "panel": 0
+          },
+          "sampled_rows": 2000
+        },
+        "refetched_panel_equals_earlier_capture": true,
+        "materialization_binding_sha256": "bd3a0f0fdb2e274afa34550d80650d9047d79fdde089bd5b3974f0b0de9b81c7",
+        "admitted_to_native_signal_manifest": false
+      },
+      "step_2_trading_day_horizons": {
+        "status": "MEASURED_PASS",
+        "owner": "gx1/contracts/entry_observed_market_horizons_v1.py (49facde6)",
+        "audit_spec": "configs/research/ENTRY_HORIZON_CLOCK_AUDIT_20261011_001.json",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_HORIZON_CLOCK_AUDIT_20261011_001/RESULT.json",
+          "sha256": "5a8caf54f26b834cfdaa26abbb72835018a9a49c52e4c5369569b2936a97880d"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_HORIZON_CLOCK_AUDIT_20261011_001/TERMINAL.json",
+          "sha256": "f31b876aa398516ffc1829b6ac488003a5b6cfdb3071f0a5c10ba34e43ea4d56"
+        },
+        "contract_sha256": "de9ab18f2df489011a73594f4a8a25c9dabc23516fb63591c1fb4df182572083",
+        "window": [
+          "2025-01-01T00:00:00Z",
+          "2026-01-01T00:00:00Z"
+        ],
+        "m5_rows": 70922,
+        "horizons": {
+          "h1d": {
+            "valid_rows": 70385,
+            "censored_bound_rows": 262,
+            "elapsed_days": {
+              "max": 4.0,
+              "median": 1.0,
+              "min": 1.0
+            },
+            "calendar_days_between_sessions": {
+              "all_at_least_h": true,
+              "max": 4,
+              "min": 1
+            }
+          },
+          "h20d": {
+            "valid_rows": 70198,
+            "censored_bound_rows": 449,
+            "elapsed_days": {
+              "max": 32.0,
+              "median": 28.0,
+              "min": 28.0
+            },
+            "calendar_days_between_sessions": {
+              "all_at_least_h": true,
+              "max": 32,
+              "min": 28
+            }
+          },
+          "h5d": {
+            "valid_rows": 70324,
+            "censored_bound_rows": 323,
+            "elapsed_days": {
+              "max": 10.0,
+              "median": 7.0,
+              "min": 7.0
+            },
+            "calendar_days_between_sessions": {
+              "all_at_least_h": true,
+              "max": 10,
+              "min": 7
+            }
+          }
+        },
+        "long_gross_bps_2025": {
+          "h1d": {
+            "max": 413.3,
+            "mean": 18.0,
+            "min": -746.3,
+            "sd": 115.9
+          },
+          "h20d": {
+            "max": 3018.5,
+            "mean": 451.3,
+            "min": -838.9,
+            "sd": 474.1
+          },
+          "h5d": {
+            "max": 1068.7,
+            "mean": 101.4,
+            "min": -924.4,
+            "sd": 253.1
+          }
+        },
+        "wired_into_trainer_or_builder": false
+      },
+      "steps_3_to_6": "not started: signal manifest + ninth specialist owner + normalization + constructor metadata (3), dataset rebuild (4), fresh zero-step baseline (5), recipe/budget/training (6); each needs its own binding and budget",
+      "training_enabled": false,
+      "test_accessed": false
     }
   },
   "gc_order_flow_research_20261006": {

@@ -98,12 +98,37 @@ Juli og august er løst; september løses etter 20 handelsdager. Årsregelen kre
 12 løste måneder. Beskrivende tall, ingen inferens, ingen prediktor innrømmet.
 Fit skjer bare på historikk før hver måned; scorede rader brukes aldri til fit.
 
-## Native D1-kontekst og horisont (vedtak 11.10 kveld)
+## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
-Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md: observert
-markedsmål på 1/5/20 handelsdager og en niende kontekstfamilie (4 COT + 44 panel
-+ 13 drivere = 61 felt) med forskningsflatens as-of-regler. Seks steg, hvert med
-egen binding og budsjett. Ingenting lansert.
+Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren
+bestilte steg 1 og 2; begge er kodet, testet og målt på ekte hashbundne bytes.
+
+Steg 1, D1-kontekst-eier (gx1/features/d1_macro_context_v1.py, 83c8d4f5): 61 felt
+(4 COT, 44 panel, 13 drivere) joines as-of til hver M5-beslutningstid med
+forskningseierens tilgjengelighetsregler; kildeparsing importeres fra
+forskningseieren, ingenting dupliseres, ingenting er innrømmet i native
+signalmanifest. Audit D1_MACRO_CONTEXT_AUDIT_20261011_001 (producer 8G): bitidentisk
+med journalpanelet ved 4646 D1-beslutningstider før forseglingen;
+hele M5-klokken 1,216,924 rader 2009-06..2026-07 med 1,211,069 komplette fra
+2009-06-29; brute-force-tilgjengelighet på 2 000 tilfeldige rader uten avvik; det
+nyhentede OANDA-panelet er lik forrige fangst før forseglingen for alle 11 instrumenter.
+
+Steg 2, mål på handelsdager (gx1/contracts/entry_observed_market_horizons_v1.py,
+49facde6): eksplisitt etterfølger til entry_observed_market_v1 med 1/5/20
+observerte sesjoner på UTC-sesjonsklokken (sesjoner uten barer hoppes over, exit
+ved samme sesjonsoffset ellers sensurert), 20 d er beslutningsautoritet, kost
+gjennom v1-økonomien over faktisk medgått tid, eksakte batchnøkler per horisont.
+Audit ENTRY_HORIZON_CLOCK_AUDIT_20261011_001 på native M1-tape, alle 70,922 M5-
+beslutninger i 2025: gyldige 70,385/70,324/70,198 ved 1/5/20 d, sensurert
+262/323/449; medgått tid median 1/7/28 dager, maks 4/10/32 (helger og
+helligdager hoppes over, fredag gir 3 dager ved 1 d); alle exits før forseglingen.
+Brutto long 2025 ved 20 d: snitt +451 bps, sd 474 (beskrivende, 2025 var et
+sterkt gullår). Ikke koblet til trener eller builder.
+
+Steg 3–6 er ikke startet: signalmanifest med niende familie og spesialisteier,
+normalisering og konstruktormetadata (3), datasett-rebuild (4), fersk
+nullstegsbaseline (5), recipe/budsjett/trening (6). Hvert steg krever egen
+binding og budsjett. training_enabled = false.
 
 ## Gjort og akseptert
 
