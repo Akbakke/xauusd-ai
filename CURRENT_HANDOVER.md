@@ -79,6 +79,24 @@ med sha256sum; import skjer med reuse_download-manifest. Ingen prediktor er
 innrømmet, ingen fit kjørt, TEST urørt. Detaljer og hasher:
 NEXT_RUN_POLICY.current_work.swing_program_sources_20261011.
 
+## Swing stage B 11.10.2026: drivere fra primærkilder, sterkere h20-effekt
+
+FRED svarte ikke fra verten, så driverne ble hentet fra primærutgiverne under
+egne manifester (cf14d394): Treasury par-/realrentekurver 2009–2026, Cboe VIX og
+GLD-beholdning via Internet Archive-kopi 14.02.2026. Drivereieren (5c3d9cf9) gir
+13 felt med tilgjengelighet etter slutt på dag D+1 New York; 4 533 komplette
+dagsrader. Forsøk 005 (aaed881d, 237 felt): porteføljefamilien INKONKLUSIV for
+begge. Selektivt ved h20, swing_hgb: treff 0,80/0,80/0,71/0,69 ved 1/2/5/10 %
+dekning (18/21/28/51 episoder, alle 15 år), over shift-p95 på alle fire,
+fanget mål over p95 på tre; rank-IC +0,006. h5 bekrefter ikke, så den
+forhåndsregistrerte regelen er ikke oppfylt. Episodeøkonomi 10 %/20 d: 51
+episoder, treff 0,67, +184 bps per episode mot +63 ubetinget, t ≈ 2,1; 2011 og
+2023 står for 6 100 av 9 360 bps, resten gir +105 per episode over 31 episoder.
+Verdikt: INKONKLUSIV, men dette er det sterkeste selektive funnet i prosjektet.
+Før noe mer sies kreves familiejustert inferens over alle 56 selektive celler
+med felles sirkulær-shift-null, foldstruktur-sensitivitet og ablasjon av
+drivergruppen. DTWEXBGS er utelatt til Fed DDP-pakken er bundet.
+
 ## Swing stage A forsøk 004: seeds og episodeøkonomi
 
 Seeds 1–3 (f481c993, da5df963) ga bit-identiske HGB-resultater: med early_stopping

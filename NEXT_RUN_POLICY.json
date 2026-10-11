@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-11T15:21:19.330911+00:00",
-  "status": "SWING_STAGE_A_COMPLETE_INKONKLUSIV_RELAY_AND_STAGE_B_PENDING",
+  "observed_utc": "2026-10-11T15:55:59.818190+00:00",
+  "status": "SWING_STAGE_B_INKONKLUSIV_STRONGER_H20_HGB_SELECTIVE_EFFECT_FAMILY_ADJUSTMENT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "1) operator relays FRED CSVs and GLD file to /home/andre2/GX1_DATA/research/RELAY_20261011/ with sha256sums; 2) stage-B preregistration: identical folds/costs, drivers + GLD + calendar, HGB seeds x3, episode-level single-position selective economics, family-adjusted inference over the selective cells; 3) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
+  "next_action": "1) family-adjusted inference over all selective cells (joint circular-shift null, 2000 shifts, max statistic) on attempt 005 outputs under a new preregistration; 2) fold-structure sensitivity and driver-group ablation on identical inputs; 3) bind the Fed DDP package for DTWEXBGS; 4) in parallel on GPU, bind a fresh zero-step v10 baseline under a new explicit budget. No native launch, TEST, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Swing stage A complete: no portfolio edge; the h20 HGB selective effect has hit rate above null but episode economics indistinguishable from unconditional long (64 episodes, t about 1). Stage B needs the operator relay (FRED, GLD), calendar inputs and a confirmation design with more independent episodes (longer history or pooled instruments). Fresh zero-step v10 baseline still requires a new explicit budget.",
+    "current_blocker": "Stage B: preregistered rule not met (h5 unconfirmed), but the h20 HGB selective effect strengthened with the primary-publisher drivers (hit 0.80 at 1-2 % coverage, episode t about 2.1). Family-adjusted inference over the selective cells and fold-structure sensitivity are required before any further claim. Fresh zero-step v10 baseline still requires a new explicit budget.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -2592,6 +2592,271 @@
         "verdict": "INKONKLUSIV; the h20 HGB selective hit rate is above the circular-shift null at 1/2/10 % coverage, but its episode economics are not distinguishable from unconditional long with 64 episodes (t about 1), and h5 contradicts. Not a GO; a stage-B hypothesis",
         "evidence_class": "measured on reused development history; descriptive economics without inference"
       }
+    },
+    "swing_d1_stage_b_20261011": {
+      "preregistration": "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_005.json",
+      "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1",
+      "source_commit": "aaed881d20baa78348ac963222c89599b3ffbaa6",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_005/RESULT.json",
+        "sha256": "a586b8ddb759c8c1939f2ec347301a6ed77a6c9652d32da08cf6254c3e1f4b49"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/ENTRY_DIRECTION_SWING_D1_20261011_005/TERMINAL.json",
+        "sha256": "73b3c0aa0be1f5bf45d1114bbc26a7234f4d2ee714b5b52d64a434c598215c0a"
+      },
+      "feature_count": 237,
+      "driver_sources": {
+        "treasury": "TREASURY_YIELDS_SOURCE_20261011_001 (36 yearly CSVs)",
+        "vix": "CBOE_VIX_SOURCE_20261011_001",
+        "gld": "GLD_HOLDINGS_SOURCE_20261011_002 (Internet Archive capture 2026-02-14)",
+        "excluded": "DTWEXBGS (Fed DDP package URL not bound)",
+        "availability": "strictly after the end of day D+1 America/New_York"
+      },
+      "decisions": {
+        "swing_hgb": "INKONKLUSIV",
+        "swing_ridge": "INKONKLUSIV"
+      },
+      "h20_vs_long_historical_proxy": {
+        "swing_ridge": {
+          "estimate": -0.799,
+          "lower": -2.78,
+          "upper": 1.18
+        },
+        "swing_hgb": {
+          "estimate": -0.45,
+          "lower": -3.87,
+          "upper": 2.97
+        }
+      },
+      "selective_h20_swing_hgb": {
+        "0.01": {
+          "rows": 45,
+          "episodes": 18,
+          "hit": 0.8,
+          "z": 4.02,
+          "shift_p95": 0.711,
+          "captured_atr": 2.188,
+          "shift_mean_p95": 1.909,
+          "hit_above": true,
+          "mean_above": true
+        },
+        "0.02": {
+          "rows": 78,
+          "episodes": 21,
+          "hit": 0.795,
+          "z": 5.21,
+          "shift_p95": 0.731,
+          "captured_atr": 2.2,
+          "shift_mean_p95": 1.759,
+          "hit_above": true,
+          "mean_above": true
+        },
+        "0.05": {
+          "rows": 201,
+          "episodes": 28,
+          "hit": 0.706,
+          "z": 5.85,
+          "shift_p95": 0.682,
+          "captured_atr": 1.494,
+          "shift_mean_p95": 1.582,
+          "hit_above": true,
+          "mean_above": false
+        },
+        "0.1": {
+          "rows": 403,
+          "episodes": 51,
+          "hit": 0.692,
+          "z": 7.72,
+          "shift_p95": 0.653,
+          "captured_atr": 1.527,
+          "shift_mean_p95": 1.265,
+          "hit_above": true,
+          "mean_above": true
+        },
+        "0.25": {
+          "rows": 1000,
+          "episodes": 80,
+          "hit": 0.598,
+          "z": 6.2,
+          "shift_p95": 0.613,
+          "captured_atr": 0.844,
+          "shift_mean_p95": 0.973,
+          "hit_above": false,
+          "mean_above": false
+        }
+      },
+      "selective_h5_swing_hgb": {
+        "0.01": {
+          "rows": 45,
+          "episodes": 23,
+          "hit": 0.622,
+          "z": 1.64,
+          "shift_p95": 0.689,
+          "captured_atr": 0.275,
+          "shift_mean_p95": 0.573,
+          "hit_above": false,
+          "mean_above": false
+        },
+        "0.02": {
+          "rows": 78,
+          "episodes": 31,
+          "hit": 0.641,
+          "z": 2.49,
+          "shift_p95": 0.667,
+          "captured_atr": 0.306,
+          "shift_mean_p95": 0.546,
+          "hit_above": false,
+          "mean_above": false
+        },
+        "0.05": {
+          "rows": 201,
+          "episodes": 54,
+          "hit": 0.597,
+          "z": 2.75,
+          "shift_p95": 0.622,
+          "captured_atr": 0.277,
+          "shift_mean_p95": 0.389,
+          "hit_above": false,
+          "mean_above": false
+        },
+        "0.1": {
+          "rows": 403,
+          "episodes": 91,
+          "hit": 0.566,
+          "z": 2.64,
+          "shift_p95": 0.593,
+          "captured_atr": 0.115,
+          "shift_mean_p95": 0.32,
+          "hit_above": false,
+          "mean_above": false
+        },
+        "0.25": {
+          "rows": 1000,
+          "episodes": 170,
+          "hit": 0.549,
+          "z": 3.1,
+          "shift_p95": 0.568,
+          "captured_atr": 0.106,
+          "shift_mean_p95": 0.215,
+          "hit_above": false,
+          "mean_above": false
+        }
+      },
+      "selective_h20_swing_ridge": {
+        "0.01": {
+          "rows": 45,
+          "episodes": 32,
+          "hit": 0.556,
+          "z": 0.75,
+          "shift_p95": 0.689,
+          "captured_atr": 0.234,
+          "shift_mean_p95": 1.834,
+          "hit_above": false,
+          "mean_above": false
+        },
+        "0.02": {
+          "rows": 78,
+          "episodes": 43,
+          "hit": 0.59,
+          "z": 1.59,
+          "shift_p95": 0.679,
+          "captured_atr": 0.434,
+          "shift_mean_p95": 1.682,
+          "hit_above": false,
+          "mean_above": false
+        },
+        "0.05": {
+          "rows": 201,
+          "episodes": 84,
+          "hit": 0.602,
+          "z": 2.89,
+          "shift_p95": 0.637,
+          "captured_atr": 0.48,
+          "shift_mean_p95": 1.204,
+          "hit_above": false,
+          "mean_above": false
+        },
+        "0.1": {
+          "rows": 403,
+          "episodes": 127,
+          "hit": 0.603,
+          "z": 4.13,
+          "shift_p95": 0.636,
+          "captured_atr": 0.704,
+          "shift_mean_p95": 1.174,
+          "hit_above": false,
+          "mean_above": false
+        },
+        "0.25": {
+          "rows": 1000,
+          "episodes": 217,
+          "hit": 0.586,
+          "z": 5.44,
+          "shift_p95": 0.613,
+          "captured_atr": 0.758,
+          "shift_mean_p95": 1.018,
+          "hit_above": false,
+          "mean_above": false
+        }
+      },
+      "rank_ic": {
+        "h20:swing_hgb": 0.0056,
+        "h20:swing_ridge": 0.0672,
+        "h5:swing_hgb": -0.0275
+      },
+      "preregistered_rule": {
+        "h20_cells_meeting_hit_mean_z": [
+          "0.01",
+          "0.02",
+          "0.1"
+        ],
+        "h5_cells_meeting": [],
+        "met": false,
+        "reason": "h5 does not confirm (no cell above both shift p95); portfolio family INKONKLUSIV"
+      },
+      "episode_economics_h20_swing_hgb_10pct_20d": {
+        "episodes": 51,
+        "hit_rate": 0.667,
+        "mean_net_bps_ex_financing": 183.5,
+        "median": 98.2,
+        "sum": 9358,
+        "worst": -445,
+        "unconditional_long_20d_reference_bps": 62.7,
+        "excess_bps": 120.8,
+        "approx_t": 2.09,
+        "per_year_sum": {
+          "2011": 2534.406742194025,
+          "2012": 700.7376668471878,
+          "2013": -352.45045760915,
+          "2014": 208.41244258228778,
+          "2015": -30.08993797386148,
+          "2016": 768.6076112454834,
+          "2017": -759.8476134192857,
+          "2018": 420.05823288453837,
+          "2019": 408.62716462975925,
+          "2020": 625.9641004465002,
+          "2021": 104.40132999342234,
+          "2022": 595.5556945891597,
+          "2023": 3563.0949065655777,
+          "2024": 70.91546784170033,
+          "2025": 499.2086070646491
+        },
+        "excluding_2011_2023": {
+          "episodes": 31,
+          "mean_net_bps": 105.2,
+          "hit_rate": 0.613
+        },
+        "long_financing_estimate_bps_at_5p4": 1301
+      },
+      "verdict": "INKONKLUSIV by the preregistered rule (h5 unconfirmed; portfolio family INKONKLUSIV), with a materially stronger h20 selective HGB effect than stage A: hit 0.80/0.80/0.71/0.69 at 1/2/5/10 % coverage above the circular-shift p95 across all 15 years, rank-IC +0.006, episode economics +184 bps per episode versus +63 unconditional (51 episodes, t about 2.1; +105 excluding 2011 and 2023). Multiplicity over 56 selective cells is not yet family-adjusted",
+      "next": [
+        "family-adjusted inference over all selective cells with a joint circular-shift null (2000 shifts, max statistic)",
+        "fold-structure sensitivity (two-year holdouts) on identical inputs",
+        "feature-group ablation of the drivers within the preregistered design",
+        "only after those: the untouched 2025-06..2026-06 development VAL as a last check, never for selection"
+      ],
+      "evidence_class": "measured on reused development history; episode economics descriptive"
     }
   },
   "gc_order_flow_research_20261006": {
