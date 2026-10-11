@@ -2971,9 +2971,11 @@ SWING_PANEL_RV_DAYS = 20
 SWING_D1_LANE_EXCLUDED_PREFIXES = ("mtf_candle_",)
 
 
-def parse_cot_gold_archives(spec: dict) -> pd.DataFrame:
-    """Weekly COMEX gold (088691) legacy futures-only rows from the hash-bound archives."""
-    cot = spec["cot"]
+def parse_cot_gold_archives(spec: dict, contract_market_code: str | None = None) -> pd.DataFrame:
+    """Weekly legacy futures-only rows for one CFTC contract market code (gold 088691 by default)."""
+    cot = dict(spec["cot"])
+    if contract_market_code is not None:
+        cot["contract_market_code"] = str(contract_market_code)
     result = json.loads(Path(cot["result"]["path"]).read_text())
     if sha(Path(cot["result"]["path"])) != cot["result"]["sha256"]:
         raise RuntimeError("TA_SWING_COT_RESULT_HASH")
@@ -3410,19 +3412,8 @@ def selective_endpoints(panel: pd.DataFrame, forecasts: dict, spec: dict) -> dic
     return report
 
 
-def selective_family_inference(panel: pd.DataFrame, forecasts: dict, spec: dict, mode: str) -> dict:
-    """Joint circular-shift null over every declared selective cell with a max-t family adjustment.
-
-    One shift per draw is applied to every horizon's target, so the draws are joint across
-    cells. Each cell's statistic (hit rate, captured mean) is standardized by its own null
-    mean and sd; the family statistic per draw is the maximum standardized value across all
-    cells, and a cell's family-adjusted p is the share of draws whose maximum reaches the
-    cell's observed standardized value (Westfall-Young max-t). Cells below the row minimum
-    are excluded and listed.
-    """
+def _selective_cells(panel: pd.DataFrame, forecasts: dict, spec: dict, mode: str, prefix: str = "") -> list[dict]:
     sel = spec["selective"]
-    draws = int(sel["family_draws"])
-    rng = np.random.default_rng(int(sel["seed"]) + 1)
     mid, atr = panel.fill_mid.to_numpy(float), panel.atr14.to_numpy(float)
     years = pd.DatetimeIndex(panel.fill_time).year.to_numpy()
     n = len(panel)
@@ -3440,11 +3431,17 @@ def selective_family_inference(panel: pd.DataFrame, forecasts: dict, spec: dict,
             for coverage in sel["coverage_grid"]:
                 take = (_select_within_fold_year(f, yrs, float(coverage)) if mode == "within_fold_year"
                         else np.sort(np.argsort(-np.abs(f))[:max(1, int(round(float(coverage) * len(f))))]))
-                cells.append({"name": f"h{horizon}:{learner}:cov{coverage}", "y": y, "take": take, "side": np.sign(f[take])})
+                cells.append({"name": f"{prefix}h{horizon}:{learner}:cov{coverage}", "y": y, "take": take, "side": np.sign(f[take])})
+    return cells
+
+
+def selective_family_inference_over_cells(cells: list[dict], *, draws: int, seed: int) -> dict:
+    """Westfall-Young max-t over an explicit cell list with one joint circular shift per draw."""
     if not cells:
         return {"status": "NO_CELLS"}
-    shifts = rng.integers(1, min(len(c["y"]) for c in cells), size=draws)
-    stats = {"hit_rate": np.empty((draws, len(cells))), "captured_mean": np.empty((draws, len(cells)))}
+    rng = np.random.default_rng(int(seed) + 1)
+    shifts = rng.integers(1, min(len(c["y"]) for c in cells), size=int(draws))
+    stats = {"hit_rate": np.empty((len(shifts), len(cells))), "captured_mean": np.empty((len(shifts), len(cells)))}
     observed = {"hit_rate": np.empty(len(cells)), "captured_mean": np.empty(len(cells))}
     for j, c in enumerate(cells):
         y, take, side = c["y"], c["take"], c["side"]
@@ -3454,7 +3451,7 @@ def selective_family_inference(panel: pd.DataFrame, forecasts: dict, spec: dict,
             rolled = np.roll(y, int(s))[take]
             stats["hit_rate"][i, j] = (side == np.sign(rolled)).mean()
             stats["captured_mean"][i, j] = (side * rolled).mean()
-    out = {"status": "MEASURED", "draws": draws, "family_size": len(cells), "cells": {}}
+    out = {"status": "MEASURED", "draws": int(draws), "family_size": len(cells), "cells": {}}
     for metric in ("hit_rate", "captured_mean"):
         null = stats[metric]
         mu, sd = null.mean(axis=0), null.std(axis=0, ddof=1)
@@ -3464,15 +3461,22 @@ def selective_family_inference(panel: pd.DataFrame, forecasts: dict, spec: dict,
         family_max = z_null.max(axis=1)
         for j, c in enumerate(cells):
             entry = out["cells"].setdefault(c["name"], {"rows": int(len(c["take"]))})
-            raw_p = float((null[:, j] >= observed[metric][j]).mean())
             entry[metric] = {"observed": float(observed[metric][j]), "null_mean": float(mu[j]), "null_sd": float(sd[j]),
-                             "z": float(z_obs[j]) if usable[j] else None, "raw_p": raw_p,
+                             "z": float(z_obs[j]) if usable[j] else None,
+                             "raw_p": float((null[:, j] >= observed[metric][j]).mean()),
                              "family_p": float((family_max >= z_obs[j]).mean()) if usable[j] else None}
     out["minimum_family_p"] = {metric: min(v[metric]["family_p"] for v in out["cells"].values() if v[metric]["family_p"] is not None)
                                for metric in ("hit_rate", "captured_mean")}
     out["cells_with_family_p_below_0_05"] = {metric: [name for name, v in out["cells"].items() if v[metric]["family_p"] is not None and v[metric]["family_p"] < 0.05]
                                              for metric in ("hit_rate", "captured_mean")}
     return out
+
+
+def selective_family_inference(panel: pd.DataFrame, forecasts: dict, spec: dict, mode: str) -> dict:
+    """Joint circular-shift null over every declared selective cell with a max-t family adjustment."""
+    sel = spec["selective"]
+    return selective_family_inference_over_cells(_selective_cells(panel, forecasts, spec, mode),
+                                                 draws=int(sel["family_draws"]), seed=int(sel["seed"]))
 
 
 def run_swing_d1(spec: dict, spec_path: Path) -> dict:
@@ -3533,9 +3537,137 @@ def run_swing_d1(spec: dict, spec_path: Path) -> dict:
         raise
 
 
+# ---------------------------------------------------------------------------
+# Pooled-instrument swing study (operator 11.10.2026 «Ja, kjør og hent inn resten»):
+# the stage-B design applied to several OANDA instruments as their own targets.
+# Each instrument gets its own daily panel from its hash-bound H1 candles, its own
+# COT positioning, the shared drivers and the shared cross-asset panel; fits are
+# per instrument; evidence is pooled at the episode level through one joint family
+# inference across every instrument's selective cells.
+# ---------------------------------------------------------------------------
+
+def load_instrument_h1(spec: dict, name: str) -> pd.DataFrame:
+    panel = spec["oanda_panel"]
+    result = json.loads(Path(panel["result"]["path"]).read_text())
+    if sha(Path(panel["result"]["path"])) != panel["result"]["sha256"]:
+        raise RuntimeError("TA_POOLED_OANDA_RESULT_HASH")
+    record = next((r for r in result["records"] if r["item"] == name), None)
+    if record is None or record["status"] != "RETRIEVED_NOT_ADMITTED":
+        raise RuntimeError(f"TA_POOLED_INSTRUMENT_MISSING: {name}")
+    path = Path(record["parquet_path"])
+    if sha(path) != record["parquet_sha256"]:
+        raise RuntimeError("TA_POOLED_PARQUET_HASH")
+    frame = pd.read_parquet(path, columns=["time", "open", "high", "low", "close", "bid_open", "ask_open"])
+    frame["time"] = pd.to_datetime(frame["time"], utc=True)
+    frame = frame.set_index("time").sort_index()
+    if frame.index.has_duplicates or not np.isfinite(frame.to_numpy(float)).all() or (frame["ask_open"] < frame["bid_open"]).any():
+        raise RuntimeError("TA_POOLED_H1_ROWS")
+    return frame
+
+
+def build_pooled_panels(spec: dict) -> tuple[dict[str, pd.DataFrame], list[str], dict]:
+    """One daily panel per target instrument on the canonical D1 session clock."""
+    end = pd.Timestamp(spec["read_end_exclusive"])
+    components = build_driver_components(spec)
+    daily = load_oanda_panel_d1(spec)
+    panels, coverage = {}, {}
+    feature_names = None
+    for target in spec["targets"]:
+        name, code = target["instrument"], target["cot_contract_market_code"]
+        panel = daily_panel(load_instrument_h1(spec, name), end)
+        groups = {"price_state_A": list(FEATURES)}
+        cot = parse_cot_gold_archives(spec, code)
+        cot_fields = align_asof(pd.DatetimeIndex(panel["decision_time"]), cot["available_at"], cot[SWING_COT_FIELDS])
+        for column in SWING_COT_FIELDS:
+            panel[column] = cot_fields[column].to_numpy(float)
+        groups["positioning_cot"] = list(SWING_COT_FIELDS)
+        decisions = pd.DatetimeIndex(panel["decision_time"])
+        panel_fields = []
+        for inst, features in daily.items():
+            closes = pd.Series(pd.DatetimeIndex(features.index) + TRADING_SESSION_DURATION)
+            joined = align_asof(decisions, closes, features, inclusive=True)
+            for column in features.columns:
+                panel[column] = joined[column].to_numpy(float)
+                panel_fields.append(column)
+        groups["panel_oanda"] = panel_fields
+        driver_rows = swing_driver_fields(panel, components)
+        for column in SWING_DRIVER_FIELDS:
+            panel[column] = driver_rows[column].to_numpy(float)
+        groups["drivers"] = list(SWING_DRIVER_FIELDS)
+        names = [c for g in ("price_state_A", "positioning_cot", "panel_oanda", "drivers") for c in groups[g]]
+        if feature_names is None:
+            feature_names = names
+        elif names != feature_names:
+            raise RuntimeError("TA_POOLED_FEATURE_NAMES_DIFFER")
+        if panel.columns.has_duplicates or np.isinf(panel[names].to_numpy(float)).any():
+            raise RuntimeError("TA_POOLED_FEATURE_SURFACE")
+        panels[name] = panel
+        coverage[name] = {"rows": int(len(panel)), "complete_rows": int(np.isfinite(panel[names].to_numpy(float)).all(axis=1).sum()),
+                          "cot_reports": int(len(cot)), "first_decision": str(panel.decision_time.iloc[0]), "last_decision": str(panel.decision_time.iloc[-1])}
+    return panels, feature_names, coverage
+
+
+def run_swing_pooled(spec: dict, spec_path: Path) -> dict:
+    if (spec["arm"] != "SWING_POOLED_D1" or spec["horizons"] != [20, 5] or spec["primary_horizon"] != 20
+            or spec["test_accessed"] is not False or spec["native_training"] is not False):
+        raise RuntimeError("TA_POOLED_PREREG_SCOPE")
+    out = Path(spec["output_directory"])
+    out.mkdir(parents=True, exist_ok=False)
+    write_json(out / "STARTED.json", {"git_head": git("rev-parse", "HEAD"),
+                                     "preregistration": str(spec_path), "preregistration_sha256": sha(spec_path)})
+    try:
+        panels, feature_names, coverage = build_pooled_panels(spec)
+        if spec["feature_names"] != feature_names:
+            raise RuntimeError("TA_POOLED_FEATURE_NAMES_DRIFT")
+        per_instrument, all_cells, fits_all = {}, [], {}
+        mode = spec["selective"].get("selection", "within_fold_year")
+        for name, panel in panels.items():
+            write_parquet(out / f"PANEL_{name}.parquet", panel)
+            forecasts, fits = _fit_matched_macro(panel, spec, feature_names, "swing")
+            fits_all[name] = fits
+            write_parquet(out / f"PREDICTIONS_{name}.parquet", pd.DataFrame({"fill_time": panel.fill_time, **{
+                f"h{h}:{k}": v for h, arm in forecasts.items() for k, v in arm.items()}}))
+            block = {"selective": selective_endpoints(panel, forecasts, {**spec, "selective": {**spec["selective"], "family_inference": False}}),
+                     "episode_economics": {f"h{h}:{learner}": episode_economics(panel, forecasts[h][learner], spec)
+                                           for h in spec["horizons"] for learner in spec["episode_economics"]["learners"]}
+                     if spec.get("episode_economics") else {}}
+            per_instrument[name] = block
+            all_cells.extend(_selective_cells(panel, forecasts, spec, mode, prefix=f"{name}:"))
+        family = selective_family_inference_over_cells(all_cells, draws=int(spec["selective"]["family_draws"]), seed=int(spec["selective"]["seed"]))
+        # cross-instrument consistency for each (horizon, learner, coverage) cell
+        consistency = {}
+        for cell in all_cells:
+            key = cell["name"].split(":", 1)[1]
+            hit = float((cell["side"] == np.sign(cell["y"][cell["take"]])).mean())
+            consistency.setdefault(key, {})[cell["name"].split(":", 1)[0]] = round(hit, 3)
+        write_json(out / "FITS.json", {"fits": fits_all})
+        result = {"schema": "gx1_ta_swing_pooled_d1_v1", "git_head": git("rev-parse", "HEAD"),
+                  "preregistration_sha256": sha(spec_path), "instruments": list(panels), "coverage": coverage,
+                  "feature_count": len(feature_names), "per_instrument": per_instrument, "family": family,
+                  "cross_instrument_hit_rates": consistency, "pooled_coefficient_fit": False,
+                  "test_accessed": False, "native_training": False,
+                  "evidence_class": "measured_reused_development_walkforward"}
+        artifacts = {}
+        for path in sorted(out.iterdir()):
+            if path.suffix == ".parquet":
+                pq.read_table(path)
+            with path.open("rb") as handle:
+                os.fsync(handle.fileno())
+            artifacts[path.name] = {"sha256": sha(path), "bytes": path.stat().st_size}
+        result["artifacts"] = artifacts
+        write_json(out / "RESULT.json", result)
+        write_json(out / "TERMINAL.json", {"status": "COMPLETE", "result_sha256": sha(out / "RESULT.json"),
+                                         "finished_utc": datetime.now(timezone.utc).isoformat()})
+        return {"status": "COMPLETE", "out": str(out), "minimum_family_p": family.get("minimum_family_p")}
+    except Exception as exc:
+        write_json(out / "TERMINAL.json", {"status": "FAILED", "error": str(exc),
+                                         "finished_utc": datetime.now(timezone.utc).isoformat()})
+        raise
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files", "run-swing-d1"])
+    parser.add_argument("mode", choices=["fetch-funding", "fetch-alfred", "audit-alfred-chunks", "prepare-b-macros", "prepare-macro-core", "run-macro-core", "import-b-archived-snapshots", "run-a", "run-c", "audit-dukascopy-cache", "run-sweep", "audit-gc-source", "entry-edge-diagnostic", "entry-edge-probe", "entry-learning-baseline", "fetch-fred-current", "fetch-cftc-cot-archives", "fetch-oanda-panel-daily", "fetch-bounded-files", "run-swing-d1", "run-swing-pooled"])
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--spec-sha256", required=True)
     parser.add_argument("--receipt-sha256")
@@ -3549,7 +3681,7 @@ def main() -> int:
     if args.mode == "audit-alfred-chunks":
         print(json.dumps(audit_alfred_chunks(spec, args.spec, args.receipt_sha256)))
         return 0
-    owner = {"run-swing-d1": run_swing_d1, "fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
+    owner = {"run-swing-pooled": run_swing_pooled, "run-swing-d1": run_swing_d1, "fetch-bounded-files": fetch_bounded_files, "fetch-fred-current": fetch_fred_current, "fetch-cftc-cot-archives": fetch_cftc_cot_archives, "fetch-oanda-panel-daily": fetch_oanda_panel_daily, "entry-learning-baseline": run_entry_learning_baseline, "entry-edge-probe": run_entry_edge_probe, "entry-edge-diagnostic": run_entry_edge_diagnostic, "run-macro-core": run_macro_core, "prepare-macro-core": prepare_macro_core, "audit-dukascopy-cache": audit_dukascopy_cache, "run-sweep": run_sweep, "import-b-archived-snapshots": import_b_archived_snapshots, "prepare-b-macros": prepare_b_macros, "fetch-funding": fetch_funding, "fetch-alfred": fetch_alfred, "run-a": run_a, "run-c": run_c}[args.mode]
     result = owner(spec, args.spec)
     print(json.dumps(result))
     return 0

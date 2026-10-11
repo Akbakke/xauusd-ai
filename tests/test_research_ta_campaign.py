@@ -1363,3 +1363,27 @@ def test_selective_family_inference_adjusts_over_all_cells_and_detects_an_oracle
     assert fam["cells"]["h5:noise:cov0.1"]["hit_rate"]["family_p"] > 0.05
     assert fam["cells"]["h5:noise:cov0.1"]["hit_rate"]["raw_p"] <= fam["cells"]["h5:noise:cov0.1"]["hit_rate"]["family_p"]
     assert "h5:oracle:cov0.1" in fam["cells_with_family_p_below_0_05"]["hit_rate"]
+
+
+def test_pooled_family_inference_pools_cells_across_instruments_with_one_joint_shift():
+    rng = np.random.default_rng(9)
+    cells = []
+    for inst in ("A", "B"):
+        n = 300
+        y = rng.normal(size=n)
+        take = np.arange(0, n, 10)
+        cells.append({"name": f"{inst}:h5:x:cov0.1", "y": y, "take": take, "side": np.sign(y[take])})  # oracle sides
+        cells.append({"name": f"{inst}:h5:n:cov0.1", "y": y, "take": take, "side": np.sign(rng.normal(size=len(take)))})
+    fam = ta.selective_family_inference_over_cells(cells, draws=200, seed=1)
+    assert fam["family_size"] == 4
+    assert fam["cells"]["A:h5:x:cov0.1"]["hit_rate"]["family_p"] < 0.05 and fam["cells"]["B:h5:x:cov0.1"]["hit_rate"]["family_p"] < 0.05
+    assert fam["cells"]["A:h5:n:cov0.1"]["hit_rate"]["family_p"] > 0.05
+
+
+def test_cot_parser_accepts_an_explicit_contract_code(tmp_path):
+    rows = [{"as_of": "2020-01-07", "code": "088691", "oi": 100, "ncl": 60, "ncs": 20, "ncsp": 5, "cl": 10, "cs": 50},
+            {"as_of": "2020-01-07", "code": "084691", "oi": 50, "ncl": 10, "ncs": 30, "ncsp": 1, "cl": 20, "cs": 5}]
+    spec = {"cot": _swing_cot_zip(tmp_path, rows), "test_seal_utc": "2026-07-01T00:00:00Z"}
+    gold = ta.parse_cot_gold_archives(spec)
+    silver = ta.parse_cot_gold_archives(spec, "084691")
+    assert gold["cot_noncommercial_net_over_oi"].tolist() == [0.4] and silver["cot_noncommercial_net_over_oi"].tolist() == [-0.4]
