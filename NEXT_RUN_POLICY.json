@@ -5095,7 +5095,7 @@
           },
           "generator": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators/make_minimum_learning_stages.py",
-            "sha256": "cb5ee020a666ecc3ea78d544916284a312d698a607ca705ea61e45d3672174f8"
+            "sha256": "c03c3d706653ca24b839712eda4ad57151a23ab66dce272f70a8c5e1311f1c1b"
           },
           "procedure_declaration": {
             "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json",
@@ -5103,7 +5103,8 @@
           },
           "stage_sources": {
             "NATIVE_PREPARATION_001": "V38 PRE_SMOKE_READINESS_001 (design completion; smoke-plan publication removed; CONTROL256 from complete-horizon VAL rows)",
-            "NATIVE_PREPARATION_002": "same clone as NATIVE_PREPARATION_001 with the launcher project-plan key patched (build_termination_grace_seconds -> termination_grace_seconds); 001 failed preflight before START and is superseded"
+            "NATIVE_PREPARATION_002": "same clone as NATIVE_PREPARATION_001 with the launcher project-plan key patched (build_termination_grace_seconds -> termination_grace_seconds); 001 failed preflight before START and is superseded",
+            "NATIVE_PREPARATION_003": "same clone; the producer binds the 28 completed-proof owners at this HEAD (git diff from the core chain commit is empty for all) and accepts the core terminal's training_started flag; 002 failed in the producer on the V38-era owner hashes copied from the template (6.7 s, closed as native_preparation_stage_failed_002)"
           }
         },
         "P2_gpu_campaign": {
@@ -5220,11 +5221,11 @@
           "val": "2026-06-02T23:55:00+00:00"
         }
       },
-      "native_preparation_stage": {
+      "native_preparation_stage_failed_002": {
         "schema_version": "gx1_bound_native_d1_preparation_stage_v1",
         "stage_id": "NATIVE_PREPARATION_002",
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_002",
-        "authorized": true,
+        "authorized": false,
         "relaunch_allowed": false,
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_002/PLAN.json",
@@ -5289,7 +5290,7 @@
           "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RETENTION_REVIEW.json",
           "sha256": "cab44eea3dc0d3b3e6020956446580bbaf85d9fd9aef1ca02388281461285929"
         },
-        "status": "AUTHORIZED_NOT_STARTED",
+        "status": "FAILED_PRODUCER_REUSED_OWNER_HASHES_FROM_V38_TEMPLATE",
         "cloned_from": "native_v38_rebuild_20261007.final_readiness_stage (PRE_SMOKE_READINESS_001)",
         "procedure_declaration": {
           "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json",
@@ -5302,6 +5303,98 @@
         "focused_controls": {
           "FOCUSED_FINAL_CONTROL_TESTS.xml": "green",
           "FOCUSED_HANDOVER_BOUNDARY_TESTS.xml": "green"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_002/TERMINAL.json",
+          "sha256": "659f6b96858c658f504299cef8464e0e0f00b8a9c7b7a08742a4b94b1232d42c"
+        },
+        "failure": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_002/FAILURE.json",
+          "sha256": "df851e89b30f7763f802d46fe07b7e84a64485fb9724953a8173344026b2c32a"
+        }
+      },
+      "native_preparation_stage": {
+        "schema_version": "gx1_bound_native_d1_preparation_stage_v1",
+        "stage_id": "NATIVE_PREPARATION_003",
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003",
+        "authorized": true,
+        "relaunch_allowed": false,
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/PLAN.json",
+          "sha256": "6d4a74200d7e90610ebbc4f417334dac9fda8124695bb46af50ba7dbdd728527"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/PRODUCER_PLAN.json",
+          "sha256": "808f18cc6c2e052d4314d046e322f89a83209b5ff507bff85bbb73c24ac51820"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/produce_readiness.py",
+          "sha256": "76a0ee10c65a780dfcf593a5be27625656d44a928acc0fc7444b517389b65640"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/launch_readiness.py",
+          "sha256": "e1e605dd84eaf301ebd9773216bf7bb9a80d09dafdb65d0426b951c23a2fb24b"
+        },
+        "cpu_budget": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/PREPARATION_CPU_002/BUDGET.json",
+          "sha256": "cd5f337d8ce236529136db5fb4e1921dc51b3a3974a4579b7e4dbd6f9cfe7fd7"
+        },
+        "cpu_deadline_utc": "2026-10-13T07:09:07.651226+00:00",
+        "outputs": {
+          "design": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/DESIGN.json",
+          "control256": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/CONTROL256_PARENT_ROWS.npy",
+          "smoke_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/BOUNDED_SAMPLER_SMOKE_PLAN.json",
+          "retention": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RETENTION_REVIEW.json",
+          "result": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PRE_SMOKE_READINESS.json"
+        },
+        "scope": "Complete the frozen chronological design of the NATIVE_D1 generation from the bound procedure declaration (no model), draw CONTROL256 from the complete-horizon VAL population, review retention read-only; audit 4G; one attempt.",
+        "focused_control_tests": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/FOCUSED_FINAL_CONTROL_TESTS.xml",
+          "sha256": "68d56b27cdab978b72a7ee8eb462869335475031750aee668b512d5b41c75389"
+        },
+        "resource_owner": "Existing capped audit4G/512M,CPU0-7,one thread,64tasks,CURRENT project lock and unchanged available-memory gate; same shared input CPU deadline.",
+        "normalization_fit_allowed": false,
+        "model_training_allowed": false,
+        "model_constructor_allowed": false,
+        "sampler_benchmark_allowed": false,
+        "test_access_authorized": false,
+        "cleanup_allowed": false,
+        "automatic_host_restart": false,
+        "native_launch_admitted": false,
+        "future_sampler_budget_authorized": false,
+        "pre_smoke_readiness": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PRE_SMOKE_READINESS.json",
+          "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
+        },
+        "design": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/DESIGN.json",
+          "sha256": "aaa6027aa51dce4d66cedda5021da1b718569e4d5f0a62b42164c71663fc2bad"
+        },
+        "bounded_sampler_smoke_plan": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/BOUNDED_SAMPLER_SMOKE_PLAN.json",
+          "sha256": "0da1a9f7ae0b80912725a620646d49a8e81a6877771958b2aa5b75cd3be6ce32"
+        },
+        "control256": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/CONTROL256_PARENT_ROWS.npy",
+          "sha256": "a33a97c612c3325cb9dbd44c1d8a3cafd40150523af32f345d63bdfb1ab8fa7f"
+        },
+        "retention": {
+          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RETENTION_REVIEW.json",
+          "sha256": "cab44eea3dc0d3b3e6020956446580bbaf85d9fd9aef1ca02388281461285929"
+        },
+        "focused_controls": {
+          "FOCUSED_FINAL_CONTROL_TESTS.xml": "green",
+          "FOCUSED_HANDOVER_BOUNDARY_TESTS.xml": "green"
+        },
+        "status": "AUTHORIZED_NOT_STARTED",
+        "cloned_from": "native_v38_rebuild_20261007.final_readiness_stage (PRE_SMOKE_READINESS_001)",
+        "procedure_declaration": {
+          "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json",
+          "sha256": "dd002a36d528790db25d15e351292a97877b357eb6a2e9f16792f12414ed2a3a"
+        },
+        "entry_eligibility_cutoff_utc": {
+          "train": "2025-05-02T19:20:00+00:00",
+          "val": "2026-06-02T23:55:00+00:00"
         }
       }
     }

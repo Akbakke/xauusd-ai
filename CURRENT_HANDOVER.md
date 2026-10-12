@@ -492,8 +492,13 @@ lokale kontroller (2 + handover-grensen) er grønne og bundet. Første klon
 prosjektplanen kalte nådeperioden build_termination_grace_seconds, den nye
 heter termination_grace_seconds; ingen fase kjørte, steget er merket
 SUPERSEDED og lukket som native_preparation_stage_failed_001.
-NATIVE_PREPARATION_002 er samme klon med launcheren patchet, kontroller
-grønne, admittert som native_preparation_stage. Deretter SAMPLER_BENCHMARK_001 (kapasitet på 315
+NATIVE_PREPARATION_002 (launcher patchet) stoppet i produsenten etter 7 s:
+malens «reused_completed_owner_hashes» bar V38-tidens hasher av 28 repo-eiere;
+lukket som native_preparation_stage_failed_002 med kvitteringer.
+NATIVE_PREPARATION_003 binder de 28 eierne ved gjeldende HEAD (git diff fra
+kjernekjedens commit er tom for alle) og godtar kjerneterminalens
+training_started-flagg; kontroller grønne, admittert som
+native_preparation_stage. Deretter SAMPLER_BENCHMARK_001 (kapasitet på 315
 felt, 2–3 timer), NATIVE_PREPROCESSING_001 (labels/normalisering + koordinater
 v2 over eligible delmengde) og NATIVE_METADATA_HANDOFF_001.
 
