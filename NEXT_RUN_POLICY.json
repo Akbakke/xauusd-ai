@@ -133,7 +133,7 @@
       }
     ],
     "latest_terminal_role": "sampler_capacity_terminal_corrected_generation",
-    "runtime_root": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_INPUT_INDEX_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
       "sha256": "aaebabb90f62d94f412819988be6a8bd1cc8397d847ecc2722223c733a298935"
@@ -4969,7 +4969,25 @@
         "learning_demonstrated": false,
         "edge_demonstrated": false
       },
-      "completed_utc": "2026-10-12T11:56:25.406665+00:00"
+      "completed_utc": "2026-10-12T11:56:25.406665+00:00",
+      "retention": {
+        "status": "BLOCKED_BY_RETENTION_OWNER",
+        "targets": [
+          "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011",
+          "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_002"
+        ],
+        "approximate_bytes": {
+          "HISTORY2009W_NATIVE_D1_20261011": "73M",
+          "HISTORY2009W_NATIVE_D1_20261011_002": "9.6G"
+        },
+        "receipts_kept": [
+          "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001",
+          "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_002"
+        ],
+        "vedtak_identifier": "NATIVE_D1_FAILED_CORE_ATTEMPTS_EVENT_ROOT_RETENTION_20261012",
+        "owner_refusal": "gx1.scripts.cleanup_gx1_evidence_v1 plan: \"unresolved authority directory manifest: /home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001\" (the authority graph reaches a run-root stage directory through current_work.runtime_root; stage directories carry PLAN.json/TERMINAL.json, none of the retention contract's directory manifest names). An owner refusal is never overridden by a hand-built proof (rule 9).",
+        "resolution_required": "own bounded change with tests: either the retention contract accepts run-root stage manifests (PLAN.json, ROOT.json) as directory manifests, or policy directory pointers are replaced by file bindings; then plan -> approve -> execute in the background. Nothing was deleted."
+      }
     }
   },
   "gc_order_flow_research_20261006": {

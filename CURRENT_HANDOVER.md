@@ -425,6 +425,16 @@ Archive slutter 2026-02-13; carry-forward holdt den flat til 2026-06-30 i forsø
 (data til 2026-10-08) brukes av journalen. Kommandomeldingen 18856469 oppgir feil
 ubetinget referanse (+29 bps); riktig er +63 bps.
 
+Retention av de feilede NATIVE_D1-kjerneforsøkenes event-røtter (001: 73 MB,
+002: 9,6 GB; kvitteringskatalogene beholdes) ble nektet av retention-eieren
+12.10: planen stoppet lukket på «unresolved authority directory manifest» for
+run-root-stagekatalogen current_work.runtime_root pekte på; stagekataloger
+har PLAN.json/TERMINAL.json, ingen av retention-kontraktens
+katalogmanifestnavn. Eiernektelsen overstyres ikke. runtime_root peker nå på
+den gjeldende generasjonens NATIVE_INPUT_INDEX_001; løsningen krever en egen
+avgrenset endring med tester (kontraktens katalogmanifestregel eller
+policyens katalogpekere) før plan → godkjenn → utfør. Ingenting er slettet.
+
 Ukjente rådatagap er fortsatt ukjente; ingen imputering eller antatt markedslukking.
 Deklarerte kostvilkår er ikke bevis for historisk kostsannhet. CONTROL er gjenbrukt
 utviklingsdata. Ingen Exit-rollout, all-trades-/åpen-posisjonsøkonomi eller profitt
