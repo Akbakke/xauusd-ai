@@ -518,10 +518,19 @@ horisont-eligible delmengden (644 255), så kapasiteten er en øvre grense.
 Stage-lokalt kapasitetsbudsjett (64 800 s, ett forsøk, ingen relansering),
 kontroller 15 + 63 grønne (kvitteringer før launcher-rettelsen; testene
 øver bare benchmark.require_scope, BINDING hasher den rettede launcheren),
-admittert som train_capacity_stage. Forrige generasjon målte 57 418 s; steget
-går over natten. Deretter NATIVE_METADATA_HANDOFF_001 (SELECTED_SAMPLER +
-design-metadata) og NATIVE_PREPROCESSING_001 (labels/normalisering +
-koordinater v2 over eligible delmengde).
+admittert som train_capacity_stage og lansert 13:35 UTC. Etter 320 målte
+entry-par lå raten på 0,955 s/par mot V38-referansens 0,819 s/par tidlig i
+samme kandidat (V38 slutt/tidlig-forhold 1,09/1,16/1,17 per kandidat); de tre
+fulle kandidatepokene (57 344 par) projiserte til 64 287 s mot vinduets 64 505 s.
+Steget ble derfor stoppet av agenten etter 921 s (FAILURE/TERMINAL exit 1,
+source_unchanged, delresultater bevart, SUPERSEDED.json), lukket som
+train_capacity_stage_failed_001 og aldri relansert. SAMPLER_BENCHMARK_002 er et
+nytt engangskrav under eget 86 400 s-vindu (34 % margin over projeksjonen,
+basis bundet i SAMPLER_BENCHMARK_PROPOSAL_002/PROPOSAL.json med n=320), samme
+skript, kontroller 15 + 63 grønne, admittert som train_capacity_stage. Deretter
+NATIVE_METADATA_HANDOFF_001 (SELECTED_SAMPLER + design-metadata) og
+NATIVE_PREPROCESSING_001 (labels/normalisering + koordinater v2 over eligible
+delmengde), begge under kapasitetsbudsjettets opprinnelige frist.
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,

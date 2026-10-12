@@ -4992,7 +4992,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P1_SAMPLER_BENCHMARK_001_ADMITTED_LAUNCHING_RECEIPTS_OWN_PROGRESS",
+      "status": "P1_SAMPLER_BENCHMARK_002_ADMITTED_LAUNCHING_RECEIPTS_OWN_PROGRESS",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5077,7 +5077,7 @@
           "status": "RUNNING",
           "stages_in_order": [
             "NATIVE_PREPARATION_003",
-            "SAMPLER_BENCHMARK_001",
+            "SAMPLER_BENCHMARK_002",
             "NATIVE_METADATA_HANDOFF_001",
             "NATIVE_PREPROCESSING_001"
           ],
@@ -5094,7 +5094,7 @@
           },
           "generator": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators/make_minimum_learning_stages.py",
-            "sha256": "81b2f7088ea0472bf4abd65c9e85e3800de07ac4d2ba596f042760eb7a563dc7"
+            "sha256": "cf2f6277f927dcdea9451b64283a298dfec6e40ee78b4800fc9024c3413317dd"
           },
           "procedure_declaration": {
             "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json",
@@ -5104,13 +5104,30 @@
             "NATIVE_PREPARATION_001": "V38 PRE_SMOKE_READINESS_001 (design completion; smoke-plan publication removed; CONTROL256 from complete-horizon VAL rows)",
             "NATIVE_PREPARATION_002": "same clone as NATIVE_PREPARATION_001 with the launcher project-plan key patched (build_termination_grace_seconds -> termination_grace_seconds); 001 failed preflight before START and is superseded",
             "NATIVE_PREPARATION_003": "same clone; the producer binds the 28 completed-proof owners at this HEAD (git diff from the core chain commit is empty for all) and accepts the core terminal's training_started flag; 002 failed in the producer on the V38-era owner hashes copied from the template (6.7 s, closed as native_preparation_stage_failed_002)",
-            "SAMPLER_BENCHMARK_001": "V38 SAMPLER_BENCHMARK_002 (full-candidate TRAIN capacity benchmark; proposal rebuilt from this generation's artifacts in SAMPLER_BENCHMARK_PROPOSAL_001; stage-local capacity budget; V38 original-budget input and its spelling test removed)"
+            "SAMPLER_BENCHMARK_002": "V38 SAMPLER_BENCHMARK_002 (full-candidate TRAIN capacity benchmark; proposal rebuilt from this generation's artifacts in SAMPLER_BENCHMARK_PROPOSAL_001; stage-local capacity budget; V38 original-budget input and its spelling test removed); attempt 2 under an 86 400 s window with the measured basis of the stopped attempt 1"
           },
           "stage_order_note": "V38 order: capacity -> metadata handoff (SELECTED_SAMPLER + design metadata) -> preprocessing (labels/normalization results + coordinates v2 with --horizons-design/--entry-eligibility-cutoff-utc)",
           "sampler_benchmark_proposal": {
-            "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_PROPOSAL_001/PROPOSAL.json",
-            "sha256": "8fb797a794ba9eb8d0198ee7acafd1942df25e46da03c00ae8eed736d76e8ed2",
-            "note": "Bound finite proposal: geometry 96x315/132 with M5 16/M15 64/H1 96/H4 96/D1 252, budgets 32768/65536/131072 at batch 16 repeats 1, selection policy from the benchmark owner at the full physical TRAIN population (652 552; the learning epoch uses the horizon-eligible 644 255, so capacity is an upper bound), reference workload from NATIVE_PREPARATION_003/DESIGN.json"
+            "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_PROPOSAL_002/PROPOSAL.json",
+            "sha256": "b1a71bad4d0bd52e20c62dc05c9c69c4b991d7f1b5a1b425dc5e2e33a71f0d7a",
+            "note": "Bound finite proposal: geometry 96x315/132 with M5 16/M15 64/H1 96/H4 96/D1 252, budgets 32768/65536/131072 at batch 16 repeats 1, selection policy from the benchmark owner at the full physical TRAIN population (652 552; the learning epoch uses the horizon-eligible 644 255, so capacity is an upper bound), reference workload from NATIVE_PREPARATION_003/DESIGN.json; window 86 400 s (attempt 1: 64 800 s)",
+            "superseded_proposal_001": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_PROPOSAL_001/PROPOSAL.json",
+              "sha256": "8fb797a794ba9eb8d0198ee7acafd1942df25e46da03c00ae8eed736d76e8ed2"
+            },
+            "wall_window_basis": {
+              "chosen_window_seconds": 86400,
+              "margin_fraction": 0.3439653889263703,
+              "measured_early_rate_s_per_pair": 0.9550640385906263,
+              "measured_load_seconds": 577.0989776509996,
+              "measured_pairs_n": 320,
+              "previous_window_seconds": 64800,
+              "projected_total_seconds": 64287.36983250799,
+              "rule": "window >= projected total with a margin for rate drift on the wider (315-field) inputs; stated n and basis per GX1_RULES 2f",
+              "stopped_attempt": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_001",
+              "v38_reference_early_rate_s_per_pair": 0.8186030529062464,
+              "v38_reference_overhead_seconds": 718.7356726009893
+            }
           }
         },
         "P2_gpu_campaign": {
@@ -5421,11 +5438,11 @@
           "sha256": "058fa3d28660dc9d43ec15691a3ef30f6dc996a51a73f2745abeb9c75ed59ea3"
         }
       },
-      "train_capacity_stage": {
+      "train_capacity_stage_failed_001": {
         "schema_version": "gx1_bound_native_d1_train_capacity_scope_v1",
         "stage_id": "SAMPLER_BENCHMARK_001",
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_001",
-        "authorized": true,
+        "authorized": false,
         "relaunch_allowed": false,
         "cpu_budget": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_001/BUDGET.json",
@@ -5460,7 +5477,7 @@
         "resource_owner": "scripts/gx1_capped_run.sh CPU producer20G/512M,CPU0-7,1 thread,64tasks,CURRENT project lock,unchanged available-memory/cgroup guards",
         "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
         "authorization_utc": "2026-10-12T13:33:31.280374+00:00",
-        "status": "AUTHORIZED_NOT_STARTED",
+        "status": "STOPPED_BY_AGENT_ON_MEASURED_PAIR_RATE_PROJECTED_OVER_WINDOW_NO_RELAUNCH",
         "proposal": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_PROPOSAL_001/PROPOSAL.json",
           "sha256": "8fb797a794ba9eb8d0198ee7acafd1942df25e46da03c00ae8eed736d76e8ed2"
@@ -5476,19 +5493,84 @@
         },
         "focused_handover_cases_passed": 63,
         "focused_controls_note": "Receipts produced before the launcher-only fixup (policy key and grace-key spelling in launch.py); the capacity tests exercise benchmark.py require_scope only, and the stage BINDING hashes the fixed launcher.",
+        "cloned_from": "native_v38_rebuild_20261007.train_capacity_stage_002 (SAMPLER_BENCHMARK_002)",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_001/TERMINAL.json",
+          "sha256": "d185d34d167f6e00733fb2c2de44f9806d60aea11919206534bfc90baf766924"
+        },
+        "failure": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_001/FAILURE.json",
+          "sha256": "f04e9b5914aaffc8df458cd977babb0b5dec6d776a2917f7931731c5037a9962"
+        }
+      },
+      "train_capacity_stage": {
+        "schema_version": "gx1_bound_native_d1_train_capacity_scope_v1",
+        "stage_id": "SAMPLER_BENCHMARK_002",
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002",
+        "authorized": true,
+        "relaunch_allowed": false,
+        "cpu_budget": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/BUDGET.json",
+          "sha256": "3c4415500b3338a8f86c497d0e20a3702bd00cb851bf6688caae793e95c2c81f"
+        },
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/PLAN.json",
+          "sha256": "113277c3f7c5406c08b610a6f337ae1a685ca37f600bebfb1971ecbcd1415566"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/benchmark.py",
+          "sha256": "56ba726ecd7fc2594fb70aa247129ecc96eaceedb562384a4b183a0856b321ce"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/launch.py",
+          "sha256": "efc93e1b221dd124da6b47b81a9de6e6b306a068874bd4e8795dcebea25cc38d"
+        },
+        "cpu_deadline_utc": "2026-10-13T13:52:08.038984+00:00",
+        "max_wall_seconds": 86400,
+        "expected_boot_id": "168c05bf-86f1-47ad-962e-77c6a2ae366c",
+        "output_json": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/CAPACITY_RESULT.json",
+        "benchmark_json": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/BENCHMARK.json",
+        "scope": "Full TRAIN capacity through the existing full-candidate benchmark and receipt selection owners on the NATIVE_D1 inputs (315 signal fields); no NN models, refits or TEST. Capacity green does not admit native launch.",
+        "full_train_population": 652552,
+        "model_training_allowed": false,
+        "model_constructor_allowed": false,
+        "normalization_fit_allowed": false,
+        "test_access_authorized": false,
+        "cleanup_allowed": false,
+        "automatic_host_restart": false,
+        "native_launch_admitted": false,
+        "resource_owner": "scripts/gx1_capped_run.sh CPU producer20G/512M,CPU0-7,1 thread,64tasks,CURRENT project lock,unchanged available-memory/cgroup guards",
+        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
+        "authorization_utc": "2026-10-12T13:52:44.542357+00:00",
+        "status": "AUTHORIZED_NOT_STARTED",
+        "proposal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_PROPOSAL_002/PROPOSAL.json",
+          "sha256": "b1a71bad4d0bd52e20c62dc05c9c69c4b991d7f1b5a1b425dc5e2e33a71f0d7a"
+        },
+        "focused_control_tests": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/FOCUSED_CAPACITY_CONTROLS.xml",
+          "sha256": "469b38526f268b0d47357f7af086c3fd64eef61fddb820ebab66a0dbdc10ea7c"
+        },
+        "focused_control_cases_passed": 15,
+        "focused_handover_tests": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/FOCUSED_CORRECTED_HANDOVER.xml",
+          "sha256": "374eeea88083d9e99e36968033013b61ba3ed210e87ad557fe6765a083a05a8d"
+        },
+        "focused_handover_cases_passed": 63,
+        "focused_controls_note": "Receipts produced before the launcher-only fixup (policy key and grace-key spelling in launch.py); the capacity tests exercise benchmark.py require_scope only, and the stage BINDING hashes the fixed launcher.",
         "cloned_from": "native_v38_rebuild_20261007.train_capacity_stage_002 (SAMPLER_BENCHMARK_002)"
       },
-      "sampler_capacity_budget_001": {
+      "sampler_capacity_budget_002": {
         "stage_local": true,
         "budget": {
-          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_001/BUDGET.json",
-          "sha256": "f5722d06499900e02688dff0d49955dfedd71442cf70cb2107fc60836b2e90d8"
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/BUDGET.json",
+          "sha256": "3c4415500b3338a8f86c497d0e20a3702bd00cb851bf6688caae793e95c2c81f"
         },
-        "deadline_utc": "2026-10-13T07:30:14.987741+00:00",
-        "max_wall_seconds": 64800,
+        "deadline_utc": "2026-10-13T13:52:08.038984+00:00",
+        "max_wall_seconds": 86400,
         "one_shot_attempts": 1,
         "relaunch_allowed": false,
-        "note": "Separate from PREPARATION_CPU_002 (which the one-shot preparation stage consumed in part); the capacity stage launcher and producer bind this file exactly, as the V38 capacity stage bound its own."
+        "note": "Attempt 1 (SAMPLER_BENCHMARK_001, 64 800 s) was stopped by the agent at 320 measured pairs: 0.955 s/pair against the V38 reference 0.819 s/pair projected the three full candidate epochs to 64 287 s, over its 64 505 s timeout; closed as train_capacity_stage_failed_001 with FAILURE/TERMINAL retained and SUPERSEDED.json. Attempt 2 is a new one-shot claim, never a relaunch; the follow-on metadata and preprocessing stages bind this budget as their original authority."
       }
     }
   },
