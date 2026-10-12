@@ -4325,7 +4325,6 @@
       "core_relaunch_allowed": false,
       "cleanup_authorized": false,
       "next_required_stages": [
-        "NATIVE_INPUT_INDEX_001",
         "FRESH_INITIAL_BASELINE_001"
       ],
       "max_core_wall_seconds": 64800,
@@ -4561,7 +4560,7 @@
         },
         "reason": "prepared against the preflight-failed COMPLETE_M1_001 terminal; never admitted, bound or launched; preserved (rule 9); replaced by COVERAGE_REVIEW_002"
       },
-      "next_action": "INPUT_TENSOR_AUDIT_001 COMPLETED_ONCE (exit 0, 470 s; actual normalized inputs PASS on whole TRAIN/VAL, 315 signal and 132 context fields, alias bits identical). Admitted: physical_input_index_stage (NATIVE_INPUT_INDEX_001, producer 20G, full physical TRAIN/VAL index and economic method; identities from this generation). After this commit: bind at HEAD, launch NATIVE_INPUT_INDEX_001/launch_input_index.py (one heavy CPU job), record the terminal, then step 5 FRESH_INITIAL_BASELINE_001 (clone of the accepted FRESH_INITIAL_BASELINE_003; dry-run clean), prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending.",
+      "next_action": "NATIVE_INPUT_INDEX_001 COMPLETED_ONCE (exit 0, 671 s; full physical TRAIN 652552 / VAL 70880 index and economic method published, no model admission). Admitted: fresh_initial_baseline_stage_v10 (FRESH_INITIAL_BASELINE_001, step 5: fresh v10-function zero-step baseline on the NATIVE_D1 inputs, producer 20G, 513 forwards, no optimizer). After this commit: bind at HEAD, launch FRESH_INITIAL_BASELINE_001/launch_baseline.py (one heavy CPU job), record the terminal and close the downstream wave in the handover. No native launch, orders or spending; training_enabled stays false.",
       "physical_input_views_stage": {
         "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001",
@@ -4794,7 +4793,7 @@
         "elapsed_seconds": 470.2429795749995
       },
       "physical_input_index_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_INPUT_INDEX_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_INPUT_INDEX_001/PLAN.json",
@@ -4819,8 +4818,60 @@
         "sampler_benchmark_allowed": false,
         "optimizer_steps": 0,
         "test_data_used": false,
+        "status": "COMPLETED_ONCE",
+        "cloned_from": "feature_repair_rebuild_20261010.physical_input_index_stage",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_INPUT_INDEX_001/TERMINAL.json",
+          "sha256": "7087c93e69e2363e1aac8778ceb66c9f7a111b9cb33e2e57de604f5366c7dfdc"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_INPUT_INDEX_001/RESULT.json",
+          "sha256": "a702c9a617a15000ac443035462370a27e476b9acd2136e5810d4f9b5aa9bcf2"
+        },
+        "completed_utc": "2026-10-12T11:47:37.014411+00:00",
+        "elapsed_seconds": 671.1316556479997
+      },
+      "fresh_initial_baseline_stage_v10": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/PLAN.json",
+          "sha256": "f076d95fa2997ab06e18ff35533a81f2025985264681840b97a2976081c9f75c"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/PRODUCER_PLAN.json",
+          "sha256": "e80e5b1d0c50d9eb9e8eedd9fae9c29a834110af8b2643d75bb189be2306f0d8"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/produce_baseline.py",
+          "sha256": "4ea1ebea718d17837d4ab87513bc445fc4e68ad2590f4c62461d5bd7cfa4dbdc"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/launch_baseline.py",
+          "sha256": "15d50ea835ec577a677bbf92ab14f66b975d57f12c4a0d5ae4d2304695b4154e"
+        },
+        "constructor_metadata_producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/constructor_metadata.py",
+          "sha256": "324358a3685ebaa61bb7b9516e59834189219d3891eb356738c49e6d51e05c43"
+        },
+        "architecture_schema_version": "entry_v10_ctx_hybrid_transformer_v10",
+        "previous_stage": "feature_repair_rebuild_20261010.fresh_initial_baseline_stage_v10 (FRESH_INITIAL_BASELINE_003, the accepted generation: same v10 function and seed on the 254-field surface); this stage changes the input surface (NATIVE_D1 generation: 315 signal fields with the ninth D1 context family, fresh normalization) and its fresh initialization only",
+        "model_constructor_allowed": true,
+        "device": "cpu",
+        "model_forwards": 513,
+        "optimizer_steps": 0,
+        "normalization_fit_allowed": false,
+        "model_training_allowed": false,
+        "native_gpu_allowed": false,
+        "training_sampler_admission": false,
+        "relaunch_allowed": false,
+        "test_data_used": false,
         "status": "AUTHORIZED_NOT_STARTED",
-        "cloned_from": "feature_repair_rebuild_20261010.physical_input_index_stage"
+        "cloned_from": "feature_repair_rebuild_20261010.fresh_initial_baseline_stage_v10",
+        "comparison_inputs": {
+          "corrected_input_observations": "accepted generation FRESH_INITIAL_BASELINE_003 TRAIN/CONTROL observations (old run root, kept verbatim)",
+          "previous_observations": "ENTRY_LEARNING_CURVE_20261010_001 step-0 observations and fixed 4096/4096 timestamps (unchanged ancestors)"
+        }
       }
     }
   },

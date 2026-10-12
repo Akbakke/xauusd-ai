@@ -296,6 +296,25 @@ kildeendringsgjennomgang beholdt ordrett (klonerens andre pass gjenbruker nå
 stage-hookene, så historikkfelt ikke rehashes); admittert som
 physical_input_index_stage. Forrige generasjon brukte 544 s.
 
+NATIVE_INPUT_INDEX_001 (d5614cd7) terminerte GRØNT 11:47 UTC etter 671 s med
+uendret kilde: hele fysiske TRAIN- (652 552) og VAL-indeksen (70 880) og
+økonomimetoden er publisert under LEARNING_PREPARATION_001 og
+ECONOMIC_METHOD, uten modelladgang, sampler-valg eller læringsbevis.
+Registrert som physical_input_index_stage COMPLETED_ONCE. Dermed er alle
+åtte nedstrøms inputsteg grønne for den nye generasjonen.
+
+Steg 5, FRESH_INITIAL_BASELINE_001, er forberedt som klon av den aksepterte
+FRESH_INITIAL_BASELINE_003 (samme v10-funksjon, seed 20260911, batch 16, 513
+forwards, ingen optimizer, producer 20G) på denne generasjonens inputs:
+315 signalfelt med den niende D1-kontekstfamilien og fersk normalisering.
+Måles på de samme faste 4096 TRAIN- og 4096 CONTROL-tidsstemplene fra
+læringsstudien (uendrede forfedre); sammenligningsinputs peker bevisst på
+den aksepterte generasjonens baseline-observasjoner (gammel run-root, aldri
+substituert), slik at endringen som måles er input-flaten, ikke funksjonen.
+Budsjettet er dagens delte vindu (PREPARATION_CPU_001). Admittert som
+fresh_initial_baseline_stage_v10; forrige generasjon brukte 342 s.
+Nullstegsprediksjoner er ikke læring eller edge.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren
