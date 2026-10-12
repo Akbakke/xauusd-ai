@@ -504,10 +504,24 @@ VAL-radene med komplette utfall ved alle horisonter til og med 2026-06-02
 23:55 UTC (308 sensurerte ekskludert, 4 997 rader etter cutoffen), 2025-06 til
 2026-06 fordelt per måned; retention-review er lesebar og rapporterer samme
 eiernektelse som før. Registrert COMPLETED_ONCE med design, CONTROL256 og
-readiness bundet. Neste: SAMPLER_BENCHMARK_001 (kapasitet, forrige generasjon
-57 418 s) under eget kapasitetsbudsjett. Deretter SAMPLER_BENCHMARK_001 (kapasitet på 315
-felt, 2–3 timer), NATIVE_PREPROCESSING_001 (labels/normalisering + koordinater
-v2 over eligible delmengde) og NATIVE_METADATA_HANDOFF_001.
+readiness bundet.
+SAMPLER_BENCHMARK_001 er klonet fra V38 SAMPLER_BENCHMARK_002 (samme
+benchmark-/launcher-skript, policynøkkel train_capacity_stage i
+minimumsblokken, V38-ens «original budget»-input og stavetest fjernet,
+nådeperiode-nøkkelen rettet): det bundne forslaget er bygget på nytt fra
+denne generasjonens artefakter (SAMPLER_BENCHMARK_PROPOSAL_001/PROPOSAL.json:
+geometri 96×315/132 med M5 16/M15 64/H1 96/H4 96/D1 252, budsjetter
+32 768/65 536/131 072 ved batch 16, seleksjonspolicy fra benchmark-eieren på
+hele fysiske TRAIN-populasjonen 652 552, referansearbeid fra
+NATIVE_PREPARATION_003/DESIGN.json). Læringsepoken bruker den
+horisont-eligible delmengden (644 255), så kapasiteten er en øvre grense.
+Stage-lokalt kapasitetsbudsjett (64 800 s, ett forsøk, ingen relansering),
+kontroller 15 + 63 grønne (kvitteringer før launcher-rettelsen; testene
+øver bare benchmark.require_scope, BINDING hasher den rettede launcheren),
+admittert som train_capacity_stage. Forrige generasjon målte 57 418 s; steget
+går over natten. Deretter NATIVE_METADATA_HANDOFF_001 (SELECTED_SAMPLER +
+design-metadata) og NATIVE_PREPROCESSING_001 (labels/normalisering +
+koordinater v2 over eligible delmengde).
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
