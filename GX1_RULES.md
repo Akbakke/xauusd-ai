@@ -265,3 +265,18 @@ signalmanifest, normaliseringseier, datasett-rebuild og treningsbudsjett;
 ingenting av dette er lansert av vedtaket. Åtte eksisterende familier,
 kausalitet, vakter og TEST-forsegling for tilpasning består. Designet står i
 docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md.
+
+## Operatørvedtak 12.10.2026: minimum native læring på D1-horisontmålet
+
+Brukeren vedtok «ja gjør dette … Bruk minimum nå i starten for å se at alt
+fungerer som det skal, så kan vi vurdere å legge på fler ting senere».
+Bundet omfang (docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md): Entry-only
+læring (Exit-tap og Exit-gradienter inaktive, samme bundle) på det observerte
+markedsmålet ved 20 handelsdager som eneste mål i tapet, med 1 og 5 dager
+observert; full native v10-funksjon på NATIVE_D1-generasjonens inputs; ett
+seed; avgrensede faser smoke 256 → fit 1 024 → kurve 4 096 steg med
+CONTROL4096-observasjoner; forhåndsregistrert gjennomgangsregel. Brukerens
+forslag om å sløyfe M5-sekvens, candlestick-/mønsterfelt og M1-Exit er ikke
+åpnet: regel 4, Multi-TF og Exit på M1 består. Ingen full epoke, full VAL,
+seleksjon på CONTROL, hyperparametersøk, TEST-lesing eller launch utenfor
+den bundne campaignen. Hver fase krever egen policybinding og budsjett.

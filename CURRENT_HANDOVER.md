@@ -450,7 +450,13 @@ forbedring. v10-baselinen endrer ikke denne konklusjonen. Flere epoker på
 11.10 kveld) er bygget til og med steg 5; neste beslutning er steg 6: trening
 på 1/5/20-handelsdagers-målene med eksakt recipe, 3 seeds og forhåndsregistrert
 stoppregel, og sammenligning mot D1-ridge-journalen på samme beslutningsdager.
-Det krever egen kontrakt, budsjett og operatørvedtak.
+Brukeren vedtok 12.10 å kjøre dette som minimum (GX1_RULES, vedtak 12.10):
+Entry-only på 20-dagersmålet, full modell, ett seed, smoke 256 → fit 1 024 →
+kurve 4 096 steg. Planen står i docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md
+og policyblokken native_d1_minimum_learning_20261012: P0 kode/tester (neste),
+P1 CPU-forberedelse (design, sampler-kapasitet, preprocessing, koordinater,
+metadata) i samme run-root, P2 GPU-campaign med brukerens fysiske omstarter,
+P3 gjennomgang. Feature-kutting er ikke åpnet.
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,

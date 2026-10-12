@@ -4988,6 +4988,89 @@
         "owner_refusal": "gx1.scripts.cleanup_gx1_evidence_v1 plan: \"unresolved authority directory manifest: /home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001\" (the authority graph reaches a run-root stage directory through current_work.runtime_root; stage directories carry PLAN.json/TERMINAL.json, none of the retention contract's directory manifest names). An owner refusal is never overridden by a hand-built proof (rule 9).",
         "resolution_required": "own bounded change with tests: either the retention contract accepts run-root stage manifests (PLAN.json, ROOT.json) as directory manifests, or policy directory pointers are replaced by file bindings; then plan -> approve -> execute in the background. Nothing was deleted."
       }
+    },
+    "native_d1_minimum_learning_20261012": {
+      "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
+      "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
+      "status": "PLANNED_P0_CODE_NEXT",
+      "registered_utc": "2026-10-12T12:30:00.292062+00:00",
+      "generation": {
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
+        "dataset_run_id": "HISTORY2009W_NATIVE_D1_20261011_003",
+        "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN"
+      },
+      "scope": {
+        "training_phase": "entry_only",
+        "loss_target": "entry_observed_market_target_bps_h20d",
+        "observed_only_targets": [
+          "entry_observed_market_target_bps_h1d",
+          "entry_observed_market_target_bps_h5d"
+        ],
+        "model": "full native v10 function, 315 signal / 132 context fields, five timeframes, eight+one families",
+        "seeds": [
+          20260911
+        ],
+        "batch_size": 16,
+        "phases": {
+          "smoke": 256,
+          "fit": 1024,
+          "curve": 4096
+        },
+        "control_observation_steps": [
+          0,
+          256,
+          1024,
+          4096
+        ],
+        "feature_removal_opened": false,
+        "exit_model_separate": false,
+        "full_epoch_allowed": false,
+        "full_val_allowed": false,
+        "control_selection_allowed": false,
+        "test_access_allowed": false
+      },
+      "steps": {
+        "P0_code": {
+          "status": "NEXT",
+          "owners": [
+            "gx1/contracts/entry_observed_market_horizons_v1.py",
+            "gx1/contracts/entry_model_native_training_objective_v1.py",
+            "gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+            "gx1/scripts/run_unified_exit_random_access_full_train_v1.py"
+          ],
+          "specs": [
+            "configs/research/NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json",
+            "configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json"
+          ]
+        },
+        "P1_cpu_preparation": {
+          "status": "NOT_STARTED",
+          "stages_in_order": [
+            "NATIVE_PREPARATION_001",
+            "SAMPLER_BENCHMARK_001",
+            "NATIVE_PREPROCESSING_001",
+            "NATIVE_COORDINATES_001",
+            "NATIVE_METADATA_HANDOFF_001"
+          ],
+          "budget": "PREPARATION_CPU_002 (new explicit receipt, one heavy job)"
+        },
+        "P2_gpu_campaign": {
+          "status": "NOT_STARTED",
+          "phases_in_order": [
+            "smoke_256",
+            "fit_1024",
+            "curve_4096"
+          ],
+          "requires": "fresh physical Windows boot per invocation by the operator, existing native campaign and guards, own policy binding per phase"
+        },
+        "P3_review": {
+          "status": "NOT_STARTED",
+          "rule": "ENTRY_LEARNING_STUDY_20261010 review rule on the 20-day target plus CONTROL4096 rank-IC per horizon per checkpoint; no adaptive extension"
+        }
+      },
+      "training_enabled": false,
+      "native_launch_authorized": false,
+      "test_data_used": false
     }
   },
   "gc_order_flow_research_20261006": {
