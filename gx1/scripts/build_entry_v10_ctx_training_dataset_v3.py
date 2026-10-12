@@ -1021,7 +1021,7 @@ def _trading_day_horizon_label_frame(
     """
     from gx1.contracts.entry_causal_m1_outcomes_v1 import build_entry_m1_fill_surface
     surface = build_entry_m1_fill_surface(m5_decision_times=m5_decision_times, closed_m1=closed_m1)
-    out = pd.DataFrame({"time": surface["time"].to_numpy()})
+    out = pd.DataFrame({"time": pd.DatetimeIndex(pd.to_datetime(surface["time"], utc=True))})
     end = pd.Timestamp(split_end)
     end = end.tz_localize("UTC") if end.tzinfo is None else end.tz_convert("UTC")
     for h in _hz.OBSERVATION_HORIZONS_TRADING_DAYS:
@@ -3705,7 +3705,12 @@ def build_dataset_canonical(
     _overlap = set(merged2.columns) & set(TRADING_DAY_HORIZON_LABEL_COLUMNS)
     if _overlap:
         raise RuntimeError(f"TRADING_DAY_HORIZON_LABEL_OWNER_OVERLAP: {sorted(_overlap)}")
+    if str(merged2["time"].dtype) != str(_horizon_frame["time"].dtype):
+        _horizon_frame["time"] = _horizon_frame["time"].astype(merged2["time"].dtype)
+    _rows_before_horizon_join = len(merged2)
     merged2 = merged2.merge(_horizon_frame, on="time", how="left", validate="one_to_one")
+    if len(merged2) != _rows_before_horizon_join:
+        raise RuntimeError("TRADING_DAY_HORIZON_LABEL_JOIN_ROW_MISMATCH")
     log.info(
         "[TRADING_DAY_HORIZON_LABELS] rows=%d valid_h1=%d valid_h5=%d valid_h20=%d",
         len(merged2),
