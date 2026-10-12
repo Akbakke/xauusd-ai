@@ -498,7 +498,14 @@ lukket som native_preparation_stage_failed_002 med kvitteringer.
 NATIVE_PREPARATION_003 binder de 28 eierne ved gjeldende HEAD (git diff fra
 kjernekjedens commit er tom for alle) og godtar kjerneterminalens
 training_started-flagg; kontroller grønne, admittert som
-native_preparation_stage. Deretter SAMPLER_BENCHMARK_001 (kapasitet på 315
+native_preparation_stage, og terminerte GRØNT 13:33 UTC etter 7 s: det frosne
+designet er komplettert uten modell; CONTROL256 er trukket fra de 65 575
+VAL-radene med komplette utfall ved alle horisonter til og med 2026-06-02
+23:55 UTC (308 sensurerte ekskludert, 4 997 rader etter cutoffen), 2025-06 til
+2026-06 fordelt per måned; retention-review er lesebar og rapporterer samme
+eiernektelse som før. Registrert COMPLETED_ONCE med design, CONTROL256 og
+readiness bundet. Neste: SAMPLER_BENCHMARK_001 (kapasitet, forrige generasjon
+57 418 s) under eget kapasitetsbudsjett. Deretter SAMPLER_BENCHMARK_001 (kapasitet på 315
 felt, 2–3 timer), NATIVE_PREPROCESSING_001 (labels/normalisering + koordinater
 v2 over eligible delmengde) og NATIVE_METADATA_HANDOFF_001.
 

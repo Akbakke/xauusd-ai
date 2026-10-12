@@ -5317,7 +5317,7 @@
         "schema_version": "gx1_bound_native_d1_preparation_stage_v1",
         "stage_id": "NATIVE_PREPARATION_003",
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003",
-        "authorized": true,
+        "authorized": false,
         "relaunch_allowed": false,
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/PLAN.json",
@@ -5367,16 +5367,16 @@
           "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
         },
         "design": {
-          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/DESIGN.json",
-          "sha256": "aaa6027aa51dce4d66cedda5021da1b718569e4d5f0a62b42164c71663fc2bad"
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/DESIGN.json",
+          "sha256": "fa50276586a41c2039664a40f66fed35a552a42649fa943c377158e818b6ac28"
         },
         "bounded_sampler_smoke_plan": {
           "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/BOUNDED_SAMPLER_SMOKE_PLAN.json",
           "sha256": "0da1a9f7ae0b80912725a620646d49a8e81a6877771958b2aa5b75cd3be6ce32"
         },
         "control256": {
-          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/CONTROL256_PARENT_ROWS.npy",
-          "sha256": "a33a97c612c3325cb9dbd44c1d8a3cafd40150523af32f345d63bdfb1ab8fa7f"
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/CONTROL256_PARENT_ROWS.npy",
+          "sha256": "b9e1c4b42cdb25564248ccffb51a7886edfda380e59fe6375fc8e03883142c51"
         },
         "retention": {
           "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RETENTION_REVIEW.json",
@@ -5386,7 +5386,7 @@
           "FOCUSED_FINAL_CONTROL_TESTS.xml": "green",
           "FOCUSED_HANDOVER_BOUNDARY_TESTS.xml": "green"
         },
-        "status": "AUTHORIZED_NOT_STARTED",
+        "status": "COMPLETED_ONCE",
         "cloned_from": "native_v38_rebuild_20261007.final_readiness_stage (PRE_SMOKE_READINESS_001)",
         "procedure_declaration": {
           "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json",
@@ -5395,6 +5395,24 @@
         "entry_eligibility_cutoff_utc": {
           "train": "2025-05-02T19:20:00+00:00",
           "val": "2026-06-02T23:55:00+00:00"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/TERMINAL.json",
+          "sha256": "a9f622305a34070f4ca110766cda678fe832a65632e05755fd3c9a6ce8f6e605"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/RESULT.json",
+          "sha256": "767bc0607c736adc88716b75693dd205be88731a46395a79360ad13859354c98"
+        },
+        "completed_utc": "2026-10-12T13:20:38.091578+00:00",
+        "elapsed_seconds": 7.388366797000344,
+        "readiness": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/PRE_SMOKE_READINESS.json",
+          "sha256": "130b14f93d9f69863e7754b3a4106b30d0cb27c0d922da9582aed78bf4375002"
+        },
+        "retention_review": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/RETENTION_REVIEW.json",
+          "sha256": "058fa3d28660dc9d43ec15691a3ef30f6dc996a51a73f2745abeb9c75ed59ea3"
         }
       }
     }
