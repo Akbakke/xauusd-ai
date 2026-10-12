@@ -164,6 +164,42 @@ terminal. Forrige kjernekjede tok 22 130 s. Etter kjernen følger COMPLETE_M1/
 inputverifisering, fysiske views og normalisering (132 kontekstfelt), og fersk
 nullstegsbaseline (steg 5), hver under egen binding.
 
+## Nedstrøms steg etter omstart (12.10.2026)
+
+Omstarten ved den grønne kjernegrensen er verifisert (HOST_BOUNDARY_001/
+POST_REBOOT.json): fysisk reboot, WSL-boot 168c05bf…, kilde 1810bc35 uendret
+og rent arbeidstre, alle policybundne kjerneartefakter og de tre splittene
+intakte; ingen trening. Det delte CPU-budsjettet for nedstrøms stegene er
+PREPARATION_CPU_001/BUDGET.json (64 800 s fra 09:05 UTC 12.10 til 03:05 UTC
+13.10; forberedelse og nedetid forbruker det, ingen substage-reset).
+
+COMPLETE_M1_001 feilet lukket i CLOCK_PREFLIGHT etter 17 s: det klonede
+preflight-skriptet pinnet forrige generasjons hasher (plan-identitet). Lukket
+som complete_m1_stage_failed_001, alt bevart. Kloneren fikk hash-literal-remap,
+og COMPLETE_M1_002 (251ce180) terminerte GRØNT 10:39 UTC etter 5 579 s med exit 0 og uendret kilde:
+M1-featureflaten COMPLETE_M1/m1_feature_base.parquet har 5 523 147 rader, samme
+populasjon som den aksepterte generasjonen; eierens vedtak er «M1 owner complete,
+independent input oracle still required». Registrert som complete_m1_stage
+COMPLETED_ONCE.
+
+Kloneren operators/clone_stage.py er revidert (revisjon 2, sha b207ebfd…) før
+neste steg: stage-aliaser for kryssreferanser (COMPLETE_M1_001 → 002,
+COVERAGE_REVIEW_001 → 002); en TERMINAL.json-binding regnes som manglende hvis
+exit_code ≠ 0 eller kilden endret seg; argv-par «--x[-json] STI --x-sha256 HASH»
+rehashes fra den nye stien (test-seal, train-/val-manifest og -parquet
+verifisert); validerings-launcherens fristsjekk er bundet til budsjett-
+kvitteringen i stedet for «kjernestart + 64 800 s» (samme konvensjon som alle
+senere stage-launchere), og planen binder prerequisites.cpu_budget; stale
+hasher fra forrige generasjon feiler lukket; ops dryrun og complete. Den første
+COVERAGE_REVIEW_001 i run-roten var forberedt mot den feilede
+COMPLETE_M1_001-terminalen og er merket SUPERSEDED.json (ikke admittert, ikke
+slettet); COVERAGE_REVIEW_002 erstatter den. INPUT_VERIFICATION_001 (LABEL_COVERAGE →
+COMPLETE_M1_ORACLE → POST_REBUILD_READINESS) og COVERAGE_REVIEW_002 er forberedt
+med bindinger verifisert mot den nye generasjonen (M1-flate, manifest, terminal,
+test-seal, train-/val-manifest og -parquet) og admittert i policyen; bind og
+lansering følger denne committen, én tung CPU-jobb. Forrige generasjon brukte
+275 s på valideringen.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren

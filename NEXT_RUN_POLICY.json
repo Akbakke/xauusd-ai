@@ -4325,7 +4325,6 @@
       "core_relaunch_allowed": false,
       "cleanup_authorized": false,
       "next_required_stages": [
-        "COMPLETE_M1_001",
         "INPUT_VERIFICATION_001",
         "INPUT_VIEWS_001",
         "POSTBUILD_SPECIALIST_001",
@@ -4448,7 +4447,7 @@
         }
       },
       "complete_m1_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COMPLETE_M1_002",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COMPLETE_M1_002/PLAN.json",
@@ -4461,9 +4460,82 @@
         "relaunch_allowed": false,
         "optimizer_steps": 0,
         "test_data_used": false,
+        "status": "COMPLETED_ONCE",
+        "cloned_from": "feature_repair_rebuild_20261010.complete_m1_stage",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COMPLETE_M1_002/TERMINAL.json",
+          "sha256": "b9c734015ecbd1c3ad6568899c00047f76df13c815d12bdb93dc9525b99e7e99"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COMPLETE_M1_002/RESULT.json",
+          "sha256": "bc2dab76db667f7bb16c35a4e7d854dc3dc1162f959e3d52db4ae85d7d302b29"
+        },
+        "completed_utc": "2026-10-12T10:39:53.400160+00:00",
+        "elapsed_seconds": 5579.131801122
+      },
+      "label_coverage_stage": {
+        "authorized": true,
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_002/PLAN.json",
+          "sha256": "0662285e26bff88376e96dae5ffdd2380ed800149ba29b6bd6ddfbde4c9725ab"
+        },
+        "diagnostic": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_002/coverage_review.py",
+          "sha256": "2cad5756e09251d72c1ca692f549587a815a66c2c91475d362974252c7d7d30b"
+        },
+        "relaunch_allowed": false,
+        "raw_response_reuse_scope": "Exact unchanged native/quote/parser proof; rehash all source chunks. Recompute current candidate selection and feature distributions.",
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_002",
         "status": "AUTHORIZED_NOT_STARTED",
-        "cloned_from": "feature_repair_rebuild_20261010.complete_m1_stage"
-      }
+        "cloned_from": "feature_repair_rebuild_20261010.label_coverage_stage"
+      },
+      "complete_input_oracle_stage": {
+        "authorized": true,
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/PLAN.json",
+          "sha256": "f4e925d02cf05f364f4c9db28479335136b6f75a085d9ed8c18bd0382db59d81"
+        },
+        "verifier": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/verify_complete_inputs.py",
+          "sha256": "10f7a7da70dfebfc88a9aee47366e3f4edaac4ae9ff94354725e2b6d603d7cb7"
+        },
+        "relaunch_allowed": false,
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001",
+        "status": "AUTHORIZED_NOT_STARTED",
+        "cloned_from": "feature_repair_rebuild_20261010.complete_input_oracle_stage"
+      },
+      "input_validation_stage": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/PLAN.json",
+          "sha256": "f4e925d02cf05f364f4c9db28479335136b6f75a085d9ed8c18bd0382db59d81"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/launch_validation.py",
+          "sha256": "68a7724f999b98fcf5799772a34ed0b40c6caaad60c5dff6b123773664d83e1b"
+        },
+        "relaunch_allowed": false,
+        "optimizer_steps": 0,
+        "test_data_used": false,
+        "status": "AUTHORIZED_NOT_STARTED",
+        "cloned_from": "feature_repair_rebuild_20261010.input_validation_stage"
+      },
+      "operators_clone_stage": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators/clone_stage.py",
+        "sha256": "b207ebfded5e755a72cd59cac283803b4b79ea2c66e5e2f967ba8500c766b01a",
+        "revision": 2,
+        "revision_note": "12.10.2026 after COMPLETE_M1_002: stage aliases COMPLETE_M1_001->002 and COVERAGE_REVIEW_001->002 for cross-references; a TERMINAL.json binding is missing unless exit_code==0 and source_unchanged is True; argv pairs --x[-json] PATH --x-sha256 HASH rehashed from the new PATH; launch_validation.py deadline check rebound from core START+max_core_wall to the explicit downstream budget receipt (the convention every later stage launcher uses) with prerequisites.cpu_budget; stale previous-generation hash literals fail closed; ops dryrun and complete."
+      },
+      "coverage_review_001_superseded": {
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_001",
+        "note": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_001/SUPERSEDED.json",
+          "sha256": "99ed67d8547510fad3c05fb96dc67c041ea6c303e5b2a562b43a83435420561a"
+        },
+        "reason": "prepared against the preflight-failed COMPLETE_M1_001 terminal; never admitted, bound or launched; preserved (rule 9); replaced by COVERAGE_REVIEW_002"
+      },
+      "next_action": "COMPLETE_M1_002 COMPLETED_ONCE (exit 0, 5579 s, 5 523 147 rows, source unchanged). Admitted: label_coverage_stage (COVERAGE_REVIEW_002), complete_input_oracle_stage + input_validation_stage (INPUT_VERIFICATION_001). After this commit: bind both stages at HEAD, launch INPUT_VERIFICATION_001/launch_validation.py (one heavy CPU job: LABEL_COVERAGE -> COMPLETE_M1_ORACLE -> POST_REBUILD_READINESS), then record the terminal and continue INPUT_VIEWS -> POSTBUILD_SPECIALIST -> BASE_NORMALIZATION -> SUMMARY_NORMALIZATION -> INPUT_TENSOR_AUDIT -> NATIVE_INPUT_INDEX -> FRESH_INITIAL_BASELINE (step 5), each prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending."
     }
   },
   "gc_order_flow_research_20261006": {
