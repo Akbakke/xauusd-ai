@@ -249,6 +249,16 @@ To klonerrettelser er bundet i policyblokken: identitetsmappinger regnes ikke
 som stale (de fysiske M1-views er bitidentiske med forrige generasjon fordi de
 bygges fra den uendrede kvotekilden), og andre pass godtar nye hasher.
 
+POSTBUILD_SPECIALIST_001 (f2633631) terminerte GRØNT 11:08 UTC etter 72 s med
+uendret kilde: åttefamilie-spesialistauditen PASS uten feil på 315 signalfelt,
+med sekvensbevisene fra POSTBUILD_REVIEW_001. Registrert som
+specialist_audit_stage COMPLETED_ONCE; policyblokken postbuild_review binder
+begge sekvensauditene og spesialistauditen. BASE_NORMALIZATION_001 (fersk
+basenormalisering tilpasset én gang på hele fysiske TRAIN, producer 20G,
+VAL-/TEST-fit null) er forberedt med alle forutsetninger og inputs bundet til
+den nye generasjonen og admittert som base_normalization_stage; forrige
+generasjon brukte 444 s.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren
