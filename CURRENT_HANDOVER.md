@@ -259,6 +259,17 @@ VAL-/TEST-fit null) er forberedt med alle forutsetninger og inputs bundet til
 den nye generasjonen og admittert som base_normalization_stage; forrige
 generasjon brukte 444 s.
 
+BASE_NORMALIZATION_001 (0f650cef) terminerte GRØNT 11:18 UTC etter 585 s med
+uendret kilde: basenormaliseringen er tilpasset én gang på hele fysiske TRAIN
+før sampling, 652 552 Entry-rader, 955 670 unike M5-inputrader og 3 978 505
+unike M1-inputrader, samme populasjon som den aksepterte generasjonen; VAL- og
+TEST-fit er null (LEARNING_PREPARATION_001/BASE_NORMALIZATION/normalization.json
+og populasjonsvitnet). Registrert som base_normalization_stage COMPLETED_ONCE.
+SUMMARY_NORMALIZATION_001 (fersk TRAIN-summary-fit og splitbindinger uten ny
+basefit, producer 20G) er forberedt med alle forutsetninger bundet til den nye
+generasjonen og admittert som summary_normalization_stage; forrige generasjon
+brukte 313 s.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren

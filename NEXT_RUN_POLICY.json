@@ -4325,7 +4325,6 @@
       "core_relaunch_allowed": false,
       "cleanup_authorized": false,
       "next_required_stages": [
-        "BASE_NORMALIZATION_001",
         "SUMMARY_NORMALIZATION_001",
         "INPUT_TENSOR_AUDIT_001",
         "NATIVE_INPUT_INDEX_001",
@@ -4562,7 +4561,7 @@
         },
         "reason": "prepared against the preflight-failed COMPLETE_M1_001 terminal; never admitted, bound or launched; preserved (rule 9); replaced by COVERAGE_REVIEW_002"
       },
-      "next_action": "POSTBUILD_SPECIALIST_001 COMPLETED_ONCE (exit 0, 72 s; eight-family specialist audit PASS, 0 failures, 315 signal fields). Admitted: base_normalization_stage (BASE_NORMALIZATION_001, producer 20G, whole-TRAIN base fit once; VAL/TEST fit rows 0). After this commit: bind at HEAD, launch BASE_NORMALIZATION_001/launch_base_normalization.py (one heavy CPU job), record the terminal, then SUMMARY_NORMALIZATION -> INPUT_TENSOR_AUDIT -> NATIVE_INPUT_INDEX -> FRESH_INITIAL_BASELINE (step 5), each prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending.",
+      "next_action": "BASE_NORMALIZATION_001 COMPLETED_ONCE (exit 0, 585 s; base normalization fitted once on the whole physical TRAIN: 652552 entry rows, 955670 unique M5 rows, 3978505 unique M1 rows; VAL/TEST fit rows 0). Admitted: summary_normalization_stage (SUMMARY_NORMALIZATION_001, producer 20G, fresh TRAIN summary fit and split bindings, no base refit). After this commit: bind at HEAD, launch SUMMARY_NORMALIZATION_001/launch_summary_normalization.py (one heavy CPU job), record the terminal, then INPUT_TENSOR_AUDIT -> NATIVE_INPUT_INDEX -> FRESH_INITIAL_BASELINE (step 5), each prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending.",
       "physical_input_views_stage": {
         "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001",
@@ -4664,7 +4663,7 @@
         "elapsed_seconds": 72.05703330800043
       },
       "base_normalization_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/BASE_NORMALIZATION_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/BASE_NORMALIZATION_001/PLAN.json",
@@ -4689,8 +4688,18 @@
         "test_fit_rows": 0,
         "optimizer_steps": 0,
         "refit_authorized": false,
-        "status": "AUTHORIZED_NOT_STARTED",
-        "cloned_from": "feature_repair_rebuild_20261010.base_normalization_stage"
+        "status": "COMPLETED_ONCE",
+        "cloned_from": "feature_repair_rebuild_20261010.base_normalization_stage",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/BASE_NORMALIZATION_001/TERMINAL.json",
+          "sha256": "861662cff33ff1bba2df91811372227d83a518ddc93b53b835594a68f5c1d9fa"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/BASE_NORMALIZATION_001/RESULT.json",
+          "sha256": "ca63f3f7426e4d03d2197f67c49c7e449efd518eb10f62f6acd70f779267ca7d"
+        },
+        "completed_utc": "2026-10-12T11:19:09.100803+00:00",
+        "elapsed_seconds": 585.3268398360005
       },
       "postbuild_review": {
         "train_sequence_source_audit": {
@@ -4707,6 +4716,35 @@
         },
         "planned_as_two_stages_no_failure": true,
         "signal_field_count": 315
+      },
+      "summary_normalization_stage": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SUMMARY_NORMALIZATION_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SUMMARY_NORMALIZATION_001/PLAN.json",
+          "sha256": "6d295dde6e8bb31bfe38f0668a3d2af643911c5e06c5df3948032d590dec4a88"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SUMMARY_NORMALIZATION_001/PRODUCER_PLAN.json",
+          "sha256": "3a372733ebf3ab01ac946371a44df5ab7a1414deb4b3dcdf459bb0c43f7e2daa"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SUMMARY_NORMALIZATION_001/produce_summary_normalization.py",
+          "sha256": "b0e22323ddfd0aa0d625e77f20e2d9a7079c59d778f27be3e7cf4d2198127ac2"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SUMMARY_NORMALIZATION_001/launch_summary_normalization.py",
+          "sha256": "21e7f9668790cf1b3c3f6eb880034d05606afaa507e0446445ef9d886811977d"
+        },
+        "relaunch_allowed": false,
+        "whole_train_summary_fit_allowed": true,
+        "base_refit_allowed": false,
+        "val_fit_rows": 0,
+        "test_fit_rows": 0,
+        "optimizer_steps": 0,
+        "refit_authorized": false,
+        "status": "AUTHORIZED_NOT_STARTED",
+        "cloned_from": "feature_repair_rebuild_20261010.summary_normalization_stage"
       }
     }
   },
