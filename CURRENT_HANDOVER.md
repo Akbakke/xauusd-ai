@@ -1,15 +1,18 @@
-# CURRENT HANDOVER — 11.10.2026 (kveld)
+# CURRENT HANDOVER — 12.10.2026
 
 Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json er
 eneste arbeidsstatus; prosess og terminal overstyrer prosa. Historikk per forsøk
 ligger i Git og i policyens bindinger, ikke her.
 
-Nå: rebuild og baseline er akseptert, HEAD-avvikene er rettet (modellfunksjon v10)
-og v10-nullstegsbaselinen er målt. Swing-programmet har funnet et long-timing-
-signal på 20 dagers horisont som er støttet, men ikke bekreftet; flaten er frosset
-og forward-journalen er eneste bekreftelsesrute. Native neste steg er bundet som
-design. Ingen dokumentert Entry-edge, ingen prediktor innrømmet, training_enabled
-= false.
+Nå: den native D1-bølgen er bygget og målt til og med steg 5. Generasjonen
+HISTORY2009W_NATIVE_D1_20261011_003 (315 signalfelt med den niende D1-makro-/
+posisjoneringsfamilien, 1/5/20-handelsdagers observerte mål i TRAIN/VAL, TEST
+forseglet) har grønn kjernekjede, åtte grønne nedstrøms inputsteg og en fersk
+v10-nullstegsbaseline. Swing-programmet har funnet et long-timing-signal på 20
+dagers horisont som er støttet, men ikke bekreftet; flaten er frosset og
+forward-journalen er eneste bekreftelsesrute. Steg 6 (trent native modell mot
+D1-ridge-journalen) krever eget vedtak. Ingen dokumentert Entry-edge, ingen
+prediktor innrømmet, training_enabled = false.
 
 ## Rettelser i HEAD 11.10.2026 (operatørbestilt)
 
@@ -315,6 +318,25 @@ Budsjettet er dagens delte vindu (PREPARATION_CPU_001). Admittert som
 fresh_initial_baseline_stage_v10; forrige generasjon brukte 342 s.
 Nullstegsprediksjoner er ikke læring eller edge.
 
+FRESH_INITIAL_BASELINE_001 (86a0551c) terminerte GRØNT 11:54 UTC etter 385 s med
+uendret kilde: 9 661 087 parametre (seq-/snap-input 315, kontekst 132 + 1
+kategorisk; forrige generasjon 9 637 663 på 254 felt), 512 ONLINE-forwards og
+én TARGET-paritetsforward med alle hoder bitidentiske, null optimizersteg,
+producer20G. Koordinatene er de samme 4096/4096 radene som læringsstudien og
+den aksepterte baselinen (ingen manglende tidsstempler); målene er bitidentiske
+med forrige kohort. TRAIN argmax LONG/SHORT/FLAT 1055/123/2918 (akseptert
+generasjon 1878/733/1485), 2123 av 4096 rader endret argmax mot den aksepterte
+baselinen, største prediksjonsendring 3,2 bps; CONTROL 779/173/3144 (1779/830/
+1487), 2184 endret, 3,5 bps. Side-MSE ≈908/872 TRAIN og ≈1869/1873 CONTROL,
+kontrast-MSE 3 398 og 7 363, praktisk lik forrige generasjon: utrent
+initialtilstand med annen input-dimensjon, ikke læring eller edge. Registrert
+som fresh_initial_baseline_stage_v10 COMPLETED_ONCE; budsjettet
+PREPARATION_CPU_001 er lukket etter målet (ca. 2,9 av 18 timer brukt).
+Dermed er steg 3, 4 og 5 i den native D1-bølgen ferdige. Steg 6 er ikke
+autorisert: en trent native modell mot den frosne D1-ridge-journalen krever
+egen kontrakt, eksakt recipe-binding, GPU-campaign-admisjon under eksisterende
+vakter, budsjett og operatørvedtak.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren
@@ -414,11 +436,17 @@ Tidligere benchmark- og treningsbevis tilhører sin gamle generasjon.
 Forrige læringsstudie ga REJECT_ENTRY_QUALIFICATION: CONTROL4096 valgte 4095 FLAT
 og én SHORT. Retnings-MSE 7357,64 mot konstantens 7360,93 ga ingen statistisk påvist
 forbedring. v10-baselinen endrer ikke denne konklusjonen. Flere epoker på
-95-minuttersmålet er ikke neste steg; neste native steg er D1-kontekst- og
-horisontbølgen (vedtak 11.10 kveld), som starter først med egen kontrakt og budsjett.
+95-minuttersmålet er ikke neste steg. D1-kontekst- og horisontbølgen (vedtak
+11.10 kveld) er bygget til og med steg 5; neste beslutning er steg 6: trening
+på 1/5/20-handelsdagers-målene med eksakt recipe, 3 seeds og forhåndsregistrert
+stoppregel, og sammenligning mot D1-ridge-journalen på samme beslutningsdager.
+Det krever egen kontrakt, budsjett og operatørvedtak.
 
-Rebuild-/baselinemålet er ferdig; engangsplaner og budsjetter er lukket, også
-PREPARATION_CPU_002. Valgt sampler (batch 16, målt CPU-epoke 7679 s) bindes i
+Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
+budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
+PREPARATION_CPU_001 i NATIVE_D1-generasjonen). De feilede kjerneforsøkene
+NATIVE_D1_REBUILD_20261011_001/_002 med event-røtter er foreldet evidens og
+ryddes bare gjennom retention-eieren (plan → godkjenn → utfør) i bakgrunnen. Valgt sampler (batch 16, målt CPU-epoke 7679 s) bindes i
 recipe først i den native bølgen. Native launch er stengt.
 Ingen automatisk trening, forlengelse eller relansering av konsumerte planer.
 training_enabled=false; TEST er forseglet. Ingen live/paper, broker, ordre, spending,

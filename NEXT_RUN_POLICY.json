@@ -4183,7 +4183,7 @@
         },
         "wired_into_trainer_or_builder": false
       },
-      "steps_3_to_6": "not started: signal manifest + ninth specialist owner + normalization + constructor metadata (3), dataset rebuild (4), fresh zero-step baseline (5), recipe/budget/training (6); each needs its own binding and budget",
+      "steps_3_to_6": "3 done (a33077be: contracts v13/v39, ninth family routed to session_regime_encoder, lanes and builder); 4 done (NATIVE_D1_REBUILD_20261011_003: core chain GREEN, eight downstream input stages green); 5 done (FRESH_INITIAL_BASELINE_001 measured, 9661087 parameters on 315/132 fields, no learning or edge); 6 not authorized (recipe/budget/training and comparison with the D1-ridge journal need operator decision)",
       "training_enabled": false,
       "test_accessed": false,
       "test_split_context_construction_authorized": true,
@@ -4198,10 +4198,24 @@
       },
       "step_4_rebuild": {
         "policy_block": "native_d1_rebuild_20261011_003",
-        "status": "CORE_COMPLETE",
+        "status": "COMPLETE_CORE_GREEN_DOWNSTREAM_GREEN",
         "earlier_attempts": "001 (M5 lane read end) and 002 (builder read end) failed closed and are preserved"
       },
-      "test_split_context_scope": "native enriched M1/M5 lanes and the dataset builder construct the TEST split's context fields up to this end; nothing reads the TEST split"
+      "test_split_context_scope": "native enriched M1/M5 lanes and the dataset builder construct the TEST split's context fields up to this end; nothing reads the TEST split",
+      "step_5_fresh_baseline": {
+        "status": "MEASURED",
+        "stage": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001",
+        "policy_block": "native_d1_rebuild_20261011_003.fresh_initial_baseline_stage_v10",
+        "model_parameter_count": 9661087,
+        "signal_fields": 315,
+        "context_fields": 132,
+        "learning_demonstrated": false,
+        "edge_demonstrated": false
+      },
+      "step_6_comparison": {
+        "status": "NOT_AUTHORIZED",
+        "requires": "own contract, exact native recipe binding, GPU campaign admission under existing guards, budget and operator decision; comparison target is the frozen 68-field D1-ridge forward journal on the same decision days"
+      }
     },
     "native_d1_rebuild_20261011": {
       "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
@@ -4295,7 +4309,7 @@
     },
     "native_d1_rebuild_20261011_003": {
       "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
-      "status": "DOWNSTREAM_STAGES_RUNNING",
+      "status": "DOWNSTREAM_COMPLETE_FRESH_BASELINE_MEASURED",
       "previous_attempts": [
         "native_d1_rebuild_20261011 (FAILED_M5_LANE_D1_READ_END_PRESERVED, 2013 s)",
         "native_d1_rebuild_20261011_002 (FAILED_BUILDER_TEST_READ_END_PRESERVED, 18105 s)"
@@ -4324,9 +4338,7 @@
       "completed_plan_relaunch_allowed": false,
       "core_relaunch_allowed": false,
       "cleanup_authorized": false,
-      "next_required_stages": [
-        "FRESH_INITIAL_BASELINE_001"
-      ],
+      "next_required_stages": [],
       "max_core_wall_seconds": 64800,
       "frozen_source_note": "launch_core.py binds HEAD and NEXT_RUN_POLICY.json for the whole core chain; no commit may land while it runs",
       "core_terminal": {
@@ -4398,8 +4410,8 @@
       },
       "operators_copied_to": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators",
       "native_d1_build_cpu_budget_001": {
-        "budget_authorized": true,
-        "authorized": true,
+        "budget_authorized": false,
+        "authorized": false,
         "budget": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/PREPARATION_CPU_001/BUDGET.json",
           "sha256": "1dcc3ea7c34b2d2b33848494ac22bdc15b3cbebb9f85945416ca2d734c92a00a"
@@ -4408,7 +4420,8 @@
         "max_wall_seconds": 64800,
         "new_budget_time_added": true,
         "optimizer_authorized": false,
-        "status": "open"
+        "status": "closed_after_goal_completion",
+        "closed_utc": "2026-10-12T11:56:25.406665+00:00"
       },
       "post_reboot": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/HOST_BOUNDARY_001/POST_REBOOT.json",
@@ -4560,7 +4573,7 @@
         },
         "reason": "prepared against the preflight-failed COMPLETE_M1_001 terminal; never admitted, bound or launched; preserved (rule 9); replaced by COVERAGE_REVIEW_002"
       },
-      "next_action": "NATIVE_INPUT_INDEX_001 COMPLETED_ONCE (exit 0, 671 s; full physical TRAIN 652552 / VAL 70880 index and economic method published, no model admission). Admitted: fresh_initial_baseline_stage_v10 (FRESH_INITIAL_BASELINE_001, step 5: fresh v10-function zero-step baseline on the NATIVE_D1 inputs, producer 20G, 513 forwards, no optimizer). After this commit: bind at HEAD, launch FRESH_INITIAL_BASELINE_001/launch_baseline.py (one heavy CPU job), record the terminal and close the downstream wave in the handover. No native launch, orders or spending; training_enabled stays false.",
+      "next_action": "Native D1 wave steps 3-5 complete: core chain GREEN, eight downstream input stages and the fresh v10-function zero-step baseline (FRESH_INITIAL_BASELINE_001) measured on the 315-field surface. Nothing further is authorized by this block. Step 6 (comparison of a trained native model with the frozen D1-ridge forward journal) needs its own contract, native recipe binding, GPU campaign admission and budget by operator decision; training_enabled stays false. Retention: the failed core attempts NATIVE_D1_REBUILD_20261011_001/_002 and their event roots are obsolete evidence to be cleaned only through gx1.scripts.cleanup_gx1_evidence_v1 (plan -> approve -> execute) in the background.",
       "physical_input_views_stage": {
         "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001",
@@ -4832,7 +4845,7 @@
         "elapsed_seconds": 671.1316556479997
       },
       "fresh_initial_baseline_stage_v10": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/PLAN.json",
@@ -4866,13 +4879,97 @@
         "training_sampler_admission": false,
         "relaunch_allowed": false,
         "test_data_used": false,
-        "status": "AUTHORIZED_NOT_STARTED",
+        "status": "COMPLETED_ONCE",
         "cloned_from": "feature_repair_rebuild_20261010.fresh_initial_baseline_stage_v10",
         "comparison_inputs": {
           "corrected_input_observations": "accepted generation FRESH_INITIAL_BASELINE_003 TRAIN/CONTROL observations (old run root, kept verbatim)",
           "previous_observations": "ENTRY_LEARNING_CURVE_20261010_001 step-0 observations and fixed 4096/4096 timestamps (unchanged ancestors)"
-        }
-      }
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/TERMINAL.json",
+          "sha256": "b2d5eb4ab6d01d0d73cf8a30cf26b86c1e2fab4427d7e85c7783bbd86593c106"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/RESULT.json",
+          "sha256": "b9f557c104774d41cd6d1fbcb21f79a8059dfca563c4d367952678c5fcc229da"
+        },
+        "completed_utc": "2026-10-12T11:55:20.200797+00:00",
+        "elapsed_seconds": 385.2792556780005,
+        "completed": true,
+        "decision": "FRESH_V10_FUNCTION_ZERO_STEP_BASELINE_COMPLETE_NO_EDGE_ADMISSION",
+        "stage_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/RESULT.json",
+          "sha256": "b9f557c104774d41cd6d1fbcb21f79a8059dfca563c4d367952678c5fcc229da"
+        },
+        "baseline_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/BASELINE_RESULT.json",
+          "sha256": "9f8a28015db462b65be43107a8aeda1b7ddce5eabfc578a6280aadb70364b1e5"
+        },
+        "observations": {
+          "train": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/TRAIN_OBSERVATION.json",
+            "sha256": "e952023751f97f2197ef83d5eca41fe482d1f4e1f4ea77506930111e50fd796e"
+          },
+          "control": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/CONTROL_OBSERVATION.json",
+            "sha256": "405cc7dcf89051b8885c0401e05e0e98a3d0901776f86ef0eadbf50f7c31211d"
+          }
+        },
+        "coordinates": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/COORDINATES.json",
+          "sha256": "982cc7bf8d442ea37b951e59b0e50d38baa27914ddc41ff48fbddc871c3337fa"
+        },
+        "model_parameter_count": 9661087,
+        "seq_input_dim": 315,
+        "ctx_cont_dim": 132,
+        "online_target_parity_all_heads_bit_identical": true,
+        "actual_online_forwards": 512,
+        "metrics": {
+          "train": {
+            "side_mse": [
+              907.9503226116377,
+              872.392706563697
+            ],
+            "contrast_mse": 3397.689841070469,
+            "action_counts": [
+              1055,
+              123,
+              2918
+            ],
+            "ties": 0,
+            "positive_estimated_entry_rows": 1065
+          },
+          "control": {
+            "side_mse": [
+              1868.9755812434278,
+              1873.3724248354233
+            ],
+            "contrast_mse": 7362.4964255556915,
+            "action_counts": [
+              779,
+              173,
+              3144
+            ],
+            "ties": 0,
+            "positive_estimated_entry_rows": 889
+          }
+        },
+        "targets_bit_identical_to_prior": {
+          "train": true,
+          "control": true
+        },
+        "max_abs_prediction_change_vs_accepted_generation_bps": {
+          "train": 3.2142603397369385,
+          "control": 3.46110337972641
+        },
+        "changed_unique_argmax_rows_vs_accepted_generation": {
+          "train": 2123,
+          "control": 2184
+        },
+        "learning_demonstrated": false,
+        "edge_demonstrated": false
+      },
+      "completed_utc": "2026-10-12T11:56:25.406665+00:00"
     }
   },
   "gc_order_flow_research_20261006": {
