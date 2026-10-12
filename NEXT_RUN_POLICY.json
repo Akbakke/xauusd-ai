@@ -4325,7 +4325,6 @@
       "core_relaunch_allowed": false,
       "cleanup_authorized": false,
       "next_required_stages": [
-        "SUMMARY_NORMALIZATION_001",
         "INPUT_TENSOR_AUDIT_001",
         "NATIVE_INPUT_INDEX_001",
         "FRESH_INITIAL_BASELINE_001"
@@ -4547,11 +4546,12 @@
       },
       "operators_clone_stage": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators/clone_stage.py",
-        "sha256": "a3185ce948c7aa44c36a5cef4a347f983e57cf4f7d7a18c32896735086a34c20",
+        "sha256": "f22752bea0546169cd118ef8ee0d3b839d3f5528f1f1ffb6af213c2da1d92e53",
         "revision": 3,
         "revision_note": "12.10.2026 after COMPLETE_M1_002: stage aliases COMPLETE_M1_001->002 and COVERAGE_REVIEW_001->002 for cross-references; a TERMINAL.json binding is missing unless exit_code==0 and source_unchanged is True; argv pairs --x[-json] PATH --x-sha256 HASH rehashed from the new PATH; launch_validation.py deadline check rebound from core START+max_core_wall to the explicit downstream budget receipt (the convention every later stage launcher uses) with prerequisites.cpu_budget; stale previous-generation hash literals fail closed; ops dryrun and complete.",
         "revision_3_note": "12.10.2026 after INPUT_VIEWS_001: old-generation hashes harvested from every {path, sha256} binding in the accepted generation stage plans (argv hash literals without a path pair remap through that table or must be unchanged ancestors); bounded script patches and plan deletions; POSTBUILD_REVIEW_001 cloned as the TRAIN/VAL sequence-source audits only (4G audit class), the specialist audit stays in POSTBUILD_SPECIALIST_001 at producer10G without the failure-history prerequisites; admit skips failure/completed_sequence_audits/elapsed_seconds history keys.",
-        "revision_3_fixes": "stale-hash scan excludes identity mappings (bit-identical artifacts across generations, e.g. physical M1 views from the unchanged quote source); the second pass accepts argv literals that are already new-generation hashes."
+        "revision_3_fixes": "stale-hash scan excludes identity mappings (bit-identical artifacts across generations, e.g. physical M1 views from the unchanged quote source); the second pass accepts argv literals that are already new-generation hashes.",
+        "revision_3_additions": "producer-plan hook for NATIVE_INPUT_INDEX_001 (economics_identities computed from this generation's admission, design, sampler candidates and the unchanged cost authority; the accepted generation's source-change review kept verbatim); prepare fails closed before writing anything when a prerequisite is missing."
       },
       "coverage_review_001_superseded": {
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_001",
@@ -4561,7 +4561,7 @@
         },
         "reason": "prepared against the preflight-failed COMPLETE_M1_001 terminal; never admitted, bound or launched; preserved (rule 9); replaced by COVERAGE_REVIEW_002"
       },
-      "next_action": "BASE_NORMALIZATION_001 COMPLETED_ONCE (exit 0, 585 s; base normalization fitted once on the whole physical TRAIN: 652552 entry rows, 955670 unique M5 rows, 3978505 unique M1 rows; VAL/TEST fit rows 0). Admitted: summary_normalization_stage (SUMMARY_NORMALIZATION_001, producer 20G, fresh TRAIN summary fit and split bindings, no base refit). After this commit: bind at HEAD, launch SUMMARY_NORMALIZATION_001/launch_summary_normalization.py (one heavy CPU job), record the terminal, then INPUT_TENSOR_AUDIT -> NATIVE_INPUT_INDEX -> FRESH_INITIAL_BASELINE (step 5), each prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending.",
+      "next_action": "SUMMARY_NORMALIZATION_001 COMPLETED_ONCE (exit 0, 368 s; fresh TRAIN summary fit and split bindings, no base refit, VAL/TEST fit rows 0, FINAL_BINDINGS published). Admitted: input_tensor_audit_stage (INPUT_TENSOR_AUDIT_001, audit 4G, actual normalized NumPy/PyTorch input parity, no model admission). After this commit: bind at HEAD, launch INPUT_TENSOR_AUDIT_001/launch_input_tensors.py (one heavy CPU job), record the terminal, then NATIVE_INPUT_INDEX -> FRESH_INITIAL_BASELINE (step 5), each prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending.",
       "physical_input_views_stage": {
         "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001",
@@ -4718,7 +4718,7 @@
         "signal_field_count": 315
       },
       "summary_normalization_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SUMMARY_NORMALIZATION_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SUMMARY_NORMALIZATION_001/PLAN.json",
@@ -4743,8 +4743,45 @@
         "test_fit_rows": 0,
         "optimizer_steps": 0,
         "refit_authorized": false,
+        "status": "COMPLETED_ONCE",
+        "cloned_from": "feature_repair_rebuild_20261010.summary_normalization_stage",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SUMMARY_NORMALIZATION_001/TERMINAL.json",
+          "sha256": "996dfd6003299cf5bad54d5782db97d1ef014e8f7f283bc6b05a6df722f0a7c7"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SUMMARY_NORMALIZATION_001/RESULT.json",
+          "sha256": "e57784b36c2b51adc77f2b87c3bf537903a76dc99ae264922473fbac4b6bac0d"
+        },
+        "completed_utc": "2026-10-12T11:26:10.806412+00:00",
+        "elapsed_seconds": 368.3072583739995
+      },
+      "input_tensor_audit_stage": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_TENSOR_AUDIT_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_TENSOR_AUDIT_001/PLAN.json",
+          "sha256": "bd0790f7c3136f8ab4e80461577c6aa6af3c3a473bff5edfdbf982634ce21ad4"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_TENSOR_AUDIT_001/PRODUCER_PLAN.json",
+          "sha256": "451d1d909431e9b278937b7856435732c74ff6a95b9c8ce7115eb765a6ddd8cc"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_TENSOR_AUDIT_001/audit_input_tensors.py",
+          "sha256": "30ac65eb5580c6301be45fa75fce508a42829a18557ce1c49d3ef52f1c4b059d"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_TENSOR_AUDIT_001/launch_input_tensors.py",
+          "sha256": "e1d37a2bfbde421aec2767bd15f6c888d92b67037fa00eb26a687087f9ea822c"
+        },
+        "relaunch_allowed": false,
+        "normalization_fit_allowed": false,
+        "optimizer_steps": 0,
+        "model_constructor_allowed": false,
+        "test_data_used": false,
         "status": "AUTHORIZED_NOT_STARTED",
-        "cloned_from": "feature_repair_rebuild_20261010.summary_normalization_stage"
+        "cloned_from": "feature_repair_rebuild_20261010.input_tensor_audit_stage"
       }
     }
   },

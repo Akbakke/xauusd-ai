@@ -270,6 +270,19 @@ basefit, producer 20G) er forberedt med alle forutsetninger bundet til den nye
 generasjonen og admittert som summary_normalization_stage; forrige generasjon
 brukte 313 s.
 
+SUMMARY_NORMALIZATION_001 (01bfc4c1) terminerte GRØNT 11:25 UTC etter 368 s med
+uendret kilde: fersk TRAIN-summary-fit og splitbindinger publisert under
+LEARNING_PREPARATION_001/FINAL_BINDINGS (komposittnormalisering, sekvens- og
+førstetilstandsbindinger for TRAIN/VAL, sampler-kandidater) uten ny basefit;
+VAL-/TEST-fit null, 652 552/70 880 Entry-rader. Registrert som
+summary_normalization_stage COMPLETED_ONCE. INPUT_TENSOR_AUDIT_001 (faktiske
+normaliserte NumPy-/PyTorch-input og aliasparitet, audit 4G, ingen
+modelladgang) er forberedt og admittert som input_tensor_audit_stage; forrige
+generasjon brukte 333 s. Kloneren fikk en plan-hook for NATIVE_INPUT_INDEX
+(økonomi-identiteter beregnes fra denne generasjonens artefakter, den
+aksepterte generasjonens kildeendringsgjennomgang beholdes ordrett) og skriver
+ingenting når en forutsetning mangler.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren
