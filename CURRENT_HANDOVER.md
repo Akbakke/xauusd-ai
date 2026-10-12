@@ -124,11 +124,20 @@ kjeden konstruerer og forsegler TEST-splitten. Rettet i lanen (a631e69c): samme
 policybundne test-konstruksjonsslutt 2026-09-01 som builderen; eieren nekter
 fortsatt enhver slutt policyen ikke autoriserer. Alt fra 001 er bevart.
 
-Steg 4, forsøk 002: run-root /home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_002 med
-PLAN.json lik configs/research/NATIVE_D1_REBUILD_20261011_002.json (run-id
-HISTORY2009W_NATIVE_D1_20261011_002, samme vinduer, pair-/squeeze-/M1-
+Steg 4, forsøk 002 (be116811) kom gjennom begge lanene med den niende familien
+(M5 1 166 786 rader, M1 5 660 070 rader, alle komplette), signalmanifest, begge
+featureflatene (M1 5 570 522 rader med 132 kontekstfelt) og preflight, men
+stoppet lukket ved builderens start etter 18 105 s: builderen ba om test_end
++ 1 dag som leseslutt for TEST-kontekst, mens policyen autoriserer 2026-09-01
+00:00 (siste TEST-beslutning). Rettet (e183f6bc): builderen binder policyverdien
+nøyaktig som lanene og feiler lukket hvis siste TEST-beslutning ligger utenfor.
+Horisontjoin herdet (6624014d). Alt fra 002 er bevart.
+
+Steg 4, forsøk 003: run-root /home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003 med
+PLAN.json lik configs/research/NATIVE_D1_REBUILD_20261011_003.json (run-id
+HISTORY2009W_NATIVE_D1_20261011_003, samme vinduer, pair-/squeeze-/M1-
 justeringsinputs og 64 800 s kjernetak som den aksepterte generasjonen),
-launch_core.py bundet i policyblokken native_d1_rebuild_20261011_002. Lanseringen
+launch_core.py bundet i policyblokken native_d1_rebuild_20261011_003. Lanseringen
 fryser HEAD og NEXT_RUN_POLICY.json for hele kjernekjeden; ingen commit før
 terminal. Forrige kjernekjede tok 22 130 s. Etter kjernen følger COMPLETE_M1/
 inputverifisering, fysiske views og normalisering (132 kontekstfelt), og fersk

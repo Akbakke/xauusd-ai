@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-11T17:00:29.157548+00:00",
-  "status": "NATIVE_D1_REBUILD_002_CORE_CHAIN_AUTHORIZED",
+  "status": "NATIVE_D1_REBUILD_003_CORE_CHAIN_AUTHORIZED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -4197,9 +4197,9 @@
         "builder": "ninth family + trading-day horizon labels in build_entry_v10_ctx_training_dataset_v3"
       },
       "step_4_rebuild": {
-        "policy_block": "native_d1_rebuild_20261011_002",
+        "policy_block": "native_d1_rebuild_20261011_003",
         "status": "AUTHORIZED_NOT_STARTED",
-        "first_attempt": "native_d1_rebuild_20261011 failed closed in the M5 lane (read end), preserved"
+        "earlier_attempts": "001 failed closed in the M5 lane (read end); 002 failed closed at the builder start (read end); both preserved"
       },
       "test_split_context_scope": "native enriched M1/M5 lanes and the dataset builder construct the TEST split's context fields up to this end; nothing reads the TEST split"
     },
@@ -4249,10 +4249,10 @@
     },
     "native_d1_rebuild_20261011_002": {
       "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
-      "status": "CORE_CHAIN_AUTHORIZED_NOT_STARTED",
+      "status": "FAILED_BUILDER_TEST_READ_END_PRESERVED",
       "previous_attempt": "native_d1_rebuild_20261011 (FAILED_M5_LANE_D1_READ_END_PRESERVED, 2013 s)",
-      "authorized_goal": true,
-      "core_build_authorized": true,
+      "authorized_goal": false,
+      "core_build_authorized": false,
       "runtime_plan": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_002/PLAN.json",
         "sha256": "3a9dd3535b2aef5c38c9940d126a8713fd7d8444e57edc768fd53b1081487d0b"
@@ -4269,6 +4269,55 @@
       "dataset_run_id": "HISTORY2009W_NATIVE_D1_20261011_002",
       "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_002/CHAIN",
       "source_parent": "a631e69cd1236251acb6f81b894763d86c7834b9",
+      "native_optimizer_authorized": false,
+      "baseline_optimizer_steps": 0,
+      "test_outcome_access_authorized": false,
+      "completed_plan_relaunch_allowed": false,
+      "core_relaunch_allowed": false,
+      "cleanup_authorized": false,
+      "next_required_stages": [
+        "COMPLETE_M1_AND_INPUT_VERIFICATION",
+        "PHYSICAL_VIEWS_AND_NORMALIZATION",
+        "FRESH_INITIAL_BASELINE"
+      ],
+      "max_core_wall_seconds": 64800,
+      "frozen_source_note": "launch_core.py binds HEAD and NEXT_RUN_POLICY.json for the whole core chain; no commit may land while it runs",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_002/TERMINAL.json",
+        "sha256": "23a3481ec30f39e3426b2f1f80267aa1a3740dbfd19201ca3d6d191f42624fbd"
+      },
+      "failure": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_002/FAILURE.json",
+        "sha256": "057ee6321c0914c4ebcf512d9da3fb6eed5581f51551d3dac06c7e5008fd5fa0"
+      },
+      "lanes_completed": "m5 and m1 enriched frames (ninth family attached: 1 166 786 and 5 660 070 rows), signal manifest, both feature surfaces (m1 5 570 522 rows, ctx 132) and preflight completed before the builder failed at start",
+      "failure_review": "the builder asked for test_end + 1 day as the TEST context read end while the policy authorizes 2026-09-01T00:00 (the last TEST decision); fixed e183f6bc to bind the policy value exactly as the lanes do; outputs preserved; successor native_d1_rebuild_20261011_003"
+    },
+    "native_d1_rebuild_20261011_003": {
+      "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
+      "status": "CORE_CHAIN_AUTHORIZED_NOT_STARTED",
+      "previous_attempts": [
+        "native_d1_rebuild_20261011 (FAILED_M5_LANE_D1_READ_END_PRESERVED, 2013 s)",
+        "native_d1_rebuild_20261011_002 (FAILED_BUILDER_TEST_READ_END_PRESERVED, 18105 s)"
+      ],
+      "authorized_goal": true,
+      "core_build_authorized": true,
+      "runtime_plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/PLAN.json",
+        "sha256": "c898c2816773946998753e99a256665ef1d7f88d868f2b75fd36be44e2bdd791"
+      },
+      "launcher": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/launch_core.py",
+        "sha256": "51044d23e80501525f432b0b8670c9f6ef2e7dc0f35ce94ad6aa74eb6b11e7ed"
+      },
+      "spec": {
+        "path": "configs/research/NATIVE_D1_REBUILD_20261011_003.json",
+        "sha256": "c898c2816773946998753e99a256665ef1d7f88d868f2b75fd36be44e2bdd791"
+      },
+      "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
+      "dataset_run_id": "HISTORY2009W_NATIVE_D1_20261011_003",
+      "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN",
+      "source_parent": "6624014ddb0e62e7d663b0a313f222d4a06ddc4c",
       "native_optimizer_authorized": false,
       "baseline_optimizer_steps": 0,
       "test_outcome_access_authorized": false,
