@@ -87,7 +87,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -512,11 +512,15 @@ def _build_bound_full_train_components(
                 expected_result_sha256=chronological_prefix["labels_result"]["sha256"],
                 expected_design_sha256=chronological_prefix["design"]["sha256"], role=role)
         if observed_entry_scope is not None:
-            from gx1.contracts.entry_observed_market_v1 import bind_entry_observed_market_dataset
+            from gx1.contracts.entry_observed_market_horizons_v1 import bind_observed_entry_dataset
             if not physical_prefix or frozen_train_policy_scope is not None:
                 raise RuntimeError("NATIVE_OBSERVED_ENTRY_PHYSICAL_SCOPE_REQUIRED")
             for split in ("train", "val"):
-                bind_entry_observed_market_dataset(datasets[split], observed_entry_scope)
+                bind_observed_entry_dataset(datasets[split], observed_entry_scope)
+            admitted = getattr(datasets["train"], "_entry_observed_market_admitted_rows", None)
+            if admitted is not None and not bool(admitted[np.asarray(prefix["eligible_parent_rows"], dtype=np.int64)].all()):
+                # the frozen coordinates must only draw rows with complete horizon outcomes
+                raise RuntimeError("NATIVE_PREFIX_ELIGIBLE_ROWS_NOT_ADMITTED_FOR_HORIZON_TARGET")
         # Measurement shares the TRAIN inputs and bound labels, while lifecycle
         # materialization remains attached only to the optimizer's dataset.
         train_probe_ds = copy.copy(datasets["train"])
@@ -827,10 +831,8 @@ def run_guarded_native_candidate_invocation(
     output = Path(recipe["out_bundle_dir"])
     device = trainer._resolve_device("cuda")
     component_started = time.monotonic()
-    observed_entry_scope = None
-    if "entry_observed_market" in recipe:
-        from gx1.contracts.entry_observed_market_v1 import require_entry_observed_market_scope
-        observed_entry_scope = require_entry_observed_market_scope(recipe)
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
+    observed_entry_scope = require_observed_entry_scope(recipe)
     components = _build_bound_full_train_components(
         files=files, dataset_run_id=recipe["dataset_run_id"],
         seed_launch_path=None if prefix_mode else Path(recipe["seed_launch"]["path"]),
@@ -945,8 +947,9 @@ def run_guarded_native_candidate_invocation(
 
 def _entry_learning_study_observer(*, components, study, recipe, device, output):
     """Observe only predeclared rows/steps, without changing training RNG or state."""
-    from gx1.contracts.entry_observed_market_v1 import (
-        entry_learning_study_control_dataset, entry_observed_market_batch_targets,
+    from gx1.contracts.entry_observed_market_v1 import entry_learning_study_control_dataset
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        observed_entry_batch_targets, observed_entry_batch_targets_by_horizon,
     )
     from gx1.contracts.unified_exit_random_access_state_view_v1 import _structured_sha256
     from gx1.scripts.benchmark_unified_exit_random_access_train_v1 import _atomic_write_new_json
@@ -995,9 +998,12 @@ def _entry_learning_study_observer(*, components, study, recipe, device, output)
                     continue
                 rows = rows_by_role[role]
                 dataset = datasets[role]
+                # the bound design decides the exact loss key; an unbound dataset is the v1 key
+                observed_binding = getattr(dataset, "_entry_observed_market_binding", None) or {"identity": {}}
                 loader = val.DataLoader(dataset, batch_size=16, sampler=val._ExactSampler(rows.tolist()),
                     num_workers=0, generator=torch.Generator().manual_seed(0))
                 predictions, targets = [], []
+                targets_by_horizon = {}
                 consumed = 0
                 for batch in loader:
                     count = len(batch["entry_row_index"])
@@ -1009,7 +1015,10 @@ def _entry_learning_study_observer(*, components, study, recipe, device, output)
                             ctx_cat=batch["ctx_cat"].to(device), ctx_cont=batch["ctx_cont"].to(device),
                             **trainer._multi_tf_kwargs_from_batch(batch, device))
                         q = result["entry_action_q_bps"]
-                        y, valid = entry_observed_market_batch_targets(batch, device=device)
+                        y, valid = observed_entry_batch_targets(batch, observed_binding, device=device)
+                        for horizon, horizon_y in observed_entry_batch_targets_by_horizon(
+                                batch, observed_binding, device=device).items():
+                            targets_by_horizon.setdefault(horizon, []).append(horizon_y.detach().cpu().numpy().copy())
                     if (q.shape != (count,3) or q.dtype != torch.float32
                             or not bool(torch.isfinite(q).all()) or not bool(valid.all())):
                         raise RuntimeError("ENTRY_STUDY_OBSERVATION_INVALID")
@@ -1043,6 +1052,21 @@ def _entry_learning_study_observer(*, components, study, recipe, device, output)
                         "ties":int((~unique).sum()),
                         "positive_estimated_entry_rows":int(((q[:,:2].max(axis=1)>0)&(actions!=2)&unique).sum())},
                     "economic_rollout":False,"exit_forwards":0,"test_data_used":False}
+                if targets_by_horizon:
+                    # Observation only: the same Q against every observed horizon target (rank-IC and
+                    # MSE); the loss used exactly the design's decision horizon.
+                    from scipy.stats import spearmanr
+                    report["observed_horizons"] = {}
+                    for horizon, chunks in sorted(targets_by_horizon.items()):
+                        hy = np.concatenate(chunks)
+                        herr = q.astype(float)-hy.astype(float)
+                        contrast_q, contrast_y = q[:,0]-q[:,1], hy[:,0]-hy[:,1]
+                        report["observed_horizons"][str(horizon)] = {
+                            "targets_bps":hy.tolist(),
+                            "side_mse":np.mean(herr[:,:2]**2,axis=0).tolist(),
+                            "contrast_mse":float(np.mean((herr[:,0]-herr[:,1])**2)),
+                            "contrast_rank_ic":float(spearmanr(contrast_q,contrast_y).statistic),
+                            "is_loss_target":horizon == observed_binding["identity"]["decision_horizon_trading_days"]}
                 if (trainer._model_state_sha256(model) != state_hash
                         or rng_hash() != original_rng_hash):
                     raise RuntimeError("ENTRY_STUDY_OBSERVATION_MUTATED_TRAINING")
@@ -1711,7 +1735,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         raise RuntimeError("NATIVE_PREFIX_INITIAL_PAUSE_INVALID")
     context = components["native_val_context"]
     entry_identity = components.get("entry_observed_market")
-    if ("entry_observed_market" in recipe) != (entry_identity is not None):
+    if (("entry_observed_market" in recipe or "entry_observed_market_horizons" in recipe)) != (entry_identity is not None):
         raise RuntimeError("NATIVE_PREFIX_OBSERVED_ENTRY_COMPONENT_MISMATCH")
     entry_evidence = {} if entry_identity is None else {"entry_observed_market": entry_identity}
     deadline = min(invocation_started + 12000 - 60, time.monotonic() + context["max_wall_seconds"])

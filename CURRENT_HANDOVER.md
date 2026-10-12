@@ -458,6 +458,23 @@ P1 CPU-forberedelse (design, sampler-kapasitet, preprocessing, koordinater,
 metadata) i samme run-root, P2 GPU-campaign med brukerens fysiske omstarter,
 P3 gjennomgang. Feature-kutting er ikke åpnet.
 
+P0 er kodet og testet 12.10: horisont-læringsdesignet (recipe-nøkkel
+entry_observed_market_horizons, samme prefiks-/kilde-/policy-/kostkontroll som v1
+gjennom en delt kjerne), datasettbinding som emitterer de tre eksakte
+batchnøklene og admitterer rader komplette ved alle horisonter til og med den
+målte cutoffen, trenerdispatch (20-dagersnøkkelen i tapet, fase
+entry_only_observed_horizon_20d i objektivkontrakt v12, eligible rader må være
+admittert), observatør som rapporterer MSE og rank-IC per horisont, og
+læringsstudie v2 (315/132 felt, fit 1 024, kurve 4 096 i ett vindu, kontroll
+trukket fra komplette VAL-rader). Målt på den nye generasjonen: 644 255 av
+652 552 TRAIN-rader og 65 575 av 70 880 VAL-rader er komplette ved alle tre
+horisonter; siste komplette beslutning 2025-05-02 19:20 UTC (TRAIN) og
+2026-06-02 23:55 UTC (VAL); sensurering er spredt (3 284 / 308 rader før siste
+komplette), så eligibilitet er kompletthet, ikke en tidsgrense alene; 20 dagers
+elapsed er 28–32 kalenderdager. Fokuserte og brede regresjoner er grønne.
+Neste er P1: designkomplettering, koordinat-eier med eligible delmengde,
+sampler-kapasitet på 315 felt, preprocessing og metadata.
+
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
 PREPARATION_CPU_001 i NATIVE_D1-generasjonen). De feilede kjerneforsøkene

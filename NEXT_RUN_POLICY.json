@@ -4992,7 +4992,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "PLANNED_P0_CODE_NEXT",
+      "status": "P0_CODE_COMPLETE_P1_PREPARATION_NEXT",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5031,7 +5031,7 @@
       },
       "steps": {
         "P0_code": {
-          "status": "NEXT",
+          "status": "DONE",
           "owners": [
             "gx1/contracts/entry_observed_market_horizons_v1.py",
             "gx1/contracts/entry_model_native_training_objective_v1.py",
@@ -5041,10 +5041,40 @@
           "specs": [
             "configs/research/NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json",
             "configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json"
-          ]
+          ],
+          "completed_utc": "2026-10-12T12:49:19.842660+00:00",
+          "owners_changed": [
+            "gx1/contracts/entry_observed_market_v1.py (shared design core)",
+            "gx1/contracts/entry_observed_market_horizons_v1.py (learning design, dataset binding, batch dispatch)",
+            "gx1/contracts/entry_model_native_training_objective_v1.py (v12, phase entry_only_observed_horizon_20d)",
+            "gx1/models/entry_v10/entry_v10_ctx_train_v3.py (exact horizon batch keys, phase from binding)",
+            "gx1/scripts/run_unified_exit_random_access_full_train_v1.py (design dispatch, eligible rows admitted, observer per horizon)",
+            "gx1/scripts/run_unified_exit_random_access_val_v1.py",
+            "gx1/contracts/unified_exit_native_candidate_campaign_v1.py (design dispatch, learning study v2)"
+          ],
+          "tests": {
+            "focused": "test_entry_observed_market_horizons_learning (7), test_entry_learning_study_v2 (7), objective v12; observed-market, native, study suites green",
+            "wide_regression": "native prefix, campaign, val, entry_v10 suites green (exit 0)"
+          },
+          "measured_on_real_data": {
+            "train_rows": 652552,
+            "train_complete_all_horizons": 644255,
+            "train_last_complete_decision_utc": "2025-05-02T19:20:00Z",
+            "train_censored_before_last_complete": 3284,
+            "val_rows": 70880,
+            "val_complete_all_horizons": 65575,
+            "val_last_complete_decision_utc": "2026-06-02T23:55:00Z",
+            "val_censored_before_last_complete": 308,
+            "elapsed_20d_calendar_days": {
+              "min": 28.0,
+              "median": 28.0,
+              "max": 32.0
+            },
+            "consequence": "censoring is scattered through the period (no closed M1 bar at the session offset), so eligibility is completeness at all three horizons at or before the measured cutoff; censored rows are excluded and counted, never filled"
+          }
         },
         "P1_cpu_preparation": {
-          "status": "NOT_STARTED",
+          "status": "NEXT",
           "stages_in_order": [
             "NATIVE_PREPARATION_001",
             "SAMPLER_BENCHMARK_001",
@@ -5052,7 +5082,8 @@
             "NATIVE_COORDINATES_001",
             "NATIVE_METADATA_HANDOFF_001"
           ],
-          "budget": "PREPARATION_CPU_002 (new explicit receipt, one heavy job)"
+          "budget": "PREPARATION_CPU_002 (new explicit receipt, one heavy job)",
+          "design_note": "INPUT_DESIGN.json (frozen chronological design) exists from INPUT_VIEWS_001; NATIVE_PREPARATION_001 completes it (budget/selection/targets/temporal_contract, CONTROL256 drawn from the complete-horizon VAL population) with a stage producer cloned from the V38 readiness producer; the coordinates owner must publish TRAIN_ELIGIBLE_PARENT_ROWS as the complete-horizon subset (contract extension) before SAMPLER_BENCHMARK/PREPROCESSING/METADATA_HANDOFF"
         },
         "P2_gpu_campaign": {
           "status": "NOT_STARTED",

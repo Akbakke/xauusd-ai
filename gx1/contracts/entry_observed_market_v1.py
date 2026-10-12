@@ -174,6 +174,20 @@ def require_entry_observed_market_scope(recipe: Mapping[str, Any]) -> dict[str, 
     row selection. Only this explicit amendment owns Entry supervision and
     gradient staging; the base design's old Entry/Exit target link is inactive.
     """
+    return _require_observed_market_plan(
+        recipe, recipe_key="entry_observed_market", expected_schema=SCHEMA_VERSION + "_learning_design",
+        expected_target_contract=entry_observed_market_contract(), expected_training_phase="entry_only",
+    )
+
+
+def _require_observed_market_plan(
+    recipe: Mapping[str, Any], *, recipe_key: str, expected_schema: str,
+    expected_target_contract: Mapping[str, Any], expected_training_phase: str,
+    extra_plan_keys: frozenset = frozenset(),
+) -> dict[str, Any]:
+    """Shared validation of one explicit observed-market learning design (v1 and its
+    trading-day-horizon successor) against the frozen chronological prefix, the physical
+    sources, the TRAIN-owned auxiliary policy and the declared cost owner."""
     from pathlib import Path
     from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
     from gx1.contracts.entry_causal_m1_target_policy_v1 import require_causal_m1_target_policy
@@ -182,20 +196,20 @@ def require_entry_observed_market_scope(recipe: Mapping[str, Any]) -> dict[str, 
         checked = require_binding(binding, label=label, verify_file=True)
         return checked, read_bound_json(Path(checked["path"]), checked["sha256"])
 
-    binding, plan = load(recipe.get("entry_observed_market"), "independent Entry design")
+    binding, plan = load(recipe.get(recipe_key), "independent Entry design")
     file_keys = ("entry_train_parquet", "entry_train_manifest", "entry_val_parquet",
                  "entry_val_manifest", "train_cost_authority")
     expected_files = {key: recipe.get("files", {}).get(key) for key in file_keys}
     if (
         set(plan) != {"schema_version", "target_contract", "chronological_prefix", "files",
-                      "training_phase", "exit_updates_entry", "native_launch_authorized", "test_data_used"}
-        or plan["schema_version"] != SCHEMA_VERSION + "_learning_design"
-        or plan["target_contract"] != entry_observed_market_contract()
+                      "training_phase", "exit_updates_entry", "native_launch_authorized", "test_data_used"} | set(extra_plan_keys)
+        or plan["schema_version"] != expected_schema
+        or plan["target_contract"] != expected_target_contract
         or plan["chronological_prefix"] != recipe.get("chronological_prefix")
         or not isinstance(plan["chronological_prefix"], Mapping)
         or set(plan["chronological_prefix"]) != {"design", "normalization_result", "labels_result", "native_coordinates"}
         or plan["files"] != expected_files
-        or plan["training_phase"] != "entry_only"
+        or plan["training_phase"] != expected_training_phase
         or any(plan[key] is not False for key in ("exit_updates_entry", "native_launch_authorized", "test_data_used"))
     ):
         raise RuntimeError("ENTRY_OBSERVED_MARKET_DESIGN_INVALID")
@@ -238,7 +252,7 @@ def require_entry_observed_market_scope(recipe: Mapping[str, Any]) -> dict[str, 
         coverage_end_utc=calendar["development_control_entry_end_exclusive"],
     )
     return {
-        "binding": binding, "target_contract": plan["target_contract"],
+        "binding": binding, "plan": plan, "target_contract": plan["target_contract"],
         "training_phase": plan["training_phase"], "economics": economics,
         "reference_horizon_m5_bars": horizon, "elapsed_wall_clock_seconds": elapsed_seconds,
         "direction_policy_sha256": policy["policy_sha256"],

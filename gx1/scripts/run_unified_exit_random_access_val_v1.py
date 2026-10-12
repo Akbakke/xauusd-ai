@@ -699,8 +699,8 @@ def _entry_representations(
                             reference_cutoff_time_ns=coherent_reference["reference_cutoff_time_ns"]))
                 observed_entry = getattr(dataset, "_entry_observed_market_binding", None)
                 if observed_entry is not None:
-                    from gx1.contracts.entry_observed_market_v1 import entry_observed_market_batch_targets
-                    targets, target_valid = entry_observed_market_batch_targets(batch, device=device)
+                    from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_batch_targets
+                    targets, target_valid = observed_entry_batch_targets(batch, observed_entry, device=device)
                     anchor_binding = {"binding_sha256": canonical_sha256({
                         "dataset": observed_entry, "parent_rows": observed_rows,
                         "observed_net_target_bps": targets.cpu().tolist(),

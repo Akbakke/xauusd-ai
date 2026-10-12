@@ -19,10 +19,14 @@ from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_training_objective_v11"
+SCHEMA_VERSION = "entry_model_native_training_objective_v12"
 JOINT_FITTED_Q_TRAINING_PHASE = "joint_fitted_q"
 ENTRY_ONLY_TRAINING_PHASE = "entry_only"
-ENTRY_TRAINING_PHASES = (JOINT_FITTED_Q_TRAINING_PHASE, ENTRY_ONLY_TRAINING_PHASE)
+# Operator decision 12.10.2026: Entry-only supervision from the observed market outcome at
+# 20 trading days (owner ``entry_observed_market_horizons_v1``); 1 and 5 days observed only.
+ENTRY_ONLY_HORIZON_TRAINING_PHASE = "entry_only_observed_horizon_20d"
+ENTRY_TRAINING_PHASES = (JOINT_FITTED_Q_TRAINING_PHASE, ENTRY_ONLY_TRAINING_PHASE, ENTRY_ONLY_HORIZON_TRAINING_PHASE)
+ENTRY_ONLY_TRAINING_PHASES = (ENTRY_ONLY_TRAINING_PHASE, ENTRY_ONLY_HORIZON_TRAINING_PHASE)
 ENTRY_ACTION_Q_TARGET_BY_PHASE = {
     JOINT_FITTED_Q_TRAINING_PHASE: (
         "stop_gradient_frozen_train_exit_target_model_first_state_value"
@@ -31,10 +35,15 @@ ENTRY_ACTION_Q_TARGET_BY_PHASE = {
         "observed_executable_terminal_cash_return_net_of_declared_costs_"
         "at_frozen_train_horizon_without_exit_model"
     ),
+    ENTRY_ONLY_HORIZON_TRAINING_PHASE: (
+        "observed_executable_terminal_cash_return_net_of_declared_costs_"
+        "at_20_trading_days_on_the_session_clock_without_exit_model"
+    ),
 }
 EXIT_GRADIENTS_ACTIVE_BY_PHASE = {
     JOINT_FITTED_Q_TRAINING_PHASE: True,
     ENTRY_ONLY_TRAINING_PHASE: False,
+    ENTRY_ONLY_HORIZON_TRAINING_PHASE: False,
 }
 
 

@@ -205,3 +205,234 @@ def require_entry_observed_market_horizon_batch(
         targets = targets.detach().to(device)
         out[h] = (targets, torch.ones_like(targets, dtype=torch.bool))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Learning design, dataset binding and batch dispatch (operator decision 12.10.2026:
+# minimum Entry-only learning on the 20-trading-day target; 1 and 5 days observed only).
+# ---------------------------------------------------------------------------
+RECIPE_KEY = "entry_observed_market_horizons"
+LEARNING_DESIGN_SCHEMA_VERSION = SCHEMA_VERSION + "_learning_design"
+ENTRY_ONLY_HORIZON_TRAINING_PHASE = "entry_only_observed_horizon_20d"
+OBSERVED_ONLY_BATCH_TARGET_KEYS = [
+    BATCH_TARGET_KEY_BY_HORIZON[h] for h in OBSERVATION_HORIZONS_TRADING_DAYS if h != DECISION_HORIZON_TRADING_DAYS
+]
+HORIZON_LABEL_COLUMNS = [
+    column for h in OBSERVATION_HORIZONS_TRADING_DAYS
+    for column in (*GROSS_TARGET_COLUMNS_BY_HORIZON[h], ELAPSED_COLUMN_BY_HORIZON[h])
+]
+
+
+def require_entry_observed_market_horizons_scope(recipe: Mapping[str, Any]) -> dict[str, Any]:
+    """Bind the trading-day-horizon successor design: the v1 prefix/source/policy/cost checks,
+    plus the exact decision horizon, loss key, observed-only keys, measured entry-eligibility
+    cutoffs and the physical manifests' horizon-target block."""
+    from pathlib import Path
+    from gx1.contracts.entry_observed_market_v1 import _require_observed_market_plan
+    from gx1.contracts.local_random_access_campaign_v2 import read_bound_json, require_binding
+
+    base = _require_observed_market_plan(
+        recipe, recipe_key=RECIPE_KEY, expected_schema=LEARNING_DESIGN_SCHEMA_VERSION,
+        expected_target_contract=entry_observed_market_horizons_contract(),
+        expected_training_phase=ENTRY_ONLY_HORIZON_TRAINING_PHASE,
+        extra_plan_keys=frozenset({"decision_horizon_trading_days", "loss_target_batch_key",
+                                   "observed_only_batch_keys", "entry_eligibility_cutoff_utc"}),
+    )
+    plan = base["plan"]
+    cutoffs = plan["entry_eligibility_cutoff_utc"]
+    if (
+        plan["decision_horizon_trading_days"] != DECISION_HORIZON_TRADING_DAYS
+        or plan["loss_target_batch_key"] != DECISION_BATCH_TARGET_KEY
+        or plan["observed_only_batch_keys"] != OBSERVED_ONLY_BATCH_TARGET_KEYS
+        or not isinstance(cutoffs, Mapping) or set(cutoffs) != {"train", "val"}
+        or pd.Timestamp(cutoffs["train"]) > pd.Timestamp(base["train_control_cutoff"])
+        or pd.Timestamp(cutoffs["val"]) > pd.Timestamp(base["development_control_entry_end_exclusive"])
+    ):
+        raise RuntimeError("ENTRY_OBSERVED_HORIZONS_DESIGN_INVALID")
+    for split in ("train", "val"):
+        checked = require_binding(base["physical_sources"][split]["manifest"],
+                                  label="Entry horizon physical source manifest", verify_file=True)
+        block = read_bound_json(Path(checked["path"]), checked["sha256"]).get("extra", {}).get("observed_market_horizons")
+        if (
+            not isinstance(block, Mapping) or block.get("contract") != entry_observed_market_horizons_contract()
+            or block.get("censored_or_boundary_rows_are_nan") is not True
+            or block.get("label_columns") != HORIZON_LABEL_COLUMNS
+        ):
+            raise RuntimeError("ENTRY_OBSERVED_HORIZONS_SOURCE_MANIFEST_INVALID")
+    return {
+        **base, "decision_horizon_trading_days": DECISION_HORIZON_TRADING_DAYS,
+        "loss_target_batch_key": DECISION_BATCH_TARGET_KEY, "batch_target_keys": dict(BATCH_TARGET_KEY_BY_HORIZON),
+        "entry_eligibility_cutoff_utc": {split: str(pd.Timestamp(cutoffs[split])) for split in ("train", "val")},
+    }
+
+
+def entry_observed_market_horizons_identity(scope: Mapping[str, Any]) -> dict[str, Any]:
+    """v1 identity plus the horizon decision; bound in recipe, checkpoint and every observation."""
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_market_identity
+    return {
+        **entry_observed_market_identity(scope),
+        "decision_horizon_trading_days": scope["decision_horizon_trading_days"],
+        "loss_target_batch_key": scope["loss_target_batch_key"],
+        "batch_target_keys": {str(h): key for h, key in scope["batch_target_keys"].items()},
+        "entry_eligibility_cutoff_utc": dict(scope["entry_eligibility_cutoff_utc"]),
+    }
+
+
+def bind_entry_observed_market_horizons_dataset(dataset: Any, scope: Mapping[str, Any]) -> None:
+    """Read the nine horizon label columns once; admit exactly the auxiliary-bound rows that carry
+    complete outcomes at all three horizons and whose decision lies at or before the measured
+    eligibility cutoff. Censoring (no closed M1 bar at the entry's session offset in the target
+    session) is scattered through the whole period, so censored rows are excluded and counted,
+    never filled; a complete row after the cutoff contradicts the measured design and fails closed."""
+    import pyarrow.parquet as pq
+    from pathlib import Path
+    from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
+    from gx1.contracts.local_random_access_campaign_v2 import require_binding
+
+    if getattr(dataset, "_entry_observed_market_binding", None) is not None:
+        raise RuntimeError("ENTRY_OBSERVED_MARKET_ALREADY_BOUND")
+    auxiliary = getattr(dataset, "_policy_dependent_auxiliary_binding", None)
+    mask = getattr(dataset, "_policy_dependent_auxiliary_bound_rows", None)
+    if (
+        not isinstance(auxiliary, Mapping) or auxiliary.get("mode") != "original_physical_split_targets"
+        or auxiliary.get("role") not in ("TRAIN", "CONTROL256", "CONTROL_STUDY")
+        or (auxiliary.get("role") == "CONTROL_STUDY" and not isinstance(auxiliary.get("entry_learning_study"), Mapping))
+        or not isinstance(mask, np.ndarray) or mask.dtype != np.bool_
+        or mask.shape != (len(dataset.df),) or not bool(mask.any())
+        or scope["training_phase"] != ENTRY_ONLY_HORIZON_TRAINING_PHASE
+        or scope["target_contract"] != entry_observed_market_horizons_contract()
+    ):
+        raise RuntimeError("ENTRY_OBSERVED_HORIZONS_DATASET_SCOPE_INVALID")
+    split = "train" if auxiliary["role"] == "TRAIN" else "val"
+    source = scope["physical_sources"][split]
+    if (
+        Path(dataset.parquet_path) != Path(source["parquet"]["path"])
+        or auxiliary.get("parent_entry_parquet") != source["parquet"]
+        or auxiliary.get("parent_entry_manifest") != source["manifest"]
+        or auxiliary.get("policies", {}).get("direction_policy", {}).get("policy_sha256") != scope["direction_policy_sha256"]
+        or len(dataset.df) != source["physical_rows"]
+    ):
+        raise RuntimeError("ENTRY_OBSERVED_HORIZONS_DATASET_SOURCE_INVALID")
+    require_binding(source["parquet"], label="observed Entry horizon physical targets", verify_file=True)
+    frame = pq.read_table(dataset.parquet_path, columns=["time", *HORIZON_LABEL_COLUMNS]).to_pandas()
+    clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True)).as_unit("ns").asi8
+    input_clock = pd.DatetimeIndex(pd.to_datetime(dataset.df["time"], utc=True)).as_unit("ns").asi8
+    if (
+        len(frame) != len(dataset.df) or not np.array_equal(clock, input_clock)
+        or hashlib.sha256(np.asarray(clock, dtype="<i8").tobytes()).hexdigest() != source["clock_sha256"]
+    ):
+        raise RuntimeError("ENTRY_OBSERVED_HORIZONS_DATASET_CLOCK_INVALID")
+    rows = np.flatnonzero(mask)
+    decision_ns = clock[rows] + ENTRY_DECISION_BAR_SECONDS * 10**9
+    eligible = decision_ns <= pd.Timestamp(scope["entry_eligibility_cutoff_utc"][split]).value
+    values = frame.iloc[rows][HORIZON_LABEL_COLUMNS].to_numpy(dtype=np.float64)
+    complete = np.isfinite(values).all(axis=1)
+    if bool((complete & ~eligible).any()):
+        raise RuntimeError("ENTRY_OBSERVED_HORIZONS_COMPLETE_ROW_AFTER_ELIGIBILITY_CUTOFF")
+    admitted = rows[eligible & complete]
+    censored_inside_cutoff = int((eligible & ~complete).sum())
+    if len(admitted) < 1:
+        raise RuntimeError("ENTRY_OBSERVED_HORIZONS_NO_ADMITTED_ROWS")
+    boundary = pd.Timestamp(scope["train_control_cutoff" if split == "train" else "development_control_entry_end_exclusive"]).value
+    gross_by_horizon, elapsed_by_horizon = {}, {}
+    for h in OBSERVATION_HORIZONS_TRADING_DAYS:
+        gross = frame.iloc[admitted][list(GROSS_TARGET_COLUMNS_BY_HORIZON[h])].to_numpy(dtype=np.float32, copy=True)
+        elapsed = frame.iloc[admitted][ELAPSED_COLUMN_BY_HORIZON[h]].to_numpy(dtype=np.float64)
+        if bool((elapsed <= 0).any()) or bool((elapsed != np.floor(elapsed)).any()):
+            raise RuntimeError("ENTRY_OBSERVED_HORIZONS_ELAPSED_INVALID")
+        if bool((clock[admitted] + (ENTRY_DECISION_BAR_SECONDS + elapsed.astype(np.int64)) * 10**9 > boundary).any()):
+            raise RuntimeError("ENTRY_OBSERVED_HORIZONS_OUTCOME_CROSSES_SPLIT")
+        gross_by_horizon[h] = torch.from_numpy(gross)
+        elapsed_by_horizon[h] = torch.from_numpy(elapsed.astype(np.int64))
+    built = build_entry_observed_market_horizon_targets(
+        gross_by_horizon=gross_by_horizon, elapsed_by_horizon=elapsed_by_horizon, economics=scope["economics"])
+    targets = {}
+    digests = {}
+    for h in OBSERVATION_HORIZONS_TRADING_DAYS:
+        observed = built[h]["target_bps"].numpy()
+        full = np.full((len(frame), 3), np.nan, dtype=np.float32)
+        full[admitted] = observed
+        full.setflags(write=False)
+        targets[h] = full
+        digests[str(h)] = hashlib.sha256(np.asarray(observed, dtype="<f4").tobytes()).hexdigest()
+    admitted_mask = np.zeros(len(frame), dtype=bool)
+    admitted_mask[admitted] = True
+    admitted_mask.setflags(write=False)
+    binding = {
+        "schema_version": SCHEMA_VERSION + "_dataset",
+        "identity": entry_observed_market_horizons_identity(scope),
+        "role": auxiliary["role"], "physical_source": source,
+        "admitted_rows": int(len(admitted)), "auxiliary_bound_rows": int(len(rows)),
+        "censored_rows_inside_cutoff": censored_inside_cutoff,
+        "rows_after_cutoff": int((~eligible).sum()),
+        "admitted_row_indices_sha256": hashlib.sha256(np.asarray(admitted, dtype="<i8").tobytes()).hexdigest(),
+        "admitted_target_bps_sha256_by_horizon": digests,
+    }
+    dataset._entry_observed_market_horizon_targets = targets
+    dataset._entry_observed_market_admitted_rows = admitted_mask
+    dataset._entry_observed_market_binding = {**binding, "binding_sha256": _sha(binding)}
+
+
+def observed_entry_batch_items(dataset: Any, row: int) -> dict[str, torch.Tensor]:
+    """The exact supervision keys the Dataset emits for one row (rule 17): the v1 key when the
+    v1 target is bound, the three horizon keys when the horizon targets are bound, never both."""
+    v1 = getattr(dataset, "_entry_observed_market_targets", None)
+    horizons = getattr(dataset, "_entry_observed_market_horizon_targets", None)
+    if v1 is not None and horizons is not None:
+        raise RuntimeError("ENTRY_OBSERVED_MARKET_TARGET_KEYS_AMBIGUOUS")
+    if v1 is not None:
+        # Output supervision only; never append future outcomes to inputs.
+        return {"entry_observed_market_target_bps": torch.tensor(v1[row])}
+    if horizons is not None:
+        return {BATCH_TARGET_KEY_BY_HORIZON[h]: torch.tensor(horizons[h][row]) for h in OBSERVATION_HORIZONS_TRADING_DAYS}
+    return {}
+
+
+def observed_entry_batch_targets(
+    batch: Mapping[str, Any], binding: Mapping[str, Any], *, device: torch.device,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """The loss target for an Entry-only batch: the bound design decides which exact key."""
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_market_batch_targets
+    identity = binding["identity"]
+    if identity.get("loss_target_batch_key") is None:
+        return entry_observed_market_batch_targets(batch, device=device)
+    if identity["loss_target_batch_key"] != DECISION_BATCH_TARGET_KEY:
+        raise RuntimeError("ENTRY_OBSERVED_HORIZONS_LOSS_KEY_INVALID")
+    return require_entry_observed_market_horizon_batch(batch, device=device)[DECISION_HORIZON_TRADING_DAYS]
+
+
+def observed_entry_batch_targets_by_horizon(
+    batch: Mapping[str, Any], binding: Mapping[str, Any], *, device: torch.device,
+) -> dict[int, torch.Tensor]:
+    """Every observed horizon target of a horizon-bound batch (observation only), else empty."""
+    if binding["identity"].get("loss_target_batch_key") is None:
+        return {}
+    return {h: pair[0] for h, pair in require_entry_observed_market_horizon_batch(batch, device=device).items()}
+
+
+def require_observed_entry_scope(recipe: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Exactly one explicit Entry-only design per recipe: v1 or the horizon successor."""
+    from gx1.contracts.entry_observed_market_v1 import require_entry_observed_market_scope
+    present = [key for key in ("entry_observed_market", RECIPE_KEY) if key in recipe]
+    if not present:
+        return None
+    if len(present) != 1:
+        raise RuntimeError("ENTRY_OBSERVED_MARKET_DESIGNS_AMBIGUOUS")
+    if present[0] == RECIPE_KEY:
+        return require_entry_observed_market_horizons_scope(recipe)
+    return require_entry_observed_market_scope(recipe)
+
+
+def observed_entry_identity(scope: Mapping[str, Any]) -> dict[str, Any]:
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_market_identity
+    if "decision_horizon_trading_days" in scope:
+        return entry_observed_market_horizons_identity(scope)
+    return entry_observed_market_identity(scope)
+
+
+def bind_observed_entry_dataset(dataset: Any, scope: Mapping[str, Any]) -> None:
+    from gx1.contracts.entry_observed_market_v1 import bind_entry_observed_market_dataset
+    if "decision_horizon_trading_days" in scope:
+        bind_entry_observed_market_horizons_dataset(dataset, scope)
+    else:
+        bind_entry_observed_market_dataset(dataset, scope)

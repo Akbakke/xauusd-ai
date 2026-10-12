@@ -976,9 +976,7 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
         "out_bundle_dir": recipe.get("out_bundle_dir"), "source_bindings_sha256": recipe.get("source_bindings_sha256"),
         "optimizer_steps": 0, "max_invocations": 1, "teacher_refresh_allowed": False,
         "full_epoch_training_allowed": False, "full_val_allowed": False, "test_data_used": False}
-    if "entry_observed_market" in recipe:
-        from gx1.contracts.entry_observed_market_v1 import require_entry_observed_market_scope
-        expected["entry_observed_market"] = require_entry_observed_market_scope(recipe)["binding"]
+    _expected_observed_entry_binding(recipe, expected)
     if "chronological_train_only_measurement" in recipe:
         if recipe["chronological_train_only_measurement"] is not True:
             raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
@@ -1074,11 +1072,9 @@ def require_chronological_learning_measurement(recipe):
     if initial.get("source_bindings", {}).get(model_source) != file_sha256(repo / model_source):
         raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_MODEL_SOURCE_CHANGED")
     entry_identity = None
-    if "entry_observed_market" in recipe:
-        from gx1.contracts.entry_observed_market_v1 import (
-            require_entry_observed_market_scope, entry_observed_market_identity,
-        )
-        entry_identity = entry_observed_market_identity(require_entry_observed_market_scope(recipe))
+    if _observed_entry_in(recipe):
+        from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_identity, require_observed_entry_scope
+        entry_identity = observed_entry_identity(require_observed_entry_scope(recipe))
     if result.get("entry_observed_market") != entry_identity:
         raise RuntimeError("NATIVE_PREFIX_INITIAL_ENTRY_TARGET_IDENTITY_MISMATCH")
     initial_roles = set(result.get("observations", {}))
@@ -1155,7 +1151,7 @@ def _require_prefix_resume_equivalence(recipe, *, binding, plan):
                  "frozen_train_policy_evaluation", "frozen_entry_selector_probe")
     if (any(type(plan.get(k)) is not type(v) or plan.get(k) != v for k,v in fixed.items())
             or any(k in recipe for k in forbidden)
-            or "entry_observed_market" not in recipe
+            or not _observed_entry_in(recipe)
             or "chronological_learning_measurement" not in recipe
             or recipe.get("out_bundle_dir") != plan.get("out_bundle_dir")
             or plan.get("comparison_state_fields") != ["model_state","target_model_state","optimizer_state",
@@ -1344,9 +1340,7 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
                 "optimizer_steps":ceiling, "maximum_trained_entry_rows":ceiling * 16, "max_invocations":windows,
                 "final_model_variant":"ONLINE", "teacher_refresh_allowed":False,
                 "full_epoch_training_allowed":False, "full_val_allowed":False, "test_data_used":False}
-    if "entry_observed_market" in recipe:
-        from gx1.contracts.entry_observed_market_v1 import require_entry_observed_market_scope
-        expected["entry_observed_market"] = require_entry_observed_market_scope(recipe)["binding"]
+    _expected_observed_entry_binding(recipe, expected)
     if continuation:
         expected["chronological_learning_continuation"] = continuation["plan_binding"]
         if windows != 1: raise RuntimeError("NATIVE_PREFIX_CONTINUATION_INVOCATION_INVALID")
@@ -1683,9 +1677,9 @@ def require_native_run_scope(
             recipe, invocation_number=invocation_number,
             execution_budget=execution_budget)["phase_spec"]["optimizer_steps"]
     observed_replay = False
-    if "entry_observed_market" in recipe and "chronological_learning_continuation" in recipe:
+    if _observed_entry_in(recipe) and "chronological_learning_continuation" in recipe:
         observed_replay = require_chronological_continuation(recipe).get("resume_equivalence") is True
-    if "entry_observed_market" in recipe and (
+    if _observed_entry_in(recipe) and (
             "chronological_prefix" not in recipe
             or sum(key in recipe for key in ("chronological_initial_measurement", "chronological_learning_measurement")) != 1
             or any(key in recipe for key in ("frozen_train_policy_evaluation", "frozen_entry_selector_probe",
@@ -2156,10 +2150,26 @@ def build_native_cursor(
     return require_native_cursor(cursor, expected_recipe=recipe)
 
 
+OBSERVED_ENTRY_RECIPE_KEYS = ("entry_observed_market", "entry_observed_market_horizons")
+
+
+def _observed_entry_in(recipe) -> bool:
+    return any(key in recipe for key in OBSERVED_ENTRY_RECIPE_KEYS)
+
+
+def _expected_observed_entry_binding(recipe, expected: dict) -> None:
+    """The policy block binds the exact design under its own recipe key (v1 or horizon successor)."""
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
+    scope = require_observed_entry_scope(recipe)
+    if scope is not None:
+        key = [k for k in OBSERVED_ENTRY_RECIPE_KEYS if k in recipe][0]
+        expected[key] = scope["binding"]
+
+
 def require_entry_learning_study_run(recipe, *, invocation_number=None, execution_budget=None):
     """Admit the separately authorized finite study; retain every native guard."""
     import numpy as np
-    from gx1.contracts.entry_observed_market_v1 import require_entry_observed_market_scope
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
     selection = recipe.get("entry_learning_study")
     if (not isinstance(selection, Mapping) or set(selection) != {"plan", "phase"}
             or selection.get("phase") not in ("fit", "curve")
@@ -2172,22 +2182,46 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
     binding = require_binding(selection["plan"], label="Entry learning study", verify_file=True)
     plan = read_bound_json(Path(binding["path"]), binding["sha256"])
     phase = selection["phase"]
-    if (plan.get("schema_version") != "gx1_entry_learning_study_v1"
-            or plan.get("files") != recipe.get("files")
+    schema = plan.get("schema_version")
+    # v1: the 95-minute observed target on the 254-field surface (ENTRY_LEARNING_STUDY_20261010);
+    # v2: the 20-trading-day observed target on the NATIVE_D1 surface (operator decision 12.10.2026,
+    # minimum scope: one seed, bounded 1024/4096-step phases, control drawn from complete rows only).
+    if schema == "gx1_entry_learning_study_v1":
+        design_key, model_spec = "entry_observed_market", {"unchanged_architecture":True, "signal_fields":254,
+            "feature_families":8, "fresh_initialization_each_phase":True,
+            "optimizer_and_loss_unchanged":True, "seed":20260911}
+        fixed_phases = {
+            "fit": {"optimizer_steps":1024, "train_observation_steps":[0,64,256,1024],
+                    "control_observation_steps":[], "max_invocations":1, "unique_train_rows":256},
+            "curve": {"optimizer_steps":16384, "train_observation_steps":[0,256,1024,4096,8192,16384],
+                      "control_observation_steps":[0,16384], "max_invocations":2,
+                      "unique_train_rows":262144}}
+    elif schema == "gx1_entry_learning_study_v2":
+        design_key, model_spec = "entry_observed_market_horizons", {"unchanged_architecture":True, "signal_fields":315,
+            "context_fields":132, "feature_families":8, "context_families":9, "fresh_initialization_each_phase":True,
+            "optimizer_and_loss_unchanged":True, "seed":20260911, "loss_horizon_trading_days":20}
+        fixed_phases = {
+            "fit": {"optimizer_steps":1024, "train_observation_steps":[0,64,256,1024],
+                    "control_observation_steps":[], "max_invocations":1, "unique_train_rows":256},
+            "curve": {"optimizer_steps":4096, "train_observation_steps":[0,256,1024,4096],
+                      "control_observation_steps":[0,4096], "max_invocations":1,
+                      "unique_train_rows":65536}}
+    else:
+        raise RuntimeError("ENTRY_STUDY_INPUT_OR_OBJECTIVE_CHANGED")
+    other_key = [k for k in OBSERVED_ENTRY_RECIPE_KEYS if k != design_key][0]
+    if (plan.get("files") != recipe.get("files")
             or plan.get("chronological_prefix") != recipe.get("chronological_prefix")
-            or plan.get("entry_observed_market") != recipe.get("entry_observed_market")
+            or plan.get(design_key) != recipe.get(design_key) or design_key not in recipe or other_key in recipe
             or recipe.get("initialization") != "fresh_existing_model_constructor_no_checkpoint_weights"
             or set(plan.get("phases", {})) != {"fit", "curve"}
             or plan["execution"].get("test_data_used") is not False
             or any(plan["execution"].get(k) is not False for k in (
                 "broker_access", "spending", "horizon_changes", "full_epoch_training_allowed",
                 "full_val_allowed", "exit_training_authorized_without_entry_qualification"))
-            or plan["model"] != {"unchanged_architecture":True, "signal_fields":254,
-                "feature_families":8, "fresh_initialization_each_phase":True,
-                "optimizer_and_loss_unchanged":True, "seed":20260911}):
+            or plan["model"] != model_spec):
         raise RuntimeError("ENTRY_STUDY_INPUT_OR_OBJECTIVE_CHANGED")
     prefix = require_chronological_prefix_recipe(recipe)
-    observed = require_entry_observed_market_scope(recipe)
+    observed = require_observed_entry_scope(recipe)
     rows = {}
     for name, b in plan["row_bindings"].items():
         checked = require_binding(b, label="Entry study rows " + name, verify_file=True)
@@ -2197,23 +2231,32 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
         rows[name] = a
     n = observed["physical_sources"]["train"]["physical_rows"]
     nv = observed["physical_sources"]["val"]["physical_rows"]
-    if (set(rows) != {"epoch_order", "fit", "train_probe", "control"}
-            or not np.array_equal(np.sort(rows["epoch_order"]), np.arange(n))
+    if schema == "gx1_entry_learning_study_v1":
+        expected_rows = {"epoch_order", "fit", "train_probe", "control"}
+        train_population = np.arange(n)
+        control_expected = np.linspace(0,nv-1,4096,dtype=np.int64)
+    else:
+        # The epoch order covers exactly the frozen eligible TRAIN rows (complete 20-day outcomes);
+        # control is a deterministic uniform subsample of the bound complete VAL population.
+        expected_rows = {"epoch_order", "fit", "train_probe", "control", "control_population"}
+        train_population = np.asarray(prefix["eligible_parent_rows"], dtype=np.int64)
+        population = rows.get("control_population", np.zeros(0, dtype=np.int64))
+        if (len(population) < 4096 or not np.array_equal(population, np.unique(population))
+                or population[-1] >= nv
+                or not np.array_equal(population, _complete_horizon_control_rows(observed))):
+            raise RuntimeError("ENTRY_STUDY_CONTROL_POPULATION_INVALID")
+        control_expected = population[np.linspace(0, len(population)-1, 4096, dtype=np.int64)]
+    if (set(rows) != expected_rows
+            or not np.array_equal(np.sort(rows["epoch_order"]), train_population)
             or len(rows["fit"]) != 256 or len(np.unique(rows["fit"])) != 256
             or not np.isin(rows["fit"], rows["epoch_order"][:4096]).all()
             or not np.array_equal(rows["train_probe"], np.sort(rows["epoch_order"][:4096]))
-            or not np.array_equal(rows["control"], np.linspace(0,nv-1,4096,dtype=np.int64))
+            or not np.array_equal(rows["control"], control_expected)
             or plan["row_bindings"]["epoch_order"]
                != prefix["physical_coordinates"]["artifact"]["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"]):
         raise RuntimeError("ENTRY_STUDY_POPULATION_CHANGED")
     phase_spec = plan["phases"][phase]
-    fixed = {
-        "fit": {"optimizer_steps":1024, "train_observation_steps":[0,64,256,1024],
-                "control_observation_steps":[], "max_invocations":1, "unique_train_rows":256},
-        "curve": {"optimizer_steps":16384, "train_observation_steps":[0,256,1024,4096,8192,16384],
-                  "control_observation_steps":[0,16384], "max_invocations":2,
-                  "unique_train_rows":262144},
-    }[phase]
+    fixed = fixed_phases[phase]
     if (set(phase_spec) != set(fixed) | {"run_id"}
             or any(type(phase_spec.get(k)) is not type(v) or phase_spec.get(k) != v for k,v in fixed.items())
             or recipe.get("run_id") != phase_spec["run_id"]
@@ -2249,3 +2292,22 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
         raise RuntimeError("ENTRY_STUDY_EXECUTION_BUDGET_INVALID")
     return {"selection":selection, "plan":plan, "phase":phase, "phase_spec":phase_spec,
             "rows":rows, "observed_scope":observed}
+
+
+def _complete_horizon_control_rows(observed_scope):
+    """VAL rows with complete outcomes at all three horizons whose decision lies at or before the
+    measured eligibility cutoff (censored rows are excluded, never filled; a complete row after
+    the cutoff contradicts the measured design)."""
+    import numpy as np
+    import pandas as pd
+    import pyarrow.parquet as pq
+    from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
+    from gx1.contracts.entry_observed_market_horizons_v1 import HORIZON_LABEL_COLUMNS
+    source = observed_scope["physical_sources"]["val"]
+    frame = pq.read_table(source["parquet"]["path"], columns=["time", *HORIZON_LABEL_COLUMNS]).to_pandas()
+    clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True)).as_unit("ns").asi8
+    eligible = clock + ENTRY_DECISION_BAR_SECONDS * 10**9 <= pd.Timestamp(observed_scope["entry_eligibility_cutoff_utc"]["val"]).value
+    complete = np.isfinite(frame[HORIZON_LABEL_COLUMNS].to_numpy(dtype=np.float64)).all(axis=1)
+    if bool((complete & ~eligible).any()):
+        raise RuntimeError("ENTRY_STUDY_CONTROL_CUTOFF_TOO_EARLY")
+    return np.flatnonzero(eligible & complete).astype(np.int64)

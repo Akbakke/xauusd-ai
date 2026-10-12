@@ -81,7 +81,7 @@ from gx1.contracts.entry_position_size_target_policy_v1 import (
     require_entry_position_size_target_manifest_binding,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
-    ENTRY_ONLY_TRAINING_PHASE,
+    ENTRY_ONLY_TRAINING_PHASES,
     JOINT_FITTED_Q_TRAINING_PHASE,
     training_objective_contract_metadata,
 )
@@ -4633,6 +4633,11 @@ def _physical_auxiliary_target_binding(
     }
 
 
+def _observed_entry_batch_items(dataset, row):
+    from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_batch_items
+    return observed_entry_batch_items(dataset, row)
+
+
 class EntryV10CtxDataset(Dataset):
     """
     Builds rolling-window samples from canonical ENTRY_V10_CTX parquet.
@@ -5809,10 +5814,9 @@ class EntryV10CtxDataset(Dataset):
                 "ctx_cont": torch.tensor(ctx_cont),
                 "ctx_cat": torch.tensor(ctx_cat),
             }
-            observed_targets = getattr(self, "_entry_observed_market_targets", None)
-            if observed_targets is not None:
-                # Output supervision only; never append future outcomes to inputs.
-                out_batch["entry_observed_market_target_bps"] = torch.tensor(observed_targets[t])
+            # Output supervision only (v1 key or the three trading-day-horizon keys, never
+            # both); future outcomes are never appended to inputs.
+            out_batch.update(_observed_entry_batch_items(self, t))
             # Every active target was validated in __init__ and is read
             # directly. There are no aliases, defaults, or compatibility rows.
             for target_name in _MODEL_NATIVE_ACTIVE_TARGET_COLS:
@@ -9561,10 +9565,9 @@ def train_epoch(
     observed_entry = getattr(dataset, "_entry_observed_market_binding", None)
     entry_only = observed_entry is not None
     if entry_only:
-        from gx1.contracts.entry_observed_market_v1 import (
-            entry_observed_market_batch_targets, require_entry_only_gradients,
-        )
-        if observed_entry["identity"]["training_phase"] != "entry_only":
+        from gx1.contracts.entry_observed_market_v1 import require_entry_only_gradients
+        from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_batch_targets
+        if observed_entry["identity"]["training_phase"] not in ENTRY_ONLY_TRAINING_PHASES:
             raise RuntimeError("[ENTRY_OBSERVED_MARKET_TRAIN_PHASE_INVALID]")
     _accum_steps = int(grad_accum_steps)
     if _accum_steps < 1:
@@ -9730,7 +9733,7 @@ def train_epoch(
         if not isinstance(entry_row_indices, torch.Tensor):
             raise RuntimeError("[UNIFIED_EXIT_TRAIN_ENTRY_EVIDENCE_MISSING]")
         if entry_only:
-            entry_action_q_targets, entry_action_q_valid = entry_observed_market_batch_targets(batch, device=device)
+            entry_action_q_targets, entry_action_q_valid = observed_entry_batch_targets(batch, observed_entry, device=device)
             unified_exit_stats = None
             _profile_entry_target_forward = (
                 _synchronized_exit_profile_clock(device) if _profile_timing else None
@@ -15865,10 +15868,11 @@ def run_train(
     # The persisted objective must name the phase actually trained: the
     # Entry-only amendment binds observed market targets, the base design the
     # frozen Exit teacher (rule 2a: contract text equals executed target).
+    _observed_binding = getattr(train_ds, "_entry_observed_market_binding", None)
     model_native_training_objective = training_objective_contract_metadata(
         entry_training_phase=(
-            ENTRY_ONLY_TRAINING_PHASE
-            if getattr(train_ds, "_entry_observed_market_binding", None) is not None
+            _observed_binding["identity"]["training_phase"]
+            if _observed_binding is not None
             else JOINT_FITTED_Q_TRAINING_PHASE
         ),
     )

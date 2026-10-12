@@ -51,7 +51,7 @@ def test_training_objective_contract_is_exact_and_learned() -> None:
 def test_entry_only_phase_declares_observed_market_target_without_exit() -> None:
     payload = training_objective_contract_metadata(entry_training_phase="entry_only")
 
-    assert payload["schema_version"] == "entry_model_native_training_objective_v11"
+    assert payload["schema_version"] == "entry_model_native_training_objective_v12"
     assert payload["entry_training_phase"] == "entry_only"
     assert payload["exit_gradients_active"] is False
     assert payload["entry_action_q_target"] == (
@@ -112,3 +112,12 @@ def test_training_objective_rejects_extra_surface() -> None:
         r"unexpected=\['fixed_positive_loss_weights'\]",
     ):
         require_training_objective_contract(payload, context="TEST")
+
+
+def test_entry_only_horizon_phase_declares_the_20_day_observed_target_without_exit() -> None:
+    payload = training_objective_contract_metadata(entry_training_phase="entry_only_observed_horizon_20d")
+    assert payload["schema_version"] == "entry_model_native_training_objective_v12"
+    assert payload["entry_training_phase"] == "entry_only_observed_horizon_20d"
+    assert payload["exit_gradients_active"] is False
+    assert "20_trading_days" in payload["entry_action_q_target"] and "without_exit_model" in payload["entry_action_q_target"]
+    assert payload["fixed_horizon_target_authority"] is False
