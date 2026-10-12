@@ -200,6 +200,18 @@ test-seal, train-/val-manifest og -parquet) og admittert i policyen; bind og
 lansering følger denne committen, én tung CPU-jobb. Forrige generasjon brukte
 275 s på valideringen.
 
+INPUT_VERIFICATION_001 (ba830e88) terminerte GRØNT 10:47 UTC etter 337 s med
+uendret kilde: LABEL_COVERAGE er diagnostikk, ikke inputaksept
+(COVERAGE_REVIEW_002/COVERAGE_SELECTION.json); COMPLETE_M1_ORACLE besto
+delporten for den komplette M1-flaten uten å innrømme helhetlig input eller
+modell; POST_REBUILD_READINESS gir «klar for post-rebuild-review»
+(CHAIN/post_rebuild_readiness_001). Registrert som input_validation_stage
+COMPLETED_ONCE; label_coverage_stage og complete_input_oracle_stage er
+konsumert som faser av samme steg. INPUT_VIEWS_001 (fysiske inputviews,
+producer 10G; pilotroten LEARNING_PREPARATION_001 opprettes av produsenten)
+er forberedt med alle forutsetninger bundet til den nye generasjonen og
+admittert som physical_input_views_stage; forrige generasjon brukte 260 s.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren

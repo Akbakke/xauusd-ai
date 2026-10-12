@@ -4325,7 +4325,6 @@
       "core_relaunch_allowed": false,
       "cleanup_authorized": false,
       "next_required_stages": [
-        "INPUT_VERIFICATION_001",
         "INPUT_VIEWS_001",
         "POSTBUILD_SPECIALIST_001",
         "BASE_NORMALIZATION_001",
@@ -4474,7 +4473,7 @@
         "elapsed_seconds": 5579.131801122
       },
       "label_coverage_stage": {
-        "authorized": true,
+        "authorized": false,
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_002/PLAN.json",
           "sha256": "0662285e26bff88376e96dae5ffdd2380ed800149ba29b6bd6ddfbde4c9725ab"
@@ -4486,11 +4485,20 @@
         "relaunch_allowed": false,
         "raw_response_reuse_scope": "Exact unchanged native/quote/parser proof; rehash all source chunks. Recompute current candidate selection and feature distributions.",
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_002",
-        "status": "AUTHORIZED_NOT_STARTED",
-        "cloned_from": "feature_repair_rebuild_20261010.label_coverage_stage"
+        "status": "COMPLETED_ONCE_AS_PHASE_OF_INPUT_VERIFICATION_001",
+        "cloned_from": "feature_repair_rebuild_20261010.label_coverage_stage",
+        "output": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_002/COVERAGE_SELECTION.json",
+          "sha256": "ebfbbd7d7acde8bd42a4ab8af8d04bd4384f6a567c73484d4c55259acadb897e"
+        },
+        "phase_terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/LABEL_COVERAGE.TERMINAL.json",
+          "sha256": "61a91db86e4e5ffcfed6873381a1528dfbbdb3060977c8f49de5d0449f1dde69"
+        },
+        "decision": "DIAGNOSTIC_ONLY_NOT_INPUT_ACCEPTANCE"
       },
       "complete_input_oracle_stage": {
-        "authorized": true,
+        "authorized": false,
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/PLAN.json",
           "sha256": "f4e925d02cf05f364f4c9db28479335136b6f75a085d9ed8c18bd0382db59d81"
@@ -4501,11 +4509,20 @@
         },
         "relaunch_allowed": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001",
-        "status": "AUTHORIZED_NOT_STARTED",
-        "cloned_from": "feature_repair_rebuild_20261010.complete_input_oracle_stage"
+        "status": "COMPLETED_ONCE_AS_PHASE_OF_INPUT_VERIFICATION_001",
+        "cloned_from": "feature_repair_rebuild_20261010.complete_input_oracle_stage",
+        "output": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/COMPLETE_M1_ORACLE.json",
+          "sha256": "7cfd2268759a98dbe38654fc3a9d6fc2c396a2232fbc0fac16a370c8b492ccf0"
+        },
+        "phase_terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/COMPLETE_M1_ORACLE.TERMINAL.json",
+          "sha256": "0cc3508064a9e9d62f6ed2c9af21140ee395c7f841e8a63b5e567db140c61a3f"
+        },
+        "decision": "PASS_COMPLETE_M1_SUBGATE_NO_WHOLE_INPUT_OR_MODEL_ADMISSION"
       },
       "input_validation_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/PLAN.json",
@@ -4518,8 +4535,18 @@
         "relaunch_allowed": false,
         "optimizer_steps": 0,
         "test_data_used": false,
-        "status": "AUTHORIZED_NOT_STARTED",
-        "cloned_from": "feature_repair_rebuild_20261010.input_validation_stage"
+        "status": "COMPLETED_ONCE",
+        "cloned_from": "feature_repair_rebuild_20261010.input_validation_stage",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/TERMINAL.json",
+          "sha256": "62ef13c52d607aca5ee099f1b33c416f4c2978d7a247377a2ebe5a15a1a4aef0"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VERIFICATION_001/RESULT.json",
+          "sha256": "514927a0c0ad33eb7c6a460902af70bc06416868fd9b62c3dfe97633d34b7103"
+        },
+        "completed_utc": "2026-10-12T10:47:43.995677+00:00",
+        "elapsed_seconds": 336.96787889000007
       },
       "operators_clone_stage": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators/clone_stage.py",
@@ -4535,7 +4562,33 @@
         },
         "reason": "prepared against the preflight-failed COMPLETE_M1_001 terminal; never admitted, bound or launched; preserved (rule 9); replaced by COVERAGE_REVIEW_002"
       },
-      "next_action": "COMPLETE_M1_002 COMPLETED_ONCE (exit 0, 5579 s, 5 523 147 rows, source unchanged). Admitted: label_coverage_stage (COVERAGE_REVIEW_002), complete_input_oracle_stage + input_validation_stage (INPUT_VERIFICATION_001). After this commit: bind both stages at HEAD, launch INPUT_VERIFICATION_001/launch_validation.py (one heavy CPU job: LABEL_COVERAGE -> COMPLETE_M1_ORACLE -> POST_REBUILD_READINESS), then record the terminal and continue INPUT_VIEWS -> POSTBUILD_SPECIALIST -> BASE_NORMALIZATION -> SUMMARY_NORMALIZATION -> INPUT_TENSOR_AUDIT -> NATIVE_INPUT_INDEX -> FRESH_INITIAL_BASELINE (step 5), each prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending."
+      "next_action": "INPUT_VERIFICATION_001 COMPLETED_ONCE (exit 0, 337 s: LABEL_COVERAGE diagnostic, COMPLETE_M1_ORACLE PASS, POST_REBUILD_READINESS READY). Admitted: physical_input_views_stage (INPUT_VIEWS_001, producer 10G, pilot root LEARNING_PREPARATION_001 created by the producer). After this commit: bind at HEAD, launch INPUT_VIEWS_001/launch_input_views.py (one heavy CPU job), record the terminal, then POSTBUILD_SPECIALIST -> BASE_NORMALIZATION -> SUMMARY_NORMALIZATION -> INPUT_TENSOR_AUDIT -> NATIVE_INPUT_INDEX -> FRESH_INITIAL_BASELINE (step 5), each prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending.",
+      "physical_input_views_stage": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001/PLAN.json",
+          "sha256": "e46f52a40de6bb134f76343ab7a228853625cba623123f07344e6c37e2eedddb"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001/PRODUCER_PLAN.json",
+          "sha256": "d58ab7ca6e73eef0d49b1fba49a959ac8b438adfd9373439eac94c473bfb06b7"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001/produce_input_views.py",
+          "sha256": "bb01f683405596ccc7a9ccffebc4d3318130c0f1dc4acfa9a461a5347514c61a"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001/launch_input_views.py",
+          "sha256": "5c9410bd38a13b1f9fb4af47eae90fe25f2a8614acc550ffee22d25cd4f0603c"
+        },
+        "relaunch_allowed": false,
+        "normalization_fit_allowed": false,
+        "optimizer_steps": 0,
+        "test_data_used": false,
+        "status": "AUTHORIZED_NOT_STARTED",
+        "cloned_from": "feature_repair_rebuild_20261010.physical_input_views_stage"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
