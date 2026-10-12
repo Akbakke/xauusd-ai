@@ -133,7 +133,28 @@ stoppet lukket ved builderens start etter 18 105 s: builderen ba om test_end
 nøyaktig som lanene og feiler lukket hvis siste TEST-beslutning ligger utenfor.
 Horisontjoin herdet (6624014d). Alt fra 002 er bevart.
 
-Steg 4, forsøk 003: run-root /home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003 med
+Steg 4, forsøk 003 (8f5d39fd) er GRØNN: kjernekjeden terminerte 08:42 UTC 12.10
+etter 23982 s med exit 0, uendret kilde og forseglet TEST
+(CHAIN_TERMINAL_20261012T084236056682Z_GREEN.json). Begge lanene bærer den niende
+familien (M5 1 166 786 og M1 5 660 070 komplette rader; M1-featureflate 5 570 522
+rader med 132 kontekstfelt). Datasettet: TRAIN 652552 rader med horisontmål
+651300/650059/646543 ved 1/5/20 d, VAL 70880 rader med
+70573/69535/65772, TEST skrevet og forseglet, ulest. Builderen la den
+niende familien på selv (kildeframen bar ikke kolonnene), samme float32-cast som
+lanen, så sekvensaliasene og kontekstfeltene er bitlike; aliaslikheten sjekkes
+igjen ved modellens forward i baselinen. Radpopulasjonen er identisk med forrige
+generasjon (652 552 / 70 880), så koordinatene fra FRESH_INITIAL_BASELINE_003
+kan gjenbrukes der tidspunktene mapper.
+
+Trygg omstartsgrense: kjernen er terminert, ingen prosjektlås holdes, ingen GPU-
+jobb kjører. Brukeren ba om omstart her. Etter omstart: ny boottid, WSL og uendret
+kilde bekreftes før noe bindes. Nedstrøms stegene klones fra forrige generasjon med
+operators/clone_stage.py i run-roten (budget → prepare → admit + commit → bind →
+launch, ett steg om gangen): COMPLETE_M1, INPUT_VERIFICATION, INPUT_VIEWS,
+POSTBUILD_SPECIALIST, BASE_NORMALIZATION, SUMMARY_NORMALIZATION,
+INPUT_TENSOR_AUDIT, NATIVE_INPUT_INDEX, så steg 5 FRESH_INITIAL_BASELINE.
+
+Den opprinnelige planen for forsøk 003: run-root /home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003 med
 PLAN.json lik configs/research/NATIVE_D1_REBUILD_20261011_003.json (run-id
 HISTORY2009W_NATIVE_D1_20261011_003, samme vinduer, pair-/squeeze-/M1-
 justeringsinputs og 64 800 s kjernetak som den aksepterte generasjonen),

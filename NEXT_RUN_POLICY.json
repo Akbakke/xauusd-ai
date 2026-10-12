@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-11T17:00:29.157548+00:00",
-  "status": "NATIVE_D1_REBUILD_003_CORE_CHAIN_AUTHORIZED",
+  "status": "NATIVE_D1_REBUILD_003_CORE_COMPLETE_REBOOT_BOUNDARY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Native D1 wave step 4: launch NATIVE_D1_REBUILD_20261011_001 core chain (frozen HEAD for its whole run), then COMPLETE_M1/input verification, physical views + normalization, fresh zero-step baseline (step 5). No native launch, orders or spending.",
+  "next_action": "Safe reboot boundary (core GREEN, no lock, no GPU). After reboot: verify boot id, WSL and unchanged source; create the downstream shared budget; clone and run the nine downstream stages in order with operators/clone_stage.py (prepare -> admit+commit -> bind -> launch), each one heavy job; then FRESH_INITIAL_BASELINE (step 5). No native launch, orders or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -156,7 +156,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native D1 rebuild core chain authorized; not yet started. No commits while it runs.",
+    "current_blocker": "Core chain 003 GREEN. Downstream stages not started; operator reboot requested at this boundary.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -4198,8 +4198,8 @@
       },
       "step_4_rebuild": {
         "policy_block": "native_d1_rebuild_20261011_003",
-        "status": "AUTHORIZED_NOT_STARTED",
-        "earlier_attempts": "001 failed closed in the M5 lane (read end); 002 failed closed at the builder start (read end); both preserved"
+        "status": "CORE_COMPLETE",
+        "earlier_attempts": "001 (M5 lane read end) and 002 (builder read end) failed closed and are preserved"
       },
       "test_split_context_scope": "native enriched M1/M5 lanes and the dataset builder construct the TEST split's context fields up to this end; nothing reads the TEST split"
     },
@@ -4295,13 +4295,13 @@
     },
     "native_d1_rebuild_20261011_003": {
       "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
-      "status": "CORE_CHAIN_AUTHORIZED_NOT_STARTED",
+      "status": "CORE_COMPLETE_DOWNSTREAM_AND_BASELINE_PENDING",
       "previous_attempts": [
         "native_d1_rebuild_20261011 (FAILED_M5_LANE_D1_READ_END_PRESERVED, 2013 s)",
         "native_d1_rebuild_20261011_002 (FAILED_BUILDER_TEST_READ_END_PRESERVED, 18105 s)"
       ],
       "authorized_goal": true,
-      "core_build_authorized": true,
+      "core_build_authorized": false,
       "runtime_plan": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/PLAN.json",
         "sha256": "c898c2816773946998753e99a256665ef1d7f88d868f2b75fd36be44e2bdd791"
@@ -4325,12 +4325,86 @@
       "core_relaunch_allowed": false,
       "cleanup_authorized": false,
       "next_required_stages": [
-        "COMPLETE_M1_AND_INPUT_VERIFICATION",
-        "PHYSICAL_VIEWS_AND_NORMALIZATION",
-        "FRESH_INITIAL_BASELINE"
+        "COMPLETE_M1_001",
+        "INPUT_VERIFICATION_001",
+        "INPUT_VIEWS_001",
+        "POSTBUILD_SPECIALIST_001",
+        "BASE_NORMALIZATION_001",
+        "SUMMARY_NORMALIZATION_001",
+        "INPUT_TENSOR_AUDIT_001",
+        "NATIVE_INPUT_INDEX_001",
+        "FRESH_INITIAL_BASELINE_001"
       ],
       "max_core_wall_seconds": 64800,
-      "frozen_source_note": "launch_core.py binds HEAD and NEXT_RUN_POLICY.json for the whole core chain; no commit may land while it runs"
+      "frozen_source_note": "launch_core.py binds HEAD and NEXT_RUN_POLICY.json for the whole core chain; no commit may land while it runs",
+      "core_terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/TERMINAL.json",
+        "sha256": "c0c8a7a0abaad3b11682f85d1f84456117343077e6253961aec422a1049834df"
+      },
+      "core_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/RESULT.json",
+        "sha256": "c794dfe634b9c32336739f3786d601f4fe05e0c3c95726f27c456a78247c33dd"
+      },
+      "chain_terminal": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/CHAIN_TERMINAL_20261012T084236056682Z_GREEN.json",
+        "sha256": "51a5130256c44fe2038a4d683ac356e07e640decd507975554a85bb502117dfc"
+      },
+      "chain_state": "GREEN",
+      "core_elapsed_seconds": 23982,
+      "source_unchanged": true,
+      "signal_manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20261012T030344329880Z.json",
+        "sha256": "bb65a85d81ebe950862364e5021b0f6516e91c972a0dcce1426ea4caa8446ff0"
+      },
+      "prefreeze_test_seal": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_20261012T020255949465Z.json",
+        "sha256": "d5f0d67b8b68b1b60066471e6266e06e9f689063dce850e15457eacd819c2ba8"
+      },
+      "splits": {
+        "train": {
+          "manifest": {
+            "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json",
+            "sha256": "022e19bcd52c0333cb3cfd64593c05c13c93f69982340de4fb13d23935d93ad2"
+          },
+          "rows": 652552,
+          "d1_macro_context_mode": "attached_by_builder",
+          "d1_complete_rows": 1063997,
+          "horizon_rows": {
+            "1": 651300,
+            "20": 646543,
+            "5": 650059
+          }
+        },
+        "val": {
+          "manifest": {
+            "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json",
+            "sha256": "3343f1b6b9f9ac94e15ed75f6a93a950864ced5dffbd587c2b388788c708b553"
+          },
+          "rows": 70880,
+          "d1_macro_context_mode": "attached_by_builder",
+          "d1_complete_rows": 1140689,
+          "horizon_rows": {
+            "1": 70573,
+            "20": 65772,
+            "5": 69535
+          }
+        },
+        "test": {
+          "manifest": {
+            "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_test.manifest.json",
+            "sha256": "17681600726a37326adc3c352b88838ab39890e64af5db847d6ed76f0571cef9"
+          },
+          "sealed": true,
+          "not_read": true
+        }
+      },
+      "lane_ninth_family": {
+        "m5_rows_complete": 1166786,
+        "m1_rows_complete": 5660070,
+        "m1_feature_base_rows": 5570522,
+        "ctx_cont_dim": 132
+      },
+      "operators_copied_to": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators"
     }
   },
   "gc_order_flow_research_20261006": {
