@@ -212,6 +212,29 @@ producer 10G; pilotroten LEARNING_PREPARATION_001 opprettes av produsenten)
 er forberedt med alle forutsetninger bundet til den nye generasjonen og
 admittert som physical_input_views_stage; forrige generasjon brukte 260 s.
 
+INPUT_VIEWS_001 (911c8ccb) terminerte GRØNT 10:53 UTC etter 332 s med uendret
+kilde: fysiske M1-views og ENTRY_WINDOW publisert gjennom eieren under
+LEARNING_PREPARATION_001 (652 552 TRAIN- og 70 880 VAL-Entry-rader; 4 884 638
+og 382 744 M1-rader), vedtak «views komplette, fersk normalisering gjenstår».
+Registrert som physical_input_views_stage COMPLETED_ONCE.
+
+Post-build-auditene planlegges slik den aksepterte generasjonens bevis faktisk
+ble til, ikke slik den feilet: der kjørte POSTBUILD_REVIEW_001 sekvensauditene
+for TRAIN/VAL og deretter spesialistauditen i én 4G-prosess, ble OOM-drept i
+spesialistdelen etter beståtte sekvensaudit, og POSTBUILD_SPECIALIST_001 kjørte
+spesialistauditen alene i producer10G. Her er POSTBUILD_REVIEW_001 klonet som
+bare sekvensauditene (samme eier, audit 4G; spesialistkallet og dets
+outputmappe fjernet fra produsent og produsentplan), og POSTBUILD_SPECIALIST_001
+klones etterpå med den kanoniske spesialisteieren i producer10G uten
+feilhistorikk-forutsetninger. Ingen algoritme, eier, klasse eller input er
+endret. Kloneren er revidert (revisjon 3, sha bundet i policyblokken): gamle
+generasjonshasher høstes fra alle bindinger i de aksepterte stage-planene, så
+argv-hasher uten stipar (spesialistauditens --train-parquet-sha256) remappes
+eksakt; avgrensede skriptpatcher og plan-slettinger; admit kopierer aldri
+feilhistorikk. POSTBUILD_REVIEW_001 er forberedt og admittert som
+postbuild_source_audit_stage; forrige generasjon brukte 488 s inkludert den
+feilede spesialistdelen.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren

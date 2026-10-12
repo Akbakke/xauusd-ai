@@ -4325,7 +4325,7 @@
       "core_relaunch_allowed": false,
       "cleanup_authorized": false,
       "next_required_stages": [
-        "INPUT_VIEWS_001",
+        "POSTBUILD_REVIEW_001",
         "POSTBUILD_SPECIALIST_001",
         "BASE_NORMALIZATION_001",
         "SUMMARY_NORMALIZATION_001",
@@ -4550,9 +4550,10 @@
       },
       "operators_clone_stage": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators/clone_stage.py",
-        "sha256": "b207ebfded5e755a72cd59cac283803b4b79ea2c66e5e2f967ba8500c766b01a",
-        "revision": 2,
-        "revision_note": "12.10.2026 after COMPLETE_M1_002: stage aliases COMPLETE_M1_001->002 and COVERAGE_REVIEW_001->002 for cross-references; a TERMINAL.json binding is missing unless exit_code==0 and source_unchanged is True; argv pairs --x[-json] PATH --x-sha256 HASH rehashed from the new PATH; launch_validation.py deadline check rebound from core START+max_core_wall to the explicit downstream budget receipt (the convention every later stage launcher uses) with prerequisites.cpu_budget; stale previous-generation hash literals fail closed; ops dryrun and complete."
+        "sha256": "026c2cc517312f804363df38e2aa45f1e6cf9b14185057cc99ec30e28a6ceba3",
+        "revision": 3,
+        "revision_note": "12.10.2026 after COMPLETE_M1_002: stage aliases COMPLETE_M1_001->002 and COVERAGE_REVIEW_001->002 for cross-references; a TERMINAL.json binding is missing unless exit_code==0 and source_unchanged is True; argv pairs --x[-json] PATH --x-sha256 HASH rehashed from the new PATH; launch_validation.py deadline check rebound from core START+max_core_wall to the explicit downstream budget receipt (the convention every later stage launcher uses) with prerequisites.cpu_budget; stale previous-generation hash literals fail closed; ops dryrun and complete.",
+        "revision_3_note": "12.10.2026 after INPUT_VIEWS_001: old-generation hashes harvested from every {path, sha256} binding in the accepted generation stage plans (argv hash literals without a path pair remap through that table or must be unchanged ancestors); bounded script patches and plan deletions; POSTBUILD_REVIEW_001 cloned as the TRAIN/VAL sequence-source audits only (4G audit class), the specialist audit stays in POSTBUILD_SPECIALIST_001 at producer10G without the failure-history prerequisites; admit skips failure/completed_sequence_audits/elapsed_seconds history keys."
       },
       "coverage_review_001_superseded": {
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_001",
@@ -4562,9 +4563,9 @@
         },
         "reason": "prepared against the preflight-failed COMPLETE_M1_001 terminal; never admitted, bound or launched; preserved (rule 9); replaced by COVERAGE_REVIEW_002"
       },
-      "next_action": "INPUT_VERIFICATION_001 COMPLETED_ONCE (exit 0, 337 s: LABEL_COVERAGE diagnostic, COMPLETE_M1_ORACLE PASS, POST_REBUILD_READINESS READY). Admitted: physical_input_views_stage (INPUT_VIEWS_001, producer 10G, pilot root LEARNING_PREPARATION_001 created by the producer). After this commit: bind at HEAD, launch INPUT_VIEWS_001/launch_input_views.py (one heavy CPU job), record the terminal, then POSTBUILD_SPECIALIST -> BASE_NORMALIZATION -> SUMMARY_NORMALIZATION -> INPUT_TENSOR_AUDIT -> NATIVE_INPUT_INDEX -> FRESH_INITIAL_BASELINE (step 5), each prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending.",
+      "next_action": "INPUT_VIEWS_001 COMPLETED_ONCE (exit 0, 332 s; physical M1 views published; entry rows 652552/70880). Admitted: postbuild_source_audit_stage (POSTBUILD_REVIEW_001, audit 4G, sequence-source audits only). After this commit: bind at HEAD, launch POSTBUILD_REVIEW_001/launch_postbuild.py (one heavy CPU job), record the terminal, then POSTBUILD_SPECIALIST_001 (producer10G) -> BASE_NORMALIZATION -> SUMMARY_NORMALIZATION -> INPUT_TENSOR_AUDIT -> NATIVE_INPUT_INDEX -> FRESH_INITIAL_BASELINE (step 5), each prepare -> admit+commit -> bind -> launch, no commit while a stage runs. No native launch, orders or spending.",
       "physical_input_views_stage": {
-        "authorized": true,
+        "authorized": false,
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001/PLAN.json",
@@ -4586,9 +4587,45 @@
         "normalization_fit_allowed": false,
         "optimizer_steps": 0,
         "test_data_used": false,
+        "status": "COMPLETED_ONCE",
+        "cloned_from": "feature_repair_rebuild_20261010.physical_input_views_stage",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001/TERMINAL.json",
+          "sha256": "2665e3b6e95451bbe2772b64410938cbc7d2687e586d0de3698931138233f22d"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/INPUT_VIEWS_001/RESULT.json",
+          "sha256": "72452ebeb00cbcaf51fc80cd3fb7e701bb0a2205869dbf4410300e697dd5096e"
+        },
+        "completed_utc": "2026-10-12T10:54:48.394267+00:00",
+        "elapsed_seconds": 331.6987479469999
+      },
+      "postbuild_source_audit_stage": {
+        "authorized": true,
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/POSTBUILD_REVIEW_001",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/POSTBUILD_REVIEW_001/PLAN.json",
+          "sha256": "ef5140878a2307800a12457753fa565af48bbc74e17c4d1bdec78f39f5bdde9e"
+        },
+        "producer_plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/POSTBUILD_REVIEW_001/PRODUCER_PLAN.json",
+          "sha256": "268affe0fd654542aed41fb0768caca8a6e6c4f7d2c193201a07e31136fd9816"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/POSTBUILD_REVIEW_001/produce_postbuild.py",
+          "sha256": "5be8ba66ee5e749ab7485f1c183c636366ad47cad89e6966924120dc34234cce"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/POSTBUILD_REVIEW_001/launch_postbuild.py",
+          "sha256": "f62a97e85e037a51a682d52c090bdf81215d02b399655c6db532363bb8103622"
+        },
+        "relaunch_allowed": false,
+        "optimizer_steps": 0,
+        "test_data_used": false,
         "status": "AUTHORIZED_NOT_STARTED",
-        "cloned_from": "feature_repair_rebuild_20261010.physical_input_views_stage"
-      }
+        "cloned_from": "feature_repair_rebuild_20261010.postbuild_source_audit_stage"
+      },
+      "postbuild_split_rationale": "In the accepted generation POSTBUILD_REVIEW_001 ran TRAIN/VAL sequence-source audits and then the eight-family specialist audit in one 4G audit process; the specialist audit was OOM-killed (memcg 4 GiB) after both sequence audits had passed, and POSTBUILD_SPECIALIST_001 reran only the specialist audit at producer10G. This generation plans that evidence structure instead of recovering it: POSTBUILD_REVIEW_001 = sequence-source audits only (unchanged owner, 4G), POSTBUILD_SPECIALIST_001 = canonical specialist owner at producer10G, no failed-audit prerequisites. No algorithm, owner, class or input changes."
     }
   },
   "gc_order_flow_research_20261006": {
