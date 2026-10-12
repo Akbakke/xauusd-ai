@@ -487,8 +487,13 @@ prosedyredeklarasjonen configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_202610
 tidskontrakt omskrevet for 20-dagersmålet, 315/132 felt), CONTROL256 trukket
 fra de komplette VAL-radene til og med den målte cutoffen, smoke-planen
 fjernet (planen er operatørdokumentet), retention-review lesebare. Stage-
-lokale kontroller (2 + handover-grensen) er grønne og bundet; admittert som
-native_preparation_stage. Deretter SAMPLER_BENCHMARK_001 (kapasitet på 315
+lokale kontroller (2 + handover-grensen) er grønne og bundet. Første klon
+(NATIVE_PREPARATION_001) stoppet i launcherens preflight før START: V38-
+prosjektplanen kalte nådeperioden build_termination_grace_seconds, den nye
+heter termination_grace_seconds; ingen fase kjørte, steget er merket
+SUPERSEDED og lukket som native_preparation_stage_failed_001.
+NATIVE_PREPARATION_002 er samme klon med launcheren patchet, kontroller
+grønne, admittert som native_preparation_stage. Deretter SAMPLER_BENCHMARK_001 (kapasitet på 315
 felt, 2–3 timer), NATIVE_PREPROCESSING_001 (labels/normalisering + koordinater
 v2 over eligible delmengde) og NATIVE_METADATA_HANDOFF_001.
 
