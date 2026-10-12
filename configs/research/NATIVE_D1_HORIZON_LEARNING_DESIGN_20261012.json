@@ -1,0 +1,193 @@
+{
+  "budget": {
+    "cpu_workers": 8,
+    "epochs_completed": 0,
+    "hardware_limits": "Existing current capped/native guards; no replacement of their limits.",
+    "later_control_entries": 256,
+    "max_val_window_seconds": 10800,
+    "maximum_trained_entry_rows": 4096,
+    "native_campaign_only": true,
+    "native_val_batch": 256,
+    "planned_optimizer_steps": 1024,
+    "precision": "FP32_TF32_OFF",
+    "repeat_or_automatic_extension": false,
+    "train_batch_size": 16,
+    "train_only_probe_entries": 256,
+    "study_curve_optimizer_steps": 4096,
+    "procedure_note": "fit 1024 steps on TRAIN256, curve 4096 steps on the first 4096 eligible rows; CONTROL4096 observed at 0 and 4096 (operator decision 12.10.2026)"
+  },
+  "calendar": {
+    "development_control_entry_end_exclusive": "2026-07-01T00:00:00+00:00",
+    "physical_coordinate_namespaces_are_separate": true,
+    "physical_source_splits": {
+      "control": "val",
+      "train": "train"
+    },
+    "train_control_cutoff": "2025-06-01T00:00:00+00:00",
+    "train_entry_start_inclusive": "2011-06-01T00:00:00+00:00",
+    "owner_note": "the frozen calendar, bindings and CONTROL256 are owned by the design produced in NATIVE_PREPARATION_001 from LEARNING_PREPARATION_001/INPUT_DESIGN.json; these windows are repeated for reading only"
+  },
+  "created_utc": "2026-10-12T13:08:42.297843+00:00",
+  "decision": {
+    "economic_required": "Separate cost-adjusted all-selected and one-position portfolio evidence beyond relevant same-risk baselines with uncertainty and open-position accounting.",
+    "failure": "Preserve results and reject expansion; no same-control retuning, extra steps, thresholds or automatic restart.",
+    "later_required": "Every predeclared Entry/Exit-by-side aggregate paired MSE contrast versus initial and TRAIN constant has negative upper95percent week-block bound; report monthly conflicts and action collapse. Missing or ambiguous evidence is not GO.",
+    "success_limit": "Bounded minimum Entry-only learning evidence on the 20-day target only. Independent later generalization, train/serve parity, more seeds, Entry-preserving Exit training and offline operational qualification remain required.",
+    "training_required": "Entry LONG/SHORT improve over initial and same-TRAIN constants with centered error and state-dependent predictions on the 20-day target; pure mean shift or all-FLAT does not pass."
+  },
+  "hypothesis": "One bounded fresh native v10 Entry-only fit on the NATIVE_D1 generation (315 signal fields with the ninth D1 macro/positioning context family, five timeframes) learns state-dependent observed 20-trading-day market value on the frozen eligible TRAIN rows and transfers to the fixed later development control beyond initialization and same-TRAIN constants. 1 and 5 trading days are observed on the same rows, never optimized. This does not isolate the marginal effect of the D1 family.",
+  "implementation_blockers": [
+    {
+      "id": "NONE_OPEN",
+      "observed": "P0 code (horizon learning design, dataset keys, trainer dispatch, learning study v2) and P1a (coordinates v2 over the eligible subset) are committed; P1 preparation stages and the GPU campaign remain to run.",
+      "owner": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md"
+    }
+  ],
+  "initialization": {
+    "ema": "Fresh copy and existing horizon rule from actual eligible TRAIN population.",
+    "mode": "fresh_existing_model_constructor_no_checkpoint_weights",
+    "online": "Fresh current v38 constructor with all shared modules; no inherited weights or optimizer.",
+    "optimizer": "Existing AdamW groups: lr0.0001,weight_decay0.0001,batch16,grad_accum1; existing scheduler and trainable task weighting.",
+    "seed": 20260911,
+    "selection_variant": "ONLINE at exactly256 optimizer steps; no best-checkpoint, EMA selection or automatic extension.",
+    "target": "Frozen copy of the same current initial ONLINE function and weights. Do not strip current parameter-free norms for historical compatibility. Bind function identity as well as state hashes."
+  },
+  "inputs": {
+    "completion_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/RESULT.json",
+      "sha256": "c794dfe634b9c32336739f3786d601f4fe05e0c3c95726f27c456a78247c33dd"
+    },
+    "post_rebuild_readiness": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/post_rebuild_readiness_001/ENTRY_MODEL_NATIVE_SEQ513_POST_REBUILD_READINESS_20261012T104701962474Z.json",
+      "sha256": "0278f0f9e40d189d3bb79c8000676533c511072592f2a51f79dcbffc43af91ce"
+    },
+    "signal_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20261012T030344329880Z.json",
+      "sha256": "bb65a85d81ebe950862364e5021b0f6516e91c972a0dcce1426ea4caa8446ff0"
+    },
+    "fresh_zero_step_baseline": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/BASELINE_RESULT.json",
+      "sha256": "9f8a28015db462b65be43107a8aeda1b7ddce5eabfc578a6280aadb70364b1e5"
+    },
+    "operator_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
+      "sha256": "501c41b6f9d337b914868fb005b42adda45b5301fa26370728a9405d38dba54f"
+    }
+  },
+  "measurements": {
+    "economic": "After learning gate, separately bind native policy evaluation and portfolio accounting, all selected trades, open executable marks, actual costs and one-position capacity; compare FLAT and preselected same-risk always-LONG. No economic claim from teacher MSE or from only closed winners.",
+    "later_control": "Same paired outputs and TRAIN constants on the locked CONTROL4096 drawn from the complete-horizon VAL population at steps 0 and 4096; MSE and rank-IC per horizon; report each calendar month and week without choosing a favorable subset.",
+    "training": "Paired fresh-initial/fixed-final ONLINE on TRAIN256 (fit phase, 1024 steps) and the first 4096 eligible rows (curve phase, 4096 steps) with identical frozen 20-day targets. Entry LONG/SHORT MSE, centered MSE, contrast MSE, action distributions and rank-IC per horizon. Baseline constants fitted from the same TRAIN only. Exit heads are not trained in this phase.",
+    "uncertainty": "Existing fixed paired calendar-week block bootstrap:5000 draws,seed20260911. Descriptive reused-development uncertainty, not pristine OOS."
+  },
+  "read_boundary": {
+    "data_file_full_hashes_reused_from_verified_readiness": true,
+    "fits": 0,
+    "model_forwards": 0,
+    "parquet_columns_opened": [
+      "time",
+      "y_long_gross_at_1d_bps",
+      "y_short_gross_at_1d_bps",
+      "elapsed_seconds_at_1d",
+      "y_long_gross_at_5d_bps",
+      "y_short_gross_at_5d_bps",
+      "elapsed_seconds_at_5d",
+      "y_long_gross_at_20d_bps",
+      "y_short_gross_at_20d_bps",
+      "elapsed_seconds_at_20d"
+    ],
+    "price_or_outcome_columns_read": false,
+    "outcome_availability_read_for_eligibility_only": true,
+    "test_dataset_or_manifest_accessed": false
+  },
+  "schema_version": "gx1_frozen_chronological_learning_design_v1",
+  "scope": {
+    "actual_model_forwards_authorized": false,
+    "all_existing_timeframes": true,
+    "existing_control_periods_are_reused_development": true,
+    "families": 8,
+    "features": 315,
+    "native_launch_authorized": false,
+    "no_fixed_loss_limit": true,
+    "no_holding_time_limit": true,
+    "normalization_fit_authorized": false,
+    "one_experiment": true,
+    "optimizer_steps": 0,
+    "same_architecture": true,
+    "test_sealed": true,
+    "context_fields": 132,
+    "context_families": 9,
+    "d1_macro_context_family": true,
+    "entry_only_training_phase": "entry_only_observed_horizon_20d",
+    "exit_gradients_active": false
+  },
+  "selection": {
+    "control": "existing deterministic_uniform_subsample_indices over the time-sorted physical VAL rows with complete observed outcomes at every trading-day horizon at or before the measured val eligibility cutoff (availability only, never outcome values)",
+    "control_entries": 256,
+    "missing_control_targets": "Control IDs are drawn only from rows with complete horizon outcomes; never replace IDs after inspecting outcomes. A censored row inside the eligible population fails closed.",
+    "seed": 20260911,
+    "split_salt": 1,
+    "train": "existing native epoch0 order over the entire physical TRAIN population, filtered to the eligible rows (complete observed outcomes at every trading-day horizon at or before the measured TRAIN eligibility cutoff) before taking the first 4096; no outcome ranking",
+    "training_probe": "Freeze256 from the actual planned4096 with the existing selector salt0 after target-clock eligibility. No optimizer before this is bound."
+  },
+  "source_commit": "c0696910ebf3c9ee3ff4fd0d18f4577da087c5cf",
+  "source_owners": {
+    "gx1/contracts/entry_model_native_training_run_lineage_v1.py": "cd16ecc3dcd1e401762235ac4edc7f749c8bc473d5f46b4446887b930aa45fb7",
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "5808276bcdc25d3e8fe1cc6ffb71ede63888ca158274ac67433931fb257e9f2d",
+    "gx1/contracts/unified_exit_random_access_training_v1.py": "780242c29eada15017a2bdeaf85ff1395d04dbf192f572f4cd46757a77740bab",
+    "gx1/contracts/unified_exit_reference_policy_v1.py": "f6c23e8b19b3d9c8a8277b9d7568b5c608f2202433b7a2a29012c21c31edeb35",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "010918f2674ea1198d47daf5ba3c40a5ab5accb5ad7c034d9e1721b869dbef8d",
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "9a71f9fc7c6a7f45dc2b45eab503319124bf5d072e797568d34fddcf6c80460d"
+  },
+  "status": "DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE",
+  "targets": {
+    "auxiliary_heads": "All existing genuine objectives retained with exact TRAIN-owned policy and complete target-support bindings. No new loss-weight or threshold search.",
+    "economics_authority": "Existing native net-economics and cost owners must be bound before target generation; report financing proxy and capital hurdle separately. No stale bundle or relabeled policy receipt.",
+    "entry": "Independent observed executable BID/ASK markout net of the declared cost owner at 20 trading days on the session clock (owner gx1/contracts/entry_observed_market_horizons_v1.py, learning design configs/research/NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json); FLAT=0; 1 and 5 trading days observed only. No Exit-model target.",
+    "entry_exit_consistency": "Entry-only optimizer phase entry_only_observed_horizon_20d; Exit receives no gradients and keeps its existing reference policy, clocks and net cost authority. Use existing target owners.",
+    "exit": "Liquidation-relative Q_mu HOLD from existing analytical reference trace, actual net economic rewards and frozen boundary teacher; EXIT_NOW=0. Preserve signed values, masks and decomposition.",
+    "limitations": "Observed terminal cash outcome at one declared horizon under declared costs, not optimal exit, learned-policy profit or proven edge; a horizon is an observation window, never a holding-time rule.",
+    "reference_policy": {
+      "hold_probability_denominator": 120,
+      "hold_probability_numerator": 119,
+      "maximum_observed_backup_steps": 120,
+      "observation_boundary_policy": "preserve_valid_teacher_bootstrap",
+      "policy_sha256": "61c8aaaaa362d820165ce69e38b46f8e17a65cf82283d9af1410515fc5c90547",
+      "schema_version": "gx1_exit_reference_policy_v1",
+      "selection": "analytical_expectation_no_random_action_draw",
+      "terminal_policy": "exit_if_economic_terminal",
+      "value_coordinates": "advantage_over_executable_liquidation_bps",
+      "value_semantics": "Q_mu_stationary_reference_after_first_action"
+    },
+    "reference_policy_search": false
+  },
+  "temporal_contract": {
+    "control": "CONTROL256 and CONTROL4096 targets use only declared physical VAL support ending before 2026-07-01; every 20-day exit of a control row lies inside the VAL window (measured val cutoff 2026-06-02T23:55Z). No updates to normalization, thresholds or model.",
+    "feature_fits": "Existing registry and squeeze fit windows end2013; all upstream fitted feature contracts must end before this control cutoff.",
+    "input_context": "Only authoritative closed bars available at each decision. Earlier context may be read, never future decision inputs.",
+    "normalization": "Fit once on the entire explicitly eligible physical TRAIN population before optimizer sampling, with existing deduplicated base/context/MTF/lifetime owners; zero physical VAL/TEST fit rows. Do not fit on only the4096 sampled Entries.",
+    "supervision": "Every TRAIN observed-horizon outcome must close at or before the TRAIN/control cutoff 2025-06-01; the frozen eligible TRAIN rows end at the measured cutoff 2025-05-02T19:20Z (20 trading days = 28 to 32 calendar days). Rows without a closed M1 bar at the entry's session offset in the target session are censored: excluded and counted, never filled.",
+    "trading": "These boundaries limit information for learning and measurement; they are not maximum holding times or forced liquidation rules."
+  },
+  "measured_entry_eligibility": {
+    "method": "complete observed outcomes at every trading-day horizon; cutoff = last complete decision time per split, measured 12.10.2026 on the NATIVE_D1 dataset (availability only)",
+    "train": {
+      "rows": 652552,
+      "complete_all_horizons": 644255,
+      "last_complete_decision_utc": "2025-05-02T19:20:00+00:00",
+      "censored_before_last_complete": 3284
+    },
+    "val": {
+      "rows": 70880,
+      "complete_all_horizons": 65575,
+      "last_complete_decision_utc": "2026-06-02T23:55:00+00:00",
+      "censored_before_last_complete": 308
+    },
+    "elapsed_20d_calendar_days": {
+      "min": 28.0,
+      "median": 28.0,
+      "max": 32.0
+    }
+  },
+  "source_owners_note": "sha256 of the named owners at source_commit; pruned files from the V38 declaration are omitted"
+}

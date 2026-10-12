@@ -477,9 +477,20 @@ eligible TRAIN-radene er den frosne delmengden med komplette utfall ved alle
 horisonter (eligibility-blokk bundet til horisont-designet og den målte
 cutoffen), og koordinat-produsenten publiserer delmengden og den native
 samplerens fulle rekkefølge filtrert til den, nøyaktig slik treneren
-reproduserer rekkefølgen. Gjenstår i P1: designkomplettering
-(NATIVE_PREPARATION_001), sampler-kapasitet på 315 felt, preprocessing med
-koordinater, metadata.
+reproduserer rekkefølgen. P1 er i gang under et nytt CPU-vindu (PREPARATION_CPU_002, 64 800 s):
+NATIVE_PREPARATION_001 er klonet fra V38-generasjonens
+PRE_SMOKE_READINESS_001 med run-root-generatoren
+operators/make_minimum_learning_stages.py (V38-substitusjoner, patcher og
+hooks på toppen av clone_stage.py): designkompletteringen fra den nye
+prosedyredeklarasjonen configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json
+(samme initialisering, budsjett og referansepolicy som V38; mål, utvalg og
+tidskontrakt omskrevet for 20-dagersmålet, 315/132 felt), CONTROL256 trukket
+fra de komplette VAL-radene til og med den målte cutoffen, smoke-planen
+fjernet (planen er operatørdokumentet), retention-review lesebare. Stage-
+lokale kontroller (2 + handover-grensen) er grønne og bundet; admittert som
+native_preparation_stage. Deretter SAMPLER_BENCHMARK_001 (kapasitet på 315
+felt, 2–3 timer), NATIVE_PREPROCESSING_001 (labels/normalisering + koordinater
+v2 over eligible delmengde) og NATIVE_METADATA_HANDOFF_001.
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
