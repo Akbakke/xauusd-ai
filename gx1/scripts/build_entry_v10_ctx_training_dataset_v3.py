@@ -6274,9 +6274,17 @@ def main() -> None:
     _d1_pre_seal = {"spec": _d1_spec, "components": _d1ctx.d1_macro_context_components(_d1_spec)}
     _d1_by_split = {"train": _d1_pre_seal, "val": _d1_pre_seal}
     if not args.pretest_only:
+        # The policy block names the exact read end (the same one the enriched lanes use); the
+        # last TEST decision (test_end bar open + 5 minutes) must not lie beyond it.
+        _wave = json.loads((_d1_repo_root / "NEXT_RUN_POLICY.json").read_text())["current_work"]["native_d1_wave_20261011"]
+        _read_end = pd.Timestamp(_wave["test_split_context_read_end_utc"])
+        _last_decision = pd.Timestamp(test_end) + pd.Timedelta(minutes=5)
+        if _last_decision > _read_end:
+            raise RuntimeError(
+                f"D1_MACRO_CONTEXT_TEST_READ_END_SHORT: last_decision={_last_decision} policy_read_end={_read_end}"
+            )
         _d1_test_spec = dict(_d1_spec, native_test_construction={
-            "policy_block": "native_d1_wave_20261011",
-            "read_end_utc": (pd.Timestamp(test_end) + pd.Timedelta(days=1)).isoformat(),
+            "policy_block": "native_d1_wave_20261011", "read_end_utc": _read_end.isoformat(),
         })
         _d1_by_split["test"] = {"spec": _d1_test_spec, "components": _d1ctx.d1_macro_context_components(_d1_test_spec)}
     for split_name, (s0, s1) in {
