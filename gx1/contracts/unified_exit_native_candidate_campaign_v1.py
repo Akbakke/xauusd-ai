@@ -562,6 +562,11 @@ def require_benchmarked_design_identity(benchmark_design_binding, *, design_bind
         raise RuntimeError("NATIVE_BENCHMARK_DESIGN_JSON_INVALID") from exc
 
 
+PHYSICAL_COORDINATES_SCHEMA_V1 = "gx1_physical_native_training_coordinates_v1"
+PHYSICAL_COORDINATES_SCHEMA_V2 = "gx1_physical_native_training_coordinates_v2"
+HORIZON_ELIGIBILITY_RULE = "complete_outcomes_at_all_observation_horizons_at_or_before_measured_cutoff"
+
+
 def _physical_native_sampler(selected_binding, *, artifacts, design, physical):
     """One measured-sampler admission shared by coordinate production and use."""
     from gx1.contracts.unified_exit_selected_sampler_v1 import (
@@ -611,9 +616,14 @@ def require_physical_native_training_coordinates(
     check("native_coordinates" in artifacts, "REQUIRED")
     binding = bound(artifacts["native_coordinates"])
     value = read(binding)
+    # v1: every physical TRAIN row is eligible. v2 (operator decision 12.10.2026): the eligible
+    # rows are the frozen subset with complete observed outcomes at every trading-day horizon at
+    # or before the measured cutoff; the order is the native sampler's full order filtered to it.
+    schema = value.get("schema_version")
+    check(schema in (PHYSICAL_COORDINATES_SCHEMA_V1, PHYSICAL_COORDINATES_SCHEMA_V2), "IDENTITY_INVALID")
+    horizon_subset = schema == PHYSICAL_COORDINATES_SCHEMA_V2
     check(
-        value.get("schema_version") == "gx1_physical_native_training_coordinates_v1"
-        and value.get("decision") == "TRAIN_COORDINATES_FROZEN_NO_MODEL"
+        value.get("decision") == "TRAIN_COORDINATES_FROZEN_NO_MODEL"
         and value.get("coordinates_sha256") == native_sha256(
             {key:item for key,item in value.items() if key != "coordinates_sha256"})
         and value.get("design") == artifacts["design"]
@@ -632,11 +642,27 @@ def require_physical_native_training_coordinates(
     keys = ("TRAIN_ELIGIBLE_PARENT_ROWS", "TRAIN_NATIVE_EPOCH0_ORDER",
             "TRAIN_NATIVE4096_PARENT_ROWS", "TRAIN256_PROBE_PARENT_ROWS")
     check(isinstance(bindings, Mapping) and set(bindings) == set(keys)
-          and bindings["TRAIN_ELIGIBLE_PARENT_ROWS"] == physical["train_parent_rows"], "ROWS_INVALID")
+          and (horizon_subset or bindings["TRAIN_ELIGIBLE_PARENT_ROWS"] == physical["train_parent_rows"]), "ROWS_INVALID")
     arrays = {key: np.load(bound(bindings[key])["path"], allow_pickle=False) for key in keys}
     eligible, order, planned, probe = (arrays[key] for key in keys)
+    if horizon_subset:
+        eligibility = value.get("eligibility")
+        check(isinstance(eligibility, Mapping)
+              and set(eligibility) == {"rule", "horizons_design", "entry_eligibility_cutoff_utc", "eligible_rows",
+                                       "censored_rows_excluded", "complete_at_all_observation_horizons"}
+              and eligibility["rule"] == HORIZON_ELIGIBILITY_RULE
+              and eligibility["complete_at_all_observation_horizons"] is True
+              and type(eligibility["eligible_rows"]) is int and eligibility["eligible_rows"] == len(eligible)
+              and type(eligibility["censored_rows_excluded"]) is int and eligibility["censored_rows_excluded"] >= 0
+              and bound(eligibility["horizons_design"]) is not None
+              and bindings["TRAIN_ELIGIBLE_PARENT_ROWS"]["path"] != physical["train_parent_rows"]["path"],
+              "ELIGIBILITY_INVALID")
+        population_ok = (eligible.ndim == 1 and len(eligible) >= 1 and np.all(np.diff(eligible) > 0)
+                         and eligible[0] >= 0 and eligible[-1] < physical["train_rows"])
+    else:
+        population_ok = np.array_equal(eligible, np.arange(physical["train_rows"], dtype=np.int64))
     check(all(array.dtype == np.dtype("int64") and array.ndim == 1 for array in arrays.values())
-          and np.array_equal(eligible, np.arange(physical["train_rows"], dtype=np.int64))
+          and population_ok
           and np.array_equal(np.sort(order), eligible)
           and planned.shape == (design["budget"]["maximum_trained_entry_rows"],)
           and np.array_equal(planned, order[:len(planned)]), "ROWS_INVALID")

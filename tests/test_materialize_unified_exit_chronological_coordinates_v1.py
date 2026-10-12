@@ -132,3 +132,54 @@ def test_reference_support_rejects_m1_binding_or_coordinate_fault(tmp_path,fault
     else:inputs["expected_samples"][0][0]=200
     with pytest.raises(RuntimeError):
         owner._physical_measurement_arrays(inputs)
+
+
+def test_horizon_eligible_rows_are_complete_rows_at_or_before_the_measured_cutoff(tmp_path):
+    from gx1.contracts.entry_observed_market_horizons_v1 import HORIZON_LABEL_COLUMNS
+    frame = pd.DataFrame({"time": pd.date_range("2025-04-01T00:00:00Z", periods=6, freq="5min")})
+    for column in HORIZON_LABEL_COLUMNS:
+        frame[column] = np.arange(6, dtype=np.float64) + 1.0
+    frame.loc[2, HORIZON_LABEL_COLUMNS[0]] = np.nan  # censored inside the cutoff: excluded, counted
+    frame.loc[5, HORIZON_LABEL_COLUMNS[3]] = np.nan  # after the cutoff: censored by construction
+    path = tmp_path / "train.parquet"
+    frame.to_parquet(path, index=False)
+    cutoff = str(frame["time"].iloc[4] + pd.Timedelta(minutes=5))
+    found = producer.horizon_eligible_rows(path, cutoff_utc=cutoff)
+    assert found["rows"].tolist() == [0, 1, 3, 4] and found["censored_rows_excluded"] == 1
+    assert found["rows_after_cutoff"] == 1 and found["physical_rows"] == 6
+    frame.loc[5, HORIZON_LABEL_COLUMNS[3]] = 9.0
+    frame.to_parquet(path, index=False)
+    with pytest.raises(RuntimeError, match="COMPLETE_ROW_AFTER_CUTOFF"):
+        producer.horizon_eligible_rows(path, cutoff_utc=cutoff)
+
+
+def test_producer_publishes_v2_coordinates_over_the_horizon_eligible_subset(physical_measurement, tmp_path, monkeypatch):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    c = physical_measurement
+    output = tmp_path / "published_v2"
+    full_order = c.prepared.case["order"]
+    eligible = np.sort(full_order[1:]).astype(np.int64)  # drop one row: a censored entry
+    monkeypatch.setattr(producer, "horizon_eligible_rows", lambda path, *, cutoff_utc: {
+        "rows": eligible, "censored_rows_excluded": 1, "rows_after_cutoff": 0, "physical_rows": len(full_order)})
+    design = _write(tmp_path / "horizons_design.json", {"schema_version": "fixture"})
+    args = {**_arguments(c, output), "horizon_eligibility": {"horizons_design": design, "entry_eligibility_cutoff_utc": "2025-05-02T19:20:00Z"}}
+    result = producer.materialize(**args, publish=True)
+    native = json.loads(Path(result["chronological_prefix"]["native_coordinates"]["path"]).read_text())
+    assert native["schema_version"] == campaign.PHYSICAL_COORDINATES_SCHEMA_V2
+    assert native["eligibility"]["rule"] == campaign.HORIZON_ELIGIBILITY_RULE and native["eligibility"]["eligible_rows"] == len(eligible)
+    assert native["eligibility"]["censored_rows_excluded"] == 1 and native["eligibility"]["horizons_design"] == design
+    published_eligible = np.load(native["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"]["path"])
+    order = np.load(native["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"]["path"])
+    assert published_eligible.tolist() == eligible.tolist()
+    assert order.tolist() == full_order[np.isin(full_order, eligible)].tolist()
+    # the frozen contract accepts the subset and the trainer's replay semantics (filtered full order)
+    prefix = dict(result["chronological_prefix"])
+    design_value = json.loads(Path(prefix["design"]["path"]).read_text())
+    physical = campaign.require_physical_chronological_preprocessing(
+        {k: v for k, v in prefix.items() if k != "native_coordinates"}, design=design_value,
+        normalization=json.loads(Path(prefix["normalization_result"]["path"]).read_text()),
+        labels=json.loads(Path(prefix["labels_result"]["path"]).read_text()))
+    checked = campaign.require_physical_native_training_coordinates(prefix, design=design_value, physical=physical)
+    assert checked["eligible_parent_rows"].tolist() == eligible.tolist()
+    with pytest.raises(RuntimeError, match="HORIZON_ELIGIBILITY_INVALID"):
+        producer.materialize(**{**args, "horizon_eligibility": {"horizons_design": design}, "output_dir": tmp_path / "x"}, publish=False)

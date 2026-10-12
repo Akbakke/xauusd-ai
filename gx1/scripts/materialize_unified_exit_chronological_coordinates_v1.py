@@ -18,6 +18,7 @@ from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publis
 from gx1.contracts.local_random_access_campaign_v2 import file_sha256, read_bound_json, require_binding
 from gx1.contracts.entry_model_native_training_run_lineage_v1 import deterministic_uniform_subsample_indices
 from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+    HORIZON_ELIGIBILITY_RULE, PHYSICAL_COORDINATES_SCHEMA_V1, PHYSICAL_COORDINATES_SCHEMA_V2,
     native_sha256, require_physical_chronological_preprocessing,
     require_physical_native_training_coordinates, _physical_native_sampler,
 )
@@ -89,10 +90,33 @@ def _publish(path: Path, value: Any, *, validate: Callable[[Path], None] | None 
     return _binding(path)
 
 
+def horizon_eligible_rows(parquet_path: Path, *, cutoff_utc: str) -> dict[str, Any]:
+    """TRAIN rows with complete observed outcomes at every trading-day horizon whose decision lies at
+    or before the measured cutoff (operator decision 12.10.2026). Only outcome *availability* is read,
+    never an outcome value; a complete row after the cutoff contradicts the measured design."""
+    import pandas as pd
+    import pyarrow.parquet as pq
+    from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
+    from gx1.contracts.entry_observed_market_horizons_v1 import HORIZON_LABEL_COLUMNS
+    frame = pq.read_table(parquet_path, columns=["time", *HORIZON_LABEL_COLUMNS]).to_pandas()
+    clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True)).as_unit("ns").asi8
+    eligible_time = clock + ENTRY_DECISION_BAR_SECONDS * 10**9 <= pd.Timestamp(cutoff_utc).value
+    complete = np.isfinite(frame[HORIZON_LABEL_COLUMNS].to_numpy(dtype=np.float64)).all(axis=1)
+    if bool((complete & ~eligible_time).any()):
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_COMPLETE_ROW_AFTER_CUTOFF")
+    rows = np.flatnonzero(eligible_time & complete).astype(np.int64)
+    if len(rows) < 1:
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_NO_ELIGIBLE_ROWS")
+    return {"rows": rows, "censored_rows_excluded": int((eligible_time & ~complete).sum()),
+            "rows_after_cutoff": int((~eligible_time).sum()), "physical_rows": int(len(frame))}
+
+
 def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Mapping[str, str],
-                output_dir: Path, publish: bool) -> dict[str, Any]:
+                output_dir: Path, publish: bool, horizon_eligibility: Mapping[str, Any] | None = None) -> dict[str, Any]:
     if set(chronological_prefix) != {"design", "normalization_result", "labels_result"}:
         raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_PREFIX_INVALID")
+    if horizon_eligibility is not None and set(horizon_eligibility) != {"horizons_design", "entry_eligibility_cutoff_utc"}:
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_HORIZON_ELIGIBILITY_INVALID")
     artifacts = {key:require_binding(value, label="coordinate preprocessing", verify_file=True)
                  for key,value in chronological_prefix.items()}
     design, normalization, labels = (_read(artifacts[key])
@@ -112,15 +136,35 @@ def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Ma
     _fsync_directory(output.parent)
     sampler = selected["selected_sampler_contract"]
     order = _epoch0_order(sampler)
+    eligibility = None
+    if horizon_eligibility is not None:
+        horizons_design = require_binding(horizon_eligibility["horizons_design"], label="horizon learning design", verify_file=True)
+        found = horizon_eligible_rows(Path(physical["physical_sources"]["train"]["parquet"]["path"]),
+                                      cutoff_utc=horizon_eligibility["entry_eligibility_cutoff_utc"])
+        if found["physical_rows"] != physical["train_rows"]:
+            raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_HORIZON_POPULATION_MISMATCH")
+        eligible = found["rows"]
+        # the native sampler's full order, filtered to the eligible subset (what the trainer replays)
+        order = order[np.isin(order, eligible)]
+        eligibility = {"rule": HORIZON_ELIGIBILITY_RULE, "horizons_design": horizons_design,
+                       "entry_eligibility_cutoff_utc": str(horizon_eligibility["entry_eligibility_cutoff_utc"]),
+                       "eligible_rows": int(len(eligible)), "censored_rows_excluded": found["censored_rows_excluded"],
+                       "complete_at_all_observation_horizons": True}
     planned = order[:design["budget"]["maximum_trained_entry_rows"]]
+    if len(planned) != design["budget"]["maximum_trained_entry_rows"]:
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_PLANNED_ROWS_SHORT")
     positions = deterministic_uniform_subsample_indices(
         population_rows=len(planned), requested_rows=design["budget"]["train_only_probe_entries"],
         seed=design["selection"]["seed"], split_salt=0)
-    bindings = {"TRAIN_ELIGIBLE_PARENT_ROWS":physical["train_parent_rows"]}
+    if eligibility is None:
+        bindings = {"TRAIN_ELIGIBLE_PARENT_ROWS":physical["train_parent_rows"]}
+    else:
+        bindings = {"TRAIN_ELIGIBLE_PARENT_ROWS":_publish(output/"TRAIN_ELIGIBLE_PARENT_ROWS.npy", eligible)}
     for key, rows in (("TRAIN_NATIVE_EPOCH0_ORDER",order), ("TRAIN_NATIVE4096_PARENT_ROWS",planned),
                       ("TRAIN256_PROBE_PARENT_ROWS",planned[positions])):
         bindings[key] = _publish(output/(key+".npy"), rows)
-    native = {"schema_version":"gx1_physical_native_training_coordinates_v1",
+    native = {"schema_version":PHYSICAL_COORDINATES_SCHEMA_V1 if eligibility is None else PHYSICAL_COORDINATES_SCHEMA_V2,
+        **({} if eligibility is None else {"eligibility":eligibility}),
         "decision":"TRAIN_COORDINATES_FROZEN_NO_MODEL", "design":artifacts["design"],
         "train_source":physical["physical_sources"]["train"]["parquet"],
         "control_source":physical["physical_sources"]["val"]["parquet"],
@@ -172,12 +216,20 @@ def main(argv: list[str] | None = None) -> int:
         parser.add_argument("--"+key, type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--publish", action="store_true")
+    parser.add_argument("--horizons-design", type=Path, default=None,
+                        help="trading-day-horizon learning design: eligible rows = complete at every horizon at or before the cutoff")
+    parser.add_argument("--entry-eligibility-cutoff-utc", type=str, default=None)
     args = parser.parse_args(argv)
+    if (args.horizons_design is None) != (args.entry_eligibility_cutoff_utc is None):
+        raise SystemExit("--horizons-design and --entry-eligibility-cutoff-utc are bound together")
+    horizon_eligibility = None if args.horizons_design is None else {
+        "horizons_design": _binding(args.horizons_design.expanduser().absolute()),
+        "entry_eligibility_cutoff_utc": args.entry_eligibility_cutoff_utc}
     result = materialize(chronological_prefix={
         key:_binding(getattr(args,key).expanduser().absolute())
         for key in ("design","normalization_result","labels_result")},
         selected_sampler=_binding(args.selected_sampler.expanduser().absolute()),
-        output_dir=args.output_dir, publish=args.publish)
+        output_dir=args.output_dir, publish=args.publish, horizon_eligibility=horizon_eligibility)
     print(json.dumps(result,sort_keys=True))
     return 0
 

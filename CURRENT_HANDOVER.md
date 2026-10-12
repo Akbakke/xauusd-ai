@@ -472,8 +472,14 @@ horisonter; siste komplette beslutning 2025-05-02 19:20 UTC (TRAIN) og
 2026-06-02 23:55 UTC (VAL); sensurering er spredt (3 284 / 308 rader før siste
 komplette), så eligibilitet er kompletthet, ikke en tidsgrense alene; 20 dagers
 elapsed er 28–32 kalenderdager. Fokuserte og brede regresjoner er grønne.
-Neste er P1: designkomplettering, koordinat-eier med eligible delmengde,
-sampler-kapasitet på 315 felt, preprocessing og metadata.
+P1a er kodet og testet: koordinat-kontrakten godtar versjon 2 der de
+eligible TRAIN-radene er den frosne delmengden med komplette utfall ved alle
+horisonter (eligibility-blokk bundet til horisont-designet og den målte
+cutoffen), og koordinat-produsenten publiserer delmengden og den native
+samplerens fulle rekkefølge filtrert til den, nøyaktig slik treneren
+reproduserer rekkefølgen. Gjenstår i P1: designkomplettering
+(NATIVE_PREPARATION_001), sampler-kapasitet på 315 felt, preprocessing med
+koordinater, metadata.
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,

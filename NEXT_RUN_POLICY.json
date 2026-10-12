@@ -5083,7 +5083,16 @@
             "NATIVE_METADATA_HANDOFF_001"
           ],
           "budget": "PREPARATION_CPU_002 (new explicit receipt, one heavy job)",
-          "design_note": "INPUT_DESIGN.json (frozen chronological design) exists from INPUT_VIEWS_001; NATIVE_PREPARATION_001 completes it (budget/selection/targets/temporal_contract, CONTROL256 drawn from the complete-horizon VAL population) with a stage producer cloned from the V38 readiness producer; the coordinates owner must publish TRAIN_ELIGIBLE_PARENT_ROWS as the complete-horizon subset (contract extension) before SAMPLER_BENCHMARK/PREPROCESSING/METADATA_HANDOFF"
+          "design_note": "INPUT_DESIGN.json (frozen chronological design) exists from INPUT_VIEWS_001; NATIVE_PREPARATION_001 completes it (budget/selection/targets/temporal_contract, CONTROL256 drawn from the complete-horizon VAL population) with a stage producer cloned from the V38 readiness producer; the coordinates owner must publish TRAIN_ELIGIBLE_PARENT_ROWS as the complete-horizon subset (contract extension) before SAMPLER_BENCHMARK/PREPROCESSING/METADATA_HANDOFF",
+          "P1a_contract_extension": {
+            "status": "DONE",
+            "completed_utc": "2026-10-12T13:00:55.756090+00:00",
+            "owners": [
+              "gx1/contracts/unified_exit_native_candidate_campaign_v1.py (physical coordinates v2: eligible subset with eligibility block)",
+              "gx1/scripts/materialize_unified_exit_chronological_coordinates_v1.py (horizon_eligible_rows, --horizons-design/--entry-eligibility-cutoff-utc; order = native full order filtered to the subset, as the trainer replays)"
+            ],
+            "tests": "test_materialize_unified_exit_chronological_coordinates_v1 (+2), test_chronological_measurement_binding, test_native_prefix_coordinator green"
+          }
         },
         "P2_gpu_campaign": {
           "status": "NOT_STARTED",
