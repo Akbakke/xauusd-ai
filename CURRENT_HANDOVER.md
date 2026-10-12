@@ -283,6 +283,19 @@ generasjon brukte 333 s. Kloneren fikk en plan-hook for NATIVE_INPUT_INDEX
 aksepterte generasjonens kildeendringsgjennomgang beholdes ordrett) og skriver
 ingenting når en forutsetning mangler.
 
+INPUT_TENSOR_AUDIT_001 (e78ff5fc) terminerte GRØNT 11:34 UTC etter 470 s med
+uendret kilde: faktiske normaliserte NumPy-/PyTorch-input består på hele
+TRAIN/VAL med 315 signalfelt og 132 kontekstfelt, rå-/NumPy-/Torch-aliasbit
+identiske på alle rader, ingen modelladgang (INPUT_PARITY.json). Registrert som
+input_tensor_audit_stage COMPLETED_ONCE. NATIVE_INPUT_INDEX_001 (hele fysiske
+TRAIN-/VAL-indeksen og økonomimetoden, producer 20G) er forberedt med
+økonomi-identitetene beregnet fra denne generasjonens admisjon, design,
+sampler-kandidater og den uendrede kostautoriteten, kildebindingene til de
+sju uendrede økonomieierne rekomputert, og den aksepterte generasjonens
+kildeendringsgjennomgang beholdt ordrett (klonerens andre pass gjenbruker nå
+stage-hookene, så historikkfelt ikke rehashes); admittert som
+physical_input_index_stage. Forrige generasjon brukte 544 s.
+
 ## Native D1-bølge: steg 1 og 2 målt 11.10.2026 (kveld)
 
 Design bundet i docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md. Brukeren
