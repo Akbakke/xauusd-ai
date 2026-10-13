@@ -1,0 +1,228 @@
+{
+  "schema_version": "gx1_entry_learning_study_v2",
+  "study_id": "ENTRY_D1_HORIZON_LEARNING_STUDY_20261012",
+  "operator_request": "12.10.2026 \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten for \u00e5 se at alt fungerer som det skal\u00bb",
+  "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
+  "hypothesis": "The full causal sequence and multitimeframe representation with the D1 macro/positioning context family can learn conditional net Entry values at 20 trading days beyond the TRAIN constant; optimization (fit) and later generalization (curve, reused development CONTROL) are measured separately.",
+  "chronological_prefix": {
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
+      "sha256": "3b0cdb6ae07bccd3e9ed54af68b1fb79963809355dcf8ad81db8c90c92288929"
+    },
+    "normalization_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+      "sha256": "2781c31871c733f86212e7455c9052be77af459aafa5199b92546b1adf29528a"
+    },
+    "labels_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+      "sha256": "da308a7b281f1a0b68b6b1e3b7497c71bb21e3b3d7f025c279dea55ae4cb4967"
+    },
+    "native_coordinates": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_COORDINATES_001/NATIVE_COORDINATES.json",
+      "sha256": "6e1a815d106ee298fb366953d16ee11fb0fe87e2cdf83119931f63040243613a"
+    }
+  },
+  "files": {
+    "child_composite_normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/LEARNING_PREPARATION_001/FINAL_BINDINGS/COMPOSITE_NORMALIZATION.json",
+      "sha256": "da238df7ccd895a1436c6ca61be7009ae7ccbbc3f013c4304fedf1d01bd3ca4e"
+    },
+    "economics_readiness": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_INPUT_INDEX_001/ECONOMIC_METHOD/train_economics_readiness.json",
+      "sha256": "2457d4b8c550ed43b2be410857908fe1bee9ae8e12a73defbc6db5de6c81ab3a"
+    },
+    "entry_train_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json",
+      "sha256": "022e19bcd52c0333cb3cfd64593c05c13c93f69982340de4fb13d23935d93ad2"
+    },
+    "entry_train_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.parquet",
+      "sha256": "e2d7aed519511e07ccca11b7be14ae89e8808b467635fc948b7a8acf08a2bddb"
+    },
+    "entry_val_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json",
+      "sha256": "3343f1b6b9f9ac94e15ed75f6a93a950864ced5dffbd587c2b388788c708b553"
+    },
+    "entry_val_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.parquet",
+      "sha256": "df4a9175003bfd269a23b15dfc792135340a69ef1faf556080edac2e3748a941"
+    },
+    "feature_lifecycle_root": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/exit_lifecycle/UNIFIED_EXIT_LIFECYCLE_MANIFEST.json",
+      "sha256": "02a4bd2686c650ca13abd302637cd7bd921dec091167ef4999ee16baaa85f061"
+    },
+    "m5_prebuilt": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/m5_enriched.parquet",
+      "sha256": "c1029118aa1a248209f736a00dbb18da943818b116496d314e2d36af48c83f84"
+    },
+    "random_access_root": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/LEARNING_PREPARATION_001/RANDOM_ACCESS_INDEX/ROOT.json",
+      "sha256": "8a882c23bbd290f7ddeaeec4e774770f868b4f4bd360207597055c7620e080f8"
+    },
+    "sampler_candidate_set": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/LEARNING_PREPARATION_001/FINAL_BINDINGS/SAMPLER_BENCHMARK_CANDIDATES.json",
+      "sha256": "da810dda94acf2374571fe9c9c8c55541d17fb8a8ecd498ede98f54545db4f92"
+    },
+    "selected_sampler": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/SELECTED_SAMPLER.json",
+      "sha256": "80fa201bcf2c8b0d882167d299e88fd21d0fc9ecb463427faa4e11587edf3a65"
+    },
+    "sequence_source_audit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_TRAIN.json",
+      "sha256": "919bac978617dd6169d684570aa1e3c96d10d0365d6c26f076197ac2383d7402"
+    },
+    "source_bundle_metadata": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/FRESH_INITIAL_BASELINE_001/CONSTRUCTOR_METADATA.json",
+      "sha256": "04ad22ee83a67ae74b0c6a93c65ab9ce0a491f2e342e71c73fd562a516531d8d"
+    },
+    "train_cost_authority": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/POLICY/parameter_authority.json",
+      "sha256": "54775694d3e102b8bdf4358ce4a8f72e4fd9fa6b98310e109c07e6b872052681"
+    },
+    "val_sequence_source_audit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/POSTBUILD_REVIEW_001/SEQUENCE_SOURCE_VAL.json",
+      "sha256": "302591446f897f11a0bf6107bb7e25107127976e43170b699c0f93865d8c2172"
+    }
+  },
+  "entry_observed_market_horizons": {
+    "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/.specs/NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json",
+    "sha256": "149117700b2aa44667fe17c70a91586cb8b0baabbfac2ce1e99e662b093abd37"
+  },
+  "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001",
+  "row_bindings": {
+    "epoch_order": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_COORDINATES_001/TRAIN_NATIVE_EPOCH0_ORDER.npy",
+      "sha256": "eadd476e3ca50cc167d3668bb8da7a64ea3aa4d0445e2968206eede94783ae37"
+    },
+    "fit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_COORDINATES_001/TRAIN256_PROBE_PARENT_ROWS.npy",
+      "sha256": "56d87d18fe95c7846b9a91079a25d052af01ceb393cedfde40a79b7467fa1fac"
+    },
+    "train_probe": {
+      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/TRAIN_PROBE4096.npy",
+      "sha256": "f9253634bbcc5fb2dfee57389e2cef4a0c6ca4710f9841e346df13b8f3646fb8"
+    },
+    "control_population": {
+      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/CONTROL_POPULATION.npy",
+      "sha256": "792bf28201b35a693148cb965e1e4ce666f75575f55ef3728cd9625a0229914a"
+    },
+    "control": {
+      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/CONTROL4096.npy",
+      "sha256": "f9c01102efe9274eafdf1cb16c4bf6de4e0ada9983bce8ba7d6d7e6eac28f746"
+    }
+  },
+  "phases": {
+    "fit": {
+      "run_id": "ENTRY_D1_HORIZON_FIT_20261012_001",
+      "optimizer_steps": 1024,
+      "train_observation_steps": [
+        0,
+        64,
+        256,
+        1024
+      ],
+      "control_observation_steps": [],
+      "max_invocations": 1,
+      "unique_train_rows": 256
+    },
+    "curve": {
+      "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_001",
+      "optimizer_steps": 4096,
+      "train_observation_steps": [
+        0,
+        256,
+        1024,
+        4096
+      ],
+      "control_observation_steps": [
+        0,
+        4096
+      ],
+      "max_invocations": 1,
+      "unique_train_rows": 65536
+    }
+  },
+  "model": {
+    "unchanged_architecture": true,
+    "signal_fields": 315,
+    "context_fields": 132,
+    "feature_families": 8,
+    "context_families": 9,
+    "fresh_initialization_each_phase": true,
+    "optimizer_and_loss_unchanged": true,
+    "seed": 20260911,
+    "loss_horizon_trading_days": 20
+  },
+  "population": {
+    "train_eligible_rows": 644255,
+    "control_population_rows": 65575,
+    "control_rows": 4096,
+    "entry_eligibility_cutoff_utc": {
+      "train": "2025-05-02T19:20:00+00:00",
+      "val": "2026-06-02T23:55:00+00:00"
+    },
+    "rule": "complete_outcomes_at_all_observation_horizons_at_or_before_measured_cutoff"
+  },
+  "smoke": "The fit phase's observation at 256 steps is the minimum plan's smoke; no separate smoke recipe exists for the horizon target.",
+  "baseline": {
+    "train_constant": "mean 20-day target over the 65 536 curve TRAIN rows (same rows as the native curve); computed by the review owner, no model fit",
+    "initial_model": "fresh initialization observed at step 0",
+    "hgb": "not in the minimum scope (operator decision 12.10.2026)"
+  },
+  "review": {
+    "fit_diagnostic": "Report reductions for LONG, SHORT, contrast and centered errors on the 20-day target versus initial and the fit-cohort constant; no generalization or trading admission from memorization.",
+    "curve_primary_checkpoint": 4096,
+    "control_selection_allowed": false,
+    "constant_fit_population": "same_65536_curve_TRAIN_rows",
+    "control_role": "reused_development_not_untouched_OOS",
+    "primary_target": "entry_observed_market_target_bps_h20d",
+    "primary_learning_comparisons": [
+      "LONG_MSE_vs_initial",
+      "SHORT_MSE_vs_initial",
+      "CONTRAST_MSE_vs_initial",
+      "LONG_MSE_vs_train_constant",
+      "SHORT_MSE_vs_train_constant",
+      "CONTRAST_MSE_vs_train_constant"
+    ],
+    "secondary_per_horizon": "CONTROL4096 contrast rank-IC and MSE at 1, 5 and 20 trading days per checkpoint (observed, never optimized)",
+    "bootstrap_replicates": 1999,
+    "bootstrap_time_unit": "calendar_week",
+    "expected_block_weeks": 4,
+    "familywise_alpha": 0.05,
+    "multiplicity_comparisons": 6,
+    "qualification": "All six paired upper family-adjusted confidence limits below zero; LONG/SHORT/contrast centered-MSE point improvements against both references; nonconstant unique actions with some positive estimated net values; report every calendar month, LONG/SHORT and instability. Any missing criterion or unresolved period instability rejects qualification.",
+    "statistical_scope": "Conditional reused development evidence, never final TEST or profitability.",
+    "followup": "Only a qualified Entry can justify more seeds, a longer curve or Entry-preserving Exit training; otherwise close with measured fit/generalization/information diagnosis.",
+    "no_adaptive_extension": true,
+    "primary_estimator": "equal_calendar_week_mean_paired_squared_error_difference",
+    "bootstrap_seed": 20260911
+  },
+  "execution": {
+    "native_window_seconds": 12000,
+    "outer_guard_seconds": 13800,
+    "checkpoint_owner": "existing_candidate_two_slot",
+    "checkpoint_interval_steps": 64,
+    "heavy_jobs": 1,
+    "test_data_used": false,
+    "broker_access": false,
+    "spending": false,
+    "horizon_changes": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "exit_training_authorized_without_entry_qualification": false,
+    "cpu_memory_max_bytes": 21474836480,
+    "physical_windows_reboot_per_invocation": true
+  },
+  "source_commit": "e563bb37519edd1cb2d2672844cb4005909c2a8b",
+  "source_files": {
+    "gx1/contracts/entry_observed_market_horizons_v1.py": "3fbf61beaaba6cd7cefac6f943f76aaa5a20482d5cfd05e587cb5d63fca45d38",
+    "gx1/contracts/entry_observed_market_v1.py": "5dcc0975f0384f53ffde44cc8d0c73672780de08b67a9f592f621612b56e3325",
+    "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "3a7dbf65c2eb689af16fef43ad2b96f3fedb2b9fde3c20c1862ddcb398992b8b",
+    "gx1/contracts/entry_model_native_training_objective_v1.py": "127b87c7d7e8c05b025b8702c92f5d82bf4d92d6603a818f48f66e1261e73ed1",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5c6f74c8d66dcc0d4ade0a8711f41d038138aeea88236e5cec09a9209bcf7ca8",
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "ac3789e4c516bfe1e9c63f72205289b9180a7b87d7d68dc747e631c33cbd2791",
+    "gx1/scripts/materialize_unified_exit_chronological_coordinates_v1.py": "d392f3131f8e70229d7e4a55f945a0e2b5e654866716f7d4dc9c92c0a0893a9d",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "scripts/gx1_capped_run.sh": "a85bf761e3607ead54dd806b4cf581febaeeeca5801e3060ffc1e76a289d5f3d"
+  }
+}

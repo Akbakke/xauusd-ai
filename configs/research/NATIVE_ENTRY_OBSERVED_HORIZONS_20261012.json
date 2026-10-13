@@ -1,0 +1,130 @@
+{
+  "chronological_prefix": {
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
+      "sha256": "3b0cdb6ae07bccd3e9ed54af68b1fb79963809355dcf8ad81db8c90c92288929"
+    },
+    "labels_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+      "sha256": "da308a7b281f1a0b68b6b1e3b7497c71bb21e3b3d7f025c279dea55ae4cb4967"
+    },
+    "native_coordinates": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_COORDINATES_001/NATIVE_COORDINATES.json",
+      "sha256": "6e1a815d106ee298fb366953d16ee11fb0fe87e2cdf83119931f63040243613a"
+    },
+    "normalization_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+      "sha256": "2781c31871c733f86212e7455c9052be77af459aafa5199b92546b1adf29528a"
+    }
+  },
+  "decision_horizon_trading_days": 20,
+  "entry_eligibility_cutoff_utc": {
+    "train": "2025-05-02T19:20:00+00:00",
+    "val": "2026-06-02T23:55:00+00:00"
+  },
+  "exit_updates_entry": false,
+  "files": {
+    "entry_train_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json",
+      "sha256": "022e19bcd52c0333cb3cfd64593c05c13c93f69982340de4fb13d23935d93ad2"
+    },
+    "entry_train_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.parquet",
+      "sha256": "e2d7aed519511e07ccca11b7be14ae89e8808b467635fc948b7a8acf08a2bddb"
+    },
+    "entry_val_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json",
+      "sha256": "3343f1b6b9f9ac94e15ed75f6a93a950864ced5dffbd587c2b388788c708b553"
+    },
+    "entry_val_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.parquet",
+      "sha256": "df4a9175003bfd269a23b15dfc792135340a69ef1faf556080edac2e3748a941"
+    },
+    "train_cost_authority": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/POLICY/parameter_authority.json",
+      "sha256": "54775694d3e102b8bdf4358ce4a8f72e4fd9fa6b98310e109c07e6b872052681"
+    }
+  },
+  "loss_target_batch_key": "entry_observed_market_target_bps_h20d",
+  "native_launch_authorized": false,
+  "observed_only_batch_keys": [
+    "entry_observed_market_target_bps_h1d",
+    "entry_observed_market_target_bps_h5d"
+  ],
+  "schema_version": "gx1_entry_observed_market_horizons_v1_learning_design",
+  "target_contract": {
+    "action_order": [
+      "LONG",
+      "SHORT",
+      "FLAT"
+    ],
+    "batch_target_keys": {
+      "1": "entry_observed_market_target_bps_h1d",
+      "20": "entry_observed_market_target_bps_h20d",
+      "5": "entry_observed_market_target_bps_h5d"
+    },
+    "censored_rows_filled": false,
+    "contract_sha256": "de9ab18f2df489011a73594f4a8a25c9dabc23516fb63591c1fb4df182572083",
+    "decision_authority": "unique argmax over the decision horizon's LONG/SHORT/FLAT values in bps; exact ties fail closed",
+    "decision_batch_target_key": "entry_observed_market_target_bps_h20d",
+    "decision_horizon_trading_days": 20,
+    "elapsed_columns": {
+      "1": "elapsed_seconds_at_1d",
+      "20": "elapsed_seconds_at_20d",
+      "5": "elapsed_seconds_at_5d"
+    },
+    "elapsed_source": "actual wall-clock seconds from the entry decision to the exit bar (financing)",
+    "exit_model_used": false,
+    "exit_rule": "first closed M1 bar in the target session at or after the entry's offset into its own session; otherwise censored",
+    "flat_target_bps": 0.0,
+    "future_outcomes_used_as_model_inputs": false,
+    "gross_target_columns": {
+      "1": [
+        "y_long_gross_at_1d_bps",
+        "y_short_gross_at_1d_bps"
+      ],
+      "20": [
+        "y_long_gross_at_20d_bps",
+        "y_short_gross_at_20d_bps"
+      ],
+      "5": [
+        "y_long_gross_at_5d_bps",
+        "y_short_gross_at_5d_bps"
+      ]
+    },
+    "hindsight_best_exit_used": false,
+    "holding_time_limit": false,
+    "horizon_rule": "h observed sessions after the entry session; sessions without M1 bars are skipped, never counted",
+    "horizon_search_allowed": false,
+    "negative_outcomes_clipped": false,
+    "observation_horizons_trading_days": [
+      1,
+      5,
+      20
+    ],
+    "predecessor_schema_version": "gx1_entry_observed_market_v1",
+    "quote_contract": {
+      "entry_decision_time": "authoritative_m5_bar_close_available_at",
+      "entry_fill_binding": "exact_m1_quote_time_and_bid_ask",
+      "long_entry_price": "ask_open_first_authoritative_m1_at_or_after_entry_decision",
+      "long_exit_price": "bid_open_first_authoritative_m1_at_or_after_fitted_exit_decision",
+      "long_pnl_bps_formula": "(exit_bid-entry_ask)/entry_ask*10000",
+      "missing_or_gapped_m1_path": "label_invalid_not_price_substituted",
+      "path_extrema": "authoritative_m1_bid_ask_ohlc_between_fill_and_exit",
+      "schema_version": "entry_causal_m1_outcomes_v2_entry_notional_pnl",
+      "short_entry_price": "bid_open_first_authoritative_m1_at_or_after_entry_decision",
+      "short_exit_price": "ask_open_first_authoritative_m1_at_or_after_fitted_exit_decision",
+      "short_pnl_bps_formula": "(entry_bid-exit_ask)/entry_bid*10000",
+      "target_affects_feature_availability": false
+    },
+    "schema_version": "gx1_entry_observed_market_horizons_v1",
+    "score_is_calibrated_probability": false,
+    "serving_authority_granted": false,
+    "session_boundary_utc_offset_seconds": 79200,
+    "session_clock": "xau_trading_session_clock_utc_v1",
+    "target": "observed_executable_terminal_cash_return_net_of_declared_costs",
+    "target_unit": "raw_bps"
+  },
+  "test_data_used": false,
+  "training_phase": "entry_only_observed_horizon_20d"
+}
