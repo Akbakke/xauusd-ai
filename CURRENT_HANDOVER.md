@@ -575,6 +575,24 @@ og prefix-kontrakten (horisont/1024 godtas, horisont/256 og uten horisont/1024
 avvises). «Smoke 256» i planen er fit-fasens observasjon ved steg 256; ingen
 egen smoke-recipe finnes for horisontmålet.
 
+**P2 forberedt (13.10):** læringsdesignet
+configs/research/NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json (20-dagersmålet
+som eneste tapsmål, 1/5 d observert, entry-only-fase, prefix bundet til det
+komplette designet, preprocessing-resultatene og koordinater v2, målte
+cutoffs) og studien configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json
+(fit 1 024 steg på TRAIN256, kurve 4 096 steg på de første 65 536 eligible
+radene, CONTROL4096 trukket deterministisk fra de 65 575 komplette VAL-radene,
+ett seed, forhåndsregistrert gjennomgangsregel) er committet. Studieroten er
+/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001 med
+TRAIN_PROBE4096/CONTROL_POPULATION/CONTROL4096. Fit-fasen er admittert i
+policy (entry_learning_study_run, run_id ENTRY_D1_HORIZON_FIT_20261012_001,
+én invokasjon, 1 024 steg); recipe bygges gjennom de eksisterende gatene
+(observert-scope, studie v2, full-train-recipe-validator). GPU-invokasjonen
+krever fersk fysisk Windows-boot (brukeren utfører omstarten) og går gjennom
+materialize_local_random_access_campaign_v2 --phase native-candidate med
+eksisterende vakter. training_enabled er fortsatt false; ingen trening er
+startet.
+
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
 PREPARATION_CPU_001 i NATIVE_D1-generasjonen). De feilede kjerneforsøkene
