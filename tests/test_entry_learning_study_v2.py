@@ -48,9 +48,10 @@ def study_v2(scope, tmp_path, monkeypatch):  # noqa: F811
         p = tmp_path / (name + ".npy")
         np.save(p, a)
         plan["row_bindings"][name] = _bind(p)
+    # the real prefix result carries the eligible rows inside the coordinates block (require_physical_native_training_coordinates)
     monkeypatch.setattr(native, "require_chronological_prefix_recipe", lambda _: {
-        "eligible_parent_rows": ELIGIBLE,
-        "physical_coordinates": {"artifact": {"bindings": {"TRAIN_NATIVE_EPOCH0_ORDER": plan["row_bindings"]["epoch_order"]}}}})
+        "physical_coordinates": {"eligible_parent_rows": ELIGIBLE,
+                                 "artifact": {"bindings": {"TRAIN_NATIVE_EPOCH0_ORDER": plan["row_bindings"]["epoch_order"]}}}})
     monkeypatch.setattr(horizons, "require_entry_observed_market_horizons_scope", lambda _: {
         "decision_horizon_trading_days": 20,
         "physical_sources": {"train": {"physical_rows": 120_000}, "val": {"physical_rows": 8192}},

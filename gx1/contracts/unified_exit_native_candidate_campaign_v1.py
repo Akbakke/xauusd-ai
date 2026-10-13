@@ -2271,7 +2271,7 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
         # The epoch order covers exactly the frozen eligible TRAIN rows (complete 20-day outcomes);
         # control is a deterministic uniform subsample of the bound complete VAL population.
         expected_rows = {"epoch_order", "fit", "train_probe", "control", "control_population"}
-        train_population = np.asarray(prefix["eligible_parent_rows"], dtype=np.int64)
+        train_population = np.asarray(prefix["physical_coordinates"]["eligible_parent_rows"], dtype=np.int64)
         population = rows.get("control_population", np.zeros(0, dtype=np.int64))
         if (len(population) < 4096 or not np.array_equal(population, np.unique(population))
                 or population[-1] >= nv
