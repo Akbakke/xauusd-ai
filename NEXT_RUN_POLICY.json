@@ -5627,9 +5627,9 @@
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001",
         "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
         "authorization_utc": "2026-10-13T05:57:56.372205+00:00",
-        "authorized": true,
+        "authorized": false,
         "relaunch_allowed": false,
-        "status": "AUTHORIZED_NOT_STARTED",
+        "status": "COMPLETED_ONCE",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/PLAN.json",
           "sha256": "446571798a14228ef9d4f9affe6214bf47c7695b9414e4f26ed6a5745f926fa0"
@@ -5675,7 +5675,83 @@
         "automatic_host_restart": false,
         "native_launch_admitted": false,
         "control_evidence_class": "synthetic mechanics/source consistency, not actual native or learning quality",
-        "cloned_from": "native_v38_rebuild_20261007.post_capacity_metadata_stage_001 (NATIVE_METADATA_HANDOFF_001)"
+        "cloned_from": "native_v38_rebuild_20261007.post_capacity_metadata_stage_001 (NATIVE_METADATA_HANDOFF_001)",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/TERMINAL.json",
+          "sha256": "0cc46edd35b9ac7ea3fa106b02a72c30da7549399763134a6fff58c3c3e2b6e9"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/RESULT.json",
+          "sha256": "27e71d263a4eff35a4a166beb1b6492ea36b07e36ac12a6eb8f4ead585376f1e"
+        },
+        "completed_utc": "2026-10-13T05:59:17.849925+00:00",
+        "elapsed_seconds": 5.421427977998974
+      },
+      "native_preprocessing_stage": {
+        "schema_version": "gx1_bound_native_d1_physical_preprocessing_scope_v1",
+        "stage_id": "NATIVE_PREPROCESSING_001",
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001",
+        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
+        "authorization_utc": "2026-10-13T05:59:23.558188+00:00",
+        "authorized": true,
+        "relaunch_allowed": false,
+        "status": "AUTHORIZED_NOT_STARTED",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/PLAN.json",
+          "sha256": "305fe2c1c16e94870e1d53943419d283442142aa99335683bb4562e71fb4e2c6"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/precheck.py",
+          "sha256": "2dcd5b8c4c2a9120b979511bd33a1afd81d036629a0394ce66b1c93105da70d4"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/launch.py",
+          "sha256": "0ee572dafcfa5d0d83c3cc5a992b5ef9b7c567a7aacc63fd9b8a2685ade5c221"
+        },
+        "focused_controls": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/FOCUSED_STRICT_CONTROLS.xml",
+          "sha256": "54abc45ad1ab49ac0d31a8bfaf911c0c4e334c081f04406b0e707016a7850a3d"
+        },
+        "focused_control_cases_passed": 37,
+        "focused_handover": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/FOCUSED_HANDOVER.xml",
+          "sha256": "cf4d71afa4993f21ed2e7befe62aa1e8d8fab4b6867f2b5e0197c0e91d8e2bb7"
+        },
+        "focused_handover_cases_passed": 63,
+        "original_cpu_budget": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/BUDGET.json",
+          "sha256": "3c4415500b3338a8f86c497d0e20a3702bd00cb851bf6688caae793e95c2c81f"
+        },
+        "cpu_deadline_utc": "2026-10-13T13:52:08.038984+00:00",
+        "max_wall_seconds": 86400,
+        "expected_boot_id": "168c05bf-86f1-47ad-962e-77c6a2ae366c",
+        "budget_reset_or_benchmark_relaunch_allowed": false,
+        "scope": "Actual immutable physical TRAIN/VAL target-domain and pre-TEST original M5-clock support validation; M1 complete-mask evidence reused only with genuine current immutable outputs and exact unchanged emitter/target-owner bytes. Original target M1 source15c4 is not relabeled as input source54b6. Join completed whole-TRAIN normalization and genuine full parity/index evidence, verify actual successor arrays, then publish coordinates using the existing owner. No target rewrite, refit, model or native launch.",
+        "resource_owner": "scripts/gx1_capped_run.sh unchanged audit4G/512M CPU0-7 one numerical thread64tasks CURRENT lock",
+        "outputs": {
+          "labels": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+          "native_coordinates": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_COORDINATES_001",
+          "normalization": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+          "result": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/PREPROCESSING_RESULT.json"
+        },
+        "model_constructor_allowed": false,
+        "model_training_allowed": false,
+        "normalization_fit_allowed": false,
+        "test_access_authorized": false,
+        "cleanup_allowed": false,
+        "automatic_host_restart": false,
+        "native_launch_admitted": false,
+        "control_evidence_class": "synthetic mechanics/source consistency, not actual native or learning quality",
+        "cloned_from": "native_v38_rebuild_20261007.native_preprocessing_stage_001 (NATIVE_PREPROCESSING_001)",
+        "entry_eligibility_cutoff_utc": {
+          "train": "2025-05-02T19:20:00+00:00",
+          "val": "2026-06-02T23:55:00+00:00"
+        },
+        "horizons_design": {
+          "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json",
+          "sha256": "dd002a36d528790db25d15e351292a97877b357eb6a2e9f16792f12414ed2a3a"
+        },
+        "target_producer_commit": "8f5d39fd252ed56d97970fe4bee97de924d93910"
       }
     }
   },

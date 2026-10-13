@@ -542,6 +542,18 @@ konservativ projeksjon. NATIVE_METADATA_HANDOFF_001 er klonet fra V38
 beholdt som eierens), kontroller 22 + 63 grønne, admittert; den publiserer
 SELECTED_SAMPLER og det komplette designet (scope/status fra
 prosedyredeklarasjonen) under kapasitetsbudsjettets frist 13:52 UTC.
+NATIVE_METADATA_HANDOFF_001 terminerte GRØNT 05:58 UTC etter 5 s: SELECTED_SAMPLER
+(budsjett 32 768, batch 16, direct_same_root_benchmark_v1) og det komplette
+designet (status DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE, scope med
+entry_only_observed_horizon_20d) publisert; COMPLETED_ONCE.
+NATIVE_PREPROCESSING_001 er klonet fra V38 (policynøkkel
+native_preprocessing_stage): precheck-produsenten er patchet til å kalle
+koordinat-eieren med horizon_eligibility (prosedyredeklarasjonen som bundet
+horisontdesign, målt TRAIN-cutoff 2025-05-02T19:20Z) og krever at planens
+cutoffs er de målte; signalmanifest, M5-målkilde, byggecommit 8f5d39fd og de
+fem måleierne er bundet fra NATIVE_D1-manifestet (uendret HEAD mot
+byggecommit). Kontroller 37 + 63 grønne, admittert; publiserer LABELS_RESULT,
+NORMALIZATION_RESULT og NATIVE_COORDINATES_001 (v2 over 644 255 eligible rader).
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
