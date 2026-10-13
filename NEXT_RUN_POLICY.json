@@ -4992,7 +4992,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P1_SAMPLER_BENCHMARK_002_ADMITTED_LAUNCHING_RECEIPTS_OWN_PROGRESS",
+      "status": "P1_CAPACITY_MEASURED_METADATA_HANDOFF_NEXT",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5507,7 +5507,7 @@
         "schema_version": "gx1_bound_native_d1_train_capacity_scope_v1",
         "stage_id": "SAMPLER_BENCHMARK_002",
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002",
-        "authorized": true,
+        "authorized": false,
         "relaunch_allowed": false,
         "cpu_budget": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/BUDGET.json",
@@ -5542,7 +5542,7 @@
         "resource_owner": "scripts/gx1_capped_run.sh CPU producer20G/512M,CPU0-7,1 thread,64tasks,CURRENT project lock,unchanged available-memory/cgroup guards",
         "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
         "authorization_utc": "2026-10-12T13:52:44.542357+00:00",
-        "status": "AUTHORIZED_NOT_STARTED",
+        "status": "GENUINE_COMPLETE_MEASURED_TRAIN_CAPACITY_EXIT0_AUTHORITY_CONSUMED",
         "proposal": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_PROPOSAL_002/PROPOSAL.json",
           "sha256": "b1a71bad4d0bd52e20c62dc05c9c69c4b991d7f1b5a1b425dc5e2e33a71f0d7a"
@@ -5558,7 +5558,56 @@
         },
         "focused_handover_cases_passed": 63,
         "focused_controls_note": "Receipts produced before the launcher-only fixup (policy key and grace-key spelling in launch.py); the capacity tests exercise benchmark.py require_scope only, and the stage BINDING hashes the fixed launcher.",
-        "cloned_from": "native_v38_rebuild_20261007.train_capacity_stage_002 (SAMPLER_BENCHMARK_002)"
+        "cloned_from": "native_v38_rebuild_20261007.train_capacity_stage_002 (SAMPLER_BENCHMARK_002)",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/TERMINAL.json",
+          "sha256": "d8ea15c009d4628afd4c0a4bb8289a80251ab77b3e093434bf2e367bef050c84"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/RESULT.json",
+          "sha256": "b5b81c4f32fd1c16bebbae9a5495b0ea3eb9ae3a2f392d1db64feba56c58e274"
+        },
+        "completed_utc": "2026-10-13T05:57:49.705232+00:00",
+        "elapsed_seconds": 57822.50672815301,
+        "capacity_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/CAPACITY_RESULT.json",
+          "sha256": "74fd3992543854c51e69cd596f9681e53785ea85bfca8a78e9b2d196fac46260"
+        },
+        "benchmark": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/BENCHMARK.json",
+          "sha256": "637133d0e9889112dd3d3efb216baaa5f8fbb07814a7c4ccf6af2d6c86fc95aa"
+        },
+        "selected_candidate": {
+          "batch_size": 16,
+          "measured_epoch_seconds": 7906.516164545999,
+          "population_cycle_epochs": 80,
+          "projected_entry_population_cycle_seconds": 632521.29316368,
+          "sampler_contract_sha256": "fc62a257fd68fdea5e8c681ac9980e9605c35320dd0859b8a9520e75d618ca8b",
+          "transition_budget_per_epoch": 32768
+        },
+        "full_candidates_measured": 3,
+        "finished_utc": "2026-10-13T05:55:50.137465+00:00",
+        "source_unchanged_at_terminal": true,
+        "measured_candidates": {
+          "32768": {
+            "full_budget_measured": true,
+            "full_selected_entry_pairs": 8192,
+            "sampler_contract_sha256": "fc62a257fd68fdea5e8c681ac9980e9605c35320dd0859b8a9520e75d618ca8b",
+            "transition_budget_per_epoch": 32768
+          },
+          "65536": {
+            "full_budget_measured": true,
+            "full_selected_entry_pairs": 16384,
+            "sampler_contract_sha256": "d6bcae92f71057a05b197a1bd61ab7214d85d5bce28c1a7d387d56db5a51de87",
+            "transition_budget_per_epoch": 65536
+          },
+          "131072": {
+            "full_budget_measured": true,
+            "full_selected_entry_pairs": 32768,
+            "sampler_contract_sha256": "3dba32ce1910ef1e79232235ee14868d79e7637ce76d30301130d8109436dc33",
+            "transition_budget_per_epoch": 131072
+          }
+        }
       },
       "sampler_capacity_budget_002": {
         "stage_local": true,
@@ -5571,6 +5620,62 @@
         "one_shot_attempts": 1,
         "relaunch_allowed": false,
         "note": "Attempt 1 (SAMPLER_BENCHMARK_001, 64 800 s) was stopped by the agent at 320 measured pairs: 0.955 s/pair against the V38 reference 0.819 s/pair projected the three full candidate epochs to 64 287 s, over its 64 505 s timeout; closed as train_capacity_stage_failed_001 with FAILURE/TERMINAL retained and SUPERSEDED.json. Attempt 2 is a new one-shot claim, never a relaunch; the follow-on metadata and preprocessing stages bind this budget as their original authority."
+      },
+      "post_capacity_metadata_stage": {
+        "schema_version": "gx1_bound_native_d1_metadata_handoff_scope_v1",
+        "stage_id": "NATIVE_METADATA_HANDOFF_001",
+        "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001",
+        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
+        "authorization_utc": "2026-10-13T05:57:56.372205+00:00",
+        "authorized": true,
+        "relaunch_allowed": false,
+        "status": "AUTHORIZED_NOT_STARTED",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/PLAN.json",
+          "sha256": "446571798a14228ef9d4f9affe6214bf47c7695b9414e4f26ed6a5745f926fa0"
+        },
+        "producer": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/publish_metadata.py",
+          "sha256": "ba331a6c75c7a5691848fce92cbc28831721a50fd46fa7649ecdb5e3df0144d0"
+        },
+        "launcher": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/launch.py",
+          "sha256": "91609ccd586fa1fdf093d0912895bd737312de7f9d27660acd376e76a69ea4e4"
+        },
+        "focused_controls": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/FOCUSED_CONTROLS.xml",
+          "sha256": "f7509a9354b798c60190d77ea92b9b02f4155eb2a3490da21401c0b6cb9ddc06"
+        },
+        "focused_control_cases_passed": 22,
+        "focused_handover": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/FOCUSED_HANDOVER.xml",
+          "sha256": "0fc7f6c455893eb81d7122225be0f2f5308f3cfc6cd2f353edbc4421c64571f3"
+        },
+        "focused_handover_cases_passed": 63,
+        "original_cpu_budget": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/SAMPLER_BENCHMARK_002/BUDGET.json",
+          "sha256": "3c4415500b3338a8f86c497d0e20a3702bd00cb851bf6688caae793e95c2c81f"
+        },
+        "cpu_deadline_utc": "2026-10-13T13:52:08.038984+00:00",
+        "max_wall_seconds": 86400,
+        "expected_boot_id": "168c05bf-86f1-47ad-962e-77c6a2ae366c",
+        "budget_reset_or_benchmark_relaunch_allowed": false,
+        "scope": "Publish the measured selected-sampler owner from SAMPLER_BENCHMARK_001 and the exact missing scope/status completion of the frozen NATIVE_D1 horizon design from its already-bound procedure declaration; the capacity stage's finite budget/deadline retained. No new benchmark, preprocessing fit, model, native admission or restart.",
+        "resource_owner": "scripts/gx1_capped_run.sh unchanged audit4G/512M CPU0-7 one numerical thread64tasks CURRENT lock",
+        "outputs": {
+          "design": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
+          "result": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/METADATA_RESULT.json",
+          "selected_sampler": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/SELECTED_SAMPLER.json"
+        },
+        "model_constructor_allowed": false,
+        "model_training_allowed": false,
+        "normalization_fit_allowed": false,
+        "test_access_authorized": false,
+        "cleanup_allowed": false,
+        "automatic_host_restart": false,
+        "native_launch_admitted": false,
+        "control_evidence_class": "synthetic mechanics/source consistency, not actual native or learning quality",
+        "cloned_from": "native_v38_rebuild_20261007.post_capacity_metadata_stage_001 (NATIVE_METADATA_HANDOFF_001)"
       }
     }
   },

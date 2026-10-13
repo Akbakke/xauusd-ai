@@ -531,6 +531,17 @@ skript, kontroller 15 + 63 grønne, admittert som train_capacity_stage. Deretter
 NATIVE_METADATA_HANDOFF_001 (SELECTED_SAMPLER + design-metadata) og
 NATIVE_PREPROCESSING_001 (labels/normalisering + koordinater v2 over eligible
 delmengde), begge under kapasitetsbudsjettets opprinnelige frist.
+SAMPLER_BENCHMARK_002 terminerte GRØNT 13.10 05:56 UTC etter 57 822 s (exit 0,
+source_unchanged): alle tre kandidater målt komplett; valgt sampler batch 16,
+budsjett 32 768 transisjoner per epoke, målt CPU-epoke 7 907 s (V38: 7 276 s på
+254 felt), 80 populasjonssykluser. Registrert COMPLETED_ONCE med
+CAPACITY_RESULT/BENCHMARK bundet. Forsøk 1 hadde, målt i ettertid, trolig
+klart sitt vindu (rateforfallet ble mindre enn V38-mønsteret); stoppet står som
+konservativ projeksjon. NATIVE_METADATA_HANDOFF_001 er klonet fra V38
+(policynøkkel post_capacity_metadata_stage, produsentens resultatskjema-navn
+beholdt som eierens), kontroller 22 + 63 grønne, admittert; den publiserer
+SELECTED_SAMPLER og det komplette designet (scope/status fra
+prosedyredeklarasjonen) under kapasitetsbudsjettets frist 13:52 UTC.
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
