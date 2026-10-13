@@ -4633,6 +4633,11 @@ def _physical_auxiliary_target_binding(
     }
 
 
+def _planned_prefix_optimizer_steps(design: Mapping[str, Any]) -> int:
+    from gx1.contracts.entry_observed_market_horizons_v1 import planned_prefix_optimizer_steps
+    return planned_prefix_optimizer_steps(design)
+
+
 def _observed_entry_batch_items(dataset, row):
     from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_batch_items
     return observed_entry_batch_items(dataset, row)
@@ -13162,7 +13167,7 @@ def _prefix_candidate_training_binding(
             or design["initialization"].get("mode") != "fresh_existing_model_constructor_no_checkpoint_weights"
             or seed != design["initialization"]["seed"] or batch_size != 16
             or learning_rate != 0.0001 or weight_decay != 0.0001
-            or design["budget"]["planned_optimizer_steps"] != 256
+            or design["budget"]["planned_optimizer_steps"] != _planned_prefix_optimizer_steps(design)
             or design["budget"]["maximum_trained_entry_rows"] != 4096
             or (physical is None and normalization["fit_cutoff_time_ns"] != cutoff)
             or input_normalization["contract_sha256"] != normalization_identity["base_contract_sha256"]

@@ -554,6 +554,26 @@ cutoffs er de målte; signalmanifest, M5-målkilde, byggecommit 8f5d39fd og de
 fem måleierne er bundet fra NATIVE_D1-manifestet (uendret HEAD mot
 byggecommit). Kontroller 37 + 63 grønne, admittert; publiserer LABELS_RESULT,
 NORMALIZATION_RESULT og NATIVE_COORDINATES_001 (v2 over 644 255 eligible rader).
+NATIVE_PREPROCESSING_001 terminerte GRØNT 06:04 UTC etter 252 s: LABELS_RESULT
+(frosne TRAIN-policyer, komplett pre-TEST målklokkestøtte, CONTROL256 ok),
+NORMALIZATION_RESULT (composite + first-state-bindinger, ingen refit) og
+NATIVE_COORDINATES_001 (skjema v2: 644 255 eligible TRAIN-rader med komplette
+utfall ved alle horisonter til og med 2025-05-02T19:20Z, 3 284 sensurerte
+ekskludert; epoke-0-rekkefølge = den native samplerens rekkefølge filtrert til
+delmengden; TRAIN4096 og TRAIN256-probe fra den). P1 er DONE; begge
+CPU-budsjettene er lukket som konsumert. Ingen modell er kjørt.
+
+**Eierrettelse før P2 (13.10):** tre lesere (prefix-kontrakten i
+unified_exit_native_candidate_campaign_v1, treneren og full-train-launcheren)
+hardkodet design.budget.planned_optimizer_steps == 256 (V38-smokens budsjett).
+Det frosne NATIVE_D1-designet planlegger 1 024 steg (fit-fasen). Én opprinnelse:
+`MINIMUM_PLAN_FIT_OPTIMIZER_STEPS = 1024` i gx1/contracts/entry_observed_market_horizons_v1.py,
+valgt av `planned_prefix_optimizer_steps(design)` når designets scope
+deklarerer entry_only_observed_horizon_20d, ellers V38-konvensjonen 256;
+studie v2s faste fit-budsjett leser samme konstant. Tester: planned-steps-valget
+og prefix-kontrakten (horisont/1024 godtas, horisont/256 og uten horisont/1024
+avvises). «Smoke 256» i planen er fit-fasens observasjon ved steg 256; ingen
+egen smoke-recipe finnes for horisontmålet.
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,

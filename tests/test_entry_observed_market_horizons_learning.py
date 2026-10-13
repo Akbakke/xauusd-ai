@@ -222,3 +222,10 @@ def test_horizon_design_validation_binds_decision_keys_cutoffs_and_source_manife
         monkeypatch.setattr(observed, "_require_observed_market_plan", lambda recipe, **kwargs: bad)
         with pytest.raises(RuntimeError, match="ENTRY_OBSERVED_HORIZONS_(DESIGN|SOURCE_MANIFEST)_INVALID"):
             horizons.require_entry_observed_market_horizons_scope({"entry_observed_market_horizons": {}})
+
+
+def test_planned_prefix_steps_follow_the_declared_entry_only_horizon_phase():
+    horizon = {"scope": {"entry_only_training_phase": ENTRY_ONLY_HORIZON_TRAINING_PHASE}}
+    assert horizons.planned_prefix_optimizer_steps(horizon) == horizons.MINIMUM_PLAN_FIT_OPTIMIZER_STEPS == 1024
+    assert horizons.planned_prefix_optimizer_steps({"scope": {"same_architecture": True}}) == 256
+    assert horizons.planned_prefix_optimizer_steps({}) == horizons.V38_SMOKE_PLANNED_OPTIMIZER_STEPS

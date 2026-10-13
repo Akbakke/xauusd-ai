@@ -51,6 +51,21 @@ GROSS_TARGET_COLUMNS_BY_HORIZON = {
 ELAPSED_COLUMN_BY_HORIZON = {h: f"elapsed_seconds_at_{h}d" for h in OBSERVATION_HORIZONS_TRADING_DAYS}
 BATCH_TARGET_KEY_BY_HORIZON = {h: f"entry_observed_market_target_bps_h{h}d" for h in OBSERVATION_HORIZONS_TRADING_DAYS}
 DECISION_BATCH_TARGET_KEY = BATCH_TARGET_KEY_BY_HORIZON[DECISION_HORIZON_TRADING_DAYS]
+# Operator decision 12.10.2026 (minimum native learning): the first planned learning run on the horizon
+# target is the fit phase (1024 steps on TRAIN256); the V38 generation's frozen designs planned the
+# 256-step native smoke. A frozen design's budget.planned_optimizer_steps must equal the value its own
+# declared scope selects; the learning study's fixed fit budget reads the same constant.
+MINIMUM_PLAN_FIT_OPTIMIZER_STEPS = 1024
+V38_SMOKE_PLANNED_OPTIMIZER_STEPS = 256
+
+
+def planned_prefix_optimizer_steps(design: Mapping[str, Any]) -> int:
+    """The optimizer budget a frozen chronological design must plan: the minimum plan's fit budget when
+    its scope declares the entry-only horizon phase, otherwise the V38 smoke convention."""
+    scope = design.get("scope") if isinstance(design, Mapping) else None
+    if isinstance(scope, Mapping) and scope.get("entry_only_training_phase") == ENTRY_ONLY_HORIZON_TRAINING_PHASE:
+        return MINIMUM_PLAN_FIT_OPTIMIZER_STEPS
+    return V38_SMOKE_PLANNED_OPTIMIZER_STEPS
 
 
 def _sha(value: Any) -> str:

@@ -459,3 +459,26 @@ def test_physical_recipe_rejects_mixed_exposed_or_wrong_population_artifacts(phy
     monkeypatch.setattr(Path,"resolve",resolve)
     with pytest.raises(RuntimeError):
         native.require_chronological_prefix_recipe(c["recipe"])
+
+
+@pytest.mark.parametrize("phase,planned,accepted",[
+    ("horizon",1024,True),("horizon",256,False),(None,1024,False),(None,256,True),
+])
+def test_physical_recipe_plans_the_fit_budget_only_when_the_design_declares_the_horizon_phase(physical_recipe,monkeypatch,phase,planned,accepted):
+    import pandas as pd
+    from gx1.contracts.entry_observed_market_horizons_v1 import ENTRY_ONLY_HORIZON_TRAINING_PHASE
+    c = physical_recipe
+    d = c["design"]
+    d["budget"]["planned_optimizer_steps"] = planned
+    if phase == "horizon":
+        d["scope"]["entry_only_training_phase"] = ENTRY_ONLY_HORIZON_TRAINING_PHASE
+    recipe = c["seal"]()
+    def forbidden(*a, **kw):
+        raise AssertionError("No market materialization or model construction")
+    monkeypatch.setattr(pd,"read_parquet",forbidden)
+    monkeypatch.setattr(runner.val,"_model",forbidden)
+    if accepted:
+        assert native.require_chronological_prefix_recipe(recipe)["train_rows"]==4500
+    else:
+        with pytest.raises(RuntimeError,match="NATIVE_PREFIX_DESIGN_OR_TARGET_MISMATCH"):
+            native.require_chronological_prefix_recipe(recipe)

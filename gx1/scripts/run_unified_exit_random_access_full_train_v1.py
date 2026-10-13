@@ -252,6 +252,11 @@ def _require_component_sampler(*, files, chronological_prefix):
     return selected
 
 
+def planned_prefix_optimizer_steps(design):
+    from gx1.contracts.entry_observed_market_horizons_v1 import planned_prefix_optimizer_steps as owner
+    return owner(design)
+
+
 def _require_prefix_component_bindings(value, *, files, seed, batch_size, learning_rate, weight_decay):
     """Check completed preprocessing identity; never fit or grant launch authority."""
     if (not isinstance(value, Mapping) or set(value) not in (
@@ -272,7 +277,7 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
             or design["initialization"].get("mode") != "fresh_existing_model_constructor_no_checkpoint_weights"
             or type(seed) is not int or seed != design["initialization"]["seed"]
             or batch_size != 16 or learning_rate != 0.0001 or weight_decay != 0.0001
-            or design["budget"]["planned_optimizer_steps"] != 256
+            or design["budget"]["planned_optimizer_steps"] != planned_prefix_optimizer_steps(design)
             or design["budget"]["maximum_trained_entry_rows"] != 4096):
         raise RuntimeError("NATIVE_PREFIX_COMPONENT_IDENTITY_INVALID")
     if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS:

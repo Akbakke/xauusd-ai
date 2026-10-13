@@ -4992,7 +4992,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P1_CAPACITY_MEASURED_METADATA_HANDOFF_NEXT",
+      "status": "P1_DONE_P2_SPECS_NEXT",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5074,7 +5074,7 @@
           }
         },
         "P1_cpu_preparation": {
-          "status": "RUNNING",
+          "status": "DONE",
           "stages_in_order": [
             "NATIVE_PREPARATION_003",
             "SAMPLER_BENCHMARK_002",
@@ -5128,6 +5128,14 @@
               "v38_reference_early_rate_s_per_pair": 0.8186030529062464,
               "v38_reference_overhead_seconds": 718.7356726009893
             }
+          },
+          "completed_utc": "2026-10-13T06:04:49.258902+00:00",
+          "outputs": {
+            "design": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
+            "selected_sampler": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/SELECTED_SAMPLER.json",
+            "labels_result": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+            "normalization_result": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+            "native_coordinates": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_COORDINATES_001/NATIVE_COORDINATES.json"
           }
         },
         "P2_gpu_campaign": {
@@ -5158,7 +5166,7 @@
         "max_wall_seconds": 64800,
         "new_budget_time_added": true,
         "optimizer_authorized": false,
-        "status": "open"
+        "status": "closed_consumed_by_NATIVE_PREPARATION_003"
       },
       "native_preparation_stage_failed_001": {
         "schema_version": "gx1_bound_native_d1_preparation_stage_v1",
@@ -5619,7 +5627,8 @@
         "max_wall_seconds": 86400,
         "one_shot_attempts": 1,
         "relaunch_allowed": false,
-        "note": "Attempt 1 (SAMPLER_BENCHMARK_001, 64 800 s) was stopped by the agent at 320 measured pairs: 0.955 s/pair against the V38 reference 0.819 s/pair projected the three full candidate epochs to 64 287 s, over its 64 505 s timeout; closed as train_capacity_stage_failed_001 with FAILURE/TERMINAL retained and SUPERSEDED.json. Attempt 2 is a new one-shot claim, never a relaunch; the follow-on metadata and preprocessing stages bind this budget as their original authority."
+        "note": "Attempt 1 (SAMPLER_BENCHMARK_001, 64 800 s) was stopped by the agent at 320 measured pairs: 0.955 s/pair against the V38 reference 0.819 s/pair projected the three full candidate epochs to 64 287 s, over its 64 505 s timeout; closed as train_capacity_stage_failed_001 with FAILURE/TERMINAL retained and SUPERSEDED.json. Attempt 2 is a new one-shot claim, never a relaunch; the follow-on metadata and preprocessing stages bind this budget as their original authority.",
+        "status": "closed_consumed_by_SAMPLER_BENCHMARK_002_METADATA_HANDOFF_001_PREPROCESSING_001"
       },
       "post_capacity_metadata_stage": {
         "schema_version": "gx1_bound_native_d1_metadata_handoff_scope_v1",
@@ -5693,9 +5702,9 @@
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001",
         "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
         "authorization_utc": "2026-10-13T05:59:23.558188+00:00",
-        "authorized": true,
+        "authorized": false,
         "relaunch_allowed": false,
-        "status": "AUTHORIZED_NOT_STARTED",
+        "status": "GENUINE_PHYSICAL_PRECHECK_AND_COORDINATES_V2_COMPLETE_EXIT0_AUTHORITY_CONSUMED",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/PLAN.json",
           "sha256": "305fe2c1c16e94870e1d53943419d283442142aa99335683bb4562e71fb4e2c6"
@@ -5751,7 +5760,40 @@
           "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json",
           "sha256": "dd002a36d528790db25d15e351292a97877b357eb6a2e9f16792f12414ed2a3a"
         },
-        "target_producer_commit": "8f5d39fd252ed56d97970fe4bee97de924d93910"
+        "target_producer_commit": "8f5d39fd252ed56d97970fe4bee97de924d93910",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/TERMINAL.json",
+          "sha256": "856ec145e95fa3c30fc7a98397c74d38fb1b03160114c4c7f15a2b4c255289d2"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/RESULT.json",
+          "sha256": "23c2fccbe530c85919e3d3cb674363c104821c1598c8ba85dd966305ea16578e"
+        },
+        "completed_utc": "2026-10-13T06:04:49.116482+00:00",
+        "elapsed_seconds": 251.57137798199255,
+        "preprocessing_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/PREPROCESSING_RESULT.json",
+          "sha256": "98dbf258341f93d189007f0d6f7ec57cb5907512d262984ac3ff06f924ccba96"
+        },
+        "native_coordinates": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_COORDINATES_001/NATIVE_COORDINATES.json",
+          "sha256": "6e1a815d106ee298fb366953d16ee11fb0fe87e2cdf83119931f63040243613a"
+        },
+        "labels_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/LABELS_RESULT.json",
+          "sha256": "da308a7b281f1a0b68b6b1e3b7497c71bb21e3b3d7f025c279dea55ae4cb4967"
+        },
+        "normalization_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/NORMALIZATION_RESULT.json",
+          "sha256": "2781c31871c733f86212e7455c9052be77af459aafa5199b92546b1adf29528a"
+        },
+        "coordinate_eligibility": {
+          "censored_rows_excluded": 3284,
+          "complete_at_all_observation_horizons": true,
+          "eligible_rows": 644255,
+          "entry_eligibility_cutoff_utc": "2025-05-02T19:20:00+00:00",
+          "rule": "complete_outcomes_at_all_observation_horizons_at_or_before_measured_cutoff"
+        }
       }
     }
   },

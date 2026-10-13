@@ -679,6 +679,11 @@ def require_physical_native_training_coordinates(
     }
 
 
+def _planned_prefix_optimizer_steps(design: Mapping[str, Any]) -> int:
+    from gx1.contracts.entry_observed_market_horizons_v1 import planned_prefix_optimizer_steps
+    return planned_prefix_optimizer_steps(design)
+
+
 def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, Any]:
     """Read the frozen prefix identity; this alone never grants run authority."""
     import numpy as np
@@ -699,7 +704,7 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
             or design.get("scope", {}).get("test_sealed") is not True
             or design.get("scope", {}).get("same_architecture") is not True
             or design.get("scope", {}).get("one_experiment") is not True
-            or design.get("budget", {}).get("planned_optimizer_steps") != 256
+            or design.get("budget", {}).get("planned_optimizer_steps") != _planned_prefix_optimizer_steps(design)
             or design.get("budget", {}).get("maximum_trained_entry_rows") != 4096
             or design.get("budget", {}).get("epochs_completed") != 0
             or design.get("budget", {}).get("repeat_or_automatic_extension") is not False
@@ -2226,8 +2231,9 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
         design_key, model_spec = "entry_observed_market_horizons", {"unchanged_architecture":True, "signal_fields":315,
             "context_fields":132, "feature_families":8, "context_families":9, "fresh_initialization_each_phase":True,
             "optimizer_and_loss_unchanged":True, "seed":20260911, "loss_horizon_trading_days":20}
+        from gx1.contracts.entry_observed_market_horizons_v1 import MINIMUM_PLAN_FIT_OPTIMIZER_STEPS
         fixed_phases = {
-            "fit": {"optimizer_steps":1024, "train_observation_steps":[0,64,256,1024],
+            "fit": {"optimizer_steps":MINIMUM_PLAN_FIT_OPTIMIZER_STEPS, "train_observation_steps":[0,64,256,1024],
                     "control_observation_steps":[], "max_invocations":1, "unique_train_rows":256},
             "curve": {"optimizer_steps":4096, "train_observation_steps":[0,256,1024,4096],
                       "control_observation_steps":[0,4096], "max_invocations":1,
