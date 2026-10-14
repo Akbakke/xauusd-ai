@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-14T17:36:50.982243+00:00",
-  "status": "NATIVE_D1_MINIMUM_LEARNING_P3_REVIEWED_REJECT_ENTRY_QUALIFICATION",
+  "observed_utc": "2026-10-14T18:06:28.281901+00:00",
+  "status": "NATIVE_D1_RECENT_YEAR_PHASE_ADMITTED_RETENTION_WAVE1_COMPLETE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Minimum learning (12.10) is complete and reviewed: fit 1024 and curve 4096 ran, study review v2 = REJECT_ENTRY_QUALIFICATION (no generalization on CONTROL4096 at 4096 steps). Next GPU phase needs an operator decision and its own policy binding: the user prefers a smaller chronological window first (recent_year study phase) before any full epoch. Retention wave 1 (unreferenced prebuilt generations) runs through the retention owner plan -> approve -> execute in the background. No native launch, orders or spending; training_enabled stays false.",
+  "next_action": "Recent-window phase admitted (successor spec 20261014, 4 071 steps, one invocation): build the recipe, prepare the campaign (PREPARE capture, materialize, Windows task), then the user's physical reboot runs it; review with REVIEW_PHASE/REVIEW_STUDY. Retention wave 1 complete (78.3 GiB); wave 2 needs document closure. No native launch, orders or spending; training_enabled stays false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -161,7 +161,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "none running: study v2 reviewed (REJECT_ENTRY_QUALIFICATION); the next phase requires an operator decision and a new policy binding; retention wave 1 pending through the owner",
+    "current_blocker": "recent_year phase admitted, recipe/campaign preparation next; the GPU invocation needs the user's physical Windows reboot",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -5002,7 +5002,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P3_REVIEWED_REJECT_ENTRY_QUALIFICATION_FIX_WAVE_APPLIED",
+      "status": "P2_RECENT_YEAR_ADMITTED_RECEIPTS_OWN_PROGRESS",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5024,7 +5024,8 @@
         "phases": {
           "fit": 1024,
           "curve": 4096,
-          "smoke": "the fit phase's TRAIN256 observation at optimizer step 256; no separate smoke phase exists"
+          "smoke": "the fit phase's TRAIN256 observation at optimizer step 256; no separate smoke phase exists",
+          "recent_year": 4071
         },
         "control_observation_steps": [
           0,
@@ -5036,7 +5037,8 @@
         "full_val_allowed": false,
         "control_selection_allowed": false,
         "test_access_allowed": false,
-        "control_observation_note": "study spec and study contract bind CONTROL4096 at steps 0 and 4096 and TRAIN_PROBE4096 at 0/256/1024/4096; the plan document's four control checkpoints were a wording error, repaired 14.10.2026"
+        "control_observation_note": "study spec and study contract bind CONTROL4096 at steps 0 and 4096 and TRAIN_PROBE4096 at 0/256/1024/4096; the plan document's four control checkpoints were a wording error, repaired 14.10.2026",
+        "recent_year_note": "14.10.2026: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261014 adds the recent-window phase (365 days before the TRAIN cutoff, 65 148 eligible rows, 4 071 steps derived by the contract owner); fit/curve repeated byte for byte"
       },
       "steps": {
         "P0_code": {
@@ -5149,10 +5151,11 @@
           }
         },
         "P2_gpu_campaign": {
-          "status": "FIT_AND_CURVE_REVIEWED_STUDY_REVIEW_COMPLETE",
+          "status": "FIT_AND_CURVE_REVIEWED_RECENT_YEAR_ADMITTED",
           "phases_in_order": [
             "fit_1024",
-            "curve_4096"
+            "curve_4096",
+            "recent_year_4071"
           ],
           "requires": "fresh physical Windows boot per invocation by the operator, existing native campaign and guards, own policy binding per phase",
           "phases": {
@@ -5562,7 +5565,64 @@
                 "recipe_sha256": "2a4c8c9d99c356ac30dc6b336d236ea17aa4bafe63011ecf202f5010e5691f22",
                 "campaign_state": "no receipt written by the controller; ACTIVE_INVOCATION retained as evidence; task disabled; never relaunched"
               }
-            ]
+            ],
+            "recent_year": {
+              "status": "ADMITTED_NOT_STARTED",
+              "admitted_utc": "2026-10-14T18:05:51.394586+00:00",
+              "scope": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001/RECENT_YEAR/POLICY_SCOPE.json",
+                "sha256": "bf598ca8f039d3f0ea91f4d319b8f79efac94b080c99926bc6bda216ef204648"
+              },
+              "study": {
+                "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261014.json",
+                "sha256": "6402bfba2f9db4f9ce9b6c988cd4ade714a12e4f52b43b1fc8a071c3349155b8"
+              },
+              "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001/RECENT_YEAR",
+              "run_id": "ENTRY_D1_HORIZON_RECENT_YEAR_20261014_001",
+              "operator_basis": "GX1_RULES operator decision 14.10.2026 (b): a smaller chronological window before any full epoch",
+              "window": {
+                "rule": "eligible TRAIN rows whose decision lies in (cutoff - window_days, cutoff]; frozen epoch-0 order restricted to the window first",
+                "window_days": 365,
+                "window_rows": 65148,
+                "trained_rows": 65136,
+                "steps_rule": "floor((window_rows - 1) / 16): no epoch completes",
+                "contrast": "same trained-row count order as the curve (65 536 rows across 2011-2025) but concentrated in the last year before the cutoff; CONTROL4096 unchanged",
+                "hypothesis": "recent-regime rows generalize to the development CONTROL (June 2026 and the months before) where the full-history curve did not"
+              },
+              "phase_spec": {
+                "run_id": "ENTRY_D1_HORIZON_RECENT_YEAR_20261014_001",
+                "optimizer_steps": 4071,
+                "window_days": 365,
+                "window_rows": 65148,
+                "train_observation_steps": [
+                  0,
+                  256,
+                  1024,
+                  4071
+                ],
+                "control_observation_steps": [
+                  0,
+                  4071
+                ],
+                "max_invocations": 1,
+                "unique_train_rows": 65136
+              },
+              "predecessor": {
+                "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                "sha256": "ee136083f7c2eeb38dd9832d7e5a422b48553fb783d054c60981125929be8d24"
+              },
+              "row_bindings": {
+                "recent_year": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001/RECENT_YEAR_PARENT_ROWS.npy",
+                  "sha256": "dec62684733cd0fc005417c7e6daadd6d70416be832675ebd0a30c69cc6a409d"
+                },
+                "recent_year_train_probe": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001/RECENT_YEAR_TRAIN_PROBE4096.npy",
+                  "sha256": "c61b34bbd9117756708db7f2232b061c58bb769b828f0d742c6355b74f93b6cd"
+                }
+              },
+              "evidence_class": "not started; one GPU invocation after a fresh physical Windows boot; CONTROL4096 unchanged (reused development data)"
+            }
           },
           "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
         },
@@ -6371,7 +6431,42 @@
       }
     },
     "training_started_note": "training_started stays false: the native training launch (training_enabled) was never opened; the bound study phases ran 1 024 + 4 096 optimizer steps under the study contract with training_enabled=false (P2)",
-    "scalar_repair_note": "14.10.2026 document audit: scalars re-pointed from the FEATURE_REPAIR/V38 generation to the NATIVE_D1 minimum learning plan"
+    "scalar_repair_note": "14.10.2026 document audit: scalars re-pointed from the FEATURE_REPAIR/V38 generation to the NATIVE_D1 minimum learning plan",
+    "retention_wave1_20261014": {
+      "status": "DELETE_COMPLETE",
+      "vedtak": "GX1_RETENTION_LEGACY_PREBUILT_WAVE1_20261014",
+      "owner": "gx1.scripts.cleanup_gx1_evidence_v1 (plan -> validated dry run -> approve -> execute)",
+      "operator_basis": "GX1_RULES operator decision 14.10.2026 (a); user 14.10: delete up to about 256 GB of evidence that is not needed",
+      "plan": {
+        "path": "/home/andre2/GX1_DATA/reports/gx1_evidence_retention_cleanup_plans/GX1_EVIDENCE_RETENTION_CLEANUP_PLAN_20261014T174747022654Z.json",
+        "sha256": "304b8e5c5fe32c03251da4cf0d63cb9dd8b45f3e00de9ccbad05bbb304b03cba"
+      },
+      "approval": {
+        "path": "/home/andre2/GX1_DATA/reports/gx1_evidence_retention_cleanup_approvals/GX1_EVIDENCE_RETENTION_APPROVAL_20261014T175450478828Z.json",
+        "sha256": "1d513a858e143140ccf9d1715bdee9e6b2479fb69e7ea4c904c3acbd47f6ef3d"
+      },
+      "execution_report": {
+        "path": "/home/andre2/GX1_DATA/reports/gx1_evidence_retention_cleanup_reports/GX1_EVIDENCE_CLEANUP_EXECUTION_20261014T180256991576Z.json",
+        "sha256": "d26005ab95e88222ab4617f56ee19c3dbf351db8182c7d4dbe4d17ac2d67df93"
+      },
+      "decision": "DELETE_COMPLETE",
+      "targets": 35,
+      "total_bytes": 84026988311,
+      "files": 8138,
+      "target_generations": [
+        "LIFECYCLE_V2_LOCAL_PILOT_20260910",
+        "V42_CHAIN_20260825T011122Z",
+        "HISTORY2009W_NATIVE_EARLY_20260927",
+        "HISTORY2006_BOOTSTRAP_20260927",
+        "HISTORY2009_BOOTSTRAP_20260927",
+        "LIFECYCLE_V2_FULL_TRAIN_20260912/* (30 children >= 100 MiB; PROSPECTIVE_COST_POLICY_V1 and small children kept)"
+      ],
+      "owner_fixes": {
+        "35270857": "retention_protected_leaves, declared keys only, named-in-current-documents check, CLI roots DATA+RUNS",
+        "511a668f": "incident witness inventories bound not traversed; refusal names the referencing manifest"
+      },
+      "next_wave": "wave 2 requires document closure: V38 x2 (64 GiB), FEATURE_REPAIR (34), NATIVE_D1 failed cores _001/_002 (10; configs/research specs name them), V46 outside the protected leaf (117) after a reach check"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -8510,5 +8605,20 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
+  },
+  "entry_learning_study_run": {
+    "max_invocations": 1,
+    "optimizer_steps": 4071,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001/RECENT_YEAR/CANDIDATE_BUNDLE",
+    "run_id": "ENTRY_D1_HORIZON_RECENT_YEAR_20261014_001",
+    "selection": {
+      "phase": "recent_year",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261014.json",
+        "sha256": "6402bfba2f9db4f9ce9b6c988cd4ade714a12e4f52b43b1fc8a071c3349155b8"
+      }
+    },
+    "source_bindings_sha256": "f290c3020228c3609010f890b23a283c4d460729d9eb12ce51fe8cf44213ac4e",
+    "test_data_used": false
   }
 }
