@@ -10,9 +10,13 @@ radene og generaliserer ikke til CONTROL4096 ved 4 096 steg. Gjennomgangsbølgen
 14.10 (seks leserettede agenter) er bokført og fiksbølgen er brukt (kode,
 retention-eier, repo-opprydding, policy/dokumenter). Neste læringsfase krever
 operatørvedtak: brukeren foretrekker et mindre kronologisk vindu (ca. ett år)
-før noen full epoke. Retention-bølge 1 (ureferert prebuilt-evidens) går gjennom
-eieren i bakgrunnen. Ingen dokumentert Entry-edge, ingen prediktor innrømmet,
-training_enabled = false, TEST forseglet.
+før noen full epoke: fasen «recent_year» (siste 365 dager før TRAIN-kuttet,
+65 148 kvalifiserte rader, 4 071 steg, én invokasjon) er forhåndsregistrert i
+etterfølger-spesifikasjonen ENTRY_D1_HORIZON_LEARNING_STUDY_20261014 og
+admittert i policyen; brukerens fysiske Windows-omstart kjører den. Retention-
+bølge 1 er utført gjennom eieren (35 mål, 78,3 GiB, DELETE_COMPLETE). Ingen
+dokumentert Entry-edge, ingen prediktor innrømmet, training_enabled = false,
+TEST forseglet.
 
 ## Minimum native læring (vedtak 12.10): gjennomført og gjennomgått
 
@@ -73,11 +77,14 @@ fix_wave_20261014). Brukt:
   pretest-recipe (seq513-beredskap), kildemanifester i configs/research.
 - Retention (E, 35270857): launch-kontrakten beskytter 22 deklarerte leaves,
   bare deklarerte nøkler er referanser, mål navngitt i gjeldende dokumenter
-  nektes, CLI tillater DATA+RUNS. Bølge 1 = ureferert prebuilt (LIFECYCLE_V2_
-  LOCAL_PILOT 19 GiB, V42 13, NATIVE_EARLY 5, LIFECYCLE_V2_FULL_TRAIN 46 minus
-  det eieren når) via plan → godkjenn → utfør i bakgrunnen. Bølge 2 krever
-  dokumentlukking: V38 ×2 (64), FEATURE_REPAIR (34), D1-feilkjerner (10), V46
-  utenom beskyttet leaf (117) etter rekkeviddesjekk.
+  nektes, CLI tillater DATA+RUNS; hendelsesvitnene (juli-inventarene) bindes
+  uten traversering (511a668f). Bølge 1 UTFØRT 14.10 (vedtak GX1_RETENTION_
+  LEGACY_PREBUILT_WAVE1_20261014, policyblokk retention_wave1_20261014): plan
+  → validert tørrkjøring → godkjenning → utførelse, 35 eksakte mål, 8 138
+  filer, 78,3 GiB (LOCAL_PILOT, V42, NATIVE_EARLY, 2006/2009-bootstraps,
+  LIFECYCLE_V2_FULL_TRAIN-barn ≥ 100 MiB; PROSPECTIVE_COST_POLICY_V1 beholdt).
+  Disk 524 → 456 GB brukt. Bølge 2 krever dokumentlukking: V38 ×2 (64),
+  FEATURE_REPAIR (34), D1-feilkjerner (10), V46 utenom beskyttet leaf (117).
 - Datasveip (F, målt på TRAIN, bundet som data_sweep_20261014): 0 døde/ikke-
   endelige/mettede felt; 132 ctx-par bitidentiske; ett udeklarert duplikat
   (rsi14_centered ≡ m5_rsi14_canon_v2); smc_choch = up + down; 11 felt IQR-
@@ -123,14 +130,20 @@ TRAIN / 7 363 CONTROL i D1-generasjonen. Ikke læring eller edge.
 - Ukjente rådatagap er ukjente; ingen imputering. Deklarerte kostvilkår er ikke
   historisk kostsannhet. CONTROL er gjenbrukt utviklingsdata.
 
-## Neste beslutning
+## Neste steg: fasen «recent_year» (vedtak 14.10 b)
 
-Alternativ 1 (anbefalt, brukerens preferanse 14.10): studie-v2-fase
-«recent_year» — kronologisk vindu av kvalifiserte TRAIN-rader siste 365 dager
-før TRAIN-kutt (ca. 46 000 rader, ≈2 900 steg, én GPU-invokasjon), CONTROL4096
-ved 0 og slutt, samme seed/tap/batch; krever kontraktutvidelse, ny spec-fil,
-loader-filtrering og policybinding. Alternativ 2: full epoke (40 266 steg, fire
-vinduer) bare etter læringssignal i alternativ 1. Ingen av delene er lansert.
+Implementert og admittert (6f058c5d, dc2f4f74): vindusrader og stegbudsjett
+avledes av kontrakteieren fra den bundne TRAIN-klokken (365 dager før kuttet:
+65 148 rader → 4 071 steg, 65 136 trente rader; nesten samme antall som kurven,
+men siste år); frossen rekkefølge begrenset til vinduet først; TRAIN-probe =
+første 4 096 vindusrader ved 0/256/1 024/4 071; CONTROL4096 uendret ved 0 og
+4 071; samme seks-grense-regel. Spec: configs/research/ENTRY_D1_HORIZON_
+LEARNING_STUDY_20261014.json (binder forgjengeren); root
+/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001 (RECENT_YEAR/).
+Kjørebok: P2_RUNBOOK.md i roten — agenten gjør fangst, campaign-plan,
+Windows-oppgave og omstartsforberedelse via interop; brukeren utfører den
+fysiske Windows-omstarten. Full epoke (40 266 steg, fire vinduer) bare etter
+læringssignal her og eget vedtak.
 
 Ingen automatisk trening, forlengelse eller relansering av konsumerte planer.
 training_enabled=false; TEST er forseglet. Ingen live/paper, broker, ordre,
