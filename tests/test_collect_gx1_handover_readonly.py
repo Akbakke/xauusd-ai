@@ -784,8 +784,10 @@ def test_current_handover_separates_new_rebuild_from_consumed_preprocessing():
     assert work["restart_and_smoke_goal"]["status"] == "blocked"
     assert work["restart_and_smoke_goal"]["physical_reboot_executed"] is True
     repair = work['feature_repair_rebuild_20261010']
-    assert work['current_research_id'] == Path(repair['run_root']).name
-    assert work['latest_terminal']['path'].startswith(repair['run_root'] + '/')
+    current = work['native_d1_rebuild_20261011_003']
+    assert work['current_research_id'] == Path(current['run_root']).name
+    assert work['latest_terminal']['path'].startswith(current['run_root'] + '/')
+    assert not work['latest_terminal']['path'].startswith(repair['run_root'] + '/')
     assert repair['core_build_authorized'] is False
     assert repair['core_relaunch_allowed'] is False
     assert repair['complete_m1_stage']['authorized'] is False

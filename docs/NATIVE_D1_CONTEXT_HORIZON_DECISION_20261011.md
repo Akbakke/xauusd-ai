@@ -1,6 +1,10 @@
 # Native D1-kontekst og dag–ukers horisont — designbinding 11.10.2026
 
-Status: **design, ikke lansert.** Brukeren vedtok «Ja, gjør begge» 11.10.2026
+Status: **steg 1–5 gjennomført (generasjon HISTORY2009W_NATIVE_D1_20261011_003,
+315 felt, 1/5/20-dagersmål, fersk v10-baseline); steg 5 som skrevet er avløst
+av minimumsplanen 12.10 (docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md:
+Entry-only, ett seed, fit 1 024 → kurve 4 096, resultat REJECT 14.10.2026);
+steg 6 ikke startet.** Brukeren vedtok «Ja, gjør begge» 11.10.2026
 kveld. Dette dokumentet binder hva som skal bygges og i hvilken rekkefølge.
 Ingen kontrakt, rebuild, recipe eller trening er startet av dokumentet; hvert
 steg krever egen binding i NEXT_RUN_POLICY.json og eget budsjett.
@@ -85,7 +89,9 @@ med samme tilgjengelighetsregler, lest fra de samme manifestbundne kildene
    generasjon står i CURRENT_HANDOVER.md.
 4. Fersk nullstegsbaseline på den nye flaten (som FRESH_INITIAL_BASELINE_003).
 5. Trening: native campaign, eksakt recipe, 3 seeds, forhåndsregistrert
-   stoppregel, CONTROL4096 rank-IC per horisont per epoke. GPU krever fersk
+   stoppregel, CONTROL4096 rank-IC per horisont per epoke. *(Avløst 12.10.2026
+   av minimumsplanen: ett seed, Entry-only, avgrensede faser; 3 seeds og
+   epoke-granularitet er ikke åpnet.)* GPU krever fersk
    fysisk Windows-boot per invokasjon og alle eksisterende vakter.
 6. Sammenligning mot D1-ridge-journalen på samme beslutningsdager: native må
    slå den frosne 68-feltsflaten på treff og fanget mål før den får autoritet.
@@ -93,4 +99,5 @@ med samme tilgjengelighetsregler, lest fra de samme manifestbundne kildene
 ## Hva vedtaket ikke åpner
 
 Ingen native launch, TEST-lesing, broker, ordre, spending, promotion eller
-ny serving-autoritet. training_enabled=false gjelder til steg 5 er bundet.
+ny serving-autoritet. training_enabled=false gjelder; studiefasene kjører
+under studiekontrakten, aldri som native launch.

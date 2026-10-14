@@ -1,6 +1,9 @@
 # Minimum native læring på D1-horisontmålet — forhåndsregistrert plan 12.10.2026
 
-Status: **planlagt, ikke lansert.** Brukeren vedtok 12.10.2026 («ja gjør dette …
+Status: **gjennomført og gjennomgått 14.10.2026 — REJECT_ENTRY_QUALIFICATION.** P0–P3 er
+utført (policyblokk native_d1_minimum_learning_20261012, studiegjennomgang
+`/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/STUDY_REVIEW.json`);
+avvik fra ordlyden under er registrert i samme blokk (14.10). Brukeren vedtok 12.10.2026 («ja gjør dette …
 Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi
 vurdere å legge på fler ting senere»). Dette dokumentet binder hva «minimum»
 betyr, i hvilken rekkefølge det bygges, og hva som ikke åpnes. Hvert steg får
@@ -27,10 +30,12 @@ Minimum er **omfang**, ikke features:
   og rapporteres, men optimeres ikke. Ingen horisont er en holdetidsregel.
 - **Ett seed** (20260911), batch 16, samme optimizer/tap som den eksisterende
   Entry-only-fasen; ingen nye hyperparametre, ingen søk.
-- **Avgrensede steg:** smoke (256 steg) → fit (1 024 steg på 256 rader, viser
-  at tapet kan falle) → kurve (4 096 steg på faste TRAIN-rader, CONTROL4096
-  observert ved 0/256/1 024/4 096 steg). Ingen full epoke, ingen full VAL,
-  ingen adaptiv forlengelse, ingen seleksjon på CONTROL.
+- **Avgrensede steg:** fit (1 024 steg på 256 rader, viser at tapet kan falle;
+  observasjonen ved steg 256 er planens «smoke», ingen egen smoke-fase finnes)
+  → kurve (4 096 steg på 65 536 unike TRAIN-rader i frossen epoke-0-rekkefølge;
+  TRAIN_PROBE4096 observert ved 0/256/1 024/4 096, CONTROL4096 ved 0 og 4 096
+  slik studiekontrakten binder). Ingen full epoke, ingen full VAL, ingen adaptiv
+  forlengelse, ingen seleksjon på CONTROL. (Ordlyd rettet 14.10.2026.)
 
 ## Forutsetninger som finnes
 
@@ -62,23 +67,28 @@ aldri kvalitet. Spec: `configs/research/NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.
 de aksepterte stegene med operators/clone_stage.py, ett tungt steg om gangen,
 nytt budsjett PREPARATION_CPU_002:
 
-1. NATIVE_PREPARATION_001: frosset kronologisk læringsdesign (TRAIN-vindu,
+Faktisk rekkefølge (14.10.2026): NATIVE_PREPARATION_003 (to feilede kloner
+først, bevart) → SAMPLER_BENCHMARK_001 (stoppet: projisert over vinduet, lukket)
+→ SAMPLER_BENCHMARK_002 (57 822 s, valgt 32 768/batch 16, målt epoke 7 906,5 s)
+→ NATIVE_METADATA_HANDOFF_001 → NATIVE_PREPROCESSING_001 → NATIVE_COORDINATES_001.
+
+1. NATIVE_PREPARATION: frosset kronologisk læringsdesign (TRAIN-vindu,
    train/control-kutt, CONTROL256, fysiske kilder) for den nye generasjonen.
-2. SAMPLER_BENCHMARK_001: målt kapasitet for kandidatsamplerne på de nye
+2. SAMPLER_BENCHMARK: målt kapasitet for kandidatsamplerne på de nye
    inputs (315 felt); forrige generasjon målte 7 679 s per CPU-epoke ved
    batch 16. Målingen er obligatorisk fordi inputbredden er endret.
-3. NATIVE_PREPROCESSING_001: fysisk mål-/normaliseringsbevis (LABELS_RESULT,
+3. NATIVE_METADATA_HANDOFF: valgt målt sampler og streng konstruktørmetadata.
+4. NATIVE_PREPROCESSING: fysisk mål-/normaliseringsbevis (LABELS_RESULT,
    NORMALIZATION_RESULT) for begge splitter.
-4. NATIVE_COORDINATES_001: epoke-0-rekkefølge, TRAIN256-probe, CONTROL256 og
+5. NATIVE_COORDINATES: epoke-0-rekkefølge, TRAIN256-probe, CONTROL256 og
    TRAIN4096/CONTROL4096-koordinater uten utfallslesing.
-5. NATIVE_METADATA_HANDOFF_001: valgt målt sampler og streng
-   konstruktørmetadata.
 
 **P2 — GPU gjennom eksisterende native campaign** (fersk fysisk Windows-boot
 per invokasjon, eksisterende cgroup-/host-/GPU-/temperaturvakter, 12 000 s
-vindu, to-slot-checkpoint hver 64. steg): smoke 256 steg → fit 1 024 steg →
-kurve 4 096 steg. Hver fase er sin egen policybinding og campaign; brukeren
-utfører omstartene. training_enabled settes bare for den bundne invokasjonen.
+vindu, to-slot-checkpoint hver 64. steg): fit 1 024 steg → kurve 4 096 steg.
+Hver fase er sin egen policybinding og campaign; brukeren utfører omstartene.
+training_enabled forblir false: studiekontrakten krever det, og fasene kjører
+under studiens egen binding, ikke som native launch. (Rettet 14.10.2026.)
 
 **P3 — gjennomgang.** Forhåndsregistrert regel fra læringsstudien 10.10
 (seks parvise familiekorrigerte øvre konfidensgrenser under null mot initial og
@@ -88,6 +98,18 @@ kurven er senere generalisering på gjenbrukt utviklingsdata; ingen av delene
 er økonomi eller edge. Et kvalifisert resultat åpner bare neste vedtak
 (flere seeds, lengre kurve, Entry-bevarende Exit-trening); et negativt
 resultat lukkes ærlig.
+
+**Resultat 14.10.2026 (målt på ekte deklarerte bytes):** fit memorerer
+(kontrast-rank-IC 0,07 → 0,97 på TRAIN256). Kurven lærer de trente radene
+(TRAIN_PROBE4096 kontrast-MSE 725 499 → 116 061, rank-IC 0,96) uten å
+generalisere: CONTROL4096 kontrast-MSE 2 032 815 → 2 157 135 mot TRAIN-konstant
+1 997 171, rank-IC 0,039 → 0,040 ved 20 d (0,001 → 0,085 ved 5 d), handlinger
+FLAT 3 082 → LONG 2 893, valgt-handling-snitt +50 → −3 bps mot alltid-LONG
++148,5 bps. Alle seks forhåndsregistrerte parvise intervaller dekker null.
+Studiegjennomgang v2: REJECT_ENTRY_QUALIFICATION. Dette er gjenbrukt
+utviklings-CONTROL, ikke økonomi eller edge. Neste fase (brukerens ønske: et
+mindre kronologisk vindu, f.eks. ett år, før «stor trening») krever eget
+operatørvedtak og egen policybinding.
 
 ## Hva planen ikke åpner
 

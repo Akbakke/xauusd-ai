@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-11T17:00:29.157548+00:00",
-  "status": "NATIVE_D1_REBUILD_003_DOWNSTREAM_COMPLETE_M1",
+  "observed_utc": "2026-10-14T17:36:50.982243+00:00",
+  "status": "NATIVE_D1_MINIMUM_LEARNING_P3_REVIEWED_REJECT_ENTRY_QUALIFICATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Safe reboot boundary (core GREEN, no lock, no GPU). After reboot: verify boot id, WSL and unchanged source; create the downstream shared budget; clone and run the nine downstream stages in order with operators/clone_stage.py (prepare -> admit+commit -> bind -> launch), each one heavy job; then FRESH_INITIAL_BASELINE (step 5). No native launch, orders or spending.",
+  "next_action": "Minimum learning (12.10) is complete and reviewed: fit 1024 and curve 4096 ran, study review v2 = REJECT_ENTRY_QUALIFICATION (no generalization on CONTROL4096 at 4096 steps). Next GPU phase needs an operator decision and its own policy binding: the user prefers a smaller chronological window first (recent_year study phase) before any full epoch. Retention wave 1 (unreferenced prebuilt generations) runs through the retention owner plan -> approve -> execute in the background. No native launch, orders or spending; training_enabled stays false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -66,17 +66,22 @@
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
     "completion_review": {
-      "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/STUDY_REVIEW.json",
-      "sha256": "eeea3858a7fe2a43ff98ed3a150aa687ee4538eaeadea386c3dbb7ec4b36353d"
+      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/STUDY_REVIEW.json",
+      "sha256": "882e084ca70543fbaed2c8314887aeb4c603f0e0c3ac55b578e850ee23f60ab5"
     },
     "paired_review": {
-      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/PAIRED_LEARNING_REVIEW.json",
-      "sha256": "0d39c1d334e724be590d1b8693f71d16232bb5ba4e484c23a2e0d810fe2a2348"
+      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE/PHASE_REVIEW.json",
+      "sha256": "2a2446ac257018042a3962bc4742f522560b781568ce9350569d2695a0df8167"
+    },
+    "study_v2_decision": "REJECT_ENTRY_QUALIFICATION",
+    "previous_completion_review": {
+      "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/STUDY_REVIEW.json",
+      "sha256": "eeea3858a7fe2a43ff98ed3a150aa687ee4538eaeadea386c3dbb7ec4b36353d"
     }
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Fresh one-shot corrected-generation CPU capacity admitted; START/process/terminal receipts determine actual execution state.",
+    "current_activity": "NATIVE_D1 minimum learning (operator decision 12.10.2026): P0-P3 complete; fix wave 14.10 applied; next phase awaits operator decision",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -99,7 +104,7 @@
       "thread_heartbeat_id": "gx1-f-lg-native-trening",
       "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c"
     },
-    "current_research_id": "FEATURE_REPAIR_REBUILD_20261010_001",
+    "current_research_id": "NATIVE_D1_REBUILD_20261011_003",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -132,31 +137,31 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "sampler_capacity_terminal_corrected_generation",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_INPUT_INDEX_001",
+    "latest_terminal_role": "native_preprocessing_terminal_minimum_learning_P1: latest CPU terminal of the collector schema (exit_code/source_unchanged/test_data_used); the GPU phases carry invocation receipts and PHASE_REVIEW files under native_d1_minimum_learning_20261012.steps.P2_gpu_campaign",
+    "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
-      "sha256": "aaebabb90f62d94f412819988be6a8bd1cc8397d847ecc2722223c733a298935"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/TERMINAL.json",
+      "sha256": "856ec145e95fa3c30fc7a98397c74d38fb1b03160114c4c7f15a2b4c255289d2"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": true,
     "sampler_selection_measured": true,
-    "selected_sampler_published": false,
-    "sampler_selected": false,
-    "physical_native_preprocessing_complete": false,
-    "native_training_coordinates_published": false,
+    "selected_sampler_published": true,
+    "sampler_selected": true,
+    "physical_native_preprocessing_complete": true,
+    "native_training_coordinates_published": true,
     "native_component_preparation_authorized": false,
     "test_data_used": false,
     "cleanup_report": "CURRENT_HANDOVER.md",
     "repository_cleanup_complete": true,
     "replacement_dataset_acceptance_scope": "HISTORY2009W_FEATURE_REPAIR_20261010: corrected inputs, once-fit whole-TRAIN normalization and fixed-cohort CPU initial baseline only; no native training, sampler, GPU, serving or profitability admission.",
-    "pre_smoke_goal_preparation_complete": false,
+    "pre_smoke_goal_preparation_complete": true,
     "pre_smoke_goal_completion_evidence": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Post-reboot verified; downstream stage COMPLETE_M1_001 admitted.",
+    "current_blocker": "none running: study v2 reviewed (REJECT_ENTRY_QUALIFICATION); the next phase requires an operator decision and a new policy binding; retention wave 1 pending through the owner",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -529,7 +534,7 @@
       "elapsed_seconds": 1016.7850262550019,
       "peak_rss_kib": 16341716
     },
-    "fresh_native_initial_state_complete": false,
+    "fresh_native_initial_state_complete": true,
     "native_initial_measurement_20261009": {
       "status": "COMPLETED_VERIFIED_NO_RELAUNCH",
       "policy_scope": {
@@ -2110,7 +2115,7 @@
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
       "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
     },
-    "sampler_generation_scope": "HISTORY2009W_FEATURE_REPAIR_20261010",
+    "sampler_generation_scope": "HISTORY2009W_NATIVE_D1_20261011_003",
     "latest_manual_host_restart": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/POST_REBOOT.json",
       "sha256": "73be90fe3a584540dc912f8b4756089f69d1908be10d207d9865036e4a1738f4"
@@ -4097,7 +4102,7 @@
         },
         "refetched_panel_equals_earlier_capture": true,
         "materialization_binding_sha256": "bd3a0f0fdb2e274afa34550d80650d9047d79fdde089bd5b3974f0b0de9b81c7",
-        "admitted_to_native_signal_manifest": false
+        "admitted_to_native_signal_manifest": true
       },
       "step_2_trading_day_horizons": {
         "status": "MEASURED_PASS",
@@ -4181,7 +4186,7 @@
             "sd": 253.1
           }
         },
-        "wired_into_trainer_or_builder": false
+        "wired_into_trainer_or_builder": true
       },
       "steps_3_to_6": "3 done (a33077be: contracts v13/v39, ninth family routed to session_regime_encoder, lanes and builder); 4 done (NATIVE_D1_REBUILD_20261011_003: core chain GREEN, eight downstream input stages green); 5 done (FRESH_INITIAL_BASELINE_001 measured, 9661087 parameters on 315/132 fields, no learning or edge); 6 not authorized (recipe/budget/training and comparison with the D1-ridge journal need operator decision)",
       "training_enabled": false,
@@ -4215,7 +4220,8 @@
       "step_6_comparison": {
         "status": "NOT_AUTHORIZED",
         "requires": "own contract, exact native recipe binding, GPU campaign admission under existing guards, budget and operator decision; comparison target is the frozen 68-field D1-ridge forward journal on the same decision days"
-      }
+      },
+      "flags_repair_note": "14.10.2026: the NATIVE_D1 generation (315-field manifest, horizon labels in the builder, trainer dispatch) made both true"
     },
     "native_d1_rebuild_20261011": {
       "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
@@ -4236,7 +4242,6 @@
       },
       "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001",
       "dataset_run_id": "HISTORY2009W_NATIVE_D1_20261011",
-      "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011/CHAIN",
       "source_parent": "a33077be80def77ebe17ee6840aa4d63afb3ee9c",
       "native_optimizer_authorized": false,
       "baseline_optimizer_steps": 0,
@@ -4259,7 +4264,9 @@
         "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001/FAILURE.json",
         "sha256": "057ee6321c0914c4ebcf512d9da3fb6eed5581f51551d3dac06c7e5008fd5fa0"
       },
-      "failure_review": "the lane cut the ninth family's sources at the TEST seal while the sealed pair roots run to 2026-08-31 23:55; fixed in the lane (policy test-construction read end); outputs preserved; successor native_d1_rebuild_20261011_002"
+      "failure_review": "the lane cut the ninth family's sources at the TEST seal while the sealed pair roots run to 2026-08-31 23:55; fixed in the lane (policy test-construction read end); outputs preserved; successor native_d1_rebuild_20261011_002",
+      "event_root_generation": "HISTORY2009W_NATIVE_D1_20261011/CHAIN",
+      "event_root_note": "failed core attempt; event root named by generation (not path) so the retention owner can plan it after the spec document is closed"
     },
     "native_d1_rebuild_20261011_002": {
       "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
@@ -4281,7 +4288,6 @@
       },
       "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_002",
       "dataset_run_id": "HISTORY2009W_NATIVE_D1_20261011_002",
-      "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_002/CHAIN",
       "source_parent": "a631e69cd1236251acb6f81b894763d86c7834b9",
       "native_optimizer_authorized": false,
       "baseline_optimizer_steps": 0,
@@ -4305,7 +4311,9 @@
         "sha256": "057ee6321c0914c4ebcf512d9da3fb6eed5581f51551d3dac06c7e5008fd5fa0"
       },
       "lanes_completed": "m5 and m1 enriched frames (ninth family attached: 1 166 786 and 5 660 070 rows), signal manifest, both feature surfaces (m1 5 570 522 rows, ctx 132) and preflight completed before the builder failed at start",
-      "failure_review": "the builder asked for test_end + 1 day as the TEST context read end while the policy authorizes 2026-09-01T00:00 (the last TEST decision); fixed e183f6bc to bind the policy value exactly as the lanes do; outputs preserved; successor native_d1_rebuild_20261011_003"
+      "failure_review": "the builder asked for test_end + 1 day as the TEST context read end while the policy authorizes 2026-09-01T00:00 (the last TEST decision); fixed e183f6bc to bind the policy value exactly as the lanes do; outputs preserved; successor native_d1_rebuild_20261011_003",
+      "event_root_generation": "HISTORY2009W_NATIVE_D1_20261011_002/CHAIN",
+      "event_root_note": "failed core attempt; event root named by generation (not path) so the retention owner can plan it after the spec document is closed"
     },
     "native_d1_rebuild_20261011_003": {
       "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
@@ -4557,13 +4565,14 @@
       },
       "operators_clone_stage": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators/clone_stage.py",
-        "sha256": "196a1c2e325ba8546f2b1c5ff694c0df443bb3f614ad75fd6df1281d1ce37448",
+        "sha256": "0ee2a8c90da04ae244990e942b78bf2795b55d1f6632d313aa4d8e8093237e10",
         "revision": 3,
         "revision_note": "12.10.2026 after COMPLETE_M1_002: stage aliases COMPLETE_M1_001->002 and COVERAGE_REVIEW_001->002 for cross-references; a TERMINAL.json binding is missing unless exit_code==0 and source_unchanged is True; argv pairs --x[-json] PATH --x-sha256 HASH rehashed from the new PATH; launch_validation.py deadline check rebound from core START+max_core_wall to the explicit downstream budget receipt (the convention every later stage launcher uses) with prerequisites.cpu_budget; stale previous-generation hash literals fail closed; ops dryrun and complete.",
         "revision_3_note": "12.10.2026 after INPUT_VIEWS_001: old-generation hashes harvested from every {path, sha256} binding in the accepted generation stage plans (argv hash literals without a path pair remap through that table or must be unchanged ancestors); bounded script patches and plan deletions; POSTBUILD_REVIEW_001 cloned as the TRAIN/VAL sequence-source audits only (4G audit class), the specialist audit stays in POSTBUILD_SPECIALIST_001 at producer10G without the failure-history prerequisites; admit skips failure/completed_sequence_audits/elapsed_seconds history keys.",
         "revision_3_fixes": "stale-hash scan excludes identity mappings (bit-identical artifacts across generations, e.g. physical M1 views from the unchanged quote source); the second pass accepts argv literals that are already new-generation hashes.",
         "revision_3_additions": "producer-plan hook for NATIVE_INPUT_INDEX_001 (economics_identities computed from this generation's admission, design, sampler candidates and the unchanged cost authority; the accepted generation's source-change review kept verbatim); prepare fails closed before writing anything when a prerequisite is missing.",
-        "revision_3_additions_2": "second pass re-applies the stage hooks (history fields kept verbatim are not re-hashed); repass op for a prepared, not yet admitted draft; baseline hooks for step 5 (cross-generation comparison inputs kept at the accepted generation via KEEP_PATHS, PREPARATION_CPU_002 -> 001 alias, v10 baseline budget key -> this generation budget key, verified pinned architecture ancestor)."
+        "revision_3_additions_2": "second pass re-applies the stage hooks (history fields kept verbatim are not re-hashed); repass op for a prepared, not yet admitted draft; baseline hooks for step 5 (cross-generation comparison inputs kept at the accepted generation via KEEP_PATHS, PREPARATION_CPU_002 -> 001 alias, v10 baseline budget key -> this generation budget key, verified pinned architecture ancestor).",
+        "revision_note_20261014": "re-bound 14.10.2026 to the bytes on disk (allow_existing/fixup additions of 12.10)"
       },
       "coverage_review_001_superseded": {
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/COVERAGE_REVIEW_001",
@@ -4971,11 +4980,7 @@
       },
       "completed_utc": "2026-10-12T11:56:25.406665+00:00",
       "retention": {
-        "status": "BLOCKED_BY_RETENTION_OWNER",
-        "targets": [
-          "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011",
-          "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_002"
-        ],
+        "status": "WAVE2_PENDING_SPEC_DOCUMENT_CLOSURE",
         "approximate_bytes": {
           "HISTORY2009W_NATIVE_D1_20261011": "73M",
           "HISTORY2009W_NATIVE_D1_20261011_002": "9.6G"
@@ -4986,13 +4991,18 @@
         ],
         "vedtak_identifier": "NATIVE_D1_FAILED_CORE_ATTEMPTS_EVENT_ROOT_RETENTION_20261012",
         "owner_refusal": "gx1.scripts.cleanup_gx1_evidence_v1 plan: \"unresolved authority directory manifest: /home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/NATIVE_INPUT_INDEX_001\" (the authority graph reaches a run-root stage directory through current_work.runtime_root; stage directories carry PLAN.json/TERMINAL.json, none of the retention contract's directory manifest names). An owner refusal is never overridden by a hand-built proof (rule 9).",
-        "resolution_required": "own bounded change with tests: either the retention contract accepts run-root stage manifests (PLAN.json, ROOT.json) as directory manifests, or policy directory pointers are replaced by file bindings; then plan -> approve -> execute in the background. Nothing was deleted."
+        "resolution_required": "own bounded change with tests: either the retention contract accepts run-root stage manifests (PLAN.json, ROOT.json) as directory manifests, or policy directory pointers are replaced by file bindings; then plan -> approve -> execute in the background. Nothing was deleted.",
+        "target_generations": [
+          "HISTORY2009W_NATIVE_D1_20261011",
+          "HISTORY2009W_NATIVE_D1_20261011_002"
+        ],
+        "note_20261014": "retention owner repaired 14.10.2026 (35270857); the two failed-core generations are still named by configs/research/NATIVE_D1_REBUILD_20261011(.|_002).json and go in wave 2 with the V38/FEATURE_REPAIR closures; wave 1 covers unreferenced generations only"
       }
     },
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P2_CURVE_REVIEWED_P3_AND_FIX_WAVE_NEXT",
+      "status": "P3_REVIEWED_REJECT_ENTRY_QUALIFICATION_FIX_WAVE_APPLIED",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5012,14 +5022,12 @@
         ],
         "batch_size": 16,
         "phases": {
-          "smoke": 256,
           "fit": 1024,
-          "curve": 4096
+          "curve": 4096,
+          "smoke": "the fit phase's TRAIN256 observation at optimizer step 256; no separate smoke phase exists"
         },
         "control_observation_steps": [
           0,
-          256,
-          1024,
           4096
         ],
         "feature_removal_opened": false,
@@ -5027,7 +5035,8 @@
         "full_epoch_allowed": false,
         "full_val_allowed": false,
         "control_selection_allowed": false,
-        "test_access_allowed": false
+        "test_access_allowed": false,
+        "control_observation_note": "study spec and study contract bind CONTROL4096 at steps 0 and 4096 and TRAIN_PROBE4096 at 0/256/1024/4096; the plan document's four control checkpoints were a wording error, repaired 14.10.2026"
       },
       "steps": {
         "P0_code": {
@@ -5094,7 +5103,8 @@
           },
           "generator": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/operators/make_minimum_learning_stages.py",
-            "sha256": "cf2f6277f927dcdea9451b64283a298dfec6e40ee78b4800fc9024c3413317dd"
+            "sha256": "931b89dd05559fb21841b801450d8bb9fa63bcf74cc0705cde6ddf2b27797a91",
+            "revision_note": "re-bound 14.10.2026 to the bytes on disk"
           },
           "procedure_declaration": {
             "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json",
@@ -5139,9 +5149,8 @@
           }
         },
         "P2_gpu_campaign": {
-          "status": "FIT_AND_CURVE_REVIEWED",
+          "status": "FIT_AND_CURVE_REVIEWED_STUDY_REVIEW_COMPLETE",
           "phases_in_order": [
-            "smoke_256",
             "fit_1024",
             "curve_4096"
           ],
@@ -5290,7 +5299,7 @@
                   "sha256": "2fc94939afed494e89389d5ee0cd9a8ecca4fbeca36906f55372797c160129e2"
                 },
                 "study": {
-                  "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/.specs/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
                   "sha256": "c0647b83e14712df1b8a84224d7976feae66a6d4440c1261b07849c4d28b59d4"
                 },
                 "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/FIT",
@@ -5302,7 +5311,7 @@
                   "selection": {
                     "phase": "fit",
                     "plan": {
-                      "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/.specs/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
                       "sha256": "c0647b83e14712df1b8a84224d7976feae66a6d4440c1261b07849c4d28b59d4"
                     }
                   },
@@ -5318,7 +5327,8 @@
                 "test_data_used": false,
                 "campaign_plan_file_sha256": "6672c1c130e74f593d7ff98bccb3a7d0d5d90c5f731def311e9ce20f74837f03",
                 "campaign_state": "BLOCKED_RECOVERY_RECEIPT_REQUIRED (controller wrote no receipt; evidence retained, never relaunched)",
-                "recipe_sha256": "4fd6c73d47875992cd9d741a42a7d68a0247c66d336561a8ca82fb99e8e4c798"
+                "recipe_sha256": "4fd6c73d47875992cd9d741a42a7d68a0247c66d336561a8ca82fb99e8e4c798",
+                "study_binding_note": "the attempt-1 spec bytes (c0647b83) survive only in the _001/.specs copy; the repo file was re-pointed for attempt 2"
               }
             ],
             "curve": {
@@ -5553,11 +5563,127 @@
                 "campaign_state": "no receipt written by the controller; ACTIVE_INVOCATION retained as evidence; task disabled; never relaunched"
               }
             ]
-          }
+          },
+          "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
         },
         "P3_review": {
-          "status": "NOT_STARTED",
-          "rule": "ENTRY_LEARNING_STUDY_20261010 review rule on the 20-day target plus CONTROL4096 rank-IC per horizon per checkpoint; no adaptive extension"
+          "status": "COMPLETE_REJECT_ENTRY_QUALIFICATION",
+          "completed_utc": "2026-10-14T17:36:50.982243+00:00",
+          "rule": "preregistered six family-adjusted paired bounds on CONTROL4096 at the 20-day target (vs initial and vs TRAIN constant), calendar-week block bootstrap; CONTROL4096 rank-IC per horizon per checkpoint reported; no adaptive extension",
+          "review": {
+            "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/STUDY_REVIEW.json",
+            "sha256": "882e084ca70543fbaed2c8314887aeb4c603f0e0c3ac55b578e850ee23f60ab5"
+          },
+          "review_script": {
+            "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/REVIEW_STUDY.py",
+            "sha256": "dbf28178e2b21a3efaeee64d1498f5155f806a4f37a39e560b704f66f79cb07f"
+          },
+          "supplement": {
+            "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/REVIEW_SUPPLEMENT.json",
+            "sha256": "6891fb5e7f93d9fd8dc0bfe99706bd01b8a7596b9a572a65584e59d1fa157762"
+          },
+          "review_source_head": "91e26fb7d628e40ec0276408b29aa69bdac7feba",
+          "phase_source_commits": {
+            "curve": "b4f1d9f211b730e219c6bc436d44b4be8b1fe353",
+            "fit": "dbbd9ed2a02c23aa11d9a848a4c87a6256fa4255"
+          },
+          "decision": "REJECT_ENTRY_QUALIFICATION",
+          "statistical_screen_pass": false,
+          "control_contrast_mse": {
+            "initial": 2032815.3956248038,
+            "final": 2157134.8246863307,
+            "train_constant": 1997170.9645861983
+          },
+          "control_action_counts_long_short_flat": {
+            "initial": [
+              822,
+              192,
+              3082
+            ],
+            "final": [
+              2893,
+              997,
+              206
+            ]
+          },
+          "paired_intervals": {
+            "CONTRAST_MSE_vs_initial": {
+              "equal_week_mean": 112536.87467942691,
+              "family_adjusted_lower": -776320.8300394363,
+              "family_adjusted_upper": 861593.9999209159,
+              "weeks": 54
+            },
+            "CONTRAST_MSE_vs_train_constant": {
+              "equal_week_mean": 146306.75896527737,
+              "family_adjusted_lower": -674656.5688656851,
+              "family_adjusted_upper": 830246.036553703,
+              "weeks": 54
+            },
+            "LONG_MSE_vs_initial": {
+              "equal_week_mean": 36445.146646603374,
+              "family_adjusted_lower": -168087.63333042225,
+              "family_adjusted_upper": 205953.50252113558,
+              "weeks": 54
+            },
+            "LONG_MSE_vs_train_constant": {
+              "equal_week_mean": 36336.43433242933,
+              "family_adjusted_lower": -168524.47011721524,
+              "family_adjusted_upper": 206129.021478538,
+              "weeks": 54
+            },
+            "SHORT_MSE_vs_initial": {
+              "equal_week_mean": 18318.516739763072,
+              "family_adjusted_lower": -227601.90632525255,
+              "family_adjusted_upper": 223006.9088579255,
+              "weeks": 54
+            },
+            "SHORT_MSE_vs_train_constant": {
+              "equal_week_mean": 36831.77412839757,
+              "family_adjusted_lower": -168620.98843273203,
+              "family_adjusted_upper": 209028.7926538586,
+              "weeks": 54
+            }
+          },
+          "control_contrast_rank_ic_by_horizon": {
+            "0": {
+              "1": 0.025713474800030132,
+              "20": 0.03868691964397473,
+              "5": 0.00127630304241853
+            },
+            "4096": {
+              "1": 0.01294843097329101,
+              "20": 0.04047988113315068,
+              "5": 0.0845292337542244
+            }
+          },
+          "action_references_net_bps": {
+            "control_0": {
+              "always_long": 148.47776687517035,
+              "always_short": -204.39566838985775,
+              "selected_action": 50.1784927068511
+            },
+            "control_4096": {
+              "always_long": 148.47776687517035,
+              "always_short": -204.39566838985775,
+              "selected_action": -2.8564923055673717
+            }
+          },
+          "targets_match_independent_rebuild": true,
+          "evidence_class": "measured on real declared bytes (TRAIN/VAL parquet + cost authority); CONTROL is reused development data",
+          "limitations": [
+            "CONTROL reused for development, not untouched OOS",
+            "complete-outcome population: entries after 2026-06-02 excluded, no open positions",
+            "20-trading-day overlapping markouts (28-32 calendar days), not a realized portfolio",
+            "preregistered block 4 weeks < outcome overlap; 6-week sensitivity reported, non-decisional",
+            "CONTROL period is a strong uptrend (always-LONG positive); selected actions are compared with always-LONG",
+            "current cost policy is not historical cost truth",
+            "one seed; no HGB reference in the minimum scope"
+          ],
+          "learning_admitted": false,
+          "automatic_extension": false,
+          "test_data_used": false,
+          "economic_rollout": false,
+          "float32_replication_note": "stored contrast rank-IC is the observer's float32 computation; the review replicates dtype for dtype (rule 2h), float64 recomputation differs by up to 3e-7 on near-ties"
         }
       },
       "training_enabled": false,
@@ -5780,11 +5906,10 @@
         },
         "cpu_deadline_utc": "2026-10-13T07:09:07.651226+00:00",
         "outputs": {
-          "design": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/DESIGN.json",
-          "control256": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/CONTROL256_PARENT_ROWS.npy",
-          "smoke_plan": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/BOUNDED_SAMPLER_SMOKE_PLAN.json",
-          "retention": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RETENTION_REVIEW.json",
-          "result": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PRE_SMOKE_READINESS.json"
+          "design": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/DESIGN.json",
+          "control256": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/CONTROL256_PARENT_ROWS.npy",
+          "retention": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/RETENTION_REVIEW.json",
+          "result": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/PRE_SMOKE_READINESS.json"
         },
         "scope": "Complete the frozen chronological design of the NATIVE_D1 generation from the bound procedure declaration (no model), draw CONTROL256 from the complete-horizon VAL population, review retention read-only; audit 4G; one attempt.",
         "focused_control_tests": {
@@ -5802,24 +5927,20 @@
         "native_launch_admitted": false,
         "future_sampler_budget_authorized": false,
         "pre_smoke_readiness": {
-          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/PRE_SMOKE_READINESS.json",
-          "sha256": "202ee02166a9d50abe0b330ed6e6e979e069a108fa124d454817dfd68eec94b6"
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/PRE_SMOKE_READINESS.json",
+          "sha256": "130b14f93d9f69863e7754b3a4106b30d0cb27c0d922da9582aed78bf4375002"
         },
         "design": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/DESIGN.json",
           "sha256": "fa50276586a41c2039664a40f66fed35a552a42649fa943c377158e818b6ac28"
-        },
-        "bounded_sampler_smoke_plan": {
-          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/BOUNDED_SAMPLER_SMOKE_PLAN.json",
-          "sha256": "0da1a9f7ae0b80912725a620646d49a8e81a6877771958b2aa5b75cd3be6ce32"
         },
         "control256": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/CONTROL256_PARENT_ROWS.npy",
           "sha256": "b9e1c4b42cdb25564248ccffb51a7886edfda380e59fe6375fc8e03883142c51"
         },
         "retention": {
-          "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/PRE_SMOKE_READINESS_001/RETENTION_REVIEW.json",
-          "sha256": "cab44eea3dc0d3b3e6020956446580bbaf85d9fd9aef1ca02388281461285929"
+          "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/RETENTION_REVIEW.json",
+          "sha256": "058fa3d28660dc9d43ec15691a3ef30f6dc996a51a73f2745abeb9c75ed59ea3"
         },
         "focused_controls": {
           "FOCUSED_FINAL_CONTROL_TESTS.xml": "green",
@@ -5852,7 +5973,8 @@
         "retention_review": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPARATION_003/RETENTION_REVIEW.json",
           "sha256": "058fa3d28660dc9d43ec15691a3ef30f6dc996a51a73f2745abeb9c75ed59ea3"
-        }
+        },
+        "binding_repair_note": "14.10.2026: template bindings that still pointed at V38 PRE_SMOKE_READINESS_001 re-pointed to NATIVE_PREPARATION_003; the smoke-plan output was removed by design"
       },
       "train_capacity_stage_failed_001": {
         "schema_version": "gx1_bound_native_d1_train_capacity_scope_v1",
@@ -6077,7 +6199,7 @@
         "max_wall_seconds": 86400,
         "expected_boot_id": "168c05bf-86f1-47ad-962e-77c6a2ae366c",
         "budget_reset_or_benchmark_relaunch_allowed": false,
-        "scope": "Publish the measured selected-sampler owner from SAMPLER_BENCHMARK_001 and the exact missing scope/status completion of the frozen NATIVE_D1 horizon design from its already-bound procedure declaration; the capacity stage's finite budget/deadline retained. No new benchmark, preprocessing fit, model, native admission or restart.",
+        "scope": "Publish the measured selected-sampler owner from SAMPLER_BENCHMARK_002 and the exact missing scope/status completion of the frozen NATIVE_D1 horizon design from its already-bound procedure declaration; the capacity stage's finite budget/deadline retained. No new benchmark, preprocessing fit, model, native admission or restart.",
         "resource_owner": "scripts/gx1_capped_run.sh unchanged audit4G/512M CPU0-7 one numerical thread64tasks CURRENT lock",
         "outputs": {
           "design": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001/DESIGN.json",
@@ -6202,8 +6324,54 @@
           "entry_eligibility_cutoff_utc": "2025-05-02T19:20:00+00:00",
           "rule": "complete_outcomes_at_all_observation_horizons_at_or_before_measured_cutoff"
         }
+      },
+      "data_sweep_20261014": {
+        "status": "MEASURED",
+        "script": {
+          "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/agent_data/native_d1_surface_audit.py",
+          "sha256": "def5ca983a003b31ad213d86adafff3bd772c7c091ffc140915ee9154280af64"
+        },
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/agent_data/real_out/surface_audit_report.md",
+          "sha256": "6ad3bbad40770fea62216697f1d6da712f7465f28647b54add9b6d7a87ee25c4"
+        },
+        "results": {
+          "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/agent_data/real_out/surface_audit_results.json",
+          "sha256": "bd8a30f6058561294760ecfaec8acabc0cfc71f924eb4733578349708994af42"
+        },
+        "population": "TRAIN parquet 652 552 rows streamed; distributional statistics on every 20th row (32 628); sign/zero/dead/run-length on the full population",
+        "findings": [
+          "0 dead, near-constant or non-finite fields; 0 saturated fields",
+          "132 ctx embedding pairs (snap ctx_cont.X vs ctx X) bit-identical on the full population",
+          "1 undeclared duplicate pair: snap rsi14_centered vs ctx m5_rsi14_canon_v2 (sample corr > 0.9999, two owners) -> rule 19 alias question, not acted on",
+          "smc_choch = smc_choch_up + smc_choch_down (linear identity); null-space dim 5 of the de-duplicated sample correlation matrix",
+          "11 fields (22 with embedding) IQR-disjoint 2012 vs 2024: gld/nominal10y/real10y/slope10y2y levels, spread_bps, spread_extremes_sum_bps, d1_trend_state_age_bars_v2, XPT/XPD rv_20D, D1_dist_from_ema200_atr, cot_noncommercial_net_over_oi -> epoch-proxy risk for level fields",
+          "COT fields change weekly (mean run 5.7 days): expected as-of weekly release, flagged STALE>5d by the sweep"
+        ],
+        "evidence_class": "measured on real TRAIN bytes; descriptive, no model or target read",
+        "decisional": false
+      },
+      "fix_wave_20261014": {
+        "findings": {
+          "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/REVIEW_WAVE_FINDINGS.md",
+          "sha256": "7c4a43329851480c1f67786da77930e6872f85bb18556f837a87d6444458e337"
+        },
+        "commits": {
+          "part_1_5_6_cadence_helpers_retention_owner": "35270857",
+          "helper_unsorted_rows": "91e26fb7",
+          "part_3_repo_cleanup": "270cd8c7",
+          "part_4_policy_documents": "this commit"
+        },
+        "remaining": [
+          "runner holds one exclusive flock for all classes and requires MemAvailable >= 20 GiB: operator decision 11.10 (b) not implemented; runner change with tests pending",
+          "epoch resume path untested on real data; epoch phase (40 266 steps, four 12 000 s windows) only after a learning signal",
+          "design document NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json is hash-bound and keeps stale wording (curve 'first 4096 eligible rows', selection_variant '256', 'v38 constructor', later_control 256, 5000 draws): procedure deviations documented here, no rebuild",
+          "study spec entry_observed_market_horizons binds the _001/.specs copy of NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json (hash matches); the repo file is the same bytes"
+        ]
       }
-    }
+    },
+    "training_started_note": "training_started stays false: the native training launch (training_enabled) was never opened; the bound study phases ran 1 024 + 4 096 optimizer steps under the study contract with training_enabled=false (P2)",
+    "scalar_repair_note": "14.10.2026 document audit: scalars re-pointed from the FEATURE_REPAIR/V38 generation to the NATIVE_D1 minimum learning plan"
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",

@@ -280,3 +280,26 @@ forslag om å sløyfe M5-sekvens, candlestick-/mønsterfelt og M1-Exit er ikke
 åpnet: regel 4, Multi-TF og Exit på M1 består. Ingen full epoke, full VAL,
 seleksjon på CONTROL, hyperparametersøk, TEST-lesing eller launch utenfor
 den bundne campaignen. Hver fase krever egen policybinding og budsjett.
+
+## Operatørvedtak 14.10.2026: gjennomgang før epoke, retention-autoritet og mindre vindu
+
+Brukeren bestilte en grundig gjennomgang før noen epokekjøring («lag deg fler
+agenter og let aktivt etter feil/mangler/mismatches/opprydd og slett alt vi
+ikke trenger»), vedtok «ja, dette må fikses på. Så klart skal vi kunne
+godkjenne, og så klart skal vi slette opptil ca 256 GB om vi ikke trenger
+dette», og presiserte «vi trenger ikke kjøre alle 5 årene med train/val og
+test, vi kan ta et mindre utgangspunkt på f eks et år for å se om pipelinen er
+good og justeringer trengs, før "stor trening"».
+
+Bundet: (a) Retention-eieren er den eneste sletteruten (regel 9) og skal kunne
+akseptere en plan: launch-kontrakten beskytter eksplisitt deklarerte leaves
+(`retention_protected_leaves`), bare deklarerte nøkler er referanser, og et mål
+som et gjeldende dokument navngir med absolutt sti nektes til dokumentet er
+endret. Opprydding av ureferert, foreldet evidens inntil omtrent 256 GB er
+vedtatt gjennom plan → godkjenn → utfør i bakgrunnen; målene og størrelsene
+bokføres per bølge i NEXT_RUN_POLICY.json. (b) Neste læringsfase bruker et
+mindre kronologisk vindu (størrelsesorden ett år av TRAIN) før noen full
+epoke; full epoke krever et læringssignal i det mindre vinduet og eget vedtak.
+Ingen seleksjon på CONTROL, ingen TEST-lesing, ingen featurekassering,
+training_enabled=false består. Agentene i gjennomgangen var leserettede;
+«én agent om gangen» gjelder fortsatt for tunge jobber og kodeendringer.

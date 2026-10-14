@@ -35,15 +35,15 @@
   "bundle_metadata_sha256": null,
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
-  "updated_utc": "2026-10-09T20:53:48.805894+00:00",
+  "updated_utc": "2026-10-14T17:36:50.982243+00:00",
   "pretraining_review_hold": {
     "schema_version": "gx1_pretraining_review_hold_v1",
     "decision": "BLOCK",
-    "reason": "ENTRY_OBSERVED_FIXED256_LEARNING_GATE_FAILED_AND_LEARNED_RESUME_UNVERIFIED",
+    "reason": "NATIVE_D1_MINIMUM_LEARNING_STUDY_V2_REJECT_ENTRY_QUALIFICATION_NO_NATIVE_LAUNCH",
     "activation_authority": false
   },
   "note": "No admitted model or active legacy training session. NEXT_RUN_POLICY.json owns CURRENT work and exact future native scope; feature widths/versions come from executable owners, never historical mirrors.",
-  "current_policy_sha256": "1f255d4ca4e509e6db10250d2c7bc0216d875d6e71143fd7c3fbc065ca0a11cf",
+  "current_policy_sha256": "0e9939751afc7994971f8e73300118b41fba341856595fdaa599449e92f7477b",
   "retention_protected_leaves": {
     "schema_version": "gx1_retention_protected_leaves_v1",
     "paths": [
