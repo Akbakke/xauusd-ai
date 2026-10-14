@@ -2595,7 +2595,8 @@ def entry_learning_horizon_references(spec, *, rows_by_role):
     for role, selection in rows_by_role.items():
         split = "val" if role.startswith("control") else "train"
         rows = np.asarray(selection, dtype=np.int64)
-        if rows.ndim != 1 or len(rows) < 1 or np.any(rows < 0) or not np.array_equal(rows, np.unique(rows)):
+        if rows.ndim != 1 or len(rows) < 1 or np.any(rows < 0) or len(np.unique(rows)) != len(rows):
+            # observation rows keep the sampled order (fit cohort); duplicates are the only invalid shape
             raise RuntimeError("ENTRY_STUDY_REFERENCE_ROWS_INVALID: " + role)
         if split not in cache:
             source = scope["physical_sources"][split]
