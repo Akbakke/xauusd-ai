@@ -229,3 +229,30 @@ def test_planned_prefix_steps_follow_the_declared_entry_only_horizon_phase():
     assert horizons.planned_prefix_optimizer_steps(horizon) == horizons.MINIMUM_PLAN_FIT_OPTIMIZER_STEPS == 1024
     assert horizons.planned_prefix_optimizer_steps({"scope": {"same_architecture": True}}) == 256
     assert horizons.planned_prefix_optimizer_steps({}) == horizons.V38_SMOKE_PLANNED_OPTIMIZER_STEPS
+
+
+def test_control_study_view_binds_the_horizon_scope_through_the_dispatcher(tmp_path, cost_terms):
+    """The curve phase's CONTROL4096 view is built by the v1 study helper; it must bind the horizon
+    scope (v2), not reject it (the 14.10 curve invocation failed here after 20 min of loading)."""
+    rows = 8192
+    dataset, scope, frame = dataset_scope(tmp_path, cost_terms, rows=rows, cutoff_row=rows - 1)
+    source = scope["physical_sources"]["train"]
+    scope["physical_sources"] = {"train": source, "val": source}
+    scope["entry_eligibility_cutoff_utc"]["val"] = str(frame["time"].iloc[-1] + pd.Timedelta(minutes=5))
+    dataset._policy_dependent_auxiliary_binding["role"] = "CONTROL256"
+    dataset._policy_dependent_auxiliary_bound_rows = np.zeros(rows, dtype=bool)
+    dataset._policy_dependent_auxiliary_bound_rows[:256] = True
+    selected = np.linspace(0, rows - 1, 4096, dtype=np.int64)
+    study = {"phase": "curve", "observed_scope": scope, "rows": {"control": selected},
+             "plan": {"row_bindings": {"control": {"fixture": True}}}, "selection": {"fixture": True}}
+    view = observed.entry_learning_study_control_dataset(dataset, study=study)
+    binding = view._entry_observed_market_binding
+    assert binding["identity"]["decision_horizon_trading_days"] == 20
+    assert binding["admitted_rows"] == 4096 and binding["role"] == "CONTROL_STUDY"
+    assert np.array_equal(np.flatnonzero(view._policy_dependent_auxiliary_bound_rows), selected)
+    assert dataset._policy_dependent_auxiliary_bound_rows.sum() == 256 and getattr(dataset, "_entry_observed_market_binding", None) is None
+    for h in horizons.OBSERVATION_HORIZONS_TRADING_DAYS:
+        targets = view._entry_observed_market_horizon_targets[h]
+        assert np.isfinite(targets[selected]).all() and np.isnan(targets[~view._policy_dependent_auxiliary_bound_rows]).all()
+    with pytest.raises(RuntimeError, match="ENTRY_STUDY_PHASE_INVALID|ENTRY_STUDY_CONTROL"):
+        observed.entry_learning_study_control_dataset(dataset, study={**study, "phase": "fit"})

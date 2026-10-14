@@ -419,5 +419,8 @@ def entry_learning_study_control_dataset(dataset, *, study):
         "row_binding":study["plan"]["row_bindings"]["control"],
         "entry_learning_study":study["selection"]}
     view._entry_observed_market_binding = None
-    bind_entry_observed_market_dataset(view, study["observed_scope"])
+    # the observed scope may be the v1 design or its trading-day-horizon successor; the horizons
+    # owner dispatches on the scope (the v1 binder rejects the horizon scope by contract)
+    from gx1.contracts.entry_observed_market_horizons_v1 import bind_observed_entry_dataset
+    bind_observed_entry_dataset(view, study["observed_scope"])
     return view
