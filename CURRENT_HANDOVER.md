@@ -631,6 +631,11 @@ Kjeden virker ende til ende; ingen påstand om edge. Windows-interop er slått
 på av brukeren 14.10 (wsl.conf), så fangster, oppgave, omstart og
 bekreftelse gjøres av agenten heretter. Neste: kurve (4 096 steg, 65 536
 rader, CONTROL4096 ved 0 og 4 096) under samme sekvens.
+Kurven er admittert i policy (entry_learning_study_run, run_id
+ENTRY_D1_HORIZON_CURVE_20261012_002, 4 096 steg, én invokasjon, 65 536
+unike TRAIN-rader fra epoke-0-rekkefølgen, CONTROL4096 observert ved 0 og
+4 096); recipe bygges gjennom gatene og campaignen settes opp av agenten
+(fangst, plan, oppgave, omstart, bekreftelse).
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,

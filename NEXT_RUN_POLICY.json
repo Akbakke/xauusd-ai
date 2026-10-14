@@ -4992,7 +4992,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P2_FIT_REVIEWED_CURVE_NEXT",
+      "status": "P2_CURVE_ADMITTED_RECEIPTS_OWN_PROGRESS",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5320,7 +5320,21 @@
                 "campaign_state": "BLOCKED_RECOVERY_RECEIPT_REQUIRED (controller wrote no receipt; evidence retained, never relaunched)",
                 "recipe_sha256": "4fd6c73d47875992cd9d741a42a7d68a0247c66d336561a8ca82fb99e8e4c798"
               }
-            ]
+            ],
+            "curve": {
+              "status": "ADMITTED_NOT_STARTED",
+              "admitted_utc": "2026-10-14T15:13:00.397871+00:00",
+              "scope": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE/POLICY_SCOPE.json",
+                "sha256": "2cd5ab64cb9606f2b7af0bd9e78e1648d09a696ccb57f1916501dee8c9c17d64"
+              },
+              "study": {
+                "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
+              },
+              "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE",
+              "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_002"
+            }
           }
         },
         "P3_review": {
@@ -8110,5 +8124,20 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
+  },
+  "entry_learning_study_run": {
+    "max_invocations": 1,
+    "optimizer_steps": 4096,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE/CANDIDATE_BUNDLE",
+    "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_002",
+    "selection": {
+      "phase": "curve",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+        "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
+      }
+    },
+    "source_bindings_sha256": "9c77704500892af8c901719ab2dd1c8a96b5e257cf2d6cc51c3474810c19469f",
+    "test_data_used": false
   }
 }
