@@ -11,9 +11,9 @@ radene og generaliserer ikke til CONTROL4096 ved 4 096 steg. Gjennomgangsbølgen
 retention-eier, repo-opprydding, policy/dokumenter). Neste læringsfase krever
 operatørvedtak: brukeren foretrekker et mindre kronologisk vindu (ca. ett år)
 før noen full epoke: fasen «recent_year» (siste 365 dager før TRAIN-kuttet,
-65 148 kvalifiserte rader, 4 071 steg, én invokasjon) er forhåndsregistrert i
-etterfølger-spesifikasjonen ENTRY_D1_HORIZON_LEARNING_STUDY_20261014 og
-admittert i policyen; brukerens fysiske Windows-omstart kjører den. Retention-
+65 148 kvalifiserte rader, 4 071 steg) er kjørt og gjennomgått 14.10:
+REJECT etter forhåndsregelen, men med et retningssignal kurven ikke hadde
+(se under). Neste fase krever operatørvedtak. Retention-
 bølge 1 er utført gjennom eieren (35 mål, 78,3 GiB, DELETE_COMPLETE). Ingen
 dokumentert Entry-edge, ingen prediktor innrømmet, training_enabled = false,
 TEST forseglet.
@@ -130,9 +130,28 @@ TRAIN / 7 363 CONTROL i D1-generasjonen. Ikke læring eller edge.
 - Ukjente rådatagap er ukjente; ingen imputering. Deklarerte kostvilkår er ikke
   historisk kostsannhet. CONTROL er gjenbrukt utviklingsdata.
 
-## Neste steg: fasen «recent_year» (vedtak 14.10 b)
+## Fasen «recent_year» (vedtak 14.10 b): kjørt og gjennomgått
 
-Implementert og admittert (6f058c5d, dc2f4f74): vindusrader og stegbudsjett
+Resultat (målt på ekte bytes; root …/ENTRY_D1_HORIZON_LEARNING_20261014_001,
+STUDY_REVIEW_RECENT_YEAR.json). Invokasjon på boot 498, 18:20–19:27Z, exit 0,
+toppeffekt 138 W, kjerne 58 °C. CONTROL4096 ved 20 d (samme rader som kurven):
+- Kontrast-MSE 2 032 815 → 1 877 306; konstant fra de trente vindusradene
+  1 929 010. Alle seks punktestimater er forbedringer, men alle seks
+  familiekorrigerte intervaller dekker null → REJECT_ENTRY_QUALIFICATION.
+- Rank-IC 0,039 → 0,189 ved 20 d, 0,001 → 0,160 ved 5 d (kurven: 0,040/0,085).
+- Handlinger LONG/SHORT/FLAT 822/192/3 082 → 2 324/1 382/390; valgt-handling-
+  snitt +50 → +128 bps netto mot alltid-LONG +148,5 (kurven: −3).
+- 9 av 13 måneder er verre enn minst én referanse (ustabilt over tid).
+Lesning: siste-års-rader gir et retningssignal på utviklings-CONTROL som hele
+historikken ikke ga, men det er ikke statistisk kvalifisert på 4 096 rader
+med overlappende 20-dagersutfall. Gjenbrukt CONTROL, ett seed, ingen økonomi.
+
+Avvik: confirm-reboot med nonce ble ikke kjørt før omstarten; controlleren
+startet likevel (reboot-pending/after-0000.json bevart). Etter kjøringen sto
+GPU-en i P0 på ~139 W uten GX1-prosess (GX1-klokkelåsen er frigjort; etter
+kurven var tomgang ~34 W). Årsak utenfor GX1 er ikke undersøkt.
+
+Implementasjon (6f058c5d, dc2f4f74): vindusrader og stegbudsjett
 avledes av kontrakteieren fra den bundne TRAIN-klokken (365 dager før kuttet:
 65 148 rader → 4 071 steg, 65 136 trente rader; nesten samme antall som kurven,
 men siste år); frossen rekkefølge begrenset til vinduet først; TRAIN-probe =
@@ -140,10 +159,18 @@ første 4 096 vindusrader ved 0/256/1 024/4 071; CONTROL4096 uendret ved 0 og
 4 071; samme seks-grense-regel. Spec: configs/research/ENTRY_D1_HORIZON_
 LEARNING_STUDY_20261014.json (binder forgjengeren); root
 /home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001 (RECENT_YEAR/).
-Kjørebok: P2_RUNBOOK.md i roten — agenten gjør fangst, campaign-plan,
-Windows-oppgave og omstartsforberedelse via interop; brukeren utfører den
-fysiske Windows-omstarten. Full epoke (40 266 steg, fire vinduer) bare etter
-læringssignal her og eget vedtak.
+Kjørebok: P2_RUNBOOK.md i roten.
+
+## Neste beslutning (operatør)
+
+Full epoke krever et læringssignal i det mindre vinduet og eget vedtak (vedtak
+14.10 b); resultatet over er retningsgivende, ikke kvalifisert. Alternativer,
+alle med ny forhåndsregistrering og policybinding:
+1. To års vindu (730 d: 128 815 rader, ≈8 050 steg, én invokasjon ≈ 2 t) for å
+   se om signalet holder med mer data fra nær fortid.
+2. Samme vindu med to nye seeds for å skille signal fra initialiseringsstøy.
+3. Full epoke (40 266 steg, fire vinduer) — krever vedtak på dette grunnlaget.
+4. Lukke native-sporet her og satse på forward-journalen for D1-signalet.
 
 Ingen automatisk trening, forlengelse eller relansering av konsumerte planer.
 training_enabled=false; TEST er forseglet. Ingen live/paper, broker, ordre,
