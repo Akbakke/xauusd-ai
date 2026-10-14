@@ -4992,7 +4992,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P2_CURVE_ATTEMPT_1_FAILED_PREFLIGHT_ATTEMPT_2_NEXT",
+      "status": "P2_CURVE_ADMITTED_RECEIPTS_OWN_PROGRESS",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5322,44 +5322,60 @@
               }
             ],
             "curve": {
-              "status": "FAILED_TRAINER_PREFLIGHT_ZERO_OPTIMIZER_STEPS",
-              "admitted_utc": "2026-10-14T15:13:00.397871+00:00",
+              "status": "ADMITTED_NOT_STARTED",
+              "admitted_utc": "2026-10-14T15:47:42.102586+00:00",
               "scope": {
-                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE/POLICY_SCOPE.json",
-                "sha256": "2cd5ab64cb9606f2b7af0bd9e78e1648d09a696ccb57f1916501dee8c9c17d64"
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE/POLICY_SCOPE.json",
+                "sha256": "2954050f1981837aa516876984e623f52c1984d854dbd73b4b3dba345270f2db"
               },
               "study": {
                 "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
-                "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
+                "sha256": "ee136083f7c2eeb38dd9832d7e5a422b48553fb783d054c60981125929be8d24"
               },
-              "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE",
-              "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_002",
-              "entry_learning_study_run": {
-                "max_invocations": 1,
-                "optimizer_steps": 4096,
-                "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE/CANDIDATE_BUNDLE",
-                "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_002",
-                "selection": {
-                  "phase": "curve",
-                  "plan": {
-                    "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
-                    "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
-                  }
+              "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE",
+              "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_003"
+            },
+            "curve_attempts": [
+              {
+                "status": "FAILED_TRAINER_PREFLIGHT_ZERO_OPTIMIZER_STEPS",
+                "admitted_utc": "2026-10-14T15:13:00.397871+00:00",
+                "scope": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE/POLICY_SCOPE.json",
+                  "sha256": "2cd5ab64cb9606f2b7af0bd9e78e1648d09a696ccb57f1916501dee8c9c17d64"
                 },
-                "source_bindings_sha256": "9c77704500892af8c901719ab2dd1c8a96b5e257cf2d6cc51c3474810c19469f",
-                "test_data_used": false
-              },
-              "observed_utc": "2026-10-14T15:40:11+00:00",
-              "invocation": "invocation-0001 on Windows boot 496 (prepared 495), started 2026-10-14T15:19:53Z, trainer exit 1 at 15:40:11Z",
-              "cause": "ENTRY_OBSERVED_MARKET_DATASET_SCOPE_INVALID at the first CONTROL observation: the study's control-view helper bound the view with the v1 binder (rejects the horizon scope); not exercised by the fit phase (no control observations).",
-              "fix_commit": "f72a430b",
-              "model_forwards": 0,
-              "optimizer_steps": 0,
-              "test_data_used": false,
-              "campaign_plan_file_sha256": "a5755ba0ca2b1b7e543af0822fd6d68a5ceba44ec7f2b40365be15287b9dff45",
-              "recipe_sha256": "2a4c8c9d99c356ac30dc6b336d236ea17aa4bafe63011ecf202f5010e5691f22",
-              "campaign_state": "no receipt written by the controller; ACTIVE_INVOCATION retained as evidence; task disabled; never relaunched"
-            }
+                "study": {
+                  "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                  "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
+                },
+                "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE",
+                "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_002",
+                "entry_learning_study_run": {
+                  "max_invocations": 1,
+                  "optimizer_steps": 4096,
+                  "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE/CANDIDATE_BUNDLE",
+                  "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_002",
+                  "selection": {
+                    "phase": "curve",
+                    "plan": {
+                      "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                      "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
+                    }
+                  },
+                  "source_bindings_sha256": "9c77704500892af8c901719ab2dd1c8a96b5e257cf2d6cc51c3474810c19469f",
+                  "test_data_used": false
+                },
+                "observed_utc": "2026-10-14T15:40:11+00:00",
+                "invocation": "invocation-0001 on Windows boot 496 (prepared 495), started 2026-10-14T15:19:53Z, trainer exit 1 at 15:40:11Z",
+                "cause": "ENTRY_OBSERVED_MARKET_DATASET_SCOPE_INVALID at the first CONTROL observation: the study's control-view helper bound the view with the v1 binder (rejects the horizon scope); not exercised by the fit phase (no control observations).",
+                "fix_commit": "f72a430b",
+                "model_forwards": 0,
+                "optimizer_steps": 0,
+                "test_data_used": false,
+                "campaign_plan_file_sha256": "a5755ba0ca2b1b7e543af0822fd6d68a5ceba44ec7f2b40365be15287b9dff45",
+                "recipe_sha256": "2a4c8c9d99c356ac30dc6b336d236ea17aa4bafe63011ecf202f5010e5691f22",
+                "campaign_state": "no receipt written by the controller; ACTIVE_INVOCATION retained as evidence; task disabled; never relaunched"
+              }
+            ]
           }
         },
         "P3_review": {
@@ -8149,5 +8165,20 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
+  },
+  "entry_learning_study_run": {
+    "max_invocations": 1,
+    "optimizer_steps": 4096,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE/CANDIDATE_BUNDLE",
+    "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_003",
+    "selection": {
+      "phase": "curve",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+        "sha256": "ee136083f7c2eeb38dd9832d7e5a422b48553fb783d054c60981125929be8d24"
+      }
+    },
+    "source_bindings_sha256": "ccf4fdf7c9c3bba7b49f359be96b099fab0901600dc0ab2e966db489d217abf4",
+    "test_data_used": false
   }
 }

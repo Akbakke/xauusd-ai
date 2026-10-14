@@ -2,7 +2,7 @@
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
   "retention_current_policy_manifest": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
-  "retention_current_policy_manifest_sha256": "50fe8c368b79549fdc46b9ff96b9efb614804b32e4c7fcd3b31063589b5da46c",
+  "retention_current_policy_manifest_sha256": "596f4edc8ddb437d410c94cb5477902b24e597fee70f9c125cd5a2354a3956c8",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
