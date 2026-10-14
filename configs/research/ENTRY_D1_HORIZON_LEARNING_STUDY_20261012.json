@@ -88,7 +88,7 @@
     "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/.specs/NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json",
     "sha256": "149117700b2aa44667fe17c70a91586cb8b0baabbfac2ce1e99e662b093abd37"
   },
-  "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001",
+  "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002",
   "row_bindings": {
     "epoch_order": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_COORDINATES_001/TRAIN_NATIVE_EPOCH0_ORDER.npy",
@@ -99,21 +99,21 @@
       "sha256": "56d87d18fe95c7846b9a91079a25d052af01ceb393cedfde40a79b7467fa1fac"
     },
     "train_probe": {
-      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/TRAIN_PROBE4096.npy",
+      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/TRAIN_PROBE4096.npy",
       "sha256": "f9253634bbcc5fb2dfee57389e2cef4a0c6ca4710f9841e346df13b8f3646fb8"
     },
     "control_population": {
-      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/CONTROL_POPULATION.npy",
+      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CONTROL_POPULATION.npy",
       "sha256": "792bf28201b35a693148cb965e1e4ce666f75575f55ef3728cd9625a0229914a"
     },
     "control": {
-      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/CONTROL4096.npy",
+      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CONTROL4096.npy",
       "sha256": "f9c01102efe9274eafdf1cb16c4bf6de4e0ada9983bce8ba7d6d7e6eac28f746"
     }
   },
   "phases": {
     "fit": {
-      "run_id": "ENTRY_D1_HORIZON_FIT_20261012_001",
+      "run_id": "ENTRY_D1_HORIZON_FIT_20261012_002",
       "optimizer_steps": 1024,
       "train_observation_steps": [
         0,
@@ -126,7 +126,7 @@
       "unique_train_rows": 256
     },
     "curve": {
-      "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_001",
+      "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_002",
       "optimizer_steps": 4096,
       "train_observation_steps": [
         0,
@@ -213,16 +213,30 @@
     "cpu_memory_max_bytes": 21474836480,
     "physical_windows_reboot_per_invocation": true
   },
-  "source_commit": "e563bb37519edd1cb2d2672844cb4005909c2a8b",
+  "source_commit": "528b754dd594581deaa885222c430c418cefeeba",
   "source_files": {
     "gx1/contracts/entry_observed_market_horizons_v1.py": "3fbf61beaaba6cd7cefac6f943f76aaa5a20482d5cfd05e587cb5d63fca45d38",
     "gx1/contracts/entry_observed_market_v1.py": "5dcc0975f0384f53ffde44cc8d0c73672780de08b67a9f592f621612b56e3325",
     "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "3a7dbf65c2eb689af16fef43ad2b96f3fedb2b9fde3c20c1862ddcb398992b8b",
     "gx1/contracts/entry_model_native_training_objective_v1.py": "127b87c7d7e8c05b025b8702c92f5d82bf4d92d6603a818f48f66e1261e73ed1",
-    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5c6f74c8d66dcc0d4ade0a8711f41d038138aeea88236e5cec09a9209bcf7ca8",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "a66d2ab5edbe39b3a5f827a799109994a2bfa14077402eb97c09503abacf43e6",
     "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": "ac3789e4c516bfe1e9c63f72205289b9180a7b87d7d68dc747e631c33cbd2791",
     "gx1/scripts/materialize_unified_exit_chronological_coordinates_v1.py": "d392f3131f8e70229d7e4a55f945a0e2b5e654866716f7d4dc9c92c0a0893a9d",
     "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
     "scripts/gx1_capped_run.sh": "a85bf761e3607ead54dd806b4cf581febaeeeca5801e3060ffc1e76a289d5f3d"
+  },
+  "attempts": {
+    "001": {
+      "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001",
+      "run_ids": {
+        "fit": "ENTRY_D1_HORIZON_FIT_20261012_001",
+        "curve": "ENTRY_D1_HORIZON_CURVE_20261012_001"
+      },
+      "status": "FAILED_IN_TRAINER_PREFLIGHT_ZERO_OPTIMIZER_STEPS",
+      "observed_utc": "2026-10-14T12:49:59+00:00",
+      "cause": "[CANDIDATE_PREFIX_PHYSICAL_LABEL_MISMATCH]: the trainer's prefix binding required the label binding rows (TRAIN_CALENDAR, 652 552) to equal TRAIN_ELIGIBLE_PARENT_ROWS (coordinates v2: 644 255); fixed in commit 528b754d with tests and a real-bytes replication. No model forward, no learning evidence; campaign FIT attempt 1 left as evidence (BLOCKED_RECOVERY_RECEIPT_REQUIRED).",
+      "recipe_sha256": "4fd6c73d47875992cd9d741a42a7d68a0247c66d336561a8ca82fb99e8e4c798",
+      "campaign_plan_file_sha256": "6672c1c130e74f593d7ff98bccb3a7d0d5d90c5f731def311e9ce20f74837f03"
+    }
   }
 }

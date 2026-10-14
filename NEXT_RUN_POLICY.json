@@ -5149,17 +5149,58 @@
           "phases": {
             "fit": {
               "status": "ADMITTED_NOT_STARTED",
-              "admitted_utc": "2026-10-13T06:16:01.349324+00:00",
+              "admitted_utc": "2026-10-14T14:04:30.026750+00:00",
               "scope": {
-                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/FIT/POLICY_SCOPE.json",
-                "sha256": "2fc94939afed494e89389d5ee0cd9a8ecca4fbeca36906f55372797c160129e2"
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT/POLICY_SCOPE.json",
+                "sha256": "35f345f48fe3c733b45e12e643f579b31e26f66a42384085282cf7ddb4793626"
               },
               "study": {
                 "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
-                "sha256": "c0647b83e14712df1b8a84224d7976feae66a6d4440c1261b07849c4d28b59d4"
+                "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
               },
-              "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/FIT"
-            }
+              "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT",
+              "run_id": "ENTRY_D1_HORIZON_FIT_20261012_002"
+            },
+            "fit_attempts": [
+              {
+                "status": "FAILED_TRAINER_PREFLIGHT_ZERO_OPTIMIZER_STEPS",
+                "admitted_utc": "2026-10-13T06:16:01.349324+00:00",
+                "scope": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/FIT/POLICY_SCOPE.json",
+                  "sha256": "2fc94939afed494e89389d5ee0cd9a8ecca4fbeca36906f55372797c160129e2"
+                },
+                "study": {
+                  "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                  "sha256": "c0647b83e14712df1b8a84224d7976feae66a6d4440c1261b07849c4d28b59d4"
+                },
+                "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/FIT",
+                "entry_learning_study_run": {
+                  "max_invocations": 1,
+                  "optimizer_steps": 1024,
+                  "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/FIT/CANDIDATE_BUNDLE",
+                  "run_id": "ENTRY_D1_HORIZON_FIT_20261012_001",
+                  "selection": {
+                    "phase": "fit",
+                    "plan": {
+                      "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                      "sha256": "c0647b83e14712df1b8a84224d7976feae66a6d4440c1261b07849c4d28b59d4"
+                    }
+                  },
+                  "source_bindings_sha256": "6a045daa0ec9164ab897698ebc449bc88441d06c327579c54331540178306f50",
+                  "test_data_used": false
+                },
+                "observed_utc": "2026-10-14T12:49:59+00:00",
+                "invocation": "invocation-0001 on Windows boot 494 (prepared 493), started 2026-10-14T12:29:41Z",
+                "cause": "[CANDIDATE_PREFIX_PHYSICAL_LABEL_MISMATCH] in the trainer's prefix binding: label-bound rows (TRAIN_CALENDAR, 652 552) were required to equal TRAIN_ELIGIBLE_PARENT_ROWS (coordinates v2, 644 255); no test covered the trainer path with the v2 subset.",
+                "fix_commit": "528b754d",
+                "model_forwards": 0,
+                "optimizer_steps": 0,
+                "test_data_used": false,
+                "campaign_plan_file_sha256": "6672c1c130e74f593d7ff98bccb3a7d0d5d90c5f731def311e9ce20f74837f03",
+                "campaign_state": "BLOCKED_RECOVERY_RECEIPT_REQUIRED (controller wrote no receipt; evidence retained, never relaunched)",
+                "recipe_sha256": "4fd6c73d47875992cd9d741a42a7d68a0247c66d336561a8ca82fb99e8e4c798"
+              }
+            ]
           }
         },
         "P3_review": {
@@ -7953,16 +7994,16 @@
   "entry_learning_study_run": {
     "max_invocations": 1,
     "optimizer_steps": 1024,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/FIT/CANDIDATE_BUNDLE",
-    "run_id": "ENTRY_D1_HORIZON_FIT_20261012_001",
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT/CANDIDATE_BUNDLE",
+    "run_id": "ENTRY_D1_HORIZON_FIT_20261012_002",
     "selection": {
       "phase": "fit",
       "plan": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
-        "sha256": "c0647b83e14712df1b8a84224d7976feae66a6d4440c1261b07849c4d28b59d4"
+        "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
       }
     },
-    "source_bindings_sha256": "6a045daa0ec9164ab897698ebc449bc88441d06c327579c54331540178306f50",
+    "source_bindings_sha256": "9c77704500892af8c901719ab2dd1c8a96b5e257cf2d6cc51c3474810c19469f",
     "test_data_used": false
   }
 }

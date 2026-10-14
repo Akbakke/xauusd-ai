@@ -593,6 +593,31 @@ materialize_local_random_access_campaign_v2 --phase native-candidate med
 eksisterende vakter. training_enabled er fortsatt false; ingen trening er
 startet.
 
+**Fit forsøk 1 feilet i trener-preflight (14.10, 0 optimizersteg).** Verten
+frøs 05:17 CEST (Kernel-Power 41, BugcheckCode 0, ingen dump; ti korrigerte
+WHEA-feil i september peker mot maskinvare). Windows-interop er av i
+/etc/wsl.conf, så boot-fangst, oppgaveinstallasjon og omstart ble kjørt av
+brukeren i Windows PowerShell (fangst transportert via %TEMP%). Kjeden var
+grønn: PREPARE/PRE_REBOOT-kontroll, campaign-plan (fil 6672c1c1), oppgave
+GX1NativeLearningCalibration Ready, prepare/confirm-reboot, fersk boot 494,
+invocation-0001 12:29:41 UTC under capped trainer. Etter 20 min innlasting
+stoppet treneren med [CANDIDATE_PREFIX_PHYSICAL_LABEL_MISMATCH]:
+`_prefix_candidate_training_binding` krevde at label-bindingens rader
+(TRAIN_CALENDAR, 652 552) var lik TRAIN_ELIGIBLE_PARENT_ROWS, som under
+koordinater v2 er den eligible delmengden (644 255). V38 hadde de like; P1a
+manglet trener-test for v2. Rettet i 528b754d: label-binding og treningsmengde
+er separate bindinger, eligible ⊂ label-rader, antall bundet til
+eligibility-blokken, sesjonsbindingen bærer begge; tester ende-til-ende på
+ekte koordinatbytes, og sammenligningen er replikert felt for felt på
+NATIVE_D1-artefaktene (regel 2h). Campaignen for forsøk 1 står i
+BLOCKED_RECOVERY_RECEIPT_REQUIRED (controller skrev ingen kvittering) og
+beholdes som evidens. Forsøk 2: studiespec-en peker til root
+ENTRY_D1_HORIZON_LEARNING_20261012_002 med run_ids _002 og forsøk 1 bokført
+under `attempts`; samme rader (byteidentiske), samme design, ny plan,
+oppgaveinstallasjon og fersk boot. Vaktene som skulle melde avslutningen
+hang fordi pgrep matchet sin egen kommandolinje; fremover sentinelfiler og
+guard-loggens `event=exit`.
+
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
 PREPARATION_CPU_001 i NATIVE_D1-generasjonen). De feilede kjerneforsøkene
