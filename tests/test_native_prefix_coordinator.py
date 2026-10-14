@@ -407,3 +407,61 @@ def test_physical_current_design_cannot_inherit_historical_512_step_extension(ph
             "plan":{"from_optimizer_steps":256,"stop_after_optimizer_steps":512},
             "plan_binding":{"path":"/historical/continuation.json","sha256":"1"*64}})
     assert not h.pointer(output).exists() and h.batches==[]
+
+
+def _horizon_eligible_case(data, tmp_path, *, eligible=None, declared_rows=None):
+    """Coordinates v2 over an eligible subset of the label-bound TRAIN rows (operator decision 12.10.2026)."""
+    from tests.test_native_fresh_prefix_components import _bind, _write
+    from gx1.contracts.entry_model_native_training_run_lineage_v1 import deterministic_uniform_subsample_indices
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import HORIZON_ELIGIBILITY_RULE
+    case = data.case
+    full = np.load(data.design["calendar"]["bindings"]["TRAIN_CALENDAR_PARENT_ROWS"]["path"])
+    eligible = np.setdiff1d(full, full[::97]) if eligible is None else eligible
+    order = case["order"][np.isin(case["order"], eligible)]
+    planned = order[:4096]
+    probe = planned[deterministic_uniform_subsample_indices(population_rows=4096, requested_rows=256, seed=20260911, split_salt=0)]
+    design_doc = _write(tmp_path / "horizons-design.json", {"schema_version": "fixture"})
+    bindings = {}
+    for name, rows in (("TRAIN_ELIGIBLE_PARENT_ROWS", eligible), ("TRAIN_NATIVE_EPOCH0_ORDER", order),
+                       ("TRAIN_NATIVE4096_PARENT_ROWS", planned), ("TRAIN256_PROBE_PARENT_ROWS", probe)):
+        path = tmp_path / ("v2-" + name + ".npy")
+        np.save(path, rows)
+        bindings[name] = _bind(path)
+    coordinates = case["coordinates"]
+    coordinates.update(schema_version="gx1_physical_native_training_coordinates_v2", bindings=bindings,
+                       eligibility={"rule": HORIZON_ELIGIBILITY_RULE, "horizons_design": design_doc,
+                                    "entry_eligibility_cutoff_utc": "2021-05-02T19:20:00+00:00",
+                                    "eligible_rows": int(len(eligible) if declared_rows is None else declared_rows),
+                                    "censored_rows_excluded": int(len(full) - len(eligible)),
+                                    "complete_at_all_observation_horizons": True})
+    case["seal_coordinates"]()
+    data.train._unified_exit_lifecycle_v2.order = order.copy()
+    return eligible, order
+
+
+def test_physical_training_binding_trains_on_the_horizon_eligible_subset_of_label_bound_rows(physical_prepared, tmp_path):
+    data = physical_prepared
+    eligible, order = _horizon_eligible_case(data, tmp_path)
+    full = np.flatnonzero(data.train._policy_dependent_auxiliary_bound_rows)
+    assert len(eligible) < len(full) and data.train._policy_dependent_auxiliary_binding["rows"] == len(full)
+    binding, parents, epoch_order = trainer._prefix_candidate_training_binding(**_binding_args(data))
+    assert np.array_equal(parents.numpy(), eligible) and np.array_equal(epoch_order.numpy(), order)
+    assert binding["train_rows"] == len(eligible)
+    assert binding["train_parent_rows"] == data.case["coordinates"]["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"]
+    assert binding["label_parent_rows"] == data.design["calendar"]["bindings"]["TRAIN_CALENDAR_PARENT_ROWS"]
+    assert binding["horizon_eligibility"]["eligible_rows"] == len(eligible)
+
+
+@pytest.mark.parametrize("fault", ["outside_label_rows", "declared_count", "label_rows_shrunk"])
+def test_physical_training_binding_rejects_eligible_rows_outside_the_label_binding(physical_prepared, tmp_path, fault):
+    data = physical_prepared
+    full = np.flatnonzero(data.train._policy_dependent_auxiliary_bound_rows)
+    if fault == "outside_label_rows":
+        _horizon_eligible_case(data, tmp_path, eligible=np.append(np.setdiff1d(full, full[::97]), len(full) + 5))
+    elif fault == "declared_count":
+        _horizon_eligible_case(data, tmp_path, declared_rows=7)
+    else:
+        _horizon_eligible_case(data, tmp_path)
+        data.train._policy_dependent_auxiliary_bound_rows[full[3]] = False
+    with pytest.raises(RuntimeError):
+        trainer._prefix_candidate_training_binding(**_binding_args(data))

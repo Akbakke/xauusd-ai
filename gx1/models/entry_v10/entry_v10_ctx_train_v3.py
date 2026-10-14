@@ -13183,10 +13183,20 @@ def _prefix_candidate_training_binding(
                 or {key: actual[key] for key in ("reference_policy", "reference_cutoff_time_ns")}
                 != selected["reference_workload"]):
             raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_SAMPLER_MISMATCH]")
-    row_bindings = (preparation["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"],
-                    design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"])
+    control_binding = design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"]
+    # The label binding covers every physical row the original targets were proven for; the training
+    # population is the frozen coordinates' eligible rows. They are the same binding (v1) unless the
+    # coordinates carry a horizon-eligibility block (v2, operator decision 12.10.2026): then the trained
+    # rows are a strict subset of the label-bound rows (complete observed outcomes at every horizon).
+    row_bindings = (preparation["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"], control_binding)
+    eligibility = coordinates["artifact"].get("eligibility") if physical is not None else None
+    label_row_bindings = ((physical["train_parent_rows"], control_binding) if physical is not None
+                          else row_bindings)
+    if eligibility is None and label_row_bindings != row_bindings:
+        raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_LABEL_MISMATCH]")
     populations = []
-    for dataset, binding, role, row_binding in zip((train_ds, val_ds), bindings, ("TRAIN", "CONTROL256"), row_bindings):
+    for dataset, binding, role, row_binding, training_binding in zip(
+            (train_ds, val_ds), bindings, ("TRAIN", "CONTROL256"), label_row_bindings, row_bindings):
         if (not isinstance(binding, Mapping) or binding.get("role") != role
                 or binding.get("result") != artifacts["labels_result"]
                 or binding.get("design") != artifacts["design"]):
@@ -13218,7 +13228,16 @@ def _prefix_candidate_training_binding(
                 or not np.array_equal(np.flatnonzero(mask), rows)
                 or (physical is not None and (type(binding.get("rows")) is not int or binding["rows"] != len(rows)))):
             raise RuntimeError("[CANDIDATE_PREFIX_BOUND_ROWS_MISMATCH]")
-        populations.append(_candidate_training_parent_rows(len(dataset), torch.as_tensor(rows.copy())))
+        if training_binding == row_binding:
+            trained = rows
+        else:
+            trained = np.load(Path(checked(training_binding)["path"]), allow_pickle=False)
+            if (role != "TRAIN" or not isinstance(eligibility, Mapping)
+                    or trained.dtype != np.dtype("int64") or trained.ndim != 1 or len(trained) < 1
+                    or not np.array_equal(trained, np.unique(trained)) or not np.isin(trained, rows).all()
+                    or type(eligibility.get("eligible_rows")) is not int or eligibility["eligible_rows"] != len(trained)):
+                raise RuntimeError("[CANDIDATE_PREFIX_ELIGIBLE_ROWS_NOT_LABEL_BOUND]")
+        populations.append(_candidate_training_parent_rows(len(dataset), torch.as_tensor(trained.copy())))
     parents, control = populations
     order_binding = checked(preparation["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"])
     order = np.load(order_binding["path"], allow_pickle=False)
@@ -13237,6 +13256,10 @@ def _prefix_candidate_training_binding(
             "selected_sampler": coordinates["selected_sampler_binding"]}
            if physical is not None else {"prefix_preparation": normalization["prefix_preparation"]}),
         "train_parent_rows": row_bindings[0], "control_parent_rows": row_bindings[1],
+        **({"label_parent_rows": label_row_bindings[0],
+            "horizon_eligibility": {key: eligibility[key] for key in (
+                "rule", "entry_eligibility_cutoff_utc", "eligible_rows", "censored_rows_excluded")}}
+           if eligibility is not None else {}),
         "epoch0_parent_order": order_binding, "train_rows": int(parents.numel()),
         "reference_cutoff_time_ns": cutoff, "maximum_optimizer_steps": 256,
         "maximum_completed_epochs": 0, "fixed_final_model_variant": "ONLINE",
