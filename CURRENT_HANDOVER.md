@@ -646,6 +646,17 @@ VAL-bytes (4 096/4 096 admittert). Kurve forsøk 2 kjører under root
 ENTRY_D1_HORIZON_LEARNING_20261012_003 (run_id _003), fit-resultatet står
 under _002 (phase_roots i spec-en). Forsøk 1 bokført under attempts; oppgaven
 deaktivert; campaign-evidensen beholdt.
+**Kurve forsøk 2 fullført og gjennomgått (14.10 17:03 UTC, boot 497, 68 min).**
+PHASE_REVIEW v2 grønn: kvittering, cursor, checkpoint ved 4 096, 150 Exit-felt
+uendret, observasjoner TRAIN_PROBE4096 ved 0/256/1 024/4 096 og CONTROL4096
+ved 0/4 096 med identiske rader og mål. Målt: på de trente radene faller
+contrast-MSE 725 499 → 116 061 og rank-IC 20 d går til 0,96 (tilpasning);
+på CONTROL4096 stiger contrast-MSE 2 032 815 → 2 157 135, rank-IC 20 d står
+på 0,04 (5 d 0,085, 1 d 0,013), handlingene vrir fra FLAT (3 082) til LONG
+(2 893) og valgt-handling-snittet faller fra +50 til −3 bps mot alltid-LONG
++148 bps. Ingen generalisering ved denne skalaen; kjeden er bevist ende til
+ende. Studiegjennomgang v2 (seks parvise grenser, sensitivitet, referanser)
+følger når hjelperne er committet.
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,

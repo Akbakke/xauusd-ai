@@ -4992,7 +4992,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P2_CURVE_ADMITTED_RECEIPTS_OWN_PROGRESS",
+      "status": "P2_CURVE_REVIEWED_P3_AND_FIX_WAVE_NEXT",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5139,7 +5139,7 @@
           }
         },
         "P2_gpu_campaign": {
-          "status": "NOT_STARTED",
+          "status": "FIT_AND_CURVE_REVIEWED",
           "phases_in_order": [
             "smoke_256",
             "fit_1024",
@@ -5322,7 +5322,7 @@
               }
             ],
             "curve": {
-              "status": "ADMITTED_NOT_STARTED",
+              "status": "COMPLETED_FINITE_PHASE_REVIEWED",
               "admitted_utc": "2026-10-14T15:47:42.102586+00:00",
               "scope": {
                 "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE/POLICY_SCOPE.json",
@@ -5333,7 +5333,184 @@
                 "sha256": "ee136083f7c2eeb38dd9832d7e5a422b48553fb783d054c60981125929be8d24"
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE",
-              "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_003"
+              "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_003",
+              "entry_learning_study_run": {
+                "max_invocations": 1,
+                "optimizer_steps": 4096,
+                "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE/CANDIDATE_BUNDLE",
+                "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_003",
+                "selection": {
+                  "phase": "curve",
+                  "plan": {
+                    "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                    "sha256": "ee136083f7c2eeb38dd9832d7e5a422b48553fb783d054c60981125929be8d24"
+                  }
+                },
+                "source_bindings_sha256": "ccf4fdf7c9c3bba7b49f359be96b099fab0901600dc0ab2e966db489d217abf4",
+                "test_data_used": false
+              },
+              "completed_utc": "2026-10-14T17:03:00.003081+00:00",
+              "invocation": "invocation-0001 on Windows boot 497 (prepared 496), 15:55:15-17:03:00Z, RESUMABLE/PASS/exit 0",
+              "phase_review": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE/PHASE_REVIEW.json",
+                "sha256": "2a2446ac257018042a3962bc4742f522560b781568ce9350569d2695a0df8167"
+              },
+              "receipt": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE/RUNTIME/receipts/invocation-0001.json",
+                "sha256": "997bdf9e1e76ca3aa3fbeecb13c6742e04711496772e14d77e3b28548e6df069"
+              },
+              "campaign_plan_file_sha256": "821048cae5f88b07e48fe93318da01a6b42854c83b50491980670d93bb09254c",
+              "recipe_sha256": "e626672c0ba9d12cc31d45f649ee99cd53ebc0030e9fecf052563160cd64ee0d",
+              "component_setup_seconds": [
+                1101.120703211
+              ],
+              "unchanged_exit_state_fields": 150,
+              "measured": {
+                "mse_long_short_contrast_20d": {
+                  "control_0": [
+                    498835.7,
+                    519093.2,
+                    2032815.4
+                  ],
+                  "control_4096": [
+                    538682.1,
+                    539902.7,
+                    2157134.8
+                  ],
+                  "train_0": [
+                    180487.0,
+                    183853.4,
+                    725498.5
+                  ],
+                  "train_1024": [
+                    117335.5,
+                    119875.6,
+                    473803.3
+                  ],
+                  "train_256": [
+                    174927.8,
+                    177051.2,
+                    703120.0
+                  ],
+                  "train_4096": [
+                    28942.4,
+                    29107.9,
+                    116060.9
+                  ]
+                },
+                "centered_mse": {
+                  "control_0": [
+                    476757.6,
+                    477600.9,
+                    1908711.7
+                  ],
+                  "control_4096": [
+                    537917.4,
+                    538934.0,
+                    2153679.9
+                  ],
+                  "train_0": [
+                    180483.4,
+                    180897.7,
+                    722745.8
+                  ],
+                  "train_1024": [
+                    117221.2,
+                    118677.9,
+                    471751.3
+                  ],
+                  "train_256": [
+                    174819.1,
+                    175547.3,
+                    700698.5
+                  ],
+                  "train_4096": [
+                    20989.2,
+                    21067.3,
+                    84073.5
+                  ]
+                },
+                "rank_ic_by_horizon": {
+                  "control_0": {
+                    "1": 0.026,
+                    "20": 0.039,
+                    "5": 0.001
+                  },
+                  "control_4096": {
+                    "1": 0.013,
+                    "20": 0.04,
+                    "5": 0.085
+                  },
+                  "train_0": {
+                    "1": -0.002,
+                    "20": -0.003,
+                    "5": 0.019
+                  },
+                  "train_1024": {
+                    "1": 0.114,
+                    "20": 0.72,
+                    "5": 0.32
+                  },
+                  "train_256": {
+                    "1": 0.102,
+                    "20": 0.508,
+                    "5": 0.231
+                  },
+                  "train_4096": {
+                    "1": 0.168,
+                    "20": 0.96,
+                    "5": 0.462
+                  }
+                },
+                "action_counts_LSF": {
+                  "control_0": [
+                    822,
+                    192,
+                    3082
+                  ],
+                  "control_4096": [
+                    2893,
+                    997,
+                    206
+                  ],
+                  "train_0": [
+                    1050,
+                    122,
+                    2924
+                  ],
+                  "train_1024": [
+                    1935,
+                    2125,
+                    36
+                  ],
+                  "train_256": [
+                    1221,
+                    447,
+                    2428
+                  ],
+                  "train_4096": [
+                    2304,
+                    1530,
+                    262
+                  ]
+                },
+                "selected_action_mean_bps": {
+                  "control_0": 50.2,
+                  "control_4096": -2.9,
+                  "train_0": 1.5,
+                  "train_1024": 252.5,
+                  "train_256": 113.1,
+                  "train_4096": 285.9
+                },
+                "control4096_always_long_mean_bps": 148.48,
+                "control4096_always_short_mean_bps": -204.4
+              },
+              "evidence_class": "TRAIN_PROBE4096 fit (rows inside the 65 536 trained rows) and CONTROL4096 generalization at steps 0 and 4096; reused development CONTROL; no economics, no edge claim",
+              "reading": "loss descends strongly on trained rows (contrast-MSE 725 499 -> 116 061, rank-IC 0.96); on CONTROL4096 the contrast-MSE rises (2 032 815 -> 2 157 135), rank-IC stays ~0.04 at 20 d (0.085 at 5 d), actions tilt LONG and the selected-action mean falls from +50 to -3 bps against always-LONG +148 bps: no generalization at this scale",
+              "windows_task_completed": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE/WINDOWS_TASK_COMPLETED.json",
+                "sha256": "c22a9bba5170f6e932934f893e4f5ee46034fa479bfbfd0f81db502c01b63947"
+              }
             },
             "curve_attempts": [
               {
@@ -8165,20 +8342,5 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
-  },
-  "entry_learning_study_run": {
-    "max_invocations": 1,
-    "optimizer_steps": 4096,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE/CANDIDATE_BUNDLE",
-    "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_003",
-    "selection": {
-      "phase": "curve",
-      "plan": {
-        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
-        "sha256": "ee136083f7c2eeb38dd9832d7e5a422b48553fb783d054c60981125929be8d24"
-      }
-    },
-    "source_bindings_sha256": "ccf4fdf7c9c3bba7b49f359be96b099fab0901600dc0ab2e966db489d217abf4",
-    "test_data_used": false
   }
 }
