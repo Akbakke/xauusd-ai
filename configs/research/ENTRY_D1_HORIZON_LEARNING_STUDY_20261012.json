@@ -88,7 +88,7 @@
     "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001/.specs/NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json",
     "sha256": "149117700b2aa44667fe17c70a91586cb8b0baabbfac2ce1e99e662b093abd37"
   },
-  "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002",
+  "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003",
   "row_bindings": {
     "epoch_order": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_COORDINATES_001/TRAIN_NATIVE_EPOCH0_ORDER.npy",
@@ -126,7 +126,7 @@
       "unique_train_rows": 256
     },
     "curve": {
-      "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_002",
+      "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_003",
       "optimizer_steps": 4096,
       "train_observation_steps": [
         0,
@@ -213,10 +213,10 @@
     "cpu_memory_max_bytes": 21474836480,
     "physical_windows_reboot_per_invocation": true
   },
-  "source_commit": "528b754dd594581deaa885222c430c418cefeeba",
+  "source_commit": "f72a430b65448d648f148d0abf202814c9ec2be7",
   "source_files": {
     "gx1/contracts/entry_observed_market_horizons_v1.py": "3fbf61beaaba6cd7cefac6f943f76aaa5a20482d5cfd05e587cb5d63fca45d38",
-    "gx1/contracts/entry_observed_market_v1.py": "5dcc0975f0384f53ffde44cc8d0c73672780de08b67a9f592f621612b56e3325",
+    "gx1/contracts/entry_observed_market_v1.py": "39672b78934f27a054e53eaefd1657f016e14f3c9dbe6a27787751b371003f65",
     "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": "3a7dbf65c2eb689af16fef43ad2b96f3fedb2b9fde3c20c1862ddcb398992b8b",
     "gx1/contracts/entry_model_native_training_objective_v1.py": "127b87c7d7e8c05b025b8702c92f5d82bf4d92d6603a818f48f66e1261e73ed1",
     "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "a66d2ab5edbe39b3a5f827a799109994a2bfa14077402eb97c09503abacf43e6",
@@ -237,6 +237,20 @@
       "cause": "[CANDIDATE_PREFIX_PHYSICAL_LABEL_MISMATCH]: the trainer's prefix binding required the label binding rows (TRAIN_CALENDAR, 652 552) to equal TRAIN_ELIGIBLE_PARENT_ROWS (coordinates v2: 644 255); fixed in commit 528b754d with tests and a real-bytes replication. No model forward, no learning evidence; campaign FIT attempt 1 left as evidence (BLOCKED_RECOVERY_RECEIPT_REQUIRED).",
       "recipe_sha256": "4fd6c73d47875992cd9d741a42a7d68a0247c66d336561a8ca82fb99e8e4c798",
       "campaign_plan_file_sha256": "6672c1c130e74f593d7ff98bccb3a7d0d5d90c5f731def311e9ce20f74837f03"
+    },
+    "002_curve": {
+      "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/CURVE",
+      "run_id": "ENTRY_D1_HORIZON_CURVE_20261012_002",
+      "status": "FAILED_IN_TRAINER_PREFLIGHT_ZERO_OPTIMIZER_STEPS",
+      "observed_utc": "2026-10-14T15:40:11+00:00",
+      "cause": "ENTRY_OBSERVED_MARKET_DATASET_SCOPE_INVALID: entry_learning_study_control_dataset bound the CONTROL4096 view with the v1 binder, which rejects the horizon scope; fixed in commit f72a430b with tests and a real-bytes replication. No model forward; campaign evidence retained.",
+      "recipe_sha256": "2a4c8c9d99c356ac30dc6b336d236ea17aa4bafe63011ecf202f5010e5691f22",
+      "campaign_plan_file_sha256": "a5755ba0ca2b1b7e543af0822fd6d68a5ceba44ec7f2b40365be15287b9dff45"
     }
-  }
+  },
+  "phase_roots": {
+    "fit": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT",
+    "curve": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003/CURVE"
+  },
+  "phase_roots_note": "The fit phase completed and was reviewed under root _002; the curve runs under root _003 after the attempt-1 preflight failure. The study review reads each phase from phase_roots; row bindings are unchanged (byte-identical arrays under _002)."
 }

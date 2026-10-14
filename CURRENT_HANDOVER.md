@@ -636,6 +636,16 @@ ENTRY_D1_HORIZON_CURVE_20261012_002, 4 096 steg, én invokasjon, 65 536
 unike TRAIN-rader fra epoke-0-rekkefølgen, CONTROL4096 observert ved 0 og
 4 096); recipe bygges gjennom gatene og campaignen settes opp av agenten
 (fangst, plan, oppgave, omstart, bekreftelse).
+**Kurve forsøk 1 feilet i trener-preflight (14.10 15:40 UTC, 0 steg):** ved
+første CONTROL-observasjon bandt studiens kontrollvisning (CONTROL4096) målet
+med v1-binderen, som avviser horisont-scope
+(ENTRY_OBSERVED_MARKET_DATASET_SCOPE_INVALID). Fit-fasen har ingen
+kontrollobservasjoner og traff aldri stien. Rettet i f72a430b: hjelperen
+dispatcher på scope; test med horisont-scope og replikering på ekte
+VAL-bytes (4 096/4 096 admittert). Kurve forsøk 2 kjører under root
+ENTRY_D1_HORIZON_LEARNING_20261012_003 (run_id _003), fit-resultatet står
+under _002 (phase_roots i spec-en). Forsøk 1 bokført under attempts; oppgaven
+deaktivert; campaign-evidensen beholdt.
 
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
