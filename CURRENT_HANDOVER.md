@@ -148,8 +148,13 @@ med overlappende 20-dagersutfall. Gjenbrukt CONTROL, ett seed, ingen økonomi.
 
 Avvik: confirm-reboot med nonce ble ikke kjørt før omstarten; controlleren
 startet likevel (reboot-pending/after-0000.json bevart). Etter kjøringen sto
-GPU-en i P0 på ~139 W uten GX1-prosess (GX1-klokkelåsen er frigjort; etter
-kurven var tomgang ~34 W). Årsak utenfor GX1 er ikke undersøkt.
+GPU-en fast i P0 på ~139 W uten eier: ingen /dev/dxg-holder i WSL, bare
+C+G-skrivebordsprosesser i Windows, GX1-klokkelåsen bevist frigjort, og
+driveren rapporterer «Idle: Active» mens den blir i P0 (WDDM 591.86,
+sporadisk — boot 497 gikk til ~34 W etter samme syklus). Diagnose hash-bundet
+i run-rotens HOST_GPU_IDLE_P0_STUCK_20261014.json; ryddet av operatørbestilt
+omstart. Stående praksis: verifiser tomgangstrekk etter hver GPU-fase; fast
+P0 uten eier blokkerer neste invokasjon til maskinen er omstartet.
 
 Implementasjon (6f058c5d, dc2f4f74): vindusrader og stegbudsjett
 avledes av kontrakteieren fra den bundne TRAIN-klokken (365 dager før kuttet:

@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-14T19:40:41.112526+00:00",
+  "observed_utc": "2026-10-14T19:47:29.045490+00:00",
   "status": "NATIVE_D1_RECENT_YEAR_REVIEWED_REJECT_DIRECTIONAL_SIGNAL",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -6640,7 +6640,11 @@
       },
       "next_wave": "wave 2 requires document closure: V38 x2 (64 GiB), FEATURE_REPAIR (34), NATIVE_D1 failed cores _001/_002 (10; configs/research specs name them), V46 outside the protected leaf (117) after a reach check"
     },
-    "host_observation_20261014": "after the recent_year invocation the GPU stayed in P0 at 1 860 MHz drawing ~139 W with no WSL compute process (after the curve phase it idled at ~34 W); the GX1 clock lock 1395-1695 MHz is released; cause outside GX1 not investigated"
+    "host_observation_20261014": "DIAGNOSED 19:46Z: after the recent_year invocation the GPU stayed stuck in P0 (1860 MHz, memory 9751 MHz, ~139 W, 0% util) with NO holder on either side (no /dev/dxg fd in WSL, only C+G desktop processes in Windows, GX1 clock lock released, driver reports 'Idle: Active' while in P0). WDDM driver 591.86 stuck-pstate; sporadic (boot 497 idled at ~34 W after the same cycle). Cleared by the operator-ordered Windows reboot; evidence hash-bound below. Standing practice: verify idle draw after every GPU phase; stuck P0 without a holder blocks the next invocation until a reboot.",
+    "host_observation_20261014_evidence": {
+      "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001/HOST_GPU_IDLE_P0_STUCK_20261014.json",
+      "sha256": "e28650cd8452d7a4e2d0c2f6526d53275a75d2c0be4d6183397a0dbc851a5764"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
