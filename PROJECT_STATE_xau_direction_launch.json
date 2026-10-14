@@ -1,8 +1,6 @@
 {
   "schema_version": "gx1_xau_direction_launch_state_v1",
   "project": "XAUUSD",
-  "retention_current_policy_manifest": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
-  "retention_current_policy_manifest_sha256": "1f255d4ca4e509e6db10250d2c7bc0216d875d6e71143fd7c3fbc065ca0a11cf",
   "reviewed_local_runtime_exclusions": {
     "paths": [
       ".claude/worktrees/",
@@ -44,5 +42,34 @@
     "reason": "ENTRY_OBSERVED_FIXED256_LEARNING_GATE_FAILED_AND_LEARNED_RESUME_UNVERIFIED",
     "activation_authority": false
   },
-  "note": "No admitted model or active legacy training session. NEXT_RUN_POLICY.json owns CURRENT work and exact future native scope; feature widths/versions come from executable owners, never historical mirrors."
+  "note": "No admitted model or active legacy training session. NEXT_RUN_POLICY.json owns CURRENT work and exact future native scope; feature widths/versions come from executable owners, never historical mirrors.",
+  "current_policy_sha256": "1f255d4ca4e509e6db10250d2c7bc0216d875d6e71143fd7c3fbc065ca0a11cf",
+  "retention_protected_leaves": {
+    "schema_version": "gx1_retention_protected_leaves_v1",
+    "paths": [
+      "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003",
+      "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS",
+      "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE",
+      "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_MANIFEST.json",
+      "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927",
+      "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z",
+      "/home/andre2/GX1_DATA/data/data/prebuilt/VOLATILITY_SQUEEZE_SIXCLOCK_PRETEST_20260829T172500Z",
+      "/home/andre2/GX1_DATA/data/native_xau",
+      "/home/andre2/GX1_DATA/research",
+      "/home/andre2/GX1_DATA/data/oanda",
+      "/home/andre2/GX1_DATA/data/external",
+      "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
+      "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_001",
+      "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002",
+      "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_003",
+      "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929",
+      "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001",
+      "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_001",
+      "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_002",
+      "/home/andre2/GX1_RUNS/EDGE_ROOT_CAUSE_REVIEW_20260929",
+      "/home/andre2/GX1_DATA/reports",
+      "/home/andre2/GX1_DATA/cleanup_events"
+    ],
+    "note": "operator decision 14.10.2026: current-generation roots protected as explicit leaves; targets named by current documents are refused separately"
+  }
 }

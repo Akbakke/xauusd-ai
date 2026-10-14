@@ -53,6 +53,14 @@ _REFERENCE_KEYS = frozenset({
     "path", "json_path", "file", "filename", "manifest", "artifact",
     "parquet", "npy", "npz", "directory", "root", "dir",
 })
+RETENTION_PROTECTED_LEAVES_KEY = "retention_protected_leaves"
+RETENTION_PROTECTED_LEAVES_SCHEMA = "gx1_retention_protected_leaves_v1"
+# Documents whose text names an artifact make it uncleanable until the document changes (rule 9).
+CURRENT_DOCUMENT_GLOBS = (
+    "NEXT_RUN_POLICY.json", "CURRENT_HANDOVER.md", "GX1_RULES.md", "AGENTS.md", "PROJECT_STATE_*.json",
+    "docs/*.md", "configs/research/*.json",
+)
+_ABSOLUTE_DATA_PATH_RE = re.compile(r"/home/andre2/GX1_(?:DATA|RUNS)[^\s\"'`,;)\]}<>]*")
 _DIRECTORY_MANIFEST_NAMES = (
     "manifest.json", "MANIFEST.json", "PAIR_MANIFEST.json",
     "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json", "REPAIR_MANIFEST.json",
@@ -639,17 +647,31 @@ def authority_protected_paths(
         raise EvidenceRetentionError("delete incident schema_version is invalid")
     if delete_incident.get("project") != "XAUUSD":
         raise EvidenceRetentionError("delete incident project is not XAUUSD")
+    leaves = launch_contract.get(RETENTION_PROTECTED_LEAVES_KEY)
     roots = (
         (artifact_registry, artifact_registry_json),
         (
             {key: value for key, value in launch_contract.items()
-             if key != "reviewed_local_runtime_exclusions"},
+             if key not in ("reviewed_local_runtime_exclusions", RETENTION_PROTECTED_LEAVES_KEY)},
             launch_contract_json,
         ),
         (delete_incident, delete_incident_json or CANONICAL_DELETE_INCIDENT),
     )
     pending = deque((payload, Path(path), 0) for payload, path in roots)
     protected: set[Path] = set()
+    # Operator decision 14.10.2026: the current generation's data roots are protected as explicit leaves
+    # (no descent, no manifest requirement) instead of binding the whole working-status policy as an
+    # authority graph; a target naming check against the current documents complements this
+    # (build_cleanup_plan_payload). A missing or malformed leaf fails closed.
+    if leaves is not None:
+        if (not isinstance(leaves, Mapping) or leaves.get("schema_version") != RETENTION_PROTECTED_LEAVES_SCHEMA
+                or not isinstance(leaves.get("paths"), list) or not leaves["paths"]):
+            raise EvidenceRetentionError("retention protected leaves must declare schema_version and a non-empty paths list")
+        for raw in leaves["paths"]:
+            if not isinstance(raw, str) or not raw.startswith("/"):
+                raise EvidenceRetentionError("retention protected leaf must be an absolute path string")
+            leaf = _canonical_path(Path(raw), context="retention protected leaf", must_exist=True)
+            protected.add(leaf)
     visited: dict[Path, str] = {}
     bindings: dict[Path, str | None] = {}
     directories: set[Path] = set()
@@ -768,8 +790,9 @@ def authority_protected_paths(
                     depth + 1, sealed,
                 ))
                 continue
-            absolute = isinstance(value, str) and value.startswith("/")
-            if not declared and not absolute:
+            if not declared:
+                # Only declared keys are references (14.10.2026); an undeclared absolute string in a
+                # working document is text, not authority.
                 continue
             expected_hash = (
                 None if key == "json_path" and value == str(manifest)
@@ -875,6 +898,34 @@ def _paths_overlap(left: Path, right: Path) -> bool:
     return left == right or left in right.parents or right in left.parents
 
 
+def current_document_named_paths(repo_root: Path = REPO_ROOT) -> dict[str, tuple[str, ...]]:
+    """Absolute GX1_DATA/GX1_RUNS path strings named by the current documents, per document."""
+    named: dict[str, tuple[str, ...]] = {}
+    for pattern in CURRENT_DOCUMENT_GLOBS:
+        matches = sorted(repo_root.glob(pattern))
+        if not matches and "*" not in pattern:
+            raise EvidenceRetentionError(f"current document missing: {repo_root / pattern}")
+        for document in matches:
+            if not document.is_file() or document.is_symlink():
+                raise EvidenceRetentionError(f"current document is not a regular file: {document}")
+            found = tuple(sorted(set(_ABSOLUTE_DATA_PATH_RE.findall(document.read_text(encoding="utf-8", errors="strict")))))
+            if found:
+                named[str(document)] = found
+    return named
+
+
+def require_targets_unnamed_in_current_documents(targets: Sequence[Path], *, repo_root: Path = REPO_ROOT) -> None:
+    """Refuse a target that a current document names as itself or through a descendant path."""
+    named = current_document_named_paths(repo_root)
+    for target in targets:
+        prefix = str(target)
+        hits = [document for document, paths in named.items()
+                if any(path == prefix or path.startswith(prefix + "/") for path in paths)]
+        if hits:
+            raise EvidenceRetentionError(
+                f"cleanup target is named by current document(s), change the document first: {target} <- " + ", ".join(hits))
+
+
 def _allowed_target(path: Path, allowed_roots: Sequence[Path]) -> None:
     canonical_roots = tuple(
         _canonical_path(root, context="cleanup allowed root", must_exist=True)
@@ -908,6 +959,7 @@ def build_cleanup_plan_payload(
     inventory_dir: Path,
     created_utc: str,
     allowed_roots: Sequence[Path] = DEFAULT_ALLOWED_ROOTS,
+    current_documents_root: Path = REPO_ROOT,
 ) -> dict[str, Any]:
     """Build one exact-target plan and its immutable per-entry inventories."""
 
@@ -981,6 +1033,7 @@ def build_cleanup_plan_payload(
             raise EvidenceRetentionError(
                 f"cleanup inventory directory overlaps target: {manifest_root} vs {target}"
             )
+    require_targets_unnamed_in_current_documents(seen, repo_root=current_documents_root)
 
     stamp = created.strftime("%Y%m%dT%H%M%S%fZ")
     target_rows: list[dict[str, Any]] = []

@@ -14321,12 +14321,19 @@ def _run_resumable_candidate_training(
     prefix_binding = None
     prefix_epoch0_order = None
     prefix_ceiling = 256
+    # Declared observation steps force a durable checkpoint: the observer runs only from _save, and the
+    # 64-step cadence restarts from the resumed step after a wall-limit pause, so without this a declared
+    # step that is not a multiple of 64 after the pause would never be observed (review 14.10.2026).
+    study_observation_steps: frozenset = frozenset()
     if entry_learning_study is not None:
         if (chronological_prefix is None or chronological_continuation is not None
                 or candidate_resume_origin is not None or not callable(entry_learning_observer)
                 or getattr(train_ds, "_entry_observed_market_binding", None) is None):
             raise RuntimeError("[CANDIDATE_ENTRY_STUDY_CONTEXT_INVALID]")
         prefix_ceiling = entry_learning_study["phase_spec"]["optimizer_steps"]
+        study_observation_steps = frozenset(
+            int(step) for role in ("train", "control")
+            for step in entry_learning_study["phase_spec"].get(role + "_observation_steps", ()))
     elif entry_learning_observer is not None:
         raise RuntimeError("[CANDIDATE_ENTRY_STUDY_UNBOUND_OBSERVER]")
     if chronological_continuation is not None:
@@ -14845,7 +14852,8 @@ def _run_resumable_candidate_training(
                     completed_val_epochs=int(progress["checkpoint_selection"]["last_epoch"]),
                     elapsed_seconds=time.monotonic() - invocation_started_monotonic,
                 ) is not None
-                if (execution_budget is not None and not complete_epoch and not pause_due
+                observation_due = actual_steps in study_observation_steps
+                if (execution_budget is not None and not complete_epoch and not pause_due and not observation_due
                         and actual_steps - global_optimizer_steps < train_checkpoint_interval):
                     return
                 _save(

@@ -383,7 +383,7 @@ def entry_learning_study_loader_order(epoch_order, *, study):
     if (epoch_order.dtype != torch.int64 or epoch_order.ndim != 1
             or not np.array_equal(epoch_order.cpu().numpy(), study["rows"]["epoch_order"])):
         raise RuntimeError("ENTRY_STUDY_NATIVE_ORDER_CHANGED")
-    if study["phase"] == "curve":
+    if study["phase"] in ("curve", "epoch"):
         return epoch_order
     if study["phase"] != "fit":
         raise RuntimeError("ENTRY_STUDY_PHASE_INVALID")
@@ -401,7 +401,7 @@ def entry_learning_study_control_dataset(dataset, *, study):
     import copy
     import numpy as np
     original = getattr(dataset, "_policy_dependent_auxiliary_binding", None)
-    if (study["phase"] != "curve" or not isinstance(original, Mapping)
+    if (study["phase"] not in ("curve", "epoch") or not isinstance(original, Mapping)
             or original.get("role") != "CONTROL256"
             or original.get("mode") != "original_physical_split_targets"
             or original["parent_entry_parquet"] != study["observed_scope"]["physical_sources"]["val"]["parquet"]):

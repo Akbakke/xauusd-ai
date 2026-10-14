@@ -116,3 +116,43 @@ def test_v2_study_fails_closed(study_v2, fault):
         seal()
     with pytest.raises(RuntimeError, match="ENTRY_STUDY"):
         native.require_entry_learning_study_run(recipe)
+
+
+def test_action_references_report_long_short_flat_per_month():
+    import pandas as pd
+    from gx1.scripts.research_ta_campaign_v1 import entry_learning_action_references
+    n = 10
+    y = np.column_stack([np.linspace(-5, 5, n), np.linspace(5, -5, n), np.zeros(n)])
+    q = np.column_stack([np.where(np.arange(n) % 2 == 0, 3.0, -1.0), np.where(np.arange(n) % 2 == 0, -1.0, 3.0), np.zeros(n)])
+    time_ns = (pd.date_range("2026-01-01", periods=n, freq="7D", tz="UTC").asi8)
+    r = entry_learning_action_references(q, y, time_ns)
+    assert r["overall"]["always_long_mean_net_bps"] == pytest.approx(0.0) and r["overall"]["action_counts"] == [5, 5, 0]
+    assert set(r["monthly"]) == {"2026-01", "2026-02", "2026-03"} and r["decisional"] is False
+    assert 0.0 <= r["overall"]["non_flat_hit_rate"] <= 1.0
+    with pytest.raises(RuntimeError, match="ARRAY_INVALID"):
+        entry_learning_action_references(q[:, :2], y, time_ns)
+
+
+def test_horizon_references_reject_censored_rows_and_match_cost_arithmetic(tmp_path, monkeypatch):
+    import torch
+    from gx1.scripts import research_ta_campaign_v1 as owner
+    from tests.test_entry_observed_market_horizons_learning import dataset_scope
+    from tests.test_unified_exit_prospective_cost_policy_v1 import END, START, _build, _load
+    from gx1.contracts import entry_observed_market_v1 as observed
+    authority = _load(_build(tmp_path), "parameter_authority")
+    cost_terms = observed.entry_observed_market_economics(authority, coverage_start_utc=START, coverage_end_utc=END, verify_local_sources=False)
+    dataset, hscope, frame = dataset_scope(tmp_path, cost_terms, rows=12, censor_row=5, cutoff_row=11)
+    hscope["physical_sources"] = {"train": hscope["physical_sources"]["train"], "val": hscope["physical_sources"]["train"]}
+    monkeypatch.setattr(horizons, "require_observed_entry_scope", lambda _: hscope)
+    refs = owner.entry_learning_horizon_references({"fixture": True}, rows_by_role={"fit": np.array([0, 1, 2, 3], dtype=np.int64)})
+    assert set(refs["targets"]["fit"]) == {1, 5, 20} and refs["targets"]["fit"][20].shape == (4, 3)
+    gross = {h: torch.from_numpy(frame.iloc[:4][list(horizons.GROSS_TARGET_COLUMNS_BY_HORIZON[h])].to_numpy(dtype=np.float32)) for h in (1, 5, 20)}
+    elapsed = {h: torch.from_numpy(frame.iloc[:4][horizons.ELAPSED_COLUMN_BY_HORIZON[h]].to_numpy(dtype=np.float64).astype(np.int64)) for h in (1, 5, 20)}
+    expected = horizons.build_entry_observed_market_horizon_targets(gross_by_horizon=gross, elapsed_by_horizon=elapsed, economics=cost_terms)
+    for h in (1, 5, 20):
+        np.testing.assert_array_equal(refs["targets"]["fit"][h], expected[h]["target_bps"].numpy())
+    assert refs["constant_bps_by_horizon"]["fit"]["20"] == pytest.approx(expected[20]["target_bps"].numpy().mean(axis=0).tolist())
+    with pytest.raises(RuntimeError, match="CENSORED"):
+        owner.entry_learning_horizon_references({"fixture": True}, rows_by_role={"fit": np.array([4, 5], dtype=np.int64)})
+    with pytest.raises(RuntimeError, match="ROWS_INVALID"):
+        owner.entry_learning_horizon_references({"fixture": True}, rows_by_role={"fit": np.array([2, 2], dtype=np.int64)})

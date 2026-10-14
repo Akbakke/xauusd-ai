@@ -2572,6 +2572,95 @@ def entry_learning_prediction_metrics(prediction, target):
             "economic_rollout":False}
 
 
+def entry_learning_horizon_references(spec, *, rows_by_role):
+    """Rebuild the horizon study's net targets for fixed rows from the declared bytes (no model, no fit).
+
+    The same cost arithmetic the trainer binds (entry_observed_market_horizons_v1) is applied to the parquet
+    gross/elapsed columns of the physical TRAIN/VAL sources; censored rows (NaN) and outcomes crossing the split
+    boundary fail closed. Returns per role the (n,3) float32 targets per horizon, the entry clocks, and the
+    constants: the mean target over the rows (the TRAIN constant for the curve rows, the fit-cohort constant).
+    """
+    import pyarrow.parquet as pq
+    import torch
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        ELAPSED_COLUMN_BY_HORIZON, GROSS_TARGET_COLUMNS_BY_HORIZON, HORIZON_LABEL_COLUMNS,
+        OBSERVATION_HORIZONS_TRADING_DAYS, build_entry_observed_market_horizon_targets, require_observed_entry_scope)
+    from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
+    scope = require_observed_entry_scope(spec)
+    if "decision_horizon_trading_days" not in scope:
+        raise RuntimeError("ENTRY_STUDY_REFERENCE_SCOPE_NOT_HORIZONS")
+    out = {"targets": {}, "time_ns": {}, "constant_bps_by_horizon": {}, "rows": {}, "economics": scope["economics"],
+           "decision_horizon_trading_days": scope["decision_horizon_trading_days"], "test_data_used": False}
+    cache = {}
+    for role, selection in rows_by_role.items():
+        split = "val" if role.startswith("control") else "train"
+        rows = np.asarray(selection, dtype=np.int64)
+        if rows.ndim != 1 or len(rows) < 1 or np.any(rows < 0) or not np.array_equal(rows, np.unique(rows)):
+            raise RuntimeError("ENTRY_STUDY_REFERENCE_ROWS_INVALID: " + role)
+        if split not in cache:
+            source = scope["physical_sources"][split]
+            path = _entry_edge_bound(source["parquet"])
+            frame = pq.read_table(str(path), columns=["time", *HORIZON_LABEL_COLUMNS]).to_pandas()
+            clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True)).as_unit("ns").asi8
+            if (len(frame) != source["physical_rows"]
+                    or hashlib.sha256(np.asarray(clock, dtype="<i8").tobytes()).hexdigest() != source["clock_sha256"]):
+                raise RuntimeError("ENTRY_STUDY_REFERENCE_SOURCE_MISMATCH: " + split)
+            cache[split] = (frame, clock, source)
+        frame, clock, source = cache[split]
+        if rows[-1] >= len(frame):
+            raise RuntimeError("ENTRY_STUDY_REFERENCE_ROWS_INVALID: " + role)
+        labels = frame.iloc[rows][HORIZON_LABEL_COLUMNS].to_numpy(dtype=np.float64)
+        if not np.isfinite(labels).all():
+            raise RuntimeError("ENTRY_STUDY_REFERENCE_CENSORED: " + role)
+        boundary = pd.Timestamp(scope["train_control_cutoff" if split == "train" else "development_control_entry_end_exclusive"]).value
+        gross, elapsed = {}, {}
+        for h in OBSERVATION_HORIZONS_TRADING_DAYS:
+            e = frame.iloc[rows][ELAPSED_COLUMN_BY_HORIZON[h]].to_numpy(dtype=np.float64)
+            if bool((clock[rows] + (ENTRY_DECISION_BAR_SECONDS + e.astype(np.int64)) * 10**9 > boundary).any()):
+                raise RuntimeError("ENTRY_STUDY_REFERENCE_OUTCOME_CROSSES_SPLIT: " + role)
+            gross[h] = torch.from_numpy(frame.iloc[rows][list(GROSS_TARGET_COLUMNS_BY_HORIZON[h])].to_numpy(dtype=np.float32, copy=True))
+            elapsed[h] = torch.from_numpy(e.astype(np.int64))
+        built = build_entry_observed_market_horizon_targets(gross_by_horizon=gross, elapsed_by_horizon=elapsed, economics=scope["economics"])
+        targets = {h: built[h]["target_bps"].numpy() for h in OBSERVATION_HORIZONS_TRADING_DAYS}
+        out["targets"][role] = targets
+        out["time_ns"][role] = clock[rows].astype(np.int64)
+        out["rows"][role] = rows
+        out["constant_bps_by_horizon"][role] = {str(h): targets[h].mean(axis=0).astype(float).tolist() for h in OBSERVATION_HORIZONS_TRADING_DAYS}
+    return out
+
+
+def entry_learning_action_references(prediction, target, time_ns):
+    """Report-only references on long horizons: always-LONG, always-SHORT, FLAT (0) and the selected action,
+    overall and per calendar month; the non-FLAT hit rate against the sign of the realized contrast.
+    Overlapping fixed-horizon markouts on complete rows, never a realized portfolio."""
+    q, y = np.asarray(prediction, dtype=float), np.asarray(target, dtype=float)
+    if q.shape != y.shape or q.ndim != 2 or q.shape[1] != 3 or len(q) == 0 or not np.isfinite(q).all() or not np.isfinite(y).all():
+        raise RuntimeError("ENTRY_STUDY_REVIEW_ARRAY_INVALID")
+    clock = pd.DatetimeIndex(pd.to_datetime(time_ns, unit="ns", utc=True))
+    if len(clock) != len(y):
+        raise RuntimeError("ENTRY_STUDY_REVIEW_CLOCK")
+    unique = (q == q.max(axis=1, keepdims=True)).sum(axis=1) == 1
+    action = np.argmax(q, axis=1)
+    action[~unique] = 2
+    def block(mask):
+        yy, aa = y[mask], action[mask]
+        chosen = yy[np.arange(len(yy)), aa]
+        traded = aa != 2
+        realized_sign = np.sign(yy[:, 0] - yy[:, 1])
+        taken_sign = np.where(aa == 0, 1.0, np.where(aa == 1, -1.0, 0.0))
+        hits = int(((taken_sign == realized_sign) & traded).sum())
+        return {"rows": int(mask.sum()), "always_long_mean_net_bps": float(yy[:, 0].mean()),
+                "always_short_mean_net_bps": float(yy[:, 1].mean()), "always_flat_mean_net_bps": 0.0,
+                "selected_action_mean_net_bps": float(chosen.mean()), "action_counts": np.bincount(aa, minlength=3).tolist(),
+                "non_flat_rows": int(traded.sum()), "non_flat_hit_rate": (hits / int(traded.sum())) if traded.any() else None}
+    month = clock.strftime("%Y-%m")
+    return {"overall": block(np.ones(len(y), dtype=bool)),
+            "monthly": {period: block(month == period) for period in sorted(set(month))},
+            "selected_minus_always_long_bps": float(y[np.arange(len(y)), action].mean() - y[:, 0].mean()),
+            "scope": "overlapping fixed-horizon net markouts on complete rows; not a realized portfolio; no open positions by construction",
+            "decisional": False, "test_data_used": False}
+
+
 def entry_learning_paired_review(*,initial,final,target,constant,time_ns,review):
     """Fixed paired week bootstrap across the six predeclared comparisons."""
     y=np.asarray(target,dtype=float)

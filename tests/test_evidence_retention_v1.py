@@ -32,12 +32,14 @@ VEDTAK = "GX1-CLEANUP-TEST"
 CREATED_UTC = "2026-07-20T10:00:00+00:00"
 
 
-def test_canonical_retention_launch_root_binds_current_run_policy() -> None:
+def test_canonical_retention_launch_root_declares_protected_leaves_not_the_policy_graph() -> None:
     repo = Path(__file__).resolve().parents[1]
     launch = json.loads((repo / "PROJECT_STATE_xau_direction_launch.json").read_text())
-    policy = repo / "NEXT_RUN_POLICY.json"
-    assert launch["retention_current_policy_manifest"] == str(policy)
-    assert launch["retention_current_policy_manifest_sha256"] == sha256_file(policy)
+    assert "retention_current_policy_manifest" not in launch
+    leaves = launch[retention_contract.RETENTION_PROTECTED_LEAVES_KEY]
+    assert leaves["schema_version"] == retention_contract.RETENTION_PROTECTED_LEAVES_SCHEMA and leaves["paths"]
+    for raw in leaves["paths"]:
+        assert raw.startswith("/home/andre2/GX1_") and Path(raw).exists()
 
 
 def test_retention_uses_same_exact_target_owner_for_data_and_runs() -> None:
@@ -82,7 +84,7 @@ def test_canonical_source_directory_follows_real_policy_not_an_opaque_stub(
     payload = tmp_path / "input.bin"
     payload.write_bytes(b"synthetic input")
     policy = repo / "NEXT_RUN_POLICY.json"
-    _write_json(policy, {"canonical_source_repo": str(repo), "parquet_path": str(payload)})
+    _write_json(policy, {"canonical_source_root": str(repo), "parquet_path": str(payload)})
     monkeypatch.setattr(retention_contract, "REPO_ROOT", repo)
     registry, launch = _authority_files(tmp_path, launch_extra={
         "retention_current_policy_manifest": str(policy),
@@ -2202,3 +2204,40 @@ def test_publication_inventory_zero_remaining_budget_never_decodes(
     )
     with pytest.raises(EvidenceRetentionError, match=limit):
         retention_contract._authority_event_inventory(event, "RETAIN", **{limit: 0})
+
+
+def test_protected_leaves_guard_without_descent_and_undeclared_strings_are_text(tmp_path: Path) -> None:
+    leaf = tmp_path / "generation"
+    leaf.mkdir()                      # no manifest inside: a leaf is protected, never traversed
+    (leaf / "payload.bin").write_bytes(b"synthetic")
+    other = tmp_path / "other.bin"
+    other.write_bytes(b"synthetic other")
+    registry, launch = _authority_files(tmp_path, launch_extra={
+        retention_contract.RETENTION_PROTECTED_LEAVES_KEY: {
+            "schema_version": retention_contract.RETENTION_PROTECTED_LEAVES_SCHEMA, "paths": [str(leaf)]},
+        "free_text": "mentions " + str(other) + " as prose",
+    })
+    with pytest.raises(EvidenceRetentionError, match="authority-protected"):
+        _published_plan(tmp_path, target=leaf / "payload.bin", registry=registry, launch=launch)
+    _published_plan(tmp_path, target=other, registry=registry, launch=launch)  # undeclared absolute string is text
+    registry, launch = _authority_files(tmp_path, launch_extra={
+        retention_contract.RETENTION_PROTECTED_LEAVES_KEY: {"schema_version": "wrong", "paths": [str(leaf)]}})
+    with pytest.raises(EvidenceRetentionError, match="protected leaves"):
+        _published_plan(tmp_path, target=other, registry=registry, launch=launch)
+
+
+def test_targets_named_by_current_documents_are_refused(tmp_path: Path) -> None:
+    docs = tmp_path / "repo"
+    (docs / "docs").mkdir(parents=True)
+    (docs / "configs" / "research").mkdir(parents=True)
+    for name in ("NEXT_RUN_POLICY.json", "CURRENT_HANDOVER.md", "GX1_RULES.md", "AGENTS.md", "PROJECT_STATE_x.json"):
+        (docs / name).write_text("{}" if name.endswith(".json") else "clean")
+    target = Path("/home/andre2/GX1_DATA/data/data/prebuilt/SYNTHETIC_RETENTION_TEST_ONLY")
+    (docs / "docs" / "note.md").write_text("baseline lives at " + str(target) + "/CHAIN/x.parquet")
+    with pytest.raises(EvidenceRetentionError, match="named by current document"):
+        retention_contract.require_targets_unnamed_in_current_documents([target], repo_root=docs)
+    (docs / "docs" / "note.md").write_text("retired; see git history")
+    retention_contract.require_targets_unnamed_in_current_documents([target], repo_root=docs)
+    (docs / "CURRENT_HANDOVER.md").unlink()
+    with pytest.raises(EvidenceRetentionError, match="current document missing"):
+        retention_contract.require_targets_unnamed_in_current_documents([target], repo_root=docs)

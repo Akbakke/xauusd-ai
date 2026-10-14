@@ -243,3 +243,40 @@ def test_learning_review_rejects_row_reordering_and_wrong_flat_target():
     with pytest.raises(RuntimeError,match="CLOCK"):
         entry_learning_paired_review(initial=y,final=y,target=y,constant=[0,0,0],
             time_ns=[4,3,2,1],review={})
+
+
+def test_study_declared_observation_step_forces_a_checkpoint_after_a_resume(physical_prepared,tmp_path):  # noqa: F811
+    """After a pause at step 2 the 64-step cadence would next save at 66; a declared observation at
+    step 10 must still be observed (review 14.10.2026: silent evidence loss across windows)."""
+    data=physical_prepared
+    for dataset,split,role in ((data.train,"train","TRAIN"),(data.control,"val","CONTROL256")):
+        dataset._entry_observed_market_binding={
+            "identity":{"training_phase":"entry_only","target_sha256":"a"*64},
+            "role":role,"physical_source":data.case["sources"][split]}
+    order=data.case["order"].copy()
+    study={"phase":"fit","phase_spec":{"optimizer_steps":12,"train_observation_steps":[0,2,10,12],"control_observation_steps":[]},
+           "rows":{"epoch_order":order,"fit":order[:256].copy()},
+           "selection":{"plan":{"path":"/synthetic/study.json","sha256":"b"*64},"phase":"fit"}}
+    calls=[]
+    def observer(*,optimizer_steps,session):
+        pointer=json.loads(session._active_path.read_text())
+        assert pointer["global_optimizer_steps"]==optimizer_steps
+        calls.append(optimizer_steps)
+    harness=PrefixHarness(tmp_path/"study-cadence",data)
+    split=harness.root/"SPLIT"
+    kwargs={"entry_learning_study":study,"entry_learning_observer":observer}
+    harness.run_prefix(split,2,**kwargs)
+    harness.run_prefix(split,12,expected_pointer=digest(harness.pointer(split)),**kwargs)
+    assert {0,2,10,12} <= set(calls), calls
+    assert json.loads(harness.pointer(split).read_text())["global_optimizer_steps"]==12
+
+
+def test_study_helpers_treat_the_epoch_phase_like_the_curve(physical_prepared):  # noqa: F811
+    import torch as _torch
+    data=physical_prepared
+    order=_torch.as_tensor(data.case["order"].copy())
+    study={"phase":"epoch","phase_spec":{"optimizer_steps":40266},"rows":{"epoch_order":data.case["order"]}}
+    assert observed.entry_learning_study_loader_order(order,study=study) is order
+    bad={**study,"phase":"smoke"}
+    with pytest.raises(RuntimeError,match="ENTRY_STUDY_PHASE_INVALID"):
+        observed.entry_learning_study_loader_order(order,study=bad)

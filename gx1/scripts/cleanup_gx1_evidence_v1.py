@@ -13,6 +13,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Sequence
 
 from gx1.contracts.evidence_retention_v1 import (
+    DEFAULT_ALLOWED_ROOTS,
     GX1_DATA_ROOT,
     PLAN_EVENT_PREFIX,
     REPO_ROOT,
@@ -92,7 +93,7 @@ def _plan(args: argparse.Namespace) -> int:
         launch_contract_json=DEFAULT_LAUNCH,
         inventory_dir=out_dir,
         created_utc=created_utc,
-        allowed_roots=(GX1_DATA_ROOT,),
+        allowed_roots=DEFAULT_ALLOWED_ROOTS,
     )
     out_dir = _validated_output_dir(
         out_dir,
@@ -138,7 +139,7 @@ def publish_cleanup_approval(
     vedtak: str,
     approved_by: str,
     out_dir: Path,
-    allowed_roots: Sequence[Path] = (GX1_DATA_ROOT,),
+    allowed_roots: Sequence[Path] = DEFAULT_ALLOWED_ROOTS,
     required_artifact_registry_json: Path = DEFAULT_REGISTRY,
     required_launch_contract_json: Path = DEFAULT_LAUNCH,
 ) -> tuple[Path, str]:
@@ -759,7 +760,7 @@ def recover_interrupted_cleanup(
     out_dir: Path,
     recover: bool,
     quiet: bool,
-    allowed_roots: Sequence[Path] = (GX1_DATA_ROOT,),
+    allowed_roots: Sequence[Path] = DEFAULT_ALLOWED_ROOTS,
     required_artifact_registry_json: Path = DEFAULT_REGISTRY,
     required_launch_contract_json: Path = DEFAULT_LAUNCH,
 ) -> int:
@@ -885,7 +886,7 @@ def execute_cleanup(
     quiet: bool,
     approval_json: Path | None = None,
     approval_sha256: str | None = None,
-    allowed_roots: Sequence[Path] = (GX1_DATA_ROOT,),
+    allowed_roots: Sequence[Path] = DEFAULT_ALLOWED_ROOTS,
     required_artifact_registry_json: Path = DEFAULT_REGISTRY,
     required_launch_contract_json: Path = DEFAULT_LAUNCH,
 ) -> int:
@@ -1082,7 +1083,7 @@ def resume_interrupted_cleanup(
     resume: bool,
     quiet: bool,
     allow_interrupted_payload: bool = False,
-    allowed_roots: Sequence[Path] = (GX1_DATA_ROOT,),
+    allowed_roots: Sequence[Path] = DEFAULT_ALLOWED_ROOTS,
     required_artifact_registry_json: Path = DEFAULT_REGISTRY,
     required_launch_contract_json: Path = DEFAULT_LAUNCH,
 ) -> int:

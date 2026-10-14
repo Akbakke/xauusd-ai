@@ -970,7 +970,7 @@ def _entry_learning_study_observer(*, components, study, recipe, device, output)
         return _structured_sha256(rng_identity(trainer._attended_session_rng_state(device=device)))
     model = components["model"]
     datasets = {"train":components["train_probe_ds"]}
-    if study["phase"] == "curve":
+    if study["phase"] in ("curve", "epoch"):
         datasets["control"] = entry_learning_study_control_dataset(components["val_ds"], study=study)
     directory = output.parent / "OBSERVATIONS"
     directory.mkdir(exist_ok=True)
