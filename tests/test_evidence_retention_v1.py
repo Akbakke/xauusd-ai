@@ -2241,3 +2241,55 @@ def test_targets_named_by_current_documents_are_refused(tmp_path: Path) -> None:
     (docs / "CURRENT_HANDOVER.md").unlink()
     with pytest.raises(EvidenceRetentionError, match="current document missing"):
         retention_contract.require_targets_unnamed_in_current_documents([target], repo_root=docs)
+
+
+def _incident_with_witnesses(tmp_path: Path, *, dry_run_sha: str | None = None) -> tuple[Path, Path, Path]:
+    """Incident contract whose witness inventories list an empty manifest-less directory and a deleted path."""
+    empty_dir = tmp_path / "reports" / "_LEGACY_EMPTY_20260628"
+    empty_dir.mkdir(parents=True)
+    dry_run = tmp_path / "reports" / "DELETE_DRYRUN_INVENTORY.json"
+    _write_json(dry_run, {"entries": [{"path": str(empty_dir)}, {"path": str(tmp_path / "reports" / "gone.bin")}]})
+    executed = tmp_path / "reports" / "DELETE_EXECUTED.json"
+    _write_json(executed, {"deleted": [{"path": str(tmp_path / "reports" / "gone.bin")}]})
+    incident = tmp_path / "incident_with_witnesses.json"
+    _write_json(incident, {
+        "schema_version": "gx1_entry_iql_delete_incident_v1", "project": "XAUUSD",
+        "dry_run_evidence": {"json_path": str(dry_run), "sha256": dry_run_sha or sha256_file(dry_run)},
+        "execution_evidence": {"json_path": str(executed), "sha256": sha256_file(executed),
+                               "deleted_entry_iql_path": str(tmp_path / "reports" / "gone.bin")},
+        "salvage_inventory": {"path": None}, "authority": {"launch": False},
+    })
+    return incident, dry_run, empty_dir
+
+
+def test_incident_witness_inventories_are_bound_not_traversed(tmp_path: Path) -> None:
+    registry, launch = _authority_files(tmp_path)
+    incident, dry_run, empty_dir = _incident_with_witnesses(tmp_path)
+    protected = retention_contract.authority_protected_paths(
+        json.loads(registry.read_text()), json.loads(launch.read_text()), json.loads(incident.read_text()),
+        artifact_registry_json=registry, launch_contract_json=launch, delete_incident_json=incident,
+    )
+    assert dry_run.resolve() in protected
+    assert empty_dir.resolve() not in protected  # listed by the witness, never an authority reference
+
+
+def test_incident_witness_hash_mismatch_fails_closed(tmp_path: Path) -> None:
+    registry, launch = _authority_files(tmp_path)
+    incident, _, _ = _incident_with_witnesses(tmp_path, dry_run_sha="0" * 64)
+    with pytest.raises(EvidenceRetentionError, match="dry_run_evidence hash mismatch"):
+        retention_contract.authority_protected_paths(
+            json.loads(registry.read_text()), json.loads(launch.read_text()), json.loads(incident.read_text()),
+            artifact_registry_json=registry, launch_contract_json=launch, delete_incident_json=incident,
+        )
+
+
+def test_incident_witness_without_binding_fails_closed(tmp_path: Path) -> None:
+    registry, launch = _authority_files(tmp_path)
+    incident = tmp_path / "incident_unbound.json"
+    _write_json(incident, {"schema_version": "gx1_entry_iql_delete_incident_v1", "project": "XAUUSD",
+                           "dry_run_evidence": {"declared_protection": "x"}})
+    with pytest.raises(EvidenceRetentionError, match="must bind json_path and sha256"):
+        retention_contract.authority_protected_paths(
+            json.loads(registry.read_text()), json.loads(launch.read_text()), json.loads(incident.read_text()),
+            artifact_registry_json=registry, launch_contract_json=launch, delete_incident_json=incident,
+        )

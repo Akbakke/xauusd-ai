@@ -61,6 +61,7 @@ CURRENT_DOCUMENT_GLOBS = (
     "docs/*.md", "configs/research/*.json",
 )
 _ABSOLUTE_DATA_PATH_RE = re.compile(r"/home/andre2/GX1_(?:DATA|RUNS)[^\s\"'`,;)\]}<>]*")
+INCIDENT_WITNESS_KEYS = ("dry_run_evidence", "execution_evidence")
 _DIRECTORY_MANIFEST_NAMES = (
     "manifest.json", "MANIFEST.json", "PAIR_MANIFEST.json",
     "UNIFIED_EXIT_LIFECYCLE_MANIFEST.json", "REPAIR_MANIFEST.json",
@@ -648,6 +649,25 @@ def authority_protected_paths(
     if delete_incident.get("project") != "XAUUSD":
         raise EvidenceRetentionError("delete incident project is not XAUUSD")
     leaves = launch_contract.get(RETENTION_PROTECTED_LEAVES_KEY)
+    protected: set[Path] = set()
+    # The delete-incident witness documents (the July 2026 dry-run and execution inventories) list the
+    # paths that were considered or deleted; they are evidence of the incident, not references to
+    # protect. Their bytes are bound by exact hash and the files protected, never traversed
+    # (14.10.2026). A missing file or hash mismatch fails closed.
+    incident_root = dict(delete_incident)
+    for witness_key in INCIDENT_WITNESS_KEYS:
+        witness = incident_root.pop(witness_key, None)
+        if witness is None:
+            continue
+        if not isinstance(witness, Mapping) or not isinstance(witness.get("json_path"), str):
+            raise EvidenceRetentionError(f"delete incident {witness_key} must bind json_path and sha256")
+        witness_path = _canonical_path(
+            Path(witness["json_path"]), context=f"delete incident {witness_key}", must_exist=True,
+        )
+        expected = _exact_sha256(witness.get("sha256"), context=f"delete incident {witness_key} hash")
+        if not witness_path.is_file() or sha256_file(witness_path) != expected:
+            raise EvidenceRetentionError(f"delete incident {witness_key} hash mismatch: {witness_path}")
+        protected.add(witness_path)
     roots = (
         (artifact_registry, artifact_registry_json),
         (
@@ -655,10 +675,9 @@ def authority_protected_paths(
              if key not in ("reviewed_local_runtime_exclusions", RETENTION_PROTECTED_LEAVES_KEY)},
             launch_contract_json,
         ),
-        (delete_incident, delete_incident_json or CANONICAL_DELETE_INCIDENT),
+        (incident_root, delete_incident_json or CANONICAL_DELETE_INCIDENT),
     )
     pending = deque((payload, Path(path), 0) for payload, path in roots)
-    protected: set[Path] = set()
     # Operator decision 14.10.2026: the current generation's data roots are protected as explicit leaves
     # (no descent, no manifest requirement) instead of binding the whole working-status policy as an
     # authority graph; a target naming check against the current documents complements this
@@ -851,7 +870,8 @@ def authority_protected_paths(
                             found.append(str(candidate))
                     if not found:
                         raise EvidenceRetentionError(
-                            f"unresolved authority directory manifest: {reference}"
+                            f"unresolved authority directory manifest: {reference} "
+                            f"(referenced by {manifest} key {key!r})"
                         )
                     pending.append(({"paths": found}, manifest, graph_depth + 1))
                 continue
