@@ -4992,7 +4992,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P2_FIT_ADMITTED_RECEIPTS_OWN_PROGRESS",
+      "status": "P2_FIT_REVIEWED_CURVE_NEXT",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5148,7 +5148,7 @@
           "requires": "fresh physical Windows boot per invocation by the operator, existing native campaign and guards, own policy binding per phase",
           "phases": {
             "fit": {
-              "status": "ADMITTED_NOT_STARTED",
+              "status": "COMPLETED_FINITE_PHASE_REVIEWED",
               "admitted_utc": "2026-10-14T14:04:30.026750+00:00",
               "scope": {
                 "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT/POLICY_SCOPE.json",
@@ -5159,7 +5159,127 @@
                 "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT",
-              "run_id": "ENTRY_D1_HORIZON_FIT_20261012_002"
+              "run_id": "ENTRY_D1_HORIZON_FIT_20261012_002",
+              "entry_learning_study_run": {
+                "max_invocations": 1,
+                "optimizer_steps": 1024,
+                "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT/CANDIDATE_BUNDLE",
+                "run_id": "ENTRY_D1_HORIZON_FIT_20261012_002",
+                "selection": {
+                  "phase": "fit",
+                  "plan": {
+                    "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                    "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
+                  }
+                },
+                "source_bindings_sha256": "9c77704500892af8c901719ab2dd1c8a96b5e257cf2d6cc51c3474810c19469f",
+                "test_data_used": false
+              },
+              "completed_utc": "2026-10-14T15:01:51.261575+00:00",
+              "invocation": "invocation-0001 on Windows boot 495 (prepared 494), 14:28:59-15:01:51Z, RESUMABLE/PASS/exit 0",
+              "phase_review": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT/PHASE_REVIEW.json",
+                "sha256": "fa40aac2ee9468201e697a1846885a183c509877c7db484f1387b6d0f389cd46"
+              },
+              "receipt": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT/RUNTIME/receipts/invocation-0001.json",
+                "sha256": "29470ce37c8f60b263d80fe6f39e43b3f5e731c1a0959d946cd2c92e0de6396b"
+              },
+              "campaign_plan_file_sha256": "51993b4a9a92235f62512f2cd1f1ff6543c3053cfbaffd8fda04a3fe893401e9",
+              "recipe_sha256": "102c9ed314b8af787f90aa14445b1ae127b53574cd8a19e78469d942f1c47992",
+              "component_setup_seconds": [
+                1129.568553758
+              ],
+              "unchanged_exit_state_fields": 150,
+              "train256_measured": {
+                "mse_long_short_contrast_20d": {
+                  "train_0": [
+                    153030.8,
+                    157201.2,
+                    617310.4
+                  ],
+                  "train_1024": [
+                    51223.4,
+                    50858.0,
+                    204058.5
+                  ],
+                  "train_256": [
+                    134039.8,
+                    137170.4,
+                    540946.3
+                  ],
+                  "train_64": [
+                    151075.4,
+                    153761.2,
+                    608321.5
+                  ]
+                },
+                "rank_ic_by_horizon": {
+                  "train_0": {
+                    "1": 0.075,
+                    "20": 0.069,
+                    "5": 0.156
+                  },
+                  "train_1024": {
+                    "1": 0.232,
+                    "20": 0.969,
+                    "5": 0.374
+                  },
+                  "train_256": {
+                    "1": 0.224,
+                    "20": 0.766,
+                    "5": 0.297
+                  },
+                  "train_64": {
+                    "1": 0.213,
+                    "20": 0.489,
+                    "5": 0.232
+                  }
+                },
+                "action_counts_LSF": {
+                  "train_0": [
+                    50,
+                    10,
+                    196
+                  ],
+                  "train_1024": [
+                    120,
+                    119,
+                    17
+                  ],
+                  "train_256": [
+                    135,
+                    114,
+                    7
+                  ],
+                  "train_64": [
+                    99,
+                    0,
+                    157
+                  ]
+                },
+                "ties": {
+                  "train_0": 0,
+                  "train_1024": 0,
+                  "train_256": 0,
+                  "train_64": 0
+                },
+                "target_std_bps": [
+                  391.21872026952013,
+                  391.4037321508694,
+                  782.6165916997845
+                ],
+                "prediction_std_bps_step_1024": [
+                  226.85185228977093,
+                  231.7741924569804,
+                  458.59888937836746
+                ]
+              },
+              "evidence_class": "TRAIN fit on 256 fixed rows (memorization); mechanics and loss descent only; no generalization, economics or edge claim",
+              "windows_task_completed": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT/WINDOWS_TASK_COMPLETED.json",
+                "sha256": "0a025276d046aea4fe013bf227bc3dddd5f8f43d82a1bf027bd5dc46ba1c6d40"
+              }
             },
             "fit_attempts": [
               {
@@ -7990,20 +8110,5 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
-  },
-  "entry_learning_study_run": {
-    "max_invocations": 1,
-    "optimizer_steps": 1024,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261012_002/FIT/CANDIDATE_BUNDLE",
-    "run_id": "ENTRY_D1_HORIZON_FIT_20261012_002",
-    "selection": {
-      "phase": "fit",
-      "plan": {
-        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
-        "sha256": "94060af028fed337db506d2e25ab11239db98975b465f28efcaa0eb2fcddfd96"
-      }
-    },
-    "source_bindings_sha256": "9c77704500892af8c901719ab2dd1c8a96b5e257cf2d6cc51c3474810c19469f",
-    "test_data_used": false
   }
 }

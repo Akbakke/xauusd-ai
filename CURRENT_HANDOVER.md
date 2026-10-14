@@ -618,6 +618,20 @@ oppgaveinstallasjon og fersk boot. Vaktene som skulle melde avslutningen
 hang fordi pgrep matchet sin egen kommandolinje; fremover sentinelfiler og
 guard-loggens `event=exit`.
 
+**Fit forsøk 2 fullført og gjennomgått (14.10 15:01 UTC).** Boot 495,
+invocation-0001 RESUMABLE/PASS/exit 0 på 33 min (innlasting 1 130 s, 1 024
+steg, 17 checkpoints à 2 s). PHASE_REVIEW (v2): kvittering, cursor, checkpoint
+ved steg 1 024, epoke-rekkefølge lik koordinatene, 150 Exit-eide felt
+uendret, observasjoner ved 0/64/256/1 024 på TRAIN256 med identiske rader og
+mål. Målt (TRAIN-tilpasning, memorering, ingen generalisering): 20-dagers
+contrast-MSE 617 310 → 204 059, rank-IC 0,07 → 0,97; handlinger L/S/F
+50/10/196 → 120/119/17, ingen ties; uoptimerte horisonter 1 d 0,08 → 0,23 og
+5 d 0,16 → 0,37. Mål: snitt LONG +6,6 / SHORT −63,3 bps, std 391 bps.
+Kjeden virker ende til ende; ingen påstand om edge. Windows-interop er slått
+på av brukeren 14.10 (wsl.conf), så fangster, oppgave, omstart og
+bekreftelse gjøres av agenten heretter. Neste: kurve (4 096 steg, 65 536
+rader, CONTROL4096 ved 0 og 4 096) under samme sekvens.
+
 Rebuild-/baselinemålet for begge generasjoner er ferdig; engangsplaner og
 budsjetter er lukket (PREPARATION_CPU_002 i den aksepterte generasjonen,
 PREPARATION_CPU_001 i NATIVE_D1-generasjonen). De feilede kjerneforsøkene
