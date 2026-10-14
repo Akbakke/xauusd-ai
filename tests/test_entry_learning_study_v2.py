@@ -156,3 +156,95 @@ def test_horizon_references_reject_censored_rows_and_match_cost_arithmetic(tmp_p
         owner.entry_learning_horizon_references({"fixture": True}, rows_by_role={"fit": np.array([4, 5], dtype=np.int64)})
     with pytest.raises(RuntimeError, match="ROWS_INVALID"):
         owner.entry_learning_horizon_references({"fixture": True}, rows_by_role={"fit": np.array([2, 2], dtype=np.int64)})
+
+
+WINDOW = ELIGIBLE[ELIGIBLE >= 60_000]  # the eligible rows whose decision lies in the recent window (30 000 rows)
+
+
+@pytest.fixture
+def study_successor(study_v2, monkeypatch):
+    """A successor spec (operator decision 14.10.2026): fit/curve repeated byte for byte, the recent-window
+    phase derived from the window size, the predecessor bound by hash."""
+    policy, recipe, plan, seal, save, tmp_path = study_v2
+    import copy
+    predecessor = copy.deepcopy(plan)
+    predecessor_binding = _bind(_write_plan(tmp_path / "predecessor.json", predecessor))
+    order = plan_order = np.load(plan["row_bindings"]["epoch_order"]["path"], allow_pickle=False)
+    in_order = order[np.isin(order, WINDOW)]
+    for name, a in (("recent_year", WINDOW), ("recent_year_train_probe", np.sort(in_order[:4096]))):
+        p = tmp_path / (name + ".npy")
+        np.save(p, a)
+        plan["row_bindings"][name] = _bind(p)
+    spec = horizons.recent_window_phase_spec(int(len(WINDOW)))
+    plan["phases"]["recent_year"] = {"run_id": "ENTRY_D1_HORIZON_RECENT_YEAR_20261014_001", **spec}
+    plan["predecessor"] = predecessor_binding
+    monkeypatch.setattr(native, "_recent_window_train_rows", lambda observed, eligible, *, window_days: WINDOW)
+    recipe["run_id"] = "ENTRY_D1_HORIZON_RECENT_YEAR_20261014_001"
+    recipe["out_bundle_dir"] = str(tmp_path / "RECENT_YEAR" / "CANDIDATE_BUNDLE")
+
+    def seal_successor():
+        recipe["entry_learning_study"] = {"plan": _bind(_write_plan(tmp_path / "successor.json", plan)), "phase": "recent_year"}
+        policy["entry_learning_study_run"] = {
+            "selection": recipe["entry_learning_study"], "run_id": recipe["run_id"],
+            "out_bundle_dir": recipe["out_bundle_dir"], "source_bindings_sha256": recipe["source_bindings_sha256"],
+            "optimizer_steps": plan["phases"]["recent_year"]["optimizer_steps"], "max_invocations": 1, "test_data_used": False}
+        save()
+    seal_successor()
+    return policy, recipe, plan, seal_successor, save, tmp_path, spec, plan_order
+
+
+def _write_plan(path, plan):
+    import json
+    path.write_text(json.dumps(plan, indent=1, sort_keys=True) + "\n")
+    return path
+
+
+def test_successor_admits_the_recent_window_phase_derived_from_the_window(study_successor):
+    policy, recipe, plan, seal, save, tmp_path, spec, order = study_successor
+    assert spec["optimizer_steps"] == (len(WINDOW) - 1) // 16 and spec["unique_train_rows"] == spec["optimizer_steps"] * 16
+    assert spec["train_observation_steps"] == [0, 256, 1024, spec["optimizer_steps"]]
+    assert spec["control_observation_steps"] == [0, spec["optimizer_steps"]] and spec["window_days"] == 365
+    study = native.require_entry_learning_study_run(recipe, execution_budget={
+        "stop_after_optimizer_steps": spec["optimizer_steps"], "stop_after_completed_val_epochs": None, "max_invocation_seconds": 12000})
+    assert study["phase"] == "recent_year" and np.array_equal(study["rows"]["recent_year"], WINDOW)
+    assert np.isin(study["rows"]["recent_year_train_probe"], WINDOW).all() and len(study["rows"]["recent_year_train_probe"]) == 4096
+    # the loader order keeps the frozen order inside the window first; nothing is dropped or duplicated
+    import torch
+    from gx1.contracts.entry_observed_market_v1 import entry_learning_study_loader_order
+    loader = entry_learning_study_loader_order(torch.as_tensor(order), study=study).numpy()
+    assert len(loader) == len(order) and np.array_equal(np.sort(loader), np.sort(order))
+    assert np.isin(loader[:len(WINDOW)], WINDOW).all() and not np.isin(loader[len(WINDOW):], WINDOW).any()
+    assert np.array_equal(loader[:len(WINDOW)], order[np.isin(order, WINDOW)])
+    assert np.array_equal(np.sort(loader[:4096]), study["rows"]["recent_year_train_probe"])
+
+
+@pytest.mark.parametrize("fault", ["window_rows", "steps_literal", "predecessor_phase", "no_predecessor", "probe_rows"])
+def test_successor_fails_closed(study_successor, fault):
+    policy, recipe, plan, seal, save, tmp_path, spec, order = study_successor
+    if fault == "window_rows":
+        p = tmp_path / "recent_year.npy"
+        np.save(p, WINDOW[:-1])
+        plan["row_bindings"]["recent_year"] = _bind(p)
+    elif fault == "steps_literal":
+        plan["phases"]["recent_year"]["optimizer_steps"] = spec["optimizer_steps"] + 1
+    elif fault == "predecessor_phase":
+        plan["phases"]["curve"]["optimizer_steps"] = 8192
+    elif fault == "no_predecessor":
+        plan.pop("predecessor")
+    else:
+        p = tmp_path / "recent_year_train_probe.npy"
+        np.save(p, np.sort(order[np.isin(order, WINDOW)][1:4097]))
+        plan["row_bindings"]["recent_year_train_probe"] = _bind(p)
+    seal()
+    with pytest.raises(RuntimeError, match="ENTRY_STUDY|binding"):
+        native.require_entry_learning_study_run(recipe)
+
+
+def test_recent_window_rows_and_phase_spec_are_derived_not_literal():
+    decisions = np.arange(0, 10) * 86_400 * 10**9  # one decision per day, day 0..9
+    rows = horizons.recent_window_rows(decisions, cutoff_ns=int(decisions[9]), window_days=3)
+    assert rows.tolist() == [7, 8, 9]  # (cutoff - 3 d, cutoff]
+    with pytest.raises(RuntimeError, match="RECENT_WINDOW_TOO_SMALL"):
+        horizons.recent_window_phase_spec(4096)
+    spec = horizons.recent_window_phase_spec(65_148)
+    assert spec["optimizer_steps"] == 4071 and spec["unique_train_rows"] == 65_136 and spec["max_invocations"] == 1

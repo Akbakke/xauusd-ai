@@ -970,12 +970,12 @@ def _entry_learning_study_observer(*, components, study, recipe, device, output)
         return _structured_sha256(rng_identity(trainer._attended_session_rng_state(device=device)))
     model = components["model"]
     datasets = {"train":components["train_probe_ds"]}
-    if study["phase"] in ("curve", "epoch"):
+    if study["phase"] in ("curve", "epoch", "recent_year"):
         datasets["control"] = entry_learning_study_control_dataset(components["val_ds"], study=study)
     directory = output.parent / "OBSERVATIONS"
     directory.mkdir(exist_ok=True)
-    rows_by_role = {"train":study["rows"]["fit" if study["phase"] == "fit" else "train_probe"],
-                    "control":study["rows"]["control"]}
+    train_rows_key = {"fit": "fit", "recent_year": "recent_year_train_probe"}.get(study["phase"], "train_probe")
+    rows_by_role = {"train":study["rows"][train_rows_key], "control":study["rows"]["control"]}
     for role, dataset in datasets.items():
         if not np.array_equal(dataset.indices, np.arange(len(dataset))):
             raise RuntimeError("ENTRY_STUDY_NONIDENTITY_DATASET_INDEX")

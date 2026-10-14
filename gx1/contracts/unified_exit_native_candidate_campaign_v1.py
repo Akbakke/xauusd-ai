@@ -2200,10 +2200,12 @@ def _expected_observed_entry_binding(recipe, expected: dict) -> None:
 def require_entry_learning_study_run(recipe, *, invocation_number=None, execution_budget=None):
     """Admit the separately authorized finite study; retain every native guard."""
     import numpy as np
-    from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        RECENT_WINDOW_PHASE, recent_window_phase_spec, require_observed_entry_scope,
+    )
     selection = recipe.get("entry_learning_study")
     if (not isinstance(selection, Mapping) or set(selection) != {"plan", "phase"}
-            or selection.get("phase") not in ("fit", "curve")
+            or selection.get("phase") not in ("fit", "curve", RECENT_WINDOW_PHASE)
             or any(k in recipe for k in ("chronological_initial_measurement",
                 "chronological_learning_measurement", "chronological_learning_continuation",
                 "chronological_train_only_measurement", "chronological_entry_baseline",
@@ -2240,12 +2242,27 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
                       "unique_train_rows":65536}}
     else:
         raise RuntimeError("ENTRY_STUDY_INPUT_OR_OBJECTIVE_CHANGED")
+    # Operator decision 14.10.2026: a v2 successor spec may add the recent-window phase. It binds its
+    # predecessor by hash and repeats the completed fit/curve phases byte for byte; the window phase and
+    # its rows are derived from the frozen eligible population and verified below.
+    window_phases = set()
+    if schema == "gx1_entry_learning_study_v2" and RECENT_WINDOW_PHASE in plan.get("phases", {}):
+        predecessor_binding = require_binding(plan.get("predecessor"), label="Entry study predecessor", verify_file=True)
+        predecessor = read_bound_json(Path(predecessor_binding["path"]), predecessor_binding["sha256"])
+        if (predecessor.get("schema_version") != schema or set(predecessor.get("phases", {})) != {"fit", "curve"}
+                or any(predecessor["phases"][k] != plan["phases"].get(k) for k in ("fit", "curve"))
+                or predecessor.get("row_bindings", {}).get("epoch_order") != plan.get("row_bindings", {}).get("epoch_order")
+                or any(predecessor.get(k) != plan.get(k) for k in ("files", "chronological_prefix", design_key, "model"))):
+            raise RuntimeError("ENTRY_STUDY_PREDECESSOR_CHANGED")
+        window_phases = {RECENT_WINDOW_PHASE}
+    elif phase == RECENT_WINDOW_PHASE:
+        raise RuntimeError("ENTRY_STUDY_PHASE_INVALID")
     other_key = [k for k in OBSERVED_ENTRY_RECIPE_KEYS if k != design_key][0]
     if (plan.get("files") != recipe.get("files")
             or plan.get("chronological_prefix") != recipe.get("chronological_prefix")
             or plan.get(design_key) != recipe.get(design_key) or design_key not in recipe or other_key in recipe
             or recipe.get("initialization") != "fresh_existing_model_constructor_no_checkpoint_weights"
-            or set(plan.get("phases", {})) != {"fit", "curve"}
+            or set(plan.get("phases", {})) != {"fit", "curve"} | window_phases
             or plan["execution"].get("test_data_used") is not False
             or any(plan["execution"].get(k) is not False for k in (
                 "broker_access", "spending", "horizon_changes", "full_epoch_training_allowed",
@@ -2278,6 +2295,17 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
                 or not np.array_equal(population, _complete_horizon_control_rows(observed))):
             raise RuntimeError("ENTRY_STUDY_CONTROL_POPULATION_INVALID")
         control_expected = population[np.linspace(0, len(population)-1, 4096, dtype=np.int64)]
+    if window_phases:
+        expected_rows |= {RECENT_WINDOW_PHASE, RECENT_WINDOW_PHASE + "_train_probe"}
+        window_spec = plan["phases"][RECENT_WINDOW_PHASE]
+        window = _recent_window_train_rows(observed, train_population, window_days=window_spec.get("window_days"))
+        in_order = rows["epoch_order"][np.isin(rows["epoch_order"], window)]
+        if (not np.array_equal(rows.get(RECENT_WINDOW_PHASE, np.zeros(0, dtype=np.int64)), window)
+                or len(in_order) != len(window)
+                or not np.array_equal(rows.get(RECENT_WINDOW_PHASE + "_train_probe", np.zeros(0, dtype=np.int64)),
+                                      np.sort(in_order[:4096]))):
+            raise RuntimeError("ENTRY_STUDY_RECENT_WINDOW_ROWS_INVALID")
+        fixed_phases[RECENT_WINDOW_PHASE] = recent_window_phase_spec(int(len(window)), window_days=window_spec["window_days"])
     if (set(rows) != expected_rows
             or not np.array_equal(np.sort(rows["epoch_order"]), train_population)
             or len(rows["fit"]) != 256 or len(np.unique(rows["fit"])) != 256
@@ -2324,6 +2352,25 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
         raise RuntimeError("ENTRY_STUDY_EXECUTION_BUDGET_INVALID")
     return {"selection":selection, "plan":plan, "phase":phase, "phase_spec":phase_spec,
             "rows":rows, "observed_scope":observed}
+
+
+def _recent_window_train_rows(observed_scope, eligible_parent_rows, *, window_days):
+    """Eligible TRAIN rows whose decision lies in the last window_days before the measured TRAIN
+    eligibility cutoff (sorted parent rows); the clock is read from the bound physical TRAIN parquet."""
+    import numpy as np
+    import pandas as pd
+    import pyarrow.parquet as pq
+    from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
+    from gx1.contracts.entry_observed_market_horizons_v1 import recent_window_rows
+    eligible = np.asarray(eligible_parent_rows, dtype=np.int64)
+    source = observed_scope["physical_sources"]["train"]
+    frame = pq.read_table(source["parquet"]["path"], columns=["time"]).to_pandas()
+    clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True)).as_unit("ns").asi8
+    if len(clock) != source["physical_rows"] or len(eligible) < 1 or eligible[-1] >= len(clock):
+        raise RuntimeError("ENTRY_STUDY_RECENT_WINDOW_SOURCE_INVALID")
+    decision = clock[eligible] + ENTRY_DECISION_BAR_SECONDS * 10**9
+    cutoff = pd.Timestamp(observed_scope["entry_eligibility_cutoff_utc"]["train"]).value
+    return eligible[recent_window_rows(decision, cutoff_ns=cutoff, window_days=window_days)]
 
 
 def _complete_horizon_control_rows(observed_scope):

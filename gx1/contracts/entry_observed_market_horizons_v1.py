@@ -56,6 +56,15 @@ DECISION_BATCH_TARGET_KEY = BATCH_TARGET_KEY_BY_HORIZON[DECISION_HORIZON_TRADING
 # 256-step native smoke. A frozen design's budget.planned_optimizer_steps must equal the value its own
 # declared scope selects; the learning study's fixed fit budget reads the same constant.
 MINIMUM_PLAN_FIT_OPTIMIZER_STEPS = 1024
+# Operator decision 14.10.2026 (GX1_RULES): a smaller chronological window before any full epoch. The
+# phase trains the eligible TRAIN rows whose decision lies in the last RECENT_WINDOW_DAYS before the
+# measured eligibility cutoff, in the frozen epoch-0 order restricted to that window; its step budget is
+# derived from the window size (one origin), never a literal.
+RECENT_WINDOW_PHASE = "recent_year"
+RECENT_WINDOW_DAYS = 365
+RECENT_WINDOW_BATCH_SIZE = 16
+RECENT_WINDOW_TRAIN_PROBE_ROWS = 4096
+RECENT_WINDOW_TRAIN_OBSERVATION_STEPS = (0, 256, 1024)
 V38_SMOKE_PLANNED_OPTIMIZER_STEPS = 256
 
 
@@ -66,6 +75,30 @@ def planned_prefix_optimizer_steps(design: Mapping[str, Any]) -> int:
     if isinstance(scope, Mapping) and scope.get("entry_only_training_phase") == ENTRY_ONLY_HORIZON_TRAINING_PHASE:
         return MINIMUM_PLAN_FIT_OPTIMIZER_STEPS
     return V38_SMOKE_PLANNED_OPTIMIZER_STEPS
+
+
+def recent_window_rows(decision_ns: np.ndarray, *, cutoff_ns: int, window_days: int) -> np.ndarray:
+    """Positions (into the given eligible decision clock) whose decision lies in (cutoff - window, cutoff]."""
+    decision_ns = np.asarray(decision_ns, dtype=np.int64)
+    if decision_ns.ndim != 1 or len(decision_ns) < 1 or type(window_days) is not int or window_days < 1:
+        raise RuntimeError("ENTRY_STUDY_RECENT_WINDOW_INPUT_INVALID")
+    start_ns = int(cutoff_ns) - int(window_days) * 86_400 * 10**9
+    return np.flatnonzero((decision_ns > start_ns) & (decision_ns <= int(cutoff_ns))).astype(np.int64)
+
+
+def recent_window_phase_spec(window_rows: int, *, window_days: int = RECENT_WINDOW_DAYS) -> dict[str, Any]:
+    """The fixed phase derived from the window size: floor((n-1)/16) steps so the loader never completes
+    an epoch (no VAL phase boundary), unique rows = steps x batch, TRAIN probe/CONTROL observed at the
+    declared steps and at the end."""
+    if type(window_rows) is not int or window_rows <= RECENT_WINDOW_TRAIN_PROBE_ROWS:
+        raise RuntimeError("ENTRY_STUDY_RECENT_WINDOW_TOO_SMALL")
+    steps = (window_rows - 1) // RECENT_WINDOW_BATCH_SIZE
+    if steps <= max(RECENT_WINDOW_TRAIN_OBSERVATION_STEPS):
+        raise RuntimeError("ENTRY_STUDY_RECENT_WINDOW_TOO_SMALL")
+    return {"optimizer_steps": steps, "window_days": int(window_days), "window_rows": int(window_rows),
+            "train_observation_steps": [*RECENT_WINDOW_TRAIN_OBSERVATION_STEPS, steps],
+            "control_observation_steps": [0, steps], "max_invocations": 1,
+            "unique_train_rows": steps * RECENT_WINDOW_BATCH_SIZE}
 
 
 def _sha(value: Any) -> str:

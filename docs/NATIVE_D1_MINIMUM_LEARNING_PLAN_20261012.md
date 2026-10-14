@@ -111,6 +111,32 @@ utviklings-CONTROL, ikke økonomi eller edge. Neste fase (brukerens ønske: et
 mindre kronologisk vindu, f.eks. ett år, før «stor trening») krever eget
 operatørvedtak og egen policybinding.
 
+## Fase «recent_year» — forhåndsregistrert 14.10.2026 (vedtak 14.10 b)
+
+Brukeren vil se et mindre kronologisk utgangspunkt før «stor trening». Fasen
+bindes i etterfølger-spesifikasjonen
+`configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261014.json` (hashbinder
+forgjengeren; fit og kurve gjentas byte for byte) og i egen policybinding:
+
+- **Populasjon:** de kvalifiserte TRAIN-radene hvis beslutningstid ligger i de
+  siste 365 dagene før TRAIN-kuttet (2024-05-02T22:00Z … 2025-05-02T19:20Z):
+  65 148 rader, målt fra den bundne TRAIN-klokken av kontrakteieren
+  (`recent_window_rows`), aldri et literal. Samme frosne epoke-0-rekkefølge,
+  begrenset til vinduet først; resten av rekkefølgen følger etter og nås aldri.
+- **Budsjett (avledet):** optimizersteg = floor((65 148 − 1)/16) = 4 071, altså
+  65 136 unike trente rader — praktisk talt samme antall som kurven (65 536),
+  men konsentrert i siste år. Ingen epoke fullføres, ingen VAL-fase, én
+  invokasjon (kurven målte 0,72 s/steg + 1 100 s oppsett).
+- **Observasjon:** TRAIN-probe = de første 4 096 vindusradene i rekkefølgen ved
+  0/256/1 024/4 071 steg; CONTROL4096 (uendret) ved 0 og 4 071. Samme seed,
+  tap, batch, ferske vekter.
+- **Regel:** samme seks parvise familiekorrigerte grenser på CONTROL4096 ved
+  20 d mot initial og mot TRAIN-konstanten for de trente vindusradene; kurvens
+  CONTROL-observasjon ved 4 096 rapporteres ved siden av, velges aldri. Hypotesen
+  er at rader fra siste regime generaliserer til utviklings-CONTROL der hele
+  historikken ikke gjorde det. Negativt resultat lukkes ærlig; positivt åpner
+  bare neste vedtak (full epoke / flere seeds).
+
 ## Hva planen ikke åpner
 
 Ingen featurekassering, ingen ny arkitektur, ingen separat Exit-modell, ingen
