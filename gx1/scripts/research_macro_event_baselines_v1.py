@@ -3,7 +3,8 @@
 
 Preregistered in docs/MACRO_EVENT_BASELINES_PREREG_20260927.md; the cells, windows and thresholds
 below are that registration. The calendar is the hash-bound research calendar built by
-gx1/scripts/build_macro_event_calendar_v1.py; fills, costs and statistics reuse the model-free
+gx1/scripts/build_macro_event_calendar_v1.py (builder removed from the repo 14.10.2026, bytes in git
+history before that commit); fills, costs and statistics reuse the model-free
 baseline owners. Never an Entry input (GX1_RULES.md rule 1).
 """
 from __future__ import annotations

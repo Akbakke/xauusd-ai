@@ -421,7 +421,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
     """
     Minimal, strict CTX model used by:
       - gx1/models/entry_v10/entry_v10_bundle.py
-      - gx1/rl/entry_v10/train_entry_transformer_v10.py (CTX variant)
+      - gx1/models/entry_v10/entry_v10_ctx_train_v3.py (native trainer)
 
     Forward signature (expected by docs/usage):
         out = model(

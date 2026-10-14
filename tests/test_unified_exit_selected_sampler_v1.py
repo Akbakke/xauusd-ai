@@ -351,31 +351,6 @@ def test_direct_artifact_requires_unchanged_complete_binding(tmp_path, field):
         require_selected_sampler_artifact(artifact)
 
 
-def test_direct_cli_declares_mode_and_uses_immutable_publication(tmp_path, monkeypatch):
-    from gx1.scripts import materialize_unified_exit_selected_sampler_v1 as cli
-    c = _direct_fixture(tmp_path)
-    path = tmp_path / "SELECTED.json"
-    args = ["--direct-benchmark", "--benchmark-receipt", str(c["receipt_path"]),
-            "--candidate-set", str(c["candidate_path"]), "--random-access-root", str(c["root_path"]),
-            "--output", str(path)]
-    assert cli.main(args) == 0 and not path.exists()
-    calls = []
-    original = cli._atomic_write_new_json
-    def publish(output, value):
-        calls.append(output)
-        return original(output, value)
-    monkeypatch.setattr(cli, "_atomic_write_new_json", publish)
-    assert cli.main(args + ["--publish"]) == 0
-    before = path.read_bytes()
-    assert calls == [path]
-    require_selected_sampler_artifact(json.loads(before))
-    with pytest.raises(RuntimeError, match="OUTPUT_EXISTS"):
-        cli.main(args + ["--publish"])
-    assert path.read_bytes() == before
-    with pytest.raises(SystemExit):
-        cli.main(args[1:])
-
-
 @pytest.mark.parametrize("budget", [32768, 65536, 131072])
 def test_native_component_binds_measured_current_sampler(tmp_path, budget):
     from gx1.scripts import run_unified_exit_random_access_full_train_v1 as runner

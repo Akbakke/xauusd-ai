@@ -7,8 +7,9 @@ datasett og vekter må ikke behandles som oppdatert modellgrunnlag.
 ## Hva er kontrollert
 
 Alle254 lokale signalfelt,71 eksakte kontekstaliaser, ett sesjonsfelt og190 MTF-felt
-på M5/M15/H1/H4/D1 er navngitt enkeltvis i
-[FEATURE_AUDIT_FIELDS.json](FEATURE_AUDIT_FIELDS.json). Hver rad har indeks,
+på M5/M15/H1/H4/D1 ble navngitt enkeltvis i det genererte feltregisteret
+FEATURE_AUDIT_FIELDS.json (1,98 MB; fjernet fra repoet 14.10.2026, bytes i
+git-historikken før den commiten). Hver rad har indeks,
 familie, formelkilde, kildeplassering eller dynamisk formelansvarlig, tester,
 ekte verdistatistikk, gjenberegning, modellpåvirkning og avgrenset konklusjon.
 Dette er516 registrerte overflatefelt, ikke516 uavhengige markedssignaler.

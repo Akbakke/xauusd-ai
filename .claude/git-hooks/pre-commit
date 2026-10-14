@@ -19,7 +19,7 @@ fi
 # 2) Exact model-native contracts — only when Entry model/contract/serving code
 # is staged, keeping unrelated commits fast without weakening this boundary.
 staged="$(git diff --cached --name-only)"
-if echo "$staged" | grep -qE 'gx1/models/entry_v10/|gx1/contracts/|gx1/execution/v12_(smart_entry_live|model_native_state_live|pipeline)\.py|gx1/scripts/(build_entry_v10|evaluate_entry_candidate|verify_model_native_serve_parity)'; then
+if echo "$staged" | grep -qE 'gx1/models/entry_v10/|gx1/contracts/|gx1/execution/v12_(smart_entry_live|model_native_state_live)\.py|gx1/scripts/(build_entry_v10|evaluate_entry_candidate|verify_model_native_serve_parity|run_unified_exit_random_access_full_train_v1)'; then
   echo "[pre-commit] model-native Entry boundary staged → running exact contract tests…"
   if ! "${CAP[@]}" "$PY" -m pytest -q \
       tests/test_entry_model_native_signal_contract.py \

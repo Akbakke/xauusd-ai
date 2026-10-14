@@ -9,7 +9,7 @@ Avsluttede rapporter finnes i Git; gjeldende scope eies av NEXT_RUN_POLICY.json.
 
 ## Kalender (kilde og manifest)
 
-`GX1_DATA/research/macro_calendar_20260927/` (bygd av `gx1/scripts/build_macro_event_calendar_v1.py`
+`GX1_DATA/research/macro_calendar_20260927/` (bygd av `gx1/scripts/build_macro_event_calendar_v1.py`, byggeren fjernet fra repoet 14.10.2026 og ligger i git-historikken,
 fra lagrede rå filer, hentet 2026-09-27 12:03 UTC, sha256 per fil i `MANIFEST.json`):
 - FOMC: federalreserve.gov `fomchistorical2013–2020.htm` + `fomccalendars.htm`; planlagte møter,
   uttalelse siste møtedag 14:00 New York (lik praksis fra 2013). Datoene på kalendersiden er

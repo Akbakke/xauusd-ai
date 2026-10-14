@@ -10,10 +10,6 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     schedule_random_access_epoch,
     schedule_random_access_entry_anchors,
 )
-from gx1.scripts.materialize_unified_exit_random_access_sampler_v1 import (
-    build_parser,
-)
-
 
 def _contract(*, budget: int = 12, per_entry: int = 3, population: int = 7):
     return build_random_access_sampler_contract(
@@ -25,20 +21,7 @@ def _contract(*, budget: int = 12, per_entry: int = 3, population: int = 7):
     )
 
 
-def test_budget_and_k_are_cli_explicit_and_schedule_is_resume_exact() -> None:
-    with pytest.raises(SystemExit):
-        build_parser().parse_args(
-            [
-                "--split",
-                "train",
-                "--source-lineage-sha256",
-                "a" * 64,
-                "--entry-pair-population",
-                "7",
-                "--output",
-                "/tmp/unused.json",
-            ]
-        )
+def test_schedule_is_resume_exact() -> None:
     contract = _contract()
     counts = [2, 10, 100, 1_000, 10_000, 100_000, 400_000]
     epoch = schedule_random_access_epoch(
