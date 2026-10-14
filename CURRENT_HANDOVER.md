@@ -166,18 +166,37 @@ LEARNING_STUDY_20261014.json (binder forgjengeren); root
 /home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001 (RECENT_YEAR/).
 Kjørebok: P2_RUNBOOK.md i roten.
 
-## Neste fase: to-års-vindu (operatør «kjør» 14.10)
+## To-års-vinduet (operatør «kjør» 14.10): kjørt og gjennomgått — recency-forfall målt
 
-Brukeren vedtok alternativ 1: 730 dagers vindu (128 815 kvalifiserte rader →
-8 050 avledede steg, 128 800 trente rader, én invokasjon ≈ 2 t) bundet i
-etterfølger-spesifikasjonen ENTRY_D1_HORIZON_LEARNING_STUDY_20261015 (root
-…/ENTRY_D1_HORIZON_LEARNING_20261015_001; kontraktnøkkelen heter fortsatt
-recent_year, window_days = 730 bærer sannheten). Samme forhåndsregistrerte
-seks-grense-regel; 365-dagersresultatet rapporteres ved siden av, velges aldri.
-Hypotese: signalet holder/styrkes med to år nær-regime-data; svekkelse leses
-som recency-forfall. Full epoke krever fortsatt kvalifisert signal og eget
-vedtak. GPU-tomgangsfeilen er ryddet av vedlikeholdsomstarten (boot 499,
-35,8 W målt); stående tomgangssjekk etter hver GPU-fase består.
+Resultat (root …/ENTRY_D1_HORIZON_LEARNING_20261015_001, STUDY_REVIEW_RECENT_
+YEAR.json; invokasjon boot 500, 20:08–21:55Z, exit 0, topp 146 W; GPU-tomgang
+ren etterpå, 36,9 W). CONTROL4096 ved 20 d, samme rader som alle gjennomganger:
+
+| | utrent | 365 d-vindu | 730 d-vindu | kurve (full) |
+|---|---|---|---|---|
+| kontrast-MSE | 2 032 815 | 1 877 306 | 2 327 431 | 2 157 135 |
+| rank-IC 20 d | 0,04 | 0,19 | −0,02 | 0,04 |
+| valgt handling, bps | +50 | +128 | +96 | −3 |
+
+REJECT etter forhåndsregelen (fire av seks intervaller dekker null; mot
+vinduskonstanten er nedre grense nær null på feil side). Den forhåndsregistrerte
+lesningen slår til i informativ retning: å doble vinduet gjorde generaliseringen
+VERRE enn utrent — signalet bor i det siste året, og eldre nær-regime-data
+skader aktivt. 11 av 13 måneder verre enn en referanse. Beskrivende: gjenbrukt
+CONTROL, ett seed, ingen økonomi. Ingen fase er kvalifisert; full epoke består
+stengt (vedtak 14.10 b).
+
+## Neste beslutning (operatør)
+
+Målt mønster over fire faser: retningsinformasjon finnes bare i ferskeste år.
+Kandidater, alle med egen forhåndsregistrering og policybinding:
+1. To nye seeds på 365-dagersvinduet (~70 min per invokasjon): skiller det ene
+   retningssignalet fra initialiseringsstøy. Billigste avklaring.
+2. Rullerende/kortere vindu (f.eks. 180 d) eller månedlig refit som ridge-
+   journalen: tester recency-hypotesen skarpere, men flere kjøringer.
+3. Lukke native-sporet på dette grunnlaget og la forward-journalen alene
+   bekrefte D1-signalet; native gjenåpnes bare på journal-evidens.
+Full epoke er utelukket av målingene (eldre data skader).
 
 Ingen automatisk trening, forlengelse eller relansering av konsumerte planer.
 training_enabled=false; TEST er forseglet. Ingen live/paper, broker, ordre,
