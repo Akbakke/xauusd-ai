@@ -35,7 +35,7 @@
   "bundle_metadata_sha256": null,
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
-  "updated_utc": "2026-10-14T19:47:29.045490+00:00",
+  "updated_utc": "2026-10-14T20:00:57.013904+00:00",
   "pretraining_review_hold": {
     "schema_version": "gx1_pretraining_review_hold_v1",
     "decision": "BLOCK",
@@ -43,7 +43,7 @@
     "activation_authority": false
   },
   "note": "No admitted model or active legacy training session. NEXT_RUN_POLICY.json owns CURRENT work and exact future native scope; feature widths/versions come from executable owners, never historical mirrors.",
-  "current_policy_sha256": "2c4a66cc781898a9f2265f3648de1259a29f249099bd4db06833966f1deb31ad",
+  "current_policy_sha256": "1ed599836364db39f6910f028f48971a3ebcdd432be3292597b81145fd400604",
   "retention_protected_leaves": {
     "schema_version": "gx1_retention_protected_leaves_v1",
     "paths": [
@@ -69,7 +69,8 @@
       "/home/andre2/GX1_RUNS/EDGE_ROOT_CAUSE_REVIEW_20260929",
       "/home/andre2/GX1_DATA/reports",
       "/home/andre2/GX1_DATA/cleanup_events",
-      "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001"
+      "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001",
+      "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_001"
     ],
     "note": "operator decision 14.10.2026: current-generation roots protected as explicit leaves; targets named by current documents are refused separately"
   }

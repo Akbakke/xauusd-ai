@@ -166,16 +166,18 @@ LEARNING_STUDY_20261014.json (binder forgjengeren); root
 /home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001 (RECENT_YEAR/).
 Kjørebok: P2_RUNBOOK.md i roten.
 
-## Neste beslutning (operatør)
+## Neste fase: to-års-vindu (operatør «kjør» 14.10)
 
-Full epoke krever et læringssignal i det mindre vinduet og eget vedtak (vedtak
-14.10 b); resultatet over er retningsgivende, ikke kvalifisert. Alternativer,
-alle med ny forhåndsregistrering og policybinding:
-1. To års vindu (730 d: 128 815 rader, ≈8 050 steg, én invokasjon ≈ 2 t) for å
-   se om signalet holder med mer data fra nær fortid.
-2. Samme vindu med to nye seeds for å skille signal fra initialiseringsstøy.
-3. Full epoke (40 266 steg, fire vinduer) — krever vedtak på dette grunnlaget.
-4. Lukke native-sporet her og satse på forward-journalen for D1-signalet.
+Brukeren vedtok alternativ 1: 730 dagers vindu (128 815 kvalifiserte rader →
+8 050 avledede steg, 128 800 trente rader, én invokasjon ≈ 2 t) bundet i
+etterfølger-spesifikasjonen ENTRY_D1_HORIZON_LEARNING_STUDY_20261015 (root
+…/ENTRY_D1_HORIZON_LEARNING_20261015_001; kontraktnøkkelen heter fortsatt
+recent_year, window_days = 730 bærer sannheten). Samme forhåndsregistrerte
+seks-grense-regel; 365-dagersresultatet rapporteres ved siden av, velges aldri.
+Hypotese: signalet holder/styrkes med to år nær-regime-data; svekkelse leses
+som recency-forfall. Full epoke krever fortsatt kvalifisert signal og eget
+vedtak. GPU-tomgangsfeilen er ryddet av vedlikeholdsomstarten (boot 499,
+35,8 W målt); stående tomgangssjekk etter hver GPU-fase består.
 
 Ingen automatisk trening, forlengelse eller relansering av konsumerte planer.
 training_enabled=false; TEST er forseglet. Ingen live/paper, broker, ordre,

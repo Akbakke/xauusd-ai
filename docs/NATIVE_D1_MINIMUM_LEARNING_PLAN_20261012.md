@@ -137,6 +137,28 @@ forgjengeren; fit og kurve gjentas byte for byte) og i egen policybinding:
   historikken ikke gjorde det. Negativt resultat lukkes ærlig; positivt åpner
   bare neste vedtak (full epoke / flere seeds).
 
+## Fase to-års-vindu — forhåndsregistrert 14.10.2026 (operatør: «kjør»)
+
+Etter recent_year-resultatet (REJECT med retningssignal: CONTROL kontrast-MSE
+2 032 815 → 1 877 306, rank-IC 20 d 0,04 → 0,19, valgt handling +50 → +128 bps,
+alle seks intervaller dekker null) vedtok brukeren å kjøre det presenterte
+alternativet 1: samme fase med 730 dagers vindu, bundet i
+`configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015.json` (hashbinder
+12.10-forgjengeren; fit og kurve gjentas byte for byte; kontraktnøkkelen heter
+fortsatt recent_year, window_days bærer sannheten):
+
+- **Populasjon:** kvalifiserte TRAIN-rader med beslutningstid i de siste 730
+  dagene før kuttet: 128 815 rader → 8 050 steg (avledet av kontrakteieren),
+  128 800 unike trente rader, én invokasjon (~2 t). Samme frosne rekkefølge
+  begrenset til vinduet først; ingen epoke fullføres.
+- **Observasjon:** TRAIN-probe 4 096 ved 0/256/1 024/8 050; CONTROL4096
+  (uendret) ved 0 og 8 050. Samme seed, tap, batch, ferske vekter.
+- **Regel:** samme seks parvise familiekorrigerte grenser ved 20 d mot initial
+  og mot konstanten for de trente vindusradene; 365-dagersfasens resultat
+  rapporteres ved siden av, velges aldri. Hypotesen: signalet holder eller
+  styrkes med to år nær-regime-data; svekkelse leses som recency-forfall.
+  Full epoke krever fortsatt kvalifisert signal og eget vedtak.
+
 ## Hva planen ikke åpner
 
 Ingen featurekassering, ingen ny arkitektur, ingen separat Exit-modell, ingen
