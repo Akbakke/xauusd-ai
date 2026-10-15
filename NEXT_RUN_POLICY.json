@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-14T21:59:39.471152+00:00",
-  "status": "NATIVE_D1_RECENT2Y_REVIEWED_RECENCY_DECAY_MEASURED",
+  "observed_utc": "2026-10-15T07:01:04.109554+00:00",
+  "status": "NATIVE_D1_SEED15_PHASE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "All bounded minimum-learning phases are complete and reviewed (fit, curve, 365-day, 730-day windows). Measured pattern: the only directional CONTROL signal came from the most recent 365 days; two years made it worse than untrained (recency decay). No phase qualified. The next step needs an operator decision; the natural candidates are seeds on the 365-day window (initialization noise check) or closing the native track and leaning on the forward journal. No native launch, orders or spending; training_enabled false.",
+  "next_action": "Seed/180d wave (operator 15.10 «Ja, 1 og 2»): phase recent_365d_s20261015 admitted; recipe, campaign and the physical reboot run it (~70 min). Then seed 20261016, then 180 d, each with its own review. No native launch, orders or spending; training_enabled false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "NATIVE_D1 minimum learning: all four bounded phases reviewed; recency decay measured; operator decision next",
+    "current_activity": "NATIVE_D1 window phases: seed-variant wave running (seed15 admitted); 180 d follows",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -140,7 +140,7 @@
       }
     ],
     "latest_terminal_role": "native_preprocessing_terminal_minimum_learning_P1: latest CPU terminal of the collector schema (exit_code/source_unchanged/test_data_used); the GPU phases carry invocation receipts and PHASE_REVIEW files under native_d1_minimum_learning_20261012.steps.P2_gpu_campaign",
-    "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_001/RECENT_YEAR",
+    "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/TERMINAL.json",
       "sha256": "856ec145e95fa3c30fc7a98397c74d38fb1b03160114c4c7f15a2b4c255289d2"
@@ -163,7 +163,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "none running; next phase requires an operator decision and a new policy binding",
+    "current_blocker": "none: campaign preparation for seed15 in progress; the GPU invocation runs at the next physical Windows boot",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -5004,7 +5004,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P2_ALL_BOUNDED_PHASES_REVIEWED_RECENCY_DECAY_MEASURED_OPERATOR_DECISION_NEXT",
+      "status": "P2_SEED_AND_180D_PHASES_ADMITTED_ONE_AT_A_TIME",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5042,7 +5042,8 @@
         "test_access_allowed": false,
         "control_observation_note": "study spec and study contract bind CONTROL4096 at steps 0 and 4096 and TRAIN_PROBE4096 at 0/256/1024/4096; the plan document's four control checkpoints were a wording error, repaired 14.10.2026",
         "recent_year_note": "14.10.2026: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261014 adds the recent-window phase (365 days before the TRAIN cutoff, 65 148 eligible rows, 4 071 steps derived by the contract owner); fit/curve repeated byte for byte",
-        "recent_two_years_note": "14.10.2026 «kjør»: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261015 reruns the window phase with 730 days (128 815 eligible rows, 8 050 derived steps); the contract phase key stays recent_year, window_days carries the truth"
+        "recent_two_years_note": "14.10.2026 «kjør»: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261015 reruns the window phase with 730 days (128 815 eligible rows, 8 050 derived steps); the contract phase key stays recent_year, window_days carries the truth",
+        "seed_variant_note": "15.10.2026: named seed variants 20261015/20261016 opened through the gates for window phases only (30f0b5ba)"
       },
       "steps": {
         "P0_code": {
@@ -5155,12 +5156,15 @@
           }
         },
         "P2_gpu_campaign": {
-          "status": "FIT_CURVE_RECENT_YEAR_RECENT2Y_REVIEWED",
+          "status": "RECENT_365D_SEED15_ADMITTED",
           "phases_in_order": [
             "fit_1024",
             "curve_4096",
             "recent_year_4071",
-            "recent_two_years_8050"
+            "recent_two_years_8050",
+            "recent_365d_s20261015_4071",
+            "recent_365d_s20261016_4071",
+            "recent_180d_2010"
           ],
           "requires": "fresh physical Windows boot per invocation by the operator, existing native campaign and guards, own policy binding per phase",
           "phases": {
@@ -6022,7 +6026,56 @@
                 },
                 "reading": "REJECT_ENTRY_QUALIFICATION under the preregistered rule: all six family-adjusted intervals cover zero. Direction differs from the full-history curve: all six point estimates improve (contrast-MSE 2 032 815 -> 1 877 306 vs window constant 1 929 010), CONTROL rank-IC at 20 d 0.039 -> 0.189 (5 d 0.001 -> 0.160) where the curve stayed at 0.040; selected-action mean +50 -> +128 bps vs always-LONG +148.5; 9 of 13 months worse than at least one reference. A directional recency signal, not a qualified learning signal."
               }
-            ]
+            ],
+            "recent_365d_s20261015": {
+              "status": "ADMITTED_NOT_STARTED",
+              "admitted_utc": "2026-10-15T07:00:28.001495+00:00",
+              "scope": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015/POLICY_SCOPE.json",
+                "sha256": "c188e30c25e44dccf7a4495ad6fe14b94f0b8b4f88d13fb04006f3b268b03b43"
+              },
+              "study": {
+                "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
+                "sha256": "3bdf995f5bd15d36314b2ec3f251465226aeb917fd084cf3110c4fedfd3fe1dc"
+              },
+              "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015",
+              "run_id": "ENTRY_D1_HORIZON_365D_SEED15_20261015_001",
+              "operator_basis": "user 15.10.2026 «Ja, 1 og 2»: seed variants on the 365-day window plus a 180-day window; GX1_RULES decision 14.10 b stands",
+              "phase_spec": {
+                "run_id": "ENTRY_D1_HORIZON_365D_SEED15_20261015_001",
+                "optimizer_steps": 4071,
+                "window_days": 365,
+                "window_rows": 65148,
+                "train_observation_steps": [
+                  0,
+                  256,
+                  1024,
+                  4071
+                ],
+                "control_observation_steps": [
+                  0,
+                  4071
+                ],
+                "max_invocations": 1,
+                "unique_train_rows": 65136,
+                "seed": 20261015
+              },
+              "predecessor": {
+                "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261012.json",
+                "sha256": "ee136083f7c2eeb38dd9832d7e5a422b48553fb783d054c60981125929be8d24"
+              },
+              "row_bindings": {
+                "recent_365d_s20261015": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015.npy",
+                  "sha256": "dec62684733cd0fc005417c7e6daadd6d70416be832675ebd0a30c69cc6a409d"
+                },
+                "recent_365d_s20261015_train_probe": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015_TRAIN_PROBE.npy",
+                  "sha256": "c61b34bbd9117756708db7f2232b061c58bb769b828f0d742c6355b74f93b6cd"
+                }
+              },
+              "evidence_class": "not started; one GPU invocation after a fresh physical Windows boot; CONTROL4096 unchanged"
+            }
           },
           "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
         },
@@ -6846,6 +6899,14 @@
           "design document NATIVE_D1_HORIZON_LEARNING_DESIGN_20261012.json is hash-bound and keeps stale wording (curve 'first 4096 eligible rows', selection_variant '256', 'v38 constructor', later_control 256, 5000 draws): procedure deviations documented here, no rebuild",
           "study spec entry_observed_market_horizons binds the _001/.specs copy of NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json (hash matches); the repo file is the same bytes"
         ]
+      },
+      "operator_decision_20261015": {
+        "request": "«Ja, 1 og 2» on the presented options after the recency-decay measurement",
+        "bound": "three preregistered window phases in spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002, one at a time: recent_365d_s20261015 and recent_365d_s20261016 (seed variants, contract constant RECENT_WINDOW_SEED_VARIANTS, date convention) and recent_180d (design seed). Full epoch stays excluded by the 730-day measurement; option 3 (closing the native track in favour of the forward journal) parked by this choice.",
+        "spec": {
+          "path": "configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
+          "sha256": "3bdf995f5bd15d36314b2ec3f251465226aeb917fd084cf3110c4fedfd3fe1dc"
+        }
       }
     },
     "training_started_note": "training_started stays false: the native training launch (training_enabled) was never opened; the bound study phases ran 1 024 + 4 096 optimizer steps under the study contract with training_enabled=false (P2)",
@@ -9028,5 +9089,20 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
+  },
+  "entry_learning_study_run": {
+    "max_invocations": 1,
+    "optimizer_steps": 4071,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015/CANDIDATE_BUNDLE",
+    "run_id": "ENTRY_D1_HORIZON_365D_SEED15_20261015_001",
+    "selection": {
+      "phase": "recent_365d_s20261015",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
+        "sha256": "3bdf995f5bd15d36314b2ec3f251465226aeb917fd084cf3110c4fedfd3fe1dc"
+      }
+    },
+    "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
+    "test_data_used": false
   }
 }

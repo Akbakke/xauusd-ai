@@ -186,17 +186,20 @@ skader aktivt. 11 av 13 måneder verre enn en referanse. Beskrivende: gjenbrukt
 CONTROL, ett seed, ingen økonomi. Ingen fase er kvalifisert; full epoke består
 stengt (vedtak 14.10 b).
 
-## Neste beslutning (operatør)
+## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
-Målt mønster over fire faser: retningsinformasjon finnes bare i ferskeste år.
-Kandidater, alle med egen forhåndsregistrering og policybinding:
-1. To nye seeds på 365-dagersvinduet (~70 min per invokasjon): skiller det ene
-   retningssignalet fra initialiseringsstøy. Billigste avklaring.
-2. Rullerende/kortere vindu (f.eks. 180 d) eller månedlig refit som ridge-
-   journalen: tester recency-hypotesen skarpere, men flere kjøringer.
-3. Lukke native-sporet på dette grunnlaget og la forward-journalen alene
-   bekrefte D1-signalet; native gjenåpnes bare på journal-evidens.
-Full epoke er utelukket av målingene (eldre data skader).
+Tre forhåndsregistrerte vindusfaser i spec ENTRY_D1_HORIZON_LEARNING_STUDY_
+20261015_002 (root …_20261015_002), én om gangen, hver med egen omstart:
+1. recent_365d_s20261015 (4 071 steg, seed 20261015) — ADMITTERT, kjøres nå.
+2. recent_365d_s20261016 (4 071 steg, seed 20261016).
+3. recent_180d (2 010 steg, 32 174 rader, design-seed).
+Seed-variantene er navngitte kontraktkonstanter (RECENT_WINDOW_SEED_VARIANTS,
+datokonvensjon) åpnet gjennom prefix-/komponent-/trenergaten bare for
+vindusfaser (30f0b5ba). Regel per fase: seks grenser ved 20 d mot initial
+(samme seed) og vinduskonstanten; tidligere faser rapporteres ved siden av.
+Avgjør om rank-IC 0,19 fra 365 d overlever initialisering, og om skarpere
+recency styrker signalet. Full epoke er utelukket av 730-dagersmålingen.
+Alternativ 3 (lukke native, satse på journalen) er parkert av valget.
 
 Ingen automatisk trening, forlengelse eller relansering av konsumerte planer.
 training_enabled=false; TEST er forseglet. Ingen live/paper, broker, ordre,

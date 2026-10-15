@@ -159,6 +159,25 @@ fortsatt recent_year, window_days bærer sannheten):
   styrkes med to år nær-regime-data; svekkelse leses som recency-forfall.
   Full epoke krever fortsatt kvalifisert signal og eget vedtak.
 
+## Faser seeds + 180 d — forhåndsregistrert 15.10.2026 (operatør: «Ja, 1 og 2»)
+
+Etter 730-dagersresultatet (REJECT, recency-forfall: verre enn utrent) vedtok
+brukeren alternativ 1 og 2. Bundet i
+`configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json`
+(hashbinder 12.10-forgjengeren; tre navngitte vindusfaser, én om gangen):
+
+- **recent_365d_s20261015 / recent_365d_s20261016:** samme 365-dagersvindu som
+  ga retningssignalet (65 148 rader, 4 071 steg), med navngitte seed-varianter
+  20261015/20261016 (datokonvensjon som design-seedet, kontrakteier
+  `RECENT_WINDOW_SEED_VARIANTS`). Avgjør om rank-IC 0,19 overlever
+  initialisering. Seedet endrer bare fersk init og trenings-RNG.
+- **recent_180d:** 180 dagers vindu (32 174 rader, 2 010 steg) på design-seedet:
+  tester om skarpere recency styrker signalet.
+- **Regel per fase:** samme seks parvise familiekorrigerte grenser ved 20 d mot
+  initial (samme seed) og vinduskonstanten; CONTROL4096 ved 0 og sluttsteg;
+  tidligere fasers resultater rapporteres ved siden av, velges aldri.
+  Full epoke er utelukket av 730-dagersmålingen.
+
 ## Hva planen ikke åpner
 
 Ingen featurekassering, ingen ny arkitektur, ingen separat Exit-modell, ingen
