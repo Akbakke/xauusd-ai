@@ -103,3 +103,56 @@ def test_post_request_encodes_form_parameters_in_request_body(monkeypatch):
     assert request.method == "POST"
     assert request.get_header("Content-type") == "application/x-www-form-urlencoded"
     assert request.data.decode("utf-8") == "dataset=GLBX.MDP3&symbols=GCM4%2CGCQ4&schema=mbp-1"
+
+
+def test_get_request_retries_transient_gateway_error(monkeypatch):
+    from urllib.error import HTTPError
+
+    attempts = 0
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def read(self):
+            return b"{}"
+
+    def fake_urlopen(request, timeout):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise HTTPError(request.full_url, 504, "gateway timeout", {}, None)
+        return Response()
+
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    monkeypatch.setattr("gx1.scripts.gc_order_flow_download_v1.time.sleep", lambda _: None)
+
+    assert HistoricalAPI("unused-test-key").request("batch.get_job_details", {"job_id": "test"}) == {}
+    assert attempts == 2
+
+
+def test_post_submission_is_not_retried_after_ambiguous_gateway_error(monkeypatch):
+    from urllib.error import HTTPError
+
+    attempts = 0
+
+    def fake_urlopen(request, timeout):
+        nonlocal attempts
+        attempts += 1
+        raise HTTPError(request.full_url, 504, "gateway timeout", {}, None)
+
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    monkeypatch.setattr("gx1.scripts.gc_order_flow_download_v1.time.sleep", lambda _: None)
+
+    with pytest.raises(RuntimeError, match="DATABENTO_HTTP_504:batch.submit_job"):
+        HistoricalAPI("unused-test-key").request("batch.submit_job", {"dataset": "test"}, post=True)
+    assert attempts == 1

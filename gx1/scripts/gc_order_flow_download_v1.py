@@ -208,14 +208,21 @@ class HistoricalAPI:
         request = urllib.request.Request(
             url, data=payload, method="POST" if post else "GET", headers=headers,
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                body = response.read()
-        except urllib.error.HTTPError as exc:
-            # Do not include response bodies: they may contain account metadata.
-            raise RuntimeError(f"DATABENTO_HTTP_{exc.code}:{method}") from None
-        except (TimeoutError, OSError) as exc:
-            raise RuntimeError(f"DATABENTO_TRANSPORT_UNKNOWN:{method}:{type(exc).__name__}") from None
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                    body = response.read()
+                break
+            except urllib.error.HTTPError as exc:
+                # Retry only idempotent reads after transient gateway failures.
+                # Never retry submissions: their outcome may be ambiguous.
+                if not post and exc.code in {502, 503, 504} and attempt < 2:
+                    time.sleep(0.5 * (2 ** attempt))
+                    continue
+                # Do not include response bodies: they may contain account metadata.
+                raise RuntimeError(f"DATABENTO_HTTP_{exc.code}:{method}") from None
+            except (TimeoutError, OSError) as exc:
+                raise RuntimeError(f"DATABENTO_TRANSPORT_UNKNOWN:{method}:{type(exc).__name__}") from None
         text = body.decode("utf-8")
         if method.startswith("metadata."):
             return text.strip()
