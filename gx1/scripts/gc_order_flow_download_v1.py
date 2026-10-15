@@ -208,16 +208,23 @@ class HistoricalAPI:
         request = urllib.request.Request(
             url, data=payload, method="POST" if post else "GET", headers=headers,
         )
-        for attempt in range(3):
+        for attempt in range(5):
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
                     body = response.read()
                 break
             except urllib.error.HTTPError as exc:
-                # Retry only idempotent reads after transient gateway failures.
+                # Retry only idempotent reads after transient gateway/rate failures.
                 # Never retry submissions: their outcome may be ambiguous.
-                if not post and exc.code in {502, 503, 504} and attempt < 2:
-                    time.sleep(0.5 * (2 ** attempt))
+                if not post and exc.code in {429, 502, 503, 504} and attempt < 4:
+                    retry_after = exc.headers.get("Retry-After") if exc.headers else None
+                    try:
+                        delay = float(retry_after) if retry_after is not None else float(2 ** (attempt + 1))
+                    except (TypeError, ValueError):
+                        delay = float(2 ** (attempt + 1))
+                    if delay > 60:
+                        raise RuntimeError(f"DATABENTO_HTTP_{exc.code}:{method}") from None
+                    time.sleep(max(0.0, delay))
                     continue
                 # Do not include response bodies: they may contain account metadata.
                 raise RuntimeError(f"DATABENTO_HTTP_{exc.code}:{method}") from None

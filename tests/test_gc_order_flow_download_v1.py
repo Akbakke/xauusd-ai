@@ -198,3 +198,40 @@ def test_list_jobs_requests_full_details(monkeypatch):
         "?states=queued%2Cprocessing%2Cdone%2Cexpired&short=false"
     )
     assert jobs == [{"id": "job-one", "state": "done", "schema": "mbp-1", "cost_usd": 1.25}]
+
+
+def test_get_request_uses_backoff_for_repeated_service_unavailable(monkeypatch):
+    from urllib.error import HTTPError
+
+    attempts = 0
+    delays = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def read(self):
+            return b"{}"
+
+    def fake_urlopen(request, timeout):
+        nonlocal attempts
+        attempts += 1
+        if attempts <= 2:
+            raise HTTPError(request.full_url, 503, "unavailable", {}, None)
+        return Response()
+
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.time.sleep",
+        lambda delay: delays.append(delay),
+    )
+
+    assert HistoricalAPI("unused-test-key").request("batch.list_jobs", {}) == {}
+    assert attempts == 3
+    assert delays == [2.0, 4.0]
