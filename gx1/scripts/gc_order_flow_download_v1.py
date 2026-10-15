@@ -222,7 +222,7 @@ class HistoricalAPI:
         return json.loads(text) if text else None
 
     def list_jobs(self) -> list[dict[str, Any]]:
-        result = self.request("batch.list_jobs", {"states": "received,queued,processing,done", "short": "false"})
+        result = self.request("batch.list_jobs", {"states": "queued,processing,done,expired", "short": "false"})
         if isinstance(result, dict):
             result = result.get("jobs", result.get("data", []))
         if not isinstance(result, list):
