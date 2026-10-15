@@ -280,7 +280,7 @@ def _same_scope(job: dict[str, Any], scope: dict[str, Any]) -> bool:
         and job.get("pretty_ts", False) is False
         and job.get("map_symbols", True) is True
         and job.get("split_symbols", True) is True
-        and job.get("split_duration", "none") == "none"
+        and job.get("split_duration", "none") in {"none", None}
         and job.get("delivery", "download") == "download"
     )
 

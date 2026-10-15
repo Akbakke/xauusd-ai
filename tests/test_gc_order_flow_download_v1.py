@@ -37,6 +37,7 @@ def test_existing_batch_job_must_match_full_scope_and_output_contract():
         "map_symbols": True, "split_symbols": True, "split_duration": "none", "delivery": "download",
     }
     assert _same_scope(job, scope)
+    assert _same_scope({**job, "split_duration": None}, scope)
     assert not _same_scope({**job, "start": "2024-05-01T01:00:00.000000000Z"}, scope)
     assert not _same_scope({**job, "compression": "none"}, scope)
 
