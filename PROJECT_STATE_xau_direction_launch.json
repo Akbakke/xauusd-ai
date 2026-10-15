@@ -35,7 +35,7 @@
   "bundle_metadata_sha256": null,
   "current_smoke_launch_evidence": null,
   "accepted_via_vedtak": null,
-  "updated_utc": "2026-10-15T07:01:04.109554+00:00",
+  "updated_utc": "2026-10-15T09:41:37.545547+00:00",
   "pretraining_review_hold": {
     "schema_version": "gx1_pretraining_review_hold_v1",
     "decision": "BLOCK",
@@ -43,7 +43,7 @@
     "activation_authority": false
   },
   "note": "No admitted model or active legacy training session. NEXT_RUN_POLICY.json owns CURRENT work and exact future native scope; feature widths/versions come from executable owners, never historical mirrors.",
-  "current_policy_sha256": "154214e8a4830f9385e74426ba8303cf60a2f1a15c53faf28616b08c99c7c20f",
+  "current_policy_sha256": "67891305c3f0d00cff463a8ecd1c4c11a9357fca3e2b752e9710816c8d7bdebf",
   "retention_protected_leaves": {
     "schema_version": "gx1_retention_protected_leaves_v1",
     "paths": [

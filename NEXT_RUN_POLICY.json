@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-15T07:01:04.109554+00:00",
-  "status": "NATIVE_D1_SEED15_PHASE_ADMITTED",
+  "observed_utc": "2026-10-15T09:41:37.545547+00:00",
+  "status": "NATIVE_D1_SEED15_REVIEWED_RANKING_REPRODUCED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Seed/180d wave (operator 15.10 «Ja, 1 og 2»): phase recent_365d_s20261015 admitted; recipe, campaign and the physical reboot run it (~70 min). Then seed 20261016, then 180 d, each with its own review. No native launch, orders or spending; training_enabled false.",
+  "next_action": "Seed15 reviewed: ranking signal reproduced (rank-IC 20 d +0.22 vs base +0.19), MSE level did not. Seed16 phase runs next (admit -> recipe -> campaign -> physical reboot), then 180 d. No native launch, orders or spending; training_enabled false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -163,7 +163,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "none: campaign preparation for seed15 in progress; the GPU invocation runs at the next physical Windows boot",
+    "current_blocker": "none: seed16 campaign preparation next; the GPU invocation runs at the next physical Windows boot",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -5156,7 +5156,7 @@
           }
         },
         "P2_gpu_campaign": {
-          "status": "RECENT_365D_SEED15_ADMITTED",
+          "status": "SEED15_REVIEWED_SEED16_NEXT",
           "phases_in_order": [
             "fit_1024",
             "curve_4096",
@@ -6028,7 +6028,7 @@
               }
             ],
             "recent_365d_s20261015": {
-              "status": "ADMITTED_NOT_STARTED",
+              "status": "COMPLETED_FINITE_PHASE_REVIEWED",
               "admitted_utc": "2026-10-15T07:00:28.001495+00:00",
               "scope": {
                 "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015/POLICY_SCOPE.json",
@@ -6074,7 +6074,146 @@
                   "sha256": "c61b34bbd9117756708db7f2232b061c58bb769b828f0d742c6355b74f93b6cd"
                 }
               },
-              "evidence_class": "not started; one GPU invocation after a fresh physical Windows boot; CONTROL4096 unchanged"
+              "evidence_class": "measured on real declared bytes; CONTROL4096 is reused development data",
+              "entry_learning_study_run": {
+                "max_invocations": 1,
+                "optimizer_steps": 4071,
+                "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015/CANDIDATE_BUNDLE",
+                "run_id": "ENTRY_D1_HORIZON_365D_SEED15_20261015_001",
+                "selection": {
+                  "phase": "recent_365d_s20261015",
+                  "plan": {
+                    "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
+                    "sha256": "3bdf995f5bd15d36314b2ec3f251465226aeb917fd084cf3110c4fedfd3fe1dc"
+                  }
+                },
+                "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
+                "test_data_used": false
+              },
+              "completed_utc": "2026-10-15T08:14:46+00:00",
+              "invocation": {
+                "boot_utc": "2026-10-15T07:06:23.5Z",
+                "guard_exit": "event=exit child_status=0 at 2026-10-15T08:14:46Z",
+                "peak_core_temp_c": 58,
+                "peak_memory_temp_c": 66,
+                "peak_power_draw_w": 135.53,
+                "post_phase_idle_check": "GPU idle 34.9 W measured 09:38Z (standing check)"
+              },
+              "receipt": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015/RUNTIME/receipts/invocation-0001.json",
+                "sha256": "07da2ac9f6449a1122bfd6a8e53f55c4656a19bb6e3612c64ae429f0850fe37c"
+              },
+              "phase_review": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015/PHASE_REVIEW.json",
+                "sha256": "166b511d570a92ac57110b9c5d1ca05f2ee8d88ea960ce06b589cbc4eba2d9e5"
+              },
+              "study_review": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/STUDY_REVIEW_RECENT_365D_S20261015.json",
+                "sha256": "0928af5743caf789a6b63fc2fd51ee540d530cb9b4b5562bee7928c159d1e57d"
+              },
+              "study_review_script": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/REVIEW_STUDY_WINDOW.py",
+                "sha256": "f8f9034299de22f538f4b62c832265cc405881a93c6ade6c7c854e9b031ddf77"
+              },
+              "windows_task_completed": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015/WINDOWS_TASK_COMPLETED.json",
+                "sha256": "9548822ce2a36d1879c61a80624369b09e6362ccc0a996fa546e6a8420892729"
+              },
+              "measured": {
+                "control_mse_20d": {
+                  "initial": [
+                    499283.5395859397,
+                    519014.45339321275,
+                    2033706.4730696215
+                  ],
+                  "final": [
+                    509675.0907236282,
+                    510865.350079607,
+                    2041073.491011602
+                  ],
+                  "trained_window_constant": [
+                    481786.6209369241,
+                    482720.6219307569,
+                    1929010.450399623
+                  ]
+                },
+                "control_action_counts_long_short_flat": {
+                  "initial": [
+                    329,
+                    658,
+                    3109
+                  ],
+                  "final": [
+                    1274,
+                    2591,
+                    231
+                  ]
+                },
+                "paired_intervals": {
+                  "CONTRAST_MSE_vs_initial": {
+                    "equal_week_mean": 23239.246578112645,
+                    "family_adjusted_lower": -682410.2959039311,
+                    "family_adjusted_upper": 999248.0251515459,
+                    "weeks": 54
+                  },
+                  "CONTRAST_MSE_vs_train_constant": {
+                    "equal_week_mean": 111121.76623261192,
+                    "family_adjusted_lower": -1105275.539525426,
+                    "family_adjusted_upper": 1701273.830544519,
+                    "weeks": 54
+                  },
+                  "LONG_MSE_vs_initial": {
+                    "equal_week_mean": 13931.828424054927,
+                    "family_adjusted_lower": -170632.99203865434,
+                    "family_adjusted_upper": 272366.9556806781,
+                    "weeks": 54
+                  },
+                  "LONG_MSE_vs_train_constant": {
+                    "equal_week_mean": 27668.502055303186,
+                    "family_adjusted_lower": -276222.662816205,
+                    "family_adjusted_upper": 424957.3301197767,
+                    "weeks": 54
+                  },
+                  "SHORT_MSE_vs_initial": {
+                    "equal_week_mean": -3753.922255955304,
+                    "family_adjusted_lower": -178382.93322407562,
+                    "family_adjusted_upper": 222718.25632129458,
+                    "weeks": 54
+                  },
+                  "SHORT_MSE_vs_train_constant": {
+                    "equal_week_mean": 27893.9914352117,
+                    "family_adjusted_lower": -276397.4774487226,
+                    "family_adjusted_upper": 425680.04145915987,
+                    "weeks": 54
+                  }
+                },
+                "statistical_screen_pass": false,
+                "control_contrast_rank_ic": {
+                  "0": {
+                    "1": -0.04341585104647054,
+                    "20": -0.1651641742065542,
+                    "5": -0.056585018320936716
+                  },
+                  "4071": {
+                    "1": 0.02828302944322478,
+                    "20": 0.21827632552681944,
+                    "5": 0.11782546040145916
+                  }
+                },
+                "selected_vs_always_long_net_bps": {
+                  "control_0": [
+                    -38.861837491131155,
+                    148.47776687517035
+                  ],
+                  "control_4071": [
+                    72.57461300909927,
+                    148.47776687517035
+                  ]
+                },
+                "months_final_worse_than_a_reference": 6,
+                "initial_state_differs_from_design_seed": true
+              },
+              "reading": "REJECT under the preregistered rule (all six intervals cover zero). The scale-free ranking signal REPRODUCED across the seed change: CONTROL contrast rank-IC at 20 d ended +0.218 (base seed: +0.189) from -0.165 at this seed's own initialization; 5 d +0.118 (base +0.160). The MSE level did NOT reproduce (final 2 041 073, marginally worse than own initial 2 033 706; base seed improved to 1 877 306) and selected-action mean reached +72.6 bps vs base +128: magnitude calibration is initialization-dependent while the ranking is not. 6 of 13 months worse (base: 9/13). Descriptive, reused CONTROL."
             }
           },
           "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
@@ -9089,20 +9228,5 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
-  },
-  "entry_learning_study_run": {
-    "max_invocations": 1,
-    "optimizer_steps": 4071,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015/CANDIDATE_BUNDLE",
-    "run_id": "ENTRY_D1_HORIZON_365D_SEED15_20261015_001",
-    "selection": {
-      "phase": "recent_365d_s20261015",
-      "plan": {
-        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
-        "sha256": "3bdf995f5bd15d36314b2ec3f251465226aeb917fd084cf3110c4fedfd3fe1dc"
-      }
-    },
-    "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
-    "test_data_used": false
   }
 }

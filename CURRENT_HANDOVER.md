@@ -190,7 +190,12 @@ stengt (vedtak 14.10 b).
 
 Tre forhåndsregistrerte vindusfaser i spec ENTRY_D1_HORIZON_LEARNING_STUDY_
 20261015_002 (root …_20261015_002), én om gangen, hver med egen omstart:
-1. recent_365d_s20261015 (4 071 steg, seed 20261015) — ADMITTERT, kjøres nå.
+1. recent_365d_s20261015 — KJØRT OG GJENNOMGÅTT 15.10 (boot 07:06Z, exit 0):
+   REJECT etter regelen, men rank-IC-signalet REPRODUSERTE: CONTROL kontrast-
+   rank-IC 20 d endte +0,218 (base-seed +0,189) fra −0,165 ved egen init; 5 d
+   +0,118. MSE-nivået reproduserte IKKE (2 041 073, hårfint verre enn egen
+   init; base forbedret til 1 877 306); valgt handling +72,6 bps (base +128).
+   Rangeringen er seed-uavhengig, nivåkalibreringen er det ikke. 6/13 mnd verre.
 2. recent_365d_s20261016 (4 071 steg, seed 20261016).
 3. recent_180d (2 010 steg, 32 174 rader, design-seed).
 Seed-variantene er navngitte kontraktkonstanter (RECENT_WINDOW_SEED_VARIANTS,
