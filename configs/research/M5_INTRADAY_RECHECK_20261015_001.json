@@ -1,0 +1,84 @@
+{
+  "schema_version": "gx1_m5_intraday_recheck_v1",
+  "study_id": "M5_INTRADAY_RECHECK_20261015_001",
+  "operator_request": "15.10.2026: «Vi skal ikke behandle M5 som falsifisert på det nye datasettet når det ikke er gjennomført trening på dette datagrunnlaget. ... Lag en liten, forhåndsdefinert studie med beslutninger etter lukket M5-bar og horisonter på 30, 120 og 360 minutter. Bruk en enkel lineær modell og XGBoost som referanser. La transformeren være en avgrenset utfordrer ... A: Eksisterende pris-/tekniske felt. B: Samme oppsett med den nye, utvidede featureflaten. C: Senere samme oppsett med GC-data, dersom et kjøp godkjennes.»",
+  "registered_utc": "2026-10-15T12:00:00+00:00",
+  "status": "PREREGISTERED_BEFORE_ANY_FIT",
+  "research_scope": "offline CPU research arm under GX1_RULES (forskningsbaselines med egen deklarert enkel logikk); no native contract, head, recipe or serving authority changes; no GPU; TEST never read",
+  "data": {
+    "generation": "HISTORY2009W_NATIVE_D1_20261011_003",
+    "splits_used": ["train", "val"],
+    "test_split_read": false,
+    "development_period_utc": ["2011-06-01T00:00:00+00:00", "2026-07-01T00:00:00+00:00"],
+    "datasets": {
+      "train": {"parquet": {"path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.parquet", "sha256": "e2d7aed519511e07ccca11b7be14ae89e8808b467635fc948b7a8acf08a2bddb"},
+                "manifest": {"path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json", "sha256": "022e19bcd52c0333cb3cfd64593c05c13c93f69982340de4fb13d23935d93ad2"}},
+      "val": {"parquet": {"path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.parquet", "sha256": "df4a9175003bfd269a23b15dfc792135340a69ef1faf556080edac2e3748a941"},
+              "manifest": {"path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json", "sha256": "3343f1b6b9f9ac94e15ed75f6a93a950864ced5dffbd587c2b388788c708b553"}}
+    },
+    "signal_manifest": {"path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20261012T030344329880Z.json", "sha256": "bb65a85d81ebe950862364e5021b0f6516e91c972a0dcce1426ea4caa8446ff0"},
+    "execution_tape": {"root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+                       "manifest": {"path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json", "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"},
+                       "columns": ["time", "bid_open", "ask_open", "bid_close", "ask_close"],
+                       "end_utc_exclusive": "2026-07-01T00:00:00+00:00"},
+    "availability_audit": "GX1_RUNS/M5_RECHECK_20261015_001/audit: every one of the 61 D1 fields reconstructed independently at all 723 432 decision rows (drivers D+2 00:00 New York strict, COT as_of+7d strict: 0 differing cells); panel D1 bars contain no H1 bar ending after their stamp; MTF context fields change only at their bar closes"
+  },
+  "decision_clock": "every dataset row; decision time = row time (M5 bar open) + 300 s, i.e. after the closed M5 bar",
+  "feature_sets": {
+    "A": {"description": "existing price/technical surface: snap fields 0..253 (identical names, order and values to HISTORY2009W_FEATURE_REPAIR_20261010) + one-hot session_id", "snap_slice": [0, 254]},
+    "B": {"description": "A + the 61 D1 macro/positioning/panel fields (snap 254..314) + one-hot session_id", "snap_slice": [0, 315]},
+    "C": {"description": "B + GC futures fields; NOT RUN: requires an approved data purchase", "status": "DEFERRED_PENDING_PURCHASE_APPROVAL"}
+  },
+  "horizons_minutes": [30, 120, 360],
+  "execution": {
+    "latency_seconds": 60,
+    "entry": "first M1 bar with time >= decision + latency; long at its ask_open, short at its bid_open; censored if that bar starts more than 300 s after decision + latency",
+    "exit": "first M1 bar with time >= entry bar time + horizon; long at its bid_open, short at its ask_open; censored if that bar starts more than 4200 s after the target time or if any gap > 6 h (weekly closure) lies between entry and exit",
+    "spread": "carried by the executable bid/ask prices; never deducted again",
+    "slippage_bps_per_execution": {"central": 2.0, "sensitivity": [1.0, 2.0, 3.0, 4.0], "source": "CURRENT_TERMS_POLICY_001 latency_slippage.central_bps_per_execution (separate_from_bid_ask_spread = true)"},
+    "commission_bps_per_execution": 0.0,
+    "financing": {"rule": "per 17:00 America/New_York rollover crossed between entry and exit: long -0.0569/365, short +0.0323/365 of notional (source rates of CURRENT_TERMS_POLICY_001)", "long_bps_per_rollover": -1.5589, "short_bps_per_rollover": 0.8849},
+    "cost_policy": {"path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/POLICY/policy.json", "sha256": "bd4c2722e32c5f1ee2447d1e135c14684a576f6b9f88867cdf3bd9a80921f4e8"},
+    "max_open_positions": 1,
+    "no_mfe_or_optimal_exit": true
+  },
+  "learning_target": "y_h = 1e4 * ln(mid_exit / mid_entry) with mid = (bid_open + ask_open) / 2 at the entry and exit M1 bars (cost-free mid return over the executed window); censored rows excluded from training and evaluation",
+  "models": {
+    "ridge": {"form": "closed-form ridge on features standardized with train-window statistics, NaN -> 0 after standardization, intercept unpenalized", "alpha_grid": [1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0], "selection": "minimum inner-validation MSE"},
+    "gbdt": {"library": "lightgbm 4.6.0 (stand-in for XGBoost: xgboost is not installed in the bound .venv and adding it changes the environment the GPU gates bind; same model class, histogram GBDT)",
+             "params": {"objective": "regression", "learning_rate": 0.05, "num_leaves": 15, "max_depth": 4, "min_data_in_leaf": 500, "feature_fraction": 0.8, "bagging_fraction": 0.8, "bagging_freq": 1, "lambda_l2": 1.0, "num_threads": 1, "seed": 20261015, "verbosity": -1},
+             "max_rounds": 800, "early_stopping_rounds": 50, "selection": "best inner-validation iteration; refit on the whole train window with that round count"},
+    "transformer": {"status": "DECLARED_BOUNDED_CHALLENGER_NOT_RUN_IN_THIS_PHASE",
+                    "design": "native v10 function on the same rows, targets and periods; the three most recent evaluation periods; the horizon with the best reference rank-IC on the earlier periods (chosen without the challenger periods); feature set B; one fresh initialization per period",
+                    "blocked_by": ["no minute-horizon target contract (entry_observed_market_horizons_v1 binds 1/5/20 trading days; the 95-minute v1 contract is a different target)", "fresh physical Windows boot per GPU invocation (one boot per period)"]}
+  },
+  "walk_forward": {
+    "evaluation_periods_utc": [["2015-01-01", "2016-01-01"], ["2016-01-01", "2017-01-01"], ["2017-01-01", "2018-01-01"], ["2018-01-01", "2019-01-01"], ["2019-01-01", "2020-01-01"], ["2020-01-01", "2021-01-01"], ["2021-01-01", "2022-01-01"], ["2022-01-01", "2023-01-01"], ["2023-01-01", "2024-01-01"], ["2024-01-01", "2025-01-01"], ["2025-01-01", "2026-07-01"]],
+    "train_window_years": 3,
+    "purge": "train rows whose exit time >= evaluation start are removed; embargo: train rows with decision >= evaluation start - 1 day are removed",
+    "inner_validation": "last 20% of the purged train window by decision time; inner-train rows whose exit time >= inner-validation start are removed",
+    "fit_only_on": "normalization statistics, ridge alpha, GBDT round count and every threshold come from the train window / inner validation only"
+  },
+  "trading_rule": {
+    "primary": "process evaluation decisions in time order; when flat and both entry and exit are uncensored: c = spread_bps at the last M1 bar closed at the decision (ask_close - bid_close over mid) + 2 x central slippage; enter LONG if prediction > c, SHORT if prediction < -c; hold exactly the horizon; the next decision is considered only at a decision time >= the exit time",
+    "secondary_reported_not_decisive": "same sequencing; enter in the sign of the prediction when |prediction| exceeds the 90th percentile of |prediction| over the inner-validation block (no cost threshold)",
+    "drift_baseline": "always LONG with the same one-position sequencing (and always SHORT), same costs"
+  },
+  "metrics": {
+    "prediction": "per period: Spearman rank-IC and Pearson correlation of prediction vs y_h, sign hit rate, R2 against zero; across the 11 periods: mean, sd and t of the per-period rank-IC",
+    "trading": "per period and pooled: trades, net bps total and per trade, win rate, exposure (time in market over period length), max drawdown of the cumulative net per trade (bps), at slippage 1/2/3/4 bps with decisions fixed at the central rule",
+    "a_versus_b": "per model and horizon: paired per-period difference in rank-IC and in pooled net per trade"
+  },
+  "classification": {
+    "cells": "2 models x 2 feature sets x 3 horizons = 12 cells (primary rule)",
+    "bootstrap": "calendar-week blocks of trades (by entry), 4000 replicates, seed 20261015; two-sided 90% interval and a Bonferroni family interval at 1 - 0.10/12",
+    "PROMISING": "family-adjusted lower bound of net per trade > 0 AND positive net in >= 60% of the periods with >= 5 trades AND pooled net per trade still > 0 at 3 bps slippage AND >= 30 trades",
+    "NEGATIVE": ">= 30 trades AND the raw 90% upper bound of net per trade < 0",
+    "INCONCLUSIVE": "everything else, including < 30 trades",
+    "prediction_signal": "per cell: mean per-period rank-IC with t >= 3.0 across periods reads as a stable ranking signal; it is reported separately and never converts a trading NEGATIVE into PROMISING"
+  },
+  "outputs_root": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001",
+  "test_data_used": false,
+  "broker_access": false,
+  "spending": false
+}

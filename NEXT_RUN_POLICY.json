@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-15T10:59:26.202339+00:00",
+  "observed_utc": "2026-10-15T11:31:31.025584+00:00",
   "status": "NATIVE_D1_180D_PHASE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -6400,7 +6400,7 @@
               "reading": "REJECT under the preregistered rule (all six intervals cover zero), but the third seed reproduces the ranking signal and this time the level too: CONTROL contrast rank-IC at 20 d +0.277 (from +0.117 at own init; base seed +0.189, seed15 +0.218), 5 d +0.209; contrast-MSE 2 034 166 -> 1 889 226, below the trained-window constant 1 929 010; all six point estimates are improvements; selected-action mean +83.9 bps vs always-LONG +148.5; 7 of 13 months worse than a reference. Three of three seeds now show a positive learned 20-day ranking on CONTROL after training on the last 365 days. Descriptive, reused CONTROL."
             },
             "recent_180d": {
-              "status": "ADMITTED_NOT_STARTED",
+              "status": "ARMED_THEN_DISARMED_FOR_M5_RECHECK",
               "admitted_utc": "2026-10-15T10:59:26.167485+00:00",
               "scope": {
                 "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D/POLICY_SCOPE.json",
@@ -6441,7 +6441,8 @@
                   "sha256": "a9edf7c4957211fc369177d811078ad2ae6a0f60f71410a9a4640657818156b1"
                 }
               },
-              "evidence_class": "not started; one GPU invocation at the next physical Windows boot (task armed, no forced reboot)"
+              "evidence_class": "not started; one GPU invocation at the next physical Windows boot (task armed, no forced reboot)",
+              "disarm_note": "15.10.2026: the Windows task was disabled before the M5 recheck commits (the recipe binds HEAD 810b0714; a later commit would make the invocation fail closed). Re-arm = recipe + campaign + task at the final HEAD of the M5 wave."
             }
           },
           "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
@@ -7317,6 +7318,54 @@
     "host_observation_20261014_evidence": {
       "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261014_001/HOST_GPU_IDLE_P0_STUCK_20261014.json",
       "sha256": "e28650cd8452d7a4e2d0c2f6526d53275a75d2c0be4d6183397a0dbc851a5764"
+    },
+    "m5_intraday_recheck_20261015": {
+      "status": "PREREGISTERED_NOT_RUN",
+      "operator_request": "15.10.2026: M5 is not falsified on the new generation without training on it; bounded recheck with ridge + GBDT references, transformer as bounded challenger, feature sets A/B (C after an approved GC purchase); no paid data without approval; no hidden rule changes",
+      "spec": {
+        "path": "configs/research/M5_INTRADAY_RECHECK_20261015_001.json",
+        "sha256": "89806f04f62757f93957394f638e4770b307549eb98edda1bd4bef05cd35c16c"
+      },
+      "instrument": {
+        "path": "gx1/scripts/research_m5_intraday_recheck_v1.py",
+        "sha256": "bb647231788d7d66447c88275b1c6c032c8d5e47a7f67abda0e9bf7bedf72044"
+      },
+      "tests": {
+        "path": "tests/test_research_m5_intraday_recheck_v1.py",
+        "sha256": "65c0b9160713c62070c240b89239381e894da30c000ad2f630cb407e863f5841"
+      },
+      "run_root": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001",
+      "data_audit": {
+        "generation_diff": {
+          "path": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/audit/GENERATION_DIFF.json",
+          "sha256": "c23992d5a7fd98c5592df15a537defca05952990ea20be5240b7443b0ad5f5d6"
+        },
+        "availability_change_times": {
+          "path": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/audit/AVAILABILITY_CHANGE_TIMES.json",
+          "sha256": "84036e9300321d40a0deea55627f7e926ca3b735cb3c19f110b7d138ca503c4a"
+        },
+        "availability_exact": {
+          "path": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/audit/AVAILABILITY_EXACT.json",
+          "sha256": "2b9d9d9805a997abd22bcf2e0e9b2cabb63a6d3df4cc7c0e3061cda7557ad0d4"
+        },
+        "availability_independent": {
+          "path": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/audit/AVAILABILITY_INDEPENDENT.json",
+          "sha256": "84eb233a2e8bb447e9aa1bdd6f2eb589d831c85ae2df20408c50f33dc79391de"
+        },
+        "findings": [
+          "V38 -> FEATURE_REPAIR: same 254 fields in the same order; on matched TRAIN rows only 5 snap fields changed value (geomline, <= 0.8% of rows); the repair otherwise sits in the MTF sequence cache, M1 Exit features and labels",
+          "FEATURE_REPAIR -> NATIVE_D1_003: the 254 fields are bit-identical; 61 new D1 fields appended (4 COT, 44 OANDA panel, 13 Treasury/VIX/GLD drivers)",
+          "M5 trainings on the generations: V38 only (95-minute observed target, fit + curve 16 384 steps, ENTRY_LEARNING_CURVE_20261010_001); none on FEATURE_REPAIR; on NATIVE_D1_003 only 20-trading-day-target phases. No intraday-horizon training or linear/GBDT probe exists on the repaired or the D1 generation",
+          "availability: 0 of 723 432 decision rows use a driver or COT value before its declared availability (independent as-of rebuild, 0 differing cells); COT used >= 99.6 h after the Friday release; no panel D1 bar contains an H1 bar ending after its stamp; MTF context fields change only at their own bar closes"
+        ]
+      },
+      "deviations_declared": [
+        "GBDT reference is LightGBM 4.6.0, not XGBoost: xgboost is not installed in the bound .venv and adding it changes the environment the GPU gates bind; installing it needs an operator decision",
+        "transformer challenger declared but not run in this phase: no minute-horizon target contract exists and each GPU invocation needs a fresh physical boot"
+      ],
+      "test_data_used": false,
+      "gpu": false,
+      "spending": false
     }
   },
   "gc_order_flow_research_20261006": {
