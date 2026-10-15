@@ -186,6 +186,35 @@ skader aktivt. 11 av 13 måneder verre enn en referanse. Beskrivende: gjenbrukt
 CONTROL, ett seed, ingen økonomi. Ingen fase er kvalifisert; full epoke består
 stengt (vedtak 14.10 b).
 
+## M5 intradag-recheck 15.10 (operatør: M5 er ikke falsifisert på ny data)
+
+Data, målt fra manifester og artefakter (run root …/M5_RECHECK_20261015_001/audit):
+- V38 og FEATURE_REPAIR har samme 254 felt; reparasjonen endret bare 5 snap-felt
+  (geomline, ≤ 0,8 % av radene) — resten ligger i MTF-sekvenser, M1-Exit og etiketter.
+- NATIVE_D1_003 = REPAIR bit-likt + 61 nye D1-felt (4 COT, 44 panel, 13 drivere).
+- Treninger: 95-min-studien kjørte på V38; ingen på REPAIR; på D1_003 bare
+  20-dagersmål. Ingen intradagtrening fantes på ny data før 15.10.
+- Tilgjengelighet: uavhengig as-of-gjenoppbygging av drivere/COT = 0 avvik på
+  723 432 rader; COT brukt ≥ 99,6 t etter fredagspublisering; panel-D1-barer
+  inneholder ingen H1 etter stempelet; MTF-kontekst endrer seg på egne lukkinger.
+
+Studie (spec M5_INTRADAY_RECHECK_20261015_001, forhåndsregistrert og committet
+7246795e før første tilpasning): 30/120/360 min etter lukket M5-bar, ridge +
+LightGBM (XGBoost-stand-in, se avvik), sett A (254) mot B (+61 D1), 11
+walk-forward-perioder 2015–2026H1 med 3-års vindu, purge + embargo, utførelse på
+M1 bid/ask med 60 s latens, 2 bps slippage per utførelse, finansiering per
+rollover, én posisjon. Resultat: 10 av 12 celler NEGATIVE, 2 INKONKLUSIVE bare
+pga. få handler, ingen LOVENDE. Netto per handel −4,6 til −10,5 bps; brutto
+(spread inkludert, før slippage) negativ i alle celler; alltid-LONG/SHORT ≈ −6.
+Rank-IC per periode i snitt −0,014 til +0,012. B er ikke bedre enn A. Handler
+verifisert uavhengig mot rå tape (0,00 bps avvik, ingen overlapp).
+
+Ikke testet: transformer-utfordrer (krever minutthorisont-målkontrakt, og
+walk-forward i TRAIN kolliderer med regel 18), sett C (GC-kjøp), ekte XGBoost
+(miljøendring). GC: ingen brukbare data på disk; forespørselsutkast og et
+gratis pris-sjekk-skript (Databento metadata) ligger i run root gc/; verifisert
+pris krever Databento-nøkkel. 180 d-fasen er desarmert og ikke re-armert.
+
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
 Tre forhåndsregistrerte vindusfaser i spec ENTRY_D1_HORIZON_LEARNING_STUDY_

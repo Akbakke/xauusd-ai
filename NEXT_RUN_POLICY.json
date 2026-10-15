@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-15T11:31:31.025584+00:00",
-  "status": "NATIVE_D1_180D_PHASE_ADMITTED",
+  "observed_utc": "2026-10-15T11:48:41.426730+00:00",
+  "status": "M5_INTRADAY_RECHECK_MEASURED_NEGATIVE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "180-day phase admitted (2 010 steps, design seed): the Windows task is armed and runs the invocation at the next Windows boot without a login; then review. Open question to the operator in the analysis doc: rolling ridge test in TRAIN before or after 180 d. No native launch, orders or spending; training_enabled false.",
+  "next_action": "M5 intraday recheck measured: linear and GBDT on sets A/B are negative after costs at 30/120/360 minutes. Open for the operator: (1) GC purchase (verified quote needs a Databento key; draft in the run root gc/), (2) transformer challenger (needs a minute-horizon target contract and decisions on rules 18 and the fresh-boot limit), (3) 180d native phase disarmed. No native launch, orders or spending; training_enabled false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "NATIVE_D1 window phases: seed-variant wave running (seed15 admitted); 180 d follows",
+    "current_activity": "M5 intraday recheck measured (negative); operator decisions open on GC purchase and the transformer challenger",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -163,7 +163,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "none: 180 d task armed for the next Windows boot; no forced reboot (operator 15.10: restarts during the working day are too costly)",
+    "current_blocker": "none running; next steps need operator decisions",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -6442,7 +6442,7 @@
                 }
               },
               "evidence_class": "not started; one GPU invocation at the next physical Windows boot (task armed, no forced reboot)",
-              "disarm_note": "15.10.2026: the Windows task was disabled before the M5 recheck commits (the recipe binds HEAD 810b0714; a later commit would make the invocation fail closed). Re-arm = recipe + campaign + task at the final HEAD of the M5 wave."
+              "disarm_note": "15.10.2026: the Windows task was disabled before the M5 recheck commits (the recipe binds HEAD 810b0714; a later commit would make the invocation fail closed). Re-arm = recipe + campaign + task at the final HEAD of the M5 wave. Not re-armed: the recipe and campaign under RECENT_180D are immutable and bound to 810b0714, so re-arming needs a new attempt root; the operator re-prioritized to the M5 recheck on 15.10 («ikke å låse prosjektet til D1»)."
             }
           },
           "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
@@ -7320,7 +7320,7 @@
       "sha256": "e28650cd8452d7a4e2d0c2f6526d53275a75d2c0be4d6183397a0dbc851a5764"
     },
     "m5_intraday_recheck_20261015": {
-      "status": "PREREGISTERED_NOT_RUN",
+      "status": "MEASURED_NEGATIVE_LINEAR_AND_GBDT_A_AND_B",
       "operator_request": "15.10.2026: M5 is not falsified on the new generation without training on it; bounded recheck with ridge + GBDT references, transformer as bounded challenger, feature sets A/B (C after an approved GC purchase); no paid data without approval; no hidden rule changes",
       "spec": {
         "path": "configs/research/M5_INTRADAY_RECHECK_20261015_001.json",
@@ -7365,7 +7365,240 @@
       ],
       "test_data_used": false,
       "gpu": false,
-      "spending": false
+      "spending": false,
+      "run": {
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/RESULT_001/RESULT.json",
+          "sha256": "3fbca7a6431006284129a9f81814cbcae3aee2291804d5486c59b74d89040fae"
+        },
+        "log": {
+          "path": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/RUN_001.log",
+          "sha256": "2a946cd78df773e1be73fbc743d69b6958e3d96fa870de0a259cd07f9886bcf8"
+        },
+        "elapsed_seconds": 928.8,
+        "trade_verification": {
+          "path": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/audit/TRADE_VERIFICATION.json",
+          "sha256": "39f4da6f340879324232c2bf01f96d3eef736b5e05240156b1d87e5e7aa479c4"
+        },
+        "spec_sha256": "89806f04f62757f93957394f638e4770b307549eb98edda1bd4bef05cd35c16c",
+        "source_commit": "7246795e"
+      },
+      "cells": {
+        "ridge_A_h30": {
+          "classification": "NEGATIVE",
+          "trades": 425,
+          "net_per_trade_bps_slip2": -5.415506621617703,
+          "net_per_trade_bps_slip1": -3.415506621617703,
+          "ci90_slip2": [
+            -7.083932687123538,
+            -3.8435591436266416
+          ],
+          "rank_ic_mean": 0.008320857095624992,
+          "rank_ic_t": 1.7495447229595906
+        },
+        "gbdt_A_h30": {
+          "classification": "INCONCLUSIVE",
+          "trades": 31,
+          "net_per_trade_bps_slip2": -10.463970135641848,
+          "net_per_trade_bps_slip1": -8.463970135641848,
+          "ci90_slip2": [
+            -25.322333438331558,
+            4.656836427387988
+          ],
+          "rank_ic_mean": 0.006106583461163966,
+          "rank_ic_t": 2.335759142865773
+        },
+        "ridge_B_h30": {
+          "classification": "NEGATIVE",
+          "trades": 432,
+          "net_per_trade_bps_slip2": -4.890247842700969,
+          "net_per_trade_bps_slip1": -2.8902478427009695,
+          "ci90_slip2": [
+            -6.511905733198501,
+            -3.3052820913133725
+          ],
+          "rank_ic_mean": 0.006271531400252375,
+          "rank_ic_t": 1.4680575199065267
+        },
+        "gbdt_B_h30": {
+          "classification": "INCONCLUSIVE",
+          "trades": 1,
+          "net_per_trade_bps_slip2": -33.78236605589601,
+          "net_per_trade_bps_slip1": -31.782366055896013,
+          "ci90_slip2": null,
+          "rank_ic_mean": -0.0016210002377507497,
+          "rank_ic_t": -0.4686210960832783
+        },
+        "ridge_A_h120": {
+          "classification": "NEGATIVE",
+          "trades": 1540,
+          "net_per_trade_bps_slip2": -6.90240385677279,
+          "net_per_trade_bps_slip1": -4.902403856772791,
+          "ci90_slip2": [
+            -9.199187499660077,
+            -4.6892508423929495
+          ],
+          "rank_ic_mean": -0.0009570658759269711,
+          "rank_ic_t": -0.14029143517050266
+        },
+        "gbdt_A_h120": {
+          "classification": "NEGATIVE",
+          "trades": 1962,
+          "net_per_trade_bps_slip2": -4.876028231270399,
+          "net_per_trade_bps_slip1": -2.8760282312703995,
+          "ci90_slip2": [
+            -5.975326802290085,
+            -3.806367793820047
+          ],
+          "rank_ic_mean": 0.00673309327009714,
+          "rank_ic_t": 1.1185937955277596
+        },
+        "ridge_B_h120": {
+          "classification": "NEGATIVE",
+          "trades": 4377,
+          "net_per_trade_bps_slip2": -5.826912508111252,
+          "net_per_trade_bps_slip1": -3.826912508111252,
+          "ci90_slip2": [
+            -6.899685694811114,
+            -4.672461197659551
+          ],
+          "rank_ic_mean": -0.0018831006394282547,
+          "rank_ic_t": -0.24433410077036954
+        },
+        "gbdt_B_h120": {
+          "classification": "NEGATIVE",
+          "trades": 91,
+          "net_per_trade_bps_slip2": -9.596421401939248,
+          "net_per_trade_bps_slip1": -7.5964214019392475,
+          "ci90_slip2": [
+            -14.119093052566837,
+            -4.705532058704443
+          ],
+          "rank_ic_mean": NaN,
+          "rank_ic_t": NaN
+        },
+        "ridge_A_h360": {
+          "classification": "NEGATIVE",
+          "trades": 5657,
+          "net_per_trade_bps_slip2": -5.924178140394325,
+          "net_per_trade_bps_slip1": -3.924178140394325,
+          "ci90_slip2": [
+            -7.210947547951696,
+            -4.678176588150007
+          ],
+          "rank_ic_mean": -0.01350108762934617,
+          "rank_ic_t": -1.8544298971330402
+        },
+        "gbdt_A_h360": {
+          "classification": "NEGATIVE",
+          "trades": 918,
+          "net_per_trade_bps_slip2": -4.563530408745475,
+          "net_per_trade_bps_slip1": -2.5635304087454753,
+          "ci90_slip2": [
+            -7.117189618757401,
+            -1.92038625600545
+          ],
+          "rank_ic_mean": 0.00401997647107225,
+          "rank_ic_t": 0.4644536102062628
+        },
+        "ridge_B_h360": {
+          "classification": "NEGATIVE",
+          "trades": 7294,
+          "net_per_trade_bps_slip2": -6.268778257472321,
+          "net_per_trade_bps_slip1": -4.268778257472321,
+          "ci90_slip2": [
+            -7.28196256264893,
+            -5.222841496770829
+          ],
+          "rank_ic_mean": -0.004967393231596541,
+          "rank_ic_t": -0.5318905746854411
+        },
+        "gbdt_B_h360": {
+          "classification": "NEGATIVE",
+          "trades": 446,
+          "net_per_trade_bps_slip2": -7.718984160599828,
+          "net_per_trade_bps_slip1": -5.718984160599828,
+          "ci90_slip2": [
+            -11.043368941721575,
+            -4.424899817699736
+          ],
+          "rank_ic_mean": 0.011847261340151304,
+          "rank_ic_t": 1.2831672606549416
+        }
+      },
+      "baselines_net_per_trade_bps_slip2": {
+        "always_long_h30": -6.1523159179108475,
+        "always_short_h30": -6.253576827703882,
+        "always_long_h120": -6.021708088520105,
+        "always_short_h120": -6.459542516618673,
+        "always_long_h360": -5.745291395013515,
+        "always_short_h360": -6.801058046934459
+      },
+      "a_versus_b": {
+        "ridge_h30": {
+          "rank_ic_diff_mean": -0.0020493256953726152,
+          "rank_ic_diff_t": -0.8575963163918462,
+          "b_better_periods": 3,
+          "periods": 11,
+          "net_per_trade_A": -5.415506621617703,
+          "net_per_trade_B": -4.890247842700969
+        },
+        "ridge_h120": {
+          "rank_ic_diff_mean": -0.0009260347635012829,
+          "rank_ic_diff_t": -0.23828391533869586,
+          "b_better_periods": 5,
+          "periods": 11,
+          "net_per_trade_A": -6.90240385677279,
+          "net_per_trade_B": -5.826912508111252
+        },
+        "ridge_h360": {
+          "rank_ic_diff_mean": 0.00853369439774963,
+          "rank_ic_diff_t": 1.040053687032364,
+          "b_better_periods": 6,
+          "periods": 11,
+          "net_per_trade_A": -5.924178140394325,
+          "net_per_trade_B": -6.268778257472321
+        },
+        "gbdt_h30": {
+          "rank_ic_diff_mean": -0.007727583698914714,
+          "rank_ic_diff_t": -2.4220615064938897,
+          "b_better_periods": 2,
+          "periods": 11,
+          "net_per_trade_A": -10.463970135641848,
+          "net_per_trade_B": -33.78236605589601
+        },
+        "gbdt_h120": {
+          "rank_ic_diff_mean": NaN,
+          "rank_ic_diff_t": NaN,
+          "b_better_periods": 4,
+          "periods": 11,
+          "net_per_trade_A": -4.876028231270399,
+          "net_per_trade_B": -9.596421401939248
+        },
+        "gbdt_h360": {
+          "rank_ic_diff_mean": 0.007827284869079056,
+          "rank_ic_diff_t": 0.5606719611261719,
+          "b_better_periods": 5,
+          "periods": 11,
+          "net_per_trade_A": -4.563530408745475,
+          "net_per_trade_B": -7.718984160599828
+        }
+      },
+      "reading": "10 of 12 cells NEGATIVE, 2 INCONCLUSIVE only for lack of trades (GBDT 30 min: 31 and 1 trades), none PROMISING. Net per trade -4.6 to -10.5 bps at 2 bps slippage (most -5 to -7, tight intervals, e.g. ridge B 360 min 7 294 trades CI90 [-7.3, -5.2]); still negative at 1 bps slippage; GROSS per trade (spread inside bid/ask, before slippage) is negative in every cell, so the models do not even pay the ~2 bps spread. Always-LONG/SHORT with the same sequencing: about -6 bps per trade. Prediction: mean per-period rank-IC between -0.014 and +0.012, best t 2.34 over 11 periods (GBDT A 30 min); no stable ranking. A versus B: the 61 D1 fields do not improve any cell (rank-IC differences -0.008..+0.009; GBDT 30 min B worse, t -2.4). The secondary top-decile rule is negative in all cells (-3.3 to -7.2). Evidence class: measured on real declared bytes, development data 2015-2026H1, TEST not read.",
+      "not_tested": [
+        "transformer challenger (sequence + full MTF inputs)",
+        "feature set C (GC)",
+        "XGBoost proper (LightGBM stand-in)",
+        "hyperparameter variation (fixed by design)"
+      ],
+      "required_decisions_or_rule_changes": [
+        "transformer on 30/120/360 min: a new target contract successor with minute-horizon labels (GX1_RULES rule 5) and an operator decision (the 11.10 evening decision bound the transformer's next step to the 1/5/20-day target)",
+        "transformer walk-forward inside TRAIN conflicts with rule 18 (normalization fitted once on the whole physical TRAIN); without a change only the VAL/CONTROL period is clean (one period)",
+        "each GPU invocation needs a fresh physical Windows boot (policy limits.fresh_physical_windows_boot_before_every_invocation); several periods = several boots unless changed",
+        "XGBoost: installing it changes the bound .venv that the GPU gates check",
+        "GC data: spending is closed (GX1_RULES/AGENTS: no spending); a purchase needs explicit operator approval and a manifest before fetch (rule 1)"
+      ],
+      "completed_utc": "2026-10-15T11:48:41.426730+00:00"
     }
   },
   "gc_order_flow_research_20261006": {
