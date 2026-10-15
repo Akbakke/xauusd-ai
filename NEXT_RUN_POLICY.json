@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-15T09:41:37.545547+00:00",
-  "status": "NATIVE_D1_SEED15_REVIEWED_RANKING_REPRODUCED",
+  "observed_utc": "2026-10-15T09:42:11.158444+00:00",
+  "status": "NATIVE_D1_SEED16_PHASE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -140,7 +140,7 @@
       }
     ],
     "latest_terminal_role": "native_preprocessing_terminal_minimum_learning_P1: latest CPU terminal of the collector schema (exit_code/source_unchanged/test_data_used); the GPU phases carry invocation receipts and PHASE_REVIEW files under native_d1_minimum_learning_20261012.steps.P2_gpu_campaign",
-    "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015",
+    "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/TERMINAL.json",
       "sha256": "856ec145e95fa3c30fc7a98397c74d38fb1b03160114c4c7f15a2b4c255289d2"
@@ -5004,7 +5004,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P2_SEED_AND_180D_PHASES_ADMITTED_ONE_AT_A_TIME",
+      "status": "P2_RECENT_365D_S20261016_ADMITTED_RECEIPTS_OWN_PROGRESS",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5156,7 +5156,7 @@
           }
         },
         "P2_gpu_campaign": {
-          "status": "SEED15_REVIEWED_SEED16_NEXT",
+          "status": "SEED16_ADMITTED",
           "phases_in_order": [
             "fit_1024",
             "curve_4096",
@@ -6214,6 +6214,51 @@
                 "initial_state_differs_from_design_seed": true
               },
               "reading": "REJECT under the preregistered rule (all six intervals cover zero). The scale-free ranking signal REPRODUCED across the seed change: CONTROL contrast rank-IC at 20 d ended +0.218 (base seed: +0.189) from -0.165 at this seed's own initialization; 5 d +0.118 (base +0.160). The MSE level did NOT reproduce (final 2 041 073, marginally worse than own initial 2 033 706; base seed improved to 1 877 306) and selected-action mean reached +72.6 bps vs base +128: magnitude calibration is initialization-dependent while the ranking is not. 6 of 13 months worse (base: 9/13). Descriptive, reused CONTROL."
+            },
+            "recent_365d_s20261016": {
+              "status": "ADMITTED_NOT_STARTED",
+              "admitted_utc": "2026-10-15T09:42:11.123060+00:00",
+              "scope": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016/POLICY_SCOPE.json",
+                "sha256": "2e51dd33b81789ffbaa1e91408371d95d1c50efe0043c2a788992c6870bb9055"
+              },
+              "study": {
+                "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
+                "sha256": "3bdf995f5bd15d36314b2ec3f251465226aeb917fd084cf3110c4fedfd3fe1dc"
+              },
+              "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016",
+              "run_id": "ENTRY_D1_HORIZON_365D_SEED16_20261015_001",
+              "operator_basis": "user 15.10.2026 «Ja, 1 og 2» (phase 2 of 3)",
+              "phase_spec": {
+                "run_id": "ENTRY_D1_HORIZON_365D_SEED16_20261015_001",
+                "optimizer_steps": 4071,
+                "window_days": 365,
+                "window_rows": 65148,
+                "train_observation_steps": [
+                  0,
+                  256,
+                  1024,
+                  4071
+                ],
+                "control_observation_steps": [
+                  0,
+                  4071
+                ],
+                "max_invocations": 1,
+                "unique_train_rows": 65136,
+                "seed": 20261016
+              },
+              "row_bindings": {
+                "recent_365d_s20261016": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016.npy",
+                  "sha256": "dec62684733cd0fc005417c7e6daadd6d70416be832675ebd0a30c69cc6a409d"
+                },
+                "recent_365d_s20261016_train_probe": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016_TRAIN_PROBE.npy",
+                  "sha256": "c61b34bbd9117756708db7f2232b061c58bb769b828f0d742c6355b74f93b6cd"
+                }
+              },
+              "evidence_class": "not started; one GPU invocation after a fresh physical Windows boot"
             }
           },
           "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
@@ -9228,5 +9273,20 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
+  },
+  "entry_learning_study_run": {
+    "max_invocations": 1,
+    "optimizer_steps": 4071,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016/CANDIDATE_BUNDLE",
+    "run_id": "ENTRY_D1_HORIZON_365D_SEED16_20261015_001",
+    "selection": {
+      "phase": "recent_365d_s20261016",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
+        "sha256": "3bdf995f5bd15d36314b2ec3f251465226aeb917fd084cf3110c4fedfd3fe1dc"
+      }
+    },
+    "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
+    "test_data_used": false
   }
 }
