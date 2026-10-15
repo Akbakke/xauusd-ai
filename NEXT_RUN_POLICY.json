@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-15T10:57:58.943562+00:00",
-  "status": "NATIVE_D1_SEED16_REVIEWED_RANKING_REPRODUCED_THREE_SEEDS",
+  "observed_utc": "2026-10-15T10:59:26.202339+00:00",
+  "status": "NATIVE_D1_180D_PHASE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Seed16 reviewed: third seed reproduces the ranking (rank-IC 20 d +0.28; seeds +0.19/+0.22/+0.28) and the level improved. The 180-day phase is next (admit -> recipe -> campaign -> Windows task armed for the next boot). No native launch, orders or spending; training_enabled false.",
+  "next_action": "180-day phase admitted (2 010 steps, design seed): the Windows task is armed and runs the invocation at the next Windows boot without a login; then review. Open question to the operator in the analysis doc: rolling ridge test in TRAIN before or after 180 d. No native launch, orders or spending; training_enabled false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -140,7 +140,7 @@
       }
     ],
     "latest_terminal_role": "native_preprocessing_terminal_minimum_learning_P1: latest CPU terminal of the collector schema (exit_code/source_unchanged/test_data_used); the GPU phases carry invocation receipts and PHASE_REVIEW files under native_d1_minimum_learning_20261012.steps.P2_gpu_campaign",
-    "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016",
+    "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/TERMINAL.json",
       "sha256": "856ec145e95fa3c30fc7a98397c74d38fb1b03160114c4c7f15a2b4c255289d2"
@@ -163,7 +163,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "none: 180-day phase preparation next",
+    "current_blocker": "none: 180 d task armed for the next Windows boot; no forced reboot (operator 15.10: restarts during the working day are too costly)",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -5004,7 +5004,7 @@
     "native_d1_minimum_learning_20261012": {
       "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
-      "status": "P2_RECENT_365D_S20261016_ADMITTED_RECEIPTS_OWN_PROGRESS",
+      "status": "P2_RECENT_180D_ADMITTED_RECEIPTS_OWN_PROGRESS",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
       "generation": {
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003",
@@ -5156,7 +5156,7 @@
           }
         },
         "P2_gpu_campaign": {
-          "status": "SEED16_REVIEWED_180D_NEXT",
+          "status": "RECENT_180D_ADMITTED",
           "phases_in_order": [
             "fit_1024",
             "curve_4096",
@@ -6398,6 +6398,50 @@
                 "initial_state_differs_from_design_seed": true
               },
               "reading": "REJECT under the preregistered rule (all six intervals cover zero), but the third seed reproduces the ranking signal and this time the level too: CONTROL contrast rank-IC at 20 d +0.277 (from +0.117 at own init; base seed +0.189, seed15 +0.218), 5 d +0.209; contrast-MSE 2 034 166 -> 1 889 226, below the trained-window constant 1 929 010; all six point estimates are improvements; selected-action mean +83.9 bps vs always-LONG +148.5; 7 of 13 months worse than a reference. Three of three seeds now show a positive learned 20-day ranking on CONTROL after training on the last 365 days. Descriptive, reused CONTROL."
+            },
+            "recent_180d": {
+              "status": "ADMITTED_NOT_STARTED",
+              "admitted_utc": "2026-10-15T10:59:26.167485+00:00",
+              "scope": {
+                "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D/POLICY_SCOPE.json",
+                "sha256": "16f79302338ff2bdb28af240975065b7eac992fe9b72450f0600b5747515014f"
+              },
+              "study": {
+                "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
+                "sha256": "3bdf995f5bd15d36314b2ec3f251465226aeb917fd084cf3110c4fedfd3fe1dc"
+              },
+              "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
+              "run_id": "ENTRY_D1_HORIZON_180D_20261015_001",
+              "operator_basis": "user 15.10.2026 «Ja, 1 og 2» (phase 3 of 3)",
+              "phase_spec": {
+                "run_id": "ENTRY_D1_HORIZON_180D_20261015_001",
+                "optimizer_steps": 2010,
+                "window_days": 180,
+                "window_rows": 32174,
+                "train_observation_steps": [
+                  0,
+                  256,
+                  1024,
+                  2010
+                ],
+                "control_observation_steps": [
+                  0,
+                  2010
+                ],
+                "max_invocations": 1,
+                "unique_train_rows": 32160
+              },
+              "row_bindings": {
+                "recent_180d": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D.npy",
+                  "sha256": "1e3a558867c4223d4f56bdd0fa6680d0db7a969dcb96d8498ea158262bf94649"
+                },
+                "recent_180d_train_probe": {
+                  "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D_TRAIN_PROBE.npy",
+                  "sha256": "a9edf7c4957211fc369177d811078ad2ae6a0f60f71410a9a4640657818156b1"
+                }
+              },
+              "evidence_class": "not started; one GPU invocation at the next physical Windows boot (task armed, no forced reboot)"
             }
           },
           "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
@@ -9412,5 +9456,20 @@
     "macro_core_result": "INCONCLUSIVE_NO_PROMOTION",
     "research_fit_authorized": false,
     "source_fetch_authorized": false
+  },
+  "entry_learning_study_run": {
+    "max_invocations": 1,
+    "optimizer_steps": 2010,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D/CANDIDATE_BUNDLE",
+    "run_id": "ENTRY_D1_HORIZON_180D_20261015_001",
+    "selection": {
+      "phase": "recent_180d",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
+        "sha256": "3bdf995f5bd15d36314b2ec3f251465226aeb917fd084cf3110c4fedfd3fe1dc"
+      }
+    },
+    "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
+    "test_data_used": false
   }
 }
