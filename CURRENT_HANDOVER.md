@@ -196,7 +196,12 @@ Tre forhåndsregistrerte vindusfaser i spec ENTRY_D1_HORIZON_LEARNING_STUDY_
    +0,118. MSE-nivået reproduserte IKKE (2 041 073, hårfint verre enn egen
    init; base forbedret til 1 877 306); valgt handling +72,6 bps (base +128).
    Rangeringen er seed-uavhengig, nivåkalibreringen er det ikke. 6/13 mnd verre.
-2. recent_365d_s20261016 (4 071 steg, seed 20261016).
+2. recent_365d_s20261016 — KJØRT OG GJENNOMGÅTT 15.10 (09:48–10:55Z, exit 0):
+   REJECT etter regelen, men tredje seed reproduserte rangeringen OG nivået:
+   rank-IC 20 d +0,277 (fra +0,117 ved egen init), 5 d +0,209; kontrast-MSE
+   2 034 166 → 1 889 226, under vinduskonstanten 1 929 010; alle seks
+   punktestimater forbedret; valgt handling +83,9 bps mot alltid-LONG +148,5;
+   7/13 mnd verre. Tre av tre seeds: +0,19 / +0,22 / +0,28.
 3. recent_180d (2 010 steg, 32 174 rader, design-seed).
 Seed-variantene er navngitte kontraktkonstanter (RECENT_WINDOW_SEED_VARIANTS,
 datokonvensjon) åpnet gjennom prefix-/komponent-/trenergaten bare for
