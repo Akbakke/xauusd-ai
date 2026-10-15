@@ -77,17 +77,29 @@ lisensaksept, kontakt med salg eller kostnad ble utløst av tilgangssjekken.
 
 ## 1. Kilde og kvalitet før modellforsøk
 
-Databento GLBX.MDP3 er en kandidat, ikke en valgt/kjøpt datatjeneste. Bestill
-først en avgrenset historisk prøve når faktisk lisens, prisestimat, kontrakt,
-periode og leveringsformat er kjent. Kjøps-/nedlastingsruten er ikke implementert
-av denne bølgen. Ingen full historikk eller MBO følger automatisk.
+Databento GLBX.MDP3 har nå en avgrenset, uttrykkelig autorisert kildehenting.
+Brukerens bestilling 15.10.2026 gjelder bare denne innhentingen: historisk
+MBP-1 for de 15 oppløste GC outright-symbolene i 33 eksakte perioder, samt
+`definition` og `ohlcv-1d` for 23 aktive symbolperioder med én måneds warmup.
+Hardt samlet kostnadstak er USD 120.00. Ingen Pay-as-you-go, kortbelastning,
+MBO, ekstra tidsrom, fit, TEST eller native endring er autorisert.
 
-Providerens dokumentasjon skiller gratis metadata/symbologi fra fakturert
-timeseriedata og tilbyr get_cost før datakall. Den krever likevel en API-nøkkel.
-En offentlig prøve-/kredittbeskrivelse beviser ikke at denne brukeren har
-lisens, kredittramme eller gratis dekning for den ønskede perioden. Bind faktisk
-konto-/lisensstatus og estimat, ikke et gjettet prisbeløp. Ingen konto opprettes,
-vilkår aksepteres eller betalt/kredittbelastet nedlasting startes automatisk.
+API-nøkkelen i CURRENTs tilgangsbeskyttede `.env` ble validert uten å vise den.
+Gratis metadata svarte 200, og `metadata.get_dataset_range` viste GLBX.MDP3/
+MBP-1-tilgang for hele ønsket historikk; gratis jobbliste viste tre jobber,
+ingen for GLBX.MDP3. Brukeren rapporterer USD 125 remaining credits. Portalen
+kunne ikke leses uavhengig fordi nettleseren ba om innlogging, så saldoen er
+fortsatt operatørrapportert. Ingen vilkår ble akseptert eller endret av agenten.
+Full kostnadsplan, autorisasjon og nei-til-Pay-as-you-go-vakt ligger i
+`NEXT_RUN_POLICY.json`, prosjektprotokollen og den hash-bundne nedlastingsplanen.
+
+Ruten `gx1.scripts.gc_order_flow_download_v1` sender bare disse hash-bundne
+Databento batch-scopeene gjennom `scripts/gx1_capped_run.sh` som `producer`.
+Den ber om CSV med rå heltallstempler/-priser, zstd-overføring, splitter symboler,
+verifiserer leverandørens filstørrelse/SHA-256 og symbolfelt, og bevarer både
+leverandørfil og lokal gzip-fil med kvittering. Batch-filer kan lastes ned flere
+ganger innen leverandørens 30-dagersvindu uten ny dataavgift. Nedlastingen er
+kildeinnhenting, ikke kildekvalifisering eller markeds-/modellbevis.
 
 Minimum for delta er `trades` med dokumentert aggressor-side. TBBO legger til
 BBO rett før hver handel. OFI trenger ordrebokendringene mellom handler;
@@ -180,6 +192,24 @@ MTF-attention eller delte Entry/Exit-funksjon. Resultatet kan derfor ikke
 omtales som en trent/native v38-baseline eller som ferdig botøkonomi.
 En etterfølgende native A/B/C trenger fersk initialisering, eksisterende
 læringsport og samme komplette baselinearkitektur/recipe i alle armer.
+
+### 26-månedersvindu og forhåndsbestemte utviklingsfolds
+
+Datavinduet er låst til **2024-05-01 00:00 UTC (inklusive)–2026-07-01 00:00 UTC (eksklusiv)**, altså 26 kalendermåneder. Det slutter nøyaktig når forseglet TEST begynner. Derfor er hele dette vinduet TRAIN og utviklings-VAL; det inneholder ingen uavhengig slutt-TEST. TEST forblir lukket.
+
+Første fold trener på 12 måneder. Deretter utvides TRAIN kronologisk, og de neste fire VAL-vinduene er tre måneder hver; siste VAL-vindu er to måneder. Alle datoene er UTC og vinduene skal ikke flyttes etter at utfall er lest.
+
+| Fold | Ekspanderende TRAIN-slutt (eksklusiv) | Utviklings-VAL (inklusive–eksklusiv) |
+| --- | --- | --- |
+| dev_01 | 2025-05-01 | 2025-05-01–2025-08-01 |
+| dev_02 | 2025-08-01 | 2025-08-01–2025-11-01 |
+| dev_03 | 2025-11-01 | 2025-11-01–2026-02-01 |
+| dev_04 | 2026-02-01 | 2026-02-01–2026-05-01 |
+| dev_05 | 2026-05-01 | 2026-05-01–2026-07-01 |
+
+Hver fold trener på data fra 2024-05-01 fram til foldens TRAIN-slutt. Tidligere VAL-perioder kan først inngå i en senere folds TRAIN når alle etiketter er fullt observerbare ved den nye treningsgrensen. Purge og eventuell embargo må fastsettes ut fra de frosne målhorisontene og etikettenes faktiske oppløsning før første tilpasning. Siste rader med utfall som når eller krysser 2026-07-01 skal forkastes; data etter TEST-grensen hentes eller leses ikke. Feature-warmup skjer bare innenfor det bestilte 26-månedersvinduet, og uferdige warmup-rader brukes ikke. For lite uavhengig støtte gir INKONKLUSIV; foldene eller datoene utvides ikke i etterkant.
+
+Metadataestimatet er **$119.6551103**: MBP-1 for de 15 oppløste GC outright-raw-symbolene over 33 mappingperioder koster **$119.6400286**, og fullstendig samme-dagsprisede støttedata koster **$0.0150817** (**$0.0011691** kontraktdefinisjoner og **$0.0139126** daglig volum) over 23 aktive symbolperioder. En fersk 33-periode MBP-1-kontroll matchet estimatet nøyaktig og målte **71,368,056,960 fakturerbare binærbyte**. Støttedata dekker **2024-04-01–2026-07-01 UTC**, med én måneds causal-volume warmup foran studieperioden **2024-05-01–2026-07-01**. Operatøren satte og autoriserte et hardt tak på **$120.00**; marginen til taket er **$0.3448897**. Mot rapporterte $125 kreditter er estimert rest **$5.3448897**. Saldoen er ikke uavhengig verifisert. Den ferske støtte-omprisingen ble ufullstendig etter en leverandør-timeout; den fullstendige, eksakte støttefilen fra samme dag er beholdt. Kildehentingen er autorisert innenfor taket, men ingen betalt batchforespørsel er sendt ennå. Ingen fit eller TEST.
 
 ### Historisk TRAIN → VAL → TEST og backtest
 

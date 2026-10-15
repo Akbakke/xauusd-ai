@@ -215,10 +215,78 @@ def test_registered_goal_covers_four_ordered_steps_without_claiming_completion()
     for item in progress:
         if item["completed"]:
             assert item["genuine_evidence"]
-    assert spec["scope"]["spending"] is False
+    assert spec["scope"]["source_fetch"] is True
+    assert spec["scope"]["spending"] is True
+    assert spec["scope"]["research_fit_ready"] is False
     assert spec["scope"]["native_training"] is False
     assert spec["scope"]["test_access"] is False
     validation = spec["historical_validation_design"]
+    assert "chronological_folds" not in spec["comparisons"]["fit_recipe_not_yet_bound"]
+    design = validation["predeclared_26_month_design"]
+    assert design["status"] == "PLANNING_ONLY_NOT_EXECUTABLE"
+    assert design["data_window_utc"] == {
+        "start_inclusive": "2024-05-01T00:00:00Z",
+        "end_exclusive": "2026-07-01T00:00:00Z",
+        "calendar_months": 26,
+    }
+    folds = design["folds"]
+    assert [fold["fold_id"] for fold in folds] == [f"dev_0{i}" for i in range(1, 6)]
+    assert [fold["validation_end_utc_exclusive"] for fold in folds] == [
+        "2025-08-01T00:00:00Z",
+        "2025-11-01T00:00:00Z",
+        "2026-02-01T00:00:00Z",
+        "2026-05-01T00:00:00Z",
+        "2026-07-01T00:00:00Z",
+    ]
+    assert all(fold["train_start_utc_inclusive"] == "2024-05-01T00:00:00Z" for fold in folds)
+    assert all(
+        fold["train_end_utc_exclusive"] == fold["validation_start_utc_inclusive"]
+        for fold in folds
+    )
+    assert all(
+        folds[i]["validation_end_utc_exclusive"] == folds[i + 1]["validation_start_utc_inclusive"]
+        for i in range(len(folds) - 1)
+    )
+    assert design["all_folds_are_pre_TEST_development_VAL"] is True
+    assert design["test_access_authorized"] is False
+    assert (
+        design["boundary_and_purge_rules"]
+        ["exclude_final_rows_whose_required_outcome_reaches_or_crosses_sealed_TEST"]
+        is True
+    )
+    budget = spec["budget_guard"]
+    assert budget["free_credit_ceiling_usd"] == 125.0
+    assert budget["metadata_only_quote_usd"] == 119.65511028468302
+    assert budget["nominal_reserve_usd"] == 5.344889715316981
+    assert budget["hard_cost_cap_usd"] == 120.0
+    assert budget["do_not_fetch_if_requoted_estimate_exceeds_usd"] == 120.0
+    assert budget["metadata_only_quote_usd"] <= budget["do_not_fetch_if_requoted_estimate_exceeds_usd"]
+    assert budget["quote_is_acquisition_ready"] is True
+    assert budget["download_authorized"] is True
+    assert budget["spending_authorized"] is True
+    assert budget["pay_as_you_go_authorized"] is False
+    assert budget["payment_card_charge_authorized"] is False
+    assert budget["mbp1_exact_raw_symbol_quote_usd"] == 119.64002859592402
+    assert budget["supporting_data_exact_raw_symbol_quote_usd"] == 0.015081688759
+    assert budget["supporting_data_definition_quote_usd"] == 0.001169070599
+    assert budget["supporting_data_ohlcv_1d_quote_usd"] == 0.01391261816
+    assert budget["operator_reported_remaining_credit_usd"] == 125.0
+    assert budget["account_free_balance_verified"] is False
+    assert budget["quote_basis"]["exact_outright_raw_symbol_list_bound"] is True
+    assert len(budget["quote_basis"]["resolved_outright_raw_symbols"]) == 15
+    assert budget["quote_basis"]["mapped_period_segments"] == 33
+    assert budget["quote_basis"]["supporting_data_exactly_requoted"] is True
+    assert budget["quote_basis"]["supporting_data_quote_period_segments"] == 23
+    planning = research["planning_only_calendar_design"]
+    assert planning["status"] == "PREDECLARED_NOT_EXECUTABLE"
+    assert planning["combined_exact_raw_symbol_estimate_usd"] == 119.65511028468302
+    assert planning["supporting_data_requoted_exactly"] is True
+    assert planning["operator_reported_remaining_credit_usd"] == 125.0
+    assert planning["do_not_fetch_if_requoted_estimate_exceeds_usd"] == 120.0
+    assert planning["source_fetch_authorized"] is True
+    assert planning["spending_authorized"] is True
+    assert planning["research_fit_authorized"] is False
+    assert planning["test_access_authorized"] is False
     assert validation["all_agreed_feature_families_not_all_time_splits_in_training"] is True
     assert set(validation["evidence_levels"]) == {"snapshot_research", "native_v38", "final_TEST"}
     assert validation["backtest_requirements"]

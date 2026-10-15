@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "M5 intraday recheck measured: linear and GBDT on sets A/B are negative after costs at 30/120/360 minutes. Open for the operator: (1) GC purchase (verified quote needs a Databento key; draft in the run root gc/), (2) transformer challenger (needs a minute-horizon target contract and decisions on rules 18 and the fresh-boot limit), (3) 180d native phase disarmed. No native launch, orders or spending; training_enabled false.",
+  "next_action": "Databento-kildehenting er uttrykkelig autorisert kun innenfor hardt tak USD 120.00. Hash-bundet estimat er USD 119.6551103: MBP-1 USD 119.6400286 og eksakte støtteperioder USD 0.01508169; dette gir USD 5.3448897 margin mot operatørrapporterte USD 125, saldo ikke uavhengig verifisert. Hent kun GLBX.MDP3 mbp-1 for de 15 eksakte GC outright-symbolene og 33 periodene, samt definition og ohlcv-1d for 23 råsymbolperioder. Ikke aktiver pay-as-you-go eller kortbetaling. GC-forskningen forblir ellers pauset: ingen fit, TEST, native endring, broker/live/paper eller handel. Ingen native launch; training_enabled false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "M5 intraday recheck measured (negative); operator decisions open on GC purchase and the transformer challenger",
+    "current_activity": "Brukerautorisasjon 15.10.2026 for kun én Databento GLBX.MDP3-kildehenting med USD 120 hard cap; eksakt estimat USD 119.6551103 av operatørrapporterte USD 125, saldo ikke uavhengig verifisert. API-nøkkel validert mot gratis metadata, MBP-1-tilgang og ingen eksisterende GLBX batch-jobber observert. Ingen betalte dataforespørsler sendt; ingen fit/TEST/native/trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -116,7 +116,7 @@
     "gc_goal_progress": [
       {
         "step": 1,
-        "status": "WAITING_FOR_GENUINE_GC_SOURCE",
+        "status": "BOUNDED_SOURCE_ACQUISITION_AUTHORIZED_PENDING",
         "completed": false,
         "genuine_evidence": []
       },
@@ -163,7 +163,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "none running; next steps need operator decisions",
+    "current_blocker": "Ingen kjørende arbeid. Kildehenting er autorisert innenfor USD 120; full research-fit forblir pauset og uten autorisasjon.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7606,8 +7606,8 @@
     "status": "PAUSED_BY_OPERATOR",
     "goal_execution_requested": false,
     "pause_request_owner": "current_work.operator_request",
-    "pause_scope": "Suspend further source investigation, acquisition, features, fits and proposed flow/order-block extensions. Preserve the four-step protocol, progress, free-source receipts and every original artifact for an explicit later resumption. Existing native SMC primitives are not removed.",
-    "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig",
+    "pause_scope": "Videre features, fits, native endringer, TEST og flyt-/order-block-utvidelser forblir pauset. Brukerens uttrykkelige bestilling 15.10.2026 gjenåpner bare denne ene avgrensede Databento-kildehentingen med hardt kostnadstak USD 120. Ingen Pay-as-you-go eller kortbelastning er autorisert.",
+    "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig. 15.10.2026: last ned det avgrensede 26-månedersdatasettet innenfor et absolutt tak på USD 120; bruk kun rapporterte gratis Databento-kreditter.",
     "required_steps": [
       1,
       2,
@@ -7616,6 +7616,51 @@
     ],
     "progress_owner": "current_work.gc_goal_progress",
     "research_fit_authorized_after_qualification_and_frozen_recipe": false,
+    "planning_only_calendar_design": {
+      "status": "PREDECLARED_NOT_EXECUTABLE",
+      "updated_utc": "2026-10-15T15:28:30Z",
+      "operator_request": "tilpass testopplegget slik at vi har 26 måneder",
+      "preregistration_field": "historical_validation_design.predeclared_26_month_design",
+      "window_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "window_end_utc_exclusive": "2026-07-01T00:00:00Z",
+      "supporting_data_window_start_utc_inclusive": "2024-04-01T00:00:00Z",
+      "supporting_data_window_end_utc_exclusive": "2026-07-01T00:00:00Z",
+      "supporting_data_window_purpose": "one-month causal-volume warmup",
+      "calendar_months": 26,
+      "exact_raw_symbol_mbp1_quote_usd": 119.64002859592402,
+      "exact_raw_symbol_supporting_data_quote_usd": 0.015081688759,
+      "exact_raw_symbol_supporting_definitions_quote_usd": 0.001169070599,
+      "exact_raw_symbol_supporting_ohlcv_1d_quote_usd": 0.01391261816,
+      "combined_exact_raw_symbol_estimate_usd": 119.65511028468302,
+      "nominal_credit_remaining_if_125_usd_unused": 5.344889715316981,
+      "do_not_fetch_if_requoted_estimate_exceeds_usd": 120.0,
+      "raw_symbols": [
+        "GCG5",
+        "GCG6",
+        "GCJ5",
+        "GCJ6",
+        "GCM4",
+        "GCM5",
+        "GCM6",
+        "GCQ4",
+        "GCQ5",
+        "GCQ6",
+        "GCV4",
+        "GCV5",
+        "GCZ4",
+        "GCZ5",
+        "GCZ6"
+      ],
+      "mapped_period_segments": 33,
+      "operator_reported_remaining_credit_usd": 125.0,
+      "actual_free_balance_verified": false,
+      "supporting_data_quote_period_segments": 23,
+      "supporting_data_requoted_exactly": true,
+      "source_fetch_authorized": true,
+      "spending_authorized": true,
+      "research_fit_authorized": false,
+      "test_access_authorized": false
+    },
     "source_head_at_intake": "75f20e07294ffa7fa16d46b33fb6b9e2a15c9e50",
     "preregistration": "configs/research/GC_ORDER_FLOW_RESEARCH_001.json",
     "documentation": "docs/GC_ORDER_FLOW_RESEARCH.md",
@@ -7703,8 +7748,8 @@
       "strategy_source_qualified": false
     },
     "source_access_readiness": {
-      "observed_utc": "2026-10-06T12:46:16Z",
-      "files_and_credential_presence_revalidated_utc": "2026-10-06T13:09:42Z",
+      "observed_utc": "2026-10-15T17:41:16.695200+00:00",
+      "files_and_credential_presence_revalidated_utc": "2026-10-15T17:41:16.695207+00:00",
       "evidence_class": "observed_access_metadata_not_market_data",
       "filename_inventory_roots": [
         "/home/andre2/GX1_DATA",
@@ -7715,7 +7760,7 @@
       "inventory_is_exhaustive_of_all_possible_storage": false,
       "credential_name_checked": "DATABENTO_API_KEY",
       "wsl_environment_has_nonempty_key": false,
-      "current_dotenv_declares_key": false,
+      "current_dotenv_declares_key": true,
       "windows_process_environment_declares_databento_variable": false,
       "provider_SDK_installed": false,
       "market_data_connector_found_in_available_tools": false,
@@ -7758,8 +7803,25 @@
         "account_created_license_accepted_or_sales_contacted": false
       },
       "credential_values_printed": false,
-      "vendor_account_API_requests": 0,
-      "paid_requests_or_license_acceptance": 0
+      "vendor_account_API_requests": 105,
+      "paid_requests_or_license_acceptance": 0,
+      "databento_key_value_printed": false,
+      "authenticated_metadata_api": true,
+      "metadata_api_key_validation_status": 200,
+      "dataset_range_request_status": 200,
+      "dataset_range_glbx_mdp3_mbp_1_start_utc": "2010-06-06T00:00:00.000000000Z",
+      "dataset_range_glbx_mdp3_end_utc": "2026-10-15T09:24:52.273895000Z",
+      "account_batch_jobs_observed": 3,
+      "existing_glbx_mdp3_batch_jobs_observed": 0,
+      "remaining_credit_independently_verified": false,
+      "remaining_credit_basis": "operator-reported Databento portal display: USD 125 remaining credits; browser billing page redirected to login",
+      "paid_data_requests_submitted": 0,
+      "confirmed_free_metadata_and_account_api_responses": 105,
+      "fresh_raw_mbp1_cost_requote_usd": 119.64002859592402,
+      "fresh_raw_mbp1_billable_binary_bytes": 71368056960,
+      "fresh_raw_mbp1_scope_count": 33,
+      "full_support_cost_quote_artifact_sha256": "49742077f4a2e5e41d70990fc7536e931bc99b21fc1eec18f3de3d7cc17dee34",
+      "support_requote_attempt_status": "INCOMPLETE_AFTER_PROVIDER_TIMEOUT; prior exact same-day 23-period quote retained"
     },
     "bound_genuine_source_files": 0,
     "record_audit_performed_on_genuine_GC": false,
@@ -7768,14 +7830,15 @@
     "research_fit_ready": false,
     "snapshot_probe_is_native_v38_learning_evidence": false,
     "ninth_family_decided": false,
-    "source_fetch_authorized": false,
+    "source_fetch_authorized": true,
     "native_architecture_change_authorized": false,
     "native_training_authorized": false,
     "indicator_removal_authorized": false,
     "test_authorized": false,
     "broker_authorized": false,
     "trading_authorized": false,
-    "spending_authorized": false
+    "spending_authorized": true,
+    "spending_authorized_scope": "Kun Databento GLBX.MDP3 batch-data for de hash-bundne MBP-1-periodene og støtteperiodene i GC_ORDER_FLOW_RESEARCH_001; aggregert kostnad aldri over USD 120.00."
   },
   "native_v38_execution_20261005": {
     "status": "INTERRUPTED_FOR_OPERATOR_REQUESTED_REPOSITORY_CLEANUP",

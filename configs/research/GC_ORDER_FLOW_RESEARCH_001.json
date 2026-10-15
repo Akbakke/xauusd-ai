@@ -7,7 +7,7 @@
   "operator_request": "Ja, gjør dette. Avgrenset ekte GC-order-flow-test etter agentutkastet, med kildekvalitet og baseline / GC-pris / ekte flow før full pakke eller indikatorfjerning.",
   "goal_operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig",
   "goal_scope_registered_utc": "2026-10-06T12:46:16Z",
-  "status": "SOURCE_AUDIT_IMPLEMENTED_GENUINE_GC_INPUTS_REQUIRED",
+  "status": "BOUNDED_DATABENTO_GC_26M_DOWNLOAD_AUTHORIZED",
   "documentation": "docs/GC_ORDER_FLOW_RESEARCH.md",
   "source_root": "/home/andre2/GX1_DATA/research/GC_ORDER_FLOW_RESEARCH_001",
   "files": [],
@@ -17,7 +17,8 @@
     "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
     "gx1/contracts/oanda_history_ingest_approval_v1.py": "c49499c6934f54c743d76736fb9f98c98a21335a8277bcc85eade296cc432757",
     "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
-    "scripts/gx1_capped_run.sh": "a85bf761e3607ead54dd806b4cf581febaeeeca5801e3060ffc1e76a289d5f3d"
+    "scripts/gx1_capped_run.sh": "a85bf761e3607ead54dd806b4cf581febaeeeca5801e3060ffc1e76a289d5f3d",
+    "gx1/scripts/gc_order_flow_download_v1.py": "7de152c86d4ed1f9baf628a351aa01a27b285de1c5de62698738c605655e7f61"
   },
   "candidate": {
     "provider": "databento",
@@ -27,7 +28,91 @@
     "symbology": "outright_raw_symbol_only",
     "first_pilot_feed_regime": "MDP3_from_2017-05-21",
     "sampling": "calendar_and_availability_only_before_outcome_access",
-    "download_not_yet_bound": ["raw_symbols", "UTC_intervals", "license", "cost_estimate", "delivery_receipt", "instrument_mapping"]
+    "download_not_yet_bound": [
+      "batch_delivery_receipts",
+      "downloaded_instrument_publisher_mapping",
+      "actual_file_hashes_and_sizes"
+    ],
+    "dataset_entitlement_verified_by_metadata_api": true,
+    "license_terms_accepted_or_changed_by_agent": false
+  },
+  "budget_guard": {
+    "provider": "databento",
+    "free_credit_ceiling_usd": 125.0,
+    "metadata_only_quote_usd": 119.65511028468302,
+    "nominal_reserve_usd": 5.344889715316981,
+    "mbp1_exact_raw_symbol_quote_usd": 119.64002859592402,
+    "supporting_data_exact_raw_symbol_quote_usd": 0.015081688759,
+    "supporting_data_definition_quote_usd": 0.001169070599,
+    "supporting_data_ohlcv_1d_quote_usd": 0.01391261816,
+    "operator_reported_remaining_credit_usd": 125.0,
+    "balance_source": "operator-reported Databento portal display; not independently verified",
+    "account_free_balance_verified": false,
+    "quote_artifact": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/gc/QUOTE_RAW_26M_001.json",
+    "supporting_data_exact_quote_artifact": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/gc/QUOTE_SUPPORT_RAW_27M_001.json",
+    "previous_continuous_quote_artifact": "/home/andre2/GX1_RUNS/M5_RECHECK_20261015_001/gc/QUOTE_CAP_26M_001.json",
+    "quote_window_utc": {
+      "start_inclusive": "2024-05-01T00:00:00Z",
+      "end_exclusive": "2026-07-01T00:00:00Z"
+    },
+    "supporting_data_quote_window_utc": {
+      "start_inclusive": "2024-04-01T00:00:00Z",
+      "end_exclusive": "2026-07-01T00:00:00Z",
+      "purpose": "one-month causal-volume warmup before the 26-month study window"
+    },
+    "quote_basis": {
+      "market_data_schema": "mbp-1",
+      "continuous_symbols": [
+        "GC.v.0",
+        "GC.v.1"
+      ],
+      "resolved_outright_raw_symbols": [
+        "GCG5",
+        "GCG6",
+        "GCJ5",
+        "GCJ6",
+        "GCM4",
+        "GCM5",
+        "GCM6",
+        "GCQ4",
+        "GCQ5",
+        "GCQ6",
+        "GCV4",
+        "GCV5",
+        "GCZ4",
+        "GCZ5",
+        "GCZ6"
+      ],
+      "mapped_period_segments": 33,
+      "raw_symbol_quote_method": "metadata.get_cost per resolved outright-symbol period",
+      "supporting_data": [
+        "contract definitions",
+        "daily volume for causal rollover"
+      ],
+      "supporting_data_quote_symbol_basis": "resolved outright raw symbols; metadata.get_cost per active symbol period",
+      "supporting_data_quote_period_segments": 23,
+      "exact_outright_raw_symbol_list_bound": true,
+      "supporting_data_exactly_requoted": true
+    },
+    "quote_is_acquisition_ready": true,
+    "exact_mbp1_raw_symbol_quote_completed": true,
+    "verify_available_free_balance_and_exact_supporting_quote_before_any_fetch": false,
+    "do_not_fetch_if_requoted_estimate_exceeds_usd": 120.0,
+    "data_order_authorized": true,
+    "download_authorized": true,
+    "spending_authorized": true,
+    "hard_cost_cap_usd": 120.0,
+    "latest_raw_metadata_requote_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/DATABENTO_GC_26M_20261015_001/RAW_METADATA_REQUOTE_20261015.json",
+    "latest_raw_metadata_requote_sha256": "8bca6407c964ff1d28e3352b292c47a9daae313679f58ce137a8373b49299f1d",
+    "latest_raw_metadata_requote_utc": "2026-10-15T17:41:16.691684+00:00",
+    "latest_raw_metadata_requoted_cost_usd": 119.64002859592402,
+    "latest_raw_metadata_requoted_billable_binary_bytes": 71368056960,
+    "operator_reported_balance_is_authorization_basis": true,
+    "pay_as_you_go_authorized": false,
+    "payment_card_charge_authorized": false,
+    "operator_authorized_scope": "Databento historical batch acquisition only; GLBX.MDP3 mbp-1 2024-05-01/2026-07-01 plus definition and ohlcv-1d causal-volume support 2024-04-01/2026-07-01; max aggregate USD 120.00",
+    "operator_authorized_utc": "2026-10-15T17:41:16.705557+00:00",
+    "supporting_data_exact_quote_artifact_sha256": "49742077f4a2e5e41d70990fc7536e931bc99b21fc1eec18f3de3d7cc17dee34"
   },
   "arms": {
     "A": "locked_254_field_native_signal_snapshot",
@@ -40,7 +125,14 @@
     "identical_rows_clocks_targets_costs": true,
     "coverage_locked_before_outcomes": true,
     "snapshot_probe_is_not_native_v38_evidence": true,
-    "fit_recipe_not_yet_bound": ["cohort_ids", "chronological_folds", "ridge_recipe", "observed_M1_targets", "cost_authorities", "finite_CPU_budget", "paired_inference_and_acceptance_rule"]
+    "fit_recipe_not_yet_bound": [
+      "cohort_ids",
+      "ridge_recipe",
+      "observed_M1_targets",
+      "cost_authorities",
+      "finite_CPU_budget",
+      "paired_inference_and_acceptance_rule"
+    ]
   },
   "work_packages": [
     {
@@ -60,7 +152,9 @@
     {
       "step": 2,
       "name": "BUILD_CAUSAL_FLOW_PRICE_AND_BASIS_FEATURES",
-      "depends_on": [1],
+      "depends_on": [
+        1
+      ],
       "completion_requires": [
         "ordered_fields_units_dtypes_windows_and_formula_owners_frozen",
         "availability_clock_and_delivery_lag_bound_at_OANDA_decisions",
@@ -74,7 +168,9 @@
     {
       "step": 3,
       "name": "MEASURE_MATCHED_BASELINE_GC_PRICE_AND_FLOW",
-      "depends_on": [2],
+      "depends_on": [
+        2
+      ],
       "completion_requires": [
         "exact_cohort_folds_targets_learner_recipe_costs_and_finite_budget_bound_before_fit",
         "identical_A_B_C_rows_clocks_warmup_and_missingness_selection_verified",
@@ -89,7 +185,9 @@
     {
       "step": 4,
       "name": "REVIEW_LOCATION_FLOW_STATE_AND_CONDITIONAL_EXTENSION",
-      "depends_on": [3],
+      "depends_on": [
+        3
+      ],
       "completion_requires": [
         "ABC_support_or_rejection_or_inconclusive_disposition_documented",
         "LOCATION_FLOW_STATE_primitive_ownership_and_causal_interactions_reviewed",
@@ -113,6 +211,70 @@
     "TRAIN": "Past fit-only rows; learned preprocessing and model parameters fitted here, never on future VAL/TEST.",
     "development_VAL": "Later chronological control; record every model/recipe choice and purge label overlap. Reused development VAL is not untouched final evidence.",
     "sealed_TEST": "One untouched final assessment of a frozen model/recipe after explicit admission; no fitting, tuning or repeated winner selection. Current access remains closed.",
+    "predeclared_26_month_design": {
+      "status": "PLANNING_ONLY_NOT_EXECUTABLE",
+      "data_window_utc": {
+        "start_inclusive": "2024-05-01T00:00:00Z",
+        "end_exclusive": "2026-07-01T00:00:00Z",
+        "calendar_months": 26
+      },
+      "sealed_test_starts_utc": "2026-07-01T00:00:00Z",
+      "all_folds_are_pre_TEST_development_VAL": true,
+      "initial_train_calendar_months": 12,
+      "expanding_train": true,
+      "folds": [
+        {
+          "fold_id": "dev_01",
+          "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+          "train_end_utc_exclusive": "2025-05-01T00:00:00Z",
+          "validation_start_utc_inclusive": "2025-05-01T00:00:00Z",
+          "validation_end_utc_exclusive": "2025-08-01T00:00:00Z"
+        },
+        {
+          "fold_id": "dev_02",
+          "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+          "train_end_utc_exclusive": "2025-08-01T00:00:00Z",
+          "validation_start_utc_inclusive": "2025-08-01T00:00:00Z",
+          "validation_end_utc_exclusive": "2025-11-01T00:00:00Z"
+        },
+        {
+          "fold_id": "dev_03",
+          "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+          "train_end_utc_exclusive": "2025-11-01T00:00:00Z",
+          "validation_start_utc_inclusive": "2025-11-01T00:00:00Z",
+          "validation_end_utc_exclusive": "2026-02-01T00:00:00Z"
+        },
+        {
+          "fold_id": "dev_04",
+          "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+          "train_end_utc_exclusive": "2026-02-01T00:00:00Z",
+          "validation_start_utc_inclusive": "2026-02-01T00:00:00Z",
+          "validation_end_utc_exclusive": "2026-05-01T00:00:00Z"
+        },
+        {
+          "fold_id": "dev_05",
+          "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+          "train_end_utc_exclusive": "2026-05-01T00:00:00Z",
+          "validation_start_utc_inclusive": "2026-05-01T00:00:00Z",
+          "validation_end_utc_exclusive": "2026-07-01T00:00:00Z"
+        }
+      ],
+      "boundary_and_purge_rules": {
+        "derive_purge_before_first_fit_from_frozen_target_horizons_and_label_resolution": true,
+        "exclude_training_rows_whose_complete_outcome_or_availability_interval_overlaps_the_validation_cutoff": true,
+        "fit_each_fold_only_on_past_labels_fully_resolved_by_its_training_cutoff": true,
+        "discard_feature_warmup_rows_without_pre_window_GC_history": true,
+        "exclude_final_rows_whose_required_outcome_reaches_or_crosses_sealed_TEST": true,
+        "fetch_or_read_no_GC_or_outcome_data_at_or_after_sealed_TEST_start": true,
+        "do_not_extend_or_rebalance_folds_after_outcome_access": true
+      },
+      "insufficient_independent_support_disposition": "INCONCLUSIVE; retain the fixed fold schedule and do not widen periods after outcome access",
+      "fit_recipe_and_minimum_support_still_require_binding_before_any_fit": true,
+      "test_access_authorized": false,
+      "source_fetch_authorized": true,
+      "spending_authorized": true,
+      "research_fit_authorized": false
+    },
     "backtest_requirements": [
       "identical_GC_covered_A_B_C_populations_and_execution_clocks",
       "as_of_features_and_no_future_contract_or_profile_selection",
@@ -130,8 +292,8 @@
   "scope": {
     "local_bound_source_audit": true,
     "public_documentation_review": true,
-    "source_fetch": false,
-    "spending": false,
+    "source_fetch": true,
+    "spending": true,
     "research_fit_ready": false,
     "native_architecture_change": false,
     "native_training": false,
@@ -139,5 +301,15 @@
     "broker_access": false,
     "live_or_paper": false,
     "indicator_removal": false
+  },
+  "source_access": {
+    "authenticated_metadata_api": true,
+    "dataset_entitlement_range_verified": true,
+    "user_reported_credit_balance_usd": 125.0,
+    "balance_independently_verified": false,
+    "existing_glbx_batch_jobs": 0,
+    "paid_data_requests_submitted": 0,
+    "pay_as_you_go_or_card_charge_authorized": false,
+    "operator_request_utc": "2026-10-15T17:41:16.705592+00:00"
   }
 }

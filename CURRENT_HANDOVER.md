@@ -1,4 +1,4 @@
-# CURRENT HANDOVER — 14.10.2026
+# CURRENT HANDOVER — 15.10.2026
 
 Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json er
 eneste arbeidsstatus; prosess og terminal overstyrer prosa. Historikk per forsøk
@@ -211,9 +211,21 @@ verifisert uavhengig mot rå tape (0,00 bps avvik, ingen overlapp).
 
 Ikke testet: transformer-utfordrer (krever minutthorisont-målkontrakt, og
 walk-forward i TRAIN kolliderer med regel 18), sett C (GC-kjøp), ekte XGBoost
-(miljøendring). GC: ingen brukbare data på disk; forespørselsutkast og et
-gratis pris-sjekk-skript (Databento metadata) ligger i run root gc/; verifisert
-pris krever Databento-nøkkel. 180 d-fasen er desarmert og ikke re-armert.
+(miljøendring). GC: ingen brukbare historiske data er hentet eller kvalifisert.
+Databento: brukeren autoriserte kun kildehenting innenfor hardt samlet tak USD 120.00. Estimat USD 119.6551103: MBP-1 USD 119.6400286 (15 outright-symboler, 33 perioder; fersk metadata-kontroll matchet og målte 71,368,056,960 fakturerbare binærbyte) samt eksakte støtteperioder USD 0.01508169 (definisjoner + daglig volum, 23 perioder). Marginalen til taket er USD 0.3448897; estimert margin mot brukerens rapporterte USD 125 remaining credits er USD 5.3448897. Saldoen er ikke uavhengig verifisert; Databento-nøkkelen ble validert via gratis metadata, historisk MBP-1-tilgang vist, og ingen GLBX batch-jobber fantes. Full støttequote fra samme dag beholdes etter timeout i en ny delvis omprising. Nedlastingsmodul og capped producer-vei er testet, og autorisasjons-/hash-bundet plan er skrevet. Per denne overleveringen er ingen betalt batchforespørsel sendt og ingen markedsdata lastet ned. Pay-as-you-go/kortbetaling, fit, TEST, native endring og handel er ikke autorisert. 180 d-fasen
+forblir desarmert.
+
+## GC-order-flow: 26 måneder, avgrenset kildehenting autorisert 15.10
+
+Operatøren ba om å tilpasse testen til 26 måneder og har nå autorisert kun Databento-kildehenting innenfor USD 120.00. Den forhåndsregistrerte
+dataperioden er [2024-05-01, 2026-07-01) UTC: 12 måneders første TRAIN og
+fem ekspanderende utviklings-VAL-vinduer (3+3+3+3+2 måneder). Perioden slutter
+ved forseglet TEST-grense, så ingen fold er slutt-TEST. Full datoplan og
+purge-regler står i configs/research/GC_ORDER_FLOW_RESEARCH_001.json og
+docs/GC_ORDER_FLOW_RESEARCH.md. Holdout-labels kryssende periodens slutt
+kasseres; TEST-start eller senere leses ikke.
+
+GC-målet forblir PAUSED_BY_OPERATOR utover den særskilt autoriserte kildehentingen. Per denne overleveringen er betalte batchforespørsler ennå ikke sendt, og ingen markedsdata er lastet ned. Kildehentingen omfatter kun den hash-bundne planen innenfor USD 120.00; fit, TEST, featurebygging, native endring, broker/live/paper og handel er fortsatt stengt. 180 d-fasen forblir desarmert.
 
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
