@@ -263,6 +263,18 @@ class HistoricalAPI:
         return [item for item in result if isinstance(item, dict)]
 
 
+def _index_jobs_by_id(jobs: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    indexed: dict[str, dict[str, Any]] = {}
+    for job in jobs:
+        job_id = job.get("id")
+        if not isinstance(job_id, str) or not job_id:
+            continue
+        if job_id in indexed:
+            raise ValueError("DATABENTO_JOB_LIST_DUPLICATE_ID")
+        indexed[job_id] = job
+    return indexed
+
+
 def _job_symbols(value: Any) -> tuple[str, ...]:
     if isinstance(value, str):
         values = value.split(",")
@@ -584,6 +596,7 @@ def download() -> dict[str, Any]:
     if not (RUN_ROOT / "SUBMISSION_SUMMARY.json").is_file():
         raise ValueError("GC_SUBMISSIONS_INCOMPLETE")
     client = HistoricalAPI(_env_key())
+    jobs_by_id = _index_jobs_by_id(client.list_jobs())
     total_actual = Decimal("0")
     done = pending = downloaded_files = 0
     job_receipts = list(sorted(jobs_dir.glob("*.json")))
@@ -594,7 +607,9 @@ def download() -> dict[str, Any]:
     for receipt_path in job_receipts:
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         scope, job_id = receipt["scope"], receipt["job_id"]
-        details = client.job_details(job_id)
+        details = jobs_by_id.get(job_id)
+        if not isinstance(details, dict):
+            raise ValueError("GC_BATCH_JOB_DETAILS_MISSING")
         if not _same_scope(details, scope):
             raise ValueError("GC_BATCH_JOB_DETAIL_SCOPE_MISMATCH")
         state = details.get("state")

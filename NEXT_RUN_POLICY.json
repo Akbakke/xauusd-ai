@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Databento-kildehenting: alle 79 avgrensede batchforesporsler er sendt og akseptert en gang; estimert total USD 119.6551103. Fortsett kun med GET-status og filnedlasting fra eksisterende jobber; ingen ny batch-submit. Brukeren rapporterer USD 5 remaining credits, forenlig med estimert margin USD 5.3448897; saldo ikke uavhengig verifisert. Ikke aktiver pay-as-you-go eller kortbetaling. GC-forskningen forblir ellers pauset: ingen fit, TEST, native endring, broker/live/paper eller handel. Ingen native launch; training_enabled false.",
+  "next_action": "Databento-kildehenting: alle 79 avgrensede batchforesporsler er sendt en gang og alle 79 er done per 2026-10-15 19:14 UTC. Fortsett kun med full batch.list_jobs(short=false), batch.list_files og filnedlasting via GET fra eksisterende jobber; ingen ny batch-submit. Brukeren rapporterer USD 5 remaining credits, forenlig med estimert margin USD 5.3448897; saldo ikke uavhengig verifisert. Ikke aktiver pay-as-you-go eller kortbetaling. GC-forskningen forblir ellers pauset: ingen fit, TEST, native endring, broker/live/paper eller handel. Ingen native launch; training_enabled false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Databento 26M kildehenting: 79 av 79 hash-bundne GLBX.MDP3 batchjobber sendt og akseptert en gang, estimert total USD 119.6551103. Per 2026-10-15 19:02 UTC var 38 zstd/gzip-dataparfiler bevart og ingen .part; siste nedlasting stoppet pa HTTP 504 ved GET-status. Brukeren rapporterer portal USD 5 remaining credits; forenlig med estimert USD 5.3448897, men ikke uavhengig verifisert. Neste arbeid kun GET-status/nedlasting fra eksisterende jobber; ingen nye submits. Ingen fit/TEST/native/trading, training_enabled false.",
+    "current_activity": "Databento 26M kildehenting: 79 av 79 hash-bundne GLBX.MDP3 batchjobber sendt en gang. Per 2026-10-15 19:14 UTC er alle 79 done ifolge read-only batch.list_jobs(short=false); full scope- og kostnadsfelter er tilgjengelige. 38 zstd/gzip-dataparfiler er bevart/verifisert, ingen .part. Individuelle get_job_details-kall ga HTTP 503; nedlasteren bruker na ett full-listeoppslag. Brukeren rapporterer portal USD 5 remaining credits; forenlig med estimert USD 5.3448897, men ikke uavhengig verifisert. Neste arbeid bare GET-filhenting fra eksisterende jobber; ingen nye submits. Ingen fit/TEST/native/trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -163,7 +163,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Ingen kjørende arbeid. De 79 jobbene er allerede akseptert; datanedlasting er delvis og siste forsok ble avbrutt av HTTP 504 pa et GET-statusoppslag. Gjenoppta kun GET-status/nedlasting; ingen ny batch-submit eller pay-as-you-go. Research-fit forblir pauset og uten autorisasjon.",
+    "current_blocker": "Ingen kjørende arbeid. Databento-nedlastingen er delvis (38 verifiserte filpar), men alle 79 batchjobber er done. Individuelle get_job_details ga HTTP 503; oppdatert nedlaster bruker en full batch.list_jobs-respons for status, scope og kostnad. Gjenoppta kun file-list GET og filnedlasting; ingen ny batch-submit eller pay-as-you-go. Research-fit forblir pauset og uten autorisasjon.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"

@@ -8,6 +8,7 @@ import pytest
 
 from gx1.scripts.gc_order_flow_download_v1 import (
     _decompress_csv_zstd,
+    _index_jobs_by_id,
     _same_scope,
     HistoricalAPI,
     validate_budget,
@@ -156,3 +157,44 @@ def test_post_submission_is_not_retried_after_ambiguous_gateway_error(monkeypatc
     with pytest.raises(RuntimeError, match="DATABENTO_HTTP_504:batch.submit_job"):
         HistoricalAPI("unused-test-key").request("batch.submit_job", {"dataset": "test"}, post=True)
     assert attempts == 1
+
+
+def test_full_batch_job_list_is_indexed_once_by_unique_job_id():
+    first = {"id": "job-one", "state": "done", "cost_usd": 1.25, "schema": "mbp-1"}
+    second = {"id": "job-two", "state": "processing", "dataset": "GLBX.MDP3"}
+
+    indexed = _index_jobs_by_id([first, second, {"state": "done"}])
+
+    assert indexed == {"job-one": first, "job-two": second}
+    with pytest.raises(ValueError, match="DATABENTO_JOB_LIST_DUPLICATE_ID"):
+        _index_jobs_by_id([first, {**first, "state": "processing"}])
+
+
+def test_list_jobs_requests_full_details(monkeypatch):
+    captured = {}
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def read(self):
+            return b'[{"id":"job-one","state":"done","schema":"mbp-1","cost_usd":1.25}]'
+
+    def fake_urlopen(request, timeout):
+        captured["request"] = request
+        return Response()
+
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.urllib.request.urlopen",
+        fake_urlopen,
+    )
+
+    jobs = HistoricalAPI("unused-test-key").list_jobs()
+
+    assert captured["request"].full_url.endswith(
+        "?states=queued%2Cprocessing%2Cdone%2Cexpired&short=false"
+    )
+    assert jobs == [{"id": "job-one", "state": "done", "schema": "mbp-1", "cost_usd": 1.25}]
