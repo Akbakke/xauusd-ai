@@ -9,6 +9,7 @@ import pytest
 from gx1.scripts.gc_order_flow_download_v1 import (
     _decompress_csv_zstd,
     _same_scope,
+    HistoricalAPI,
     validate_budget,
 )
 
@@ -68,3 +69,36 @@ def test_mbp_download_rejects_wrong_vendor_csv_header(tmp_path: Path):
     with pytest.raises(ValueError, match="GC_MBP1_CSV_HEADER_INVALID"):
         _decompress_csv_zstd(source, output, "mbp-1")
     assert not output.exists()
+
+
+
+def test_post_request_encodes_form_parameters_in_request_body(monkeypatch):
+    captured = {}
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def read(self):
+            return b"{}"
+
+    def fake_urlopen(request, timeout):
+        captured["request"] = request
+        captured["timeout"] = timeout
+        return Response()
+
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    params = {"dataset": "GLBX.MDP3", "symbols": "GCM4,GCQ4", "schema": "mbp-1"}
+    assert HistoricalAPI("unused-test-key").request("batch.submit_job", params, post=True) == {}
+
+    request = captured["request"]
+    assert request.full_url == "https://hist.databento.com/v0/batch.submit_job"
+    assert request.method == "POST"
+    assert request.get_header("Content-type") == "application/x-www-form-urlencoded"
+    assert request.data.decode("utf-8") == "dataset=GLBX.MDP3&symbols=GCM4%2CGCQ4&schema=mbp-1"

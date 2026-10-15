@@ -198,15 +198,14 @@ class HistoricalAPI:
         params = params or {}
         url = "https://hist.databento.com/v0/" + method
         payload = None
+        headers = {"Authorization": self._authorization, "Accept": "application/json"}
         if post:
-            # Databento's HTTP RPC expects batch-submit form parameters in the URL.
-            url += "?" + urllib.parse.urlencode(params, doseq=True)
-            payload = b""
+            payload = urllib.parse.urlencode(params, doseq=True).encode("utf-8")
+            headers["Content-Type"] = "application/x-www-form-urlencoded"
         else:
             url += "?" + urllib.parse.urlencode(params, doseq=True)
         request = urllib.request.Request(
-            url, data=payload, method="POST" if post else "GET",
-            headers={"Authorization": self._authorization, "Accept": "application/json"},
+            url, data=payload, method="POST" if post else "GET", headers=headers,
         )
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
