@@ -39,6 +39,7 @@ SOURCE_ROOT = Path("/home/andre2/GX1_DATA/research/GC_ORDER_FLOW_RESEARCH_001/DA
 HARD_CAP = Decimal("120.00")
 REPORTED_CREDITS = Decimal("125.00")
 RAW_SYMBOL_RE = re.compile(r"GC[FGHJKMNQUVXZ][0-9]{1,2}\Z")
+SUPPORT_FILENAMES = {"metadata.json", "manifest.json", "condition.json"}
 MBP_FIELDS = {
     "ts_recv", "ts_event", "rtype", "publisher_id", "instrument_id", "action",
     "side", "price", "size", "flags", "sequence", "bid_px_00", "ask_px_00",
@@ -621,16 +622,22 @@ def download() -> dict[str, Any]:
             filename = item.get("filename")
             if not isinstance(filename, str) or Path(filename).name != filename or filename in {".", ".."}:
                 raise ValueError("GC_VENDOR_FILENAME_INVALID")
-            if filename == "metadata.json":
+            if filename in SUPPORT_FILENAMES:
                 target = dest_root / filename
-                receipt_file = dest_root / "metadata.receipt.json"
+                receipt_file = dest_root / f"{filename}.receipt.json"
                 if target.exists():
                     if target.stat().st_size != int(item["size"]) or sha256_file(target) != _sha_from_vendor(item["hash"]):
-                        raise ValueError("GC_EXISTING_METADATA_FILE_MISMATCH")
+                        raise ValueError("GC_EXISTING_SUPPORT_FILE_MISMATCH")
                 else:
                     _download_verified(client, item, target)
-                atomic_json(receipt_file, {"filename": filename, "size": target.stat().st_size,
-                                            "sha256": sha256_file(target), "job_id": job_id})
+                atomic_json(receipt_file, {
+                    "schema_version": "gx1_gc_order_flow_support_file_receipt_v1",
+                    "filename": filename, "size": target.stat().st_size,
+                    "provider_sha256": _sha_from_vendor(item["hash"]),
+                    "sha256": sha256_file(target), "job_id": job_id,
+                    "scope_id": scope["scope_id"],
+                    "downloaded_utc": datetime.now(timezone.utc).isoformat(),
+                })
                 continue
             if not filename.endswith(".csv.zst"):
                 raise ValueError("GC_VENDOR_ENCODING_NOT_CSV_ZSTD")

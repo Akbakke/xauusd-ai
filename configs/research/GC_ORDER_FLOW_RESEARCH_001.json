@@ -18,7 +18,7 @@
     "gx1/contracts/oanda_history_ingest_approval_v1.py": "c49499c6934f54c743d76736fb9f98c98a21335a8277bcc85eade296cc432757",
     "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
     "scripts/gx1_capped_run.sh": "a85bf761e3607ead54dd806b4cf581febaeeeca5801e3060ffc1e76a289d5f3d",
-    "gx1/scripts/gc_order_flow_download_v1.py": "8551a64897d224d9a41df9690d6a9374274636b1a199e6fc9a25227f297af66b"
+    "gx1/scripts/gc_order_flow_download_v1.py": "dd19feba912aedbbc4cee10143e4160097b473a773a84fe64227decd93df1e03"
   },
   "candidate": {
     "provider": "databento",
