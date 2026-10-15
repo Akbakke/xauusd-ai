@@ -248,3 +248,84 @@ def test_recent_window_rows_and_phase_spec_are_derived_not_literal():
         horizons.recent_window_phase_spec(4096)
     spec = horizons.recent_window_phase_spec(65_148)
     assert spec["optimizer_steps"] == 4071 and spec["unique_train_rows"] == 65_136 and spec["max_invocations"] == 1
+
+
+@pytest.fixture
+def study_multi_window(study_v2, monkeypatch):
+    """A successor spec with several named window phases (operator decision 15.10.2026): two seed variants on
+    the 365-day window and one 180-day window at the design seed; fit/curve repeated byte for byte."""
+    policy, recipe, plan, seal, save, tmp_path = study_v2
+    import copy
+    predecessor_binding = _bind(_write_plan(tmp_path / "pred2.json", copy.deepcopy(plan)))
+    short = ELIGIBLE[ELIGIBLE >= 80_000]  # the 180-day window (synthetic): 20 000 rows
+    windows = {"recent_365d_s20261015": (WINDOW, 365, 20261015),
+               "recent_365d_s20261016": (WINDOW, 365, 20261016),
+               "recent_180d": (short, 180, None)}
+    order = np.load(plan["row_bindings"]["epoch_order"]["path"], allow_pickle=False)
+    for name, (rows, days, seed) in windows.items():
+        for key, a in ((name, rows), (name + "_train_probe", np.sort(order[np.isin(order, rows)][:4096]))):
+            p = tmp_path / (key + ".npy")
+            np.save(p, a)
+            plan["row_bindings"][key] = _bind(p)
+        spec = horizons.recent_window_phase_spec(int(len(rows)), window_days=days)
+        if seed is not None:
+            spec["seed"] = seed
+        plan["phases"][name] = {"run_id": f"RUN_{name.upper()}", **spec}
+    plan["predecessor"] = predecessor_binding
+
+    def windows_by_days(observed, eligible, *, window_days):
+        return {365: WINDOW, 180: short}[window_days]
+    monkeypatch.setattr(native, "_recent_window_train_rows", windows_by_days)
+
+    def select(name, seed=20260911):
+        recipe["run_id"] = plan["phases"][name]["run_id"] if name in windows else recipe["run_id"]
+        recipe["out_bundle_dir"] = str(tmp_path / name.upper() / "CANDIDATE_BUNDLE")
+        recipe["trainer_cli"] = {**recipe.get("trainer_cli", {}), "seed": seed}
+        recipe["entry_learning_study"] = {"plan": _bind(_write_plan(tmp_path / "multi.json", plan)), "phase": name}
+        policy["entry_learning_study_run"] = {
+            "selection": recipe["entry_learning_study"], "run_id": recipe["run_id"],
+            "out_bundle_dir": recipe["out_bundle_dir"], "source_bindings_sha256": recipe["source_bindings_sha256"],
+            "optimizer_steps": plan["phases"][name]["optimizer_steps"], "max_invocations": 1, "test_data_used": False}
+        save()
+    return policy, recipe, plan, select, tmp_path, windows
+
+
+def test_multi_window_phases_admit_with_their_declared_seeds(study_multi_window):
+    policy, recipe, plan, select, tmp_path, windows = study_multi_window
+    select("recent_365d_s20261015", seed=20261015)
+    study = native.require_entry_learning_study_run(recipe)
+    assert study["phase_spec"]["seed"] == 20261015 and study["phase_spec"]["window_days"] == 365
+    select("recent_180d", seed=20260911)
+    study = native.require_entry_learning_study_run(recipe)
+    assert "seed" not in study["phase_spec"] and study["phase_spec"]["window_days"] == 180
+    assert study["phase_spec"]["optimizer_steps"] == (len(windows["recent_180d"][0]) - 1) // 16
+    # the loader order and observer keys follow the phase name
+    import torch
+    from gx1.contracts.entry_observed_market_v1 import entry_learning_study_loader_order
+    order = np.load(plan["row_bindings"]["epoch_order"]["path"], allow_pickle=False)
+    loader = entry_learning_study_loader_order(torch.as_tensor(order), study=study).numpy()
+    rows = windows["recent_180d"][0]
+    assert np.isin(loader[:len(rows)], rows).all() and np.array_equal(np.sort(loader), np.sort(order))
+
+
+@pytest.mark.parametrize("fault", ["undeclared_seed", "trainer_seed_mismatch", "fit_with_variant_seed", "bad_phase_name"])
+def test_multi_window_fails_closed(study_multi_window, fault):
+    policy, recipe, plan, select, tmp_path, windows = study_multi_window
+    if fault == "undeclared_seed":
+        plan["phases"]["recent_365d_s20261015"]["seed"] = 20269999
+        select("recent_365d_s20261015", seed=20269999)
+    elif fault == "trainer_seed_mismatch":
+        select("recent_365d_s20261015", seed=20260911)
+    elif fault == "fit_with_variant_seed":
+        select("fit", seed=20261015)
+        recipe["run_id"] = plan["phases"]["fit"]["run_id"]
+        recipe["out_bundle_dir"] = str(tmp_path / "FIT" / "CANDIDATE_BUNDLE")
+        recipe["entry_learning_study"] = {"plan": recipe["entry_learning_study"]["plan"], "phase": "fit"}
+        policy["entry_learning_study_run"] = {**policy["entry_learning_study_run"],
+                                              "selection": recipe["entry_learning_study"], "run_id": recipe["run_id"],
+                                              "out_bundle_dir": recipe["out_bundle_dir"], "optimizer_steps": 1024}
+    else:
+        plan["phases"]["Recent-BAD!"] = plan["phases"].pop("recent_180d")
+        select("recent_365d_s20261015", seed=20261015)
+    with pytest.raises(RuntimeError, match="ENTRY_STUDY"):
+        native.require_entry_learning_study_run(recipe)

@@ -118,8 +118,10 @@ def _require_native_full_train_recipe(
     files = {key: _bound_artifact(binding) for key, binding in recipe["files"].items()}
     if prefix_mode:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_prefix_recipe
-        prefix = require_chronological_prefix_recipe(recipe)
-        seed_launch = {"seed":prefix["design"]["initialization"]["seed"],
+        require_chronological_prefix_recipe(recipe)  # gate only; the trainer rebinds the prefix itself
+        # the prefix gate validated trainer_cli.seed against the named allowed set (design seed or a
+        # declared window-phase variant); the launch carries that one origin, never a second literal
+        seed_launch = {"seed":recipe["trainer_cli"]["seed"],
                        "learning_rate":0.0001, "weight_decay":0.0001}
         _require_component_sampler(files=files, chronological_prefix=recipe["chronological_prefix"])
         _require_prefix_component_bindings(recipe["chronological_prefix"], files=files,
@@ -252,6 +254,11 @@ def _require_component_sampler(*, files, chronological_prefix):
     return selected
 
 
+def allowed_prefix_training_seeds(design_seed):
+    from gx1.contracts.entry_observed_market_horizons_v1 import allowed_prefix_training_seeds as owner
+    return owner(design_seed)
+
+
 def planned_prefix_optimizer_steps(design):
     from gx1.contracts.entry_observed_market_horizons_v1 import planned_prefix_optimizer_steps as owner
     return owner(design)
@@ -275,7 +282,7 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
             or design["scope"].get("test_sealed") is not True
             or design["scope"].get("same_architecture") is not True
             or design["initialization"].get("mode") != "fresh_existing_model_constructor_no_checkpoint_weights"
-            or type(seed) is not int or seed != design["initialization"]["seed"]
+            or type(seed) is not int or seed not in allowed_prefix_training_seeds(design["initialization"]["seed"])
             or batch_size != 16 or learning_rate != 0.0001 or weight_decay != 0.0001
             or design["budget"]["planned_optimizer_steps"] != planned_prefix_optimizer_steps(design)
             or design["budget"]["maximum_trained_entry_rows"] != 4096):
@@ -970,11 +977,12 @@ def _entry_learning_study_observer(*, components, study, recipe, device, output)
         return _structured_sha256(rng_identity(trainer._attended_session_rng_state(device=device)))
     model = components["model"]
     datasets = {"train":components["train_probe_ds"]}
-    if study["phase"] in ("curve", "epoch", "recent_year"):
+    window_phase = "window_days" in study["phase_spec"]
+    if window_phase or study["phase"] in ("curve", "epoch"):
         datasets["control"] = entry_learning_study_control_dataset(components["val_ds"], study=study)
     directory = output.parent / "OBSERVATIONS"
     directory.mkdir(exist_ok=True)
-    train_rows_key = {"fit": "fit", "recent_year": "recent_year_train_probe"}.get(study["phase"], "train_probe")
+    train_rows_key = study["phase"] + "_train_probe" if window_phase else ("fit" if study["phase"] == "fit" else "train_probe")
     rows_by_role = {"train":study["rows"][train_rows_key], "control":study["rows"]["control"]}
     for role, dataset in datasets.items():
         if not np.array_equal(dataset.indices, np.arange(len(dataset))):

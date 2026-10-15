@@ -385,10 +385,10 @@ def entry_learning_study_loader_order(epoch_order, *, study):
         raise RuntimeError("ENTRY_STUDY_NATIVE_ORDER_CHANGED")
     if study["phase"] in ("curve", "epoch"):
         return epoch_order
-    if study["phase"] == "recent_year":
+    if "window_days" in study["phase_spec"]:
         # the frozen order restricted to the window rows first (relative order kept), the rest after;
         # the phase budget stops before the window is exhausted, so no epoch ever completes
-        window = np.asarray(study["rows"]["recent_year"], dtype=np.int64)
+        window = np.asarray(study["rows"][study["phase"]], dtype=np.int64)
         base = epoch_order.cpu().numpy()
         inside = np.isin(base, window)
         spec = study["phase_spec"]
@@ -413,7 +413,7 @@ def entry_learning_study_control_dataset(dataset, *, study):
     import copy
     import numpy as np
     original = getattr(dataset, "_policy_dependent_auxiliary_binding", None)
-    if (study["phase"] not in ("curve", "epoch", "recent_year") or not isinstance(original, Mapping)
+    if ((study["phase"] not in ("curve", "epoch") and "window_days" not in study.get("phase_spec", {})) or not isinstance(original, Mapping)
             or original.get("role") != "CONTROL256"
             or original.get("mode") != "original_physical_split_targets"
             or original["parent_entry_parquet"] != study["observed_scope"]["physical_sources"]["val"]["parquet"]):

@@ -712,9 +712,12 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
                 != require_reference_policy_contract(design["targets"]["reference_policy"])):
         raise RuntimeError("NATIVE_PREFIX_DESIGN_OR_TARGET_MISMATCH")
     controls = recipe.get("trainer_cli", {})
-    if any(type(controls.get(key)) is not type(expected) or controls[key] != expected
-           for key, expected in {"seed":design["initialization"]["seed"], "batch_size":16,
-                                 "learning_rate":0.0001, "weight_decay":0.0001, "grad_accum_steps":1}.items()):
+    from gx1.contracts.entry_observed_market_horizons_v1 import allowed_prefix_training_seeds
+    if (type(controls.get("seed")) is not int
+            or controls["seed"] not in allowed_prefix_training_seeds(design["initialization"]["seed"])
+            or any(type(controls.get(key)) is not type(expected) or controls[key] != expected
+                   for key, expected in {"batch_size":16, "learning_rate":0.0001,
+                                         "weight_decay":0.0001, "grad_accum_steps":1}.items())):
         raise RuntimeError("NATIVE_PREFIX_TRAINING_CONTROLS_INVALID")
     if any(key in design.get("calendar", {}) for key in (
             "physical_source_splits", "physical_coordinate_namespaces_are_separate", "source_bindings")):
@@ -2204,8 +2207,11 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
         RECENT_WINDOW_PHASE, recent_window_phase_spec, require_observed_entry_scope,
     )
     selection = recipe.get("entry_learning_study")
+    def _phase_name_ok(name):
+        import re as _re
+        return name in ("fit", "curve") or (isinstance(name, str) and _re.fullmatch(r"recent_[a-z0-9_]{1,40}", name))
     if (not isinstance(selection, Mapping) or set(selection) != {"plan", "phase"}
-            or selection.get("phase") not in ("fit", "curve", RECENT_WINDOW_PHASE)
+            or not _phase_name_ok(selection.get("phase"))
             or any(k in recipe for k in ("chronological_initial_measurement",
                 "chronological_learning_measurement", "chronological_learning_continuation",
                 "chronological_train_only_measurement", "chronological_entry_baseline",
@@ -2245,8 +2251,11 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
     # Operator decision 14.10.2026: a v2 successor spec may add the recent-window phase. It binds its
     # predecessor by hash and repeats the completed fit/curve phases byte for byte; the window phase and
     # its rows are derived from the frozen eligible population and verified below.
-    window_phases = set()
-    if schema == "gx1_entry_learning_study_v2" and RECENT_WINDOW_PHASE in plan.get("phases", {}):
+    window_phases = set(plan.get("phases", {})) - {"fit", "curve"} if schema == "gx1_entry_learning_study_v2" else set()
+    if window_phases:
+        import re as _re
+        if any(not _re.fullmatch(r"recent_[a-z0-9_]{1,40}", name) for name in window_phases):
+            raise RuntimeError("ENTRY_STUDY_PHASE_INVALID")
         predecessor_binding = require_binding(plan.get("predecessor"), label="Entry study predecessor", verify_file=True)
         predecessor = read_bound_json(Path(predecessor_binding["path"]), predecessor_binding["sha256"])
         if (predecessor.get("schema_version") != schema or set(predecessor.get("phases", {})) != {"fit", "curve"}
@@ -2254,8 +2263,9 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
                 or predecessor.get("row_bindings", {}).get("epoch_order") != plan.get("row_bindings", {}).get("epoch_order")
                 or any(predecessor.get(k) != plan.get(k) for k in ("files", "chronological_prefix", design_key, "model"))):
             raise RuntimeError("ENTRY_STUDY_PREDECESSOR_CHANGED")
-        window_phases = {RECENT_WINDOW_PHASE}
-    elif phase == RECENT_WINDOW_PHASE:
+    elif phase not in ("fit", "curve"):
+        raise RuntimeError("ENTRY_STUDY_PHASE_INVALID")
+    if phase not in ("fit", "curve") and phase not in window_phases:
         raise RuntimeError("ENTRY_STUDY_PHASE_INVALID")
     other_key = [k for k in OBSERVED_ENTRY_RECIPE_KEYS if k != design_key][0]
     if (plan.get("files") != recipe.get("files")
@@ -2295,17 +2305,31 @@ def require_entry_learning_study_run(recipe, *, invocation_number=None, executio
                 or not np.array_equal(population, _complete_horizon_control_rows(observed))):
             raise RuntimeError("ENTRY_STUDY_CONTROL_POPULATION_INVALID")
         control_expected = population[np.linspace(0, len(population)-1, 4096, dtype=np.int64)]
-    if window_phases:
-        expected_rows |= {RECENT_WINDOW_PHASE, RECENT_WINDOW_PHASE + "_train_probe"}
-        window_spec = plan["phases"][RECENT_WINDOW_PHASE]
+    from gx1.contracts.entry_observed_market_horizons_v1 import allowed_prefix_training_seeds
+    base_seed = fixed_phases["fit"].get("seed", model_spec["seed"]) if False else model_spec["seed"]
+    for name in sorted(window_phases):
+        expected_rows |= {name, name + "_train_probe"}
+        window_spec = plan["phases"][name]
         window = _recent_window_train_rows(observed, train_population, window_days=window_spec.get("window_days"))
         in_order = rows["epoch_order"][np.isin(rows["epoch_order"], window)]
-        if (not np.array_equal(rows.get(RECENT_WINDOW_PHASE, np.zeros(0, dtype=np.int64)), window)
+        if (not np.array_equal(rows.get(name, np.zeros(0, dtype=np.int64)), window)
                 or len(in_order) != len(window)
-                or not np.array_equal(rows.get(RECENT_WINDOW_PHASE + "_train_probe", np.zeros(0, dtype=np.int64)),
+                or not np.array_equal(rows.get(name + "_train_probe", np.zeros(0, dtype=np.int64)),
                                       np.sort(in_order[:4096]))):
             raise RuntimeError("ENTRY_STUDY_RECENT_WINDOW_ROWS_INVALID")
-        fixed_phases[RECENT_WINDOW_PHASE] = recent_window_phase_spec(int(len(window)), window_days=window_spec["window_days"])
+        fixed = recent_window_phase_spec(int(len(window)), window_days=window_spec["window_days"])
+        if "seed" in window_spec:
+            # a declared per-phase seed must be the design seed or a named variant (one origin: the contract constant)
+            if window_spec["seed"] not in allowed_prefix_training_seeds(base_seed):
+                raise RuntimeError("ENTRY_STUDY_SEED_NOT_DECLARED")
+            fixed["seed"] = window_spec["seed"]
+        fixed_phases[name] = fixed
+    # the recipe's training seed is the selected phase's declared seed (the design seed when undeclared);
+    # v1 studies predate the trainer_cli binding in this gate and carry no window phases
+    if schema == "gx1_entry_learning_study_v2":
+        selected_seed = fixed_phases.get(phase, {}).get("seed", base_seed)
+        if recipe.get("trainer_cli", {}).get("seed", base_seed) != selected_seed:
+            raise RuntimeError("ENTRY_STUDY_SEED_NOT_DECLARED")
     if (set(rows) != expected_rows
             or not np.array_equal(np.sort(rows["epoch_order"]), train_population)
             or len(rows["fit"]) != 256 or len(np.unique(rows["fit"])) != 256

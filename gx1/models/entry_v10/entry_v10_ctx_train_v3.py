@@ -13103,6 +13103,11 @@ def _copy_frozen_prefix_reference_model(model, *, model_functions=None):
     return target.eval().requires_grad_(False)
 
 
+def _allowed_prefix_training_seeds(design_seed):
+    from gx1.contracts.entry_observed_market_horizons_v1 import allowed_prefix_training_seeds
+    return allowed_prefix_training_seeds(design_seed)
+
+
 def _prefix_candidate_training_binding(
     *, chronological_prefix, train_ds, val_ds, train_parquet, val_parquet,
     input_normalization, model, seed, batch_size, learning_rate, weight_decay,
@@ -13165,7 +13170,7 @@ def _prefix_candidate_training_binding(
     if (train_ds is val_ds
             or design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
             or design["initialization"].get("mode") != "fresh_existing_model_constructor_no_checkpoint_weights"
-            or seed != design["initialization"]["seed"] or batch_size != 16
+            or seed not in _allowed_prefix_training_seeds(design["initialization"]["seed"]) or batch_size != 16
             or learning_rate != 0.0001 or weight_decay != 0.0001
             or design["budget"]["planned_optimizer_steps"] != _planned_prefix_optimizer_steps(design)
             or design["budget"]["maximum_trained_entry_rows"] != 4096

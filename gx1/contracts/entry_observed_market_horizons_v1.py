@@ -62,6 +62,17 @@ MINIMUM_PLAN_FIT_OPTIMIZER_STEPS = 1024
 # derived from the window size (one origin), never a literal.
 RECENT_WINDOW_PHASE = "recent_year"
 RECENT_WINDOW_DAYS = 365
+# Operator decision 15.10.2026 («Ja, 1 og 2»): seed variants for the window phases, named here with the same
+# date convention as the design seed 20260911; a window phase may declare exactly one of these or the design
+# seed. Nothing else in the chain (normalization, targets, frozen order) depends on the seed; it changes only
+# the fresh initialization and the training RNG stream.
+RECENT_WINDOW_SEED_VARIANTS = (20261015, 20261016)
+
+
+def allowed_prefix_training_seeds(design_seed: int) -> tuple[int, ...]:
+    return (int(design_seed), *RECENT_WINDOW_SEED_VARIANTS)
+
+
 RECENT_WINDOW_BATCH_SIZE = 16
 RECENT_WINDOW_TRAIN_PROBE_ROWS = 4096
 RECENT_WINDOW_TRAIN_OBSERVATION_STEPS = (0, 256, 1024)
