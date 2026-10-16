@@ -50,6 +50,18 @@ def test_delta_uses_trade_aggressor_and_accounts_for_unknown_volume():
     assert report["continuous_coverage_proven"] is False
 
 
+def test_passive_fill_is_counted_but_never_added_to_aggressor_volume():
+    report = audit_gc_records([event(action="F", side="B", size=7)], declaration())
+    assert report["actions"]["F"] == 1
+    assert report["counters"].get("trade_records", 0) == 0
+    assert report["buy_aggressor_volume_contracts"] == 0
+    assert report["sell_aggressor_volume_contracts"] == 0
+    assert report["known_aggressor_delta_contracts"] == 0
+    daily = report["daily_receive_activity_utc"]["2025-01-01"]
+    assert daily["action_F"] == 1
+    assert daily.get("trade_records", 0) == 0
+
+
 def test_utc_daily_activity_keeps_receive_and_event_dates_separate_and_checks_symbol():
     rows = [
         event(ts_event=1_735_689_599_999_999_999),
@@ -89,7 +101,7 @@ def test_vendor_bad_flags_unknown_books_and_sequence_jumps_are_reported():
 
 
 @pytest.mark.parametrize("changes", [
-    {"side": "unknown"}, {"action": "F"}, {"size": 0}, {"size": 1.0},
+    {"side": "unknown"}, {"action": "?"}, {"size": 0}, {"size": 1.0},
     {"price": UNDEF_PRICE}, {"instrument_id": 43}, {"publisher_id": 2},
     {"ts_recv": 1_735_689_660_000_000_000}, {"flags": 256}, {"rtype": 0},
     {"sequence": 1 << 32}, {"size": 1 << 32}, {"bid_sz_00": 1 << 32},

@@ -123,9 +123,14 @@ kontrollerte ikke CSV-feltet `symbol` mot kontrakten. Før fullfilpasseringen
 eieren teller mottaksdatoer og hendelsesdatoer i UTC, med daglig handling,
 handler, aggressorvolum, boktilgjengelighet og kvalitetsflagg. Dette gir målt
 dagsaktivitet i én passering; det klassifiserer ikke alene markedsstengninger
-eller beviser kontinuerlig dekning. Den kjørbare, hash-bundne filspesifikasjonen
-ligger separat i `configs/research/GC_SOURCE_AUDIT_20261016_001.json`; den gamle
-`files=[]`-protokollen forblir en ufullstendig plan, ikke audit-input.
+eller beviser kontinuerlig dekning. Første fullfilforsøk stoppet på en ekte
+MBP-1-rad med `action=F`, `side=B`; Databentos definisjon sier at dette er en
+fylling av hvilende kjøpsordre, ikke en kjøpsaggressor. Audit-eieren teller nå
+`F` som handling, men legger den ikke til Trade-volum eller delta. Feilforsøket
+ble lukket uten delresultat og relanseres ikke. Den nye spesifikasjonen
+`configs/research/GC_SOURCE_AUDIT_20261016_002.json` er forberedt, men avventer
+ny operatørgodkjenning før den kan kjøres; den gamle `files=[]`-protokollen
+forblir en ufullstendig plan, ikke audit-input.
 
 Auditen rapporterer handlingstyper, ekte aggressorvolum B/A, ukjent N-volum,
 tidsrekkefølge, sekvensendringer, største mottaksgap, UTC-dagsteller,

@@ -126,7 +126,7 @@ def audit_gc_records(rows: Iterable[Mapping[str, Any]], declaration: Mapping[str
         action, side = row["action"], row["side"]
         if row["symbol"] != item["raw_symbol"]:
             raise ValueError("GC_RAW_SYMBOL_MAPPING_MISMATCH")
-        allowed_actions = {"T"} if item["schema"] in {"trades", "tbbo"} else {"A", "C", "M", "R", "T", "N"}
+        allowed_actions = {"T"} if item["schema"] in {"trades", "tbbo"} else {"A", "C", "F", "M", "R", "T", "N"}
         if action not in allowed_actions or side not in {"A", "B", "N"}:
             raise ValueError("GC_ACTION_OR_SIDE_INVALID")
         if action == "R" and side != "N":
