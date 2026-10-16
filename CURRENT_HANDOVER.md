@@ -331,6 +331,27 @@ har identiske utpakkede byte. Bare zstd-dobbeltkopier, én ubrukelig .part og
 sju frakoblede V9-datasett-Parquets pensjoneres. De to brede beskyttelsesrøttene
 er presisert til beskyttede blader/undertrær med bevis for at hver øvrig fil
 fortsatt er beskyttet. Ingen launch-/treningsfelt eller guardkode endres.
+Andre bølge er nå DELETE_COMPLETE uten feil: 120 eksakte filer, 31,9 GiB.
+Begge bølger har null gjenværende originalmål og intakte kanoniske GC-kilder.
+Totalt 251,2 GiB DATA-payload og 13,0 GiB miljø/cache er hard-slettet.
+WSL-bruk er nå ca. 235 GiB. Fysisk VHDX-komprimering er FULLFØRT:
+616 961 146 880 → 268 416 581 632 byte, DiskPart exit 0 og eksklusiv filtilgang
+verifisert før operasjonen. Windows har ca. 494 GiB ledig (før ca. 173 GiB).
+WSL ble stoppet ved tom prosjekt-/GPU-/låsegrense; Windows ble ikke omstartet.
+Autentisert Windows-SSH → WSL-tilkobling er bekreftet etterpå. Alle 112
+beholdte GC-filer og 112 kvitteringer er rehashet uten avvik; GC-maskfilens
+hash er uendret. TRAIN/VAL-footere er lesbare (652 552 / 70 880 rader);
+full rehash av native Parquet-payloads ble ikke gjentatt. TEST ble ikke åpnet
+i denne etterkontrollen. Første komprimeringsforsøk etter bare distro-stopp
+ble blokkert av en filholder; begge forsøk/loggene er bevart.
+
+Målt GX1_DATA 139,7 + GX1_RUNS 18,7 + CURRENT-kildemiljø 5,7 = ca. 164 GiB.
+Hele WSL er større fordi andre prosjekter, verktøy og editorhistorikk også
+ligger der. Ingen nye Databento-kall, kostnader, fits eller økonomitest.
+Neste treningsmål er spurt eksplisitt: M5/intradag eller tidligere D1-mål ved
+20 handelsdager. Kausale indikatorverdier/native kobling er ennå ikke bygget.
+Gamle generasjonskvitteringer er historisk evidens, ikke lenger en påstand
+om at pensjonerte payloads fortsatt er komplette på disk.
 Alle kanoniske GC-gzipfiler/kvitteringer, gjeldende D1-inputs, modellvekter,
 checkpoints og terminalkvitteringer beholdes. GC-featurearbeidet gjenstår.
 

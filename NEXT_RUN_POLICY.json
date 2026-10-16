@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Measure WSL/Windows storage; close obsolete artifact ownership and execute a hash-bound retention plan under the current explicit hard-delete request. Then resume the admitted GC feature design.",
+  "next_action": "Resolve the requested M5/intraday versus D1-20-day target; freeze the causal GC indicator recipe on admitted masks before the appropriate dataset build and bounded learning plan. No automatic fit, TEST, economics or native launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Plan 004 completed once with exact source/mask publication. Current operator priority: measure and permanently remove proven-unused storage through the retention owner.",
+    "current_activity": "Disk reclamation complete: both retention waves DELETE_COMPLETE, unused environment/package caches removed, VHDX physically compacted and reconnect/source integrity verified. GC source admission complete for masked inputs only.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -177,7 +177,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "GC indicators have masked source admission only; no feature recipe/native row parity/learning recipe exists. Current task is operator-requested disk reclamation.",
+    "current_blocker": "Next GC training target needs clarification: M5/intraday from the GC study versus the previous native D1 20-trading-day target. Indicator values, native integration/parity and a source-bound training recipe remain unbuilt.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7651,7 +7651,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Measure WSL/Windows storage; close obsolete artifact ownership and execute a hash-bound retention plan under the current explicit hard-delete request. Then resume the admitted GC feature design.",
+    "next_action": "Resolve the requested M5/intraday versus D1-20-day target; freeze the causal GC indicator recipe on admitted masks before the appropriate dataset build and bounded learning plan. No automatic fit, TEST, economics or native launch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -7905,7 +7905,7 @@
       "definition_files_rehashed": 23
     },
     "retention_hard_delete_20261016": {
-      "status": "FIRST_WAVE_DELETE_COMPLETE_DUPLICATE_WAVE_PREPARED",
+      "status": "DELETE_AND_PHYSICAL_COMPACTION_COMPLETE",
       "operator_request": "Gjør en ordenlig hard slett av ubrukelige filer. fra 500gb til 150/200 sikkert",
       "operator_authorized_permanent_unused_file_removal": true,
       "target_inventory": "/home/andre2/GX1_RUNS/RETENTION_OBSOLETE_PAYLOADS_20261016_001/TARGETS.json",
@@ -7939,7 +7939,7 @@
       },
       "additional_env_cache_bytes": 13908484096,
       "duplicate_wave": {
-        "status": "EXACT_DUPLICATE_PROOF_COMPLETE_PLAN_PENDING",
+        "status": "DELETE_COMPLETE",
         "targets_inventory": "/home/andre2/GX1_RUNS/RETENTION_DUPLICATES_20261016_002/TARGETS.json",
         "targets": 120,
         "measured_bytes": 34215022147,
@@ -7947,8 +7947,67 @@
           "path": "/home/andre2/GX1_RUNS/RETENTION_OBSOLETE_PAYLOADS_20261016_001/GC_DUPLICATE_PROOF.json",
           "sha256": "9115c8956c268e35de0ed39d7effd3dd9822821401fd42ef64c0b65adb4fe423"
         },
-        "retired_scope": "112 expanded-byte-identical zstd copies, one incomplete part, seven old V9 Parquets; every other previously protected file remains protected"
-      }
+        "retired_scope": "112 expanded-byte-identical zstd copies, one incomplete part, seven old V9 Parquets; every other previously protected file remains protected",
+        "plan": {
+          "plan_json": "/home/andre2/GX1_DATA/reports/gx1_evidence_retention_cleanup_plans/GX1_EVIDENCE_RETENTION_CLEANUP_PLAN_20261016T204748933967Z.json",
+          "plan_sha256": "4102cc0f3389f4ac0635e287d96d40ac263e4962513351c2cbaa9141b20f48c0",
+          "vedtak": "GX1_HARD_DELETE_PROVEN_DUPLICATES_20261016_002",
+          "targets": 120,
+          "total_bytes": 34215022147
+        },
+        "approval": {
+          "approval_json": "/home/andre2/GX1_DATA/reports/gx1_evidence_retention_cleanup_approvals/GX1_EVIDENCE_RETENTION_APPROVAL_20261016T204854175773Z.json",
+          "approval_sha256": "ebb0ed813aa48e912c1dc5017950f34553e543d0c9e836324220d885a0bf5055"
+        },
+        "execution_report": {
+          "path": "/home/andre2/GX1_DATA/reports/gx1_evidence_retention_cleanup_reports/GX1_EVIDENCE_CLEANUP_EXECUTION_20261016T205202365543Z.json",
+          "sha256": "baabeee8a489125b518a154256a779ebddf7be7f69c327c3767d77de24b76e84"
+        }
+      },
+      "permanent_data_payload_bytes": 269692845820,
+      "after_wsl_used_bytes": 252059639808,
+      "after_wsl_used_gib": 234.74883270263672,
+      "actual_before_wsl_used_bytes": 535733202944,
+      "historical_generated_payloads_retired": true,
+      "historical_receipts_are_not_current_payload_completeness": true,
+      "native_current_dataset_and_canonical_gc_retained": true,
+      "original_model_checkpoints_retained": true,
+      "first_wave_result": {
+        "path": "/home/andre2/GX1_RUNS/RETENTION_OBSOLETE_PAYLOADS_20261016_001/RESULT_BINDING.json",
+        "sha256": "82e425b81d7a2d7ff3ff540fa08dd2f3950d255a499e6fb136bbfa9124ee6b5f"
+      },
+      "duplicate_wave_result": {
+        "path": "/home/andre2/GX1_RUNS/RETENTION_DUPLICATES_20261016_002/RESULT_BINDING.json",
+        "sha256": "6b89211be60bc6fa91046b0f26b563aa71556dfbd62267c8b5fa74d9f85f4cc9"
+      },
+      "completed_utc": "2026-10-16T21:12:37.784357+00:00",
+      "measured_project_directory_bytes": {
+        "GX1_DATA": 149970358272,
+        "GX1_RUNS": 20062040064,
+        "GX1_CURRENT": 6078713856
+      },
+      "measured_project_total_bytes": 176111112192,
+      "physical_windows_compaction": {
+        "path": "/home/andre2/GX1_RUNS/RETENTION_OBSOLETE_PAYLOADS_20261016_001/WINDOWS_COMPACTION_SHUTDOWN.json",
+        "sha256": "8bbdf19afe5ac48b82ac24984eabcf0c03d70d41bfc033b60800d95416e6345d",
+        "vhdx_bytes_before": 616961146880,
+        "vhdx_bytes_after": 268416581632,
+        "windows_free_bytes_before": 192326021120,
+        "windows_free_bytes_after": 529983467520,
+        "full_wsl_shutdown": true,
+        "windows_rebooted": false,
+        "reconnect_verified": true,
+        "initial_attempt": "Distro termination left the file locked; no shrink. Full WSL shutdown then verified exclusive file access before successful read-only DiskPart compaction. Both original logs/receipts retained."
+      },
+      "post_compaction_verification": {
+        "path": "/home/andre2/GX1_RUNS/RETENTION_OBSOLETE_PAYLOADS_20261016_001/POST_COMPACTION_VERIFICATION.json",
+        "sha256": "a0e0585778795d946d2f6d52b8b562b5549ab215b7cc173600d4177802f54c30",
+        "canonical_gc_files_and_receipts_hash_verified": 112,
+        "gc_mask_parquet_hash_unchanged": true,
+        "native_train_val_footers_readable": true,
+        "full_native_parquet_payload_hash_revalidation_performed": false
+      },
+      "limits": "Current D1 data, every non-retired protected input, original model checkpoints and receipts remain. Old generated payloads named in the immutable cleanup plans are retired; historical receipts are not claims that retired payloads still exist."
     }
   },
   "gc_order_flow_research_20261006": {
@@ -10513,5 +10572,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-16T19:50:22.738086+00:00"
+  "updated_utc": "2026-10-16T21:12:37.784443+00:00"
 }
