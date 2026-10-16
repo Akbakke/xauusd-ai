@@ -116,7 +116,8 @@ def test_gc_source_resume_preserves_retraining_boundaries_and_gc_evidence():
     assert gc['source_fetch_authorized'] is False
     assert gc['free_source_investigation']['status'] == 'COMPLETE_INVESTIGATION_ONLY_GC_SOURCE_BLOCKED'
     assert [step['step'] for step in work['gc_goal_progress']] == gc['required_steps']
-    assert all(step['completed'] is False for step in work['gc_goal_progress'])
+    assert work['gc_goal_progress'][0]['completed'] is (active_gc['completed_invocations'] == 1)
+    assert all(step['completed'] is False for step in work['gc_goal_progress'][1:])
     assert execution['retraining_requested'] is True
     assert execution['new_retraining_plan_bound'] is False
     assert execution['approved_cpu_budget']['consumed'] is True

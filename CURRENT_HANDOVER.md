@@ -280,7 +280,7 @@ og senere ny trening. Den siterte rekkefølgen respekteres: først kausal serie,
 masker, faktisk dekning og ADMIT/REJECT per indikator; TEST, fit og økonomi er
 fortsatt stengt i dette trinnet. Dette er et nytt vedtak, ikke gjenbruk av 003.
 
-Plan `configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json` (sha256 8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf) er claimet for én lokal passering via
+Plan `configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json` (sha256 8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf) ble kjørt én gang med exit 0 via
 4-GiB auditvakt. Kildeeier: `gx1/contracts/gc_continuous_source_v1.py`;
 runner: `gx1/scripts/gc_continuous_source_v1.py`. Den eksisterende 003-eierens
 hash-/OANDA-/cgroup-kontroller gjenbrukes. Ingen Databento-kall eller kostnad.
@@ -305,6 +305,23 @@ læring, generalisering og økonomi er ikke bevist.
 49 fokuserte kilde-/rulletester passerer. To gamle handover-tester krevde
 GC-status «paused» allerede før denne bølgen; de kontrollerer nå de beholdte
 trenings-/TEST-/relanseringssperrene under gjeldende kildearbeid.
+
+Plan 004 fullførte 19:48:48Z: 892 100 712 kilderader avstemt fil for fil mot
+002, 66 GC-kilde-/kvitteringspar, 23 definisjonspar og OANDA-inputs rehashet.
+765 839 strengt pre-TEST OANDA M1-rader; valgt kontrakt på 764 462, valgt GC-
+handel på 761 878. ADMIT gjelder bare maskerte observerte inputs: volum/profil
+682 945 M1-rader (98 175 komplette M5-vinduer); footprint/delta/relativ CVD
+372 005 M1-rader (19 073 komplette M5-vinduer), med støtte i alle 26 måneder.
+Ingen upålitelig Trade-klokke i potensielt valgte filer; 133 987 gjentatte
+T-signaturer og 153 190 gapflagg i valgt serie er maskert. Ingen deduplisert
+markedssannhet eller komplett flow hevdes. Sweeps over flere boknivåer og
+institusjonell order-block-sannhet: REJECT. Kausal rulle-prefix og eksakt
+heltallsvolumavstemming består. `RESULTS/` er atomisk publisert med
+Parquet-paritet/hasher i run-roten GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.
+Ingen indikatorverdier, fit, TEST, økonomi eller native integrasjon er bygget.
+
+Ny brukerprioritet: mål diskbruken og hard-slett dokumentert ubrukte filer
+gjennom retention-eieren. GC-featurearbeidet fortsetter etter dette.
 
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
