@@ -91,22 +91,27 @@ def test_terminal_test_isolation_cannot_be_soft_passed(fixture, monkeypatch, exi
         current_status(repo)
 
 
-def test_operator_pause_preserves_retraining_boundaries_and_gc_evidence():
+def test_gc_source_resume_preserves_retraining_boundaries_and_gc_evidence():
     repo = Path(__file__).resolve().parents[1]
     policy = json.loads((repo / 'NEXT_RUN_POLICY.json').read_text())
     work = policy['current_work']
     gc = policy['gc_order_flow_research_20261006']
     execution = policy['native_v38_execution_20261005']
     prep = policy['native_v38_preparation_20261001']
-    assert work['gc_goal_status'] == 'paused'
+    # Current GC source work can advance while native training remains closed.
+    active_gc = work['gc_continuous_source_plan_004']
+    assert active_gc['training_authorized'] is False
+    assert active_gc['test_authorized'] is False
+    assert active_gc['execution_authorized'] is False
+    assert active_gc['relaunch_authorized'] is False
     rebuild = policy['native_v38_rebuild_20261007']
     # The retained V38 evidence is historical; a later active goal owns current_work.
     assert Path(rebuild['run_root']).name == 'HISTORY2009W_NATIVE_V38_20261007'
     assert rebuild['run_root'] != prep['run_root']
     assert work['existing_indicator_surface_changed'] is False
     assert work['training_started'] is False
-    assert gc['status'] == 'PAUSED_BY_OPERATOR'
-    assert gc['goal_execution_requested'] is False
+    assert gc['status'] == work['gc_goal_status']
+    assert gc['goal_execution_requested'] is True
     assert gc['research_fit_authorized_after_qualification_and_frozen_recipe'] is False
     assert gc['source_fetch_authorized'] is False
     assert gc['free_source_investigation']['status'] == 'COMPLETE_INVESTIGATION_ONLY_GC_SOURCE_BLOCKED'
@@ -324,7 +329,12 @@ def test_pre_smoke_goal_preserves_core_receipts_and_missing_input_boundaries():
     assert policy['limits']['fresh_physical_windows_boot_before_every_invocation'] is True
     # The old completed scope owns its receipt; current monitoring/preparation can advance.
     assert scope['final_readiness_stage']['pre_smoke_readiness']['path'].startswith(scope['run_root'] + '/')
-    assert work['gc_goal_status'] == 'paused'
+    # Current GC source work can advance while native training remains closed.
+    active_gc = work['gc_continuous_source_plan_004']
+    assert active_gc['training_authorized'] is False
+    assert active_gc['test_authorized'] is False
+    assert active_gc['execution_authorized'] is False
+    assert active_gc['relaunch_authorized'] is False
     assert work['restart_and_smoke_goal']['false_completion_allowed'] is False
     stage = scope['complete_m1_stage']
     assert stage['authorized'] is False  # Genuine terminal consumed this permission.

@@ -302,6 +302,10 @@ kausal formel i eksisterende SMC-eier. Ingen indikatorverdier bygges før
 kildeavgjørelsen. OANDA leses fortsatt bare som M1-tid; native radparitet,
 læring, generalisering og økonomi er ikke bevist.
 
+49 fokuserte kilde-/rulletester passerer. To gamle handover-tester krevde
+GC-status «paused» allerede før denne bølgen; de kontrollerer nå de beholdte
+trenings-/TEST-/relanseringssperrene under gjeldende kildearbeid.
+
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
 Tre forhåndsregistrerte vindusfaser i spec ENTRY_D1_HORIZON_LEARNING_STUDY_
