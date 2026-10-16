@@ -320,8 +320,19 @@ heltallsvolumavstemming består. `RESULTS/` er atomisk publisert med
 Parquet-paritet/hasher i run-roten GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.
 Ingen indikatorverdier, fit, TEST, økonomi eller native integrasjon er bygget.
 
-Ny brukerprioritet: mål diskbruken og hard-slett dokumentert ubrukte filer
-gjennom retention-eieren. GC-featurearbeidet fortsetter etter dette.
+Brukerens hard-slettevedtak 16.10 er i arbeid gjennom retention-eieren.
+Første bølge DELETE_COMPLETE: 1 333 eksakte mål, 21 906 filer, 219,3 GiB;
+alle originalmål er borte, ingen feil. WSL gikk fra ca. 499 til 280 GiB.
+To ubrukte miljøkopier i lagrings-worktrees og pip-cachen frigjorde ytterligere
+13,0 GiB; CURRENT-miljøet/importstien er verifisert beholdt.
+
+Andre bølge har ferskt bevis: alle 112 zstd/gzip-par er hashverifisert og
+har identiske utpakkede byte. Bare zstd-dobbeltkopier, én ubrukelig .part og
+sju frakoblede V9-datasett-Parquets pensjoneres. De to brede beskyttelsesrøttene
+er presisert til beskyttede blader/undertrær med bevis for at hver øvrig fil
+fortsatt er beskyttet. Ingen launch-/treningsfelt eller guardkode endres.
+Alle kanoniske GC-gzipfiler/kvitteringer, gjeldende D1-inputs, modellvekter,
+checkpoints og terminalkvitteringer beholdes. GC-featurearbeidet gjenstår.
 
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
