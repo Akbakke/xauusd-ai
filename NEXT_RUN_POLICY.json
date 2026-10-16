@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-15T11:48:41.426730+00:00",
+  "observed_utc": "2026-10-16T10:31:02.869050+00:00",
   "status": "M5_INTRADAY_RECHECK_MEASURED_NEGATIVE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "The first one-off GC source audit failed closed on a valid Fill event and published no result. The user-provided AGENTS.md rule forbids relaunching a claimed or aborted one-off plan and states that old approval does not authorize a new plan; GX1_RULES.md applies the same non-relaunch boundary to claimed audit plans. The corrected source owner and new 66-file audit plan 002 are ready, but wait for fresh operator authorization before execution. No new Databento requests, spending, features, fits, TEST, native changes, or trading.",
+  "next_action": "Execute configs/research/GC_SOURCE_AUDIT_20261016_002.json exactly once through scripts/gx1_capped_run.sh --class audit using the already-downloaded 66 MBP-1 files; inspect terminal/result and then establish source coverage disposition. The user approved this one execution (“Ja”) and the approval receipt is recorded in the plan 002 run root. No Databento requests or spending; no feature build, fit, TEST, native changes, broker/live/paper or trading. Do not relaunch plan 002 if it fails without fresh approval.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "GC source qualification remains incomplete. Audit plan 001 was capped at 4 GiB and stopped at the first genuine MBP-1 Fill row (GCG5 row 100, action F, side B) after its pre-read hash loop verified all 66 source/receipt pairs; it published no result. The existing owner now counts F as a passive action only. The 36 focused tests pass. New plan 002 binds the same 66 local files and has not started; fresh operator authorization is required before execution under GX1_RULES. No new Databento requests or additional spending.",
+    "current_activity": "The user approved one execution of GC source audit plan 002 on 2026-10-16 (“Ja”). Approval is recorded at /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json sha256=799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376. The frozen plan binds 66 already-downloaded local MBP-1 files and is ready for one 4-GiB capped CPU audit. Source qualification remains incomplete until the audit and coverage disposition are reviewed. No new Databento requests or spending; no features, fit, TEST, native changes, broker/live/paper or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -110,13 +110,13 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "AWAITING_OPERATOR_AUTHORIZATION_FOR_NEW_AUDIT",
+    "gc_goal_status": "SOURCE_QUALIFICATION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "gc_goal_progress": [
       {
         "step": 1,
-        "status": "NEW_ONE_OFF_AUDIT_PREPARED_AWAITING_OPERATOR_AUTHORIZATION",
+        "status": "SOURCE_QUALIFICATION_AUDIT_002_AUTHORIZED",
         "completed": false,
         "genuine_evidence": [
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/DATABENTO_GC_26M_20261015_001/DOWNLOAD_SUMMARY.json: 79/79 jobs complete, 63 newly downloaded data files, reported total USD 119.65511028468609 against USD 120.00 cap; acquisition evidence only.",
@@ -125,8 +125,9 @@
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN_ERRATUM.json sha256=ad9a52f1919fa1ab13492d002eeb7758b19e234ef9b0d63de5e82d2b63e0f673: clarifies handling of the one pre-binding row preview; it remains in the later whole-file hash-verified audit.",
           "configs/research/GC_SOURCE_AUDIT_20261016_001.json sha256=d3b0d9d2733482c4fe6fe621faa8330e9f1c1dc710763d967dc75a140e423110: frozen v2 spec binds 66 MBP-1 files, 15 definition mappings and 12 source owners; audit not yet run.",
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/ATTEMPT_001_FAILURE.json sha256=1e0c555542917d8c28db9ff432f1567f0beae3f8866ad09e8647dc9ca4dd71cf: attempt 001 failed on a valid Fill row, no partial report; plan 001 will not be relaunched.",
-          "configs/research/GC_SOURCE_AUDIT_20261016_002.json sha256=3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d: new one-off plan binds 66 local MBP-1 files; not authorized or started.",
-          "Focused source-owner tests: 36 passed after adding passive-Fill handling; no full MBP-1 rerun performed."
+          "configs/research/GC_SOURCE_AUDIT_20261016_002.json sha256=3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d: approved for one local-only capped execution; 66 MBP-1 files; no provider calls/spending.",
+          "Focused source-owner tests: 36 passed after adding passive-Fill handling; no full MBP-1 rerun performed.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json sha256=799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376: user response “Ja”; single-use approval for plan 002 only."
         ]
       },
       {
@@ -172,7 +173,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Waiting for fresh explicit operator authorization to execute configs/research/GC_SOURCE_AUDIT_20261016_002.json. The user-provided AGENTS.md instruction says not to relaunch claimed/aborted one-off plans and that old approval does not authorize a new plan; GX1_RULES.md § Brukte engangstillatelser applies its non-relaunch rule to claimed audit plans. Plan 001 will not be rerun. No provider calls, spending, feature building, fit, TEST, native changes, broker/live/paper or trading.",
+    "current_blocker": "No additional operator approval is pending for the single execution of configs/research/GC_SOURCE_AUDIT_20261016_002.json. Run it once through scripts/gx1_capped_run.sh --class audit, then review its terminal/result and source coverage. If it fails, do not relaunch this one-off plan without fresh authorization. No provider calls/spending; feature build, fit, TEST, native changes and trading remain unauthorized.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7620,15 +7621,26 @@
       "test_access_allowed": false,
       "native_changes_allowed": false,
       "broker_live_paper_or_trading_allowed": false,
-      "new_one_off_audit_plan_execution_allowed": false
+      "new_one_off_audit_plan_execution_allowed": true,
+      "new_one_off_audit_approval": {
+        "received_date": "2026-10-16",
+        "operator_response": "Ja",
+        "approved_plan_path": "configs/research/GC_SOURCE_AUDIT_20261016_002.json",
+        "approved_plan_sha256": "3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d",
+        "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json",
+        "approval_receipt_sha256": "799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376",
+        "approved_utc": "2026-10-16T10:30:36.753163+00:00",
+        "single_use": true,
+        "scope": "One local-only execution of plan 002 through the 4-GiB capped audit wrapper; no new Databento calls or spending, features, fit, TEST, native changes, broker/live/paper or trading."
+      }
     }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "AWAITING_OPERATOR_AUTHORIZATION_FOR_NEW_AUDIT",
-    "goal_execution_requested": false,
+    "status": "SOURCE_QUALIFICATION_IN_PROGRESS",
+    "goal_execution_requested": true,
     "pause_request_owner": "current_work.gc_goal_resume_authorization",
-    "pause_scope": "New one-off audit plan 002 is prepared but awaits fresh operator authorization. The user-provided AGENTS.md says not to relaunch claimed/aborted one-off plans and that an old approval does not authorize a new plan; GX1_RULES.md applies the same boundary to claimed audit plans. Plan 001 failed and will not be relaunched. Step 1 remains incomplete pending approval. No Databento requests or spending; steps 2-4, features, fit, TEST, native changes, broker/live/paper and trading remain paused.",
+    "pause_scope": "User approved exactly one local source-qualification run of plan 002 on 2026-10-16; approval receipt: /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json sha256=799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376. Use already-downloaded files only and the capped audit wrapper. Plan 001 is not relaunched. No Databento requests or spending; steps 2-4, features, fit, TEST, native changes, broker/live/paper and trading remain paused.",
     "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig. 15.10.2026: last ned det avgrensede 26-månedersdatasettet innenfor et absolutt tak på USD 120; bruk kun rapporterte gratis Databento-kreditter. 16.10.2026: «Ja, 26 da. Da fortsetter vi»; narrowly resumes local source qualification (step 1) only.",
     "required_steps": [
       1,
@@ -7862,8 +7874,8 @@
     "spending_authorized": false,
     "spending_authorized_scope": "None. The authorized download is complete; no further provider requests, pay-as-you-go, or card charge.",
     "source_qualification_execution": {
-      "status": "AWAITING_OPERATOR_AUTHORIZATION_FOR_NEW_ONE_OFF_AUDIT",
-      "run_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001",
+      "status": "AUTHORIZED_PENDING_EXECUTION",
+      "run_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002",
       "input_binding_plan_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN.json",
       "input_binding_plan_sha256": "f73165d365c9a3258c37215bab288dce9af1ec5b80bfd4e65cbab4f45d33c466",
       "definition_mapping_audit_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_MAPPING_AUDIT.json",
@@ -7882,11 +7894,15 @@
       "previous_attempt_failure_sha256": "1e0c555542917d8c28db9ff432f1567f0beae3f8866ad09e8647dc9ca4dd71cf",
       "previous_attempt_plan_path": "configs/research/GC_SOURCE_AUDIT_20261016_001.json",
       "previous_attempt_plan_sha256": "d3b0d9d2733482c4fe6fe621faa8330e9f1c1dc710763d967dc75a140e423110",
-      "new_plan_execution_authorized": false,
+      "new_plan_execution_authorized": true,
       "approval_required_by": [
         "User-provided AGENTS.md instruction for this project",
         "GX1_RULES.md § Brukte engangstillatelser"
-      ]
+      ],
+      "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json",
+      "approval_receipt_sha256": "799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376",
+      "approval_received_utc": "2026-10-16T10:30:36.753163+00:00",
+      "approval_operator_response": "Ja"
     }
   },
   "native_v38_execution_20261005": {
