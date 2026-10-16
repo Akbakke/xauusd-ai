@@ -238,10 +238,16 @@ Brukeren godkjente én lokal kjøring av
 (sha256 7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082),
 kvittering /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/OPERATOR_APPROVAL.json
 (sha256 6bd49d90767016c3baa7237f23e9e13a02dff06489543071d1630013d9769406).
-Engangsgodkjenningen gjelder bare den frosne kilde-disposisjonsauditen. De tre
-pålagte kodebanene er implementert; fem fokuserte syntetiske tester og syntaks-
-kontroll passerer. Den ene auditkjøringen er ennå ikke startet; før den bindes
-plan, godkjenning, policy, commit og kildekodehash til én kjøringskvittering.
+Engangsgodkjenningen gjelder bare den frosne kilde-disposisjonsauditen, og
+policyen har nå konsumert den for kjøring 1 av 1. Implementasjonen er pushed
+på `work/gx1-current` (commit 96c3111d); fem fokuserte syntetiske tester og
+syntakskontroll passerer. SHA-256: kontrakt
+`b2ebde8204e842062a23f9484c2ccdfbd384779c7d7d1389dfaa67b9beb95aae`, runner
+`e6ffd90f805ca18e7bea6ff7c59876e10774c728d89305a603e41550e7ed31f3`, tester
+`33b77dda20b0f93d400881835eb9699c7085595b359bf66e8d982ae7f00c7ef1`.
+Kjøringskvitteringen binder disse hashene, policy, plan og godkjenning. Kjøringen
+starter én gang via `scripts/gx1_capped_run.sh --class audit`; ingen relansering
+uten en ny uttrykkelig godkjenning.
 Kjøringen skal bruke `scripts/gx1_capped_run.sh --class audit` med 4-GiB
 minne, 512-MiB swap, CPU-affinity 0-7, én numerisk tråd per worker og
 `TasksMax=64`. Ingen nye Databento-kall eller utgifter, OANDA-priser/volum/

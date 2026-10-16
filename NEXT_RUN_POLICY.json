@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Plan 003 has fresh single-use approval; implementation and five focused synthetic tests are complete. One local-only 4-GiB capped source-disposition audit remains; no Databento requests or spending, features, fit, TEST, native changes, broker/live/paper or trading.",
+    "current_activity": "Plan 003 one-use authorization has been consumed and invocation 1 of 1 claimed for immediate launch through the capped audit wrapper. No Databento requests or spending; no features, fit, TEST, native changes, broker/live/paper or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -176,7 +176,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "One plan-003 execution remains pending: commit and bind the tested code, then consume the single capped invocation. No relaunch authority.",
+    "current_blocker": "The single claimed plan-003 audit is pending execution and terminal reconciliation; no relaunch authority.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7624,7 +7624,7 @@
       "test_access_allowed": false,
       "native_changes_allowed": false,
       "broker_live_paper_or_trading_allowed": false,
-      "new_one_off_audit_plan_execution_allowed": true,
+      "new_one_off_audit_plan_execution_allowed": false,
       "new_one_off_audit_approval": {
         "received_date": "2026-10-16",
         "operator_response": "Godkjenn",
@@ -7634,9 +7634,10 @@
         "approval_receipt_sha256": "6bd49d90767016c3baa7237f23e9e13a02dff06489543071d1630013d9769406",
         "approved_utc": "2026-10-16T18:06:09Z",
         "single_use": true,
-        "scope": "One local-only execution of plan 003 against the already downloaded, hash-bound GC MBP-1 files and existing OANDA M1 time column, through the GX1 4-GiB capped audit wrapper."
+        "scope": "One local-only execution of plan 003 against the already downloaded, hash-bound GC MBP-1 files and existing OANDA M1 time column, through the GX1 4-GiB capped audit wrapper.",
+        "consumed_utc": "2026-10-16T18:20:49Z"
       },
-      "new_one_off_audit_plan_execution_consumed": false,
+      "new_one_off_audit_plan_execution_consumed": true,
       "previous_one_off_audit_approval": {
         "received_date": "2026-10-16",
         "operator_response": "Ja",
@@ -7650,7 +7651,7 @@
         "consumed_utc": "2026-10-16T17:00:53.738669+00:00"
       }
     },
-    "next_action": "Commit the tested implementation and handover, then create a code-hash-bound single-use execution claim and run plan 003 exactly once through scripts/gx1_capped_run.sh --class audit."
+    "next_action": "Launch the one claimed audit with scripts/gx1_capped_run.sh --class audit; then verify result and terminal receipts, mark invocation complete, and update handover."
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -7893,14 +7894,17 @@
     "source_disposition_plan_003": {
       "path": "configs/research/GC_SOURCE_DISPOSITION_20261016_003.json",
       "sha256": "7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082",
-      "status": "AUTHORIZED_PENDING_EXECUTION",
-      "execution_authorized": true,
+      "status": "EXECUTION_CLAIMED",
+      "execution_authorized": false,
       "authorized_invocations": 1,
       "max_invocations_after_fresh_approval": 1,
       "completed_invocations": 0,
       "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/OPERATOR_APPROVAL.json",
       "approval_receipt_sha256": "6bd49d90767016c3baa7237f23e9e13a02dff06489543071d1630013d9769406",
-      "approved_utc": "2026-10-16T18:06:09Z"
+      "approved_utc": "2026-10-16T18:06:09Z",
+      "claimed_invocations": 1,
+      "execution_claimed_utc": "2026-10-16T18:20:49Z",
+      "execution_claim_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/EXECUTION_CLAIM.json"
     },
     "source_qualification_execution": {
       "status": "STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED",
@@ -9934,5 +9938,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-16T18:06:09Z"
+  "updated_utc": "2026-10-16T18:20:49Z"
 }
