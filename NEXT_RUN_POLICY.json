@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-16T17:00:53.738693+00:00",
+  "observed_utc": "2026-10-16T17:39:08+00:00",
   "status": "M5_INTRADAY_RECHECK_MEASURED_NEGATIVE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Prepare a new, separately bound local-only source-disposition plan for GC schedule/intraday gaps, vendor flags/unknown-side handling, and timestamp-level overlap with the existing pre-TEST OANDA XAU_USD M1 tape. The plan 002 approval is consumed; do not execute any new one-off plan until the operator gives fresh explicit authorization. No new Databento requests or spending, features, fit, TEST, native changes, broker/live/paper or trading.",
+  "next_action": "Review the prepared local-only plan configs/research/GC_SOURCE_DISPOSITION_20261016_003.json sha256=7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082. Plan 003 is not authorized for execution; plan 002 approval is consumed. Any new one-off execution requires fresh explicit operator approval. No new Databento requests or spending, features, fit, TEST, native changes, broker/live/paper or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "GC source audit plan 002 was executed once under the 4-GiB audit cgroup and completed exit 0. Its status is STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED; 66/66 MBP-1 files and receipts matched the frozen plan, covering 892,100,712 rows. The hash-bound result is /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json sha256=c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab; terminal is /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/TERMINAL.json sha256=e513dc5f58f360cf52e06e53d280f3ce1b854a808a020c224159223dcfc0c1f8; reconciliation is /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json sha256=14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda. This is structural evidence only and does not qualify or admit the source. Daily activity appears on 678/791 calendar dates; all 113 absent dates are Saturdays, which is consistent with the published weekly GC closure but does not prove intraday completeness. The 15-symbol definition crosswalk matches all 66 declarations. Unknown aggressor side, bad-book/clock flags, historical holiday/intraday gaps, and exact causal OANDA M1 overlap still need disposition. No new Databento requests or spending; no features, fit, TEST, native changes, broker/live/paper or trading.",
+    "current_activity": "GC source audit plan 002 was executed once under the 4-GiB audit cgroup and completed exit 0. Its status is STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED; 66/66 MBP-1 files and receipts matched the frozen plan, covering 892,100,712 rows. The hash-bound result is /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json sha256=c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab; terminal is /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/TERMINAL.json sha256=e513dc5f58f360cf52e06e53d280f3ce1b854a808a020c224159223dcfc0c1f8; reconciliation is /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json sha256=14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda. This is structural evidence only and does not qualify or admit the source. Plan 003 at configs/research/GC_SOURCE_DISPOSITION_20261016_003.json (sha256 7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082) is prepared for operator review and is not authorized for execution. Daily activity appears on 678/791 calendar dates; all 113 absent dates are Saturdays, which is consistent with the published weekly GC closure but does not prove intraday completeness. The 15-symbol definition crosswalk matches all 66 declarations. Unknown aggressor side, bad-book/clock flags, historical holiday/intraday gaps, and exact causal OANDA M1 overlap still need disposition. No new Databento requests or spending; no features, fit, TEST, native changes, broker/live/paper or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -176,7 +176,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Step 1 source qualification remains incomplete after structural audit 002. The plan is consumed and will not be relaunched. Remaining evidence: bind historical GC session/holiday and intraday-gap disposition; decide handling for vendor flags and unknown-side trades before outcomes; measure timestamp-level overlap with the existing pre-TEST OANDA XAU_USD M1 tape (bar_start_utc, +60-second availability). A new one-off plan is not authorized by approval for plan 002 under the user-provided AGENTS.md rule. No Databento requests/spending, features, fit, TEST or trading.",
+    "current_blocker": "Step 1 source qualification remains incomplete after structural audit 002. Plan 003 is prepared for review at configs/research/GC_SOURCE_DISPOSITION_20261016_003.json (sha256 7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082), but is not authorized for execution. It will disposition historical GC sessions/event-silent intervals and vendor flags, then measure causal timestamp overlap against the existing pre-TEST OANDA M1 time column. Plan 002 approval is consumed; any new one-off execution needs fresh explicit approval. No Databento requests/spending, features, fit, TEST or trading.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7645,7 +7645,7 @@
     "status": "SOURCE_QUALIFICATION_INCOMPLETE_AFTER_STRUCTURAL_AUDIT",
     "goal_execution_requested": true,
     "pause_request_owner": "current_work.gc_goal_resume_authorization",
-    "pause_scope": "The one-off approval for GC_SOURCE_AUDIT_20261016_002 is consumed. Its structural audit completed, but source qualification remains incomplete. No new one-off plan is currently authorized. Remaining work is local-only session/quality disposition and exact pre-TEST OANDA M1 timestamp overlap. No new Databento requests or spending; steps 2-4, features, fit, TEST, native changes, broker/live/paper and trading remain paused.",
+    "pause_scope": "The one-off approval for GC_SOURCE_AUDIT_20261016_002 is consumed. Its structural audit completed, but source qualification remains incomplete. Plan 003 is prepared for review and is not authorized for execution; its hash-bound inputs and method are in configs/research/GC_SOURCE_DISPOSITION_20261016_003.json (sha256 7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082). No new Databento requests or spending; steps 2-4, features, fit, TEST, native changes, broker/live/paper and trading remain paused.",
     "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig. 15.10.2026: last ned det avgrensede 26-månedersdatasettet innenfor et absolutt tak på USD 120; bruk kun rapporterte gratis Databento-kreditter. 16.10.2026: «Ja, 26 da. Da fortsetter vi»; narrowly resumes local source qualification (step 1) only.",
     "required_steps": [
       1,
@@ -7878,6 +7878,14 @@
     "trading_authorized": false,
     "spending_authorized": false,
     "spending_authorized_scope": "None. The authorized download is complete; no further provider requests, pay-as-you-go, or card charge.",
+    "source_disposition_plan_003": {
+      "path": "configs/research/GC_SOURCE_DISPOSITION_20261016_003.json",
+      "sha256": "7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082",
+      "status": "PREPARED_AWAITING_OPERATOR_REVIEW",
+      "execution_authorized": false,
+      "authorized_invocations": 0,
+      "max_invocations_after_fresh_approval": 1
+    },
     "source_qualification_execution": {
       "status": "STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED",
       "run_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002",

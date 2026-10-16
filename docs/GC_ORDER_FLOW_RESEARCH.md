@@ -127,9 +127,11 @@ eller beviser kontinuerlig dekning. Første fullfilforsøk stoppet på en ekte
 MBP-1-rad med `action=F`, `side=B`; Databentos definisjon sier at dette er en
 fylling av hvilende kjøpsordre, ikke en kjøpsaggressor. Audit-eieren teller nå
 `F` som handling, men legger den ikke til Trade-volum eller delta. Feilforsøket
-ble lukket uten delresultat og relanseres ikke. Den nye spesifikasjonen
-`configs/research/GC_SOURCE_AUDIT_20261016_002.json` er forberedt, men avventer
-ny operatørgodkjenning før den kan kjøres; den gamle `files=[]`-protokollen
+ble lukket uten delresultat og relanseres ikke. Plan 002 ble kjørt én gang og fullførte den strukturelle auditen uten å kvalifisere
+kilden. Neste plan, `configs/research/GC_SOURCE_DISPOSITION_20261016_003.json`,
+binder de eksisterende GC- og OANDA-tidsstemplene for lokal sesjons-/gap- og
+overlapdiagnostikk. Den avventer ny, uttrykkelig godkjenning; ingen kjøring eller
+Databento-kall er autorisert av plan 002. Den eldre `files=[]`-protokollen
 forblir en ufullstendig plan, ikke audit-input.
 
 Auditen rapporterer handlingstyper, ekte aggressorvolum B/A, ukjent N-volum,

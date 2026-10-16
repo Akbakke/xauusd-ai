@@ -1,0 +1,144 @@
+{
+  "schema_version": "gx1_gc_source_disposition_plan_v1",
+  "plan_id": "GC_SOURCE_DISPOSITION_20261016_003",
+  "research_id": "GC_ORDER_FLOW_RESEARCH_001",
+  "created_utc": "2026-10-16T17:34:06Z",
+  "branch": "work/gx1-current",
+  "source_head_at_creation": "675beca1c976d5280e84903ee1ed2d1f9e30ffaf",
+  "status": "PREPARED_AWAITING_OPERATOR_REVIEW",
+  "authorization": {
+    "required": true,
+    "authorized": false,
+    "max_invocations": 1,
+    "old_plan_002_approval_reusable": false
+  },
+  "scope": {
+    "objective": "Local source-disposition audit of already-downloaded GC MBP-1 timestamps against existing pre-TEST OANDA XAU_USD M1 timestamps.",
+    "support_window_utc": [
+      "2024-04-01T00:00:00Z",
+      "2026-07-01T00:00:00Z"
+    ],
+    "study_window_utc": [
+      "2024-05-01T00:00:00Z",
+      "2026-07-01T00:00:00Z"
+    ],
+    "forbidden": [
+      "Databento requests",
+      "spending",
+      "OANDA prices/volume/outcomes",
+      "feature building",
+      "fit",
+      "TEST",
+      "model admission",
+      "native changes",
+      "broker/live/paper/trading"
+    ]
+  },
+  "inputs": {
+    "gc_plan": {
+      "path": "configs/research/GC_SOURCE_AUDIT_20261016_002.json",
+      "sha256": "3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d",
+      "files": 66,
+      "rule": "Use and reverify the exact MBP-1 file/receipt SHA-256 bindings from this frozen spec."
+    },
+    "gc_result": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json",
+      "sha256": "c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab"
+    },
+    "gc_reconciliation": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json",
+      "sha256": "14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda"
+    },
+    "oanda_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/MANIFEST.json",
+      "sha256": "61bcf169a4dcdfaf09fee981ce511fbeaf9efdb88b8a1b338ea7796e50b133b2",
+      "field": "time",
+      "semantics": "bar_start_utc",
+      "availability_offset_seconds": 60,
+      "read_only_column": "time",
+      "partitions": [
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2024/part-000.parquet",
+          "sha256": "2776a1cb17b915d506eaf0d7ed5323ba975e0d0d1c52c0c02d2da20589d1c41a"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2025/part-000.parquet",
+          "sha256": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2026/part-000.parquet",
+          "sha256": "52eecadc8b9ff4a4522ca5003656a91e6250f7accbacdfd73587ba14b375ec1a"
+        }
+      ]
+    }
+  },
+  "method": {
+    "oanda_decision": "Select OANDA bars with bar_start t in [2024-04-01T00:00:00Z, 2026-07-01T00:00:00Z); set decision=t+60s; report support-window rows and separately the study subset with bar_start in [2024-05-01T00:00:00Z, 2026-07-01T00:00:00Z). Include a match only when decision < 2026-07-01T00:00:00Z. Match GC ts_recv in [t, decision). Read no other OANDA columns.",
+    "timestamp": "Use Databento ts_recv, not ts_event; count and exclude F_BAD_TS_RECV from causal matches.",
+    "contracts": "Report each dated outright separately. Union is an upper bound only, not a roll rule and not feature-ready.",
+    "gaps": "Use America/Chicago. Regular Gold Globex schedule is Sun 17:00 through Fri 16:00 CT with daily 16:00-17:00 maintenance. Use official CME Gold schedule links below. Apply holiday exceptions only with exact official GC/Metals hours; otherwise label SCHEDULE_UNKNOWN. No observed event during an open interval is event silence, not proof of data loss. Sequence jumps are not gap proof.",
+    "quality": "Count F_MAYBE_BAD_BOOK as vendor channel-gap evidence; do not claim book recovery/OFI validity. Keep side N unknown, report its trade/volume share separately; delta is known B-A only; action F is passive.",
+    "cme_refs": [
+      "https://www.cmegroup.com/trading/metals/files/fact-card-gold-futures-options.pdf",
+      "https://www.cmegroup.com/trading-hours.html"
+    ],
+    "databento_ref": "https://databento.com/docs/standards-and-conventions/common-fields-enums-types",
+    "thresholds": "All counts/rates descriptive; no tolerance or source-admission threshold is chosen.",
+    "gc_columns_only": [
+      "ts_recv",
+      "symbol",
+      "instrument_id",
+      "publisher_id",
+      "action",
+      "side",
+      "size",
+      "flags"
+    ],
+    "excluded_gc_fields": [
+      "ts_event",
+      "price",
+      "bid_px_00",
+      "ask_px_00",
+      "bid_sz_00",
+      "ask_sz_00"
+    ]
+  },
+  "output": {
+    "run_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003",
+    "files": [
+      "AUDIT_RESULTS/RESULT.json",
+      "AUDIT_RESULTS/TERMINAL.json",
+      "POST_AUDIT_RECONCILIATION.json"
+    ],
+    "success_status": "SOURCE_DISPOSITION_COMPLETE_NOT_ADMITTED",
+    "model_admission": false
+  },
+  "implementation": {
+    "required_paths": [
+      "gx1/contracts/gc_source_disposition_v1.py",
+      "gx1/scripts/gc_source_disposition_v1.py",
+      "tests/test_gc_source_disposition_v1.py"
+    ],
+    "tests": [
+      "60-second availability and strict TEST boundary",
+      "bad receive-time exclusion",
+      "unknown-side accounting",
+      "per-symbol/union without contract blending",
+      "scheduled versus unknown/event-silent intervals"
+    ],
+    "runner": "scripts/gx1_capped_run.sh --class audit",
+    "limits": {
+      "memory_max_and_high": "4G",
+      "swap_max": "512M",
+      "cpu_affinity": "0-7",
+      "numerical_threads": 1,
+      "tasks_max": 64,
+      "invocations": 1
+    },
+    "fail_closed": [
+      "Freshly verify every input hash before parse",
+      "No partial result on failure",
+      "No network calls, spending, new downloads, fit, TEST, features, admission, or trading"
+    ]
+  }
+}
