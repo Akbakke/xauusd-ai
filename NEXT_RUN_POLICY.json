@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Plan 003 one-use authorization has been consumed and invocation 1 of 1 claimed for immediate launch through the capped audit wrapper. No Databento requests or spending; no features, fit, TEST, native changes, broker/live/paper or trading.",
+    "current_activity": "Plan 003 executed once and completed 2026-10-16T18:43:54Z under the 4-GiB audit cap. All 66 GC source/receipt pairs and the OANDA manifest plus three time-only partitions were reverified after scanning. The structural result is SOURCE_DISPOSITION_COMPLETE_NOT_ADMITTED; no source admission, features, fit, TEST, Databento requests or spending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -110,7 +110,7 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "SOURCE_QUALIFICATION_INCOMPLETE_AFTER_STRUCTURAL_AUDIT",
+    "gc_goal_status": "SOURCE_QUALIFICATION_INCOMPLETE_AFTER_DISPOSITION_003",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "gc_goal_progress": [
@@ -176,7 +176,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The single claimed plan-003 audit is pending execution and terminal reconciliation; no relaunch authority.",
+    "current_blocker": "GC source qualification/admission remains incomplete: plan 003 measured timestamp overlap and disposition only, chose no admission threshold, and explicitly did not admit the source. Any next source audit or feature work needs a new plan and explicit authorization.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7651,7 +7651,7 @@
         "consumed_utc": "2026-10-16T17:00:53.738669+00:00"
       }
     },
-    "next_action": "Launch the one claimed audit with scripts/gx1_capped_run.sh --class audit; then verify result and terminal receipts, mark invocation complete, and update handover."
+    "next_action": "Review the plan-003 result and decide whether to design a separate source-admission test. Keep feature building, fit, TEST, native changes, broker/live/paper and trading closed."
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -7894,17 +7894,41 @@
     "source_disposition_plan_003": {
       "path": "configs/research/GC_SOURCE_DISPOSITION_20261016_003.json",
       "sha256": "7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082",
-      "status": "EXECUTION_CLAIMED",
+      "status": "SOURCE_DISPOSITION_COMPLETE_NOT_ADMITTED",
       "execution_authorized": false,
       "authorized_invocations": 1,
       "max_invocations_after_fresh_approval": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/OPERATOR_APPROVAL.json",
       "approval_receipt_sha256": "6bd49d90767016c3baa7237f23e9e13a02dff06489543071d1630013d9769406",
       "approved_utc": "2026-10-16T18:06:09Z",
       "claimed_invocations": 1,
       "execution_claimed_utc": "2026-10-16T18:20:49Z",
-      "execution_claim_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/EXECUTION_CLAIM.json"
+      "execution_claim_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/EXECUTION_CLAIM.json",
+      "finished_utc": "2026-10-16T18:43:54Z",
+      "execution_binding_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/EXECUTION_BINDING.json",
+      "execution_binding_sha256": "89f2c0e0f412accd3b33c26742b92c81afe9f0ed378d4b4ea36114f5fc9f9b90",
+      "result_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/AUDIT_RESULTS/RESULT.json",
+      "result_sha256": "8f1072f9cadfa060e6748722d1cc775af6bf80fed529274ffb400e121594e4a1",
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/AUDIT_RESULTS/TERMINAL.json",
+      "terminal_sha256": "86ccde635551227c1953e573f5bcfc814d3f385dec7e9de2ced7b6f8288717db",
+      "reconciliation_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/POST_AUDIT_RECONCILIATION.json",
+      "reconciliation_sha256": "a736023ced431292a25af61a8e87b41a7fec2dd56874399be43e2e0587e2925c",
+      "source_admitted": false,
+      "summary": {
+        "gc_source_files": 66,
+        "dated_outright_symbols": 15,
+        "gc_records_sum_by_symbol": 892100712,
+        "gc_trade_records_sum_by_symbol": 62783740,
+        "study_oanda_m1_bars": 765840,
+        "study_bars_with_any_gc_record": 765111,
+        "study_bars_with_any_gc_trade": 764277,
+        "strict_boundary_excluded_bars": 1,
+        "bad_receive_timestamp_records": 1130,
+        "possible_bad_book_records": 182999,
+        "regular_template_event_silent_hours_sum_by_symbol": 392,
+        "historical_holiday_exception_status": "SCHEDULE_UNKNOWN"
+      }
     },
     "source_qualification_execution": {
       "status": "STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED",
@@ -9938,5 +9962,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-16T18:20:49Z"
+  "updated_utc": "2026-10-16T18:43:54Z"
 }

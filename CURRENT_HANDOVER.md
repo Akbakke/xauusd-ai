@@ -238,22 +238,40 @@ Brukeren godkjente én lokal kjøring av
 (sha256 7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082),
 kvittering /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/OPERATOR_APPROVAL.json
 (sha256 6bd49d90767016c3baa7237f23e9e13a02dff06489543071d1630013d9769406).
-Engangsgodkjenningen gjelder bare den frosne kilde-disposisjonsauditen, og
-policyen har nå konsumert den for kjøring 1 av 1. Implementasjonen er pushed
-på `work/gx1-current` (commit 96c3111d); fem fokuserte syntetiske tester og
-syntakskontroll passerer. SHA-256: kontrakt
-`b2ebde8204e842062a23f9484c2ccdfbd384779c7d7d1389dfaa67b9beb95aae`, runner
-`e6ffd90f805ca18e7bea6ff7c59876e10774c728d89305a603e41550e7ed31f3`, tester
-`33b77dda20b0f93d400881835eb9699c7085595b359bf66e8d982ae7f00c7ef1`.
-Kjøringskvitteringen binder disse hashene, policy, plan og godkjenning. Kjøringen
-starter én gang via `scripts/gx1_capped_run.sh --class audit`; ingen relansering
-uten en ny uttrykkelig godkjenning.
-Kjøringen skal bruke `scripts/gx1_capped_run.sh --class audit` med 4-GiB
-minne, 512-MiB swap, CPU-affinity 0-7, én numerisk tråd per worker og
-`TasksMax=64`. Ingen nye Databento-kall eller utgifter, OANDA-priser/volum/
-utfall, featurebygging, fit, TEST, modelladgang, native endringer,
-broker/live/paper eller handel. Kildekvalifisering er fortsatt ufullstendig;
-resultatet kan ikke innrømme kilden. 180 d-fasen er desarmert.
+Engangsgodkjenningen gjaldt bare plan 003 og er konsumert. Koden ble pushed
+på `work/gx1-current` i commits 96c3111d (implementasjon) og 7af27af3
+(engangskrav). Fem fokuserte syntetiske tester passerer. Auditten fullførte
+2026-10-16 18:43:54Z som invocation 1 av 1 via
+`scripts/gx1_capped_run.sh --class audit`: MemoryMax/High 4 GiB, swap 512 MiB,
+CPU 0-7, åtte parsearbeidere med én numerisk tråd hver, TasksMax 64.
+
+Resultatet
+/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/AUDIT_RESULTS/RESULT.json
+(sha256 8f1072f9cadfa060e6748722d1cc775af6bf80fed529274ffb400e121594e4a1)
+er SOURCE_DISPOSITION_COMPLETE_NOT_ADMITTED. Terminalen
+(/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/AUDIT_RESULTS/TERMINAL.json,
+sha256 86ccde635551227c1953e573f5bcfc814d3f385dec7e9de2ced7b6f8288717db)
+og etterkontrollen
+(/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/POST_AUDIT_RECONCILIATION.json,
+sha256 a736023ced431292a25af61a8e87b41a7fec2dd56874399be43e2e0587e2925c)
+bekrefter exit 0 og ny hashverifisering av 66/66 GC-filer og kvitteringer,
+OANDA-manifestet og alle tre Parquet-partisjonene. Samlet ble 892100712 rader
+og 62783740 trade-rader telt hver for seg per outright.
+
+I 26-måneders studieperioden hadde 765111 av 765840 OANDA M1-starttider minst
+én matchende god GC ts_recv; 764277 hadde minst én T-handel. Siste M1-bar ved
+grensen ble ekskludert fordi beslutningstidspunktet ikke var strengt før
+2026-07-01. Unionen teller unike OANDA-minutter berørt av minst én kontrakt;
+den er en øvre grense, ikke en rullet GC-serie. 1130 F_BAD_TS_RECV-rader ble
+talt og ekskludert fra kausal matching; 182999 F_MAYBE_BAD_BOOK-flagg ble
+telt uten å hevde gjenopprettet bok/gyldig OFI. 392 regelmal-åpne timebøtter
+uten god receive-hendelse er event-stille; historiske helligdagstilpasninger er
+SCHEDULE_UNKNOWN, og dette er ikke bevis på pakketap.
+
+Ingen Databento-kall eller utgifter, OANDA-priser/volum/utfall, featurebygging,
+fit, TEST, modelladgang, native endringer, broker/live/paper eller handel.
+Kildekvalifisering er fortsatt ufullstendig og kilden er ikke innrømmet.
+Ingen relansering av plan 003; videre kildearbeid krever et nytt vedtak.
 
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
