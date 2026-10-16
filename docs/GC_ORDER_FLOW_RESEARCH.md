@@ -391,3 +391,25 @@ under capped audit. JSON/syntaks, manifest-/resultathasher, uendrede kodeeiere,
 lukket trening/TEST og stale-path-søk i de endrede filene er kontrollert.
 Ingen ny parser-/modellkode ble endret. Feil/avbrutte prefiks og den korrigerte
 prisetikettens originalkvitteringer er beholdt uten omskriving eller sletting.
+
+## Kontinuerlig kildeadmisjon etter operatørbestillingen 16.10
+
+Plan 004 er en ny lokal engangsplan, ikke en relansering. Den bygger én
+kontraktidentitet per UTC-minutt fra forrige fullførte døgns observerte rå
+T-volum med 60 sekunders tilgjengelighet, monotont forfall og eksplisitt
+initialt manglende valg. OHLCV-1d brukes ikke uten dokumentert historisk
+publisering/versjon. Dette er UTC-døgn, ikke børsdøgn.
+
+Kildeeieren `gc_continuous_source_v1` eier rulling og per-indikator-inputmasker.
+Den er en ny avgrenset autoritet; 003-eierens kilde-, tid- og hashkontroller
+gjenbrukes. Separate ADMIT/REJECT gjelder bare maskerte observerte data, med
+støtte i alle 26 forhåndsvalgte måneder og ingen upålitelig Trade-klokke i
+potensielt valgte filer. Inputmasker og reell dekning publiseres også ved
+REJECT. Ingen toleranse tilpasses. Profil/relativ CVD må senere nullstille ved
+UTC-døgn, skifte og ugyldige/stille minutter; ingen komplett sesjon hevdes.
+
+Sweep over flere boknivåer og institusjonell order-block-sannhet får REJECT
+med MBP-1. Prisstrukturer med volumstøtte må formuleres kausalt i eksisterende
+SMC-eier. Dette kildearbeidet bygger ingen indikatorverdier og åpner ingen fit,
+TEST, økonomi eller native endring. Kjøring, artefakter og gjeldende status
+bokføres i NEXT_RUN_POLICY.json og CURRENT_HANDOVER.md.

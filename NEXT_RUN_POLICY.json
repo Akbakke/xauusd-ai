@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Review the prepared local-only plan configs/research/GC_SOURCE_DISPOSITION_20261016_003.json sha256=7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082. Plan 003 is not authorized for execution; plan 002 approval is consumed. Any new one-off execution requires fresh explicit operator approval. No new Databento requests or spending, features, fit, TEST, native changes, broker/live/paper or trading.",
+  "next_action": "Execute plan 004 once through the existing 4-GiB audit wrapper with frozen source and binding; preserve any REJECT.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Plan 003 executed once and completed 2026-10-16T18:43:54Z under the 4-GiB audit cap. All 66 GC source/receipt pairs and the OANDA manifest plus three time-only partitions were reverified after scanning. The structural result is SOURCE_DISPOSITION_COMPLETE_NOT_ADMITTED; no source admission, features, fit, TEST, Databento requests or spending.",
+    "current_activity": "Implementing and freezing new local-only plan 004 under the current operator request: causal raw-volume roll and per-indicator input masks/admission. No training or source completeness claim.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -110,7 +110,7 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "SOURCE_QUALIFICATION_INCOMPLETE_AFTER_DISPOSITION_003",
+    "gc_goal_status": "CONTINUOUS_SOURCE_ADMISSION_004_CLAIMED_NOT_STARTED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "gc_goal_progress": [
@@ -176,7 +176,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "GC source qualification/admission remains incomplete: plan 003 measured timestamp overlap and disposition only, chose no admission threshold, and explicitly did not admit the source. Any next source audit or feature work needs a new plan and explicit authorization.",
+    "current_blocker": "Await terminal plan-004 indicator-specific admission before constructing indicator feature values or preparing a source-bound learning recipe.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7615,8 +7615,8 @@
     },
     "gc_goal_resume_authorization": {
       "received_date": "2026-10-16",
-      "operator_request": "Ja, 26 da. Da fortsetter vi.",
-      "authorized_scope": "Step 1 only: qualify already downloaded 26-calendar-month GC data using local files and bounded audit routines.",
+      "operator_request": "La oss implementere det nye GC datasettet som vi lastet ned så bruker vi volume, order block og ALT vi kan få ut av dette og så trener vi igjen",
+      "authorized_scope": "One new local-only raw-data pass, continuous series and indicator-specific source admission; no indicator feature values, fit, TEST, economics or native changes.",
       "new_databento_requests_allowed": false,
       "additional_spending_allowed": false,
       "features_allowed": false,
@@ -7627,6 +7627,17 @@
       "new_one_off_audit_plan_execution_allowed": false,
       "new_one_off_audit_approval": {
         "received_date": "2026-10-16",
+        "operator_response": "La oss implementere det nye GC datasettet som vi lastet ned så bruker vi volume, order block og ALT vi kan få ut av dette og så trener vi igjen",
+        "approved_plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
+        "approved_plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
+        "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/OPERATOR_APPROVAL.json",
+        "approval_receipt_sha256": "6fb65ab332f31bec4f7580cf96dc26e8dad62d91d8cd58184b07a378aeeb912c",
+        "single_use": true,
+        "scope": "One new local-only raw-data pass, continuous series and indicator-specific source admission; no indicator feature values, fit, TEST, economics or native changes."
+      },
+      "new_one_off_audit_plan_execution_consumed": true,
+      "previous_one_off_audit_approval": {
+        "received_date": "2026-10-16",
         "operator_response": "Godkjenn",
         "approved_plan_path": "configs/research/GC_SOURCE_DISPOSITION_20261016_003.json",
         "approved_plan_sha256": "7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082",
@@ -7636,29 +7647,34 @@
         "single_use": true,
         "scope": "One local-only execution of plan 003 against the already downloaded, hash-bound GC MBP-1 files and existing OANDA M1 time column, through the GX1 4-GiB capped audit wrapper.",
         "consumed_utc": "2026-10-16T18:20:49Z"
-      },
-      "new_one_off_audit_plan_execution_consumed": true,
-      "previous_one_off_audit_approval": {
-        "received_date": "2026-10-16",
-        "operator_response": "Ja",
-        "approved_plan_path": "configs/research/GC_SOURCE_AUDIT_20261016_002.json",
-        "approved_plan_sha256": "3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d",
-        "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json",
-        "approval_receipt_sha256": "799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376",
-        "approved_utc": "2026-10-16T10:30:36.753163+00:00",
-        "single_use": true,
-        "scope": "One local-only execution of plan 002 through the 4-GiB capped audit wrapper; no new Databento calls or spending, features, fit, TEST, native changes, broker/live/paper or trading.",
-        "consumed_utc": "2026-10-16T17:00:53.738669+00:00"
       }
     },
-    "next_action": "Review the plan-003 result and decide whether to design a separate source-admission test. Keep feature building, fit, TEST, native changes, broker/live/paper and trading closed."
+    "next_action": "Execute plan 004 once through the existing 4-GiB audit wrapper with frozen source and binding; preserve any REJECT.",
+    "gc_continuous_source_plan_004": {
+      "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
+      "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
+      "status": "EXECUTION_CLAIMED",
+      "execution_authorized": false,
+      "authorized_invocations": 1,
+      "claimed_invocations": 1,
+      "completed_invocations": 0,
+      "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/OPERATOR_APPROVAL.json",
+      "approval_receipt_sha256": "6fb65ab332f31bec4f7580cf96dc26e8dad62d91d8cd58184b07a378aeeb912c",
+      "binding_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/EXECUTION_BINDING.json",
+      "claim_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/EXECUTION_CLAIM.json",
+      "scope": "One new local-only raw-data pass, continuous series and indicator-specific source admission; no indicator feature values, fit, TEST, economics or native changes.",
+      "relaunch_authorized": false,
+      "training_authorized": false,
+      "test_authorized": false,
+      "economics_authorized": false
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "SOURCE_QUALIFICATION_INCOMPLETE_AFTER_STRUCTURAL_AUDIT",
+    "status": "CONTINUOUS_SOURCE_ADMISSION_004_CLAIMED_NOT_STARTED",
     "goal_execution_requested": true,
     "pause_request_owner": "current_work.gc_goal_resume_authorization",
-    "pause_scope": "The one-off approval for GC_SOURCE_AUDIT_20261016_002 is consumed. Its structural audit completed, but source qualification remains incomplete. Plan 003 is prepared for review and is not authorized for execution; its hash-bound inputs and method are in configs/research/GC_SOURCE_DISPOSITION_20261016_003.json (sha256 7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082). No new Databento requests or spending; steps 2-4, features, fit, TEST, native changes, broker/live/paper and trading remain paused.",
+    "pause_scope": "Current user request resumes local continuous-source admission via new plan 004 only. Old plans 001/002/003 remain consumed. No new vendor requests/spending, feature values, fit, TEST, economics, native changes or trading.",
     "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig. 15.10.2026: last ned det avgrensede 26-månedersdatasettet innenfor et absolutt tak på USD 120; bruk kun rapporterte gratis Databento-kreditter. 16.10.2026: «Ja, 26 da. Da fortsetter vi»; narrowly resumes local source qualification (step 1) only.",
     "required_steps": [
       1,
@@ -7983,7 +7999,26 @@
         "dated_symbol_mapping_crosswalk": "PASS",
         "oanda_m1_timestamp_overlap_measured": false
       }
-    }
+    },
+    "continuous_source_admission_plan_004": {
+      "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
+      "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
+      "status": "EXECUTION_CLAIMED",
+      "execution_authorized": false,
+      "authorized_invocations": 1,
+      "claimed_invocations": 1,
+      "completed_invocations": 0,
+      "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/OPERATOR_APPROVAL.json",
+      "approval_receipt_sha256": "6fb65ab332f31bec4f7580cf96dc26e8dad62d91d8cd58184b07a378aeeb912c",
+      "binding_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/EXECUTION_BINDING.json",
+      "claim_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/EXECUTION_CLAIM.json",
+      "scope": "One new local-only raw-data pass, continuous series and indicator-specific source admission; no indicator feature values, fit, TEST, economics or native changes.",
+      "relaunch_authorized": false,
+      "training_authorized": false,
+      "test_authorized": false,
+      "economics_authorized": false
+    },
+    "next_action": "Execute plan 004 once through the existing 4-GiB audit wrapper with frozen source and binding; preserve any REJECT."
   },
   "native_v38_execution_20261005": {
     "status": "INTERRUPTED_FOR_OPERATOR_REQUESTED_REPOSITORY_CLEANUP",
@@ -9962,5 +9997,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-16T18:43:54Z"
+  "updated_utc": "2026-10-16T19:40:31.942392+00:00"
 }

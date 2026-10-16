@@ -273,6 +273,35 @@ fit, TEST, modelladgang, native endringer, broker/live/paper eller handel.
 Kildekvalifisering er fortsatt ufullstendig og kilden er ikke innrømmet.
 Ingen relansering av plan 003; videre kildearbeid krever et nytt vedtak.
 
+## GC kontinuerlig kilde: nytt operatørvedtak og plan 004
+
+Brukeren bestilte implementasjon av eksisterende GC-data med volum/order blocks
+og senere ny trening. Den siterte rekkefølgen respekteres: først kausal serie,
+masker, faktisk dekning og ADMIT/REJECT per indikator; TEST, fit og økonomi er
+fortsatt stengt i dette trinnet. Dette er et nytt vedtak, ikke gjenbruk av 003.
+
+Plan `configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json` (sha256 8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf) er claimet for én lokal passering via
+4-GiB auditvakt. Kildeeier: `gx1/contracts/gc_continuous_source_v1.py`;
+runner: `gx1/scripts/gc_continuous_source_v1.py`. Den eksisterende 003-eierens
+hash-/OANDA-/cgroup-kontroller gjenbrukes. Ingen Databento-kall eller kostnad.
+
+Kontrakt velges ved 00:01 UTC fra sist avsluttede UTC-døgns observerte rå
+T-volum, aldri samme dags sluttvolum og aldri bakover i forfall. Første døgn
+har ingen valgt kontrakt; april-OHLCV brukes ikke som oppfunnet intraday-
+warmup eller historisk publiseringstid. Det faste universet er de 15 hentede
+kontraktene; ingen full-univers-/komplett-feed-påstand. Ukjent side bevares.
+Gap, ugyldige handler, snapshots, gjentatte T-signaturer og klokkeproblemer
+maskeres. Upålitelig T-klokke i en potensielt brukt fil gir global REJECT
+for kausale handelsindikatorer uten gjettet lokalisering. Hver av de 26
+månedene må ha gyldige rader; ingen prosentterskel er tilpasset.
+
+Separat resultat for volum/profil, footprint, delta, relativ segment-CVD,
+sweeps og order blocks. MBP-1 kan ikke bevise flernivå-/enkeltordresweeps
+eller institusjonelle order blocks. Prisbaserte mønstre krever senere egen
+kausal formel i eksisterende SMC-eier. Ingen indikatorverdier bygges før
+kildeavgjørelsen. OANDA leses fortsatt bare som M1-tid; native radparitet,
+læring, generalisering og økonomi er ikke bevist.
+
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
 Tre forhåndsregistrerte vindusfaser i spec ENTRY_D1_HORIZON_LEARNING_STUDY_

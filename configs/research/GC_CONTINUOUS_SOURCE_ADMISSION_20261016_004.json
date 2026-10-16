@@ -1,0 +1,110 @@
+{
+  "schema_version": "gx1_gc_continuous_source_admission_plan_v1",
+  "plan_id": "GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004",
+  "research_id": "GC_ORDER_FLOW_RESEARCH_001",
+  "created_utc": "2026-10-16T19:37:00.440945+00:00",
+  "authorization": {
+    "operator_requested": true,
+    "max_invocations": 1,
+    "old_approvals_reusable": false,
+    "scope": "One new local-only raw-data pass, continuous series and indicator-specific source admission; no indicator feature values, fit, TEST, economics or native changes."
+  },
+  "inputs": {
+    "gc_plan": {
+      "path": "configs/research/GC_SOURCE_AUDIT_20261016_002.json",
+      "sha256": "3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d",
+      "files": 66,
+      "rule": "Use and reverify the exact MBP-1 file/receipt SHA-256 bindings from this frozen spec."
+    },
+    "gc_result": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json",
+      "sha256": "c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab"
+    },
+    "gc_reconciliation": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json",
+      "sha256": "14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda"
+    },
+    "oanda_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/MANIFEST.json",
+      "sha256": "61bcf169a4dcdfaf09fee981ce511fbeaf9efdb88b8a1b338ea7796e50b133b2",
+      "field": "time",
+      "semantics": "bar_start_utc",
+      "availability_offset_seconds": 60,
+      "read_only_column": "time",
+      "partitions": [
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2024/part-000.parquet",
+          "sha256": "2776a1cb17b915d506eaf0d7ed5323ba975e0d0d1c52c0c02d2da20589d1c41a"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2025/part-000.parquet",
+          "sha256": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2026/part-000.parquet",
+          "sha256": "52eecadc8b9ff4a4522ca5003656a91e6250f7accbacdfd73587ba14b375ec1a"
+        }
+      ]
+    },
+    "source_inventory": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN.json",
+      "sha256": "f73165d365c9a3258c37215bab288dce9af1ec5b80bfd4e65cbab4f45d33c466"
+    }
+  },
+  "expected_source_records": 892100712,
+  "study_window_utc": [
+    "2024-05-01T00:00:00Z",
+    "2026-07-01T00:00:00Z"
+  ],
+  "method": {
+    "contract_choice": "At 00:01 UTC use largest observed valid T-record contract volume from previous complete UTC day. Initial missing/tied volumes mean no initial choice. Later ties/no-trade days retain prior identity and basis. Never roll backward in maturity. No same-day-volume choice, no substitution on missing current data. Candidate universe is the fixed 15 downloaded outrights, not all GC contracts.",
+    "volume_source": "Raw MBP-1 only. T is trade, F is passive. Integer counts; exclude invalid trades, snapshots, unreliable receive clocks from volume. Unknown aggressors count in total volume separately.",
+    "initialization": "MBP-1 starts 2024-05-01. No April intraday volume exists in this pass; first UTC day is unselected, not warmed with future daily OHLCV. OHLCV-1d is not used: UTC aggregation is documented but historical publication/version timestamps are unproven.",
+    "metadata": "Hash reverify 23 downloaded definition files and receipts. Require unique identity, maturity and tick size per outright across all definitions. These immutable instrument attributes are not a changing as-of signal.",
+    "masks": "Exact pre-TEST OANDA M1 time column only; decision=start+60s strictly before TEST. One selected raw contract per minute. Volume/profile require positive observed valid trades and zero invalid trade, gap, bad-clock-trade or snapshot-trade count in the minute. Footprint/delta/relative CVD additionally require zero unknown-aggressor volume. Missing or event-silent rows are invalid, not zero flow. Repeated consecutive T signatures (ts_recv, ts_event, sequence, action, side, price, size, flags) invalidate that minute; no inferred de-duplication or trade identity claim.",
+    "admission": "Separate ADMIT/REJECT. ADMIT only for masked observed-record inputs, at least one valid minute in each fixed 26 study months and zero unreliable-ts_recv Trade anywhere in a file potentially used by selected contracts. Clock errors are not localized with guessed padding. Every mask and coverage count is retained even after REJECT. No coverage-percent tolerance is fitted.",
+    "state": "Profile/CVD construction remains closed until admission. Candidate relative state must reset on UTC date, contract switch, invalid/silent minute; never blend contracts or backadjust prices. UTC-day segments are not complete exchange sessions.",
+    "sweeps": "REJECT multi-level/individual-order sweeps: MBP-1 contains only BBO depth. A price-sweep proxy is a separate formula, not admitted here.",
+    "order_blocks": "REJECT institutional order-block truth. Price structure with volume support may later extend existing SMC owner using a frozen causal formula; no inferred hidden orders.",
+    "m5_coverage": "Also report complete five-minute input windows requiring all five eligible M1 masks and the same selected contract. Native dataset row mapping/parity is not proven by this audit."
+  },
+  "interpretation": {
+    "evidence": "real source bytes; structural suitability only",
+    "full_tape_completeness_proven": false,
+    "historical_holiday_schedule": "SCHEDULE_UNKNOWN",
+    "native_training_ready": false,
+    "learning_or_profitability_proven": false
+  },
+  "forbidden": [
+    "Databento/account/data API requests",
+    "new spending",
+    "OANDA prices/volume/outcomes",
+    "indicator feature values",
+    "fit",
+    "TEST",
+    "economic evaluation",
+    "native changes",
+    "broker/live/paper/trading"
+  ],
+  "limits": {
+    "runner": "scripts/gx1_capped_run.sh --class audit",
+    "memory": "4G",
+    "swap": "512M",
+    "cpu_affinity": "0-7",
+    "worker_processes": 8,
+    "numerical_threads": 1,
+    "tasks_max": 64
+  },
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004",
+  "output_artifacts": [
+    "RESULTS/SELECTED_M1_INPUT_MASKS.parquet",
+    "RESULTS/ROLL_SCHEDULE.json",
+    "RESULTS/RESULT.json",
+    "RESULTS/TERMINAL.json"
+  ],
+  "official_semantics_refs": [
+    "https://databento.com/docs/schemas-and-data-formats/ohlcv",
+    "https://databento.com/docs/schemas-and-data-formats/mbp-1",
+    "https://databento.com/docs/standards-and-conventions/common-fields-enums-types"
+  ]
+}
