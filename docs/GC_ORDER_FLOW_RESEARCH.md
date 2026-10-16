@@ -116,9 +116,21 @@ uten symlinks. Ingen kildeintervall kan gå inn i TEST fra 01.07.2026.
 En senere, immutabel kjøreplan binder faktiske files, kildefiler/hasher og en
 ny outputidentitet. Dagens tomme kildeplan må ikke presenteres som slik binding.
 
+Den første audit-eieren kunne rapportere bare samlet største mottaksgap og
+kontrollerte ikke CSV-feltet `symbol` mot kontrakten. Før fullfilpasseringen
+16.10.2026 ble samme eksisterende eier derfor oppdatert til
+`gx1_gc_order_flow_source_audit_v2`: hver rad må matche bundet `raw_symbol`, og
+eieren teller mottaksdatoer og hendelsesdatoer i UTC, med daglig handling,
+handler, aggressorvolum, boktilgjengelighet og kvalitetsflagg. Dette gir målt
+dagsaktivitet i én passering; det klassifiserer ikke alene markedsstengninger
+eller beviser kontinuerlig dekning. Den kjørbare, hash-bundne filspesifikasjonen
+ligger separat i `configs/research/GC_SOURCE_AUDIT_20261016_001.json`; den gamle
+`files=[]`-protokollen forblir en ufullstendig plan, ikke audit-input.
+
 Auditen rapporterer handlingstyper, ekte aggressorvolum B/A, ukjent N-volum,
-tidsrekkefølge, sekvensendringer, største mottaksgap, snapshots, vendorflagg
-for dårlig klokke/ordrebok og tilgjengelig/to-sidig/krysset/låst BBO.
+tidsrekkefølge, sekvensendringer, største mottaksgap, UTC-dagsteller,
+snapshots, vendorflagg for dårlig klokke/ordrebok og tilgjengelig/to-sidig/
+krysset/låst BBO.
 Ukjent side blir aldri estimert fra prisretning. Delta er B-volum minus
 A-volum for Trade-rader; unknown-volum rapporteres ved siden av.
 Fill er passiv side og kan ikke telles som en ekstra aggressorhandel.

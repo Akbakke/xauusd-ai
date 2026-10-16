@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable, Mapping
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 import re
 from typing import Any
@@ -19,7 +19,7 @@ from typing import Any
 from gx1.contracts.oanda_history_ingest_approval_v1 import OANDA_HISTORY_PRETEST_END_UTC
 
 
-GC_SOURCE_SCHEMA = "gx1_gc_order_flow_source_audit_v1"
+GC_SOURCE_SCHEMA = "gx1_gc_order_flow_source_audit_v2"
 GC_RESEARCH_ID = "GC_ORDER_FLOW_RESEARCH_001"
 GC_DATASET = "GLBX.MDP3"
 GC_LOCAL_SOURCE_ROOT = Path("/home/andre2/GX1_DATA/research") / GC_RESEARCH_ID
@@ -62,7 +62,12 @@ def _integer(value: Any, name: str, *, maximum: int = UNDEF_TIMESTAMP) -> int:
 def required_gc_fields(schema: str) -> tuple[str, ...]:
     if schema not in GC_SCHEMAS:
         raise ValueError("GC_SCHEMA_UNSUPPORTED")
-    return COMMON_FIELDS + (() if schema == "trades" else BOOK_FIELDS)
+    return COMMON_FIELDS + (() if schema == "trades" else BOOK_FIELDS) + ("symbol",)
+
+
+def _utc_date(timestamp_ns: int) -> str:
+    """Convert an integer UNIX nanosecond timestamp to an exact UTC calendar date."""
+    return (date(1970, 1, 1) + timedelta(days=timestamp_ns // 86_400_000_000_000)).isoformat()
 
 
 def require_gc_file_declaration(item: Mapping[str, Any]) -> dict[str, Any]:
@@ -111,19 +116,23 @@ def audit_gc_records(rows: Iterable[Mapping[str, Any]], declaration: Mapping[str
     previous_recv = previous_event = previous_sequence = None
     previous_row = None
     first_recv = last_recv = maximum_gap = None
+    receive_activity_by_utc_date: dict[str, Counter[str]] = {}
+    event_records_by_utc_date: Counter[str] = Counter()
     for row in rows:
         if counts["records"] >= item["max_records"]:
             raise ValueError("GC_RECORD_BUDGET_EXCEEDED_NO_PARTIAL_SUCCESS")
         if any(name not in row for name in fields) or None in row:
             raise ValueError("GC_REQUIRED_FIELDS_MISSING_OR_EXTRA_VALUES")
         action, side = row["action"], row["side"]
+        if row["symbol"] != item["raw_symbol"]:
+            raise ValueError("GC_RAW_SYMBOL_MAPPING_MISMATCH")
         allowed_actions = {"T"} if item["schema"] in {"trades", "tbbo"} else {"A", "C", "M", "R", "T", "N"}
         if action not in allowed_actions or side not in {"A", "B", "N"}:
             raise ValueError("GC_ACTION_OR_SIDE_INVALID")
         if action == "R" and side != "N":
             raise ValueError("GC_CLEAR_BOOK_SIDE_INVALID")
         numbers = {name: _integer(row[name], name, maximum=FIELD_MAXIMUM[name])
-                   for name in fields if name not in {"action", "side"}}
+                   for name in fields if name not in {"action", "side", "symbol"}}
         recv, event = numbers["ts_recv"], numbers["ts_event"]
         if (recv == 0 or event == 0 or recv == UNDEF_TIMESTAMP or event == UNDEF_TIMESTAMP
                 or not item["start_ns"] <= recv < item["end_ns"]):
@@ -145,10 +154,20 @@ def audit_gc_records(rows: Iterable[Mapping[str, Any]], declaration: Mapping[str
         counts["records"] += 1
         actions[action] += 1
         flags = numbers["flags"]
+        recv_date = _utc_date(recv)
+        event_date = _utc_date(event)
+        daily = receive_activity_by_utc_date.setdefault(recv_date, Counter())
+        event_records_by_utc_date[event_date] += 1
+        daily["records"] += 1
+        daily[f"action_{action}"] += 1
         counts["snapshot_records"] += bool(flags & F_SNAPSHOT)
         counts["bad_receive_timestamp_records"] += bool(flags & F_BAD_TS_RECV)
         counts["possible_bad_book_records"] += bool(flags & F_MAYBE_BAD_BOOK)
         counts["event_after_receive_records"] += int(event > recv)
+        daily["snapshot_records"] += int(bool(flags & F_SNAPSHOT))
+        daily["bad_receive_timestamp_records"] += int(bool(flags & F_BAD_TS_RECV))
+        daily["possible_bad_book_records"] += int(bool(flags & F_MAYBE_BAD_BOOK))
+        daily["event_after_receive_records"] += int(event > recv)
         fingerprint = tuple(row[name] for name in fields)
         counts["consecutive_identical_records"] += int(fingerprint == previous_row)
         if action == "T":
@@ -157,14 +176,24 @@ def audit_gc_records(rows: Iterable[Mapping[str, Any]], declaration: Mapping[str
             counts["trade_records"] += 1
             volumes[side] += numbers["size"]
             counts["unknown_aggressor_trades"] += int(side == "N")
+            daily["trade_records"] += 1
+            daily_key = {
+                "B": "buy_aggressor_volume_contracts",
+                "A": "sell_aggressor_volume_contracts",
+                "N": "unknown_aggressor_volume_contracts",
+            }[side]
+            daily[daily_key] += numbers["size"]
         if item["schema"] != "trades":
             bid, ask = numbers["bid_px_00"], numbers["ask_px_00"]
             missing = not (0 < bid < UNDEF_PRICE and 0 < ask < UNDEF_PRICE
                            and numbers["bid_sz_00"] > 0 and numbers["ask_sz_00"] > 0)
             counts["unavailable_two_sided_book_records"] += missing
+            daily["unavailable_two_sided_book_records"] += int(missing)
             if not missing:
                 counts["crossed_book_records"] += int(bid > ask)
                 counts["locked_book_records"] += int(bid == ask)
+                daily["crossed_book_records"] += int(bid > ask)
+                daily["locked_book_records"] += int(bid == ask)
         previous_recv, previous_event, previous_sequence = recv, event, numbers["sequence"]
         previous_row = fingerprint
     if not counts["records"]:
@@ -172,6 +201,11 @@ def audit_gc_records(rows: Iterable[Mapping[str, Any]], declaration: Mapping[str
     result = {
         "schema_version": GC_SOURCE_SCHEMA,
         "status": "STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED",
+        "daily_receive_activity_utc": {
+            day: dict(day_counts)
+            for day, day_counts in sorted(receive_activity_by_utc_date.items())
+        },
+        "daily_event_record_counts_utc": dict(sorted(event_records_by_utc_date.items())),
         "source_schema": item["schema"], "raw_symbol": item["raw_symbol"],
         "counters": dict(counts), "actions": dict(actions),
         "first_ts_recv_ns": first_recv, "last_ts_recv_ns": last_recv,

@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Databento 26M-kildehentingen er fullført: 79/79 eksisterende batchjobber, 63 nye datafiler, oppgitt actual_or_quoted-kostnad USD 119.65511028468609 mot hardgrense USD 120.00. Ingen nye batch-submit. Ikke start flere Databento-jobber eller pay-as-you-go. GC research forblir pauset; ingen featurebygging, fit, TEST, native endring eller trading uten nytt operatørvedtak.",
+  "next_action": "Databento GC 26M acquisition is complete. User resumed step 1 source qualification on already-downloaded local files only. Run the frozen GC_SOURCE_AUDIT_20261016_001 plan once through the capped 4-GiB CPU-audit route. No new Databento requests, pay-as-you-go, card charge, features, fits, TEST, native changes, or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Databento 26M-kildehenting fullført 2026-10-16 06:56:38 UTC. DOWNLOAD_SUMMARY.json: ALL_BATCH_JOBS_COMPLETE_FILES_DOWNLOADED; 79/79 fullført; pending 0; 63 newly_downloaded_data_files; actual_or_quoted_completed_job_cost_usd USD 119.65511028468609; hard cap USD 120.00. Ingen nye batch-submit. Gammel 250140100-byte .part-fil bevart uendret og ikke regnet som verifisert fil. Brukeren rapporterte USD 5 remaining credits; saldo ikke uavhengig verifisert.",
+    "current_activity": "GC research step 1 source qualification active on existing local files only. Inventory: 79/79 batch scopes, 66 MBP-1 files (20,038,896,092 local gzip bytes), 23 definition files and 23 ohlcv-1d files. Definition audit measured 1,420 rows and unique instrument_id/publisher_id mappings for 15 outright symbols. Frozen v2 MBP-1 audit spec is ready; full record/hash audit has not started; source_qualified=false. No new Databento requests or additional spending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -110,15 +110,21 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "paused",
+    "gc_goal_status": "SOURCE_QUALIFICATION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "gc_goal_progress": [
       {
         "step": 1,
-        "status": "BOUNDED_SOURCE_ACQUISITION_AUTHORIZED_PENDING",
+        "status": "SOURCE_QUALIFICATION_IN_PROGRESS",
         "completed": false,
-        "genuine_evidence": []
+        "genuine_evidence": [
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/DATABENTO_GC_26M_20261015_001/DOWNLOAD_SUMMARY.json: 79/79 jobs complete, 63 newly downloaded data files, reported total USD 119.65511028468609 against USD 120.00 cap; acquisition evidence only.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN.json sha256=f73165d365c9a3258c37215bab288dce9af1ec5b80bfd4e65cbab4f45d33c466: 79 scope manifests reconciled to 66 MBP-1, 23 definition, and 23 ohlcv-1d local gzip files; local MBP-1 SHA verification pending the capped audit.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_MAPPING_AUDIT.json sha256=b01144fed2dc9f47e414d83f6ed9d50e38b20f609eae2a2c7bc3471aee454a66: 1,420 rows across 23 definition files map 15 outright raw symbols to unique instrument_id/publisher_id pairs; no MBP-1 rows read in this mapping phase.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN_ERRATUM.json sha256=ad9a52f1919fa1ab13492d002eeb7758b19e234ef9b0d63de5e82d2b63e0f673: clarifies handling of the one pre-binding row preview; it remains in the later whole-file hash-verified audit.",
+          "configs/research/GC_SOURCE_AUDIT_20261016_001.json sha256=d3b0d9d2733482c4fe6fe621faa8330e9f1c1dc710763d967dc75a140e423110: frozen v2 spec binds 66 MBP-1 files, 15 definition mappings and 12 source owners; audit not yet run."
+        ]
       },
       {
         "step": 2,
@@ -163,7 +169,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Ingen gjenstående kildehentingsblokkering. GC research er fortsatt pauset og uten autorisasjon til featurebygging, fit eller TEST; ingen native endring, broker/live/paper eller handel. Ikke send nye batch-submit eller aktiver pay-as-you-go.",
+    "current_blocker": "Full hash-bound MBP-1 record audit and coverage/quality disposition remain pending. No further Databento calls or spending. Feature building, fit, TEST, native changes, broker/live/paper and trading remain unauthorized.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7599,15 +7605,27 @@
         "GC data: spending is closed (GX1_RULES/AGENTS: no spending); a purchase needs explicit operator approval and a manifest before fetch (rule 1)"
       ],
       "completed_utc": "2026-10-15T11:48:41.426730+00:00"
+    },
+    "gc_goal_resume_authorization": {
+      "received_date": "2026-10-16",
+      "operator_request": "Ja, 26 da. Da fortsetter vi.",
+      "authorized_scope": "Step 1 only: qualify already downloaded 26-calendar-month GC data using local files and bounded audit routines.",
+      "new_databento_requests_allowed": false,
+      "additional_spending_allowed": false,
+      "features_allowed": false,
+      "research_fit_allowed": false,
+      "test_access_allowed": false,
+      "native_changes_allowed": false,
+      "broker_live_paper_or_trading_allowed": false
     }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "PAUSED_BY_OPERATOR",
-    "goal_execution_requested": false,
-    "pause_request_owner": "current_work.operator_request",
-    "pause_scope": "Videre features, fits, native endringer, TEST og flyt-/order-block-utvidelser forblir pauset. Brukerens uttrykkelige bestilling 15.10.2026 gjenåpner bare denne ene avgrensede Databento-kildehentingen med hardt kostnadstak USD 120. Ingen Pay-as-you-go eller kortbelastning er autorisert.",
-    "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig. 15.10.2026: last ned det avgrensede 26-månedersdatasettet innenfor et absolutt tak på USD 120; bruk kun rapporterte gratis Databento-kreditter.",
+    "status": "SOURCE_QUALIFICATION_IN_PROGRESS",
+    "goal_execution_requested": true,
+    "pause_request_owner": "current_work.gc_goal_resume_authorization",
+    "pause_scope": "User request 2026-10-16 resumes step 1 only on already-downloaded local files. No new Databento request or spending. Steps 2-4, feature building, fit, TEST, native changes, broker/live/paper and trading remain paused.",
+    "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig. 15.10.2026: last ned det avgrensede 26-månedersdatasettet innenfor et absolutt tak på USD 120; bruk kun rapporterte gratis Databento-kreditter. 16.10.2026: «Ja, 26 da. Da fortsetter vi»; narrowly resumes local source qualification (step 1) only.",
     "required_steps": [
       1,
       2,
@@ -7830,15 +7848,31 @@
     "research_fit_ready": false,
     "snapshot_probe_is_native_v38_learning_evidence": false,
     "ninth_family_decided": false,
-    "source_fetch_authorized": true,
+    "source_fetch_authorized": false,
     "native_architecture_change_authorized": false,
     "native_training_authorized": false,
     "indicator_removal_authorized": false,
     "test_authorized": false,
     "broker_authorized": false,
     "trading_authorized": false,
-    "spending_authorized": true,
-    "spending_authorized_scope": "Kun Databento GLBX.MDP3 batch-data for de hash-bundne MBP-1-periodene og støtteperiodene i GC_ORDER_FLOW_RESEARCH_001; aggregert kostnad aldri over USD 120.00."
+    "spending_authorized": false,
+    "spending_authorized_scope": "None. The authorized download is complete; no further provider requests, pay-as-you-go, or card charge.",
+    "source_qualification_execution": {
+      "status": "IN_PROGRESS_LOCAL_INPUTS_ONLY",
+      "run_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001",
+      "input_binding_plan_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN.json",
+      "input_binding_plan_sha256": "f73165d365c9a3258c37215bab288dce9af1ec5b80bfd4e65cbab4f45d33c466",
+      "definition_mapping_audit_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_MAPPING_AUDIT.json",
+      "definition_mapping_audit_sha256": "b01144fed2dc9f47e414d83f6ed9d50e38b20f609eae2a2c7bc3471aee454a66",
+      "binding_plan_erratum_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN_ERRATUM.json",
+      "binding_plan_erratum_sha256": "ad9a52f1919fa1ab13492d002eeb7758b19e234ef9b0d63de5e82d2b63e0f673",
+      "full_mbp1_audit_started": false,
+      "source_qualified": false,
+      "new_databento_requests": 0,
+      "additional_spending_authorized_usd": "0",
+      "audit_spec_path": "configs/research/GC_SOURCE_AUDIT_20261016_001.json",
+      "audit_spec_sha256": "d3b0d9d2733482c4fe6fe621faa8330e9f1c1dc710763d967dc75a140e423110"
+    }
   },
   "native_v38_execution_20261005": {
     "status": "INTERRUPTED_FOR_OPERATOR_REQUESTED_REPOSITORY_CLEANUP",

@@ -30,7 +30,7 @@ def event(**changes):
     return {
         "ts_recv": 1_735_689_600_000_000_002, "ts_event": 1_735_689_600_000_000_001,
         "rtype": 1, "publisher_id": 1, "instrument_id": 42,
-        "action": "T", "side": "B", "price": 2_600_100_000_000, "size": 5,
+        "action": "T", "side": "B", "symbol": "GCZ5", "price": 2_600_100_000_000, "size": 5,
         "flags": 128, "sequence": 10, "bid_px_00": 2_600_000_000_000,
         "ask_px_00": 2_600_100_000_000, "bid_sz_00": 10, "ask_sz_00": 12,
         **changes,
@@ -48,6 +48,24 @@ def test_delta_uses_trade_aggressor_and_accounts_for_unknown_volume():
     assert report["known_aggressor_volume_share"] == 0.8
     assert report["admitted_to_model_or_economic_test"] is False
     assert report["continuous_coverage_proven"] is False
+
+
+def test_utc_daily_activity_keeps_receive_and_event_dates_separate_and_checks_symbol():
+    rows = [
+        event(ts_event=1_735_689_599_999_999_999),
+        event(ts_event=1_735_689_600_000_000_001, side="N", size=2,
+              flags=128 | F_BAD_TS_RECV | F_MAYBE_BAD_BOOK),
+    ]
+    report = audit_gc_records(rows, declaration())
+    daily = report["daily_receive_activity_utc"]["2025-01-01"]
+    assert daily["records"] == 2
+    assert daily["trade_records"] == 2
+    assert daily["unknown_aggressor_volume_contracts"] == 2
+    assert daily["bad_receive_timestamp_records"] == 1
+    assert daily["possible_bad_book_records"] == 1
+    assert report["daily_event_record_counts_utc"] == {"2024-12-31": 1, "2025-01-01": 1}
+    with pytest.raises(ValueError, match="RAW_SYMBOL_MAPPING_MISMATCH"):
+        audit_gc_records([event(symbol="GCM5")], declaration())
 
 
 def test_tbbo_never_claims_event_book_ofi_capability():
