@@ -8,6 +8,7 @@ import pytest
 
 from gx1.scripts.gc_order_flow_download_v1 import (
     _decompress_csv_zstd,
+    _download_verified,
     _index_jobs_by_id,
     _same_scope,
     HistoricalAPI,
@@ -62,6 +63,88 @@ def test_streaming_zstd_conversion_produces_hash_bound_gzip_csv(tmp_path: Path):
     assert digest == hashlib.sha256(output.read_bytes()).hexdigest()
     with gzip.open(output, "rt", encoding="utf-8") as stream:
         assert stream.readline().startswith("ts_recv,ts_event,")
+
+
+def test_download_retries_separately_and_preserves_existing_partial(tmp_path: Path, monkeypatch):
+    from types import SimpleNamespace
+
+    payload = b"verified vendor bytes"
+    destination = tmp_path / "sample.csv.zst"
+    original_partial = destination.with_name(destination.name + ".part")
+    retry_partial = destination.with_name(destination.name + ".retry.part")
+    original_partial.write_bytes(b"preserved incomplete transfer")
+    captured = []
+
+    class Response:
+        def __init__(self):
+            self.remaining = payload
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            return False
+
+        def read(self, size=-1):
+            block = self.remaining[:size]
+            self.remaining = self.remaining[size:]
+            return block
+
+    def fake_urlopen(request, timeout):
+        captured.append((request, timeout))
+        return Response()
+
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.urllib.request.urlopen",
+        fake_urlopen,
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.shutil.disk_usage",
+        lambda _: SimpleNamespace(free=10**12),
+    )
+    file_item = {
+        "urls": {"https": "https://hist.databento.com/v0/batch.download?job_id=job-one"},
+        "size": len(payload),
+        "hash": "sha256:" + hashlib.sha256(payload).hexdigest(),
+    }
+
+    _download_verified(HistoricalAPI("unused-test-key"), file_item, destination)
+
+    assert destination.read_bytes() == payload
+    assert original_partial.read_bytes() == b"preserved incomplete transfer"
+    assert not retry_partial.exists()
+    assert len(captured) == 1
+    assert captured[0][0].get_method() == "GET"
+
+
+def test_download_refuses_a_second_retry_without_overwriting_partials(tmp_path: Path, monkeypatch):
+    from types import SimpleNamespace
+
+    destination = tmp_path / "sample.csv.zst"
+    original_partial = destination.with_name(destination.name + ".part")
+    retry_partial = destination.with_name(destination.name + ".retry.part")
+    original_partial.write_bytes(b"original partial")
+    retry_partial.write_bytes(b"failed retry partial")
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.urllib.request.urlopen",
+        lambda *_args, **_kwargs: pytest.fail("unexpected vendor request"),
+    )
+    monkeypatch.setattr(
+        "gx1.scripts.gc_order_flow_download_v1.shutil.disk_usage",
+        lambda _: SimpleNamespace(free=10**12),
+    )
+    payload = b"unused"
+    file_item = {
+        "urls": {"https": "https://hist.databento.com/v0/batch.download?job_id=job-one"},
+        "size": len(payload),
+        "hash": "sha256:" + hashlib.sha256(payload).hexdigest(),
+    }
+
+    with pytest.raises(ValueError, match="GC_RETRY_PARTIAL_FILE_NEEDS_OPERATOR_REVIEW"):
+        _download_verified(HistoricalAPI("unused-test-key"), file_item, destination)
+
+    assert original_partial.read_bytes() == b"original partial"
+    assert retry_partial.read_bytes() == b"failed retry partial"
 
 
 def test_mbp_download_rejects_wrong_vendor_csv_header(tmp_path: Path):

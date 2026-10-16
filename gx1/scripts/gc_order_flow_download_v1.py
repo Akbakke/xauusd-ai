@@ -524,7 +524,10 @@ def _download_verified(client: HistoricalAPI, file_item: dict[str, Any], destina
     request = urllib.request.Request(url, headers={"Authorization": client._authorization})
     tmp = destination.with_name(destination.name + ".part")
     if tmp.exists() or tmp.is_symlink():
-        raise ValueError("GC_PARTIAL_FILE_NEEDS_OPERATOR_REVIEW")
+        # Preserve the original partial and allow only one isolated retry.
+        tmp = destination.with_name(destination.name + ".retry.part")
+        if tmp.exists() or tmp.is_symlink():
+            raise ValueError("GC_RETRY_PARTIAL_FILE_NEEDS_OPERATOR_REVIEW")
     digest = hashlib.sha256()
     total = 0
     try:

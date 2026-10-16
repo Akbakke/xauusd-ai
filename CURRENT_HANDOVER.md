@@ -1,4 +1,4 @@
-# CURRENT HANDOVER — 15.10.2026
+# CURRENT HANDOVER — 16.10.2026
 
 Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json er
 eneste arbeidsstatus; prosess og terminal overstyrer prosa. Historikk per forsøk
@@ -211,21 +211,16 @@ verifisert uavhengig mot rå tape (0,00 bps avvik, ingen overlapp).
 
 Ikke testet: transformer-utfordrer (krever minutthorisont-målkontrakt, og
 walk-forward i TRAIN kolliderer med regel 18), sett C (GC-kjøp), ekte XGBoost
-(miljøendring). GC: ingen brukbare historiske data er hentet eller kvalifisert.
-Databento: brukeren autoriserte kun kildehenting innenfor hardt samlet tak USD 120.00. Estimat USD 119.6551103: MBP-1 USD 119.6400286 (15 outright-symboler, 33 perioder; fersk metadata-kontroll matchet og målte 71,368,056,960 fakturerbare binærbyte) samt eksakte støtteperioder USD 0.01508169 (definisjoner + daglig volum, 23 perioder). Marginalen til taket er USD 0.3448897; estimert margin mot brukerens rapporterte USD 125 remaining credits er USD 5.3448897. Saldoen er ikke uavhengig verifisert; Databento-nøkkelen ble validert via gratis metadata, historisk MBP-1-tilgang vist, og ingen GLBX batch-jobber fantes. Full støttequote fra samme dag beholdes etter timeout i en ny delvis omprising. Nedlastingsmodul og capped producer-vei er testet, og autorisasjons-/hash-bundet plan er skrevet. Per 2026-10-15 19:16 UTC er 79 hash-bundne batchjobber sendt og akseptert; nedlasting er delvis. En vellykket read-only batch.list_jobs(short=false) bekreftet 79/79 done med scope- og kostnadsfelter; senere jobblisteoppslag ga HTTP 503. Nedlasteren bruker en full jobbliste i stedet for enkeltvise detaljkall, med lengre begrenset GET-backoff. Brukeren ser USD 5 remaining credits; estimert margin er USD 5.3448897, men saldoen er ikke uavhengig verifisert. Fortsett kun GET-status og nedlasting fra allerede innsendte jobber; ingen nye betalte foresporsler. Pay-as-you-go/kortbetaling, fit, TEST, native endring og handel er ikke autorisert. 180 d-fasen
-forblir desarmert.
+(miljøendring). GC: 26M-datakilden er hentet, men dataene er ennå ikke kvalifisert eller brukt til featurebygging/fit.
+Databento: Kun kildehenting innen samlet hardgrense USD 120.00 var autorisert. Kjøringen ble fullført 2026-10-16 06:56:38 UTC: 79/79 jobber og 63 nye datafiler. DOWNLOAD_SUMMARY.json rapporterer ALL_BATCH_JOBS_COMPLETE_FILES_DOWNLOADED og actual_or_quoted_completed_job_cost_usd USD 119.65511028468609. Ingen nye batch-submit eller pay-as-you-go-forespørsler. Brukeren rapporterer USD 5 remaining credits; saldoen er ikke uavhengig verifisert. Databento opplyser at batch-jobben belastes én gang ved innsending, og at samme data kan lastes ned igjen uten ekstra kostnad i 30 dager. Den tidligere ufullstendige .part-filen er bevart, men regnes ikke som verifisert data. Fit, TEST, featurebygging, native endring, broker/live/paper og handel er fortsatt stengt. 180 d-fasen forblir desarmert.
 
-## GC-order-flow: 26 måneder, avgrenset kildehenting autorisert 15.10
+## GC-order-flow: 26 måneder, Databento-kildehenting fullført 16.10
 
-Operatøren ba om å tilpasse testen til 26 måneder og har nå autorisert kun Databento-kildehenting innenfor USD 120.00. Den forhåndsregistrerte
-dataperioden er [2024-05-01, 2026-07-01) UTC: 12 måneders første TRAIN og
-fem ekspanderende utviklings-VAL-vinduer (3+3+3+3+2 måneder). Perioden slutter
-ved forseglet TEST-grense, så ingen fold er slutt-TEST. Full datoplan og
-purge-regler står i configs/research/GC_ORDER_FLOW_RESEARCH_001.json og
-docs/GC_ORDER_FLOW_RESEARCH.md. Holdout-labels kryssende periodens slutt
-kasseres; TEST-start eller senere leses ikke.
+Operatøren ba om å tilpasse testen til 26 måneder og autoriserte kun Databento-kildehenting innen samlet hardgrense USD 120.00. Den forhåndsregistrerte dataperioden er [2024-05-01, 2026-07-01) UTC: 12 måneders første TRAIN og fem ekspanderende utviklings-VAL-vinduer (3+3+3+3+2 måneder). Perioden slutter ved forseglet TEST-grense, så ingen fold er slutt-TEST. Full datoplan og purge-regler står i configs/research/GC_ORDER_FLOW_RESEARCH_001.json og docs/GC_ORDER_FLOW_RESEARCH.md. Holdout-labels kryssende periodens slutt kasseres; TEST-start eller senere leses ikke.
 
-GC-målet forblir PAUSED_BY_OPERATOR utover den særskilt autoriserte kildehentingen. Per 2026-10-15 19:16 UTC er alle 79 hash-bundne jobber sendt; en vellykket read-only full jobbliste bekreftet 79/79 done. 38 leverandorfil/lokalgzip-par er bevart og verifisert; ingen .part-filer. Et senere full-listeoppslag ga HTTP 503. Nedlasteren bruker ett batch.list_jobs(short=false)-oppslag for kostnad, scope og status med begrenset backoff; neste kjoring henter kun filer fra disse jobbene med GET. Ingen ny batch-submit. Kildehentingen omfatter kun den hash-bundne planen innenfor USD 120.00; fit, TEST, featurebygging, native endring, broker/live/paper og handel er fortsatt stengt. 180 d-fasen forblir desarmert.
+Kildehentingen ble fullført 2026-10-16 06:56:38 UTC. Kvitteringen /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/DATABENTO_GC_26M_20261015_001/DOWNLOAD_SUMMARY.json viser status ALL_BATCH_JOBS_COMPLETE_FILES_DOWNLOADED, scope_count 79, completed_jobs 79, pending_jobs 0 og 63 newly_downloaded_data_files. Feltet actual_or_quoted_completed_job_cost_usd er USD 119.65511028468609 mot hard_cost_cap_usd USD 120.00. Ingen nye batch-jobber ble sendt inn under nedlastingen. Databento opplyser at batch-forespørselen belastes én gang ved innsending og at samme data kan lastes ned på nytt i 30 dager uten ekstra kostnad ([pris og credits](https://databento.com/docs/faqs/usage-pricing-and-data-credits), [batch versus streaming](https://databento.com/docs/faqs/streaming-vs-batch-download)). Brukeren rapporterte USD 5 remaining credits; saldoen er ikke uavhengig verifisert etterpå.
+
+Datamappen er /home/andre2/GX1_DATA/research/GC_ORDER_FLOW_RESEARCH_001/DATABENTO_GC_26M_20261015_001. En tidligere ufullstendig 250140100-byte fil, mbp1_14/glbx-mdp3-20250402-20250529.mbp-1.GCM5.csv.zst.part, er bevart uendret og regnes ikke som verifisert data. TEST ble ikke åpnet og research-fit er ikke autorisert. GC-målet forblir PAUSED_BY_OPERATOR: ingen featurebygging, fit, TEST, native endring, broker/live/paper eller handel. 180 d-fasen forblir desarmert.
 
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
