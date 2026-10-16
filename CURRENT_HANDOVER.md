@@ -228,7 +228,26 @@ Etterkontrollen /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALI
 
 Kvalitetsmålingene inkluderer 2391688 trades med ukjent side (3.81%), 3630329 kontrakter ukjent aggressorvolum, 182999 F_MAYBE_BAD_BOOK-flagg, 1130 F_BAD_TS_RECV-flagg, 12180 event-tider etter receive-tid, 16582 crossed BBO, 1101 locked BBO, 529 utilgjengelig tosidig BBO, 286 event-tidsreverseringer og 594 sekvensreverseringer. Sekvenssprang er ikke gapbevis. Databento beskriver F_MAYBE_BAD_BOOK som et uopprettelig kanalhull og F_BAD_TS_RECV som upålitelig receive-tid ved klokke-/rekkefølgefeil ([Databento flags](https://databento.com/docs/standards-and-conventions/common-fields-enums-types)); håndtering av flaggene og ukjent side er ennå ikke frosset.
 
-Eksakt tidsstempelsoverlapp mot eksisterende pre-TEST OANDA XAU_USD M1 er ikke målt. OANDA-datasettet er bundet til bar_start_utc med 60 sekunders beslutningstilgjengelighet; plan 003 leser bare tidskolonnen og bruker de allerede hash-bundne GC-filene. Det leser ikke OANDA-priser eller utfall. Planen er configs/research/GC_SOURCE_DISPOSITION_20261016_003.json (sha256 7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082), status PREPARED_AWAITING_OPERATOR_REVIEW. Kildekvalifisering er fortsatt ufullstendig, og plan 003 er ikke godkjent for kjøring. Ingen flere Databento-kall eller utgifter; featurebygging, fit, TEST, native endring, broker/live/paper og handel er fortsatt stengt. 180 d-fasen er desarmert.
+Eksakt tidsstempelsoverlapp mot eksisterende pre-TEST OANDA XAU_USD M1 er nå
+avgrenset i plan 003 til tidskolonnen `time` med 60 sekunders
+beslutningstilgjengelighet. Planen bruker bare de hash-bundne GC MBP-1-filene
+og tidskolonnen i OANDA M1; ingen priser eller utfall.
+
+Brukeren godkjente én lokal kjøring av
+[GC_SOURCE_DISPOSITION_20261016_003.json](configs/research/GC_SOURCE_DISPOSITION_20261016_003.json)
+(sha256 7b3c5614307d7849edd7694f6b5297dd1dfb8b66cab400e590bd1d089f5d5082),
+kvittering /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_DISPOSITION_20261016_003/OPERATOR_APPROVAL.json
+(sha256 6bd49d90767016c3baa7237f23e9e13a02dff06489543071d1630013d9769406).
+Engangsgodkjenningen gjelder bare den frosne kilde-disposisjonsauditen. De tre
+pålagte kodebanene er implementert; fem fokuserte syntetiske tester og syntaks-
+kontroll passerer. Den ene auditkjøringen er ennå ikke startet; før den bindes
+plan, godkjenning, policy, commit og kildekodehash til én kjøringskvittering.
+Kjøringen skal bruke `scripts/gx1_capped_run.sh --class audit` med 4-GiB
+minne, 512-MiB swap, CPU-affinity 0-7, én numerisk tråd per worker og
+`TasksMax=64`. Ingen nye Databento-kall eller utgifter, OANDA-priser/volum/
+utfall, featurebygging, fit, TEST, modelladgang, native endringer,
+broker/live/paper eller handel. Kildekvalifisering er fortsatt ufullstendig;
+resultatet kan ikke innrømme kilden. 180 d-fasen er desarmert.
 
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
