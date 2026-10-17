@@ -471,14 +471,42 @@ def foundation_worker_v2(group,tick,wanted,candidate,expected,references):
        'first_mid':c.first,'last_mid':c.last,'files':old['files'],'prefix_checks':checks}
 
 
+def build_levels_preflight_v2(plan,stage,native,start,contracts):
+    volume_valid=native['m5_volume_valid'].to_numpy()
+    # Reduce already bound real-trade ladders, summing fragments before profiles.
+    histograms=[{} for _ in start]
+    for symbol,item in plan['ladders'].items():
+        previous.verify_digest(Path(item['path']),item['sha256'],'FOUNDATION_LADDER')
+        df=pq.read_table(item['path']).to_pandas();df['bar_start_ns']=timing.STUDY_START_NS+(df.minute_index.to_numpy().astype(np.int64)//5)*5*timing.MINUTE_NS
+        df['volume']=df.buy+df.sell+df.unknown
+        sums=df.groupby(['bar_start_ns','price_tick'],sort=True).volume.sum()
+        for stamp,h in sums.groupby(level=0,sort=True):
+            row=int(np.searchsorted(start,stamp))
+            if row>=len(start) or start[row]!=stamp or not volume_valid[row]:continue
+            if histograms[row]:raise RuntimeError('FOUNDATION_CONTRACT_PROFILE_COLLISION')
+            histograms[row]={int(p):int(v) for (_,p),v in h.items() if v>0}
+            if sum(histograms[row].values())!=int(native['m5_volume'].to_numpy()[row]):raise RuntimeError('FOUNDATION_PROFILE_VOLUME_PARITY')
+    levels=features.dynamic_profiles_v2(start,histograms,volume_valid,contracts,native['m5_close_usd'].to_numpy(),plan['tick_usd'])
+    cut=len(start)//2
+    prefix=features.dynamic_profiles_v2(start[:cut],histograms[:cut],volume_valid[:cut],contracts[:cut],native['m5_close_usd'].to_numpy()[:cut],plan['tick_usd'])
+    for n,v in prefix.items():
+        if not np.array_equal(v,levels[n][:cut],equal_nan=True):raise RuntimeError('FOUNDATION_PROFILE_PREFIX:'+n)
+    table=pa.table({'m5_bar_start_ns':start,**levels})
+    path=stage/'LEVELS.parquet';pq.write_table(table,path,compression='zstd')
+    if not features.exact_feature_readback_v2(table,pq.read_table(path)):raise RuntimeError('FOUNDATION_LEVEL_READBACK')
+    previous.write_json(stage/'LEVEL_CHECKS.json',{'prefix_rows':cut,'volume_reconciliation':'EXACT_EVERY_ADMITTED_M5','levels_sha256':previous.sha256_file(path)})
+    print('FOUNDATION_REAL_LEVELS_AND_PREFIX_COMPLETE',flush=True)
+    return levels,cut
+
+
 def run_foundation_v2(binding_path):
-    identity='GC_L1_DYNAMIC_FOUNDATION_REPAIR_20261017_016';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    identity='GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
     if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('FOUNDATION_BINDING')
     binding=previous.read_json(binding_path);path=REPO/'configs/research'/f'{identity}.json'
     previous.verify_digest(path,binding['plan_sha256'],'FOUNDATION_PLAN');plan=previous.read_json(path)
     previous.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'FOUNDATION_POLICY')
     previous.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'FOUNDATION_APPROVAL')
-    approval=previous.read_json(root/'OPERATOR_APPROVAL.json');policy=previous.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_l1_dynamic_foundation_016']
+    approval=previous.read_json(root/'OPERATOR_APPROVAL.json');policy=previous.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_l1_dynamic_foundation_017']
     if (gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0 or gate['execution_authorized'] is not False or policy['training_enabled'] is not False or approval['approved_plan_sha256']!=binding['plan_sha256'] or approval['max_invocations']!=1 or previous.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):raise RuntimeError('FOUNDATION_AUTHORITY')
     for rel,digest in binding['code_sha256'].items():previous.verify_digest(REPO/rel,digest,'FOUNDATION_CODE')
     for item in plan['inputs'].values():previous.verify_digest(Path(item['path']),item['sha256'],'FOUNDATION_INPUT')
@@ -497,6 +525,7 @@ def run_foundation_v2(binding_path):
     present=(pos<len(minute))&(minute[idx]==query);same=present.all(axis=1)&(contract[idx]>=0).all(axis=1)&(contract[idx]==contract[idx[:,:1]]).all(axis=1)
     m5candidate=same&candidate[idx].all(axis=1)
     if int(m5candidate.sum())!=plan['expected_M5_candidates']:raise RuntimeError('FOUNDATION_CANDIDATE_SUPPORT')
+    levels,cut=build_levels_preflight_v2(plan,stage,native,start,contract[idx[:,0]])
     results=[];columns={n:np.full(len(minute),np.nan) for n in features.L1_FIELDS_V2};masks={n:np.zeros(len(minute),bool) for n in ('ofi','bbo')}
     coverage_ns=np.zeros(len(minute),np.int64);first_mid=np.full(len(minute),np.nan);last_mid=first_mid.copy();checks=[];records=0
     with ProcessPoolExecutor(max_workers=plan['worker_count'],mp_context=mp.get_context('fork')) as pool:
@@ -513,6 +542,9 @@ def run_foundation_v2(binding_path):
             coverage_ns[rows]=r['covered_ns'];first_mid[rows]=r['first_mid'];last_mid[rows]=r['last_mid']
             checks.extend(r['prefix_checks']);records+=sum(f['records'] for f in r['files'])
     if records!=base['expected_source_records']:raise RuntimeError('FOUNDATION_RAW_COUNT')
+    mt=pa.table({'bar_start_ns':minute,'contract_index':contract,'ofi_valid':masks['ofi'],'bbo_valid':masks['bbo'],'integral_covered_ns':coverage_ns,'opening_mid_tick':first_mid,'closing_mid_tick':last_mid,**columns})
+    pq.write_table(mt,stage/'M1_L1_FEATURES.parquet',compression='zstd')
+    previous.write_json(stage/'L1_CHECKS.json',{'raw_records':records,'real_L1_prefix_checks':checks,'M1_sha256':previous.sha256_file(stage/'M1_L1_FEATURES.parquet')})
     if np.any(coverage_ns[candidate]!=timing.MINUTE_NS):
         # OFI and integral masks stay separate; partial integrals never qualify.
         print('FOUNDATION_PARTIAL_INTEGRALS',int(np.count_nonzero(candidate&(coverage_ns!=timing.MINUTE_NS))),flush=True)
@@ -525,30 +557,10 @@ def run_foundation_v2(binding_path):
     # Existing trusted-trade intensity has its own unchanged unsigned mask.
     volume_valid=native['m5_volume_valid'].to_numpy();out['trade_intensity_valid']=volume_valid
     out['trade_records_per_second']=np.where(volume_valid,old['trades'].to_numpy()[idx].sum(axis=1)/300,np.nan)
-    # Reduce already bound real-trade ladders, summing fragments before profiles.
-    histograms=[{} for _ in start]
-    for symbol,item in plan['ladders'].items():
-        previous.verify_digest(Path(item['path']),item['sha256'],'FOUNDATION_LADDER')
-        df=pq.read_table(item['path']).to_pandas();df['bar_start_ns']=timing.STUDY_START_NS+(df.minute_index.to_numpy()//5)*5*timing.MINUTE_NS
-        df['volume']=df.buy+df.sell+df.unknown
-        sums=df.groupby(['bar_start_ns','price_tick'],sort=True).volume.sum()
-        for stamp,h in sums.groupby(level=0,sort=True):
-            row=int(np.searchsorted(start,stamp))
-            if row>=len(start) or start[row]!=stamp or not volume_valid[row]:continue
-            if histograms[row]:raise RuntimeError('FOUNDATION_CONTRACT_PROFILE_COLLISION')
-            histograms[row]={int(p):int(v) for (_,p),v in h.items() if v>0}
-            if sum(histograms[row].values())!=int(native['m5_volume'].to_numpy()[row]):raise RuntimeError('FOUNDATION_PROFILE_VOLUME_PARITY')
-    levels=features.dynamic_profiles_v2(start,histograms,volume_valid,out['contract_index'],native['m5_close_usd'].to_numpy(),plan['tick_usd'])
     out.update(levels)
-    cut=len(start)//2
-    prefix=features.dynamic_profiles_v2(start[:cut],histograms[:cut],volume_valid[:cut],out['contract_index'][:cut],native['m5_close_usd'].to_numpy()[:cut],plan['tick_usd'])
-    for n,v in prefix.items():
-        if not np.array_equal(v,levels[n][:cut],equal_nan=True):raise RuntimeError('FOUNDATION_PROFILE_PREFIX:'+n)
     previous.write_json(stage/'PREPUBLICATION_CHECKS.json',{'raw_records':records,'real_L1_prefix_checks':checks,'profile_prefix_rows':cut,'volume_reconciliation':'EXACT_EVERY_ADMITTED_M5'})
     table=pa.table(out);output=stage/'M5_L1_DYNAMIC_FEATURES.parquet';pq.write_table(table,output,compression='zstd')
     if not features.exact_feature_readback_v2(table,pq.read_table(output)):raise RuntimeError('FOUNDATION_READBACK')
-    mt=pa.table({'bar_start_ns':minute,'ofi_valid':masks['ofi'],'bbo_valid':masks['bbo'],'integral_covered_ns':coverage_ns,**columns})
-    pq.write_table(mt,stage/'M1_L1_FEATURES.parquet',compression='zstd')
     months=pd.DatetimeIndex(start,tz='UTC').strftime('%Y-%m').to_numpy()
     masknames=[n for n in out if n.endswith('_valid')]
     counts={n:{'rows':int(out[n].sum()),'by_month':{m:int(np.count_nonzero(out[n]&(months==m))) for m in sorted(set(months))}} for n in masknames}

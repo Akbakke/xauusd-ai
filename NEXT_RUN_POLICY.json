@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T11:23:22.752868+00:00",
-  "status": "GC_FOUNDATION_PREFIX_REPAIR_CLAIMED__P0_BLOCKED_KNOWN_COT_RELEASE_LEAK",
+  "status": "GC_FOUNDATION_LEVEL_CLOCK_REPAIR_CLAIMED__P0_STILL_BLOCKED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -160,7 +160,10 @@
     ],
     "latest_terminal_role": "OpenBB FREE source review only; no feature or PIT admission",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
-    "latest_terminal": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014/RESULTS/TERMINAL.json",
+    "latest_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014/RESULTS/TERMINAL.json",
+      "sha256": "231dd480089bcb31167b27cb8ccada09515dacf767714c4f994f391445bcf1e7"
+    },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": true,
@@ -179,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "015 price-response prefix mismatch corrected in new single-use 016. P0 also blocked by proven unsafe COT +7-day availability during 2025 shutdown; actual historical release/vintage admission remains unqualified.",
+    "current_blocker": "016 real L1 prefixes passed; level builder failed on int32 nanosecond multiplication. New 017 preflights real profiles first, persists verified reductions. Known COT release leak keeps P0 closed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9034,15 +9037,21 @@
     "gc_l1_dynamic_foundation_016": {
       "plan_path": "configs/research/GC_L1_DYNAMIC_FOUNDATION_REPAIR_20261017_016.json",
       "plan_sha256": "39a9a39477e932805f8e61a9bf4c17bc5b3798a802f74d8ed0e05c11e83609b9",
-      "status": "EXECUTION_CLAIMED",
+      "status": "FAILED_LEVEL_CLOCK_CAST_CONSUMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "authorized_invocations": 1,
       "relaunch_authorized": false,
       "fit_authorized": false,
       "test_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_REPAIR_20261017_016"
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_REPAIR_20261017_016",
+      "exit_code": 1,
+      "failure": "int32 minute_index nanosecond overflow",
+      "failure_log_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_REPAIR_20261017_016/run.log",
+      "failure_log_sha256": "c057b6dc8d061c3dc1888c6c1b273d28482e813cca816610777167c3802b7173",
+      "real_L1_prefix_checks_completed": true,
+      "raw_post_rehash_completed": false
     },
     "known_COT_publication_blocker_20261017": {
       "native_implementation": "report_date + 7 calendar days",
@@ -9052,6 +9061,19 @@
       "baseline_changed": false,
       "P0_admitted": false,
       "actual_receipts_for_all_reports_verified": false
+    },
+    "gc_l1_dynamic_foundation_017": {
+      "plan_path": "configs/research/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017.json",
+      "plan_sha256": "4fe2c92f0fb9770d6d695eff6e98130601b8303a7af627d9340984e45fe07ff4",
+      "status": "EXECUTION_CLAIMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 0,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "fit_authorized": false,
+      "test_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017"
     }
   },
   "gc_order_flow_research_20261006": {

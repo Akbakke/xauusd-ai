@@ -111,3 +111,20 @@ def test_eight_arm_preparation_uses_computed_new_F_L_without_ATR_duplicate():
     assert p['layers']['F']['signed_trade_mask_required'] is False
     assert p['layers']['V']['duplicate_ATR_or_RV_implementation'] is False
     assert p['training_authorized'] is False
+
+
+def test_real_ladder_int32_minute_indices_profile_preflight(tmp_path):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    from gx1.scripts.gc_order_flow_features_v1 import build_levels_preflight_v2,previous,timing
+    path=tmp_path/'ladder.parquet'
+    pq.write_table(pa.table({'minute_index':np.arange(15,dtype=np.int32),
+        'price_tick':np.full(15,1000,np.int64),'buy':np.full(15,2,np.uint64),
+        'sell':np.ones(15,np.uint64),'unknown':np.ones(15,np.uint64)}),path)
+    starts=timing.STUDY_START_NS+np.arange(3,dtype=np.int64)*5*timing.MINUTE_NS
+    native=pa.table({'m5_volume_valid':[True]*3,'m5_volume':[20.]*3,'m5_close_usd':[100.]*3})
+    p={'ladders':{'TEST':{'path':str(path),'sha256':previous.sha256_file(path)}},'tick_usd':.1}
+    values,cut=build_levels_preflight_v2(p,tmp_path,native,starts,np.zeros(3,int))
+    assert values['rolling15_valid'][-1] and cut==1
+    assert values['rolling15_poc_usd'][-1]==100.
+    assert (tmp_path/'LEVEL_CHECKS.json').is_file()

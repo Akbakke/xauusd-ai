@@ -862,7 +862,9 @@ def test_current_handover_separates_new_rebuild_from_consumed_preprocessing():
     native_terminal = work['native_preprocessing_terminal_20261013']
     assert native_terminal['path'].startswith(current['run_root'] + '/')
     assert not native_terminal['path'].startswith(repair['run_root'] + '/')
-    assert work['latest_terminal']['path'] == work['gc_m5_cash_projection_check_013']['terminal_path']
+    assert not work['latest_terminal']['path'].startswith(current['run_root'] + '/')
+    assert any(isinstance(v, dict) and v.get('terminal_path') == work['latest_terminal']['path']
+               and v.get('completed_invocations') == 1 for v in work.values())
     assert repair['core_build_authorized'] is False
     assert repair['core_relaunch_allowed'] is False
     assert repair['complete_m1_stage']['authorized'] is False
