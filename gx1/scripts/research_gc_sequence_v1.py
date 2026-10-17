@@ -246,7 +246,11 @@ def run(binding_path,mode):
     if mode=='pilot':
         contract.require_pilot_authority(policy,b['plan_sha256'],b['qualification_sha256'])
         qroot=Path(spec['output_root'])/'RESULTS';io.verify_digest(qroot/'RESULT.json',b['qualification_sha256'],'QUALIFICATION')
+        if b['qualification_terminal_sha256']!=gate['qualification_terminal_sha256']:raise RuntimeError('GC_SEQUENCE_QUALIFICATION_TERMINAL_BINDING')
+        io.verify_digest(qroot/'TERMINAL.json',b['qualification_terminal_sha256'],'QUALIFICATION_TERMINAL')
         manifest=io.read_json(qroot/'TERMINAL.json')
+        if manifest['status']!='COMPLETE' or manifest['mode']!='qualify' or manifest['exit_code']!=0 or manifest['source_unchanged'] is not True or manifest['test_data_used'] is not False:raise RuntimeError('GC_SEQUENCE_QUALIFICATION_NOT_COMPLETE')
+        if set(manifest['artifacts'])!={'INPUTS.npz','COHORT.parquet','FROZEN_REFERENCES.parquet','RESULT.json'}:raise RuntimeError('GC_SEQUENCE_QUALIFICATION_INVENTORY')
         for name,item in manifest['artifacts'].items():io.verify_digest(qroot/name,item['sha256'],'QUALIFIED_ARTIFACT')
     elif not (gate['qualification_status']=='AUTHORIZED_SINGLE_USE' and gate['qualification_authorized'] is True
         and gate['qualification_claimed_invocations']==0 and gate['qualification_completed_invocations']==0):raise RuntimeError('GC_SEQUENCE_QUALIFICATION_CLOSED')
