@@ -93,3 +93,44 @@ def gap_inventory(times,calendar):
                          'missing_during_current_regular_template':missing_open,
                          'current_template_closed_minutes':minutes-missing_open,
                          'classification':np.where(missing_open==0,'REGULAR_TEMPLATE_CLOSED_HISTORICAL_UNQUALIFIED','MISSING_QUOTES_OR_UNQUALIFIED_HOLIDAY')})
+
+
+def weekly_closure_review(input_root, output_root):
+    """Bounded completion review of published diagnostics using existing clock owner.
+
+    Checks weekly closure endpoints separately from delayed quotes. This is
+    not a calendar-complete target: historical holidays and observed-session
+    counts are still unqualified. Input hashes are owned by the review plan.
+    """
+    from pathlib import Path
+    import pyarrow.parquet as pq
+    from gx1.contracts.xau_tape_provenance_v1 import scheduled_weekly_closure_mask
+    input_root=Path(input_root);output_root=Path(output_root)
+    gaps=pq.read_table(input_root/'GAP_CLASSIFICATION.parquet').to_pandas()
+    lengths=gaps.missing_minutes.to_numpy(np.int64);total=int(lengths.sum())
+    index=np.repeat(np.arange(len(gaps)),lengths)
+    offsets=np.arange(total)-np.repeat(np.cumsum(lengths)-lengths,lengths)
+    missing=gaps.start_ns.to_numpy()[index]+offsets*MINUTE
+    weekly=scheduled_weekly_closure_mask(pd.DatetimeIndex(missing,tz='UTC'))
+    counts={'normal_weekly_closed_missing_minutes_under_existing_contract':int(weekly.sum()),
+            'remaining_missing_minutes_not_classified_by_weekly_owner':int(total-weekly.sum())}
+    out={}
+    for split in ['TRAIN','VAL']:
+        for h in [1,5,20]:
+            name=f'{split}_H{h}_RESEARCH_DIAGNOSTICS.parquet'
+            frame=pq.read_table(input_root/name,columns=['native_row','decision_ns','baseline_exit_ns','strict_terminal_valid']).to_pandas()
+            entry_closed=scheduled_weekly_closure_mask(pd.DatetimeIndex(frame.decision_ns,tz='UTC'))
+            exit_closed=scheduled_weekly_closure_mask(pd.DatetimeIndex(frame.baseline_exit_ns,tz='UTC'))
+            strict=frame.strict_terminal_valid.to_numpy(bool)
+            eligible=strict&~entry_closed&~exit_closed
+            frame['weekly_closed_entry']=entry_closed;frame['weekly_closed_terminal']=exit_closed
+            frame['strict_terminal_and_weekly_open_valid']=eligible
+            frame.to_parquet(output_root/f'{split}_H{h}_WEEKLY_ENDPOINT_MASKS.parquet',index=False)
+            out[split.lower()+'_h'+str(h)]={'baseline_valid':len(frame),'baseline_entry_during_weekly_closure':int(entry_closed.sum()),
+              'baseline_terminal_during_weekly_closure':int(exit_closed.sum()),
+              'strict_exact_terminal_valid':int(strict.sum()),
+              'strict_additionally_censored_by_weekly_endpoint':int((strict&~eligible).sum()),
+              'strict_and_weekly_open_valid':int(eligible.sum())}
+    return {'counts':counts,'horizons':out,'owner':'gx1.contracts.xau_tape_provenance_v1.scheduled_weekly_closure_mask',
+            'normal_weekly_closure_contract_reused':True,'historical_daily_hours_and_holidays_qualified':False,
+            'observed_session_horizon_clock_fully_corrected':False,'training_authorized':False}

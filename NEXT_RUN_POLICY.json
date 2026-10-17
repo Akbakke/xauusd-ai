@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-17T10:59:57.642962+00:00",
-  "status": "ENTRY_EVALUATION_CORRECTION_011_CLAIMED__P0_TRAINING_CLOSED",
+  "observed_utc": "2026-10-17T11:07:36.863318+00:00",
+  "status": "GC_SELECTED_L1_QUALITY_012_CLAIMED__P0_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Task A/B/C separate Entry research correction 011 claimed; strict exact terminal, unqualified NY calendar candidate, v2 SHORT accounting, separate MFE/MAE/risk diagnostics. L1 quality 012 prepared.",
+    "current_activity": "011 research corrections and weekly-closure review complete; full local GC selected-contract L1 audit 012 claimed, candidate masks only.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -158,11 +158,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "latest completed independent Entry-target and GC mask attribution audit; not a native training or economics admission",
+    "latest_terminal_role": "separate Entry research variant and v2 cash accounting audit, no fit admission",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_010/RESULTS/TERMINAL.json",
-      "sha256": "e9cb8abf406acd438f47f363d8f07ce68d6116f9f4818718c41cbbdc6df58bb9"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_EVALUATION_CORRECTION_20261017_011/RESULTS/TERMINAL.json",
+      "sha256": "e0bb45abc1b280bcbfcee3552597d73b9a944c2890a38829f7617fd3c1887259"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -182,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Historical OANDA calendar/holiday vintages unqualified; new variants not measured yet. P0 training remains closed pending quality/target/economics controls.",
+    "current_blocker": "Historical daily/holiday calendar unresolved and P0 feature values not built. Strict terminal research labels and v2 cash accounting measured; L1 quality pending. No training admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -8910,10 +8910,10 @@
     "entry_evaluation_correction_011": {
       "plan_path": "configs/research/ENTRY_EVALUATION_CORRECTION_20261017_011.json",
       "plan_sha256": "688b5e56218d22de60a497a15851d82a1c9b95c355b9ded74366f53b5ee60e03",
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_WITH_CALENDAR_BLOCKERS_CONSUMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "authorized_invocations": 1,
       "relaunch_authorized": false,
       "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_EVALUATION_CORRECTION_20261017_011",
@@ -8921,14 +8921,22 @@
       "separate_research_variant_authorized": true,
       "training_authorized": false,
       "test_authorized": false,
-      "new_data_requests_authorized": false
+      "new_data_requests_authorized": false,
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_EVALUATION_CORRECTION_20261017_011/RESULTS/TERMINAL.json",
+      "terminal_sha256": "e0bb45abc1b280bcbfcee3552597d73b9a944c2890a38829f7617fd3c1887259",
+      "result_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_EVALUATION_CORRECTION_20261017_011/RESULTS/RESULT.json",
+      "result_sha256": "df80796bb41af54727157ae38ef98dae6d6136cefbd9995dd130404f7c693e07",
+      "weekly_closure_review": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_EVALUATION_CORRECTION_20261017_011/WEEKLY_CLOSURE_REVIEW/RESULT.json",
+        "sha256": "070a2b7208aa67d31aec284d9e094f4caaa162159e56199b4a2884a0e2d5d059"
+      }
     },
     "gc_selected_l1_quality_012": {
       "plan_path": "configs/research/GC_SELECTED_L1_QUALITY_20261017_012.json",
       "plan_sha256": "511e56185cb57021c0ef3df55e8332c6ebbf1f7bfa8c6ef3da9dd949f9a016c3",
-      "status": "PREPARED_NOT_CLAIMED",
+      "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
-      "claimed_invocations": 0,
+      "claimed_invocations": 1,
       "completed_invocations": 0,
       "authorized_invocations": 1,
       "relaunch_authorized": false,
@@ -11508,5 +11516,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T10:59:57.642962+00:00"
+  "updated_utc": "2026-10-17T11:07:36.863318+00:00"
 }

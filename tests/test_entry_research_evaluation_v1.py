@@ -118,3 +118,21 @@ def test_preparation_has_exact_existing_fields_eight_unique_arms_and_no_fit_auth
     gc=set(pq.ParquetFile(path).schema_arrow.names)
     for layer in ['F','L']:assert set(spec['layers'][layer]['existing_fields'])<=gc
     assert spec['targets']['future_MFE_MAE_as_features'] is False
+
+
+def test_weekly_review_excludes_closed_endpoints_without_censoring_normal_closed_path(tmp_path):
+    source=tmp_path/'source';dest=tmp_path/'out';source.mkdir();dest.mkdir()
+    stamp=lambda s:pd.Timestamp(s,tz=ev.NY).tz_convert('UTC').value
+    a=stamp('2024-03-01 17:00');b=stamp('2024-03-03 18:00')
+    pd.DataFrame({'start_ns':[a],'end_ns':[b],'missing_minutes':[(b-a)//ev.MINUTE]}).to_parquet(source/'GAP_CLASSIFICATION.parquet')
+    for split in ['TRAIN','VAL']:
+        for h in [1,5,20]:
+            pd.DataFrame({'native_row':[0,1],'decision_ns':[stamp('2024-03-01 16:00')]*2,
+              'baseline_exit_ns':[stamp('2024-03-03 17:00'),stamp('2024-03-04 12:00')],
+              'strict_terminal_valid':[True,True]}).to_parquet(source/f'{split}_H{h}_RESEARCH_DIAGNOSTICS.parquet')
+    r=ev.weekly_closure_review(source,dest)
+    assert r['counts']['normal_weekly_closed_missing_minutes_under_existing_contract']==2940
+    assert r['counts']['remaining_missing_minutes_not_classified_by_weekly_owner']==0
+    assert r['horizons']['train_h20']['strict_additionally_censored_by_weekly_endpoint']==1
+    assert r['horizons']['train_h20']['strict_and_weekly_open_valid']==1
+    assert r['training_authorized'] is False

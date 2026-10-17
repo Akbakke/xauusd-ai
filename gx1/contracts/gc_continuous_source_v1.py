@@ -208,6 +208,7 @@ L1_AUDIT_COLUMNS = {
     'bid_sz_00':pa.uint32(),'ask_sz_00':pa.uint32(),
     'bid_ct_00':pa.uint32(),'ask_ct_00':pa.uint32(),
 }
+L1_F_LAST=1<<7  # Databento final record in an instrument event, not an order id.
 L1_QUALITY_METRICS=('records','clean_complete_bbo','bad_bbo','gap','bad_recv',
                     'snapshot','reset','duplicate_trade_signature',
                     'full_record_duplicate_trade','signature_collision','file_seam')
@@ -252,7 +253,7 @@ class L1QualityCollector:
              (bsz==timing.UNDEF_SIZE)|(asz==timing.UNDEF_SIZE))
         gap=(flags&F_MAYBE_BAD_BOOK)!=0;recv=(flags&F_BAD_TS_RECV)!=0;snap=(flags&F_SNAPSHOT)!=0
         reset=pc.equal(data['action'],'R').to_numpy(zero_copy_only=False)
-        complete=(flags&128)!=0
+        complete=(flags&L1_F_LAST)!=0
         clean=complete&~bad&~gap&~recv&~snap&~reset
         seam=np.zeros(len(idx),bool)
         if self.first_in_file:seam[0]=True

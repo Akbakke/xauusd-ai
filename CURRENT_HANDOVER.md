@@ -7,14 +7,23 @@ ligger i Git og i policyens bindinger, ikke her.
 ## Nå: A/B/C/D — korrigert forskning før P0
 
 Ny bestilling 17.10 godkjenner audit 010 som implementasjonsdokumentasjon,
-ikke økonomi/edge. Plan 011 er claimet for separat forskningsvariant:
+ikke økonomi/edge. Plan 011 er fullført (exit 0, uendret kilde/TEST=false) med separat forskningsvariant:
 0 s sluttforsinkelse, samme observerte horisonter/kostnader, NaN ved manglende
 terminalkvote; NY/DST-kalender er separat, historisk ukvalifisert kandidat.
+TRAIN baseline→eksakt terminal h1: 651 300→648 691; h5: 650 059→646 797;
+h20: 646 543→642 214. 2 609/3 262/4 329 ekstra sensurerte rad-horisonter;
+beholdte målverdier uendret. 1 792 VAL-prefiksrader kontrollert; ingen ny sensur.
+Eksisterende weekly-closure-eier forklarer 2 310 840 manglende M1-minutter som
+ordinær helgestengning; 372 490 øvrige minutter er ikke fullt klassifisert i
+historisk dagpause/helligdag/leveransegap. Ingen gyldige baseline-endepunkter lå
+i den eksisterende helgestengningen. NY-kandidaten endrer 5 211/51 138/190 447
+bruttolabel-rader blant felles gyldige; historiske unntak er IKKE kvalifisert,
+så kandidaten er ikke treningsgrunnlag. Se 011 RESULT og WEEKLY_CLOSURE_REVIEW.
 Eksisterende mål og fryst baseline endres ikke. Nye MFE/MAE/netto/risiko-
 diagnostikker er aldri features eller hindsight-Exit-fasit. Eksplisitt v2-rute
 retter SHORT til inngangsnotional, med samme klokker og deklarerte kostnader.
 
-Plan 012 er forberedt for separat full L1-rawpassering på eksisterende 26 måneder:
+Plan 012 er claimet for separat full L1-rawpassering på eksisterende 26 måneder:
 alle 20 felt ved T-signaturkollisjoner, reset/flags/BBO/filsømmer, separate
 snapshot-/OFI-/tidsintegral-kandidatmasker på valgt kontrakt. Gamle masker består.
 Åtte P0-armer er deklarert i P0_FACTORIAL_PREPARATION_20261017.json; ikke en
