@@ -22,7 +22,7 @@ from gx1.scripts import gc_source_disposition_v1 as previous
 from gx1.scripts.gc_continuous_source_v1 import load_metadata
 
 REPO = previous.REPO
-PLAN_ID = 'GC_M5_FEATURE_BUILD_20261017_005'
+PLAN_ID = 'GC_M5_FEATURE_BUILD_20261017_006'
 PLAN_REL = f'configs/research/{PLAN_ID}.json'
 ROOT = Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/PLAN_ID
 CODE_PATHS = (
@@ -48,7 +48,7 @@ def runtime(binding_path):
     approval = previous.read_json(ROOT/'OPERATOR_APPROVAL.json')
     previous.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'POLICY')
     policy = previous.read_json(REPO/'NEXT_RUN_POLICY.json')
-    gate = policy['current_work']['gc_m5_feature_build_005']
+    gate = policy['current_work']['gc_m5_feature_build_006']
     if (plan['plan_id'] != PLAN_ID or previous.git_head() != binding['source_head']
             or approval['approved_plan_sha256'] != binding['plan_sha256']
             or approval['single_use'] is not True or approval['max_invocations'] != 1
@@ -109,7 +109,7 @@ def load_admission(plan):
 
 
 def scan_feature_symbol(group, number, selected, metrics, masks, tick_size, directory, reference_bars):
-    collector = features.TradeLadderCollector(directory/(group['raw_symbol']+'.parquet'),
+    collector = features.TradeLadderCollector(None if directory is None else directory/(group['raw_symbol']+'.parquet'),
         selected,masks['volume'],number,tick_size,reference_bars=reference_bars)
     try:
         result = source.scan_symbol(group['items'],tick_size,on_batch=collector)
@@ -251,7 +251,7 @@ def verify_real_prefixes(surfaces, minutes, selected, masks, metrics, tick_size)
         if not runs:
             checks.append({'timeframe':tf,'status':'NO_VALID_COMPLETE_BARS'})
             continue
-        length,start,end = max(runs)
+        length,start,end = (int(v) for v in max(runs))
         raw = [surface[n][start:end].copy() for n in ('open_usd','high_usd','low_usd','close_usd','volume')]
         cut = max(1,length//2)
         full = replay_volume_order_block_proxies_v1(*raw)
@@ -265,7 +265,7 @@ def verify_real_prefixes(surfaces, minutes, selected, masks, metrics, tick_size)
                     np.array_equal(full[name][:cut],future[name][:cut],equal_nan=True)):
                 raise RuntimeError('GC_FEATURE_REAL_SMC_PREFIX_OR_MUTATION_FAILED')
         checks.append({'timeframe':tf,'real_segment_bars':length,'prefix_bars':cut,
-                       'prefix_and_future_mutation':'EXACT'})
+                       'future_suffix_bars':length-cut,'prefix_and_future_mutation':'EXACT'})
     cut = len(minutes)//2
     full = features.relative_cvd(minutes,selected,masks,metrics)
     prefix = features.relative_cvd(minutes[:cut],selected[:cut],
@@ -321,7 +321,17 @@ def run(binding_path):
         raise RuntimeError('GC_FEATURE_NONUNIFORM_TICK_SIZE')
     tick_size = next(iter(ticks))
     stage = ROOT/'.RESULTS.staging'
-    (stage/'LADDERS').mkdir(parents=True,exist_ok=False)
+    stage.mkdir(exist_ok=False)
+    # Resume only the bound, completed sparse price-level reductions. OHLC
+    # receive order was not persisted by failed 005, so recover that from the
+    # original source owner and independently recheck the reused histograms.
+    reused = plan['reuse_ladders']
+    if set(reused) != {g['raw_symbol'] for g in groups}:
+        raise RuntimeError('GC_FEATURE_REUSE_INVENTORY_INVALID')
+    for item in reused.values():
+        previous.verify_digest(Path(item['path']),item['sha256'],'REUSED_LADDER')
+        if Path(item['path']).stat().st_size != item['bytes']:
+            raise RuntimeError('GC_FEATURE_REUSED_LADDER_SIZE_INVALID')
     ohlc = np.zeros((len(minutes),4),dtype=np.int64)
     reports = []
     references = {}
@@ -329,7 +339,7 @@ def run(binding_path):
     # only from masks, before prices or outcomes are accessed.
     ref_bars = reference_bar_selection(minutes,selected,masks,len(groups))
     with ProcessPoolExecutor(max_workers=WORKER_COUNT,mp_context=mp.get_context('fork')) as pool:
-        jobs = [pool.submit(scan_feature_symbol,g,i,selected,metrics,masks,tick_size,stage/'LADDERS',ref_bars[i])
+        jobs = [pool.submit(scan_feature_symbol,g,i,selected,metrics,masks,tick_size,None,ref_bars[i])
                 for i,g in enumerate(groups)]
         for job in jobs:
             result = job.result()
@@ -347,7 +357,7 @@ def run(binding_path):
     for tf in MULTI_TF_TIMEFRAMES:
         surfaces[tf],maps[tf] = features.timeframe_skeleton(minutes,selected,metrics,masks,ohlc,tf,tick_size)
     for g in groups:
-        features.consume_ladder(stage/'LADDERS'/(g['raw_symbol']+'.parquet'),surfaces,maps,tick_size)
+        features.consume_ladder(Path(reused[g['raw_symbol']]['path']),surfaces,maps,tick_size)
     cvd = features.relative_cvd(minutes,selected,masks,metrics)
     for tf,surface in surfaces.items():
         if not np.isfinite(surface['vwap_usd'][surface['volume_valid']]).all():
@@ -378,6 +388,8 @@ def run(binding_path):
         previous.verify_digest(path,digest,'SOURCE_POST_SCAN')
     for item in plan['admitted_inputs'].values():
         previous.verify_digest(Path(item['path']),item['sha256'],'ADMISSION_POST_SCAN')
+    for item in reused.values():
+        previous.verify_digest(Path(item['path']),item['sha256'],'REUSED_LADDER_POST_SCAN')
     for path,digest in binding['code_sha256'].items():
         previous.verify_digest(REPO/path,digest,'CODE_POST_SCAN')
     previous.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'POLICY_POST_SCAN')
@@ -406,7 +418,7 @@ def run(binding_path):
     result = {'status':'FEATURE_BUILD_COMPLETE_NOT_TRAINING_ADMISSION','plan_id':PLAN_ID,
         'plan_sha256':binding['plan_sha256'],'source_head':binding['source_head'],
         'code_sha256':binding['code_sha256'],'native_m5_rows':len(times),'support':support,
-        'source_reports':reports,'limits':proof,'real_parity':real_parity,
+        'source_reports':reports,'limits':proof,'real_parity':real_parity,'reused_ladders':reused,
         'feature_columns':table.schema.names,
         'abc_gc_input_valid_rows':int(np.count_nonzero(table['gc_m5_abc_input_valid'].to_numpy())),'test_accessed':False,'outcomes_read':False,
         'fit_started':False,'economics_evaluated':False,'native_train_serve_parity_proven':False,
@@ -428,7 +440,7 @@ def run(binding_path):
         previous.verify_digest(stage/name,entry['sha256'],'PUBLISHED_ARTIFACT')
     for path in stage.glob('*.json'):
         previous.read_json(path)
-    for directory in (stage/'LADDERS',stage):
+    for directory in (stage,):
         fd = os.open(directory,os.O_RDONLY|os.O_DIRECTORY)
         try: os.fsync(fd)
         finally: os.close(fd)

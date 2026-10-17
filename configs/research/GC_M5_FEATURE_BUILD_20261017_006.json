@@ -1,0 +1,280 @@
+{
+  "admitted_inputs": {
+    "masks": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/SELECTED_M1_INPUT_MASKS.parquet",
+      "sha256": "d30894d0786b69fd1f8784ee98ef7035cfe6a35f05d185e5e235df8899b684d4"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/RESULT.json",
+      "sha256": "11dec8fe9de8b726a707ce2907016df342cc3f06d20377abc99474d04466aea8"
+    },
+    "roll": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/ROLL_SCHEDULE.json",
+      "sha256": "80f847b74b1e49efb64b9c57d306263bc184e4f289e66cb1d95a37bb2b05add8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/TERMINAL.json",
+      "sha256": "be16bc6b2838f85916d62b5dcf1b3438b4e98494a073cc75f2a4f7c6a125289e"
+    }
+  },
+  "authorization": {
+    "max_invocations": 1,
+    "old_approvals_reusable": false,
+    "operator_clarification": "Vi holder oss til M5 intradag (med mtf s\u00e5 klart).",
+    "operator_request": "La oss implementere det nye GC datasettet som vi lastet ned s\u00e5 bruker vi volume, order block og ALT vi kan f\u00e5 ut av dette og s\u00e5 trener vi igjen",
+    "received_date": "2026-10-17",
+    "scope": "One new local-only repair build 006 reusing completed 005 trade ladders and reconstructing only missing OHLC order; same M5/MTF recipe and admitted masks, no fit/TEST/economics/API/spending/native launch."
+  },
+  "created_utc": "2026-10-17T06:54:12.941329+00:00",
+  "expected_source_records": 892100712,
+  "features": {
+    "cvd_fields": [
+      "cvd_segment_delta_contracts",
+      "cvd_segment_volume_contracts",
+      "cvd_segment_minutes"
+    ],
+    "decision_clock": "native M5 open + 300 s, strict pre-TEST",
+    "dtype": "float64_nullable; raw ladder exact uint64; reject quantity conversion above 2^53",
+    "footprint_fields": [
+      "max_level_delta_contracts",
+      "min_level_delta_contracts",
+      "buy_poc_usd",
+      "sell_poc_usd"
+    ],
+    "horizon_design_to_bind_for_later_fit_minutes": [
+      30,
+      120,
+      360
+    ],
+    "normalization_fit": false,
+    "owner": "gx1.features.gc_order_flow_v1",
+    "profile_fields": [
+      "vwap_usd",
+      "poc_usd",
+      "q25_usd",
+      "median_usd",
+      "q75_usd",
+      "price_levels"
+    ],
+    "structure_fields": [
+      "structure_available",
+      "bos_up",
+      "bos_down",
+      "sweep_up_event",
+      "sweep_down_event",
+      "ob_bull_active",
+      "ob_bull_created",
+      "ob_bull_first_retouch",
+      "ob_bull_low",
+      "ob_bull_high",
+      "ob_bull_age_bars",
+      "ob_bull_origin_volume_contracts",
+      "ob_bear_active",
+      "ob_bear_created",
+      "ob_bear_first_retouch",
+      "ob_bear_low",
+      "ob_bear_high",
+      "ob_bear_age_bars",
+      "ob_bear_origin_volume_contracts",
+      "ob_bull_input_valid",
+      "ob_bear_input_valid"
+    ],
+    "structure_owner": "gx1.features.smc_v1",
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ]
+  },
+  "forbidden": [
+    "new Databento/API requests",
+    "spending",
+    "label/outcome access",
+    "normalization/model fit",
+    "TEST",
+    "economics",
+    "native serving",
+    "broker/live/paper/orders"
+  ],
+  "inputs": {
+    "gc_plan": {
+      "files": 66,
+      "path": "configs/research/GC_SOURCE_AUDIT_20261016_002.json",
+      "rule": "Use and reverify the exact MBP-1 file/receipt SHA-256 bindings from this frozen spec.",
+      "sha256": "3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d"
+    },
+    "gc_reconciliation": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json",
+      "sha256": "14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda"
+    },
+    "gc_result": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json",
+      "sha256": "c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab"
+    },
+    "oanda_manifest": {
+      "availability_offset_seconds": 60,
+      "field": "time",
+      "partitions": [
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2024/part-000.parquet",
+          "sha256": "2776a1cb17b915d506eaf0d7ed5323ba975e0d0d1c52c0c02d2da20589d1c41a"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2025/part-000.parquet",
+          "sha256": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2026/part-000.parquet",
+          "sha256": "52eecadc8b9ff4a4522ca5003656a91e6250f7accbacdfd73587ba14b375ec1a"
+        }
+      ],
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/MANIFEST.json",
+      "read_only_columns": [
+        "time",
+        "bid_close",
+        "ask_close"
+      ],
+      "rule": "Existing bound M1 timestamps and bid/ask close for same-time spot basis only; no outcomes.",
+      "semantics": "bar_start_utc",
+      "sha256": "61bcf169a4dcdfaf09fee981ce511fbeaf9efdb88b8a1b338ea7796e50b133b2"
+    },
+    "source_inventory": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN.json",
+      "sha256": "f73165d365c9a3258c37215bab288dce9af1ec5b80bfd4e65cbab4f45d33c466"
+    }
+  },
+  "limits": {
+    "cpu_affinity": "0-7",
+    "max_wall_seconds": 3600,
+    "memory": "4G",
+    "numerical_threads": 1,
+    "runner": "scripts/gx1_capped_run.sh --class audit",
+    "swap": "512M",
+    "tasks_max": 64,
+    "worker_processes": 8
+  },
+  "native_datasets": {
+    "train": {
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json",
+        "sha256": "022e19bcd52c0333cb3cfd64593c05c13c93f69982340de4fb13d23935d93ad2"
+      },
+      "parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.parquet",
+        "sha256": "e2d7aed519511e07ccca11b7be14ae89e8808b467635fc948b7a8acf08a2bddb"
+      }
+    },
+    "val": {
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json",
+        "sha256": "3343f1b6b9f9ac94e15ed75f6a93a950864ced5dffbd587c2b388788c708b553"
+      },
+      "parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.parquet",
+        "sha256": "df4a9175003bfd269a23b15dfc792135340a69ef1faf556080edac2e3748a941"
+      }
+    }
+  },
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006",
+  "plan_id": "GC_M5_FEATURE_BUILD_20261017_006",
+  "recipe_document": {
+    "path": "docs/GC_M5_FEATURE_RECIPE.md",
+    "sha256": "b8915bfbd27cefe3b7ccb05135e2f6339a21082dbba61dfe3656e79ac71fbfc2"
+  },
+  "repair_of": {
+    "difference": "Cast report integers to native int; reuse hash-bound completed ladders; re-observe missing OHLC receive order. No formula, mask, target, fit or evaluation change.",
+    "failure": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/FAILURE.json",
+      "sha256": "dec49da91a12bca6b7f59d203b03b65a499d2a61932652d3aefddb4f4898f836"
+    },
+    "plan_id": "GC_M5_FEATURE_BUILD_20261017_005",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/TERMINAL.json",
+      "sha256": "4362868a27359bb17dab3e9bb72ac5932210f57a1f578772f29100e6d1efd32b"
+    }
+  },
+  "reuse_ladders": {
+    "GCG5": {
+      "bytes": 2796024,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCG5.parquet",
+      "sha256": "6fa0325857eae172d08280f44229aa84b4ce76cbe14227bf8eec42b4e99c0e4f"
+    },
+    "GCG6": {
+      "bytes": 5643577,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCG6.parquet",
+      "sha256": "1240cbd328a3b5c84545c10cb42917f5e49da05dd045615433b61c0c652e5f44"
+    },
+    "GCJ5": {
+      "bytes": 2778040,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCJ5.parquet",
+      "sha256": "e24d2ecdb52a07ee3552db596a26a3381d068d478cc019680618365396f6054a"
+    },
+    "GCJ6": {
+      "bytes": 7733855,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCJ6.parquet",
+      "sha256": "9fde75ab973423a5e2a551ab93d4a37a7258d2e2f9665f61d07ffb9fd234cf06"
+    },
+    "GCM4": {
+      "bytes": 1449263,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCM4.parquet",
+      "sha256": "a63a6ad52265ab47143de451abff7d1b9e43db8491f6ff05375fba4588fd7fd6"
+    },
+    "GCM5": {
+      "bytes": 4438534,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCM5.parquet",
+      "sha256": "5bf9f715b965aca09349849527472daadf7902479de72f5db9c7a6fe38feef31"
+    },
+    "GCM6": {
+      "bytes": 5076121,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCM6.parquet",
+      "sha256": "db8fd3e022363c844770218bd65620977543cc5a3f08d4c6dcc9b6f9defbaaca"
+    },
+    "GCQ4": {
+      "bytes": 3087772,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCQ4.parquet",
+      "sha256": "4720a4c5d9ba2879fa39129417d56ebb19ceb2184a415ee20f3903ad882abfb0"
+    },
+    "GCQ5": {
+      "bytes": 3643500,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCQ5.parquet",
+      "sha256": "c435b9956e6a028c146b3523568a885cbf8c2a73c2489a7f52905654478670cc"
+    },
+    "GCQ6": {
+      "bytes": 3042400,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCQ6.parquet",
+      "sha256": "bdcdfba427070f1e27df04dc70a2770a2c17a402e57e90c15639561e4e431619"
+    },
+    "GCV4": {
+      "bytes": 663,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCV4.parquet",
+      "sha256": "4b95d8c38d0c57f5321d037ca0610a7ddeb2ef00ab5ed2c56357141f9f3a83e2"
+    },
+    "GCV5": {
+      "bytes": 663,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCV5.parquet",
+      "sha256": "4b95d8c38d0c57f5321d037ca0610a7ddeb2ef00ab5ed2c56357141f9f3a83e2"
+    },
+    "GCZ4": {
+      "bytes": 6338694,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCZ4.parquet",
+      "sha256": "c4d4aefae6359167860e6c2825f10c22b558006bcc6500dd264468f2ebe74dbf"
+    },
+    "GCZ5": {
+      "bytes": 9910310,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCZ5.parquet",
+      "sha256": "29b5d9c86d0dac4e14c231247381684b112f9c1cab1f447a6fe7b3007222e08c"
+    },
+    "GCZ6": {
+      "bytes": 663,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCZ6.parquet",
+      "sha256": "4b95d8c38d0c57f5321d037ca0610a7ddeb2ef00ab5ed2c56357141f9f3a83e2"
+    }
+  },
+  "schema_version": "gx1_gc_m5_feature_build_plan_v1",
+  "study_window_utc": [
+    "2024-05-01T00:00:00Z",
+    "2026-07-01T00:00:00Z"
+  ]
+}

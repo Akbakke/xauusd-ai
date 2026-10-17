@@ -96,3 +96,16 @@ Planen publiserer en kompakt sidefil med native split/radnummer og M5/MTF-
 features, aggregerte laddere og bevis. Den kopierer ikke det store native
 sekvensdatasettet. Videre trening krever en separat konkret intradag-mål-/
 recipebinding; tidligere 20-handelsdagersresultater brukes ikke som M5-bevis.
+
+## Teknisk gjenopptakelse 006
+
+005 fullførte råpassering, avstemming og featureberegning, men feilet før
+publisering: NumPy-int64 i prefix-rapporten kunne ikke skrives som JSON.
+Ingen ferdig featurefil ble publisert. Originalfeil/logg/partiell rapport
+beholdes. 006 gjenbruker de 15 ferdige sparse ladder-filene (hash-bundet,
+55,9 MB samlet). M1 OHLC-receive-rekkefølge var bare i minnet og gjenoppbygges
+fra samme kildemottak med eksisterende parser; ingen ny ladderkopi lages.
+Alle minutttellere/rå recordtall, gjeldende og gjenbrukte hasher, profil- og
+råreferanseparitet kontrolleres på nytt. Kun rapportheltall og gjenbruk er
+rettet; formler/masker/kohorter er uendret. 005 relanseres aldri. En reell
+TF-prefix med bare én bar har ingen framtidig suffix og merkes eksplisitt.

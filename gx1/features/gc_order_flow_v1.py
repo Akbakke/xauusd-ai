@@ -62,11 +62,11 @@ def histogram_features(ticks, buy, sell, unknown, tick_size):
 
 class TradeLadderCollector:
     """A streaming callback of the source owner, never a second record parser."""
-    def __init__(self, path: Path, selected, valid, symbol_index, tick_size, *, reference_bars=()):
+    def __init__(self, path: Path | None, selected, valid, symbol_index, tick_size, *, reference_bars=()):
         self.selected, self.valid = selected, valid
         self.symbol_index, self.tick_size = symbol_index, tick_size
         self.ohlc = np.zeros((len(selected),4),dtype=np.int64)
-        self.writer = pq.ParquetWriter(path, pa.schema([
+        self.writer = None if path is None else pq.ParquetWriter(path, pa.schema([
             ('minute_index',pa.int32()),('price_tick',pa.int64()),
             ('buy',pa.uint64()),('sell',pa.uint64()),('unknown',pa.uint64())]), compression='zstd')
         self.rows = 0
@@ -93,6 +93,9 @@ class TradeLadderCollector:
         hi = np.maximum.reduceat(ticks,first)
         self.ohlc[unique,1] = np.maximum(self.ohlc[unique,1],hi)
         self.ohlc[unique,2] = np.where(empty,lo,np.minimum(self.ohlc[unique,2],lo))
+        if self.writer is None:
+            self.rows += int(take.sum())
+            return
         keys = np.rec.fromarrays([minutes.astype(np.int32),ticks],names='minute,price')
         levels, inverse = np.unique(keys,return_inverse=True)
         quantities = {}
@@ -104,7 +107,8 @@ class TradeLadderCollector:
         self.rows += int(take.sum())
 
     def close(self):
-        self.writer.close()
+        if self.writer is not None:
+            self.writer.close()
 
 
 def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_size):

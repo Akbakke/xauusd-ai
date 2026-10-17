@@ -175,3 +175,26 @@ def test_raw_reference_reducer_detects_wrong_profile_and_no_references():
         verify_real_references(raw,surface,100000000)
     with pytest.raises(RuntimeError,match='NO_REAL_REFERENCE_BARS'):
         verify_real_references({},surface,100000000)
+
+
+def test_real_prefix_evidence_is_strict_json_serializable_and_discloses_suffix():
+    import json
+    from gx1.scripts.gc_order_flow_features_v1 import verify_real_prefixes
+    a=minute_inputs(30)
+    surface,_=f.timeframe_skeleton(*a,'M5',100000000)
+    checks=verify_real_prefixes({'M5':surface},a[0],a[1],a[3],a[2],100000000)
+    encoded=json.dumps(checks,allow_nan=False)
+    assert json.loads(encoded)[0]['future_suffix_bars']==3
+
+
+def test_ohlc_recovery_callback_does_not_create_a_second_ladder():
+    a=minute_inputs(2)
+    collector=f.TradeLadderCollector(None,a[1],a[3]['volume'],0,100000000,reference_bars=[0])
+    data={
+        'price':pa.array([10000000000,10100000000,9900000000]),
+        'size':pa.array([3,1,2],type=pa.uint32()),'side':pa.array(['B','A','B'])}
+    collector(data,np.array([0,0,1]),np.array([True,True,True]))
+    collector.close()
+    assert collector.ohlc.tolist()==[[100,101,100,101],[99,99,99,99]]
+    assert collector.rows==3
+    assert collector.reference_trades[0]==[(100,3,'B'),(101,1,'A'),(99,2,'B')]

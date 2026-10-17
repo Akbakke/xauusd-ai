@@ -16,8 +16,13 @@ ikke. Plan/forhåndsformler: configs/research/GC_M5_FEATURE_BUILD_20261017_005.j
 docs/GC_M5_FEATURE_RECIPE.md. 100 fokuserte mekanikk-/SMC-/handover-tester og 41 kilde-/disposisjonstester
 består. En gammel kilde-test krevde fortsatt at alle steg var uferdige etter
 004; den skiller nå maskert input-admission fra komplett tape-kvalifisering.
-Én lokal featurepassering er claimet for 005; faktisk bygging/paritet er ennå
-ikke kjørt.
+005 fullførte råpassering/avstemming og beregning, men feilet på rapportens
+NumPy-int64 → JSON før publisering. Ingen ferdig featurefil er publisert.
+Feil, logg og delrapport er bevart; 005 relanseres ikke. 006 er ny, claimet
+minimal gjenopptakelse: samme formler/masker, gjenbruk av 15 hash-bundne
+ladderfiler (ca. 56 MB), gjenoppbygging av ikke-persisted OHLC-rekkefølge og
+ny eksakt avstemming. Syntetisk JSON-/gjenbrukskontroll består. Ekte 006-
+publisering gjenstår.
 Trening, normalisering, TEST, økonomi og native launch er fortsatt stengt;
 ny konkret intradag-mål-/recipebinding gjenstår etter featurebeviset.
 Opprydding/komprimering er fullført; dette er ikke lenger en blokkering.
