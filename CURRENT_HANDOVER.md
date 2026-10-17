@@ -1,74 +1,59 @@
 # CURRENT HANDOVER — 17.10.2026
 
 Authority: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json
-is the only work status. One agent, capped CURRENT workload; never change bound
-source during a job. Native training_enabled=false; TEST/live/broker/spending closed.
+is the only work status. One agent/capped CURRENT job. Native training_enabled=false;
+TEST, baseline, Entry/Exit, production/live, broker and spending remain unchanged/closed.
 
-## Current: one closing diagnosis023 claimed, no model training
+## Current decision: NO-GO — stop GC/M5 P0
 
-Report: docs/GC_P0_FIRST_DEVELOPMENT_20261017.md.
-021 and independent no-refit022 COMPLETE, exit0, source_unchanged=true, TEST=false.
-Consumed once; never relaunch. No additional fit or larger training admitted.
-The new operator request authorizes one no-fit closing diagnosis023: saved
-forecasts/trades, fixed30 diagnostic controls and per-fold/session/regime coverage.
-Recipe: configs/research/GC_P0_CLOSING_DIAGNOSIS_20261017_023.json. No threshold/
-horizon selection, calibrator, sign inversion, model inference or model fitting.
-Fixed30 is explicitly diagnostic; native holding/Exit remain unchanged.
+Closing report: docs/GC_P0_CLOSING_DIAGNOSIS_20261017.md.
+023 COMPLETE once, exit0, source_unchanged=true, test_data_used=false, models_refitted=0.
+No new model inference, fit, HPO, Transformer/RL, calibrator, sign inversion or
+threshold/horizon selection. 021/022 originals unchanged; no consumed plan relaunch.
 
-- Same 37,181 strict F/L input windows; all26 GC months development. Macro-free
-  CORE211, new F12/L8, original V16. Same61 macro fields excluded in every arm;
-  Nov/Dec2025 observations retained. No mask relaxation, duplicate ATR or incomplete
-  whole-session profile. No new rawdata/provider purchase or download.
-- 30min primary frozen before fit, 120/360min same-forecast diagnostics. Existing
-  five expanding folds, actual outcome purge/one-day embargo; 40 small fixed trees
-  and40 rule tables. 17,301 development opportunities; tree metrics17,298 rows,
-  rule family17,297 after one LV unseen-state abstention. Common cross-model view
-  on17,297 exists outside immutable022 RESULTS; no refit.
-- Every tree arm loses net in all11 cost/funding stresses. CORE−99.11bps,
-  FLV−290.20bps. No secure incremental prediction improvement; all pooled tree
-  IC/calibration slopes negative. L modest MSE improvement is uncertain and its
-  economic contrast is worse. Rule7 arms FLAT; FLV7 positions loses42.83bps.
-- All288 tree entries are LONG in May/June2026, first four folds only FLAT.
-  This does not prove selectivity/patience or bidirectional economic value.
-  Coverage is selective: year2025 lower, OVERLAP/high-RV underrepresented.
-- Correct v3 entry-side LONG/SHORT notionals, bid/ask spread, one position/fixed
-  initial notional, no max hold/stop/hindsight Exit. FLAT/flip closes; mark open
-  positions and reserve roundtrip cost once. All296 selected ledger records match
-  raw quotes/canonical v3 cash for11 scenarios (max error1.14e−13bps). SHORT source/
-  contract symmetry passes, but no actual tree SHORT selected.107 focused tests pass after the terminal-schema observation repair.
+- Saved forecasts have weak/nonstable alignment. MSE above TRAIN mean decomposes
+  exactly into forecast energy minus outcome alignment. CORE negative covariance
+  mostly between folds; F/FLV also negative within folds. Not all individual folds
+  or regimes are negative; this does not establish a useful inverse predictor.
+- All288 original tree entries LONG in May/June2026. Negative predictions exist,
+  but every SHORT net margin remains negative (max−0.183bps). First four folds
+  never cross the unchanged central fee/spread/funding requirement. One-position
+  sequencing changes counts, not sign. Coverage does not itself force LONG.
+- Original same-entry30min markouts can overlap: CORE+48.96bps sum, wide weekly
+  uncertainty, no new GC layers. All F/L/V-added arms negative centrally.
+  Separate one-position fixed30 diagnostic: CORE−8.48, F−352.75, L−385.93,
+  V−52.25, FL−532.61, FV−404.50, LV−297.87, FLV−245.46bps centrally.
+  All new-F/L arms also negative at cheapest costs. No safe holding rescue.
+- Holding mismatch is real: median5–90min, max1565min. Longest F case includes
+ 108 qualified intervening LONG updates; not merely missing-input stalls.
+  Fixed30 is user-requested diagnostic only; no native max hold/Exit change.
+- L has small descriptive incremental prediction gain, uncertain and untradeable
+  here; FLV improves no fold. None of the nine pooled one-way session/RV/trend slices beats TRAIN mean
+  MSE in any of eight models. Subgroup results are descriptive, never strategy selection.
+- Same strict F/L cohort/rows across arms. Per-fold coverage12.13–36.78% vs
+  initialTRAIN30.39%; selected markouts less volatile than excluded in every fold.
+  Full per-fold/session/RV/trend counts/results saved. No extrapolated predictions
+  for unselected rows, no relaxed masks, no new features or provider calls.
 
-Results under /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001:
-GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS and
-GC_P0_DEVELOPMENT_REVIEW_20261017_022/RESULTS. Both originals preserved.
-022/COMMON_PREDICTION_VIEW.json gives identical17,297-row rule/tree metrics.
-All raw trade ledgers/model files stay internal; publish only source/aggregate proof.
+Evidence: /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/
+GC_P0_CLOSING_DIAGNOSIS_20261017_023/RESULTS; companion DECISION_SUMMARY.json
+and HOLDING_CONTEXT.json preserve descriptive publication context. Eight new
+mathematical/clock tests +12 existing P0 contracts passed; focused final handover
+policy check and source/terminal/publication controls accompany completion.
+Raw30min labels exact for all17,301 saved decisions; fixed30 cash matches canonicalv3.
 
-## Remaining boundaries
+## Limits and continuation boundary
 
-CFTC9Dec revised catch-up calendar supersedes November schedule (current by29Dec).
-configs/research/CFTC_RESEARCH_RELEASE_HISTORY_V2_20261017.json records intended
-releases separately from actual delivery/vintage proof; no report+7 fallback.
-Actual macro receipts/vintages remain incomplete: all61 excluded from P0, native
-macro owner unchanged. No FRED/provider acquisition in this wave.
+We have not found tradeable edge. This is not proof that all raw GC information
+is worthless or a causal diagnosis of training under/overfit. Only saved outputs
+were inspected. No independent confirmation exists; all26GCmonths are development.
+Tick fills, intra-gap drawdown, historical financing and macro publication/vintages
+remain unqualified. All61macro inputs stay excluded from this P0 control; no new
+macro work or source-ingestion change in this wave. D1/h20 remains separate.
+No further P0 model test/complexity is justified or admitted. Preserve qualified
+GC inputs/code and original evidence; do not automatically start another study.
 
-Historical daily/holiday calendar/first-tick timing remain unqualified. Targets
-have exact M1 paths; positions can carry gaps. Observed M1 drawdown hides intra-gap/
-intraminute risk. Missing-day marks forward-fill; accrued funding appears at next
-observed quote. Funding stresses are hypothetical, not historical broker truth.
-No untouched GC confirmation exists. Native TEST,315-field baseline, Entry/Exit,
-production and live unchanged. Follow-up requires a fresh preregistered hypothesis
-addressing calibration, selective coverage and four folds without trades; larger
-training/additional features are not justified by this study.
-
-## Preserved foundation and retention
-
-014 OpenBB,017 L1,019 full GC clock profiles,020 no-fit qualification COMPLETE.
-83,776 F windows; rolling15 48,164; common finite37,181. No clean finished whole
-GC session proved. Full-history caches:019/PUBLISHED_ARTIFACTS.json. Existing26mo
-raw GC only; no raw replay needed. Previous synthesis:
-docs/OPENBB_GC_FOUNDATION_REVIEW_20261017.md. Native D1/h20 stays separate.
-DATA/RUNS deletion only through retention owner/rule9. No cleanup/reboot authority
-in this wave; preserve raw/caches, receipts, weights and checkpoints.
-
-Handover reader now accepts only exact consumed021/022 receipts with their genuine
-TEST_accessed witness; native readiness remains blocked. Originals never rewritten.
+014/017/019/020/021/022 are preserved consumed foundations/studies. Raw26months,
+strict F83,776, rolling15 48,164 and finite common37,181 remain unchanged.
+Canonical full-GC cache019/PUBLISHED_ARTIFACTS.json; no replay/download required.
+DATA/RUNS deletion only through retention owner/rule9; no cleanup/reboot order here.
