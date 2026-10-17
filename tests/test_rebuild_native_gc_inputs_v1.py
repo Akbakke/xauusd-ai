@@ -65,3 +65,24 @@ def test_book_mask_requires_same_contract_clean_prior_and_complete_integral():
     quality['gap'][3] = 1
     ofi, _ = l1_masks(quality, np.array([0, 0, 1, 1, 1]), np.full(5, timing.MINUTE_NS))
     assert not ofi[3] and not ofi[4]
+
+
+def test_footprint_sums_fragmented_price_rows_and_keeps_unknown(tmp_path):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import write_footprint
+    path = tmp_path / 'selected.parquet'
+    schema = pa.schema([('minute_index', pa.int32()), ('price_tick', pa.int64()),
+                        ('buy', pa.uint64()), ('sell', pa.uint64()), ('unknown', pa.uint64())])
+    with pq.ParquetWriter(path, schema) as writer:
+        for buy, unknown in [(2, 1), (3, 0)]:
+            writer.write_table(pa.table({'minute_index': [0], 'price_tick': [100],
+                                         'buy': [buy], 'sell': [0], 'unknown': [unknown]}, schema=schema))
+    target = tmp_path / 'footprint.parquet'
+    count = write_footprint([path], np.array([timing.STUDY_START_NS]), np.array([0]),
+        {'buy': np.array([5]), 'sell': np.array([0]), 'unknown': np.array([1])},
+        {'volume': np.array([True]), 'delta': np.array([False])}, target)
+    assert count == 1
+    values = pq.read_table(target).to_pydict()
+    assert values['buy'] == [5] and values['unknown'] == [1]
+    assert values['signed_valid'] == [False]

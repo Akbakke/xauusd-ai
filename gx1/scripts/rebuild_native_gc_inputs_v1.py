@@ -104,6 +104,66 @@ def raw_worker(group, ci, tick, stage):
             'files': result['files']}
 
 
+def write_footprint(paths, minute, selected, metrics, masks, destination):
+    """One exact observed quantity per selected M1/price; unknown side retained."""
+    schema = pa.schema([('bar_start_ns', pa.int64()), ('contract_index', pa.int16()),
+        ('price_tick', pa.int64()), ('buy', pa.uint64()), ('sell', pa.uint64()),
+        ('unknown', pa.uint64()), ('signed_valid', pa.bool_())])
+    total_rows = 0
+    buffered_rows = 0
+    buffered = []
+    with pq.ParquetWriter(destination, schema, compression='zstd') as writer:
+        for ci, path in enumerate(paths):
+            current = None
+            histogram = {}
+
+            def flush():
+                nonlocal total_rows, buffered_rows
+                if current is None:
+                    return
+                keys = sorted(histogram)
+                quantities = np.array([histogram[k] for k in keys], np.uint64)
+                if any(sum(map(int, quantities[:, j])) != int(metrics[k][current])
+                       for j, k in enumerate(('buy', 'sell', 'unknown'))):
+                    raise RuntimeError('RAW_GC_FOOTPRINT_SIDE_CONSERVATION')
+                if selected[current] != ci or not masks['volume'][current]:
+                    raise RuntimeError('RAW_GC_FOOTPRINT_SOURCE_MASK')
+                buffered.append(pa.table({
+                    'bar_start_ns': np.full(len(keys), minute[current], np.int64),
+                    'contract_index': np.full(len(keys), ci, np.int16),
+                    'price_tick': np.array(keys, np.int64), 'buy': quantities[:, 0],
+                    'sell': quantities[:, 1], 'unknown': quantities[:, 2],
+                    'signed_valid': np.full(len(keys), masks['delta'][current], bool)}, schema=schema))
+                total_rows += len(keys)
+                buffered_rows += len(keys)
+                if buffered_rows >= 65536:
+                    writer.write_table(pa.concat_tables(buffered))
+                    buffered.clear()
+                    buffered_rows = 0
+
+            for batch in pq.ParquetFile(path).iter_batches(batch_size=65536):
+                arrays = {k: batch.column(batch.schema.get_field_index(k)).to_numpy()
+                          for k in batch.schema.names}
+                rows = arrays['minute_index']
+                unique, first, counts = np.unique(rows, return_index=True, return_counts=True)
+                for row, begin, count in zip(unique, first, counts):
+                    if current != int(row):
+                        flush()
+                        current = int(row)
+                        histogram = {}
+                    for j in range(begin, begin + count):
+                        key = int(arrays['price_tick'][j])
+                        q = np.array([arrays[k][j] for k in ('buy', 'sell', 'unknown')], np.uint64)
+                        if key in histogram:
+                            histogram[key] += q
+                        else:
+                            histogram[key] = q
+            flush()
+        if buffered:
+            writer.write_table(pa.concat_tables(buffered))
+    return total_rows
+
+
 def build(plan, stage):
     base = io.read_json(io.REPO / plan['source_plan']['path'])
     io.verify_digest(io.REPO / plan['source_plan']['path'], plan['source_plan']['sha256'], 'RAW_SOURCE_PLAN')
@@ -124,6 +184,8 @@ def build(plan, stage):
         raise RuntimeError('RAW_GC_RECORD_COUNT')
     daily = np.stack([r['daily'] for r in results])
     selected, chosen, basis = selected_minutes(daily, [metadata[r['symbol']][:2] for r in results])
+    pq.write_table(pa.table({r['symbol']: daily[j] for j, r in enumerate(results)}),
+                   stage / 'DAILY_CONTRACT_VOLUMES.parquet', compression='zstd')
     width = len(selected)
     minute = timing.STUDY_START_NS + np.arange(width, dtype=np.int64) * timing.MINUTE_NS
     metrics = {k: np.zeros(width, np.uint64) for k in source.METRICS}
@@ -202,6 +264,8 @@ def build(plan, stage):
                 h[int(price)] = h.get(int(price), 0) + int(qty)
         writer.close()
         features.consume_ladder(selected_path, surfaces, minute_maps, tick)
+    footprint_rows = write_footprint([parts / (r['symbol'] + '_SELECTED_LADDER.parquet')
+        for r in results], minute, selected, metrics, masks, stage / 'FOOTPRINT_M1_LEVELS.parquet')
     cvd = features.relative_cvd(minute, selected, masks, metrics)
     for tf, surface in surfaces.items():
         features.add_structure_and_cvd(surface, cvd, minute_maps, minute)
@@ -253,6 +317,8 @@ def build(plan, stage):
         'origin_ns': timing.STUDY_START_NS, 'availability_offset_ns': timing.MINUTE_NS})
     return {'raw_records': records, 'raw_files': sum(len(r['files']) for r in results),
         'full_GC_M1_rows': width, 'M5_rows': len(start), 'coverage': coverage,
+        'footprint_price_rows': footprint_rows,
+        'footprint_side_conservation': 'EXACT_EVERY_VALID_SELECTED_M1',
         'source_files': [f for r in results for f in r['files']],
         'trade_feature_support': {tf: {k: int(np.count_nonzero(np.isfinite(v) & (v != 0)))
             for k, v in surf.items() if k not in ('bar_start_ns', 'available_ns', 'contract_index')}
@@ -308,6 +374,18 @@ def run(binding_path):
             inventory[str(path.relative_to(stage))] = {'sha256': io.sha256_file(path), 'bytes': path.stat().st_size}
     io.write_json(stage / 'TERMINAL.json', {'status': 'COMPLETE', 'exit_code': 0, 'artifacts': inventory,
         'finished_utc': datetime.now(timezone.utc).isoformat(), 'source_unchanged': True, 'test_data_used': False})
+    for name, entry in inventory.items():
+        io.verify_digest(stage / name, entry['sha256'], 'RAW_REBUILD_PUBLISH_ARTIFACT')
+        if name.endswith('.parquet'):
+            pq.ParquetFile(stage / name).metadata
+    if {str(p.relative_to(stage)) for p in stage.rglob('*') if p.is_file()} != set(inventory) | {'TERMINAL.json'}:
+        raise RuntimeError('RAW_REBUILD_PUBLICATION_INVENTORY')
+    for directory in (stage / 'RAW_REDUCTIONS', stage):
+        fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
     publish_bundle_directory_noreplace(stage, root / 'RESULTS')
     print('NATIVE_RAW_GC_REBUILD_COMPLETE', flush=True)
 
