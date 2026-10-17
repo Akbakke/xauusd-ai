@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-17T11:19:59.907909+00:00",
-  "status": "GC_M5_CASH_PROJECTION_013_CLAIMED__P0_FIT_CLOSED",
+  "observed_utc": "2026-10-17T11:23:22.752868+00:00",
+  "status": "ENTRY_RESEARCH_CORRECTIONS_MEASURED__CALENDAR_AND_P0_ADMISSION_BLOCKED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Qualify selected-contract L1 reset/snapshot/BBO continuity and full-record duplicate collisions in a new bounded local-only plan, without weakening 004 masks; then extend existing GC parser and build real-trade dynamic levels. Reuse ATR/RV/session. Bind finite matched P0 single/pair/triple rule/XGBoost recipe only after quality/features and symmetric execution accounting are verified. No native target/Exit change, TEST, live, new data requests or consumed-plan relaunch.",
+  "next_action": "Resolve historical daily/holiday calendar and financing limitations without modifying baseline; extend existing GC owner with actual OFI/time-weighted BBO and dynamic real-trade level values under family masks, then freeze exact finite matched rule/XGBoost P0 recipe. Native training, TEST, production/live and new market-data requests remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "011 and 012 complete. Cash projection v3 check 013 claimed: canonical native cost owner and corrected entry-notional gross, same existing 17565 observations. No fit or strategy simulation.",
+    "current_activity": "A/B/C research corrections and D L1 candidate qualification complete within declared scope; actual historical calendar, financing and P0 feature/model admission remain blocked.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -158,11 +158,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "full selected-contract L1 quality and candidate input masks, no feature or training admission",
+    "latest_terminal_role": "cash projection v3 accounting check on unchanged GC/M5 observations; no fit, historical economics or promotion admission",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SELECTED_L1_QUALITY_20261017_012/RESULTS/TERMINAL.json",
-      "sha256": "9a32c89329eae8cca5696b094e285b86142b14ca7b68af698f7c2ccb94957d92"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_CASH_PROJECTION_CHECK_20261017_013/RESULTS/TERMINAL.json",
+      "sha256": "00653865c131b0afd4e6b8e08e108186da5276c8a18e744b9a76239d1a36f643"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -182,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Historical daily/holiday calendar and broker financing remain unqualified. Real OFI/BBO/dynamic GC feature values and final bounded P0 model/rule recipe remain unbuilt; no native TEST or training admission.",
+    "current_blocker": "No fully qualified historical session/holiday calendar, no raw VAL-tail reconstruction or historical broker funding; L1 masks are candidate inputs only, dynamic GC levels/final P0 rule-model recipe not built. No unused GC confirmation period verified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7656,7 +7656,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify selected-contract L1 reset/snapshot/BBO continuity and full-record duplicate collisions in a new bounded local-only plan, without weakening 004 masks; then extend existing GC parser and build real-trade dynamic levels. Reuse ATR/RV/session. Bind finite matched P0 single/pair/triple rule/XGBoost recipe only after quality/features and symmetric execution accounting are verified. No native target/Exit change, TEST, live, new data requests or consumed-plan relaunch.",
+    "next_action": "Resolve historical daily/holiday calendar and financing limitations without modifying baseline; extend existing GC owner with actual OFI/time-weighted BBO and dynamic real-trade level values under family masks, then freeze exact finite matched rule/XGBoost P0 recipe. Native training, TEST, production/live and new market-data requests remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8957,7 +8957,7 @@
     },
     "P0_factorial_preparation_20261017": {
       "path": "configs/research/P0_FACTORIAL_PREPARATION_20261017.json",
-      "sha256": "d342db44f132f83739cb395844f8884dfb9688126242aaada3d29eb1f41bc9cd",
+      "sha256": "c1b1ce3b94530881b83202a5414aa162a4203c4def226b6d9096291780f84d82",
       "arms": 8,
       "status": "PREPARATION_ONLY_NOT_EXECUTION_RECIPE",
       "training_authorized": false,
@@ -8967,17 +8967,35 @@
       "plan_path": "configs/research/GC_M5_CASH_PROJECTION_CHECK_20261017_013.json",
       "plan_sha256": "d8fe84916770e3ebf7b83ad766ae20007793a298f7f60f948cb699adc54fd2e9",
       "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_CASH_PROJECTION_CHECK_20261017_013",
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_DECLARED_COST_PROJECTION_CONSUMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "authorized_invocations": 1,
       "relaunch_authorized": false,
       "fit_authorized": false,
       "test_authorized": false,
-      "new_data_requests_authorized": false
+      "new_data_requests_authorized": false,
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_CASH_PROJECTION_CHECK_20261017_013/RESULTS/TERMINAL.json",
+      "terminal_sha256": "00653865c131b0afd4e6b8e08e108186da5276c8a18e744b9a76239d1a36f643",
+      "result_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_CASH_PROJECTION_CHECK_20261017_013/RESULTS/RESULT.json",
+      "result_sha256": "1f40ff05d720f8234db38508656ce2aed28fadcf3620474a97db26a6a46c84f8",
+      "historical_financing_truth_qualified": false,
+      "completion_review": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_CASH_PROJECTION_CHECK_20261017_013/COMPLETION_REVIEW.json",
+        "sha256": "4b1e4d37e55bcf6e8e69f8705537c94e86813cfd13ebed420a9ce1b54012cdf7"
+      }
     },
-    "gc_data_period_operator_confirmed_months": 26
+    "gc_data_period_operator_confirmed_months": 26,
+    "entry_evaluation_report_20261017": {
+      "path": "docs/ENTRY_EVALUATION_CORRECTION.md",
+      "sha256": "9b717a6b01161e4ebb09905eb03fd358416c0f656ac5e3517623010f48cafed9",
+      "affected_label_rows": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_EVALUATION_CORRECTION_20261017_011/AFFECTED_LABEL_ROWS.json",
+        "row_horizon_count": 10200,
+        "unique_TRAIN_rows": 9615
+      }
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -11541,5 +11559,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T11:19:59.907909+00:00"
+  "updated_utc": "2026-10-17T11:23:22.752868+00:00"
 }

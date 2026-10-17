@@ -4,92 +4,56 @@ Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json 
 eneste arbeidsstatus; prosess og terminal overstyrer prosa. Historikk per forsøk
 ligger i Git og i policyens bindinger, ikke her.
 
-## Nå: A/B/C/D — korrigert forskning før P0
+## Nå: A/B/C/D — separate forskningskorreksjoner målt før P0
 
-Ny bestilling 17.10 godkjenner audit 010 som implementasjonsdokumentasjon,
-ikke økonomi/edge. Plan 011 er fullført (exit 0, uendret kilde/TEST=false) med separat forskningsvariant:
-0 s sluttforsinkelse, samme observerte horisonter/kostnader, NaN ved manglende
-terminalkvote; NY/DST-kalender er separat, historisk ukvalifisert kandidat.
-TRAIN baseline→eksakt terminal h1: 651 300→648 691; h5: 650 059→646 797;
-h20: 646 543→642 214. 2 609/3 262/4 329 ekstra sensurerte rad-horisonter;
-beholdte målverdier uendret. 1 792 VAL-prefiksrader kontrollert; ingen ny sensur.
-Eksisterende weekly-closure-eier forklarer 2 310 840 manglende M1-minutter som
-ordinær helgestengning; 372 490 øvrige minutter er ikke fullt klassifisert i
-historisk dagpause/helligdag/leveransegap. Ingen gyldige baseline-endepunkter lå
-i den eksisterende helgestengningen. NY-kandidaten endrer 5 211/51 138/190 447
-bruttolabel-rader blant felles gyldige; historiske unntak er IKKE kvalifisert,
-så kandidaten er ikke treningsgrunnlag. Se 011 RESULT og WEEKLY_CLOSURE_REVIEW.
-Eksisterende mål og fryst baseline endres ikke. Nye MFE/MAE/netto/risiko-
-diagnostikker er aldri features eller hindsight-Exit-fasit. Eksplisitt v2-rute
-retter SHORT til inngangsnotional, med samme klokker og deklarerte kostnader.
+Kort samlet rapport: docs/ENTRY_EVALUATION_CORRECTION.md. Ingen baseline-/native
+mål-/Exit-/produksjonsendring, TEST-lesing, modelltilpasning på markedsdata,
+strategisimulering, datakjøp eller nye markedsdatakall. 26 måneder er bekreftet
+av operatør. Alle nye kjøringer bruker eksisterende bytes og capped CPU audit.
 
-Plan 012 er fullført (exit 0, kilde uendret, TEST=false) etter separat full L1-rawpassering på eksisterende 26 måneder:
-alle 20 felt ved T-signaturkollisjoner, reset/flags/BBO/filsømmer, separate
-snapshot-/OFI-/tidsintegral-kandidatmasker på valgt kontrakt. Gamle masker består.
-Alle 66 filer / 892 100 712 records er avstemt; de gamle Trade-metrikkene er
-bitlike på alle valgte eligible minutter. På valgt serie: 133 987 T-signaturer
-identiske i alle 20 felt, 0 BBO-/depth-/ts_in_delta-kollisjoner. 6 527 ugyldige
-BBO-records, 557 bad-recv/snapshot, 2 resets, 153 190 gapflaggete records.
-140 559 native M5 med rene BBO-observasjoner; 83 776 strengere OFI-/tidsintegral-
-kandidatvinduer, alle 26 måneder. Inputkandidater, ikke bygde/kvalifiserte features.
-Gamle masker er ikke svekket og ingen identisk T dedupliseres som en antatt handel.
+011 fullført én gang, exit 0, uendret kilde, TEST=false. TRAIN h1/h5/h20 baseline
+651 300/650 059/646 543 → eksakt M1-terminal 648 691/646 797/642 214. Ekstra
+sensur 2 609/3 262/4 329 rad-horisonter; beholdte verdier uendret. VAL bare 1 792
+råstøttede prefiksrader, ingen ny sensur; halen og TEST-grensegruppen ikke dekodet.
+Eksisterende weekly-closure-eier forklarer 2 310 840 manglende minutter som
+ordinær ukestengning; 372 490 øvrige minutter er ikke fullt klassifisert.
+NY/DST-kandidaten endrer 5 211/51 138/190 447 felles gyldige brutto-labels;
+historiske dagtider/helligdager er ukvalifisert, så den er ikke treningsgrunnlag.
+M1-stempel 0 s er ingen dokumentert tick-/filltid. Observed-session-klokken er
+ikke fullt kalenderkorrigert av bare eksakt-terminalvarianten.
 
-Finansieringskontrollen fant at den gamle M5-modellen brukte NY-kreditt, mens
-bundet native autoritet bruker veggklokke og klippet gunstig kreditt. V3 legger
-P0-projeksjonen gjennom eksisterende native kostprodusent; samme notional/4 bps/
-569-0 årlige bps/365,25-døgnsår på alle armer. Dette er en deklarert projeksjon,
-ikke historisk brokerswap. Plan 013 er claimet for regnskapsavstemming av de
-samme 17 565 publiserte 007-observasjonene; ingen strategi, fit eller nye data.
-Åtte P0-armer er deklarert i P0_FACTORIAL_PREPARATION_20261017.json; ikke en
-kjørbar treningsrecipe. Ingen TEST, native/produksjonsendring, nye datakjøp/-kall,
-modellfit eller strategisimulering åpnes av disse planene.
+012 fullført én gang: 66 filer / 892 100 712 records, valgte Trade-metrikker
+matcher 004 eksakt. Alle 133 987 T-signaturer er like i alle 20 felt, 0 BBO-
+kollisjoner; ingen deduplisering eller svekket maske. 140 559 M5 med rene BBO-
+punkter, 83 776 strengere OFI-/tidsintegral-kandidater, alle 26 måneder.
+Faktiske featureverdier og deres paritet/admission er ikke bygget/bevist.
 
-## Nå: uavhengig Entry-target-audit fullført før videre P0
+V2 retter SHORT til inngangsnotional, og bevarer gamle klokker/midprislabels.
+013 fullført én gang, samme 17 565 007-observasjoner. V3 bruker v2-priser og den
+allerede bundne native kostprodusenten: spread i pris, 4 bps execution,
+veggklokke LONG 569 / SHORT 0 årlige bps, 365,25-døgnsår, klippet gunstig
+kreditt. Bitlik uavhengig kostformel; gammel NY-rollover/kreditt og alle gamle
+resultater beholdes. Projeksjon, ikke historisk brokerfinansiering. P0-armene
+binder samme v3-eier. MFE/MAE og netto/(MAE+executionkost) er egne ex-post-
+diagnostikker, aldri features eller stilletiende nye targets/hindsight-exit.
 
-Audit 010 fullført én gang, exit 0, kilde uendret, TEST=false. Formler, kodeeiere,
-klokker, kostnader, faktiske eksempler og grenser: docs/ENTRY_TARGET_AUDIT.md.
-652 552 TRAIN-rader er uavhengig rårekonstruert ved 1/5/20 observerte sesjoner;
-bitlik brutto/elapsed/netto på alle gyldige rader. VAL: bare 1 792 råstøttede
-prefiksrader kontrollert. Original M1s siste row-group krysser TEST og er ikke
-dekodet; VAL-halen er ikke rårekonstruert. 008/009 feilet i auditoren, er
-konsumert og bevares; 010 rettet kun kanoniske bindinger og delvis råsesjon.
+P0_FACTORIAL_PREPARATION_20261017.json deklarerer åtte armer (kontroll/F/L/V/
+FL/FV/LV/FLV), eksisterende ATR/nivåer og felles økonomi. Ingen kjørbar fitrecipe.
+Gjenstår: historisk kalender/finansiering/VAL-hale, faktiske L1- og dynamiske
+GC-nivåverdier med egne masker, endelig matched regel-/XGBoost-recipe og urørt
+bekreftelse. Ingen netto strategi, Sharpe, drawdown eller edge er målt/bevist.
+training_enabled=false; native TEST, produksjon/live og konsumerte relanseringer
+forblir stengt. 011/012/013 er konsumert, ikke neste kjøreordre.
 
-Siste kjørte native seed recent_365d_s20261016 og tidligere RECENT_YEAR binder
-samme Entry-only h20d med identiske target-/databindinger, uten
-lært Exit; primært tap predikerer netto terminal markout LONG/SHORT/FLAT=0.
-1/5 sesjoner er observasjon; gammel 95m-auxiliary og joint Exit-teacher-fase er
-andre baner. Native brutto har korrekt inngangsnotional og bid/ask-spread én gang.
-Kostnad 4 bps + veggklokke-finansiering LONG 569 / SHORT 0 årlige bps (klippet
-kreditt); aktuell autoritet, ikke historisk swapfasit. Tillatt sluttforsinkelse
-når 50 340 s; komplette fraværssesjoner hoppes over og indre M1-gap avviser ikke
-terminaleieren. Kalenderstengt versus leveransegap er ikke klassifisert.
-Korrekt rekonstruksjon beviser derfor ikke god inngang eller generalisering.
+## Grunnlag: Entry-audit 010 og fryst featurebaseline
 
-GC/M5 lærer kostnadsfri mid-logretur ved nominelt 30/120/360 minutter og 60 s
-inngangslatens. Alle 17 565 labels er rårekonstruert bitlikt. Separat SHORT-
-regnskap bruker feil utgangsnevner mot native inngangsnotional: gjennomsnittlig
-hypotetisk overvurdering 0,0257 / 0,1153 / 0,4016 bps, maksimum 19,22 bps.
-Dette endrer ikke publisert 007 MSE og er ikke målte strategiresultater.
-Finansierings-/utførelseskonvensjonene er ulike mellom sporene. Ingen target,
-Exit, produksjonsmodell eller fryst baseline er endret under auditen.
+Audit 010 er godkjent som dokumentasjon av implementasjonen, ikke kvalitet/edge.
+Detaljer i docs/ENTRY_TARGET_AUDIT.md. Faktisk siste native seed og tidligere
+RECENT_YEAR brukte samme Entry-only h20d/1-5-observasjon og samme target-/databinding.
+Den gamle joint-fasen er fortsatt en annen, Exit-avhengig rute. Nyeste korreksjoner
+og resterende kalender-/økonomigrenser står over; 010s gamle neste steg er avløst.
 
-11,81 % er nå eksakt forklart på faktisk M5-serie: 141 806 → 88 834 usignert
-kvalifiserte → 16 745 helt signerte. Hele 72 089 ellers gyldige vinduer har noe
-ukjent aggressor, selv om 97,62785 % av observert volum har kjent side.
-Duplikatsignatur fjerner 50 936 i deklarert waterfall; fullrecord-duplikat er
-ikke bevist fordi gammel signatur utelater BBO/depth/ts_in_delta. Gapflagg fjerner
-135 i samme rekkefølge, rull inne i M5 10; overlappende marginaler ligger i RESULT.
-Reset/bokkontinuitet er ikke egne eksisterende Trade-maskekrav og forklarer
-ikke automatisk denne dekningen. Separat L1-tilstandsaudit gjenstår. Ingen masker
-svekket, ingen N-side gjettet, ingen rå GC-passering i audit 010.
-
-Neste: avgrenset L1-kvalifisering på valgt kontrakt, deretter eksisterende parser
-og ekte GC VWAP/POC/VAH/VAL med egne masker. ATR/RV/session gjenbrukes. Ny P0-
-recipe må binde symmetrisk handelsregnskap og matched armer før fit. Ingen ny
-modelltrening/strategiøkonomi her; netto, Sharpe og drawdown er ikke målt.
-Native TEST, live, nye data/kostnader og relansering av konsumerte planer er stengt.
-
-## Nå: strategisk revisjon og P0-prioritet — 17.10
+## Fryst strategisk featuregjennomgang og P0-prioritet
 
 Ny bestilling prioriterer dynamiske GC-volumnivåer × L1-flow × volatilitet,
 med P1–P5-familieablasjoner før eventuell Transformer/RL-utvidelse. Analyse og
@@ -113,8 +77,8 @@ ablateres uten dubletter. XGBoost finnes ikke i miljøet; tidligere GBDT er
 LightGBM/HGB. Åtte P0-armer er skissert, ingen execution-recipe eller fit bundet.
 Ingen nye features, eksterne datapakker, installasjoner, økonomikjøringer eller
 kostnader i revisjonen. training_enabled=false og tidligere sperrer består.
-Neste konkrete arbeid er en liten forhåndsbundet L1-kvalitets-/dekningsplan i
-eksisterende GC-eier før P1-featurekode. Gratis ressurser/lisenser og forventet
+012 har nå fullført den separate L1-inputauditen. Faktiske featureverdier,
+prefix-/beregningsparitet og endelig admission gjenstår før P0-fit. Gratis ressurser/lisenser og forventet
 arbeidskostnad er vurdert i rapporten; ny modellarkitektur er ikke foreslått.
 
 ## Fullførte M5/MTF-forsøk før strategisk revisjon
@@ -168,7 +132,7 @@ dokumentert Entry-edge, ingen prediktor innrømmet, training_enabled = false,
 TEST forseglet.
 
 007-originalterminalen mangler `source_unchanged` og er bevart som den er.
-Nyeste faktiske terminal er nå audit 010 med eksplisitt `source_unchanged=true`
+Nyeste faktiske terminal er regnskapskontroll 013 med eksplisitt `source_unchanged=true`
 og `test_data_used=false`. Dette er auditbevis, ingen native launchautoritet;
 training_enabled=false og øvrige læringssperrer består.
 

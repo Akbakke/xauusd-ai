@@ -457,7 +457,7 @@
     "correction_basis": "V2 fixes notional only, preserving old NY credit comparator. P0 primary uses the already-frozen canonical wall-clock projection, explicitly not historical broker funding truth. Original 011/v1/v2 results preserved."
   },
   "targets": {
-    "M5": "unchanged predetermined 30/120/360 minute mid-log direction; report cash outcome separately with v2",
+    "M5": "unchanged predetermined 30/120/360 minute mid-log direction; cash outcome uses corrected v2 gross and canonical v3 cost projection",
     "native_D1": "separate research diagnostics, not silently substituted into M5",
     "future_MFE_MAE_as_features": false,
     "hindsight_exit_target": false
