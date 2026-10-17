@@ -32,11 +32,13 @@ COLUMNS = {
 }
 
 
-def scan_symbol(items: list[dict], tick_size: int, *, on_batch=None) -> dict[str, Any]:
+def scan_symbol(items: list[dict], tick_size: int, *, on_batch=None, extra_columns=None, on_file_start=None) -> dict[str, Any]:
     """One bounded Arrow stream per outright. Integer quantities remain exact."""
     width = (timing.WINDOW_END_NS - timing.STUDY_START_NS) // timing.MINUTE_NS
     out = {name: np.zeros(width, dtype=np.uint64) for name in METRICS}
     file_reports = []
+    columns=dict(COLUMNS)
+    if extra_columns is not None:columns.update(extra_columns)
     symbol = items[0]['raw_symbol']
     for item in sorted(items, key=lambda x: x['start_ns']):
         count = 0
@@ -44,14 +46,15 @@ def scan_symbol(items: list[dict], tick_size: int, *, on_batch=None) -> dict[str
         previous_signature = None
         file_bad_recv_trades = 0
         raw_trades = 0
+        if on_file_start is not None:on_file_start(item)
         with gzip.open(item['path'], 'rb') as stream:
             reader = pacsv.open_csv(stream,
                 read_options=pacsv.ReadOptions(use_threads=False, block_size=CSV_BLOCK_BYTES),
-                convert_options=pacsv.ConvertOptions(column_types=COLUMNS, include_columns=list(COLUMNS)))
+                convert_options=pacsv.ConvertOptions(column_types=columns, include_columns=list(columns)))
             for batch in reader:
                 if any(batch.column(i).null_count for i in range(batch.num_columns)):
                     raise ValueError('GC_CONTINUOUS_NULL_INPUT')
-                data = {name: batch.column(batch.schema.get_field_index(name)) for name in COLUMNS}
+                data = {name: batch.column(batch.schema.get_field_index(name)) for name in columns}
                 recv = data['ts_recv'].to_numpy(zero_copy_only=False)
                 count += len(recv)
                 if (count > item['max_records'] or np.any(recv < item['start_ns'])
@@ -101,6 +104,7 @@ def scan_symbol(items: list[dict], tick_size: int, *, on_batch=None) -> dict[str
                 add('snapshot_trade', trade & ((flags & F_SNAPSHOT) != 0))
                 add('duplicate_trade', duplicate)
                 if on_batch is not None:
+                    if extra_columns is not None:data['_duplicate_trade_signature']=pa.array(duplicate)
                     on_batch(data, idx, trusted_trade)
         if count == 0:
             raise ValueError('GC_CONTINUOUS_EMPTY_FILE')
@@ -195,3 +199,70 @@ def admission_decisions(months: np.ndarray, masks: dict[str,np.ndarray],
         ('order_blocks','INSTITUTIONAL_ORDER_BLOCK_TRUTH_NOT_OBSERVED; causal_price_structure_requires_existing_SMC_owner')):
         result[name] = {'decision':'REJECT','reasons':[reason]}
     return result
+
+
+# Optional L1 audit columns. The default trade parser/004 rules are unchanged.
+L1_AUDIT_COLUMNS = {
+    'rtype':pa.uint8(),'depth':pa.uint8(),'ts_in_delta':pa.int32(),
+    'bid_px_00':pa.int64(),'ask_px_00':pa.int64(),
+    'bid_sz_00':pa.uint32(),'ask_sz_00':pa.uint32(),
+    'bid_ct_00':pa.uint32(),'ask_ct_00':pa.uint32(),
+}
+L1_QUALITY_METRICS=('records','clean_complete_bbo','bad_bbo','gap','bad_recv',
+                    'snapshot','reset','duplicate_trade_signature',
+                    'full_record_duplicate_trade','signature_collision','file_seam')
+
+class L1QualityCollector:
+    """Selected-contract, per-M1 quality only; does not compute a predictor.
+
+    Full-record comparisons cover all 20 input fields, only for existing
+    consecutive Trade-signature suspects. BBO snapshots are self-contained L1
+    observations; candidate continuous windows need a clean prior-minute anchor.
+    No claim of whole-feed sequence completeness or hidden order observability.
+    """
+    def __init__(self,wanted_minute_indices,tick_size):
+        self.wanted=np.asarray(wanted_minute_indices,np.int64);self.tick_size=tick_size
+        self.values={k:np.zeros(len(self.wanted),np.uint64) for k in L1_QUALITY_METRICS}
+        self.previous_full=None;self.first_in_file=True
+    def file_start(self,item):
+        self.previous_full=None;self.first_in_file=True
+    def __call__(self,data,idx,trusted_trade):
+        names=[k for k in data if not k.startswith('_')]
+        signature=data['_duplicate_trade_signature'].to_numpy(zero_copy_only=False)
+        suspects=np.flatnonzero(signature);same=np.ones(len(suspects),bool)
+        if len(suspects):
+            for name in names:
+                arr=data[name];current=arr.take(pa.array(suspects)).to_numpy(zero_copy_only=False)
+                before=arr.take(pa.array(np.maximum(suspects-1,0))).to_numpy(zero_copy_only=False).copy()
+                if suspects[0]==0:
+                    if self.previous_full is None:same[0]=False
+                    else:before[0]=self.previous_full[name]
+                same &= current==before
+        full=np.zeros(len(idx),bool);full[suspects]=same
+        self.previous_full={name:data[name][-1].as_py() for name in names}
+        pos=np.searchsorted(self.wanted,idx);clip=np.minimum(pos,max(0,len(self.wanted)-1))
+        if not len(self.wanted):return
+        selected=(pos<len(self.wanted))&(self.wanted[clip]==idx)
+        if not selected.any():self.first_in_file=False;return
+        def arr(name):return data[name].to_numpy(zero_copy_only=False)
+        flags=arr('flags');bid=arr('bid_px_00');ask=arr('ask_px_00')
+        bsz=arr('bid_sz_00');asz=arr('ask_sz_00')
+        bad=((bid<=0)|(ask<=0)|(bid==UNDEF_PRICE)|(ask==UNDEF_PRICE)|(bid>=ask)|
+             (bid%self.tick_size!=0)|(ask%self.tick_size!=0)|(bsz==0)|(asz==0)|
+             (bsz==timing.UNDEF_SIZE)|(asz==timing.UNDEF_SIZE))
+        gap=(flags&F_MAYBE_BAD_BOOK)!=0;recv=(flags&F_BAD_TS_RECV)!=0;snap=(flags&F_SNAPSHOT)!=0
+        reset=pc.equal(data['action'],'R').to_numpy(zero_copy_only=False)
+        complete=(flags&128)!=0
+        clean=complete&~bad&~gap&~recv&~snap&~reset
+        seam=np.zeros(len(idx),bool)
+        if self.first_in_file:seam[0]=True
+        metrics={'records':np.ones(len(idx),bool),'clean_complete_bbo':clean,'bad_bbo':bad,
+          'gap':gap,'bad_recv':recv,'snapshot':snap,'reset':reset,
+          'duplicate_trade_signature':signature,'full_record_duplicate_trade':full,
+          'signature_collision':signature&~full,'file_seam':seam}
+        for key,take in metrics.items():
+            chosen = take & selected
+            if chosen.any():
+                unique,counts=np.unique(pos[chosen],return_counts=True)
+                self.values[key][unique]+=counts.astype(np.uint64)
+        self.first_in_file=False

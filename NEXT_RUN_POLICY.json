@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-17T09:02:48.050608+00:00",
-  "status": "ENTRY_TARGET_AUDIT_COMPLETE_WITH_GAPS__GC_L1_AND_P0_FIT_UNQUALIFIED",
+  "observed_utc": "2026-10-17T10:59:57.642962+00:00",
+  "status": "ENTRY_EVALUATION_CORRECTION_011_CLAIMED__P0_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Independent Entry-target audit 010 complete: exact native TRAIN and safe VAL-prefix raw parity; exact GC M5 mask attribution. No target, Exit or production change.",
+    "current_activity": "Task A/B/C separate Entry research correction 011 claimed; strict exact terminal, unqualified NY calendar candidate, v2 SHORT accounting, separate MFE/MAE/risk diagnostics. L1 quality 012 prepared.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -182,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "P0 inputs/economics not admitted: selected-contract L1 book continuity and feature masks remain unqualified; research SHORT notional discrepancy and differing cost/fill conventions must be explicitly resolved in a new research recipe. Native target gap/quote-delay semantics remain documented limitations.",
+    "current_blocker": "Historical OANDA calendar/holiday vintages unqualified; new variants not measured yet. P0 training remains closed pending quality/target/economics controls.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -8906,6 +8906,44 @@
         "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_010/LATEST_PHASE_TARGET_BINDING_REVIEW.json",
         "sha256": "04d3aeb5a8050906ffe7e7c74b791f96e4c89bba4033bad6665263a12bb72b8b"
       }
+    },
+    "entry_evaluation_correction_011": {
+      "plan_path": "configs/research/ENTRY_EVALUATION_CORRECTION_20261017_011.json",
+      "plan_sha256": "688b5e56218d22de60a497a15851d82a1c9b95c355b9ded74366f53b5ee60e03",
+      "status": "EXECUTION_CLAIMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 0,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_EVALUATION_CORRECTION_20261017_011",
+      "native_target_change_authorized": false,
+      "separate_research_variant_authorized": true,
+      "training_authorized": false,
+      "test_authorized": false,
+      "new_data_requests_authorized": false
+    },
+    "gc_selected_l1_quality_012": {
+      "plan_path": "configs/research/GC_SELECTED_L1_QUALITY_20261017_012.json",
+      "plan_sha256": "511e56185cb57021c0ef3df55e8332c6ebbf1f7bfa8c6ef3da9dd949f9a016c3",
+      "status": "PREPARED_NOT_CLAIMED",
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SELECTED_L1_QUALITY_20261017_012",
+      "fit_authorized": false,
+      "test_authorized": false,
+      "new_data_requests_authorized": false
+    },
+    "P0_factorial_preparation_20261017": {
+      "path": "configs/research/P0_FACTORIAL_PREPARATION_20261017.json",
+      "sha256": "d458616c6c53bb496c7af097a84adb5f1e76a2ca5a161fa80c80643c6170e9e8",
+      "arms": 8,
+      "status": "PREPARATION_ONLY_NOT_EXECUTION_RECIPE",
+      "training_authorized": false,
+      "execution_authorized": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -11470,5 +11508,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T09:55:07.487844+00:00"
+  "updated_utc": "2026-10-17T10:59:57.642962+00:00"
 }

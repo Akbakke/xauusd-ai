@@ -194,6 +194,42 @@ def execution_for_horizon(decision_ns: np.ndarray, tape: Tape, *, horizon_minute
     return Execution(ok, entry_ns, exit_ns, y, long_gross, short_gross, roll)
 
 
+# Explicit research successor. Historical v1 callers/results remain unchanged.
+EXECUTION_ACCOUNTING_V2 = "gx1_m5_entry_notional_accounting_v2"
+
+def execution_for_horizon_v2(decision_ns: np.ndarray, tape: Tape, *, horizon_minutes: int,
+                             latency_seconds: int) -> Execution:
+    """Same v1 timestamps/masks/mid-label; both cash sides use entry notional.
+
+    This deliberately does not repair the old route or silently alter its
+    300/4200-second timing tolerances. A future P0 recipe must bind this name.
+    """
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import _entry_notional_pnl_bps
+    ex = execution_for_horizon(decision_ns, tape, horizon_minutes=horizon_minutes,
+                               latency_seconds=latency_seconds)
+    entry = np.searchsorted(tape.time_ns, ex.entry_ns)
+    end = np.searchsorted(tape.time_ns, ex.exit_ns)
+    long, short = _entry_notional_pnl_bps(
+        entry_bid=tape.bid_open[entry], entry_ask=tape.ask_open[entry],
+        exit_bid=tape.bid_open[end], exit_ask=tape.ask_open[end])
+    long[~ex.valid] = np.nan; short[~ex.valid] = np.nan
+    return Execution(ex.valid.copy(), ex.entry_ns.copy(), ex.exit_ns.copy(),
+                     ex.y_mid_bps.copy(), long, short, ex.rollovers.copy())
+
+
+def net_trade_bps_v2(side: int, long_gross: float, short_gross: float, rollovers: int, *,
+                     slippage_bps: float, financing: dict[str, float]) -> float:
+    """One P0 cash-cost owner, only with v2 gross; spread already in bid/ask.
+
+    The declared rollover model is reused, not asserted to be historical swap
+    truth. Commission remains zero in the bound research recipe.
+    """
+    if side not in (-1, 1) or not np.isfinite(slippage_bps) or slippage_bps < 0 or rollovers < 0:
+        raise ValueError('M5_V2_EXECUTION_COST_INPUT')
+    return net_trade_bps(side, long_gross, short_gross, rollovers,
+                         slippage_bps=slippage_bps, financing=financing)
+
+
 def spread_at_decision(decision_ns: np.ndarray, tape: Tape) -> np.ndarray:
     """Spread (bps of mid) of the last M1 bar closed at the decision: bar open <= decision - 60 s."""
     t = tape.time_ns

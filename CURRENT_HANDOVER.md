@@ -4,6 +4,23 @@ Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json 
 eneste arbeidsstatus; prosess og terminal overstyrer prosa. Historikk per forsøk
 ligger i Git og i policyens bindinger, ikke her.
 
+## Nå: A/B/C/D — korrigert forskning før P0
+
+Ny bestilling 17.10 godkjenner audit 010 som implementasjonsdokumentasjon,
+ikke økonomi/edge. Plan 011 er claimet for separat forskningsvariant:
+0 s sluttforsinkelse, samme observerte horisonter/kostnader, NaN ved manglende
+terminalkvote; NY/DST-kalender er separat, historisk ukvalifisert kandidat.
+Eksisterende mål og fryst baseline endres ikke. Nye MFE/MAE/netto/risiko-
+diagnostikker er aldri features eller hindsight-Exit-fasit. Eksplisitt v2-rute
+retter SHORT til inngangsnotional, med samme klokker og deklarerte kostnader.
+
+Plan 012 er forberedt for separat full L1-rawpassering på eksisterende 26 måneder:
+alle 20 felt ved T-signaturkollisjoner, reset/flags/BBO/filsømmer, separate
+snapshot-/OFI-/tidsintegral-kandidatmasker på valgt kontrakt. Gamle masker består.
+Åtte P0-armer er deklarert i P0_FACTORIAL_PREPARATION_20261017.json; ikke en
+kjørbar treningsrecipe. Ingen TEST, native/produksjonsendring, nye datakjøp/-kall,
+modellfit eller strategisimulering åpnes av disse planene.
+
 ## Nå: uavhengig Entry-target-audit fullført før videre P0
 
 Audit 010 fullført én gang, exit 0, kilde uendret, TEST=false. Formler, kodeeiere,

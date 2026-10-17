@@ -1,0 +1,57 @@
+{
+  "schema_version": "gx1_selected_gc_L1_quality_plan_v1",
+  "plan_id": "GC_SELECTED_L1_QUALITY_20261017_012",
+  "created_utc": "2026-10-17T10:58:15.327479+00:00",
+  "operator_request": "17.10.2026 D: continue independent L1 book qualification and masks before P0; existing 26 months only.",
+  "source_admission_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
+    "sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf"
+  },
+  "GC_masks": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/SELECTED_M1_INPUT_MASKS.parquet",
+    "sha256": "d30894d0786b69fd1f8784ee98ef7035cfe6a35f05d185e5e235df8899b684d4"
+  },
+  "GC_features": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006/RESULTS/M5_FEATURES.parquet",
+    "sha256": "9d5f035b43e9b3889a8492ad0d855adc42a3c0a2b1376b6568433713d296469f"
+  },
+  "roll_schedule": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/ROLL_SCHEDULE.json",
+    "sha256": "80f847b74b1e49efb64b9c57d306263bc184e4f289e66cb1d95a37bb2b05add8"
+  },
+  "worker_count": 8,
+  "code_paths": [
+    "gx1/scripts/audit_entry_gc_foundation_v1.py",
+    "gx1/contracts/entry_research_evaluation_v1.py",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py",
+    "gx1/scripts/research_m5_intraday_recheck_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "scripts/gx1_capped_run.sh",
+    "gx1/contracts/gc_continuous_source_v1.py"
+  ],
+  "source_fields": "All 20 fields in the existing CSV, including BBO, counts, depth and ts_in_delta",
+  "duplicate_rule": "Compare all 20 fields for each existing consecutive T signature suspect, including batch seams. Preserve existing trade masks regardless of collision count.",
+  "mask_rules": {
+    "snapshot_observation": "At least one clean F_LAST BBO observation, no aggressor requirement; this is not a continuous integral.",
+    "clean_minute": "positive records and clean F_LAST BBO; reject any invalid/crossed/locked/undefined/off-tick/empty BBO, gap flag, bad receive flag, snapshot, R reset, repeated T signature or first-file record.",
+    "continuous_candidates": "clean current minute and clean immediately prior eligible minute, same selected contract; no bridge across invalid minute, file seam or contract roll. Separate OFI and time-integral mask columns. Candidate inputs only, not computed/qualified features.",
+    "M5": "all five actual native M1 coordinates, same selected contract; own-family masks, never require known aggressor side for BBO/OFI"
+  },
+  "whole_feed_completeness_claimed": false,
+  "old_004_masks_changed": false,
+  "feature_values_or_models_built": false,
+  "limits": {
+    "job_class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "max_wall_seconds": 10800,
+    "numerical_threads": 1
+  },
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SELECTED_L1_QUALITY_20261017_012",
+  "fit_authorized": false,
+  "test_authorized": false,
+  "new_data_requests_authorized": false
+}
