@@ -45,3 +45,52 @@ def test_VAL_reference_does_not_call_partial_source_session_a_censored_label():
     from gx1.scripts.audit_entry_gc_foundation_v1 import safe_reference_prefix
     r={'session_supported':np.array([True,True,False]),'target_ns':np.array([DAY,2*DAY,3*DAY])}
     assert safe_reference_prefix(r,2*DAY+MINUTE,0).tolist()==[True,False,False]
+
+
+def test_actual_h20_train_epoch_ignores_changed_exit_teacher_and_uses_h20(monkeypatch):
+    """Exercise the actual h20 trainer branch, not only the older 95-minute branch."""
+    import copy
+    import torch
+    from tests.test_entry_observed_market_native import SmallEntry, training_fixture
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    original = horizons.observed_entry_batch_targets
+    seen = []
+    def record_target(batch, binding, *, device):
+        out = original(batch, binding, device=device)
+        seen.append(out[0].clone())
+        return out
+    monkeypatch.setattr(horizons, 'observed_entry_batch_targets', record_target)
+    class ForbiddenExit(torch.nn.Module):
+        def __init__(self, value):
+            super().__init__()
+            self.exit_policy = torch.nn.Parameter(torch.tensor(value), requires_grad=False)
+        def forward(self, *args, **kwargs):
+            raise AssertionError('h20 must not query changed Exit teacher')
+    states, losses = [], []
+    expected = torch.tensor([[4., -6., 0.], [-8., 6., 0.]])
+    for exit_value in [-10000., 10000.]:
+        torch.manual_seed(910)
+        model = SmallEntry()
+        base = training_fixture(monkeypatch)
+        base.dataset._entry_observed_market_binding = {'identity': {
+            'training_phase': 'entry_only_observed_horizon_20d',
+            'loss_target_batch_key': horizons.DECISION_BATCH_TARGET_KEY}}
+        class HorizonLoader:
+            dataset = base.dataset
+            def __len__(self): return len(base)
+            def __iter__(self):
+                for old in base:
+                    batch = {k:v for k,v in old.items() if k != 'entry_observed_market_target_bps'}
+                    for h,key in horizons.BATCH_TARGET_KEY_BY_HORIZON.items():
+                        batch[key] = expected.clone() if h == 20 else expected.clone() * h
+                    yield batch
+        optimizer = torch.optim.AdamW(model.parameters(), lr=.01, weight_decay=.5)
+        loss, stats, complete = trainer.train_epoch(
+            model, ForbiddenExit(exit_value), HorizonLoader(), optimizer,
+            torch.device('cpu'), 1, {}, {})
+        assert complete and stats['exit_training_active'] is False
+        losses.append(loss); states.append(copy.deepcopy(model.state_dict()))
+    assert len(seen) == 4 and all(torch.equal(y, expected) for y in seen)
+    assert losses[0] == losses[1]
+    assert all(torch.equal(states[0][key], states[1][key]) for key in states[0])

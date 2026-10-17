@@ -17,6 +17,7 @@ den siste overleveringen. Gamle mål-/veikart-/renselogger finnes i Git.
 - docs/LEARNING_GATE.md — læring, generalisering og økonomi.
 - docs/NATIVE_LEARNING.md — gjenværende metode, ikke launchordre/daglig logg.
 - docs/FEATURE_AUDIT.md — individuell featurekontroll, rettelser og grenser (feltregisteret ligger i git-historikken).
+- docs/ENTRY_TARGET_AUDIT.md — uavhengige native/GC Entry-formler, rårekonstruksjon, kost-/klokkegap og GC-maskefrafall.
 - docs/GC_ORDER_FLOW_RESEARCH.md — pauset GC-kildeaudit/A/B/C-protokoll.
 - docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md — operatørvedtak 11.10 og swing-programmet (rekkefølge, lag, inputs, endepunkt).
 - docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md — designbinding 11.10 (kveld): dag–ukers observert mål og ny D1-kontekstfamilie for native; bygget og målt til og med steg 5 (12.10).
