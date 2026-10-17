@@ -36,15 +36,25 @@ og eksisterende targets er uendret. Denne rapporten supplerer `FEATURE_AUDIT.md`
 | `gx1/scripts/research_m5_intraday_recheck_v1.py:169,210,316` | Separat GC/M5 midprislabel, handelsregnskap og én-posisjons-simulator. |
 | `gx1/scripts/audit_entry_gc_foundation_v1.py` | Denne uavhengige råpris-/maske-referansen, ikke targeteieren. |
 
-Siste gjennomførte native `RECENT_YEAR/PHASE_REVIEW.json` binder
-`NATIVE_RECIPE.json` (sha256 `cdf9493b3fb84054d8b7a7ce63d3d52ad38561234628871f2c5f310a8440ebc4`),
-som binder den faktiske scopespecen med sha256
-`149117700b2aa44667fe17c70a91586cb8b0baabbfac2ce1e99e662b093abd37`.
-Den angir `entry_only_observed_horizon_20d`,
-`entry_observed_market_target_bps_h20d`, `exit_updates_entry=false` og
-`exit_model_used=false`. Gjennomgangen bekrefter loss-horisont 20, uendrede
-mål/rader og 150 uendrede Exit-state-felt. Dette er kontroll av den faktisk
-kjørte oppskriften, ikke bare dagens config.
+Siste fullførte native fase er `recent_365d_s20261016`, avsluttet 15.10 kl.
+10:55:27 UTC. Dens `RECENT_365D_S20261016/PHASE_REVIEW.json` har sha256
+`fd2f3cd39ce38556d2da99591d227e3d79d389cf10730a0473bd20fff2d2f139` og
+binder `NATIVE_RECIPE.json` med sha256
+`2e005c964a0eae539da8ca1852205e30d670c55c85785359c950883e65b099c3`.
+Den faktiske scopespecen er identisk med auditens, sha256
+`149117700b2aa44667fe17c70a91586cb8b0baabbfac2ce1e99e662b093abd37`:
+`entry_only_observed_horizon_20d`, `entry_observed_market_target_bps_h20d`,
+`exit_updates_entry=false`, samme TRAIN/VAL/pris-/kostbindinger. Gjennomgangen
+bekrefter loss-horisont 20, uendrede mål/rader og 150 uendrede Exit-state-felt.
+Dette er kontroll av den faktisk kjørte oppskriften, ikke bare dagens config.
+
+Policyens eldre `learning_gate.paired_review` peker fremdeles på 730-dagers
+treningsvinduet i `RECENT_YEAR` (recipe-sha256
+`cdf9493b3fb84054d8b7a7ce63d3d52ad38561234628871f2c5f310a8440ebc4`).
+Også denne bruker samme h20-target. Fasenavnet recent_year er derfor ikke alene
+bevis for vinduslengde eller siste kjøring. Auditens completion review og separat
+`LATEST_PHASE_TARGET_BINDING_REVIEW.json` skiller disse bevisene. Den senere
+180-dagersfasen ble avvæpnet og er ikke kjørt.
 
 **Viktig faseforskjell:** beholdt `joint_fitted_q` lærer fortsatt Entry fra en
 frosset Exit-teachers første-state-verdi. Eldre `entry_only` bruker den gamle

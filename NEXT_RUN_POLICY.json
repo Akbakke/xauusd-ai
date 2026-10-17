@@ -8885,7 +8885,7 @@
       "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_010/RESULTS/TERMINAL.json",
       "terminal_sha256": "e9cb8abf406acd438f47f363d8f07ce68d6116f9f4818718c41cbbdc6df58bb9",
       "report_path": "docs/ENTRY_TARGET_AUDIT.md",
-      "report_sha256": "823b5dd8e5a78af4dbbfe8d6e67ffac76ecce6f5637c446318e21ae35069efa4",
+      "report_sha256": "3c1637ee5800ad1a60c265baa193af1504e321ec3d3688563bdabe6608f3288a",
       "full_TRAIN_raw_parity": true,
       "VAL_prefix_rows": 1792,
       "VAL_tail_raw_reconstructed": false,
@@ -8901,6 +8901,10 @@
       "completion_review": {
         "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_010/COMPLETION_REVIEW.json",
         "sha256": "1cecf010fdb28e23f26a688a92986ed8bdb4a96b636dd7eac6641db62e35967f"
+      },
+      "latest_phase_target_binding_review": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_010/LATEST_PHASE_TARGET_BINDING_REVIEW.json",
+        "sha256": "04d3aeb5a8050906ffe7e7c74b791f96e4c89bba4033bad6665263a12bb72b8b"
       }
     }
   },
@@ -11466,5 +11470,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T09:53:42.460226+00:00"
+  "updated_utc": "2026-10-17T09:55:07.487844+00:00"
 }

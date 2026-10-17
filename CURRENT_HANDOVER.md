@@ -14,7 +14,8 @@ prefiksrader kontrollert. Original M1s siste row-group krysser TEST og er ikke
 dekodet; VAL-halen er ikke rårekonstruert. 008/009 feilet i auditoren, er
 konsumert og bevares; 010 rettet kun kanoniske bindinger og delvis råsesjon.
 
-Faktisk gjennomført native RECENT_YEAR-recipe binder Entry-only h20d, uten
+Siste kjørte native seed recent_365d_s20261016 og tidligere RECENT_YEAR binder
+samme Entry-only h20d med identiske target-/databindinger, uten
 lært Exit; primært tap predikerer netto terminal markout LONG/SHORT/FLAT=0.
 1/5 sesjoner er observasjon; gammel 95m-auxiliary og joint Exit-teacher-fase er
 andre baner. Native brutto har korrekt inngangsnotional og bid/ask-spread én gang.
