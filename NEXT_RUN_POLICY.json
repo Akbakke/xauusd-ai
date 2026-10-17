@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T11:23:22.752868+00:00",
-  "status": "OPENBB_SOURCE_REVIEW_AND_GC_L1_DYNAMIC_FOUNDATION_PREPARED_NO_FIT",
+  "status": "OPENBB_SOURCE_REVIEW_COMPLETE__GC_L1_DYNAMIC_FEATURE_BUILD_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -158,12 +158,9 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "cash projection v3 accounting check on unchanged GC/M5 observations; no fit, historical economics or promotion admission",
+    "latest_terminal_role": "OpenBB FREE source review only; no feature or PIT admission",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
-    "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_CASH_PROJECTION_CHECK_20261017_013/RESULTS/TERMINAL.json",
-      "sha256": "00653865c131b0afd4e6b8e08e108186da5276c8a18e744b9a76239d1a36f643"
-    },
+    "latest_terminal": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014/RESULTS/TERMINAL.json",
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": true,
@@ -8999,22 +8996,29 @@
     "openbb_source_review_014": {
       "plan_path": "configs/research/OPENBB_FREE_SOURCE_REVIEW_20261017_014.json",
       "plan_sha256": "9affbc93f98b0216e8cd3af4784395fa81423628701aa3d65e2b8d49a7dff4bf",
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_SOURCE_REVIEW_CONSUMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "authorized_invocations": 1,
       "relaunch_authorized": false,
       "fit_authorized": false,
       "test_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014"
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014",
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014/RESULTS/TERMINAL.json",
+      "terminal_sha256": "231dd480089bcb31167b27cb8ccada09515dacf767714c4f994f391445bcf1e7",
+      "result_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014/RESULTS/RESULT.json",
+      "result_sha256": "c0304e121bb299f5c613c77af0aa0cff814763bedc3dabd55bcfb82898354c4c",
+      "legacy_reports_exact": 113,
+      "managed_money_reports": 113,
+      "FRED_status": "BLOCKED_MISSING_FRED_API_KEY"
     },
     "gc_l1_dynamic_foundation_015": {
       "plan_path": "configs/research/GC_L1_DYNAMIC_FOUNDATION_20261017_015.json",
       "plan_sha256": "42616d9538e7fcda6aa0ac651babde216baff6855853cddbd3c622854dde6bde",
-      "status": "PREPARED_NOT_CLAIMED",
+      "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
-      "claimed_invocations": 0,
+      "claimed_invocations": 1,
       "completed_invocations": 0,
       "authorized_invocations": 1,
       "relaunch_authorized": false,

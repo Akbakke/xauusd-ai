@@ -554,3 +554,5 @@ tapsgrense eller maksimal holdetid.
 
 ## OpenBB / GC foundation current preparation (17.10.2026)
 014: separate pinned OpenBB environment installed; free Gold/FRED source review prepared. 015: actual L1 and dynamic profiles prepared under unchanged 012 masks. No run claimed yet; no fit/TEST/live/paid data. Recipe: docs/GC_L1_DYNAMIC_FOUNDATION.md. Existing GLD fields are holdings tonnes; H.10 broad USD already exists in research.
+
+014 completed once: 113 legacy reports, OI plus four position fields exactly match existing archives; 113 disaggregated Gold reports and 61 past-52 z rows obtained, review-only. FRED missing local API key; no request. 015 now claimed for actual L1/profile build under original candidate masks. No fit/TEST/live/paid calls.
