@@ -579,6 +579,22 @@
         0.0
       ],
       "interpretation": "preregistered hypothetical cost stress, not estimated historical financing; central fee4_funding1x"
+    },
+    "fee4_two_sided_funding1x": {
+      "round_trip_execution_cost_bps": 4.0,
+      "annual_financing_cost_bps": [
+        569.0,
+        569.0
+      ],
+      "interpretation": "hypothetical adverse funding on BOTH sides using current long-cost benchmark; not estimated historical swap; native central projection unchanged"
+    },
+    "fee4_two_sided_funding2x": {
+      "round_trip_execution_cost_bps": 4.0,
+      "annual_financing_cost_bps": [
+        1138.0,
+        1138.0
+      ],
+      "interpretation": "hypothetical adverse funding on BOTH sides using current long-cost benchmark; not estimated historical swap; native central projection unchanged"
     }
   },
   "remaining_admission_gates": [

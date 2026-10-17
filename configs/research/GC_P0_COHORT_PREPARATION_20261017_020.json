@@ -36,7 +36,7 @@
   },
   "preparation": {
     "path": "/home/andre2/src/GX1_CURRENT/configs/research/P0_FACTORIAL_NEW_FL_PREPARATION_20261017.json",
-    "sha256": "c60f8e0b9b81c6e29597a64fecc8ef7b370f1c6750322a65c9abbf044ddb6b1c"
+    "sha256": "fc85e6af8f572b0a1cb3a57969602659f3ed8f1eea3e81fcc5145388f8d45e0e"
   },
   "COT_exceptions": {
     "path": "/home/andre2/src/GX1_CURRENT/configs/research/CFTC_RELEASE_EXCEPTION_REVIEW_20261017.json",

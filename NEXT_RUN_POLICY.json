@@ -9122,7 +9122,7 @@
     },
     "gc_P0_cohort_preparation_020": {
       "plan_path": "configs/research/GC_P0_COHORT_PREPARATION_20261017_020.json",
-      "plan_sha256": "ef6141d7055f6e0d9644ffdf65c71fafadd530cf9427b47d6b967540126f4773",
+      "plan_sha256": "4a9aea10fd1aad0d5eb68926ed1e9e574899cf681dce9bf0eadd462d56755a57",
       "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
