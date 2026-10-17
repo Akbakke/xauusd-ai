@@ -22,7 +22,20 @@ Feil, logg og delrapport er bevart; 005 relanseres ikke. 006 er ny, claimet
 minimal gjenopptakelse: samme formler/masker, gjenbruk av 15 hash-bundne
 ladderfiler (ca. 56 MB), gjenoppbygging av ikke-persisted OHLC-rekkefølge og
 ny eksakt avstemming. Syntetisk JSON-/gjenbrukskontroll består. Ekte 006-
-publisering gjenstår.
+publisering er fullført (006 exit 0). 141 806 native M5-rader, 255 kolonner,
+11,8 MB; 60 råreferansebarer, eksakte avstemminger og Parquet readback/hasher
+består. M5 volum/profil 88 834 rader; signert footprint/delta/relativ CVD 16 745,
+begge alle 26 måneder. M5 OB-pivotmasker 9 211/9 476 rader, alle 26 måneder.
+M15 volum/profil og H1 volum/profil har 26-måneders støtte; M15 signert bare
+25 måneder, H1 signert tre unike barer, H4 volum én bar, D1 ingen. Ny GC-flow
+på H4/D1 er derfor ikke treningsgrunnlag. H4-prefix har suffix=0 (triviell),
+D1 har ingen gyldig komplett bar. Eksisterende native MTF beholdes.
+RESULTS/M5_FEATURES.parquet sha256 9d5f035b43e9b3889a8492ad0d855adc42a3c0a2b1376b6568433713d296469f.
+Ingen outcomes, fit, TEST eller økonomi er lest/kjørt av bygget. Book-OFI og
+native integrasjon/paritet er ubevist; hele opprinnelige GC-protokollens steg 2
+er derfor ikke feilaktig markert fullført. Neste konkrete arbeid er en
+forhåndsbundet matched A/B/C-forskningsfit på tilgjengelige Trade-features,
+med eksisterende native snapshots og MTF-kontekst; ingen native serving-adgang.
 Trening, normalisering, TEST, økonomi og native launch er fortsatt stengt;
 ny konkret intradag-mål-/recipebinding gjenstår etter featurebeviset.
 Opprydding/komprimering er fullført; dette er ikke lenger en blokkering.
@@ -40,6 +53,25 @@ REJECT etter forhåndsregelen, men med et retningssignal kurven ikke hadde
 bølge 1 er utført gjennom eieren (35 mål, 78,3 GiB, DELETE_COMPLETE). Ingen
 dokumentert Entry-edge, ingen prediktor innrømmet, training_enabled = false,
 TEST forseglet.
+
+## Avgrenset M5/MTF Trade-probe 007 før native adopsjon
+
+Ny frosset plan GC_M5_TRADE_FLOW_PROBE_20261017_007 viderefører brukerens
+GC-/M5-bestilling og den enkle ridge-referansen fra forskningsprotokollen.
+Samme 16 745 strengt kvalifiserte M5-rader, før utfall: A = alle 315 native
+felt (132 MTF/ctx-aliaser kontrolleres og telles én gang) + TRAIN-domene for
+session. B = ekstra GC-pris/SMC-prisproksier; C = ekstra observerte volum-/
+profil-/footprint-/delta-/CVD-felt. M5, M15 og H1 brukes bare der kilden har
+26-måneders støtte for feltgruppen; native H4/D1-kontekst beholdes.
+
+30/120/360 minutter og ridge-oppsett gjenbrukes fra den eksisterende M5-
+eieren; de fem ekspanderende GC-foldene er uendret. Full fysisk TRAIN eier
+scaleren; indre 20 % brukes til de seks allerede deklarerte alphaene. 45
+endelige modeller maksimalt. Feltvalg fra bare initial-TRAIN-inputs og kohort
+låses før utfall. C−B og B−A er én seks-kontrast-familie med eksisterende
+ukeblokk-bootstrap. Ingen strategi-/økonomisimulering, TEST eller native fit.
+Dette er snapshot-/kontekstforskning, ikke native sekvens/attention-bevis eller
+fullføring av opprinnelig C-arm med book-OFI. Kjøring er ennå ikke utført.
 
 ## Minimum native læring (vedtak 12.10): gjennomført og gjennomgått
 

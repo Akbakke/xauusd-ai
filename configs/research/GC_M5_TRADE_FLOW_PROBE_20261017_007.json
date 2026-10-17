@@ -1,0 +1,269 @@
+{
+  "alpha_grid": [
+    1.0,
+    10.0,
+    100.0,
+    1000.0,
+    10000.0,
+    100000.0
+  ],
+  "baseline": "All 315 native snap fields, including the 132 exact ctx_cont aliases (all checked, no duplicate scaler), plus TRAIN-domain session one-hot. Nine existing families/MTF scalar context retained. Native sequences/attention are not fitted.",
+  "bootstrap_reps": 4000,
+  "bootstrap_seed": 20261015,
+  "candidate_selection": "Before outcomes: keep new GC candidates with >=2 distinct finite values in initial physical TRAIN before its one-day embargo. Never remove a base native field. Freeze ordered fields, aliases, domains and cohort hashes in INPUT_LOCK.json.",
+  "candidates": {
+    "B": [
+      "m5_open_usd",
+      "m5_high_usd",
+      "m5_low_usd",
+      "m5_close_usd",
+      "m5_spot_basis_bps",
+      "m15_open_usd",
+      "m15_high_usd",
+      "m15_low_usd",
+      "m15_close_usd",
+      "m15_spot_basis_bps",
+      "h1_open_usd",
+      "h1_high_usd",
+      "h1_low_usd",
+      "h1_close_usd",
+      "h1_spot_basis_bps",
+      "m5_structure_available",
+      "m5_bos_up",
+      "m5_bos_down",
+      "m5_sweep_up_event",
+      "m5_sweep_down_event",
+      "m5_ob_bull_active",
+      "m5_ob_bull_created",
+      "m5_ob_bull_first_retouch",
+      "m5_ob_bull_low",
+      "m5_ob_bull_high",
+      "m5_ob_bull_age_bars",
+      "m5_ob_bull_input_valid",
+      "m5_ob_bear_active",
+      "m5_ob_bear_created",
+      "m5_ob_bear_first_retouch",
+      "m5_ob_bear_low",
+      "m5_ob_bear_high",
+      "m5_ob_bear_age_bars",
+      "m5_ob_bear_input_valid"
+    ],
+    "C": [
+      "m5_vwap_usd",
+      "m5_poc_usd",
+      "m5_q25_usd",
+      "m5_median_usd",
+      "m5_q75_usd",
+      "m5_price_levels",
+      "m5_volume",
+      "m5_trades",
+      "m5_unknown",
+      "m5_known_aggressor_fraction",
+      "m5_buy",
+      "m5_sell",
+      "m5_delta_contracts",
+      "m5_max_level_delta_contracts",
+      "m5_min_level_delta_contracts",
+      "m5_buy_poc_usd",
+      "m5_sell_poc_usd",
+      "m5_cvd_segment_delta_contracts",
+      "m5_cvd_segment_volume_contracts",
+      "m5_cvd_segment_minutes",
+      "m5_ob_bull_origin_volume_contracts",
+      "m5_ob_bear_origin_volume_contracts",
+      "m15_volume",
+      "m15_trades",
+      "m15_unknown",
+      "m15_known_aggressor_fraction",
+      "m15_vwap_usd",
+      "m15_poc_usd",
+      "m15_q25_usd",
+      "m15_median_usd",
+      "m15_q75_usd",
+      "m15_price_levels",
+      "h1_volume",
+      "h1_trades",
+      "h1_unknown",
+      "h1_known_aggressor_fraction",
+      "h1_vwap_usd",
+      "h1_poc_usd",
+      "h1_q25_usd",
+      "h1_median_usd",
+      "h1_q75_usd",
+      "h1_price_levels"
+    ]
+  },
+  "cohort": "Exactly the 16745 native M5 rows with gc_m5_abc_input_valid, before outcome access. Identical censor/purge rows per horizon in A/B/C.",
+  "common_masks": [
+    "m5_volume_valid",
+    "m5_signed_valid",
+    "m15_volume_valid",
+    "m15_signed_valid",
+    "h1_volume_valid",
+    "h1_signed_valid"
+  ],
+  "confidence_levels": [
+    0.9,
+    0.9833333333333333
+  ],
+  "created_utc": "2026-10-17T07:10:18.885309+00:00",
+  "execution_tape_partitions": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet",
+      "sha256": "2776a1cb17b915d506eaf0d7ed5323ba975e0d0d1c52c0c02d2da20589d1c41a"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2025/part-000.parquet",
+      "sha256": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2026/part-000.parquet",
+      "sha256": "52eecadc8b9ff4a4522ca5003656a91e6250f7accbacdfd73587ba14b375ec1a"
+    }
+  ],
+  "expanding_equivalence": "Every bound fold has start minus 3 years before 2024-05-01; the cohort starts 2024-05-01, so this existing owner produces exactly expanding available TRAIN.",
+  "feature_inputs": {
+    "parquet": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006/RESULTS/M5_FEATURES.parquet",
+      "sha256": "9d5f035b43e9b3889a8492ad0d855adc42a3c0a2b1376b6568433713d296469f"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006/RESULTS/RESULT.json",
+      "sha256": "9f199acc84f185f2fb00e20f17d52ca21f1245b124e1c868dd2829e96e16598d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006/RESULTS/TERMINAL.json",
+      "sha256": "50a54dec3886f1f8bdbc7cc3f3fe05b31064d1007ee87b2f96a5e667c6994228"
+    }
+  },
+  "folds": [
+    {
+      "fold_id": "dev_01",
+      "train_end_utc_exclusive": "2025-05-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2025-08-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2025-05-01T00:00:00Z"
+    },
+    {
+      "fold_id": "dev_02",
+      "train_end_utc_exclusive": "2025-08-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2025-11-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2025-08-01T00:00:00Z"
+    },
+    {
+      "fold_id": "dev_03",
+      "train_end_utc_exclusive": "2025-11-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2026-02-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2025-11-01T00:00:00Z"
+    },
+    {
+      "fold_id": "dev_04",
+      "train_end_utc_exclusive": "2026-02-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2026-05-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2026-02-01T00:00:00Z"
+    },
+    {
+      "fold_id": "dev_05",
+      "train_end_utc_exclusive": "2026-05-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2026-07-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2026-05-01T00:00:00Z"
+    }
+  ],
+  "forbidden": [
+    "TEST",
+    "native GPU fit/serving/architecture change",
+    "economic simulation",
+    "trade selection",
+    "new provider calls",
+    "spending",
+    "relaunch"
+  ],
+  "horizons_minutes": [
+    30,
+    120,
+    360
+  ],
+  "inference": "Paired weekly-block bootstrap of baseline squared error minus challenger squared error. C-B and B-A at 30/120/360m form one six-contrast family. Positive family lower bound labels only descriptive prediction support; negative family upper bound labels negative. Fewer than two weeks or an interval covering zero is inconclusive. No native/edge/trading admission follows.",
+  "inner_fraction": 0.2,
+  "interpretation": [
+    "Reused chronological development VAL, not untouched final evidence.",
+    "Snapshot plus native MTF scalar context; not native sequence/attention training.",
+    "Strict known-side M5 cohort is selective (11.8% of 141806 rows); no extrapolation to missing/unknown-side rows.",
+    "No H4/D1 GC flow input, no unsupported M15/H1 full signed flow or book OFI. Existing native H4/D1 context remains.",
+    "TRAIN fit, later prediction loss/ranking and economics are separate. No strategy trades/portfolio/profitability measured.",
+    "Weekly blocks and finite 4000 bootstrap replications approximate uncertainty; fitted model and fold dependence remain limitations."
+  ],
+  "latency_seconds": 60,
+  "limits": {
+    "cpu_affinity": "0-7",
+    "max_wall_seconds": 3600,
+    "memory": "4G",
+    "numerical_threads": 1,
+    "runner": "scripts/gx1_capped_run.sh --class audit",
+    "swap": "512M",
+    "tasks_max": 64
+  },
+  "max_final_models": 45,
+  "minimum_train_rows": 1000,
+  "missingness": "Original NULLs persist in source. Ridge uses observed TRAIN mean after normalization plus a per-feature missing flag; every arm has the same physical source masks. No unknown aggressor is assigned a side or raw zero flow.",
+  "native_datasets": {
+    "train": {
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json",
+        "sha256": "022e19bcd52c0333cb3cfd64593c05c13c93f69982340de4fb13d23935d93ad2"
+      },
+      "parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.parquet",
+        "sha256": "e2d7aed519511e07ccca11b7be14ae89e8808b467635fc948b7a8acf08a2bddb"
+      }
+    },
+    "val": {
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json",
+        "sha256": "3343f1b6b9f9ac94e15ed75f6a93a950864ced5dffbd587c2b388788c708b553"
+      },
+      "parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.parquet",
+        "sha256": "df4a9175003bfd269a23b15dfc792135340a69ef1faf556080edac2e3748a941"
+      }
+    }
+  },
+  "operator_request": "Implement existing downloaded GC data/volume/order blocks and retrain; M5 intraday with MTF. Existing source/indicator admission must precede features and fitting.",
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007",
+  "recipe_owner": "existing standardizer/standardize/ridge_select_and_fit, inner validation last 20% with label purge; full physical TRAIN scaler fit once before final fit; return state persisted and predictions replayed exactly.",
+  "reference": {
+    "data": {
+      "execution_tape": {
+        "columns": [
+          "time",
+          "bid_open",
+          "ask_open",
+          "bid_close",
+          "ask_close"
+        ],
+        "end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+        "manifest": {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+          "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"
+        },
+        "root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927"
+      }
+    }
+  },
+  "schema_version": "gx1_gc_m5_trade_flow_probe_v1",
+  "scope": "One matched prediction-only ridge reference experiment; no native fit/serving, economic simulation, TEST, new data or spending.",
+  "signal_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_20261012T030344329880Z.json",
+    "sha256": "bb65a85d81ebe950862364e5021b0f6516e91c972a0dcce1426ea4caa8446ff0"
+  },
+  "source_qualification": "006 published observed-Trade features only. This is not the original protocol C with unqualified event-book OFI, nor native sequence/attention evidence.",
+  "start_year": 2024,
+  "study_id": "GC_M5_TRADE_FLOW_PROBE_20261017_007",
+  "target": "y_h = 1e4 * ln(mid_exit / mid_entry) with mid = (bid_open + ask_open) / 2 at the entry and exit M1 bars (cost-free mid return over the executed window); censored rows excluded from training and evaluation",
+  "target_owner": "research_m5_intraday_recheck_v1.execution_for_horizon (observed M1 executable entry/exit clock, cost-free mid return target only)",
+  "train_window_years": 3
+}

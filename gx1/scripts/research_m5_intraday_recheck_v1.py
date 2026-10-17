@@ -279,7 +279,7 @@ def ridge_fit(z: np.ndarray, y: np.ndarray, alpha: float) -> tuple[np.ndarray, f
     return beta, intercept - float(z.mean(axis=0) @ beta)
 
 
-def ridge_select_and_fit(x: np.ndarray, y: np.ndarray, fold: Fold, grid: list[float]) -> dict[str, Any]:
+def ridge_select_and_fit(x: np.ndarray, y: np.ndarray, fold: Fold, grid: list[float], *, return_state: bool = False) -> dict[str, Any]:
     m, s = standardizer(x, fold.inner_train)
     zi, zv = standardize(x, fold.inner_train, m, s), standardize(x, fold.inner_val, m, s)
     scores = {}
@@ -292,7 +292,11 @@ def ridge_select_and_fit(x: np.ndarray, y: np.ndarray, fold: Fold, grid: list[fl
     m, s = standardizer(x, fold.train)
     b, c = ridge_fit(standardize(x, fold.train, m, s), y[fold.train], best)
     pred = standardize(x, fold.eval, m, s) @ b + c
-    return {"alpha": best, "inner_mse": scores, "pred": pred, "inner_pred": inner_pred}
+    result = {"alpha": best, "inner_mse": scores, "pred": pred, "inner_pred": inner_pred}
+    if return_state:
+        result.update(beta=b, intercept=c, mean=m, std=s,
+                      train_pred=standardize(x, fold.train, m, s) @ b+c)
+    return result
 
 
 def gbdt_select_and_fit(x: np.ndarray, y: np.ndarray, fold: Fold, cfg: dict[str, Any]) -> dict[str, Any]:
@@ -500,7 +504,292 @@ def run(spec: dict[str, Any], spec_sha: str, out_dir: Path) -> dict[str, Any]:
     return result
 
 
+# This bounded mode extends the existing M5 ridge/clock/label/uncertainty
+# owner. It never runs the original one-off study or its economic simulation.
+GC_PROBE_ID = 'GC_M5_TRADE_FLOW_PROBE_20261017_007'
+GC_PROBE_CODE = (
+    'gx1/scripts/research_m5_intraday_recheck_v1.py', 'tests/test_gc_m5_trade_probe_v1.py',
+    'gx1/scripts/gc_source_disposition_v1.py', 'gx1/contracts/gc_source_disposition_v1.py',
+    'gx1/contracts/gc_order_flow_source_v1.py', 'gx1/scripts/research_ta_campaign_v1.py',
+    'gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh',
+    'gx1/contracts/entry_model_native_bundle_commit_v1.py',
+)
+
+
+def gc_input_matrices(snap, context, session, fields, ctx_names, gc, candidates, common_masks, initial_train):
+    """Freeze input-only cohort/fields before reading a single outcome.
+
+    All 315 base fields stay. Each context alias is checked on every cohort
+    row and consumes its existing snap column, never a second scaler owner.
+    New GC constants/unobserved fields are excluded using only initial TRAIN.
+    """
+    if not np.isfinite(snap).all() or snap.shape[1] != len(fields):
+        raise RuntimeError('GC_PROBE_NATIVE_SNAP_INVALID')
+    for j,name in enumerate(ctx_names):
+        k=fields.index('ctx_cont.'+name)
+        if not np.array_equal(snap[:,k],context[:,j]):
+            raise RuntimeError('GC_PROBE_CONTEXT_ALIAS_MISMATCH:'+name)
+    categories=np.unique(session[initial_train])
+    if not np.isin(session,categories).all():
+        raise RuntimeError('GC_PROBE_SESSION_DOMAIN_NOT_IN_INITIAL_TRAIN')
+    x0=design_matrix(snap,session,len(fields),categories).astype(np.float64)
+    base_names=list(fields)+[f'session_id={int(v)}' for v in categories]
+    common=np.column_stack([gc[n] for n in common_masks]).astype(np.float64)
+    if not np.isfinite(common).all():
+        raise RuntimeError('GC_PROBE_COMMON_AVAILABILITY_INVALID')
+    x0=np.column_stack((x0,common))
+    names0=base_names+common_masks
+    matrices={'A':x0}; names={'A':names0}; excluded={}
+    for arm,previous_arm in (('B','A'),('C','B')):
+        arrays=[]; added=[]
+        for name in candidates[arm]:
+            values=gc[name].astype(np.float64)
+            if np.isinf(values).any():raise RuntimeError('GC_PROBE_INFINITE_FEATURE:'+name)
+            observed=values[initial_train]
+            observed=observed[np.isfinite(observed)]
+            if len(np.unique(observed))<2:
+                excluded[name]='NO_VARIATION_OR_OBSERVATION_IN_INITIAL_TRAIN_INPUTS'
+                continue
+            arrays.extend((values,(~np.isfinite(values)).astype(np.float64)))
+            added.extend((name,name+'__missing'))
+        if not arrays:
+            raise RuntimeError('GC_PROBE_EMPTY_ARM_INCREMENT:'+arm)
+        matrices[arm]=np.column_stack((matrices[previous_arm],*arrays))
+        names[arm]=names[previous_arm]+added
+    return matrices,names,excluded
+
+
+def gc_probe_runtime(binding_path):
+    import os,subprocess
+    from gx1.scripts import gc_source_disposition_v1 as io
+    from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execution,require_capped_lock_ancestry
+    root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/GC_PROBE_ID
+    if binding_path != root/'EXECUTION_BINDING.json':
+        raise RuntimeError('GC_PROBE_BINDING_PATH_INVALID')
+    binding=io.read_json(binding_path)
+    plan_path=io.REPO/f'configs/research/{GC_PROBE_ID}.json'
+    io.verify_digest(plan_path,binding['plan_sha256'],'PROBE_PLAN')
+    spec=io.read_json(plan_path)
+    io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'PROBE_APPROVAL')
+    approval=io.read_json(root/'OPERATOR_APPROVAL.json')
+    io.verify_digest(io.REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'PROBE_POLICY')
+    policy=io.read_json(io.REPO/'NEXT_RUN_POLICY.json')
+    gate=policy['current_work']['gc_m5_trade_probe_007']
+    if (spec['study_id']!=GC_PROBE_ID or binding['source_head']!=io.git_head()
+            or policy['training_enabled'] is not False or gate['status']!='EXECUTION_CLAIMED'
+            or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0
+            or gate['execution_authorized'] is not False or gate['native_training_authorized'] is not False
+            or approval['approved_plan_sha256']!=binding['plan_sha256']
+            or approval['single_use'] is not True or approval['max_invocations']!=1
+            or approval['status']!='APPROVED_SINGLE_USE_PENDING_EXECUTION'):
+        raise RuntimeError('GC_PROBE_SINGLE_USE_SCOPE_INVALID')
+    if set(binding['code_sha256'])!=set(GC_PROBE_CODE):
+        raise RuntimeError('GC_PROBE_CODE_INVENTORY_INVALID')
+    for name,digest in binding['code_sha256'].items():io.verify_digest(io.REPO/name,digest,'PROBE_CODE')
+    if (subprocess.check_output(['git','status','--porcelain'],cwd=io.REPO,text=True)
+            or subprocess.check_output(['git','branch','--show-current'],cwd=io.REPO,text=True).strip()!='work/gx1-current'):
+        raise RuntimeError('GC_PROBE_SOURCE_IDENTITY_INVALID')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry()
+    if proof['cpu_affinity']!=list(range(8)) or (root/'RESULTS').exists() or (root/'.RESULTS.staging').exists():
+        raise RuntimeError('GC_PROBE_EXECUTION_OR_OUTPUT_INVALID')
+    io.write_json(root/'EXECUTION_CLAIM.json',{'status':'CLAIMED','invocation':1,
+        'binding_sha256':io.sha256_file(binding_path),'source_head':binding['source_head']})
+    return root,spec,binding,proof
+
+
+def load_gc_native_rows(spec, table):
+    """Column-pruned immutable sources, exact native split/physical row/time."""
+    from gx1.scripts import gc_source_disposition_v1 as io
+    signal=io.read_json(require_binding(spec['signal_manifest']))['model_native_signal_contract']
+    fields,ctx_names=signal['fields'],signal['ctx_cont_names']
+    times=table['time'].to_numpy().astype('datetime64[ns]').astype(np.int64)
+    indices=table['native_row_index'].to_numpy(); splits=np.array(table['native_split'].to_pylist())
+    snap=np.empty((len(times),len(fields)),dtype=np.float64)
+    context=np.empty((len(times),len(ctx_names)),dtype=np.float64)
+    session=np.empty(len(times),dtype=np.int64)
+    for split,item in spec['native_datasets'].items():
+        require_binding(item['manifest']); path=require_binding(item['parquet'])
+        f=pq.ParquetFile(path); positions=np.flatnonzero(splits==split); wanted=indices[positions]
+        if np.any(np.diff(wanted)<=0):raise RuntimeError('GC_PROBE_NATIVE_ROW_ORDER_INVALID')
+        offset=found=0
+        for rg in range(f.metadata.num_row_groups):
+            n=f.metadata.row_group(rg).num_rows
+            lo,hi=np.searchsorted(wanted,[offset,offset+n])
+            if hi>lo:
+                raw=f.read_row_group(rg,columns=['time','snap','ctx_cont','ctx_cat'],use_threads=False)
+                local=wanted[lo:hi]-offset; dest=positions[lo:hi]
+                t=raw['time'].to_numpy().astype('datetime64[ns]').astype(np.int64)
+                if not np.array_equal(t[local],times[dest]):raise RuntimeError('GC_PROBE_NATIVE_ROW_TIME_MISMATCH')
+                for name,width,out in (('snap',len(fields),snap),('ctx_cont',len(ctx_names),context)):
+                    flat=pc.list_flatten(raw[name]).to_numpy(zero_copy_only=False)
+                    if flat.size!=n*width:raise RuntimeError('GC_PROBE_NATIVE_WIDTH_MISMATCH')
+                    out[dest]=flat.reshape(n,width)[local]
+                flat=pc.list_flatten(raw['ctx_cat']).to_numpy(zero_copy_only=False)
+                if flat.size!=n:raise RuntimeError('GC_PROBE_NATIVE_SESSION_WIDTH_MISMATCH')
+                session[dest]=flat[local];found+=hi-lo
+            offset+=n
+        if found!=len(positions):raise RuntimeError('GC_PROBE_NATIVE_ROWS_MISSING')
+    return times,snap,context,session,fields,ctx_names
+
+
+def gc_prediction_metrics(y,p):
+    error=float(np.mean((y-p)**2))
+    corr=float(pd.Series(y).corr(pd.Series(p),method='spearman')) if np.ptp(p)>0 else float('nan')
+    return {'rows':len(y),'mse_bps2':error,'rank_ic':corr if np.isfinite(corr) else None}
+
+
+def run_gc_trade_probe(binding_path):
+    import os
+    from gx1.scripts import gc_source_disposition_v1 as io
+    from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
+    root,spec,binding,proof=gc_probe_runtime(binding_path)
+    stage=root/'.RESULTS.staging';(stage/'MODELS').mkdir(parents=True,exist_ok=False)
+    started=_time.monotonic()
+    try:
+        bindings=list(spec['feature_inputs'].values())+[spec['signal_manifest']]+spec['execution_tape_partitions']+[spec['reference']['data']['execution_tape']['manifest']]
+        bindings += [b for item in spec['native_datasets'].values() for b in item.values()]
+        for item in bindings:io.require_regular_file(Path(item['path']),'PROBE_CANONICAL_INPUT')
+        for item in spec['feature_inputs'].values():require_binding(item)
+        admitted=io.read_json(Path(spec['feature_inputs']['result']['path']))
+        terminal=io.read_json(Path(spec['feature_inputs']['terminal']['path']))
+        if (admitted['status']!='FEATURE_BUILD_COMPLETE_NOT_TRAINING_ADMISSION' or terminal['status']!='COMPLETE'
+                or terminal['artifacts']['M5_FEATURES.parquet']['sha256']!=spec['feature_inputs']['parquet']['sha256']):
+            raise RuntimeError('GC_PROBE_PUBLISHED_FEATURE_ADMISSION_INVALID')
+        table=pq.read_table(spec['feature_inputs']['parquet']['path'])
+        full_population=table.num_rows
+        table=table.filter(table['gc_m5_abc_input_valid'])
+        if table.num_rows!=admitted['abc_gc_input_valid_rows']:raise RuntimeError('GC_PROBE_COHORT_OWNER_PARITY_FAILED')
+        times,snap,context,session,fields,ctx_names=load_gc_native_rows(spec,table)
+        decisions=times+DECISION_OFFSET_NS
+        cutoff=pd.Timestamp(spec['folds'][0]['validation_start_utc_inclusive']).value-86400*NS
+        initial=np.flatnonzero(decisions<cutoff)
+        if len(initial)<spec['minimum_train_rows']:raise RuntimeError('GC_PROBE_INITIAL_TRAIN_TOO_SMALL')
+        gc={n:table[n].to_numpy(zero_copy_only=False) for n in spec['common_masks']+spec['candidates']['B']+spec['candidates']['C']}
+        matrices,names,excluded=gc_input_matrices(snap,context,session,fields,ctx_names,gc,
+            spec['candidates'],spec['common_masks'],initial)
+        # This file is created and fsynced before any M1 price/target is read.
+        lock={'cohort_rows':len(times),'native_population_rows':full_population,
+            'cohort_time_sha256':hashlib.sha256(times.tobytes()).hexdigest(),
+            'native_coordinate_sha256':hashlib.sha256(table.select(['time','native_split','native_row_index']).to_pandas().to_json().encode()).hexdigest(),
+            'field_order':names,'excluded_new_gc_fields':excluded,'initial_train_rows':len(initial),
+            'native_context_aliases_verified':len(ctx_names),'labels_read_at_lock':False}
+        io.write_json(stage/'INPUT_LOCK.json',lock)
+        print('GC_PROBE_INPUTS_LOCKED '+json.dumps({'rows':len(times),'widths':{k:len(v) for k,v in names.items()}}),flush=True)
+        for item in spec['execution_tape_partitions']:require_binding(item)
+        actual={str(p) for p in Path(spec['reference']['data']['execution_tape']['root']).glob('year=*/*.parquet') if int(p.parent.name.split('=')[1])>=spec['start_year']}
+        if actual!={i['path'] for i in spec['execution_tape_partitions']}:raise RuntimeError('GC_PROBE_UNBOUND_EXECUTION_PARTITION')
+        tape=load_tape(spec['reference'],spec['start_year'])
+        prediction_frames=[]; cells={}; models=[]
+        for horizon in spec['horizons_minutes']:
+            ex=execution_for_horizon(decisions,tape,horizon_minutes=horizon,latency_seconds=spec['latency_seconds'])
+            for declared in spec['folds']:
+                name=declared['fold_id'];start=declared['validation_start_utc_inclusive'][:10];end=declared['validation_end_utc_exclusive'][:10]
+                fold=build_fold(name,start,end,decisions,ex.exit_ns,ex.valid,
+                    train_years=spec['train_window_years'],inner_fraction=spec['inner_fraction'])
+                ev=fold.eval[ex.valid[fold.eval] & (ex.exit_ns[fold.eval]<fold.eval_end_ns)]
+                fold=Fold(fold.name,fold.eval_start_ns,fold.eval_end_ns,fold.train,fold.inner_train,fold.inner_val,ev)
+                if len(ev)==0 or np.any(ex.exit_ns[fold.train]>=fold.eval_start_ns):
+                    raise RuntimeError('GC_PROBE_FOLD_SUPPORT_OR_PURGE_INVALID')
+                frame=pd.DataFrame({'time_ns':times[ev],'decision_ns':decisions[ev],'exit_ns':ex.exit_ns[ev],
+                    'fold':name,'horizon_minutes':horizon,'y_mid_bps':ex.y_mid_bps[ev],
+                    'train_constant_bps':float(ex.y_mid_bps[fold.train].mean())})
+                for arm in ('A','B','C'):
+                    x=matrices[arm]
+                    for train_rows in (fold.inner_train,fold.train):
+                        if not np.all(np.isfinite(x[train_rows]).any(axis=0)):
+                            raise RuntimeError('GC_PROBE_NO_TRAIN_OWNED_IMPUTATION:'+arm)
+                    fit=ridge_select_and_fit(x,ex.y_mid_bps,fold,spec['alpha_grid'],return_state=True)
+                    model_name=f'{name}_{arm}_h{horizon}.npz';path=stage/'MODELS'/model_name
+                    np.savez(path,beta=fit['beta'],intercept=fit['intercept'],mean=fit['mean'],std=fit['std'])
+                    with np.load(path,allow_pickle=False) as loaded:
+                        replay=standardize(x,ev,loaded['mean'],loaded['std']) @ loaded['beta']+float(loaded['intercept'])
+                    if not np.array_equal(replay,fit['pred']):raise RuntimeError('GC_PROBE_MODEL_READBACK_PARITY_FAILED')
+                    frame['pred_'+arm]=fit['pred']
+                    key=f'{arm}_h{horizon}';cell=cells.setdefault(key,{'periods':{}})
+                    cell['periods'][name]={'train_rows':len(fold.train),'inner_train_rows':len(fold.inner_train),
+                        'inner_validation_rows':len(fold.inner_val),'alpha':fit['alpha'],'inner_mse':fit['inner_mse'],
+                        'train':gc_prediction_metrics(ex.y_mid_bps[fold.train],fit['train_pred']),
+                        'development':gc_prediction_metrics(ex.y_mid_bps[ev],fit['pred'])}
+                    models.append({'file':'MODELS/'+model_name,'arm':arm,'horizon_minutes':horizon,'fold':name,
+                        'field_order':names[arm],'train_rows_sha256':hashlib.sha256(times[fold.train].tobytes()).hexdigest()})
+                    print(f'GC_PROBE_FIT_COMPLETE {key} {name} train={len(fold.train)} development={len(ev)} alpha={fit["alpha"]}',flush=True)
+                prediction_frames.append(frame)
+        if len(models)!=spec['max_final_models']:raise RuntimeError('GC_PROBE_FINAL_MODEL_INVENTORY_INVALID')
+        predictions=pd.concat(prediction_frames,ignore_index=True)
+        comparisons={}
+        for horizon in spec['horizons_minutes']:
+            frame=predictions[predictions.horizon_minutes==horizon]
+            for arm in ('A','B','C'):
+                cells[f'{arm}_h{horizon}']['pooled_development']=gc_prediction_metrics(frame.y_mid_bps.to_numpy(),frame['pred_'+arm].to_numpy())
+            for better,baseline in (('C','B'),('B','A')):
+                loss=(frame.y_mid_bps-frame['pred_'+baseline])**2-(frame.y_mid_bps-frame['pred_'+better])**2
+                rows=[{'entry_ns':int(t),'improvement_bps2':float(v)} for t,v in zip(frame.decision_ns,loss)]
+                boot=weekly_block_bootstrap(rows,'improvement_bps2',reps=spec['bootstrap_reps'],seed=spec['bootstrap_seed'],levels=spec['confidence_levels'])
+                family_key=f'ci{spec["confidence_levels"][-1]:.4f}'
+                interval=boot.get(family_key)
+                decision='INCONCLUSIVE'
+                if interval is not None and boot['weeks']>=2:
+                    if interval[0]>0:decision='POSITIVE_PAIRED_PREDICTION_CONTRAST_ONLY'
+                    elif interval[1]<0:decision='NEGATIVE_PAIRED_PREDICTION_CONTRAST'
+                comparisons[f'{better}_minus_{baseline}_h{horizon}']={'bootstrap':boot,'decision':decision,
+                    'positive_development_folds':int(sum(float(g.mean())>0 for _,g in loss.groupby(frame.fold)))}
+        pred_table=pa_table_from_frame(predictions)
+        pq.write_table(pred_table,stage/'PREDICTIONS.parquet',compression='zstd')
+        if not pred_table.equals(pq.read_table(stage/'PREDICTIONS.parquet')):raise RuntimeError('GC_PROBE_PREDICTION_READBACK_FAILED')
+        # Original immutable inputs, code, policy, approval and head must still match.
+        for item in list(spec['feature_inputs'].values())+[spec['signal_manifest']]+spec['execution_tape_partitions']:
+            require_binding(item)
+        require_binding(spec['reference']['data']['execution_tape']['manifest'])
+        for item in spec['native_datasets'].values():
+            require_binding(item['manifest']);require_binding(item['parquet'])
+        for name,digest in binding['code_sha256'].items():io.verify_digest(io.REPO/name,digest,'PROBE_CODE_POST')
+        io.verify_digest(io.REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'PROBE_POLICY_POST')
+        io.verify_digest(io.REPO/f'configs/research/{GC_PROBE_ID}.json',binding['plan_sha256'],'PROBE_PLAN_POST')
+        io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'PROBE_APPROVAL_POST')
+        io.verify_digest(binding_path,io.read_json(root/'EXECUTION_CLAIM.json')['binding_sha256'],'PROBE_BINDING_POST')
+        if io.git_head()!=binding['source_head']:raise RuntimeError('GC_PROBE_SOURCE_HEAD_CHANGED')
+        result={'status':'MATCHED_TRADE_ONLY_PREDICTION_PROBE_COMPLETE','study_id':GC_PROBE_ID,
+            'source_head':binding['source_head'],'plan_sha256':binding['plan_sha256'],'input_lock':lock,
+            'cells':cells,'comparisons':comparisons,'models':models,'model_count':len(models),'limits':proof,
+            'elapsed_seconds':_time.monotonic()-started,'test_accessed':False,'economics_evaluated':False,
+            'native_training_started':False,'research_fit_started':True,'new_spending':False,
+            'interpretation':spec['interpretation']}
+        io.write_json(stage/'RESULT.json',result)
+        inventory={}
+        for path in sorted(stage.rglob('*')):
+            if path.is_file():
+                with path.open('rb') as f:os.fsync(f.fileno())
+                inventory[str(path.relative_to(stage))]={'sha256':io.sha256_file(path),'bytes':path.stat().st_size}
+        io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'invocation':1,
+            'artifacts':inventory,'research_fit_completed':True,'native_training_started':False,
+            'test_accessed':False,'finished_utc':pd.Timestamp.now(tz='UTC').isoformat()})
+        if {str(p.relative_to(stage)) for p in stage.rglob('*') if p.is_file()}!=set(inventory)|{'TERMINAL.json'}:raise RuntimeError('GC_PROBE_PUBLICATION_INVENTORY_INVALID')
+        for name,item in inventory.items():io.verify_digest(stage/name,item['sha256'],'PROBE_ARTIFACT')
+        for path in stage.glob('*.json'):io.read_json(path)
+        for directory in (stage/'MODELS',stage):
+            fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+        publish_bundle_directory_noreplace(stage,root/'RESULTS')
+        print('GC_PROBE_COMPLETE '+json.dumps(comparisons,sort_keys=True),flush=True)
+    except Exception as exc:
+        if not (root/'FAILURE.json').exists():io.write_json(root/'FAILURE.json',{'status':'FAILED_NO_ADMISSION','error':str(exc),'exception':type(exc).__name__,'test_accessed':False})
+        raise
+
+
+def pa_table_from_frame(frame):
+    import pyarrow as pa
+    table=pa.Table.from_pandas(frame,preserve_index=False)
+    if table.num_rows==0:raise RuntimeError('GC_PROBE_EMPTY_PREDICTIONS')
+    return table
+
+
 def main(argv: list[str] | None = None) -> int:
+    import sys
+    actual = sys.argv[1:] if argv is None else argv
+    if len(actual) == 2 and actual[0] == '--gc-binding':
+        run_gc_trade_probe(Path(actual[1]))
+        return 0
     p = argparse.ArgumentParser()
     p.add_argument("--spec", required=True, type=Path)
     p.add_argument("--spec-sha256", required=True)
