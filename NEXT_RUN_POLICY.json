@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T11:23:22.752868+00:00",
-  "status": "GC_FOUNDATION_LEVEL_CLOCK_REPAIR_CLAIMED__P0_STILL_BLOCKED",
+  "status": "L1_83776_VERIFIED__FULL_GC_PROFILE_HISTORY_CLAIMED__P0_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Run only foundation repair 016 under unchanged masks. Then quantify new F/L P0 overlap and exact M5 gap-free horizon support; correct research COT availability or explicitly exclude unsafe macro inputs before any future P0 admission.",
+  "next_action": "Finish existing-data full GC history profile build 018 with unchanged quality, then quantify new F17/L18 overlap and exact M5 horizon support in preparation 019. Known COT release/vintage leak and model recipe keep all fitting closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Run only foundation repair 016 under unchanged masks. Then quantify new F/L P0 overlap and exact M5 gap-free horizon support; correct research COT availability or explicitly exclude unsafe macro inputs before any future P0 admission.",
+    "current_activity": "Finish existing-data full GC history profile build 018 with unchanged quality, then quantify new F17/L18 overlap and exact M5 horizon support in preparation 019. Known COT release/vintage leak and model recipe keep all fitting closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -158,11 +158,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "OpenBB FREE source review only; no feature or PIT admission",
+    "latest_terminal_role": "Actual L1 and native-clock profile build, no fit",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014/RESULTS/TERMINAL.json",
-      "sha256": "231dd480089bcb31167b27cb8ccada09515dacf767714c4f994f391445bcf1e7"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/TERMINAL.json",
+      "sha256": "68db109dd588e87ee36e5d60fd2b0f8aebe7c0fca717f9991adf58646d64fa98"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -182,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "016 real L1 prefixes passed; level builder failed on int32 nanosecond multiplication. New 017 preflights real profiles first, persists verified reductions. Known COT release leak keeps P0 closed.",
+    "current_blocker": "L1 verified. Spot-only ladder history cannot qualify any full GC session; 018 fills actual GC history without relaxing source quality. P0 also blocked by COT PIT and exact model/confirmation recipe.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7656,7 +7656,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run only foundation repair 016 under unchanged masks. Then quantify new F/L P0 overlap and exact M5 gap-free horizon support; correct research COT availability or explicitly exclude unsafe macro inputs before any future P0 admission.",
+    "next_action": "Finish existing-data full GC history profile build 018 with unchanged quality, then quantify new F17/L18 overlap and exact M5 horizon support in preparation 019. Known COT release/vintage leak and model recipe keep all fitting closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9065,6 +9065,25 @@
     "gc_l1_dynamic_foundation_017": {
       "plan_path": "configs/research/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017.json",
       "plan_sha256": "4fe2c92f0fb9770d6d695eff6e98130601b8303a7af627d9340984e45fe07ff4",
+      "status": "COMPLETE_L1_AND_SPOT_CLOCK_PROFILES_CONSUMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "fit_authorized": false,
+      "test_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017",
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/TERMINAL.json",
+      "terminal_sha256": "68db109dd588e87ee36e5d60fd2b0f8aebe7c0fca717f9991adf58646d64fa98",
+      "result_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/RESULT.json",
+      "result_sha256": "33ebbfa342fffc37c07b1f3021c190ffc8eeed1905921ca95f34dab6f6a57501",
+      "actual_OFI_BBO_M5": 83776,
+      "full_session_prefix_M5": 0
+    },
+    "gc_full_history_profiles_018": {
+      "plan_path": "configs/research/GC_FULL_HISTORY_PROFILES_20261017_018.json",
+      "plan_sha256": "857177dfd4f1a9df0d8bbfcab8f78cd90baa6017545d29052f5e3431369b6c4b",
       "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
@@ -9073,7 +9092,7 @@
       "relaunch_authorized": false,
       "fit_authorized": false,
       "test_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017"
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_20261017_018"
     }
   },
   "gc_order_flow_research_20261006": {

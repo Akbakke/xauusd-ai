@@ -128,3 +128,24 @@ def test_real_ladder_int32_minute_indices_profile_preflight(tmp_path):
     assert values['rolling15_valid'][-1] and cut==1
     assert values['rolling15_poc_usd'][-1]==100.
     assert (tmp_path/'LEVEL_CHECKS.json').is_file()
+
+
+def test_full_gc_selection_uses_contract_known_at_minute_close():
+    from gx1.features.gc_order_flow_v1 import full_gc_minute_selection_v2
+    minute=60*NS;minutes=np.arange(8,dtype=np.int64)*minute
+    roll={'contract_order':['A','B'],'schedule':[{'roll_at_ns':minute,'selected_symbol':'A'},{'roll_at_ns':6*minute,'selected_symbol':'B'}]}
+    np.testing.assert_array_equal(full_gc_minute_selection_v2(minutes,roll),[0,0,0,0,0,1,1,1])
+
+
+def test_full_gc_history_repairs_missing_spot_opening_without_relaxing_quality():
+    start=pd.Timestamp('2024-05-02T22:00Z').value+np.arange(6)*300*NS
+    hist=[{100+i:10} for i in range(6)];valid=np.ones(6,bool);ci=np.zeros(6,int);close=np.arange(6)+100.
+    full=dynamic_profiles_v2(start,hist,valid,ci,close,1)
+    spot=dynamic_profiles_v2(start[1:],hist[1:],valid[1:],ci[1:],close[1:],1)
+    assert full['session_complete_valid'].all() and not spot['session_complete_valid'].any()
+    assert full['rolling15_valid'][2] and not spot['rolling15_valid'][1]
+    for n in ['vwap','poc','val','vah']:
+        np.testing.assert_array_equal(full['rolling15_'+n+'_usd'][3:],spot['rolling15_'+n+'_usd'][2:])
+    # A genuine rejected GC opening bar still rejects the entire session prefix.
+    valid[0]=False;rejected=dynamic_profiles_v2(start,hist,valid,ci,close,1)
+    assert not rejected['session_complete_valid'].any()

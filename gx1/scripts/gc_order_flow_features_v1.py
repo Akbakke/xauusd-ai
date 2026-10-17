@@ -579,12 +579,102 @@ def run_foundation_v2(binding_path):
     publish_bundle_directory_noreplace(stage,root/'RESULTS');print('GC_L1_DYNAMIC_FOUNDATION_COMPLETE',flush=True)
 
 
+def full_profile_worker_v2(group,ci,selected,tick,stage):
+    path=stage/(group['raw_symbol']+'.parquet')
+    c=features.TradeLadderCollector(path,selected,np.ones(len(selected),bool),ci,tick)
+    try:r=source.scan_symbol(group['items'],tick,on_batch=c)
+    finally:c.close()
+    rows=np.flatnonzero(selected==ci)
+    return {'rows':rows,'metrics':{k:r[k][rows] for k in source.METRICS},'ohlc':c.ohlc[rows],
+       'files':r['files'],'path':str(path),'sha256':previous.sha256_file(path)}
+
+
+def run_full_history_profiles_v2(binding_path):
+    identity='GC_FULL_HISTORY_PROFILES_20261017_018';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('FULL_PROFILE_BINDING')
+    binding=previous.read_json(binding_path);rel='configs/research/'+identity+'.json';previous.verify_digest(REPO/rel,binding['plan_sha256'],'FULL_PROFILE_PLAN');plan=previous.read_json(REPO/rel)
+    previous.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'FULL_PROFILE_POLICY');previous.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'FULL_PROFILE_APPROVAL')
+    policy=previous.read_json(REPO/'NEXT_RUN_POLICY.json');approval=previous.read_json(root/'OPERATOR_APPROVAL.json');gate=policy['current_work']['gc_full_history_profiles_018']
+    if (gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0 or gate['execution_authorized'] is not False or policy['training_enabled'] is not False or approval['max_invocations']!=1 or approval['approved_plan_sha256']!=binding['plan_sha256'] or previous.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):raise RuntimeError('FULL_PROFILE_AUTHORITY')
+    for p,h in binding['code_sha256'].items():previous.verify_digest(REPO/p,h,'FULL_PROFILE_CODE')
+    for b in plan['inputs'].values():previous.verify_digest(Path(b['path']),b['sha256'],'FULL_PROFILE_INPUT')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry();stage=root/'.RESULTS.staging';stage.mkdir(exist_ok=False);ladder=stage/'LADDERS';ladder.mkdir()
+    previous.write_json(root/'EXECUTION_CLAIM.json',{'invocation':1,'source_head':binding['source_head']})
+    base=previous.read_json(Path(plan['inputs']['source_plan']['path']));groups,hashes=previous._bound_gc_inputs(base)
+    roll=previous.read_json(Path(plan['inputs']['roll']['path']));old=pq.read_table(plan['inputs']['trade_masks']['path'])
+    width=(timing.WINDOW_END_NS-timing.STUDY_START_NS)//timing.MINUTE_NS;minutes=timing.STUDY_START_NS+np.arange(width,dtype=np.int64)*timing.MINUTE_NS
+    selected=features.full_gc_minute_selection_v2(minutes,roll)
+    oldidx=(old['bar_start_ns'].to_numpy()-timing.STUDY_START_NS)//timing.MINUTE_NS
+    if not np.array_equal(selected[oldidx],old['contract_index'].fill_null(-1).to_numpy()):raise RuntimeError('FULL_PROFILE_CHANGED_004_SELECTION')
+    metrics={k:np.zeros(width,np.uint64) for k in source.METRICS};ohlc=np.zeros((width,4),np.int64);paths={};records=0
+    with ProcessPoolExecutor(max_workers=plan['worker_count'],mp_context=mp.get_context('fork')) as pool:
+        jobs=[pool.submit(full_profile_worker_v2,g,roll['contract_order'].index(g['raw_symbol']),selected,roll['metadata_identity'][g['raw_symbol']][2],ladder) for g in groups]
+        for job in jobs:
+            r=job.result();rows=r['rows']
+            for k in metrics:metrics[k][rows]=r['metrics'][k]
+            ohlc[rows]=r['ohlc'];paths[r['path']]=r['sha256'];records+=sum(f['records'] for f in r['files'])
+    if records!=base['expected_source_records']:raise RuntimeError('FULL_PROFILE_RAW_COUNT')
+    for k in metrics:
+        if not np.array_equal(metrics[k][oldidx],old[k].to_numpy()):raise RuntimeError('FULL_PROFILE_CHANGED_004_TRADE_METRIC:'+k)
+    eligible=minutes+timing.MINUTE_NS<timing.WINDOW_END_NS
+    masks=source.row_masks(selected,metrics,eligible);valid=masks['volume_profile'].reshape(-1,5).all(axis=1)
+    contracts=selected.reshape(-1,5);valid &=(contracts>=0).all(axis=1)&(contracts==contracts[:,:1]).all(axis=1)
+    contracts=contracts[:,0];start=minutes[::5];volume=metrics['volume'].reshape(-1,5).sum(axis=1)
+    cache=pa.table({'bar_start_ns':minutes,'contract_index':selected,'volume_profile_valid':masks['volume_profile'],**metrics,**{n:ohlc[:,j] for j,n in enumerate(['open_tick','high_tick','low_tick','close_tick'])}})
+    pq.write_table(cache,stage/'FULL_GC_M1_TRADE_INPUTS.parquet',compression='zstd')
+    previous.write_json(stage/'SOURCE_CHECKS.json',{'records':records,'old_004_metric_parity':'EXACT_EVERY_NATIVE_ELIGIBLE_M1','ladder_sha256':paths})
+    histograms=[{} for _ in start]
+    for path,digest in paths.items():
+        previous.verify_digest(Path(path),digest,'FULL_PROFILE_LADDER')
+        df=pq.read_table(path).to_pandas();df['bar']=df.minute_index.to_numpy().astype(np.int64)//5;df['volume']=df.buy+df.sell+df.unknown
+        sums=df.groupby(['bar','price_tick'],sort=True).volume.sum()
+        for row,h in sums.groupby(level=0,sort=True):
+            row=int(row)
+            if not valid[row]:continue
+            if histograms[row]:raise RuntimeError('FULL_PROFILE_CONTRACT_COLLISION')
+            histograms[row]={int(p):int(v) for (_,p),v in h.items() if v>0}
+            if sum(histograms[row].values())!=int(volume[row]):raise RuntimeError('FULL_PROFILE_VOLUME_PARITY')
+    close=ohlc[4::5,3].astype(float)*plan['tick_usd']
+    values=features.dynamic_profiles_v2(start,histograms,valid,contracts,close,plan['tick_usd'])
+    cut=len(start)//2;prefix=features.dynamic_profiles_v2(start[:cut],histograms[:cut],valid[:cut],contracts[:cut],close[:cut],plan['tick_usd'])
+    for key in values:
+        if not np.array_equal(values[key][:cut],prefix[key],equal_nan=True):raise RuntimeError('FULL_PROFILE_PREFIX:'+key)
+    native=pq.read_table(plan['inputs']['M5_features']['path']);nstart=native['m5_bar_start_ns'].to_numpy();index=np.searchsorted(start,nstart)
+    if np.any(index>=len(start)) or not np.array_equal(start[index],nstart) or np.any(nstart+5*timing.MINUTE_NS>=timing.WINDOW_END_NS):raise RuntimeError('FULL_PROFILE_NATIVE_CLOCK')
+    oldvalid=native['m5_volume_valid'].to_numpy()
+    if not np.array_equal(volume[index][oldvalid],native['m5_volume'].to_numpy()[oldvalid]) or not np.array_equal(close[index][oldvalid],native['m5_close_usd'].to_numpy()[oldvalid]):raise RuntimeError('FULL_PROFILE_006_CONSERVATION')
+    oldlevels=pq.read_table(plan['inputs']['prior_levels']['path']);overlap={}
+    for family in ['rolling15','rolling60']:
+        mask=oldlevels[family+'_valid'].to_numpy();newmask=values[family+'_valid'][index]
+        if np.any(mask&~newmask):raise RuntimeError('FULL_PROFILE_LOST_PRIOR_QUALIFIED_ROWS')
+        for level in ['vwap','poc','val','vah']:
+            n=family+'_'+level+'_usd'
+            if not np.array_equal(oldlevels[n].to_numpy()[mask],values[n][index][mask]):raise RuntimeError('FULL_PROFILE_PRIOR_VALUE_CHANGED:'+n)
+        overlap[family]={'prior_valid':int(mask.sum()),'new_valid':int(newmask.sum()),'all_prior_values_exact':True}
+    out={'m5_bar_start_ns':nstart,'decision_ns':native['decision_ns'].to_numpy(),'contract_index':contracts[index],'GC_volume_input_valid':valid[index],**{k:v[index] for k,v in values.items()}}
+    table=pa.table(out);path=stage/'M5_FULL_GC_HISTORY_LEVELS.parquet';pq.write_table(table,path,compression='zstd')
+    if not features.exact_feature_readback_v2(table,pq.read_table(path)):raise RuntimeError('FULL_PROFILE_READBACK')
+    months=pd.DatetimeIndex(nstart,tz='UTC').strftime('%Y-%m').to_numpy();coverage={k:{'rows':int(v.sum()),'by_month':{m:int(np.count_nonzero(v&(months==m))) for m in sorted(set(months))}} for k,v in out.items() if k.endswith('_valid')}
+    for b in plan['inputs'].values():previous.verify_digest(Path(b['path']),b['sha256'],'FULL_PROFILE_INPUT_POST')
+    previous._rehash_sources(hashes,[])
+    for p,h in binding['code_sha256'].items():previous.verify_digest(REPO/p,h,'FULL_PROFILE_CODE_POST')
+    previous.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'FULL_PROFILE_POLICY_POST')
+    if previous.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):raise RuntimeError('FULL_PROFILE_SOURCE_CHANGED')
+    result={'status':'FULL_GC_CLOCK_PROFILES_BUILT_UNCHANGED_TRADE_QUALITY','source_head':binding['source_head'],'limits':proof,'raw_records':records,'native_rows':len(nstart),'full_GC_M1_rows':width,'coverage':coverage,'prior_rolling_overlap':overlap,'prefix_full_GC_M5_rows':cut,'native_clock_gating_removed_from_history_only':True,'original_masks_or_baseline_changed':False,'TEST_accessed':False,'fit_started':False,'session_holiday_calendar_qualified':False,'profile_file_sha256':previous.sha256_file(path)}
+    previous.write_json(stage/'RESULT.json',result);previous.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':previous.sha256_file(stage/'RESULT.json')})
+    publish_bundle_directory_noreplace(stage,root/'RESULTS');print('GC_FULL_HISTORY_PROFILES_COMPLETE',flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--binding',type=Path)
     group.add_argument('--foundation-binding',type=Path)
+    group.add_argument('--full-history-binding',type=Path)
     args = parser.parse_args()
+    if args.full_history_binding:
+        run_full_history_profiles_v2(args.full_history_binding)
+        return
     if args.foundation_binding:
         run_foundation_v2(args.foundation_binding)
         return

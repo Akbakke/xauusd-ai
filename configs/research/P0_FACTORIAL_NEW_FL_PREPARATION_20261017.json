@@ -587,5 +587,10 @@
     "Full historical daily/holiday calendar remains unresolved; strict no-gap horizon variant is separately measured and excludes these windows",
     "All 26 months are development; no truly untouched confirmation period verified",
     "A new bounded model-run admission must be recorded; training_enabled remains false"
-  ]
+  ],
+  "feature_sources": {
+    "F": "GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017 qualified L1 values",
+    "L": "GC_FULL_HISTORY_PROFILES_20261017_018 full GC clock history; exact result hash to be bound by preparation 019",
+    "V": "unchanged original 16 native fields"
+  }
 }

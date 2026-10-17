@@ -541,7 +541,12 @@ def qualify_new_fl_p0(plan,stage):
     from gx1.contracts import entry_research_evaluation_v1 as ev
     from gx1.contracts.xau_tape_provenance_v1 import scheduled_weekly_closure_mask
     from gx1.scripts import research_ta_campaign_v1 as macro
-    features=pq.read_table(binding_read(plan['features'])).to_pandas();starts=features.m5_bar_start_ns.to_numpy();decisions=features.decision_ns.to_numpy()
+    features=pq.read_table(binding_read(plan['features'])).to_pandas()
+    levels=pq.read_table(binding_read(plan['levels'])).to_pandas()
+    if not np.array_equal(features.m5_bar_start_ns,levels.m5_bar_start_ns) or not np.array_equal(features.decision_ns,levels.decision_ns):raise RuntimeError('P0_PREP_F_L_CLOCK_MISMATCH')
+    for key in levels:
+        if key not in ['m5_bar_start_ns','decision_ns','contract_index']:features[key]=levels[key]
+    starts=features.m5_bar_start_ns.to_numpy();decisions=features.decision_ns.to_numpy()
     prep=binding_read(plan['preparation']);fields=prep['layers']['F']['fields']+prep['layers']['L']['fields']
     fl=features.ofi_valid.to_numpy()&features.bbo_valid.to_numpy()&features.rolling15_valid.to_numpy()&np.isfinite(features[fields].to_numpy(float)).all(axis=1)
     source=binding_read(plan['execution_plan']);parts=[pq.read_table(binding_read(p),columns=['time','bid_open','ask_open']).to_pandas() for p in source['execution_tape_partitions']]
@@ -589,11 +594,11 @@ def qualify_new_fl_p0(plan,stage):
 
 
 def run_p0_preparation(binding_path):
-    identity='GC_P0_COHORT_PREPARATION_20261017_018';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    identity='GC_P0_COHORT_PREPARATION_20261017_019';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
     if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('P0_PREP_BINDING')
     binding=io.read_json(binding_path);rel='configs/research/'+identity+'.json';io.verify_digest(REPO/rel,binding['plan_sha256'],'P0_PREP_PLAN');plan=io.read_json(REPO/rel)
     io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_PREP_POLICY');io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'P0_PREP_APPROVAL')
-    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_P0_cohort_preparation_018'];approval=io.read_json(root/'OPERATOR_APPROVAL.json')
+    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_P0_cohort_preparation_019'];approval=io.read_json(root/'OPERATOR_APPROVAL.json')
     if (gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0 or gate['execution_authorized'] is not False or policy['training_enabled'] is not False or approval['max_invocations']!=1 or approval['approved_plan_sha256']!=binding['plan_sha256'] or io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):raise RuntimeError('P0_PREP_AUTHORITY')
     for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'P0_PREP_CODE')
     proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry();stage=root/'.RESULTS.staging';stage.mkdir(exist_ok=False)

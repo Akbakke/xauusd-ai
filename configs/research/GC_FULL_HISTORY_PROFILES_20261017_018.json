@@ -1,0 +1,53 @@
+{
+  "schema_version": "gx1_gc_full_history_profiles_v2",
+  "plan_id": "GC_FULL_HISTORY_PROFILES_20261017_018",
+  "operator_request": "Current 17.10.2026 explicit full GC session/rolling profile task: resolve measured missing GC opening history in native-only ladders with existing raw data; no change to quality predicate",
+  "inputs": {
+    "source_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
+      "sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf"
+    },
+    "trade_masks": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/SELECTED_M1_INPUT_MASKS.parquet",
+      "sha256": "d30894d0786b69fd1f8784ee98ef7035cfe6a35f05d185e5e235df8899b684d4"
+    },
+    "M5_features": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006/RESULTS/M5_FEATURES.parquet",
+      "sha256": "9d5f035b43e9b3889a8492ad0d855adc42a3c0a2b1376b6568433713d296469f"
+    },
+    "roll": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/ROLL_SCHEDULE.json",
+      "sha256": "80f847b74b1e49efb64b9c57d306263bc184e4f289e66cb1d95a37bb2b05add8"
+    },
+    "prior_levels": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/M5_L1_DYNAMIC_FEATURES.parquet",
+      "sha256": "c06d7a212b1d3f6ea6e442b396d186ac068b38447ae77f86e1f7824c8a4e778c"
+    }
+  },
+  "worker_count": 8,
+  "tick_usd": 0.1,
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_20261017_018",
+  "fit_authorized": false,
+  "TEST_authorized": false,
+  "new_data_requests_authorized": false,
+  "network_authorized": false,
+  "recipe": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/GC_FULL_HISTORY_PROFILE_RECIPE.md",
+    "sha256": "325f840fe01a2f67b17c013689582fc98355b8ab9ba8b5a32dc7ed59685fe9b8"
+  },
+  "code_paths": [
+    "gx1/features/gc_order_flow_v1.py",
+    "gx1/scripts/gc_order_flow_features_v1.py",
+    "tests/test_gc_l1_dynamic_foundation_v2.py",
+    "gx1/scripts/audit_entry_gc_foundation_v1.py",
+    "gx1/contracts/entry_research_evaluation_v1.py",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py",
+    "gx1/scripts/research_m5_intraday_recheck_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "scripts/gx1_capped_run.sh",
+    "gx1/contracts/gc_continuous_source_v1.py"
+  ]
+}
