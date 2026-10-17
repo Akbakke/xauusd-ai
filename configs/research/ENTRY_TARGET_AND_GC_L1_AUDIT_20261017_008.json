@@ -1,0 +1,79 @@
+{
+  "plan_id": "ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008",
+  "schema_version": "gx1_independent_entry_gc_foundation_audit_v1",
+  "operator_request": "17.10.2026: independent Entry-target audit before further P0 training; separate L1 quality attribution, no target/Exit/model/TEST change or new data purchase/download.",
+  "native_design": {
+    "path": "configs/research/NATIVE_ENTRY_OBSERVED_HORIZONS_20261012.json",
+    "sha256": "149117700b2aa44667fe17c70a91586cb8b0baabbfac2ce1e99e662b093abd37"
+  },
+  "native_economics": {
+    "schema_version": "gx1_entry_observed_market_v1_economics",
+    "cost_authority_sha256": "204c03ba3388ffe0db1421a32f9a8044182ec3dc818f8ea10a04299fcf468a32",
+    "coverage_start_utc": "2011-06-01T00:00:00+00:00",
+    "coverage_end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+    "round_trip_execution_cost_bps": 4.0,
+    "annual_financing_cost_bps": [
+      569.0,
+      0.0
+    ],
+    "seconds_per_year": 31557600.0,
+    "historical_cost_truth_qualified": false,
+    "capital_hurdle_included": false,
+    "risk_utility_included": false,
+    "economics_sha256": "f990436326edd80d09240e9943d4b714f0d2c5a9e1ed0285381edf9e5fdf8596"
+  },
+  "native_latest_learning_review": {
+    "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_001/STUDY_REVIEW_RECENT_YEAR.json",
+    "sha256": "93b9f87391a798c0b1ceadcf7c0267ca66f594273d70da431f0a75a43c4fdd79"
+  },
+  "GC_probe_plan": {
+    "path": "configs/research/GC_M5_TRADE_FLOW_PROBE_20261017_007.json",
+    "sha256": "5ab8ee7a7e73d322cfca8934469ac0522fed923b9d312c13d7a14040bc59c41e"
+  },
+  "GC_predictions": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/RESULTS/PREDICTIONS.parquet",
+    "sha256": "291dc5fc97c60da71680b890498e59b7a7d30c7e229797faaa9cd4f02f178bab"
+  },
+  "GC_masks": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/SELECTED_M1_INPUT_MASKS.parquet",
+    "sha256": "d30894d0786b69fd1f8784ee98ef7035cfe6a35f05d185e5e235df8899b684d4"
+  },
+  "GC_features": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006/RESULTS/M5_FEATURES.parquet",
+    "sha256": "9d5f035b43e9b3889a8492ad0d855adc42a3c0a2b1376b6568433713d296469f"
+  },
+  "TEST_seal_utc": "2026-07-01T00:00:00Z",
+  "split_end_utc": {
+    "train": "2025-05-31T23:59:59Z",
+    "val": "2026-06-30T23:59:59Z"
+  },
+  "code_paths": [
+    "gx1/scripts/audit_entry_gc_foundation_v1.py",
+    "gx1/contracts/entry_observed_market_v1.py",
+    "gx1/contracts/entry_observed_market_horizons_v1.py",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py",
+    "gx1/contracts/entry_model_native_training_objective_v1.py",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+    "gx1/scripts/research_m5_intraday_recheck_v1.py",
+    "gx1/contracts/gc_continuous_source_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "scripts/gx1_capped_run.sh"
+  ],
+  "limits": {
+    "job_class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "max_wall_seconds": 3600,
+    "numerical_threads": 1
+  },
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008",
+  "raw_read_scope": "Decode only original M1 row groups with footer max strictly before TEST; skip mixed TEST group. Reconstruct all TRAIN and h20-supported VAL prefix; disclose unreconstructed VAL tail.",
+  "reference_scope": "Independent raw entry-notional gross arithmetic and observed-session clock, compare actual stored labels and producer net arithmetic. No learned Exit forward or fit.",
+  "new_model_fit_authorized": false,
+  "target_change_authorized": false,
+  "test_authorized": false,
+  "new_data_requests_authorized": false,
+  "max_invocations": 1
+}

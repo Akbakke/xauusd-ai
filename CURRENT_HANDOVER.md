@@ -4,6 +4,24 @@ Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json 
 eneste arbeidsstatus; prosess og terminal overstyrer prosa. Historikk per forsøk
 ligger i Git og i policyens bindinger, ikke her.
 
+## Nå: uavhengig Entry-target-audit før videre P0
+
+Ny bestilling 17.10 krever eksakte target-/pris-/kost-/klokkebevis før videre
+P0-trening, uten å endre mål eller Exit. Avgrenset ny auditplan 008 er klargjort;
+ingen gammel plan relanseres. Egen referanse rekonstruerer faktiske TRAIN-labels
+og en råprisstøttet VAL-prefix. Original M1s siste row-group inneholder TEST og
+skal ikke dekodes. Urekonstruert VAL-hale oppgis. Separat GC-maskefordeling på
+alle 141 806 native M5-rader bruker eksisterende 004-masker/006-koordinater;
+ingen råpassering på GC, nye data eller svekkelse av masker i denne auditen.
+
+Kildelesing viser Entry-only h20d uten lært Exit; den gamle joint-fasen er
+fortsatt Exit-avhengig. GC/M5 ridge lærer kostnadsfri mid-logretur. Forsknings-
+SHORT-simulator bruker utgangsnotional, native bruker inngangsnotional; avviket
+skal tallfestes og forblir urørt under revisjonen. Native finansiering er
+veggklokke med gunstig shortkreditt klippet til null; M5-referansen bruker
+NY-rollover og sidebestemt kreditt. Dette er ulike kostdefinisjoner.
+Ingen P0-fit, native trening, mål-/Exit-endring eller TEST er åpnet.
+
 ## Nå: strategisk revisjon og P0-prioritet — 17.10
 
 Ny bestilling prioriterer dynamiske GC-volumnivåer × L1-flow × volatilitet,

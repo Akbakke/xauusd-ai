@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T09:02:48.050608+00:00",
-  "status": "STRATEGIC_M5_FEATURE_REVIEW_COMPLETE__P0_PRIORITY__TRAINING_BLOCKED",
+  "status": "INDEPENDENT_ENTRY_TARGET_AND_GC_L1_AUDIT_CLAIMED__P0_FIT_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Strategic M5 feature/data/model review complete; existing source and 007 baseline frozen, complete field inventory and free-resource review published. No new feature implementation or model fit.",
+    "current_activity": "Independent Entry-target audit prepared before further P0 work; no targets, Exit or production model changed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -182,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Event-book L1 has no separate source admission or features; actual macro release/vintage and a genuinely unused GC confirmation period are unproven. No P0 execution recipe is bound; native training remains disabled.",
+    "current_blocker": "Audit found research SHORT uses exit-notional denominator while native uses entry notional; exact extent, target clocks/costs and GC rejection attribution must be measured before P0 fitting.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -8830,6 +8830,22 @@
       "new_fit_started": false,
       "new_economics_run": false,
       "unused_GC_holdout_verified": false
+    },
+    "entry_target_and_gc_l1_audit_008": {
+      "plan_path": "configs/research/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008.json",
+      "plan_sha256": "d89f1a8e0f84004d742f8c73a70aab76e8b7c48ae53e095c8ce1e96e39453e3a",
+      "status": "EXECUTION_CLAIMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 0,
+      "authorized_invocations": 1,
+      "operator_request": "17.10.2026: independent Entry-target audit before further P0 training; separate L1 quality attribution, no target/Exit/model/TEST change or new data purchase/download.",
+      "relaunch_authorized": false,
+      "native_training_authorized": false,
+      "test_authorized": false,
+      "target_change_authorized": false,
+      "new_data_fetch_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -11394,5 +11410,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T09:02:48.050608+00:00"
+  "updated_utc": "2026-10-17T09:33:46.414284+00:00"
 }
