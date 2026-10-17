@@ -33,7 +33,7 @@ price grid is preserved, while native inputs use summary/profile/flow/SMC
 fields; full price-grid neural ingestion is not implemented or claimed.
 No native epoch started yet.
 
-Next: execute fresh pre-July XAU pair stage006 (claimed once, launch pending),
+Next: execute fresh pre-July M5 feature stage007 (claimed once, launch pending),
 then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,
@@ -64,3 +64,13 @@ causal warmup. Old sealed-to-September pair is not an input. Legacy raw-source
 vedtak identifies unchanged source provenance, never old execution authority.
 Source is frozen during that job; one agent/job, existing capped producer10G.
 The dataset build ID and later training output ID will remain distinct.
+
+Stage006 FAILED before publishing a pair: the legacy full-pair constructor
+required ambient MTF calibration. Original terminal/log/checkpoints preserved.
+The existing direct-preTEST lineage route already accepts the exact native
+raw roots, so the attempted legacy calibration workaround was withdrawn before
+commit; no ambient/cache fallback was introduced. New stage007 is the bound
+existing-route M5 feature/cache/model-source rebuild; explicit raw manifests
+contain quotes only. Source/candidate dimensional and physical gates remain.
+M5 keeps full history for shared M1 context; M1 output is bounded only after
+long-memory owners have consumed full raw history and before adding GC storage.

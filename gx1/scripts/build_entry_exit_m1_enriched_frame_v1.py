@@ -1203,6 +1203,11 @@ def _bound_gc_output_support(enriched, multi_tf, *, timeframe):
     This avoids allocating GC storage over unrelated 2009–2023 M1 rows.
     """
     from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+    if timeframe == 'M5':
+        # M1's shared context producer still needs the full native history.
+        # Keep the M5 cache intact; bound only the later M1 output before GC
+        # allocation, after all long-memory owners have consumed raw history.
+        return enriched
     first = pd.Timestamp(_gc_context.REGISTRY['train_window'][0])
     starts = []
     for tf, bars in PRODUCTION_MTF_PER_TF_WINDOW_BARS.items():

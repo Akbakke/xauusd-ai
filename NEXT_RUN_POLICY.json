@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Fresh pre-July XAU raw pair stage claimed; GC context and exact terminal/publication fixes implemented with focused tests. Native epoch not started.",
+    "current_activity": "Prepare existing direct-pretest native M5 raw feature route007 after closed failure006. GC/target/publication code complete; no native epoch started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -113,13 +113,13 @@
     "gc_goal_status": "FULL_FEATURE_CPU_STUDY_COMPLETE__NO_EDGE_QUALIFIED__P0_NO_GO_PRESERVED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Fresh raw GC input rebuild only; no native dataset/epoch completion",
+    "latest_terminal_role": "Failed legacy raw pair stage006, consumed; new direct-pretest feature stage007 uses the existing suitable route.",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TERMINAL.json",
-      "sha256": "321769202aef3fe3aa117b41d85f0609f338368587dafc9bf30f0f70618c53f8"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006/TERMINAL.json",
+      "sha256": "9ea36e5a7b2101ba32be1567b30b0b629d13d34aa87b37f6ae71c1c39b471dc3"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": true,
     "sampler_selection_measured": true,
@@ -9458,7 +9458,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "GC_CONTEXT_IMPLEMENTED__FRESH_PRETEST_XAU_PAIR_CLAIMED",
+      "status": "FRESH_PRETEST_M5_FEATURE_REBUILD_CLAIMED__NATIVE_EPOCH_PENDING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9501,8 +9501,8 @@
         "Full footprint lattice is not directly ingested by the native model; summaries are used"
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TERMINAL.json",
-      "completed_invocations": 1,
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006/TERMINAL.json",
+      "completed_invocations": 0,
       "split_windows": {
         "train": [
           "2024-05-01T00:00:00Z",
@@ -9571,7 +9571,7 @@
         "no_backdated_current_hours_template": true
       },
       "xau_raw_pair_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "FAILED_CONSUMED",
         "plan_path": "configs/research/NATIVE_XAU_GC_REBUILD_20261018_006.json",
         "plan_sha256": "da4560f182e1646c6dc9a95d82b3c1c60b4a8da540d46cd11ffaf7d3e8e5a943",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006",
@@ -9580,8 +9580,34 @@
         "completed_invocations": 0,
         "execution_authorized": false,
         "relaunch_allowed": false,
+        "native_epoch_authorized_by_this_stage": false,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006/TERMINAL.json",
+          "sha256": "9ea36e5a7b2101ba32be1567b30b0b629d13d34aa87b37f6ae71c1c39b471dc3"
+        },
+        "failed_invocations": 1,
+        "elapsed_seconds": 283.4893047939986,
+        "failure": "GX1_V10_MULTI_TF_V4_CACHE_DIR_REQUIRED in legacy full-pair constructor; no pair published"
+      },
+      "m5_feature_stage": {
+        "status": "EXECUTION_CLAIMED",
+        "plan_path": "configs/research/NATIVE_GC_M5_FEATURES_20261018_007.json",
+        "plan_sha256": "3709259458227ddec036f1c0591d9497415798a3ace7f8b3b221bc20ff4fdba2",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_007",
+        "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002",
+        "claimed_invocations": 1,
+        "completed_invocations": 0,
+        "execution_authorized": false,
+        "relaunch_allowed": false,
         "native_epoch_authorized_by_this_stage": false
       }
+    },
+    "native_xau_pair_failure_20261018": {
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006/TERMINAL.json",
+      "completed_invocations": 1,
+      "exit_code": 1,
+      "admission": false,
+      "no_native_training_started": true
     }
   },
   "gc_order_flow_research_20261006": {

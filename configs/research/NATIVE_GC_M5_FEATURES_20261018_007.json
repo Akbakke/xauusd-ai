@@ -1,0 +1,57 @@
+{
+  "schema_version": "gx1_native_pretest_m5_feature_rebuild_v1",
+  "created_utc": "2026-10-17T23:13:53.221512+00:00",
+  "run_id": "XAU_GC_NATIVE_26M_20261018_002",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_007",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002",
+  "scope": "Fresh native M5 feature/cache/model source from original raw pre-July sources through the existing direct pre-TEST lineage route. All earlier raw XAU consumed causally for warmup. No prior native feature values, normalization or checkpoint reused.",
+  "native_m1_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+  "native_m5_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+  "raw_source_vedtak": "OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927",
+  "raw_source_vedtak_role": "immutable raw source provenance required by existing pair owner, never reuse of an execution approval",
+  "operator_authority": "Current17.\u201318October user fresh26month raw rebuild/native one epoch and full informative MBP-1 utilization request.",
+  "execution_owner": "existing materialize_pretest_native_pair_lineage_v1 \u2192 build_entry_exit_m1_enriched_frame_v1 M5 \u2192 materialize_entry_model_native_m5_source_v1",
+  "workers": 1,
+  "max_wall_seconds": 64800,
+  "budget_origin": "Existing fresh native core-rebuild64800second ceiling; one new source-bound stage, no consumed-plan relaunch",
+  "resource_owner": "Each child through scripts/gx1_capped_run.sh. Pretest lineage audit4G; M5 feature producer20G; model source producer10G; unchanged512M swap, CPU0-7/one thread/64tasks/CURRENT lock. Sequential only.",
+  "train_start": "2024-05-01T00:00:00Z",
+  "train_end_exclusive": "2026-01-01T00:00:00Z",
+  "val_start": "2026-01-01T00:00:00Z",
+  "val_end_exclusive": "2026-04-01T00:00:00Z",
+  "retrospective_final_control": [
+    "2026-04-01T00:00:00Z",
+    "2026-07-01T00:00:00Z"
+  ],
+  "test_from_july_unread": true,
+  "one_shot_invocations": 1,
+  "native_training_started": false,
+  "source_frozen_while_running": true,
+  "derived_pair_or_features_reused": false,
+  "historical_raw_xau_before_training_is_only_causal_warmup": true,
+  "upstream_features_trimmed_before_GC_attachment": "Actual original MTF cache indices determine all declared predecessor windows before first TRAIN, never guessed warmup days",
+  "full_footprint_lattice_neural_ingestion_claim": false,
+  "plan_id": "NATIVE_GC_M5_FEATURES_20261018_007",
+  "inputs": {
+    "m1_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+    },
+    "m5_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m5_quotes_source/manifest.json",
+      "sha256": "1bbc7d20a91afff0deb22a4cd2c848aaa95d27a2db56c22f2f3eb3505c615439"
+    },
+    "squeeze_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/manifest.json",
+      "sha256": "2f099d1974a6ffe3b9c1ae39680acdce5cc706aba954a2ce3523d74db2838d3e"
+    }
+  },
+  "registry_fit_train_start": "2009-06-01T00:00:00+00:00",
+  "registry_fit_train_end": "2013-01-01T22:00:00+00:00",
+  "registry_fit_inner_end": "2012-04-11T22:00:00+00:00",
+  "registry_fit_origin": "Unchanged previously accepted native feature-calibration windows, wholly before first consumed TRAIN2024 inputs. Registry parameters are recomputed from original raw sources. Immutable squeeze calibration reused through its existing owner.",
+  "raw_pair_stage_006": "FAILED_CONSUMED: legacy full-pair constructor required ambient bound MTF cache. No pair published. Existing direct pre-TEST lineage avoids that legacy route; no workaround or ambient default retained.",
+  "m5_full_history_preserved_for_m1_cache": true,
+  "native_signal_dimension": 735,
+  "native_context_dimension": 552
+}
