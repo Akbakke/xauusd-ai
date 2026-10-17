@@ -189,3 +189,35 @@ Completion review binds artifacts, original failure and96-case focused/14-case
 repair XML controls (both zero failures/errors; overlapping cases are not added).
 Existing20 P0 code tests also passed, and native pre-commit contract guards passed.
 Syntax, stale-path scan and diff checks are separate code-consistency controls.
+
+## Operator follow-up: all qualified market features and the 26-month study
+
+The operator approved training/smoke after verifying the informative inputs.
+Before any new model outcome, the scope was corrected: the old37-field recipe
+omitted238 existing native market fields, including27 previously paused pattern
+fields. New027 preserves all254 non-macro native signal fields across all eight
+families, F12/L8/basis and native session category. All61 macro fields remain
+excluded because historical publication is unqualified. No outcome selects which
+market fields survive. Constant/sparse fields are reported, retained and not
+claimed informative. Existing formula-ledger evidence is reused, with current
+physical-row/domain/context-alias checks; not every native raw formula is rebuilt.
+
+276 raw fields become283 model channels by one-hot encoding the exact native
+SMC-state and session domains; missing observations are never filled. F columns
+are independently checked against cached genuine M1 aggregation; L distances and
+previous-level responses against stored levels/GC closes; basis against GC close
+and actual XAU bid/ask mid. Cached producer prefix/volume/value-area proofs remain
+in force. The added market/context fields require fresh normalization and a new
+single-use qualification; no consumed qualification is rerun.
+
+To cover the26months chronologically,028 is one fixed five-fold walk-forward
+train/smoke study, with the first fold as integration smoke. Exactly four fits per
+fold (two ridge, Transformer, TCN), no HPO/seed retries,128 steps per neural fit.
+Batch86 = ceil(10,988 /128), derived from the largest previously qualified TRAIN
+fold: every network sees every declared TRAIN row. Whole study remains capped
+4G/512M/one numerical thread and30minutes. Native/GPU/h20/TEST remain closed.
+Normalization is fitted once on each fold's unique physical TRAIN input rows.
+Pooled economic replay carries positions across fold boundaries. Eight frozen
+pooled contrasts are multiplicity-adjusted; per-fold metrics are descriptive.
+This supersedes the unexecuted narrower first-fold proposal by the new explicit
+user request, before model outcomes. It is not a rescue tuned on those outcomes.

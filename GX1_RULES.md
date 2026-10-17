@@ -313,3 +313,11 @@ ikke relansering av P0 eller automatisk trening. Native Transformer beholdes;
 D1/h20 og GC/M5 skilles. Modellfits krever egen nødvendig NEXT_RUN_POLICY-binding
 etter kvalifisering. All26GCmåneder er utvikling; TEST, native baseline/Exit,
 handel, broker, spending og omfattende GPU-trening forblir lukket.
+
+Samme17.10 godkjente brukeren avgrenset train/smoke på26månedersmaterialet etter
+kontroll av informative features. Dette binder027/028: alle254 kvalifiserte
+native markedsfelt og eksisterende F/L/V/basis/sesjon, fem kronologiske fold,
+to faste lineære fits og128 steg hver for liten Transformer/TCN per fold,
+maksimalt20fits/10nevrale fits,4G CPU-audit og1800s totalt. Ingen HPO eller
+utvidelse. Makro med uavklart publisering og manglende signert flow fylles ikke.
+Native h20/GPU/TEST og produksjon forblir lukket.

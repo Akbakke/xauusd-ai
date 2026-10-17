@@ -16,7 +16,7 @@ from gx1.contracts import gc_sequence_research_v1 as contract
 from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execution,require_capped_lock_ancestry
 from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
 
-PLAN=io.REPO/'configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json'
+PLAN=io.REPO/'configs/research/GC_SEQUENCE_ALL_FEATURES_20261017_027.json'
 GATE='gc_sequence_research_20261017'
 
 
@@ -38,10 +38,15 @@ def load_inputs(spec):
     c=f.contract_index.to_numpy()
     if not np.array_equal(c,l.contract_index.to_numpy()):
         raise RuntimeError('GC_SEQUENCE_CONTRACT_ALIGNMENT')
-    x=np.column_stack([f[n].to_numpy() for n in spec['fields']['F']]+
-        [l[n].to_numpy() for n in spec['fields']['L']]+
-        [snap[:,fields.index(n)] for n in spec['fields']['V']]+
-        [base[n].to_numpy() for n in spec['fields']['basis']])
+    for j,n in enumerate(ctx_names):
+        if not np.array_equal(snap[:,fields.index('ctx_cont.'+n)],ctx[:,j]):raise RuntimeError('GC_SEQUENCE_CONTEXT_ALIAS:'+n)
+    if [n for n in fields if n not in spec['excluded_macro_fields']]!=spec['fields']['native']:raise RuntimeError('GC_SEQUENCE_NATIVE_COVERAGE')
+    raw_names=spec['fields']['F']+spec['fields']['L']+spec['fields']['native']+spec['fields']['basis']+['ctx_cat.session_id']
+    if raw_names!=spec['raw_field_order']:raise RuntimeError('GC_SEQUENCE_RAW_FIELD_ORDER')
+    raw=np.column_stack([f[n].to_numpy() for n in spec['fields']['F']]+[l[n].to_numpy() for n in spec['fields']['L']]+
+        [snap[:,fields.index(n)] for n in spec['fields']['native']]+[base[n].to_numpy() for n in spec['fields']['basis']]+[session])
+    x,encoded_names=contract.encode_inputs(raw,raw_names,spec['categorical_domains'])
+    if encoded_names!=spec['encoded_field_order']:raise RuntimeError('GC_SEQUENCE_ENCODED_FIELD_ORDER')
     observed=f.ofi_valid.to_numpy()&f.bbo_valid.to_numpy()&l.rolling15_valid.to_numpy()
     observed &= base['m5_volume_valid'].to_numpy()&np.isfinite(x).all(axis=1)
     contract.require_contract_alignment(c,base['m5_contract_index'].to_numpy(),observed)
@@ -53,7 +58,55 @@ def load_inputs(spec):
     ex=old.execution_for_horizon_v2(d,tape,horizon_minutes=spec['horizon_minutes'],latency_seconds=spec['latency_seconds'])
     valid=old.exact_intraday_mask_v3(d,tape,ex,horizon_minutes=spec['horizon_minutes'])['valid']
     signed=base['m5_signed_valid'].to_numpy()&np.isfinite(base['m5_delta_contracts'].to_numpy())
-    return previous,d,x,c,observed,windows,tape,ex,valid,signed
+    audit=audit_features(spec,d,x,windows,f,l,base,tape)
+    return previous,d,x,c,observed,windows,tape,ex,valid,signed,audit
+
+
+def audit_features(spec,d,x,windows,f,l,base,tape):
+    rows=np.unique(windows);minute=pq.read_table(old.require_binding(spec['F_minute'])).to_pandas()
+    wanted=d[rows,None]-5*old.MINUTE_NS+np.arange(5)*old.MINUTE_NS
+    idx=np.searchsorted(minute.bar_start_ns.to_numpy(),wanted)
+    if np.any(idx>=len(minute)) or not np.array_equal(minute.bar_start_ns.to_numpy()[idx],wanted):raise RuntimeError('GC_FEATURE_MINUTE_CLOCK')
+    checks={}
+    for j,name in enumerate(spec['fields']['F']):
+        values=minute[name].to_numpy()[idx]
+        expected=values.sum(axis=1) if j<6 else values.mean(axis=1)
+        if name=='mid_response_ticks':expected=minute.closing_mid_tick.to_numpy()[idx[:,-1]]-minute.opening_mid_tick.to_numpy()[idx[:,0]]
+        if not np.array_equal(expected,f[name].to_numpy()[rows]):raise RuntimeError('GC_FEATURE_F_PRODUCER:'+name)
+        checks[name]={'exact_M1_aggregation_rows':len(rows)}
+    cache=pq.read_table(old.require_binding(spec['full_history_M1']),columns=['bar_start_ns','close_tick']).to_pandas()
+    last=np.searchsorted(cache.bar_start_ns.to_numpy(),d[rows]-old.MINUTE_NS)
+    if np.any(last>=len(cache)) or not np.array_equal(cache.bar_start_ns.to_numpy()[last],d[rows]-old.MINUTE_NS):raise RuntimeError('GC_FEATURE_CLOSE_CLOCK')
+    close=cache.close_tick.to_numpy()[last].astype(float)*spec['tick_usd']
+    if not np.array_equal(close,base['m5_close_usd'].to_numpy()[rows]):raise RuntimeError('GC_FEATURE_CLOSE_CONSERVATION')
+    prior=rows-1;adjacent=(rows>0)&(d[rows]-d[np.maximum(prior,0)]==old.DECISION_OFFSET_NS)
+    for level in ('vwap','poc','val','vah'):
+        price=l['rolling15_'+level+'_usd'].to_numpy()
+        distance=(close-price[rows])/spec['tick_usd'];name='rolling15_'+level+'_distance_ticks'
+        if not np.array_equal(distance,l[name].to_numpy()[rows]):raise RuntimeError('GC_FEATURE_LEVEL_DISTANCE:'+name)
+        checks[name]={'exact_rows':len(rows)}
+        expected=(close[adjacent]-price[prior[adjacent]])/spec['tick_usd'];name='rolling15_'+level+'_prior_level_response_ticks'
+        if not np.array_equal(expected,l[name].to_numpy()[rows[adjacent]]):raise RuntimeError('GC_FEATURE_PRIOR_LEVEL:'+name)
+        checks[name]={'exact_adjacent_native_rows':int(adjacent.sum()),'nonadjacent_rows_inherit_frozen_producer_proof':int((~adjacent).sum())}
+    ti=np.searchsorted(tape.time_ns,d[rows]-old.MINUTE_NS)
+    if not np.array_equal(tape.time_ns[ti],d[rows]-old.MINUTE_NS):raise RuntimeError('GC_FEATURE_BASIS_CLOCK')
+    mid=(tape.bid_close[ti]+tape.ask_close[ti])/2;basis=1e4*(close/mid-1)
+    if not np.array_equal(basis,base['m5_spot_basis_bps'].to_numpy()[rows]):raise RuntimeError('GC_FEATURE_BASIS_VALUE')
+    ledger=io.read_json(old.require_binding(spec['native_field_ledger']))
+    legacy={v['name']:v for v in ledger['fields'] if v['surface']=='signal'}
+    if set(legacy)!=set(spec['fields']['native']):raise RuntimeError('GC_FEATURE_NATIVE_LEDGER_COVERAGE')
+    families={n:sum(v['specialist']==n for v in legacy.values()) for n in sorted({v['specialist'] for v in legacy.values()})}
+    if len(families)!=8:raise RuntimeError('GC_FEATURE_NATIVE_FAMILY_COVERAGE')
+    columns={}
+    for j,name in enumerate(spec['encoded_field_order']):
+        values=x[rows,j]
+        if not np.isfinite(values).all():raise RuntimeError('GC_FEATURE_CONSUMED_NONFINITE:'+name)
+        columns[name]={'rows':len(rows),'min':float(values.min()),'max':float(values.max()),'std':float(values.std()),'distinct':len(np.unique(values))}
+    return {'status':'ALL_CONSUMED_FIELDS_CHECKED','physical_input_rows':len(rows),'native_fields':len(legacy),
+        'native_families':families,'encoded_fields':len(columns),'columns':columns,'GC_formula_checks':checks,'basis_exact_rows':len(rows),
+        'native_formula_proof':'reused prior field ledger and corrected-generation receipt; current row identity/finite/domain/alias checks, not a fresh raw reconstruction of every native formula',
+        'constant_consumed_fields':[n for n,v in columns.items() if v['distinct']==1],
+        'excluded_fields':{'macro':spec['excluded_macro_fields'],'signed_flow':'insufficient strict contiguous coverage; retained diagnostics'},'test_data_used':False}
 
 
 def native_inventory(spec):
@@ -90,14 +143,20 @@ def model_preflight(x,spec):
     for name,cls in [('transformer',GCSequenceTransformer),('tcn',GCSequenceTCN)]:
         m=cls(x.shape[2],x.shape[1],spec[name]).eval();start=time.monotonic()
         with torch.no_grad():p=m(torch.from_numpy(x))
+        forward_seconds=time.monotonic()-start
         if not torch.isfinite(p).all():raise RuntimeError('GC_SEQUENCE_FORWARD_NONFINITE')
+        weights=[v.detach().clone() for v in m.parameters()]
+        actual=torch.from_numpy(x.copy()).requires_grad_(True);m(actual).sum().backward()
+        gradient=actual.grad.abs().sum(dim=(0,1))
+        if not torch.isfinite(gradient).all() or torch.any(gradient==0):raise RuntimeError('GC_SEQUENCE_DISCONNECTED_INPUT')
+        if not all(torch.equal(a,b) for a,b in zip(weights,m.parameters())):raise RuntimeError('GC_SEQUENCE_PREFLIGHT_WEIGHT_MUTATION')
         output[name]={'parameters':sum(p.numel() for p in m.parameters()),'real_rows':len(x),
-            'forward_seconds_single_cold_batch':time.monotonic()-start,'optimizer_steps':0,'trained':False}
+            'forward_seconds_single_cold_batch':forward_seconds,'optimizer_steps':0,'trained':False,'input_channels_with_nonzero_derivative':int((gradient>0).sum()),'weights_unchanged':True}
     return output
 
 
 def qualify(spec,stage):
-    previous,d,x,c,observed,windows,tape,ex,valid,signed=load_inputs(spec)
+    previous,d,x,c,observed,windows,tape,ex,valid,signed,audit=load_inputs(spec)
     rows=windows[:,-1];sd=d[rows];outcomes=ex.exit_ns[rows];target_ok=valid[rows]
     months=pd.DatetimeIndex(d,tz='UTC').strftime('%Y-%m').to_numpy()
     coverage={m:{'population':int((months==m).sum()),'single_window':int((observed&(months==m)).sum()),
@@ -115,16 +174,18 @@ def qualify(spec,stage):
     preflight=model_preflight(probe,spec)
     predictions=pd.read_parquet(old.require_binding(spec['previous_predictions']))
     if predictions.decision_ns.duplicated().any():raise RuntimeError('GC_SEQUENCE_DUPLICATE_FROZEN_REFERENCE')
-    matched=predictions.set_index('decision_ns').reindex(sd[ev])
+    eval_all=np.flatnonzero((sd>=pd.Timestamp(spec['folds'][0]['validation_start_utc_inclusive']).value)&(sd<pd.Timestamp(spec['folds'][-1]['validation_end_utc_exclusive']).value))
+    matched=predictions.set_index('decision_ns').reindex(sd[eval_all])
     if matched[['tree_CORE','tree_FLV','y30_mid_bps']].isna().any().any():raise RuntimeError('GC_SEQUENCE_REFERENCE_ROWS')
-    if not np.array_equal(matched.y30_mid_bps.to_numpy(),ex.y_mid_bps[rows[ev]]):raise RuntimeError('GC_SEQUENCE_REFERENCE_TARGET')
+    if not np.array_equal(matched.y30_mid_bps.to_numpy(),ex.y_mid_bps[rows[eval_all]]):raise RuntimeError('GC_SEQUENCE_REFERENCE_TARGET')
     np.savez(stage/'INPUTS.npz',features=x,windows=windows,decisions=sd,outcomes=outcomes,valid=target_ok,
         y=ex.y_mid_bps[rows],train=tr,evaluation=ev,mean=mean,scale=scale,normalization_rows=unique)
     pd.DataFrame({'decision_ns':sd,'physical_row':rows,'target_valid':target_ok,'contract_index':c[rows]}).to_parquet(stage/'COHORT.parquet',index=False)
     matched.reset_index().to_parquet(stage/'FROZEN_REFERENCES.parquet',index=False)
-    basis=x[rows,-1]
+    io.write_json(stage/'FEATURE_AUDIT.json',audit)
+    basis=x[rows,spec['encoded_field_order'].index('m5_spot_basis_bps')]
     return {'status':'QUALIFIED_RESEARCH_INPUTS_NOT_TRAINING_ADMISSION' if len(tr)>=spec['minimum_train_rows'] else 'QUALIFICATION_COMPLETE_INSUFFICIENT_PILOT_SUPPORT','pilot_sample_floor_met':len(tr)>=spec['minimum_train_rows'],'observed_real_data':True,
-        'native':native_inventory(spec),'population_rows':len(d),'qualified_single_windows':int(observed.sum()),
+        'feature_audit':{'native_fields':audit['native_fields'],'native_families':audit['native_families'],'constant_consumed_fields':audit['constant_consumed_fields']},'native':native_inventory(spec),'population_rows':len(d),'qualified_single_windows':int(observed.sum()),
         'complete_sequences':len(windows),'sequence_shape':[len(windows),spec['sequence_length'],x.shape[1]],
         'all_tokens_observed':True,'numeric_imputation_used':False,'one_contract_per_sequence':True,
         'sequence_gap_or_roll_crossings':0,'max_input_time_equals_decision':bool(np.all(d[windows[:,-1]]==sd)),
@@ -165,38 +226,66 @@ def fit_network(name,x,y,train,evaluation,spec,stage):
         for i in range(0,len(evaluation),spec['batch_size']):pred.append(model(tx[evaluation[i:i+spec['batch_size']]]).numpy()*scale+center)
     pred=np.concatenate(pred);inference_seconds=time.monotonic()-start
     with torch.no_grad():final_train_mse=float(((model(tx[train]).numpy()*scale+center-y[train])**2).mean())
-    torch.save({'model':model.state_dict(),'target_mean':center,'target_scale':scale},stage/(name+'.pt'))
+    torch.save({'model':model.state_dict(),'target_mean':center,'target_scale':scale},stage/(spec['artifact_prefix']+'_'+name+'.pt'))
     restored=cls(x.shape[2],x.shape[1],spec[name]).eval()
-    saved=torch.load(stage/(name+'.pt'),map_location='cpu',weights_only=True);restored.load_state_dict(saved['model'],strict=True)
+    saved=torch.load(stage/(spec['artifact_prefix']+'_'+name+'.pt'),map_location='cpu',weights_only=True);restored.load_state_dict(saved['model'],strict=True)
     with torch.no_grad():
         batch=tx[evaluation[:spec['batch_size']]]
         if not torch.equal(model(batch),restored(batch)):raise RuntimeError('GC_SEQUENCE_MODEL_READBACK')
     return pred,{'optimizer_steps':len(losses),'first_batch_loss':losses[0],'last_batch_loss':losses[-1],
-        'fit_seconds':fit_seconds,'inference_seconds':inference_seconds,'inference_rows':len(evaluation),'initial_train_mse_bps2':initial_train_mse,'final_train_mse_bps2':final_train_mse,'model_readback_bit_exact':True}
+        'fit_seconds':fit_seconds,'inference_seconds':inference_seconds,'inference_rows':len(evaluation),'initial_train_mse_bps2':initial_train_mse,'final_train_mse_bps2':final_train_mse,'model_readback_bit_exact':True,'unique_train_rows_seen':min(len(train),spec['optimizer_steps']*spec['batch_size'])}
+
+
+def fit_fold(spec,stage,data,refs,fold):
+    tr,ev=contract.purged_fold(data['decisions'],data['outcomes'],data['valid'],fold,embargo_seconds=spec['embargo_seconds'])
+    if len(tr)<spec['minimum_train_rows']:raise RuntimeError('GC_SEQUENCE_PILOT_COHORT_TOO_SMALL')
+    mean,scale,physical=contract.train_normalization(data['features'],data['windows'],tr)
+    x=contract.standardized(data['features'],data['windows'],mean,scale);y=data['y'];prefix=fold['fold_id']
+    np.savez(stage/(prefix+'_NORMALIZATION.npz'),mean=mean,scale=scale,physical_rows=physical,train=tr,evaluation=ev)
+    locked=refs.set_index('decision_ns').reindex(data['decisions'][ev])
+    if locked[['tree_CORE','tree_FLV']].isna().any().any():raise RuntimeError('GC_SEQUENCE_FOLD_REFERENCE')
+    frame=pd.DataFrame({'decision_ns':data['decisions'][ev],'y30_mid_bps':y[ev],
+        'constant':float(y[tr].mean()),'tree_CORE':locked.tree_CORE.to_numpy(),'tree_FLV':locked.tree_FLV.to_numpy()})
+    receipt={'train_rows':len(tr),'eval_rows':len(ev),'normalization_physical_rows':len(physical),'networks':{}}
+    for name,z in [('linear_snapshot',x[:,-1,:]),('linear_sequence',x.reshape(len(x),-1))]:
+        beta,intercept=old.ridge_fit(z[tr].astype(float),y[tr],spec['ridge_alpha']);frame[name]=z[ev]@beta+intercept
+        np.savez(stage/(prefix+'_'+name+'.npz'),beta=beta,intercept=intercept)
+    for name in ('transformer','tcn'):
+        frame[name],receipt['networks'][name]=fit_network(name,x,y,tr,ev,{**spec,'artifact_prefix':prefix},stage)
+    frame['fold']=prefix
+    frame['metric_valid']=data['valid'][ev]&(data['outcomes'][ev]<pd.Timestamp(fold['validation_end_utc_exclusive']).value)
+    return frame,receipt
 
 
 def pilot(spec,stage):
-    qroot=Path(spec['output_root'])/'RESULTS';data=np.load(qroot/'INPUTS.npz',allow_pickle=False)
-    tr=data['train'];ev=data['evaluation']
-    if len(tr)<spec['minimum_train_rows']:raise RuntimeError('GC_SEQUENCE_PILOT_COHORT_TOO_SMALL')
-    x=contract.standardized(data['features'],data['windows'],data['mean'],data['scale']);y=data['y']
-    refs=pd.read_parquet(qroot/'FROZEN_REFERENCES.parquet')
-    frame=pd.DataFrame({'decision_ns':data['decisions'][ev],'y30_mid_bps':y[ev],
-        'constant':float(y[tr].mean()),'tree_CORE':refs.tree_CORE.to_numpy(),'tree_FLV':refs.tree_FLV.to_numpy()});fits={}
-    for name,z in [('linear_snapshot',x[:,-1,:]),('linear_sequence',x.reshape(len(x),-1))]:
-        beta,intercept=old.ridge_fit(z[tr].astype(float),y[tr],spec['ridge_alpha']);frame[name]=z[ev]@beta+intercept
-        np.savez(stage/(name+'.npz'),beta=beta,intercept=intercept)
-    for name in ('transformer','tcn'):frame[name],fits[name]=fit_network(name,x,y,tr,ev,spec,stage)
-    valid=data['valid'][ev];metrics={n:old.p0_prediction_quality(y[ev][valid],frame[n].to_numpy()[valid]) for n in frame.columns[2:]}
-    for n in frame.columns[2:]:
+    qroot=Path(spec['output_root'])/'RESULTS'
+    with np.load(qroot/'INPUTS.npz',allow_pickle=False) as archive:data={k:archive[k] for k in archive.files}
+    refs=pd.read_parquet(qroot/'FROZEN_REFERENCES.parquet');frames=[];fits={};started=time.monotonic()
+    for fold in spec['folds']:
+        if time.monotonic()-started>spec['pilot_max_wall_seconds']:raise RuntimeError('GC_SEQUENCE_STUDY_BUDGET')
+        frame,receipt=fit_fold(spec,stage,data,refs,fold);frames.append(frame);fits[fold['fold_id']]=receipt
+        io.write_json(stage/(fold['fold_id']+'_FIT_RECEIPT.json'),receipt)
+        print('GC_SEQUENCE_FOLD_COMPLETE '+fold['fold_id'],flush=True)
+    frame=pd.concat(frames,ignore_index=True)
+    if np.any(np.diff(frame.decision_ns)<=0):raise RuntimeError('GC_SEQUENCE_POOLED_CLOCK')
+    models=['constant','tree_CORE','tree_FLV','linear_snapshot','linear_sequence','transformer','tcn']
+    outcome=frame.y30_mid_bps.to_numpy();valid=frame.metric_valid.to_numpy()
+    metrics={n:old.p0_prediction_quality(outcome[valid],frame[n].to_numpy()[valid]) for n in models}
+    by_fold={f:{n:old.p0_prediction_quality(g.y30_mid_bps.to_numpy()[g.metric_valid],g[n].to_numpy()[g.metric_valid]) for n in models} for f,g in frame.groupby('fold',sort=True)}
+    for n in models:
         if not np.isfinite(frame[n]).all():raise RuntimeError('GC_SEQUENCE_NONFINITE_PREDICTION')
+    if sum(4 for _ in fits)!=spec['max_fits']:raise RuntimeError('GC_SEQUENCE_FIT_BUDGET')
     frame.to_parquet(stage/'PREDICTIONS.parquet',index=False)
+    smoke={'all_folds_completed':len(fits)==len(spec['folds']),'all_models_finite':True,
+        'saved_network_weights_bit_exact':all(v['model_readback_bit_exact'] for f in fits.values() for v in f['networks'].values()),
+        'all_networks_observed_every_train_row':all(v['unique_train_rows_seen']==f['train_rows'] for f in fits.values() for v in f['networks'].values()),
+        'native_or_TEST_changed':False}
     previous=io.read_json(old.require_binding(spec['previous_recipe']));source=io.read_json(old.require_binding(previous['inputs']['native_source_plan']))
     for b in source['execution_tape_partitions']:old.require_binding(b)
     tape=old.load_tape(source['reference'],2024);d=frame.decision_ns.to_numpy();spread=old.spread_at_decision(d,tape)
-    f=spec['folds'][0];start=pd.Timestamp(f['validation_start_utc_inclusive']).value;end=pd.Timestamp(f['validation_end_utc_exclusive']).value
+    start=pd.Timestamp(spec['folds'][0]['validation_start_utc_inclusive']).value;end=pd.Timestamp(spec['folds'][-1]['validation_end_utc_exclusive']).value
     economics={};trades=[];daily=[];central_daily={}
-    for name in list(frame.columns[2:])+['always_LONG','always_FLAT']:
+    for name in models+['always_LONG','always_FLAT']:
         side=np.ones(len(d),np.int8) if name=='always_LONG' else np.zeros(len(d),np.int8) if name=='always_FLAT' else old.p0_actions(frame[name],spread,previous['economics'],spec['horizon_minutes'])
         economics[name],eq,ledger,info=old.p0_position_ledger(d,side,tape,start,end,previous['cost_scenarios'],previous['economics']['seconds_per_year'])
         central_daily[name]=eq[previous['central_scenario']]
@@ -208,7 +297,7 @@ def pilot(spec,stage):
     groups=[np.flatnonzero(blocks==w) for w in sorted(set(blocks))];intervals={}
     alpha=spec['family_alpha']/len(spec['prediction_contrasts'])
     for candidate,reference in spec['prediction_contrasts']:
-        delta=(frame[reference].to_numpy()-y[ev])**2-(frame[candidate].to_numpy()-y[ev])**2
+        delta=(frame[reference].to_numpy()-outcome)**2-(frame[candidate].to_numpy()-outcome)**2
         sums=np.array([delta[g][valid[g]].sum() for g in groups]);counts=np.array([valid[g].sum() for g in groups]);samples=[]
         for _ in range(spec['bootstrap_reps']):
             b=rng.integers(len(groups),size=len(groups));n=counts[b].sum()
@@ -223,10 +312,10 @@ def pilot(spec,stage):
         for _ in range(spec['bootstrap_reps']):samples.append(float(week[rng.integers(len(week),size=len(week))].sum()))
         economic_intervals[candidate+'_vs_'+reference]={'net_difference_bps':float(difference.iloc[-1]),
             'simultaneous_week_bootstrap_interval':np.quantile(samples,[alpha/2,1-alpha/2]).tolist(),'week_blocks':len(week)}
-    return {'status':'BOUNDED_DEVELOPMENT_PILOT_COMPLETE_NOT_NATIVE_ADMISSION','metrics':metrics,'fits':fits,
-        'economics':economics,'paired_prediction_intervals':intervals,'paired_economic_intervals':economic_intervals,'models_fitted':spec['max_fits'],
+    return {'status':'BOUNDED_DEVELOPMENT_PILOT_COMPLETE_NOT_NATIVE_ADMISSION','metrics':metrics,'fits':fits,'metrics_by_fold':by_fold,'smoke':smoke,
+        'economics':economics,'paired_prediction_intervals':intervals,'paired_economic_intervals':economic_intervals,'models_fitted':sum(4 for _ in fits),
         'test_data_used':False,'independent_OOS':False,'automatic_expansion_authorized':False,
-        'decision':'REVIEW_ONLY_NO_ARCHITECTURE_WINNER_FROM_SINGLE_DEVELOPMENT_FOLD'}
+        'decision':'DEVELOPMENT_RESEARCH_ONLY_NO_NATIVE_OR_INDEPENDENT_EDGE_ADMISSION'}
 
 
 def run(binding_path,mode):
@@ -250,7 +339,7 @@ def run(binding_path,mode):
         io.verify_digest(qroot/'TERMINAL.json',b['qualification_terminal_sha256'],'QUALIFICATION_TERMINAL')
         manifest=io.read_json(qroot/'TERMINAL.json')
         if manifest['status']!='COMPLETE' or manifest['mode']!='qualify' or manifest['exit_code']!=0 or manifest['source_unchanged'] is not True or manifest['test_data_used'] is not False:raise RuntimeError('GC_SEQUENCE_QUALIFICATION_NOT_COMPLETE')
-        if set(manifest['artifacts'])!={'INPUTS.npz','COHORT.parquet','FROZEN_REFERENCES.parquet','RESULT.json'}:raise RuntimeError('GC_SEQUENCE_QUALIFICATION_INVENTORY')
+        if set(manifest['artifacts'])!={'INPUTS.npz','COHORT.parquet','FROZEN_REFERENCES.parquet','RESULT.json','FEATURE_AUDIT.json'}:raise RuntimeError('GC_SEQUENCE_QUALIFICATION_INVENTORY')
         for name,item in manifest['artifacts'].items():io.verify_digest(qroot/name,item['sha256'],'QUALIFIED_ARTIFACT')
     elif not (gate['qualification_status']=='AUTHORIZED_SINGLE_USE' and gate['qualification_authorized'] is True
         and gate['qualification_claimed_invocations']==0 and gate['qualification_completed_invocations']==0):raise RuntimeError('GC_SEQUENCE_QUALIFICATION_CLOSED')

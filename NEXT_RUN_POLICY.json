@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-17T16:42:12.759034+00:00",
-  "status": "GC_SEQUENCE_INPUTS_QUALIFIED__TRANSFORMER_TCN_PILOT_CLOSED__NATIVE_H20_BLOCKED",
+  "observed_utc": "2026-10-17T21:41:57.036176+00:00",
+  "status": "FULL_MARKET_FEATURE_AUDIT_AUTHORIZED__CPU_TRAIN_SMOKE_APPROVED_AFTER_QUALIFICATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Review proposed single-use CPU pilot on dev_01: 7016 TRAIN / 646 reused-development rows, four fits (two fixed linear, Transformer128 steps, TCN128 steps), 4G audit caps, 1800s maximum. Pilot requires explicit policy binding; native h20 remains blocked on calendar/publication and successor binding. No automatic expansion.",
+  "next_action": "Qualify full254 market-field coverage and existing GC producers under027, then admit and execute the operator-approved frozen five-fold26month CPU train/smoke028. No native/TEST, model/HPO selection or expansion.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Separate GC sequence qualification completed on genuine data; Transformer/TCN pilot remains closed. Native last training and exact-terminal h20 candidate verified.",
+    "current_activity": "Operator approved bounded26month train/smoke; validating all254 qualified native market fields plus existing GC layers and categorical domains.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -137,7 +137,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No policy authority for the proposed CPU pilot. Native h20 also blocked on historical calendars/COT publication and successor dataset/campaign bindings.",
+    "current_blocker": "Full-feature producer/wiring qualification027 pending; native h20/calendar/publication blockers remain.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7611,7 +7611,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Review proposed single-use CPU pilot on dev_01: 7016 TRAIN / 646 reused-development rows, four fits (two fixed linear, Transformer128 steps, TCN128 steps), 4G audit caps, 1800s maximum. Pilot requires explicit policy binding; native h20 remains blocked on calendar/publication and successor binding. No automatic expansion.",
+    "next_action": "Qualify full254 market-field coverage and existing GC producers under027, then admit and execute the operator-approved frozen five-fold26month CPU train/smoke028. No native/TEST, model/HPO selection or expansion.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9266,13 +9266,13 @@
     },
     "gc_sequence_research_20261017": {
       "operator_request": "17.10.2026 attached Transformer/TCN new research round; bounded training only under NEXT_RUN_POLICY authority",
-      "plan_path": "configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json",
-      "plan_sha256": "0de83aa2311715735cad29262f8ccb81589e32f685a188917edd7e050c97594a",
-      "qualification_status": "COMPLETE_SINGLE_USE_CONSUMED",
-      "qualification_authorized": false,
-      "qualification_claimed_invocations": 1,
-      "qualification_completed_invocations": 1,
-      "pilot_status": "CLOSED_PENDING_QUALIFICATION_AND_EXPLICIT_POLICY_BINDING",
+      "plan_path": "configs/research/GC_SEQUENCE_ALL_FEATURES_20261017_027.json",
+      "plan_sha256": "b6c1c95f06d7407000488d4db21a92fc33fd561d05d99546e1a50b9a05bbf1f5",
+      "qualification_status": "AUTHORIZED_SINGLE_USE",
+      "qualification_authorized": true,
+      "qualification_claimed_invocations": 0,
+      "qualification_completed_invocations": 0,
+      "pilot_status": "OPERATOR_APPROVED_PENDING_FULL_FEATURE_QUALIFICATION",
       "pilot_training_authorized": false,
       "pilot_claimed_invocations": 0,
       "pilot_completed_invocations": 0,
@@ -9319,7 +9319,81 @@
       "model_parameter_counts": {
         "transformer": 9985,
         "tcn": 5537
-      }
+      },
+      "previous_completed_scope": {
+        "operator_request": "17.10.2026 attached Transformer/TCN new research round; bounded training only under NEXT_RUN_POLICY authority",
+        "plan_path": "configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json",
+        "plan_sha256": "0de83aa2311715735cad29262f8ccb81589e32f685a188917edd7e050c97594a",
+        "qualification_status": "COMPLETE_SINGLE_USE_CONSUMED",
+        "qualification_authorized": false,
+        "qualification_claimed_invocations": 1,
+        "qualification_completed_invocations": 1,
+        "pilot_status": "CLOSED_PENDING_QUALIFICATION_AND_EXPLICIT_POLICY_BINDING",
+        "pilot_training_authorized": false,
+        "pilot_claimed_invocations": 0,
+        "pilot_completed_invocations": 0,
+        "native_training_authorized": false,
+        "test_authorized": false,
+        "previous_P0_NO_GO_preserved": true,
+        "new_independent_hypothesis": "ordered F/L/V states across six contiguous closed M5 bins versus snapshot",
+        "report_path": "docs/TRANSFORMER_TCN_RESEARCH_20261017.md",
+        "previous_consumed_qualification": {
+          "operator_request": "17.10.2026 attached Transformer/TCN new research round; bounded training only under NEXT_RUN_POLICY authority",
+          "plan_path": "configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json",
+          "plan_sha256": "f87b8cfbabf979971ed346c8659e19a6ce8daeec43d951e63db5bfc55d8ec94d",
+          "qualification_status": "FAILED_CONTRACT_ALIGNMENT_CONSUMED",
+          "qualification_authorized": false,
+          "qualification_claimed_invocations": 1,
+          "qualification_completed_invocations": 1,
+          "pilot_status": "CLOSED_PENDING_QUALIFICATION_AND_EXPLICIT_POLICY_BINDING",
+          "pilot_training_authorized": false,
+          "pilot_claimed_invocations": 0,
+          "pilot_completed_invocations": 0,
+          "native_training_authorized": false,
+          "test_authorized": false,
+          "previous_P0_NO_GO_preserved": true,
+          "new_independent_hypothesis": "ordered F/L/V states across six contiguous closed M5 bins versus snapshot",
+          "report_path": "docs/TRANSFORMER_TCN_RESEARCH_20261017.md"
+        },
+        "qualification_sha256": "75921df1465de74d3f9715bdb8047f4a2277b068871c68b2be34efb3f27693ca",
+        "qualification_terminal_sha256": "0e81471d605de4eb65913740b6ba015d7169506bf5669138909111fc32a1c3db",
+        "qualification_result": {
+          "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026/RESULTS/RESULT.json",
+          "sha256": "75921df1465de74d3f9715bdb8047f4a2277b068871c68b2be34efb3f27693ca"
+        },
+        "qualification_terminal": {
+          "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026/RESULTS/TERMINAL.json",
+          "sha256": "0e81471d605de4eb65913740b6ba015d7169506bf5669138909111fc32a1c3db"
+        },
+        "completion_review": {
+          "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026/COMPLETION_REVIEW.json",
+          "sha256": "1623ce2119183144d9e7ed5b65e217eb15e9e4dab24467a90bd92f9160d0785f"
+        },
+        "measured_sequences": 12482,
+        "pilot_train_rows": 7016,
+        "pilot_evaluation_rows": 646,
+        "model_parameter_counts": {
+          "transformer": 9985,
+          "tcn": 5537
+        }
+      },
+      "operator_train_smoke_approval": {
+        "received_utc": "2026-10-17T21:41:57.036176+00:00",
+        "request": "ja, pass på at alt av informative features/indikatorer er på plass og faktisk produserer det dem skal, så kjører vi en train og smoke test på disse 26 månedene.",
+        "approved_scope": "one frozen five-fold CPU train/smoke study; full qualified market inputs, max20fits/10neural fits,128steps/network,whole1800s/4G; only after input/producer qualification",
+        "native_training": false,
+        "TEST": false
+      },
+      "raw_fields": 276,
+      "encoded_fields": 283,
+      "pilot_folds": [
+        "dev_01",
+        "dev_02",
+        "dev_03",
+        "dev_04",
+        "dev_05"
+      ],
+      "pilot_max_fits": 20
     }
   },
   "gc_order_flow_research_20261006": {
@@ -11884,5 +11958,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T16:42:12.759034+00:00"
+  "updated_utc": "2026-10-17T21:41:57.036176+00:00"
 }

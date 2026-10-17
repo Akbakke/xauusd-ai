@@ -63,3 +63,18 @@ def require_contract_alignment(selected, basis_contract, observed):
     if selected.shape!=basis.shape or observed.shape!=selected.shape or observed.dtype.kind!='b':raise ValueError('GC_SEQUENCE_CONTRACT_SHAPE')
     if np.any(selected[observed]<0) or not np.isfinite(basis[observed]).all() or not np.array_equal(selected[observed],basis[observed]):
         raise RuntimeError('GC_SEQUENCE_CONTRACT_ALIGNMENT')
+
+
+def encode_inputs(raw,names,domains):
+    """Explicit native categorical domains; never numeric missing-value fill."""
+    if len(names)!=len(set(names)) or raw.shape[1]!=len(names):raise ValueError('GC_SEQUENCE_FIELD_ORDER')
+    columns=[];encoded=[]
+    for j,name in enumerate(names):
+        if name in domains:
+            values=raw[:,j];domain=domains[name]
+            if not np.isfinite(values).all() or not np.isin(values,domain).all():raise ValueError('GC_SEQUENCE_CATEGORY_DOMAIN:'+name)
+            for value in domain:
+                columns.append((values==value).astype(float));encoded.append(name+'='+str(value))
+        else:columns.append(raw[:,j]);encoded.append(name)
+    if set(domains)-set(names):raise ValueError('GC_SEQUENCE_UNUSED_CATEGORY')
+    return np.column_stack(columns),encoded

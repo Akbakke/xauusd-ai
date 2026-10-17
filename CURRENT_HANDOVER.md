@@ -4,37 +4,28 @@ Authority: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json
 is the only work status. One agent/capped CURRENT job. Native training_enabled=false;
 TEST, baseline, Entry/Exit, production/live, broker and spending remain unchanged/closed.
 
-## Current boundary: sequence inputs qualified; all model training closed
+## Current boundary: approved CPU train/smoke, full-feature qualification first
 
-Operator17.10 requested separate Transformer/TCN research and an accurate native
-h20 audit. Report: docs/TRANSFORMER_TCN_RESEARCH_20261017.md. Existing Transformer
-remains the main native candidate. No new native fit or GC model fit occurred.
+Operator17.10 approved train/smoke on26months after verifying all informative
+inputs. New027/028 expands the unexecuted37-field proposal to all254 native
+non-macro market fields across all eight families, existing F12/L8/basis and
+session category:276 raw fields,283 explicit encoded channels. All61 macro
+fields with publication gaps and insufficient signed flow stay excluded.
+No market fields selected or deleted on model outcomes.
 
-026 COMPLETE once,exit0,49.264s,source unchanged,TEST=false. From37,181 qualified
-single windows:12,482 sequences of6x37 fields,all26months,zero gaps/roll crossings
-or imputation. First purged fold:7,016 TRAIN/646 evaluation rows, exact saved
-LightGBM target/row parity. Transformer9,985 parameters/TCN5,537; one genuine64-row
-forward each,zero optimizer steps. These are input/mechanics results, not edge.
-Only178 sequences have strict signed-aggressor coverage throughout; primary F
-keeps the frozen OFI/BBO fields without invented delta history.
+027 is one fresh capped full-feature producer/wiring qualification. 026/024
+remain consumed. Then the explicitly approved028 uses five original purged
+chronological folds, two fixed ridge fits and one128-step Transformer/TCN each
+per fold, max20fits/10neural fits,whole1800s/4G/512M/one numerical thread.
+Batch86 derives from largest TRAIN10,988 /128 steps. First fold is smoke;
+normalization is TRAIN-only per fold, economic positions carry between folds.
+No HPO/seed retries or automatic extension. Native/GPU/h20/TEST remain closed.
 
-Current plan configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json
-is consumed for qualification. 024 failed on53k nullable IDs outside the valid
-cohort; corrected adapter checks actual admitted rows with zero source-mask
-changes. Original failure retained. All roles/hashes and scope are in
-current_work.gc_sequence_research_20261017. Latest terminal is026.
-
-Native last actual training15.10:4,071 Entry-only steps, independent observed h20,
-65,136 unique TRAIN rows,Exit150 fields unchanged; checkpoint/recipe verified.
-Exact-terminal h20 candidate642,214/646,543 baseline-valid rows passes stored
-censoring checks; historical session/calendar/COT publication and successor
-bindings remain unqualified. No corrected-target native model has been trained.
-
-Next proposed scope: one CPU pilot, four fits (two fixed linears plus Transformer
-and TCN128steps each), same7016/646 rows,4G/512M/one thread,maximum1800s.
-Pilot gate=false, requires explicit policy admission. No launch automatically.
-Native training_enabled=false, TEST/baseline/Exit/live/broker/spending unchanged.
-All26GCmonths and CONTROL remain reused development, not independent confirmation.
+Report docs/TRANSFORMER_TCN_RESEARCH_20261017.md. NEXT_RUN_POLICY is status owner.
+Latest026 terminal remains input-only proof (12,482 sequences,all26months);
+no new market model training has run yet. Latest native actual training15.10
+was4,071 Entry-only steps on independent observed h20; frozen weights/Exit remain
+unchanged, and historical calendar/COT publication/native successor gaps persist.
 
 ## Preserved P0 decision: NO-GO — stop this GC/M5 P0 recipe
 

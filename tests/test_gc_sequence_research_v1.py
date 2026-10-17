@@ -75,8 +75,8 @@ def test_tcn_convolution_is_causal_without_history_padding():
 
 @pytest.mark.parametrize('name,cls',[('transformer',GCSequenceTransformer),('tcn',GCSequenceTCN)])
 def test_real_recipe_shapes_finite_gradients_and_missing_rejection(name,cls):
-    spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json').read_text())
-    width=sum(len(v) for v in spec['fields'].values());torch.set_num_threads(1);torch.manual_seed(1)
+    spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_ALL_FEATURES_20261017_027.json').read_text())
+    width=len(spec['encoded_field_order']);torch.set_num_threads(1);torch.manual_seed(1)
     model=cls(width,spec['sequence_length'],spec[name]);x=torch.arange(2*6*width,dtype=torch.float32).reshape(2,6,width)/100
     y=model(x);assert y.shape==(2,) and torch.isfinite(y).all()
     y.square().mean().backward();assert all(p.grad is not None and torch.isfinite(p.grad).all() for p in model.parameters())
@@ -87,7 +87,7 @@ def test_real_recipe_shapes_finite_gradients_and_missing_rejection(name,cls):
 @pytest.mark.parametrize('name',['transformer','tcn'])
 def test_synthetic_optimizer_and_saved_weight_roundtrip(name,tmp_path):
     from gx1.scripts.research_gc_sequence_v1 import fit_network
-    spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json').read_text())
+    spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_ALL_FEATURES_20261017_027.json').read_text())
     spec.update(optimizer_steps=2,batch_size=2)
     x=np.arange(8*6*3,dtype=np.float32).reshape(8,6,3)/100;y=np.arange(8,dtype=float)
     pred,receipt=fit_network(name,x,y,np.arange(6),np.arange(6,8),spec,tmp_path)
@@ -99,3 +99,21 @@ def test_nullable_contract_ids_are_checked_on_actual_admitted_rows():
     c.require_contract_alignment(np.array([1,2,2]),np.array([1,np.nan,2]),np.array([True,False,True]))
     for basis,mask in [(np.array([1,np.nan,2]),np.array([True,True,True])),(np.array([1,np.nan,3]),np.array([True,False,True]))]:
         with pytest.raises(RuntimeError,match='CONTRACT_ALIGNMENT'):c.require_contract_alignment(np.array([1,2,2]),basis,mask)
+
+
+def test_categorical_states_are_not_treated_as_ordered_numbers_or_missing_fills():
+    raw=np.array([[2.,0.,3.],[5.,2.,1.]])
+    x,names=c.encode_inputs(raw,['real','state','session'],{'state':[0,1,2],'session':[0,1,2,3]})
+    assert names==['real','state=0','state=1','state=2','session=0','session=1','session=2','session=3']
+    np.testing.assert_array_equal(x[:,1:4],[[1,0,0],[0,0,1]])
+    raw[0,1]=np.nan
+    with pytest.raises(ValueError,match='CATEGORY_DOMAIN'):c.encode_inputs(raw,['real','state','session'],{'state':[0,1,2],'session':[0,1,2,3]})
+
+
+def test_full_scope_preserves_native_fields_and_covers_each_train_population():
+    spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_ALL_FEATURES_20261017_027.json').read_text())
+    assert len(spec['fields']['native'])==254 and len(spec['excluded_macro_fields'])==61
+    assert not set(spec['fields']['native'])&set(spec['excluded_macro_fields'])
+    assert len(spec['raw_field_order'])==276 and len(spec['encoded_field_order'])==283
+    assert len(spec['folds'])==5 and spec['max_fits']==20 and spec['max_neural_fits']==10
+    assert spec['optimizer_steps']*spec['batch_size']>=10988
