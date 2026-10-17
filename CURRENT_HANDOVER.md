@@ -6,9 +6,9 @@ while a bound study runs. Native training_enabled=false, TEST/live/broker/spendi
 
 ## Current boundary
 
-First macro-free P0 recipe 021 is frozen and single-use claimed under the new
+First macro-free P0 recipe 021 is COMPLETE and consumed under the new
 17.10.2026 operator request. Do not relaunch any 004–020 consumed/failed plan.
-Run only the clean-source bound 021 after focused contracts pass. Recipe and
+Do not rerun021. Only newly claimed no-fit review022 may execute once. Recipe and
 method: docs/GC_P0_FIRST_DEVELOPMENT_20261017.md. No native/model/Exit change.
 40 small fixed tree fits + rule tables, five chronological development folds;
 30min primary markout, 120/360min same-forecast diagnostics. No max holding rule.
@@ -40,3 +40,7 @@ All26GCmonths are development. No untouched confirmation or trading edge proved.
 Native TEST, baseline, Entry/Exit, production/live remain closed. DATA/RUNS deletion
 only through retention owner/rule9; no cleanup/reboot authority in this wave.
 Preserve raw/cacheddata, original receipts/checkpoints and all prior results.
+
+021 COMPLETE 13:38UTC, 40 fixed tree fits, 17,301 development predictions; all
+eight tree arms net negative. Original outputs preserved. 022 validates raw
+quote/v3 cash accounting and matched rule metrics (one LV unseen state), no refit.

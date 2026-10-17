@@ -678,12 +678,117 @@ def run_p0_preparation(binding_path):
     publish_bundle_directory_noreplace(stage,root/'RESULTS');print('GC_P0_COHORT_PREPARATION_COMPLETE',flush=True)
 
 
+def p0_matched_prediction_mask(frame,keys):
+    """One common prediction metric population, including explicit abstentions.
+
+    Raw per-arm diagnostics are retained. An unseen state is still FLAT for
+    strategy execution; predictive family comparisons drop it in every arm.
+    """
+    return frame.outcome_within_fold.to_numpy() & np.isfinite(frame[keys].to_numpy(float)).all(axis=1)
+
+
+def run_p0_review(binding_path):
+    from gx1.scripts import research_m5_intraday_recheck_v1 as m5
+    from gx1.contracts.entry_observed_market_v1 import build_entry_observed_market_targets
+    import hashlib,os
+    identity='GC_P0_DEVELOPMENT_REVIEW_20261017_022';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('P0_REVIEW_BINDING')
+    binding=io.read_json(binding_path);planpath=REPO/'configs/research'/f'{identity}.json'
+    io.verify_digest(planpath,binding['plan_sha256'],'P0_REVIEW_PLAN');plan=io.read_json(planpath)
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_REVIEW_POLICY')
+    io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'P0_REVIEW_APPROVAL')
+    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_p0_review_022'];approval=io.read_json(root/'OPERATOR_APPROVAL.json')
+    if (gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0
+        or gate['execution_authorized'] is not False or policy['training_enabled'] is not False
+        or approval['approved_plan_sha256']!=binding['plan_sha256'] or approval['single_use'] is not True or approval['max_invocations']!=1):raise RuntimeError('P0_REVIEW_AUTHORITY')
+    if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):raise RuntimeError('P0_REVIEW_SOURCE')
+    if set(binding['code_sha256'])!=set(plan['code_paths']):raise RuntimeError('P0_REVIEW_CODE_INVENTORY')
+    for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'P0_REVIEW_CODE')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry()
+    io.write_json(root/'EXECUTION_CLAIM.json',{'invocation':1,'binding_sha256':io.sha256_file(binding_path)})
+    stage=root/'.RESULTS.staging';stage.mkdir(exist_ok=False)
+    inputs=plan['inputs']
+    for item in inputs.values():binding_read(item)
+    result=io.read_json(Path(inputs['result']['path']));terminal=io.read_json(Path(inputs['terminal']['path']))
+    if terminal['status']!='COMPLETE' or not terminal['source_unchanged'] or terminal['TEST_accessed'] or terminal['result_sha256']!=inputs['result']['sha256']:raise RuntimeError('P0_REVIEW_TERMINAL')
+    recipe=io.read_json(Path(inputs['recipe']['path']));source=io.read_json(Path(inputs['native_source_plan']['path']))
+    for b in source['execution_tape_partitions']:binding_read(b)
+    tape=m5.load_tape(source['reference'],2024)
+    if tape.time_ns.max()>=pd.Timestamp(recipe['TEST_seal_utc']).value:raise RuntimeError('P0_REVIEW_TEST_SEAL')
+    predictions=pd.read_parquet(inputs['predictions']['path']);trades=pd.read_parquet(inputs['trades']['path']);daily=pd.read_parquet(inputs['daily']['path'])
+    # Reconstruct every actually selected side from raw historical quotes.
+    entry=np.searchsorted(tape.time_ns,trades.entry_ns);end=np.searchsorted(tape.time_ns,trades.mark_or_exit_ns)
+    if not np.array_equal(tape.time_ns[entry],trades.entry_ns) or not np.array_equal(tape.time_ns[end],trades.mark_or_exit_ns):raise RuntimeError('P0_RAW_QUOTE_TIME')
+    buy=tape.ask_open[entry];sell=tape.bid_open[entry];exit_bid=tape.bid_open[end];exit_ask=tape.ask_open[end]
+    lg=1e4*(exit_bid-buy)/buy;sg=1e4*(sell-exit_ask)/sell;sides=trades.side.to_numpy()
+    gross=np.where(sides>0,lg,sg)
+    ep=np.where(sides>0,buy,sell);xp=np.where(sides>0,exit_bid,exit_ask)
+    if not np.array_equal(ep,trades.entry_price) or not np.array_equal(xp,trades.exit_or_mark_price):raise RuntimeError('P0_RAW_QUOTE_PRICES')
+    if not np.allclose(gross,trades.gross_bps,rtol=0,atol=1e-10):raise RuntimeError('P0_RAW_GROSS_NOTIONAL')
+    elapsed=((trades.mark_or_exit_ns-trades.entry_ns)//10**9).to_numpy()
+    if not np.array_equal(elapsed,trades.elapsed_seconds):raise RuntimeError('P0_FUNDING_ELAPSED')
+    cash_checks={};max_error=0.
+    # Cost scenarios change the v3 contract hash; no historical authority implied.
+    for scenario,config in recipe['cost_scenarios'].items():
+        econ=dict(recipe['economics']);econ.update({k:config[k] for k in ['round_trip_execution_cost_bps','annual_financing_cost_bps']})
+        payload={k:v for k,v in econ.items() if k!='economics_sha256'}
+        econ['economics_sha256']=hashlib.sha256(__import__('json').dumps(payload,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
+        actual=build_entry_observed_market_targets(gross_return_bps=torch.tensor(np.column_stack((lg,sg)),dtype=torch.float64),elapsed_wall_clock_seconds=torch.tensor(elapsed,dtype=torch.int64),economics=econ)['target_bps'].numpy()
+        values=actual[np.arange(len(trades)),np.where(sides>0,0,1)]
+        checks={}
+        for key,cell in result['cells'].items():
+            expected=float(values[trades.strategy.to_numpy()==key].sum())
+            error=abs(expected-cell['economics'][scenario]['net_total_bps']);max_error=max(max_error,error)
+            if error>1e-8:raise RuntimeError('P0_SHARED_V3_CASH_MISMATCH:'+key)
+            checks[key]=expected
+        cash_checks[scenario]=checks
+    # Decision cost uses the last closed quote, never execution/future spread.
+    d=predictions.decision_ns.to_numpy();i=np.searchsorted(tape.time_ns,d-60*10**9,side='right')-1
+    spread=(tape.ask_close[i]-tape.bid_close[i])/((tape.ask_close[i]+tape.bid_close[i])/2)*10000
+    if not np.allclose(spread,predictions.spread_at_decision_bps,rtol=0,atol=1e-12):raise RuntimeError('P0_DECISION_SPREAD')
+    matching={};contrasts={};activity={};coreference={}
+    for model in ('rule','tree'):
+        keys=[model+'_'+arm for arm in m5.P0_ARMS];good=p0_matched_prediction_mask(predictions,keys);part=predictions[good]
+        matching[model]={'rows':int(good.sum()),'excluded_for_unseen_state_or_fold_boundary':int((~good).sum()),'cells':{key:m5.p0_prediction_quality(part.y30_mid_bps.to_numpy(),part[key].to_numpy()) for key in keys}}
+        coreference[model]=float(np.mean((part.y30_mid_bps-part.train_mean_bps)**2))
+        for key in keys:
+            p=predictions[key].to_numpy();a=m5.p0_actions(p,spread,recipe['economics'],30)
+            if not np.array_equal(a,predictions['action_'+key]):raise RuntimeError('P0_DECISION_RECONSTRUCTION')
+            frame=predictions.assign(_action=a)
+            activity[key]={str(f):{'opportunities':len(g),'LONG_signals':int((g._action==1).sum()),'SHORT_signals':int((g._action==-1).sum()),'FLAT_signals':int((g._action==0).sum()),'max_abs_forecast_bps':float(np.nanmax(np.abs(g[key]))),'median_XAU_spread_bps':float(g.spread_at_decision_bps.median())} for f,g in frame.groupby('fold')}
+            if key!=model+'_CORE':
+                loss=(part.y30_mid_bps-part[model+'_CORE'])**2-(part.y30_mid_bps-part[key])**2
+                records=[{'entry_ns':int(t),'improvement':float(v)} for t,v in zip(part.decision_ns,loss)]
+                contrasts[key]=m5.weekly_block_bootstrap(records,'improvement',reps=recipe['bootstrap_reps'],seed=recipe['bootstrap_seed'],levels=recipe['confidence_levels'])
+    for fold,group in pd.DataFrame(result['fit_receipts']).groupby('fold'):
+        if len(group)!=8 or group.train_decision_sha256.nunique()!=1 or group.train_rows.nunique()!=1 or group.eval_rows.nunique()!=1:raise RuntimeError('P0_TRAIN_EVAL_ARM_MATCH')
+    months=trades.assign(month=pd.to_datetime(trades.entry_ns,utc=True).dt.strftime('%Y-%m')).groupby(['strategy','month']).size()
+    observed={key:{str(m):int(n) for (k,m),n in months.items() if k==key} for key in result['cells']}
+    review={'status':'P0_INDEPENDENT_CASH_AND_MATCHED_PREDICTION_REVIEW_COMPLETE','source_head':binding['source_head'],
+        'original_RESULT_preserved':True,'raw_quote_reconstructed_trade_or_open_mark_count':len(trades),'maximum_v3_cash_error_bps':max_error,
+        'cash_all_scenarios':cash_checks,'matched_prediction':matching,'matched_prediction_contrasts':contrasts,'matched_train_mean_MSE_bps2':coreference,
+        'decision_reconstruction':'EXACT_ALL_RULE_TREE_ROWS','train_eval_population_match':'EXACT_EIGHT_ARMS_EACH_FOLD',
+        'activity_by_fold':activity,'trade_entries_by_month':observed,'all_selected_tree_positions_LONG':bool((trades.loc[trades.strategy.str.startswith('tree_'),'side']==1).all()),
+        'calendar_Sharpe_limit':'Missing quote days forward-fill executable marks; accrued funding is recognized at next observed mark. Observed M1 drawdown cannot bound intra-gap/intraminute loss.',
+        'source_unchanged':True,'TEST_accessed':False,'models_refitted':0,'limits':proof}
+    for item in inputs.values():binding_read(item)
+    for b in source['execution_tape_partitions']:binding_read(b)
+    for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'P0_REVIEW_CODE_POST')
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_REVIEW_POLICY_POST')
+    if io.git_head()!=binding['source_head']:raise RuntimeError('P0_REVIEW_HEAD_POST')
+    io.write_json(stage/'RESULT.json',review);io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'result_sha256':io.sha256_file(stage/'RESULT.json'),'source_unchanged':True,'TEST_accessed':False,'models_refitted':0,'finished_utc':datetime.now(timezone.utc).isoformat()})
+    for p in stage.iterdir():
+        with p.open('rb') as f:os.fsync(f.fileno())
+    publish_bundle_directory_noreplace(stage,root/'RESULTS');print('P0_REVIEW_COMPLETE',flush=True)
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser();group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--binding',type=Path);group.add_argument('--evaluation-binding',type=Path)
-    group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
+    group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
     if args.binding is not None:run(args.binding)
     elif args.evaluation_binding is not None:run_evaluation(args.evaluation_binding)
     elif args.l1_binding is not None:run_l1_quality(args.l1_binding)
     elif args.cash_binding is not None:run_cash_review(args.cash_binding)
+    elif args.p0_review_binding is not None:run_p0_review(args.p0_review_binding)
     else:run_p0_preparation(args.p0_preparation_binding)

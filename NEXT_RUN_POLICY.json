@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T13:09:18.519310+00:00",
-  "status": "GC_P0_MACRO_FREE_FIRST_DEVELOPMENT_021_CLAIMED__NATIVE_TRAINING_CLOSED",
+  "status": "GC_P0_FIRST_DEVELOPMENT_COMPLETE__INDEPENDENT_REVIEW_022_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Execute only newly bound 021 once through capped audit after contracts/clean source, then record matched development prediction/economics and selection limitations. No native TEST/Exit/live/spending.",
+  "next_action": "Only no-fit review022: reconstruct all selected sides against actual quotes/v3 cash, match rule predictions after one unseen state; then publish first P0 development report. No further fit/native training/TEST/live/spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Frozen first macro-free P0 development recipe; focused contracts pass; one bounded CPU study claimed.",
+    "current_activity": "P0 study021 complete; all tree arms net negative. Single-use022 independent cash and matched-rule metric review claimed; no refit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -110,14 +110,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "FIRST_MACRO_FREE_P0_DEVELOPMENT_SINGLE_USE_CLAIMED",
+    "gc_goal_status": "P0_FIRST_DEVELOPMENT_NEGATIVE__CASH_MATCH_REVIEW_PENDING",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "No-fit matched P0 input/gap/cost qualification; not a model or economic strategy result",
+    "latest_terminal_role": "First matched macro-free P0 development fit/economics, independent no-refit review next.",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020/RESULTS/TERMINAL.json",
-      "sha256": "a62d55998984f2b4ebfa47c686dfb830edc23b5e74a08a843ef328c38253dc6e"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/TERMINAL.json",
+      "sha256": "d6f71fa49dc44cee8ca4d3e7e40052a2538aa8a7b5e234fa92ff439c2ed4002e"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -9182,23 +9182,40 @@
     "gc_p0_development_021": {
       "plan_path": "configs/research/GC_P0_FIRST_DEVELOPMENT_20261017_021.json",
       "plan_sha256": "28889d77736324931e1340577e466c7d51153557934a0a7c10c40a979ed01d1a",
+      "status": "COMPLETE_DEVELOPMENT_CONSUMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "research_fit_authorized": false,
+      "native_training_authorized": false,
+      "test_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021",
+      "max_tree_fits": 40,
+      "macro_fields_excluded": 61,
+      "result_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/RESULT.json",
+      "result_sha256": "b98fd628e150eb334b4176b1b299d4ad021c90d5f013182f9cf4c8ea28b4ef37",
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/TERMINAL.json",
+      "terminal_sha256": "d6f71fa49dc44cee8ca4d3e7e40052a2538aa8a7b5e234fa92ff439c2ed4002e"
+    },
+    "gc_p0_review_022": {
+      "plan_path": "configs/research/GC_P0_DEVELOPMENT_REVIEW_20261017_022.json",
+      "plan_sha256": "5bba8eb997f9d2d73794f3f377b21ce29d5351759c242be514769f7deb730b65",
       "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
       "completed_invocations": 0,
       "authorized_invocations": 1,
       "relaunch_authorized": false,
-      "research_fit_authorized": true,
-      "native_training_authorized": false,
+      "model_fit_authorized": false,
       "test_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021",
-      "max_tree_fits": 40,
-      "macro_fields_excluded": 61
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_DEVELOPMENT_REVIEW_20261017_022"
     }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "FIRST_MACRO_FREE_P0_DEVELOPMENT_SINGLE_USE_CLAIMED",
+    "status": "P0_FIRST_DEVELOPMENT_NEGATIVE__CASH_MATCH_REVIEW_PENDING",
     "goal_execution_requested": true,
     "pause_request_owner": "current_work.gc_goal_resume_authorization",
     "pause_scope": "Current input engineering and no-fit qualification completed under 014/017/019/020. No current pause request or model launch authority; consumed plans cannot relaunch.",

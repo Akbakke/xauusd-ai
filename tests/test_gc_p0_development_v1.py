@@ -119,3 +119,9 @@ def test_pit_strict_release_and_revision_vintage():
     assert select_verified_cot_vintage_v2(now+1,[event])==event
     revision=dict(event,actual_release_utc='2025-12-12T20:30:00Z',vintage_sha256='b'*64)
     assert select_verified_cot_vintage_v2(now+1,[event,revision])==event
+
+
+def test_matched_metric_mask_excludes_missing_rule_state_in_every_arm():
+    from gx1.scripts.audit_entry_gc_foundation_v1 import p0_matched_prediction_mask
+    frame=pd.DataFrame({'outcome_within_fold':[True,True,False],'a':[1.,2.,3.],'b':[1.,np.nan,3.]})
+    assert p0_matched_prediction_mask(frame,['a','b']).tolist()==[True,False,False]

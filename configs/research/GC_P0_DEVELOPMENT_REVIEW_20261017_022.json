@@ -1,0 +1,49 @@
+{
+  "schema_version": "gx1_p0_postrun_independent_review_v1",
+  "plan_id": "GC_P0_DEVELOPMENT_REVIEW_20261017_022",
+  "inputs": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/RESULT.json",
+      "sha256": "b98fd628e150eb334b4176b1b299d4ad021c90d5f013182f9cf4c8ea28b4ef37"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/TERMINAL.json",
+      "sha256": "d6f71fa49dc44cee8ca4d3e7e40052a2538aa8a7b5e234fa92ff439c2ed4002e"
+    },
+    "predictions": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/PREDICTIONS.parquet",
+      "sha256": "c6892c60e9e723181d17a5d7a26970e3d10ab773d42f2800e7562fe319aaef66"
+    },
+    "trades": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/TRADES_AND_OPEN_MARKS.parquet",
+      "sha256": "3e3fa7c34066debed50e74989b27ab5c32993ee09093a39fcfbcb888fe91a7a1"
+    },
+    "daily": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/DAILY_EQUITY_ALL_SCENARIOS.parquet",
+      "sha256": "be5ff784290a034848a560aa0145e9774b53efa687a843c41706edfc3f754bd4"
+    },
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_P0_FIRST_DEVELOPMENT_20261017_021.json",
+      "sha256": "28889d77736324931e1340577e466c7d51153557934a0a7c10c40a979ed01d1a"
+    },
+    "native_source_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_M5_TRADE_FLOW_PROBE_20261017_007.json",
+      "sha256": "5ab8ee7a7e73d322cfca8934469ac0522fed923b9d312c13d7a14040bc59c41e"
+    }
+  },
+  "scope": "No fitting. Independently reconstruct all selected ledger sides from actual raw bid/ask and canonical v3 cash owner for all 11 scenarios; verify population/decisions; publish matched rule-prediction population after one unseen-state abstention. Preserve original021 outputs.",
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_DEVELOPMENT_REVIEW_20261017_022",
+  "max_invocations": 1,
+  "TEST_authorized": false,
+  "model_fit_authorized": false,
+  "code_paths": [
+    "gx1/scripts/audit_entry_gc_foundation_v1.py",
+    "gx1/scripts/research_m5_intraday_recheck_v1.py",
+    "gx1/contracts/entry_observed_market_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "scripts/gx1_capped_run.sh",
+    "tests/test_gc_p0_development_v1.py"
+  ]
+}
