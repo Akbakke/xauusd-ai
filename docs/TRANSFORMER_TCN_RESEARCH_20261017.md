@@ -1,237 +1,102 @@
-# Transformer and TCN research protocol, 17 October 2026
+# GX1: full featureflate og 26 måneders Transformer/TCN train–smoke
 
-The operator requested a new, bounded offline investigation. Transformer remains
-GX1's main native candidate. Negative GC/M5 P0 remains NO-GO for that recipe;
-it neither closes GX1 nor demonstrates that event ordering has no information.
-Status and execution rights are exclusively in NEXT_RUN_POLICY.json.
+## Resultat og beslutning
 
-## Native architecture and actual last training
+Teknisk PASS. Lærings- og økonomikvalifisering: NO-GO for den frosne 128-stegsoppskriften. Alle fem kronologiske fold og 20 fits er fullført én gang, inkludert ti nevrale fits og totalt 1 280 optimizersteg. Terminalmålt kjøretid var 16,105 sekunder under CPU-audit med 4G RAM, 512M swap, én numerisk tråd og prosjektlås. Ingen GPU-/native trening, TEST, broker, handel eller spending. Ingen automatisk videreføring.
 
-`EntryV10CtxHybridTransformer` has a shared learned representation: local
-feature-family sequence encoders, family-specific context/feature gates,
-cross-family attention, Entry MTF M15/H1/H4/D1 encoders, family/timeframe attention and
-context/token gates. Window readout is mean plus last closed token. Entry Q
-uses the joint representation; unified M1 Exit adds shared feature encoders,
-side/path state and recurrent episode/family/timeframe state. This is one
-bundle, not a separate independent Exit model. The MTF M5 cache route is consumed
-by Exit only; Entry uses its local M5 sequence. MTF widths are190; windows
-M5/M15/H1/H4/D1 are16/64/96/96/252, with Entry local96 and Exit local480 bars.
-The Exit detailed-path tail is512 bars and never a maximum trade duration.
+Begge nettverk reduserte TRAIN-feilen fra fersk initialisering, men ingen slo TRAIN-gjennomsnittet i noen av de fem foldene. En teknisk kjøring eller fallende initialtap er derfor ikke et bestått læringssignal. 128 steg er en smoke, ikke tilstrekkelig konvergens-/kapasitetsevaluering. Resultatet beviser verken at GX1 må avsluttes, at informasjonen er verdiløs eller at native Transformer bør erstattes.
 
-The last completed native run was RECENT_365D_S20261016 on 15 October 2026,
-09:48:48.814795–10:55:27.970012 UTC (11:48–12:55 Europe/Oslo): 4,071 optimizer
-steps, 65,136 unique TRAIN rows, seed 20261016. Its source was
-bd78c9f1ca2a7958d32f5c2b463deffc038f1ae4. It already trained independent
-observed-market h20 Entry, not an Exit-derived target. h1/h5 were observations.
-150 Exit state fields remained unchanged. Checkpoint/model-state/recipe and
-receipt identities are verified by the new capped qualification, without
-loading or editing native weights.
+## Features og produsentkontroll
 
-CONTROL4096 h20 contrast MSE changed 2,034,165.8973 to 1,889,225.7911 bps²;
-rank IC 0.11735 to 0.27670. This is reused development CONTROL, not qualified
-learning, a costed portfolio, an independent confirmation or profit.
-RECENT_180D was armed and then disarmed for M5 work; it did not train.
+Oppskriften beholder alle 254 native markedsfelt fra alle åtte genuine familier. 238 av disse manglet i den tidligere 37-felts GC-sekvensoppskriften, inkludert de 27 tidligere pausede forskningsmønsterfeltene. Det nye valget følger brukerens krav om full informativ flate før modellutfall, ikke resultatbasert featureseleksjon. I tillegg inngår eksisterende F12, L8, GC/XAU-basis, faktisk GC-kontraktsvolum og handelsteller, samt native sesjonskategori. 278 råfelt blir 285 kanaler gjennom eksplisitte one-hot-domener for SMC-tilstand og sesjon; kategorier blir ikke behandlet som ordnede tall.
 
-Current native contract execution reports 315 signal, 132 continuous context,
-one categorical context and local sequence length 96. Eight genuine families
-plus D1 context remain. New GC OFI/BBO, dynamic volume levels and their time
-sequences have not entered these native contracts or the last trained model.
-No frozen native function is changed by this investigation. A future integration
-would need a declared external research result, a new native input owner and
-manifest/normalization/dataset/baseline/recipe binding through the existing gates.
+F/L-verdier, GC-volum, handelsteller og basis ble kontrollert mot lagrede ekte M1-data på alle 23 807 fysiske inputrader som sekvensene bruker. OFI/refill/depletion/quoteaktivitet/BBO-integraler og microprice/respons matcher M1-aggregasjonen eksakt. VWAP/POC/VAH/VAL-avstander og reaksjon mot forrige nivå matcher nivå-/close-algebraen eksakt. GC-volum og handelsteller matcher M1-summer; basis matcher GC-close og rå XAU bid/ask-mid. Trades/300-intensiteten er algebraisk duplikat av handelstelleren og dupliseres ikke.
 
-## Separate D1/h20 target branch
+Alle native kontekstaliaser er bitlike sine deklarerte signalfelt. Native råformler gjenbruker den eksisterende feltledgeren og korrigert generasjon; alle 254 råformler ble ikke rekonstruert fra hele råhistorikken på nytt. 285/285 kanaler har ikke-null inputderivert gjennom hver av de to modellene på ekte input, uten vektendring i kontrollen. Dette beviser kobling, ikke informativ eller lønnsom bruk etter trening.
 
-Reuse the already built exact-M1-terminal research candidate. It preserves
-entry-notional bid/ask economics and censors late terminal observations. It
-still counts observed sessions: reconstructability is not calendar validity.
-Historical daily/holiday regimes remain unqualified; the current NY template
-cannot be projected backward as truth. Missing historical COT publication
-receipts also affect the native macro inputs. Neither issue is fixed by a new
-train/validation split. VAL tail reconstruction is blocked by an original raw
-row group crossing sealed TEST. Native baseline/weights remain locked.
+Det eneste konstante feltet i den forbrukte kohorten er `ctx_cont.close_range_observed`: en tilgjengelighetsmarkør som er sann på de valgte observerte radene. Feltet beholdes, men gir ingen variasjon her. 61 makrofelt med uavklart historisk publisering forblir utelatt. Bare 178 sekvenser har streng kjent aggressorside hele veien; signert delta/CVD brukes derfor ikke som komplett modellhistorikk og fylles aldri kunstig.
 
-The candidate is explicitly `native_observed_sessions_exact_terminal_research_v1`,
-not a qualified historical-calendar replacement. MFE/MAE remain separate path
-diagnostics and are incomplete across unclassified gaps. v3 financing is a
-source-bound projection, not verified historical broker cash terms. New native
-training needs qualified semantics or an explicitly admitted limited research
-binding, successor dataset/normalization/zero-step evidence and a native campaign.
+| Native familie | Råfelt |
+| --- | ---: |
+| chart_geometry_encoder | 32 |
+| momentum_flow_encoder | 35 |
+| price_action_candle_encoder | 23 |
+| session_regime_encoder | 9 |
+| smc_liquidity_encoder | 69 |
+| structure_swing_encoder | 30 |
+| trend_ema_encoder | 40 |
+| vol_compression_encoder | 16 |
 
-## GC/M5 sequence hypothesis and fixed budget
+## Data, klokker og budsjett
 
-Six **consecutive real closed M5 bins** (30 minutes of observed history) may
-represent OFI/liquidity/price-response and volume-level interactions that a last
-snapshot misses. This is a hypothesis, not an observed rescue of P0. Input order:
-12 existing F fields, eight rolling15 L distances/reactions, 16 existing V fields,
-one observed GC/XAU close-basis field. No indicators are reimplemented. Delta
-with a known aggressor is reported as a separate stricter coverage count; absent
-signed history is never invented or inserted in the primary model.
+141 806 native studievinduer gir 37 181 kvalifiserte enkeltvinduer og 12 482 sekvenser à seks sammenhengende M5-vinduer × 285 kanaler. Alle 26 måneder har støtte. Ingen imputering, hullkomprimering eller kontraktsrullering inne i en sekvens. Frosne receive-clock/reset/gap/søm-/roll-masker gjenbrukes. Dette er tidssekvenser av MBP-1-avledede M5-metrikker, ikke rå subminutt-eventtensorkjøring.
 
-Every token must have qualified F/BBO and L masks, finite real values, exact
-five-minute adjacency and the same selected dated GC contract. No rolling across
-gaps, resets/invalid input prefixes or contract rolls; no forward-fill, padding
-of missing market history or compression of irregular observations into sequence
-positions. The TCN uses valid causal convolutions, without zero-padded history.
-Source-clock/roll evidence is reused from the qualified sources, not re-audited.
-These are sequences of MBP1-derived M5 metrics, not raw sub-minute event tensors.
+Target er samme forhåndsvalgte 30-minutters mid-markout som P0. Evaluering og økonomi bruker identiske rader mellom modellene. TRAIN-utfall må lukke før neste fold, med 24 timers embargo. Normalisering tilpasses én gang på hver folds unike fysiske TRAIN-inputrader; ingen evalueringsrefit. Alle 26 måneder er gjenbrukt utvikling. Ny splitting gjør dem ikke til urørt OOS.
 
-The new recipe fixes length six, one seed, width32; Transformer has one layer,
-four heads and FF64; TCN has kernel2, dilations1/2, two residual convolutions.
-Both use GX1's existing mean-plus-last readout. Native encoders are unchanged.
-The first chronological P0 fold is the sole proposed pilot: constant, two fixed
-ridge fits (last snapshot versus six-bin sequence), saved P0 CORE/FLV LightGBM,
-one Transformer and one TCN fit. Exactly two neural fits of128 steps, batch64,
-no early stopping/retries/search. Existing native AdamW rate/decay/clip are reused.
+| Fold | TRAIN-sekvenser | Evalueringsrader | TRAIN-inputrader |
+| --- | ---: | ---: | ---: |
+| dev_01 | 7,016 | 646 | 13,391 |
+| dev_02 | 7,663 | 435 | 14,828 |
+| dev_03 | 8,112 | 732 | 15,857 |
+| dev_04 | 8,851 | 2,163 | 17,261 |
+| dev_05 | 10,988 | 1,468 | 21,008 |
 
-All five original chronological folds receive coverage/purging counts. Only
-dev_01 is proposed for training; the other folds are not automatically admitted.
-Train labels close before evaluation, with the original24h embargo. Normalization
-fits once on the unique physical TRAIN input rows, not repeated windows or VAL.
-All model evaluation rows are identical; future label availability selects only
-prediction metric rows, never actions. Saved LightGBM uses original211/247 fields,
-while neural/linear models use37; this is a locked reference, not an equal-input
-architecture attribution. Transformer versus TCN does use exactly the same inputs.
+Liten Transformer: 17 921 parametre, én encoder-layer, bredde32, fire heads, FF64. TCN: 13 473 parametre, bredde32, kernel2, dilasjoner1/2 og gyldige kausale konvolusjoner uten nullfylt markedshistorikk. Begge bruker eksisterende mean-plus-last-readout. Seed20261015, AdamW med tidligere native rate/decay/clip, 128 steg per nettverk og fold. Batch86 = ceil(10 988/128), slik at alle TRAIN-rader faktisk observeres. Ingen HPO, tidligstopp, nye horisonter, terskler, seeds eller ekstra fits ble valgt etter resultater.
 
-Prediction MSE/rank IC/calibration and paired week-block intervals are separate
-from economic replay. Eight frozen contrasts include four versus FLV, three versus the snapshot
-linear model and TCN versus Transformer. Prediction and economic week-block
-intervals use Bonferroni adjustment within their separate eight-contrast families. Existing XAU bid/ask execution, one-position v3 ledger,
-open-position marks, fee/funding scenarios, daily Sharpe/drawdown/turnover/exposure
-are reused. Always-LONG and FLAT retain their comparator roles. Fixed-horizon
-labels are not a native Exit or maximum hold rule. No GO for deployment can
-follow from this reused development pilot. One fold cannot establish stability.
+To faste ridge-referanser bruker henholdsvis siste snapshot og hele seks-vindu-sekvensen. LightGBM CORE/FLV er originale låste prognoser, uten refit. De har sine opprinnelige 211/247 felt; dette er en låst referanse, ikke lik-input arkitekturattribusjon mot de nye nettverkene. Transformer versus TCN har nøyaktig samme inputs, rader, target og budsjett.
 
-Qualification budget: capped audit4G, swap512M, one numerical thread, affinity0–7,
-600s. Proposed pilot: same caps, <=1,800s total, <=600s/network. No GPU campaign.
-Model construction and genuine-input forward checks are code/resource evidence,
-not fitted models or predictive quality. Training remains explicitly closed.
+## Prediksjon og økonomi
 
-## Sources and inference limits
+5 444 felles evalueringsrader. Lavere MSE er bedre. Kalibrering er regresjon av realisert markout på prediksjon, ikke sannsynlighetskalibrering. Pooled TRAIN-konstant kan variere mellom fold; dens pooled rank-IC er derfor ikke en innen-fold retningsprognose.
 
-The TCN implementation follows causal/dilated convolution principles, without
-assuming they outperform attention on financial data:
-[Bai, Kolter and Koltun](https://arxiv.org/abs/1803.01271).
-The Transformer reuses the existing PyTorch encoder primitive and native readout:
-[PyTorch TransformerEncoderLayer](https://docs.pytorch.org/docs/stable/generated/torch.nn.TransformerEncoderLayer.html).
-Installed library versions, not mutable documentation, are frozen in the recipe.
-No architecture recommendation is supported until matched trained results exist.
+| Modell | MSE bps² | Rank-IC | Kalibreringshelning | Netto bps | Sharpe | M1-drawdown bps | Handler | Eksponering | Turnover |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| constant | 453.625 | -0.0113 | -3.0643 | 0.00 | — | 0.00 | 0 | 0.00% | 0.00 |
+| tree_CORE | 455.261 | -0.0098 | -0.1584 | -109.77 | -0.387 | 287.81 | 12 | 0.21% | 23.99 |
+| tree_FLV | 456.367 | -0.0106 | -0.3832 | -129.67 | -0.666 | 221.71 | 3 | 0.18% | 5.99 |
+| linear_snapshot | 516.401 | 0.0863 | 0.2759 | -1237.40 | -0.537 | 3115.45 | 496 | 29.88% | 991.97 |
+| linear_sequence | 643.928 | 0.0541 | 0.0769 | -5536.03 | -2.360 | 6453.95 | 966 | 44.08% | 1931.95 |
+| transformer | 588.528 | -0.0530 | -0.2052 | -2399.26 | -1.085 | 2907.68 | 506 | 25.87% | 1011.97 |
+| tcn | 496.953 | 0.0733 | 0.2287 | -4293.03 | -2.336 | 4437.06 | 1051 | 35.98% | 2101.18 |
 
-## Observed contract adapter failure and minimal repair
+Økonomien er fast 1× initialnotional uten kompondering, én posisjon, ekte XAU M1 bid/ask og v3-kostprojeksjon. Ingen ny fast holdetidsregel: posisjoner bæres over inputhull og foldgrenser. Terminal mark-to-market og full utgangsavgiftsreserve inkluderer åpne posisjoner. TCN har én åpen posisjon ved slutt; Transformer har null. Samme-risiko alltid-LONG: +1 684,996 bps, Sharpe0,372, M1-drawdown5 319,994 bps; FLAT:0 bps. M1-verdier kan ikke avgrense intraminutt-/intragap-tap.
 
-024 stopped after47.282s on contract alignment and is consumed. F and L IDs
-match on all141,806 rows. The older base owner intentionally emits NULL contract
-IDs on volume-invalid rows (`bind_m5_rows`); all52,972 apparent base mismatches
-are those NULL rows, and zero are in the common F/L-qualified cohort. 026 checks
-basis identity where the model could actually consume a row, retaining every
-source mask. A nullable-ID test also proves a real mismatch within that cohort
-still fails. Original failure and compact diagnosis are preserved. Diagnostic
-NaN pair details were invalid repeated empty groups and were withdrawn; scalar
-counts remain valid. No new horizon, model, field, target or threshold was chosen.
+Sentralt scenario er 4bps round-trip og finansiering LONG569/SHORT0bps årlig, faktisk elapsed wall time. Dette er en deklarert kildebundet kostprojeksjon, ikke historisk brokerfasit eller realisert profitt. I det billigste forhåndsvalgte scenarioet (2bps, ingen finansiering) er Transformer −1 358,342bps og TCN −2 038,282bps. Ingen av de nye lærte modellene er positiv der heller.
 
-The calendar limitation was rechecked against primary pages in this wave:
-[current OANDA XAU hours](https://www.oanda.com/bvi-en/cfds/hours-of-operation/)
-state New York18:05–16:59; the separately published
-[OANDA hours PDF, page4](https://www.oanda.com/assets/documents/471/Hours_of_operation_6.pdf)
-uses GMT23:00–22:15 for gold Sunday–Thursday and22:00 Friday. These documents
-supply no complete effective-date/holiday history for the TRAIN period. They
-therefore cannot qualify a single historical calendar by themselves. This is
-an evidence gap, not proof that every observed-session target is incorrect.
+Åtte forhåndsbundne pooled kontraster bruker parvis kalenderuke-bootstrap med 4 000 trekk og Bonferroni-korrigering innen prediksjons- og økonomifamiliene separat. TCNs MSE-forbedring mot Transformer er91,575bps², samtidig intervall[−31,620;337,260]: ingen statistisk kvalifisert arkitekturvinner. Begge er dårligere enn låst FLV i MSE (TCN forbedring−40,586,[−78,110;−4,718]; Transformer−132,161,[−359,736;−26,014]). Disse intervallene er betinget på frosne utviklingsfits, ikke uavhengig bekreftelse.
 
-## Measured qualification result and remaining decisions
+## TRAIN-fit og smoke
 
-026 completed once, exit0,49.264s, source unchanged, TEST=false, zero fits and
-optimizer steps. On141,806 native study windows,37,181 qualified single F/L/V/basis
-windows yield12,482 strictly contiguous six-bin sequences, each37 fields. Every
-one of26months has support. No roll/gap crossing or numeric imputation. Of
-these,178 also have strict signed-aggressor history throughout; signed delta is
-not silently substituted into the primary recipe. Basis spans−23.552 to289.616bps
-(median45.108); this does not make futures and spot executable prices equivalent.
+| Fold | TRAIN-konstant MSE | Transformer slutt-MSE | TCN slutt-MSE |
+| --- | ---: | ---: | ---: |
+| dev_01 | 109.873 | 116.554 | 136.498 |
+| dev_02 | 113.578 | 121.323 | 141.630 |
+| dev_03 | 111.645 | 119.675 | 139.827 |
+| dev_04 | 130.101 | 141.110 | 161.464 |
+| dev_05 | 246.701 | 260.599 | 305.929 |
 
-| Frozen chronological fold | Purged TRAIN | Matched evaluation rows |
-| --- | ---: | ---: |
-| dev_01, May–July2025 | 7,016 | 646 |
-| dev_02, August–October2025 | 7,663 | 435 |
-| dev_03, November2025–January2026 | 8,112 | 732 |
-| dev_04, February–April2026 | 8,851 | 2,163 |
-| dev_05, May–June2026 | 10,988 | 1,468 |
+Alle ti nettverk forbedrer fersk initial-MSE, men null slår TRAIN-konstanten. Det finnes dermed ikke et kvalifisert TRAIN-læringssignal i denne smoke. Alle fem fold, endelige prediksjoner, alle deklarerte TRAIN-rader og lagring/strict-load/batch-paritet bestod teknisk. Dette er ikke et argument for automatisk flere steg eller en stor GPU-kampanje.
 
-Only dev_01 is proposed for the bounded pilot. Its normalization uses13,391
-unique physical TRAIN input rows. Frozen tree target/row parity is exact for
-all646 rows. No model result or future horizon selected this cohort.
+## Native Transformer og h20
 
-The small Transformer has9,985 parameters; TCN5,537. Each ran one finite CPU
-forward on64 genuine normalized sequences with zero optimizer steps. Single
-cold batches took2.955ms and7.879ms respectively. With n=1 these are integration
-measurements, not a reliable efficiency ranking or training-throughput evidence.
+Siste faktiske native trening var15.10.2026,09:48:48–10:55:27UTC,4 071 Entry-steg på65 136 unike TRAIN-rader, seed20261016. Den brukte allerede Exit-uavhengig observert h20. 150 Exit-statefelt var uendret. Ny kontroll bekrefter at original-checkpointets SHA256 fremdeles er6bf92cccd258e561b5dad96fe24da981f027a78603401c6a4eb40b1d244886ea. Native har315 signal-/132 kontinuerlige/én kategorisk kontekst, lokal M5-sekvens96, delte familiespesialister og kontekst-/token-gates. Entry bruker M15/H1/H4/D1-kontekst; Exit bruker også M5, M1-path/side/episode og samme bundle. Ingen native modellfunksjon, weights eller Exit er endret.
 
-Last native checkpoint/recipe hashes match the original review. The corrected
-h20 file contains646,543 baseline-valid rows, of which642,214 have an exact
-terminal quote;4,329 are separately censored. Every retained target is finite
-and every censored target is NaN, including FLAT. This verifies the stored
-research candidate, not historical calendar correctness or a newly trained model.
+Eksakt-M1-terminal h20-kandidat er separat kontrollert:642 214 av646 543 baseline-gyldige rader beholdes;4 329 sensureres uten senere quote-erstatning. Historisk sesjons-/kalendersemantikk og COT-publisering er fortsatt uavklart. Dagens [OANDA-tider](https://www.oanda.com/bvi-en/cfds/hours-of-operation/) og [publisert time-PDF](https://www.oanda.com/assets/documents/471/Hours_of_operation_6.pdf) gir ingen komplett datert regime-/helligdagshistorikk. Den korrigerte native h20-modellen er ikke trent; den krever kvalifisering, successor-datasett/normalisering/initialbaseline og campaign-binding. Denne GC/M5-studien er en separat liten encoder-studie, ikke retrening av full native96-bar/MTF-Transformer.
 
-GO: strict GC sequence inputs for a separately admitted research pilot.
-NO-GO: native h20 successor training until calendar/publication and successor
-bindings are resolved. Transformer/TCN comparison, feature increment, trained
-prediction metrics, strategy economics and architecture superiority are **not
-measured**. P0's original NO-GO is preserved. Keep native Transformer as the
-main candidate; no evidence supports replacing it now.
+## GO/NO-GO og ubeviste grenser
 
-Proposed next executable scope is one capped CPU pilot,7,016/646 rows, two fixed
-linear fits plus one128-step Transformer and one128-step TCN; at most30minutes,
-4G/512M, one thread. The runner rejects pilot mode while the explicit
-NEXT_RUN_POLICY pilot gate is false. Generic/native training remains false.
-No data download, TEST read, production change or automatic extension is implied.
+- GO: full kvalifisert markedsflate, produsent-/klokke-/domene-/alias-/koblingskontroller og teknisk CPU train/smoke.
+- NO-GO: økt treningsomfang eller økonomisk/serving-admisjon fra denne 128-stegsoppskriften; læring og edge er ikke kvalifisert.
+- Native h20: fortsatt blokkert og ikke nytrent med kalenderkorrigering.
+- Arkitektur: behold Transformer som hovedkandidat; ingen målt begrunnelse for å erstatte den med TCN.
+- P0s opprinnelige NO-GO beholdes. GX1 er ikke avsluttet. En ny metodeundersøkelse må diagnostiseres og bindes eksplisitt før nye fits.
 
-Evidence root: `/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026`.
-Completion review binds artifacts, original failure and96-case focused/14-case
-repair XML controls (both zero failures/errors; overlapping cases are not added).
-Existing20 P0 code tests also passed, and native pre-commit contract guards passed.
-Syntax, stale-path scan and diff checks are separate code-consistency controls.
+Merverdi fra nye features er ikke dokumentert av denne studien. TRAIN-fit, utviklingsgeneralisering, referanseverdi, projisert økonomi og framtidig launch er separate grenser. Ingen urørt OOS, faktiske fills, komplett historisk finansiering, native ny h20-trening eller live-/paper-resultat er undersøkt.
 
-## Operator follow-up: all qualified market features and the 26-month study
+## Verifisering og artefakter
 
-The operator approved training/smoke after verifying the informative inputs.
-Before any new model outcome, the scope was corrected: the old37-field recipe
-omitted238 existing native market fields, including27 previously paused pattern
-fields. New027 preserves all254 non-macro native signal fields across all eight
-families, F12/L8/basis and native session category. All61 macro fields remain
-excluded because historical publication is unqualified. No outcome selects which
-market fields survive. Constant/sparse fields are reported, retained and not
-claimed informative. Existing formula-ledger evidence is reused, with current
-physical-row/domain/context-alias checks; not every native raw formula is rebuilt.
+42 fokuserte feature-/produsent-/P0-kontroller og16 endelige feltkontraktkontroller bestod; overlappende tester summeres ikke. Native pre-commit-vakter bestod. Etterkontrollen validerte3 035 handler/åpne markeringer mot eksakte rå XAU bid/ask, alle kostscenarioer og siste dagsequity, med eksplisitt FP64-summeringsfeilgrense på hele ledgeren. Alle fem purging-/embargogrenser og originalt native-checkpoint er kontrollert. TEST=false, source_unchanged=true, alle manifest-/artefakthasher matcher. Ingen originalkvitteringer eller checkpoints er omskrevet.
 
-278 raw fields become285 model channels by one-hot encoding the exact native
-SMC-state and session domains; missing observations are never filled. F columns
-are independently checked against cached genuine M1 aggregation; L distances and
-previous-level responses against stored levels/GC closes; basis against GC close
-and actual XAU bid/ask mid. Cached producer prefix/volume/value-area proofs remain
-in force. The added market/context fields require fresh normalization and a new
-single-use qualification; no consumed qualification is rerun.
+Kvalifisering: `/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_ALL_FEATURES_QUALIFICATION_20261017_027/RESULTS`. Train/smoke: `/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/RESULTS`. Atomisk completion review: `GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/COMPLETION_REVIEW/REVIEW.json`.
 
-To cover the26months chronologically,028 is one fixed five-fold walk-forward
-train/smoke study, with the first fold as integration smoke. Exactly four fits per
-fold (two ridge, Transformer, TCN), no HPO/seed retries,128 steps per neural fit.
-Batch86 = ceil(10,988 /128), derived from the largest previously qualified TRAIN
-fold: every network sees every declared TRAIN row. Whole study remains capped
-4G/512M/one numerical thread and30minutes. Native/GPU/h20/TEST remain closed.
-Normalization is fitted once on each fold's unique physical TRAIN input rows.
-Pooled economic replay carries positions across fold boundaries. Eight frozen
-pooled contrasts are multiplicity-adjusted; per-fold metrics are descriptive.
-This supersedes the unexecuted narrower first-fold proposal by the new explicit
-user request, before model outcomes. It is not a rescue tuned on those outcomes.
-
-The final pre-execution field inventory also retains genuine GC M5 executed
-volume and trade-record counts, with exact cached-M1 conservation checks.
-The algebraically duplicate trades/300 intensity column is not duplicated.
-
-027 completed once in51.323s:12,482 sequences of6x285 channels, all254 native
-market fields/eight families and23,807 physical input rows. Every F/L field,
-GC volume/trade count and basis matches cached-M1 aggregation/algebra exactly
-on all23,807 rows. All previous-level reaction rows have exact adjacent native
-clocks. Both models have nonzero real-input derivatives for all285 channels,
-with unchanged weights and zero optimizer steps. Only close_range_observed is
-constant (availability flag on already observed rows); it is retained and no
-informativeness is asserted. These checks admit the explicitly approved028 CPU
-train/smoke; native h20 and TEST remain closed.
+Implementasjonen gjenbruker eksisterende PyTorch/native readout, økonomi- og publiseringseiere. TCN-prinsipp: [Bai, Kolter og Koltun](https://arxiv.org/abs/1803.01271); encoderprimitive: [PyTorch](https://docs.pytorch.org/docs/stable/generated/torch.nn.TransformerEncoderLayer.html). Installerte versjoner og eksakt feltsortering er frosset i027-planen.

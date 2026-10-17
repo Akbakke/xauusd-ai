@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-17T21:46:05.183791+00:00",
-  "status": "FULL_FEATURE_QUALIFICATION_COMPLETE__SCOPED_CPU_TRAIN_SMOKE_AUTHORIZED__NATIVE_CLOSED",
+  "observed_utc": "2026-10-17T21:50:58.262267+00:00",
+  "status": "GC_FULL_FEATURE_TRAIN_SMOKE_COMPLETE__MECHANICS_PASS__LEARNING_ECONOMICS_NO_GO",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Run once frozen028 CPU five-fold Transformer/TCN train+smoke, exact027 qualified inputs, max20fits/1280optimizer steps/1800s and no hyperparameter/model selection. Preserve all results; native/h20/TEST remain closed.",
+  "next_action": "Preserve all results and measured input correctness. No extra fit/epoch/GPU or TCN replacement admitted. A small-smoke failure does not close GX1 or establish missing feature information; diagnose before any newly bounded learning-method proposal.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "027 full-field audit complete:254 native market fields/eight families,285 encoded channels,23807 physical rows; 028 CPU train/smoke admitted by explicit user approval.",
+    "current_activity": "Full-feature26month CPU train/smoke028 complete:20fits/fivefolds. Input/wiring/mechanics PASS; no network beats TRAIN mean at128steps; predictive/economic edge not qualified.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -110,14 +110,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "GC_SEQUENCE_INPUTS_QUALIFIED__P0_NO_GO_PRESERVED__PILOT_CLOSED",
+    "gc_goal_status": "FULL_FEATURE_CPU_STUDY_COMPLETE__NO_EDGE_QUALIFIED__P0_NO_GO_PRESERVED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Full-feature genuine-data producer/domain/wiring qualification027; zero optimizer steps, not learning evidence.",
+    "latest_terminal_role": "Completed five-fold CPU Transformer/TCN train/smoke on full qualified market inputs; technical success with negative learning/economic qualification.",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_ALL_FEATURES_QUALIFICATION_20261017_027/RESULTS/TERMINAL.json",
-      "sha256": "416f81421b98162e7fb64ebf5cc699ae68eb2b64f9f20fe76973e06fea85e0a8"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/RESULTS/TERMINAL.json",
+      "sha256": "18b55d817c8abfce8c5d8bd0de5ec3ae02f0d955fc09c5cf81d0f144507dadd2"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -137,7 +137,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No CPU research blocker after027. Native h20 remains blocked by historical calendar/publication and successor bindings.",
+    "current_blocker": "Frozen smoke recipe did not pass learning/economic qualification; all fits consumed. Native h20 also retains calendar/publication/successor binding gaps.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7611,7 +7611,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run once frozen028 CPU five-fold Transformer/TCN train+smoke, exact027 qualified inputs, max20fits/1280optimizer steps/1800s and no hyperparameter/model selection. Preserve all results; native/h20/TEST remain closed.",
+    "next_action": "Preserve all results and measured input correctness. No extra fit/epoch/GPU or TCN replacement admitted. A small-smoke failure does not close GX1 or establish missing feature information; diagnose before any newly bounded learning-method proposal.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9272,10 +9272,10 @@
       "qualification_authorized": false,
       "qualification_claimed_invocations": 1,
       "qualification_completed_invocations": 1,
-      "pilot_status": "AUTHORIZED_SINGLE_USE",
-      "pilot_training_authorized": true,
-      "pilot_claimed_invocations": 0,
-      "pilot_completed_invocations": 0,
+      "pilot_status": "COMPLETE_SINGLE_USE_CONSUMED__TECHNICAL_PASS_LEARNING_ECONOMIC_NO_GO",
+      "pilot_training_authorized": false,
+      "pilot_claimed_invocations": 1,
+      "pilot_completed_invocations": 1,
       "native_training_authorized": false,
       "test_authorized": false,
       "previous_P0_NO_GO_preserved": true,
@@ -9402,8 +9402,59 @@
       "pilot_authority_basis": "explicit user approval17.10 plus completed full-feature qualification027; single scoped CPU research study only",
       "constant_consumed_fields": [
         "ctx_cont.close_range_observed"
-      ]
-    }
+      ],
+      "pilot_result": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/RESULTS/RESULT.json",
+        "sha256": "1f3a0bdbaa4d17a35375165872708983d35595aed267a073ba08b6df4cf14766"
+      },
+      "pilot_terminal": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/RESULTS/TERMINAL.json",
+        "sha256": "18b55d817c8abfce8c5d8bd0de5ec3ae02f0d955fc09c5cf81d0f144507dadd2"
+      },
+      "pilot_completion_review": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/COMPLETION_REVIEW/REVIEW.json",
+        "sha256": "0e471e12e2dd5c3cc8dcedf398ed7ec1ce7a14a9157bc0abf88237305ee5876f"
+      },
+      "measured_summary": {
+        "folds": 5,
+        "evaluation_rows": 5444,
+        "fits": 20,
+        "neural_fits": 10,
+        "optimizer_steps": 1280,
+        "elapsed_seconds": 16.10457036399748,
+        "smoke": {
+          "all_folds_completed": true,
+          "all_models_finite": true,
+          "all_networks_observed_every_train_row": true,
+          "native_or_TEST_changed": false,
+          "saved_network_weights_bit_exact": true
+        },
+        "mse_bps2": {
+          "constant": 453.62548833977104,
+          "linear_sequence": 643.9275291997104,
+          "linear_snapshot": 516.4005537363388,
+          "tcn": 496.95284111346115,
+          "transformer": 588.5280612717262,
+          "tree_CORE": 455.26068025594174,
+          "tree_FLV": 456.36731495314393
+        },
+        "central_net_bps": {
+          "always_FLAT": 0.0,
+          "always_LONG": 1684.995872164729,
+          "constant": 0.0,
+          "linear_sequence": -5536.034827749517,
+          "linear_snapshot": -1237.4017476752977,
+          "tcn": -4293.02924084022,
+          "transformer": -2399.2590130269023,
+          "tree_CORE": -109.76840227030974,
+          "tree_FLV": -129.67400909105643
+        },
+        "networks_beating_TRAIN_mean": 0,
+        "edge_qualified": false
+      },
+      "next_action": "Preserve all results and measured input correctness. No extra fit/epoch/GPU or TCN replacement admitted. A small-smoke failure does not close GX1 or establish missing feature information; diagnose before any newly bounded learning-method proposal."
+    },
+    "research_fit_completed": true
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -11967,5 +12018,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T21:46:05.183791+00:00"
+  "updated_utc": "2026-10-17T21:50:58.262267+00:00"
 }

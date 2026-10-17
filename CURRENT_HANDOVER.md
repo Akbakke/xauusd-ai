@@ -1,89 +1,61 @@
-# CURRENT HANDOVER — 17.10.2026
+# CURRENT HANDOVER — full-feature train/smoke 17.10.2026
 
 Authority: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json
 is the only work status. One agent/capped CURRENT job. Native training_enabled=false;
-TEST, baseline, Entry/Exit, production/live, broker and spending remain unchanged/closed.
+TEST, baseline, Entry/Exit, production/live, broker and spending stay closed.
 
-## Current boundary: approved CPU train/smoke, full-feature qualification first
+## Current boundary: completed CPU study, no learning/economic qualification
 
-Operator17.10 approved train/smoke on26months after verifying all informative
-inputs. New027/028 expands the unexecuted37-field proposal to all254 native
-non-macro market fields across all eight families, existing F12/L8/basis and
-session category:278 raw fields,285 explicit encoded channels. All61 macro
-fields with publication gaps and insufficient signed flow stay excluded.
-No market fields selected or deleted on model outcomes.
+Operator17.10 requested all informative fields checked, then26month train/smoke.
+027 qualification and028 train/smoke are COMPLETE once and consumed. No relaunch,
+extra steps, epochs, HPO, architecture selection or automatic extension admitted.
+Report: docs/TRANSFORMER_TCN_RESEARCH_20261017.md.
 
-027 COMPLETE once,51.323s,exit0,source unchanged,TEST=false. All254 native fields
-and eight families present; all285 channels reach both models. F/L/volume/trades
-and basis exact on23,807 consumed physical rows. Only availability marker
-close_range_observed is constant; no quality/edge claim follows. 026/024
-remain consumed. NEXT_RUN_POLICY now admits the explicitly approved028, which uses five original purged
-chronological folds, two fixed ridge fits and one128-step Transformer/TCN each
-per fold, max20fits/10neural fits,whole1800s/4G/512M/one numerical thread.
-Batch86 derives from largest TRAIN10,988 /128 steps. First fold is smoke;
-normalization is TRAIN-only per fold, economic positions carry between folds.
-No HPO/seed retries or automatic extension. Native/GPU/h20/TEST remain closed.
+Inputs: all254 native non-macro market fields from all eight genuine families,
+F12/L8/basis plus genuine GC-volume/trades and native session.278 raw fields,
+285 encoded channels.12,482 sequences of6bins,all26months. All23,807 physical
+consumed rows pass exact F/L/volume/trade/basis M1 aggregation/algebra; native
+field-ledger/domain/alias checks and285/285 channel derivatives pass. Only
+close_range_observed is constant, an availability flag.61 macro fields with
+publication gaps and incomplete signed flow stay out; missing history not filled.
 
-Report docs/TRANSFORMER_TCN_RESEARCH_20261017.md. NEXT_RUN_POLICY is status owner.
-Latest027 terminal remains input-only proof (12,482 sequences,all26months);
-no new market model training has run yet; 028 is admitted for one CPU study. Latest native actual training15.10
-was4,071 Entry-only steps on independent observed h20; frozen weights/Exit remain
-unchanged, and historical calendar/COT publication/native successor gaps persist.
+028 ran five purged chronological folds,20 fits (10neural),128steps/network,
+batch86 (every TRAIN row seen),1,280 optimizer steps total; terminal16.105s,
+CPU4G/512M/one numerical thread,source unchanged,TEST=false. All saved network
+weights strict-load with identical outputs.20fits completed; both neural models
+improve fresh initial MSE but neither beats TRAIN mean in any fold. Technical
+PASS is not learned edge.128steps is not an adequate convergence/capacity verdict.
 
-## Preserved P0 decision: NO-GO — stop this GC/M5 P0 recipe
+5,444 common development evaluation rows: MSE TRAIN-mean453.625, locked
+FLV456.367, Transformer588.528,TCN496.953bps². Central v3 net:Transformer
+-2399.259bps,TCN-4293.029bps; cheapest declared cost scenario also negative.
+TCN versus Transformer simultaneous MSE interval includes zero. No qualified
+architecture winner; retain native Transformer as main candidate. Native full
+96bar/MTF Transformer was not retrained by this separate small-encoder study.
 
-Closing report: docs/GC_P0_CLOSING_DIAGNOSIS_20261017.md.
-023 COMPLETE once, exit0, source_unchanged=true, test_data_used=false, models_refitted=0.
-No new model inference, fit, HPO, Transformer/RL, calibrator, sign inversion or
-threshold/horizon selection. 021/022 originals unchanged; no consumed plan relaunch.
+Independent post-check:3,035 trades/open marks match raw XAU M1 bid/ask, all
+cost scenarios and final daily equity; all five purge/embargo checks pass.
+Original native checkpoint unchanged. Economic marks include open positions
+and cost reserves, carry across fold boundaries, and have no fixed max hold.
+Historical funding/fills and intra-gap drawdown remain unqualified; all26months
+are reused development, never independent confirmation or realized profit.
 
-- Saved forecasts have weak/nonstable alignment. MSE above TRAIN mean decomposes
-  exactly into forecast energy minus outcome alignment. CORE negative covariance
-  mostly between folds; F/FLV also negative within folds. Not all individual folds
-  or regimes are negative; this does not establish a useful inverse predictor.
-- All288 original tree entries LONG in May/June2026. Negative predictions exist,
-  but every SHORT net margin remains negative (max−0.183bps). First four folds
-  never cross the unchanged central fee/spread/funding requirement. One-position
-  sequencing changes counts, not sign. Coverage does not itself force LONG.
-- Original same-entry30min markouts can overlap: CORE+48.96bps sum, wide weekly
-  uncertainty, no new GC layers. All F/L/V-added arms negative centrally.
-  Separate one-position fixed30 diagnostic: CORE−8.48, F−352.75, L−385.93,
-  V−52.25, FL−532.61, FV−404.50, LV−297.87, FLV−245.46bps centrally.
-  All new-F/L arms also negative at cheapest costs. No safe holding rescue.
-- Holding mismatch is real: median5–90min, max1565min. Longest F case includes
- 108 qualified intervening LONG updates; not merely missing-input stalls.
-  Fixed30 is user-requested diagnostic only; no native max hold/Exit change.
-- L has small descriptive incremental prediction gain, uncertain and untradeable
-  here; FLV improves no fold. None of the nine pooled one-way session/RV/trend slices beats TRAIN mean
-  MSE in any of eight models. Subgroup results are descriptive, never strategy selection.
-- Same strict F/L cohort/rows across arms. Per-fold coverage12.13–36.78% vs
-  initialTRAIN30.39%; selected markouts less volatile than excluded in every fold.
-  Full per-fold/session/RV/trend counts/results saved. No extrapolated predictions
-  for unselected rows, no relaxed masks, no new features or provider calls.
+Artifacts: /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/
+GC_SEQUENCE_ALL_FEATURES_QUALIFICATION_20261017_027/RESULTS and
+GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/RESULTS; atomic final review in
+GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/COMPLETION_REVIEW/REVIEW.json.
+Exact hashes/scope/current action: current_work.gc_sequence_research_20261017.
+Next: preserve evidence; diagnose before any newly bounded learning proposal.
+No new training launched or authorized automatically. GX1 is not closed.
 
-Evidence: /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/
-GC_P0_CLOSING_DIAGNOSIS_20261017_023/RESULTS; companion DECISION_SUMMARY.json
-and HOLDING_CONTEXT.json preserve descriptive publication context. Eight new
-mathematical/clock tests +12 existing P0 contracts passed; focused final handover
-policy check and source/terminal/publication controls accompany completion.
-Raw30min labels exact for all17,301 saved decisions; fixed30 cash matches canonicalv3.
+## Preserved native h20 and P0 boundaries
 
-## Limits and continuation boundary
+Native last actual training15.10:4,071 Entry-only independent observed-h20 steps,
+65,136 unique TRAIN rows,150 Exit state fields unchanged. Latest checkpoint/recipe
+verified; newer exact-terminal h20 candidate642,214/646,543 baseline-valid rows
+has no corrected-calendar native fit. Historical calendar/COT publication and
+successor dataset/normalization/initialbaseline/campaign bindings remain blocked.
 
-We have not found tradeable edge. This is not proof that all raw GC information
-is worthless or a causal diagnosis of training under/overfit. Only saved outputs
-were inspected. No independent confirmation exists; all26GCmonths are development.
-Tick fills, intra-gap drawdown, historical financing and macro publication/vintages
-remain unqualified. All61macro inputs stay excluded from this P0 control; no new
-macro work or source-ingestion change in this wave. D1/h20 remains separate.
-No further P0 model test/complexity is justified or admitted. Preserve qualified
-GC inputs/code and original evidence; do not automatically start another study.
-
-014/017/019/020/021/022 are preserved consumed foundations/studies. Raw26months,
-strict F83,776, rolling15 48,164 and finite common37,181 remain unchanged.
-Canonical full-GC cache019/PUBLISHED_ARTIFACTS.json; no replay/download required.
-DATA/RUNS deletion only through retention owner/rule9; no cleanup/reboot order here.
-
-The final pre-execution field inventory also retains genuine GC M5 executed
-volume and trade-record counts, with exact cached-M1 conservation checks.
-The algebraically duplicate trades/300 intensity column is not duplicated.
+Original GC/M5 P0 NO-GO stays preserved (docs/GC_P0_CLOSING_DIAGNOSIS_20261017.md).
+No old plan is reused. Qualified GC inputs, negative results, all original
+receipts and checkpoints remain. DATA/RUNS deletion only through retention owner.
