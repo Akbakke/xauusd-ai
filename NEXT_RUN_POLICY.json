@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-17T14:46:31.669067+00:00",
-  "status": "GC_P0_CLOSING_DIAGNOSIS_COMPLETE__NO_GO_STOP_P0__ALL_MODEL_TRAINING_CLOSED",
+  "observed_utc": "2026-10-17T16:29:47.866325+00:00",
+  "status": "GC_SEQUENCE_QUALIFICATION_AUTHORIZED__PILOT_AND_NATIVE_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Stop P0. Preserve qualified GC inputs and all original results; do not fit models, invert forecasts, select regimes/thresholds/horizons or add complexity. No concrete cost-robust incremental GC hypothesis found. TEST/baseline/Exit/production unchanged; further work needs a new independent rationale and explicit bounded scope, not automatic continuation.",
+  "next_action": "Run one capped no-fit GC sequence qualification, verify last native h20 checkpoint/target candidate. Training remains closed; qualify historical calendars/publication semantics before any native successor.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "P0 closing diagnosis complete. NO-GO: stop GC/M5 P0; no concrete cost-robust incremental economic signal supports another model test.",
+    "current_activity": "Separate Transformer/TCN research preparation and no-fit sequence qualification requested 17.10.2026; P0 original NO-GO preserved.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -137,7 +137,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "P0 research closed NO-GO; no further model fit/HPO/Transformer/RL/threshold/horizon search admitted. No tradeable edge found; original native gates remain closed.",
+    "current_blocker": "GC sequence pilot not admitted by policy; native successor also blocked on historical session/calendar and macro publication semantics.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7611,7 +7611,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Preserve completed inputs. Prepare an explicitly corrected research macro control (known COT release leak) or preregister exclusion of unqualified macro inputs; freeze one finite matched rule/small-XGBoost development recipe with original risk/guards. No model launch until separately admitted; native TEST/live/promotion stay closed.",
+    "next_action": "Run one capped no-fit GC sequence qualification, verify last native h20 checkpoint/target candidate. Training remains closed; qualify historical calendars/publication semantics before any native successor.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9263,6 +9263,24 @@
       "native_TEST_accessed": false,
       "original021_022_preserved": true,
       "uncertainty_and_selection_limitations_reported": true
+    },
+    "gc_sequence_research_20261017": {
+      "operator_request": "17.10.2026 attached Transformer/TCN new research round; bounded training only under NEXT_RUN_POLICY authority",
+      "plan_path": "configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json",
+      "plan_sha256": "f87b8cfbabf979971ed346c8659e19a6ce8daeec43d951e63db5bfc55d8ec94d",
+      "qualification_status": "AUTHORIZED_SINGLE_USE",
+      "qualification_authorized": true,
+      "qualification_claimed_invocations": 0,
+      "qualification_completed_invocations": 0,
+      "pilot_status": "CLOSED_PENDING_QUALIFICATION_AND_EXPLICIT_POLICY_BINDING",
+      "pilot_training_authorized": false,
+      "pilot_claimed_invocations": 0,
+      "pilot_completed_invocations": 0,
+      "native_training_authorized": false,
+      "test_authorized": false,
+      "previous_P0_NO_GO_preserved": true,
+      "new_independent_hypothesis": "ordered F/L/V states across six contiguous closed M5 bins versus snapshot",
+      "report_path": "docs/TRANSFORMER_TCN_RESEARCH_20261017.md"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -11827,5 +11845,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T13:01:37.961886+00:00"
+  "updated_utc": "2026-10-17T16:29:47.866325+00:00"
 }

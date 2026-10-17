@@ -1,0 +1,115 @@
+# Transformer and TCN research protocol, 17 October 2026
+
+The operator requested a new, bounded offline investigation. Transformer remains
+GX1's main native candidate. Negative GC/M5 P0 remains NO-GO for that recipe;
+it neither closes GX1 nor demonstrates that event ordering has no information.
+Status and execution rights are exclusively in NEXT_RUN_POLICY.json.
+
+## Native architecture and actual last training
+
+`EntryV10CtxHybridTransformer` has a shared learned representation: local
+feature-family sequence encoders, family-specific context/feature gates,
+cross-family attention, M5/M15/H1/H4/D1 encoders, family/timeframe attention and
+context/token gates. Window readout is mean plus last closed token. Entry Q
+uses the joint representation; unified M1 Exit adds shared feature encoders,
+side/path state and recurrent episode/family/timeframe state. This is one
+bundle, not a separate independent Exit model.
+
+The last completed native run was RECENT_365D_S20261016 on 15 October 2026,
+09:48:48.814795–10:55:27.970012 UTC (11:48–12:55 Europe/Oslo): 4,071 optimizer
+steps, 65,136 unique TRAIN rows, seed 20261016. Its source was
+bd78c9f1ca2a7958d32f5c2b463deffc038f1ae4. It already trained independent
+observed-market h20 Entry, not an Exit-derived target. h1/h5 were observations.
+150 Exit state fields remained unchanged. Checkpoint/model-state/recipe and
+receipt identities are verified by the new capped qualification, without
+loading or editing native weights.
+
+CONTROL4096 h20 contrast MSE changed 2,034,165.8973 to 1,889,225.7911 bps²;
+rank IC 0.11735 to 0.27670. This is reused development CONTROL, not qualified
+learning, a costed portfolio, an independent confirmation or profit.
+RECENT_180D was armed and then disarmed for M5 work; it did not train.
+
+Current native contract execution reports 315 signal, 132 continuous context,
+one categorical context and local sequence length 96. Eight genuine families
+plus D1 context remain. New GC OFI/BBO, dynamic volume levels and their time
+sequences have not entered these native contracts or the last trained model.
+No frozen native function is changed by this investigation. A future integration
+would need a declared external research result, a new native input owner and
+manifest/normalization/dataset/baseline/recipe binding through the existing gates.
+
+## Separate D1/h20 target branch
+
+Reuse the already built exact-M1-terminal research candidate. It preserves
+entry-notional bid/ask economics and censors late terminal observations. It
+still counts observed sessions: reconstructability is not calendar validity.
+Historical daily/holiday regimes remain unqualified; the current NY template
+cannot be projected backward as truth. Missing historical COT publication
+receipts also affect the native macro inputs. Neither issue is fixed by a new
+train/validation split. VAL tail reconstruction is blocked by an original raw
+row group crossing sealed TEST. Native baseline/weights remain locked.
+
+The candidate is explicitly `native_observed_sessions_exact_terminal_research_v1`,
+not a qualified historical-calendar replacement. MFE/MAE remain separate path
+diagnostics and are incomplete across unclassified gaps. v3 financing is a
+source-bound projection, not verified historical broker cash terms. New native
+training needs qualified semantics or an explicitly admitted limited research
+binding, successor dataset/normalization/zero-step evidence and a native campaign.
+
+## GC/M5 sequence hypothesis and fixed budget
+
+Six **consecutive real closed M5 bins** (30 minutes of observed history) may
+represent OFI/liquidity/price-response and volume-level interactions that a last
+snapshot misses. This is a hypothesis, not an observed rescue of P0. Input order:
+12 existing F fields, eight rolling15 L distances/reactions, 16 existing V fields,
+one observed GC/XAU close-basis field. No indicators are reimplemented. Delta
+with a known aggressor is reported as a separate stricter coverage count; absent
+signed history is never invented or inserted in the primary model.
+
+Every token must have qualified F/BBO and L masks, finite real values, exact
+five-minute adjacency and the same selected dated GC contract. No rolling across
+gaps, resets/invalid input prefixes or contract rolls; no forward-fill, padding
+of missing market history or compression of irregular observations into sequence
+positions. The TCN uses valid causal convolutions, without zero-padded history.
+Source-clock/roll evidence is reused from the qualified sources, not re-audited.
+These are sequences of MBP1-derived M5 metrics, not raw sub-minute event tensors.
+
+The new recipe fixes length six, one seed, width32; Transformer has one layer,
+four heads and FF64; TCN has kernel2, dilations1/2, two residual convolutions.
+Both use GX1's existing mean-plus-last readout. Native encoders are unchanged.
+The first chronological P0 fold is the sole proposed pilot: constant, two fixed
+ridge fits (last snapshot versus six-bin sequence), saved P0 CORE/FLV LightGBM,
+one Transformer and one TCN fit. Exactly two neural fits of128 steps, batch64,
+no early stopping/retries/search. Existing native AdamW rate/decay/clip are reused.
+
+All five original chronological folds receive coverage/purging counts. Only
+dev_01 is proposed for training; the other folds are not automatically admitted.
+Train labels close before evaluation, with the original24h embargo. Normalization
+fits once on the unique physical TRAIN input rows, not repeated windows or VAL.
+All model evaluation rows are identical; future label availability selects only
+prediction metric rows, never actions. Saved LightGBM uses original211/247 fields,
+while neural/linear models use37; this is a locked reference, not an equal-input
+architecture attribution. Transformer versus TCN does use exactly the same inputs.
+
+Prediction MSE/rank IC/calibration and paired week-block intervals are separate
+from economic replay. Eight frozen contrasts include four versus FLV, three versus the snapshot
+linear model and TCN versus Transformer. Prediction and economic week-block
+intervals use Bonferroni adjustment within their separate eight-contrast families. Existing XAU bid/ask execution, one-position v3 ledger,
+open-position marks, fee/funding scenarios, daily Sharpe/drawdown/turnover/exposure
+are reused. Always-LONG and FLAT retain their comparator roles. Fixed-horizon
+labels are not a native Exit or maximum hold rule. No GO for deployment can
+follow from this reused development pilot. One fold cannot establish stability.
+
+Qualification budget: capped audit4G, swap512M, one numerical thread, affinity0–7,
+600s. Proposed pilot: same caps, <=1,800s total, <=600s/network. No GPU campaign.
+Model construction and genuine-input forward checks are code/resource evidence,
+not fitted models or predictive quality. Training remains explicitly closed.
+
+## Sources and inference limits
+
+The TCN implementation follows causal/dilated convolution principles, without
+assuming they outperform attention on financial data:
+[Bai, Kolter and Koltun](https://arxiv.org/abs/1803.01271).
+The Transformer reuses the existing PyTorch encoder primitive and native readout:
+[PyTorch TransformerEncoderLayer](https://docs.pytorch.org/docs/stable/generated/torch.nn.TransformerEncoderLayer.html).
+Installed library versions, not mutable documentation, are frozen in the recipe.
+No architecture recommendation is supported until matched trained results exist.

@@ -4,7 +4,17 @@ Authority: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json
 is the only work status. One agent/capped CURRENT job. Native training_enabled=false;
 TEST, baseline, Entry/Exit, production/live, broker and spending remain unchanged/closed.
 
-## Current decision: NO-GO — stop GC/M5 P0
+## Current boundary: new sequence qualification, training closed
+
+Operator request17.10: retain native Transformer, inspect latest h20 Entry and
+qualify a separate bounded Transformer/TCN GC sequence study. Plan:
+configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json. Technical/protocol report:
+docs/TRANSFORMER_TCN_RESEARCH_20261017.md. One new capped no-fit qualification is
+bound in current_work.gc_sequence_research_20261017. Pilot/native training remain
+closed. Historical session/calendar and COT publication semantics are unresolved.
+All26GCmonths remain development. Existing native baseline/Exit/TEST unchanged.
+
+## Preserved P0 decision: NO-GO — stop this GC/M5 P0 recipe
 
 Closing report: docs/GC_P0_CLOSING_DIAGNOSIS_20261017.md.
 023 COMPLETE once, exit0, source_unchanged=true, test_data_used=false, models_refitted=0.

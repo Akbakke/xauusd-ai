@@ -303,3 +303,13 @@ epoke; full epoke krever et læringssignal i det mindre vinduet og eget vedtak.
 Ingen seleksjon på CONTROL, ingen TEST-lesing, ingen featurekassering,
 training_enabled=false består. Agentene i gjennomgangen var leserettede;
 «én agent om gangen» gjelder fortsatt for tunge jobber og kodeendringer.
+
+## Operatørvedtak 17.10.2026: separat Transformer-/TCN-undersøkelse
+
+Brukeren bestilte teknisk kartlegging, kvalifisering av korrigerte h20-mål og
+en separat avgrenset GC/M5-sekvensstudie med liten Transformer og TCN.
+Dette åpner kode og capped datakvalifisering i den nye bundne forskningsplanen,
+ikke relansering av P0 eller automatisk trening. Native Transformer beholdes;
+D1/h20 og GC/M5 skilles. Modellfits krever egen nødvendig NEXT_RUN_POLICY-binding
+etter kvalifisering. All26GCmåneder er utvikling; TEST, native baseline/Exit,
+handel, broker, spending og omfattende GPU-trening forblir lukket.
