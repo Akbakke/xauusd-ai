@@ -13,8 +13,11 @@ session category:278 raw fields,285 explicit encoded channels. All61 macro
 fields with publication gaps and insufficient signed flow stay excluded.
 No market fields selected or deleted on model outcomes.
 
-027 is one fresh capped full-feature producer/wiring qualification. 026/024
-remain consumed. Then the explicitly approved028 uses five original purged
+027 COMPLETE once,51.323s,exit0,source unchanged,TEST=false. All254 native fields
+and eight families present; all285 channels reach both models. F/L/volume/trades
+and basis exact on23,807 consumed physical rows. Only availability marker
+close_range_observed is constant; no quality/edge claim follows. 026/024
+remain consumed. NEXT_RUN_POLICY now admits the explicitly approved028, which uses five original purged
 chronological folds, two fixed ridge fits and one128-step Transformer/TCN each
 per fold, max20fits/10neural fits,whole1800s/4G/512M/one numerical thread.
 Batch86 derives from largest TRAIN10,988 /128 steps. First fold is smoke;
@@ -22,8 +25,8 @@ normalization is TRAIN-only per fold, economic positions carry between folds.
 No HPO/seed retries or automatic extension. Native/GPU/h20/TEST remain closed.
 
 Report docs/TRANSFORMER_TCN_RESEARCH_20261017.md. NEXT_RUN_POLICY is status owner.
-Latest026 terminal remains input-only proof (12,482 sequences,all26months);
-no new market model training has run yet. Latest native actual training15.10
+Latest027 terminal remains input-only proof (12,482 sequences,all26months);
+no new market model training has run yet; 028 is admitted for one CPU study. Latest native actual training15.10
 was4,071 Entry-only steps on independent observed h20; frozen weights/Exit remain
 unchanged, and historical calendar/COT publication/native successor gaps persist.
 

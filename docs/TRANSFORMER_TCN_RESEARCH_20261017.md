@@ -225,3 +225,13 @@ user request, before model outcomes. It is not a rescue tuned on those outcomes.
 The final pre-execution field inventory also retains genuine GC M5 executed
 volume and trade-record counts, with exact cached-M1 conservation checks.
 The algebraically duplicate trades/300 intensity column is not duplicated.
+
+027 completed once in51.323s:12,482 sequences of6x285 channels, all254 native
+market fields/eight families and23,807 physical input rows. Every F/L field,
+GC volume/trade count and basis matches cached-M1 aggregation/algebra exactly
+on all23,807 rows. All previous-level reaction rows have exact adjacent native
+clocks. Both models have nonzero real-input derivatives for all285 channels,
+with unchanged weights and zero optimizer steps. Only close_range_observed is
+constant (availability flag on already observed rows); it is retained and no
+informativeness is asserted. These checks admit the explicitly approved028 CPU
+train/smoke; native h20 and TEST remain closed.
