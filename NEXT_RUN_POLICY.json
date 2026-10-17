@@ -165,7 +165,7 @@
       "sha256": "40e5528f4e83d55d3fc699998aa817c0aab07f92e1f6ee6162869ce8f260bcce"
     },
     "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": true,
+    "source_unchanged_at_terminal": null,
     "full_benchmark_completed": true,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -8783,7 +8783,10 @@
       "native_M5_footprint_value_falsified": false,
       "native_sequences_or_attention_tested": false,
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
-    }
+    },
+    "latest_terminal_evidence_gaps": [
+      "source_unchanged_field_missing"
+    ]
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",

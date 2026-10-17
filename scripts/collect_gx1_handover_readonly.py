@@ -354,6 +354,23 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     if _sha256(terminal_path) != binding["sha256"]:
         raise ValueError("CURRENT_TERMINAL_HASH_MISMATCH")
     terminal = json.loads(terminal_path.read_text())
+    # The completed Trade probe uses test_accessed, not the native terminal
+    # schema. Accept only its exact policy-bound receipt; missing source proof
+    # remains unknown and blocks readiness below.
+    probe = work.get("gc_m5_trade_probe_007", {})
+    research_terminal = (
+        binding == {"path": probe.get("terminal_path"),
+                    "sha256": probe.get("terminal_sha256")}
+        and probe.get("completed_invocations") == 1
+        and probe.get("execution_authorized") is False
+        and probe.get("relaunch_authorized") is False
+        and terminal.get("status") == "COMPLETE"
+        and type(terminal.get("exit_code")) is int
+        and terminal["exit_code"] == 0
+        and terminal.get("research_fit_completed") is True
+        and terminal.get("native_training_started") is False
+    )
+    test_witness = terminal.get("test_accessed" if research_terminal else "test_data_used")
     failed_without_test_witness = (
         type(terminal.get("exit_code")) is int
         and terminal["exit_code"] != 0
@@ -362,8 +379,9 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     if (type(terminal.get("exit_code")) is not int
             or terminal["exit_code"] != work["terminal_exit_code"]
             or terminal.get("source_unchanged") is not work["source_unchanged_at_terminal"]
-            or (terminal.get("test_data_used") is not False
-                and not failed_without_test_witness)):
+            or (test_witness is not False and not failed_without_test_witness)
+            or (research_terminal and "test_data_used" in terminal
+                and terminal["test_data_used"] is not False)):
         raise ValueError("CURRENT_TERMINAL_STATE_MISMATCH")
     out["latest_terminal_receipt"] = terminal
     out["current_processes"] = _current_processes(repo)
@@ -377,6 +395,13 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
         out["next_run"]["blocked_reasons"] = [
             *out["next_run"]["blocked_reasons"],
             "latest_failed_terminal_test_isolation_unproven",
+        ]
+    if research_terminal and "source_unchanged" not in terminal:
+        out["latest_terminal_evidence_gaps"] = ["source_unchanged_field_missing"]
+        out["next_run"]["decision"] = "BLOCKED"
+        out["next_run"]["blocked_reasons"] = [
+            *out["next_run"]["blocked_reasons"],
+            "latest_research_terminal_source_witness_missing",
         ]
     return out
 

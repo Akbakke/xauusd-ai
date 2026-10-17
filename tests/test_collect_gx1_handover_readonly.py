@@ -74,6 +74,66 @@ def test_missing_test_witness_observes_failed_exit_but_blocks_any_native_readine
     assert out['next_run']['blocked_reasons'] == ['latest_failed_terminal_test_isolation_unproven']
 
 
+def _completed_research_terminal(repo):
+    path, policy = _policy(repo)
+    work = policy['current_work']
+    terminal = Path(work['latest_terminal']['path'])
+    value = {'exit_code': 0, 'status': 'COMPLETE', 'research_fit_completed': True,
+             'native_training_started': False, 'test_accessed': False}
+    terminal.write_text(json.dumps(value))
+    work['latest_terminal']['sha256'] = hashlib.sha256(terminal.read_bytes()).hexdigest()
+    work['terminal_exit_code'] = 0
+    work['source_unchanged_at_terminal'] = None
+    work['gc_m5_trade_probe_007'] = {
+        'terminal_path': str(terminal), 'terminal_sha256': work['latest_terminal']['sha256'],
+        'completed_invocations': 1, 'execution_authorized': False, 'relaunch_authorized': False,
+    }
+    path.write_text(json.dumps(policy))
+    return path, policy, terminal, value
+
+
+def test_bound_research_receipt_preserves_unknown_source_and_blocks_readiness(fixture, monkeypatch):
+    _, _, terminal, value = _completed_research_terminal(fixture)
+    before = terminal.read_bytes()
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness',
+                        lambda _: {'decision': 'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES',
+                                   'blocked_reasons': []})
+    out = current_status(fixture)
+    assert terminal.read_bytes() == before
+    assert out['latest_terminal_receipt'] == value
+    assert out['latest_terminal_evidence_gaps'] == ['source_unchanged_field_missing']
+    assert out['next_run']['decision'] == 'BLOCKED'
+    assert out['next_run']['blocked_reasons'] == ['latest_research_terminal_source_witness_missing']
+
+
+@pytest.mark.parametrize('mutation', ['unbound', 'native_fit', 'test_access', 'source_claim',
+                                      'conflicting_test_witness', 'incomplete', 'relaunch'])
+def test_research_receipt_cannot_bypass_native_terminal_guards(fixture, mutation):
+    path, policy, terminal, value = _completed_research_terminal(fixture)
+    work = policy['current_work']
+    if mutation == 'native_fit':
+        value['native_training_started'] = True
+    elif mutation == 'test_access':
+        value['test_accessed'] = True
+    elif mutation == 'source_claim':
+        work['source_unchanged_at_terminal'] = True
+    elif mutation == 'conflicting_test_witness':
+        value['test_data_used'] = True
+    elif mutation == 'incomplete':
+        value['status'] = 'RUNNING'
+    elif mutation == 'relaunch':
+        work['gc_m5_trade_probe_007']['relaunch_authorized'] = True
+    terminal.write_text(json.dumps(value))
+    work['latest_terminal']['sha256'] = hashlib.sha256(terminal.read_bytes()).hexdigest()
+    work['gc_m5_trade_probe_007']['terminal_sha256'] = work['latest_terminal']['sha256']
+    if mutation == 'unbound':
+        work['gc_m5_trade_probe_007']['terminal_sha256'] = '0' * 64
+    path.write_text(json.dumps(policy))
+    with pytest.raises(ValueError, match='CURRENT_TERMINAL_STATE_MISMATCH'):
+        current_status(fixture)
+
+
 @pytest.mark.parametrize('exit_code,test_flag', [(0, 'absent'), (1, True), (1, None)])
 def test_terminal_test_isolation_cannot_be_soft_passed(fixture, monkeypatch, exit_code, test_flag):
     repo = fixture

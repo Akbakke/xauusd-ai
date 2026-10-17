@@ -17,7 +17,7 @@ docs/GC_M5_FEATURE_RECIPE.md. 100 fokuserte mekanikk-/SMC-/handover-tester og 41
 består. En gammel kilde-test krevde fortsatt at alle steg var uferdige etter
 004; den skiller nå maskert input-admission fra komplett tape-kvalifisering.
 005 fullførte råpassering/avstemming og beregning, men feilet på rapportens
-NumPy-int64 → JSON før publisering. Ingen ferdig featurefil er publisert.
+NumPy-int64 → JSON før publisering. Ingen ferdig featurefil ble publisert av 005.
 Feil, logg og delrapport er bevart; 005 relanseres ikke. 006 er ny, claimet
 minimal gjenopptakelse: samme formler/masker, gjenbruk av 15 hash-bundne
 ladderfiler (ca. 56 MB), gjenoppbygging av ikke-persisted OHLC-rekkefølge og
@@ -33,11 +33,10 @@ D1 har ingen gyldig komplett bar. Eksisterende native MTF beholdes.
 RESULTS/M5_FEATURES.parquet sha256 9d5f035b43e9b3889a8492ad0d855adc42a3c0a2b1376b6568433713d296469f.
 Ingen outcomes, fit, TEST eller økonomi er lest/kjørt av bygget. Book-OFI og
 native integrasjon/paritet er ubevist; hele opprinnelige GC-protokollens steg 2
-er derfor ikke feilaktig markert fullført. Neste konkrete arbeid er en
-forhåndsbundet matched A/B/C-forskningsfit på tilgjengelige Trade-features,
-med eksisterende native snapshots og MTF-kontekst; ingen native serving-adgang.
+er derfor ikke feilaktig markert fullført. Matched A/B/C-forskningsfit 007 er
+fullført med eksisterende native snapshots og MTF-kontekst (resultat under).
 Native trening/normalisering, TEST, økonomi og launch er fortsatt stengt;
-ny konkret intradag-mål-/recipebinding gjenstår etter featurebeviset.
+native GC-representasjon/paritet og konkret M5-mål-/recipebinding gjenstår.
 Opprydding/komprimering er fullført; dette er ikke lenger en blokkering.
 
 Historisk: minimum native læring på D1-horisontmålet (vedtak 12.10) er gjennomført
@@ -53,6 +52,11 @@ REJECT etter forhåndsregelen, men med et retningssignal kurven ikke hadde
 bølge 1 er utført gjennom eieren (35 mål, 78,3 GiB, DELETE_COMPLETE). Ingen
 dokumentert Entry-edge, ingen prediktor innrømmet, training_enabled = false,
 TEST forseglet.
+
+Overleveringsleseren støtter den hashbundne forskningskvitteringens
+`test_accessed=false`. Originalterminalen har ikke `source_unchanged`;
+policy registrerer derfor ukjent (`null`), og leseren holder native readiness
+BLOCKED med dette evidensgapet. Originalkvitteringen er uendret.
 
 ## Avgrenset M5/MTF Trade-probe 007 før native adopsjon
 
@@ -436,7 +440,7 @@ verdier bygges i ny plan 005; native trening er ennå ikke bundet.
 Gamle generasjonskvitteringer er historisk evidens, ikke lenger en påstand
 om at pensjonerte payloads fortsatt er komplette på disk.
 Alle kanoniske GC-gzipfiler/kvitteringer, gjeldende D1-inputs, modellvekter,
-checkpoints og terminalkvitteringer beholdes. GC-featurearbeidet gjenstår.
+checkpoints og terminalkvitteringer beholdes. Trade-features 006 er ferdige; native GC-integrasjon gjenstår.
 
 ## Seed-/180d-bølgen (operatør «Ja, 1 og 2» 15.10)
 
