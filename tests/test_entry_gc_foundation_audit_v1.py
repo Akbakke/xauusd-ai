@@ -40,3 +40,8 @@ def test_active_audit_config_inputs_have_canonical_existing_bindings():
     for key in ['native_design','GC_probe_plan','GC_predictions','GC_masks','GC_features']:
         path=Path(plan[key]['path'])
         assert path.is_absolute() and path==path.resolve() and path.is_file()
+
+def test_VAL_reference_does_not_call_partial_source_session_a_censored_label():
+    from gx1.scripts.audit_entry_gc_foundation_v1 import safe_reference_prefix
+    r={'session_supported':np.array([True,True,False]),'target_ns':np.array([DAY,2*DAY,3*DAY])}
+    assert safe_reference_prefix(r,2*DAY+MINUTE,0).tolist()==[True,False,False]

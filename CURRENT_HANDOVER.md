@@ -9,7 +9,11 @@ ligger i Git og i policyens bindinger, ikke her.
 Ny bestilling 17.10 krever eksakte target-/pris-/kost-/klokkebevis før videre
 P0-trening, uten å endre mål eller Exit. Audit 008 stoppet før råpriser: to config-inputbindinger var relative, mens
 validatoren krever absolutte stier. Original logg/claim og feilterminal er bevart.
-Ny 009 retter bare de to inputstiene; 008 relanseres ikke. 009 er claimet;
+Ny 009 retter bare de to inputstiene; 008 relanseres ikke. 009 er konsumert: TRAIN-referansen passerte, men VAL-h20 møtte den
+upartielle/partielle rå-row-group-grensen. Ingen komplett resultatrapport fra 009.
+Ny 010 utelater hele den siste delvis leste målsesjonen i VAL-kontrollen;
+resten forblir ubevist. Kun auditens lesescope er rettet; ingen targetendring.
+010 er claimet;
 ingen gammel plan relanseres. Egen referanse rekonstruerer faktiske TRAIN-labels
 og en råprisstøttet VAL-prefix. Original M1s siste row-group inneholder TEST og
 skal ikke dekodes. Urekonstruert VAL-hale oppgis. Separat GC-maskefordeling på

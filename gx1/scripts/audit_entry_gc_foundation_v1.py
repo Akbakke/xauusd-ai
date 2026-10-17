@@ -18,8 +18,8 @@ from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execu
 from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
 
 REPO=Path('/home/andre2/src/GX1_CURRENT')
-PLAN_REL='configs/research/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009.json'
-PLAN_ID='ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009'
+PLAN_REL='configs/research/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_010.json'
+PLAN_ID='ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_010'
 ROOT=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/PLAN_ID
 NS=10**9
 MINUTE=60*NS
@@ -50,6 +50,14 @@ def reference_horizon(times, bid, ask, decisions, horizon, session_offset, split
     elapsed=np.full(len(decisions),np.nan)
     elapsed[good]=(times[ec[good]]-decisions[good])//NS
     return {'valid':good,'entry':clipped,'exit':ec,'target_ns':candidate,'gross':gross,'elapsed':elapsed,'session_supported':exists}
+
+def safe_reference_prefix(reference, source_end_ns, session_offset):
+    # A raw row-group boundary can stop in the middle of an otherwise valid
+    # target session. It is not proof that later quotes in that session are
+    # missing from the actual source. Never score that partial session.
+    return (reference['session_supported'] &
+            ((reference['target_ns']-session_offset)//DAY <
+             (source_end_ns-session_offset)//DAY))
 
 def mask_attribution(table, native):
     """All overlapping rejection causes plus a declared sequential waterfall."""
@@ -128,13 +136,15 @@ def audit_native(plan, directory):
         references={h:reference_horizon(t,price['bid_open'],price['ask_open'],decisions,h,offset,split_end) for h in [1,5,20]}
         # TRAIN ends before the safe source prefix ends. VAL only has its
         # h20-supported prefix reconstructed; no mixed TEST group is decoded.
-        checked=np.ones(len(frame),bool) if split=='train' else references[20]['session_supported']
+        checked=np.ones(len(frame),bool) if split=='train' else safe_reference_prefix(references[20],int(t[-1]),offset)
         finite_counts[split]={str(h):int(np.isfinite(frame[contract['gross_target_columns'][str(h)][0]]).sum()) for h in [1,5,20]}
         for h,r in references.items():
             lc,sc=contract['gross_target_columns'][str(h)];ecol=contract['elapsed_columns'][str(h)]
             actual=frame[[lc,sc]].to_numpy(np.float32);elapsed=frame[ecol].to_numpy(np.float32)
             expected=r['gross'].astype(np.float32)
             if not np.array_equal(np.isfinite(actual[checked]),np.isfinite(expected[checked])):
+                bad=np.flatnonzero(checked & (np.isfinite(actual).all(axis=1)!=r['valid']))
+                io.write_json(directory/'AUDIT_MISMATCH.json',{'split':split,'horizon':h,'native_rows':bad[:10].tolist(),'decisions':[str(pd.Timestamp(int(decisions[k]),tz='UTC')) for k in bad[:10]],'target_times':[str(pd.Timestamp(int(r['target_ns'][k]),tz='UTC')) for k in bad[:10]],'safe_source_end':str(pd.Timestamp(int(t[-1]),tz='UTC'))})
                 raise RuntimeError('AUDIT_NATIVE_VALIDITY_PARITY:'+split+':'+str(h))
             valid=checked & r['valid']
             if not np.array_equal(actual[valid],expected[valid]) or not np.array_equal(elapsed[valid],r['elapsed'][valid].astype(np.float32)):
@@ -197,7 +207,7 @@ def run(binding_path):
     if binding_path!=ROOT/'EXECUTION_BINDING.json':raise RuntimeError('AUDIT_BINDING_PATH')
     binding=io.read_json(binding_path);io.verify_digest(REPO/PLAN_REL,binding['plan_sha256'],'PLAN');plan=io.read_json(REPO/PLAN_REL)
     io.verify_digest(ROOT/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'APPROVAL');approval=io.read_json(ROOT/'OPERATOR_APPROVAL.json')
-    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'POLICY');policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['entry_target_and_gc_l1_audit_009']
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'POLICY');policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['entry_target_and_gc_l1_audit_010']
     if plan['plan_id']!=PLAN_ID or io.git_head()!=binding['source_head'] or gate['status']!='EXECUTION_CLAIMED' or gate['completed_invocations']!=0 or gate['claimed_invocations']!=1 or gate['execution_authorized'] is not False or approval['max_invocations']!=1 or approval['status']!='APPROVED_SINGLE_USE_PENDING_EXECUTION' or approval['approved_plan_sha256']!=binding['plan_sha256'] or approval['single_use'] is not True or policy['training_enabled'] is not False:raise RuntimeError('AUDIT_AUTHORITY')
     if subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):raise RuntimeError('AUDIT_DIRTY_SOURCE')
     if set(binding['code_sha256'])!=set(plan['code_paths']):raise RuntimeError('AUDIT_CODE_INVENTORY')

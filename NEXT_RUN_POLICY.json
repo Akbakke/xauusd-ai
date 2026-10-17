@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T09:02:48.050608+00:00",
-  "status": "INDEPENDENT_ENTRY_TARGET_AND_GC_L1_AUDIT_REPAIR_009_CLAIMED__P0_FIT_CLOSED",
+  "status": "INDEPENDENT_ENTRY_TARGET_AND_GC_L1_AUDIT_010_CLAIMED__P0_FIT_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -161,8 +161,8 @@
     "latest_terminal_role": "native_preprocessing_terminal_minimum_learning_P1: latest CPU terminal of the collector schema (exit_code/source_unchanged/test_data_used); the GPU phases carry invocation receipts and PHASE_REVIEW files under native_d1_minimum_learning_20261012.steps.P2_gpu_campaign",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008/TERMINAL.json",
-      "sha256": "6e8198b4d127e66346b89a68cc512ef8cb92457c90366757cde47bcd221989f6"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009/TERMINAL.json",
+      "sha256": "f875196b5f64071264a56382ab725386cfdb1861f9993c0cda03c3314bfec31e"
     },
     "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
@@ -8850,6 +8850,24 @@
     "entry_target_and_gc_l1_audit_009": {
       "plan_path": "configs/research/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009.json",
       "plan_sha256": "67273cfeebadc39fc1673d752e6f3ba81cf9aa6bcbf7535ee9896a5c0ca1f04a",
+      "status": "FAILED_ON_AUDIT_SAFE_PREFIX_BOUNDARY_CONSUMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "authorized_invocations": 1,
+      "operator_request": "17.10.2026: independent Entry-target audit before further P0 training; separate L1 quality attribution, no target/Exit/model/TEST change or new data purchase/download.",
+      "relaunch_authorized": false,
+      "native_training_authorized": false,
+      "test_authorized": false,
+      "target_change_authorized": false,
+      "new_data_fetch_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009",
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009/TERMINAL.json",
+      "terminal_sha256": "f875196b5f64071264a56382ab725386cfdb1861f9993c0cda03c3314bfec31e"
+    },
+    "entry_target_and_gc_l1_audit_010": {
+      "plan_path": "configs/research/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_010.json",
+      "plan_sha256": "bd3d9e3cadf3a6c1ea360237e6efe36d2bfeb0766da18ac7a67e681b08ed0b05",
       "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
@@ -8861,7 +8879,7 @@
       "test_authorized": false,
       "target_change_authorized": false,
       "new_data_fetch_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009"
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_010"
     }
   },
   "gc_order_flow_research_20261006": {
