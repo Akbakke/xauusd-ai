@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T21:50:58.262267+00:00",
-  "status": "NATIVE_GC_FRESH_RAW_26MONTH_REBUILD_AND_ONE_EPOCH_REQUESTED",
+  "status": "FRESH_RAW_GC_COMPLETE__NEW_NATIVE_DATASET_AND_ONE_EPOCH_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Fresh raw MBP-1 stage source-bound and claimed once, launch pending. Native GC wiring/epoch not complete.",
+    "current_activity": "Fresh raw GC26month build complete637.979s:66files/892100712records;9173893footprint price rows. Native wiring and fresh XAU rebuild next; optimizer0.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -113,11 +113,11 @@
     "gc_goal_status": "FULL_FEATURE_CPU_STUDY_COMPLETE__NO_EDGE_QUALIFIED__P0_NO_GO_PRESERVED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Completed five-fold CPU Transformer/TCN train/smoke on full qualified market inputs; technical success with negative learning/economic qualification.",
+    "latest_terminal_role": "Fresh raw GC input rebuild only; no native dataset/epoch completion",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/RESULTS/TERMINAL.json",
-      "sha256": "18b55d817c8abfce8c5d8bd0de5ec3ae02f0d955fc09c5cf81d0f144507dadd2"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TERMINAL.json",
+      "sha256": "321769202aef3fe3aa117b41d85f0609f338368587dafc9bf30f0f70618c53f8"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -137,7 +137,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Fresh raw rebuild and native GC wiring/target/normalization/baseline gates are unfinished, not lack of user permission for one epoch.",
+    "current_blocker": "Native GC masked-input ownership and full raw XAU rebuild are unfinished. Target/publication/baseline/campaign qualification remains; one epoch already requested.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9458,7 +9458,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "PREPARING_FRESH_RAW_REBUILD_AND_NATIVE_ONE_EPOCH",
+      "status": "RAW_GC_COMPLETE__NATIVE_FEATURE_WIRING_AND_XAU_BUILD_PENDING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9467,17 +9467,31 @@
       "native_training_admitted": false,
       "training_started": false,
       "horizon": "h20 retained; no horizon selection",
-      "split_status": "Latest user asks approximately20months TRAIN and last months VAL/TEST; exact final evaluation split pending reply. Does not block raw26month input production.",
+      "split_status": "Provisional20/3/3 after user requested approximately20months TRAIN and last months VAL/TEST; optional exact-split question pending. All26months already reused development.",
       "raw_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "COMPLETE_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_RAW_REBUILD_20261018_001.json",
         "plan_sha256": "6b1d2bbe8fe248ce21d71536360658fcc86775a7559ffbc2267fa25bb2771c05",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001",
         "execution_authorized": false,
         "claimed_invocations": 1,
-        "completed_invocations": 0,
+        "completed_invocations": 1,
         "relaunch_allowed": false,
-        "authority": "Current user fresh raw26month/full MBP-1 request; single-use source-bound capped raw stage only; no native launch yet."
+        "authority": "Current user fresh raw26month/full MBP-1 request; single-use source-bound capped raw stage only; no native launch yet.",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TERMINAL.json",
+          "sha256": "321769202aef3fe3aa117b41d85f0609f338368587dafc9bf30f0f70618c53f8"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/RESULT.json",
+          "sha256": "6dc206b707fd9bb572631a2e3944b99f6fec8e44191c3d66e1b9560d31007243"
+        },
+        "controller_terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/LAUNCH_TERMINAL.json",
+          "sha256": "e8385a631c7abdac6636748ef113bc840cca1938d3a7d8431b9fc1751fdd3bb0"
+        },
+        "elapsed_seconds": 637.9790549559984,
+        "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
         "GC not in native input contract yet",
@@ -9485,7 +9499,24 @@
         "Macro publication and corrected h20 calendar qualification pending",
         "Native exact one-epoch campaign binding pending"
       ],
-      "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread."
+      "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TERMINAL.json",
+      "completed_invocations": 1,
+      "split_windows": {
+        "train": [
+          "2024-05-01T00:00:00Z",
+          "2026-01-01T00:00:00Z"
+        ],
+        "val": [
+          "2026-01-01T00:00:00Z",
+          "2026-04-01T00:00:00Z"
+        ],
+        "retrospective_final_control": [
+          "2026-04-01T00:00:00Z",
+          "2026-07-01T00:00:00Z"
+        ],
+        "boundary_semantics": "start inclusive/end exclusive; h20 outcomes must close strictly within own split; no feature/normalizer fit on evaluation; existing TEST July onward unread"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -12050,5 +12081,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T22:01:59.818700+00:00"
+  "updated_utc": "2026-10-17T22:24:21.968021+00:00"
 }
