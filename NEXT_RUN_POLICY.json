@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Feature build 005 failed before publication on report int64 JSON serialization; minimal repair 006 reuses 15 completed ladders (55,940,027 bytes), preserving all original failure evidence.",
+    "current_activity": "Feature build 005 failed before publication on report int64 JSON serialization; minimal repair 006 reuses 15 completed ladders (55940079 bytes), preserving all original failure evidence.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -106,7 +106,7 @@
       "thread_heartbeat_id": "gx1-f-lg-native-trening",
       "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c"
     },
-    "current_research_id": "NATIVE_D1_REBUILD_20261011_003",
+    "current_research_id": "GC_ORDER_FLOW_RESEARCH_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
