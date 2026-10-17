@@ -1,0 +1,104 @@
+{
+  "schema_version": "gx1_gc_P0_closing_diagnosis_v1",
+  "plan_id": "GC_P0_CLOSING_DIAGNOSIS_20261017_023",
+  "operator_request": "17.10.2026: Begrenset avsluttende diagnose med lagrede prognoser/handler/resultater; ingen trening/HPO/Transformer/RL; sammenlign dynamisk holding mot fast30min diagnostisk; klar GO/NO-GO.",
+  "inputs": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/RESULT.json",
+      "sha256": "b98fd628e150eb334b4176b1b299d4ad021c90d5f013182f9cf4c8ea28b4ef37"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/TERMINAL.json",
+      "sha256": "d6f71fa49dc44cee8ca4d3e7e40052a2538aa8a7b5e234fa92ff439c2ed4002e"
+    },
+    "predictions": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/PREDICTIONS.parquet",
+      "sha256": "c6892c60e9e723181d17a5d7a26970e3d10ab773d42f2800e7562fe319aaef66"
+    },
+    "trades": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/TRADES_AND_OPEN_MARKS.parquet",
+      "sha256": "3e3fa7c34066debed50e74989b27ab5c32993ee09093a39fcfbcb888fe91a7a1"
+    },
+    "daily": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/DAILY_EQUITY_ALL_SCENARIOS.parquet",
+      "sha256": "be5ff784290a034848a560aa0145e9774b53efa687a843c41706edfc3f754bd4"
+    },
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_P0_FIRST_DEVELOPMENT_20261017_021.json",
+      "sha256": "28889d77736324931e1340577e466c7d51153557934a0a7c10c40a979ed01d1a"
+    },
+    "source_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_M5_TRADE_FLOW_PROBE_20261017_007.json",
+      "sha256": "5ab8ee7a7e73d322cfca8934469ac0522fed923b9d312c13d7a14040bc59c41e"
+    },
+    "F": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/M5_L1_DYNAMIC_FEATURES.parquet",
+      "sha256": "c06d7a212b1d3f6ea6e442b396d186ac068b38447ae77f86e1f7824c8a4e778c"
+    },
+    "L": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/M5_FULL_GC_HISTORY_LEVELS.parquet",
+      "sha256": "6544653c1ab3aeb9bf2a1fb3544836dd4c5ab565c8a283a45d2a365f3d0b205f"
+    },
+    "baseline": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/XAU_M5_INFORMATION_BASELINE_20261017.json",
+      "sha256": "abb37bbee3806690bc784658532c82dabc169a191da6a6ab07d008cb4e4db0d0"
+    }
+  },
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_CLOSING_DIAGNOSIS_20261017_023",
+  "max_invocations": 1,
+  "model_fit_authorized": false,
+  "TEST_authorized": false,
+  "new_provider_requests_authorized": false,
+  "primary_horizon_minutes": 30,
+  "quantiles": [
+    0,
+    0.01,
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    0.9,
+    0.99,
+    1
+  ],
+  "calibration_bins": 10,
+  "regimes": "Reuse original initial-TRAIN RV terciles and native EMA trend sign, session IDs and five folds. Descriptive per-fold/session/regime groups only, no subgroup strategy or feature generation.",
+  "diagnostic_formulas": [
+    "MSE=Var(y)+Var(p)-2Cov(y,p)+(mean(y)-mean(p))^2",
+    "MSE(p)-MSE(c_train)=E[(p-c_train)^2]-2E[(y-c_train)(p-c_train)]",
+    "pooled Cov(y,p)=weighted within-fold Cov+between-fold mean Cov"
+  ],
+  "holding_control": "Same288 original tree entries marked exactly30min: overlapping event markouts, not a portfolio. Separate one-position30min ledger uses original frozen actions, ignores intervening signals while occupied, requires flat at decision, uses same60sec entry and exact terminal M1 quote. Fixed30 is diagnostic only, no native max hold or promotion. No threshold or horizon sweep.",
+  "costs": "All original11 scenarios, v3 exact accounting; fixed central signals, no scenario-specific signal refit/reselection.",
+  "holding_confidence_levels": [
+    0.95,
+    0.99375
+  ],
+  "inference_limits": [
+    "All26months reused development; only fixed saved models/predictions, no raw-feature conditional-information proof.",
+    "Weekly bootstrap4000 with original seed; incremental MSE seven-contrast family, holding outcomes eight-contrast family. Subgroups/deciles are descriptive, not selected discoveries.",
+    "Same-entry30markouts may overlap, never claim portfolio Sharpe/exposure from their sum.",
+    "Post-stratification or extrapolation to excluded rows not identified; no relaxed masks.",
+    "Cannot identify training underfit/overfit or a causal repair from saved validation forecasts alone; no new calibrator or sign inversion fitted."
+  ],
+  "go_no_go_rule": "Recommend GO for a newly preregisterable GC/M5 experiment only if a concrete economic mechanism survives unchanged30min signals, realistic cost stresses and week uncertainty with support beyond one selected chronological fold. Prediction-loss improvement or isolated subgroup success alone is insufficient. Otherwise NO-GO/stop P0; do not suggest model complexity as a remedy. This is research recommendation, never native/trading admission.",
+  "limits": {
+    "runner": "scripts/gx1_capped_run.sh --class audit",
+    "memory": "4G",
+    "swap": "512M",
+    "numerical_threads": 1,
+    "max_wall_seconds": 1200
+  },
+  "code_paths": [
+    "gx1/scripts/audit_entry_gc_foundation_v1.py",
+    "gx1/scripts/research_m5_intraday_recheck_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py",
+    "gx1/contracts/entry_observed_market_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "gx1/time/session_detector.py",
+    "scripts/gx1_capped_run.sh",
+    "tests/test_gc_p0_closing_diagnosis_v1.py"
+  ]
+}

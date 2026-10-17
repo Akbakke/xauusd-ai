@@ -782,13 +782,237 @@ def run_p0_review(binding_path):
     publish_bundle_directory_noreplace(stage,root/'RESULTS');print('P0_REVIEW_COMPLETE',flush=True)
 
 
+def p0_forecast_diagnostics(y,p,reference,quantiles):
+    """Descriptive algebra only, never a fitted calibration or new prediction."""
+    from gx1.scripts import research_m5_intraday_recheck_v1 as m5
+    y=np.asarray(y,float);p=np.asarray(p,float);c=np.asarray(reference,float)
+    ok=np.isfinite(y)&np.isfinite(p)&np.isfinite(c);y=y[ok];p=p[ok];c=c[ok]
+    if not len(y):return {'rows':0}
+    ey=float(y.mean());ep=float(p.mean());vp=float(np.var(p));vy=float(np.var(y));cov=float(np.mean((y-ey)*(p-ep)))
+    mse=float(np.mean((y-p)**2));ref=float(np.mean((y-c)**2));variance_penalty=float(np.mean((p-c)**2));alignment=float(2*np.mean((y-c)*(p-c)))
+    if not np.isclose(mse-ref,variance_penalty-alignment,rtol=0,atol=1e-10):raise RuntimeError('P0_DIAG_MSE_IDENTITY')
+    out=m5.p0_prediction_quality(y,p)
+    out.update(mean_error_bps=ep-ey,prediction_std_bps=float(np.sqrt(vp)),outcome_std_bps=float(np.sqrt(vy)),
+        prediction_positive_share=float(np.mean(p>0)),outcome_positive_share=float(np.mean(y>0)),
+        prediction_quantiles_bps={str(q):float(v) for q,v in zip(quantiles,np.quantile(p,quantiles))},
+        outcome_quantiles_bps={str(q):float(v) for q,v in zip(quantiles,np.quantile(y,quantiles))},
+        forecast_outcome_covariance_bps2=cov,reference_MSE_bps2=ref,MSE_excess_bps2=mse-ref,
+        reference_relative_prediction_energy_bps2=variance_penalty,twice_reference_relative_alignment_bps2=alignment,
+        MSE_variance_component_bps2=vy+vp-2*cov,MSE_squared_bias_bps2=(ey-ep)**2)
+    return out
+
+
+def p0_fixed_horizon_orders(decisions,sides,execution):
+    """Predetermined diagnostic horizon. Flat at decision, one open position.
+
+    No threshold/forecast change, no future-return selection. The source must
+    prove exact execution/terminal quotes for every opportunity beforehand.
+    Scheduled EXIT is known when entry occurs, never an optimal future exit.
+    """
+    if not np.all(execution.valid):raise RuntimeError('P0_FIXED_HORIZON_CENSORED_SOURCE')
+    selected=[];busy=-1
+    for r,side in enumerate(sides):
+        if side and decisions[r]>=busy:
+            selected.append(r);busy=int(execution.exit_ns[r])
+    ix=np.asarray(selected,np.int64)
+    times=np.r_[np.asarray(decisions)[ix],execution.exit_ns[ix]-60*10**9]
+    actions=np.r_[np.asarray(sides)[ix],np.zeros(len(ix),np.int8)]
+    order=np.argsort(times,kind='stable');times=times[order];actions=actions[order]
+    if np.any(np.diff(times)<=0):raise RuntimeError('P0_FIXED_HORIZON_ORDER_COLLISION')
+    return times,actions,ix
+
+
+def p0_group_forecasts(frame,keys,quantiles):
+    groups={'pooled':np.ones(len(frame),bool)}
+    for field in ('fold','session','RV_tercile','EMA_trend_sign'):
+        for value in sorted(frame[field].unique()):groups[field+'='+str(value)]=(frame[field].to_numpy()==value)
+    for (fold,session,rv),rows in frame.groupby(['fold','session','RV_tercile'],observed=True).groups.items():
+        mask=np.zeros(len(frame),bool);mask[np.asarray(rows)]=True;groups[f'fold_session_RV={fold}/{session}/{rv}']=mask
+    return {name:{key:p0_forecast_diagnostics(frame.y30_mid_bps.to_numpy()[mask],frame[key].to_numpy()[mask],frame.train_mean_bps.to_numpy()[mask],quantiles) for key in keys} for name,mask in groups.items()}
+
+
+def run_p0_diagnosis(binding_path):
+    import os,hashlib,json,time
+    from gx1.scripts import research_m5_intraday_recheck_v1 as m5
+    from gx1.time.session_detector import SESSION_NAME_BY_ID
+    identity='GC_P0_CLOSING_DIAGNOSIS_20261017_023';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('P0_DIAG_BINDING_PATH')
+    binding=io.read_json(binding_path);planpath=REPO/'configs/research'/f'{identity}.json'
+    io.verify_digest(planpath,binding['plan_sha256'],'P0_DIAG_PLAN');plan=io.read_json(planpath)
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_DIAG_POLICY')
+    io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'P0_DIAG_APPROVAL')
+    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_p0_closing_diagnosis_023'];approval=io.read_json(root/'OPERATOR_APPROVAL.json')
+    if (policy['training_enabled'] is not False or gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0
+        or gate['execution_authorized'] is not False or gate['relaunch_authorized'] is not False or gate['model_fit_authorized'] is not False
+        or approval['approved_plan_sha256']!=binding['plan_sha256'] or approval['single_use'] is not True or approval['max_invocations']!=1):raise RuntimeError('P0_DIAG_SCOPE')
+    if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):raise RuntimeError('P0_DIAG_CLEAN_SOURCE')
+    if subprocess.check_output(['git','branch','--show-current'],cwd=REPO,text=True).strip()!='work/gx1-current':raise RuntimeError('P0_DIAG_BRANCH')
+    if set(binding['code_sha256'])!=set(plan['code_paths']):raise RuntimeError('P0_DIAG_CODE_INVENTORY')
+    for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'P0_DIAG_CODE')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry()
+    io.write_json(root/'EXECUTION_CLAIM.json',{'invocation':1,'binding_sha256':io.sha256_file(binding_path)})
+    stage=root/'.RESULTS.staging';stage.mkdir(exist_ok=False);started=time.monotonic()
+    try:
+        for item in plan['inputs'].values():binding_read(item)
+        inputs=plan['inputs'];original=io.read_json(Path(inputs['result']['path']));terminal=io.read_json(Path(inputs['terminal']['path']))
+        if terminal['status']!='COMPLETE' or terminal['TEST_accessed'] or not terminal['source_unchanged'] or terminal['result_sha256']!=inputs['result']['sha256']:raise RuntimeError('P0_DIAG_ORIGINAL_TERMINAL')
+        recipe=io.read_json(Path(inputs['recipe']['path']));source=io.read_json(Path(inputs['source_plan']['path']))
+        frame=pd.read_parquet(inputs['predictions']['path']);old_trades=pd.read_parquet(inputs['trades']['path']);old_daily=pd.read_parquet(inputs['daily']['path'])
+        for b in source['execution_tape_partitions']:binding_read(b)
+        tape=m5.load_tape(source['reference'],2024)
+        if tape.time_ns.max()>=pd.Timestamp(recipe['TEST_seal_utc']).value:raise RuntimeError('P0_DIAG_TEST_SEAL')
+        decisions=frame.decision_ns.to_numpy()
+        ex=m5.execution_for_horizon_v2(decisions,tape,horizon_minutes=30,latency_seconds=60)
+        strict=m5.exact_intraday_mask_v3(decisions,tape,ex,horizon_minutes=30)['valid']
+        if not strict.all() or not np.array_equal(ex.y_mid_bps,frame.y30_mid_bps):raise RuntimeError('P0_DIAG_RAW_LABEL_RECONSTRUCTION')
+        # Reuse native scalar source, never feature generation, model inference or fitting.
+        binding_read(source['feature_inputs']['parquet'])
+        base=pq.read_table(source['feature_inputs']['parquet']['path'])
+        times,snap,context,session,fields,ctx_names=m5.load_gc_native_rows(source,base)
+        native_decisions=times+300*10**9
+        f=pd.read_parquet(inputs['F']['path']);lev=pd.read_parquet(inputs['L']['path'])
+        for t in (f,lev):
+            if not np.array_equal(t.decision_ns,native_decisions):raise RuntimeError('P0_DIAG_FULL_CLOCK')
+        common=f.ofi_valid.to_numpy()&f.bbo_valid.to_numpy()&lev.rolling15_valid.to_numpy()
+        prep=binding_read(recipe['inputs']['preparation'])
+        common &= np.isfinite(np.column_stack([f[n].to_numpy() for n in prep['layers']['F']['fields']]+[lev[n].to_numpy() for n in prep['layers']['L']['fields']])).all(axis=1)
+        if common.sum()!=37181:raise RuntimeError('P0_DIAG_COHORT')
+        rows=np.searchsorted(native_decisions,decisions)
+        if not np.array_equal(native_decisions[rows],decisions) or not common[rows].all():raise RuntimeError('P0_DIAG_NATIVE_MAPPING')
+        rv=snap[:,fields.index(recipe['rule']['V_state_field'])];trend=np.sign(snap[:,fields.index(recipe['rule']['core_direction_field'])]).astype(int)
+        cutoff=pd.Timestamp(recipe['folds'][0]['validation_start_utc_inclusive']).value-86400*10**9
+        cuts=np.quantile(rv[native_decisions<cutoff],recipe['rule']['vol_quantiles'])
+        if not np.array_equal(cuts,np.array(original['representation']['RV_tercile_cuts_initial_train_only'])):raise RuntimeError('P0_DIAG_REGIME_CUTS')
+        rv_state=np.searchsorted(cuts,rv,side='left')
+        # Original representativeness used side=left; original rule prediction used side=right.
+        # Fix the descriptive regime to the recorded representativeness owner, no model changes.
+        native_fold=np.full(len(times),'initial_TRAIN',object)
+        for fold in recipe['folds']:
+            s=pd.Timestamp(fold['validation_start_utc_inclusive']).value;e=pd.Timestamp(fold['validation_end_utc_exclusive']).value
+            native_fold[(native_decisions>=s)&(native_decisions<e)]=fold['fold_id']
+        frame['session']=[SESSION_NAME_BY_ID[int(v)] for v in session[rows]];frame['RV_tercile']=rv_state[rows];frame['EMA_trend_sign']=trend[rows]
+        if not np.array_equal(native_fold[rows],frame.fold):raise RuntimeError('P0_DIAG_FOLD_MAPPING')
+        full_ex=m5.execution_for_horizon_v2(native_decisions,tape,horizon_minutes=30,latency_seconds=60)
+        full_valid=m5.exact_intraday_mask_v3(native_decisions,tape,full_ex,horizon_minutes=30)['valid']
+        population=pd.DataFrame({'fold':native_fold,'session':[SESSION_NAME_BY_ID[int(v)] for v in session],'RV_tercile':rv_state,'EMA_trend_sign':trend,'matched_input':common,'exact_h30':full_valid,'y30':full_ex.y_mid_bps})
+        coverage={}
+        for group in (['fold'],['fold','session'],['fold','RV_tercile'],['fold','EMA_trend_sign'],['fold','session','RV_tercile']):
+            name='/'.join(group);out=[]
+            for labels,g in population.groupby(group,observed=True):
+                selected=g[g.matched_input];unselected=g[~g.matched_input]
+                out.append({'stratum':[v.item() if isinstance(v,np.generic) else v for v in (labels if isinstance(labels,tuple) else (labels,))],'population':len(g),'matched':len(selected),'coverage':len(selected)/len(g),
+                    'selected_markout_mean_bps':float(selected.loc[selected.exact_h30,'y30'].mean()) if len(selected) else None,
+                    'unselected_markout_mean_bps':float(unselected.loc[unselected.exact_h30,'y30'].mean()) if len(unselected) else None,
+                    'selected_markout_std_bps':float(selected.loc[selected.exact_h30,'y30'].std(ddof=0)) if len(selected) else None,
+                    'unselected_markout_std_bps':float(unselected.loc[unselected.exact_h30,'y30'].std(ddof=0)) if len(unselected) else None})
+            coverage[name]=out
+        keys=['tree_'+a for a in m5.P0_ARMS];good=p0_matched_prediction_mask(frame,keys);metric_frame=frame[good].reset_index(drop=True)
+        diagnostic=p0_group_forecasts(metric_frame,keys,plan['quantiles'])
+        calibration={};decomposition={};actions={};contrasts={};fixed={};matching={};fixed_trades=[];fixed_daily=[]
+        central=recipe['central_scenario'];cost=recipe['economics']['round_trip_execution_cost_bps'];rates=recipe['economics']['annual_financing_cost_bps'];yr=recipe['economics']['seconds_per_year']
+        net30=m5.net_cash_values_v3(ex,economics=recipe['economics'])
+        evaluation_start=pd.Timestamp(recipe['folds'][0]['validation_start_utc_inclusive']).value;evaluation_end=pd.Timestamp(recipe['TEST_seal_utc']).value
+        for key in keys:
+            p=frame[key].to_numpy();side=m5.p0_actions(p,frame.spread_at_decision_bps.to_numpy(),recipe['economics'],30)
+            if not np.array_equal(side,frame['action_'+key]):raise RuntimeError('P0_DIAG_ACTION_RECONSTRUCTION')
+            acts={}
+            for fold,g in frame.assign(_p=p,_side=side).groupby('fold'):
+                pp=g._p.to_numpy();spread=g.spread_at_decision_bps.to_numpy();long_q=pp-spread-cost-rates[0]*1800/yr;short_q=-pp-spread-cost-rates[1]*1800/yr
+                acts[fold]={'rows':len(g),'positive_forecasts':int((pp>0).sum()),'negative_forecasts':int((pp<0).sum()),'LONG_without_execution_fees':int((pp>spread+rates[0]*1800/yr).sum()),
+                    'SHORT_without_execution_fees':int((-pp>spread+rates[1]*1800/yr).sum()),'LONG_if_zero_cost_direction_only':int((pp>0).sum()),'SHORT_if_zero_cost_direction_only':int((pp<0).sum()),
+                    'actual_LONG_signals':int((g._side==1).sum()),'actual_SHORT_signals':int((g._side==-1).sum()),'FLAT_signals':int((g._side==0).sum()),
+                    'min_forecast_bps':float(pp.min()),'max_forecast_bps':float(pp.max()),'max_LONG_net_margin_bps':float(long_q.max()),'max_SHORT_net_margin_bps':float(short_q.max()),
+                    'median_spread_bps':float(np.median(spread)),'min_required_abs_SHORT_bps':float(np.min(spread+cost+rates[1]*1800/yr))}
+            actions[key]=acts
+            # Descriptive deciles of saved forecasts; never a new trade filter.
+            bins=pd.qcut(metric_frame[key],q=plan['calibration_bins'],duplicates='drop');items=[]
+            for label,g in metric_frame.groupby(bins,observed=True):
+                items.append({'prediction_bin':str(label),**p0_forecast_diagnostics(g.y30_mid_bps,g[key],g.train_mean_bps,plan['quantiles'])})
+            calibration[key]=items
+            y=metric_frame.y30_mid_bps.to_numpy();pp=metric_frame[key].to_numpy();c=metric_frame.train_mean_bps.to_numpy()
+            cov=float(np.mean((y-y.mean())*(pp-pp.mean())));within=between=0.
+            for _,g in metric_frame.groupby('fold'):
+                w=len(g)/len(metric_frame);yy=g.y30_mid_bps.to_numpy();pred=g[key].to_numpy()
+                within+=w*float(np.mean((yy-yy.mean())*(pred-pred.mean())))
+                between+=w*(float(yy.mean())-float(y.mean()))*(float(pred.mean())-float(pp.mean()))
+            if not np.isclose(within+between,cov,atol=1e-12,rtol=0):raise RuntimeError('P0_DIAG_COVARIANCE_IDENTITY')
+            decomposition[key]={'within_fold_covariance_bps2':within,'between_fold_covariance_bps2':between,'pooled_covariance_bps2':cov}
+            if key!='tree_CORE':
+                core=metric_frame.tree_CORE.to_numpy();increment=pp-core;residual=y-core;loss=(y-core)**2-(y-pp)**2
+                records=[{'entry_ns':int(t),'v':float(v)} for t,v in zip(metric_frame.decision_ns,loss)]
+                contrasts[key]={'prediction_increment_std_bps':float(increment.std()),'mean_residual_alignment_bps2':float(np.mean(residual*increment)),
+                    'increment_energy_bps2':float(np.mean(increment**2)),'MSE_improvement_bps2':float(loss.mean()),
+                    'paired_weekly_interval':m5.weekly_block_bootstrap(records,'v',reps=recipe['bootstrap_reps'],seed=recipe['bootstrap_seed'],levels=recipe['confidence_levels']),
+                    'fold_MSE_improvement_bps2':{str(f):float(np.mean((g.y30_mid_bps-g.tree_CORE)**2-(g.y30_mid_bps-g[key])**2)) for f,g in metric_frame.groupby('fold')}}
+            tr=old_trades[old_trades.strategy==key].copy();at=np.searchsorted(ex.entry_ns,tr.entry_ns)
+            if not np.array_equal(ex.entry_ns[at],tr.entry_ns):raise RuntimeError('P0_DIAG_ENTRY_MATCH')
+            selected_net=net30[at,np.where(tr.side.to_numpy()>0,0,1)]
+            rec=[{'entry_ns':int(t),'v':float(v)} for t,v in zip(tr.entry_ns,selected_net)]
+            events=sorted([(int(t),1) for t in tr.entry_ns]+[(int(t),-1) for t in ex.exit_ns[at]])
+            balance=peak=0
+            for _,v in events:balance+=v;peak=max(peak,balance)
+            matching[key]={'entries':len(tr),'dynamic_net_bps':original['cells'][key]['economics'][central]['net_total_bps'],
+                'same_entries_h30_net_sum_bps_not_portfolio':float(selected_net.sum()),'same_entries_h30_mean_net_bps':float(selected_net.mean()) if len(tr) else None,
+                'same_entries_h30_weekly_mean_CI':m5.weekly_block_bootstrap(rec,'v',reps=recipe['bootstrap_reps'],seed=recipe['bootstrap_seed'],levels=plan['holding_confidence_levels']),
+                'overlapping_positions_if_same_entries_all_held30':peak,'dynamic_hold_minutes_quantiles':{str(q):float(v) for q,v in zip(plan['quantiles'],np.quantile(tr.elapsed_seconds/60,plan['quantiles']))},
+                'dynamic_gross_sum_bps':float(tr.gross_bps.sum()),'h30_gross_sum_bps':float(np.where(tr.side.to_numpy()>0,ex.long_gross_bps[at],ex.short_gross_bps[at]).sum())}
+            order_t,order_s,chosen=p0_fixed_horizon_orders(decisions,side,ex)
+            sums,daily,ledger,account=m5.p0_position_ledger(order_t,order_s,tape,evaluation_start,evaluation_end,recipe['cost_scenarios'],yr)
+            # Scheduled diagnostic exits must be exactly30min and closed pre-seal.
+            if len(ledger)!=len(chosen) or any(t['elapsed_seconds']!=1800 or t['terminal_open'] for t in ledger):raise RuntimeError('P0_DIAG_FIXED_HOLD_LEDGER')
+            expected30=float(net30[chosen,np.where(side[chosen]>0,0,1)].sum())
+            if not np.isclose(sums[central]['net_total_bps'],expected30,rtol=0,atol=1e-8):raise RuntimeError('P0_FIXED30_CANONICAL_CASH_PARITY')
+            fixed[key]={'economics':sums,'ledger':account,'new_entry_count':len(chosen),'per_fold_entries':frame.iloc[chosen].groupby('fold').size().to_dict()}
+            dynamic=old_daily[(old_daily.strategy==key)&(old_daily.scenario==central)].set_index('day').equity_bps
+            dyn_index=pd.DatetimeIndex(dynamic.index);dynamic.index=dyn_index
+            diff=daily[central]-dynamic
+            if diff.isna().any():raise RuntimeError('P0_DIAG_EQUITY_TIME_MATCH')
+            change=diff.diff();change.iloc[0]=diff.iloc[0]
+            rec=[{'entry_ns':int(t.value),'v':float(v)} for t,v in change.items()]
+            fixed[key]['paired_dynamic_to_fixed_daily_net_CI']=m5.weekly_block_bootstrap(rec,'v',reps=recipe['bootstrap_reps'],seed=recipe['bootstrap_seed'],levels=plan['holding_confidence_levels'])
+            for name,series in daily.items():fixed_daily.append(pd.DataFrame({'strategy':key,'scenario':name,'day':series.index,'equity_bps':series.to_numpy()}))
+            fixed_trades.extend([dict(t,strategy=key) for t in ledger])
+        frame.to_parquet(stage/'DECISION_DIAGNOSTICS.parquet',index=False)
+        pd.DataFrame(fixed_trades).to_parquet(stage/'FIXED30_DIAGNOSTIC_TRADES.parquet',index=False)
+        pd.concat(fixed_daily,ignore_index=True).to_parquet(stage/'FIXED30_DIAGNOSTIC_DAILY_EQUITY.parquet',index=False)
+        result={'status':'P0_CLOSING_DIAGNOSIS_COMPLETE_NO_REFIT','source_head':binding['source_head'],'plan_sha256':binding['plan_sha256'],
+            'development_decisions':len(frame),'primary_tree_common_metric_rows':len(metric_frame),'full_native_rows':len(population),'F_L_input_rows':int(common.sum()),
+            'forecast_diagnostics':diagnostic,'calibration_deciles_descriptive_only':calibration,'within_between_fold_covariance':decomposition,
+            'action_funnel':actions,'incremental_saved_prediction_value':contrasts,'same_entry_30min_markouts':matching,'fixed30_one_position_diagnostic':fixed,
+            'coverage':coverage,'RV_cuts_existing_initial_TRAIN':cuts.tolist(),'models_refitted':0,'new_thresholds_or_horizons_selected':False,
+            'raw_h30_label_reconstruction':'EXACT_ALL17301','native_TEST_accessed':False,'historical_cost_truth':False,'source_unchanged':True,'limits':proof,'elapsed_seconds':time.monotonic()-started,
+            'inference_limits':plan['inference_limits'],'go_no_go_rule':plan['go_no_go_rule']}
+        for item in plan['inputs'].values():binding_read(item)
+        all_bindings=[source['signal_manifest'],source['feature_inputs']['parquet'],source['reference']['data']['execution_tape']['manifest']]+source['execution_tape_partitions']
+        all_bindings += [b for split in source['native_datasets'].values() for b in split.values()]
+        for b in all_bindings:binding_read(b)
+        for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'P0_DIAG_CODE_POST')
+        io.verify_digest(planpath,binding['plan_sha256'],'P0_DIAG_PLAN_POST');io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_DIAG_POLICY_POST')
+        io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'P0_DIAG_APPROVAL_POST');io.verify_digest(binding_path,io.read_json(root/'EXECUTION_CLAIM.json')['binding_sha256'],'P0_DIAG_BINDING_POST')
+        if io.git_head()!=binding['source_head']:raise RuntimeError('P0_DIAG_HEAD_POST')
+        io.write_json(stage/'RESULT.json',result);inventory={}
+        for p in stage.iterdir():
+            with p.open('rb') as f:os.fsync(f.fileno())
+            inventory[p.name]={'sha256':io.sha256_file(p),'bytes':p.stat().st_size}
+        io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'result_sha256':io.sha256_file(stage/'RESULT.json'),'artifacts':inventory,'source_unchanged':True,'test_data_used':False,'models_refitted':0,'finished_utc':datetime.now(timezone.utc).isoformat()})
+        for name,b in inventory.items():io.verify_digest(stage/name,b['sha256'],'P0_DIAG_ARTIFACT')
+        fd=os.open(stage,os.O_DIRECTORY|os.O_RDONLY)
+        try:os.fsync(fd)
+        finally:os.close(fd)
+        publish_bundle_directory_noreplace(stage,root/'RESULTS');print('P0_CLOSING_DIAGNOSIS_COMPLETE',flush=True)
+    except Exception as exc:
+        if not (root/'FAILURE.json').exists():io.write_json(root/'FAILURE.json',{'status':'FAILED_NO_ADMISSION','error':str(exc),'exception':type(exc).__name__})
+        raise
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser();group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--binding',type=Path);group.add_argument('--evaluation-binding',type=Path)
-    group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
+    group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
     if args.binding is not None:run(args.binding)
     elif args.evaluation_binding is not None:run_evaluation(args.evaluation_binding)
     elif args.l1_binding is not None:run_l1_quality(args.l1_binding)
     elif args.cash_binding is not None:run_cash_review(args.cash_binding)
+    elif args.p0_diagnosis_binding is not None:run_p0_diagnosis(args.p0_diagnosis_binding)
     elif args.p0_review_binding is not None:run_p0_review(args.p0_review_binding)
     else:run_p0_preparation(args.p0_preparation_binding)

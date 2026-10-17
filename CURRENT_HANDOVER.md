@@ -4,11 +4,16 @@ Authority: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json
 is the only work status. One agent, capped CURRENT workload; never change bound
 source during a job. Native training_enabled=false; TEST/live/broker/spending closed.
 
-## Completed first P0 development study — no incremental edge demonstrated
+## Current: one closing diagnosis023 claimed, no model training
 
 Report: docs/GC_P0_FIRST_DEVELOPMENT_20261017.md.
 021 and independent no-refit022 COMPLETE, exit0, source_unchanged=true, TEST=false.
 Consumed once; never relaunch. No additional fit or larger training admitted.
+The new operator request authorizes one no-fit closing diagnosis023: saved
+forecasts/trades, fixed30 diagnostic controls and per-fold/session/regime coverage.
+Recipe: configs/research/GC_P0_CLOSING_DIAGNOSIS_20261017_023.json. No threshold/
+horizon selection, calibrator, sign inversion, model inference or model fitting.
+Fixed30 is explicitly diagnostic; native holding/Exit remain unchanged.
 
 - Same 37,181 strict F/L input windows; all26 GC months development. Macro-free
   CORE211, new F12/L8, original V16. Same61 macro fields excluded in every arm;
