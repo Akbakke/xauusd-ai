@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T11:23:22.752868+00:00",
-  "status": "GC_L1_AND_FULL_HISTORY_LEVELS_VERIFIED__P0_NO_FIT_QUALIFICATION_CLAIMED",
+  "status": "GC_L1_FULL_HISTORY_LEVELS_AND_P0_COHORT_VERIFIED__FIT_BLOCKED_MACRO_PIT_AND_RECIPE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Only bounded no-fit preparation 020: independent full-history mask/numeric checks, recent M5 gap/horizon support, new F17/L19 shared cohort and funding sensitivity. Known macro PIT leak/model recipe still block fitting.",
+  "next_action": "Preserve completed inputs. Prepare an explicitly corrected research macro control (known COT release leak) or preregister exclusion of unqualified macro inputs; freeze one finite matched rule/small-XGBoost development recipe with original risk/guards. No model launch until separately admitted; native TEST/live/promotion stay closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Only bounded no-fit preparation 020: independent full-history mask/numeric checks, recent M5 gap/horizon support, new F17/L19 shared cohort and funding sensitivity. Known macro PIT leak/model recipe still block fitting.",
+    "current_activity": "OpenBB source review, GC L1/full-history profiles and no-fit P0 cohort qualification complete.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -110,59 +110,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "TRADE_FEATURES_AND_BOUNDED_PROBE_COMPLETE__NATIVE_ADOPTION_UNQUALIFIED",
+    "gc_goal_status": "QUALIFIED_MASKED_L1_AND_FULL_GC_PROFILES_READY__P0_FIT_NOT_ADMITTED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "gc_goal_progress": [
-      {
-        "step": 1,
-        "status": "MASKED_INPUT_ADMISSION_COMPLETE_NOT_FEATURES_OR_MODEL_ADMISSION",
-        "completed": true,
-        "genuine_evidence": [
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/DATABENTO_GC_26M_20261015_001/DOWNLOAD_SUMMARY.json: 79/79 jobs complete, 63 newly downloaded data files, reported total USD 119.65511028468609 against USD 120.00 cap; acquisition evidence only.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN.json sha256=f73165d365c9a3258c37215bab288dce9af1ec5b80bfd4e65cbab4f45d33c466: 79 scope manifests reconciled to 66 MBP-1, 23 definition, and 23 ohlcv-1d local gzip files; local MBP-1 SHA verification pending the capped audit.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_MAPPING_AUDIT.json sha256=b01144fed2dc9f47e414d83f6ed9d50e38b20f609eae2a2c7bc3471aee454a66: 1,420 rows across 23 definition files map 15 outright raw symbols to unique instrument_id/publisher_id pairs; no MBP-1 rows read in this mapping phase.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN_ERRATUM.json sha256=ad9a52f1919fa1ab13492d002eeb7758b19e234ef9b0d63de5e82d2b63e0f673: clarifies handling of the one pre-binding row preview; it remains in the later whole-file hash-verified audit.",
-          "configs/research/GC_SOURCE_AUDIT_20261016_001.json sha256=d3b0d9d2733482c4fe6fe621faa8330e9f1c1dc710763d967dc75a140e423110: frozen v2 spec binds 66 MBP-1 files, 15 definition mappings and 12 source owners; audit not yet run.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/ATTEMPT_001_FAILURE.json sha256=1e0c555542917d8c28db9ff432f1567f0beae3f8866ad09e8647dc9ca4dd71cf: attempt 001 failed on a valid Fill row, no partial report; plan 001 will not be relaunched.",
-          "configs/research/GC_SOURCE_AUDIT_20261016_002.json sha256=3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d: executed exactly once under the fresh single-use user approval; terminal COMPLETE_NOT_ADMITTED.",
-          "Focused source-owner tests: 36 passed after adding passive-Fill handling; no full MBP-1 rerun performed.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json sha256=799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376: user response \u201cJa\u201d; single-use approval for plan 002 only.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json sha256=c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab: STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED; 66 files, 892100712 records, 62783740 trades, 0 new downloads, 0 fits, TEST false.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/TERMINAL.json sha256=e513dc5f58f360cf52e06e53d280f3ce1b854a808a020c224159223dcfc0c1f8: COMPLETE_NOT_ADMITTED; result hash verified.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json sha256=14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda: all 66 source/receipt hashes and 15-symbol definition crosswalk match; daily activity on 678/791 dates, all 113 absent dates Saturdays; intraday coverage and OANDA overlap remain unproven.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/RESULT.json sha256=11dec8fe9de8b726a707ce2907016df342cc3f06d20377abc99474d04466aea8: continuous raw-volume roll, per-indicator masks and ADMIT/REJECT; no complete-flow, feature-value or training claim."
-        ]
-      },
-      {
-        "step": 2,
-        "status": "CAUSAL_OBSERVED_TRADE_FEATURES_BUILT; BOOK_OFI_UNADMITTED; NATIVE_INTEGRATION_UNBUILT",
-        "completed": false,
-        "genuine_evidence": [
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006/RESULTS/RESULT.json sha256=9f199acc84f185f2fb00e20f17d52ca21f1245b124e1c868dd2829e96e16598d: 141806 native M5 coordinates, 60 independent raw reference bars, exact source-minute/record reconciliation, real prefixes and atomic Parquet publication; no native train/serve or predictive admission."
-        ]
-      },
-      {
-        "step": 3,
-        "status": "MATCHED_TRADE_ONLY_PREDICTION_PROBE_COMPLETE; ORIGINAL_BOOK_OFI_AND_ECONOMICS_SCOPE_UNFINISHED",
-        "completed": false,
-        "genuine_evidence": [
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/RESULTS/RESULT.json sha256=4976db1e0e8b658894684d179536f092947eea75213d8f55726f00eff22a18f4: 45 ridge references, all 315 native fields/132 aliases retained, 16745 common M5 rows; no native sequence/attention, book-OFI, TEST or economics claim.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/COMPLETION_REVIEW.json sha256=2aee704ee7afc176a8159d4639248b9010711220e92542dce0da0a60c49e2210: 17565 prediction rows independently reconstructed from bound M1 quotes, exact float64 targets (0.0 bps difference), matched rows/metrics/split exit cuts verified."
-        ]
-      },
-      {
-        "step": 4,
-        "status": "TRADE_PROBE_REVIEWED_NO_DOCUMENTED_INCREMENT; FULL_PROTOCOL_AND_NATIVE_ADOPTION_UNFINISHED",
-        "completed": false,
-        "genuine_evidence": []
-      }
-    ],
-    "latest_terminal_role": "Complete GC profile history, quality masks unchanged, no fit",
+    "latest_terminal_role": "No-fit matched P0 input/gap/cost qualification; not a model or economic strategy result",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/TERMINAL.json",
-      "sha256": "ee096ebb792efe1364940083339a4777b329cf35ee60253b1eb5bb9b1bb0651c"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020/RESULTS/TERMINAL.json",
+      "sha256": "a62d55998984f2b4ebfa47c686dfb830edc23b5e74a08a843ef328c38253dc6e"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -182,7 +137,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Input values built and verified. Quantify common cohort and source limitations in 020; known old COT publication leak remains uncorrected in frozen baseline, so no P0 fit.",
+    "current_blocker": "Known native COT +7-day publication leak; actual macro vintages/releases unqualified; final matched model/execution recipe and its bounded run admission absent. Historical daily/holiday/tick timing remains a stated limitation. No untouched GC confirmation period.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7656,7 +7611,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Only bounded no-fit preparation 020: independent full-history mask/numeric checks, recent M5 gap/horizon support, new F17/L19 shared cohort and funding sensitivity. Known macro PIT leak/model recipe still block fitting.",
+    "next_action": "Preserve completed inputs. Prepare an explicitly corrected research macro control (known COT release leak) or preregister exclusion of unqualified macro inputs; freeze one finite matched rule/small-XGBoost development recipe with original risk/guards. No model launch until separately admitted; native TEST/live/promotion stay closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8956,12 +8911,15 @@
       "feature_values_built": false
     },
     "P0_factorial_preparation_20261017": {
-      "path": "configs/research/P0_FACTORIAL_PREPARATION_20261017.json",
-      "sha256": "c1b1ce3b94530881b83202a5414aa162a4203c4def226b6d9096291780f84d82",
-      "arms": 8,
-      "status": "PREPARATION_ONLY_NOT_EXECUTION_RECIPE",
+      "path": "configs/research/P0_FACTORIAL_NEW_FL_PREPARATION_20261017.json",
+      "sha256": "fc85e6af8f572b0a1cb3a57969602659f3ed8f1eea3e81fcc5145388f8d45e0e",
+      "status": "NEW_F12_L8_ORIGINAL_V16_PREPARED_NOT_MODEL_RECIPE",
       "training_authorized": false,
-      "execution_authorized": false
+      "data_sources": {
+        "F": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/M5_L1_DYNAMIC_FEATURES.parquet",
+        "L": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/M5_FULL_GC_HISTORY_LEVELS.parquet"
+      },
+      "confirmation_period_blocks": "independent edge confirmation/live/promotion, not a separately admitted development-only experiment"
     },
     "gc_m5_cash_projection_check_013": {
       "plan_path": "configs/research/GC_M5_CASH_PROJECTION_CHECK_20261017_013.json",
@@ -9118,28 +9076,116 @@
       "rolling60_M5": 7330,
       "strict_session_prefix_M5": 2263,
       "profile_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/M5_FULL_GC_HISTORY_LEVELS.parquet",
-      "profile_sha256": "6544653c1ab3aeb9bf2a1fb3544836dd4c5ab565c8a283a45d2a365f3d0b205f"
+      "profile_sha256": "6544653c1ab3aeb9bf2a1fb3544836dd4c5ab565c8a283a45d2a365f3d0b205f",
+      "published_artifacts_manifest": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/PUBLISHED_ARTIFACTS.json",
+        "sha256": "d3df841504a8f9d955cb5acf9faccbd626cafa5431876bcac50165d188aa1506"
+      }
     },
     "gc_P0_cohort_preparation_020": {
       "plan_path": "configs/research/GC_P0_COHORT_PREPARATION_20261017_020.json",
       "plan_sha256": "4a9aea10fd1aad0d5eb68926ed1e9e574899cf681dce9bf0eadd462d56755a57",
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_NO_FIT_QUALIFICATION_CONSUMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "authorized_invocations": 1,
       "relaunch_authorized": false,
       "fit_authorized": false,
       "test_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020"
-    }
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020",
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020/RESULTS/TERMINAL.json",
+      "terminal_sha256": "a62d55998984f2b4ebfa47c686dfb830edc23b5e74a08a843ef328c38253dc6e",
+      "result_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020/RESULTS/RESULT.json",
+      "result_sha256": "d6b965a40b560f48582f95d2df3a58fc943635c70ef08e3673517db89e1c93c5",
+      "new_F_L_joint_rows": 37181,
+      "P0_training_admitted": false
+    },
+    "openbb_gc_review_20261017": {
+      "report": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/OPENBB_GC_FOUNDATION_REVIEW_20261017.md",
+        "sha256": "e54ea9e94b9e5aea5c67d8294d1cebb2093c609431594894d0b54cdd2d2d440a"
+      },
+      "source_and_publication_review": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020/SOURCE_AND_PUBLICATION_REVIEW.json",
+        "sha256": "4515383cd8a8c3595de4751422c9578790418c3b73cbeb9bd23244108f2d2992"
+      },
+      "native_macros_added": 0,
+      "FRED_status": "BLOCKED_MISSING_FRED_API_KEY",
+      "legacy_reports_exact": 113,
+      "managed_money_reports": 113,
+      "release_calendar_actual_receipts_qualified": false,
+      "completion_review": {
+        "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020/COMPLETION_REVIEW.json",
+        "sha256": "258b89317637e09f2ecf74733f2d574b4119df0bce3621b805dfbe981084dbd6"
+      },
+      "unique_focused_tests_passed": 115
+    },
+    "gc_foundation_qualification_20261017": {
+      "OFI_BBO_M5": 83776,
+      "rolling15_M5": 48164,
+      "rolling60_M5": 7330,
+      "complete_session_prefix_M5": 2263,
+      "matched_new_F_L_input_rows": 37181,
+      "all_input_families_26_month_support": true,
+      "models_fitted_this_wave": false,
+      "native_registration_changed": false
+    },
+    "gc_goal_progress": [
+      {
+        "step": 1,
+        "status": "MASKED_INPUT_ADMISSION_COMPLETE_NOT_FEATURES_OR_MODEL_ADMISSION",
+        "completed": true,
+        "genuine_evidence": [
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/DATABENTO_GC_26M_20261015_001/DOWNLOAD_SUMMARY.json: 79/79 jobs complete, 63 newly downloaded data files, reported total USD 119.65511028468609 against USD 120.00 cap; acquisition evidence only.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN.json sha256=f73165d365c9a3258c37215bab288dce9af1ec5b80bfd4e65cbab4f45d33c466: 79 scope manifests reconciled to 66 MBP-1, 23 definition, and 23 ohlcv-1d local gzip files; local MBP-1 SHA verification pending the capped audit.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_MAPPING_AUDIT.json sha256=b01144fed2dc9f47e414d83f6ed9d50e38b20f609eae2a2c7bc3471aee454a66: 1,420 rows across 23 definition files map 15 outright raw symbols to unique instrument_id/publisher_id pairs; no MBP-1 rows read in this mapping phase.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN_ERRATUM.json sha256=ad9a52f1919fa1ab13492d002eeb7758b19e234ef9b0d63de5e82d2b63e0f673: clarifies handling of the one pre-binding row preview; it remains in the later whole-file hash-verified audit.",
+          "configs/research/GC_SOURCE_AUDIT_20261016_001.json sha256=d3b0d9d2733482c4fe6fe621faa8330e9f1c1dc710763d967dc75a140e423110: frozen v2 spec binds 66 MBP-1 files, 15 definition mappings and 12 source owners; audit not yet run.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/ATTEMPT_001_FAILURE.json sha256=1e0c555542917d8c28db9ff432f1567f0beae3f8866ad09e8647dc9ca4dd71cf: attempt 001 failed on a valid Fill row, no partial report; plan 001 will not be relaunched.",
+          "configs/research/GC_SOURCE_AUDIT_20261016_002.json sha256=3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d: executed exactly once under the fresh single-use user approval; terminal COMPLETE_NOT_ADMITTED.",
+          "Focused source-owner tests: 36 passed after adding passive-Fill handling; no full MBP-1 rerun performed.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json sha256=799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376: user response \u201cJa\u201d; single-use approval for plan 002 only.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json sha256=c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab: STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED; 66 files, 892100712 records, 62783740 trades, 0 new downloads, 0 fits, TEST false.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/TERMINAL.json sha256=e513dc5f58f360cf52e06e53d280f3ce1b854a808a020c224159223dcfc0c1f8: COMPLETE_NOT_ADMITTED; result hash verified.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json sha256=14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda: all 66 source/receipt hashes and 15-symbol definition crosswalk match; daily activity on 678/791 dates, all 113 absent dates Saturdays; intraday coverage and OANDA overlap remain unproven.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/RESULT.json sha256=11dec8fe9de8b726a707ce2907016df342cc3f06d20377abc99474d04466aea8: continuous raw-volume roll, per-indicator masks and ADMIT/REJECT; no complete-flow, feature-value or training claim."
+        ]
+      },
+      {
+        "step": 2,
+        "status": "MASKED_L1_AND_FULL_GC_PROFILES_QUALIFIED; NATIVE_INTEGRATION_UNBUILT",
+        "completed": false,
+        "genuine_evidence": [
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006/RESULTS/RESULT.json sha256=9f199acc84f185f2fb00e20f17d52ca21f1245b124e1c868dd2829e96e16598d: 141806 native M5 coordinates, 60 independent raw reference bars, exact source-minute/record reconciliation, real prefixes and atomic Parquet publication; no native train/serve or predictive admission.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/RESULT.json sha256=33ebbfa342fffc37c07b1f3021c190ffc8eeed1905921ca95f34dab6f6a57501",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/RESULT.json sha256=9c1423257c8a7826a833f93e9b57296d2bfd7c5e0944a1b80f880562c73f5663"
+        ]
+      },
+      {
+        "step": 3,
+        "status": "NEW_F_L_P0_COHORT_QUALIFIED; MODEL_AND_STRATEGY_TEST_NOT_ADMITTED",
+        "completed": false,
+        "genuine_evidence": [
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/RESULTS/RESULT.json sha256=4976db1e0e8b658894684d179536f092947eea75213d8f55726f00eff22a18f4: 45 ridge references, all 315 native fields/132 aliases retained, 16745 common M5 rows; no native sequence/attention, book-OFI, TEST or economics claim.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/COMPLETION_REVIEW.json sha256=2aee704ee7afc176a8159d4639248b9010711220e92542dce0da0a60c49e2210: 17565 prediction rows independently reconstructed from bound M1 quotes, exact float64 targets (0.0 bps difference), matched rows/metrics/split exit cuts verified.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020/RESULTS/RESULT.json sha256=d6b965a40b560f48582f95d2df3a58fc943635c70ef08e3673517db89e1c93c5"
+        ]
+      },
+      {
+        "step": 4,
+        "status": "ECONOMIC_EDGE_AND_NATIVE_ADOPTION_UNPROVEN",
+        "completed": false,
+        "genuine_evidence": []
+      }
+    ]
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "TRADE_FEATURES_AND_BOUNDED_PROBE_COMPLETE__NATIVE_ADOPTION_UNQUALIFIED",
+    "status": "QUALIFIED_MASKED_L1_AND_FULL_GC_PROFILES_READY__P0_FIT_NOT_ADMITTED",
     "goal_execution_requested": true,
     "pause_request_owner": "current_work.gc_goal_resume_authorization",
-    "pause_scope": "Plan 004 completed once: masked source inputs admitted for volume/profile/footprint/delta/relative CVD; multi-level sweeps/institutional order-block truth rejected. Indicator values, fit, TEST, economics and native integration remain unimplemented/closed.",
+    "pause_scope": "Current input engineering and no-fit qualification completed under 014/017/019/020. No current pause request or model launch authority; consumed plans cannot relaunch.",
     "operator_request": "Flott, fullf\u00f8r dette m\u00e5let med \u00e5 legge inn disse 4 punktene. Vi skal gj\u00f8re dette grundig. 15.10.2026: last ned det avgrensede 26-m\u00e5nedersdatasettet innenfor et absolutt tak p\u00e5 USD 120; bruk kun rapporterte gratis Databento-kreditter. 16.10.2026: \u00abJa, 26 da. Da fortsetter vi\u00bb; narrowly resumes local source qualification (step 1) only.",
     "required_steps": [
       1,
@@ -11696,5 +11742,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T11:23:22.752868+00:00"
+  "updated_utc": "2026-10-17T13:01:37.961886+00:00"
 }
