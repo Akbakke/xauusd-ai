@@ -136,3 +136,18 @@ def test_weekly_review_excludes_closed_endpoints_without_censoring_normal_closed
     assert r['horizons']['train_h20']['strict_additionally_censored_by_weekly_endpoint']==1
     assert r['horizons']['train_h20']['strict_and_weekly_open_valid']==1
     assert r['training_authorized'] is False
+
+
+def test_v3_uses_canonical_cash_costs_without_rollover_credit_and_invalid_FLAT_is_missing():
+    import json
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    econ=json.loads((root/'configs/research/ENTRY_EVALUATION_CORRECTION_20261017_011.json').read_text())['native_economics']
+    ex=m5.Execution(np.array([True,False]),np.array([0,0],np.int64),np.array([3600*ev.NS,0],np.int64),
+        np.array([0.,np.nan]),np.array([10.,np.nan]),np.array([-10.,np.nan]),np.array([1,0]))
+    out=m5.net_cash_values_v3(ex,economics=econ)
+    assert out[0,0]==10-4-569*3600/31557600
+    assert out[0,1]==-14 and out[0,2]==0 and np.isnan(out[1]).all()
+    prep=json.loads((root/'configs/research/P0_FACTORIAL_PREPARATION_20261017.json').read_text())
+    assert all(v['economics_version']==m5.ECONOMICS_PROJECTION_V3 for v in prep['arms'].values())
+    assert prep['economics']['contract']==econ

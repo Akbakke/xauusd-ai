@@ -1,0 +1,97 @@
+{
+  "schema_version": "gx1_gc_cash_projection_research_check_v1",
+  "plan_id": "GC_M5_CASH_PROJECTION_CHECK_20261017_013",
+  "created_utc": "2026-10-17T11:17:52.835064+00:00",
+  "operator_basis": "Task B: correct and verify common research economics before P0. Resolve measured v2 NY-credit model versus frozen cost authority explicitly, preserve both published comparisons.",
+  "native_economics": {
+    "schema_version": "gx1_entry_observed_market_v1_economics",
+    "cost_authority_sha256": "204c03ba3388ffe0db1421a32f9a8044182ec3dc818f8ea10a04299fcf468a32",
+    "coverage_start_utc": "2011-06-01T00:00:00+00:00",
+    "coverage_end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+    "round_trip_execution_cost_bps": 4.0,
+    "annual_financing_cost_bps": [
+      569.0,
+      0.0
+    ],
+    "seconds_per_year": 31557600.0,
+    "historical_cost_truth_qualified": false,
+    "capital_hurdle_included": false,
+    "risk_utility_included": false,
+    "economics_sha256": "f990436326edd80d09240e9943d4b714f0d2c5a9e1ed0285381edf9e5fdf8596"
+  },
+  "GC_probe_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_M5_TRADE_FLOW_PROBE_20261017_007.json",
+    "sha256": "5ab8ee7a7e73d322cfca8934469ac0522fed923b9d312c13d7a14040bc59c41e"
+  },
+  "GC_predictions": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/RESULTS/PREDICTIONS.parquet",
+    "sha256": "291dc5fc97c60da71680b890498e59b7a7d30c7e229797faaa9cd4f02f178bab"
+  },
+  "TEST_seal_utc": "2026-07-01T00:00:00Z",
+  "old_M5_economics": {
+    "latency_seconds": 60,
+    "entry": "first M1 bar with time >= decision + latency; long at its ask_open, short at its bid_open; censored if that bar starts more than 300 s after decision + latency",
+    "exit": "first M1 bar with time >= entry bar time + horizon; long at its bid_open, short at its ask_open; censored if that bar starts more than 4200 s after the target time or if any gap > 6 h (weekly closure) lies between entry and exit",
+    "spread": "carried by the executable bid/ask prices; never deducted again",
+    "slippage_bps_per_execution": {
+      "central": 2.0,
+      "sensitivity": [
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "source": "CURRENT_TERMS_POLICY_001 latency_slippage.central_bps_per_execution (separate_from_bid_ask_spread = true)"
+    },
+    "commission_bps_per_execution": 0.0,
+    "financing": {
+      "rule": "per 17:00 America/New_York rollover crossed between entry and exit: long -0.0569/365, short +0.0323/365 of notional (source rates of CURRENT_TERMS_POLICY_001)",
+      "long_bps_per_rollover": -1.5589,
+      "short_bps_per_rollover": 0.8849
+    },
+    "cost_policy": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/POLICY/policy.json",
+      "sha256": "bd4c2722e32c5f1ee2447d1e135c14684a576f6b9f88867cdf3bd9a80921f4e8"
+    },
+    "max_open_positions": 1,
+    "no_mfe_or_optimal_exit": true
+  },
+  "cost_authority": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/POLICY/parameter_authority.json",
+    "sha256": "54775694d3e102b8bdf4358ce4a8f72e4fd9fa6b98310e109c07e6b872052681"
+  },
+  "new_cost_version": "gx1_m5_entry_notional_current_terms_projection_v3",
+  "new_cost_model": "Reuse native observed-market cash-cost owner: spread already in entry-notional gross; 4 bps execution; actual elapsed seconds; annual LONG 569 / SHORT 0 bps, clipped credit; 31557600 seconds/year.",
+  "historical_broker_financing_qualified": false,
+  "funding_sources": [
+    {
+      "url": "https://www.oanda.com/bvi-en/cfds/financing-costs/",
+      "scope": "Settlement/holiday dependence; not historical rate reconstruction"
+    }
+  ],
+  "comparison_population": "All same 17565 published 007 direction targets, not selected trades. No strategy or model is fitted/evaluated.",
+  "code_paths": [
+    "gx1/scripts/audit_entry_gc_foundation_v1.py",
+    "gx1/contracts/entry_research_evaluation_v1.py",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py",
+    "gx1/scripts/research_m5_intraday_recheck_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "scripts/gx1_capped_run.sh",
+    "gx1/contracts/entry_observed_market_v1.py"
+  ],
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_CASH_PROJECTION_CHECK_20261017_013",
+  "max_invocations": 1,
+  "limits": {
+    "job_class": "audit",
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "max_wall_seconds": 1200,
+    "numerical_threads": 1
+  },
+  "fit_authorized": false,
+  "test_authorized": false,
+  "production_change_authorized": false,
+  "new_data_requests_authorized": false
+}

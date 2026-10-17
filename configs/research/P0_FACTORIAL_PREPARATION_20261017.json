@@ -373,28 +373,28 @@
     "control": {
       "layers": [],
       "core_fields_shared": true,
-      "economics_version": "gx1_m5_entry_notional_accounting_v2"
+      "economics_version": "gx1_m5_entry_notional_current_terms_projection_v3"
     },
     "F": {
       "layers": [
         "F"
       ],
       "core_fields_shared": true,
-      "economics_version": "gx1_m5_entry_notional_accounting_v2"
+      "economics_version": "gx1_m5_entry_notional_current_terms_projection_v3"
     },
     "L": {
       "layers": [
         "L"
       ],
       "core_fields_shared": true,
-      "economics_version": "gx1_m5_entry_notional_accounting_v2"
+      "economics_version": "gx1_m5_entry_notional_current_terms_projection_v3"
     },
     "V": {
       "layers": [
         "V"
       ],
       "core_fields_shared": true,
-      "economics_version": "gx1_m5_entry_notional_accounting_v2"
+      "economics_version": "gx1_m5_entry_notional_current_terms_projection_v3"
     },
     "FL": {
       "layers": [
@@ -402,7 +402,7 @@
         "L"
       ],
       "core_fields_shared": true,
-      "economics_version": "gx1_m5_entry_notional_accounting_v2"
+      "economics_version": "gx1_m5_entry_notional_current_terms_projection_v3"
     },
     "FV": {
       "layers": [
@@ -410,7 +410,7 @@
         "V"
       ],
       "core_fields_shared": true,
-      "economics_version": "gx1_m5_entry_notional_accounting_v2"
+      "economics_version": "gx1_m5_entry_notional_current_terms_projection_v3"
     },
     "LV": {
       "layers": [
@@ -418,7 +418,7 @@
         "V"
       ],
       "core_fields_shared": true,
-      "economics_version": "gx1_m5_entry_notional_accounting_v2"
+      "economics_version": "gx1_m5_entry_notional_current_terms_projection_v3"
     },
     "FLV": {
       "layers": [
@@ -427,41 +427,34 @@
         "V"
       ],
       "core_fields_shared": true,
-      "economics_version": "gx1_m5_entry_notional_accounting_v2"
+      "economics_version": "gx1_m5_entry_notional_current_terms_projection_v3"
     }
   },
   "economics": {
-    "owner": "gx1.scripts.research_m5_intraday_recheck_v1.execution_for_horizon_v2 + net_trade_bps_v2",
+    "owner": "execution_for_horizon_v2 + net_cash_values_v3 through entry_observed_market_v1.build_entry_observed_market_targets",
     "same_model_for_all_arms": true,
     "contract": {
-      "latency_seconds": 60,
-      "entry": "first M1 bar with time >= decision + latency; long at its ask_open, short at its bid_open; censored if that bar starts more than 300 s after decision + latency",
-      "exit": "first M1 bar with time >= entry bar time + horizon; long at its bid_open, short at its ask_open; censored if that bar starts more than 4200 s after the target time or if any gap > 6 h (weekly closure) lies between entry and exit",
-      "spread": "carried by the executable bid/ask prices; never deducted again",
-      "slippage_bps_per_execution": {
-        "central": 2.0,
-        "sensitivity": [
-          1.0,
-          2.0,
-          3.0,
-          4.0
-        ],
-        "source": "CURRENT_TERMS_POLICY_001 latency_slippage.central_bps_per_execution (separate_from_bid_ask_spread = true)"
-      },
-      "commission_bps_per_execution": 0.0,
-      "financing": {
-        "rule": "per 17:00 America/New_York rollover crossed between entry and exit: long -0.0569/365, short +0.0323/365 of notional (source rates of CURRENT_TERMS_POLICY_001)",
-        "long_bps_per_rollover": -1.5589,
-        "short_bps_per_rollover": 0.8849
-      },
-      "cost_policy": {
-        "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/POLICY/policy.json",
-        "sha256": "bd4c2722e32c5f1ee2447d1e135c14684a576f6b9f88867cdf3bd9a80921f4e8"
-      },
-      "max_open_positions": 1,
-      "no_mfe_or_optimal_exit": true
+      "schema_version": "gx1_entry_observed_market_v1_economics",
+      "cost_authority_sha256": "204c03ba3388ffe0db1421a32f9a8044182ec3dc818f8ea10a04299fcf468a32",
+      "coverage_start_utc": "2011-06-01T00:00:00+00:00",
+      "coverage_end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+      "round_trip_execution_cost_bps": 4.0,
+      "annual_financing_cost_bps": [
+        569.0,
+        0.0
+      ],
+      "seconds_per_year": 31557600.0,
+      "historical_cost_truth_qualified": false,
+      "capital_hurdle_included": false,
+      "risk_utility_included": false,
+      "economics_sha256": "f990436326edd80d09240e9943d4b714f0d2c5a9e1ed0285381edf9e5fdf8596"
     },
-    "historical_financing_truth_qualified": false
+    "cost_authority": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/POLICY/parameter_authority.json",
+      "sha256": "54775694d3e102b8bdf4358ce4a8f72e4fd9fa6b98310e109c07e6b872052681"
+    },
+    "historical_financing_truth_qualified": false,
+    "correction_basis": "V2 fixes notional only, preserving old NY credit comparator. P0 primary uses the already-frozen canonical wall-clock projection, explicitly not historical broker funding truth. Original 011/v1/v2 results preserved."
   },
   "targets": {
     "M5": "unchanged predetermined 30/120/360 minute mid-log direction; report cash outcome separately with v2",

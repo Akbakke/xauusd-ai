@@ -480,10 +480,66 @@ def run_l1_quality(binding_path):
        'result_sha256':io.sha256_file(staging/'RESULT.json')})
     publish_bundle_directory_noreplace(staging,root/'RESULTS');print('GC_SELECTED_L1_QUALITY_COMPLETE',flush=True)
 
+
+def review_cash_projection(plan):
+    from gx1.scripts import research_m5_intraday_recheck_v1 as m5
+    gc=binding_read(plan['GC_probe_plan']);rows=pq.read_table(binding_read(plan['GC_predictions'])).to_pandas()
+    parts=[pq.read_table(binding_read(b),columns=['time','bid_open','ask_open']).to_pandas() for b in gc['execution_tape_partitions']]
+    df=pd.concat(parts,ignore_index=True).sort_values('time');times=pd.DatetimeIndex(df.time).as_unit('ns').asi8
+    if np.any(times>=pd.Timestamp(plan['TEST_seal_utc']).value):raise RuntimeError('CASH_REVIEW_TEST')
+    bid=df.bid_open.to_numpy(float);ask=df.ask_open.to_numpy(float);tape=m5.Tape(times,bid,ask,bid,ask)
+    econ=plan['native_economics'];old=plan['old_M5_economics'];out={}
+    authority=binding_read(plan['cost_authority'])['parameters']
+    expected_fee=2*(authority['commission']['bps_per_execution']+authority['execution_slippage']['central_bps_per_execution'])
+    expected_annual=[authority['financing_or_swap'][side+'_annual_cost_rate']*10000 for side in ['long','short']]
+    if econ['round_trip_execution_cost_bps']!=expected_fee or econ['annual_financing_cost_bps']!=expected_annual:raise RuntimeError('CASH_COST_AUTHORITY')
+    for h,g in rows.groupby('horizon_minutes'):
+        ex=m5.execution_for_horizon_v2(g.decision_ns.to_numpy(),tape,horizon_minutes=int(h),latency_seconds=gc['latency_seconds'])
+        if not ex.valid.all() or not np.array_equal(ex.exit_ns,g.exit_ns.to_numpy()) or not np.array_equal(ex.y_mid_bps,g.y_mid_bps.to_numpy()):raise RuntimeError('CASH_CHANGED_CLOCK_OR_DIRECTION_LABEL')
+        new=m5.net_cash_values_v3(ex,economics=econ)
+        elapsed=(ex.exit_ns-ex.entry_ns)/NS
+        expected=np.column_stack((ex.long_gross_bps,ex.short_gross_bps))-econ['round_trip_execution_cost_bps']-elapsed[:,None]*np.asarray(expected_annual)[None,:]/econ['seconds_per_year']
+        if not np.array_equal(new[:,:2],expected) or not np.array_equal(new[:,2],np.zeros(len(g))):raise RuntimeError('CASH_NATIVE_COST_REFERENCE')
+        before=np.column_stack([np.array([m5.net_trade_bps_v2(side,float(L),float(S),int(n),slippage_bps=old['slippage_bps_per_execution']['central'],financing=old['financing']) for L,S,n in zip(ex.long_gross_bps,ex.short_gross_bps,ex.rollovers)]) for side in [1,-1]])
+        diff=new[:,:2]-before
+        out[str(int(h))]={'rows':len(g),'cash_projection_native_owner_and_independent_formula_bit_parity':True,
+           'entry_exit_and_mid_target_unchanged':True,'rollovers_in_old_model':int(ex.rollovers.sum()),
+           'v3_minus_v2_net_mean_bps_LONG_SHORT':diff.mean(axis=0).tolist(),
+           'v3_minus_v2_net_min_bps_LONG_SHORT':diff.min(axis=0).tolist(),
+           'v3_minus_v2_net_max_bps_LONG_SHORT':diff.max(axis=0).tolist(),
+           'opportunity_means_are_not_strategy_PnL':True}
+    return {'economics_version':m5.ECONOMICS_PROJECTION_V3,'gross_owner':'execution_for_horizon_v2',
+            'cost_owner':'entry_observed_market_v1.build_entry_observed_market_targets',
+            'frozen_cost_authority':plan['cost_authority'],'results':out,
+            'historical_broker_financing_qualified':False,'same_cash_model_for_all_eight_P0_arms':True,
+            'TEST_accessed':False,'strategy_or_fit_run':False,'native_or_published_baseline_changed':False}
+
+
+def run_cash_review(binding_path):
+    identity='GC_M5_CASH_PROJECTION_CHECK_20261017_013';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    rel='configs/research/'+identity+'.json'
+    if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('CASH_BINDING_PATH')
+    binding=io.read_json(binding_path);io.verify_digest(REPO/rel,binding['plan_sha256'],'CASH_PLAN');plan=io.read_json(REPO/rel)
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'CASH_POLICY');io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'CASH_APPROVAL')
+    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_m5_cash_projection_check_013'];approval=io.read_json(root/'OPERATOR_APPROVAL.json')
+    if (gate['status']!='EXECUTION_CLAIMED' or gate['completed_invocations']!=0 or gate['claimed_invocations']!=1 or gate['execution_authorized'] is not False or policy['training_enabled'] is not False or approval['max_invocations']!=1 or approval['single_use'] is not True or approval['approved_plan_sha256']!=binding['plan_sha256'] or io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):
+        raise RuntimeError('CASH_AUTHORITY')
+    if set(binding['code_sha256'])!=set(plan['code_paths']):raise RuntimeError('CASH_CODE_INVENTORY')
+    for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'CASH_CODE')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry();stage=root/'.RESULTS.staging';stage.mkdir(exist_ok=False)
+    io.write_json(root/'EXECUTION_CLAIM.json',{'invocation':1,'source_head':binding['source_head'],'plan_sha256':binding['plan_sha256']})
+    result=review_cash_projection(plan);result['source_head']=binding['source_head'];result['limits']=proof
+    for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'CASH_CODE_POST')
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'CASH_POLICY_POST')
+    if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):raise RuntimeError('CASH_SOURCE_CHANGED')
+    io.write_json(stage/'RESULT.json',result);io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(stage/'RESULT.json')})
+    publish_bundle_directory_noreplace(stage,root/'RESULTS');print('CASH_PROJECTION_REVIEW_COMPLETE',flush=True)
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser();group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--binding',type=Path);group.add_argument('--evaluation-binding',type=Path)
-    group.add_argument('--l1-binding',type=Path);args=parser.parse_args()
+    group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);args=parser.parse_args()
     if args.binding is not None:run(args.binding)
     elif args.evaluation_binding is not None:run_evaluation(args.evaluation_binding)
-    else:run_l1_quality(args.l1_binding)
+    elif args.l1_binding is not None:run_l1_quality(args.l1_binding)
+    else:run_cash_review(args.cash_binding)

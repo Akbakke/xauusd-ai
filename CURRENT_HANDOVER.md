@@ -23,9 +23,23 @@ Eksisterende mål og fryst baseline endres ikke. Nye MFE/MAE/netto/risiko-
 diagnostikker er aldri features eller hindsight-Exit-fasit. Eksplisitt v2-rute
 retter SHORT til inngangsnotional, med samme klokker og deklarerte kostnader.
 
-Plan 012 er claimet for separat full L1-rawpassering på eksisterende 26 måneder:
+Plan 012 er fullført (exit 0, kilde uendret, TEST=false) etter separat full L1-rawpassering på eksisterende 26 måneder:
 alle 20 felt ved T-signaturkollisjoner, reset/flags/BBO/filsømmer, separate
 snapshot-/OFI-/tidsintegral-kandidatmasker på valgt kontrakt. Gamle masker består.
+Alle 66 filer / 892 100 712 records er avstemt; de gamle Trade-metrikkene er
+bitlike på alle valgte eligible minutter. På valgt serie: 133 987 T-signaturer
+identiske i alle 20 felt, 0 BBO-/depth-/ts_in_delta-kollisjoner. 6 527 ugyldige
+BBO-records, 557 bad-recv/snapshot, 2 resets, 153 190 gapflaggete records.
+140 559 native M5 med rene BBO-observasjoner; 83 776 strengere OFI-/tidsintegral-
+kandidatvinduer, alle 26 måneder. Inputkandidater, ikke bygde/kvalifiserte features.
+Gamle masker er ikke svekket og ingen identisk T dedupliseres som en antatt handel.
+
+Finansieringskontrollen fant at den gamle M5-modellen brukte NY-kreditt, mens
+bundet native autoritet bruker veggklokke og klippet gunstig kreditt. V3 legger
+P0-projeksjonen gjennom eksisterende native kostprodusent; samme notional/4 bps/
+569-0 årlige bps/365,25-døgnsår på alle armer. Dette er en deklarert projeksjon,
+ikke historisk brokerswap. Plan 013 er claimet for regnskapsavstemming av de
+samme 17 565 publiserte 007-observasjonene; ingen strategi, fit eller nye data.
 Åtte P0-armer er deklarert i P0_FACTORIAL_PREPARATION_20261017.json; ikke en
 kjørbar treningsrecipe. Ingen TEST, native/produksjonsendring, nye datakjøp/-kall,
 modellfit eller strategisimulering åpnes av disse planene.

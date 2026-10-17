@@ -219,7 +219,9 @@ def execution_for_horizon_v2(decision_ns: np.ndarray, tape: Tape, *, horizon_min
 
 def net_trade_bps_v2(side: int, long_gross: float, short_gross: float, rollovers: int, *,
                      slippage_bps: float, financing: dict[str, float]) -> float:
-    """One P0 cash-cost owner, only with v2 gross; spread already in bid/ask.
+    """Version-2 rollover comparator; v3 owns the prepared P0 cash projection.
+
+    Only with v2 gross; spread is already in bid/ask.
 
     The declared rollover model is reused, not asserted to be historical swap
     truth. Commission remains zero in the bound research recipe.
@@ -228,6 +230,30 @@ def net_trade_bps_v2(side: int, long_gross: float, short_gross: float, rollovers
         raise ValueError('M5_V2_EXECUTION_COST_INPUT')
     return net_trade_bps(side, long_gross, short_gross, rollovers,
                          slippage_bps=slippage_bps, financing=financing)
+
+
+ECONOMICS_PROJECTION_V3 = "gx1_m5_entry_notional_current_terms_projection_v3"
+
+def net_cash_values_v3(execution: Execution, *, economics: dict) -> np.ndarray:
+    """Separate research projection through the existing native cash-cost owner.
+
+    LONG/SHORT gross must come from execution_for_horizon_v2. Wall-clock
+    financing, clipped favorable credits and execution fees follow the frozen
+    parameter authority. This is NOT a historical broker-billing reconstruction.
+    Invalid rows remain NaN, including FLAT; future outcomes are never features.
+    """
+    import torch
+    from gx1.contracts.entry_observed_market_v1 import build_entry_observed_market_targets
+    valid=np.asarray(execution.valid,bool)
+    out=np.full((len(valid),3),np.nan,dtype=np.float64)
+    if valid.any():
+        elapsed=(execution.exit_ns[valid]-execution.entry_ns[valid])//NS
+        gross=np.column_stack((execution.long_gross_bps[valid],execution.short_gross_bps[valid]))
+        result=build_entry_observed_market_targets(
+            gross_return_bps=torch.tensor(gross,dtype=torch.float64,device='cpu'),
+            elapsed_wall_clock_seconds=torch.tensor(elapsed,dtype=torch.int64,device='cpu'),economics=economics)
+        out[valid]=result['target_bps'].numpy()
+    return out
 
 
 def spread_at_decision(decision_ns: np.ndarray, tape: Tape) -> np.ndarray:
