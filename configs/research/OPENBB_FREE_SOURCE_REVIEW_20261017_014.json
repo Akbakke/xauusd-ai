@@ -1,0 +1,49 @@
+{
+  "schema_version": "gx1_openbb_free_source_review_v1",
+  "plan_id": "OPENBB_FREE_SOURCE_REVIEW_20261017_014",
+  "operator_request": "17.10.2026 OpenBB FRED/CFTC isolated free source review, no data purchase",
+  "start_date": "2024-05-01",
+  "end_date": "2026-06-30",
+  "end_exclusive": "2026-07-01",
+  "CFTC_code": "CFTC_088691",
+  "FRED_series": [
+    "DFII10",
+    "DGS10",
+    "DGS2",
+    "DTWEXBGS",
+    "T5YIFR",
+    "STLFSI4",
+    "NFCI"
+  ],
+  "packages": {
+    "openbb-core": "2.0.1",
+    "openbb-fred": "2.0.0",
+    "openbb-cftc": "2.0.0"
+  },
+  "environment_python": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014/ENV/bin/python",
+  "max_reports": 200,
+  "position_history_reports": 52,
+  "maximum_output_bytes": 10485760,
+  "provider_timeout_seconds": 240,
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014",
+  "free_public_only": true,
+  "paid_endpoints": false,
+  "Databento_calls": false,
+  "native_ingestion_changed": false,
+  "PIT_admission": false,
+  "fit_authorized": false,
+  "TEST_authorized": false,
+  "recipe": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/GC_L1_DYNAMIC_FOUNDATION.md",
+    "sha256": "f2c202158bdaba5957b591d9959f9b4b7d86228599261432954c9f7863a93c27"
+  },
+  "code_paths": [
+    "gx1/scripts/research_openbb_source_review_v1.py",
+    "gx1/scripts/research_ta_campaign_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "scripts/gx1_capped_run.sh"
+  ]
+}

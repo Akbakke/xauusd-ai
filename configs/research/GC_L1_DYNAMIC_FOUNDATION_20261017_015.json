@@ -1,0 +1,131 @@
+{
+  "schema_version": "gx1_gc_l1_dynamic_foundation_plan_v2",
+  "plan_id": "GC_L1_DYNAMIC_FOUNDATION_20261017_015",
+  "operator_request": "17.10.2026 qualify 83776 candidates with actual OFI/TW BBO and real trade dynamic profiles before P0",
+  "inputs": {
+    "source_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
+      "sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf"
+    },
+    "trade_masks": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/SELECTED_M1_INPUT_MASKS.parquet",
+      "sha256": "d30894d0786b69fd1f8784ee98ef7035cfe6a35f05d185e5e235df8899b684d4"
+    },
+    "M5_features": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_006/RESULTS/M5_FEATURES.parquet",
+      "sha256": "9d5f035b43e9b3889a8492ad0d855adc42a3c0a2b1376b6568433713d296469f"
+    },
+    "roll": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/ROLL_SCHEDULE.json",
+      "sha256": "80f847b74b1e49efb64b9c57d306263bc184e4f289e66cb1d95a37bb2b05add8"
+    },
+    "L1_candidates": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SELECTED_L1_QUALITY_20261017_012/RESULTS/SELECTED_M1_L1_CANDIDATE_MASKS.parquet",
+      "sha256": "4b9dd8c8953eae7b35c69672e44c30339cf0eb5252c3f571d468854b21da6d07"
+    }
+  },
+  "ladders": {
+    "GCG5": {
+      "bytes": 2796024,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCG5.parquet",
+      "sha256": "6fa0325857eae172d08280f44229aa84b4ce76cbe14227bf8eec42b4e99c0e4f"
+    },
+    "GCG6": {
+      "bytes": 5643577,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCG6.parquet",
+      "sha256": "1240cbd328a3b5c84545c10cb42917f5e49da05dd045615433b61c0c652e5f44"
+    },
+    "GCJ5": {
+      "bytes": 2778040,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCJ5.parquet",
+      "sha256": "e24d2ecdb52a07ee3552db596a26a3381d068d478cc019680618365396f6054a"
+    },
+    "GCJ6": {
+      "bytes": 7733855,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCJ6.parquet",
+      "sha256": "9fde75ab973423a5e2a551ab93d4a37a7258d2e2f9665f61d07ffb9fd234cf06"
+    },
+    "GCM4": {
+      "bytes": 1449263,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCM4.parquet",
+      "sha256": "a63a6ad52265ab47143de451abff7d1b9e43db8491f6ff05375fba4588fd7fd6"
+    },
+    "GCM5": {
+      "bytes": 4438534,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCM5.parquet",
+      "sha256": "5bf9f715b965aca09349849527472daadf7902479de72f5db9c7a6fe38feef31"
+    },
+    "GCM6": {
+      "bytes": 5076121,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCM6.parquet",
+      "sha256": "db8fd3e022363c844770218bd65620977543cc5a3f08d4c6dcc9b6f9defbaaca"
+    },
+    "GCQ4": {
+      "bytes": 3087772,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCQ4.parquet",
+      "sha256": "4720a4c5d9ba2879fa39129417d56ebb19ceb2184a415ee20f3903ad882abfb0"
+    },
+    "GCQ5": {
+      "bytes": 3643500,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCQ5.parquet",
+      "sha256": "c435b9956e6a028c146b3523568a885cbf8c2a73c2489a7f52905654478670cc"
+    },
+    "GCQ6": {
+      "bytes": 3042400,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCQ6.parquet",
+      "sha256": "bdcdfba427070f1e27df04dc70a2770a2c17a402e57e90c15639561e4e431619"
+    },
+    "GCV4": {
+      "bytes": 663,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCV4.parquet",
+      "sha256": "4b95d8c38d0c57f5321d037ca0610a7ddeb2ef00ab5ed2c56357141f9f3a83e2"
+    },
+    "GCV5": {
+      "bytes": 663,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCV5.parquet",
+      "sha256": "4b95d8c38d0c57f5321d037ca0610a7ddeb2ef00ab5ed2c56357141f9f3a83e2"
+    },
+    "GCZ4": {
+      "bytes": 6338694,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCZ4.parquet",
+      "sha256": "c4d4aefae6359167860e6c2825f10c22b558006bcc6500dd264468f2ebe74dbf"
+    },
+    "GCZ5": {
+      "bytes": 9910310,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCZ5.parquet",
+      "sha256": "29b5d9c86d0dac4e14c231247381684b112f9c1cab1f447a6fe7b3007222e08c"
+    },
+    "GCZ6": {
+      "bytes": 663,
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/.RESULTS.staging/LADDERS/GCZ6.parquet",
+      "sha256": "4b95d8c38d0c57f5321d037ca0610a7ddeb2ef00ab5ed2c56357141f9f3a83e2"
+    }
+  },
+  "expected_M5_candidates": 83776,
+  "worker_count": 8,
+  "tick_usd": 0.1,
+  "max_invocations": 1,
+  "fit_authorized": false,
+  "TEST_authorized": false,
+  "network_authorized": false,
+  "new_market_data_authorized": false,
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_20261017_015",
+  "recipe": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/GC_L1_DYNAMIC_FOUNDATION.md",
+    "sha256": "f2c202158bdaba5957b591d9959f9b4b7d86228599261432954c9f7863a93c27"
+  },
+  "code_paths": [
+    "gx1/features/gc_order_flow_v1.py",
+    "gx1/scripts/gc_order_flow_features_v1.py",
+    "tests/test_gc_l1_dynamic_foundation_v2.py",
+    "gx1/scripts/audit_entry_gc_foundation_v1.py",
+    "gx1/contracts/entry_research_evaluation_v1.py",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py",
+    "gx1/scripts/research_m5_intraday_recheck_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "scripts/gx1_capped_run.sh",
+    "gx1/contracts/gc_continuous_source_v1.py"
+  ]
+}

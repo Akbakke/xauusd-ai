@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T11:23:22.752868+00:00",
-  "status": "ENTRY_RESEARCH_CORRECTIONS_MEASURED__CALENDAR_AND_P0_ADMISSION_BLOCKED",
+  "status": "OPENBB_SOURCE_REVIEW_AND_GC_L1_DYNAMIC_FOUNDATION_PREPARED_NO_FIT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Resolve historical daily/holiday calendar and financing limitations without modifying baseline; extend existing GC owner with actual OFI/time-weighted BBO and dynamic real-trade level values under family masks, then freeze exact finite matched rule/XGBoost P0 recipe. Native training, TEST, production/live and new market-data requests remain closed.",
+  "next_action": "One isolated free OpenBB source review 014, then local existing-data GC foundation 015. All model training/TEST/live/paid calls remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "A/B/C research corrections and D L1 candidate qualification complete within declared scope; actual historical calendar, financing and P0 feature/model admission remain blocked.",
+    "current_activity": "One isolated free OpenBB source review 014, then local existing-data GC foundation 015. All model training/TEST/live/paid calls remain closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -182,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No fully qualified historical session/holiday calendar, no raw VAL-tail reconstruction or historical broker funding; L1 masks are candidate inputs only, dynamic GC levels/final P0 rule-model recipe not built. No unused GC confirmation period verified.",
+    "current_blocker": "No actual L1 values yet; plans 014/015 prepared, no model admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7656,7 +7656,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Resolve historical daily/holiday calendar and financing limitations without modifying baseline; extend existing GC owner with actual OFI/time-weighted BBO and dynamic real-trade level values under family masks, then freeze exact finite matched rule/XGBoost P0 recipe. Native training, TEST, production/live and new market-data requests remain closed.",
+    "next_action": "One isolated free OpenBB source review 014, then local existing-data GC foundation 015. All model training/TEST/live/paid calls remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8995,6 +8995,32 @@
         "row_horizon_count": 10200,
         "unique_TRAIN_rows": 9615
       }
+    },
+    "openbb_source_review_014": {
+      "plan_path": "configs/research/OPENBB_FREE_SOURCE_REVIEW_20261017_014.json",
+      "plan_sha256": "9affbc93f98b0216e8cd3af4784395fa81423628701aa3d65e2b8d49a7dff4bf",
+      "status": "EXECUTION_CLAIMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 0,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "fit_authorized": false,
+      "test_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014"
+    },
+    "gc_l1_dynamic_foundation_015": {
+      "plan_path": "configs/research/GC_L1_DYNAMIC_FOUNDATION_20261017_015.json",
+      "plan_sha256": "42616d9538e7fcda6aa0ac651babde216baff6855853cddbd3c622854dde6bde",
+      "status": "PREPARED_NOT_CLAIMED",
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "fit_authorized": false,
+      "test_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_20261017_015"
     }
   },
   "gc_order_flow_research_20261006": {

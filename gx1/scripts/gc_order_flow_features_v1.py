@@ -448,10 +448,133 @@ def run(binding_path):
     print(json.dumps({k:result[k] for k in ('status','native_m5_rows','support')},sort_keys=True),flush=True)
 
 
+def foundation_worker_v2(group,tick,wanted,candidate,expected,references):
+    c=features.L1FeatureCollectorV2(wanted,tick,reference_minutes=references)
+    old=source.scan_symbol(group['items'],tick,on_batch=c,extra_columns=source.L1_AUDIT_COLUMNS,on_file_start=c.file_start)
+    c.finish()
+    for key in source.METRICS:
+        if not np.array_equal(old[key][wanted],expected[key]):raise RuntimeError('FOUNDATION_TRADE_METRIC_CHANGED:'+key)
+    values,tw_valid=c.values(candidate)
+    checks=[]
+    if c.references:
+        events=np.concatenate(c.references)
+        end=(max(references)+1)*timing.MINUTE_NS+timing.STUDY_START_NS
+        prefix=features.L1FeatureCollectorV2(wanted,tick)
+        prefix.consume(events[events[:,0]<end]);prefix.finish(end)
+        pv,pm=prefix.values(candidate)
+        compare=np.isin(wanted,sorted(references)[1:])&tw_valid
+        if not compare.any():raise RuntimeError('FOUNDATION_PREFIX_NO_ADMITTED_ROWS')
+        for key in values:
+            if not np.allclose(values[key][compare],pv[key][compare],rtol=1e-12,atol=1e-10,equal_nan=True):raise RuntimeError('FOUNDATION_REAL_PREFIX:'+key)
+        checks.append({'symbol':old['symbol'],'M1_rows':int(compare.sum()),'F_LAST_events':len(events),'prefix_to_M5_close':'PASS','future_events_used':False})
+    return {'values':values,'ofi_valid':candidate,'bbo_valid':tw_valid,'covered_ns':c.covered,
+       'first_mid':c.first,'last_mid':c.last,'files':old['files'],'prefix_checks':checks}
+
+
+def run_foundation_v2(binding_path):
+    identity='GC_L1_DYNAMIC_FOUNDATION_20261017_015';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('FOUNDATION_BINDING')
+    binding=previous.read_json(binding_path);path=REPO/'configs/research'/f'{identity}.json'
+    previous.verify_digest(path,binding['plan_sha256'],'FOUNDATION_PLAN');plan=previous.read_json(path)
+    previous.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'FOUNDATION_POLICY')
+    previous.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'FOUNDATION_APPROVAL')
+    approval=previous.read_json(root/'OPERATOR_APPROVAL.json');policy=previous.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_l1_dynamic_foundation_015']
+    if (gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0 or gate['execution_authorized'] is not False or policy['training_enabled'] is not False or approval['approved_plan_sha256']!=binding['plan_sha256'] or approval['max_invocations']!=1 or previous.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):raise RuntimeError('FOUNDATION_AUTHORITY')
+    for rel,digest in binding['code_sha256'].items():previous.verify_digest(REPO/rel,digest,'FOUNDATION_CODE')
+    for item in plan['inputs'].values():previous.verify_digest(Path(item['path']),item['sha256'],'FOUNDATION_INPUT')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry()
+    stage=root/'.RESULTS.staging';stage.mkdir(exist_ok=False)
+    previous.write_json(root/'EXECUTION_CLAIM.json',{'invocation':1,'source_head':binding['source_head']})
+    base=previous.read_json(Path(plan['inputs']['source_plan']['path']));groups,hashes=previous._bound_gc_inputs(base)
+    old=pq.read_table(plan['inputs']['trade_masks']['path']);q=pq.read_table(plan['inputs']['L1_candidates']['path'])
+    native=pq.read_table(plan['inputs']['M5_features']['path']);roll=previous.read_json(Path(plan['inputs']['roll']['path']))
+    minute=old['bar_start_ns'].to_numpy();contract=old['contract_index'].fill_null(-1).to_numpy();raw=(minute-timing.STUDY_START_NS)//timing.MINUTE_NS
+    if not np.array_equal(minute,q['bar_start_ns'].to_numpy()) or not np.array_equal(contract,q['contract_index'].fill_null(-1).to_numpy()):raise RuntimeError('FOUNDATION_CANDIDATE_CLOCK')
+    candidate=q['ofi_event_candidate_valid'].to_numpy();bbo_candidate=q['bbo_time_integral_candidate_valid'].to_numpy()
+    if not np.array_equal(candidate,bbo_candidate):raise RuntimeError('FOUNDATION_012_MASK_VERSION_CHANGED')
+    start=native['m5_bar_start_ns'].to_numpy();query=start[:,None]+np.arange(5)[None,:]*timing.MINUTE_NS
+    pos=np.searchsorted(minute,query);idx=np.minimum(pos,len(minute)-1)
+    present=(pos<len(minute))&(minute[idx]==query);same=present.all(axis=1)&(contract[idx]>=0).all(axis=1)&(contract[idx]==contract[idx[:,:1]]).all(axis=1)
+    m5candidate=same&candidate[idx].all(axis=1)
+    if int(m5candidate.sum())!=plan['expected_M5_candidates']:raise RuntimeError('FOUNDATION_CANDIDATE_SUPPORT')
+    results=[];columns={n:np.full(len(minute),np.nan) for n in features.L1_FIELDS_V2};masks={n:np.zeros(len(minute),bool) for n in ('ofi','bbo')}
+    coverage_ns=np.zeros(len(minute),np.int64);first_mid=np.full(len(minute),np.nan);last_mid=first_mid.copy();checks=[];records=0
+    with ProcessPoolExecutor(max_workers=plan['worker_count'],mp_context=mp.get_context('fork')) as pool:
+        for group in groups:
+            ci=roll['contract_order'].index(group['raw_symbol']);rows=np.flatnonzero(contract==ci)
+            ref=np.flatnonzero(m5candidate&(contract[idx[:,0]]==ci))
+            refs=[] if not len(ref) else list(range(int((start[ref[0]]-timing.STUDY_START_NS)//timing.MINUTE_NS)-1,int((start[ref[0]]-timing.STUDY_START_NS)//timing.MINUTE_NS)+5))
+            expected={key:old[key].to_numpy()[rows] for key in source.METRICS}
+            results.append((rows,pool.submit(foundation_worker_v2,group,roll['metadata_identity'][group['raw_symbol']][2],raw[rows],candidate[rows],expected,refs)))
+        for rows,future in results:
+            r=future.result()
+            for n,v in r['values'].items():columns[n][rows]=v
+            for n in masks:masks[n][rows]=r[n+'_valid']
+            coverage_ns[rows]=r['covered_ns'];first_mid[rows]=r['first_mid'];last_mid[rows]=r['last_mid']
+            checks.extend(r['prefix_checks']);records+=sum(f['records'] for f in r['files'])
+    if records!=base['expected_source_records']:raise RuntimeError('FOUNDATION_RAW_COUNT')
+    if np.any(coverage_ns[candidate]!=timing.MINUTE_NS):
+        # OFI and integral masks stay separate; partial integrals never qualify.
+        print('FOUNDATION_PARTIAL_INTEGRALS',int(np.count_nonzero(candidate&(coverage_ns!=timing.MINUTE_NS))),flush=True)
+    out={'m5_bar_start_ns':start,'decision_ns':native['decision_ns'].to_numpy(),'contract_index':contract[idx[:,0]]}
+    for n,v in masks.items():out[n+'_valid']=same&v[idx].all(axis=1)
+    for j,n in enumerate(features.L1_FIELDS_V2):
+        v=columns[n][idx].sum(axis=1) if j<6 else columns[n][idx].mean(axis=1)
+        if n=='mid_response_ticks':v=last_mid[idx[:,-1]]-first_mid[idx[:,0]]
+        valid=out['ofi_valid'] if j<6 else out['bbo_valid'];v[~valid]=np.nan;out[n]=v
+    # Existing trusted-trade intensity has its own unchanged unsigned mask.
+    volume_valid=native['m5_volume_valid'].to_numpy();out['trade_intensity_valid']=volume_valid
+    out['trade_records_per_second']=np.where(volume_valid,old['trades'].to_numpy()[idx].sum(axis=1)/300,np.nan)
+    # Reduce already bound real-trade ladders, summing fragments before profiles.
+    histograms=[{} for _ in start]
+    for symbol,item in plan['ladders'].items():
+        previous.verify_digest(Path(item['path']),item['sha256'],'FOUNDATION_LADDER')
+        df=pq.read_table(item['path']).to_pandas();df['bar_start_ns']=timing.STUDY_START_NS+(df.minute_index.to_numpy()//5)*5*timing.MINUTE_NS
+        df['volume']=df.buy+df.sell+df.unknown
+        sums=df.groupby(['bar_start_ns','price_tick'],sort=True).volume.sum()
+        for stamp,h in sums.groupby(level=0,sort=True):
+            row=int(np.searchsorted(start,stamp))
+            if row>=len(start) or start[row]!=stamp or not volume_valid[row]:continue
+            if histograms[row]:raise RuntimeError('FOUNDATION_CONTRACT_PROFILE_COLLISION')
+            histograms[row]={int(p):int(v) for (_,p),v in h.items() if v>0}
+            if sum(histograms[row].values())!=int(native['m5_volume'].to_numpy()[row]):raise RuntimeError('FOUNDATION_PROFILE_VOLUME_PARITY')
+    levels=features.dynamic_profiles_v2(start,histograms,volume_valid,out['contract_index'],native['m5_close_usd'].to_numpy(),plan['tick_usd'])
+    out.update(levels)
+    cut=len(start)//2
+    prefix=features.dynamic_profiles_v2(start[:cut],histograms[:cut],volume_valid[:cut],out['contract_index'][:cut],native['m5_close_usd'].to_numpy()[:cut],plan['tick_usd'])
+    for n,v in prefix.items():
+        if not np.array_equal(v,levels[n][:cut],equal_nan=True):raise RuntimeError('FOUNDATION_PROFILE_PREFIX:'+n)
+    table=pa.table(out);output=stage/'M5_L1_DYNAMIC_FEATURES.parquet';pq.write_table(table,output,compression='zstd')
+    if not table.equals(pq.read_table(output)):raise RuntimeError('FOUNDATION_READBACK')
+    mt=pa.table({'bar_start_ns':minute,'ofi_valid':masks['ofi'],'bbo_valid':masks['bbo'],'integral_covered_ns':coverage_ns,**columns})
+    pq.write_table(mt,stage/'M1_L1_FEATURES.parquet',compression='zstd')
+    months=pd.DatetimeIndex(start,tz='UTC').strftime('%Y-%m').to_numpy()
+    masknames=[n for n in out if n.endswith('_valid')]
+    counts={n:{'rows':int(out[n].sum()),'by_month':{m:int(np.count_nonzero(out[n]&(months==m))) for m in sorted(set(months))}} for n in masknames}
+    previous._rehash_sources(hashes,[])
+    for item in list(plan['inputs'].values())+list(plan['ladders'].values()):previous.verify_digest(Path(item['path']),item['sha256'],'FOUNDATION_INPUT_POST')
+    for rel,digest in binding['code_sha256'].items():previous.verify_digest(REPO/rel,digest,'FOUNDATION_CODE_POST')
+    previous.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'FOUNDATION_POLICY_POST')
+    if previous.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):raise RuntimeError('FOUNDATION_SOURCE_CHANGED')
+    result={'status':'MASKED_L1_AND_DYNAMIC_PROFILES_BUILT','source_head':binding['source_head'],'limits':proof,
+       'raw_records':records,'native_M5_rows':len(start),'candidate_M5_rows':int(m5candidate.sum()),'coverage':counts,
+       'real_L1_prefix_checks':checks,'real_profile_prefix_rows':cut,'ladder_volume_reconciliation':'EXACT_EVERY_ADMITTED_M5',
+       'session_observed_is_incomplete_diagnostic':True,'session_holiday_calendar_qualified':False,
+       'M5_file_sha256':previous.sha256_file(output),'TEST_accessed':False,'fit_started':False,'baseline_changed':False}
+    previous.write_json(stage/'RESULT.json',result)
+    previous.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':previous.sha256_file(stage/'RESULT.json')})
+    publish_bundle_directory_noreplace(stage,root/'RESULTS');print('GC_L1_DYNAMIC_FOUNDATION_COMPLETE',flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--binding',type=Path,required=True)
+    group=parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--binding',type=Path)
+    group.add_argument('--foundation-binding',type=Path)
     args = parser.parse_args()
+    if args.foundation_binding:
+        run_foundation_v2(args.foundation_binding)
+        return
     try:
         run(args.binding)
     except Exception as exc:
