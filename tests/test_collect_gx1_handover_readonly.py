@@ -799,8 +799,10 @@ def test_current_handover_separates_new_rebuild_from_consumed_preprocessing():
     # The native rebuild keeps its own identity while the current GC task advances.
     assert work['current_research_id'] == policy['gc_order_flow_research_20261006']['research_id']
     assert Path(current['run_root']).name == 'NATIVE_D1_REBUILD_20261011_003'
-    assert work['latest_terminal']['path'].startswith(current['run_root'] + '/')
-    assert not work['latest_terminal']['path'].startswith(repair['run_root'] + '/')
+    native_terminal = work['native_preprocessing_terminal_20261013']
+    assert native_terminal['path'].startswith(current['run_root'] + '/')
+    assert not native_terminal['path'].startswith(repair['run_root'] + '/')
+    assert work['latest_terminal']['path'] == work['gc_m5_trade_probe_007']['terminal_path']
     assert repair['core_build_authorized'] is False
     assert repair['core_relaunch_allowed'] is False
     assert repair['complete_m1_stage']['authorized'] is False

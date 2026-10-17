@@ -7,7 +7,7 @@ ligger i Git og i policyens bindinger, ikke her.
 ## Nå: M5 intradag med MTF — operatørvedtak 17.10
 
 Brukeren avklarte «Vi holder oss til M5 intradag (med mtf så klart).» GC-
-featurebygger 005 implementeres på innrømmede 004-masker; bare eksisterende
+Trade-featurebygger 006 er fullført på innrømmede 004-masker; bare eksisterende
 lokale bytes, ingen nye Databento-kall/kostnader. Eksisterende M5/M15/H1/H4/D1-
 klokker og native familier beholdes. Byggeren lager observerte volum/profil/
 footprint/delta/relativ CVD og kausale SMC-order-block-/pris-sweep-proksier.
@@ -36,7 +36,7 @@ native integrasjon/paritet er ubevist; hele opprinnelige GC-protokollens steg 2
 er derfor ikke feilaktig markert fullført. Neste konkrete arbeid er en
 forhåndsbundet matched A/B/C-forskningsfit på tilgjengelige Trade-features,
 med eksisterende native snapshots og MTF-kontekst; ingen native serving-adgang.
-Trening, normalisering, TEST, økonomi og native launch er fortsatt stengt;
+Native trening/normalisering, TEST, økonomi og launch er fortsatt stengt;
 ny konkret intradag-mål-/recipebinding gjenstår etter featurebeviset.
 Opprydding/komprimering er fullført; dette er ikke lenger en blokkering.
 
@@ -71,7 +71,35 @@ endelige modeller maksimalt. Feltvalg fra bare initial-TRAIN-inputs og kohort
 låses før utfall. C−B og B−A er én seks-kontrast-familie med eksisterende
 ukeblokk-bootstrap. Ingen strategi-/økonomisimulering, TEST eller native fit.
 Dette er snapshot-/kontekstforskning, ikke native sekvens/attention-bevis eller
-fullføring av opprinnelig C-arm med book-OFI. Kjøring er ennå ikke utført.
+fullføring av opprinnelig C-arm med book-OFI. 007 er fullført én gang (exit 0, 120,4 s, 45 modeller). A/B/C har 325/393/473
+felt etter initial-TRAIN-inputlås; alle 315 native felt og 132 aliaser beholdt,
+GC-diagnostikkene ukjent=0/kjentandel=1 er konstante i denne selektive kohorten
+og brukes ikke som nye lærte felt. Ingen indikator er fjernet fra native.
+
+Utviklings-MSE i bps² (A / B / C / TRAIN-konstant):
+30m 253,844 / 253,944 / 254,072 / 253,795 (5 935 rader);
+120m 1 156,887 / 1 157,811 / 1 158,956 / 1 151,942 (5 894);
+360m 4 052,491 / 4 054,063 / 4 056,442 / 4 041,438 (5 736).
+TRAIN-fit faller litt med nye felt, mens senere feil øker litt. Alle seks
+familiekorrigerte C−B/B−A-intervaller dekker null: INCONCLUSIVE, ingen
+positiv inkrementell prediksjonsstøtte. Dette er ingen falsifisering av native
+M5-footprint eller sekvens/attention; slik modell er ikke trent her.
+
+RESULT.json sha256 4976db1e0e8b658894684d179536f092947eea75213d8f55726f00eff22a18f4;
+TERMINAL.json sha256 40e5528f4e83d55d3fc699998aa817c0aab07f92e1f6ee6162869ce8f260bcce.
+COMPLETION_REVIEW rekonstruerte alle 17 565 observerte mål uavhengig fra
+M1-kvotene: 0,0 bps avvik; samme armer/rader, MSE og split-exitgrenser består.
+Modeller/prediksjoner ligger bare i RUNS, ingen vekter/rådata pushes.
+
+M5-footprint er bevart og kan vises prisnivå for prisnivå. Reelt eksempel i
+run-root M5_FOOTPRINT_EXAMPLE.{csv,png,json}: GCQ6, 30.06.2026 09:15–09:20 UTC,
+19 observerte prisnivåer, 75 kontrakter (22 B-kjøp, 53 A-salg, 0 ukjent), eksakt
+avstemt mot maskert M5-volum. Eksemplet velges for kompakt fullnivåvisning,
+ikke etter utfall. Ingen TEST, økonomi, API/spending eller native fit.
+
+Native GC-representasjon/masker og ekte train/serve-paritet gjenstår før egen
+kildebundet M5-læringsplan kan vurderes. Ingen blind GPU-fase eller relansering
+av konsumerte planer; tidligere D1-recipe er ikke denne M5-bestillingen.
 
 ## Minimum native læring (vedtak 12.10): gjennomført og gjennomgått
 
@@ -266,8 +294,8 @@ verifisert uavhengig mot rå tape (0,00 bps avvik, ingen overlapp).
 
 Ikke testet: transformer-utfordrer (krever minutthorisont-målkontrakt, og
 walk-forward i TRAIN kolliderer med regel 18), sett C (GC-kjøp), ekte XGBoost
-(miljøendring). GC: 26M-datakilden er hentet, men dataene er ennå ikke kvalifisert eller brukt til featurebygging/fit.
-Databento: Kun kildehenting innen samlet hardgrense USD 120.00 var autorisert. Kjøringen ble fullført 2026-10-16 06:56:38 UTC: 79/79 jobber og 63 nye datafiler. DOWNLOAD_SUMMARY.json rapporterer ALL_BATCH_JOBS_COMPLETE_FILES_DOWNLOADED og actual_or_quoted_completed_job_cost_usd USD 119.65511028468609. Ingen nye batch-submit eller pay-as-you-go-forespørsler. Brukeren rapporterer USD 5 remaining credits; saldoen er ikke uavhengig verifisert. Databento opplyser at batch-jobben belastes én gang ved innsending, og at samme data kan lastes ned igjen uten ekstra kostnad i 30 dager. Den tidligere ufullstendige .part-filen er bevart, men regnes ikke som verifisert data. Fit, TEST, featurebygging, native endring, broker/live/paper og handel er fortsatt stengt. 180 d-fasen forblir desarmert.
+(miljøendring). GC: 26M-kilden fikk maskert input-admission i 004; Trade-features 006 og avgrenset forskningsfit 007 er nå fullført. Ingen komplett flow, native trening eller prediktiv kvalifisering er bevist.
+Databento: Kun kildehenting innen samlet hardgrense USD 120.00 var autorisert. Kjøringen ble fullført 2026-10-16 06:56:38 UTC: 79/79 jobber og 63 nye datafiler. DOWNLOAD_SUMMARY.json rapporterer ALL_BATCH_JOBS_COMPLETE_FILES_DOWNLOADED og actual_or_quoted_completed_job_cost_usd USD 119.65511028468609. Ingen nye batch-submit eller pay-as-you-go-forespørsler. Brukeren rapporterer USD 5 remaining credits; saldoen er ikke uavhengig verifisert. Databento opplyser at batch-jobben belastes én gang ved innsending, og at samme data kan lastes ned igjen uten ekstra kostnad i 30 dager. Den ufullstendige .part-filen ble pensjonert gjennom retention-eieren; kanoniske gzipfiler/kvitteringer beholdes. Det gamle hentevedtaket åpnet ingen fit/featurebygging; senere 004/006/007-evidens er angitt ovenfor. Native trening, TEST, broker/live/paper og handel forblir stengt. 180 d-fasen forblir desarmert.
 
 ## GC-order-flow: plan 002 strukturrevidert; kildekvalifisering fortsatt åpen
 

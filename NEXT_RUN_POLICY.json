@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-16T17:39:08+00:00",
-  "status": "M5_INTRADAY_RECHECK_MEASURED_NEGATIVE",
+  "status": "GC_M5_TRADE_PROBE_COMPLETE_INCONCLUSIVE__NATIVE_TRAINING_BLOCKED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Execute one new source-bound capped 007 ridge probe on identical A/B/C M5 rows at the existing 30/120/360m horizons; preserve TEST/economics/native gates and reject unsupported GC higher-TF flow.",
+  "next_action": "Keep actual M5 footprint, volume/profile and existing native MTF. Native adoption requires its own explicit source-bound GC representation/parity decision; no blind GPU fit, no old D1 recipe, no consumed-plan relaunch, TEST, economics or new data/spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "006 M5/MTF GC sidecar complete. Frozen 007 matched prediction-only research fit, 315 native fields with checked MTF/context aliases plus qualified GC price/Trade features; no native fit or economics.",
+    "current_activity": "GC M5/MTF trade-feature sidecar and bounded matched CPU reference fit complete; exact target/readback review passed. Actual M5 footprint example generated and quantity-verified. No documented GC prediction increment in this reference.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -110,7 +110,7 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "CONTINUOUS_SOURCE_ADMISSION_004_COMPLETE_MASKED_INPUTS_ONLY",
+    "gc_goal_status": "TRADE_FEATURES_AND_BOUNDED_PROBE_COMPLETE__NATIVE_ADOPTION_UNQUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "gc_goal_progress": [
@@ -144,13 +144,16 @@
       },
       {
         "step": 3,
-        "status": "WAITING_FOR_STEP_2",
+        "status": "MATCHED_TRADE_ONLY_PREDICTION_PROBE_COMPLETE; ORIGINAL_BOOK_OFI_AND_ECONOMICS_SCOPE_UNFINISHED",
         "completed": false,
-        "genuine_evidence": []
+        "genuine_evidence": [
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/RESULTS/RESULT.json sha256=4976db1e0e8b658894684d179536f092947eea75213d8f55726f00eff22a18f4: 45 ridge references, all 315 native fields/132 aliases retained, 16745 common M5 rows; no native sequence/attention, book-OFI, TEST or economics claim.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/COMPLETION_REVIEW.json sha256=2aee704ee7afc176a8159d4639248b9010711220e92542dce0da0a60c49e2210: 17565 prediction rows independently reconstructed from bound M1 quotes, exact float64 targets (0.0 bps difference), matched rows/metrics/split exit cuts verified."
+        ]
       },
       {
         "step": 4,
-        "status": "WAITING_FOR_STEP_3",
+        "status": "TRADE_PROBE_REVIEWED_NO_DOCUMENTED_INCREMENT; FULL_PROTOCOL_AND_NATIVE_ADOPTION_UNFINISHED",
         "completed": false,
         "genuine_evidence": []
       }
@@ -158,8 +161,8 @@
     "latest_terminal_role": "native_preprocessing_terminal_minimum_learning_P1: latest CPU terminal of the collector schema (exit_code/source_unchanged/test_data_used); the GPU phases carry invocation receipts and PHASE_REVIEW files under native_d1_minimum_learning_20261012.steps.P2_gpu_campaign",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/TERMINAL.json",
-      "sha256": "856ec145e95fa3c30fc7a98397c74d38fb1b03160114c4c7f15a2b4c255289d2"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/RESULTS/TERMINAL.json",
+      "sha256": "40e5528f4e83d55d3fc699998aa817c0aab07f92e1f6ee6162869ce8f260bcce"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -179,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "007 genuine research-fit results pending; original book-OFI study and native adoption remain unqualified.",
+    "current_blocker": "Native GC integration/partial-observability representation and train/serve parity remain unbuilt; research probe does not qualify more extensive native training. Original event-book OFI/economic study is unfinished. TEST remains sealed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7653,7 +7656,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute one new source-bound capped 007 ridge probe on identical A/B/C M5 rows at the existing 30/120/360m horizons; preserve TEST/economics/native gates and reject unsupported GC higher-TF flow.",
+    "next_action": "Keep actual M5 footprint, volume/profile and existing native MTF. Native adoption requires its own explicit source-bound GC representation/parity decision; no blind GPU fit, no old D1 recipe, no consumed-plan relaunch, TEST, economics or new data/spending.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8729,9 +8732,9 @@
     "gc_m5_trade_probe_007": {
       "plan_path": "configs/research/GC_M5_TRADE_FLOW_PROBE_20261017_007.json",
       "plan_sha256": "5ab8ee7a7e73d322cfca8934469ac0522fed923b9d312c13d7a14040bc59c41e",
-      "status": "EXECUTION_CLAIMED",
+      "status": "MATCHED_TRADE_ONLY_PREDICTION_PROBE_COMPLETE",
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "authorized_invocations": 1,
       "execution_authorized": false,
       "relaunch_authorized": false,
@@ -8741,12 +8744,50 @@
       "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/OPERATOR_APPROVAL.json",
       "approval_receipt_sha256": "1b886efa33f5ee16d6888a19662df936cfeb6dc2f88fc7e1e9e4ef25af0e7963",
       "binding_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/EXECUTION_BINDING.json",
-      "claim_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/EXECUTION_CLAIM.json"
+      "claim_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/EXECUTION_CLAIM.json",
+      "finished_utc": "2026-10-17T07:14:49.466003+00:00",
+      "result_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/RESULTS/RESULT.json",
+      "result_sha256": "4976db1e0e8b658894684d179536f092947eea75213d8f55726f00eff22a18f4",
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/RESULTS/TERMINAL.json",
+      "terminal_sha256": "40e5528f4e83d55d3fc699998aa817c0aab07f92e1f6ee6162869ce8f260bcce",
+      "completion_review_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/COMPLETION_REVIEW.json",
+      "completion_review_sha256": "2aee704ee7afc176a8159d4639248b9010711220e92542dce0da0a60c49e2210",
+      "research_fit_completed": true,
+      "native_training_started": false,
+      "model_count": 45,
+      "cohort_rows": 16745,
+      "input_widths": {
+        "A": 325,
+        "B": 393,
+        "C": 473
+      },
+      "comparison_decisions": {
+        "B_minus_A_h120": "INCONCLUSIVE",
+        "B_minus_A_h30": "INCONCLUSIVE",
+        "B_minus_A_h360": "INCONCLUSIVE",
+        "C_minus_B_h120": "INCONCLUSIVE",
+        "C_minus_B_h30": "INCONCLUSIVE",
+        "C_minus_B_h360": "INCONCLUSIVE"
+      }
+    },
+    "native_preprocessing_terminal_20261013": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001/TERMINAL.json",
+      "sha256": "856ec145e95fa3c30fc7a98397c74d38fb1b03160114c4c7f15a2b4c255289d2"
+    },
+    "research_fit_started": true,
+    "native_training_started": false,
+    "gc_trade_probe_native_disposition_20261017": {
+      "decision": "NOT_ADMITTED_TO_NATIVE_OR_MORE_EXTENSIVE_TRAINING",
+      "reason": "C-B and B-A point improvements are negative at all 30/120/360m horizons; all six family-adjusted intervals include zero. All nine pooled prediction MSEs exceed the TRAIN-only constant. No documented incremental signal in this simple selective-cohort reference.",
+      "footprint_source_removed": false,
+      "native_M5_footprint_value_falsified": false,
+      "native_sequences_or_attention_tested": false,
+      "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
-    "status": "CONTINUOUS_SOURCE_ADMISSION_004_COMPLETE_MASKED_INPUTS_ONLY",
+    "status": "TRADE_FEATURES_AND_BOUNDED_PROBE_COMPLETE__NATIVE_ADOPTION_UNQUALIFIED",
     "goal_execution_requested": true,
     "pause_request_owner": "current_work.gc_goal_resume_authorization",
     "pause_scope": "Plan 004 completed once: masked source inputs admitted for volume/profile/footprint/delta/relative CVD; multi-level sweeps/institutional order-block truth rejected. Indicator values, fit, TEST, economics and native integration remain unimplemented/closed.",
