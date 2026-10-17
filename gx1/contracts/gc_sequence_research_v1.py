@@ -56,3 +56,10 @@ def require_pilot_authority(policy, plan_sha256, qualification_sha256):
         or gate['plan_sha256']!=plan_sha256 or gate['qualification_sha256']!=qualification_sha256
         or gate['native_training_authorized'] is not False or gate['test_authorized'] is not False):
         raise RuntimeError('GC_SEQUENCE_PILOT_CLOSED_BY_POLICY')
+
+
+def require_contract_alignment(selected, basis_contract, observed):
+    selected=np.asarray(selected);basis=np.asarray(basis_contract);observed=np.asarray(observed)
+    if selected.shape!=basis.shape or observed.shape!=selected.shape or observed.dtype.kind!='b':raise ValueError('GC_SEQUENCE_CONTRACT_SHAPE')
+    if np.any(selected[observed]<0) or not np.isfinite(basis[observed]).all() or not np.array_equal(selected[observed],basis[observed]):
+        raise RuntimeError('GC_SEQUENCE_CONTRACT_ALIGNMENT')

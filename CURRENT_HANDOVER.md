@@ -8,8 +8,10 @@ TEST, baseline, Entry/Exit, production/live, broker and spending remain unchange
 
 Operator request17.10: retain native Transformer, inspect latest h20 Entry and
 qualify a separate bounded Transformer/TCN GC sequence study. Plan:
-configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json. Technical/protocol report:
-docs/TRANSFORMER_TCN_RESEARCH_20261017.md. One new capped no-fit qualification is
+configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json. Technical/protocol report:
+docs/TRANSFORMER_TCN_RESEARCH_20261017.md. 024 failed on null contract IDs outside the admitted cohort and is consumed.
+026 applies the contract identity check on the actual admitted rows, as required
+by rule2g; no masks or source data changed. One new capped no-fit qualification is
 bound in current_work.gc_sequence_research_20261017. Pilot/native training remain
 closed. Historical session/calendar and COT publication semantics are unresolved.
 All26GCmonths remain development. Existing native baseline/Exit/TEST unchanged.

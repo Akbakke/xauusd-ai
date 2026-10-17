@@ -1,0 +1,275 @@
+{
+  "schema_version": "gx1_gc_sequence_research_v1",
+  "plan_id": "GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026",
+  "operator_request": "17.10.2026 attached GX1 Transformer/TCN research request: technical map, qualified h20 target candidate, separate bounded GC sequence study; train only within NEXT_RUN_POLICY authority",
+  "hypothesis": "Ordering and cross-lag interactions of observed OFI/BBO, dynamic volume levels and volatility over six closed M5 bins may add information beyond a last-bin snapshot. Negative P0 remains binding for its recipe. No horizon/threshold/architecture search.",
+  "previous_recipe": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_P0_FIRST_DEVELOPMENT_20261017_021.json",
+    "sha256": "28889d77736324931e1340577e466c7d51153557934a0a7c10c40a979ed01d1a"
+  },
+  "previous_predictions": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_FIRST_DEVELOPMENT_20261017_021/RESULTS/PREDICTIONS.parquet",
+    "sha256": "c6892c60e9e723181d17a5d7a26970e3d10ab773d42f2800e7562fe319aaef66"
+  },
+  "native_review": {
+    "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016/PHASE_REVIEW.json",
+    "sha256": "fd2f3cd39ce38556d2da99591d227e3d79d389cf10730a0473bd20fff2d2f139"
+  },
+  "native_receipt": {
+    "path": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "9b82caaba7f17e7051afb62b9535d3e4fd79a5465d537e5c1d3722376bab7fc3"
+  },
+  "corrected_result": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_EVALUATION_CORRECTION_20261017_011/RESULTS/RESULT.json",
+    "sha256": "df80796bb41af54727157ae38ef98dae6d6136cefbd9995dd130404f7c693e07"
+  },
+  "corrected_h20": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_EVALUATION_CORRECTION_20261017_011/RESULTS/TRAIN_H20_RESEARCH_DIAGNOSTICS.parquet",
+    "sha256": "d4781392d32d252ce95c5d4bdfad909f17893f7fbb89a895933a74ddb7d04277"
+  },
+  "native_blockers": [
+    "historical session/day/holiday regimes unqualified",
+    "exact terminal variant still uses observed-session calendar",
+    "historical COT release receipts unqualified; known delayed-publication leak",
+    "VAL tail not reconstructed without reading TEST-spanning raw row group",
+    "no successor native dataset/normalization/baseline/campaign binding",
+    "native training_enabled=false"
+  ],
+  "fields": {
+    "F": [
+      "ofi_contracts",
+      "bid_refill_contracts",
+      "ask_refill_contracts",
+      "bid_depletion_contracts",
+      "ask_depletion_contracts",
+      "quote_updates",
+      "tw_imbalance",
+      "tw_spread_ticks",
+      "tw_bid_contracts",
+      "tw_ask_contracts",
+      "tw_microprice_offset_ticks",
+      "mid_response_ticks"
+    ],
+    "L": [
+      "rolling15_vwap_distance_ticks",
+      "rolling15_poc_distance_ticks",
+      "rolling15_val_distance_ticks",
+      "rolling15_vah_distance_ticks",
+      "rolling15_vwap_prior_level_response_ticks",
+      "rolling15_poc_prior_level_response_ticks",
+      "rolling15_val_prior_level_response_ticks",
+      "rolling15_vah_prior_level_response_ticks"
+    ],
+    "V": [
+      "atr_z",
+      "rvol_20",
+      "_v1_pk_sigma20",
+      "_v1_range_z",
+      "_v1_bb_squeeze_20_2",
+      "_v1_bb10_bandwidth_change_3",
+      "_v1_kurt_r",
+      "volatility.bars_in_squeeze",
+      "volatility.squeeze_release_age_bars",
+      "volatility.bandwidth_rel",
+      "ctx_cont.atr_bps",
+      "ctx_cont._v1h1_atr_bps",
+      "ctx_cont._v1h4_atr_bps",
+      "ctx_cont.d1_atr14_bps_canon_v2",
+      "ctx_cont.d1_range_z_20_canon_v2",
+      "ctx_cont.m15_range_z_20_canon_v2"
+    ],
+    "basis": [
+      "m5_spot_basis_bps"
+    ]
+  },
+  "sequence_length": 6,
+  "step_seconds": 300,
+  "horizon_minutes": 30,
+  "latency_seconds": 60,
+  "folds": [
+    {
+      "fold_id": "dev_01",
+      "train_end_utc_exclusive": "2025-05-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2025-08-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2025-05-01T00:00:00Z"
+    },
+    {
+      "fold_id": "dev_02",
+      "train_end_utc_exclusive": "2025-08-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2025-11-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2025-08-01T00:00:00Z"
+    },
+    {
+      "fold_id": "dev_03",
+      "train_end_utc_exclusive": "2025-11-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2026-02-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2025-11-01T00:00:00Z"
+    },
+    {
+      "fold_id": "dev_04",
+      "train_end_utc_exclusive": "2026-02-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2026-05-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2026-02-01T00:00:00Z"
+    },
+    {
+      "fold_id": "dev_05",
+      "train_end_utc_exclusive": "2026-05-01T00:00:00Z",
+      "train_start_utc_inclusive": "2024-05-01T00:00:00Z",
+      "validation_end_utc_exclusive": "2026-07-01T00:00:00Z",
+      "validation_start_utc_inclusive": "2026-05-01T00:00:00Z"
+    }
+  ],
+  "pilot_folds": [
+    "dev_01"
+  ],
+  "embargo_seconds": 86400,
+  "minimum_train_rows": 1000,
+  "seed": 20261015,
+  "batch_size": 64,
+  "optimizer_steps": 128,
+  "ridge_alpha": 1.0,
+  "optimizer": {
+    "learning_rate": 0.0001,
+    "weight_decay": 0.0001,
+    "grad_clip": 1.0
+  },
+  "protocol_values_origin": "explicit fixed research recipe inputs chosen before new outcomes; no HPO, early stopping, checkpoint selection, seed retries or architecture alternatives",
+  "width_origin": "32 channels fixed for small CPU pilot; two sequence architectures only",
+  "transformer": {
+    "width": 32,
+    "heads": 4,
+    "feedforward": 64,
+    "layers": 1,
+    "dropout": 0.0,
+    "position_init_std": 0.02
+  },
+  "tcn": {
+    "width": 32,
+    "kernel": 2,
+    "dilations": [
+      1,
+      2
+    ]
+  },
+  "baselines": [
+    "TRAIN constant",
+    "linear last snapshot",
+    "linear six-bin sequence",
+    "saved P0 LightGBM CORE",
+    "saved P0 LightGBM FLV",
+    "always LONG economics",
+    "always FLAT economics"
+  ],
+  "locked_tree_scope": "same evaluation rows/targets, saved outputs only; trees use original 211/247 fields, neural/linear models use 37 fields; not equal-input architecture attribution",
+  "max_fits": 4,
+  "max_neural_fits": 2,
+  "libraries": {
+    "torch": "2.6.0+cu124",
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "pyarrow": "23.0.1",
+    "lightgbm": "4.6.0"
+  },
+  "bootstrap_seed": 20261015,
+  "bootstrap_reps": 4000,
+  "family_alpha": 0.05,
+  "uncertainty": "paired calendar-week bootstrap; eight frozen pair contrasts, Bonferroni within prediction and economics families separately; conditional on fitted pilot, reused development, no independent confirmation",
+  "network_max_wall_seconds": 600,
+  "qualification_max_wall_seconds": 600,
+  "pilot_max_wall_seconds": 1800,
+  "limits": {
+    "class": "audit",
+    "memory": "4G",
+    "swap": "512M",
+    "cpu_affinity": "0-7",
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "runner": "scripts/gx1_capped_run.sh"
+  },
+  "TEST_seal_utc": "2026-07-01T00:00:00Z",
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026",
+  "pilot_output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_PILOT_20261017_025",
+  "limitations": [
+    "all 26 months are development, including chronological folds",
+    "M5 sequences of MBP1-derived metrics, not raw event-sequence Transformers",
+    "signed aggressor delta separate coverage only; no imputation",
+    "historical funding, actual fills and intra-gap drawdown unqualified",
+    "one pilot fold cannot establish period stability or an architecture winner",
+    "no native feature additions or baseline target/weight changes"
+  ],
+  "qualification_authorized": true,
+  "pilot_training_authorized": false,
+  "native_training_authorized": false,
+  "test_authorized": false,
+  "provider_requests_authorized": false,
+  "code_paths": [
+    "gx1/contracts/gc_sequence_research_v1.py",
+    "gx1/models/gc_sequence_research_v1.py",
+    "gx1/scripts/research_gc_sequence_v1.py",
+    "tests/test_gc_sequence_research_v1.py",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+    "gx1/scripts/research_m5_intraday_recheck_v1.py",
+    "gx1/contracts/entry_research_evaluation_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "scripts/gx1_capped_run.sh",
+    "gx1/contracts/entry_observed_market_v1.py",
+    "gx1/contracts/entry_exit_production_architecture_v1.py",
+    "gx1/contracts/entry_model_native_signal_v1.py"
+  ],
+  "optimizer_origin": "learning_rate/weight_decay/grad_clip from verified last native recipe trainer_cli; research optimizer is same existing PyTorch AdamW, no native schedule/bundle mutation",
+  "prediction_contrasts": [
+    [
+      "linear_snapshot",
+      "tree_FLV"
+    ],
+    [
+      "linear_sequence",
+      "tree_FLV"
+    ],
+    [
+      "transformer",
+      "tree_FLV"
+    ],
+    [
+      "tcn",
+      "tree_FLV"
+    ],
+    [
+      "linear_sequence",
+      "linear_snapshot"
+    ],
+    [
+      "transformer",
+      "linear_snapshot"
+    ],
+    [
+      "tcn",
+      "linear_snapshot"
+    ],
+    [
+      "tcn",
+      "transformer"
+    ]
+  ],
+  "previous_consumed_qualification": {
+    "plan": "configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json",
+    "plan_sha256": "f87b8cfbabf979971ed346c8659e19a6ce8daeec43d951e63db5bfc55d8ec94d",
+    "failure_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_QUALIFICATION_20261017_024/FAILURE.json",
+    "failure_sha256": "671da935595ae413843570977a5e83a031c431a536d02250a60910b7680042e4"
+  },
+  "repair_scope": "Apply basis-contract equality only on genuinely admitted feature rows; base owner nulls contract IDs on volume-invalid rows. No source masks/values, sequence length, model or target change.",
+  "measured_repair_basis": {
+    "F_L_mismatch": 0,
+    "F_base_mismatch": 52972,
+    "F_base_mismatch_common": 0,
+    "base_contract_nulls": 52972,
+    "base_nulls_common": 0,
+    "pair_detail_withdrawn": "NaN groups in original diagnostic were repeated with empty equality masks; only scalar population counts above are valid. Pair details are not evidence."
+  }
+}

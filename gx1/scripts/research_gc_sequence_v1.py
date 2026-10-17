@@ -16,7 +16,7 @@ from gx1.contracts import gc_sequence_research_v1 as contract
 from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execution,require_capped_lock_ancestry
 from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
 
-PLAN=io.REPO/'configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json'
+PLAN=io.REPO/'configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json'
 GATE='gc_sequence_research_20261017'
 
 
@@ -36,7 +36,7 @@ def load_inputs(spec):
         if not np.array_equal(d,table.decision_ns.to_numpy()):raise RuntimeError('GC_SEQUENCE_FEATURE_CLOCK')
     if not np.array_equal(d,base['decision_ns'].to_numpy()):raise RuntimeError('GC_SEQUENCE_BASE_CLOCK')
     c=f.contract_index.to_numpy()
-    if not np.array_equal(c,l.contract_index.to_numpy()) or not np.array_equal(c,base['m5_contract_index'].to_numpy()):
+    if not np.array_equal(c,l.contract_index.to_numpy()):
         raise RuntimeError('GC_SEQUENCE_CONTRACT_ALIGNMENT')
     x=np.column_stack([f[n].to_numpy() for n in spec['fields']['F']]+
         [l[n].to_numpy() for n in spec['fields']['L']]+
@@ -44,6 +44,7 @@ def load_inputs(spec):
         [base[n].to_numpy() for n in spec['fields']['basis']])
     observed=f.ofi_valid.to_numpy()&f.bbo_valid.to_numpy()&l.rolling15_valid.to_numpy()
     observed &= base['m5_volume_valid'].to_numpy()&np.isfinite(x).all(axis=1)
+    contract.require_contract_alignment(c,base['m5_contract_index'].to_numpy(),observed)
     windows=contract.sequence_rows(d,c,observed,length=spec['sequence_length'],step_ns=spec['step_seconds']*old.NS)
     for b in source['execution_tape_partitions']:old.require_binding(b)
     actual={str(p) for p in Path(source['reference']['data']['execution_tape']['root']).glob('year=*/*.parquet') if int(p.parent.name.split('=')[1])>=2024}
@@ -108,7 +109,7 @@ def qualify(spec,stage):
             'train_rows_sha256':hashlib.sha256(rows[tr].tobytes()).hexdigest(),
             'evaluation_rows_sha256':hashlib.sha256(rows[ev].tobytes()).hexdigest()}
     first=spec['folds'][0];tr,ev=contract.purged_fold(sd,outcomes,target_ok,first,embargo_seconds=spec['embargo_seconds'])
-    if len(tr)<spec['minimum_train_rows'] or not len(ev):raise RuntimeError('GC_SEQUENCE_PILOT_COHORT_TOO_SMALL')
+    if not len(tr) or not len(ev):raise RuntimeError('GC_SEQUENCE_EMPTY_COHORT')
     mean,scale,unique=contract.train_normalization(x,windows,tr)
     probe=contract.standardized(x,windows[tr[:spec['batch_size']]],mean,scale)
     preflight=model_preflight(probe,spec)
@@ -122,7 +123,7 @@ def qualify(spec,stage):
     pd.DataFrame({'decision_ns':sd,'physical_row':rows,'target_valid':target_ok,'contract_index':c[rows]}).to_parquet(stage/'COHORT.parquet',index=False)
     matched.reset_index().to_parquet(stage/'FROZEN_REFERENCES.parquet',index=False)
     basis=x[rows,-1]
-    return {'status':'QUALIFIED_RESEARCH_INPUTS_NOT_TRAINING_ADMISSION','observed_real_data':True,
+    return {'status':'QUALIFIED_RESEARCH_INPUTS_NOT_TRAINING_ADMISSION' if len(tr)>=spec['minimum_train_rows'] else 'QUALIFICATION_COMPLETE_INSUFFICIENT_PILOT_SUPPORT','pilot_sample_floor_met':len(tr)>=spec['minimum_train_rows'],'observed_real_data':True,
         'native':native_inventory(spec),'population_rows':len(d),'qualified_single_windows':int(observed.sum()),
         'complete_sequences':len(windows),'sequence_shape':[len(windows),spec['sequence_length'],x.shape[1]],
         'all_tokens_observed':True,'numeric_imputation_used':False,'one_contract_per_sequence':True,
@@ -176,7 +177,9 @@ def fit_network(name,x,y,train,evaluation,spec,stage):
 
 def pilot(spec,stage):
     qroot=Path(spec['output_root'])/'RESULTS';data=np.load(qroot/'INPUTS.npz',allow_pickle=False)
-    tr=data['train'];ev=data['evaluation'];x=contract.standardized(data['features'],data['windows'],data['mean'],data['scale']);y=data['y']
+    tr=data['train'];ev=data['evaluation']
+    if len(tr)<spec['minimum_train_rows']:raise RuntimeError('GC_SEQUENCE_PILOT_COHORT_TOO_SMALL')
+    x=contract.standardized(data['features'],data['windows'],data['mean'],data['scale']);y=data['y']
     refs=pd.read_parquet(qroot/'FROZEN_REFERENCES.parquet')
     frame=pd.DataFrame({'decision_ns':data['decisions'][ev],'y30_mid_bps':y[ev],
         'constant':float(y[tr].mean()),'tree_CORE':refs.tree_CORE.to_numpy(),'tree_FLV':refs.tree_FLV.to_numpy()});fits={}

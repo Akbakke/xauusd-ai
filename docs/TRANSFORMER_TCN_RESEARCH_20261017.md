@@ -113,3 +113,24 @@ The Transformer reuses the existing PyTorch encoder primitive and native readout
 [PyTorch TransformerEncoderLayer](https://docs.pytorch.org/docs/stable/generated/torch.nn.TransformerEncoderLayer.html).
 Installed library versions, not mutable documentation, are frozen in the recipe.
 No architecture recommendation is supported until matched trained results exist.
+
+## Observed contract adapter failure and minimal repair
+
+024 stopped after47.282s on contract alignment and is consumed. F and L IDs
+match on all141,806 rows. The older base owner intentionally emits NULL contract
+IDs on volume-invalid rows (`bind_m5_rows`); all52,972 apparent base mismatches
+are those NULL rows, and zero are in the common F/L-qualified cohort. 026 checks
+basis identity where the model could actually consume a row, retaining every
+source mask. A nullable-ID test also proves a real mismatch within that cohort
+still fails. Original failure and compact diagnosis are preserved. Diagnostic
+NaN pair details were invalid repeated empty groups and were withdrawn; scalar
+counts remain valid. No new horizon, model, field, target or threshold was chosen.
+
+The calendar limitation was rechecked against primary pages in this wave:
+[current OANDA XAU hours](https://www.oanda.com/bvi-en/cfds/hours-of-operation/)
+state New York18:05–16:59; the separately published
+[OANDA hours PDF, page4](https://www.oanda.com/assets/documents/471/Hours_of_operation_6.pdf)
+uses GMT23:00–22:15 for gold Sunday–Thursday and22:00 Friday. These documents
+supply no complete effective-date/holiday history for the TRAIN period. They
+therefore cannot qualify a single historical calendar by themselves. This is
+an evidence gap, not proof that every observed-session target is incorrect.

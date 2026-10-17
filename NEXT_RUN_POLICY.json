@@ -9266,8 +9266,8 @@
     },
     "gc_sequence_research_20261017": {
       "operator_request": "17.10.2026 attached Transformer/TCN new research round; bounded training only under NEXT_RUN_POLICY authority",
-      "plan_path": "configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json",
-      "plan_sha256": "f87b8cfbabf979971ed346c8659e19a6ce8daeec43d951e63db5bfc55d8ec94d",
+      "plan_path": "configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json",
+      "plan_sha256": "0de83aa2311715735cad29262f8ccb81589e32f685a188917edd7e050c97594a",
       "qualification_status": "AUTHORIZED_SINGLE_USE",
       "qualification_authorized": true,
       "qualification_claimed_invocations": 0,
@@ -9280,7 +9280,25 @@
       "test_authorized": false,
       "previous_P0_NO_GO_preserved": true,
       "new_independent_hypothesis": "ordered F/L/V states across six contiguous closed M5 bins versus snapshot",
-      "report_path": "docs/TRANSFORMER_TCN_RESEARCH_20261017.md"
+      "report_path": "docs/TRANSFORMER_TCN_RESEARCH_20261017.md",
+      "previous_consumed_qualification": {
+        "operator_request": "17.10.2026 attached Transformer/TCN new research round; bounded training only under NEXT_RUN_POLICY authority",
+        "plan_path": "configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json",
+        "plan_sha256": "f87b8cfbabf979971ed346c8659e19a6ce8daeec43d951e63db5bfc55d8ec94d",
+        "qualification_status": "FAILED_CONTRACT_ALIGNMENT_CONSUMED",
+        "qualification_authorized": false,
+        "qualification_claimed_invocations": 1,
+        "qualification_completed_invocations": 1,
+        "pilot_status": "CLOSED_PENDING_QUALIFICATION_AND_EXPLICIT_POLICY_BINDING",
+        "pilot_training_authorized": false,
+        "pilot_claimed_invocations": 0,
+        "pilot_completed_invocations": 0,
+        "native_training_authorized": false,
+        "test_authorized": false,
+        "previous_P0_NO_GO_preserved": true,
+        "new_independent_hypothesis": "ordered F/L/V states across six contiguous closed M5 bins versus snapshot",
+        "report_path": "docs/TRANSFORMER_TCN_RESEARCH_20261017.md"
+      }
     }
   },
   "gc_order_flow_research_20261006": {

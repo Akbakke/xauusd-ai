@@ -75,7 +75,7 @@ def test_tcn_convolution_is_causal_without_history_padding():
 
 @pytest.mark.parametrize('name,cls',[('transformer',GCSequenceTransformer),('tcn',GCSequenceTCN)])
 def test_real_recipe_shapes_finite_gradients_and_missing_rejection(name,cls):
-    spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json').read_text())
+    spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json').read_text())
     width=sum(len(v) for v in spec['fields'].values());torch.set_num_threads(1);torch.manual_seed(1)
     model=cls(width,spec['sequence_length'],spec[name]);x=torch.arange(2*6*width,dtype=torch.float32).reshape(2,6,width)/100
     y=model(x);assert y.shape==(2,) and torch.isfinite(y).all()
@@ -87,9 +87,15 @@ def test_real_recipe_shapes_finite_gradients_and_missing_rejection(name,cls):
 @pytest.mark.parametrize('name',['transformer','tcn'])
 def test_synthetic_optimizer_and_saved_weight_roundtrip(name,tmp_path):
     from gx1.scripts.research_gc_sequence_v1 import fit_network
-    spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_RESEARCH_20261017_024.json').read_text())
+    spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json').read_text())
     spec.update(optimizer_steps=2,batch_size=2)
     x=np.arange(8*6*3,dtype=np.float32).reshape(8,6,3)/100;y=np.arange(8,dtype=float)
     pred,receipt=fit_network(name,x,y,np.arange(6),np.arange(6,8),spec,tmp_path)
     assert pred.shape==(2,) and np.isfinite(pred).all()
     assert receipt['optimizer_steps']==2 and receipt['model_readback_bit_exact']
+
+
+def test_nullable_contract_ids_are_checked_on_actual_admitted_rows():
+    c.require_contract_alignment(np.array([1,2,2]),np.array([1,np.nan,2]),np.array([True,False,True]))
+    for basis,mask in [(np.array([1,np.nan,2]),np.array([True,True,True])),(np.array([1,np.nan,3]),np.array([True,False,True]))]:
+        with pytest.raises(RuntimeError,match='CONTRACT_ALIGNMENT'):c.require_contract_alignment(np.array([1,2,2]),basis,mask)
