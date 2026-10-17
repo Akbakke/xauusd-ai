@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T09:02:48.050608+00:00",
-  "status": "INDEPENDENT_ENTRY_TARGET_AND_GC_L1_AUDIT_CLAIMED__P0_FIT_CLOSED",
+  "status": "INDEPENDENT_ENTRY_TARGET_AND_GC_L1_AUDIT_REPAIR_009_CLAIMED__P0_FIT_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -161,11 +161,11 @@
     "latest_terminal_role": "native_preprocessing_terminal_minimum_learning_P1: latest CPU terminal of the collector schema (exit_code/source_unchanged/test_data_used); the GPU phases carry invocation receipts and PHASE_REVIEW files under native_d1_minimum_learning_20261012.steps.P2_gpu_campaign",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_TRADE_FLOW_PROBE_20261017_007/RESULTS/TERMINAL.json",
-      "sha256": "40e5528f4e83d55d3fc699998aa817c0aab07f92e1f6ee6162869ce8f260bcce"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008/TERMINAL.json",
+      "sha256": "6e8198b4d127e66346b89a68cc512ef8cb92457c90366757cde47bcd221989f6"
     },
-    "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": null,
+    "terminal_exit_code": 1,
+    "source_unchanged_at_terminal": true,
     "full_benchmark_completed": true,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -8784,9 +8784,7 @@
       "native_sequences_or_attention_tested": false,
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
-    "latest_terminal_evidence_gaps": [
-      "source_unchanged_field_missing"
-    ],
+    "latest_terminal_evidence_gaps": [],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
       "operator_request": "Strategic P0 order flow + dynamic S/R + volatility priority, P1-P5 ablations, reuse purchased MBP-1; audit and freeze baseline first.",
@@ -8834,6 +8832,24 @@
     "entry_target_and_gc_l1_audit_008": {
       "plan_path": "configs/research/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008.json",
       "plan_sha256": "d89f1a8e0f84004d742f8c73a70aab76e8b7c48ae53e095c8ce1e96e39453e3a",
+      "status": "FAILED_BEFORE_RAW_PRICE_READ_CONSUMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "authorized_invocations": 1,
+      "operator_request": "17.10.2026: independent Entry-target audit before further P0 training; separate L1 quality attribution, no target/Exit/model/TEST change or new data purchase/download.",
+      "relaunch_authorized": false,
+      "native_training_authorized": false,
+      "test_authorized": false,
+      "target_change_authorized": false,
+      "new_data_fetch_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008",
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008/TERMINAL.json",
+      "terminal_sha256": "6e8198b4d127e66346b89a68cc512ef8cb92457c90366757cde47bcd221989f6"
+    },
+    "entry_target_and_gc_l1_audit_009": {
+      "plan_path": "configs/research/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009.json",
+      "plan_sha256": "67273cfeebadc39fc1673d752e6f3ba81cf9aa6bcbf7535ee9896a5c0ca1f04a",
       "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
@@ -8845,7 +8861,7 @@
       "test_authorized": false,
       "target_change_authorized": false,
       "new_data_fetch_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008"
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009"
     }
   },
   "gc_order_flow_research_20261006": {

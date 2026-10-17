@@ -31,3 +31,12 @@ def test_attribution_distinguishes_unknown_volume_from_roll_and_gap():
     assert out['unknown_only_after_unsigned_quality']==1
     assert out['marginal_rejections_overlap']['gap']==1
     assert out['marginal_rejections_overlap']['contract_change_inside_M5']==1
+
+def test_active_audit_config_inputs_have_canonical_existing_bindings():
+    import json
+    from pathlib import Path
+    from gx1.scripts.audit_entry_gc_foundation_v1 import REPO,PLAN_REL
+    plan=json.loads((REPO/PLAN_REL).read_text())
+    for key in ['native_design','GC_probe_plan','GC_predictions','GC_masks','GC_features']:
+        path=Path(plan[key]['path'])
+        assert path.is_absolute() and path==path.resolve() and path.is_file()

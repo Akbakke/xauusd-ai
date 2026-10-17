@@ -18,8 +18,8 @@ from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execu
 from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
 
 REPO=Path('/home/andre2/src/GX1_CURRENT')
-PLAN_REL='configs/research/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008.json'
-PLAN_ID='ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_008'
+PLAN_REL='configs/research/ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009.json'
+PLAN_ID='ENTRY_TARGET_AND_GC_L1_AUDIT_20261017_009'
 ROOT=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/PLAN_ID
 NS=10**9
 MINUTE=60*NS
@@ -197,7 +197,7 @@ def run(binding_path):
     if binding_path!=ROOT/'EXECUTION_BINDING.json':raise RuntimeError('AUDIT_BINDING_PATH')
     binding=io.read_json(binding_path);io.verify_digest(REPO/PLAN_REL,binding['plan_sha256'],'PLAN');plan=io.read_json(REPO/PLAN_REL)
     io.verify_digest(ROOT/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'APPROVAL');approval=io.read_json(ROOT/'OPERATOR_APPROVAL.json')
-    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'POLICY');policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['entry_target_and_gc_l1_audit_008']
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'POLICY');policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['entry_target_and_gc_l1_audit_009']
     if plan['plan_id']!=PLAN_ID or io.git_head()!=binding['source_head'] or gate['status']!='EXECUTION_CLAIMED' or gate['completed_invocations']!=0 or gate['claimed_invocations']!=1 or gate['execution_authorized'] is not False or approval['max_invocations']!=1 or approval['status']!='APPROVED_SINGLE_USE_PENDING_EXECUTION' or approval['approved_plan_sha256']!=binding['plan_sha256'] or approval['single_use'] is not True or policy['training_enabled'] is not False:raise RuntimeError('AUDIT_AUTHORITY')
     if subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):raise RuntimeError('AUDIT_DIRTY_SOURCE')
     if set(binding['code_sha256'])!=set(plan['code_paths']):raise RuntimeError('AUDIT_CODE_INVENTORY')
