@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-16T17:39:08+00:00",
-  "status": "GC_M5_TRADE_PROBE_COMPLETE_INCONCLUSIVE__NATIVE_TRAINING_BLOCKED",
+  "observed_utc": "2026-10-17T09:02:48.050608+00:00",
+  "status": "STRATEGIC_M5_FEATURE_REVIEW_COMPLETE__P0_PRIORITY__TRAINING_BLOCKED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Keep actual M5 footprint, volume/profile and existing native MTF. Native adoption requires its own explicit source-bound GC representation/parity decision; no blind GPU fit, no old D1 recipe, no consumed-plan relaunch, TEST, economics or new data/spending.",
+  "next_action": "P0 is the research priority: qualify event-book L1 masks/coverage in the existing GC owner, then reuse existing volatility and add real-trade dynamic GC levels; freeze a separate finite single/pair/triple research recipe before fitting. Reconcile operator-reported 36 months against documented 26 without buying or fetching data. No native training, TEST or consumed-plan relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "GC M5/MTF trade-feature sidecar and bounded matched CPU reference fit complete; exact target/readback review passed. Actual M5 footprint example generated and quantity-verified. No documented GC prediction increment in this reference.",
+    "current_activity": "Strategic M5 feature/data/model review complete; existing source and 007 baseline frozen, complete field inventory and free-resource review published. No new feature implementation or model fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -182,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native GC integration/partial-observability representation and train/serve parity remain unbuilt; research probe does not qualify more extensive native training. Original event-book OFI/economic study is unfinished. TEST remains sealed.",
+    "current_blocker": "Event-book L1 has no separate source admission or features; actual macro release/vintage and a genuinely unused GC confirmation period are unproven. No P0 execution recipe is bound; native training remains disabled.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7656,7 +7656,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Keep actual M5 footprint, volume/profile and existing native MTF. Native adoption requires its own explicit source-bound GC representation/parity decision; no blind GPU fit, no old D1 recipe, no consumed-plan relaunch, TEST, economics or new data/spending.",
+    "next_action": "P0 is the research priority: qualify event-book L1 masks/coverage in the existing GC owner, then reuse existing volatility and add real-trade dynamic GC levels; freeze a separate finite single/pair/triple research recipe before fitting. Reconcile operator-reported 36 months against documented 26 without buying or fetching data. No native training, TEST or consumed-plan relaunch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8786,7 +8786,51 @@
     },
     "latest_terminal_evidence_gaps": [
       "source_unchanged_field_missing"
-    ]
+    ],
+    "strategic_feature_review_20261017": {
+      "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
+      "operator_request": "Strategic P0 order flow + dynamic S/R + volatility priority, P1-P5 ablations, reuse purchased MBP-1; audit and freeze baseline first.",
+      "report": {
+        "path": "docs/FEATURE_AUDIT.md",
+        "sha256": "c4b21f7ca53b579dbcc36aa3133f19c9b85e3a9144c50ee0b760ba954d5b6517"
+      },
+      "baseline": {
+        "path": "configs/research/XAU_M5_INFORMATION_BASELINE_20261017.json",
+        "sha256": "abb37bbee3806690bc784658532c82dabc169a191da6a6ab07d008cb4e4db0d0"
+      },
+      "inventory": {
+        "path": "docs/FEATURE_AUDIT_INVENTORY_20261017.json",
+        "sha256": "333f9ac1a0506422f559037b8332dbe92136f52bc351197a55f1bf80a820d23d"
+      },
+      "source_head_at_review": "1c5d65575666f4c39da37e962e68e6640d13d898",
+      "tracked_files_inventoried": 707,
+      "python_ast_parsed": 583,
+      "native_signal_fields": 315,
+      "existing_native_specialists": 8,
+      "gc_m5_rows": 141806,
+      "source_period_months_reported_by_operator": 36,
+      "source_period_months_documented": 26,
+      "documented_36_month_delivery": false,
+      "P0_research_priority": true,
+      "priority_order": [
+        "P1 GC L1 flow",
+        "P2 dynamic real-trade GC levels",
+        "P3 reuse volatility/risk state",
+        "P4 footprint/absorption proxies",
+        "P5 point-in-time macro/positioning"
+      ],
+      "new_research_pattern_pause": "27 exact snapshot fields declared in baseline; view not materialized, full native baseline and code retained",
+      "xgboost_installed": false,
+      "new_execution_recipe_bound": false,
+      "execution_authorized": false,
+      "native_training_authorized": false,
+      "test_authorized": false,
+      "new_data_fetch_authorized": false,
+      "new_spending_authorized": false,
+      "new_fit_started": false,
+      "new_economics_run": false,
+      "unused_GC_holdout_verified": false
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -11350,5 +11394,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-16T21:12:37.784443+00:00"
+  "updated_utc": "2026-10-17T09:02:48.050608+00:00"
 }

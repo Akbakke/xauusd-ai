@@ -4,7 +4,36 @@ Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json 
 eneste arbeidsstatus; prosess og terminal overstyrer prosa. Historikk per forsøk
 ligger i Git og i policyens bindinger, ikke her.
 
-## Nå: M5 intradag med MTF — operatørvedtak 17.10
+## Nå: strategisk revisjon og P0-prioritet — 17.10
+
+Ny bestilling prioriterer dynamiske GC-volumnivåer × L1-flow × volatilitet,
+med P1–P5-familieablasjoner før eventuell Transformer/RL-utvidelse. Analyse og
+baselinefrysing er fullført i docs/FEATURE_AUDIT.md. Felt-/kildeinventar:
+docs/FEATURE_AUDIT_INVENTORY_20261017.json; 707 filer, 583 Python AST-PASS,
+315 native felt, åtte faktiske spesialister, 132 aliaser, 190 MTF-felt/klokke.
+configs/research/XAU_M5_INFORMATION_BASELINE_20261017.json binder eksisterende
+007-A/inputs/prediksjoner/folder og separat eldre økonomireferanse. Ingen rerun.
+
+Operatøren oppgir 36 kjøpte måneder; lokale nedlastingskvitteringer og 66 MBP-1-
+gzipfiler (20,04 GB) dokumenterer 26 måneder mai 2024–juni 2026. Ingen ekstra
+leveranse er verifisert; ikke kjøp/hent data for å fylle differansen. L1-BBO/
+OFI er hovedgapet; trade-masker kvalifiserer ikke bokhendelser. Makro-as-of bruker
+deklarerte lag, ikke per-utgivelse-/vintagebevis. Alle dokumenterte GC-måneder
+har utviklingsbruk; ny splitting skaper ingen urørt test. Native TEST er lukket.
+
+Ny forskningsvisning pauser 27 deklarerte candle-/geomchan-felt; bare planlagt
+view, ingen native felt eller kode slettet. Behold original full baseline for
+attribusjon. Eksisterende ATR/RV/SMC/EMA og 61 makrofelt gjenbrukes; P3/P5 må
+ablateres uten dubletter. XGBoost finnes ikke i miljøet; tidligere GBDT er
+LightGBM/HGB. Åtte P0-armer er skissert, ingen execution-recipe eller fit bundet.
+Ingen nye features, eksterne datapakker, installasjoner, økonomikjøringer eller
+kostnader i revisjonen. training_enabled=false og tidligere sperrer består.
+Neste konkrete arbeid er en liten forhåndsbundet L1-kvalitets-/dekningsplan i
+eksisterende GC-eier før P1-featurekode. Gratis ressurser/lisenser og forventet
+arbeidskostnad er vurdert i rapporten; ny modellarkitektur er ikke foreslått.
+
+## Fullførte M5/MTF-forsøk før strategisk revisjon
+
 
 Brukeren avklarte «Vi holder oss til M5 intradag (med mtf så klart).» GC-
 Trade-featurebygger 006 er fullført på innrømmede 004-masker; bare eksisterende

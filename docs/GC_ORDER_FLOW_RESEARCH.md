@@ -1,5 +1,11 @@
 # Avgrenset GC-order-flow-forskning
 
+Strategisk revisjon 17.10: se [FEATURE_AUDIT.md](FEATURE_AUDIT.md) og den fryste
+M5-baselinebindingen der. 004/006/007 er fullført; tidligere avsnitt om manglende
+kilde/ikke-kjørte forsøk nedenfor beskriver registreringstidspunktet. P0 med
+nivåer × L1-flow × volatilitet er nå forskningsprioritet. Ingen ny kjøring eller
+native adopsjon er autorisert av denne dokumenthenvisningen.
+
 Operatørbestilling 06.10.2026: gjennomfør den avgrensede tilnærmingen fra
 agentutkastet: kvalitetssjekk ekte GC-data, sammenlign baseline / GC-pris /
 ekte flow, og vurder senere LOCATION × FLOW × STATE og kontrollerte ablasjoner.
