@@ -32,7 +32,7 @@ COLUMNS = {
 }
 
 
-def scan_symbol(items: list[dict], tick_size: int) -> dict[str, Any]:
+def scan_symbol(items: list[dict], tick_size: int, *, on_batch=None) -> dict[str, Any]:
     """One bounded Arrow stream per outright. Integer quantities remain exact."""
     width = (timing.WINDOW_END_NS - timing.STUDY_START_NS) // timing.MINUTE_NS
     out = {name: np.zeros(width, dtype=np.uint64) for name in METRICS}
@@ -100,6 +100,8 @@ def scan_symbol(items: list[dict], tick_size: int) -> dict[str, Any]:
                 add('gap', (flags & F_MAYBE_BAD_BOOK) != 0)
                 add('snapshot_trade', trade & ((flags & F_SNAPSHOT) != 0))
                 add('duplicate_trade', duplicate)
+                if on_batch is not None:
+                    on_batch(data, idx, trusted_trade)
         if count == 0:
             raise ValueError('GC_CONTINUOUS_EMPTY_FILE')
         file_reports.append({'path': item['path'], 'records': count,

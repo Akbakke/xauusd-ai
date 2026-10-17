@@ -1,0 +1,191 @@
+{
+  "schema_version": "gx1_gc_m5_feature_build_plan_v1",
+  "plan_id": "GC_M5_FEATURE_BUILD_20261017_005",
+  "created_utc": "2026-10-17T06:43:49.716121+00:00",
+  "authorization": {
+    "operator_request": "La oss implementere det nye GC datasettet som vi lastet ned s\u00e5 bruker vi volume, order block og ALT vi kan f\u00e5 ut av dette og s\u00e5 trener vi igjen",
+    "operator_clarification": "Vi holder oss til M5 intradag (med mtf s\u00e5 klart).",
+    "received_date": "2026-10-17",
+    "scope": "One new local-only causal M5/MTF GC trade-feature build on admitted masks; no fit, TEST, economics, native launch, API request or spending.",
+    "max_invocations": 1,
+    "old_approvals_reusable": false
+  },
+  "inputs": {
+    "gc_plan": {
+      "path": "configs/research/GC_SOURCE_AUDIT_20261016_002.json",
+      "sha256": "3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d",
+      "files": 66,
+      "rule": "Use and reverify the exact MBP-1 file/receipt SHA-256 bindings from this frozen spec."
+    },
+    "gc_result": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json",
+      "sha256": "c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab"
+    },
+    "gc_reconciliation": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json",
+      "sha256": "14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda"
+    },
+    "oanda_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/MANIFEST.json",
+      "sha256": "61bcf169a4dcdfaf09fee981ce511fbeaf9efdb88b8a1b338ea7796e50b133b2",
+      "field": "time",
+      "semantics": "bar_start_utc",
+      "availability_offset_seconds": 60,
+      "partitions": [
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2024/part-000.parquet",
+          "sha256": "2776a1cb17b915d506eaf0d7ed5323ba975e0d0d1c52c0c02d2da20589d1c41a"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2025/part-000.parquet",
+          "sha256": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc"
+        },
+        {
+          "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2026/part-000.parquet",
+          "sha256": "52eecadc8b9ff4a4522ca5003656a91e6250f7accbacdfd73587ba14b375ec1a"
+        }
+      ],
+      "read_only_columns": [
+        "time",
+        "bid_close",
+        "ask_close"
+      ],
+      "rule": "Existing bound M1 timestamps and bid/ask close for same-time spot basis only; no outcomes."
+    },
+    "source_inventory": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/SOURCE_INPUT_BINDING_PLAN.json",
+      "sha256": "f73165d365c9a3258c37215bab288dce9af1ec5b80bfd4e65cbab4f45d33c466"
+    }
+  },
+  "native_datasets": {
+    "train": {
+      "parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.parquet",
+        "sha256": "e2d7aed519511e07ccca11b7be14ae89e8808b467635fc948b7a8acf08a2bddb"
+      },
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_train.manifest.json",
+        "sha256": "022e19bcd52c0333cb3cfd64593c05c13c93f69982340de4fb13d23935d93ad2"
+      }
+    },
+    "val": {
+      "parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.parquet",
+        "sha256": "df4a9175003bfd269a23b15dfc792135340a69ef1faf556080edac2e3748a941"
+      },
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_D1_20261011_003/CHAIN/dataset/v10_seq513_dataset__ENTRY_FITTED_Q_val.manifest.json",
+        "sha256": "3343f1b6b9f9ac94e15ed75f6a93a950864ced5dffbd587c2b388788c708b553"
+      }
+    }
+  },
+  "admitted_inputs": {
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/RESULT.json",
+      "sha256": "11dec8fe9de8b726a707ce2907016df342cc3f06d20377abc99474d04466aea8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/TERMINAL.json",
+      "sha256": "be16bc6b2838f85916d62b5dcf1b3438b4e98494a073cc75f2a4f7c6a125289e"
+    },
+    "masks": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/SELECTED_M1_INPUT_MASKS.parquet",
+      "sha256": "d30894d0786b69fd1f8784ee98ef7035cfe6a35f05d185e5e235df8899b684d4"
+    },
+    "roll": {
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/RESULTS/ROLL_SCHEDULE.json",
+      "sha256": "80f847b74b1e49efb64b9c57d306263bc184e4f289e66cb1d95a37bb2b05add8"
+    }
+  },
+  "recipe_document": {
+    "path": "docs/GC_M5_FEATURE_RECIPE.md",
+    "sha256": "2d924bd6f2e934fc57d7a1c068d194db13c43fa9d53b5eaf915abdfde70d60b9"
+  },
+  "features": {
+    "owner": "gx1.features.gc_order_flow_v1",
+    "structure_owner": "gx1.features.smc_v1",
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "profile_fields": [
+      "vwap_usd",
+      "poc_usd",
+      "q25_usd",
+      "median_usd",
+      "q75_usd",
+      "price_levels"
+    ],
+    "footprint_fields": [
+      "max_level_delta_contracts",
+      "min_level_delta_contracts",
+      "buy_poc_usd",
+      "sell_poc_usd"
+    ],
+    "cvd_fields": [
+      "cvd_segment_delta_contracts",
+      "cvd_segment_volume_contracts",
+      "cvd_segment_minutes"
+    ],
+    "structure_fields": [
+      "structure_available",
+      "bos_up",
+      "bos_down",
+      "sweep_up_event",
+      "sweep_down_event",
+      "ob_bull_active",
+      "ob_bull_created",
+      "ob_bull_first_retouch",
+      "ob_bull_low",
+      "ob_bull_high",
+      "ob_bull_age_bars",
+      "ob_bull_origin_volume_contracts",
+      "ob_bear_active",
+      "ob_bear_created",
+      "ob_bear_first_retouch",
+      "ob_bear_low",
+      "ob_bear_high",
+      "ob_bear_age_bars",
+      "ob_bear_origin_volume_contracts",
+      "ob_bull_input_valid",
+      "ob_bear_input_valid"
+    ],
+    "dtype": "float64_nullable; raw ladder exact uint64; reject quantity conversion above 2^53",
+    "normalization_fit": false,
+    "decision_clock": "native M5 open + 300 s, strict pre-TEST",
+    "horizon_design_to_bind_for_later_fit_minutes": [
+      30,
+      120,
+      360
+    ]
+  },
+  "expected_source_records": 892100712,
+  "study_window_utc": [
+    "2024-05-01T00:00:00Z",
+    "2026-07-01T00:00:00Z"
+  ],
+  "limits": {
+    "runner": "scripts/gx1_capped_run.sh --class audit",
+    "memory": "4G",
+    "swap": "512M",
+    "cpu_affinity": "0-7",
+    "worker_processes": 8,
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "max_wall_seconds": 3600
+  },
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005",
+  "forbidden": [
+    "new Databento/API requests",
+    "spending",
+    "label/outcome access",
+    "normalization/model fit",
+    "TEST",
+    "economics",
+    "native serving",
+    "broker/live/paper/orders"
+  ]
+}

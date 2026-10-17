@@ -1,10 +1,28 @@
-# CURRENT HANDOVER — 16.10.2026
+# CURRENT HANDOVER — 17.10.2026
 
 Autoritet: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json er
 eneste arbeidsstatus; prosess og terminal overstyrer prosa. Historikk per forsøk
 ligger i Git og i policyens bindinger, ikke her.
 
-Nå: minimum native læring på D1-horisontmålet (vedtak 12.10) er gjennomført
+## Nå: M5 intradag med MTF — operatørvedtak 17.10
+
+Brukeren avklarte «Vi holder oss til M5 intradag (med mtf så klart).» GC-
+featurebygger 005 implementeres på innrømmede 004-masker; bare eksisterende
+lokale bytes, ingen nye Databento-kall/kostnader. Eksisterende M5/M15/H1/H4/D1-
+klokker og native familier beholdes. Byggeren lager observerte volum/profil/
+footprint/delta/relativ CVD og kausale SMC-order-block-/pris-sweep-proksier.
+Institusjonell ordresannhet/multinivå-sweeps og ukvalifisert book-OFI bygges
+ikke. Plan/forhåndsformler: configs/research/GC_M5_FEATURE_BUILD_20261017_005.json,
+docs/GC_M5_FEATURE_RECIPE.md. 100 fokuserte mekanikk-/SMC-/handover-tester og 41 kilde-/disposisjonstester
+består. En gammel kilde-test krevde fortsatt at alle steg var uferdige etter
+004; den skiller nå maskert input-admission fra komplett tape-kvalifisering.
+Én lokal featurepassering er claimet for 005; faktisk bygging/paritet er ennå
+ikke kjørt.
+Trening, normalisering, TEST, økonomi og native launch er fortsatt stengt;
+ny konkret intradag-mål-/recipebinding gjenstår etter featurebeviset.
+Opprydding/komprimering er fullført; dette er ikke lenger en blokkering.
+
+Historisk: minimum native læring på D1-horisontmålet (vedtak 12.10) er gjennomført
 P0–P3 og gjennomgått: REJECT_ENTRY_QUALIFICATION. Modellen lærer de trente
 radene og generaliserer ikke til CONTROL4096 ved 4 096 steg. Gjennomgangsbølgen
 14.10 (seks leserettede agenter) er bokført og fiksbølgen er brukt (kode,
@@ -348,8 +366,8 @@ ble blokkert av en filholder; begge forsøk/loggene er bevart.
 Målt GX1_DATA 139,7 + GX1_RUNS 18,7 + CURRENT-kildemiljø 5,7 = ca. 164 GiB.
 Hele WSL er større fordi andre prosjekter, verktøy og editorhistorikk også
 ligger der. Ingen nye Databento-kall, kostnader, fits eller økonomitest.
-Neste treningsmål er spurt eksplisitt: M5/intradag eller tidligere D1-mål ved
-20 handelsdager. Kausale indikatorverdier/native kobling er ennå ikke bygget.
+Neste treningsmål er avklart 17.10: M5/intradag med MTF. Kausale indikator-
+verdier bygges i ny plan 005; native trening er ennå ikke bundet.
 Gamle generasjonskvitteringer er historisk evidens, ikke lenger en påstand
 om at pensjonerte payloads fortsatt er komplette på disk.
 Alle kanoniske GC-gzipfiler/kvitteringer, gjeldende D1-inputs, modellvekter,

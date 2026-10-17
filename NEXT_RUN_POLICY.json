@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Resolve the requested M5/intraday versus D1-20-day target; freeze the causal GC indicator recipe on admitted masks before the appropriate dataset build and bounded learning plan. No automatic fit, TEST, economics or native launch.",
+  "next_action": "Verify and execute the new single-use M5/MTF feature plan 005 on existing local bytes, then bind the intraday target/dataset/training recipe. Never relaunch plans 001-004.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Disk reclamation complete: both retention waves DELETE_COMPLETE, unused environment/package caches removed, VHDX physically compacted and reconnect/source integrity verified. GC source admission complete for masked inputs only.",
+    "current_activity": "Frozen M5/MTF GC feature build 005: source-bound code/mechanics verified, one new capped local feature pass claimed; fit remains closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -136,7 +136,7 @@
       },
       {
         "step": 2,
-        "status": "WAITING_FOR_FROZEN_CAUSAL_FEATURE_RECIPE",
+        "status": "M5_MTF_TRADE_FEATURE_IMPLEMENTATION_UNDER_VERIFICATION",
         "completed": false,
         "genuine_evidence": []
       },
@@ -177,7 +177,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Next GC training target needs clarification: M5/intraday from the GC study versus the previous native D1 20-trading-day target. Indicator values, native integration/parity and a source-bound training recipe remain unbuilt.",
+    "current_blocker": "Waiting for genuine plan-005 feature results and raw/native-row parity. Native minute-horizon target and training recipe remain unbound.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7651,7 +7651,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Resolve the requested M5/intraday versus D1-20-day target; freeze the causal GC indicator recipe on admitted masks before the appropriate dataset build and bounded learning plan. No automatic fit, TEST, economics or native launch.",
+    "next_action": "Verify and execute the new single-use M5/MTF feature plan 005 on existing local bytes, then bind the intraday target/dataset/training recipe. Never relaunch plans 001-004.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8008,6 +8008,39 @@
         "full_native_parquet_payload_hash_revalidation_performed": false
       },
       "limits": "Current D1 data, every non-retired protected input, original model checkpoints and receipts remain. Old generated payloads named in the immutable cleanup plans are retired; historical receipts are not claims that retired payloads still exist."
+    },
+    "gc_m5_feature_build_005": {
+      "plan_path": "configs/research/GC_M5_FEATURE_BUILD_20261017_005.json",
+      "plan_sha256": "131352a537159f5fd1e54817a94bd18d9b1af7ced5fd1cc7ed635ea6cc9fbd4a",
+      "status": "EXECUTION_CLAIMED",
+      "execution_authorized": false,
+      "authorized_invocations": 1,
+      "claimed_invocations": 1,
+      "completed_invocations": 0,
+      "relaunch_authorized": false,
+      "training_authorized": false,
+      "test_authorized": false,
+      "economics_authorized": false,
+      "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/OPERATOR_APPROVAL.json",
+      "approval_receipt_sha256": "52e5b02ec37cc4fa185c6fdf034552e686bb86155e38ee223b342d01840d7c56",
+      "binding_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/EXECUTION_BINDING.json",
+      "claim_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_M5_FEATURE_BUILD_20261017_005/EXECUTION_CLAIM.json"
+    },
+    "gc_m5_operator_decision_20261017": {
+      "operator_response": "Vi holder oss til M5 intradag (med mtf så klart).",
+      "entry_timeframe": "M5",
+      "style": "intraday",
+      "mtf_preserved": [
+        "M15",
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "existing_native_features_removed": false,
+      "old_D1_20_trading_day_target_is_current_intraday_target": false,
+      "new_databento_requests_allowed": false,
+      "new_spending_allowed": false,
+      "sealed_TEST_access_allowed": false
     }
   },
   "gc_order_flow_research_20261006": {

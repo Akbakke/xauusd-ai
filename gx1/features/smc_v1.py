@@ -1374,3 +1374,77 @@ def compute_smc_mtf_primitives_v1(
         if finite.any() and not finite[int(np.argmax(finite)) :].all():
             raise RuntimeError("[SMC_MTF_OUTPUT_AVAILABILITY_INVALID]")
     return out.astype(np.float32)
+
+
+
+VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1 = (
+    'structure_available', 'bos_up', 'bos_down', 'sweep_up_event', 'sweep_down_event',
+    *(f'ob_{side}_{name}' for side in ('bull','bear') for name in
+      ('active','created','first_retouch','low','high','age_bars','origin_volume_contracts')),
+    'ob_bull_input_valid', 'ob_bear_input_valid',
+)
+
+
+def replay_volume_order_block_proxies_v1(open_, high, low, close, volume):
+    """Closed-bar price proxies using this owner's sole causal BOS/sweep replay.
+
+    One uninterrupted, single-contract valid-bar segment per call. At a BOS,
+    freeze the last strictly earlier opposite candle's full wick zone and its
+    observed T volume. No historical bar is rewritten. Invalidate on a close
+    through the far edge; a first later wick intersection emits one retouch.
+    No hidden orders, institutional identity or trading rule is inferred.
+    """
+    arrays = [np.asarray(a, dtype=np.float64) for a in (open_, high, low, close, volume)]
+    o, h, l, c, v = arrays
+    if (any(a.ndim != 1 or a.shape != c.shape or not np.isfinite(a).all() for a in arrays)
+            or np.any(v <= 0) or np.any(o > h) or np.any(o < l)):
+        raise ValueError('SMC_ORDER_BLOCK_PROXY_INPUT_INVALID')
+    replay, _ = replay_smc_causal_structure_v2(h, l, c)
+    names = ('structure_available', 'bos_up', 'bos_down', 'sweep_up_event', 'sweep_down_event')
+    out = {name: replay[name].astype(np.float64) for name in names}
+    fields = ('active', 'created', 'first_retouch', 'low', 'high', 'age_bars', 'origin_volume_contracts')
+    for side in ('bull', 'bear'):
+        for name in fields:
+            out[f'ob_{side}_{name}'] = np.full(len(c), np.nan)
+    last_bear = last_bull = None
+    zones = {'bull': None, 'bear': None}
+    for i in range(len(c)):
+        for side, bos, origin in (('bull', 'bos_up', last_bear), ('bear', 'bos_down', last_bull)):
+            created = bool(replay[bos][i] and origin is not None)
+            if created:
+                zones[side] = [float(l[origin]), float(h[origin]), float(v[origin]), i, False]
+            zone = zones[side]
+            retouch = False
+            if zone is not None:
+                lower, upper, qty, born, touched = zone
+                if (side == 'bull' and c[i] < lower) or (side == 'bear' and c[i] > upper):
+                    zones[side] = zone = None
+                elif i > born and not touched and l[i] <= upper and h[i] >= lower:
+                    retouch = True
+                    zone[4] = True
+            prefix = f'ob_{side}_'
+            out[prefix+'active'][i] = float(zone is not None)
+            out[prefix+'created'][i] = float(created)
+            out[prefix+'first_retouch'][i] = float(retouch)
+            if zone is not None:
+                out[prefix+'low'][i], out[prefix+'high'][i] = zone[:2]
+                out[prefix+'origin_volume_contracts'][i] = zone[2]
+                out[prefix+'age_bars'][i] = i-zone[3]
+        # Current candle becomes eligible only for a later BOS.
+        if c[i] < o[i]:
+            last_bear = i
+        if c[i] > o[i]:
+            last_bull = i
+    # Each event needs its own confirmed level, rather than the four pivots
+    # needed for a complete swing-state classification.
+    high_ready = replay['last_high_idx'] >= 0
+    low_ready = replay['last_low_idx'] >= 0
+    out['ob_bull_input_valid'] = high_ready.astype(float)
+    out['ob_bear_input_valid'] = low_ready.astype(float)
+    for side, ready, events in (('bull', high_ready, ('bos_up','sweep_up_event')),
+                                ('bear', low_ready, ('bos_down','sweep_down_event'))):
+        for name in (*events, *(f'ob_{side}_{field}' for field in fields)):
+            out[name][~ready] = np.nan
+    if tuple(out) != VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1:
+        raise RuntimeError('SMC_ORDER_BLOCK_PROXY_FIELD_ORDER_INVALID')
+    return out

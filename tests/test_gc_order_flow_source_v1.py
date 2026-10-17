@@ -241,7 +241,13 @@ def test_registered_goal_covers_four_ordered_steps_without_claiming_completion()
     research = policy["gc_order_flow_research_20261006"]
     assert research["required_steps"] == [item["step"] for item in packages]
     if research["source_qualified"] is False:
-        assert all(item["completed"] is False for item in progress)
+        # Complete-tape qualification remains false after indicator-specific
+        # masked admission. Step 1 can complete only with genuine plan-004
+        # evidence; feature/fit/review steps still require their own evidence.
+        admission = policy["current_work"]["gc_continuous_source_plan_004"]
+        assert progress[0]["completed"] is (admission["completed_invocations"] == 1)
+        assert admission["measured_summary"]["source_complete"] is False
+        assert all(item["completed"] is False for item in progress[1:])
     for item in progress:
         if item["completed"]:
             assert item["genuine_evidence"]
