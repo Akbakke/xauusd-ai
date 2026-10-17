@@ -41,10 +41,10 @@ def load_inputs(spec):
     for j,n in enumerate(ctx_names):
         if not np.array_equal(snap[:,fields.index('ctx_cont.'+n)],ctx[:,j]):raise RuntimeError('GC_SEQUENCE_CONTEXT_ALIAS:'+n)
     if [n for n in fields if n not in spec['excluded_macro_fields']]!=spec['fields']['native']:raise RuntimeError('GC_SEQUENCE_NATIVE_COVERAGE')
-    raw_names=spec['fields']['F']+spec['fields']['L']+spec['fields']['native']+spec['fields']['basis']+['ctx_cat.session_id']
+    raw_names=spec['fields']['F']+spec['fields']['L']+spec['fields']['native']+spec['fields']['basis']+spec['fields']['trade_activity']+['ctx_cat.session_id']
     if raw_names!=spec['raw_field_order']:raise RuntimeError('GC_SEQUENCE_RAW_FIELD_ORDER')
     raw=np.column_stack([f[n].to_numpy() for n in spec['fields']['F']]+[l[n].to_numpy() for n in spec['fields']['L']]+
-        [snap[:,fields.index(n)] for n in spec['fields']['native']]+[base[n].to_numpy() for n in spec['fields']['basis']]+[session])
+        [snap[:,fields.index(n)] for n in spec['fields']['native']]+[base[n].to_numpy() for n in spec['fields']['basis']+spec['fields']['trade_activity']]+[session])
     x,encoded_names=contract.encode_inputs(raw,raw_names,spec['categorical_domains'])
     if encoded_names!=spec['encoded_field_order']:raise RuntimeError('GC_SEQUENCE_ENCODED_FIELD_ORDER')
     observed=f.ofi_valid.to_numpy()&f.bbo_valid.to_numpy()&l.rolling15_valid.to_numpy()
@@ -74,10 +74,16 @@ def audit_features(spec,d,x,windows,f,l,base,tape):
         if name=='mid_response_ticks':expected=minute.closing_mid_tick.to_numpy()[idx[:,-1]]-minute.opening_mid_tick.to_numpy()[idx[:,0]]
         if not np.array_equal(expected,f[name].to_numpy()[rows]):raise RuntimeError('GC_FEATURE_F_PRODUCER:'+name)
         checks[name]={'exact_M1_aggregation_rows':len(rows)}
-    cache=pq.read_table(old.require_binding(spec['full_history_M1']),columns=['bar_start_ns','close_tick']).to_pandas()
+    cache=pq.read_table(old.require_binding(spec['full_history_M1']),columns=['bar_start_ns','close_tick','volume','trades']).to_pandas()
     last=np.searchsorted(cache.bar_start_ns.to_numpy(),d[rows]-old.MINUTE_NS)
     if np.any(last>=len(cache)) or not np.array_equal(cache.bar_start_ns.to_numpy()[last],d[rows]-old.MINUTE_NS):raise RuntimeError('GC_FEATURE_CLOSE_CLOCK')
     close=cache.close_tick.to_numpy()[last].astype(float)*spec['tick_usd']
+    starts=np.searchsorted(cache.bar_start_ns.to_numpy(),wanted)
+    if not np.array_equal(cache.bar_start_ns.to_numpy()[starts],wanted):raise RuntimeError('GC_FEATURE_ACTIVITY_CLOCK')
+    for name,source_name in [('m5_volume','volume'),('m5_trades','trades')]:
+        expected=cache[source_name].to_numpy()[starts].sum(axis=1)
+        if not np.array_equal(expected,base[name].to_numpy()[rows]):raise RuntimeError('GC_FEATURE_ACTIVITY_VALUE:'+name)
+        checks[name]={'exact_real_M1_sum_rows':len(rows)}
     if not np.array_equal(close,base['m5_close_usd'].to_numpy()[rows]):raise RuntimeError('GC_FEATURE_CLOSE_CONSERVATION')
     prior=rows-1;adjacent=(rows>0)&(d[rows]-d[np.maximum(prior,0)]==old.DECISION_OFFSET_NS)
     for level in ('vwap','poc','val','vah'):

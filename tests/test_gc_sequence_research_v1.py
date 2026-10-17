@@ -114,6 +114,6 @@ def test_full_scope_preserves_native_fields_and_covers_each_train_population():
     spec=json.loads((Path(__file__).parents[1]/'configs/research/GC_SEQUENCE_ALL_FEATURES_20261017_027.json').read_text())
     assert len(spec['fields']['native'])==254 and len(spec['excluded_macro_fields'])==61
     assert not set(spec['fields']['native'])&set(spec['excluded_macro_fields'])
-    assert len(spec['raw_field_order'])==276 and len(spec['encoded_field_order'])==283
+    assert len(spec['raw_field_order'])==278 and len(spec['encoded_field_order'])==285
     assert len(spec['folds'])==5 and spec['max_fits']==20 and spec['max_neural_fits']==10
     assert spec['optimizer_steps']*spec['batch_size']>=10988

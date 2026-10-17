@@ -9267,7 +9267,7 @@
     "gc_sequence_research_20261017": {
       "operator_request": "17.10.2026 attached Transformer/TCN new research round; bounded training only under NEXT_RUN_POLICY authority",
       "plan_path": "configs/research/GC_SEQUENCE_ALL_FEATURES_20261017_027.json",
-      "plan_sha256": "b6c1c95f06d7407000488d4db21a92fc33fd561d05d99546e1a50b9a05bbf1f5",
+      "plan_sha256": "69dd929600a448611b2fe0bb701e8cb16029ef873bac097a8ef684fec177aa0d",
       "qualification_status": "AUTHORIZED_SINGLE_USE",
       "qualification_authorized": true,
       "qualification_claimed_invocations": 0,
@@ -9384,8 +9384,8 @@
         "native_training": false,
         "TEST": false
       },
-      "raw_fields": 276,
-      "encoded_fields": 283,
+      "raw_fields": 278,
+      "encoded_fields": 285,
       "pilot_folds": [
         "dev_01",
         "dev_02",

@@ -9,7 +9,7 @@ TEST, baseline, Entry/Exit, production/live, broker and spending remain unchange
 Operator17.10 approved train/smoke on26months after verifying all informative
 inputs. New027/028 expands the unexecuted37-field proposal to all254 native
 non-macro market fields across all eight families, existing F12/L8/basis and
-session category:276 raw fields,283 explicit encoded channels. All61 macro
+session category:278 raw fields,285 explicit encoded channels. All61 macro
 fields with publication gaps and insufficient signed flow stay excluded.
 No market fields selected or deleted on model outcomes.
 
@@ -80,3 +80,7 @@ GC inputs/code and original evidence; do not automatically start another study.
 strict F83,776, rolling15 48,164 and finite common37,181 remain unchanged.
 Canonical full-GC cache019/PUBLISHED_ARTIFACTS.json; no replay/download required.
 DATA/RUNS deletion only through retention owner/rule9; no cleanup/reboot order here.
+
+The final pre-execution field inventory also retains genuine GC M5 executed
+volume and trade-record counts, with exact cached-M1 conservation checks.
+The algebraically duplicate trades/300 intensity column is not duplicated.

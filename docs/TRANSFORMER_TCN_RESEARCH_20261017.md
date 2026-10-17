@@ -202,7 +202,7 @@ market fields survive. Constant/sparse fields are reported, retained and not
 claimed informative. Existing formula-ledger evidence is reused, with current
 physical-row/domain/context-alias checks; not every native raw formula is rebuilt.
 
-276 raw fields become283 model channels by one-hot encoding the exact native
+278 raw fields become285 model channels by one-hot encoding the exact native
 SMC-state and session domains; missing observations are never filled. F columns
 are independently checked against cached genuine M1 aggregation; L distances and
 previous-level responses against stored levels/GC closes; basis against GC close
@@ -221,3 +221,7 @@ Pooled economic replay carries positions across fold boundaries. Eight frozen
 pooled contrasts are multiplicity-adjusted; per-fold metrics are descriptive.
 This supersedes the unexecuted narrower first-fold proposal by the new explicit
 user request, before model outcomes. It is not a rescue tuned on those outcomes.
+
+The final pre-execution field inventory also retains genuine GC M5 executed
+volume and trade-record counts, with exact cached-M1 conservation checks.
+The algebraically duplicate trades/300 intensity column is not duplicated.

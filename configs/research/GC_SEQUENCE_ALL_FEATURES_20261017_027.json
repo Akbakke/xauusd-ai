@@ -318,6 +318,10 @@
     ],
     "basis": [
       "m5_spot_basis_bps"
+    ],
+    "trade_activity": [
+      "m5_volume",
+      "m5_trades"
     ]
   },
   "sequence_length": 6,
@@ -444,7 +448,6 @@
     "no native/TEST/broker/spending or extensive GPU training"
   ],
   "qualification_authorized": true,
-  "pilot_training_authorized": false,
   "native_training_authorized": false,
   "test_authorized": false,
   "provider_requests_authorized": false,
@@ -863,6 +866,8 @@
     "ctx_cont.m5_ema_stack_aligned_v2",
     "ctx_cont.d1_dist_change_1bar_atr_v4",
     "m5_spot_basis_bps",
+    "m5_volume",
+    "m5_trades",
     "ctx_cat.session_id"
   ],
   "encoded_field_order": [
@@ -1145,6 +1150,8 @@
     "ctx_cont.m5_ema_stack_aligned_v2",
     "ctx_cont.d1_dist_change_1bar_atr_v4",
     "m5_spot_basis_bps",
+    "m5_volume",
+    "m5_trades",
     "ctx_cat.session_id=0",
     "ctx_cat.session_id=1",
     "ctx_cat.session_id=2",
@@ -1162,5 +1169,7 @@
   "artifact_prefix": "synthetic_contract_only",
   "feature_scope_origin": "user all-informative-features request before new outcomes: all 254 native non-macro signal fields, all eight genuine families including 27 previously paused research pattern fields, existing F12/L8/basis and native session category; explicit category one-hot domains from existing owners",
   "batch_size_origin": "ceil(largest previously qualified fold TRAIN count 10988 / fixed128 steps)=86; each neural fit observes every declared TRAIN row at least once, no size search",
-  "whole_study_scope": "five chronological purged folds across all 26 months; first fold is integration smoke, same fixed recipe continues across remaining folds if mechanics finite/readback passes; no selection or automatic budget expansion"
+  "whole_study_scope": "five chronological purged folds across all 26 months; first fold is integration smoke, same fixed recipe continues across remaining folds if mechanics finite/readback passes; no selection or automatic budget expansion",
+  "pilot_requires_successful_qualification_and_policy_binding": true,
+  "trade_activity_origin": "existing genuine GC executed-contract volume and trade-record counts on their unchanged unsigned volume-valid mask; no duplicate trade-intensity column (trades/300)"
 }
