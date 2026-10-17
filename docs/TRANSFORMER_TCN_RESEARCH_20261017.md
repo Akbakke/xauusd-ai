@@ -9,11 +9,14 @@ Status and execution rights are exclusively in NEXT_RUN_POLICY.json.
 
 `EntryV10CtxHybridTransformer` has a shared learned representation: local
 feature-family sequence encoders, family-specific context/feature gates,
-cross-family attention, M5/M15/H1/H4/D1 encoders, family/timeframe attention and
+cross-family attention, Entry MTF M15/H1/H4/D1 encoders, family/timeframe attention and
 context/token gates. Window readout is mean plus last closed token. Entry Q
 uses the joint representation; unified M1 Exit adds shared feature encoders,
 side/path state and recurrent episode/family/timeframe state. This is one
-bundle, not a separate independent Exit model.
+bundle, not a separate independent Exit model. The MTF M5 cache route is consumed
+by Exit only; Entry uses its local M5 sequence. MTF widths are190; windows
+M5/M15/H1/H4/D1 are16/64/96/96/252, with Entry local96 and Exit local480 bars.
+The Exit detailed-path tail is512 bars and never a maximum trade duration.
 
 The last completed native run was RECENT_365D_S20261016 on 15 October 2026,
 09:48:48.814795–10:55:27.970012 UTC (11:48–12:55 Europe/Oslo): 4,071 optimizer
@@ -134,3 +137,55 @@ uses GMT23:00–22:15 for gold Sunday–Thursday and22:00 Friday. These document
 supply no complete effective-date/holiday history for the TRAIN period. They
 therefore cannot qualify a single historical calendar by themselves. This is
 an evidence gap, not proof that every observed-session target is incorrect.
+
+## Measured qualification result and remaining decisions
+
+026 completed once, exit0,49.264s, source unchanged, TEST=false, zero fits and
+optimizer steps. On141,806 native study windows,37,181 qualified single F/L/V/basis
+windows yield12,482 strictly contiguous six-bin sequences, each37 fields. Every
+one of26months has support. No roll/gap crossing or numeric imputation. Of
+these,178 also have strict signed-aggressor history throughout; signed delta is
+not silently substituted into the primary recipe. Basis spans−23.552 to289.616bps
+(median45.108); this does not make futures and spot executable prices equivalent.
+
+| Frozen chronological fold | Purged TRAIN | Matched evaluation rows |
+| --- | ---: | ---: |
+| dev_01, May–July2025 | 7,016 | 646 |
+| dev_02, August–October2025 | 7,663 | 435 |
+| dev_03, November2025–January2026 | 8,112 | 732 |
+| dev_04, February–April2026 | 8,851 | 2,163 |
+| dev_05, May–June2026 | 10,988 | 1,468 |
+
+Only dev_01 is proposed for the bounded pilot. Its normalization uses13,391
+unique physical TRAIN input rows. Frozen tree target/row parity is exact for
+all646 rows. No model result or future horizon selected this cohort.
+
+The small Transformer has9,985 parameters; TCN5,537. Each ran one finite CPU
+forward on64 genuine normalized sequences with zero optimizer steps. Single
+cold batches took2.955ms and7.879ms respectively. With n=1 these are integration
+measurements, not a reliable efficiency ranking or training-throughput evidence.
+
+Last native checkpoint/recipe hashes match the original review. The corrected
+h20 file contains646,543 baseline-valid rows, of which642,214 have an exact
+terminal quote;4,329 are separately censored. Every retained target is finite
+and every censored target is NaN, including FLAT. This verifies the stored
+research candidate, not historical calendar correctness or a newly trained model.
+
+GO: strict GC sequence inputs for a separately admitted research pilot.
+NO-GO: native h20 successor training until calendar/publication and successor
+bindings are resolved. Transformer/TCN comparison, feature increment, trained
+prediction metrics, strategy economics and architecture superiority are **not
+measured**. P0's original NO-GO is preserved. Keep native Transformer as the
+main candidate; no evidence supports replacing it now.
+
+Proposed next executable scope is one capped CPU pilot,7,016/646 rows, two fixed
+linear fits plus one128-step Transformer and one128-step TCN; at most30minutes,
+4G/512M, one thread. The runner rejects pilot mode while the explicit
+NEXT_RUN_POLICY pilot gate is false. Generic/native training remains false.
+No data download, TEST read, production change or automatic extension is implied.
+
+Evidence root: `/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026`.
+Completion review binds artifacts, original failure and96-case focused/14-case
+repair XML controls (both zero failures/errors; overlapping cases are not added).
+Existing20 P0 code tests also passed, and native pre-commit contract guards passed.
+Syntax, stale-path scan and diff checks are separate code-consistency controls.

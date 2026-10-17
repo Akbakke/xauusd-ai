@@ -4,17 +4,37 @@ Authority: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json
 is the only work status. One agent/capped CURRENT job. Native training_enabled=false;
 TEST, baseline, Entry/Exit, production/live, broker and spending remain unchanged/closed.
 
-## Current boundary: new sequence qualification, training closed
+## Current boundary: sequence inputs qualified; all model training closed
 
-Operator request17.10: retain native Transformer, inspect latest h20 Entry and
-qualify a separate bounded Transformer/TCN GC sequence study. Plan:
-configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json. Technical/protocol report:
-docs/TRANSFORMER_TCN_RESEARCH_20261017.md. 024 failed on null contract IDs outside the admitted cohort and is consumed.
-026 applies the contract identity check on the actual admitted rows, as required
-by rule2g; no masks or source data changed. One new capped no-fit qualification is
-bound in current_work.gc_sequence_research_20261017. Pilot/native training remain
-closed. Historical session/calendar and COT publication semantics are unresolved.
-All26GCmonths remain development. Existing native baseline/Exit/TEST unchanged.
+Operator17.10 requested separate Transformer/TCN research and an accurate native
+h20 audit. Report: docs/TRANSFORMER_TCN_RESEARCH_20261017.md. Existing Transformer
+remains the main native candidate. No new native fit or GC model fit occurred.
+
+026 COMPLETE once,exit0,49.264s,source unchanged,TEST=false. From37,181 qualified
+single windows:12,482 sequences of6x37 fields,all26months,zero gaps/roll crossings
+or imputation. First purged fold:7,016 TRAIN/646 evaluation rows, exact saved
+LightGBM target/row parity. Transformer9,985 parameters/TCN5,537; one genuine64-row
+forward each,zero optimizer steps. These are input/mechanics results, not edge.
+Only178 sequences have strict signed-aggressor coverage throughout; primary F
+keeps the frozen OFI/BBO fields without invented delta history.
+
+Current plan configs/research/GC_SEQUENCE_QUALIFICATION_REPAIR_20261017_026.json
+is consumed for qualification. 024 failed on53k nullable IDs outside the valid
+cohort; corrected adapter checks actual admitted rows with zero source-mask
+changes. Original failure retained. All roles/hashes and scope are in
+current_work.gc_sequence_research_20261017. Latest terminal is026.
+
+Native last actual training15.10:4,071 Entry-only steps, independent observed h20,
+65,136 unique TRAIN rows,Exit150 fields unchanged; checkpoint/recipe verified.
+Exact-terminal h20 candidate642,214/646,543 baseline-valid rows passes stored
+censoring checks; historical session/calendar/COT publication and successor
+bindings remain unqualified. No corrected-target native model has been trained.
+
+Next proposed scope: one CPU pilot, four fits (two fixed linears plus Transformer
+and TCN128steps each), same7016/646 rows,4G/512M/one thread,maximum1800s.
+Pilot gate=false, requires explicit policy admission. No launch automatically.
+Native training_enabled=false, TEST/baseline/Exit/live/broker/spending unchanged.
+All26GCmonths and CONTROL remain reused development, not independent confirmation.
 
 ## Preserved P0 decision: NO-GO — stop this GC/M5 P0 recipe
 
