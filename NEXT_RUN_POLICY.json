@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T11:23:22.752868+00:00",
-  "status": "FULL_GC_HISTORY_EXACT_ROLL_PREFLIGHT_PASSED__019_CLAIMED_P0_CLOSED",
+  "status": "GC_L1_AND_FULL_HISTORY_LEVELS_VERIFIED__P0_NO_FIT_QUALIFICATION_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Only full-history profile correction 019, then bounded no-fit P0 cohort preparation 020. No model/TEST/paid calls.",
+  "next_action": "Only bounded no-fit preparation 020: independent full-history mask/numeric checks, recent M5 gap/horizon support, new F17/L19 shared cohort and funding sensitivity. Known macro PIT leak/model recipe still block fitting.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Only full-history profile correction 019, then bounded no-fit P0 cohort preparation 020. No model/TEST/paid calls.",
+    "current_activity": "Only bounded no-fit preparation 020: independent full-history mask/numeric checks, recent M5 gap/horizon support, new F17/L19 shared cohort and funding sensitivity. Known macro PIT leak/model recipe still block fitting.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -158,11 +158,11 @@
         "genuine_evidence": []
       }
     ],
-    "latest_terminal_role": "Actual L1 and native-clock profile build, no fit",
+    "latest_terminal_role": "Complete GC profile history, quality masks unchanged, no fit",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/TERMINAL.json",
-      "sha256": "68db109dd588e87ee36e5d60fd2b0f8aebe7c0fca717f9991adf58646d64fa98"
+      "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/TERMINAL.json",
+      "sha256": "ee096ebb792efe1364940083339a4777b329cf35ee60253b1eb5bb9b1bb0651c"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -182,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "11 roll-minute mapping differences fixed and every 004 native-eligible M1 choice now matches. Full GC history 019 pending; known COT release/vintage issue and final model recipe still block P0.",
+    "current_blocker": "Input values built and verified. Quantify common cohort and source limitations in 020; known old COT publication leak remains uncorrected in frozen baseline, so no P0 fit.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7656,7 +7656,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Only full-history profile correction 019, then bounded no-fit P0 cohort preparation 020. No model/TEST/paid calls.",
+    "next_action": "Only bounded no-fit preparation 020: independent full-history mask/numeric checks, recent M5 gap/horizon support, new F17/L19 shared cohort and funding sensitivity. Known macro PIT leak/model recipe still block fitting.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9101,6 +9101,28 @@
     "gc_full_history_profiles_019": {
       "plan_path": "configs/research/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019.json",
       "plan_sha256": "d334d8f8a7797b67c6d949b2a2511cadd6b758c879eda530112008b4417af97b",
+      "status": "COMPLETE_FULL_GC_HISTORY_CONSUMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "fit_authorized": false,
+      "test_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019",
+      "terminal_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/TERMINAL.json",
+      "terminal_sha256": "ee096ebb792efe1364940083339a4777b329cf35ee60253b1eb5bb9b1bb0651c",
+      "result_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/RESULT.json",
+      "result_sha256": "9c1423257c8a7826a833f93e9b57296d2bfd7c5e0944a1b80f880562c73f5663",
+      "rolling15_M5": 48164,
+      "rolling60_M5": 7330,
+      "strict_session_prefix_M5": 2263,
+      "profile_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/M5_FULL_GC_HISTORY_LEVELS.parquet",
+      "profile_sha256": "6544653c1ab3aeb9bf2a1fb3544836dd4c5ab565c8a283a45d2a365f3d0b205f"
+    },
+    "gc_P0_cohort_preparation_020": {
+      "plan_path": "configs/research/GC_P0_COHORT_PREPARATION_20261017_020.json",
+      "plan_sha256": "ef6141d7055f6e0d9644ffdf65c71fafadd530cf9427b47d6b967540126f4773",
       "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
@@ -9109,7 +9131,7 @@
       "relaunch_authorized": false,
       "fit_authorized": false,
       "test_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019"
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020"
     }
   },
   "gc_order_flow_research_20261006": {

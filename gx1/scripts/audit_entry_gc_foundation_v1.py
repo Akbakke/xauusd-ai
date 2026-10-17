@@ -535,6 +535,65 @@ def run_cash_review(binding_path):
     io.write_json(stage/'RESULT.json',result);io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(stage/'RESULT.json')})
     publish_bundle_directory_noreplace(stage,root/'RESULTS');print('CASH_PROJECTION_REVIEW_COMPLETE',flush=True)
 
+def validate_new_fl_inputs_v2(plan,features,levels):
+    from gx1.features.gc_order_flow_v1 import L1_FIELDS_V2
+    valid=features.ofi_valid.to_numpy()&features.bbo_valid.to_numpy()
+    f=features.loc[valid,list(L1_FIELDS_V2)].to_numpy(float)
+    if not np.isfinite(f).all() or not np.equal(f[:,:6],np.trunc(f[:,:6])).all() or np.any(f[:,1:6]<0):raise RuntimeError('P0_INPUT_L1_COUNTS')
+    if np.any(np.abs(f[:,6])>1) or np.any(f[:,7]<1) or np.any(f[:,8:10]<=0) or np.any(np.abs(f[:,10])>f[:,7]/2+1e-10):raise RuntimeError('P0_INPUT_BBO_PHYSICS')
+    q=pq.read_table(binding_read(plan['L1_candidates']),columns=['bar_start_ns','L1_clean_complete_bbo'])
+    clock=q['bar_start_ns'].to_numpy();query=features.m5_bar_start_ns.to_numpy()[valid,None]+np.arange(5)[None,:]*MINUTE
+    ix=np.searchsorted(clock,query)
+    if np.any(ix>=len(clock)) or not np.array_equal(clock[ix],query):raise RuntimeError('P0_INPUT_L1_CLOCK')
+    maxevents=int(q['L1_clean_complete_bbo'].to_numpy()[ix].sum(axis=1).max())
+    bound=maxevents*2*((1<<32)-2)
+    if bound>=2**53:raise RuntimeError('P0_INPUT_OFI_FLOAT_EXACTNESS_NOT_PROVEN')
+    cache=pq.read_table(binding_read(plan['full_history_M1']),columns=['bar_start_ns','contract_index','volume_profile_valid','trades','gap','duplicate_trade','bad_recv_trade','snapshot_trade','invalid_trade']).to_pandas()
+    clock=cache.bar_start_ns.to_numpy();ci=cache.contract_index.to_numpy();end=(features.decision_ns.to_numpy()-clock[0])//MINUTE
+    start=end-levels.session_expected_minutes.to_numpy();inside=(start>=0)&(end<=len(clock));a=np.clip(start,0,len(clock));b=np.clip(end,0,len(clock))
+    def seen(v,lo=a):
+        prefix=np.r_[0,np.cumsum(np.asarray(v,bool),dtype=np.int64)]
+        return (prefix[b]-prefix[lo])>0
+    bad=seen(~cache.volume_profile_valid.to_numpy())
+    changes=np.r_[False,np.diff(ci)!=0]
+    roll=seen(changes,lo=np.minimum(a+1,b))
+    direct=inside&~bad&~roll
+    if not np.array_equal(direct,levels.session_complete_valid.to_numpy()):raise RuntimeError('P0_INPUT_SESSION_MASK_INDEPENDENT_PREFIX_FAILED')
+    reasons={'history_before_raw_scope':~inside,'contract_roll_inside_session':roll,
+       'bad_trade_receive_time':seen(cache.bad_recv_trade>0),'invalid_trade':seen(cache.invalid_trade>0),
+       'snapshot_trade':seen(cache.snapshot_trade>0),'book_gap_flag':seen(cache.gap>0),
+       'repeated_T_signature':seen(cache.duplicate_trade>0),'minute_without_trusted_trade':seen(cache.trades==0)}
+    remaining=~direct;waterfall={}
+    for name,mask in reasons.items():
+        take=remaining&mask;waterfall[name]=int(take.sum());remaining &= ~mask
+    if remaining.any():raise RuntimeError('P0_INPUT_SESSION_REJECTION_UNEXPLAINED')
+    pub=levels.session_expected_minutes[direct].to_numpy()
+    return {'L1_numeric_and_physical_checks':'PASS_ALL_QUALIFIED_ROWS','max_complete_events_per_valid_M5':maxevents,
+      'absolute_integer_OFI_accumulation_bound':bound,'float64_exact_integer_limit':2**53,
+      'session_mask_vs_independent_full_M1_prefix':'EXACT','session_complete_rows':int(direct.sum()),
+      'session_prefix_minutes_median_max':[float(np.median(pub)),int(pub.max())] if len(pub) else None,
+      'session_rejection_waterfall_priority_order':waterfall,
+      'minute_without_trade_is_not_asserted_to_be_missing_data':True,
+      'whole_feed_completeness_proven':False}
+
+
+def review_managed_money_values_v1(plan):
+    legacy=pq.read_table(binding_read(plan['CFTC_legacy'])).to_pandas().sort_values('date')
+    dis=pq.read_table(binding_read(plan['CFTC_disaggregated'])).to_pandas().sort_values('date')
+    if not np.array_equal(legacy.date,dis.date):raise RuntimeError('P0_INPUT_CFTC_REPORT_CLOCK')
+    oi=dis.open_interest_all.to_numpy(float)
+    if not np.array_equal(oi,legacy.open_interest_all.to_numpy(float)):raise RuntimeError('P0_INPUT_CFTC_OI_DIFFERENCE')
+    checks={}
+    for side in ['long','short']:
+        name='managed_money_positions_'+side+'_all';change='change_in_managed_money_'+side+'_all'
+        delta=dis[name].astype(float).diff();reported=dis[change].astype(float);valid=delta.notna()&reported.notna()
+        checks[side]={'compared_reports':int(valid.sum()),'reported_change_vs_consecutive_snapshot_differences':int(np.count_nonzero(delta[valid].to_numpy()!=reported[valid].to_numpy()))}
+    mm=(dis.managed_money_positions_long_all.to_numpy(float)-dis.managed_money_positions_short_all.to_numpy(float))/oi
+    noncomm=(legacy.non_commercial_positions_long_all.to_numpy(float)-legacy.non_commercial_positions_short_all.to_numpy(float))/oi
+    return {'matched_reports':len(dis),'OI_identical_to_legacy':True,'net_over_OI_different_from_legacy_noncommercial_reports':int(np.count_nonzero(mm!=noncomm)),
+       'position_change_checks':checks,'current_vintage_only':True,'actual_release_times_and_vintages_qualified':False,'native_features_registered':0}
+
+
 def qualify_new_fl_p0(plan,stage):
     from gx1.scripts import research_m5_intraday_recheck_v1 as m5
     from gx1.scripts.research_openbb_source_review_v1 import known_cot_delay_diagnostic_v1
@@ -544,6 +603,10 @@ def qualify_new_fl_p0(plan,stage):
     features=pq.read_table(binding_read(plan['features'])).to_pandas()
     levels=pq.read_table(binding_read(plan['levels'])).to_pandas()
     if not np.array_equal(features.m5_bar_start_ns,levels.m5_bar_start_ns) or not np.array_equal(features.decision_ns,levels.decision_ns):raise RuntimeError('P0_PREP_F_L_CLOCK_MISMATCH')
+    selected=features.ofi_valid.to_numpy()|features.bbo_valid.to_numpy()
+    if not np.array_equal(features.contract_index.to_numpy()[selected],levels.contract_index.to_numpy()[selected]):raise RuntimeError('P0_PREP_F_L_CONTRACT_MISMATCH')
+    input_quality=validate_new_fl_inputs_v2(plan,features,levels)
+    macro_comparison=review_managed_money_values_v1(plan)
     for key in levels:
         if key not in ['m5_bar_start_ns','decision_ns','contract_index']:features[key]=levels[key]
     starts=features.m5_bar_start_ns.to_numpy();decisions=features.decision_ns.to_numpy()
@@ -566,7 +629,7 @@ def qualify_new_fl_p0(plan,stage):
     spec=io.read_json(REPO/'configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json');cot=macro.parse_cot_gold_archives(spec)
     exceptions=binding_read(plan['COT_exceptions'])
     unsafe=known_cot_delay_diagnostic_v1(decisions,pd.DatetimeIndex(cot.as_of),exceptions['announced_release_utc'])
-    out={'new_F_L_joint_input_rows':int(fl.sum()),'known_old_COT_availability_unsafe_rows':int(unsafe.sum()),
+    out={'input_quality':input_quality,'OpenBB_managed_money_comparison':macro_comparison,'new_F_L_joint_input_rows':int(fl.sum()),'known_old_COT_availability_unsafe_rows':int(unsafe.sum()),
       'COT_comparison_uses_announced_exceptions_not_full_actual_PIT_receipts':True,
       'gap_inventory':{'missing_minutes':count,'weekly_closed_minutes':int(weekly.sum()),'remaining_daily_holiday_or_data_gap_unclassified':int((~weekly).sum()),'current_template_expected_open_missing_minutes':int(gaps.missing_during_current_regular_template.sum()),'historical_daily_holidays_qualified':False},'horizons':{}}
     masks=pd.DataFrame({'decision_ns':decisions,'new_F_L_input_valid':fl,'known_old_COT_unsafe':unsafe})
@@ -585,7 +648,7 @@ def qualify_new_fl_p0(plan,stage):
             base=plan['economics']['round_trip_execution_cost_bps']+elapsed[:,None]*np.array(plan['economics']['annual_financing_cost_bps'])[None,:]/plan['economics']['seconds_per_year']
             d=base-cost
             sensitivity[name]={'net_delta_vs_central_bps_LONG_SHORT':d[without_known_leak].mean(axis=0).tolist() if without_known_leak.any() else None,'historical_rates_inferred':False}
-        out['horizons'][str(h)]={'v2_execution_valid':int(ex.valid.sum()),'exact_M1_path_valid':int(strict['valid'].sum()),'old_valid_with_delayed_terminal':int(np.count_nonzero(ex.valid&(strict['terminal_delay_ns']>0))),'old_valid_with_interior_gap':int(np.count_nonzero(ex.valid&(strict['interior_gap_intervals']>0))),'new_FL_and_exact_path':int(candidate.sum()),'after_known_COT_leak_exclusion':int(without_known_leak.sum()),'same_cost_model_all_eight_arms':True,'cost_sensitivity':sensitivity}
+        out['horizons'][str(h)]={'v2_execution_valid':int(ex.valid.sum()),'exact_M1_path_valid':int(strict['valid'].sum()),'old_valid_with_delayed_terminal':int(np.count_nonzero(ex.valid&(strict['terminal_delay_ns']>0))),'old_valid_with_interior_gap':int(np.count_nonzero(ex.valid&(strict['interior_gap_intervals']>0))),'new_FL_and_exact_path':int(candidate.sum()),'after_known_COT_leak_exclusion':int(without_known_leak.sum()),'same_cost_model_all_eight_arms':True,'eligible_by_month':{m:int(np.count_nonzero(without_known_leak&(pd.DatetimeIndex(decisions,tz='UTC').strftime('%Y-%m').to_numpy()==m))) for m in sorted(set(pd.DatetimeIndex(decisions,tz='UTC').strftime('%Y-%m')))},'cost_sensitivity':sensitivity}
         del central
     masks.to_parquet(stage/'P0_PREPARATION_MASKS.parquet',index=False)
     out.update(models_fitted=False,TEST_accessed=False,P0_training_admitted=False,baseline_Exit_or_native_targets_changed=False,
@@ -604,6 +667,10 @@ def run_p0_preparation(binding_path):
     proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry();stage=root/'.RESULTS.staging';stage.mkdir(exist_ok=False)
     io.write_json(root/'EXECUTION_CLAIM.json',{'invocation':1,'source_head':binding['source_head']})
     result=qualify_new_fl_p0(plan,stage);result['source_head']=binding['source_head'];result['limits']=proof
+    for key,value in plan.items():
+        if isinstance(value,dict) and set(value)=={'path','sha256'}:binding_read(value)
+    execution=binding_read(plan['execution_plan'])
+    for value in execution['execution_tape_partitions']:binding_read(value)
     for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'P0_PREP_CODE_POST')
     io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_PREP_POLICY_POST')
     if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):raise RuntimeError('P0_PREP_SOURCE_CHANGED')

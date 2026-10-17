@@ -1,0 +1,97 @@
+{
+  "schema_version": "gx1_gc_P0_cohort_preparation_v2",
+  "plan_id": "GC_P0_COHORT_PREPARATION_20261017_020",
+  "operator_request": "17.10.2026 finish pre-model quality and eight new F/L/V arms; no model fit, native TEST or strategy economics",
+  "features": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/M5_L1_DYNAMIC_FEATURES.parquet",
+    "sha256": "c06d7a212b1d3f6ea6e442b396d186ac068b38447ae77f86e1f7824c8a4e778c"
+  },
+  "levels": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/M5_FULL_GC_HISTORY_LEVELS.parquet",
+    "sha256": "6544653c1ab3aeb9bf2a1fb3544836dd4c5ab565c8a283a45d2a365f3d0b205f"
+  },
+  "full_history_M1": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/FULL_GC_M1_TRADE_INPUTS.parquet",
+    "sha256": "90ad67fe9e0694d4bed8226ecc39299d298620c30785447ebb4acd798af29d9a"
+  },
+  "L1_candidates": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SELECTED_L1_QUALITY_20261017_012/RESULTS/SELECTED_M1_L1_CANDIDATE_MASKS.parquet",
+    "sha256": "4b9dd8c8953eae7b35c69672e44c30339cf0eb5252c3f571d468854b21da6d07"
+  },
+  "CFTC_legacy": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014/RESULTS/LEGACY.parquet",
+    "sha256": "07e166e68e886cd96212109031b53f0ab9942ce68fcb609a70f7c8d7a339f80f"
+  },
+  "CFTC_disaggregated": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/OPENBB_FREE_SOURCE_REVIEW_20261017_014/RESULTS/DISAGGREGATED.parquet",
+    "sha256": "f05499188a19886b4a64d55b857e73d5612af06817801b2950e77d00ea816cfa"
+  },
+  "F_result": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017/RESULTS/RESULT.json",
+    "sha256": "33ebbfa342fffc37c07b1f3021c190ffc8eeed1905921ca95f34dab6f6a57501"
+  },
+  "L_result": {
+    "path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019/RESULTS/RESULT.json",
+    "sha256": "9c1423257c8a7826a833f93e9b57296d2bfd7c5e0944a1b80f880562c73f5663"
+  },
+  "preparation": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/P0_FACTORIAL_NEW_FL_PREPARATION_20261017.json",
+    "sha256": "c60f8e0b9b81c6e29597a64fecc8ef7b370f1c6750322a65c9abbf044ddb6b1c"
+  },
+  "COT_exceptions": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/CFTC_RELEASE_EXCEPTION_REVIEW_20261017.json",
+    "sha256": "0a9085c65d443692ca9e5feee509782501776496063655266776601655de24b8"
+  },
+  "execution_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/GC_M5_TRADE_FLOW_PROBE_20261017_007.json",
+    "sha256": "5ab8ee7a7e73d322cfca8934469ac0522fed923b9d312c13d7a14040bc59c41e"
+  },
+  "economics": {
+    "schema_version": "gx1_entry_observed_market_v1_economics",
+    "cost_authority_sha256": "204c03ba3388ffe0db1421a32f9a8044182ec3dc818f8ea10a04299fcf468a32",
+    "coverage_start_utc": "2011-06-01T00:00:00+00:00",
+    "coverage_end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+    "round_trip_execution_cost_bps": 4.0,
+    "annual_financing_cost_bps": [
+      569.0,
+      0.0
+    ],
+    "seconds_per_year": 31557600.0,
+    "historical_cost_truth_qualified": false,
+    "capital_hurdle_included": false,
+    "risk_utility_included": false,
+    "economics_sha256": "f990436326edd80d09240e9943d4b714f0d2c5a9e1ed0285381edf9e5fdf8596"
+  },
+  "cost_authority": {
+    "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/CURRENT_TERMS_POLICY_001/POLICY/parameter_authority.json",
+    "sha256": "54775694d3e102b8bdf4358ce4a8f72e4fd9fa6b98310e109c07e6b872052681"
+  },
+  "TEST_seal_utc": "2026-07-01T00:00:00Z",
+  "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_P0_COHORT_PREPARATION_20261017_020",
+  "max_invocations": 1,
+  "fit_authorized": false,
+  "TEST_authorized": false,
+  "new_data_requests_authorized": false,
+  "models_fitted": false,
+  "code_paths": [
+    "gx1/features/gc_order_flow_v1.py",
+    "gx1/scripts/gc_order_flow_features_v1.py",
+    "tests/test_gc_l1_dynamic_foundation_v2.py",
+    "gx1/scripts/audit_entry_gc_foundation_v1.py",
+    "gx1/contracts/entry_research_evaluation_v1.py",
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py",
+    "gx1/scripts/research_m5_intraday_recheck_v1.py",
+    "gx1/scripts/gc_source_disposition_v1.py",
+    "gx1/contracts/gx1_capped_execution_v1.py",
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py",
+    "scripts/gx1_capped_run.sh",
+    "gx1/contracts/gc_continuous_source_v1.py",
+    "gx1/scripts/research_openbb_source_review_v1.py",
+    "gx1/scripts/research_ta_campaign_v1.py",
+    "gx1/features/d1_macro_context_v1.py",
+    "gx1/contracts/entry_observed_market_v1.py",
+    "gx1/contracts/xau_tape_provenance_v1.py",
+    "tests/test_research_openbb_source_review_v1.py",
+    "tests/test_research_m5_intraday_recheck_v1.py"
+  ]
+}
