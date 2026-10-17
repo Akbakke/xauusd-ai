@@ -1084,6 +1084,8 @@ def run_p0_development(binding_path):
         terminal=io.read_json(Path(spec['inputs']['quality_terminal']['path']))
         if terminal['status']!='COMPLETE' or terminal['result_sha256']!=spec['inputs']['quality_result']['sha256']:raise RuntimeError('P0_QUALITY_TERMINAL')
         names,excluded=p0_field_contract(preparation,fields,D1_MACRO_CONTEXT_FIELDS)
+        if names!=spec['feature_order'] or {a:len(v) for a,v in names.items()}!=spec['feature_counts'] or excluded!=spec['excluded_macro_fields']:raise RuntimeError('P0_RECIPE_FIELD_PARITY')
+        if lgb.__version__!='4.6.0':raise RuntimeError('P0_TREE_LIBRARY_VERSION')
         F={n:ft[n].to_numpy() for n in preparation['layers']['F']['fields']};L={n:lev[n].to_numpy() for n in preparation['layers']['L']['fields']}
         common=ft['ofi_valid'].to_numpy()&ft['bbo_valid'].to_numpy()&lev['rolling15_valid'].to_numpy()
         common &= np.isfinite(np.column_stack(list(F.values())+list(L.values()))).all(axis=1)
