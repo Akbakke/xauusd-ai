@@ -11,6 +11,7 @@ import torch
 import torch.nn as nn
 from torch.utils.checkpoint import checkpoint as _torch_checkpoint
 
+from gx1.features import gc_native_context_v1 as _gc_context
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -1727,7 +1728,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             torch.asinh(affine),
         ).to(dtype=raw_float.dtype)
         _assert_finite(f"normalized.{surface}", normalized)
-        return normalized
+        return _gc_context.mask_normalized_torch(raw_float, normalized, field_names)
 
     def _effective_tf_input_scale(self, suffix: str) -> torch.Tensor:
         raw = getattr(self, f"tf_input_scale_{suffix}")

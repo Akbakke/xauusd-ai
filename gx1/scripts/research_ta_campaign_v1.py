@@ -3116,8 +3116,25 @@ def parse_cot_gold_archives(spec: dict, contract_market_code: str | None = None)
     frame["cot_commercial_net_over_oi"] = (frame["comm_long"] - frame["comm_short"]) / oi
     frame["cot_change4reports"] = frame["cot_noncommercial_net_over_oi"].diff(4)
     frame["cot_open_interest_log_change4reports"] = np.log(oi).diff(4)
-    # Availability: declared lag after the as-of Tuesday (release Friday 15:30 ET, holiday-safe).
+    # The old universal "holiday-safe" claim was false for the2025 shutdown.
+    # Preserve the declared conservative lag, adding the bound official clock.
+
     frame["available_at"] = frame["as_of"] + pd.Timedelta(days=int(cot["availability_lag_days"]))
+    if "publication_clock" in cot:
+        binding = cot['publication_clock']
+        path = Path(__file__).resolve().parents[2] / binding['path']
+        if sha(path) != binding['sha256']:
+            raise RuntimeError('COT_PUBLICATION_CLOCK_HASH')
+        calendar = json.loads(path.read_text())
+        if calendar['schema_version'] != 'gx1_cftc_cot_delayed_publication_clock_v1':
+            raise RuntimeError('COT_PUBLICATION_CLOCK_SCHEMA')
+        for row in calendar['rows']:
+            take = frame['as_of'] == pd.Timestamp(row['as_of'], tz='UTC')
+            publication_day_end = (pd.Timestamp(row['publication_date_ny']) + pd.Timedelta(days=1)).tz_localize('America/New_York').tz_convert('UTC')
+            frame.loc[take, 'available_at'] = frame.loc[take, 'available_at'].where(
+                frame.loc[take, 'available_at'] >= publication_day_end, publication_day_end)
+        if not frame['available_at'].is_monotonic_increasing:
+            raise RuntimeError('COT_PUBLICATION_CLOCK_NONMONOTONIC')
     return frame
 
 

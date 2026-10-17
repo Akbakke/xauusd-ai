@@ -99,3 +99,15 @@ def test_batch_requires_every_horizon_key_exactly():
     bad[hz.DECISION_BATCH_TARGET_KEY] = torch.tensor([[1.0, -1.0, 0.5]], dtype=torch.float32)
     with pytest.raises(RuntimeError, match="h20d"):
         hz.require_entry_observed_market_horizon_batch(bad, device=torch.device("cpu"))
+
+
+def test_missing_exact_terminal_is_censored_instead_of_delayed():
+    m1 = _m1_sessions()
+    # This entry fills10:05; the matching next-day quote is deliberately absent,
+    # while10:10 remains. The previous implementation substituted that delay.
+    m1 = m1.loc[m1.time != pd.Timestamp('2026-01-09T10:05:00Z')]
+    surface = build_entry_m1_fill_surface(m5_decision_times=pd.DatetimeIndex(['2026-01-08T10:00:00Z']), closed_m1=m1)
+    result = hz.causal_m1_terminal_outcomes_at_trading_days(fill_surface=surface, closed_m1=m1, horizon_trading_days=1)
+    assert not result.outcome_valid.iloc[0]
+    assert pd.isna(result.exit_decision_at.iloc[0])
+    assert np.isnan(result.y_long_gross_at_1d_bps.iloc[0])

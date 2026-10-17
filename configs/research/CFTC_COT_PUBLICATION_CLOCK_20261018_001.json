@@ -1,0 +1,65 @@
+{
+  "schema_version": "gx1_cftc_cot_delayed_publication_clock_v1",
+  "sources": [
+    "https://www.cftc.gov/PressRoom/PressReleases/9147-25",
+    "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm"
+  ],
+  "checked_utc": "2026-10-17T22:36:19.521180+00:00",
+  "source_method": "Publication-date facts transcribed from the currently retrieved official CFTC revised9December2025 table; the earlier18November schedule was superseded. No position values fetched.",
+  "scope": "Correct known delayed publications affecting May2024\u2013June2026 native inputs; no complete historical vintage qualification claim.",
+  "rows": [
+    {
+      "as_of": "2025-09-30",
+      "publication_date_ny": "2025-11-19"
+    },
+    {
+      "as_of": "2025-10-07",
+      "publication_date_ny": "2025-11-21"
+    },
+    {
+      "as_of": "2025-10-14",
+      "publication_date_ny": "2025-11-25"
+    },
+    {
+      "as_of": "2025-10-21",
+      "publication_date_ny": "2025-12-02"
+    },
+    {
+      "as_of": "2025-10-28",
+      "publication_date_ny": "2025-12-05"
+    },
+    {
+      "as_of": "2025-11-04",
+      "publication_date_ny": "2025-12-09"
+    },
+    {
+      "as_of": "2025-11-10",
+      "publication_date_ny": "2025-12-10"
+    },
+    {
+      "as_of": "2025-11-18",
+      "publication_date_ny": "2025-12-12"
+    },
+    {
+      "as_of": "2025-11-25",
+      "publication_date_ny": "2025-12-15"
+    },
+    {
+      "as_of": "2025-12-02",
+      "publication_date_ny": "2025-12-17"
+    },
+    {
+      "as_of": "2025-12-09",
+      "publication_date_ny": "2025-12-19"
+    },
+    {
+      "as_of": "2025-12-16",
+      "publication_date_ny": "2025-12-23"
+    },
+    {
+      "as_of": "2025-12-23",
+      "publication_date_ny": "2025-12-29"
+    }
+  ],
+  "availability": "Strictly after max(existing declared as_of+7days, end of the official publication DATE in America/New_York). Date-level metadata does not invent an exact intraday publication timestamp."
+}

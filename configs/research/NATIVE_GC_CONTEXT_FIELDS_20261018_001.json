@@ -1,0 +1,3046 @@
+{
+  "schema_version": "gx1_native_gc_context_registry_v1",
+  "tables": {
+    "M5_GC_FEATURES.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/M5_GC_FEATURES.parquet",
+      "bytes": 24065966,
+      "sha256": "fd3a90b9f813a9386a297bb32682f4d8b1f5c79d52a6df0ec14a16224f626680"
+    },
+    "TRADE_FEATURES_M5.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TRADE_FEATURES_M5.parquet",
+      "bytes": 8238924,
+      "sha256": "4a0e75b8e27458f252486465c1d16f0f53520e34a682599c67e1473920517775"
+    },
+    "TRADE_FEATURES_M15.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TRADE_FEATURES_M15.parquet",
+      "bytes": 2459497,
+      "sha256": "862c6b70318e16ed79f863e067b8bc105bcc276d723919defc4bf84b7a5f8826"
+    },
+    "TRADE_FEATURES_H1.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TRADE_FEATURES_H1.parquet",
+      "bytes": 423083,
+      "sha256": "b11e378befd1286fb8dbffad1247a16a8ec1ce637051e856b26863fc46abac15"
+    },
+    "TRADE_FEATURES_H4.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TRADE_FEATURES_H4.parquet",
+      "bytes": 93922,
+      "sha256": "ba909eda1479d22eecf002e025c786d3551ae1e7c28538031cd026d003804062"
+    },
+    "TRADE_FEATURES_D1.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TRADE_FEATURES_D1.parquet",
+      "bytes": 25466,
+      "sha256": "28bc31f98f07b78feb8c5cdfff70aec902f7509a0a22e2feaac8ff531e519ab9"
+    },
+    "BASIS_M5.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SPOT_BASIS_20261018_005/BASIS_M5.parquet",
+      "sha256": "0410713758a24ed98c017b7413756ad993099b12a15802d87da56ff687ff4f78"
+    },
+    "BASIS_M15.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SPOT_BASIS_20261018_005/BASIS_M15.parquet",
+      "sha256": "4b35652928ed33c32ae83fcec145a94cf53ce38633261d8e1a000d7a5228da12"
+    },
+    "BASIS_H1.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SPOT_BASIS_20261018_005/BASIS_H1.parquet",
+      "sha256": "e45f14720b88536d8459288b287f1f4811085a14a68e5b7efe9c55590e05f8da"
+    },
+    "BASIS_H4.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SPOT_BASIS_20261018_005/BASIS_H4.parquet",
+      "sha256": "2b2da8ad3411e45f6c2a0fe023496147a5bca45bb76b009623c444cce7ffca8d"
+    },
+    "BASIS_D1.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SPOT_BASIS_20261018_005/BASIS_D1.parquet",
+      "sha256": "393478e6ef69e1da103141190f0c58fcec941a3bb4a4a7bff000d80eb47919cc"
+    }
+  },
+  "fields": [
+    {
+      "name": "gc_book_ofi_valid",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "ofi_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_ofi_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_bbo_valid",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "bbo_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_bbo_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_order_count_valid",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "order_count_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_order_count_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_vwap_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_vwap_usd",
+      "train_observed": 39990,
+      "train_missing": 135689,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_vwap_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_poc_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_poc_usd",
+      "train_observed": 39990,
+      "train_missing": 135689,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_val_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_val_usd",
+      "train_observed": 39990,
+      "train_missing": 135689,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_val_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_vah_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_vah_usd",
+      "train_observed": 39990,
+      "train_missing": 135689,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_vah_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_volume_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_volume_contracts",
+      "train_observed": 39990,
+      "train_missing": 135689,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_rolling15_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_valid",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_rolling15_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_vwap_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_vwap_usd",
+      "train_observed": 6086,
+      "train_missing": 169593,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_vwap_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_poc_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_poc_usd",
+      "train_observed": 6086,
+      "train_missing": 169593,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_val_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_val_usd",
+      "train_observed": 6086,
+      "train_missing": 169593,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_val_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_vah_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_vah_usd",
+      "train_observed": 6086,
+      "train_missing": 169593,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_vah_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_volume_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_volume_contracts",
+      "train_observed": 6086,
+      "train_missing": 169593,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_rolling60_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_valid",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_rolling60_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_vwap_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_vwap_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_vwap_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_poc_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_poc_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_val_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_val_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_val_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_vah_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_vah_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_vah_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_volume_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_volume_contracts",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_anchored_segment_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_valid",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "session_regime_encoder",
+      "availability_field": "gc_book_anchored_segment_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_session_observed_vwap_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "session_observed_vwap_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_session_observed_vwap_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_session_observed_poc_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "session_observed_poc_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_session_observed_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_session_observed_val_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "session_observed_val_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_session_observed_val_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_session_observed_vah_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "session_observed_vah_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_session_observed_vah_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_session_observed_volume_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "session_observed_volume_contracts",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_session_observed_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_session_observed_valid",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "session_observed_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "session_regime_encoder",
+      "availability_field": "gc_book_session_observed_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_session_complete_valid",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "session_complete_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "session_regime_encoder",
+      "availability_field": "gc_book_session_complete_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_session_accepted_minutes",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "session_accepted_minutes",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "session_regime_encoder",
+      "availability_field": "gc_book_session_accepted_minutes_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_session_expected_minutes",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "session_expected_minutes",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "session_regime_encoder",
+      "availability_field": "gc_book_session_expected_minutes_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_vwap_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_vwap_distance_ticks",
+      "train_observed": 39990,
+      "train_missing": 135689,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_vwap_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_vwap_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_vwap_prior_level_response_ticks",
+      "train_observed": 31095,
+      "train_missing": 144584,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_vwap_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_poc_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_poc_distance_ticks",
+      "train_observed": 39990,
+      "train_missing": 135689,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_poc_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_poc_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_poc_prior_level_response_ticks",
+      "train_observed": 31095,
+      "train_missing": 144584,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_poc_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_val_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_val_distance_ticks",
+      "train_observed": 39990,
+      "train_missing": 135689,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_val_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_val_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_val_prior_level_response_ticks",
+      "train_observed": 31095,
+      "train_missing": 144584,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_val_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_vah_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_vah_distance_ticks",
+      "train_observed": 39990,
+      "train_missing": 135689,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_vah_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling15_vah_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling15_vah_prior_level_response_ticks",
+      "train_observed": 31095,
+      "train_missing": 144584,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling15_vah_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_vwap_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_vwap_distance_ticks",
+      "train_observed": 6086,
+      "train_missing": 169593,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_vwap_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_vwap_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_vwap_prior_level_response_ticks",
+      "train_observed": 5046,
+      "train_missing": 170633,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_vwap_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_poc_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_poc_distance_ticks",
+      "train_observed": 6086,
+      "train_missing": 169593,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_poc_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_poc_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_poc_prior_level_response_ticks",
+      "train_observed": 5046,
+      "train_missing": 170633,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_poc_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_val_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_val_distance_ticks",
+      "train_observed": 6086,
+      "train_missing": 169593,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_val_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_val_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_val_prior_level_response_ticks",
+      "train_observed": 5046,
+      "train_missing": 170633,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_val_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_vah_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_vah_distance_ticks",
+      "train_observed": 6086,
+      "train_missing": 169593,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_vah_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_rolling60_vah_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "rolling60_vah_prior_level_response_ticks",
+      "train_observed": 5046,
+      "train_missing": 170633,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_rolling60_vah_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_vwap_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_vwap_distance_ticks",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_vwap_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_vwap_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_vwap_prior_level_response_ticks",
+      "train_observed": 53016,
+      "train_missing": 122663,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_vwap_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_poc_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_poc_distance_ticks",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_poc_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_poc_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_poc_prior_level_response_ticks",
+      "train_observed": 53016,
+      "train_missing": 122663,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_poc_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_val_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_val_distance_ticks",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_val_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_val_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_val_prior_level_response_ticks",
+      "train_observed": 53016,
+      "train_missing": 122663,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_val_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_vah_distance_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_vah_distance_ticks",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_vah_distance_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_anchored_segment_vah_prior_level_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "anchored_segment_vah_prior_level_response_ticks",
+      "train_observed": 53016,
+      "train_missing": 122663,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_anchored_segment_vah_prior_level_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_ofi_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "ofi_contracts",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_ofi_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_bid_refill_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "bid_refill_contracts",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_bid_refill_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_ask_refill_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "ask_refill_contracts",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_ask_refill_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_bid_depletion_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "bid_depletion_contracts",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_bid_depletion_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_ask_depletion_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "ask_depletion_contracts",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_book_ask_depletion_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_quote_updates",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "quote_updates",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_quote_updates_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_imbalance",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_imbalance",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_tw_imbalance_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_spread_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_spread_ticks",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "vol_compression_encoder",
+      "availability_field": "gc_book_tw_spread_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_bid_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_bid_contracts",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_tw_bid_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_ask_contracts",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_ask_contracts",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_tw_ask_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_microprice_offset_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_microprice_offset_ticks",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_tw_microprice_offset_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_mid_response_ticks",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "mid_response_ticks",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_mid_response_ticks_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_bid_orders",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_bid_orders",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_tw_bid_orders_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_ask_orders",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_ask_orders",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_tw_ask_orders_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_order_count_imbalance",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_order_count_imbalance",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_tw_order_count_imbalance_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_bid_contracts_per_order",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_bid_contracts_per_order",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_tw_bid_contracts_per_order_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_tw_ask_contracts_per_order",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "tw_ask_contracts_per_order",
+      "train_observed": 69752,
+      "train_missing": 105927,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_book_tw_ask_contracts_per_order_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_book_close_usd",
+      "table": "M5_GC_FEATURES.parquet",
+      "column": "close_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_book_close_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_volume_valid",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "volume_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_volume_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_signed_valid",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "signed_valid",
+      "train_observed": 175679,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_signed_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_volume",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "volume",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_volume_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_buy",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "buy",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_buy_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_sell",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "sell",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_sell_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_unknown",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "unknown",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_unknown_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_trades",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "trades",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_trades_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_open_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "open_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_m5_open_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_high_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "high_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_m5_high_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_low_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "low_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_m5_low_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_close_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "close_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_m5_close_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_vwap_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "vwap_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_vwap_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_poc_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "poc_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_q25_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "q25_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_q25_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_median_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "median_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_median_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_q75_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "q75_usd",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_q75_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_price_levels",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "price_levels",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_price_levels_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_max_level_delta_contracts",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "max_level_delta_contracts",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_max_level_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_min_level_delta_contracts",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "min_level_delta_contracts",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_min_level_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_buy_poc_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "buy_poc_usd",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_buy_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_sell_poc_usd",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "sell_poc_usd",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_sell_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_cvd_segment_delta_contracts",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "cvd_segment_delta_contracts",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_cvd_segment_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_cvd_segment_volume_contracts",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "cvd_segment_volume_contracts",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_cvd_segment_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_cvd_segment_minutes",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "cvd_segment_minutes",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_cvd_segment_minutes_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_delta_contracts",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "delta_contracts",
+      "train_observed": 15977,
+      "train_missing": 159702,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_known_aggressor_fraction",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "known_aggressor_fraction",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m5_known_aggressor_fraction_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_structure_available",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "structure_available",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_structure_available_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_bos_up",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "bos_up",
+      "train_observed": 8137,
+      "train_missing": 167542,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_bos_up_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_bos_down",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "bos_down",
+      "train_observed": 7921,
+      "train_missing": 167758,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_bos_down_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_sweep_up_event",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "sweep_up_event",
+      "train_observed": 8137,
+      "train_missing": 167542,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_sweep_up_event_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_sweep_down_event",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "sweep_down_event",
+      "train_observed": 7921,
+      "train_missing": 167758,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_sweep_down_event_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bull_active",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bull_active",
+      "train_observed": 8137,
+      "train_missing": 167542,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bull_active_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bull_created",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bull_created",
+      "train_observed": 8137,
+      "train_missing": 167542,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bull_created_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bull_first_retouch",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bull_first_retouch",
+      "train_observed": 8137,
+      "train_missing": 167542,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bull_first_retouch_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bull_low",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bull_low",
+      "train_observed": 1552,
+      "train_missing": 174127,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bull_low_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bull_high",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bull_high",
+      "train_observed": 1552,
+      "train_missing": 174127,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bull_high_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bull_age_bars",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bull_age_bars",
+      "train_observed": 1552,
+      "train_missing": 174127,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bull_age_bars_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bull_origin_volume_contracts",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bull_origin_volume_contracts",
+      "train_observed": 1552,
+      "train_missing": 174127,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bull_origin_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bear_active",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bear_active",
+      "train_observed": 7921,
+      "train_missing": 167758,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bear_active_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bear_created",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bear_created",
+      "train_observed": 7921,
+      "train_missing": 167758,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bear_created_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bear_first_retouch",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bear_first_retouch",
+      "train_observed": 7921,
+      "train_missing": 167758,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bear_first_retouch_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bear_low",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bear_low",
+      "train_observed": 1112,
+      "train_missing": 174567,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bear_low_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bear_high",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bear_high",
+      "train_observed": 1112,
+      "train_missing": 174567,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bear_high_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bear_age_bars",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bear_age_bars",
+      "train_observed": 1112,
+      "train_missing": 174567,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bear_age_bars_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bear_origin_volume_contracts",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bear_origin_volume_contracts",
+      "train_observed": 1112,
+      "train_missing": 174567,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bear_origin_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bull_input_valid",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bull_input_valid",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bull_input_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m5_ob_bear_input_valid",
+      "table": "TRADE_FEATURES_M5.parquet",
+      "column": "ob_bear_input_valid",
+      "train_observed": 74058,
+      "train_missing": 101621,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m5_ob_bear_input_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_volume_valid",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "volume_valid",
+      "train_observed": 58559,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_volume_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_signed_valid",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "signed_valid",
+      "train_observed": 58559,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_signed_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_volume",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "volume",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_volume_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_buy",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "buy",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_buy_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_sell",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "sell",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_sell_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_unknown",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "unknown",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_unknown_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_trades",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "trades",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_trades_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_open_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "open_usd",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_m15_open_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_high_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "high_usd",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_m15_high_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_low_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "low_usd",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_m15_low_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_close_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "close_usd",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_m15_close_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_vwap_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "vwap_usd",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_vwap_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_poc_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "poc_usd",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_q25_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "q25_usd",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_q25_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_median_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "median_usd",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_median_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_q75_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "q75_usd",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_q75_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_price_levels",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "price_levels",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_price_levels_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_max_level_delta_contracts",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "max_level_delta_contracts",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_max_level_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_min_level_delta_contracts",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "min_level_delta_contracts",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_min_level_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_buy_poc_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "buy_poc_usd",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_buy_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_sell_poc_usd",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "sell_poc_usd",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_sell_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_cvd_segment_delta_contracts",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "cvd_segment_delta_contracts",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_cvd_segment_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_cvd_segment_volume_contracts",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "cvd_segment_volume_contracts",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_cvd_segment_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_cvd_segment_minutes",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "cvd_segment_minutes",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_cvd_segment_minutes_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_delta_contracts",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "delta_contracts",
+      "train_observed": 833,
+      "train_missing": 57726,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_known_aggressor_fraction",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "known_aggressor_fraction",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_m15_known_aggressor_fraction_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_bos_up",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "bos_up",
+      "train_observed": 126,
+      "train_missing": 58433,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_bos_up_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_bos_down",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "bos_down",
+      "train_observed": 138,
+      "train_missing": 58421,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_bos_down_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_sweep_up_event",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "sweep_up_event",
+      "train_observed": 126,
+      "train_missing": 58433,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_sweep_up_event_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_sweep_down_event",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "sweep_down_event",
+      "train_observed": 138,
+      "train_missing": 58421,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_sweep_down_event_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bull_active",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bull_active",
+      "train_observed": 126,
+      "train_missing": 58433,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bull_active_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bull_created",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bull_created",
+      "train_observed": 126,
+      "train_missing": 58433,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bull_created_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bull_first_retouch",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bull_first_retouch",
+      "train_observed": 126,
+      "train_missing": 58433,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bull_first_retouch_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bull_low",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bull_low",
+      "train_observed": 19,
+      "train_missing": 58540,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bull_low_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bull_high",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bull_high",
+      "train_observed": 19,
+      "train_missing": 58540,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bull_high_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bull_age_bars",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bull_age_bars",
+      "train_observed": 19,
+      "train_missing": 58540,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bull_age_bars_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bull_origin_volume_contracts",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bull_origin_volume_contracts",
+      "train_observed": 19,
+      "train_missing": 58540,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bull_origin_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bear_active",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bear_active",
+      "train_observed": 138,
+      "train_missing": 58421,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bear_active_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bear_created",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bear_created",
+      "train_observed": 138,
+      "train_missing": 58421,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bear_created_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bear_first_retouch",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bear_first_retouch",
+      "train_observed": 138,
+      "train_missing": 58421,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bear_first_retouch_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_m15_ob_bear_low",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bear_low",
+      "train_observed": 4,
+      "train_missing": 58555,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bear_low_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bear_high",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bear_high",
+      "train_observed": 4,
+      "train_missing": 58555,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bear_high_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bear_age_bars",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bear_age_bars",
+      "train_observed": 4,
+      "train_missing": 58555,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bear_age_bars_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_m15_ob_bear_origin_volume_contracts",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bear_origin_volume_contracts",
+      "train_observed": 4,
+      "train_missing": 58555,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bear_origin_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bull_input_valid",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bull_input_valid",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bull_input_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_ob_bear_input_valid",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "ob_bear_input_valid",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_m15_ob_bear_input_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_volume_valid",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "volume_valid",
+      "train_observed": 14639,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_volume_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_signed_valid",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "signed_valid",
+      "train_observed": 14639,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_signed_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_volume",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "volume",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_volume_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_buy",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "buy",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_buy_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_sell",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "sell",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_sell_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_unknown",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "unknown",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_unknown_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_trades",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "trades",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_trades_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_open_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "open_usd",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_h1_open_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_high_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "high_usd",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_h1_high_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_low_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "low_usd",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_h1_low_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_close_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "close_usd",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_h1_close_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_vwap_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "vwap_usd",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h1_vwap_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_poc_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "poc_usd",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h1_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_q25_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "q25_usd",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h1_q25_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_median_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "median_usd",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h1_median_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_q75_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "q75_usd",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h1_q75_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_price_levels",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "price_levels",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h1_price_levels_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_max_level_delta_contracts",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "max_level_delta_contracts",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_max_level_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_min_level_delta_contracts",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "min_level_delta_contracts",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_min_level_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_buy_poc_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "buy_poc_usd",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h1_buy_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_sell_poc_usd",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "sell_poc_usd",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h1_sell_poc_usd_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_cvd_segment_delta_contracts",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "cvd_segment_delta_contracts",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_cvd_segment_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_cvd_segment_volume_contracts",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "cvd_segment_volume_contracts",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_cvd_segment_volume_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_cvd_segment_minutes",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "cvd_segment_minutes",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_cvd_segment_minutes_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_delta_contracts",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "delta_contracts",
+      "train_observed": 3,
+      "train_missing": 14636,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_delta_contracts_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_known_aggressor_fraction",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "known_aggressor_fraction",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h1_known_aggressor_fraction_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h4_volume_valid",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "volume_valid",
+      "train_observed": 3660,
+      "train_missing": 0,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h4_volume_valid_observed",
+      "train_constant": false
+    },
+    {
+      "name": "gc_h4_volume",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "volume",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h4_volume_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_unknown",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "unknown",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h4_unknown_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_trades",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "trades",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h4_trades_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_open_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "open_usd",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_h4_open_usd_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_high_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "high_usd",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_h4_high_usd_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_low_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "low_usd",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_h4_low_usd_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_close_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "close_usd",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "price_action_candle_encoder",
+      "availability_field": "gc_h4_close_usd_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_vwap_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "vwap_usd",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h4_vwap_usd_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_poc_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "poc_usd",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h4_poc_usd_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_q25_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "q25_usd",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h4_q25_usd_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_median_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "median_usd",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h4_median_usd_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_q75_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "q75_usd",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h4_q75_usd_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_price_levels",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "price_levels",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "smc_liquidity_encoder",
+      "availability_field": "gc_h4_price_levels_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_h4_known_aggressor_fraction",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "known_aggressor_fraction",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "owner": "momentum_flow_encoder",
+      "availability_field": "gc_h4_known_aggressor_fraction_observed",
+      "train_constant": true
+    },
+    {
+      "name": "gc_m5_spot_basis_bps",
+      "availability_field": "gc_m5_spot_basis_bps_observed",
+      "table": "BASIS_M5.parquet",
+      "column": "spot_basis_bps",
+      "owner": "momentum_flow_encoder",
+      "train_observed": 74040,
+      "train_missing": 101639,
+      "train_constant": false
+    },
+    {
+      "name": "gc_m15_spot_basis_bps",
+      "availability_field": "gc_m15_spot_basis_bps_observed",
+      "table": "BASIS_M15.parquet",
+      "column": "spot_basis_bps",
+      "owner": "momentum_flow_encoder",
+      "train_observed": 13552,
+      "train_missing": 45007,
+      "train_constant": false
+    },
+    {
+      "name": "gc_h1_spot_basis_bps",
+      "availability_field": "gc_h1_spot_basis_bps_observed",
+      "table": "BASIS_H1.parquet",
+      "column": "spot_basis_bps",
+      "owner": "momentum_flow_encoder",
+      "train_observed": 603,
+      "train_missing": 14036,
+      "train_constant": false
+    },
+    {
+      "name": "gc_h4_spot_basis_bps",
+      "availability_field": "gc_h4_spot_basis_bps_observed",
+      "table": "BASIS_H4.parquet",
+      "column": "spot_basis_bps",
+      "owner": "momentum_flow_encoder",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "train_constant": true
+    }
+  ],
+  "unsupported": [
+    {
+      "name": "gc_m15_structure_available",
+      "table": "TRADE_FEATURES_M15.parquet",
+      "column": "structure_available",
+      "train_observed": 13561,
+      "train_missing": 44998,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_h1_structure_available",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "structure_available",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_h1_bos_up",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "bos_up",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_bos_down",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "bos_down",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_sweep_up_event",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "sweep_up_event",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_sweep_down_event",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "sweep_down_event",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bull_active",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bull_active",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bull_created",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bull_created",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bull_first_retouch",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bull_first_retouch",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bull_low",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bull_low",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bull_high",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bull_high",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bull_age_bars",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bull_age_bars",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bull_origin_volume_contracts",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bull_origin_volume_contracts",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bear_active",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bear_active",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bear_created",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bear_created",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bear_first_retouch",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bear_first_retouch",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bear_low",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bear_low",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bear_high",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bear_high",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bear_age_bars",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bear_age_bars",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bear_origin_volume_contracts",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bear_origin_volume_contracts",
+      "train_observed": 0,
+      "train_missing": 14639,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h1_ob_bull_input_valid",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bull_input_valid",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_h1_ob_bear_input_valid",
+      "table": "TRADE_FEATURES_H1.parquet",
+      "column": "ob_bear_input_valid",
+      "train_observed": 607,
+      "train_missing": 14032,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_h4_signed_valid",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "signed_valid",
+      "train_observed": 3660,
+      "train_missing": 0,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_h4_buy",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "buy",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_sell",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "sell",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_max_level_delta_contracts",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "max_level_delta_contracts",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_min_level_delta_contracts",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "min_level_delta_contracts",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_buy_poc_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "buy_poc_usd",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_sell_poc_usd",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "sell_poc_usd",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_cvd_segment_delta_contracts",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "cvd_segment_delta_contracts",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_cvd_segment_volume_contracts",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "cvd_segment_volume_contracts",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_cvd_segment_minutes",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "cvd_segment_minutes",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_delta_contracts",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "delta_contracts",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_structure_available",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "structure_available",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_h4_bos_up",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "bos_up",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_bos_down",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "bos_down",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_sweep_up_event",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "sweep_up_event",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_sweep_down_event",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "sweep_down_event",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bull_active",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bull_active",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bull_created",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bull_created",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bull_first_retouch",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bull_first_retouch",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bull_low",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bull_low",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bull_high",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bull_high",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bull_age_bars",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bull_age_bars",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bull_origin_volume_contracts",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bull_origin_volume_contracts",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bear_active",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bear_active",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bear_created",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bear_created",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bear_first_retouch",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bear_first_retouch",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bear_low",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bear_low",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bear_high",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bear_high",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bear_age_bars",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bear_age_bars",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bear_origin_volume_contracts",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bear_origin_volume_contracts",
+      "train_observed": 0,
+      "train_missing": 3660,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_h4_ob_bull_input_valid",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bull_input_valid",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_h4_ob_bear_input_valid",
+      "table": "TRADE_FEATURES_H4.parquet",
+      "column": "ob_bear_input_valid",
+      "train_observed": 1,
+      "train_missing": 3659,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_d1_volume_valid",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "volume_valid",
+      "train_observed": 610,
+      "train_missing": 0,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_d1_signed_valid",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "signed_valid",
+      "train_observed": 610,
+      "train_missing": 0,
+      "reason": "SOURCE_AVAILABILITY_ALWAYS_FALSE_IN_TRAIN"
+    },
+    {
+      "name": "gc_d1_volume",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "volume",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_buy",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "buy",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_sell",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "sell",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_unknown",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "unknown",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_trades",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "trades",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_open_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "open_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_high_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "high_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_low_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "low_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_close_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "close_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_vwap_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "vwap_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_poc_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "poc_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_q25_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "q25_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_median_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "median_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_q75_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "q75_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_price_levels",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "price_levels",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_max_level_delta_contracts",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "max_level_delta_contracts",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_min_level_delta_contracts",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "min_level_delta_contracts",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_buy_poc_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "buy_poc_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_sell_poc_usd",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "sell_poc_usd",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_cvd_segment_delta_contracts",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "cvd_segment_delta_contracts",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_cvd_segment_volume_contracts",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "cvd_segment_volume_contracts",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_cvd_segment_minutes",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "cvd_segment_minutes",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_delta_contracts",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "delta_contracts",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_known_aggressor_fraction",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "known_aggressor_fraction",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_structure_available",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "structure_available",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_bos_up",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "bos_up",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_bos_down",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "bos_down",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_sweep_up_event",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "sweep_up_event",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_sweep_down_event",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "sweep_down_event",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bull_active",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bull_active",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bull_created",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bull_created",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bull_first_retouch",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bull_first_retouch",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bull_low",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bull_low",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bull_high",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bull_high",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bull_age_bars",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bull_age_bars",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bull_origin_volume_contracts",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bull_origin_volume_contracts",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bear_active",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bear_active",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bear_created",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bear_created",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bear_first_retouch",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bear_first_retouch",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bear_low",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bear_low",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bear_high",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bear_high",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bear_age_bars",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bear_age_bars",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bear_origin_volume_contracts",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bear_origin_volume_contracts",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bull_input_valid",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bull_input_valid",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_ob_bear_input_valid",
+      "table": "TRADE_FEATURES_D1.parquet",
+      "column": "ob_bear_input_valid",
+      "train_observed": 0,
+      "train_missing": 610,
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    },
+    {
+      "name": "gc_d1_spot_basis_bps",
+      "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+    }
+  ],
+  "train_window": [
+    "2024-05-01T00:00:00Z",
+    "2026-01-01T00:00:00Z"
+  ],
+  "outcomes_accessed": false,
+  "selection_rule": "Every genuine observed TRAIN feature; no score/target/VAL selection",
+  "masked_storage": "value=0 only when observed=0; model must hard-mask after normalization; absence never claims zero flow",
+  "fit_rule": "Fit each numeric field on every observed physical TRAIN row; observed mask is a declared structural binary",
+  "raw_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TERMINAL.json",
+    "sha256": "321769202aef3fe3aa117b41d85f0609f338368587dafc9bf30f0f70618c53f8"
+  },
+  "exact_duplicate_aliases": [
+    {
+      "removed": "gc_book_volume",
+      "canonical": "gc_m5_volume",
+      "bit_equal_full_clock": true
+    },
+    {
+      "removed": "gc_book_trades",
+      "canonical": "gc_m5_trades",
+      "bit_equal_full_clock": true
+    },
+    {
+      "removed": "gc_book_buy",
+      "canonical": "gc_m5_buy",
+      "bit_equal_full_clock": true
+    },
+    {
+      "removed": "gc_book_sell",
+      "canonical": "gc_m5_sell",
+      "bit_equal_full_clock": true
+    },
+    {
+      "removed": "gc_book_unknown",
+      "canonical": "gc_m5_unknown",
+      "bit_equal_full_clock": true
+    },
+    {
+      "removed": "gc_book_volume_valid",
+      "canonical": "gc_m5_volume_valid",
+      "bit_equal_full_clock": true
+    },
+    {
+      "removed": "gc_book_signed_valid",
+      "canonical": "gc_m5_signed_valid",
+      "bit_equal_full_clock": true
+    }
+  ],
+  "duplicate_evidence": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FEATURE_ADMISSION_20261018_004/DEDUPLICATION_RESULT.json",
+    "sha256": "cdc1e34c4143c5fc8ba2210873759b4a62bc39122be9afd490af969f6e81c297"
+  },
+  "basis_evidence": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SPOT_BASIS_20261018_005/RESULT.json",
+    "sha256": "9e533822a3bb93c56c7a978cfaacb06db1f6a29229defd5d37b96dfb83650eda"
+  },
+  "basis_xau_sources": [
+    {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/MANIFEST.json",
+      "sha256": "61bcf169a4dcdfaf09fee981ce511fbeaf9efdb88b8a1b338ea7796e50b133b2"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2024/part-000.parquet",
+      "sha256": "2776a1cb17b915d506eaf0d7ed5323ba975e0d0d1c52c0c02d2da20589d1c41a"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2025/part-000.parquet",
+      "sha256": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc"
+    },
+    {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_20260927/year=2026/part-000.parquet",
+      "sha256": "52eecadc8b9ff4a4522ca5003656a91e6250f7accbacdfd73587ba14b375ec1a"
+    }
+  ]
+}

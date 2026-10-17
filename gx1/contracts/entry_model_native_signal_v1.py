@@ -157,11 +157,11 @@ from gx1.features.smc_v1 import smc_primitive_contract_metadata
 # No fixed sweep trading policy or previously trained weight is promoted.
 # v39 (2026-10-11): the ninth context family (61 D1 macro/positioning fields) is exposed
 # to the local sequence/snapshot path like every other continuous context field.
-MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v39"
+MODEL_NATIVE_SIGNAL_SCHEMA_VERSION = "entry_model_native_signal_v40"
 MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION = (
-    "entry_model_native_seq513_split_manifest_v20"
+    "entry_model_native_seq513_split_manifest_v21"
 )
-MODEL_NATIVE_CONTRACT_MODE = "xau_seq513_model_native_direction_v20"
+MODEL_NATIVE_CONTRACT_MODE = "xau_seq513_model_native_direction_v21"
 RETIRED_NEUTRAL_BRIDGE_CONTRACT_MODE = "smart_seq520_candidate"
 MODEL_NATIVE_DIRECTION_LOGIT_MODE = "model_native"
 # The model-native contract owns these fields directly. No decision authority
@@ -595,6 +595,10 @@ MODEL_NATIVE_CTX_CONT_REGIME_FIELDS = (
 # the M5 decision time by gx1.features.d1_macro_context_v1; one owner, one order.
 from gx1.features.d1_macro_context_v1 import D1_MACRO_CONTEXT_FIELDS as _D1_MACRO_CONTEXT_FIELDS  # noqa: E402
 MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS = tuple(_D1_MACRO_CONTEXT_FIELDS)
+from gx1.features.gc_native_context_v1 import (
+    CONTEXT_FIELDS as MODEL_NATIVE_CTX_CONT_GC_FIELDS,
+    contract as gc_native_context_contract,
+)  # noqa: E402
 MODEL_NATIVE_CTX_CONT_FIELDS = (
     MODEL_NATIVE_CTX_CONT_V1_PREFIX_FIELDS
     + MODEL_NATIVE_CTX_CONT_V2_EXTENSION_FIELDS
@@ -602,6 +606,7 @@ MODEL_NATIVE_CTX_CONT_FIELDS = (
     + MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS
     + MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
     + MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS
+    + MODEL_NATIVE_CTX_CONT_GC_FIELDS
 )
 MODEL_NATIVE_CTX_CONT_INDEX_BY_NAME = {
     name: index for index, name in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS)
@@ -736,7 +741,7 @@ MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS_SHA256 = _sha256_json(
 )
 # v11 (2026-08-18, V30 wave 2): 17 ctx_cont names retired, 5 added, 4 renamed.
 # v13 (2026-10-11): ninth context family (61 D1 macro/positioning fields) appended.
-MODEL_NATIVE_CONTEXT_SCHEMA_VERSION = "entry_model_native_context_v13"
+MODEL_NATIVE_CONTEXT_SCHEMA_VERSION = "entry_model_native_context_v14"
 MODEL_NATIVE_CONTEXT_TAG = (
     f"CTX{MODEL_NATIVE_CTX_CONT_DIM}CAT{MODEL_NATIVE_CTX_CAT_DIM}"
 )
@@ -770,6 +775,8 @@ def model_native_context_contract_metadata() -> dict[str, Any]:
         "ctx_cont_swing_features": list(MODEL_NATIVE_CTX_CONT_SWING_FIELDS),
         "ctx_cont_session_features": list(MODEL_NATIVE_CTX_CONT_SESSION_FIELDS),
         "ctx_cont_d1_macro_features": list(MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS),
+        "ctx_cont_gc_features": list(MODEL_NATIVE_CTX_CONT_GC_FIELDS),
+        "gc_native_context": gc_native_context_contract(),
         "retired_handcrafted_ctx_cont_fields": list(
             RETIRED_HANDCRAFTED_CTX_CONT_FIELDS
         ),

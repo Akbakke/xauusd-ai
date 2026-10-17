@@ -1000,6 +1000,7 @@ def _utc_now_iso() -> str:
     return datetime.utcnow().isoformat() + "Z"
 
 
+from gx1.features import gc_native_context_v1 as _gc_context
 from gx1.features import d1_macro_context_v1 as _d1ctx  # noqa: E402
 from gx1.contracts import entry_observed_market_horizons_v1 as _hz  # noqa: E402
 
@@ -4014,6 +4015,17 @@ def build_dataset_canonical(
     # as-of to each M5 decision time by its owner; part of the causal warmup trim below.
     _d1_decisions = pd.DatetimeIndex(pd.to_datetime(merged3["time"], utc=True)) + pd.Timedelta(minutes=5)
     _d1_frame = _d1ctx.build_d1_macro_context(_d1_decisions, d1_macro_context["components"])
+    _gc_frame = _gc_context.build_context(_d1_decisions)
+    _gc_present = [name for name in _gc_context.CONTEXT_FIELDS if name in merged3.columns]
+    if _gc_present and len(_gc_present) != len(_gc_context.CONTEXT_FIELDS):
+        raise RuntimeError('NATIVE_GC_CONTEXT_PARTIAL_SOURCE')
+    for _name in _gc_context.CONTEXT_FIELDS:
+        _values = _gc_frame[_name].to_numpy(np.float32)
+        if _gc_present and not np.array_equal(merged3[_name].to_numpy(np.float32), _values):
+            raise RuntimeError('NATIVE_GC_CONTEXT_PARITY:' + _name)
+        if not _gc_present:
+            merged3[_name] = _values
+    del _gc_frame
     _d1_present = [name for name in _d1ctx.D1_MACRO_CONTEXT_FIELDS if name in merged3.columns]
     if _d1_present and len(_d1_present) != _d1ctx.D1_MACRO_CONTEXT_DIM:
         raise RuntimeError(f"D1_MACRO_CONTEXT_PARTIAL_SOURCE: {len(_d1_present)} of {_d1ctx.D1_MACRO_CONTEXT_DIM}")
@@ -5078,6 +5090,7 @@ def build_dataset_canonical(
         "causal_group_a_warmup_rows": int(_causal_group_a_warmup_rows),
         "group_a_checkpoint": _group_a_checkpoint_meta,
         "d1_macro_context": _d1_macro_context_meta,
+        "gc_native_context": _gc_context.contract(),
         "observed_market_horizons": {
             "contract": _hz.entry_observed_market_horizons_contract(),
             "label_columns": list(TRADING_DAY_HORIZON_LABEL_COLUMNS),

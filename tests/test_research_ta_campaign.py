@@ -1559,3 +1559,19 @@ def test_forward_journal_scores_each_month_once_and_resolves_later(tmp_path, mon
     second = ta.run_swing_forward_journal(spec, sp)
     assert second["scored"] == [] and second["skipped_already_scored"] == ["2026-06", "2026-07"]
     assert len(list((tmp_path / "journal").glob("JOURNAL_2026-06.json"))) == 1
+
+
+def test_cot_delayed_publication_does_not_use_future_shutdown_reports(tmp_path):
+    rows = [{"as_of": day, "code": "088691", "oi": 100, "ncl": 60, "ncs": 20,
+             "ncsp": 5, "cl": 10, "cs": 50} for day in ['2025-09-23', '2025-09-30', '2025-12-09', '2025-12-16']]
+    cot = _swing_cot_zip(tmp_path, rows)
+    calendar = Path(__file__).resolve().parents[1] / 'configs/research/CFTC_COT_PUBLICATION_CLOCK_20261018_001.json'
+    cot['publication_clock'] = {'path': str(calendar), 'sha256': ta.sha(calendar)}
+    result = ta.parse_cot_gold_archives({'cot': cot, 'test_seal_utc': '2026-07-01T00:00:00Z'})
+    assert result.available_at.iloc[0] == pd.Timestamp('2025-09-30T00:00:00Z')
+    assert result.available_at.iloc[1] == pd.Timestamp('2025-11-20T05:00:00Z')
+    assert result.available_at.iloc[2] == pd.Timestamp('2025-12-20T05:00:00Z')
+    assert result.available_at.iloc[3] == pd.Timestamp('2025-12-24T05:00:00Z')
+    cot['publication_clock']['sha256'] = '0' * 64
+    with pytest.raises(RuntimeError, match='PUBLICATION_CLOCK_HASH'):
+        ta.parse_cot_gold_archives({'cot': cot, 'test_seal_utc': '2026-07-01T00:00:00Z'})

@@ -10,9 +10,9 @@ limits.
 Trading days are sessions on the one UTC session clock (boundary 22:00 UTC).
 A horizon of ``h`` trading days ends in the session that is ``h`` observed
 sessions after the entry session; sessions without any M1 bar (weekends,
-holidays, source absence) are skipped, never counted. The exit is the first
-closed M1 bar in that session at or after the entry's offset into its own
-session; a row whose target session or offset has no such bar is censored
+holidays, source absence) are skipped, never counted. The exit is the exact
+M1 quote at the same offset in the target observed session; a delayed quote
+is not substituted. A row whose exact terminal quote is absent is censored
 and excluded by the label owner, never filled.
 
 Costs reuse the v1 economics owner: the round trip is charged once and
@@ -42,7 +42,7 @@ from gx1.time.session_detector import (
     TRADING_SESSION_BOUNDARY_OFFSET, TRADING_SESSION_CLOCK_SCHEMA_VERSION, TRADING_SESSION_DURATION,
 )
 
-SCHEMA_VERSION = "gx1_entry_observed_market_horizons_v1"
+SCHEMA_VERSION = "gx1_entry_observed_market_horizons_v2"
 OBSERVATION_HORIZONS_TRADING_DAYS = (1, 5, 20)
 DECISION_HORIZON_TRADING_DAYS = 20
 GROSS_TARGET_COLUMNS_BY_HORIZON = {
@@ -127,7 +127,9 @@ def entry_observed_market_horizons_contract() -> dict[str, Any]:
         "observation_horizons_trading_days": list(OBSERVATION_HORIZONS_TRADING_DAYS),
         "decision_horizon_trading_days": DECISION_HORIZON_TRADING_DAYS,
         "horizon_rule": "h observed sessions after the entry session; sessions without M1 bars are skipped, never counted",
-        "exit_rule": "first closed M1 bar in the target session at or after the entry's offset into its own session; otherwise censored",
+        "exit_rule": "exact M1 quote at the same offset in the target observed UTC session; absent or delayed terminal is censored",
+        "historical_exchange_calendar_qualified": False,
+        "calendar_semantics": "existing observed UTC22 session clock retained; no current NY-hours template backdated as historical truth",
         "elapsed_source": "actual wall-clock seconds from the entry decision to the exit bar (financing)",
         "gross_target_columns": {str(h): list(c) for h, c in GROSS_TARGET_COLUMNS_BY_HORIZON.items()},
         "elapsed_columns": {str(h): c for h, c in ELAPSED_COLUMN_BY_HORIZON.items()},
@@ -192,6 +194,9 @@ def causal_m1_terminal_outcomes_at_trading_days(
         same_session = np.zeros(len(positions), dtype=bool)
         same_session[ok] = m1_session[exit_candidate[ok]] == sessions[target_pos[ok]]
         ok &= same_session
+        exact = np.zeros(len(positions), dtype=bool)
+        exact[ok] = m1_times.asi8[exit_candidate[ok]] == candidate_ns[ok]
+        ok &= exact
         exit_row[positions[ok]] = exit_candidate[ok]
         valid[positions[~ok]] = False
     exit_bid = np.full(size, np.nan)

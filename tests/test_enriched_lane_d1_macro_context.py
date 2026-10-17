@@ -10,7 +10,7 @@ from tests.test_d1_macro_context_v1 import _components
 
 def test_lane_attaches_the_ninth_family_in_chunks_as_float32(monkeypatch):
     comp = _components()
-    monkeypatch.setattr(lane._d1ctx, "load_d1_macro_context_source_spec", lambda root: {"stub": True})
+    monkeypatch.setattr(lane._d1ctx, "load_d1_macro_context_source_spec", lambda root: {"stub": True, "test_seal_utc": "2026-07-01T00:00:00Z"})
     monkeypatch.setattr(lane._d1ctx, "d1_macro_context_components", lambda spec: comp)
     monkeypatch.setattr(lane, "_D1_MACRO_ATTACH_CHUNK_ROWS", 4)
     # M5 bar opens; decision = open + 5 min. 2024-01-09 22:00 open -> decision 22:05 is after the

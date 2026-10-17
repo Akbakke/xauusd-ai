@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Fresh raw GC26month build complete637.979s:66files/892100712records;9173893footprint price rows. Native wiring and fresh XAU rebuild next; optimizer0.",
+    "current_activity": "Fresh pre-July XAU raw pair stage claimed; GC context and exact terminal/publication fixes implemented with focused tests. Native epoch not started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -137,7 +137,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native GC masked-input ownership and full raw XAU rebuild are unfinished. Target/publication/baseline/campaign qualification remains; one epoch already requested.",
+    "current_blocker": "Fresh pre-July XAU pair/feature rebuild, actual consumption/normalization/initialbaseline/parity, and new one-epoch campaign binding remain. Full footprint lattice is preserved, native model uses summaries.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9458,7 +9458,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "RAW_GC_COMPLETE__NATIVE_FEATURE_WIRING_AND_XAU_BUILD_PENDING",
+      "status": "GC_CONTEXT_IMPLEMENTED__FRESH_PRETEST_XAU_PAIR_CLAIMED",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9494,10 +9494,11 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "GC not in native input contract yet",
-        "Fresh XAU rebuild/normalization/baseline pending",
-        "Macro publication and corrected h20 calendar qualification pending",
-        "Native exact one-epoch campaign binding pending"
+        "Fresh pre-July XAU raw pair/feature/MTF/M1 build pending",
+        "Actual native consumption qualification and whole observed physical TRAIN normalization pending",
+        "Fresh735/552 native zero-step baseline, train/serve parity and real smoke pending",
+        "New exact one-epoch native campaign binding pending",
+        "Full footprint lattice is not directly ingested by the native model; summaries are used"
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
       "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TERMINAL.json",
@@ -9516,6 +9517,70 @@
           "2026-07-01T00:00:00Z"
         ],
         "boundary_semantics": "start inclusive/end exclusive; h20 outcomes must close strictly within own split; no feature/normalizer fit on evaluation; existing TEST July onward unread"
+      },
+      "gc_native_input_implementation": {
+        "status": "IMPLEMENTED_NOT_PHYSICALLY_QUALIFIED_OR_TRAINED",
+        "registry": {
+          "path": "configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_001.json",
+          "sha256": "4ebe7a989a7313d607140ec7025109e0a94de9185d2b360b92abfdaa2d1ebf61"
+        },
+        "source": "gx1/features/gc_native_context_v1.py",
+        "genuine_value_fields": 210,
+        "explicit_observation_fields": 210,
+        "total_gc_context_fields": 420,
+        "native_signal_dimension": 735,
+        "native_context_dimension": 552,
+        "base_eight_families_retained": true,
+        "admission_evidence": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FEATURE_ADMISSION_20261018_004/REGISTRY.json",
+          "sha256": "78514b92b64ccdb83702fcd147cdc1a4bb01f5dc5fd931e3540ffeebf5b66335"
+        },
+        "exact_duplicate_evidence": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FEATURE_ADMISSION_20261018_004/DEDUPLICATION_RESULT.json",
+          "sha256": "cdc1e34c4143c5fc8ba2210873759b4a62bc39122be9afd490af969f6e81c297"
+        },
+        "spot_basis_evidence": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_SPOT_BASIS_20261018_005/RESULT.json",
+          "sha256": "9e533822a3bb93c56c7a978cfaacb06db1f6a29229defd5d37b96dfb83650eda"
+        },
+        "unavailable_source_fields": 102,
+        "exact_duplicate_fields_represented_once": 7,
+        "raw_clock_admission_is_not_final_native_consumption_qualification": true,
+        "mechanics_tests": 80,
+        "mechanics_test_evidence_class": "synthetic/source contract mechanics only; real native full parity pending",
+        "full_footprint_price_grid_preserved": true,
+        "full_footprint_price_grid_direct_neural_ingestion_implemented": false,
+        "footprint_native_representation": "Existing per-timeframe footprint/profile/flow/SMC summaries. No claim that the summaries preserve every price-bin interaction."
+      },
+      "known_publication_clock_repair": {
+        "status": "IMPLEMENTED_UNIT_CHECKED_REAL_PARSE_PENDING",
+        "source": "https://www.cftc.gov/PressRoom/PressReleases/9147-25",
+        "calendar": {
+          "path": "configs/research/CFTC_COT_PUBLICATION_CLOCK_20261018_001.json",
+          "sha256": "64b6d2e0566f977b38f98e02848e4fdff7bb0b7a32c31cd50e18b47d7f91e0d2"
+        },
+        "availability": "later of declared+7days and end of official delayed-publication day, America/New_York",
+        "historical_revision_vintages_qualified": false
+      },
+      "h20_target_repair": {
+        "status": "IMPLEMENTED_UNIT_CHECKED_NEW_PHYSICAL_DATA_PENDING",
+        "owner": "gx1/contracts/entry_observed_market_horizons_v1.py",
+        "schema": "gx1_entry_observed_market_horizons_v2",
+        "semantics": "Keep h20 on existing observed UTC22 session clock; exact terminal quote required, no delayed substitute; boundary crossings censored",
+        "historical_exchange_holiday_calendar_qualified": false,
+        "no_backdated_current_hours_template": true
+      },
+      "xau_raw_pair_stage": {
+        "status": "EXECUTION_CLAIMED",
+        "plan_path": "configs/research/NATIVE_XAU_GC_REBUILD_20261018_006.json",
+        "plan_sha256": "da4560f182e1646c6dc9a95d82b3c1c60b4a8da540d46cd11ffaf7d3e8e5a943",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006",
+        "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_001",
+        "claimed_invocations": 1,
+        "completed_invocations": 0,
+        "execution_authorized": false,
+        "relaunch_allowed": false,
+        "native_epoch_authorized_by_this_stage": false
       }
     }
   },
@@ -12081,5 +12146,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T22:24:21.968021+00:00"
+  "updated_utc": "2026-10-17T22:41:23.295098+00:00"
 }

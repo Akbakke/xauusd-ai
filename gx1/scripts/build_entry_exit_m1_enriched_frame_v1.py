@@ -1189,7 +1189,48 @@ def _finish_model_native_surface(
     return enriched
 
 
+from gx1.features import gc_native_context_v1 as _gc_context  # noqa: E402
+
 _D1_MACRO_ATTACH_CHUNK_ROWS = 262_144
+
+
+
+def _bound_gc_output_support(enriched, multi_tf, *, timeframe):
+    """Retain all native MTF warmup required by the first new TRAIN decision.
+
+    Feature owners have already consumed the original raw XAU history. Only
+    their emitted support window is bounded before adding sparse GC channels.
+    This avoids allocating GC storage over unrelated 2009–2023 M1 rows.
+    """
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+    first = pd.Timestamp(_gc_context.REGISTRY['train_window'][0])
+    starts = []
+    for tf, bars in PRODUCTION_MTF_PER_TF_WINDOW_BARS.items():
+        index = pd.DatetimeIndex(multi_tf[tf.upper()].index)
+        pos = int(index.searchsorted(first, side='right')) - 1
+        # Include the full predecessor window; the existing cache owner closes
+        # bars against each source decision and validates the resulting route.
+        begin = pos - int(bars)
+        if begin < 0:
+            raise RuntimeError('NATIVE_GC_MTF_SUPPORT_MISSING:' + tf)
+        starts.append(index[begin])
+    start = min(starts)
+    end = pd.Timestamp('2026-07-01T00:00:00Z')
+    result = enriched.loc[(enriched.index >= start) & (enriched.index < end)].copy()
+    if len(result) == 0:
+        raise RuntimeError('NATIVE_GC_OUTPUT_SUPPORT_EMPTY')
+    print('NATIVE_GC_OUTPUT_SUPPORT', timeframe, str(result.index[0]), str(result.index[-1]), len(result), flush=True)
+    return result
+
+
+def _attach_gc_native_context(enriched, *, timeframe):
+    decisions = decision_availability(enriched.index, bar_duration=TIMEFRAME_SPECS[timeframe]['duration'],
+                                      context='NATIVE_GC_' + timeframe)
+    if any(name in enriched for name in _gc_context.CONTEXT_FIELDS):
+        raise RuntimeError('NATIVE_GC_CONTEXT_OWNER_OVERLAP')
+    values = _gc_context.build_context(pd.DatetimeIndex(decisions))
+    values.index = enriched.index
+    return pd.concat([enriched, values], axis=1, copy=False)
 
 
 def _attach_d1_macro_context(enriched: pd.DataFrame, *, timeframe: str) -> pd.DataFrame:
@@ -1209,10 +1250,10 @@ def _attach_d1_macro_context(enriched: pd.DataFrame, *, timeframe: str) -> pd.Da
     # The sealed native pair roots carry the TEST split this lane constructs (never reads), so
     # the context sources are read up to the policy's explicit test-construction end; the
     # owner refuses any end the policy block does not authorize.
-    wave = json.loads((repo_root / "NEXT_RUN_POLICY.json").read_text())["current_work"]["native_d1_wave_20261011"]
-    source_spec = dict(source_spec, native_test_construction={
-        "policy_block": "native_d1_wave_20261011", "read_end_utc": wave["test_split_context_read_end_utc"],
-    })
+    # This generation is pre-July only; the older TEST-construction override
+    # is not inherited by the fresh26month raw rebuild.
+    if bool((pd.DatetimeIndex(enriched.index) >= pd.Timestamp(source_spec['test_seal_utc'])).any()):
+        raise RuntimeError('NATIVE_GC_CONTEXT_TEST_CONSTRUCTION_FORBIDDEN')
     components = _d1ctx.d1_macro_context_components(source_spec)
     decision_ts = decision_availability(
         enriched.index, bar_duration=spec["duration"], context=f"{label}_ENRICHED_D1_MACRO_CONTEXT",
@@ -1422,7 +1463,9 @@ def _build_enriched_stage(
     )
     del canonical, context_m5
     _log_rss("after_group_a_attach")
+    enriched = _bound_gc_output_support(enriched, multi_tf, timeframe=timeframe)
     enriched = _attach_d1_macro_context(enriched, timeframe=timeframe)
+    enriched = _attach_gc_native_context(enriched, timeframe=timeframe)
     _log_rss("after_d1_macro_context_attach")
     enriched = _trim_group_a_causal_warmup(enriched)
     _log_rss("after_group_a_warmup_trim")

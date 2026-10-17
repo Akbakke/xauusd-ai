@@ -377,11 +377,14 @@ def test_active_context_contract_always_contains_full_regime_stack(
     assert len(MODEL_NATIVE_CTX_CONT_FIELDS) == MODEL_NATIVE_CTX_CONT_DIM
     assert len(MODEL_NATIVE_CTX_CAT_FIELDS) == MODEL_NATIVE_CTX_CAT_DIM
     assert MODEL_NATIVE_CTX_CONT_REGIME_FIELDS
-    # v13: the D1 macro/positioning family is appended after the regime stack.
+    from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CONT_GC_FIELDS
+    gc = len(MODEL_NATIVE_CTX_CONT_GC_FIELDS)
+    # GC is appended after the preserved regime/D1 blocks.
     d1 = len(MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS)
-    assert MODEL_NATIVE_CTX_CONT_FIELDS[-d1:] == MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS
+    assert MODEL_NATIVE_CTX_CONT_FIELDS[-gc:] == MODEL_NATIVE_CTX_CONT_GC_FIELDS
+    assert MODEL_NATIVE_CTX_CONT_FIELDS[-d1-gc:-gc] == MODEL_NATIVE_CTX_CONT_D1_MACRO_FIELDS
     assert MODEL_NATIVE_CTX_CONT_FIELDS[
-        -d1 - len(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS) : -d1
+        -d1-gc - len(MODEL_NATIVE_CTX_CONT_REGIME_FIELDS) : -d1-gc
     ] == (MODEL_NATIVE_CTX_CONT_REGIME_FIELDS)
     assert "trend_regime_id" not in MODEL_NATIVE_CTX_CAT_FIELDS
     assert tuple(context["ctx_cont_names"]) == MODEL_NATIVE_CTX_CONT_FIELDS
@@ -549,6 +552,9 @@ def test_model_native_transformer_entry_q_is_direct_and_anchor_free() -> None:
             max(domain) + 1,
             (2, 4),
         ).float()
+    from gx1.features.gc_native_context_v1 import masking_pairs
+    for _, mask_index in masking_pairs(ordered_signal_names):
+        seq_x[:, :, mask_index] = 1.0
     snap_x = seq_x[:, -1, :].clone()
     ctx_cont = torch.randn(2, MODEL_NATIVE_CTX_CONT_DIM)
     nominal_indices = [

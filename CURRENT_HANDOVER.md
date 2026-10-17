@@ -18,15 +18,23 @@ Fresh raw scan of66MBP-1 files/892,100,712records, rederive causal rolls, qualit
 M1/M5 BBO/OFI and displayed order counts, preserve price-level buy/sell/unknown
 footprints, use existing volume/profile/CVD and SMC order-block owners on all
 canonical timeframes. No previous feature table is its input. Raw files and
-immutable source metadata are reused. Native wiring is still unfinished.
+immutable source metadata are reused. Native GC source/field ownership, explicit masks, observed-TRAIN normalization,
+model gating and enriched/builder attachment are implemented in the current
+wave; fresh physical input/parity/baseline and actual training remain unproven.
 Current status and raw single-use claim are in
 current_work.native_gc_rebuild_20261017. Raw stage COMPLETE once, consumed:637.979s/source982fcfe2,66files/892100712records,
 9173893footprint price rows; exact per-M1 side conservation and all-valid-M5
 profile volume parity. F/count valid93148M5, signed19091M5; absent history
 remains missing. Atomic RESULTS/TERMINAL.json plus LAUNCH_TERMINAL.json agree.
+Native source now declares210GC value fields+210observation fields,735signal/
+552context dimensions.7exact duplicate fields represented once;4fresh spot
+basis fields added.102source fields explicitly unavailable. Full footprint
+price grid is preserved, while native inputs use summary/profile/flow/SMC
+fields; full price-grid neural ingestion is not implemented or claimed.
 No native epoch started yet.
 
-Next: complete fresh raw production, native feature ownership and explicit
+Next: execute fresh pre-July XAU pair stage006 (claimed once, launch pending),
+then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,
 and exact one-epoch campaign with existing durable checkpoint/hardware guards.
@@ -43,3 +51,16 @@ receipts/checkpoints remain. Last real native fit15.10:4,071 Entry-only h20steps
 
 TEST from July2026, live/paper, broker, orders, spending and promotion closed.
 No source edits during heavy jobs. DATA/RUNS deletion only through retention.
+
+Current code also fixes known COT shutdown publication availability from the
+official revised9December2025 schedule and censors delayed h20 terminal quotes.
+H20 retains the existing observed UTC22-session definition; historical exchange
+holiday calendar/vintages remain unqualified. Never backdate a current-hours
+template as historical truth. New physical rebuild/parity still required.
+
+Next bound stage: configs/research/NATIVE_XAU_GC_REBUILD_20261018_006.json.
+Fresh pair from pre-July raw M1/M5 roots, all earlier raw history used only for
+causal warmup. Old sealed-to-September pair is not an input. Legacy raw-source
+vedtak identifies unchanged source provenance, never old execution authority.
+Source is frozen during that job; one agent/job, existing capped producer10G.
+The dataset build ID and later training output ID will remain distinct.

@@ -5,7 +5,8 @@ positioning (CFTC COT), cross-asset panel (OANDA D1 session bars) and macro
 driver fields, joined as-of to every M5 decision time with exactly the
 availability rules the research owner declares:
 
-* COT: a report is usable ``availability_lag_days`` after its as-of Tuesday.
+* COT: a report is usable after the later of the declared lag and the end of its
+  official delayed-publication date; date metadata never supplies position values.
 * Panel: the last D1 session bar whose close (label + one session) is at or
   before the decision time; carried across the instrument's own holidays,
   never filled from a later bar.
@@ -67,7 +68,7 @@ D1_MACRO_CONTEXT_DIM = len(D1_MACRO_CONTEXT_FIELDS)
 # The committed source spec the native dataset builder reads; pinned by hash (rule 2a).
 D1_MACRO_CONTEXT_SOURCE_SPEC = {
     "path": "configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json",
-    "sha256": "5e22b1e54460d08cefeee8923357f8dba55855c249f40dc30c4420b960706e9b",
+    "sha256": "b8e2c01ddc5c1941dd509f1c3507a4211b2d0f7e3820f64c7607e95a0916d6b3",
 }
 
 
@@ -89,7 +90,7 @@ def d1_macro_context_contract() -> dict[str, Any]:
         "dim": D1_MACRO_CONTEXT_DIM,
         "panel_instruments": list(D1_MACRO_PANEL_INSTRUMENTS),
         "availability": {
-            "positioning_cot": "report as-of Tuesday usable strictly after as_of + availability_lag_days (declared in the source spec)",
+            "positioning_cot": "report usable strictly after max(declared as_of lag, end of bound official late-publication date)",
             "panel_oanda": "last D1 session bar whose close (label + one session) is at or before the decision time; carried across the instrument's own holidays",
             "drivers": "observation dated D (New York close) usable strictly after the end of day D+1 America/New_York; each series carried across its own holidays",
         },

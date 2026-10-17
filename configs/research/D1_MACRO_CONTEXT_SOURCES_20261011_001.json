@@ -1,7 +1,7 @@
 {
   "schema": "gx1_d1_macro_context_sources_v1",
   "spec_id": "D1_MACRO_CONTEXT_SOURCES_20261011_001",
-  "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
+  "operator_request": "11.10.2026 \u00abja, kj\u00f8r 3, 4 og 5\u00bb",
   "design_document": "docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md",
   "test_seal_utc": "2026-07-01T00:00:00Z",
   "cot": {
@@ -11,7 +11,11 @@
     },
     "contract_market_code": "088691",
     "availability_lag_days": 7,
-    "availability_rationale": "positions as of Tuesday are released Friday 15:30 ET; +7 calendar days is strictly after any holiday-delayed release and is used instead of a per-report release calendar"
+    "availability_rationale": "Declared+7day lag combined with official dated late-publication exceptions; use the later clock. The former assertion that seven days covers every publication delay was false.",
+    "publication_clock": {
+      "path": "configs/research/CFTC_COT_PUBLICATION_CLOCK_20261018_001.json",
+      "sha256": "64b6d2e0566f977b38f98e02848e4fdff7bb0b7a32c31cd50e18b47d7f91e0d2"
+    }
   },
   "oanda_panel": {
     "result": {

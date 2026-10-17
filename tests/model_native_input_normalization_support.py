@@ -137,6 +137,11 @@ def input_normalization_fixture(
     for name in CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS:
         index = list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)
         ctx[:, index] = row % 5
+    from gx1.features.gc_native_context_v1 import masking_pairs
+    for vi, mi in masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS):
+        ctx[:, mi] = (row % 2).astype(np.float32)
+        ctx[ctx[:, mi] == 0.0, vi] = 0.0
+
     signal = np.column_stack(
         [
             row * np.float32(0.02 + (index + 1) / 1000.0)

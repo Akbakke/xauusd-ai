@@ -203,7 +203,7 @@ def test_horizon_design_validation_binds_decision_keys_cutoffs_and_source_manife
     monkeypatch.setattr(observed, "_require_observed_market_plan", fake_core)
     scope = horizons.require_entry_observed_market_horizons_scope({"entry_observed_market_horizons": {}})
     assert seen["expected_training_phase"] == ENTRY_ONLY_HORIZON_TRAINING_PHASE
-    assert seen["expected_schema"] == "gx1_entry_observed_market_horizons_v1_learning_design"
+    assert seen["expected_schema"] == horizons.SCHEMA_VERSION + "_learning_design"
     assert scope["loss_target_batch_key"] == "entry_observed_market_target_bps_h20d"
     assert scope["entry_eligibility_cutoff_utc"]["train"].startswith("2025-05-02")
     identity = horizons.entry_observed_market_horizons_identity(scope)

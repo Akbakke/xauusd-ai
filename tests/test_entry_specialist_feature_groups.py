@@ -1022,6 +1022,8 @@ def test_every_live_field_routes_to_its_adjudicated_specialist() -> None:
         for specialist, fields in EXPECTED_LIVE_SPECIALIST_ROUTING.items()
         for field in fields
     }
+    from gx1.features.gc_native_context_v1 import SPECIALIST_OWNERS
+    expected.update({'ctx_cont.' + name: owner for name, owner in SPECIALIST_OWNERS.items()})
     observed = {field: classify_entry_specialist_feature(field) for field in population}
 
     unadjudicated = sorted(set(observed) - set(expected))

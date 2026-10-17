@@ -329,8 +329,11 @@ _D1_MACRO_CONTEXT_OVERRIDES = {
     **{name.lower(): D1_MACRO_CONTEXT_SPECIALIST for name in _D1_MACRO_CONTEXT_FIELDS},
 }
 
+from gx1.features.gc_native_context_v1 import SPECIALIST_OWNERS as _GC_OWNERS  # noqa: E402
+
 CONTEXT_FEATURE_SPECIALIST_OVERRIDES = {
     **_D1_MACRO_CONTEXT_OVERRIDES,
+    **{key: owner for name, owner in _GC_OWNERS.items() for key in (name.lower(), 'ctx_cont.' + name.lower())},
     # Distance from the D1 EMA200 is trend alignment evidence.  The ``_atr``
     # suffix denotes normalization only and must not transfer semantic
     # ownership to the volatility specialist.
