@@ -866,9 +866,356 @@ def pa_table_from_frame(frame):
     return table
 
 
+# Bounded P0 successor; original one-off studies/functions remain unchanged.
+P0_ID = 'GC_P0_FIRST_DEVELOPMENT_20261017_021'
+P0_ARMS = ('CORE','F','L','V','FL','FV','LV','FLV')
+
+
+def p0_field_contract(preparation, native_fields, macro_fields):
+    macro=['ctx_cont.'+n for n in macro_fields]
+    core=[n for n in preparation['core_native_fields'] if n not in macro]
+    v=preparation['layers']['V']['existing_native_fields']
+    if len(macro)!=61 or not set(macro)<=set(preparation['core_native_fields']):
+        raise RuntimeError('P0_MACRO_EXCLUSION_NOT_EXACT')
+    if set(core)&set(v) or set(core)&set(preparation['pattern_pause_fields']):
+        raise RuntimeError('P0_DUPLICATED_OR_PAUSED_FIELD')
+    if set(native_fields)!=set(core+v+macro+preparation['pattern_pause_fields']):
+        raise RuntimeError('P0_NATIVE_PARTITION_INCOMPLETE')
+    names={}
+    for arm in P0_ARMS:
+        names[arm]=list(core)
+        for layer in ('F','L','V'):
+            if arm!='CORE' and layer in arm:
+                names[arm]+=v if layer=='V' else preparation['layers'][layer]['fields']
+        if len(names[arm])!=len(set(names[arm])):raise RuntimeError('P0_DUPLICATE_FIELD')
+    return names,macro
+
+
+def p0_rule_predictions(snap, fields, flow, levels, train, evaluation, arm, y, recipe):
+    """A fixed sign-vote rule, TRAIN conditional means; no parameter search.
+
+    Core: EMA slope direction; F: sign OFI; L: sign VWAP displacement
+    (continuation hypothesis). Votes sum, no requirement for unanimity. V
+    conditions on TRAIN RV terciles. Unobserved TRAIN states emit no evidence.
+    """
+    score=np.sign(snap[:,fields.index(recipe['core_direction_field'])]).astype(int)
+    if arm!='CORE' and 'F' in arm:score+=np.sign(flow[recipe['F_direction_field']]).astype(int)
+    if arm!='CORE' and 'L' in arm:score+=np.sign(levels[recipe['L_direction_field']]).astype(int)
+    regime=np.zeros(len(score),int);cuts=[]
+    if arm!='CORE' and 'V' in arm:
+        rv=snap[:,fields.index(recipe['V_state_field'])]
+        cuts=np.quantile(rv[train],recipe['vol_quantiles']).tolist()
+        regime=np.searchsorted(cuts,rv,side='right')
+    states=np.column_stack((score,regime));lookup={}
+    for state in np.unique(states[train],axis=0):
+        mask=np.all(states[train]==state,axis=1)
+        lookup[tuple(state)]=float(np.mean(y[train[mask]]))
+    out=np.array([lookup.get(tuple(state),np.nan) for state in states[evaluation]])
+    return out,{'vol_cuts_train_only':cuts,'states':[{'score':int(k[0]),'vol':int(k[1]),'mean_bps':v} for k,v in sorted(lookup.items())]}
+
+
+def p0_prediction_quality(y,p):
+    ok=np.isfinite(y)&np.isfinite(p);y=np.asarray(y)[ok];p=np.asarray(p)[ok]
+    if not len(y):return {'rows':0}
+    out=gc_prediction_metrics(y,p)
+    out.update(mae_bps=float(np.mean(np.abs(y-p))),sign_hit=float(np.mean(np.sign(y)==np.sign(p))),
+               mean_prediction_bps=float(p.mean()),mean_outcome_bps=float(y.mean()))
+    if np.ptp(p)>0:
+        slope=float(np.sum((p-p.mean())*(y-y.mean()))/np.sum((p-p.mean())**2))
+        out.update(calibration_slope=slope,calibration_intercept_bps=float(y.mean()-slope*p.mean()))
+    return out
+
+
+def p0_actions(pred, spread, economics, horizon_minutes):
+    """Decision-known expected cash approximation; exact realized v3 accounting.
+
+    Linear mid-bps proxy minus last CLOSED XAU spread, round-trip fees,
+    projected horizon funding; no future spread or outcome in the action.
+    """
+    pred=np.asarray(pred);spread=np.asarray(spread)
+    cost=economics['round_trip_execution_cost_bps']
+    fin=np.asarray(economics['annual_financing_cost_bps'])*horizon_minutes*60/economics['seconds_per_year']
+    q=np.column_stack((pred-spread-cost-fin[0],-pred-spread-cost-fin[1],np.zeros(len(pred))))
+    good=np.isfinite(pred)&np.isfinite(spread)
+    action=np.argmax(np.where(np.isfinite(q),q,-np.inf),axis=1)
+    unique=(q==q.max(axis=1)[:,None]).sum(axis=1)==1
+    return np.where(good&unique,np.array([1,-1,0])[action],0).astype(np.int8)
+
+
+def p0_equity_summary(net, times, entries, exited, held_seconds, turnover, costs, funding):
+    dates=pd.DatetimeIndex(times,tz='UTC').normalize()
+    last=np.r_[np.flatnonzero(dates[1:]!=dates[:-1]),len(times)-1]
+    daily=pd.Series(net[last],index=dates[last])
+    # Calendar-day zero returns during closures are retained explicitly.
+    days=pd.date_range(daily.index[0],daily.index[-1],freq='D')
+    daily=daily.reindex(days).ffill();changes=np.diff(np.r_[0.,daily.to_numpy()])
+    sd=float(np.std(changes,ddof=1)) if len(changes)>1 else 0.
+    dd=float(np.max(np.maximum.accumulate(np.r_[0.,net])[1:]-net))
+    return {'net_total_bps':float(net[-1]),'sharpe_calendar_daily_365':float(np.mean(changes)/sd*np.sqrt(365.25)) if sd>0 else None,
+            'max_drawdown_observed_M1_bps':dd,'trades_opened':entries,'trades_closed':exited,
+            'open_positions_at_end':entries-exited,'exposure_wall_clock':held_seconds/((times[-1]-times[0])/NS),
+            'turnover_notional_units':turnover,'execution_cost_and_exit_reserve_bps':float(costs),
+            'financing_bps':float(funding),'days':len(changes)},daily
+
+
+def p0_position_ledger(decisions, sides, tape, evaluation_start, evaluation_end, scenarios, seconds_per_year):
+    """One constant initial-equity notional. Change only on a new qualified signal.
+
+    No stop, time exit or forced boundary close. Retain position across missing
+    features/quotes and model-fold changes. Final open position is executable
+    mark-to-market with reserved exit fee. Financing accrues across closures.
+    All marks are observed M1 OPEN quotes; intraminute paths are unobserved.
+    """
+    scope=(tape.time_ns>=evaluation_start)&(tape.time_ns<evaluation_end)
+    tt=tape.time_ns[scope];bid=tape.bid_open[scope];ask=tape.ask_open[scope]
+    if len(tt)<2:raise RuntimeError('P0_LEDGER_EMPTY')
+    target=np.asarray(decisions)+MINUTE_NS;idx=np.searchsorted(tt,target)
+    good=(idx<len(tt));good &= tt[np.minimum(idx,len(tt)-1)]==target
+    if np.any(np.diff(decisions)<=0):raise RuntimeError('P0_LEDGER_DECISION_ORDER')
+    orders=[];side=0
+    for i,wanted in zip(idx[good],np.asarray(sides)[good]):
+        if wanted!=side:orders.append((int(i),int(wanted)));side=int(wanted)
+    gross=np.zeros(len(tt));long_time=np.zeros(len(tt));short_time=np.zeros(len(tt));opened=np.zeros(len(tt),np.int32)
+    realized=lt=st=0.;side=0;start=0;price=0.;count=closed=0;held=0.;turnover=0.;trades=[]
+    for stop,wanted in orders+[(len(tt),0)]:
+        if stop<start:raise RuntimeError('P0_LEDGER_CLOCK')
+        sl=slice(start,stop)
+        gross[sl]=realized;long_time[sl]=lt;short_time[sl]=st;opened[sl]=count
+        if side:
+            px=bid[sl] if side>0 else ask[sl]
+            gross[sl]+=side*1e4*(px-price)/price
+            elapsed=(tt[sl]-tt[start])/NS
+            if side>0:long_time[sl]+=elapsed
+            else:short_time[sl]+=elapsed
+            mark_index=min(stop,len(tt)-1)
+            duration=(tt[mark_index]-tt[start])/NS;held+=duration
+            terminal=stop==len(tt)
+            px_end=bid[mark_index] if side>0 else ask[mark_index]
+            pnl=float(side*1e4*(px_end-price)/price)
+            trades.append({'entry_ns':int(tt[start]),'mark_or_exit_ns':int(tt[mark_index]),'side':side,
+                'gross_bps':pnl,'elapsed_seconds':float(duration),'terminal_open':terminal,
+                'entry_price':float(price),'exit_or_mark_price':float(px_end)})
+            if not terminal:
+                realized+=pnl;closed+=1;turnover+=float(px_end/price)
+                if side>0:lt+=duration
+                else:st+=duration
+        if stop==len(tt):break
+        side=wanted;start=stop
+        if side:
+            price=ask[start] if side>0 else bid[start];count+=1;turnover+=1.
+    summaries={};daily={}
+    for name,cfg in scenarios.items():
+        fee=opened*cfg['round_trip_execution_cost_bps']
+        rates=cfg['annual_financing_cost_bps']
+        funding=(long_time*rates[0]+short_time*rates[1])/seconds_per_year
+        net=gross-fee-funding
+        summaries[name],daily[name]=p0_equity_summary(net,tt,count,closed,held,turnover,fee[-1],funding[-1])
+    return summaries,daily,trades,{'rejected_missing_exact_execution_quote':int((~good).sum()),'executed_signal_changes':len(orders),
+        'final_mark_ns':int(tt[-1]),'final_open_position':side,'mark_resolution':'observed M1 open; stale through absent quotes',
+        'fee_treatment':'full round trip reserved at entry including terminal open exit; no spread added twice'}
+
+
+def p0_representativeness(decisions,snap,session,fields,common,initial,recipe):
+    rv=snap[:,fields.index(recipe['V_state_field'])]
+    cuts=np.quantile(rv[initial],recipe['vol_quantiles'])
+    trend=np.sign(snap[:,fields.index(recipe['core_direction_field'])]).astype(int)
+    dates=pd.DatetimeIndex(decisions,tz='UTC')
+    strata={'year':dates.year.astype(str),'month':dates.strftime('%Y-%m'),'native_session_id':session.astype(str),
+            'past_RV_train_tercile':np.searchsorted(cuts,rv).astype(str),'EMA_trend_sign':trend.astype(str)}
+    result={'population':len(common),'matched':int(common.sum()),'coverage':float(common.mean()),
+            'RV_tercile_cuts_initial_train_only':cuts.tolist(),'strata':{}}
+    for name,values in strata.items():
+        rows=[]
+        for value in np.unique(values):
+            mask=values==value;n=int(mask.sum());k=int((mask&common).sum())
+            rows.append({'stratum':str(value),'population':n,'matched':k,'coverage':k/n,
+                         'population_share':n/len(common),'matched_share':k/int(common.sum())})
+        result['strata'][name]=rows
+    return result
+
+
+def run_p0_development(binding_path):
+    import os,subprocess,lightgbm as lgb
+    from gx1.scripts import gc_source_disposition_v1 as io
+    from gx1.features.d1_macro_context_v1 import D1_MACRO_CONTEXT_FIELDS
+    from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execution,require_capped_lock_ancestry
+    from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
+    root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/P0_ID
+    if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('P0_BINDING_PATH')
+    binding=io.read_json(binding_path);plan_path=io.REPO/f'configs/research/{P0_ID}.json'
+    io.verify_digest(plan_path,binding['plan_sha256'],'P0_PLAN');spec=io.read_json(plan_path)
+    io.verify_digest(io.REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_POLICY')
+    io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'P0_APPROVAL')
+    policy=io.read_json(io.REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_p0_development_021'];approval=io.read_json(root/'OPERATOR_APPROVAL.json')
+    if (policy['training_enabled'] is not False or gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1
+        or gate['completed_invocations']!=0 or gate['execution_authorized'] is not False or gate['native_training_authorized'] is not False
+        or approval['approved_plan_sha256']!=binding['plan_sha256'] or approval['single_use'] is not True
+        or approval['max_invocations']!=1 or approval['status']!='APPROVED_SINGLE_USE_PENDING_EXECUTION'):
+        raise RuntimeError('P0_SINGLE_USE_SCOPE')
+    if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],text=True,cwd=io.REPO):
+        raise RuntimeError('P0_SOURCE_NOT_CLEAN_BOUND')
+    if subprocess.check_output(['git','branch','--show-current'],text=True,cwd=io.REPO).strip()!='work/gx1-current':raise RuntimeError('P0_BRANCH')
+    if set(binding['code_sha256'])!=set(spec['code_paths']):raise RuntimeError('P0_CODE_INVENTORY')
+    for p,h in binding['code_sha256'].items():io.verify_digest(io.REPO/p,h,'P0_CODE')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry()
+    if proof['cpu_affinity']!=list(range(8)) or (root/'RESULTS').exists() or (root/'.RESULTS.staging').exists():raise RuntimeError('P0_OUTPUT_OR_CAPS')
+    io.write_json(root/'EXECUTION_CLAIM.json',{'invocation':1,'binding_sha256':io.sha256_file(binding_path)})
+    stage=root/'.RESULTS.staging';(stage/'MODELS').mkdir(parents=True);started=_time.monotonic()
+    try:
+        for b in spec['inputs'].values():require_binding(b)
+        preparation=io.read_json(Path(spec['inputs']['preparation']['path']))
+        source=io.read_json(Path(spec['inputs']['native_source_plan']['path']))
+        all_bindings=[source['signal_manifest'],*source['execution_tape_partitions'],source['reference']['data']['execution_tape']['manifest']]
+        all_bindings += [b for split in source['native_datasets'].values() for b in split.values()]
+        # load_gc_native_rows verifies native manifests and physical row identity.
+        base=pq.read_table(source['feature_inputs']['parquet']['path'])
+        require_binding(source['feature_inputs']['parquet'])
+        times,snap,context,session,fields,ctx_names=load_gc_native_rows(source,base)
+        if not np.isfinite(snap).all():raise RuntimeError('P0_NONFINITE_NATIVE')
+        for j,n in enumerate(ctx_names):
+            if not np.array_equal(snap[:,fields.index('ctx_cont.'+n)],context[:,j]):raise RuntimeError('P0_CONTEXT_ALIAS')
+        decisions=times+DECISION_OFFSET_NS
+        if decisions.max()>=pd.Timestamp(spec['TEST_seal_utc']).value:raise RuntimeError('P0_TEST_SEAL')
+        ft=pq.read_table(spec['inputs']['F']['path']);lev=pq.read_table(spec['inputs']['L']['path'])
+        for table in (ft,lev):
+            if not np.array_equal(table['decision_ns'].to_numpy(),decisions):raise RuntimeError('P0_FEATURE_CLOCK')
+        if not np.array_equal(ft['contract_index'].to_numpy(),lev['contract_index'].to_numpy()):raise RuntimeError('P0_FEATURE_CONTRACT_SELECTION')
+        quality=io.read_json(Path(spec['inputs']['quality_result']['path']))
+        terminal=io.read_json(Path(spec['inputs']['quality_terminal']['path']))
+        if terminal['status']!='COMPLETE' or terminal['result_sha256']!=spec['inputs']['quality_result']['sha256']:raise RuntimeError('P0_QUALITY_TERMINAL')
+        names,excluded=p0_field_contract(preparation,fields,D1_MACRO_CONTEXT_FIELDS)
+        F={n:ft[n].to_numpy() for n in preparation['layers']['F']['fields']};L={n:lev[n].to_numpy() for n in preparation['layers']['L']['fields']}
+        common=ft['ofi_valid'].to_numpy()&ft['bbo_valid'].to_numpy()&lev['rolling15_valid'].to_numpy()
+        common &= np.isfinite(np.column_stack(list(F.values())+list(L.values()))).all(axis=1)
+        if int(common.sum())!=spec['expected_common_rows']:raise RuntimeError('P0_COHORT_DRIFT')
+        cutoff=pd.Timestamp(spec['folds'][0]['validation_start_utc_inclusive']).value-86400*NS
+        representation=p0_representativeness(decisions,snap,session,fields,common,np.flatnonzero(decisions<cutoff),spec['rule'])
+        io.write_json(stage/'REPRESENTATIVENESS.json',representation)
+        rows=np.flatnonzero(common);d=decisions[rows];ss=snap[rows];F={n:v[rows] for n,v in F.items()};L={n:v[rows] for n,v in L.items()}
+        matrices={arm:np.column_stack([ss[:,fields.index(n)] if n in fields else F[n] if n in F else L[n] for n in ns]) for arm,ns in names.items()}
+        lock={'rows':len(rows),'decision_sha256':hashlib.sha256(d.tobytes()).hexdigest(),'fields':names,'excluded_macro_fields':excluded,
+              'labels_read_at_lock':False,'macro_excision_does_not_exclude_nov_dec_2025':True,'common_rows_sha256':hashlib.sha256(rows.tobytes()).hexdigest()}
+        io.write_json(stage/'INPUT_LOCK.json',lock);print('P0_INPUT_LOCKED '+json.dumps({a:len(n) for a,n in names.items()}),flush=True)
+        for b in source['execution_tape_partitions']:require_binding(b)
+        actual={str(p) for p in Path(source['reference']['data']['execution_tape']['root']).glob('year=*/*.parquet') if int(p.parent.name.split('=')[1])>=2024}
+        if actual!={b['path'] for b in source['execution_tape_partitions']}:raise RuntimeError('P0_UNBOUND_TAPE')
+        tape=load_tape(source['reference'],2024)
+        ex=execution_for_horizon_v2(d,tape,horizon_minutes=spec['primary_horizon_minutes'],latency_seconds=60)
+        valid=exact_intraday_mask_v3(d,tape,ex,horizon_minutes=spec['primary_horizon_minutes'])['valid']
+        net_values=net_cash_values_v3(ex,economics=spec['economics'])
+        if not np.isfinite(net_values[valid]).all() or not np.all(net_values[valid,2]==0):raise RuntimeError('P0_V3_VALUES')
+        if valid.sum()!=len(rows):raise RuntimeError('P0_PRIMARY_EXACT_PATH_CHANGED')
+        spread=spread_at_decision(d,tape);frames=[];fit_receipts=[]
+        for declared in spec['folds']:
+            fold=build_fold(declared['fold_id'],declared['validation_start_utc_inclusive'][:10],declared['validation_end_utc_exclusive'][:10],d,ex.exit_ns,valid,train_years=3)
+            if np.any(ex.exit_ns[fold.train]>=fold.eval_start_ns) or np.any(d[fold.train]>=fold.eval_start_ns-86400*NS):raise RuntimeError('P0_PURGE')
+            ev=fold.eval;frame=pd.DataFrame({'decision_ns':d[ev],'fold':fold.name,'y30_mid_bps':ex.y_mid_bps[ev],
+                'outcome_within_fold':ex.exit_ns[ev]<fold.eval_end_ns,'spread_at_decision_bps':spread[ev],
+                'train_mean_bps':float(ex.y_mid_bps[fold.train].mean())})
+            for arm in P0_ARMS:
+                pred,state=p0_rule_predictions(ss,fields,F,L,fold.train,ev,arm,ex.y_mid_bps,spec['rule'])
+                frame['rule_'+arm]=pred;io.write_json(stage/'MODELS'/f'{fold.name}_{arm}_RULE.json',state)
+                model=lgb.train(spec['tree']['params'],lgb.Dataset(matrices[arm][fold.train],ex.y_mid_bps[fold.train]),num_boost_round=spec['tree']['rounds'])
+                path=stage/'MODELS'/f'{fold.name}_{arm}_TREE.txt';model.save_model(str(path))
+                predicted=model.predict(matrices[arm][ev]);replay=lgb.Booster(model_file=str(path)).predict(matrices[arm][ev])
+                if not np.array_equal(predicted,replay):raise RuntimeError('P0_TREE_READBACK')
+                frame['tree_'+arm]=predicted
+                fit_receipts.append({'fold':fold.name,'arm':arm,'train_rows':len(fold.train),'eval_rows':len(ev),
+                    'train_decision_sha256':hashlib.sha256(d[fold.train].tobytes()).hexdigest(),
+                    'training_end_outcome_ns':int(ex.exit_ns[fold.train].max()),'evaluation_start_ns':fold.eval_start_ns})
+            frames.append(frame);print('P0_FOLD_COMPLETE '+fold.name,flush=True)
+        if len(fit_receipts)!=spec['max_tree_fits']:raise RuntimeError('P0_MODEL_COUNT')
+        predictions=pd.concat(frames,ignore_index=True)
+        if np.any(np.diff(predictions.decision_ns)<=0):raise RuntimeError('P0_PREDICTION_ORDER')
+        evaluation_start=pd.Timestamp(spec['folds'][0]['validation_start_utc_inclusive']).value
+        evaluation_end=pd.Timestamp(spec['TEST_seal_utc']).value
+        pred_d=predictions.decision_ns.to_numpy();positions=np.searchsorted(d,pred_d)
+        secondary={}
+        for horizon in spec['secondary_horizons_minutes']:
+            eh=execution_for_horizon_v2(pred_d,tape,horizon_minutes=horizon,latency_seconds=60)
+            ok=exact_intraday_mask_v3(pred_d,tape,eh,horizon_minutes=horizon)['valid']
+            predictions[f'y{horizon}_mid_bps']=eh.y_mid_bps
+            predictions[f'h{horizon}_exact_valid']=ok
+        cells={};daily_vectors={};all_trades=[];all_daily=[]
+        keys=[f'{model}_{arm}' for model in ('rule','tree') for arm in P0_ARMS]+['always_LONG','always_FLAT']
+        for key in keys:
+            if key.startswith('always_'):side=np.full(len(predictions),1 if key=='always_LONG' else 0,np.int8)
+            else:side=p0_actions(predictions[key].to_numpy(),predictions.spread_at_decision_bps.to_numpy(),spec['economics'],spec['primary_horizon_minutes'])
+            predictions['action_'+key]=side
+            sums,daily,trades,account=p0_position_ledger(pred_d,side,tape,evaluation_start,evaluation_end,spec['cost_scenarios'],spec['economics']['seconds_per_year'])
+            prediction={};diagnostics={};fold_metrics={}
+            if not key.startswith('always_'):
+                good=predictions.outcome_within_fold.to_numpy()
+                prediction=p0_prediction_quality(predictions.y30_mid_bps.to_numpy()[good],predictions[key].to_numpy()[good])
+                prediction['train_mean_reference_mse_bps2']=float(np.mean((predictions.y30_mid_bps.to_numpy()[good]-predictions.train_mean_bps.to_numpy()[good])**2))
+                for fold,part in predictions[good].groupby('fold'):
+                    fold_metrics[fold]=p0_prediction_quality(part.y30_mid_bps.to_numpy(),part[key].to_numpy())
+                for h in spec['secondary_horizons_minutes']:
+                    ok=predictions[f'h{h}_exact_valid'].to_numpy()
+                    diagnostics[str(h)]=p0_prediction_quality(predictions[f'y{h}_mid_bps'].to_numpy()[ok],predictions[key].to_numpy()[ok])
+            cells[key]={'prediction_h30':prediction,'prediction_folds':fold_metrics,'secondary_same_h30_forecast_no_refit':diagnostics,
+                        'economics':sums,'ledger':account,'missing_rule_evidence':int(predictions[key].isna().sum()) if key in predictions else 0}
+            daily_vectors[key]=daily[spec['central_scenario']]
+            for scenario,series in daily.items():
+                part=pd.DataFrame({'day':series.index,'equity_bps':series.to_numpy(),'strategy':key,'scenario':scenario});all_daily.append(part)
+            all_trades.extend([dict(t,strategy=key) for t in trades])
+        comparisons={}
+        for model in ('rule','tree'):
+            baseline=model+'_CORE';frame=predictions[predictions.outcome_within_fold]
+            for arm in P0_ARMS[1:]:
+                key=model+'_'+arm;ok=np.isfinite(frame[baseline])&np.isfinite(frame[key])
+                loss=(frame.y30_mid_bps[ok]-frame[baseline][ok])**2-(frame.y30_mid_bps[ok]-frame[key][ok])**2
+                rec=[{'entry_ns':int(t),'v':float(v)} for t,v in zip(frame.decision_ns[ok],loss)]
+                pb=weekly_block_bootstrap(rec,'v',reps=spec['bootstrap_reps'],seed=spec['bootstrap_seed'],levels=spec['confidence_levels'])
+                delta=daily_vectors[key]-daily_vectors[baseline];changes=delta.diff();changes.iloc[0]=delta.iloc[0]
+                rec=[{'entry_ns':int(t.value),'v':float(v)} for t,v in changes.items()]
+                eb=weekly_block_bootstrap(rec,'v',reps=spec['bootstrap_reps'],seed=spec['bootstrap_seed'],levels=spec['confidence_levels'])
+                comparisons[key+'_minus_CORE']={'paired_prediction_MSE_improvement_bps2':pb,'paired_calendar_daily_net_improvement_bps':eb,
+                    'net_total_difference_bps':float(delta.iloc[-1]),'all_26_months_development':True}
+        for key in keys:
+            series=daily_vectors[key];change=series.diff();change.iloc[0]=series.iloc[0]
+            cells[key]['monthly_net_bps']={str(k):float(v) for k,v in change.groupby(change.index.strftime('%Y-%m')).sum().items()}
+        predictions.to_parquet(stage/'PREDICTIONS.parquet',index=False)
+        pd.DataFrame(all_trades).to_parquet(stage/'TRADES_AND_OPEN_MARKS.parquet',index=False)
+        pd.concat(all_daily,ignore_index=True).to_parquet(stage/'DAILY_EQUITY_ALL_SCENARIOS.parquet',index=False)
+        for b in list(spec['inputs'].values())+all_bindings+[source['feature_inputs']['parquet']]:require_binding(b)
+        for p,h in binding['code_sha256'].items():io.verify_digest(io.REPO/p,h,'P0_CODE_POST')
+        io.verify_digest(io.REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_POLICY_POST')
+        io.verify_digest(plan_path,binding['plan_sha256'],'P0_PLAN_POST');io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'P0_APPROVAL_POST')
+        io.verify_digest(binding_path,io.read_json(root/'EXECUTION_CLAIM.json')['binding_sha256'],'P0_BINDING_POST')
+        if io.git_head()!=binding['source_head']:raise RuntimeError('P0_HEAD_CHANGED')
+        result={'status':'P0_FIRST_DEVELOPMENT_COMPLETE_NOT_CONFIRMATION','source_head':binding['source_head'],'plan_sha256':binding['plan_sha256'],
+                'input_lock':lock,'representation':representation,'fit_receipts':fit_receipts,'tree_fits':len(fit_receipts),
+                'development_prediction_rows':len(predictions),'cells':cells,'contrasts':comparisons,'limits':proof,
+                'elapsed_seconds':_time.monotonic()-started,'TEST_accessed':False,'native_training_started':False,
+                'source_unchanged':True,'historical_funding_truth':False,'untouched_confirmation':False}
+        io.write_json(stage/'RESULT.json',result)
+        inventory={}
+        for path in sorted(stage.rglob('*')):
+            if path.is_file():
+                with path.open('rb') as f:os.fsync(f.fileno())
+                inventory[str(path.relative_to(stage))]={'sha256':io.sha256_file(path),'bytes':path.stat().st_size}
+        io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'TEST_accessed':False,'research_fit_completed':True,
+            'result_sha256':io.sha256_file(stage/'RESULT.json'),'artifacts':inventory,'finished_utc':pd.Timestamp.now(tz='UTC').isoformat()})
+        for name,b in inventory.items():io.verify_digest(stage/name,b['sha256'],'P0_ARTIFACT')
+        for path in stage.glob('*.parquet'):
+            if pq.ParquetFile(path).metadata.num_rows<1:raise RuntimeError('P0_EMPTY_ARTIFACT')
+        for directory in (stage/'MODELS',stage):
+            fd=os.open(directory,os.O_RDONLY|os.O_DIRECTORY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+        publish_bundle_directory_noreplace(stage,root/'RESULTS');print('P0_COMPLETE',flush=True)
+    except Exception as exc:
+        if not (root/'FAILURE.json').exists():io.write_json(root/'FAILURE.json',{'status':'FAILED_NO_ADMISSION','error':str(exc),'exception':type(exc).__name__})
+        raise
+
+
 def main(argv: list[str] | None = None) -> int:
     import sys
     actual = sys.argv[1:] if argv is None else argv
+    if len(actual) == 2 and actual[0] == '--p0-binding':
+        run_p0_development(Path(actual[1]))
+        return 0
     if len(actual) == 2 and actual[0] == '--gc-binding':
         run_gc_trade_probe(Path(actual[1]))
         return 0

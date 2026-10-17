@@ -68,6 +68,27 @@ def known_cot_delay_diagnostic_v1(decisions,report_dates,exception_schedule,lag_
     return unsafe
 
 
+def select_verified_cot_vintage_v2(decision_ns, release_events):
+    """Research PIT gate: strict earlier publication AND available vintage.
+
+    Inputs are explicit receipt-backed events, never dates inferred from a
+    report or an intended release schedule. Revisions are separate vintages.
+    Missing actual release time or payload hash is rejected, not guessed.
+    """
+    import pandas as pd
+    qualified=[]
+    for event in release_events:
+        if event.get('evidence_class')!='VERIFIED_PUBLICATION_AND_VINTAGE':continue
+        if not event.get('actual_release_utc') or not event.get('vintage_sha256'):continue
+        if len(event['vintage_sha256'])!=64:raise ValueError('COT_VINTAGE_HASH')
+        stamp=pd.Timestamp(event['actual_release_utc'])
+        if stamp.tzinfo is None:raise ValueError('COT_RELEASE_TZ')
+        if stamp.value<int(decision_ns):qualified.append(event)
+    if not qualified:return None
+    # Latest report available at that time, then latest published revision.
+    return max(qualified,key=lambda e:(e['report_date'],pd.Timestamp(e['actual_release_utc']).value))
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--binding',type=Path)
     parser.add_argument('--provider-plan',type=Path);parser.add_argument('--directory',type=Path)

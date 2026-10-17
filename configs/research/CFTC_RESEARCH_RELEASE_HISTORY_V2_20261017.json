@@ -1,0 +1,115 @@
+{
+  "schema_version": "gx1_cot_research_release_history_v2",
+  "sources": [
+    "https://www.cftc.gov/PressRoom/PressReleases/9147-25",
+    "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm"
+  ],
+  "supersedes": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/CFTC_RELEASE_EXCEPTION_REVIEW_20261017.json",
+    "sha256": "0a9085c65d443692ca9e5feee509782501776496063655266776601655de24b8"
+  },
+  "revision_date": "2025-12-09",
+  "announcement_time_within_day_verified": false,
+  "release_time_policy": "15:30 America/New_York official general publication time; exception-specific delivery receipts not acquired.",
+  "scope": "Explicit historical schedule only. No report+7 fallback; no full-calendar or vintage qualification. December revision removes obsolete January catch-up dates. Actual availability requires verified publication AND exact vintage receipt; schedule alone is not admitted.",
+  "revised_catchup": [
+    {
+      "report_date": "2025-09-30",
+      "scheduled_release_utc": "2025-11-19T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-10-07",
+      "scheduled_release_utc": "2025-11-21T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-10-14",
+      "scheduled_release_utc": "2025-11-25T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-10-21",
+      "scheduled_release_utc": "2025-12-02T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-10-28",
+      "scheduled_release_utc": "2025-12-05T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-11-04",
+      "scheduled_release_utc": "2025-12-09T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-11-10",
+      "scheduled_release_utc": "2025-12-10T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-11-18",
+      "scheduled_release_utc": "2025-12-12T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-11-25",
+      "scheduled_release_utc": "2025-12-15T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-12-02",
+      "scheduled_release_utc": "2025-12-17T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-12-09",
+      "scheduled_release_utc": "2025-12-19T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-12-16",
+      "scheduled_release_utc": "2025-12-23T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    },
+    {
+      "report_date": "2025-12-23",
+      "scheduled_release_utc": "2025-12-29T20:30:00Z",
+      "actual_release_utc": null,
+      "vintage_sha256": null,
+      "evidence_class": "OFFICIAL_REVISED_SCHEDULE_NOT_DELIVERY_RECEIPT"
+    }
+  ],
+  "additional_known_exception": {
+    "report_date": "2025-01-07",
+    "scheduled_release_utc": "2025-01-13T20:30:00Z",
+    "source": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm"
+  },
+  "all_macro_excluded_from_P0": true,
+  "native_owner_changed": false
+}
