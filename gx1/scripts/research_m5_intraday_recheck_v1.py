@@ -256,6 +256,26 @@ def net_cash_values_v3(execution: Execution, *, economics: dict) -> np.ndarray:
     return out
 
 
+
+
+def exact_intraday_mask_v3(decision_ns, tape, execution, *, horizon_minutes, latency_seconds=60):
+    """Research-only exact endpoints and fully observed M1 path, no calendar guess.
+
+    Rejects scheduled closures and unclassified gaps alike. This eligibility
+    variant does not change old v1/v2 execution, any target or a trading hold rule.
+    """
+    t=tape.time_ns
+    ei=np.minimum(np.searchsorted(t,execution.entry_ns),len(t)-1)
+    xi=np.minimum(np.searchsorted(t,execution.exit_ns),len(t)-1)
+    gaps=np.r_[0,np.cumsum(np.diff(t)!=MINUTE_NS)]
+    interior=gaps[xi]-gaps[ei]
+    entry_delay=execution.entry_ns-np.asarray(decision_ns)-latency_seconds*NS
+    terminal_delay=execution.exit_ns-execution.entry_ns-horizon_minutes*MINUTE_NS
+    valid=execution.valid&(entry_delay==0)&(terminal_delay==0)&(interior==0)
+    return {'valid':valid,'entry_delay_ns':entry_delay,'terminal_delay_ns':terminal_delay,
+            'interior_gap_intervals':interior}
+
+
 def spread_at_decision(decision_ns: np.ndarray, tape: Tape) -> np.ndarray:
     """Spread (bps of mid) of the last M1 bar closed at the decision: bar open <= decision - 60 s."""
     t = tape.time_ns

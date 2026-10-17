@@ -34,3 +34,12 @@ def test_wrong_market_is_rejected_without_error_url(tmp_path,monkeypatch):
     d=json.loads((tmp_path/'PROVIDER_RESULT.json').read_text())
     assert all(r=={'status':'FAILED','exception':'RuntimeError'} for r in d['requests'].values())
     assert not list(tmp_path.glob('*.parquet'))
+
+
+def test_shutdown_report_date_is_not_publication_date():
+    import numpy as np
+    from gx1.scripts.research_openbb_source_review_v1 import known_cot_delay_diagnostic_v1
+    reports=pd.DatetimeIndex(['2025-09-23','2025-09-30'],tz='UTC')
+    t=pd.DatetimeIndex(['2025-10-06T12:00Z','2025-10-08T12:00Z','2025-11-19T20:30Z','2025-11-19T20:35Z']).asi8
+    actual=known_cot_delay_diagnostic_v1(t,reports,{'2025-09-30':'2025-11-19T20:30:00Z'})
+    np.testing.assert_array_equal(actual,[False,True,True,False])

@@ -97,3 +97,17 @@ def test_exact_parquet_readback_preserves_nan_vs_null_and_detects_change():
     assert exact_feature_readback_v2(t,actual)
     assert not exact_feature_readback_v2(t,pa.table({'x':[1.,None,None],'valid':[True,False,False]}))
     assert not exact_feature_readback_v2(t,pa.table({'x':[2.,float('nan'),None],'valid':[True,False,False]}))
+
+
+def test_eight_arm_preparation_uses_computed_new_F_L_without_ATR_duplicate():
+    import json
+    from pathlib import Path
+    from gx1.features.gc_order_flow_v1 import L1_FIELDS_V2
+    p=json.loads((Path(__file__).resolve().parents[1]/'configs/research/P0_FACTORIAL_NEW_FL_PREPARATION_20261017.json').read_text())
+    assert set(p['arms'])=={'control','F','L','V','FL','FV','LV','FLV'}
+    assert tuple(p['layers']['F']['fields'])==L1_FIELDS_V2
+    assert len(p['layers']['L']['fields'])==8
+    assert all('rolling15_' in n for n in p['layers']['L']['fields'])
+    assert p['layers']['F']['signed_trade_mask_required'] is False
+    assert p['layers']['V']['duplicate_ATR_or_RV_implementation'] is False
+    assert p['training_authorized'] is False

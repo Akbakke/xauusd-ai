@@ -46,6 +46,28 @@ def provider_review(plan, directory):
     (directory/'PROVIDER_RESULT.json').write_text(json.dumps(out,indent=2)+'\n')
 
 
+
+
+def known_cot_delay_diagnostic_v1(decisions,report_dates,exception_schedule,lag_days=7):
+    """Compare the OLD selected report against announced exceptional releases.
+
+    Diagnostic only: an announced calendar is not verified actual delivery or
+    vintage history. Native macro owner and its baseline remain unchanged.
+    """
+    import numpy as np
+    import pandas as pd
+    reports=pd.DatetimeIndex(report_dates).as_unit('ns')
+    available=(reports+pd.Timedelta(days=lag_days)).asi8
+    decisions=np.asarray(decisions,np.int64)
+    pos=np.searchsorted(available,decisions,side='left')-1
+    dates=reports.strftime('%Y-%m-%d').to_numpy()[np.maximum(pos,0)]
+    unsafe=np.zeros(len(decisions),bool)
+    for date,publication in exception_schedule.items():
+        stamp=pd.Timestamp(publication).value
+        unsafe |= (pos>=0)&(dates==date)&(decisions<=stamp)
+    return unsafe
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--binding',type=Path)
     parser.add_argument('--provider-plan',type=Path);parser.add_argument('--directory',type=Path)

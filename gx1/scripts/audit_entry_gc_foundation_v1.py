@@ -535,11 +535,83 @@ def run_cash_review(binding_path):
     io.write_json(stage/'RESULT.json',result);io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(stage/'RESULT.json')})
     publish_bundle_directory_noreplace(stage,root/'RESULTS');print('CASH_PROJECTION_REVIEW_COMPLETE',flush=True)
 
+def qualify_new_fl_p0(plan,stage):
+    from gx1.scripts import research_m5_intraday_recheck_v1 as m5
+    from gx1.scripts.research_openbb_source_review_v1 import known_cot_delay_diagnostic_v1
+    from gx1.contracts import entry_research_evaluation_v1 as ev
+    from gx1.contracts.xau_tape_provenance_v1 import scheduled_weekly_closure_mask
+    from gx1.scripts import research_ta_campaign_v1 as macro
+    features=pq.read_table(binding_read(plan['features'])).to_pandas();starts=features.m5_bar_start_ns.to_numpy();decisions=features.decision_ns.to_numpy()
+    prep=binding_read(plan['preparation']);fields=prep['layers']['F']['fields']+prep['layers']['L']['fields']
+    fl=features.ofi_valid.to_numpy()&features.bbo_valid.to_numpy()&features.rolling15_valid.to_numpy()&np.isfinite(features[fields].to_numpy(float)).all(axis=1)
+    source=binding_read(plan['execution_plan']);parts=[pq.read_table(binding_read(p),columns=['time','bid_open','ask_open']).to_pandas() for p in source['execution_tape_partitions']]
+    data=pd.concat(parts,ignore_index=True).sort_values('time');t=pd.DatetimeIndex(data.time).as_unit('ns').asi8
+    if np.any(t>=pd.Timestamp(plan['TEST_seal_utc']).value) or np.any(np.diff(t)<=0) or np.any(t%MINUTE):raise RuntimeError('P0_PREP_TAPE_CLOCK')
+    bid=data.bid_open.to_numpy(float);ask=data.ask_open.to_numpy(float)
+    if not np.isfinite(bid).all() or not np.isfinite(ask).all() or np.any(bid<=0) or np.any(ask<bid):raise RuntimeError('P0_PREP_TAPE_PRICE')
+    tape=m5.Tape(t,bid,ask,bid,ask)
+    # Resolve regular weekly closure separately; all residuals stay unclassified.
+    take=(t>=starts[0])&(t<decisions[-1]);study=t[take]
+    calendar=ev.regular_calendar(int(study[0]),int(study[-1]));gaps=ev.gap_inventory(study,calendar)
+    lengths=gaps.missing_minutes.to_numpy(np.int64);count=int(lengths.sum())
+    gidx=np.repeat(np.arange(len(gaps)),lengths);offset=np.arange(count)-np.repeat(np.cumsum(lengths)-lengths,lengths)
+    missing=gaps.start_ns.to_numpy()[gidx]+offset*MINUTE
+    weekly=scheduled_weekly_closure_mask(pd.DatetimeIndex(missing,tz='UTC'))
+    gaps.to_parquet(stage/'M5_RESEARCH_GAP_INVENTORY.parquet',index=False)
+    spec=io.read_json(REPO/'configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json');cot=macro.parse_cot_gold_archives(spec)
+    exceptions=binding_read(plan['COT_exceptions'])
+    unsafe=known_cot_delay_diagnostic_v1(decisions,pd.DatetimeIndex(cot.as_of),exceptions['announced_release_utc'])
+    out={'new_F_L_joint_input_rows':int(fl.sum()),'known_old_COT_availability_unsafe_rows':int(unsafe.sum()),
+      'COT_comparison_uses_announced_exceptions_not_full_actual_PIT_receipts':True,
+      'gap_inventory':{'missing_minutes':count,'weekly_closed_minutes':int(weekly.sum()),'remaining_daily_holiday_or_data_gap_unclassified':int((~weekly).sum()),'current_template_expected_open_missing_minutes':int(gaps.missing_during_current_regular_template.sum()),'historical_daily_holidays_qualified':False},'horizons':{}}
+    masks=pd.DataFrame({'decision_ns':decisions,'new_F_L_input_valid':fl,'known_old_COT_unsafe':unsafe})
+    for h in prep['horizons_minutes']:
+        ex=m5.execution_for_horizon_v2(decisions,tape,horizon_minutes=h,latency_seconds=60)
+        strict=m5.exact_intraday_mask_v3(decisions,tape,ex,horizon_minutes=h)
+        candidate=fl&strict['valid'];without_known_leak=candidate&~unsafe
+        masks['h'+str(h)+'_exact_M1_path']=strict['valid'];masks['h'+str(h)+'_candidate_after_known_COT_exclusion']=without_known_leak
+        central=m5.net_cash_values_v3(ex,economics=plan['economics']);sensitivity={}
+        elapsed=(ex.exit_ns-ex.entry_ns)/1e9
+        expected=np.column_stack((ex.long_gross_bps,ex.short_gross_bps))-plan['economics']['round_trip_execution_cost_bps']-elapsed[:,None]*np.asarray(plan['economics']['annual_financing_cost_bps'])[None,:]/plan['economics']['seconds_per_year']
+        if not np.allclose(central[ex.valid,:2],expected[ex.valid],rtol=0,atol=1e-12) or not np.all(central[ex.valid,2]==0):raise RuntimeError('P0_PREP_SHARED_CASH_OWNER')
+        # Pure cost deltas from the same v3 formula. No hypothetical strategy PnL.
+        for name,scenario in prep['economics_sensitivity'].items():
+            cost=scenario['round_trip_execution_cost_bps']+elapsed[:,None]*np.array(scenario['annual_financing_cost_bps'])[None,:]/plan['economics']['seconds_per_year']
+            base=plan['economics']['round_trip_execution_cost_bps']+elapsed[:,None]*np.array(plan['economics']['annual_financing_cost_bps'])[None,:]/plan['economics']['seconds_per_year']
+            d=base-cost
+            sensitivity[name]={'net_delta_vs_central_bps_LONG_SHORT':d[without_known_leak].mean(axis=0).tolist() if without_known_leak.any() else None,'historical_rates_inferred':False}
+        out['horizons'][str(h)]={'v2_execution_valid':int(ex.valid.sum()),'exact_M1_path_valid':int(strict['valid'].sum()),'old_valid_with_delayed_terminal':int(np.count_nonzero(ex.valid&(strict['terminal_delay_ns']>0))),'old_valid_with_interior_gap':int(np.count_nonzero(ex.valid&(strict['interior_gap_intervals']>0))),'new_FL_and_exact_path':int(candidate.sum()),'after_known_COT_leak_exclusion':int(without_known_leak.sum()),'same_cost_model_all_eight_arms':True,'cost_sensitivity':sensitivity}
+        del central
+    masks.to_parquet(stage/'P0_PREPARATION_MASKS.parquet',index=False)
+    out.update(models_fitted=False,TEST_accessed=False,P0_training_admitted=False,baseline_Exit_or_native_targets_changed=False,
+       blockers=prep['remaining_admission_gates'],native_D1_h20_qualification_separate=True)
+    return out
+
+
+def run_p0_preparation(binding_path):
+    identity='GC_P0_COHORT_PREPARATION_20261017_017';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('P0_PREP_BINDING')
+    binding=io.read_json(binding_path);rel='configs/research/'+identity+'.json';io.verify_digest(REPO/rel,binding['plan_sha256'],'P0_PREP_PLAN');plan=io.read_json(REPO/rel)
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_PREP_POLICY');io.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'P0_PREP_APPROVAL')
+    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_P0_cohort_preparation_017'];approval=io.read_json(root/'OPERATOR_APPROVAL.json')
+    if (gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0 or gate['execution_authorized'] is not False or policy['training_enabled'] is not False or approval['max_invocations']!=1 or approval['approved_plan_sha256']!=binding['plan_sha256'] or io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):raise RuntimeError('P0_PREP_AUTHORITY')
+    for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'P0_PREP_CODE')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry();stage=root/'.RESULTS.staging';stage.mkdir(exist_ok=False)
+    io.write_json(root/'EXECUTION_CLAIM.json',{'invocation':1,'source_head':binding['source_head']})
+    result=qualify_new_fl_p0(plan,stage);result['source_head']=binding['source_head'];result['limits']=proof
+    for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'P0_PREP_CODE_POST')
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_PREP_POLICY_POST')
+    if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):raise RuntimeError('P0_PREP_SOURCE_CHANGED')
+    io.write_json(stage/'RESULT.json',result);io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(stage/'RESULT.json')})
+    publish_bundle_directory_noreplace(stage,root/'RESULTS');print('GC_P0_COHORT_PREPARATION_COMPLETE',flush=True)
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser();group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--binding',type=Path);group.add_argument('--evaluation-binding',type=Path)
-    group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);args=parser.parse_args()
+    group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
     if args.binding is not None:run(args.binding)
     elif args.evaluation_binding is not None:run_evaluation(args.evaluation_binding)
     elif args.l1_binding is not None:run_l1_quality(args.l1_binding)
-    else:run_cash_review(args.cash_binding)
+    elif args.cash_binding is not None:run_cash_review(args.cash_binding)
+    else:run_p0_preparation(args.p0_preparation_binding)

@@ -96,3 +96,16 @@ def test_standardizer_uses_only_the_given_rows_and_spread_uses_the_closed_bar():
 def test_period_names():
     assert m5.period_name("2016-01-01", "2017-01-01") == "2016"
     assert m5.period_name("2025-01-01", "2026-07-01") == "2025-01_2026-07"
+
+
+def test_exact_intraday_research_mask_rejects_closure_and_delayed_quote():
+    from gx1.scripts.research_m5_intraday_recheck_v1 import Tape,execution_for_horizon_v2,exact_intraday_mask_v3,MINUTE_NS
+    t=np.arange(10,dtype=np.int64)*MINUTE_NS;bid=np.ones(10)*100.;ask=bid+.02
+    tape=Tape(t,bid,ask,bid,ask);dec=np.array([0],np.int64)
+    ex=execution_for_horizon_v2(dec,tape,horizon_minutes=5,latency_seconds=60)
+    assert exact_intraday_mask_v3(dec,tape,ex,horizon_minutes=5)['valid'][0]
+    keep=np.arange(10)!=3;broken=Tape(t[keep],bid[keep],ask[keep],bid[keep],ask[keep])
+    ex2=execution_for_horizon_v2(dec,broken,horizon_minutes=5,latency_seconds=60)
+    assert ex2.valid[0]
+    assert not exact_intraday_mask_v3(dec,broken,ex2,horizon_minutes=5)['valid'][0]
+    assert exact_intraday_mask_v3(dec,broken,ex2,horizon_minutes=5)['interior_gap_intervals'][0]==1
