@@ -75,3 +75,25 @@ def test_dst_session_anchor_is_local_wall_clock():
     p=dynamic_profiles_v2(t,[{100:1},{100:1}],np.ones(2,bool),np.zeros(2,int),np.ones(2)*100,1)
     np.testing.assert_array_equal(p['session_expected_minutes'],[5,5])
     assert p['session_complete_valid'].all()
+
+
+def test_real_failure_multiminute_boundary_response_is_batch_invariant():
+    e=np.vstack((events(),[70*NS,102,104,9,11],[90*NS,103,105,8,12],[130*NS,104,106,7,13]))
+    full=L1FeatureCollectorV2([0,1],1,origin_ns=0);full.consume(e)
+    prefix=L1FeatureCollectorV2([0,1],1,origin_ns=0);prefix.consume(e[e[:,0]<120*NS]);prefix.finish(120*NS)
+    batches=L1FeatureCollectorV2([0,1],1,origin_ns=0)
+    for chunk in [e[:2],e[2:4],e[4:]]:batches.consume(chunk)
+    np.testing.assert_array_equal(full.first,[101,102]);np.testing.assert_array_equal(full.last,[102,104])
+    for other in [prefix,batches]:
+        for key,v in full.values([True,True])[0].items():np.testing.assert_allclose(v,other.values([True,True])[0][key],atol=1e-12)
+
+
+def test_exact_parquet_readback_preserves_nan_vs_null_and_detects_change():
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    from gx1.features.gc_order_flow_v1 import exact_feature_readback_v2
+    t=pa.table({'x':[1.,float('nan'),None],'valid':[True,False,False]})
+    buffer=pa.BufferOutputStream();pq.write_table(t,buffer);actual=pq.read_table(pa.BufferReader(buffer.getvalue()))
+    assert exact_feature_readback_v2(t,actual)
+    assert not exact_feature_readback_v2(t,pa.table({'x':[1.,None,None],'valid':[True,False,False]}))
+    assert not exact_feature_readback_v2(t,pa.table({'x':[2.,float('nan'),None],'valid':[True,False,False]}))

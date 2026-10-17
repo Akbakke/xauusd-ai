@@ -273,6 +273,8 @@ class L1FeatureCollectorV2:
         self.sums=np.zeros((len(wanted),12),np.float64)
         self.covered=np.zeros(len(wanted),np.int64)
         self.first=np.full(len(wanted),np.nan);self.last=self.first.copy()
+        self.first_time=np.full(len(wanted),np.iinfo(np.int64).max,np.int64)
+        self.last_time=np.full(len(wanted),np.iinfo(np.int64).min,np.int64)
         self.reference_minutes=frozenset(reference_minutes);self.references=[]
     def file_start(self,item):
         if self.previous is not None:self.finish(self.end_ns)
@@ -296,8 +298,11 @@ class L1FeatureCollectorV2:
         np.add.at(self.covered,pos,duration)
         for j in range(5):np.add.at(self.sums[:,6+j],pos,vals[:,j]*duration)
         unique,first=np.unique(pos,return_index=True)
-        empty=np.isnan(self.first[unique]);self.first[unique[empty]]=mid[first[empty]]
-        last=np.r_[first[1:]-1,len(pos)-1];self.last[unique]=mid[last]
+        earliest=left[take][first];replace=earliest<self.first_time[unique]
+        self.first[unique[replace]]=mid[first[replace]];self.first_time[unique[replace]]=earliest[replace]
+        last=np.r_[first[1:]-1,len(pos)-1];latest=right[take][last]
+        replace=latest>self.last_time[unique]
+        self.last[unique[replace]]=mid[last[replace]];self.last_time[unique[replace]]=latest[replace]
     def consume(self,events):
         c=np.asarray(events,np.int64)
         if not len(c):return
@@ -429,3 +434,15 @@ def dynamic_profiles_v2(starts,histograms,valid,contracts,close,tick_usd):
             reaction=(close-previous)/tick_usd;reaction[~(same&valid&np.r_[False,valid[:-1]])]=np.nan
             out[family+'_'+level+'_prior_level_response_ticks']=reaction
     return out
+
+
+def exact_feature_readback_v2(expected,actual):
+    """Arrow defaults treat NaN != NaN; preserve schema, nulls and exact values."""
+    if not expected.schema.equals(actual.schema,check_metadata=True):return False
+    for name in expected.column_names:
+        a,b=expected[name],actual[name]
+        if not a.is_null().equals(b.is_null()):return False
+        if pa.types.is_floating(a.type):
+            if not np.array_equal(a.to_numpy(),b.to_numpy(),equal_nan=True):return False
+        elif not a.equals(b):return False
+    return True

@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T11:23:22.752868+00:00",
-  "status": "OPENBB_SOURCE_REVIEW_COMPLETE__GC_L1_DYNAMIC_FEATURE_BUILD_CLAIMED",
+  "status": "GC_FOUNDATION_PREFIX_REPAIR_CLAIMED__P0_BLOCKED_KNOWN_COT_RELEASE_LEAK",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "One isolated free OpenBB source review 014, then local existing-data GC foundation 015. All model training/TEST/live/paid calls remain closed.",
+  "next_action": "Run only foundation repair 016 under unchanged masks. Then quantify new F/L P0 overlap and exact M5 gap-free horizon support; correct research COT availability or explicitly exclude unsafe macro inputs before any future P0 admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "One isolated free OpenBB source review 014, then local existing-data GC foundation 015. All model training/TEST/live/paid calls remain closed.",
+    "current_activity": "Run only foundation repair 016 under unchanged masks. Then quantify new F/L P0 overlap and exact M5 gap-free horizon support; correct research COT availability or explicitly exclude unsafe macro inputs before any future P0 admission.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -179,7 +179,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No actual L1 values yet; plans 014/015 prepared, no model admission.",
+    "current_blocker": "015 price-response prefix mismatch corrected in new single-use 016. P0 also blocked by proven unsafe COT +7-day availability during 2025 shutdown; actual historical release/vintage admission remains unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7653,7 +7653,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "One isolated free OpenBB source review 014, then local existing-data GC foundation 015. All model training/TEST/live/paid calls remain closed.",
+    "next_action": "Run only foundation repair 016 under unchanged masks. Then quantify new F/L P0 overlap and exact M5 gap-free horizon support; correct research COT availability or explicitly exclude unsafe macro inputs before any future P0 admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9016,6 +9016,24 @@
     "gc_l1_dynamic_foundation_015": {
       "plan_path": "configs/research/GC_L1_DYNAMIC_FOUNDATION_20261017_015.json",
       "plan_sha256": "42616d9538e7fcda6aa0ac651babde216baff6855853cddbd3c622854dde6bde",
+      "status": "FAILED_PREFIX_CHECK_CONSUMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "fit_authorized": false,
+      "test_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_20261017_015",
+      "exit_code": 1,
+      "failure": "FOUNDATION_REAL_PREFIX:mid_response_ticks",
+      "failure_log_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_20261017_015/run.log",
+      "failure_log_sha256": "39d31bc13d96e0fe897beb9838f15aa26e134c34836bc4b9ab186acea5e8af9b",
+      "raw_post_rehash_completed": false
+    },
+    "gc_l1_dynamic_foundation_016": {
+      "plan_path": "configs/research/GC_L1_DYNAMIC_FOUNDATION_REPAIR_20261017_016.json",
+      "plan_sha256": "39a9a39477e932805f8e61a9bf4c17bc5b3798a802f74d8ed0e05c11e83609b9",
       "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
@@ -9024,7 +9042,16 @@
       "relaunch_authorized": false,
       "fit_authorized": false,
       "test_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_20261017_015"
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_L1_DYNAMIC_FOUNDATION_REPAIR_20261017_016"
+    },
+    "known_COT_publication_blocker_20261017": {
+      "native_implementation": "report_date + 7 calendar days",
+      "primary_evidence": "https://www.cftc.gov/PressRoom/PressReleases/9138-25",
+      "example_report_date": "2025-09-30",
+      "announced_publication_date": "2025-11-19",
+      "baseline_changed": false,
+      "P0_admitted": false,
+      "actual_receipts_for_all_reports_verified": false
     }
   },
   "gc_order_flow_research_20261006": {

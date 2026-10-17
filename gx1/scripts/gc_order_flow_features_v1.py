@@ -472,13 +472,13 @@ def foundation_worker_v2(group,tick,wanted,candidate,expected,references):
 
 
 def run_foundation_v2(binding_path):
-    identity='GC_L1_DYNAMIC_FOUNDATION_20261017_015';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    identity='GC_L1_DYNAMIC_FOUNDATION_REPAIR_20261017_016';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
     if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('FOUNDATION_BINDING')
     binding=previous.read_json(binding_path);path=REPO/'configs/research'/f'{identity}.json'
     previous.verify_digest(path,binding['plan_sha256'],'FOUNDATION_PLAN');plan=previous.read_json(path)
     previous.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'FOUNDATION_POLICY')
     previous.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'FOUNDATION_APPROVAL')
-    approval=previous.read_json(root/'OPERATOR_APPROVAL.json');policy=previous.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_l1_dynamic_foundation_015']
+    approval=previous.read_json(root/'OPERATOR_APPROVAL.json');policy=previous.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work']['gc_l1_dynamic_foundation_016']
     if (gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0 or gate['execution_authorized'] is not False or policy['training_enabled'] is not False or approval['approved_plan_sha256']!=binding['plan_sha256'] or approval['max_invocations']!=1 or previous.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):raise RuntimeError('FOUNDATION_AUTHORITY')
     for rel,digest in binding['code_sha256'].items():previous.verify_digest(REPO/rel,digest,'FOUNDATION_CODE')
     for item in plan['inputs'].values():previous.verify_digest(Path(item['path']),item['sha256'],'FOUNDATION_INPUT')
@@ -544,8 +544,9 @@ def run_foundation_v2(binding_path):
     prefix=features.dynamic_profiles_v2(start[:cut],histograms[:cut],volume_valid[:cut],out['contract_index'][:cut],native['m5_close_usd'].to_numpy()[:cut],plan['tick_usd'])
     for n,v in prefix.items():
         if not np.array_equal(v,levels[n][:cut],equal_nan=True):raise RuntimeError('FOUNDATION_PROFILE_PREFIX:'+n)
+    previous.write_json(stage/'PREPUBLICATION_CHECKS.json',{'raw_records':records,'real_L1_prefix_checks':checks,'profile_prefix_rows':cut,'volume_reconciliation':'EXACT_EVERY_ADMITTED_M5'})
     table=pa.table(out);output=stage/'M5_L1_DYNAMIC_FEATURES.parquet';pq.write_table(table,output,compression='zstd')
-    if not table.equals(pq.read_table(output)):raise RuntimeError('FOUNDATION_READBACK')
+    if not features.exact_feature_readback_v2(table,pq.read_table(output)):raise RuntimeError('FOUNDATION_READBACK')
     mt=pa.table({'bar_start_ns':minute,'ofi_valid':masks['ofi'],'bbo_valid':masks['bbo'],'integral_covered_ns':coverage_ns,**columns})
     pq.write_table(mt,stage/'M1_L1_FEATURES.parquet',compression='zstd')
     months=pd.DatetimeIndex(start,tz='UTC').strftime('%Y-%m').to_numpy()
