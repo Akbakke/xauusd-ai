@@ -130,11 +130,11 @@ def test_real_ladder_int32_minute_indices_profile_preflight(tmp_path):
     assert (tmp_path/'LEVEL_CHECKS.json').is_file()
 
 
-def test_full_gc_selection_uses_contract_known_at_minute_close():
+def test_full_gc_selection_uses_contract_known_at_minute_start():
     from gx1.features.gc_order_flow_v1 import full_gc_minute_selection_v2
     minute=60*NS;minutes=np.arange(8,dtype=np.int64)*minute
     roll={'contract_order':['A','B'],'schedule':[{'roll_at_ns':minute,'selected_symbol':'A'},{'roll_at_ns':6*minute,'selected_symbol':'B'}]}
-    np.testing.assert_array_equal(full_gc_minute_selection_v2(minutes,roll),[0,0,0,0,0,1,1,1])
+    np.testing.assert_array_equal(full_gc_minute_selection_v2(minutes,roll),[-1,0,0,0,0,0,1,1])
 
 
 def test_full_gc_history_repairs_missing_spot_opening_without_relaxing_quality():

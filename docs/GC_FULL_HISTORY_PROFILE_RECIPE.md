@@ -7,8 +7,9 @@ spot-eligible M1 coordinates. At the GC 18:00 New York anchor, 004 contains only
 can qualify from that subset. This is a history-selection limitation, separate
 from actual GC quality flags (some 18:04 rows also fail).
 
+019 corrects the 11 roll-minute differences caught before raw replay in 018.
 One new local-only full-clock build, no API/fit/TEST. Reuse the 004 causal roll
-schedule, making its choice available at each M1 close. Prove that every original
+schedule, making its choice available at each M1 START. Prove that every original
 native-eligible contract and all eleven trade metrics are unchanged. Extend
 eligibility to the GC source clock solely for profile history, keep EXACTLY the
 same source.row_masks trade-quality predicate, including repeated T signatures,

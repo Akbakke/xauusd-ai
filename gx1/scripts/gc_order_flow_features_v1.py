@@ -590,11 +590,11 @@ def full_profile_worker_v2(group,ci,selected,tick,stage):
 
 
 def run_full_history_profiles_v2(binding_path):
-    identity='GC_FULL_HISTORY_PROFILES_20261017_018';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
+    identity='GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019';root=Path('/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001')/identity
     if binding_path!=root/'EXECUTION_BINDING.json':raise RuntimeError('FULL_PROFILE_BINDING')
     binding=previous.read_json(binding_path);rel='configs/research/'+identity+'.json';previous.verify_digest(REPO/rel,binding['plan_sha256'],'FULL_PROFILE_PLAN');plan=previous.read_json(REPO/rel)
     previous.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'FULL_PROFILE_POLICY');previous.verify_digest(root/'OPERATOR_APPROVAL.json',binding['approval_sha256'],'FULL_PROFILE_APPROVAL')
-    policy=previous.read_json(REPO/'NEXT_RUN_POLICY.json');approval=previous.read_json(root/'OPERATOR_APPROVAL.json');gate=policy['current_work']['gc_full_history_profiles_018']
+    policy=previous.read_json(REPO/'NEXT_RUN_POLICY.json');approval=previous.read_json(root/'OPERATOR_APPROVAL.json');gate=policy['current_work']['gc_full_history_profiles_019']
     if (gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0 or gate['execution_authorized'] is not False or policy['training_enabled'] is not False or approval['max_invocations']!=1 or approval['approved_plan_sha256']!=binding['plan_sha256'] or previous.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):raise RuntimeError('FULL_PROFILE_AUTHORITY')
     for p,h in binding['code_sha256'].items():previous.verify_digest(REPO/p,h,'FULL_PROFILE_CODE')
     for b in plan['inputs'].values():previous.verify_digest(Path(b['path']),b['sha256'],'FULL_PROFILE_INPUT')

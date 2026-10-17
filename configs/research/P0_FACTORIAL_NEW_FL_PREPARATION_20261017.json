@@ -590,7 +590,7 @@
   ],
   "feature_sources": {
     "F": "GC_L1_DYNAMIC_FOUNDATION_FINALIZE_20261017_017 qualified L1 values",
-    "L": "GC_FULL_HISTORY_PROFILES_20261017_018 full GC clock history; exact result hash to be bound by preparation 019",
+    "L": "GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019 full GC history with exact 004 roll clock; actual result hash to be bound by preparation 020",
     "V": "unchanged original 16 native fields"
   }
 }

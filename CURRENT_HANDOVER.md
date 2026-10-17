@@ -564,3 +564,5 @@ P0 follow-up preparation added (no model run): exact new F12/L8 field list, orig
 016 consumed: all real L1 prefixes passed, profile step failed on actual int32 minute-index arithmetic. New 017 fixes cast, tests actual Arrow int32 ladder, preflights levels before raw replay and persists checked reductions. Existing structured latest-terminal binding restored; no source/data quality requirement changed. P0 preparation identity is 018, not launched.
 
 017 COMPLETE, exit 0, source unchanged, TEST=false: OFI/BBO 83,776, 12 real contract-prefix checks / 60 M1, rolling15 47,892 / rolling60 7,245, exact volumes and readback. Session-complete 0 because native-clock history omits 18:00–18:03 GC opening minutes. New 018 uses actual full GC clock with the identical quality predicate; 019 prepares matched F17/L18, no models.
+
+018 consumed at preflight, before any raw scan: 11 roll minutes differed because full-clock helper selected by minute close rather than 004 minute start. Corrected and all actual 004 eligible choices rechecked exactly. New 019 builds full GC profiles; P0 no-fit preparation is 020.

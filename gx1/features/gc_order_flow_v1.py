@@ -451,13 +451,13 @@ def exact_feature_readback_v2(expected,actual):
 def full_gc_minute_selection_v2(minutes,roll_schedule):
     """Same 004 contract decision, independent of the spot source's clock.
 
-    Selection is known at roll_at_ns <= minute close, matching 004. It is a
-    retrospective feature history available at its close, not an opening fill.
+    Selection is known at roll_at_ns <= minute START, exactly matching 004.
+    The 00:00 minute retains the prior choice when a new choice arrives 00:01.
     """
-    end=np.asarray(minutes,np.int64)+timing.MINUTE_NS
+    stamps=np.asarray(minutes,np.int64)
     dates=np.array([r['roll_at_ns'] for r in roll_schedule['schedule']],np.int64)
     if np.any(np.diff(dates)<=0):raise ValueError('GC_FULL_CLOCK_SCHEDULE_ORDER')
     ci=np.array([-1 if r['selected_symbol'] is None else roll_schedule['contract_order'].index(r['selected_symbol']) for r in roll_schedule['schedule']],np.int16)
-    pos=np.searchsorted(dates,end,side='right')-1
+    pos=np.searchsorted(dates,stamps,side='right')-1
     out=ci[np.maximum(pos,0)].copy();out[pos<0]=-1
     return out

@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-17T11:23:22.752868+00:00",
-  "status": "L1_83776_VERIFIED__FULL_GC_PROFILE_HISTORY_CLAIMED__P0_CLOSED",
+  "status": "FULL_GC_HISTORY_EXACT_ROLL_PREFLIGHT_PASSED__019_CLAIMED_P0_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Finish existing-data full GC history profile build 018 with unchanged quality, then quantify new F17/L18 overlap and exact M5 horizon support in preparation 019. Known COT release/vintage leak and model recipe keep all fitting closed.",
+  "next_action": "Only full-history profile correction 019, then bounded no-fit P0 cohort preparation 020. No model/TEST/paid calls.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Finish existing-data full GC history profile build 018 with unchanged quality, then quantify new F17/L18 overlap and exact M5 horizon support in preparation 019. Known COT release/vintage leak and model recipe keep all fitting closed.",
+    "current_activity": "Only full-history profile correction 019, then bounded no-fit P0 cohort preparation 020. No model/TEST/paid calls.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -182,7 +182,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "L1 verified. Spot-only ladder history cannot qualify any full GC session; 018 fills actual GC history without relaxing source quality. P0 also blocked by COT PIT and exact model/confirmation recipe.",
+    "current_blocker": "11 roll-minute mapping differences fixed and every 004 native-eligible M1 choice now matches. Full GC history 019 pending; known COT release/vintage issue and final model recipe still block P0.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7656,7 +7656,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Finish existing-data full GC history profile build 018 with unchanged quality, then quantify new F17/L18 overlap and exact M5 horizon support in preparation 019. Known COT release/vintage leak and model recipe keep all fitting closed.",
+    "next_action": "Only full-history profile correction 019, then bounded no-fit P0 cohort preparation 020. No model/TEST/paid calls.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9084,6 +9084,23 @@
     "gc_full_history_profiles_018": {
       "plan_path": "configs/research/GC_FULL_HISTORY_PROFILES_20261017_018.json",
       "plan_sha256": "857177dfd4f1a9df0d8bbfcab8f78cd90baa6017545d29052f5e3431369b6c4b",
+      "status": "FAILED_PREFLIGHT_11_ROLL_MINUTES_CONSUMED",
+      "execution_authorized": false,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "authorized_invocations": 1,
+      "relaunch_authorized": false,
+      "fit_authorized": false,
+      "test_authorized": false,
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_20261017_018",
+      "exit_code": 1,
+      "raw_scan_started": false,
+      "failure_log_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_20261017_018/run.log",
+      "failure_log_sha256": "b3615d49bc41c0180e5573bc0cbc8ef15d59edcf00facf5f832e77ca27efac1e"
+    },
+    "gc_full_history_profiles_019": {
+      "plan_path": "configs/research/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019.json",
+      "plan_sha256": "d334d8f8a7797b67c6d949b2a2511cadd6b758c879eda530112008b4417af97b",
       "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
       "claimed_invocations": 1,
@@ -9092,7 +9109,7 @@
       "relaunch_authorized": false,
       "fit_authorized": false,
       "test_authorized": false,
-      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_20261017_018"
+      "output_root": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_FULL_HISTORY_PROFILES_REPAIR_20261017_019"
     }
   },
   "gc_order_flow_research_20261006": {
