@@ -1,61 +1,40 @@
-# CURRENT HANDOVER — full-feature train/smoke 17.10.2026
+# CURRENT HANDOVER — fresh native raw rebuild and one epoch
 
-Authority: /home/andre2/src/GX1_CURRENT, work/gx1-current. NEXT_RUN_POLICY.json
-is the only work status. One agent/capped CURRENT job. Native training_enabled=false;
-TEST, baseline, Entry/Exit, production/live, broker and spending stay closed.
+Authority: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
+NEXT_RUN_POLICY.json is the sole work status. One agent, one capped heavy job.
 
-## Current boundary: completed CPU study, no learning/economic qualification
+## Active request
 
-Operator17.10 requested all informative fields checked, then26month train/smoke.
-027 qualification and028 train/smoke are COMPLETE once and consumed. No relaunch,
-extra steps, epochs, HPO, architecture selection or automatic extension admitted.
-Report: docs/TRANSFORMER_TCN_RESEARCH_20261017.md.
+User clarified17.–18.10 that the16.105s CPU miniature study did not satisfy
+the requested native training. Build a genuinely new26month dataset from raw
+XAU/GC MBP-1, verify every genuine feature reaches the actual native Transformer,
+then one full native epoch. Preserve h20. Latest proposed split:20months TRAIN
+and remaining months VAL/TEST, exact evaluation split pending user reply. All
+26months are reused development; no untouched confirmation claim is possible.
 
-Inputs: all254 native non-macro market fields from all eight genuine families,
-F12/L8/basis plus genuine GC-volume/trades and native session.278 raw fields,
-285 encoded channels.12,482 sequences of6bins,all26months. All23,807 physical
-consumed rows pass exact F/L/volume/trade/basis M1 aggregation/algebra; native
-field-ledger/domain/alias checks and285/285 channel derivatives pass. Only
-close_range_observed is constant, an availability flag.61 macro fields with
-publication gaps and incomplete signed flow stay out; missing history not filled.
+First new stage: configs/research/NATIVE_GC_RAW_REBUILD_20261018_001.json.
+Fresh raw scan of66MBP-1 files/892,100,712records, rederive causal rolls, quality,
+M1/M5 BBO/OFI and displayed order counts, preserve price-level buy/sell/unknown
+footprints, use existing volume/profile/CVD and SMC order-block owners on all
+canonical timeframes. No previous feature table is its input. Raw files and
+immutable source metadata are reused. Native wiring is still unfinished.
+Current status and raw single-use claim are in
+current_work.native_gc_rebuild_20261017. Raw stage claimed once; launch pending. No native epoch started yet.
 
-028 ran five purged chronological folds,20 fits (10neural),128steps/network,
-batch86 (every TRAIN row seen),1,280 optimizer steps total; terminal16.105s,
-CPU4G/512M/one numerical thread,source unchanged,TEST=false. All saved network
-weights strict-load with identical outputs.20fits completed; both neural models
-improve fresh initial MSE but neither beats TRAIN mean in any fold. Technical
-PASS is not learned edge.128steps is not an adequate convergence/capacity verdict.
+Next: complete fresh raw production, native feature ownership and explicit
+availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
+whole physical TRAIN normalization, fresh native initialization/baseline/parity,
+and exact one-epoch campaign with existing durable checkpoint/hardware guards.
+The user has authorized one epoch. training_enabled=false currently reflects
+unfinished qualification, not a request to seek that permission again.
 
-5,444 common development evaluation rows: MSE TRAIN-mean453.625, locked
-FLV456.367, Transformer588.528,TCN496.953bps². Central v3 net:Transformer
--2399.259bps,TCN-4293.029bps; cheapest declared cost scenario also negative.
-TCN versus Transformer simultaneous MSE interval includes zero. No qualified
-architecture winner; retain native Transformer as main candidate. Native full
-96bar/MTF Transformer was not retrained by this separate small-encoder study.
+## Preserved evidence and boundaries
 
-Independent post-check:3,035 trades/open marks match raw XAU M1 bid/ask, all
-cost scenarios and final daily equity; all five purge/embargo checks pass.
-Original native checkpoint unchanged. Economic marks include open positions
-and cost reserves, carry across fold boundaries, and have no fixed max hold.
-Historical funding/fills and intra-gap drawdown remain unqualified; all26months
-are reused development, never independent confirmation or realized profit.
+027/028 small CPU studies completed and consumed; no relaunch. Report:
+docs/TRANSFORMER_TCN_RESEARCH_20261017.md. They do not prove native fit, full
+MBP-1 utilization or lack of feature value. Original P0 NO-GO and all original
+receipts/checkpoints remain. Last real native fit15.10:4,071 Entry-only h20steps,
+65,136TRAIN rows; no new native fit on corrected-calendar/GC inputs.
 
-Artifacts: /home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/
-GC_SEQUENCE_ALL_FEATURES_QUALIFICATION_20261017_027/RESULTS and
-GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/RESULTS; atomic final review in
-GC_SEQUENCE_ALL_FEATURES_TRAIN_SMOKE_20261017_028/COMPLETION_REVIEW/REVIEW.json.
-Exact hashes/scope/current action: current_work.gc_sequence_research_20261017.
-Next: preserve evidence; diagnose before any newly bounded learning proposal.
-No new training launched or authorized automatically. GX1 is not closed.
-
-## Preserved native h20 and P0 boundaries
-
-Native last actual training15.10:4,071 Entry-only independent observed-h20 steps,
-65,136 unique TRAIN rows,150 Exit state fields unchanged. Latest checkpoint/recipe
-verified; newer exact-terminal h20 candidate642,214/646,543 baseline-valid rows
-has no corrected-calendar native fit. Historical calendar/COT publication and
-successor dataset/normalization/initialbaseline/campaign bindings remain blocked.
-
-Original GC/M5 P0 NO-GO stays preserved (docs/GC_P0_CLOSING_DIAGNOSIS_20261017.md).
-No old plan is reused. Qualified GC inputs, negative results, all original
-receipts and checkpoints remain. DATA/RUNS deletion only through retention owner.
+TEST from July2026, live/paper, broker, orders, spending and promotion closed.
+No source edits during heavy jobs. DATA/RUNS deletion only through retention.

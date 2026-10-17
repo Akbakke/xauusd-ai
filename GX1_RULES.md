@@ -321,3 +321,23 @@ to faste lineære fits og128 steg hver for liten Transformer/TCN per fold,
 maksimalt20fits/10nevrale fits,4G CPU-audit og1800s totalt. Ingen HPO eller
 utvidelse. Makro med uavklart publisering og manglende signert flow fylles ikke.
 Native h20/GPU/TEST og produksjon forblir lukket.
+
+## Operatørpresisering 17.–18.10.2026: nytt rådatasett og én native epoke
+
+Brukeren presiserte at CPU-ministudien ikke oppfylte oppgaven: nytt datasett fra
+starten på26måneder med MBP-1 og alle genuine features i den faktiske native
+Transformer-stien, deretter én full epoke (forventet12timer+). Dette er nytt
+vedtak for en ny datasett-/treningsidentitet, ikke relansering av gamle planer.
+H20 beholdes. Siste fordelingsønske er omtrent20måneder TRAIN og siste måneder
+VAL/TEST; eksakte datoer bindes før normalisering/mål/trening. Alle26måneder
+er tidligere undersøkt utvikling, så retrospektiv TEST er ikke urørt bekreftelse.
+Brukeren ba også kontrollere full MBP-1-utnyttelse, herunder footprint og kausale
+volumstøttede order-block-proxyer. Ukjent aggressor, manglende bokhistorikk og
+ikke-observert dybde/ordreidentitet skal aldri konstrueres.
+
+Én epoke er nå eksplisitt bestilt; den tidligere begrensede CPU-oppskriften og
+kravet om enda et eget epokevedtak brukes ikke til å avvise denne bestillingen.
+Før native launch består de faktiske datakvalitets-, mål-, kausalitets-,
+normaliserings-, fersk-baseline-, paritets-, maskinvare- og campaign-gatene.
+training_enabled=false er korrekt inntil en eksakt ny campaign er kvalifisert
+og bundet. Ingen automatisk ekstra epoke/HPO, TEST fra juli, broker eller handel.

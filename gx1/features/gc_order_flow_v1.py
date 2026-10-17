@@ -242,6 +242,8 @@ L1_FIELDS_V2 = ('ofi_contracts','bid_refill_contracts','ask_refill_contracts',
     'bid_depletion_contracts','ask_depletion_contracts','quote_updates',
     'tw_imbalance','tw_spread_ticks','tw_bid_contracts','tw_ask_contracts',
     'tw_microprice_offset_ticks','mid_response_ticks')
+L1_ORDER_COUNT_FIELDS_V1 = ('tw_bid_orders', 'tw_ask_orders', 'tw_order_count_imbalance',
+    'tw_bid_contracts_per_order', 'tw_ask_contracts_per_order')
 VALUE_AREA_FRACTION_V2 = (7,10)  # preregistered 70%, never fitted to outcomes
 
 
@@ -267,7 +269,7 @@ class L1FeatureCollectorV2:
     All values are later gated by the unchanged 012 clean-prior-minute mask.
     A file seam clears the anchor. Missing interior minutes are not filled.
     """
-    def __init__(self,wanted,tick_size,*,origin_ns=timing.STUDY_START_NS,reference_minutes=()):
+    def __init__(self,wanted,tick_size,*,origin_ns=timing.STUDY_START_NS,reference_minutes=(),include_order_counts=False):
         self.wanted=np.asarray(wanted,np.int64);self.tick_size=tick_size
         self.origin_ns=origin_ns;self.previous=None;self.end_ns=None
         self.sums=np.zeros((len(wanted),12),np.float64)
@@ -276,6 +278,10 @@ class L1FeatureCollectorV2:
         self.first_time=np.full(len(wanted),np.iinfo(np.int64).max,np.int64)
         self.last_time=np.full(len(wanted),np.iinfo(np.int64).min,np.int64)
         self.reference_minutes=frozenset(reference_minutes);self.references=[]
+        self.include_order_counts=include_order_counts
+        if include_order_counts:
+            self.order_sums=np.zeros((len(wanted),len(L1_ORDER_COUNT_FIELDS_V1)),np.float64)
+            self.order_covered=np.zeros(len(wanted),np.int64)
     def file_start(self,item):
         if self.previous is not None:self.finish(self.end_ns)
         self.previous=None;self.end_ns=item['end_ns']
@@ -297,6 +303,15 @@ class L1FeatureCollectorV2:
              (p[:,2]-p[:,1])*imbalance/2))
         np.add.at(self.covered,pos,duration)
         for j in range(5):np.add.at(self.sums[:,6+j],pos,vals[:,j]*duration)
+        if self.include_order_counts:
+            bc,ac=p[:,5],p[:,6]
+            observed=(bc>0)&(ac>0)&(bc<timing.UNDEF_SIZE)&(ac<timing.UNDEF_SIZE)
+            qty=np.column_stack((bc,ac,(bc-ac)/(bc.astype(float)+ac),
+                np.divide(q,bc,out=np.full(len(q),np.nan),where=bc>0),
+                np.divide(r,ac,out=np.full(len(r),np.nan),where=ac>0)))
+            np.add.at(self.order_covered,pos[observed],duration[observed])
+            for j in range(len(L1_ORDER_COUNT_FIELDS_V1)):
+                np.add.at(self.order_sums[:,j],pos[observed],qty[observed,j]*duration[observed])
         unique,first=np.unique(pos,return_index=True)
         earliest=left[take][first];replace=earliest<self.first_time[unique]
         self.first[unique[replace]]=mid[first[replace]];self.first_time[unique[replace]]=earliest[replace]
@@ -307,7 +322,7 @@ class L1FeatureCollectorV2:
         c=np.asarray(events,np.int64)
         if not len(c):return
         p=np.vstack((c[0] if self.previous is None else self.previous,c[:-1]))
-        transition=bbo_transition_v2(p,c)
+        transition=bbo_transition_v2(p[:,:5],c[:,:5])
         minute=(c[:,0]-self.origin_ns)//timing.MINUTE_NS
         pos,take=self._positions(minute)
         anchor=np.ones(len(c),bool)
@@ -332,6 +347,9 @@ class L1FeatureCollectorV2:
         cols=[data[n].to_numpy(zero_copy_only=False)[take].astype(np.int64) for n in
           ('ts_recv','bid_px_00','ask_px_00','bid_sz_00','ask_sz_00')]
         cols[1]//=self.tick_size;cols[2]//=self.tick_size
+        if self.include_order_counts:
+            cols.extend(data[n].to_numpy(zero_copy_only=False)[take].astype(np.int64)
+                        for n in ('bid_ct_00','ask_ct_00'))
         c=np.column_stack(cols)
         if self.reference_minutes and len(c):
             m=(c[:,0]-self.origin_ns)//timing.MINUTE_NS
@@ -356,6 +374,19 @@ class L1FeatureCollectorV2:
             else:v=self.last-self.first
             v[~(np.asarray(candidate,bool) if j<6 else mask)]=np.nan;out[name]=v
         return out,mask
+
+
+    def order_count_values(self,candidate):
+        """Observed BBO order counts, isolated from the unchanged 12-field book surface."""
+        if not self.include_order_counts:
+            raise RuntimeError('L1_ORDER_COUNTS_NOT_REQUESTED')
+        valid=np.asarray(candidate,bool)&(self.order_covered==timing.MINUTE_NS)
+        out={}
+        for j,name in enumerate(L1_ORDER_COUNT_FIELDS_V1):
+            values=self.order_sums[:,j]/timing.MINUTE_NS
+            values[~valid]=np.nan
+            out[name]=values
+        return out,valid
 
 
 def value_area_v2(histogram):

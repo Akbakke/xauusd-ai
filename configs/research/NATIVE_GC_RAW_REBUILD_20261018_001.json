@@ -1,0 +1,52 @@
+{
+  "schema_version": "gx1_native_raw_gc_input_rebuild_plan_v1",
+  "plan_id": "NATIVE_GC_RAW_REBUILD_20261018_001",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001",
+  "created_utc": "2026-10-17T22:01:59.818700+00:00",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "operator_request": "Fresh raw 26-month XAU/MBP-1 dataset, all genuine features in actual native Transformer path, then one full epoch; inspect full MBP-1 utilization including footprint and order-block proxies. Latest proposed split 20 months TRAIN and remaining months evaluation.",
+  "source_plan": {
+    "path": "configs/research/GC_M5_FEATURE_BUILD_20261017_006.json",
+    "sha256": "59e8fea20eab0d08433dbb3dccd1ac7ffa57e336e78f87723a06b3a5832ca267"
+  },
+  "expected_source_records": 892100712,
+  "worker_count": 4,
+  "worker_count_origin": "Explicit bounded raw-producer recipe: four within existing eight-CPU audit affinity; per-worker full clock metric/book/quality arrays remain subject to unchanged 4G cgroup.",
+  "study_start_inclusive": "2024-05-01T00:00:00Z",
+  "study_end_exclusive": "2026-07-01T00:00:00Z",
+  "max_wall_seconds": 64800,
+  "max_wall_origin": "Existing native core-rebuild 64800s ceiling; no training, extension or reset.",
+  "raw_derived_features_reused": false,
+  "reused": "Only hash-bound raw MBP-1 files, receipts, immutable contract definitions, and existing source/feature formula owners. Earlier source qualification is provenance, not rebuilt feature values.",
+  "output_features": [
+    "Raw source-quality metrics and causal previous-day selected-contract series",
+    "M1/M5 OFI, BBO refill/depletion, quote updates, time-weighted spread, sizes, imbalance, microprice and response",
+    "M1/M5 time-weighted bid/ask order counts, count imbalance, contracts per displayed BBO order",
+    "Selected M1 price-by-price observed buy/sell/unknown quantities for footprint; no guessed aggressor",
+    "Existing M5/M15/H1/H4/D1 trade volume, profile, footprint summaries, signed delta and reset CVD",
+    "Existing SMC causal volume-supported BOS/sweep/order-block zones, age, origin volume and retouch",
+    "Existing full-clock rolling15/rolling60 and observed-session profiles with unqualified historical holiday calendar explicitly flagged"
+  ],
+  "outputs_do_not_prove": [
+    "Historical feed completeness",
+    "Institutional order identity or hidden liquidity",
+    "Full-depth order book",
+    "Native wiring or train/serve parity",
+    "Whole native dataset completion",
+    "Learning or economics"
+  ],
+  "one_shot_invocations": 1,
+  "source_frozen_while_running": true,
+  "resource_owner": "scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M; unchanged lock, CPU0-7, one numerical thread, TasksMax64",
+  "training_enabled": false,
+  "test_data_used": false,
+  "new_fetch_spending_orders_allowed": false,
+  "next_stages": [
+    "Fresh raw XAU feature/MTF/M1 rebuild on same 26-month scope plus causal warmup",
+    "Native masked GC feature ownership, availability and actual model path proof",
+    "Corrected h20, chronological split purge, whole physical TRAIN normalization",
+    "Fresh initialization, initial baseline, parity, smoke and unchanged native campaign guards",
+    "One full epoch over every eligible TRAIN row with durable checkpoints; then frozen evaluation"
+  ]
+}
