@@ -370,7 +370,35 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
         and terminal.get("research_fit_completed") is True
         and terminal.get("native_training_started") is False
     )
-    test_witness = terminal.get("test_accessed" if research_terminal else "test_data_used")
+    # Exact consumed P0 receipts use TEST_accessed; preserve original bytes.
+    # This grants observation only and cannot admit native training.
+    p0_terminal = False
+    for key, completed_status in (
+        ("gc_p0_development_021", "COMPLETE_DEVELOPMENT_CONSUMED"),
+        ("gc_p0_review_022", "COMPLETE_NO_REFIT_REVIEW_CONSUMED"),
+    ):
+        gate = work.get(key, {})
+        exact_bound = (
+            binding == {"path": gate.get("terminal_path"), "sha256": gate.get("terminal_sha256")}
+            and gate.get("status") == completed_status
+            and gate.get("completed_invocations") == 1
+            and gate.get("execution_authorized") is False
+            and gate.get("relaunch_authorized") is False
+            and gate.get("test_authorized") is False
+            and terminal.get("status") == "COMPLETE"
+            and terminal.get("source_unchanged") is True
+        )
+        scope_closed = (
+            gate.get("native_training_authorized") is False
+            and terminal.get("research_fit_completed") is True
+        ) if key == "gc_p0_development_021" else (
+            gate.get("model_fit_authorized") is False
+            and type(terminal.get("models_refitted")) is int
+            and terminal["models_refitted"] == 0
+        )
+        p0_terminal |= exact_bound and scope_closed
+    test_witness = terminal.get("TEST_accessed" if p0_terminal else
+                                "test_accessed" if research_terminal else "test_data_used")
     failed_without_test_witness = (
         type(terminal.get("exit_code")) is int
         and terminal["exit_code"] != 0
@@ -380,7 +408,7 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
             or terminal["exit_code"] != work["terminal_exit_code"]
             or terminal.get("source_unchanged") is not work["source_unchanged_at_terminal"]
             or (test_witness is not False and not failed_without_test_witness)
-            or (research_terminal and "test_data_used" in terminal
+            or ((research_terminal or p0_terminal) and "test_data_used" in terminal
                 and terminal["test_data_used"] is not False)):
         raise ValueError("CURRENT_TERMINAL_STATE_MISMATCH")
     out["latest_terminal_receipt"] = terminal

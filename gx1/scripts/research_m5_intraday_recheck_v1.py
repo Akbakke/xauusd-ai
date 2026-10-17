@@ -1197,7 +1197,7 @@ def run_p0_development(binding_path):
             if path.is_file():
                 with path.open('rb') as f:os.fsync(f.fileno())
                 inventory[str(path.relative_to(stage))]={'sha256':io.sha256_file(path),'bytes':path.stat().st_size}
-        io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'TEST_accessed':False,'research_fit_completed':True,
+        io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,'TEST_accessed':False,'research_fit_completed':True,
             'result_sha256':io.sha256_file(stage/'RESULT.json'),'artifacts':inventory,'finished_utc':pd.Timestamp.now(tz='UTC').isoformat()})
         for name,b in inventory.items():io.verify_digest(stage/name,b['sha256'],'P0_ARTIFACT')
         for path in stage.glob('*.parquet'):

@@ -994,3 +994,36 @@ def test_default_cli_omits_history_but_retains_identity_and_current_gate(monkeyp
         assert payload["latest_terminal_evidence_gaps"] == ["test_data_used_field_missing"]
         assert payload["current_processes"] == [{"pid": "123"}]
         assert payload["next_run"]["decision"] == "BLOCKED"
+
+
+@pytest.mark.parametrize('kind', ['development','review'])
+@pytest.mark.parametrize('mutation', [None,'unbound','test_access','scope_open','relaunch','canonical_conflict'])
+def test_p0_exact_bound_witness_is_observation_only(fixture,monkeypatch,kind,mutation):
+    path,policy=_policy(fixture);work=policy['current_work']
+    terminal=Path(work['latest_terminal']['path'])
+    value={'status':'COMPLETE','exit_code':0,'source_unchanged':True,'TEST_accessed':False}
+    if kind=='development':value['research_fit_completed']=True
+    else:value['models_refitted']=0
+    if mutation=='test_access':value['TEST_accessed']=True
+    if mutation=='canonical_conflict':value['test_data_used']=True
+    terminal.write_text(json.dumps(value));digest=hashlib.sha256(terminal.read_bytes()).hexdigest()
+    work['latest_terminal']['sha256']=digest;work['terminal_exit_code']=0;work['source_unchanged_at_terminal']=True
+    key='gc_p0_development_021' if kind=='development' else 'gc_p0_review_022'
+    gate={'terminal_path':str(terminal),'terminal_sha256':digest,'completed_invocations':1,
+          'status':'COMPLETE_DEVELOPMENT_CONSUMED' if kind=='development' else 'COMPLETE_NO_REFIT_REVIEW_CONSUMED',
+          'execution_authorized':False,'relaunch_authorized':False,'test_authorized':False,
+          'native_training_authorized':False,'model_fit_authorized':False}
+    if mutation=='unbound':gate['terminal_sha256']='0'*64
+    if mutation=='relaunch':gate['relaunch_authorized']=True
+    if mutation=='scope_open':gate['native_training_authorized' if kind=='development' else 'model_fit_authorized']=True
+    work[key]=gate;path.write_text(json.dumps(policy))
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes',lambda _:[])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness',lambda _:{'decision':'BLOCKED','blocked_reasons':['native_closed']})
+    before=terminal.read_bytes()
+    if mutation is None:
+        observed=current_status(fixture)
+        assert observed['latest_terminal_receipt']==value
+        assert observed['next_run']['decision']=='BLOCKED'
+    else:
+        with pytest.raises(ValueError):current_status(fixture)
+    assert terminal.read_bytes()==before

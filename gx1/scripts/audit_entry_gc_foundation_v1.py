@@ -776,7 +776,7 @@ def run_p0_review(binding_path):
     for p,h in binding['code_sha256'].items():io.verify_digest(REPO/p,h,'P0_REVIEW_CODE_POST')
     io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'P0_REVIEW_POLICY_POST')
     if io.git_head()!=binding['source_head']:raise RuntimeError('P0_REVIEW_HEAD_POST')
-    io.write_json(stage/'RESULT.json',review);io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'result_sha256':io.sha256_file(stage/'RESULT.json'),'source_unchanged':True,'TEST_accessed':False,'models_refitted':0,'finished_utc':datetime.now(timezone.utc).isoformat()})
+    io.write_json(stage/'RESULT.json',review);io.write_json(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'result_sha256':io.sha256_file(stage/'RESULT.json'),'source_unchanged':True,'test_data_used':False,'TEST_accessed':False,'models_refitted':0,'finished_utc':datetime.now(timezone.utc).isoformat()})
     for p in stage.iterdir():
         with p.open('rb') as f:os.fsync(f.fileno())
     publish_bundle_directory_noreplace(stage,root/'RESULTS');print('P0_REVIEW_COMPLETE',flush=True)
