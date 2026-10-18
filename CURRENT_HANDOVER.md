@@ -47,7 +47,13 @@ The dataset reader keeps its complete-source narrow price glitch guard.
 Dataset013 FAILED at candidate finiteness: window-local volume recomputation
 reset its rolling prefix. Existing volume owner now computes on complete narrow
 source time/volume history and aligns exact timestamps.21focused tests pass.
-Next: execute signal/feature-surface/TRAIN-VAL dataset stage014 (claimed once, launch pending),
+Stage014 completed ranking, signal, M1/M5 feature projections and active
+cross-surface duplicate audit, then FAILED at legacy pretest split guard.
+VAL end was incorrectly coupled to raw TEST seal; separate selected VAL
+end <= manifest-bound July seal now supported. Exact exclusive midnight
+boundaries replace the five-minute shifted operator arguments. New015
+regenerates ranking/surface lineage; completed raw/enriched/cache stay reused.
+Next: execute corrected TRAIN/VAL dataset stage015 (claimed once, launch pending),
 then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,
@@ -103,3 +109,17 @@ Audit010 hit4G reading full history before filtering; closed, no result.011
 pushes TRAIN predicates into Parquet reading and completed within same4G cap.
 Final physical dataset, whole-TRAIN normalization, baseline/parity and epoch
 remain incomplete. Raw/feature generation alone does not qualify the model.
+
+User reaffirmed18October: ninth D1/macro family retained (all61 names checked
+in actual signal manifest); eight specialist encoders, D1 owned by existing
+session/regime encoder. M5 Entry prioritizes h20 observed market direction,
+independent of M1 Exit. Source branch skips Exit teacher/training and requires
+Exit-owned grad=None; fresh native smoke must also prove unchanged Exit weights.
+Periodic safe physical PC reboots and thorough end-to-end fault checks required.
+Next safe reboot boundary: completed dataset, machine-wide idle proof, before
+GPU admission; no interruption of active job. All training remains unstarted.
+
+Focused Entry-independent h20 checks:34pass, source/synthetic mechanics.
+One stale model-shape fixture generated Gaussian GC masks; fixture now uses
+valid observed=1. Production binary/missingness guards were retained.
+No full native physical batch/GPU smoke is claimed by these checks.

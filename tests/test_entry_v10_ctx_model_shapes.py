@@ -18,6 +18,7 @@ import torch
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CONT_DIM,
+    MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
 )
@@ -143,6 +144,10 @@ def _make_inputs(batch_size: int = 2) -> tuple:
     seq_x = torch.randn(batch_size, SEQ_LEN, SEQ_DIM)
     snap_x = seq_x[:, -1, :].clone()
     ctx_cont = torch.randn(batch_size, MODEL_NATIVE_CTX_CONT_DIM)
+    from gx1.features.gc_native_context_v1 import masking_pairs
+    for _, mask in masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS):
+        ctx_cont[:, mask] = 1.0
+
     nominal_indices = [
         index
         for values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[

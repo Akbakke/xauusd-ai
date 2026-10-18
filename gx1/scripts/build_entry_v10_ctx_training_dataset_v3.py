@@ -2744,8 +2744,8 @@ def _require_model_native_seq513_split_manifest_contract(
             not isinstance(test_guard, Mapping)
             or set(test_guard) != {"test_accessed", "test_boundary_utc"}
             or test_guard.get("test_accessed") is not False
-            or _parse_ts(str(test_guard.get("test_boundary_utc") or ""))
-            != parsed["val_end"]
+            or _parse_ts(str(test_guard.get("test_boundary_utc") or "")) is None
+            or parsed["val_end"] > _parse_ts(str(test_guard["test_boundary_utc"]))
         ):
             raise RuntimeError("MODEL_NATIVE_PRETEST_TEST_GUARD_INVALID")
     signal_contract = _require_model_native_manifest_contract(extra)
@@ -5535,7 +5535,7 @@ def main() -> None:
             <= train_end
             <= val_start
             <= val_end
-            == end
+            <= end
             and m5_source_times[-1] < end
         ):
             raise RuntimeError("MODEL_NATIVE_PRETEST_SPLIT_WINDOWS_INVALID")

@@ -322,7 +322,19 @@ if [[ $RESUME_EXACT_CHECKPOINTS -eq 1 ]]; then
   BUILDER_RESUME_ARGS+=(--resume-exact-checkpoints)
 fi
 if [[ $PRETEST_ONLY -eq 1 ]]; then
-  BUILD_END=$VAL_END
+  # Selected VAL may end before the raw source's canonical TEST seal.
+  # Read the exact immutable source declarations; their owners revalidate
+  # both bytes and authority below. Never infer the seal from a split date.
+  BUILD_END=$("$PY" - "$PRETEST_M1_SOURCE_MANIFEST" "$PRETEST_M5_SOURCE_MANIFEST" <<'PY_BOUNDARY'
+import json
+import sys
+from pathlib import Path
+boundaries = [json.loads(Path(p).read_text())["test_boundary_utc"] for p in sys.argv[1:]]
+if len(boundaries) != 2 or boundaries[0] != boundaries[1]:
+    raise RuntimeError("PRETEST_RAW_SOURCE_BOUNDARIES_DIFFER")
+print(boundaries[0])
+PY_BOUNDARY
+)
   AUTHORITY_ARGS=(--pretest-only
     --m1-lifecycle-pretest-pair-json "$PRETEST_PAIR_JSON"
     --m1-lifecycle-pretest-source-manifest "$PRETEST_M1_SOURCE_MANIFEST"

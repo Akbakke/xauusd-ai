@@ -219,8 +219,9 @@ def test_canonical_writer_records_one_exact_source(tmp_path: Path) -> None:
     assert manifest["inputs"]["source_parquet"] == str(source)
 
 
+@pytest.mark.parametrize("val_end", ["2026-04-01T00:00:00Z", "2026-07-01T00:00:00Z"])
 def test_pretest_split_contract_allows_touching_half_open_windows(
-    tmp_path: Path,
+    tmp_path: Path, val_end: str,
 ) -> None:
     """TRAIN's excluded end is allowed to equal VAL's included start."""
     extra = _extra(tmp_path)
@@ -241,7 +242,7 @@ def test_pretest_split_contract_allows_touching_half_open_windows(
         # Touching half-open boundary: VAL starts exactly at TRAIN's end.
         "val": {
             "start": "2026-01-31T23:55:00Z",
-            "end": "2026-07-01T00:00:00Z",
+            "end": val_end,
         },
     }
 
@@ -257,6 +258,11 @@ def test_pretest_split_contract_allows_touching_half_open_windows(
             splits=overlapping,
             extra=extra,
         )
+
+    crossing = copy.deepcopy(splits)
+    crossing['val']['end'] = '2026-07-02T00:00:00Z'
+    with pytest.raises(RuntimeError, match='MODEL_NATIVE_PRETEST_TEST_GUARD_INVALID'):
+        _require_model_native_seq513_split_manifest_contract(splits=crossing, extra=extra)
 
 
 def test_canonical_writer_rejects_missing_exact_source(tmp_path: Path) -> None:
