@@ -159,3 +159,16 @@ def test_streamed_summary_retains_less_memory_than_row_dictionaries() -> None:
     summary = builder._dataset_summary_batch(frame)
     pd.testing.assert_frame_equal(summary, pd.DataFrame(records), check_exact=True)
     assert int(summary.memory_usage(index=True, deep=True).sum()) < retained_records_bytes
+
+
+def test_wide_source_window_matches_slice_and_keeps_outside_price_guard(tmp_path):
+    frame = pd.DataFrame({'time':pd.date_range('2024-01-01',periods=8,freq='5min',tz='UTC'),
+                          'bid_close':[2000.0]*8,'ask_close':[2001.0]*8,'gc_payload':range(8)})
+    path = tmp_path/'source.parquet';frame.to_parquet(path,index=False)
+    begin,end = frame.time.iloc[4],frame.time.iloc[6]
+    expected = frame.loc[(frame.time>=begin)&(frame.time<=end)].reset_index(drop=True)
+    actual = builder._load_model_native_source_window(path,start=begin,end=end)
+    pd.testing.assert_frame_equal(actual.reset_index(drop=True), expected)
+    frame.loc[1,'bid_close'] = 200.0;frame.to_parquet(path,index=False)
+    with pytest.raises(RuntimeError,match='PRICE_SCALE_GLITCH'):
+        builder._load_model_native_source_window(path,start=begin,end=end)

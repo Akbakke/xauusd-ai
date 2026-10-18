@@ -3204,6 +3204,22 @@ def _dataset_summary_batch(frame: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+
+def _load_model_native_source_window(parquet_path: Path, *, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
+    """Keep the full-source price guard while reading wide channels only in scope."""
+    from gx1.io.price_glitch_guard import DEFAULT_PRICE_COLS
+    import pyarrow.parquet as pq
+    columns = pq.ParquetFile(parquet_path).schema_arrow.names
+    if 'time' not in columns:
+        raise RuntimeError('MODEL_NATIVE_SOURCE_TIME_COLUMN_REQUIRED')
+    audit = pd.read_parquet(parquet_path, columns=['time', *(n for n in DEFAULT_PRICE_COLS if n in columns)])
+    assert_no_price_scale_glitch(audit, context='MODEL_NATIVE_M5_SOURCE')
+    del audit
+    if 'is_model_bar' in columns:
+        raise RuntimeError('SOURCE_PARQUET_MIXED_GRANULARITY_FORBIDDEN: exact M5 source required')
+    return pd.read_parquet(parquet_path, filters=[('time', '>=', start), ('time', '<=', end)])
+
+
 def build_dataset_canonical(
     *,
     source_parquet: Path,
@@ -3319,8 +3335,9 @@ def build_dataset_canonical(
     parquet_sha = _sha256_file(parquet_path)
     log.info("[SOURCE_PARQUET] %s sha256=%s", parquet_path, parquet_sha)
 
-    # 2) Load parquet
-    df = pd.read_parquet(parquet_path)
+    # 2) Keep the complete-source narrow price check; push down the exact
+    # existing wide-frame range to avoid allocating unrelated GC history.
+    df = _load_model_native_source_window(parquet_path, start=start, end=end)
     df = df.reset_index(drop=False)
     time_col = _detect_time_col(df)
     df = _normalize_time_utc(df, time_col)

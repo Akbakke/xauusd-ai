@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "M1 stage009 complete after exact completed checkpoint reuse. Bind native TRAIN/VAL dataset stage012; no new native epoch.",
+    "current_activity": "Prepare dataset stage013 after measured ranker10G stop; equivalent Parquet predicates and exact owner-derived2023 support, full price guards/history owners retained.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -116,8 +116,8 @@
     "latest_terminal_role": "Failed legacy raw pair stage006, consumed; new direct-pretest feature stage007 uses the existing suitable route.",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_009/TERMINAL.json",
-      "sha256": "56aaccd544f101b1c57dbe913368a25a4f5526e32a88663b3cb38d0c1953e05b"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_012/TERMINAL.json",
+      "sha256": "93d29f6a0f6d003dcca98a844019c466a4bf685c9064310febffd315feb28f2a"
     },
     "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
@@ -9458,7 +9458,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "FRESH_M1_M5_COMPLETE__SIGNAL_AND_PHYSICAL_DATASET_PENDING",
+      "status": "DATASET_STAGE012_MEMORY_STOP__EXACT_PREDICATE_REPAIR_AND_NEW013",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9501,7 +9501,7 @@
         "Full footprint lattice is not directly ingested by the native model; summaries are used"
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_009/TERMINAL.json",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_012/TERMINAL.json",
       "completed_invocations": 0,
       "split_windows": {
         "train": [
@@ -9662,10 +9662,27 @@
       },
       "sparse_gc_availability_implementation": "Implemented explicit source/mask roles in existing availability/liveness owners; real observed support required, constants/duplicates reported, no usefulness inference. Legacy dense guards preserved.",
       "dataset_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "FAILED_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_DATASET_BUILD_20261018_012.json",
         "plan_sha256": "508b3137feabaa1e8685c4e7f0f521e479d1bdbae9d78ed87a713d42da100a7f",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_012",
+        "claimed_invocations": 1,
+        "completed_invocations": 0,
+        "execution_authorized": false,
+        "relaunch_allowed": false,
+        "native_epoch_authorized_by_this_stage": false,
+        "failed_invocations": 1,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_012/TERMINAL.json",
+          "sha256": "93d29f6a0f6d003dcca98a844019c466a4bf685c9064310febffd315feb28f2a"
+        },
+        "failure": "Ranker cgroup10G exit137 during wide source loading; no ranking, signal or dataset published. Source-cascade proof012 remains original."
+      },
+      "dataset_resume_stage": {
+        "status": "EXECUTION_CLAIMED",
+        "plan_path": "configs/research/NATIVE_GC_DATASET_BUILD_20261018_013.json",
+        "plan_sha256": "2bf021a8b3421a470f589d66959d8d82028df3c80bee76aaf4b1fde24dfbed2f",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_013",
         "claimed_invocations": 1,
         "completed_invocations": 0,
         "execution_authorized": false,

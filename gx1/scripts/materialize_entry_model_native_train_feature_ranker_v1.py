@@ -378,7 +378,9 @@ def _load_train_frame(
     checkpoint_key: str,
     context_m5: pd.DataFrame,
 ) -> Tuple[pd.DataFrame, List[str]]:
-    frame = pd.read_parquet(source_parquet)
+    frame = pd.read_parquet(source_parquet, filters=[
+        ("time", ">=", history_start), ("time", "<=", train_end),
+    ])
     if "time" not in frame.columns:
         raise RuntimeError("FEATURE_RANKER_SOURCE_TIME_COLUMN_MISSING")
     frame["time"] = pd.to_datetime(frame["time"], utc=True)

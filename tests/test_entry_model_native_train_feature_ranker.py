@@ -128,6 +128,9 @@ def _availability_fixture() -> tuple[list[str], dict[str, object], dict[str, flo
             for index in range(len(names))
         ]
     ).astype(np.float32)
+    from gx1.features.gc_native_context_v1 import masking_pairs
+    for _, mask in masking_pairs(names):
+        matrix[:, mask] = 1.0
     target = np.square(x.astype(np.float64))
     availability = ranker.fit_feature_availability_contract(
         matrix=matrix,
@@ -513,6 +516,9 @@ def test_direction_target_and_feature_selection_ignore_future_m1_suffix() -> Non
             for index in range(len(names))
         ]
     ).astype(np.float32)
+    from gx1.features.gc_native_context_v1 import masking_pairs
+    for _, mask in masking_pairs(names):
+        matrix[:, mask] = 1.0
     unpurged_availability = ranker.fit_feature_availability_contract(
         matrix=matrix,
         names=names,
