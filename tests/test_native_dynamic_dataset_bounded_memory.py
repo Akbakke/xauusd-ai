@@ -6,6 +6,7 @@ admission, physical peak RSS, learning quality, or a complete producer run.
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 
 import numpy as np
 import pandas as pd
@@ -183,3 +184,217 @@ def test_native_arrow_batch_rejects_unobserved_or_empty_nested_feature_cells(bad
     frame.at[frame.index[0], "seq"] = bad
     with pytest.raises((RuntimeError, ValueError, TypeError)):
         builder._dataset_arrow_batch(frame)
+
+
+# The source loader must retain every column and pandas' real on-disk semantics.
+# Tiny row groups deliberately exercise more than one Arrow chunk per column.
+def _write_scalar_source_fixture(tmp_path, *, glitch=False, mixed=False):
+    frame = pd.DataFrame(
+        {
+            "time": pd.date_range("2024-05-01", periods=8, freq="5min", tz="UTC"),
+            "bid_close": np.arange(8, dtype=np.float64) + 2000.0,
+            "ask_close": np.arange(8, dtype=np.float64) + 2000.5,
+            "genuine_float32": np.arange(8, dtype=np.float32) * np.float32(0.1),
+            "genuine_float64": np.arange(8, dtype=np.float64) / 7.0,
+            "nullable_integer": pd.array([0, 1, None, 3, 4, None, 6, 7], dtype="Int64"),
+            "nullable_boolean": pd.array([True, None, False, True, None, False, True, False], dtype="boolean"),
+            "categorical": pd.Categorical(
+                ["quiet", "active", None, "quiet", "active", "quiet", None, "active"],
+                categories=["quiet", "active"], ordered=True,
+            ),
+        },
+        index=pd.Index([11, 13, 17, 19, 23, 29, 31, 37], name="source_row"),
+    )
+    if glitch:
+        # Outside the selected window: the complete-source price guard remains.
+        frame.loc[frame.index[1], ["bid_close", "ask_close"]] *= 10.0
+    if mixed:
+        frame["is_model_bar"] = True
+    frame.attrs = {"source_role": "native_m5", "ordered_roles": {"value": "observed"}}
+    table = pa.Table.from_pandas(frame, preserve_index=True)
+    metadata = dict(table.schema.metadata or {})
+    metadata[b"PANDAS_ATTRS"] = json.dumps(frame.attrs).encode("utf-8")
+    path = tmp_path / "source.parquet"
+    pq.write_table(table.replace_schema_metadata(metadata), path, row_group_size=2)
+    return path, frame
+
+
+def test_bounded_source_loader_preserves_installed_pandas_parquet_semantics(
+    tmp_path, monkeypatch
+):
+    path, frame = _write_scalar_source_fixture(tmp_path)
+    start, end = frame["time"].iloc[2], frame["time"].iloc[6]
+    expected = pd.read_parquet(path, filters=[("time", ">=", start), ("time", "<=", end)])
+    assert pq.ParquetFile(path).metadata.num_row_groups == 4
+    original_read_table = pq.read_table
+    conversions = []
+
+    class ObservedArrowTable:
+        def __init__(self, table):
+            self.table = table
+
+        def __getattr__(self, name):
+            return getattr(self.table, name)
+
+        def to_pandas(self, **kwargs):
+            conversions.append(dict(kwargs))
+            assert kwargs.get("split_blocks") is True
+            assert kwargs.get("self_destruct") is True
+            assert kwargs.get("use_threads") is False
+            # Cache nothing from the Arrow object after self_destruct conversion.
+            assert max(column.num_chunks for column in self.table.columns) > 1
+            return self.table.to_pandas(**kwargs)
+
+    def observed_read_table(*args, **kwargs):
+        table = original_read_table(*args, **kwargs)
+        # The historical price audit is intentionally a separate narrow read.
+        if kwargs.get("filters") is not None:
+            assert kwargs.get("use_threads") is False
+            assert kwargs.get("use_pandas_metadata") is True
+            assert kwargs.get("columns") is None
+            return ObservedArrowTable(table)
+        return table
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(pq, "read_table", observed_read_table)
+        actual = builder._load_model_native_source_window(path, start=start, end=end)
+    assert len(conversions) == 1
+    pd.testing.assert_frame_equal(actual, expected)
+    assert actual.attrs == expected.attrs == frame.attrs
+    assert actual.columns.equals(frame.columns)
+    assert actual.index.equals(frame.index[2:7])
+    assert actual["nullable_integer"].dtype == pd.Int64Dtype()
+    assert actual["nullable_boolean"].dtype == pd.BooleanDtype()
+    assert actual["categorical"].dtype == frame["categorical"].dtype
+
+
+def test_source_loader_rejects_full_history_price_glitch_outside_window(tmp_path):
+    path, frame = _write_scalar_source_fixture(tmp_path, glitch=True)
+    with pytest.raises(RuntimeError, match="PRICE_SCALE_GLITCH"):
+        builder._load_model_native_source_window(
+            path, start=frame["time"].iloc[4], end=frame["time"].iloc[6]
+        )
+
+
+def test_source_loader_preserves_mixed_granularity_rejection(tmp_path):
+    path, frame = _write_scalar_source_fixture(tmp_path, mixed=True)
+    with pytest.raises(RuntimeError, match="SOURCE_PARQUET_MIXED_GRANULARITY_FORBIDDEN"):
+        builder._load_model_native_source_window(
+            path, start=frame["time"].iloc[2], end=frame["time"].iloc[6]
+        )
+
+
+def _legacy_normalize_time_utc(frame, time_col):
+    """Exact small-data reference for the pre-042 normalization semantics."""
+    out = frame.copy()
+    out["time"] = pd.to_datetime(out[time_col], utc=True, errors="coerce")
+    if out["time"].isna().any():
+        raise RuntimeError("TIME_PARSE_FAIL: time column could not be parsed to tz-aware UTC")
+    duplicate_count = int(out["time"].duplicated().sum())
+    if duplicate_count:
+        raise RuntimeError(f"TIME_DUPLICATE_ROWS: count={duplicate_count}")
+    out = out.sort_values("time", kind="mergesort").copy()
+    if len(out) == 0:
+        raise RuntimeError("EMPTY_AFTER_TIME_NORMALIZATION")
+    return out
+
+
+def _source_preparation_frame():
+    frame = pd.DataFrame(
+        {
+            "time": pd.date_range("2024-05-01", periods=9, freq="5min", tz="UTC"),
+            "bid_close": np.arange(9, dtype=np.float64) + 2000.0,
+            "ask_close": np.arange(9, dtype=np.float64) + 2000.5,
+            **{f"genuine_{i}": np.arange(9, dtype=np.float32) + np.float32(i / 8)
+               for i in range(32)},
+        },
+        index=pd.Index(np.arange(9) * 3 + 10, name="source_row"),
+    )
+    frame.attrs = {"role": "all_native_inputs", "clock": {"closed": True}}
+    return frame
+
+
+@pytest.mark.parametrize("start_position,end_position", [(0, 8), (2, 6), (4, 4)])
+def test_initial_native_preparation_preserves_inclusive_rows_without_wide_copy(
+    monkeypatch, start_position, end_position
+):
+    frame = _source_preparation_frame()
+    original = frame.copy(deep=True)
+    attrs_before = deepcopy(frame.attrs)
+    start, end = frame["time"].iloc[start_position], frame["time"].iloc[end_position]
+    expected = _legacy_normalize_time_utc(frame.reset_index(drop=False), "time")
+    expected = expected[(expected["time"] >= start) & (expected["time"] <= end)]
+    payload_columns = {name for name in frame if name.startswith("genuine_")}
+    original_copy = pd.DataFrame.copy
+
+    def forbid_wide_deepcopy(self, deep=True):
+        if payload_columns.issubset(self.columns) and deep is not False:
+            raise AssertionError("native initial preparation copied the complete feature width")
+        return original_copy(self, deep=deep)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(pd.DataFrame, "copy", forbid_wide_deepcopy)
+        actual = builder._prepare_model_native_source_window(frame, start=start, end=end)
+    pd.testing.assert_frame_equal(actual, expected)
+    pd.testing.assert_frame_equal(frame, original)
+    assert frame.attrs == actual.attrs == attrs_before
+    assert actual["time"].iloc[0] == start
+    assert actual["time"].iloc[-1] == end
+    for name in sorted(payload_columns):
+        assert np.shares_memory(actual[name].to_numpy(), frame[name].to_numpy())
+
+
+def test_initial_native_preparation_unsorted_rows_match_legacy_stable_normalization():
+    frame = _source_preparation_frame().iloc[[5, 0, 8, 3, 1, 6, 2, 7, 4]].copy()
+    original = frame.copy(deep=True)
+    start, end = frame["time"].min() + pd.Timedelta(minutes=5), frame["time"].max() - pd.Timedelta(minutes=5)
+    expected = _legacy_normalize_time_utc(frame.reset_index(drop=False), "time")
+    expected = expected[(expected["time"] >= start) & (expected["time"] <= end)]
+    actual = builder._prepare_model_native_source_window(frame, start=start, end=end)
+    pd.testing.assert_frame_equal(actual, expected)
+    pd.testing.assert_frame_equal(frame, original)
+    assert actual.attrs == expected.attrs == original.attrs
+
+
+@pytest.mark.parametrize("copy_data", [True, False])
+@pytest.mark.parametrize("bad_clock", ["malformed", "duplicate", "empty"])
+def test_time_normalization_errors_match_legacy_for_both_copy_modes(copy_data, bad_clock):
+    frame = pd.DataFrame({"time": ["2024-05-01T00:05:00Z", "2024-05-01T00:00:00Z"], "value": [1.0, 2.0]})
+    if bad_clock == "malformed":
+        frame.loc[0, "time"] = "not-a-time"
+    elif bad_clock == "duplicate":
+        frame.loc[0, "time"] = frame.loc[1, "time"]
+    else:
+        frame = frame.iloc[0:0]
+    original = frame.copy(deep=True)
+    with pytest.raises(RuntimeError) as legacy_error:
+        _legacy_normalize_time_utc(frame, "time")
+    with pytest.raises(RuntimeError) as actual_error:
+        builder._normalize_time_utc(frame, "time", copy_data=copy_data)
+    assert str(actual_error.value) == str(legacy_error.value)
+    pd.testing.assert_frame_equal(frame, original)
+
+
+@pytest.mark.parametrize("copy_data", [True, False])
+def test_time_normalization_preserves_stable_sort_values_and_input(copy_data):
+    frame = pd.DataFrame(
+        {"stamp": ["2024-05-01T00:10:00Z", "2024-05-01T00:00:00Z", "2024-05-01T00:05:00Z"],
+         "genuine": np.array([3.5, 1.5, 2.5], dtype=np.float32)},
+        index=pd.Index([31, 17, 23], name="native_row"),
+    )
+    frame.attrs = {"source": "native"}
+    original = frame.copy(deep=True)
+    expected = _legacy_normalize_time_utc(frame, "stamp")
+    actual = builder._normalize_time_utc(frame, "stamp", copy_data=copy_data)
+    pd.testing.assert_frame_equal(actual, expected)
+    pd.testing.assert_frame_equal(frame, original)
+    assert actual.attrs == expected.attrs == frame.attrs
+
+
+def test_time_normalization_default_retains_deep_data_isolation():
+    frame = _source_preparation_frame()
+    original_value = frame["genuine_0"].iloc[0]
+    actual = builder._normalize_time_utc(frame, "time")
+    assert not np.shares_memory(actual["genuine_0"].to_numpy(), frame["genuine_0"].to_numpy())
+    actual.loc[actual.index[0], "genuine_0"] = np.float32(-123.0)
+    assert frame["genuine_0"].iloc[0] == original_value

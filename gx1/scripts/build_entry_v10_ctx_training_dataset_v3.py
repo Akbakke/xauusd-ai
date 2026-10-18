@@ -2089,8 +2089,10 @@ def _detect_time_col(df: pd.DataFrame) -> str:
     )
 
 
-def _normalize_time_utc(df: pd.DataFrame, time_col: str) -> pd.DataFrame:
-    out = df.copy()
+def _normalize_time_utc(
+    df: pd.DataFrame, time_col: str, *, copy_data: bool = True,
+) -> pd.DataFrame:
+    out = df.copy(deep=copy_data)
     out["time"] = pd.to_datetime(out[time_col], utc=True, errors="coerce")
     if out["time"].isna().any():
         raise RuntimeError(
@@ -2099,7 +2101,10 @@ def _normalize_time_utc(df: pd.DataFrame, time_col: str) -> pd.DataFrame:
     duplicate_count = int(out["time"].duplicated().sum())
     if duplicate_count:
         raise RuntimeError(f"TIME_DUPLICATE_ROWS: count={duplicate_count}")
-    out = out.sort_values("time", kind="mergesort").copy()
+    if copy_data or not out["time"].is_monotonic_increasing:
+        out = out.sort_values("time", kind="mergesort")
+        if copy_data:
+            out = out.copy()
     if len(out) == 0:
         raise RuntimeError("EMPTY_AFTER_TIME_NORMALIZATION")
     return out
@@ -3536,7 +3541,33 @@ def _load_model_native_source_window(parquet_path: Path, *, start: pd.Timestamp,
     del audit
     if 'is_model_bar' in columns:
         raise RuntimeError('SOURCE_PARQUET_MIXED_GRANULARITY_FORBIDDEN: exact M5 source required')
-    return pd.read_parquet(parquet_path, filters=[('time', '>=', start), ('time', '<=', end)])
+    table = pq.read_table(parquet_path, filters=[('time', '>=', start), ('time', '<=', end)],
+                          use_threads=False, use_pandas_metadata=True)
+    # Preserve pandas' attrs restoration, but cache metadata BEFORE Arrow's
+    # self_destruct transfer. Never inspect the consumed table afterward.
+    metadata = dict(table.schema.metadata or {})
+    frame = table.to_pandas(split_blocks=True, self_destruct=True, use_threads=False)
+    if b"PANDAS_ATTRS" in metadata:
+        frame.attrs = json.loads(metadata[b"PANDAS_ATTRS"])
+    return frame
+
+
+def _prepare_model_native_source_window(
+    frame: pd.DataFrame, *, start: pd.Timestamp | None, end: pd.Timestamp | None,
+) -> pd.DataFrame:
+    """Normalize only metadata/time, then retain the exact inclusive row view."""
+    prepared = frame.copy(deep=False)
+    prepared.reset_index(drop=False, inplace=True)
+    prepared = _normalize_time_utc(prepared, _detect_time_col(prepared), copy_data=False)
+    assert_no_price_scale_glitch(prepared, context="MODEL_NATIVE_M5_SOURCE")
+    if "is_model_bar" in prepared.columns:
+        raise RuntimeError("SOURCE_PARQUET_MIXED_GRANULARITY_FORBIDDEN: exact M5 source required")
+    clock = pd.DatetimeIndex(prepared["time"])
+    left = 0 if start is None else int(clock.searchsorted(start, side="left"))
+    right = len(prepared) if end is None else int(clock.searchsorted(end, side="right"))
+    if left == 0 and right == len(prepared):
+        return prepared
+    return prepared.iloc[left:right]
 
 
 def build_dataset_canonical(
@@ -3660,25 +3691,10 @@ def build_dataset_canonical(
 
     # 2) Keep the complete-source narrow price check; push down the exact
     # existing wide-frame range to avoid allocating unrelated GC history.
-    df = _load_model_native_source_window(parquet_path, start=start, end=end)
-    df = df.reset_index(drop=False)
-    time_col = _detect_time_col(df)
-    df = _normalize_time_utc(df, time_col)
-    assert_no_price_scale_glitch(
-        df,
-        context="MODEL_NATIVE_M5_SOURCE",
+    df = _prepare_model_native_source_window(
+        _load_model_native_source_window(parquet_path, start=start, end=end),
+        start=start, end=end,
     )
-
-    if "is_model_bar" in df.columns:
-        raise RuntimeError(
-            "SOURCE_PARQUET_MIXED_GRANULARITY_FORBIDDEN: exact M5 source required"
-        )
-
-    # filter by start/end
-    if start is not None:
-        df = df[df["time"] >= start]
-    if end is not None:
-        df = df[df["time"] <= end]
 
     if len(df) == 0:
         raise RuntimeError("NO_ROWS_AFTER_FILTERS")

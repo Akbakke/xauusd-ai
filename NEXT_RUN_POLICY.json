@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-18T21:03:03.173678+00:00",
-  "status": "042_DATASET_ONLY_SUCCESSOR_READY__041_33_PASS__039_PROJECTIONS_AND_V5_PASS_REUSED__TRAINING_FALSE",
+  "observed_utc": "2026-10-18T21:34:35.328576+00:00",
+  "status": "044_DATASET_ONLY_SUCCESSOR_READY__043_49_PASS__EARLY_SOURCE_COPIES_REMOVED__TRAINING_FALSE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Execute fresh042 once after exact clean source/policy/controller/validator binding. Reuse actual039 inputs/audit; existing10G builder and4G gates, no recomputation or capextension. Then actual wholeTRAINregistry/current metadata/normalization/native Entry-only qualification before one requested full epoch. Never relaunch consumed039.",
+  "next_action": "Execute unique044 once after clean source/policy/plan/controller/validator seals. Correct measured042earlywide copies, preserve all values/dtypes/attrs/rows/guards/caps and genuine039 outputs/v5audit. No consumed042 relaunch. Then actual wholeTRAINregistry/current metadata/normalization/native Entry-only qualification before one requested epoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "042_DATASET_ONLY_SUCCESSOR_READY__041_33_PASS__039_PROJECTIONS_AND_V5_PASS_REUSED__TRAINING_FALSE",
+    "current_activity": "044_DATASET_ONLY_SUCCESSOR_READY__043_49_PASS__EARLY_SOURCE_COPIES_REMOVED__TRAINING_FALSE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute fresh042 once after exact clean source/policy/controller/validator binding. Reuse actual039 inputs/audit; existing10G builder and4G gates, no recomputation or capextension. Then actual wholeTRAINregistry/current metadata/normalization/native Entry-only qualification before one requested full epoch. Never relaunch consumed039.",
+    "next_action": "Execute unique044 once after clean source/policy/plan/controller/validator seals. Correct measured042earlywide copies, preserve all values/dtypes/attrs/rows/guards/caps and genuine039 outputs/v5audit. No consumed042 relaunch. Then actual wholeTRAINregistry/current metadata/normalization/native Entry-only qualification before one requested epoch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9457,7 +9457,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "042_DATASET_ONLY_SUCCESSOR_READY__041_33_PASS__039_PROJECTIONS_AND_V5_PASS_REUSED__TRAINING_FALSE",
+      "status": "044_DATASET_ONLY_SUCCESSOR_READY__043_49_PASS__EARLY_SOURCE_COPIES_REMOVED__TRAINING_FALSE",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -10909,13 +10909,13 @@
           "elapsed_seconds": 18.831243984999674
         },
         "physical_dataset_stage_042": {
-          "status": "READY_ONE_FRESH_DATASET_ONLY_SUCCESSOR_AFTER041",
+          "status": "FAILED_137_CONSUMED__EXACT_SCOPE_MEMCG_OOM_BEFORE_FIRST_SOURCE_SESSION_LOG",
           "plan_path": "configs/research/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_042.json",
           "plan_sha256": "98ab8840625c6ff0c7b9388b632fc69cfa8ce9806968a75133523ee22911e105",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_042",
           "planned_invocations": 1,
-          "completed_invocations": 0,
-          "execution_authorized": true,
+          "completed_invocations": 1,
+          "execution_authorized": false,
           "relaunch_allowed": false,
           "native_training_authorized": false,
           "native_input_admission": false,
@@ -10975,7 +10975,72 @@
           },
           "reuse": "Exact039signal/M1/M5/v5overlapPASS; unchanged022/026/cache/cascade/034ranking/040clock. Only bounded preflight+freshphysicalTRAIN_VAL and actual sequence reconstruction.",
           "physical_peak_memory_qualified": false,
-          "pending_after_physical": "Actual wholeTRAINregistryfit/effective semantic parity/current immutable metadata/normalization/fresh Entry-only native baseline+consumption+optimizer/resume/hardware; exactly one requested epoch remains gated."
+          "pending_after_physical": "Actual wholeTRAINregistryfit/effective semantic parity/current immutable metadata/normalization/fresh Entry-only native baseline+consumption+optimizer/resume/hardware; exactly one requested epoch remains gated.",
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_042/TERMINAL.json",
+            "sha256": "15ab56d7089a23cac87e6fab664f5ebc538340f35df8c51357653b1371a5ebea"
+          },
+          "source_unchanged": true,
+          "builder_stage_exit_code": 137,
+          "elapsed_seconds": 602.1378307440009,
+          "input_reuse_preflight_exit_code": 0,
+          "input_reuse_preflight_elapsed_seconds": 141.5751018789997,
+          "input_reuse_validation": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_042/REUSED_INPUTS_VALIDATION.json",
+            "sha256": "7320d44e3755da43d904ac6361ad624a107728f755c47578ebe42fc4aaed78cf"
+          },
+          "memory_diagnosis": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_042/FAILURE_MEMORY_SOURCE_REVIEW.json",
+            "sha256": "2087ea34c67dcb53466f069bb73553da3c2e7cba395254bed59eb3f2c602ba73"
+          }
+        },
+        "qualification_followup_043": {
+          "status": "PASS_CONSISTENCY_ONLY",
+          "root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_SOURCE_QUALIFICATION_20261018_043",
+          "planned_invocations": 1,
+          "max_wall_seconds": 900,
+          "consistency_only": true,
+          "source_frozen_while_running": true,
+          "native_training_started": false,
+          "test_data_used": false,
+          "scope": "Exact filtered Parquet rows/columns/dtypes/index/PANDAS_ATTRS, full-source narrow price guard retained, only canonical no-widecopy time/range preparation, legacy default isolation unchanged. Reuse041Arrow/schema/finite checks and all unaffected036/038 target/model checks.",
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_SOURCE_QUALIFICATION_20261018_043/TERMINAL.json",
+            "sha256": "8b053b5d6de5cf641b6e72623a05f6560fa0c1c5fe6f743a02c69e28e18d5177"
+          },
+          "passed_test_cases": 49,
+          "failed_test_cases": 0,
+          "exit_code": 0,
+          "source_unchanged": true,
+          "elapsed_seconds": 18.245892860999447
+        },
+        "physical_dataset_stage_044": {
+          "status": "READY_ONE_FRESH_DATASET_ONLY_SUCCESSOR_AFTER043",
+          "plan_path": "configs/research/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_044.json",
+          "plan_sha256": "541ae4a5c50c7f340a5b2a835384bf5038d996947e0311b4eb68219dc5102687",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_044",
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "execution_authorized": true,
+          "relaunch_allowed": false,
+          "native_training_authorized": false,
+          "native_input_admission": false,
+          "test_data_used": false,
+          "source_frozen_while_running": true,
+          "max_wall_seconds": 64800,
+          "physical_build_only": true,
+          "emission_scope": "m5_dynamic_observed",
+          "focused_qualification_terminal": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_SOURCE_QUALIFICATION_20261018_043/TERMINAL.json",
+            "sha256": "8b053b5d6de5cf641b6e72623a05f6560fa0c1c5fe6f743a02c69e28e18d5177"
+          },
+          "ranker_effective_dependency_proof": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_044/RANKER_EFFECTIVE_DEPENDENCY_REUSE.json",
+            "sha256": "bbdd6f1c6b4ff37f8082985ddb4ef53233402039fa0607d36f75a923d4576510"
+          },
+          "reuse": "All actual039 inputs/audit and unchanged rawGC/040 parents; preserve042exactreuse proof lineage but revalidate current inputs/source. Only earlywide canonical source allocation changed.",
+          "physical_peak_memory_qualified": false,
+          "pending_after_physical": "Actual wholeTRAINregistry/current immutable metadata/normalization/Entry-only native qualification then one requested full epoch; training remains false."
         }
       },
       "operator_pc_reboot_20261018": {
@@ -11000,7 +11065,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Execute fresh042 once after exact clean source/policy/controller/validator binding. Reuse actual039 inputs/audit; existing10G builder and4G gates, no recomputation or capextension. Then actual wholeTRAINregistry/current metadata/normalization/native Entry-only qualification before one requested full epoch. Never relaunch consumed039."
+      "next_action": "Execute unique044 once after clean source/policy/plan/controller/validator seals. Correct measured042earlywide copies, preserve all values/dtypes/attrs/rows/guards/caps and genuine039 outputs/v5audit. No consumed042 relaunch. Then actual wholeTRAINregistry/current metadata/normalization/native Entry-only qualification before one requested epoch."
     },
     "native_xau_pair_failure_20261018": {
       "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006/TERMINAL.json",
@@ -13592,5 +13657,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-18T21:03:03.173678+00:00"
+  "updated_utc": "2026-10-18T21:34:35.328576+00:00"
 }

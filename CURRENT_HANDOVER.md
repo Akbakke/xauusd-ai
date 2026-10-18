@@ -50,33 +50,30 @@ står ved lag etter alle eksisterende admissionporter. Trening er fortsatt steng
   Dette er publiserte komponenter, fortsatt ingen fysisk TRAIN/VAL- eller
   modellinputadmission.
 
-## Aktuell hindring:039minnetopp i fysisk datasetbygg
+## Aktuell hindring:042tidlig kildeframe-MEMCG-OOM
 
-039 er konsumert med terminalFAILED_NO_ADMISSION18.10 kl20:37:40UTC,
-3234.480s, kilde uendret, builderexit137. Ingen039prosess lever. Start aldri039
-på nytt. Begge ferske SMC-projeksjoner er ferdige:1110839M1-/1140763M5rader.
-Den uttømmende strictv5overlapauditen består: alle12SMC-aliaspar er eksakte,
-31geometripar har ulike faktiske parametre og er genuine, alle94gamle
-konstantkollisjoner er kilde-/maskebeviste diagnostikker. Ingen ekte feature
-er fjernet. Gjenbruk faktiske039outputs og beståtte bevis.
+042 er konsumert:21:16:42UTC,602.138s, uendret kilde, builderexit137 etter
+460.442s. Alle042prosesser er borte. Kernelens OOM-scope er eksakt lik den
+lagrede builder-cgruppen:10GiBminne/512MiBswap var fullt. Dette er minnestopp,
+men den eksakte maskininstruksjonen er ikke bevist. Siste logg er SOURCE_PARQUET;
+SESSION_ID_DISTRIBUTION_PROOF mangler. Undersøk kun første wide kildelesing,
+reset/UTC-normalisering/rangefiltre og samtidig beholdte foreldre før ny rettelse.
+041s senere warmup/finite/Arrow-rettelser ble ikke nådd av042.
 
-Fysisk TRAIN/VAL ble ikke publisert. Siste logg er D1attach; neste warmuplogg
-mangler. Mellom dem gjør pandas reset_index en dyp kopi/konsolidering av
-hele den brede rammen. Bare2410GCkolonner er1.688GiB per kopi. Kernel viser
-MEMCG-OOM, men kernelPID er ikke direkte bundet til observert UbuntuPID;
-den eksakte maskininstruksjonen er ikke bevist. Kildebeviste senere topper er
-hele boolmatriser og512x96x2725Pythonfloat-lister før Arrow. Minste rettelse
-bevarer eksakte rader, schema, verdier, alle guards og eksisterende minnecap:
-nullstill trimmet indeks uten datakopi, frigjør sisteGCvisning, kontroller
-finiteverdier uttømmende i batcher og skriv typede Arrowarrays.
+042s capped gjenbrukspreflight består:141.575s, exit0, eksakte råforeldre,
+GC-/040klokke-/ranking-/signal-/featurebase-/strictv5bindings.039s ferdige
+projeksjoner1110839M1/1140763M5 og fulle v5PASS skal fortsatt gjenbrukes.
+Ingen ekte feature eller guard fjernes; ingen cap utvides.041s33PASS bevarer
+verdi-/rad-/schema-/finitebatch-/ctx-only-konsistens, ikke fysisk peakRSS.
 
-041fokusert kvalifisering består:33PASS/0feil,18.831s, uendret kilde.
-Den viser eksakte rader/verdier/schema, siste finitebatch og ctx-only
-rankerevivalens; full fysisk minnetopp er fortsatt ikke målt. En ny unik042
-dataset-only-plan gjenbruker039komponentene etter eksakte rene bindinger. Bevar
-039terminal, originaler og checkpoints.022/026/cache/cascade/ranking og
-039signal/projeksjoner/strictv5PASS gjenbrukes bare med eksakte bindinger.
-Ingen ny modellfit, ingen kapasitetsutvidelse eller nativeadmission her.
+Fysisk TRAIN/VAL er ikke publisert. Bevar042terminal og små delartefakter;
+start aldri042 på nytt. 043kvalifiserer minste tidlig-minnerettelse:49PASS/0feil,18.246s, uendret
+kilde. Alle kolonner/verdier/dtypes/indeks/attrs og inkluderende tidsgrenser
+er like installert pandas; full-source pris-/klokkegarder beholdes. Canonical
+unngår dype data-/sort-/filterkopier. Legacy standardisolasjon beholdes.
+Fysisk peakRSS er fortsatt ikke kvalifisert. Ny unik044 er klar etter ren
+kildebinding; den gjenbruker039komponentene og starter aldri042 på nytt.022/026/cache/cascade/ranking/039inputs
+og uendrede bevis gjenbrukes under eksakte kildebindinger.
 
 ## Entry-kurver og native kjede
 
@@ -132,13 +129,11 @@ fra boot og må kontrolleres før neste relevante kjøring.
 
 ## Neste steg
 
-1. 041har kvalifisert minste minnekorreksjon med33beståtte kontroller.
-   Gjenbruk uendrede beståtte036/038kontroller.
-2. Ny unik042 er klar etter041: bind ren commit/policy/plan/controller/
-   validator og start én gang. Direkte eksisterende builderCLI gjenbruker
-   faktiske039signal/M1/M5/strictv5PASS via SHA og uendrede guardeiere.
-   Bare capped preflight, friske TRAIN_VAL_042 og rekonstruksjon kjøres.
-  10Gbuilder/4Ggates beholdes.039 er konsumert og relanseres aldri.
+1. 043har kvalifisert den tidlige wide-frame-rettelsen med49PASS. Gjenbruk
+   øvrige uendrede kontroller og genuine inputs.
+2. Bind ren commit/policy/plan/controller/validator og start unik044 én gang.
+   Eksisterende capper, hele guardeierkjeden og039komponenter/v5PASS beholdes.
+   Ingen042relansering, caputvidelse, ekstra fit eller nativeadmission.
 3. Mål faktisk fysisk TRAINklokke, gjør fersk wholeTRAINregistryfit og bevis
    effektiv verdi-/rolle-/maske-/evaluator-ekvivalens før nye immutable
    kontrakter. Ingen blind SHA-utskifting eller svekket klokkegard.
