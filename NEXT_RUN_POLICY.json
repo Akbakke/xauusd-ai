@@ -9457,7 +9457,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "022_026_COMPLETE__DYNAMIC_COMPONENT_SOURCE_QUALIFIED__PHYSICAL_DATASET_AND_NATIVE_ENTRY_COORDINATOR_PENDING",
+      "status": "022_026_COMPLETE__DYNAMIC_PHYSICAL_M5_BUILD_032_BOUND__NATIVE_TRAINING_FALSE",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -10479,7 +10479,46 @@
           "initial/gradient/parity observers require explicit Entry-curve-only measurement; no old Q-bps/token/Exit forwards",
           "predicted-horizon candidate LONG/SHORT/FLAT and abstention/coverage trace require actual qualification; no native ratio authority yet",
           "current metadata successor owner required after actual physical TRAIN registry fit; no blind registry SHA replacement"
-        ]
+        ],
+        "physical_dataset_stage_032": {
+          "status": "BOUND_PENDING_EXACT_CLEAN_SOURCE_BINDING_AND_CLAIM",
+          "plan_path": "configs/research/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_032.json",
+          "plan_sha256": "fb9785027c451b09acea52219c3d992ffb81d10aec34c34e0a2b0be28c713708",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_032",
+          "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003",
+          "controller_sha256": "9273baef818fd4c60c4910863d313d5b7a1dba34fd7f44b2f94f58a07b55c22e",
+          "emission_scope": "m5_dynamic_observed",
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "execution_authorized": true,
+          "relaunch_allowed": false,
+          "source_frozen_while_running": true,
+          "native_training_authorized": false,
+          "native_input_admission": false,
+          "provisional025_registry_is_new_clock_admission": false,
+          "actual_whole_train_registry_fit_required_after_physical_publication": true,
+          "parents": {
+            "022": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_022/TERMINAL.json",
+              "sha256": "b904083d86e470c08aa8e77e5f237a148470865bcb97a7ee6ef1ade5c6a8e235"
+            },
+            "026": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_026/TERMINAL.json",
+              "sha256": "0294e5c02093c991e008e24c77fe5cb3e5393f89f1af63ded263379bac05ee3e"
+            }
+          },
+          "measured_history_support": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_032/MEASURED_HISTORY_SUPPORT.json",
+            "sha256": "be319accd898cfecc4c0f07b86a77403b173346ec053c92560897c0ad64952a4"
+          },
+          "m1_alignment_preflight": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_032/M1_ALIGNMENT_PREFLIGHT_OWNER.json",
+            "sha256": "e57f26975ddff0eed421694860654acd984578fe22788dae50ae942ef1b9c218"
+          },
+          "resources": "Existing sequential caps: source-cascade/audits4G; ranker10G; M1/M5feature projections20G; existing wrapper10G/4G; swap512M/CPU0-7/one numerical thread/64tasks/CURRENTlock. No nested wrapper lock or budget extension.",
+          "test_data_used": false,
+          "mainflow_source_review": "Actual builder main passes the same full hash-verified raw M1 frame into source binding and dynamic pointer owner; history filters M5 only, offset0 and exact split-exclusive suffix crop preserve global mapping. Source proof, not fresh physical publication."
+        }
       }
     },
     "native_xau_pair_failure_20261018": {

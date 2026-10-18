@@ -100,6 +100,25 @@ og Exit-forward. Disse må få en eksplisitt Entry-kurvegren før baseline og
 native epoke. Ingen bps-alias for ratioen. Ekte evaluerings-/avståelses-/
 dekningsspor, metadata-successor og fysisk TRAINfit er fortsatt påkrevd.
 
+## Neste fysiske bygg032
+
+Nytt engangsbygg `NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_032` er bundet som
+`m5_dynamic_observed`, før eksakt ren-kilde-binding/claim. Det bruker ferdige
+022/026features og friske032outputstier; gammelt027utkast startes aldri.
+History-start er målt faktisk M5-kilderad etter026s første M1:2023-05-09T22:05Z.
+En capped4G-kontroll hashbandt råquotes/026 og sjekket hele alignmentklokken:
+1110839rader etter eksisterende219rader warmup,0manglende kildepunkter, samme
+siste tidspunkt2026-06-30T23:59Z. To importfeil i eksternt kontrollskript ble
+rettet; originale feillogger/skript består, ingen data eller repo-kilde ble endret.
+
+032 kjører eksisterende sekvensielle capped eiere: sourcecascade, TRAIN-ranker,
+signalmanifest, M1/M5-featurebaseprojeksjon, pretest fysisk datasett og uttømmende
+sekvensrekonstruksjon. Maks64800s, én invokasjon, ingen budsjettutvidelse.
+025 er kun produksjonsprovenans; COMPLETE betyr fysisk materiale uten ny
+inputadmission. Faktisk ny TRAIN-klokke, registryfit, metadatasuccessor,
+normalisering og native Entry-koordinator/baseline må fortsatt kvalifiseres.
+Ingen native trening eller Exit-vurdering starter ved032.
+
 ## Neste steg
 
 1. Bevar kvalifiserte komponenter og lag en eksplisitt Entry-kurvegren i
