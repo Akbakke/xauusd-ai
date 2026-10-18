@@ -89,9 +89,11 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     XAU_INSTRUMENT,
     validate_xau_tape_provenance_v1,
 )
+from gx1.contracts.unified_exit_market_closure_authority_v1 import m1_clock_sha256
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     LEGACY_COMPLETE_EMISSION_SCOPE,
     M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
+    M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
     LEGACY_CAUSAL_M1_OBSERVED_COLUMN,
     LEGACY_AUX_COMPLETE_COLUMN,
     MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
@@ -1064,6 +1066,108 @@ def _m5_path_label_frame(*, m5_decision_times, closed_m1, split_end):
     for name in _m5path.M5_PATH_TARGET_COLUMNS:
         result[name] = np.where(valid, outcomes[name].to_numpy(np.float64), np.nan)
     return result
+
+
+
+# These scalar pointers/masks describe future supervision only. They are never
+# appended to seq/snap/context fields and never stored as a dense E x H path.
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    DYNAMIC_M5_POINTER_COLUMNS, DYNAMIC_M5_QUOTE_COLUMNS,
+)
+
+
+def _dynamic_m5_pointer_frame(
+    *, m5_decision_times, closed_m1: pd.DataFrame,
+    source_binding: Mapping[str, Any], split_end_exclusive: pd.Timestamp,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Bind exact fills and the first genuinely observed component, without a tail union.
+
+    The caller verifies the physical shared quote parquet. This function proves
+    that its supplied full source clock/row map matches those bytes' binding;
+    the quote owner cuts at the split before validating any target price values.
+    No historical closure is inferred from the shape of an absent quote span.
+    """
+    if not isinstance(source_binding, Mapping):
+        raise RuntimeError("DYNAMIC_M5_QUOTE_SOURCE_BINDING_REQUIRED")
+    required = {"path", "sha256", "size_bytes", "rows", "clock_sha256"}
+    if not required.issubset(source_binding):
+        raise RuntimeError("DYNAMIC_M5_QUOTE_SOURCE_BINDING_REQUIRED")
+    source_path = Path(str(source_binding["path"]))
+    digest = source_binding["sha256"]
+    if (not source_path.is_absolute() or source_path != source_path.resolve(strict=False)
+            or source_path.is_symlink() or not source_path.is_file()
+            or not isinstance(digest, str) or len(digest) != 64
+            or any(c not in "0123456789abcdef" for c in digest)
+            or type(source_binding["size_bytes"]) is not int
+            or source_binding["size_bytes"] != source_path.stat().st_size
+            or type(source_binding["rows"]) is not int
+            or source_binding["rows"] != len(closed_m1)):
+        raise RuntimeError("DYNAMIC_M5_QUOTE_SOURCE_BINDING_INVALID")
+    times = pd.DatetimeIndex(pd.to_datetime(closed_m1["time"], utc=True, errors="raise")).as_unit("ns")
+    clock_sha = m1_clock_sha256(times)
+    if clock_sha != source_binding["clock_sha256"]:
+        raise RuntimeError("DYNAMIC_M5_QUOTE_SOURCE_CLOCK_MISMATCH")
+    cutoff = pd.Timestamp(split_end_exclusive)
+    if pd.isna(cutoff) or cutoff.tzinfo is None or cutoff.utcoffset() != pd.Timedelta(0):
+        raise RuntimeError("DYNAMIC_M5_SPLIT_CUTOFF_INVALID")
+    index = _m5path.prepare_dynamic_m1_prefix_index(
+        closed_m1, split_end_exclusive=cutoff,
+        source_parquet_sha256=digest, source_row_offset=0,
+    )
+    binding = index.binding()
+    if (binding["source_parquet_sha256"] != digest
+            or binding["source_clock_sha256"] != clock_sha
+            or binding["source_rows"] != len(times)
+            or binding["source_row_offset"] != 0):
+        raise RuntimeError("DYNAMIC_M5_QUOTE_SOURCE_INDEX_BINDING_MISMATCH")
+    fill = _m5path.build_dynamic_m1_fill_surface(index, m5_decision_times=m5_decision_times)
+    query_rows = np.arange(len(fill), dtype=np.int64)
+    first_horizon = np.ones(len(fill), dtype=np.int64)
+    terminal = _m5path.query_dynamic_m1_prefix(
+        index, fill_surface=fill, query_entry_rows=query_rows,
+        horizon_minutes=first_horizon, endpoint_kind="terminal_open_inclusive",
+    )
+    path = _m5path.query_dynamic_m1_prefix(
+        index, fill_surface=fill, query_entry_rows=query_rows,
+        horizon_minutes=first_horizon, endpoint_kind="closed_m1_prefix",
+    )
+    terminal_mask = np.asarray(terminal["terminal_gross_observed"])
+    path_mask = np.asarray(path["path_observed"])
+    if any(mask.dtype != np.dtype(bool) or mask.shape != (len(fill), 2)
+           for mask in (terminal_mask, path_mask)):
+        raise RuntimeError("DYNAMIC_M5_FIRST_PREFIX_MASK_INVALID")
+    valid = terminal_mask.any(axis=1) | path_mask.any(axis=1)
+    frame = pd.DataFrame({
+        "time": pd.DatetimeIndex(pd.to_datetime(fill["time"], utc=True)),
+        "dynamic_entry_m1_row": fill["entry_m1_row"].to_numpy(np.int64),
+        "dynamic_first_prefix_observed": valid,
+        "dynamic_first_terminal_observed_long": terminal_mask[:, 0],
+        "dynamic_first_terminal_observed_short": terminal_mask[:, 1],
+        "dynamic_first_path_observed_long": path_mask[:, 0],
+        "dynamic_first_path_observed_short": path_mask[:, 1],
+        "dynamic_first_terminal_censor_reason": np.asarray(terminal["terminal_censor_reason"]),
+        "dynamic_first_path_censor_reason": np.asarray(path["path_censor_reason"]),
+    })
+    if np.any(valid & (frame["dynamic_entry_m1_row"].to_numpy() < 0)):
+        raise RuntimeError("DYNAMIC_M5_OBSERVED_PREFIX_REQUIRES_EXACT_FILL")
+    return frame, {
+        "schema_version": "gx1_dynamic_m5_physical_target_pointers_v1",
+        "contract": _m5path.dynamic_m1_prefix_contract(),
+        "source_quote_binding": dict(source_binding),
+        "source_quote_columns": list(DYNAMIC_M5_QUOTE_COLUMNS),
+        "index_binding": binding,
+        "pointer_columns": list(DYNAMIC_M5_POINTER_COLUMNS),
+        "pointer_row_clock": "global_row_in_bound_shared_m1_quote_parquet",
+        "first_prefix_horizon_minutes": 1,
+        "first_terminal_endpoint_kind": "terminal_open_inclusive",
+        "first_path_endpoint_kind": "closed_m1_prefix",
+        "physical_population_rule": "any_genuine_first_prefix_terminal_or_path_component",
+        "later_horizon_availability_is_not_an_emission_gate": True,
+        "closure_mode": "unknown_gaps_only_no_inferred_market_calendar",
+        "target_only_columns": True,
+        "feature_inputs_include_future_masks": False,
+        "dense_future_paths_materialized": False,
+    }
 
 
 def _hard_gate_model_native_context() -> Dict[str, Any]:
@@ -3236,10 +3340,14 @@ def _model_native_emission_mask(
     emit_end: pd.Timestamp, seq_len: int, emission_scope: str,
     causal_m1_observed: np.ndarray, aux_complete: np.ndarray,
     m5_path_valid: np.ndarray,
+    dynamic_first_prefix_observed: np.ndarray | None = None,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     model_native_aux_target_contract_metadata(emission_scope=emission_scope)
     n = len(emitted_time_index)
-    masks = (causal_m1_observed, aux_complete, m5_path_valid)
+    primary_observed = m5_path_valid
+    if emission_scope == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE:
+        primary_observed = dynamic_first_prefix_observed
+    masks = (causal_m1_observed, aux_complete, m5_path_valid, primary_observed)
     if any(np.asarray(mask).shape != (n,) or np.asarray(mask).dtype != np.dtype(bool)
            for mask in masks):
         raise RuntimeError("MODEL_NATIVE_EMISSION_AVAILABILITY_MASK_INVALID")
@@ -3248,13 +3356,13 @@ def _model_native_emission_mask(
     candidate[:seq_len - 1] = False
     after_legacy_m1 = candidate & causal_m1_observed
     legacy_complete = after_legacy_m1 & aux_complete
-    primary = candidate & m5_path_valid
+    primary = candidate & primary_observed
     emitted = legacy_complete if emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE else primary
     proof = {
         "emission_scope": emission_scope,
         "candidate_rows_before_primary_availability": int(candidate.sum()),
-        "primary_unavailable_candidate_rows_excluded": int(np.count_nonzero(candidate & ~m5_path_valid)),
-        "primary_valid_rows_emitted": int(np.count_nonzero(emitted & m5_path_valid)),
+        "primary_unavailable_candidate_rows_excluded": int(np.count_nonzero(candidate & ~primary_observed)),
+        "primary_valid_rows_emitted": int(np.count_nonzero(emitted & primary_observed)),
         "legacy_causal_m1_incomplete_candidate_rows_excluded": (
             int(np.count_nonzero(candidate & ~causal_m1_observed))
             if emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE else 0),
@@ -3265,6 +3373,13 @@ def _model_native_emission_mask(
         "legacy_causal_m1_missing_rows_retained": int(np.count_nonzero(emitted & ~causal_m1_observed)),
         "legacy_aux_incomplete_rows_retained": int(np.count_nonzero(emitted & ~aux_complete)),
     }
+    if emission_scope == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE:
+        proof.update({
+            "primary_component": "any_genuine_first_prefix_terminal_or_path",
+            "first_prefix_horizon_minutes": 1,
+            "fixed_m5_path_unavailable_rows_retained": int(np.count_nonzero(emitted & ~m5_path_valid)),
+            "later_horizon_completeness_is_emission_gate": False,
+        })
     if not emitted.any():
         raise RuntimeError("MODEL_NATIVE_EMIT_WINDOW_EMPTY_AFTER_HISTORY_AND_TARGET_COMPLETENESS: "
                            f"scope={emission_scope} proof={proof}")
@@ -3329,6 +3444,8 @@ def build_dataset_canonical(
     output_path: Optional[Path] = None,  # V2 streaming-write target
     streaming_batch_size: int = _MODEL_NATIVE_STREAMING_BATCH_SIZE,
     emission_scope: str = LEGACY_COMPLETE_EMISSION_SCOPE,
+    dynamic_m1_source_binding: Mapping[str, Any] | None = None,
+    dynamic_split_end_exclusive: pd.Timestamp | None = None,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     model_native_aux_target_contract_metadata(emission_scope=emission_scope)
     architecture = current_entry_exit_architecture_observation()
@@ -3797,7 +3914,7 @@ def build_dataset_canonical(
         _attach_causal_m1_labels_preserving_feature_timeline(
             feature_rows=merged,
             complete_causal_labels=causal_m1_labels,
-            allow_unavailable=emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
+            allow_unavailable=emission_scope != LEGACY_COMPLETE_EMISSION_SCOPE,
         )
     )
     del _causal_m1_labels_complete_after_join
@@ -3824,6 +3941,23 @@ def build_dataset_canonical(
     merged2 = merged2.merge(_path_frame, on="time", how="left", validate="one_to_one")
     if len(merged2) != _rows_before_horizon_join or merged2[_m5path.M5_PATH_VALID_COLUMN].isna().any():
         raise RuntimeError("M5_PATH_LABEL_JOIN_ROW_MISMATCH")
+    _dynamic_supervision_meta = None
+    if emission_scope == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE:
+        if (dynamic_m1_source_binding is None or dynamic_split_end_exclusive is None
+                or dynamic_m1_source_binding.get("sha256") != direction_target_policy["m1_source_sha256"]):
+            raise RuntimeError("DYNAMIC_M5_BOUND_QUOTE_SOURCE_AND_SPLIT_REQUIRED")
+        _dynamic_frame, _dynamic_supervision_meta = _dynamic_m5_pointer_frame(
+            m5_decision_times=merged["time"], closed_m1=closed_m1,
+            source_binding=dynamic_m1_source_binding,
+            split_end_exclusive=dynamic_split_end_exclusive,
+        )
+        if set(merged2.columns) & set(DYNAMIC_M5_POINTER_COLUMNS):
+            raise RuntimeError("DYNAMIC_M5_POINTER_OWNER_OVERLAP")
+        _dynamic_frame["time"] = _dynamic_frame["time"].astype(merged2["time"].dtype)
+        merged2 = merged2.merge(_dynamic_frame, on="time", how="left", validate="one_to_one")
+        if (len(merged2) != _rows_before_horizon_join
+                or merged2.loc[:, DYNAMIC_M5_POINTER_COLUMNS].isna().any().any()):
+            raise RuntimeError("DYNAMIC_M5_POINTER_JOIN_ROW_MISMATCH")
     log.info(
         "[TRADING_DAY_HORIZON_LABELS] rows=%d valid_h1=%d valid_h5=%d valid_h20=%d",
         len(merged2),
@@ -4846,7 +4980,7 @@ def build_dataset_canonical(
          if np.any(y_position_size_mask > 0.5) else 0.0),
         position_size_target_policy["policy_sha256"],
     )
-    if emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+    if emission_scope != LEGACY_COMPLETE_EMISSION_SCOPE:
         # These legacy heads are inactive in the M5 phase. Missing legacy M1
         # outcomes are finite storage, never observed event/size supervision.
         for _legacy_mask in (y_side_mask, y_position_size_mask,
@@ -5007,11 +5141,16 @@ def build_dataset_canonical(
             f"clean_rows_before_emit={pre_emit_history_rows} required={seq_len - 1} "
             f"history_start={start} emit_start={emit_start}"
         )
+    _dynamic_pointer_arrays = (
+        {name: merged3[name].to_numpy() for name in DYNAMIC_M5_POINTER_COLUMNS}
+        if emission_scope == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE else {}
+    )
     emit_mask, _emission_proof = _model_native_emission_mask(
         emitted_time_index=emitted_time_index, emit_start=emit_start, emit_end=emit_end,
         seq_len=seq_len, emission_scope=emission_scope,
         causal_m1_observed=_causal_m1_label_complete_mask,
         aux_complete=_head_target_complete_mask, m5_path_valid=_m5_path_valid,
+        dynamic_first_prefix_observed=_dynamic_pointer_arrays.get("dynamic_first_prefix_observed"),
     )
     emitted_candidate_count_before_causal_m1_completeness = _emission_proof[
         "candidate_rows_before_primary_availability"]
@@ -5035,7 +5174,8 @@ def build_dataset_canonical(
                 raise RuntimeError(
                     f"MODEL_NATIVE_AUX_TARGET_NONFINITE_EMISSION_FORBIDDEN: {target_name}"
                 )
-    elif any(not np.isfinite(values[emit_mask]).all() for values in _m5_path_arrays.values()):
+    elif (emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE
+          and any(not np.isfinite(values[emit_mask]).all() for values in _m5_path_arrays.values())):
         raise RuntimeError("ENTRY_M5_PRIMARY_VALID_TARGET_NONFINITE")
     log.info("[MODEL_NATIVE_EMISSION] scope=%s proof=%s emitted=%d",
              emission_scope, _emission_proof, emitted_candidate_count)
@@ -5171,9 +5311,10 @@ def build_dataset_canonical(
                     for _c in MODEL_NATIVE_AUX_TARGET_COLUMNS
                 },
                 **{name: bool(values[i]) for name, values in _forecast_observed_arrays.items()},
+                **{name: values[i] for name, values in _dynamic_pointer_arrays.items()},
                 **({LEGACY_CAUSAL_M1_OBSERVED_COLUMN: bool(_causal_m1_label_complete_mask[i]),
                     LEGACY_AUX_COMPLETE_COLUMN: bool(_head_target_complete_mask[i])}
-                   if emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE else {}),
+                   if emission_scope != LEGACY_COMPLETE_EMISSION_SCOPE else {}),
             }
         )
         if len(pending) >= streaming_batch_size:
@@ -5224,6 +5365,8 @@ def build_dataset_canonical(
         "gc_native_context": _gc_context.contract(),
         "entry_action_target_phase_scope": "base_joint_fitted_q_fields_apply_only_when_that_phase_is_bound",
         "observed_target_selection": "exact_explicit_recipe_and_bundle_training_phase_no_implicit_default",
+        **({"dynamic_m5_supervision": _dynamic_supervision_meta}
+           if _dynamic_supervision_meta is not None else {}),
         "m5_path_supervision": {
             "contract": entry_observed_m5_path_contract(),
             "target_m1_source_sha256": direction_target_policy["m1_source_sha256"],
@@ -5281,7 +5424,7 @@ def build_dataset_canonical(
             "complete_rows_emitted": int(np.count_nonzero(_causal_m1_label_complete_mask[emit_mask])),
             **({"unavailable_rows_emitted": int(np.count_nonzero(emit_mask & ~_causal_m1_label_complete_mask)),
                 "is_emission_gate": False}
-               if emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE else {}),
+               if emission_scope != LEGACY_COMPLETE_EMISSION_SCOPE else {}),
         },
         **entry_fitted_q_dataset_contract(),
         **diagnostic_contract,
@@ -5471,9 +5614,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--emission-scope",
-        choices=(LEGACY_COMPLETE_EMISSION_SCOPE, M5_PRIMARY_OBSERVED_EMISSION_SCOPE),
+        choices=(LEGACY_COMPLETE_EMISSION_SCOPE, M5_PRIMARY_OBSERVED_EMISSION_SCOPE, M5_DYNAMIC_OBSERVED_EMISSION_SCOPE),
         default=LEGACY_COMPLETE_EMISSION_SCOPE,
-        help="Explicit row population: legacy complete auxiliary union or observed primary M5 path.",
+        help="Explicit row population: legacy complete, observed fixed M5 path, or observed dynamic M1 first prefix.",
     )
     parser.add_argument(
         "--pretest-only",
@@ -5580,6 +5723,8 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    if args.emission_scope == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE and not args.pretest_only:
+        raise RuntimeError("DYNAMIC_M5_EMISSION_REQUIRES_PRETEST_ONLY")
     architecture = current_entry_exit_architecture_observation()
     architecture["entry"]["sequence_bars"] = args.seq_len
     architecture["exit"]["sequence_bars"] = (
@@ -6433,6 +6578,18 @@ def main() -> None:
     out_dir = base.parent
     stem = base.stem
 
+    dynamic_m1_source_binding = None
+    if args.emission_scope == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE:
+        quote_times = pd.DatetimeIndex(pd.to_datetime(closed_m1_lifecycle["time"], utc=True)).as_unit("ns")
+        dynamic_m1_source_binding = {
+            "path": str(m1_lifecycle_source_path),
+            "sha256": m1_lifecycle_source_sha256,
+            "size_bytes": int(m1_lifecycle_source_path.stat().st_size),
+            "rows": len(quote_times),
+            "clock_sha256": m1_clock_sha256(quote_times),
+            "authority": m1_lifecycle_authority,
+            "authority_sha256": m1_lifecycle_authority_sha256,
+        }
     metas: Dict[str, Any] = {}
     ts_min_max_by_split: Dict[str, Dict[str, Optional[str]]] = {}
     lifecycle_staging = tempfile.TemporaryDirectory(
@@ -6496,6 +6653,11 @@ def main() -> None:
             m5_feature_surface_binding=m5_feature_surface_binding,
             seq_len=int(args.seq_len),
             emission_scope=args.emission_scope,
+            dynamic_m1_source_binding=dynamic_m1_source_binding,
+            dynamic_split_end_exclusive=(
+                {"train": train_end, "val": val_end, "test": test_end}[split_name]
+                if args.emission_scope == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE else None
+            ),
             entry_direction_target_policy=entry_direction_target_policy,
             entry_position_size_target_policy=(
                 entry_position_size_target_policy
@@ -6600,6 +6762,10 @@ def main() -> None:
         ts_min_max_by_split[split_name] = _split_min_max_from_ts_series(
             df_built["time"]
         )
+        if (dynamic_m1_source_binding is not None
+                and (_sha256_file(m1_lifecycle_source_path) != dynamic_m1_source_binding["sha256"]
+                     or m1_lifecycle_source_path.stat().st_size != dynamic_m1_source_binding["size_bytes"])):
+            raise RuntimeError("DYNAMIC_M5_QUOTE_SOURCE_CHANGED_BEFORE_PUBLICATION")
         write_manifest(
             output_path=out,
             build_command=build_command,

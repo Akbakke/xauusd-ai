@@ -5,6 +5,13 @@ kjøregrenser og terminalbindinger eies av NEXT_RUN_POLICY.json og siste
 CURRENT_HANDOVER.md. Tidligere rapportversjoner finnes i Git. Ingen tidligere
 kort regel-/CPU-/smoketest avgjør verdien av en ny korrekt MBP-Transformer.
 
+Det varige målet er M5 Entry med gunstig prisforløp og liten MAE før første
+MFE, alle åtte featurefamilier, niende D1/makrokontekst og kausalt lukket
+M5/M15/H1/H4/D1 fra de26rike månedene. Gjeldende dynamiske querydomene er
+1..480forhåndsdeklarerte, forløpte minutter; dagshorisonter er separat støtte.
+95minutter er ikke nytt primærmål, og480minutter er ingen maksimal holdetid.
+Kildeimplementasjon, fysisk dataadmission, læring og økonomisk edge er egne bevis.
+
 ## Revidert flate og bevisklasse
 
 Inventaret på73aa04f0 omfatter770 sporede filer og600 Python-filer.
@@ -100,12 +107,30 @@ med eksakt uint64-/volum-/antallsparitet. Netto etter PTPsensur er78305M1 og
 25059620kontrakter gjenopprettet. Alle210gamle registrydeklarasjoner er også
 rebindet til samme reparerte tabeller.
 
-025er COMPLETE: alle995nye+210gamle felt har genuine observasjoner på hele
-109507TRAIN-beslutningsklokken, uten labels/VAL/TESTfit. Endelig registry har
-1205verdier+1205masker,30observerte konstanter,0uobserverte felt og0formelaliaser.
-Det er aktivert i eksisterende nativekilde; import gir2725signal-/2542ctxfelt.
-Ny fysisk003-inputkjede, normalisering og fersk modellfunksjon må fortsatt
-kvalifiseres før trening. Originalkvitteringer omskrives ikke.
+025er COMPLETE: alle995nye+210gamle felt har genuine observasjoner på den
+opprinnelige hele fysiske TRAIN-beslutningsklokken med109507rader, uten labels/
+VAL/TESTfit. Registryen har1205verdier+1205masker,30observerte konstanter,
+0uobserverte felt og0formelaliaser. Den er aktivert i eksisterende nativekilde,
+men kvalifiserer ikke klokken til et nytt dynamisk fysisk M5-datasett. Fersk
+whole-TRAIN-fit skal bruke faktisk emittert klokke, ikke anta samme antall.
+Originalkvitteringer og025s gamle populasjonsbevis omskrives ikke.
+
+022M5/cache/model-source og026M1 er fysisk COMPLETE, exit0, uendret kilde og
+TEST=false.022publiserte1140982M5rader/2576enrichedkolonner og
+2725signal-/2542ctx-cont-/1ctx-cat-felt.026publiserte1111058M1rader/
+2576kolonner fra2023-05-09T22:03Z til2026-06-30T23:59Z, med1205GCverdier
+og1205observasjonsmasker i samme deklarerte inputkontrakt.026brukte6092.253s
+på HEADb669d8f05c79504c1dc18a81079b53ae6f6c937f. Publikasjonene ligger i
+`/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003`.
+M1-parquetSHA er7928886648820c6e2ddb5057628c980f75264efbab77d94623732f7a88e1efcd;
+sidecarSHA er f4e3ab32955cbf7b16ba3e279d070f5b4b39d764f122dd63c0b7415e6810136d;
+026terminalSHA er0294e5c02093c991e008e24c77fe5cb3e5393f89f1af63ded263379bac05ee3e.
+
+De ekte022/026featurebytene skal gjenbrukes ved bevist uendret ordnet
+felt-/kilde-/verdi-/maske-/rolle-/evaluatorkontrakt. En ny TRAINfit med lik
+verdifunksjon krever fortsatt eksplisitt ekvivalensbevis og gjeldende immutable
+signal-/datasetmetadata; gammelt registryhash i metadata ignoreres ikke.
+Featurepublisering er ikke dataset-, normaliserings-, modell- eller læringsadmission.
 
 15/60min/NYsession-profiler beregnes på fysisk M5-klokke med as-of-projeksjon,
 separat dekning og faktisk kildealder.15/60betyr minutter også i H4/D1.
@@ -155,10 +180,12 @@ bruker de fullførte M1-/prisgridbytene og avstemmer hver side, uten ny råskann
 
 Observed-SMC er eksplisitt en proxy på observerte candles; en intern manglende
 prisbane eller institusjonell ordreblokk blir ikke rekonstruert. L1/ordreantall
-aggregeres med egne masker og faktisk observert tid. Tidsvektet mean kan ikke
-rekonstruere alle intraminutt spread-shocks. Full neural price-grid-ingestion,
-slike eventstatistikker og faktisk alle-TF native-konsum må oppgis som egne
-uferdige deler til de er implementert og målt.
+aggregeres med egne masker og faktisk observert tid.024bevarer ekte intraminutt
+spread-/eventreduksjoner; et M1middel alene rekonstruerer ikke slike hendelser.
+Verken reduksjonene eller prisgridets volumtabeller bevarer hele råhendelsenes
+felles rekkefølge, alle T-størrelsesfordelinger eller full BBO-bane. Full neural
+price-grid-ingestion og faktisk alle-TF modellkonsum er fortsatt egne ubeviste
+funksjoner, selv om de deklarerte featurebytene er fysisk publisert.
 
 ## Beholdt korrekt eierskap og verifikasjonskrav
 
@@ -191,23 +218,63 @@ hel-TRAIN-normalisering; nye faktiske initial-/paritets-/smokebevis; målrettet
 Transformer-læring, senere generalisering og nettoøkonomi. Nåstatus og nyeste
 konkrete terminal leses fra den ene overleveringen og policyen.
 
-## M5-hovedmål og fysisk måltilgjengelighet
+## Dynamisk M5-hovedmål og fysisk måltilgjengelighet
 
-Kildegjennomgangen fant at gammel fysisk emisjon fortsatt krevde både
-legacyM1-labels og alle37auxmål, selv når bare M5-path var hovedmål.
-Unionen inneholder inaktive96-M5-bars-hoder; fire aktiveM5forecasts var
-dessuten merket alltid observerte. Dette er en konkret koblingsfeil, ikke
-en måling av modellens læring eller edge.
+Gammel fysisk emisjon krevde både legacyM1-labels og alle37auxmål selv når
+M5-path var hovedmål. Unionen inneholder inaktive96-M5-bars-hoder; fire aktive
+M5forecasts var dessuten merket alltid observerte. `legacy_complete` beholder
+sin opprinnelige kontrakt. Den separate `m5_primary_observed`-rettelsen har egne
+forecastmasker, men dens faste95minuttersmål er ikke den nye primærruten.
+Gammelt027utkast skal ikke kjøres.
 
-Eksplisitt `m5_primary_observed` binder fysisk emisjon til observerbar M5-
-path, genuine inputkrav og kausal warmup. Fire prognoseceller K1/5/12/24
-har individuelle observasjonsmasker; de seks1/5/20d-cellene beholder sine
-egne masker. Manglende celler lagres0 medfalsemaske. Gamle målforutsetninger
-gjelder fortsatt legacyemisjonen; den nye emisjonen kan ikke brukes som
-joint/legacy-supervisjon. Fysiske maskeceller, ikke en gammel all-target-
-PASS-kvittering, må bevise den aktive M5-kontrakten. Endret fysiskTRAIN-
-klokke krever ferskTRAINregistryfit og gjeldende metadata før admission.
-Nåstatus og kvalifiseringsbevis finnes i overleveringen/policyen.
+Ny eksplisitt `m5_dynamic_observed`-emisjon og fase
+`entry_only_dynamic_m5_path` er implementert i kilde og avventer samlet
+kvalifisering. Eksisterende eiere er `entry_causal_m1_outcomes_v1.py`,
+`entry_observed_market_v1.py`, `entry_model_native_training_objective_v1.py`,
+`entry_model_native_aux_targets_v3.py` og
+`build_entry_v10_ctx_training_dataset_v3.py`. Queryeieren avgrenser M1-klokken
+før prislesing ved splitens eksklusive grense.1..480minutter er deklarert før
+utfallet observeres, og en liten horisontbetinget dekoder deler encoderforward.
+Det er ingen hindsight-valgt beste exit og ingen Exit-target eller Exit-gradient.
+
+Terminalmarkout bruker eksakt M1 BID/ASK ved fill og terminaltid. Denne kan være
+observert over et ukjent mellomrom mens MFE og MAE er sensurert. Den primære
+banesemantikken inkluderer lukkede M1barer førT og bare eksakt open vedT,
+aldri high/low fra Tbaren. Closed-M1-prefix har en egen endpointtype og maske.
+Signert MFE og konservativ øvre MAE før første MFE har egne mål; ukjent
+intraminuttrekkefølge gir observerte grenser, ingen oppdiktet tickbane. Retnings-,
+MFE- og MAE-tap måles uavhengig. MFE minus MAE alene er ikke retningsbevis.
+
+Den fysiske flaten lagrer `dynamic_entry_m1_row` som global quote-radpeker,
+`dynamic_first_prefix_observed`, separate LONG/SHORT-masker for første
+terminal og closed-prefix-path samt deres censorgrunner. Manifestets
+`extra.dynamic_m5_supervision` binder en delt immutable M1-quoteparquet med
+SHA/størrelse/radantall/klokkehash/autoritet, global indeksmapping og eksklusiv
+splitgrense. Denne quotepriskilden er separat fra026s berikede M1-featureflate.
+Ingen tett entry×480framtidsbane lagres. Queryradindeksen refererer til den
+forespurte fillsurface; den er ikke den lagrede globale M1-quotepekeren.
+
+Fysisk cohort krever genuine inputs, kausal warmup og minst én genuin komponent
+ved første1minuttsprefiks: terminal ELLER separat closed-prefix-path. Den krever
+ikke alle480horisonter,95minuttersbanen, legacy37unionen eller dagshorisontene.
+Senere komponenter får egne masker, og closed-prefix-observasjon blir ikke
+automatisk terminal-open-inkluderende observasjon. Fremtidige masker, censor,
+MFE-tid eller realisert elapsed kan ikke være modellinput. Fire M5forecastceller
+K1/5/12/24 og seks1/5/20d-støtteceller beholder sine individuelle masker; dagers
+mål gir ingen egen primær Entry-autoritet. Manglende støtteceller er ikke nullutfall.
+
+Ukjente spotkildehull sensurerer banen. Godkjente lukkingsintervaller krever
+eksakt ekstern XAU-spotkalender med riktig kilde-/klokkebinding; GC/CME eller
+prisform beviser ikke OANDAs historiske åpningstider. Full feed-/periodebinding
+av en slik kalender er ennå ikke bevist. Terminalmarkout etter deklarerte
+kostnader er ikke realisert økonomi. En navngitt forholdstallsbasert
+kvalitetskandidat har ingen native autoritet før separat kontrakt og måling.
+
+Ingen ny dynamisk fysisk TRAIN-klokke, ny registryfit, normalisering, fersk
+initialbaseline/paritet eller faktisk dynamisk læring er fullført. Den ene
+bestilte epoken krever fortsatt alle eksisterende kildescope-/input-/mål-/
+optimizer-/resume-/maskinvareporter. Dette dokumentet og handovervelgeren gir
+ingen launchautoritet; status og eksakte bevisbindinger eies av policyen.
 
 ## Kildevis makroavklaring
 

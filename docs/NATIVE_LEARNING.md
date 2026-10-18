@@ -70,15 +70,38 @@ kontrakteier med kausale executable BID/ASK-utfall og deklarerte kostnader,
 ikke en gjettet horisont/vekt eller hindsight-valgt optimal exit. MFE/MAE,
 terminalavkastning, timing og handelsfrekvens rapporteres separat.
 
-I den eksplisitte `m5_primary_observed`-emisjonen styres den fysiske
-populasjonen av gyldig M5-path og genuine input-/historikkrav. Komplette
-legacy-M1-mål og unionen av37hjelpemål er ingen primærgate. Fire M5-
-prognoser K1/5/12/24 og seks LONG/SHORT1/5/20d-støtteceller har hver sine
-observasjonsmasker. Manglende target lagres0 bakfalsemaske; det er ingen
-observasjon. Inaktive hoder og lengre støttehorisonter får ikke redusere
-primærpopulasjonen. Legacyemisjon beholder sine egne komplette målkrav.
-Endret populasjon krever ny faktiskTRAINklokke, ferskTRAINregistrytilpasning
+Den dynamiske etterfølgeren bruker eksplisitt `m5_dynamic_observed`-emisjon
+og `entry_only_dynamic_m5_path`. Ett minutt til mange timer er primært;
+1..480min er første deklarerte beregningsdomene, hentet fra eksisterende
+96×M5-skala, ingen målt optimal tid eller handelsgrense. Alle minuttqueryer
+bruker samme encoder; en liten delt dekoder lærer retningsmarkout, signert
+MFE og konservativ pre-MFE-MAE separat. Dager er maskert læringsstøtte.
+
+Fysisk datasett binder original M1 BID/ASK-kilde én gang og har target-only
+fill-/clock-/censorpointers. Ingen tett entry×480 framtidsbane lagres. Hver
+komponent og horisont får egen maske. Eksakte endpointquotes kan gi
+terminalmarkout selv om mellomliggende MAE/MFE sensureres av et ukjent hull.
+Closed-bar-only-observasjoner og terminal-open-inkluderende baner har ulike
+endepunktkontrakter; de er aldri stille substitutter. Lavere og konservativ
+øvre pre-MFE-MAE beholdes fordi M1OHLC ikke viser intraminuttrekkefølgen.
+
+Ingen largest-horizon-/legacy37-/dags-union får redusere primærpopulasjonen.
+Tidligere `m5_primary_observed` med fast19M5-bars-fasit og legacyemisjon
+beholder sine egne historiske kontrakter; de er ingen kjøreautoritet for ny
+fase. Fire M5-forecasts lagrer0 bak false-masker; seks dagsstøttemål har
+uobserverte fysiske NaN-triader og blir0 først i maskert modellbatch.
+Endret populasjon krever ny faktisk TRAINklokke, fersk TRAINregistrytilpasning
 og gjeldende immutable kontraktbindinger før inputadmission.
+
+Prisbanens MFE minus pre-MFE-MAE alene kan gi positiv forventning på begge
+sider uten forutsigbar retning. Den er ingen tilstrekkelig trade/FLAT-fasit.
+Modellens nye beslutningsverdi må la både retning og kvalitet påvirke valg,
+og må kvalifiseres på valgte/avståtte entries, dekning og stabilitet. En
+dimensjonsløs ratio av predikerte forventninger er foreløpig en navngitt
+kandidat; den er ikke bps, kalibrert sannsynlighet eller realisert cash.
+Ingen kandidat gis native autoritet ved bare å flytte formelen inn i forward.
+Fremtidens beste horisont er aldri fasit for en udokumentert scalar.
+
 
 Første reelle smoke skal bevise samme fysiske batch gjennom alle familier,
 GC-value/mask-par, alle MTF, normalisering og modell, samt fersk initialbaseline
@@ -105,3 +128,13 @@ Lokale prospective kostreceipts er ikke historisk kostfasit.
 
 Regler: GX1_RULES.md. TEST, broker, live/paper, handel, spending og promotion
 er stengt. GC og andre forskningsarmer åpnes ikke av denne metoden.
+
+
+Den dynamiske dekoderen har to eksplisitte endpointtyper fra quote-eieren:
+`closed_m1_prefix` og `terminal_open_inclusive`. Begge lærer signert MFE og
+konservativ pre-MFE-MAE med samme encoder/heads, egne mål og egne masker.
+Path-tapene bruker observerte celler fra begge typer i sin egen denominator.
+Ingen closed-path-fasit erstatter inclusive-path-fasit. Den kjente endpointkoden
+er queryinput; faktisk framtidig tilgjengelighet er aldri input. Dermed forblir
+et observert siste1minuttsforløp læringsaktivt selv når neste open mangler.
+Kvalitetsratioen bruker kun modellens eksplisitte inclusiveprognose.

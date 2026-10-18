@@ -87,6 +87,7 @@ V38_SMOKE_PLANNED_OPTIMIZER_STEPS = 256
 
 M5_SINGLE_EPOCH_SCOPE_KEY = "entry_m5_path_single_epoch"
 M5_SINGLE_EPOCH_POPULATION_SCHEMA = "gx1_entry_m5_path_single_epoch_population_v1"
+M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA = "gx1_entry_dynamic_m5_path_single_epoch_population_v1"
 
 
 def require_m5_single_epoch_population(design: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -102,18 +103,27 @@ def require_m5_single_epoch_population(design: Mapping[str, Any]) -> dict[str, A
     from gx1.contracts.entry_observed_market_v1 import (
         ENTRY_ONLY_M5_PATH_TRAINING_PHASE, entry_observed_m5_path_contract,
     )
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     scope = design.get("scope", {}) if isinstance(design, Mapping) else {}
     if M5_SINGLE_EPOCH_SCOPE_KEY not in scope:
+        if scope.get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            raise RuntimeError("ENTRY_DYNAMIC_M5_SINGLE_EPOCH_WITNESS_REQUIRED")
         return None
     binding = require_binding(scope[M5_SINGLE_EPOCH_SCOPE_KEY], label="M5 single epoch population", verify_file=True)
     value = read_bound_json(Path(binding["path"]), binding["sha256"])
-    fixed = {"schema_version": M5_SINGLE_EPOCH_POPULATION_SCHEMA,
-        "training_phase": ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
-        "target_contract": entry_observed_m5_path_contract(), "batch_size": RECENT_WINDOW_BATCH_SIZE,
-        "epochs": 1, "drop_last": False, "test_data_used": False}
+    from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    dynamic = value.get("schema_version") == M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA
+    phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE if dynamic else ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    fixed = {"schema_version": M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA if dynamic else M5_SINGLE_EPOCH_POPULATION_SCHEMA,
+        "training_phase": phase,
+        "target_contract": entry_observed_dynamic_m5_path_contract() if dynamic else entry_observed_m5_path_contract(),
+        "batch_size": RECENT_WINDOW_BATCH_SIZE, "epochs": 1, "drop_last": False, "test_data_used": False,
+        **({"emission_scope": M5_DYNAMIC_OBSERVED_EMISSION_SCOPE} if dynamic else {})}
     if (any(type(value.get(k)) is not type(v) or value[k] != v for k, v in fixed.items())
             or set(value) != set(fixed) | {"train_parquet", "eligible_parent_rows", "epoch0_parent_order",
-                "native_sampler_contract", "entry_eligibility_cutoff_utc", "train_rows", "optimizer_steps"}):
+                "native_sampler_contract", "entry_eligibility_cutoff_utc", "train_rows", "optimizer_steps"}
+                | ({"train_manifest"} if dynamic else set())):
         raise RuntimeError("ENTRY_M5_SINGLE_EPOCH_POPULATION_INVALID")
     sampler = require_random_access_sampler_contract(value["native_sampler_contract"])
     # Physical preprocessing and the dataset/file owner verify these large bytes.
@@ -133,13 +143,28 @@ def require_m5_single_epoch_population(design: Mapping[str, Any]) -> dict[str, A
             or not np.array_equal(np.sort(order), rows) or sampler["split"] != "train"
             or type(value.get("train_rows")) is not int or value["train_rows"] != n
             or type(value.get("optimizer_steps")) is not int or value["optimizer_steps"] != steps
-            or scope.get("entry_only_training_phase") != ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+            or scope.get("entry_only_training_phase") != phase
             or value["entry_eligibility_cutoff_utc"] != design.get("calendar", {}).get("train_control_cutoff")
             or any(type(budget.get(k)) is not type(v) or budget[k] != v for k, v in {
                 "planned_optimizer_steps": steps, "maximum_trained_entry_rows": n,
                 "epochs_completed": 1, "repeat_or_automatic_extension": False}.items())):
         raise RuntimeError("ENTRY_M5_SINGLE_EPOCH_BUDGET_OR_ROWS_INVALID")
+    manifest_binding = None
+    if dynamic:
+        manifest_binding = require_binding(value["train_manifest"], label="dynamic single epoch actual TRAIN manifest", verify_file=True)
+        manifest = read_bound_json(Path(manifest_binding["path"]), manifest_binding["sha256"])
+        extra = manifest.get("extra", {})
+        if (scope.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+                or manifest.get("output_data_path") != source["path"]
+                or extra.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+                or extra.get("rows") != n or sampler["entry_pair_population"] != n
+                or not np.array_equal(rows, np.arange(n, dtype=np.int64))
+                or extra.get("aux_head_target_contract", {}).get("dynamic_target_contract") != fixed["target_contract"]
+                or extra.get("dynamic_m5_supervision", {}).get("schema_version") != "gx1_dynamic_m5_physical_target_pointers_v1"
+                or extra["dynamic_m5_supervision"].get("physical_population_rule") != "any_genuine_first_prefix_terminal_or_path_component"):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_SINGLE_EPOCH_SOURCE_OR_POPULATION_INVALID")
     return {"binding": binding, "witness": value, "train_parquet": source,
+            **({"train_manifest": manifest_binding} if dynamic else {}),
             "eligible_parent_rows": rows, "epoch0_parent_order": order,
             "train_rows": n, "optimizer_steps": steps, "last_batch_rows": n - (steps - 1) * RECENT_WINDOW_BATCH_SIZE}
 

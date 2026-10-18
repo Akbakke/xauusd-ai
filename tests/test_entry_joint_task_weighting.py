@@ -799,3 +799,64 @@ def test_path_task_loss_evidence_rejects_inactive_supervision_without_fake_label
     accumulator['entry_training_phase'] = 'joint_fitted_q'
     with pytest.raises(RuntimeError, match='LOSS_EVIDENCE_INVALID'):
         trainer._finalize_joint_task_loss_evidence(accumulator)
+
+
+
+def test_dynamic_m5_task_names_are_phase_specific_and_keep_legacy_requirements():
+    from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
+        DYNAMIC_M5_JOINT_TASK_NAMES, joint_task_names_for_phase,
+    )
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
+        active_joint_task_names,
+    )
+    phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    assert joint_task_names_for_phase(phase) == DYNAMIC_M5_JOINT_TASK_NAMES
+    assert active_joint_task_names(phase) == DYNAMIC_M5_JOINT_TASK_NAMES
+    assert joint_task_names_for_phase("joint_fitted_q") == JOINT_TASK_NAMES
+    assert joint_task_names_for_phase(ENTRY_ONLY_M5_PATH_TRAINING_PHASE) == JOINT_TASK_NAMES
+    flags = {name: True for name in DYNAMIC_M5_JOINT_TASK_NAMES}
+    metadata = joint_task_weighting_metadata({name: .1 for name in DYNAMIC_M5_JOINT_TASK_NAMES},
+        supervision_observed=flags, gradient_observed=flags, entry_training_phase=phase)
+    assert metadata["task_names"] == list(DYNAMIC_M5_JOINT_TASK_NAMES)
+    assert metadata["inactive_task_names"] == []
+    assert require_joint_task_weighting_metadata(metadata, context="TEST") == metadata
+    assert "dip_bps" not in metadata["tasks"] and "entry_action_q" not in metadata["tasks"]
+
+
+@pytest.mark.parametrize("fault", ["missing_supervision", "missing_gradient", "missing_movement", "legacy_task_injection"])
+def test_dynamic_m5_task_metadata_rejects_fake_or_missing_component_learning(fault):
+    from gx1.contracts.entry_model_native_joint_task_weighting_v1 import DYNAMIC_M5_JOINT_TASK_NAMES
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    names = DYNAMIC_M5_JOINT_TASK_NAMES
+    flags = {name: True for name in names}
+    metadata = joint_task_weighting_metadata({name: .1 for name in names},
+        supervision_observed=flags, gradient_observed=flags, entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    if fault == "legacy_task_injection": metadata["tasks"]["dip_bps"] = {}
+    else:
+        field = {"missing_supervision": "supervision_observed", "missing_gradient": "gradient_observed",
+            "missing_movement": "moved_from_neutral"}[fault]
+        metadata["tasks"][names[1]][field] = False
+    with pytest.raises(RuntimeError, match="JOINT_TASK_WEIGHTING"):
+        require_joint_task_weighting_metadata(metadata, context="TEST")
+
+
+def test_dynamic_m5_objective_has_no_admitted_native_ratio_or_legacy_q_authority():
+    from gx1.contracts.entry_model_native_joint_task_weighting_v1 import DYNAMIC_M5_JOINT_TASK_NAMES
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, training_objective_contract_metadata,
+        require_training_objective_contract,
+    )
+    objective = training_objective_contract_metadata(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    assert objective["active_joint_task_names"] == list(DYNAMIC_M5_JOINT_TASK_NAMES)
+    assert objective["exit_gradients_active"] is False
+    assert objective["dynamic_candidate_native_authority_admitted"] is False
+    assert objective["dynamic_candidate_has_supervised_target"] is False
+    assert objective["dynamic_candidate_is_expected_future_ratio"] is False
+    assert objective["dynamic_candidate_is_cash_or_bps"] is False
+    assert objective["entry_action_q_loss"] == "inactive_no_legacy_bps_authority"
+    assert objective["entry_decision_authority"] == "none_dynamic_unitless_ratio_candidate_not_admitted"
+    assert require_training_objective_contract(objective, context="TEST") == objective
+    objective["dynamic_candidate_native_authority_admitted"] = True
+    with pytest.raises(RuntimeError, match="TRAINING_OBJECTIVE_CONTRACT_INVALID"):
+        require_training_objective_contract(objective, context="TEST")

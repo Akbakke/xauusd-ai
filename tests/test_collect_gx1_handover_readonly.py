@@ -1045,9 +1045,10 @@ def test_p0_exact_bound_witness_is_observation_only(fixture,monkeypatch,kind,mut
 
 def test_handover_shows_durable_project_goal_and_current_native_generation():
     from scripts.collect_gx1_handover_readonly import handover_view
-    goal = {"entry_timeframe": "M5", "data_priority": "26month MBP1"}
-    native = {"status": "INPUTS_QUALIFIED", "physical_dataset_published": True,
-              "physical_dataset_input_qualification_complete": True,
+    goal = {"entry_timeframe": "M5", "data_priority": "26month MBP1",
+            "entry_objective_alignment": "minute-to-many-hour MFE and low pre-MFE MAE; days support"}
+    native = {"status": "M1_FEATURES_COMPLETE_DYNAMIC_SOURCE_UNQUALIFIED", "physical_dataset_published": False,
+              "physical_dataset_input_qualification_complete": False,
               "physical_dataset_normalization_complete": False,
               "training_started": False, "raw_stage": {"old_receipts": "omitted"},
               "derived_timeframe_stage": {"status": "FAILED_CONSUMED", "relaunch_allowed": False},
@@ -1056,7 +1057,15 @@ def test_handover_shows_durable_project_goal_and_current_native_generation():
               "trusted_record_restoration_stage": {"status": "COMPLETE_CONSUMED"},
               "final_train_registry_stage": {"status": "COMPLETE_CONSUMED"},
               "new_generation_m5_feature_stage": {"status": "COMPLETE_CONSUMED"},
-              "new_generation_m1_feature_stage": {"status": "EXECUTION_CLAIMED"},
+              "new_generation_m1_feature_stage": {"status": "COMPLETE_CONSUMED"},
+              "dynamic_m5_entry_implementation": {
+                  "status": "IMPLEMENTING_SOURCE_NOT_QUALIFIED",
+                  "training_phase": "entry_only_dynamic_m5_path",
+                  "emission_scope": "m5_dynamic_observed",
+                  "query_domain_minutes": {"first": 1, "last": 480},
+                  "native_training_admitted": False,
+                  "candidate_quality_value_admitted": False,
+                  "prior_fixed95_draft_execution_authorized": False},
               "native_binding_gaps": ["new physical outputs unqualified"]}
     status = {"decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY", "current_work": {
         "project_goal": goal, "native_gc_rebuild_20261017": native,
@@ -1067,6 +1076,11 @@ def test_handover_shows_durable_project_goal_and_current_native_generation():
         key: value for key, value in native.items() if key not in {"raw_stage", "derived_timeframe_stage"}}
     assert "historical_scope" not in out["current_work"]
     assert out["decision"] == "OBSERVATION_ONLY_NOT_RUN_AUTHORITY"
+    shown = out["current_work"]["native_gc_rebuild_20261017"]
+    assert shown["new_generation_m1_feature_stage"]["status"] == "COMPLETE_CONSUMED"
+    assert shown["dynamic_m5_entry_implementation"]["native_training_admitted"] is False
+    assert shown["dynamic_m5_entry_implementation"]["candidate_quality_value_admitted"] is False
+    assert shown["physical_dataset_input_qualification_complete"] is False
 
 
 def test_declared_failed_unknown_test_observation_is_visible_and_blocks_readiness(fixture, monkeypatch):

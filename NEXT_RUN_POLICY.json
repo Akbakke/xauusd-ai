@@ -9457,7 +9457,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "M5_PRIMARY_SOURCE_QUALIFIED__003_M1_FEATURES_026_CLAIMED__NO_TRAINING",
+      "status": "022_026_COMPLETE__DYNAMIC_COMPONENT_SOURCE_QUALIFIED__PHYSICAL_DATASET_AND_NATIVE_ENTRY_COORDINATOR_PENDING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9465,7 +9465,7 @@
       "full_native_epoch_count": 1,
       "native_training_admitted": false,
       "training_started": false,
-      "horizon": "M5 path quality and MAE before MFE primary by explicit18October operator response; existing1/5/20day horizons retained as support, not forced exit rules.",
+      "horizon": "Entry only: observed direction from1minute to manyhours with active signedMFE and conservativeMAEbeforefirstMFE; days support. Fixed95minprimary replaced; computational domain never impliestradeexit.",
       "split_status": "20/3/3 bound before native normalization and training after stated optional-question assumption; no user reply changing dates received. Final pre-July cohort is retrospective development control.",
       "raw_stage": {
         "status": "COMPLETE_CONSUMED",
@@ -9493,11 +9493,11 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "022complete: fresh003M5/model-source/253TFcache and1205GCvalues+1205masks;2725signal/2542ctx. FreshM1 andnewM5physicaldataset remain.",
-        "496currentfocusedcasespass: explicitM5primaryemission/independent4+6forecastmasks/freshphysicaltargetbinding andboundedsequence-readers qualified. Newphysicalscope/registryclock/normalization/model remain.",
-        "NewM5physicalTRAINclock must be measured, then freshwholeTRAINregistryfit andcurrentimmutablemetadata/signalcontracts mustbindthatclock. Old025109507clockdoesnotadmitnewM5population.",
-        "WholephysicalTRAINnormalization,current-functioninitialbaseline/parity/resumesmoke remain.",
-        "Featurebytes mayonlybereused afterexactvalue/source/role/mask/evaluator-equivalenceproof; no stale currentcontractorclockadmission."
+        "022M5/cache/model-source and026M1 are COMPLETE; dynamicphysicalM5dataset remains.",
+        "Dynamic minute-to-many-hour quote queries/emission/model/loss/physical receipt/witness components qualified by030/031; actual physicaldataset and native Entry-only coordinator/initial measurement remain; old027fixed95draft never launched.",
+        "NewphysicalTRAINclock must be measured, freshwholeTRAINregistryfit and current immutablecontracts required;025old109507clock does not admit it.",
+        "WholephysicalTRAINnormalization,current-functioninitialbaseline/physicalparity/Entryonlyoptimizer/resume and machinewideidle/freshsafeWindowsboot remain.",
+        "FinaldynamicnativeLONGSHORTFLATqualityauthority/coverage/traceproof and actualsingleepoch remain; no economicedge claim."
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
       "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TERMINAL.json",
@@ -9744,7 +9744,7 @@
         "separate_ninth_encoder": false,
         "preserved": true
       },
-      "entry_target_independence_required": "M5 observed executable price path, MAE before MFE primary and long-horizon support; no Exit-model teacher. Contract/loss/head/action/evaluation must agree. Entry-only optimizer, Exit-ownedgrad=None and unchanged Exit weights required in fresh smoke.",
+      "entry_target_independence_required": "No Exit model/targets/gradients/decisions in this wave. All8families+MBP+closedMTF; LONG/SHORT/FLAT and selected/abstained entries require direction and pathquality evidence. Percomponent/perquery masks, no future-input or max-of-future-label target.",
       "periodic_safe_reboot_required": "After completed dataset and machine-wide idle proof; fresh physical Windows boot before admitted GPU smoke/epoch. Never reboot active producer.",
       "entry_independence_focused_checks": {
         "passed_tests": 34,
@@ -10278,14 +10278,14 @@
         }
       },
       "new_generation_m1_feature_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "COMPLETE_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_M1_FEATURES_20261018_026.json",
         "plan_sha256": "09dc98ef619e62e1032105af2273bb4302d2cc27e26c6c2b3c4e3ab5ee366306",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_026",
         "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003",
         "controller_sha256": "05b969c2124192f1fd446a395432e58db435eb6aacb8997031483eb2e0538635",
         "claimed_invocations": 1,
-        "completed_invocations": 0,
+        "completed_invocations": 1,
         "execution_authorized": false,
         "relaunch_allowed": false,
         "native_epoch_authorized_by_this_stage": false,
@@ -10300,7 +10300,25 @@
         "source_qualification": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_026/QUALIFICATION/FINAL_M5_POPULATION_QUALIFICATION.json",
           "sha256": "fb2b67fc4c20371f7875c11dc57521ff2699e6c0504d0d8d3cce10b889d7d590"
-        }
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_026/TERMINAL.json",
+          "sha256": "0294e5c02093c991e008e24c77fe5cb3e5393f89f1af63ded263379bac05ee3e"
+        },
+        "elapsed_seconds": 6092.253317549999,
+        "source_at_execution": "b669d8f05c79504c1dc18a81079b53ae6f6c937f",
+        "artifacts": {
+          "M1_ENRICHED.parquet": {
+            "sha256": "7928886648820c6e2ddb5057628c980f75264efbab77d94623732f7a88e1efcd",
+            "bytes": 788567849
+          },
+          "M1_ENRICHED.parquet.manifest.json": {
+            "sha256": "f4e3ab32955cbf7b16ba3e279d070f5b4b39d764f122dd63c0b7415e6810136d",
+            "bytes": 65346010
+          }
+        },
+        "m1_rows": 1111058,
+        "m1_column_count": 2576
       },
       "bounded_sequence_source_qualification": {
         "status": "39_FOCUSED_CASES_PASSED_SOURCE_UNCHANGED",
@@ -10342,6 +10360,126 @@
           "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_026/QUALIFICATION/FINAL_M5_POPULATION_QUALIFICATION.json",
           "sha256": "fb2b67fc4c20371f7875c11dc57521ff2699e6c0504d0d8d3cce10b889d7d590"
         }
+      },
+      "dynamic_m5_entry_implementation": {
+        "status": "COMPONENT_SOURCE_QUALIFIED__PHYSICAL_DATASET_METADATA_AND_NATIVE_COORDINATOR_PENDING",
+        "operator_authority": "18October user explicitly requested minute-to-many-hour Entry direction and lowMAEbeforeMFE, days support; approved activegoal and notification after complete build. One nativeepoch remains requested, pending alladmission.",
+        "training_phase": "entry_only_dynamic_m5_path",
+        "emission_scope": "m5_dynamic_observed",
+        "design_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_ENTRY_DESIGN_20261018_029",
+        "prior_fixed95_dataset_draft": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_027",
+        "prior_fixed95_draft_execution_authorized": false,
+        "native_training_admitted": false,
+        "training_started": false,
+        "candidate_quality_value_admitted": false,
+        "exit_training_authorized": false,
+        "test_data_used": false,
+        "source_owners": {
+          "data": "gx1/contracts/entry_causal_m1_outcomes_v1.py",
+          "targets": "gx1/contracts/entry_observed_market_v1.py",
+          "model": "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+          "objective": "gx1/contracts/entry_model_native_training_objective_v1.py"
+        },
+        "query_domain_minutes": {
+          "first": 1,
+          "last": 480,
+          "origin": "firstengineeringdomain manyhours, reuses existing96M5×5min scale; nooptimalityorholdlimitclaim"
+        },
+        "required_completion": [
+          "immutableM1BIDASKquoteprovenance+splitcontainedperquerytargets",
+          "allgenuinefeaturesandcausalMTFactualmodelconsumption",
+          "activeindependentdirectionMFEpreMAElossesandmaskproof",
+          "singlecausalLONGSHORTFLATauthoritywithqualityandcoveragemeasurement",
+          "wholephysicalTRAINclockregistryandnormalizationcurrentfunctionbinding",
+          "freshinitialbaselinephysicalparityEntryonlyoptimizerresumeandhardwareguards",
+          "oneactualfullnativeepochafterqualifiedfreshcampaign",
+          "decisionandabstentiontraceabilityandhonesttechnicallearninggeneralizationedgeboundaries"
+        ],
+        "implementation_review": {
+          "status": "FOCUSED_030_031_COMPONENT_CONSISTENCY_PASSED_NOT_NATIVE_ADMISSION",
+          "shared_quote_index_and_exact_global_row_pointers": true,
+          "terminal_and_path_independent_masks": true,
+          "terminal_gross_to_net": "existing declared-cost owner, float64 arithmetic then one final float32 storage cast",
+          "query_targets_materialized": "current minibatch only; no physical N x 480 tensor",
+          "legacy95_source_functions_ast_unchanged": true,
+          "exit_training_enabled": false,
+          "qualification_jobs_started": 2,
+          "measurement_evidence_class": "synthetic fixtures plus actual fixture file/hash/clock/pointer/optimizer consistency; no actual market fit/generalization/economic edge",
+          "closed_only_tail_observations": "separate known query endpoint kind and active path targets/masks; shared heads, no substitution"
+        },
+        "qualification": {
+          "root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_SOURCE_QUALIFICATION_20261018_030",
+          "status": "FAIL_CONSUMED_SUPERSEDED_BY_CORRECTION_031",
+          "planned_invocations": 1,
+          "max_wall_seconds": 1800,
+          "tests": [
+            "tests/test_entry_causal_m1_outcomes.py",
+            "tests/test_entry_observed_market.py",
+            "tests/test_entry_observed_market_native.py",
+            "tests/test_entry_v10_outcome_targets.py",
+            "tests/test_entry_v10_ctx_model_shapes.py",
+            "tests/test_entry_joint_task_weighting.py",
+            "tests/test_collect_gx1_handover_readonly.py",
+            "tests/test_model_native_seq513_rebuild_script.py",
+            "tests/test_native_prefix_recipe.py",
+            "tests/test_native_physical_campaign.py",
+            "tests/test_materialize_unified_exit_chronological_coordinates_v1.py"
+          ],
+          "test_data_used": false,
+          "native_training_started": false,
+          "consistency_only": true,
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_SOURCE_QUALIFICATION_20261018_030/TERMINAL.json",
+            "sha256": "240a4182746d6fb3d877a74c583c933e7d05ca0bbb02a50b4ed6bdb3af1efec7"
+          },
+          "source_unchanged": true,
+          "exit_code": 1,
+          "failed_test_cases": 29,
+          "elapsed_seconds": 272.41827925498364,
+          "failures": [
+            "24 new single-epoch fixtures violate existing sampler budget",
+            "one new physical preprocessing fixture lacks required dynamic epoch witness",
+            "four legacy coordinate-producer cases hit missing dynamic argument NameError"
+          ],
+          "reuse_passing_evidence_required": true,
+          "passed_test_cases": 650
+        },
+        "qualification_followup_031": {
+          "root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_SOURCE_QUALIFICATION_20261018_031",
+          "status": "PASS_CONSISTENCY_ONLY",
+          "tests": [
+            "tests/test_native_prefix_recipe.py",
+            "tests/test_native_physical_campaign.py",
+            "tests/test_materialize_unified_exit_chronological_coordinates_v1.py",
+            "tests/test_entry_observed_market.py",
+            "tests/test_entry_observed_market_native.py"
+          ],
+          "planned_invocations": 1,
+          "max_wall_seconds": 1800,
+          "test_data_used": false,
+          "native_training_started": false,
+          "repairs": [
+            "missing keyword-only coordinate argument",
+            "fixture sampler budget matches its real population",
+            "fixture physically binds required dynamic epoch witness",
+            "actual dynamic pointer binding mode now shared by producer/provider, old mode rejected"
+          ],
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_SOURCE_QUALIFICATION_20261018_031/TERMINAL.json",
+            "sha256": "9fa9cbda388c4aae75232fc5c9098dd00d0cb2a3de1b06c1c482a839a8d302f8"
+          },
+          "passed_test_cases": 233,
+          "source_unchanged": true,
+          "exit_code": 0,
+          "elapsed_seconds": 138.4885816879978
+        },
+        "known_remaining_native_source_gaps": [
+          "fresh-prefix model constructor must bind actual dynamic phase/query kwargs",
+          "prefix training binding must accept exact dynamic physical pointer receipt without Exit/reference-policy target authority",
+          "initial/gradient/parity observers require explicit Entry-curve-only measurement; no old Q-bps/token/Exit forwards",
+          "predicted-horizon candidate LONG/SHORT/FLAT and abstention/coverage trace require actual qualification; no native ratio authority yet",
+          "current metadata successor owner required after actual physical TRAIN registry fit; no blind registry SHA replacement"
+        ]
       }
     },
     "native_xau_pair_failure_20261018": {

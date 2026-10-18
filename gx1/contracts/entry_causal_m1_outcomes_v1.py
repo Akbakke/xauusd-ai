@@ -12,7 +12,7 @@ representation-auxiliary owners must consume in a successor rebuild.
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -514,3 +514,429 @@ def causal_m1_path_quality_outcomes(
             full[rows] = values
             output['y_' + side + '_m5_path_' + field] = full
     return pd.DataFrame(output)
+
+
+# Explicit successor: resource chunking is not an observation/trading horizon.
+DYNAMIC_M1_PREFIX_SCHEMA_VERSION = "gx1_entry_dynamic_m1_prefix_v1"
+DYNAMIC_M1_PREFIX_HORIZON_MINUTES = tuple(range(1, 481))
+DYNAMIC_M1_PREFIX_SIDE_ORDER = ("long", "short")
+DYNAMIC_M1_PREFIX_CLOCK_KIND = "elapsed_wall_clock_minutes"
+DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT = "terminal_open_inclusive"
+DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT = "closed_m1_prefix"
+DYNAMIC_M1_PREFIX_ENDPOINT_KINDS = (
+    DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT, DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT,
+)
+DYNAMIC_M1_PREFIX_QUERY_CHUNK_ROWS = 4096
+
+
+def dynamic_m1_prefix_contract() -> dict[str, Any]:
+    return {
+        "schema_version": DYNAMIC_M1_PREFIX_SCHEMA_VERSION,
+        "horizon_minutes": list(DYNAMIC_M1_PREFIX_HORIZON_MINUTES),
+        "clock_kind": DYNAMIC_M1_PREFIX_CLOCK_KIND,
+        "side_order": list(DYNAMIC_M1_PREFIX_SIDE_ORDER),
+        "endpoint_kinds": list(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS),
+        "endpoint_kind_codes": {kind: code for code, kind in enumerate(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS)},
+        "fill_binding": ENTRY_CAUSAL_M1_FILL_BINDING,
+        "terminal_markout": "exact_bid_ask_endpoints_entry_notional_gross_bps",
+        "terminal_mask_independent_of_path": True,
+        "path_fields": ["mfe_bps", "mae_before_first_mfe_lower_bps",
+                        "mae_before_first_mfe_upper_bps"],
+        "terminal_endpoint_path": "closed_m1_ohlc_before_T_plus_exact_T_open_only",
+        "closed_endpoint_path": "closed_m1_ohlc_before_T_without_T_quote",
+        "first_equal_peak": "first_exact_equal_extreme_retained",
+        "intraminute_order": "lower_upper_bounds_not_invented_tick_order",
+        "unknown_gap": "path_censored_terminal_endpoints_remain_independent",
+        "known_closure": "only_source_clock_bound_external_exact_schedule",
+        "cost_at_peak_materialized": False,
+        "holding_time_rule": False,
+        "future_horizon_max_target": False,
+        "masked_float_storage": "nan",
+        "masked_source_row": -1,
+        "physical_source_provenance_owner": "caller_verified_quote_source_binding",
+    }
+
+
+@dataclass(frozen=True)
+class _DynamicRangeArgIndex:
+    values: np.ndarray
+    tree: np.ndarray
+    leaf_count: int
+    maximum: bool
+
+    def _choose(self, left: np.ndarray, right: np.ndarray) -> np.ndarray:
+        lv = self.values[np.maximum(left, 0)]
+        rv = self.values[np.maximum(right, 0)]
+        better = lv > rv if self.maximum else lv < rv
+        use_left = (right < 0) | ((left >= 0) &
+            (better | ((lv == rv) & (left <= right))))
+        return np.where(use_left, left, right)
+
+    def query(self, starts: np.ndarray, ends: np.ndarray) -> np.ndarray:
+        """First arg-extreme on each half-open source interval; empty -> -1."""
+        left = np.asarray(starts, dtype=np.int64) + self.leaf_count
+        right = np.asarray(ends, dtype=np.int64) + self.leaf_count
+        result = np.full(len(left), -1, dtype=np.int64)
+        while np.any(left < right):
+            active = left < right
+            take = active & ((left & 1) != 0)
+            result[take] = self._choose(result[take], self.tree[left[take]])
+            left[take] += 1
+            take = active & ((right & 1) != 0)
+            right[take] -= 1
+            result[take] = self._choose(result[take], self.tree[right[take]])
+            left //= 2
+            right //= 2
+        return result
+
+
+def _dynamic_range_arg_index(values: np.ndarray, *, maximum: bool) -> _DynamicRangeArgIndex:
+    size = 1 << (len(values) - 1).bit_length()
+    tree = np.full(2 * size, -1, dtype=np.int64)
+    tree[size:size + len(values)] = np.arange(len(values), dtype=np.int64)
+    index = _DynamicRangeArgIndex(values, tree, size, maximum)
+    width = size // 2
+    while width:
+        rows = np.arange(width, 2 * width, dtype=np.int64)
+        tree[rows] = index._choose(tree[rows * 2], tree[rows * 2 + 1])
+        width //= 2
+    tree.setflags(write=False)
+    return index
+
+
+@dataclass(frozen=True)
+class DynamicM1PrefixIndex:
+    source: CausalM1QuoteSource
+    split_end_exclusive: pd.Timestamp
+    source_parquet_sha256: str
+    source_row_offset: int
+    source_clock_sha256: str
+    source_rows: int
+    indexed_clock_sha256: str
+    unknown_gap_prefix: np.ndarray
+    known_closure_count: int
+    closure_authority_sha256: str | None
+    _ranges: Mapping[str, _DynamicRangeArgIndex]
+
+    def binding(self) -> dict[str, Any]:
+        """Computed clock/window identity; physical file verification stays with caller."""
+        return {
+            "schema_version": DYNAMIC_M1_PREFIX_SCHEMA_VERSION,
+            "source_parquet_sha256": self.source_parquet_sha256,
+            "source_clock_sha256": self.source_clock_sha256,
+            "source_rows": self.source_rows,
+            "indexed_clock_sha256": self.indexed_clock_sha256,
+            "indexed_rows": len(self.source.times),
+            "source_row_offset": self.source_row_offset,
+            "split_end_exclusive": self.split_end_exclusive.isoformat(),
+            "clock_kind": DYNAMIC_M1_PREFIX_CLOCK_KIND,
+            "unknown_gap_count": int(self.unknown_gap_prefix[-1]),
+            "known_closure_count": self.known_closure_count,
+            "closure_authority_sha256": self.closure_authority_sha256,
+        }
+
+
+def prepare_dynamic_m1_prefix_index(
+    closed_m1: pd.DataFrame | CausalM1QuoteSource, *,
+    split_end_exclusive: Any, source_parquet_sha256: str,
+    source_row_offset: int = 0,
+    closure_authority: Mapping[str, Any] | None = None,
+    exact_schedule: Mapping[str, Any] | None = None,
+) -> DynamicM1PrefixIndex:
+    """Build one O(N) range index after clock-only split projection.
+
+    The caller verifies the physical quote file and its retained contiguous row
+    mapping. This API does not invent a file path or claim to have hashed a file.
+    source_clock_sha256 covers all supplied clock metadata; indexed_clock_sha256
+    covers only the rows whose prices may be read before the exclusive cutoff.
+    CausalM1QuoteSource may carry the full clock with prices for only that
+    retained prefix; cutoff/later prices need never be loaded or padded.
+    """
+    from gx1.contracts.unified_exit_market_closure_authority_v1 import (
+        m1_clock_sha256, require_exact_market_schedule,
+        require_market_closure_authority,
+    )
+    if (not isinstance(source_parquet_sha256, str) or len(source_parquet_sha256) != 64
+            or any(c not in "0123456789abcdef" for c in source_parquet_sha256)):
+        raise RuntimeError("DYNAMIC_M1_PREFIX_SOURCE_SHA_INVALID")
+    if type(source_row_offset) is not int or source_row_offset < 0:
+        raise RuntimeError("DYNAMIC_M1_PREFIX_SOURCE_OFFSET_INVALID")
+    if isinstance(closed_m1, CausalM1QuoteSource):
+        raw_times = closed_m1.times
+    elif isinstance(closed_m1, pd.DataFrame) and "time" in closed_m1:
+        raw_times = closed_m1["time"]
+    else:
+        raise RuntimeError("DYNAMIC_M1_PREFIX_SOURCE_INVALID")
+    clock = _utc_index(raw_times, name="DYNAMIC_SOURCE", seconds=EXIT_DECISION_BAR_SECONDS)
+    cutoff = pd.Timestamp(split_end_exclusive)
+    if pd.isna(cutoff) or cutoff.tzinfo is None or cutoff.floor("min") != cutoff:
+        raise RuntimeError("DYNAMIC_M1_PREFIX_SPLIT_CUTOFF_INVALID")
+    cutoff = cutoff.tz_convert("UTC")
+    retained = int(clock.searchsorted(cutoff, side="left"))
+    if not retained:
+        raise RuntimeError("DYNAMIC_M1_PREFIX_SOURCE_EMPTY_BEFORE_SPLIT")
+    # No value conversion, geometry scan or range-tree read of cutoff/later rows.
+    if isinstance(closed_m1, CausalM1QuoteSource):
+        if set(closed_m1.values) != set(_M1_REQUIRED_COLUMNS[1:]):
+            raise RuntimeError("DYNAMIC_M1_PREFIX_PREPARED_SOURCE_INVALID")
+        scoped = pd.DataFrame({"time": clock[:retained], **{
+            name: closed_m1.values[name][:retained] for name in _M1_REQUIRED_COLUMNS[1:]
+        }})
+    else:
+        scoped = closed_m1.iloc[:retained]
+    source = prepare_causal_m1_quote_source(scoped)
+    source = CausalM1QuoteSource(source.times.copy(deep=True), source.values)
+    source_clock_sha = m1_clock_sha256(clock)
+    gap_rows = np.flatnonzero(np.diff(clock.asi8) != 60 * 10**9)
+    known: set[int] = set()
+    authority_sha = None
+    if (closure_authority is None) != (exact_schedule is None):
+        raise RuntimeError("DYNAMIC_M1_PREFIX_CLOSURE_BINDING_INCOMPLETE")
+    if closure_authority is not None:
+        schedule = require_exact_market_schedule(exact_schedule)
+        if schedule["source_method"] not in (
+                "externally_sourced_exact_xau_utc_closure_intervals_v1",
+                "observed_m1_clock_all_gaps_unknown_v1"):
+            raise RuntimeError("DYNAMIC_M1_PREFIX_INFERRED_CLOSURE_FORBIDDEN")
+        authority = require_market_closure_authority(
+            closure_authority, expected_m1_source_sha256=source_parquet_sha256,
+            expected_m1_clock_sha256=source_clock_sha)
+        if (authority["schedule_sha256"] != schedule["schedule_sha256"]
+                or authority["m1_row_count"] != len(clock)
+                or len(authority["intervals"]) != len(gap_rows)
+                or authority["coverage_start_utc"] != schedule["coverage_start_utc"]
+                or authority["coverage_end_utc_exclusive"] != schedule["coverage_end_utc_exclusive"]
+                or pd.Timestamp(schedule["coverage_start_utc"]) > clock[0]
+                or pd.Timestamp(schedule["coverage_end_utc_exclusive"]) < clock[-1] + pd.Timedelta(minutes=1)):
+            raise RuntimeError("DYNAMIC_M1_PREFIX_CLOSURE_CLOCK_MISMATCH")
+        if (schedule["source_method"] == "observed_m1_clock_all_gaps_unknown_v1"
+                and schedule["source_reference_sha256"] != source_clock_sha):
+            raise RuntimeError("DYNAMIC_M1_PREFIX_CLOSURE_CLOCK_MISMATCH")
+        scheduled = {(pd.Timestamp(item["start_utc"]).value,
+                      pd.Timestamp(item["end_utc_exclusive"]).value)
+                     for item in schedule["intervals"]}
+        for row, record in zip(gap_rows, authority["intervals"]):
+            interval = (int(clock.asi8[row]) + 60 * 10**9, int(clock.asi8[row + 1]))
+            if (record["gap_after_m1_row"] != int(row)
+                    or pd.Timestamp(record["previous_bar_start_utc"]).value != int(clock.asi8[row])
+                    or pd.Timestamp(record["next_bar_start_utc"]).value != int(clock.asi8[row + 1])
+                    or pd.Timestamp(record["closure_start_utc"]).value != interval[0]
+                    or pd.Timestamp(record["closure_end_utc_exclusive"]).value != interval[1]
+                    or bool(record["successor_across_gap_allowed"]) != (interval in scheduled)):
+                raise RuntimeError("DYNAMIC_M1_PREFIX_CLOSURE_INTERVAL_MISMATCH")
+            if record["successor_across_gap_allowed"]:
+                known.add(int(row))
+        authority_sha = authority["artifact_sha256"]
+    unknown = np.zeros(retained, dtype=np.int64)
+    for row in gap_rows:
+        if row < retained and int(row) not in known:
+            unknown[row] = 1
+    prefix = np.concatenate((np.zeros(1, dtype=np.int64), np.cumsum(unknown)))
+    prefix.setflags(write=False)
+    ranges = {name: _dynamic_range_arg_index(source.values[name], maximum=maximum)
+              for name, maximum in (("bid_high", True), ("bid_low", False),
+                                     ("ask_low", False), ("ask_high", True))}
+    return DynamicM1PrefixIndex(
+        source, cutoff, source_parquet_sha256, source_row_offset,
+        source_clock_sha, len(clock), m1_clock_sha256(source.times), prefix,
+        sum(row < retained for row in known), authority_sha, ranges)
+
+
+def build_dynamic_m1_fill_surface(
+    index: DynamicM1PrefixIndex, *, m5_decision_times: Sequence[Any] | pd.DatetimeIndex,
+) -> pd.DataFrame:
+    """Reuse the exact fill owner, preserving the caller's original source-row map."""
+    result = build_entry_m1_fill_surface(m5_decision_times=m5_decision_times,
+                                       closed_m1=index.source)
+    bound = result["entry_fill_bound"].to_numpy(bool)
+    result.loc[bound, "entry_m1_row"] += index.source_row_offset
+    return result
+
+
+def query_dynamic_m1_prefix(
+    index: DynamicM1PrefixIndex, *, fill_surface: pd.DataFrame,
+    query_entry_rows: Sequence[int] | np.ndarray,
+    horizon_minutes: Sequence[int] | np.ndarray,
+    endpoint_kind: str = DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT,
+    query_chunk_rows: int = DYNAMIC_M1_PREFIX_QUERY_CHUNK_ROWS,
+) -> dict[str, Any]:
+    """Query O(Q) individual prefixes in resource-bounded internal chunks.
+
+    The source index is shared. No entry-by-all-horizons matrix is created.
+    Terminal gross markout remains observable across an unknown interior gap;
+    path extrema do not. Net costs and masked batch-zeroing belong to caller.
+    """
+    if not isinstance(index, DynamicM1PrefixIndex):
+        raise RuntimeError("DYNAMIC_M1_PREFIX_INDEX_INVALID")
+    entries, horizons = np.asarray(query_entry_rows), np.asarray(horizon_minutes)
+    if (entries.ndim != 1 or horizons.shape != entries.shape or not len(entries)
+            or not np.issubdtype(entries.dtype, np.integer)
+            or not np.issubdtype(horizons.dtype, np.integer)
+            or np.any(entries < 0) or np.any(horizons < 1)
+            or np.any(horizons > DYNAMIC_M1_PREFIX_HORIZON_MINUTES[-1])
+            or type(query_chunk_rows) is not int or query_chunk_rows < 1
+            or endpoint_kind not in DYNAMIC_M1_PREFIX_ENDPOINT_KINDS):
+        raise RuntimeError("DYNAMIC_M1_PREFIX_QUERY_INVALID")
+    if (not isinstance(fill_surface, pd.DataFrame)
+            or tuple(fill_surface.columns) != _SURFACE_COLUMNS
+            or np.any(entries >= len(fill_surface))):
+        raise RuntimeError("DYNAMIC_M1_PREFIX_FILL_SURFACE_INVALID")
+    entries = entries.astype(np.int64, copy=False)
+    horizons = horizons.astype(np.int64, copy=False)
+    unique, inverse = np.unique(entries, return_inverse=True)
+    selected_clock = fill_surface.loc[:, ["time", "entry_decision_at"]].iloc[unique]
+    m5_times = _utc_index(selected_clock["time"], name="DYNAMIC_FILL_M5", seconds=ENTRY_DECISION_BAR_SECONDS)
+    decision = _utc_index(selected_clock["entry_decision_at"], name="DYNAMIC_FILL_DECISION", seconds=EXIT_DECISION_BAR_SECONDS)
+    if not decision.equals(m5_times + pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)):
+        raise RuntimeError("DYNAMIC_M1_PREFIX_FILL_CLOCK_INVALID")
+    # Validate/read fill prices only for decisions before this split's cutoff.
+    before_cutoff = decision.asi8 < index.split_end_exclusive.value
+    local = np.full(len(unique), -1, dtype=np.int64)
+    bound = np.zeros(len(unique), dtype=bool)
+    if before_cutoff.any():
+        checked = _require_surface(fill_surface.iloc[unique[before_cutoff]])
+        pos = checked["entry_m1_row"].to_numpy(np.int64) - index.source_row_offset
+        declared = checked["entry_fill_bound"].to_numpy(bool)
+        safe = np.clip(pos, 0, len(index.source.times) - 1)
+        exact = (declared & (pos >= 0) & (pos < len(index.source.times))
+                 & (index.source.times.asi8[safe] == decision.asi8[before_cutoff]))
+        if np.any(declared & ~exact):
+            raise RuntimeError("DYNAMIC_M1_PREFIX_FILL_SOURCE_ROW_MISMATCH")
+        if (np.any(exact & (checked["entry_bid"].to_numpy(np.float64)
+                            != index.source.values["bid_open"][safe]))
+                or np.any(exact & (checked["entry_ask"].to_numpy(np.float64)
+                                  != index.source.values["ask_open"][safe]))):
+            raise RuntimeError("DYNAMIC_M1_PREFIX_FILL_SOURCE_QUOTE_MISMATCH")
+        local[before_cutoff] = np.where(exact, pos, -1)
+        bound[before_cutoff] = exact
+    q = len(entries)
+    decision_ns = decision.asi8[inverse]
+    terminal_ns = decision_ns + horizons * 60 * 10**9
+    result: dict[str, Any] = {
+        "schema_version": DYNAMIC_M1_PREFIX_SCHEMA_VERSION,
+        "clock_kind": DYNAMIC_M1_PREFIX_CLOCK_KIND,
+        "endpoint_kind": endpoint_kind,
+        "side_order": DYNAMIC_M1_PREFIX_SIDE_ORDER,
+        "query_entry_rows": entries.copy(), "horizon_minutes": horizons.copy(),
+        "terminal_time_ns": terminal_ns,
+        "elapsed_wall_seconds": horizons * 60,
+        "observed_m1_count": np.zeros(q, dtype=np.int64),
+        "terminal_source_row": np.full(q, -1, dtype=np.int64),
+        "terminal_censor_reason": np.full(q, "fill_unavailable", dtype="U64"),
+        "path_censor_reason": np.full(q, "fill_unavailable", dtype="U64"),
+        "terminal_gross_observed": np.zeros((q, 2), dtype=bool),
+        "path_observed": np.zeros((q, 2), dtype=bool),
+        "first_mfe_source_row": np.full((q, 2), -1, dtype=np.int64),
+        "first_mfe_offset_observed_m1": np.full((q, 2), -1, dtype=np.int64),
+        "first_mfe_at_terminal_open": np.zeros((q, 2), dtype=bool),
+    }
+    for name in ("terminal_gross_return_bps", "mfe_bps",
+                 "mae_before_first_mfe_lower_bps", "mae_before_first_mfe_upper_bps"):
+        result[name] = np.full((q, 2), np.nan, dtype=np.float64)
+    clock = index.source.times.asi8
+    quotes = index.source.values
+    after = ~before_cutoff[inverse]
+    result["terminal_censor_reason"][after] = "split_right_censor"
+    result["path_censor_reason"][after] = "split_right_censor"
+    for begin in range(0, q, query_chunk_rows):
+        stop = min(q, begin + query_chunk_rows)
+        batch = np.arange(begin, stop, dtype=np.int64)
+        rows = batch[bound[inverse[batch]]]
+        if not len(rows):
+            continue
+        starts = local[inverse[rows]]
+        target = terminal_ns[rows]
+        terminal_allowed = target < index.split_end_exclusive.value
+        path_allowed = (target < index.split_end_exclusive.value
+                        if endpoint_kind == DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT
+                        else target <= index.split_end_exclusive.value)
+        end = np.searchsorted(clock, target, side="left")
+        exact = np.zeros(len(rows), dtype=bool)
+        present = end < len(clock)
+        exact[present] = clock[end[present]] == target[present]
+        terminal_rows = rows[terminal_allowed & exact]
+        if endpoint_kind == DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT:
+            result["terminal_censor_reason"][rows] = "terminal_quote_missing"
+            result["terminal_censor_reason"][rows[~terminal_allowed]] = "split_right_censor"
+            if len(terminal_rows):
+                s = starts[terminal_allowed & exact]
+                e = end[terminal_allowed & exact]
+                long, short = _entry_notional_pnl_bps(
+                    entry_bid=quotes["bid_open"][s], entry_ask=quotes["ask_open"][s],
+                    exit_bid=quotes["bid_open"][e], exit_ask=quotes["ask_open"][e])
+                result["terminal_gross_return_bps"][terminal_rows] = np.column_stack((long, short))
+                result["terminal_gross_observed"][terminal_rows] = True
+                result["terminal_source_row"][terminal_rows] = e + index.source_row_offset
+                result["terminal_censor_reason"][terminal_rows] = "observed"
+        else:
+            result["terminal_censor_reason"][rows] = "closed_m1_prefix_only"
+            result["terminal_censor_reason"][rows[~path_allowed]] = "split_right_censor"
+        # Count unknown gap starts strictly before T. A gap starting at the
+        # last complete bar's close T does not erase that closed-only prefix.
+        gap_stop = np.searchsorted(clock, target - 60 * 10**9, side="left")
+        unknown = (index.unknown_gap_prefix[gap_stop]
+                   - index.unknown_gap_prefix[starts]) > 0
+        count = np.maximum(end - starts, 0)
+        result["observed_m1_count"][rows[path_allowed]] = count[path_allowed]
+        path_ok = path_allowed & ~unknown & (count > 0)
+        result["path_censor_reason"][rows] = "prefix_close_missing"
+        if endpoint_kind == DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT:
+            path_ok &= exact
+            result["path_censor_reason"][rows[~exact]] = "terminal_quote_missing"
+        else:
+            last = np.clip(end - 1, 0, len(clock) - 1)
+            closes_at_target = clock[last] + 60 * 10**9 == target
+            path_ok &= closes_at_target
+        result["path_censor_reason"][rows[unknown]] = "unknown_source_absence"
+        beyond = target > clock[-1] + 60 * 10**9
+        result["path_censor_reason"][rows[beyond & ~unknown]] = "source_window_unavailable"
+        result["path_censor_reason"][rows[~path_allowed]] = "split_right_censor"
+        good = rows[path_ok]
+        if not len(good):
+            continue
+        starts, ends = starts[path_ok], end[path_ok]
+        result["path_observed"][good] = True
+        result["path_censor_reason"][good] = "observed"
+        for side, favorable_name, adverse_name, maximum in (
+            (0, "bid_high", "bid_low", True), (1, "ask_low", "ask_high", False)
+        ):
+            peaks = index._ranges[favorable_name].query(starts, ends)
+            terminal_peak = np.zeros(len(good), dtype=bool)
+            favorable = quotes[favorable_name][peaks].copy()
+            if endpoint_kind == DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT:
+                opening = quotes["bid_open" if side == 0 else "ask_open"][ends]
+                terminal_peak = opening > favorable if maximum else opening < favorable
+                peaks = np.where(terminal_peak, ends, peaks)
+                favorable = np.where(terminal_peak, opening, favorable)
+            previous = index._ranges[adverse_name].query(starts, peaks)
+            entry = quotes["ask_open" if side == 0 else "bid_open"][starts]
+            running = quotes["bid_open" if side == 0 else "ask_open"][starts].copy()
+            has_previous = previous >= 0
+            if side == 0:
+                running[has_previous] = np.minimum(running[has_previous], quotes[adverse_name][previous[has_previous]])
+                lower_price = np.minimum(running, quotes["bid_open"][peaks])
+            else:
+                running[has_previous] = np.maximum(running[has_previous], quotes[adverse_name][previous[has_previous]])
+                lower_price = np.maximum(running, quotes["ask_open"][peaks])
+            upper_price = lower_price.copy()
+            interior = ~terminal_peak
+            # Never read terminal-bar high/low: at an instantaneous terminal
+            # opening peak, both pre-peak bounds equal the already-known prefix.
+            if side == 0:
+                upper_price[interior] = np.minimum(running[interior], quotes[adverse_name][peaks[interior]])
+                mfe = (favorable - entry) / entry * 1e4
+                lower, upper = (entry - lower_price) / entry * 1e4, (entry - upper_price) / entry * 1e4
+            else:
+                upper_price[interior] = np.maximum(running[interior], quotes[adverse_name][peaks[interior]])
+                mfe = (entry - favorable) / entry * 1e4
+                lower, upper = (lower_price - entry) / entry * 1e4, (upper_price - entry) / entry * 1e4
+            if (not np.isfinite(mfe).all() or not np.isfinite(lower).all()
+                    or not np.isfinite(upper).all() or np.any(lower < 0) or np.any(upper < lower)):
+                raise RuntimeError("DYNAMIC_M1_PREFIX_PATH_VALUES_INVALID")
+            result["mfe_bps"][good, side] = mfe
+            result["mae_before_first_mfe_lower_bps"][good, side] = lower
+            result["mae_before_first_mfe_upper_bps"][good, side] = upper
+            result["first_mfe_source_row"][good, side] = peaks + index.source_row_offset
+            result["first_mfe_offset_observed_m1"][good, side] = peaks - starts
+            result["first_mfe_at_terminal_open"][good, side] = terminal_peak
+    return result

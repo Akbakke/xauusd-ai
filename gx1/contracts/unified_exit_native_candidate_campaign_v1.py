@@ -374,12 +374,25 @@ def require_physical_chronological_preprocessing(
     )
     from gx1.contracts.entry_model_native_aux_targets_v3 import (
         M5_PHYSICAL_TARGET_BINDING_SCHEMA, require_m5_primary_physical_target_receipt,
+        M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA, M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+        require_m5_dynamic_physical_target_receipt,
     )
-    m5_emission = labels.get("schema_version") == M5_PHYSICAL_TARGET_BINDING_SCHEMA
+    dynamic_emission = labels.get("schema_version") == M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA
+    m5_emission = dynamic_emission or labels.get("schema_version") == M5_PHYSICAL_TARGET_BINDING_SCHEMA
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    require((design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+            == dynamic_emission, "DYNAMIC_M5_PHASE_RECEIPT_MISMATCH")
     if m5_emission:
-        require_m5_primary_physical_target_receipt(labels, design_binding=artifacts["design"], context="NATIVE_PHYSICAL_PREPROCESSING")
-        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
-        require(design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+        if dynamic_emission:
+            require_m5_dynamic_physical_target_receipt(labels, design_binding=artifacts["design"], context="NATIVE_PHYSICAL_PREPROCESSING")
+        else:
+            require_m5_primary_physical_target_receipt(labels, design_binding=artifacts["design"], context="NATIVE_PHYSICAL_PREPROCESSING")
+        from gx1.contracts.entry_model_native_training_objective_v1 import (
+            ENTRY_ONLY_M5_PATH_TRAINING_PHASE, ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        )
+        expected_phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE if dynamic_emission else ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+        require(design.get("scope", {}).get("entry_only_training_phase") == expected_phase
+                and (not dynamic_emission or design["scope"].get("emission_scope") == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE)
                 and normalization.get("decision") == "PASS_COMPOSITE_AND_FIRST_STATE_BINDINGS_NOT_NATIVE_ADMISSION"
                 and normalization.get("test_accessed") is False
                 and normalization.get("forbidden_access_attempts") == []
@@ -436,7 +449,18 @@ def require_physical_chronological_preprocessing(
                 and geometry["entry_rows"] == source["physical_rows"]
                 and geometry["first_state_geometry_exact"] is True
                 and geometry["successor_geometry_exact"] is True, "POPULATION_OR_CLOCK_MISMATCH")
-        if m5_emission:
+        if dynamic_emission:
+            # The source-owned receipt scans the actual time/pointer/mask bytes.
+            # No inactive legacy37 or fixed95 target union is read here.
+            proof = labels["splits"][split]
+            require(proof["source_parquet"] == source["parquet"]
+                    and proof["source_manifest"] == source["manifest"]
+                    and proof["rows"] == proof["first_prefix_observed_rows"] == source["physical_rows"]
+                    and proof["physical_clock_sha256"] == source["clock_sha256"]
+                    and utc(proof["dynamic_m5_supervision"]["index_binding"]["split_end_exclusive"]) == high,
+                    "DYNAMIC_M5_SOURCE_OR_POPULATION_MISMATCH")
+            m5_target_proofs[split] = proof
+        elif m5_emission:
             import pyarrow.parquet as pq
             from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
                 _physical_auxiliary_target_binding, _MODEL_NATIVE_ACTIVE_TARGET_COLS,
@@ -501,7 +525,11 @@ def require_physical_chronological_preprocessing(
             and lifetime["train_fit_rows"] == authority["fit_row_count"]
             and authority["entry_pair_population"]
             == sources["train"]["physical_rows"], "SUMMARY_TRANSFORM_MISMATCH")
-    if m5_emission:
+    if dynamic_emission:
+        require(m5_target_proofs["train"]["dynamic_m5_supervision"]["source_quote_binding"]
+                == m5_target_proofs["val"]["dynamic_m5_supervision"]["source_quote_binding"],
+                "DYNAMIC_M5_SHARED_QUOTE_SOURCE_MISMATCH")
+    elif m5_emission:
         require(m5_target_proofs["train"]["policies"] == m5_target_proofs["val"]["policies"],
                 "FROZEN_POLICY_MISMATCH")
         require(m5_target_proofs["val"]["source_split"] == "val"
@@ -606,6 +634,8 @@ PHYSICAL_COORDINATES_SCHEMA_V1 = "gx1_physical_native_training_coordinates_v1"
 PHYSICAL_COORDINATES_SCHEMA_V2 = "gx1_physical_native_training_coordinates_v2"
 PHYSICAL_COORDINATES_SCHEMA_M5_PATH = "gx1_physical_native_training_coordinates_m5_path_v1"
 M5_PATH_ELIGIBILITY_RULE = "canonical_m5_path_target_valid_and_available_before_bound_train_cutoff_independent_of_long_horizons"
+PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH = "gx1_physical_native_training_coordinates_dynamic_m5_path_v1"
+DYNAMIC_M5_PATH_ELIGIBILITY_RULE = "any_genuine_first_m1_prefix_component_before_bound_train_cutoff"
 HORIZON_ELIGIBILITY_RULE = "complete_outcomes_at_all_observation_horizons_at_or_before_measured_cutoff"
 
 
@@ -662,9 +692,10 @@ def require_physical_native_training_coordinates(
     # rows are the frozen subset with complete observed outcomes at every trading-day horizon at
     # or before the measured cutoff; the order is the native sampler's full order filtered to it.
     schema = value.get("schema_version")
-    check(schema in (PHYSICAL_COORDINATES_SCHEMA_V1, PHYSICAL_COORDINATES_SCHEMA_V2, PHYSICAL_COORDINATES_SCHEMA_M5_PATH), "IDENTITY_INVALID")
+    check(schema in (PHYSICAL_COORDINATES_SCHEMA_V1, PHYSICAL_COORDINATES_SCHEMA_V2, PHYSICAL_COORDINATES_SCHEMA_M5_PATH, PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH), "IDENTITY_INVALID")
     horizon_subset = schema == PHYSICAL_COORDINATES_SCHEMA_V2
     m5_path_subset = schema == PHYSICAL_COORDINATES_SCHEMA_M5_PATH
+    dynamic_m5_subset = schema == PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH
     check(
         value.get("decision") == "TRAIN_COORDINATES_FROZEN_NO_MODEL"
         and value.get("coordinates_sha256") == native_sha256(
@@ -685,7 +716,7 @@ def require_physical_native_training_coordinates(
     keys = ("TRAIN_ELIGIBLE_PARENT_ROWS", "TRAIN_NATIVE_EPOCH0_ORDER",
             "TRAIN_NATIVE4096_PARENT_ROWS", "TRAIN256_PROBE_PARENT_ROWS")
     check(isinstance(bindings, Mapping) and set(bindings) == set(keys)
-          and (horizon_subset or m5_path_subset or bindings["TRAIN_ELIGIBLE_PARENT_ROWS"] == physical["train_parent_rows"]), "ROWS_INVALID")
+          and (horizon_subset or m5_path_subset or dynamic_m5_subset or bindings["TRAIN_ELIGIBLE_PARENT_ROWS"] == physical["train_parent_rows"]), "ROWS_INVALID")
     arrays = {key: np.load(bound(bindings[key])["path"], allow_pickle=False) for key in keys}
     eligible, order, planned, probe = (arrays[key] for key in keys)
     if horizon_subset:
@@ -702,6 +733,37 @@ def require_physical_native_training_coordinates(
               "ELIGIBILITY_INVALID")
         population_ok = (eligible.ndim == 1 and len(eligible) >= 1 and np.all(np.diff(eligible) > 0)
                          and eligible[0] >= 0 and eligible[-1] < physical["train_rows"])
+    elif dynamic_m5_subset:
+        from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+        from gx1.scripts.materialize_unified_exit_chronological_coordinates_v1 import dynamic_m5_eligible_rows, _epoch0_order
+        eligibility = value.get("eligibility")
+        check(isinstance(eligibility, Mapping)
+            and set(eligibility) == {"rule", "training_phase", "emission_scope", "target_contract",
+                "entry_eligibility_cutoff_utc", "eligible_rows", "censored_rows_excluded",
+                "later_horizons_gate_primary_eligibility", "first_prefix_horizon_minutes"}
+            and eligibility["rule"] == DYNAMIC_M5_PATH_ELIGIBILITY_RULE
+            and eligibility["training_phase"] == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            and eligibility["emission_scope"] == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+            and eligibility["target_contract"] == entry_observed_dynamic_m5_path_contract()
+            and design.get("scope", {}).get("entry_only_training_phase") == eligibility["training_phase"]
+            and design["scope"].get("emission_scope") == eligibility["emission_scope"]
+            and eligibility["entry_eligibility_cutoff_utc"] == design["calendar"]["train_control_cutoff"]
+            and eligibility["later_horizons_gate_primary_eligibility"] is False
+            and type(eligibility["first_prefix_horizon_minutes"]) is int and eligibility["first_prefix_horizon_minutes"] == 1
+            and type(eligibility["eligible_rows"]) is int and eligibility["eligible_rows"] == len(eligible)
+            and type(eligibility["censored_rows_excluded"]) is int and eligibility["censored_rows_excluded"] == 0
+            and bindings["TRAIN_ELIGIBLE_PARENT_ROWS"]["path"] != physical["train_parent_rows"]["path"],
+            "DYNAMIC_M5_ELIGIBILITY_INVALID")
+        found = dynamic_m5_eligible_rows(Path(physical["physical_sources"]["train"]["parquet"]["path"]),
+            cutoff_utc=eligibility["entry_eligibility_cutoff_utc"])
+        population_ok = (found["physical_rows"] == physical["train_rows"]
+            and found["censored_rows_excluded"] == found["rows_after_cutoff"] == 0
+            and np.array_equal(eligible, found["rows"])
+            and np.array_equal(eligible, np.arange(physical["train_rows"], dtype=np.int64)))
+        full_order = _epoch0_order(selected["selected_sampler_contract"])
+        check(np.array_equal(order, full_order), "DYNAMIC_M5_NATIVE_ORDER_MISMATCH")
     elif m5_path_subset:
         from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
         from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
@@ -736,7 +798,10 @@ def require_physical_native_training_coordinates(
     from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
     single_epoch = require_m5_single_epoch_population(design)
     if single_epoch is not None:
-        check(value["schema_version"] == PHYSICAL_COORDINATES_SCHEMA_M5_PATH
+        from gx1.contracts.entry_observed_market_horizons_v1 import M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA
+        dynamic_epoch = single_epoch["witness"]["schema_version"] == M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA
+        check(value["schema_version"] == (PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH if dynamic_epoch else PHYSICAL_COORDINATES_SCHEMA_M5_PATH)
+            and (not dynamic_epoch or single_epoch["train_manifest"] == physical["physical_sources"]["train"]["manifest"])
             and single_epoch["train_parquet"] == physical["physical_sources"]["train"]["parquet"]
             and single_epoch["witness"]["native_sampler_contract"] == selected["selected_sampler_contract"]
             and np.array_equal(eligible, single_epoch["eligible_parent_rows"])

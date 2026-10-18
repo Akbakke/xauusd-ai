@@ -644,3 +644,402 @@ def test_actual_m5_receipt_rejects_target_frame_changed_after_parquet_load(m5_ph
         trainer._physical_auxiliary_target_binding(changed,
             parquet_path=Path(sources["train"]["parquet"]["path"]), result_binding=receipt,
             expected_design_sha256=design["sha256"], role="TRAIN")
+
+
+@pytest.fixture
+def dynamic_physical_receipt(tmp_path, monkeypatch):
+    """Small actual pointer parquets, with no legacy labels or expanded paths."""
+    from gx1.contracts import entry_causal_m1_outcomes_v1 as quote
+    from gx1.contracts import entry_model_native_aux_targets_v3 as targets
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts import unified_exit_market_closure_authority_v1 as closure
+    from gx1.features import gc_native_context_v1 as gc
+    registry = _write(tmp_path / "dynamic_registry.json", {})
+    monkeypatch.setattr(gc, "REGISTRY_PATH", registry["path"])
+    monkeypatch.setattr(gc, "REGISTRY_SHA256", registry["sha256"])
+    times = pd.DatetimeIndex(list(pd.date_range("2025-05-01T00:05Z", periods=11, freq="min"))
+        + list(pd.date_range("2025-05-03T00:05Z", periods=11, freq="min")))
+    bid = 100. + np.arange(len(times), dtype=np.float64) / 100
+    raw = pd.DataFrame({"time": times, "bid_open": bid, "ask_open": bid + .1,
+        "bid_high": bid + .2, "ask_high": bid + .3,
+        "bid_low": bid - .2, "ask_low": bid - .1})
+    quote_path = tmp_path / "original_quotes.parquet"
+    raw.to_parquet(quote_path, index=False)
+    quote_binding = {**_bind(quote_path), "size_bytes": quote_path.stat().st_size,
+        "rows": len(raw), "clock_sha256": closure.m1_clock_sha256(times)}
+
+    def prepare(fault=None):
+        sources, proofs = {}, {}
+        for split, first, high in (("train", "2025-05-01T00:00Z", "2025-05-03T00:00Z"),
+                                   ("val", "2025-05-03T00:00Z", "2025-05-05T00:00Z")):
+            decisions = pd.date_range(first, periods=3, freq="5min")
+            index = quote.prepare_dynamic_m1_prefix_index(raw, split_end_exclusive=high,
+                source_parquet_sha256=quote_binding["sha256"])
+            fill = quote.build_dynamic_m1_fill_surface(index, m5_decision_times=decisions)
+            terminal = quote.query_dynamic_m1_prefix(index, fill_surface=fill,
+                query_entry_rows=np.arange(3), horizon_minutes=np.ones(3, np.int64))
+            path = quote.query_dynamic_m1_prefix(index, fill_surface=fill,
+                query_entry_rows=np.arange(3), horizon_minutes=np.ones(3, np.int64),
+                endpoint_kind="closed_m1_prefix")
+            frame = pd.DataFrame({"time": decisions,
+                "dynamic_entry_m1_row": fill.entry_m1_row.to_numpy(np.int64),
+                "dynamic_first_prefix_observed": True,
+                "dynamic_first_terminal_observed_long": terminal["terminal_gross_observed"][:, 0],
+                "dynamic_first_terminal_observed_short": terminal["terminal_gross_observed"][:, 1],
+                "dynamic_first_path_observed_long": path["path_observed"][:, 0],
+                "dynamic_first_path_observed_short": path["path_observed"][:, 1],
+                "dynamic_first_terminal_censor_reason": terminal["terminal_censor_reason"],
+                "dynamic_first_path_censor_reason": path["path_censor_reason"],
+            })
+            if split == "train":
+                if fault == "false_population": frame.loc[0, "dynamic_first_prefix_observed"] = False
+                if fault == "empty_component_union":
+                    frame.loc[0, list(targets.DYNAMIC_M5_POINTER_COLUMNS[2:6])] = False
+                if fault == "integer_mask":
+                    frame["dynamic_first_prefix_observed"] = np.ones(3, dtype=np.int64)
+                if fault == "bad_pointer": frame.loc[0, "dynamic_entry_m1_row"] = len(raw)
+                if fault == "bad_reason": frame.loc[0, "dynamic_first_path_censor_reason"] = "unknown_source_absence"
+                if fault == "bad_clock": frame.loc[1, "time"] = frame.time.iloc[0]
+                if fault == "missing_column": frame = frame.drop(columns=[targets.DYNAMIC_M5_POINTER_COLUMNS[-1]])
+            parquet_path = tmp_path / ("dynamic_" + split + ".parquet")
+            frame.to_parquet(parquet_path, index=False)
+            meta = {"schema_version": "gx1_dynamic_m5_physical_target_pointers_v1",
+                "contract": quote.dynamic_m1_prefix_contract(), "source_quote_binding": quote_binding,
+                "source_quote_columns": list(targets.DYNAMIC_M5_QUOTE_COLUMNS),
+                "index_binding": index.binding(), "pointer_columns": list(targets.DYNAMIC_M5_POINTER_COLUMNS),
+                "pointer_row_clock": "global_row_in_bound_shared_m1_quote_parquet",
+                "first_prefix_horizon_minutes": 1, "first_terminal_endpoint_kind": "terminal_open_inclusive",
+                "first_path_endpoint_kind": "closed_m1_prefix",
+                "physical_population_rule": "any_genuine_first_prefix_terminal_or_path_component",
+                "later_horizon_availability_is_not_an_emission_gate": True,
+                "closure_mode": "unknown_gaps_only_no_inferred_market_calendar", "target_only_columns": True,
+                "feature_inputs_include_future_masks": False, "dense_future_paths_materialized": False}
+            if split == "train":
+                if fault == "stale_cutoff": meta["index_binding"]["split_end_exclusive"] = "2025-05-04T00:00:00+00:00"
+                if fault == "fake_row_offset": meta["index_binding"]["source_row_offset"] = 1
+                if fault == "future_masks_as_features": meta["feature_inputs_include_future_masks"] = True
+            emitted = {**targets.model_native_aux_target_contract_metadata(emission_scope=targets.M5_DYNAMIC_OBSERVED_EMISSION_SCOPE),
+                "candidate_rows_before_primary_availability": 3, "primary_unavailable_candidate_rows_excluded": 0,
+                "primary_valid_rows_emitted": 3, "legacy_causal_m1_observed_rows_emitted": 0,
+                "legacy_aux_complete_rows_emitted": 0,
+                "forecast_observed_rows_by_column": dict.fromkeys(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS, 0)}
+            manifest = {"extra": {"rows": 3, "emission_scope": targets.M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+                "aux_head_target_contract": emitted, "dynamic_m5_supervision": meta,
+                "gc_native_context": gc.contract()}}
+            source = {"parquet": _bind(parquet_path),
+                "manifest": _write(tmp_path / ("dynamic_" + split + ".manifest.json"), manifest),
+                "physical_rows": 3,
+                "clock_sha256": hashlib.sha256(np.asarray(decisions.asi8, dtype="<i8").tobytes()).hexdigest(),
+                "declared_window": {"start": pd.Timestamp(first).isoformat(),
+                                    "end": (pd.Timestamp(high) - pd.Timedelta(minutes=5)).isoformat()}}
+            sources[split] = source
+            proofs[split] = {"source_parquet": source["parquet"], "source_manifest": source["manifest"],
+                "rows": 3, "physical_clock_sha256": source["clock_sha256"],
+                "dynamic_m5_supervision": meta, "first_prefix_observed_rows": 3,
+                "first_terminal_observed_rows_by_side": {"long": 2, "short": 2},
+                "first_path_observed_rows_by_side": {"long": 3, "short": 3},
+                "first_terminal_censor_reason_counts": {"observed": 2, "terminal_quote_missing": 1},
+                "first_path_censor_reason_counts": {"observed": 3},
+                "entry_m1_pointer_sha256": hashlib.sha256(np.asarray(fill.entry_m1_row, dtype="<i8").tobytes()).hexdigest()}
+        design = _write(tmp_path / "dynamic_design.json", {
+            "schema_version": "gx1_frozen_chronological_learning_design_v1",
+            "scope": {"entry_only_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE},
+            "calendar": {"source_bindings": sources,
+                "train_control_cutoff": "2025-05-03T00:00:00Z",
+                "development_control_entry_end_exclusive": "2025-05-05T00:00:00Z"}})
+        receipt = {"schema_version": targets.M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA,
+            "design": design, "registry": registry,
+            "training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            "emission_scope": targets.M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+            "target_contract": observed.entry_observed_dynamic_m5_path_contract(),
+            "splits": proofs, "test_accessed": False, "forbidden_access_attempts": []}
+        if fault == "wrong_phase": receipt["training_phase"] = "entry_only_m5_path"
+        if fault == "legacy_scope": receipt["emission_scope"] = targets.M5_PRIMARY_OBSERVED_EMISSION_SCOPE
+        if fault == "wrong_contract": receipt["target_contract"] = observed.entry_observed_m5_path_contract()
+        if fault == "test_access": receipt["test_accessed"] = True
+        if fault == "extra_test_split": receipt["splits"]["test"] = {}
+        if fault == "wrong_count": receipt["splits"]["train"]["first_terminal_observed_rows_by_side"]["long"] = 3
+        if fault == "wrong_pointer_hash": receipt["splits"]["train"]["entry_m1_pointer_sha256"] = "0" * 64
+        if fault == "boolean_count": receipt["splits"]["train"]["first_prefix_observed_rows"] = True
+        if fault == "changed_bytes":
+            path = Path(sources["train"]["parquet"]["path"])
+            path.write_bytes(path.read_bytes() + b"changed")
+        return receipt, design
+    return prepare
+
+
+def test_dynamic_physical_receipt_preserves_independent_first_prefix_components(dynamic_physical_receipt):
+    from gx1.contracts.entry_model_native_aux_targets_v3 import require_m5_dynamic_physical_target_receipt
+    receipt, design = dynamic_physical_receipt()
+    actual = require_m5_dynamic_physical_target_receipt(receipt, design_binding=design, context="TEST_DYNAMIC")
+    assert actual == receipt
+    assert actual["splits"]["train"]["first_terminal_observed_rows_by_side"] == {"long": 2, "short": 2}
+    assert actual["splits"]["train"]["first_path_observed_rows_by_side"] == {"long": 3, "short": 3}
+    # The genuine closed one-minute prefix survives a missing terminal quote;
+    # neither a 95-minute label nor all 480 horizons is an admission gate.
+    assert actual["splits"]["train"]["first_prefix_observed_rows"] == 3
+
+
+@pytest.mark.parametrize("fault", ["false_population", "empty_component_union", "integer_mask", "bad_pointer",
+    "bad_reason", "bad_clock", "missing_column", "stale_cutoff", "fake_row_offset", "future_masks_as_features",
+    "wrong_phase", "legacy_scope", "wrong_contract", "test_access", "extra_test_split", "wrong_count",
+    "wrong_pointer_hash", "boolean_count", "changed_bytes"])
+def test_dynamic_physical_receipt_rejects_stale_or_false_physical_proof(dynamic_physical_receipt, fault):
+    from gx1.contracts.entry_model_native_aux_targets_v3 import require_m5_dynamic_physical_target_receipt
+    receipt, design = dynamic_physical_receipt(fault)
+    with pytest.raises(RuntimeError):
+        require_m5_dynamic_physical_target_receipt(receipt, design_binding=design, context="TEST_DYNAMIC")
+
+
+
+def _dynamic_target_arrays(parent_rows):
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    count, query_count = len(parent_rows), len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+    terminal = np.zeros((count, query_count, 3), np.float32)
+    tv = np.zeros_like(terminal, bool)
+    mfe = np.zeros((count, query_count, 2), np.float32)
+    mae = np.zeros_like(mfe)
+    pv = np.zeros_like(mfe, bool)
+    closed_mfe, closed_mae, closed_valid = mfe.copy(), mae.copy(), pv.copy()
+    for j, parent in enumerate(parent_rows):
+        if int(parent) % 2 == 0:
+            terminal[j, 0] = [4., -6., 0.]
+            tv[j, 0] = True
+            mfe[j, 0], mae[j, 0], pv[j, 0] = [5., -2.], [1., 1.], True
+        else:
+            closed_mfe[j, 0], closed_mae[j, 0], closed_valid[j, 0] = [-1., 3.], [2., 1.], True
+    return {
+        observed.DYNAMIC_M5_MARKOUT_TARGET_KEY: terminal,
+        observed.DYNAMIC_M5_MARKOUT_VALID_KEY: tv,
+        observed.DYNAMIC_M5_MFE_TARGET_KEY: mfe,
+        observed.DYNAMIC_M5_MAE_TARGET_KEY: mae,
+        observed.DYNAMIC_M5_PATH_VALID_KEY: pv,
+        observed.DYNAMIC_M5_CLOSED_MFE_TARGET_KEY: closed_mfe,
+        observed.DYNAMIC_M5_CLOSED_MAE_TARGET_KEY: closed_mae,
+        observed.DYNAMIC_M5_CLOSED_PATH_VALID_KEY: closed_valid,
+    }
+
+
+class SmallDynamicEntry(SmallEntry):
+    def __init__(self):
+        super().__init__()
+        from gx1.contracts.entry_model_native_joint_task_weighting_v1 import joint_task_names_for_phase
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        self.entry_training_phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        self.head_dynamic_terminal_net_markout = nn.Linear(3, 2)
+        self.head_dynamic_mfe = nn.Linear(3, 2)
+        self.head_dynamic_pre_mfe_mae_upper = nn.Linear(3, 2)
+        self.head_forecast = nn.Linear(3, trainer.FORECAST_HEAD_DIM)
+        self.task_log_variances = nn.ParameterDict({key: nn.Parameter(torch.zeros(()))
+            for key in joint_task_names_for_phase(self.entry_training_phase)})
+
+    def forward(self, seq_x, snap_x, **kwargs):
+        from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+        from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
+        assert not set(kwargs).intersection(_dynamic_target_arrays([0]))
+        hidden = self.shared_encoder(seq_x)
+        q = self.head_dynamic_terminal_net_markout(hidden)[:, None].expand(-1, len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES), -1)
+        mfe = self.head_dynamic_mfe(hidden)[:, None].expand_as(q)
+        mae = torch.nn.functional.softplus(self.head_dynamic_pre_mfe_mae_upper(hidden))[:, None].expand_as(q)
+        ratio = EntryV10CtxHybridTransformer._dynamic_quality_ratio_candidate(q, mae).amax(dim=1)
+        return {
+            "dynamic_terminal_net_markout_bps": torch.cat((q, torch.zeros_like(q[..., :1])), dim=-1),
+            "dynamic_mfe_bps": mfe, "dynamic_pre_mfe_mae_upper_bps": mae,
+            "dynamic_closed_mfe_bps": mfe, "dynamic_closed_pre_mfe_mae_upper_bps": mae,
+            "forecast_pred": self.head_forecast(hidden),
+            "dynamic_entry_action_quality_candidate": torch.cat((ratio, torch.zeros_like(ratio[..., :1])), dim=-1),
+        }
+
+
+def _dynamic_training_fixture(monkeypatch):
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+    )
+    from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_EMISSION_BATCH_KEY
+    old = training_fixture(monkeypatch)
+    dataset = old.dataset
+    dataset._entry_observed_market_binding = {"identity": {"training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE}}
+    dataset.df = pd.DataFrame({"dynamic_entry_m1_row": [100, 105]})
+    class Provider:
+        def __init__(self): self.calls = []
+        def targets_for_rows(self, rows):
+            self.calls.append(rows.copy())
+            return _dynamic_target_arrays(rows)
+    dataset._entry_dynamic_m5_target_provider = Provider()
+    batch = next(iter(old))
+    batch = {key: value for key, value in batch.items() if key in (
+        "seq_x", "snap_x", "ctx_cont", "ctx_cat", "entry_row_index")}
+    batch.update({M5_DYNAMIC_EMISSION_BATCH_KEY: torch.ones(2, dtype=torch.bool),
+        "dynamic_entry_parent_row_index": torch.tensor([0, 1]), "dynamic_entry_m1_row": torch.tensor([100, 105]),
+        M5_FORECAST_VALID_BATCH_KEY: torch.tensor([[True, False, False, False], [True, False, False, False]]),
+        SUPPORT_FORECAST_TARGET_BATCH_KEY: torch.tensor([[3., 0., 0., 0., 0., 0.], [0., 0., 0., 0., 0., 0.]]),
+        SUPPORT_FORECAST_VALID_BATCH_KEY: torch.tensor([[True, False, False, False, False, False], [False]*6])})
+    for j, key in enumerate(trainer._FORECAST_TARGET_COLS): batch[key] = torch.full((2,), 2. if j == 0 else 0.)
+    class Loader:
+        def __init__(self): self.dataset = dataset
+        def __len__(self): return 2
+        def __iter__(self): yield batch; yield batch
+    def forbidden(*a, **kw): raise AssertionError("dynamic phase used legacy/Exit loss")
+    for key in ("dip_forecast_task_losses", "_side_mae_auxiliary_loss", "_trendline_event_aux_loss"):
+        monkeypatch.setattr(trainer, key, forbidden)
+    return Loader(), batch
+
+
+def test_dynamic_m5_real_train_and_curve_eval_preserve_exit_and_query_only_current_batches(monkeypatch):
+    torch.manual_seed(9029)
+    loader, _ = _dynamic_training_fixture(monkeypatch)
+    model = SmallDynamicEntry()
+    before = copy.deepcopy(model.state_dict())
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.01, weight_decay=.5)
+    ema = trainer._WeightEma(model, .5, entry_training_phase=model.entry_training_phase)
+    supervised, gradients = {}, {}
+    loss, stats, complete = trainer.train_epoch(model, ForbiddenTeacher(), loader, optimizer,
+        torch.device("cpu"), 1, supervised, gradients, weight_ema=ema)
+    assert complete and np.isfinite(loss) and ema.steps == len(loader)
+    assert set(supervised) == set(model.task_log_variances) == set(gradients)
+    assert all(supervised.values()) and all(gradients.values())
+    assert stats["exit_training_active"] is False and stats["dynamic_candidate_native_authority_admitted"] is False
+    assert "entry_action_q_raw_bps_mse_mean" not in stats
+    assert stats["joint_task_supervised_cells_dynamic_terminal_net_markout_bps"] == 6
+    assert stats["joint_task_supervised_cells_dynamic_mfe_bps"] == 8
+    assert stats["joint_task_supervised_cells_dynamic_pre_mfe_mae_upper_bps"] == 8
+    assert not torch.equal(model.shared_encoder.weight, before["shared_encoder.weight"])
+    for name, parameter in model.named_parameters():
+        if observed.is_inactive_phase_parameter(name, model.entry_training_phase):
+            assert torch.equal(parameter, before[name]) and parameter not in optimizer.state
+            assert torch.equal(ema.state_dict_clone()[name], before[name])
+    result = trainer.validate(model, ForbiddenTeacher(), loader, torch.device("cpu"))
+    assert np.isfinite(result[0])
+    assert result[-1]["curve_evaluation_rows"] == 4
+    assert result[-1]["realized_cash_or_native_policy_evaluated"] is False
+    assert len(loader.dataset._entry_dynamic_m5_target_provider.calls) == 4
+    assert all(np.array_equal(rows, [0, 1]) for rows in loader.dataset._entry_dynamic_m5_target_provider.calls)
+
+
+def test_dynamic_m5_closed_only_tail_has_real_learning_without_terminal_or_inclusive_imputation(monkeypatch):
+    loader, batch = _dynamic_training_fixture(monkeypatch)
+    model = SmallDynamicEntry()
+    prepared = trainer._materialize_dynamic_m5_batch_targets(batch, loader.dataset)
+    for key in (observed.DYNAMIC_M5_MARKOUT_TARGET_KEY, observed.DYNAMIC_M5_MFE_TARGET_KEY,
+                observed.DYNAMIC_M5_MAE_TARGET_KEY): prepared[key].zero_()
+    prepared[observed.DYNAMIC_M5_MARKOUT_VALID_KEY].zero_()
+    prepared[observed.DYNAMIC_M5_PATH_VALID_KEY].zero_()
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+    )
+    prepared[M5_FORECAST_VALID_BATCH_KEY].zero_()
+    prepared[SUPPORT_FORECAST_VALID_BATCH_KEY].zero_(); prepared[SUPPORT_FORECAST_TARGET_BATCH_KEY].zero_()
+    for key in trainer._FORECAST_TARGET_COLS: prepared[key].zero_()
+    out = model(prepared["seq_x"], prepared["snap_x"])
+    losses, cells = trainer._dynamic_m5_task_loss_surfaces(out, prepared, torch.device("cpu"))
+    assert set(losses) == {"dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps"}
+    assert cells["dynamic_terminal_net_markout_bps"] == cells["forecast_return_bps"] == 0
+    total, _ = trainer._joint_task_loss(model, losses)
+    total.backward()
+    assert model.head_dynamic_mfe.weight.grad is not None
+    assert model.head_dynamic_pre_mfe_mae_upper.weight.grad is not None
+    assert model.head_dynamic_terminal_net_markout.weight.grad is None
+    assert model.task_log_variances["dynamic_terminal_net_markout_bps"].grad is None
+    assert model.task_log_variances["forecast_return_bps"].grad is None
+
+
+@pytest.mark.parametrize("fault", ["false_nonzero", "observed_nan", "closed_negative_mae", "mask_dtype", "flat_nonzero", "pointer"])
+def test_dynamic_m5_batch_loss_rejects_invalid_cells_and_global_pointer_drift(monkeypatch, fault):
+    loader, batch = _dynamic_training_fixture(monkeypatch)
+    if fault == "pointer":
+        batch["dynamic_entry_m1_row"] = torch.tensor([101, 105])
+        with pytest.raises(RuntimeError, match="POINTER_MISMATCH"):
+            trainer._materialize_dynamic_m5_batch_targets(batch, loader.dataset)
+        return
+    prepared = trainer._materialize_dynamic_m5_batch_targets(batch, loader.dataset)
+    if fault == "false_nonzero": prepared[observed.DYNAMIC_M5_MFE_TARGET_KEY][1, 1, 0] = 2.
+    elif fault == "observed_nan": prepared[observed.DYNAMIC_M5_MARKOUT_TARGET_KEY][0, 0, 0] = float("nan")
+    elif fault == "closed_negative_mae": prepared[observed.DYNAMIC_M5_CLOSED_MAE_TARGET_KEY][1, 0, 0] = -1.
+    elif fault == "mask_dtype": prepared[observed.DYNAMIC_M5_CLOSED_PATH_VALID_KEY] = prepared[observed.DYNAMIC_M5_CLOSED_PATH_VALID_KEY].float()
+    else: prepared[observed.DYNAMIC_M5_MARKOUT_TARGET_KEY][0, 0, 2] = 1.
+    with pytest.raises(RuntimeError, match="ENTRY_DYNAMIC_M5"):
+        trainer._dynamic_m5_task_loss_surfaces(SmallDynamicEntry()(prepared["seq_x"], prepared["snap_x"]), prepared, torch.device("cpu"))
+
+
+def test_dynamic_m5_all_unobserved_tasks_fail_before_optimizer_and_weights_move(monkeypatch):
+    loader, batch = _dynamic_training_fixture(monkeypatch)
+    model = SmallDynamicEntry()
+    prepared = trainer._materialize_dynamic_m5_batch_targets(batch, loader.dataset)
+    for key in _dynamic_target_arrays([0]): prepared[key].zero_()
+    from gx1.contracts.entry_observed_market_horizons_v1 import M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY
+    for key in (*trainer._FORECAST_TARGET_COLS, M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY): prepared[key].zero_()
+    losses, counts = trainer._dynamic_m5_task_loss_surfaces(model(batch["seq_x"], batch["snap_x"]), prepared, torch.device("cpu"))
+    assert not losses and set(counts.values()) == {0}
+    with pytest.raises(RuntimeError, match="EMPTY_BATCH"): trainer._joint_task_loss(model, losses)
+    assert all(p.grad is None for p in model.parameters())
+
+
+def test_dynamic_m5_model_kwargs_contain_only_declared_phase_and_known_queries():
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    assert trainer._dynamic_m5_model_kwargs(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE) == {
+        "entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "dynamic_m5_query_minutes": DYNAMIC_M1_PREFIX_HORIZON_MINUTES}
+    assert trainer._dynamic_m5_model_kwargs("joint_fitted_q") == {"entry_training_phase": "joint_fitted_q"}
+
+
+
+def test_dynamic_m5_arrow_getitem_keeps_pointers_target_only_and_provider_lazy(tmp_path, monkeypatch):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    from tests.test_entry_v10_ctx_dataset_memmap import _write_advanced_parquet
+    from tests.entry_v10_trainer_dataset_support import install_multi_tf_stub
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+    from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SEQ_LEN
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts import entry_model_native_aux_targets_v3 as aux
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import M5_PATH_TARGET_COLUMNS
+    parquet = tmp_path / "dynamic.parquet"
+    _write_advanced_parquet(parquet)
+    table = pq.read_table(parquet)
+    count = len(table)
+    table = table.append_column("dynamic_entry_m1_row", pa.array(np.arange(count, dtype=np.int64) + 100))
+    for name in M5_PATH_TARGET_COLUMNS: table = table.append_column(name, pa.array([float("nan")] * count))
+    for name in aux.MODEL_NATIVE_FORECAST_VALID_COLUMNS: table = table.append_column(name, pa.array([False] * count))
+    pq.write_table(table, parquet)
+    manifest_path = parquet.with_suffix(".manifest.json")
+    manifest = json.loads(manifest_path.read_text())
+    manifest["extra"]["emission_scope"] = aux.M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+    manifest["extra"]["aux_head_target_contract"] = {
+        **aux.model_native_aux_target_contract_metadata(emission_scope=aux.M5_DYNAMIC_OBSERVED_EMISSION_SCOPE),
+        "candidate_rows_before_primary_availability": count, "primary_unavailable_candidate_rows_excluded": 0,
+        "primary_valid_rows_emitted": count, "legacy_causal_m1_observed_rows_emitted": 0,
+        "legacy_aux_complete_rows_emitted": 0,
+        "forecast_observed_rows_by_column": {name: 0 for name in aux.MODEL_NATIVE_FORECAST_TARGET_COLUMNS}}
+    manifest_path.write_text(json.dumps(manifest))
+    ds = trainer.EntryV10CtxDataset(parquet, seq_len=MODEL_NATIVE_SEQ_LEN,
+        m5_prebuilt_path=install_multi_tf_stub(tmp_path, monkeypatch),
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS), multi_tf_closed_bar=True)
+    ds._entry_observed_market_binding = {"identity": {"training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE}}
+    ds._entry_observed_market_admitted_rows = np.ones(count, bool)
+    ds._entry_observed_market_m5_forecast_valid = np.zeros((count, len(aux.MODEL_NATIVE_FORECAST_TARGET_COLUMNS)), bool)
+    ds._entry_observed_market_support_forecast = np.zeros((count, 6), np.float32)
+    ds._entry_observed_market_support_forecast_valid = np.zeros((count, 6), bool)
+    ds._policy_dependent_auxiliary_bound_rows = np.zeros(count, bool)
+    ds._random_access_child_index_by_parent = {i: i + 10 for i in range(count)}
+    class Provider:
+        def __init__(self): self.calls = []
+        def targets_for_rows(self, rows):
+            self.calls.append(rows.copy())
+            return _dynamic_target_arrays(rows)
+    ds._entry_dynamic_m5_target_provider = Provider()
+    row = ds[0]
+    assert row["entry_row_index"].item() == 10
+    assert row["dynamic_entry_parent_row_index"].item() == 0
+    assert row["dynamic_entry_m1_row"].item() == 100
+    assert row[aux.M5_DYNAMIC_EMISSION_BATCH_KEY].item() is True
+    assert not ds._entry_dynamic_m5_target_provider.calls
+    assert not any(name in row for name in M5_PATH_TARGET_COLUMNS)
+    assert "y_dip_mae_long_K12" not in row
+    batch = {name: value.unsqueeze(0) for name, value in row.items()}
+    actual = trainer._materialize_dynamic_m5_batch_targets(batch, ds)
+    assert np.array_equal(ds._entry_dynamic_m5_target_provider.calls[0], [0])
+    assert actual[observed.DYNAMIC_M5_MARKOUT_TARGET_KEY].shape[0] == 1
+    assert all(name not in trainer._dynamic_m5_model_kwargs(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+        for name in _dynamic_target_arrays([0]))

@@ -8,7 +8,7 @@ import math
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "entry_model_native_joint_task_weighting_v4"
+SCHEMA_VERSION = "entry_model_native_joint_task_weighting_v5"
 MECHANISM = "trainable_homoscedastic_log_variance"
 FORMULA = "sum(exp(-s_i) * L_i + s_i for active exact-label tasks i)"
 REFERENCE = (
@@ -31,6 +31,25 @@ JOINT_TASK_NAMES = (
     "tail_risk_bps",
     "forward_volatility_bps",
 )
+# Dynamic curve tasks are not aliases of legacy dip/side-MAE labels.  Keep
+# the old tuple unchanged: a legacy phase must never require these new targets.
+DYNAMIC_M5_JOINT_TASK_NAMES = (
+    "dynamic_terminal_net_markout_bps",
+    "dynamic_mfe_bps",
+    "dynamic_pre_mfe_mae_upper_bps",
+    "forecast_return_bps",
+)
+
+
+def joint_task_names_for_phase(entry_training_phase: str) -> tuple[str, ...]:
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, require_entry_training_phase,
+    )
+    phase = require_entry_training_phase(entry_training_phase, context="JOINT_TASK_NAMES")
+    return (DYNAMIC_M5_JOINT_TASK_NAMES
+            if phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE else JOINT_TASK_NAMES)
+
+
 JOINT_TASK_STATE_KEYS = tuple(
     f"task_log_variances.{name}" for name in JOINT_TASK_NAMES
 )
@@ -47,13 +66,16 @@ def _canonical_sha256(value: Mapping[str, float]) -> str:
     ).hexdigest()
 
 
-def joint_task_weighting_objective_contract() -> dict[str, Any]:
+def joint_task_weighting_objective_contract(
+    *, entry_training_phase: str = "joint_fitted_q",
+) -> dict[str, Any]:
+    task_names = joint_task_names_for_phase(entry_training_phase)
     return {
         "schema_version": SCHEMA_VERSION,
         "mechanism": MECHANISM,
         "formula": FORMULA,
         "reference": REFERENCE,
-        "task_names": list(JOINT_TASK_NAMES),
+        "task_names": list(task_names),
         "neutral_initial_log_variance": NEUTRAL_INITIAL_LOG_VARIANCE,
         "fixed_relative_task_weights": False,
         "handwritten_rank_losses": False,
@@ -72,9 +94,10 @@ def joint_task_weighting_metadata(
 ) -> dict[str, Any]:
     from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
     active = active_joint_task_names(entry_training_phase)
-    selected = {name: float(selected_log_variances[name]) for name in JOINT_TASK_NAMES}
+    task_names = joint_task_names_for_phase(entry_training_phase)
+    selected = {name: float(selected_log_variances[name]) for name in task_names}
     tasks: dict[str, dict[str, Any]] = {}
-    for name in JOINT_TASK_NAMES:
+    for name in task_names:
         try:
             precision = math.exp(-selected[name])
         except OverflowError as exc:
@@ -91,10 +114,10 @@ def joint_task_weighting_metadata(
             "moved_from_neutral": selected[name] != NEUTRAL_INITIAL_LOG_VARIANCE,
         }
     payload = {
-        **joint_task_weighting_objective_contract(),
+        **joint_task_weighting_objective_contract(entry_training_phase=entry_training_phase),
         "entry_training_phase": entry_training_phase,
         "active_task_names": list(active),
-        "inactive_task_names": [name for name in JOINT_TASK_NAMES if name not in active],
+        "inactive_task_names": [name for name in task_names if name not in active],
         "all_active_tasks_supervised": all(bool(supervision_observed.get(name, False)) for name in active),
         "all_active_tasks_received_gradient": all(bool(gradient_observed.get(name, False)) for name in active),
         "all_active_tasks_moved_from_neutral": all(selected[name] != NEUTRAL_INITIAL_LOG_VARIANCE for name in active),
@@ -102,14 +125,14 @@ def joint_task_weighting_metadata(
         "selected_log_variances_sha256": _canonical_sha256(selected),
         "tasks": tasks,
         "all_tasks_supervised": all(
-            bool(supervision_observed.get(name, False)) for name in JOINT_TASK_NAMES
+            bool(supervision_observed.get(name, False)) for name in task_names
         ),
         "all_tasks_received_gradient": all(
-            bool(gradient_observed.get(name, False)) for name in JOINT_TASK_NAMES
+            bool(gradient_observed.get(name, False)) for name in task_names
         ),
         "all_tasks_moved_from_neutral": all(
             selected[name] != NEUTRAL_INITIAL_LOG_VARIANCE
-            for name in JOINT_TASK_NAMES
+            for name in task_names
         ),
     }
     return require_joint_task_weighting_metadata(payload, context="ENTRY_EXPORT")
@@ -120,11 +143,12 @@ def require_joint_task_weighting_metadata(
     *,
     context: str,
 ) -> dict[str, Any]:
-    expected_objective = joint_task_weighting_objective_contract()
     from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
     phase = value.get("entry_training_phase")
+    task_names = joint_task_names_for_phase(phase)
+    expected_objective = joint_task_weighting_objective_contract(entry_training_phase=phase)
     active = active_joint_task_names(phase)
-    inactive = tuple(name for name in JOINT_TASK_NAMES if name not in active)
+    inactive = tuple(name for name in task_names if name not in active)
     if value.get("active_task_names") != list(active) or value.get("inactive_task_names") != list(inactive):
         raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_PHASE_TASKS_INVALID]")
     for key, expected in expected_objective.items():
@@ -134,14 +158,14 @@ def require_joint_task_weighting_metadata(
             )
     selected = value.get("selected_log_variances")
     tasks = value.get("tasks")
-    if not isinstance(selected, Mapping) or set(selected) != set(JOINT_TASK_NAMES):
+    if not isinstance(selected, Mapping) or set(selected) != set(task_names):
         raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_STATE_INVALID]")
-    if not isinstance(tasks, Mapping) or set(tasks) != set(JOINT_TASK_NAMES):
+    if not isinstance(tasks, Mapping) or set(tasks) != set(task_names):
         raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_TASKS_INVALID]")
     normalized: dict[str, float] = {}
     normalized_tasks: dict[str, Any] = {}
     failures: list[str] = []
-    for name in JOINT_TASK_NAMES:
+    for name in task_names:
         try:
             log_variance = float(selected[name])
         except (TypeError, ValueError):
@@ -195,9 +219,9 @@ def require_joint_task_weighting_metadata(
         )
     if value.get("selected_log_variances_sha256") != _canonical_sha256(normalized):
         raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_HASH_INVALID]")
-    for field, observed in (("all_tasks_supervised", all(value["tasks"][name]["supervision_observed"] for name in JOINT_TASK_NAMES)),
-            ("all_tasks_received_gradient", all(value["tasks"][name]["gradient_observed"] for name in JOINT_TASK_NAMES)),
-            ("all_tasks_moved_from_neutral", all(value["tasks"][name]["moved_from_neutral"] for name in JOINT_TASK_NAMES))):
+    for field, observed in (("all_tasks_supervised", all(value["tasks"][name]["supervision_observed"] for name in task_names)),
+            ("all_tasks_received_gradient", all(value["tasks"][name]["gradient_observed"] for name in task_names)),
+            ("all_tasks_moved_from_neutral", all(value["tasks"][name]["moved_from_neutral"] for name in task_names))):
         if value.get(field) is not observed:
             raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_AGGREGATE_INVALID] {field}")
     for field in ("all_active_tasks_supervised", "all_active_tasks_received_gradient", "all_active_tasks_moved_from_neutral"):

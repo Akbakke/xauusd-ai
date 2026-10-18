@@ -273,3 +273,123 @@ def test_m5_path_coordinates_preserve_filtered_native_order_and_reject_long_gati
     with pytest.raises(RuntimeError, match='M5_PATH_ELIGIBILITY_INVALID'):
         producer.materialize(**{**args, 'output_dir': tmp_path/'mixed', 'horizon_eligibility': {
             'horizons_design': prefix['design'], 'entry_eligibility_cutoff_utc': args['m5_path_eligibility']['entry_eligibility_cutoff_utc']}}, publish=False)
+
+
+def _dynamic_m5_pointer_frame(rows=6):
+    frame = pd.DataFrame({"time": pd.date_range("2025-04-01T00:00Z", periods=rows, freq="5min"),
+        "dynamic_entry_m1_row": np.arange(rows, dtype=np.int64) * 5,
+        "dynamic_first_prefix_observed": np.ones(rows, dtype=bool),
+        "dynamic_first_terminal_observed_long": np.ones(rows, dtype=bool),
+        "dynamic_first_terminal_observed_short": np.ones(rows, dtype=bool),
+        "dynamic_first_path_observed_long": np.zeros(rows, dtype=bool),
+        "dynamic_first_path_observed_short": np.zeros(rows, dtype=bool),
+        "dynamic_first_terminal_censor_reason": ["observed"] * rows,
+        "dynamic_first_path_censor_reason": ["unknown_source_absence"] * rows})
+    # A genuine closed-only prefix may be observed while its next quote is absent.
+    frame.loc[1, ["dynamic_first_terminal_observed_long", "dynamic_first_terminal_observed_short"]] = False
+    frame.loc[1, ["dynamic_first_path_observed_long", "dynamic_first_path_observed_short"]] = True
+    frame.loc[1, "dynamic_first_terminal_censor_reason"] = "terminal_quote_missing"
+    frame.loc[1, "dynamic_first_path_censor_reason"] = "observed"
+    return frame
+
+
+def test_dynamic_coordinate_eligibility_keeps_terminal_or_closed_prefix_without_95min_or_long_union(tmp_path):
+    frame = _dynamic_m5_pointer_frame()
+    path = tmp_path / "dynamic.parquet"
+    frame.to_parquet(path, index=False)
+    found = producer.dynamic_m5_eligible_rows(path, cutoff_utc="2025-04-01T00:40Z")
+    np.testing.assert_array_equal(found["rows"], np.arange(6, dtype=np.int64))
+    assert found["censored_rows_excluded"] == found["rows_after_cutoff"] == 0
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import M5_PATH_TARGET_COLUMNS, M5_PATH_VALID_COLUMN
+    frame[M5_PATH_VALID_COLUMN] = False
+    for column in M5_PATH_TARGET_COLUMNS: frame[column] = np.nan
+    from gx1.contracts.entry_observed_market_horizons_v1 import HORIZON_LABEL_COLUMNS
+    for column in HORIZON_LABEL_COLUMNS: frame[column] = np.nan
+    frame.to_parquet(path, index=False)
+    again = producer.dynamic_m5_eligible_rows(path, cutoff_utc="2025-04-01T00:40Z")
+    np.testing.assert_array_equal(found["rows"], again["rows"])
+
+
+@pytest.mark.parametrize("fault", ["float_mask", "or_mask", "pointer", "reason", "terminal_at_cutoff", "path_after_cutoff"])
+def test_dynamic_coordinate_eligibility_rejects_invented_observation_or_boundary(tmp_path, fault):
+    frame = _dynamic_m5_pointer_frame()
+    cutoff = "2025-04-01T00:40Z"
+    if fault == "float_mask": frame["dynamic_first_prefix_observed"] = frame["dynamic_first_prefix_observed"].astype(float)
+    elif fault == "or_mask": frame.loc[1, "dynamic_first_prefix_observed"] = False
+    elif fault == "pointer": frame.loc[1, "dynamic_entry_m1_row"] = -1
+    elif fault == "reason": frame.loc[1, "dynamic_first_path_censor_reason"] = "terminal_quote_missing"
+    elif fault == "terminal_at_cutoff": cutoff = "2025-04-01T00:31Z"
+    elif fault == "path_after_cutoff":
+        frame.loc[5, ["dynamic_first_terminal_observed_long", "dynamic_first_terminal_observed_short"]] = False
+        frame.loc[5, ["dynamic_first_path_observed_long", "dynamic_first_path_observed_short"]] = True
+        frame.loc[5, "dynamic_first_terminal_censor_reason"] = "terminal_quote_missing"
+        frame.loc[5, "dynamic_first_path_censor_reason"] = "observed"
+        cutoff = "2025-04-01T00:30Z"
+    path = tmp_path / "bad-dynamic.parquet"
+    frame.to_parquet(path, index=False)
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_"):
+        producer.dynamic_m5_eligible_rows(path, cutoff_utc=cutoff)
+
+
+def test_dynamic_coordinate_closed_prefix_at_split_close_does_not_require_terminal_quote(tmp_path):
+    frame = _dynamic_m5_pointer_frame(rows=2)
+    path = tmp_path / "closed-prefix.parquet"
+    frame.to_parquet(path, index=False)
+    found = producer.dynamic_m5_eligible_rows(path, cutoff_utc="2025-04-01T00:11Z")
+    assert found["rows"].tolist() == [0, 1]
+
+
+def test_dynamic_coordinate_validator_requires_new_identity_full_population_and_exact_native_order(
+    physical_measurement, tmp_path, monkeypatch,
+):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    c = physical_measurement
+    prefix = dict(c.prepared.value)
+    design = copy.deepcopy(c.prepared.design)
+    design["scope"].update(entry_only_training_phase="entry_only_dynamic_m5_path", emission_scope="m5_dynamic_observed")
+    prefix["design"] = _write(tmp_path / "dynamic-coordinate-design.json", design)
+    physical = {"physical_sources": design["calendar"]["source_bindings"],
+        "train_rows": len(c.prepared.case["order"]),
+        "train_parent_rows": design["calendar"]["bindings"]["TRAIN_CALENDAR_PARENT_ROWS"],
+        "control_parent_rows": design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"]}
+    # Sampler/index provenance and genuine pointer reconstruction are tested by
+    # their dedicated owners. This fixture exercises strict coordinate metadata.
+    monkeypatch.setattr(campaign, "_physical_native_sampler", lambda *args, **kwargs: c.prepared.case["selected"])
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    # The separate witness tests require its actual whole-TRAIN manifest/order;
+    # this case exercises coordinate identity/order, not epoch admission.
+    monkeypatch.setattr(horizons, "require_m5_single_epoch_population", lambda design: None)
+    eligible = np.arange(physical["train_rows"], dtype=np.int64)
+    monkeypatch.setattr(producer, "dynamic_m5_eligible_rows", lambda *args, **kwargs: {
+        "rows": eligible, "physical_rows": len(eligible), "censored_rows_excluded": 0, "rows_after_cutoff": 0})
+    native = json.loads(Path(prefix["native_coordinates"]["path"]).read_text())
+    native["schema_version"] = campaign.PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH
+    native["design"] = prefix["design"]
+    ep = tmp_path / "dynamic-eligible.npy"
+    np.save(ep, eligible, allow_pickle=False)
+    native["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"] = _binding(ep)
+    native["eligibility"] = {"rule": campaign.DYNAMIC_M5_PATH_ELIGIBILITY_RULE,
+        "training_phase": "entry_only_dynamic_m5_path", "emission_scope": "m5_dynamic_observed",
+        "target_contract": entry_observed_dynamic_m5_path_contract(),
+        "entry_eligibility_cutoff_utc": design["calendar"]["train_control_cutoff"],
+        "eligible_rows": len(eligible), "censored_rows_excluded": 0,
+        "later_horizons_gate_primary_eligibility": False, "first_prefix_horizon_minutes": 1}
+    def binding(value, suffix):
+        value["coordinates_sha256"] = campaign.native_sha256({k: v for k, v in value.items() if k != "coordinates_sha256"})
+        return _write(tmp_path / (suffix + ".json"), value)
+    good = binding(native, "dynamic-coordinates")
+    checked = campaign.require_physical_native_training_coordinates({**prefix, "native_coordinates": good}, design=design, physical=physical)
+    np.testing.assert_array_equal(checked["eligible_parent_rows"], eligible)
+    for field, value in (("training_phase", "entry_only_observed_m5_path"), ("emission_scope", "m5_primary_observed"),
+            ("target_contract", {}), ("later_horizons_gate_primary_eligibility", True), ("first_prefix_horizon_minutes", 95)):
+        bad = copy.deepcopy(native)
+        bad["eligibility"][field] = value
+        with pytest.raises(RuntimeError, match="DYNAMIC_M5_ELIGIBILITY_INVALID"):
+            campaign.require_physical_native_training_coordinates({**prefix, "native_coordinates": binding(bad, field)}, design=design, physical=physical)
+    bad = copy.deepcopy(native)
+    op = tmp_path / "reversed-native-order.npy"
+    np.save(op, c.prepared.case["order"][::-1], allow_pickle=False)
+    bad["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"] = _binding(op)
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_NATIVE_ORDER_MISMATCH"):
+        campaign.require_physical_native_training_coordinates({**prefix, "native_coordinates": binding(bad, "reordered")}, design=design, physical=physical)

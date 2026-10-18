@@ -84,6 +84,7 @@ from gx1.contracts.entry_position_size_target_policy_v1 import (
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     ENTRY_ONLY_TRAINING_PHASES,
     ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
     JOINT_FITTED_Q_TRAINING_PHASE,
     training_objective_contract_metadata,
 )
@@ -98,6 +99,7 @@ from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
     joint_task_weighting_metadata,
+    joint_task_names_for_phase,
 )
 from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
     CHECKPOINT_MONITOR,
@@ -186,6 +188,8 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
     require_model_native_aux_target_emission_contract as _require_model_native_aux_target_emission_contract,
     M5_PRIMARY_OBSERVED_EMISSION_SCOPE, M5_PRIMARY_EMISSION_BATCH_KEY,
+    M5_DYNAMIC_OBSERVED_EMISSION_SCOPE, M5_DYNAMIC_EMISSION_BATCH_KEY, M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA,
+    DYNAMIC_M5_POINTER_COLUMNS, DYNAMIC_M5_PHYSICAL_BINDING_MODE, require_m5_dynamic_physical_target_receipt,
     M5_PHYSICAL_TARGET_BINDING_SCHEMA, MODEL_NATIVE_FORECAST_VALID_COLUMNS,
     LEGACY_CAUSAL_M1_OBSERVED_COLUMN, LEGACY_AUX_COMPLETE_COLUMN,
     require_m5_primary_physical_target_receipt,
@@ -392,6 +396,124 @@ def _masked_position_size_mse(
     return position_size_logit.sum() * 0.0
 
 
+def _model_joint_task_names(model: nn.Module) -> tuple[str, ...]:
+    # Same legacy phase default as the model constructor, never label-inferred.
+    return joint_task_names_for_phase(getattr(model, "entry_training_phase", JOINT_FITTED_Q_TRAINING_PHASE))
+
+
+def _prefix_training_phase(binding):
+    observed = binding.get("entry_observed_market") if isinstance(binding, Mapping) else None
+    return JOINT_FITTED_Q_TRAINING_PHASE if observed is None else observed["train"]["identity"]["training_phase"]
+
+
+def _dynamic_m5_dataset_phase(dataset):
+    value = getattr(dataset, "_entry_observed_market_binding", None)
+    return isinstance(value, Mapping) and value["identity"].get("training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+
+
+def _dynamic_m5_model_kwargs(phase):
+    result = {"entry_training_phase": phase}
+    if phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+        result["dynamic_m5_query_minutes"] = DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    return result
+
+
+def _materialize_dynamic_m5_batch_targets(batch, dataset):
+    """Only this batch's physical parents are queried, once; no dense epoch cache."""
+    if not _dynamic_m5_dataset_phase(dataset):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_BATCH_PHASE_INVALID")
+    emitted = batch.get(M5_DYNAMIC_EMISSION_BATCH_KEY)
+    if not isinstance(emitted, torch.Tensor) or emitted.dtype != torch.bool or not bool(emitted.all()):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_EMISSION_BATCH_MISSING")
+    parent, pointer = batch.get("dynamic_entry_parent_row_index"), batch.get("dynamic_entry_m1_row")
+    if (not isinstance(parent, torch.Tensor) or parent.dtype != torch.int64 or parent.ndim != 1
+            or not isinstance(pointer, torch.Tensor) or pointer.dtype != torch.int64 or pointer.shape != parent.shape):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_BATCH_POINTER_INVALID")
+    rows = parent.detach().cpu().numpy()
+    if (not len(rows) or np.any(rows < 0) or np.any(rows >= len(dataset.df))
+            or not np.array_equal(pointer.detach().cpu().numpy(), dataset.df.iloc[rows]["dynamic_entry_m1_row"].to_numpy(np.int64))):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_BATCH_POINTER_MISMATCH")
+    provider = getattr(dataset, "_entry_dynamic_m5_target_provider", None)
+    if provider is None or not callable(getattr(provider, "targets_for_rows", None)):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_TARGET_PROVIDER_MISSING")
+    values = provider.targets_for_rows(rows)
+    from gx1.contracts.entry_observed_market_v1 import (
+        DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
+        DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY,
+        DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+    )
+    keys = (DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
+        DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY,
+        DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY)
+    if not isinstance(values, Mapping) or not set(keys).issubset(values):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_PROVIDER_OUTPUT_INVALID")
+    result = dict(batch)
+    for key in keys:
+        value = values[key]
+        is_mask = key in (DYNAMIC_M5_MARKOUT_VALID_KEY, DYNAMIC_M5_PATH_VALID_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY)
+        if (not isinstance(value, np.ndarray) or (is_mask and value.dtype != np.dtype(bool))
+                or (not is_mask and not np.issubdtype(value.dtype, np.floating))):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_PROVIDER_DTYPE_INVALID:" + key)
+        result[key] = torch.from_numpy(np.array(value, dtype=bool if is_mask else np.float32, copy=True))
+    return result
+
+
+def _dynamic_m5_task_loss_surfaces(out, batch, device):
+    """Each component has its own observed-cell denominator; none is imputed."""
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    from gx1.contracts.entry_observed_market_v1 import (
+        DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
+        DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY,
+        DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+    )
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+    )
+    size, count = int(batch["seq_x"].shape[0]), len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+    specs = (
+        ("dynamic_terminal_net_markout_bps", "dynamic_terminal_net_markout_bps", DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY, (size, count, 3)),
+        ("dynamic_mfe_bps", "dynamic_mfe_bps", DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY, (size, count, 2)),
+        ("dynamic_pre_mfe_mae_upper_bps", "dynamic_pre_mfe_mae_upper_bps", DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY, (size, count, 2)),
+        ("dynamic_mfe_bps", "dynamic_closed_mfe_bps", DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY, (size, count, 2)),
+        ("dynamic_pre_mfe_mae_upper_bps", "dynamic_closed_pre_mfe_mae_upper_bps", DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY, (size, count, 2)),
+    )
+    surfaces = []
+    for name, output_key, target_key, valid_key, shape in specs:
+        target, valid = batch.get(target_key), batch.get(valid_key)
+        if (not isinstance(target, torch.Tensor) or target.dtype != torch.float32
+                or not isinstance(valid, torch.Tensor) or valid.dtype != torch.bool or tuple(target.shape) != shape or valid.shape != target.shape):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_TARGET_SHAPE_OR_DTYPE_INVALID:" + output_key)
+        surfaces.append((name, out.get(output_key), target.detach().to(device), valid.detach().to(device)))
+    base = torch.stack([batch[f"y_forecast_ret_K{h}"] for h in FORECAST_HORIZONS], dim=1).to(device).float()
+    support, sv, bv = batch.get(SUPPORT_FORECAST_TARGET_BATCH_KEY), batch.get(SUPPORT_FORECAST_VALID_BATCH_KEY), batch.get(M5_FORECAST_VALID_BATCH_KEY)
+    if (not isinstance(support, torch.Tensor) or support.dtype != torch.float32
+            or not isinstance(sv, torch.Tensor) or sv.dtype != torch.bool
+            or not isinstance(bv, torch.Tensor) or bv.dtype != torch.bool or bv.shape != base.shape
+            or tuple(support.shape) != (size, FORECAST_HEAD_DIM-len(FORECAST_HORIZONS)) or sv.shape != support.shape):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_SUPPORT_SHAPE_OR_DTYPE_INVALID")
+    surfaces.append(("forecast_return_bps", out.get("forecast_pred"),
+        torch.cat((base, support.detach().to(device)), dim=1), torch.cat((bv.detach().to(device), sv.detach().to(device)), dim=1)))
+    sums, cells = {}, {}
+    for name, prediction, target, valid in surfaces:
+        if (not isinstance(prediction, torch.Tensor) or prediction.shape != target.shape
+                or not bool(torch.isfinite(prediction).all()) or not bool(torch.isfinite(target).all())
+                or bool((target[~valid] != 0).any())):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_TARGET_STORAGE_INVALID:" + name)
+        if name == "dynamic_terminal_net_markout_bps" and (
+                not bool((target[..., 2] == 0).all()) or not bool((prediction[..., 2] == 0).all())
+                or not torch.equal(valid[..., 2], valid[..., 0] & valid[..., 1])):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_FLAT_CONTRACT_INVALID")
+        if name == "dynamic_pre_mfe_mae_upper_bps" and (bool((target[valid] < 0).any()) or bool((prediction < 0).any())):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_NEGATIVE_MAE")
+        count = int(valid.sum())
+        cells[name] = cells.get(name, 0) + count
+        if count:
+            squared = (prediction[valid] - target[valid]).square().sum()
+            sums[name] = sums[name] + squared if name in sums else squared
+    return {name: value / cells[name] for name, value in sums.items()}, cells
+
+
 def _joint_task_loss(
     model: nn.Module,
     task_losses: Mapping[str, torch.Tensor],
@@ -403,12 +525,13 @@ def _joint_task_loss(
     weight without outcome evidence.
     """
 
+    task_names = _model_joint_task_names(model)
     log_variances = getattr(model, "task_log_variances", None)
     if not isinstance(log_variances, nn.ParameterDict):
         raise RuntimeError("[ENTRY_JOINT_TASK_WEIGHTING_PARAMETERS_MISSING]")
-    if set(log_variances) != set(JOINT_TASK_NAMES):
+    if set(log_variances) != set(task_names):
         raise RuntimeError("[ENTRY_JOINT_TASK_WEIGHTING_PARAMETER_SURFACE_INVALID]")
-    unexpected = sorted(set(task_losses) - set(JOINT_TASK_NAMES))
+    unexpected = sorted(set(task_losses) - set(task_names))
     if unexpected:
         raise RuntimeError(
             f"[ENTRY_JOINT_TASK_WEIGHTING_TASK_INVALID] unexpected={unexpected}"
@@ -417,7 +540,7 @@ def _joint_task_loss(
         raise RuntimeError("[ENTRY_JOINT_TASK_WEIGHTING_EMPTY_BATCH]")
     total: Optional[torch.Tensor] = None
     diagnostic_tensors: dict[str, torch.Tensor] = {}
-    for task_name in JOINT_TASK_NAMES:
+    for task_name in task_names:
         if task_name not in task_losses:
             continue
         raw_loss = task_losses[task_name]
@@ -598,7 +721,7 @@ def _observe_joint_task_weight_gradients(
     log_variances = getattr(model, "task_log_variances", None)
     if not isinstance(log_variances, nn.ParameterDict):
         raise RuntimeError("[ENTRY_JOINT_TASK_WEIGHTING_PARAMETERS_MISSING]")
-    for task_name in JOINT_TASK_NAMES:
+    for task_name in _model_joint_task_names(model):
         gradient = log_variances[task_name].grad
         if gradient is None:
             continue
@@ -1430,10 +1553,10 @@ def _new_candidate_training_progress(
     return {
         "schema_version": _CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION,
         "joint_task_supervision_observed": {
-            name: False for name in JOINT_TASK_NAMES
+            name: False for name in joint_task_names_for_phase(_prefix_training_phase(prefix_training_binding))
         },
         "joint_task_gradient_observed": {
-            name: False for name in JOINT_TASK_NAMES
+            name: False for name in joint_task_names_for_phase(_prefix_training_phase(prefix_training_binding))
         },
         "checkpoint_selection": {
             "checkpoint_policy": checkpoint_policy_metadata(
@@ -1480,12 +1603,12 @@ def _require_candidate_training_progress(
         observed = progress.get(key)
         if (
             not isinstance(observed, Mapping)
-            or set(observed) != set(JOINT_TASK_NAMES)
+            or set(observed) != set(joint_task_names_for_phase(_prefix_training_phase(prefix_training_binding)))
             or not all(isinstance(flag, bool) for flag in observed.values())
         ):
             raise RuntimeError("[CANDIDATE_TRAINING_PROGRESS_TASKS_INVALID]")
         progress[key] = {
-            name: bool(observed[name]) for name in JOINT_TASK_NAMES
+            name: bool(observed[name]) for name in joint_task_names_for_phase(_prefix_training_phase(prefix_training_binding))
         }
     selection = progress.get("checkpoint_selection")
     if (
@@ -1931,22 +2054,22 @@ class _AttendedResearchSession:
         supervision = (
             {
                 name: bool(task_supervision_observed[name])
-                for name in JOINT_TASK_NAMES
+                for name in _model_joint_task_names(model)
             }
             if task_supervision_observed is not None
-            else {name: False for name in JOINT_TASK_NAMES}
+            else {name: False for name in _model_joint_task_names(model)}
         )
         gradients = (
             {
                 name: bool(task_gradient_observed[name])
-                for name in JOINT_TASK_NAMES
+                for name in _model_joint_task_names(model)
             }
             if task_gradient_observed is not None
-            else {name: False for name in JOINT_TASK_NAMES}
+            else {name: False for name in _model_joint_task_names(model)}
         )
         if (
-            set(supervision) != set(JOINT_TASK_NAMES)
-            or set(gradients) != set(JOINT_TASK_NAMES)
+            set(supervision) != set(_model_joint_task_names(model))
+            or set(gradients) != set(_model_joint_task_names(model))
             or any(type(value) is not bool for value in supervision.values())
             or any(type(value) is not bool for value in gradients.values())
         ):
@@ -3300,6 +3423,8 @@ def _entry_training_gradient_boundary_kwargs(dataset: "EntryV10CtxDataset") -> d
         _require_runtime_contract, LIQUIDATION_ADVANTAGE_REWARD_ACCOUNTING,
     )
 
+    if _dynamic_m5_dataset_phase(dataset):
+        return {}
     adapter = getattr(dataset, "_unified_exit_lifecycle_v2", None)
     if adapter is None:
         return {}
@@ -4498,15 +4623,17 @@ def _physical_auxiliary_target_binding(
 
     require(role in ("TRAIN", "CONTROL256"), "ROLE_INVALID")
     result = _sequence_roll_read_json_object(bound_file(result_binding))
+    dynamic_emission = result.get("schema_version") == M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA
     m5_emission = result.get("schema_version") == M5_PHYSICAL_TARGET_BINDING_SCHEMA
-    if m5_emission:
+    if m5_emission or dynamic_emission:
         require(result.get("design", {}).get("sha256") == expected_design_sha256, "DESIGN_MISMATCH")
-        require_m5_primary_physical_target_receipt(result, design_binding=result["design"], context="ENTRY_PHYSICAL_AUX")
+        receipt_owner = require_m5_dynamic_physical_target_receipt if dynamic_emission else require_m5_primary_physical_target_receipt
+        receipt_owner(result, design_binding=result["design"], context="ENTRY_PHYSICAL_AUX")
         design = _sequence_roll_read_json_object(bound_file(result["design"]))
         calendar = design["calendar"]
         sources = calendar.get("source_bindings")
         require(design.get("schema_version") == "gx1_frozen_chronological_learning_design_v1"
-                and design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+                and design.get("scope", {}).get("entry_only_training_phase") == (ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE if dynamic_emission else ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
                 and calendar.get("physical_source_splits") == {"train": "train", "control": "val"}
                 and calendar.get("physical_coordinate_namespaces_are_separate") is True
                 and "index" not in calendar and isinstance(sources, Mapping)
@@ -4573,6 +4700,60 @@ def _physical_auxiliary_target_binding(
     require(np.all(ns[1:] > ns[:-1]) and np.all(ns >= low.value)
             and np.all(ns < high.value) and clock_hash(ns) == source["clock_sha256"],
             "ENTRY_CLOCK_MISMATCH")
+
+    if dynamic_emission:
+        import pyarrow.parquet as pq
+        from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+        from gx1.features import gc_native_context_v1 as gc
+        from gx1.time.session_detector import m5_decision_availability
+        # The receipt owner already proves the actual source/hash/index/mask
+        # bytes. Rejoin this Dataset frame to those exact stored scalar cells.
+        columns = list(dict.fromkeys([*DYNAMIC_M5_POINTER_COLUMNS, *_FORECAST_TARGET_COLS,
+            *MODEL_NATIVE_FORECAST_VALID_COLUMNS, *horizons.HORIZON_LABEL_COLUMNS]))
+        pf = pq.ParquetFile(parquet_path)
+        require(set(["time", *columns]).issubset(pf.schema_arrow.names)
+            and all(name in frame for name in columns), "DYNAMIC_COLUMNS_MISSING")
+        offset, pointer_hash = 0, hashlib.sha256()
+        for batch in pf.iter_batches(batch_size=_NESTED_ARROW_BATCH_ROWS, columns=["time", *columns], use_threads=False):
+            actual = batch.to_pandas()
+            clock = pd.DatetimeIndex(pd.to_datetime(actual["time"], utc=True)).as_unit("ns").asi8
+            require(np.array_equal(clock, ns[offset:offset+len(actual)]), "DYNAMIC_PHYSICAL_CLOCK_MISMATCH")
+            for name in columns:
+                require(actual[name].reset_index(drop=True).equals(frame.iloc[offset:offset+len(actual)][name].reset_index(drop=True)),
+                    "DYNAMIC_PHYSICAL_CELL_MISMATCH")
+            require_m5_forecast_observation_storage(actual, context="ENTRY_PHYSICAL_DYNAMIC_M5")
+            pointer_hash.update(actual["dynamic_entry_m1_row"].to_numpy(dtype="<i8").tobytes())
+            offset += len(actual)
+        require(offset == count, "DYNAMIC_PHYSICAL_ROW_COUNT_MISMATCH")
+        train_clock = times if role == "TRAIN" else pd.DatetimeIndex(
+            pq.read_table(sources["train"]["parquet"]["path"], columns=["time"])["time"].to_pandas()).as_unit("ns")
+        registry = _sequence_roll_read_json_object(bound_file(result["registry"]))
+        registry_clock = gc.require_registry_train_clock_match(m5_decision_availability(train_clock), registry)
+        row_binding = calendar["bindings"]["TRAIN_CALENDAR_PARENT_ROWS" if role == "TRAIN" else "CONTROL256_PARENT_ROWS"]
+        rows = np.load(bound_file(row_binding), allow_pickle=False)
+        require(rows.dtype == np.dtype("int64") and rows.ndim == 1 and len(rows) > 0
+            and np.all(np.diff(rows) > 0) and rows[0] >= 0 and rows[-1] < count, "PARENT_ROWS_INVALID")
+        if role == "TRAIN":
+            require(np.array_equal(rows, np.arange(count, dtype=np.int64)), "TRAIN_COHORT_MISMATCH")
+        else:
+            require(len(rows) == calendar["control256"]["rows"] == design["selection"]["control_entries"]
+                == design["budget"]["later_control_entries"], "CONTROL_COHORT_MISMATCH")
+        bound_file(source["parquet"])
+        bound_file(source["manifest"])
+        mask = np.zeros(count, dtype=bool)
+        mask[rows] = True
+        return mask, {
+            "result": dict(result_binding), "design": result["design"], "role": role,
+            "mode": DYNAMIC_M5_PHYSICAL_BINDING_MODE, "source_split": split,
+            "emission_scope": M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+            "training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            "target_contract": result["target_contract"],
+            "parent_entry_parquet": source["parquet"], "parent_entry_manifest": source["manifest"],
+            "row_binding": row_binding, "rows": int(len(rows)), "active_target_columns": columns,
+            "targets_rewritten": False, "inactive_diagnostics_refreshed": False,
+            "entry_m1_pointer_sha256": pointer_hash.hexdigest(),
+            "registry": result["registry"], "whole_train_registry_clock": registry_clock,
+        }
 
     if m5_emission:
         import pyarrow.parquet as pq
@@ -4800,6 +4981,21 @@ def _planned_prefix_optimizer_steps(design: Mapping[str, Any]) -> int:
 
 
 def _observed_entry_batch_items(dataset, row):
+    if dataset.aux_head_target_contract.get("emission_scope") == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE:
+        from gx1.contracts.entry_observed_market_horizons_v1 import (
+            M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+        )
+        admitted = getattr(dataset, "_entry_observed_market_admitted_rows", None)
+        if admitted is None or not bool(admitted[row]) or not _dynamic_m5_dataset_phase(dataset):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_UNBOUND_ROW")
+        return {
+            M5_DYNAMIC_EMISSION_BATCH_KEY: torch.tensor(True),
+            "dynamic_entry_parent_row_index": torch.tensor(row, dtype=torch.long),
+            "dynamic_entry_m1_row": torch.tensor(int(dataset.df.iloc[row]["dynamic_entry_m1_row"]), dtype=torch.long),
+            M5_FORECAST_VALID_BATCH_KEY: torch.tensor(dataset._entry_observed_market_m5_forecast_valid[row]),
+            SUPPORT_FORECAST_TARGET_BATCH_KEY: torch.tensor(dataset._entry_observed_market_support_forecast[row]),
+            SUPPORT_FORECAST_VALID_BATCH_KEY: torch.tensor(dataset._entry_observed_market_support_forecast_valid[row]),
+        }
     from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_batch_items
     return observed_entry_batch_items(dataset, row)
 
@@ -4971,7 +5167,7 @@ class EntryV10CtxDataset(Dataset):
             )
         _load_cols = [c for c in _all_cols if c not in _nested_cols]
         df = pd.read_parquet(self.parquet_path, columns=_load_cols)
-        if self.aux_head_target_contract.get("emission_scope") == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+        if self.aux_head_target_contract.get("emission_scope") in (M5_PRIMARY_OBSERVED_EMISSION_SCOPE, M5_DYNAMIC_OBSERVED_EMISSION_SCOPE):
             require_m5_forecast_observation_storage(df, context="ENTRY_V10_DATASET")
         # Re-add empty stubs for downstream presence checks. They are replaced
         # by the chunked Arrow arrays below.
@@ -5720,7 +5916,7 @@ class EntryV10CtxDataset(Dataset):
 
         result_binding = {"path": str(result_path), "sha256": expected_result_sha256}
         result = _sequence_roll_read_json_object(bound_file(result_binding))
-        if result.get("schema_version") in ("gx1_native_v38_auxiliary_reuse_precheck_v1", M5_PHYSICAL_TARGET_BINDING_SCHEMA):
+        if result.get("schema_version") in ("gx1_native_v38_auxiliary_reuse_precheck_v1", M5_PHYSICAL_TARGET_BINDING_SCHEMA, M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA):
             bound_rows, binding = _physical_auxiliary_target_binding(
                 self.df, parquet_path=self.parquet_path, result_binding=result_binding,
                 expected_design_sha256=expected_design_sha256, role=role,
@@ -5937,7 +6133,8 @@ class EntryV10CtxDataset(Dataset):
         if self._advanced:
             t = int(self.indices[i])
             bound_rows = getattr(self, "_policy_dependent_auxiliary_bound_rows", None)
-            if bound_rows is not None and (t < 0 or t >= len(bound_rows) or not bound_rows[t]):
+            dynamic_scope = self.aux_head_target_contract.get("emission_scope") == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+            if not dynamic_scope and bound_rows is not None and (t < 0 or t >= len(bound_rows) or not bound_rows[t]):
                 raise RuntimeError("[ENTRY_PREFIX_LABEL_UNBOUND_ROW]")
             row = self.df.iloc[t]
             # V12.2: nested cols were pre-converted to np arrays in __init__;
@@ -5989,7 +6186,7 @@ class EntryV10CtxDataset(Dataset):
                 out_batch[M5_PRIMARY_EMISSION_BATCH_KEY] = torch.tensor(True)
             # Every active target was validated in __init__ and is read
             # directly. There are no aliases, defaults, or compatibility rows.
-            for target_name in _MODEL_NATIVE_ACTIVE_TARGET_COLS:
+            for target_name in (_FORECAST_TARGET_COLS if dynamic_scope else _MODEL_NATIVE_ACTIVE_TARGET_COLS):
                 target_dtype = torch.long if target_name == "y_side" else torch.float32
                 target_value = (
                     int(row[target_name])
@@ -9743,6 +9940,10 @@ def train_epoch(
     entry_gradient_boundary_kwargs = _entry_training_gradient_boundary_kwargs(dataset)
     observed_entry = getattr(dataset, "_entry_observed_market_binding", None)
     entry_only = observed_entry is not None
+    dynamic_phase = _dynamic_m5_dataset_phase(dataset)
+    dynamic_evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE) if dynamic_phase else None
+    if dynamic_phase and getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        raise RuntimeError("ENTRY_DYNAMIC_M5_MODEL_PHASE_MISMATCH")
     if entry_only:
         from gx1.contracts.entry_observed_market_v1 import require_entry_only_gradients
         from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_batch_targets
@@ -9773,6 +9974,7 @@ def train_epoch(
             or int(session_batch_offset) < 0
             or (
                 getattr(dataset, "_unified_exit_lifecycle_v2", None) is None
+                and not dynamic_phase
                 and (
                     session_exit_action_forward_chunk_rows is None
                     or int(session_exit_action_forward_chunk_rows) < 1
@@ -9793,6 +9995,7 @@ def train_epoch(
             or int(session_batch_offset) < 0
             or (
                 getattr(dataset, "_unified_exit_lifecycle_v2", None) is None
+                and not dynamic_phase
                 and (
                     session_exit_action_forward_chunk_rows is None
                     or int(session_exit_action_forward_chunk_rows) < 1
@@ -9916,139 +10119,153 @@ def train_epoch(
         entry_row_indices = batch.get("entry_row_index")
         if not isinstance(entry_row_indices, torch.Tensor):
             raise RuntimeError("[UNIFIED_EXIT_TRAIN_ENTRY_EVIDENCE_MISSING]")
-        if entry_only:
-            entry_action_q_targets, entry_action_q_valid = observed_entry_batch_targets(batch, observed_entry, device=device)
-            unified_exit_stats = None
-            _profile_entry_target_forward = (
+        if dynamic_phase:
+            batch = _materialize_dynamic_m5_batch_targets(batch, dataset)
+            task_losses, dynamic_cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
+            _accumulate_dynamic_m5_loss_evidence(dynamic_evidence, task_losses, dynamic_cells)
+            _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out)
+            _accumulate_feature_tf_gate_epoch(feature_tf_gate_epoch, out)
+            entry_action_q_loss = None
+            unified_exit_stats = unified_exit_loss = None
+            path_phase = True
+            side_mae_stats = trendline_stats = None
+            _profile_entry_target_forward = _profile_entry_online_forward
+            _profile_exit_train = _profile_entry_online_forward
+            _first_batch_logged = True
+        else:
+            if entry_only:
+                entry_action_q_targets, entry_action_q_valid = observed_entry_batch_targets(batch, observed_entry, device=device)
+                unified_exit_stats = None
+                _profile_entry_target_forward = (
+                    _synchronized_exit_profile_clock(device) if _profile_timing else None
+                )
+            else:
+                with torch.no_grad():
+                    target_out = _model_forward_fp32(
+                        target_model,
+                        seq_x,
+                        snap_x,
+                        ctx_cat=ctx_cat,
+                        ctx_cont=ctx_cont,
+                        **_multi_tf_kwargs_from_batch(batch, seq_x.device),
+                    )
+                _profile_entry_target_forward = (
+                    _synchronized_exit_profile_clock(device) if _profile_timing else None
+                )
+                if not _first_batch_logged:
+                    log.info("[TRAIN_RSS] before_exit_loss rss_gib=%.2f", _train_rss_gib())
+                entry_representations = out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
+                target_entry_representations = target_out.get(
+                    UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
+                )
+                entry_row_indices = batch.get("entry_row_index")
+                if (
+                    not isinstance(entry_representations, torch.Tensor)
+                    or not isinstance(target_entry_representations, torch.Tensor)
+                    or not isinstance(entry_row_indices, torch.Tensor)
+                ):
+                    raise RuntimeError("[UNIFIED_EXIT_TRAIN_ENTRY_EVIDENCE_MISSING]")
+                (
+                    exit_entry_gradients,
+                    unified_exit_stats,
+                    entry_action_q_targets,
+                    entry_action_q_valid,
+                ) = (
+                    _train_unified_exit_full_population(
+                        model=model,
+                        target_model=target_model,
+                        entry_decision_representations=entry_representations,
+                        target_entry_decision_representations=(
+                            target_entry_representations
+                        ),
+                        entry_row_indices=entry_row_indices,
+                        dataset=dataset,
+                        device=device,
+                        grad_accum_steps=_accum_steps,
+                        exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
+                        exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
+                        profile_timing=_profile_timing,
+                        exit_action_forward_chunk_rows=(
+                            session_exit_action_forward_chunk_rows
+                            if (
+                                session_max_optimizer_steps is not None
+                                or getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None
+                            )
+                            else (
+                                (
+                                    unified_exit_chunk_rows(
+                                        _TRAINING_PRECISION_POLICY, batch_size=batch_rows
+                                    )
+                                    if _TRAINING_PRECISION_POLICY
+                                    == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH
+                                    else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
+                                )
+                                if device.type == "cuda"
+                                else None
+                            )
+                        ),
+                    )
+                )
+            _profile_exit_train = (
                 _synchronized_exit_profile_clock(device) if _profile_timing else None
             )
-        else:
-            with torch.no_grad():
-                target_out = _model_forward_fp32(
-                    target_model,
-                    seq_x,
-                    snap_x,
-                    ctx_cat=ctx_cat,
-                    ctx_cont=ctx_cont,
-                    **_multi_tf_kwargs_from_batch(batch, seq_x.device),
-                )
-            _profile_entry_target_forward = (
-                _synchronized_exit_profile_clock(device) if _profile_timing else None
+            unified_exit_loss = (None if entry_only else torch.tensor(
+                float(unified_exit_stats["raw_loss"]),
+                device=device,
+                dtype=entry_representations.dtype,
+            ))
+            entry_action_q_bps = out["entry_action_q_bps"]
+            if (
+                not isinstance(entry_action_q_bps, torch.Tensor)
+                or tuple(entry_action_q_bps.shape)
+                != tuple(entry_action_q_targets.shape)
+                or not bool(entry_action_q_valid[:, 2].all().item())
+            ):
+                raise RuntimeError("[ENTRY_FITTED_Q_PREDICTION_SHAPE_INVALID]")
+            _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out)
+            _accumulate_feature_tf_gate_epoch(feature_tf_gate_epoch, out)
+            entry_action_q_loss = nn.functional.mse_loss(
+                entry_action_q_bps[entry_action_q_valid],
+                entry_action_q_targets[entry_action_q_valid],
             )
             if not _first_batch_logged:
-                log.info("[TRAIN_RSS] before_exit_loss rss_gib=%.2f", _train_rss_gib())
-            entry_representations = out.get(UNIFIED_EXIT_MODEL_REPRESENTATION_KEY)
-            target_entry_representations = target_out.get(
-                UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
-            )
-            entry_row_indices = batch.get("entry_row_index")
-            if (
-                not isinstance(entry_representations, torch.Tensor)
-                or not isinstance(target_entry_representations, torch.Tensor)
-                or not isinstance(entry_row_indices, torch.Tensor)
-            ):
-                raise RuntimeError("[UNIFIED_EXIT_TRAIN_ENTRY_EVIDENCE_MISSING]")
-            (
-                exit_entry_gradients,
-                unified_exit_stats,
-                entry_action_q_targets,
-                entry_action_q_valid,
-            ) = (
-                _train_unified_exit_full_population(
-                    model=model,
-                    target_model=target_model,
-                    entry_decision_representations=entry_representations,
-                    target_entry_decision_representations=(
-                        target_entry_representations
-                    ),
-                    entry_row_indices=entry_row_indices,
-                    dataset=dataset,
-                    device=device,
-                    grad_accum_steps=_accum_steps,
-                    exit_cooperation_gate_epoch=exit_cooperation_gate_epoch,
-                    exit_feature_tf_gate_epoch=exit_feature_tf_gate_epoch,
-                    profile_timing=_profile_timing,
-                    exit_action_forward_chunk_rows=(
-                        session_exit_action_forward_chunk_rows
-                        if (
-                            session_max_optimizer_steps is not None
-                            or getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None
-                        )
-                        else (
-                            (
-                                unified_exit_chunk_rows(
-                                    _TRAINING_PRECISION_POLICY, batch_size=batch_rows
-                                )
-                                if _TRAINING_PRECISION_POLICY
-                                == EXPERIMENTAL_FP32_3090_FULL_EXIT_BATCH
-                                else UNIFIED_EXIT_ACTION_FORWARD_CHUNK_ROWS_CUDA
-                            )
-                            if device.type == "cuda"
-                            else None
-                        )
-                    ),
+                log.info("[TRAIN_RSS] after_forward_losses rss_gib=%.2f", _train_rss_gib())
+                _first_batch_logged = True
+            task_losses: dict[str, torch.Tensor] = {
+                "entry_action_q": entry_action_q_loss
+            }
+            from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+            path_phase = M5_PATH_BATCH_TARGET_KEY in batch
+            side_mae_stats = trendline_stats = None
+            if not path_phase:
+                side_mae_loss, side_mae_stats = _side_mae_auxiliary_loss(
+                    out,
+                    batch,
+                    device,
                 )
-            )
-        _profile_exit_train = (
-            _synchronized_exit_profile_clock(device) if _profile_timing else None
-        )
-        unified_exit_loss = (None if entry_only else torch.tensor(
-            float(unified_exit_stats["raw_loss"]),
-            device=device,
-            dtype=entry_representations.dtype,
-        ))
-        entry_action_q_bps = out["entry_action_q_bps"]
-        if (
-            not isinstance(entry_action_q_bps, torch.Tensor)
-            or tuple(entry_action_q_bps.shape)
-            != tuple(entry_action_q_targets.shape)
-            or not bool(entry_action_q_valid[:, 2].all().item())
-        ):
-            raise RuntimeError("[ENTRY_FITTED_Q_PREDICTION_SHAPE_INVALID]")
-        _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out)
-        _accumulate_feature_tf_gate_epoch(feature_tf_gate_epoch, out)
-        entry_action_q_loss = nn.functional.mse_loss(
-            entry_action_q_bps[entry_action_q_valid],
-            entry_action_q_targets[entry_action_q_valid],
-        )
-        if not _first_batch_logged:
-            log.info("[TRAIN_RSS] after_forward_losses rss_gib=%.2f", _train_rss_gib())
-            _first_batch_logged = True
-        task_losses: dict[str, torch.Tensor] = {
-            "entry_action_q": entry_action_q_loss
-        }
-        from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
-        path_phase = M5_PATH_BATCH_TARGET_KEY in batch
-        side_mae_stats = trendline_stats = None
-        if not path_phase:
-            side_mae_loss, side_mae_stats = _side_mae_auxiliary_loss(
-                out,
-                batch,
-                device,
-            )
-            task_losses["side_mae_bps"] = side_mae_loss
-            trendline_event_loss, trendline_stats = _trendline_event_aux_loss(
-                out, batch, device
-            )
-            task_losses["trendline_event"] = trendline_event_loss
-            position_size_logit = _require_active_aux_head_prediction(
-                out,
-                batch,
-                output_name="position_size_logit",
-                target_names=("y_position_size_target", "y_position_size_mask"),
-            )
-            y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
-            y_pos_size_mask = batch["y_position_size_mask"].to(
-                device, non_blocking=non_blocking
-            )
-            if bool((y_pos_size_mask.reshape(-1) == 1.0).any()):
-                task_losses["position_size"] = _masked_position_size_mse(
-                    position_size_logit,
-                    y_pos_size,
-                    y_pos_size_mask,
+                task_losses["side_mae_bps"] = side_mae_loss
+                trendline_event_loss, trendline_stats = _trendline_event_aux_loss(
+                    out, batch, device
                 )
+                task_losses["trendline_event"] = trendline_event_loss
+                position_size_logit = _require_active_aux_head_prediction(
+                    out,
+                    batch,
+                    output_name="position_size_logit",
+                    target_names=("y_position_size_target", "y_position_size_mask"),
+                )
+                y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
+                y_pos_size_mask = batch["y_position_size_mask"].to(
+                    device, non_blocking=non_blocking
+                )
+                if bool((y_pos_size_mask.reshape(-1) == 1.0).any()):
+                    task_losses["position_size"] = _masked_position_size_mse(
+                        position_size_logit,
+                        y_pos_size,
+                        y_pos_size_mask,
+                    )
 
-        task_losses.update(dip_forecast_task_losses(out, batch, device))
+            task_losses.update(dip_forecast_task_losses(out, batch, device))
         for task_name in task_losses:
             task_supervision_observed[task_name] = True
         loss, _joint_task_stats = _joint_task_loss(model, task_losses)
@@ -10068,14 +10285,15 @@ def train_epoch(
                 + exit_log_variance
             )
 
-        masked_entry_q = entry_action_q_bps.masked_fill(
-            ~entry_action_q_valid, -torch.inf
-        )
-        winner_count = masked_entry_q.eq(
-            masked_entry_q.amax(dim=1, keepdim=True)
-        ).sum(dim=1)
-        if bool((winner_count != 1).any().item()):
-            raise RuntimeError("[ENTRY_FITTED_Q_TRAIN_PREDICTED_TIE]")
+        if not dynamic_phase:
+            masked_entry_q = entry_action_q_bps.masked_fill(
+                ~entry_action_q_valid, -torch.inf
+            )
+            winner_count = masked_entry_q.eq(
+                masked_entry_q.amax(dim=1, keepdim=True)
+            ).sum(dim=1)
+            if bool((winner_count != 1).any().item()):
+                raise RuntimeError("[ENTRY_FITTED_Q_TRAIN_PREDICTED_TIE]")
         # Grad accumulation: scale loss down by accum_steps so .backward() sums to
         # the same magnitude as a single big-batch step. Only step + zero every Nth batch.
         if _step_log_due:
@@ -10095,7 +10313,8 @@ def train_epoch(
                 "scope": "first_batch_only_not_learning_or_profitability_evidence",
                 "target_identity": observed_entry["identity"],
                 "batch_offset": _absolute_batch_i, "batch_rows": batch_rows,
-                "entry_raw_bps_mse": float(entry_action_q_loss.detach()),
+                **({"dynamic_component_supervised_cells": dict(dynamic_cells)} if dynamic_phase else
+                   {"entry_raw_bps_mse": float(entry_action_q_loss.detach())}),
                 "exit_training_forwards": 0, "exit_teacher_used_for_entry_targets": False,
             }
         if (not entry_only and session_max_optimizer_steps is not None and _learning_diagnostics is None
@@ -10285,7 +10504,8 @@ def train_epoch(
         total += _batch_loss_value * bs
         if int(performance_warmup_optimizer_steps) > 0:
             _performance_losses.append(_batch_loss_value)
-        entry_q_loss_sum += float(entry_action_q_loss) * bs
+        if not dynamic_phase:
+            entry_q_loss_sum += float(entry_action_q_loss) * bs
         if not path_phase:
             side_mae_loss_sum += float(side_mae_stats["side_mae_loss"]) * bs
             trendline_event_loss_sum += float(
@@ -10375,9 +10595,15 @@ def train_epoch(
             f"joint_task_log_variance_{name}": float(
                 model.task_log_variances[name].detach().cpu().item()
             )
-            for name in JOINT_TASK_NAMES
+            for name in _model_joint_task_names(model)
         }
     )
+    if dynamic_phase:
+        for key in list(stats):
+            if key.startswith(("entry_action_q_", "side_mae_", "trendline_", "unified_exit_")):
+                stats.pop(key)
+        stats.update(_finalize_joint_task_loss_evidence(dynamic_evidence))
+        stats["dynamic_candidate_native_authority_admitted"] = False
     if _learning_diagnostics is not None:
         stats["candidate_learning_diagnostics"] = _learning_diagnostics
     stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
@@ -10667,8 +10893,9 @@ def _active_head_target_surfaces(
     return surfaces
 
 
-def _new_active_head_epoch_accumulator() -> Dict[str, Any]:
+def _new_active_head_epoch_accumulator(*, entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE) -> Dict[str, Any]:
     return {
+        **({"entry_training_phase": entry_training_phase} if entry_training_phase != JOINT_FITTED_Q_TRAINING_PHASE else {}),
         "heads": {
             head_name: {"components": {}}
             for head_name in MODEL_NATIVE_ACTIVE_HEADS
@@ -10678,7 +10905,7 @@ def _new_active_head_epoch_accumulator() -> Dict[str, Any]:
         # segmented full VAL can report the exact raw loss of every task.
         "joint_task_loss_evidence": {
             task_name: {"weighted_sum": 0.0, "supervised_cells": 0}
-            for task_name in JOINT_TASK_NAMES
+            for task_name in joint_task_names_for_phase(entry_training_phase)
         },
     }
 
@@ -10926,16 +11153,29 @@ def _accumulate_joint_task_loss_evidence(
         row["supervised_cells"] = int(row["supervised_cells"]) + cells
 
 
+def _accumulate_dynamic_m5_loss_evidence(accumulator, task_losses, supervised_cells):
+    evidence = accumulator["joint_task_loss_evidence"]
+    if set(evidence) != set(joint_task_names_for_phase(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_EVIDENCE_INVALID")
+    for name, count in supervised_cells.items():
+        if name not in evidence or type(count) is not int or count < 0 or ((name in task_losses) != (count > 0)):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_EVIDENCE_DENOMINATOR_INVALID")
+        if count:
+            evidence[name]["weighted_sum"] += float(task_losses[name].detach()) * count
+            evidence[name]["supervised_cells"] += count
+
+
 def _finalize_joint_task_loss_evidence(
     accumulator: Mapping[str, Any],
 ) -> dict[str, Any]:
+    task_names = joint_task_names_for_phase(accumulator.get("entry_training_phase", JOINT_FITTED_Q_TRAINING_PHASE))
     evidence = accumulator.get("joint_task_loss_evidence")
-    if not isinstance(evidence, Mapping) or set(evidence) != set(JOINT_TASK_NAMES):
+    if not isinstance(evidence, Mapping) or set(evidence) != set(task_names):
         raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
     from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
     active = set(active_joint_task_names(str(accumulator.get("entry_training_phase", "joint_fitted_q"))))
     result: dict[str, Any] = {}
-    for task_name in JOINT_TASK_NAMES:
+    for task_name in task_names:
         row = evidence.get(task_name)
         if (
             not isinstance(row, Mapping)
@@ -11847,8 +12087,8 @@ def _restore_attended_research_checkpoint(
     if (
         not isinstance(supervision, Mapping)
         or not isinstance(gradients, Mapping)
-        or set(supervision) != set(JOINT_TASK_NAMES)
-        or set(gradients) != set(JOINT_TASK_NAMES)
+        or set(supervision) != set(_model_joint_task_names(model))
+        or set(gradients) != set(_model_joint_task_names(model))
         or any(type(value) is not bool for value in supervision.values())
         or any(type(value) is not bool for value in gradients.values())
     ):
@@ -11889,10 +12129,10 @@ def _restore_attended_research_checkpoint(
         "next_batch_offset": int(state["next_batch_offset"]),
         "epoch_order": order.detach().cpu().contiguous(),
         "task_supervision_observed": {
-            name: bool(supervision[name]) for name in JOINT_TASK_NAMES
+            name: bool(supervision[name]) for name in _model_joint_task_names(model)
         },
         "task_gradient_observed": {
-            name: bool(gradients[name]) for name in JOINT_TASK_NAMES
+            name: bool(gradients[name]) for name in _model_joint_task_names(model)
         },
         "complete": bool(state["complete"]),
     }
@@ -12328,11 +12568,11 @@ def _write_pre_candidate_time_window_integration_report(
     """
 
     missing_supervision = sorted(
-        name for name in JOINT_TASK_NAMES
+        name for name in _model_joint_task_names(model)
         if task_supervision_observed.get(name) is not True
     )
     missing_gradients = sorted(
-        name for name in JOINT_TASK_NAMES
+        name for name in _model_joint_task_names(model)
         if task_gradient_observed.get(name) is not True
     )
     if missing_supervision or missing_gradients:
@@ -12377,11 +12617,11 @@ def _write_pre_candidate_time_window_integration_report(
         },
         "joint_task_supervision_observed": {
             name: bool(task_supervision_observed[name])
-            for name in JOINT_TASK_NAMES
+            for name in _model_joint_task_names(model)
         },
         "joint_task_gradient_observed": {
             name: bool(task_gradient_observed[name])
-            for name in JOINT_TASK_NAMES
+            for name in _model_joint_task_names(model)
         },
         "model_state": {
             "initial_fixed_target_sha256": initial_model_state_sha256,
@@ -12411,6 +12651,52 @@ def _write_pre_candidate_time_window_integration_report(
     return report_path
 
 
+def _validate_dynamic_m5_curves(model, loader, device):
+    """Curve diagnostics only: no Exit replay, cash policy or native decision."""
+    dataset = loader.dataset
+    if getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        raise RuntimeError("ENTRY_DYNAMIC_M5_MODEL_PHASE_MISMATCH")
+    evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    cooperation = _new_cooperation_gate_epoch_accumulator()
+    feature_gate = _new_feature_tf_gate_epoch_accumulator()
+    total, rows = 0., 0
+    counts, tied = np.zeros(3, np.int64), 0
+    with torch.no_grad():
+        for batch in loader:
+            batch = _materialize_dynamic_m5_batch_targets(batch, dataset)
+            out = _model_forward_fp32(model, batch["seq_x"].to(device), batch["snap_x"].to(device),
+                ctx_cat=batch["ctx_cat"].to(device), ctx_cont=batch["ctx_cont"].to(device),
+                **_multi_tf_kwargs_from_batch(batch, device))
+            losses, cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
+            loss, _ = _joint_task_loss(model, losses)
+            _accumulate_dynamic_m5_loss_evidence(evidence, losses, cells)
+            _accumulate_cooperation_gate_epoch(cooperation, out)
+            _accumulate_feature_tf_gate_epoch(feature_gate, out)
+            size = int(batch["seq_x"].shape[0])
+            rows += size
+            total += float(loss) * size
+            candidate = out.get("dynamic_entry_action_quality_candidate")
+            if (not isinstance(candidate, torch.Tensor) or tuple(candidate.shape) != (size, 3)
+                    or not bool(torch.isfinite(candidate).all()) or not bool((candidate[:, 2] == 0).all())):
+                raise RuntimeError("ENTRY_DYNAMIC_M5_CANDIDATE_DIAGNOSTIC_INVALID")
+            winners = candidate == candidate.amax(dim=1, keepdim=True)
+            unique = winners.sum(dim=1) == 1
+            tied += int((~unique).sum())
+            counts += np.bincount(candidate[unique].argmax(dim=1).cpu().numpy(), minlength=3)
+    if rows < 1:
+        raise RuntimeError("ENTRY_DYNAMIC_M5_CURVE_EVALUATION_EMPTY")
+    stats = {"entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "curve_evaluation_rows": rows, "exit_training_active": False,
+        "exit_model_forward_count": 0, "dynamic_candidate_native_authority_admitted": False,
+        "dynamic_candidate_unique_diagnostic_counts": counts.tolist(),
+        "dynamic_candidate_tied_diagnostic_rows": tied,
+        "realized_cash_or_native_policy_evaluated": False}
+    stats.update(_finalize_joint_task_loss_evidence(evidence))
+    stats.update(_finalize_cooperation_gate_epoch(cooperation))
+    stats.update(_finalize_feature_tf_gate_epoch(feature_gate))
+    return total / rows, float("nan"), float("nan"), float("nan"), stats
+
+
 def validate(
     model,
     target_model,
@@ -12435,6 +12721,12 @@ def validate(
     dataset = getattr(loader, "dataset", None)
     if not isinstance(dataset, EntryV10CtxDataset):
         raise RuntimeError("[UNIFIED_EXIT_VALIDATION_DATASET_INVALID]")
+    if _dynamic_m5_dataset_phase(dataset):
+        if (collect_full_exit_trajectory or resume_validation_state is not None or validation_batch_offset != 0
+                or max_validation_batches is not None or validation_checkpoint_interval_batches is not None
+                or validation_checkpoint_hook is not None or technical_preflight_allow_static_exit_feature_gates):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_CURVE_EVALUATION_SCOPE_UNSUPPORTED")
+        return _validate_dynamic_m5_curves(model, loader, device)
     if dataset._unified_exit_lifecycle is None:
         raise RuntimeError("UNIFIED_EXIT_FULL_VAL_LIFECYCLE_MISSING")
     _observed_validation_binding = getattr(dataset, "_entry_observed_market_binding", None)
@@ -16737,6 +17029,7 @@ def run_train(
         specialist_fusion_scale=float(specialist_fusion_scale),
         cross_family_fusion_scale=float(cross_family_fusion_scale),
         input_normalization=input_normalization,
+        **_dynamic_m5_model_kwargs(model_native_training_objective["entry_training_phase"]),
     ).to(device)
     # This is deliberately a preflight invariant, not a best-effort log.  It
     # proves the normalization buffers and their host-only routing caches are
@@ -16927,10 +17220,10 @@ def run_train(
                 "next_batch_offset": 0,
                 "epoch_order": attended_epoch_order,
                 "task_supervision_observed": {
-                    name: False for name in JOINT_TASK_NAMES
+                    name: False for name in _model_joint_task_names(model)
                 },
                 "task_gradient_observed": {
-                    name: False for name in JOINT_TASK_NAMES
+                    name: False for name in _model_joint_task_names(model)
                 },
                 "complete": False,
             }
@@ -17073,6 +17366,8 @@ def run_train(
         )
         return
 
+    if model.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        raise RuntimeError("ENTRY_DYNAMIC_M5_NATIVE_CANDIDATE_AND_BUNDLE_NOT_ADMITTED")
     best_state = None
     best_val = float("inf")
     best_policy_pnl = float("-inf")
@@ -17087,8 +17382,8 @@ def run_train(
     last_epoch = 0
     last_val_stats: Dict[str, Any] = {}
     early_stopped = False
-    joint_task_supervision_observed = {name: False for name in JOINT_TASK_NAMES}
-    joint_task_gradient_observed = {name: False for name in JOINT_TASK_NAMES}
+    joint_task_supervision_observed = {name: False for name in _model_joint_task_names(model)}
+    joint_task_gradient_observed = {name: False for name in _model_joint_task_names(model)}
     _ckpt_monitor = ENTRY_CKPT_MONITOR
     log.info(
         "[CKPT_MONITOR] selecting best checkpoint on %s "
@@ -17674,7 +17969,7 @@ def run_train(
             "is refused"
         )
     selected_joint_task_log_variances: dict[str, float] = {}
-    for task_name in JOINT_TASK_NAMES:
+    for task_name in _model_joint_task_names(model):
         state_key = f"task_log_variances.{task_name}"
         state_value = best_state.get(state_key)
         if not isinstance(state_value, torch.Tensor) or state_value.numel() != 1:
@@ -17693,7 +17988,7 @@ def run_train(
         "[ENTRY_JOINT_TASK_WEIGHTING_PASS] epoch=%d tasks=%d "
         "active_tasks=%s inactive_tasks=%s",
         int(best_epoch),
-        len(JOINT_TASK_NAMES),
+        len(_model_joint_task_names(model)),
         model_native_joint_task_weighting["active_task_names"],
         model_native_joint_task_weighting["inactive_task_names"],
     )
@@ -18443,6 +18738,7 @@ def run_train(
         specialist_fusion_scale=float(specialist_fusion_scale),
         cross_family_fusion_scale=float(cross_family_fusion_scale),
         input_normalization=input_normalization,
+        **_dynamic_m5_model_kwargs(model_native_training_objective["entry_training_phase"]),
     )
     model2.load_state_dict(torch.load(model_path, map_location="cpu"), strict=True)
     model2.require_input_normalization_state()

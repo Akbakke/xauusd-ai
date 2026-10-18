@@ -24,6 +24,19 @@ SUPPORT_FORECAST_TARGET_BATCH_KEY = "entry_observed_market_support_forecast_bps"
 SUPPORT_FORECAST_VALID_BATCH_KEY = "entry_observed_market_support_forecast_valid"
 LEGACY_COMPLETE_EMISSION_SCOPE = "legacy_complete"
 M5_PRIMARY_OBSERVED_EMISSION_SCOPE = "m5_primary_observed"
+M5_DYNAMIC_OBSERVED_EMISSION_SCOPE = "m5_dynamic_observed"
+M5_DYNAMIC_EMISSION_BATCH_KEY = "entry_m5_dynamic_emission"
+M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA = "gx1_m5_dynamic_physical_target_binding_v1"
+DYNAMIC_M5_PHYSICAL_BINDING_MODE = "original_physical_dynamic_curve_pointers"
+DYNAMIC_M5_POINTER_COLUMNS = (
+    "dynamic_entry_m1_row", "dynamic_first_prefix_observed",
+    "dynamic_first_terminal_observed_long", "dynamic_first_terminal_observed_short",
+    "dynamic_first_path_observed_long", "dynamic_first_path_observed_short",
+    "dynamic_first_terminal_censor_reason", "dynamic_first_path_censor_reason",
+)
+DYNAMIC_M5_QUOTE_COLUMNS = (
+    "time", "bid_open", "bid_high", "bid_low", "ask_open", "ask_high", "ask_low",
+)
 M5_FORECAST_VALID_BATCH_KEY = "entry_observed_market_m5_forecast_valid"
 M5_PRIMARY_EMISSION_BATCH_KEY = "entry_m5_primary_emission"
 M5_PHYSICAL_TARGET_BINDING_SCHEMA = "gx1_m5_primary_physical_target_binding_v1"
@@ -138,7 +151,7 @@ MODEL_NATIVE_AUX_EMISSION_PROOF_KEYS = (
 def model_native_aux_target_contract_metadata(
     *, emission_scope: str = LEGACY_COMPLETE_EMISSION_SCOPE,
 ) -> dict[str, Any]:
-    if emission_scope not in (LEGACY_COMPLETE_EMISSION_SCOPE, M5_PRIMARY_OBSERVED_EMISSION_SCOPE):
+    if emission_scope not in (LEGACY_COMPLETE_EMISSION_SCOPE, M5_PRIMARY_OBSERVED_EMISSION_SCOPE, M5_DYNAMIC_OBSERVED_EMISSION_SCOPE):
         raise RuntimeError("ENTRY_AUX_TARGET_EMISSION_SCOPE_INVALID")
     timing_layout = []
     index = 0
@@ -218,7 +231,7 @@ def model_native_aux_target_contract_metadata(
         "offline_rl": "retired_replaced_by_entry_fitted_q",
         "extra_active_target_heads": list(MODEL_NATIVE_EXTRA_ACTIVE_TARGET_HEADS),
     }
-    if emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+    if emission_scope in (M5_PRIMARY_OBSERVED_EMISSION_SCOPE, M5_DYNAMIC_OBSERVED_EMISSION_SCOPE):
         from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
         result.update({
             "schema_version": "entry_model_native_aux_targets_m5_primary_emission_v1",
@@ -236,13 +249,28 @@ def model_native_aux_target_contract_metadata(
             "incomplete_value": "finite_zero_storage_behind_false_observation_mask",
             "incomplete_rows_may_be_emitted": True,
         })
+    if emission_scope == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE:
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+        result.update({
+            "schema_version": "entry_model_native_aux_targets_m5_dynamic_emission_v1",
+            "training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            "dynamic_target_contract": entry_observed_dynamic_m5_path_contract(),
+            "dynamic_emission_batch_key": M5_DYNAMIC_EMISSION_BATCH_KEY,
+            "primary_target_source": "bound_original_M1_quote_prefix_queries",
+            "primary_availability_independent_of_legacy_and_forecast_masks": True,
+        })
     return result
 
 
 def require_auxiliary_emission_training_phase(
     value: Mapping[str, Any], *, entry_training_phase: str, context: str,
 ) -> None:
-    if value.get("emission_scope", LEGACY_COMPLETE_EMISSION_SCOPE) == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    scope = value.get("emission_scope", LEGACY_COMPLETE_EMISSION_SCOPE)
+    if (scope == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE) != (entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+        raise RuntimeError(f"[{context}_DYNAMIC_M5_EMISSION_PHASE_MISMATCH]")
+    if scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
         from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
         if entry_training_phase != ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
             raise RuntimeError(f"[{context}_M5_EMISSION_PHASE_MISMATCH]")
@@ -268,6 +296,207 @@ def require_m5_primary_physical_target_receipt(
     registry = require_binding(value["registry"], label="M5 current TRAIN registry", verify_file=True)
     if Path(registry["path"]) != Path(gc.REGISTRY_PATH) or registry["sha256"] != gc.REGISTRY_SHA256:
         raise RuntimeError(f"[{context}_M5_PHYSICAL_TARGET_REGISTRY_MISMATCH]")
+    return dict(value)
+
+
+
+def require_m5_dynamic_physical_target_receipt(
+    value: Mapping[str, Any], *, design_binding: Mapping[str, str], context: str,
+) -> dict[str, Any]:
+    """Rejoin the immutable physical clock/pointers and their first-prefix proof.
+
+    This checks every stored pointer/mask cell in bounded Arrow batches. The
+    original quote-value/first-prefix reconstruction remains with the dynamic
+    dataset provider; a self-declared physical receipt cannot replace it.
+    """
+    import hashlib
+    import json
+    from pathlib import Path
+    import numpy as np
+    import pandas as pd
+    import pyarrow.parquet as pq
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import dynamic_m1_prefix_contract
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
+    from gx1.features import gc_native_context_v1 as gc
+
+    def fail(reason):
+        raise RuntimeError(f"[{context}_M5_DYNAMIC_PHYSICAL_TARGET_{reason}]")
+
+    def sha(raw):
+        return (isinstance(raw, str) and len(raw) == 64
+                and all(c in "0123456789abcdef" for c in raw))
+
+    def utc(raw):
+        stamp = pd.Timestamp(raw)
+        if pd.isna(stamp) or stamp.tzinfo is None or stamp.floor("min") != stamp:
+            fail("CLOCK_INVALID")
+        return stamp.tz_convert("UTC")
+
+    required = {"schema_version", "design", "registry", "training_phase", "emission_scope",
+                "target_contract", "splits", "test_accessed", "forbidden_access_attempts"}
+    if (not isinstance(value, Mapping) or set(value) != required
+            or value["schema_version"] != M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA
+            or value["design"] != design_binding
+            or value["training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or value["emission_scope"] != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+            or value["target_contract"] != entry_observed_dynamic_m5_path_contract()
+            or value["test_accessed"] is not False or value["forbidden_access_attempts"] != []
+            or not isinstance(value["splits"], Mapping) or set(value["splits"]) != {"train", "val"}):
+        fail("RECEIPT_INVALID")
+    design_file = require_binding(value["design"], label="dynamic M5 physical design", verify_file=True)
+    registry = require_binding(value["registry"], label="dynamic M5 current TRAIN registry", verify_file=True)
+    registry_path = (Path(gc.__file__).resolve().parents[2] / gc.REGISTRY_PATH).resolve(strict=True)
+    if Path(registry["path"]) != registry_path or registry["sha256"] != gc.REGISTRY_SHA256:
+        fail("REGISTRY_MISMATCH")
+    design = read_bound_json(Path(design_file["path"]), design_file["sha256"])
+    if design.get("scope", {}).get("entry_only_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        fail("PHASE_MISMATCH")
+    calendar = design.get("calendar", {})
+    sources = calendar.get("source_bindings", {})
+    if not isinstance(sources, Mapping) or not {"train", "val"}.issubset(sources):
+        fail("SOURCES_INVALID")
+    shared_quote = None
+    for split in ("train", "val"):
+        source = sources[split]
+        if not isinstance(source, Mapping):
+            fail("SOURCE_INVALID")
+        parquet_binding = require_binding(source.get("parquet"), label=f"dynamic M5 {split} physical pointers", verify_file=True)
+        manifest_binding = require_binding(source.get("manifest"), label=f"dynamic M5 {split} manifest", verify_file=True)
+        manifest = read_bound_json(Path(manifest_binding["path"]), manifest_binding["sha256"])
+        extra = manifest.get("extra", {})
+        emitted = extra.get("aux_head_target_contract")
+        static = require_model_native_aux_target_emission_contract(emitted, context=context)
+        rows = source.get("physical_rows")
+        if (type(rows) is not int or rows <= 0 or not sha(source.get("clock_sha256"))
+                or extra.get("rows") != rows or extra.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+                or static.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+                or emitted["primary_valid_rows_emitted"] != rows
+                or extra.get("gc_native_context") != gc.contract()):
+            fail("MANIFEST_INVALID")
+        cutoff = utc(calendar.get("train_control_cutoff" if split == "train"
+                                  else "development_control_entry_end_exclusive"))
+        meta = extra.get("dynamic_m5_supervision", {})
+        meta_keys = {"schema_version", "contract", "source_quote_binding", "source_quote_columns",
+            "index_binding", "pointer_columns", "pointer_row_clock", "first_prefix_horizon_minutes",
+            "first_terminal_endpoint_kind", "first_path_endpoint_kind", "physical_population_rule",
+            "later_horizon_availability_is_not_an_emission_gate", "closure_mode", "target_only_columns",
+            "feature_inputs_include_future_masks", "dense_future_paths_materialized"}
+        if (not isinstance(meta, Mapping) or set(meta) != meta_keys
+                or meta["schema_version"] != "gx1_dynamic_m5_physical_target_pointers_v1"
+                or meta["contract"] != dynamic_m1_prefix_contract()
+                or meta["source_quote_columns"] != list(DYNAMIC_M5_QUOTE_COLUMNS)
+                or meta["pointer_columns"] != list(DYNAMIC_M5_POINTER_COLUMNS)
+                or meta["pointer_row_clock"] != "global_row_in_bound_shared_m1_quote_parquet"
+                or type(meta["first_prefix_horizon_minutes"]) is not int or meta["first_prefix_horizon_minutes"] != 1
+                or meta["first_terminal_endpoint_kind"] != "terminal_open_inclusive"
+                or meta["first_path_endpoint_kind"] != "closed_m1_prefix"
+                or meta["physical_population_rule"] != "any_genuine_first_prefix_terminal_or_path_component"
+                or meta["later_horizon_availability_is_not_an_emission_gate"] is not True
+                or meta["closure_mode"] != "unknown_gaps_only_no_inferred_market_calendar"
+                or meta["target_only_columns"] is not True
+                or meta["feature_inputs_include_future_masks"] is not False
+                or meta["dense_future_paths_materialized"] is not False):
+            fail("POINTER_MANIFEST_INVALID")
+        quote, index = meta["source_quote_binding"], meta["index_binding"]
+        index_keys = {"schema_version", "source_parquet_sha256", "source_clock_sha256", "source_rows",
+            "indexed_clock_sha256", "indexed_rows", "source_row_offset", "split_end_exclusive",
+            "clock_kind", "unknown_gap_count", "known_closure_count", "closure_authority_sha256"}
+        if (not isinstance(quote, Mapping) or not {"path", "sha256", "size_bytes", "rows", "clock_sha256"}.issubset(quote)
+                or not sha(quote.get("sha256")) or not sha(quote.get("clock_sha256"))
+                or type(quote.get("rows")) is not int or quote["rows"] <= 0
+                or type(quote.get("size_bytes")) is not int or quote["size_bytes"] <= 0
+                or not isinstance(index, Mapping) or set(index) != index_keys
+                or index["schema_version"] != meta["contract"]["schema_version"]
+                or index["source_parquet_sha256"] != quote["sha256"]
+                or index["source_clock_sha256"] != quote["clock_sha256"]
+                or type(index["source_rows"]) is not int or index["source_rows"] != quote["rows"]
+                or not sha(index["indexed_clock_sha256"])
+                or type(index["indexed_rows"]) is not int or not 0 < index["indexed_rows"] <= quote["rows"]
+                or type(index["source_row_offset"]) is not int or index["source_row_offset"] != 0
+                or utc(index["split_end_exclusive"]) != cutoff
+                or index["clock_kind"] != meta["contract"]["clock_kind"]
+                or type(index["unknown_gap_count"]) is not int or not 0 <= index["unknown_gap_count"] < quote["rows"]
+                or type(index["known_closure_count"]) is not int or index["known_closure_count"] != 0
+                or index["closure_authority_sha256"] is not None):
+            fail("QUOTE_INDEX_BINDING_INVALID")
+        quote_path = Path(quote["path"])
+        if (not quote_path.is_absolute() or quote_path.is_symlink()
+                or quote_path != quote_path.resolve(strict=True)
+                or quote_path.stat().st_size != quote["size_bytes"]):
+            fail("QUOTE_SOURCE_INVALID")
+        require_binding({"path": str(quote_path), "sha256": quote["sha256"]},
+                        label="dynamic M5 original quote provenance", verify_file=True)
+        if shared_quote is not None and quote != shared_quote:
+            fail("SPLIT_QUOTE_LINEAGE_MISMATCH")
+        shared_quote = quote
+        window = source.get("declared_window", {})
+        if not isinstance(window, Mapping) or set(window) != {"start", "end"}:
+            fail("PHYSICAL_WINDOW_INVALID")
+        low, high = utc(window["start"]), utc(window["end"])
+        if high < low or high >= cutoff:
+            fail("PHYSICAL_WINDOW_INVALID")
+        parquet = pq.ParquetFile(parquet_binding["path"])
+        columns = ["time", *DYNAMIC_M5_POINTER_COLUMNS]
+        if parquet.metadata.num_rows != rows or not set(columns).issubset(parquet.schema_arrow.names):
+            fail("PHYSICAL_COLUMNS_INVALID")
+        clock_hash, pointer_hash = hashlib.sha256(), hashlib.sha256()
+        terminal_counts, path_counts = np.zeros(2, np.int64), np.zeros(2, np.int64)
+        terminal_reasons, path_reasons = {}, {}
+        seen, previous = 0, None
+        reasons = {"observed", "fill_unavailable", "split_right_censor", "terminal_quote_missing",
+                   "unknown_source_absence", "prefix_close_missing", "source_window_unavailable",
+                   "closed_m1_prefix_only"}
+        for batch in parquet.iter_batches(batch_size=4096, columns=columns):
+            frame = batch.to_pandas()
+            clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True, errors="coerce")).as_unit("ns")
+            if (clock.hasnans or not clock.is_unique or not clock.is_monotonic_increasing
+                    or not clock.floor("5min").equals(clock)
+                    or (previous is not None and len(clock) and clock[0] <= previous)
+                    or np.any(clock < low) or np.any(clock > high)
+                    or np.any(clock.asi8 + 300 * 10**9 >= cutoff.value)):
+                fail("PHYSICAL_CLOCK_INVALID")
+            if len(clock):
+                previous = clock[-1]
+            pointer = frame[DYNAMIC_M5_POINTER_COLUMNS[0]].to_numpy()
+            valid = frame[DYNAMIC_M5_POINTER_COLUMNS[1]].to_numpy()
+            terminal = frame[list(DYNAMIC_M5_POINTER_COLUMNS[2:4])].to_numpy()
+            path = frame[list(DYNAMIC_M5_POINTER_COLUMNS[4:6])].to_numpy()
+            if (pointer.dtype != np.dtype("int64") or np.any(pointer < 0) or np.any(pointer >= index["indexed_rows"])
+                    or valid.dtype != np.bool_ or terminal.dtype != np.bool_ or path.dtype != np.bool_
+                    or not valid.all() or not np.array_equal(valid, terminal.any(axis=1) | path.any(axis=1))):
+                fail("PHYSICAL_MASK_OR_POINTER_INVALID")
+            for column, masks, counts in ((DYNAMIC_M5_POINTER_COLUMNS[6], terminal, terminal_reasons),
+                                           (DYNAMIC_M5_POINTER_COLUMNS[7], path, path_reasons)):
+                for reason, observed in zip(frame[column].to_numpy(), masks):
+                    if (not isinstance(reason, str) or reason not in reasons
+                            or bool(np.any(observed)) != (reason == "observed")):
+                        fail("PHYSICAL_CENSOR_REASON_INVALID")
+                    counts[reason] = counts.get(reason, 0) + 1
+            terminal_counts += terminal.sum(axis=0)
+            path_counts += path.sum(axis=0)
+            clock_hash.update(np.asarray(clock.asi8, dtype="<i8").tobytes())
+            pointer_hash.update(np.asarray(pointer, dtype="<i8").tobytes())
+            seen += len(frame)
+        actual = {
+            "source_parquet": parquet_binding, "source_manifest": manifest_binding,
+            "rows": seen, "physical_clock_sha256": clock_hash.hexdigest(),
+            "dynamic_m5_supervision": dict(meta), "first_prefix_observed_rows": seen,
+            "first_terminal_observed_rows_by_side": dict(zip(("long", "short"), map(int, terminal_counts))),
+            "first_path_observed_rows_by_side": dict(zip(("long", "short"), map(int, path_counts))),
+            "first_terminal_censor_reason_counts": terminal_reasons,
+            "first_path_censor_reason_counts": path_reasons,
+            "entry_m1_pointer_sha256": pointer_hash.hexdigest(),
+        }
+        if seen != rows or actual["physical_clock_sha256"] != source["clock_sha256"]:
+            fail("PHYSICAL_CLOCK_PROOF_MISMATCH")
+        try:
+            exact = json.dumps(value["splits"][split], sort_keys=True, allow_nan=False) == json.dumps(actual, sort_keys=True, allow_nan=False)
+        except (TypeError, ValueError):
+            exact = False
+        if not exact:
+            fail("SPLIT_PROOF_MISMATCH")
     return dict(value)
 
 
@@ -311,7 +540,7 @@ def require_model_native_aux_target_emission_contract(
     if not isinstance(value, Mapping):
         raise RuntimeError(f"[{context}_AUX_TARGET_EMISSION_CONTRACT_INVALID] not_mapping")
     observed = dict(value)
-    proof_keys = (MODEL_NATIVE_M5_EMISSION_PROOF_KEYS if scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE
+    proof_keys = (MODEL_NATIVE_M5_EMISSION_PROOF_KEYS if scope in (M5_PRIMARY_OBSERVED_EMISSION_SCOPE, M5_DYNAMIC_OBSERVED_EMISSION_SCOPE)
                   else MODEL_NATIVE_AUX_EMISSION_PROOF_KEYS)
     expected_keys = set(expected).union(proof_keys)
     if set(observed) != expected_keys:
@@ -326,7 +555,7 @@ def require_model_native_aux_target_emission_contract(
         raise RuntimeError(
             f"[{context}_AUX_TARGET_EMISSION_CONTRACT_INVALID] static_contract"
         )
-    if scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+    if scope in (M5_PRIMARY_OBSERVED_EMISSION_SCOPE, M5_DYNAMIC_OBSERVED_EMISSION_SCOPE):
         counts = {key: observed[key] for key in MODEL_NATIVE_M5_EMISSION_PROOF_KEYS[:-1]}
         by_column = observed["forecast_observed_rows_by_column"]
         emitted = counts["primary_valid_rows_emitted"]

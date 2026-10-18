@@ -19,8 +19,21 @@ eller lang holdetid er et mål i seg selv. M30 vurderes bare med en eksplisitt
 sammenligning av tilført verdi. MFE/MAE er etterfølgende utfall, aldri inputs fra
 framtiden. Ingen fast tapsgrense eller maksimal holdetid innføres av dette.
 Operatøren presiserte18.10 eksplisitt: M5-prisforløp og MAE før MFE er hovedmål;
-1/5/20dagers og øvrige lengre horisonter er støtte. Dette avløser tidligere
-primær-h20-vedtak, ikke lang kontekst eller historiske kildekvitteringer.
+1/5/20dagers og øvrige lengre horisonter er støtte. Siste presisering18.10:
+Entry skal lære faktisk prisretning fra ett minutt til mange timer, sammen
+med signert MFE og liten konservativ MAE før første MFE. Dager er støtte;
+fast95min er ikke hovedfasit. Exit vurderes eller trenes ikke i denne bølgen.
+Dette avløser tidligere primær-h20-/fast95-vedtak, ikke lang kontekst eller
+historiske kildekvitteringer. LONG, SHORT og FLAT skal kontrolleres, også
+kvaliteten på muligheter modellen avstår fra. Alltid-FLAT er ingen suksess.
+
+Retningsmarkout og forløpskvalitet får egne observasjonsmasker. Eksakte
+start-/sluttquotes kan bevise terminal prisendring selv når mellomliggende
+MAE/MFE er ukjent. Ingen slik markout beviser realisert handelsøkonomi.
+Fremtidige quotes, masker, peak og faktisk framtidig forløp er aldri inputs.
+Ingen skjult max/snitt av framtidens fasit over horisonter kan bli Entry-Q.
+En ny kvalitetsscore er en kandidat inntil enheten, eneste native autoritet,
+kontrakt, fersk baseline og faktisk beslutningskvalifisering er bundet.
 
 Revider hver genuine indikator: formel, enhet, kilde, familie, warmup, maske,
 kausal tilgjengelighet, samtlige tidsrammer og faktisk vei inn i modellen.

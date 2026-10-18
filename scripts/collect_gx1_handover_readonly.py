@@ -444,9 +444,10 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
 def handover_view(status: dict[str, object]) -> dict[str, object]:
     """Present only current work; retain full validation in current_status.
 
-    Historical scope/budget/input bindings remain in the sole policy. They are
-    not daily narrative, and omission here never grants a launch or hides a
-    terminal failure, evidence gap, live workload or next-run refusal.
+    The durable project goal and dynamic Entry declaration are selected from
+    the sole current policy without deriving authority from completed features.
+    Historical scope/budget/input bindings remain there. Omission here never
+    grants a launch or hides a terminal failure, gap, live workload or refusal.
     """
     out = {key: value for key, value in status.items() if key != "current_work"}
     work = status.get("current_work")
@@ -470,6 +471,7 @@ def handover_view(status: dict[str, object]) -> dict[str, object]:
                     "mbp1_completion_stage", "observed_smc_registry_stage",
                     "trusted_record_restoration_stage", "final_train_registry_stage",
                     "new_generation_m5_feature_stage", "new_generation_m1_feature_stage",
+                    "dynamic_m5_entry_implementation",
                     "native_binding_gaps",
                 ) if key in native
             }

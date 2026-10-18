@@ -214,6 +214,12 @@ def require_entry_observed_market_scope(recipe: Mapping[str, Any]) -> dict[str, 
     from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
     declared = require_binding(recipe.get("entry_observed_market"), label="independent Entry design", verify_file=True)
     design = read_bound_json(Path(declared["path"]), declared["sha256"])
+    if design.get("schema_version") == DYNAMIC_M5_SCHEMA_VERSION + "_learning_design":
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        return _require_observed_market_plan(recipe, recipe_key="entry_observed_market",
+            expected_schema=DYNAMIC_M5_SCHEMA_VERSION + "_learning_design",
+            expected_target_contract=entry_observed_dynamic_m5_path_contract(),
+            expected_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     if design.get("schema_version") == M5_PATH_SCHEMA_VERSION + "_learning_design":
         scope = _require_observed_market_plan(
             recipe, recipe_key="entry_observed_market", expected_schema=M5_PATH_SCHEMA_VERSION + "_learning_design",
@@ -275,7 +281,44 @@ def _require_observed_market_plan(
         M5_PHYSICAL_TARGET_BINDING_SCHEMA, M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
         require_m5_primary_physical_target_receipt, require_model_native_aux_target_emission_contract,
     )
-    if labels.get("schema_version") == M5_PHYSICAL_TARGET_BINDING_SCHEMA:
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA, M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+        require_m5_dynamic_physical_target_receipt,
+    )
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    dynamic_phase = expected_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if labels.get("schema_version") == M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA:
+        require_m5_dynamic_physical_target_receipt(labels, design_binding=prefix["design"], context="ENTRY_OBSERVED_MARKET")
+        if not dynamic_phase or design.get("scope", {}).get("entry_only_training_phase") != expected_training_phase:
+            raise RuntimeError("ENTRY_OBSERVED_DYNAMIC_M5_EMISSION_PHASE_MISMATCH")
+        calendar = design["calendar"]
+        quote_sources = []
+        for split in ("train", "val"):
+            source = calendar["source_bindings"][split]
+            _, manifest = load(expected_files["entry_" + split + "_manifest"], "Entry dynamic physical source manifest")
+            extra = manifest["extra"]
+            contract = require_model_native_aux_target_emission_contract(extra.get("aux_head_target_contract"), context="ENTRY_OBSERVED_MARKET")
+            meta = extra.get("dynamic_m5_supervision", {})
+            boundary = calendar["train_control_cutoff" if split == "train" else "development_control_entry_end_exclusive"]
+            import pandas as pd
+            from gx1.contracts.entry_causal_m1_outcomes_v1 import dynamic_m1_prefix_contract
+            if (expected_files["entry_" + split + "_parquet"] != source["parquet"]
+                    or expected_files["entry_" + split + "_manifest"] != source["manifest"]
+                    or extra.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+                    or contract.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+                    or meta.get("contract") != dynamic_m1_prefix_contract()
+                    or extra.get("rows") != source["physical_rows"]
+                    or pd.Timestamp(meta.get("index_binding", {}).get("split_end_exclusive")) != pd.Timestamp(boundary)):
+                raise RuntimeError("ENTRY_OBSERVED_DYNAMIC_M5_SOURCE_INVALID")
+            quote_sources.append(meta["source_quote_binding"])
+        if quote_sources[0] != quote_sources[1]:
+            raise RuntimeError("ENTRY_OBSERVED_DYNAMIC_M5_QUOTE_SOURCE_SPLIT_BRAIN")
+        # No selected-policy horizon or invented scalar survives this branch.
+        horizon = elapsed_seconds = None
+        policy = {"m1_source_sha256": quote_sources[0]["sha256"]}
+    elif dynamic_phase:
+        raise RuntimeError("ENTRY_OBSERVED_DYNAMIC_M5_PHYSICAL_RECEIPT_REQUIRED")
+    elif labels.get("schema_version") == M5_PHYSICAL_TARGET_BINDING_SCHEMA:
         require_m5_primary_physical_target_receipt(labels, design_binding=prefix["design"], context="ENTRY_OBSERVED_MARKET")
         if expected_training_phase != ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
             raise RuntimeError("ENTRY_OBSERVED_MARKET_M5_EMISSION_PHASE_MISMATCH")
@@ -344,8 +387,9 @@ def _require_observed_market_plan(
     return {
         "binding": binding, "plan": plan, "target_contract": plan["target_contract"],
         "training_phase": plan["training_phase"], "economics": economics,
-        "reference_horizon_m5_bars": horizon, "elapsed_wall_clock_seconds": elapsed_seconds,
-        "direction_policy_sha256": policy["policy_sha256"],
+        **({"query_minutes": tuple(expected_target_contract["query_contract"]["horizon_minutes"])} if dynamic_phase else {
+            "reference_horizon_m5_bars": horizon, "elapsed_wall_clock_seconds": elapsed_seconds,
+            "direction_policy_sha256": policy["policy_sha256"]}),
         "target_m1_source_sha256": policy["m1_source_sha256"],
         "physical_sources": calendar["source_bindings"],
         "train_control_cutoff": calendar["train_control_cutoff"],
@@ -355,6 +399,12 @@ def _require_observed_market_plan(
 
 def entry_observed_market_identity(scope: Mapping[str, Any]) -> dict[str, Any]:
     """The same target identity is bound in recipe, checkpoint and measurement."""
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if scope.get("training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        return {"design": scope["binding"], "target_contract": scope["target_contract"],
+            "economics": scope["economics"], "training_phase": scope["training_phase"],
+            "query_minutes": list(scope["query_minutes"]),
+            "target_m1_source_sha256": scope["target_m1_source_sha256"]}
     return {
         "design": scope["binding"],
         "target_contract": scope["target_contract"],
@@ -369,6 +419,9 @@ def entry_observed_market_identity(scope: Mapping[str, Any]) -> dict[str, Any]:
 
 def bind_entry_observed_market_dataset(dataset: Any, scope: Mapping[str, Any]) -> None:
     """Read the two existing outcome columns once; keep inputs and auxiliaries."""
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if scope.get("training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        return bind_entry_dynamic_m5_dataset(dataset, scope)
     import numpy as np
     import pandas as pd
     import pyarrow.parquet as pq
@@ -529,6 +582,11 @@ def is_inactive_phase_parameter(name: str, entry_training_phase: str) -> bool:
         return False
     if is_exit_owned_parameter(name):
         return True
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        # The dynamic phase advertises only three curve heads and forecast support.
+        return name.startswith(("head_entry_action_q.", "head_side_mae.", "head_trendline_event.",
+            "head_position_size.", "head_dip.", "head_timing.", "head_tail_risk.", "head_vol_forecast."))
     if entry_training_phase != ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
         return False
     from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
@@ -605,3 +663,355 @@ def entry_learning_study_control_dataset(dataset, *, study):
     from gx1.contracts.entry_observed_market_horizons_v1 import bind_observed_entry_dataset
     bind_observed_entry_dataset(view, study["observed_scope"])
     return view
+
+
+DYNAMIC_M5_SCHEMA_VERSION = "gx1_entry_observed_dynamic_m5_path_v1"
+DYNAMIC_M5_MARKOUT_TARGET_KEY = "y_dynamic_terminal_net_markout_bps"
+DYNAMIC_M5_MARKOUT_VALID_KEY = "dynamic_terminal_markout_observed"
+DYNAMIC_M5_MFE_TARGET_KEY = "y_dynamic_mfe_bps"
+DYNAMIC_M5_MAE_TARGET_KEY = "y_dynamic_pre_mfe_mae_upper_bps"
+DYNAMIC_M5_PATH_VALID_KEY = "dynamic_path_observed"
+DYNAMIC_M5_CLOSED_MFE_TARGET_KEY = "y_dynamic_closed_mfe_bps"
+DYNAMIC_M5_CLOSED_MAE_TARGET_KEY = "y_dynamic_closed_pre_mfe_mae_upper_bps"
+DYNAMIC_M5_CLOSED_PATH_VALID_KEY = "dynamic_closed_path_observed"
+
+
+def entry_observed_dynamic_m5_path_contract() -> dict[str, Any]:
+    """Independent directional markouts and path-quality curves, never Exit."""
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import dynamic_m1_prefix_contract
+    from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    value = {
+        "schema_version": DYNAMIC_M5_SCHEMA_VERSION,
+        "training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "action_order": list(ENTRY_FITTED_Q_ACTION_ORDER),
+        "side_order": ["long", "short"],
+        "query_contract": dynamic_m1_prefix_contract(),
+        "query_values_are_declared_before_observation": True,
+        "future_realized_elapsed_censor_peak_or_availability_as_input": False,
+        "primary_observation_role": "one_minute_to_many_hours",
+        "day_observation_role": "learning_support_without_primary_entry_authority",
+        "terminal_target": "endpoint_quote_markout_net_of_hash_bound_declared_nonspread_costs",
+        "terminal_target_bps_key": DYNAMIC_M5_MARKOUT_TARGET_KEY,
+        "terminal_observed_key": DYNAMIC_M5_MARKOUT_VALID_KEY,
+        "mfe_target_bps_key": DYNAMIC_M5_MFE_TARGET_KEY,
+        "mae_upper_target_bps_key": DYNAMIC_M5_MAE_TARGET_KEY,
+        "path_observed_key": DYNAMIC_M5_PATH_VALID_KEY,
+        "terminal_and_path_masks_independent": True,
+        "path_endpoint_kinds_actively_supervised": ["terminal_open_inclusive", "closed_m1_prefix"],
+        "known_endpoint_kind_is_decoder_query_input": True,
+        "endpoint_kind_comes_from_future_observation": False,
+        "closed_mfe_target_bps_key": DYNAMIC_M5_CLOSED_MFE_TARGET_KEY,
+        "closed_mae_upper_target_bps_key": DYNAMIC_M5_CLOSED_MAE_TARGET_KEY,
+        "closed_path_observed_key": DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+        "path_loss_denominator": "observed_cells_across_both_explicit_endpoint_kinds",
+        "closed_path_is_not_substituted_for_terminal_inclusive_path": True,
+        "unknown_intermediate_gap": "endpoint_markout_may_be_observed_path_extrema_unobserved",
+        "terminal_open_inclusive_path": "closed_M1_before_T_plus_exact_T_open_never_T_high_low",
+        "signed_mfe_preserved": True,
+        "pre_mfe_mae": "nonnegative_conservative_upper_bound_with_lower_observation_bound",
+        "mfe_and_mae_actively_supervised": True,
+        "flat_terminal_target_bps": 0.0,
+        "cost_arithmetic_owner": "build_entry_observed_market_targets",
+        "net_is_declared_cost_markout_not_realized_economics": True,
+        "support_forecast_layout": list(MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT),
+        "support_forecast_masked_per_horizon": True,
+        "hindsight_best_horizon_target": False,
+        "hindsight_best_exit_cash_claim": False,
+        "exit_model_used": False,
+        "exit_gradients_active": False,
+        "holding_time_limit": False,
+        "fixed_loss_limit": False,
+        "candidate_quality_value_has_native_authority": False,
+        "serving_authority_granted": False,
+    }
+    return {**value, "contract_sha256": _sha(value)}
+
+
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    DYNAMIC_M5_POINTER_COLUMNS, DYNAMIC_M5_QUOTE_COLUMNS, DYNAMIC_M5_PHYSICAL_BINDING_MODE,
+)
+
+
+def build_dynamic_m5_batch_targets(*, observations: Mapping[str, Any], closed_observations: Mapping[str, Any],
+                                   economics: Mapping[str, Any], batch_rows: int, query_minutes: tuple[int, ...]) -> dict[str, Any]:
+    """Convert only observed cells; retain independent endpoint/path masks.
+
+    The quote owner validates both executable sides at each endpoint, hence
+    terminal availability is symmetric. No missing gross markout enters the
+    existing cost arithmetic owner. Zeros below masks are tensor storage only.
+    """
+    import numpy as np
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    if (type(batch_rows) is not int or batch_rows < 1
+            or query_minutes != DYNAMIC_M1_PREFIX_HORIZON_MINUTES):
+        raise RuntimeError("DYNAMIC_M5_BATCH_QUERY_DOMAIN_INVALID")
+    q = batch_rows * len(query_minutes)
+    if (observations.get("endpoint_kind") != "terminal_open_inclusive"
+            or observations.get("side_order") != ("long", "short")
+            or not np.array_equal(observations.get("horizon_minutes"), np.tile(query_minutes, batch_rows))):
+        raise RuntimeError("DYNAMIC_M5_BATCH_QUERY_IDENTITY_INVALID")
+    terminal = np.asarray(observations.get("terminal_gross_observed"))
+    path = np.asarray(observations.get("path_observed"))
+    gross = np.asarray(observations.get("terminal_gross_return_bps"))
+    elapsed = np.asarray(observations.get("elapsed_wall_seconds"))
+    if (terminal.dtype != np.bool_ or path.dtype != np.bool_
+            or terminal.shape != (q, 2) or path.shape != (q, 2)
+            or gross.shape != (q, 2) or elapsed.dtype != np.int64 or elapsed.shape != (q,)
+            or not np.array_equal(terminal[:, 0], terminal[:, 1])
+            or not np.array_equal(elapsed, np.tile(query_minutes, batch_rows) * 60)
+            or not np.isfinite(gross[terminal]).all() or not np.isnan(gross[~terminal]).all()):
+        raise RuntimeError("DYNAMIC_M5_BATCH_OBSERVATIONS_INVALID")
+    # Validate the economics projection even for an entirely censored minibatch.
+    cost = require_entry_observed_market_economics(economics)
+    import pandas as pd
+    terminal_ns = np.asarray(observations.get("terminal_time_ns"))
+    if terminal_ns.dtype != np.int64 or terminal_ns.shape != (q,):
+        raise RuntimeError("DYNAMIC_M5_BATCH_TERMINAL_CLOCK_INVALID")
+    observed_endpoint = terminal[:, 0]
+    if (np.any((terminal_ns - elapsed * 10**9)[observed_endpoint] < pd.Timestamp(cost["coverage_start_utc"]).value)
+            or np.any(terminal_ns[observed_endpoint] >= pd.Timestamp(cost["coverage_end_utc_exclusive"]).value)):
+        raise RuntimeError("DYNAMIC_M5_DECLARED_COST_COVERAGE_INVALID")
+    target = np.zeros((q, 3), np.float32)
+    target_valid = np.column_stack((terminal, terminal[:, 0]))
+    observed_rows = np.flatnonzero(terminal[:, 0])
+    if len(observed_rows):
+        target[observed_rows] = build_entry_observed_market_targets(
+            gross_return_bps=torch.tensor(gross[observed_rows], dtype=torch.float64),
+            elapsed_wall_clock_seconds=torch.from_numpy(elapsed[observed_rows].copy()),
+            economics=economics)["target_bps"].numpy()
+    fields = {}
+    for observed, endpoint, mfe_key, mae_key, mask_key, lower_key in (
+            (observations, "terminal_open_inclusive", DYNAMIC_M5_MFE_TARGET_KEY,
+                DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY, "dynamic_pre_mfe_mae_lower_bps"),
+            (closed_observations, "closed_m1_prefix", DYNAMIC_M5_CLOSED_MFE_TARGET_KEY,
+                DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY, "dynamic_closed_pre_mfe_mae_lower_bps")):
+        path_mask = np.asarray(observed.get("path_observed"))
+        if (observed.get("endpoint_kind") != endpoint or observed.get("side_order") != ("long", "short")
+                or not np.array_equal(observed.get("horizon_minutes"), np.tile(query_minutes, batch_rows))
+                or not np.array_equal(observed.get("query_entry_rows"), observations.get("query_entry_rows"))
+                or not np.array_equal(observed.get("terminal_time_ns"), terminal_ns)
+                or path_mask.dtype != np.bool_ or path_mask.shape != (q, 2)):
+            raise RuntimeError("DYNAMIC_M5_BATCH_PATH_QUERY_IDENTITY_INVALID")
+        for source, key in (("mfe_bps", mfe_key),
+                ("mae_before_first_mfe_upper_bps", mae_key),
+                ("mae_before_first_mfe_lower_bps", lower_key)):
+            raw = np.asarray(observed.get(source))
+            if (raw.shape != (q, 2) or not np.isfinite(raw[path_mask]).all()
+                    or not np.isnan(raw[~path_mask]).all()):
+                raise RuntimeError("DYNAMIC_M5_BATCH_PATH_OBSERVATIONS_INVALID")
+            value = np.zeros((q, 2), np.float32)
+            value[path_mask] = raw[path_mask]
+            if not np.isfinite(value).all():
+                raise RuntimeError("DYNAMIC_M5_BATCH_PATH_FLOAT32_OVERFLOW")
+            fields[key] = value.reshape(batch_rows, len(query_minutes), 2)
+        mask = path_mask.reshape(batch_rows, len(query_minutes), 2)
+        if np.any(fields[lower_key][mask] < 0) or np.any(fields[mae_key][mask] < fields[lower_key][mask]):
+            raise RuntimeError("DYNAMIC_M5_BATCH_MAE_DOMAIN_INVALID")
+        fields[mask_key] = mask
+    return {DYNAMIC_M5_MARKOUT_TARGET_KEY: target.reshape(batch_rows, len(query_minutes), 3),
+        DYNAMIC_M5_MARKOUT_VALID_KEY: target_valid.reshape(batch_rows, len(query_minutes), 3), **fields}
+
+
+
+class DynamicM5TargetProvider:
+    """One immutable quote index/fill map; query only the current minibatch."""
+
+    def __init__(self, *, index, fill_surface, admitted_rows, economics):
+        import numpy as np
+        from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+        self.index = index
+        self.fill_surface = fill_surface
+        self.admitted_rows = np.asarray(admitted_rows).copy()
+        if (self.admitted_rows.dtype != np.bool_
+                or self.admitted_rows.shape != (len(fill_surface),)):
+            raise RuntimeError("DYNAMIC_M5_PROVIDER_ADMITTED_ROWS_INVALID")
+        self.admitted_rows.setflags(write=False)
+        self.economics = require_entry_observed_market_economics(economics)
+        self.query_minutes = DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+
+    def targets_for_rows(self, parent_row_indices) -> dict[str, Any]:
+        import numpy as np
+        from gx1.contracts.entry_causal_m1_outcomes_v1 import query_dynamic_m1_prefix
+        rows = np.asarray(parent_row_indices)
+        if (rows.ndim != 1 or not len(rows) or not np.issubdtype(rows.dtype, np.integer)
+                or np.any(rows < 0) or np.any(rows >= len(self.fill_surface))
+                or not self.admitted_rows[rows].all()):
+            raise RuntimeError("DYNAMIC_M5_PROVIDER_PARENT_ROWS_INVALID")
+        observations = query_dynamic_m1_prefix(self.index, fill_surface=self.fill_surface,
+            query_entry_rows=np.repeat(rows, len(self.query_minutes)),
+            horizon_minutes=np.tile(self.query_minutes, len(rows)),
+            endpoint_kind="terminal_open_inclusive")
+        closed = query_dynamic_m1_prefix(self.index, fill_surface=self.fill_surface,
+            query_entry_rows=np.repeat(rows, len(self.query_minutes)),
+            horizon_minutes=np.tile(self.query_minutes, len(rows)), endpoint_kind="closed_m1_prefix")
+        return build_dynamic_m5_batch_targets(observations=observations, closed_observations=closed,
+            economics=self.economics, batch_rows=len(rows), query_minutes=self.query_minutes)
+
+
+def _read_dynamic_m1_index(source_binding, *, expected_index_binding, split_end_exclusive):
+    """Hash the original quote file; read prices only on its pre-cutoff prefix."""
+    import numpy as np
+    import pandas as pd
+    import pyarrow.parquet as pq
+    from pathlib import Path
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import CausalM1QuoteSource, prepare_dynamic_m1_prefix_index
+    from gx1.contracts.unified_exit_market_closure_authority_v1 import m1_clock_sha256
+    from gx1.contracts.local_random_access_campaign_v2 import require_binding
+    if (not isinstance(source_binding, Mapping)
+            or not {"path", "sha256", "size_bytes", "rows", "clock_sha256"}.issubset(source_binding)):
+        raise RuntimeError("DYNAMIC_M5_QUOTE_BINDING_INVALID")
+    path = Path(source_binding["path"])
+    require_binding({"path": str(path), "sha256": source_binding["sha256"]},
+                    label="dynamic Entry original M1 quote source", verify_file=True)
+    if (path.is_symlink() or not path.is_absolute() or path != path.resolve(strict=True)
+            or type(source_binding["size_bytes"]) is not int
+            or path.stat().st_size != source_binding["size_bytes"]):
+        raise RuntimeError("DYNAMIC_M5_QUOTE_SOURCE_SIZE_OR_PATH_INVALID")
+    parquet = pq.ParquetFile(path)
+    clock = pd.DatetimeIndex(pd.to_datetime(parquet.read(columns=["time"]).column("time").to_pandas(), utc=True)).as_unit("ns")
+    if (len(clock) != source_binding["rows"] or m1_clock_sha256(clock) != source_binding["clock_sha256"]):
+        raise RuntimeError("DYNAMIC_M5_QUOTE_SOURCE_CLOCK_INVALID")
+    cutoff = pd.Timestamp(split_end_exclusive)
+    if pd.isna(cutoff) or cutoff.tzinfo is None:
+        raise RuntimeError("DYNAMIC_M5_QUOTE_SPLIT_INVALID")
+    retained = int(clock.searchsorted(cutoff, side="left"))
+    if retained < 1:
+        raise RuntimeError("DYNAMIC_M5_QUOTE_PREFIX_EMPTY")
+    # Arrow slices the last row group before conversion/geometry validation;
+    # no cutoff/later price participates in a target or index array.
+    chunks = {name: [] for name in DYNAMIC_M5_QUOTE_COLUMNS[1:]}
+    remaining = retained
+    for rg in range(parquet.num_row_groups):
+        if not remaining:
+            break
+        take = min(remaining, parquet.metadata.row_group(rg).num_rows)
+        table = parquet.read_row_group(rg, columns=list(chunks)).slice(0, take)
+        for name in chunks:
+            chunks[name].append(np.asarray(table.column(name).to_numpy(), dtype=np.float64))
+        remaining -= take
+    if remaining:
+        raise RuntimeError("DYNAMIC_M5_QUOTE_PREFIX_TRUNCATED")
+    source = CausalM1QuoteSource(clock, {name: np.concatenate(parts) for name, parts in chunks.items()})
+    index = prepare_dynamic_m1_prefix_index(source, split_end_exclusive=cutoff,
+        source_parquet_sha256=source_binding["sha256"])
+    if index.binding() != expected_index_binding:
+        raise RuntimeError("DYNAMIC_M5_QUOTE_INDEX_BINDING_MISMATCH")
+    return index
+
+
+def bind_entry_dynamic_m5_dataset(dataset: Any, scope: Mapping[str, Any]) -> None:
+    """Rejoin physical row pointers to a shared M1 index, never dense N x H paths."""
+    import numpy as np
+    import pandas as pd
+    import pyarrow.parquet as pq
+    from pathlib import Path
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import (
+        dynamic_m1_prefix_contract, build_dynamic_m1_fill_surface, query_dynamic_m1_prefix,
+    )
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        M5_DYNAMIC_OBSERVED_EMISSION_SCOPE, MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+        MODEL_NATIVE_FORECAST_VALID_COLUMNS, require_auxiliary_emission_training_phase,
+        require_m5_forecast_observation_storage,
+    )
+    from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    auxiliary_contract = getattr(dataset, "aux_head_target_contract", {})
+    require_auxiliary_emission_training_phase(auxiliary_contract,
+        entry_training_phase=scope["training_phase"], context="DYNAMIC_M5_ENTRY")
+    auxiliary = getattr(dataset, "_policy_dependent_auxiliary_binding", None)
+    mask = getattr(dataset, "_policy_dependent_auxiliary_bound_rows", None)
+    if (getattr(dataset, "_entry_observed_market_binding", None) is not None
+            or scope["training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or scope["target_contract"] != entry_observed_dynamic_m5_path_contract()
+            or auxiliary_contract.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+            or not isinstance(auxiliary, Mapping) or auxiliary.get("mode") != DYNAMIC_M5_PHYSICAL_BINDING_MODE
+            or auxiliary.get("role") not in ("TRAIN", "CONTROL256", "CONTROL_STUDY")
+            or (auxiliary.get("role") == "CONTROL_STUDY" and not isinstance(auxiliary.get("entry_learning_study"), Mapping))
+            or not isinstance(mask, np.ndarray) or mask.dtype != np.bool_
+            or mask.shape != (len(dataset.df),) or not mask.any()):
+        raise RuntimeError("DYNAMIC_M5_DATASET_SCOPE_INVALID")
+    split = "train" if auxiliary["role"] == "TRAIN" else "val"
+    source = scope["physical_sources"][split]
+    if (Path(dataset.parquet_path) != Path(source["parquet"]["path"])
+            or auxiliary.get("parent_entry_parquet") != source["parquet"]
+            or auxiliary.get("parent_entry_manifest") != source["manifest"]
+            or len(dataset.df) != source["physical_rows"]):
+        raise RuntimeError("DYNAMIC_M5_DATASET_SOURCE_INVALID")
+    require_binding(source["parquet"], label="dynamic Entry physical pointers", verify_file=True)
+    require_binding(source["manifest"], label="dynamic Entry physical manifest", verify_file=True)
+    manifest = read_bound_json(Path(source["manifest"]["path"]), source["manifest"]["sha256"])
+    meta = manifest.get("extra", {}).get("dynamic_m5_supervision", {})
+    cutoff = scope["train_control_cutoff" if split == "train" else "development_control_entry_end_exclusive"]
+    if (meta.get("schema_version") != "gx1_dynamic_m5_physical_target_pointers_v1"
+            or meta.get("contract") != dynamic_m1_prefix_contract()
+            or meta.get("source_quote_columns") != list(DYNAMIC_M5_QUOTE_COLUMNS)
+            or meta.get("pointer_columns") != list(DYNAMIC_M5_POINTER_COLUMNS)
+            or meta.get("target_only_columns") is not True
+            or meta.get("feature_inputs_include_future_masks") is not False
+            or meta.get("dense_future_paths_materialized") is not False
+            or meta.get("first_terminal_endpoint_kind") != "terminal_open_inclusive"
+            or meta.get("first_path_endpoint_kind") != "closed_m1_prefix"
+            or meta.get("first_prefix_horizon_minutes") != 1
+            or meta.get("closure_mode") != "unknown_gaps_only_no_inferred_market_calendar"):
+        raise RuntimeError("DYNAMIC_M5_POINTER_MANIFEST_INVALID")
+    columns = ["time", *DYNAMIC_M5_POINTER_COLUMNS, *MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+        *MODEL_NATIVE_FORECAST_VALID_COLUMNS, *horizons.HORIZON_LABEL_COLUMNS]
+    frame = pq.read_table(dataset.parquet_path, columns=columns).to_pandas()
+    clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True)).as_unit("ns")
+    input_clock = pd.DatetimeIndex(pd.to_datetime(dataset.df["time"], utc=True)).as_unit("ns")
+    if (not clock.equals(input_clock) or len(frame) != source["physical_rows"]
+            or hashlib.sha256(np.asarray(clock.asi8, dtype="<i8").tobytes()).hexdigest() != source["clock_sha256"]):
+        raise RuntimeError("DYNAMIC_M5_DATASET_CLOCK_INVALID")
+    index = _read_dynamic_m1_index(meta["source_quote_binding"],
+        expected_index_binding=meta["index_binding"], split_end_exclusive=cutoff)
+    if meta["source_quote_binding"]["sha256"] != scope["target_m1_source_sha256"]:
+        raise RuntimeError("DYNAMIC_M5_SCOPE_QUOTE_SOURCE_MISMATCH")
+    fill = build_dynamic_m1_fill_surface(index, m5_decision_times=clock)
+    pointers = frame["dynamic_entry_m1_row"].to_numpy()
+    if (not np.issubdtype(pointers.dtype, np.integer)
+            or not np.array_equal(pointers, fill["entry_m1_row"].to_numpy(np.int64))):
+        raise RuntimeError("DYNAMIC_M5_GLOBAL_QUOTE_POINTER_MISMATCH")
+    first = query_dynamic_m1_prefix(index, fill_surface=fill,
+        query_entry_rows=np.arange(len(fill), dtype=np.int64), horizon_minutes=np.ones(len(fill), np.int64))
+    closed = query_dynamic_m1_prefix(index, fill_surface=fill,
+        query_entry_rows=np.arange(len(fill), dtype=np.int64), horizon_minutes=np.ones(len(fill), np.int64),
+        endpoint_kind="closed_m1_prefix")
+    for prefix, queried in (("dynamic_first_terminal_observed_", first["terminal_gross_observed"]),
+                            ("dynamic_first_path_observed_", closed["path_observed"])):
+        for j, side in enumerate(("long", "short")):
+            stored = frame[prefix + side].to_numpy()
+            if stored.dtype != np.bool_ or not np.array_equal(stored, queried[:, j]):
+                raise RuntimeError("DYNAMIC_M5_FIRST_PREFIX_MASK_MISMATCH")
+    first_valid = first["terminal_gross_observed"].any(axis=1) | closed["path_observed"].any(axis=1)
+    stored = frame["dynamic_first_prefix_observed"].to_numpy()
+    if stored.dtype != np.bool_ or not first_valid.all() or not np.array_equal(stored, first_valid):
+        raise RuntimeError("DYNAMIC_M5_PHYSICAL_POPULATION_MISMATCH")
+    for column, queried in (("dynamic_first_terminal_censor_reason", first["terminal_censor_reason"]),
+                            ("dynamic_first_path_censor_reason", closed["path_censor_reason"])):
+        if not np.array_equal(frame[column].to_numpy(), queried):
+            raise RuntimeError("DYNAMIC_M5_FIRST_PREFIX_REASON_MISMATCH")
+    admitted = mask.copy()
+    forecast_valid = require_m5_forecast_observation_storage(frame, context="DYNAMIC_M5_ENTRY")
+    support, support_valid = horizons.build_masked_support_forecast_targets(
+        frame=frame, scope=scope, split=split, admitted_mask=admitted)
+    admitted.setflags(write=False)
+    forecast_valid.setflags(write=False)
+    dataset._entry_dynamic_m5_target_provider = DynamicM5TargetProvider(
+        index=index, fill_surface=fill, admitted_rows=admitted, economics=scope["economics"])
+    dataset._entry_observed_market_admitted_rows = admitted
+    dataset._entry_observed_market_m5_forecast_valid = forecast_valid
+    dataset._entry_observed_market_support_forecast = support
+    dataset._entry_observed_market_support_forecast_valid = support_valid
+    binding = {"schema_version": DYNAMIC_M5_SCHEMA_VERSION + "_dataset",
+        "identity": entry_observed_market_identity(scope), "physical_source": source,
+        "role": auxiliary["role"], "admitted_rows": int(admitted.sum()),
+        "admitted_row_indices_sha256": hashlib.sha256(np.asarray(np.flatnonzero(admitted), dtype="<i8").tobytes()).hexdigest(),
+        "source_quote_binding": meta["source_quote_binding"], "index_binding": index.binding(),
+        "dense_future_paths_materialized": False,
+        "first_closed_prefix_aux_only_rows": int((~first["path_observed"].any(axis=1) & first_valid).sum()),
+        "first_prefix_mask_sha256": hashlib.sha256(first_valid.tobytes()).hexdigest(),
+        "m5_forecast_valid_sha256": hashlib.sha256(forecast_valid.tobytes()).hexdigest(),
+        "support_forecast_valid_sha256": hashlib.sha256(support_valid.tobytes()).hexdigest()}
+    dataset._entry_observed_market_binding = {**binding, "binding_sha256": _sha(binding)}

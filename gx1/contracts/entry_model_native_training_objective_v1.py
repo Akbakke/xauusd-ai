@@ -15,20 +15,24 @@ from typing import Any, Mapping
 
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
+    DYNAMIC_M5_JOINT_TASK_NAMES,
     joint_task_weighting_objective_contract,
+    joint_task_names_for_phase,
 )
 
 
-SCHEMA_VERSION = "entry_model_native_training_objective_v13"
+SCHEMA_VERSION = "entry_model_native_training_objective_v14"
 JOINT_FITTED_Q_TRAINING_PHASE = "joint_fitted_q"
 ENTRY_ONLY_TRAINING_PHASE = "entry_only"
 ENTRY_ONLY_M5_PATH_TRAINING_PHASE = "entry_only_observed_m5_path"
+ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE = "entry_only_dynamic_m5_path"
 # Operator decision 12.10.2026: Entry-only supervision from the observed market outcome at
 # 20 trading days (owner ``entry_observed_market_horizons_v1``); 1 and 5 days observed only.
 ENTRY_ONLY_HORIZON_TRAINING_PHASE = "entry_only_observed_horizon_20d"
-ENTRY_TRAINING_PHASES = (JOINT_FITTED_Q_TRAINING_PHASE, ENTRY_ONLY_TRAINING_PHASE, ENTRY_ONLY_HORIZON_TRAINING_PHASE, ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
-ENTRY_ONLY_TRAINING_PHASES = (ENTRY_ONLY_TRAINING_PHASE, ENTRY_ONLY_HORIZON_TRAINING_PHASE, ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
+ENTRY_TRAINING_PHASES = (JOINT_FITTED_Q_TRAINING_PHASE, ENTRY_ONLY_TRAINING_PHASE, ENTRY_ONLY_HORIZON_TRAINING_PHASE, ENTRY_ONLY_M5_PATH_TRAINING_PHASE, ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+ENTRY_ONLY_TRAINING_PHASES = (ENTRY_ONLY_TRAINING_PHASE, ENTRY_ONLY_HORIZON_TRAINING_PHASE, ENTRY_ONLY_M5_PATH_TRAINING_PHASE, ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
 ENTRY_ACTION_Q_TARGET_BY_PHASE = {
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE: "no_legacy_entry_action_q_emitted_dynamic_component_supervision_only",
     ENTRY_ONLY_M5_PATH_TRAINING_PHASE: "signed_executable_mfe_minus_conservative_mae_before_first_executable_mfe_bps",
     JOINT_FITTED_Q_TRAINING_PHASE: (
         "stop_gradient_frozen_train_exit_target_model_first_state_value"
@@ -43,6 +47,7 @@ ENTRY_ACTION_Q_TARGET_BY_PHASE = {
     ),
 }
 EXIT_GRADIENTS_ACTIVE_BY_PHASE = {
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE: False,
     ENTRY_ONLY_M5_PATH_TRAINING_PHASE: False,
     JOINT_FITTED_Q_TRAINING_PHASE: True,
     ENTRY_ONLY_TRAINING_PHASE: False,
@@ -53,6 +58,8 @@ EXIT_GRADIENTS_ACTIVE_BY_PHASE = {
 
 def active_joint_task_names(entry_training_phase: str) -> tuple[str, ...]:
     phase = require_entry_training_phase(entry_training_phase, context="ENTRY_ACTIVE_TASKS")
+    if phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        return DYNAMIC_M5_JOINT_TASK_NAMES
     if phase == ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
         return ("entry_action_q", "forecast_return_bps")
     if phase in ENTRY_ONLY_TRAINING_PHASES:
@@ -92,8 +99,8 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
         "handwritten_composite_weights": False,
         "handwritten_gate_regularization": False,
         "fixed_target_normalization_scales": False,
-        "joint_task_names": list(JOINT_TASK_NAMES),
-        "joint_task_weighting": joint_task_weighting_objective_contract(),
+        "joint_task_names": list(joint_task_names_for_phase(phase)),
+        "joint_task_weighting": joint_task_weighting_objective_contract(entry_training_phase=phase),
     }
     if phase == ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
         from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
@@ -103,6 +110,30 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
         expected["entry_primary_target_contract"] = entry_observed_m5_path_contract()
         expected["entry_action_q_value_semantics"] = "expected_price_path_utility_not_realizable_cash_return"
         expected["long_horizon_forecasts"] = "independently_masked_learning_support_without_entry_authority"
+    if phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+        from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_ENDPOINT_KINDS
+        expected.update({
+            "all_advertised_heads_supervised": True,
+            "active_joint_task_names": list(active_joint_task_names(phase)),
+            "entry_action_q_loss": "inactive_no_legacy_bps_authority",
+            "unified_exit_action_q_loss": "inactive_no_exit_targets_or_gradients",
+            "entry_decision_authority": "none_dynamic_unitless_ratio_candidate_not_admitted",
+            "entry_primary_target_contract": entry_observed_dynamic_m5_path_contract(),
+            "dynamic_component_losses": {
+                name: "independently_masked_raw_bps_mean_squared_error"
+                for name in DYNAMIC_M5_JOINT_TASK_NAMES
+            },
+            "dynamic_path_endpoint_kinds": list(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS),
+            "dynamic_path_loss_reduction": "all_observed_cells_of_both_endpoint_kinds_per_task",
+            "dynamic_candidate_uses_endpoint_kind": "terminal_open_inclusive",
+            "dynamic_candidate_has_supervised_target": False,
+            "dynamic_candidate_is_expected_future_ratio": False,
+            "dynamic_candidate_is_cash_or_bps": False,
+            "dynamic_candidate_native_authority_admitted": False,
+            "inactive_legacy_auxiliary_heads": ["entry_action_q", "position_size", "dip", "timing", "tail_risk", "vol_forecast", "side_mae", "trendline_event"],
+            "long_horizon_forecasts": "independently_masked_learning_support_without_entry_authority",
+        })
     return expected
 
 

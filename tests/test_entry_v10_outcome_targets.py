@@ -2463,3 +2463,109 @@ def test_m5_scope_preserves_feature_history_even_without_legacy_m1_labels() -> N
     pd.testing.assert_frame_equal(attached.loc[:, features.columns], features)
     assert not observed.any()
     assert attached.loc[:, _CAUSAL_M1_LABEL_COLUMNS].isna().all().all()
+
+
+def _dynamic_quote_binding_fixture(tmp_path, source):
+    import hashlib
+    path = (tmp_path / "immutable_target_quotes.parquet").resolve()
+    source.to_parquet(path, index=False)
+    clock = pd.DatetimeIndex(pd.to_datetime(source["time"], utc=True)).as_unit("ns")
+    return {"path": str(path), "sha256": sha256_file(path),
+            "size_bytes": path.stat().st_size, "rows": len(source),
+            "clock_sha256": hashlib.sha256(np.asarray(clock.asi8, dtype="<i8").tobytes()).hexdigest()}
+
+
+def test_dynamic_m5_first_prefix_retains_real_short_tail_without_fixed_or_legacy_union(tmp_path):
+    from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+        _dynamic_m5_pointer_frame, DYNAMIC_M5_POINTER_COLUMNS,
+    )
+    from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+    source = _closed_m1_lifecycle_source(n_rows=11)
+    decisions = pd.date_range("2026-01-01T00:00Z", periods=3, freq="5min")
+    binding = _dynamic_quote_binding_fixture(tmp_path, source)
+    pointers, metadata = _dynamic_m5_pointer_frame(
+        m5_decision_times=decisions, closed_m1=source, source_binding=binding,
+        split_end_exclusive=pd.Timestamp("2026-01-01T00:20Z"))
+    np.testing.assert_array_equal(pointers["dynamic_entry_m1_row"], [0, 5, 10])
+    assert pointers["dynamic_first_prefix_observed"].all()
+    # The final exact fill has a genuine completed M1 candle but no following
+    # terminal-open quote. These are distinct observation domains.
+    assert not pointers["dynamic_first_terminal_observed_long"].iloc[-1]
+    assert pointers["dynamic_first_path_observed_long"].iloc[-1]
+    assert tuple(pointers.columns) == ("time", *DYNAMIC_M5_POINTER_COLUMNS)
+    assert metadata["source_quote_binding"] == binding
+    assert metadata["index_binding"]["source_rows"] == len(source)
+    assert metadata["index_binding"]["source_clock_sha256"] == binding["clock_sha256"]
+    assert metadata["first_terminal_endpoint_kind"] == "terminal_open_inclusive"
+    assert metadata["first_path_endpoint_kind"] == "closed_m1_prefix"
+    assert metadata["target_only_columns"] and not metadata["dense_future_paths_materialized"]
+    unavailable = np.zeros(len(decisions), dtype=bool)
+    mask, proof = _model_native_emission_mask(
+        emitted_time_index=decisions, emit_start=decisions[0], emit_end=decisions[-1], seq_len=1,
+        emission_scope=M5_DYNAMIC_OBSERVED_EMISSION_SCOPE, causal_m1_observed=unavailable,
+        aux_complete=unavailable, m5_path_valid=unavailable,
+        dynamic_first_prefix_observed=pointers["dynamic_first_prefix_observed"].to_numpy(bool))
+    assert mask.all()
+    assert proof["fixed_m5_path_unavailable_rows_retained"] == 3
+    assert proof["legacy_causal_m1_incomplete_candidate_rows_excluded"] == 0
+    assert proof["legacy_aux_incomplete_candidate_rows_excluded"] == 0
+    assert proof["primary_valid_rows_emitted"] == 3
+
+
+def test_dynamic_m5_missing_exact_fill_never_backsearches_or_borrows_later_quotes(tmp_path):
+    from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import _dynamic_m5_pointer_frame
+    source = _closed_m1_lifecycle_source(n_rows=12).iloc[1:].reset_index(drop=True)
+    decisions = pd.date_range("2026-01-01T00:00Z", periods=2, freq="5min")
+    pointers, _ = _dynamic_m5_pointer_frame(
+        m5_decision_times=decisions, closed_m1=source,
+        source_binding=_dynamic_quote_binding_fixture(tmp_path, source),
+        split_end_exclusive=pd.Timestamp("2026-01-01T00:20Z"))
+    assert pointers["dynamic_entry_m1_row"].iloc[0] == -1
+    assert not pointers["dynamic_first_prefix_observed"].iloc[0]
+    assert pointers["dynamic_first_terminal_censor_reason"].iloc[0] == "fill_unavailable"
+    assert pointers["dynamic_first_path_censor_reason"].iloc[0] == "fill_unavailable"
+    assert pointers["dynamic_first_prefix_observed"].iloc[1]
+    assert pointers["dynamic_entry_m1_row"].iloc[1] == 4
+
+
+def test_dynamic_m5_split_prefix_censors_before_later_quote_values_are_read(tmp_path):
+    from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import _dynamic_m5_pointer_frame
+    source = _closed_m1_lifecycle_source(n_rows=12)
+    cutoff = pd.Timestamp("2026-01-01T00:10Z")
+    future = source["time"] >= cutoff
+    for column in ("bid_open", "bid_high", "bid_low", "ask_open", "ask_high", "ask_low"):
+        source.loc[future, column] = np.nan
+    decisions = pd.date_range("2026-01-01T00:00Z", periods=2, freq="5min")
+    pointers, metadata = _dynamic_m5_pointer_frame(
+        m5_decision_times=decisions, closed_m1=source,
+        source_binding=_dynamic_quote_binding_fixture(tmp_path, source), split_end_exclusive=cutoff)
+    assert metadata["index_binding"]["source_rows"] == 12
+    assert metadata["index_binding"]["indexed_rows"] == 5
+    assert pointers["dynamic_first_prefix_observed"].iloc[0]
+    assert not pointers["dynamic_first_prefix_observed"].iloc[1]
+    assert pointers["dynamic_entry_m1_row"].iloc[1] == -1
+
+
+@pytest.mark.parametrize("field,value", [("clock_sha256", "0" * 64), ("rows", 999), ("size_bytes", 1)])
+def test_dynamic_m5_pointer_source_map_mismatch_fails_closed(tmp_path, field, value):
+    from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import _dynamic_m5_pointer_frame
+    source = _closed_m1_lifecycle_source(n_rows=12)
+    binding = _dynamic_quote_binding_fixture(tmp_path, source)
+    binding[field] = value
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_QUOTE_SOURCE"):
+        _dynamic_m5_pointer_frame(
+            m5_decision_times=pd.date_range("2026-01-01T00:00Z", periods=2, freq="5min"),
+            closed_m1=source, source_binding=binding,
+            split_end_exclusive=pd.Timestamp("2026-01-01T00:20Z"))
+
+
+@pytest.mark.parametrize("bad_mask", [None, np.ones(3), np.ones(2, dtype=bool)])
+def test_dynamic_m5_scope_requires_own_explicit_boolean_first_prefix_mask(bad_mask):
+    from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+    times = pd.date_range("2026-01-01T00:00Z", periods=3, freq="5min")
+    with pytest.raises(RuntimeError, match="AVAILABILITY_MASK_INVALID"):
+        _model_native_emission_mask(
+            emitted_time_index=times, emit_start=times[0], emit_end=times[-1], seq_len=1,
+            emission_scope=M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+            causal_m1_observed=np.ones(3, bool), aux_complete=np.ones(3, bool),
+            m5_path_valid=np.ones(3, bool), dynamic_first_prefix_observed=bad_mask)

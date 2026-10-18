@@ -486,20 +486,21 @@ def test_physical_recipe_plans_the_fit_budget_only_when_the_design_declares_the_
 
 @pytest.mark.parametrize("fault", [None, "unbound_policy", "old_prefix_policy", "extra_steps", "extra_epoch",
     "drop_last", "full_val", "refresh", "missing_initial", "h20_phase", "unbounded_windows"])
-def test_m5_single_epoch_requires_own_exact_policy_fresh_measurement_and_actual_ceiling(scope, tmp_path, monkeypatch, fault):
+@pytest.mark.parametrize("dynamic", [False, True])
+def test_m5_single_epoch_requires_own_exact_policy_fresh_measurement_and_actual_ceiling(scope, tmp_path, monkeypatch, fault, dynamic):
     """Policy dispatch mechanics only; physical gates are tested separately."""
     from gx1.contracts import entry_observed_market_horizons_v1 as horizons
     from gx1.contracts.entry_observed_market_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
     from tests.test_entry_observed_market_horizons_learning import _single_epoch_design
     policy, recipe, write, save = scope
-    design, witness = _single_epoch_design(tmp_path)
+    design, witness = _dynamic_single_epoch_design(tmp_path) if dynamic else _single_epoch_design(tmp_path)
     single = horizons.require_m5_single_epoch_population(design)
     measured = {"artifacts":{"initial_measurement_audit":write("measured.json",{"synthetic":True})}}
     prefix = {"artifacts":{"design":write("design-bound.json",design)}, "entry_m5_path_single_epoch":single}
     monkeypatch.setattr(native, "require_chronological_prefix_recipe", lambda recipe: prefix)
     monkeypatch.setattr(native, "require_chronological_learning_measurement", lambda recipe: measured)
     monkeypatch.setattr(horizons, "require_observed_entry_scope", lambda recipe: {
-        "training_phase":ENTRY_ONLY_M5_PATH_TRAINING_PHASE if fault != "h20_phase" else horizons.ENTRY_ONLY_HORIZON_TRAINING_PHASE})
+        "training_phase":witness["training_phase"] if fault != "h20_phase" else horizons.ENTRY_ONLY_HORIZON_TRAINING_PHASE})
     monkeypatch.setattr(native, "_expected_observed_entry_binding", lambda recipe, expected: expected.update(
         entry_observed_market={"synthetic_identity":True}))
     recipe.pop("candidate_resume_origin")
@@ -537,3 +538,101 @@ def test_m5_single_epoch_requires_own_exact_policy_fresh_measurement_and_actual_
         for key,value in (("stop_after_optimizer_steps",single["optimizer_steps"]+1),
                 ("stop_after_completed_val_epochs",1),("max_invocation_seconds",12001)):
             with pytest.raises(RuntimeError): native.require_native_run_scope(recipe,execution_budget={**budget,key:value})
+
+
+def _dynamic_single_epoch_design(tmp_path, *, rows=273):
+    """Real immutable metadata/row files, not physical target or launch admission."""
+    import numpy as np
+    import pandas as pd
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    from gx1.scripts.materialize_unified_exit_chronological_coordinates_v1 import _epoch0_order
+    from gx1.contracts.unified_exit_random_access_sampler_v1 import build_random_access_sampler_contract
+    path = tmp_path / "dynamic-actual-train.parquet"
+    pd.DataFrame({"time": pd.date_range("2025-04-01T00:00Z", periods=rows, freq="5min")}).to_parquet(path, index=False)
+    source = _bind(path)
+    target = entry_observed_dynamic_m5_path_contract()
+    manifest = _write(tmp_path / "dynamic-train.manifest.json", {"output_data_path": source["path"], "extra": {
+        "rows": rows, "emission_scope": M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+        "aux_head_target_contract": {"dynamic_target_contract": target},
+        "dynamic_m5_supervision": {"schema_version": "gx1_dynamic_m5_physical_target_pointers_v1",
+            "physical_population_rule": "any_genuine_first_prefix_terminal_or_path_component"}}})
+    sampler = build_random_access_sampler_contract(split="train", source_lineage_sha256="a" * 64,
+        transition_budget_per_epoch=rows * 4, transitions_per_entry=4, entry_pair_population=rows)
+    order = _epoch0_order(sampler)
+    bindings = {}
+    for key, values in (("eligible_parent_rows", np.arange(rows, dtype=np.int64)), ("epoch0_parent_order", order)):
+        path = tmp_path / ("dynamic-" + key + ".npy")
+        np.save(path, values, allow_pickle=False)
+        bindings[key] = _bind(path)
+    steps = -(-rows // 16)
+    witness = {"schema_version": horizons.M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA,
+        "training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, "target_contract": target,
+        "emission_scope": M5_DYNAMIC_OBSERVED_EMISSION_SCOPE, "train_parquet": source, "train_manifest": manifest,
+        **bindings, "native_sampler_contract": sampler, "entry_eligibility_cutoff_utc": "2026-01-01T00:00Z",
+        "train_rows": rows, "optimizer_steps": steps, "batch_size": 16, "epochs": 1,
+        "drop_last": False, "test_data_used": False}
+    design = {"scope": {"entry_m5_path_single_epoch": _write(tmp_path / "dynamic-population.json", witness),
+        "entry_only_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "emission_scope": M5_DYNAMIC_OBSERVED_EMISSION_SCOPE},
+        "calendar": {"train_control_cutoff": witness["entry_eligibility_cutoff_utc"]},
+        "budget": {"maximum_trained_entry_rows": rows, "planned_optimizer_steps": steps,
+            "epochs_completed": 1, "repeat_or_automatic_extension": False}}
+    return design, witness
+
+
+@pytest.mark.parametrize("rows,last", [(273, 1), (272, 16)])
+def test_dynamic_single_epoch_binds_actual_whole_train_manifest_and_keeps_tail(tmp_path, rows, last):
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    design, witness = _dynamic_single_epoch_design(tmp_path, rows=rows)
+    checked = horizons.require_m5_single_epoch_population(design)
+    assert checked["train_manifest"] == witness["train_manifest"]
+    assert checked["train_rows"] == rows and checked["last_batch_rows"] == last
+    assert checked["optimizer_steps"] == -(-rows // 16)
+    assert horizons.planned_prefix_training_rows(design) == rows
+    assert horizons.planned_prefix_optimizer_steps(design) == -(-rows // 16)
+
+
+@pytest.mark.parametrize("fault", ["old_schema", "old_phase", "scope", "target", "manifest_missing",
+    "manifest_scope", "manifest_bytes", "eligible_subset", "drop_last", "extra_epoch", "extra_steps"])
+def test_dynamic_single_epoch_rejects_semantic_aliases_missing_source_and_partial_population(tmp_path, fault):
+    import numpy as np
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    design, witness = _dynamic_single_epoch_design(tmp_path)
+    if fault == "old_schema": witness["schema_version"] = horizons.M5_SINGLE_EPOCH_POPULATION_SCHEMA
+    elif fault == "old_phase": witness["training_phase"] = "entry_only_observed_m5_path"
+    elif fault == "scope": design["scope"]["emission_scope"] = "m5_primary_observed"
+    elif fault == "target": witness["target_contract"] = {}
+    elif fault == "manifest_missing": witness.pop("train_manifest")
+    elif fault == "manifest_scope":
+        manifest = json.loads(Path(witness["train_manifest"]["path"]).read_text())
+        manifest["extra"]["emission_scope"] = "m5_primary_observed"
+        witness["train_manifest"] = _write(tmp_path / "wrong-manifest.json", manifest)
+    elif fault == "manifest_bytes": Path(witness["train_manifest"]["path"]).write_text("{}")
+    elif fault == "eligible_subset":
+        for key in ("eligible_parent_rows", "epoch0_parent_order"):
+            values = np.load(witness[key]["path"], allow_pickle=False)
+            values = values[values != 0]
+            path = tmp_path / ("subset-" + key + ".npy")
+            np.save(path, values, allow_pickle=False)
+            witness[key] = _bind(path)
+        witness["train_rows"] -= 1
+        witness["optimizer_steps"] = -(-witness["train_rows"] // 16)
+        design["budget"]["maximum_trained_entry_rows"] = witness["train_rows"]
+        design["budget"]["planned_optimizer_steps"] = witness["optimizer_steps"]
+    elif fault == "drop_last": witness["drop_last"] = True
+    elif fault == "extra_epoch": witness["epochs"] = 2
+    elif fault == "extra_steps": witness["optimizer_steps"] += 1
+    design["scope"]["entry_m5_path_single_epoch"] = _write(tmp_path / "dynamic-population.json", witness)
+    with pytest.raises(RuntimeError): horizons.require_m5_single_epoch_population(design)
+
+
+def test_dynamic_phase_without_actual_epoch_witness_never_inherits_old_prefix_budget():
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    design = {"scope": {"entry_only_training_phase": "entry_only_dynamic_m5_path"}}
+    with pytest.raises(RuntimeError, match="WITNESS_REQUIRED"):
+        horizons.planned_prefix_optimizer_steps(design)
+    with pytest.raises(RuntimeError, match="WITNESS_REQUIRED"):
+        horizons.planned_prefix_training_rows(design)

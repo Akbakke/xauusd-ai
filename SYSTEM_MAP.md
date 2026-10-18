@@ -2,6 +2,15 @@
 
 Gjeldende bindinger eies av NEXT_RUN_POLICY.json; dokumentet er ikke en recipe.
 
+Aktuell bølge bygger bare M5 Entry. Samme encoder lærer separat netto
+endepunktsmarkout, signert MFE og konservativ MAE før første MFE fra1..480min;
+dagshorisonter er maskert støtte. Et delt indeks over originale M1 BID/ASK
+og target-only radpekere erstatter lagrede tette framtidsbaner. Endepunkt og
+prisforløp har uavhengige masker. Fremtidige utfall/masker brukes aldri som
+inputs. Ingen Exit-tap er aktive. Kvalitetsratio fra modellens prognoser er en
+kandidat uten native beslutningsautoritet inntil kvalifisert etterfølger er
+bundet; publiserte022/026features kvalifiserer ikke den nye modellen.
+
 ```text
 hash-bundne XAUUSD M1/M5-priser + GC MBP-1 trades/BBO/order counts
   → GC M1-observationer + bevaret prisgrid/footprint + kontrakt/coverage-metadata

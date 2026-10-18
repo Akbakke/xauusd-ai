@@ -6,7 +6,7 @@ import pytest
 
 from gx1.contracts import unified_exit_gpu_batch_selection_v1 as gpu
 from tests.test_native_prefix_recipe import (
-    prefix_scope, scope, native, campaign, materializer, runner, window, _boot, _bind, _write, _cursor,
+    prefix_scope, scope, physical_recipe, physical_normalization_templates, native, campaign, materializer, runner, window, _boot, _bind, _write, _cursor,
 )
 from tests.test_native_fresh_prefix_components import physical_component_templates, physical_component_case
 
@@ -106,3 +106,90 @@ def test_current_physical_campaign_rejects_mixed_or_unbounded_provenance(physica
         args["recipe_file_sha256"] = rb["sha256"]
         with pytest.raises(RuntimeError): materializer.materialize_native_candidate_campaign(**args)
         assert not args["output"].exists()
+
+
+def _dynamic_preprocessing_case(case, tmp_path):
+    import copy
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA, M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+    )
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    from tests.test_native_prefix_recipe import _dynamic_single_epoch_design
+    design = copy.deepcopy(case["design"])
+    population_design, witness = _dynamic_single_epoch_design(tmp_path,
+        rows=case["sources"]["train"]["physical_rows"])
+    witness["train_parquet"] = design["calendar"]["source_bindings"]["train"]["parquet"]
+    manifest = json.loads(Path(witness["train_manifest"]["path"]).read_text())
+    manifest["output_data_path"] = witness["train_parquet"]["path"]
+    witness["train_manifest"] = _write(tmp_path / "dynamic-physical-train.manifest.json", manifest)
+    witness["entry_eligibility_cutoff_utc"] = design["calendar"]["train_control_cutoff"]
+    design["scope"].update(population_design["scope"])
+    design["scope"]["entry_m5_path_single_epoch"] = _write(tmp_path / "dynamic-physical-population.json", witness)
+    design["budget"].update(population_design["budget"])
+    design["calendar"]["source_bindings"]["train"]["manifest"] = witness["train_manifest"]
+    binding = _write(tmp_path / "dynamic-physical-design.json", design)
+    labels = {"schema_version": M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA,
+        "design": binding, "training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "emission_scope": M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+        "target_contract": entry_observed_dynamic_m5_path_contract(), "splits": {}}
+    for split in ("train", "val"):
+        source = design["calendar"]["source_bindings"][split]
+        labels["splits"][split] = {"source_parquet": source["parquet"], "source_manifest": source["manifest"],
+            "rows": source["physical_rows"], "first_prefix_observed_rows": source["physical_rows"],
+            "physical_clock_sha256": source["clock_sha256"],
+            "dynamic_m5_supervision": {"source_quote_binding": {"sha256": "a" * 64},
+                "index_binding": {"split_end_exclusive": design["calendar"][
+                    "train_control_cutoff" if split == "train" else "development_control_entry_end_exclusive"]}}}
+    artifacts = {**case["recipe"]["chronological_prefix"], "design": binding,
+        "labels_result": _write(tmp_path / "dynamic-label-dispatch.json", labels)}
+    return artifacts, design, labels
+
+
+def test_dynamic_physical_dispatch_uses_strict_receipt_and_never_inactive_target_union(physical_recipe, tmp_path, monkeypatch):
+    """Dispatch only; the aux owner separately tests its actual pointer/mask scan."""
+    import pyarrow.parquet as pq
+    from gx1.contracts import entry_model_native_aux_targets_v3 as auxiliary
+    artifacts, design, labels = _dynamic_preprocessing_case(physical_recipe, tmp_path)
+    seen = []
+    def checked_receipt(value, *, design_binding, context):
+        assert value is labels and design_binding == artifacts["design"]
+        seen.append(context)
+        return dict(value)
+    monkeypatch.setattr(auxiliary, "require_m5_dynamic_physical_target_receipt", checked_receipt)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Inactive fixed95/legacy target table was read")
+    monkeypatch.setattr(pq, "read_table", forbidden)
+    checked = native.require_physical_chronological_preprocessing(artifacts, design=design,
+        normalization=physical_recipe["normalization"], labels=labels)
+    assert seen == ["NATIVE_PHYSICAL_PREPROCESSING"]
+    assert checked["train_rows"] == physical_recipe["sources"]["train"]["physical_rows"]
+    assert checked["native_coordinates_bound"] is False
+
+
+@pytest.mark.parametrize("fault", ["old_phase", "old_emission", "source", "rows", "clock", "cutoff", "shared_quote"])
+def test_dynamic_physical_dispatch_keeps_source_clock_and_scope_guards(physical_recipe, tmp_path, monkeypatch, fault):
+    from gx1.contracts import entry_model_native_aux_targets_v3 as auxiliary
+    artifacts, design, labels = _dynamic_preprocessing_case(physical_recipe, tmp_path)
+    # The dedicated aux tests prove the strict scanner. These mutations must
+    # also fail this caller's independently bound physical/normalization join.
+    monkeypatch.setattr(auxiliary, "require_m5_dynamic_physical_target_receipt", lambda value, **kwargs: dict(value))
+    if fault == "old_phase": design["scope"]["entry_only_training_phase"] = "entry_only_observed_m5_path"
+    elif fault == "old_emission": design["scope"]["emission_scope"] = "m5_primary_observed"
+    elif fault == "source": labels["splits"]["train"]["source_parquet"] = labels["splits"]["val"]["source_parquet"]
+    elif fault == "rows": labels["splits"]["train"]["first_prefix_observed_rows"] -= 1
+    elif fault == "clock": labels["splits"]["train"]["physical_clock_sha256"] = "0" * 64
+    elif fault == "cutoff": labels["splits"]["train"]["dynamic_m5_supervision"]["index_binding"]["split_end_exclusive"] = "2022-01-01T00:00Z"
+    elif fault == "shared_quote": labels["splits"]["val"]["dynamic_m5_supervision"]["source_quote_binding"]["sha256"] = "b" * 64
+    with pytest.raises(RuntimeError):
+        native.require_physical_chronological_preprocessing(artifacts, design=design,
+            normalization=physical_recipe["normalization"], labels=labels)
+
+
+def test_dynamic_phase_cannot_relabel_legacy_complete_physical_receipt(physical_recipe):
+    import copy
+    design = copy.deepcopy(physical_recipe["design"])
+    design["scope"].update(entry_only_training_phase="entry_only_dynamic_m5_path", emission_scope="m5_dynamic_observed")
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_PHASE_RECEIPT_MISMATCH"):
+        native.require_physical_chronological_preprocessing(physical_recipe["recipe"]["chronological_prefix"],
+            design=design, normalization=physical_recipe["normalization"], labels=physical_recipe["labels"])

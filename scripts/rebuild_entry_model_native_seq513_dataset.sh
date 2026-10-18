@@ -57,7 +57,7 @@ usage() {
     "  --prefreeze-test-seal-json /event/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_<UTC>.json" \
     "  --history-start UTC --train-start UTC --train-end UTC --val-start UTC --val-end UTC" \
     "  --test-start UTC --test-end UTC [--resume-exact-checkpoints]" \
-    "  [--emission-scope legacy_complete|m5_primary_observed]" \
+    "  [--emission-scope legacy_complete|m5_primary_observed|m5_dynamic_observed]" \
     "  [--physical-build-only] materializes pretest M5 inputs; input admission remains pending" \
     "  TRAIN/VAL-only recovery: --pretest-only replaces tape/pair-generation/TEST authority arguments with" \
     "  --m1-lifecycle-pretest-pair-json PATH --m1-lifecycle-pretest-source-manifest PATH" \
@@ -103,11 +103,17 @@ done
 
 case "$EMISSION_SCOPE" in
   legacy_complete|m5_primary_observed) ;;
+  m5_dynamic_observed)
+    if [[ $PRETEST_ONLY -ne 1 || $PHYSICAL_BUILD_ONLY -ne 1 ]]; then
+      echo '[ABORT] dynamic M5 emission requires --pretest-only and --physical-build-only' >&2
+      exit 2
+    fi
+    ;;
   *) printf '[ABORT] invalid emission scope: %s\n' "$EMISSION_SCOPE" >&2; exit 2 ;;
 esac
 
-if [[ $PHYSICAL_BUILD_ONLY -eq 1 ]] && { [[ $PRETEST_ONLY -ne 1 ]] || [[ $EMISSION_SCOPE != m5_primary_observed ]]; }; then
-  echo '[ABORT] --physical-build-only requires --pretest-only and --emission-scope m5_primary_observed' >&2
+if [[ $PHYSICAL_BUILD_ONLY -eq 1 ]] && { [[ $PRETEST_ONLY -ne 1 ]] || [[ $EMISSION_SCOPE != m5_primary_observed && $EMISSION_SCOPE != m5_dynamic_observed ]]; }; then
+  echo '[ABORT] --physical-build-only requires --pretest-only and --emission-scope m5_primary_observed|m5_dynamic_observed' >&2
   exit 2
 fi
 

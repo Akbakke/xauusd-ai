@@ -53,6 +53,15 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
 )
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
+    joint_task_names_for_phase,
+)
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    JOINT_FITTED_Q_TRAINING_PHASE,
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+    require_entry_training_phase,
+)
+from gx1.contracts.entry_causal_m1_outcomes_v1 import (
+    DYNAMIC_M1_PREFIX_HORIZON_MINUTES, DYNAMIC_M1_PREFIX_ENDPOINT_KINDS,
 )
 from gx1.contracts.unified_exit_episode_pack_v1 import (
     UNIFIED_EXIT_EPISODE_LOCAL_HISTORY_ROWS,
@@ -269,8 +278,8 @@ CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED = False
 # parameter-free LayerNorm as the main encoder, and every window readout is
 # mean-plus-last-closed-bar. Same parameters and state_dict keys as v9; a v9
 # checkpoint computes a different function and is rejected by this version.
-MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v11"
-MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v10"
+MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v12"
+MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v11"
 _UNIT_TEST_ARCHITECTURE_SENTINEL = object()
 
 
@@ -419,6 +428,8 @@ class CtxModelConfig:
     ctx_cat_emb_dim: int = 8
     ctx_cat_scale: float = 0.25
     ctx_cont_scale: float = 0.25
+    entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE
+    dynamic_m5_query_minutes: Optional[Tuple[int, ...]] = None
 
 
 class EntryV10CtxHybridTransformer(nn.Module):
@@ -476,6 +487,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         specialist_num_layers: int,
         specialist_fusion_scale: float,
         cross_family_fusion_scale: float,
+        entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE,
+        dynamic_m5_query_minutes: Optional[Sequence[int]] = None,
     ) -> None:
         unit_test_shape = (
             getattr(self, "_gx1_unit_test_architecture_token", None)
@@ -532,6 +545,20 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 context="ENTRY_V10_MODEL_CONSTRUCTION",
             )
         super().__init__()
+        self.entry_training_phase = require_entry_training_phase(
+            entry_training_phase, context="ENTRY_MODEL_CONSTRUCTION",
+        )
+        dynamic_phase = self.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        if dynamic_phase:
+            if (not isinstance(dynamic_m5_query_minutes, (list, tuple))
+                    or any(type(value) is not int for value in dynamic_m5_query_minutes)
+                    or tuple(dynamic_m5_query_minutes) != DYNAMIC_M1_PREFIX_HORIZON_MINUTES):
+                raise RuntimeError("DYNAMIC_M5_QUERY_CONTRACT_INVALID")
+            bound_queries = tuple(dynamic_m5_query_minutes)
+        else:
+            if dynamic_m5_query_minutes is not None:
+                raise RuntimeError("DYNAMIC_M5_QUERY_REQUIRES_DYNAMIC_PHASE")
+            bound_queries = None
         if seq_input_dim <= 0 or snap_input_dim <= 0 or seq_len <= 0:
             raise RuntimeError(
                 f"INVALID_INIT: seq_input_dim={seq_input_dim} snap_input_dim={snap_input_dim} seq_len={seq_len}"
@@ -592,6 +619,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.cfg = CtxModelConfig(
             seq_input_dim=seq_input_dim,
             snap_input_dim=snap_input_dim,
+            entry_training_phase=self.entry_training_phase,
+            dynamic_m5_query_minutes=bound_queries,
             seq_len=seq_len,
             dropout=float(dropout),
             ctx_cont_dim=int(ctx_cont_dim),
@@ -1227,6 +1256,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.head_position_size = nn.Linear(d_model, 1)
         self.head_dip = nn.Linear(d_model, DIP_HEAD_DIM)
         self.head_forecast = nn.Linear(d_model, FORECAST_HEAD_DIM)
+        if dynamic_phase:
+            self.register_buffer("dynamic_m5_query_horizons", torch.tensor(bound_queries, dtype=torch.long))
+            # A known query coordinate, never future elapsed time/censor/peak.
+            # One nonlinear shared decoder; no new temporal encoder per query.
+            self.dynamic_m5_query_projection = nn.Sequential(
+                nn.Linear(d_model + 2, d_model), nn.GELU(),
+            )
+            self.head_dynamic_terminal_net_markout = nn.Linear(d_model, 2)
+            self.head_dynamic_mfe = nn.Linear(d_model, 2)
+            self.head_dynamic_pre_mfe_mae_upper = nn.Linear(d_model, 2)
         self.head_timing = nn.Linear(d_model, TIMING_HEAD_DIM)
         self.head_tail_risk = nn.Linear(d_model, TAIL_RISK_HEAD_DIM)
         self.head_vol_forecast = nn.Linear(d_model, VOL_FORECAST_HEAD_DIM)
@@ -1236,7 +1275,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.task_log_variances = nn.ParameterDict(
             {
                 task_name: nn.Parameter(torch.zeros((), dtype=torch.float32))
-                for task_name in JOINT_TASK_NAMES
+                for task_name in joint_task_names_for_phase(self.entry_training_phase)
             }
         )
         self.entry_decision_token = nn.Sequential(
@@ -1254,6 +1293,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
         nn.init.zeros_(self.entry_q_joint_in.bias)
         nn.init.xavier_uniform_(self.head_entry_action_q.weight)
         nn.init.zeros_(self.head_entry_action_q.bias)
+        if dynamic_phase:
+            for layer in (self.dynamic_m5_query_projection[0],
+                          self.head_dynamic_terminal_net_markout,
+                          self.head_dynamic_mfe, self.head_dynamic_pre_mfe_mae_upper):
+                nn.init.xavier_uniform_(layer.weight)
+                nn.init.zeros_(layer.bias)
         nn.init.xavier_uniform_(self.entry_decision_token[1].weight)
         nn.init.zeros_(self.entry_decision_token[1].bias)
 
@@ -3712,6 +3757,86 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         return output, next_carry
 
+    @staticmethod
+    def _dynamic_quality_ratio_candidate(
+        terminal_bps: torch.Tensor, pre_mfe_mae_upper_bps: torch.Tensor,
+    ) -> torch.Tensor:
+        """Ratio of predicted means; unitless candidate, never a cash-Q alias."""
+        if terminal_bps.shape != pre_mfe_mae_upper_bps.shape:
+            raise RuntimeError("DYNAMIC_M5_RATIO_SHAPE_INVALID")
+        _assert_finite("dynamic_terminal_net_markout_bps", terminal_bps)
+        _assert_finite("dynamic_pre_mfe_mae_upper_bps", pre_mfe_mae_upper_bps)
+        if bool((pre_mfe_mae_upper_bps < 0).any()):
+            raise RuntimeError("DYNAMIC_M5_RATIO_NEGATIVE_MAE")
+        # Scaling by max(|r|,m) is algebraically exact and prevents overflow
+        # in |r|+m. Ones only implement the declared exact 0/0 branch; no epsilon.
+        if not terminal_bps.is_floating_point() or not pre_mfe_mae_upper_bps.is_floating_point():
+            raise RuntimeError("DYNAMIC_M5_RATIO_DTYPE_INVALID")
+        compute_dtype = torch.promote_types(
+            torch.promote_types(terminal_bps.dtype, pre_mfe_mae_upper_bps.dtype), torch.float32,
+        )
+        r = terminal_bps.to(dtype=compute_dtype)
+        m = pre_mfe_mae_upper_bps.to(dtype=compute_dtype)
+        scale = torch.maximum(r.abs(), m)
+        nonzero = scale != 0
+        divisor = torch.where(nonzero, scale, torch.ones_like(scale))
+        scaled_r, scaled_m = r / divisor, m / divisor
+        denominator = scaled_r.abs() + scaled_m
+        safe_denominator = torch.where(nonzero, denominator, torch.ones_like(denominator))
+        ratio = torch.where(nonzero, scaled_r / safe_denominator, torch.zeros_like(r))
+        _assert_finite("dynamic_entry_quality_ratio_candidate", ratio)
+        return ratio
+
+    def _decode_dynamic_m5_curves(
+        self, hidden: torch.Tensor, *, query_chunk_size: Optional[int] = None,
+    ) -> Dict[str, torch.Tensor]:
+        if self.entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            raise RuntimeError("DYNAMIC_M5_CURVES_REQUIRE_DYNAMIC_PHASE")
+        horizons = self.dynamic_m5_query_horizons
+        expected = torch.tensor(DYNAMIC_M1_PREFIX_HORIZON_MINUTES, dtype=torch.long, device=horizons.device)
+        if horizons.dtype != torch.long or not torch.equal(horizons, expected):
+            raise RuntimeError("DYNAMIC_M5_QUERY_STATE_BINDING_INVALID")
+        query_count = len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+        chunk = query_count if query_chunk_size is None else query_chunk_size
+        if type(chunk) is not int or chunk < 1:
+            raise RuntimeError("DYNAMIC_M5_QUERY_CHUNK_INVALID")
+        decoded_components = {}
+        for endpoint_code, endpoint_kind in enumerate(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS):
+            terminal_parts, mfe_parts, mae_parts = [], [], []
+            for left in range(0, query_count, chunk):
+                query = horizons[left:left + chunk].to(dtype=hidden.dtype) / DYNAMIC_M1_PREFIX_HORIZON_MINUTES[-1]
+                query = query.view(1, -1, 1).expand(hidden.shape[0], -1, -1)
+                kind = torch.full_like(query, endpoint_code)
+                source = hidden.unsqueeze(1).expand(-1, query.shape[1], -1)
+                decoded = self.dynamic_m5_query_projection(torch.cat((source, query, kind), dim=-1))
+                if endpoint_kind == "terminal_open_inclusive":
+                    terminal_parts.append(_forward_raw_q_head(self.head_dynamic_terminal_net_markout, decoded))
+                mfe_parts.append(_forward_raw_q_head(self.head_dynamic_mfe, decoded))
+                mae_parts.append(nn.functional.softplus(_forward_raw_q_head(self.head_dynamic_pre_mfe_mae_upper, decoded)))
+            decoded_components[endpoint_kind] = (
+                torch.cat(terminal_parts, dim=1) if terminal_parts else None,
+                torch.cat(mfe_parts, dim=1), torch.cat(mae_parts, dim=1),
+            )
+        terminal, mfe, mae = decoded_components["terminal_open_inclusive"]
+        _, closed_mfe, closed_mae = decoded_components["closed_m1_prefix"]
+        flat = torch.zeros_like(terminal[..., :1])
+        ratio = self._dynamic_quality_ratio_candidate(terminal, mae)
+        best = ratio.max(dim=1).values
+        output = {
+            "dynamic_terminal_net_markout_bps": torch.cat((terminal, flat), dim=-1),
+            "dynamic_mfe_bps": mfe,
+            "dynamic_pre_mfe_mae_upper_bps": mae,
+            "dynamic_closed_mfe_bps": closed_mfe,
+            "dynamic_closed_pre_mfe_mae_upper_bps": closed_mae,
+            "dynamic_entry_quality_ratio_candidate": torch.cat((ratio, torch.zeros_like(ratio[..., :1])), dim=-1),
+            "dynamic_entry_action_quality_candidate": torch.cat((best, torch.zeros_like(best[..., :1])), dim=-1),
+            "dynamic_entry_quality_best_horizon_mask": ratio == best.unsqueeze(1),
+            "dynamic_query_horizon_minutes": horizons,
+        }
+        for name in ("dynamic_terminal_net_markout_bps", "dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps", "dynamic_closed_mfe_bps", "dynamic_closed_pre_mfe_mae_upper_bps"):
+            _assert_finite(name, output[name])
+        return output
+
     def forward(
         self,
         seq_x: torch.Tensor,
@@ -3726,6 +3851,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         seq_d1: torch.Tensor,
         liquidation_relative_values: bool = False,
     ) -> Dict[str, torch.Tensor]:
+        if self.entry_training_phase != self.cfg.entry_training_phase:
+            raise RuntimeError("ENTRY_MODEL_PHASE_BINDING_INVALID")
         if type(liquidation_relative_values) is not bool:
             raise RuntimeError("ENTRY_LIQUIDATION_GRADIENT_MODE_INVALID")
         z_v3, specialist_gate, global_context_h = self._encode_shared_feature_base(
@@ -3764,6 +3891,20 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 self.entry_q_joint_norm(entry_q_joint_source)
             )
         )
+        if self.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            # Candidate curve learning has no admitted native action-Q or Exit
+            # token. Legacy serving cannot silently consume a unitless score.
+            out = self._decode_dynamic_m5_curves(entry_q_joint_hidden)
+            out.update({
+                "entry_q_joint_hidden": entry_q_joint_hidden,
+                "specialist_gate": specialist_gate,
+                "tf_gate": tf_gate,
+                "family_tf_cooperation_gate": family_tf_cooperation_gate,
+                "family_tf_feature_gate": family_tf_feature_gate,
+                "forecast_pred": self.head_forecast(z),
+            })
+            _assert_finite("forecast_pred", out["forecast_pred"])
+            return out
         entry_action_q_bps = _forward_raw_q_head(self.head_entry_action_q, entry_q_joint_hidden)
         _assert_finite("entry_q_joint_hidden", entry_q_joint_hidden)
         _assert_finite("entry_action_q_bps", entry_action_q_bps)

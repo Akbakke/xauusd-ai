@@ -1,166 +1,142 @@
-# CURRENT HANDOVER — XAUUSD M5 og full MBP-1-støtte
+# CURRENT HANDOVER — XAUUSD M5 Entry, minutter til timer
 
 Autoritativt arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Les `GX1_RULES.md`; aktuell arbeidsstatus og hashbindinger er i `NEXT_RUN_POLICY.json`.
-Flere agenter kan ha adskilte oppgaver; én integrator og én capped tung jobb.
-Ingen kilde-/policy-/dokumentendringer under kjøring.
+Les GX1_RULES.md. NEXT_RUN_POLICY.json eier aktuell status, scopes og eksakte
+bevisbindinger. Flere avgrensede agenter, én integrator og én capped tung jobb.
 
 ## Mål og arbeidsrekkefølge
 
-Autonom XAUUSD-bot er prosjektmålet. Arbeidet nå er offline data-, indikator-
-og modellkvalifisering. M5 Entry bruker lukket M15/H1/H4/D1 som kontekst.
-M30 vurderes bare gjennom målt tilført verdi. Åtte spesialistfamilier og
-niende D1/makrokontekst beholdes. Hver genuine indikator skal følges fra
-formel og kildeklokke til alle relevante TF og faktisk modellkonsum.
+Operatørens siste18.10-presisering og aktive mål: bare Entry i denne bølgen.
+M5 er beslutningsklokken. Lær om prisen går riktig vei fra ett minutt til mange
+timer, med signert MFE og minst mulig konservativ MAE før første MFE. Dager er
+støtte. Verken95min,480min eller en dagsberegning er tvungen exit/holdetid.
+Ingen Exit-vurdering, Exit-target eller Exit-gradienter nå.
 
-Operatørens eksplisitte18.10-svar: M5-prisforløp og liten MAE før MFE er
-hovedmål; 1/5/20d er støtte. Beregningshorisont er ingen maksimal holdetid.
-Entry lærer uten Exit-targetavhengighet; inaktive gradienter/vekter og EMA
-skal kontrolleres. Hindsight-MFE er supervisjon, ikke realiserbar exitgevinst.
+Alle genuine indikatorer, åtte spesialister, niende D1/makrokontekst og lukket
+M5/M15/H1/H4/D1 skal følges til faktisk modellkonsum. M30 krever tilført verdi.
+Bruk de26rike MBP-månedene først: TRAIN [2024-05-01,2026-01-01), VAL
+[2026-01-01,2026-04-01), senere utviklingskontroll [2026-04-01,2026-07-01).
+Alle26m er gjenbrukt utvikling. TEST fra juli er forseglet. Ingen broker,
+live/paper, ordre, spending eller promotion.
 
-Bruk eksisterende26MBP-måneder før utvidelse til hele OHLC-historikken.
-TRAIN er [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
-retrospektiv utviklingskontroll [2026-04-01,2026-07-01). Alle26måneder er
-gjenbrukt utvikling. TEST fra juli er forseglet. Én full native epoke er
-allerede bestilt; datakjede, normalisering og fersk modellkvalifisering må
-bestå først. Ingen broker/live/paper/ordre/spending/promotion.
+Den bestilte ene fulle nativeepoken står ved lag, etter faktisk input-/mål-/
+normaliserings-/fersk-baseline-/paritets-/optimizer-/resume-/maskinvareadmission.
+Trening er stengt. Fellesmodellen med åtte temporale spesialister er hovedspor;
+SMC-/MBP-modeller eller ensemble krever kronologisk OOF-evidens for merverdi.
 
 ## Gjort og målt
 
-- Rå001 er publisert og konsumert:66filer,892100712records og9173893
-  M1-prisnivårader med eksakt buy/sell/unknown-konservering.15ufiltrerte
-  LADDER- og15M1-reduksjoner er bevart med publiserte hashbindinger.
--019 er COMPLETE,953.109s, uendret kilde og TEST=false. Ett eventpass
-  tilførte spread-/event-/klokkestatistikk; opprinnelige handels-/bokreduksjoner
-  og prisnivårader ble kontrollert eksakt.019s eventstatistikk ble maskert før
-  publisering og kan ikke alene gjenopprette senere utvidet kildeadmission.
--020 er COMPLETE,23.033s, uendret kilde og TEST=false. H4/D1-SMC ble rettet
-  fra M1-gapreset til observerte samme-kontrakt-candles. Hele manglende
-  TF-candles sensurerer OB-state. Alle935kandidater hadde TRAINobservasjoner,
-  og232ikke-proxykolonner perTF var eksakt uendret.160fokuserte tester bestod.
--020s foreløpige1130registry ble aldri aktivert og er erstattet av025.
--253genuine primitive TF-felt er implementert perTF, inklusive ekte BID/ASK.
-  Entry får også M5.217sammeformelaliaser har eksplisitt paritetskontroll.
-  Bred GC-kontekst kobles på i eksisterende skrivechunks, uten full bred
-  flerårsmatrise. 022 har nå publisert fersk253TFcache og M5/model-source; M1, fysisk
-  normalisering og aktuelt modellkonsum gjenstår.
-- Tidligere fysisk016/017 med109507TRAIN/15993VAL var gammel735/552-generasjon.
-  Disse kvitteringene er historiske, ingen adgang for dagens modellfunksjon.
+- Rå001:66filer,892100712records,9173893prisnivårader og30ufiltrerte
+  kontraktreduksjoner bevart.019eventpass og020observerte SMC-rettelse er konsumert.
+-024trusted-T-restaurering er COMPLETE,1202.084s, uendret kilde og TEST=false.
+  Identiske Tposter var feilaktig avvist. Ingen T dedupliseres;17overlappende
+  PTPminutter/18bok-eventbøtter sensureres. Netto78305M1 og25059620kontrakter
+  gjenopprettet. Alle opprinnelige reduksjoner/prisnivårader og gammel gyldig
+  eventstatistikk er kontrollert eksakt. Non-T-actionflow er ikke kvalifisert.
+-025registry er COMPLETE,29.254s:1205genuine verdier+1205masker,995nye+210gamle,
+ 30observerte konstanter,0uobserverte/0formelaliaser. Den bruker gammel fysisk
+ 109507TRAINklokke og er ikke admission for en ny dynamisk M5-populasjon.
+-253primitive felt perTF er implementert med ekte BID/ASK og217eksplisitte
+  sammeformelaliaser. Alle fem lukkede TF og M5Entryruten er bevart.
+-022M5/cache/model-source er COMPLETE,2554.675s, uendret kilde og TEST=false.
+ 1140982M5rader,2576enrichedkolonner,2725signal/2542ctx-cont/1ctx-cat.
+-026M1 er COMPLETE,6092.253s, exit0, uendret HEADb669d8f0 og TEST=false,
+  avsluttet18.10 15:42:11UTC. Publisert1111058rader/2576kolonner; footer-/
+  klokkeprøver viserM1 fra2023-05-09T22:03Z til2026-06-30T23:59Z.
+  ParquetSHA7928886648820c6e2ddb5057628c980f75264efbab77d94623732f7a88e1efcd;
+  sidecarSHAf4e3ab32955cbf7b16ba3e279d070f5b4b39d764f122dd63c0b7415e6810136d.
+  TerminalSHA0294e5c02093c991e008e24c77fe5cb3e5393f89f1af63ded263379bac05ee3e.
+  Dette er featurepublisering, ingen native dataset-/modell-/læringsadmission.
+-558unike restaurerings-/kildekontroller,75forbrukercaser og496M5-emisjons-/
+  sekvenslesercaser bestod før026. Bevisene dekker daværende funksjon; ny
+  dynamisk modell/target er ikke kvalifisert av disse tallene.
+- Sekvenslesere bruker eksisterende diskbaserte M5loader i stedet for hele
+  1140982×2725RAMmatrisen. Binær normalisering bevarer samme identitet som
+  runtime. Alle originale feilrapporter/checkpoints består.
 
-## Konkret kildeblokkering og rettelse
+## Konkret ny designgrense
 
-Signaturidentitet var feilaktig brukt som avvisningsgrunn for hele minutter.
-134296Tposter er identiske over20felt, uten signaturkollisjoner. Dette alene
-avviste78322ellers gyldige M1 med25064729observerte handelskontrakter.
-Databento bekrefter at identiske Tposter kan være korrekte. Ingen T dedupliseres
-på dette grunnlaget; alle andre flagg-/pris-/kontraktvakter beholdes.
+Et algebraisk moteksempel viser at MFE minus pre-MFE-MAE kan ha positiv
+forventning for både long og short uten retningsinformasjon. Derfor skal den
+ikke alene styre ny trade/FLAT-fasit. Modellfeedback må skille endpointretning,
+MFE og konservativ pre-MFE-MAE med egne aktive tap og observasjonsmasker.
 
-Den bundne leverandørhendelsen17.09.2025 13:34:28Z–13:50:40Z sensurerer alle
-17overlappende M1-bøtter. Bok/event-state sensureres også gjennom første
-friske etterfølgende anker. Ingen ukjent timestamp-offset korrigeres ved gjetning.
-Historiske non-T-actionlabels er ikke kvalifisert som kansellerings-/endringsflow.
-BBO-state, T-volum og observerte ordreantall har egne dokumenterte domener.
-Kilder og eksplisitt behandling er i
-`configs/research/GC_VENDOR_SOURCE_INCIDENTS_20261018_001.json`.
+Kjent p/T-quote kan bevise terminal prisendring selv om mellomliggende bane
+mangler. Ukjente hull sensurerer MFE/MAE; kortere observerte prefikser beholdes.
+En terminal-open-inkluderende bane bruker hele M1bar førT og bare eksakt open
+vedT, aldri Tbarenshigh/low. Closed-bar-only har egen kjent querytype, aktive MFE-/MAE-mål og maske.
+Samme encoder og samme pathheads brukes med eksplisitt kjent endpointkode;
+closedfasit erstatter aldri inclusivefasit. Dette beholder faktisk observerte
+1minutfall også når neste open mangler ved kildeslutt eller splitgrense.
+GC-futuresquotes beviser ikke spotrekkefølge eller historisk OANDAkalender.
 
-024er COMPLETE/konsumert etter1202.084s, exit0, uendret kilde og TEST=false.
-Alle66råfiler/892100712records ble behandlet. Samme30hashbundne råreduksjoner
-ble brukt; gamle handels-/bokreduksjoner, alle9173893originale prisnivåside-rader
-og019eventstats på opprinnelig gyldig populasjon er eksakt kontrollert.
-Ingen T deduplisert. PTPsensur ga17overlappende volumbøtter og18bok/eventbøtter.
-Netto etter sensur:78305M1 og25059620kontrakter gjenopprettet. Strict komplett
-volum/profil M5/M15/H1/H4/D1 er nå151773/50074/12145/2445/0bøtter.
+Et delt M1-intervallindeks/pointers og liten horisontbetinget dekoder bruker
+samme encoderforward for1..480min. Ingen stor modell/head perminutt, ingen
+lagret tett entry×480framtidsbane. Dagersmål er separat maskert støtte.
+En ratio av predikert netto retning og pre-MFE-MAE er kun en navngitt
+kvalitetskandidat, med kjent følsomhet nær0; ingen bps-/cash-/probabilitetsclaim
+eller native autoritet før faktisk kontrakt og kvalifisering. Det varige
+lav-MAE-målet er allerede vedtatt og skal ikke spørres om igjen.
 
-Nye T-sidetall/sidemiddel og total størrelsesstandardavvik/min/maks er fysisk
-publisert med eksakt uint64antall/volumparitet før minuttsensur.025er COMPLETE/
-konsumert,29.254s, uendret kilde og TEST=false. Alle995nye felt,199perTF, og
-alle210gamle felt har genuine TRAINobservasjoner. Endelig registry har1205
-verdier+1205observasjonsmasker,30observerte konstanter,0uobserverte felt og
-0formelaliaser. Alle gamle kilder er rebindet til samme reparerte024tabeller.
-Hele109507TRAINtime+5min er brukt, uten labels/VAL/TESTfit. Den nye M5populasjonen
-skal måles fysisk og få fersk wholeTRAINregistrytilpasning før inputadmission;
-025s109507klokke gjenbrukes ikke som bevis for endret emisjon.
+Design-/algebrabevis er samlet i
+`/home/andre2/GX1_RUNS/DYNAMIC_M5_ENTRY_DESIGN_20261018_029`.
+Gammelt027utkast med fast95minprimærmål skal IKKE kjøres.028registryutkast
+må bindes til faktisk ny fysisk klokke, ikke den gamle027planen.
 
-Registryen er aktivert i eksisterende nativekilde med SHA d2210dae945c9a43dfdf2aff15f4362563b566ba3c7ebaf3f29d9817201dd3ca.
-Målt kanonisk import gir2725signal-/2542ctx-cont-felt; dette er ikke en fysisk
-modelforward. 75unike forbruker-/maske-/familie-/batching-/normaliseringskontroller er bestått.
-Ny fysisk003-generasjon og ekte aktuell modelforward/paritet gjenstår.
-Full rå semantisk oversikt er i024/AUDIT.
+## Kvalifisert komponentkode, fortsatt åpen native kjede
 
-558unike fokuserte tester er nå bestått etter målrettet feilretting. Alle
-opprinnelige feilrapporter består; siste resultat per case er sammenstilt i024s
-FOCUSED_SOURCE_QUALIFICATION_FINAL.json. JSON-forfall konverteres korrekt ved
-rollkontroll. Énepokerutens checkpointpolicy/session/progress er eksplisitt bundet
-til faktisk M5-populasjon, mens gamle ruter beholder sine kontrakter. M5-
-normalisering bruker eksisterende diskbaserte loader med300s-klokke; eksakt
-in-memory-paritet, kildehash, fremtidsisolasjon og publiseringsvern er testet.
-Dette er kildekontroller, ingen fysisk modell- eller alpha-kvalifisering.
-Ny kildefeil er også målt og rettet: normaliseringsstatistikk for binære GC-
-verdier med egen mask fikk asinh(1) i stedet for1 som transformert maksimum.
-Ekstremer bevarer nå samme binær/kategori-identitet som faktisk runtime; numeriske
-verdier beholder asinh og manglende verdier hard0. Før-repro og originalfeil er
-bevart.75unike forbrukercaser er bestått;002etterkontrollen bestod62/62.
-Bevis:022/QUALIFICATION/FINAL_CONSUMER_QUALIFICATION.json. Ingen guard svekket.
-024/025/022 er konsumert.022 avsluttet13:08:50UTC etter2554.675s, exit0,
-uendret kilde og TEST=false. Ny003M5 har1140982rader og2576kolonner;
-model-source bekrefter2725signal/2542ctx-cont/1ctx-cat og samme featurekontrakt.
-Terminal og seks faktiske artefakthasher er bundet i policy. Trening er lukket.
+030 avsluttet med650beståtte og29feil, fryst kilde uendret. Tre lokale
+feilårsaker ble rettet uten å svekke vakter. Faktisk pointer-bindingmodus ble
+også samlet hos én eier.031 kjørte de fem berørte testfilene: 233beståtte,
+exit0 og uendret fryst kilde. Dette dekker syntetiske quote-/maskesemantikker,
+faktiske fixturefilhash-/klokke-/pekerkoblinger, samme encoder med begge
+endpointtyper, aktive gradienter/tap, Entry-only optimizer og gammel
+kontraktoppførsel. Det er konsistensbevis, ingen markedsfit eller edge.
 
-Konkret neste blokkering: både sekvensrekonstruksjonsauditen og trainerens
-sekvenskildeleser allokerer hele den historiske M5signalmatrisen i RAM. Ved
-1140982×2725float32 er signal alene omtrent11.6GiB. Minste rettelse gjenbruker
-eksisterende diskbaserte M5loader og beholder hele populasjonen/verdikontrollen.
-Kilden var fryst til022terminal. Rettelsen bestod39fokuserte caser med
-uendret kilde; alle verdier/klokker og disklevetid er kontrollert.
-
-Tidlig klokkesammenligning viste118706M5kildetider mot109507gamle fysiske
-TRAINrader; alle gamle finnes i kilden. Kildeklokke er ikke emisjonsklokke.
-Undersøkelsen avdekket en konkret målfeil: fysisk emisjon krevde fremdeles
-legacyM1labels og alle37auxmål, inkludert inaktive96bars-hoder. M5kildens
-95minprimary ble dermed indirekte filtrert av8timersauxkompletthet. Fire
-aktive M5forecasts K1/5/12/24 hadde dessuten ubetingettrue-masker.
-
-Ny eksplisitt m5_primary_observed-emisjon bruker ekteM5valid, split og
-inputwarmup. Legacydefault bevares. Hver av fireM5forecasts og seks1/5/20d
-støtteceller har egen observasjonsmaske; uobserverte lagres0 uten falsk
-observasjon. Ny fase-/målbinding må bevise faktiske parquetmasker og
-forby legacy/jointbruk av nyeM5inputs. 496unike fokuserte caser er bestått etter tre små fixture-rettelser
-(str-sti/ns-enhet/import); produksjonskilden var uendret gjennom etterkontrollene.
-Originale feilrapporter er bevart. Fysisk nyeM5data/normalisering/modell gjenstår.
+Native initialmåling/koordinator er fortsatt en konkret åpen kobling:
+fresh-prefix-konstruktøren sender ikke dynamisk fase/querykwargs, gammel
+prefixbinding krever Exit/referencepolicy, og observatørene forventer Q/token
+og Exit-forward. Disse må få en eksplisitt Entry-kurvegren før baseline og
+native epoke. Ingen bps-alias for ratioen. Ekte evaluerings-/avståelses-/
+dekningsspor, metadata-successor og fysisk TRAINfit er fortsatt påkrevd.
 
 ## Neste steg
 
-1.496unike sourcecaser er bestått, inkludert faktisk Arrow→Dataset→batch og
-   fysisk-maskebinding på små Parquet-fixtures. Gjeldende shared-featurekontrakt
-   er eksakt lik022s publiserte.026 er claimet for én ren kildebundet M1jobb.
-2. Kjør én fersk026M1-enriched på003, gjenbruk publisert022253TFcache.
-   Producer20G/512Mswap,4096skrivechunks, ny checkpointsti. Ingen009reuse.
-   Faktisk022terminal og alle seks artefakthasher er fylt inn i026planen;
-  026 er claimet; binding skrives først fra ren commit. Ingen kjøring før
-   denne bindingen.026 er dataarbeid, ingen trening.
-3. Bind faktisk022/026 og bygg nytt26mM5-pathdatasett fysisk. Wrapperens
-   eksplisitte --physical-build-only stopper før inputadmission. Mål faktisk
-   nyTRAINklokke, tilpass ferskTRAINregistry og publiser gjeldende immutable
-   signal-/datasetbindinger før liveness/pretrain. Gamle025hash/klokke kan
-   ikke utgis som nye. Gjenbruk featurebytes bare etter eksakt dokumentert
-   verdifunksjon/kilde/maske/rolle-ekvivalens; aldri011wideM1read.
-4. Normaliser hele observerte fysiske TRAIN én gang. Mål ny initial ONLINE=
-   TARGET=EMA, fysisk batchparitet og Entry-only optimizer/resume.
-   Maskinvid idle og trygg fysisk Windowsreboot må bevises før GPUadmission.
-5. Bind faktisk unik M5-populasjon/N/ordre og ceil(N/16), behold siste delbatch,
-   tren nøyaktig én epoke med eksisterende varige checkpoints. Stopp før VAL/
-   lærerrefresh/ny epoke. TRAIN256/CONTROL256 er måleprober, ikke treningsbudsjett.
+1. Bevar kvalifiserte komponenter og lag en eksplisitt Entry-kurvegren i
+   native konstruktør, prefixbinding og initial-/gradient-/paritetsmåling.
+   Legacy-M1-definisjoner er AST-identiske med foregående HEAD.030/031-bevisene
+   er beskrevet over; ingen ny fullsuite uten konkret berørt endring.
+   Kilde er fryst under neste capped jobb. Ingen Exit-forwards/trening eller
+   gammel Q-bps-/cash-semantikk kan brukes som dynamisk kurvemåling.
+2. Bind komplette022/026artefakter og bygg nytt fysisk26mM5datasett med ny
+   targetkontrakt, perkomponentmasker og ekte M1quoteproveniens. Ingen gamle
+   legacy37-/largest-horizon-/dags-uniongater eller falske nullobservasjoner.
+3. Mål faktisk fysisk TRAINklokke, gjør fersk wholeTRAINregistryfit og bind
+   gjeldende immutable signal-/datasetmetadata.025s109507klokke gjenbrukes
+   ikke som nye bevis. Gjenbruk featurebytes bare ved eksakt kilde-/verdi-/
+   rolle-/maske-/evaluator-ekvivalens. Unngå gammel011wideM1read.
+4. Normaliser hele fysisk TRAIN én gang. Mål fersk ONLINE=TARGET=EMA0,
+   full fysisk feature-/MTF-konsum, paritet, Entry-only optimizer/resume og
+   ekte LONG/SHORT/FLAT-/kvalitets-/deknings-/forklaringsfunksjon.
+5. Bevis maskinvid idle, trygg fersk fysisk Windowsboot og aktuelle vakter.
+   Bind unik TRAINpopulasjon/N/ordre og ceil(N/16), behold siste delbatch,
+   tren nøyaktig én epoke med varige checkpoints. Stopp før VAL/lærerrefresh/
+   nyepoke. TRAIN256/CONTROL256 er måleprober, ikke treningsbudsjett.
 
 ## Ærlige grenser
 
-M5/cache-delen er fysisk publisert. Hele inputkjeden, normalisering, Transformer-læring,
-generalisering eller nettoøkonomi er fullført. MBP-1 viser beste bid/ask,
-ikke dypere bok eller individuell ordreidentitet. Full prisgrid beholdes;
-modellen konsumerer deklarerte avledede felt, ikke alle råbane-/prisbininteraksjoner.
-Makroens fullstendige historiske originalvintager er ikke bevist.
-Ingen Pythonfil er bevist slettbar etter referanse/import/CLI/test/eierkontroll.
-DATA/RUNS ryddes kun av retention-eieren. Tidligere generelle negative
-prosjektslutninger brukes ikke; faktiske originalmålinger bevares.
+022/026featureflater er publisert. Dynamisk fysisk datasett, ny TRAINfit,
+normalisering, aktuell Transformerforward/-læring, generalisering og
+nettoøkonomi er ikke fullført. AlltidFLAT er ingen påvist selektivitet.
+Beslutningsspor må vise faktiske inputs/masker/prognoser og gyldige
+familie-/TF-kontrafaktiske bidrag; gatevekter alene er ingen årsaksforklaring.
 
-Detaljert inventar/formel-/TF-eierskap og avgrensninger: `docs/FEATURE_AUDIT.md`.
-Eksakte terminaler, plantilstand og neste arbeid: `NEXT_RUN_POLICY.json`.
+MBP-1 viser BBO, ikke dypere bok/MBOordreidentitet. Hele prisgrid beholdes;
+modellen bruker deklarerte sammendrag, ikke alle råbaneinteraksjoner.
+Makroens fullstendige historiske originalvintager er ikke bevist. Ingen
+Pythonfil er bevist slettbar etter referanse/import/CLI/test/eierkontroll.
+DATA/RUNS ryddes bare av retention-eieren. Originalmålinger bevares;
+korte gamle tester brukes ikke som generell negativ prosjektdom.
+
+Metode: docs/NATIVE_LEARNING.md. Formel-/TF-inventar: docs/FEATURE_AUDIT.md.
+Aktuell tilstand og alle eksakte kjøre-/bevisbindinger: NEXT_RUN_POLICY.json.

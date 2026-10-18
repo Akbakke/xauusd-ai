@@ -333,3 +333,21 @@ def test_rebuild_rejects_unknown_emission_scope_before_source_access():
     assert result.returncode == 2
     assert "invalid emission scope" in result.stderr
     assert "required argument missing" not in result.stderr
+
+
+@pytest.mark.parametrize("args", [[], ["--pretest-only"], ["--physical-build-only"]])
+def test_dynamic_physical_build_never_opens_legacy_or_test_route(args):
+    result = subprocess.run(["bash", str(SCRIPT), "--emission-scope", "m5_dynamic_observed", *args],
+        capture_output=True, text=True)
+    assert result.returncode == 2
+    assert "dynamic M5 emission requires --pretest-only and --physical-build-only" in result.stderr
+    assert "required argument missing" not in result.stderr
+
+
+def test_dynamic_pretest_physical_scope_reaches_required_input_guard_only():
+    from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+    result = subprocess.run(["bash", str(SCRIPT), "--emission-scope", M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+        "--pretest-only", "--physical-build-only"], capture_output=True, text=True)
+    assert result.returncode == 2
+    assert "required argument missing: RUN_ID" in result.stderr
+    assert "invalid emission scope" not in result.stderr

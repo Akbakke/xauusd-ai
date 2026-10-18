@@ -2054,3 +2054,169 @@ def test_gc_structural_fixture_uses_source_binary_domain_and_masked_zero_storage
         assert all(torch.all(raw[:, value][raw[:, mask] == 0] == 0)
                    for value, mask in masking_pairs(names))
         require_masked_storage_numpy(raw.numpy(), names)
+
+
+# Dynamic M5 curves keep horizon queries separate from future observations.
+def _make_dynamic_m5_model(**overrides):
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    return _make_model(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        dynamic_m5_query_minutes=DYNAMIC_M1_PREFIX_HORIZON_MINUTES, **overrides)
+
+
+def test_dynamic_m5_all_queries_share_one_market_encoding_and_have_no_native_q(monkeypatch):
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    from gx1.models.entry_v10.direction_decision_contract import UNIFIED_EXIT_MODEL_REPRESENTATION_KEY
+    from gx1.contracts.entry_model_native_joint_task_weighting_v1 import DYNAMIC_M5_JOINT_TASK_NAMES
+    torch.manual_seed(7029)
+    model = _make_dynamic_m5_model(dropout=0.).eval()
+    calls = Counter()
+    for name in ("_encode_shared_feature_base", "_encode_multi_tf_route"):
+        original = getattr(model, name)
+        def counted(*args, _name=name, _original=original, **kwargs):
+            calls[_name] += 1
+            return _original(*args, **kwargs)
+        monkeypatch.setattr(model, name, counted)
+    with torch.no_grad():
+        model.head_dynamic_mfe.weight.zero_()
+        model.head_dynamic_mfe.bias.fill_(-2.)
+        out = _forward(model, batch_size=2)
+    count = len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+    assert calls == {"_encode_shared_feature_base": 1, "_encode_multi_tf_route": 1}
+    assert out["dynamic_terminal_net_markout_bps"].shape == (2, count, 3)
+    assert torch.equal(out["dynamic_terminal_net_markout_bps"][..., 2], torch.zeros(2, count))
+    for name in ("dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps", "dynamic_closed_mfe_bps", "dynamic_closed_pre_mfe_mae_upper_bps"):
+        assert out[name].shape == (2, count, 2)
+    assert bool((out["dynamic_pre_mfe_mae_upper_bps"] >= 0).all())
+    assert torch.equal(out["dynamic_mfe_bps"], torch.full((2, count, 2), -2.))
+    assert out["forecast_pred"].shape == (2, FORECAST_HEAD_DIM)
+    assert out["dynamic_query_horizon_minutes"].tolist() == list(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+    assert model.cfg.dynamic_m5_query_minutes == DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    assert set(model.task_log_variances) == set(DYNAMIC_M5_JOINT_TASK_NAMES)
+    assert "entry_action_q_bps" not in out
+    assert "entry_decision_token_source" not in out
+    assert UNIFIED_EXIT_MODEL_REPRESENTATION_KEY not in out
+    assert "side_mae_bps" not in out and "dip_pred" not in out
+    ratio = out["dynamic_entry_quality_ratio_candidate"]
+    assert ratio.shape == (2, count, 3) and torch.equal(ratio[..., 2], torch.zeros(2, count))
+    final = out["dynamic_entry_action_quality_candidate"]
+    assert final.shape == (2, 3) and torch.equal(final[:, 2], torch.zeros(2))
+    assert torch.equal(final[:, :2], ratio[:, :, :2].max(dim=1).values)
+    assert torch.equal(out["dynamic_entry_quality_best_horizon_mask"],
+        ratio[:, :, :2] == final[:, None, :2])
+
+
+@pytest.mark.parametrize("output_name,head_name", [
+    ("dynamic_terminal_net_markout_bps", "head_dynamic_terminal_net_markout"),
+    ("dynamic_mfe_bps", "head_dynamic_mfe"),
+    ("dynamic_pre_mfe_mae_upper_bps", "head_dynamic_pre_mfe_mae_upper"),
+    ("dynamic_closed_mfe_bps", "head_dynamic_mfe"),
+    ("dynamic_closed_pre_mfe_mae_upper_bps", "head_dynamic_pre_mfe_mae_upper"),
+])
+def test_dynamic_m5_each_component_trains_shared_encoder_without_exit_or_legacy_labels(output_name, head_name):
+    from gx1.contracts.entry_observed_market_v1 import is_exit_owned_parameter
+    torch.manual_seed(7030)
+    model = _make_dynamic_m5_model(dropout=0.).train()
+    out = _forward(model)
+    prediction = out[output_name][..., :2]
+    torch.nn.functional.mse_loss(prediction, torch.full_like(prediction, 3.)).backward()
+    for parameter in (model.seq_proj.weight, model.entry_q_joint_in.weight,
+                      model.dynamic_m5_query_projection[0].weight, getattr(model, head_name).weight):
+        assert parameter.grad is not None
+        assert torch.isfinite(parameter.grad).all() and bool((parameter.grad != 0).any())
+    for other in ("head_dynamic_terminal_net_markout", "head_dynamic_mfe", "head_dynamic_pre_mfe_mae_upper"):
+        if other != head_name:
+            assert all(parameter.grad is None for parameter in getattr(model, other).parameters())
+    assert all(parameter.grad is None for name, parameter in model.named_parameters()
+        if is_exit_owned_parameter(name) or name.startswith(("head_entry_action_q.", "head_dip.", "head_side_mae.")))
+
+
+def test_dynamic_m5_decoder_chunking_preserves_all_queries_outputs_and_gradients():
+    torch.manual_seed(7031)
+    model = _make_dynamic_m5_model(dropout=0.).eval()
+    base = torch.randn(2, model.cfg.d_model)
+    observed = []
+    for chunk in (None, 17):
+        model.zero_grad(set_to_none=True)
+        hidden = base.clone().requires_grad_()
+        out = model._decode_dynamic_m5_curves(hidden, query_chunk_size=chunk)
+        loss = sum(out[name].square().mean() for name in (
+            "dynamic_terminal_net_markout_bps", "dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps", "dynamic_closed_mfe_bps", "dynamic_closed_pre_mfe_mae_upper_bps"))
+        loss.backward()
+        observed.append(({name: value.detach().clone() for name, value in out.items()},
+            hidden.grad.clone(), {name: parameter.grad.clone() for name, parameter in model.named_parameters()
+                if parameter.grad is not None}))
+    for name, expected in observed[0][0].items():
+        torch.testing.assert_close(observed[1][0][name], expected)
+    torch.testing.assert_close(observed[1][1], observed[0][1])
+    assert observed[0][2].keys() == observed[1][2].keys()
+    for name, expected in observed[0][2].items():
+        torch.testing.assert_close(observed[1][2][name], expected)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_dynamic_m5_ratio_is_prediction_only_stable_and_has_exact_zero_branch(dtype):
+    ratio = model_module.EntryV10CtxHybridTransformer._dynamic_quality_ratio_candidate
+    maximum = torch.finfo(dtype).max
+    r = torch.tensor([8., 18., -8., 0., 0., maximum, .01, 10.], dtype=dtype)
+    m = torch.tensor([2., 15., 2., 0., 2., maximum, .001, 2.], dtype=dtype)
+    out = ratio(r, m)
+    expected = torch.tensor([.8, 18./33., -.8, 0., 0., .5, .01/.011, 10./12.], dtype=dtype)
+    torch.testing.assert_close(out, expected)
+    assert out[0] > out[1] and out[6] > out[7]
+    assert torch.equal(ratio(torch.tensor([1., -1.]), torch.zeros(2)), torch.tensor([1., -1.]))
+    # Both side estimates negative => FLAT=0 wins without a separate veto.
+    sides = ratio(torch.tensor([-2., -2.]), torch.tensor([2., 2.]))
+    assert int(torch.argmax(torch.cat((sides, torch.zeros(1))))) == 2
+
+
+@pytest.mark.parametrize("fault", ["negative_mae", "nonfinite_r", "nonfinite_mae", "shape"])
+def test_dynamic_m5_ratio_rejects_invalid_component_predictions(fault):
+    r, m = torch.ones(2), torch.ones(2)
+    if fault == "negative_mae": m[0] = -1.
+    elif fault == "nonfinite_r": r[0] = float("nan")
+    elif fault == "nonfinite_mae": m[0] = float("inf")
+    else: m = torch.ones(3)
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_RATIO|NONFINITE"):
+        model_module.EntryV10CtxHybridTransformer._dynamic_quality_ratio_candidate(r, m)
+
+
+@pytest.mark.parametrize("fault", ["short", "reversed", "bool", "float"])
+def test_dynamic_m5_constructor_requires_the_complete_source_owned_query_binding(fault):
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    queries = list(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+    if fault == "short": queries.pop()
+    elif fault == "reversed": queries.reverse()
+    elif fault == "bool": queries[0] = True
+    else: queries[0] = 1.
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_QUERY_CONTRACT_INVALID"):
+        _make_model(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            dynamic_m5_query_minutes=queries)
+
+
+def test_dynamic_m5_queries_are_not_a_legacy_architecture_switch_and_cannot_mutate():
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_QUERY_REQUIRES_DYNAMIC_PHASE"):
+        _make_model(dynamic_m5_query_minutes=DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+    legacy = _make_model()
+    assert not hasattr(legacy, "head_dynamic_mfe")
+    assert set(legacy.task_log_variances) == set(model_module.JOINT_TASK_NAMES)
+    dynamic = _make_dynamic_m5_model()
+    dynamic.dynamic_m5_query_horizons[0] = 2
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_QUERY_STATE_BINDING_INVALID"):
+        dynamic._decode_dynamic_m5_curves(torch.zeros(1, dynamic.cfg.d_model))
+
+
+@pytest.mark.parametrize("future_field", ["actual_future_elapsed", "path_observed", "censor_reason", "first_mfe_m1_row"])
+def test_dynamic_m5_constructor_rejects_future_observations_as_model_kwargs(future_field):
+    with pytest.raises(TypeError, match=future_field):
+        _make_dynamic_m5_model(**{future_field: 1})
+
+
+
+def test_dynamic_m5_public_phase_cannot_be_mutated_into_legacy_authority():
+    model = _make_dynamic_m5_model()
+    model.entry_training_phase = "joint_fitted_q"
+    with pytest.raises(RuntimeError, match="ENTRY_MODEL_PHASE_BINDING_INVALID"):
+        _forward(model)
