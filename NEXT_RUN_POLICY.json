@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "M1 stage008 closed after tuple API error; one-line fix and focused regression. New source-bound009 reuses exact completed Group-A checkpoints.",
+    "current_activity": "M1 stage009 complete after exact completed checkpoint reuse. Bind native TRAIN/VAL dataset stage012; no new native epoch.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -116,8 +116,8 @@
     "latest_terminal_role": "Failed legacy raw pair stage006, consumed; new direct-pretest feature stage007 uses the existing suitable route.",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_008/TERMINAL.json",
-      "sha256": "94fe9e454df33456fccd0d8eff0a332e82590d29cd9d2436c99be4419d78da19"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_009/TERMINAL.json",
+      "sha256": "56aaccd544f101b1c57dbe913368a25a4f5526e32a88663b3cb38d0c1953e05b"
     },
     "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
@@ -9458,7 +9458,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "M1_STAGE008_FAILED_POST_FEATURE_ATTACH__MINIMAL_FIX_AND_CHECKPOINT_RESUME009",
+      "status": "FRESH_M1_M5_COMPLETE__SIGNAL_AND_PHYSICAL_DATASET_PENDING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9467,7 +9467,7 @@
       "native_training_admitted": false,
       "training_started": false,
       "horizon": "h20 retained; no horizon selection",
-      "split_status": "Provisional20/3/3 after user requested approximately20months TRAIN and last months VAL/TEST; optional exact-split question pending. All26months already reused development.",
+      "split_status": "20/3/3 bound before native normalization and training after stated optional-question assumption; no user reply changing dates received. Final pre-July cohort is retrospective development control.",
       "raw_stage": {
         "status": "COMPLETE_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_RAW_REBUILD_20261018_001.json",
@@ -9501,7 +9501,7 @@
         "Full footprint lattice is not directly ingested by the native model; summaries are used"
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_008/TERMINAL.json",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_009/TERMINAL.json",
       "completed_invocations": 0,
       "split_windows": {
         "train": [
@@ -9626,10 +9626,46 @@
         "failure": "New M1 output support iterated .items() on declared tuple; no M1 publication. Minimal fix direct tuple iteration."
       },
       "m1_feature_resume_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "COMPLETE_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_M1_FEATURES_20261018_009.json",
         "plan_sha256": "7e8abc87fa19edb9d32c1d78e220bda99b68679610ed82ce5d232bf97210ee5e",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_009",
+        "claimed_invocations": 1,
+        "completed_invocations": 1,
+        "execution_authorized": false,
+        "relaunch_allowed": false,
+        "native_epoch_authorized_by_this_stage": false,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_009/TERMINAL.json",
+          "sha256": "56aaccd544f101b1c57dbe913368a25a4f5526e32a88663b3cb38d0c1953e05b"
+        },
+        "elapsed_seconds": 2933.213297795999,
+        "source_at_execution": "fbedfe577c19bc40bd2ed64ec40429de846d82ef"
+      },
+      "emitted_gc_train_audit": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CONSUMPTION_AUDIT_20261018_011/RESULT.json",
+        "sha256": "6aba579b785893149f2f4dc65b321643cc8536dae16f8e543c83b7912829c8fd"
+      },
+      "emitted_gc_train_support": {
+        "M5": {
+          "rows": 118706,
+          "all_values_observed": true,
+          "constant_observed_fields": 17,
+          "exact_duplicate_groups": 30
+        },
+        "M1": {
+          "rows": 591682,
+          "all_values_observed": true,
+          "constant_observed_fields": 17,
+          "exact_duplicate_groups": 30
+        }
+      },
+      "sparse_gc_availability_implementation": "Implemented explicit source/mask roles in existing availability/liveness owners; real observed support required, constants/duplicates reported, no usefulness inference. Legacy dense guards preserved.",
+      "dataset_stage": {
+        "status": "EXECUTION_CLAIMED",
+        "plan_path": "configs/research/NATIVE_GC_DATASET_BUILD_20261018_012.json",
+        "plan_sha256": "508b3137feabaa1e8685c4e7f0f521e479d1bdbae9d78ed87a713d42da100a7f",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_012",
         "claimed_invocations": 1,
         "completed_invocations": 0,
         "execution_authorized": false,

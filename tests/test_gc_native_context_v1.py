@@ -50,3 +50,14 @@ def test_every_value_has_exactly_one_availability_and_specialist_owner():
     assert len(gc.masking_pairs(['ctx_cont.' + n for n in gc.CONTEXT_FIELDS])) == len(gc.VALUE_FIELDS)
     with pytest.raises(RuntimeError, match='OBSERVATION_FIELD_MISSING'):
         gc.masking_pairs([gc.VALUE_FIELDS[0]])
+
+
+def test_gc_liveness_labels_do_not_claim_dense_activity_or_learning():
+    from gx1.contracts.entry_full_input_liveness_v1 import classify_field_status
+    from gx1.features.gc_native_context_v1 import VALUE_FIELDS, OBSERVED_FIELDS
+    stats = dict(row_count=100, finite_count=100, nonfinite_count=0,
+                 min=0.0, max=0.0, std=0.0, value_range=0.0, active_count=0, active_rate=0.0)
+    assert classify_field_status(split='train',surface='ctx_cont',field=VALUE_FIELDS[0],stats=stats)[0] == 'OBSERVED_MASKED_SOURCE'
+    assert classify_field_status(split='train',surface='signal',field='ctx_cont.'+OBSERVED_FIELDS[0],stats=stats)[0] == 'STRUCTURAL_OBSERVATION_MASK'
+    assert classify_field_status(split='train',surface='ctx_cont',field=OBSERVED_FIELDS[0],stats={**stats,'min':0.5,'max':0.5})[0] == 'FAIL'
+    assert classify_field_status(split='train',surface='ctx_cont',field='hour_cos',stats=stats)[0] == 'FAIL'

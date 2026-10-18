@@ -234,3 +234,27 @@ def test_selection_and_coverage_mutations_fail_closed() -> None:
     coverage_mutation["family_coverage"][first_family]["candidate"] += 1
     with pytest.raises(RuntimeError, match="FAMILY_COVERAGE_INVALID"):
         require_feature_availability_contract(coverage_mutation)
+
+
+def test_gc_structural_duplicates_are_reported_and_missing_observations_fail():
+    from gx1.features.gc_native_context_v1 import VALUE_FIELDS
+    matrix, names, times, target = _inputs()
+    first, second = VALUE_FIELDS[:2]
+    extra = ['ctx_cont.' + n for n in (first, first+'_observed', second, second+'_observed')]
+    n = len(times)
+    # A real source value may have no event during TRAIN. Its binary presence
+    # remains distinct from pretending absent observations are zero market flow.
+    values = np.column_stack([matrix, np.zeros(n), np.ones(n), np.arange(n), np.ones(n)]).astype(np.float32)
+    kwargs = dict(names=names+extra, times=times, train_start=times[2], train_end=times[-1], diagnostic_target=target)
+    result = fit_feature_availability_contract(matrix=values, **kwargs)
+    by_name = {r['name']:r for r in result['features']}
+    assert by_name[extra[0]]['distinct_value_count'] == 1
+    assert by_name[extra[0]]['observed_train_rows'] == n-2
+    assert by_name[extra[3]]['exact_duplicate_of'] == extra[1]
+    assert by_name[extra[3]]['input_role'] == 'gc_observation_mask'
+    absent = values.copy(); absent[:, -3] = 0
+    with pytest.raises(RuntimeError, match='GC_NO_OBSERVED_TRAIN'):
+        fit_feature_availability_contract(matrix=absent, **kwargs)
+    corrupt = values.copy(); corrupt[:, -3] = 0.5
+    with pytest.raises(RuntimeError, match='MASKED_STORAGE_INVALID'):
+        fit_feature_availability_contract(matrix=corrupt, **kwargs)

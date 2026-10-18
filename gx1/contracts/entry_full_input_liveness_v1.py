@@ -39,8 +39,8 @@ from gx1.features.htf_features import (
 # under the non-negative rule for the first time; and the two ATR OOD pairs are
 # renamed to `_bps`. A v7 artifact was produced by a policy that could not see
 # those ten slots and names two fields that no longer exist.
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v10"
-POLICY_VERSION = "entry_full_input_liveness_policy_v10"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v11"
+POLICY_VERSION = "entry_full_input_liveness_policy_v11"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
@@ -63,7 +63,8 @@ ATR_MIN_STD_RATIO = 0.25
 ATR_MAX_STD_RATIO = 4.0
 
 # There is no constant pass-through surface in the model-native contract.  A
-# field must be learnable on TRAIN. VAL is untouched chronological
+# dense market field must vary on TRAIN. Pinned sparse GC channels and
+# structural observation masks have explicit separate statuses below. VAL is chronological
 # observations and may legitimately contain one regime state for an entire
 # short split; their job here is exact coverage/finiteness, not synthetic
 # variation.  Direction edge is decided later by the OOS performance gates.
@@ -315,8 +316,8 @@ def canonical_policy() -> dict[str, Any]:
             "decision_role": "diagnostic_only_direction_edge_requires_oos_gates",
         },
         "split_roles": {
-            "train": "strict_learnability_and_support",
-            "val": "untouched_oos_coverage_and_finiteness",
+            "train": "dense_variability_and_support_with_pinned_sparse_gc_observation_roles",
+            "val": "chronological_oos_coverage_and_finiteness_no_independence_claim",
         },
         "multi_tf_cache": {
             "matrix_contract": HTF_V4_MATRIX_CONTRACT,
@@ -397,6 +398,18 @@ def classify_field_status(
         return "FAIL", "no_rows"
     if finite != rows or nonfinite != 0:
         return "FAIL", "nonfinite"
+    # Pinned external GC channels have explicit missingness and downstream hard
+    # masking. Dense activity floors cannot turn sparse observations into a
+    # learnability claim. Actual mask/observation support is separately checked
+    # on all TRAIN bytes by availability and normalization owners.
+    from gx1.features.gc_native_context_v1 import field_role
+    role = field_role(field)
+    if surface in {'signal', 'ctx_cont'} and role != 'dense_market_feature':
+        if role == 'gc_observation_mask':
+            if _float(stats.get('min')) not in (0.0, 1.0) or _float(stats.get('max')) not in (0.0, 1.0):
+                return 'FAIL', 'gc_observation_mask_domain'
+            return 'STRUCTURAL_OBSERVATION_MASK', 'pinned_gc_availability_not_market_signal'
+        return 'OBSERVED_MASKED_SOURCE', 'pinned_gc_source_no_dense_activity_or_learnability_claim'
     if surface == "ctx_cat":
         if _int(stats.get("integer_like_count")) != rows:
             return "FAIL", "categorical_non_integer"

@@ -9,7 +9,7 @@ User clarified17.–18.10 that the16.105s CPU miniature study did not satisfy
 the requested native training. Build a genuinely new26month dataset from raw
 XAU/GC MBP-1, verify every genuine feature reaches the actual native Transformer,
 then one full native epoch. Preserve h20. Provisional split:TRAIN May2024–Dec2025(20months), VAL Jan–Mar2026, final
-retrospective control Apr–Jun2026; optional exact-split reply pending. H20
+retrospective control Apr–Jun2026; dates now bound for the requested approximately20month training window. H20
 outcomes crossing each split are censored. Canonical TEST from July unread. All
 26months are reused development; no untouched confirmation claim is possible.
 
@@ -38,7 +38,9 @@ Fresh enriched/MTF cache/model source published; no dataset/epoch yet.
 M1 stage008 FAILED after completed Group-A attach (tuple.items API error).
 Minimal correction: iterate existing tuple owner directly. New stage009
 reuses exact same completed checkpoint via existing hash/key checks; no008 relaunch.
-Next: execute fresh native M1 stage009 (claimed once, launch pending),
+M1 stage009 COMPLETE, consumed once in2933.213s/sourcefbedfe57, after
+verified reuse of all1368 Group-A checkpoints.
+Next: execute signal/feature-surface/TRAIN-VAL dataset stage012 (claimed once, launch pending),
 then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,
@@ -84,3 +86,13 @@ M1 stage008 uses only stage007 bound artifacts and original pre-July raw M1.
 Full shared M5 history is retained; output support is bounded after causal
 long-memory M1 owners finish. Existing capped producer20G, no source edits
 during execution. No native epoch authority is granted by this feature stage.
+
+Actual emitted TRAIN support audit011:118706M5 and591682M1 rows; all210GC
+value fields observed at least once in both lanes.17constant-observed fields
+and30duplicate groups (many structural masks) are reported, not evidence of
+learnability. Existing availability/liveness owners now distinguish pinned
+masked GC sources and structural observation masks; dense legacy gates stay.
+Audit010 hit4G reading full history before filtering; closed, no result.011
+pushes TRAIN predicates into Parquet reading and completed within same4G cap.
+Final physical dataset, whole-TRAIN normalization, baseline/parity and epoch
+remain incomplete. Raw/feature generation alone does not qualify the model.

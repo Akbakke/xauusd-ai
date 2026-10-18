@@ -39,6 +39,15 @@ if len(set(CONTEXT_FIELDS)) != len(CONTEXT_FIELDS):
     raise RuntimeError('NATIVE_GC_DUPLICATE_FIELDS')
 
 
+def field_role(name):
+    name = str(name).removeprefix('ctx_cont.')
+    if name in OBSERVED_FIELDS:
+        return 'gc_observation_mask'
+    if name in VALUE_FIELDS:
+        return 'gc_masked_source_value'
+    return 'dense_market_feature'
+
+
 def masking_pairs(names):
     """Indices on the actual ordered signal or context surface, never an alias copy."""
     positions = {name: i for i, name in enumerate(names)}

@@ -1,0 +1,92 @@
+{
+  "run_id": "XAU_GC_NATIVE_26M_20261018_002",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002",
+  "operator_authority": "Current17.\u201318October user fresh26month raw rebuild/native one epoch and full informative MBP-1 utilization request.",
+  "max_wall_seconds": 64800,
+  "inputs": {
+    "m1_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+    },
+    "m5_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m5_quotes_source/manifest.json",
+      "sha256": "1bbc7d20a91afff0deb22a4cd2c848aaa95d27a2db56c22f2f3eb3505c615439"
+    },
+    "squeeze_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/manifest.json",
+      "sha256": "2f099d1974a6ffe3b9c1ae39680acdce5cc706aba954a2ce3523d74db2838d3e"
+    }
+  },
+  "train_start": "2024-05-01T00:00:00Z",
+  "train_end_exclusive": "2026-01-01T00:00:00Z",
+  "val_start": "2026-01-01T00:00:00Z",
+  "val_end_exclusive": "2026-04-01T00:00:00Z",
+  "retrospective_final_control": [
+    "2026-04-01T00:00:00Z",
+    "2026-07-01T00:00:00Z"
+  ],
+  "schema_version": "gx1_native_pretest_dataset_build_v1",
+  "plan_id": "NATIVE_GC_DATASET_BUILD_20261018_012",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_012",
+  "created_utc": "2026-10-18T04:17:26.821230+00:00",
+  "scope": "Fresh signal ranking, ordered M1/M5 feature surfaces and TRAIN20months/VAL3months dataset via existing owners and pretest-only route. Apr-Jun retrospective final control excluded from training dataset; July TEST unread. No native training.",
+  "history_start": "2010-06-13T22:00:00+00:00",
+  "history_start_origin": "Exact first emitted native M5 source footer statistic; full earlier history already consumed by feature owners",
+  "expected_source_time_max": "2026-06-30T23:55:00+00:00",
+  "source_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/FULL_PLUS_CTX_v3src.parquet",
+  "canonical_v2_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/M5_ENRICHED.parquet",
+  "multi_tf_cache_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/MULTI_TF_V4_CACHE",
+  "pair_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/PRETEST_PAIR.json",
+  "upstream_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_009/TERMINAL.json",
+    "sha256": "56aaccd544f101b1c57dbe913368a25a4f5526e32a88663b3cb38d0c1953e05b"
+  },
+  "upstream_m5_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_007/TERMINAL.json",
+    "sha256": "92c23683965c22c8eb345d4756fc6fa894579ef276c1423523e7e95ee4c0dc4b"
+  },
+  "upstream_artifacts": {
+    "PRETEST_PAIR.json": {
+      "sha256": "f6742b05f991d50a7fc927f69a26e42796a374dab4864db0b044bae49b394c2e",
+      "bytes": 3892
+    },
+    "M5_ENRICHED.parquet": {
+      "sha256": "c0f2d6ca2f627eb9fd7814e2a7864e95310f0f6ef7c408909ee5c020fb2fc6ea",
+      "bytes": 467095551
+    },
+    "M5_ENRICHED.parquet.manifest.json": {
+      "sha256": "090a367a04164adeccf8c781b2f447f73599ff30b2bdc05ece7ba1ba0abdc1b3",
+      "bytes": 55641
+    },
+    "FULL_PLUS_CTX_v3src.parquet": {
+      "sha256": "202ae9bfb2a58a2fa7226a8669f20d8ef8be8570d354f228f7d66d39d23195f2",
+      "bytes": 411506260
+    },
+    "FULL_PLUS_CTX_v3src.parquet.manifest.json": {
+      "sha256": "d703735bed0d77e85bc3cd01223852385870cbacec5d9600c7b9368a89a7f2d2",
+      "bytes": 38278
+    },
+    "MULTI_TF_V4_CACHE/manifest.json": {
+      "sha256": "62ee505db2bf019e65f3a6d824f8c641ba2df0434ead4e7d8f22dc2c73e547a7",
+      "bytes": 40286188
+    },
+    "M1_ENRICHED.parquet": {
+      "sha256": "103c6f293d0b90b415e1ff1193f5591992e848b055408d1b499311bdb109b78a",
+      "bytes": 452216584
+    },
+    "M1_ENRICHED.parquet.manifest.json": {
+      "sha256": "8adf6fd4848a223f1572ab5bb51301dc8d68f4aa16ed05996507e6bdf608f4c7",
+      "bytes": 65129100
+    }
+  },
+  "emitted_gc_train_audit": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CONSUMPTION_AUDIT_20261018_011/RESULT.json",
+    "sha256": "6aba579b785893149f2f4dc65b321643cc8536dae16f8e543c83b7912829c8fd"
+  },
+  "resource_owner": "Each sequential owner through gx1_capped_run.sh; source-cascade audit4G, ranker producer10G, native feature projections producer20G, existing dataset wrapper producer10G/audit4G. All unchanged512M swap/CPU0-7/one thread/64tasks/CURRENT lock.",
+  "source_frozen_while_running": true,
+  "one_shot_invocations": 1,
+  "test_data_used": false,
+  "native_training_started": false,
+  "sparse_gc_semantics": "Pinned genuine values plus explicit structural masks; retain exact constant/duplicate evidence and observed counts without dense-liveness or usefulness claim. Legacy dense constant/duplicate guards unchanged."
+}

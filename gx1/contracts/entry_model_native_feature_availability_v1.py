@@ -4,7 +4,9 @@ This contract deliberately does not estimate feature usefulness. Every
 code-owned candidate remains available to the learned model. Exact TRAIN
 constants or duplicate columns invalidate the artifact so their owner must be
 repaired or the field explicitly retired in code; they are never silently
-trimmed from one dataset.
+trimmed from one dataset. Pinned external GC values and their explicit masks
+are retained with exact duplicate/constant evidence and real observed support;
+this admits source channels without claiming variability or learned usefulness.
 
 Target association is persisted as read-only diagnostics and cannot affect
 availability, ordering or exclusion.  A downstream signal/model dimension
@@ -21,6 +23,8 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
+
+from gx1.features import gc_native_context_v1 as gc_context
 
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -50,7 +54,7 @@ def _mandatory_family_counts() -> dict[str, int]:
     return counts
 
 
-SCHEMA_VERSION = "entry_model_native_feature_availability_v1"
+SCHEMA_VERSION = "entry_model_native_feature_availability_v2"
 FIT_CLOCK = "M5"
 CONSUMER_CLOCKS = ("M1", "M5")
 SEMANTIC_TIMEFRAMES = ("M1", "M5", "M15", "H1", "H4", "D1")
@@ -61,6 +65,7 @@ SELECTION_POLICY = {
     "available_rule": "all_code_owned_candidates_jointly_available",
     "constant_policy": "fail_closed_owner_repair_or_code_retirement_required",
     "duplicate_policy": "fail_closed_owner_repair_or_code_retirement_required",
+    "gc_source_policy": "retain_pinned_masked_sources_and_structural_masks_with_explicit_constant_duplicate_evidence_no_learnability_claim",
     "fixed_top_k": False,
     "score_cutoff": False,
     "family_quota": False,
@@ -228,6 +233,14 @@ def fit_feature_availability_contract(
         )
         target_sha256 = target_digest.hexdigest()
 
+    gc_context.require_masked_storage_numpy(train_values, ordered_names)
+    observed_rows = {}
+    for value_index, mask_index in gc_context.masking_pairs(ordered_names):
+        count = int(np.count_nonzero(train_values[:, mask_index]))
+        if count == 0:
+            raise RuntimeError("FEATURE_AVAILABILITY_GC_NO_OBSERVED_TRAIN:" + ordered_names[value_index])
+        observed_rows[ordered_names[value_index]] = count
+
     column_values: dict[str, np.ndarray] = {}
     column_hashes: dict[str, str] = {}
     hash_representatives: dict[str, str] = {}
@@ -254,12 +267,16 @@ def fit_feature_availability_contract(
         for name in ordered_names
         if bool(np.all(column_values[name] == column_values[name][0]))
     ]
-    if constant_names or duplicate_of:
+    invalid_constants = [n for n in constant_names if gc_context.field_role(n) == "dense_market_feature"]
+    invalid_duplicates = {n: r for n, r in duplicate_of.items()
+                          if gc_context.field_role(n) == "dense_market_feature"
+                          or gc_context.field_role(r) == "dense_market_feature"}
+    if invalid_constants or invalid_duplicates:
         evidence = {
-            "train_constant": constant_names,
+            "train_constant": invalid_constants,
             "exact_duplicate": [
                 {"name": name, "exact_duplicate_of": representative}
-                for name, representative in duplicate_of.items()
+                for name, representative in invalid_duplicates.items()
             ],
         }
         raise RuntimeError(
@@ -271,7 +288,7 @@ def fit_feature_availability_contract(
     for name in ordered_names:
         column = column_values[name]
         decision = "available"
-        exact_duplicate_of = None
+        exact_duplicate_of = duplicate_of.get(name)
         owner = classify_entry_specialist_feature(name)
         if owner not in MODEL_NATIVE_TRAINING_SPECIALISTS:
             raise RuntimeError(
@@ -280,6 +297,8 @@ def fit_feature_availability_contract(
         feature_rows.append(
             {
                 "name": name,
+                "input_role": gc_context.field_role(name),
+                "observed_train_rows": observed_rows.get(name),
                 "owner": owner,
                 "semantic_timeframes": _semantic_timeframes(name),
                 "decision": decision,
@@ -451,6 +470,8 @@ def require_feature_availability_contract(
         raise RuntimeError("FEATURE_AVAILABILITY_CANDIDATE_POOL_BINDING_INVALID")
     feature_keys = {
         "name",
+        "input_role",
+        "observed_train_rows",
         "owner",
         "semantic_timeframes",
         "decision",
@@ -500,7 +521,12 @@ def require_feature_availability_contract(
             raise RuntimeError(f"FEATURE_AVAILABILITY_DIAGNOSTIC_INVALID: {name}")
         duplicate = row.get("exact_duplicate_of")
         if decision == "available":
-            if row.get("exclusion_reason") is not None or duplicate is not None:
+            duplicate_valid = (duplicate is None or (
+                gc_context.field_role(name) != "dense_market_feature"
+                and gc_context.field_role(str(duplicate)) != "dense_market_feature"
+                and str(duplicate) in by_name
+                and by_name[str(duplicate)]["train_value_sha256"] == value_sha))
+            if row.get("exclusion_reason") is not None or not duplicate_valid:
                 raise RuntimeError(f"FEATURE_AVAILABILITY_DECISION_INVALID: {name}")
             available.append(name)
         elif decision == "train_constant":
@@ -526,7 +552,23 @@ def require_feature_availability_contract(
             excluded.append(
                 {"name": name, "reason": decision, "exact_duplicate_of": duplicate}
             )
+        if row.get('input_role') != gc_context.field_role(name):
+            raise RuntimeError('FEATURE_AVAILABILITY_INPUT_ROLE_INVALID:' + name)
         by_name[name] = row
+    for name, row in by_name.items():
+        role = gc_context.field_role(name)
+        count = row.get('observed_train_rows')
+        if role == 'gc_masked_source_value':
+            mask = by_name.get(name + '_observed')
+            if (mask is None or not isinstance(count, int) or not 1 <= count <= row['train_rows']
+                    or count != mask['nonzero_rows']):
+                raise RuntimeError('FEATURE_AVAILABILITY_GC_OBSERVATION_BINDING:' + name)
+        elif count is not None:
+            raise RuntimeError('FEATURE_AVAILABILITY_OBSERVED_COUNT_ROLE:' + name)
+        if role == 'gc_observation_mask' and (
+                row['distinct_value_count'] > 2 or row['observed_min'] not in (0.0, 1.0)
+                or row['observed_max'] not in (0.0, 1.0)):
+            raise RuntimeError('FEATURE_AVAILABILITY_GC_MASK_DOMAIN:' + name)
     if (
         value.get("available_features") != available
         or value.get("available_feature_count") != len(available)
