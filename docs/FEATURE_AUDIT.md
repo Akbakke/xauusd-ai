@@ -66,6 +66,44 @@ seg. Omtrent150 er et brukeranslag; de eksekverbare eierne bestemmer faktisk fla
    eksplisitt; de immutable016-manifestene omskrives ikke.
 5. M30 er ikke aktivert, og tilført verdi er ikke målt.
 
+## Ny kildeflate under kvalifisering
+
+Den nye MTF-eieren deklarerer253felt per lukket tidsramme: opprinnelige190,
+40lokale genuine formler, ni generiske HTF-formler og14Group-A-nivåavstander.
+Dette gjenbruker eksisterende formel-/pivot-/likviditetseiere. De åtte familiebreddene
+er24/76/39/13/29/9/39/24;217lokale M5-par deler eksakt formel/kildeklokke. Ekte BID/ASK
+føres gjennom inputprojeksjonen. H4/D1 bruker den eksisterende session-klokken;
+et krav om midnattmodulo kunne ikke validere de virkelige offsetbarene.
+Gjenbruk av rå OHLC-oppsett fjerner cache-selvreferansen for14Group-A-feltene;
+den opprinnelige serving-cachegaten består. Kildeendring er ikke fysisk paritet.
+
+MBP-komplettering019 deklarerer925nativekandidater/185perTF med eksplisitt
+formelkolonne, spesialisteier, validitetsmaske og kildeklokke. Nye felt omfatter
+70% sammenhengende VAH/VAL, kjent og ukjent kumulativ Trade-volumfordeling,
+gjennomsnittlige kontrakter per utført Trade-record, observerte BBO-/ordreantall-
+aggregater og intraminutt spread-/event-/kildeklokkestatistikk. Gjennomsnittlig
+Trade-record er ikke en identifisert overordnet kundes ordre. Maskerte kildetall
+blir ikke konstruert fra nullfylte eller allerede maskerte M1-means.
+
+Ett nytt eventpass er nødvendig for informasjon som001 ikke lagret. Samme66
+råfiler og892100712records er hashbundet; ferdig M1/prisgrid/roll gjenbrukes.
+15/60min/NYsession-profiler beregnes på fysisk M5-klokke, med as-of-projeksjon,
+separat dekning og faktisk kildealder.15/60min betyr minutter, også i H4/D1.
+Absolutte identiteter og ns-tidsstempler er metadata; eventtidsforskjeller er
+signerte målinger. Negative clockforskjeller klippes ikke, og clamped ts_in_delta
+har egen maske. [Leverandørens tidsstempelkonvensjoner](https://www.databento.tech/docs/standards-and-conventions)
+skiller kildeklokkene; verdiene er ikke automatisk fysisk markedslatens.
+
+Ny registry skal måles fra faktiske TRAIN-beslutningsklokker, uten targets,
+VAL eller TEST. Strukturmasker har eksplisitt binær identitet. Lagringsnull bak
+missingmaske fjernes etter normalisering, og profilalder regnes ved den faktiske
+beslutningen. Konstanter/like TRAIN-samples rapporteres; tilfeldig samplelikhet
+beviser ikke like formler, og finite input er ingen alpha-/nyttepåstand.
+
+Fysiske019outputs, native registry/datasett, normalisering og modellkonsum er
+ennå ikke kvalifisert. Den nye MBP-støtten skal være gjennomført og målt før
+neste treningsrunde. Immutable001/016/017/018-kvitteringer omskrives ikke.
+
 ## MBP-1: hva de eksisterende bytene faktisk gir
 
 Rå001 omfatter66MBP-1-filer og892100712records. Den fullførte rebuilden bevarer
@@ -131,3 +169,24 @@ populasjonen; alle genuine formler på alleTF; full GC native-innrømmelse;
 hel-TRAIN-normalisering; nye faktiske initial-/paritets-/smokebevis; målrettet
 Transformer-læring, senere generalisering og nettoøkonomi. Nåstatus og nyeste
 konkrete terminal leses fra den ene overleveringen og policyen.
+
+## Kildevis makroavklaring
+
+De61D1/makrofeltene er44OANDA-prisfelter,9Treasury-kurvefelter,2VIX,
+2GLD-beholdningsfelter i tonn og4COT-felter. En generell påstand om at alle61
+har et påvist vintage-/lekkasjeproblem er ikke dokumentert.44er markedspriser
+og CFTC opplyser at historiske COT normalt ikke oppdateres etter publisering;
+offisielle korreksjonsunntak finnes. Ingen konkret GC088691-korreksjon i det
+aktuelle26månedersvinduet er identifisert. Den eksisterende eieren binder også
+13forsinkede2025-rapporter. Full historisk tilgjengelighet/korreksjonshistorikk
+er samtidig ikke bevist for hver Treasury-/VIX-/GLD-/COT-verdi.
+
+Specens revised_after_publication=false er en kildeerklæring, ikke en målt
+vintage-sammenligning. D+1-laget for Treasury/VIX/GLD er konservativt under
+normal publisering og beviser ikke hver historiske release. Driverendringer
+teller dessuten rader i en felles, forward-filled datokalender; de betegner
+ikke nødvendigvis hver kildes egne handelssesjoner. Disse grensene skal
+rapporteres kildevis og ikke omskrives til en udokumentert blanket-lekkasje.
+[CFTC FAQ](https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm),
+[CFTC historiske kunngjøringer](https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm),
+[Treasury-metode](https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics/treasury-yield-curve-methodology).

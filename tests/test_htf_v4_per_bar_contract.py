@@ -16,6 +16,8 @@ import pytest
 
 from gx1.features import htf_features as htf
 from tests.htf_v29_registry_test_support import (
+    synthetic_native_quote_frame,
+    synthetic_m5_reference_history,
     synthetic_v29_registry_constants,
 )
 from tests.volatility_squeeze_test_support import (
@@ -36,8 +38,9 @@ def _bind_squeeze_artifacts(tmp_path_factory):
 
 def _compute_v4(bars: pd.DataFrame, *, timeframe: str) -> pd.DataFrame:
     return htf.compute_per_bar_features_v4(
-        bars,
+        synthetic_native_quote_frame(bars),
         timeframe=timeframe,
+        context_m5=synthetic_m5_reference_history(bars, timeframe),
         v29_registry_constants=V29_TEST_REGISTRY_CONSTANTS,
         volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
     )
@@ -50,7 +53,7 @@ def _bars(n: int, *, seed: int) -> pd.DataFrame:
     low = close - np.abs(rng.normal(0.0, 1.0, size=n))
     open_ = np.concatenate([[close[0]], close[:-1]])
     index = pd.date_range("2021-01-04", periods=n, freq="5min", tz="UTC")
-    return pd.DataFrame(
+    return synthetic_native_quote_frame(pd.DataFrame(
         {
             "open": open_,
             "high": np.maximum.reduce([high, open_, close]),
@@ -59,7 +62,7 @@ def _bars(n: int, *, seed: int) -> pd.DataFrame:
             "volume": rng.integers(400, 601, size=n, dtype=np.int64),
         },
         index=index,
-    )
+    ))
 
 
 def test_rsi_uses_classic_wilder_seed_and_recursion() -> None:
@@ -242,6 +245,7 @@ def test_v4_is_one_exact_derived_field_contract() -> None:
         + len(EXPECTED_V29_MOMENTUM_EVENT_FEATURES)
         + len(LEVEL_REGISTRY_MTF_FEATURE_NAMES)
         + len(TRENDLINE_REGISTRY_FEATURE_NAMES_V1)
+        + len(htf.MULTI_TF_V4_FULL_PRIMITIVE_FEATURES)
     )
     assert htf.MULTI_TF_FEATURE_COUNT_V4 == expected_width
     assert htf.MULTI_TF_V4_GROUP_A_BASE_FEATURES == (
@@ -266,7 +270,7 @@ def test_v4_is_one_exact_derived_field_contract() -> None:
     )
     registry_tail = tuple(LEVEL_REGISTRY_MTF_FEATURE_NAMES) + tuple(
         TRENDLINE_REGISTRY_FEATURE_NAMES_V1
-    )
+    ) + htf.MULTI_TF_V4_FULL_PRIMITIVE_FEATURES
     assert htf.MULTI_TF_PER_BAR_FEATURES_V4[-len(registry_tail):] == (
         registry_tail
     )
@@ -483,7 +487,7 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
     assert tuple(routing) == MODEL_NATIVE_TRAINING_SPECIALISTS
     # Pre-V29 audited per-specialist widths plus the V29 additions, derived
     # from the declared owner tuples (design doc §5.2.3).
-    assert {name: len(indices) for name, indices in routing.items()} == {
+    expected_by_owner = {
         # V30 package 2 (2026-08-13): the per-TF swing block is the 5 V1 names
         # plus the 9 adopted V29 swing-event names; the routing tuple is the
         # feature tuple itself, so the count derives from the owner.
@@ -520,6 +524,10 @@ def test_v4_routes_every_field_to_all_eight_specialists() -> None:
         "price_action_candle_encoder": 1
         + len(htf.MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES),
     }
+    for field, owner in htf.MULTI_TF_V4_FULL_PRIMITIVE_SPECIALISTS.items():
+        expected_by_owner[owner] += 1
+        assert field in htf.MULTI_TF_PER_BAR_FEATURES_V4
+    assert {name: len(indices) for name, indices in routing.items()} == expected_by_owner
     flattened = [index for indices in routing.values() for index in indices]
     assert sorted(flattened) == list(range(htf.MULTI_TF_FEATURE_COUNT_V4))
     assert all(list(indices) == sorted(set(indices)) for indices in routing.values())
@@ -1490,8 +1498,11 @@ def _engineered_divergence_bars() -> tuple[pd.DataFrame, int]:
     close = np.asarray(closes, dtype=np.float64)
     open_ = np.concatenate([[close[0]], close[:-1]])
     rising = close >= open_
+    # Vary only observed LOW ranges: the engineered HIGH and close/RSI
+    # paths must remain exact so no extra bearish high pivots are introduced.
+    range_variation = 0.01 * (np.arange(len(close)) + 1.0) / len(close)
     high = np.where(rising, close + 0.3, open_ + 0.05)
-    low = np.where(rising, open_ - 0.05, close - 0.3)
+    low = np.where(rising, open_ - 0.05, close - 0.3) - range_variation
     index = pd.date_range(
         "2021-01-04", periods=len(close), freq="5min", tz="UTC"
     )
@@ -1948,3 +1959,169 @@ def test_v31_vwap_slope_differences_a_rolling_window_not_a_session_accumulator()
     # The fixture must actually exercise the difference on intraday lanes,
     # otherwise the repair claim rests on nothing.
     assert distinguishable >= 2
+
+
+@pytest.mark.parametrize("timeframe", tuple(htf.MULTI_TF_RESAMPLE_RULES))
+def test_full_native_primitive_wave_calls_same_owners_on_each_clock(timeframe: str) -> None:
+    from gx1.features.micro_structure_v1 import compute_micro_structure_features
+    from gx1.features.entry_foundation_structure_v1 import (
+        build_entry_foundation_structure_layer, FOUNDATION_STRUCTURE_SOURCE_FIELDS,
+    )
+    from gx1.features.smc_v1 import compute_smc_features
+    bars = _bars(800, seed=20261018)
+    start = htf.multi_tf_bar_label(pd.Timestamp("2024-01-02T22:00:00Z"), timeframe)
+    bars.index = pd.date_range(start, periods=len(bars), freq=htf.MULTI_TF_RESAMPLE_RULES[timeframe])
+    actual = htf._compute_local_genuine_primitive_frame_v4(bars, timeframe=timeframe)
+    assert tuple(actual) == htf.MULTI_TF_V4_LOCAL_ONLY_PRIMITIVE_FEATURES
+    assert len(actual.columns) == 40
+    micro = compute_micro_structure_features(bars["high"], bars["low"], bars["close"])
+    for name, values in micro.items():
+        np.testing.assert_array_equal(actual[name].to_numpy(dtype=np.float32), values)
+    expected_return = ((bars["close"] / bars["close"].shift(1) - 1.0) * 1e4).to_numpy(dtype=np.float32)
+    np.testing.assert_array_equal(actual["ret_1"].to_numpy(dtype=np.float32), expected_return)
+    expected_spread = ((bars["ask_close"] - bars["bid_close"]) / bars["bid_close"] * 1e4).to_numpy(dtype=np.float32)
+    np.testing.assert_array_equal(actual["spread_bps"].to_numpy(dtype=np.float32), expected_spread)
+    smc_source = bars.copy()
+    smc_source["atr"] = htf.wilder_atr(bars["high"], bars["low"], bars["close"], 14)
+    smc = compute_smc_features(smc_source, include_v30_additions=True, include_sweep_anchored_activity=True)
+    events = np.column_stack([smc[name.removeprefix("snap.")] for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS])
+    ages, age_names = build_entry_foundation_structure_layer(events, list(FOUNDATION_STRUCTURE_SOURCE_FIELDS))
+    np.testing.assert_array_equal(actual.loc[:, age_names].to_numpy(dtype=np.float32), ages)
+    for name in htf.SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES:
+        np.testing.assert_array_equal(actual[name].to_numpy(dtype=np.float32), smc[name].to_numpy(dtype=np.float32))
+
+
+def test_native_quote_projection_requires_real_columns_and_aggregates_raw_sides() -> None:
+    bars = _bars(30, seed=260018)
+    bars["ask_close"] += np.linspace(0.0, 0.1, len(bars))
+    bars["ask_high"] = np.maximum(bars["ask_high"], bars["ask_close"])
+    projected = htf._resample_ohlcv(bars, "M15", require_quotes=True)
+    expected = bars.iloc[:3]
+    assert projected.iloc[0]["bid_close"] == expected.iloc[-1]["bid_close"]
+    assert projected.iloc[0]["ask_close"] == expected.iloc[-1]["ask_close"]
+    assert projected.iloc[0]["ask_high"] == expected["ask_high"].max()
+    assert projected.iloc[0]["bid_low"] == expected["bid_low"].min()
+    with pytest.raises(RuntimeError, match="HTF_V4_NATIVE_QUOTES_REQUIRED|HTF_V4_VOLUME_SOURCE_MISSING"):
+        htf._resample_ohlcv(bars.drop(columns="ask_high"), "M15", require_quotes=True)
+    crossed = bars.copy()
+    crossed["ask_close"] = crossed["bid_close"] - 0.1
+    crossed["ask_low"] = np.minimum(crossed["ask_low"], crossed["ask_close"])
+    with pytest.raises(RuntimeError, match="CLOSING_BBO_CROSSED"):
+        htf._require_native_quote_frame_v4(crossed)
+
+
+@pytest.mark.parametrize("timeframe", tuple(htf.MULTI_TF_RESAMPLE_RULES))
+def test_generic_scalar_wave_is_the_exact_persistent_context_owner(timeframe: str) -> None:
+    bars = _bars(800, seed=20261019)
+    primitive = htf._compute_model_native_scalar_primitives_v4(bars)
+    persistent = htf._compute_model_native_mtf_scalar_frame_v4(bars, timeframe=timeframe)
+    for old_name, new_name in htf.MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4[timeframe]:
+        if new_name in primitive:
+            np.testing.assert_array_equal(persistent[old_name].to_numpy(dtype=np.float32), primitive[new_name].to_numpy(dtype=np.float32))
+    raw_gap = (bars["high"] + bars["low"]) / 2.0
+    raw_gap = raw_gap - htf.classic_ema(raw_gap, 200)
+    atr = htf.wilder_atr(bars["high"], bars["low"], bars["close"], 14)
+    expected = ((raw_gap - raw_gap.shift(1)) / atr).to_numpy(dtype=np.float32)
+    expected[:htf.D1_EMA200_MIN_BARS-1] = np.nan
+    np.testing.assert_array_equal(primitive["mid_ema200_distance_change_1_atr"].to_numpy(dtype=np.float32), expected)
+
+
+
+def test_shared_scalar_owner_keeps_short_history_as_honest_nan_prefix() -> None:
+    bars = _bars(3, seed=238)
+    primitive = htf._compute_model_native_scalar_primitives_v4(bars)
+    assert len(primitive) == len(bars)
+    assert primitive["macd_line_atr_change_3"].isna().all()
+    assert primitive["macd_line_atr_change_5"].isna().all()
+
+
+@pytest.mark.parametrize("timeframe", htf.MULTI_TF_TIMEFRAMES)
+def test_group_a_per_lane_calls_exact_raw_pivot_and_extrema_owners(timeframe):
+    from gx1.scripts.augment_forward_outcome_v2 import (
+        _build_raw_market_price_context, _compute_closed_lane_group_a, _pivots, _liquidity_zones,
+    )
+    bars = _bars(12, seed=252)
+    bars.index = pd.date_range(htf.multi_tf_bar_label(pd.Timestamp("2024-01-02T22:00:00Z"), timeframe),
+                               periods=len(bars), freq=htf.MULTI_TF_RESAMPLE_RULES[timeframe])
+    context = synthetic_m5_reference_history(bars, timeframe)
+    atr = np.linspace(1.0, 3.0, len(bars))
+    observed = _compute_closed_lane_group_a(bars, timeframe=timeframe, context_m5=context, lane_atr=atr)
+    raw = _build_raw_market_price_context(context, decision_frame=bars, decision_bar_duration=htf.MULTI_TF_SHIFT[timeframe])
+    assert tuple(observed.columns) == htf.MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES
+    for row in (0, len(bars) - 1):
+        ts = bars.index[row]
+        expected = {**_pivots(raw, ts + htf.MULTI_TF_SHIFT[timeframe], atr[row], float(bars["close"].iloc[row])),
+                    **_liquidity_zones(raw, int(ts.value), float(bars["close"].iloc[row]), atr[row])}
+        np.testing.assert_array_equal(observed.iloc[row].to_numpy(), [expected[name] for name in observed])
+    # Alter raw bars strictly after the selected availability; earlier outputs
+    # must remain identical even when a later day completely changes its pivot.
+    cutoff = bars.index[3] + htf.MULTI_TF_SHIFT[timeframe]
+    changed = context.copy()
+    changed.loc[changed.index >= cutoff, ["high", "low", "close"]] += 100.0
+    future_changed = _compute_closed_lane_group_a(bars, timeframe=timeframe, context_m5=changed, lane_atr=atr)
+    np.testing.assert_array_equal(observed.iloc[:4].to_numpy(), future_changed.iloc[:4].to_numpy())
+
+
+@pytest.mark.parametrize("timeframe", ["H4", "D1"])
+def test_group_a_session_phase_uses_exact_native_grid_and_rejects_midnight(timeframe):
+    from gx1.scripts.augment_forward_outcome_v2 import _build_raw_market_price_context
+    bars = _bars(4, seed=14)
+    bars.index = pd.date_range("2024-01-01T22:00:00Z", periods=len(bars),
+                               freq=htf.MULTI_TF_RESAMPLE_RULES[timeframe])
+    context = synthetic_m5_reference_history(bars, timeframe)
+    _build_raw_market_price_context(context, decision_frame=bars, decision_bar_duration=htf.MULTI_TF_SHIFT[timeframe])
+    bad = bars.copy(); bad.index = bad.index + pd.Timedelta(hours=2)
+    with pytest.raises(RuntimeError, match="off the declared local grid"):
+        _build_raw_market_price_context(context, decision_frame=bad, decision_bar_duration=htf.MULTI_TF_SHIFT[timeframe])
+
+
+def test_group_a_short_real_history_stays_unavailable_without_placeholder_cache():
+    from gx1.scripts.augment_forward_outcome_v2 import _compute_closed_lane_group_a
+    bars = _bars(300, seed=60)
+    observed = _compute_closed_lane_group_a(bars, timeframe="M5", context_m5=bars,
+                                           lane_atr=np.ones(len(bars)))
+    assert observed.loc[:, [name for name in observed if "_hi_" in name or "_lo_" in name]].isna().all().all()
+    assert observed.loc[:, list(htf.MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES[:4])].notna().any().any()
+
+
+@pytest.mark.parametrize("timeframe", htf.MULTI_TF_TIMEFRAMES)
+def test_native_lane_session_change_uses_the_existing_session_owner(timeframe):
+    from gx1.features.basic_v1 import add_session_features
+    bars = _bars(40, seed=253)
+    bars.index = pd.date_range("2024-01-01T22:00:00Z", periods=len(bars),
+                               freq=htf.MULTI_TF_RESAMPLE_RULES[timeframe])
+    observed = htf._compute_local_genuine_primitive_frame_v4(bars, timeframe=timeframe)
+    expected = add_session_features(bars.copy(), decision_delay_seconds=int(htf.MULTI_TF_SHIFT[timeframe].total_seconds()))
+    np.testing.assert_array_equal(observed["session_change_flag"], expected["session_change_flag"])
+    assert np.isin(observed["session_change_flag"], (0.0, 1.0)).all()
+    if timeframe == "D1":
+        assert (observed["session_change_flag"] == 0.0).all()
+
+
+def test_shared_raw_context_reuses_exact_arrays_and_vector_pivots_match_strict_prior_reference():
+    from gx1.scripts.augment_forward_outcome_v2 import (
+        _build_raw_market_ohlc_context, _build_raw_market_price_context,
+        _prior_day_pivot_levels, _compute_closed_lane_group_a,
+    )
+    bars = _bars(12, seed=253)
+    source = synthetic_m5_reference_history(bars, "M5")
+    shared = _build_raw_market_ohlc_context(source)
+    raw = _build_raw_market_price_context(source, decision_frame=bars, _raw_source=shared)
+    assert raw.h4_high is shared.h4_high
+    assert raw.daily_pivot_levels is shared.daily_pivot_levels
+    availability = pd.date_range(bars.index[0] - pd.Timedelta(days=72),
+                                 bars.index[-1] + pd.Timedelta(days=1), freq="6h")
+    observed = _prior_day_pivot_levels(raw.daily_pivot_by_date, availability,
+        _prepared=(raw.daily_pivot_dates_ns, raw.daily_pivot_levels))
+    for row, ts in enumerate(availability):
+        target = htf.multi_tf_bar_label(ts, "D1")
+        eligible = [day for day in raw.daily_pivot_by_date if day < target]
+        if not eligible:
+            assert np.isnan(observed[row]).all()
+        else:
+            expected = raw.daily_pivot_by_date[max(eligible)]
+            np.testing.assert_array_equal(observed[row], [expected[key] for key in ("R1", "R2", "S1", "S2")])
+    full = _compute_closed_lane_group_a(bars, timeframe="M5", context_m5=source, lane_atr=np.ones(len(bars)))
+    reused = _compute_closed_lane_group_a(bars, timeframe="M5", context_m5=source,
+        lane_atr=np.ones(len(bars)), _raw_source=shared)
+    np.testing.assert_array_equal(full.to_numpy(), reused.to_numpy())

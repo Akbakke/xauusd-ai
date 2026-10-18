@@ -187,6 +187,11 @@ def _multi_tf_v4_liveness_fixture() -> dict[str, object]:
             row * feature_scale + np.float32(tf_position / 10.0),
             dtype=np.float32,
         )
+        values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("close_range_observed")] = np.arange(len(values)) % 2
+        values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("session_change_flag")] = 0.0 if tf_name == "D1" else np.arange(len(values)) % 2
+        values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("close_distance_below_high_range_fraction")] = np.where(
+            values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("close_range_observed")] == 1.0,
+            (np.arange(len(values)) + 1.0) / (len(values) + 1.0), 0.0)
         frame = pd.DataFrame(
             values,
             columns=MULTI_TF_PER_BAR_FEATURES_V4,

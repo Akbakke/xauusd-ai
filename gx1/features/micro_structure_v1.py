@@ -31,6 +31,7 @@ MICRO_FEATURE_NAMES_V1 = (
     "close_range_observed",
     "close_distance_from_ema5_bps",
 )
+MICRO_OBSERVATION_MASK_FIELDS_V1 = ("close_range_observed",)
 MICRO_EMA_SPAN_V1 = 5
 MICRO_CAUSAL_WARMUP_ROWS_V1 = 5
 MICRO_WARMUP_PREFIX_FIELDS_V1 = (
@@ -306,7 +307,7 @@ class SpreadDynamicsCarryV1:
 
 
 MICRO_STRUCTURE_SCHEMA_VERSION = (
-    "micro_structure_primitives_v6_aggregated_extrema_offsets_20261010"
+    "micro_structure_primitives_v7_range_observation_gate_20261018"
 )
 MICRO_PRICE_FORMULA_CONTRACT = (
     "close_return_3_bps[t]=(close[t]/close[t-3]-1)*10000",
@@ -317,6 +318,7 @@ MICRO_PRICE_FORMULA_CONTRACT = (
     "close_distance_from_ema5_bps[t]=(close[t]-classic_sma_seeded_ema5[t])/close[t]*10000",
     "warmup=causal_nan_prefix_no_partial_window_no_zero_or_midpoint_fill",
     "transform=no_epsilon_no_clip_no_neutral_midpoint_fill",
+    "range_observation=fit_fraction_on_observed_rows_only_binary_identity_mask_hard_zero_after_normalization_before_projection",
     "clock=same_owner_independent_native_closed_m5_entry_and_m1_exit",
 )
 SPREAD_DYNAMICS_FORMULA_CONTRACT = (
@@ -415,6 +417,46 @@ def require_micro_structure_contract_metadata(
     if observed != expected:
         raise RuntimeError("MICRO_STRUCTURE_CONTRACT_MISMATCH")
     return observed
+
+
+def range_observation_masking_pairs(names) -> tuple[tuple[int, int], ...]:
+    positions = {name: i for i, name in enumerate(names)}
+    pairs = []
+    for prefix in ("", "ctx_cont."):
+        value, mask = prefix + "close_distance_below_high_range_fraction", prefix + "close_range_observed"
+        if value in positions:
+            if mask not in positions:
+                raise RuntimeError("MICRO_RANGE_OBSERVATION_MASK_MISSING")
+            pairs.append((positions[value], positions[mask]))
+    return tuple(pairs)
+
+
+def range_observation_binary_fields(names) -> set[str]:
+    return {name for name in names if name.removeprefix("ctx_cont.") in MICRO_OBSERVATION_MASK_FIELDS_V1}
+
+
+def mask_normalized_range_numpy(raw, normalized, names):
+    data = np.asarray(raw)
+    for value, mask in range_observation_masking_pairs(names):
+        observed = data[..., mask]
+        if not np.isin(observed, (0.0, 1.0)).all() or np.any(data[..., value][observed == 0.0] != 0.0):
+            raise RuntimeError("MICRO_RANGE_OBSERVATION_STORAGE_INVALID")
+        normalized[..., value] = np.where(observed == 1.0, normalized[..., value], 0.0)
+    return normalized
+
+
+def mask_normalized_range_torch(raw, normalized, names):
+    import torch
+    pairs = range_observation_masking_pairs(names)
+    if not pairs:
+        return normalized
+    result = normalized.clone()
+    for value, mask in pairs:
+        observed = raw[..., mask]
+        if bool((((observed != 0.0) & (observed != 1.0)) | ((observed == 0.0) & (raw[..., value] != 0.0))).any()):
+            raise RuntimeError("MICRO_RANGE_OBSERVATION_STORAGE_INVALID")
+        result[..., value] = torch.where(observed == 1.0, normalized[..., value], 0.0)
+    return result
 
 
 def compute_micro_structure_features(

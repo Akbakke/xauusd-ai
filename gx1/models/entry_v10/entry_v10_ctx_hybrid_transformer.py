@@ -12,6 +12,7 @@ import torch.nn as nn
 from torch.utils.checkpoint import checkpoint as _torch_checkpoint
 
 from gx1.features import gc_native_context_v1 as _gc_context
+from gx1.features.micro_structure_v1 import mask_normalized_range_torch
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
     MODEL_NATIVE_CTX_CAT_FIELDS,
@@ -30,6 +31,8 @@ from gx1.contracts.entry_decision_token_v1 import (
     ENTRY_DECISION_TOKEN_SOURCE_DIM,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_AUX_FORECAST_HORIZONS,
+    MODEL_NATIVE_FORECAST_OUTPUT_DIM,
     MODEL_NATIVE_DIP_DIRECTIONS as DIP_DIRECTIONS,  # noqa: F401
     MODEL_NATIVE_DIP_OUTPUT_DIM as DIP_HEAD_DIM,
     MODEL_NATIVE_DIP_OUTPUT_TARGETS as DIP_TARGETS,  # noqa: F401
@@ -266,8 +269,8 @@ CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED = False
 # parameter-free LayerNorm as the main encoder, and every window readout is
 # mean-plus-last-closed-bar. Same parameters and state_dict keys as v9; a v9
 # checkpoint computes a different function and is rejected by this version.
-MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v10"
-MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v9"
+MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v11"
+MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v10"
 _UNIT_TEST_ARCHITECTURE_SENTINEL = object()
 
 
@@ -355,8 +358,8 @@ DIP_HORIZONS = TIMING_HORIZONS
 # at several M5 horizons. Self-supervised (target = realized future return, no
 # labels). Forces the representation to capture forward price dynamics for the
 # shared representation and every learned evidence head.
-FORECAST_HORIZONS = (1, 5, 12, 24)                # M5 bars ahead
-FORECAST_HEAD_DIM = len(FORECAST_HORIZONS)        # = 4
+FORECAST_HORIZONS = MODEL_NATIVE_AUX_FORECAST_HORIZONS
+FORECAST_HEAD_DIM = MODEL_NATIVE_FORECAST_OUTPUT_DIM
 
 # ── Dip-timing head (2026-05-26) — predicts WHEN, not just how-deep. Completes
 # "don't enter at the TOP of a dip": dip_bottom_frac = bar-of-dip-bottom / K and
@@ -1729,7 +1732,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             torch.asinh(affine),
         ).to(dtype=raw_float.dtype)
         _assert_finite(f"normalized.{surface}", normalized)
-        return _gc_context.mask_normalized_torch(raw_float, normalized, field_names)
+        result = _gc_context.mask_normalized_torch(raw_float, normalized, field_names)
+        return mask_normalized_range_torch(raw_float, result, field_names)
 
     def _effective_tf_input_scale(self, suffix: str) -> torch.Tensor:
         raw = getattr(self, f"tf_input_scale_{suffix}")

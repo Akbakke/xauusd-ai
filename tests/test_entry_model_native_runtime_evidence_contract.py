@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_FORECAST_OUTPUT_DIM
+
 import copy
 import math
 
@@ -48,7 +50,7 @@ def _valid_evidence(*, with_timing: bool = False) -> dict:
         "side_mae_bps": [2.0, 3.0],
         "trendline_event_logits": [0.1, -0.1, 0.2, -0.2],
         "dip_pred": [0.1] * 18,
-        "forecast_pred": [0.1] * 4,
+        "forecast_pred": [0.1] * MODEL_NATIVE_FORECAST_OUTPUT_DIM,
         "timing_pred": [0.1] * 12,
         "tail_risk_pred": [0.1] * 6,
         "vol_forecast_pred": [0.1] * 3,
@@ -183,4 +185,12 @@ def test_runtime_vectors_are_finite_and_gate_contracts_are_exact() -> None:
     evidence = _valid_evidence()
     evidence["tf_gate"][0] = 0.0
     with pytest.raises(ModelNativeRuntimeEvidenceError, match="simplex"):
+        require_model_native_runtime_evidence(evidence)
+
+
+def test_runtime_evidence_rejects_old_four_slot_forecast_for_ten_slot_contract():
+    evidence = _valid_evidence()
+    assert len(evidence['forecast_pred']) == MODEL_NATIVE_FORECAST_OUTPUT_DIM == 10
+    evidence['forecast_pred'] = evidence['forecast_pred'][:4]
+    with pytest.raises(ModelNativeRuntimeEvidenceError, match='forecast_pred'):
         require_model_native_runtime_evidence(evidence)

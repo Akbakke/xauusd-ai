@@ -35,6 +35,7 @@ from gx1.contracts.entry_foundation_audit_policy_v1 import (
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
+    MODEL_NATIVE_FORECAST_OUTPUT_DIM,
     require_model_native_aux_target_contract,
 )
 from gx1.contracts.entry_model_native_bundle_commit_v1 import (
@@ -194,7 +195,7 @@ _SCALAR_HEAD_EVIDENCE = {
 _VECTOR_HEAD_EVIDENCE = {
     "entry_action_q": {"entry_action_q_bps": 3},
     "dip": {"dip_pred": 18},
-    "forecast": {"forecast_pred": 4},
+    "forecast": {"forecast_pred": MODEL_NATIVE_FORECAST_OUTPUT_DIM},
     "timing": {"timing_pred": 12},
     "tail_risk": {"tail_risk_pred": 6},
     "vol_forecast": {"vol_forecast_pred": 3},

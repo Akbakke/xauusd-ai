@@ -162,6 +162,8 @@ def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_
         value = quantities.astype(np.float64)
         value[~observed] = np.nan
         out['observed_' + target] = value
+    out['observed_avg_executed_trade_contracts'] = np.divide(out['observed_volume'], out['observed_trades'],
+        out=np.full(len(stamps), np.nan), where=out['observed_trades'] > 0)
     out['observed_known_delta_contracts'] = out['observed_buy_known'] - out['observed_sell_known']
     out['observed_known_aggressor_fraction'] = np.divide(
         out['observed_buy_known'] + out['observed_sell_known'], out['observed_volume'],
@@ -188,16 +190,21 @@ def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_
         if not np.array_equal(encoded.astype(np.int64), timestamps):
             raise RuntimeError('GC_FEATURE_OBSERVED_TIMESTAMP_PRECISION')
         out['observed_' + name + '_minute_ns'] = np.where(observed, encoded, np.nan)
-    for name in PROFILE_FIELDS:
+    for name in PROFILE_FIELDS + ('val_usd', 'vah_usd'):
         out['observed_' + name] = np.full(len(stamps), np.nan)
     for name in OBSERVED_FOOTPRINT_FIELDS.values():
         out[name] = np.full(len(stamps), np.nan)
     return out,inverse
 
 
-def consume_ladder(path: Path, surfaces, minute_maps, tick_size):
+def consume_ladder(path: Path, surfaces, minute_maps, tick_size, *, profile_output=None, profile_state_max_bytes=None):
     """Reduce bounded Arrow batches into one currently open histogram per TF."""
     states = {tf:None for tf in surfaces}
+    profile_state = None
+    profile_anchors = None
+    if profile_output is not None:
+        profile_state = DynamicProfileStateV2(tick_size / PRICE_SCALE, max_state_bytes=profile_state_max_bytes)
+        profile_anchors = profile_anchors_v2(surfaces['M5']['bar_start_ns'])
     def flush(tf):
         state = states[tf]
         if state is None:
@@ -217,6 +224,15 @@ def consume_ladder(path: Path, surfaces, minute_maps, tick_size):
                 raise RuntimeError('GC_FEATURE_OBSERVED_LADDER_VOLUME_PARITY_FAILED')
             for name in PROFILE_FIELDS:
                 surface['observed_' + name][bar] = values[name]
+            total_histogram = {price: sum(map(int, histogram[price])) for price in ticks}
+            _, value_low, value_high = value_area_v2(total_histogram)
+            surface['observed_val_usd'][bar] = value_low * tick_size / PRICE_SCALE
+            surface['observed_vah_usd'][bar] = value_high * tick_size / PRICE_SCALE
+            if tf == 'M5' and profile_state is not None:
+                row = profile_state.step(surface['bar_start_ns'][bar], total_histogram, True,
+                    surface['contract_index'][bar], surface['observed_close_usd'][bar], profile_anchors[bar],
+                    int(surface['observed_accepted_minutes'][bar]))
+                for name, value in row.items():profile_output[name][bar] = value
             # These are the KNOWN-side contributions, even when unknown volume
             # exists. They never assert the sign of the unobserved aggressors.
             for source_name, target in OBSERVED_FOOTPRINT_FIELDS.items():
@@ -240,8 +256,13 @@ def consume_ladder(path: Path, surfaces, minute_maps, tick_size):
                 continue
             bars,ticks = bars[take],a['price_tick'][take]
             quantities = np.column_stack([a[n][take] for n in ('buy','sell','unknown')])
-            unique,first,counts = np.unique(bars,return_index=True,return_counts=True)
-            for bar,start,count in zip(unique,first,counts):
+            # The source is contract-major, not globally chronological. Keep
+            # contiguous runs in stream order so an open late-contract bucket
+            # receives this batch's continuation before an earlier contract
+            # can trigger its conservation check. Never sort or merge revisits.
+            boundaries = np.r_[0, np.flatnonzero(np.diff(bars) != 0) + 1, len(bars)]
+            first, counts = boundaries[:-1], np.diff(boundaries)
+            for bar,start,count in zip(bars[first],first,counts):
                 if states[tf] is None or states[tf][0] != bar:
                     flush(tf)
                     states[tf] = (int(bar),{})
@@ -257,6 +278,7 @@ def consume_ladder(path: Path, surfaces, minute_maps, tick_size):
                         hist[key] = qty.copy()
     for tf in surfaces:
         flush(tf)
+    return {'profile_stream_peak_state_bytes': 0 if profile_state is None else profile_state.peak_state_bytes}
 
 
 def add_structure_and_cvd(surface, minute_cvd, minute_maps, minutes):
@@ -349,6 +371,45 @@ def relative_cvd(minutes, selected, masks, metrics):
         for name,value in zip(CVD_FIELDS,(delta,volume,count)):
             out[name][i] = value
     return out
+
+def known_cumulative_contributions_v1(minutes, selected, masks, metrics):
+    """Known B/A and retained N on the existing causal volume-segment clock.
+
+    Unknown aggressors contribute only to unknown quantity. This is never
+    a full signed CVD. UTC-date, roll and invalid/silent-minute resets reuse
+    the canonical segment owner rather than guessing a session calendar.
+    """
+    names = ('buy_contracts', 'sell_contracts', 'unknown_contracts', 'volume_contracts',
+             'known_delta_contracts', 'unknown_fraction', 'observed_minutes')
+    out = {name: np.full(len(minutes), np.nan) for name in names}
+    segment = source.reset_segments(selected, masks['volume'], minutes)
+    previous = -1
+    buy = sell = unknown = volume = count = 0
+    for i in np.flatnonzero(masks['volume']):
+        if segment[i] != previous:
+            buy = sell = unknown = volume = count = 0
+        previous = segment[i]
+        buy += int(metrics['buy'][i]); sell += int(metrics['sell'][i])
+        unknown += int(metrics['unknown'][i]); volume += int(metrics['volume'][i]); count += 1
+        if volume != buy + sell + unknown or volume <= 0 or volume > 2**53:
+            raise RuntimeError('GC_KNOWN_CUMULATIVE_CONSERVATION')
+        values = (buy, sell, unknown, volume, buy - sell, unknown / volume, count)
+        for name, value in zip(names, values):out[name][i] = value
+    return out
+
+
+def add_known_cumulative_contributions_v1(surface, minute_values, minutes):
+    """Project the exact last observed M1, never a later/full-signed endpoint."""
+    valid = surface['observed_valid']
+    end = surface['observed_last_minute_ns']
+    idx = np.searchsorted(minutes, np.where(valid, end, minutes[0]).astype(np.int64))
+    clip = np.minimum(idx, len(minutes) - 1)
+    if np.any(valid & ((idx >= len(minutes)) | (minutes[clip] != end))):
+        raise RuntimeError('GC_KNOWN_CUMULATIVE_ENDPOINT')
+    for name, value in minute_values.items():
+        surface['observed_known_cumulative_' + name] = np.where(valid, value[clip], np.nan)
+    return surface
+
 
 # Research v2 adds families without changing any v1 formula or native registry.
 L1_FIELDS_V2 = ('ofi_contracts','bid_refill_contracts','ask_refill_contracts',
@@ -474,6 +535,56 @@ def bbo_transition_v2(previous, current):
         (a==A)*np.maximum(R-r,0),np.any(c[:,1:]!=p[:,1:],axis=1)))
 
 
+EVENT_LATENCY_DOMAINS_V1 = ('send_to_capture', 'receive_minus_event', 'matching_clock')
+EVENT_DIAGNOSTIC_REDUCERS_V1 = {
+    'qualified_final_event_count': 'sum', 'spread_state_min_ticks': 'min', 'spread_state_max_ticks': 'max',
+    'spread_change_count': 'sum', 'spread_expansion_count': 'sum', 'spread_contraction_count': 'sum',
+    'spread_expansion_sum_ticks': 'sum', 'spread_contraction_sum_ticks': 'sum',
+    'spread_max_expansion_ticks': 'max', 'spread_max_contraction_ticks': 'max',
+    'receive_interval_count': 'sum', 'receive_interval_sum_ns': 'sum',
+    'receive_interval_min_ns': 'min', 'receive_interval_max_ns': 'max',
+    'ts_in_delta_clamped_low_count': 'sum', 'ts_in_delta_clamped_high_count': 'sum',
+    'undefined_event_clock_count': 'sum', 'negative_send_to_capture_count': 'sum',
+    'negative_matching_clock_count': 'sum',
+    **{prefix + suffix: operation for prefix in EVENT_LATENCY_DOMAINS_V1 for suffix, operation in
+        (('_count', 'sum'), ('_sum_ns', 'sum'), ('_min_ns', 'min'), ('_max_ns', 'max'))},
+}
+
+
+def aggregate_observed_event_diagnostics_v1(minutes, selected, events, timeframe):
+    """Aggregate exact event sufficient statistics with separate denominators."""
+    labels = multi_tf_bar_label(pd.DatetimeIndex(minutes, tz='UTC'), timeframe).asi8
+    stamps, first, counts = np.unique(labels, return_index=True, return_counts=True)
+    duration = MULTI_TF_SHIFT[timeframe].value
+    expected = duration // timing.MINUTE_NS
+    same = (np.minimum.reduceat(selected, first) >= 0)
+    same &= np.minimum.reduceat(selected, first) == np.maximum.reduceat(selected, first)
+    count = np.asarray(events['qualified_final_event_count'])
+    accepted = np.isfinite(count) & (count > 0)
+    n = np.add.reduceat(accepted.astype(np.int64), first)
+    valid = (counts == expected) & same & (n > 0)
+    out = {'observed_event_valid': valid, 'observed_event_accepted_minutes': n}
+    reduced = {}
+    for name, operation in EVENT_DIAGNOSTIC_REDUCERS_V1.items():
+        values = np.asarray(events[name]); finite = np.isfinite(values) & accepted
+        if operation == 'sum':value = np.add.reduceat(np.where(finite, values, 0.0), first)
+        elif operation == 'min':value = np.minimum.reduceat(np.where(finite, values, np.inf), first)
+        else:value = np.maximum.reduceat(np.where(finite, values, -np.inf), first)
+        reduced[name] = np.where(valid & np.isfinite(value), value, np.nan)
+    covered = np.add.reduceat(np.where(accepted, events['qualified_covered_ns'], 0), first)
+    reduced['qualified_covered_ns'] = np.where(valid, covered, np.nan)
+    reduced['qualified_events_per_observed_second'] = np.divide(reduced['qualified_final_event_count'], covered / 1e9,
+        out=np.full(len(stamps), np.nan), where=valid & (covered > 0))
+    for prefix in ('receive_interval',) + EVENT_LATENCY_DOMAINS_V1:
+        denominator = reduced[prefix + '_count']
+        reduced[prefix + '_mean_ns'] = np.divide(reduced[prefix + '_sum_ns'], denominator,
+            out=np.full(len(stamps), np.nan), where=denominator > 0)
+        out['observed_event_' + prefix + '_valid'] = valid & (denominator > 0)
+    out['observed_event_coverage_fraction'] = np.where(valid, covered / duration, np.nan)
+    for name, values in reduced.items():out['observed_event_' + name] = values
+    return out
+
+
 class L1FeatureCollectorV2:
     """Streaming final-event L1 reducer, piecewise constant on ts_recv.
 
@@ -481,7 +592,7 @@ class L1FeatureCollectorV2:
     All values are later gated by the unchanged 012 clean-prior-minute mask.
     A file seam clears the anchor. Missing interior minutes are not filled.
     """
-    def __init__(self,wanted,tick_size,*,origin_ns=timing.STUDY_START_NS,reference_minutes=(),include_order_counts=False):
+    def __init__(self,wanted,tick_size,*,origin_ns=timing.STUDY_START_NS,reference_minutes=(),include_order_counts=False,include_event_diagnostics=False):
         self.wanted=np.asarray(wanted,np.int64);self.tick_size=tick_size
         self.origin_ns=origin_ns;self.previous=None;self.end_ns=None
         self.sums=np.zeros((len(wanted),12),np.float64)
@@ -491,12 +602,17 @@ class L1FeatureCollectorV2:
         self.last_time=np.full(len(wanted),np.iinfo(np.int64).min,np.int64)
         self.reference_minutes=frozenset(reference_minutes);self.references=[]
         self.include_order_counts=include_order_counts
+        self.include_event_diagnostics=include_event_diagnostics
+        self.event_previous=None
+        if include_event_diagnostics:
+            self.event_stats = {name: np.full(len(wanted), np.inf if operation == 'min' else
+                -np.inf if operation == 'max' else 0.0) for name, operation in EVENT_DIAGNOSTIC_REDUCERS_V1.items()}
         if include_order_counts:
             self.order_sums=np.zeros((len(wanted),len(L1_ORDER_COUNT_FIELDS_V1)),np.float64)
             self.order_covered=np.zeros(len(wanted),np.int64)
     def file_start(self,item):
         if self.previous is not None:self.finish(self.end_ns)
-        self.previous=None;self.end_ns=item['end_ns']
+        self.previous=None;self.end_ns=item['end_ns'];self.event_previous=None
     def _positions(self,minute):
         pos=np.searchsorted(self.wanted,minute)
         take=pos<len(self.wanted)
@@ -553,6 +669,67 @@ class L1FeatureCollectorV2:
             second=np.maximum(boundary,endstart)
             self._integrate(p[cross],second[cross],right[cross])
         self.previous=c[-1].copy()
+    def _consume_event_diagnostics(self, data, take, c):
+        if not len(c):return
+        flags = data['flags'].to_numpy(zero_copy_only=False)[take]
+        clean = ((flags & (source.F_BAD_TS_RECV | source.F_MAYBE_BAD_BOOK | source.F_SNAPSHOT)) == 0)
+        clean &= (c[:, 1] > 0) & (c[:, 2] > c[:, 1]) & (c[:, 3] > 0) & (c[:, 4] > 0)
+        clean &= np.asarray(data['action'].to_numpy(zero_copy_only=False)[take]) != 'R'
+        p = np.vstack((c[0] if self.event_previous is None else self.event_previous[0], c[:-1]))
+        prior_clean = np.r_[False if self.event_previous is None else self.event_previous[1], clean[:-1]]
+        minute = (c[:, 0] - self.origin_ns) // timing.MINUTE_NS
+        pos, wanted = self._positions(minute)
+        def add(name, mask, values):
+            selected = wanted & mask
+            if not selected.any():return
+            operation = EVENT_DIAGNOSTIC_REDUCERS_V1[name]
+            function = np.add.at if operation == 'sum' else np.minimum.at if operation == 'min' else np.maximum.at
+            function(self.event_stats[name], pos[selected], np.asarray(values)[selected])
+        one = np.ones(len(c));spread = c[:, 2] - c[:, 1]
+        transition = clean & prior_clean & (c[:, 0] >= p[:, 0])
+        change = spread - (p[:, 2] - p[:, 1])
+        add('qualified_final_event_count', clean, one)
+        add('spread_state_min_ticks', clean, spread);add('spread_state_max_ticks', clean, spread)
+        # Include the prior observed state active before the next event.
+        for name in ('spread_state_min_ticks', 'spread_state_max_ticks'):add(name, transition, p[:, 2] - p[:, 1])
+        add('spread_change_count', transition & (change != 0), one)
+        add('spread_expansion_count', transition & (change > 0), one)
+        add('spread_contraction_count', transition & (change < 0), one)
+        expansion = np.maximum(change, 0);contraction = np.maximum(-change, 0)
+        add('spread_expansion_sum_ticks', transition, expansion);add('spread_contraction_sum_ticks', transition, contraction)
+        add('spread_max_expansion_ticks', transition, expansion);add('spread_max_contraction_ticks', transition, contraction)
+        interval = c[:, 0] - p[:, 0]
+        add('receive_interval_count', transition, one);add('receive_interval_sum_ns', transition, interval)
+        add('receive_interval_min_ns', transition, interval);add('receive_interval_max_ns', transition, interval)
+        delta = data['ts_in_delta'].to_numpy(zero_copy_only=False)[take].astype(np.int64)
+        event_raw = data['ts_event'].to_numpy(zero_copy_only=False)[take]
+        defined = event_raw <= np.iinfo(np.int64).max
+        low = delta == np.iinfo(np.int32).min;high = delta == np.iinfo(np.int32).max
+        add('ts_in_delta_clamped_low_count', clean & low, one);add('ts_in_delta_clamped_high_count', clean & high, one)
+        add('undefined_event_clock_count', clean & ~defined, one)
+        event = np.where(defined, event_raw, 0).astype(np.int64)
+        receive_minus_event = c[:, 0] - event
+        matching = receive_minus_event - delta
+        for prefix, values, mask in (
+                ('send_to_capture', delta, clean & ~low & ~high),
+                ('receive_minus_event', receive_minus_event, clean & defined),
+                ('matching_clock', matching, clean & defined & ~low & ~high)):
+            add(prefix + '_count', mask, one);add(prefix + '_sum_ns', mask, values)
+            add(prefix + '_min_ns', mask, values);add(prefix + '_max_ns', mask, values)
+        add('negative_send_to_capture_count', clean & ~low & ~high & (delta < 0), one)
+        add('negative_matching_clock_count', clean & defined & ~low & ~high & (matching < 0), one)
+        self.event_previous = (c[-1].copy(), bool(clean[-1]))
+    def event_diagnostics(self, candidate):
+        if not self.include_event_diagnostics:raise RuntimeError('L1_EVENT_DIAGNOSTICS_NOT_REQUESTED')
+        mask = np.asarray(candidate, bool)
+        out = {name: np.where(mask & np.isfinite(values), values, np.nan) for name, values in self.event_stats.items()}
+        for prefix in ('receive_interval',) + EVENT_LATENCY_DOMAINS_V1:
+            out[prefix + '_mean_ns'] = np.divide(out[prefix + '_sum_ns'], out[prefix + '_count'],
+                out=np.full(len(mask), np.nan), where=out[prefix + '_count'] > 0)
+        out['qualified_covered_ns'] = np.where(mask, self.covered, np.nan)
+        out['qualified_events_per_observed_second'] = np.divide(out['qualified_final_event_count'], self.covered / 1e9,
+            out=np.full(len(mask), np.nan), where=mask & (self.covered > 0))
+        return out
     def __call__(self,data,idx,trusted_trade):
         flags=data['flags'].to_numpy(zero_copy_only=False)
         take=(flags&source.L1_F_LAST)!=0
@@ -563,6 +740,7 @@ class L1FeatureCollectorV2:
             cols.extend(data[n].to_numpy(zero_copy_only=False)[take].astype(np.int64)
                         for n in ('bid_ct_00','ask_ct_00'))
         c=np.column_stack(cols)
+        if self.include_event_diagnostics:self._consume_event_diagnostics(data, take, c)
         if self.reference_minutes and len(c):
             m=(c[:,0]-self.origin_ns)//timing.MINUTE_NS
             ref=np.isin(m,list(self.reference_minutes))
@@ -625,58 +803,190 @@ def profile_values_v2(histogram,tick_usd):
        'volume_contracts':volume}
 
 
-def dynamic_profiles_v2(starts,histograms,valid,contracts,close,tick_usd):
-    """Real-trade rolling profiles and explicit incomplete session diagnostics.
+DYNAMIC_PROFILE_FAMILIES_V2 = ('rolling15', 'rolling60', 'anchored_segment', 'session_observed')
+DYNAMIC_PROFILE_VALUE_FIELDS_V2 = ('vwap_usd', 'poc_usd', 'val_usd', 'vah_usd', 'volume_contracts')
 
-    Session anchor: 18:00 America/New_York, DST-aware, not a historical holiday
-    calendar. Strict session mask demands every minute since that anchor under
-    004. Native-only ladders may not meet this; incomplete values are diagnostics.
-    A separate causal anchor restarts at each rejected bar/roll/session.
-    """
-    from collections import deque,Counter
-    stamps=pd.DatetimeIndex(starts,tz='UTC').tz_convert('America/New_York')
-    days=stamps.tz_localize(None).normalize()-pd.to_timedelta((stamps.hour<18).astype(np.int64),unit='D')
-    anchors=(days+pd.Timedelta(hours=18)).tz_localize('America/New_York').tz_convert('UTC').asi8
-    out={};profiles=('rolling15','rolling60','anchored_segment','session_observed')
-    names=('vwap_usd','poc_usd','val_usd','vah_usd','volume_contracts')
-    for family in profiles:
-        for name in names:out[family+'_'+name]=np.full(len(starts),np.nan)
-        out[family+'_valid']=np.zeros(len(starts),bool)
-    out['session_complete_valid']=np.zeros(len(starts),bool)
-    out['session_accepted_minutes']=np.zeros(len(starts),np.int64)
-    out['session_expected_minutes']=(starts+5*timing.MINUTE_NS-anchors)//timing.MINUTE_NS
-    rolling=deque();segment=Counter();session=Counter();accepted=0
-    for i,start in enumerate(starts):
-        reset=(i==0 or contracts[i]!=contracts[i-1] or anchors[i]!=anchors[i-1])
-        if reset:session=Counter();accepted=0
-        if reset or i==0 or not valid[i-1] or start-starts[i-1]!=5*timing.MINUTE_NS:
-            rolling.clear();segment=Counter()
-        if not valid[i]:rolling.clear();segment=Counter();continue
-        hist=histograms[i]
-        if not hist:raise RuntimeError('PROFILE_VALID_WITHOUT_TRADES')
-        rolling.append(hist)
-        if len(rolling)>12:rolling.popleft()
-        segment.update(hist);session.update(hist);accepted+=5
-        families={'anchored_segment':segment,'session_observed':session}
-        for n in (3,12):
-            if len(rolling)>=n:
-                combined=Counter()
-                for h in list(rolling)[-n:]:combined.update(h)
-                families['rolling'+str(n*5)]=combined
-        for name,h in families.items():
-            for key,v in profile_values_v2(h,tick_usd).items():out[name+'_'+key][i]=v
-            out[name+'_valid'][i]=True
-        out['session_accepted_minutes'][i]=accepted
-        out['session_complete_valid'][i]=(accepted==out['session_expected_minutes'][i])
-    # GC-relative distances and reactions to the PREVIOUS admitted rolling level.
-    for family in ('rolling15','rolling60','anchored_segment'):
-        for level in ('vwap','poc','val','vah'):
-            price=out[family+'_'+level+'_usd'];out[family+'_'+level+'_distance_ticks']=(close-price)/tick_usd
-            previous=np.r_[np.nan,price[:-1]]
-            same=np.r_[False,(np.diff(starts)==5*timing.MINUTE_NS)&(contracts[1:]==contracts[:-1])]
-            reaction=(close-previous)/tick_usd;reaction[~(same&valid&np.r_[False,valid[:-1]])]=np.nan
-            out[family+'_'+level+'_prior_level_response_ticks']=reaction
+
+def profile_anchors_v2(starts):
+    stamps = pd.DatetimeIndex(starts, tz='UTC').tz_convert('America/New_York')
+    days = stamps.tz_localize(None).normalize() - pd.to_timedelta((stamps.hour < 18).astype(np.int64), unit='D')
+    return (days + pd.Timedelta(hours=18)).tz_localize('America/New_York').tz_convert('UTC').asi8
+
+
+def dynamic_profile_arrays_v2(starts):
+    out = {}
+    for family in DYNAMIC_PROFILE_FAMILIES_V2:
+        for name in DYNAMIC_PROFILE_VALUE_FIELDS_V2:out[family + '_' + name] = np.full(len(starts), np.nan)
+        out[family + '_valid'] = np.zeros(len(starts), bool)
+    out['session_complete_valid'] = np.zeros(len(starts), bool)
+    out['session_accepted_minutes'] = np.zeros(len(starts), np.int64)
+    out['session_expected_minutes'] = (starts + 5 * timing.MINUTE_NS - profile_anchors_v2(starts)) // timing.MINUTE_NS
+    for family in ('rolling15', 'rolling60', 'anchored_segment'):
+        for level in ('vwap', 'poc', 'val', 'vah'):
+            for suffix in ('distance_ticks', 'prior_level_response_ticks'):
+                out[family + '_' + level + '_' + suffix] = np.full(len(starts), np.nan)
     return out
+
+
+class DynamicProfileStateV2:
+    """The existing M5/NY-session formula with one bounded streaming state.
+
+    Global contract-major source order is safe: each contract change resets
+    state; within one contract the source must advance. No all-history histogram
+    array is retained. The measured state bound excludes caller-owned outputs.
+    """
+    def __init__(self, tick_usd, *, max_state_bytes=None):
+        from collections import Counter, deque
+        self.tick_usd = tick_usd; self.max_state_bytes = max_state_bytes
+        self.rolling = deque(); self.segment = Counter(); self.session = Counter()
+        self.accepted = 0; self.previous = None; self.peak_state_bytes = 0
+        self.field_names = tuple(dynamic_profile_arrays_v2(np.array([0], np.int64)))
+    def _measure(self):
+        import sys
+        containers = [self.segment, self.session, *self.rolling]
+        measured = sys.getsizeof(self.rolling) + sum(sys.getsizeof(c) +
+            sum(sys.getsizeof(k) + sys.getsizeof(v) for k, v in c.items()) for c in containers)
+        if self.previous is not None:
+            measured += sys.getsizeof(self.previous[4]) + sum(sys.getsizeof(k) + sys.getsizeof(v) for k,v in self.previous[4].items())
+        self.peak_state_bytes = max(self.peak_state_bytes, measured)
+        if self.max_state_bytes is not None and measured > self.max_state_bytes:
+            raise RuntimeError('GC_PROFILE_STREAM_STATE_MEMORY_BOUND')
+    def step(self, start, histogram, valid, contract, close, anchor, accepted_minutes=5):
+        from collections import Counter
+        previous = self.previous
+        reset = previous is None or contract != previous[1] or anchor != previous[2]
+        if previous is not None and contract == previous[1] and start <= previous[0]:
+            raise RuntimeError('GC_PROFILE_CONTRACT_STREAM_ORDER')
+        if reset:self.session = Counter(); self.accepted = 0
+        if reset or previous is None or not previous[3] or start - previous[0] != 5 * timing.MINUTE_NS:
+            self.rolling.clear(); self.segment = Counter()
+        result = {name: np.nan for name in self.field_names}
+        for family in DYNAMIC_PROFILE_FAMILIES_V2:result[family + '_valid'] = False
+        result.update(session_complete_valid=False, session_accepted_minutes=0,
+            session_expected_minutes=(start + 5 * timing.MINUTE_NS - anchor) // timing.MINUTE_NS)
+        if not valid:
+            self.rolling.clear(); self.segment = Counter()
+        else:
+            if not histogram or not 0 < accepted_minutes <= 5:raise RuntimeError('PROFILE_VALID_WITHOUT_TRADES')
+            self.rolling.append(histogram)
+            if len(self.rolling) > 12:self.rolling.popleft()
+            self.segment.update(histogram); self.session.update(histogram); self.accepted += accepted_minutes
+            families = {'anchored_segment': self.segment, 'session_observed': self.session}
+            for n in (3, 12):
+                if len(self.rolling) >= n:
+                    combined = Counter()
+                    for hist in list(self.rolling)[-n:]:combined.update(hist)
+                    families['rolling' + str(n * 5)] = combined
+            for family, hist in families.items():
+                for name, value in profile_values_v2(hist, self.tick_usd).items():result[family + '_' + name] = value
+                result[family + '_valid'] = True
+            result['session_accepted_minutes'] = self.accepted
+            result['session_complete_valid'] = self.accepted == result['session_expected_minutes']
+            for family in ('rolling15', 'rolling60', 'anchored_segment'):
+                for level in ('vwap', 'poc', 'val', 'vah'):
+                    key = family + '_' + level
+                    result[key + '_distance_ticks'] = (close - result[key + '_usd']) / self.tick_usd
+                    same = previous is not None and start - previous[0] == 5 * timing.MINUTE_NS and contract == previous[1] and previous[3]
+                    if same:result[key + '_prior_level_response_ticks'] = (close - previous[4][key + '_usd']) / self.tick_usd
+        self.previous = (start, contract, anchor, valid, result)
+        self._measure()
+        return result
+
+
+def dynamic_profiles_v2(starts,histograms,valid,contracts,close,tick_usd):
+    """Existing fixed15/60minute profiles, not3/12 higher-timeframe bars."""
+    out = dynamic_profile_arrays_v2(starts); anchors = profile_anchors_v2(starts)
+    state = DynamicProfileStateV2(tick_usd)
+    for i, start in enumerate(starts):
+        row = state.step(start, histograms[i], valid[i], contracts[i], close[i], anchors[i])
+        for name, value in row.items():out[name][i] = value
+    return out
+
+
+def add_projected_m5_profiles_v2(surface, m5_available, profiles, source_coverage):
+    """Latest exact closed M5 snapshot on each TF clock; never backsearch gaps."""
+    available = surface['available_ns']
+    idx = np.searchsorted(m5_available, available, side='right') - 1
+    clip = np.clip(idx, 0, len(m5_available) - 1)
+    matched = (idx >= 0) & (m5_available[clip] == available)
+    for name, values in profiles.items():
+        selected = values[clip]
+        surface['observed_profile_' + name] = (matched & selected if selected.dtype == bool
+            else np.where(matched, selected, np.nan))
+    surface['observed_profile_source_coverage_fraction'] = np.where(matched, source_coverage[clip], np.nan)
+    surface['observed_profile_snapshot_available_ns'] = np.where(matched, m5_available[clip], np.nan)
+    surface['observed_profile_snapshot_age_minutes'] = np.where(matched, (available - m5_available[clip]) / timing.MINUTE_NS, np.nan)
+    return surface
+
+
+def completion_native_candidates_v1():
+    """Declared field/owner/domain/clock inventory, never name-heuristic routing.
+
+    Identity and absolute snapshot timestamps remain metadata. Latency ns are
+    measured differences, not absolute identities. Actual TRAIN support and
+    duplicate/constant reports are still required before registry admission.
+    """
+    groups = []
+    def add(columns, owner, validity, clock='available_ns', role='market_value'):
+        groups.append({'columns': list(columns), 'owner': owner, 'validity_column': validity,
+            'source_clock_column': clock, 'role': role})
+    flow = 'momentum_flow_encoder';liquidity = 'smc_liquidity_encoder'
+    volatility = 'vol_compression_encoder';regime = 'session_regime_encoder'
+    add(('observed_volume','observed_buy_known','observed_sell_known','observed_unknown','observed_trades',
+        'observed_avg_executed_trade_contracts','observed_known_delta_contracts','observed_known_aggressor_fraction',
+        'observed_accepted_minutes','observed_signed_minutes','observed_coverage_fraction','observed_signed_minute_fraction'), flow, 'observed_valid')
+    add(('observed_open_usd','observed_high_usd','observed_low_usd','observed_close_usd'), 'price_action_candle_encoder', 'observed_valid')
+    add(('observed_spot_basis_bps','observed_spot_basis_age_minutes'), flow,
+        'observed_spot_basis_valid', 'observed_spot_basis_source_available_ns', 'same_closed_m1_cross_venue_basis')
+    add(tuple('observed_' + name for name in PROFILE_FIELDS + ('val_usd','vah_usd')), liquidity, 'observed_valid')
+    add(tuple(OBSERVED_FOOTPRINT_FIELDS.values()), flow, 'observed_valid')
+    add(tuple('observed_known_cumulative_' + name for name in ('buy_contracts','sell_contracts','unknown_contracts',
+        'volume_contracts','known_delta_contracts','unknown_fraction','observed_minutes')), flow, 'observed_valid')
+    add(tuple('observed_proxy_' + name for name in VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1) +
+        ('observed_proxy_boundary_gap_minutes',), liquidity, 'observed_valid')
+    profile_names = tuple(dynamic_profile_arrays_v2(np.array([0], np.int64)))
+    add(tuple('observed_profile_' + name for name in profile_names) +
+        ('observed_profile_source_coverage_fraction','observed_profile_snapshot_age_minutes'), liquidity,
+        None, 'observed_profile_snapshot_available_ns', 'closed_m5_clock_context')
+    add(tuple('observed_book_' + name for name in L1_FIELDS_V2[:6]) +
+        ('observed_book_flow_accepted_minutes','observed_book_flow_coverage_fraction'), flow, 'observed_book_flow_valid')
+    add(tuple('observed_book_' + name for name in ('tw_imbalance','tw_bid_contracts','tw_ask_contracts',
+        'tw_microprice_offset_ticks','mid_response_ticks','opening_mid_tick','closing_mid_tick')) +
+        ('observed_book_accepted_minutes','observed_book_coverage_fraction','observed_book_response_span_minutes',
+         'observed_book_response_contiguous'), flow, 'observed_book_valid')
+    add(('observed_book_tw_spread_ticks',), volatility, 'observed_book_valid')
+    add(tuple('observed_order_' + name for name in L1_ORDER_COUNT_FIELDS_V1) +
+        ('observed_order_accepted_minutes','observed_order_coverage_fraction'), flow, 'observed_order_valid')
+    spread_fields = ('spread_state_min_ticks','spread_state_max_ticks','spread_change_count','spread_expansion_count',
+        'spread_contraction_count','spread_expansion_sum_ticks','spread_contraction_sum_ticks',
+        'spread_max_expansion_ticks','spread_max_contraction_ticks')
+    add(tuple('observed_event_' + name for name in spread_fields), volatility, 'observed_event_valid')
+    add(('observed_event_qualified_final_event_count','observed_event_qualified_events_per_observed_second',
+        'observed_event_accepted_minutes','observed_event_coverage_fraction'), flow, 'observed_event_valid')
+    for prefix in ('receive_interval',) + EVENT_LATENCY_DOMAINS_V1:
+        add(tuple('observed_event_' + prefix + suffix for suffix in ('_count','_min_ns','_max_ns','_mean_ns')),
+            regime, 'observed_event_' + prefix + '_valid')
+    add(tuple('observed_event_' + name for name in ('ts_in_delta_clamped_low_count','ts_in_delta_clamped_high_count',
+        'undefined_event_clock_count','negative_send_to_capture_count','negative_matching_clock_count')), regime, 'observed_event_valid')
+    masks = ('observed_valid','observed_contract_valid','observed_signed_complete','observed_book_contract_valid',
+        'observed_book_flow_valid','observed_book_valid','observed_order_valid','observed_event_valid') + tuple(
+        'observed_event_' + prefix + '_valid' for prefix in ('receive_interval',) + EVENT_LATENCY_DOMAINS_V1)
+    add(masks, regime, None, role='structural_observation_mask')
+    records = []
+    for tf in ('M5','M15','H1','H4','D1'):
+        for group in groups:
+            for column in group['columns']:
+                records.append({'name': 'gc_' + tf.lower() + '_' + column,
+                    'table': 'TRADE_FEATURES_' + tf + '.parquet', 'column': column,
+                    **{key: value for key, value in group.items() if key != 'columns'}})
+    identities = [(row['table'], row['column']) for row in records]
+    if len(set(identities)) != len(identities):raise RuntimeError('GC_COMPLETION_CANDIDATE_OWNER_DUPLICATE')
+    return {'schema_version':'gc_completion_native_candidates_v1','fields':records,
+        'metadata_columns':['bar_start_ns','available_ns','contract_index','observed_first_minute_ns',
+            'observed_last_minute_ns','observed_book_first_minute_ns','observed_book_last_minute_ns',
+            'observed_profile_snapshot_available_ns','observed_spot_basis_source_available_ns'],
+        'profile_clock_semantics':'M5 physical15/60minute and NYsession snapshots on exact closed TF clock, not native TF rolling bars',
+        'new_registry_admitted':False,'actual_physical_train_support_required':True}
 
 
 def exact_feature_readback_v2(expected,actual):

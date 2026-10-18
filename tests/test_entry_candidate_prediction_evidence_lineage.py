@@ -11,7 +11,7 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_DIP_OUTPUT_DIM,
-    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_FORECAST_OUTPUT_DIM,
     MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
 )
@@ -71,7 +71,7 @@ def _predictions(splits: tuple[str, ...] = ("val",)) -> pd.DataFrame:
             ],
             "dip_pred": [[0.1] * MODEL_NATIVE_DIP_OUTPUT_DIM] * 2,
             "forecast_pred": [
-                [0.1] * len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS)
+                [0.1] * MODEL_NATIVE_FORECAST_OUTPUT_DIM
             ]
             * 2,
             "tail_risk_pred": [

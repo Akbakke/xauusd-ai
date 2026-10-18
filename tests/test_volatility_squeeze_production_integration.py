@@ -23,6 +23,7 @@ from gx1.features.volatility_squeeze_state_v1 import (
     require_volatility_squeeze_artifact_binding,
 )
 from tests.htf_v29_registry_test_support import (
+    synthetic_native_quote_frame,
     synthetic_v29_registry_constants,
 )
 from tests.volatility_squeeze_test_support import (
@@ -156,7 +157,7 @@ def test_mtf_m5_lane_equals_same_owner_and_surface_has_no_adoption_gap(
     artifacts = make_volatility_squeeze_artifact_set(tmp_path)
     source = synthetic_closed_ohlcv("M5", rows=1200)
     observed = htf.compute_per_bar_features_v4(
-        source,
+        synthetic_native_quote_frame(source),
         timeframe="M5",
         v29_registry_constants=synthetic_v29_registry_constants(),
         volatility_squeeze_artifacts=artifacts,
@@ -190,7 +191,7 @@ def test_all_mtf_lanes_equal_same_owner_on_native_closed_ohlcv(
     artifacts = make_volatility_squeeze_artifact_set(tmp_path)
     source = synthetic_closed_ohlcv("M5", rows=8_000)
     observed = htf.build_multi_tf_per_bar_features_v4(
-        source,
+        synthetic_native_quote_frame(source),
         v29_registry_constants=synthetic_v29_registry_constants(),
         volatility_squeeze_artifacts=artifacts,
     )

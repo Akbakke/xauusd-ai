@@ -82,6 +82,7 @@ from gx1.contracts.entry_position_size_target_policy_v1 import (
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
     ENTRY_ONLY_TRAINING_PHASES,
+    ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
     JOINT_FITTED_Q_TRAINING_PHASE,
     training_objective_contract_metadata,
 )
@@ -609,6 +610,13 @@ def dip_forecast_task_losses(
     device,
 ) -> dict[str, torch.Tensor]:
     """Return separate genuine losses in their labels' native units."""
+    from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+    if M5_PATH_BATCH_TARGET_KEY in batch:
+        fc_pred = _require_active_aux_head_prediction(out, batch, output_name="forecast_pred", target_names=_FORECAST_TARGET_COLS)
+        fc_tgt = torch.stack([batch[f"y_forecast_ret_K{h}"] for h in FORECAST_HORIZONS], dim=1).to(device).float()
+        from gx1.contracts.entry_observed_market_horizons_v1 import masked_forecast_target_surface
+        fc_tgt, fc_valid = masked_forecast_target_surface(batch, fc_tgt, device=device)
+        return {"forecast_return_bps": torch.nn.functional.l1_loss(fc_pred.float()[fc_valid], fc_tgt[fc_valid])}
     dip_pred = _require_active_aux_head_prediction(
         out,
         batch,
@@ -639,10 +647,9 @@ def dip_forecast_task_losses(
         [batch[f"y_forecast_ret_K{K}"] for K in FORECAST_HORIZONS],
         dim=1,
     ).to(device).float()
-    forecast_loss = torch.nn.functional.l1_loss(
-        fc_pred.float(),
-        fc_tgt,
-    )
+    from gx1.contracts.entry_observed_market_horizons_v1 import masked_forecast_target_surface
+    fc_tgt, fc_valid = masked_forecast_target_surface(batch, fc_tgt, device=device)
+    forecast_loss = torch.nn.functional.l1_loss(fc_pred.float()[fc_valid], fc_tgt[fc_valid])
     # ── dip-timing head (12, exact L1) — WHEN the dip bottoms / favorable peak ─
     timing_pred = _require_active_aux_head_prediction(
         out,
@@ -6408,7 +6415,7 @@ class _WeightEma:
     trainer.
     """
 
-    def __init__(self, model: nn.Module, decay: float) -> None:
+    def __init__(self, model: nn.Module, decay: float, *, entry_training_phase: str = "joint_fitted_q") -> None:
         decay = float(decay)
         if (not math.isfinite(decay)) or decay <= 0.0 or decay >= 1.0:
             raise RuntimeError(
@@ -6425,6 +6432,11 @@ class _WeightEma:
         )
         if not self._parameter_names <= set(self._shadow):
             raise RuntimeError("[ENTRY_TRAIN_WEIGHT_EMA_PARAMETER_KEYS_INVALID]")
+        from gx1.contracts.entry_observed_market_v1 import is_inactive_phase_parameter
+        self._phase_inactive_parameter_names = frozenset(
+            name for name in self._parameter_names
+            if is_inactive_phase_parameter(name, entry_training_phase)
+        )
         self._steps = 0
 
     @property
@@ -6446,7 +6458,7 @@ class _WeightEma:
         decay = min(float(self.decay), float(self._steps) / float(self._steps + 1))
         for name, tensor in current.items():
             shadow = self._shadow[name]
-            if name in self._parameter_names:
+            if name in self._parameter_names and name not in self._phase_inactive_parameter_names:
                 shadow.mul_(decay).add_(tensor.detach(), alpha=1.0 - decay)
             else:
                 shadow.copy_(tensor.detach())
@@ -6517,6 +6529,9 @@ class _WeightEma:
                     "[ATTENDED_RESEARCH_WEIGHT_EMA_TENSOR_INVALID] "
                     f"name={name}"
                 )
+            if name in self._phase_inactive_parameter_names and not torch.equal(
+                    value.to(expected_tensor.device), expected_tensor):
+                raise RuntimeError("[ATTENDED_RESEARCH_WEIGHT_EMA_INACTIVE_PARAMETER_CHANGED] " + name)
             restored[name] = value.detach().to(expected_tensor.device).clone()
         self._shadow = restored
         self._steps = int(state["steps"])
@@ -9575,6 +9590,11 @@ def train_epoch(
         from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_batch_targets
         if observed_entry["identity"]["training_phase"] not in ENTRY_ONLY_TRAINING_PHASES:
             raise RuntimeError("[ENTRY_OBSERVED_MARKET_TRAIN_PHASE_INVALID]")
+    inactive_phase_state = {}
+    if entry_only:
+        from gx1.contracts.entry_observed_market_v1 import is_inactive_phase_parameter
+        inactive_phase_state = {name: parameter.detach().clone() for name, parameter in model.named_parameters()
+            if is_inactive_phase_parameter(name, observed_entry["identity"]["training_phase"])}
     _accum_steps = int(grad_accum_steps)
     if _accum_steps < 1:
         raise RuntimeError(
@@ -9839,32 +9859,36 @@ def train_epoch(
         task_losses: dict[str, torch.Tensor] = {
             "entry_action_q": entry_action_q_loss
         }
-        side_mae_loss, side_mae_stats = _side_mae_auxiliary_loss(
-            out,
-            batch,
-            device,
-        )
-        task_losses["side_mae_bps"] = side_mae_loss
-        trendline_event_loss, trendline_stats = _trendline_event_aux_loss(
-            out, batch, device
-        )
-        task_losses["trendline_event"] = trendline_event_loss
-        position_size_logit = _require_active_aux_head_prediction(
-            out,
-            batch,
-            output_name="position_size_logit",
-            target_names=("y_position_size_target", "y_position_size_mask"),
-        )
-        y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
-        y_pos_size_mask = batch["y_position_size_mask"].to(
-            device, non_blocking=non_blocking
-        )
-        if bool((y_pos_size_mask.reshape(-1) == 1.0).any()):
-            task_losses["position_size"] = _masked_position_size_mse(
-                position_size_logit,
-                y_pos_size,
-                y_pos_size_mask,
+        from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+        path_phase = M5_PATH_BATCH_TARGET_KEY in batch
+        side_mae_stats = trendline_stats = None
+        if not path_phase:
+            side_mae_loss, side_mae_stats = _side_mae_auxiliary_loss(
+                out,
+                batch,
+                device,
             )
+            task_losses["side_mae_bps"] = side_mae_loss
+            trendline_event_loss, trendline_stats = _trendline_event_aux_loss(
+                out, batch, device
+            )
+            task_losses["trendline_event"] = trendline_event_loss
+            position_size_logit = _require_active_aux_head_prediction(
+                out,
+                batch,
+                output_name="position_size_logit",
+                target_names=("y_position_size_target", "y_position_size_mask"),
+            )
+            y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
+            y_pos_size_mask = batch["y_position_size_mask"].to(
+                device, non_blocking=non_blocking
+            )
+            if bool((y_pos_size_mask.reshape(-1) == 1.0).any()):
+                task_losses["position_size"] = _masked_position_size_mse(
+                    position_size_logit,
+                    y_pos_size,
+                    y_pos_size_mask,
+                )
 
         task_losses.update(dip_forecast_task_losses(out, batch, device))
         for task_name in task_losses:
@@ -9946,7 +9970,7 @@ def train_epoch(
         )
         scaled_main_loss.backward()
         if entry_only:
-            require_entry_only_gradients(model)
+            require_entry_only_gradients(model, entry_training_phase=observed_entry["identity"]["training_phase"])
         _main_backward_finished = (
             _synchronized_exit_profile_clock(device) if _profile_timing else None
         )
@@ -10104,17 +10128,18 @@ def train_epoch(
         if int(performance_warmup_optimizer_steps) > 0:
             _performance_losses.append(_batch_loss_value)
         entry_q_loss_sum += float(entry_action_q_loss) * bs
-        side_mae_loss_sum += float(side_mae_stats["side_mae_loss"]) * bs
-        trendline_event_loss_sum += float(
-            trendline_stats["trendline_event_loss"]
-        ) * bs
-        trendline_event_rows_sum += int(trendline_stats["trendline_event_rows"])
-        trendline_support_rows_sum += int(
-            trendline_stats["trendline_support_rows"]
-        )
-        trendline_resistance_rows_sum += int(
-            trendline_stats["trendline_resistance_rows"]
-        )
+        if not path_phase:
+            side_mae_loss_sum += float(side_mae_stats["side_mae_loss"]) * bs
+            trendline_event_loss_sum += float(
+                trendline_stats["trendline_event_loss"]
+            ) * bs
+            trendline_event_rows_sum += int(trendline_stats["trendline_event_rows"])
+            trendline_support_rows_sum += int(
+                trendline_stats["trendline_support_rows"]
+            )
+            trendline_resistance_rows_sum += int(
+                trendline_stats["trendline_resistance_rows"]
+            )
         if not entry_only:
             _exit_rows = int(unified_exit_stats["q_valid_cells"])
             unified_exit_loss_sum += (
@@ -10200,6 +10225,13 @@ def train_epoch(
     stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
     stats.update(_finalize_feature_tf_gate_epoch(feature_tf_gate_epoch))
     if entry_only:
+        for name, parameter in model.named_parameters():
+            if name in inactive_phase_state and not torch.equal(parameter.detach(), inactive_phase_state[name]):
+                raise RuntimeError("ENTRY_OBSERVED_MARKET_INACTIVE_PARAMETER_CHANGED:" + name)
+        if observed_entry["identity"]["training_phase"] == ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
+            stats["inactive_legacy_auxiliary_heads"] = ["position_size", "dip", "timing", "tail_risk", "vol_forecast", "side_mae", "trendline_event"]
+            for key in ("side_mae_loss_mean", "trendline_event_loss_mean", "trendline_event_rows", "trendline_support_rows", "trendline_resistance_rows"):
+                stats.pop(key, None)
         stats["entry_observed_market"] = observed_entry["identity"]
         stats["exit_training_active"] = False
     else:
@@ -10321,6 +10353,21 @@ def _active_head_target_surfaces(
     batch_size = int(entry_q_target.shape[0])
     all_rows = torch.ones(batch_size, dtype=torch.bool, device=device)
 
+    from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+    if M5_PATH_BATCH_TARGET_KEY in batch:
+        from gx1.contracts.entry_observed_market_horizons_v1 import masked_forecast_target_surface
+        forecast = torch.stack([_active_head_batch_target(batch, f"y_forecast_ret_K{h}", device)
+            for h in FORECAST_HORIZONS], dim=1)
+        forecast, forecast_valid = masked_forecast_target_surface(batch, forecast, device=device)
+        # An empty component map reports a phase-inactive legacy head. It
+        # neither reads its defective old labels nor fabricates zero labels.
+        surfaces = {name: {} for name in MODEL_NATIVE_ACTIVE_HEADS}
+        surfaces["entry_action_q"] = {"entry_action_q_bps":
+            (_prediction("entry_action_q_bps"), entry_q_target, entry_q_valid)}
+        surfaces["forecast"] = {"forecast_pred":
+            (_prediction("forecast_pred"), forecast, forecast_valid)}
+        return surfaces
+
     dip_targets: List[torch.Tensor] = []
     for direction in DIP_DIRECTIONS:
         for horizon in DIP_HORIZONS:
@@ -10339,6 +10386,8 @@ def _active_head_target_surfaces(
         ],
         dim=1,
     )
+    from gx1.contracts.entry_observed_market_horizons_v1 import masked_forecast_target_surface
+    forecast_target, forecast_valid = masked_forecast_target_surface(batch, forecast_target, device=device)
     timing_target = torch.stack(
         [
             _active_head_batch_target(
@@ -10415,7 +10464,7 @@ def _active_head_target_surfaces(
             "forecast_pred": (
                 _prediction("forecast_pred"),
                 forecast_target,
-                all_rows,
+                forecast_valid,
             )
         },
         "timing": {
@@ -10590,6 +10639,9 @@ def _accumulate_active_head_epoch(
         batch,
         device,
     )
+    from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+    if M5_PATH_BATCH_TARGET_KEY in batch:
+        accumulator["entry_training_phase"] = ENTRY_ONLY_M5_PATH_TRAINING_PHASE
     head_store = accumulator.get("heads")
     if not isinstance(head_store, dict) or tuple(head_store) != tuple(
         MODEL_NATIVE_ACTIVE_HEADS
@@ -10718,6 +10770,8 @@ def _finalize_joint_task_loss_evidence(
     evidence = accumulator.get("joint_task_loss_evidence")
     if not isinstance(evidence, Mapping) or set(evidence) != set(JOINT_TASK_NAMES):
         raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
+    from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
+    active = set(active_joint_task_names(str(accumulator.get("entry_training_phase", "joint_fitted_q"))))
     result: dict[str, Any] = {}
     for task_name in JOINT_TASK_NAMES:
         row = evidence.get(task_name)
@@ -10725,12 +10779,19 @@ def _finalize_joint_task_loss_evidence(
             not isinstance(row, Mapping)
             or set(row) != {"weighted_sum", "supervised_cells"}
             or not isinstance(row.get("supervised_cells"), int)
-            or int(row["supervised_cells"]) < 1
+            or int(row["supervised_cells"]) < 0
             or not isinstance(row.get("weighted_sum"), (int, float))
             or not math.isfinite(float(row["weighted_sum"]))
         ):
             raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
         count = int(row["supervised_cells"])
+        if task_name not in active:
+            if count != 0 or float(row["weighted_sum"]) != 0.0:
+                raise RuntimeError("[ENTRY_JOINT_TASK_INACTIVE_LOSS_EVIDENCE_FORBIDDEN]")
+            result[f"joint_task_supervised_cells_{task_name}"] = 0
+            continue
+        if count < 1:
+            raise RuntimeError("[ENTRY_JOINT_TASK_LOSS_EVIDENCE_INVALID]")
         result[f"joint_task_raw_loss_mean_{task_name}"] = (
             float(row["weighted_sum"]) / count
         )
@@ -10862,10 +10923,11 @@ def _active_head_component_validation_metrics(
         }
     )
     if component_name == "forecast_pred":
-        if prediction.ndim != 2 or prediction.shape[1] != len(FORECAST_HORIZONS):
+        if prediction.ndim != 2 or prediction.shape[1] != FORECAST_HEAD_DIM:
             raise RuntimeError("[ENTRY_FORECAST_HORIZON_DIAGNOSTIC_SHAPE_INVALID]")
         horizons: list[dict[str, Any]] = []
-        for column, horizon in enumerate(FORECAST_HORIZONS):
+        from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT
+        for column, layout in enumerate(MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT):
             observed = element_mask[:, column]
             forecast = prediction[observed, column].astype(np.float64, copy=False)
             realized = target[observed, column].astype(np.float64, copy=False)
@@ -10879,9 +10941,10 @@ def _active_head_component_validation_metrics(
             nonzero_target = realized_sign != 0
             horizons.append(
                 {
-                    "target_column": f"y_forecast_ret_K{horizon}",
-                    "m5_bars_ahead": int(horizon),
-                    "nominal_horizon_minutes": int(horizon) * 5,
+                    **layout,
+                    **({"m5_bars_ahead": layout["horizon_m5_bars"],
+                        "nominal_horizon_minutes": layout["horizon_m5_bars"] * (ENTRY_DECISION_BAR_SECONDS // 60)}
+                        if "horizon_m5_bars" in layout else {}),
                     "supervised_rows": int(observed.sum()),
                     "regression_metrics": _active_head_component_validation_metrics(
                         component_name="forecast_return_bps",
@@ -10910,8 +10973,8 @@ def _active_head_component_validation_metrics(
             )
         result["forecast_horizon_diagnostics"] = {
             "schema_version": "gx1_independent_forecast_horizon_diagnostics_v1",
-            "target_semantics": "observed_future_m5_close_return_bps_before_execution_costs",
-            "horizon_semantics": "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock",
+            "target_semantics": "per_layout_M5_returns_and_masked_executable_net_long_horizon_support",
+            "horizon_semantics": "per_layout_observed_M5_bars_or_observed_UTC22_sessions",
             "loss_semantics": "l1_conditional_median_not_direction_probability",
             "exit_teacher_used": False,
             "used_for_entry_selection": False,
@@ -11067,6 +11130,11 @@ def _active_head_epoch_diagnostics(
 
     head_metrics: Dict[str, Any] = {}
     for head_name in MODEL_NATIVE_ACTIVE_HEADS:
+        if (accumulator.get("entry_training_phase") == ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+                and head_name not in ("entry_action_q", "forecast")):
+            head_metrics[head_name] = {"phase_inactive": True, "supervision_observed": False,
+                "source": "retained_legacy_auxiliary_not_learned_in_M5_path_phase"}
+            continue
         failure_count_before = len(failures)
         evidence = head_store.get(head_name)
         if not isinstance(evidence, dict):
@@ -11147,7 +11215,12 @@ def _active_head_epoch_diagnostics(
                 )
                 continue
             rows_by_column = element_mask.sum(axis=0).astype(int)
-            rows = int(np.min(rows_by_column))
+            optional_support = (component_name == "forecast_pred")
+            observed_columns = rows_by_column > 0
+            required_counts = (np.concatenate((rows_by_column[:len(FORECAST_HORIZONS)],
+                rows_by_column[len(FORECAST_HORIZONS):][observed_columns[len(FORECAST_HORIZONS):]]))
+                if optional_support else rows_by_column)
+            rows = int(np.min(required_counts)) if required_counts.size else 0
             if rows < int(minimum_supervised_rows):
                 failures.append(
                     "[ENTRY_ACTIVE_HEAD_DIAGNOSTIC_ROWS_INSUFFICIENT] "
@@ -11165,16 +11238,16 @@ def _active_head_epoch_diagnostics(
                 )
                 continue
             prediction_range = np.asarray(
-                [np.ptp(prediction[element_mask[:, col], col]) for col in range(prediction.shape[1])]
+                [np.ptp(prediction[element_mask[:, col], col]) if observed_columns[col] else np.nan for col in range(prediction.shape[1])]
             )
             target_range = np.asarray(
-                [np.ptp(target[element_mask[:, col], col]) for col in range(target.shape[1])]
+                [np.ptp(target[element_mask[:, col], col]) if observed_columns[col] else np.nan for col in range(target.shape[1])]
             )
             prediction_std = np.asarray(
-                [np.std(prediction[element_mask[:, col], col]) for col in range(prediction.shape[1])]
+                [np.std(prediction[element_mask[:, col], col]) if observed_columns[col] else np.nan for col in range(prediction.shape[1])]
             )
             target_std = np.asarray(
-                [np.std(target[element_mask[:, col], col]) for col in range(target.shape[1])]
+                [np.std(target[element_mask[:, col], col]) if observed_columns[col] else np.nan for col in range(target.shape[1])]
             )
             dead_prediction_columns = np.flatnonzero(
                 prediction_range == 0.0
@@ -11215,10 +11288,11 @@ def _active_head_epoch_diagnostics(
                 "rows": rows,
                 "supervised_rows_by_column": rows_by_column.tolist(),
                 "width": int(prediction.shape[1]),
-                "prediction_min_range": float(np.min(prediction_range)),
-                "prediction_min_std": float(np.min(prediction_std)),
-                "target_min_range": float(np.min(target_range)),
-                "target_min_std": float(np.min(target_std)),
+                "unavailable_target_columns": np.flatnonzero(~observed_columns).astype(int).tolist(),
+                "prediction_min_range": float(np.min(prediction_range[observed_columns])),
+                "prediction_min_std": float(np.min(prediction_std[observed_columns])),
+                "target_min_range": float(np.min(target_range[observed_columns])),
+                "target_min_std": float(np.min(target_std[observed_columns])),
                 "prediction_dead_columns": dead_prediction_columns,
                 "target_dead_columns": dead_target_columns,
                 "structural_constant_columns": sorted(
@@ -11272,7 +11346,10 @@ def _active_head_epoch_diagnostics(
             "entry_model_native_active_head_epoch_diagnostics_v6"
         ),
         "minimum_supervised_rows": int(minimum_supervised_rows),
-        "active_head_contract": list(MODEL_NATIVE_ACTIVE_HEADS),
+        "active_head_contract": (["entry_action_q", "forecast"]
+            if accumulator.get("entry_training_phase") == ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+            else list(MODEL_NATIVE_ACTIVE_HEADS)),
+        "retained_output_heads": list(MODEL_NATIVE_ACTIVE_HEADS),
         "active_head_diagnostics": head_metrics,
         "active_head_health_ok": not failures,
         "active_head_health_failures": list(failures),
@@ -12197,6 +12274,9 @@ def validate(
         raise RuntimeError("[UNIFIED_EXIT_VALIDATION_DATASET_INVALID]")
     if dataset._unified_exit_lifecycle is None:
         raise RuntimeError("UNIFIED_EXIT_FULL_VAL_LIFECYCLE_MISSING")
+    _observed_validation_binding = getattr(dataset, "_entry_observed_market_binding", None)
+    path_phase = (_observed_validation_binding is not None and
+        _observed_validation_binding["identity"].get("training_phase") == ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
     if (max_validation_batches is not None or validation_checkpoint_interval_batches is not None) and (
         (max_validation_batches is not None and int(max_validation_batches) < 1)
         or (
@@ -12392,34 +12472,38 @@ def validate(
             task_losses: dict[str, torch.Tensor] = {
                 "entry_action_q": entry_action_q_loss
             }
-            if int(unified_exit_stats["q_valid_cells"]) > 0:
+            if not path_phase and int(unified_exit_stats["q_valid_cells"]) > 0:
                 task_losses["unified_exit_action"] = unified_exit_loss
-            side_mae_loss, side_mae_stats = _side_mae_auxiliary_loss(
-                out,
-                batch,
-                device,
-            )
-            task_losses["side_mae_bps"] = side_mae_loss
-            trendline_event_loss, trendline_stats = _trendline_event_aux_loss(
-                out, batch, device
-            )
-            task_losses["trendline_event"] = trendline_event_loss
-            position_size_logit = _require_active_aux_head_prediction(
-                out,
-                batch,
-                output_name="position_size_logit",
-                target_names=("y_position_size_target", "y_position_size_mask"),
-            )
-            y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
-            y_pos_size_mask = batch["y_position_size_mask"].to(
-                device, non_blocking=non_blocking
-            )
-            if bool((y_pos_size_mask.reshape(-1) == 1.0).any()):
-                task_losses["position_size"] = _masked_position_size_mse(
-                    position_size_logit,
-                    y_pos_size,
-                    y_pos_size_mask,
+            from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+            path_phase = M5_PATH_BATCH_TARGET_KEY in batch
+            side_mae_stats = trendline_stats = None
+            if not path_phase:
+                side_mae_loss, side_mae_stats = _side_mae_auxiliary_loss(
+                    out,
+                    batch,
+                    device,
                 )
+                task_losses["side_mae_bps"] = side_mae_loss
+                trendline_event_loss, trendline_stats = _trendline_event_aux_loss(
+                    out, batch, device
+                )
+                task_losses["trendline_event"] = trendline_event_loss
+                position_size_logit = _require_active_aux_head_prediction(
+                    out,
+                    batch,
+                    output_name="position_size_logit",
+                    target_names=("y_position_size_target", "y_position_size_mask"),
+                )
+                y_pos_size = batch["y_position_size_target"].to(device, non_blocking=non_blocking)
+                y_pos_size_mask = batch["y_position_size_mask"].to(
+                    device, non_blocking=non_blocking
+                )
+                if bool((y_pos_size_mask.reshape(-1) == 1.0).any()):
+                    task_losses["position_size"] = _masked_position_size_mse(
+                        position_size_logit,
+                        y_pos_size,
+                        y_pos_size_mask,
+                    )
             task_losses.update(dip_forecast_task_losses(out, batch, device))
             loss, _joint_task_stats = _joint_task_loss(model, task_losses)
             _accumulate_joint_task_loss_evidence(
@@ -12433,19 +12517,20 @@ def validate(
             bs = batch_rows
             total += float(loss) * bs
             entry_q_loss_sum += float(entry_action_q_loss) * bs
-            side_mae_loss_sum += float(side_mae_stats["side_mae_loss"]) * bs
-            trendline_event_loss_sum += float(
-                trendline_stats["trendline_event_loss"]
-            ) * bs
-            trendline_event_rows_sum += int(
-                trendline_stats["trendline_event_rows"]
-            )
-            trendline_support_rows_sum += int(
-                trendline_stats["trendline_support_rows"]
-            )
-            trendline_resistance_rows_sum += int(
-                trendline_stats["trendline_resistance_rows"]
-            )
+            if not path_phase:
+                side_mae_loss_sum += float(side_mae_stats["side_mae_loss"]) * bs
+                trendline_event_loss_sum += float(
+                    trendline_stats["trendline_event_loss"]
+                ) * bs
+                trendline_event_rows_sum += int(
+                    trendline_stats["trendline_event_rows"]
+                )
+                trendline_support_rows_sum += int(
+                    trendline_stats["trendline_support_rows"]
+                )
+                trendline_resistance_rows_sum += int(
+                    trendline_stats["trendline_resistance_rows"]
+                )
             _exit_rows = int(unified_exit_stats["q_valid_cells"])
             unified_exit_loss_sum += (
                 float(unified_exit_loss.detach().cpu().item()) * _exit_rows
@@ -12642,6 +12727,12 @@ def validate(
             for name in JOINT_TASK_NAMES
         }
     )
+    if path_phase:
+        stats["entry_training_phase"] = ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+        stats["exit_loss_in_learning_objective"] = False
+        stats["inactive_legacy_auxiliary_heads"] = ["position_size", "dip", "timing", "tail_risk", "vol_forecast", "side_mae", "trendline_event"]
+        for key in ("side_mae_loss_mean", "trendline_event_loss_mean", "trendline_event_rows", "trendline_support_rows", "trendline_resistance_rows"):
+            stats.pop(key, None)
     stats.update(_finalize_joint_task_loss_evidence(active_head_epoch))
     stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
     stats.update(_finalize_feature_tf_gate_epoch(feature_tf_gate_epoch))
@@ -16596,7 +16687,8 @@ def run_train(
     # (ii) Weight EMA, read ONLY by validation and checkpoint selection. The raw
     #      weights keep training. At the 0.0 OFF sentinel no instance exists.
     weight_ema = (
-        _WeightEma(model, float(train_weight_ema_decay))
+        _WeightEma(model, float(train_weight_ema_decay),
+                   entry_training_phase=model_native_training_objective["entry_training_phase"])
         if float(train_weight_ema_decay) > 0.0
         else None
     )
@@ -17397,13 +17489,15 @@ def run_train(
         selected_joint_task_log_variances,
         supervision_observed=joint_task_supervision_observed,
         gradient_observed=joint_task_gradient_observed,
+        entry_training_phase=model_native_training_objective["entry_training_phase"],
     )
     log.info(
         "[ENTRY_JOINT_TASK_WEIGHTING_PASS] epoch=%d tasks=%d "
-        "all_tasks_supervised=1 all_tasks_received_gradient=1 "
-        "all_tasks_moved_from_neutral=1",
+        "active_tasks=%s inactive_tasks=%s",
         int(best_epoch),
         len(JOINT_TASK_NAMES),
+        model_native_joint_task_weighting["active_task_names"],
+        model_native_joint_task_weighting["inactive_task_names"],
     )
     model_native_learned_component_movement = (
         _entry_fitted_q_movement_proof(
@@ -17736,6 +17830,7 @@ def run_train(
         "prefreeze_test_seal_lineage": prefreeze_test_seal_lineage,
         "aux_head_target_contract": train_ds.aux_head_target_contract,
         "model_native_training_objective": model_native_training_objective,
+        "entry_supervision_identity": (_observed_binding["identity"] if _observed_binding is not None else None),
         "model_native_joint_task_weighting": model_native_joint_task_weighting,
         "ctx_tag": f"CTX{ctx_cont_dim}CAT{ctx_cat_dim}",
         "ctx_cont_dim": ctx_cont_dim,
@@ -17790,6 +17885,7 @@ def run_train(
         "git_commit": _git_commit(),
         "execution_tier": str(execution_tier),
         "model_native_training_objective": model_native_training_objective,
+        "entry_supervision_identity": (_observed_binding["identity"] if _observed_binding is not None else None),
         "model_native_joint_task_weighting": model_native_joint_task_weighting,
         "unified_entry_exit_contract": unified_entry_exit_contract,
         "unified_exit_training_evidence": unified_exit_training_evidence,

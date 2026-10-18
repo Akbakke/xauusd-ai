@@ -277,7 +277,13 @@ def verify_real_prefixes(surfaces, minutes, selected, masks, metrics, tick_size)
     return checks
 
 
-def add_basis(plan,surfaces,minutes):
+def add_basis(plan,surfaces,minutes, *, include_observed=False):
+    """Same closed-M1 GC/spot basis; observed support is an explicit opt-in.
+
+    The GC last-trade close and XAU bid/ask close mid belong to the same M1
+    interval, not necessarily the same event. No event-level simultaneity or
+    executable cross-venue arbitrage claim follows from these minute closes.
+    """
     item = plan['inputs']['oanda_manifest']
     previous.verify_digest(Path(item['path']),item['sha256'],'OANDA_MANIFEST')
     hashes = [(Path(item['path']),item['sha256'])]
@@ -306,6 +312,28 @@ def add_basis(plan,surfaces,minutes):
         basis = np.full(len(idx),np.nan)
         basis[take] = 1e4*(surface['close_usd'][take]/mid[idx[take]]-1)
         surface['spot_basis_bps'] = basis
+        if include_observed:
+            raw_last = np.asarray(surface['observed_last_minute_ns'])
+            defined = np.isfinite(raw_last)
+            last = np.where(defined, raw_last, 0).astype(np.int64)
+            observed = np.asarray(surface['observed_valid'], bool) & defined
+            if np.any(observed & ((raw_last != last) | (last % timing.MINUTE_NS != 0)
+                    | (last < surface['bar_start_ns']) | (last + timing.MINUTE_NS > surface['available_ns']))):
+                raise RuntimeError('GC_FEATURE_OBSERVED_BASIS_SOURCE_CLOCK_INVALID')
+            position = np.searchsorted(minutes, last)
+            clip = np.minimum(position, len(minutes) - 1)
+            matched = (position < len(minutes)) & (minutes[clip] == last)
+            value = np.asarray(surface['observed_close_usd'])
+            valid = observed & matched & np.isfinite(value) & (value > 0)
+            valid &= np.isfinite(mid[clip]) & (mid[clip] > 0)
+            result = np.full(len(last), np.nan)
+            result[valid] = 1e4 * (value[valid] / mid[clip[valid]] - 1)
+            source_clock = last + timing.MINUTE_NS
+            surface['observed_spot_basis_bps'] = result
+            surface['observed_spot_basis_valid'] = valid
+            surface['observed_spot_basis_source_available_ns'] = np.where(valid, source_clock, np.nan)
+            surface['observed_spot_basis_age_minutes'] = np.where(valid,
+                (surface['available_ns'] - source_clock) / timing.MINUTE_NS, np.nan)
     return hashes
 
 

@@ -216,6 +216,11 @@ def write_full_input_liveness_fixture(
         row = np.arange(32, dtype=np.float32)[:, None]
         column = np.arange(len(MULTI_TF_FEATURE_NAMES), dtype=np.float32)[None, :]
         values = row + column * np.float32(0.001)
+        values[:, list(MULTI_TF_FEATURE_NAMES).index("close_range_observed")] = np.arange(len(values)) % 2
+        values[:, list(MULTI_TF_FEATURE_NAMES).index("session_change_flag")] = 0.0 if timeframe == "D1" else np.arange(len(values)) % 2
+        values[:, list(MULTI_TF_FEATURE_NAMES).index("close_distance_below_high_range_fraction")] = np.where(
+            values[:, list(MULTI_TF_FEATURE_NAMES).index("close_range_observed")] == 1.0,
+            (np.arange(len(values)) + 1.0) / (len(values) + 1.0), 0.0)
         frame = pd.DataFrame(values, columns=MULTI_TF_FEATURE_NAMES)
         frame.attrs["feats_np"] = values.copy()
         frame.attrs["causal_warmup_rows"] = 1

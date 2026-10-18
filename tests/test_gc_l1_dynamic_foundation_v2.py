@@ -235,3 +235,82 @@ def test_observed_book_prefix_and_all_canonical_timeframes_share_closed_grid():
             np.testing.assert_array_equal(prefix[name][complete], full[name][:len(prefix[name])][complete])
         assert np.any(full['observed_book_valid'])
         assert np.all(full['observed_book_coverage_fraction'][full['observed_book_valid']] == 1)
+
+
+def _diagnostic_event_data():
+    import pyarrow as pa
+    from gx1.contracts import gc_continuous_source_v1 as source
+    receive = np.arange(5, dtype=np.int64) * 10 * NS
+    event = np.maximum(receive - 100, 0).astype(np.uint64)
+    event[-1] = np.iinfo(np.uint64).max
+    return {name: pa.array(value) for name, value in {
+        'ts_recv':receive, 'ts_event':event,
+        'ts_in_delta':np.array([20,-10,np.iinfo(np.int32).max,np.iinfo(np.int32).min,30],np.int32),
+        'flags':np.full(5,source.L1_F_LAST,np.uint8),'action':np.array(['A']*5),
+        'bid_px_00':np.full(5,100,np.int64),'ask_px_00':np.array([102,104,102,104,102],np.int64),
+        'bid_sz_00':np.full(5,10,np.uint32),'ask_sz_00':np.full(5,20,np.uint32)}.items()}
+
+
+def test_optin_event_diagnostics_preserves_old_book_and_signed_latency_clamps():
+    data = _diagnostic_event_data()
+    old = L1FeatureCollectorV2([0],1,origin_ns=0)
+    new = L1FeatureCollectorV2([0],1,origin_ns=0,include_event_diagnostics=True)
+    old(data,np.zeros(5,np.int64),np.zeros(5,bool));new(data,np.zeros(5,np.int64),np.zeros(5,bool))
+    old.finish(60*NS);new.finish(60*NS)
+    for name, value in old.values([True])[0].items():np.testing.assert_array_equal(value,new.values([True])[0][name])
+    out = new.event_diagnostics([True])
+    assert out['qualified_final_event_count'][0] == 5
+    assert out['spread_state_min_ticks'][0] == 2 and out['spread_state_max_ticks'][0] == 4
+    assert out['spread_expansion_count'][0] == out['spread_contraction_count'][0] == 2
+    assert out['spread_expansion_sum_ticks'][0] == 4
+    assert out['receive_interval_mean_ns'][0] == 10*NS
+    assert out['send_to_capture_count'][0] == 3
+    assert out['send_to_capture_min_ns'][0] == -10
+    np.testing.assert_allclose(out['send_to_capture_mean_ns'],[40/3])
+    assert out['ts_in_delta_clamped_low_count'][0] == out['ts_in_delta_clamped_high_count'][0] == 1
+    assert out['undefined_event_clock_count'][0] == 1
+    assert out['negative_send_to_capture_count'][0] == 1
+    assert out['matching_clock_mean_ns'][0] == 45
+
+
+def test_event_diagnostics_are_batch_invariant_and_have_count_weighted_tf_means():
+    from gx1.features.gc_order_flow_v1 import aggregate_observed_event_diagnostics_v1
+    from gx1.contracts import gc_source_disposition_v1 as timing
+    data = _diagnostic_event_data()
+    whole=L1FeatureCollectorV2([0],1,origin_ns=0,include_event_diagnostics=True)
+    split=L1FeatureCollectorV2([0],1,origin_ns=0,include_event_diagnostics=True)
+    whole(data,np.zeros(5,np.int64),np.zeros(5,bool))
+    for part in (slice(0,2),slice(2,5)):
+        split({k:v[part] for k,v in data.items()},np.zeros(len(data['ts_recv'][part]),np.int64),np.zeros(len(data['ts_recv'][part]),bool))
+    whole.finish(60*NS);split.finish(60*NS)
+    expected=whole.event_diagnostics([True])
+    for name, value in expected.items():np.testing.assert_array_equal(value,split.event_diagnostics([True])[name])
+    minutes=timing.STUDY_START_NS+np.arange(5)*timing.MINUTE_NS
+    out=aggregate_observed_event_diagnostics_v1(minutes,np.zeros(5,np.int16),{k:np.repeat(v,5) for k,v in expected.items()},'M5')
+    assert out['observed_event_qualified_final_event_count'][0] == 25
+    np.testing.assert_allclose(out['observed_event_send_to_capture_mean_ns'],[40/3])
+    assert out['observed_event_spread_expansion_count'][0] == 10
+    assert out['observed_event_coverage_fraction'][0] == 1
+
+
+def test_streamed_profiles_measure_memory_partial_coverage_and_keep_m5_clock_at_all_tf():
+    import pytest
+    from gx1.features.gc_order_flow_v1 import DynamicProfileStateV2,dynamic_profile_arrays_v2,profile_anchors_v2,add_projected_m5_profiles_v2
+    start=pd.Timestamp('2024-05-01T22:00Z').value+np.arange(4)*300*NS
+    anchors=profile_anchors_v2(start);profiles=dynamic_profile_arrays_v2(start)
+    state=DynamicProfileStateV2(1,max_state_bytes=1024*1024)
+    for i in (0,1,2):
+        row=state.step(start[i],{100+i:10},True,0,100+i,anchors[i],4)
+        for name,value in row.items():profiles[name][i]=value
+    assert state.peak_state_bytes > 0
+    assert profiles['session_accepted_minutes'][2] == 12
+    assert not profiles['session_complete_valid'][2]
+    # Last M5 slot is missing. Exact closed snapshots must not backsearch row2.
+    surface={'available_ns':start[[2,3]]+300*NS}
+    add_projected_m5_profiles_v2(surface,start+300*NS,profiles,np.array([.8,.8,.8,0]))
+    assert np.isfinite(surface['observed_profile_rolling15_poc_usd'][0])
+    assert np.isnan(surface['observed_profile_rolling15_poc_usd'][1])
+    assert surface['observed_profile_source_coverage_fraction'].tolist() == [.8,0]
+    bounded=DynamicProfileStateV2(1,max_state_bytes=1)
+    with pytest.raises(RuntimeError,match='STREAM_STATE_MEMORY_BOUND'):
+        bounded.step(start[0],{100:10},True,0,100,anchors[0])

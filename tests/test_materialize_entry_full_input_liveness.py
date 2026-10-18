@@ -63,12 +63,20 @@ def _v4_frames() -> dict[str, pd.DataFrame]:
     row = np.arange(rows, dtype=np.float32)[:, None]
     col = np.arange(len(MULTI_TF_PER_BAR_FEATURES_V4), dtype=np.float32)[None, :]
     values = row + col * np.float32(0.001)
+    values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("close_range_observed")] = np.arange(len(values)) % 2
+    values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("session_change_flag")] = np.arange(len(values)) % 2
+    values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("close_distance_below_high_range_fraction")] = np.where(
+        values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("close_range_observed")] == 1.0,
+        (np.arange(len(values)) + 1.0) / (len(values) + 1.0), 0.0)
     for timeframe in MULTI_TF_RESAMPLE_RULES:
+        lane_values = values.copy()
+        lane_values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("session_change_flag")] = (
+            0.0 if timeframe == "D1" else np.arange(len(values)) % 2)
         frame = pd.DataFrame(
-            values,
+            lane_values,
             columns=MULTI_TF_PER_BAR_FEATURES_V4,
         )
-        frame.attrs["feats_np"] = values.copy()
+        frame.attrs["feats_np"] = lane_values.copy()
         frame.attrs["causal_warmup_rows"] = 1
         frame.attrs["htf_feature_contract"] = HTF_V4_MATRIX_CONTRACT
         out[timeframe] = frame
@@ -135,9 +143,6 @@ def _write_split(
         snap[:, _signed_cols] = row_axis * np.float32(0.5) - np.float32(0.25)
     if _unit_cols:
         snap[:, _unit_cols] = row_axis
-    seq = np.repeat(snap[:, None, :], MODEL_NATIVE_SEQ_LEN, axis=1)
-    if break_seq_snap_parity:
-        seq[0, -1, 0] += np.float32(1.0)
     cont_axis = np.arange(len(MODEL_NATIVE_CTX_CONT_FIELDS), dtype=np.float32)[None, :]
     ctx_cont = 2.0 + row_axis * 0.125 + cont_axis * 0.001
     _cont_signed = [
@@ -154,6 +159,26 @@ def _write_split(
         ctx_cont[:, _cont_signed] = row_axis * np.float32(0.5) - np.float32(0.25)
     if _cont_unit:
         ctx_cont[:, _cont_unit] = row_axis
+    # This fixture explicitly has complete physical observations. All source
+    # observation/structural masks use their owner-declared binary domains;
+    # no ramp may masquerade as availability or a session event.
+    from gx1.features.gc_native_context_v1 import binary_fields as gc_binary_fields, masking_pairs
+    from gx1.features.micro_structure_v1 import range_observation_binary_fields, range_observation_masking_pairs
+    from gx1.features.basic_v1 import session_native_binary_event_fields
+    for values, names in ((snap, _signal_names), (ctx_cont, list(MODEL_NATIVE_CTX_CONT_FIELDS))):
+        names = list(names)
+        for name in gc_binary_fields(names) | range_observation_binary_fields(names):
+            values[:, names.index(name)] = 1.0
+        for name in session_native_binary_event_fields(names):
+            values[:, names.index(name)] = np.arange(rows) % 2
+        for value, observed in (*masking_pairs(names), *range_observation_masking_pairs(names)):
+            values[values[:, observed] == 0.0, value] = 0.0
+    from gx1.features.entry_specialist_feature_groups_v1 import model_native_context_temporal_alias_policy
+    for alias in model_native_context_temporal_alias_policy(_signal_names)["aliases"]:
+        snap[:, int(alias["signal_index"])] = ctx_cont[:, int(alias["ctx_cont_index"])]
+    seq = np.repeat(snap[:, None, :], MODEL_NATIVE_SEQ_LEN, axis=1)
+    if break_seq_snap_parity:
+        seq[0, -1, 0] += np.float32(1.0)
     ctx_cat = np.column_stack(
         [
             (np.arange(rows, dtype=np.int64) + index) % 3

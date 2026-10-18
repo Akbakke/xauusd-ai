@@ -12,7 +12,7 @@ import pandas as pd
 
 
 TECHNICAL_INDICATOR_PRIMITIVES_VERSION = (
-    "technical_indicator_primitives_v2_classic_seed_raw_20260814"
+    "technical_indicator_primitives_v3_shared_kama_efficiency_20261018"
 )
 EMA50_200_FAST_SPAN = 50
 EMA50_200_SLOW_SPAN = 200
@@ -31,6 +31,7 @@ TECHNICAL_INDICATOR_FORMULA_CONTRACT = (
     "atr_denominator=defined_strictly_positive_else_unavailable",
     "ema50_200_spread_atr=raw_spread_over_positive_wilder_atr_no_clip",
     "warmup=causal_nan_prefix_no_partial_window_no_neutral_fill",
+    "kama_efficiency=abs(close-close.shift(period))/sum_abs_close_changes_full_period_positive_denominator",
 )
 TECHNICAL_INDICATOR_FORMULA_SHA256 = hashlib.sha256(
     "\n".join(TECHNICAL_INDICATOR_FORMULA_CONTRACT).encode("utf-8")
@@ -47,6 +48,20 @@ def technical_indicator_contract_metadata() -> dict[str, object]:
         "formula_contract": list(TECHNICAL_INDICATOR_FORMULA_CONTRACT),
         "ema50_200_block_columns": list(EMA50_200_SPREAD_ATR_BLOCK_COLUMNS),
     }
+
+
+def kaufman_efficiency_ratio(close: pd.Series, period: int) -> pd.Series:
+    """The exact retained local KAMA efficiency formula, on any closed clock."""
+    if isinstance(period, bool) or not isinstance(period, int) or period <= 0:
+        raise RuntimeError("[KAMA_EFFICIENCY_PERIOD_INVALID]")
+    if not isinstance(close, pd.Series):
+        raise RuntimeError("[KAMA_EFFICIENCY_SOURCE_TYPE_INVALID]")
+    values = close.to_numpy(dtype=np.float64)
+    if not np.isfinite(values).all() or np.any(values <= 0.0):
+        raise RuntimeError("[KAMA_EFFICIENCY_SOURCE_INVALID]")
+    change = (close - close.shift(period)).abs()
+    volatility = close.diff().abs().rolling(period, min_periods=period).sum()
+    return change / volatility.where(volatility > 0.0)
 
 
 def classic_ema(series: pd.Series, span: int) -> pd.Series:

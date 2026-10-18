@@ -402,7 +402,11 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     failed_without_test_witness = (
         type(terminal.get("exit_code")) is int
         and terminal["exit_code"] != 0
-        and "test_data_used" not in terminal
+        and ("test_data_used" not in terminal or (
+            terminal.get("status") == "FAILED_NO_ADMISSION"
+            and terminal.get("test_data_used") is None
+            and terminal.get("test_access_observation") == "unproved_after_failure"
+        ))
     )
     if (type(terminal.get("exit_code")) is not int
             or terminal["exit_code"] != work["terminal_exit_code"]
@@ -418,7 +422,10 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     if failed_without_test_witness:
         # Observe the genuine failed exit without inventing missing proof.
         # Even a separately ready native scope cannot pass this unknown.
-        out["latest_terminal_evidence_gaps"] = ["test_data_used_field_missing"]
+        out["latest_terminal_evidence_gaps"] = [
+            "test_data_used_field_missing" if "test_data_used" not in terminal
+            else "test_data_used_unproved_after_failure"
+        ]
         out["next_run"]["decision"] = "BLOCKED"
         out["next_run"]["blocked_reasons"] = [
             *out["next_run"]["blocked_reasons"],
@@ -460,6 +467,7 @@ def handover_view(status: dict[str, object]) -> dict[str, object]:
                     "whole_physical_train_rows", "whole_physical_val_rows",
                     "physical_dataset_input_qualification_complete",
                     "physical_dataset_normalization_complete", "training_started",
+                    "derived_timeframe_stage", "mbp1_completion_stage", "native_binding_gaps",
                 ) if key in native
             }
         goal = work.get("restart_and_smoke_goal")

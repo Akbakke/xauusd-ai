@@ -689,3 +689,46 @@ def test_constant_unit_contract_fails_closed(fault):
     else: fitted["train_transformed_max"] = [1.0]
     with pytest.raises(RuntimeError, match="CONSTANT_UNIT_INVALID"):
         normalization_contract.require_surface_normalization(fitted, surface="signal", field_names=["f"])
+
+
+@pytest.mark.parametrize("surface,prefix", [("mtf_h4", ""), ("mtf_d1", ""), ("ctx_cont", "ctx_cont.")])
+def test_source_range_observation_mask_has_unit_identity_even_when_always_one(surface, prefix):
+    names = [prefix + "close_distance_below_high_range_fraction", prefix + "close_range_observed"]
+    raw = np.column_stack((np.linspace(0.1, 0.9, 12), np.ones(12))).astype(np.float32)
+    fitted = fit_surface_normalization(raw, surface=surface, field_names=names)
+    assert fitted["binary_mask"] == [0, 1]
+    assert fitted["center"][1] == 0.0 and fitted["scale"][1] == 1.0
+    assert fitted["scale_source"][1] == "semantic_binary_identity"
+    served = apply_surface_normalization(raw, fitted)
+    np.testing.assert_array_equal(served[:, 1], raw[:, 1])
+
+
+def test_unobserved_range_fraction_is_excluded_from_fit_and_hard_zero_in_both_transforms():
+    from gx1.features.micro_structure_v1 import mask_normalized_range_torch
+    names = ["close_distance_below_high_range_fraction", "close_range_observed"]
+    raw = np.asarray([[0.0, 0.0], [0.2, 1.0], [0.4, 1.0], [0.8, 1.0]], np.float32)
+    fitted = fit_surface_normalization(raw, surface="mtf_d1", field_names=names)
+    assert fitted["center"][0] == np.float32(0.4)
+    expected_iqr = np.float32(np.quantile(raw[1:, 0], .75) - np.quantile(raw[1:, 0], .25))
+    assert fitted["scale"][0] == expected_iqr
+    served = apply_surface_normalization(raw, fitted)
+    assert served[0, 0] == 0.0 and served[0, 1] == 0.0
+    tensor = torch.from_numpy(raw)
+    normalized = torch.asinh((tensor - torch.tensor(fitted["center"])) / torch.tensor(fitted["scale"]))
+    normalized[:, 1] = tensor[:, 1]
+    normalized = mask_normalized_range_torch(tensor, normalized, names)
+    np.testing.assert_allclose(normalized.numpy(), served, atol=np.finfo(np.float32).eps)
+    np.testing.assert_allclose(invert_surface_normalization(served, fitted), raw, atol=np.finfo(np.float32).eps)
+    bad = raw.copy(); bad[0, 0] = 0.5
+    with pytest.raises(RuntimeError, match="OBSERVATION.*STORAGE"):
+        fit_surface_normalization(bad, surface="mtf_d1", field_names=names)
+    with pytest.raises(RuntimeError, match="OBSERVATION.*STORAGE"):
+        apply_surface_normalization(bad, fitted)
+    with pytest.raises(RuntimeError, match="OBSERVATION.*STORAGE"):
+        mask_normalized_range_torch(torch.from_numpy(bad), torch.from_numpy(bad), names)
+
+
+def test_range_fraction_without_its_source_observation_mask_fails_closed():
+    with pytest.raises(RuntimeError, match="MICRO_RANGE_OBSERVATION_MASK_MISSING"):
+        fit_surface_normalization(np.arange(8, dtype=np.float32).reshape(-1, 1),
+            surface="ctx_cont", field_names=["ctx_cont.close_distance_below_high_range_fraction"])

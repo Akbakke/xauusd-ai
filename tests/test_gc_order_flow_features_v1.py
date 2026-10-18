@@ -359,3 +359,179 @@ def test_observed_structure_resets_at_boundary_gap_missing_bucket_and_contract()
         for name, value in expected.items():
             np.testing.assert_array_equal(surface['observed_proxy_' + name][begin:end], value)
     assert np.isnan(surface['observed_proxy_bos_up'][9])
+
+
+@pytest.mark.parametrize('observed_only', [False, True])
+def test_contract_major_ladder_keeps_late_bucket_continuation_before_earlier_contract(tmp_path, monkeypatch, observed_only):
+    # raw001 writes contract-major rows. The later contract's open TF bucket
+    # continues across a physical batch before the next contract goes back in
+    # calendar time. Sorting unique bars would flush that open bucket too soon.
+    a = list(minute_inputs(4320))
+    a[1][2760:4200] = 1
+    admitted = np.zeros(4320, bool)
+    admitted[1320:4200] = True
+    if observed_only:
+        admitted[np.arange(4320) % 5 == 1] = False
+    for key in ('volume', 'delta', 'cvd'):
+        a[3][key][:] = admitted
+    a[2]['unknown'][1320] = 2
+    a[2]['volume'][1320] += 2
+    a[3]['delta'][1320] = a[3]['cvd'][1320] = False
+    later = np.flatnonzero(admitted & (a[1] == 1))
+    earlier = np.flatnonzero(admitted & (a[1] == 0))
+    source_minutes = np.r_[later, earlier]
+    rows = np.repeat(source_minutes, 3)
+    buy = np.ones(len(rows), np.uint64)
+    sell = np.tile(np.array([0, 0, 1], np.uint64), len(source_minutes))
+    unknown = np.zeros(len(rows), np.uint64)
+    unknown[::3] = a[2]['unknown'][source_minutes]
+    schema = pa.schema([('minute_index', pa.int32()), ('price_tick', pa.int64()),
+        ('buy', pa.uint64()), ('sell', pa.uint64()), ('unknown', pa.uint64())])
+    path = tmp_path / 'contract_major.parquet'
+    # Repeated price100 fragments are intentionally split across row groups.
+    with pq.ParquetWriter(path, schema) as writer:
+        for part in np.array_split(np.arange(len(rows)), 3):
+            writer.write_table(pa.table({'minute_index': rows[part].astype(np.int32),
+                'price_tick': np.tile(np.array([100, 100, 101], np.int64), len(source_minutes))[part],
+                'buy': buy[part], 'sell': sell[part], 'unknown': unknown[part]}, schema=schema))
+    original_reader = pq.ParquetFile
+    class FragmentedReader:
+        def __init__(self, source):
+            self.source = original_reader(source)
+        def iter_batches(self, **kwargs):
+            kwargs['batch_size'] = 1001
+            yield from self.source.iter_batches(**kwargs)
+    monkeypatch.setattr(f.pq, 'ParquetFile', FragmentedReader)
+    surfaces, maps = {}, {}
+    for timeframe in ('M5', 'M15', 'H1', 'H4', 'D1'):
+        surfaces[timeframe], maps[timeframe] = f.timeframe_skeleton(*a, timeframe, 100000000)
+    f.consume_ladder(path, surfaces, maps, 100000000)
+    for timeframe, surface in surfaces.items():
+        observed = surface['observed_valid']
+        assert observed.any(), timeframe
+        assert np.isfinite(surface['observed_vwap_usd'][observed]).all(), timeframe
+        assert (surface['observed_poc_usd'][observed] == 10).all(), timeframe
+        accepted = surface['observed_accepted_minutes'][observed]
+        assert np.array_equal(surface['observed_buy_known'][observed], 3 * accepted), timeframe
+        assert np.array_equal(surface['observed_sell_known'][observed], accepted), timeframe
+        assert np.array_equal(surface['observed_known_delta_contracts'][observed], 2 * accepted), timeframe
+        if observed_only:
+            assert not surface['volume_valid'].any(), timeframe
+            assert np.isnan(surface['poc_usd']).all(), timeframe
+        else:
+            strict = surface['volume_valid']
+            assert strict.any(), timeframe
+            for field in f.PROFILE_FIELDS:
+                np.testing.assert_array_equal(surface[field][strict], surface['observed_' + field][strict])
+
+
+def test_executed_trade_average_is_ratio_of_aggregate_quantity_not_displayed_orders():
+    a = list(minute_inputs(5))
+    a[2]['volume'][:] = [4, 4, 4, 4, 24]
+    a[2]['buy'][:] = [3, 3, 3, 3, 23]
+    a[2]['trades'][:] = [1, 1, 1, 1, 12]
+    surface, _ = f.timeframe_skeleton(*a, 'M5', 100000000)
+    assert surface['observed_avg_executed_trade_contracts'][0] == 2.5
+    assert surface['observed_volume'][0] == 40
+    assert surface['observed_trades'][0] == 16
+
+
+def test_all_timeframe_value_area_uses_contiguous70percent_not_q25_q75(tmp_path):
+    a = list(minute_inputs(2880))
+    a[2]['buy'][:] = 50; a[2]['sell'][:] = 50
+    a[2]['volume'][:] = 100; a[2]['trades'][:] = 3
+    a[4][:] = [100, 102, 100, 102]
+    minutes = np.repeat(np.arange(2880, dtype=np.int32), 3)
+    path = tmp_path / 'value_area.parquet'
+    pq.write_table(pa.table({'minute_index': minutes,
+        'price_tick': np.tile(np.array([100, 101, 102], np.int64), 2880),
+        'buy': np.tile(np.array([15, 20, 15], np.uint64), 2880),
+        'sell': np.tile(np.array([15, 20, 15], np.uint64), 2880),
+        'unknown': np.zeros(len(minutes), np.uint64)}), path)
+    surfaces, maps = {}, {}
+    for tf in ('M5','M15','H1','H4','D1'):surfaces[tf], maps[tf] = f.timeframe_skeleton(*a, tf, 100000000)
+    f.consume_ladder(path, surfaces, maps, 100000000)
+    for surface in surfaces.values():
+        observed = surface['observed_valid']
+        assert observed.any()
+        np.testing.assert_allclose(surface['observed_val_usd'][observed], 10)
+        np.testing.assert_allclose(surface['observed_vah_usd'][observed], 10.1)
+        np.testing.assert_allclose(surface['observed_q75_usd'][observed], 10.2)
+
+
+def test_known_cumulative_preserves_unknown_and_resets_clock_gap_date_and_roll():
+    a = list(minute_inputs(10))
+    a[2]['unknown'][1] = 3; a[2]['volume'][1] += 3
+    a[3]['delta'][1] = a[3]['cvd'][1] = False
+    a[3]['volume'][3] = False
+    a[1][7:] = 1
+    known = f.known_cumulative_contributions_v1(a[0], a[1], a[3], a[2])
+    assert known['known_delta_contracts'][1] == 4
+    assert known['unknown_contracts'][1] == 3
+    assert known['unknown_fraction'][1] == 3 / 11
+    assert np.isnan(known['volume_contracts'][3])
+    assert known['observed_minutes'][4] == 1
+    assert known['observed_minutes'][7] == 1
+    surface, _ = f.timeframe_skeleton(*a, 'M5', 100000000)
+    f.add_known_cumulative_contributions_v1(surface, known, a[0])
+    assert surface['observed_known_cumulative_observed_minutes'][0] == 1
+    for name, values in known.items():
+        prefix = f.known_cumulative_contributions_v1(a[0][:6], a[1][:6], {k:v[:6] for k,v in a[3].items()}, {k:v[:6] for k,v in a[2].items()})
+        np.testing.assert_array_equal(prefix[name], values[:6])
+
+
+def test_completion_native_candidates_have_one_explicit_owner_mask_clock_and_metadata_exclusion():
+    declared = f.completion_native_candidates_v1()
+    fields = declared['fields']
+    assert len({(row['table'], row['column']) for row in fields}) == len(fields)
+    assert not set(row['column'] for row in fields).intersection(declared['metadata_columns'])
+    assert set(row['owner'] for row in fields) <= {'momentum_flow_encoder','smc_liquidity_encoder',
+        'vol_compression_encoder','session_regime_encoder','price_action_candle_encoder'}
+    row = next(row for row in fields if row['column'] == 'observed_event_matching_clock_mean_ns')
+    assert row['validity_column'] == 'observed_event_matching_clock_valid'
+    assert row['owner'] == 'session_regime_encoder'
+    profile = next(row for row in fields if row['column'] == 'observed_profile_rolling15_poc_usd')
+    assert profile['source_clock_column'] == 'observed_profile_snapshot_available_ns'
+
+
+@pytest.mark.parametrize('tf,duration_minutes', [('M5',5),('M15',15),('H1',60),('H4',240),('D1',1440)])
+def test_observed_basis_matches_exact_last_gc_m1_and_preserves_strict_default(tmp_path,tf,duration_minutes):
+    from gx1.scripts.gc_order_flow_features_v1 import add_basis,previous
+    origin=t.STUDY_START_NS
+    minutes=origin+np.arange(10,dtype=np.int64)*t.MINUTE_NS
+    part=tmp_path/'spot.parquet';manifest=tmp_path/'manifest.json';manifest.write_text('{}')
+    # Minute4 is absent: its GC close must not use minute3 or the TF ending quote.
+    quoted=np.array([0,1,2,3,5,6,7,8,9])
+    pq.write_table(pa.table({'time':pa.array(minutes[quoted],type=pa.timestamp('ns',tz='UTC')),
+        'bid_close':100.+quoted,'ask_close':102.+quoted}),part)
+    plan={'inputs':{'oanda_manifest':{'path':str(manifest),'sha256':previous.sha256_file(manifest),
+        'partitions':[{'path':str(part),'sha256':previous.sha256_file(part)}]}}}
+    surface={'bar_start_ns':np.full(3,origin,np.int64),
+        'available_ns':np.full(3,origin+duration_minutes*t.MINUTE_NS,np.int64),
+        'volume_valid':np.array([duration_minutes==5,False,False]),'close_usd':np.array([10.,np.nan,np.nan]),
+        'observed_valid':np.array([True,True,False]),'observed_close_usd':np.array([10.,11.,np.nan]),
+        'observed_last_minute_ns':np.array([minutes[2],minutes[4],np.nan])}
+    strict={key:value.copy() for key,value in surface.items()}
+    add_basis(plan,{tf:strict},minutes)
+    hashes=add_basis(plan,{tf:surface},minutes,include_observed=True)
+    np.testing.assert_array_equal(strict['spot_basis_bps'],surface['spot_basis_bps'])
+    assert 'observed_spot_basis_bps' not in strict
+    assert surface['observed_spot_basis_valid'].tolist()==[True,False,False]
+    assert surface['observed_spot_basis_bps'][0]==pytest.approx(1e4*(10./103.-1))
+    assert np.isnan(surface['observed_spot_basis_bps'][1:]).all()
+    assert surface['observed_spot_basis_source_available_ns'][0]==minutes[2]+t.MINUTE_NS
+    assert surface['observed_spot_basis_age_minutes'][0]==duration_minutes-3
+    assert {str(path) for path,_ in hashes}=={str(manifest),str(part)}
+    surface['observed_last_minute_ns'][0]=surface['available_ns'][0]
+    with pytest.raises(RuntimeError,match='OBSERVED_BASIS_SOURCE_CLOCK_INVALID'):
+        add_basis(plan,{tf:surface},minutes,include_observed=True)
+
+
+def test_observed_basis_candidates_have_explicit_mask_clock_owner_without_duplicate_mask_value():
+    declared=f.completion_native_candidates_v1()
+    records=[row for row in declared['fields'] if row['column'].startswith('observed_spot_basis')]
+    assert len(records)==10
+    assert {row['column'] for row in records}=={'observed_spot_basis_bps','observed_spot_basis_age_minutes'}
+    assert all(row['owner']=='momentum_flow_encoder' and row['validity_column']=='observed_spot_basis_valid'
+        and row['source_clock_column']=='observed_spot_basis_source_available_ns' for row in records)
+    assert 'observed_spot_basis_source_available_ns' in declared['metadata_columns']

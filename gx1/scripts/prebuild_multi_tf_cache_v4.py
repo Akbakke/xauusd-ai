@@ -127,6 +127,7 @@ def publish_multi_tf_v4_cache(
 ) -> Path:
     from gx1.features.htf_features import (
         HTF_V4_CACHE_BUILDER_VERSION,
+        native_mtf_full_primitive_contract_metadata_v4,
         HTF_V4_CACHE_SCHEMA_VERSION,
         HTF_V4_MATRIX_CONTRACT,
         MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4,
@@ -243,6 +244,7 @@ def publish_multi_tf_v4_cache(
                 SMC_CAUSAL_REPLAY_SCHEMA_VERSION
             ),
             "technical_indicator_owner": technical_indicator_contract_metadata(),
+            "native_primitive_owner": native_mtf_full_primitive_contract_metadata_v4(),
             "swing_structure_owner": swing_structure_contract_metadata(),
             "m5_prebuilt_source": str(source),
             "m5_prebuilt_source_sha256": expected_source_sha256,
@@ -545,7 +547,8 @@ def main() -> int:
         for clock in ("M5", "M15", "H1", "H4", "D1")
     }
 
-    columns = ["time", "open", "high", "low", "close", "volume"]
+    from gx1.features.htf_features import MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS
+    columns = ["time", "open", "high", "low", "close", "volume", *MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS]
     missing = [
         name
         for name in columns

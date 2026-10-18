@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_FORECAST_OUTPUT_DIM
+
 import inspect
 import json
 from pathlib import Path
@@ -121,7 +123,7 @@ def _snapshot() -> dict:
         "side_mae_bps": [3.2, 8.1],
         "trendline_event_logits": [0.1, -0.1, 0.2, -0.2],
         "dip_pred": [0.0] * 18,
-        "forecast_pred": [0.0] * 4,
+        "forecast_pred": [0.0] * MODEL_NATIVE_FORECAST_OUTPUT_DIM,
         "timing_pred": [0.0] * 12,
         "tail_risk_pred": [0.0] * 6,
         "vol_forecast_pred": [0.0] * 3,

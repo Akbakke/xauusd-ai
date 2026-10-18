@@ -328,7 +328,7 @@ def _validate_model_native_diagnostics(
     vector("side_mae_bps", 2)
     vector("trendline_event_logits", 4)
     vector("dip_pred", 18)
-    vector("forecast_pred", 4)
+    vector("forecast_pred", FORECAST_HEAD_DIM)
     vector("timing_pred", 12)
     vector("tail_risk_pred", 6)
     vector("vol_forecast_pred", 3)

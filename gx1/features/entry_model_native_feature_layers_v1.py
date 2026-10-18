@@ -26,6 +26,8 @@ from gx1.features.entry_foundation_structure_v1 import (
 from gx1.features.htf_features import (
     LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES,
     MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_V4_LOCAL_ONLY_PRIMITIVE_FEATURES,
+    MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES,
     MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE,
     MULTI_TF_V4_VOLUME_FEATURES,
     MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
@@ -51,6 +53,7 @@ from gx1.features.swing_structure_v1 import (
 )
 from gx1.features.technical_indicators_v1 import (
     ema50_200_spread_atr_block,
+    kaufman_efficiency_ratio,
     technical_indicator_contract_metadata,
 )
 from gx1.features.trendline_registry_v1 import (
@@ -411,6 +414,14 @@ def model_native_m5_local_per_bar_exact_aliases() -> tuple[tuple[str, str], ...]
         ("ctx_cont.m5_trend_state_age_bars_v2", "trend_state_age_bars"),
         ("ctx_cont.m5_ema_stack_aligned_v2", "ema_stack_aligned_v2"),
     ))
+    for name in MULTI_TF_V4_LOCAL_ONLY_PRIMITIVE_FEATURES:
+        local = "ctx_cont." + name if name in (
+            "close_return_3_bps", "close_return_5_bps", "close_return_acceleration_1_bps",
+            "close_distance_below_high_range_fraction", "close_range_observed", "close_distance_from_ema5_bps",
+            "spread_bps", "spread_bps_delta_1", "spread_extremes_sum_bps", "quote_range_asymmetry_bps", "session_change_flag",
+        ) else name
+        aliases.append((local, name))
+    aliases.extend(("ctx_cont." + name, name) for name in MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES)
     result = tuple(aliases)
     if (len({local for local, _ in result}) != len(result)
             or any(mtf not in MULTI_TF_PER_BAR_FEATURES_V4 for _, mtf in result)):
@@ -667,13 +678,7 @@ def build_price_derived_layer(
     # unavailable; it is never replaced by an epsilon or fabricated neutral
     # value. The rolling min_periods=30 warmup stays an honest NaN prefix
     # inside the layer's 204-row floor.
-    kama_change_30 = (close - close.shift(30)).abs()
-    kama_volatility_30 = (
-        close.diff().abs().rolling(30, min_periods=30).sum()
-    )
-    kama_efficiency_30 = kama_change_30 / kama_volatility_30.where(
-        kama_volatility_30 > 0.0
-    )
+    kama_efficiency_30 = kaufman_efficiency_ratio(close, 30)
 
     # V30 GAP-2/GAP-3 local durations (see the name-tuple comment).  Exact
     # per-TF construction: mask the state to NaN wherever its EMA source is

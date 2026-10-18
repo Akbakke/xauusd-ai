@@ -61,26 +61,53 @@ manglende prisbane og institusjonell ordreidentitet konstrueres aldri.
 BBO/count-TF har egne masker/tidsvekter. Partial-M1means/spread-shock kan ikke
 gjenfinnes fra allerede maskerte M1means og er fortsatt uferdig eventinformasjon.
 
-Fokuserte kilde-/syntetiske kontroller er kjørt underaudit4G. Nye Arrow-bool-
-konverteringer og ugyldige testmasker ble rettet; produksjonens binær-/missing-
-vakter ble beholdt. Samlet fokuscheck og siste avgrensede rettelsessjekk ligger
-i018rotens FOCUSED_TESTS_002/003.log. Ingen fysisk ny GC-TF eller modellsmoke
-påstås av disse testene.
+Gjeldende fokuskontroll:1120caser,1113bestod; alle7påviste avvik er rettet og
+etterkontrollert. Siste avgrensede64caser bestod, inkludert ekte M5-aliaser,
+familie-/TF-batching, observasjonsmaskens hele liveness-/normkjede og negative
+vakter. Originale feilkvitteringer er bevart. Kildekvalifisering og nøyaktige
+hashbindinger:019rotens FOCUSED_SOURCE_QUALIFICATION.json. Denne rapporten
+beviser ikke nye fysiske GCoutputs, neural læring eller bedre handelsøkonomi.
+
+Nye253TF-felt omfatter source-session_change_flag (binær hendelse, ikke
+observasjonsmaske). D1kan legitimt være konstant0. close_range_observed har
+binær identitet, hard maskering og eksplisitt strukturell livenessrolle; den
+parrede prisfraksjonen beholder krav til genuine observerte TRAINverdier.
+Felles rå OHLC-oppsett bygges én gang, og daglig pivotoppslag er vektorisert
+hos samme eier med identisk strict-prior-klokke.
 
 ## Neste bundne jobb og gjenværende arbeid
 
-018: configs/research/NATIVE_GC_MTF_DERIVATION_20261018_018.json.
-Gjenbruk hashbundet rå001 M1_GC_INPUTS/FOOTPRINT_M1_LEVELS/ROLL_SCHEDULE;
-ingen ny892Mrecords-råskanning. Ny engangsidentitet, separat derived_timeframe_stage,
-audit4G/swap512M/eksisterende CPU-/prosessvakter,1800s. Ingen gammel planrelansering.
-Status er claimed, med faktisk launch/terminal i policy. Kilde/policy fryses under
-jobben. Ny observerbar GC-TF-støtte skal måles før innrømmelse i native registry.
+018 er FAILED/konsumert og relanseres ikke. Etter14.101s stoppet eksakt
+observed buy-side-konservering før publisering; originalinputs står urørt.
+Failed receipt har test_data_used=null og gir ikke isolasjonsbevis.
+Kildeseam er målt i footprint rowgroup20, globalrad1316036→1316037:
+CI1 2026-01-29T00:00Z →CI2 2025-01-30T00:01Z. np.unique sorterte bargruppene
+slik at en delvis Arrowbatch-bar ble flushet før resten av kontraktblokken.
+Rettelsen følger den faktiske kontiguøse streamrekkefølgen. Nye regresjonstilfeller
+bestod; alle sideparitetsvakter er beholdt. Originalkvitteringen omskrives ikke.
 
-Etter018: gjenbruk eksisterende kalkulatorer til de39manglende lokale pris-/
-aktivitets-/quotefeltene og ni generiske HTF-formlene; ekte BID/ASK finnes i
-råM5 men droppes i dagens inputprojeksjon.14kryssTF-nivåavstander trenger egen
-kausal klokkevurdering. Makro/session beholder faktisk as-of-klokke. Ingen
-påstand om alle-TF-ferdig før komplett flate er målt til modell.
+Ny019: configs/research/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019.json.
+Gjenbruk hashbundet001 M1/grid/roll og samme66råfiler. Nøyaktig ett nytt
+råeventpass kompletterer intraminutt spreadendringer/ekstremer/eventintensitet
+og signerte kildeklokkeforskjeller; rå001 og prisladder bygges ikke på nytt.
+Fersk mbp1_completion_stage, audit4G/swap512M/CPU0–7/TasksMax64, fire workers,
+1800s hard grense og64MiB streamingprofilstate. Gammel001tid637.979s er bare
+referanse, ikke019runtimebevis. Ingen modelltrening autoriseres av019.
+
+I kilde under kvalifisering: gjennomsnittlig utført Trade-recordstørrelse,
+70% sammenhengende VAH/VAL fra bevarte prisnivåer, kjent buy/sell/unknown-CVD,
+observedTF-flow/profil/SMC/BBO/ordercount og spread-/kildeklokkestatistikk.
+15/60min/NYsession-profilkontekst beholdes på faktisk M5-kildeklokke og projiseres
+as-of; det betyr ikke15/60nye H4- eller D1-barer.925deklarerte MBP-kandidater
+(185perTF) har eksplisitt eier, validitetsmaske og kildeklokke. Fysisk støtte,
+ny native registry og faktisk modellkonsum er ennå ikke kvalifisert.
+Observed GC/XAU-basis bruker eksakt siste observerte GC-M1 og samme XAU-M1quote;
+maske/kildealder følger videre, ingen substitution med TFslutt eller eldre pris.
+
+Den nye MTF-kilden deklarerer253felt perTF gjennom eksisterende kalkulatorer:
+190opprinnelige+40lokale+ni generiske HTF-formler+14nivåavstander. Ekte BID/ASK som allerede finnes
+i råM5, må bevares helt til TF-beregning. Makro/session beholder faktisk
+as-of-klokke. Ingen alle-TF-ferdigpåstand før den komplette flaten er målt.
 
 Ny M5-path-target må bruke autoritativ executable M1-fill og samme BID/ASK-
 peakklokke. Gammel M5-dip-label bruker M5sluttfill/MIDpeak og gjenbrukes ikke

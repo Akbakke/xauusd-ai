@@ -35,6 +35,7 @@ from gx1.contracts.entry_causal_m1_outcomes_v1 import (
     CausalM1QuoteSource, _entry_notional_pnl_bps, _m1_arrays, _require_surface, causal_m1_target_contract,
 )
 from gx1.contracts.entry_fitted_q_v1 import ENTRY_FITTED_Q_ACTION_ORDER
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
 from gx1.contracts.entry_observed_market_v1 import (
     SCHEMA_VERSION as PREDECESSOR_SCHEMA_VERSION, build_entry_observed_market_targets,
 )
@@ -43,7 +44,11 @@ from gx1.time.session_detector import (
 )
 
 SCHEMA_VERSION = "gx1_entry_observed_market_horizons_v2"
-OBSERVATION_HORIZONS_TRADING_DAYS = (1, 5, 20)
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    MODEL_NATIVE_SUPPORT_HORIZONS_TRADING_DAYS, MODEL_NATIVE_SUPPORT_FORECAST_DIM,
+    SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+)
+OBSERVATION_HORIZONS_TRADING_DAYS = MODEL_NATIVE_SUPPORT_HORIZONS_TRADING_DAYS
 DECISION_HORIZON_TRADING_DAYS = 20
 GROSS_TARGET_COLUMNS_BY_HORIZON = {
     h: (f"y_long_gross_at_{h}d_bps", f"y_short_gross_at_{h}d_bps") for h in OBSERVATION_HORIZONS_TRADING_DAYS
@@ -437,6 +442,63 @@ def bind_entry_observed_market_horizons_dataset(dataset: Any, scope: Mapping[str
     dataset._entry_observed_market_binding = {**binding, "binding_sha256": _sha(binding)}
 
 
+
+def build_masked_support_forecast_targets(*, frame, scope, split, admitted_mask):
+    """Each1/5/20d markout supports learning only where its own quote exists.
+
+    Zero is masked tensor storage, never a target observation. No longer
+    horizon may remove a row from the primary M5 utility training population.
+    """
+    values = np.zeros((len(frame), MODEL_NATIVE_SUPPORT_FORECAST_DIM), np.float32)
+    valid = np.zeros_like(values, dtype=bool)
+    clock = pd.DatetimeIndex(pd.to_datetime(frame['time'], utc=True)).as_unit('ns').asi8
+    boundary = pd.Timestamp(scope['train_control_cutoff' if split == 'train'
+        else 'development_control_entry_end_exclusive']).value
+    for j, horizon in enumerate(OBSERVATION_HORIZONS_TRADING_DAYS):
+        columns = [*GROSS_TARGET_COLUMNS_BY_HORIZON[horizon], ELAPSED_COLUMN_BY_HORIZON[horizon]]
+        block = frame[columns].to_numpy(dtype=np.float64)
+        finite = np.isfinite(block)
+        if np.any(finite.any(axis=1) != finite.all(axis=1)):
+            raise RuntimeError('ENTRY_SUPPORT_FORECAST_PARTIAL_TARGET')
+        observed = admitted_mask & finite.all(axis=1)
+        rows = np.flatnonzero(observed)
+        if not len(rows):
+            continue
+        elapsed = block[rows, 2]
+        if (np.any(elapsed <= 0) or not np.equal(elapsed, np.floor(elapsed)).all()
+                or np.any(clock[rows] + (ENTRY_DECISION_BAR_SECONDS + elapsed.astype(np.int64)) * 10**9 > boundary)):
+            raise RuntimeError('ENTRY_SUPPORT_FORECAST_SPLIT_OR_ELAPSED_INVALID')
+        net = build_entry_observed_market_targets(gross_return_bps=torch.tensor(block[rows, :2], dtype=torch.float32),
+            elapsed_wall_clock_seconds=torch.tensor(elapsed, dtype=torch.int64), economics=scope['economics'])['target_bps'][:, :2].numpy()
+        values[rows, 2 * j:2 * j + 2] = net
+        valid[rows, 2 * j:2 * j + 2] = True
+    values.setflags(write=False)
+    valid.setflags(write=False)
+    return values, valid
+
+
+def masked_forecast_target_surface(batch, base_targets, *, device):
+    """One existing forecast head/task, with explicit per-cell support masks."""
+    from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+    values = batch.get(SUPPORT_FORECAST_TARGET_BATCH_KEY)
+    valid = batch.get(SUPPORT_FORECAST_VALID_BATCH_KEY)
+    if values is None and valid is None:
+        if M5_PATH_BATCH_TARGET_KEY in batch:
+            raise RuntimeError('ENTRY_M5_PATH_SUPPORT_FORECAST_MISSING')
+        # Base/h20 phases explicitly supervise only their original M5 slots.
+        values = base_targets.new_zeros((len(base_targets), MODEL_NATIVE_SUPPORT_FORECAST_DIM))
+        valid = torch.zeros_like(values, dtype=torch.bool)
+    if (not isinstance(values, torch.Tensor) or not isinstance(valid, torch.Tensor)
+            or values.dtype != torch.float32 or valid.dtype != torch.bool
+            or tuple(values.shape) != (len(base_targets), MODEL_NATIVE_SUPPORT_FORECAST_DIM)
+            or values.shape != valid.shape or not bool(torch.isfinite(values).all())
+            or bool((values[~valid] != 0).any())):
+        raise RuntimeError('ENTRY_SUPPORT_FORECAST_BATCH_INVALID')
+    values, valid = values.detach().to(device), valid.detach().to(device)
+    return (torch.cat((base_targets, values), dim=1),
+        torch.cat((torch.ones_like(base_targets, dtype=torch.bool), valid), dim=1))
+
+
 def observed_entry_batch_items(dataset: Any, row: int) -> dict[str, torch.Tensor]:
     """The exact supervision keys the Dataset emits for one row (rule 17): the v1 key when the
     v1 target is bound, the three horizon keys when the horizon targets are bound, never both."""
@@ -445,6 +507,12 @@ def observed_entry_batch_items(dataset: Any, row: int) -> dict[str, torch.Tensor
     if v1 is not None and horizons is not None:
         raise RuntimeError("ENTRY_OBSERVED_MARKET_TARGET_KEYS_AMBIGUOUS")
     if v1 is not None:
+        from gx1.contracts.entry_observed_market_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE, M5_PATH_BATCH_TARGET_KEY
+        binding = getattr(dataset, "_entry_observed_market_binding", None)
+        if binding is not None and binding["identity"]["training_phase"] == ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
+            return {M5_PATH_BATCH_TARGET_KEY: torch.tensor(v1[row]),
+                SUPPORT_FORECAST_TARGET_BATCH_KEY: torch.tensor(dataset._entry_observed_market_support_forecast[row]),
+                SUPPORT_FORECAST_VALID_BATCH_KEY: torch.tensor(dataset._entry_observed_market_support_forecast_valid[row])}
         # Output supervision only; never append future outcomes to inputs.
         return {"entry_observed_market_target_bps": torch.tensor(v1[row])}
     if horizons is not None:
@@ -458,6 +526,18 @@ def observed_entry_batch_targets(
     """The loss target for an Entry-only batch: the bound design decides which exact key."""
     from gx1.contracts.entry_observed_market_v1 import entry_observed_market_batch_targets
     identity = binding["identity"]
+    from gx1.contracts.entry_observed_market_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE, M5_PATH_BATCH_TARGET_KEY
+    if M5_PATH_BATCH_TARGET_KEY in batch and identity.get("training_phase") != ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
+        raise RuntimeError("ENTRY_M5_PATH_BATCH_PHASE_MISMATCH")
+    if identity.get("training_phase") == ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
+        target = batch.get(M5_PATH_BATCH_TARGET_KEY)
+        if (not isinstance(target, torch.Tensor) or target.dtype != torch.float32
+                or target.ndim != 2 or target.shape[1] != 3 or target.shape[0] < 1
+                or not bool(torch.isfinite(target).all()) or not bool((target[:, 2] == 0).all())
+                or SUPPORT_FORECAST_TARGET_BATCH_KEY not in batch or SUPPORT_FORECAST_VALID_BATCH_KEY not in batch):
+            raise RuntimeError("ENTRY_M5_PATH_BATCH_TARGET_INVALID")
+        target = target.detach().to(device)
+        return target, torch.ones_like(target, dtype=torch.bool)
     if identity.get("loss_target_batch_key") is None:
         return entry_observed_market_batch_targets(batch, device=device)
     if identity["loss_target_batch_key"] != DECISION_BATCH_TARGET_KEY:

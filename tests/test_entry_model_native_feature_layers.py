@@ -39,7 +39,9 @@ from gx1.features.technical_indicators_v1 import (
     ema50_200_spread_atr_block,
     wilder_rsi,
 )
-from tests.htf_v29_registry_test_support import synthetic_v29_registry_constants
+from tests.htf_v29_registry_test_support import (
+    synthetic_native_quote_frame, synthetic_v29_registry_constants,
+)
 from tests.volatility_squeeze_test_support import (
     make_volatility_squeeze_artifact_set,
 )
@@ -452,7 +454,7 @@ def test_native_momentum_builder_has_exact_clock_parity_warmup_and_chunks(
         ].copy()
         per_tf_source["volume"] = np.full(len(source), 100, dtype=np.int64)
         per_tf = htf.compute_per_bar_features_v4(
-            per_tf_source,
+            synthetic_native_quote_frame(per_tf_source),
             timeframe="M5",
             v29_registry_constants=synthetic_v29_registry_constants(),
             volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
@@ -564,7 +566,7 @@ def test_native_price_builder_and_per_tf_share_exact_ema_spread_owner(
         per_tf_source = indexed[["open", "high", "low", "close"]].copy()
         per_tf_source["volume"] = np.full(len(source), 100, dtype=np.int64)
         per_tf = htf.compute_per_bar_features_v4(
-            per_tf_source,
+            synthetic_native_quote_frame(per_tf_source),
             timeframe="M5",
             v29_registry_constants=synthetic_v29_registry_constants(),
             volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
@@ -634,7 +636,7 @@ def test_repaired_local_atr_fields_are_bit_identical_to_the_per_tf_owner(
     per_tf_source = indexed[["open", "high", "low", "close"]].copy()
     per_tf_source["volume"] = np.full(len(source), 100, dtype=np.int64)
     per_tf = htf.compute_per_bar_features_v4(
-        per_tf_source,
+        synthetic_native_quote_frame(per_tf_source),
         timeframe="M5",
         v29_registry_constants=synthetic_v29_registry_constants(),
         volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,

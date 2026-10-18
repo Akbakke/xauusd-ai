@@ -137,8 +137,12 @@ def input_normalization_fixture(
     for name in CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS:
         index = list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)
         ctx[:, index] = row % 5
+    from gx1.features.basic_v1 import session_native_binary_event_fields
+    for name in session_native_binary_event_fields(MODEL_NATIVE_CTX_CONT_FIELDS):
+        ctx[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)] = row % 2
     from gx1.features.gc_native_context_v1 import masking_pairs
-    for vi, mi in masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS):
+    from gx1.features.micro_structure_v1 import range_observation_masking_pairs
+    for vi, mi in (*masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS), *range_observation_masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS)):
         ctx[:, mi] = (row % 2).astype(np.float32)
         ctx[ctx[:, mi] == 0.0, vi] = 0.0
 
@@ -199,6 +203,8 @@ def input_normalization_fixture(
                 values[:, mtf_names.index(name)] = (
                     row % (offset + 2) == offset
                 ).astype(np.float32)
+        for vi, mi in range_observation_masking_pairs(mtf_names):
+            values[:, vi] = np.where(values[:, mi] == 1.0, (row + 1.0) / (rows + 1.0), 0.0)
         if "regime_class_id" in mtf_names:
             values[:, mtf_names.index("regime_class_id")] = row % 5
             semantic = MTF_SEMANTIC_CATEGORICAL_DOMAINS

@@ -13,6 +13,11 @@ def _forecast_arrays():
     mask = np.ones_like(target, dtype=bool)
     mask[0, 3] = False
     prediction[0, 3] = np.nan  # An unsupervised cell cannot affect any metric.
+    # Retained1/5/20d support slots have independent availability; the old
+    # four M5 slots keep exactly their measured observations.
+    prediction = np.pad(prediction, ((0, 0), (0, 6)), constant_values=np.nan)
+    target = np.pad(target, ((0, 0), (0, 6)), constant_values=np.nan)
+    mask = np.pad(mask, ((0, 0), (0, 6)), constant_values=False)
     return prediction, target, mask
 
 
@@ -31,12 +36,13 @@ def test_forecast_horizons_keep_sign_errors_masks_and_gross_return_semantics():
     # The pre-existing flattened aggregate remains unchanged.
     assert metrics["mean_squared_error"] == pytest.approx(np.mean((prediction[mask] - target[mask]) ** 2))
     evidence = metrics["forecast_horizon_diagnostics"]
-    assert evidence["target_semantics"] == "observed_future_m5_close_return_bps_before_execution_costs"
-    assert evidence["horizon_semantics"] == "observed_m5_bars_nominal_minutes_not_elapsed_wall_clock"
+    assert evidence["target_semantics"] == "per_layout_M5_returns_and_masked_executable_net_long_horizon_support"
+    assert evidence["horizon_semantics"] == "per_layout_observed_M5_bars_or_observed_UTC22_sessions"
     assert evidence["exit_teacher_used"] is False
     assert evidence["used_for_entry_selection"] is False
     assert evidence["sign_order"] == ["down", "unchanged", "up"]
-    horizons = evidence["horizons"]
+    horizons = evidence["horizons"][:4]
+    assert [item["supervised_rows"] for item in evidence["horizons"][4:]] == [0] * 6
     assert [item["target_column"] for item in horizons] == ["y_forecast_ret_K1", "y_forecast_ret_K5", "y_forecast_ret_K12", "y_forecast_ret_K24"]
     assert [item["nominal_horizon_minutes"] for item in horizons] == [5, 25, 60, 120]
     assert [item["supervised_rows"] for item in horizons] == [4, 4, 4, 3]
@@ -57,8 +63,11 @@ def test_forecast_horizons_keep_sign_errors_masks_and_gross_return_semantics():
 def test_forecast_zero_returns_do_not_fabricate_direction_quality():
     prediction = np.tile(np.asarray([-1.0, 0.0, 1.0])[:, None], (1, 4))
     target = np.zeros_like(prediction)
-    evidence = _metrics(prediction, target, np.ones_like(target, dtype=bool))["forecast_horizon_diagnostics"]
-    for horizon in evidence["horizons"]:
+    mask = np.pad(np.ones_like(target, dtype=bool), ((0, 0), (0, 6)), constant_values=False)
+    prediction = np.pad(prediction, ((0, 0), (0, 6)), constant_values=np.nan)
+    target = np.pad(target, ((0, 0), (0, 6)), constant_values=np.nan)
+    evidence = _metrics(prediction, target, mask)["forecast_horizon_diagnostics"]
+    for horizon in evidence["horizons"][:4]:
         assert horizon["direction_accuracy_on_nonzero_targets"] is None
         assert horizon["actual_nonzero_rows"] == 0
         assert horizon["predicted_nonzero_rows"] == 2
@@ -113,7 +122,7 @@ def test_forecast_horizon_evidence_is_identical_after_segmented_snapshot_resume(
     assert full_metrics == resumed_metrics
     assert resumed_metrics["active_head_diagnostic_schema"] == "entry_model_native_active_head_epoch_diagnostics_v6"
     horizons = resumed_metrics["active_head_diagnostics"]["forecast"]["components"]["forecast_pred"]["validation_metrics"]["forecast_horizon_diagnostics"]["horizons"]
-    assert [row["supervised_rows"] for row in horizons] == [4, 4, 4, 3]
+    assert [row["supervised_rows"] for row in horizons] == [4, 4, 4, 3, 0, 0, 0, 0, 0, 0]
 
 
 def test_forecast_empty_horizon_reports_unavailable_without_nan():

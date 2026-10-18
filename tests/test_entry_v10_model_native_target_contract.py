@@ -211,7 +211,7 @@ def test_forward_bps_heads_use_raw_native_units() -> None:
         batch[name] = torch.full((2,), 0.5)
     outputs = {
         "dip_pred": torch.full((2, 18), 40.0),
-        "forecast_pred": torch.full((2, 4), 40.0),
+        "forecast_pred": torch.full((2, trainer.FORECAST_HEAD_DIM), 40.0),
         "timing_pred": torch.full((2, 12), 0.5),
         "tail_risk_pred": torch.full((2, 6), 40.0),
         "vol_forecast_pred": torch.full((2, 3), 40.0),

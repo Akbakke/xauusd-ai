@@ -1003,6 +1003,8 @@ def _utc_now_iso() -> str:
 from gx1.features import gc_native_context_v1 as _gc_context
 from gx1.features import d1_macro_context_v1 as _d1ctx  # noqa: E402
 from gx1.contracts import entry_observed_market_horizons_v1 as _hz  # noqa: E402
+from gx1.contracts import entry_causal_m1_outcomes_v1 as _m5path  # noqa: E402
+from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract  # noqa: E402
 
 TRADING_DAY_HORIZON_LABEL_COLUMNS: tuple[str, ...] = tuple(
     column
@@ -1040,6 +1042,22 @@ def _trading_day_horizon_label_frame(
     if list(out.columns) != ["time", *TRADING_DAY_HORIZON_LABEL_COLUMNS]:
         raise RuntimeError("TRADING_DAY_HORIZON_LABEL_COLUMNS_ORDER")
     return out
+
+
+
+def _m5_path_label_frame(*, m5_decision_times, closed_m1, split_end):
+    fill = _m5path.build_entry_m1_fill_surface(m5_decision_times=m5_decision_times, closed_m1=closed_m1)
+    outcomes = _m5path.causal_m1_path_quality_outcomes(fill_surface=fill, closed_m1=closed_m1,
+        horizon_m5_bars=_m5path.M5_PATH_OBSERVATION_HORIZON_BARS)
+    exit_at = pd.DatetimeIndex(pd.to_datetime(outcomes['exit_decision_at'], utc=True))
+    end = pd.Timestamp(split_end)
+    end = end.tz_localize('UTC') if end.tzinfo is None else end.tz_convert('UTC')
+    valid = outcomes[_m5path.M5_PATH_VALID_COLUMN].to_numpy(bool) & np.asarray(exit_at.notna()) & np.asarray(exit_at <= end)
+    result = pd.DataFrame({'time': pd.DatetimeIndex(pd.to_datetime(outcomes['time'], utc=True)),
+                          _m5path.M5_PATH_VALID_COLUMN: valid})
+    for name in _m5path.M5_PATH_TARGET_COLUMNS:
+        result[name] = np.where(valid, outcomes[name].to_numpy(np.float64), np.nan)
+    return result
 
 
 def _hard_gate_model_native_context() -> Dict[str, Any]:
@@ -3729,6 +3747,14 @@ def build_dataset_canonical(
     merged2 = merged2.merge(_horizon_frame, on="time", how="left", validate="one_to_one")
     if len(merged2) != _rows_before_horizon_join:
         raise RuntimeError("TRADING_DAY_HORIZON_LABEL_JOIN_ROW_MISMATCH")
+    _path_frame = _m5_path_label_frame(m5_decision_times=merged["time"], closed_m1=closed_m1, split_end=end)
+    _path_columns = [*_m5path.M5_PATH_TARGET_COLUMNS, _m5path.M5_PATH_VALID_COLUMN]
+    if set(merged2.columns) & set(_path_columns):
+        raise RuntimeError("M5_PATH_LABEL_OWNER_OVERLAP")
+    _path_frame["time"] = _path_frame["time"].astype(merged2["time"].dtype)
+    merged2 = merged2.merge(_path_frame, on="time", how="left", validate="one_to_one")
+    if len(merged2) != _rows_before_horizon_join or merged2[_m5path.M5_PATH_VALID_COLUMN].isna().any():
+        raise RuntimeError("M5_PATH_LABEL_JOIN_ROW_MISMATCH")
     log.info(
         "[TRADING_DAY_HORIZON_LABELS] rows=%d valid_h1=%d valid_h5=%d valid_h20=%d",
         len(merged2),
@@ -4313,6 +4339,8 @@ def build_dataset_canonical(
     _missing_horizon = [c for c in TRADING_DAY_HORIZON_LABEL_COLUMNS if c not in merged3.columns]
     if _missing_horizon:
         raise RuntimeError(f"TRADING_DAY_HORIZON_LABELS_MISSING: {_missing_horizon}")
+    _m5_path_arrays = {name: merged3[name].to_numpy(np.float64) for name in _m5path.M5_PATH_TARGET_COLUMNS}
+    _m5_path_valid = merged3[_m5path.M5_PATH_VALID_COLUMN].to_numpy(bool)
     _horizon_arrays = {
         name: merged3[name].to_numpy(np.float32) for name in TRADING_DAY_HORIZON_LABEL_COLUMNS
     }
@@ -5010,6 +5038,8 @@ def build_dataset_canonical(
                 "y_long_final_pnl_at_direction_horizon_bps": _pnl_long_at_h[i],
                 "y_short_final_pnl_at_direction_horizon_bps": _pnl_short_at_h[i],
                 **{name: float(arr[i]) for name, arr in _horizon_arrays.items()},
+                **{name: float(arr[i]) for name, arr in _m5_path_arrays.items()},
+                _m5path.M5_PATH_VALID_COLUMN: bool(_m5_path_valid[i]),
                 "y_direction_target_mode_id": ENTRY_DIRECTION_TARGET_MODE_ID,
                 "y_direction_long_score_bps": y_long_path_utility_bps[i],
                 "y_direction_short_score_bps": y_short_path_utility_bps[i],
@@ -5108,6 +5138,15 @@ def build_dataset_canonical(
         "group_a_checkpoint": _group_a_checkpoint_meta,
         "d1_macro_context": _d1_macro_context_meta,
         "gc_native_context": _gc_context.contract(),
+        "entry_action_target_phase_scope": "base_joint_fitted_q_fields_apply_only_when_that_phase_is_bound",
+        "observed_target_selection": "exact_explicit_recipe_and_bundle_training_phase_no_implicit_default",
+        "m5_path_supervision": {
+            "contract": entry_observed_m5_path_contract(),
+            "label_columns": list(_m5path.M5_PATH_TARGET_COLUMNS),
+            "valid_column": _m5path.M5_PATH_VALID_COLUMN,
+            "emitted_valid_rows": int(np.count_nonzero(_m5_path_valid[emit_mask])),
+            "primary_mask_independent_of_long_horizon_availability": True,
+        },
         "observed_market_horizons": {
             "contract": _hz.entry_observed_market_horizons_contract(),
             "label_columns": list(TRADING_DAY_HORIZON_LABEL_COLUMNS),

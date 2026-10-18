@@ -235,7 +235,7 @@ def _decision_head(
         "side_mae_bps": [3.0, 8.0],
         "trendline_event_logits": [0.1, -0.1, 0.2, -0.2],
         "dip_pred": [float(value) / 10.0 for value in range(18)],
-        "forecast_pred": [0.1, 0.2, 0.3, 0.4],
+        "forecast_pred": [float(index + 1) / 10.0 for index in range(live.FORECAST_HEAD_DIM)],
         "timing_pred": [float(value) / 20.0 for value in range(12)],
         "tail_risk_pred": [0.01, 0.02, 0.03, 0.04, 0.05, 0.06],
         "vol_forecast_pred": [0.5, 0.75, 1.0],
@@ -515,7 +515,7 @@ def _forward_outputs() -> dict:
             [[0.1, -0.1, 0.2, -0.2]], dtype=torch.float32
         ),
         "dip_pred": torch.arange(18, dtype=torch.float32).reshape(1, 18) / 10.0,
-        "forecast_pred": torch.tensor([[0.1, 0.2, 0.3, 0.4]], dtype=torch.float32),
+        "forecast_pred": (torch.arange(live.FORECAST_HEAD_DIM, dtype=torch.float32) + 1.0).reshape(1, -1) / 10.0,
         "timing_pred": torch.arange(12, dtype=torch.float32).reshape(1, 12) / 20.0,
         "tail_risk_pred": torch.tensor(
             [[0.01, 0.02, 0.03, 0.04, 0.05, 0.06]], dtype=torch.float32
@@ -604,7 +604,7 @@ def test_forward_states_requires_and_reports_full_model_native_evidence(tmp_path
     assert len(head["side_mae_bps"]) == 2
     assert len(head["trendline_event_logits"]) == 4
     assert len(head["dip_pred"]) == 18
-    assert len(head["forecast_pred"]) == 4
+    assert len(head["forecast_pred"]) == live.FORECAST_HEAD_DIM
     assert len(head["timing_pred"]) == 12
     assert len(head["tail_risk_pred"]) == 6
     assert len(head["vol_forecast_pred"]) == 3

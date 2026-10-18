@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_FORECAST_OUTPUT_DIM
+
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -37,7 +39,6 @@ from gx1.contracts.entry_model_native_runtime_evidence_v1 import (
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_DIP_OUTPUT_DIM,
-    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
     MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
     MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
@@ -166,7 +167,7 @@ def _prediction_row(
         "session": session,
         "session_id": ("ASIA", "EU", "OVERLAP", "US").index(session),
         "dip_pred": [0.1] * MODEL_NATIVE_DIP_OUTPUT_DIM,
-        "forecast_pred": [0.1] * len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
+        "forecast_pred": [0.1] * MODEL_NATIVE_FORECAST_OUTPUT_DIM,
         "tail_risk_pred": [0.1] * len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
         "vol_forecast_pred": [0.1] * len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),
         **turning_point_prediction_row(0),
@@ -245,7 +246,7 @@ def model_native_runtime_evidence_fixture(
         "side_mae_bps": [2.0, 3.0],
         "trendline_event_logits": [0.1, -0.1, 0.2, -0.2],
         "dip_pred": [0.1] * MODEL_NATIVE_DIP_OUTPUT_DIM,
-        "forecast_pred": [0.1] * len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
+        "forecast_pred": [0.1] * MODEL_NATIVE_FORECAST_OUTPUT_DIM,
         "timing_pred": [0.1] * len(MODEL_NATIVE_TIMING_TARGET_COLUMNS),
         "tail_risk_pred": [0.1] * len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
         "vol_forecast_pred": [0.1]
@@ -328,7 +329,7 @@ def runtime_head_prediction_columns(
             "side_mae_bps": [2.0, 3.0],
             "trendline_event_logits": [0.1, -0.1, 0.2, -0.2],
             "dip_pred": [0.1] * 18,
-            "forecast_pred": [0.1] * 4,
+            "forecast_pred": [0.1] * MODEL_NATIVE_FORECAST_OUTPUT_DIM,
             "timing_pred": list(row["timing_pred"]),
             "tail_risk_pred": [0.1] * 6,
             "vol_forecast_pred": [0.1] * 3,

@@ -19,7 +19,7 @@ from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_COUNT
 from gx1.contracts.entry_fitted_q_v1 import ENTRY_FITTED_Q_ACTION_ORDER
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_DIP_OUTPUT_DIM,
-    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_FORECAST_OUTPUT_DIM,
     MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
     MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
@@ -278,7 +278,7 @@ def _require_model_native_evidence(
         ("side_mae_bps", 2),
         ("trendline_event_logits", 4),
         ("dip_pred", MODEL_NATIVE_DIP_OUTPUT_DIM),
-        ("forecast_pred", len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS)),
+        ("forecast_pred", MODEL_NATIVE_FORECAST_OUTPUT_DIM),
         ("timing_pred", len(MODEL_NATIVE_TIMING_TARGET_COLUMNS)),
         ("tail_risk_pred", len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS)),
         ("vol_forecast_pred", len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS)),

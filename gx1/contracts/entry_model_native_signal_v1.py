@@ -437,22 +437,9 @@ MODEL_NATIVE_CTX_CONT_V3_EXTENSION_FIELDS = (
     "dow_sin",
 )
 
-MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS = (
-    "dist_to_R1_atr",
-    "dist_to_R2_atr",
-    "dist_to_S1_atr",
-    "dist_to_S2_atr",
-    "dist_to_m5_hi_atr",
-    "dist_to_m5_lo_atr",
-    "dist_to_m15_hi_atr",
-    "dist_to_m15_lo_atr",
-    "dist_to_h1_hi_atr",
-    "dist_to_h1_lo_atr",
-    "dist_to_h4_hi_atr",
-    "dist_to_h4_lo_atr",
-    "dist_to_d1_hi_atr",
-    "dist_to_d1_lo_atr",
-)
+from gx1.features.htf_features import MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES
+
+MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS = MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES
 
 RETIRED_HANDCRAFTED_CTX_CONT_FIELDS = (
     "dip_confirmed_m5_v3",

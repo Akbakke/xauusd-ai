@@ -128,7 +128,7 @@ def test_basic_v1_emits_only_the_hash_bound_active_surface() -> None:
     assert {name for name in out if name.startswith("_v1_")} == set(
         BASIC_V1_FEATURES
     )
-    assert BASIC_V1_SCHEMA_VERSION == "gx1_basic_v1_active_surface_v4"
+    assert BASIC_V1_SCHEMA_VERSION == "gx1_basic_v1_active_surface_v5"
     assert BASIC_V1_FEATURES_SHA256 == hashlib.sha256(
         "\n".join(BASIC_V1_FEATURES).encode("utf-8")
     ).hexdigest()
@@ -817,3 +817,24 @@ def test_fidelity_renames_preserve_exact_specialist_semantics() -> None:
     assert classify_entry_specialist_feature(
         "_v1_bb10_bandwidth_change_3"
     ) == "vol_compression_encoder"
+
+
+@pytest.mark.parametrize("rows", [1, 2, 3, 4, 5, 13, 60, 118])
+def test_short_lane_keeps_only_source_defined_all_nan_warmup(rows):
+    observed, names = build_basic_v1(_market_frame(rows))
+    assert len(observed) == rows
+    for name in names:
+        values = observed[name].to_numpy()
+        if rows <= BASIC_V1_FIRST_FINITE_ROW[name]:
+            assert np.isnan(values).all()
+        else:
+            assert np.isfinite(values[BASIC_V1_FIRST_FINITE_ROW[name]:]).all()
+
+
+def test_all_nan_is_still_corruption_after_the_declared_source_warmup():
+    from gx1.features.basic_v1 import _validate_causal_feature_column
+    for name, first in BASIC_V1_FIRST_FINITE_ROW.items():
+        with pytest.raises(RuntimeError, match="BASIC_V1_FEATURE_UNAVAILABLE"):
+            _validate_causal_feature_column(np.full(first + 1, np.nan), name=name)
+    with pytest.raises(RuntimeError, match="BASIC_V1_FEATURE_UNAVAILABLE"):
+        _validate_causal_feature_column(np.full(2, np.nan), name="unknown")

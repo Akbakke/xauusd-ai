@@ -20,6 +20,7 @@ from gx1.contracts.entry_model_native_readiness_v1 import (
     MODEL_NATIVE_BLOCKED_HEADS,
     MODEL_NATIVE_REQUIRED_SPECIALISTS,
 )
+from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_FORECAST_OUTPUT_DIM
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SIGNAL_DIM
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DOMAINS,
@@ -392,7 +393,7 @@ SERVE_PARITY_ACTIVE_HEAD_EVIDENCE_FIELDS = {
     },
     "position_size": {"position_size_logit": 1, "position_size_pred": 1},
     "dip": {"dip_pred": 18},
-    "forecast": {"forecast_pred": 4},
+    "forecast": {"forecast_pred": MODEL_NATIVE_FORECAST_OUTPUT_DIM},
     "timing": {"timing_pred": 12},
     "tail_risk": {"tail_risk_pred": 6},
     "vol_forecast": {"vol_forecast_pred": 3},

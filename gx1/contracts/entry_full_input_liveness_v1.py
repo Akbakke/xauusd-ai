@@ -39,8 +39,8 @@ from gx1.features.htf_features import (
 # under the non-negative rule for the first time; and the two ATR OOD pairs are
 # renamed to `_bps`. A v7 artifact was produced by a policy that could not see
 # those ten slots and names two fields that no longer exist.
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v12"
-POLICY_VERSION = "entry_full_input_liveness_policy_v12"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v13"
+POLICY_VERSION = "entry_full_input_liveness_policy_v13"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
@@ -409,6 +409,14 @@ def classify_field_status(
         return "FAIL", "no_rows"
     if finite != rows or nonfinite != 0:
         return "FAIL", "nonfinite"
+    # This exact source declaration is a structural observation gate. It says
+    # whether the physical range exists; it is not dense market variation and
+    # grants no exemption to the paired fraction or its physical TRAIN support.
+    from gx1.features.micro_structure_v1 import range_observation_binary_fields
+    if surface in {"signal", "ctx_cont"} and range_observation_binary_fields([field]):
+        if _float(stats.get("min")) not in (0.0, 1.0) or _float(stats.get("max")) not in (0.0, 1.0):
+            return "FAIL", "micro_range_observation_mask_domain"
+        return "STRUCTURAL_OBSERVATION_MASK", "source_declared_range_observation_not_market_signal"
     # Pinned external GC channels have explicit missingness and downstream hard
     # masking. Dense activity floors cannot turn sparse observations into a
     # learnability claim. Actual mask/observation support is separately checked

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 import torch
+from tests.test_entry_v10_ctx_model_shapes import _valid_range_observation_input
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
@@ -85,9 +86,12 @@ def _valid_ctx_cont(batch_size: int) -> torch.Tensor:
         5,
         (batch_size, len(nominal_indices)),
     ).float()
+    from gx1.features.basic_v1 import session_native_binary_event_fields
+    for name in session_native_binary_event_fields(MODEL_NATIVE_CTX_CONT_FIELDS):
+        values[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)] = (torch.arange(batch_size) % 2).float()
     # Dense synthetic mechanics fixture: every GC source is explicitly
     # observed. Gaussian values are not legal binary availability masks.
-    for name in GC_OBSERVED_FIELDS:
+    for name in (*GC_OBSERVED_FIELDS, "close_range_observed"):
         values[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)] = 1.0
     return values
 
@@ -97,7 +101,8 @@ def _synchronized_seq_snap(
     ctx_cont: torch.Tensor,
     context_routing: dict | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    seq_x = seq_x.clone()
+    from tests.test_entry_v10_ctx_model_shapes import _valid_range_observation_input
+    seq_x = _valid_range_observation_input(seq_x.clone(), _ordered_signal_names()[:seq_x.shape[-1]])
     snap_x = seq_x[:, -1, :].clone()
     if context_routing is not None:
         policy = context_routing["temporal_alias_policy"]
@@ -108,13 +113,19 @@ def _synchronized_seq_snap(
             ].values()
             for index in indices
         }
+        from gx1.features.basic_v1 import session_native_binary_event_fields
+        from gx1.features.micro_structure_v1 import range_observation_binary_fields
+        from gx1.features.gc_native_context_v1 import binary_fields
+        source_binary = (binary_fields(MODEL_NATIVE_CTX_CONT_FIELDS)
+                         | range_observation_binary_fields(MODEL_NATIVE_CTX_CONT_FIELDS)
+                         | session_native_binary_event_fields(MODEL_NATIVE_CTX_CONT_FIELDS))
         for signal_index, ctx_index in zip(
             policy["signal_indices"],
             policy["ctx_cont_indices"],
         ):
             if ctx_index in nominal_ctx_indices:
                 seq_x[:, :, signal_index] = 0.0
-            if MODEL_NATIVE_CTX_CONT_FIELDS[ctx_index] in GC_OBSERVED_FIELDS:
+            if MODEL_NATIVE_CTX_CONT_FIELDS[ctx_index] in source_binary:
                 seq_x[:, :, signal_index] = ctx_cont[:, ctx_index].unsqueeze(1)
         snap_x[:, policy["signal_indices"]] = ctx_cont[
             :,
@@ -310,6 +321,7 @@ def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch
         values[:, :, binary_mask] = 0.0
         values[:, :, categorical_mask] = 0.0
         values[:, :, mtf_names.index("ema_stack_aligned_v2")] = 0.0
+        values[:, :, mtf_names.index("close_distance_below_high_range_fraction")] = 0.0
     mtf["seq_m5"].requires_grad_(True)
     ctx_cat = torch.zeros(
         batch_size, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long
@@ -488,7 +500,8 @@ def test_entry_v10_exact_model_always_has_specialist_state_and_output() -> None:
         ctx_cat=torch.zeros(2, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long),
         ctx_cont=ctx_cont,
         **{
-            f"seq_{tf}": torch.randn(2, 16, MTF_DIM)
+            f"seq_{tf}": _valid_range_observation_input(
+                torch.randn(2, 16, MTF_DIM), [f"mtf_{index}" for index in range(MTF_DIM)])
             for tf in (
                 timeframe.lower() for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
             )
@@ -552,7 +565,8 @@ def test_entry_v10_specialist_fusion_forward_exact_model_native_contract() -> No
         ctx_cat=torch.zeros(2, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long),
         ctx_cont=ctx_cont,
         **{
-            f"seq_{tf}": torch.randn(2, 16, MTF_DIM)
+            f"seq_{tf}": _valid_range_observation_input(
+                torch.randn(2, 16, MTF_DIM), [f"mtf_{index}" for index in range(MTF_DIM)])
             for tf in (
                 timeframe.lower() for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
             )

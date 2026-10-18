@@ -199,3 +199,82 @@ def test_derived_inputs_require_completed_original_inventory_and_exact_hashes(tm
     inputs['source_terminal']['sha256'] = hashlib.sha256(terminal.read_bytes()).hexdigest()
     with pytest.raises(RuntimeError, match='DERIVED_GC_SOURCE_NOT_COMPLETE'):
         bound_derived_inputs({'inputs': inputs})
+
+
+def test_completion_mode_is_new_scope_and_requires_explicit_resource_inputs():
+    import pytest
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import completion_mode,COMPLETION_SCHEMA,COMPLETION_MODE
+    plan={**_derived_test_plan(),'schema_version':COMPLETION_SCHEMA,'mode':COMPLETION_MODE,
+        'worker_count':4,'profile_state_max_bytes':64*1024*1024,'expected_source_records':892100712,'expected_source_files':66,
+        'source_plan':{'path':'configs/research/GC_M5_FEATURE_BUILD_20261017_006.json','sha256':'a'*64}}
+    assert completion_mode(plan)
+    assert not completion_mode(_derived_test_plan())
+    for change in ({'worker_count':0},{'profile_state_max_bytes':0},{'timeframes':['M5']},{'mode':'raw'}):
+        with pytest.raises(RuntimeError,match='COMPLETION_PLAN_SCOPE'):completion_mode({**plan,**change})
+
+
+def test_completion_event_worker_reuses_original_metrics_and_book_without_new_trade_ladder(tmp_path, monkeypatch):
+    import csv,gzip
+    import pyarrow.parquet as pq
+    import pytest
+    from gx1.contracts import gc_continuous_source_v1 as source
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import completion_event_worker
+    origin=timing.STUDY_START_NS
+    monkeypatch.setattr(timing,'WINDOW_END_NS',origin+timing.MINUTE_NS)
+    path=tmp_path/'source.csv.gz'
+    rows=[]
+    for i,offset in enumerate((0,10_000_000_000,40_000_000_000)):
+        rows.append({'ts_recv':origin+offset,'ts_event':origin+offset-100,'instrument_id':42,'publisher_id':1,
+            'symbol':'GCM4','action':'T','side':'B' if i!=1 else 'A','size':2,'price':100,
+            'flags':source.L1_F_LAST,'sequence':i,'rtype':1,'depth':0,'ts_in_delta':20,
+            'bid_px_00':99,'ask_px_00':101,'bid_sz_00':10,'ask_sz_00':20,'bid_ct_00':1,'ask_ct_00':2})
+    with gzip.open(path,'wt',newline='') as stream:
+        writer=csv.DictWriter(stream,fieldnames={**source.COLUMNS,**source.L1_AUDIT_COLUMNS})
+        writer.writeheader();writer.writerows(rows)
+    group={'raw_symbol':'GCM4','items':[{'path':str(path),'raw_symbol':'GCM4','instrument_id':42,'publisher_id':1,
+        'start_ns':origin,'end_ns':origin+timing.MINUTE_NS,'max_records':3}]}
+    baseline=L1FeatureCollectorV2([0],1)
+    expected=source.scan_symbol(group['items'],1,on_batch=baseline,extra_columns=source.L1_AUDIT_COLUMNS,on_file_start=baseline.file_start)
+    baseline.finish()
+    metrics={name:expected[name] for name in source.METRICS}
+    book=baseline.values([True])[0]
+    stage=tmp_path/'completion';stage.mkdir()
+    result=completion_event_worker(group,0,1,np.array([0]),np.array([True]),metrics,book,stage)
+    assert result['selected_m1_rows']==1
+    table=pq.read_table(result['path'])
+    assert table['qualified_final_event_count'].to_pylist()==[3.]
+    assert not list(stage.glob('*LADDER*'))
+    wrong={name:values.copy() for name,values in metrics.items()};wrong['volume'][0]+=1
+    with pytest.raises(RuntimeError,match='ORIGINAL_METRIC_PARITY:volume'):
+        completion_event_worker(group,0,1,np.array([0]),np.array([True]),wrong,book,stage)
+
+
+def test_completion_basis_binds_original_source_plan_and_existing_quote_bytes(tmp_path,monkeypatch):
+    import json
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    import pytest
+    from gx1.scripts import rebuild_native_gc_inputs_v1 as rebuild
+    from gx1.scripts.gc_order_flow_features_v1 import previous
+    origin=timing.STUDY_START_NS
+    minutes=origin+np.arange(5,dtype=np.int64)*timing.MINUTE_NS
+    part=tmp_path/'spot.parquet';manifest=tmp_path/'manifest.json';manifest.write_text('{}')
+    pq.write_table(pa.table({'time':pa.array(minutes,type=pa.timestamp('ns',tz='UTC')),
+        'bid_close':np.full(5,99.),'ask_close':np.full(5,101.)}),part)
+    source_plan=tmp_path/'source_plan.json'
+    source_plan.write_text(json.dumps({'inputs':{'oanda_manifest':{
+        'path':str(manifest),'sha256':previous.sha256_file(manifest),
+        'partitions':[{'path':str(part),'sha256':previous.sha256_file(part)}]}}}))
+    plan={'source_plan':{'path':str(source_plan),'sha256':previous.sha256_file(source_plan)}}
+    surface={'bar_start_ns':np.array([origin]),'available_ns':np.array([origin+5*timing.MINUTE_NS]),
+        'volume_valid':np.array([False]),'close_usd':np.array([np.nan]),
+        'observed_valid':np.array([True]),'observed_close_usd':np.array([101.]),
+        'observed_last_minute_ns':np.array([minutes[2]])}
+    sources=rebuild.add_completion_basis(plan,{'M5':surface},minutes)
+    assert {item['path'] for item in sources}=={str(source_plan),str(manifest),str(part)}
+    assert surface['observed_spot_basis_valid'].tolist()==[True]
+    assert surface['observed_spot_basis_bps'][0]==pytest.approx(100.)
+    assert 'gx1/scripts/gc_order_flow_features_v1.py' in rebuild.CODE_PATHS
+    manifest.write_text('{"changed":true}')
+    with pytest.raises(RuntimeError,match='OANDA_MANIFEST'):
+        rebuild.add_completion_basis(plan,{'M5':surface},minutes)

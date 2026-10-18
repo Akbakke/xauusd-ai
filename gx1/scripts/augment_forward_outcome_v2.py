@@ -24,6 +24,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -40,6 +41,7 @@ from gx1.features.htf_features import (
     multi_tf_resample,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_V4_GROUP_A_BASE_FEATURES,
+    MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES,
     MULTI_TF_TIMEFRAMES,
     validate_causal_feature_matrix,
 )
@@ -200,6 +202,8 @@ class AugmentContext:
     # D1 pivot levels per M5 (R1/R2/S1/S2 from prior D1 OHLC)
     # store as per-day arrays: lookup via date
     daily_pivot_by_date: dict       # date_str → {R1, R2, S1, S2}
+    daily_pivot_dates_ns: np.ndarray
+    daily_pivot_levels: np.ndarray
     # Trade history from journal — DataFrame with (close_ts, side, pnl_bps)
     trade_history: pd.DataFrame
     decision_bar_duration_ns: int
@@ -411,6 +415,66 @@ def _assert_multi_tf_cache_fresh(
             )
 
 
+def _build_raw_market_ohlc_context(m5_df: pd.DataFrame) -> SimpleNamespace:
+    """Build immutable raw reference arrays once for every lane in one run."""
+    _validate_m5_frame(m5_df, context="CTX_BUILD_M5")
+    if np.any(m5_df.index.asi8 % _DECISION_M5_NS != 0):
+        raise RuntimeError("[CTX_BUILD] M5 context timestamps are off the five-minute grid")
+    h1_ts, h1_hi, h1_lo = _build_resampled_ohlc_array(m5_df, "H1")
+    h4_ts, h4_hi, h4_lo = _build_resampled_ohlc_array(m5_df, "H4")
+    m15_ts, m15_hi, m15_lo = _build_resampled_ohlc_array(m5_df, "M15")
+    d1_ts, d1_hi, d1_lo = _build_resampled_ohlc_array(m5_df, "D1")
+    daily_pivots = _build_daily_pivots(m5_df)
+    pivot_dates, pivot_levels = _prepare_daily_pivot_lookup(daily_pivots)
+    return SimpleNamespace(
+        m5_source=m5_df,
+        m5_close=m5_df["close"].to_numpy(np.float64),
+        m5_high=m5_df["high"].to_numpy(np.float64),
+        m5_low=m5_df["low"].to_numpy(np.float64),
+        m5_ts_ns=m5_df.index.values.astype("datetime64[ns]").astype(np.int64),
+        h1_ts_ns=h1_ts, h1_high=h1_hi, h1_low=h1_lo,
+        h4_ts_ns=h4_ts, h4_high=h4_hi, h4_low=h4_lo,
+        m15_ts_ns=m15_ts, m15_high=m15_hi, m15_low=m15_lo,
+        d1_ts_ns=d1_ts, d1_high=d1_hi, d1_low=d1_lo,
+        daily_pivot_by_date=daily_pivots,
+        daily_pivot_dates_ns=pivot_dates, daily_pivot_levels=pivot_levels,
+    )
+
+
+def _build_raw_market_price_context(
+    m5_df: pd.DataFrame,
+    *,
+    decision_frame: pd.DataFrame | None = None,
+    decision_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
+    _raw_source: SimpleNamespace | None = None,
+) -> SimpleNamespace:
+    """Bind one lane to the shared raw owner; never reads a feature cache."""
+    if not isinstance(decision_bar_duration, pd.Timedelta) or decision_bar_duration <= pd.Timedelta(0):
+        raise RuntimeError("[CTX_BUILD] decision bar duration must be positive")
+    decision_bar_duration_ns = int(decision_bar_duration.value)
+    raw_source = _build_raw_market_ohlc_context(m5_df) if _raw_source is None else _raw_source
+    if not isinstance(raw_source, SimpleNamespace) or raw_source.m5_source is not m5_df:
+        raise RuntimeError("[CTX_BUILD] raw reference must belong to the exact M5 source")
+    decision = m5_df if decision_frame is None else decision_frame
+    _validate_m5_frame(decision, context="CTX_BUILD_DECISION")
+    native_timeframes = [tf for tf in TF_NAMES if _TF_SHIFT_NS[tf] == decision_bar_duration_ns]
+    if decision_bar_duration == pd.Timedelta(minutes=1):
+        on_grid = np.all(decision.index.asi8 % decision_bar_duration_ns == 0)
+    elif len(native_timeframes) == 1:
+        on_grid = decision.index.equals(multi_tf_bar_label(decision.index, native_timeframes[0]))
+    else:
+        raise RuntimeError("[CTX_BUILD] unsupported declared local duration")
+    if not on_grid:
+        raise RuntimeError("[CTX_BUILD] decision timestamps are off the declared local grid")
+    shared = {name: value for name, value in vars(raw_source).items() if name != "m5_source"}
+    return SimpleNamespace(
+        **shared,
+        decision_close=decision["close"].to_numpy(np.float64),
+        decision_ts_ns=decision.index.values.astype("datetime64[ns]").astype(np.int64),
+        decision_bar_duration_ns=decision_bar_duration_ns,
+    )
+
+
 def build_context(
     m5_df: pd.DataFrame,
     multi_tf: dict,
@@ -420,49 +484,66 @@ def build_context(
     decision_bar_duration: pd.Timedelta = pd.Timedelta(minutes=5),
 ) -> AugmentContext:
     """Pre-compute all caches ONCE. Heavy upfront cost, fast per-candidate after."""
-    if not isinstance(decision_bar_duration, pd.Timedelta) or decision_bar_duration <= pd.Timedelta(0):
-        raise RuntimeError("[CTX_BUILD] decision bar duration must be positive")
-    decision_bar_duration_ns = int(decision_bar_duration.value)
-    _validate_m5_frame(m5_df, context="CTX_BUILD_M5")
-    if np.any(m5_df.index.asi8 % _DECISION_M5_NS != 0):
-        raise RuntimeError("[CTX_BUILD] M5 context timestamps are off the five-minute grid")
-    decision = m5_df if decision_frame is None else decision_frame
-    _validate_m5_frame(decision, context="CTX_BUILD_DECISION")
-    if np.any(decision.index.asi8 % decision_bar_duration_ns != 0):
-        raise RuntimeError("[CTX_BUILD] decision timestamps are off the declared local grid")
+    raw = _build_raw_market_price_context(
+        m5_df, decision_frame=decision_frame,
+        decision_bar_duration=decision_bar_duration,
+    )
     _assert_multi_tf_cache_fresh(
         m5_df,
         multi_tf,
-        final_decision_ts_ns=int(decision.index[-1].value),
-        decision_bar_duration_ns=decision_bar_duration_ns,
+        final_decision_ts_ns=int(raw.decision_ts_ns[-1]),
+        decision_bar_duration_ns=raw.decision_bar_duration_ns,
     )  # fail-closed on stale multi-TF cache (rule 4)
-    ts_ns = m5_df.index.values.astype("datetime64[ns]").astype(np.int64)
-    h1_ts, h1_hi, h1_lo = _build_resampled_ohlc_array(m5_df, "H1")
-    h4_ts, h4_hi, h4_lo = _build_resampled_ohlc_array(m5_df, "H4")
-    # 2026-05-24 Bug 2 fix: M15 + D1 resampled OHLC for liquidity zones
-    m15_ts, m15_hi, m15_lo = _build_resampled_ohlc_array(m5_df, "M15")
-    d1_ts, d1_hi, d1_lo = _build_resampled_ohlc_array(m5_df, "D1")
-    # Daily pivots
-    daily_pivots = _build_daily_pivots(m5_df)
-    # Trade history (journal)
-    trade_hist = _build_trade_history(journal_dir)
-
     return AugmentContext(
-        decision_close=decision["close"].to_numpy(np.float64),
-        decision_ts_ns=decision.index.values.astype("datetime64[ns]").astype(np.int64),
-        m5_close=m5_df["close"].to_numpy(np.float64),
-        m5_high=m5_df["high"].to_numpy(np.float64),
-        m5_low=m5_df["low"].to_numpy(np.float64),
-        m5_ts_ns=ts_ns,
-        multi_tf=multi_tf,
-        h1_ts_ns=h1_ts, h1_high=h1_hi, h1_low=h1_lo,
-        h4_ts_ns=h4_ts, h4_high=h4_hi, h4_low=h4_lo,
-        m15_ts_ns=m15_ts, m15_high=m15_hi, m15_low=m15_lo,
-        d1_ts_ns=d1_ts, d1_high=d1_hi, d1_low=d1_lo,
-        daily_pivot_by_date=daily_pivots,
-        trade_history=trade_hist,
-        decision_bar_duration_ns=decision_bar_duration_ns,
+        **vars(raw), multi_tf=multi_tf,
+        trade_history=_build_trade_history(journal_dir),
     )
+
+
+def _compute_closed_lane_group_a(
+    decision_frame: pd.DataFrame,
+    *,
+    timeframe: str,
+    context_m5: pd.DataFrame,
+    lane_atr: np.ndarray,
+    _raw_source: SimpleNamespace | None = None,
+) -> pd.DataFrame:
+    """Evaluate the existing pivot/extrema owners at each actual lane close.
+
+    Each lane uses its own price and ATR. All reference extrema and prior-day
+    pivots come from the original M5 history, never resampled context values.
+    Missing causal history stays a NaN prefix; no placeholder cache is built.
+    """
+    if timeframe not in _TF_SHIFT_NS:
+        raise RuntimeError("[CTX_GROUP_A] unsupported exact lane")
+    raw = _build_raw_market_price_context(
+        context_m5, decision_frame=decision_frame,
+        decision_bar_duration=_MTF_SHIFT[timeframe],
+        _raw_source=_raw_source,
+    )
+    atr = np.asarray(lane_atr, dtype=np.float64)
+    if atr.shape != (len(decision_frame),) or np.isinf(atr).any():
+        raise RuntimeError("[CTX_GROUP_A] lane ATR axis or domain invalid")
+    if np.any(np.isfinite(atr) & (atr <= 0.0)):
+        raise RuntimeError("[CTX_GROUP_A] finite lane ATR must be positive")
+    columns = {name: np.full(len(decision_frame), np.nan, dtype=np.float64)
+               for name in MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES}
+    availability = decision_frame.index + _MTF_SHIFT[timeframe]
+    prior_levels = _prior_day_pivot_levels(raw.daily_pivot_by_date, availability,
+        _prepared=(raw.daily_pivot_dates_ns, raw.daily_pivot_levels))
+    columns.update(_pivot_distances(prior_levels, atr, raw.decision_close))
+    for row, (ts_ns, price, current_atr) in enumerate(zip(
+        raw.decision_ts_ns, raw.decision_close, atr, strict=True,
+    )):
+        if not np.isfinite(current_atr):
+            continue
+        try:
+            values = _liquidity_zones(raw, int(ts_ns), float(price), float(current_atr))
+        except CausalContextWarmupError:
+            continue
+        for name, value in values.items():
+            columns[name][row] = value
+    return pd.DataFrame(columns, index=decision_frame.index)
 
 
 def _tf_cache_row(ctx: AugmentContext, tf: str, ts_ns: int) -> np.ndarray:
@@ -544,33 +625,55 @@ def _closed_m5_index(ctx: AugmentContext, ts_ns: int) -> int:
     return right - 1
 
 
+def _prepare_daily_pivot_lookup(daily_pivot_by_date: dict) -> tuple[np.ndarray, np.ndarray]:
+    days = sorted(daily_pivot_by_date)
+    return (
+        pd.DatetimeIndex(days).as_unit("ns").asi8,
+        np.asarray([[daily_pivot_by_date[day][name] for name in ("R1", "R2", "S1", "S2")]
+                    for day in days], dtype=np.float64).reshape(-1, 4),
+    )
+
+
+def _prior_day_pivot_levels(
+    daily_pivot_by_date: dict,
+    availability: pd.DatetimeIndex,
+    *,
+    _prepared: tuple[np.ndarray, np.ndarray] | None = None,
+) -> np.ndarray:
+    """The exact strict-prior-session lookup, evaluated as one native vector."""
+    target_days = multi_tf_bar_label(availability, "D1")
+    dates_ns, levels = _prepare_daily_pivot_lookup(daily_pivot_by_date) if _prepared is None else _prepared
+    out = np.full((len(availability), 4), np.nan, dtype=np.float64)
+    if not len(dates_ns):
+        return out
+    prior = np.searchsorted(dates_ns, target_days.as_unit("ns").asi8, side="left") - 1
+    observed = prior >= 0
+    out[observed] = levels[prior[observed]]
+    return out
+
+
+def _pivot_distances(levels: np.ndarray, current_atr, current_price) -> dict:
+    """Single scalar/vector formula owner for classic prior-day distances."""
+    price, atr = np.asarray(current_price, dtype=np.float64), np.asarray(current_atr, dtype=np.float64)
+    return {"dist_to_" + name + "_atr": (price - levels[..., index]) / atr
+            for index, name in enumerate(("R1", "R2", "S1", "S2"))}
+
+
 def _pivots(ctx: AugmentContext, ts: pd.Timestamp, current_atr: float, current_price: float) -> dict[str, float]:
     """Select the latest completed daily pivots at UTC decision availability."""
     ts = _require_utc_timestamp(ts, context="CTX_PIVOT")
     if not np.isfinite(current_atr) or current_atr <= 0.0 or not np.isfinite(current_price):
         raise RuntimeError("[CTX_PIVOT] price and ATR must be finite; ATR must be positive")
-    # V30 package 3 (2026-08-13): the target day must be floored on the SAME
-    # grid the pivot keys are labelled on (``_build_daily_pivots``).  With the
-    # trading-day origin, ``ts.normalize()`` (midnight) would have selected the
-    # bin opened at 22:00 the previous calendar day — which is still OPEN for
-    # any decision before 22:00 — i.e. a lookahead.  ``multi_tf_bar_label``
-    # returns the bin containing ``ts``; a strictly-earlier key therefore
-    # closed at or before that bin's open, hence at or before ``ts``.
-    target_day = multi_tf_bar_label(ts, "D1")
-    eligible_days = [day for day in ctx.daily_pivot_by_date if day < target_day]
-    if not eligible_days:
+    prepared = ((ctx.daily_pivot_dates_ns, ctx.daily_pivot_levels)
+                if hasattr(ctx, "daily_pivot_dates_ns") else None)
+    levels = _prior_day_pivot_levels(ctx.daily_pivot_by_date, pd.DatetimeIndex([ts]), _prepared=prepared)[0]
+    if not np.isfinite(levels).all():
         raise CausalContextWarmupError("[CTX_PIVOT_WARMUP] no completed prior trading day")
-    p = ctx.daily_pivot_by_date[max(eligible_days)]
-    return {
-        "dist_to_R1_atr": (current_price - p["R1"]) / current_atr,
-        "dist_to_R2_atr": (current_price - p["R2"]) / current_atr,
-        "dist_to_S1_atr": (current_price - p["S1"]) / current_atr,
-        "dist_to_S2_atr": (current_price - p["S2"]) / current_atr,
-    }
+    return {name: float(value) for name, value in _pivot_distances(levels, current_atr, current_price).items()}
 
 
 def _liquidity_zones(ctx: AugmentContext, ts_ns: int, current_price: float, current_atr: float) -> dict[str, float]:
-    """Distance to trailing observed bar extrema, in current closed M5 ATR.
+    """Distance to trailing observed bar extrema, in the caller's closed-lane ATR.
 
     This proxy has no sweep-identity memory. An older high above the current
     price may already have been crossed; independently sampled bar extrema

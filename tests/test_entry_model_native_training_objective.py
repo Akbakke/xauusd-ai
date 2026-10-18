@@ -51,7 +51,7 @@ def test_training_objective_contract_is_exact_and_learned() -> None:
 def test_entry_only_phase_declares_observed_market_target_without_exit() -> None:
     payload = training_objective_contract_metadata(entry_training_phase="entry_only")
 
-    assert payload["schema_version"] == "entry_model_native_training_objective_v12"
+    assert payload["schema_version"] == "entry_model_native_training_objective_v13"
     assert payload["entry_training_phase"] == "entry_only"
     assert payload["exit_gradients_active"] is False
     assert payload["entry_action_q_target"] == (
@@ -116,8 +116,24 @@ def test_training_objective_rejects_extra_surface() -> None:
 
 def test_entry_only_horizon_phase_declares_the_20_day_observed_target_without_exit() -> None:
     payload = training_objective_contract_metadata(entry_training_phase="entry_only_observed_horizon_20d")
-    assert payload["schema_version"] == "entry_model_native_training_objective_v12"
+    assert payload["schema_version"] == "entry_model_native_training_objective_v13"
     assert payload["entry_training_phase"] == "entry_only_observed_horizon_20d"
     assert payload["exit_gradients_active"] is False
     assert "20_trading_days" in payload["entry_action_q_target"] and "without_exit_model" in payload["entry_action_q_target"]
     assert payload["fixed_horizon_target_authority"] is False
+
+
+
+def test_m5_path_phase_is_utility_without_exit_or_legacy_auxiliary_learning():
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
+    value = training_objective_contract_metadata(entry_training_phase=ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
+    assert value['entry_primary_target_contract'] == entry_observed_m5_path_contract()
+    assert value['entry_primary_target_contract']['horizon_m5_bars'] == 19
+    assert value['entry_primary_target_contract']['hindsight_best_exit_cash_claim'] is False
+    assert value['exit_gradients_active'] is False
+    assert value['active_joint_task_names'] == ['entry_action_q', 'forecast_return_bps']
+    assert value['all_advertised_heads_supervised'] is False
+    assert value['fixed_relative_task_weights'] is False
+    assert 'dip' in value['inactive_legacy_auxiliary_heads']
+    assert require_training_objective_contract(value, context='TEST') == value

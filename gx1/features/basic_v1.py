@@ -45,7 +45,14 @@ BASIC_V1_FEATURES = (
     "_v1_bb_squeeze_20_2",
     "_v1_kama30_change_5_atr",
 )
-BASIC_V1_SCHEMA_VERSION = "gx1_basic_v1_active_surface_v4"
+# The eight currently retained price primitives shared with every native TF.
+# ATR and MACD already have richer per-TF owners; drift48 is not a retained
+# native signal field. The MTF consumer calls build_basic_v1, never copies it.
+BASIC_V1_NATIVE_MTF_PRICE_FEATURES = tuple(
+    name for name in BASIC_V1_FEATURES
+    if name not in ("_v1_atr14", "_v1_ema_diff", "_v1_vwap_drift48")
+)
+BASIC_V1_SCHEMA_VERSION = "gx1_basic_v1_active_surface_v5"
 BASIC_V1_FEATURES_SHA256 = hashlib.sha256(
     "\n".join(BASIC_V1_FEATURES).encode("utf-8")
 ).hexdigest()
@@ -67,6 +74,8 @@ BASIC_V1_FORMULA_CONTRACT = (
     "plus5_volume=positive_whole_oanda_tick_count",
     "ratios=positive_defined_denominator_no_epsilon_or_neutral_fill",
     "warmup=causal_nan_prefix_no_neutral_fill",
+    "short_history=all_nan_only_before_declared_source_first_finite_row;enough_history_all_nan_is_error",
+    "session_change_flag=diff_observed_session_id_at_declared_lane_close_binary_0_1_first_observation_0",
 )
 BASIC_V1_FIRST_FINITE_ROW = {
     "_v1_atr14": 13,
@@ -207,6 +216,9 @@ def _validate_causal_feature_column(values: np.ndarray, *, name: str) -> np.ndar
         )
     finite = np.isfinite(array)
     if not finite.any():
+        first_possible = BASIC_V1_FIRST_FINITE_ROW.get(name)
+        if first_possible is not None and len(array) <= first_possible:
+            return array  # The entire observed lane is a formula-defined warmup.
         raise RuntimeError(
             f"[BASIC_V1_FEATURE_UNAVAILABLE] {name} has no finite observations"
         )
@@ -218,6 +230,22 @@ def _validate_causal_feature_column(values: np.ndarray, *, name: str) -> np.ndar
             "after causal warmup"
         )
     return array
+
+
+def _closed_history_change(values: np.ndarray, periods: int) -> np.ndarray:
+    """Exact k-bar change, including an honest whole-lane short prefix."""
+    source = np.asarray(values, dtype=np.float64)
+    out = np.full(source.shape, np.nan, dtype=np.float64)
+    out[periods:] = source[periods:] - source[:-periods]
+    return out
+
+
+SESSION_NATIVE_BINARY_EVENT_FIELDS = ("session_change_flag",)
+
+
+def session_native_binary_event_fields(names) -> set[str]:
+    return {name for name in names
+            if name.removeprefix("ctx_cont.") in SESSION_NATIVE_BINARY_EVENT_FIELDS}
 
 
 def _divide_where_positive(
@@ -648,9 +676,7 @@ def build_basic_v1(
     # raw change is routed directly to the learned model. The rolling-warmup NaN prefix is kept as
     # honest causal warmup (one contiguous prefix; the old code fabricated
     # live zeros inside warmup).
-    bb_width10_delta3 = bb_width10 - np.concatenate(
-        [np.full(3, np.nan), bb_width10[:-3]]
-    )
+    bb_width10_delta3 = _closed_history_change(bb_width10, 3)
     df["_v1_bb10_bandwidth_change_3"] = bb_width10_delta3
     t_bb_end = time.perf_counter()
     perf_add("feat.basic_v1.bb_family", t_bb_end - t_bb_start)
@@ -747,9 +773,7 @@ def build_basic_v1(
     tema20 = _tema(df["close"], 20)
     tema20_arr = tema20.to_numpy(dtype=np.float64) if hasattr(tema20, 'to_numpy') else np.asarray(tema20, dtype=np.float64)
     atr14_current_arr = atr14.to_numpy(dtype=np.float64)
-    tema20_change3 = tema20_arr - np.concatenate(
-        [np.full(3, np.nan), tema20_arr[:-3]]
-    )
+    tema20_change3 = _closed_history_change(tema20_arr, 3)
     tema20_slope = _divide_where_positive(tema20_change3, atr14_current_arr)
     df["_v1_tema20_change_3_atr"] = tema20_slope
     
@@ -780,9 +804,7 @@ def build_basic_v1(
     # bar; honest causal NaN warmup prefix is preserved.
     kama30 = _kama(df["close"], 30)
     kama30_arr = kama30.to_numpy(dtype=np.float64) if hasattr(kama30, 'to_numpy') else np.asarray(kama30, dtype=np.float64)
-    kama30_change5 = kama30_arr - np.concatenate(
-        [np.full(5, np.nan), kama30_arr[:-5]]
-    )
+    kama30_change5 = _closed_history_change(kama30_arr, 5)
     kama30_slope = _divide_where_positive(kama30_change5, atr14_current_arr)
     df["_v1_kama30_change_5_atr"] = kama30_slope
     

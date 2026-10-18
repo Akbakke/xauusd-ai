@@ -17,6 +17,7 @@ from gx1.features.htf_features import (
     slice_multi_tf_v4_window,
 )
 from tests.htf_v29_registry_test_support import (
+    synthetic_native_quote_frame,
     synthetic_v29_registry_constants,
 )
 from tests.volatility_squeeze_test_support import (
@@ -51,7 +52,7 @@ def _bind_squeeze_artifacts(tmp_path_factory):
 
 def build_multi_tf_per_bar_features_v4(m5_df):
     return _build_multi_tf_v4(
-        m5_df,
+        synthetic_native_quote_frame(m5_df),
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
         volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,
     )
@@ -59,7 +60,7 @@ def build_multi_tf_per_bar_features_v4(m5_df):
 
 def compute_per_bar_features_v4(ohlcv, *, timeframe):
     return _compute_per_bar_v4(
-        ohlcv,
+        synthetic_native_quote_frame(ohlcv),
         timeframe=timeframe,
         v29_registry_constants=_V29_TEST_REGISTRY_CONSTANTS,
         volatility_squeeze_artifacts=_SQUEEZE_TEST_ARTIFACTS,

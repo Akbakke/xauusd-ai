@@ -230,3 +230,66 @@ def test_native_locked_quotes_are_exact_and_crossed_quotes_still_fail(field):
     m1.loc[5, f"ask_{field}"] = m1.loc[5, f"bid_{field}"] - 0.01
     with pytest.raises(RuntimeError, match="SOURCE_QUOTE_GEOMETRY_INVALID"):
         prepare_causal_m1_quote_source(m1)
+
+
+
+def test_m5_path_uses_first_executable_peak_and_conservative_peak_minute_bounds():
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_path_quality_outcomes
+    m1 = _m1_frame(periods=12)
+    for prefix, spread in (('bid', 0.), ('ask', 1.)):
+        m1[prefix + '_open'] = 100. + spread
+        m1[prefix + '_high'] = 100. + spread
+        m1[prefix + '_low'] = 100. + spread
+    # Fill at minute5: bid100/ask101. Peak's low may occur before OR after
+    # its high; later adverse excursions must not leak into pre-first-peak MAE.
+    m1.loc[6, ['bid_high', 'ask_high', 'bid_low', 'ask_low']] = [105., 106., 90., 91.]
+    m1.loc[7, ['bid_high', 'ask_high', 'bid_low', 'ask_low']] = [104., 105., 80., 81.]
+    m1.loc[8, ['bid_high', 'ask_high', 'bid_low', 'ask_low']] = [105., 106., 70., 71.]
+    m1.loc[10, ['bid_high', 'ask_high']] = [200., 201.]  # terminal bucket excluded
+    fill = build_entry_m1_fill_surface(m5_decision_times=m1.time.iloc[[0]], closed_m1=m1)
+    out = causal_m1_path_quality_outcomes(fill_surface=fill, closed_m1=m1, horizon_m5_bars=1).iloc[0]
+    assert bool(out['m5_path_target_valid'])
+    assert out['y_long_m5_path_first_mfe_m1_offset'] == 1
+    assert out['y_long_m5_path_mfe_bps'] == pytest.approx(4 / 101 * 1e4)
+    assert out['y_long_m5_path_mae_before_first_mfe_lower_bps'] == pytest.approx(1 / 101 * 1e4)
+    assert out['y_long_m5_path_mae_before_first_mfe_upper_bps'] == pytest.approx(11 / 101 * 1e4)
+    assert out['y_long_m5_path_path_utility_bps'] == pytest.approx((4 - 11) / 101 * 1e4)
+
+
+def test_m5_path_preserves_negative_mfe_and_short_entry_notional():
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_path_quality_outcomes
+    m1 = _m1_frame(periods=12)
+    for prefix, spread in (('bid', 0.), ('ask', 1.)):
+        m1[prefix + '_open'] = 100. + spread
+        m1[prefix + '_high'] = 100. + spread
+        m1[prefix + '_low'] = 100. + spread
+    m1.loc[6, ['bid_high', 'ask_high', 'bid_low', 'ask_low']] = [111., 112., 95., 96.]
+    fill = build_entry_m1_fill_surface(m5_decision_times=m1.time.iloc[[0]], closed_m1=m1)
+    out = causal_m1_path_quality_outcomes(fill_surface=fill, closed_m1=m1, horizon_m5_bars=1).iloc[0]
+    assert out['y_short_m5_path_mfe_bps'] == pytest.approx(4 / 100 * 1e4)
+    assert out['y_short_m5_path_mae_before_first_mfe_lower_bps'] == pytest.approx(1 / 100 * 1e4)
+    assert out['y_short_m5_path_mae_before_first_mfe_upper_bps'] == pytest.approx(12 / 100 * 1e4)
+    m1.loc[6, ['bid_high', 'ask_high', 'bid_low', 'ask_low']] = [100., 101., 100., 101.]
+    out = causal_m1_path_quality_outcomes(fill_surface=fill, closed_m1=m1, horizon_m5_bars=1).iloc[0]
+    assert out['y_long_m5_path_mfe_bps'] < 0
+    assert out['y_long_m5_path_path_utility_bps'] < out['y_long_m5_path_mfe_bps']
+
+
+@pytest.mark.parametrize('missing', ['fill', 'inside'])
+def test_m5_path_censors_missing_fill_or_internal_gap_without_later_fill(missing):
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_path_quality_outcomes, M5_PATH_TARGET_COLUMNS
+    m1 = _m1_frame(periods=12).drop(index=5 if missing == 'fill' else 7).reset_index(drop=True)
+    fill = build_entry_m1_fill_surface(m5_decision_times=pd.DatetimeIndex(['2026-01-05T00:00Z']), closed_m1=m1)
+    out = causal_m1_path_quality_outcomes(fill_surface=fill, closed_m1=m1, horizon_m5_bars=1)
+    assert not bool(out.loc[0, 'm5_path_target_valid'])
+    assert out[list(M5_PATH_TARGET_COLUMNS)].isna().all().all()
+
+
+def test_m5_path_friday_signal_is_not_silently_filled_on_monday():
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import causal_m1_path_quality_outcomes
+    m1 = _m1_frame(periods=12)
+    m1['time'] = pd.date_range('2026-01-12T00:00Z', periods=len(m1), freq='min')
+    fill = build_entry_m1_fill_surface(m5_decision_times=pd.DatetimeIndex(['2026-01-09T21:55Z']), closed_m1=m1)
+    assert not bool(fill.loc[0, 'entry_fill_bound']) and fill.loc[0, 'entry_m1_row'] == -1
+    out = causal_m1_path_quality_outcomes(fill_surface=fill, closed_m1=m1, horizon_m5_bars=1)
+    assert not bool(out.loc[0, 'm5_path_target_valid'])

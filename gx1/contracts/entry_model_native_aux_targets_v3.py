@@ -5,8 +5,23 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Any, Mapping
 
-MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v6"
+MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION = "entry_model_native_aux_targets_v7"
 MODEL_NATIVE_AUX_FORECAST_HORIZONS = (1, 5, 12, 24)
+# Same existing forecast task/head: four M5 returns plus independently masked
+# executable LONG/SHORT markouts on the operator-retained1/5/20-day horizons.
+MODEL_NATIVE_SUPPORT_HORIZONS_TRADING_DAYS = (1, 5, 20)
+MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT = tuple(
+    {"horizon_trading_days": horizon, "direction": side,
+     "target_semantics": "observed_executable_terminal_net_cash_markout_support_only"}
+    for horizon in MODEL_NATIVE_SUPPORT_HORIZONS_TRADING_DAYS for side in ("long", "short"))
+MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT = tuple(
+    {"horizon_m5_bars": horizon, "target_column": f"y_forecast_ret_K{horizon}",
+     "target_semantics": "observed_m5_close_return_bps"}
+    for horizon in MODEL_NATIVE_AUX_FORECAST_HORIZONS) + MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT
+MODEL_NATIVE_FORECAST_OUTPUT_DIM = len(MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT)
+MODEL_NATIVE_SUPPORT_FORECAST_DIM = len(MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT)
+SUPPORT_FORECAST_TARGET_BATCH_KEY = "entry_observed_market_support_forecast_bps"
+SUPPORT_FORECAST_VALID_BATCH_KEY = "entry_observed_market_support_forecast_valid"
 MODEL_NATIVE_AUX_RISK_HORIZONS = (12, 48, 96)
 MODEL_NATIVE_DIP_DIRECTIONS = ("long", "short")
 MODEL_NATIVE_DIP_OUTPUT_TARGETS = ("dip_p50", "dip_p90", "recovery_p50")
@@ -122,6 +137,11 @@ def model_native_aux_target_contract_metadata() -> dict[str, Any]:
     return {
         "schema_version": MODEL_NATIVE_AUX_TARGET_SCHEMA_VERSION,
         "columns": list(MODEL_NATIVE_AUX_TARGET_COLUMNS),
+        "forecast_output_layout": list(MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT),
+        "support_forecast_target_batch_key": SUPPORT_FORECAST_TARGET_BATCH_KEY,
+        "support_forecast_valid_batch_key": SUPPORT_FORECAST_VALID_BATCH_KEY,
+        "support_forecast_masked_per_horizon": True,
+        "support_forecast_primary_entry_authority": False,
         "future_horizon_bars_by_column": {
             name: int(horizon)
             for name, horizon in MODEL_NATIVE_AUX_TARGET_HORIZON_BY_COLUMN.items()

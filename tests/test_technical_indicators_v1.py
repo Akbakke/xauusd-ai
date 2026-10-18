@@ -20,10 +20,10 @@ from gx1.features.technical_indicators_v1 import (
 
 def test_technical_formula_identity_is_exact_and_current() -> None:
     assert TECHNICAL_INDICATOR_PRIMITIVES_VERSION == (
-        "technical_indicator_primitives_v2_classic_seed_raw_20260814"
+        "technical_indicator_primitives_v3_shared_kama_efficiency_20261018"
     )
     assert TECHNICAL_INDICATOR_FORMULA_SHA256 == (
-        "e08d52d42a01b850fca755bf7996a7701609b776a21f12428abb08450f2ab1c1"
+        "58605b96faa99b5d543e0770aa3d5e389250da60c021d9a85d3d3b6ff8af98ce"
     )
 
 

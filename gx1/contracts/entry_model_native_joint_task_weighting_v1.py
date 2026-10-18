@@ -8,7 +8,7 @@ import math
 from typing import Any, Mapping
 
 
-SCHEMA_VERSION = "entry_model_native_joint_task_weighting_v3"
+SCHEMA_VERSION = "entry_model_native_joint_task_weighting_v4"
 MECHANISM = "trainable_homoscedastic_log_variance"
 FORMULA = "sum(exp(-s_i) * L_i + s_i for active exact-label tasks i)"
 REFERENCE = (
@@ -68,7 +68,10 @@ def joint_task_weighting_metadata(
     *,
     supervision_observed: Mapping[str, bool],
     gradient_observed: Mapping[str, bool],
+    entry_training_phase: str = "joint_fitted_q",
 ) -> dict[str, Any]:
+    from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
+    active = active_joint_task_names(entry_training_phase)
     selected = {name: float(selected_log_variances[name]) for name in JOINT_TASK_NAMES}
     tasks: dict[str, dict[str, Any]] = {}
     for name in JOINT_TASK_NAMES:
@@ -89,6 +92,12 @@ def joint_task_weighting_metadata(
         }
     payload = {
         **joint_task_weighting_objective_contract(),
+        "entry_training_phase": entry_training_phase,
+        "active_task_names": list(active),
+        "inactive_task_names": [name for name in JOINT_TASK_NAMES if name not in active],
+        "all_active_tasks_supervised": all(bool(supervision_observed.get(name, False)) for name in active),
+        "all_active_tasks_received_gradient": all(bool(gradient_observed.get(name, False)) for name in active),
+        "all_active_tasks_moved_from_neutral": all(selected[name] != NEUTRAL_INITIAL_LOG_VARIANCE for name in active),
         "selected_log_variances": selected,
         "selected_log_variances_sha256": _canonical_sha256(selected),
         "tasks": tasks,
@@ -112,6 +121,12 @@ def require_joint_task_weighting_metadata(
     context: str,
 ) -> dict[str, Any]:
     expected_objective = joint_task_weighting_objective_contract()
+    from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
+    phase = value.get("entry_training_phase")
+    active = active_joint_task_names(phase)
+    inactive = tuple(name for name in JOINT_TASK_NAMES if name not in active)
+    if value.get("active_task_names") != list(active) or value.get("inactive_task_names") != list(inactive):
+        raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_PHASE_TASKS_INVALID]")
     for key, expected in expected_objective.items():
         if value.get(key) != expected:
             raise RuntimeError(
@@ -150,8 +165,12 @@ def require_joint_task_weighting_metadata(
             failures.append(f"{name}:initial_not_neutral")
         if task.get("selected_log_variance") != log_variance:
             failures.append(f"{name}:selected_split_brain")
-        if task.get("supervision_observed") is not True:
+        if name in active and task.get("supervision_observed") is not True:
             failures.append(f"{name}:never_supervised")
+        if name in inactive and (task.get("supervision_observed") is not False
+                or task.get("gradient_observed") is not False or task.get("moved_from_neutral") is not False
+                or log_variance != NEUTRAL_INITIAL_LOG_VARIANCE):
+            failures.append(f"{name}:inactive_task_mutated_or_advertised_as_learned")
         try:
             observed_precision = float(task.get("effective_precision"))
         except (TypeError, ValueError):
@@ -163,9 +182,9 @@ def require_joint_task_weighting_metadata(
             abs_tol=0.0,
         ):
             failures.append(f"{name}:precision")
-        if task.get("gradient_observed") is not True:
+        if name in active and task.get("gradient_observed") is not True:
             failures.append(f"{name}:no_gradient")
-        if task.get("moved_from_neutral") is not True or log_variance == 0.0:
+        if name in active and (task.get("moved_from_neutral") is not True or log_variance == 0.0):
             failures.append(f"{name}:no_movement")
         normalized[name] = log_variance
         normalized_tasks[name] = dict(task)
@@ -176,18 +195,21 @@ def require_joint_task_weighting_metadata(
         )
     if value.get("selected_log_variances_sha256") != _canonical_sha256(normalized):
         raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_HASH_INVALID]")
-    if value.get("all_tasks_supervised") is not True:
-        raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_SUPERVISION_UNPROVEN]")
-    if value.get("all_tasks_received_gradient") is not True:
-        raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_GRADIENTS_UNPROVEN]")
-    if value.get("all_tasks_moved_from_neutral") is not True:
-        raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_MOVEMENT_UNPROVEN]")
+    for field, observed in (("all_tasks_supervised", all(value["tasks"][name]["supervision_observed"] for name in JOINT_TASK_NAMES)),
+            ("all_tasks_received_gradient", all(value["tasks"][name]["gradient_observed"] for name in JOINT_TASK_NAMES)),
+            ("all_tasks_moved_from_neutral", all(value["tasks"][name]["moved_from_neutral"] for name in JOINT_TASK_NAMES))):
+        if value.get(field) is not observed:
+            raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_AGGREGATE_INVALID] {field}")
+    for field in ("all_active_tasks_supervised", "all_active_tasks_received_gradient", "all_active_tasks_moved_from_neutral"):
+        if value.get(field) is not True:
+            raise RuntimeError(f"[{context}_JOINT_TASK_WEIGHTING_ACTIVE_EVIDENCE_UNPROVEN] {field}")
     return {
         **expected_objective,
         "selected_log_variances": normalized,
         "selected_log_variances_sha256": _canonical_sha256(normalized),
         "tasks": normalized_tasks,
-        "all_tasks_supervised": True,
-        "all_tasks_received_gradient": True,
-        "all_tasks_moved_from_neutral": True,
+        "entry_training_phase": phase,
+        "active_task_names": list(active), "inactive_task_names": list(inactive),
+        **{field: value[field] for field in ("all_tasks_supervised", "all_tasks_received_gradient", "all_tasks_moved_from_neutral",
+            "all_active_tasks_supervised", "all_active_tasks_received_gradient", "all_active_tasks_moved_from_neutral")},
     }

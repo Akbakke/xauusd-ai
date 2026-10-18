@@ -39,6 +39,7 @@ from gx1.time.session_detector import (
 from gx1.features.technical_indicators_v1 import (
     classic_ema,
     ema50_200_spread_atr_block,
+    kaufman_efficiency_ratio,
     technical_indicator_contract_metadata,
     wilder_atr,
     wilder_atr14_positive,
@@ -59,6 +60,30 @@ from gx1.features.volatility_squeeze_state_v1 import (
     compute_volatility_squeeze_state,
     require_volatility_squeeze_artifact_binding,
     require_volatility_squeeze_artifact_set,
+)
+
+from gx1.features.basic_v1 import (
+    BASIC_V1_NATIVE_MTF_PRICE_FEATURES,
+    BASIC_V1_FORMULA_SHA256,
+    build_basic_v1,
+)
+from gx1.features.micro_structure_v1 import (
+    MICRO_FEATURE_NAMES_V1,
+    SPREAD_DYNAMICS_FEATURE_NAMES_V1,
+    compute_micro_structure_features,
+    compute_spread_dynamics_features_chunk,
+    micro_structure_contract_metadata,
+)
+from gx1.features.model_native_market_context_v1 import derive_observed_spread_bps
+from gx1.features.entry_foundation_structure_v1 import (
+    FOUNDATION_STRUCTURE_FEATURE_NAMES,
+    FOUNDATION_STRUCTURE_SOURCE_FIELDS,
+    build_entry_foundation_structure_layer,
+    foundation_structure_contract_metadata,
+)
+from gx1.scripts.materialize_build_canonical_features_v1 import (
+    HIGH_LEVEL_NATIVE_MTF_PRICE_FEATURES,
+    add_high_level_basics,
 )
 
 # Retained shared warmup floors used by the active context owner.
@@ -91,14 +116,16 @@ def _atr(high: pd.Series, low: pd.Series, close: pd.Series, n: int) -> pd.Series
 
 
 
-def _resample_ohlcv(df: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+def _resample_ohlcv(df: pd.DataFrame, timeframe: str, *, require_quotes: bool = False) -> pd.DataFrame:
     """Aggregate exact observed OHLCV for the V4 feature owner.
 
     Keyed on the declared TIMEFRAME, not a bare rule string, so the bin origin
     travels with the cadence (V30 package 3: the D1 bin opens on the trading
     day, see MULTI_TF_RESAMPLE_ORIGIN_OFFSET).
     """
-    required = ("open", "high", "low", "close", "volume")
+    required = ("open", "high", "low", "close", "volume") + (
+        MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS if require_quotes else ()
+    )
     missing = [name for name in required if name not in df.columns]
     if missing:
         raise RuntimeError(
@@ -111,6 +138,11 @@ def _resample_ohlcv(df: pd.DataFrame, timeframe: str) -> pd.DataFrame:
         "close": _last_valid,
         "volume": "sum",
     }
+    if require_quotes:
+        _require_native_quote_frame_v4(df)
+        agg.update({name: ("last" if name.endswith("close") else
+                          "max" if name.endswith("high") else "min")
+                    for name in MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS})
     return (
         multi_tf_resample(df.loc[:, list(required)], timeframe)
         .agg(agg)
@@ -237,6 +269,7 @@ def _validate_m5_input(
 # Exact ordered V4 feature contract. Persistent field names ending in _v2 are
 # model fields and remain unchanged; they are not compatibility APIs.
 from gx1.features.smc_v1 import (  # noqa: E402
+    SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES,
     SMC_CAUSAL_REPLAY_SCHEMA_VERSION,
     SMC_MTF_FEATURE_NAMES_V1,
     SMC_MTF_GEOMETRY_FEATURE_NAMES_V1,
@@ -565,7 +598,10 @@ MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4 = {
 # empirical allow-list from a particular dataset run.
 MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4 = {
     "M5": (),
-    "M15": (),
+    "M15": (
+        ("m15_range_z_20_canon_v2", "range_z20"),
+        ("m15_ema5_20_spread_atr_canon_v2", "ema5_20_spread_atr"),
+    ),
     # `_v1h{1,4}_ema_diff` is (EMA12-EMA26)/ATR14 on the closed TF bars — the
     # same formula the 2026-09-21 fidelity wave added to the per-bar momentum
     # lane as `macd_line_atr` (MACD line IS ema12-ema26).  The 2026-09-21 V11
@@ -576,14 +612,26 @@ MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4 = {
     "H1": (
         ("_v1h1_atr_bps", "atr_bps_14"),
         ("_v1h1_ema_diff", "macd_line_atr"),
+        ("_v1h1_rsi14_z", "rsi14_z48"),
+        ("_v1h1_slope3", "macd_line_atr_change_3"),
+        ("_v1h1_slope5", "macd_line_atr_change_5"),
     ),
     "H4": (
         ("_v1h4_atr_bps", "atr_bps_14"),
         ("_v1h4_ema_diff", "macd_line_atr"),
+        ("_v1h4_rsi14_z", "rsi14_z48"),
+        ("_v1h4_slope3", "macd_line_atr_change_3"),
+        ("_v1h4_slope5", "macd_line_atr_change_5"),
+        ("h4_mid_ema50_dist_atr_canon_v2", "mid_ema50_dist_atr"),
     ),
     "D1": (
         ("d1_atr14_bps_canon_v2", "atr_bps_14"),
         ("d1_ema_slope_20_canon_v2", "ema20_slope_atr"),
+        ("D1_dist_from_ema200_atr", "mid_ema200_dist_atr"),
+        ("d1_range_z_20_canon_v2", "range_z20"),
+        ("d1_close_pct_in_20day_range_canon_v2", "close_position_range20"),
+        ("d1_change_5_bps_canon_v2", "close_return_5_bps"),
+        ("d1_dist_change_1bar_atr_v4", "mid_ema200_distance_change_1_atr"),
     ),
 }
 MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
@@ -629,7 +677,7 @@ MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4 = (
 # deferring one invalidates every canonical artifact anyway, on BOTH clocks
 # (MODEL_NATIVE_MTF_SCALAR_ROUTES_V4 is keyed on decision_bar_duration).
 MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4 = (
-    "model_native_mtf_scalar_owner_native_m5_v8"
+    "model_native_mtf_scalar_owner_native_m5_v9"
 )
 # V30 (2026-08-13): the scalar-projection route per decision clock, previously
 # repeated as two identical literals inside the projection function and the
@@ -664,6 +712,72 @@ MULTI_TF_V4_VOLATILITY_SQUEEZE_FEATURES = tuple(
     VOLATILITY_SQUEEZE_FEATURE_NAMES
 )
 
+MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS = (
+    "bid_close", "ask_close", "bid_high", "bid_low", "ask_high", "ask_low",
+)
+MULTI_TF_V4_LOCAL_ONLY_PRIMITIVE_FEATURES = (
+    tuple(HIGH_LEVEL_NATIVE_MTF_PRICE_FEATURES)
+    + tuple(BASIC_V1_NATIVE_MTF_PRICE_FEATURES)
+    + tuple(FOUNDATION_STRUCTURE_FEATURE_NAMES)
+    + ("smc_choch",)
+    + tuple(SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES)
+    + tuple(MICRO_FEATURE_NAMES_V1)
+    + ("spread_bps",)
+    + tuple(SPREAD_DYNAMICS_FEATURE_NAMES_V1)
+    + ("chart.local_kama_efficiency_30", "session_change_flag")
+)
+MULTI_TF_V4_GENERIC_SCALAR_ADDITION_FEATURES = (
+    "rsi14_z48", "macd_line_atr_change_3", "macd_line_atr_change_5",
+    "mid_ema50_dist_atr", "range_z20", "ema5_20_spread_atr",
+    "close_position_range20", "mid_ema200_dist_atr",
+    "mid_ema200_distance_change_1_atr",
+)
+MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES = (
+    "dist_to_R1_atr",
+    "dist_to_R2_atr",
+    "dist_to_S1_atr",
+    "dist_to_S2_atr",
+    "dist_to_m5_hi_atr",
+    "dist_to_m5_lo_atr",
+    "dist_to_m15_hi_atr",
+    "dist_to_m15_lo_atr",
+    "dist_to_h1_hi_atr",
+    "dist_to_h1_lo_atr",
+    "dist_to_h4_hi_atr",
+    "dist_to_h4_lo_atr",
+    "dist_to_d1_hi_atr",
+    "dist_to_d1_lo_atr",
+)
+
+MULTI_TF_V4_FULL_PRIMITIVE_FEATURES = (
+    MULTI_TF_V4_LOCAL_ONLY_PRIMITIVE_FEATURES + MULTI_TF_V4_GENERIC_SCALAR_ADDITION_FEATURES
+    + MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES
+)
+# Exact semantic ownership; unit substrings never change a source's family.
+MULTI_TF_V4_FULL_PRIMITIVE_SPECIALISTS = {
+    **{name: "structure_swing_encoder" for name in (*FOUNDATION_STRUCTURE_FEATURE_NAMES, "smc_choch")},
+    **{name: "smc_liquidity_encoder" for name in (*SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES, *MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES)},
+    **{name: "trend_ema_encoder" for name in (
+        "_v1_ema3_ema6_spread_atr", "_v1_kama30_change_5_atr", "_v1_tema20_change_3_atr",
+        "close_distance_from_ema5_bps", "chart.local_kama_efficiency_30",
+        "macd_line_atr_change_3", "macd_line_atr_change_5", "mid_ema50_dist_atr",
+        "ema5_20_spread_atr", "mid_ema200_dist_atr")},
+    **{name: "vol_compression_encoder" for name in (
+        "atr_z", "rvol_20", "_v1_pk_sigma20", "_v1_range_z", "_v1_bb_squeeze_20_2",
+        "_v1_bb10_bandwidth_change_3", "_v1_kurt_r", "range_z20")},
+    **{name: "momentum_flow_encoder" for name in (
+        "ret_1", "ret_20", "close_return_3_bps", "close_return_5_bps",
+        "close_return_acceleration_1_bps", "rsi14_z48", "mid_ema200_distance_change_1_atr")},
+    **{name: "price_action_candle_encoder" for name in (
+        "close_distance_below_high_range_fraction", "close_range_observed")},
+    **{name: "session_regime_encoder" for name in ("spread_bps", *SPREAD_DYNAMICS_FEATURE_NAMES_V1, "session_change_flag")},
+    "close_position_range20": "chart_geometry_encoder",
+}
+if (set(MULTI_TF_V4_FULL_PRIMITIVE_SPECIALISTS) != set(MULTI_TF_V4_FULL_PRIMITIVE_FEATURES)
+        or len(set(MULTI_TF_V4_FULL_PRIMITIVE_FEATURES)) != len(MULTI_TF_V4_FULL_PRIMITIVE_FEATURES)):
+    raise RuntimeError("HTF_V4_FULL_PRIMITIVE_OWNERSHIP_INVALID")
+
+
 MULTI_TF_PER_BAR_FEATURES_V4 = (
     MULTI_TF_V4_GROUP_A_BASE_FEATURES
     + MULTI_TF_V4_VOLUME_FEATURES
@@ -676,6 +790,7 @@ MULTI_TF_PER_BAR_FEATURES_V4 = (
     + MULTI_TF_V4_MOMENTUM_EVENT_FEATURES
     + MULTI_TF_V4_LEVEL_REGISTRY_FEATURES
     + MULTI_TF_V4_TRENDLINE_REGISTRY_FEATURES
+    + MULTI_TF_V4_FULL_PRIMITIVE_FEATURES
 )
 # Exact 0/1 fields whose domains are proven by their producer, independently
 # of which values happen to occur in a TRAIN window.  Keep this registry
@@ -683,7 +798,14 @@ MULTI_TF_PER_BAR_FEATURES_V4 = (
 # its complete domain.  The normalization owner uses it to preserve a
 # constant-zero or constant-one TRAIN sample as an identity input instead of
 # inventing a scale from VAL or dropping the feature.
+MULTI_TF_OBSERVATION_MASK_FEATURES_V4 = ("close_range_observed",)
+# D1 always closes at the same UTC22 session boundary. Its previous observed
+# D1 close has the same session id even across absent days; diff is exactly0.
+MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4 = {"D1": {"session_change_flag": 0.0}}
 MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4 = (
+    "session_change_flag",
+    "smc_choch",
+    "close_range_observed",
     "mtf_candle_raw_body_contains_previous_flag",
     "mtf_candle_raw_body_contained_by_previous_flag",
     "mtf_candle_raw_range_contains_previous_flag",
@@ -836,7 +958,7 @@ MULTI_TF_FEATURE_NAMES_SHA256_V4 = hashlib.sha256(
 # censoring is unchanged.  A V21 matrix is four columns per lane wider and
 # holds the sign-blind break age under a name that no longer exists.
 # V24: delayed pivot confirmations preserve the most recent touch memory.
-HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V24"
+HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V27"
 # v5: the manifest additionally binds the immutable v29_registry_constants
 # payload (TRAIN-fitted level/trendline registry constants + provenance).
 # v6 (V30 package 3, 2026-08-13): the manifest additionally binds the declared
@@ -882,9 +1004,9 @@ HTF_V4_MATRIX_CONTRACT = "HTF_V4_EIGHT_FAMILY_CAUSAL_MATRIX_V24"
 # and binds a v1 squeeze manifest whose feature_names this owner no longer
 # emits.
 # v34 rejects cached values preceding the same-width trendline memory repair.
-HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v34"
+HTF_V4_CACHE_SCHEMA_VERSION = "htf_v4_disk_cache_manifest_v37"
 HTF_V4_CACHE_BUILDER_VERSION = (
-    "prebuild_multi_tf_cache_v4_persisted_model_native_scalars_20260821"
+    "prebuild_multi_tf_cache_v4_full_native_price_quote_session_cross_tf_20261018"
 )
 # v12 re-proves support for raw uncapped event ages without persistent global
 # ever-seen masks; earlier payloads cannot describe this width.
@@ -909,7 +1031,7 @@ HTF_V4_CACHE_BUILDER_VERSION = (
 # the signed rename of the geomline break age; a v21 artifact answers
 # liveness for five names per lane this surface no longer emits and is
 # silent on geomline_bars_since_break_signed.
-HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v23"
+HTF_V4_FULL_INPUT_LIVENESS_SCHEMA_VERSION = "htf_v4_full_input_liveness_v24"
 # Deliberate bit-identical aliases inside the fixed per-bar V4 model surface,
 # exempted from the duplicate-column failure in
 # :func:`build_multi_tf_v4_liveness_contract`.  Each entry is the exact ordered
@@ -2473,14 +2595,21 @@ def build_multi_tf_v4_liveness_contract(
             digest = hashlib.sha256(
                 np.ascontiguousarray(column).view(np.uint8)
             ).hexdigest()
-            if unique_count <= 1 or standard_deviation <= 0.0:
+            observation_mask = feature_name in MULTI_TF_OBSERVATION_MASK_FEATURES_V4
+            declared_constant = MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4.get(tf_name, {}).get(feature_name)
+            source_constant = declared_constant is not None
+            if source_constant and not np.all(column == declared_constant):
+                failures.append(f"{tf_name}:invalid_source_constant_binary_event={feature_name}")
+            if observation_mask and not np.isin(column, (0.0, 1.0)).all():
+                failures.append(f"{tf_name}:invalid_observation_mask={feature_name}")
+            if (unique_count <= 1 or standard_deviation <= 0.0) and not (observation_mask or source_constant):
                 constant_candidates.append(feature_name)
-            prior = column_hash_owner.get(digest)
+            prior = None if (observation_mask or source_constant) else column_hash_owner.get(digest)
             if prior is not None:
                 pair = (prior, feature_name)
                 if pair not in HTF_V4_DECLARED_ALIAS_PAIRS:
                     duplicate_pairs.append([prior, feature_name])
-            else:
+            elif not (observation_mask or source_constant):
                 column_hash_owner[digest] = feature_name
             field_stats[feature_name] = {
                 "unique_count": unique_count,
@@ -2616,6 +2745,9 @@ def require_multi_tf_v4_liveness_contract(
         ):
             raise RuntimeError(f"HTF_V4_LIVENESS_FIELDS_INVALID: {tf_name}")
         for field_name, stats in fields.items():
+            observation_mask = field_name in MULTI_TF_OBSERVATION_MASK_FEATURES_V4
+            declared_constant = MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4.get(tf_name, {}).get(field_name)
+            source_constant = declared_constant is not None
             if not isinstance(stats, dict) or set(stats) != expected_stat_keys:
                 raise RuntimeError(
                     f"HTF_V4_LIVENESS_STATS_KEYS_INVALID: {tf_name}:{field_name}"
@@ -2631,18 +2763,34 @@ def require_multi_tf_v4_liveness_contract(
                     "nonzero_fraction",
                 )
             ]
+            if source_constant and not (
+                unique_count == 1 and stats["std"] == 0.0
+                and stats["minimum"] == stats["maximum"] == stats["mean"] == declared_constant
+                and stats["nonzero_fraction"] == float(declared_constant != 0.0)
+            ):
+                raise RuntimeError(f"HTF_V4_SOURCE_CONSTANT_BINARY_EVENT_INVALID: {tf_name}:{field_name}")
+            if observation_mask and (
+                stats["minimum"] not in (0.0, 1.0) or stats["maximum"] not in (0.0, 1.0)
+                or unique_count not in (1, 2)
+                or (unique_count == 1 and not (
+                    stats["minimum"] == stats["maximum"] == stats["mean"] == stats["nonzero_fraction"]
+                    and stats["std"] == 0.0
+                ))
+            ):
+                raise RuntimeError(f"HTF_V4_OBSERVATION_MASK_STATS_INVALID: {tf_name}:{field_name}")
             if (
                 isinstance(unique_count, bool)
                 or not isinstance(unique_count, int)
-                or unique_count <= 1
+                or unique_count < (1 if (observation_mask or source_constant) else 2)
                 or any(
                     isinstance(item, bool)
                     or not isinstance(item, (int, float))
                     or not math.isfinite(float(item))
                     for item in numeric
                 )
-                or float(stats["std"]) <= 0.0
-                or not 0.0 < float(stats["nonzero_fraction"]) <= 1.0
+                or (float(stats["std"]) < 0.0 if (observation_mask or source_constant) else float(stats["std"]) <= 0.0)
+                or not (0.0 <= float(stats["nonzero_fraction"]) <= 1.0 if (observation_mask or source_constant)
+                        else 0.0 < float(stats["nonzero_fraction"]) <= 1.0)
                 or float(stats["minimum"]) > float(stats["maximum"])
                 or not isinstance(stats.get("values_sha256"), str)
                 or len(stats["values_sha256"]) != 64
@@ -3133,12 +3281,65 @@ def validate_causal_feature_matrix(
     return first_complete
 
 
+def _require_native_quote_frame_v4(frame: pd.DataFrame) -> None:
+    missing = [name for name in MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS if name not in frame]
+    if missing:
+        raise RuntimeError(f"HTF_V4_NATIVE_QUOTES_REQUIRED: {missing}")
+    data = frame.loc[:, list(MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS)].to_numpy(dtype=np.float64)
+    if not np.isfinite(data).all() or np.any(data <= 0.0):
+        raise RuntimeError("HTF_V4_NATIVE_QUOTES_INVALID")
+    for side in ("bid", "ask"):
+        high, low, close = (frame[f"{side}_{suffix}"].to_numpy(dtype=np.float64)
+                            for suffix in ("high", "low", "close"))
+        if np.any(high < low) or np.any(high < close) or np.any(low > close):
+            raise RuntimeError("HTF_V4_NATIVE_QUOTE_GEOMETRY_INVALID:" + side)
+    # Closing BBO is simultaneous. Independently aggregated high/low offsets
+    # are not simultaneous spreads and are never tested as if they were.
+    if np.any(frame["ask_close"].to_numpy(dtype=np.float64) < frame["bid_close"].to_numpy(dtype=np.float64)):
+        raise RuntimeError("HTF_V4_NATIVE_CLOSING_BBO_CROSSED")
+
+
+def _compute_local_genuine_primitive_frame_v4(ohlcv: pd.DataFrame, *, timeframe: str) -> pd.DataFrame:
+    """Call each existing native price/quote calculator on this clock's bars."""
+    from gx1.features.smc_v1 import compute_smc_features
+    _require_native_quote_frame_v4(ohlcv)
+    source = ohlcv.loc[:, ["open", "high", "low", "close", "volume", *MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS]].astype(np.float64)
+    high_level = add_high_level_basics(source.copy())
+    basic, _basic_names = build_basic_v1(
+        source,
+        decision_delay_seconds=int(MULTI_TF_SHIFT[timeframe].total_seconds()),
+    )
+    smc_source = source.copy()
+    smc_source["atr"] = basic["_v1_atr14"].to_numpy(dtype=np.float64)
+    smc = compute_smc_features(smc_source, include_v30_additions=True, include_sweep_anchored_activity=True)
+    events = np.column_stack([smc[name.removeprefix("snap.")].to_numpy(dtype=np.float32)
+                              for name in FOUNDATION_STRUCTURE_SOURCE_FIELDS])
+    foundation, foundation_names = build_entry_foundation_structure_layer(events, list(FOUNDATION_STRUCTURE_SOURCE_FIELDS))
+    micro = compute_micro_structure_features(source["high"], source["low"], source["close"])
+    spread, _carry = compute_spread_dynamics_features_chunk(source)
+    columns = {name: high_level[name].to_numpy() for name in HIGH_LEVEL_NATIVE_MTF_PRICE_FEATURES}
+    columns.update({name: basic[name].to_numpy() for name in BASIC_V1_NATIVE_MTF_PRICE_FEATURES})
+    columns.update(dict(zip(foundation_names, foundation.T, strict=True)))
+    columns["smc_choch"] = smc["smc_choch"].to_numpy()
+    columns.update({name: smc[name].to_numpy() for name in SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES})
+    columns.update(micro)
+    columns["spread_bps"] = derive_observed_spread_bps(source)
+    columns.update(spread)
+    columns["chart.local_kama_efficiency_30"] = kaufman_efficiency_ratio(source["close"], 30).to_numpy(dtype=np.float64)
+    columns["session_change_flag"] = basic["session_change_flag"].to_numpy(dtype=np.float64)
+    if tuple(columns) != MULTI_TF_V4_LOCAL_ONLY_PRIMITIVE_FEATURES:
+        raise RuntimeError("HTF_V4_LOCAL_PRIMITIVE_ORDER_INVALID")
+    return pd.DataFrame(columns, index=source.index, dtype=np.float64)
+
+
 def compute_per_bar_features_v4(
     ohlcv: pd.DataFrame,
     *,
     timeframe: str,
     v29_registry_constants,
     volatility_squeeze_artifacts: VolatilitySqueezeArtifactSet,
+    context_m5: pd.DataFrame | None = None,
+    _group_a_raw_context=None,
 ) -> pd.DataFrame:
     """Compute the exact fixed-width V4 surface directly from one OHLCV TF.
 
@@ -3163,8 +3364,14 @@ def compute_per_bar_features_v4(
         build_entry_candle_primitive_layer,
     )
     from gx1.features.smc_v1 import compute_smc_mtf_primitives_v1
+    from gx1.scripts.augment_forward_outcome_v2 import _compute_closed_lane_group_a
 
+    if context_m5 is None:
+        if timeframe != "M5":
+            raise RuntimeError("HTF_V4_TRUE_M5_CONTEXT_REQUIRED:" + timeframe)
+        context_m5 = ohlcv
     _validate_m5_input(ohlcv, require_volume=True)
+    _require_native_quote_frame_v4(ohlcv)
     df = ohlcv[["open", "high", "low", "close", "volume"]].astype(
         np.float64
     ).copy()
@@ -3572,6 +3779,16 @@ def compute_per_bar_features_v4(
             v29,
             level_frame,
             trendline_frame.astype(np.float64),
+            _compute_local_genuine_primitive_frame_v4(ohlcv, timeframe=timeframe),
+            _compute_model_native_scalar_primitives_v4(ohlcv).loc[:, list(MULTI_TF_V4_GENERIC_SCALAR_ADDITION_FEATURES)],
+            _compute_closed_lane_group_a(
+                ohlcv, timeframe=timeframe, context_m5=context_m5,
+                _raw_source=_group_a_raw_context,
+                # Match the existing as-of context owner's stored ATR-bps
+                # round trip exactly, using this lane rather than M5's ATR.
+                lane_atr=(out["atr_bps_14"].to_numpy(dtype=np.float32).astype(np.float64)
+                          / 1e4 * close.to_numpy(dtype=np.float64)),
+            ),
         ),
         axis=1,
     )
@@ -3614,11 +3831,11 @@ def _model_native_htf_slope_v4(
     """
 
     source = values.to_numpy(dtype=np.float64)
-    if source.ndim != 1 or order not in {3, 5} or len(source) < order:
+    if source.ndim != 1 or order not in {3, 5}:
         raise RuntimeError("HTF_V4_MODEL_NATIVE_HTF_SLOPE_INPUT_INVALID")
-    slope = source - np.concatenate(
-        [np.full(order, np.nan), source[:-order]]
-    )
+    previous = np.full(source.shape, np.nan, dtype=np.float64)
+    previous[order:] = source[:-order]
+    slope = source - previous
     return pd.Series(
         slope,
         index=values.index,
@@ -3626,153 +3843,97 @@ def _model_native_htf_slope_v4(
     )
 
 
+def native_mtf_full_primitive_contract_metadata_v4() -> dict[str, object]:
+    from gx1.features.smc_v1 import smc_primitive_contract_metadata
+    payload = {
+        "schema_version": "native_mtf_full_price_quote_primitives_v3_session_event_shared_raw",
+        "source_quote_fields": list(MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS),
+        "local_fields": list(MULTI_TF_V4_LOCAL_ONLY_PRIMITIVE_FEATURES),
+        "observation_masks": list(MULTI_TF_OBSERVATION_MASK_FEATURES_V4),
+        "source_constant_binary_events": MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4,
+        "session_event_owner": "basic_v1.add_session_features:diff(session_id_at_actual_lane_close)",
+        "generic_scalar_fields": list(MULTI_TF_V4_GENERIC_SCALAR_ADDITION_FEATURES),
+        "cross_tf_fields": list(MULTI_TF_V4_CROSS_TF_CONTEXT_FEATURES),
+        "cross_tf_owner": "gx1.scripts.augment_forward_outcome_v2._compute_closed_lane_group_a",
+        "cross_tf_source_sha256": hashlib.sha256(Path(__file__).resolve().parents[1].joinpath("scripts/augment_forward_outcome_v2.py").read_bytes()).hexdigest(),
+        "cross_tf_clock": "own observed lane close; original M5 raw references; native session-grid phase",
+        "cross_tf_atr": "own lane stored-float32 ATR-bps divided by 1e4 times own lane close",
+        "specialist_owners": dict(MULTI_TF_V4_FULL_PRIMITIVE_SPECIALISTS),
+        "basic_formula_sha256": BASIC_V1_FORMULA_SHA256,
+        "technical_owner": technical_indicator_contract_metadata(),
+        "micro_owner": micro_structure_contract_metadata(),
+        "foundation_owner": foundation_structure_contract_metadata(),
+        "smc_owner": smc_primitive_contract_metadata(),
+        "high_level_owner": "gx1.scripts.materialize_build_canonical_features_v1.add_high_level_basics",
+        "scalar_owner": "gx1.features.htf_features._compute_model_native_scalar_primitives_v4",
+        "quote_aggregation": "closed raw side close:last/high:max/low:min before any indicator",
+        "state_history": "full independent causal history per timeframe before selecting model support",
+    }
+    payload["contract_sha256"] = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return payload
+
+
+def _compute_model_native_scalar_primitives_v4(ohlcv: pd.DataFrame) -> pd.DataFrame:
+    """Generic formulas shared by every TF and persistent scalar projections."""
+    _validate_m5_input(ohlcv, require_volume=False)
+    source = ohlcv.loc[:, ["open", "high", "low", "close"]].astype(np.float64)
+    high, low, close = (source[name] for name in ("high", "low", "close"))
+    atr14, atr_positive = wilder_atr14_positive(high, low, close)
+    mid = (high + low) * 0.5
+    ema_mid50, ema_mid200 = _ema(mid, 50), _ema(mid, 200)
+    mid50_distance = (mid - ema_mid50) / atr_positive
+    mid50_distance.iloc[: H4_EMA50_MIN_BARS - 1] = np.nan
+    raw_mid200_gap = mid - ema_mid200
+    mid200_distance = raw_mid200_gap / atr_positive
+    mid200_distance.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
+    mid200_change = (raw_mid200_gap - raw_mid200_gap.shift(1)) / atr_positive
+    mid200_change.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
+    ema_diff = (_ema(close, 12) - _ema(close, 26)) / atr_positive
+    ema20 = _ema(close, 20)
+    bar_range = high - low
+    range_mean = bar_range.rolling(20, min_periods=20).mean()
+    range_std = bar_range.rolling(20, min_periods=20).std(ddof=0).replace(0.0, np.nan)
+    high20, low20 = high.rolling(20, min_periods=20).max(), low.rolling(20, min_periods=20).min()
+    return pd.DataFrame({
+        "rsi14_raw": _rsi(close, 14),
+        "atr_bps_14": atr14 / close * 1e4,
+        "macd_line_atr": ema_diff,
+        "ema20_slope_atr": (ema20 - ema20.shift(5)) / atr_positive,
+        "close_return_5_bps": close.pct_change(5) * 10000.0,
+        "rsi14_z48": _model_native_rsi_z48_v4(close),
+        "macd_line_atr_change_3": _model_native_htf_slope_v4(ema_diff, order=3),
+        "macd_line_atr_change_5": _model_native_htf_slope_v4(ema_diff, order=5),
+        "mid_ema50_dist_atr": mid50_distance,
+        "range_z20": (bar_range - range_mean) / range_std,
+        "ema5_20_spread_atr": (_ema(close, 5) - ema20) / atr_positive,
+        "close_position_range20": (close - low20) / (high20 - low20).replace(0.0, np.nan),
+        "mid_ema200_dist_atr": mid200_distance,
+        "mid_ema200_distance_change_1_atr": mid200_change,
+    }, index=source.index)
+
+
 def _compute_model_native_mtf_scalar_frame_v4(
     ohlcv: pd.DataFrame,
     *,
     timeframe: str,
 ) -> pd.DataFrame:
-    """Compute the compact persistent scalar surface on one closed TF clock."""
-
+    """Project persistent names from the same independently clocked formulas."""
     if timeframe not in MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4:
-        raise RuntimeError(
-            f"HTF_V4_MODEL_NATIVE_SCALAR_TIMEFRAME_INVALID: {timeframe!r}"
-        )
+        raise RuntimeError(f"HTF_V4_MODEL_NATIVE_SCALAR_TIMEFRAME_INVALID: {timeframe!r}")
+    primitives = _compute_model_native_scalar_primitives_v4(ohlcv)
+    mappings = {
+        "M5": ("rsi14_raw",),
+        "M15": ("rsi14_raw", "range_z20", "ema5_20_spread_atr"),
+        "H1": ("macd_line_atr", "atr_bps_14", "rsi14_z48", "macd_line_atr_change_3", "macd_line_atr_change_5", "rsi14_raw"),
+        "H4": ("mid_ema50_dist_atr", "macd_line_atr", "atr_bps_14", "rsi14_z48", "macd_line_atr_change_3", "macd_line_atr_change_5", "rsi14_raw"),
+        "D1": ("mid_ema200_dist_atr", "atr_bps_14", "rsi14_raw", "ema20_slope_atr", "range_z20", "close_position_range20", "close_return_5_bps", "mid_ema200_distance_change_1_atr"),
+    }
     expected_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[timeframe]
-    # The compact scalar block is intentionally OHLC-only.  It is attached to
-    # the full V4 OHLCV cache, but none of its declared formulas read volume;
-    # requiring a fabricated live volume value here would make its own input
-    # contract less truthful.
-    _validate_m5_input(ohlcv, require_volume=False)
-    source = ohlcv.loc[:, ["open", "high", "low", "close"]].astype(np.float64)
-    high = source["high"]
-    low = source["low"]
-    close = source["close"]
-    atr14, atr14_positive = wilder_atr14_positive(high, low, close)
-    out = pd.DataFrame(index=source.index)
-
-    if timeframe in {"H1", "H4"}:
-        prefix = "_v1h1" if timeframe == "H1" else "_v1h4"
-        ema12 = _ema(close, 12)
-        ema26 = _ema(close, 26)
-        if timeframe == "H4":
-            mid = (high + low) * 0.5
-            ema50 = _ema(mid, 50)
-            distance = (mid - ema50) / atr14_positive
-            distance.iloc[: H4_EMA50_MIN_BARS - 1] = np.nan
-            out["h4_mid_ema50_dist_atr_canon_v2"] = distance
-        # 2026-08-09 era-proxy repair: these fields were raw USD magnitudes and
-        # tracked the multi-year gold price level instead of market state.
-        # Units now follow this file's own conventions:
-        # - ema_diff in ATR-multiples (the D1_dist_from_ema200_atr convention);
-        #   the slope3/slope5 fields below inherit the normalized series so
-        #   they are ATR-multiple changes, not USD changes.
-        # - atr in bps of price (the atr_bps_14 convention). Normalization
-        #   statistics are refitted at the next dataset rebuild.
-        # 2026-08-18 (V30 wave 2): the NAME now carries that unit too. The
-        # 2026-08-09 repair changed the value and left the name saying `_atr`,
-        # which reads as "in ATR units" everywhere else in this file
-        # (ema50_slope_atr, mom_5_atr, ...) -- the exact opposite of a bps
-        # ratio. `_bps` is copied verbatim from the sibling owner `atr_bps_14`
-        # in this same file; the emitted float is bit-identical.
-        ema_diff = (ema12 - ema26) / atr14_positive
-        out[f"{prefix}_ema_diff"] = ema_diff
-        out[f"{prefix}_atr_bps"] = atr14 / close * 1e4
-        out[f"{prefix}_rsi14_z"] = _model_native_rsi_z48_v4(close)
-        out[f"{prefix}_slope3"] = _model_native_htf_slope_v4(
-            ema_diff,
-            order=3,
-        )
-        out[f"{prefix}_slope5"] = _model_native_htf_slope_v4(
-            ema_diff,
-            order=5,
-        )
-        # V30 momentum G3: the raw Wilder level from the same one `_rsi` owner
-        # the M15/D1 canon fields call, on this TF's own closed bars.  The
-        # `_v1h{1,4}_rsi14_z` 48-bar z-score above is kept (design row: "z-fields
-        # kept"); a z-score of a bounded oscillator hides WHERE in the 0-100
-        # domain the market is, which is exactly the M15/D1 evidence M5/H1/H4
-        # lacked.
-        out[f"{timeframe.lower()}_rsi14_canon_v2"] = _rsi(close, 14)
-    elif timeframe == "M5":
-        # V30 momentum G3 (see the field-tuple comment): the M5 sibling of
-        # `m15_rsi14_canon_v2` — same producer, same unit, this TF's clock.
-        out["m5_rsi14_canon_v2"] = _rsi(close, 14)
-    elif timeframe == "M15":
-        out["m15_rsi14_canon_v2"] = _rsi(close, 14)
-        bar_range = high - low
-        range_mean = bar_range.rolling(20, min_periods=20).mean()
-        range_std = bar_range.rolling(20, min_periods=20).std(ddof=0).replace(
-            0.0, np.nan
-        )
-        out["m15_range_z_20_canon_v2"] = (
-            bar_range - range_mean
-        ) / range_std
-        out["m15_ema5_20_spread_atr_canon_v2"] = (
-            _ema(close, 5) - _ema(close, 20)
-        ) / atr14_positive
-    elif timeframe == "D1":
-        mid = (high + low) * 0.5
-        ema200 = _ema(mid, 200)
-        distance = (mid - ema200) / atr14_positive
-        distance.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
-        out["D1_dist_from_ema200_atr"] = distance
-        # 2026-08-09 era-proxy repair: d1_atr14_bps_canon_v2 in bps of price
-        # (atr_bps_14 convention); d1_ema_slope_20_canon_v2 in ATR-multiples
-        # (D1_dist_from_ema200_atr convention, positive ATR only).
-        # 2026-08-18 (V30 wave 2) rename, no value change: the ATR field was
-        # `d1_atr14_canon_v2` while carrying bps, and `d1_pct_change_5_canon_v2`
-        # multiplies pandas' FRACTIONAL pct_change by 1e4 -- a 100x gap between
-        # the name and the number. `_bps` is inserted BEFORE the `_canon_v2`
-        # generation marker so that marker keeps its position. The `_change_`
-        # token is load-bearing and must survive any future rename: it is the
-        # only token in entry_full_input_liveness_v1.FIELD_SEMANTIC_SIGNED_PATTERN
-        # that this field matches, so a spelling like `d1_ret_5_bps` would
-        # silently drop it out of the signed-semantics gate.
-        out["d1_atr14_bps_canon_v2"] = atr14 / close * 1e4
-        out["d1_rsi14_canon_v2"] = _rsi(close, 14)
-        ema20 = _ema(close, 20)
-        out["d1_ema_slope_20_canon_v2"] = (
-            ema20 - ema20.shift(5)
-        ) / atr14_positive
-        bar_range = high - low
-        range_mean = bar_range.rolling(20, min_periods=20).mean()
-        range_std = bar_range.rolling(20, min_periods=20).std(ddof=0).replace(
-            0.0, np.nan
-        )
-        out["d1_range_z_20_canon_v2"] = (
-            bar_range - range_mean
-        ) / range_std
-        high20 = high.rolling(20, min_periods=20).max()
-        low20 = low.rolling(20, min_periods=20).min()
-        out["d1_close_pct_in_20day_range_canon_v2"] = (
-            close - low20
-        ) / (high20 - low20).replace(0.0, np.nan)
-        out["d1_change_5_bps_canon_v2"] = close.pct_change(5) * 10000.0
-        # F-21 (2026-09-21): raw-spread difference over the CURRENT bar's
-        # positive ATR — this file's own declared derivative convention
-        # ("raw USD spread differences, never differences of a normalized
-        # series").  The prior `distance.diff()` differenced an already
-        # ATR-normalized series across two denominators, folding the ATR's
-        # own daily change into the field (measured: sign flipped on 6.44%
-        # of D1 rows from the denominator term alone).
-        raw_spread = mid - ema200
-        dist_change = (raw_spread - raw_spread.shift(1)) / atr14_positive
-        dist_change.iloc[: D1_EMA200_MIN_BARS - 1] = np.nan
-        out["d1_dist_change_1bar_atr_v4"] = dist_change
-
-    if tuple(out.columns) != expected_fields:
-        raise RuntimeError(
-            "HTF_V4_MODEL_NATIVE_SCALAR_ORDER_INVALID: "
-            f"timeframe={timeframe} observed={tuple(out.columns)} "
-            f"expected={expected_fields}"
-        )
-    values = out.to_numpy(dtype=np.float64, copy=False)
-    validate_causal_feature_matrix(
-        values,
-        expected_width=len(expected_fields),
-        context=f"HTF_V4_MODEL_NATIVE_SCALARS_{timeframe}",
-    )
-    return out.astype(np.float32)
+    values = primitives.loc[:, list(mappings[timeframe])].to_numpy(dtype=np.float64)
+    if values.shape[1] != len(expected_fields):
+        raise RuntimeError("HTF_V4_MODEL_NATIVE_SCALAR_ORDER_INVALID")
+    validate_causal_feature_matrix(values, expected_width=len(expected_fields), context=f"HTF_V4_MODEL_NATIVE_SCALARS_{timeframe}")
+    return pd.DataFrame(values.astype(np.float32), index=primitives.index, columns=expected_fields)
 
 
 def _attach_model_native_mtf_scalar_frame_v4(
@@ -3836,9 +3997,11 @@ def build_multi_tf_per_bar_features_v4(
     expected_indices = build_multi_tf_v4_closed_timestamp_indices(
         source.index,
     )
+    from gx1.scripts.augment_forward_outcome_v2 import _build_raw_market_ohlc_context
+    shared_group_a_raw = _build_raw_market_ohlc_context(source)
     result = {}
     for tf_name in MULTI_TF_RESAMPLE_RULES:
-        resampled = _resample_ohlcv(source, tf_name)
+        resampled = _resample_ohlcv(source, tf_name, require_quotes=True)
         resampled = resampled.dropna(subset=["open", "high", "low", "close"])
         expected_index = expected_indices[tf_name]
         if not resampled.index.is_unique or not expected_index.isin(
@@ -3857,6 +4020,8 @@ def build_multi_tf_per_bar_features_v4(
             timeframe=tf_name,
             v29_registry_constants=registry_constants,
             volatility_squeeze_artifacts=squeeze_artifacts,
+            context_m5=source,
+            _group_a_raw_context=shared_group_a_raw,
         )
         # Retain the exact float32 matrix used to construct the DataFrame so
         # every in-memory V4 consumer sees the same verified bytes as attrs.
@@ -4390,6 +4555,7 @@ _HTF_V4_CACHE_MANIFEST_KEYS = frozenset(
         "builder_version",
         "smc_causal_replay_schema_version",
         "technical_indicator_owner",
+        "native_primitive_owner",
         "swing_structure_owner",
         "m5_prebuilt_source",
         "m5_prebuilt_source_sha256",
@@ -4737,6 +4903,7 @@ def load_multi_tf_v4_cache(cache_dir) -> MultiTFV4DiskCache:
                 SMC_CAUSAL_REPLAY_SCHEMA_VERSION
             ),
             "technical_indicator_owner": technical_indicator_contract_metadata(),
+            "native_primitive_owner": native_mtf_full_primitive_contract_metadata_v4(),
             "swing_structure_owner": swing_structure_contract_metadata(),
             "feature_count": feature_width,
             "feature_names": list(feature_names),

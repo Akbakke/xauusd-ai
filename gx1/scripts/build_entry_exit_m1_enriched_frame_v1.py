@@ -54,6 +54,7 @@ from gx1.execution.v12_ctx_augment_live import (  # noqa: E402
 )
 from gx1.features.htf_features import (  # noqa: E402
     HTF_V4_MATRIX_CONTRACT,
+    MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS,
     MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4,
     MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4,
     MODEL_NATIVE_MTF_SCALAR_OUTPUT_FIELDS_V4,
@@ -1346,7 +1347,7 @@ def _build_enriched_stage(
             raise RuntimeError("M5_ENRICHED_TEMPORARY_CACHE_MISSING")
         native_ohlcv = pd.read_parquet(
             native_stage,
-            columns=["time", "open", "high", "low", "close", "volume"],
+            columns=["time", "open", "high", "low", "close", "volume", *MULTI_TF_NATIVE_QUOTE_SOURCE_FIELDS],
         )
         native_ohlcv["time"] = pd.to_datetime(
             native_ohlcv["time"], utc=True, errors="raise"

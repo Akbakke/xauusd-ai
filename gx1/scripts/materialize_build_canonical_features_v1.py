@@ -86,6 +86,9 @@ def add_m5_phase(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+HIGH_LEVEL_NATIVE_MTF_PRICE_FEATURES = ("atr_z", "ret_1", "ret_20", "rvol_20")
+
+
 def add_high_level_basics(df: pd.DataFrame) -> pd.DataFrame:
     """Add the local-clock high-level feature columns.
 

@@ -14,6 +14,7 @@ from types import MethodType
 
 import pytest
 import torch
+from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import FORECAST_HEAD_DIM
 
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_DIM,
@@ -140,10 +141,27 @@ def _make_model(**overrides) -> EntryV10CtxHybridTransformer:
     return _build_unit_test_entry_v10_ctx_hybrid_transformer(**kwargs)
 
 
+def _valid_range_observation_input(raw: torch.Tensor, field_names) -> torch.Tensor:
+    """Synthetic inputs obey source event/binary/range-storage contracts."""
+    from gx1.features.micro_structure_v1 import (
+        range_observation_binary_fields, range_observation_masking_pairs,
+    )
+    from gx1.features.basic_v1 import session_native_binary_event_fields
+    names = list(field_names)
+    for name in range_observation_binary_fields(names) | session_native_binary_event_fields(names):
+        index = names.index(name)
+        raw[..., index] = (raw[..., index] > 0).to(raw.dtype)
+    for value, mask in range_observation_masking_pairs(names):
+        raw[..., value] = torch.where(raw[..., mask] == 1,
+            raw[..., value].clamp(0.0, 1.0), torch.zeros_like(raw[..., value]))
+    return raw
+
+
 def _make_inputs(batch_size: int = 2) -> tuple:
     seq_x = torch.randn(batch_size, SEQ_LEN, SEQ_DIM)
     snap_x = seq_x[:, -1, :].clone()
-    ctx_cont = torch.randn(batch_size, MODEL_NATIVE_CTX_CONT_DIM)
+    ctx_cont = _valid_range_observation_input(
+        torch.randn(batch_size, MODEL_NATIVE_CTX_CONT_DIM), MODEL_NATIVE_CTX_CONT_FIELDS)
     from gx1.features.gc_native_context_v1 import masking_pairs
     for _, mask in masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS):
         ctx_cont[:, mask] = 1.0
@@ -364,7 +382,7 @@ def test_exact_architecture_emits_every_mandatory_head_with_exact_width() -> Non
         "trendline_event_logits": 4,
         "position_size_logit": 1,
         "dip_pred": 18,
-        "forecast_pred": 4,
+        "forecast_pred": FORECAST_HEAD_DIM,
         "timing_pred": 12,
         "tail_risk_pred": 6,
         "vol_forecast_pred": 3,
@@ -677,7 +695,11 @@ def test_exact_production_entry_shape_uses_raw_q_authority() -> None:
             per_tf_seq_lens=tf_lengths,
         ),
     ).eval()
-    ctx_cont = torch.randn(1, MODEL_NATIVE_CTX_CONT_DIM)
+    ctx_cont = _valid_range_observation_input(
+        torch.randn(1, MODEL_NATIVE_CTX_CONT_DIM), MODEL_NATIVE_CTX_CONT_FIELDS)
+    from gx1.features.gc_native_context_v1 import masking_pairs
+    for _, mask in masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS):
+        ctx_cont[:, mask] = 1.0
     nominal_indices = [
         index
         for values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[
@@ -689,7 +711,8 @@ def test_exact_production_entry_shape_uses_raw_q_authority() -> None:
     ctx_cat = torch.zeros(1, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long)
     entry_seq = torch.randn(1, MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_SIGNAL_DIM)
     entry_mtf = {
-        f"seq_{tf.lower()}": torch.zeros(1, tf_lengths[tf], tf_width)
+        f"seq_{tf.lower()}": _valid_range_observation_input(
+            torch.zeros(1, tf_lengths[tf], tf_width), tf_names)
         for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
     }
     with torch.no_grad():
@@ -1942,10 +1965,18 @@ def test_equal_length_mtf_batches_only_eval_without_grad(training, grad, monkeyp
     expected, reference_calls, expected_rng = forward(reference, False)
     actual, calls, actual_rng = forward(variant, True)
     batching = not training and not grad
-    assert len(reference_calls) == 32
-    assert len(calls) == (24 if batching else 32)
+    family_count = len(EXACT_SPECIALIST_NAMES)
+    length_groups = Counter(
+        int(tf_inputs["seq_" + tf.lower()].shape[1])
+        for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    )
+    unbatched_calls = family_count * len(ENTRY_MTF_CONTEXT_TIMEFRAMES)
+    assert len(reference_calls) == unbatched_calls
+    assert len(calls) == (family_count * len(length_groups) if batching else unbatched_calls)
     if batching:
-        assert sum(shape[:2] == (4, 4) for _, shape in calls) == 8
+        for length, timeframe_count in length_groups.items():
+            expected_shape = (int(seq.shape[0]) * timeframe_count, length)
+            assert sum(shape[:2] == expected_shape for _, shape in calls) == family_count
         assert torch.equal(actual_rng, initial_rng)
     assert torch.equal(actual_rng, expected_rng)
     assert actual.keys() == expected.keys()
@@ -1982,3 +2013,21 @@ def test_local_model_experiment_scopes_restore_after_nested_exception(scope_name
                 raise RuntimeError("deliberate")
         assert state.get() is True
     assert state.get() is False
+
+
+@pytest.mark.parametrize('prefix', ['', 'ctx_cont.'])
+def test_range_observation_fixture_preserves_binary_masks_and_zero_storage(prefix):
+    names = [prefix + 'close_distance_below_high_range_fraction', prefix + 'close_range_observed']
+    values = torch.tensor([[-3., -1.], [.5, 0.], [2., 1.], [.25, .2]])
+    _valid_range_observation_input(values, names)
+    assert values.tolist() == [[0., 0.], [0., 0.], [1., 1.], [.25, 1.]]
+    from gx1.features.micro_structure_v1 import mask_normalized_range_torch
+    normalized = mask_normalized_range_torch(values, values.clone(), names)
+    assert torch.equal(values, normalized)
+
+
+@pytest.mark.parametrize('prefix', ['', 'ctx_cont.'])
+def test_session_event_fixture_uses_source_binary_domain(prefix):
+    values = torch.tensor([[-1.], [0.], [.5], [1.]])
+    _valid_range_observation_input(values, [prefix + 'session_change_flag'])
+    assert values.tolist() == [[0.], [0.], [1.], [1.]]

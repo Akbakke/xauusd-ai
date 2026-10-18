@@ -30,9 +30,11 @@ from gx1.features.htf_features import (
 )
 
 from gx1.features import gc_native_context_v1 as _gc_context
+from gx1.features import micro_structure_v1 as _micro_context
+from gx1.features.basic_v1 import session_native_binary_event_fields
 
-SCHEMA_VERSION = "entry_model_native_input_normalization_v10"
-TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v6"
+SCHEMA_VERSION = "entry_model_native_input_normalization_v11"
+TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v7"
 FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
 CONTINUOUS_TRANSFORM = "asinh_affine_invertible_non_saturating"
 FIT_COLUMN_CHUNK = 32
@@ -782,6 +784,8 @@ def fit_surface_normalization(
         )
     else:
         binary_fields = {str(name) for name in semantic_binary_fields} | _gc_context.binary_fields(names)
+    binary_fields |= _micro_context.range_observation_binary_fields(names)
+    binary_fields |= session_native_binary_event_fields(names)
     if (
         not set(categorical_domains).issubset(names)
         or not binary_fields.issubset(names)
@@ -809,7 +813,7 @@ def fit_surface_normalization(
             f"surface={surface}"
         )
 
-    gc_pairs = dict(_gc_context.masking_pairs(names))
+    observation_pairs = dict((*_gc_context.masking_pairs(names), *_micro_context.range_observation_masking_pairs(names)))
     for start in range(0, width, effective_column_chunk):
         stop = min(width, start + effective_column_chunk)
         block = _materialize_population_columns(
@@ -829,16 +833,16 @@ def fit_surface_normalization(
         for local in range(stop - start):
             index = start + local
             column = block[:, local]
-            if index in gc_pairs:
-                mask_index = gc_pairs[index]
+            if index in observation_pairs:
+                mask_index = observation_pairs[index]
                 observed = (block[:, mask_index - start] if start <= mask_index < stop else
                     _materialize_population_columns(parts, total_rows=population_rows,
                         start=mask_index, stop=mask_index + 1)[:, 0])
                 if not np.isin(observed, (0.0, 1.0)).all() or np.any(column[observed == 0.0] != 0.0):
-                    raise RuntimeError('NATIVE_GC_MASKED_STORAGE_INVALID')
+                    raise RuntimeError('ENTRY_INPUT_OBSERVATION_MASKED_STORAGE_INVALID')
                 column = column[observed == 1.0]
                 if len(column) == 0:
-                    raise RuntimeError('NATIVE_GC_NO_PHYSICAL_TRAIN_OBSERVATIONS:' + names[index])
+                    raise RuntimeError('ENTRY_INPUT_NO_PHYSICAL_TRAIN_OBSERVATIONS:' + names[index])
                 q25[local], median[local], q75[local] = np.quantile(column, [0.25, 0.5, 0.75])
             if names[index] in binary_fields:
                 if not np.logical_or(column == 0.0, column == 1.0).all():
@@ -866,7 +870,7 @@ def fit_surface_normalization(
                 categorical_mask[index] = np.uint8(1)
                 scale_source[index] = "categorical_embedding_identity"
                 continue
-            if (allow_constant_train_fields or index in gc_pairs) and np.all(column == column[0]):
+            if (allow_constant_train_fields or index in observation_pairs) and np.all(column == column[0]):
                 # Explicit finite-prefix mode: dispersion is not estimable.
                 # Retain raw feature units, TRAIN center and invertible asinh;
                 # do not infer a binary domain, clip later values, invent
@@ -958,7 +962,7 @@ def fit_surface_normalization(
         categorical_mask=categorical_mask,
         column_chunk=effective_column_chunk,
     )
-    for value_index, mask_index in gc_pairs.items():
+    for value_index, mask_index in observation_pairs.items():
         raw_value = _materialize_population_columns(parts, total_rows=population_rows,
             start=value_index, stop=value_index + 1)[:, 0]
         mask = _materialize_population_columns(parts, total_rows=population_rows,
@@ -1089,6 +1093,8 @@ def require_surface_normalization(
         if str(surface).startswith("mtf_")
         else _gc_context.binary_fields(names)
     )
+    expected_binary_fields |= _micro_context.range_observation_binary_fields(names)
+    expected_binary_fields |= session_native_binary_event_fields(names)
     observed_binary_fields = {
         names[index] for index in np.flatnonzero(binary_mask)
     }
@@ -1568,7 +1574,8 @@ def apply_surface_normalization(
     normalized[..., identity] = matrix[..., identity].astype(np.float64)
     if not np.isfinite(normalized).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_OUTPUT_NONFINITE]")
-    return _gc_context.mask_normalized_numpy(matrix, np.asarray(normalized, dtype=np.float32), field_names)
+    result = _gc_context.mask_normalized_numpy(matrix, np.asarray(normalized, dtype=np.float32), field_names)
+    return _micro_context.mask_normalized_range_numpy(matrix, result, field_names)
 
 
 def invert_surface_normalization(
@@ -1603,5 +1610,6 @@ def invert_surface_normalization(
     )
     if not np.isfinite(restored).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_INVERSE_OUTPUT_NONFINITE]")
-    return _gc_context.mask_normalized_numpy(normalized, np.asarray(restored, dtype=np.float32),
+    result = _gc_context.mask_normalized_numpy(normalized, np.asarray(restored, dtype=np.float32),
         surface_contract["field_names"])
+    return _micro_context.mask_normalized_range_numpy(normalized, result, surface_contract["field_names"])

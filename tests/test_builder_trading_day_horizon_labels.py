@@ -22,3 +22,17 @@ def test_horizon_label_frame_is_nan_beyond_split_end_and_keeps_every_row():
     # third row: every horizon crosses the split end
     assert frame[list(builder.TRADING_DAY_HORIZON_LABEL_COLUMNS)].iloc[2].isna().all()
     assert frame.dtypes[builder.TRADING_DAY_HORIZON_LABEL_COLUMNS[0]] == np.float32
+
+
+def test_m5_path_label_owner_keeps_primary_rows_when_long_support_is_unavailable_and_censors_boundary():
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import M5_PATH_TARGET_COLUMNS, M5_PATH_VALID_COLUMN
+    from tests.test_entry_causal_m1_outcomes import _m1_frame
+    m1 = _m1_frame(periods=110)
+    decisions = m1.time.iloc[[0, 5]]
+    # First fill00:05 plus19 M5 bars ends01:40; second ends01:45.
+    frame = builder._m5_path_label_frame(m5_decision_times=decisions, closed_m1=m1,
+        split_end=pd.Timestamp('2026-01-05T01:40Z'))
+    assert len(frame) == 2 and frame[M5_PATH_VALID_COLUMN].tolist() == [True, False]
+    assert np.isfinite(frame[list(M5_PATH_TARGET_COLUMNS)].iloc[0]).all()
+    assert frame[list(M5_PATH_TARGET_COLUMNS)].iloc[1].isna().all()
+    assert not set(builder.TRADING_DAY_HORIZON_LABEL_COLUMNS) & set(frame.columns)

@@ -44,6 +44,42 @@ _OUTER_ROWS = 700
 _INNER_ROW = 400
 
 
+def synthetic_native_quote_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Explicit synthetic two-sided quote bars for execution-mechanics tests.
+
+    This constructs test data only. Production never creates or substitutes
+    missing BID/ASK; its raw source must actually contain every quote column.
+    """
+    result = frame.copy()
+    for side, offset in (("bid", -0.10), ("ask", 0.10)):
+        for suffix in ("close", "high", "low"):
+            result[f"{side}_{suffix}"] = result[suffix].to_numpy(dtype=np.float64) + offset
+    return result
+
+
+def synthetic_m5_reference_history(frame: pd.DataFrame, timeframe: str) -> pd.DataFrame:
+    """Explicit synthetic raw M5 tape for native-clock Group-A mechanics tests.
+
+    The 70-day leading raw history supplies the genuine 60-day lookup window.
+    The test's declared lane candles are composed of explicit raw sub-bars;
+    only production's actual raw tape may be passed outside test fixtures.
+    """
+    from gx1.features.htf_features import MULTI_TF_SHIFT, multi_tf_bar_label
+    duration = MULTI_TF_SHIFT[timeframe]
+    index = pd.date_range(frame.index[0] - pd.Timedelta(days=70),
+                          frame.index[-1] + duration - pd.Timedelta(minutes=5),
+                          freq="5min", tz="UTC")
+    price = float(frame["close"].iloc[0]) + np.sin(np.arange(len(index)) / 19.0)
+    result = pd.DataFrame({"high": price + 1.0, "low": price - 1.0,
+                           "close": price}, index=index)
+    lane_labels = multi_tf_bar_label(index, timeframe)
+    positions = frame.index.get_indexer(lane_labels)
+    known = positions >= 0
+    for field in ("high", "low", "close"):
+        result.loc[known, field] = frame[field].to_numpy(dtype=np.float64)[positions[known]]
+    return result
+
+
 def _source(root: Path, *, clock: str) -> dict:
     root.mkdir(parents=True, exist_ok=True)
     paths: dict[str, Path] = {}

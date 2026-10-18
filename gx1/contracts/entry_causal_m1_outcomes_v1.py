@@ -443,3 +443,74 @@ def causal_m1_terminal_outcomes_at_horizon(
             "outcome_valid": valid,
         }
     )
+
+
+# Operator decision18Oct2026: first path observation window reuses the exact
+# already TRAIN-selected19M5 bars; this is not a new search or holding limit.
+M5_PATH_OBSERVATION_HORIZON_BARS = 19
+M5_PATH_HORIZON_ORIGIN_POLICY_SHA256 = 'ae0070802493ee21f7232ed61d588362e6a1a8d428bd0b185f6d7a2e56f7c6d3'
+M5_PATH_TARGET_FIELDS = ('mfe_bps', 'mae_before_first_mfe_lower_bps',
+    'mae_before_first_mfe_upper_bps', 'path_utility_bps', 'first_mfe_m1_offset')
+M5_PATH_TARGET_COLUMNS = tuple('y_' + side + '_m5_path_' + field
+    for side in ('long', 'short') for field in M5_PATH_TARGET_FIELDS)
+M5_PATH_VALID_COLUMN = 'm5_path_target_valid'
+
+
+def causal_m1_path_quality_outcomes(
+    *, fill_surface: pd.DataFrame, closed_m1: pd.DataFrame | CausalM1QuoteSource,
+    horizon_m5_bars: int,
+) -> pd.DataFrame:
+    """Signed MFE minus conservative pre-peak MAE; no hindsight cash return.
+
+    The first favorable extreme is selected on executable BID (LONG) / ASK
+    (SHORT). OHLC cannot order high/low inside its M1 bucket. Lower MAE includes
+    every earlier bucket and the known peak-bucket opening quote; upper MAE
+    additionally includes the entire peak bucket. Primary utility uses upper.
+    No extrema, observation horizon or timing is an executable Exit policy.
+    """
+    terminal = causal_m1_terminal_outcomes_at_horizon(fill_surface=fill_surface,
+        closed_m1=closed_m1, horizon_m5_bars=horizon_m5_bars)
+    surface = _require_surface(fill_surface)
+    _, quotes = _m1_arrays(closed_m1)
+    valid = terminal['outcome_valid'].to_numpy(dtype=bool)
+    rows = np.flatnonzero(valid)
+    starts = surface['entry_m1_row'].to_numpy(dtype=np.int64)[rows]
+    bid = surface['entry_bid'].to_numpy(dtype=np.float64)[rows]
+    ask = surface['entry_ask'].to_numpy(dtype=np.float64)[rows]
+    initial_long, initial_short = _entry_notional_pnl_bps(
+        entry_bid=bid, entry_ask=ask, exit_bid=bid, exit_ask=ask)
+    output = {'time': surface['time'].to_numpy(),
+        'entry_decision_at': surface['entry_decision_at'].to_numpy(),
+        'exit_decision_at': terminal['exit_decision_at'].to_numpy(),
+        M5_PATH_VALID_COLUMN: valid}
+    width = horizon_m5_bars * (ENTRY_DECISION_BAR_SECONDS // EXIT_DECISION_BAR_SECONDS)
+    for side, initial in (('long', initial_long), ('short', initial_short)):
+        peak = np.full(len(rows), -np.inf)
+        running = initial.copy()
+        lower, upper = np.zeros(len(rows)), np.zeros(len(rows))
+        first_peak = np.zeros(len(rows), dtype=np.int64)
+        for offset in range(width):
+            positions = starts + offset
+            if side == 'long':
+                favorable = (quotes['bid_high'][positions] - ask) / ask * 1e4
+                adverse = (quotes['bid_low'][positions] - ask) / ask * 1e4
+                opened = (quotes['bid_open'][positions] - ask) / ask * 1e4
+            else:
+                favorable = (bid - quotes['ask_low'][positions]) / bid * 1e4
+                adverse = (bid - quotes['ask_high'][positions]) / bid * 1e4
+                opened = (bid - quotes['ask_open'][positions]) / bid * 1e4
+            new_peak = favorable > peak  # strict: retain first equal maximum
+            lower = np.where(new_peak, -np.minimum(running, opened), lower)
+            upper = np.where(new_peak, -np.minimum(running, adverse), upper)
+            first_peak = np.where(new_peak, offset, first_peak)
+            peak = np.maximum(peak, favorable)
+            running = np.minimum(running, adverse)
+        if (not np.isfinite(peak).all() or not np.isfinite(lower).all()
+                or not np.isfinite(upper).all() or np.any(lower < 0) or np.any(upper < lower)):
+            raise RuntimeError('ENTRY_M5_PATH_EXTREMA_INVALID')
+        values = (peak, lower, upper, peak - upper, first_peak)
+        for field, values in zip(M5_PATH_TARGET_FIELDS, values):
+            full = np.full(len(surface), np.nan)
+            full[rows] = values
+            output['y_' + side + '_m5_path_' + field] = full
+    return pd.DataFrame(output)

@@ -21,7 +21,7 @@ import pyarrow.parquet as pq
 
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_DIP_OUTPUT_DIM,
-    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_FORECAST_OUTPUT_DIM,
     MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS,
     MODEL_NATIVE_TIMING_OUTPUT_DIM,
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
@@ -63,7 +63,7 @@ PREDICTION_EVIDENCE_STAGE_SPLITS = {
 # bounded artifact-preflight failure instead of a late full-VAL failure.
 MODEL_NATIVE_AUXILIARY_PREDICTION_VECTOR_WIDTHS = {
     "dip_pred": MODEL_NATIVE_DIP_OUTPUT_DIM,
-    "forecast_pred": len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS),
+    "forecast_pred": MODEL_NATIVE_FORECAST_OUTPUT_DIM,
     "timing_pred": MODEL_NATIVE_TIMING_OUTPUT_DIM,
     "tail_risk_pred": len(MODEL_NATIVE_TAIL_RISK_TARGET_COLUMNS),
     "vol_forecast_pred": len(MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS),

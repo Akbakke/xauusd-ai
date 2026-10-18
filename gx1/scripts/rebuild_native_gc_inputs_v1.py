@@ -23,10 +23,12 @@ from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execu
 from gx1.features import gc_order_flow_v1 as features
 from gx1.scripts import gc_source_disposition_v1 as io
 from gx1.scripts.gc_continuous_source_v1 import load_metadata
+from gx1.scripts.gc_order_flow_features_v1 import add_basis
 
 CODE_PATHS = (
     'gx1/scripts/rebuild_native_gc_inputs_v1.py',
     'gx1/features/gc_order_flow_v1.py',
+    'gx1/scripts/gc_order_flow_features_v1.py',
     'gx1/contracts/gc_continuous_source_v1.py',
     'gx1/contracts/gc_source_disposition_v1.py',
     'gx1/contracts/gc_order_flow_source_v1.py',
@@ -331,6 +333,9 @@ def build(plan, stage):
         'test_data_used': False, 'optimizer_steps': 0}
 
 
+COMPLETION_SCHEMA = 'gx1_native_mbp1_information_completion_plan_v1'
+COMPLETION_MODE = 'complete_mbp1_from_completed_m1_and_raw_events'
+
 DERIVED_TIMEFRAME_SCHEMA = 'gx1_native_derived_gc_timeframes_plan_v1'
 DERIVED_TIMEFRAME_MODE = 'derive_timeframes_from_completed_m1'
 DERIVED_TIMEFRAMES = ('M5', 'M15', 'H1', 'H4', 'D1')
@@ -353,6 +358,91 @@ def derived_timeframe_mode(plan):
             or pd.Timestamp(plan['study_end_exclusive']).value != timing.WINDOW_END_NS):
         raise RuntimeError('DERIVED_GC_PLAN_SCOPE')
     return True
+
+
+def completion_mode(plan):
+    if plan.get('schema_version') != COMPLETION_SCHEMA:return False
+    if (plan.get('mode') != COMPLETION_MODE or tuple(plan.get('timeframes', ())) != DERIVED_TIMEFRAMES
+            or pd.Timestamp(plan['study_start_inclusive']).value != timing.STUDY_START_NS
+            or pd.Timestamp(plan['study_end_exclusive']).value != timing.WINDOW_END_NS
+            or not isinstance(plan.get('worker_count'), int) or plan['worker_count'] < 1
+            or not isinstance(plan.get('profile_state_max_bytes'), int) or plan['profile_state_max_bytes'] < 1
+            or not isinstance(plan.get('expected_source_records'), int) or plan['expected_source_records'] < 1
+            or not isinstance(plan.get('expected_source_files'), int) or plan['expected_source_files'] < 1
+            or set(plan.get('source_plan', {})) != {'path', 'sha256'}):
+        raise RuntimeError('MBP1_COMPLETION_PLAN_SCOPE')
+    return True
+
+
+def completion_event_worker(group, ci, tick, wanted, candidate, expected_metrics, expected_book, stage):
+    """Only the missing event sufficient statistics; no new trade ladder/build."""
+    collector = features.L1FeatureCollectorV2(wanted, tick, include_event_diagnostics=True)
+    result = source.scan_symbol(group['items'], tick, on_batch=collector,
+        extra_columns=source.L1_AUDIT_COLUMNS, on_file_start=collector.file_start)
+    collector.finish()
+    for name in source.METRICS:
+        if not np.array_equal(result[name][wanted], expected_metrics[name]):
+            raise RuntimeError('MBP1_COMPLETION_ORIGINAL_METRIC_PARITY:' + name)
+    values, _ = collector.values(candidate)
+    for name in features.L1_FIELDS_V2:
+        if not np.array_equal(values[name], expected_book[name], equal_nan=True):
+            raise RuntimeError('MBP1_COMPLETION_ORIGINAL_BOOK_PARITY:' + name)
+    events = collector.event_diagnostics(candidate)
+    output = pa.table({'minute_index': wanted, **events})
+    path = stage / (group['raw_symbol'] + '_EVENT_M1.parquet')
+    pq.write_table(output, path, compression='zstd')
+    return {'symbol': group['raw_symbol'], 'contract_index': ci, 'path': str(path),
+        'source_files': result['files'], 'selected_m1_rows': len(wanted)}
+
+
+def build_completion(plan, stage):
+    """One new raw event pass; existing completed M1/grid/roll remain inputs."""
+    paths = bound_derived_inputs(plan)
+    base_path = io.REPO / plan['source_plan']['path']
+    io.verify_digest(base_path, plan['source_plan']['sha256'], 'MBP1_COMPLETION_SOURCE_PLAN')
+    base = io.read_json(base_path)
+    groups, hashes = io._bound_gc_inputs(base)
+    metadata, metadata_hashes = load_metadata(base, groups)
+    roll = io.read_json(paths['roll_schedule'])
+    if ([group['raw_symbol'] for group in groups] != roll['contract_order']
+            or {key: list(value) for key, value in metadata.items()} != roll['metadata_identity']):
+        raise RuntimeError('MBP1_COMPLETION_ORIGINAL_CONTRACT_METADATA')
+    table = pq.read_table(paths['m1_inputs'], columns=['contract_index', 'ofi_valid'] + list(source.METRICS) + list(features.L1_FIELDS_V2))
+    selected = table['contract_index'].to_numpy().astype(np.int16)
+    parts = stage / 'RAW_EVENT_REDUCTIONS';parts.mkdir()
+    with ProcessPoolExecutor(max_workers=plan['worker_count'], mp_context=mp.get_context('fork')) as pool:
+        jobs = []
+        for ci, group in enumerate(groups):
+            wanted = np.flatnonzero(selected == ci)
+            metrics = {name: table[name].to_numpy()[wanted] for name in source.METRICS}
+            book = {name: table[name].to_numpy()[wanted] for name in features.L1_FIELDS_V2}
+            jobs.append(pool.submit(completion_event_worker, group, ci, metadata[group['raw_symbol']][2],
+                wanted, table['ofi_valid'].to_numpy()[wanted], metrics, book, parts))
+        results = [job.result() for job in jobs]
+    records = sum(item['records'] for result in results for item in result['source_files'])
+    if records != plan['expected_source_records'] or sum(len(result['source_files']) for result in results) != plan['expected_source_files']:
+        raise RuntimeError('MBP1_COMPLETION_RECORD_COUNT')
+    events = None;seen = np.zeros(len(selected), bool)
+    for result in results:
+        part = pq.read_table(result['path']);indices = part['minute_index'].to_numpy().astype(np.int64)
+        if (seen[indices].any() or not np.array_equal(indices, np.flatnonzero(selected == result['contract_index']))):
+            raise RuntimeError('MBP1_COMPLETION_EVENT_CLOCK')
+        seen[indices] = True
+        if events is None:events = {name: np.full(len(selected), np.nan) for name in part.column_names if name != 'minute_index'}
+        for name in events:events[name][indices] = part[name].to_numpy()
+    if not np.array_equal(seen, selected >= 0):raise RuntimeError('MBP1_COMPLETION_SELECTED_CLOCK')
+    minutes = timing.STUDY_START_NS + np.arange(len(selected), dtype=np.int64) * timing.MINUTE_NS
+    pq.write_table(pa.table({'bar_start_ns': minutes, 'available_ns': minutes + timing.MINUTE_NS,
+        'contract_index': selected, **events}), stage / 'M1_EVENT_DIAGNOSTICS.parquet', compression='zstd')
+    del table
+    io._rehash_sources(hashes, metadata_hashes)
+    result = build_derived_timeframes(plan, stage, event_inputs=events)
+    result.update(mode=COMPLETION_MODE, raw_records_rescanned=records,
+        raw_files_rescanned=sum(len(result['source_files']) for result in results),
+        raw_event_passes=1, raw_trade_ladders_rebuilt=False, original_trade_and_book_parity='EXACT_SELECTED_M1',
+        source_file_reports=[item for result in results for item in result['source_files']],
+        native_candidates=features.completion_native_candidates_v1())
+    return result
 
 
 def bound_derived_inputs(plan):
@@ -436,7 +526,17 @@ def stream_completed_footprint(path, minutes, selected, metrics, masks, destinat
     return rows_seen
 
 
-def build_derived_timeframes(plan, stage):
+def add_completion_basis(plan, surfaces, minutes):
+    """Reuse the source plan's bound spot partitions, never fetch vendor data."""
+    path = io.REPO / plan['source_plan']['path']
+    io.verify_digest(path, plan['source_plan']['sha256'], 'MBP1_COMPLETION_BASIS_SOURCE_PLAN')
+    source_plan = io.read_json(path)
+    hashes = [(path, plan['source_plan']['sha256'])]
+    hashes.extend(add_basis(source_plan, surfaces, minutes, include_observed=True))
+    return [{'path': str(path), 'sha256': digest} for path, digest in hashes]
+
+
+def build_derived_timeframes(plan, stage, *, event_inputs=None):
     """Reuse completed M1 bytes; no raw MBP-1 or previous feature-table scan."""
     paths = bound_derived_inputs(plan)
     roll = io.read_json(paths['roll_schedule'])
@@ -466,16 +566,27 @@ def build_derived_timeframes(plan, stage):
     surfaces, minute_maps = {}, {}
     for tf in plan['timeframes']:
         surfaces[tf], minute_maps[tf] = features.timeframe_skeleton(minutes, selected, metrics, masks, ohlc, tf, tick)
+    complete = plan.get('mode') == COMPLETION_MODE
+    profiles = features.dynamic_profile_arrays_v2(surfaces['M5']['bar_start_ns']) if complete else None
     with tempfile.TemporaryDirectory(prefix='gx1-gc-derived-ladder-') as temporary:
         ladder = Path(temporary) / 'SELECTED_LADDER.parquet'
         footprint_rows = stream_completed_footprint(paths['footprint_m1_levels'], minutes,
             selected, metrics, masks, ladder)
-        features.consume_ladder(ladder, surfaces, minute_maps, tick)
+        stream_evidence = features.consume_ladder(ladder, surfaces, minute_maps, tick,
+            profile_output=profiles, profile_state_max_bytes=plan['profile_state_max_bytes'] if complete else None)
     cvd = features.relative_cvd(minutes, selected, masks, metrics)
+    known_cumulative = features.known_cumulative_contributions_v1(minutes, selected, masks, metrics) if complete else None
+    spot_basis_sources = add_completion_basis(plan, surfaces, minutes) if complete else []
     support = {}
     for tf, surface in surfaces.items():
         features.add_structure_and_cvd(surface, cvd, minute_maps, minutes)
         features.add_observed_structure(surface)
+        if complete:
+            features.add_known_cumulative_contributions_v1(surface, known_cumulative, minutes)
+            features.add_projected_m5_profiles_v2(surface, surfaces['M5']['available_ns'], profiles,
+                surfaces['M5']['observed_coverage_fraction'])
+            if event_inputs is None:raise RuntimeError('MBP1_COMPLETION_EVENT_INPUTS_REQUIRED')
+            surface.update(features.aggregate_observed_event_diagnostics_v1(minutes, selected, event_inputs, tf))
         observed_book = features.aggregate_observed_book_v1(minutes, selected, book, tf)
         for key, values in observed_book.items():
             if key in surface:
@@ -509,6 +620,10 @@ def build_derived_timeframes(plan, stage):
         'completed_m1_inputs_reused': True, 'footprint_price_rows': footprint_rows,
         'footprint_side_conservation': 'EXACT_EVERY_VALID_SELECTED_M1', 'timeframes': support,
         'strict_complete_clock_features_preserved': True, 'observed_partial_tape_features_separate': True,
+        'profile_stream_evidence': stream_evidence,
+        'spot_basis_sources': spot_basis_sources,
+        'spot_basis_clock_semantics': 'same observed last M1 interval: GC trade close and XAU bid/ask close mid; available at M1 close, no event-level simultaneity',
+        'profile_context_semantics': 'closed M5 physical15/60minute and NYsession snapshots projected to each TF, no backsearch',
         'historical_exchange_calendar_qualified': False, 'native_model_wiring_qualified': False,
         'native_dataset_complete': False, 'native_input_qualification_complete': False,
         'test_data_used': False, 'optimizer_steps': 0}
@@ -520,14 +635,15 @@ def run(binding_path):
     plan_path = io.REPO / binding['plan_path']
     io.verify_digest(plan_path, binding['plan_sha256'], 'RAW_REBUILD_PLAN')
     plan = io.read_json(plan_path)
-    derived = derived_timeframe_mode(plan)
+    complete = completion_mode(plan)
+    derived = False if complete else derived_timeframe_mode(plan)
     root = Path(plan['run_root'])
     if binding_path != root / 'EXECUTION_BINDING.json':
         raise RuntimeError('RAW_REBUILD_BINDING_PATH')
     io.verify_digest(io.REPO / 'NEXT_RUN_POLICY.json', binding['policy_sha256'], 'RAW_REBUILD_POLICY')
     policy = io.read_json(io.REPO / 'NEXT_RUN_POLICY.json')
     gate = policy['current_work']['native_gc_rebuild_20261017'][
-        'derived_timeframe_stage' if derived else 'raw_stage']
+        'mbp1_completion_stage' if complete else 'derived_timeframe_stage' if derived else 'raw_stage']
     if (gate['plan_sha256'] != binding['plan_sha256'] or gate['status'] != 'EXECUTION_CLAIMED'
             or gate['claimed_invocations'] != 1 or gate['completed_invocations'] != 0
             or gate['execution_authorized'] is not False or policy['training_enabled'] is not False
@@ -543,13 +659,13 @@ def run(binding_path):
     stage = root / '.RESULTS.staging'
     stage.mkdir(exist_ok=False)
     io.write_json(root / 'EXECUTION_CLAIM.json', {'invocation': 1, 'source_head': binding['source_head']})
-    result = build_derived_timeframes(plan, stage) if derived else build(plan, stage)
+    result = build_completion(plan, stage) if complete else build_derived_timeframes(plan, stage) if derived else build(plan, stage)
     for path, digest in binding['code_sha256'].items():
         io.verify_digest(io.REPO / path, digest, 'RAW_REBUILD_CODE_POST')
     io.verify_digest(io.REPO / 'NEXT_RUN_POLICY.json', binding['policy_sha256'], 'RAW_REBUILD_POLICY_POST')
     if io.git_head() != binding['source_head'] or subprocess.check_output(['git', 'status', '--porcelain'], cwd=io.REPO):
         raise RuntimeError('RAW_REBUILD_SOURCE_CHANGED')
-    result.update({'status': ('DERIVED_GC_TIMEFRAMES_BUILT' if derived else 'RAW_GC_INPUTS_REBUILT'),
+    result.update({'status': ('MBP1_INFORMATION_COMPLETED' if complete else 'DERIVED_GC_TIMEFRAMES_BUILT' if derived else 'RAW_GC_INPUTS_REBUILT'),
                    'source_head': binding['source_head'],
                    'limits': proof, 'elapsed_seconds': time.monotonic() - began})
     io.write_json(stage / 'RESULT.json', result)
@@ -567,14 +683,16 @@ def run(binding_path):
             pq.ParquetFile(stage / name).metadata
     if {str(p.relative_to(stage)) for p in stage.rglob('*') if p.is_file()} != set(inventory) | {'TERMINAL.json'}:
         raise RuntimeError('RAW_REBUILD_PUBLICATION_INVENTORY')
-    for directory in ((stage,) if derived else (stage / 'RAW_REDUCTIONS', stage)):
+    for directory in ((stage / 'RAW_EVENT_REDUCTIONS', stage) if complete else (stage,) if derived else (stage / 'RAW_REDUCTIONS', stage)):
         fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
         try:
             os.fsync(fd)
         finally:
             os.close(fd)
+    for item in result.get('spot_basis_sources', ()):
+        io.verify_digest(Path(item['path']), item['sha256'], 'MBP1_COMPLETION_BASIS_PREPUBLISH')
     publish_bundle_directory_noreplace(stage, root / 'RESULTS')
-    print('NATIVE_DERIVED_GC_TIMEFRAMES_COMPLETE' if derived else 'NATIVE_RAW_GC_REBUILD_COMPLETE', flush=True)
+    print('NATIVE_MBP1_INFORMATION_COMPLETION_COMPLETE' if complete else 'NATIVE_DERIVED_GC_TIMEFRAMES_COMPLETE' if derived else 'NATIVE_RAW_GC_REBUILD_COMPLETE', flush=True)
 
 
 def main():

@@ -328,3 +328,140 @@ def test_existing_transformer_entry_gradient_never_reaches_exit_specific_weights
                for name, parameter in model.named_parameters() if name.startswith("family_tf_context_gate."))
     assert all(parameter.grad is None for name, parameter in model.named_parameters()
                if observed.is_exit_owned_parameter(name))
+
+
+
+def test_path_primary_population_survives_unavailable_h20_and_long_support_is_independent(tmp_path, economics):
+    from gx1.contracts import entry_observed_market_horizons_v1 as hz
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import M5_PATH_TARGET_COLUMNS, M5_PATH_VALID_COLUMN
+    from gx1.contracts.entry_model_native_aux_targets_v3 import SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY
+    dataset, scope_value = dataset_scope(tmp_path, economics)
+    frame = pd.read_parquet(dataset.parquet_path)
+    for side, mfe in (('long', 5.), ('short', -1.)):
+        prefix = 'y_' + side + '_m5_path_'
+        frame[prefix + 'mfe_bps'] = mfe
+        frame[prefix + 'mae_before_first_mfe_lower_bps'] = 1.
+        frame[prefix + 'mae_before_first_mfe_upper_bps'] = 2.
+        frame[prefix + 'path_utility_bps'] = mfe - 2.
+        frame[prefix + 'first_mfe_m1_offset'] = 0.
+    frame[M5_PATH_VALID_COLUMN] = True
+    for h in hz.OBSERVATION_HORIZONS_TRADING_DAYS:
+        for name in (*hz.GROSS_TARGET_COLUMNS_BY_HORIZON[h], hz.ELAPSED_COLUMN_BY_HORIZON[h]):
+            frame[name] = np.nan
+    for h, rows in ((1, [0, 1]), (5, [0])):
+        frame.loc[rows, hz.GROSS_TARGET_COLUMNS_BY_HORIZON[h][0]] = 10.
+        frame.loc[rows, hz.GROSS_TARGET_COLUMNS_BY_HORIZON[h][1]] = -12.
+        frame.loc[rows, hz.ELAPSED_COLUMN_BY_HORIZON[h]] = h * 86400
+    frame.to_parquet(dataset.parquet_path, index=False)
+    scope_value['physical_sources']['train']['parquet'] = _bind(dataset.parquet_path)
+    dataset._policy_dependent_auxiliary_binding['parent_entry_parquet'] = scope_value['physical_sources']['train']['parquet']
+    scope_value['training_phase'] = observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    scope_value['target_contract'] = observed.entry_observed_m5_path_contract()
+    observed.bind_entry_observed_market_dataset(dataset, scope_value)
+    assert dataset._entry_observed_market_binding['admitted_rows'] == 3
+    assert dataset._entry_observed_market_admitted_rows.tolist() == [True, True, False, True]
+    assert dataset._entry_observed_market_binding['support_forecast_observed_cells'] == 6
+    batch = hz.observed_entry_batch_items(dataset, 3)
+    assert observed.M5_PATH_BATCH_TARGET_KEY in batch
+    assert not bool(batch[SUPPORT_FORECAST_VALID_BATCH_KEY].any())
+    assert torch.equal(batch[SUPPORT_FORECAST_TARGET_BATCH_KEY], torch.zeros(6))
+    batch = {key: value.unsqueeze(0) for key, value in batch.items()}
+    target, valid = hz.observed_entry_batch_targets(batch, dataset._entry_observed_market_binding, device=torch.device('cpu'))
+    assert target.tolist() == [[3., -3., 0.]] and bool(valid.all())
+
+
+def test_actual_forecast_loss_backpropagates_only_observed_long_support_and_skips_legacy_heads(monkeypatch):
+    from gx1.contracts.entry_model_native_aux_targets_v3 import SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import FORECAST_HEAD_DIM, FORECAST_HORIZONS
+    prediction = torch.zeros(2, FORECAST_HEAD_DIM, requires_grad=True)
+    batch = {f'y_forecast_ret_K{h}': torch.ones(2) for h in FORECAST_HORIZONS}
+    batch[observed.M5_PATH_BATCH_TARGET_KEY] = torch.tensor([[3., -3., 0.], [3., -3., 0.]])
+    batch[SUPPORT_FORECAST_TARGET_BATCH_KEY] = torch.tensor([[2., -2., 0., 0., 0., 0.], [0., 0., 3., -3., 0., 0.]])
+    batch[SUPPORT_FORECAST_VALID_BATCH_KEY] = batch[SUPPORT_FORECAST_TARGET_BATCH_KEY] != 0
+    def require(out, batch, **kwargs):
+        assert kwargs['output_name'] == 'forecast_pred'  # no old M5/MID risk head may be requested
+        return out['forecast_pred']
+    monkeypatch.setattr(trainer, '_require_active_aux_head_prediction', require)
+    losses = trainer.dip_forecast_task_losses({'forecast_pred': prediction}, batch, torch.device('cpu'))
+    assert set(losses) == {'forecast_return_bps'}
+    losses['forecast_return_bps'].backward()
+    assert torch.equal(prediction.grad[:, 4:] != 0, batch[SUPPORT_FORECAST_VALID_BATCH_KEY])
+    assert bool((prediction.grad[:, :4] != 0).all())
+
+
+def test_path_phase_inactive_auxiliary_gradients_are_rejected():
+    model = SmallEntry()
+    model.head_dip = nn.Linear(3, 2)
+    observed.require_entry_only_gradients(model, entry_training_phase=observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
+    model.head_dip.weight.grad = torch.zeros_like(model.head_dip.weight)
+    with pytest.raises(RuntimeError, match='EXIT_GRADIENT_FORBIDDEN'):
+        observed.require_entry_only_gradients(model, entry_training_phase=observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
+
+
+def test_path_train_epoch_preserves_all_inactive_head_weights_and_ema(monkeypatch):
+    torch.manual_seed(910)
+    model = SmallEntry()
+    for name in ('head_dip', 'head_timing', 'head_tail_risk', 'head_vol_forecast',
+                 'head_side_mae', 'head_trendline_event', 'head_position_size'):
+        setattr(model, name, nn.Linear(3, 2))
+    loader = training_fixture(monkeypatch)
+    loader.dataset._entry_observed_market_binding['identity']['training_phase'] = observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    class PathLoader:
+        dataset = loader.dataset
+        def __len__(self):
+            return len(loader)
+        def __iter__(self):
+            for original in loader:
+                batch = dict(original)
+                batch[observed.M5_PATH_BATCH_TARGET_KEY] = batch.pop('entry_observed_market_target_bps')
+                batch['entry_observed_market_support_forecast_bps'] = torch.zeros(2, 6)
+                batch['entry_observed_market_support_forecast_valid'] = torch.zeros(2, 6, dtype=torch.bool)
+                yield batch
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Legacy M5/MID dip, timing, risk, size and MAE targets must be inactive')
+    monkeypatch.setattr(trainer, '_side_mae_auxiliary_loss', forbidden)
+    monkeypatch.setattr(trainer, '_trendline_event_aux_loss', forbidden)
+    monkeypatch.setattr(trainer, '_require_active_aux_head_prediction', forbidden)
+    before = copy.deepcopy(model.state_dict())
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.01, weight_decay=.5)
+    ema = trainer._WeightEma(model, .5, entry_training_phase=observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
+    supervised, gradients = {}, {}
+    loss, stats, complete = trainer.train_epoch(model, ForbiddenTeacher().eval(), PathLoader(), optimizer,
+        torch.device('cpu'), 1, supervised, gradients, weight_ema=ema)
+    assert complete and np.isfinite(loss) and ema.steps == 2
+    assert set(supervised) == {'entry_action_q', 'forecast_return_bps'}
+    assert not torch.equal(before['shared_encoder.weight'], model.shared_encoder.weight)
+    assert stats['exit_training_active'] is False and 'side_mae_loss_mean' not in stats
+    for name, parameter in model.named_parameters():
+        if observed.is_inactive_phase_parameter(name, observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE):
+            assert parameter.grad is None and parameter not in optimizer.state
+            assert torch.equal(parameter, before[name])
+            assert torch.equal(ema.state_dict_clone()[name], before[name])
+    # Joint training continues to average Exit-owned parameters normally.
+    assert not observed.is_inactive_phase_parameter('head_exit_action.weight', 'joint_fitted_q')
+
+
+def test_path_epoch_diagnostics_do_not_read_legacy_labels_or_claim_missing_support():
+    import json
+    from gx1.contracts.entry_model_native_aux_targets_v3 import SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import FORECAST_HORIZONS, FORECAST_HEAD_DIM
+    count = 4
+    index = torch.arange(count, dtype=torch.float32)
+    target = torch.stack((index, -index, torch.zeros_like(index)), dim=1)
+    batch = {observed.M5_PATH_BATCH_TARGET_KEY: target, 'entry_row_index': torch.arange(count),
+        SUPPORT_FORECAST_TARGET_BATCH_KEY: torch.zeros(count, 6),
+        SUPPORT_FORECAST_VALID_BATCH_KEY: torch.zeros(count, 6, dtype=torch.bool)}
+    batch.update({f'y_forecast_ret_K{h}': index + j for j, h in enumerate(FORECAST_HORIZONS)})
+    forecast = index[:, None].expand(-1, FORECAST_HEAD_DIM).clone()
+    out = {'entry_action_q_bps': target + .1, '_entry_action_q_target': target,
+        '_entry_action_q_valid': torch.ones_like(target, dtype=torch.bool), 'forecast_pred': forecast}
+    accumulator = trainer._new_active_head_epoch_accumulator()
+    counts = trainer._accumulate_active_head_epoch(accumulator, SmallEntry(), out, batch, torch.device('cpu'))
+    assert counts['dip'] == 0 and counts['side_mae'] == 0 and counts['forecast'] == count * 4
+    metrics, failures = trainer._active_head_epoch_diagnostics(accumulator, minimum_supervised_rows=2)
+    assert not failures
+    assert metrics['active_head_contract'] == ['entry_action_q', 'forecast']
+    assert metrics['active_head_diagnostics']['dip']['phase_inactive'] is True
+    forecast_metrics = metrics['active_head_diagnostics']['forecast']['components']['forecast_pred']
+    assert forecast_metrics['unavailable_target_columns'] == list(range(4, 10))
+    json.dumps(metrics, allow_nan=False)

@@ -747,3 +747,55 @@ def test_separate_clip_checks_all_groups_before_any_mutation(
         assert torch.equal(ema.state_dict_clone()[name], initial[name])
         if name in gradients:
             torch.testing.assert_close(parameter.grad, gradients[name], rtol=0, atol=0, equal_nan=True)
+
+
+
+def test_path_phase_weights_keep_only_declared_tasks_active_and_do_not_claim_inactive_learning():
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE, active_joint_task_names
+    active = active_joint_task_names(ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
+    values = {name: .1 if name in active else 0. for name in JOINT_TASK_NAMES}
+    supervised = {name: name in active for name in JOINT_TASK_NAMES}
+    data = joint_task_weighting_metadata(values, supervision_observed=supervised, gradient_observed=supervised,
+        entry_training_phase=ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
+    assert data['active_task_names'] == ['entry_action_q', 'forecast_return_bps']
+    assert data['all_tasks_supervised'] is False and data['all_active_tasks_supervised'] is True
+    assert data['tasks']['dip_bps']['gradient_observed'] is False
+    assert require_joint_task_weighting_metadata(data, context='TEST') == data
+    for field in ('supervision_observed', 'gradient_observed', 'moved_from_neutral'):
+        wrong = copy.deepcopy(data)
+        wrong['tasks']['dip_bps'][field] = True
+        with pytest.raises(RuntimeError, match='inactive_task_mutated_or_advertised_as_learned'):
+            require_joint_task_weighting_metadata(wrong, context='TEST')
+    wrong = dict(values)
+    wrong['dip_bps'] = .1
+    with pytest.raises(RuntimeError, match='inactive_task_mutated_or_advertised_as_learned'):
+        joint_task_weighting_metadata(wrong, supervision_observed=supervised, gradient_observed=supervised,
+            entry_training_phase=ENTRY_ONLY_M5_PATH_TRAINING_PHASE)
+
+
+def test_legacy_joint_phase_still_requires_every_task_supervised_and_moved():
+    values = {name: .1 for name in JOINT_TASK_NAMES}
+    flags = {name: True for name in JOINT_TASK_NAMES}
+    data = joint_task_weighting_metadata(values, supervision_observed=flags, gradient_observed=flags)
+    assert data['active_task_names'] == list(JOINT_TASK_NAMES) and data['inactive_task_names'] == []
+    flags['unified_exit_action'] = False
+    with pytest.raises(RuntimeError, match='never_supervised|no_gradient'):
+        joint_task_weighting_metadata(values, supervision_observed=flags, gradient_observed=flags)
+
+
+def test_path_task_loss_evidence_rejects_inactive_supervision_without_fake_labels():
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE, active_joint_task_names
+    accumulator = trainer._new_active_head_epoch_accumulator()
+    accumulator['entry_training_phase'] = ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    for name in active_joint_task_names(ENTRY_ONLY_M5_PATH_TRAINING_PHASE):
+        accumulator['joint_task_loss_evidence'][name] = {'weighted_sum': 6., 'supervised_cells': 2}
+    result = trainer._finalize_joint_task_loss_evidence(accumulator)
+    assert result['joint_task_raw_loss_mean_entry_action_q'] == 3.
+    assert result['joint_task_supervised_cells_dip_bps'] == 0
+    assert 'joint_task_raw_loss_mean_dip_bps' not in result
+    accumulator['joint_task_loss_evidence']['dip_bps']['supervised_cells'] = 1
+    with pytest.raises(RuntimeError, match='INACTIVE_LOSS_EVIDENCE_FORBIDDEN'):
+        trainer._finalize_joint_task_loss_evidence(accumulator)
+    accumulator['entry_training_phase'] = 'joint_fitted_q'
+    with pytest.raises(RuntimeError, match='LOSS_EVIDENCE_INVALID'):
+        trainer._finalize_joint_task_loss_evidence(accumulator)

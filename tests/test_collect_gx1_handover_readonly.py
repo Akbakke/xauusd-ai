@@ -869,7 +869,7 @@ def test_current_handover_separates_new_rebuild_from_consumed_preprocessing():
     assert not work['latest_terminal']['path'].startswith(current['run_root'] + '/')
     def consumed_stage_bindings(value):
         if isinstance(value, dict):
-            if value.get('completed_invocations') == 1:
+            if value.get('completed_invocations') == 1 or value.get('failed_invocations') == 1:
                 terminal = value.get('terminal')
                 if isinstance(terminal, dict):
                     yield terminal
@@ -1049,7 +1049,10 @@ def test_handover_shows_durable_project_goal_and_current_native_generation():
     native = {"status": "INPUTS_QUALIFIED", "physical_dataset_published": True,
               "physical_dataset_input_qualification_complete": True,
               "physical_dataset_normalization_complete": False,
-              "training_started": False, "raw_stage": {"old_receipts": "omitted"}}
+              "training_started": False, "raw_stage": {"old_receipts": "omitted"},
+              "derived_timeframe_stage": {"status": "FAILED_CONSUMED", "relaunch_allowed": False},
+              "mbp1_completion_stage": {"status": "EXECUTION_CLAIMED", "completed_invocations": 0},
+              "native_binding_gaps": ["new physical outputs unqualified"]}
     status = {"decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY", "current_work": {
         "project_goal": goal, "native_gc_rebuild_20261017": native,
         "current_blocker": "normalization and parity", "historical_scope": {"do_not_dump": True}}}
@@ -1059,3 +1062,21 @@ def test_handover_shows_durable_project_goal_and_current_native_generation():
         key: value for key, value in native.items() if key != "raw_stage"}
     assert "historical_scope" not in out["current_work"]
     assert out["decision"] == "OBSERVATION_ONLY_NOT_RUN_AUTHORITY"
+
+
+def test_declared_failed_unknown_test_observation_is_visible_and_blocks_readiness(fixture, monkeypatch):
+    path, policy = _policy(fixture)
+    terminal = Path(policy["current_work"]["latest_terminal"]["path"])
+    value = {"status": "FAILED_NO_ADMISSION", "exit_code": 1, "source_unchanged": True,
+             "test_data_used": None, "test_access_observation": "unproved_after_failure"}
+    terminal.write_text(json.dumps(value))
+    policy["current_work"]["latest_terminal"]["sha256"] = hashlib.sha256(terminal.read_bytes()).hexdigest()
+    path.write_text(json.dumps(policy))
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness',
+                        lambda _: {"decision": "READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES", "blocked_reasons": []})
+    out = current_status(fixture)
+    assert out["latest_terminal_receipt"] == value
+    assert out["latest_terminal_evidence_gaps"] == ["test_data_used_unproved_after_failure"]
+    assert out["next_run"]["decision"] == "BLOCKED"
+    assert out["next_run"]["blocked_reasons"] == ["latest_failed_terminal_test_isolation_unproven"]

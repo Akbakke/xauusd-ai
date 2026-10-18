@@ -18,6 +18,9 @@ handelskvalitet og liten MAE før gunstig MFE fremfor antall handler; verken kor
 eller lang holdetid er et mål i seg selv. M30 vurderes bare med en eksplisitt
 sammenligning av tilført verdi. MFE/MAE er etterfølgende utfall, aldri inputs fra
 framtiden. Ingen fast tapsgrense eller maksimal holdetid innføres av dette.
+Operatøren presiserte18.10 eksplisitt: M5-prisforløp og MAE før MFE er hovedmål;
+1/5/20dagers og øvrige lengre horisonter er støtte. Dette avløser tidligere
+primær-h20-vedtak, ikke lang kontekst eller historiske kildekvitteringer.
 
 Revider hver genuine indikator: formel, enhet, kilde, familie, warmup, maske,
 kausal tilgjengelighet, samtlige tidsrammer og faktisk vei inn i modellen.

@@ -433,6 +433,13 @@ def _require_exact_model_native_bundle_metadata(
         raise RuntimeError(
             "[ENTRY_BUNDLE_MODEL_NATIVE_TRAINING_OBJECTIVE_SPLIT_BRAIN]"
         )
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    if meta_training_objective["entry_training_phase"] == ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
+        identity = meta.get("entry_supervision_identity")
+        if (not isinstance(identity, dict) or identity != lock.get("entry_supervision_identity")
+                or identity.get("training_phase") != ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+                or identity.get("target_contract") != meta_training_objective["entry_primary_target_contract"]):
+            raise RuntimeError("[ENTRY_BUNDLE_M5_PATH_SUPERVISION_IDENTITY_MISMATCH]")
     require_training_recipe_source_provenance_metadata(
         meta["recipe_source_provenance"],
         context="ENTRY_BUNDLE_META",

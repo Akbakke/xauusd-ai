@@ -1,4 +1,4 @@
-"""Strict V4 liveness: no constant-field or saturation exception exists.
+"""Strict V4 value liveness with explicit source-defined observation masks.
 
 ``geomline_above_active_count`` is used purely as a representative emitted
 column to force constancy on; it replaced ``geomline_above_active``, retired
@@ -28,6 +28,11 @@ def _frames() -> dict[str, pd.DataFrame]:
         rows = np.arange(len(index), dtype=np.float32).reshape(-1, 1)
         columns = np.arange(width, dtype=np.float32).reshape(1, -1)
         values = rows * (columns + 1.0) + np.float32(offset + 1)
+        values[:, htf.MULTI_TF_PER_BAR_FEATURES_V4.index("close_range_observed")] = np.arange(len(index)) % 2
+        values[:, htf.MULTI_TF_PER_BAR_FEATURES_V4.index("session_change_flag")] = 0.0 if timeframe == "D1" else np.arange(len(values)) % 2
+        values[:, htf.MULTI_TF_PER_BAR_FEATURES_V4.index("close_distance_below_high_range_fraction")] = np.where(
+            values[:, htf.MULTI_TF_PER_BAR_FEATURES_V4.index("close_range_observed")] == 1.0,
+            (np.arange(len(values)) + 1.0) / (len(values) + 1.0), 0.0)
         frame = pd.DataFrame(
             values,
             index=index,
@@ -99,3 +104,44 @@ def test_validator_rejects_retired_saturation_key() -> None:
     _reseal(payload)
     with pytest.raises(RuntimeError, match="TF_KEYS_INVALID"):
         htf.require_multi_tf_v4_liveness_contract(payload)
+
+
+@pytest.mark.parametrize("value", [0.0, 1.0])
+def test_exact_observation_mask_can_be_constant_without_claiming_market_variation(value: float) -> None:
+    frames = _frames()
+    _set_constant(frames, "D1", "close_range_observed", value)
+    payload = htf.build_multi_tf_v4_liveness_contract(frames)
+    assert payload["decision"] == "PASS"
+    stats = payload["timeframes"]["D1"]["fields"]["close_range_observed"]
+    assert stats["unique_count"] == 1 and stats["std"] == 0.0
+    assert stats["minimum"] == stats["maximum"] == value
+    htf.require_multi_tf_v4_liveness_contract(payload)
+
+
+def test_observation_mask_rejects_nonbinary_values_and_forged_constant_stats() -> None:
+    frames = _frames()
+    _set_constant(frames, "D1", "close_range_observed", 0.5)
+    payload = htf.build_multi_tf_v4_liveness_contract(frames)
+    assert payload["decision"] == "FAIL"
+    assert any("invalid_observation_mask" in failure for failure in payload["failures"])
+    frames = _frames()
+    _set_constant(frames, "D1", "close_range_observed", 1.0)
+    payload = htf.build_multi_tf_v4_liveness_contract(frames)
+    payload["timeframes"]["D1"]["fields"]["close_range_observed"]["std"] = 0.25
+    _reseal(payload)
+    with pytest.raises(RuntimeError, match="OBSERVATION_MASK_STATS_INVALID"):
+        htf.require_multi_tf_v4_liveness_contract(payload)
+
+
+def test_d1_session_event_is_source_constant_zero_not_a_missing_or_dense_exemption():
+    frames = _frames()
+    payload = htf.build_multi_tf_v4_liveness_contract(frames)
+    assert payload["decision"] == "PASS"
+    stats = payload["timeframes"]["D1"]["fields"]["session_change_flag"]
+    assert stats["minimum"] == stats["maximum"] == stats["mean"] == stats["std"] == 0.0
+    assert stats["unique_count"] == 1
+    htf.require_multi_tf_v4_liveness_contract(payload)
+    _set_constant(frames, "D1", "session_change_flag", 1.0)
+    bad = htf.build_multi_tf_v4_liveness_contract(frames)
+    assert bad["decision"] == "FAIL"
+    assert any("invalid_source_constant_binary_event" in failure for failure in bad["failures"])

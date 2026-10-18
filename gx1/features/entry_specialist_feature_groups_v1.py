@@ -114,6 +114,8 @@ MODEL_NATIVE_TRAINING_SPECIALISTS = tuple(SPECIALIST_GROUPS)
 from gx1.features.htf_features import (  # noqa: E402
     LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES,
     MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_V4_FULL_PRIMITIVE_FEATURES,
+    MULTI_TF_V4_FULL_PRIMITIVE_SPECIALISTS,
     MULTI_TF_TIMEFRAMES_LOWER_M5_LAST,
     MULTI_TF_V4_CANDLE_PRIMITIVE_FEATURES,
     MULTI_TF_V4_LEVEL_REGISTRY_FEATURES,
@@ -130,7 +132,7 @@ from gx1.features.smc_v1 import (  # noqa: E402
 )
 
 MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION = (
-    "entry_multi_tf_eight_family_specialist_routing_v9"
+    "entry_multi_tf_eight_family_specialist_routing_v10"
 )
 MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
     [
@@ -229,6 +231,12 @@ MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4 = OrderedDict(
         ),
     ]
 )
+
+for _specialist, _fields in tuple(MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4.items()):
+    MULTI_TF_SPECIALIST_FEATURE_GROUPS_V4[_specialist] = _fields + tuple(
+        name for name in MULTI_TF_V4_FULL_PRIMITIVE_FEATURES
+        if MULTI_TF_V4_FULL_PRIMITIVE_SPECIALISTS[name] == _specialist
+    )
 
 
 def require_multi_tf_specialist_routing_v4(

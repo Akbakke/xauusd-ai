@@ -73,6 +73,11 @@ def _source_and_frames(
         rows = np.arange(len(index), dtype=np.float32).reshape(-1, 1)
         columns = np.arange(width, dtype=np.float32).reshape(1, -1)
         values = rows * (columns + 1.0) + np.float32(offset)
+        values[:, htf.MULTI_TF_PER_BAR_FEATURES_V4.index("close_range_observed")] = np.arange(len(index)) % 2
+        values[:, htf.MULTI_TF_PER_BAR_FEATURES_V4.index("session_change_flag")] = 0.0 if timeframe == "D1" else np.arange(len(values)) % 2
+        values[:, htf.MULTI_TF_PER_BAR_FEATURES_V4.index("close_distance_below_high_range_fraction")] = np.where(
+            values[:, htf.MULTI_TF_PER_BAR_FEATURES_V4.index("close_range_observed")] == 1.0,
+            (np.arange(len(values)) + 1.0) / (len(values) + 1.0), 0.0)
         frame = pd.DataFrame(
             values,
             index=index,
@@ -167,6 +172,7 @@ def test_publisher_and_loader_bind_exact_v4_inventory_and_verified_matrix_views(
     assert manifest["swing_structure_owner"] == (
         swing_structure_contract_metadata()
     )
+    assert manifest["native_primitive_owner"] == htf.native_mtf_full_primitive_contract_metadata_v4()
     assert manifest["feature_count"] == htf.MULTI_TF_FEATURE_COUNT_V4
     assert manifest["feature_names"] == list(
         htf.MULTI_TF_PER_BAR_FEATURES_V4
@@ -431,6 +437,7 @@ def test_loader_rejects_cache_directory_symlink(tmp_path: Path) -> None:
         ("builder_version", "prebuild_multi_tf_cache_v4_legacy"),
         ("smc_causal_replay_schema_version", "smc_causal_replay_v1"),
         ("technical_indicator_owner", {}),
+        ("native_primitive_owner", {}),
         ("swing_structure_owner", {}),
     ),
 )

@@ -552,11 +552,16 @@ def test_model_native_transformer_entry_q_is_direct_and_anchor_free() -> None:
             max(domain) + 1,
             (2, 4),
         ).float()
+    from tests.test_entry_v10_ctx_model_shapes import _valid_range_observation_input
+    _valid_range_observation_input(seq_x, ordered_signal_names)
     from gx1.features.gc_native_context_v1 import masking_pairs
     for _, mask_index in masking_pairs(ordered_signal_names):
         seq_x[:, :, mask_index] = 1.0
     snap_x = seq_x[:, -1, :].clone()
-    ctx_cont = torch.randn(2, MODEL_NATIVE_CTX_CONT_DIM)
+    ctx_cont = _valid_range_observation_input(
+        torch.randn(2, MODEL_NATIVE_CTX_CONT_DIM), MODEL_NATIVE_CTX_CONT_FIELDS)
+    for _, mask_index in masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS):
+        ctx_cont[:, mask_index] = 1.0
     nominal_indices = [
         index
         for values in MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT[

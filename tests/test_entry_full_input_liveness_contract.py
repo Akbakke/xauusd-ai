@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import pytest
 from pathlib import Path
 
 from gx1.contracts.entry_full_input_liveness_v1 import (
@@ -586,3 +587,32 @@ def test_confirmed_divergence_impulses_share_existing_symmetric_support_floor():
         assert classify_field_status(split='train',surface='signal',field=name,stats=stats)[0] == 'ALLOWED_RARE_EVENT'
         assert classify_field_status(split='train',surface='signal',field=name,stats={**stats,'active_count':floor-1,'active_rate':(floor-1)/10000})[0] == 'FAIL'
         assert classify_field_status(split='train',surface='signal',field=name,stats={**stats,'std':0.,'value_range':0.})[0] == 'FAIL'
+
+
+@pytest.mark.parametrize("surface,field", [("signal", "ctx_cont.close_range_observed"), ("ctx_cont", "close_range_observed")])
+@pytest.mark.parametrize("value", [0.0, 1.0])
+def test_source_range_observation_role_preserves_constant_binary_support(surface, field, value):
+    stats = _semantic_stats(minimum=value, maximum=value, std=0.0, value_range=0.0)
+    stats["active_count"] = int(value * stats["row_count"])
+    stats["active_rate"] = value
+    assert classify_field_status(split="train", surface=surface, field=field, stats=stats) == (
+        "STRUCTURAL_OBSERVATION_MASK", "source_declared_range_observation_not_market_signal")
+    # A missing range never establishes physical support for its zero-stored
+    # fraction. Dense paired evidence keeps the ordinary strict liveness gate.
+    fraction = "ctx_cont.close_distance_below_high_range_fraction" if surface == "signal" else "close_distance_below_high_range_fraction"
+    assert classify_field_status(split="train", surface=surface, field=fraction,
+        stats=_semantic_stats(minimum=0.0, maximum=0.0, std=0.0, value_range=0.0))[0] == "FAIL"
+
+
+@pytest.mark.parametrize("surface,field", [("signal", "ctx_cont.close_range_observed"), ("ctx_cont", "close_range_observed")])
+def test_source_range_observation_role_rejects_fractional_mask_domain(surface, field):
+    status = classify_field_status(split="train", surface=surface, field=field,
+        stats=_semantic_stats(minimum=0.5, maximum=0.5, std=0.0, value_range=0.0))
+    assert status == ("FAIL", "micro_range_observation_mask_domain")
+
+
+def test_range_mask_role_is_not_inferred_from_a_similar_name():
+    status = classify_field_status(split="train", surface="signal",
+        field="unregistered_close_range_observed",
+        stats=_semantic_stats(minimum=1.0, maximum=1.0, std=0.0, value_range=0.0))
+    assert status == ("FAIL", "unallowed_near_constant")
