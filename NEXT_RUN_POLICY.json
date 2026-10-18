@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-18T23:54:11.462347+00:00",
-  "status": "049_ACTUAL_TRAIN_REGISTRY_ACTIVATED__050_CURRENT_SURFACE_BINDING_PREPARING__TRAINING_FALSE",
+  "status": "049_ACTUAL_TRAIN_REGISTRY_ACTIVATED__050_CURRENT_SURFACE_BINDING_READY__TRAINING_FALSE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Finish reviewed050worker/controller, commit exact049registry pointer and current policy/plan, then one capped metadata/hardlink binding plus actual existing current overlap audit. No feature rebuild. Then current physicalsplit metadata, wholeTRAIN liveness/normalization and Entry-only native qualification before one requested epoch.",
+  "next_action": "Bind clean source/policy/plan/controller/worker/finisher and run fresh050 once: existing current signal/sidecar owners on unchanged039hardlinks, then actual current overlap audit. Preserve all original bytes/receipts. Next current physicalsplit metadata and wholeTRAIN liveness/normalization/Entry-only native qualification before one requested epoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -11261,7 +11261,7 @@
           "native_input_admission": false
         },
         "current_surface_binding_stage_050": {
-          "status": "PREPARING_ONE_CURRENT_SURFACE_BINDING_AND_FRESH_EXISTING_OVERLAP_AUDIT",
+          "status": "READY_ONE_CURRENT_SURFACE_BINDING_AND_ACTUAL_EXISTING_OVERLAP_AFTER_REVIEW",
           "plan_path": "configs/research/NATIVE_GC_CURRENT_SURFACE_BINDING_20261018_050.json",
           "plan_sha256": "312db9ece31138de31a9501c2ddd4671fd184b4d7386dd418000dfce0cf9b6c5",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_SURFACE_BINDING_20261018_050",
@@ -11283,7 +11283,11 @@
             "sha256": "72f0429d4e13d782c81c33e4743ea111541d1221387a26c93fbd48d33f8dcfca"
           },
           "numeric_inputs": "Original039M1/M5 hardlinks only; original022/026/cache/provenance unchanged. Newcurrent signal+sidecars via existing owners; actual current overlap scan because registry/binding identities changed.",
-          "pending_after": "Current physicalTRAIN/VAL metadata view, wholeTRAIN liveness/normalization and fresh Entry-only native qualification before one requested epoch."
+          "pending_after": "Current physicalTRAIN/VAL metadata view, wholeTRAIN liveness/normalization and fresh Entry-only native qualification before one requested epoch.",
+          "controller_source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_SURFACE_BINDING_20261018_050/CONTROLLER_SOURCE_REVIEW.json",
+            "sha256": "59add443f3ef745697c3eb12ca5576b558d78919ce34325a024b4cd705d81039"
+          }
         }
       },
       "operator_pc_reboot_20261018": {
@@ -13900,5 +13904,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-18T23:54:11.462347+00:00"
+  "updated_utc": "2026-10-18T23:59:02.073463+00:00"
 }
