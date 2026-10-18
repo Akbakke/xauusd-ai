@@ -237,7 +237,7 @@ def test_native_source_is_spooled_in_bounded_batches_without_concat(
     assert len(identity["part_paths"]) == 2
     assert bounded["configured_batch_rows"] == 2
     assert 0 < bounded["maximum_observed_batch_rows"] <= 2
-    source = Path(builder.__file__).read_text(encoding="utf-8")
+    source = inspect.getsource(builder._materialize_native_source_bounded)
     assert "pd.concat(" not in source
     assert "_load_native_frame" not in source
 
@@ -387,7 +387,7 @@ def test_enriched_group_a_warmup_is_trimmed_as_one_honest_prefix() -> None:
     frame = pd.DataFrame(
         {
             name: np.array([np.nan, np.nan, 1.0, 2.0, 3.0, 4.0])
-            for name in MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS
+            for name in (*MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS, *builder._d1ctx.D1_MACRO_CONTEXT_FIELDS)
         },
         index=index,
     )
@@ -412,7 +412,7 @@ def test_enriched_group_a_warmup_trim_rejects_an_interior_gap() -> None:
     frame = pd.DataFrame(
         {
             name: np.ones(4, dtype=np.float64)
-            for name in MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS
+            for name in (*MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS, *builder._d1ctx.D1_MACRO_CONTEXT_FIELDS)
         }
     )
     frame.loc[0, MODEL_NATIVE_CTX_CONT_GROUP_A_FIELDS[0]] = np.nan

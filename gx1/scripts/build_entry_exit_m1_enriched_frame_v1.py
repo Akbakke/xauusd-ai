@@ -1210,7 +1210,7 @@ def _bound_gc_output_support(enriched, multi_tf, *, timeframe):
         return enriched
     first = pd.Timestamp(_gc_context.REGISTRY['train_window'][0])
     starts = []
-    for tf, bars in PRODUCTION_MTF_PER_TF_WINDOW_BARS.items():
+    for tf, bars in PRODUCTION_MTF_PER_TF_WINDOW_BARS:
         index = pd.DatetimeIndex(multi_tf[tf.upper()].index)
         pos = int(index.searchsorted(first, side='right')) - 1
         # Include the full predecessor window; the existing cache owner closes

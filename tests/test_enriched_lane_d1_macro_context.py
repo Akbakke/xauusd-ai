@@ -30,3 +30,16 @@ def test_lane_attaches_the_ninth_family_in_chunks_as_float32(monkeypatch):
     for name in ctx.D1_MACRO_CONTEXT_FIELDS:
         a, b = out[name].to_numpy(np.float32), whole[name].to_numpy(np.float64).astype(np.float32)
         assert np.array_equal(a, b, equal_nan=True), name
+
+
+def test_m1_gc_output_support_uses_declared_tuple_windows():
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+    first = pd.Timestamp(lane._gc_context.REGISTRY['train_window'][0])
+    index = pd.date_range(end=first + pd.Timedelta(days=1), periods=400, freq='D')
+    cache = {tf: pd.DataFrame(index=index) for tf, _ in PRODUCTION_MTF_PER_TF_WINDOW_BARS}
+    frame = pd.DataFrame({'close': np.arange(len(index))}, index=index)
+    result = lane._bound_gc_output_support(frame, cache, timeframe='M1')
+    expected = min(index[index.searchsorted(first, side='right') - 1 - bars]
+                   for _, bars in PRODUCTION_MTF_PER_TF_WINDOW_BARS)
+    pd.testing.assert_frame_equal(result, frame.loc[frame.index >= expected])
+    assert lane._bound_gc_output_support(frame, cache, timeframe='M5') is frame

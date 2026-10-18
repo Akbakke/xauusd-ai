@@ -1,0 +1,85 @@
+{
+  "run_id": "XAU_GC_NATIVE_26M_20261018_002",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002",
+  "native_m1_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+  "native_m5_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+  "operator_authority": "Current17.\u201318October user fresh26month raw rebuild/native one epoch and full informative MBP-1 utilization request.",
+  "workers": 1,
+  "max_wall_seconds": 64800,
+  "inputs": {
+    "m1_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+    },
+    "m5_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m5_quotes_source/manifest.json",
+      "sha256": "1bbc7d20a91afff0deb22a4cd2c848aaa95d27a2db56c22f2f3eb3505c615439"
+    },
+    "squeeze_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/manifest.json",
+      "sha256": "2f099d1974a6ffe3b9c1ae39680acdce5cc706aba954a2ce3523d74db2838d3e"
+    }
+  },
+  "registry_fit_train_start": "2009-06-01T00:00:00+00:00",
+  "registry_fit_train_end": "2013-01-01T22:00:00+00:00",
+  "registry_fit_inner_end": "2012-04-11T22:00:00+00:00",
+  "registry_fit_origin": "Unchanged previously accepted native feature-calibration windows, wholly before first consumed TRAIN2024 inputs. Registry parameters are recomputed from original raw sources. Immutable squeeze calibration reused through its existing owner.",
+  "train_start": "2024-05-01T00:00:00Z",
+  "train_end_exclusive": "2026-01-01T00:00:00Z",
+  "val_start": "2026-01-01T00:00:00Z",
+  "val_end_exclusive": "2026-04-01T00:00:00Z",
+  "retrospective_final_control": [
+    "2026-04-01T00:00:00Z",
+    "2026-07-01T00:00:00Z"
+  ],
+  "schema_version": "gx1_native_pretest_m1_feature_rebuild_v1",
+  "created_utc": "2026-10-18T02:41:37.969113+00:00",
+  "plan_id": "NATIVE_GC_M1_FEATURES_20261018_009",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_009",
+  "scope": "Fresh M1 features from complete raw pre-July XAU history and newly rebuilt full M5/MTF cache. GC attachment after owner-derived warmup support. No old feature table or model state.",
+  "execution_owner": "gx1.scripts.build_entry_exit_m1_enriched_frame_v1",
+  "resource_owner": "scripts/gx1_capped_run.sh producer20G,swap512M,CPU0-7,one thread,64tasks,CURRENT exclusive lock; sequential only",
+  "test_data_used": false,
+  "native_training_started": false,
+  "one_shot_invocations": 1,
+  "source_frozen_while_running": true,
+  "upstream_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_007/TERMINAL.json",
+    "sha256": "92c23683965c22c8eb345d4756fc6fa894579ef276c1423523e7e95ee4c0dc4b"
+  },
+  "upstream_artifacts": {
+    "PRETEST_PAIR.json": {
+      "sha256": "f6742b05f991d50a7fc927f69a26e42796a374dab4864db0b044bae49b394c2e",
+      "bytes": 3892
+    },
+    "M5_ENRICHED.parquet": {
+      "sha256": "c0f2d6ca2f627eb9fd7814e2a7864e95310f0f6ef7c408909ee5c020fb2fc6ea",
+      "bytes": 467095551
+    },
+    "M5_ENRICHED.parquet.manifest.json": {
+      "sha256": "090a367a04164adeccf8c781b2f447f73599ff30b2bdc05ece7ba1ba0abdc1b3",
+      "bytes": 55641
+    },
+    "FULL_PLUS_CTX_v3src.parquet": {
+      "sha256": "202ae9bfb2a58a2fa7226a8669f20d8ef8be8570d354f228f7d66d39d23195f2",
+      "bytes": 411506260
+    },
+    "FULL_PLUS_CTX_v3src.parquet.manifest.json": {
+      "sha256": "d703735bed0d77e85bc3cd01223852385870cbacec5d9600c7b9368a89a7f2d2",
+      "bytes": 38278
+    },
+    "MULTI_TF_V4_CACHE/manifest.json": {
+      "sha256": "62ee505db2bf019e65f3a6d824f8c641ba2df0434ead4e7d8f22dc2c73e547a7",
+      "bytes": 40286188
+    }
+  },
+  "prior_failed_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_008/TERMINAL.json",
+    "sha256": "94fe9e454df33456fccd0d8eff0a332e82590d29cd9d2436c99be4419d78da19"
+  },
+  "checkpoint_reuse": {
+    "root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/M1_ENRICHED_CHECKPOINT",
+    "complete_sha256": "f2f67d771f01eb17875211fc11361343ae2e5b717b7930d534f4f49eb072d9f2",
+    "reason": "Same raw inputs, dimensions, feature owners and source identity; fix is strictly after completed Group-A attach. Existing owner verifies exact checkpoint key and chunk hashes. No old native feature generation reused."
+  }
+}

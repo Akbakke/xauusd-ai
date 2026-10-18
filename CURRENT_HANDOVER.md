@@ -35,7 +35,10 @@ No native epoch started yet.
 
 M5 stage007 COMPLETE, consumed once in2233.407s at sourcea487f044.
 Fresh enriched/MTF cache/model source published; no dataset/epoch yet.
-Next: execute fresh native M1 stage008 (claimed once, launch pending),
+M1 stage008 FAILED after completed Group-A attach (tuple.items API error).
+Minimal correction: iterate existing tuple owner directly. New stage009
+reuses exact same completed checkpoint via existing hash/key checks; no008 relaunch.
+Next: execute fresh native M1 stage009 (claimed once, launch pending),
 then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,
