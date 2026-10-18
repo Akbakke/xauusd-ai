@@ -44,7 +44,10 @@ Dataset stage012 FAILED: ranker10G cgroup exit137 loading wide source before
 filtering; no ranking/signal/dataset publication. New013 binds equivalent
 Parquet range pushdown and exact M1-derived2023 support; no cap increase.
 The dataset reader keeps its complete-source narrow price glitch guard.
-Next: execute signal/feature-surface/TRAIN-VAL dataset stage013 (claimed once, launch pending),
+Dataset013 FAILED at candidate finiteness: window-local volume recomputation
+reset its rolling prefix. Existing volume owner now computes on complete narrow
+source time/volume history and aligns exact timestamps.21focused tests pass.
+Next: execute signal/feature-surface/TRAIN-VAL dataset stage014 (claimed once, launch pending),
 then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,

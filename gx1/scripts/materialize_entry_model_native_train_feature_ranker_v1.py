@@ -368,6 +368,25 @@ def _attach_ranker_group_a_with_common_history(
     )
 
 
+
+def _attach_volume_from_common_source_history(frame: pd.DataFrame, source_parquet: Path) -> pd.DataFrame:
+    """Compute the existing volume owner on complete narrow causal history."""
+    from gx1.features.volume_features import VOLUME_FEATURE_NAMES
+    history = pd.read_parquet(source_parquet, columns=['time', 'volume'],
+                              filters=[('time', '<=', frame['time'].max())])
+    history['time'] = pd.to_datetime(history['time'], utc=True)
+    index = pd.DatetimeIndex(history['time'])
+    if not index.is_unique or not index.is_monotonic_increasing:
+        raise RuntimeError('FEATURE_RANKER_VOLUME_HISTORY_CLOCK_INVALID')
+    positions = index.get_indexer(pd.DatetimeIndex(frame['time']))
+    if np.any(positions < 0):
+        raise RuntimeError('FEATURE_RANKER_VOLUME_SOURCE_TIME_MISSING')
+    history = add_volume_features(history)
+    for name in VOLUME_FEATURE_NAMES:
+        frame[name] = history[name].to_numpy()[positions]
+    return frame
+
+
 def _load_train_frame(
     source_parquet: Path,
     *,
@@ -389,7 +408,7 @@ def _load_train_frame(
     ].sort_values("time").reset_index(drop=True)
     if frame.empty:
         raise RuntimeError("FEATURE_RANKER_TRAIN_WINDOW_EMPTY")
-    frame = add_volume_features(frame)
+    frame = _attach_volume_from_common_source_history(frame, source_parquet)
 
     # GROUP_A ctx columns are not carried by the source parquet; recompute
     # them through the SAME one-truth augmenter the dataset builder

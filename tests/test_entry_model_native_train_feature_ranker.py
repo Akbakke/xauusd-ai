@@ -832,3 +832,17 @@ def test_emit_ranking_rejects_filename_created_timestamp_mismatch(tmp_path: Path
             feature_availability=availability,
             created=datetime(2026, 7, 18, 9, 0, 0, 2, tzinfo=timezone.utc),
         )
+
+
+def test_ranker_volume_window_uses_complete_source_prefix(tmp_path):
+    from gx1.features.volume_features import add_volume_features, VOLUME_FEATURE_NAMES, VOLUME_FEATURE_PREFIX_ROWS
+    count = VOLUME_FEATURE_PREFIX_ROWS + 30
+    source = pd.DataFrame({'time':pd.date_range('2024-01-01',periods=count,freq='5min',tz='UTC'),
+                           'volume':np.arange(count,dtype=np.int64)+1})
+    path = tmp_path/'source.parquet';source.to_parquet(path,index=False)
+    frame = source.iloc[-12:-2].copy().reset_index(drop=True)
+    actual = ranker._attach_volume_from_common_source_history(frame,path)
+    expected = add_volume_features(source).iloc[-12:-2].reset_index(drop=True)
+    for name in VOLUME_FEATURE_NAMES:
+        np.testing.assert_array_equal(actual[name],expected[name])
+        assert np.isfinite(actual[name]).all()
