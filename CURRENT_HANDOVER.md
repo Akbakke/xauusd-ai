@@ -62,8 +62,14 @@ FAILED at full-input liveness: regular bullish divergence event/strength
 Existing structural-impulse support floor now applies symmetrically to the
 source-defined regular/hidden,bull/bear,event/strength class; variance stays.
 No feature/model/data values changed;20focused liveness tests pass.
-Next: qualification017 rescans exact physical bytes and publishes genuine
-horizon-eligible parent rows, no dataset rewrite (claimed once, launch pending),
+Qualification017 COMPLETE, consumed243.375s/source73aa04f0. Full input
+liveness PASS on unchanged physical bytes; hashes, footers and h20v2 verified.
+TRAIN109507 physical/103498 eligible,6009censored; VAL15993/10912 eligible,
+5081censored. One epoch =6469batch16 optimizersteps, last partial10rows.
+Last eligible decisions TRAIN2025-12-02T20:20Z,VAL2026-03-03T23:55Z.
+No new normalization/model/native smoke/epoch exists.
+Next: safe periodic PC reboot with machine-wide idle proof, then whole-TRAIN
+normalization and fresh native binding/baseline/parity/smoke/campaign,
 then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,

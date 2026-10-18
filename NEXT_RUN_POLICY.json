@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-17T21:50:58.262267+00:00",
-  "status": "FRESH_RAW_GC_COMPLETE__NEW_NATIVE_DATASET_AND_ONE_EPOCH_PENDING",
+  "observed_utc": "2026-10-18T08:01:07.415061+00:00",
+  "status": "M5_MTF_MBP1_FULL_PROJECT_AUDIT_AND_REPAIRS_IN_PROGRESS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Current explicit request authorizes exact corrected-generation CPU preparation. Generic training, full epoch/full VAL, previous plans and TEST remain closed. No native launch before actual current sampler, coordinates, recipe and guard admission.",
-  "next_action": "Build fresh raw26month XAU/GC native inputs with footprint/structure and explicit availability; bind new native full-epoch campaign after actual feature/target/normalization/baseline/parity qualification. Prior CPU mini study did not satisfy native training request.",
+  "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
+  "next_action": "Complete source-to-model indicator/TF matrix, repair measured missing routes/observed GC domains, qualify derived data from completed M1/footprint bytes, then bind aligned native objective and normalization/baseline/parity.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Physical TRAIN109507/VAL15993 written, bothh20v2; qualification017 rescans exact bytes under source-defined symmetric divergence impulse support. No data rebuild or new model yet.",
+    "current_activity": "Dataset017 qualification complete:TRAIN109507/eligible103498,VAL15993/eligible10912. Safe periodic Windows reboot before native preparation; no new model or normalization fit yet.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -110,34 +110,34 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "FULL_FEATURE_CPU_STUDY_COMPLETE__NO_EDGE_QUALIFIED__P0_NO_GO_PRESERVED",
+    "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Failed legacy raw pair stage006, consumed; new direct-pretest feature stage007 uses the existing suitable route.",
+    "latest_terminal_role": "Physical native735/552 TRAIN/VAL input qualification017; no normalization, new model function, parity, learning or economics admission.",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_016/TERMINAL.json",
-      "sha256": "c33e3ba8c09415de2ce728eeb081d25ad6b0267a97b8672cb70d35b4930230c8"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017/TERMINAL.json",
+      "sha256": "3aa9dd26d97e5dbcf845ebd0246cbee526902920dcfbb9d11efc54b465dede90"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
-    "full_benchmark_completed": true,
+    "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
-    "sampler_selected": true,
-    "physical_native_preprocessing_complete": true,
-    "native_training_coordinates_published": true,
+    "sampler_selected": false,
+    "physical_native_preprocessing_complete": false,
+    "native_training_coordinates_published": false,
     "native_component_preparation_authorized": false,
     "test_data_used": false,
     "cleanup_report": "CURRENT_HANDOVER.md",
-    "repository_cleanup_complete": true,
+    "repository_cleanup_complete": false,
     "replacement_dataset_acceptance_scope": "HISTORY2009W_FEATURE_REPAIR_20261010: corrected inputs, once-fit whole-TRAIN normalization and fixed-cohort CPU initial baseline only; no native training, sampler, GPU, serving or profitability admission.",
-    "pre_smoke_goal_preparation_complete": true,
+    "pre_smoke_goal_preparation_complete": false,
     "pre_smoke_goal_completion_evidence": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Fresh pre-July XAU pair/feature rebuild, actual consumption/normalization/initialbaseline/parity, and new one-epoch campaign binding remain. Full footprint lattice is preserved, native model uses summaries.",
+    "current_blocker": "Fresh whole-physical-TRAIN normalization, native baseline/parity/smoke and exact6469step one-epoch campaign remain; one epoch already authorized.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -510,7 +510,7 @@
       "elapsed_seconds": 1016.7850262550019,
       "peak_rss_kib": 16341716
     },
-    "fresh_native_initial_state_complete": true,
+    "fresh_native_initial_state_complete": false,
     "native_initial_measurement_20261009": {
       "status": "COMPLETED_VERIFIED_NO_RELAUNCH",
       "policy_scope": {
@@ -692,7 +692,7 @@
       "frozen_full_initial_state_exact": true,
       "learning_proven": false
     },
-    "native_initial_measurement_completed": true,
+    "native_initial_measurement_completed": false,
     "native_smoke_20261009": {
       "authorized": false,
       "status": "PREPARED_NOT_LAUNCHED_SUPERSEDED_ENTRY_INDEPENDENCE_DECISION",
@@ -2082,7 +2082,7 @@
       },
       "fresh_initial_baseline_v10_complete": true
     },
-    "fresh_baseline_coordinates_published": true,
+    "fresh_baseline_coordinates_published": false,
     "current_generation_initial_baseline": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/FRESH_INITIAL_BASELINE_002/BASELINE_RESULT.json",
       "sha256": "79a0ad75f70acd37cdfa5faa2fc235e89036fbfefe7c40528f6d91c10de36bbf"
@@ -7611,7 +7611,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Build fresh raw26month XAU/GC native inputs with footprint/structure and explicit availability; bind new native full-epoch campaign after actual feature/target/normalization/baseline/parity qualification. Prior CPU mini study did not satisfy native training request.",
+    "next_action": "Complete source-to-model indicator/TF matrix, repair measured missing routes/observed GC domains, qualify derived data from completed M1/footprint bytes, then bind aligned native objective and normalization/baseline/parity.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9458,7 +9458,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "PHYSICAL_TRAIN_VAL_PUBLISHED__SYMMETRIC_RARE_EVENT_QUALIFICATION017_PENDING",
+      "status": "FRESH_PHYSICAL_DATASET_AND_LIVENESS_COMPLETE__NORMALIZATION_AND_NATIVE_EPOCH_PENDING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9494,14 +9494,13 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "Fresh pre-July XAU raw pair/feature/MTF/M1 build pending",
-        "Actual native consumption qualification and whole observed physical TRAIN normalization pending",
-        "Fresh735/552 native zero-step baseline, train/serve parity and real smoke pending",
-        "New exact one-epoch native campaign binding pending",
-        "Full footprint lattice is not directly ingested by the native model; summaries are used"
+        "Whole physical TRAIN109507 normalization and fresh735/552 native input preprocessing/coordinate binding pending",
+        "Fresh current-function zero-step ONLINE/TARGET baseline, genuine train/serve parity and physical native smoke pending",
+        "Exact new one-epoch6469step native campaign with last partial10row batch and durable resume/host guards pending",
+        "Full footprint price grid retained, but native uses source-backed summaries rather than full price-grid neural tokens"
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_016/TERMINAL.json",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017/TERMINAL.json",
       "completed_invocations": 0,
       "split_windows": {
         "train": [
@@ -9785,18 +9784,65 @@
       "physical_dataset_published": true,
       "whole_physical_train_rows": 109507,
       "whole_physical_val_rows": 15993,
-      "physical_dataset_input_qualification_complete": false,
+      "physical_dataset_input_qualification_complete": true,
       "physical_dataset_normalization_complete": false,
       "dataset_qualification_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "COMPLETE_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_DATASET_QUALIFICATION_20261018_017.json",
         "plan_sha256": "ce810d2fef230c402cde27f76d0ffcfeaaa17b00ffb9ee3c817d4c0d1cd81d3f",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017",
         "claimed_invocations": 1,
-        "completed_invocations": 0,
+        "completed_invocations": 1,
         "execution_authorized": false,
         "relaunch_allowed": false,
-        "native_epoch_authorized_by_this_stage": false
+        "native_epoch_authorized_by_this_stage": false,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017/TERMINAL.json",
+          "sha256": "3aa9dd26d97e5dbcf845ebd0246cbee526902920dcfbb9d11efc54b465dede90"
+        },
+        "elapsed_seconds": 243.3748301149899,
+        "source_at_execution": "73aa04f087a82d64c6864b64ad5749046cad0eed"
+      },
+      "physical_dataset_qualification": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017/PHYSICAL_DATASET_QUALIFICATION.json",
+        "sha256": "eff4410623406cef56bd841bd60be50b51333ef1659874807c39f31984a2d86b"
+      },
+      "full_input_liveness": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20261018T075054766025Z.json",
+        "sha256": "4fd3ba63b93186ae23dc5954c6b6c5a60547d9b8076ecbe630464ca208d72e01"
+      },
+      "horizon_eligible_populations": {
+        "train": {
+          "censored_rows_excluded": 6009,
+          "eligible_parent_rows": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017/TRAIN_ELIGIBLE_PARENT_ROWS.npy",
+            "sha256": "6c3d1c3817c0e2edd45bce2ba1991f94648ddb777c9b0bff0d01c6bb9f033c67"
+          },
+          "eligible_rows": 103498,
+          "first_eligible_decision_utc": "2024-05-01T00:05:00+00:00",
+          "last_eligible_decision_utc": "2025-12-02T20:20:00+00:00",
+          "one_epoch_derived_counts": {
+            "batch_size": 16,
+            "each_eligible_row_exactly_once_required": true,
+            "last_partial_batch_rows": 10,
+            "optimizer_steps": 6469,
+            "training_admitted_by_counts": false
+          },
+          "physical_rows": 109507,
+          "rows_after_cutoff": 0
+        },
+        "val": {
+          "censored_rows_excluded": 5081,
+          "eligible_parent_rows": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017/VAL_ELIGIBLE_PARENT_ROWS.npy",
+            "sha256": "f7e0e1b96defd355291a41b0a688507333b5e58634f861150ba3ca25139c4881"
+          },
+          "eligible_rows": 10912,
+          "first_eligible_decision_utc": "2026-01-01T23:05:00+00:00",
+          "last_eligible_decision_utc": "2026-03-03T23:55:00+00:00",
+          "physical_rows": 15993,
+          "rows_after_cutoff": 0
+        }
       }
     },
     "native_xau_pair_failure_20261018": {
@@ -9805,7 +9851,27 @@
       "exit_code": 1,
       "admission": false,
       "no_native_training_started": true
-    }
+    },
+    "project_goal": {
+      "operator_request_date": "2026-10-18",
+      "objective": "Develop an autonomous XAUUSD trading bot; current work is offline source/data/model audit and qualification. M5 Entry with causal closed M15/H1/H4/D1 acceptance/context; quality before quantity, bullish LONG and bearish SHORT, favorable excursion with minimal preceding adverse excursion.",
+      "entry_timeframe": "M5",
+      "required_context_timeframes": [
+        "M15",
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "optional_timeframe": "M30 only after declared added-value comparison",
+      "feature_scope": "Every genuine indicator reviewed individually for formula, ownership, causal clock, availability, all-timeframe coverage and actual learned consumption; eight specialist families plus retained ninth D1/macro context. Unsupported/duplicate inputs are reported explicitly.",
+      "data_priority": "Complete and exploit all genuinely observable GC MBP-1 information on the existing26month window before considering10year OHLC expansion. Preserve unknown aggressor, actual coverage, raw price grid, contract identity and GC/XAU basis alignment.",
+      "entry_objective_alignment": "AWAITING_OPERATOR_SELECTION: existing h20 terminal return versus M5 path quality/MAE before MFE; no target change or training while unresolved.",
+      "evidence_rule": "An earlier short CPU/rule/smoke test is scoped evidence and never a project-wide impossibility conclusion. Preserve measured results and original receipts.",
+      "execution_rule": "Multiple agents on explicit disjoint scopes; one capped heavy job, frozen source during execution, reuse qualified bytes, safe idle-boundary reboot, stable checks15\u201330min or less often.",
+      "audit_document": "docs/FEATURE_AUDIT.md",
+      "completion_rule": "Do not claim complete until every registered indicator and timeframe has documented source-to-model coverage or an explicit reviewed source limitation, and physical inputs/normalization/baseline/parity are measured."
+    },
+    "active_readiness_generation": "18October full-feature M5/MTF audit; historical sampler/baseline/preprocessing receipts remain in their original policy scopes and confer no current readiness."
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
