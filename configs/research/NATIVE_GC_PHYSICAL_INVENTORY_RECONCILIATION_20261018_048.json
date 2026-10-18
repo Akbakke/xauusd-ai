@@ -1,0 +1,62 @@
+{
+  "schema_version": "gx1_physical_dataset_inventory_reconciliation_v1",
+  "execution_ready": true,
+  "plan_id": "NATIVE_GC_PHYSICAL_INVENTORY_RECONCILIATION_20261018_048",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_PHYSICAL_INVENTORY_RECONCILIATION_20261018_048",
+  "created_utc": "2026-10-18T23:34:30.418775+00:00",
+  "parent047": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003",
+  "dataset_stem": "XAU_GC_NATIVE__ENTRY_FITTED_Q",
+  "one_shot_invocations": 1,
+  "max_wall_seconds": 1800,
+  "training_enabled": false,
+  "test_data_used": false,
+  "physical_build_only": true,
+  "source_frozen_while_running": true,
+  "inputs": {
+    "TERMINAL.json": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/TERMINAL.json",
+      "sha256": "10fbce51d997a28af82d77b98855321f4b9e58794aea39b207174f3ea969ff71"
+    },
+    "EXECUTION_BINDING.json": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/EXECUTION_BINDING.json",
+      "sha256": "f02a80d9b5d69e01f7b3cfc553559370165a3c40c2cf00b96200ef4b9c61432a"
+    },
+    "PLAN.json": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/PLAN.json",
+      "sha256": "a77ecd7f5d0ecbb42e489bb0198a90c993c8c75d575eef59a4fc58a460c94e2a"
+    },
+    "05_train_val_dataset_RECEIPT.json": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/05_train_val_dataset_RECEIPT.json",
+      "sha256": "3994722308a2fcf226e280929d0af8122016b03d85ff875f9c3f17e50f55f8b5"
+    },
+    "06_source_reconstruction_train_RECEIPT.json": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/06_source_reconstruction_train_RECEIPT.json",
+      "sha256": "9dd3b97d9ebc674d3f76f09701d6a8ce69c53927efde5efd7a29234a2c5563ad"
+    },
+    "06_source_reconstruction_val_RECEIPT.json": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/06_source_reconstruction_val_RECEIPT.json",
+      "sha256": "0dec3e954941b020566ee23184a8452d1766d11274fc09af29866c2ad299ba1b"
+    },
+    "audit_train": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_AUDITS_047/SOURCE_RECONSTRUCTION_train.json",
+      "sha256": "80c10bd614f5f840a6ee6fa14565ce30e35e9ae70d7ebcac31c6204c81ac666f"
+    },
+    "audit_val": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_AUDITS_047/SOURCE_RECONSTRUCTION_val.json",
+      "sha256": "bfc83357bbb77b3a35c88db897cad270af198d34884244560156cb640ac4670c"
+    }
+  },
+  "expected_split_rows": {
+    "train": 118249,
+    "val": 17284
+  },
+  "scope": "Reconcile only final inventory after actual047 builder and both reconstruction audits exit0. Preserve failed047 receipt. Validate both genuine GroupA checkpoint directories through existing strict owner, seal every published/reused byte. No rebuild, value fit, targets, normalization or native model.",
+  "resource_owner": "scripts/gx1_capped_run.sh audit4G/512M, existing CPU/thread/task guards, one CURRENT job",
+  "requires_after_materialization": [
+    "actual physical wholeTRAIN registry fit and current immutable contracts",
+    "wholeTRAIN normalization",
+    "fresh Entry-only native baseline, full consumption, parity, optimizer/resume and hardware admission",
+    "exactly one requested native epoch"
+  ]
+}

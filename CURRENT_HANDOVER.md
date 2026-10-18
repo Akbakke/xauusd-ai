@@ -50,33 +50,35 @@ står ved lag etter alle eksisterende admissionporter. Trening er fortsatt steng
   Dette er publiserte komponenter, fortsatt ingen fysisk TRAIN/VAL- eller
   modellinputadmission.
 
-## Aktuell hindring:044ubrukt bred GC-arbeidskopiering
+## Aktuell status:047bygget, sluttinventar gjenstår
 
-044 er konsumert:21:48:08UTC,600.466s, uendret kilde, builderexit137 etter
-461.102s. Ingen044prosess lever. 043s første kildefikser virket:188031rader
-passerte session-, signal-, tapejoin- og swingkontroll. Siste logg er så
-TAPE_CONTEXT_RECOMPUTE; første ubekreftede operasjon er bred df.drop(15),
-deretter merge og warmupreset. Kernel viser ny10G/512MOOM, men direkte live
-044cgroupbinding og eksakt drept instruksjon er ikke bevist.
+047 er konsumert og har terminal23:07:28UTC,2745.563s, uendret kilde.
+Eksakt kildegjenbruk bestod; datasetbuilder exit0 etter1668.370s. Fysisk
+TRAIN118249 og VAL17284 rader er skrevet. Begge uttømmende seq/snap-
+kilderekonstruksjoner bestod, henholdsvis767.500s og169.824s. Kjøringen
+brukte2725signal/2542ctx-cont/1ctx-cat og beholdt genuine kortere forløp.
 
-Full kildegjennomgang viser at2410råGCkolonner bæres i df og aldri brukes
-av df_ctx, source_extra, mål eller faktisk modellinput. Senere bygges enda en
-fullGCmatrise inn i merged3 bare for feltpresence; alle2725signal/2542ctx+1cat
-emitteres fra den eksakte M5-memmapen. Rettelse: owner-avledet22kolonners
-arbeidslesing, behold komplett schema/hash/full-source smal prisvakt, hold
-mellomtabellene smale og bevis GCverdi+observasjonsmaske feltvis mot faktisk
-M5input. SammeGCverdifunksjon kjøres én gang per felt, ingen chunkvis gjentatt
-helkildekonvertering. Ingen ekte modellkanal eller øvrig guard fjernes.
+GCparitet mot faktisk M5flate er målt for alle2410verdi-/maskefelt:
+TRAIN306759260 og VAL348570350 celler,0avvik. Dette gjelder hele kausale
+historievinduet før emisjon, ikke bare de emitterte radene. Læring og native
+modellkonsum er fortsatt ikke bevist.
 
-045ga64PASS/1fixturefeil. Testspy fanget også legitim int64klokkelikhet;
-bare spyavgrensningen er rettet, produksjonskoden er byteidentisk.046består:44PASS i berørt testfil+eksaktctx-only, øvrige21writerkontroller
-gjenbrukt fra045. Produksjonskode byteidentisk045→046. Målingen viser2410
-float32GCkolonner og188031historierader,1812618840bytes(1.688GiB) per
-hel GCkopi. På4096ekte rader kopierte både drop og merge alle2410kolonner;
-0delte. Bare footer/timekolonne/én4096batch ble lest. Full fysisk peakRSS
-er fortsatt ikke kvalifisert. Deretter bare ny unik047 fysisk dataset-only. Bevar044terminal/delartefakter; aldri
-044relansering eller caputvidelse.039inputs/strictv5PASS/040klokke/ranking
-og uendrede kontroller gjenbrukes. Fysisk TRAIN/VAL er ennå ikke publisert.
+Bare siste inventarvakt feilet: `PUBLISHED_DATASET_INVENTORY_INVALID`.
+Den krevde flate filer, men eksisterende produsent publiserer også to genuine
+GroupA-checkpointmapper som er eksplisitt bundet av splitmanifestene.
+TRAIN har46chunks+2JSON, VAL51chunks+2JSON. Ingenting skal slettes,
+ignoreres eller bygges på nytt. Alle047prosesser er borte.
+
+Ny048 er kun inventarferdigstilling: gjenbruk ferdig builder og begge PASS-
+kontroller, valider checkpointene gjennom eksisterende strenge
+`require_group_a_checkpoint_complete`, forsegl samtlige101checkpointfiler,
+alle øvrige utdata og gjenbrukte inputs. Bevar047feilkvitteringen urørt.
+048 gir bare MATERIALIZED_PENDING_INPUT_ADMISSION; ingen registryfit,
+normalisering, Exit-/modelltrening eller nativeadmission inngår.
+
+044s målte brede GCkopier er løst i gjeldende kode: owner-avledet22kolonners
+arbeidsramme og feltvis GCparitet, alle faktiske modellkanaler bevart.
+046s44berørte PASS og045s21uendrede writerPASS gjenbrukes; ingen omkjøring.
 
 ## Entry-kurver og native kjede
 
@@ -132,23 +134,19 @@ fra boot og må kontrolleres før neste relevante kjøring.
 
 ## Neste steg
 
-1. 046har kvalifisert22kolonners arbeidslesing/GCfeltparitet og faktisk
-   begrenset kopimåling. Bevar alle modellkanaler og beståtte kontroller.
-2. Ny unik047 er klar etter046. Bind ren commit/policy/plan/controller/
-   validator og start én gang: smal arbeidsramme og faktisk feltvis GCparitet
-   mot alle M5modellkanaler. Dataset-only, samme capper og039inputs/v5PASS.
-   Ingen044relansering eller nativeadmission.
-3. Mål faktisk fysisk TRAINklokke, gjør fersk wholeTRAINregistryfit og bevis
-   effektiv verdi-/rolle-/maske-/evaluator-ekvivalens før nye immutable
-   kontrakter. Ingen blind SHA-utskifting eller svekket klokkegard.
-4. Normaliser hele fysisk TRAIN én gang. Bevis fersk ONLINE=TARGET=EMA0,
+1. Bind og kjør ny048 inventarferdigstilling én gang fra ren kilde.
+   Ingen047relansering, ingen rebuild og ingen endring av originale kvitteringer.
+2. Mål faktisk fysisk TRAINklokke for alle118249rader før taskmasker.
+   Gjør fersk wholeTRAINregistryfit og bevis effektiv verdi-/rolle-/maske-/
+   evaluator-ekvivalens før nye immutable kontrakter. Ingen blind SHA-utskifting.
+3. Normaliser hele fysisk TRAIN én gang. Bevis fersk ONLINE=TARGET=EMA0,
    hele feature-/MTF-konsumet, paritet, Entry-only optimizer/resume og ekte
-   valgte/avståtte LONG/SHORT/FLAT-funksjoner med kvalitets- og dekningsspor.
-5. Bind faktisk N/ordre og ceil(N/16), behold siste delbatch og tren nøyaktig
+   valgte/avståtte LONG/SHORT/FLAT med kvalitets- og dekningsspor.
+4. Bind faktisk N/ordre og ceil(N/16), behold siste delbatch og tren nøyaktig
    én epoke med varige checkpoints etter gjeldende admission. Stopp før
    VAL/lærerrefresh/ny epoke.
 
-Fysisk TRAIN/VAL, ny registryfit, normalisering, aktuell Transformerlæring,
+Fysisk sluttinventar, ny registryfit, normalisering, aktuell Transformerlæring,
 generalisering og nettoøkonomi er fortsatt ufullført. AlltidFLAT beviser ikke
 selektivitet. Gatevekter alene er ingen årsaksforklaring. MBP-1 viser BBO,
 ikke L2/MBOordreidentitet; rå prisgrid bevares, modellen bruker deklarerte

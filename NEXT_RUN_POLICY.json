@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-18T22:13:20.836063+00:00",
-  "status": "047_DATASET_ONLY_SUCCESSOR_READY__046_PASS_AND_ACTUAL_GC_COPY_MEASURED__TRAINING_FALSE",
+  "observed_utc": "2026-10-18T23:35:12.988930+00:00",
+  "status": "047_BUILDER_AND_TRAIN_VAL_SOURCE_RECONSTRUCTION_PASS__048_INVENTORY_ONLY_READY__TRAINING_FALSE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Bind clean commit, policy, plan, controller and validator; execute fresh047 once. Preserve all genuine M5 channels and guards/caps. Then qualify actual wholeTRAIN registry, current contracts, normalization and the Entry-only native route before exactly one epoch. Never relaunch044.",
+  "next_action": "Bind clean source/policy/plan/controller/worker and run fresh048 once to reconcile actual047 output inventory. Then fit GC registry on actual118249 wholeTRAIN clock, prove effective source/value/role/mask equivalence, publish current immutable contracts and qualify normalization/native Entry-only route before exactly one epoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -11112,13 +11112,13 @@
           "actual4096_gc_merge_copied_fields": 2410
         },
         "physical_dataset_stage_047": {
-          "status": "READY_ONE_FRESH_DATASET_ONLY_AFTER046_MEASURED_SOURCE_COPY_AND_PARITY_COMPONENTS",
+          "status": "CONSUMED_BUILDER_AND_BOTH_RECONSTRUCTIONS_PASS_FINAL_INVENTORY_REJECTED_CHECKPOINT_DIRS",
           "plan_path": "configs/research/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047.json",
           "plan_sha256": "a77ecd7f5d0ecbb42e489bb0198a90c993c8c75d575eef59a4fc58a460c94e2a",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047",
           "planned_invocations": 1,
-          "completed_invocations": 0,
-          "execution_authorized": true,
+          "completed_invocations": 1,
+          "execution_authorized": false,
           "relaunch_allowed": false,
           "native_training_authorized": false,
           "native_input_admission": false,
@@ -11137,7 +11137,41 @@
           },
           "reuse": "Allactual039signalsurfaces/v5audit/rawparents/cache/cascade/ranking/040; onlyworkingcoreandGCvalidationexecutionchanged, truefeaturesandtargetsunchanged.",
           "physical_peak_memory_qualified": false,
-          "pending_after_physical": "ActualwholeTRAINregistry/currentimmutablemetadata/normalization/freshEntry-onlynativebaseline+consumption+optimizer/resume/hardwarebeforeone requestedepoch."
+          "pending_after_physical": "ActualwholeTRAINregistry/currentimmutablemetadata/normalization/freshEntry-onlynativebaseline+consumption+optimizer/resume/hardwarebeforeone requestedepoch.",
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/TERMINAL.json",
+            "sha256": "10fbce51d997a28af82d77b98855321f4b9e58794aea39b207174f3ea969ff71"
+          },
+          "builder_exit_code": 0,
+          "source_reconstruction_exit_codes": {
+            "train": 0,
+            "val": 0
+          },
+          "actual_split_rows": {
+            "train": 118249,
+            "val": 17284
+          },
+          "final_inventory_error": "PUBLISHED_DATASET_INVENTORY_INVALID",
+          "minimal_repair": "Fresh048 inventory-only scope validates genuine declared GroupA checkpoint directories with existing strict owner. Reuse all actual047 bytes and PASS audits; no047 relaunch or rebuild."
+        },
+        "physical_inventory_reconciliation_048": {
+          "status": "READY_ONE_INVENTORY_ONLY_RECONCILIATION",
+          "plan_path": "configs/research/NATIVE_GC_PHYSICAL_INVENTORY_RECONCILIATION_20261018_048.json",
+          "plan_sha256": "0f9f2d5df751ea4da754e2a3517fccbb2bf28f377280b057bc180b6fedee9f05",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_PHYSICAL_INVENTORY_RECONCILIATION_20261018_048",
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "execution_authorized": true,
+          "relaunch_allowed": false,
+          "training_enabled": false,
+          "native_input_admission": false,
+          "max_wall_seconds": 1800,
+          "source_frozen_while_running": true,
+          "scope": "Reuse actual047 builder+both PASS source reconstructions. Validate both genuine declared GroupA checkpoint dirs via existing owner and seal every output/reused byte. No data generation, target changes or fit.",
+          "parent047_terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/TERMINAL.json",
+            "sha256": "10fbce51d997a28af82d77b98855321f4b9e58794aea39b207174f3ea969ff71"
+          }
         }
       },
       "operator_pc_reboot_20261018": {
@@ -13754,5 +13788,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-18T22:16:23.342119+00:00"
+  "updated_utc": "2026-10-18T23:35:12.988930+00:00"
 }
