@@ -174,7 +174,8 @@ def test_smart_entry_mtf_window_uses_closed_bar_availability_shift(tmp_path: Pat
         f"seq_{timeframe.lower()}"
         for timeframe in ENTRY_MTF_CONTEXT_TIMEFRAMES
     }
-    assert "seq_m5" not in out
+    assert "seq_m5" in out
+    assert float(out["seq_m5"][0, 0, 0].item()) == 2.0
     assert float(out["seq_m15"][0, 0, 0].item()) == 2.0
 
 

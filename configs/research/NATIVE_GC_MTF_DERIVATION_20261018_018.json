@@ -1,0 +1,50 @@
+{
+  "schema_version": "gx1_native_derived_gc_timeframes_plan_v1",
+  "mode": "derive_timeframes_from_completed_m1",
+  "plan_id": "NATIVE_GC_MTF_DERIVATION_20261018_018",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_MTF_DERIVATION_20261018_018",
+  "created_utc": "2026-10-18T08:19:38.034599+00:00",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "operator_request": "18October full26month MBP1/allTF audit and completion; M5 MAE-before-MFE primary, longer horizons support. Bounded source derivation only; no model fit.",
+  "inputs": {
+    "source_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TERMINAL.json",
+      "sha256": "321769202aef3fe3aa117b41d85f0609f338368587dafc9bf30f0f70618c53f8"
+    },
+    "m1_inputs": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/M1_GC_INPUTS.parquet",
+      "sha256": "879d75a7c244454f60b4fc5ca79edee46b6d1a8a4f61aeb2f52f6b7c656c84c7"
+    },
+    "footprint_m1_levels": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/FOOTPRINT_M1_LEVELS.parquet",
+      "sha256": "50df8c0105c3fec1d396d371055af9854c4c2f09662e76e53393b8a8b39c5ee0"
+    },
+    "roll_schedule": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/ROLL_SCHEDULE.json",
+      "sha256": "71262543da79a79ca0c6a0fa2c2d0f78494fa001d3f2409188d3ad80d4f7dc69"
+    }
+  },
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "study_start_inclusive": "2024-05-01T00:00:00Z",
+  "study_end_exclusive": "2026-07-01T00:00:00Z",
+  "max_wall_seconds": 1800,
+  "wall_budget_origin": "New finite derivation of already-completed M1 and9.17Mfootprint rows;1800s ceiling as existing017 CPU qualification. No extension or relaunch.",
+  "resource_owner": "scripts/gx1_capped_run.sh audit4G/swap512M/CPU0-7/numerical1/TasksMax64; unchanged CURRENT lock and guards",
+  "one_shot_invocations": 1,
+  "source_frozen_while_running": true,
+  "test_data_used": false,
+  "native_training_started": false,
+  "outputs_do_not_prove": [
+    "Historical exchange-calendar or full feed completeness",
+    "Native context admission/consumption or normalization",
+    "Transformer learning/generalization/economics"
+  ],
+  "retained_strict_fields": "Original complete-minute fields preserved and separately measured; new observed domains expose exact coverage and known/unknown side."
+}

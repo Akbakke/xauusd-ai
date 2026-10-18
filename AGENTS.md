@@ -5,8 +5,10 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
 
 - Bruk bare /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
   Andre worktrees/grener er lagring, aldri arbeidssteder.
-- Én agent om gangen innen CURRENT. Ingen subagenter eller parallelle agentløp.
-  Start med git branch --show-current og git log -5; bygg på eksisterende arbeid.
+- Flere agenter er vedtatt18.10: avgrens oppgaver og fileierskap, én integrator
+  eier policy, launch og samlet kontroll. Ingen parallelle tunge jobber eller
+  kildeendringer under en fryst kjøring. Start med git branch --show-current
+  og git log -5; bygg på eksisterende arbeid.
 - Kjør bash scripts/gx1_handover.sh --check. Les kun siste CURRENT_HANDOVER.md
   og aktuelle status-/scopefelt i NEXT_RUN_POLICY.json ved overtakelse.
   Eldre kvitteringer åpnes bare ved konkret avvik eller nødvendig ny gatekontroll.
@@ -21,11 +23,16 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
   eksisterende maskinvarevakter. Separate prosjekter har separate prosjektlåser;
   dette svekker ingen kapasitets-, minne-, CPU-, effekt- eller temperaturgrense.
 - Gjenbruk ferdige inputs, targets, outputs og beståtte kontroller. Stabil
-  langkjøring kontrolleres omtrent hver time, ikke med minuttvis modellpolling.
+  langkjøring kontrolleres omtrent hver15.–30.minutt, gjerne sjeldnere ved
+  stabil drift; ingen minuttvis modellpolling.
 - Modell-/treningskode endres bare for en konkret observert blokkering eller
   vedtatt designendring. Begrunn minste rettelse før implementasjon. Ingen
   forebyggende refaktorering, brede søk, nye rammeverk eller gjentatte fullsuiter.
-- Bevar genuine features, åtte familier, tidsrammer, kausalitet og alle vakter.
+- Følg det varige M5/MTF/26måneders-MBP-målet i GX1_RULES.md. Revider ALLE
+  genuine indikatorer og alle tidsrammer til faktisk modellkonsum; åtte
+  spesialistfamilier og niende D1/makro-kontekst beholdes. Meld og rett målte
+  mangler; en kort tidligere test er ingen generell dom over prosjektet.
+- Bevar genuine features, tidsrammer, kausalitet og alle vakter.
   Ingen fast tapsgrense eller maksimal holdetid. En beregningshorisont er ikke
   en handelsregel. Endret ONLINE-funksjon krever fersk initialbaseline.
 - Skill TRAIN-fit, senere generalisering, referanseverdi og realisert økonomi.

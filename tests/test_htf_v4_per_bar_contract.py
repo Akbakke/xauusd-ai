@@ -894,10 +894,8 @@ def test_exact_resolution_pyramid_is_sliceable_across_all_split_boundaries() -> 
     assert proof["routes"]["exit"][
         "target_availability_shift_seconds"
     ] == 60
-    assert proof["per_tf"]["M5"]["routes"]["entry"] == {
-        "enabled": False,
-        "boundaries": {},
-    }
+    assert proof["per_tf"]["M5"]["routes"]["entry"]["enabled"] is True
+    assert set(proof["per_tf"]["M5"]["routes"]["entry"]["boundaries"]) == {"train_first", "train_last", "val_first", "val_last"}
     assert proof["per_tf"]["M5"]["routes"]["exit"]["enabled"] is True
     assert "test" not in str(proof).lower()
     assert proof["resolution_pyramid"]["per_tf_seq_lens"] == lengths
@@ -977,8 +975,11 @@ def test_shared_v4_cache_has_exact_entry_and_exit_routes_and_clocks() -> None:
 
     assert tuple(entry) == ENTRY_MTF_CONTEXT_TIMEFRAMES
     assert tuple(exit_route) == EXIT_MTF_CONTEXT_TIMEFRAMES
-    assert "M5" not in entry
+    assert "M5" in entry
+    assert entry["M5"][-1, 0] == 399.0
     assert exit_route["M5"][-1, 0] == 398.0
+    # Identical route tuples must retain separate +5m/+1m availability.
+    assert ENTRY_MTF_CONTEXT_TIMEFRAMES == EXIT_MTF_CONTEXT_TIMEFRAMES
 
     with np.testing.assert_raises_regex(
         RuntimeError,
@@ -989,7 +990,7 @@ def test_shared_v4_cache_has_exact_entry_and_exit_routes_and_clocks() -> None:
             decision_bar_start=decision,
             per_tf_seq_lens=lengths,
             route_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES,
-            base_bar_duration=pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS),
+            base_bar_duration=pd.Timedelta(minutes=2),
         )
     with np.testing.assert_raises_regex(
         RuntimeError,

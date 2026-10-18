@@ -42,7 +42,7 @@ from gx1.utils.artifact_primitives_v1 import (
 
 
 ENTRY_EXIT_FEATURE_BASE_SCHEMA_VERSION = (
-    "gx1_entry_exit_shared_feature_base_contract_v10"
+    "gx1_entry_exit_shared_feature_base_contract_v11"
 )
 ENTRY_EXIT_FEATURE_OWNER_RESOLUTION_SCHEMA_VERSION = (
     "gx1_entry_exit_feature_owner_resolution_contract_v9"
@@ -55,7 +55,7 @@ EXIT_DECISION_TIMEFRAME = "M1"
 ENTRY_DECISION_BAR_SECONDS = 300
 EXIT_DECISION_BAR_SECONDS = 60
 ENTRY_EXIT_RESOLUTION_RATIO = 5
-ENTRY_MTF_CONTEXT_TIMEFRAMES = ("M15", "H1", "H4", "D1")
+ENTRY_MTF_CONTEXT_TIMEFRAMES = ("M5", "M15", "H1", "H4", "D1")
 EXIT_MTF_CONTEXT_TIMEFRAMES = ("M5", "M15", "H1", "H4", "D1")
 ENTRY_MTF_CONTEXT_COUNT = len(ENTRY_MTF_CONTEXT_TIMEFRAMES)
 EXIT_MTF_CONTEXT_COUNT = len(EXIT_MTF_CONTEXT_TIMEFRAMES)

@@ -449,9 +449,19 @@ def handover_view(status: dict[str, object]) -> dict[str, object]:
             "pre_smoke_goal_preparation_complete", "full_benchmark_completed",
             "sampler_selected", "physical_native_preprocessing_complete",
             "native_training_coordinates_published", "training_started",
-            "gc_goal_status", "current_blocker",
+            "gc_goal_status", "current_blocker", "project_goal", "active_readiness_generation",
         )
         out["current_work"] = {key: work[key] for key in visible if key in work}
+        native = work.get("native_gc_rebuild_20261017")
+        if isinstance(native, dict):
+            out["current_work"]["native_gc_rebuild_20261017"] = {
+                key: native[key] for key in (
+                    "status", "physical_dataset_published",
+                    "whole_physical_train_rows", "whole_physical_val_rows",
+                    "physical_dataset_input_qualification_complete",
+                    "physical_dataset_normalization_complete", "training_started",
+                ) if key in native
+            }
         goal = work.get("restart_and_smoke_goal")
         if isinstance(goal, dict):
             out["current_work"]["restart_and_smoke_goal"] = {

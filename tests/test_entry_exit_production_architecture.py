@@ -72,7 +72,7 @@ def test_exact_current_production_architecture_passes() -> None:
         (("shared_surface", "signal_dim"), 512),
         (("schemas", "mtf_cache"), "htf_v3_disk_cache_manifest_v3"),
         (("mtf", "cache_timeframes"), ["M5", "H1", "H4", "D1"]),
-        (("entry", "mtf_route"), ["M5", "M15", "H1", "H4", "D1"]),
+        (("entry", "mtf_route"), ["M15", "H1", "H4", "D1"]),
         (("exit", "sequence_bars"), MODEL_NATIVE_SELECTED_FEATURE_COUNT),
         (("exit", "max_path_bars"), 511),
         (("shared_encoder",), "duplicate_exit_encoder"),
@@ -260,7 +260,7 @@ def _minimal_bundle_architecture_payload() -> dict[str, object]:
         "multi_tf": {
             "v4_mode": True,
             "matrix_contract": HTF_V4_MATRIX_CONTRACT,
-            "entry_route_timeframes": ["M15", "H1", "H4", "D1"],
+            "entry_route_timeframes": ["M5", "M15", "H1", "H4", "D1"],
             "exit_route_timeframes": ["M5", "M15", "H1", "H4", "D1"],
             "m5_seq_dim": MULTI_TF_FEATURE_COUNT_V4,
             "m15_seq_dim": MULTI_TF_FEATURE_COUNT_V4,

@@ -1,4 +1,4 @@
-# GX1-regler — bindende for alle agenter (konsolidert 26.09.2026)
+# GX1-regler — bindende for alle agenter (mål presisert 18.10.2026)
 
 Dette er den ene regelkilden. Claude leser den via `CLAUDE.md`, Codex via `AGENTS.md`.
 Status, gjort/ikke gjort og neste steg står bare i `CURRENT_HANDOVER.md` med
@@ -9,12 +9,52 @@ er dokument og kode uenige: stopp, og reparer dokument og kode sammen.
 Reglene gjelder beholdt kilde og alle nye planer. Tidligere versjoner finnes i Git;
 arkivfiler på disk er aldri kjøreautoritet.
 
-## Én kodebase, én agent
+## Varig prosjektmål og arbeidsmåte
+
+Operatørbestilling 18.10.2026 er gjeldende prosjektretning: bygg en
+fullautomatisk XAUUSD-bot med M5 Entry og kausal, lukket M15/H1/H4/D1-kontekst.
+LONG skal kunne lære bullish tilstander og SHORT bearish tilstander. Prioriter
+handelskvalitet og liten MAE før gunstig MFE fremfor antall handler; verken kort
+eller lang holdetid er et mål i seg selv. M30 vurderes bare med en eksplisitt
+sammenligning av tilført verdi. MFE/MAE er etterfølgende utfall, aldri inputs fra
+framtiden. Ingen fast tapsgrense eller maksimal holdetid innføres av dette.
+
+Revider hver genuine indikator: formel, enhet, kilde, familie, warmup, maske,
+kausal tilgjengelighet, samtlige tidsrammer og faktisk vei inn i modellen.
+Omtrent150 er brukerens anslag, ikke et godkjent antall. Tell eierne og skill
+indikatorformler, signalverdier, aliaser og observasjonsmasker. Åtte
+spesialistfamilier og den niende D1/makro-konteksten beholdes; forslag til nye
+eller ubrukelige indikatorer avgjøres på dokumentert kilde og måling.
+
+Prioriter de eksisterende26månedene med GC MBP-1 før utvidelse til hele
+OHLC-historikken. Bruk all genuint observerbar handels-, BBO-, volum-,
+profil-, footprint- og strukturinformasjon. MBP-1 viser BBO, ingen skjulte ordre,
+ordreidentitet eller dypere bok. Ukjent aggressor forblir ukjent. GC er en
+futuresinput til XAUUSD; kontraktskifte, faktisk dekning, kildeklokke og basis
+skal følge featureverdien. Komplett og delvis observert bøtte er ulike domener.
+Bevar price-grid og redegjør for informasjonstap i modellens sammendrag.
+
+En kort CPU-, regel- eller smoketest kan aldri konkludere med at prosjektet
+eller en ny MBP-Transformer ikke kan fungere. Fjern slike generelle dommer fra
+aktive instrukser; bevar originale målinger og kvitteringer med eksakt omfang.
+Ingen måling omskrives til positivt resultat. Inputkonsistens, kapasitet til
+TRAIN-fit, generalisering og nettoøkonomi kontrolleres hver for seg.
+
+Bruk eksisterende fungerende eiere og beståtte kontroller. Rett målte
+blokkeringer og vedtatte designgap fortløpende med minst nødvendig endring;
+ikke bruk tid på kosmetisk ombygging. Dobbeltsjekk utført arbeid. Usikre
+målvalg spørres operatøren om mens uavhengig arbeid fortsetter.
+
+## Én kodebase, avgrensede agentoppgaver
 
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre
   worktrees og grener er git-lagring, aldri arbeidssteder.
-- Én agent (Claude eller Codex) og én tung jobb om gangen innen CURRENT. Bygg på den andre agentens
-  commits; aldri et parallelt spor. Er noe i strid med dette, stopp og si fra.
+- Operatørbestilling 18.10 åpner flere agenter med eksplisitt oppgave- og
+  fileierskap. Én integrator eier policy, lansering og samlet verifikasjon.
+  Ingen agent starter en egen tung jobb eller endrer en annens filer uten
+  koordinering. Alle arbeider i CURRENT og bygger på eksisterende arbeid.
+- Én tung CURRENT-jobb om gangen. Ingen kilde- eller policyendringer mens den
+  bundne jobben kjører. Leseagenter utfører bare lette kilde-/metadatakontroller.
 
 
 Operatørvedtak 28.09.2026: separate prosjekter kan arbeide parallelt. CURRENT
@@ -87,8 +127,10 @@ moduler på disk.
 6. **Train er lik serve**: eksakte ordnede felt, dimensjoner, normalisering,
    tidsrammekonstruksjon, hasher og beslutningssemantikk. Ubevist inntil samme bundne bundle
    har emittert og bestått en ekte paritetshendelse.
-7. **Nyeste gyldige terminale evidens vinner.** Nyere rødt blokkerer eldre grønt; manglende
-   eller misformet evidens er rødt. Et GRØNT datasett slipper bare de bytene til neste gate —
+7. **Nyeste gyldige terminale evidens for samme funksjon/data/omfang vinner.**
+   Nyere relevant rødt blokkerer eldre grønt; manglende eller misformet evidens
+   er rødt for den aktuelle gaten. En gammel regeltest sperrer ikke et annet
+   erklært mål eller en ny korrekt generasjon. Et GRØNT datasett slipper bare de bytene til neste gate —
    ikke en modell, retning, bundle eller launch.
 8. **Run-ID er lineage, ikke godkjenning.** Hver rebuild har én immutabel build-`--run-id`;
    hver trening sin egen output-`--run-id` pluss en `dataset_run_id` som matcher build og alle
@@ -190,7 +232,11 @@ Manglende host-tilstand/cgroup, låskonflikt eller overskredet grense er hard fe
 Aldri omgå, svekk, dupliser eller ubevoktet start en tung jobb.
 Delvis output etter stopp/krasj/reboot er ugyldig uten completion-manifest/hasher.
 
-Sporadisk PC-omstart kan gjøres ved trygg grense mellom fullførte kjøringer.
+Utnytt målt CPU-/GPU-kapasitet effektivt innen eksisterende verifiserte
+kapasitets-, temperatur-, effekt- og minnevakter. «Maks» åpner ingen omgåelse.
+Stabile kjøringer kontrolleres omtrent hver15.–30.minutt, gjerne sjeldnere;
+aldri minuttvise modellrunder eller arbeid bare for å fylle ventetid.
+Sporadisk PC-omstart gjøres ved trygg grense mellom fullførte kjøringer.
 Bevar terminalkvitteringer; alle prosjektjobber, GPU-beregninger og prosjektlåser
 på maskinen må være ledige. Ingen aktiv jobb avbrytes for periodisk omstart.
 Etterpå bekreftes ny boottid, WSL/tilkobling, uendret kilde og intakte artefakter
@@ -230,8 +276,9 @@ Native Entry-/Exit-kontrakter, serving og eventuell handel forblir XAUUSD til
 et eget vedtak på målt evidens. Broker, collector, live/paper, ordre og spending
 forblir stengt; ingen ny nedlastingsrute åpnes uten manifest.
 
-Samme dag vedtok brukeren: (a) swing på D1 med 5 og 20 dagers horisont er
-primærspor; (b) én native GPU-jobb og én CPU-forskningsjobb kan gå samtidig
+Samme dag vedtok brukeren: (a) swing på D1 med 5 og 20 dagers horisont var
+primærspor (18.10 setter M5/MTF/MBP som prosjektretning; gjeldende targetvalg
+må bindes eksplisitt); (b) én native GPU-jobb og én CPU-forskningsjobb kan gå samtidig
 innen CURRENT, hver under egen capped cgroup, minne- og trådgrense, aldri to av
 samme slag; (c) OANDA-API brukes som manifestbundet lesetilgang til historiske
 candles for navngitte instrumenter, aldri ordre eller kontoendring; (d)
@@ -302,7 +349,8 @@ mindre kronologisk vindu (størrelsesorden ett år av TRAIN) før noen full
 epoke; full epoke krever et læringssignal i det mindre vinduet og eget vedtak.
 Ingen seleksjon på CONTROL, ingen TEST-lesing, ingen featurekassering,
 training_enabled=false består. Agentene i gjennomgangen var leserettede;
-«én agent om gangen» gjelder fortsatt for tunge jobber og kodeendringer.
+Dette tidligere en-agent-kravet er avløst av18.10-vedtaket om koordinerte
+agenter; én tung jobb og fryst kilde består.
 
 ## Operatørvedtak 17.10.2026: separat Transformer-/TCN-undersøkelse
 

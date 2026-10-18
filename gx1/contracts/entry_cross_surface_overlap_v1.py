@@ -6,9 +6,10 @@ column varies; it cannot prove that two *simultaneously consumed* surfaces do
 not carry an unnoticed byte-identical feature.  This module owns that second
 question.
 
-Only a small set of MTF current-bar context values is intentionally also
-available to the context-token path.  They are declared here from the sole
-projection owner, reported as aliases, and are never silently ignored.  Every
+Current-bar context values and source-defined same-clock M5 primitives are
+intentionally available to both local and MTF representation paths. Their
+shared formula owners declare the exact aliases; the audit still verifies
+every pair on the real decision rows and never silently ignores a mismatch.  Every
 other exact local-to-active-MTF duplicate fails the research dataset build.
 """
 
@@ -28,9 +29,13 @@ from gx1.contracts.entry_exit_feature_base_v1 import (
 )
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    MODEL_NATIVE_BASE_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
+)
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    model_native_m5_local_per_bar_exact_aliases,
 )
 from gx1.features.htf_features import (
     MODEL_NATIVE_CONTEXT_MTF_PROJECTION,
@@ -39,8 +44,8 @@ from gx1.features.htf_features import (
 )
 
 
-SCHEMA_VERSION = "entry_cross_surface_input_overlap_v3"
-POLICY_VERSION = "entry_cross_surface_input_overlap_policy_v3"
+SCHEMA_VERSION = "entry_cross_surface_input_overlap_v4"
+POLICY_VERSION = "entry_cross_surface_input_overlap_policy_v4"
 DECISION_ROUTES = {
     "entry": {
         "local_timeframe": "M5",
@@ -54,7 +59,7 @@ DECISION_ROUTES = {
 
 
 def declared_context_mtf_aliases(*, decision: str) -> frozenset[tuple[str, str]]:
-    """Return the exact, intentional context-token / MTF-last-bar aliases.
+    """Return exact context-token and same-clock local / MTF-last-bar aliases.
 
     The values are duplicated across representation paths, not created by a
     second feature producer: the context path makes a current higher-TF value
@@ -68,7 +73,7 @@ def declared_context_mtf_aliases(*, decision: str) -> frozenset[tuple[str, str]]
         raise RuntimeError(f"CROSS_SURFACE_DECISION_INVALID: {decision!r}")
     aliases: set[tuple[str, str]] = set()
     signal_fields = frozenset(
-        (*MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
+        (*MODEL_NATIVE_BASE_FIELDS, *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
     )
 
     def add_local_paths(*, ctx_name: str, mtf_name: str) -> None:
@@ -97,6 +102,14 @@ def declared_context_mtf_aliases(*, decision: str) -> frozenset[tuple[str, str]]
                 ctx_name=scalar_name,
                 mtf_name=f"mtf.{tf}.{per_bar_name}",
             )
+    if route["local_timeframe"] == "M5" and "M5" in route["active_mtf_timeframes"]:
+        for local_name, per_bar_name in model_native_m5_local_per_bar_exact_aliases():
+            if local_name not in signal_fields:
+                raise RuntimeError("CROSS_SURFACE_DECLARED_M5_ALIAS_SIGNAL_MISSING: " + local_name)
+            mtf_name = "mtf.m5." + per_bar_name
+            aliases.add(("local.signal." + local_name, mtf_name))
+            if local_name.startswith("ctx_cont."):
+                add_local_paths(ctx_name=local_name.removeprefix("ctx_cont."), mtf_name=mtf_name)
     return frozenset(aliases)
 
 

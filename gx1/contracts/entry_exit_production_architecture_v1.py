@@ -41,7 +41,7 @@ from gx1.features.htf_features import (
 
 
 ENTRY_EXIT_PRODUCTION_ARCHITECTURE_SCHEMA_VERSION = (
-    "gx1_entry_exit_production_architecture_v11"
+    "gx1_entry_exit_production_architecture_v12"
 )
 # Derived from the one ordered per-TF surface owner (rule 13: a repeated
 # literal is not ownership proof).  V29 Phase A stage 2: pre-V29 111 + 21
@@ -58,7 +58,7 @@ PRODUCTION_MTF_PER_TF_WINDOW_BARS = (
     ("H4", 96),
     ("D1", 252),
 )
-PRODUCTION_ENTRY_MTF_ROUTE = ("M15", "H1", "H4", "D1")
+PRODUCTION_ENTRY_MTF_ROUTE = PRODUCTION_MTF_CACHE_TIMEFRAMES
 PRODUCTION_EXIT_MTF_ROUTE = PRODUCTION_MTF_CACHE_TIMEFRAMES
 PRODUCTION_SPECIALISTS = (
     "structure_swing_encoder",
@@ -105,7 +105,7 @@ def entry_exit_production_architecture_contract() -> dict[str, Any]:
             },
             "per_tf_window_bars": dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS),
             "m5_route_consumption": {
-                "entry": False,
+                "entry": True,
                 "exit": True,
             },
         },

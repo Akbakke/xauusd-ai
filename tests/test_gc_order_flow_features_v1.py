@@ -198,3 +198,164 @@ def test_ohlc_recovery_callback_does_not_create_a_second_ladder():
     assert collector.ohlc.tolist()==[[100,101,100,101],[99,99,99,99]]
     assert collector.rows==3
     assert collector.reference_trades[0]==[(100,3,'B'),(101,1,'A'),(99,2,'B')]
+
+
+def test_observed_d1_keeps_fixed_clock_gap_and_exact_last_accepted_minute():
+    a = list(minute_inputs(2880))
+    # The only full D1 bucket is [1320, 2760). Missing its final hour must
+    # remain incomplete, while its 1380 admitted minutes retain their value.
+    rejected = slice(2700, 2760)
+    for key in ('volume', 'delta', 'cvd'):
+        a[3][key][rejected] = False
+    a[2]['unknown'][1325] = 2
+    a[2]['volume'][1325] += 2
+    a[3]['delta'][1325] = a[3]['cvd'][1325] = False
+    a[4][rejected] = [999, 9999, 1, 999]
+    surface, _ = f.timeframe_skeleton(*a, 'D1', 100000000)
+    assert surface['volume_valid'].tolist() == [False, False, False]
+    assert surface['signed_valid'].tolist() == [False, False, False]
+    assert surface['observed_valid'].tolist() == [False, True, False]
+    assert surface['observed_expected_clock_minutes'][1] == 1440
+    assert surface['observed_clock_minutes'][1] == 1440
+    assert surface['observed_accepted_minutes'][1] == 1380
+    assert surface['observed_signed_minutes'][1] == 1379
+    assert surface['observed_coverage_fraction'][1] == 23 / 24
+    assert surface['observed_volume'][1] == 5522
+    assert surface['observed_buy_known'][1] == 4140
+    assert surface['observed_sell_known'][1] == 1380
+    assert surface['observed_unknown'][1] == 2
+    assert surface['observed_known_delta_contracts'][1] == 2760
+    assert not surface['observed_signed_complete'][1]
+    assert surface['observed_high_usd'][1] == pytest.approx(10.1)
+    assert surface['observed_low_usd'][1] == pytest.approx(9.9)
+    assert int(surface['observed_first_minute_ns'][1]) == int(a[0][1320])
+    assert int(surface['observed_last_minute_ns'][1]) == int(a[0][2699])
+    assert np.isnan(surface['observed_close_usd'][0])
+    assert np.isnan(surface['observed_last_minute_ns'][2])
+
+
+def _write_admitted_ladder(path, a, *, corrupt_sides=False):
+    take = np.flatnonzero(a[3]['volume'])
+    buy = a[2]['buy'][take].copy()
+    sell = a[2]['sell'][take].copy()
+    if corrupt_sides:
+        buy[0] += 1
+        sell[0] -= 1
+    schema = pa.schema([('minute_index', pa.int32()), ('price_tick', pa.int64()),
+        ('buy', pa.uint64()), ('sell', pa.uint64()), ('unknown', pa.uint64())])
+    # Multiple row groups exercise state carried across physical batch boundaries.
+    with pq.ParquetWriter(path, schema) as writer:
+        for indices in np.array_split(np.arange(len(take)), 2):
+            writer.write_table(pa.table({'minute_index': take[indices].astype(np.int32),
+                'price_tick': np.full(len(indices), 100, np.int64),
+                'buy': buy[indices], 'sell': sell[indices],
+                'unknown': a[2]['unknown'][take[indices]]}, schema=schema))
+
+
+def test_observed_profile_retains_unknown_bins_without_fabricating_signed_flow(tmp_path):
+    a = list(minute_inputs(10))
+    for key in ('volume', 'delta', 'cvd'):
+        a[3][key][1] = False
+    a[2]['unknown'][2] = 2
+    a[2]['volume'][2] += 2
+    a[3]['delta'][2] = a[3]['cvd'][2] = False
+    path = tmp_path / 'admitted.parquet'
+    _write_admitted_ladder(path, a)
+    surface, inverse = f.timeframe_skeleton(*a, 'M5', 100000000)
+    f.consume_ladder(path, {'M5': surface}, {'M5': inverse}, 100000000)
+    assert surface['observed_valid'].tolist() == [True, True]
+    assert surface['observed_volume'].tolist() == [18, 20]
+    assert surface['observed_buy_known'].tolist() == [12, 15]
+    assert surface['observed_sell_known'].tolist() == [4, 5]
+    assert surface['observed_unknown'].tolist() == [2, 0]
+    assert surface['observed_signed_complete'].tolist() == [False, True]
+    assert surface['observed_known_max_level_delta_contracts'].tolist() == [8, 10]
+    assert surface['observed_buy_known_poc_usd'].tolist() == [10, 10]
+    assert surface['observed_sell_known_poc_usd'].tolist() == [10, 10]
+    assert surface['observed_poc_usd'].tolist() == [10, 10]
+    assert np.isnan(surface['poc_usd'][0])
+    # Fully supported strict values keep the exact existing formula/bytes.
+    for name in f.PROFILE_FIELDS:
+        np.testing.assert_array_equal(surface[name][1:], surface['observed_' + name][1:])
+    for name, target in f.OBSERVED_FOOTPRINT_FIELDS.items():
+        np.testing.assert_array_equal(surface[name][1:], surface[target][1:])
+    cvd = f.relative_cvd(a[0], a[1], a[3], a[2])
+    f.add_structure_and_cvd(surface, cvd, {'M5': inverse}, a[0])
+    assert np.isnan(surface['volume'][0]) and np.isnan(surface['delta_contracts'][0])
+    assert surface['observed_volume'][0] == 18
+    assert surface['observed_known_delta_contracts'][0] == 8
+
+
+def test_observed_profile_rejects_side_corruption_even_when_total_volume_matches(tmp_path):
+    a = minute_inputs(5)
+    path = tmp_path / 'corrupt.parquet'
+    _write_admitted_ladder(path, a, corrupt_sides=True)
+    surface, inverse = f.timeframe_skeleton(*a, 'M5', 100000000)
+    with pytest.raises(RuntimeError, match='OBSERVED_SIDE_VOLUME_PARITY_FAILED:buy_known'):
+        f.consume_ladder(path, {'M5': surface}, {'M5': inverse}, 100000000)
+
+
+def test_observed_domain_rejects_roll_unselected_empty_and_partial_buckets():
+    a = list(minute_inputs(22))
+    a[1][3:5] = 1
+    a[1][5] = -1
+    for key in ('volume', 'delta', 'cvd'):
+        a[3][key][10:15] = False
+    surface, _ = f.timeframe_skeleton(*a, 'M5', 100000000)
+    assert surface['observed_contract_valid'].tolist() == [False, False, True, True, True]
+    assert surface['observed_valid'].tolist() == [False, False, False, True, False]
+    assert surface['observed_accepted_minutes'].tolist() == [5, 5, 0, 5, 2]
+    assert np.isnan(surface['observed_volume'][[0, 1, 2, 4]]).all()
+    assert np.isnan(surface['observed_signed_minute_fraction'][2])
+
+
+def _observed_structure_surface():
+    h = np.array([9, 10, 11, 14, 12, 11, 10, 11, 15, 14, 13, 12, 11, 10, 9, 8.])
+    low = h - 4
+    close = h - 1
+    opening = close + 0.5
+    low[4] = 3
+    close[8] = 14.5
+    opening[8] = 14.75
+    start = t.STUDY_START_NS + np.arange(len(h)) * 5 * t.MINUTE_NS
+    return {'bar_start_ns': start, 'available_ns': start + 5 * t.MINUTE_NS,
+        'contract_index': np.zeros(len(h), np.int16), 'observed_valid': np.ones(len(h), bool),
+        'observed_open_usd': opening, 'observed_high_usd': h, 'observed_low_usd': low,
+        'observed_close_usd': close, 'observed_volume': np.arange(len(h)) + 10.,
+        'observed_coverage_fraction': np.full(len(h), 0.8),
+        'observed_first_minute_ns': start.astype(float),
+        'observed_last_minute_ns': (start + 4 * t.MINUTE_NS).astype(float),
+        'bos_up': np.full(len(h), 17.)}
+
+
+def test_observed_structure_uses_existing_owner_and_preserves_strict_and_prefix():
+    surface = _observed_structure_surface()
+    expected = replay_volume_order_block_proxies_v1(*[surface['observed_' + name] for name in
+        ('open_usd', 'high_usd', 'low_usd', 'close_usd', 'volume')])
+    f.add_observed_structure(surface)
+    for name, value in expected.items():
+        np.testing.assert_array_equal(surface['observed_proxy_' + name], value)
+    np.testing.assert_array_equal(surface['bos_up'], np.full(16, 17.))
+    np.testing.assert_array_equal(surface['observed_coverage_fraction'], np.full(16, 0.8))
+    for cut in (8, 10, 13):
+        prefix = {name: value[:cut].copy() for name, value in _observed_structure_surface().items()}
+        f.add_observed_structure(prefix)
+        for name in expected:
+            np.testing.assert_array_equal(prefix['observed_proxy_' + name], surface['observed_proxy_' + name][:cut])
+
+
+def test_observed_structure_resets_at_boundary_gap_missing_bucket_and_contract():
+    surface = _observed_structure_surface()
+    # A real missing minute across a bucket boundary is not assigned to a
+    # guessed maintenance calendar. Internal missingness remains in coverage.
+    surface['observed_last_minute_ns'][5] -= t.MINUTE_NS
+    surface['observed_valid'][9] = False
+    surface['contract_index'][12:] = 1
+    f.add_observed_structure(surface)
+    assert surface['observed_proxy_boundary_gap_minutes'][6] == 1
+    for begin, end in ((0, 6), (6, 9), (10, 12), (12, 16)):
+        expected = replay_volume_order_block_proxies_v1(*[surface['observed_' + name][begin:end] for name in
+            ('open_usd', 'high_usd', 'low_usd', 'close_usd', 'volume')])
+        for name, value in expected.items():
+            np.testing.assert_array_equal(surface['observed_proxy_' + name][begin:end], value)
+    assert np.isnan(surface['observed_proxy_bos_up'][9])

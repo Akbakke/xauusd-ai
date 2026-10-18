@@ -25,6 +25,9 @@ from gx1.features.entry_foundation_structure_v1 import (
 )
 from gx1.features.htf_features import (
     LOCAL_MOMENTUM_V30_PRIMITIVE_FEATURES,
+    MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE,
+    MULTI_TF_V4_VOLUME_FEATURES,
     MULTI_TF_V4_MOMENTUM_EVENT_FEATURES,
     _atr as _htf_atr_v4,
     _cross_down_event as _htf_cross_down_event_v4,
@@ -38,6 +41,7 @@ from gx1.features.level_registry_v1 import (
 )
 from gx1.features.smc_v1 import (
     SMC_V30_ADDITION_NAMES_V1,
+    SMC_MTF_FEATURE_NAMES_V1,
     SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES,
     compute_smc_features,
 )
@@ -368,6 +372,51 @@ MODEL_NATIVE_MANDATORY_FAMILY_COUNT = len(MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
 MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = len(
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
 )
+
+# The local M5 snapshot and the new M5 V4 sequence intentionally expose
+# two representations of the SAME closed-bar formula. These aliases are
+# derived from the producers' ordered names, never learned from correlations.
+# The cross-surface audit must still prove every pair bit-identical on the
+# actual decision population. M1 Exit has no same-clock MTF lane, so none of
+# these aliases applies there.
+def model_native_m5_local_per_bar_exact_aliases() -> tuple[tuple[str, str], ...]:
+    aliases: list[tuple[str, str]] = []
+    aliases.extend((name, "mtf_" + name.replace(".", "_"))
+                   for name in CANDLE_PRIMITIVE_MANDATORY_FEATURE_NAMES)
+    aliases.extend((name, "mtf_" + name) for name in LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES)
+    aliases.extend((name, name.removeprefix("chart."))
+                   for name in TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
+    aliases.extend((name if name in SWING_EVENT_LAYER_FEATURE_NAMES else "ctx_cont." + name, mtf)
+                   for mtf, name in MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE.items())
+    aliases.extend((name, name) for name in MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES)
+    aliases.extend((name, name) for name in MULTI_TF_V4_VOLUME_FEATURES)
+    aliases.extend((name, name) for name in VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES)
+    for name in PRICE_DERIVED_FEATURE_NAMES:
+        bare = name.removeprefix("chart.local_")
+        if bare == "kama_efficiency_30":
+            continue  # No per-TF counterpart is implemented.
+        bare = {"price_vs_ema50_atr": "ema50_dist_atr",
+                "price_vs_ema200_atr": "ema200_dist_atr"}.get(bare, bare)
+        aliases.append((name, bare))
+    for mtf in SMC_MTF_FEATURE_NAMES_V1:
+        if mtf == "mtf_smc_structure_bias":
+            continue  # The local SMC owner does not emit this extra sign mean.
+        local = mtf.removeprefix("mtf_")
+        if local == "smc_range_width_atr":
+            local = "smc_pivot_envelope_width_atr"
+        aliases.append((local, mtf))
+    aliases.extend((
+        ("ema20_slope_atr", "ema20_slope_atr"),
+        ("ctx_cont.atr_bps", "atr_bps_14"),
+        ("ctx_cont.m5_trend_state_age_bars_v2", "trend_state_age_bars"),
+        ("ctx_cont.m5_ema_stack_aligned_v2", "ema_stack_aligned_v2"),
+    ))
+    result = tuple(aliases)
+    if (len({local for local, _ in result}) != len(result)
+            or any(mtf not in MULTI_TF_PER_BAR_FEATURES_V4 for _, mtf in result)):
+        raise RuntimeError("MODEL_NATIVE_M5_LOCAL_PER_BAR_ALIAS_INVALID")
+    return result
+
 
 # The FULL emitted surface of every registered family, in the same label order.
 #

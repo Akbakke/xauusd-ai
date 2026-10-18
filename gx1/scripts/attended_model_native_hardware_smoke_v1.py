@@ -372,6 +372,7 @@ def main() -> None:
         batch["snap_x"],
         ctx_cat=batch["ctx_cat"],
         ctx_cont=batch["ctx_cont"],
+        seq_m5=batch["seq_m5"],
         seq_m15=batch["seq_m15"],
         seq_h1=batch["seq_h1"],
         seq_h4=batch["seq_h4"],

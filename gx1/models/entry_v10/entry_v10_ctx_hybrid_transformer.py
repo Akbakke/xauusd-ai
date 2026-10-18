@@ -430,7 +430,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             snap_x,
             ctx_cat=ctx_cat,
             ctx_cont=ctx_cont,
-        seq_m15=seq_m15,
+            seq_m5=seq_m5,
+            seq_m15=seq_m15,
             seq_h1=seq_h1,
             seq_h4=seq_h4,
             seq_d1=seq_d1,
@@ -3714,6 +3715,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         *,
         ctx_cat: torch.Tensor,
         ctx_cont: torch.Tensor,
+        seq_m5: torch.Tensor,
         seq_m15: torch.Tensor,
         seq_h1: torch.Tensor,
         seq_h4: torch.Tensor,
@@ -3734,6 +3736,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         entry_mtf = self._encode_multi_tf_route(
             base_representation=z_v3,
             tf_inputs=(
+                ("m5", seq_m5, self.cfg.m5_seq_len, self._expected_m5_seq_dim),
                 ("m15", seq_m15, self.cfg.m15_seq_len, self._expected_m15_seq_dim),
                 ("h1", seq_h1, self.cfg.h1_seq_len, self._expected_h1_seq_dim),
                 ("h4", seq_h4, self.cfg.h4_seq_len, self._expected_h4_seq_dim),

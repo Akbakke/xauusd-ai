@@ -77,13 +77,29 @@ def test_unregistered_active_cross_surface_duplicate_fails_closed() -> None:
     ]
 
 
-def test_entry_m5_cache_is_not_an_active_entry_route() -> None:
-    assert DECISION_ROUTES["entry"]["local_timeframe"] == "M5"
-    assert "M5" not in DECISION_ROUTES["entry"]["active_mtf_timeframes"]
-    assert all(
-        "mtf.m5." not in pair[1]
-        for pair in declared_context_mtf_aliases(decision="entry")
+def test_entry_m5_cache_is_active_and_same_clock_aliases_stay_exact() -> None:
+    from gx1.features.entry_model_native_feature_layers_v1 import (
+        model_native_m5_local_per_bar_exact_aliases,
     )
+    assert DECISION_ROUTES["entry"]["local_timeframe"] == "M5"
+    assert "M5" in DECISION_ROUTES["entry"]["active_mtf_timeframes"]
+    entry = declared_context_mtf_aliases(decision="entry")
+    exit_ = declared_context_mtf_aliases(decision="exit")
+    for local, mtf in model_native_m5_local_per_bar_exact_aliases():
+        pair = ("local.signal." + local, "mtf.m5." + mtf)
+        assert pair in entry
+        if local.startswith("ctx_cont.m5_"):
+            # This is explicitly M5-clock as-of context even on M1 Exit.
+            assert pair in exit_
+        else:
+            assert pair not in exit_  # Native M1 values cannot alias M5 formulas.
+    pair = ("local.signal.candle.raw_body_signed_range", "mtf.m5.mtf_candle_raw_body_signed_range")
+    result = classify_active_duplicate_pairs(
+        decision="entry",
+        local_field_hashes={pair[0]: _digest("a")},
+        active_mtf_field_hashes={pair[1]: _digest("b")},
+    )
+    assert any(row["local_field"] == pair[0] for row in result["missing_declared_context_mtf_alias_pairs"])
 
 
 def test_alias_policy_derives_both_local_paths_from_feature_owner() -> None:

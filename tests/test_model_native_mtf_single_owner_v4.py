@@ -128,7 +128,7 @@ def test_m5_and_m1_projection_share_the_same_closed_v4_state() -> None:
     # the momentum-G3 `m5_rsi14_canon_v2` ctx scalar lives on the M5 frame, and
     # its projection onto the M5 decision clock is the identity (cutoff =
     # t + 5min - MULTI_TF_SHIFT["M5"] = t).  The windowed per-TF SEQUENCE route
-    # is a different contract and still M15/H1/H4/D1 for Entry
+    # uses the same five clocks for Entry, with its own +5m availability
     # (ENTRY_MTF_CONTEXT_TIMEFRAMES, entry_exit_feature_base_v1).
     assert model_native_mtf_owner_marker_v4(
         decision_bar_duration=pd.Timedelta(minutes=5)
@@ -140,7 +140,7 @@ def test_m5_and_m1_projection_share_the_same_closed_v4_state() -> None:
         ENTRY_MTF_CONTEXT_TIMEFRAMES,
     )
 
-    assert ENTRY_MTF_CONTEXT_TIMEFRAMES == ("M15", "H1", "H4", "D1")
+    assert ENTRY_MTF_CONTEXT_TIMEFRAMES == ("M5", "M15", "H1", "H4", "D1")
 
 
 def test_v4_attachment_rejects_any_preexisting_mtf_field_owner() -> None:

@@ -149,3 +149,89 @@ def test_full_gc_history_repairs_missing_spot_opening_without_relaxing_quality()
     # A genuine rejected GC opening bar still rejects the entire session prefix.
     valid[0]=False;rejected=dynamic_profiles_v2(start,hist,valid,ci,close,1)
     assert not rejected['session_complete_valid'].any()
+
+
+def _qualified_m1_book():
+    from gx1.features.gc_order_flow_v1 import L1_FIELDS_V2, L1_ORDER_COUNT_FIELDS_V1
+    from gx1.contracts import gc_source_disposition_v1 as timing
+    minute = timing.MINUTE_NS
+    book = {name: np.arange(5, dtype=float) + 1 for name in L1_FIELDS_V2 + L1_ORDER_COUNT_FIELDS_V1}
+    book.update(ofi_valid=np.array([1, 0, 1, 1, 1], bool),
+        bbo_valid=np.array([1, 0, 1, 0, 1], bool),
+        covered_ns=np.array([minute, minute // 2, minute, 0, minute], np.int64),
+        order_count_valid=np.array([1, 0, 1, 0, 0], bool),
+        order_covered_ns=np.array([minute, 0, minute, 0, 0], np.int64),
+        opening_mid_tick=np.arange(5, dtype=float) + 100,
+        closing_mid_tick=np.arange(5, dtype=float) + 110)
+    book['tw_spread_ticks'] = np.array([2., np.nan, 4., np.nan, 8.])
+    book['tw_bid_orders'] = np.array([2., np.nan, 6., np.nan, np.nan])
+    return book
+
+
+def test_observed_book_separates_additive_flow_bbo_and_count_coverage():
+    from gx1.features.gc_order_flow_v1 import aggregate_observed_book_v1
+    from gx1.contracts import gc_source_disposition_v1 as timing
+    minutes = timing.STUDY_START_NS + np.arange(5) * timing.MINUTE_NS
+    book = _qualified_m1_book()
+    out = aggregate_observed_book_v1(minutes, np.zeros(5, np.int16), book, 'M5')
+    assert out['observed_book_flow_accepted_minutes'].tolist() == [4]
+    assert out['observed_book_accepted_minutes'].tolist() == [3]
+    assert out['observed_order_accepted_minutes'].tolist() == [2]
+    assert out['observed_book_ofi_contracts'].tolist() == [13]
+    np.testing.assert_allclose(out['observed_book_tw_spread_ticks'], [14 / 3])
+    assert out['observed_order_tw_bid_orders'].tolist() == [4]
+    assert out['observed_book_covered_ns'].tolist() == [3 * timing.MINUTE_NS]
+    assert out['observed_order_covered_ns'].tolist() == [2 * timing.MINUTE_NS]
+    assert out['observed_book_coverage_fraction'].tolist() == [0.6]
+    assert out['observed_order_coverage_fraction'].tolist() == [0.4]
+    # Response uses the same earliest/latest admitted quotes, with explicit
+    # interval timestamps and the fact that their interior is not contiguous.
+    assert out['observed_book_mid_response_ticks'].tolist() == [14]
+    assert out['observed_book_response_span_minutes'].tolist() == [5]
+    assert out['observed_book_response_contiguous'].tolist() == [False]
+    assert int(out['observed_book_first_minute_ns'][0]) == int(minutes[0])
+    assert int(out['observed_book_last_minute_ns'][0]) == int(minutes[4])
+
+
+def test_observed_book_rejects_partial_mean_fabrication_roll_and_partial_bucket():
+    import pytest
+    from gx1.features.gc_order_flow_v1 import aggregate_observed_book_v1
+    from gx1.contracts import gc_source_disposition_v1 as timing
+    minutes = timing.STUDY_START_NS + np.arange(5) * timing.MINUTE_NS
+    book = _qualified_m1_book()
+    broken = dict(book, covered_ns=book['covered_ns'].copy(), order_covered_ns=book['order_covered_ns'].copy())
+    broken['covered_ns'][0] = timing.MINUTE_NS // 2
+    broken['order_covered_ns'][0] = 0
+    with pytest.raises(ValueError, match='PARTIAL_MEAN_UNAVAILABLE'):
+        aggregate_observed_book_v1(minutes, np.zeros(5, np.int16), broken, 'M5')
+    rolled = aggregate_observed_book_v1(minutes, np.array([0, 0, 0, 1, 1]), book, 'M5')
+    assert not rolled['observed_book_contract_valid'][0]
+    assert not rolled['observed_book_valid'][0] and not rolled['observed_book_flow_valid'][0]
+    assert np.isnan(rolled['observed_book_mid_response_ticks'][0])
+    short = aggregate_observed_book_v1(minutes[:4], np.zeros(4, np.int16),
+        {name: value[:4] for name, value in book.items()}, 'M5')
+    assert not short['observed_book_valid'][0]
+    assert np.isnan(short['observed_order_tw_bid_orders'][0])
+
+
+def test_observed_book_prefix_and_all_canonical_timeframes_share_closed_grid():
+    from gx1.features.gc_order_flow_v1 import aggregate_observed_book_v1, L1_FIELDS_V2, L1_ORDER_COUNT_FIELDS_V1
+    from gx1.features.htf_features import MULTI_TF_SHIFT
+    from gx1.contracts import gc_source_disposition_v1 as timing
+    n = 2880
+    minutes = timing.STUDY_START_NS + np.arange(n) * timing.MINUTE_NS
+    book = {name: np.ones(n) for name in L1_FIELDS_V2 + L1_ORDER_COUNT_FIELDS_V1}
+    book.update(ofi_valid=np.ones(n, bool), bbo_valid=np.ones(n, bool),
+        covered_ns=np.full(n, timing.MINUTE_NS, np.int64), order_count_valid=np.ones(n, bool),
+        order_covered_ns=np.full(n, timing.MINUTE_NS, np.int64),
+        opening_mid_tick=np.arange(n, dtype=float) + 100, closing_mid_tick=np.arange(n, dtype=float) + 101)
+    for timeframe in MULTI_TF_SHIFT:
+        full = aggregate_observed_book_v1(minutes, np.zeros(n, np.int16), book, timeframe)
+        cut = 1440
+        prefix = aggregate_observed_book_v1(minutes[:cut], np.zeros(cut, np.int16),
+            {name: value[:cut] for name, value in book.items()}, timeframe)
+        complete = prefix['available_ns'] <= minutes[cut]
+        for name in prefix:
+            np.testing.assert_array_equal(prefix[name][complete], full[name][:len(prefix[name])][complete])
+        assert np.any(full['observed_book_valid'])
+        assert np.all(full['observed_book_coverage_fraction'][full['observed_book_valid']] == 1)

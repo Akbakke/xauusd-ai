@@ -86,3 +86,116 @@ def test_footprint_sums_fragmented_price_rows_and_keeps_unknown(tmp_path):
     values = pq.read_table(target).to_pydict()
     assert values['buy'] == [5] and values['unknown'] == [1]
     assert values['signed_valid'] == [False]
+
+
+
+def _derived_test_plan():
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import DERIVED_TIMEFRAME_SCHEMA, DERIVED_TIMEFRAME_MODE
+    return {'schema_version': DERIVED_TIMEFRAME_SCHEMA, 'mode': DERIVED_TIMEFRAME_MODE,
+        'timeframes': ['M5', 'M15', 'H1', 'H4', 'D1'],
+        'study_start_inclusive': '2024-05-01T00:00:00Z', 'study_end_exclusive': '2026-07-01T00:00:00Z'}
+
+
+def test_derived_mode_requires_new_explicit_schema_mode_and_original_scope():
+    import pytest
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import derived_timeframe_mode
+    assert not derived_timeframe_mode({'schema_version': 'gx1_native_raw_gc_input_rebuild_plan_v1'})
+    assert derived_timeframe_mode(_derived_test_plan())
+    for change in ({'mode': 'raw'}, {'timeframes': ['M5']},
+            {'study_end_exclusive': '2026-07-02T00:00:00Z'}):
+        plan = {**_derived_test_plan(), **change}
+        with pytest.raises(RuntimeError, match='DERIVED_GC_PLAN_SCOPE'):
+            derived_timeframe_mode(plan)
+    with pytest.raises(RuntimeError, match='DERIVED_GC_PLAN_MODE'):
+        derived_timeframe_mode({'schema_version': 'unknown', 'mode': 'derive_timeframes_from_completed_m1'})
+
+
+def _write_completed_footprint(path, rows):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    schema = pa.schema([('bar_start_ns', pa.int64()), ('contract_index', pa.int16()),
+        ('price_tick', pa.int64()), ('buy', pa.uint64()), ('sell', pa.uint64()),
+        ('unknown', pa.uint64()), ('signed_valid', pa.bool_())])
+    table = pa.Table.from_pylist(rows, schema=schema)
+    pq.write_table(table, path, row_group_size=1)
+
+
+def test_completed_footprint_maps_actual_m1_clock_and_retains_all_side_quantities(tmp_path):
+    import pyarrow.parquet as pq
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import stream_completed_footprint
+    origin = timing.STUDY_START_NS
+    minutes = origin + np.arange(3, dtype=np.int64) * timing.MINUTE_NS
+    path, output = tmp_path / 'footprint.parquet', tmp_path / 'ladder.parquet'
+    # Published raw footprint order is by contract, not globally by M1 clock.
+    _write_completed_footprint(path, [
+        {'bar_start_ns': int(minutes[2]), 'contract_index': 0, 'price_tick': 100,
+            'buy': 3, 'sell': 2, 'unknown': 1, 'signed_valid': False},
+        {'bar_start_ns': int(minutes[0]), 'contract_index': 1, 'price_tick': 101,
+            'buy': 4, 'sell': 0, 'unknown': 0, 'signed_valid': True},
+        {'bar_start_ns': int(minutes[0]), 'contract_index': 1, 'price_tick': 102,
+            'buy': 1, 'sell': 2, 'unknown': 0, 'signed_valid': True}])
+    metrics = {'buy': np.array([5, 0, 3], np.uint64), 'sell': np.array([2, 0, 2], np.uint64),
+        'unknown': np.array([0, 0, 1], np.uint64)}
+    masks = {'volume': np.array([True, False, True]), 'delta': np.array([True, False, False])}
+    assert stream_completed_footprint(path, minutes, np.array([1, 1, 0]), metrics, masks, output) == 3
+    result = pq.read_table(output).to_pydict()
+    assert result['minute_index'] == [2, 0, 0]
+    assert result['unknown'] == [1, 0, 0]
+    assert result['buy'] == [3, 4, 1]
+
+
+def test_completed_footprint_rejects_wrong_side_sum_and_missing_admitted_minute(tmp_path):
+    import pytest
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import stream_completed_footprint
+    origin = timing.STUDY_START_NS
+    minutes = origin + np.arange(2, dtype=np.int64) * timing.MINUTE_NS
+    path = tmp_path / 'footprint.parquet'
+    _write_completed_footprint(path, [{'bar_start_ns': int(minutes[0]), 'contract_index': 0,
+        'price_tick': 100, 'buy': 3, 'sell': 2, 'unknown': 0, 'signed_valid': True}])
+    masks = {'volume': np.array([True, True]), 'delta': np.array([True, True])}
+    metrics = {'buy': np.array([4, 1]), 'sell': np.array([2, 1]), 'unknown': np.array([0, 0])}
+    with pytest.raises(RuntimeError, match='DERIVED_GC_FOOTPRINT_SIDE_CONSERVATION'):
+        stream_completed_footprint(path, minutes, np.array([0, 0]), metrics, masks, tmp_path / 'bad-side.parquet')
+    metrics['buy'][0] = 3
+    with pytest.raises(RuntimeError, match='DERIVED_GC_FOOTPRINT_MINUTE_CONSERVATION'):
+        stream_completed_footprint(path, minutes, np.array([0, 0]), metrics, masks, tmp_path / 'missing-minute.parquet')
+
+
+def test_completed_footprint_rejects_contract_and_exact_clock_mismatch(tmp_path):
+    import pytest
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import stream_completed_footprint
+    minutes = np.array([timing.STUDY_START_NS], np.int64)
+    row = {'bar_start_ns': int(minutes[0]), 'contract_index': 1, 'price_tick': 100,
+        'buy': 3, 'sell': 2, 'unknown': 0, 'signed_valid': True}
+    metrics = {'buy': np.array([3]), 'sell': np.array([2]), 'unknown': np.array([0])}
+    masks = {'volume': np.array([True]), 'delta': np.array([True])}
+    for index, change in enumerate(({}, {'contract_index': 0, 'bar_start_ns': int(minutes[0]) + 1})):
+        path = tmp_path / f'bad-{index}.parquet'
+        _write_completed_footprint(path, [{**row, **change}])
+        with pytest.raises(RuntimeError, match='DERIVED_GC_FOOTPRINT_M1_MAPPING'):
+            stream_completed_footprint(path, minutes, np.array([0]), metrics, masks, tmp_path / f'out-{index}.parquet')
+
+
+def test_derived_inputs_require_completed_original_inventory_and_exact_hashes(tmp_path):
+    import hashlib
+    import json
+    import pytest
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import DERIVED_INPUT_NAMES, bound_derived_inputs
+    inputs, artifacts = {}, {}
+    for name, filename in DERIVED_INPUT_NAMES.items():
+        path = tmp_path / filename
+        path.write_bytes(name.encode())
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        inputs[name] = {'path': str(path), 'sha256': digest}
+        artifacts[filename] = {'sha256': digest, 'bytes': path.stat().st_size}
+    terminal = tmp_path / 'TERMINAL.json'
+    value = {'status': 'COMPLETE', 'exit_code': 0, 'source_unchanged': True,
+             'test_data_used': False, 'artifacts': artifacts}
+    terminal.write_text(json.dumps(value))
+    inputs['source_terminal'] = {'path': str(terminal), 'sha256': hashlib.sha256(terminal.read_bytes()).hexdigest()}
+    assert set(bound_derived_inputs({'inputs': inputs})) == set(inputs)
+    value['exit_code'] = 1
+    terminal.write_text(json.dumps(value))
+    inputs['source_terminal']['sha256'] = hashlib.sha256(terminal.read_bytes()).hexdigest()
+    with pytest.raises(RuntimeError, match='DERIVED_GC_SOURCE_NOT_COMPLETE'):
+        bound_derived_inputs({'inputs': inputs})

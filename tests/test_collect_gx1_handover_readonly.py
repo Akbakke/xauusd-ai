@@ -170,7 +170,11 @@ def test_gc_source_resume_preserves_retraining_boundaries_and_gc_evidence():
     assert rebuild['run_root'] != prep['run_root']
     assert work['existing_indicator_surface_changed'] is False
     assert work['training_started'] is False
-    assert gc['status'] == work['gc_goal_status']
+    # Consumed research keeps its scoped result while a later native goal owns
+    # current status. Never project that old conclusion onto the new generation.
+    assert gc['status'] != work['gc_goal_status']
+    assert work['project_goal']['entry_timeframe'] == 'M5'
+    assert work['native_gc_rebuild_20261017']['training_started'] is False
     assert gc['goal_execution_requested'] is True
     assert gc['research_fit_authorized_after_qualification_and_frozen_recipe'] is False
     assert gc['source_fetch_authorized'] is False
@@ -863,8 +867,18 @@ def test_current_handover_separates_new_rebuild_from_consumed_preprocessing():
     assert native_terminal['path'].startswith(current['run_root'] + '/')
     assert not native_terminal['path'].startswith(repair['run_root'] + '/')
     assert not work['latest_terminal']['path'].startswith(current['run_root'] + '/')
-    assert any(isinstance(v, dict) and v.get('terminal_path') == work['latest_terminal']['path']
-               and v.get('completed_invocations') == 1 for v in work.values())
+    def consumed_stage_bindings(value):
+        if isinstance(value, dict):
+            if value.get('completed_invocations') == 1:
+                terminal = value.get('terminal')
+                if isinstance(terminal, dict):
+                    yield terminal
+                if value.get('terminal_path'):
+                    yield {'path': value['terminal_path']}
+            for item in value.values():
+                yield from consumed_stage_bindings(item)
+    assert any(item['path'] == work['latest_terminal']['path']
+               for item in consumed_stage_bindings(work))
     assert repair['core_build_authorized'] is False
     assert repair['core_relaunch_allowed'] is False
     assert repair['complete_m1_stage']['authorized'] is False
@@ -1027,3 +1041,21 @@ def test_p0_exact_bound_witness_is_observation_only(fixture,monkeypatch,kind,mut
     else:
         with pytest.raises(ValueError):current_status(fixture)
     assert terminal.read_bytes()==before
+
+
+def test_handover_shows_durable_project_goal_and_current_native_generation():
+    from scripts.collect_gx1_handover_readonly import handover_view
+    goal = {"entry_timeframe": "M5", "data_priority": "26month MBP1"}
+    native = {"status": "INPUTS_QUALIFIED", "physical_dataset_published": True,
+              "physical_dataset_input_qualification_complete": True,
+              "physical_dataset_normalization_complete": False,
+              "training_started": False, "raw_stage": {"old_receipts": "omitted"}}
+    status = {"decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY", "current_work": {
+        "project_goal": goal, "native_gc_rebuild_20261017": native,
+        "current_blocker": "normalization and parity", "historical_scope": {"do_not_dump": True}}}
+    out = handover_view(status)
+    assert out["current_work"]["project_goal"] == goal
+    assert out["current_work"]["native_gc_rebuild_20261017"] == {
+        key: value for key, value in native.items() if key != "raw_stage"}
+    assert "historical_scope" not in out["current_work"]
+    assert out["decision"] == "OBSERVATION_ONLY_NOT_RUN_AUTHORITY"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Show compact current status, the explicit terminal and CURRENT workloads.
+# Show the durable project goal, current generation, explicit terminal and CURRENT workloads.
 # No historical checkpoint selection, native launch or model forward occurs.
 set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)

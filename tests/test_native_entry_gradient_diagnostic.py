@@ -104,7 +104,7 @@ class Small(torch.nn.Module):
 def pair(monkeypatch):
     torch.manual_seed(104)
     model=Small().eval()
-    batch={k:torch.randn(16,4) for k in ["seq_x","snap_x","ctx_cat","ctx_cont","seq_m15","seq_h1","seq_h4","seq_d1"]}
+    batch={k:torch.randn(16,4) for k in ["seq_x","snap_x","ctx_cat","ctx_cont","seq_m5","seq_m15","seq_h1","seq_h4","seq_d1"]}
     batch["y_position_size_target"]=torch.zeros(16);batch["y_position_size_mask"]=torch.zeros(16)
     monkeypatch.setattr(runner.trainer,"dip_forecast_task_losses",lambda out,*a:{"forecast_return_bps":(out["aux"]-1).square().mean()})
     monkeypatch.setattr(runner.trainer,"_side_mae_auxiliary_loss",lambda out,*a:((out["aux"]+1).square().mean(),{}))

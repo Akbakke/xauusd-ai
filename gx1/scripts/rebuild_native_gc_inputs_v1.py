@@ -8,6 +8,7 @@ import multiprocessing as mp
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 import time
 
 import numpy as np
@@ -330,18 +331,203 @@ def build(plan, stage):
         'test_data_used': False, 'optimizer_steps': 0}
 
 
+DERIVED_TIMEFRAME_SCHEMA = 'gx1_native_derived_gc_timeframes_plan_v1'
+DERIVED_TIMEFRAME_MODE = 'derive_timeframes_from_completed_m1'
+DERIVED_TIMEFRAMES = ('M5', 'M15', 'H1', 'H4', 'D1')
+DERIVED_INPUT_NAMES = {
+    'm1_inputs': 'M1_GC_INPUTS.parquet',
+    'footprint_m1_levels': 'FOOTPRINT_M1_LEVELS.parquet',
+    'roll_schedule': 'ROLL_SCHEDULE.json',
+}
+
+
+def derived_timeframe_mode(plan):
+    """An explicit new plan cannot inherit the consumed raw-stage authority."""
+    if plan.get('schema_version') != DERIVED_TIMEFRAME_SCHEMA:
+        if 'mode' in plan:
+            raise RuntimeError('DERIVED_GC_PLAN_MODE')
+        return False
+    if (plan.get('mode') != DERIVED_TIMEFRAME_MODE
+            or tuple(plan.get('timeframes', ())) != DERIVED_TIMEFRAMES
+            or pd.Timestamp(plan['study_start_inclusive']).value != timing.STUDY_START_NS
+            or pd.Timestamp(plan['study_end_exclusive']).value != timing.WINDOW_END_NS):
+        raise RuntimeError('DERIVED_GC_PLAN_SCOPE')
+    return True
+
+
+def bound_derived_inputs(plan):
+    bindings = plan['inputs']
+    if set(bindings) != set(DERIVED_INPUT_NAMES) | {'source_terminal'}:
+        raise RuntimeError('DERIVED_GC_INPUT_INVENTORY')
+    paths = {}
+    for name, binding in bindings.items():
+        if set(binding) != {'path', 'sha256'}:
+            raise RuntimeError('DERIVED_GC_INPUT_BINDING')
+        path = Path(binding['path'])
+        if (not path.is_absolute() or path.is_symlink()
+                or any(parent.is_symlink() for parent in path.parents)
+                or path.resolve(strict=True) != path or not path.is_file()):
+            raise RuntimeError('DERIVED_GC_INPUT_PATH')
+        io.verify_digest(path, binding['sha256'], 'DERIVED_GC_INPUT')
+        paths[name] = path
+    terminal = io.read_json(paths['source_terminal'])
+    if (paths['source_terminal'].name != 'TERMINAL.json'
+            or terminal.get('status') != 'COMPLETE' or terminal.get('exit_code') != 0
+            or terminal.get('source_unchanged') is not True
+            or terminal.get('test_data_used') is not False):
+        raise RuntimeError('DERIVED_GC_SOURCE_NOT_COMPLETE')
+    for name, filename in DERIVED_INPUT_NAMES.items():
+        entry = terminal['artifacts'].get(filename, {})
+        if (paths[name] != paths['source_terminal'].parent / filename
+                or entry.get('sha256') != bindings[name]['sha256']
+                or entry.get('bytes') != paths[name].stat().st_size):
+            raise RuntimeError('DERIVED_GC_SOURCE_INVENTORY')
+    return paths
+
+
+def stream_completed_footprint(path, minutes, selected, metrics, masks, destination):
+    """Map bounded price batches to the exact M1 clock and conserve every side."""
+    schema = pa.schema([('minute_index', pa.int32()), ('price_tick', pa.int64()),
+                        ('buy', pa.uint64()), ('sell', pa.uint64()), ('unknown', pa.uint64())])
+    required = {'bar_start_ns', 'contract_index', 'price_tick', 'buy', 'sell', 'unknown', 'signed_valid'}
+    parquet = pq.ParquetFile(path)
+    if set(parquet.schema_arrow.names) != required:
+        raise RuntimeError('DERIVED_GC_FOOTPRINT_SCHEMA')
+    seen = np.zeros(len(minutes), bool)
+    current = None
+    sides = [0, 0, 0]
+    rows_seen = 0
+
+    def flush():
+        if current is not None:
+            if seen[current] or any(sides[j] != int(metrics[k][current])
+                                    for j, k in enumerate(('buy', 'sell', 'unknown'))):
+                raise RuntimeError('DERIVED_GC_FOOTPRINT_SIDE_CONSERVATION')
+            seen[current] = True
+
+    with pq.ParquetWriter(destination, schema, compression='zstd') as writer:
+        for batch in parquet.iter_batches(batch_size=65536, use_threads=False):
+            values = {name: batch.column(batch.schema.get_field_index(name)).to_numpy(zero_copy_only=False)
+                      for name in required}
+            indices = np.searchsorted(minutes, values['bar_start_ns'])
+            if (np.any(indices >= len(minutes))
+                    or not np.array_equal(minutes[np.minimum(indices, len(minutes) - 1)], values['bar_start_ns'])
+                    or np.any(selected[indices] != values['contract_index'])
+                    or not masks['volume'][indices].all()
+                    or not np.array_equal(masks['delta'][indices], values['signed_valid'])
+                    or np.any(values['price_tick'] <= 0)):
+                raise RuntimeError('DERIVED_GC_FOOTPRINT_M1_MAPPING')
+            # Published raw001 rows are ordered by contract and then M1/price,
+            # not globally by clock. A repeated M1 group is rejected by seen.
+            changes = np.r_[0, np.flatnonzero(np.diff(indices) != 0) + 1, len(indices)]
+            for begin, end in zip(changes[:-1], changes[1:]):
+                row = int(indices[begin])
+                if row != current:
+                    flush()
+                    current, sides = row, [0, 0, 0]
+                for j, name in enumerate(('buy', 'sell', 'unknown')):
+                    sides[j] += sum(map(int, values[name][begin:end]))
+            writer.write_table(pa.table({'minute_index': indices.astype(np.int32),
+                **{name: values[name] for name in ('price_tick', 'buy', 'sell', 'unknown')}}, schema=schema))
+            rows_seen += len(indices)
+        flush()
+    if rows_seen != parquet.metadata.num_rows or not np.array_equal(seen, masks['volume']):
+        raise RuntimeError('DERIVED_GC_FOOTPRINT_MINUTE_CONSERVATION')
+    return rows_seen
+
+
+def build_derived_timeframes(plan, stage):
+    """Reuse completed M1 bytes; no raw MBP-1 or previous feature-table scan."""
+    paths = bound_derived_inputs(plan)
+    roll = io.read_json(paths['roll_schedule'])
+    ticks = {value[2] for value in roll['metadata_identity'].values()}
+    if len(ticks) != 1 or roll['origin_ns'] != timing.STUDY_START_NS:
+        raise RuntimeError('DERIVED_GC_SOURCE_TICK')
+    tick = ticks.pop()
+    table = pq.read_table(paths['m1_inputs'])
+    minutes = table['bar_start_ns'].to_numpy(zero_copy_only=False).astype(np.int64)
+    expected = np.arange(timing.STUDY_START_NS, timing.WINDOW_END_NS, timing.MINUTE_NS, dtype=np.int64)
+    if not np.array_equal(minutes, expected):
+        raise RuntimeError('DERIVED_GC_M1_CLOCK')
+    selected = table['contract_index'].to_numpy(zero_copy_only=False).astype(np.int16)
+    if np.any(selected < -1) or np.any(selected >= len(roll['contract_order'])):
+        raise RuntimeError('DERIVED_GC_CONTRACT_INDEX')
+    metrics = {name: table[name].to_numpy(zero_copy_only=False).astype(np.uint64) for name in source.METRICS}
+    if not np.array_equal(metrics['volume'], metrics['buy'] + metrics['sell'] + metrics['unknown']):
+        raise RuntimeError('DERIVED_GC_M1_SIDE_CONSERVATION')
+    masks = source.row_masks(selected, metrics, minutes + timing.MINUTE_NS < timing.WINDOW_END_NS)
+    for name, stored in (('volume', 'volume_valid'), ('delta', 'signed_valid')):
+        if not np.array_equal(masks[name], table[stored].to_numpy(zero_copy_only=False)):
+            raise RuntimeError('DERIVED_GC_M1_ADMISSION_MASK')
+    ohlc = np.column_stack([table[name + '_tick'].to_numpy(zero_copy_only=False) for name in ('open', 'high', 'low', 'close')])
+    book_names = ('ofi_valid', 'bbo_valid', 'covered_ns', 'order_count_valid', 'order_covered_ns',
+                  'opening_mid_tick', 'closing_mid_tick') + features.L1_FIELDS_V2 + features.L1_ORDER_COUNT_FIELDS_V1
+    book = {name: table[name].to_numpy(zero_copy_only=False) for name in book_names}
+    surfaces, minute_maps = {}, {}
+    for tf in plan['timeframes']:
+        surfaces[tf], minute_maps[tf] = features.timeframe_skeleton(minutes, selected, metrics, masks, ohlc, tf, tick)
+    with tempfile.TemporaryDirectory(prefix='gx1-gc-derived-ladder-') as temporary:
+        ladder = Path(temporary) / 'SELECTED_LADDER.parquet'
+        footprint_rows = stream_completed_footprint(paths['footprint_m1_levels'], minutes,
+            selected, metrics, masks, ladder)
+        features.consume_ladder(ladder, surfaces, minute_maps, tick)
+    cvd = features.relative_cvd(minutes, selected, masks, metrics)
+    support = {}
+    for tf, surface in surfaces.items():
+        features.add_structure_and_cvd(surface, cvd, minute_maps, minutes)
+        features.add_observed_structure(surface)
+        observed_book = features.aggregate_observed_book_v1(minutes, selected, book, tf)
+        for key, values in observed_book.items():
+            if key in surface:
+                if key not in ('bar_start_ns', 'available_ns', 'contract_index') or not np.array_equal(surface[key], values):
+                    raise RuntimeError('DERIVED_GC_BOOK_GRID_COLLISION:' + key)
+            else:
+                surface[key] = values
+        take = surface['observed_valid'][minute_maps[tf]] & masks['volume']
+        totals = {name: sum(map(int, metrics[name][take])) for name in ('volume', 'buy', 'sell', 'unknown')}
+        emitted = {name: sum(map(int, surface['observed_' + target][surface['observed_valid']]))
+            for name, target in (('volume', 'volume'), ('buy', 'buy_known'), ('sell', 'sell_known'), ('unknown', 'unknown'))}
+        if totals != emitted:
+            raise RuntimeError('DERIVED_GC_TIMEFRAME_SIDE_CONSERVATION:' + tf)
+        output = pa.table(surface)
+        path = stage / ('TRADE_FEATURES_' + tf + '.parquet')
+        pq.write_table(output, path, compression='zstd')
+        if not features.exact_feature_readback_v2(output, pq.read_table(path)):
+            raise RuntimeError('DERIVED_GC_READBACK:' + tf)
+        support[tf] = {'rows': len(surface['bar_start_ns']),
+            'mask_support': {name: int(np.count_nonzero(value)) for name, value in surface.items()
+                if np.asarray(value).dtype == np.dtype(bool)},
+            'observed_accepted_m1_minutes': int(np.count_nonzero(take)),
+            'observed_source_side_contracts': totals, 'observed_emitted_side_contracts': emitted,
+            'observed_side_conservation': 'EXACT_ACCEPTED_M1_WITHIN_ADMITTED_SAME_CONTRACT_BUCKETS',
+            'finite_feature_support': {name: int(np.isfinite(value).sum()) for name, value in surface.items()
+                if name not in ('bar_start_ns', 'available_ns', 'contract_index')}}
+    # Sources remain immutable throughout derivation, not just at admission.
+    bound_derived_inputs(plan)
+    return {'mode': DERIVED_TIMEFRAME_MODE, 'source_inputs': plan['inputs'],
+        'raw_records_rescanned': 0, 'prior_feature_tables_reused': False,
+        'completed_m1_inputs_reused': True, 'footprint_price_rows': footprint_rows,
+        'footprint_side_conservation': 'EXACT_EVERY_VALID_SELECTED_M1', 'timeframes': support,
+        'strict_complete_clock_features_preserved': True, 'observed_partial_tape_features_separate': True,
+        'historical_exchange_calendar_qualified': False, 'native_model_wiring_qualified': False,
+        'native_dataset_complete': False, 'native_input_qualification_complete': False,
+        'test_data_used': False, 'optimizer_steps': 0}
+
+
 def run(binding_path):
     began = time.monotonic()
     binding = io.read_json(binding_path)
     plan_path = io.REPO / binding['plan_path']
     io.verify_digest(plan_path, binding['plan_sha256'], 'RAW_REBUILD_PLAN')
     plan = io.read_json(plan_path)
+    derived = derived_timeframe_mode(plan)
     root = Path(plan['run_root'])
     if binding_path != root / 'EXECUTION_BINDING.json':
         raise RuntimeError('RAW_REBUILD_BINDING_PATH')
     io.verify_digest(io.REPO / 'NEXT_RUN_POLICY.json', binding['policy_sha256'], 'RAW_REBUILD_POLICY')
     policy = io.read_json(io.REPO / 'NEXT_RUN_POLICY.json')
-    gate = policy['current_work']['native_gc_rebuild_20261017']['raw_stage']
+    gate = policy['current_work']['native_gc_rebuild_20261017'][
+        'derived_timeframe_stage' if derived else 'raw_stage']
     if (gate['plan_sha256'] != binding['plan_sha256'] or gate['status'] != 'EXECUTION_CLAIMED'
             or gate['claimed_invocations'] != 1 or gate['completed_invocations'] != 0
             or gate['execution_authorized'] is not False or policy['training_enabled'] is not False
@@ -357,13 +543,14 @@ def run(binding_path):
     stage = root / '.RESULTS.staging'
     stage.mkdir(exist_ok=False)
     io.write_json(root / 'EXECUTION_CLAIM.json', {'invocation': 1, 'source_head': binding['source_head']})
-    result = build(plan, stage)
+    result = build_derived_timeframes(plan, stage) if derived else build(plan, stage)
     for path, digest in binding['code_sha256'].items():
         io.verify_digest(io.REPO / path, digest, 'RAW_REBUILD_CODE_POST')
     io.verify_digest(io.REPO / 'NEXT_RUN_POLICY.json', binding['policy_sha256'], 'RAW_REBUILD_POLICY_POST')
     if io.git_head() != binding['source_head'] or subprocess.check_output(['git', 'status', '--porcelain'], cwd=io.REPO):
         raise RuntimeError('RAW_REBUILD_SOURCE_CHANGED')
-    result.update({'status': 'RAW_GC_INPUTS_REBUILT', 'source_head': binding['source_head'],
+    result.update({'status': ('DERIVED_GC_TIMEFRAMES_BUILT' if derived else 'RAW_GC_INPUTS_REBUILT'),
+                   'source_head': binding['source_head'],
                    'limits': proof, 'elapsed_seconds': time.monotonic() - began})
     io.write_json(stage / 'RESULT.json', result)
     inventory = {}
@@ -380,14 +567,14 @@ def run(binding_path):
             pq.ParquetFile(stage / name).metadata
     if {str(p.relative_to(stage)) for p in stage.rglob('*') if p.is_file()} != set(inventory) | {'TERMINAL.json'}:
         raise RuntimeError('RAW_REBUILD_PUBLICATION_INVENTORY')
-    for directory in (stage / 'RAW_REDUCTIONS', stage):
+    for directory in ((stage,) if derived else (stage / 'RAW_REDUCTIONS', stage)):
         fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
         try:
             os.fsync(fd)
         finally:
             os.close(fd)
     publish_bundle_directory_noreplace(stage, root / 'RESULTS')
-    print('NATIVE_RAW_GC_REBUILD_COMPLETE', flush=True)
+    print('NATIVE_DERIVED_GC_TIMEFRAMES_COMPLETE' if derived else 'NATIVE_RAW_GC_REBUILD_COMPLETE', flush=True)
 
 
 def main():
@@ -398,9 +585,25 @@ def main():
         run(args.binding)
     except Exception as exc:
         root = args.binding.parent
-        if root.is_dir() and not (root / 'FAILURE.json').exists():
-            io.write_json(root / 'FAILURE.json', {'status': 'FAILED_NO_ADMISSION', 'error': str(exc),
-                'finished_utc': datetime.now(timezone.utc).isoformat()})
+        if root.is_dir():
+            source_unchanged = None
+            try:
+                binding = io.read_json(args.binding)
+                source_unchanged = (io.git_head() == binding['source_head']
+                    and not subprocess.check_output(['git', 'status', '--porcelain'], cwd=io.REPO)
+                    and all(io.sha256_file(io.REPO / name) == digest
+                            for name, digest in binding['code_sha256'].items()))
+            except (OSError, RuntimeError, KeyError, TypeError):
+                pass
+            failure = {'status': 'FAILED_NO_ADMISSION', 'exit_code': 1,
+                'error': str(exc), 'source_unchanged': source_unchanged,
+                'test_data_used': None,
+                'test_access_observation': 'unproved_after_failure',
+                'finished_utc': datetime.now(timezone.utc).isoformat()}
+            if not (root / 'FAILURE.json').exists():
+                io.write_json(root / 'FAILURE.json', failure)
+            if not (root / 'TERMINAL.json').exists():
+                io.write_json(root / 'TERMINAL.json', failure)
         raise
 
 

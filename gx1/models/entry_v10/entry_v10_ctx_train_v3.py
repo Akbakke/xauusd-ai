@@ -3296,9 +3296,9 @@ def _entry_training_gradient_boundary_kwargs(dataset: "EntryV10CtxDataset") -> d
 
 
 def _multi_tf_kwargs_from_batch(batch: Dict[str, torch.Tensor], device: torch.device) -> Dict[str, torch.Tensor]:
-    """Extract Entry's exact M15/H1/H4/D1 route, or fail closed."""
+    """Extract Entry's exact contract-owned five-clock route, or fail closed."""
     out: Dict[str, torch.Tensor] = {}
-    for key in ("seq_m15", "seq_h1", "seq_h4", "seq_d1"):
+    for key in (f"seq_{tf.lower()}" for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES):
         if key not in batch or not isinstance(batch[key], torch.Tensor):
             raise RuntimeError(f"[ENTRY_EXACT_MULTI_TF_BATCH_MISSING] {key}")
         out[key] = batch[key].to(device)
@@ -8824,7 +8824,8 @@ def _entry_val_influence_inputs(
 ) -> dict[str, Any]:
     """Copy the exact Entry route into an isolated audit input mapping."""
 
-    required = ("seq_x", "snap_x", "ctx_cat", "ctx_cont", "seq_m15", "seq_h1", "seq_h4", "seq_d1")
+    required = ("seq_x", "snap_x", "ctx_cat", "ctx_cont",
+                *(f"seq_{tf.lower()}" for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES))
     if any(not isinstance(batch.get(key), torch.Tensor) for key in required):
         raise RuntimeError("ENTRY_VAL_INPUT_INFLUENCE_BATCH_SURFACE_MISSING")
     inputs: dict[str, Any] = {
@@ -8834,7 +8835,7 @@ def _entry_val_influence_inputs(
         "ctx_cont": batch["ctx_cont"].detach().to(device).clone(),
         "mtf": {
             key: batch[key].detach().to(device).clone()
-            for key in ("seq_m15", "seq_h1", "seq_h4", "seq_d1")
+            for key in (f"seq_{tf.lower()}" for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES)
         },
     }
     if require_grad:

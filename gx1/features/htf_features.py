@@ -4,7 +4,7 @@ The sole cache source is exact native M5 OHLCV. It emits the fixed ordered
 ``MULTI_TF_FEATURE_COUNT_V4``-field surface for M5/M15/H1/H4/D1 (the pre-V29
 surface + the V29 Phase-A per-TF event fields + the V29 level/trendline
 registry blocks; the count is derived from the declared name tuples, never
-restated), routes Entry on M15/H1/H4/D1 and Exit on M5/M15/H1/H4/D1, and fails
+restated), routes Entry and Exit on M5/M15/H1/H4/D1 at their own decision clocks, and fails
 closed on any schema, byte, chronology, warmup, or feature-order mismatch. No
 historical cache contract or computed-feature fallback is exposed.
 
@@ -638,7 +638,7 @@ MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4 = (
 # it carries the momentum-G3 `m5_rsi14_canon_v2` scalar, whose projection onto
 # the M5 clock is the identity (see the field-tuple comment).  This route is the
 # SCALAR surface only; the per-TF windowed sequence route stays
-# ENTRY_MTF_CONTEXT_TIMEFRAMES = M15/H1/H4/D1 (entry_exit_feature_base_v1) and
+# ENTRY_MTF_CONTEXT_TIMEFRAMES = M5/M15/H1/H4/D1 (entry_exit_feature_base_v1) and
 # is untouched.
 MODEL_NATIVE_MTF_SCALAR_ROUTES_V4 = {
     pd.Timedelta(minutes=5): ("M5", "M15", "H1", "H4", "D1"),
@@ -5195,23 +5195,21 @@ def get_model_native_multi_tf_route_windows(
     expected_cache_tfs = tuple(MULTI_TF_RESAMPLE_RULES)
     require_multi_tf_v4_frames(features)
     route = tuple(route_timeframes)
-    canonical_routes = {
-        tuple(ENTRY_MTF_CONTEXT_TIMEFRAMES): pd.Timedelta(
-            seconds=ENTRY_DECISION_BAR_SECONDS
-        ),
-        tuple(EXIT_MTF_CONTEXT_TIMEFRAMES): pd.Timedelta(
-            seconds=EXIT_DECISION_BAR_SECONDS
-        ),
-    }
-    if route not in canonical_routes:
+    # Entry and Exit consume the same five cache clocks, but close their
+    # native decision bars at different instants. A dict keyed only by route
+    # would overwrite Entry's +5m clock with Exit's +1m clock.
+    canonical_route_clocks = (
+        (tuple(ENTRY_MTF_CONTEXT_TIMEFRAMES), pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)),
+        (tuple(EXIT_MTF_CONTEXT_TIMEFRAMES), pd.Timedelta(seconds=EXIT_DECISION_BAR_SECONDS)),
+    )
+    if route not in {value[0] for value in canonical_route_clocks}:
         raise RuntimeError(
             f"MODEL_NATIVE_MTF_ROUTE_INVALID: observed={route!r}"
         )
-    if base_bar_duration != canonical_routes[route]:
+    if (route, base_bar_duration) not in canonical_route_clocks:
         raise RuntimeError(
             "MODEL_NATIVE_MTF_LOCAL_CLOCK_INVALID: "
-            f"route={route!r} observed={base_bar_duration} "
-            f"expected={canonical_routes[route]}"
+            f"route={route!r} observed={base_bar_duration}"
         )
     if (
         not isinstance(per_tf_seq_lens, dict)

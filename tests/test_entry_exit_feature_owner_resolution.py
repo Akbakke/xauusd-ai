@@ -90,7 +90,7 @@ def test_all_eight_owners_are_bound_to_local_m5_and_m1_with_closed_mtf() -> None
     )
     assert contract["entry_route"] == {
         "local_timeframe": "M5",
-        "mtf_context_timeframes": ["M15", "H1", "H4", "D1"],
+        "mtf_context_timeframes": ["M5", "M15", "H1", "H4", "D1"],
     }
     assert contract["exit_route"] == {
         "local_timeframe": "M1",

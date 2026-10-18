@@ -48,22 +48,34 @@ at siste batch, lagring og terminal får plass innen eksisterende ytre vakt.
 Rapporter beregningstid og lagre-/laste-/oppstartstid separat.
 Ingen kalenderjobb avbryter aktivt arbeid. Omstart beviser ikke løst BSOD-årsak.
 
-## Avgrenset smoke og review (opprinnelig 256-stegsmetode)
+## Gjeldende M5/MTF/MBP-læring
 
-1. Bruk den særskilt bundne native prøven: høyst256 optimizersteg og4096
-   TRAIN-Entries, batch16, seed20260911, eksisterende AdamW/scheduler,
-   FP32 og TF32 av. Ingen full epoch, full VAL eller automatisk utvidelse.
-2. Bevar initial/sluttstate, mål, masker, alle valgte samples og genuine
-   terminalkvitteringer. Bruk samme fryste TRAIN256 og separat CONTROL256
-   før/etter; aldri utfallsvelg kontrollrader eller flytt periodene.
-3. Mål Entry/Exit LONG/SHORT mot fersk initialisering og TRAIN-konstanter,
-   med bias, kontrast, varians, handlinger og ukeblokk-usikkerhet.
-   FLAT/HOLD eller biasflytting alene er ikke tilstandsavhengig læring.
-4. Rapporter TRAIN-fit og CONTROL-generaliseringsmåling separat etter
-   docs/LEARNING_GATE.md. Juni2026 er gjenbrukt utviklings-VAL, ikke urørt OOS.
-   Input-/mekanikk-PASS er ikke læring, generalisering eller profitt.
-5. Bare ved bestått samlet læringsport kan én ny forhåndsbundet finite
-   utvidelse vurderes. Feilet port krever diagnose, ikke en ekstra runde.
+Prosjektmålet i GX1_RULES.md er M5 Entry med lukket M15/H1/H4/D1-kontekst,
+alle genuine indikatorer og de eksisterende26månedene med MBP-1. Åtte
+spesialister og niende D1/makro-kontekst beholdes. Alle ruter, masker,
+formler, tidsrammer og faktisk konsum gjennomgås før ny modellkvalifisering.
+
+Den native epoken som er bestilt17.–18.10 erstattes ikke av en kort CPU-
+studie eller en gammel256-stegsmetode. Små mekanikkprøver kvalifiserer
+mekanikk; de avgjør ikke om en fullt trent Transformer kan ha verdi.
+En epoke må omfatte hver kvalifiserte TRAIN-rad nøyaktig én gang, med faktisk
+partial siste batch, varige checkpoints og det eksisterende finite vinduet.
+Ingen automatisk ekstra epoke, HPO eller seleksjon på evalueringsutfall.
+
+Operatøren valgte18.10 eksplisitt M5-prisforløp og liten MAE før MFE som
+hovedmål, med lengre horisonter som støtte. Entry-target, tap, handling og
+evaluering må bindes til dette før launch. Et h20-terminalmål måler20observerte
+sesjoners nettoavkastning og er ikke lenger hovedmålet. En targetendring krever én navngitt
+kontrakteier med kausale executable BID/ASK-utfall og deklarerte kostnader,
+ikke en gjettet horisont/vekt eller hindsight-valgt optimal exit. MFE/MAE,
+terminalavkastning, timing og handelsfrekvens rapporteres separat.
+
+Første reelle smoke skal bevise samme fysiske batch gjennom alle familier,
+GC-value/mask-par, alle MTF, normalisering og modell, samt fersk initialbaseline
+og train/serve-paritet. Entry-only-fasen må bevise Exit-grad=None og uendrede
+Exit-vekter. Bruk allerede beståtte uendrede kontroller; en ny funksjon krever
+ferske funksjonsbevis. Nøyaktig nåstatus og eventuelt uavklart målvalg finnes
+bare i CURRENT_HANDOVER.md/NEXT_RUN_POLICY.json.
 
 ## Bevarte datakrav og økonomi
 
@@ -83,26 +95,3 @@ Lokale prospective kostreceipts er ikke historisk kostfasit.
 
 Regler: GX1_RULES.md. TEST, broker, live/paper, handel, spending og promotion
 er stengt. GC og andre forskningsarmer åpnes ikke av denne metoden.
-
-## Separat avgrenset læringskurve
-
-En eksplisitt bestilt læringsstudie kan binde et eget endelig budsjett etter
-diagnose, uten å omskrive gammel negativ smoke til PASS. Planen
-configs/research/ENTRY_LEARNING_STUDY_20261010.json binder to ferske
-initialiseringer: 1024 steg med 256 faste TRAIN-rader og 16384 steg med
-262144 unike rader fra den opprinnelige epoch-rekkefølgen. Ingen full epoch.
-Arkitektur, alle 254 felt, åtte familier, tapsfunksjoner og optimizer er like.
-
-Nullmåling og faste mellomtrinn skjer i eval-modus på deklarerte rader;
-modelltilstand og RNG skal være uendret etter måling. Kontroll av 4096 senere
-CONTROL-rader skjer bare ved initialisering og det forhåndsvalgte sluttsteget.
-Ingen checkpoint eller parameter velges på CONTROL. Alle CONTROL-resultater
-er gjenbrukt utvikling; TEST åpnes ikke. HGB-referansen bruker alle 254 rå
-snapshotfelt og samme 262144 fit-rader, med purget indre kronologisk TRAIN-valg.
-Den representerer ikke sekvensmodellens fulle inputflate.
-
-Eksisterende atomiske to-slot-checkpoints eier resume. Mellomobservasjoner
-bevarer modellhash, RNG-hash, pekerinnhold, rader, mål og prognoser; en gammel
-mellomvekt beholdes ikke som separat checkpoint etter at eieren roterer sloten.
-Sluttcheckpoint og initial TARGET-state består. Review-metoden og eventuell
-videre kvalifisering er registrert før noen av de nye fits kjøres.

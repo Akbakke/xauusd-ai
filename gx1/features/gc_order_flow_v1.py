@@ -23,6 +23,12 @@ PROFILE_FIELDS = ('vwap_usd', 'poc_usd', 'q25_usd', 'median_usd', 'q75_usd', 'pr
 FOOTPRINT_FIELDS = ('max_level_delta_contracts', 'min_level_delta_contracts',
                     'buy_poc_usd', 'sell_poc_usd')
 CVD_FIELDS = ('cvd_segment_delta_contracts', 'cvd_segment_volume_contracts', 'cvd_segment_minutes')
+OBSERVED_FOOTPRINT_FIELDS = {
+    'max_level_delta_contracts': 'observed_known_max_level_delta_contracts',
+    'min_level_delta_contracts': 'observed_known_min_level_delta_contracts',
+    'buy_poc_usd': 'observed_buy_known_poc_usd',
+    'sell_poc_usd': 'observed_sell_known_poc_usd',
+}
 
 
 def histogram_features(ticks, buy, sell, unknown, tick_size):
@@ -133,6 +139,59 @@ def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_
     out['delta_contracts'] = out['buy'].astype(np.int64)-out['sell'].astype(np.int64)
     out['known_aggressor_fraction'] = np.divide(out['buy']+out['sell'],out['volume'],
         out=np.full(len(stamps),np.nan),where=out['volume']>0)
+    # Preserve the strict complete-clock domain above. The separate observed
+    # domain describes only admitted M1 bytes, never a complete exchange tape.
+    # Expected minutes are the fixed UTC bucket duration, not a guessed calendar.
+    accepted = np.asarray(masks['volume'], bool)
+    accepted_count = np.add.reduceat(accepted.astype(np.int64), first)
+    signed_count = np.add.reduceat((accepted & masks['delta']).astype(np.int64), first)
+    contract_valid = (np.minimum.reduceat(selected, first) >= 0)
+    contract_valid &= np.minimum.reduceat(selected, first) == np.maximum.reduceat(selected, first)
+    observed = (counts == expected) & contract_valid & (accepted_count > 0)
+    out.update(observed_valid=observed, observed_contract_valid=contract_valid,
+        observed_clock_minutes=counts, observed_expected_clock_minutes=np.full(len(stamps), expected, np.int64),
+        observed_accepted_minutes=accepted_count, observed_signed_minutes=signed_count,
+        observed_coverage_fraction=accepted_count / expected,
+        observed_signed_minute_fraction=np.divide(signed_count, accepted_count,
+            out=np.full(len(stamps), np.nan), where=accepted_count > 0))
+    for source_name, target in (('volume', 'volume'), ('buy', 'buy_known'),
+            ('sell', 'sell_known'), ('unknown', 'unknown'), ('trades', 'trades')):
+        quantities = np.add.reduceat(np.where(accepted, metrics[source_name], 0), first, dtype=np.uint64)
+        if np.any(quantities > 2**53):
+            raise RuntimeError('GC_FEATURE_FLOAT64_QUANTITY_EXACTNESS_BOUND_EXCEEDED')
+        value = quantities.astype(np.float64)
+        value[~observed] = np.nan
+        out['observed_' + target] = value
+    out['observed_known_delta_contracts'] = out['observed_buy_known'] - out['observed_sell_known']
+    out['observed_known_aggressor_fraction'] = np.divide(
+        out['observed_buy_known'] + out['observed_sell_known'], out['observed_volume'],
+        out=np.full(len(stamps), np.nan), where=out['observed_volume'] > 0)
+    out['observed_signed_complete'] = observed & (out['observed_unknown'] == 0)
+    positions = np.arange(len(minutes), dtype=np.int64)
+    opening = np.minimum.reduceat(np.where(accepted, positions, len(minutes)), first)
+    closing = np.maximum.reduceat(np.where(accepted, positions, -1), first)
+    opening = np.minimum(opening, len(minutes) - 1)
+    closing = np.maximum(closing, 0)
+    observed_prices = {
+        'open_usd': ohlc[opening, 0] * scale,
+        'high_usd': np.maximum.reduceat(np.where(accepted, ohlc[:, 1], 0), first) * scale,
+        'low_usd': np.minimum.reduceat(np.where(accepted, ohlc[:, 2], np.iinfo(np.int64).max), first) * scale,
+        'close_usd': ohlc[closing, 3] * scale,
+    }
+    for name, values in observed_prices.items():
+        out['observed_' + name] = np.where(observed, values, np.nan)
+    # Minute-grid nanoseconds in this source are exactly representable as
+    # float64; NaN preserves absence without inventing a timestamp sentinel.
+    for name, index in (('first', opening), ('last', closing)):
+        timestamps = minutes[index].astype(np.int64)
+        encoded = timestamps.astype(np.float64)
+        if not np.array_equal(encoded.astype(np.int64), timestamps):
+            raise RuntimeError('GC_FEATURE_OBSERVED_TIMESTAMP_PRECISION')
+        out['observed_' + name + '_minute_ns'] = np.where(observed, encoded, np.nan)
+    for name in PROFILE_FIELDS:
+        out['observed_' + name] = np.full(len(stamps), np.nan)
+    for name in OBSERVED_FOOTPRINT_FIELDS.values():
+        out[name] = np.full(len(stamps), np.nan)
     return out,inverse
 
 
@@ -148,20 +207,35 @@ def consume_ladder(path: Path, surfaces, minute_maps, tick_size):
         a = np.array([histogram[p] for p in ticks],dtype=np.uint64)
         values = histogram_features(ticks,a[:,0],a[:,1],a[:,2],tick_size)
         surface = surfaces[tf]
-        if np.isfinite(surface['vwap_usd'][bar]):
-            raise RuntimeError('GC_FEATURE_PROFILE_MULTIPLE_CONTRACTS')
-        if values['volume_contracts'] != int(surface['volume'][bar]):
-            raise RuntimeError('GC_FEATURE_LADDER_VOLUME_PARITY_FAILED')
-        for name in PROFILE_FIELDS:
-            surface[name][bar] = values[name]
-        if surface['signed_valid'][bar]:
-            for name in FOOTPRINT_FIELDS:
+        if surface['observed_valid'][bar]:
+            if np.isfinite(surface['observed_vwap_usd'][bar]):
+                raise RuntimeError('GC_FEATURE_PROFILE_MULTIPLE_CONTRACTS')
+            for j, name in enumerate(('buy_known', 'sell_known', 'unknown')):
+                if sum(map(int, a[:, j])) != int(surface['observed_' + name][bar]):
+                    raise RuntimeError('GC_FEATURE_OBSERVED_SIDE_VOLUME_PARITY_FAILED:' + name)
+            if values['volume_contracts'] != int(surface['observed_volume'][bar]):
+                raise RuntimeError('GC_FEATURE_OBSERVED_LADDER_VOLUME_PARITY_FAILED')
+            for name in PROFILE_FIELDS:
+                surface['observed_' + name][bar] = values[name]
+            # These are the KNOWN-side contributions, even when unknown volume
+            # exists. They never assert the sign of the unobserved aggressors.
+            for source_name, target in OBSERVED_FOOTPRINT_FIELDS.items():
+                surface[target][bar] = values[source_name]
+        if surface['volume_valid'][bar]:
+            if np.isfinite(surface['vwap_usd'][bar]):
+                raise RuntimeError('GC_FEATURE_PROFILE_MULTIPLE_CONTRACTS')
+            if values['volume_contracts'] != int(surface['volume'][bar]):
+                raise RuntimeError('GC_FEATURE_LADDER_VOLUME_PARITY_FAILED')
+            for name in PROFILE_FIELDS:
                 surface[name][bar] = values[name]
+            if surface['signed_valid'][bar]:
+                for name in FOOTPRINT_FIELDS:
+                    surface[name][bar] = values[name]
     for batch in pq.ParquetFile(path).iter_batches(batch_size=65536):
         a = {n:batch.column(batch.schema.get_field_index(n)).to_numpy() for n in batch.schema.names}
         for tf,surface in surfaces.items():
             bars = minute_maps[tf][a['minute_index']]
-            take = surface['volume_valid'][bars]
+            take = (surface['volume_valid'] | surface['observed_valid'])[bars]
             if not np.any(take):
                 continue
             bars,ticks = bars[take],a['price_tick'][take]
@@ -221,6 +295,45 @@ def add_structure_and_cvd(surface, minute_cvd, minute_maps, minutes):
             surface[name] = value
 
 
+def add_observed_structure(surface):
+    """Existing SMC formulas on admitted observed candles, with coverage intact.
+
+    This is an observed-candle proxy. Missing intrabar minutes do not reveal
+    their price path. No institutional order identity or complete-market claim
+    follows. Missing candles, contract changes and clock gaps reset the proxy.
+    """
+    valid = np.asarray(surface['observed_valid'], bool)
+    labels = np.asarray(surface['bar_start_ns'], np.int64)
+    available = np.asarray(surface['available_ns'], np.int64)
+    if not len(valid) or np.any(available - labels != available[0] - labels[0]):
+        raise ValueError('GC_OBSERVED_STRUCTURE_CLOCK')
+    duration = int(available[0] - labels[0])
+    first_observed = np.asarray(surface['observed_first_minute_ns'], np.float64)
+    last_observed = np.asarray(surface['observed_last_minute_ns'], np.float64)
+    boundary_gap = np.full(len(valid), np.nan)
+    adjacent = valid[1:] & valid[:-1]
+    boundary_gap[1:] = np.where(adjacent,
+        np.maximum((first_observed[1:] - last_observed[:-1]) / timing.MINUTE_NS - 1, 0), np.nan)
+    split = np.r_[True, ~valid[:-1] | ~valid[1:] |
+        (np.diff(labels) != duration) | (np.diff(surface['contract_index']) != 0) |
+        (boundary_gap[1:] > 0)]
+    surface['observed_proxy_boundary_gap_minutes'] = boundary_gap
+    for name in VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1:
+        surface['observed_proxy_' + name] = np.full(len(valid), np.nan)
+    for begin in np.flatnonzero(valid & split):
+        end = begin + 1
+        while end < len(valid) and valid[end] and not split[end]:
+            end += 1
+        values = [np.asarray(surface['observed_' + name])[begin:end] for name in
+            ('open_usd', 'high_usd', 'low_usd', 'close_usd', 'volume')]
+        if not all(np.isfinite(value).all() for value in values):
+            raise RuntimeError('GC_OBSERVED_STRUCTURE_NONFINITE')
+        data = replay_volume_order_block_proxies_v1(*values)
+        for name, value in data.items():
+            surface['observed_proxy_' + name][begin:end] = value
+    return surface
+
+
 def relative_cvd(minutes, selected, masks, metrics):
     segments = source.reset_segments(selected,masks['cvd'],minutes)
     out = {name:np.full(len(minutes),np.nan) for name in CVD_FIELDS}
@@ -245,6 +358,105 @@ L1_FIELDS_V2 = ('ofi_contracts','bid_refill_contracts','ask_refill_contracts',
 L1_ORDER_COUNT_FIELDS_V1 = ('tw_bid_orders', 'tw_ask_orders', 'tw_order_count_imbalance',
     'tw_bid_contracts_per_order', 'tw_ask_contracts_per_order')
 VALUE_AREA_FRACTION_V2 = (7,10)  # preregistered 70%, never fitted to outcomes
+
+
+def aggregate_observed_book_v1(minutes, selected, book, timeframe):
+    """Aggregate already-qualified M1 book bytes, without a raw-event replay.
+
+    Additive flow uses its own OFI mask. BBO and displayed-order means use
+    their distinct admitted covered_ns weights. The M1 source discarded
+    partial-minute means, so those cannot be reconstructed here. Quote response
+    joins the first and last admitted BBO states and exposes their M1 timestamps;
+    it is not a return over a fully observed interval when coverage is partial.
+    """
+    minutes = np.asarray(minutes, np.int64)
+    selected = np.asarray(selected, np.int64)
+    if (minutes.ndim != 1 or not len(minutes) or selected.shape != minutes.shape or
+            np.any(np.diff(minutes) <= 0) or np.any(minutes % timing.MINUTE_NS)):
+        raise ValueError('GC_OBSERVED_BOOK_MINUTE_CLOCK')
+    required = ('ofi_valid', 'bbo_valid', 'covered_ns', 'order_count_valid',
+        'order_covered_ns', 'opening_mid_tick', 'closing_mid_tick') + L1_FIELDS_V2 + L1_ORDER_COUNT_FIELDS_V1
+    arrays = {name: np.asarray(book[name]) for name in required}
+    if any(value.shape != minutes.shape for value in arrays.values()):
+        raise ValueError('GC_OBSERVED_BOOK_SHAPE')
+    for name in ('ofi_valid', 'bbo_valid', 'order_count_valid'):
+        if not np.isin(arrays[name], (0, 1)).all():
+            raise ValueError('GC_OBSERVED_BOOK_MASK')
+    covered, order_covered = arrays['covered_ns'], arrays['order_covered_ns']
+    if (not np.isfinite(covered).all() or not np.isfinite(order_covered).all() or
+            np.any(covered < 0) or np.any(covered > timing.MINUTE_NS) or
+            np.any(order_covered < 0) or np.any(order_covered > covered) or
+            np.any(covered != covered.astype(np.int64)) or
+            np.any(order_covered != order_covered.astype(np.int64))):
+        raise ValueError('GC_OBSERVED_BOOK_COVERAGE')
+    flow = arrays['ofi_valid'].astype(bool)
+    bbo = arrays['bbo_valid'].astype(bool)
+    orders = arrays['order_count_valid'].astype(bool)
+    if np.any(bbo & (covered != timing.MINUTE_NS)) or np.any(orders & (order_covered != timing.MINUTE_NS)):
+        raise ValueError('GC_OBSERVED_BOOK_PARTIAL_MEAN_UNAVAILABLE')
+    if np.any(bbo & ~flow) or np.any(orders & ~bbo):
+        raise ValueError('GC_OBSERVED_BOOK_MASK_DEPENDENCY')
+    for names, mask in ((L1_FIELDS_V2[:6], flow),
+            (L1_FIELDS_V2[6:11] + ('opening_mid_tick', 'closing_mid_tick'), bbo),
+            (L1_ORDER_COUNT_FIELDS_V1, orders)):
+        if any(not np.isfinite(arrays[name][mask]).all() for name in names):
+            raise ValueError('GC_OBSERVED_BOOK_QUALIFIED_NONFINITE')
+    labels = multi_tf_bar_label(pd.DatetimeIndex(minutes, tz='UTC'), timeframe).asi8
+    stamps, first, counts = np.unique(labels, return_index=True, return_counts=True)
+    duration = MULTI_TF_SHIFT[timeframe].value
+    expected = duration // timing.MINUTE_NS
+    same = (np.minimum.reduceat(selected, first) >= 0)
+    same &= np.minimum.reduceat(selected, first) == np.maximum.reduceat(selected, first)
+    bucket = (counts == expected) & same
+    out = {'bar_start_ns': stamps, 'available_ns': stamps + duration,
+        'contract_index': selected[first], 'observed_book_contract_valid': same,
+        'observed_book_clock_minutes': counts,
+        'observed_book_expected_clock_minutes': np.full(len(stamps), expected, np.int64)}
+    flow_count = np.add.reduceat(flow.astype(np.int64), first)
+    bbo_count = np.add.reduceat(bbo.astype(np.int64), first)
+    order_count = np.add.reduceat(orders.astype(np.int64), first)
+    bbo_time = np.add.reduceat(np.where(bbo, covered, 0).astype(np.int64), first)
+    order_time = np.add.reduceat(np.where(orders, order_covered, 0).astype(np.int64), first)
+    flow_valid = bucket & (flow_count > 0)
+    bbo_valid = bucket & (bbo_time > 0)
+    order_valid = bucket & (order_time > 0)
+    out.update(observed_book_flow_valid=flow_valid,
+        observed_book_flow_accepted_minutes=flow_count,
+        observed_book_flow_coverage_fraction=flow_count / expected,
+        observed_book_valid=bbo_valid, observed_book_accepted_minutes=bbo_count,
+        observed_book_covered_ns=bbo_time, observed_book_coverage_fraction=bbo_time / duration,
+        observed_order_valid=order_valid, observed_order_accepted_minutes=order_count,
+        observed_order_covered_ns=order_time, observed_order_coverage_fraction=order_time / duration)
+    for name in L1_FIELDS_V2[:6]:
+        value = np.add.reduceat(np.where(flow, arrays[name], 0.0), first)
+        out['observed_book_' + name] = np.where(flow_valid, value, np.nan)
+    for names, mask, weights, total, valid, prefix in (
+            (L1_FIELDS_V2[6:11], bbo, covered, bbo_time, bbo_valid, 'observed_book_'),
+            (L1_ORDER_COUNT_FIELDS_V1, orders, order_covered, order_time, order_valid, 'observed_order_')):
+        for name in names:
+            weighted = np.add.reduceat(np.where(mask, arrays[name], 0.0) * np.where(mask, weights, 0), first)
+            value = np.divide(weighted, total, out=np.full(len(stamps), np.nan), where=total > 0)
+            out[prefix + name] = np.where(valid, value, np.nan)
+    positions = np.arange(len(minutes), dtype=np.int64)
+    opening = np.minimum.reduceat(np.where(bbo, positions, len(minutes)), first)
+    closing = np.maximum.reduceat(np.where(bbo, positions, -1), first)
+    opening = np.minimum(opening, len(minutes) - 1)
+    closing = np.maximum(closing, 0)
+    opened = arrays['opening_mid_tick'][opening]
+    closed = arrays['closing_mid_tick'][closing]
+    out['observed_book_opening_mid_tick'] = np.where(bbo_valid, opened, np.nan)
+    out['observed_book_closing_mid_tick'] = np.where(bbo_valid, closed, np.nan)
+    out['observed_book_mid_response_ticks'] = np.where(bbo_valid, closed - opened, np.nan)
+    span = (minutes[closing] - minutes[opening]) // timing.MINUTE_NS + 1
+    out['observed_book_response_span_minutes'] = np.where(bbo_valid, span, np.nan)
+    out['observed_book_response_contiguous'] = bbo_valid & (bbo_count == span)
+    for name, index in (('first', opening), ('last', closing)):
+        timestamps = minutes[index]
+        encoded = timestamps.astype(np.float64)
+        if not np.array_equal(encoded.astype(np.int64), timestamps):
+            raise RuntimeError('GC_FEATURE_OBSERVED_TIMESTAMP_PRECISION')
+        out['observed_book_' + name + '_minute_ns'] = np.where(bbo_valid, encoded, np.nan)
+    return out
 
 
 def bbo_transition_v2(previous, current):

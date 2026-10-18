@@ -14,6 +14,8 @@ from gx1.contracts import model_native_serve_gate_v1 as serve_gate
 from gx1.models.entry_v10 import direction_decision_contract
 from gx1.scripts import audit_model_native_direction_pockets_v1 as pocket_audit
 from gx1.scripts import verify_model_native_serve_parity_v1 as serve_parity
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_TIMEFRAMES
+from gx1.features.entry_specialist_feature_groups_v1 import MODEL_NATIVE_TRAINING_SPECIALISTS
 from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
 )
@@ -34,9 +36,11 @@ PINNED_PATH = (
 
 
 def test_v4_family_timeframe_token_arithmetic_is_exact() -> None:
-    assert len(serve_parity.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS) == 32
+    assert len(serve_parity.SERVE_PARITY_FAMILY_TF_COOPERATION_TOKENS) == (
+        len(ENTRY_MTF_CONTEXT_TIMEFRAMES) * len(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    )
     per_tf_width = len(serve_parity.MULTI_TF_PER_BAR_FEATURES_V4)
-    expected_tokens = 4 * per_tf_width
+    expected_tokens = len(ENTRY_MTF_CONTEXT_TIMEFRAMES) * per_tf_width
     assert len(serve_parity.SERVE_PARITY_FAMILY_TF_FEATURE_TOKENS) == (
         expected_tokens
     )
@@ -747,6 +751,7 @@ def test_every_retained_numeric_and_categorical_input_reaches_direction_margins(
         "seq_signal",
         "snap_signal",
         "ctx_cont",
+        "seq_m5",
         "seq_m15",
         "seq_h1",
         "seq_h4",

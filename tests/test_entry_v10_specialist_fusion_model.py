@@ -32,6 +32,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     require_multi_tf_specialist_routing_v4,
 )
 from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
+from gx1.features.gc_native_context_v1 import OBSERVED_FIELDS as GC_OBSERVED_FIELDS
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
     _build_unit_test_entry_v10_ctx_hybrid_transformer,
@@ -84,6 +85,10 @@ def _valid_ctx_cont(batch_size: int) -> torch.Tensor:
         5,
         (batch_size, len(nominal_indices)),
     ).float()
+    # Dense synthetic mechanics fixture: every GC source is explicitly
+    # observed. Gaussian values are not legal binary availability masks.
+    for name in GC_OBSERVED_FIELDS:
+        values[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)] = 1.0
     return values
 
 
@@ -109,6 +114,8 @@ def _synchronized_seq_snap(
         ):
             if ctx_index in nominal_ctx_indices:
                 seq_x[:, :, signal_index] = 0.0
+            if MODEL_NATIVE_CTX_CONT_FIELDS[ctx_index] in GC_OBSERVED_FIELDS:
+                seq_x[:, :, signal_index] = ctx_cont[:, ctx_index].unsqueeze(1)
         snap_x[:, policy["signal_indices"]] = ctx_cont[
             :,
             policy["ctx_cont_indices"],
@@ -275,7 +282,7 @@ def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch
         ),
     ).train()
     batch_size = 3
-    ctx_cont = torch.randn(batch_size, MODEL_NATIVE_CTX_CONT_DIM)
+    ctx_cont = _valid_ctx_cont(batch_size)
     for field, domain in CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS.items():
         ctx_cont[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(field)] = 0.0
         assert 0 in domain
@@ -303,6 +310,7 @@ def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch
         values[:, :, binary_mask] = 0.0
         values[:, :, categorical_mask] = 0.0
         values[:, :, mtf_names.index("ema_stack_aligned_v2")] = 0.0
+    mtf["seq_m5"].requires_grad_(True)
     ctx_cat = torch.zeros(
         batch_size, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long
     )
@@ -344,6 +352,10 @@ def test_actual_model_native_signal_and_mtf_partitions_reach_every_family_branch
     assert gate_grad is not None
     assert torch.isfinite(gate_grad).all()
     assert torch.all(gate_grad.abs().sum(dim=1) > 0.0)
+    m5_grad = mtf["seq_m5"].grad
+    assert m5_grad is not None and torch.isfinite(m5_grad).all()
+    for specialist, indices in mtf_indices.items():
+        assert m5_grad[:, :, indices].abs().sum().item() > 0.0, specialist
     token_gate_grad = model.specialist_token_gate.weight.grad
     assert token_gate_grad is not None
     assert torch.isfinite(token_gate_grad).all()

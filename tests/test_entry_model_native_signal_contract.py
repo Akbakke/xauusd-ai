@@ -585,7 +585,7 @@ def test_model_native_transformer_entry_q_is_direct_and_anchor_free() -> None:
 
     mtf = {
         f"seq_{tf}": torch.randn(2, 4, _TEST_MTF_DIM)
-        for tf in ("m15", "h1", "h4", "d1")
+        for tf in ("m5", "m15", "h1", "h4", "d1")
     }
     seq_x.requires_grad_(True)
     snap_x.requires_grad_(True)
@@ -625,8 +625,7 @@ def test_model_native_transformer_entry_q_is_direct_and_anchor_free() -> None:
             snap_x,
             ctx_cat=ctx_cat,
             ctx_cont=ctx_cont,
-            seq_m5=torch.randn(2, 4, _TEST_MTF_DIM),
-            **mtf,
+            **{key: value for key, value in mtf.items() if key != "seq_m5"},
         )
 
 
