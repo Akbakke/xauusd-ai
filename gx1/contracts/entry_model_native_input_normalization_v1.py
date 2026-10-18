@@ -967,7 +967,12 @@ def fit_surface_normalization(
             start=value_index, stop=value_index + 1)[:, 0]
         mask = _materialize_population_columns(parts, total_rows=population_rows,
             start=mask_index, stop=mask_index + 1)[:, 0]
-        transformed = np.arcsinh((raw_value - float(center[value_index])) / float(scale[value_index]))
+        if binary_mask[value_index] or categorical_mask[value_index]:
+            transformed = raw_value.copy()
+        else:
+            transformed = np.arcsinh(
+                (raw_value - float(center[value_index])) / float(scale[value_index])
+            )
         transformed[mask == 0.0] = 0.0
         transformed_min[value_index] = transformed.min()
         transformed_max[value_index] = transformed.max()

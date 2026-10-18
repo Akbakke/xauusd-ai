@@ -38,8 +38,7 @@ bestå først. Ingen broker/live/paper/ordre/spending/promotion.
   fra M1-gapreset til observerte samme-kontrakt-candles. Hele manglende
   TF-candles sensurerer OB-state. Alle935kandidater hadde TRAINobservasjoner,
   og232ikke-proxykolonner perTF var eksakt uendret.160fokuserte tester bestod.
--020s foreløpige registry med1130verdier+1130masker er IKKE aktivert:
-  det bygger på gammel kildeadmission. Endelig antall må måles etter024.
+-020s foreløpige1130registry ble aldri aktivert og er erstattet av025.
 -253genuine primitive TF-felt er implementert perTF, inklusive ekte BID/ASK.
   Entry får også M5.217sammeformelaliaser har eksplisitt paritetskontroll.
   Bred GC-kontekst kobles på i eksisterende skrivechunks, uten full bred
@@ -72,12 +71,19 @@ Netto etter sensur:78305M1 og25059620kontrakter gjenopprettet. Strict komplett
 volum/profil M5/M15/H1/H4/D1 er nå151773/50074/12145/2445/0bøtter.
 
 Nye T-sidetall/sidemiddel og total størrelsesstandardavvik/min/maks er fysisk
-publisert med eksakt uint64antall/volumparitet før minuttsensur. Alle995nye
-kandidater,199perTF, er deklarert i publiserte024tabeller; endelig TRAINstøtte
-og felttall bestemmes i025. Alle210gamle registrydeklarasjoner er rebindet til
-samme reparerte kilder. Full rå semantisk oversikt er i024/AUDIT.
-025er en ny engangsplan for TRAIN-only registry, med faktisk024terminal og
-alle tabellhashene bundet. Hele109507TRAINtime+5min brukes, ingen labels/VAL/TEST.
+publisert med eksakt uint64antall/volumparitet før minuttsensur.025er COMPLETE/
+konsumert,29.254s, uendret kilde og TEST=false. Alle995nye felt,199perTF, og
+alle210gamle felt har genuine TRAINobservasjoner. Endelig registry har1205
+verdier+1205observasjonsmasker,30observerte konstanter,0uobserverte felt og
+0formelaliaser. Alle gamle kilder er rebindet til samme reparerte024tabeller.
+Hele109507TRAINtime+5min er brukt, uten labels/VAL/TESTfit. Nye003TRAINklokken
+må fortsatt bevise eksakt likhet før fysisk inputadmission.
+
+Registryen er aktivert i eksisterende nativekilde med SHA d2210dae945c9a43dfdf2aff15f4362563b566ba3c7ebaf3f29d9817201dd3ca.
+Målt kanonisk import gir2725signal-/2542ctx-cont-felt; dette er ikke en fysisk
+modelforward. 75unike forbruker-/maske-/familie-/batching-/normaliseringskontroller er bestått.
+Ny fysisk003-generasjon og ekte aktuell modelforward/paritet gjenstår.
+Full rå semantisk oversikt er i024/AUDIT.
 
 558unike fokuserte tester er nå bestått etter målrettet feilretting. Alle
 opprinnelige feilrapporter består; siste resultat per case er sammenstilt i024s
@@ -87,17 +93,23 @@ til faktisk M5-populasjon, mens gamle ruter beholder sine kontrakter. M5-
 normalisering bruker eksisterende diskbaserte loader med300s-klokke; eksakt
 in-memory-paritet, kildehash, fremtidsisolasjon og publiseringsvern er testet.
 Dette er kildekontroller, ingen fysisk modell- eller alpha-kvalifisering.
-024er konsumert.025er claimet for én capped TRAIN-only registryfit; trening er lukket.
+Ny kildefeil er også målt og rettet: normaliseringsstatistikk for binære GC-
+verdier med egen mask fikk asinh(1) i stedet for1 som transformert maksimum.
+Ekstremer bevarer nå samme binær/kategori-identitet som faktisk runtime; numeriske
+verdier beholder asinh og manglende verdier hard0. Før-repro og originalfeil er
+bevart.75unike forbrukercaser er bestått;002etterkontrollen bestod62/62.
+Bevis:022/QUALIFICATION/FINAL_CONSUMER_QUALIFICATION.json. Ingen guard svekket.
+024og025er konsumert.022er claimet for én ny003M5featurekjøring; trening er lukket.
 
 ## Neste steg
 
-1. Bind og kjør den claimede025registryfitten etter ren commit, audit4G/512M.
-   Ingen råpass eller trening.024relanseres ikke.
-2. Bygg endelig TRAIN-only registry på hele
-   beslutningsklokken, uten labels/VAL/TEST. Bruk024s reparerte retainedbindinger.
-   Ingen hardkodet1130grense. Ny fysisk TRAIN må matche klokke, ellers refit.
-3. Aktiver endelig registry, bygg ny003M5/M1/TF-cache og M5-path-datasett.
-  022M5draft er uclaimet og execution_ready=false til faktiske kilder er bundet.
+1. Bind og kjør claimet022 på ren commit: først ny pair, så M5-enriched/
+   253TFcache og model-source. Audit4G/producer20G/10G,512Mswap, ett barn om gangen.
+   M5innlasting/GCvedlegg er bounded; eksisterende vakter og checkpoints beholdes.
+2. Kontroller022terminal og faktiske dimensjoner/GCkolonner; planlegg ny M1-
+   etterfølger og nytt datasett fra faktiske manifester. Ingen gamle checkpoints.
+3. Bygg ny003M5/M1/TF-cache og M5-path-datasett med aktivert registry.
+  022M5er claimet og execution_ready=true; kun fersk binding/ren kilde kan starte.
    Gjenbruk eksisterende bounded liveness-/rekonstruksjonseiere; kopier ikke
    den gamle011auditens fulle pandasinnlasting av bredM1flate.
 4. Normaliser hele observerte fysiske TRAIN én gang. Mål ny initial ONLINE=

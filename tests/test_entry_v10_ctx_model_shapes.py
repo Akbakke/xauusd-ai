@@ -147,13 +147,17 @@ def _valid_range_observation_input(raw: torch.Tensor, field_names) -> torch.Tens
         range_observation_binary_fields, range_observation_masking_pairs,
     )
     from gx1.features.basic_v1 import session_native_binary_event_fields
+    from gx1.features.gc_native_context_v1 import binary_fields, masking_pairs
     names = list(field_names)
-    for name in range_observation_binary_fields(names) | session_native_binary_event_fields(names):
+    for name in (range_observation_binary_fields(names) | session_native_binary_event_fields(names)
+                 | binary_fields(names)):
         index = names.index(name)
         raw[..., index] = (raw[..., index] > 0).to(raw.dtype)
     for value, mask in range_observation_masking_pairs(names):
         raw[..., value] = torch.where(raw[..., mask] == 1,
             raw[..., value].clamp(0.0, 1.0), torch.zeros_like(raw[..., value]))
+    for value, mask in masking_pairs(names):
+        raw[..., value] = torch.where(raw[..., mask] == 1, raw[..., value], torch.zeros_like(raw[..., value]))
     return raw
 
 
@@ -2031,3 +2035,22 @@ def test_session_event_fixture_uses_source_binary_domain(prefix):
     values = torch.tensor([[-1.], [0.], [.5], [1.]])
     _valid_range_observation_input(values, [prefix + 'session_change_flag'])
     assert values.tolist() == [[0.], [0.], [1.], [1.]]
+
+
+def test_gc_structural_fixture_uses_source_binary_domain_and_masked_zero_storage():
+    from gx1.features.gc_native_context_v1 import (
+        VALUE_FIELDS, OBSERVED_FIELDS, STRUCTURAL_VALUE_FIELDS, binary_fields, masking_pairs,
+        require_masked_storage_numpy,
+    )
+    pairs = [(value, observed) for value, observed in zip(VALUE_FIELDS, OBSERVED_FIELDS)
+             if value in STRUCTURAL_VALUE_FIELDS]
+    assert pairs, "The activated registry declares structural GC source values."
+    for prefix in ("", "ctx_cont."):
+        names = [prefix + name for pair in pairs for name in pair]
+        raw = torch.linspace(-2., 2., 3 * len(names)).reshape(3, len(names))
+        _valid_range_observation_input(raw, names)
+        assert all(torch.isin(raw[:, names.index(name)], torch.tensor([0., 1.])).all()
+                   for name in binary_fields(names))
+        assert all(torch.all(raw[:, value][raw[:, mask] == 0] == 0)
+                   for value, mask in masking_pairs(names))
+        require_masked_storage_numpy(raw.numpy(), names)

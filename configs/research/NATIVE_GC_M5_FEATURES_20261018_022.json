@@ -1,0 +1,205 @@
+{
+  "schema_version": "gx1_native_pretest_m5_feature_rebuild_v1",
+  "created_utc": "2026-10-18T12:22:45.314888+00:00",
+  "run_id": "XAU_GC_NATIVE_26M_20261018_003",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_022",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003",
+  "scope": "Fresh native M5 feature/cache/model source from original raw pre-July sources through the existing direct pre-TEST lineage route. All earlier raw XAU consumed causally for warmup. No prior native feature values, normalization or checkpoint reused.",
+  "native_m1_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+  "native_m5_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+  "raw_source_vedtak": "OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927",
+  "raw_source_vedtak_role": "immutable raw source provenance required by existing pair owner, never reuse of an execution approval",
+  "operator_authority": "18October explicit fullMBP/allTF/M5path completion beforetraining: exactly one fresh003M5 feature/cache/model-source preparation with measured024/025inputs, qualified1205values+1205masks; no new training authority.",
+  "execution_owner": "existing materialize_pretest_native_pair_lineage_v1 \u2192 build_entry_exit_m1_enriched_frame_v1 M5 \u2192 materialize_entry_model_native_m5_source_v1",
+  "workers": 1,
+  "max_wall_seconds": 64800,
+  "budget_origin": "Unchanged00764800second ceiling. One fresh three-stage feature preparation, no consumed-plan or consumed-namespace reuse.",
+  "resource_owner": "Existing capped_run for each sequential child: pair audit4G; enriched producer20G; model source producer10G;512Mswap; existing CPU/thread/task/power/thermal/lock guards unchanged.",
+  "train_start": "2024-05-01T00:00:00Z",
+  "train_end_exclusive": "2026-01-01T00:00:00Z",
+  "val_start": "2026-01-01T00:00:00Z",
+  "val_end_exclusive": "2026-04-01T00:00:00Z",
+  "retrospective_final_control": [
+    "2026-04-01T00:00:00Z",
+    "2026-07-01T00:00:00Z"
+  ],
+  "test_from_july_unread": true,
+  "one_shot_invocations": 1,
+  "native_training_started": false,
+  "source_frozen_while_running": true,
+  "derived_pair_or_features_reused": false,
+  "historical_raw_xau_before_training_is_only_causal_warmup": true,
+  "upstream_features_trimmed_before_GC_attachment": false,
+  "full_footprint_lattice_neural_ingestion_claim": false,
+  "plan_id": "NATIVE_GC_M5_FEATURES_20261018_022",
+  "inputs": {
+    "m1_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+    },
+    "m5_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m5_quotes_source/manifest.json",
+      "sha256": "1bbc7d20a91afff0deb22a4cd2c848aaa95d27a2db56c22f2f3eb3505c615439"
+    },
+    "squeeze_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/manifest.json",
+      "sha256": "2f099d1974a6ffe3b9c1ae39680acdce5cc706aba954a2ce3523d74db2838d3e"
+    }
+  },
+  "registry_fit_train_start": "2009-06-01T00:00:00+00:00",
+  "registry_fit_train_end": "2013-01-01T22:00:00+00:00",
+  "registry_fit_inner_end": "2012-04-11T22:00:00+00:00",
+  "registry_fit_origin": "Unchanged previously accepted native feature-calibration windows, wholly before first consumed TRAIN2024 inputs. Registry parameters are recomputed from original raw sources. Immutable squeeze calibration reused through its existing owner.",
+  "m5_full_history_preserved_for_m1_cache": true,
+  "execution_ready": true,
+  "execution_binding_status": "CLAIMED_BY_CURRENT_POLICY__WAITING_FOR_CLEAN_SOURCE_BINDING",
+  "history_scope": "Full original narrow/raw and native TF history retained for calibration, causal warmup and cache source-index binding. Complete M5 output clock remains full pretest history. Later dataset consumers retain the declared26month model period.",
+  "gc_attachment_scope": "Existing enriched owner attaches full activated GC value+observed schema in checkpoint_chunk_rows blocks at each actual native close; full-history dense GC matrix is not materialized.",
+  "checkpoint_chunk_rows": 4096,
+  "model_source_batch_rows": 32768,
+  "expected_primitive_features_per_tf": 253,
+  "model_surface_dimensions": "Verify source-derived enriched shared-contract dimensions against required field lists and model-source manifest dimensions; no copied735/552 or guessed new widths.",
+  "bound_small_input_files": [
+    {
+      "role": "m1_raw_manifest_native_manifest",
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"
+    },
+    {
+      "role": "m5_raw_manifest_native_manifest",
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+    },
+    {
+      "role": "squeeze_M1_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/m1_params.json",
+      "sha256": "02d59db2a8ded891fc0e3ff62c9e01f67591432b5070efef02792d6337e4c748"
+    },
+    {
+      "role": "squeeze_M5_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/m5_params.json",
+      "sha256": "de52e7c469a7bd2b4ebc3f42f26792185a308ec801003f898f6b962e3e8d1c38"
+    },
+    {
+      "role": "squeeze_M15_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/m15_params.json",
+      "sha256": "f44593fff7e4169df86b2971677e05063a68e294283584a55568d006a8ec2c87"
+    },
+    {
+      "role": "squeeze_H1_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/h1_params.json",
+      "sha256": "40ea79cfc518ebad947f9008b53e04851fa4c9f049942848a8215582bfa85f90"
+    },
+    {
+      "role": "squeeze_H4_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/h4_params.json",
+      "sha256": "867fe5c85ec5e66b73815c6b492bf998b6fcbda61b50c4778423f9079a670a22"
+    },
+    {
+      "role": "squeeze_D1_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/d1_params.json",
+      "sha256": "d97a1de9d3ddbc77b0b5462247bc5615d8223fab9aea1eef22630a8559bff2fe"
+    },
+    {
+      "role": "squeeze_historical_pair_lineage",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS/fc3333d71ca71d3916b3f6716bbfd36824a216dc15fb927efa8c03cac0594170/PAIR_MANIFEST.json",
+      "sha256": "690786b030362d6f0e0bafdc4004d4a361b83e751c1a98a344c68e05cf0da425"
+    }
+  ],
+  "large_reuse_input_verification": "Existing pretest pair owner verifies raw quote parquet hashes and native manifest lineage at runtime; existing native producers verify source parts and immutable squeeze source bindings. No raw bulk file was rehashed during draft preparation.",
+  "new_training_authorized_by_this_plan": false,
+  "training_enabled": false,
+  "source_quality_review_required": true,
+  "required_execution_binding_fields": [
+    "plan_path",
+    "plan_sha256",
+    "controller_sha256",
+    "source_head",
+    "policy_sha256",
+    "gc_registry_path",
+    "gc_registry_sha256",
+    "source_quality_accepted",
+    "source_quality_receipt",
+    "gc_registry_value_field_count",
+    "gc_registry_observed_field_count",
+    "gc_registry_admission_receipt"
+  ],
+  "source_quality_receipt_binding_shape": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/RESULTS/TERMINAL.json",
+    "sha256": "19a534ab227556ccb9f105aa3ccb419c9885d4d2233b83a591d421807859a6af"
+  },
+  "stage_owners": [
+    {
+      "name": "01_pretest_pair",
+      "class": "audit",
+      "mem": "4G",
+      "module": "gx1.scripts.materialize_pretest_native_pair_lineage_v1"
+    },
+    {
+      "name": "02_m5_features",
+      "class": "producer",
+      "mem": "20G",
+      "module": "gx1.scripts.build_entry_exit_m1_enriched_frame_v1"
+    },
+    {
+      "name": "03_model_source",
+      "class": "producer",
+      "mem": "10G",
+      "module": "gx1.scripts.materialize_entry_model_native_m5_source_v1"
+    }
+  ],
+  "reused_workflow_provenance": {
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_GC_M5_FEATURES_20261018_007.json",
+      "sha256": "3709259458227ddec036f1c0591d9497415798a3ace7f8b3b221bc20ff4fdba2"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_007/run_features.py",
+      "sha256": "0a9ae1115863af306dfd97f6f175f1f0bab785adcc557e6c216763b6733114a5"
+    }
+  },
+  "preparation_source_owner_hashes": {
+    "gx1/scripts/materialize_pretest_native_pair_lineage_v1.py": "543c3e26a06f6ae7061391b0e53d9ea2c7fc5c6ce598cbac72c6019df5d393f0",
+    "gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py": "978508268464344bf2880214ed34b7821af1a960822ef37d41f66d3292720a8e",
+    "gx1/scripts/materialize_entry_model_native_m5_source_v1.py": "9c1b938d1333fbc7c06849dc9c437cab2832329c9b02f9080e2bf2bcc320f471",
+    "gx1/features/gc_native_context_v1.py": "1349a5ec96e901924bbd6701a7855a34eb3eec89944b38fa6a9b16d61656ae4e"
+  },
+  "preparation_source_owner_hashes_role": "Snapshot for review only, not final source activation binding.",
+  "gc_registry_field_count_authority": "Measured final024/025 admission:1205values+1205observationmasks. Both counts must still be explicitly root-bound with the final activated registry path and exactSHA; no automatic count acceptance.",
+  "gc_source_quality_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/RESULTS/TERMINAL.json",
+    "sha256": "19a534ab227556ccb9f105aa3ccb419c9885d4d2233b83a591d421807859a6af"
+  },
+  "gc_registry_admission_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FINAL_TRAIN_REGISTRY_20261018_025/ADMISSION/TERMINAL.json",
+    "sha256": "7164eca420670ff540c1e935ee5c6e75e5ddc5f9352efb6020d82c048cc6d6e2"
+  },
+  "gc_admitted_registry_artifact": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FINAL_TRAIN_REGISTRY_20261018_025/ADMISSION/REGISTRY.json",
+    "sha256": "d2210dae945c9a43dfdf2aff15f4362563b566ba3c7ebaf3f29d9817201dd3ca",
+    "bytes": 1120907
+  },
+  "gc_registry_value_field_count": 1205,
+  "gc_registry_observed_field_count": 1205,
+  "gc_final_admission": {
+    "new_admitted": 995,
+    "retained_admitted": 210,
+    "unsupported": 0,
+    "observed_constants": 30,
+    "formula_aliases": 0
+  },
+  "gc_registry_admission_receipt_binding_shape": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FINAL_TRAIN_REGISTRY_20261018_025/ADMISSION/TERMINAL.json",
+    "sha256": "7164eca420670ff540c1e935ee5c6e75e5ddc5f9352efb6020d82c048cc6d6e2"
+  },
+  "future_whole_physical_train_clock_match_required": {
+    "rows": 109507,
+    "decision_clock_sha256": "00fc652547acd74e9b3521fedc186a6441164e28e9d7841bda7fa354362bac24",
+    "owner": "gx1.features.gc_native_context_v1.require_registry_train_clock_match",
+    "target_eligibility_is_not_fit_population": true
+  },
+  "consumer_qualification": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_022/QUALIFICATION/FINAL_CONSUMER_QUALIFICATION.json",
+    "sha256": "25c452d7fa1aea268d7022264f529b430375de43d4fafc4e06a48d5375ec4204"
+  }
+}

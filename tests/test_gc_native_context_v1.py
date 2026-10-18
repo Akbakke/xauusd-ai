@@ -18,6 +18,8 @@ def test_observed_population_excludes_missing_storage_and_roundtrips():
     assert contract['scale'][0] == 10
     assert contract['binary_mask'] == [0, 1]
     normalized = apply_surface_normalization(raw, contract)
+    np.testing.assert_allclose(contract['train_transformed_min'], normalized.min(axis=0), atol=1e-7)
+    np.testing.assert_allclose(contract['train_transformed_max'], normalized.max(axis=0), atol=1e-7)
     assert normalized[0, 0] == normalized[-1, 0] == 0
     np.testing.assert_allclose(invert_surface_normalization(normalized, contract), raw, atol=1e-6)
     tensor = torch.tensor(raw, requires_grad=True)
@@ -131,6 +133,41 @@ def test_source_reader_projects_columns_streams_hash_and_limits_train_prefix(tmp
     assert len(sources[path.name][0])==2
     assert set(calls[0]['columns'])=={'available_ns','value','valid','snapshot'}
     assert calls[0]['filters']==[('available_ns','<=',int(clock[1]))]
+
+
+@pytest.mark.parametrize("prefix,surface", [("", "ctx_cont"), ("ctx_cont.", "signal")])
+@pytest.mark.parametrize("observed_values", [(0.0, 0.0), (1.0, 1.0), (0.0, 1.0)])
+def test_masked_structural_value_extrema_follow_binary_identity(prefix, surface, observed_values):
+    # Use an actual source-declared masked structural value in the active registry.
+    value, observed = next(
+        (value, observed)
+        for value, observed in zip(gc.VALUE_FIELDS, gc.OBSERVED_FIELDS)
+        if value in gc.STRUCTURAL_VALUE_FIELDS
+    )
+    names = [prefix + value, prefix + observed]
+    raw = np.array(
+        [[0.0, 0.0], [observed_values[0], 1.0], [observed_values[1], 1.0], [0.0, 0.0]],
+        dtype=np.float32,
+    )
+    contract = fit_surface_normalization(raw, surface=surface, field_names=names)
+    require_surface_normalization(contract, surface=surface, field_names=names)
+    assert contract["binary_mask"] == [1, 1]
+    assert contract["center"] == [0.0, 0.0] and contract["scale"] == [1.0, 1.0]
+    normalized = apply_surface_normalization(raw, contract)
+    np.testing.assert_array_equal(normalized, raw)
+    np.testing.assert_array_equal(contract["train_transformed_min"], normalized.min(axis=0))
+    np.testing.assert_array_equal(contract["train_transformed_max"], normalized.max(axis=0))
+    np.testing.assert_array_equal(invert_surface_normalization(normalized, contract), raw)
+
+    # Neither fixing the fitted extrema nor masked storage relaxes the binary guard.
+    invalid = raw.copy()
+    invalid[1, 0] = 0.5
+    with pytest.raises(RuntimeError, match="ENTRY_INPUT_NORMALIZATION_BINARY_DOMAIN_INVALID"):
+        fit_surface_normalization(invalid, surface=surface, field_names=names)
+    corrupt = dict(contract)
+    corrupt["train_transformed_max"] = [float(np.arcsinh(1.0)), 1.0]
+    with pytest.raises(RuntimeError, match="ENTRY_INPUT_NORMALIZATION_BINARY_CONTRACT_INVALID"):
+        require_surface_normalization(corrupt, surface=surface, field_names=names)
 
 
 def test_structural_value_identity_is_explicit_even_constant_and_checks_all_runtime_paths(monkeypatch):

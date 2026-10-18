@@ -140,8 +140,12 @@ def input_normalization_fixture(
     from gx1.features.basic_v1 import session_native_binary_event_fields
     for name in session_native_binary_event_fields(MODEL_NATIVE_CTX_CONT_FIELDS):
         ctx[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)] = row % 2
-    from gx1.features.gc_native_context_v1 import masking_pairs
+    from gx1.features.gc_native_context_v1 import binary_fields, masking_pairs
     from gx1.features.micro_structure_v1 import range_observation_masking_pairs
+    # GC structural values and their availability fields share the source-owned
+    # binary domain; values remain zero when their own observation is absent.
+    for name in binary_fields(MODEL_NATIVE_CTX_CONT_FIELDS):
+        ctx[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)] = row % 2
     for vi, mi in (*masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS), *range_observation_masking_pairs(MODEL_NATIVE_CTX_CONT_FIELDS)):
         ctx[:, mi] = (row % 2).astype(np.float32)
         ctx[ctx[:, mi] == 0.0, vi] = 0.0

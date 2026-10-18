@@ -94,12 +94,18 @@ sensur. Historiske non-T-actionlabels innrømmes ikke som kanselleringsflow.
 Kildehendelser og semantikk er bundet i
 `configs/research/GC_VENDOR_SOURCE_INCIDENTS_20261018_001.json`.
 
-024gjenoppretter hashbundne001reduksjoner; ett nytt målrettet eventpass trengs
-fordi019maskerte nye eventstatistikker før publisering. Nye T-statistikker
-følger samme pass, med eksakt uint64overflow-/volum-/antallsparitet. Alle
-210gamle registrydeklarasjoner skal også rebindes til reparerte tabeller.
-Ingen trening før fysisk kvalitet, endelig registry, datasett, normalisering
-og fersk modellfunksjon er kvalifisert. Originalkvitteringer omskrives ikke.
+024er COMPLETE og har gjenopprettet hashbundne001reduksjoner. Ett målrettet
+eventpass kompletterte tidligere maskert informasjon og nye T-statistikker,
+med eksakt uint64-/volum-/antallsparitet. Netto etter PTPsensur er78305M1 og
+25059620kontrakter gjenopprettet. Alle210gamle registrydeklarasjoner er også
+rebindet til samme reparerte tabeller.
+
+025er COMPLETE: alle995nye+210gamle felt har genuine observasjoner på hele
+109507TRAIN-beslutningsklokken, uten labels/VAL/TESTfit. Endelig registry har
+1205verdier+1205masker,30observerte konstanter,0uobserverte felt og0formelaliaser.
+Det er aktivert i eksisterende nativekilde; import gir2725signal-/2542ctxfelt.
+Ny fysisk003-inputkjede, normalisering og fersk modellfunksjon må fortsatt
+kvalifiseres før trening. Originalkvitteringer omskrives ikke.
 
 15/60min/NYsession-profiler beregnes på fysisk M5-klokke med as-of-projeksjon,
 separat dekning og faktisk kildealder.15/60betyr minutter også i H4/D1.
@@ -134,6 +140,11 @@ beskriver de observerbare feltene og ujusterte kontraktene.
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Volum/profil |98594|18545|862|2|0|
 | Full kjent aggressorside |19091|933|3|0|0|
+
+Etter kildebevist signaturrettelse og PTPsensur i024 er strict volum/profil
+M5/M15/H1/H4/D1:151773/50074/12145/2445/0. Observed gyldige volumbøtter er
+152991/51001/12753/3334/547. Strict signedkompletthet følger sin egen maske;
+ukjent aggressor blir aldri konstruert som kjent side.
 
 Årsaken er kildebevist: hver M1 må ha handler, passere kvalitetsmasken og ha
 samme kontrakt. D1 krever dermed aktivitet også i stengte minutter. Dette er
@@ -200,3 +211,8 @@ rapporteres kildevis og ikke omskrives til en udokumentert blanket-lekkasje.
 [CFTC FAQ](https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm),
 [CFTC historiske kunngjøringer](https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm),
 [Treasury-metode](https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics/treasury-yield-curve-methodology).
+
+Aktivert1205registry er etterkontrollert i75unike forbrukercaser. En konkret
+normaliseringsfeil i min/max for maskerte binærverdier er rettet uten svekkede
+domene-/statsvakter. Dette er syntetiske kilde-/modellmekaniske kontroller;
+ny fysisk003inputkjede, faktisk inputparitet og læring er fortsatt egne krav.
