@@ -320,6 +320,7 @@ def _observed_structure_surface():
     start = t.STUDY_START_NS + np.arange(len(h)) * 5 * t.MINUTE_NS
     return {'bar_start_ns': start, 'available_ns': start + 5 * t.MINUTE_NS,
         'contract_index': np.zeros(len(h), np.int16), 'observed_valid': np.ones(len(h), bool),
+        'observed_contract_valid': np.ones(len(h), bool),
         'observed_open_usd': opening, 'observed_high_usd': h, 'observed_low_usd': low,
         'observed_close_usd': close, 'observed_volume': np.arange(len(h)) + 10.,
         'observed_coverage_fraction': np.full(len(h), 0.8),
@@ -344,21 +345,107 @@ def test_observed_structure_uses_existing_owner_and_preserves_strict_and_prefix(
             np.testing.assert_array_equal(prefix['observed_proxy_' + name], surface['observed_proxy_' + name][:cut])
 
 
-def test_observed_structure_resets_at_boundary_gap_missing_bucket_and_contract():
+def test_observed_structure_keeps_partial_gap_pivots_but_censors_missing_candle_ob_state():
     surface = _observed_structure_surface()
-    # A real missing minute across a bucket boundary is not assigned to a
-    # guessed maintenance calendar. Internal missingness remains in coverage.
     surface['observed_last_minute_ns'][5] -= t.MINUTE_NS
     surface['observed_valid'][9] = False
     surface['contract_index'][12:] = 1
     f.add_observed_structure(surface)
     assert surface['observed_proxy_boundary_gap_minutes'][6] == 1
-    for begin, end in ((0, 6), (6, 9), (10, 12), (12, 16)):
-        expected = replay_volume_order_block_proxies_v1(*[surface['observed_' + name][begin:end] for name in
-            ('open_usd', 'high_usd', 'low_usd', 'close_usd', 'volume')])
+    assert surface['observed_proxy_boundary_gap_minutes'][10] == 5
+    assert surface['observed_proxy_elapsed_minutes'][10] == 10
+    assert surface['observed_proxy_skipped_candles'][10] == 1
+    # The missing candle9 does not erase the confirmed observed pivot history.
+    for rows in (np.r_[np.arange(9),10,11], np.arange(12,16)):
+        skipped = np.r_[False,np.diff(surface['bar_start_ns'][rows]) != 5*t.MINUTE_NS]
+        expected = replay_volume_order_block_proxies_v1(*[surface['observed_' + name][rows] for name in
+            ('open_usd', 'high_usd', 'low_usd', 'close_usd', 'volume')], zone_reset=skipped)
         for name, value in expected.items():
-            np.testing.assert_array_equal(surface['observed_proxy_' + name][begin:end], value)
+            np.testing.assert_array_equal(surface['observed_proxy_' + name][rows], value)
     assert np.isnan(surface['observed_proxy_bos_up'][9])
+    assert np.isnan(surface['observed_proxy_ob_bull_active'][10:12]).all()
+    assert not surface['observed_proxy_ob_bull_state_valid'][10:12].any()
+    assert np.isnan(surface['observed_proxy_boundary_gap_minutes'][12])
+
+
+@pytest.mark.parametrize('duration_minutes',[240,1440])
+def test_h4_d1_observed_pivots_survive_measured_partial_boundary_gaps(duration_minutes):
+    surface = _observed_structure_surface()
+    labels=t.STUDY_START_NS+np.arange(16)*duration_minutes*t.MINUTE_NS
+    surface['bar_start_ns']=labels
+    surface['available_ns']=labels+duration_minutes*t.MINUTE_NS
+    surface['observed_first_minute_ns']=(labels+60*t.MINUTE_NS).astype(float)
+    surface['observed_last_minute_ns']=(labels+(duration_minutes-1)*t.MINUTE_NS).astype(float)
+    expected=replay_volume_order_block_proxies_v1(*[surface['observed_'+name] for name in
+        ('open_usd','high_usd','low_usd','close_usd','volume')])
+    f.add_observed_structure(surface)
+    np.testing.assert_array_equal(surface['observed_proxy_bos_up'],expected['bos_up'])
+    assert np.isfinite(surface['observed_proxy_bos_up']).any()
+    assert (surface['observed_proxy_boundary_gap_minutes'][1:]==60).all()
+    assert (surface['observed_proxy_elapsed_minutes'][1:]==duration_minutes).all()
+    assert (surface['observed_proxy_skipped_candles'][1:]==0).all()
+    np.testing.assert_array_equal(surface['bos_up'],np.full(16,17.))
+
+
+def test_observed_structure_does_not_hide_contract_excursion_in_a_missing_candle():
+    surface=_observed_structure_surface()
+    surface['observed_valid'][9]=False
+    surface['contract_index'][9]=1  # observed endpoints8/10 both contract0
+    f.add_observed_structure(surface)
+    expected=replay_volume_order_block_proxies_v1(*[surface['observed_'+name][10:] for name in
+        ('open_usd','high_usd','low_usd','close_usd','volume')])
+    for name,value in expected.items():
+        np.testing.assert_array_equal(surface['observed_proxy_'+name][10:],value)
+    assert np.isnan(surface['observed_proxy_boundary_gap_minutes'][10])
+
+
+def test_order_block_zone_reset_preserves_pivots_and_censors_until_new_observed_origin_and_creation():
+    surface=_observed_structure_surface()
+    arrays=[surface['observed_'+name] for name in ('open_usd','high_usd','low_usd','close_usd','volume')]
+    arrays=[np.r_[a,a+20] for a in arrays]
+    original=replay_volume_order_block_proxies_v1(*arrays)
+    reset=np.zeros(32,bool);reset[9]=True
+    censored=replay_volume_order_block_proxies_v1(*arrays,zone_reset=reset)
+    for name in ('bos_up','bos_down','sweep_up_event','sweep_down_event','structure_available'):
+        np.testing.assert_array_equal(censored[name],original[name])
+    creations=np.flatnonzero(censored['ob_bull_created'][10:]==1)+10
+    assert len(creations)
+    born=int(creations[0])
+    assert np.isnan(censored['ob_bull_active'][9:born]).all()
+    assert np.isnan(censored['ob_bull_first_retouch'][9:born]).all()
+    assert np.isnan(censored['ob_bull_low'][9:born]).all()
+    assert censored['ob_bull_active'][born]==1
+    assert censored['ob_bull_first_retouch'][born]==0
+    assert censored['ob_bull_age_bars'][born]==0
+    assert censored['ob_bull_origin_volume_contracts'][born]==arrays[4][born-1]
+    for cut in (8,10,17,25,31):
+        prefix=replay_volume_order_block_proxies_v1(*[a[:cut] for a in arrays],zone_reset=reset[:cut])
+        for name,value in censored.items():
+            np.testing.assert_array_equal(prefix[name],value[:cut])
+    # An origin from before the gap cannot create a zone on the gap row.
+    reset=np.zeros(32,bool);reset[8]=True
+    no_origin=replay_volume_order_block_proxies_v1(*arrays,zone_reset=reset)
+    assert no_origin['bos_up'][8]==1
+    assert np.isnan(no_origin['ob_bull_active'][8])
+    zeros=replay_volume_order_block_proxies_v1(*arrays,zone_reset=np.zeros(32,bool))
+    for name,value in original.items():
+        np.testing.assert_array_equal(zeros[name],value)
+    for invalid in (np.zeros(31,bool),np.full(32,np.nan),np.full(32,2)):
+        with pytest.raises(ValueError,match='ZONE_RESET_INVALID'):
+            replay_volume_order_block_proxies_v1(*arrays,zone_reset=invalid)
+
+
+def test_observed_structure_candidate_state_masks_and_gap_clocks_are_explicit():
+    declared=f.completion_native_candidates_v1()
+    for side in ('bull','bear'):
+        rows=[row for row in declared['fields'] if row['column']=='observed_proxy_ob_'+side+'_first_retouch']
+        assert len(rows)==5
+        assert all(row['validity_column']=='observed_proxy_ob_'+side+'_state_valid' for row in rows)
+    for column in ('observed_proxy_boundary_gap_minutes','observed_proxy_elapsed_minutes','observed_proxy_skipped_candles'):
+        rows=[row for row in declared['fields'] if row['column']==column]
+        assert len(rows)==5
+        assert all(row['validity_column']=='observed_valid' and row['source_clock_column']=='available_ns' for row in rows)
+    assert 'first OBSERVED' in declared['observed_structure_semantics']
 
 
 @pytest.mark.parametrize('observed_only', [False, True])
@@ -535,3 +622,23 @@ def test_observed_basis_candidates_have_explicit_mask_clock_owner_without_duplic
     assert all(row['owner']=='momentum_flow_encoder' and row['validity_column']=='observed_spot_basis_valid'
         and row['source_clock_column']=='observed_spot_basis_source_available_ns' for row in records)
     assert 'observed_spot_basis_source_available_ns' in declared['metadata_columns']
+
+
+def test_observed_structure_requires_explicit_contract_domain_and_valid_source_clock():
+    surface=_observed_structure_surface()
+    del surface['observed_contract_valid']
+    with pytest.raises(ValueError,match='CONTRACT_METADATA_REQUIRED'):
+        f.add_observed_structure(surface)
+    surface=_observed_structure_surface();surface['observed_contract_valid'][2]=False
+    with pytest.raises(ValueError,match='CONTRACT_DOMAIN'):
+        f.add_observed_structure(surface)
+    for field,value in (
+        ('bar_start_ns',np.zeros((1,16),np.int64)),
+        ('observed_contract_valid',np.ones(15,bool)),
+        ('observed_contract_valid',np.ones(16,np.int64)),
+        ('bar_start_ns',_observed_structure_surface()['bar_start_ns'].astype(float)),
+        ('available_ns',_observed_structure_surface()['available_ns']+np.arange(16)),
+        ('observed_last_minute_ns',_observed_structure_surface()['available_ns'].astype(float))):
+        surface=_observed_structure_surface();surface[field]=value
+        with pytest.raises(ValueError,match='STRUCTURE_CLOCK'):
+            f.add_observed_structure(surface)

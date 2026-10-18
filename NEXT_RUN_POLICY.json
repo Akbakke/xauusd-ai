@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-18T09:58:09.945426+00:00",
-  "status": "SOURCE_QUALIFIED_MBP1_COMPLETION_019_CLAIMED__NO_TRAINING",
+  "observed_utc": "2026-10-18T10:39:15.524928+00:00",
+  "status": "SOURCE_QUALIFIED_OBSERVED_SMC_REGISTRY_020_CLAIMED__NO_TRAINING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Qualify combined source changes and execute fresh019 exactly once. Physically audit all five MBP surfaces, build TRAIN-only native registry, rebuild current MTF/features/M5-path dataset and normalization before initial model checks or training.",
+  "next_action": "Execute fresh020 once: derive only observed SMC proxy fields from019, prove allothercolumns exact, then TRAIN-only registry on whole109507actualdecisionclock. No new rawpass/model fit. Afterwards freshboundedfeatures/dataset/normalization and currentfunction qualification.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "One fresh source-bound capped019 event/profile/basis completion after focused source qualification and clean committed source; no model training.",
+    "current_activity": "160focused tests pass/sourceunchanged; fresh020 claimed after concrete SMCgap/boundedGCallocation/M5eligibility repairs.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,13 +112,13 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "018 derived-GC stage failed exact observed buy-side volume parity before publication; test isolation remains unknown in failure receipt, no admission.",
-    "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
+    "latest_terminal_role": "019 MBP1 event/profile/basis feature completion only; exact original M1 parity and side conservation, no native input/model admission.",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MTF_DERIVATION_20261018_018/TERMINAL.json",
-      "sha256": "6c6350917080d2200e0e3aaeb119cc5c217afd2626e186526a0349d116e9f2fc"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TERMINAL.json",
+      "sha256": "76dc529106f197a2c03bcd238f7ebe27bd1dc5834f6689e4605c383d172df539"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Physical019 completion and all925field perTF support/source-clock verification pending; new native registry/dataset/wholeTRAIN normalization/current-function initial baseline/parity/smoke remain unqualified.",
+    "current_blocker": "18 SMC proxy values absent on each H4/D1; native registry/dataset/normalization/initial parity/smoke remain pending.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute new018 observed-GC derivation once after clean committed source and focused checks; preserve strict outputs. Then complete all-TF local formula coverage and M5-path target.",
+    "next_action": "Execute fresh020 once: derive only observed SMC proxy fields from019, prove allothercolumns exact, then TRAIN-only registry on whole109507actualdecisionclock. No new rawpass/model fit. Afterwards freshboundedfeatures/dataset/normalization and currentfunction qualification.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9493,14 +9493,14 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "Fresh019 completion output and exact physical support/mask/source-clock audit pending; no new features yet admitted",
-        "All-TF primitive/14GroupA extension and source-derived observation-mask chain pending focused tests and fresh cache",
-        "New explicit native registry/source hashes, feature manifests and M5-path dataset pending; old016735/552 inputs are historical only",
+        "019 COMPLETE: explicit18field SMC proxy absence on each H4/D1 remains under source/data diagnosis",
+        "253formula source qualification passed; fresh allTF feature cache not yet built",
+        "New TRAIN-only native registry/source hashes, feature manifests and M5-path dataset pending; old016 inputs are historical only",
         "Whole physical TRAIN normalization, current-function initial baseline/parity/smoke and campaign binding pending",
-        "Full price-level lattice remains retained source; native uses explicit derived features rather than direct full-lattice neural tokens"
+        "Full price-level lattice retained; native consumes declared derived features rather than direct full-lattice neural tokens"
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017/TERMINAL.json",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TERMINAL.json",
       "completed_invocations": 0,
       "split_windows": {
         "train": [
@@ -9822,16 +9822,30 @@
         "elapsed_seconds": 14.101196450006682
       },
       "mbp1_completion_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "COMPLETE_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019.json",
         "plan_sha256": "9488ec9e93668fec35c7357ca9738fcd19c4aacc544b2634f18d43991212b2b6",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019",
         "execution_authorized": false,
         "claimed_invocations": 1,
-        "completed_invocations": 0,
+        "completed_invocations": 1,
         "relaunch_allowed": false,
         "native_epoch_authorized_by_this_stage": false,
-        "authority": "18October full26month MBP1 completion request; user explicitly requires complete indicator support before any new training. Exactly one fresh source-bound capped information completion, after tests and clean commit."
+        "authority": "18October full26month MBP1 completion request; user explicitly requires complete indicator support before any new training. Exactly one fresh source-bound capped information completion, after tests and clean commit.",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TERMINAL.json",
+          "sha256": "76dc529106f197a2c03bcd238f7ebe27bd1dc5834f6689e4605c383d172df539"
+        },
+        "controller_terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/LAUNCH_TERMINAL.json",
+          "sha256": "f8b26e02ad83f78e82cd72b7aa9b3e61deaab5aa0bf50fdb045c105a14f6bc5e"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/RESULT.json",
+          "sha256": "14ed4bb514e1c99bd3f24b54d739654fa2005fd43d2bbccd2166b431adb1e9bb"
+        },
+        "elapsed_seconds": 953.109100591013,
+        "source_at_execution": "a7b88c7f02c7fe6bf863f032c37ee670ba45008a"
       },
       "prior_physical_generation_016_017": {
         "generation": "XAU_GC_NATIVE_26M_20261018_002",
@@ -9901,6 +9915,68 @@
         },
         "feature_family_retained": true,
         "original_historical_release_and_correction_proof_complete": false
+      },
+      "mbp1_physical_feature_completion": {
+        "status": "PUBLISHED_NOT_NATIVE_INPUT_QUALIFICATION",
+        "source_records": 892100712,
+        "source_files": 66,
+        "footprint_price_rows": 9173893,
+        "original_trade_and_book_parity": "EXACT_SELECTED_M1",
+        "footprint_side_conservation": "EXACT_EVERY_VALID_SELECTED_M1",
+        "candidate_fields": 925,
+        "profile_peak_state_bytes": 1535056,
+        "per_timeframe": {
+          "D1": {
+            "rows": 792,
+            "trade_observed": 547,
+            "book_observed": 601,
+            "basis_observed": 540
+          },
+          "H1": {
+            "rows": 18984,
+            "trade_observed": 12753,
+            "book_observed": 13325,
+            "basis_observed": 12745
+          },
+          "H4": {
+            "rows": 4747,
+            "trade_observed": 3334,
+            "book_observed": 3388,
+            "basis_observed": 3327
+          },
+          "M15": {
+            "rows": 75936,
+            "trade_observed": 51001,
+            "book_observed": 51718,
+            "basis_observed": 50989
+          },
+          "M5": {
+            "rows": 227808,
+            "trade_observed": 152775,
+            "book_observed": 150768,
+            "basis_observed": 152715
+          }
+        },
+        "all_timeframe_SMC_support_complete": false,
+        "SMC_gap": "18 declared SMC proxy values without finite support on each H4/D1; source/data cause under investigation, not silently removed.",
+        "native_registry_admitted": false,
+        "model_training_started": false
+      },
+      "observed_smc_registry_stage": {
+        "status": "EXECUTION_CLAIMED",
+        "plan_path": "configs/research/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020.json",
+        "plan_sha256": "e79d2ef8cda240d21c1e437b18b8fb3572d37a4f272dca8c2901cebd480d910e",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
+        "execution_authorized": false,
+        "claimed_invocations": 1,
+        "completed_invocations": 0,
+        "relaunch_allowed": false,
+        "native_epoch_authorized_by_this_stage": false,
+        "authority": "18October fullMBP/allTF completion before new training; measured H4/D1 reset gate repaired on observed candle domain, whole missing candles censor OB. Derive only changed proxy fields from019; exact allothercolumn parity required. Build explicit TRAIN-only registry on verifiedwholeclock.",
+        "focused_source_qualification": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020/FOCUSED_SOURCE_QUALIFICATION.json",
+          "sha256": "7ffe907eb8c46259254deaea3d2b9ca1d2f632f473c9fda232871fbe6df56027"
+        }
       }
     },
     "native_xau_pair_failure_20261018": {
@@ -12493,5 +12569,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-17T22:41:23.295098+00:00"
+  "updated_utc": "2026-10-18T10:39:15.524928+00:00"
 }

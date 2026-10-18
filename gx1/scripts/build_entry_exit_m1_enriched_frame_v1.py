@@ -237,13 +237,25 @@ def _write_frame_parquet_bounded(
     columns: Sequence[str],
     index_name: str | None,
     chunk_rows: int,
+    gc_timeframe: str | None = None,
 ) -> None:
-    """Write one frame through bounded Arrow batches to an immutable path."""
+    """Write exact Arrow batches, attaching deferred GC only within each batch."""
 
     import pyarrow as pa
     import pyarrow.parquet as pq
 
     names = tuple(str(name) for name in columns)
+    gc_fields = tuple(_gc_context.CONTEXT_FIELDS) if gc_timeframe is not None else ()
+    if gc_timeframe is not None and (
+        gc_timeframe not in TIMEFRAME_SPECS or index_name != "time"
+        or not set(gc_fields).issubset(names)
+        or any(name in frame.columns for name in gc_fields)
+    ):
+        raise RuntimeError("ENTRY_EXIT_ENRICHED_DEFERRED_GC_SCHEMA_INVALID")
+    gc_field_set = set(gc_fields)
+    source_names = tuple(name for name in names if name not in gc_field_set)
+    gc_binary_fields = _gc_context.binary_fields(gc_fields)
+    gc_binary_positions = tuple((name, index) for index, name in enumerate(gc_fields) if name in gc_binary_fields)
     if (
         frame.empty
         or isinstance(chunk_rows, bool)
@@ -257,10 +269,10 @@ def _write_frame_parquet_bounded(
     if output.exists() or output.is_symlink() or not output.parent.is_dir():
         raise RuntimeError("ENTRY_EXIT_ENRICHED_BOUNDED_WRITE_TARGET_EXISTS")
     if index_name is None:
-        if tuple(frame.columns) != names:
+        if tuple(frame.columns) != source_names:
             raise RuntimeError("ENTRY_EXIT_ENRICHED_BOUNDED_WRITE_SCHEMA_INVALID")
-    elif names[0] != index_name or any(
-        list(frame.columns).count(name) != 1 for name in names[1:]
+    elif source_names[0] != index_name or any(
+        list(frame.columns).count(name) != 1 for name in source_names[1:]
     ):
         raise RuntimeError("ENTRY_EXIT_ENRICHED_BOUNDED_WRITE_SCHEMA_INVALID")
 
@@ -274,15 +286,28 @@ def _write_frame_parquet_bounded(
     try:
         for lo in range(0, len(frame), chunk_rows):
             hi = min(lo + chunk_rows, len(frame))
+            batch_frame = frame.iloc[lo:hi]
+            if gc_timeframe is not None:
+                batch_frame = _attach_gc_native_context(batch_frame, timeframe=gc_timeframe)
+                if not batch_frame.index.equals(frame.index[lo:hi]):
+                    raise RuntimeError("ENTRY_EXIT_ENRICHED_GC_CHUNK_CLOCK_INVALID")
+                gc_values = batch_frame.loc[:, list(gc_fields)].to_numpy(dtype=np.float32, copy=False)
+                if not np.isfinite(gc_values).all():
+                    raise RuntimeError("ENTRY_EXIT_ENRICHED_GC_CHUNK_NONFINITE")
+                for name, index in gc_binary_positions:
+                    if not np.isin(gc_values[:, index], (0.0, 1.0)).all():
+                        raise RuntimeError("ENTRY_EXIT_ENRICHED_GC_BINARY_DOMAIN_INVALID:" + name)
+                _gc_context.require_masked_storage_numpy(gc_values, gc_fields)
+                del gc_values
             if index_name is None:
                 table = pa.Table.from_pandas(
-                    frame.iloc[lo:hi].loc[:, list(names)],
+                    batch_frame.loc[:, list(names)],
                     preserve_index=False,
                 )
             else:
-                arrays = [pa.array(frame.index[lo:hi], from_pandas=True)]
+                arrays = [pa.array(batch_frame.index, from_pandas=True)]
                 arrays.extend(
-                    pa.array(frame[name].iloc[lo:hi], from_pandas=True)
+                    pa.array(batch_frame[name], from_pandas=True)
                     for name in names[1:]
                 )
                 table = pa.Table.from_arrays(arrays, names=list(names))
@@ -301,6 +326,9 @@ def _write_frame_parquet_bounded(
                 )
             assert writer is not None
             writer.write_table(table, row_group_size=hi - lo)
+            del table, batch_frame
+            if index_name is not None:
+                del arrays
         if writer is None or expected_schema is None:
             raise RuntimeError("ENTRY_EXIT_ENRICHED_BOUNDED_WRITE_EMPTY")
         writer.close()
@@ -339,8 +367,9 @@ def _write_output_parquet_bounded(
     output: Path,
     *,
     chunk_rows: int = 32768,
+    gc_timeframe: str | None = None,
 ) -> None:
-    """Write the ordered enriched surface without one full Arrow copy."""
+    """Write the ordered surface with optional row-bounded GC attachment."""
 
     _write_frame_parquet_bounded(
         frame,
@@ -348,6 +377,7 @@ def _write_output_parquet_bounded(
         columns=OUTPUT_COLUMNS,
         index_name="time",
         chunk_rows=chunk_rows,
+        gc_timeframe=gc_timeframe,
     )
 
 
@@ -1152,6 +1182,7 @@ def _finish_model_native_surface(
     enriched: pd.DataFrame,
     *,
     timeframe: str,
+    defer_gc_context: bool = False,
 ) -> pd.DataFrame:
     spec = TIMEFRAME_SPECS[timeframe]
     label = spec["label"].upper()
@@ -1171,14 +1202,20 @@ def _finish_model_native_surface(
     enriched["dow_sin"] = np.sin(2.0 * np.pi * dow / 7.0).astype(np.float32)
     if not enriched.index.is_unique or not enriched.index.is_monotonic_increasing:
         raise RuntimeError(f"{label}_ENRICHED_OUTPUT_TIME_ORDER_INVALID")
+    if not isinstance(defer_gc_context, bool):
+        raise RuntimeError(f"{label}_ENRICHED_DEFERRED_GC_MODE_INVALID")
+    gc_fields = set(_gc_context.CONTEXT_FIELDS) if defer_gc_context else set()
+    if defer_gc_context and gc_fields.intersection(enriched.columns):
+        raise RuntimeError(f"{label}_ENRICHED_DEFERRED_GC_OWNER_OVERLAP")
+    required_output = tuple(name for name in OUTPUT_COLUMNS if name not in gc_fields)
     missing = [
         name
-        for name in OUTPUT_COLUMNS
+        for name in required_output
         if name != "time" and name not in enriched.columns
     ]
     if missing:
         raise RuntimeError(f"{label}_ENRICHED_OUTPUT_FIELDS_MISSING: {missing}")
-    for name in OUTPUT_COLUMNS[1:]:
+    for name in required_output[1:]:
         values = pd.to_numeric(
             enriched[name], errors="coerce"
         ).to_numpy(dtype=np.float64)
@@ -1471,11 +1508,10 @@ def _build_enriched_stage(
     _log_rss("after_group_a_attach")
     enriched = _bound_gc_output_support(enriched, multi_tf, timeframe=timeframe)
     enriched = _attach_d1_macro_context(enriched, timeframe=timeframe)
-    enriched = _attach_gc_native_context(enriched, timeframe=timeframe)
     _log_rss("after_d1_macro_context_attach")
     enriched = _trim_group_a_causal_warmup(enriched)
     _log_rss("after_group_a_warmup_trim")
-    enriched = _finish_model_native_surface(enriched, timeframe=timeframe)
+    enriched = _finish_model_native_surface(enriched, timeframe=timeframe, defer_gc_context=True)
     _log_rss("after_finish_surface")
     exit_m1_mtf_causality_proof = (
         _prove_m1_exit_mtf_causality(enriched, multi_tf=multi_tf)
@@ -1486,6 +1522,7 @@ def _build_enriched_stage(
         enriched,
         output_stage,
         chunk_rows=checkpoint_chunk_rows,
+        gc_timeframe=timeframe,
     )
     output_sha256 = _sha256_file(output_stage)
 
@@ -2074,6 +2111,11 @@ def _build_enriched_frame(
                 "enriched_stage_process_isolated": True,
                 "raw_canonical_mtf_enriched_co_resident": False,
                 "arrow_use_threads": False,
+                "gc_context_attached_during_bounded_write": True,
+                "gc_context_attach_chunk_rows": checkpoint_chunk_rows,
+                "gc_context_full_history_dense_matrix_materialized": False,
+                "gc_context_field_count": len(_gc_context.CONTEXT_FIELDS),
+                "output_field_count": len(OUTPUT_COLUMNS),
             },
             "causal_contract": {
                 "future_rows_used": False,

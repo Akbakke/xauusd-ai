@@ -19,6 +19,7 @@ from gx1.contracts.local_random_access_campaign_v2 import file_sha256, read_boun
 from gx1.contracts.entry_model_native_training_run_lineage_v1 import deterministic_uniform_subsample_indices
 from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
     HORIZON_ELIGIBILITY_RULE, PHYSICAL_COORDINATES_SCHEMA_V1, PHYSICAL_COORDINATES_SCHEMA_V2,
+    M5_PATH_ELIGIBILITY_RULE, PHYSICAL_COORDINATES_SCHEMA_M5_PATH,
     native_sha256, require_physical_chronological_preprocessing,
     require_physical_native_training_coordinates, _physical_native_sampler,
 )
@@ -111,18 +112,58 @@ def horizon_eligible_rows(parquet_path: Path, *, cutoff_utc: str) -> dict[str, A
             "rows_after_cutoff": int((~eligible_time).sum()), "physical_rows": int(len(frame))}
 
 
+def m5_path_eligible_rows(parquet_path: Path, *, cutoff_utc: str) -> dict[str, Any]:
+    """Primary M5 availability only; no1/5/20d label is read or required."""
+    import pandas as pd
+    import pyarrow.parquet as pq
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import (
+        M5_PATH_TARGET_COLUMNS, M5_PATH_VALID_COLUMN, M5_PATH_OBSERVATION_HORIZON_BARS,
+    )
+    from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
+    from gx1.time.session_detector import m5_decision_availability
+    frame = pq.read_table(parquet_path, columns=["time", M5_PATH_VALID_COLUMN, *M5_PATH_TARGET_COLUMNS]).to_pandas()
+    decisions = m5_decision_availability(frame["time"]).as_unit("ns").asi8
+    cutoff = pd.Timestamp(cutoff_utc)
+    if cutoff.tz is None:
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_M5_PATH_CUTOFF_INVALID")
+    valid = frame[M5_PATH_VALID_COLUMN].to_numpy()
+    finite = np.isfinite(frame[list(M5_PATH_TARGET_COLUMNS)].to_numpy(dtype=np.float64))
+    complete = finite.all(axis=1)
+    if (valid.dtype != np.dtype(bool) or np.any(finite.any(axis=1) != complete)
+            or not np.array_equal(complete, valid)):
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_M5_PATH_AVAILABILITY_INVALID")
+    eligible_time = decisions <= cutoff.value
+    if bool((complete & ~eligible_time).any()):
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_COMPLETE_ROW_AFTER_CUTOFF")
+    if bool((complete & (decisions + M5_PATH_OBSERVATION_HORIZON_BARS * ENTRY_DECISION_BAR_SECONDS * 10**9 > cutoff.value)).any()):
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_M5_PATH_TARGET_CROSSES_CUTOFF")
+    rows = np.flatnonzero(eligible_time & complete).astype(np.int64)
+    if len(rows) < 1:
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_NO_ELIGIBLE_ROWS")
+    return {"rows": rows, "censored_rows_excluded": int((eligible_time & ~complete).sum()),
+        "rows_after_cutoff": int((~eligible_time).sum()), "physical_rows": int(len(frame))}
+
+
 def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Mapping[str, str],
-                output_dir: Path, publish: bool, horizon_eligibility: Mapping[str, Any] | None = None) -> dict[str, Any]:
+                output_dir: Path, publish: bool, horizon_eligibility: Mapping[str, Any] | None = None,
+                m5_path_eligibility: Mapping[str, Any] | None = None) -> dict[str, Any]:
     if set(chronological_prefix) != {"design", "normalization_result", "labels_result"}:
         raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_PREFIX_INVALID")
     if horizon_eligibility is not None and set(horizon_eligibility) != {"horizons_design", "entry_eligibility_cutoff_utc"}:
         raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_HORIZON_ELIGIBILITY_INVALID")
+    if m5_path_eligibility is not None:
+        from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
+        if (horizon_eligibility is not None or set(m5_path_eligibility) != {"target_contract", "entry_eligibility_cutoff_utc"}
+                or m5_path_eligibility["target_contract"] != entry_observed_m5_path_contract()):
+            raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_M5_PATH_ELIGIBILITY_INVALID")
     artifacts = {key:require_binding(value, label="coordinate preprocessing", verify_file=True)
                  for key,value in chronological_prefix.items()}
     design, normalization, labels = (_read(artifacts[key])
         for key in ("design", "normalization_result", "labels_result"))
     physical = require_physical_chronological_preprocessing(
         artifacts, design=design, normalization=normalization, labels=labels)
+    if m5_path_eligibility is not None and m5_path_eligibility["entry_eligibility_cutoff_utc"] != design["calendar"]["train_control_cutoff"]:
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_M5_PATH_CUTOFF_INVALID")
     selected_sampler = require_binding(selected_sampler, label="selected sampler", verify_file=True)
     selected = _physical_native_sampler(selected_sampler, artifacts=artifacts, design=design, physical=physical)
     output = output_dir.expanduser().absolute()
@@ -150,6 +191,19 @@ def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Ma
                        "entry_eligibility_cutoff_utc": str(horizon_eligibility["entry_eligibility_cutoff_utc"]),
                        "eligible_rows": int(len(eligible)), "censored_rows_excluded": found["censored_rows_excluded"],
                        "complete_at_all_observation_horizons": True}
+    if m5_path_eligibility is not None:
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+        found = m5_path_eligible_rows(Path(physical["physical_sources"]["train"]["parquet"]["path"]),
+            cutoff_utc=m5_path_eligibility["entry_eligibility_cutoff_utc"])
+        if found["physical_rows"] != physical["train_rows"]:
+            raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_M5_PATH_POPULATION_MISMATCH")
+        eligible = found["rows"]
+        order = order[np.isin(order, eligible)]
+        eligibility = {"rule": M5_PATH_ELIGIBILITY_RULE, "training_phase": ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
+            "target_contract": m5_path_eligibility["target_contract"],
+            "entry_eligibility_cutoff_utc": m5_path_eligibility["entry_eligibility_cutoff_utc"],
+            "eligible_rows": int(len(eligible)), "censored_rows_excluded": found["censored_rows_excluded"],
+            "long_horizons_gate_primary_eligibility": False}
     planned = order[:design["budget"]["maximum_trained_entry_rows"]]
     if len(planned) != design["budget"]["maximum_trained_entry_rows"]:
         raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_PLANNED_ROWS_SHORT")
@@ -163,7 +217,8 @@ def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Ma
     for key, rows in (("TRAIN_NATIVE_EPOCH0_ORDER",order), ("TRAIN_NATIVE4096_PARENT_ROWS",planned),
                       ("TRAIN256_PROBE_PARENT_ROWS",planned[positions])):
         bindings[key] = _publish(output/(key+".npy"), rows)
-    native = {"schema_version":PHYSICAL_COORDINATES_SCHEMA_V1 if eligibility is None else PHYSICAL_COORDINATES_SCHEMA_V2,
+    native = {"schema_version":(PHYSICAL_COORDINATES_SCHEMA_M5_PATH if m5_path_eligibility is not None
+        else PHYSICAL_COORDINATES_SCHEMA_V1 if eligibility is None else PHYSICAL_COORDINATES_SCHEMA_V2),
         **({} if eligibility is None else {"eligibility":eligibility}),
         "decision":"TRAIN_COORDINATES_FROZEN_NO_MODEL", "design":artifacts["design"],
         "train_source":physical["physical_sources"]["train"]["parquet"],
@@ -218,10 +273,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--publish", action="store_true")
     parser.add_argument("--horizons-design", type=Path, default=None,
                         help="trading-day-horizon learning design: eligible rows = complete at every horizon at or before the cutoff")
+    parser.add_argument("--m5-path-eligibility", action="store_true",
+        help="canonical M5-path availability subset; long horizons do not filter primary rows")
     parser.add_argument("--entry-eligibility-cutoff-utc", type=str, default=None)
     args = parser.parse_args(argv)
-    if (args.horizons_design is None) != (args.entry_eligibility_cutoff_utc is None):
-        raise SystemExit("--horizons-design and --entry-eligibility-cutoff-utc are bound together")
+    if (args.m5_path_eligibility and args.horizons_design is not None) or (
+            (args.horizons_design is not None or args.m5_path_eligibility) != (args.entry_eligibility_cutoff_utc is not None)):
+        raise SystemExit("Choose exactly one of --horizons-design/--m5-path-eligibility, bound with --entry-eligibility-cutoff-utc")
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
+    m5_path_eligibility = None if not args.m5_path_eligibility else {
+        "target_contract": entry_observed_m5_path_contract(), "entry_eligibility_cutoff_utc": args.entry_eligibility_cutoff_utc}
     horizon_eligibility = None if args.horizons_design is None else {
         "horizons_design": _binding(args.horizons_design.expanduser().absolute()),
         "entry_eligibility_cutoff_utc": args.entry_eligibility_cutoff_utc}
@@ -229,7 +290,8 @@ def main(argv: list[str] | None = None) -> int:
         key:_binding(getattr(args,key).expanduser().absolute())
         for key in ("design","normalization_result","labels_result")},
         selected_sampler=_binding(args.selected_sampler.expanduser().absolute()),
-        output_dir=args.output_dir, publish=args.publish, horizon_eligibility=horizon_eligibility)
+        output_dir=args.output_dir, publish=args.publish, horizon_eligibility=horizon_eligibility,
+        m5_path_eligibility=m5_path_eligibility)
     print(json.dumps(result,sort_keys=True))
     return 0
 

@@ -1385,13 +1385,18 @@ VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1 = (
 )
 
 
-def replay_volume_order_block_proxies_v1(open_, high, low, close, volume):
+def replay_volume_order_block_proxies_v1(open_, high, low, close, volume, *, zone_reset=None):
     """Closed-bar price proxies using this owner's sole causal BOS/sweep replay.
 
-    One uninterrupted, single-contract valid-bar segment per call. At a BOS,
-    freeze the last strictly earlier opposite candle's full wick zone and its
-    observed T volume. No historical bar is rewritten. Invalidate on a close
-    through the far edge; a first later wick intersection emits one retouch.
+    One single-contract observed-candle sequence per call. Default behavior
+    remains the uninterrupted-bar recipe. Optional zone_reset censors zones
+    and earlier opposite origins across wholly unobserved candles while keeping
+    the confirmed-pivot replay on the actual observed candle sequence. Each
+    side stays unknown until a new observed BOS creates a new zone. At a BOS,
+    freeze the last strictly earlier observed opposite candle's wick zone and
+    observed T volume. No historical bar is rewritten. Invalidate on an observed
+    close through the far edge; retouch means the first OBSERVED later wick
+    intersection, never proof of the first intersection on an unseen path.
     No hidden orders, institutional identity or trading rule is inferred.
     """
     arrays = [np.asarray(a, dtype=np.float64) for a in (open_, high, low, close, volume)]
@@ -1399,6 +1404,10 @@ def replay_volume_order_block_proxies_v1(open_, high, low, close, volume):
     if (any(a.ndim != 1 or a.shape != c.shape or not np.isfinite(a).all() for a in arrays)
             or np.any(v <= 0) or np.any(o > h) or np.any(o < l)):
         raise ValueError('SMC_ORDER_BLOCK_PROXY_INPUT_INVALID')
+    reset = np.zeros(len(c), bool) if zone_reset is None else np.asarray(zone_reset)
+    if reset.shape != c.shape or not np.isin(reset, (0, 1)).all():
+        raise ValueError('SMC_ORDER_BLOCK_PROXY_ZONE_RESET_INVALID')
+    reset = reset.astype(bool)
     replay, _ = replay_smc_causal_structure_v2(h, l, c)
     names = ('structure_available', 'bos_up', 'bos_down', 'sweep_up_event', 'sweep_down_event')
     out = {name: replay[name].astype(np.float64) for name in names}
@@ -1408,11 +1417,17 @@ def replay_volume_order_block_proxies_v1(open_, high, low, close, volume):
             out[f'ob_{side}_{name}'] = np.full(len(c), np.nan)
     last_bear = last_bull = None
     zones = {'bull': None, 'bear': None}
+    known = {'bull': True, 'bear': True}
     for i in range(len(c)):
+        if reset[i]:
+            zones = {'bull': None, 'bear': None}
+            known = {'bull': False, 'bear': False}
+            last_bear = last_bull = None
         for side, bos, origin in (('bull', 'bos_up', last_bear), ('bear', 'bos_down', last_bull)):
             created = bool(replay[bos][i] and origin is not None)
             if created:
                 zones[side] = [float(l[origin]), float(h[origin]), float(v[origin]), i, False]
+                known[side] = True
             zone = zones[side]
             retouch = False
             if zone is not None:
@@ -1430,6 +1445,9 @@ def replay_volume_order_block_proxies_v1(open_, high, low, close, volume):
                 out[prefix+'low'][i], out[prefix+'high'][i] = zone[:2]
                 out[prefix+'origin_volume_contracts'][i] = zone[2]
                 out[prefix+'age_bars'][i] = i-zone[3]
+            if not known[side]:
+                for field in fields:
+                    out[prefix+field][i] = np.nan
         # Current candle becomes eligible only for a later BOS.
         if c[i] < o[i]:
             last_bear = i

@@ -379,7 +379,8 @@ Brukeren presiserte at CPU-ministudien ikke oppfylte oppgaven: nytt datasett fra
 starten på26måneder med MBP-1 og alle genuine features i den faktiske native
 Transformer-stien, deretter én full epoke (forventet12timer+). Dette er nytt
 vedtak for en ny datasett-/treningsidentitet, ikke relansering av gamle planer.
-H20 beholdes. Siste fordelingsønske er omtrent20måneder TRAIN og siste måneder
+H20 var beholdt i dette vedtaket;18.10 er M5-prisforløp hovedmål og H20 støtte.
+Siste fordelingsønske er omtrent20måneder TRAIN og siste måneder
 VAL/TEST; eksakte datoer bindes før normalisering/mål/trening. Alle26måneder
 er tidligere undersøkt utvikling, så retrospektiv TEST er ikke urørt bekreftelse.
 Brukeren ba også kontrollere full MBP-1-utnyttelse, herunder footprint og kausale

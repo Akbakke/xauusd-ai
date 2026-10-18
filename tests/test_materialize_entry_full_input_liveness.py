@@ -422,3 +422,53 @@ def test_materializer_rejects_run_id_mismatch_before_writing(tmp_path: Path) -> 
         run(_args(dataset_dir, out_dir))
 
     assert not (out_dir / OUTPUT_FILENAME).exists()
+
+
+def test_whole_train_registry_clock_is_bound_before_liveness_publication(tmp_path, monkeypatch):
+    from gx1.features import gc_native_context_v1 as gc
+    from gx1.scripts.materialize_entry_full_input_liveness_v1 import _require_whole_train_registry_clock
+    from gx1.time.session_detector import m5_decision_availability
+    times = pd.date_range('2025-01-02T00:00Z', periods=5, freq='5min')
+    path = tmp_path/'whole_train.parquet'
+    pd.DataFrame({'time': times}).to_parquet(path, index=False)
+    decisions = m5_decision_availability(times).as_unit('ns').asi8
+    registry = {**gc.REGISTRY, 'new_physical_generation_exact_train_clock_match_required': True,
+        'train_decision_rows': len(times), 'train_decision_clock_sha256': hashlib.sha256(decisions.tobytes()).hexdigest()}
+    monkeypatch.setattr(gc, 'REGISTRY', registry)
+    manifest = {'extra': {'gc_native_context': gc.contract()}}
+    proof = _require_whole_train_registry_clock(path, manifest)
+    assert proof['rows'] == 5 and proof['exact_match'] is True
+    assert proof['registry']['sha256'] == gc.REGISTRY_SHA256
+    assert proof['physical_train_time_clock_sha256'] == hashlib.sha256(times.as_unit('ns').asi8.tobytes()).hexdigest()
+    assert proof['train_decision_clock_sha256'] != proof['physical_train_time_clock_sha256']
+    # A target-eligible subset must never substitute for the whole physical clock.
+    monkeypatch.setitem(registry, 'train_decision_rows', 4)
+    monkeypatch.setitem(registry, 'train_decision_clock_sha256', hashlib.sha256(decisions[:4].tobytes()).hexdigest())
+    with pytest.raises(RuntimeError, match='PHYSICAL_TRAIN_CLOCK_MISMATCH'):
+        _require_whole_train_registry_clock(path, manifest)
+    with pytest.raises(RuntimeError, match='REGISTRY_SOURCE_BINDING_INVALID'):
+        _require_whole_train_registry_clock(path, {'extra': {'gc_native_context': {}}})
+
+
+def test_old_registry_scope_does_not_claim_a_whole_train_clock_proof(tmp_path, monkeypatch):
+    from gx1.features import gc_native_context_v1 as gc
+    from gx1.scripts.materialize_entry_full_input_liveness_v1 import _require_whole_train_registry_clock
+    monkeypatch.setattr(gc, 'REGISTRY', {**gc.REGISTRY, 'new_physical_generation_exact_train_clock_match_required': False})
+    assert _require_whole_train_registry_clock(tmp_path/'not_read.parquet', {}) is None
+
+
+def test_registry_clock_mismatch_stops_whole_train_qualification_before_scan_or_publication(tmp_path, monkeypatch):
+    from gx1.scripts import materialize_entry_full_input_liveness_v1 as materializer
+    dataset_dir = tmp_path/'dataset'
+    _write_dataset(dataset_dir)
+    args = _args(dataset_dir, tmp_path/'audit')
+    def reject(path, manifest):
+        assert path.name == STEM + '_train.parquet'
+        raise RuntimeError('NATIVE_GC_REGISTRY_PHYSICAL_TRAIN_CLOCK_MISMATCH')
+    def forbidden(*args, **kwargs):
+        raise AssertionError('registry mismatch must reject before the full physical scan')
+    monkeypatch.setattr(materializer, '_require_whole_train_registry_clock', reject)
+    monkeypatch.setattr(materializer, '_scan_split', forbidden)
+    with pytest.raises(RuntimeError, match='PHYSICAL_TRAIN_CLOCK_MISMATCH'):
+        materializer.run(args)
+    assert not Path(args.out_json).exists()

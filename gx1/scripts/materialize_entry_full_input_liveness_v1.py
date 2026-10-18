@@ -489,6 +489,31 @@ def _validate_build_proof(
     return proof
 
 
+def _require_whole_train_registry_clock(parquet_path: Path, manifest: Mapping[str, Any]) -> dict[str, Any] | None:
+    """New GC admission is fitted to every actual TRAIN decision, never target eligibility."""
+    import hashlib
+    import pandas as pd
+    from gx1.features import gc_native_context_v1 as gc
+    from gx1.time.session_detector import m5_decision_availability
+    if gc.REGISTRY.get("new_physical_generation_exact_train_clock_match_required") is not True:
+        return None
+    if manifest.get("extra", {}).get("gc_native_context") != gc.contract():
+        raise RuntimeError("LIVENESS_GC_REGISTRY_SOURCE_BINDING_INVALID")
+    stat = parquet_path.stat()
+    clock = pd.DatetimeIndex(pd.to_datetime(pq.read_table(parquet_path, columns=["time"])["time"].to_pandas(), utc=True)).as_unit("ns")
+    after = parquet_path.stat()
+    if (stat.st_size, stat.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
+        raise RuntimeError("LIVENESS_GC_REGISTRY_TRAIN_FILE_CHANGED")
+    matched = gc.require_registry_train_clock_match(m5_decision_availability(clock))
+    return {"registry": {"path": gc.REGISTRY_PATH, "sha256": gc.REGISTRY_SHA256},
+        "physical_train_parquet_path": str(parquet_path),
+        "physical_train_stat": {"size_bytes": int(stat.st_size), "mtime_ns": int(stat.st_mtime_ns)},
+        "physical_train_time_clock_sha256": hashlib.sha256(clock.asi8.tobytes()).hexdigest(),
+        "decision_clock_owner": "gx1.time.session_detector.m5_decision_availability",
+        "population": "whole_physical_TRAIN_before_target_availability_selection",
+        **matched}
+
+
 def run(args: argparse.Namespace) -> dict[str, Any]:
     entry_run_id = require_entry_run_id(getattr(args, "run_id", None))
     dataset_dir = Path(str(args.dataset_dir)).expanduser().resolve()
@@ -550,6 +575,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         field_order=canonical_field_order,
     )
 
+    whole_train_registry_clock = _require_whole_train_registry_clock(
+        parquets["train"], manifest_payloads["train"])
     stats_by_split: dict[str, dict[str, dict[str, dict[str, Any]]]] = {}
     scan_proof: dict[str, dict[str, Any]] = {}
     semantic_scan: dict[str, dict[str, Any]] = {}
@@ -562,6 +589,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         stats_by_split[split] = stats
         scan_proof[split] = proof
         semantic_scan[split] = semantics
+
+    if whole_train_registry_clock is not None:
+        proof = scan_proof["train"]
+        if (whole_train_registry_clock["rows"] != proof["total_rows"] or
+                any(whole_train_registry_clock["physical_train_stat"][key] != proof[key]
+                    for key in ("size_bytes", "mtime_ns"))):
+            raise RuntimeError("LIVENESS_GC_REGISTRY_TRAIN_FILE_CHANGED")
+        whole_train_registry_clock["physical_train_parquet_sha256"] = proof["parquet_sha256"]
 
     # The cache loader already verifies every array byte, recomputes the exact
     # 5-per-TF (MULTI_TF_FEATURE_COUNT_V4-wide) liveness contract, and rejects false manifest claims. Reuse that
@@ -616,6 +651,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             for split in SPLITS
         },
         "semantic_fullscan": semantic_scan,
+        **({"gc_registry_whole_train_clock": whole_train_registry_clock}
+            if whole_train_registry_clock is not None else {}),
     }
 
     out_path.parent.mkdir(parents=True, exist_ok=True)

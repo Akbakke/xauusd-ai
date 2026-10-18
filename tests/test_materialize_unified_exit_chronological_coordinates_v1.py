@@ -183,3 +183,93 @@ def test_producer_publishes_v2_coordinates_over_the_horizon_eligible_subset(phys
     assert checked["eligible_parent_rows"].tolist() == eligible.tolist()
     with pytest.raises(RuntimeError, match="HORIZON_ELIGIBILITY_INVALID"):
         producer.materialize(**{**args, "horizon_eligibility": {"horizons_design": design}, "output_dir": tmp_path / "x"}, publish=False)
+
+
+def _m5_path_frame():
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import M5_PATH_TARGET_COLUMNS, M5_PATH_VALID_COLUMN
+    frame = pd.DataFrame({'time': pd.date_range('2025-04-01T00:00Z', periods=6, freq='5min')})
+    frame[M5_PATH_VALID_COLUMN] = [True, True, False, True, True, False]
+    for column in M5_PATH_TARGET_COLUMNS:
+        frame[column] = [1., -2., np.nan, 0., 3., np.nan]
+    return frame
+
+
+def test_m5_path_eligibility_ignores_absent_long_targets_and_uses_only_availability(tmp_path):
+    from gx1.contracts.entry_observed_market_horizons_v1 import HORIZON_LABEL_COLUMNS
+    frame = _m5_path_frame()
+    path = tmp_path / 'train.parquet'
+    cutoff = '2025-04-01T02:00Z'
+    frame.to_parquet(path, index=False)
+    found = producer.m5_path_eligible_rows(path, cutoff_utc=cutoff)
+    assert found['rows'].tolist() == [0, 1, 3, 4]
+    assert found['physical_rows'] == 6 and found['censored_rows_excluded'] == 2
+    # Every long-horizon cell is missing, yet exactly the same M5 population remains.
+    for column in HORIZON_LABEL_COLUMNS:
+        frame[column] = np.nan
+    frame.to_parquet(path, index=False)
+    again = producer.m5_path_eligible_rows(path, cutoff_utc=cutoff)
+    assert np.array_equal(found['rows'], again['rows'])
+
+
+@pytest.mark.parametrize('fault', ['mask', 'partial', 'cross_cutoff', 'after_cutoff'])
+def test_m5_path_eligibility_rejects_corrupt_availability_or_boundary(tmp_path, fault):
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import M5_PATH_TARGET_COLUMNS, M5_PATH_VALID_COLUMN
+    frame = _m5_path_frame()
+    cutoff = '2025-04-01T02:00Z'
+    if fault == 'mask':
+        frame.loc[0, M5_PATH_VALID_COLUMN] = False
+    elif fault == 'partial':
+        frame.loc[0, M5_PATH_TARGET_COLUMNS[0]] = np.nan
+    elif fault == 'cross_cutoff':
+        cutoff = '2025-04-01T01:40Z'
+    else:
+        cutoff = '2025-04-01T00:10Z'
+    path = tmp_path / 'bad.parquet'
+    frame.to_parquet(path, index=False)
+    with pytest.raises(RuntimeError, match='AVAILABILITY_INVALID|CROSSES_CUTOFF|COMPLETE_ROW_AFTER_CUTOFF'):
+        producer.m5_path_eligible_rows(path, cutoff_utc=cutoff)
+
+
+def test_m5_path_coordinates_preserve_filtered_native_order_and_reject_long_gating(physical_measurement, tmp_path, monkeypatch):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
+    c = physical_measurement
+    full_order = c.prepared.case['order']
+    eligible = np.sort(full_order[1:]).astype(np.int64)
+    monkeypatch.setattr(producer, 'm5_path_eligible_rows', lambda path, *, cutoff_utc: {
+        'rows': eligible, 'censored_rows_excluded': 1, 'rows_after_cutoff': 0, 'physical_rows': len(full_order)})
+    args = {**_arguments(c, tmp_path/'path'), 'm5_path_eligibility': {
+        'target_contract': entry_observed_m5_path_contract(),
+        'entry_eligibility_cutoff_utc': c.prepared.design['calendar']['train_control_cutoff']}}
+    result = producer.materialize(**args, publish=True)
+    prefix = result['chronological_prefix']
+    native_path = Path(prefix['native_coordinates']['path'])
+    native = json.loads(native_path.read_text())
+    assert native['schema_version'] == campaign.PHYSICAL_COORDINATES_SCHEMA_M5_PATH
+    assert native['eligibility']['long_horizons_gate_primary_eligibility'] is False
+    assert np.array_equal(np.load(native['bindings']['TRAIN_NATIVE_EPOCH0_ORDER']['path']), full_order[np.isin(full_order, eligible)])
+    design = json.loads(Path(prefix['design']['path']).read_text())
+    physical = campaign.require_physical_chronological_preprocessing(
+        {k:v for k,v in prefix.items() if k != 'native_coordinates'}, design=design,
+        normalization=json.loads(Path(prefix['normalization_result']['path']).read_text()),
+        labels=json.loads(Path(prefix['labels_result']['path']).read_text()))
+    for field, value in [('long_horizons_gate_primary_eligibility', True), ('target_contract', {}),
+                         ('training_phase', 'entry_only_observed_horizon_20d'), ('censored_rows_excluded', 0)]:
+        bad = copy.deepcopy(native)
+        bad['eligibility'][field] = value
+        bad['coordinates_sha256'] = campaign.native_sha256({k:v for k,v in bad.items() if k != 'coordinates_sha256'})
+        bad_binding = _write(tmp_path/(field+'.json'), bad)
+        with pytest.raises(RuntimeError, match='M5_PATH_ELIGIBILITY_INVALID|ROWS_INVALID'):
+            campaign.require_physical_native_training_coordinates({**prefix, 'native_coordinates': bad_binding}, design=design, physical=physical)
+    reordered = np.load(native['bindings']['TRAIN_NATIVE_EPOCH0_ORDER']['path']).copy()[::-1]
+    bad_order = tmp_path/'bad_order.npy'
+    np.save(bad_order, reordered, allow_pickle=False)
+    bad = copy.deepcopy(native)
+    bad['bindings']['TRAIN_NATIVE_EPOCH0_ORDER'] = _binding(bad_order)
+    bad['coordinates_sha256'] = campaign.native_sha256({k:v for k,v in bad.items() if k != 'coordinates_sha256'})
+    bad_binding = _write(tmp_path/'bad_order.json', bad)
+    with pytest.raises(RuntimeError, match='M5_PATH_NATIVE_ORDER_MISMATCH'):
+        campaign.require_physical_native_training_coordinates({**prefix, 'native_coordinates': bad_binding}, design=design, physical=physical)
+    with pytest.raises(RuntimeError, match='M5_PATH_ELIGIBILITY_INVALID'):
+        producer.materialize(**{**args, 'output_dir': tmp_path/'mixed', 'horizon_eligibility': {
+            'horizons_design': prefix['design'], 'entry_eligibility_cutoff_utc': args['m5_path_eligibility']['entry_eligibility_cutoff_utc']}}, publish=False)

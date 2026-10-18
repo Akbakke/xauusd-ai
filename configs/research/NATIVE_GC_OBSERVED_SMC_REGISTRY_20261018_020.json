@@ -1,0 +1,61 @@
+{
+  "schema_version": "gx1_native_gc_observed_smc_registry_plan_v1",
+  "plan_id": "NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "created_utc": "2026-10-18T10:29:08.479344+00:00",
+  "operator_authority": "18October fullMBP/allTF completion and M5 primary goal; remedy measured H4/D1 proxy gating defect before any model training.",
+  "source_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TERMINAL.json",
+    "sha256": "76dc529106f197a2c03bcd238f7ebe27bd1dc5834f6689e4605c383d172df539"
+  },
+  "tables": {
+    "TRADE_FEATURES_D1.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TRADE_FEATURES_D1.parquet",
+      "sha256": "3747cd68028af32588ae6d7ea2f40256d0d65df0a2027f1db30b184919cf254c"
+    },
+    "TRADE_FEATURES_H1.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TRADE_FEATURES_H1.parquet",
+      "sha256": "26e6dbe93d3bce12430ba14d94a8c1d773cb291d8d918e28ad5fdb59a7bbfd33"
+    },
+    "TRADE_FEATURES_H4.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TRADE_FEATURES_H4.parquet",
+      "sha256": "3ab596de01b6e1803a2ecbfc1d02e34cee42667457bc9afa4046702dfbd80f0e"
+    },
+    "TRADE_FEATURES_M15.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TRADE_FEATURES_M15.parquet",
+      "sha256": "c4247633dfae9eeaa2177675a9654a5294c0c9e1e5c47f12e005accc4da3779b"
+    },
+    "TRADE_FEATURES_M5.parquet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TRADE_FEATURES_M5.parquet",
+      "sha256": "f62ec495379e85f591d9ac2aa809ecc458a8bb7f33f0721581fd332b0c99aa12"
+    }
+  },
+  "train_parent": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.parquet",
+    "sha256": "67389d714502363fac5ddf113fe1c8bc96fcbc76fc7c335660a141be540c1280"
+  },
+  "train_parent_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.manifest.json",
+    "sha256": "f7b2cfb55056c3fecbfc2922e9708485ca77b5dfbdcac8d21104ef06b8290915"
+  },
+  "train_start": "2024-05-01T00:00:00Z",
+  "train_end": "2026-01-01T00:00:00Z",
+  "expected_train_rows": 109507,
+  "expected_train_decision_clock_sha256": "00fc652547acd74e9b3521fedc186a6441164e28e9d7841bda7fa354362bac24",
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020/run_smc_registry.py",
+    "sha256": "62d760934264f2c5a62411090b9ab1faf085e9eac32a887b54856bd185ad198e"
+  },
+  "max_wall_seconds": 1800,
+  "max_wall_origin": "Reuse existing capped CPU audit finite1800s ceiling; no automatic extension/relaunch.",
+  "resource_owner": "scripts/gx1_capped_run.sh audit4G/swap512M",
+  "one_shot_invocations": 1,
+  "raw_events_rescanned": false,
+  "new_physical_generation_train_clock_match_required": true,
+  "outcomes_accessed": false,
+  "optimizer_steps": 0,
+  "native_training_admitted": false,
+  "observed_structure_semantics": "Actual same-contract observed candle sequence; no candle filling. Preserve pivot history across tape gaps, keep gap/elapsed/skipped context. Whole missing TF candles censor OB zone/origin until new observed creation; retouch is first observed only. All strict/nonproxy fields bit-identical to019."
+}

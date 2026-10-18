@@ -318,41 +318,70 @@ def add_structure_and_cvd(surface, minute_cvd, minute_maps, minutes):
 
 
 def add_observed_structure(surface):
-    """Existing SMC formulas on admitted observed candles, with coverage intact.
+    """Causal structure on actual observed candles, never filled calendar bars.
 
-    This is an observed-candle proxy. Missing intrabar minutes do not reveal
-    their price path. No institutional order identity or complete-market claim
-    follows. Missing candles, contract changes and clock gaps reset the proxy.
+    Pivots/BOS/sweeps use the same-contract observed candle sequence. Partial
+    tape and missing intervals remain explicit in coverage, elapsed time and
+    boundary-gap measurements; they do not erase known candle observations.
+    A whole missing TF candle censors OB zone and origin carry independently
+    of pivot history. Retouch always means first OBSERVED wick intersection.
+    No uninterrupted market path or institutional order identity is claimed.
     """
-    valid = np.asarray(surface['observed_valid'], bool)
-    labels = np.asarray(surface['bar_start_ns'], np.int64)
-    available = np.asarray(surface['available_ns'], np.int64)
-    if not len(valid) or np.any(available - labels != available[0] - labels[0]):
-        raise ValueError('GC_OBSERVED_STRUCTURE_CLOCK')
-    duration = int(available[0] - labels[0])
+    if 'observed_contract_valid' not in surface:
+        raise ValueError('GC_OBSERVED_STRUCTURE_CONTRACT_METADATA_REQUIRED')
+    valid = np.asarray(surface['observed_valid'])
+    labels = np.asarray(surface['bar_start_ns'])
+    available = np.asarray(surface['available_ns'])
     first_observed = np.asarray(surface['observed_first_minute_ns'], np.float64)
     last_observed = np.asarray(surface['observed_last_minute_ns'], np.float64)
-    boundary_gap = np.full(len(valid), np.nan)
-    adjacent = valid[1:] & valid[:-1]
-    boundary_gap[1:] = np.where(adjacent,
-        np.maximum((first_observed[1:] - last_observed[:-1]) / timing.MINUTE_NS - 1, 0), np.nan)
-    split = np.r_[True, ~valid[:-1] | ~valid[1:] |
-        (np.diff(labels) != duration) | (np.diff(surface['contract_index']) != 0) |
-        (boundary_gap[1:] > 0)]
-    surface['observed_proxy_boundary_gap_minutes'] = boundary_gap
+    contract = np.asarray(surface['contract_index'])
+    contract_valid = np.asarray(surface['observed_contract_valid'])
+    if (valid.ndim != 1 or not len(valid) or valid.dtype.kind != 'b' or contract_valid.dtype.kind != 'b'
+            or any(value.shape != valid.shape for value in
+                (labels, available, first_observed, last_observed, contract, contract_valid))
+            or any(value.dtype.kind not in 'iu' for value in (labels, available, contract))):
+        raise ValueError('GC_OBSERVED_STRUCTURE_CLOCK')
+    if np.any(valid & ~contract_valid) or np.any(contract_valid & (contract < 0)):
+        raise ValueError('GC_OBSERVED_STRUCTURE_CONTRACT_DOMAIN')
+    duration = int(available[0] - labels[0])
+    delta_labels = np.diff(labels)
+    if (duration <= 0 or duration % timing.MINUTE_NS or np.any(available - labels != duration)
+            or np.any(delta_labels <= 0) or np.any(delta_labels % duration)
+            or np.any(valid & (~np.isfinite(first_observed) | ~np.isfinite(last_observed)
+                | (first_observed % timing.MINUTE_NS != 0) | (last_observed % timing.MINUTE_NS != 0)
+                | (first_observed < labels) | (last_observed < first_observed)
+                | (last_observed + timing.MINUTE_NS > available)))):
+        raise ValueError('GC_OBSERVED_STRUCTURE_CLOCK')
+    # Scan the whole declared grid for real contract boundaries, including a
+    # mixed/invalid bucket that would disappear when selecting observed rows.
+    contract_boundary = np.r_[True, (np.diff(contract) != 0) | ~contract_valid[:-1] | ~contract_valid[1:]]
+    segment = np.cumsum(contract_boundary)
+    for name in ('boundary_gap_minutes', 'elapsed_minutes', 'skipped_candles'):
+        surface['observed_proxy_' + name] = np.full(len(valid), np.nan)
     for name in VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1:
         surface['observed_proxy_' + name] = np.full(len(valid), np.nan)
-    for begin in np.flatnonzero(valid & split):
-        end = begin + 1
-        while end < len(valid) and valid[end] and not split[end]:
-            end += 1
-        values = [np.asarray(surface['observed_' + name])[begin:end] for name in
+    for side in ('bull', 'bear'):
+        surface['observed_proxy_ob_' + side + '_state_valid'] = np.zeros(len(valid), bool)
+    kept = np.flatnonzero(valid)
+    if not len(kept):return surface
+    boundaries = np.r_[0, np.flatnonzero(np.diff(segment[kept]) != 0) + 1, len(kept)]
+    for begin, end in zip(boundaries[:-1], boundaries[1:]):
+        rows = kept[begin:end]
+        elapsed = np.diff(labels[rows])
+        skipped = elapsed // duration - 1
+        surface['observed_proxy_elapsed_minutes'][rows[1:]] = elapsed / timing.MINUTE_NS
+        surface['observed_proxy_skipped_candles'][rows[1:]] = skipped
+        surface['observed_proxy_boundary_gap_minutes'][rows[1:]] = np.maximum(
+            (first_observed[rows[1:]] - last_observed[rows[:-1]]) / timing.MINUTE_NS - 1, 0)
+        values = [np.asarray(surface['observed_' + name])[rows] for name in
             ('open_usd', 'high_usd', 'low_usd', 'close_usd', 'volume')]
         if not all(np.isfinite(value).all() for value in values):
             raise RuntimeError('GC_OBSERVED_STRUCTURE_NONFINITE')
-        data = replay_volume_order_block_proxies_v1(*values)
+        data = replay_volume_order_block_proxies_v1(*values, zone_reset=np.r_[False, skipped > 0])
         for name, value in data.items():
-            surface['observed_proxy_' + name][begin:end] = value
+            surface['observed_proxy_' + name][rows] = value
+        for side in ('bull', 'bear'):
+            surface['observed_proxy_ob_' + side + '_state_valid'][rows] = np.isfinite(data['ob_' + side + '_active'])
     return surface
 
 
@@ -942,8 +971,14 @@ def completion_native_candidates_v1():
     add(tuple(OBSERVED_FOOTPRINT_FIELDS.values()), flow, 'observed_valid')
     add(tuple('observed_known_cumulative_' + name for name in ('buy_contracts','sell_contracts','unknown_contracts',
         'volume_contracts','known_delta_contracts','unknown_fraction','observed_minutes')), flow, 'observed_valid')
-    add(tuple('observed_proxy_' + name for name in VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1) +
-        ('observed_proxy_boundary_gap_minutes',), liquidity, 'observed_valid')
+    ob_fields = tuple('ob_' + side + '_' + name for side in ('bull','bear') for name in
+        ('active','created','first_retouch','low','high','age_bars','origin_volume_contracts'))
+    add(tuple('observed_proxy_' + name for name in VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1 if name not in ob_fields) +
+        ('observed_proxy_boundary_gap_minutes','observed_proxy_elapsed_minutes','observed_proxy_skipped_candles'),
+        liquidity, 'observed_valid')
+    for side in ('bull', 'bear'):
+        add(tuple('observed_proxy_' + name for name in ob_fields if name.startswith('ob_' + side + '_')),
+            liquidity, 'observed_proxy_ob_' + side + '_state_valid')
     profile_names = tuple(dynamic_profile_arrays_v2(np.array([0], np.int64)))
     add(tuple('observed_profile_' + name for name in profile_names) +
         ('observed_profile_source_coverage_fraction','observed_profile_snapshot_age_minutes'), liquidity,
@@ -984,7 +1019,9 @@ def completion_native_candidates_v1():
     return {'schema_version':'gc_completion_native_candidates_v1','fields':records,
         'metadata_columns':['bar_start_ns','available_ns','contract_index','observed_first_minute_ns',
             'observed_last_minute_ns','observed_book_first_minute_ns','observed_book_last_minute_ns',
-            'observed_profile_snapshot_available_ns','observed_spot_basis_source_available_ns'],
+            'observed_profile_snapshot_available_ns','observed_spot_basis_source_available_ns',
+            'observed_proxy_ob_bull_state_valid','observed_proxy_ob_bear_state_valid'],
+        'observed_structure_semantics':'same-contract actual observed candle pivots/BOS/sweeps; whole missing TF candles censor OB zone/origin state until new observed creation; first_retouch means first OBSERVED wick intersection; age_bars counts observed candles',
         'profile_clock_semantics':'M5 physical15/60minute and NYsession snapshots on exact closed TF clock, not native TF rolling bars',
         'new_registry_admitted':False,'actual_physical_train_support_required':True}
 

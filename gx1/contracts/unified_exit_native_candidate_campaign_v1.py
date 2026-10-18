@@ -564,6 +564,8 @@ def require_benchmarked_design_identity(benchmark_design_binding, *, design_bind
 
 PHYSICAL_COORDINATES_SCHEMA_V1 = "gx1_physical_native_training_coordinates_v1"
 PHYSICAL_COORDINATES_SCHEMA_V2 = "gx1_physical_native_training_coordinates_v2"
+PHYSICAL_COORDINATES_SCHEMA_M5_PATH = "gx1_physical_native_training_coordinates_m5_path_v1"
+M5_PATH_ELIGIBILITY_RULE = "canonical_m5_path_target_valid_and_available_before_bound_train_cutoff_independent_of_long_horizons"
 HORIZON_ELIGIBILITY_RULE = "complete_outcomes_at_all_observation_horizons_at_or_before_measured_cutoff"
 
 
@@ -620,8 +622,9 @@ def require_physical_native_training_coordinates(
     # rows are the frozen subset with complete observed outcomes at every trading-day horizon at
     # or before the measured cutoff; the order is the native sampler's full order filtered to it.
     schema = value.get("schema_version")
-    check(schema in (PHYSICAL_COORDINATES_SCHEMA_V1, PHYSICAL_COORDINATES_SCHEMA_V2), "IDENTITY_INVALID")
+    check(schema in (PHYSICAL_COORDINATES_SCHEMA_V1, PHYSICAL_COORDINATES_SCHEMA_V2, PHYSICAL_COORDINATES_SCHEMA_M5_PATH), "IDENTITY_INVALID")
     horizon_subset = schema == PHYSICAL_COORDINATES_SCHEMA_V2
+    m5_path_subset = schema == PHYSICAL_COORDINATES_SCHEMA_M5_PATH
     check(
         value.get("decision") == "TRAIN_COORDINATES_FROZEN_NO_MODEL"
         and value.get("coordinates_sha256") == native_sha256(
@@ -642,7 +645,7 @@ def require_physical_native_training_coordinates(
     keys = ("TRAIN_ELIGIBLE_PARENT_ROWS", "TRAIN_NATIVE_EPOCH0_ORDER",
             "TRAIN_NATIVE4096_PARENT_ROWS", "TRAIN256_PROBE_PARENT_ROWS")
     check(isinstance(bindings, Mapping) and set(bindings) == set(keys)
-          and (horizon_subset or bindings["TRAIN_ELIGIBLE_PARENT_ROWS"] == physical["train_parent_rows"]), "ROWS_INVALID")
+          and (horizon_subset or m5_path_subset or bindings["TRAIN_ELIGIBLE_PARENT_ROWS"] == physical["train_parent_rows"]), "ROWS_INVALID")
     arrays = {key: np.load(bound(bindings[key])["path"], allow_pickle=False) for key in keys}
     eligible, order, planned, probe = (arrays[key] for key in keys)
     if horizon_subset:
@@ -659,6 +662,30 @@ def require_physical_native_training_coordinates(
               "ELIGIBILITY_INVALID")
         population_ok = (eligible.ndim == 1 and len(eligible) >= 1 and np.all(np.diff(eligible) > 0)
                          and eligible[0] >= 0 and eligible[-1] < physical["train_rows"])
+    elif m5_path_subset:
+        from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+        from gx1.scripts.materialize_unified_exit_chronological_coordinates_v1 import m5_path_eligible_rows, _epoch0_order
+        eligibility = value.get("eligibility")
+        check(isinstance(eligibility, Mapping)
+            and set(eligibility) == {"rule", "training_phase", "target_contract", "entry_eligibility_cutoff_utc",
+                "eligible_rows", "censored_rows_excluded", "long_horizons_gate_primary_eligibility"}
+            and eligibility["rule"] == M5_PATH_ELIGIBILITY_RULE
+            and eligibility["training_phase"] == ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+            and eligibility["target_contract"] == entry_observed_m5_path_contract()
+            and eligibility["entry_eligibility_cutoff_utc"] == design["calendar"]["train_control_cutoff"]
+            and eligibility["long_horizons_gate_primary_eligibility"] is False
+            and type(eligibility["eligible_rows"]) is int and eligibility["eligible_rows"] == len(eligible)
+            and type(eligibility["censored_rows_excluded"]) is int and eligibility["censored_rows_excluded"] >= 0
+            and bindings["TRAIN_ELIGIBLE_PARENT_ROWS"]["path"] != physical["train_parent_rows"]["path"],
+            "M5_PATH_ELIGIBILITY_INVALID")
+        found = m5_path_eligible_rows(Path(physical["physical_sources"]["train"]["parquet"]["path"]),
+            cutoff_utc=eligibility["entry_eligibility_cutoff_utc"])
+        population_ok = (found["physical_rows"] == physical["train_rows"]
+            and found["censored_rows_excluded"] == eligibility["censored_rows_excluded"]
+            and np.array_equal(eligible, found["rows"]))
+        full_order = _epoch0_order(selected["selected_sampler_contract"])
+        check(np.array_equal(order, full_order[np.isin(full_order, eligible)]), "M5_PATH_NATIVE_ORDER_MISMATCH")
     else:
         population_ok = np.array_equal(eligible, np.arange(physical["train_rows"], dtype=np.int64))
     check(all(array.dtype == np.dtype("int64") and array.ndim == 1 for array in arrays.values())

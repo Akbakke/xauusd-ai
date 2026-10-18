@@ -58,8 +58,8 @@ Ny observed-aggregasjon bevarer strict uendret og følger accepted-minute-
 dekning, kjent/ukjent side, kontrakt og første/siste observerte klokke. Profil
 avstemmes separat per side. Observed-SMC er eksplisitt candle-proxy; intern
 manglende prisbane og institusjonell ordreidentitet konstrueres aldri.
-BBO/count-TF har egne masker/tidsvekter. Partial-M1means/spread-shock kan ikke
-gjenfinnes fra allerede maskerte M1means og er fortsatt uferdig eventinformasjon.
+BBO/count-TF har egne masker/tidsvekter. Intraminutt spread-/eventinformasjon
+er nå fullført gjennom ett nytt råeventpass i019 med eksakt gammel M1paritet.
 
 Gjeldende fokuskontroll:1120caser,1113bestod; alle7påviste avvik er rettet og
 etterkontrollert. Siste avgrensede64caser bestod, inkludert ekte M5-aliaser,
@@ -75,7 +75,7 @@ parrede prisfraksjonen beholder krav til genuine observerte TRAINverdier.
 Felles rå OHLC-oppsett bygges én gang, og daglig pivotoppslag er vektorisert
 hos samme eier med identisk strict-prior-klokke.
 
-## Neste bundne jobb og gjenværende arbeid
+## Fullført019 og gjenværende arbeid
 
 018 er FAILED/konsumert og relanseres ikke. Etter14.101s stoppet eksakt
 observed buy-side-konservering før publisering; originalinputs står urørt.
@@ -86,21 +86,36 @@ slik at en delvis Arrowbatch-bar ble flushet før resten av kontraktblokken.
 Rettelsen følger den faktiske kontiguøse streamrekkefølgen. Nye regresjonstilfeller
 bestod; alle sideparitetsvakter er beholdt. Originalkvitteringen omskrives ikke.
 
-Ny019: configs/research/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019.json.
+019 er COMPLETE/konsumert, exit0, source_unchanged=true, test_data_used=false,
+953.109s totalt. Plan: configs/research/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019.json.
 Gjenbruk hashbundet001 M1/grid/roll og samme66råfiler. Nøyaktig ett nytt
 råeventpass kompletterer intraminutt spreadendringer/ekstremer/eventintensitet
 og signerte kildeklokkeforskjeller; rå001 og prisladder bygges ikke på nytt.
 Fersk mbp1_completion_stage, audit4G/swap512M/CPU0–7/TasksMax64, fire workers,
-1800s hard grense og64MiB streamingprofilstate. Gammel001tid637.979s er bare
-referanse, ikke019runtimebevis. Ingen modelltrening autoriseres av019.
+1800s hard grense og64MiB streamingprofilstate. Peak streamingprofilstate var1535056bytes. Alle66filer/892100712records
+ble behandlet; gammel M1handel/bok var eksakt lik og9173893prisnivårader
+ble bevart med eksakt sidekonservering. Ingen modelltrening autoriseres av019.
 
-I kilde under kvalifisering: gjennomsnittlig utført Trade-recordstørrelse,
+Publiserte019featuretabeller omfatter gjennomsnittlig utført Trade-recordstørrelse,
 70% sammenhengende VAH/VAL fra bevarte prisnivåer, kjent buy/sell/unknown-CVD,
 observedTF-flow/profil/SMC/BBO/ordercount og spread-/kildeklokkestatistikk.
 15/60min/NYsession-profilkontekst beholdes på faktisk M5-kildeklokke og projiseres
 as-of; det betyr ikke15/60nye H4- eller D1-barer.925deklarerte MBP-kandidater
-(185perTF) har eksplisitt eier, validitetsmaske og kildeklokke. Fysisk støtte,
-ny native registry og faktisk modellkonsum er ennå ikke kvalifisert.
+(185perTF) har eksplisitt eier, validitetsmaske og kildeklokke. 925kolonner finnes fysisk. H4/D1har hver18SMC-proxyverdier uten gyldige
+observasjoner; kilde-/datadomenet undersøkes før registry. Ikke slett eller
+framstill disse som fullTFstøtte. Ny native registry/faktisk modellkonsum
+er ennå ikke kvalifisert.
+Påvist SMC-årsak: M1-edgegap nullstilte bekreftelseshistorikken; lengste H4segment
+var6candles, D1var1, mens første pivot trenger7. Rettelsen følger faktisk observerte
+same-contract candles for pivot/BOS/sweep, med gap/elapsed/skipped eksplisitt.
+Hele manglende TF-candles sensurerer OB-zone og origin separat til ny observert
+opprettelse. Første retouch betyr første OBSERVERTE treff; ingen usett bane fylles.
+935kandidater etter to nye gapklokkefelt perTF. Fysisk støtte må fortsatt måles.160fokuserte caser bestod på fryst kilde
+(87.535s), med strict/paritets-/maskerings-/kontrakt-/prefixnegativer.
+020rotens FOCUSED_SOURCE_QUALIFICATION.json binder samme kildetestbølge.
+Ny020plan er claimed én gang og fullfører bare endrede proxyer fra019 og bygger TRAIN-only registry;
+alle ikke-proxy-kolonner må være eksakt uendret. Ingen nytt råpass.
+
 Observed GC/XAU-basis bruker eksakt siste observerte GC-M1 og samme XAU-M1quote;
 maske/kildealder følger videre, ingen substitution med TFslutt eller eldre pris.
 
@@ -116,6 +131,15 @@ bær MAEgrenser eller eksplisitt konservativ supervisjon. Hindsight-MFE er
 prisforløpssupervisjon, ingen oppnåelig exitgevinst. Lange støttemål maskeres
 separat så h20fravær ikke fjerner gyldige M5hovedrader.
 
+Først: avklar18SMC-felt på H4/D1 og bygg eksplisitt TRAIN-only native registry
+på hele109507barlabels+5min (klokkeSHA00fc652547acd74e9b3521fedc186a6441164e28e9d7841bda7fa354362bac24).
+Ny fysisk generasjon må bevise identisk faktisk TRAINklokke, ellers ny registryfit.
+En konkret minneblokkering er også rettet: GCkontekst kobles inn per eksisterende
+checkpointchunk ved Arrow-skriving for bådeM5/M1. Full smal OHLC-/TFhistorie
+beholdes kausalt; ingen17års bredGCmatrise allokeres. Nedstrøms lesere er
+batchbasert/smalt projisert eller periodefiltrert. Faktisk nyfullkjøring gjenstår.
+M5eligible koordinater bruker nå bare M5-target, ikke lang-horisontkompletthet;
+hele fysiske TRAINklokken sjekkes før inputkvalifiseringspublisering.
 Deretter: faktisk nytt native signal/datasett, full observert TRAIN-normalisering,
 friske initial-/paritets-/smokebevis og eksakt én-epoke campaign med varige
 checkpoints. Maskinvid idle må bevises før trygg fysisk reboot/GPUadmission.

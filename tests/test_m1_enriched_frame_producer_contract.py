@@ -579,3 +579,94 @@ def test_releasing_unused_arrow_buffers_preserves_live_input_bytes() -> None:
     np.testing.assert_array_equal(frame['feature'].to_numpy(), values)
     assert frame.attrs == {'binding': {'identity': 'unchanged'}}
     assert np.shares_memory(frame['feature'].to_numpy(), values)
+
+
+def _deferred_gc_frame(builder, index):
+    fields = [name for name in builder.OUTPUT_COLUMNS[1:] if name not in builder._gc_context.CONTEXT_FIELDS]
+    frame = pd.DataFrame({name: np.ones(len(index), dtype=np.float32) for name in fields}, index=index)
+    for name, value in (("open", 2000.0), ("high", 2001.0), ("low", 1999.0), ("close", 2000.0), ("volume", 100.0)):
+        frame[name] = np.float32(value)
+    return frame
+
+
+def _synthetic_gc_at_exact_closes(builder, decisions):
+    fields = list(builder._gc_context.CONTEXT_FIELDS)
+    minute = decisions.minute.to_numpy(dtype=np.float32)
+    values = np.column_stack([minute + np.float32(index + 1) for index in range(len(fields))])
+    observed = np.asarray(decisions >= pd.Timestamp("2026-01-01T00:05:00Z"), dtype=np.float32)
+    for name in builder._gc_context.binary_fields(fields):
+        values[:, fields.index(name)] = observed
+    for value, mask in builder._gc_context.masking_pairs(fields):
+        values[values[:, mask] == 0.0, value] = 0.0
+    return pd.DataFrame(values, index=decisions, columns=fields, dtype=np.float32)
+
+
+@pytest.mark.parametrize("timeframe", ["M1", "M5"])
+def test_enriched_gc_writer_attaches_only_existing_processing_chunks_with_exact_clock_and_bytes(tmp_path, monkeypatch, timeframe):
+    builder = _load_builder()
+    duration = builder.TIMEFRAME_SPECS[timeframe]["duration"]
+    index = pd.date_range("2026-01-01T00:00:00Z", periods=7, freq=duration)
+    narrow = _deferred_gc_frame(builder, index)
+    original = narrow.copy(deep=True)
+    calls = []
+    def observed_chunk(decisions):
+        calls.append(pd.DatetimeIndex(decisions))
+        assert len(decisions) <= 3
+        return _synthetic_gc_at_exact_closes(builder, decisions)
+    monkeypatch.setattr(builder._gc_context, "build_context", observed_chunk)
+    finished = builder._finish_model_native_surface(narrow, timeframe=timeframe, defer_gc_context=True)
+    assert calls == []
+    assert not set(builder._gc_context.CONTEXT_FIELDS).intersection(finished.columns)
+    output = tmp_path / "gc_enriched.parquet"
+    builder._write_output_parquet_bounded(finished, output, chunk_rows=3, gc_timeframe=timeframe)
+    assert [len(part) for part in calls] == [3, 3, 1]
+    assert calls[0].append(calls[1:]).equals(index + duration)
+    written = pd.read_parquet(output)
+    assert tuple(written.columns) == builder.OUTPUT_COLUMNS
+    assert pd.DatetimeIndex(written["time"]).equals(index)
+    pd.testing.assert_frame_equal(finished[original.columns], original.assign(
+        hour_sin=finished["hour_sin"], hour_cos=finished["hour_cos"], dow_sin=finished["dow_sin"]))
+    expected_gc = _synthetic_gc_at_exact_closes(builder, index + duration)
+    for name in builder._gc_context.CONTEXT_FIELDS:
+        np.testing.assert_array_equal(written[name].to_numpy(np.float32), expected_gc[name].to_numpy(np.float32))
+    builder._gc_context.require_masked_storage_numpy(written[list(builder._gc_context.CONTEXT_FIELDS)].to_numpy(), builder._gc_context.CONTEXT_FIELDS)
+    import pyarrow.parquet as pq
+    footer = pq.ParquetFile(output)
+    assert footer.metadata.num_rows == len(index)
+    assert all(footer.metadata.row_group(i).num_rows <= 3 for i in range(footer.metadata.num_row_groups))
+
+
+@pytest.mark.parametrize("fault,error", [("nonfinite", "GC_CHUNK_NONFINITE"), ("fractional_mask", "GC_BINARY_DOMAIN_INVALID"), ("masked_storage", "MASKED_STORAGE_INVALID")])
+def test_deferred_gc_writer_rejects_invalid_physical_storage_and_publishes_nothing(tmp_path, monkeypatch, fault, error):
+    builder = _load_builder()
+    index = pd.date_range("2026-01-01T00:00:00Z", periods=3, freq="min")
+    frame = _deferred_gc_frame(builder, index)
+    def bad_chunk(decisions):
+        result = _synthetic_gc_at_exact_closes(builder, decisions)
+        value, mask = builder._gc_context.masking_pairs(list(result.columns))[0]
+        if fault == "nonfinite":
+            result.iloc[0, value] = np.nan
+        elif fault == "fractional_mask":
+            result.iloc[0, mask] = 0.5
+        else:
+            result.iloc[0, value] = 123.0
+            result.iloc[0, mask] = 0.0
+        return result
+    monkeypatch.setattr(builder._gc_context, "build_context", bad_chunk)
+    output = tmp_path / "invalid.parquet"
+    with pytest.raises(RuntimeError, match=error):
+        builder._write_output_parquet_bounded(frame, output, chunk_rows=2, gc_timeframe="M1")
+    assert not output.exists()
+    assert not list(tmp_path.glob(".*.partial-*"))
+
+
+def test_deferred_gc_finish_does_not_relax_other_output_fields_or_accept_two_gc_owners():
+    builder = _load_builder()
+    index = pd.date_range("2026-01-01T00:00:00Z", periods=3, freq="min")
+    frame = _deferred_gc_frame(builder, index)
+    with pytest.raises(RuntimeError, match="OUTPUT_FIELDS_MISSING"):
+        builder._finish_model_native_surface(frame.drop(columns="close"), timeframe="M1", defer_gc_context=True)
+    overlap = frame.copy()
+    overlap[builder._gc_context.CONTEXT_FIELDS[0]] = 0.0
+    with pytest.raises(RuntimeError, match="DEFERRED_GC_OWNER_OVERLAP"):
+        builder._finish_model_native_surface(overlap, timeframe="M1", defer_gc_context=True)
