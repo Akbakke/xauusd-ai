@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-18T18:48:51.224889+00:00",
-  "status": "036_COMPONENT_CONTROLS_AND_038_FIXTURES_QUALIFIED__037_ONE_PHYSICAL_SUCCESSOR_READY__TRAINING_FALSE",
+  "status": "039_PHYSICAL_SUCCESSOR_READY__037_PRECLAIM_FAILURE_CONSUMED__040_CLOCK_PASS__TRAINING_FALSE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Commit/push qualified source and exact037 physical-only successor binding; execute037 once with unchanged022/026/cache/cascade and dependency-proven034ranking, fresh SMC-affected projections and strict v5 audit. Then actual wholeTRAIN registry/current immutable metadata/normalization and remaining Entry-only native component/measurement route; exactly one requested epoch only after admission.",
+  "next_action": "Bind and execute039 once after037 preclaim stop and fresh040 current-file M1 clock PASS. Reuse qualified e87 production code,022/026/cache/cascade and exact034ranking; fresh SMC projections/strict v5 audit/actual TRAIN_VAL.037 never relaunched. Then actual wholeTRAIN registry/current metadata/normalization and remaining Entry-only native component/measurement chain before the requested single epoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Commit/push qualified source and exact037 physical-only successor binding; execute037 once with unchanged022/026/cache/cascade and dependency-proven034ranking, fresh SMC-affected projections and strict v5 audit. Then actual wholeTRAIN registry/current immutable metadata/normalization and remaining Entry-only native component/measurement route; exactly one requested epoch only after admission.",
+    "next_action": "Bind and execute039 once after037 preclaim stop and fresh040 current-file M1 clock PASS. Reuse qualified e87 production code,022/026/cache/cascade and exact034ranking; fresh SMC projections/strict v5 audit/actual TRAIN_VAL.037 never relaunched. Then actual wholeTRAIN registry/current metadata/normalization and remaining Entry-only native component/measurement chain before the requested single epoch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9457,7 +9457,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "036_COMPONENT_CONTROLS_AND_038_FIXTURES_QUALIFIED__037_ONE_PHYSICAL_SUCCESSOR_READY__TRAINING_FALSE",
+      "status": "039_PHYSICAL_SUCCESSOR_READY__037_PRECLAIM_FAILURE_CONSUMED__040_CLOCK_PASS__TRAINING_FALSE",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -10362,7 +10362,7 @@
         }
       },
       "dynamic_m5_entry_implementation": {
-        "status": "036_COMPONENT_CONTROLS_AND_038_FIXTURES_PASS__037_FRESH_PHYSICAL_SUCCESSOR_READY__NATIVE_MEASUREMENT_AND_TRAINING_BLOCKED",
+        "status": "036_038_CONTROLS_PASS__040_CURRENT_SOURCECLOCK_PASS__039_PHYSICAL_SUCCESSOR_READY__NATIVE_ENTRY_MEASUREMENT_PENDING",
         "operator_authority": "18October user explicitly requested minute-to-many-hour Entry direction and lowMAEbeforeMFE, days support; approved activegoal and notification after complete build. One nativeepoch remains requested, pending alladmission.",
         "training_phase": "entry_only_dynamic_m5_path",
         "emission_scope": "m5_dynamic_observed",
@@ -10751,12 +10751,12 @@
           ]
         },
         "physical_dataset_stage_037": {
-          "status": "QUALIFIED_ONE_FRESH_PHYSICAL_SUCCESSOR_PENDING_CLEAN_SOURCE_BINDING",
+          "status": "FAILED_BEFORE_CLAIM_NO_ADMISSION_CONSUMED",
           "plan_path": "configs/research/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_037.json",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_037",
           "planned_invocations": 1,
-          "completed_invocations": 0,
-          "execution_authorized": true,
+          "completed_invocations": 1,
+          "execution_authorized": false,
           "relaunch_allowed": false,
           "native_training_authorized": false,
           "native_input_admission": false,
@@ -10774,7 +10774,14 @@
           "max_wall_seconds": 64800,
           "source_frozen_while_running": true,
           "emission_scope": "m5_dynamic_observed",
-          "physical_build_only": true
+          "physical_build_only": true,
+          "execution_claim_exists": false,
+          "heavy_jobs_started": 0,
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_037/TERMINAL.json",
+            "sha256": "14f561a386ec61674aeb0ae6bc7f535d8c0d49b583776911e4bff57143b63206"
+          },
+          "error": "M1_CLOCK_PREFLIGHT_NOT_BOUND"
         },
         "qualification_followup_038": {
           "status": "PASS_CONSISTENCY_ONLY",
@@ -10801,6 +10808,62 @@
           "passed_test_cases": 55,
           "failed_test_cases": 0,
           "elapsed_seconds": 36.7733699370001
+        },
+        "m1_alignment_preflight_040": {
+          "status": "PASS_SOURCE_CLOCK_SUBSET_ONLY",
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_ALIGNMENT_PREFLIGHT_20261018_040/TERMINAL.json",
+            "sha256": "24f032dbf610b3d171d3ce8069ce50947950195f54173aa0e401be0e50338f53"
+          },
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_ALIGNMENT_PREFLIGHT_20261018_040/M1_ALIGNMENT_PREFLIGHT_OWNER.json",
+            "sha256": "bbd0f1aa2c706e599a82432018ffd49ea085e916306b4daf720adcd6ab8e705e"
+          },
+          "retained_alignment_rows": 1110839,
+          "missing_source_clock_rows": 0,
+          "raw_clock_sha256": "4e01a0d7dc62117a601a2d183c17f2f35d9efb8f98a85b00498ab2a50e329e0e",
+          "enriched_clock_sha256": "a69ee39299f5bc63bdb6cec6149ebf892ac77bffa36df4818031f202e5bfd557",
+          "elapsed_seconds": 5.7315713799998775,
+          "source_unchanged": true,
+          "test_data_used": false,
+          "native_input_admission": false,
+          "reason": "Projector whole-file source seal changed with qualified SMC projection; exact current-clock revalidation, no feature rebuild."
+        },
+        "physical_dataset_stage_039": {
+          "status": "QUALIFIED_FRESH_ONE_PHYSICAL_SUCCESSOR_READY_AFTER040",
+          "plan_path": "NEXT_RUN_POLICY.json",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_039",
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "execution_authorized": true,
+          "relaunch_allowed": false,
+          "native_training_authorized": false,
+          "native_input_admission": false,
+          "test_data_used": false,
+          "reuse": "Unchanged022/026/cache/cascade; exact034ranking only after effective dependency-equivalence proof. Fresh SMC-affected M1/M5 payloads and strict overlap v5; no claimed034 relaunch.",
+          "plan_sha256": "37309d8ca55a9d3fd7349b0f25124e6034cd2638111c1705b2f7f4ac514b8ed4",
+          "focused_qualification_terminal": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_SOURCE_QUALIFICATION_20261018_038/TERMINAL.json",
+            "sha256": "0855df71e06b0da02cef0ef60720c1a6b68adee2cb87a3b888becc819f647230"
+          },
+          "ranker_effective_dependency_proof": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_037/RANKER_EFFECTIVE_DEPENDENCY_REUSE.json",
+            "sha256": "f5b455f8940822550fc805b531c3e9d126a59c8efeb2d5d553279a45b6395edc"
+          },
+          "max_wall_seconds": 64800,
+          "source_frozen_while_running": true,
+          "emission_scope": "m5_dynamic_observed",
+          "physical_build_only": true,
+          "execution_claim_exists": false,
+          "heavy_jobs_started": 0,
+          "m1_alignment_preflight": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_ALIGNMENT_PREFLIGHT_20261018_040/M1_ALIGNMENT_PREFLIGHT_OWNER.json",
+            "sha256": "bbd0f1aa2c706e599a82432018ffd49ea085e916306b4daf720adcd6ab8e705e"
+          },
+          "prior_preclaim_failure_037": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_037/TERMINAL.json",
+            "sha256": "14f561a386ec61674aeb0ae6bc7f535d8c0d49b583776911e4bff57143b63206"
+          }
         }
       },
       "operator_pc_reboot_20261018": {
