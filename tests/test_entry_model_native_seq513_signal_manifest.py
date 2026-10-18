@@ -34,6 +34,7 @@ from gx1.features.entry_foundation_structure_v1 import (
 from tests.entry_direction_target_policy_support import (
     causal_m1_target_policy_fixture,
 )
+from tests.test_entry_model_native_train_feature_ranker import _valid_gc_candidate_fixture
 
 
 RUN_ID = "SEQ513_FULL_STACK_RETENTION_TEST"
@@ -73,6 +74,7 @@ def _ranking_payload(tmp_path: Path) -> dict:
             for index in range(len(names))
         ]
     ).astype(np.float32)
+    availability_matrix = _valid_gc_candidate_fixture(availability_matrix, names)
     availability = fit_feature_availability_contract(
         matrix=availability_matrix,
         names=names,

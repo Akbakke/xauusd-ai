@@ -555,12 +555,17 @@ def require_feature_availability_contract(
         if row.get('input_role') != gc_context.field_role(name):
             raise RuntimeError('FEATURE_AVAILABILITY_INPUT_ROLE_INVALID:' + name)
         by_name[name] = row
+    # A structural binary source value is still observed through its own
+    # declared availability field. Input role controls its binary domain, not
+    # whether that genuine source-observation count is required.
+    observation_bindings = {names[value_index]: names[mask_index]
+                            for value_index, mask_index in gc_context.masking_pairs(names)}
     for name, row in by_name.items():
         role = gc_context.field_role(name)
         count = row.get('observed_train_rows')
-        if role == 'gc_masked_source_value':
-            mask = by_name.get(name + '_observed')
-            if (mask is None or not isinstance(count, int) or not 1 <= count <= row['train_rows']
+        if name in observation_bindings:
+            mask = by_name.get(observation_bindings[name])
+            if (mask is None or type(count) is not int or not 1 <= count <= row['train_rows']
                     or count != mask['nonzero_rows']):
                 raise RuntimeError('FEATURE_AVAILABILITY_GC_OBSERVATION_BINDING:' + name)
         elif count is not None:

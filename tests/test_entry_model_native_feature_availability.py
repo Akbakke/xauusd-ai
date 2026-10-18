@@ -258,3 +258,72 @@ def test_gc_structural_duplicates_are_reported_and_missing_observations_fail():
     corrupt = values.copy(); corrupt[:, -3] = 0.5
     with pytest.raises(RuntimeError, match='MASKED_STORAGE_INVALID'):
         fit_feature_availability_contract(matrix=corrupt, **kwargs)
+
+
+
+def _gc_structural_source_case(*, prefix="ctx_cont.", observed_value=0.):
+    from gx1.features.gc_native_context_v1 import STRUCTURAL_VALUE_FIELDS, masking_pairs
+    name = "gc_m5_observed_valid"
+    assert name in STRUCTURAL_VALUE_FIELDS
+    matrix, names, times, target = _inputs()
+    pair = [prefix + name, prefix + name + "_observed"]
+    # A real zero event value must retain the count of genuine observations;
+    # absence is a different cell and has zero storage behind its own mask.
+    observed = np.ones(len(times), dtype=np.float32)
+    observed[:3] = 0.
+    values = np.column_stack([matrix, observed * observed_value, observed]).astype(np.float32)
+    names = [*names, *pair]
+    assert (len(names) - 2, len(names) - 1) in masking_pairs(names)
+    kwargs = dict(names=names, times=times, train_start=times[2], train_end=times[-1],
+                  diagnostic_target=target)
+    return values, kwargs, pair, int(np.count_nonzero(observed[2:]))
+
+
+@pytest.mark.parametrize("prefix", ["", "ctx_cont."])
+@pytest.mark.parametrize("observed_value", [0., 1.])
+def test_gc_structural_source_keeps_binary_role_and_its_own_observation_count(prefix, observed_value):
+    values, kwargs, pair, observed = _gc_structural_source_case(prefix=prefix, observed_value=observed_value)
+    result = fit_feature_availability_contract(matrix=values, **kwargs)
+    by_name = {row["name"]: row for row in result["features"]}
+    source, availability = by_name[pair[0]], by_name[pair[1]]
+    assert source["input_role"] == availability["input_role"] == "gc_observation_mask"
+    assert source["observed_train_rows"] == observed == availability["nonzero_rows"]
+    assert availability["observed_train_rows"] is None
+    if observed_value == 0.:
+        assert source["nonzero_rows"] == 0 and source["distinct_value_count"] == 1
+        assert source["observed_train_rows"] > source["nonzero_rows"]
+    else:
+        assert source["exact_duplicate_of"] is None
+        assert availability["exact_duplicate_of"] == pair[0]
+    assert require_feature_availability_contract(result) == result
+
+
+@pytest.mark.parametrize("fault", ["missing_count", "zero_count", "wrong_count", "boolean_count",
+                                    "mask_count", "dense_count", "wrong_role"])
+def test_gc_structural_source_rejects_wrong_count_role_and_binding(fault):
+    values, kwargs, pair, observed = _gc_structural_source_case()
+    result = fit_feature_availability_contract(matrix=values, **kwargs)
+    by_name = {row["name"]: row for row in result["features"]}
+    if fault == "missing_count": by_name[pair[0]]["observed_train_rows"] = None
+    elif fault == "zero_count": by_name[pair[0]]["observed_train_rows"] = 0
+    elif fault == "wrong_count": by_name[pair[0]]["observed_train_rows"] = observed - 1
+    elif fault == "boolean_count": by_name[pair[0]]["observed_train_rows"] = True
+    elif fault == "mask_count": by_name[pair[1]]["observed_train_rows"] = observed
+    elif fault == "dense_count": by_name["ctx_cont.atr_bps"]["observed_train_rows"] = observed
+    else: by_name[pair[0]]["input_role"] = "gc_masked_source_value"
+    with pytest.raises(RuntimeError, match="GC_OBSERVATION_BINDING|OBSERVED_COUNT_ROLE|INPUT_ROLE_INVALID"):
+        require_feature_availability_contract(result)
+
+
+@pytest.mark.parametrize("fault", ["missing_mask", "no_observations", "binary_value", "binary_mask", "masked_nonzero"])
+def test_gc_structural_source_preserves_mask_domain_and_observation_guards(fault):
+    values, kwargs, pair, _ = _gc_structural_source_case()
+    if fault == "missing_mask":
+        values = values[:, :-1]
+        kwargs["names"] = kwargs["names"][:-1]
+    elif fault == "no_observations": values[:, -1] = 0.
+    elif fault == "binary_value": values[4, -2] = .5
+    elif fault == "binary_mask": values[4, -1] = .5
+    else: values[2, -2] = 1.  # Mask at row2 is false inside TRAIN.
+    with pytest.raises(RuntimeError, match="OBSERVATION_FIELD_MISSING|GC_NO_OBSERVED_TRAIN|STRUCTURAL_VALUE_DOMAIN|MASKED_STORAGE_INVALID"):
+        fit_feature_availability_contract(matrix=values, **kwargs)

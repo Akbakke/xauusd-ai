@@ -267,8 +267,11 @@ Ukjente spotkildehull sensurerer banen. Godkjente lukkingsintervaller krever
 eksakt ekstern XAU-spotkalender med riktig kilde-/klokkebinding; GC/CME eller
 prisform beviser ikke OANDAs historiske åpningstider. Full feed-/periodebinding
 av en slik kalender er ennå ikke bevist. Terminalmarkout etter deklarerte
-kostnader er ikke realisert økonomi. En navngitt forholdstallsbasert
-kvalitetskandidat har ingen native autoritet før separat kontrakt og måling.
+kostnader er ikke realisert økonomi. En navngitt kvalitetsdifferanse
+(netto endepunktsmarkout minus konservativ pre-MFE-MAE upper, begge
+prediksjoner i bps) har ingen native autoritet før separat kontrakt og måling.
+Lik bps-vekt1 er valgt semantikk; ulike masker gir ingen ubetinget felles
+forventningsclaim. Ratioen kunne ikke avstå på grunn av høy MAE alene.
 
 Ingen ny dynamisk fysisk TRAIN-klokke, ny registryfit, normalisering, fersk
 initialbaseline/paritet eller faktisk dynamisk læring er fullført. Den ene

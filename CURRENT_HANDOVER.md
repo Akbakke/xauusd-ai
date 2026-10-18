@@ -73,9 +73,12 @@ GC-futuresquotes beviser ikke spotrekkefølge eller historisk OANDAkalender.
 Et delt M1-intervallindeks/pointers og liten horisontbetinget dekoder bruker
 samme encoderforward for1..480min. Ingen stor modell/head perminutt, ingen
 lagret tett entry×480framtidsbane. Dagersmål er separat maskert støtte.
-En ratio av predikert netto retning og pre-MFE-MAE er kun en navngitt
-kvalitetskandidat, med kjent følsomhet nær0; ingen bps-/cash-/probabilitetsclaim
-eller native autoritet før faktisk kontrakt og kvalifisering. Det varige
+Algebrakontroll viser at ratioen R/(abs(R)+MAE) ikke kan avstå på grunn av
+høy MAE når en R-prognose er positiv. Etterfølgeren bruker eksplisitt
+kvalitets-bps: predikert netto endepunktsmarkout minus predikert pre-MFE-MAE
+upper. Lik bps-vekt1 er et valgt kvalitetsmål, ingen empirisk optimalitet,
+cash eller ubetinget forventningsclaim ved ulike observasjonsmasker.
+Ingen native autoritet før kontrakt, fersk baseline og kvalifisering. Det varige
 lav-MAE-målet er allerede vedtatt og skal ikke spørres om igjen.
 
 Design-/algebrabevis er samlet i
@@ -100,24 +103,44 @@ og Exit-forward. Disse må få en eksplisitt Entry-kurvegren før baseline og
 native epoke. Ingen bps-alias for ratioen. Ekte evaluerings-/avståelses-/
 dekningsspor, metadata-successor og fysisk TRAINfit er fortsatt påkrevd.
 
-## Neste fysiske bygg032
+## Fysisk bygg032: avsluttet med konkret rankerfeil
 
-Nytt engangsbygg `NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_032` er bundet som
-`m5_dynamic_observed`, før eksakt ren-kilde-binding/claim. Det bruker ferdige
-022/026features og friske032outputstier; gammelt027utkast startes aldri.
-History-start er målt faktisk M5-kilderad etter026s første M1:2023-05-09T22:05Z.
-En capped4G-kontroll hashbandt råquotes/026 og sjekket hele alignmentklokken:
-1110839rader etter eksisterende219rader warmup,0manglende kildepunkter, samme
-siste tidspunkt2026-06-30T23:59Z. To importfeil i eksternt kontrollskript ble
-rettet; originale feillogger/skript består, ingen data eller repo-kilde ble endret.
+032 brukte ferdige022/026features og avsluttet18.10 17:06:30UTC med exit1,
+uendret kilde og TEST=false. Sourcecascade bestod. TRAIN-ranker skrev sitt
+checkpoint, men tilgjengelighetsvalidatoren avviste det kilde-deklarerte
+maskefeltet `ctx_cont.gc_m5_observed_valid`: feltet har egen observasjonsmaske
+og dermed legitim observerbarhetscount, samtidig som modellrollen er binær.
+Minste feltrolle-/countrettelse og fokuserte kontroller pågår. Ingen ny
+invokasjon av032; originalkvitteringer/checkpoint bevares. Ny fysisk plan må
+gjenbruke bestått cascade og bare bevist ekvivalent checkpoint.
 
-032 kjører eksisterende sekvensielle capped eiere: sourcecascade, TRAIN-ranker,
-signalmanifest, M1/M5-featurebaseprojeksjon, pretest fysisk datasett og uttømmende
-sekvensrekonstruksjon. Maks64800s, én invokasjon, ingen budsjettutvidelse.
-025 er kun produksjonsprovenans; COMPLETE betyr fysisk materiale uten ny
-inputadmission. Faktisk ny TRAIN-klokke, registryfit, metadatasuccessor,
-normalisering og native Entry-koordinator/baseline må fortsatt kvalifiseres.
-Ingen native trening eller Exit-vurdering starter ved032.
+History-start er faktisk M5-kilderad etter026s førsteM1:2023-05-09T22:05Z.
+Hele M1alignmentklokken er kontrollert:1110839rader etter eksisterende219rader
+warmup,0manglende kilderader, siste2026-06-30T23:59Z. Ingen ny kontroll trengs
+uten endrede inputbytes/eierfunksjoner.025 er fortsatt produksjonsprovenans,
+ikke ny TRAIN-klokkeadmission. Fysisk datasett, faktisk registryfit,
+metadatasuccessor, normalisering og native Entry-baseline gjenstår.
+
+## Kvalifisert rettelse og nytt fysisk bygg034
+
+033 avsluttet med249beståtte og30feil, uendret fryst kilde. Modellens nye
+kvalitetsdifferanse og observerte dynamiske kurvemål bestod.17availabilityfeil
+skyldtes integrators fjerning av en nødvendig lokal rollevariabel; den er
+gjenopprettet.13ranker-/signalfeil skyldtes eldre syntetiske fixtures med
+ikke-binære verdier i binærfelt. Bare disse fixtures ble rettet.035 kjørte
+kun de tre berørte filene:54beståtte,0feil,24.532s og uendret kilde.
+Original033logg/terminal bevares; de beståtte modell-/targetkontrollene gjenbrukes.
+
+Ny engangsplan034 er bundet før eksakt ren-HEAD-binding/claim. Den gjenbruker
+ferdige022/026features, bestått immutable032cascade og byteidentisk1,9GB
+rankermatrixcheckpoint med SHAeaf5e85acb7cdf700f41b68b6c73b09ebc641b316d6cd85c41299817c96a8dda.
+Eksisterende strenge checkpointkey/schema/shape/policy-validering består.
+Ingen feature-/matrixrekonstruksjon eller omskriving av originaler. Nye
+ranking-/signal-/featurebase-/dataset-/auditoutputs bruker034namespace.
+Kjøringen har én invokasjon, maks64800s, eksisterende sekvensielle caps og
+fryst kilde. Ingen native input-/trening-/Exit-/TESTadmission følger COMPLETE.
+Etter faktisk fysisk publisering gjenstår ny TRAINregistryfit, bevist
+funksjonsekvivalens og gjeldende metadata, normalisering og native Entrykjede.
 
 ## Neste steg
 

@@ -114,6 +114,20 @@ def _closed_m1_for_m5(times: pd.DatetimeIndex, *, bid: np.ndarray) -> pd.DataFra
     )
 
 
+
+def _valid_gc_candidate_fixture(matrix: np.ndarray, names: list[str]) -> np.ndarray:
+    """Keep source-declared binary values and their own availability distinct."""
+    from gx1.features.gc_native_context_v1 import binary_fields, masking_pairs
+    positions = {name: index for index, name in enumerate(names)}
+    row = np.arange(len(matrix), dtype=np.int64)
+    for name in binary_fields(names):
+        matrix[:, positions[name]] = row % 2
+    for value, mask in masking_pairs(names):
+        matrix[:, mask] = (row % 3 != 0).astype(np.float32)
+        matrix[matrix[:, mask] == 0., value] = 0.
+    return matrix
+
+
 def _availability_fixture() -> tuple[list[str], dict[str, object], dict[str, float]]:
     names = list(MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
     times = pd.date_range(
@@ -128,9 +142,7 @@ def _availability_fixture() -> tuple[list[str], dict[str, object], dict[str, flo
             for index in range(len(names))
         ]
     ).astype(np.float32)
-    from gx1.features.gc_native_context_v1 import masking_pairs
-    for _, mask in masking_pairs(names):
-        matrix[:, mask] = 1.0
+    matrix = _valid_gc_candidate_fixture(matrix, names)
     target = np.square(x.astype(np.float64))
     availability = ranker.fit_feature_availability_contract(
         matrix=matrix,
@@ -516,9 +528,7 @@ def test_direction_target_and_feature_selection_ignore_future_m1_suffix() -> Non
             for index in range(len(names))
         ]
     ).astype(np.float32)
-    from gx1.features.gc_native_context_v1 import masking_pairs
-    for _, mask in masking_pairs(names):
-        matrix[:, mask] = 1.0
+    matrix = _valid_gc_candidate_fixture(matrix, names)
     unpurged_availability = ranker.fit_feature_availability_contract(
         matrix=matrix,
         names=names,

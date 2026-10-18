@@ -7,9 +7,12 @@ endepunktsmarkout, signert MFE og konservativ MAE før første MFE fra1..480min;
 dagshorisonter er maskert støtte. Et delt indeks over originale M1 BID/ASK
 og target-only radpekere erstatter lagrede tette framtidsbaner. Endepunkt og
 prisforløp har uavhengige masker. Fremtidige utfall/masker brukes aldri som
-inputs. Ingen Exit-tap er aktive. Kvalitetsratio fra modellens prognoser er en
-kandidat uten native beslutningsautoritet inntil kvalifisert etterfølger er
-bundet; publiserte022/026features kvalifiserer ikke den nye modellen.
+inputs. Ingen Exit-tap er aktive. Kvalitetskandidaten er eksplisitt kvalitet i
+bps: predikert netto endepunktsmarkout minus predikert pre-MFE-MAE upper.
+Lik bps-vekt1 er et valgt kvalitetsmål, ingen cash-/optimalitetsclaim. Ulike
+observasjonsmasker gir ingen ubetinget felles forventningsclaim. Kandidaten
+har ingen native beslutningsautoritet før kvalifisering; publiserte022/026
+features kvalifiserer ikke den nye modellen.
 
 ```text
 hash-bundne XAUUSD M1/M5-priser + GC MBP-1 trades/BBO/order counts
@@ -18,7 +21,7 @@ hash-bundne XAUUSD M1/M5-priser + GC MBP-1 trades/BBO/order counts
   → kausale M5/M15/H1/H4/D1-ruter med eksplisitt kilde-/observasjonsmaske
   → native signalmanifest og uforanderlig TRAIN-normalisering
   → Entry M5-vinduer + separate M1-views + økonomi/tilstandsindekser
-  → delte encoders og Entry-/Exit-fitted-Q i én bundle
+  → delt encoder og separate Entry-retning-/MFE-/MAE-kurver, Exit inaktiv
   → initial-/læringsmåling og fryste TRAIN/CONTROL-koordinater
   → egne lærings-, generaliserings-, paritets- og økonomiporter
 ```

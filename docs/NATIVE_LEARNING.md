@@ -97,8 +97,12 @@ Prisbanens MFE minus pre-MFE-MAE alene kan gi positiv forventning på begge
 sider uten forutsigbar retning. Den er ingen tilstrekkelig trade/FLAT-fasit.
 Modellens nye beslutningsverdi må la både retning og kvalitet påvirke valg,
 og må kvalifiseres på valgte/avståtte entries, dekning og stabilitet. En
-dimensjonsløs ratio av predikerte forventninger er foreløpig en navngitt
-kandidat; den er ikke bps, kalibrert sannsynlighet eller realisert cash.
+komponentdifferanse av predikert netto endepunktsmarkout og predikert
+pre-MFE-MAE upper bruker eksplisitt kvalitets-bps. Koeffisient1 er et valgt
+lik-enhets kvalitetsmål, ingen empirisk optimalitet eller cash. Ulike
+observasjonsmasker identifiserer ikke ubetinget samme forventningspopulasjon.
+Den tidligere ratioen kunne ikke velge FLAT på grunn av høy MAE alene når
+noen predikert retur var positiv; den egenskapen er algebraisk bevist.
 Ingen kandidat gis native autoritet ved bare å flytte formelen inn i forward.
 Fremtidens beste horisont er aldri fasit for en udokumentert scalar.
 
@@ -137,4 +141,5 @@ Path-tapene bruker observerte celler fra begge typer i sin egen denominator.
 Ingen closed-path-fasit erstatter inclusive-path-fasit. Den kjente endpointkoden
 er queryinput; faktisk framtidig tilgjengelighet er aldri input. Dermed forblir
 et observert siste1minuttsforløp læringsaktivt selv når neste open mangler.
-Kvalitetsratioen bruker kun modellens eksplisitte inclusiveprognose.
+Kvalitetsdifferansen bruker kun modellens eksplisitte inclusiveprognoser.
+Maksimum velges over predikerte horisonter, aldri fremtidens beste fasit.

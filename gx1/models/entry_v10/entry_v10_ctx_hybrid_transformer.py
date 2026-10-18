@@ -279,7 +279,7 @@ CUDA_TRAIN_ACTIVATION_CHECKPOINT_ENABLED = False
 # mean-plus-last-closed-bar. Same parameters and state_dict keys as v9; a v9
 # checkpoint computes a different function and is rejected by this version.
 MODEL_ARCHITECTURE_SCHEMA_VERSION = "entry_v10_ctx_hybrid_transformer_v12"
-MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v11"
+MODEL_OUTPUT_SCHEMA_VERSION = "entry_v10_ctx_model_outputs_v12"
 _UNIT_TEST_ARCHITECTURE_SENTINEL = object()
 
 
@@ -3758,34 +3758,30 @@ class EntryV10CtxHybridTransformer(nn.Module):
         return output, next_carry
 
     @staticmethod
-    def _dynamic_quality_ratio_candidate(
+    def _dynamic_quality_bps_candidate(
         terminal_bps: torch.Tensor, pre_mfe_mae_upper_bps: torch.Tensor,
     ) -> torch.Tensor:
-        """Ratio of predicted means; unitless candidate, never a cash-Q alias."""
+        """Equal-bps component-prediction difference, never cash or admitted Q.
+
+        The coefficient one follows the existing MFE-minus-upper-MAE utility
+        convention. Independent observation masks do not identify an
+        unconditional expected quality merely by subtracting these predictions.
+        """
         if terminal_bps.shape != pre_mfe_mae_upper_bps.shape:
-            raise RuntimeError("DYNAMIC_M5_RATIO_SHAPE_INVALID")
+            raise RuntimeError("DYNAMIC_M5_QUALITY_SHAPE_INVALID")
+        if not terminal_bps.is_floating_point() or not pre_mfe_mae_upper_bps.is_floating_point():
+            raise RuntimeError("DYNAMIC_M5_QUALITY_DTYPE_INVALID")
         _assert_finite("dynamic_terminal_net_markout_bps", terminal_bps)
         _assert_finite("dynamic_pre_mfe_mae_upper_bps", pre_mfe_mae_upper_bps)
         if bool((pre_mfe_mae_upper_bps < 0).any()):
-            raise RuntimeError("DYNAMIC_M5_RATIO_NEGATIVE_MAE")
-        # Scaling by max(|r|,m) is algebraically exact and prevents overflow
-        # in |r|+m. Ones only implement the declared exact 0/0 branch; no epsilon.
-        if not terminal_bps.is_floating_point() or not pre_mfe_mae_upper_bps.is_floating_point():
-            raise RuntimeError("DYNAMIC_M5_RATIO_DTYPE_INVALID")
+            raise RuntimeError("DYNAMIC_M5_QUALITY_NEGATIVE_MAE")
         compute_dtype = torch.promote_types(
             torch.promote_types(terminal_bps.dtype, pre_mfe_mae_upper_bps.dtype), torch.float32,
         )
-        r = terminal_bps.to(dtype=compute_dtype)
-        m = pre_mfe_mae_upper_bps.to(dtype=compute_dtype)
-        scale = torch.maximum(r.abs(), m)
-        nonzero = scale != 0
-        divisor = torch.where(nonzero, scale, torch.ones_like(scale))
-        scaled_r, scaled_m = r / divisor, m / divisor
-        denominator = scaled_r.abs() + scaled_m
-        safe_denominator = torch.where(nonzero, denominator, torch.ones_like(denominator))
-        ratio = torch.where(nonzero, scaled_r / safe_denominator, torch.zeros_like(r))
-        _assert_finite("dynamic_entry_quality_ratio_candidate", ratio)
-        return ratio
+        quality = terminal_bps.to(dtype=compute_dtype) - pre_mfe_mae_upper_bps.to(dtype=compute_dtype)
+        # Overflow is invalid evidence; do not clip or fabricate a finite score.
+        _assert_finite("dynamic_entry_quality_bps_candidate", quality)
+        return quality
 
     def _decode_dynamic_m5_curves(
         self, hidden: torch.Tensor, *, query_chunk_size: Optional[int] = None,
@@ -3820,17 +3816,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
         terminal, mfe, mae = decoded_components["terminal_open_inclusive"]
         _, closed_mfe, closed_mae = decoded_components["closed_m1_prefix"]
         flat = torch.zeros_like(terminal[..., :1])
-        ratio = self._dynamic_quality_ratio_candidate(terminal, mae)
-        best = ratio.max(dim=1).values
+        quality = self._dynamic_quality_bps_candidate(terminal, mae)
+        best = quality.max(dim=1).values
         output = {
             "dynamic_terminal_net_markout_bps": torch.cat((terminal, flat), dim=-1),
             "dynamic_mfe_bps": mfe,
             "dynamic_pre_mfe_mae_upper_bps": mae,
             "dynamic_closed_mfe_bps": closed_mfe,
             "dynamic_closed_pre_mfe_mae_upper_bps": closed_mae,
-            "dynamic_entry_quality_ratio_candidate": torch.cat((ratio, torch.zeros_like(ratio[..., :1])), dim=-1),
-            "dynamic_entry_action_quality_candidate": torch.cat((best, torch.zeros_like(best[..., :1])), dim=-1),
-            "dynamic_entry_quality_best_horizon_mask": ratio == best.unsqueeze(1),
+            "dynamic_entry_quality_bps_candidate": torch.cat((quality, torch.zeros_like(quality[..., :1])), dim=-1),
+            "dynamic_entry_action_quality_bps_candidate": torch.cat((best, torch.zeros_like(best[..., :1])), dim=-1),
+            # Retain every exact horizon maximum. Action ties must fail closed;
+            # these diagnostic candidate values do not choose a native action.
+            "dynamic_entry_quality_best_horizon_mask": quality == best.unsqueeze(1),
             "dynamic_query_horizon_minutes": horizons,
         }
         for name in ("dynamic_terminal_net_markout_bps", "dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps", "dynamic_closed_mfe_bps", "dynamic_closed_pre_mfe_mae_upper_bps"):

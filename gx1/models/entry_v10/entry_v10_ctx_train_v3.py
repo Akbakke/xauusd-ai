@@ -12675,7 +12675,7 @@ def _validate_dynamic_m5_curves(model, loader, device):
             size = int(batch["seq_x"].shape[0])
             rows += size
             total += float(loss) * size
-            candidate = out.get("dynamic_entry_action_quality_candidate")
+            candidate = out.get("dynamic_entry_action_quality_bps_candidate")
             if (not isinstance(candidate, torch.Tensor) or tuple(candidate.shape) != (size, 3)
                     or not bool(torch.isfinite(candidate).all()) or not bool((candidate[:, 2] == 0).all())):
                 raise RuntimeError("ENTRY_DYNAMIC_M5_CANDIDATE_DIAGNOSTIC_INVALID")

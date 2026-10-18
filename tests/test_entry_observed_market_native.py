@@ -841,13 +841,13 @@ class SmallDynamicEntry(SmallEntry):
         q = self.head_dynamic_terminal_net_markout(hidden)[:, None].expand(-1, len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES), -1)
         mfe = self.head_dynamic_mfe(hidden)[:, None].expand_as(q)
         mae = torch.nn.functional.softplus(self.head_dynamic_pre_mfe_mae_upper(hidden))[:, None].expand_as(q)
-        ratio = EntryV10CtxHybridTransformer._dynamic_quality_ratio_candidate(q, mae).amax(dim=1)
+        quality = EntryV10CtxHybridTransformer._dynamic_quality_bps_candidate(q, mae).amax(dim=1)
         return {
             "dynamic_terminal_net_markout_bps": torch.cat((q, torch.zeros_like(q[..., :1])), dim=-1),
             "dynamic_mfe_bps": mfe, "dynamic_pre_mfe_mae_upper_bps": mae,
             "dynamic_closed_mfe_bps": mfe, "dynamic_closed_pre_mfe_mae_upper_bps": mae,
             "forecast_pred": self.head_forecast(hidden),
-            "dynamic_entry_action_quality_candidate": torch.cat((ratio, torch.zeros_like(ratio[..., :1])), dim=-1),
+            "dynamic_entry_action_quality_bps_candidate": torch.cat((quality, torch.zeros_like(quality[..., :1])), dim=-1),
         }
 
 

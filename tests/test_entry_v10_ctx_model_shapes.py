@@ -2097,13 +2097,17 @@ def test_dynamic_m5_all_queries_share_one_market_encoding_and_have_no_native_q(m
     assert "entry_decision_token_source" not in out
     assert UNIFIED_EXIT_MODEL_REPRESENTATION_KEY not in out
     assert "side_mae_bps" not in out and "dip_pred" not in out
-    ratio = out["dynamic_entry_quality_ratio_candidate"]
-    assert ratio.shape == (2, count, 3) and torch.equal(ratio[..., 2], torch.zeros(2, count))
-    final = out["dynamic_entry_action_quality_candidate"]
+    quality = out["dynamic_entry_quality_bps_candidate"]
+    assert quality.shape == (2, count, 3) and torch.equal(quality[..., 2], torch.zeros(2, count))
+    torch.testing.assert_close(quality[..., :2],
+        out["dynamic_terminal_net_markout_bps"][..., :2] - out["dynamic_pre_mfe_mae_upper_bps"])
+    final = out["dynamic_entry_action_quality_bps_candidate"]
     assert final.shape == (2, 3) and torch.equal(final[:, 2], torch.zeros(2))
-    assert torch.equal(final[:, :2], ratio[:, :, :2].max(dim=1).values)
+    assert torch.equal(final[:, :2], quality[:, :, :2].max(dim=1).values)
     assert torch.equal(out["dynamic_entry_quality_best_horizon_mask"],
-        ratio[:, :, :2] == final[:, None, :2])
+        quality[:, :, :2] == final[:, None, :2])
+    assert "dynamic_entry_quality_ratio_candidate" not in out
+    assert "dynamic_entry_action_quality_candidate" not in out
 
 
 @pytest.mark.parametrize("output_name,head_name", [
@@ -2155,30 +2159,74 @@ def test_dynamic_m5_decoder_chunking_preserves_all_queries_outputs_and_gradients
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
-def test_dynamic_m5_ratio_is_prediction_only_stable_and_has_exact_zero_branch(dtype):
-    ratio = model_module.EntryV10CtxHybridTransformer._dynamic_quality_ratio_candidate
+def test_dynamic_m5_quality_bps_is_component_difference_without_ratio_or_cash_claim(dtype):
+    quality = model_module.EntryV10CtxHybridTransformer._dynamic_quality_bps_candidate
     maximum = torch.finfo(dtype).max
-    r = torch.tensor([8., 18., -8., 0., 0., maximum, .01, 10.], dtype=dtype)
-    m = torch.tensor([2., 15., 2., 0., 2., maximum, .001, 2.], dtype=dtype)
-    out = ratio(r, m)
-    expected = torch.tensor([.8, 18./33., -.8, 0., 0., .5, .01/.011, 10./12.], dtype=dtype)
+    r = torch.tensor([8., 18., -8., 0., 0., maximum, .01, 10., 3.], dtype=dtype)
+    m = torch.tensor([2., 15., 2., 0., 2., maximum, .001, 2., 50.], dtype=dtype)
+    out = quality(r, m)
+    expected = torch.tensor([6., 3., -10., 0., -2., 0., .009, 8., -47.], dtype=dtype)
     torch.testing.assert_close(out, expected)
-    assert out[0] > out[1] and out[6] > out[7]
-    assert torch.equal(ratio(torch.tensor([1., -1.]), torch.zeros(2)), torch.tensor([1., -1.]))
-    # Both side estimates negative => FLAT=0 wins without a separate veto.
-    sides = ratio(torch.tensor([-2., -2.]), torch.tensor([2., 2.]))
-    assert int(torch.argmax(torch.cat((sides, torch.zeros(1))))) == 2
+    assert out[0] > out[1] and out[6] < out[7]
+    assert torch.equal(quality(torch.tensor([1., -1., 0.]), torch.zeros(3)), torch.tensor([1., -1., 0.]))
 
 
-@pytest.mark.parametrize("fault", ["negative_mae", "nonfinite_r", "nonfinite_mae", "shape"])
-def test_dynamic_m5_ratio_rejects_invalid_component_predictions(fault):
+def test_dynamic_m5_quality_bps_can_abstain_for_positive_return_and_preserves_exact_ties():
+    quality = model_module.EntryV10CtxHybridTransformer._dynamic_quality_bps_candidate
+    # Per-query predictions only: no future-best-horizon label enters selection.
+    r = torch.tensor([[[3., -2.], [2., -3.]], [[8., 18.], [6., 5.]],
+                      [[8., 9.], [8., 9.]], [[0., -1.], [0., -2.]]])
+    m = torch.tensor([[[50., 2.], [4., 2.]], [[2., 15.], [3., 1.]],
+                      [[2., 3.], [2., 3.]], [[0., 0.], [0., 0.]]])
+    per_query = quality(r, m)
+    best = per_query.amax(dim=1)
+    actions = torch.cat((best, torch.zeros_like(best[..., :1])), dim=-1)
+    winners = actions == actions.amax(dim=1, keepdim=True)
+    unique = winners.sum(dim=1) == 1
+    assert unique.tolist() == [True, True, False, False]
+    assert actions[0].tolist() == [-2., -4., 0.]
+    assert winners[0].tolist() == [False, False, True]  # MAE-driven FLAT despite positive R.
+    assert winners[1].tolist() == [True, False, False]  # Low-MAE A beats larger-return B.
+    assert winners[2].tolist() == [True, True, False]  # Never silently choose one tied side.
+    assert winners[3].tolist() == [True, False, True]  # Total-zero LONG ties FLAT.
+    assert torch.equal(per_query[2] == best[2], torch.ones(2, 2, dtype=torch.bool))
+
+
+@pytest.mark.parametrize("fault", ["negative_mae", "nonfinite_r", "nonfinite_mae", "shape", "integer_r", "integer_mae", "overflow"])
+def test_dynamic_m5_quality_bps_rejects_invalid_component_predictions(fault):
     r, m = torch.ones(2), torch.ones(2)
     if fault == "negative_mae": m[0] = -1.
     elif fault == "nonfinite_r": r[0] = float("nan")
     elif fault == "nonfinite_mae": m[0] = float("inf")
-    else: m = torch.ones(3)
-    with pytest.raises(RuntimeError, match="DYNAMIC_M5_RATIO|NONFINITE"):
-        model_module.EntryV10CtxHybridTransformer._dynamic_quality_ratio_candidate(r, m)
+    elif fault == "shape": m = torch.ones(3)
+    elif fault == "integer_r": r = torch.ones(2, dtype=torch.int64)
+    elif fault == "integer_mae": m = torch.ones(2, dtype=torch.int64)
+    else:
+        r[0], m[0] = -torch.finfo(torch.float32).max, torch.finfo(torch.float32).max
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_QUALITY|NONFINITE"):
+        model_module.EntryV10CtxHybridTransformer._dynamic_quality_bps_candidate(r, m)
+
+
+def test_dynamic_m5_quality_candidate_contract_versions_and_authority_are_explicit():
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    contract = entry_observed_dynamic_m5_path_contract()
+    quality = contract["candidate_quality_contract"]
+    assert model_module.MODEL_OUTPUT_SCHEMA_VERSION == "entry_v10_ctx_model_outputs_v12"
+    assert quality["schema_version"] == "gx1_dynamic_m5_component_difference_quality_bps_candidate_v1"
+    assert quality["value_key"] == "dynamic_entry_quality_bps_candidate"
+    assert quality["action_value_key"] == "dynamic_entry_action_quality_bps_candidate"
+    assert quality["units"] == "quality_bps" and quality["pre_mfe_mae_penalty_coefficient"] == 1.
+    assert "chosen_equal_bps_utility_convention" in quality["coefficient_origin"]
+    assert quality["coefficient_fitted"] is False
+    assert quality["component_prediction_difference_not_unconditional_expected_quality"] is True
+    assert quality["independent_masks_do_not_identify_common_observation_population"] is True
+    assert quality["cash_value_or_additional_realized_cost"] is False
+    assert quality["exact_action_ties"] == "fail_closed"
+    assert quality["exact_horizon_ties"] == "preserve_all_equal_maxima_as_diagnostic"
+    assert quality["native_action_emitted"] is False and quality["native_authority_admitted"] is False
+    assert contract["terminal_and_path_masks_independent"] is True
+    assert contract["candidate_quality_value_has_native_authority"] is False
+    assert contract["serving_authority_granted"] is False
 
 
 @pytest.mark.parametrize("fault", ["short", "reversed", "bool", "float"])
