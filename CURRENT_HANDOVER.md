@@ -50,7 +50,7 @@ står ved lag etter alle eksisterende admissionporter. Trening er fortsatt steng
   Dette er publiserte komponenter, fortsatt ingen fysisk TRAIN/VAL- eller
   modellinputadmission.
 
-## Aktuell status:047bygget, sluttinventar gjenstår
+## Aktuell status: fysisk datasett ferdigstilt, actualTRAINregistry neste
 
 047 er konsumert og har terminal23:07:28UTC,2745.563s, uendret kilde.
 Eksakt kildegjenbruk bestod; datasetbuilder exit0 etter1668.370s. Fysisk
@@ -69,12 +69,19 @@ GroupA-checkpointmapper som er eksplisitt bundet av splitmanifestene.
 TRAIN har46chunks+2JSON, VAL51chunks+2JSON. Ingenting skal slettes,
 ignoreres eller bygges på nytt. Alle047prosesser er borte.
 
-Ny048 er kun inventarferdigstilling: gjenbruk ferdig builder og begge PASS-
-kontroller, valider checkpointene gjennom eksisterende strenge
-`require_group_a_checkpoint_complete`, forsegl samtlige101checkpointfiler,
-alle øvrige utdata og gjenbrukte inputs. Bevar047feilkvitteringen urørt.
-048 gir bare MATERIALIZED_PENDING_INPUT_ADMISSION; ingen registryfit,
-normalisering, Exit-/modelltrening eller nativeadmission inngår.
+048 ferdigstilte inventaret23:36:57UTC,50.168s, exit0, uendret kilde.
+Eksisterende strenge checkpoint-validator bestod for begge mapper. Alle114
+publiserte filer og8gjenbrukte inputs er forseglet, inkludert101checkpointfiler.
+Ingen datasett ble bygget om. 048RESULT/TERMINAL binder faktisk
+MATERIALIZED_PENDING_INPUT_ADMISSION; 047s feilkvittering er bevart urørt.
+
+Ny049 forberedes for fersk wholeTRAINregistryfit på alle118249fysiske rader
+før noen task-/horisontmasker. Bare tidskolonnen leses; eksisterende eier
+beregner beslutningsklokken og samme995kandidater+210retainedseed fra024/025.
+Alle1205ordnede verdifelt, observasjonsmasker og effektive evaluator-/rolle-/
+lagringssignaturer må være identiske. Nye fitdiagnostikker/konstanter beholdes;
+ingen uobserverte felt eller aliaser får skjules. Nytt immutable registry er
+fortsatt ingen modellinput-/treningsadmission.
 
 044s målte brede GCkopier er løst i gjeldende kode: owner-avledet22kolonners
 arbeidsramme og feltvis GCparitet, alle faktiske modellkanaler bevart.
@@ -134,11 +141,11 @@ fra boot og må kontrolleres før neste relevante kjøring.
 
 ## Neste steg
 
-1. Bind og kjør ny048 inventarferdigstilling én gang fra ren kilde.
-   Ingen047relansering, ingen rebuild og ingen endring av originale kvitteringer.
+1. Fullfør/revider049worker og bind én fersk existing-owner wholeTRAINregistryfit.
+   Ingen025/047/048relansering, ingen rebuild eller endring av originalkvitteringer.
 2. Mål faktisk fysisk TRAINklokke for alle118249rader før taskmasker.
-   Gjør fersk wholeTRAINregistryfit og bevis effektiv verdi-/rolle-/maske-/
-   evaluator-ekvivalens før nye immutable kontrakter. Ingen blind SHA-utskifting.
+   Bevis effektiv verdi-/rolle-/maske-/evaluator-ekvivalens og publiser nye
+   immutable kontrakter før inputadmission. Ingen blind SHA-utskifting.
 3. Normaliser hele fysisk TRAIN én gang. Bevis fersk ONLINE=TARGET=EMA0,
    hele feature-/MTF-konsumet, paritet, Entry-only optimizer/resume og ekte
    valgte/avståtte LONG/SHORT/FLAT med kvalitets- og dekningsspor.
@@ -146,7 +153,7 @@ fra boot og må kontrolleres før neste relevante kjøring.
    én epoke med varige checkpoints etter gjeldende admission. Stopp før
    VAL/lærerrefresh/ny epoke.
 
-Fysisk sluttinventar, ny registryfit, normalisering, aktuell Transformerlæring,
+Fysisk datasett er ferdigstilt. Ny registryfit, normalisering, aktuell Transformerlæring,
 generalisering og nettoøkonomi er fortsatt ufullført. AlltidFLAT beviser ikke
 selektivitet. Gatevekter alene er ingen årsaksforklaring. MBP-1 viser BBO,
 ikke L2/MBOordreidentitet; rå prisgrid bevares, modellen bruker deklarerte

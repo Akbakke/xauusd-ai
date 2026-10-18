@@ -1,0 +1,45 @@
+{
+  "schema_version": "gx1_actual_physical_train_gc_registry_fit_v1",
+  "execution_ready": true,
+  "plan_id": "NATIVE_GC_ACTUAL_TRAIN_REGISTRY_20261018_049",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_ACTUAL_TRAIN_REGISTRY_20261018_049",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "created_utc": "2026-10-18T23:38:33.726343+00:00",
+  "one_shot_invocations": 1,
+  "max_wall_seconds": 1800,
+  "outcomes_accessed": false,
+  "validation_or_test_used": false,
+  "native_training_admitted": false,
+  "training_enabled": false,
+  "test_data_used": false,
+  "optimizer_steps": 0,
+  "source_frozen_while_running": true,
+  "physical_publication_result": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_PHYSICAL_INVENTORY_RECONCILIATION_20261018_048/RESULT.json",
+    "sha256": "1906422253cdb848e056a2bdb2af07cbbd5555bbe0eda241100854482ad4f42e"
+  },
+  "physical_publication_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_PHYSICAL_INVENTORY_RECONCILIATION_20261018_048/TERMINAL.json",
+    "sha256": "cbed43d689f2b6c7f4aa7a18ef96262c325825eee5228eb5a0f5f9b320ac703b"
+  },
+  "parent_dataset_plan": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/PLAN.json",
+    "sha256": "a77ecd7f5d0ecbb42e489bb0198a90c993c8c75d575eef59a4fc58a460c94e2a"
+  },
+  "reference_registry": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FINAL_TRAIN_REGISTRY_20261018_025/ADMISSION/REGISTRY.json",
+    "sha256": "d2210dae945c9a43dfdf2aff15f4362563b566ba3c7ebaf3f29d9817201dd3ca"
+  },
+  "reference_fit_plan": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FINAL_TRAIN_REGISTRY_20261018_025/PLAN_BOUND.json",
+    "sha256": "952253011be68d1dbf83e145555d6e4c5b6cf7d9e85784b99e0151255fbfe073"
+  },
+  "scope": "Fresh registry fit on all118249 actual047physicalTRAIN decisions beforetask/horizon masks. Reuse exact024tables/995candidates and025retained210seed through existing owner. Require exact ordered1205value+mask effective evaluator/role/storage identity, no unsupported/aliases or silent reduction. New immutable registry, no activeGCsource edit or native input admission.",
+  "resource_owner": "Existing scripts/gx1_capped_run.sh audit4G/512M; CPU0-7 numericalthread1 TasksMax64; one CURRENT job; 1800s including fit/rechecks/publication",
+  "pending_after_fit": "Current immutable contract/sidecar/dataset binding, wholeTRAIN normalization, fresh Entry-only native baseline/consumption/parity/optimizer/resume/hardware and one requested epoch.",
+  "reference_fit_binding": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FINAL_TRAIN_REGISTRY_20261018_025/EXECUTION_BINDING.json",
+    "sha256": "56ea699b317a081577793942151b0864fc5e1dcd3d4a56d2a3b500faf1f63594"
+  }
+}
