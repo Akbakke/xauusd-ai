@@ -47,6 +47,8 @@ def full_input_field_order() -> dict[str, list[str]]:
         "h1_regime_changed_flag_v3",
         "h4_regime_changed_flag_v3",
     ]
+    from gx1.contracts.entry_full_input_liveness_v1 import RARE_EVENT_MINIMUMS
+    signal.extend(name for surface, name in RARE_EVENT_MINIMUMS if surface == 'signal' and name not in signal)
     signal.extend(
         f"signal_feature_{idx:03d}"
         for idx in range(MODEL_NATIVE_SIGNAL_DIM - len(signal))

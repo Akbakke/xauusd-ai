@@ -571,3 +571,18 @@ def test_v31_version_suffix_does_not_defeat_the_semantic_markers() -> None:
     # `_vX` is not a version marker, so the right-hand side reproduces the
     # pre-strip behaviour of the marker patterns on the same stem.
     assert moved == expected_moved
+
+
+def test_confirmed_divergence_impulses_share_existing_symmetric_support_floor():
+    from gx1.contracts.entry_full_input_liveness_v1 import RARE_EVENT_MINIMUMS, classify_field_status
+    from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
+    fields = [n for n in MULTI_TF_PER_BAR_FEATURES_V4 if n.endswith(('_divergence_event','_divergence_strength'))]
+    assert fields
+    floor = RARE_EVENT_MINIMUMS[('signal','smc_choch')]['train']
+    stats = dict(row_count=10000,finite_count=10000,nonfinite_count=0,
+                 min=0.,max=1.,std=.2,value_range=1.,active_count=floor,active_rate=floor/10000)
+    for name in fields:
+        assert RARE_EVENT_MINIMUMS[('signal',name)]['train'] == floor
+        assert classify_field_status(split='train',surface='signal',field=name,stats=stats)[0] == 'ALLOWED_RARE_EVENT'
+        assert classify_field_status(split='train',surface='signal',field=name,stats={**stats,'active_count':floor-1,'active_rate':(floor-1)/10000})[0] == 'FAIL'
+        assert classify_field_status(split='train',surface='signal',field=name,stats={**stats,'std':0.,'value_range':0.})[0] == 'FAIL'

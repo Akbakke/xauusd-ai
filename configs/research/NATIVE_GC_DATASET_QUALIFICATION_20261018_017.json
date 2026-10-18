@@ -1,0 +1,82 @@
+{
+  "schema_version": "gx1_native_dataset_full_input_qualification_v1",
+  "plan_id": "NATIVE_GC_DATASET_QUALIFICATION_20261018_017",
+  "run_id": "XAU_GC_NATIVE_26M_20261018_002",
+  "created_utc": "2026-10-18T07:50:54.766053+00:00",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002",
+  "dataset_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016",
+  "stem": "XAU_GC_NATIVE__ENTRY_FITTED_Q",
+  "multi_tf_cache_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/MULTI_TF_V4_CACHE",
+  "scope": "Reuse exact already-written TRAIN/VAL and full-scan again under symmetric source-defined structural-divergence support policy. Verify hashes/footers/h20v2 and publish eligible parent rows from availability only. No dataset rewrite, normalization fit, model or native training.",
+  "operator_authority": "Current fresh26month full-feature native one-epoch request,18October thorough end-to-end fault checks and independence reaffirmation.",
+  "producer_source_commit": "d3fb2e7030dd562e6e3c356fcf8ce7cce1f00d5a",
+  "upstream_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_016/TERMINAL.json",
+    "sha256": "c33e3ba8c09415de2ce728eeb081d25ad6b0267a97b8672cb70d35b4930230c8"
+  },
+  "prior_liveness": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20261018T070139054395Z.json",
+    "sha256": "2e001ed2c9af9ad5950dea6c6dcc73f9a33fbdc5bd37493ef9f0f1248a38a4fd"
+  },
+  "physical_files": {
+    "fullscan_proof": {
+      "train": {
+        "fullscan": true,
+        "mtime_ns": 1792308331747867291,
+        "parquet_path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.parquet",
+        "parquet_sha256": "67389d714502363fac5ddf113fe1c8bc96fcbc76fc7c335660a141be540c1280",
+        "scan_complete": true,
+        "scanned_rows": 109507,
+        "size_bytes": 5955422487,
+        "stat_identity_sha256": "f745842b1e4a75aa23064efe22bdc370f69e915efb596eaf9cc95c572c3d60a0",
+        "total_rows": 109507
+      },
+      "val": {
+        "fullscan": true,
+        "mtime_ns": 1792308648784845270,
+        "parquet_path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016/XAU_GC_NATIVE__ENTRY_FITTED_Q_val.parquet",
+        "parquet_sha256": "70af217f5ceceb0bcfbb7b8395751608bef88fb803b271a731f9271755567051",
+        "scan_complete": true,
+        "scanned_rows": 15993,
+        "size_bytes": 905656912,
+        "stat_identity_sha256": "85e7e361e0c6beb15092eacc459f149a5ee1dcfbe81ca51e2a881ad6acfb6ce0",
+        "total_rows": 15993
+      }
+    },
+    "split_manifests": {
+      "train": {
+        "exists": true,
+        "observed_sha256": "f7b2cfb55056c3fecbfc2922e9708485ca77b5dfbdcac8d21104ef06b8290915",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.manifest.json",
+        "sha256": "f7b2cfb55056c3fecbfc2922e9708485ca77b5dfbdcac8d21104ef06b8290915"
+      },
+      "val": {
+        "exists": true,
+        "observed_sha256": "96e54037ba6a4392d71af933d261f6f04a895b705e8992325b421737e313c04c",
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016/XAU_GC_NATIVE__ENTRY_FITTED_Q_val.manifest.json",
+        "sha256": "96e54037ba6a4392d71af933d261f6f04a895b705e8992325b421737e313c04c"
+      }
+    }
+  },
+  "full_input_output": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002/TRAIN_VAL_016/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20261018T075054766025Z.json",
+  "max_wall_seconds": 1800,
+  "wall_budget_origin": "Explicit new bounded offline qualification stage,1800s ceiling; no native extension or consumed-stage relaunch. Prior full scan completed in about205s.",
+  "resource_owner": "Two sequential audit4G capped children;512M swap,CPU0-7,one numerical thread,64tasks,CURRENT lock unchanged.",
+  "source_frozen_while_running": true,
+  "one_shot_invocations": 1,
+  "test_data_used": false,
+  "native_training_started": false,
+  "train_end_exclusive": "2026-01-01T00:00:00Z",
+  "val_end_exclusive": "2026-04-01T00:00:00Z",
+  "rare_event_measured_evidence": {
+    "population": 109507,
+    "regular_bull": 1057,
+    "regular_bear": 1354,
+    "hidden_bull": 1406,
+    "hidden_bear": 1143,
+    "strength_nonzero_support_matches_event": true,
+    "measurement_scope": "Whole physical TRAIN fullscan; source algebra off-event strength=0, no target scores or outcomes used"
+  },
+  "rare_floor_origin": "Existing smc_choch structural impulse support floor; source registry-derived regular/hidden,bull/bear,event/strength fields, variability still required; no usefulness inference."
+}

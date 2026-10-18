@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "New016 gives corrected exclusive boundary its own ranker/checkpoint namespace; no source model/data owner change. Prior physical inputs and source proof reused.",
+    "current_activity": "Physical TRAIN109507/VAL15993 written, bothh20v2; qualification017 rescans exact bytes under source-defined symmetric divergence impulse support. No data rebuild or new model yet.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -116,8 +116,8 @@
     "latest_terminal_role": "Failed legacy raw pair stage006, consumed; new direct-pretest feature stage007 uses the existing suitable route.",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_015/TERMINAL.json",
-      "sha256": "e24a0d99fee6bf2c712a1f323f0d026bfaf59a17efe2f68321f4e255b72545c6"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_016/TERMINAL.json",
+      "sha256": "c33e3ba8c09415de2ce728eeb081d25ad6b0267a97b8672cb70d35b4930230c8"
     },
     "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
@@ -9458,7 +9458,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "DATASET015_NAMESPACE_MISMATCH_STOP__NEW_EXCLUSIVE_WINDOW_NAMESPACE016",
+      "status": "PHYSICAL_TRAIN_VAL_PUBLISHED__SYMMETRIC_RARE_EVENT_QUALIFICATION017_PENDING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9501,7 +9501,7 @@
         "Full footprint lattice is not directly ingested by the native model; summaries are used"
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_015/TERMINAL.json",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_016/TERMINAL.json",
       "completed_invocations": 0,
       "split_windows": {
         "train": [
@@ -9759,10 +9759,39 @@
         "full_native_physical_smoke_pending": true
       },
       "dataset_fresh_namespace_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "FAILED_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_DATASET_BUILD_20261018_016.json",
         "plan_sha256": "bd8acecbcc4ce701f11f9e67eb6e9a7e513595405f04179fa2d3f1f6e32f6c4c",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_016",
+        "claimed_invocations": 1,
+        "completed_invocations": 0,
+        "execution_authorized": false,
+        "relaunch_allowed": false,
+        "native_epoch_authorized_by_this_stage": false,
+        "failed_invocations": 1,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_016/TERMINAL.json",
+          "sha256": "c33e3ba8c09415de2ce728eeb081d25ad6b0267a97b8672cb70d35b4930230c8"
+        },
+        "completed_substages": [
+          "ranker",
+          "signal",
+          "M1/M5 native feature surfaces",
+          "cross_surface_overlap_PASS",
+          "physical_TRAIN_and_VAL_published"
+        ],
+        "failure": "Full input liveness rejected regular bull divergence event and strength at1057/109507=0.965235%,below dense1% floor. Raw feature/source calculation correct; source-defined symmetric impulse support owner corrected."
+      },
+      "physical_dataset_published": true,
+      "whole_physical_train_rows": 109507,
+      "whole_physical_val_rows": 15993,
+      "physical_dataset_input_qualification_complete": false,
+      "physical_dataset_normalization_complete": false,
+      "dataset_qualification_stage": {
+        "status": "EXECUTION_CLAIMED",
+        "plan_path": "configs/research/NATIVE_GC_DATASET_QUALIFICATION_20261018_017.json",
+        "plan_sha256": "ce810d2fef230c402cde27f76d0ffcfeaaa17b00ffb9ee3c817d4c0d1cd81d3f",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_QUALIFICATION_20261018_017",
         "claimed_invocations": 1,
         "completed_invocations": 0,
         "execution_authorized": false,

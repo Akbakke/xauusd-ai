@@ -56,7 +56,14 @@ regenerates ranking/surface lineage; completed raw/enriched/cache stay reused.
 Stage015 correctly rejected old ranker checkpoint bound to the earlier
 train-end declaration. Operator namespace error; no source change needed.
 Stage016 gives the new exclusive window its own ranker/checkpoint namespace.
-Next: execute corrected TRAIN/VAL dataset stage016 (claimed once, launch pending),
+Stage016 wrote physical TRAIN109507 and VAL15993 with h20v2, but overall
+FAILED at full-input liveness: regular bullish divergence event/strength
+1057/109507=0.965235%,below generic1% dense floor. All other fields passed.
+Existing structural-impulse support floor now applies symmetrically to the
+source-defined regular/hidden,bull/bear,event/strength class; variance stays.
+No feature/model/data values changed;20focused liveness tests pass.
+Next: qualification017 rescans exact physical bytes and publishes genuine
+horizon-eligible parent rows, no dataset rewrite (claimed once, launch pending),
 then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,

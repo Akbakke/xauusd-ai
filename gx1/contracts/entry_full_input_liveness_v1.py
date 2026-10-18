@@ -39,8 +39,8 @@ from gx1.features.htf_features import (
 # under the non-negative rule for the first time; and the two ATR OOD pairs are
 # renamed to `_bps`. A v7 artifact was produced by a policy that could not see
 # those ten slots and names two fields that no longer exist.
-SCHEMA_VERSION = "entry_full_input_liveness_contract_v11"
-POLICY_VERSION = "entry_full_input_liveness_policy_v11"
+SCHEMA_VERSION = "entry_full_input_liveness_contract_v12"
+POLICY_VERSION = "entry_full_input_liveness_policy_v12"
 PASS_DECISION = "PASS"
 FAIL_DECISION = "FAIL"
 SPLITS = ("train", "val")
@@ -236,6 +236,17 @@ RARE_EVENT_MINIMUMS: dict[tuple[str, str], dict[str, int]] = {
     ("signal", "chart.geomline_retest_fail_up"): {"train": 32},
     ("signal", "chart.geomline_retest_fail_down"): {"train": 32},
 }
+
+
+# Confirmed-pivot divergence events and their off-event-zero strengths are
+# structural impulses (htf_features' exact producing field registry). Apply
+# the existing smc_choch support floor symmetrically, not an outcome-selected
+# or one-sided frequency threshold. TRAIN016 full population: N=109507,
+# regular bull1057/bear1354, hidden bull1406/bear1143; no usefulness claim.
+for _field in MULTI_TF_PER_BAR_FEATURES_V4:
+    if _field.endswith(('_divergence_event', '_divergence_strength')):
+        RARE_EVENT_MINIMUMS[('signal', _field)] = dict(RARE_EVENT_MINIMUMS[('signal', 'smc_choch')])
+
 
 # 2026-08-18 (V30 wave 2): both names carry `_bps` now. The values are
 # unchanged; the 2026-08-09 era-proxy repair had already converted them to bps
