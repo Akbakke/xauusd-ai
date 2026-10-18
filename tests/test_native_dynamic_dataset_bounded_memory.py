@@ -398,3 +398,241 @@ def test_time_normalization_default_retains_deep_data_isolation():
     assert not np.shares_memory(actual["genuine_0"].to_numpy(), frame["genuine_0"].to_numpy())
     actual.loc[actual.index[0], "genuine_0"] = np.float32(-123.0)
     assert frame["genuine_0"].iloc[0] == original_value
+
+
+
+def test_projected_source_preserves_owner_state_prices_types_attrs_and_disk_schema(
+    tmp_path, monkeypatch
+):
+    required = builder._model_native_source_working_columns(builder.MODEL_NATIVE_BASE_FIELDS)
+    _, source_owned = builder._model_native_artifact_owner_fields(builder.MODEL_NATIVE_BASE_FIELDS)
+    assert len(required) == len(set(required))
+    assert set(source_owned).issubset(required)
+    assert set(builder.MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS).issubset(required)
+    assert set(builder.MODEL_NATIVE_CTX_CAT_FIELDS).issubset(required)
+    assert {"time", "atr"}.issubset(required)
+    assert set(required).isdisjoint(builder._gc_context.CONTEXT_FIELDS)
+    path, frame = _write_scalar_source_fixture(tmp_path)
+    raw_gc = builder._gc_context.CONTEXT_FIELDS[0]
+    frame[raw_gc] = np.arange(len(frame), dtype=np.float32) + np.float32(30)
+    for j, name in enumerate(required):
+        if name not in frame:
+            frame[name] = np.arange(len(frame), dtype=np.float32) + np.float32(j)
+    # Required categorical state also retains pandas' nullable physical dtype.
+    frame[builder.MODEL_NATIVE_CTX_CAT_FIELDS[0]] = pd.array(
+        [0, 1, None, 0, 1, 0, None, 1], dtype="Int64"
+    )
+    table = pa.Table.from_pandas(frame, preserve_index=True)
+    metadata = dict(table.schema.metadata or {})
+    metadata[b"PANDAS_ATTRS"] = json.dumps(frame.attrs).encode("utf-8")
+    pq.write_table(table.replace_schema_metadata(metadata), path, row_group_size=2)
+    before_schema = pq.ParquetFile(path).schema_arrow
+    start, end = frame["time"].iloc[2], frame["time"].iloc[6]
+    physical_columns = [name for name in frame if name in set(required) | {"bid_close", "ask_close"}]
+    expected = pd.read_parquet(
+        path, columns=physical_columns,
+        filters=[("time", ">=", start), ("time", "<=", end)],
+    )
+    original_read = pq.read_table
+    reads = []
+
+    def observed_read(*args, **kwargs):
+        if kwargs.get("filters") is not None:
+            reads.append(kwargs["columns"])
+            assert kwargs["columns"] == physical_columns
+            assert raw_gc not in kwargs["columns"]
+            assert kwargs["use_pandas_metadata"] is True
+        return original_read(*args, **kwargs)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(pq, "read_table", observed_read)
+        actual = builder._load_model_native_source_window(
+            path, start=start, end=end, columns=required
+        )
+    assert reads == [physical_columns]
+    pd.testing.assert_frame_equal(actual, expected)
+    assert actual.attrs == expected.attrs == frame.attrs
+    assert actual.index.equals(frame.index[2:7])
+    assert actual[builder.MODEL_NATIVE_CTX_CAT_FIELDS[0]].dtype == pd.Int64Dtype()
+    assert set(required).issubset(actual.columns)
+    assert raw_gc not in actual
+    assert before_schema.equals(pq.ParquetFile(path).schema_arrow, check_metadata=True)
+    assert raw_gc in pq.ParquetFile(path).schema_arrow.names
+
+
+@pytest.mark.parametrize("failure", ["price_glitch", "mixed_granularity"])
+def test_projected_source_keeps_complete_history_price_and_schema_guards(tmp_path, failure):
+    path, frame = _write_scalar_source_fixture(
+        tmp_path, glitch=failure == "price_glitch", mixed=failure == "mixed_granularity"
+    )
+    error = "PRICE_SCALE_GLITCH" if failure == "price_glitch" else "SOURCE_PARQUET_MIXED_GRANULARITY_FORBIDDEN"
+    with pytest.raises(RuntimeError, match=error):
+        builder._load_model_native_source_window(
+            path, start=frame["time"].iloc[4], end=frame["time"].iloc[6],
+            columns=builder._model_native_source_working_columns(builder.MODEL_NATIVE_BASE_FIELDS),
+        )
+
+
+def test_projecting_working_source_keeps_all_bound_m5_model_channels():
+    times = pd.date_range("2024-05-01", periods=5, freq="5min", tz="UTC")
+    arrays = {
+        "signal": np.arange(5 * builder.MODEL_NATIVE_SIGNAL_DIM, dtype=np.float32).reshape(5, -1),
+        "ctx_cont": np.arange(5 * builder.MODEL_NATIVE_CTX_CONT_DIM, dtype=np.float32).reshape(5, -1),
+        "ctx_cat": np.arange(5 * builder.MODEL_NATIVE_CTX_CAT_DIM, dtype=np.int64).reshape(5, -1),
+    }
+    aligned = builder._align_native_m5_feature_surface(
+        target_times=times[1:4], surface_times=times, surface_arrays=arrays,
+    )
+    for name, values in arrays.items():
+        assert np.shares_memory(aligned[name], values)
+        np.testing.assert_array_equal(aligned[name], values[1:4])
+    gc_positions = [builder.MODEL_NATIVE_CTX_CONT_FIELDS.index(name)
+                    for name in builder._gc_context.CONTEXT_FIELDS]
+    np.testing.assert_array_equal(
+        aligned["ctx_cont"][:, gc_positions], arrays["ctx_cont"][1:4, gc_positions]
+    )
+    assert aligned["signal"].shape[1] == len(builder.MODEL_NATIVE_BASE_FIELDS) + builder.MODEL_NATIVE_SELECTED_FEATURE_COUNT
+    assert aligned["ctx_cont"].shape[1] == len(builder.MODEL_NATIVE_CTX_CONT_FIELDS)
+    assert aligned["ctx_cat"].shape[1] == len(builder.MODEL_NATIVE_CTX_CAT_FIELDS)
+
+
+@pytest.fixture
+def tiny_gc_surface(monkeypatch):
+    """Two declared fields, real source evaluator, no producer/model/TEST data."""
+    owner = builder._gc_context
+    fields = [
+        {"name": "declared_flow", "availability_field": "declared_flow_observed",
+         "table": "declared", "column": "raw_flow", "validity_column": "raw_valid",
+         "source_clock_column": "source_ns"},
+        {"name": "declared_structural", "availability_field": "declared_structural_observed",
+         "table": "declared", "column": "raw_structural", "role": "structural_observation_mask"},
+    ]
+    gc_names = tuple(name for item in fields for name in (item["name"], item["availability_field"]))
+    names = ("non_gc_context", *gc_names)
+    times = pd.date_range("2024-05-01", periods=2 * 512 + 1, freq="5min", tz="UTC")
+    clock = times.as_unit("ns").asi8[[1, 3, 4]]
+    table = pa.table({
+        "available_ns": pa.array(clock, type=pa.int64()),
+        "source_ns": pa.array(clock, type=pa.int64()),
+        "raw_flow": pa.array([1.25, np.nan, -2.5], type=pa.float64()),
+        "raw_valid": pa.array([1, 0, 1], type=pa.int64()),
+        "raw_structural": pa.array([0, 1, 0], type=pa.int64()),
+    })
+    sources = {"declared": (clock, table)}
+    surface = np.zeros((len(times), len(names)), dtype=np.float32)
+    surface[:, 0] = np.float32(7.5)
+    surface[1:3, 1] = np.float32(1.25)
+    surface[4:, 1] = np.float32(-2.5)
+    surface[1:3, 2] = 1
+    surface[4:, 2] = 1
+    surface[3, 3] = 1
+    surface[1:, 4] = 1
+    calls = {"sources": 0, "fields": []}
+    original_field_values = owner._field_values
+
+    def counted_sources():
+        calls["sources"] += 1
+        return sources
+
+    def counted_field_values(item, *args):
+        calls["fields"].append(item["name"])
+        return original_field_values(item, *args)
+
+    def forbid_dense_context(*args, **kwargs):
+        raise AssertionError("parity rebuilt the dense GC context")
+
+    monkeypatch.setattr(owner, "REGISTRY", {"fields": fields})
+    monkeypatch.setattr(owner, "REGISTRY_SHA256", "a" * 64)
+    monkeypatch.setattr(owner, "VALUE_FIELDS", tuple(item["name"] for item in fields))
+    monkeypatch.setattr(owner, "CONTEXT_FIELDS", gc_names)
+    monkeypatch.setattr(owner, "_sources", counted_sources)
+    monkeypatch.setattr(owner, "_field_values", counted_field_values)
+    monkeypatch.setattr(owner, "build_context", forbid_dense_context)
+    monkeypatch.setattr(builder, "MODEL_NATIVE_CTX_CONT_FIELDS", names)
+    return times, names, surface, calls, sources
+
+
+def test_gc_parity_uses_real_owner_once_per_field_and_every_final_partial_cell(
+    tiny_gc_surface, monkeypatch
+):
+    times, names, surface, calls, _ = tiny_gc_surface
+    original_equal = np.array_equal
+    comparisons = []
+
+    def bounded_equal(actual, expected):
+        # pandas also compares the full int64 decision clock while hashing it.
+        # Bound only the actual float32 model-column parity comparisons.
+        if (isinstance(actual, np.ndarray) and isinstance(expected, np.ndarray)
+                and actual.dtype == expected.dtype == np.dtype(np.float32)
+                and np.shares_memory(actual, surface)):
+            assert actual.ndim == expected.ndim == 1
+            assert 0 < len(actual) <= 512
+            comparisons.append(len(actual))
+        return original_equal(actual, expected)
+
+    with monkeypatch.context() as scoped:
+        scoped.setattr(builder.np, "array_equal", bounded_equal)
+        report = builder._require_gc_context_surface_parity(
+            decisions=times, ctx_cont_names=names, ctx_cont_mat=surface,
+        )
+    assert calls == {"sources": 1, "fields": ["declared_flow", "declared_structural"]}
+    assert comparisons == [512, 512, 1] * 4
+    assert report["rows"] == len(times)
+    assert report["value_fields"] == 2
+    assert report["context_fields"] == 4
+    assert report["compared_cells"] == len(times) * 4
+    assert report["verified_all_rows"] is True
+    assert report["mismatch_cells"] == 0
+    assert report["registry_sha256"] == "a" * 64
+
+
+@pytest.mark.parametrize("failure", ["order", "missing_field", "shape", "dtype", "value", "mask_missing", "mask_domain"])
+def test_gc_parity_rejects_schema_or_last_partial_value_and_mask_mismatch(tiny_gc_surface, failure):
+    times, names, surface, _, _ = tiny_gc_surface
+    if failure == "order":
+        names = (names[0], names[2], names[1], *names[3:])
+    elif failure == "missing_field":
+        names, surface = names[:-1], surface[:, :-1]
+    elif failure == "shape":
+        surface = surface[:-1]
+    elif failure == "dtype":
+        surface = surface.astype(np.float64)
+    elif failure == "value":
+        surface[-1, 1] += np.float32(1)
+    elif failure == "mask_missing":
+        surface[-1, 2] = 0
+    elif failure == "mask_domain":
+        surface[-1, 2] = 2
+    error = ("NATIVE_GC_CONTEXT_SURFACE_FIELD_ORDER_INVALID" if failure in ("order", "missing_field")
+             else "NATIVE_GC_CONTEXT_SURFACE_SCHEMA_INVALID" if failure in ("shape", "dtype")
+             else "NATIVE_GC_CONTEXT_PARITY:declared_flow")
+    with pytest.raises(RuntimeError, match=error):
+        builder._require_gc_context_surface_parity(
+            decisions=times, ctx_cont_names=names, ctx_cont_mat=surface,
+        )
+
+
+@pytest.mark.parametrize("failure,error", [
+    ("future_clock", "NATIVE_GC_FUTURE_SOURCE_CLOCK"),
+    ("invalid_validity", "NATIVE_GC_SOURCE_VALIDITY_DOMAIN"),
+    ("float32_overflow", "NATIVE_GC_NONFINITE"),
+    ("invalid_structural", "NATIVE_GC_STRUCTURAL_VALUE_DOMAIN"),
+])
+def test_gc_parity_preserves_source_owner_clock_validity_and_storage_rejections(
+    tiny_gc_surface, failure, error
+):
+    times, names, surface, _, sources = tiny_gc_surface
+    clock, table = sources["declared"]
+    column, values = {
+        "future_clock": ("source_ns", [int(clock[0]), int(clock[1]), int(clock[2]) + 1]),
+        "invalid_validity": ("raw_valid", [1, 0, 2]),
+        "float32_overflow": ("raw_flow", [1.25, np.nan, 1e50]),
+        "invalid_structural": ("raw_structural", [0, 1, 2]),
+    }[failure]
+    index = table.schema.get_field_index(column)
+    table = table.set_column(index, column, pa.array(values, type=table.schema.field(column).type))
+    sources["declared"] = (clock, table)
+    with np.errstate(over="ignore"), pytest.raises(RuntimeError, match=error):
+        builder._require_gc_context_surface_parity(
+            decisions=times, ctx_cont_names=names, ctx_cont_mat=surface,
+        )

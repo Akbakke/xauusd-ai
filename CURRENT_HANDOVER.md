@@ -50,30 +50,33 @@ står ved lag etter alle eksisterende admissionporter. Trening er fortsatt steng
   Dette er publiserte komponenter, fortsatt ingen fysisk TRAIN/VAL- eller
   modellinputadmission.
 
-## Aktuell hindring:042tidlig kildeframe-MEMCG-OOM
+## Aktuell hindring:044ubrukt bred GC-arbeidskopiering
 
-042 er konsumert:21:16:42UTC,602.138s, uendret kilde, builderexit137 etter
-460.442s. Alle042prosesser er borte. Kernelens OOM-scope er eksakt lik den
-lagrede builder-cgruppen:10GiBminne/512MiBswap var fullt. Dette er minnestopp,
-men den eksakte maskininstruksjonen er ikke bevist. Siste logg er SOURCE_PARQUET;
-SESSION_ID_DISTRIBUTION_PROOF mangler. Undersøk kun første wide kildelesing,
-reset/UTC-normalisering/rangefiltre og samtidig beholdte foreldre før ny rettelse.
-041s senere warmup/finite/Arrow-rettelser ble ikke nådd av042.
+044 er konsumert:21:48:08UTC,600.466s, uendret kilde, builderexit137 etter
+461.102s. Ingen044prosess lever. 043s første kildefikser virket:188031rader
+passerte session-, signal-, tapejoin- og swingkontroll. Siste logg er så
+TAPE_CONTEXT_RECOMPUTE; første ubekreftede operasjon er bred df.drop(15),
+deretter merge og warmupreset. Kernel viser ny10G/512MOOM, men direkte live
+044cgroupbinding og eksakt drept instruksjon er ikke bevist.
 
-042s capped gjenbrukspreflight består:141.575s, exit0, eksakte råforeldre,
-GC-/040klokke-/ranking-/signal-/featurebase-/strictv5bindings.039s ferdige
-projeksjoner1110839M1/1140763M5 og fulle v5PASS skal fortsatt gjenbrukes.
-Ingen ekte feature eller guard fjernes; ingen cap utvides.041s33PASS bevarer
-verdi-/rad-/schema-/finitebatch-/ctx-only-konsistens, ikke fysisk peakRSS.
+Full kildegjennomgang viser at2410råGCkolonner bæres i df og aldri brukes
+av df_ctx, source_extra, mål eller faktisk modellinput. Senere bygges enda en
+fullGCmatrise inn i merged3 bare for feltpresence; alle2725signal/2542ctx+1cat
+emitteres fra den eksakte M5-memmapen. Rettelse: owner-avledet22kolonners
+arbeidslesing, behold komplett schema/hash/full-source smal prisvakt, hold
+mellomtabellene smale og bevis GCverdi+observasjonsmaske feltvis mot faktisk
+M5input. SammeGCverdifunksjon kjøres én gang per felt, ingen chunkvis gjentatt
+helkildekonvertering. Ingen ekte modellkanal eller øvrig guard fjernes.
 
-Fysisk TRAIN/VAL er ikke publisert. Bevar042terminal og små delartefakter;
-start aldri042 på nytt. 043kvalifiserer minste tidlig-minnerettelse:49PASS/0feil,18.246s, uendret
-kilde. Alle kolonner/verdier/dtypes/indeks/attrs og inkluderende tidsgrenser
-er like installert pandas; full-source pris-/klokkegarder beholdes. Canonical
-unngår dype data-/sort-/filterkopier. Legacy standardisolasjon beholdes.
-Fysisk peakRSS er fortsatt ikke kvalifisert. Ny unik044 er klar etter ren
-kildebinding; den gjenbruker039komponentene og starter aldri042 på nytt.022/026/cache/cascade/ranking/039inputs
-og uendrede bevis gjenbrukes under eksakte kildebindinger.
+045ga64PASS/1fixturefeil. Testspy fanget også legitim int64klokkelikhet;
+bare spyavgrensningen er rettet, produksjonskoden er byteidentisk.046består:44PASS i berørt testfil+eksaktctx-only, øvrige21writerkontroller
+gjenbrukt fra045. Produksjonskode byteidentisk045→046. Målingen viser2410
+float32GCkolonner og188031historierader,1812618840bytes(1.688GiB) per
+hel GCkopi. På4096ekte rader kopierte både drop og merge alle2410kolonner;
+0delte. Bare footer/timekolonne/én4096batch ble lest. Full fysisk peakRSS
+er fortsatt ikke kvalifisert. Deretter bare ny unik047 fysisk dataset-only. Bevar044terminal/delartefakter; aldri
+044relansering eller caputvidelse.039inputs/strictv5PASS/040klokke/ranking
+og uendrede kontroller gjenbrukes. Fysisk TRAIN/VAL er ennå ikke publisert.
 
 ## Entry-kurver og native kjede
 
@@ -129,11 +132,12 @@ fra boot og må kontrolleres før neste relevante kjøring.
 
 ## Neste steg
 
-1. 043har kvalifisert den tidlige wide-frame-rettelsen med49PASS. Gjenbruk
-   øvrige uendrede kontroller og genuine inputs.
-2. Bind ren commit/policy/plan/controller/validator og start unik044 én gang.
-   Eksisterende capper, hele guardeierkjeden og039komponenter/v5PASS beholdes.
-   Ingen042relansering, caputvidelse, ekstra fit eller nativeadmission.
+1. 046har kvalifisert22kolonners arbeidslesing/GCfeltparitet og faktisk
+   begrenset kopimåling. Bevar alle modellkanaler og beståtte kontroller.
+2. Ny unik047 er klar etter046. Bind ren commit/policy/plan/controller/
+   validator og start én gang: smal arbeidsramme og faktisk feltvis GCparitet
+   mot alle M5modellkanaler. Dataset-only, samme capper og039inputs/v5PASS.
+   Ingen044relansering eller nativeadmission.
 3. Mål faktisk fysisk TRAINklokke, gjør fersk wholeTRAINregistryfit og bevis
    effektiv verdi-/rolle-/maske-/evaluator-ekvivalens før nye immutable
    kontrakter. Ingen blind SHA-utskifting eller svekket klokkegard.

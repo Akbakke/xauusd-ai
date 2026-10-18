@@ -3379,6 +3379,56 @@ def _require_finite_matrix_bounded(
             raise RuntimeError(error)
 
 
+def _require_gc_context_surface_parity(
+    *, decisions: Sequence[Any], ctx_cont_names: Sequence[str],
+    ctx_cont_mat: np.ndarray,
+    batch_rows: int = _MODEL_NATIVE_STREAMING_BATCH_SIZE,
+) -> dict[str, Any]:
+    """Verify every GC cell without an N-by-GC intermediate or repeated source casts."""
+    if type(batch_rows) is not int or batch_rows <= 0:
+        raise RuntimeError("NATIVE_GC_CONTEXT_PARITY_BATCH_INVALID")
+    names = tuple(ctx_cont_names)
+    gc_names = tuple(_gc_context.CONTEXT_FIELDS)
+    if (names != tuple(MODEL_NATIVE_CTX_CONT_FIELDS)
+            or tuple(name for name in names if name in gc_names) != gc_names):
+        raise RuntimeError("NATIVE_GC_CONTEXT_SURFACE_FIELD_ORDER_INVALID")
+    times, stamps = _gc_context._decision_stamps(decisions)
+    if (not isinstance(ctx_cont_mat, np.ndarray)
+            or ctx_cont_mat.shape != (len(times), len(names))
+            or ctx_cont_mat.dtype != np.dtype(np.float32)):
+        raise RuntimeError("NATIVE_GC_CONTEXT_SURFACE_SCHEMA_INVALID")
+    positions = {name: index for index, name in enumerate(names)}
+    sources = _gc_context._sources()
+    joins = {key: np.searchsorted(clock, stamps, side="right") - 1
+             for key, (clock, _) in sources.items()}
+    for item in _gc_context.REGISTRY["fields"]:
+        # The same formula/clock/domain/storage owner used by build_context;
+        # evaluate each field ONCE over all rows, then release its narrow arrays.
+        values, observed = _gc_context._field_values(
+            item, *sources[item["table"]], stamps, joins[item["table"]],
+        )
+        expected = (values, observed.astype(np.float32))
+        for name, source_values in zip((item["name"], item["availability_field"]), expected):
+            column = positions[name]
+            for lo in range(0, len(times), batch_rows):
+                hi = min(lo + batch_rows, len(times))
+                if not np.array_equal(ctx_cont_mat[lo:hi, column], source_values[lo:hi]):
+                    raise RuntimeError("NATIVE_GC_CONTEXT_PARITY:" + name)
+        del values, observed, expected, source_values
+    return {
+        "schema_version": "gx1_dataset_gc_context_source_parity_v1",
+        "mode": "fieldwise_exact_float32_against_immutable_m5_surface",
+        "registry_sha256": _gc_context.REGISTRY_SHA256,
+        "decision_clock_sha256": m1_clock_sha256(times),
+        "rows": int(len(times)),
+        "value_fields": int(len(_gc_context.VALUE_FIELDS)),
+        "context_fields": int(len(gc_names)),
+        "compared_cells": int(len(times) * len(gc_names)),
+        "verified_all_rows": True,
+        "mismatch_cells": 0,
+    }
+
+
 def _dataset_arrow_batch(frame: pd.DataFrame, *, schema=None):
     """Preserve the legacy nested-double schema without Python float lists.
 
@@ -3529,19 +3579,40 @@ def _model_native_aux_emission_storage(
     return storage, observed
 
 
-def _load_model_native_source_window(parquet_path: Path, *, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
-    """Keep the full-source price guard while reading wide channels only in scope."""
+def _model_native_source_working_columns(
+    active_base_signal_fields: Sequence[str],
+) -> tuple[str, ...]:
+    """Source-owned working state; model channels live in the bound M5 surface."""
+    _, source_owned = _model_native_artifact_owner_fields(active_base_signal_fields)
+    return tuple(dict.fromkeys((
+        "time", *MODEL_NATIVE_CTX_CAT_FIELDS, "atr",
+        *MODEL_NATIVE_CTX_CONT_SOURCE_PREFIX_FIELDS, *source_owned,
+    )))
+
+
+def _load_model_native_source_window(
+    parquet_path: Path, *, start: pd.Timestamp, end: pd.Timestamp,
+    columns: Sequence[str] | None = None,
+) -> pd.DataFrame:
+    """Keep full-source guards; optionally project only the working state."""
     from gx1.io.price_glitch_guard import DEFAULT_PRICE_COLS
     import pyarrow.parquet as pq
-    columns = pq.ParquetFile(parquet_path).schema_arrow.names
-    if 'time' not in columns:
+    available = pq.ParquetFile(parquet_path).schema_arrow.names
+    if 'time' not in available:
         raise RuntimeError('MODEL_NATIVE_SOURCE_TIME_COLUMN_REQUIRED')
-    audit = pd.read_parquet(parquet_path, columns=['time', *(n for n in DEFAULT_PRICE_COLS if n in columns)])
+    audit = pd.read_parquet(parquet_path, columns=['time', *(n for n in DEFAULT_PRICE_COLS if n in available)])
     assert_no_price_scale_glitch(audit, context='MODEL_NATIVE_M5_SOURCE')
     del audit
-    if 'is_model_bar' in columns:
+    if 'is_model_bar' in available:
         raise RuntimeError('SOURCE_PARQUET_MIXED_GRANULARITY_FORBIDDEN: exact M5 source required')
-    table = pq.read_table(parquet_path, filters=[('time', '>=', start), ('time', '<=', end)],
+    read_columns = None
+    if columns is not None:
+        # Keep physical order and both existing price checks. Missing required
+        # state still fails in its unchanged field-specific caller guard.
+        requested = set(columns) | {name for name in DEFAULT_PRICE_COLS if name in available}
+        read_columns = [name for name in available if name in requested]
+    table = pq.read_table(parquet_path, columns=read_columns,
+                          filters=[('time', '>=', start), ('time', '<=', end)],
                           use_threads=False, use_pandas_metadata=True)
     # Preserve pandas' attrs restoration, but cache metadata BEFORE Arrow's
     # self_destruct transfer. Never inspect the consumed table afterward.
@@ -3692,7 +3763,10 @@ def build_dataset_canonical(
     # 2) Keep the complete-source narrow price check; push down the exact
     # existing wide-frame range to avoid allocating unrelated GC history.
     df = _prepare_model_native_source_window(
-        _load_model_native_source_window(parquet_path, start=start, end=end),
+        _load_model_native_source_window(
+            parquet_path, start=start, end=end,
+            columns=_model_native_source_working_columns(active_base_signal_fields),
+        ),
         start=start, end=end,
     )
 
@@ -4397,19 +4471,9 @@ def build_dataset_canonical(
     # as-of to each M5 decision time by its owner; part of the causal warmup trim below.
     _d1_decisions = pd.DatetimeIndex(pd.to_datetime(merged3["time"], utc=True)) + pd.Timedelta(minutes=5)
     _d1_frame = _d1ctx.build_d1_macro_context(_d1_decisions, d1_macro_context["components"])
-    _gc_frame = _gc_context.build_context(_d1_decisions)
-    _gc_present = [name for name in _gc_context.CONTEXT_FIELDS if name in merged3.columns]
-    if _gc_present and len(_gc_present) != len(_gc_context.CONTEXT_FIELDS):
-        raise RuntimeError('NATIVE_GC_CONTEXT_PARTIAL_SOURCE')
-    _values = None
-    for _name in _gc_context.CONTEXT_FIELDS:
-        _values = _gc_frame[_name].to_numpy(np.float32)
-        if _gc_present and not np.array_equal(merged3[_name].to_numpy(np.float32), _values):
-            raise RuntimeError('NATIVE_GC_CONTEXT_PARITY:' + _name)
-        if not _gc_present:
-            merged3[_name] = _values
-    # A final Series view can otherwise keep the entire GC matrix alive.
-    del _values, _gc_frame
+    # GC is not label/warmup state. Every genuine model value and observation
+    # mask is verified against its source below, on the aligned M5 surface,
+    # rather than duplicating all GC channels in this mutable working frame.
     _d1_present = [name for name in _d1ctx.D1_MACRO_CONTEXT_FIELDS if name in merged3.columns]
     if _d1_present and len(_d1_present) != _d1ctx.D1_MACRO_CONTEXT_DIM:
         raise RuntimeError(f"D1_MACRO_CONTEXT_PARTIAL_SOURCE: {len(_d1_present)} of {_d1ctx.D1_MACRO_CONTEXT_DIM}")
@@ -4522,7 +4586,8 @@ def build_dataset_canonical(
         raise RuntimeError(
             f"V2_SIGNAL_FIELDS_MISSING after canonical_v2 join: {missing_sig}"
         )
-    missing_ctx = [f for f in MODEL_NATIVE_CTX_CONT_FIELDS if f not in merged3.columns]
+    missing_ctx = [f for f in MODEL_NATIVE_CTX_CONT_FIELDS
+                   if f not in _gc_context.CONTEXT_FIELDS and f not in merged3.columns]
     if missing_ctx:
         raise RuntimeError(
             f"V2_CTX_CONT_FIELDS_MISSING after canonical_v2 join: {missing_ctx}"
@@ -4564,6 +4629,11 @@ def build_dataset_canonical(
     sig_mat = aligned_surface["signal"]
     ctx_cont_mat = aligned_surface["ctx_cont"]
     ctx_cat_mat = aligned_surface["ctx_cat"]
+    _gc_source_parity = _require_gc_context_surface_parity(
+        decisions=pd.DatetimeIndex(pd.to_datetime(times, utc=True)) + pd.Timedelta(minutes=5),
+        ctx_cont_names=ctx_cont_names, ctx_cont_mat=ctx_cont_mat,
+    )
+    _gc_source_parity["feature_surface"] = dict(m5_feature_surface_binding)
     seq_structure_meta.update(
         {
             "mode": ENTRY_M5_FEATURE_SURFACE_CONSUMPTION_MODE,
@@ -5481,6 +5551,7 @@ def build_dataset_canonical(
         "group_a_checkpoint": _group_a_checkpoint_meta,
         "d1_macro_context": _d1_macro_context_meta,
         "gc_native_context": _gc_context.contract(),
+        "gc_native_context_source_parity": _gc_source_parity,
         "entry_action_target_phase_scope": "base_joint_fitted_q_fields_apply_only_when_that_phase_is_bound",
         "observed_target_selection": "exact_explicit_recipe_and_bundle_training_phase_no_implicit_default",
         **({"dynamic_m5_supervision": _dynamic_supervision_meta}
