@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Dataset015 binds correct exclusive TRAIN/VAL boundaries and separate immutable July TEST fence. Fresh raw feature results reused; ranking/surfaces regenerated solely for corrected lineage. Native epoch still pending.",
+    "current_activity": "New016 gives corrected exclusive boundary its own ranker/checkpoint namespace; no source model/data owner change. Prior physical inputs and source proof reused.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -116,8 +116,8 @@
     "latest_terminal_role": "Failed legacy raw pair stage006, consumed; new direct-pretest feature stage007 uses the existing suitable route.",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_014/TERMINAL.json",
-      "sha256": "61aa54cc76ed88dee9f0329623cb6d0e883213a1e077c73741af77eaee9a6af4"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_015/TERMINAL.json",
+      "sha256": "e24a0d99fee6bf2c712a1f323f0d026bfaf59a17efe2f68321f4e255b72545c6"
     },
     "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
@@ -9458,7 +9458,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "NATIVE_PROJECTIONS_COMPLETE__SELECTED_VAL_SCOPE_REPAIR_AND_NEW015",
+      "status": "DATASET015_NAMESPACE_MISMATCH_STOP__NEW_EXCLUSIVE_WINDOW_NAMESPACE016",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9501,7 +9501,7 @@
         "Full footprint lattice is not directly ingested by the native model; summaries are used"
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_014/TERMINAL.json",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_015/TERMINAL.json",
       "completed_invocations": 0,
       "split_windows": {
         "train": [
@@ -9720,7 +9720,7 @@
         "failure": "Legacy pretest CLI equated selected VAL end with raw TEST seal; no physical dataset published. Original projections and audit preserved."
       },
       "dataset_split_scope_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "FAILED_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_DATASET_BUILD_20261018_015.json",
         "plan_sha256": "5d39e0c6ac02a835937f29bb0dea09a3aa75a2f89783688b2081248f72c7ad11",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_015",
@@ -9728,7 +9728,13 @@
         "completed_invocations": 0,
         "execution_authorized": false,
         "relaunch_allowed": false,
-        "native_epoch_authorized_by_this_stage": false
+        "native_epoch_authorized_by_this_stage": false,
+        "failed_invocations": 1,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_015/TERMINAL.json",
+          "sha256": "e24a0d99fee6bf2c712a1f323f0d026bfaf59a17efe2f68321f4e255b72545c6"
+        },
+        "failure": "Old ranker checkpoint namespace reused after declared boundary changed; identity mismatch guard stopped it. No new ranking/dataset published."
       },
       "operator_reaffirmation_20261018": "18October user: retain ninth family, prioritize M5 direction independent of M1 Exit, periodic safe physical reboot and thorough end-to-end fault checks.",
       "ninth_context_family": {
@@ -9751,6 +9757,17 @@
         "exit_gradient_forbidden_test_passed": true,
         "exit_weight_preservation_adamw_mechanics_passed": true,
         "full_native_physical_smoke_pending": true
+      },
+      "dataset_fresh_namespace_stage": {
+        "status": "EXECUTION_CLAIMED",
+        "plan_path": "configs/research/NATIVE_GC_DATASET_BUILD_20261018_016.json",
+        "plan_sha256": "bd8acecbcc4ce701f11f9e67eb6e9a7e513595405f04179fa2d3f1f6e32f6c4c",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_DATASET_BUILD_20261018_016",
+        "claimed_invocations": 1,
+        "completed_invocations": 0,
+        "execution_authorized": false,
+        "relaunch_allowed": false,
+        "native_epoch_authorized_by_this_stage": false
       }
     },
     "native_xau_pair_failure_20261018": {

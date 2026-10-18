@@ -53,7 +53,10 @@ VAL end was incorrectly coupled to raw TEST seal; separate selected VAL
 end <= manifest-bound July seal now supported. Exact exclusive midnight
 boundaries replace the five-minute shifted operator arguments. New015
 regenerates ranking/surface lineage; completed raw/enriched/cache stay reused.
-Next: execute corrected TRAIN/VAL dataset stage015 (claimed once, launch pending),
+Stage015 correctly rejected old ranker checkpoint bound to the earlier
+train-end declaration. Operator namespace error; no source change needed.
+Stage016 gives the new exclusive window its own ranker/checkpoint namespace.
+Next: execute corrected TRAIN/VAL dataset stage016 (claimed once, launch pending),
 then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,
