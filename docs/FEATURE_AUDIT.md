@@ -191,6 +191,24 @@ hel-TRAIN-normalisering; nye faktiske initial-/paritets-/smokebevis; målrettet
 Transformer-læring, senere generalisering og nettoøkonomi. Nåstatus og nyeste
 konkrete terminal leses fra den ene overleveringen og policyen.
 
+## M5-hovedmål og fysisk måltilgjengelighet
+
+Kildegjennomgangen fant at gammel fysisk emisjon fortsatt krevde både
+legacyM1-labels og alle37auxmål, selv når bare M5-path var hovedmål.
+Unionen inneholder inaktive96-M5-bars-hoder; fire aktiveM5forecasts var
+dessuten merket alltid observerte. Dette er en konkret koblingsfeil, ikke
+en måling av modellens læring eller edge.
+
+Eksplisitt `m5_primary_observed` binder fysisk emisjon til observerbar M5-
+path, genuine inputkrav og kausal warmup. Fire prognoseceller K1/5/12/24
+har individuelle observasjonsmasker; de seks1/5/20d-cellene beholder sine
+egne masker. Manglende celler lagres0 medfalsemaske. Gamle målforutsetninger
+gjelder fortsatt legacyemisjonen; den nye emisjonen kan ikke brukes som
+joint/legacy-supervisjon. Fysiske maskeceller, ikke en gammel all-target-
+PASS-kvittering, må bevise den aktive M5-kontrakten. Endret fysiskTRAIN-
+klokke krever ferskTRAINregistryfit og gjeldende metadata før admission.
+Nåstatus og kvalifiseringsbevis finnes i overleveringen/policyen.
+
 ## Kildevis makroavklaring
 
 De61D1/makrofeltene er44OANDA-prisfelter,9Treasury-kurvefelter,2VIX,

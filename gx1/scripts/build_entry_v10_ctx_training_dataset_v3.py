@@ -90,6 +90,12 @@ from gx1.contracts.xau_tape_provenance_v1 import (
     validate_xau_tape_provenance_v1,
 )
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    LEGACY_COMPLETE_EMISSION_SCOPE,
+    M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
+    LEGACY_CAUSAL_M1_OBSERVED_COLUMN,
+    LEGACY_AUX_COMPLETE_COLUMN,
+    MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_FORECAST_VALID_COLUMNS,
     MODEL_NATIVE_AUX_FORECAST_HORIZONS,
     MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
     MODEL_NATIVE_AUX_RISK_HORIZONS,
@@ -3083,6 +3089,7 @@ def _attach_causal_m1_labels_preserving_feature_timeline(
     *,
     feature_rows: pd.DataFrame,
     complete_causal_labels: pd.DataFrame,
+    allow_unavailable: bool = False,
 ) -> tuple[pd.DataFrame, np.ndarray]:
     """Attach valid M1 outcomes without turning unavailable labels into time gaps.
 
@@ -3092,7 +3099,8 @@ def _attach_causal_m1_labels_preserving_feature_timeline(
     row is unavailable for supervision, not absent from feature history.
     Removing it would make the later sequence builder stitch its neighbours
     together. Keep the left timeline intact and return the exact supervision
-    availability mask; emission applies that mask before anything is written.
+    availability mask. Legacy emission applies it before writing; the explicit
+    M5 population carries it as inactive-label observation evidence instead.
     """
 
     if "time" not in feature_rows.columns or "time" not in complete_causal_labels.columns:
@@ -3134,7 +3142,7 @@ def _attach_causal_m1_labels_preserving_feature_timeline(
     label_complete = attached.loc[:, _CAUSAL_M1_LABEL_COLUMNS].notna().all(axis=1).to_numpy(
         dtype=bool
     )
-    if not label_complete.any():
+    if not label_complete.any() and not allow_unavailable:
         raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_COMPLETE_ROWS_EMPTY")
     return attached, label_complete
 
@@ -3223,6 +3231,64 @@ def _dataset_summary_batch(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 
+def _model_native_emission_mask(
+    *, emitted_time_index: pd.DatetimeIndex, emit_start: pd.Timestamp,
+    emit_end: pd.Timestamp, seq_len: int, emission_scope: str,
+    causal_m1_observed: np.ndarray, aux_complete: np.ndarray,
+    m5_path_valid: np.ndarray,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    model_native_aux_target_contract_metadata(emission_scope=emission_scope)
+    n = len(emitted_time_index)
+    masks = (causal_m1_observed, aux_complete, m5_path_valid)
+    if any(np.asarray(mask).shape != (n,) or np.asarray(mask).dtype != np.dtype(bool)
+           for mask in masks):
+        raise RuntimeError("MODEL_NATIVE_EMISSION_AVAILABILITY_MASK_INVALID")
+    candidate = np.asarray((emitted_time_index >= emit_start)
+                           & (emitted_time_index <= emit_end), dtype=bool)
+    candidate[:seq_len - 1] = False
+    after_legacy_m1 = candidate & causal_m1_observed
+    legacy_complete = after_legacy_m1 & aux_complete
+    primary = candidate & m5_path_valid
+    emitted = legacy_complete if emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE else primary
+    proof = {
+        "emission_scope": emission_scope,
+        "candidate_rows_before_primary_availability": int(candidate.sum()),
+        "primary_unavailable_candidate_rows_excluded": int(np.count_nonzero(candidate & ~m5_path_valid)),
+        "primary_valid_rows_emitted": int(np.count_nonzero(emitted & m5_path_valid)),
+        "legacy_causal_m1_incomplete_candidate_rows_excluded": (
+            int(np.count_nonzero(candidate & ~causal_m1_observed))
+            if emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE else 0),
+        "legacy_candidate_rows_before_aux_completeness": int(after_legacy_m1.sum()),
+        "legacy_aux_incomplete_candidate_rows_excluded": (
+            int(np.count_nonzero(after_legacy_m1 & ~aux_complete))
+            if emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE else 0),
+        "legacy_causal_m1_missing_rows_retained": int(np.count_nonzero(emitted & ~causal_m1_observed)),
+        "legacy_aux_incomplete_rows_retained": int(np.count_nonzero(emitted & ~aux_complete)),
+    }
+    if not emitted.any():
+        raise RuntimeError("MODEL_NATIVE_EMIT_WINDOW_EMPTY_AFTER_HISTORY_AND_TARGET_COMPLETENESS: "
+                           f"scope={emission_scope} proof={proof}")
+    return emitted, proof
+
+
+def _model_native_aux_emission_storage(
+    targets: Mapping[str, np.ndarray], *, emission_scope: str,
+) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray]]:
+    model_native_aux_target_contract_metadata(emission_scope=emission_scope)
+    if emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE:
+        return dict(targets), {}
+    # Validation above proves missing cells are genuine censored future tails.
+    # Keep each available value exact; only unobserved cells receive storage0.
+    if any(np.isinf(values).any() for values in targets.values()):
+        raise RuntimeError("MODEL_NATIVE_AUX_TARGET_INF_FORBIDDEN")
+    storage = {name: np.where(np.isfinite(values), values, 0.0)
+               for name, values in targets.items()}
+    observed = {mask_name: np.isfinite(targets[name])
+                for name, mask_name in zip(MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+                                           MODEL_NATIVE_FORECAST_VALID_COLUMNS)}
+    return storage, observed
+
+
 def _load_model_native_source_window(parquet_path: Path, *, start: pd.Timestamp, end: pd.Timestamp) -> pd.DataFrame:
     """Keep the full-source price guard while reading wide channels only in scope."""
     from gx1.io.price_glitch_guard import DEFAULT_PRICE_COLS
@@ -3262,7 +3328,9 @@ def build_dataset_canonical(
     split_name: Optional[str] = None,
     output_path: Optional[Path] = None,  # V2 streaming-write target
     streaming_batch_size: int = _MODEL_NATIVE_STREAMING_BATCH_SIZE,
+    emission_scope: str = LEGACY_COMPLETE_EMISSION_SCOPE,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    model_native_aux_target_contract_metadata(emission_scope=emission_scope)
     architecture = current_entry_exit_architecture_observation()
     architecture["entry"]["sequence_bars"] = seq_len
     architecture["exit"]["sequence_bars"] = (
@@ -3714,7 +3782,7 @@ def build_dataset_canonical(
         & causal_m1_labels["exit_decision_at"].notna()
         & (causal_m1_labels["exit_decision_at"] <= end)
     ].copy()
-    if len(causal_m1_labels) == 0:
+    if len(causal_m1_labels) == 0 and emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE:
         raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_JOIN_EMPTY")
 
     # Direction, early-move, quality and bad-path targets are selected below
@@ -3729,6 +3797,7 @@ def build_dataset_canonical(
         _attach_causal_m1_labels_preserving_feature_timeline(
             feature_rows=merged,
             complete_causal_labels=causal_m1_labels,
+            allow_unavailable=emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
         )
     )
     del _causal_m1_labels_complete_after_join
@@ -4002,6 +4071,7 @@ def build_dataset_canonical(
     _group_a_checkpoint_payload = {
         "schema_version": _MODEL_NATIVE_GROUP_A_CHECKPOINT_SCHEMA_VERSION,
         "split_name": split_name,
+        "emission_scope": emission_scope,
         "source_parquet_sha256": parquet_sha,
         "canonical_v2_parquet_sha256": canonical_v2_sha256,
         "signal_manifest_sha256": _sha256_file(
@@ -4261,7 +4331,7 @@ def build_dataset_canonical(
     _causal_m1_label_complete_mask = (
         merged3.loc[:, _CAUSAL_M1_LABEL_COLUMNS].notna().all(axis=1).to_numpy(dtype=bool)
     )
-    if not _causal_m1_label_complete_mask.any():
+    if not _causal_m1_label_complete_mask.any() and emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE:
         raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_COMPLETE_ROWS_EMPTY_AFTER_FEATURE_JOIN")
     _causal_m1_label_unavailable_rows = int(
         np.count_nonzero(~_causal_m1_label_complete_mask)
@@ -4761,17 +4831,31 @@ def build_dataset_canonical(
         or not np.array_equal(y_position_size_mask, y_trade)
     ):
         raise RuntimeError("V3_POSITION_SIZE_INVALID: target is missing or non-finite")
-    if np.unique(y_position_size[y_position_size_mask > 0.5]).size < 2:
+    if (emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE
+            and np.unique(y_position_size[y_position_size_mask > 0.5]).size < 2):
         raise RuntimeError("V3_POSITION_SIZE_DEAD: target is constant")
     _split_gated_label_proof_log(
         "[V3_POSITION_SIZE] source=train_ecdf_selected_future_path "
         "tradable_n=%d p10=%.3f p50=%.3f p90=%.3f policy_sha256=%s",
         int(np.count_nonzero(y_position_size_mask)),
-        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 10)),
-        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 50)),
-        float(np.percentile(y_position_size[y_position_size_mask > 0.5], 90)),
+        (float(np.percentile(y_position_size[y_position_size_mask > 0.5], 10))
+         if np.any(y_position_size_mask > 0.5) else 0.0),
+        (float(np.percentile(y_position_size[y_position_size_mask > 0.5], 50))
+         if np.any(y_position_size_mask > 0.5) else 0.0),
+        (float(np.percentile(y_position_size[y_position_size_mask > 0.5], 90))
+         if np.any(y_position_size_mask > 0.5) else 0.0),
         position_size_target_policy["policy_sha256"],
     )
+    if emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+        # These legacy heads are inactive in the M5 phase. Missing legacy M1
+        # outcomes are finite storage, never observed event/size supervision.
+        for _legacy_mask in (y_side_mask, y_position_size_mask,
+                             y_line_support_touch_mask, y_line_resistance_touch_mask,
+                             y_selector_long_mask, y_selector_short_mask):
+            _legacy_mask[~_causal_m1_label_complete_mask] = 0.0
+        y_position_size[~_causal_m1_label_complete_mask] = 0.0
+        y_line_support_touch_held[~_causal_m1_label_complete_mask] = 0.0
+        y_line_resistance_touch_held[~_causal_m1_label_complete_mask] = 0.0
     y_mtf_conflict_m5_vs_higher_side = _mtf_conflict_m5_vs_higher.astype(np.float32)
 
     _split_gated_label_proof_log(
@@ -4923,42 +5007,38 @@ def build_dataset_canonical(
             f"clean_rows_before_emit={pre_emit_history_rows} required={seq_len - 1} "
             f"history_start={start} emit_start={emit_start}"
         )
-    emit_mask = np.asarray(
-        (emitted_time_index >= emit_start) & (emitted_time_index <= emit_end),
-        dtype=bool,
+    emit_mask, _emission_proof = _model_native_emission_mask(
+        emitted_time_index=emitted_time_index, emit_start=emit_start, emit_end=emit_end,
+        seq_len=seq_len, emission_scope=emission_scope,
+        causal_m1_observed=_causal_m1_label_complete_mask,
+        aux_complete=_head_target_complete_mask, m5_path_valid=_m5_path_valid,
     )
-    emit_mask[: seq_len - 1] = False
-    emitted_candidate_count_before_causal_m1_completeness = int(emit_mask.sum())
-    causal_m1_label_incomplete_candidate_rows_excluded = int(
-        np.count_nonzero(emit_mask & ~_causal_m1_label_complete_mask)
-    )
-    emit_mask &= _causal_m1_label_complete_mask
-    emitted_candidate_count_before_aux_completeness = int(emit_mask.sum())
-    aux_target_incomplete_candidate_rows_excluded = int(
-        np.count_nonzero(emit_mask & ~_head_target_complete_mask)
-    )
-    emit_mask &= _head_target_complete_mask
+    emitted_candidate_count_before_causal_m1_completeness = _emission_proof[
+        "candidate_rows_before_primary_availability"]
+    causal_m1_label_incomplete_candidate_rows_excluded = 0
+    emitted_candidate_count_before_aux_completeness = _emission_proof[
+        "legacy_candidate_rows_before_aux_completeness"]
+    aux_target_incomplete_candidate_rows_excluded = _emission_proof[
+        "legacy_aux_incomplete_candidate_rows_excluded"]
+    if emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE:
+        causal_m1_label_incomplete_candidate_rows_excluded = _emission_proof[
+            "legacy_causal_m1_incomplete_candidate_rows_excluded"]
     emitted_candidate_count = int(emit_mask.sum())
-    if emitted_candidate_count <= 0:
-        raise RuntimeError(
-            "MODEL_NATIVE_EMIT_WINDOW_EMPTY_AFTER_HISTORY_AND_TARGET_COMPLETENESS: "
-            f"emit={emit_start}..{emit_end} history={start}..{end} "
-            f"before_causal_m1_completeness={emitted_candidate_count_before_causal_m1_completeness} "
-            f"before_aux_completeness={emitted_candidate_count_before_aux_completeness}"
-        )
-    if not _causal_m1_label_complete_mask[emit_mask].all():
-        raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_INCOMPLETE_EMISSION_FORBIDDEN")
-    for target_name in MODEL_NATIVE_AUX_TARGET_COLUMNS:
-        if not np.isfinite(_head_target_arrays[target_name][emit_mask]).all():
-            raise RuntimeError(
-                f"MODEL_NATIVE_AUX_TARGET_NONFINITE_EMISSION_FORBIDDEN: {target_name}"
-            )
-    log.info(
-        "[MODEL_NATIVE_AUX_TARGET_EMIT_PROOF] candidates_before=%d excluded_incomplete=%d emitted=%d",
-        emitted_candidate_count_before_aux_completeness,
-        aux_target_incomplete_candidate_rows_excluded,
-        emitted_candidate_count,
+    _head_target_storage_arrays, _forecast_observed_arrays = (
+        _model_native_aux_emission_storage(_head_target_arrays, emission_scope=emission_scope)
     )
+    if emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE:
+        if not _causal_m1_label_complete_mask[emit_mask].all():
+            raise RuntimeError("ENTRY_CAUSAL_M1_LABEL_INCOMPLETE_EMISSION_FORBIDDEN")
+        for target_name in MODEL_NATIVE_AUX_TARGET_COLUMNS:
+            if not np.isfinite(_head_target_arrays[target_name][emit_mask]).all():
+                raise RuntimeError(
+                    f"MODEL_NATIVE_AUX_TARGET_NONFINITE_EMISSION_FORBIDDEN: {target_name}"
+                )
+    elif any(not np.isfinite(values[emit_mask]).all() for values in _m5_path_arrays.values()):
+        raise RuntimeError("ENTRY_M5_PRIMARY_VALID_TARGET_NONFINITE")
+    log.info("[MODEL_NATIVE_EMISSION] scope=%s proof=%s emitted=%d",
+             emission_scope, _emission_proof, emitted_candidate_count)
 
     streaming_active = output_path is not None
     if streaming_active:
@@ -5084,12 +5164,16 @@ def build_dataset_canonical(
                 "y_survival_bidir": y_survival_bidir[i],
                 "label_horizon_bars": y_label_horizon[i],
                 "path_quality_horizon_bars": y_path_horizon[i],
-                # aux-head regression targets (dip/forecast/timing/tail/vol) — emit
-                # so trainer's row.get(col) finds real values (not silent 0.0).
+                # Legacy rows require the complete union. M5 rows carry genuine
+                # available cells plus explicit forecast/legacy observation roles.
                 **{
-                    _c: _head_target_arrays[_c][i]
+                    _c: _head_target_storage_arrays[_c][i]
                     for _c in MODEL_NATIVE_AUX_TARGET_COLUMNS
                 },
+                **{name: bool(values[i]) for name, values in _forecast_observed_arrays.items()},
+                **({LEGACY_CAUSAL_M1_OBSERVED_COLUMN: bool(_causal_m1_label_complete_mask[i]),
+                    LEGACY_AUX_COMPLETE_COLUMN: bool(_head_target_complete_mask[i])}
+                   if emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE else {}),
             }
         )
         if len(pending) >= streaming_batch_size:
@@ -5142,6 +5226,7 @@ def build_dataset_canonical(
         "observed_target_selection": "exact_explicit_recipe_and_bundle_training_phase_no_implicit_default",
         "m5_path_supervision": {
             "contract": entry_observed_m5_path_contract(),
+            "target_m1_source_sha256": direction_target_policy["m1_source_sha256"],
             "label_columns": list(_m5path.M5_PATH_TARGET_COLUMNS),
             "valid_column": _m5path.M5_PATH_VALID_COLUMN,
             "emitted_valid_rows": int(np.count_nonzero(_m5_path_valid[emit_mask])),
@@ -5159,18 +5244,26 @@ def build_dataset_canonical(
         "multi_tf_cache_binding": _multi_tf_cache_binding,
         "clean_history_rows_before_emission": int(pre_emit_history_rows),
         "seq_len": int(seq_len),
+        "emission_scope": emission_scope,
+        "emission_availability": _emission_proof,
         "aux_head_target_contract": {
-            **model_native_aux_target_contract_metadata(),
-            "incomplete_tail_rows_total": int(
-                np.count_nonzero(~_head_target_complete_mask)
-            ),
-            "candidate_rows_before_completeness": int(
-                emitted_candidate_count_before_aux_completeness
-            ),
-            "incomplete_candidate_rows_excluded": int(
-                aux_target_incomplete_candidate_rows_excluded
-            ),
-            "complete_rows_emitted": int(emitted_candidate_count),
+            **model_native_aux_target_contract_metadata(emission_scope=emission_scope),
+            **({
+                "incomplete_tail_rows_total": int(np.count_nonzero(~_head_target_complete_mask)),
+                "candidate_rows_before_completeness": int(emitted_candidate_count_before_aux_completeness),
+                "incomplete_candidate_rows_excluded": int(aux_target_incomplete_candidate_rows_excluded),
+                "complete_rows_emitted": int(emitted_candidate_count),
+            } if emission_scope == LEGACY_COMPLETE_EMISSION_SCOPE else {
+                "candidate_rows_before_primary_availability": _emission_proof["candidate_rows_before_primary_availability"],
+                "primary_unavailable_candidate_rows_excluded": _emission_proof["primary_unavailable_candidate_rows_excluded"],
+                "primary_valid_rows_emitted": int(emitted_candidate_count),
+                "legacy_causal_m1_observed_rows_emitted": int(np.count_nonzero(_causal_m1_label_complete_mask[emit_mask])),
+                "legacy_aux_complete_rows_emitted": int(np.count_nonzero(_head_target_complete_mask[emit_mask])),
+                "forecast_observed_rows_by_column": {
+                    name: int(np.count_nonzero(_forecast_observed_arrays[mask_name][emit_mask]))
+                    for name, mask_name in zip(MODEL_NATIVE_FORECAST_TARGET_COLUMNS, MODEL_NATIVE_FORECAST_VALID_COLUMNS)
+                },
+            }),
         },
         "causal_m1_label_coverage": {
             "feature_timeline_rows": int(target_rows),
@@ -5185,7 +5278,10 @@ def build_dataset_canonical(
             "complete_candidate_rows_before_aux_completeness": int(
                 emitted_candidate_count_before_aux_completeness
             ),
-            "complete_rows_emitted": int(emitted_candidate_count),
+            "complete_rows_emitted": int(np.count_nonzero(_causal_m1_label_complete_mask[emit_mask])),
+            **({"unavailable_rows_emitted": int(np.count_nonzero(emit_mask & ~_causal_m1_label_complete_mask)),
+                "is_emission_gate": False}
+               if emission_scope == M5_PRIMARY_OBSERVED_EMISSION_SCOPE else {}),
         },
         **entry_fitted_q_dataset_contract(),
         **diagnostic_contract,
@@ -5372,6 +5468,12 @@ def main() -> None:
         type=str,
         required=False,
         help="Exact immutable canonical pair generation root.",
+    )
+    parser.add_argument(
+        "--emission-scope",
+        choices=(LEGACY_COMPLETE_EMISSION_SCOPE, M5_PRIMARY_OBSERVED_EMISSION_SCOPE),
+        default=LEGACY_COMPLETE_EMISSION_SCOPE,
+        help="Explicit row population: legacy complete auxiliary union or observed primary M5 path.",
     )
     parser.add_argument(
         "--pretest-only",
@@ -5675,7 +5777,8 @@ def main() -> None:
         },
         "ctx_contract": ctx_contract,
         "model_native_state_contract": state_contract,
-        "aux_head_target_contract": model_native_aux_target_contract_metadata(),
+        "emission_scope": args.emission_scope,
+        "aux_head_target_contract": model_native_aux_target_contract_metadata(emission_scope=args.emission_scope),
         **entry_fitted_q_dataset_contract(),
         **representation_auxiliary_outcome_contract(),
         "group_a_recompute_workers": _MODEL_NATIVE_GROUP_A_RECOMPUTE_WORKERS,
@@ -6235,7 +6338,8 @@ def main() -> None:
                 "time_split": bool(args.time_split),
                 **pretest_manifest_extra,
                 "seq_len": int(args.seq_len),
-                "aux_head_target_contract": model_native_aux_target_contract_metadata(),
+                "emission_scope": args.emission_scope,
+                "aux_head_target_contract": model_native_aux_target_contract_metadata(emission_scope=args.emission_scope),
                 **entry_fitted_q_dataset_contract(),
                 **diagnostic_outcome_label_contract(entry_direction_target_policy),
                 **causal_m1_position_size_target_policy_contract(
@@ -6391,6 +6495,7 @@ def main() -> None:
             m5_feature_surface_arrays=m5_feature_surface_arrays,
             m5_feature_surface_binding=m5_feature_surface_binding,
             seq_len=int(args.seq_len),
+            emission_scope=args.emission_scope,
             entry_direction_target_policy=entry_direction_target_policy,
             entry_position_size_target_policy=(
                 entry_position_size_target_policy

@@ -166,9 +166,20 @@ def _sequence_fixture(tmp_path: Path) -> dict[str, Any]:
 
 
 def test_child_sequence_audit_is_exhaustive_and_rejects_changed_value(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    from gx1.scripts import materialize_unified_exit_pilot_normalization_inputs_v1 as owner
     fixture = _sequence_fixture(tmp_path)
+    loader = owner._load_surface_signal
+    stores = []
+
+    def disk_backed(path, **kwargs):
+        stores.append(Path(kwargs["storage_dir"]))
+        times, signal = loader(path, **kwargs)
+        assert isinstance(signal, np.memmap)
+        return times, signal
+
+    monkeypatch.setattr(owner, "_load_surface_signal", disk_backed)
     audit = build_child_sequence_reconstruction_audit(
         child_admission=fixture["child"],
         child_admission_file_sha256="3" * 64,
@@ -185,6 +196,7 @@ def test_child_sequence_audit_is_exhaustive_and_rejects_changed_value(
     ]
     assert audit["val_rows_scanned"] == 0
     assert audit["test_rows_scanned"] == 0
+    assert stores and all(not path.exists() for path in stores)
 
     table = pq.read_table(fixture["child_path"])
     snap = table.column("snap").combine_chunks().values.to_numpy().copy()
@@ -205,6 +217,30 @@ def test_child_sequence_audit_is_exhaustive_and_rejects_changed_value(
             parent_sequence_audit={"parent": "verified"},
             parent_sequence_audit_path=fixture["parent_audit_path"],
         )
+
+    assert stores and all(not path.exists() for path in stores)
+
+
+def test_child_sequence_disk_backing_preserves_exact_witness_and_source_hashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.scripts import materialize_unified_exit_pilot_normalization_inputs_v1 as owner
+    fixture = _sequence_fixture(tmp_path)
+    paths = [fixture[key] for key in ("surface", "surface_manifest", "child_path", "child_manifest")]
+    hashes = {path: _sha256_file(path) for path in paths}
+    arguments = dict(child_admission=fixture["child"], child_admission_file_sha256="3" * 64,
+        parent_manifest=fixture["parent"], parent_sequence_audit={"parent": "verified"},
+        parent_sequence_audit_path=fixture["parent_audit_path"])
+    disk = build_child_sequence_reconstruction_audit(**arguments)
+    loader = owner._load_surface_signal
+
+    def in_memory(path, **kwargs):
+        kwargs["storage_dir"] = None
+        return loader(path, **kwargs)
+
+    monkeypatch.setattr(owner, "_load_surface_signal", in_memory)
+    assert build_child_sequence_reconstruction_audit(**arguments) == disk
+    assert {path: _sha256_file(path) for path in paths} == hashes
 
 
 def _population_fixture(

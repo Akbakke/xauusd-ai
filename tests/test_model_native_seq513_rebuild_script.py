@@ -39,7 +39,9 @@ def test_pretest_rebuild_requires_new_output_and_explicit_native_bindings() -> N
     assert 'bash "$ENG/scripts/gx1_handover.sh" --source-only' in source
     assert 'BUILD_SPLITS=(train val)' in source
     assert 'if [[ $PRETEST_ONLY -eq 0 ]]; then BUILD_SPLITS+=(test); fi' in source
-    assert 'BUILD_END=$VAL_END' in source
+    assert 'BUILD_END=$VAL_END' not in source
+    assert '["test_boundary_utc"]' in source
+    assert 'boundaries[0] != boundaries[1]' in source
     assert 'AUTHORITY_ARGS=(--pretest-only' in source
     assert '"${AUTHORITY_ARGS[@]}"' in source
     assert 'FULL_INPUT_LIVENESS_JSON="$OUTPUT_DIR/' in source
@@ -309,3 +311,25 @@ def test_seq513_rebuild_caps_full_source_lineage_gate() -> None:
         '"${CAP[@]}" "$PY" - "$SIGNAL_MANIFEST" "$FEATURE_RANKING_JSON" '
         '"$RUN_ID" "$SOURCE_PARQUET"'
     ) in source
+
+
+@pytest.mark.parametrize("args", [
+    ["--physical-build-only"],
+    ["--pretest-only", "--physical-build-only"],
+    ["--emission-scope", "m5_primary_observed", "--physical-build-only"],
+])
+def test_physical_build_only_rejects_mixed_scope_before_source_access(args):
+    result = subprocess.run(["bash", str(SCRIPT), *args], capture_output=True, text=True)
+    assert result.returncode == 2
+    assert "--physical-build-only requires --pretest-only" in result.stderr
+    assert "required argument missing" not in result.stderr
+
+
+def test_rebuild_rejects_unknown_emission_scope_before_source_access():
+    result = subprocess.run(
+        ["bash", str(SCRIPT), "--pretest-only", "--emission-scope", "unknown"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 2
+    assert "invalid emission scope" in result.stderr
+    assert "required argument missing" not in result.stderr

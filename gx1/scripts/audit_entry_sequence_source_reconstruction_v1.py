@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,8 @@ from typing import Any
 import numpy as np
 import pyarrow.parquet as pq
 
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
+from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface
 from gx1.contracts.immutable_event_authority_v1 import (
     _fsync_directory,
     _publish_file_noreplace,
@@ -163,46 +166,23 @@ def _load_surface_clock(surface_path: Path, *, expected_rows: int) -> np.ndarray
     return time_ns
 
 
-def _load_surface_signal(surface_path: Path, *, expected_rows: int) -> tuple[np.ndarray, np.ndarray]:
+def _load_surface_signal(
+    surface_path: Path, *, expected_rows: int, storage_dir: Path
+) -> tuple[np.ndarray, np.ndarray]:
     time_ns = _load_surface_clock(surface_path, expected_rows=expected_rows)
-    feature_surface = pq.ParquetFile(surface_path)
-    rows = len(time_ns)
-    signal = np.empty((rows, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32)
-    offset = 0
-    for batch in feature_surface.iter_batches(
-        batch_size=_ARROW_BATCH_ROWS,
-        columns=["signal"],
-        use_threads=False,
-    ):
-        count = int(batch.num_rows)
-        values = batch.column("signal")
-        if not hasattr(values, "values"):
-            raise RuntimeError(
-                "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_SIGNAL_DECODE_INVALID]"
-            )
-        flat = values.values.to_numpy(zero_copy_only=False)
-        if flat.shape != (count * MODEL_NATIVE_SIGNAL_DIM,):
-            raise RuntimeError(
-                "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_SIGNAL_WIDTH_INVALID]"
-            )
-        decoded = np.asarray(flat, dtype=np.float32).reshape(
-            count, MODEL_NATIVE_SIGNAL_DIM
-        )
-        if not np.isfinite(decoded).all():
-            raise RuntimeError(
-                "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_SIGNAL_NONFINITE]"
-            )
-        signal[offset : offset + count] = decoded
-        offset += count
-    if offset != rows:
+    times, arrays = load_m1_feature_surface(
+        surface_path, context="ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION",
+        storage_dir=storage_dir, expected_bar_seconds=ENTRY_DECISION_BAR_SECONDS,
+    )
+    if not np.array_equal(times.asi8, time_ns):
         raise RuntimeError(
-            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_ROW_COUNT_MISMATCH]"
+            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_TIME_INVALID]"
         )
-    return time_ns, signal
+    return time_ns, arrays["signal"]
 
 
-def audit_sequence_source_reconstruction(
-    *, parquet_path: Path, manifest_path: Path
+def _audit_sequence_source_reconstruction(
+    *, parquet_path: Path, manifest_path: Path, storage_dir: Path
 ) -> dict[str, Any]:
     """Exhaustively bind stored windows to the declared M5 feature surface."""
 
@@ -211,7 +191,7 @@ def audit_sequence_source_reconstruction(
     manifest = _read_json(manifest_path, label="MANIFEST")
     binding, surface_path, surface_manifest_path = _feature_surface_from_manifest(manifest)
     source_time_ns, source_signal = _load_surface_signal(
-        surface_path, expected_rows=int(binding["rows"])
+        surface_path, expected_rows=int(binding["rows"]), storage_dir=storage_dir
     )
 
     split = pq.ParquetFile(parquet_path)
@@ -300,6 +280,17 @@ def audit_sequence_source_reconstruction(
         "sequence_source_chain_sha256": digest.hexdigest(),
         "authority": dict(AUTHORITY),
     }
+
+
+def audit_sequence_source_reconstruction(
+    *, parquet_path: Path, manifest_path: Path
+) -> dict[str, Any]:
+    """Retain the complete source mapping until every stored value is checked."""
+    with tempfile.TemporaryDirectory(prefix="gx1-sequence-source-audit-") as storage:
+        return _audit_sequence_source_reconstruction(
+            parquet_path=parquet_path, manifest_path=manifest_path,
+            storage_dir=Path(storage) / "m5",
+        )
 
 
 def _write_new_json(path: Path, payload: dict[str, Any]) -> None:

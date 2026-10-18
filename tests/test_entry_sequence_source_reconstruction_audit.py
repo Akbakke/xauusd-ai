@@ -15,7 +15,9 @@ from gx1.contracts.entry_sequence_source_reconstruction_v1 import (
     REQUIRED_CHECKS,
     require_sequence_source_reconstruction_audit,
 )
-from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SIGNAL_DIM
+from gx1.contracts.entry_model_native_signal_v1 import (
+    MODEL_NATIVE_CTX_CAT_DIM, MODEL_NATIVE_CTX_CONT_DIM, MODEL_NATIVE_SIGNAL_DIM,
+)
 from gx1.scripts import audit_entry_sequence_source_reconstruction_v1 as sequence_audit
 from gx1.scripts.audit_entry_sequence_source_reconstruction_v1 import (
     audit_sequence_source_reconstruction,
@@ -40,8 +42,8 @@ def _write_fixture(tmp_path: Path, *, break_sequence: bool = False) -> tuple[Pat
             {
                 "time": pa.array(source_times),
                 "signal": pa.array(source.tolist()),
-                "ctx_cont": pa.array(np.zeros((len(source), 71), dtype=np.float32).tolist()),
-                "ctx_cat": pa.array(np.zeros((len(source), 1), dtype=np.int64).tolist()),
+                "ctx_cont": pa.array(np.zeros((len(source), MODEL_NATIVE_CTX_CONT_DIM), dtype=np.float32).tolist()),
+                "ctx_cat": pa.array(np.zeros((len(source), MODEL_NATIVE_CTX_CAT_DIM), dtype=np.int64).tolist()),
             }
         ),
         surface,
@@ -55,8 +57,8 @@ def _write_fixture(tmp_path: Path, *, break_sequence: bool = False) -> tuple[Pat
                 "output_parquet_sha256": _sha256(surface),
                 "rows": len(source),
                 "signal_dim": width,
-                "ctx_cont_dim": 71,
-                "ctx_cat_dim": 1,
+                "ctx_cont_dim": MODEL_NATIVE_CTX_CONT_DIM,
+                "ctx_cat_dim": MODEL_NATIVE_CTX_CAT_DIM,
             }
         ),
         encoding="utf-8",
@@ -166,3 +168,55 @@ def test_sequence_audit_publication_never_replaces_concurrent_result(
         sequence_audit._write_new_json(target, {"decision": "PASS"})
         assert json.loads(target.read_text()) == {"decision": "PASS"}
     assert list(tmp_path.iterdir()) == [target]
+
+
+def test_disk_backed_source_audit_preserves_complete_proof_and_sources(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    split, manifest = _write_fixture(tmp_path)
+    binding = json.loads(manifest.read_text())["extra"]["signal_bridge"]["seq_structure_extension_v1"]["feature_surface"]
+    paths = [split, manifest, Path(binding["path"]), Path(binding["manifest_path"])]
+    source_hashes = {path: _sha256(path) for path in paths}
+    loader = sequence_audit.load_m1_feature_surface
+    stores = []
+
+    def disk_backed(path, **kwargs):
+        stores.append(Path(kwargs["storage_dir"]))
+        times, arrays = loader(path, **kwargs)
+        assert all(isinstance(value, np.memmap) for value in arrays.values())
+        return times, arrays
+
+    monkeypatch.setattr(sequence_audit, "load_m1_feature_surface", disk_backed)
+    monkeypatch.setattr(sequence_audit, "_ARROW_BATCH_ROWS", 2)
+    disk = audit_sequence_source_reconstruction(parquet_path=split, manifest_path=manifest)
+    assert disk["rows"] == pq.ParquetFile(split).metadata.num_rows == 4
+    assert disk["feature_surface_rows"] == binding["rows"] == 104
+    assert stores and all(not path.exists() for path in stores)
+
+    def in_memory(path, **kwargs):
+        kwargs["storage_dir"] = None
+        return loader(path, **kwargs)
+
+    monkeypatch.setattr(sequence_audit, "load_m1_feature_surface", in_memory)
+    reference = audit_sequence_source_reconstruction(parquet_path=split, manifest_path=manifest)
+    assert {key: value for key, value in disk.items() if key != "created_utc"} == {
+        key: value for key, value in reference.items() if key != "created_utc"
+    }
+    assert {path: _sha256(path) for path in paths} == source_hashes
+
+
+def test_disk_backed_source_audit_cleans_up_after_mutated_window(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    split, manifest = _write_fixture(tmp_path, break_sequence=True)
+    loader = sequence_audit.load_m1_feature_surface
+    stores = []
+
+    def observed(path, **kwargs):
+        stores.append(Path(kwargs["storage_dir"]))
+        return loader(path, **kwargs)
+
+    monkeypatch.setattr(sequence_audit, "load_m1_feature_surface", observed)
+    with pytest.raises(RuntimeError, match="SEQUENCE_MISMATCH"):
+        audit_sequence_source_reconstruction(parquet_path=split, manifest_path=manifest)
+    assert stores and all(not path.exists() for path in stores)

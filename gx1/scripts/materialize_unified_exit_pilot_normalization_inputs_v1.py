@@ -332,13 +332,14 @@ def _parent_sources(
     return parent, parent_audit, dict(binding)
 
 
-def build_child_sequence_reconstruction_audit(
+def _build_child_sequence_reconstruction_audit(
     *,
     child_admission: Mapping[str, Any],
     child_admission_file_sha256: str,
     parent_manifest: Mapping[str, Any],
     parent_sequence_audit: Mapping[str, Any],
     parent_sequence_audit_path: Path,
+    storage_dir: Path,
 ) -> dict[str, Any]:
     child = child_admission["splits"]["train"]
     child_path = Path(child["parquet_path"])
@@ -377,7 +378,7 @@ def build_child_sequence_reconstruction_audit(
         )
     else:
         source_times, source_signal = _load_surface_signal(
-            surface_path, expected_rows=int(surface_binding["rows"])
+            surface_path, expected_rows=int(surface_binding["rows"]), storage_dir=storage_dir
         )
 
     parquet = pq.ParquetFile(child_path)
@@ -494,6 +495,24 @@ def build_child_sequence_reconstruction_audit(
         audit["sequence_value_stream_sha256"] = stream.hexdigest()
     audit["contract_sha256"] = _canonical_sha256(audit)
     return audit
+
+
+def build_child_sequence_reconstruction_audit(
+    *,
+    child_admission: Mapping[str, Any],
+    child_admission_file_sha256: str,
+    parent_manifest: Mapping[str, Any],
+    parent_sequence_audit: Mapping[str, Any],
+    parent_sequence_audit_path: Path,
+) -> dict[str, Any]:
+    with tempfile.TemporaryDirectory(prefix="gx1-child-sequence-source-") as storage:
+        return _build_child_sequence_reconstruction_audit(
+            child_admission=child_admission,
+            child_admission_file_sha256=child_admission_file_sha256,
+            parent_manifest=parent_manifest, parent_sequence_audit=parent_sequence_audit,
+            parent_sequence_audit_path=parent_sequence_audit_path,
+            storage_dir=Path(storage) / "m5",
+        )
 
 
 def _merge_intervals(intervals: Sequence[tuple[int, int]]) -> list[tuple[int, int]]:

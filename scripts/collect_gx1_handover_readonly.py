@@ -469,7 +469,8 @@ def handover_view(status: dict[str, object]) -> dict[str, object]:
                     "physical_dataset_normalization_complete", "training_started",
                     "mbp1_completion_stage", "observed_smc_registry_stage",
                     "trusted_record_restoration_stage", "final_train_registry_stage",
-                    "new_generation_m5_feature_stage", "native_binding_gaps",
+                    "new_generation_m5_feature_stage", "new_generation_m1_feature_stage",
+                    "native_binding_gaps",
                 ) if key in native
             }
         goal = work.get("restart_and_smoke_goal")

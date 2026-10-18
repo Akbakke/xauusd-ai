@@ -372,48 +372,79 @@ def require_physical_chronological_preprocessing(
         and set(sources) == {"train", "val"},
         "PHYSICAL_SOURCES_INVALID",
     )
-    require(
-        labels.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_v1"
-        and labels.get("decision") == "PASS_FROZEN_TRAIN_POLICIES_AND_COMPLETE_PRETEST_TARGET_CLOCK_SUPPORT"
-        and labels.get("identical_frozen_policies_across_physical_splits") is True
-        and labels.get("producer_code_unchanged_for_five_target_owners") is True
-        and labels.get("test_accessed") is False
-        and labels.get("forbidden_access_attempts") == []
-        and normalization.get("decision") == "PASS_COMPOSITE_AND_FIRST_STATE_BINDINGS_NOT_NATIVE_ADMISSION"
-        and normalization.get("test_accessed") is False
-        and normalization.get("forbidden_access_attempts") == []
-        and normalization.get("normalization_fit") is False
-        and all(event.get(key) == 0 for event in (labels, normalization)
-                for key in ("model_forwards", "optimizer_steps")),
-        "COMPLETED_RESULTS_REQUIRED",
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        M5_PHYSICAL_TARGET_BINDING_SCHEMA, require_m5_primary_physical_target_receipt,
     )
-    plan = read(labels["plan"])
-    inputs = plan["input_bindings"]
-    require(plan.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_plan_v1"
-            and inputs["design"] == artifacts["design"], "DESIGN_MISMATCH")
-    # Compare frozen paths before following any source pointer. Market parquet
-    # files and source manifests are deliberately not resolved or opened here.
-    require(all(sources[split][kind] == inputs[split + "_" + kind]
-                for split in ("train", "val") for kind in ("parquet", "manifest"))
-            and all(sources["train"][kind]["path"] != sources["val"][kind]["path"]
+    m5_emission = labels.get("schema_version") == M5_PHYSICAL_TARGET_BINDING_SCHEMA
+    if m5_emission:
+        require_m5_primary_physical_target_receipt(labels, design_binding=artifacts["design"], context="NATIVE_PHYSICAL_PREPROCESSING")
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+        require(design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+                and normalization.get("decision") == "PASS_COMPOSITE_AND_FIRST_STATE_BINDINGS_NOT_NATIVE_ADMISSION"
+                and normalization.get("test_accessed") is False
+                and normalization.get("forbidden_access_attempts") == []
+                and normalization.get("normalization_fit") is False
+                and all(normalization.get(key) == 0 for key in ("model_forwards", "optimizer_steps")),
+                "M5_COMPLETED_RESULTS_REQUIRED")
+        require(all(sources["train"][kind]["path"] != sources["val"][kind]["path"]
                     for kind in ("parquet", "manifest")), "SOURCE_MISMATCH")
+    else:
+        require(
+            labels.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_v1"
+            and labels.get("decision") == "PASS_FROZEN_TRAIN_POLICIES_AND_COMPLETE_PRETEST_TARGET_CLOCK_SUPPORT"
+            and labels.get("identical_frozen_policies_across_physical_splits") is True
+            and labels.get("producer_code_unchanged_for_five_target_owners") is True
+            and labels.get("test_accessed") is False
+            and labels.get("forbidden_access_attempts") == []
+            and normalization.get("decision") == "PASS_COMPOSITE_AND_FIRST_STATE_BINDINGS_NOT_NATIVE_ADMISSION"
+            and normalization.get("test_accessed") is False
+            and normalization.get("forbidden_access_attempts") == []
+            and normalization.get("normalization_fit") is False
+            and all(event.get(key) == 0 for event in (labels, normalization)
+                    for key in ("model_forwards", "optimizer_steps")),
+            "COMPLETED_RESULTS_REQUIRED",
+        )
+        plan = read(labels["plan"])
+        inputs = plan["input_bindings"]
+        require(plan.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_plan_v1"
+                and inputs["design"] == artifacts["design"], "DESIGN_MISMATCH")
+        # Compare frozen paths before following any source pointer. Market parquet
+        # files and source manifests are deliberately not resolved or opened here.
+        require(all(sources[split][kind] == inputs[split + "_" + kind]
+                    for split in ("train", "val") for kind in ("parquet", "manifest"))
+                and all(sources["train"][kind]["path"] != sources["val"][kind]["path"]
+                        for kind in ("parquet", "manifest")), "SOURCE_MISMATCH")
     start = utc(calendar["train_entry_start_inclusive"])
     cutoff = utc(calendar["train_control_cutoff"])
     end = utc(calendar["development_control_entry_end_exclusive"])
     require(start < cutoff < end, "WINDOW_INVALID")
     sequences = {}
+    m5_target_proofs = {}
     for split, low, high in (("train", start, cutoff), ("val", cutoff, end)):
-        source, proof = sources[split], labels["splits"][split]
+        source = sources[split]
         geometry = normalization["splits"][split]
+        if not m5_emission:
+            proof = labels["splits"][split]
+            require(proof["rows"] == proof["exact_m1_fill_and_contiguous_outcome_rows"]
+                    == source["physical_rows"]
+                    and proof["entry_clock_sha256"] == source["clock_sha256"]
+                    and utc(proof["supervision_boundary_exclusive_utc"]) == high,
+                    "POPULATION_OR_CLOCK_MISMATCH")
         require(type(source["physical_rows"]) is int and source["physical_rows"] > 0
                 and utc(source["declared_window"]["start"]) == low
                 and low < utc(source["declared_window"]["end"]) < high
-                and proof["rows"] == proof["exact_m1_fill_and_contiguous_outcome_rows"]
-                == geometry["entry_rows"] == source["physical_rows"]
-                and proof["entry_clock_sha256"] == source["clock_sha256"]
-                and utc(proof["supervision_boundary_exclusive_utc"]) == high
+                and geometry["entry_rows"] == source["physical_rows"]
                 and geometry["first_state_geometry_exact"] is True
                 and geometry["successor_geometry_exact"] is True, "POPULATION_OR_CLOCK_MISMATCH")
+        if m5_emission:
+            import pyarrow.parquet as pq
+            from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
+                _physical_auxiliary_target_binding, _MODEL_NATIVE_ACTIVE_TARGET_COLS,
+            )
+            target_frame = pq.read_table(source["parquet"]["path"], columns=["time", *_MODEL_NATIVE_ACTIVE_TARGET_COLS]).to_pandas()
+            _, m5_target_proofs[split] = _physical_auxiliary_target_binding(target_frame, parquet_path=Path(source["parquet"]["path"]),
+                result_binding=artifacts["labels_result"], expected_design_sha256=artifacts["design"]["sha256"],
+                role="TRAIN" if split == "train" else "CONTROL256")
         sequence = require_split_sequence_binding(
             read(normalization["artifacts"]["SPLIT_SEQUENCE_BINDING_" + split.upper() + ".json"]),
             expected_split=split, expected_entry_rows=source["physical_rows"],
@@ -470,13 +501,19 @@ def require_physical_chronological_preprocessing(
             and lifetime["train_fit_rows"] == authority["fit_row_count"]
             and authority["entry_pair_population"]
             == sources["train"]["physical_rows"], "SUMMARY_TRANSFORM_MISMATCH")
-    require(all(labels["splits"]["train"][key] == labels["splits"]["val"][key]
-                for key in ("direction_policy_sha256", "position_size_policy_sha256")),
-            "FROZEN_POLICY_MISMATCH")
-    control_proof = labels["splits"]["val"]["control256"]
-    require(control_proof["physical_coordinate_source"] == "val"
-            and control_proof["rows"] == 256
-            and control_proof["all_support_checks_passed"] is True, "CONTROL_SOURCE_MISMATCH")
+    if m5_emission:
+        require(m5_target_proofs["train"]["policies"] == m5_target_proofs["val"]["policies"],
+                "FROZEN_POLICY_MISMATCH")
+        require(m5_target_proofs["val"]["source_split"] == "val"
+                and m5_target_proofs["val"]["rows"] == 256, "CONTROL_SOURCE_MISMATCH")
+    else:
+        require(all(labels["splits"]["train"][key] == labels["splits"]["val"][key]
+                    for key in ("direction_policy_sha256", "position_size_policy_sha256")),
+                "FROZEN_POLICY_MISMATCH")
+        control_proof = labels["splits"]["val"]["control256"]
+        require(control_proof["physical_coordinate_source"] == "val"
+                and control_proof["rows"] == 256
+                and control_proof["all_support_checks_passed"] is True, "CONTROL_SOURCE_MISMATCH")
     train_binding = require_binding(calendar["bindings"]["TRAIN_CALENDAR_PARENT_ROWS"],
                                     label="physical TRAIN rows", verify_file=True)
     control_binding = require_binding(calendar["bindings"]["CONTROL256_PARENT_ROWS"],
@@ -495,7 +532,7 @@ def require_physical_chronological_preprocessing(
         and len(control) == design["budget"]["later_control_entries"] == 256
         and np.array_equal(control, np.unique(control)) and np.all(control >= 0)
         and np.all(control < sources["val"]["physical_rows"])
-        and control_binding == inputs["control256"],
+        and (m5_emission or control_binding == inputs["control256"]),
         "ROW_BINDING_MISMATCH",
     )
     return {

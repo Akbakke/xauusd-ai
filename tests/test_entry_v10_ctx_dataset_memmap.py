@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import json
 from pathlib import Path
 import warnings
@@ -31,6 +32,7 @@ from tests.entry_v10_trainer_dataset_support import (
     install_multi_tf_stub,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
+from tests.test_entry_observed_market import economics
 
 
 def _write_advanced_parquet(
@@ -405,7 +407,9 @@ def test_advanced_dataset_source_reconstruction_handles_filtered_rows(
 
     assert ds._sequence_source_reconstructed is True
     assert ds._np_seq is None
-    assert not memmap_root.exists()
+    assert isinstance(ds._sequence_source_signal, np.memmap)
+    assert Path(ds._sequence_source_signal.filename).is_relative_to(memmap_root)
+    assert ds._memmap_tmpdir is None
     assert np.array_equal(
         ds.sequence_for_full_row(1),
         source[positions[1] - MODEL_NATIVE_SEQ_LEN + 1 : positions[1] + 1],
@@ -499,6 +503,97 @@ def test_sequence_source_surface_cache_is_content_bound(tmp_path) -> None:
 
     assert not np.array_equal(old_signal, new_signal)
     np.testing.assert_array_equal(new_signal, replacement)
+
+
+def test_sequence_source_surface_disk_backing_preserves_values_cache_and_view_lifetime(
+    tmp_path, monkeypatch,
+) -> None:
+    from gx1.contracts import entry_exit_feature_surface_v1 as surface_owner
+
+    parquet_path, _proof, source, _positions = _write_source_backed_advanced_fixture(tmp_path)
+    manifest = json.loads(parquet_path.with_suffix(".manifest.json").read_text())
+    binding = manifest["extra"]["signal_bridge"]["seq_structure_extension_v1"]["feature_surface"]
+    surface = Path(binding["path"])
+    memmap_root = tmp_path / "memmap"
+    monkeypatch.setattr(trainer, "_MEMMAP_ROOT", memmap_root)
+    monkeypatch.setattr(trainer, "_SEQUENCE_SOURCE_SURFACE_CACHE", {})
+    original_loader = surface_owner.load_m1_feature_surface
+    calls = []
+
+    def disk_loader(*args, **kwargs):
+        assert kwargs["expected_bar_seconds"] == trainer.ENTRY_DECISION_BAR_SECONDS
+        assert kwargs["storage_dir"].is_relative_to(memmap_root)
+        calls.append(kwargs["storage_dir"])
+        return original_loader(*args, **kwargs)
+
+    monkeypatch.setattr(surface_owner, "load_m1_feature_surface", disk_loader)
+    original_empty = np.empty
+
+    def no_full_signal_ram(shape, *args, **kwargs):
+        if isinstance(shape, (tuple, list)) and tuple(shape) == source.shape:
+            raise AssertionError("Full-history anonymous-RAM signal allocation")
+        return original_empty(shape, *args, **kwargs)
+
+    monkeypatch.setattr(np, "empty", no_full_signal_ram)
+    times, signal = trainer._load_sequence_source_surface(
+        surface, expected_rows=len(source), expected_sha256=_sha256(surface)
+    )
+    assert isinstance(signal, np.memmap)
+    np.testing.assert_array_equal(signal, source)
+    expected_times = pq.read_table(surface, columns=["time"])["time"].to_numpy().astype("datetime64[ns]").astype(np.int64)
+    np.testing.assert_array_equal(times, expected_times)
+    cached_times, cached_signal = trainer._load_sequence_source_surface(
+        surface, expected_rows=len(source), expected_sha256=_sha256(surface)
+    )
+    assert cached_times is times and cached_signal is signal and len(calls) == 1
+    backing = Path(signal.filename).parent.parent
+    window = signal[1:4]
+    trainer._SEQUENCE_SOURCE_SURFACE_CACHE.clear()
+    del signal, cached_signal
+    gc.collect()
+    assert backing.is_dir()
+    np.testing.assert_array_equal(window, source[1:4])
+    del window
+    gc.collect()
+    assert not backing.exists()
+
+
+@pytest.mark.parametrize("failure", ["decode", "time", "mutation"])
+def test_sequence_source_surface_disk_backing_cleans_failed_reads(
+    tmp_path, monkeypatch, failure,
+) -> None:
+    from gx1.contracts import entry_exit_feature_surface_v1 as surface_owner
+
+    parquet_path, _proof, source, _positions = _write_source_backed_advanced_fixture(tmp_path)
+    manifest = json.loads(parquet_path.with_suffix(".manifest.json").read_text())
+    binding = manifest["extra"]["signal_bridge"]["seq_structure_extension_v1"]["feature_surface"]
+    surface = Path(binding["path"])
+    memmap_root = tmp_path / "memmap"
+    monkeypatch.setattr(trainer, "_MEMMAP_ROOT", memmap_root)
+    monkeypatch.setattr(trainer, "_SEQUENCE_SOURCE_SURFACE_CACHE", {})
+    original_loader = surface_owner.load_m1_feature_surface
+
+    def broken_loader(*args, **kwargs):
+        if failure == "decode":
+            raise RuntimeError("synthetic decode error")
+        times, arrays = original_loader(*args, **kwargs)
+        if failure == "time":
+            return times + trainer.pd.Timedelta(seconds=trainer.ENTRY_DECISION_BAR_SECONDS), arrays
+        surface.write_bytes(surface.read_bytes() + b"synthetic mutation")
+        return times, arrays
+
+    monkeypatch.setattr(surface_owner, "load_m1_feature_surface", broken_loader)
+    marker = {
+        "decode": "FEATURE_SURFACE_SIGNAL_INVALID",
+        "time": "FEATURE_SURFACE_TIME_INVALID",
+        "mutation": "FEATURE_SURFACE_CHANGED_DURING_READ",
+    }[failure]
+    with pytest.raises(RuntimeError, match=marker):
+        trainer._load_sequence_source_surface(
+            surface, expected_rows=len(source), expected_sha256=_sha256(surface)
+        )
+    assert trainer._SEQUENCE_SOURCE_SURFACE_CACHE == {}
+    assert not list(memmap_root.iterdir())
 
 
 def test_sequence_roll_reconstruction_rejects_authoritative_proof_claim(
@@ -629,3 +724,89 @@ def test_liveness_storage_indices_preserve_full_array_coordinates() -> None:
     )
 
     np.testing.assert_array_equal(observed, np.asarray([3, 7, 11]))
+
+
+@pytest.mark.parametrize("fault", [None, "nonzero_masked", "observed_nonfinite"])
+def test_m5_arrow_dataset_preserves_primary_rows_and_per_cell_forecast_masks(tmp_path, monkeypatch, fault, request):
+    import torch
+    import pandas as pd
+    from gx1.contracts import entry_model_native_aux_targets_v3 as targets
+    from gx1.contracts import entry_causal_m1_outcomes_v1 as path
+    from gx1.contracts import entry_observed_market_v1 as observed
+    from gx1.contracts import entry_observed_market_horizons_v1 as hz
+
+    parquet, proof, _source, _positions = _write_source_backed_advanced_fixture(tmp_path)
+    table = pq.read_table(parquet)
+    count = len(table)
+    replacements = {}
+    for side, mfe in (("long", 5.), ("short", -1.)):
+        prefix = "y_" + side + "_m5_path_"
+        for suffix, value in (("mfe_bps", mfe), ("mae_before_first_mfe_lower_bps", 1.),
+                ("mae_before_first_mfe_upper_bps", 2.), ("path_utility_bps", mfe - 2.), ("first_mfe_m1_offset", 0.)):
+            replacements[prefix + suffix] = [value] * count
+    replacements[path.M5_PATH_VALID_COLUMN] = [True] * count
+    for j, (target, valid) in enumerate(zip(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS, targets.MODEL_NATIVE_FORECAST_VALID_COLUMNS)):
+        replacements[target] = [0.0 if j == len(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS) - 1 else 1.0] * count
+        replacements[valid] = [j != len(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS) - 1] * count
+    for name in hz.HORIZON_LABEL_COLUMNS:
+        replacements[name] = [np.nan] * count
+    replacements[targets.LEGACY_CAUSAL_M1_OBSERVED_COLUMN] = [False] * count
+    replacements[targets.LEGACY_AUX_COMPLETE_COLUMN] = [False] * count
+    if fault == "nonzero_masked": replacements[targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS[-1]][0] = 8.0
+    if fault == "observed_nonfinite": replacements[targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS[0]][0] = np.nan
+    for name, values in replacements.items():
+        column = pa.array(values)
+        if name in table.column_names: table = table.set_column(table.column_names.index(name), name, column)
+        else: table = table.append_column(name, column)
+    pq.write_table(table, parquet)
+    manifest_path = parquet.with_suffix(".manifest.json")
+    manifest = json.loads(manifest_path.read_text())
+    extra = manifest["extra"]
+    extra["emission_scope"] = targets.M5_PRIMARY_OBSERVED_EMISSION_SCOPE
+    extra["aux_head_target_contract"] = {
+        **targets.model_native_aux_target_contract_metadata(emission_scope=targets.M5_PRIMARY_OBSERVED_EMISSION_SCOPE),
+        "candidate_rows_before_primary_availability": count, "primary_unavailable_candidate_rows_excluded": 0,
+        "primary_valid_rows_emitted": count, "legacy_causal_m1_observed_rows_emitted": 0,
+        "legacy_aux_complete_rows_emitted": 0,
+        "forecast_observed_rows_by_column": dict(zip(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS, (count, count, count, 0))),
+    }
+    manifest_path.write_text(json.dumps(manifest))
+    proof.write_text(json.dumps(audit_sequence_source_reconstruction(parquet_path=parquet.resolve(), manifest_path=manifest_path.resolve())))
+    monkeypatch.setattr(trainer, "_MEMMAP_ROOT", tmp_path / "memmap")
+    monkeypatch.setattr(trainer, "_SEQUENCE_SOURCE_SURFACE_CACHE", {})
+    kwargs = dict(seq_len=MODEL_NATIVE_SEQ_LEN, m5_prebuilt_path=install_multi_tf_stub(tmp_path, monkeypatch),
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS), multi_tf_closed_bar=True, sequence_source_audit_json=proof)
+    if fault is not None:
+        with pytest.raises(RuntimeError, match="M5_FORECAST_MASKED_STORAGE_INVALID"):
+            trainer.EntryV10CtxDataset(parquet, **kwargs)
+        return
+    dataset = trainer.EntryV10CtxDataset(parquet, **kwargs)
+    assert len(dataset) == count
+    times = dataset.df["time"]
+    source = {"parquet": {"path": str(parquet), "sha256": _sha256(parquet)},
+        "manifest": {"path": str(manifest_path), "sha256": _sha256(manifest_path)}, "physical_rows": count,
+        "clock_sha256": __import__('hashlib').sha256(pd.DatetimeIndex(times).as_unit("ns").asi8.astype("<i8").tobytes()).hexdigest()}
+    dataset._policy_dependent_auxiliary_bound_rows = np.ones(count, dtype=bool)
+    dataset._policy_dependent_auxiliary_binding = {"mode": "original_physical_split_targets", "role": "TRAIN",
+        "parent_entry_parquet": source["parquet"], "parent_entry_manifest": source["manifest"],
+        "policies": {"direction_policy": {"policy_sha256": "a" * 64}}}
+    economics = request.getfixturevalue("economics")
+    observed.bind_entry_observed_market_dataset(dataset, {
+        "binding": {"path": "/synthetic/m5-design.json", "sha256": "b" * 64},
+        "training_phase": observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
+        "target_contract": observed.entry_observed_m5_path_contract(), "economics": economics,
+        "direction_policy_sha256": "a" * 64, "target_m1_source_sha256": "c" * 64,
+        "reference_horizon_m5_bars": path.M5_PATH_OBSERVATION_HORIZON_BARS,
+        "elapsed_wall_clock_seconds": path.M5_PATH_OBSERVATION_HORIZON_BARS * trainer.ENTRY_DECISION_BAR_SECONDS,
+        "physical_sources": {"train": source}, "train_control_cutoff": "2026-01-03T00:00:00Z",
+        "development_control_entry_end_exclusive": "2026-01-04T00:00:00Z",
+    })
+    row = dataset[0]
+    assert row[targets.M5_PRIMARY_EMISSION_BATCH_KEY].item() is True
+    assert row[targets.M5_FORECAST_VALID_BATCH_KEY].tolist() == [True, True, True, False]
+    batch = {key: value.unsqueeze(0) for key, value in row.items() if isinstance(value, torch.Tensor)}
+    base = torch.stack([batch[name] for name in targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS], dim=1)
+    values, valid = hz.masked_forecast_target_surface(batch, base, device=torch.device("cpu"))
+    assert tuple(values.shape) == (1, targets.MODEL_NATIVE_FORECAST_OUTPUT_DIM)
+    assert valid.tolist() == [[True, True, True, False, False, False, False, False, False, False]]
+    assert bool((values[~valid] == 0).all())

@@ -42,7 +42,8 @@ bestå først. Ingen broker/live/paper/ordre/spending/promotion.
 -253genuine primitive TF-felt er implementert perTF, inklusive ekte BID/ASK.
   Entry får også M5.217sammeformelaliaser har eksplisitt paritetskontroll.
   Bred GC-kontekst kobles på i eksisterende skrivechunks, uten full bred
-  flerårsmatrise. Ny fysisk cache/normalisering/modellkonsum gjenstår.
+  flerårsmatrise. 022 har nå publisert fersk253TFcache og M5/model-source; M1, fysisk
+  normalisering og aktuelt modellkonsum gjenstår.
 - Tidligere fysisk016/017 med109507TRAIN/15993VAL var gammel735/552-generasjon.
   Disse kvitteringene er historiske, ingen adgang for dagens modellfunksjon.
 
@@ -76,8 +77,9 @@ konsumert,29.254s, uendret kilde og TEST=false. Alle995nye felt,199perTF, og
 alle210gamle felt har genuine TRAINobservasjoner. Endelig registry har1205
 verdier+1205observasjonsmasker,30observerte konstanter,0uobserverte felt og
 0formelaliaser. Alle gamle kilder er rebindet til samme reparerte024tabeller.
-Hele109507TRAINtime+5min er brukt, uten labels/VAL/TESTfit. Nye003TRAINklokken
-må fortsatt bevise eksakt likhet før fysisk inputadmission.
+Hele109507TRAINtime+5min er brukt, uten labels/VAL/TESTfit. Den nye M5populasjonen
+skal måles fysisk og få fersk wholeTRAINregistrytilpasning før inputadmission;
+025s109507klokke gjenbrukes ikke som bevis for endret emisjon.
 
 Registryen er aktivert i eksisterende nativekilde med SHA d2210dae945c9a43dfdf2aff15f4362563b566ba3c7ebaf3f29d9817201dd3ca.
 Målt kanonisk import gir2725signal-/2542ctx-cont-felt; dette er ikke en fysisk
@@ -99,21 +101,51 @@ Ekstremer bevarer nå samme binær/kategori-identitet som faktisk runtime; numer
 verdier beholder asinh og manglende verdier hard0. Før-repro og originalfeil er
 bevart.75unike forbrukercaser er bestått;002etterkontrollen bestod62/62.
 Bevis:022/QUALIFICATION/FINAL_CONSUMER_QUALIFICATION.json. Ingen guard svekket.
-024og025er konsumert.022er claimet for én ny003M5featurekjøring; trening er lukket.
+024/025/022 er konsumert.022 avsluttet13:08:50UTC etter2554.675s, exit0,
+uendret kilde og TEST=false. Ny003M5 har1140982rader og2576kolonner;
+model-source bekrefter2725signal/2542ctx-cont/1ctx-cat og samme featurekontrakt.
+Terminal og seks faktiske artefakthasher er bundet i policy. Trening er lukket.
+
+Konkret neste blokkering: både sekvensrekonstruksjonsauditen og trainerens
+sekvenskildeleser allokerer hele den historiske M5signalmatrisen i RAM. Ved
+1140982×2725float32 er signal alene omtrent11.6GiB. Minste rettelse gjenbruker
+eksisterende diskbaserte M5loader og beholder hele populasjonen/verdikontrollen.
+Kilden var fryst til022terminal. Rettelsen bestod39fokuserte caser med
+uendret kilde; alle verdier/klokker og disklevetid er kontrollert.
+
+Tidlig klokkesammenligning viste118706M5kildetider mot109507gamle fysiske
+TRAINrader; alle gamle finnes i kilden. Kildeklokke er ikke emisjonsklokke.
+Undersøkelsen avdekket en konkret målfeil: fysisk emisjon krevde fremdeles
+legacyM1labels og alle37auxmål, inkludert inaktive96bars-hoder. M5kildens
+95minprimary ble dermed indirekte filtrert av8timersauxkompletthet. Fire
+aktive M5forecasts K1/5/12/24 hadde dessuten ubetingettrue-masker.
+
+Ny eksplisitt m5_primary_observed-emisjon bruker ekteM5valid, split og
+inputwarmup. Legacydefault bevares. Hver av fireM5forecasts og seks1/5/20d
+støtteceller har egen observasjonsmaske; uobserverte lagres0 uten falsk
+observasjon. Ny fase-/målbinding må bevise faktiske parquetmasker og
+forby legacy/jointbruk av nyeM5inputs. 496unike fokuserte caser er bestått etter tre små fixture-rettelser
+(str-sti/ns-enhet/import); produksjonskilden var uendret gjennom etterkontrollene.
+Originale feilrapporter er bevart. Fysisk nyeM5data/normalisering/modell gjenstår.
 
 ## Neste steg
 
-1. Bind og kjør claimet022 på ren commit: først ny pair, så M5-enriched/
-   253TFcache og model-source. Audit4G/producer20G/10G,512Mswap, ett barn om gangen.
-   M5innlasting/GCvedlegg er bounded; eksisterende vakter og checkpoints beholdes.
-2. Kontroller022terminal og faktiske dimensjoner/GCkolonner; planlegg ny M1-
-   etterfølger og nytt datasett fra faktiske manifester. Ingen gamle checkpoints.
-3. Bygg ny003M5/M1/TF-cache og M5-path-datasett med aktivert registry.
-  022M5er claimet og execution_ready=true; kun fersk binding/ren kilde kan starte.
-   Gjenbruk eksisterende bounded liveness-/rekonstruksjonseiere; kopier ikke
-   den gamle011auditens fulle pandasinnlasting av bredM1flate.
+1.496unike sourcecaser er bestått, inkludert faktisk Arrow→Dataset→batch og
+   fysisk-maskebinding på små Parquet-fixtures. Gjeldende shared-featurekontrakt
+   er eksakt lik022s publiserte.026 er claimet for én ren kildebundet M1jobb.
+2. Kjør én fersk026M1-enriched på003, gjenbruk publisert022253TFcache.
+   Producer20G/512Mswap,4096skrivechunks, ny checkpointsti. Ingen009reuse.
+   Faktisk022terminal og alle seks artefakthasher er fylt inn i026planen;
+  026 er claimet; binding skrives først fra ren commit. Ingen kjøring før
+   denne bindingen.026 er dataarbeid, ingen trening.
+3. Bind faktisk022/026 og bygg nytt26mM5-pathdatasett fysisk. Wrapperens
+   eksplisitte --physical-build-only stopper før inputadmission. Mål faktisk
+   nyTRAINklokke, tilpass ferskTRAINregistry og publiser gjeldende immutable
+   signal-/datasetbindinger før liveness/pretrain. Gamle025hash/klokke kan
+   ikke utgis som nye. Gjenbruk featurebytes bare etter eksakt dokumentert
+   verdifunksjon/kilde/maske/rolle-ekvivalens; aldri011wideM1read.
 4. Normaliser hele observerte fysiske TRAIN én gang. Mål ny initial ONLINE=
-   TARGET=EMA, fysisk batch-/serveparitet og Entry-only optimizer/resume.
+   TARGET=EMA, fysisk batchparitet og Entry-only optimizer/resume.
    Maskinvid idle og trygg fysisk Windowsreboot må bevises før GPUadmission.
 5. Bind faktisk unik M5-populasjon/N/ordre og ceil(N/16), behold siste delbatch,
    tren nøyaktig én epoke med eksisterende varige checkpoints. Stopp før VAL/
@@ -121,7 +153,7 @@ Bevis:022/QUALIFICATION/FINAL_CONSUMER_QUALIFICATION.json. Ingen guard svekket.
 
 ## Ærlige grenser
 
-Ingen ny fysisk nativeinputkjede, normalisering, Transformer-læring,
+M5/cache-delen er fysisk publisert. Hele inputkjeden, normalisering, Transformer-læring,
 generalisering eller nettoøkonomi er fullført. MBP-1 viser beste bid/ask,
 ikke dypere bok eller individuell ordreidentitet. Full prisgrid beholdes;
 modellen konsumerer deklarerte avledede felt, ikke alle råbane-/prisbininteraksjoner.

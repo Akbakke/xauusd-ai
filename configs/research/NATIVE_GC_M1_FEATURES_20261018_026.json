@@ -1,0 +1,188 @@
+{
+  "native_m1_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+  "native_m5_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+  "inputs": {
+    "m1_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+    },
+    "m5_raw_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m5_quotes_source/manifest.json",
+      "sha256": "1bbc7d20a91afff0deb22a4cd2c848aaa95d27a2db56c22f2f3eb3505c615439"
+    },
+    "squeeze_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/manifest.json",
+      "sha256": "2f099d1974a6ffe3b9c1ae39680acdce5cc706aba954a2ce3523d74db2838d3e"
+    }
+  },
+  "bound_small_input_files": [
+    {
+      "role": "m1_raw_manifest_native_manifest",
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"
+    },
+    {
+      "role": "m5_raw_manifest_native_manifest",
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+    },
+    {
+      "role": "squeeze_M1_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/m1_params.json",
+      "sha256": "02d59db2a8ded891fc0e3ff62c9e01f67591432b5070efef02792d6337e4c748"
+    },
+    {
+      "role": "squeeze_M5_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/m5_params.json",
+      "sha256": "de52e7c469a7bd2b4ebc3f42f26792185a308ec801003f898f6b962e3e8d1c38"
+    },
+    {
+      "role": "squeeze_M15_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/m15_params.json",
+      "sha256": "f44593fff7e4169df86b2971677e05063a68e294283584a55568d006a8ec2c87"
+    },
+    {
+      "role": "squeeze_H1_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/h1_params.json",
+      "sha256": "40ea79cfc518ebad947f9008b53e04851fa4c9f049942848a8215582bfa85f90"
+    },
+    {
+      "role": "squeeze_H4_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/h4_params.json",
+      "sha256": "867fe5c85ec5e66b73815c6b492bf998b6fcbda61b50c4778423f9079a670a22"
+    },
+    {
+      "role": "squeeze_D1_params",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/SQUEEZE/d1_params.json",
+      "sha256": "d97a1de9d3ddbc77b0b5462247bc5615d8223fab9aea1eef22630a8559bff2fe"
+    },
+    {
+      "role": "squeeze_historical_pair_lineage",
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_NATIVE_V37_20260928/PAIR_GENERATIONS/fc3333d71ca71d3916b3f6716bbfd36824a216dc15fb927efa8c03cac0594170/PAIR_MANIFEST.json",
+      "sha256": "690786b030362d6f0e0bafdc4004d4a361b83e751c1a98a344c68e05cf0da425"
+    }
+  ],
+  "registry_fit_train_start": "2009-06-01T00:00:00+00:00",
+  "registry_fit_train_end": "2013-01-01T22:00:00+00:00",
+  "registry_fit_inner_end": "2012-04-11T22:00:00+00:00",
+  "registry_fit_origin": "Unchanged previously accepted native feature-calibration windows, wholly before first consumed TRAIN2024 inputs. Registry parameters are recomputed from original raw sources. Immutable squeeze calibration reused through its existing owner.",
+  "train_start": "2024-05-01T00:00:00Z",
+  "train_end_exclusive": "2026-01-01T00:00:00Z",
+  "val_start": "2026-01-01T00:00:00Z",
+  "val_end_exclusive": "2026-04-01T00:00:00Z",
+  "retrospective_final_control": [
+    "2026-04-01T00:00:00Z",
+    "2026-07-01T00:00:00Z"
+  ],
+  "gc_source_quality_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/RESULTS/TERMINAL.json",
+    "sha256": "19a534ab227556ccb9f105aa3ccb419c9885d4d2233b83a591d421807859a6af"
+  },
+  "gc_registry_admission_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FINAL_TRAIN_REGISTRY_20261018_025/ADMISSION/TERMINAL.json",
+    "sha256": "7164eca420670ff540c1e935ee5c6e75e5ddc5f9352efb6020d82c048cc6d6e2"
+  },
+  "gc_admitted_registry_artifact": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_FINAL_TRAIN_REGISTRY_20261018_025/ADMISSION/REGISTRY.json",
+    "sha256": "d2210dae945c9a43dfdf2aff15f4362563b566ba3c7ebaf3f29d9817201dd3ca",
+    "bytes": 1120907
+  },
+  "gc_registry_value_field_count": 1205,
+  "gc_registry_observed_field_count": 1205,
+  "expected_primitive_features_per_tf": 253,
+  "schema_version": "gx1_native_pretest_m1_feature_rebuild_v1",
+  "created_utc": "2026-10-18T12:30:26.745116+00:00",
+  "plan_id": "NATIVE_GC_M1_FEATURES_20261018_026",
+  "run_id": "XAU_GC_NATIVE_26M_20261018_003",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_026",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003",
+  "execution_ready": true,
+  "execution_binding_status": "PARENT022_COMPLETE_ROOT_TESTS_AND_CLEAN_SOURCE_BINDING_PENDING",
+  "scope": "Fresh native M1 features through the existing009 owner, using the newly completed022M5/253TF cache and final0251205value/1205mask GC registry. Full raw history feeds the existing causal warmup/calibration; only owner-derived M1 output support is retained.",
+  "operator_authority": "18October complete genuine MBP/allTF support before training authorizes exactly one fresh M1 feature successor using completed022 and025. No training authority; clean source and one-shot execution binding required.",
+  "execution_owner": "gx1.scripts.build_entry_exit_m1_enriched_frame_v1 --native-m1-root",
+  "resource_owner": "Existing gx1_capped_run.sh producer20G/swap512M/CPU0-7/one numerical thread/64tasks/CURRENT lock; one sequential owner, no automatic extension.",
+  "workers": 1,
+  "checkpoint_chunk_rows": 4096,
+  "max_wall_seconds": 64800,
+  "one_shot_invocations": 1,
+  "source_frozen_while_running": true,
+  "test_data_used": false,
+  "training_enabled": false,
+  "native_epoch_started": false,
+  "old009_checkpoints_or_feature_values_reused": false,
+  "checkpoint_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M1_ENRICHED_CHECKPOINT",
+  "output_parquet": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M1_ENRICHED.parquet",
+  "output_manifest": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M1_ENRICHED.parquet.manifest.json",
+  "multi_tf_cache_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE",
+  "upstream_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_022/TERMINAL.json",
+    "sha256": "b904083d86e470c08aa8e77e5f237a148470865bcb97a7ee6ef1ade5c6a8e235"
+  },
+  "upstream_artifacts": {
+    "PRETEST_PAIR.json": {
+      "sha256": "f6742b05f991d50a7fc927f69a26e42796a374dab4864db0b044bae49b394c2e",
+      "bytes": 3892
+    },
+    "M5_ENRICHED.parquet": {
+      "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99",
+      "bytes": 730577307
+    },
+    "M5_ENRICHED.parquet.manifest.json": {
+      "sha256": "d1c0f94bcfa7c837143b287fc8a4355e3ea564cffcbae2d96c53c64e7bb62de6",
+      "bytes": 272551
+    },
+    "FULL_PLUS_CTX_v3src.parquet": {
+      "sha256": "d5c685d8218309dee89314accc0fe09c5e673582a3bbd96cd24896f9ccfdc472",
+      "bytes": 562473534
+    },
+    "FULL_PLUS_CTX_v3src.parquet.manifest.json": {
+      "sha256": "06925ac4a9139b44a75affd9462750bc1757c4a66cce8bced4f6454f5ce11c19",
+      "bytes": 146655
+    },
+    "MULTI_TF_V4_CACHE/manifest.json": {
+      "sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4",
+      "bytes": 40426556
+    }
+  },
+  "parent022_launch_reference": {
+    "plan_path": "configs/research/NATIVE_GC_M5_FEATURES_20261018_022.json",
+    "plan_sha256": "018d38a3b470a298b3ea5e39b2e32a5ce63021bf5e5f8deb157b72fb95cc102b",
+    "source_head": "cbb90b8f197c8d8e8c5b4c53fc600428659a93c7",
+    "role": "Provenance only; not a substitute for actual completed terminal/artifact seals."
+  },
+  "gc_registry_source": {
+    "gc_registry_path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_025.json",
+    "gc_registry_sha256": "d2210dae945c9a43dfdf2aff15f4362563b566ba3c7ebaf3f29d9817201dd3ca",
+    "gc_registry_value_field_count": 1205,
+    "gc_registry_observed_field_count": 1205
+  },
+  "model_surface_dimensions": "Derive from bound022M5sharedcontract and model-source manifest; require exact M1sharedcontract/context-field-count parity. Never copy old009 dimensions.",
+  "gc_attachment": "Existing source-derived4096row writer; exact final registry fields/observation masks at each M1native close; no full-history dense GC output matrix.",
+  "future_output_history_start": "Use actual emitted M1 clock and existing TF predecessor-window owner. No copied2023-05-09 history constant.",
+  "required_execution_binding_fields": [
+    "plan_path",
+    "plan_sha256",
+    "controller_sha256",
+    "source_head",
+    "policy_sha256",
+    "gc_registry_path",
+    "gc_registry_sha256",
+    "source_quality_accepted",
+    "source_quality_receipt",
+    "gc_registry_value_field_count",
+    "gc_registry_observed_field_count",
+    "gc_registry_admission_receipt"
+  ],
+  "reused_workflow_provenance": {
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_GC_M1_FEATURES_20261018_009.json",
+      "sha256": "7e8abc87fa19edb9d32c1d78e220bda99b68679610ed82ce5d232bf97210ee5e"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_009/run_features.py",
+      "sha256": "f543271a5cb01ea72747d45bbd2cce49162f14e37732f815ad8e5b086814c9ae"
+    }
+  },
+  "preparation_read_scope": "Actual completed022 terminal and six published artifact seals; independent existing009-controller review passed. No old009 values/checkpoints reused."
+}

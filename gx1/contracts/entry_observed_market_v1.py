@@ -271,36 +271,71 @@ def _require_observed_market_plan(
     prefix = plan["chronological_prefix"]
     _, design = load(prefix["design"], "Entry input/coordinate design")
     _, labels = load(prefix["labels_result"], "Entry original label support")
-    _, label_plan = load(labels["plan"], "Entry original label proof plan")
-    _, signal = load(label_plan["input_bindings"]["signal"], "Entry TRAIN target policy source")
-    policy = require_causal_m1_target_policy(signal["feature_ranking"]["entry_direction_target_policy"])
-    calendar = design["calendar"]
-    if (
-        labels.get("test_accessed") is not False or labels.get("optimizer_steps") != 0
-        or labels.get("forbidden_access_attempts") != []
-        or labels.get("identical_frozen_policies_across_physical_splits") is not True
-        or policy["fit_scope"] != "TRAIN_ONLY" or policy["val_test_rows_used_for_fit"] != 0
-        or policy["policy_sha256"] != signal["feature_ranking"]["entry_direction_target_policy_sha256"]
-    ):
-        raise RuntimeError("ENTRY_OBSERVED_MARKET_POLICY_OR_SUPPORT_INVALID")
-    horizon = policy["selected_direction_horizon_bars"]
-    elapsed_seconds = horizon * ENTRY_DECISION_BAR_SECONDS
-    for split in ("train", "val"):
-        source = calendar["source_bindings"][split]
-        proof = labels["splits"][split]
-        _, manifest = load(expected_files["entry_" + split + "_manifest"], "Entry physical source manifest")
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        M5_PHYSICAL_TARGET_BINDING_SCHEMA, M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
+        require_m5_primary_physical_target_receipt, require_model_native_aux_target_emission_contract,
+    )
+    if labels.get("schema_version") == M5_PHYSICAL_TARGET_BINDING_SCHEMA:
+        require_m5_primary_physical_target_receipt(labels, design_binding=prefix["design"], context="ENTRY_OBSERVED_MARKET")
+        if expected_training_phase != ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
+            raise RuntimeError("ENTRY_OBSERVED_MARKET_M5_EMISSION_PHASE_MISMATCH")
+        calendar = design["calendar"]
+        if design.get("scope", {}).get("entry_only_training_phase") != ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
+            raise RuntimeError("ENTRY_OBSERVED_MARKET_M5_EMISSION_PHASE_MISMATCH")
+        lineage = []
+        for split in ("train", "val"):
+            source = calendar["source_bindings"][split]
+            _, manifest = load(expected_files["entry_" + split + "_manifest"], "Entry M5 physical source manifest")
+            extra = manifest["extra"]
+            contract = require_model_native_aux_target_emission_contract(extra.get("aux_head_target_contract"), context="ENTRY_OBSERVED_MARKET")
+            path = extra.get("m5_path_supervision", {})
+            if (expected_files["entry_" + split + "_parquet"] != source["parquet"]
+                    or expected_files["entry_" + split + "_manifest"] != source["manifest"]
+                    or extra.get("emission_scope") != M5_PRIMARY_OBSERVED_EMISSION_SCOPE
+                    or contract.get("emission_scope") != M5_PRIMARY_OBSERVED_EMISSION_SCOPE
+                    or path.get("contract") != entry_observed_m5_path_contract()
+                    or extra.get("rows") != source["physical_rows"]
+                    or path.get("emitted_valid_rows") != source["physical_rows"]
+                    or extra["aux_head_target_contract"]["primary_valid_rows_emitted"] != source["physical_rows"]):
+                raise RuntimeError("ENTRY_OBSERVED_MARKET_M5_SOURCE_INVALID")
+            lineage.append((extra.get("diagnostic_outcome_policy_sha256"), path.get("target_m1_source_sha256")))
+        if (lineage[0] != lineage[1] or any(not isinstance(v, str) or len(v) != 64
+                or any(c not in '0123456789abcdef' for c in v) for v in lineage[0])):
+            raise RuntimeError("ENTRY_OBSERVED_MARKET_M5_SOURCE_LINEAGE_INVALID")
+        policy = {"policy_sha256": lineage[0][0], "m1_source_sha256": lineage[0][1]}
+        horizon = entry_observed_m5_path_contract()["horizon_m5_bars"]
+        elapsed_seconds = horizon * ENTRY_DECISION_BAR_SECONDS
+    else:
+        _, label_plan = load(labels["plan"], "Entry original label proof plan")
+        _, signal = load(label_plan["input_bindings"]["signal"], "Entry TRAIN target policy source")
+        policy = require_causal_m1_target_policy(signal["feature_ranking"]["entry_direction_target_policy"])
+        calendar = design["calendar"]
         if (
-            expected_files["entry_" + split + "_parquet"] != source["parquet"]
-            or expected_files["entry_" + split + "_manifest"] != source["manifest"]
-            or proof["source_manifest"] != source["manifest"]
-            or proof["direction_policy_sha256"] != policy["policy_sha256"]
-            or manifest["extra"]["diagnostic_outcome_policy_sha256"] != policy["policy_sha256"]
-            or proof["rows"] != source["physical_rows"]
-            or proof["exact_m1_fill_and_contiguous_outcome_rows"] != proof["rows"]
-            or proof["policy_horizon_m5_bars"] != horizon
-            or proof["policy_horizon_m1_bars"] * EXIT_DECISION_BAR_SECONDS != elapsed_seconds
+            labels.get("test_accessed") is not False or labels.get("optimizer_steps") != 0
+            or labels.get("forbidden_access_attempts") != []
+            or labels.get("identical_frozen_policies_across_physical_splits") is not True
+            or policy["fit_scope"] != "TRAIN_ONLY" or policy["val_test_rows_used_for_fit"] != 0
+            or policy["policy_sha256"] != signal["feature_ranking"]["entry_direction_target_policy_sha256"]
         ):
-            raise RuntimeError("ENTRY_OBSERVED_MARKET_SOURCE_OR_HORIZON_INVALID")
+            raise RuntimeError("ENTRY_OBSERVED_MARKET_POLICY_OR_SUPPORT_INVALID")
+        horizon = policy["selected_direction_horizon_bars"]
+        elapsed_seconds = horizon * ENTRY_DECISION_BAR_SECONDS
+        for split in ("train", "val"):
+            source = calendar["source_bindings"][split]
+            proof = labels["splits"][split]
+            _, manifest = load(expected_files["entry_" + split + "_manifest"], "Entry physical source manifest")
+            if (
+                expected_files["entry_" + split + "_parquet"] != source["parquet"]
+                or expected_files["entry_" + split + "_manifest"] != source["manifest"]
+                or proof["source_manifest"] != source["manifest"]
+                or proof["direction_policy_sha256"] != policy["policy_sha256"]
+                or manifest["extra"]["diagnostic_outcome_policy_sha256"] != policy["policy_sha256"]
+                or proof["rows"] != source["physical_rows"]
+                or proof["exact_m1_fill_and_contiguous_outcome_rows"] != proof["rows"]
+                or proof["policy_horizon_m5_bars"] != horizon
+                or proof["policy_horizon_m1_bars"] * EXIT_DECISION_BAR_SECONDS != elapsed_seconds
+            ):
+                raise RuntimeError("ENTRY_OBSERVED_MARKET_SOURCE_OR_HORIZON_INVALID")
     _, authority = load(expected_files["train_cost_authority"], "Entry declared net costs")
     economics = entry_observed_market_economics(
         authority, coverage_start_utc=calendar["train_entry_start_inclusive"],
@@ -340,6 +375,14 @@ def bind_entry_observed_market_dataset(dataset: Any, scope: Mapping[str, Any]) -
     from pathlib import Path
     from gx1.contracts.local_random_access_campaign_v2 import require_binding
 
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        M5_PRIMARY_OBSERVED_EMISSION_SCOPE, MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+        MODEL_NATIVE_FORECAST_VALID_COLUMNS,
+        require_auxiliary_emission_training_phase, require_m5_forecast_observation_storage,
+    )
+    auxiliary_contract = getattr(dataset, "aux_head_target_contract", {})
+    require_auxiliary_emission_training_phase(auxiliary_contract,
+        entry_training_phase=scope["training_phase"], context="ENTRY_OBSERVED_MARKET")
     path_phase = scope["training_phase"] == ENTRY_ONLY_M5_PATH_TRAINING_PHASE
     if getattr(dataset, "_entry_observed_market_binding", None) is not None:
         raise RuntimeError("ENTRY_OBSERVED_MARKET_ALREADY_BOUND")
@@ -371,6 +414,8 @@ def bind_entry_observed_market_dataset(dataset: Any, scope: Mapping[str, Any]) -
     from gx1.contracts import entry_observed_market_horizons_v1 as horizons
     columns = ([*M5_PATH_TARGET_COLUMNS, M5_PATH_VALID_COLUMN, *horizons.HORIZON_LABEL_COLUMNS]
                if path_phase else list(GROSS_TARGET_COLUMNS))
+    if path_phase and auxiliary_contract.get("emission_scope") == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+        columns += [*MODEL_NATIVE_FORECAST_TARGET_COLUMNS, *MODEL_NATIVE_FORECAST_VALID_COLUMNS]
     frame = pq.read_table(dataset.parquet_path, columns=["time", *columns]).to_pandas()
     clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True)).as_unit("ns").asi8
     input_clock = pd.DatetimeIndex(pd.to_datetime(dataset.df["time"], utc=True)).as_unit("ns").asi8
@@ -432,6 +477,17 @@ def bind_entry_observed_market_dataset(dataset: Any, scope: Mapping[str, Any]) -
         "admitted_target_bps_sha256": hashlib.sha256(np.asarray(observed, dtype="<f4").tobytes()).hexdigest(),
     }
     if support is not None:
+        if auxiliary_contract.get("emission_scope") == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+            m5_forecast_valid = require_m5_forecast_observation_storage(
+                frame, context="ENTRY_OBSERVED_MARKET")
+        else:
+            # The legacy emitted contract proves every M5 forecast complete;
+            # the explicit M5 emission contract must provide its own cell masks.
+            m5_forecast_valid = np.ones((len(frame), len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS)), dtype=bool)
+        m5_forecast_valid.setflags(write=False)
+        dataset._entry_observed_market_m5_forecast_valid = m5_forecast_valid
+        binding["m5_forecast_observed_cells"] = int(m5_forecast_valid[admitted_mask].sum())
+        binding["m5_forecast_valid_sha256"] = hashlib.sha256(m5_forecast_valid.tobytes()).hexdigest()
         support_values, support_valid = support
         dataset._entry_observed_market_support_forecast = support_values
         dataset._entry_observed_market_support_forecast_valid = support_valid

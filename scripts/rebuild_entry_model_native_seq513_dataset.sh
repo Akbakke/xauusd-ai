@@ -35,6 +35,8 @@ TEST_END=
 HISTORY_START=
 RESUME_EXACT_CHECKPOINTS=0
 PRETEST_ONLY=0
+EMISSION_SCOPE=legacy_complete
+PHYSICAL_BUILD_ONLY=0
 PRETEST_PAIR_JSON=
 PRETEST_M1_SOURCE_MANIFEST=
 PRETEST_M5_SOURCE_MANIFEST=
@@ -55,6 +57,8 @@ usage() {
     "  --prefreeze-test-seal-json /event/rebuild_authority/ENTRY_MODEL_NATIVE_SEQ513_UNTOUCHED_TEST_SEAL_<UTC>.json" \
     "  --history-start UTC --train-start UTC --train-end UTC --val-start UTC --val-end UTC" \
     "  --test-start UTC --test-end UTC [--resume-exact-checkpoints]" \
+    "  [--emission-scope legacy_complete|m5_primary_observed]" \
+    "  [--physical-build-only] materializes pretest M5 inputs; input admission remains pending" \
     "  TRAIN/VAL-only recovery: --pretest-only replaces tape/pair-generation/TEST authority arguments with" \
     "  --m1-lifecycle-pretest-pair-json PATH --m1-lifecycle-pretest-source-manifest PATH" \
     "  --pretest-m5-quote-source-manifest PATH; no TEST path/window is permitted."
@@ -87,6 +91,8 @@ while (($#)); do
     --test-end) TEST_END=${2:-}; shift 2 ;;
     --resume-exact-checkpoints) RESUME_EXACT_CHECKPOINTS=1; shift ;;
     --pretest-only) PRETEST_ONLY=1; shift ;;
+    --emission-scope) EMISSION_SCOPE=${2:-}; shift 2 ;;
+    --physical-build-only) PHYSICAL_BUILD_ONLY=1; shift ;;
     --m1-lifecycle-pretest-pair-json) PRETEST_PAIR_JSON=${2:-}; shift 2 ;;
     --m1-lifecycle-pretest-source-manifest) PRETEST_M1_SOURCE_MANIFEST=${2:-}; shift 2 ;;
     --pretest-m5-quote-source-manifest) PRETEST_M5_SOURCE_MANIFEST=${2:-}; shift 2 ;;
@@ -94,6 +100,16 @@ while (($#)); do
     *) printf '[ABORT] unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+case "$EMISSION_SCOPE" in
+  legacy_complete|m5_primary_observed) ;;
+  *) printf '[ABORT] invalid emission scope: %s\n' "$EMISSION_SCOPE" >&2; exit 2 ;;
+esac
+
+if [[ $PHYSICAL_BUILD_ONLY -eq 1 ]] && { [[ $PRETEST_ONLY -ne 1 ]] || [[ $EMISSION_SCOPE != m5_primary_observed ]]; }; then
+  echo '[ABORT] --physical-build-only requires --pretest-only and --emission-scope m5_primary_observed' >&2
+  exit 2
+fi
 
 required_values=(
   RUN_ID SOURCE_PARQUET CANONICAL_V2_PARQUET SIGNAL_MANIFEST FEATURE_RANKING_JSON
@@ -352,6 +368,7 @@ fi
   "${BUILDER_RESUME_ARGS[@]}" \
   "${AUTHORITY_ARGS[@]}" \
   --run-id "$RUN_ID" \
+  --emission-scope "$EMISSION_SCOPE" \
   --source-parquet "$SOURCE_PARQUET" \
   --canonical_v2_parquet "$CANONICAL_V2_PARQUET" \
   --seq-structure-manifest "$SIGNAL_MANIFEST" \
@@ -365,6 +382,11 @@ fi
   --seq_len 96 --time_split \
   --train_start "$TRAIN_START" --train_end "$TRAIN_END" \
   --val_start "$VAL_START" --val_end "$VAL_END"
+
+if [[ $PHYSICAL_BUILD_ONLY -eq 1 ]]; then
+  printf '[MATERIALIZED_PENDING_INPUT_ADMISSION] physical pretest M5 dataset only; fresh whole-TRAIN registry fit, full-input liveness and target preflight remain required; no training. run_id=%s output=%s\n' "$RUN_ID" "$OUTPUT_DIR"
+  exit 0
+fi
 
 if [[ $PRETEST_ONLY -eq 0 ]]; then
 "$PY" - "$REBUILD_TERMINAL_JSON" "$PREFREEZE_TEST_SEAL_JSON" \

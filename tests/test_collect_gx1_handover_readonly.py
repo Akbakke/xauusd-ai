@@ -1055,7 +1055,8 @@ def test_handover_shows_durable_project_goal_and_current_native_generation():
               "observed_smc_registry_stage": {"status": "COMPLETE_CONSUMED"},
               "trusted_record_restoration_stage": {"status": "COMPLETE_CONSUMED"},
               "final_train_registry_stage": {"status": "COMPLETE_CONSUMED"},
-              "new_generation_m5_feature_stage": {"status": "EXECUTION_CLAIMED"},
+              "new_generation_m5_feature_stage": {"status": "COMPLETE_CONSUMED"},
+              "new_generation_m1_feature_stage": {"status": "EXECUTION_CLAIMED"},
               "native_binding_gaps": ["new physical outputs unqualified"]}
     status = {"decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY", "current_work": {
         "project_goal": goal, "native_gc_rebuild_20261017": native,

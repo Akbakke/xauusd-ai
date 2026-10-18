@@ -67,6 +67,10 @@ from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
     _position_size_target_from_path,
     _selected_side_bad_path_target,
     _validate_model_native_aux_head_targets,
+    _model_native_emission_mask,
+    _model_native_aux_emission_storage,
+    _m5_path_label_frame,
+    build_dataset_canonical,
     build_unified_exit_lifecycle_episodes,
     representation_auxiliary_outcome_contract,
     model_native_aux_target_contract_metadata,
@@ -2346,3 +2350,116 @@ def test_lifecycle_builder_and_loader_share_canonical_locked_quote_rule(tmp_path
             np.testing.assert_array_equal(arrays[f"ask_{suffix}"], source[f"ask_{suffix}"])
             np.testing.assert_array_equal(arrays[f"bid_{suffix}"], source[f"bid_{suffix}"])
     pd.testing.assert_frame_equal(source, original, check_exact=True)
+
+
+def test_explicit_m5_emission_preserves_real_primary_paths_without_legacy_completeness() -> None:
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        LEGACY_COMPLETE_EMISSION_SCOPE, M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
+    )
+    from gx1.contracts import entry_causal_m1_outcomes_v1 as m5path
+
+    times = pd.date_range("2026-01-01T00:00:00Z", periods=130, freq="5min")
+    source = _closed_m1_lifecycle_source(n_rows=700)
+    primary = _m5_path_label_frame(m5_decision_times=times, closed_m1=source,
+                                   split_end=times[-1])
+    primary_valid = primary[m5path.M5_PATH_VALID_COLUMN].to_numpy(bool)
+    _, aux_complete = _build_model_native_aux_head_targets(_spread_tape(len(times)))
+    legacy_observed = np.ones(len(times), dtype=bool)
+    legacy_observed[20] = False
+    kwargs = dict(emitted_time_index=times, emit_start=times[4], emit_end=times[-1],
+                  seq_len=5, causal_m1_observed=legacy_observed,
+                  aux_complete=aux_complete, m5_path_valid=primary_valid)
+    m5_mask, proof = _model_native_emission_mask(
+        **kwargs, emission_scope=M5_PRIMARY_OBSERVED_EMISSION_SCOPE)
+    legacy_mask, _ = _model_native_emission_mask(
+        **kwargs, emission_scope=LEGACY_COMPLETE_EMISSION_SCOPE)
+    expected = primary_valid.copy()
+    expected[:4] = False
+    np.testing.assert_array_equal(m5_mask, expected)
+    assert m5_mask[20] and not legacy_mask[20]
+    assert np.count_nonzero(m5_mask & ~aux_complete) > 0
+    assert m5_mask.sum() > legacy_mask.sum()
+    assert not m5_mask[~primary_valid].any()
+    assert proof["legacy_causal_m1_missing_rows_retained"] == 1
+    assert proof["legacy_causal_m1_incomplete_candidate_rows_excluded"] == 0
+    assert proof["legacy_aux_incomplete_candidate_rows_excluded"] == 0
+    assert proof["candidate_rows_before_primary_availability"] == 126
+    assert (proof["primary_unavailable_candidate_rows_excluded"]
+            + proof["primary_valid_rows_emitted"]) == 126
+    assert np.isfinite(primary.loc[m5_mask, list(m5path.M5_PATH_TARGET_COLUMNS)]).all().all()
+
+
+def test_explicit_m5_forecast_masks_preserve_each_actual_future_and_zero_only_missing_storage() -> None:
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        M5_PRIMARY_OBSERVED_EMISSION_SCOPE, MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+        MODEL_NATIVE_FORECAST_VALID_COLUMNS, require_m5_forecast_observation_storage,
+    )
+    targets, _ = _build_model_native_aux_head_targets(_spread_tape())
+    original = {name: values.copy() for name, values in targets.items()}
+    storage, observed = _model_native_aux_emission_storage(
+        targets, emission_scope=M5_PRIMARY_OBSERVED_EMISSION_SCOPE)
+    frame = pd.DataFrame({**storage, **observed})
+    require_m5_forecast_observation_storage(frame, context="BUILDER_TEST")
+    for name, mask_name in zip(MODEL_NATIVE_FORECAST_TARGET_COLUMNS, MODEL_NATIVE_FORECAST_VALID_COLUMNS):
+        actual = np.isfinite(original[name])
+        np.testing.assert_array_equal(observed[mask_name], actual)
+        np.testing.assert_array_equal(storage[name][actual], original[name][actual])
+        assert np.all(storage[name][~actual] == 0.0)
+    assert observed["y_forecast_ret_K1_observed"][110]
+    assert not observed["y_forecast_ret_K24_observed"][110]
+    for name in targets:
+        np.testing.assert_array_equal(targets[name], original[name])
+    broken = frame.copy()
+    broken.loc[110, "y_forecast_ret_K24"] = 1.0
+    with pytest.raises(RuntimeError, match="FORECAST"):
+        require_m5_forecast_observation_storage(broken, context="BUILDER_TEST")
+
+
+def test_emission_scope_default_retains_legacy_union_and_unchanged_target_storage() -> None:
+    import inspect
+    from gx1.contracts.entry_model_native_aux_targets_v3 import LEGACY_COMPLETE_EMISSION_SCOPE
+    assert inspect.signature(build_dataset_canonical).parameters["emission_scope"].default == LEGACY_COMPLETE_EMISSION_SCOPE
+    targets, complete = _build_model_native_aux_head_targets(_spread_tape())
+    storage, observed = _model_native_aux_emission_storage(
+        targets, emission_scope=LEGACY_COMPLETE_EMISSION_SCOPE)
+    assert not observed
+    assert all(storage[name] is targets[name] for name in targets)
+    times = pd.date_range("2026-01-01T00:00:00Z", periods=len(complete), freq="5min")
+    causal = np.ones(len(times), dtype=bool)
+    causal[8] = False
+    mask, _ = _model_native_emission_mask(
+        emitted_time_index=times, emit_start=times[4], emit_end=times[-1], seq_len=5,
+        emission_scope=LEGACY_COMPLETE_EMISSION_SCOPE, causal_m1_observed=causal,
+        aux_complete=complete, m5_path_valid=np.zeros(len(times), dtype=bool))
+    expected = complete & causal
+    expected[:4] = False
+    np.testing.assert_array_equal(mask, expected)
+
+
+@pytest.mark.parametrize("bad_mask", [np.ones(3), np.ones(2, dtype=bool)])
+def test_emission_scope_rejects_ambiguous_availability_masks(bad_mask) -> None:
+    from gx1.contracts.entry_model_native_aux_targets_v3 import M5_PRIMARY_OBSERVED_EMISSION_SCOPE
+    times = pd.date_range("2026-01-01T00:00:00Z", periods=3, freq="5min")
+    with pytest.raises(RuntimeError, match="AVAILABILITY_MASK_INVALID"):
+        _model_native_emission_mask(
+            emitted_time_index=times, emit_start=times[0], emit_end=times[-1], seq_len=1,
+            emission_scope=M5_PRIMARY_OBSERVED_EMISSION_SCOPE, causal_m1_observed=bad_mask,
+            aux_complete=np.ones(3, dtype=bool), m5_path_valid=np.ones(3, dtype=bool))
+
+
+def test_m5_scope_preserves_feature_history_even_without_legacy_m1_labels() -> None:
+    from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+        _attach_causal_m1_labels_preserving_feature_timeline, _CAUSAL_M1_LABEL_COLUMNS,
+    )
+    times = pd.date_range("2026-01-01T00:00:00Z", periods=4, freq="5min")
+    features = pd.DataFrame({"time": times, "source_value": [7.0, 8.0, 9.0, 10.0]})
+    labels = pd.DataFrame({"time": times[:0],
+                           **{name: np.empty(0) for name in _CAUSAL_M1_LABEL_COLUMNS}})
+    with pytest.raises(RuntimeError, match="COMPLETE_ROWS_EMPTY"):
+        _attach_causal_m1_labels_preserving_feature_timeline(
+            feature_rows=features, complete_causal_labels=labels)
+    attached, observed = _attach_causal_m1_labels_preserving_feature_timeline(
+        feature_rows=features, complete_causal_labels=labels, allow_unavailable=True)
+    pd.testing.assert_frame_equal(attached.loc[:, features.columns], features)
+    assert not observed.any()
+    assert attached.loc[:, _CAUSAL_M1_LABEL_COLUMNS].isna().all().all()

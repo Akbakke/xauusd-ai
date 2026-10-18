@@ -47,6 +47,7 @@ SCHEMA_VERSION = "gx1_entry_observed_market_horizons_v2"
 from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_SUPPORT_HORIZONS_TRADING_DAYS, MODEL_NATIVE_SUPPORT_FORECAST_DIM,
     SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+    M5_FORECAST_VALID_BATCH_KEY,
 )
 OBSERVATION_HORIZONS_TRADING_DAYS = MODEL_NATIVE_SUPPORT_HORIZONS_TRADING_DAYS
 DECISION_HORIZON_TRADING_DAYS = 20
@@ -561,9 +562,18 @@ def masked_forecast_target_surface(batch, base_targets, *, device):
             or values.shape != valid.shape or not bool(torch.isfinite(values).all())
             or bool((values[~valid] != 0).any())):
         raise RuntimeError('ENTRY_SUPPORT_FORECAST_BATCH_INVALID')
+    base_valid = torch.ones_like(base_targets, dtype=torch.bool)
+    if M5_PATH_BATCH_TARGET_KEY in batch:
+        base_valid = batch.get(M5_FORECAST_VALID_BATCH_KEY)
+        if (not isinstance(base_valid, torch.Tensor) or base_valid.dtype != torch.bool
+                or base_valid.shape != base_targets.shape
+                or not bool(torch.isfinite(base_targets).all())
+                or bool((base_targets[~base_valid.to(base_targets.device)] != 0).any())):
+            raise RuntimeError('ENTRY_M5_FORECAST_BATCH_INVALID')
+        base_valid = base_valid.detach().to(device)
     values, valid = values.detach().to(device), valid.detach().to(device)
     return (torch.cat((base_targets, values), dim=1),
-        torch.cat((torch.ones_like(base_targets, dtype=torch.bool), valid), dim=1))
+        torch.cat((base_valid, valid), dim=1))
 
 
 def observed_entry_batch_items(dataset: Any, row: int) -> dict[str, torch.Tensor]:
@@ -578,6 +588,7 @@ def observed_entry_batch_items(dataset: Any, row: int) -> dict[str, torch.Tensor
         binding = getattr(dataset, "_entry_observed_market_binding", None)
         if binding is not None and binding["identity"]["training_phase"] == ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
             return {M5_PATH_BATCH_TARGET_KEY: torch.tensor(v1[row]),
+                M5_FORECAST_VALID_BATCH_KEY: torch.tensor(dataset._entry_observed_market_m5_forecast_valid[row]),
                 SUPPORT_FORECAST_TARGET_BATCH_KEY: torch.tensor(dataset._entry_observed_market_support_forecast[row]),
                 SUPPORT_FORECAST_VALID_BATCH_KEY: torch.tensor(dataset._entry_observed_market_support_forecast_valid[row])}
         # Output supervision only; never append future outcomes to inputs.

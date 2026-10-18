@@ -643,3 +643,60 @@ def test_one_hot_cooperation_has_exact_zero_entropy_even_when_all_routes_used() 
         assert stats[f'{name}_entropy_mean'] == 0.0
     failures = trainer._cooperation_gate_health_failures(stats)
     assert any('entropy' in value for value in failures)
+
+
+def test_m5_primary_emission_is_explicit_masked_and_forbidden_in_legacy_phases():
+    from gx1.contracts import entry_model_native_aux_targets_v3 as targets
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_M5_PATH_TRAINING_PHASE, ENTRY_TRAINING_PHASES,
+    )
+    legacy = targets.model_native_aux_target_contract_metadata()
+    assert "emission_scope" not in legacy
+    assert legacy["incomplete_rows_may_be_emitted"] is False
+    assert targets.require_model_native_aux_target_emission_contract({
+        **legacy, "incomplete_tail_rows_total": targets.MODEL_NATIVE_AUX_MAX_FUTURE_HORIZON_BARS,
+        "candidate_rows_before_completeness": 3, "incomplete_candidate_rows_excluded": 0,
+        "complete_rows_emitted": 3,
+    }, context="LEGACY") == legacy
+    contract = targets.model_native_aux_target_contract_metadata(
+        emission_scope=targets.M5_PRIMARY_OBSERVED_EMISSION_SCOPE)
+    proof = {
+        **contract, "candidate_rows_before_primary_availability": 4,
+        "primary_unavailable_candidate_rows_excluded": 1, "primary_valid_rows_emitted": 3,
+        "legacy_causal_m1_observed_rows_emitted": 1, "legacy_aux_complete_rows_emitted": 0,
+        "forecast_observed_rows_by_column": dict(zip(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS, (3, 3, 3, 0))),
+    }
+    assert targets.require_model_native_aux_target_emission_contract(proof, context="M5") == contract
+    assert contract["forecast_output_layout"] == legacy["forecast_output_layout"]
+    for phase in ENTRY_TRAINING_PHASES:
+        if phase == ENTRY_ONLY_M5_PATH_TRAINING_PHASE:
+            targets.require_auxiliary_emission_training_phase(contract, entry_training_phase=phase, context="M5")
+        else:
+            with pytest.raises(RuntimeError, match="M5_EMISSION_PHASE_MISMATCH"):
+                targets.require_auxiliary_emission_training_phase(contract, entry_training_phase=phase, context="M5")
+    bad = dict(proof)
+    bad["legacy_aux_complete_rows_emitted"] = 4
+    with pytest.raises(RuntimeError, match="M5_AUX_TARGET_EMISSION_PROOF_INVALID"):
+        targets.require_model_native_aux_target_emission_contract(bad, context="M5")
+    with pytest.raises(RuntimeError, match="M5_EMISSION_PHASE_MISMATCH"):
+        trainer.dip_forecast_task_losses({}, {targets.M5_PRIMARY_EMISSION_BATCH_KEY: torch.ones(2, dtype=torch.bool)}, torch.device("cpu"))
+
+
+@pytest.mark.parametrize("fault", ["missing", "mask_domain", "masked_nonzero", "nonfinite"])
+def test_m5_forecast_storage_requires_explicit_availability_and_zero_storage(fault):
+    from gx1.contracts import entry_model_native_aux_targets_v3 as targets
+    frame = pd.DataFrame({name: [1.0, 0.0] for name in targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS})
+    for name in targets.MODEL_NATIVE_FORECAST_VALID_COLUMNS:
+        frame[name] = [True, False]
+    valid = targets.require_m5_forecast_observation_storage(frame, context="M5")
+    np.testing.assert_array_equal(valid, [[True] * 4, [False] * 4])
+    if fault == "missing":
+        frame = frame.drop(columns=[targets.MODEL_NATIVE_FORECAST_VALID_COLUMNS[0]])
+    elif fault == "mask_domain":
+        frame[targets.MODEL_NATIVE_FORECAST_VALID_COLUMNS[0]] = [0.5, 0.0]
+    elif fault == "masked_nonzero":
+        frame.loc[1, targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS[0]] = 9.0
+    else:
+        frame.loc[0, targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS[0]] = np.nan
+    with pytest.raises(RuntimeError, match="M5_FORECAST_"):
+        targets.require_m5_forecast_observation_storage(frame, context="M5")

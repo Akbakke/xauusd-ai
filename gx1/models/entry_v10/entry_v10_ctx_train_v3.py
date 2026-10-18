@@ -29,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import weakref
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Mapping, Optional, Sequence, Tuple
@@ -184,6 +185,11 @@ from gx1.contracts.entry_model_native_aux_targets_v3 import (
     MODEL_NATIVE_TIMING_TARGET_COLUMNS,
     MODEL_NATIVE_VOL_FORECAST_TARGET_COLUMNS,
     require_model_native_aux_target_emission_contract as _require_model_native_aux_target_emission_contract,
+    M5_PRIMARY_OBSERVED_EMISSION_SCOPE, M5_PRIMARY_EMISSION_BATCH_KEY,
+    M5_PHYSICAL_TARGET_BINDING_SCHEMA, MODEL_NATIVE_FORECAST_VALID_COLUMNS,
+    LEGACY_CAUSAL_M1_OBSERVED_COLUMN, LEGACY_AUX_COMPLETE_COLUMN,
+    require_m5_primary_physical_target_receipt,
+    require_m5_forecast_observation_storage, require_auxiliary_emission_training_phase,
 )
 from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
     NEUTRAL_EFFECTIVE_INIT as TF_INPUT_SCALE_NEUTRAL_INIT,
@@ -611,11 +617,15 @@ def dip_forecast_task_losses(
 ) -> dict[str, torch.Tensor]:
     """Return separate genuine losses in their labels' native units."""
     from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+    if M5_PRIMARY_EMISSION_BATCH_KEY in batch and M5_PATH_BATCH_TARGET_KEY not in batch:
+        raise RuntimeError("ENTRY_M5_EMISSION_PHASE_MISMATCH")
     if M5_PATH_BATCH_TARGET_KEY in batch:
         fc_pred = _require_active_aux_head_prediction(out, batch, output_name="forecast_pred", target_names=_FORECAST_TARGET_COLS)
         fc_tgt = torch.stack([batch[f"y_forecast_ret_K{h}"] for h in FORECAST_HORIZONS], dim=1).to(device).float()
         from gx1.contracts.entry_observed_market_horizons_v1 import masked_forecast_target_surface
         fc_tgt, fc_valid = masked_forecast_target_surface(batch, fc_tgt, device=device)
+        if not bool(fc_valid.any()):
+            raise RuntimeError("ENTRY_M5_FORECAST_NO_OBSERVED_CELLS")
         return {"forecast_return_bps": torch.nn.functional.l1_loss(fc_pred.float()[fc_valid], fc_tgt[fc_valid])}
     dip_pred = _require_active_aux_head_prediction(
         out,
@@ -2727,9 +2737,9 @@ def _load_sequence_source_surface(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Read the exact M5 signal surface in bounded Arrow batches.
 
-    Unlike the legacy emitted-row roll shortcut this backing is the real M5
-    event timeline.  It stays below one gigabyte and is shared logically by
-    every filtered supervised row, avoiding a 20+ GiB scratch ``seq`` mirror.
+    Unlike the legacy emitted-row roll shortcut this disk backing is the real
+    M5 event timeline, shared by every filtered supervised row without a full
+    anonymous-RAM signal surface or a materialized nested ``seq`` mirror.
     """
 
     # The source is contract-immutable.  A process-local cache keyed only by
@@ -2793,45 +2803,44 @@ def _load_sequence_source_surface(
         raise RuntimeError(
             "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_TIME_INVALID]"
         )
-    signal_surface = np.empty((rows, MODEL_NATIVE_SIGNAL_DIM), dtype=np.float32)
-    offset = 0
+    from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface
+
+    _MEMMAP_ROOT.mkdir(parents=True, exist_ok=True)
+    storage = tempfile.TemporaryDirectory(
+        prefix="sequence_source_", dir=str(_MEMMAP_ROOT)
+    )
     try:
-        batches = feature_surface.iter_batches(
-            batch_size=_NESTED_ARROW_BATCH_ROWS,
-            columns=["signal"],
-            use_threads=False,
-        )
-        for batch in batches:
-            count = int(batch.num_rows)
-            values = batch.column("signal")
-            if not hasattr(values, "values"):
-                raise RuntimeError("signal values missing")
-            flat = values.values.to_numpy(zero_copy_only=False)
-            if flat.shape != (count * MODEL_NATIVE_SIGNAL_DIM,):
-                raise RuntimeError("signal width invalid")
-            decoded = np.asarray(flat, dtype=np.float32).reshape(
-                count, MODEL_NATIVE_SIGNAL_DIM
+        try:
+            loaded_times, arrays = load_m1_feature_surface(
+                surface_path,
+                context="ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION",
+                storage_dir=Path(storage.name) / "m5",
+                expected_bar_seconds=ENTRY_DECISION_BAR_SECONDS,
             )
-            if not np.isfinite(decoded).all():
-                raise RuntimeError("signal nonfinite")
-            signal_surface[offset : offset + count] = decoded
-            offset += count
-    except RuntimeError as exc:
-        raise RuntimeError(
-            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_SIGNAL_INVALID]"
-        ) from exc
-    except Exception as exc:
-        raise RuntimeError(
-            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_SIGNAL_INVALID]"
-        ) from exc
-    if offset != rows:
-        raise RuntimeError(
-            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_ROW_COUNT_MISMATCH]"
-        )
-    if _sha256_file(surface_path) != expected_sha256:
-        raise RuntimeError(
-            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_CHANGED_DURING_READ]"
-        )
+        except Exception as exc:
+            raise RuntimeError(
+                "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_SIGNAL_INVALID]"
+            ) from exc
+        if not np.array_equal(loaded_times.asi8, times):
+            raise RuntimeError(
+                "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_TIME_INVALID]"
+            )
+        signal_surface = arrays["signal"]
+        if signal_surface.shape != (rows, MODEL_NATIVE_SIGNAL_DIM):
+            raise RuntimeError(
+                "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_ROW_COUNT_MISMATCH]"
+            )
+        if _sha256_file(surface_path) != expected_sha256:
+            raise RuntimeError(
+                "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_FEATURE_SURFACE_CHANGED_DURING_READ]"
+            )
+    except BaseException:
+        storage.cleanup()
+        raise
+    # Cache hits and dataset/window views keep this exact mapping alive. A
+    # cache clear must not remove backing still used by a dataset; cleanup runs
+    # when the last signal reference disappears, and also on process exit.
+    weakref.finalize(signal_surface, storage.cleanup)
     _SEQUENCE_SOURCE_SURFACE_CACHE[cache_key] = (times, signal_surface)
     return times, signal_surface
 
@@ -4489,30 +4498,46 @@ def _physical_auxiliary_target_binding(
 
     require(role in ("TRAIN", "CONTROL256"), "ROLE_INVALID")
     result = _sequence_roll_read_json_object(bound_file(result_binding))
-    require(
-        result.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_v1"
-        and result.get("decision") == "PASS_FROZEN_TRAIN_POLICIES_AND_COMPLETE_PRETEST_TARGET_CLOCK_SUPPORT"
-        and result.get("identical_frozen_policies_across_physical_splits") is True
-        and result.get("producer_code_unchanged_for_five_target_owners") is True
-        and result.get("test_accessed") is False
-        and result.get("forbidden_access_attempts") == [],
-        "PRECHECK_INVALID",
-    )
-    plan = _sequence_roll_read_json_object(bound_file(result["plan"]))
-    inputs = plan["input_bindings"]
-    require(plan.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_plan_v1"
-            and inputs["design"]["sha256"] == expected_design_sha256, "DESIGN_MISMATCH")
-    design = _sequence_roll_read_json_object(bound_file(inputs["design"]))
-    calendar = design["calendar"]
-    sources = calendar.get("source_bindings")
-    require(
-        design.get("schema_version") == "gx1_frozen_chronological_learning_design_v1"
-        and calendar.get("physical_source_splits") == {"train": "train", "control": "val"}
-        and calendar.get("physical_coordinate_namespaces_are_separate") is True
-        and "index" not in calendar
-        and isinstance(sources, Mapping) and set(sources) == {"train", "val"},
-        "PHYSICAL_DESIGN_INVALID",
-    )
+    m5_emission = result.get("schema_version") == M5_PHYSICAL_TARGET_BINDING_SCHEMA
+    if m5_emission:
+        require(result.get("design", {}).get("sha256") == expected_design_sha256, "DESIGN_MISMATCH")
+        require_m5_primary_physical_target_receipt(result, design_binding=result["design"], context="ENTRY_PHYSICAL_AUX")
+        design = _sequence_roll_read_json_object(bound_file(result["design"]))
+        calendar = design["calendar"]
+        sources = calendar.get("source_bindings")
+        require(design.get("schema_version") == "gx1_frozen_chronological_learning_design_v1"
+                and design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+                and calendar.get("physical_source_splits") == {"train": "train", "control": "val"}
+                and calendar.get("physical_coordinate_namespaces_are_separate") is True
+                and "index" not in calendar and isinstance(sources, Mapping)
+                and set(sources) == {"train", "val"}, "M5_PHYSICAL_DESIGN_INVALID")
+        inputs = {name + "_" + kind: sources[name][kind]
+                  for name in ("train", "val") for kind in ("parquet", "manifest")}
+    else:
+        require(
+            result.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_v1"
+            and result.get("decision") == "PASS_FROZEN_TRAIN_POLICIES_AND_COMPLETE_PRETEST_TARGET_CLOCK_SUPPORT"
+            and result.get("identical_frozen_policies_across_physical_splits") is True
+            and result.get("producer_code_unchanged_for_five_target_owners") is True
+            and result.get("test_accessed") is False
+            and result.get("forbidden_access_attempts") == [],
+            "PRECHECK_INVALID",
+        )
+        plan = _sequence_roll_read_json_object(bound_file(result["plan"]))
+        inputs = plan["input_bindings"]
+        require(plan.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_plan_v1"
+                and inputs["design"]["sha256"] == expected_design_sha256, "DESIGN_MISMATCH")
+        design = _sequence_roll_read_json_object(bound_file(inputs["design"]))
+        calendar = design["calendar"]
+        sources = calendar.get("source_bindings")
+        require(
+            design.get("schema_version") == "gx1_frozen_chronological_learning_design_v1"
+            and calendar.get("physical_source_splits") == {"train": "train", "control": "val"}
+            and calendar.get("physical_coordinate_namespaces_are_separate") is True
+            and "index" not in calendar
+            and isinstance(sources, Mapping) and set(sources) == {"train", "val"},
+            "PHYSICAL_DESIGN_INVALID",
+        )
     # Check role and all source identities before resolving any dataset pointer.
     split = "train" if role == "TRAIN" else "val"
     source = sources[split]
@@ -4548,6 +4573,131 @@ def _physical_auxiliary_target_binding(
     require(np.all(ns[1:] > ns[:-1]) and np.all(ns >= low.value)
             and np.all(ns < high.value) and clock_hash(ns) == source["clock_sha256"],
             "ENTRY_CLOCK_MISMATCH")
+
+    if m5_emission:
+        import pyarrow.parquet as pq
+        from gx1.contracts import entry_causal_m1_outcomes_v1 as path_owner
+        from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+        from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
+        from gx1.features import gc_native_context_v1 as gc
+        from gx1.time.session_detector import m5_decision_availability
+
+        fixed = _require_model_native_aux_target_emission_contract(
+            extra.get("aux_head_target_contract"), context="ENTRY_PHYSICAL_M5")
+        require(fixed.get("emission_scope") == M5_PRIMARY_OBSERVED_EMISSION_SCOPE
+                and extra.get("emission_scope") == M5_PRIMARY_OBSERVED_EMISSION_SCOPE
+                and extra.get("m5_path_supervision", {}).get("contract") == entry_observed_m5_path_contract()
+                and extra.get("gc_native_context") == gc.contract(), "M5_CURRENT_CONTRACT_MISMATCH")
+        require(not _model_native_active_target_failures(role, frame), "M5_STORAGE_TARGET_DOMAIN_INVALID")
+        primary_columns = list(path_owner.M5_PATH_TARGET_COLUMNS)
+        forecast_columns = list(MODEL_NATIVE_FORECAST_TARGET_COLUMNS)
+        legacy_columns = [LEGACY_CAUSAL_M1_OBSERVED_COLUMN, LEGACY_AUX_COMPLETE_COLUMN]
+        numeric_columns = list(dict.fromkeys([
+            *_MODEL_NATIVE_ACTIVE_TARGET_COLS, *primary_columns, path_owner.M5_PATH_VALID_COLUMN,
+            *forecast_columns, *MODEL_NATIVE_FORECAST_VALID_COLUMNS,
+            *horizons.HORIZON_LABEL_COLUMNS, *legacy_columns]))
+        forecast_counts = np.zeros(len(forecast_columns), dtype=np.int64)
+        long_counts = np.zeros(2 * len(horizons.OBSERVATION_HORIZONS_TRADING_DAYS), dtype=np.int64)
+        legacy_counts = np.zeros(len(legacy_columns), dtype=np.int64)
+        cell_hash, mask_hash = hashlib.sha256(), hashlib.sha256()
+        offset = 0
+        horizon_seconds = path_owner.M5_PATH_OBSERVATION_HORIZON_BARS * ENTRY_DECISION_BAR_SECONDS
+        target_parquet = pq.ParquetFile(parquet_path)
+        require(set(["time", *numeric_columns]).issubset(target_parquet.schema_arrow.names),
+                "M5_PHYSICAL_TARGET_COLUMNS_MISSING")
+        for batch in target_parquet.iter_batches(
+                batch_size=_NESTED_ARROW_BATCH_ROWS,
+                columns=["time", *numeric_columns], use_threads=False):
+            actual = batch.to_pandas()
+            clock = pd.DatetimeIndex(pd.to_datetime(actual["time"], utc=True)).as_unit("ns").asi8
+            require(np.array_equal(clock, ns[offset:offset + len(actual)]), "M5_PHYSICAL_CLOCK_MISMATCH")
+            require(not _model_native_active_target_failures(role, actual)
+                    and np.array_equal(actual[list(_MODEL_NATIVE_ACTIVE_TARGET_COLS)].to_numpy(dtype=np.float64),
+                        frame.iloc[offset:offset + len(actual)][list(_MODEL_NATIVE_ACTIVE_TARGET_COLS)].to_numpy(dtype=np.float64)),
+                    "M5_PHYSICAL_TARGET_VALUES_MISMATCH")
+            primary = actual[primary_columns].to_numpy(dtype=np.float64)
+            stored_valid = actual[path_owner.M5_PATH_VALID_COLUMN].to_numpy()
+            require(np.isin(stored_valid, (False, True)).all() and stored_valid.astype(bool).all()
+                    and np.isfinite(primary).all()
+                    and np.all(clock + (ENTRY_DECISION_BAR_SECONDS + horizon_seconds) * 10**9 <= high.value),
+                    "M5_PRIMARY_AVAILABILITY_INVALID")
+            for side in ("long", "short"):
+                prefix = "y_" + side + "_m5_path_"
+                mfe = actual[prefix + "mfe_bps"].to_numpy(dtype=np.float64)
+                lower = actual[prefix + "mae_before_first_mfe_lower_bps"].to_numpy(dtype=np.float64)
+                upper = actual[prefix + "mae_before_first_mfe_upper_bps"].to_numpy(dtype=np.float64)
+                utility = actual[prefix + "path_utility_bps"].to_numpy(dtype=np.float64)
+                peak = actual[prefix + "first_mfe_m1_offset"].to_numpy(dtype=np.float64)
+                require(np.all(lower >= 0) and np.all(upper >= lower)
+                        and np.array_equal(utility, mfe - upper)
+                        and np.all(peak >= 0) and np.all(peak < horizon_seconds // EXIT_DECISION_BAR_SECONDS)
+                        and np.equal(peak, np.floor(peak)).all(), "M5_PRIMARY_DOMAIN_INVALID")
+            forecast_valid = require_m5_forecast_observation_storage(actual, context="ENTRY_PHYSICAL_M5")
+            for j, horizon in enumerate(FORECAST_HORIZONS):
+                require(np.all(clock[forecast_valid[:, j]] + (1 + horizon) * ENTRY_DECISION_BAR_SECONDS * 10**9 <= high.value),
+                        "M5_FORECAST_CROSSES_SPLIT")
+            long_valid = np.zeros((len(actual), len(long_counts)), dtype=bool)
+            for j, horizon in enumerate(horizons.OBSERVATION_HORIZONS_TRADING_DAYS):
+                cols = [*horizons.GROSS_TARGET_COLUMNS_BY_HORIZON[horizon], horizons.ELAPSED_COLUMN_BY_HORIZON[horizon]]
+                values = actual[cols].to_numpy(dtype=np.float64)
+                finite = np.isfinite(values)
+                require(not np.isinf(values).any() and np.array_equal(finite.any(axis=1), finite.all(axis=1)),
+                        "M5_SUPPORT_PARTIAL_OR_INVALID")
+                observed = finite.all(axis=1)
+                elapsed = values[observed, 2]
+                require(np.all(elapsed > 0) and np.equal(elapsed, np.floor(elapsed)).all()
+                        and np.all(elapsed <= (high.value - clock[observed]) // 10**9 - ENTRY_DECISION_BAR_SECONDS)
+                        and np.all(clock[observed] + (ENTRY_DECISION_BAR_SECONDS + elapsed.astype(np.int64)) * 10**9 <= high.value),
+                        "M5_SUPPORT_CROSSES_SPLIT")
+                long_valid[:, 2 * j:2 * j + 2] = observed[:, None]
+            legacy = actual[legacy_columns].to_numpy()
+            require(np.isin(legacy, (False, True)).all(), "M5_LEGACY_OBSERVATION_INVALID")
+            forecast_counts += forecast_valid.sum(axis=0)
+            long_counts += long_valid.sum(axis=0)
+            legacy_counts += legacy.astype(bool).sum(axis=0)
+            cell_hash.update(actual[numeric_columns].to_numpy(dtype="<f8").tobytes())
+            mask_hash.update(np.column_stack((forecast_valid, long_valid)).tobytes())
+            offset += len(actual)
+        proof = extra["aux_head_target_contract"]
+        require(offset == count == proof["primary_valid_rows_emitted"]
+                == extra["m5_path_supervision"]["emitted_valid_rows"]
+                and legacy_counts.tolist() == [proof["legacy_causal_m1_observed_rows_emitted"], proof["legacy_aux_complete_rows_emitted"]]
+                and dict(zip(forecast_columns, map(int, forecast_counts))) == proof["forecast_observed_rows_by_column"],
+                "M5_PHYSICAL_PROOF_COUNT_MISMATCH")
+        # The current registry must have been fitted on the complete actual TRAIN
+        # clock, never on a legacy-complete subset or on CONTROL/VAL labels.
+        train_clock = (times if role == "TRAIN" else pd.DatetimeIndex(
+            pq.read_table(sources["train"]["parquet"]["path"], columns=["time"])["time"].to_pandas()).as_unit("ns"))
+        registry = _sequence_roll_read_json_object(bound_file(result["registry"]))
+        registry_clock = gc.require_registry_train_clock_match(m5_decision_availability(train_clock), registry)
+        bound_file(source["parquet"])
+        bound_file(source["manifest"])
+        row_binding = calendar["bindings"]["TRAIN_CALENDAR_PARENT_ROWS" if role == "TRAIN" else "CONTROL256_PARENT_ROWS"]
+        rows = np.load(bound_file(row_binding), allow_pickle=False)
+        require(rows.dtype == np.dtype("int64") and rows.ndim == 1 and len(rows) > 0
+                and np.all(np.diff(rows) > 0) and rows[0] >= 0 and rows[-1] < count, "PARENT_ROWS_INVALID")
+        if role == "TRAIN":
+            require(np.array_equal(rows, np.arange(count, dtype=np.int64)), "TRAIN_COHORT_MISMATCH")
+        else:
+            require(len(rows) == calendar["control256"]["rows"] == design["selection"]["control_entries"]
+                    == design["budget"]["later_control_entries"], "CONTROL_COHORT_MISMATCH")
+        mask = np.zeros(count, dtype=bool)
+        mask[rows] = True
+        return mask, {
+            "result": dict(result_binding), "design": result["design"], "role": role,
+            "mode": "original_physical_split_targets", "source_split": split,
+            "emission_scope": M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
+            "training_phase": ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
+            "parent_entry_parquet": source["parquet"], "parent_entry_manifest": source["manifest"],
+            "row_binding": row_binding, "rows": int(len(rows)), "active_target_columns": list(_MODEL_NATIVE_ACTIVE_TARGET_COLS),
+            "policies": {"direction_policy": {"policy_sha256": extra["diagnostic_outcome_policy_sha256"]}},
+            "targets_rewritten": False, "inactive_diagnostics_refreshed": False,
+            "physical_target_cells_sha256": cell_hash.hexdigest(), "forecast_valid_sha256": mask_hash.hexdigest(),
+            "forecast_observed_cells": int(forecast_counts.sum() + long_counts.sum()),
+            "m5_forecast_observed_rows_by_column": dict(zip(forecast_columns, map(int, forecast_counts))),
+            "long_support_observed_cells_by_column": long_counts.tolist(),
+            "registry": result["registry"], "whole_train_registry_clock": registry_clock,
+        }
 
     signal = _sequence_roll_read_json_object(bound_file(inputs["signal"]))
     ranking = signal["feature_ranking"]
@@ -4821,6 +4971,8 @@ class EntryV10CtxDataset(Dataset):
             )
         _load_cols = [c for c in _all_cols if c not in _nested_cols]
         df = pd.read_parquet(self.parquet_path, columns=_load_cols)
+        if self.aux_head_target_contract.get("emission_scope") == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+            require_m5_forecast_observation_storage(df, context="ENTRY_V10_DATASET")
         # Re-add empty stubs for downstream presence checks. They are replaced
         # by the chunked Arrow arrays below.
         for _c in ("seq", "snap", "ctx_cont", "ctx_cat"):
@@ -5568,7 +5720,7 @@ class EntryV10CtxDataset(Dataset):
 
         result_binding = {"path": str(result_path), "sha256": expected_result_sha256}
         result = _sequence_roll_read_json_object(bound_file(result_binding))
-        if result.get("schema_version") == "gx1_native_v38_auxiliary_reuse_precheck_v1":
+        if result.get("schema_version") in ("gx1_native_v38_auxiliary_reuse_precheck_v1", M5_PHYSICAL_TARGET_BINDING_SCHEMA):
             bound_rows, binding = _physical_auxiliary_target_binding(
                 self.df, parquet_path=self.parquet_path, result_binding=result_binding,
                 expected_design_sha256=expected_design_sha256, role=role,
@@ -5833,6 +5985,8 @@ class EntryV10CtxDataset(Dataset):
             # Output supervision only (v1 key or the three trading-day-horizon keys, never
             # both); future outcomes are never appended to inputs.
             out_batch.update(_observed_entry_batch_items(self, t))
+            if self.aux_head_target_contract.get("emission_scope") == M5_PRIMARY_OBSERVED_EMISSION_SCOPE:
+                out_batch[M5_PRIMARY_EMISSION_BATCH_KEY] = torch.tensor(True)
             # Every active target was validated in __init__ and is read
             # directly. There are no aliases, defaults, or compatibility rows.
             for target_name in _MODEL_NATIVE_ACTIVE_TARGET_COLS:
@@ -10358,6 +10512,8 @@ def _active_head_target_surfaces(
     all_rows = torch.ones(batch_size, dtype=torch.bool, device=device)
 
     from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+    if M5_PRIMARY_EMISSION_BATCH_KEY in batch and M5_PATH_BATCH_TARGET_KEY not in batch:
+        raise RuntimeError("ENTRY_M5_EMISSION_PHASE_MISMATCH")
     if M5_PATH_BATCH_TARGET_KEY in batch:
         from gx1.contracts.entry_observed_market_horizons_v1 import masked_forecast_target_surface
         forecast = torch.stack([_active_head_batch_target(batch, f"y_forecast_ret_K{h}", device)
@@ -10644,6 +10800,8 @@ def _accumulate_active_head_epoch(
         device,
     )
     from gx1.contracts.entry_observed_market_v1 import M5_PATH_BATCH_TARGET_KEY
+    if M5_PRIMARY_EMISSION_BATCH_KEY in batch and M5_PATH_BATCH_TARGET_KEY not in batch:
+        raise RuntimeError("ENTRY_M5_EMISSION_PHASE_MISMATCH")
     if M5_PATH_BATCH_TARGET_KEY in batch:
         accumulator["entry_training_phase"] = ENTRY_ONLY_M5_PATH_TRAINING_PHASE
     head_store = accumulator.get("heads")
@@ -16047,6 +16205,9 @@ def run_train(
         ),
     )
     for split_name, ds_obj in (("train", train_ds), ("val", val_ds)):
+        require_auxiliary_emission_training_phase(ds_obj.aux_head_target_contract,
+            entry_training_phase=model_native_training_objective["entry_training_phase"],
+            context=f"ENTRY_TRAIN_{split_name.upper()}")
         contract = ds_obj.model_native_signal_contract
         require_model_native_signal_contract(
             contract,

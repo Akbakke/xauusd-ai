@@ -70,6 +70,16 @@ kontrakteier med kausale executable BID/ASK-utfall og deklarerte kostnader,
 ikke en gjettet horisont/vekt eller hindsight-valgt optimal exit. MFE/MAE,
 terminalavkastning, timing og handelsfrekvens rapporteres separat.
 
+I den eksplisitte `m5_primary_observed`-emisjonen styres den fysiske
+populasjonen av gyldig M5-path og genuine input-/historikkrav. Komplette
+legacy-M1-mål og unionen av37hjelpemål er ingen primærgate. Fire M5-
+prognoser K1/5/12/24 og seks LONG/SHORT1/5/20d-støtteceller har hver sine
+observasjonsmasker. Manglende target lagres0 bakfalsemaske; det er ingen
+observasjon. Inaktive hoder og lengre støttehorisonter får ikke redusere
+primærpopulasjonen. Legacyemisjon beholder sine egne komplette målkrav.
+Endret populasjon krever ny faktiskTRAINklokke, ferskTRAINregistrytilpasning
+og gjeldende immutable kontraktbindinger før inputadmission.
+
 Første reelle smoke skal bevise samme fysiske batch gjennom alle familier,
 GC-value/mask-par, alle MTF, normalisering og modell, samt fersk initialbaseline
 og train/serve-paritet. Entry-only-fasen må bevise Exit-grad=None og uendrede

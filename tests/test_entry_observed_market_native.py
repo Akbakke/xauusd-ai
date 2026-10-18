@@ -11,6 +11,11 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
+from gx1.contracts.entry_model_native_aux_targets_v3 import (
+    M5_FORECAST_VALID_BATCH_KEY, MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
+    MODEL_NATIVE_FORECAST_VALID_COLUMNS, M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
+    model_native_aux_target_contract_metadata,
+)
 from torch import nn
 
 from gx1.contracts import entry_observed_market_v1 as observed
@@ -345,6 +350,11 @@ def test_path_primary_population_survives_unavailable_h20_and_long_support_is_in
         frame[prefix + 'path_utility_bps'] = mfe - 2.
         frame[prefix + 'first_mfe_m1_offset'] = 0.
     frame[M5_PATH_VALID_COLUMN] = True
+    for target, valid_column in zip(MODEL_NATIVE_FORECAST_TARGET_COLUMNS, MODEL_NATIVE_FORECAST_VALID_COLUMNS):
+        frame[target] = 0.0 if target == MODEL_NATIVE_FORECAST_TARGET_COLUMNS[-1] else 1.0
+        frame[valid_column] = target != MODEL_NATIVE_FORECAST_TARGET_COLUMNS[-1]
+    dataset.aux_head_target_contract = model_native_aux_target_contract_metadata(
+        emission_scope=M5_PRIMARY_OBSERVED_EMISSION_SCOPE)
     for h in hz.OBSERVATION_HORIZONS_TRADING_DAYS:
         for name in (*hz.GROSS_TARGET_COLUMNS_BY_HORIZON[h], hz.ELAPSED_COLUMN_BY_HORIZON[h]):
             frame[name] = np.nan
@@ -363,6 +373,7 @@ def test_path_primary_population_survives_unavailable_h20_and_long_support_is_in
     assert dataset._entry_observed_market_binding['support_forecast_observed_cells'] == 6
     batch = hz.observed_entry_batch_items(dataset, 3)
     assert observed.M5_PATH_BATCH_TARGET_KEY in batch
+    assert batch[M5_FORECAST_VALID_BATCH_KEY].tolist() == [True, True, True, False]
     assert not bool(batch[SUPPORT_FORECAST_VALID_BATCH_KEY].any())
     assert torch.equal(batch[SUPPORT_FORECAST_TARGET_BATCH_KEY], torch.zeros(6))
     batch = {key: value.unsqueeze(0) for key, value in batch.items()}
@@ -376,6 +387,9 @@ def test_actual_forecast_loss_backpropagates_only_observed_long_support_and_skip
     prediction = torch.zeros(2, FORECAST_HEAD_DIM, requires_grad=True)
     batch = {f'y_forecast_ret_K{h}': torch.ones(2) for h in FORECAST_HORIZONS}
     batch[observed.M5_PATH_BATCH_TARGET_KEY] = torch.tensor([[3., -3., 0.], [3., -3., 0.]])
+    batch[M5_FORECAST_VALID_BATCH_KEY] = torch.tensor([[True, True, True, False], [True, False, True, True]])
+    for j, horizon in enumerate(FORECAST_HORIZONS):
+        batch[f'y_forecast_ret_K{horizon}'][~batch[M5_FORECAST_VALID_BATCH_KEY][:, j]] = 0.0
     batch[SUPPORT_FORECAST_TARGET_BATCH_KEY] = torch.tensor([[2., -2., 0., 0., 0., 0.], [0., 0., 3., -3., 0., 0.]])
     batch[SUPPORT_FORECAST_VALID_BATCH_KEY] = batch[SUPPORT_FORECAST_TARGET_BATCH_KEY] != 0
     def require(out, batch, **kwargs):
@@ -386,7 +400,7 @@ def test_actual_forecast_loss_backpropagates_only_observed_long_support_and_skip
     assert set(losses) == {'forecast_return_bps'}
     losses['forecast_return_bps'].backward()
     assert torch.equal(prediction.grad[:, 4:] != 0, batch[SUPPORT_FORECAST_VALID_BATCH_KEY])
-    assert bool((prediction.grad[:, :4] != 0).all())
+    assert torch.equal(prediction.grad[:, :4] != 0, batch[M5_FORECAST_VALID_BATCH_KEY])
 
 
 def test_path_phase_inactive_auxiliary_gradients_are_rejected():
@@ -414,6 +428,7 @@ def test_path_train_epoch_preserves_all_inactive_head_weights_and_ema(monkeypatc
             for original in loader:
                 batch = dict(original)
                 batch[observed.M5_PATH_BATCH_TARGET_KEY] = batch.pop('entry_observed_market_target_bps')
+                batch[M5_FORECAST_VALID_BATCH_KEY] = torch.ones(len(batch[observed.M5_PATH_BATCH_TARGET_KEY]), len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS), dtype=torch.bool)
                 batch['entry_observed_market_support_forecast_bps'] = torch.zeros(2, 6)
                 batch['entry_observed_market_support_forecast_valid'] = torch.zeros(2, 6, dtype=torch.bool)
                 yield batch
@@ -449,6 +464,7 @@ def test_path_epoch_diagnostics_do_not_read_legacy_labels_or_claim_missing_suppo
     index = torch.arange(count, dtype=torch.float32)
     target = torch.stack((index, -index, torch.zeros_like(index)), dim=1)
     batch = {observed.M5_PATH_BATCH_TARGET_KEY: target, 'entry_row_index': torch.arange(count),
+        M5_FORECAST_VALID_BATCH_KEY: torch.ones(count, len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS), dtype=torch.bool),
         SUPPORT_FORECAST_TARGET_BATCH_KEY: torch.zeros(count, 6),
         SUPPORT_FORECAST_VALID_BATCH_KEY: torch.zeros(count, 6, dtype=torch.bool)}
     batch.update({f'y_forecast_ret_K{h}': index + j for j, h in enumerate(FORECAST_HORIZONS)})
@@ -465,3 +481,166 @@ def test_path_epoch_diagnostics_do_not_read_legacy_labels_or_claim_missing_suppo
     forecast_metrics = metrics['active_head_diagnostics']['forecast']['components']['forecast_pred']
     assert forecast_metrics['unavailable_target_columns'] == list(range(4, 10))
     json.dumps(metrics, allow_nan=False)
+
+
+@pytest.mark.parametrize("fault", ["missing", "nonzero_masked", "no_observations"])
+def test_m5_forecast_mask_errors_never_create_observations_or_fake_loss(monkeypatch, fault):
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+        MODEL_NATIVE_FORECAST_OUTPUT_DIM,
+    )
+    batch = {name: torch.zeros(2) for name in MODEL_NATIVE_FORECAST_TARGET_COLUMNS}
+    batch[observed.M5_PATH_BATCH_TARGET_KEY] = torch.zeros(2, 3)
+    batch[SUPPORT_FORECAST_TARGET_BATCH_KEY] = torch.zeros(2, 6)
+    batch[SUPPORT_FORECAST_VALID_BATCH_KEY] = torch.zeros(2, 6, dtype=torch.bool)
+    if fault != "missing":
+        batch[M5_FORECAST_VALID_BATCH_KEY] = torch.zeros(2, len(MODEL_NATIVE_FORECAST_TARGET_COLUMNS), dtype=torch.bool)
+    if fault == "nonzero_masked":
+        batch[MODEL_NATIVE_FORECAST_TARGET_COLUMNS[0]][0] = 1.0
+    prediction = torch.zeros(2, MODEL_NATIVE_FORECAST_OUTPUT_DIM, requires_grad=True)
+    monkeypatch.setattr(trainer, '_require_active_aux_head_prediction', lambda out, batch, **kwargs: out['forecast_pred'])
+    marker = 'NO_OBSERVED_CELLS' if fault == 'no_observations' else 'M5_FORECAST_BATCH_INVALID'
+    with pytest.raises(RuntimeError, match=marker):
+        trainer.dip_forecast_task_losses({'forecast_pred': prediction}, batch, torch.device('cpu'))
+    assert prediction.grad is None
+
+
+@pytest.fixture
+def m5_physical_receipt(tmp_path, monkeypatch):
+    from gx1.contracts import entry_model_native_aux_targets_v3 as targets
+    from gx1.contracts import entry_causal_m1_outcomes_v1 as path
+    from gx1.contracts import entry_observed_market_horizons_v1 as hz
+    from gx1.features import gc_native_context_v1 as gc
+    from gx1.time.session_detector import m5_decision_availability
+
+    def prepare(fault=None):
+        train_times = pd.date_range("2025-05-01T00:00Z", periods=2, freq="5min")
+        registry = {"train_decision_rows": 2,
+            "train_decision_clock_sha256": hashlib.sha256(m5_decision_availability(train_times).asi8.astype("<i8").tobytes()).hexdigest()}
+        if fault == "registry_clock":
+            registry["train_decision_rows"] = 1
+        registry_binding = _write(tmp_path / "registry.json", registry)
+        monkeypatch.setattr(gc, "REGISTRY_PATH", registry_binding["path"])
+        monkeypatch.setattr(gc, "REGISTRY_SHA256", registry_binding["sha256"])
+        sources, manifests, frames = {}, {}, {}
+        for split, first, low, high in (
+            ("train", "2025-05-01T00:00Z", "2025-05-01T00:00:00Z", "2025-05-03T00:00:00Z"),
+            ("val", "2025-05-03T00:00Z", "2025-05-03T00:00:00Z", "2025-05-05T00:00:00Z"),
+        ):
+            frame = pd.DataFrame({name: np.zeros(2, np.float32) for name in trainer._MODEL_NATIVE_ACTIVE_TARGET_COLS})
+            frame["time"] = pd.date_range(first, periods=2, freq="5min")
+            for side, mfe in (("long", -1.), ("short", 5.)):
+                prefix = "y_" + side + "_m5_path_"
+                for suffix, value in (("mfe_bps", mfe), ("mae_before_first_mfe_lower_bps", 1.),
+                        ("mae_before_first_mfe_upper_bps", 2.), ("path_utility_bps", mfe - 2.), ("first_mfe_m1_offset", 0.)):
+                    frame[prefix + suffix] = value
+            frame[path.M5_PATH_VALID_COLUMN] = True
+            for j, (target, valid) in enumerate(zip(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS, targets.MODEL_NATIVE_FORECAST_VALID_COLUMNS)):
+                frame[target] = 0.0 if j == len(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS) - 1 else 1.0
+                frame[valid] = j != len(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS) - 1
+            for name in hz.HORIZON_LABEL_COLUMNS:
+                frame[name] = np.nan
+            # An actually observed zero return remains a valid support target.
+            for name in hz.GROSS_TARGET_COLUMNS_BY_HORIZON[1]:
+                frame[name] = 0.0
+            frame[hz.ELAPSED_COLUMN_BY_HORIZON[1]] = 86400.0
+            frame[targets.LEGACY_CAUSAL_M1_OBSERVED_COLUMN] = False
+            frame[targets.LEGACY_AUX_COMPLETE_COLUMN] = False
+            if split == "train":
+                if fault == "nonzero_masked": frame.loc[0, targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS[-1]] = 7.0
+                if fault == "observed_nonfinite": frame.loc[0, targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS[0]] = np.nan
+                if fault == "primary_false": frame.loc[0, path.M5_PATH_VALID_COLUMN] = False
+                if fault == "primary_utility": frame.loc[0, "y_long_m5_path_path_utility_bps"] = 9.0
+                if fault == "partial_support": frame.loc[0, hz.GROSS_TARGET_COLUMNS_BY_HORIZON[20][0]] = 0.0
+                if fault == "zero_elapsed": frame.loc[0, hz.ELAPSED_COLUMN_BY_HORIZON[1]] = 0.0
+                if fault == "missing_mask": frame = frame.drop(columns=[targets.MODEL_NATIVE_FORECAST_VALID_COLUMNS[-1]])
+            parquet = tmp_path / (split + ".parquet")
+            frame.to_parquet(parquet, index=False)
+            end = (pd.Timestamp(high) - pd.Timedelta(minutes=5)).isoformat()
+            window = {"start": pd.Timestamp(low).isoformat(), "end": end}
+            source = {"parquet": _bind(parquet), "physical_rows": len(frame), "declared_window": window,
+                "clock_sha256": hashlib.sha256(frame.time.array.asi8.astype("<i8").tobytes()).hexdigest()}
+            sources[split] = source
+            frames[split] = frame
+            manifests[split] = {"extra": {"rows": len(frame), "emission_scope": targets.M5_PRIMARY_OBSERVED_EMISSION_SCOPE,
+                "gc_native_context": gc.contract(), "diagnostic_outcome_policy_sha256": "a" * 64,
+                "m5_path_supervision": {"contract": observed.entry_observed_m5_path_contract(), "emitted_valid_rows": len(frame), "target_m1_source_sha256": "c" * 64},
+                "aux_head_target_contract": {**targets.model_native_aux_target_contract_metadata(emission_scope=targets.M5_PRIMARY_OBSERVED_EMISSION_SCOPE),
+                    "candidate_rows_before_primary_availability": len(frame), "primary_unavailable_candidate_rows_excluded": 0,
+                    "primary_valid_rows_emitted": len(frame), "legacy_causal_m1_observed_rows_emitted": 0,
+                    "legacy_aux_complete_rows_emitted": 0,
+                    "forecast_observed_rows_by_column": dict(zip(targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS, (2, 2, 2, 0)))}}}
+        windows = {key: source["declared_window"] for key, source in sources.items()}
+        for split, manifest in manifests.items():
+            manifest["splits"] = windows
+            sources[split]["manifest"] = _write(tmp_path / (split + ".manifest.json"), manifest)
+        row_bindings = {}
+        for key, rows in (("TRAIN_CALENDAR_PARENT_ROWS", [0, 1]), ("CONTROL256_PARENT_ROWS", [0])):
+            row_path = tmp_path / (key + ".npy")
+            np.save(row_path, np.array(rows, dtype=np.int64))
+            row_bindings[key] = _bind(row_path)
+        design = {"schema_version": "gx1_frozen_chronological_learning_design_v1",
+            "scope": {"entry_only_training_phase": observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE},
+            "calendar": {"source_bindings": sources, "physical_source_splits": {"train": "train", "control": "val"},
+                "physical_coordinate_namespaces_are_separate": True, "train_entry_start_inclusive": "2025-05-01T00:00:00Z",
+                "train_control_cutoff": "2025-05-03T00:00:00Z", "development_control_entry_end_exclusive": "2025-05-05T00:00:00Z",
+                "bindings": row_bindings, "control256": {"rows": 1}},
+            "selection": {"control_entries": 1}, "budget": {"later_control_entries": 1}}
+        design_binding = _write(tmp_path / "design.json", design)
+        receipt = {"schema_version": targets.M5_PHYSICAL_TARGET_BINDING_SCHEMA, "design": design_binding,
+            "registry": registry_binding, "training_phase": observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
+            "emission_scope": targets.M5_PRIMARY_OBSERVED_EMISSION_SCOPE, "test_accessed": False, "forbidden_access_attempts": []}
+        if fault == "phase": receipt["training_phase"] = "joint_fitted_q"
+        if fault == "test_access": receipt["test_accessed"] = True
+        if fault == "forbidden_access": receipt["forbidden_access_attempts"] = ["test"]
+        receipt_binding = _write(tmp_path / "receipt.json", receipt)
+        if fault == "changed_bytes":
+            target = Path(sources["train"]["parquet"]["path"])
+            target.write_bytes(target.read_bytes() + b"changed")
+        return sources, frames, design_binding, receipt_binding
+    return prepare
+
+
+@pytest.mark.parametrize("role,split,mask", [("TRAIN", "train", [True, True]), ("CONTROL256", "val", [True, False])])
+def test_actual_m5_physical_receipt_admits_primary_without_legacy_or_h20(m5_physical_receipt, role, split, mask):
+    sources, frames, design, receipt = m5_physical_receipt()
+    admitted, proof = trainer._physical_auxiliary_target_binding(frames[split],
+        parquet_path=Path(sources[split]["parquet"]["path"]), result_binding=receipt,
+        expected_design_sha256=design["sha256"], role=role)
+    assert admitted.tolist() == mask
+    assert proof["forecast_observed_cells"] == len(frames[split]) * (3 + 2)
+    assert proof["long_support_observed_cells_by_column"] == [2, 2, 0, 0, 0, 0]
+    assert proof["whole_train_registry_clock"]["exact_match"] is True
+    assert proof["targets_rewritten"] is False
+
+
+@pytest.mark.parametrize("fault", ["nonzero_masked", "observed_nonfinite", "primary_false", "primary_utility",
+    "partial_support", "zero_elapsed", "missing_mask", "phase", "test_access", "forbidden_access", "changed_bytes", "registry_clock"])
+def test_actual_m5_physical_receipt_rejects_invalid_cells_scope_and_bytes(m5_physical_receipt, fault):
+    sources, frames, design, receipt = m5_physical_receipt(fault)
+    with pytest.raises(RuntimeError):
+        trainer._physical_auxiliary_target_binding(frames["train"],
+            parquet_path=Path(sources["train"]["parquet"]["path"]), result_binding=receipt,
+            expected_design_sha256=design["sha256"], role="TRAIN")
+
+
+def test_new_m5_receipt_reaches_existing_dataset_binding_dispatch(m5_physical_receipt):
+    sources, frames, design, receipt = m5_physical_receipt()
+    dataset = SimpleNamespace(df=frames["train"].copy(), parquet_path=Path(sources["train"]["parquet"]["path"]), _advanced=True,
+        _policy_dependent_auxiliary_binding=None, _policy_dependent_auxiliary_bound_rows=None)
+    trainer.EntryV10CtxDataset.bind_policy_dependent_auxiliary_targets(dataset,
+        result_path=Path(receipt["path"]), expected_result_sha256=receipt["sha256"],
+        expected_design_sha256=design["sha256"], role="TRAIN")
+    assert dataset._policy_dependent_auxiliary_binding["training_phase"] == observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    assert dataset._policy_dependent_auxiliary_bound_rows.tolist() == [True, True]
+    pd.testing.assert_frame_equal(dataset.df, frames["train"])
+
+
+def test_actual_m5_receipt_rejects_target_frame_changed_after_parquet_load(m5_physical_receipt):
+    sources, frames, design, receipt = m5_physical_receipt()
+    changed = frames["train"].copy()
+    changed.loc[0, MODEL_NATIVE_FORECAST_TARGET_COLUMNS[0]] += 1.0
+    with pytest.raises(RuntimeError, match="M5_PHYSICAL_TARGET_VALUES_MISMATCH"):
+        trainer._physical_auxiliary_target_binding(changed,
+            parquet_path=Path(sources["train"]["parquet"]["path"]), result_binding=receipt,
+            expected_design_sha256=design["sha256"], role="TRAIN")
