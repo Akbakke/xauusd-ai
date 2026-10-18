@@ -83,7 +83,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Prepare existing direct-pretest native M5 raw feature route007 after closed failure006. GC/target/publication code complete; no native epoch started.",
+    "current_activity": "M5 stage007 complete; prepare fresh native M1 stage008 using full newly rebuilt shared M5 cache. No new native training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -116,8 +116,8 @@
     "latest_terminal_role": "Failed legacy raw pair stage006, consumed; new direct-pretest feature stage007 uses the existing suitable route.",
     "runtime_root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006/TERMINAL.json",
-      "sha256": "9ea36e5a7b2101ba32be1567b30b0b629d13d34aa87b37f6ae71c1c39b471dc3"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_007/TERMINAL.json",
+      "sha256": "92c23683965c22c8eb345d4756fc6fa894579ef276c1423523e7e95ee4c0dc4b"
     },
     "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
@@ -9458,7 +9458,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "FRESH_PRETEST_M5_FEATURE_REBUILD_CLAIMED__NATIVE_EPOCH_PENDING",
+      "status": "FRESH_M5_NATIVE_FEATURES_COMPLETE__M1_AND_DATASET_PENDING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9501,7 +9501,7 @@
         "Full footprint lattice is not directly ingested by the native model; summaries are used"
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006/TERMINAL.json",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_007/TERMINAL.json",
       "completed_invocations": 0,
       "split_windows": {
         "train": [
@@ -9553,7 +9553,7 @@
         "footprint_native_representation": "Existing per-timeframe footprint/profile/flow/SMC summaries. No claim that the summaries preserve every price-bin interaction."
       },
       "known_publication_clock_repair": {
-        "status": "IMPLEMENTED_UNIT_CHECKED_REAL_PARSE_PENDING",
+        "status": "REAL_M5_PARSE_COMPLETE__VINTAGES_UNQUALIFIED",
         "source": "https://www.cftc.gov/PressRoom/PressReleases/9147-25",
         "calendar": {
           "path": "configs/research/CFTC_COT_PUBLICATION_CLOCK_20261018_001.json",
@@ -9590,11 +9590,28 @@
         "failure": "GX1_V10_MULTI_TF_V4_CACHE_DIR_REQUIRED in legacy full-pair constructor; no pair published"
       },
       "m5_feature_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "COMPLETE_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_M5_FEATURES_20261018_007.json",
         "plan_sha256": "3709259458227ddec036f1c0591d9497415798a3ace7f8b3b221bc20ff4fdba2",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_007",
         "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_002",
+        "claimed_invocations": 1,
+        "completed_invocations": 1,
+        "execution_authorized": false,
+        "relaunch_allowed": false,
+        "native_epoch_authorized_by_this_stage": false,
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_M5_FEATURES_20261018_007/TERMINAL.json",
+          "sha256": "92c23683965c22c8eb345d4756fc6fa894579ef276c1423523e7e95ee4c0dc4b"
+        },
+        "elapsed_seconds": 2233.4070106709987,
+        "source_at_execution": "a487f04439f2a39c4552466f906872f49bf15577"
+      },
+      "m1_feature_stage": {
+        "status": "EXECUTION_CLAIMED",
+        "plan_path": "configs/research/NATIVE_GC_M1_FEATURES_20261018_008.json",
+        "plan_sha256": "63df07047ecd7f3f11831e27f6dd0a840526ef8fea405362d31bbd61c156e172",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_M1_FEATURES_20261018_008",
         "claimed_invocations": 1,
         "completed_invocations": 0,
         "execution_authorized": false,

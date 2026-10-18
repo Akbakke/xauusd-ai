@@ -33,7 +33,9 @@ price grid is preserved, while native inputs use summary/profile/flow/SMC
 fields; full price-grid neural ingestion is not implemented or claimed.
 No native epoch started yet.
 
-Next: execute fresh pre-July M5 feature stage007 (claimed once, launch pending),
+M5 stage007 COMPLETE, consumed once in2233.407s at sourcea487f044.
+Fresh enriched/MTF cache/model source published; no dataset/epoch yet.
+Next: execute fresh native M1 stage008 (claimed once, launch pending),
 then native feature ownership and explicit
 availability; fresh XAU/MTF/M1 rebuild, corrected h20/publication qualification,
 whole physical TRAIN normalization, fresh native initialization/baseline/parity,
@@ -74,3 +76,8 @@ existing-route M5 feature/cache/model-source rebuild; explicit raw manifests
 contain quotes only. Source/candidate dimensional and physical gates remain.
 M5 keeps full history for shared M1 context; M1 output is bounded only after
 long-memory owners have consumed full raw history and before adding GC storage.
+
+M1 stage008 uses only stage007 bound artifacts and original pre-July raw M1.
+Full shared M5 history is retained; output support is bounded after causal
+long-memory M1 owners finish. Existing capped producer20G, no source edits
+during execution. No native epoch authority is granted by this feature stage.
