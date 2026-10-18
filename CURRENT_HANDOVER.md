@@ -63,13 +63,21 @@ BBO-state, T-volum og observerte ordreantall har egne dokumenterte domener.
 Kilder og eksplisitt behandling er i
 `configs/research/GC_VENDOR_SOURCE_INCIDENTS_20261018_001.json`.
 
-024forberedes hos eksisterende eiere: gjenbruk de30hashbundne råreduksjonene,
-bevis gammel maskert populasjon/roll/prisnivåside-rader eksakt, gjenopprett
-T-/BBO-data, gjør ett målrettet eventpass og anvend samme kvalitetsbehandling
-på både nye felt og alle210gamle registrydeklarasjoner. T-sidetall,
-sidemiddel og størrelsens standardavvik/min/maks tas i det samme råpasset.
-Kartet deklarerer nå995kandidater,199perTF; dette er ingen fysisk admission.
-Full rå semantisk oversikt er bundet i024rotens AUDIT/RAW_SEMANTIC_COVERAGE.json.
+024er COMPLETE/konsumert etter1202.084s, exit0, uendret kilde og TEST=false.
+Alle66råfiler/892100712records ble behandlet. Samme30hashbundne råreduksjoner
+ble brukt; gamle handels-/bokreduksjoner, alle9173893originale prisnivåside-rader
+og019eventstats på opprinnelig gyldig populasjon er eksakt kontrollert.
+Ingen T deduplisert. PTPsensur ga17overlappende volumbøtter og18bok/eventbøtter.
+Netto etter sensur:78305M1 og25059620kontrakter gjenopprettet. Strict komplett
+volum/profil M5/M15/H1/H4/D1 er nå151773/50074/12145/2445/0bøtter.
+
+Nye T-sidetall/sidemiddel og total størrelsesstandardavvik/min/maks er fysisk
+publisert med eksakt uint64antall/volumparitet før minuttsensur. Alle995nye
+kandidater,199perTF, er deklarert i publiserte024tabeller; endelig TRAINstøtte
+og felttall bestemmes i025. Alle210gamle registrydeklarasjoner er rebindet til
+samme reparerte kilder. Full rå semantisk oversikt er i024/AUDIT.
+025er en ny engangsplan for TRAIN-only registry, med faktisk024terminal og
+alle tabellhashene bundet. Hele109507TRAINtime+5min brukes, ingen labels/VAL/TEST.
 
 558unike fokuserte tester er nå bestått etter målrettet feilretting. Alle
 opprinnelige feilrapporter består; siste resultat per case er sammenstilt i024s
@@ -79,13 +87,13 @@ til faktisk M5-populasjon, mens gamle ruter beholder sine kontrakter. M5-
 normalisering bruker eksisterende diskbaserte loader med300s-klokke; eksakt
 in-memory-paritet, kildehash, fremtidsisolasjon og publiseringsvern er testet.
 Dette er kildekontroller, ingen fysisk modell- eller alpha-kvalifisering.
-024er claimet for én capped datainvokasjon etter ren commit; trening er lukket.
+024er konsumert.025er claimet for én capped TRAIN-only registryfit; trening er lukket.
 
 ## Neste steg
 
-1. Commit ren kilde og bind den claimede, ferske024invokasjonen.
-   Audit4G/swap512M, fire råeventworkers,1800s og64MiB profilstate; ingen trening.
-2. Etter fysisk024kvittering: bygg endelig TRAIN-only registry på hele
+1. Bind og kjør den claimede025registryfitten etter ren commit, audit4G/512M.
+   Ingen råpass eller trening.024relanseres ikke.
+2. Bygg endelig TRAIN-only registry på hele
    beslutningsklokken, uten labels/VAL/TEST. Bruk024s reparerte retainedbindinger.
    Ingen hardkodet1130grense. Ny fysisk TRAIN må matche klokke, ellers refit.
 3. Aktiver endelig registry, bygg ny003M5/M1/TF-cache og M5-path-datasett.
