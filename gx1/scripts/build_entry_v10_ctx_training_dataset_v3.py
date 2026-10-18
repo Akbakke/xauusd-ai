@@ -3349,6 +3349,94 @@ def _align_native_m5_feature_surface(
     return {name: values[window] for name, values in surface_arrays.items()}
 
 
+def _trim_dataset_context_warmup(
+    frame: pd.DataFrame, required_columns: Sequence[str],
+) -> pd.DataFrame:
+    """Keep the causal trim owner's exact rows without copying the wide data."""
+    from gx1.scripts.augment_forward_outcome_v2 import trim_causal_context_warmup_prefix
+
+    trimmed = trim_causal_context_warmup_prefix(frame, list(required_columns)).copy(deep=False)
+    # The shallow metadata copy also leaves the caller's index unchanged when
+    # the owner returns the original frame (there was no unavailable prefix).
+    trimmed.reset_index(drop=True, inplace=True)
+    return trimmed
+
+
+def _require_finite_matrix_bounded(
+    values: np.ndarray, *, error: str,
+    batch_rows: int = _MODEL_NATIVE_STREAMING_BATCH_SIZE,
+) -> None:
+    """Check every actual cell, bounded by the existing dataset write batch."""
+    if type(batch_rows) is not int or batch_rows <= 0:
+        raise RuntimeError("MODEL_NATIVE_FINITE_BATCH_INVALID")
+    for start in range(0, len(values), batch_rows):
+        if not np.isfinite(values[start:start + batch_rows]).all():
+            raise RuntimeError(error)
+
+
+def _dataset_arrow_batch(frame: pd.DataFrame, *, schema=None):
+    """Preserve the legacy nested-double schema without Python float lists.
+
+    Native feature cells are finite, fixed-shape ndarrays. Only scalar labels
+    may be missing. Arrow wraps the typed buffers; each source value is copied
+    directly into its final Arrow buffer, never through a Python float object.
+    """
+    import pyarrow as pa
+
+    types = {"seq": pa.list_(pa.list_(pa.float64())), "snap": pa.list_(pa.float64()),
+             "ctx_cont": pa.list_(pa.float64()), "ctx_cat": pa.list_(pa.int64())}
+    if frame.empty or any(name not in frame for name in types):
+        raise RuntimeError("MODEL_NATIVE_ARROW_NATIVE_CELLS_INVALID")
+    # Only this tiny object/scalar scaffold goes through pandas inference.
+    # Its four null list columns supply the SAME object-dtype pandas metadata
+    # as the former .tolist columns; all four are replaced before publication.
+    metadata_frame = frame.copy(deep=False)
+    for name in types:
+        metadata_frame[name] = None
+    if schema is None:
+        scalar_schema = pa.Schema.from_pandas(frame.drop(columns=list(types)), preserve_index=False)
+        schema_for_metadata = pa.schema([
+            pa.field(name, types[name]) if name in types else scalar_schema.field(name)
+            for name in frame.columns
+        ])
+    else:
+        schema_for_metadata = schema
+    table = pa.Table.from_pandas(metadata_frame, schema=schema_for_metadata,
+                                preserve_index=False, safe=schema is None)
+    for name, arrow_type in types.items():
+        cells = frame[name].to_numpy(copy=False)
+        first = np.asarray(cells[0])
+        rank = 2 if name == "seq" else 1
+        if first.ndim != rank or any(size <= 0 for size in first.shape):
+            raise RuntimeError("MODEL_NATIVE_ARROW_NATIVE_CELLS_INVALID:" + name)
+        shape = first.shape
+        dtype = np.int64 if name == "ctx_cat" else np.float64
+        values = np.empty((len(cells), *shape), dtype=dtype)
+        for row, cell in enumerate(cells):
+            source = np.asarray(cell)
+            if (source.shape != shape or source.dtype.kind not in (
+                    "iu" if name == "ctx_cat" else "f") or not np.isfinite(source).all()):
+                raise RuntimeError("MODEL_NATIVE_ARROW_NATIVE_CELLS_INVALID:" + name)
+            values[row] = source
+        flat = values.reshape(-1)
+        if flat.size > np.iinfo(np.int32).max:
+            raise RuntimeError("MODEL_NATIVE_ARROW_LIST_OFFSET_OVERFLOW:" + name)
+        leaf = pa.array(flat, type=pa.int64() if name == "ctx_cat" else pa.float64())
+        if name == "seq":
+            inner_offsets = np.arange(len(cells) * shape[0] + 1, dtype=np.int32) * shape[1]
+            inner = pa.ListArray.from_arrays(inner_offsets, leaf)
+            offsets = np.arange(len(cells) + 1, dtype=np.int32) * shape[0]
+            column = pa.ListArray.from_arrays(offsets, inner)
+        else:
+            offsets = np.arange(len(cells) + 1, dtype=np.int32) * shape[0]
+            column = pa.ListArray.from_arrays(offsets, leaf)
+        if column.type != arrow_type or table.schema.field(name).type != arrow_type:
+            raise RuntimeError("MODEL_NATIVE_ARROW_NATIVE_TYPE_DRIFT:" + name)
+        index = table.schema.get_field_index(name)
+        table = table.set_column(index, table.schema.field(name), column)
+    return table
+
+
 def _dataset_summary_batch(frame: pd.DataFrame) -> pd.DataFrame:
     """Retain scalar summaries in columns, preserving legacy Python-scalar inference.
 
@@ -4191,7 +4279,6 @@ def build_dataset_canonical(
     # make TRAIN and SERVE history semantics depend on an external build.
     from gx1.scripts.augment_forward_outcome_v2 import (
         attach_group_a_ctx_columns_parallel as _attach_group_a,
-        trim_causal_context_warmup_prefix as _trim_context_warmup,
     )
     from gx1.features.htf_features import load_multi_tf_v4_cache as _ga_load_cache
 
@@ -4298,13 +4385,15 @@ def build_dataset_canonical(
     _gc_present = [name for name in _gc_context.CONTEXT_FIELDS if name in merged3.columns]
     if _gc_present and len(_gc_present) != len(_gc_context.CONTEXT_FIELDS):
         raise RuntimeError('NATIVE_GC_CONTEXT_PARTIAL_SOURCE')
+    _values = None
     for _name in _gc_context.CONTEXT_FIELDS:
         _values = _gc_frame[_name].to_numpy(np.float32)
         if _gc_present and not np.array_equal(merged3[_name].to_numpy(np.float32), _values):
             raise RuntimeError('NATIVE_GC_CONTEXT_PARITY:' + _name)
         if not _gc_present:
             merged3[_name] = _values
-    del _gc_frame
+    # A final Series view can otherwise keep the entire GC matrix alive.
+    del _values, _gc_frame
     _d1_present = [name for name in _d1ctx.D1_MACRO_CONTEXT_FIELDS if name in merged3.columns]
     if _d1_present and len(_d1_present) != _d1ctx.D1_MACRO_CONTEXT_DIM:
         raise RuntimeError(f"D1_MACRO_CONTEXT_PARTIAL_SOURCE: {len(_d1_present)} of {_d1ctx.D1_MACRO_CONTEXT_DIM}")
@@ -4347,7 +4436,7 @@ def build_dataset_canonical(
         )
     )
     _rows_before_context_trim = len(merged3)
-    merged3 = _trim_context_warmup(merged3, _causal_required).reset_index(drop=True)
+    merged3 = _trim_dataset_context_warmup(merged3, _causal_required)
     # V30 wave 2 (2026-08-18): the fourteen SWING_V29 names used to be listed
     # above, as ctx columns with an honest NaN prefix. They are no longer ctx
     # contract fields, so they are no longer joined onto this frame and cannot
@@ -4486,10 +4575,8 @@ def build_dataset_canonical(
                 f"expected={expected_seq_snap_width} observed={observed_seq_snap_width} "
                 f"manifest={seq_structure_meta.get('manifest_path')}"
             )
-    if not np.isfinite(sig_mat).all():
-        raise RuntimeError("MODEL_NATIVE_SIGNAL_NONFINITE")
-    if not np.isfinite(ctx_cont_mat).all():
-        raise RuntimeError("MODEL_NATIVE_CTX_CONT_NONFINITE")
+    _require_finite_matrix_bounded(sig_mat, error="MODEL_NATIVE_SIGNAL_NONFINITE")
+    _require_finite_matrix_bounded(ctx_cont_mat, error="MODEL_NATIVE_CTX_CONT_NONFINITE")
     if not np.isfinite(ctx_cat_mat.astype(np.float64)).all():
         raise RuntimeError("MODEL_NATIVE_CTX_CAT_NONFINITE")
 
@@ -5151,15 +5238,7 @@ def build_dataset_canonical(
     # accumulate-then-DataFrame pattern OOM'd at ~14 GB on full 311k rows because
     # 96-bar × 37-feature seq + ctx + labels per row × 311k rows ~= 25 GB DataFrame
     # in the 16 GB sandbox.
-    import pyarrow as _pa
     import pyarrow.parquet as _pq
-
-    def _to_list(x):
-        if hasattr(x, "tolist"):
-            return x.tolist()
-        if isinstance(x, (list, tuple)):
-            return [_to_list(v) for v in x]
-        return x
 
     emitted_time_index = pd.DatetimeIndex(
         pd.to_datetime(times, utc=True, errors="raise")
@@ -5232,23 +5311,14 @@ def build_dataset_canonical(
         if not rows_batch:
             return
         df_b = pd.DataFrame(rows_batch)
-        df_b["seq"] = df_b["seq"].apply(_to_list)
-        df_b["snap"] = df_b["snap"].apply(_to_list)
-        df_b["ctx_cont"] = df_b["ctx_cont"].apply(_to_list)
-        df_b["ctx_cat"] = df_b["ctx_cat"].apply(_to_list)
         if streaming_active:
+            table = _dataset_arrow_batch(df_b, schema=pq_schema)
             if pq_schema is None:
-                table = _pa.Table.from_pandas(df_b, preserve_index=False)
                 pq_schema = table.schema
                 pq_writer = _pq.ParquetWriter(
                     str(output_path), pq_schema, compression="snappy"
                 )
-                pq_writer.write_table(table)
-            else:
-                table = _pa.Table.from_pandas(
-                    df_b, schema=pq_schema, preserve_index=False, safe=False
-                )
-                pq_writer.write_table(table)
+            pq_writer.write_table(table)
         # Keep scalar columns, not one growing Python dictionary per output row.
         summary_batches.append(_dataset_summary_batch(df_b))
         total_written += len(df_b)

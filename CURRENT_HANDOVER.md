@@ -50,27 +50,33 @@ står ved lag etter alle eksisterende admissionporter. Trening er fortsatt steng
   Dette er publiserte komponenter, fortsatt ingen fysisk TRAIN/VAL- eller
   modellinputadmission.
 
-## Aktuell hindring:034overlapaudit
+## Aktuell hindring:039minnetopp i fysisk datasetbygg
 
-034 avsluttet18.10 18:22:27UTC med exit1,2830.055s, uendret kilde og TEST=false.
-Den feilet før fysisk datasetbygg ved `05_train_val_dataset`. Original
-`ENTRY_CROSS_SURFACE_INPUT_OVERLAP_20261018T181354616170Z.json` viser:
+039 er konsumert med terminalFAILED_NO_ADMISSION18.10 kl20:37:40UTC,
+3234.480s, kilde uendret, builderexit137. Ingen039prosess lever. Start aldri039
+på nytt. Begge ferske SMC-projeksjoner er ferdige:1110839M1-/1140763M5rader.
+Den uttømmende strictv5overlapauditen består: alle12SMC-aliaspar er eksakte,
+31geometripar har ulike faktiske parametre og er genuine, alle94gamle
+konstantkollisjoner er kilde-/maskebeviste diagnostikker. Ingen ekte feature
+er fjernet. Gjenbruk faktiske039outputs og beståtte bevis.
 
--43deklarerte lokale/MTF-aliaspar er ikke eksakt like i Entryruten.
--48uventede eksakte aktive duplikatpar i Entryruten.
--46uventede eksakte duplikatpar i den fysiske M1-ruten.
+Fysisk TRAIN/VAL ble ikke publisert. Siste logg er D1attach; neste warmuplogg
+mangler. Mellom dem gjør pandas reset_index en dyp kopi/konsolidering av
+hele den brede rammen. Bare2410GCkolonner er1.688GiB per kopi. Kernel viser
+MEMCG-OOM, men kernelPID er ikke direkte bundet til observert UbuntuPID;
+den eksakte maskininstruksjonen er ikke bevist. Kildebeviste senere topper er
+hele boolmatriser og512x96x2725Pythonfloat-lister før Arrow. Minste rettelse
+bevarer eksakte rader, schema, verdier, alle guards og eksisterende minnecap:
+nullstill trimmet indeks uten datakopi, frigjør sisteGCvisning, kontroller
+finiteverdier uttømmende i batcher og skriv typede Arrowarrays.
 
-Årsakene er målt:31geometripar bruker ulike tilpassede vinduer/bånd og er
-begge genuine;12SMC-par bruker ulik ATR-presisjon (11mandatoryfelt og én
-BASEkolonne). Alle94uventede par er konstantkollisjoner mellom kildebevist
-D1session_change_flag=0 og genuine GC-felt/masker. Rettelsen krever faktisk
-parameterbinding, samme eksisterende float64-SMC-eier og dokumentert GC-
-observasjon/D1-domene. Andre eksakte duplikater og aliasfeil forblir fatale.
-Ingen ekte feature fjernes. Bevar alle034outputs/kvitteringer.032/034 er konsumert og relanseres
-ikke. Etter minste begrunnede rettelse trengs ny navngitt fysisk plan som
-bare gjenbruker bytes med bevist funksjon-/kontraktevivalens. Rankerens
-ctx-only kandidatmatrix berøres ikke av lokal SMC. De berørte M1/M5-
-projeksjonsverdiene må publiseres på nytt;022/026-råforeldrene beholdes.
+041fokusert kvalifisering består:33PASS/0feil,18.831s, uendret kilde.
+Den viser eksakte rader/verdier/schema, siste finitebatch og ctx-only
+rankerevivalens; full fysisk minnetopp er fortsatt ikke målt. En ny unik042
+dataset-only-plan gjenbruker039komponentene etter eksakte rene bindinger. Bevar
+039terminal, originaler og checkpoints.022/026/cache/cascade/ranking og
+039signal/projeksjoner/strictv5PASS gjenbrukes bare med eksakte bindinger.
+Ingen ny modellfit, ingen kapasitetsutvidelse eller nativeadmission her.
 
 ## Entry-kurver og native kjede
 
@@ -126,23 +132,22 @@ fra boot og må kontrolleres før neste relevante kjøring.
 
 ## Neste steg
 
-1. 036/038 har kvalifisert de berørte kilde-/fixturefunksjonene. Bind039 til
-   ren commit og eksakte plan/policy/controller/input-bevis før unik claim.
-   Dette er konsistens, ikke fysisk modellinput-/læringsadmission.
-2. Bind ny unik039 fysisk videreføringsplan til uendrede022/026/cache/cascade
-   og bevist uendret034ranking. Fersk signalmetadata og berørte M1/M5-
-   projeksjoner, strictv5audit og faktisk TRAIN/VAL. Ingen gammel027fixed95-/
-   032-/034-/037relansering.039 er autorisert én gang etter036/038/040
-   og eksakte rene kildebindinger.
-3. Mål faktisk ny fysisk TRAINklokke. Gjør fersk wholeTRAINregistryfit og
-   bevis effektiv verdi-/rolle-/maske-/evaluator-ekvivalens før immutable
-   metadata etterfølges. Ingen blind SHA-utskifting eller svekket klokkegard.
+1. 041har kvalifisert minste minnekorreksjon med33beståtte kontroller.
+   Gjenbruk uendrede beståtte036/038kontroller.
+2. Ny unik042 er klar etter041: bind ren commit/policy/plan/controller/
+   validator og start én gang. Direkte eksisterende builderCLI gjenbruker
+   faktiske039signal/M1/M5/strictv5PASS via SHA og uendrede guardeiere.
+   Bare capped preflight, friske TRAIN_VAL_042 og rekonstruksjon kjøres.
+  10Gbuilder/4Ggates beholdes.039 er konsumert og relanseres aldri.
+3. Mål faktisk fysisk TRAINklokke, gjør fersk wholeTRAINregistryfit og bevis
+   effektiv verdi-/rolle-/maske-/evaluator-ekvivalens før nye immutable
+   kontrakter. Ingen blind SHA-utskifting eller svekket klokkegard.
 4. Normaliser hele fysisk TRAIN én gang. Bevis fersk ONLINE=TARGET=EMA0,
    hele feature-/MTF-konsumet, paritet, Entry-only optimizer/resume og ekte
    valgte/avståtte LONG/SHORT/FLAT-funksjoner med kvalitets- og dekningsspor.
 5. Bind faktisk N/ordre og ceil(N/16), behold siste delbatch og tren nøyaktig
-   én epoke med varige checkpoints først etter ferske kildescope-/input-/mål-/
-   baseline-/maskinvareporter. Stopp før VAL/lærerrefresh/ny epoke.
+   én epoke med varige checkpoints etter gjeldende admission. Stopp før
+   VAL/lærerrefresh/ny epoke.
 
 Fysisk TRAIN/VAL, ny registryfit, normalisering, aktuell Transformerlæring,
 generalisering og nettoøkonomi er fortsatt ufullført. AlltidFLAT beviser ikke
