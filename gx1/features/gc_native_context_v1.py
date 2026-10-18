@@ -14,8 +14,8 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 SCHEMA_VERSION = 'gx1_native_gc_context_v1'
-REGISTRY_PATH = 'configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_025.json'
-REGISTRY_SHA256 = 'd2210dae945c9a43dfdf2aff15f4362563b566ba3c7ebaf3f29d9817201dd3ca'
+REGISTRY_PATH = 'configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_049.json'
+REGISTRY_SHA256 = '3e444777099a848cd8795688b57a19122d1ac5454f42902a3495e64aad73a757'
 
 
 def _stream_sha256(path):

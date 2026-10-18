@@ -50,7 +50,7 @@ står ved lag etter alle eksisterende admissionporter. Trening er fortsatt steng
   Dette er publiserte komponenter, fortsatt ingen fysisk TRAIN/VAL- eller
   modellinputadmission.
 
-## Aktuell status: fysisk datasett ferdigstilt, actualTRAINregistry neste
+## Aktuell status: fysisk datasett og actualTRAINregistry ferdige
 
 047 er konsumert og har terminal23:07:28UTC,2745.563s, uendret kilde.
 Eksakt kildegjenbruk bestod; datasetbuilder exit0 etter1668.370s. Fysisk
@@ -75,13 +75,30 @@ publiserte filer og8gjenbrukte inputs er forseglet, inkludert101checkpointfiler.
 Ingen datasett ble bygget om. 048RESULT/TERMINAL binder faktisk
 MATERIALIZED_PENDING_INPUT_ADMISSION; 047s feilkvittering er bevart urørt.
 
-Ny049 forberedes for fersk wholeTRAINregistryfit på alle118249fysiske rader
-før noen task-/horisontmasker. Bare tidskolonnen leses; eksisterende eier
-beregner beslutningsklokken og samme995kandidater+210retainedseed fra024/025.
-Alle1205ordnede verdifelt, observasjonsmasker og effektive evaluator-/rolle-/
-lagringssignaturer må være identiske. Nye fitdiagnostikker/konstanter beholdes;
-ingen uobserverte felt eller aliaser får skjules. Nytt immutable registry er
-fortsatt ingen modellinput-/treningsadmission.
+049 bestod23:45:03UTC,73.684s, exit0 og uendret kilde. Fersk registryfit
+brukte alle118249fysiske TRAINrader før task-/horisontmasker, bare tidskolonnen
+fra datasettet. Første/siste beslutning:2024-05-01T00:05 og2025-12-31T21:55UTC.
+BeslutningsklokkeSHA6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca.
+210retainedseed+995kandidater gir1205genuine verdifelt med samme ordnede
+masker, eiere, kilder, formler, roller og lagringssemantikk.0uobserverte,
+0formelaliaser,30observerte konstanter beholdt. Eksisterende fit-/evaluator- og
+klokkeeierkode er bevist identisk med025. Nytt registry er immutable publisert
+i049/ADMISSION. Eksakte bytes er kopiert til ny immutable config049; bare
+GC-eierens REGISTRY_PATH/SHA256 er endret. Alle andre modul-AST-noder er like.
+Aktive kildekonstanter peker til049; gamle sidecars er fortsatt originalprovenans.
+
+Ny050 forbereder gjeldende signalmanifest og M1/M5sidecars via eksisterende
+eiere, med harde lenker til uendrede039Parquetbytes i fersk SURFACES_050.
+022/026/sharedfeaturekontrakten er uendret og trenger ingen rebuild. Fornyet
+rankerbevis merker GC-eierens pointer som NÅDD metadata med målt049-
+evaluatorekvivalens; den kalles ikke lenger en uendret/unådd kildefil.
+
+Fersk eksisterende v5overlapaudit er påkrevd:039rapporten binder gamle signal-/
+flatebaner og025registrySHA i konstantevidensen.050 gjør derfor faktisk ny
+verdi-/maske-/domenehashkontroll med samme4G/512M/batch4096, ingen ny feature-
+eller modellberegning. Signalfilnavnets UTC genereres rett før eksisterende
+produsentkall innen fryst, eksakt mal/namespace; dens300sekunders klokkevakt
+beholdes. 050 gir ikke current fysisk splitmetadata eller inputadmission.
 
 044s målte brede GCkopier er løst i gjeldende kode: owner-avledet22kolonners
 arbeidsramme og feltvis GCparitet, alle faktiske modellkanaler bevart.
@@ -141,11 +158,11 @@ fra boot og må kontrolleres før neste relevante kjøring.
 
 ## Neste steg
 
-1. Fullfør/revider049worker og bind én fersk existing-owner wholeTRAINregistryfit.
-   Ingen025/047/048relansering, ingen rebuild eller endring av originalkvitteringer.
-2. Mål faktisk fysisk TRAINklokke for alle118249rader før taskmasker.
-   Bevis effektiv verdi-/rolle-/maske-/evaluator-ekvivalens og publiser nye
-   immutable kontrakter før inputadmission. Ingen blind SHA-utskifting.
+1. Revider/bind/kjør050 én gang fra ren kilde: gjeldende signal- og M1/M5-
+   metadata ved harde lenker samt faktisk ny eksisterende v5overlapaudit.
+   Alle opprinnelige bytes og kvitteringer bevares.
+2. Bevis end-to-end gjeldende kontrakt- og wholeTRAINklokkebinding før
+   inputadmission. Ingen blind SHA-utskifting, gammel fit eller relansering.
 3. Normaliser hele fysisk TRAIN én gang. Bevis fersk ONLINE=TARGET=EMA0,
    hele feature-/MTF-konsumet, paritet, Entry-only optimizer/resume og ekte
    valgte/avståtte LONG/SHORT/FLAT med kvalitets- og dekningsspor.
@@ -153,7 +170,8 @@ fra boot og må kontrolleres før neste relevante kjøring.
    én epoke med varige checkpoints etter gjeldende admission. Stopp før
    VAL/lærerrefresh/ny epoke.
 
-Fysisk datasett er ferdigstilt. Ny registryfit, normalisering, aktuell Transformerlæring,
+Fysisk datasett og ny registryfit er ferdigstilt. Gjeldende metadatabinding,
+normalisering, aktuell Transformerlæring,
 generalisering og nettoøkonomi er fortsatt ufullført. AlltidFLAT beviser ikke
 selektivitet. Gatevekter alene er ingen årsaksforklaring. MBP-1 viser BBO,
 ikke L2/MBOordreidentitet; rå prisgrid bevares, modellen bruker deklarerte

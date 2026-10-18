@@ -107,13 +107,18 @@ med eksakt uint64-/volum-/antallsparitet. Netto etter PTPsensur er78305M1 og
 25059620kontrakter gjenopprettet. Alle210gamle registrydeklarasjoner er også
 rebindet til samme reparerte tabeller.
 
-025er COMPLETE: alle995nye+210gamle felt har genuine observasjoner på den
-opprinnelige hele fysiske TRAIN-beslutningsklokken med109507rader, uten labels/
-VAL/TESTfit. Registryen har1205verdier+1205masker,30observerte konstanter,
-0uobserverte felt og0formelaliaser. Den er aktivert i eksisterende nativekilde,
-men kvalifiserer ikke klokken til et nytt dynamisk fysisk M5-datasett. Fersk
-whole-TRAIN-fit skal bruke faktisk emittert klokke, ikke anta samme antall.
-Originalkvitteringer og025s gamle populasjonsbevis omskrives ikke.
+025s opprinnelige109507TRAINrader er bevart som produksjonsprovenans.
+048ferdigstilte faktisk dynamisk TRAIN118249/VAL17284 etter begge uttømmende
+seq/snap-kilderekonstruksjoner.049gjorde fersk registryfit på alle118249TRAIN-
+beslutninger før taskmasker, uten outcomes/VAL/TEST. Alle995nye+210gamle felt
+har genuine observasjoner:1205verdier+1205masker,30observerte konstanter,
+0uobserverte og0formelaliaser. Ordnet verdi-/maske-/eier-/kilde-/formel-/rolle-/
+lagringsekvivalens er målt mot025; bare diagnostisk fitklokke/statistikk endres.
+Ny immutable config049 og kun GC-eierens REGISTRY_PATH/SHA256 aktiverer dette;
+alle andre modul-AST-noder er identiske. Ferske gjeldende signal-/flate-/split-
+metadata og input-/normaliseringsadmission gjenstår;050 forbereder signal,
+M1/M5hardlinkmetadata og faktisk ny existing-owner v5overlapaudit.
+Originalkvitteringer, datasettbytes og025s gamle populasjonsbevis omskrives ikke.
 
 022M5/cache/model-source og026M1 er fysisk COMPLETE, exit0, uendret kilde og
 TEST=false.022publiserte1140982M5rader/2576enrichedkolonner og

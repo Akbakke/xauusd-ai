@@ -1,0 +1,51 @@
+{
+  "schema_version": "gx1_current_gc_surface_binding_v1",
+  "execution_ready": true,
+  "plan_id": "NATIVE_GC_CURRENT_SURFACE_BINDING_20261018_050",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_SURFACE_BINDING_20261018_050",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "created_utc": "2026-10-18T23:52:01.529960+00:00",
+  "run_id": "XAU_GC_NATIVE_26M_20261018_003",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003",
+  "one_shot_invocations": 1,
+  "max_wall_seconds": 7200,
+  "training_enabled": false,
+  "native_training_admitted": false,
+  "test_data_used": false,
+  "no_feature_recompute": true,
+  "source_frozen_while_running": true,
+  "old_dataset_plan": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/PLAN.json",
+    "sha256": "a77ecd7f5d0ecbb42e489bb0198a90c993c8c75d575eef59a4fc58a460c94e2a"
+  },
+  "physical_publication_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_PHYSICAL_INVENTORY_RECONCILIATION_20261018_048/TERMINAL.json",
+    "sha256": "cbed43d689f2b6c7f4aa7a18ef96262c325825eee5228eb5a0f5f9b320ac703b"
+  },
+  "registry_equivalence_result": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_ACTUAL_TRAIN_REGISTRY_20261018_049/ADMISSION/RESULT.json",
+    "sha256": "75e523018bf4bf6ae89df2a340251b9fffefc8f74965e884f535ae2c64f3743f"
+  },
+  "registry_admission_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_ACTUAL_TRAIN_REGISTRY_20261018_049/ADMISSION/TERMINAL.json",
+    "sha256": "92eb9ff96331ed8fb4049d96c4c7b96dd7115d414113f24886fb36db5cff89dc"
+  },
+  "active_registry": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_049.json",
+    "sha256": "3e444777099a848cd8795688b57a19122d1ac5454f42902a3495e64aad73a757"
+  },
+  "renewed_ranker_dependency_proof": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_SURFACE_BINDING_20261018_050/RANKER_EFFECTIVE_DEPENDENCY_REUSE.json",
+    "sha256": "72f0429d4e13d782c81c33e4743ea111541d1221387a26c93fbd48d33f8dcfca"
+  },
+  "output_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/SURFACES_050",
+  "fresh_signal_manifest_template": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/SURFACES_050/ENTRY_MODEL_NATIVE_SEQ513_SIGNAL_MANIFEST_{utc}.json",
+  "fresh_m1_feature_base": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/SURFACES_050/M1_FEATURE_BASE_050.parquet",
+  "fresh_m5_feature_base": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/SURFACES_050/M5_FEATURE_BASE_050.parquet",
+  "fresh_overlap_report_template": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/SURFACES_050/ENTRY_CROSS_SURFACE_INPUT_OVERLAP_{utc}.json",
+  "overlap_batch_size": 4096,
+  "resource_owner": "Existing sequential audit4G/512M/CPU0-7/thread1/tasks64/currentlock for metadata/signal and actual fresh overlap; shared7200s budget, source frozen; no feature generation/model/normalization",
+  "scope": "Activate exact actual049 registry with only2GCpointer constants changed; new current signalmanifest and owner-produced M1/M5sidecars for SHA-identical039hardlinks, then fresh existing cross-surface overlap audit because its registry and signal/surface binding identities changed. No payload regeneration, original receipts/data remain immutable.",
+  "pending_after_surface_binding": "New immutable physicalTRAIN/VAL metadata view via existing owners, wholeTRAIN input/liveness+normalization and fresh Entry-only native qualification before one requested epoch."
+}
