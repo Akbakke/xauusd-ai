@@ -19,6 +19,9 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
     CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS, MTF_SEMANTIC_CATEGORICAL_DOMAINS, MTF_SEMANTIC_BINARY_FIELDS, SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS,
 )
 from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4, MULTI_TF_SHIFT, MULTI_TF_RESAMPLE_RULES, multi_tf_bar_label
+from gx1.features.basic_v1 import session_native_binary_event_fields
+from gx1.features import gc_native_context_v1 as gc_context
+from gx1.features import micro_structure_v1 as micro_context
 
 
 def _prepare(root, monkeypatch, *, poison=False, full=False):
@@ -33,8 +36,6 @@ def _prepare(root, monkeypatch, *, poison=False, full=False):
         ctx = (np.arange(len(times))[:, None]*.013 + np.arange(len(MODEL_NATIVE_CTX_CONT_FIELDS))[None, :]*.005).astype('float32')
         for name,domain in CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS.items():
             ctx[:, list(MODEL_NATIVE_CTX_CONT_FIELDS).index(name)] = np.asarray(domain)[np.arange(len(times)) % len(domain)]
-        for alias in base._derive_temporal_aliases(names):
-            ctx[:, alias['ctx_cont_index']] = signal[:, alias['signal_index']]
         cat = np.zeros((len(times), len(MODEL_NATIVE_CTX_CAT_FIELDS)), dtype='int64')
         future = times.asi8 + bar_ns > cutoff
         if poison:
@@ -42,8 +43,20 @@ def _prepare(root, monkeypatch, *, poison=False, full=False):
             signal[np.ix_(future, cols)] += 5000
             ctx_cols = [i for i,n in enumerate(MODEL_NATIVE_CTX_CONT_FIELDS) if n not in CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS]
             ctx[np.ix_(future, ctx_cols)] += 5000
-            for alias in base._derive_temporal_aliases(names):
-                ctx[:, alias['ctx_cont_index']] = signal[:, alias['signal_index']]
+        # Observation domains come from the same owners as the fit guard.
+        # Apply them after future-value poisoning, then restore exact aliases.
+        for matrix, fields in ((signal, names), (ctx, list(MODEL_NATIVE_CTX_CONT_FIELDS))):
+            positions = {name: index for index, name in enumerate(fields)}
+            binary = (gc_context.binary_fields(fields)
+                      | micro_context.range_observation_binary_fields(fields)
+                      | session_native_binary_event_fields(fields))
+            for name in binary:
+                matrix[:, positions[name]] = np.arange(len(times)) % 2
+            for value, mask in (*gc_context.masking_pairs(fields),
+                                *micro_context.range_observation_masking_pairs(fields)):
+                matrix[matrix[:, mask] == 0.0, value] = 0.0
+        for alias in base._derive_temporal_aliases(names):
+            ctx[:, alias['ctx_cont_index']] = signal[:, alias['signal_index']]
         table = pa.table({'time':pa.array(times), 'signal':_fixed(signal, signal.shape[1], pa.float32()),
             'ctx_cont':_fixed(ctx, ctx.shape[1], pa.float32()), 'ctx_cat':_fixed(cat, cat.shape[1], pa.int64())})
         pq.write_table(table,path)
@@ -81,6 +94,14 @@ def _prepare(root, monkeypatch, *, poison=False, full=False):
             future=times.asi8 + MULTI_TF_SHIFT[tf].value > cutoff
             cols=[i for i,n in enumerate(MULTI_TF_PER_BAR_FEATURES_V4) if n not in MTF_SEMANTIC_CATEGORICAL_DOMAINS and n not in MTF_SEMANTIC_BINARY_FIELDS]
             values[np.ix_(future,cols)]+=5000
+        fields = list(MULTI_TF_PER_BAR_FEATURES_V4)
+        for name in (gc_context.binary_fields(fields)
+                     | micro_context.range_observation_binary_fields(fields)
+                     | session_native_binary_event_fields(fields)):
+            values[:, fields.index(name)] = np.arange(len(times)) % 2
+        for value, mask in (*gc_context.masking_pairs(fields),
+                            *micro_context.range_observation_masking_pairs(fields)):
+            values[values[:, mask] == 0.0, value] = 0.0
         cache[tf]=_mtf_frame(times.asi8,values)
     cache_dir=root/'cache';cache_dir.mkdir()
     _write_json(cache_dir/'manifest.json',{'builder_version':'synthetic', 'feature_names':list(MULTI_TF_PER_BAR_FEATURES_V4)})
@@ -165,24 +186,27 @@ def test_population_cutoff_uses_close_and_rejects_later_entry(tmp_path):
         inputs.build_train_normalization_population_witness(**kwargs,fit_entry_rows_path=rows,fit_cutoff_time_ns=cutoff)
 
 
-def test_disk_backed_full_m1_load_preserves_exact_fit_contract(tmp_path, monkeypatch):
+def test_disk_backed_m5_and_m1_load_preserves_exact_fit_contract_and_sources(tmp_path, monkeypatch):
     call, _, _ = _prepare(tmp_path/'case', monkeypatch)
+    source_hashes = {call[key]: _sha256_file(call[key]) for key in ('m5_feature_path', 'm1_feature_path')}
     original_loader = base.load_m1_feature_surface
-    stores = []
+    stores = {}
     def observed(path, **kwargs):
         from pathlib import Path
-        stores.append(Path(kwargs['storage_dir']))
+        stores[Path(path)] = Path(kwargs['storage_dir'])
         times, arrays = original_loader(path, **kwargs)
         assert all(isinstance(value, np.memmap) for value in arrays.values())
         return times, arrays
     monkeypatch.setattr(base, 'load_m1_feature_surface', observed)
     disk = base.fit_base(**call)
-    assert all(not directory.exists() for directory in stores)
+    assert set(stores) == set(source_hashes)
+    assert all(not directory.exists() for directory in stores.values())
     def in_memory(path, **kwargs):
         kwargs['storage_dir'] = None
         return original_loader(path, **kwargs)
     monkeypatch.setattr(base, 'load_m1_feature_surface', in_memory)
     assert base.fit_base(**call) == disk
+    assert {path: _sha256_file(path) for path in source_hashes} == source_hashes
 
 
 def test_base_fit_publication_preserves_concurrent_result(tmp_path, monkeypatch):
@@ -199,7 +223,7 @@ def test_base_fit_publication_preserves_concurrent_result(tmp_path, monkeypatch)
     assert call['output_path'].read_bytes() == b'concurrent evidence'
 
 
-@pytest.mark.parametrize('mutation', ['none', 'witness', 'entry_bytes', 'm1_bytes', 'm5_path', 'mtf_path', 'admission'])
+@pytest.mark.parametrize('mutation', ['none', 'witness', 'entry_bytes', 'm1_bytes', 'm5_bytes', 'm5_path', 'mtf_path', 'admission'])
 def test_full_population_fit_requires_exact_sources_before_statistics(tmp_path, monkeypatch, mutation):
     from pathlib import Path
     call, pop, view = _prepare(tmp_path/'case', monkeypatch, full=True)
@@ -207,8 +231,9 @@ def test_full_population_fit_requires_exact_sources_before_statistics(tmp_path, 
     parent = base._json(Path(view['parent_train_manifest']['path']))
     if mutation == 'witness':
         pop['train_entry_decision_rows'] += 1
-    elif mutation in ('entry_bytes', 'm1_bytes'):
-        path = Path(admission['splits']['train']['parquet_path']) if mutation == 'entry_bytes' else call['m1_feature_path']
+    elif mutation in ('entry_bytes', 'm1_bytes', 'm5_bytes'):
+        path = (Path(admission['splits']['train']['parquet_path']) if mutation == 'entry_bytes'
+                else call['m1_feature_path'] if mutation == 'm1_bytes' else call['m5_feature_path'])
         with path.open('ab') as handle:
             handle.write(b'changed')
     elif mutation == 'm5_path':

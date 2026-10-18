@@ -1487,6 +1487,15 @@ def next_action(
                         or state["active_val_cursor"] is not None or state["global_optimizer_steps"] > step_ceiling):
                     raise RandomAccessCampaignError("native prefix cursor exceeded fixed experiment")
                 if state["global_optimizer_steps"] == step_ceiling:
+                    if "entry_m5_path_single_epoch" in recipe:
+                        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_m5_single_epoch_run
+                        bound = require_m5_single_epoch_run(recipe)
+                        single = bound["entry_m5_path_single_epoch"]
+                        if state["next_batch_offset"] != single["optimizer_steps"]:
+                            raise RandomAccessCampaignError("M5 single epoch final batch offset differs")
+                        return {"decision": "BLOCKED_NATIVE_LEARNING_REVIEW_REQUIRED",
+                                "train_epochs_consumed": 1, "unique_train_rows": single["train_rows"],
+                                "population_witness": single["binding"]}
                     return {"decision":"BLOCKED_NATIVE_LEARNING_REVIEW_REQUIRED"}
             elif state["epoch_index"] >= val_ceiling:
                 # The training session remains resumable; only this bounded run is done.

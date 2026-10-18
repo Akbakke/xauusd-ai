@@ -6,6 +6,7 @@ cutoff, fail-closed censoring, and the dispatchers that pick the 20-day loss tar
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -256,3 +257,79 @@ def test_control_study_view_binds_the_horizon_scope_through_the_dispatcher(tmp_p
         assert np.isfinite(targets[selected]).all() and np.isnan(targets[~view._policy_dependent_auxiliary_bound_rows]).all()
     with pytest.raises(RuntimeError, match="ENTRY_STUDY_PHASE_INVALID|ENTRY_STUDY_CONTROL"):
         observed.entry_learning_study_control_dataset(dataset, study={**study, "phase": "fit"})
+
+
+def _single_epoch_design(tmp_path, *, rows=273, source=None, sampler=None, order=None, cutoff="2026-01-01T00:00Z"):
+    """Synthetic immutable witness bytes; no market admission or model evidence."""
+    from gx1.scripts.materialize_unified_exit_chronological_coordinates_v1 import _epoch0_order
+    from gx1.contracts.unified_exit_random_access_sampler_v1 import build_random_access_sampler_contract
+    if source is None:
+        path = tmp_path / "actual-train.parquet"
+        path.write_bytes(b"synthetic-source-binding-only")
+        source = _bind(path)
+    if sampler is None:
+        sampler = build_random_access_sampler_contract(split="train", source_lineage_sha256="a" * 64,
+            transition_budget_per_epoch=(rows + 3) * 4, transitions_per_entry=4, entry_pair_population=rows + 3)
+    full_order = _epoch0_order(sampler) if order is None else order
+    order = np.asarray(full_order[:rows], dtype=np.int64)
+    bindings = {}
+    for key, values in (("eligible_parent_rows", np.sort(order)), ("epoch0_parent_order", order)):
+        path = tmp_path / (key + ".npy")
+        np.save(path, values, allow_pickle=False)
+        bindings[key] = _bind(path)
+    batch = horizons.RECENT_WINDOW_BATCH_SIZE
+    steps = -(-len(order) // batch)
+    witness = {"schema_version": horizons.M5_SINGLE_EPOCH_POPULATION_SCHEMA,
+        "training_phase": observed.ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
+        "target_contract": observed.entry_observed_m5_path_contract(), "train_parquet": source,
+        **bindings, "native_sampler_contract": sampler, "entry_eligibility_cutoff_utc": cutoff,
+        "train_rows": len(order), "optimizer_steps": steps, "batch_size": batch,
+        "epochs": 1, "drop_last": False, "test_data_used": False}
+    binding = _write(tmp_path / "population.json", witness)
+    return {"scope": {"entry_m5_path_single_epoch": binding,
+                "entry_only_training_phase": witness["training_phase"]},
+        "calendar": {"train_control_cutoff": cutoff},
+        "budget": {"maximum_trained_entry_rows": len(order), "planned_optimizer_steps": steps,
+            "epochs_completed": 1, "repeat_or_automatic_extension": False}}, witness
+
+
+@pytest.mark.parametrize("rows,steps,last", [(273, 18, 1), (272, 17, 16)])
+def test_m5_single_epoch_budget_comes_only_from_hash_bound_unique_rows(tmp_path, rows, steps, last):
+    design, _ = _single_epoch_design(tmp_path, rows=rows)
+    scope = horizons.require_m5_single_epoch_population(design)
+    assert scope["train_rows"] == rows and scope["optimizer_steps"] == steps
+    assert scope["last_batch_rows"] == last
+    assert horizons.planned_prefix_optimizer_steps(design) == steps
+    assert horizons.planned_prefix_training_rows(design) == rows
+    assert np.array_equal(np.sort(scope["epoch0_parent_order"]), scope["eligible_parent_rows"])
+    # The primary M5 phase alone never widens the old finite prefix scope.
+    design["scope"].pop("entry_m5_path_single_epoch")
+    assert horizons.planned_prefix_optimizer_steps(design) == horizons.V38_SMOKE_PLANNED_OPTIMIZER_STEPS
+    assert horizons.planned_prefix_training_rows(design) == horizons.RECENT_WINDOW_TRAIN_PROBE_ROWS
+    design["scope"]["entry_only_training_phase"] = horizons.ENTRY_ONLY_HORIZON_TRAINING_PHASE
+    assert horizons.planned_prefix_optimizer_steps(design) == horizons.MINIMUM_PLAN_FIT_OPTIMIZER_STEPS
+
+
+@pytest.mark.parametrize("fault", ["rows", "steps", "epochs", "drop_last", "phase", "target", "cutoff", "duplicate", "bytes", "budget"])
+def test_m5_single_epoch_rejects_unbound_count_extra_epoch_or_rewritten_semantics(tmp_path, fault):
+    design, witness = _single_epoch_design(tmp_path)
+    if fault == "budget":
+        design["budget"]["maximum_trained_entry_rows"] += 1
+    elif fault == "bytes":
+        Path(witness["epoch0_parent_order"]["path"]).write_bytes(b"changed")
+    else:
+        if fault == "rows": witness["train_rows"] += 1
+        elif fault == "steps": witness["optimizer_steps"] += 1
+        elif fault == "epochs": witness["epochs"] = 2
+        elif fault == "drop_last": witness["drop_last"] = True
+        elif fault == "phase": witness["training_phase"] = horizons.ENTRY_ONLY_HORIZON_TRAINING_PHASE
+        elif fault == "target": witness["target_contract"] = {}
+        elif fault == "cutoff": witness["entry_eligibility_cutoff_utc"] = "2027-01-01T00:00Z"
+        elif fault == "duplicate":
+            path = Path(witness["epoch0_parent_order"]["path"])
+            order = np.load(path); order[0] = order[1]
+            np.save(path, order, allow_pickle=False)
+            witness["epoch0_parent_order"] = _bind(path)
+        design["scope"]["entry_m5_path_single_epoch"] = _write(tmp_path / "population.json", witness)
+    with pytest.raises(RuntimeError):
+        horizons.require_m5_single_epoch_population(design)

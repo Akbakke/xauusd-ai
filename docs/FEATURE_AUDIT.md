@@ -77,32 +77,42 @@ et krav om midnattmodulo kunne ikke validere de virkelige offsetbarene.
 Gjenbruk av rå OHLC-oppsett fjerner cache-selvreferansen for14Group-A-feltene;
 den opprinnelige serving-cachegaten består. Kildeendring er ikke fysisk paritet.
 
-MBP-komplettering019 deklarerer925nativekandidater/185perTF med eksplisitt
-formelkolonne, spesialisteier, validitetsmaske og kildeklokke. Nye felt omfatter
-70% sammenhengende VAH/VAL, kjent og ukjent kumulativ Trade-volumfordeling,
-gjennomsnittlige kontrakter per utført Trade-record, observerte BBO-/ordreantall-
-aggregater og intraminutt spread-/event-/kildeklokkestatistikk. Gjennomsnittlig
-Trade-record er ikke en identifisert overordnet kundes ordre. Maskerte kildetall
-blir ikke konstruert fra nullfylte eller allerede maskerte M1-means.
+Kildekartet etter019/020 og trusted-T-utvidelsen deklarerer995kandidater,
+199perTF, med eksplisitt formelkolonne, spesialisteier, validitetsmaske og
+kildeklokke. Dette er et implementasjonskart, ikke endelig nativeadmission.
+Det omfatter70% sammenhengende VAH/VAL, kjent/ukjent kumulativ T-volumfordeling,
+T-sidetall og sidemiddel, total størrelsesstandardavvik/min/maks, observerte
+BBO-/ordreantall og intraminutt spread-/event-/kildeklokkestatistikk.
+Trade-recordstørrelse identifiserer ikke kundens overordnede ordre.
 
-Ett nytt eventpass er nødvendig for informasjon som001 ikke lagret. Samme66
-råfiler og892100712records er hashbundet; ferdig M1/prisgrid/roll gjenbrukes.
-15/60min/NYsession-profiler beregnes på fysisk M5-klokke, med as-of-projeksjon,
-separat dekning og faktisk kildealder.15/60min betyr minutter, også i H4/D1.
+019 er fysisk publisert med gammel kildeadmission.020 beviste TRAINstøtte
+for935daværende kandidater og rettet observerte H4/D1-SMC; den foreløpige1130-
+registryen er ikke aktivert. Påvist signaturregel avviste78322ellers gyldige
+M1 med25064729kontrakter. Identiske Tposter dedupliseres ikke uten kildesviktbevis.
+Databentos dokumenterte PTP-hendelse17.09.2025 har eksplisitt overlapps-/anker-
+sensur. Historiske non-T-actionlabels innrømmes ikke som kanselleringsflow.
+Kildehendelser og semantikk er bundet i
+`configs/research/GC_VENDOR_SOURCE_INCIDENTS_20261018_001.json`.
+
+024gjenoppretter hashbundne001reduksjoner; ett nytt målrettet eventpass trengs
+fordi019maskerte nye eventstatistikker før publisering. Nye T-statistikker
+følger samme pass, med eksakt uint64overflow-/volum-/antallsparitet. Alle
+210gamle registrydeklarasjoner skal også rebindes til reparerte tabeller.
+Ingen trening før fysisk kvalitet, endelig registry, datasett, normalisering
+og fersk modellfunksjon er kvalifisert. Originalkvitteringer omskrives ikke.
+
+15/60min/NYsession-profiler beregnes på fysisk M5-klokke med as-of-projeksjon,
+separat dekning og faktisk kildealder.15/60betyr minutter også i H4/D1.
 Absolutte identiteter og ns-tidsstempler er metadata; eventtidsforskjeller er
-signerte målinger. Negative clockforskjeller klippes ikke, og clamped ts_in_delta
+signerte målinger. Negative forskjeller klippes ikke, og clamped ts_in_delta
 har egen maske. [Leverandørens tidsstempelkonvensjoner](https://www.databento.tech/docs/standards-and-conventions)
 skiller kildeklokkene; verdiene er ikke automatisk fysisk markedslatens.
 
-Ny registry skal måles fra faktiske TRAIN-beslutningsklokker, uten targets,
-VAL eller TEST. Strukturmasker har eksplisitt binær identitet. Lagringsnull bak
-missingmaske fjernes etter normalisering, og profilalder regnes ved den faktiske
-beslutningen. Konstanter/like TRAIN-samples rapporteres; tilfeldig samplelikhet
-beviser ikke like formler, og finite input er ingen alpha-/nyttepåstand.
-
-Fysiske019outputs, native registry/datasett, normalisering og modellkonsum er
-ennå ikke kvalifisert. Den nye MBP-støtten skal være gjennomført og målt før
-neste treningsrunde. Immutable001/016/017/018-kvitteringer omskrives ikke.
+Endelig registry måles fra faktiske hele TRAIN-beslutningsklokker uten
+labels/VAL/TEST. Strukturmasker har binær identitet. Lagringsnull bak missing-
+maske fjernes etter normalisering, og profilalder regnes ved beslutningen.
+Observerte konstanter/like TRAIN-vektorer rapporteres; samplelikhet beviser
+ikke like formler, og finite input er ingen alpha-/nyttepåstand.
 
 ## MBP-1: hva de eksisterende bytene faktisk gir
 

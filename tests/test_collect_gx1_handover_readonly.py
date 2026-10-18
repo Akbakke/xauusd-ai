@@ -1051,7 +1051,9 @@ def test_handover_shows_durable_project_goal_and_current_native_generation():
               "physical_dataset_normalization_complete": False,
               "training_started": False, "raw_stage": {"old_receipts": "omitted"},
               "derived_timeframe_stage": {"status": "FAILED_CONSUMED", "relaunch_allowed": False},
-              "mbp1_completion_stage": {"status": "EXECUTION_CLAIMED", "completed_invocations": 0},
+              "mbp1_completion_stage": {"status": "COMPLETE_CONSUMED", "completed_invocations": 1},
+              "observed_smc_registry_stage": {"status": "COMPLETE_CONSUMED"},
+              "trusted_record_restoration_stage": {"status": "EXECUTION_CLAIMED"},
               "native_binding_gaps": ["new physical outputs unqualified"]}
     status = {"decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY", "current_work": {
         "project_goal": goal, "native_gc_rebuild_20261017": native,
@@ -1059,7 +1061,7 @@ def test_handover_shows_durable_project_goal_and_current_native_generation():
     out = handover_view(status)
     assert out["current_work"]["project_goal"] == goal
     assert out["current_work"]["native_gc_rebuild_20261017"] == {
-        key: value for key, value in native.items() if key != "raw_stage"}
+        key: value for key, value in native.items() if key not in {"raw_stage", "derived_timeframe_stage"}}
     assert "historical_scope" not in out["current_work"]
     assert out["decision"] == "OBSERVATION_ONLY_NOT_RUN_AUTHORITY"
 

@@ -642,3 +642,81 @@ def test_observed_structure_requires_explicit_contract_domain_and_valid_source_c
         surface=_observed_structure_surface();surface[field]=value
         with pytest.raises(ValueError,match='STRUCTURE_CLOCK'):
             f.add_observed_structure(surface)
+
+
+def test_streamed_strict_profiles_match_original_recipe_through_gap_and_roll(tmp_path):
+    a=minute_inputs(120)
+    # One partially observed M5 is rejected by the original strict domain.
+    a[3]['volume'][16]=False;a[3]['delta'][16]=False;a[3]['cvd'][16]=False
+    a[1][65:]=1
+    surface,inverse=f.timeframe_skeleton(*a,'M5',100000000)
+    path=tmp_path/'ladder.parquet';_write_admitted_ladder(path,a)
+    strict=f.dynamic_profile_arrays_v2(surface['bar_start_ns'])
+    observed=f.dynamic_profile_arrays_v2(surface['bar_start_ns'])
+    evidence=f.consume_ladder(path,{'M5':surface},{'M5':inverse},100000000,
+        strict_profile_output=strict,profile_output=observed,profile_state_max_bytes=8*1024**2)
+    hist=[{100:20} if valid else {} for valid in surface['volume_valid']]
+    original=f.dynamic_profiles_v2(surface['bar_start_ns'],hist,surface['volume_valid'],surface['contract_index'],surface['close_usd'],0.1)
+    for name,value in strict.items():np.testing.assert_array_equal(value,original[name],err_msg=name)
+    assert evidence['strict_profile_stream_peak_state_bytes']>0
+    assert evidence['combined_profile_peak_upper_bound_bytes']<=8*1024**2
+    # The partial bar retains an honest observed profile but is not a strict alias.
+    assert not strict['session_observed_valid'][3] and observed['session_observed_valid'][3]
+
+
+@pytest.mark.parametrize('tf,duration',[('M5',5),('M15',15),('H1',60),('H4',240),('D1',1440)])
+def test_trusted_trade_sizes_keep_exact_side_counts_population_dispersion_and_volume_mask(tf,duration):
+    a=minute_inputs(3*duration)
+    a[3]['volume'][duration+2]=False
+    stats={name:np.zeros(len(a[0]),np.uint64) for name in f.TRUSTED_TRADE_SIZE_FIELDS_V1}
+    stats['buy_trade_records'][:]=1;stats['sell_trade_records'][:]=1
+    stats['size_sum_contracts'][:]=4;stats['size_sum_squared_contracts2'][:]=10
+    stats['size_min_contracts'][:]=1;stats['size_max_contracts'][:]=3
+    # Replace a real known-side print with an unknown-side print, no imputation.
+    stats['buy_trade_records'][5]=0;stats['unknown_trade_records'][5]=1
+    a[2]['buy'][5]=0;a[2]['unknown'][5]=3
+    a[3]['delta'][5]=False;a[3]['cvd'][5]=False
+    surface,_=f.timeframe_skeleton(*a,tf,100000000)
+    out=f.aggregate_observed_trade_size_v1(a[0],a[1],a[2],a[3],stats,tf)
+    valid=surface['observed_valid']
+    total=sum(out['observed_'+side+'_trade_records'] for side in ('buy','sell','unknown'))
+    np.testing.assert_array_equal(total[valid],surface['observed_trades'][valid])
+    np.testing.assert_array_equal(out['observed_executed_trade_size_std_contracts'][valid],np.ones(valid.sum()))
+    np.testing.assert_array_equal(out['observed_executed_trade_size_min_contracts'][valid],np.ones(valid.sum()))
+    np.testing.assert_array_equal(out['observed_executed_trade_size_max_contracts'][valid],np.full(valid.sum(),3.))
+    for side,expected in (('buy',3.),('sell',1.),('unknown',3.)):
+        side_valid=out['observed_'+side+'_trade_size_valid']
+        assert np.asarray(side_valid).dtype==np.dtype(bool)
+        np.testing.assert_array_equal(out['observed_'+side+'_avg_executed_trade_contracts'][side_valid],np.full(side_valid.sum(),expected))
+        assert np.isnan(out['observed_'+side+'_avg_executed_trade_contracts'][~side_valid]).all()
+    bad={**stats,'size_sum_contracts':stats['size_sum_contracts']+1}
+    with pytest.raises(RuntimeError,match='M1_VOLUME_OR_RECORD_PARITY'):
+        f.aggregate_observed_trade_size_v1(a[0],a[1],a[2],a[3],bad,tf)
+
+
+def test_trade_size_uint64_guard_and_native_declaration_are_explicit():
+    maximum=np.iinfo(np.uint64).max
+    with pytest.raises(RuntimeError,match='UINT64_OVERFLOW'):
+        f.checked_trade_uint64_sums_v1(np.array([maximum,1],np.uint64),np.array([0]),np.array([2]))
+    with pytest.raises(RuntimeError,match='UINT64_OVERFLOW'):
+        f.trusted_trade_record_count_v1({'buy_trade_records':np.array([maximum],np.uint64),
+            'sell_trade_records':np.array([1],np.uint64),'unknown_trade_records':np.array([0],np.uint64)})
+    old=f.completion_native_candidates_v1(include_trade_size_stats=False)['fields']
+    new=f.completion_native_candidates_v1()['fields']
+    assert len(new)-len(old)==5*(len(f.TRADE_SIZE_NATIVE_FIELDS_V1)+3)
+    row=next(v for v in new if v['column']=='observed_buy_avg_executed_trade_contracts')
+    assert row['owner']=='momentum_flow_encoder' and row['validity_column']=='observed_buy_trade_size_valid'
+    mask=next(v for v in new if v['column']=='observed_buy_trade_size_valid')
+    assert mask['role']=='structural_observation_mask'
+
+
+def test_trusted_T_statistics_keep_identical_prints_and_batch_carry_without_nonT_size():
+    collector=f.L1FeatureCollectorV2(np.array([0]),1,include_trusted_trade_stats=True)
+    data={'size':pa.array([2,2,3,99],type=pa.uint32()),'side':pa.array(['B','B','N','A'])}
+    collector._consume_trusted_trade_statistics(data,np.zeros(4,np.int64),np.array([True,True,True,False]))
+    data2={'size':pa.array([4],type=pa.uint32()),'side':pa.array(['A'])}
+    collector._consume_trusted_trade_statistics(data2,np.array([0]),np.array([True]))
+    stats=collector.trusted_trade_statistics()
+    assert [int(stats[side+'_trade_records'][0]) for side in ('buy','sell','unknown')]==[2,1,1]
+    assert stats['size_sum_contracts'][0]==11 and stats['size_sum_squared_contracts2'][0]==33
+    assert stats['size_min_contracts'][0]==2 and stats['size_max_contracts'][0]==4

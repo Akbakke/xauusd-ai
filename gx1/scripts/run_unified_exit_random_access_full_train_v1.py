@@ -87,7 +87,7 @@ def _require_native_full_train_recipe(
     prefix_mode = "chronological_prefix" in recipe
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study", "entry_m5_path_single_epoch"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -162,7 +162,7 @@ def _require_native_full_train_recipe(
     # A technical smoke may finish with a selected trade censored at June-end.
     # Its unavailable score cannot select a checkpoint or establish trading quality.
     controls = {
-        "epochs": 30, "batch_size": 16, "num_workers": 0, "grad_accum_steps": 1,
+        "epochs": 1 if "entry_m5_path_single_epoch" in recipe else 30, "batch_size": 16, "num_workers": 0, "grad_accum_steps": 1,
         "early_stopping_patience": 5, "early_stopping_min_delta": 0.0,
         "minimum_epochs_before_stop": 1, "save_top_k": 1,
         "precision_policy": "deterministic_fp32", "seed": seed_launch["seed"],
@@ -272,6 +272,10 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
         raise RuntimeError("NATIVE_PREFIX_COMPONENT_BINDINGS_INVALID")
     design, normalization, labels = (val._read(_bound_artifact(value[name]))
                                     for name in ("design", "normalization_result", "labels_result"))
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        planned_prefix_training_rows, require_m5_single_epoch_population,
+    )
+    single_epoch = require_m5_single_epoch_population(design)
     functions = trainer._prefix_reference_model_functions(design)
     if (functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
             and (files["entry_val_parquet"] == files["entry_train_parquet"]
@@ -285,7 +289,7 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
             or type(seed) is not int or seed not in allowed_prefix_training_seeds(design["initialization"]["seed"])
             or batch_size != 16 or learning_rate != 0.0001 or weight_decay != 0.0001
             or design["budget"]["planned_optimizer_steps"] != planned_prefix_optimizer_steps(design)
-            or design["budget"]["maximum_trained_entry_rows"] != 4096):
+            or design["budget"]["maximum_trained_entry_rows"] != planned_prefix_training_rows(design)):
         raise RuntimeError("NATIVE_PREFIX_COMPONENT_IDENTITY_INVALID")
     if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
@@ -307,6 +311,7 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
                 or "val_sequence_source_audit" not in files):
             raise RuntimeError("NATIVE_PREFIX_COMPONENT_COORDINATE_SOURCES_INVALID")
         return {"bindings": dict(value), "design": design, "model_functions": functions,
+                **({"entry_m5_path_single_epoch": single_epoch} if single_epoch is not None else {}),
                 "normalization": normalization, "labels": labels,
                 "physical_preprocessing": physical, "physical_coordinates": coordinates,
                 "preparation": coordinates["artifact"],
@@ -426,7 +431,7 @@ def _build_bound_full_train_components(
     No source checkpoint is modified and no sampler benchmark is rerun here.
     """
 
-    if epochs != 30 or batch_size != 16 or type(exit_backup_steps) is not int or exit_backup_steps not in (1, 5):
+    if epochs not in (1, 30) or (epochs == 1 and chronological_prefix is None) or batch_size != 16 or type(exit_backup_steps) is not int or exit_backup_steps not in (1, 5):
         raise RuntimeError("NATIVE_FULL_TRAIN_DECLARED_GEOMETRY_INVALID")
     if device.type == "cuda":
         trainer._require_cuda_trainer_guard_execution(execution_tier="canonical")
@@ -450,6 +455,11 @@ def _build_bound_full_train_components(
         prefix = _require_prefix_component_bindings(
             chronological_prefix, files=files, seed=seed, batch_size=batch_size,
             learning_rate=learning_rate, weight_decay=weight_decay)
+        if epochs != (1 if "entry_m5_path_single_epoch" in prefix else 30):
+            raise RuntimeError("NATIVE_FULL_TRAIN_DECLARED_GEOMETRY_INVALID")
+        if "entry_m5_path_single_epoch" in prefix and (observed_entry_scope is None
+                or observed_entry_scope.get("training_phase") != prefix["entry_m5_path_single_epoch"]["witness"]["training_phase"]):
+            raise RuntimeError("NATIVE_M5_SINGLE_EPOCH_TARGET_MISMATCH")
         if exit_backup_steps != 1 or exit_reference_policy != prefix["design"]["targets"]["reference_policy"]:
             raise RuntimeError("NATIVE_PREFIX_REFERENCE_POLICY_MISMATCH")
     else:
@@ -720,7 +730,22 @@ def _build_bound_full_train_components(
         train_rows=(len(prefix["eligible_parent_rows"]) if prefix is not None else len(datasets["train"])),
         batch_size=batch_size, grad_accum_steps=1,
     )
-    weight_ema = trainer._WeightEma(model, float(ema_derivation["weight_ema_decay"]))
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        JOINT_FITTED_Q_TRAINING_PHASE, ENTRY_ONLY_TRAINING_PHASES,
+    )
+    observed_binding = getattr(datasets["train"], "_entry_observed_market_binding", None)
+    if observed_entry_scope is None:
+        if observed_binding is not None:
+            raise RuntimeError("NATIVE_FULL_TRAIN_EMA_PHASE_BINDING_MISMATCH")
+        ema_phase = JOINT_FITTED_Q_TRAINING_PHASE
+    else:
+        identity = observed_binding.get("identity") if isinstance(observed_binding, Mapping) else None
+        if (not isinstance(identity, Mapping) or identity.get("training_phase") not in ENTRY_ONLY_TRAINING_PHASES
+                or identity["training_phase"] != observed_entry_scope.get("training_phase")):
+            raise RuntimeError("NATIVE_FULL_TRAIN_EMA_PHASE_BINDING_MISMATCH")
+        ema_phase = identity["training_phase"]
+    weight_ema = trainer._WeightEma(model, float(ema_derivation["weight_ema_decay"]),
+        entry_training_phase=ema_phase)
     scheduler = (
         torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.0)
         if trainer.ENTRY_TRAIN_LR_COSINE_DECAY == 1 else None
@@ -737,6 +762,8 @@ def _build_bound_full_train_components(
             "train_probe_ds": train_probe_ds,
             "prefix_epoch0_parent_order": prefix["epoch0_parent_order"]} if prefix is not None else {}),
         "effective_train_rows": effective_train_rows,
+        **({"entry_m5_path_single_epoch": prefix["entry_m5_path_single_epoch"]}
+           if prefix is not None and "entry_m5_path_single_epoch" in prefix else {}),
         **({"entry_observed_market": datasets["train"]._entry_observed_market_binding["identity"]}
            if observed_entry_scope is not None else {}),
         **({"measurement_state_factories": {"train": train_measurement_factory, "control": val_factory}}
@@ -777,7 +804,7 @@ def _run_bound_full_train_candidate(
         device=device, effective_train_rows=components["effective_train_rows"],
         batch_size=16, num_workers=0, pin_memory=True,
         persistent_workers=False, prefetch_factor=None,
-        epochs=30, early_stopping_patience=5, early_stopping_min_delta=0.0,
+        epochs=1 if "entry_m5_path_single_epoch" in components else 30, early_stopping_patience=5, early_stopping_min_delta=0.0,
         minimum_epochs_before_stop=1, save_top_k=1,
         out_bundle_dir=output, gx1_data_override=gx1_data,
         run_id=run_id, dataset_run_id=dataset_run_id,
@@ -888,6 +915,10 @@ def run_guarded_native_candidate_invocation(
     if "chronological_learning_measurement" in recipe:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_learning_measurement
         learning_scope = require_chronological_learning_measurement(recipe)
+        if "entry_m5_path_single_epoch" in recipe:
+            from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_m5_single_epoch_run
+            epoch_scope = require_m5_single_epoch_run(recipe, execution_budget=budget)
+            learning_scope["entry_m5_path_single_epoch"] = epoch_scope["entry_m5_path_single_epoch"]
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_continuation
         continuation = require_chronological_continuation(recipe)
         if continuation:
@@ -920,10 +951,21 @@ def run_guarded_native_candidate_invocation(
         if ("chronological_learning_measurement" in recipe
                 and learning_scope.get("continuation", {}).get("resume_equivalence") is not True
                 and paused.evidence["reason"] == "optimizer_step_ceiling"
-                and paused.evidence["global_optimizer_steps"] == (learning_scope["continuation"]["plan"]["stop_after_optimizer_steps"] if learning_scope.get("continuation") else 256)):
+                and paused.evidence["global_optimizer_steps"] == (learning_scope["entry_m5_path_single_epoch"]["optimizer_steps"]
+                    if "entry_m5_path_single_epoch" in learning_scope else learning_scope["continuation"]["plan"]["stop_after_optimizer_steps"] if learning_scope.get("continuation") else 256)):
             paused.evidence["chronological_final_measurement"] = _run_prefix_initial_measurement(
                 components=components, scope=learning_scope, recipe=recipe, output=output,
                 device=device, invocation_started=started, pause_evidence=paused.evidence, optimizer_steps=paused.evidence["global_optimizer_steps"])
+        if "entry_m5_path_single_epoch" in components and paused.evidence["global_optimizer_steps"] == components["entry_m5_path_single_epoch"]["optimizer_steps"]:
+            single = components["entry_m5_path_single_epoch"]
+            if (paused.evidence["phase"] != "train" or paused.evidence["epoch_index"] != 0
+                    or paused.evidence["next_batch_offset"] != single["optimizer_steps"]):
+                raise RuntimeError("NATIVE_M5_SINGLE_EPOCH_FINAL_CURSOR_INVALID")
+            paused.evidence["entry_m5_path_single_epoch"] = {
+                "population_witness": single["binding"], "unique_train_rows": single["train_rows"],
+                "optimizer_steps": single["optimizer_steps"], "last_batch_rows": single["last_batch_rows"],
+                "train_epochs_consumed": 1, "drop_last": False, "full_val_executed": False,
+                "teacher_refreshed": False, "additional_epoch_authorized": False}
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_calibration_run
         calibration = require_native_calibration_run(recipe)
         if (calibration is not None and calibration["report_only_val"]
@@ -1739,7 +1781,8 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                                   invocation_started, pause_evidence, optimizer_steps=0):
     """Measure initial or fixed final ONLINE state at a durable native boundary."""
     from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_measurement_cohort
-    final_step = 512 if scope.get("continuation") else 256
+    final_step = (scope["entry_m5_path_single_epoch"]["optimizer_steps"] if "entry_m5_path_single_epoch" in scope
+                  else 512 if scope.get("continuation") else 256)
     if (type(optimizer_steps) is not int or optimizer_steps not in (0, final_step)
             or pause_evidence.get("reason") != "optimizer_step_ceiling" or pause_evidence.get("phase") != "train"
             or any(type(pause_evidence.get(k)) is not int or pause_evidence[k] != value

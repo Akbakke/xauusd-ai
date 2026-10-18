@@ -465,3 +465,96 @@ def test_physical_training_binding_rejects_eligible_rows_outside_the_label_bindi
         data.train._policy_dependent_auxiliary_bound_rows[full[3]] = False
     with pytest.raises(RuntimeError):
         trainer._prefix_candidate_training_binding(**_binding_args(data))
+
+
+def _declare_synthetic_single_epoch(data, tmp_path, monkeypatch):
+    """Real binding/coordinate validators over a named synthetic primary mask."""
+    from tests.test_entry_observed_market_horizons_learning import _single_epoch_design
+    from tests.test_unified_exit_selected_sampler_v1 import _direct_build
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract, ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    from gx1.scripts import materialize_unified_exit_chronological_coordinates_v1 as producer
+    case = data.case
+    part, witness = _single_epoch_design(tmp_path, rows=273,
+        source=case["sources"]["train"]["parquet"], sampler=case["selected"]["selected_sampler_contract"],
+        order=case["order"], cutoff=data.design["calendar"]["train_control_cutoff"])
+    data.design["scope"].update(part["scope"])
+    data.design["budget"].update(part["budget"])
+    case["recipe"]["trainer_cli"]["epochs"] = 1
+    case["recipe"]["entry_m5_path_single_epoch"] = part["scope"]["entry_m5_path_single_epoch"]
+    case["seal"]()
+    # A fresh synthetic CPU measurement receipt binds this exact design. The
+    # sampler contract/order itself remains the original one-way input.
+    receipt = case["sample_case"]["receipt"]
+    receipt["run_bindings"]["files"]["chronological_design"] = data.value["design"]
+    receipt["receipt_sha256"] = campaign.native_sha256({k:v for k,v in receipt.items() if k != "receipt_sha256"})
+    _write(case["sample_case"]["receipt_path"], receipt)
+    selected = _direct_build(case["sample_case"])
+    selected_binding = _write(data.files["selected_sampler"], selected)
+    rows = np.load(witness["eligible_parent_rows"]["path"])
+    order = np.load(witness["epoch0_parent_order"]["path"])
+    coords = case["coordinates"]
+    coords.update(schema_version=campaign.PHYSICAL_COORDINATES_SCHEMA_M5_PATH,
+        design=data.value["design"], selected_sampler=selected_binding,
+        eligibility={"rule":campaign.M5_PATH_ELIGIBILITY_RULE, "training_phase":ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
+            "target_contract":entry_observed_m5_path_contract(),
+            "entry_eligibility_cutoff_utc":data.design["calendar"]["train_control_cutoff"],
+            "eligible_rows":len(rows), "censored_rows_excluded":len(data.train)-len(rows),
+            "long_horizons_gate_primary_eligibility":False})
+    from gx1.contracts.entry_model_native_training_run_lineage_v1 import deterministic_uniform_subsample_indices
+    probe_positions = deterministic_uniform_subsample_indices(population_rows=len(rows), requested_rows=256,
+        seed=data.design["selection"]["seed"], split_salt=0)
+    for name, values in (("TRAIN_ELIGIBLE_PARENT_ROWS",rows), ("TRAIN_NATIVE_EPOCH0_ORDER",order),
+            ("TRAIN_NATIVE4096_PARENT_ROWS",order), ("TRAIN256_PROBE_PARENT_ROWS",order[probe_positions])):
+        path = tmp_path / (name + ".npy"); np.save(path, values, allow_pickle=False)
+        coords["bindings"][name] = _bind(path)
+    case["seal_coordinates"]()
+    monkeypatch.setattr(producer, "m5_path_eligible_rows", lambda path, *, cutoff_utc: {
+        "rows":rows, "physical_rows":len(data.train), "censored_rows_excluded":len(data.train)-len(rows)})
+    for dataset, role, split in ((data.train,"TRAIN","train"),(data.control,"CONTROL256","val")):
+        dataset._policy_dependent_auxiliary_binding.update(result=data.value["labels_result"], design=data.value["design"])
+        dataset._entry_observed_market_binding = {"role":role,
+            "physical_source":case["sources"][split], "identity":{"training_phase":ENTRY_ONLY_M5_PATH_TRAINING_PHASE}}
+    previous_cohort = data.context["evaluation_cohort"]
+    cohort = build_chronological_control_cohort(data.value["design"],
+        source_index_binding=previous_cohort["source_index"],
+        source_index_manifest_binding=previous_cohort["source_index_manifest"])
+    data.context["evaluation_cohort"] = cohort
+    data.context["state_factory"].factory_receipt["physical_control_cohort_sha256"] = cohort["cohort_sha256"]
+    return order, part["budget"]["planned_optimizer_steps"]
+
+
+def test_m5_single_epoch_exact_partial_batch_and_resume_stop_before_val(physical_prepared, tmp_path, monkeypatch):
+    data = physical_prepared
+    order, steps = _declare_synthetic_single_epoch(data, tmp_path, monkeypatch)
+    h = PrefixHarness(tmp_path / "m5-epoch", data)
+    # The component owner still knows the whole physical source; the coordinate
+    # owner determines the independent primary-valid training population.
+    direct, resumed = h.root/"DIRECT", h.root/"RESUMED"
+    overrides = {"epochs":1, "effective_train_rows":len(order)}
+    _, end = h.run_prefix(direct, steps, **overrides)
+    expected = h.state(direct); batches = list(h.batches)
+    contract = json.loads((h.pointer(direct).parent/trainer._CANDIDATE_TRAINING_CONTRACT_FILENAME).read_text())
+    checkpoint_policy = contract["training"]["checkpoint_policy"]
+    assert contract["training"]["epochs"] == checkpoint_policy["max_epochs"] == 1
+    assert checkpoint_policy == expected["training_progress"]["checkpoint_selection"]["checkpoint_policy"]
+    assert end["phase"] == "train" and end["epoch_index"] == 0 and not end["complete"]
+    assert end["next_batch_offset"] == steps and end["global_optimizer_steps"] == steps
+    assert [row for batch in batches for row in batch] == order.tolist()
+    assert len({row for batch in batches for row in batch}) == len(order)
+    assert len(batches[-1]) == 1 and h.validation_batches == 0
+    h.batches.clear()
+    h.run_prefix(resumed, steps-1, **overrides)
+    h.run_prefix(resumed, steps, expected_pointer=digest(h.pointer(resumed)), **overrides)
+    actual = h.state(resumed)
+    for key in ("model_state","target_model_state","optimizer_state","weight_ema_state",
+            "lr_scheduler_state","rng_state","epoch_order","training_progress"):
+        equal_tree(expected[key], actual[key])
+    assert h.batches == batches and h.validation_batches == 0
+    h.batches.clear()
+    h.run_prefix(resumed, steps, expected_pointer=digest(h.pointer(resumed)), **overrides)
+    assert h.batches == [] and h.validation_batches == 0
+    with pytest.raises(RuntimeError, match="PREFIX_FIXED_BUDGET_REQUIRED"):
+        h.run_prefix(h.root/"EXTRA", steps+1, **overrides)
+    with pytest.raises(RuntimeError, match="M5_SINGLE_EPOCH_SCOPE_INVALID"):
+        h.run_prefix(h.root/"TWO_EPOCHS", steps, **{**overrides,"epochs":2})

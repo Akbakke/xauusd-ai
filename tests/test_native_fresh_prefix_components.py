@@ -307,6 +307,7 @@ def test_existing_component_owner_uses_fresh_state_labels_and_physical_train(com
     joint={id(p) for p in c['model'].task_log_variances.parameters()}
     assert {id(p) for p in c['optimizer'].param_groups[1]['params']}==joint
     assert c['weight_ema'].steps==0
+    assert c['weight_ema']._phase_inactive_parameter_names == frozenset()
     assert all(torch.equal(v,c['weight_ema']._shadow[k]) for k,v in c['model'].state_dict().items())
     expected=runner.trainer.resolve_weight_ema_decay(runner.trainer.ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED,
              train_rows=4500,batch_size=16,grad_accum_steps=1)
@@ -538,3 +539,45 @@ def test_physical_coordinate_identity_rejects_index_of_different_parent_source(p
     case["seal_coordinates"]()
     with pytest.raises(RuntimeError,match="INDEX_PARENT_SOURCE_MISMATCH"):
         _check(case["value"],case["files"])
+
+
+def test_native_component_ema_uses_actual_observed_phase_and_exactly_preserves_inactive_weights(physical_component_case, tmp_path, monkeypatch):
+    from gx1.contracts import entry_observed_market_horizons_v1 as hz
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    args, seen, prefix, composite = _component_chain(tmp_path, monkeypatch, physical=physical_component_case)
+    def bind(dataset, scope):
+        dataset._entry_observed_market_binding = {'identity': {'training_phase': scope['training_phase']}}
+    monkeypatch.setattr(hz, 'bind_observed_entry_dataset', bind)
+    def model(meta, normalization, device):
+        result = TinyModel(normalization)
+        result.head_dip = torch.nn.Linear(3, 2)
+        result.head_exit_action = torch.nn.Linear(3, 2)
+        return result
+    monkeypatch.setattr(runner.val, '_model', model)
+    result = runner._build_bound_full_train_components(**args,
+        observed_entry_scope={'training_phase': ENTRY_ONLY_M5_PATH_TRAINING_PHASE})
+    model, ema = result['model'], result['weight_ema']
+    initial = {name: value.clone() for name, value in model.state_dict().items()}
+    assert {'head_dip.weight', 'head_exit_action.weight'} <= ema._phase_inactive_parameter_names
+    for _ in range(9):
+        with torch.no_grad():
+            model.backbone.weight.add_(1.)
+        ema.update(model)
+    shadow = ema.state_dict_clone()
+    for name in ema._phase_inactive_parameter_names:
+        assert torch.equal(shadow[name], initial[name])
+    assert not torch.equal(shadow['backbone.weight'], model.backbone.weight)
+
+
+@pytest.mark.parametrize('fault', ['missing_dataset_binding', 'scope_phase_differs'])
+def test_native_component_ema_rejects_unbound_or_mismatched_observed_phase(physical_component_case, tmp_path, monkeypatch, fault):
+    from gx1.contracts import entry_observed_market_horizons_v1 as hz
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    args, seen, prefix, composite = _component_chain(tmp_path, monkeypatch, physical=physical_component_case)
+    def bind(dataset, scope):
+        if fault == 'scope_phase_differs':
+            dataset._entry_observed_market_binding = {'identity': {'training_phase': 'entry_only'}}
+    monkeypatch.setattr(hz, 'bind_observed_entry_dataset', bind)
+    with pytest.raises(RuntimeError, match='EMA_PHASE_BINDING_MISMATCH'):
+        runner._build_bound_full_train_components(**args,
+            observed_entry_scope={'training_phase': ENTRY_ONLY_M5_PATH_TRAINING_PHASE})

@@ -1,0 +1,94 @@
+{
+  "schema_version": "gx1_native_gc_trusted_record_restoration_plan_v1",
+  "mode": "restore_trusted_records_and_complete_event_statistics",
+  "plan_id": "NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024",
+  "created_utc": "2026-10-18T11:00:36.859546+00:00",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "operator_request": "18October fullMBPallTF/M5primary request. Restore78kotherwisevalidM1/25MreportedTcontracts excludedonlybystaleidentitymask; noTdedupe andallotherguardsretained. Bind documentedPTPincident. Reuse001unfilteredladder/bookreductions; onefreshsource-boundeventpass since019discardednewvalidstats. Native training remainsclosed.",
+  "inputs": {
+    "source_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/TERMINAL.json",
+      "sha256": "321769202aef3fe3aa117b41d85f0609f338368587dafc9bf30f0f70618c53f8"
+    },
+    "m1_inputs": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/M1_GC_INPUTS.parquet",
+      "sha256": "879d75a7c244454f60b4fc5ca79edee46b6d1a8a4f61aeb2f52f6b7c656c84c7"
+    },
+    "footprint_m1_levels": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/FOOTPRINT_M1_LEVELS.parquet",
+      "sha256": "50df8c0105c3fec1d396d371055af9854c4c2f09662e76e53393b8a8b39c5ee0"
+    },
+    "roll_schedule": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/ROLL_SCHEDULE.json",
+      "sha256": "71262543da79a79ca0c6a0fa2c2d0f78494fa001d3f2409188d3ad80d4f7dc69"
+    }
+  },
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "study_start_inclusive": "2024-05-01T00:00:00Z",
+  "study_end_exclusive": "2026-07-01T00:00:00Z",
+  "max_wall_seconds": 1800,
+  "wall_budget_origin": "Reuse bounded1800s auditceiling: one66file eventpass (019reference953s) plusrestorationfrompublishedreductions/profilestream. Noautomaticextension/relaunch.",
+  "resource_owner": "scripts/gx1_capped_run.sh audit4G/swap512M/CPU0-7/numerical1/TasksMax64; fourraw-eventworkers; existingprojectlock/guardsunchanged",
+  "one_shot_invocations": 1,
+  "source_frozen_while_running": true,
+  "test_data_used": false,
+  "native_training_started": false,
+  "source_plan": {
+    "path": "configs/research/GC_M5_FEATURE_BUILD_20261017_006.json",
+    "sha256": "59e8fea20eab0d08433dbb3dccd1ac7ffa57e336e78f87723a06b3a5832ca267"
+  },
+  "profile_state_max_bytes": 67108864,
+  "event_reductions": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/M1_EVENT_DIAGNOSTICS.parquet",
+    "sha256": "8cab49f146a46889b81d20232807a67b05865f450880c3a70854e1b2e13d1341",
+    "source_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TERMINAL.json",
+      "sha256": "76dc529106f197a2c03bcd238f7ebe27bd1dc5834f6689e4605c383d172df539"
+    }
+  },
+  "retained_registry_source": {
+    "path": "configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_001.json",
+    "sha256": "4ebe7a989a7313d607140ec7025109e0a94de9185d2b360b92abfdaa2d1ebf61"
+  },
+  "controller": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/run_completion.py",
+    "sha256": "aad60649179bebd35eec66eadf43d00da98e9d7cdfdc4a305b75772dd95044d2"
+  },
+  "optimizer_steps": 0,
+  "native_training_admitted": false,
+  "raw_event_passes": 1,
+  "outputs_do_not_prove": [
+    "Wholehistoricalsource/feedcompleteness",
+    "Native input/normalization/modellearning",
+    "UnambiguousnonTactionlabels withoutvendor sourceedition proof"
+  ],
+  "worker_count": 4,
+  "expected_source_files": 66,
+  "expected_source_records": 892100712,
+  "raw_trade_or_book_rebuilds": 0,
+  "expected_duplicate_only_m1": 78322,
+  "expected_duplicate_only_volume_contracts": 25064729,
+  "source_incidents": {
+    "path": "configs/research/GC_VENDOR_SOURCE_INCIDENTS_20261018_001.json",
+    "sha256": "b080b7393af0aa23f3e61901e47166c23018174c99847186726af48f0f56907b"
+  },
+  "semantic_source_inventory": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/AUDIT/RAW_SEMANTIC_COVERAGE.json",
+    "sha256": "a8a44a3314b0cec5256a1c0186f94966f3059a9b7b4784737cef9b01323e789d"
+  },
+  "declared_candidate_count": 995,
+  "declared_candidates_per_timeframe": 199,
+  "completion_rule": "Every published original M1 trade/book metric and price-side row must match prior admitted subset; explicit duplicate-only restoration baseline and incident censoring measured separately; all timeframes expose declared candidates with masks/clocks; final registry fits actual TRAIN observations separately. No native admission or alpha claim.",
+  "focused_source_qualification": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/FOCUSED_SOURCE_QUALIFICATION_FINAL.json",
+    "sha256": "20528984420b1b6b5534088b5be2d7a024ae80a34f9f1fde08f70cd842f6bcd1"
+  }
+}

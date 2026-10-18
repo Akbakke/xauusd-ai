@@ -481,13 +481,16 @@ def require_physical_chronological_preprocessing(
                                     label="physical TRAIN rows", verify_file=True)
     control_binding = require_binding(calendar["bindings"]["CONTROL256_PARENT_ROWS"],
                                       label="physical control rows", verify_file=True)
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+    single_epoch = require_m5_single_epoch_population(design)
     train = np.load(train_binding["path"], allow_pickle=False)
     control = np.load(control_binding["path"], allow_pickle=False)
     require(
         train.dtype == control.dtype == np.dtype("int64")
         and train.shape == (sources["train"]["physical_rows"],)
         and np.array_equal(train, np.arange(len(train), dtype=np.int64))
-        and len(train) > design["budget"]["maximum_trained_entry_rows"]
+        and (len(train) >= design["budget"]["maximum_trained_entry_rows"] if single_epoch is not None
+             else len(train) > design["budget"]["maximum_trained_entry_rows"])
         and control.shape == (design["selection"]["control_entries"],)
         and len(control) == design["budget"]["later_control_entries"] == 256
         and np.array_equal(control, np.unique(control)) and np.all(control >= 0)
@@ -693,6 +696,15 @@ def require_physical_native_training_coordinates(
           and np.array_equal(np.sort(order), eligible)
           and planned.shape == (design["budget"]["maximum_trained_entry_rows"],)
           and np.array_equal(planned, order[:len(planned)]), "ROWS_INVALID")
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+    single_epoch = require_m5_single_epoch_population(design)
+    if single_epoch is not None:
+        check(value["schema_version"] == PHYSICAL_COORDINATES_SCHEMA_M5_PATH
+            and single_epoch["train_parquet"] == physical["physical_sources"]["train"]["parquet"]
+            and single_epoch["witness"]["native_sampler_contract"] == selected["selected_sampler_contract"]
+            and np.array_equal(eligible, single_epoch["eligible_parent_rows"])
+            and np.array_equal(order, single_epoch["epoch0_parent_order"])
+            and np.array_equal(planned, order), "SINGLE_EPOCH_WITNESS_MISMATCH")
     positions = deterministic_uniform_subsample_indices(
         population_rows=len(planned), requested_rows=design["budget"]["train_only_probe_entries"],
         seed=design["selection"]["seed"], split_salt=0,
@@ -726,14 +738,22 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
                  for key, binding in value.items()}
     design, normalization, labels = (read_bound_json(Path(artifacts[key]["path"]), artifacts[key]["sha256"])
                                      for key in ("design", "normalization_result", "labels_result"))
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        M5_SINGLE_EPOCH_SCOPE_KEY, require_m5_single_epoch_population, planned_prefix_training_rows,
+    )
+    single_epoch = require_m5_single_epoch_population(design)
+    if ((single_epoch is None and M5_SINGLE_EPOCH_SCOPE_KEY in recipe)
+            or (single_epoch is not None and (recipe.get(M5_SINGLE_EPOCH_SCOPE_KEY) != single_epoch["binding"]
+                or "native_coordinates" not in artifacts or recipe.get("trainer_cli", {}).get("epochs") != 1))):
+        raise RuntimeError("NATIVE_M5_SINGLE_EPOCH_EXPLICIT_SCOPE_REQUIRED")
     if (design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
             or design.get("initialization", {}).get("mode") != recipe["initialization"]
             or design.get("scope", {}).get("test_sealed") is not True
             or design.get("scope", {}).get("same_architecture") is not True
             or design.get("scope", {}).get("one_experiment") is not True
             or design.get("budget", {}).get("planned_optimizer_steps") != _planned_prefix_optimizer_steps(design)
-            or design.get("budget", {}).get("maximum_trained_entry_rows") != 4096
-            or design.get("budget", {}).get("epochs_completed") != 0
+            or design.get("budget", {}).get("maximum_trained_entry_rows") != planned_prefix_training_rows(design)
+            or design.get("budget", {}).get("epochs_completed") != (1 if single_epoch is not None else 0)
             or design.get("budget", {}).get("repeat_or_automatic_extension") is not False
             or require_reference_policy_contract(recipe.get("exit_reference_policy"))
                 != require_reference_policy_contract(design["targets"]["reference_policy"])):
@@ -753,9 +773,10 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
         coordinates = (require_physical_native_training_coordinates(
             artifacts, design=design, physical=physical) if "native_coordinates" in artifacts else None)
         return {"artifacts": artifacts, "design": design,
+                **({"entry_m5_path_single_epoch": single_epoch} if single_epoch is not None else {}),
                 "train_rows": physical["train_rows"], "physical_preprocessing": physical,
                 **({"physical_coordinates": coordinates} if coordinates is not None else {})}
-    if "native_coordinates" in artifacts:
+    if "native_coordinates" in artifacts or single_epoch is not None:
         raise RuntimeError("NATIVE_PREFIX_LEGACY_COORDINATES_FORBIDDEN")
     preparation_binding = require_binding(normalization.get("prefix_preparation"), label="native prefix preparation", verify_file=True)
     preparation = read_bound_json(Path(preparation_binding["path"]), preparation_binding["sha256"])
@@ -1038,6 +1059,8 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
         "optimizer_steps": 0, "max_invocations": 1, "teacher_refresh_allowed": False,
         "full_epoch_training_allowed": False, "full_val_allowed": False, "test_data_used": False}
     _expected_observed_entry_binding(recipe, expected)
+    if "entry_m5_path_single_epoch" in prefix:
+        expected["entry_m5_path_single_epoch"] = prefix["entry_m5_path_single_epoch"]["binding"]
     if "chronological_train_only_measurement" in recipe:
         if recipe["chronological_train_only_measurement"] is not True:
             raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
@@ -1381,6 +1404,62 @@ def require_chronological_continuation(recipe):
             "origin_pointer":pointer_binding}
 
 
+def require_m5_single_epoch_run(recipe, *, invocation_number=None, execution_budget=None):
+    """One actual M5-eligible TRAIN epoch. Read policy; never create admission."""
+    prefix = require_chronological_prefix_recipe(recipe)
+    single = prefix.get("entry_m5_path_single_epoch")
+    if (single is None or not _observed_entry_in(recipe)
+            or "chronological_learning_measurement" not in recipe
+            or any(k in recipe for k in ("chronological_initial_measurement", "entry_learning_study",
+                "chronological_learning_continuation", "chronological_entry_baseline", "native_calibration",
+                "frozen_readout_evaluation", "candidate_resume_origin", "entry_gradient_diagnostic",
+                "frozen_train_policy_evaluation", "frozen_entry_selector_probe"))):
+        raise RuntimeError("NATIVE_M5_SINGLE_EPOCH_MIXED_OR_UNMEASURED_SCOPE")
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
+    observed = require_observed_entry_scope(recipe)
+    if observed is None or observed["training_phase"] != single["witness"]["training_phase"]:
+        raise RuntimeError("NATIVE_M5_SINGLE_EPOCH_TARGET_MISMATCH")
+    measured = require_chronological_learning_measurement(recipe)
+    repo = Path(__file__).resolve().parents[2]
+    binding = require_binding(recipe.get("next_run_policy"), label="single epoch policy", verify_file=True)
+    if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
+        raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
+    policy = read_bound_json(Path(binding["path"]), binding["sha256"])
+    _require_native_profile_and_economics(recipe, policy, repo)
+    scope = policy.get("entry_m5_path_single_epoch_run")
+    windows = scope.get("max_invocations") if isinstance(scope, Mapping) else None
+    expected = {"population_witness": single["binding"], "chronological_prefix": prefix["artifacts"],
+        "chronological_learning_measurement": measured["artifacts"]["initial_measurement_audit"],
+        "run_id": recipe.get("run_id"), "out_bundle_dir": recipe.get("out_bundle_dir"),
+        "source_bindings_sha256": recipe.get("source_bindings_sha256"), "max_invocations": windows,
+        "optimizer_steps": single["optimizer_steps"], "maximum_trained_entry_rows": single["train_rows"],
+        "batch_size": single["witness"]["batch_size"], "drop_last": False, "epochs": 1,
+        "final_model_variant": "ONLINE", "teacher_refresh_allowed": False,
+        "full_epoch_training_allowed": True, "full_val_allowed": False, "test_data_used": False,
+        "automatic_extension_allowed": False}
+    _expected_observed_entry_binding(recipe, expected)
+    if "chronological_train_only_measurement" in recipe:
+        if recipe["chronological_train_only_measurement"] is not True:
+            raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
+        expected["chronological_train_only_measurement"] = True
+    if (policy.get("training_enabled") is not False or scope != expected
+            or canonical_sha256(scope) != canonical_sha256(expected)
+            or type(windows) is not int or windows < 1
+            or any(k in policy for k in ("chronological_learning_run", "native_learning_calibration",
+                "frozen_readout_evaluation", "chronological_initial_measurement"))):
+        raise RuntimeError("NATIVE_M5_SINGLE_EPOCH_NOT_AUTHORIZED")
+    if invocation_number is not None and (type(invocation_number) is not int or not 1 <= invocation_number <= windows):
+        raise RuntimeError("NATIVE_M5_SINGLE_EPOCH_INVOCATION_INVALID")
+    if execution_budget is not None and (
+            type(execution_budget.get("stop_after_optimizer_steps")) is not int
+            or execution_budget["stop_after_optimizer_steps"] != single["optimizer_steps"]
+            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or execution_budget.get("max_invocation_seconds") != 12000
+            or "resume_probe_val_rows" in execution_budget):
+        raise RuntimeError("NATIVE_M5_SINGLE_EPOCH_BUDGET_INVALID")
+    return {**prefix, "measurement_scope": measured, "optimizer_step_ceiling": single["optimizer_steps"]}
+
+
 def require_chronological_prefix_run(recipe, *, invocation_number=None, execution_budget=None):
     """Admit only the explicitly bound single experiment through native guards."""
     prefix = require_chronological_prefix_recipe(recipe)
@@ -1475,7 +1554,7 @@ def require_native_recipe_metadata(
         or any(recipe.get("val_limits", {}).get(k) != v for k, v in
                {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
                 "max_wall_seconds": 10800, "progress_interval_forwards": 64}.items())
-        or controls.get("epochs") != 30 or controls.get("batch_size") != 16
+        or controls.get("epochs") != (1 if "entry_m5_path_single_epoch" in recipe else 30) or controls.get("batch_size") != 16
         or controls.get("early_stopping_patience") != 5
         or controls.get("checkpoint_monitor") != monitor
     ):
@@ -1509,7 +1588,8 @@ def require_native_recipe_metadata(
         prefix = require_chronological_prefix_recipe(recipe)
         if prefix["train_rows"] > count or latest_year:
             raise RuntimeError("NATIVE_PREFIX_FULL_PHYSICAL_INDEX_REQUIRED")
-        count = prefix["train_rows"]
+        count = (prefix["entry_m5_path_single_epoch"]["train_rows"]
+                 if "entry_m5_path_single_epoch" in prefix else prefix["train_rows"])
     return recipe, count
 
 
@@ -1733,6 +1813,16 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "entry_m5_path_single_epoch" in recipe:
+        if "chronological_initial_measurement" in recipe:
+            require_chronological_initial_measurement(recipe, invocation_number=invocation_number,
+                execution_budget=execution_budget)
+            if any(k in recipe for k in ("entry_learning_study", "chronological_learning_measurement",
+                    "chronological_learning_continuation", "native_calibration", "entry_gradient_diagnostic")):
+                raise RuntimeError("NATIVE_M5_SINGLE_EPOCH_MIXED_OR_UNMEASURED_SCOPE")
+            return 0
+        return require_m5_single_epoch_run(recipe, invocation_number=invocation_number,
+            execution_budget=execution_budget)["optimizer_step_ceiling"]
     if "entry_learning_study" in recipe:
         return require_entry_learning_study_run(
             recipe, invocation_number=invocation_number,

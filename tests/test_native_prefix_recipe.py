@@ -482,3 +482,58 @@ def test_physical_recipe_plans_the_fit_budget_only_when_the_design_declares_the_
     else:
         with pytest.raises(RuntimeError,match="NATIVE_PREFIX_DESIGN_OR_TARGET_MISMATCH"):
             native.require_chronological_prefix_recipe(recipe)
+
+
+@pytest.mark.parametrize("fault", [None, "unbound_policy", "old_prefix_policy", "extra_steps", "extra_epoch",
+    "drop_last", "full_val", "refresh", "missing_initial", "h20_phase", "unbounded_windows"])
+def test_m5_single_epoch_requires_own_exact_policy_fresh_measurement_and_actual_ceiling(scope, tmp_path, monkeypatch, fault):
+    """Policy dispatch mechanics only; physical gates are tested separately."""
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    from gx1.contracts.entry_observed_market_v1 import ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+    from tests.test_entry_observed_market_horizons_learning import _single_epoch_design
+    policy, recipe, write, save = scope
+    design, witness = _single_epoch_design(tmp_path)
+    single = horizons.require_m5_single_epoch_population(design)
+    measured = {"artifacts":{"initial_measurement_audit":write("measured.json",{"synthetic":True})}}
+    prefix = {"artifacts":{"design":write("design-bound.json",design)}, "entry_m5_path_single_epoch":single}
+    monkeypatch.setattr(native, "require_chronological_prefix_recipe", lambda recipe: prefix)
+    monkeypatch.setattr(native, "require_chronological_learning_measurement", lambda recipe: measured)
+    monkeypatch.setattr(horizons, "require_observed_entry_scope", lambda recipe: {
+        "training_phase":ENTRY_ONLY_M5_PATH_TRAINING_PHASE if fault != "h20_phase" else horizons.ENTRY_ONLY_HORIZON_TRAINING_PHASE})
+    monkeypatch.setattr(native, "_expected_observed_entry_binding", lambda recipe, expected: expected.update(
+        entry_observed_market={"synthetic_identity":True}))
+    recipe.pop("candidate_resume_origin")
+    recipe.update(chronological_prefix=prefix["artifacts"], entry_m5_path_single_epoch=single["binding"],
+        entry_observed_market={"synthetic":True}, chronological_learning_measurement=measured["artifacts"]["initial_measurement_audit"],
+        run_id="SINGLE_EPOCH",out_bundle_dir=str(tmp_path/"MODEL"))
+    policy.pop("native_learning_calibration")
+    expected = {"population_witness":single["binding"], "chronological_prefix":prefix["artifacts"],
+        "chronological_learning_measurement":measured["artifacts"]["initial_measurement_audit"],
+        "run_id":recipe["run_id"], "out_bundle_dir":recipe["out_bundle_dir"],
+        "source_bindings_sha256":recipe["source_bindings_sha256"], "max_invocations":3,
+        "optimizer_steps":single["optimizer_steps"], "maximum_trained_entry_rows":single["train_rows"],
+        "batch_size":witness["batch_size"], "drop_last":False, "epochs":1, "final_model_variant":"ONLINE",
+        "teacher_refresh_allowed":False, "full_epoch_training_allowed":True, "full_val_allowed":False,
+        "test_data_used":False, "automatic_extension_allowed":False, "entry_observed_market":{"synthetic_identity":True}}
+    policy["entry_m5_path_single_epoch_run"] = expected
+    if fault == "old_prefix_policy": policy["chronological_learning_run"] = expected
+    elif fault == "extra_steps": expected["optimizer_steps"] += 1
+    elif fault == "extra_epoch": expected["epochs"] = 2
+    elif fault == "drop_last": expected["drop_last"] = True
+    elif fault == "full_val": expected["full_val_allowed"] = True
+    elif fault == "refresh": expected["teacher_refresh_allowed"] = True
+    elif fault == "missing_initial": recipe.pop("chronological_learning_measurement")
+    elif fault == "unbounded_windows": expected["max_invocations"] = None
+    save()
+    if fault == "unbound_policy": write("NEXT_RUN_POLICY.json", {**policy,"training_enabled":True})
+    budget = {"stop_after_optimizer_steps":single["optimizer_steps"], "stop_after_completed_val_epochs":None,
+        "max_invocation_seconds":12000}
+    if fault is not None:
+        with pytest.raises(RuntimeError): native.require_native_run_scope(recipe,execution_budget=budget)
+    else:
+        assert native.require_native_run_scope(recipe,invocation_number=3,execution_budget=budget) == single["optimizer_steps"]
+        for invalid in (0,4,True):
+            with pytest.raises(RuntimeError): native.require_native_run_scope(recipe,invocation_number=invalid)
+        for key,value in (("stop_after_optimizer_steps",single["optimizer_steps"]+1),
+                ("stop_after_completed_val_epochs",1),("max_invocation_seconds",12001)):
+            with pytest.raises(RuntimeError): native.require_native_run_scope(recipe,execution_budget={**budget,key:value})

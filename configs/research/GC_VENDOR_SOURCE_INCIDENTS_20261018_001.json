@@ -1,0 +1,28 @@
+{
+  "schema_version": "gx1_gc_vendor_source_incidents_v1",
+  "dataset": "GLBX.MDP3",
+  "incidents": [
+    {
+      "incident_id": "GLBX_PTP_20250917",
+      "source_url": "https://issues.databento.com/b/6vrl98vl/feature-ideas/glbxmdp3ifeuimpactndeximpactifusimpact-ptp-issues-in-2025-09-17",
+      "start_inclusive_utc": "2025-09-17T13:34:28Z",
+      "end_exclusive_utc": "2025-09-17T13:50:40Z",
+      "vendor_scope": "Capture timestamps and normalized timestamps affected; no offset correction is known.",
+      "treatment": "Exclude every overlapping M1 observation; also exclude BBO/order/event reductions through the first subsequent clean same-source M1 anchor. Keep original raw metrics and receipts."
+    }
+  ],
+  "nontrade_action_semantics_admitted": false,
+  "nontrade_issue_url": "https://issues.databento.com/b/6vrl98vl/feature-ideas/glbxmdp3-mbp-channel-flush-events-with-no-change-to-the-book-carry-incorrect-actionpricesize-in-historical-data",
+  "nontrade_treatment": "Reported A/C/M/F/R/N labels are diagnostic only until the exact source edition is proven corrected. T-only executed volume remains unchanged.",
+  "no_vendor_fetch": true,
+  "test_data_used": false,
+  "trusted_trade_admission": {
+    "schema_version": "gx1_gc_trusted_trade_source_admission_v1",
+    "signature_identity_is_bad_source_proof": false,
+    "deduplicate_T": false,
+    "reject_duplicate_signature": false,
+    "all_other_trade_flag_price_grid_guards_preserved": true,
+    "source_url": "https://issues.databento.com/b/6vrl98vl/feature-ideas/glbxmdp3-mbp-channel-flush-events-with-no-change-to-the-book-carry-incorrect-actionpricesize-in-historical-data",
+    "vendor_statement": "All action T records are correct, even if identical to the previous action T record; historical non-T action/price/size labels remain uncertified."
+  }
+}

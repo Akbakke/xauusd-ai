@@ -15,6 +15,7 @@ from typing import Any, Mapping, Sequence
 SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v6"
 COUPLED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v7"
 MARKED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v8"
+M5_SINGLE_EPOCH_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_m5_single_epoch_v1"
 # A validation epoch whose Entry argmax is one action for every row (all
 # FLAT, all LONG or all SHORT) is a constant policy, never a selectable
 # optimum (docs/LEARNING_GATE.md: constant action choice is not PASS).
@@ -39,8 +40,42 @@ MARKED_NET_CHECKPOINT_MONITOR = "marked_policy_evaluation.single_position_replay
 CHECKPOINT_MODE = "max"
 
 
+def _m5_single_epoch_checkpoint_scope(prefix_training_binding):
+    """Join only the declared actual-population successor, never infer it from max_epochs."""
+    if prefix_training_binding is None:
+        return None
+    if not isinstance(prefix_training_binding, Mapping):
+        raise RuntimeError("[ENTRY_CANDIDATE_M5_EPOCH_BINDING_INVALID]")
+    if "entry_m5_path_single_epoch" not in prefix_training_binding:
+        return None
+    from pathlib import Path
+    from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+    binding = require_binding(prefix_training_binding.get("artifacts", {}).get("design"),
+        label="M5 checkpoint actual design", verify_file=True)
+    single = require_m5_single_epoch_population(read_bound_json(Path(binding["path"]), binding["sha256"]))
+    if single is None:
+        raise RuntimeError("[ENTRY_CANDIDATE_M5_EPOCH_BINDING_INVALID]")
+    expected = {"population_witness":single["binding"], "train_rows":single["train_rows"],
+        "last_batch_rows":single["last_batch_rows"], "drop_last":False}
+    observed = prefix_training_binding.get("entry_observed_market", {})
+    if (prefix_training_binding.get("schema_version") != "gx1_candidate_prefix_training_binding_v1"
+            or prefix_training_binding["entry_m5_path_single_epoch"] != expected
+            or prefix_training_binding.get("train_rows") != single["train_rows"]
+            or prefix_training_binding.get("maximum_optimizer_steps") != single["optimizer_steps"]
+            or prefix_training_binding.get("maximum_completed_epochs") != 1
+            or prefix_training_binding.get("physical_sources", {}).get("train", {}).get("parquet") != single["train_parquet"]
+            or not isinstance(observed, Mapping) or set(observed) != {"train","control"}
+            or any(not isinstance(observed[role], Mapping)
+                or observed[role].get("identity", {}).get("training_phase") != single["witness"]["training_phase"]
+                for role in observed)):
+        raise RuntimeError("[ENTRY_CANDIDATE_M5_EPOCH_BINDING_INVALID]")
+    return {**expected, "optimizer_steps":single["optimizer_steps"]}
+
+
 def checkpoint_policy_metadata(
     *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
+    prefix_training_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return the exact external-candidate policy in JSON-safe form."""
 
@@ -48,13 +83,17 @@ def checkpoint_policy_metadata(
         CHECKPOINT_MONITOR, COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR,
     }:
         raise RuntimeError("[ENTRY_CANDIDATE_CHECKPOINT_MONITOR_INVALID]")
+    single = _m5_single_epoch_checkpoint_scope(prefix_training_binding)
+    if single is not None and checkpoint_monitor not in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR}:
+        raise RuntimeError("[ENTRY_CANDIDATE_M5_EPOCH_MONITOR_INVALID]")
     return {
-        "schema_version": (
+        "schema_version": (M5_SINGLE_EPOCH_SCHEMA_VERSION if single is not None else
             MARKED_NET_SCHEMA_VERSION if checkpoint_monitor == MARKED_NET_CHECKPOINT_MONITOR
             else COUPLED_NET_SCHEMA_VERSION if checkpoint_monitor == COUPLED_NET_CHECKPOINT_MONITOR
             else SCHEMA_VERSION
         ),
-        "max_epochs": MAX_EPOCHS,
+        "max_epochs": 1 if single is not None else MAX_EPOCHS,
+        **({"entry_m5_path_single_epoch": single} if single is not None else {}),
         "validation_frequency_epochs": VALIDATION_FREQUENCY_EPOCHS,
         "early_stop_patience": EARLY_STOP_PATIENCE,
         "minimum_epochs_before_stop": MINIMUM_EPOCHS_BEFORE_STOP,
@@ -116,12 +155,18 @@ def native_checkpoint_monitor(objective: Mapping[str, Any]) -> str:
 def require_checkpoint_policy(
     value: Mapping[str, Any], *, context: str,
     checkpoint_monitor: str = CHECKPOINT_MONITOR,
+    prefix_training_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Reject a recipe/session that drifts from the frozen candidate policy."""
+    """Reject a recipe/session that drifts from its explicit frozen policy."""
 
-    expected = checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor)
+    expected = checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor,
+        prefix_training_binding=prefix_training_binding)
     if not isinstance(value, Mapping) or dict(value) != expected:
         raise RuntimeError(f"[{context}_CHECKPOINT_POLICY_INVALID]")
+    if "entry_m5_path_single_epoch" in expected:
+        from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256
+        if canonical_sha256(dict(value)) != canonical_sha256(expected):
+            raise RuntimeError(f"[{context}_CHECKPOINT_POLICY_INVALID]")
     return expected
 
 

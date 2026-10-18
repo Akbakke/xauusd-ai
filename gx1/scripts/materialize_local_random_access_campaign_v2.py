@@ -823,7 +823,12 @@ def materialize_native_candidate_campaign(
             # This is the immutable origin counter, with no additional TRAIN steps.
             origin = require_frozen_readout_evaluation(recipe)["origin_resume_state"]
             epoch_stop *= origin["epoch_index"] + 1
-        if ceiling is not None and ceiling >= epoch_stop:
+        if "entry_m5_path_single_epoch" in recipe:
+            # This named successor alone consumes one complete eligible epoch.
+            # The metadata and run-scope owners have verified actual N/order.
+            if ceiling != (0 if "chronological_initial_measurement" in recipe else epoch_stop):
+                raise RandomAccessCampaignError("M5 single epoch ceiling differs from actual eligible population")
+        elif ceiling is not None and ceiling >= epoch_stop:
             raise RandomAccessCampaignError("native calibration cannot complete a TRAIN epoch")
     legacy_inputs = (prior_campaign_path, prior_campaign_file_sha256, selection_path, selection_file_sha256)
     if "native_coordinates" in recipe.get("chronological_prefix", {}):

@@ -84,9 +84,76 @@ RECENT_WINDOW_TRAIN_OBSERVATION_STEPS = (0, 256, 1024)
 V38_SMOKE_PLANNED_OPTIMIZER_STEPS = 256
 
 
+M5_SINGLE_EPOCH_SCOPE_KEY = "entry_m5_path_single_epoch"
+M5_SINGLE_EPOCH_POPULATION_SCHEMA = "gx1_entry_m5_path_single_epoch_population_v1"
+
+
+def require_m5_single_epoch_population(design: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Read one explicit, hash-bound actual TRAIN population; never grant launch.
+
+    The witness precedes the chronological design. Its canonical sampler contract
+    does not bind a selected-sampler artifact (which itself binds the design).
+    Physical coordinate validation later rejoins the measured sampler and labels.
+    """
+    from pathlib import Path
+    from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
+    from gx1.contracts.unified_exit_random_access_sampler_v1 import require_random_access_sampler_contract
+    from gx1.contracts.entry_observed_market_v1 import (
+        ENTRY_ONLY_M5_PATH_TRAINING_PHASE, entry_observed_m5_path_contract,
+    )
+    scope = design.get("scope", {}) if isinstance(design, Mapping) else {}
+    if M5_SINGLE_EPOCH_SCOPE_KEY not in scope:
+        return None
+    binding = require_binding(scope[M5_SINGLE_EPOCH_SCOPE_KEY], label="M5 single epoch population", verify_file=True)
+    value = read_bound_json(Path(binding["path"]), binding["sha256"])
+    fixed = {"schema_version": M5_SINGLE_EPOCH_POPULATION_SCHEMA,
+        "training_phase": ENTRY_ONLY_M5_PATH_TRAINING_PHASE,
+        "target_contract": entry_observed_m5_path_contract(), "batch_size": RECENT_WINDOW_BATCH_SIZE,
+        "epochs": 1, "drop_last": False, "test_data_used": False}
+    if (any(type(value.get(k)) is not type(v) or value[k] != v for k, v in fixed.items())
+            or set(value) != set(fixed) | {"train_parquet", "eligible_parent_rows", "epoch0_parent_order",
+                "native_sampler_contract", "entry_eligibility_cutoff_utc", "train_rows", "optimizer_steps"}):
+        raise RuntimeError("ENTRY_M5_SINGLE_EPOCH_POPULATION_INVALID")
+    sampler = require_random_access_sampler_contract(value["native_sampler_contract"])
+    # Physical preprocessing and the dataset/file owner verify these large bytes.
+    # Budget dispatch validates the identity here without rehashing TRAIN at every cap check.
+    source = require_binding(value["train_parquet"], label="single epoch actual TRAIN")
+    arrays = {}
+    for key in ("eligible_parent_rows", "epoch0_parent_order"):
+        item = require_binding(value[key], label="single epoch " + key, verify_file=True)
+        arrays[key] = np.load(item["path"], allow_pickle=False)
+    rows, order = arrays["eligible_parent_rows"], arrays["epoch0_parent_order"]
+    n = len(rows)
+    steps = -(-n // RECENT_WINDOW_BATCH_SIZE)
+    budget = design.get("budget", {})
+    if (any(a.dtype != np.dtype("int64") or a.ndim != 1 for a in arrays.values())
+            or n < RECENT_WINDOW_BATCH_SIZE or not np.array_equal(rows, np.unique(rows))
+            or np.any(rows < 0) or np.any(rows >= sampler["entry_pair_population"])
+            or not np.array_equal(np.sort(order), rows) or sampler["split"] != "train"
+            or type(value.get("train_rows")) is not int or value["train_rows"] != n
+            or type(value.get("optimizer_steps")) is not int or value["optimizer_steps"] != steps
+            or scope.get("entry_only_training_phase") != ENTRY_ONLY_M5_PATH_TRAINING_PHASE
+            or value["entry_eligibility_cutoff_utc"] != design.get("calendar", {}).get("train_control_cutoff")
+            or any(type(budget.get(k)) is not type(v) or budget[k] != v for k, v in {
+                "planned_optimizer_steps": steps, "maximum_trained_entry_rows": n,
+                "epochs_completed": 1, "repeat_or_automatic_extension": False}.items())):
+        raise RuntimeError("ENTRY_M5_SINGLE_EPOCH_BUDGET_OR_ROWS_INVALID")
+    return {"binding": binding, "witness": value, "train_parquet": source,
+            "eligible_parent_rows": rows, "epoch0_parent_order": order,
+            "train_rows": n, "optimizer_steps": steps, "last_batch_rows": n - (steps - 1) * RECENT_WINDOW_BATCH_SIZE}
+
+
+def planned_prefix_training_rows(design: Mapping[str, Any]) -> int:
+    single = require_m5_single_epoch_population(design)
+    return single["train_rows"] if single is not None else RECENT_WINDOW_TRAIN_PROBE_ROWS
+
+
 def planned_prefix_optimizer_steps(design: Mapping[str, Any]) -> int:
     """The optimizer budget a frozen chronological design must plan: the minimum plan's fit budget when
     its scope declares the entry-only horizon phase, otherwise the V38 smoke convention."""
+    single = require_m5_single_epoch_population(design)
+    if single is not None:
+        return single["optimizer_steps"]
     scope = design.get("scope") if isinstance(design, Mapping) else None
     if isinstance(scope, Mapping) and scope.get("entry_only_training_phase") == ENTRY_ONLY_HORIZON_TRAINING_PHASE:
         return MINIMUM_PLAN_FIT_OPTIMIZER_STEPS

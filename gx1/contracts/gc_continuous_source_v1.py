@@ -145,11 +145,13 @@ def choose_daily_contract(volumes: np.ndarray, maturities: list[tuple[int,int]])
     return selected, basis_day
 
 
-def row_masks(selected: np.ndarray, values: dict[str,np.ndarray], eligible: np.ndarray) -> dict[str,np.ndarray]:
+def row_masks(selected: np.ndarray, values: dict[str,np.ndarray], eligible: np.ndarray, *, reject_duplicate_signature: bool = True) -> dict[str,np.ndarray]:
     base = ((selected >= 0) & eligible & (values['trades'] > 0) &
             (values['invalid_trade'] == 0) & (values['gap'] == 0) &
-            (values['bad_recv_trade'] == 0) & (values['snapshot_trade'] == 0) &
-            (values['duplicate_trade'] == 0))
+            (values['bad_recv_trade'] == 0) & (values['snapshot_trade'] == 0))
+    # Signature identity alone does not establish a bad T record. The default
+    # only reproduces prior receipts; a fresh source-bound plan changes admission.
+    if reject_duplicate_signature:base &= values['duplicate_trade'] == 0
     signed = base & (values['unknown'] == 0)
     return {'volume': base, 'volume_profile': base, 'footprint': signed,
             'delta': signed, 'cvd': signed}
@@ -171,6 +173,56 @@ def reset_segments(selected: np.ndarray, valid: np.ndarray, minute_ns: np.ndarra
             counter += 1
         segment[i] = counter
     return segment
+
+
+def source_incident_masks_v1(minutes, selected, quality, manifest, *, reject_duplicate_signature=True):
+    """Source-bound observation exclusion, never an inferred timestamp offset.
+
+    Reductions cannot remove a single crossing transition after aggregation.
+    Book/order/event state therefore stays excluded through the first complete
+    clean M1 anchor after the published interval. The next minute may reuse that
+    healthy anchor under the unchanged original prior-clean masks.
+    """
+    minutes = np.asarray(minutes)
+    selected = np.asarray(selected)
+    if (minutes.ndim != 1 or not len(minutes) or selected.shape != minutes.shape
+            or minutes.dtype.kind not in 'iu' or np.any(minutes % timing.MINUTE_NS)
+            or np.any(np.diff(minutes) != timing.MINUTE_NS)):
+        raise ValueError('GC_SOURCE_INCIDENT_M1_CLOCK')
+    if (manifest.get('schema_version') != 'gx1_gc_vendor_source_incidents_v1'
+            or manifest.get('dataset') != 'GLBX.MDP3' or not manifest.get('incidents')
+            or manifest.get('nontrade_action_semantics_admitted') is not False):
+        raise ValueError('GC_SOURCE_INCIDENT_SCOPE')
+    required = ('records','clean_complete_bbo','bad_bbo','gap','bad_recv','snapshot',
+                'reset','duplicate_trade_signature','file_seam')
+    arrays = {name:np.asarray(quality[name]) for name in required}
+    if any(value.shape != minutes.shape for value in arrays.values()):
+        raise ValueError('GC_SOURCE_INCIDENT_QUALITY_SHAPE')
+    clean = (selected >= 0) & (arrays['records'] > 0) & (arrays['clean_complete_bbo'] > 0)
+    for name in required[2:]:
+        if name != 'duplicate_trade_signature' or reject_duplicate_signature:clean &= arrays[name] == 0
+    clock_excluded = np.zeros(len(minutes), bool)
+    state_excluded = np.zeros(len(minutes), bool)
+    evidence = []
+    from datetime import datetime
+    for incident in manifest['incidents']:
+        start = int(datetime.fromisoformat(incident['start_inclusive_utc'].replace('Z','+00:00')).timestamp()*1e9)
+        end = int(datetime.fromisoformat(incident['end_exclusive_utc'].replace('Z','+00:00')).timestamp()*1e9)
+        if start >= end or not incident.get('incident_id') or not incident.get('source_url'):
+            raise ValueError('GC_SOURCE_INCIDENT_INTERVAL')
+        overlap = (minutes < end) & (minutes + timing.MINUTE_NS > start)
+        clock_excluded |= overlap
+        if overlap.any():
+            first = int(np.flatnonzero(overlap)[0]);last = int(np.flatnonzero(overlap)[-1])
+            anchors = np.flatnonzero((np.arange(len(minutes)) > last) & clean)
+            anchor = int(anchors[0]) if len(anchors) else len(minutes)-1
+            state_excluded[first:anchor+1] = True
+            evidence.append({'incident_id':incident['incident_id'],'start_ns':start,'end_ns':end,
+                'overlap_m1_buckets':int(overlap.sum()),'first_overlap_minute_ns':int(minutes[first]),
+                'last_overlap_minute_ns':int(minutes[last]),'recovery_anchor_minute_ns':int(minutes[anchor]) if len(anchors) else None,
+                'book_event_excluded_m1_buckets':anchor-first+1})
+    return {'receive_clock_excluded':clock_excluded,'book_event_state_excluded':state_excluded,
+            'incidents':evidence}
 
 
 def admission_decisions(months: np.ndarray, masks: dict[str,np.ndarray],

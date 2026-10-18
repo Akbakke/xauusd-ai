@@ -1407,6 +1407,7 @@ _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES = 64
 
 def _new_candidate_training_progress(
     *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
+    prefix_training_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create the only allowed initial full-candidate progress surface.
 
@@ -1426,7 +1427,7 @@ def _new_candidate_training_progress(
         },
         "checkpoint_selection": {
             "checkpoint_policy": checkpoint_policy_metadata(
-                checkpoint_monitor=checkpoint_monitor
+                checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_training_binding,
             ),
             "best_checkpoint": None,
             "best_state": None,
@@ -1451,6 +1452,7 @@ def _new_candidate_training_progress(
 
 def _require_candidate_training_progress(
     value: Mapping[str, Any], *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
+    prefix_training_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Validate progress before it can control a resumed candidate."""
 
@@ -1497,7 +1499,7 @@ def _require_candidate_training_progress(
         policy = require_checkpoint_policy(
             selection.get("checkpoint_policy", {}),
             context="CANDIDATE_TRAINING_SELECTION",
-            checkpoint_monitor=checkpoint_monitor,
+            checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_training_binding,
         )
         top_k = retain_top_k(
             selection["top_k_checkpoints"], top_k=int(policy["save_top_k"])
@@ -2185,7 +2187,7 @@ class _CandidateTrainingSession:
         monitor = policy["checkpoint_monitor"]
         require_checkpoint_policy(
             policy, context="CANDIDATE_TRAINING_SESSION",
-            checkpoint_monitor=monitor,
+            checkpoint_monitor=monitor, prefix_training_binding=self._contract.get("chronological_prefix"),
         )
         return str(monitor)
 
@@ -2272,6 +2274,7 @@ class _CandidateTrainingSession:
             raise RuntimeError("[CANDIDATE_TRAINING_ORDER_INVALID]")
         state["training_progress"] = _require_candidate_training_progress(
             state["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+            prefix_training_binding=self._contract.get("chronological_prefix"),
         )
         self.validate_top_k_checkpoints(
             state["training_progress"]["checkpoint_selection"][
@@ -2310,6 +2313,7 @@ class _CandidateTrainingSession:
             raise RuntimeError("[CANDIDATE_TRAINING_ORDER_INVALID]")
         value["training_progress"] = _require_candidate_training_progress(
             value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
+            prefix_training_binding=self._contract.get("chronological_prefix"),
         )
         self.validate_top_k_checkpoints(
             value["training_progress"]["checkpoint_selection"][
@@ -11841,7 +11845,8 @@ def _candidate_training_session_contract(
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]")
     checkpoint_policy = {
-        **checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor),
+        **checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor,
+            prefix_training_binding=prefix_training_binding),
         "max_epochs": int(epochs),
         "early_stop_patience": int(early_stopping_patience),
         "minimum_epochs_before_stop": int(minimum_epochs_before_stop),
@@ -11851,7 +11856,7 @@ def _candidate_training_session_contract(
     try:
         require_checkpoint_policy(
             checkpoint_policy, context="CANDIDATE_TRAINING_RECIPE",
-            checkpoint_monitor=checkpoint_monitor
+            checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_training_binding,
         )
     except RuntimeError as exc:
         raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]") from exc
@@ -13220,6 +13225,10 @@ def _prefix_candidate_training_binding(
         raise RuntimeError("[CANDIDATE_PREFIX_BINDING_INVALID]")
     artifacts = {key: checked(binding) for key, binding in chronological_prefix.items()}
     design = read(artifacts["design"])
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        planned_prefix_training_rows, require_m5_single_epoch_population,
+    )
+    single_epoch = require_m5_single_epoch_population(design)
     functions = _prefix_reference_model_functions(design)
     if (functions == _PREFIX_CURRENT_MODEL_FUNCTIONS
             and Path(train_parquet) == Path(val_parquet)):
@@ -13265,7 +13274,7 @@ def _prefix_candidate_training_binding(
             or seed not in _allowed_prefix_training_seeds(design["initialization"]["seed"]) or batch_size != 16
             or learning_rate != 0.0001 or weight_decay != 0.0001
             or design["budget"]["planned_optimizer_steps"] != _planned_prefix_optimizer_steps(design)
-            or design["budget"]["maximum_trained_entry_rows"] != 4096
+            or design["budget"]["maximum_trained_entry_rows"] != planned_prefix_training_rows(design)
             or (physical is None and normalization["fit_cutoff_time_ns"] != cutoff)
             or input_normalization["contract_sha256"] != normalization_identity["base_contract_sha256"]
             or not isinstance(training, Mapping)
@@ -13338,7 +13347,8 @@ def _prefix_candidate_training_binding(
     parents, control = populations
     order_binding = checked(preparation["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"])
     order = np.load(order_binding["path"], allow_pickle=False)
-    if (parents.numel() <= 4096 or control.numel() != 256
+    if ((parents.numel() != single_epoch["train_rows"] if single_epoch is not None else parents.numel() <= 4096)
+            or (single_epoch is not None and physical is None) or control.numel() != 256
             or (physical is None and np.intersect1d(parents.numpy(), control.numpy()).size)
             or order.dtype != np.dtype("int64") or order.ndim != 1
             or not np.array_equal(np.sort(order), parents.numpy())
@@ -13358,8 +13368,13 @@ def _prefix_candidate_training_binding(
                 "rule", "entry_eligibility_cutoff_utc", "eligible_rows", "censored_rows_excluded")}}
            if eligibility is not None else {}),
         "epoch0_parent_order": order_binding, "train_rows": int(parents.numel()),
-        "reference_cutoff_time_ns": cutoff, "maximum_optimizer_steps": 256,
-        "maximum_completed_epochs": 0, "fixed_final_model_variant": "ONLINE",
+        "reference_cutoff_time_ns": cutoff,
+        "maximum_optimizer_steps": single_epoch["optimizer_steps"] if single_epoch is not None else 256,
+        "maximum_completed_epochs": 1 if single_epoch is not None else 0,
+        **({"entry_m5_path_single_epoch": {"population_witness": single_epoch["binding"],
+            "train_rows": single_epoch["train_rows"], "last_batch_rows": single_epoch["last_batch_rows"],
+            "drop_last": False}} if single_epoch is not None else {}),
+        "fixed_final_model_variant": "ONLINE",
         "initial_model_state_sha256": _model_state_sha256(model),
         "input_normalization_sha256": input_normalization["contract_sha256"],
         "composite_normalization_sha256": normalization_identity["composite_normalization_sha256"],
@@ -13373,6 +13388,9 @@ def _prefix_candidate_training_binding(
                        for value, split in zip(observed, ("train", "val")))):
             raise RuntimeError("[CANDIDATE_PREFIX_OBSERVED_ENTRY_BINDING_MISMATCH]")
         binding["entry_observed_market"] = {"train": observed[0], "control": observed[1]}
+    if single_epoch is not None and (any(not isinstance(value, Mapping) for value in observed)
+            or observed[0]["identity"].get("training_phase") != single_epoch["witness"]["training_phase"]):
+        raise RuntimeError("[CANDIDATE_M5_SINGLE_EPOCH_TARGET_MISMATCH]")
     return binding, parents, torch.as_tensor(order.copy())
 
 
@@ -14441,6 +14459,15 @@ def _run_resumable_candidate_training(
             raise RuntimeError("[CANDIDATE_PREFIX_CONTINUATION_SCOPE_INVALID]")
         prefix_ceiling = expected_stop
     if chronological_prefix is not None:
+        from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+        from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+        single_epoch = require_m5_single_epoch_population(read_bound_json(
+            Path(chronological_prefix["design"]["path"]), chronological_prefix["design"]["sha256"]))
+        if single_epoch is not None:
+            if (int(epochs) != 1 or entry_learning_study is not None or chronological_continuation is not None
+                    or candidate_resume_origin is not None or int(batch_size) != single_epoch["witness"]["batch_size"]):
+                raise RuntimeError("[CANDIDATE_M5_SINGLE_EPOCH_SCOPE_INVALID]")
+            prefix_ceiling = single_epoch["optimizer_steps"]
         if (candidate_resume_origin is not None or execution_budget is None or native_val_context is None
                 or "evaluation_cohort" not in native_val_context
                 or type(execution_budget.get("stop_after_optimizer_steps")) is not int
@@ -14612,7 +14639,8 @@ def _run_resumable_candidate_training(
                         if prefix_binding is not None else copy.deepcopy(model)).to(device)
         target_model.requires_grad_(False)
         target_model.eval()
-        progress = _new_candidate_training_progress(checkpoint_monitor=checkpoint_monitor)
+        progress = _new_candidate_training_progress(checkpoint_monitor=checkpoint_monitor,
+            prefix_training_binding=prefix_binding)
         phase = "train"
         epoch_index = 0
         next_batch_offset = 0
@@ -14648,6 +14676,7 @@ def _run_resumable_candidate_training(
                 raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_RESUME_ORDER_MISMATCH]")
         progress = _require_candidate_training_progress(
             restored["training_progress"], checkpoint_monitor=checkpoint_monitor,
+            prefix_training_binding=prefix_binding,
         )
         phase = str(restored["phase"])
         epoch_index = int(restored["epoch_index"])
@@ -14768,7 +14797,7 @@ def _run_resumable_candidate_training(
                 ),
                 "rng_state": _attended_session_rng_state(device=device),
                 "training_progress": _require_candidate_training_progress(
-                    progress, checkpoint_monitor=checkpoint_monitor
+                    progress, checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_binding,
                 ),
                 "complete": bool(complete_value),
             }
@@ -14806,7 +14835,7 @@ def _run_resumable_candidate_training(
 
     def _result() -> dict[str, Any]:
         checked = _require_candidate_training_progress(
-            progress, checkpoint_monitor=checkpoint_monitor
+            progress, checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_binding,
         )
         selection = dict(checked["checkpoint_selection"])
         return {
@@ -14862,6 +14891,12 @@ def _run_resumable_candidate_training(
             if next_batch_offset > expected_train_batches:
                 raise RuntimeError("[CANDIDATE_TRAINING_BATCH_OFFSET_INVALID]")
             if next_batch_offset == expected_train_batches:
+                if prefix_binding is not None and "entry_m5_path_single_epoch" in prefix_binding:
+                    # The final batch has already saved and must pause at the exact
+                    # step ceiling. Never enter VAL or prepare another epoch/order.
+                    _pause_if_due(phase_value="train", epoch_value=0,
+                        batch_offset_value=next_batch_offset, reason_override="optimizer_step_ceiling")
+                    raise RuntimeError("[CANDIDATE_M5_SINGLE_EPOCH_BOUNDARY_UNREACHABLE]")
                 # The final train-step checkpoint occurs before the LR scheduler
                 # advances. Replaying this transition is therefore exact after
                 # an interrupt at the epoch boundary.
@@ -14922,6 +14957,7 @@ def _run_resumable_candidate_training(
             train_loader = DataLoader(
                 train_ds,
                 batch_size=batch_size,
+                drop_last=False,
                 sampler=_ExactIndexSampler(
                     loader_order,
                     batch_offset=next_batch_offset,
@@ -15355,7 +15391,8 @@ def load_completed_candidate_epoch_for_seal(
     if state is None or not bool(state.get("complete", False)):
         raise RuntimeError("[CANDIDATE_EPOCH_SEAL_STATE_INVALID]")
     progress = _require_candidate_training_progress(
-        state["training_progress"], checkpoint_monitor=session.checkpoint_monitor
+        state["training_progress"], checkpoint_monitor=session.checkpoint_monitor,
+        prefix_training_binding=contract.get("chronological_prefix"),
     )
     selection = dict(progress["checkpoint_selection"])
     if (

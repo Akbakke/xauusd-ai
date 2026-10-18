@@ -128,3 +128,54 @@ def test_marked_selection_counts_losses_and_rejects_partial_or_fallback_scores()
     del metrics["marked_policy_evaluation"]
     with pytest.raises(RuntimeError, match="MARKED_CHECKPOINT_INCOMPLETE"):
         policy.checkpoint_metric(metrics, checkpoint_monitor=monitor)
+
+
+def _m5_checkpoint_prefix(tmp_path):
+    from tests.test_entry_observed_market_horizons_learning import _single_epoch_design
+    from tests.test_native_prefix_recipe import _write
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+    design, witness = _single_epoch_design(tmp_path)
+    single = require_m5_single_epoch_population(design)
+    return {"schema_version":"gx1_candidate_prefix_training_binding_v1",
+        "artifacts":{"design":_write(tmp_path/"checkpoint-design.json",design)},
+        "entry_m5_path_single_epoch":{"population_witness":single["binding"],
+            "train_rows":single["train_rows"],"last_batch_rows":single["last_batch_rows"],"drop_last":False},
+        "train_rows":single["train_rows"],"maximum_optimizer_steps":single["optimizer_steps"],
+        "maximum_completed_epochs":1,"physical_sources":{"train":{"parquet":witness["train_parquet"]}},
+        "entry_observed_market":{role:{"identity":{"training_phase":witness["training_phase"]}}
+            for role in ("train","control")}}
+
+
+def test_m5_single_epoch_checkpoint_policy_requires_explicit_bound_prefix_and_keeps_legacy(tmp_path):
+    prefix = _m5_checkpoint_prefix(tmp_path)
+    monitor = policy.MARKED_NET_CHECKPOINT_MONITOR
+    legacy = policy.checkpoint_policy_metadata(checkpoint_monitor=monitor)
+    actual = policy.checkpoint_policy_metadata(checkpoint_monitor=monitor, prefix_training_binding=prefix)
+    assert actual["schema_version"] == policy.M5_SINGLE_EPOCH_SCHEMA_VERSION
+    assert actual["max_epochs"] == 1 and legacy["max_epochs"] == policy.MAX_EPOCHS == 30
+    assert actual["entry_m5_path_single_epoch"]["optimizer_steps"] == prefix["maximum_optimizer_steps"]
+    assert policy.require_checkpoint_policy(actual,context="TEST",checkpoint_monitor=monitor,
+        prefix_training_binding=prefix) == actual
+    for changed, bound in ((actual,None),({**legacy,"max_epochs":1},None),
+            (legacy,prefix),({**actual,"max_epochs":2},prefix),({**actual,"max_epochs":True},prefix)):
+        with pytest.raises(RuntimeError):
+            policy.require_checkpoint_policy(changed,context="TEST",checkpoint_monitor=monitor,
+                prefix_training_binding=bound)
+    old_prefix = {k:v for k,v in prefix.items() if k != "entry_m5_path_single_epoch"}
+    assert policy.checkpoint_policy_metadata(checkpoint_monitor=monitor,prefix_training_binding=old_prefix) == legacy
+    with pytest.raises(RuntimeError,match="M5_EPOCH_MONITOR"):
+        policy.checkpoint_policy_metadata(prefix_training_binding=prefix)
+
+
+@pytest.mark.parametrize("fault",["steps","rows","epoch","witness","phase","source"])
+def test_m5_checkpoint_policy_rejects_changed_scope_or_checkpoint_identity(tmp_path,fault):
+    prefix = _m5_checkpoint_prefix(tmp_path)
+    if fault == "steps":prefix["maximum_optimizer_steps"] += 1
+    elif fault == "rows":prefix["train_rows"] += 1
+    elif fault == "epoch":prefix["maximum_completed_epochs"] = 2
+    elif fault == "witness":prefix["entry_m5_path_single_epoch"]["population_witness"] = {"path":"old","sha256":"0"*64}
+    elif fault == "phase":prefix["entry_observed_market"]["train"]["identity"]["training_phase"] = "entry_only_observed_horizon_20d"
+    else:prefix["physical_sources"]["train"]["parquet"] = {"path":"old","sha256":"0"*64}
+    with pytest.raises(RuntimeError,match="M5_EPOCH_BINDING"):
+        policy.checkpoint_policy_metadata(checkpoint_monitor=policy.MARKED_NET_CHECKPOINT_MONITOR,
+            prefix_training_binding=prefix)

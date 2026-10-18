@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-18T10:39:15.524928+00:00",
-  "status": "SOURCE_QUALIFIED_OBSERVED_SMC_REGISTRY_020_CLAIMED__NO_TRAINING",
+  "observed_utc": "2026-10-18T10:59:18.087276+00:00",
+  "status": "TRUSTED_RECORD_RESTORATION_024_CLAIMED__NO_TRAINING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Execute fresh020 once: derive only observed SMC proxy fields from019, prove allothercolumns exact, then TRAIN-only registry on whole109507actualdecisionclock. No new rawpass/model fit. Afterwards freshboundedfeatures/dataset/normalization and currentfunction qualification.",
+  "next_action": "Execute exactly one bound024restoration aftercleancommit; require actualterminal thenfinalwholeTRAINregistry andfresh003input/normalization/modelqualification beforeone requestednativeepoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "160focused tests pass/sourceunchanged; fresh020 claimed after concrete SMCgap/boundedGCallocation/M5eligibility repairs.",
+    "current_activity": "558unique focusedsourcecases resolved; preparing cleancommitted024restoration. No native training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,11 +112,11 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "019 MBP1 event/profile/basis feature completion only; exact original M1 parity and side conservation, no native input/model admission.",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019",
+    "latest_terminal_role": "020 observedSMC derivation and TRAIN-only registry built; all935newcandidates observed across5TF, no currentnativeinput/modelqualification.",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TERMINAL.json",
-      "sha256": "76dc529106f197a2c03bcd238f7ebe27bd1dc5834f6689e4605c383d172df539"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020/ADMISSION/TERMINAL.json",
+      "sha256": "80e49d915168b1672e5ea748664ab5446d78d4d824c4731b0b406815f9fe6934"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "18 SMC proxy values absent on each H4/D1; native registry/dataset/normalization/initial parity/smoke remain pending.",
+    "current_blocker": "024physicalrestoration, finalTRAIN-onlyregistry andnew003input/modelchain pending.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute fresh020 once: derive only observed SMC proxy fields from019, prove allothercolumns exact, then TRAIN-only registry on whole109507actualdecisionclock. No new rawpass/model fit. Afterwards freshboundedfeatures/dataset/normalization and currentfunction qualification.",
+    "next_action": "Complete scoped024 source-admission restoration using published unfilteredT/book reductions plusone targeted eventpass; same knownPTPqualityinterval andallotherguards. Recomputelegacy+observedallTF, finalTRAIN-onlyregistry, thenfresh003features/dataset/normalization/modelqualification.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9493,7 +9493,7 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "019 COMPLETE: explicit18field SMC proxy absence on each H4/D1 remains under source/data diagnosis",
+        "995declarednewcandidates require024trustedrecordrestoration/PTPmask andfinalwholeTRAINregistry beforephysical003/modelconsumption",
         "253formula source qualification passed; fresh allTF feature cache not yet built",
         "New TRAIN-only native registry/source hashes, feature manifests and M5-path dataset pending; old016 inputs are historical only",
         "Whole physical TRAIN normalization, current-function initial baseline/parity/smoke and campaign binding pending",
@@ -9957,26 +9957,217 @@
             "basis_observed": 152715
           }
         },
-        "all_timeframe_SMC_support_complete": false,
-        "SMC_gap": "18 declared SMC proxy values without finite support on each H4/D1; source/data cause under investigation, not silently removed.",
+        "all_timeframe_SMC_support_complete": true,
+        "SMC_gap": "Resolved by020: all935declared new candidates have genuine observed TRAINvalues (187perTF); unknown OB state masked across wholecandle gaps. No strict/nonproxycolumn changed.",
         "native_registry_admitted": false,
         "model_training_started": false
       },
       "observed_smc_registry_stage": {
-        "status": "EXECUTION_CLAIMED",
+        "status": "COMPLETE_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020.json",
         "plan_sha256": "e79d2ef8cda240d21c1e437b18b8fb3572d37a4f272dca8c2901cebd480d910e",
         "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
         "execution_authorized": false,
         "claimed_invocations": 1,
-        "completed_invocations": 0,
+        "completed_invocations": 1,
         "relaunch_allowed": false,
         "native_epoch_authorized_by_this_stage": false,
         "authority": "18October fullMBP/allTF completion before new training; measured H4/D1 reset gate repaired on observed candle domain, whole missing candles censor OB. Derive only changed proxy fields from019; exact allothercolumn parity required. Build explicit TRAIN-only registry on verifiedwholeclock.",
         "focused_source_qualification": {
           "path": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020/FOCUSED_SOURCE_QUALIFICATION.json",
           "sha256": "7ffe907eb8c46259254deaea3d2b9ca1d2f632f473c9fda232871fbe6df56027"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020/ADMISSION/TERMINAL.json",
+          "sha256": "80e49d915168b1672e5ea748664ab5446d78d4d824c4731b0b406815f9fe6934"
+        },
+        "feature_terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020/FEATURES/TERMINAL.json",
+          "sha256": "08696eb301e97753310f76fd6b49a7bd61e9f1db7cb27cb1e6a542b172cc6a10"
+        },
+        "controller_terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020/LAUNCH_TERMINAL.json",
+          "sha256": "342cdad714e93825ced4a5a7c97d304362d7413849bbbccec6efabfa4ea37f9d"
+        },
+        "registry": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020/ADMISSION/REGISTRY.json",
+          "sha256": "cfab2ff72f9334128216c5250f1ed999cb381d2da9e62cd6ab6b5ea8c6be254f"
+        },
+        "elapsed_seconds": 23.032839029998286,
+        "source_at_execution": "7d1ed61c9a94df0405276f8490e1e59dde0fa407"
+      },
+      "train_only_new_registry": {
+        "status": "PROVISIONAL_OLD_ADMISSION_NOT_ACTIVATED__RESTORATION_REQUIRED",
+        "registry": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020/ADMISSION/REGISTRY.json",
+          "sha256": "cfab2ff72f9334128216c5250f1ed999cb381d2da9e62cd6ab6b5ea8c6be254f"
+        },
+        "train_decisions": 109507,
+        "train_decision_clock_sha256": "00fc652547acd74e9b3521fedc186a6441164e28e9d7841bda7fa354362bac24",
+        "new_candidate_fields": 935,
+        "observed_new_candidates_per_timeframe": {
+          "M5": 187,
+          "M15": 187,
+          "H1": 187,
+          "H4": 187,
+          "D1": 187
+        },
+        "retained_fields_with_TRAIN_support": 195,
+        "total_value_fields": 1130,
+        "explicit_observation_fields": 1130,
+        "observed_constant_values": 31,
+        "old_strict_H4_zero_TRAIN_observation_fields": [
+          {
+            "name": "gc_h4_volume",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_unknown",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_trades",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_open_usd",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_high_usd",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_low_usd",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_close_usd",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_vwap_usd",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_poc_usd",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_q25_usd",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_median_usd",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_q75_usd",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_price_levels",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_known_aggressor_fraction",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          },
+          {
+            "name": "gc_h4_spot_basis_bps",
+            "reason": "NO_GENUINE_TRAIN_OBSERVATION"
+          }
+        ],
+        "outcomes_accessed": false,
+        "VAL_or_TEST_used": false,
+        "fresh_generation_exact_whole_TRAIN_clock_match_required": true,
+        "model_input_qualification_complete": false
+      },
+      "vendor_quality_review": {
+        "status": "IN_PROGRESS_BEFORE_NATIVE_ADMISSION",
+        "checked_utc": "2026-10-18T10:45:46.699336+00:00",
+        "non_trade_action_semantics": {
+          "url": "https://issues.databento.com/b/6vrl98vl/feature-ideas/glbxmdp3-mbp-channel-flush-events-with-no-change-to-the-book-carry-incorrect-actionpricesize-in-historical-data",
+          "vendor_status": "Fix in progress as observed18October2026",
+          "effect": "Historical non-T channel-flush records can repeat action/price/size; cannot label non-T actioncounts as cancellations/individualorders. Existing accepted BBOstate changes remain separate from actionlabels. T-volume is not F-volume.",
+          "new_actionclass_features_admitted": false
+        },
+        "clock_incident": {
+          "url": "https://issues.databento.com/b/6vrl98vl/feature-ideas/glbxmdp3ifeuimpactndeximpactifusimpact-ptp-issues-in-2025-09-17",
+          "start_utc": "2025-09-17T13:34:28Z",
+          "end_utc": "2025-09-17T13:50:40Z",
+          "vendor_statement_scope": "GLBXcapture and normalized timestamps affected; exact existing mask coverage under audit, no guessed offset correction."
+        },
+        "duplicate_trade_admission": {
+          "status": "MEASURED_MATERIAL_OVEREXCLUSION_RESTORATION_REQUIRED_BEFORE_NEW_NATIVE_INPUTS",
+          "evidence_source": "Exact read-only reproduction of001 M1 sourceadmission on fullclock; separate012smallerpopulation retained inoriginalreceipt.",
+          "selected_full_clock_signature_records": 134296,
+          "full20field_identical_records": 134296,
+          "signature_collisions": 0,
+          "affected_M1_minutes": 78354,
+          "otherwise_valid_trade_minutes_rejected_only_by_signature": 78322,
+          "otherwise_valid_observed_contracts_rejected_only_by_signature": 25064729,
+          "otherwise_valid_signed_minutes_rejected_only_by_signature": 23193,
+          "otherwise_clean_L1_minutes_rejected_only_by_signature": 78147,
+          "otherwise_valid_L1_prior_anchor_minutes_lost": 138299,
+          "vendor_semantics": "Officialflushissue states T remains correct evenwhenbyteidentical; identityalone isnotproof ofundesiredduplicate. NoTdedupe isauthorized. Allotherflags/price/size/contractguards retained.",
+          "restoration_inputs": "001 published hashbound15RAW_REDUCTIONS/*_LADDER.parquet and15*_M1.parquet retained alltrustedT/unmaskedbook; finalmaskedgrid/m1alone cannotrestore.",
+          "additional_event_pass_needed": "019 prematurelyNaNmasked eventstats foroldduplicate-rejectedminutes; exactlyonefresh targeted raw eventpass needed torestore eventinformation. Trade/OHLC/book rawrebuild notneeded.",
+          "rawdata_or_oldreceipt_deletion": false
         }
+      },
+      "source_quality_rederive_stage": {
+        "status": "SUPERSEDED_BEFORE_CLAIM",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_SOURCE_QUALITY_REDERIVE_20261018_021",
+        "draft_plan_path": "/home/andre2/GX1_RUNS/NATIVE_GC_SOURCE_QUALITY_REDERIVE_20261018_021/PLAN_DRAFT.json",
+        "claimed_invocations": 0,
+        "completed_invocations": 0,
+        "execution_authorized": false,
+        "relaunch_allowed": false,
+        "reason": "NarrowPTP-only rederive wouldpreserve materialduplicate-T overexclusion. Reuse implementedquality/allTFlogic in fresh024 explicitsource-restoration scope; no021job waslaunched."
+      },
+      "pending_declared_gc_candidates": {
+        "count": 995,
+        "per_timeframe": 199,
+        "timeframes": [
+          "M5",
+          "M15",
+          "H1",
+          "H4",
+          "D1"
+        ],
+        "status": "IMPLEMENTED_PENDING_PHYSICAL_024_AND_TRAIN_REGISTRY",
+        "all_declared_are_admitted": false,
+        "retained_field_count_is_measured_not_hardcoded": true
+      },
+      "trusted_record_restoration_stage": {
+        "status": "EXECUTION_CLAIMED",
+        "plan_path": "configs/research/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024.json",
+        "plan_sha256": "62ebb7adac467dad3a3ecaa1c3f3f825b5b7b1bf26fb562fafb7d343b0ec395a",
+        "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024",
+        "execution_authorized": false,
+        "claimed_invocations": 1,
+        "completed_invocations": 0,
+        "relaunch_allowed": false,
+        "native_epoch_authorized_by_this_stage": false,
+        "focused_source_qualification": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/FOCUSED_SOURCE_QUALIFICATION_FINAL.json",
+          "sha256": "20528984420b1b6b5534088b5be2d7a024ae80a34f9f1fde08f70cd842f6bcd1"
+        },
+        "authority": "18October fullMBP/MTF completion beforetraining. Exactly one source-bound capped restoration from001rawreductions plus fresh targetedevent/Tstatistics pass; originalTrecords retained, same explicitPTPmask, allotherguards unchanged. No native training authority."
+      },
+      "current_source_qualification": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/FOCUSED_SOURCE_QUALIFICATION_FINAL.json",
+        "sha256": "20528984420b1b6b5534088b5be2d7a024ae80a34f9f1fde08f70cd842f6bcd1"
+      },
+      "native_single_epoch_source_successor": {
+        "status": "IMPLEMENTED_TARGETED_TESTS_PASSED_NOT_ADMITTED",
+        "scope": "entry_m5_path_single_epoch",
+        "actual_population_witness_required": true,
+        "epochs": 1,
+        "drop_last": false,
+        "full_val_or_next_epoch": false,
+        "physical_inputs_normalization_baseline_parity_smoke_required": true
       }
     },
     "native_xau_pair_failure_20261018": {
@@ -12569,5 +12760,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-18T10:39:15.524928+00:00"
+  "updated_utc": "2026-10-18T11:40:39.157197+00:00"
 }

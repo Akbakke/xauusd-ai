@@ -18,7 +18,7 @@ import pyarrow.parquet as pq
 from gx1.scripts.validate_lifecycle_v2_pilot_child_view_v1 import require_pilot_child_calendar
 from gx1.contracts.entry_sequence_source_reconstruction_v1 import feature_surface_binding_from_split_manifest
 from gx1.contracts.entry_exit_feature_surface_v1 import load_m1_feature_surface
-from gx1.contracts.entry_exit_feature_base_v1 import EXIT_FEATURE_SEQUENCE_BARS
+from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS, EXIT_FEATURE_SEQUENCE_BARS
 from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_file_noreplace
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS,
@@ -200,10 +200,13 @@ def fit_base(
     if (len(entry_times) != population["train_entry_decision_rows"]
             or _clock_hash(entry_times.asi8) != population["train_entry_clock_sha256"]):
         raise RuntimeError("PILOT_BASE_NORMALIZATION_ENTRY_CLOCK_INVALID")
-    m5_table = pq.read_table(m5_feature_path, columns=["time", "signal"])
-    m5_times = pd.DatetimeIndex(m5_table["time"].to_pandas()).as_unit("ns")
-    m5_signal = _matrix(m5_table, "signal", "<f4")
     with tempfile.TemporaryDirectory(prefix="gx1-base-normalization-") as storage:
+        m5_times, m5_arrays = load_m1_feature_surface(
+            m5_feature_path, context="PILOT_BASE_NORMALIZATION_M5",
+            storage_dir=Path(storage) / "m5",
+            expected_bar_seconds=ENTRY_DECISION_BAR_SECONDS,
+        )
+        m5_signal = m5_arrays["signal"]
         m1_times, m1_arrays = load_m1_feature_surface(
             m1_feature_path, context="PILOT_BASE_NORMALIZATION",
             storage_dir=Path(storage) / "m1",

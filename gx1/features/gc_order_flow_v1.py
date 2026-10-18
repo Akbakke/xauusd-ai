@@ -197,14 +197,18 @@ def timeframe_skeleton(minutes, selected, metrics, masks, ohlc, timeframe, tick_
     return out,inverse
 
 
-def consume_ladder(path: Path, surfaces, minute_maps, tick_size, *, profile_output=None, profile_state_max_bytes=None):
+def consume_ladder(path: Path, surfaces, minute_maps, tick_size, *, profile_output=None, profile_state_max_bytes=None, strict_profile_output=None):
     """Reduce bounded Arrow batches into one currently open histogram per TF."""
     states = {tf:None for tf in surfaces}
     profile_state = None
+    strict_profile_state = None
     profile_anchors = None
+    if profile_output is not None or strict_profile_output is not None:
+        profile_anchors = profile_anchors_v2(surfaces['M5']['bar_start_ns'])
     if profile_output is not None:
         profile_state = DynamicProfileStateV2(tick_size / PRICE_SCALE, max_state_bytes=profile_state_max_bytes)
-        profile_anchors = profile_anchors_v2(surfaces['M5']['bar_start_ns'])
+    if strict_profile_output is not None:
+        strict_profile_state = DynamicProfileStateV2(tick_size / PRICE_SCALE, max_state_bytes=profile_state_max_bytes)
     def flush(tf):
         state = states[tf]
         if state is None:
@@ -244,6 +248,11 @@ def consume_ladder(path: Path, surfaces, minute_maps, tick_size, *, profile_outp
                 raise RuntimeError('GC_FEATURE_LADDER_VOLUME_PARITY_FAILED')
             for name in PROFILE_FIELDS:
                 surface[name][bar] = values[name]
+            if tf == 'M5' and strict_profile_state is not None:
+                total_histogram = {price:sum(map(int,histogram[price])) for price in ticks}
+                row = strict_profile_state.step(surface['bar_start_ns'][bar], total_histogram, True,
+                    surface['contract_index'][bar], surface['close_usd'][bar], profile_anchors[bar], 5)
+                for name,value in row.items():strict_profile_output[name][bar] = value
             if surface['signed_valid'][bar]:
                 for name in FOOTPRINT_FIELDS:
                     surface[name][bar] = values[name]
@@ -278,7 +287,13 @@ def consume_ladder(path: Path, surfaces, minute_maps, tick_size, *, profile_outp
                         hist[key] = qty.copy()
     for tf in surfaces:
         flush(tf)
-    return {'profile_stream_peak_state_bytes': 0 if profile_state is None else profile_state.peak_state_bytes}
+    observed_peak = 0 if profile_state is None else profile_state.peak_state_bytes
+    strict_peak = 0 if strict_profile_state is None else strict_profile_state.peak_state_bytes
+    if profile_state_max_bytes is not None and observed_peak + strict_peak > profile_state_max_bytes:
+        raise RuntimeError('GC_PROFILE_STREAM_COMBINED_STATE_MEMORY_BOUND')
+    return {'profile_stream_peak_state_bytes':observed_peak,
+        'strict_profile_stream_peak_state_bytes':strict_peak,
+        'combined_profile_peak_upper_bound_bytes':observed_peak + strict_peak}
 
 
 def add_structure_and_cvd(surface, minute_cvd, minute_maps, minutes):
@@ -614,6 +629,81 @@ def aggregate_observed_event_diagnostics_v1(minutes, selected, events, timeframe
     return out
 
 
+
+TRUSTED_TRADE_SIZE_FIELDS_V1 = ('buy_trade_records','sell_trade_records','unknown_trade_records',
+    'size_sum_contracts','size_sum_squared_contracts2','size_min_contracts','size_max_contracts')
+TRADE_SIZE_NATIVE_FIELDS_V1 = tuple(side+'_trade_records' for side in ('buy','sell','unknown')) + tuple(
+    side+'_avg_executed_trade_contracts' for side in ('buy','sell','unknown')) + (
+    'executed_trade_size_std_contracts','executed_trade_size_min_contracts','executed_trade_size_max_contracts')
+
+
+def checked_trade_uint64_sums_v1(values, first, counts):
+    """Exact nonnegative grouped sums; reject overflow before uint64 arithmetic."""
+    values = np.asarray(values,np.uint64);maximum = int(np.iinfo(np.uint64).max)
+    if not len(first):return np.zeros(0,np.uint64)
+    if int(values.max(initial=0)) <= maximum//int(max(counts)):
+        return np.add.reduceat(values,first)
+    exact = [sum(map(int,values[int(start):int(start+count)])) for start,count in zip(first,counts)]
+    if any(value>maximum for value in exact):raise RuntimeError('GC_TRADE_STAT_UINT64_OVERFLOW')
+    return np.asarray(exact,np.uint64)
+
+
+
+def trusted_trade_record_count_v1(stats):
+    buy,sell,unknown=(np.asarray(stats[side+'_trade_records'],np.uint64) for side in ('buy','sell','unknown'))
+    maximum=np.iinfo(np.uint64).max
+    if np.any(buy>maximum-sell):raise RuntimeError('GC_TRADE_STAT_UINT64_OVERFLOW')
+    known=buy+sell
+    if np.any(known>maximum-unknown):raise RuntimeError('GC_TRADE_STAT_UINT64_OVERFLOW')
+    return known+unknown
+
+
+def aggregate_observed_trade_size_v1(minutes, selected, metrics, masks, stats, timeframe):
+    """T-record sizes only, on the exact observed volume/contract domain.
+
+    Population deviation uses exact integer n*sum(size**2)-sum(size)**2 before
+    the final square root; no parent-order grouping or threshold is inferred.
+    """
+    if set(stats)!=set(TRUSTED_TRADE_SIZE_FIELDS_V1):raise RuntimeError('GC_TRADE_STAT_SCHEMA')
+    if any(np.asarray(v).shape!=minutes.shape or np.asarray(v).dtype!=np.dtype('uint64') for v in stats.values()):
+        raise RuntimeError('GC_TRADE_STAT_SHAPE_OR_INTEGER')
+    side_count = trusted_trade_record_count_v1(stats)
+    if (not np.array_equal(side_count,metrics['trades']) or not np.array_equal(stats['size_sum_contracts'],metrics['volume'])):
+        raise RuntimeError('GC_TRADE_STAT_M1_VOLUME_OR_RECORD_PARITY')
+    labels = multi_tf_bar_label(pd.DatetimeIndex(minutes,tz='UTC'),timeframe).asi8
+    stamps,first,counts = np.unique(labels,return_index=True,return_counts=True)
+    expected = MULTI_TF_SHIFT[timeframe].value//timing.MINUTE_NS
+    same = (np.minimum.reduceat(selected,first)>=0) & (np.minimum.reduceat(selected,first)==np.maximum.reduceat(selected,first))
+    accepted = masks['volume'];number = np.add.reduceat(accepted.astype(np.int64),first)
+    valid = (counts==expected)&same&(number>0)
+    reduced = {}
+    for name in TRUSTED_TRADE_SIZE_FIELDS_V1:
+        values = stats[name]
+        if name=='size_min_contracts':value=np.minimum.reduceat(np.where(accepted,values,np.iinfo(np.uint64).max),first)
+        elif name=='size_max_contracts':value=np.maximum.reduceat(np.where(accepted,values,0),first)
+        else:value=checked_trade_uint64_sums_v1(np.where(accepted,values,0),first,counts)
+        reduced[name]=value
+    n = trusted_trade_record_count_v1(reduced)
+    out = {}
+    for side,volume_name in (('buy','buy'),('sell','sell'),('unknown','unknown')):
+        records = reduced[side+'_trade_records'];side_valid = valid & (records>0)
+        side_volume = checked_trade_uint64_sums_v1(np.where(accepted,metrics[volume_name],0),first,counts)
+        if np.any(side_volume[~(records>0)]!=0):raise RuntimeError('GC_TRADE_STAT_SIDE_VOLUME_WITHOUT_RECORDS')
+        if np.any(records[valid]>2**53):raise RuntimeError('GC_TRADE_STAT_FLOAT_COUNT_PRECISION')
+        out['observed_'+side+'_trade_records']=np.where(valid,records,np.nan)
+        out['observed_'+side+'_trade_size_valid']=side_valid
+        out['observed_'+side+'_avg_executed_trade_contracts']=np.divide(side_volume,records,
+            out=np.full(len(stamps),np.nan),where=side_valid)
+    variance_numerator = [int(count)*int(square)-int(total)**2 for count,square,total in
+        zip(n,reduced['size_sum_squared_contracts2'],reduced['size_sum_contracts'])]
+    if any(value<0 for value in variance_numerator):raise RuntimeError('GC_TRADE_STAT_NEGATIVE_EXACT_VARIANCE')
+    out['observed_executed_trade_size_std_contracts']=np.array([
+        np.sqrt(float(value))/int(count) if ready and count else np.nan for value,count,ready in zip(variance_numerator,n,valid)])
+    for bound in ('min','max'):
+        out['observed_executed_trade_size_'+bound+'_contracts']=np.where(valid,reduced['size_'+bound+'_contracts'],np.nan)
+    return out
+
+
 class L1FeatureCollectorV2:
     """Streaming final-event L1 reducer, piecewise constant on ts_recv.
 
@@ -621,7 +711,7 @@ class L1FeatureCollectorV2:
     All values are later gated by the unchanged 012 clean-prior-minute mask.
     A file seam clears the anchor. Missing interior minutes are not filled.
     """
-    def __init__(self,wanted,tick_size,*,origin_ns=timing.STUDY_START_NS,reference_minutes=(),include_order_counts=False,include_event_diagnostics=False):
+    def __init__(self,wanted,tick_size,*,origin_ns=timing.STUDY_START_NS,reference_minutes=(),include_order_counts=False,include_event_diagnostics=False,include_trusted_trade_stats=False):
         self.wanted=np.asarray(wanted,np.int64);self.tick_size=tick_size
         self.origin_ns=origin_ns;self.previous=None;self.end_ns=None
         self.sums=np.zeros((len(wanted),12),np.float64)
@@ -632,6 +722,10 @@ class L1FeatureCollectorV2:
         self.reference_minutes=frozenset(reference_minutes);self.references=[]
         self.include_order_counts=include_order_counts
         self.include_event_diagnostics=include_event_diagnostics
+        self.include_trusted_trade_stats=include_trusted_trade_stats
+        if include_trusted_trade_stats:
+            self.trade_size_stats={name:np.zeros(len(wanted),np.uint64) for name in TRUSTED_TRADE_SIZE_FIELDS_V1}
+            self.trade_size_stats['size_min_contracts'][:]=np.iinfo(np.uint64).max
         self.event_previous=None
         if include_event_diagnostics:
             self.event_stats = {name: np.full(len(wanted), np.inf if operation == 'min' else
@@ -759,7 +853,31 @@ class L1FeatureCollectorV2:
         out['qualified_events_per_observed_second'] = np.divide(out['qualified_final_event_count'], self.covered / 1e9,
             out=np.full(len(mask), np.nan), where=mask & (self.covered > 0))
         return out
+    def _consume_trusted_trade_statistics(self,data,idx,trusted_trade):
+        positions,take=self._positions(idx)
+        take &= np.asarray(trusted_trade,bool)
+        if not take.any():return
+        order=np.argsort(positions[take],kind='stable');pos=positions[take][order]
+        size=data['size'].to_numpy(zero_copy_only=False)[take].astype(np.uint64)[order]
+        if np.any(size>np.iinfo(np.uint32).max):raise RuntimeError('GC_TRADE_STAT_SIZE_SCHEMA')
+        side=data['side'].to_numpy(zero_copy_only=False)[take][order]
+        starts=np.r_[0,np.flatnonzero(np.diff(pos)!=0)+1];counts=np.diff(np.r_[starts,len(pos)])
+        unique=pos[starts];maximum=np.iinfo(np.uint64).max
+        for name,values in [('size_sum_contracts',size),('size_sum_squared_contracts2',size*size)] + [
+                (label+'_trade_records',(side==code).astype(np.uint64)) for code,label in (('B','buy'),('A','sell'),('N','unknown'))]:
+            added=checked_trade_uint64_sums_v1(values,starts,counts);old=self.trade_size_stats[name][unique]
+            if np.any(old>maximum-added):raise RuntimeError('GC_TRADE_STAT_UINT64_OVERFLOW')
+            self.trade_size_stats[name][unique]=old+added
+        np.minimum.at(self.trade_size_stats['size_min_contracts'],pos,size)
+        np.maximum.at(self.trade_size_stats['size_max_contracts'],pos,size)
+    def trusted_trade_statistics(self):
+        if not self.include_trusted_trade_stats:raise RuntimeError('GC_TRADE_STAT_NOT_REQUESTED')
+        result={name:value.copy() for name,value in self.trade_size_stats.items()}
+        count=trusted_trade_record_count_v1(result)
+        result['size_min_contracts'][count==0]=0
+        return result
     def __call__(self,data,idx,trusted_trade):
+        if self.include_trusted_trade_stats:self._consume_trusted_trade_statistics(data,idx,trusted_trade)
         flags=data['flags'].to_numpy(zero_copy_only=False)
         take=(flags&source.L1_F_LAST)!=0
         cols=[data[n].to_numpy(zero_copy_only=False)[take].astype(np.int64) for n in
@@ -948,7 +1066,7 @@ def add_projected_m5_profiles_v2(surface, m5_available, profiles, source_coverag
     return surface
 
 
-def completion_native_candidates_v1():
+def completion_native_candidates_v1(*, include_trade_size_stats=True):
     """Declared field/owner/domain/clock inventory, never name-heuristic routing.
 
     Identity and absolute snapshot timestamps remain metadata. Latency ns are
@@ -964,6 +1082,11 @@ def completion_native_candidates_v1():
     add(('observed_volume','observed_buy_known','observed_sell_known','observed_unknown','observed_trades',
         'observed_avg_executed_trade_contracts','observed_known_delta_contracts','observed_known_aggressor_fraction',
         'observed_accepted_minutes','observed_signed_minutes','observed_coverage_fraction','observed_signed_minute_fraction'), flow, 'observed_valid')
+    if include_trade_size_stats:
+        add(tuple('observed_'+name for name in TRADE_SIZE_NATIVE_FIELDS_V1 if 'avg_executed' not in name),flow,'observed_valid')
+        # Side averages are undefined without a T record on that side.
+        for side in ('buy','sell','unknown'):
+            add(('observed_'+side+'_avg_executed_trade_contracts',),flow,'observed_'+side+'_trade_size_valid')
     add(('observed_open_usd','observed_high_usd','observed_low_usd','observed_close_usd'), 'price_action_candle_encoder', 'observed_valid')
     add(('observed_spot_basis_bps','observed_spot_basis_age_minutes'), flow,
         'observed_spot_basis_valid', 'observed_spot_basis_source_available_ns', 'same_closed_m1_cross_venue_basis')
@@ -1006,6 +1129,7 @@ def completion_native_candidates_v1():
     masks = ('observed_valid','observed_contract_valid','observed_signed_complete','observed_book_contract_valid',
         'observed_book_flow_valid','observed_book_valid','observed_order_valid','observed_event_valid') + tuple(
         'observed_event_' + prefix + '_valid' for prefix in ('receive_interval',) + EVENT_LATENCY_DOMAINS_V1)
+    if include_trade_size_stats:masks+=tuple('observed_'+side+'_trade_size_valid' for side in ('buy','sell','unknown'))
     add(masks, regime, None, role='structural_observation_mask')
     records = []
     for tf in ('M5','M15','H1','H4','D1'):
