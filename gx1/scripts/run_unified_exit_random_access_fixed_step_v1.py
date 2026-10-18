@@ -53,11 +53,15 @@ from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
     EntryV10CtxHybridTransformer,
 )
 from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256 as campaign_sha256
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    JOINT_FITTED_Q_TRAINING_PHASE, require_entry_training_phase,
+)
 from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
     EntryV10CtxDataset,
     JOINT_TASK_NAMES,
     _announce_attended_preflight_ready,
     _set_deterministic,
+    _dynamic_m5_model_kwargs,
     train_epoch,
 )
 
@@ -559,8 +563,17 @@ class _ParentSampler(Sampler[int]):
 
 
 def _model(
-    meta: Mapping[str, Any], normalization: Mapping[str, Any], device: torch.device
+    meta: Mapping[str, Any], normalization: Mapping[str, Any], device: torch.device,
+    *, entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE, dynamic_m5_query_minutes=None,
 ) -> EntryV10CtxHybridTransformer:
+    phase = require_entry_training_phase(entry_training_phase, context="UNIFIED_EXIT_MODEL")
+    phase_kwargs = _dynamic_m5_model_kwargs(phase)
+    if dynamic_m5_query_minutes is not None:
+        expected = phase_kwargs.get("dynamic_m5_query_minutes")
+        if (not isinstance(dynamic_m5_query_minutes, (tuple, list))
+                or any(type(value) is not int for value in dynamic_m5_query_minutes)
+                or tuple(dynamic_m5_query_minutes) != expected):
+            raise RuntimeError("UNIFIED_EXIT_MODEL_DYNAMIC_QUERY_BINDING_INVALID")
     mtf = meta["multi_tf"]
     specialist = meta["specialist_fusion"]
     indices = specialist["input_indices"]
@@ -608,6 +621,7 @@ def _model(
         specialist_fusion_scale=float(specialist["fusion_scale"]),
         cross_family_fusion_scale=float(specialist["cross_family_fusion_scale"]),
         input_normalization=normalization,
+        **phase_kwargs,
     ).to(device)
 
 

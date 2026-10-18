@@ -1641,6 +1641,10 @@ def _build_inline_seq_structure_extension(
         MODEL_NATIVE_SPECIALIST_LAYER_EMITTED_FEATURES,
         MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
         SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
+        SMC_LOCAL_BASE_PROJECTION_FIELDS,
+        align_v29_layer_frame,
+        build_smc_local_source_projection,
+        smc_local_base_source_projection_metadata,
         SWING_EVENT_LAYER_FEATURE_NAMES,
         TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
         V29_REGISTRY_LAYER_PARAM_KEYS,
@@ -1650,18 +1654,45 @@ def _build_inline_seq_structure_extension(
         build_level_registry_m5_layer,
         build_momentum_event_m5_layer,
         build_price_derived_layer,
-        build_smc_local_event_layer,
         build_swing_event_m5_layer,
         build_trendline_registry_m5_layer,
         build_volatility_squeeze_local_layer,
     )
+
+    requested_set = set(requested_features)
+    smc_source_projection = None
+
+    def _local_smc_projection(fields, *, context):
+        nonlocal smc_source_projection
+        if smc_source_projection is None:
+            smc_source_projection = build_smc_local_source_projection(Path(source_parquet))
+        return align_v29_layer_frame(
+            smc_source_projection.loc[:, list(fields)], merged3[["time"]],
+            fields, context=context,
+        )
+
+    projected_base_fields = tuple(
+        field for field in SMC_LOCAL_BASE_PROJECTION_FIELDS
+        if field in base_signal_fields and f"snap.{field}" in requested_set
+    )
+    projected_base_values = {}
+    if projected_base_fields:
+        projected, _ = _local_smc_projection(
+            projected_base_fields, context="SMC_LOCAL_BASE_SOURCE_PROJECTION"
+        )
+        projected_base_values = {
+            field: projected[:, column] for column, field in enumerate(projected_base_fields)
+        }
 
     base_blocks: List[np.ndarray] = []
     base_names: List[str] = []
     for field in base_signal_fields:
         if field not in merged3.columns:
             raise RuntimeError(f"SEQ_STRUCTURE_INLINE_MISSING_SIGNAL_FIELD: {field}")
-        base_blocks.append(merged3[field].astype(np.float32).to_numpy().reshape(-1, 1))
+        values = projected_base_values.get(field)
+        if values is None:
+            values = merged3[field].astype(np.float32).to_numpy()
+        base_blocks.append(values.reshape(-1, 1))
         base_names.append(f"snap.{field}")
     for field in ctx_cont_names:
         if field not in merged3.columns:
@@ -1789,7 +1820,6 @@ def _build_inline_seq_structure_extension(
         all_pieces.append(chart_x)
         all_names.extend(chart_names)
     all_x = np.concatenate(all_pieces, axis=1).astype(np.float32, copy=False)
-    requested_set = set(requested_features)
     smart_generated_layers: List[Dict[str, Any]] = []
 
     def _append_generated_layer(
@@ -1905,8 +1935,8 @@ def _build_inline_seq_structure_extension(
         (
             "smc_local_event_layer",
             SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
-            lambda: build_smc_local_event_layer(
-                merged3[["time"]].copy(), Path(source_parquet)
+            lambda: _local_smc_projection(
+                SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES, context="SMC_LOCAL_EVENT_LAYER"
             ),
         ),
         (
@@ -2023,6 +2053,8 @@ def _build_inline_seq_structure_extension(
         ),
         "missing_generated_features": [],
     }
+    if projected_base_fields:
+        meta["base_source_projections"] = smc_local_base_source_projection_metadata()
     return out, selected, meta
 
 

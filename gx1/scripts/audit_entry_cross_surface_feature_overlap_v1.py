@@ -28,6 +28,8 @@ from gx1.contracts.entry_cross_surface_overlap_v1 import (
     POLICY_VERSION,
     SCHEMA_VERSION,
     classify_active_duplicate_pairs,
+    local_gc_observation_bindings,
+    source_constant_mtf_fields,
     require_eight_family_coverage,
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
@@ -46,9 +48,14 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     require_model_native_manifest,
 )
 from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.features import gc_native_context_v1 as gc_context
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    model_native_m5_trendline_parameters_from_registry,
+)
 from gx1.features.htf_features import (
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_SHIFT,
+    MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4,
     load_multi_tf_v4_cache,
 )
 from gx1.utils.artifact_primitives_v1 import canonical_json_sha256, sha256_file
@@ -56,7 +63,7 @@ from gx1.utils.artifact_primitives_v1 import canonical_json_sha256, sha256_file
 
 OUTPUT_PREFIX = "ENTRY_CROSS_SURFACE_INPUT_OVERLAP"
 OUTPUT_RE = re.compile(rf"{OUTPUT_PREFIX}_\d{{8}}T\d{{6}}(?:\d{{6}})?Z\.json")
-PRODUCER_SCHEMA_VERSION = "entry_cross_surface_feature_overlap_audit_v2"
+PRODUCER_SCHEMA_VERSION = "entry_cross_surface_feature_overlap_audit_v3"
 DEFAULT_BATCH_SIZE = 4096
 _HASH_DOMAIN = b"entry_cross_surface_timestamped_float32_values_v1\0"
 
@@ -167,6 +174,7 @@ def _validate_surface(
         "rows": int(manifest.get("rows") or 0),
         "source_parquet": str(manifest.get("source_parquet") or ""),
         "source_sha256": str(manifest.get("source_sha256") or ""),
+        "registry_fit_binding": manifest.get("registry_fit_binding"),
     }
 
 
@@ -275,6 +283,10 @@ def _project_mtf_batch(
     projected = np.ascontiguousarray(values[positions], dtype=np.float32)
     if not np.isfinite(projected).all():
         raise RuntimeError(f"CROSS_SURFACE_MTF_PROJECTED_NONFINITE: {timeframe}")
+    for name, expected in MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4.get(timeframe, {}).items():
+        column = projected[:, MULTI_TF_PER_BAR_FEATURES_V4.index(name)]
+        if not np.all(column == expected):
+            raise RuntimeError(f"CROSS_SURFACE_MTF_SOURCE_CONSTANT_DOMAIN_INVALID: {timeframe}:{name}")
     return projected
 
 
@@ -312,6 +324,9 @@ def _scan_decision_surface(
         *(f"local.ctx_cont.{name}" for name in MODEL_NATIVE_CTX_CONT_FIELDS),
     ]
     local_hashes = _TimestampedColumnHashes(local_names)
+    gc_bindings = local_gc_observation_bindings(local_names)
+    gc_observed_rows = {name: 0 for name in gc_bindings}
+    local_positions = {name: index for index, name in enumerate(local_names)}
     active_mtf_hashers = {
         timeframe: _TimestampedColumnHashes(
             f"mtf.{timeframe.lower()}.{name}" for name in MULTI_TF_PER_BAR_FEATURES_V4
@@ -360,9 +375,18 @@ def _scan_decision_surface(
         times = np.ascontiguousarray(times[audit_mask], dtype=np.int64)
         signal = np.ascontiguousarray(signal[audit_mask], dtype=np.float32)
         context = np.ascontiguousarray(context[audit_mask], dtype=np.float32)
+        # Validate the actual source roles and each value's OWN availability
+        # before a zero vector can be called an observed constant collision.
+        gc_context.require_masked_storage_numpy(signal, signal_fields)
+        gc_context.require_masked_storage_numpy(context, MODEL_NATIVE_CTX_CONT_FIELDS)
+        local_values = np.column_stack((signal, context))
+        for name, binding in gc_bindings.items():
+            gc_observed_rows[name] += int(np.count_nonzero(
+                local_values[:, local_positions[binding["observation_field"]]] == 1.0
+            ))
         local_hashes.update(
             timestamps_ns=times,
-            values=np.column_stack((signal, context)),
+            values=local_values,
             names=local_names,
         )
         for timeframe, hasher in active_mtf_hashers.items():
@@ -401,7 +425,19 @@ def _scan_decision_surface(
         for hasher in active_mtf_hashers.values()
         for name, digest in hasher.result().items()
     }
+    local_digests = local_hashes.result()
     result = {
+        "local_observation_evidence": {
+            name: {**binding, "observed_rows": gc_observed_rows[name],
+                   "domain_validated": True,
+                   "observation_values_sha256": local_digests[binding["observation_field"]]}
+            for name, binding in gc_bindings.items()
+        },
+        "mtf_source_constant_evidence": {
+            name: {"constant_value": value, "rows": local_hashes.rows,
+                   "domain_validated": True, "values_sha256": active_flat[name]}
+            for name, value in source_constant_mtf_fields(decision=decision).items()
+        },
         "decision": decision,
         "local_timeframe": route["local_timeframe"],
         "active_mtf_timeframes": list(active_tfs),
@@ -412,7 +448,7 @@ def _scan_decision_surface(
         "source_first_time_ns": source_first_time,
         "first_time_ns": first_time,
         "last_time_ns": previous_time,
-        "local_field_hashes": local_hashes.result(),
+        "local_field_hashes": local_digests,
         "active_mtf_field_hashes": active_flat,
     }
     if inactive_m5_hasher is not None:
@@ -471,12 +507,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "cache_identity_sha256": str(cache.cache_identity_sha256),
         "m5_prebuilt_source": str(cache.m5_prebuilt_source),
         "m5_prebuilt_source_sha256": str(cache.m5_prebuilt_source_sha256),
+        "m5_trendline_parameters": model_native_m5_trendline_parameters_from_registry(
+            cache.v29_registry_constants
+        ),
     }
     if (
         cache_binding["m5_prebuilt_source"] != m5_surface["source_parquet"]
         or cache_binding["m5_prebuilt_source_sha256"] != m5_surface["source_sha256"]
     ):
         raise RuntimeError("CROSS_SURFACE_M5_CACHE_SOURCE_MISMATCH")
+    local_registry = m5_surface.get("registry_fit_binding")
+    if (not isinstance(local_registry, Mapping)
+            or local_registry.get("artifact_path") != str(cache_dir / "manifest.json")
+            or local_registry.get("artifact_sha256") != cache_binding["manifest_sha256"]):
+        raise RuntimeError("CROSS_SURFACE_M5_TRENDLINE_PARAMETER_SOURCE_MISMATCH")
     local_fields = [
         *signal_fields,
         *(f"ctx_cont.{name}" for name in MODEL_NATIVE_CTX_CONT_FIELDS),
@@ -512,11 +556,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         decision="entry",
         local_field_hashes=entry["local_field_hashes"],
         active_mtf_field_hashes=entry["active_mtf_field_hashes"],
+        trendline_parameters=cache_binding["m5_trendline_parameters"],
+        local_observation_evidence=entry["local_observation_evidence"],
+        mtf_source_constant_evidence=entry["mtf_source_constant_evidence"],
     )
     exit_classification = classify_active_duplicate_pairs(
         decision="exit",
         local_field_hashes=exit_["local_field_hashes"],
         active_mtf_field_hashes=exit_["active_mtf_field_hashes"],
+        trendline_parameters=cache_binding["m5_trendline_parameters"],
+        local_observation_evidence=exit_["local_observation_evidence"],
+        mtf_source_constant_evidence=exit_["mtf_source_constant_evidence"],
     )
     inactive_entry_m5_pairs = _hash_intersections(
         local=entry["local_field_hashes"],
@@ -555,6 +605,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "policy": {
             "version": POLICY_VERSION,
             "comparison": "full_population_timestamped_float32_sha256",
+            "m5_trendline_parameters": cache_binding["m5_trendline_parameters"],
+            "source_constant_collision_action": "report_source_domain_and_own_gc_observation_proof",
             "decision_population": "manifest_bound_history_start_through_surface_end",
             "active_unexpected_duplicate_action": "fail_closed_before_dataset_build",
             "declared_context_mtf_alias_action": "report_only_explicit_projection_contract",

@@ -49,7 +49,11 @@ from gx1.features.htf_features import (
     build_multi_tf_v4_liveness_contract,
 )
 from tests.model_native_signal_support import canonical_model_native_selected_fields
-from tests.entry_full_input_liveness_support import cross_surface_hash_fixture
+from tests.entry_full_input_liveness_support import (
+    cross_surface_hash_fixture,
+    cross_surface_source_evidence_fixture,
+    cross_surface_trendline_parameters_fixture,
+)
 
 
 RUN_ID = "UNIT_LIVENESS_20260717"
@@ -83,8 +87,21 @@ def _v4_frames() -> dict[str, pd.DataFrame]:
     return out
 
 
+def _fixture_split_clock(split: str, rows: int) -> pd.DatetimeIndex:
+    starts = {"train": "2025-01-02T00:00Z", "val": "2025-06-02T00:00Z", "test": "2025-07-01T00:00Z"}
+    return pd.date_range(starts[split], periods=rows, freq="5min").as_unit("ns")
+
+
 @pytest.fixture(autouse=True)
 def _verified_v4_cache_loader(monkeypatch) -> None:
+    from gx1.features import gc_native_context_v1 as gc
+    from gx1.time.session_detector import m5_decision_availability
+    # The real registry-clock guard stays enabled. Bind this synthetic test
+    # registry to every actual fixture TRAIN decision, not production's clock.
+    decisions = m5_decision_availability(_fixture_split_clock("train", 32)).as_unit("ns").asi8
+    monkeypatch.setattr(gc, "REGISTRY", {**gc.REGISTRY,
+        "train_decision_rows": len(decisions),
+        "train_decision_clock_sha256": hashlib.sha256(decisions.tobytes()).hexdigest()})
     def load(_cache_dir):
         return _v4_frames()
 
@@ -187,6 +204,7 @@ def _write_split(
     )
     table = pa.table(
         {
+            "time": pa.array(_fixture_split_clock(split, rows)),
             "seq": seq.tolist(),
             "snap": snap.tolist(),
             "ctx_cont": ctx_cont.tolist(),
@@ -202,12 +220,14 @@ def _write_split(
         "ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS),
         "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS),
     }
+    from gx1.features import gc_native_context_v1 as gc
     manifest = {
         "schema_version": MODEL_NATIVE_SPLIT_MANIFEST_SCHEMA_VERSION,
         "manifest_variant": MODEL_NATIVE_CONTRACT_MODE,
         "expected_seq_snap_width": MODEL_NATIVE_SIGNAL_DIM,
         "output_data_path": str(parquet_path.resolve()),
         "extra": {
+            "gc_native_context": gc.contract(),
             "contract_mode": MODEL_NATIVE_CONTRACT_MODE,
             "direction_logit_mode": MODEL_NATIVE_DIRECTION_LOGIT_MODE,
             "entry_run_id": RUN_ID,
@@ -254,6 +274,8 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
         "failures": [],
         "policy": {
             "version": CROSS_SURFACE_POLICY_VERSION,
+            "m5_trendline_parameters": cross_surface_trendline_parameters_fixture(),
+            "source_constant_collision_action": "report_source_domain_and_own_gc_observation_proof",
             "decision_population": "manifest_bound_history_start_through_surface_end",
             "decision_routes": {
                 decision: {
@@ -264,6 +286,7 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
             },
         },
         "input_bindings": {
+            "mtf_cache": {"m5_trendline_parameters": cross_surface_trendline_parameters_fixture()},
             "signal_manifest": {
                 "feature_history_start_utc": "2026-01-01T00:00:00+00:00"
             }
@@ -277,6 +300,10 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
         local_hashes, active_mtf_hashes = cross_surface_hash_fixture(
             decision=decision
         )
+        source_evidence = cross_surface_source_evidence_fixture(
+            decision=decision, local_hashes=local_hashes, active_mtf_hashes=active_mtf_hashes,
+            rows=1,
+        )
         cross_report[decision] = {
             "local_timeframe": route["local_timeframe"],
             "active_mtf_timeframes": list(route["active_mtf_timeframes"]),
@@ -289,10 +316,13 @@ def _write_dataset(dataset_dir: Path, *, break_scanned_parity: bool = False) -> 
             "last_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
             "local_field_hashes": local_hashes,
             "active_mtf_field_hashes": active_mtf_hashes,
+            **source_evidence,
             **classify_active_duplicate_pairs(
                 decision=decision,
                 local_field_hashes=local_hashes,
                 active_mtf_field_hashes=active_mtf_hashes,
+                trendline_parameters=cross_surface_trendline_parameters_fixture(),
+                **source_evidence,
             ),
         }
     cross_report_path.write_text(
@@ -379,6 +409,11 @@ def test_materializer_fullscans_and_binds_exact_owner_dimensions(
         5 * MULTI_TF_FEATURE_COUNT_V4
     )
     provenance = artifact["materializer_provenance"]
+    from gx1.time.session_detector import m5_decision_availability
+    clock_proof = provenance["gc_registry_whole_train_clock"]
+    decisions = m5_decision_availability(_fixture_split_clock("train", 32)).as_unit("ns").asi8
+    assert clock_proof["rows"] == 32 and clock_proof["exact_match"] is True
+    assert clock_proof["train_decision_clock_sha256"] == hashlib.sha256(decisions.tobytes()).hexdigest()
     assert provenance["entry_run_id"] == RUN_ID
     assert len(provenance["dataset_build_proof"]["sha256"]) == 64
     assert all(

@@ -21,6 +21,8 @@ from gx1.contracts.entry_cross_surface_overlap_v1 import (
     SCHEMA_VERSION as CROSS_SURFACE_SCHEMA_VERSION,
     classify_active_duplicate_pairs,
     declared_context_mtf_aliases,
+    local_gc_observation_bindings,
+    source_constant_mtf_fields,
 )
 from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
@@ -113,6 +115,29 @@ def full_input_stats(
             split_rows[surface] = surface_rows
         result[split] = split_rows
     return result
+
+
+def cross_surface_trendline_parameters_fixture() -> dict:
+    return {"local": {"seq_len": 96, "band_atr": 0.8},
+            "mtf": {"seq_len": 16, "band_atr": 0.7}}
+
+
+def cross_surface_source_evidence_fixture(
+    *, decision: str, local_hashes: dict, active_mtf_hashes: dict, rows: int,
+) -> dict:
+    """Source-owned roles and own-mask bindings for the synthetic physical report."""
+    return {
+        "local_observation_evidence": {
+            name: {**binding, "observed_rows": rows, "domain_validated": True,
+                   "observation_values_sha256": local_hashes[binding["observation_field"]]}
+            for name, binding in local_gc_observation_bindings(list(local_hashes)).items()
+        },
+        "mtf_source_constant_evidence": {
+            name: {"constant_value": value, "rows": rows, "domain_validated": True,
+                   "values_sha256": active_mtf_hashes[name]}
+            for name, value in source_constant_mtf_fields(decision=decision).items()
+        },
+    }
 
 
 def cross_surface_hash_fixture(
@@ -238,6 +263,8 @@ def write_full_input_liveness_fixture(
         "failures": [],
         "policy": {
             "version": CROSS_SURFACE_POLICY_VERSION,
+            "m5_trendline_parameters": cross_surface_trendline_parameters_fixture(),
+            "source_constant_collision_action": "report_source_domain_and_own_gc_observation_proof",
             "decision_population": "manifest_bound_history_start_through_surface_end",
             "decision_routes": {
                 decision: {
@@ -248,6 +275,7 @@ def write_full_input_liveness_fixture(
             },
         },
         "input_bindings": {
+            "mtf_cache": {"m5_trendline_parameters": cross_surface_trendline_parameters_fixture()},
             "signal_manifest": {
                 "feature_history_start_utc": "2026-01-01T00:00:00+00:00"
             }
@@ -261,6 +289,10 @@ def write_full_input_liveness_fixture(
         local_hashes, active_mtf_hashes = cross_surface_hash_fixture(
             decision=decision
         )
+        source_evidence = cross_surface_source_evidence_fixture(
+            decision=decision, local_hashes=local_hashes, active_mtf_hashes=active_mtf_hashes,
+            rows=1,
+        )
         cross_payload[decision] = {
             "local_timeframe": route["local_timeframe"],
             "active_mtf_timeframes": list(route["active_mtf_timeframes"]),
@@ -273,10 +305,13 @@ def write_full_input_liveness_fixture(
             "last_time_ns": int(pd.Timestamp("2026-01-01T00:00:00Z").value),
             "local_field_hashes": local_hashes,
             "active_mtf_field_hashes": active_mtf_hashes,
+            **source_evidence,
             **classify_active_duplicate_pairs(
                 decision=decision,
                 local_field_hashes=local_hashes,
                 active_mtf_field_hashes=active_mtf_hashes,
+                trendline_parameters=cross_surface_trendline_parameters_fixture(),
+                **source_evidence,
             ),
         }
     cross_report.write_text(

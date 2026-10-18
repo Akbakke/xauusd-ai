@@ -361,10 +361,21 @@ def test_native_smc_and_momentum_layers_use_full_exact_source_history(
     source["high"], source["low"], source["close"] = high, low, close
     source["open"] = close
     source["volume"] = 1 + (np.arange(len(source)) * 17) % 113
-    source_path = tmp_path / f"smc_{frequency}.parquet"
-    source.to_parquet(source_path, index=False)
     source_index = pd.DatetimeIndex(source["time"])
     indexed = source.set_index(source_index)
+    # Match the MTF owner before storage rounding; local SMC must not use the
+    # older stored float32 ATR, including its honest unavailable prefix.
+    indexed["atr"] = htf._atr(
+        indexed["high"], indexed["low"], indexed["close"], 14
+    )
+    source["atr"] = indexed["atr"].to_numpy(dtype=np.float32)
+    finite_atr = np.isfinite(indexed["atr"].to_numpy())
+    assert np.any(
+        source["atr"].to_numpy(dtype=np.float64)[finite_atr]
+        != indexed["atr"].to_numpy()[finite_atr]
+    )
+    source_path = tmp_path / f"smc_{frequency}.parquet"
+    source.to_parquet(source_path, index=False)
 
     smc_values, smc_names = build_smc_local_event_layer(samples, source_path)
     assert tuple(smc_names) == SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES
@@ -386,6 +397,14 @@ def test_native_smc_and_momentum_layers_use_full_exact_source_history(
     )
     assert left_names == right_names == smc_names
     np.testing.assert_array_equal(np.vstack((left, right)), smc_values)
+    # ATR storage is no longer an input dependency: source OHLC alone owns it.
+    without_atr = tmp_path / f"smc_without_stored_atr_{frequency}.parquet"
+    source.drop(columns=["atr"]).to_parquet(without_atr, index=False)
+    without_atr_values, without_atr_names = build_smc_local_event_layer(
+        samples, without_atr
+    )
+    assert without_atr_names == smc_names
+    np.testing.assert_array_equal(without_atr_values, smc_values)
 
     momentum_values, momentum_names = build_momentum_event_m5_layer(
         samples,
@@ -400,6 +419,40 @@ def test_native_smc_and_momentum_layers_use_full_exact_source_history(
         momentum_values,
         expected_momentum.to_numpy(dtype=np.float32),
     )
+
+
+def test_inline_ctx_only_skips_smc_projection_and_preserves_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from gx1.features import entry_model_native_feature_layers_v1 as layers
+    from gx1.scripts.build_entry_v10_ctx_training_dataset_v3 import (
+        _build_inline_seq_structure_extension,
+    )
+    from tests.test_entry_exit_feature_base_bounded import (
+        _synthetic_enriched_sample_with_price_warmup,
+    )
+    frame, source = _synthetic_enriched_sample_with_price_warmup(7)
+    frame["atr_bps"] = (10.0 + np.arange(len(frame)) * 0.25).astype(np.float32)
+    frame["spread_bps"] = (1.0 + np.arange(len(frame)) * 0.125).astype(np.float32)
+    source_path = tmp_path / "ctx_only_source.parquet"
+    source.to_parquet(source_path, index=False)
+    before = frame.copy(deep=True)
+
+    def forbidden_smc_projection(*_args, **_kwargs):
+        raise AssertionError("ctx-only ranker inputs must not evaluate local SMC")
+
+    monkeypatch.setattr(layers, "build_smc_local_source_projection", forbidden_smc_projection)
+    requested = ["ctx_cont.spread_bps", "ctx_cont.atr_bps"]
+    values, names, metadata = _build_inline_seq_structure_extension(
+        frame, requested_features=requested,
+        ctx_cont_names=["atr_bps", "spread_bps"], ctx_cat_names=[],
+        source_parquet=source_path, local_timeframe="M5",
+    )
+    expected = frame[["spread_bps", "atr_bps"]].to_numpy(dtype=np.float32)
+    assert names == requested
+    assert values.tobytes() == expected.tobytes()
+    assert "base_source_projections" not in metadata
+    pd.testing.assert_frame_equal(frame, before)
 
 
 @pytest.mark.parametrize(

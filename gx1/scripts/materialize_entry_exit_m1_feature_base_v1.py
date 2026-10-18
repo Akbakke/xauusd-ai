@@ -400,6 +400,9 @@ def _materialize_bounded_feature_surface(
         MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES,
         PRICE_DERIVED_FEATURE_NAMES,
         SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
+        SMC_LOCAL_BASE_PROJECTION_FIELDS,
+        build_smc_local_source_projection,
+        smc_local_base_source_projection_metadata,
         SWING_EVENT_LAYER_FEATURE_NAMES,
         TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
         V29_REGISTRY_LAYER_PARAM_KEYS,
@@ -409,7 +412,6 @@ def _materialize_bounded_feature_surface(
         build_level_registry_m5_layer,
         build_momentum_event_m5_layer,
         build_price_derived_layer,
-        build_smc_local_event_layer,
         build_swing_event_m5_layer,
         build_trendline_registry_m5_layer,
         build_volatility_squeeze_local_layer,
@@ -652,6 +654,35 @@ def _materialize_bounded_feature_surface(
                 )
             return v29_registry_layer_params
 
+        smc_source_projection = None
+
+        def _smc_source_projection():
+            nonlocal smc_source_projection
+            if smc_source_projection is None:
+                smc_source_projection = build_smc_local_source_projection(source)
+            return smc_source_projection
+
+        def _smc_event_layer(frame_times, *, raw_frame=False):
+            raw = _smc_source_projection().loc[:, list(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES)]
+            if raw_frame:
+                return raw, list(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES)
+            return align_v29_layer_frame(
+                raw, frame_times, SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
+                context="SMC_LOCAL_EVENT_LAYER",
+            )
+
+        smc_base_fields = tuple(
+            name for name in SMC_LOCAL_BASE_PROJECTION_FIELDS
+            if name in MODEL_NATIVE_BASE_FIELDS
+        )
+        smc_base_raw = None
+        smc_base_floor = None
+        if smc_base_fields:
+            smc_base_raw = _smc_source_projection().loc[:, list(smc_base_fields)]
+            smc_base_floor = v29_layer_first_complete_time(
+                smc_base_raw, context="M1_FEATURE_BASE_SMC_BASE_SOURCE_PROJECTION"
+            )
+
         _v29_layer_plan = (
             (
                 "level_registry_m5_layer",
@@ -699,9 +730,7 @@ def _materialize_bounded_feature_surface(
             (
                 "smc_local_event_layer",
                 SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
-                lambda frame_times, raw_frame=False: build_smc_local_event_layer(
-                    frame_times, source, raw_frame=raw_frame
-                ),
+                _smc_event_layer,
             ),
             (
                 "volatility_squeeze_local_layer",
@@ -723,8 +752,10 @@ def _materialize_bounded_feature_surface(
         _v29_raw_store: dict[str, Any] = {}
         v29_layer_warmup: dict[str, str] = {}
         v29_rows_before_layer_warmup = 0
-        if _v29_requested_plan:
-            _v29_floor_time = None
+        if _v29_requested_plan or smc_base_raw is not None:
+            _v29_floor_time = smc_base_floor
+            if smc_base_floor is not None:
+                v29_layer_warmup["smc_base_source_projection"] = str(smc_base_floor.isoformat())
             for _v29_label, _v29_names, _v29_builder in _v29_requested_plan:
                 _v29_raw, _v29_observed = _v29_builder(None, raw_frame=True)
                 if tuple(_v29_observed) != tuple(_v29_names):
@@ -754,6 +785,8 @@ def _materialize_bounded_feature_surface(
                 (surface_times[0]).isoformat()
             )
 
+        # Both slices now retain their source result; no second replay is needed.
+        smc_source_projection = None
         sample_times = pd.DataFrame({"time": surface_times})
         price_values, price_names = build_price_derived_layer(
             sample_times,
@@ -808,6 +841,16 @@ def _materialize_bounded_feature_surface(
             )
             del _v29_values
             gc.collect()
+        smc_base_matrix = None
+        if smc_base_raw is not None:
+            smc_base_values, _ = align_v29_layer_frame(
+                smc_base_raw, sample_times, smc_base_fields,
+                context="M1_FEATURE_BASE_SMC_BASE_SOURCE_PROJECTION",
+            )
+            smc_base_matrix = _persist_float32_matrix(
+                storage / "smc_base_source_projection.mmap", smc_base_values
+            )
+            del smc_base_values, smc_base_raw
         del sample_times
         gc.collect()
 
@@ -854,6 +897,9 @@ def _materialize_bounded_feature_surface(
                     raise RuntimeError(
                         "M1_FEATURE_BASE_BATCH_TIME_ALIGNMENT_INVALID"
                     )
+                if smc_base_matrix is not None:
+                    for column, name in enumerate(smc_base_fields):
+                        frame[name] = smc_base_matrix[prefix:stop, column]
                 for name in (
                     *MODEL_NATIVE_BASE_FIELDS,
                     *MODEL_NATIVE_CTX_CONT_FIELDS,
@@ -1015,8 +1061,12 @@ def _materialize_bounded_feature_surface(
             ),
             "foundation_event_warmup_floor_utc": str(foundation_floor_time),
             "first_surface_row_utc": str(surface_times[0]),
-            "extension": extension_meta,
+            "extension": {
+                **extension_meta,
+                "base_source_projections": smc_local_base_source_projection_metadata(),
+            },
             "materialization": {
+                "base_source_projections": smc_local_base_source_projection_metadata(),
                 "mode": (
                     f"bounded_native_{timeframe.lower()}_owner_batches_"
                     "v3_event_age_carry"

@@ -145,6 +145,9 @@ def _synthetic_enriched_sample_with_price_warmup(
         smc_source = source_frame.set_index("time")[
             ["high", "low", "close", "atr", "volume"]
         ].astype(np.float64)
+        smc_source["atr"] = feature_layers._htf_atr_v4(
+            smc_source["high"], smc_source["low"], smc_source["close"], 14
+        )
         smc_raw = compute_smc_features(
             smc_source,
             include_v30_additions=True,
@@ -490,6 +493,53 @@ def test_foundation_event_ages_match_full_history_across_batch_boundary(
     np.testing.assert_array_equal(observed, expected)
 
 
+@pytest.mark.parametrize("frequency", ("1min", "5min"))
+def test_inline_smc_base_projection_reuses_one_full_history_result(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, frequency: str,
+) -> None:
+    frame, source_frame = _synthetic_enriched_sample_with_price_warmup(
+        89, include_smc=True
+    )
+    source_frame["time"] = pd.date_range(
+        "2026-01-01", periods=len(source_frame), freq=frequency, tz="UTC"
+    )
+    frame = source_frame.iloc[-len(frame):].reset_index(drop=True).copy()
+    source = tmp_path / f"smc_base_projection_{frequency}.parquet"
+    source_frame.to_parquet(source, index=False)
+    before = frame.copy(deep=True)
+    calls = []
+    original = feature_layers.build_smc_local_source_projection
+
+    def counted_projection(path):
+        calls.append(path)
+        return original(path)
+
+    monkeypatch.setattr(feature_layers, "build_smc_local_source_projection", counted_projection)
+    requested = ["snap.smc_pivot_envelope_width_atr", *SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES]
+    values, names, metadata = _build_inline_seq_structure_extension(
+        frame, requested_features=requested, ctx_cont_names=[], ctx_cat_names=[],
+        source_parquet=source, local_timeframe="M1" if frequency == "1min" else "M5",
+    )
+    reference_source = source_frame.set_index("time")[
+        ["high", "low", "close", "volume"]
+    ].astype(np.float64)
+    reference_source["atr"] = feature_layers._htf_atr_v4(
+        reference_source["high"], reference_source["low"], reference_source["close"], 14
+    )
+    reference = compute_smc_features(
+        reference_source, include_v30_additions=True, include_sweep_anchored_activity=True,
+    ).loc[pd.DatetimeIndex(frame["time"]), [
+        "smc_pivot_envelope_width_atr", *SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES,
+    ]].to_numpy(dtype=np.float32)
+    assert calls == [source]
+    assert names == requested
+    np.testing.assert_array_equal(values, reference)
+    assert metadata["base_source_projections"] == (
+        feature_layers.smc_local_base_source_projection_metadata()
+    )
+    pd.testing.assert_frame_equal(frame, before)
+
+
 def test_foundation_event_age_carry_state_fails_closed() -> None:
     valid = {name: None for name in FOUNDATION_EVENT_AGE_CARRY_KEYS}
     malformed_states = (
@@ -633,15 +683,16 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
         freq=frequency,
         tz="UTC",
     )
-    close = 2_000.0 + np.arange(rows, dtype=np.float64)
+    from tests.test_smc_causal_replay_v2 import _random_ohlc
+    high, low, close = _random_ohlc(rows, seed=81)
     columns: dict[str, object] = {
         "time": times,
-        "open": close - 0.1,
-        "high": close + 0.2,
-        "low": close - 0.2,
-            "close": close,
-            "volume": 100 + (np.arange(rows, dtype=np.int64) % 37),
-            "atr": np.ones(rows, dtype=np.float32),
+        "open": close,
+        "high": high,
+        "low": low,
+        "close": close,
+        "volume": 100 + (np.arange(rows, dtype=np.int64) % 37),
+        "atr": np.ones(rows, dtype=np.float32),
     }
     for name in (*MODEL_NATIVE_BASE_FIELDS, *MODEL_NATIVE_CTX_CONT_FIELDS):
         columns.setdefault(name, np.zeros(rows, dtype=np.float32))
@@ -700,6 +751,7 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
         f"selected_{index}"
         for index in range(MODEL_NATIVE_SIGNAL_DIM - len(MODEL_NATIVE_BASE_FIELDS))
     ]
+    selected[0] = SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES[0]
 
     def fake_extension(
         frame: pd.DataFrame,
@@ -712,8 +764,22 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
     ]:
         emit_offset = int(kwargs["emit_offset"])
         emitted_rows = len(frame) - emit_offset
+        # Exercise the real bounded inline gate with the already-computed SMC
+        # slice. No BASE field is requested, so no full-history replay may occur.
+        smc_values, smc_names, smc_meta = _build_inline_seq_structure_extension(
+            frame, requested_features=[selected[0]], ctx_cont_names=[], ctx_cat_names=[],
+            source_parquet=source, local_timeframe=timeframe,
+            precomputed_price_layer=(kwargs["price_layer"], kwargs["price_names"]),
+            precomputed_candle_layer=(kwargs["candle_layer"], kwargs["candle_names"]),
+            precomputed_v29_event_layers=kwargs["v29_event_layers"],
+            emit_offset=emit_offset,
+        )
+        assert smc_names == [selected[0]]
+        assert "base_source_projections" not in smc_meta
+        extension = np.zeros((emitted_rows, len(selected)), dtype=np.float32)
+        extension[:, 0] = smc_values[:, 0]
         return (
-            np.zeros((emitted_rows, len(selected)), dtype=np.float32),
+            extension,
             selected,
             {"mode": "synthetic_exact_owner_test", "features": selected},
             {name: None for name in FOUNDATION_EVENT_AGE_CARRY_KEYS},
@@ -734,6 +800,14 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
         "_build_bounded_extension_chunk",
         fake_extension,
     )
+    smc_projection_calls = []
+    original_smc_projection = feature_layers.build_smc_local_source_projection
+
+    def tracked_smc_projection(path):
+        smc_projection_calls.append(path)
+        return original_smc_projection(path)
+
+    monkeypatch.setattr(feature_layers, "build_smc_local_source_projection", tracked_smc_projection)
     output = tmp_path / f"{timeframe.lower()}_surface.parquet"
     observed = producer._materialize_bounded_feature_surface(
         source=source,
@@ -750,6 +824,30 @@ def test_m1_exit_and_m5_entry_use_the_same_bounded_surface_writer(
 
     assert observed["rows"] == len(expected_times)
     assert output.is_file()
+    assert smc_projection_calls == [source]
+    reference_source = pd.DataFrame(columns).set_index("time")
+    reference_source["atr"] = feature_layers._htf_atr_v4(
+        reference_source["high"], reference_source["low"], reference_source["close"], 14
+    )
+    reference = compute_smc_features(reference_source)
+    table = pq.read_table(output)
+    signal = np.asarray(table["signal"].combine_chunks().values).reshape(
+        len(expected_times), MODEL_NATIVE_SIGNAL_DIM
+    )
+    base_column = MODEL_NATIVE_BASE_FIELDS.index("smc_pivot_envelope_width_atr")
+    expected_base = reference.loc[expected_times, "smc_pivot_envelope_width_atr"].to_numpy(dtype=np.float32)
+    np.testing.assert_array_equal(signal[:, base_column], expected_base)
+    for column, name in enumerate(MODEL_NATIVE_BASE_FIELDS):
+        if name != "smc_pivot_envelope_width_atr":
+            np.testing.assert_array_equal(
+                signal[:, column], np.asarray(columns[name], dtype=np.float32)[PRICE_DERIVED_CAUSAL_WARMUP_ROWS:]
+            )
+    assert observed["materialization"]["base_source_projections"] == (
+        feature_layers.smc_local_base_source_projection_metadata()
+    )
+    assert observed["extension"]["base_source_projections"] == (
+        observed["materialization"]["base_source_projections"]
+    )
     producer._validate_staged_feature_surface(
         output,
         expected_times=expected_times,
@@ -814,52 +912,72 @@ def test_atomic_admission_never_overwrites_existing_target(
     assert destination.read_bytes() == b"old"
 
 
+@pytest.mark.parametrize("timeframe", ("M1", "M5"))
 def test_manifest_is_validated_and_admitted_last(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, timeframe: str,
 ) -> None:
+    from gx1.contracts import entry_exit_feature_surface_v1 as surface_owner
+    from gx1.features import volatility_squeeze_state_v1 as squeeze_owner
+    from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS
+    from gx1.utils.artifact_primitives_v1 import sha256_file
+
     output = tmp_path / "surface.parquet"
     output.write_bytes(b"validated parquet bytes")
+    source = tmp_path / "source.parquet"
+    source.write_bytes(b"synthetic already-validated enriched source")
+    source_manifest = tmp_path / "source.manifest.json"
+    source_manifest.write_text("{}")
+    signal_manifest = tmp_path / "signal.json"
+    signal_manifest.write_text("{}")
+    alignment = source if timeframe == "M1" else None
     manifest_path = output.with_suffix(output.suffix + ".manifest.json")
-    expected = {
-        "schema_version": "test_feature_surface_v1",
-        "decision": "PASS",
-        "output_parquet": str(output),
-    }
+    projections = feature_layers.smc_local_base_source_projection_metadata()
+    # Upstream fit/squeeze validation has its own fixtures. Exercise the actual
+    # manifest builder and publisher here, including M5's absent materialization.
+    monkeypatch.setattr(surface_owner, "_require_registry_fit_binding", lambda value, **_kw: dict(value))
+
+    class SyntheticSqueezeBinding:
+        def binding(self):
+            return {"schema_version": "synthetic_squeeze_binding_v1"}
+
     monkeypatch.setattr(
-        producer,
-        "build_entry_exit_feature_surface_manifest",
-        lambda **_kwargs: expected,
+        squeeze_owner, "require_volatility_squeeze_artifact_binding",
+        lambda _value: SyntheticSqueezeBinding(),
     )
     original_admit = producer._admit_new_file
-    admission_observations: list[tuple[Path, bool, bool]] = []
+    admission_observations = []
 
     def record_admission(stage: Path, destination: Path) -> None:
-        admission_observations.append(
-            (destination, output.is_file(), destination.exists())
-        )
+        admission_observations.append((destination, output.is_file(), destination.exists()))
         original_admit(stage, destination)
 
     monkeypatch.setattr(producer, "_admit_new_file", record_admission)
     observed = producer._publish_feature_base_manifest(
-        timeframe="M5",
-        dataset_run_id="run",
-        pair_generation_id="a" * 64,
-        source=tmp_path / "source.parquet",
-        source_binding={},
-            registry_fit_binding={},
-            volatility_squeeze_artifact_binding={},
-        alignment=None,
-        seq_structure_manifest=tmp_path / "signal.json",
-        output=output,
-        rows=3,
-        contract={},
-        extension_meta={},
+        timeframe=timeframe, dataset_run_id="run", pair_generation_id="a" * 64,
+        source=source,
+        source_binding={
+            "source_sha256": sha256_file(source),
+            "manifest_path": str(source_manifest),
+            "manifest_sha256": sha256_file(source_manifest),
+            "schema_version": "synthetic_enriched_source_v1",
+        },
+        registry_fit_binding={"lane": timeframe}, volatility_squeeze_artifact_binding={},
+        alignment=alignment, seq_structure_manifest=signal_manifest, output=output, rows=3,
+        contract={"fields": [
+            *MODEL_NATIVE_BASE_FIELDS, *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+            *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+        ]},
+        extension_meta={"base_source_projections": projections},
+        materialization=({"base_source_projections": projections} if timeframe == "M1" else None),
     )
-
-    assert observed == expected
     assert admission_observations == [(manifest_path, True, False)]
-    assert json.loads(manifest_path.read_text(encoding="utf-8")) == expected
+    published = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert published == observed
+    assert published["extension"]["base_source_projections"] == projections
+    if timeframe == "M1":
+        assert published["materialization"]["base_source_projections"] == projections
+    else:
+        assert "materialization" not in published
 
 
 def test_stale_or_failed_manifest_cannot_form_an_admissible_pair(

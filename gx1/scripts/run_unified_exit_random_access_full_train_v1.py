@@ -367,10 +367,35 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
             "eligible_parent_rows": eligible, "epoch0_parent_order": order}
 
 
-def _fresh_prefix_model(*, metadata, normalization, device, seed):
+def _require_component_model_phase(model, entry_training_phase):
+    from gx1.contracts.entry_model_native_training_objective_v1 import require_entry_training_phase
+    from gx1.contracts.entry_model_native_joint_task_weighting_v1 import joint_task_names_for_phase
+    phase = require_entry_training_phase(entry_training_phase, context="NATIVE_COMPONENT_MODEL")
+    tasks = getattr(model, "task_log_variances", None)
+    if (getattr(model, "entry_training_phase", None) != phase
+            or getattr(getattr(model, "cfg", None), "entry_training_phase", None) != phase
+            or not isinstance(tasks, torch.nn.ParameterDict)
+            or set(tasks) != set(joint_task_names_for_phase(phase))):
+        raise RuntimeError("NATIVE_COMPONENT_MODEL_PHASE_OR_TASKS_MISMATCH")
+    queries = trainer._dynamic_m5_model_kwargs(phase).get("dynamic_m5_query_minutes")
+    if queries is not None:
+        state = getattr(model, "dynamic_m5_query_horizons", None)
+        configured = getattr(getattr(model, "cfg", None), "dynamic_m5_query_minutes", None)
+        if (not isinstance(state, torch.Tensor) or state.dtype != torch.int64
+                or tuple(state.shape) != (len(queries),)
+                or not torch.equal(state, torch.tensor(queries, dtype=torch.int64, device=state.device))
+                or not isinstance(configured, tuple) or any(type(value) is not int for value in configured)
+                or configured != queries):
+            raise RuntimeError("NATIVE_COMPONENT_MODEL_DYNAMIC_QUERY_MISMATCH")
+
+
+def _fresh_prefix_model(*, metadata, normalization, device, seed,
+                        entry_training_phase=trainer.JOINT_FITTED_Q_TRAINING_PHASE):
     """Call the existing complete constructor, never any checkpoint loader."""
     trainer._set_deterministic(seed, device, "deterministic_fp32")
-    model = val._model(metadata, normalization, device)
+    model = val._model(metadata, normalization, device,
+        **trainer._dynamic_m5_model_kwargs(entry_training_phase))
+    _require_component_model_phase(model, entry_training_phase)
     if any(torch.count_nonzero(parameter.detach()).item() for parameter in model.task_log_variances.parameters()):
         raise RuntimeError("NATIVE_PREFIX_FRESH_TASK_WEIGHTS_INVALID")
     return model, {
@@ -690,12 +715,35 @@ def _build_bound_full_train_components(
         if not np.array_equal(observed_order.numpy(), prefix["epoch0_parent_order"]):
             raise RuntimeError("NATIVE_PREFIX_NATIVE_ORDER_MISMATCH")
     trainer._native_candidate_val_context_binding(val_context)
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        JOINT_FITTED_Q_TRAINING_PHASE, ENTRY_ONLY_TRAINING_PHASES,
+    )
+    observed_binding = getattr(datasets["train"], "_entry_observed_market_binding", None)
+    if observed_entry_scope is None:
+        if observed_binding is not None:
+            raise RuntimeError("NATIVE_FULL_TRAIN_EMA_PHASE_BINDING_MISMATCH")
+        entry_phase = JOINT_FITTED_Q_TRAINING_PHASE
+    else:
+        identity = observed_binding.get("identity") if isinstance(observed_binding, Mapping) else None
+        if (not isinstance(identity, Mapping) or identity.get("training_phase") not in ENTRY_ONLY_TRAINING_PHASES
+                or identity["training_phase"] != observed_entry_scope.get("training_phase")):
+            raise RuntimeError("NATIVE_FULL_TRAIN_EMA_PHASE_BINDING_MISMATCH")
+        entry_phase = identity["training_phase"]
+    queries = trainer._dynamic_m5_model_kwargs(entry_phase).get("dynamic_m5_query_minutes")
+    if queries is not None:
+        for binding in (observed_entry_scope, identity):
+            declared = binding.get("query_minutes")
+            if (not isinstance(declared, (tuple, list))
+                    or any(type(value) is not int for value in declared)
+                    or tuple(declared) != queries):
+                raise RuntimeError("NATIVE_COMPONENT_SCOPE_DYNAMIC_QUERY_MISMATCH")
     child = val.require_composite_normalization_binding(
         val._read(files["child_composite_normalization"]),
     )
     if prefix is not None:
         input_norm = child["base_feature_normalization"]["artifact"]["contract"]
-        model, seed_binding = _fresh_prefix_model(metadata=meta, normalization=input_norm, device=device, seed=seed)
+        model, seed_binding = _fresh_prefix_model(metadata=meta, normalization=input_norm, device=device, seed=seed,
+            entry_training_phase=entry_phase)
     else:
         input_norm = val.require_bootstrap_composite_normalization(
             val._read(Path(source_launch["files"]["bootstrap_composite_normalization"]["path"])),
@@ -714,12 +762,19 @@ def _build_bound_full_train_components(
             expected_weight_ema_decay=float(source_launch["weight_ema_decay"]),
         )
         val.bind_preserved_v7_input_normalization(model, input_norm)
-    model.requires_grad_(True)
+    _require_component_model_phase(model, entry_phase)
+    from gx1.contracts.entry_observed_market_v1 import is_inactive_phase_parameter
+    from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
+    for name, parameter in model.named_parameters():
+        parameter.requires_grad_(not is_inactive_phase_parameter(name, entry_phase))
     model.train()
-    joint = list(model.task_log_variances.parameters())
+    active_tasks = {name for name, parameter in model.task_log_variances.items() if parameter.requires_grad}
+    if active_tasks != set(active_joint_task_names(entry_phase)):
+        raise RuntimeError("NATIVE_COMPONENT_ACTIVE_TASK_VARIANCES_MISMATCH")
+    joint = [parameter for parameter in model.task_log_variances.parameters() if parameter.requires_grad]
     joint_ids = {id(parameter) for parameter in joint}
     optimizer = torch.optim.AdamW([
-        {"params": [p for p in model.parameters() if id(p) not in joint_ids], "weight_decay": weight_decay},
+        {"params": [p for p in model.parameters() if p.requires_grad and id(p) not in joint_ids], "weight_decay": weight_decay},
         {"params": joint, "weight_decay": 0.0},
     ], lr=learning_rate)
     effective_train_rows = (len(prefix["eligible_parent_rows"]) if prefix is not None
@@ -730,22 +785,8 @@ def _build_bound_full_train_components(
         train_rows=(len(prefix["eligible_parent_rows"]) if prefix is not None else len(datasets["train"])),
         batch_size=batch_size, grad_accum_steps=1,
     )
-    from gx1.contracts.entry_model_native_training_objective_v1 import (
-        JOINT_FITTED_Q_TRAINING_PHASE, ENTRY_ONLY_TRAINING_PHASES,
-    )
-    observed_binding = getattr(datasets["train"], "_entry_observed_market_binding", None)
-    if observed_entry_scope is None:
-        if observed_binding is not None:
-            raise RuntimeError("NATIVE_FULL_TRAIN_EMA_PHASE_BINDING_MISMATCH")
-        ema_phase = JOINT_FITTED_Q_TRAINING_PHASE
-    else:
-        identity = observed_binding.get("identity") if isinstance(observed_binding, Mapping) else None
-        if (not isinstance(identity, Mapping) or identity.get("training_phase") not in ENTRY_ONLY_TRAINING_PHASES
-                or identity["training_phase"] != observed_entry_scope.get("training_phase")):
-            raise RuntimeError("NATIVE_FULL_TRAIN_EMA_PHASE_BINDING_MISMATCH")
-        ema_phase = identity["training_phase"]
     weight_ema = trainer._WeightEma(model, float(ema_derivation["weight_ema_decay"]),
-        entry_training_phase=ema_phase)
+        entry_training_phase=entry_phase)
     scheduler = (
         torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.0)
         if trainer.ENTRY_TRAIN_LR_COSINE_DECAY == 1 else None

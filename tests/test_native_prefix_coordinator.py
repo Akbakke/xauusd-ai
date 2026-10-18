@@ -558,3 +558,215 @@ def test_m5_single_epoch_exact_partial_batch_and_resume_stop_before_val(physical
         h.run_prefix(h.root/"EXTRA", steps+1, **overrides)
     with pytest.raises(RuntimeError, match="M5_SINGLE_EPOCH_SCOPE_INVALID"):
         h.run_prefix(h.root/"TWO_EPOCHS", steps, **{**overrides,"epochs":2})
+
+
+@pytest.fixture
+def dynamic_prefix_binding_unit(physical_prepared, tmp_path, monkeypatch):
+    """Prefix join only: stub completed preprocessing/sampler owners, not admission.
+
+    The dynamic witness reader and actual scalar/npy/hash joins remain real.
+    No quote reconstruction, normalization fit or measured sampler is claimed.
+    """
+    import hashlib
+    from tests.test_native_prefix_recipe import _dynamic_single_epoch_design
+    from tests.test_native_fresh_prefix_components import TinyModel
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    from gx1.contracts.entry_observed_market_v1 import DynamicM5TargetProvider, entry_observed_dynamic_m5_path_contract
+    from gx1.time.session_detector import m5_decision_availability
+    data = physical_prepared
+    directory = tmp_path / "dynamic-prefix-unit"; directory.mkdir()
+    part, witness = _dynamic_single_epoch_design(directory, rows=len(data.train))
+    queries = trainer._dynamic_m5_model_kwargs(witness["training_phase"])["dynamic_m5_query_minutes"]
+    target = entry_observed_dynamic_m5_path_contract()
+    control_binding = data.design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"]
+    sources, frames, proofs = {}, {}, {}
+    for split, count in (("train", len(data.train)), ("val", len(data.control))):
+        if split == "train":
+            path = Path(witness["train_parquet"]["path"])
+            frame = pd.read_parquet(path)
+            manifest = json.loads(Path(witness["train_manifest"]["path"]).read_text())
+        else:
+            path = directory / "dynamic-val.parquet"
+            frame = pd.DataFrame({"time": pd.date_range(part["calendar"]["train_control_cutoff"], periods=count, freq="5min")})
+            manifest = {"output_data_path":str(path),"extra":{"rows":count}}
+        frame[trainer.DYNAMIC_M5_POINTER_COLUMNS[0]] = np.arange(count, dtype=np.int64) + (0 if split == "train" else len(data.train))
+        frame[trainer.DYNAMIC_M5_POINTER_COLUMNS[1]] = True
+        frame.to_parquet(path, index=False)
+        source = {"parquet":_bind(path), "manifest":_write(path.with_suffix(".manifest.json"), manifest),
+            "physical_rows":count,
+            "clock_sha256":hashlib.sha256(np.asarray(pd.DatetimeIndex(frame.time).as_unit("ns").asi8,dtype="<i8").tobytes()).hexdigest()}
+        frames[split],sources[split] = frame,source
+        proofs[split] = {"entry_m1_pointer_sha256":hashlib.sha256(frame.iloc[:,1].to_numpy(dtype="<i8").tobytes()).hexdigest(),
+            "dynamic_m5_supervision":{"source_quote_binding":{"qualified_owner_stub":True},
+                "index_binding":{"qualified_owner_stub":split}}}
+    witness.update(train_parquet=sources["train"]["parquet"],train_manifest=sources["train"]["manifest"])
+    part["scope"][horizons.M5_SINGLE_EPOCH_SCOPE_KEY] = _write(directory / "dynamic-population.json", witness)
+    data.design["scope"].update(part["scope"]);data.design["budget"].update(part["budget"])
+    data.design["calendar"].update(part["calendar"],source_bindings=sources)
+    data.design.pop("targets",None)  # Dynamic binding must not manufacture an Exit policy.
+    data.value["design"] = _write(Path(data.value["design"]["path"]),data.design)
+    registry = _write(directory / "registry-clock.json",{
+        "train_decision_rows":len(data.train),
+        "train_decision_clock_sha256":hashlib.sha256(np.asarray(m5_decision_availability(pd.DatetimeIndex(frames["train"].time)).as_unit("ns").asi8,dtype="<i8").tobytes()).hexdigest()})
+    receipt = {"schema_version":trainer.M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA,
+        "design":data.value["design"],"registry":registry,"target_contract":target,"splits":proofs}
+    data.value["labels_result"] = _write(directory / "receipt-boundary.json",receipt)
+    full_rows = data.design["calendar"]["bindings"]["TRAIN_CALENDAR_PARENT_ROWS"]
+    order = np.load(witness["epoch0_parent_order"]["path"],allow_pickle=False)
+    coordinates = {"bindings":{"TRAIN_ELIGIBLE_PARENT_ROWS":witness["eligible_parent_rows"],
+        "TRAIN_NATIVE_EPOCH0_ORDER":witness["epoch0_parent_order"]},
+        "eligibility":{"rule":campaign.DYNAMIC_M5_PATH_ELIGIBILITY_RULE,
+            "entry_eligibility_cutoff_utc":witness["entry_eligibility_cutoff_utc"],
+            "eligible_rows":len(order),"censored_rows_excluded":0}}
+    data.value["native_coordinates"] = _write(directory / "coordinate-boundary.json",coordinates)
+    physical = {"physical_sources":sources,"train_parent_rows":full_rows,
+        "base_contract_sha256":data.composite["base_feature_normalization"]["contract_sha256"],
+        "composite_normalization_sha256":data.composite["composite_normalization_sha256"]}
+    seen = []
+    def preprocessing(artifacts, **kwargs):
+        assert "targets" not in kwargs["design"]
+        assert artifacts["labels_result"] == data.value["labels_result"]
+        seen.append("qualified_preprocessing_boundary")
+        return physical
+    def coordinate_owner(artifacts, **kwargs):
+        assert kwargs["physical"] is physical
+        seen.append("qualified_coordinate_boundary")
+        return {"artifact":coordinates,"binding":data.value["native_coordinates"],
+            "population_witness":part["scope"][horizons.M5_SINGLE_EPOCH_SCOPE_KEY],
+            "native_sampler_contract":witness["native_sampler_contract"]}
+    monkeypatch.setattr(campaign,"require_physical_chronological_preprocessing",preprocessing)
+    monkeypatch.setattr(campaign,"require_physical_native_training_coordinates",coordinate_owner)
+    registry_clock = {"rows":len(data.train),
+        "train_decision_clock_sha256":json.loads(Path(registry["path"]).read_text())["train_decision_clock_sha256"],"exact_match":True}
+    class Dataset(Rows):
+        pass
+    identity = {"design":data.value["design"],"target_contract":target,"training_phase":witness["training_phase"],
+        "query_minutes":list(queries),"economics":{"qualified_owner_stub":True}}
+    expected_columns = list(dict.fromkeys([*trainer.DYNAMIC_M5_POINTER_COLUMNS,*trainer._FORECAST_TARGET_COLS,
+        *trainer.MODEL_NATIVE_FORECAST_VALID_COLUMNS,*horizons.HORIZON_LABEL_COLUMNS]))
+    for split,role in (("train","TRAIN"),("val","CONTROL256")):
+        dataset = Dataset(sources[split]["physical_rows"])
+        dataset.df = frames[split];dataset.parquet_path = Path(sources[split]["parquet"]["path"])
+        row_binding = full_rows if split == "train" else control_binding
+        rows = np.load(row_binding["path"],allow_pickle=False)
+        mask = np.zeros(len(dataset),dtype=np.bool_);mask[rows] = True
+        dataset._policy_dependent_auxiliary_bound_rows = mask
+        dataset._entry_observed_market_admitted_rows = mask.copy()
+        proof = proofs[split]
+        dataset._policy_dependent_auxiliary_binding = {"result":data.value["labels_result"],"design":data.value["design"],
+            "role":role,"mode":trainer.DYNAMIC_M5_PHYSICAL_BINDING_MODE,"source_split":split,
+            "emission_scope":trainer.M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,"training_phase":witness["training_phase"],
+            "target_contract":target,"parent_entry_parquet":sources[split]["parquet"],"parent_entry_manifest":sources[split]["manifest"],
+            "row_binding":row_binding,"rows":len(rows),"active_target_columns":expected_columns,
+            "targets_rewritten":False,"inactive_diagnostics_refreshed":False,"registry":registry,
+            "entry_m1_pointer_sha256":proof["entry_m1_pointer_sha256"],"whole_train_registry_clock":dict(registry_clock)}
+        provider = DynamicM5TargetProvider.__new__(DynamicM5TargetProvider)
+        provider.index = SimpleNamespace(binding=lambda value=proof["dynamic_m5_supervision"]["index_binding"]:value)
+        provider.fill_surface = pd.DataFrame({"entry_m1_row":dataset.df.iloc[:,1].to_numpy().copy()})
+        provider.admitted_rows = mask.copy();provider.query_minutes = queries;provider.economics = identity["economics"]
+        def forbidden_query(*args,**kwargs):raise AssertionError("Prefix binding must not query future outcomes")
+        provider.targets_for_rows = forbidden_query
+        dataset._entry_dynamic_m5_target_provider = provider
+        dataset._entry_observed_market_binding = {"identity":copy.deepcopy(identity),"physical_source":sources[split],"role":role,
+            **proof["dynamic_m5_supervision"],"dense_future_paths_materialized":False,"admitted_rows":int(mask.sum()),
+            "admitted_row_indices_sha256":hashlib.sha256(np.asarray(rows,dtype="<i8").tobytes()).hexdigest(),
+            "first_prefix_mask_sha256":hashlib.sha256(dataset.df.iloc[:,2].to_numpy().tobytes()).hexdigest()}
+        setattr(data,"train" if split == "train" else "control",dataset)
+        data.files["entry_"+split+"_parquet"] = dataset.parquet_path
+    args = _binding_args(data)
+    args["model"] = TinyModel(args["input_normalization"],**trainer._dynamic_m5_model_kwargs(witness["training_phase"]))
+    return SimpleNamespace(data=data,args=args,coordinates=coordinates,witness=witness,seen=seen)
+
+
+def test_dynamic_prefix_binding_unit_joins_real_witness_clock_pointer_and_roles_without_exit(dynamic_prefix_binding_unit):
+    case = dynamic_prefix_binding_unit
+    binding,parents,order = trainer._prefix_candidate_training_binding(**case.args)
+    assert case.seen == ["qualified_preprocessing_boundary","qualified_coordinate_boundary"]
+    assert not hasattr(case.data.train,"_unified_exit_lifecycle_v2") and "targets" not in case.data.design
+    assert np.array_equal(parents.numpy(),np.load(case.witness["eligible_parent_rows"]["path"]))
+    assert np.array_equal(order.numpy(),np.load(case.witness["epoch0_parent_order"]["path"]))
+    assert binding["train_rows"] == case.witness["train_rows"]
+    assert binding["maximum_optimizer_steps"] == case.witness["optimizer_steps"]
+    assert binding["entry_training_phase"] == case.witness["training_phase"]
+    assert binding["candidate_quality_native_authority_admitted"] is False
+    assert "selected_sampler" not in binding
+    assert binding["entry_epoch_order_authority"] == {
+        "population_witness":case.data.design["scope"]["entry_m5_path_single_epoch"],
+        "native_sampler_contract":case.witness["native_sampler_contract"]}
+    assert "dynamic_m5_eligibility" in binding and "horizon_eligibility" not in binding
+    assert binding["active_joint_task_names"] == list(trainer._model_joint_task_names(case.args["model"]))
+
+
+@pytest.mark.parametrize("fault",["legacy_mode","pointer","clock","provider_mask","row_binding","registry_clock","phase","tasks","model_queries","order"])
+def test_dynamic_prefix_binding_unit_rejects_role_pointer_clock_model_or_order_drift(dynamic_prefix_binding_unit,fault):
+    case = dynamic_prefix_binding_unit;dataset = case.data.train
+    if fault == "legacy_mode": dataset._policy_dependent_auxiliary_binding["mode"] = "original_physical_split_targets"
+    elif fault == "pointer": dataset.df.iloc[0,1] += 1
+    elif fault == "clock": dataset.df.loc[0,"time"] -= pd.Timedelta(minutes=5)
+    elif fault == "provider_mask": dataset._entry_dynamic_m5_target_provider.admitted_rows[0] = False
+    elif fault == "row_binding": dataset._policy_dependent_auxiliary_binding["row_binding"] = case.data.design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"]
+    elif fault == "registry_clock": dataset._policy_dependent_auxiliary_binding["whole_train_registry_clock"]["rows"] -= 1
+    elif fault == "phase": case.args["model"].entry_training_phase = trainer.JOINT_FITTED_Q_TRAINING_PHASE
+    elif fault == "tasks": case.args["model"].task_log_variances.pop(next(iter(case.args["model"].task_log_variances)))
+    elif fault == "model_queries": case.args["model"].dynamic_m5_query_horizons[0] += 1
+    else:
+        path = Path(case.coordinates["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"]["path"]).with_name("changed-order.npy")
+        order = np.load(case.witness["epoch0_parent_order"]["path"])[::-1].copy();np.save(path,order,allow_pickle=False)
+        case.coordinates["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"] = _bind(path)
+    with pytest.raises(RuntimeError):trainer._prefix_candidate_training_binding(**case.args)
+
+
+
+def test_dynamic_epoch0_reuses_verified_prefix_order_without_exit_or_random_fallback(dynamic_prefix_binding_unit,monkeypatch):
+    case = dynamic_prefix_binding_unit
+    binding,parents,frozen = trainer._prefix_candidate_training_binding(**case.args)
+    def forbidden(*args,**kwargs):raise AssertionError("Dynamic native order must not sample a new order")
+    monkeypatch.setattr(torch,"randperm",forbidden)
+    actual = trainer._candidate_training_epoch_order(case.data.train,epoch_index=0,parent_population=parents)
+    assert torch.equal(actual,frozen)
+    assert torch.equal(trainer._candidate_training_epoch_order(case.data.train,epoch_index=0,parent_population=parents),frozen)
+    cached = case.data.train._entry_dynamic_m5_epoch_order_binding
+    assert type(cached["prefix_epoch0_order"]) is tuple
+    assert cached["entry_epoch_order_authority"] == binding["entry_epoch_order_authority"]
+    assert not hasattr(case.data.train,"_unified_exit_lifecycle_v2")
+
+
+@pytest.mark.parametrize("fault",["unbound","epoch_one","missing_parents","wrong_parents","role","source","exit_adapter", "cache_order","cache_witness","clock","mask","mask_dtype","phase","witness_bytes"])
+def test_dynamic_epoch0_rejects_wrong_phase_role_source_witness_or_parent_order(dynamic_prefix_binding_unit,fault):
+    case = dynamic_prefix_binding_unit;dataset = case.data.train
+    if fault == "unbound": parents = torch.arange(len(dataset),dtype=torch.int64)
+    else: _,parents,_ = trainer._prefix_candidate_training_binding(**case.args)
+    epoch = 0
+    if fault == "epoch_one":epoch = 1
+    elif fault == "missing_parents":parents = None
+    elif fault == "wrong_parents":parents = parents[:-1]
+    elif fault == "role":dataset._policy_dependent_auxiliary_binding["role"] = "CONTROL256"
+    elif fault == "source":dataset.parquet_path = case.data.control.parquet_path
+    elif fault == "exit_adapter":dataset._unified_exit_lifecycle_v2 = object()
+    elif fault == "cache_order":
+        cached = dataset._entry_dynamic_m5_epoch_order_binding
+        cached["prefix_epoch0_order"] = cached["prefix_epoch0_order"][::-1]
+    elif fault == "cache_witness":dataset._entry_dynamic_m5_epoch_order_binding["entry_epoch_order_authority"]["population_witness"]["sha256"] = "f"*64
+    elif fault == "clock":dataset.df.loc[0,"time"] -= pd.Timedelta(minutes=5)
+    elif fault == "mask":dataset._entry_observed_market_admitted_rows[0] = False
+    elif fault == "mask_dtype":dataset._policy_dependent_auxiliary_bound_rows = dataset._policy_dependent_auxiliary_bound_rows.astype(np.int64)
+    elif fault == "phase":dataset._entry_observed_market_binding["identity"]["training_phase"] = trainer.JOINT_FITTED_Q_TRAINING_PHASE
+    elif fault == "witness_bytes":Path(dataset._entry_dynamic_m5_epoch_order_binding["entry_epoch_order_authority"]["population_witness"]["path"]).write_bytes(b"changed witness")
+    with pytest.raises(RuntimeError):
+        trainer._candidate_training_epoch_order(dataset,epoch_index=epoch,parent_population=parents)
+
+
+@pytest.mark.parametrize("fault",["order","design","extra"])
+def test_dynamic_prefix_epoch_order_proof_allows_exact_rebind_and_rejects_tamper(dynamic_prefix_binding_unit,fault):
+    case = dynamic_prefix_binding_unit
+    trainer._prefix_candidate_training_binding(**case.args)
+    trainer._prefix_candidate_training_binding(**case.args)
+    cached = case.data.train._entry_dynamic_m5_epoch_order_binding
+    if fault == "order":cached["prefix_epoch0_order"] = cached["prefix_epoch0_order"][::-1]
+    elif fault == "design":cached["design"]["sha256"] = "f"*64
+    else:cached["unbound_field"] = True
+    before = copy.deepcopy(cached)
+    with pytest.raises(RuntimeError,match="CANDIDATE_DYNAMIC_EPOCH_ORDER_REBIND_FORBIDDEN"):
+        trainer._prefix_candidate_training_binding(**case.args)
+    assert case.data.train._entry_dynamic_m5_epoch_order_binding == before

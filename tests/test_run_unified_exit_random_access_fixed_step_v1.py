@@ -316,3 +316,64 @@ def test_model_metadata_roundtrip_preserves_owned_family_routes(monkeypatch, ord
         for key in ("input_indices", "ctx_cont_indices", "ctx_cont_nominal_indices", "ctx_cat_indices"):
             assert tuple(captured["specialist_" + key]) == PRODUCTION_SPECIALISTS
             assert captured["specialist_" + key] == routes
+
+
+# Constructor-only synthetic metadata; the captured constructor performs no forward.
+def _phase_constructor_metadata():
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_SPECIALISTS
+    routes = {name: [i] for i, name in enumerate(PRODUCTION_SPECIALISTS)}
+    return {
+        **{key: 1 for key in ("seq_input_dim", "snap_input_dim", "seq_len", "ctx_cont_dim", "ctx_cat_dim")},
+        "dropout": 0.,
+        "specialist_fusion": {"input_indices": routes, "num_layers": 1, "fusion_scale": 1.,
+            "cross_family_fusion_scale": 1., "context_routing": {
+                **{key: routes for key in ("ctx_cont_indices", "ctx_cont_nominal_indices", "ctx_cat_indices")},
+                "temporal_alias_policy": {"signal_indices": [], "ctx_cont_indices": []}}},
+        "multi_tf": {"feature_names": [], "multi_tf_num_layers": 1, "multi_tf_scale": 1.,
+            **{tf + suffix: 1 for tf in ("m5", "m15", "h1", "h4", "d1") for suffix in ("_seq_dim", "_seq_len")}},
+    }, routes
+
+
+@pytest.mark.parametrize("phase_name", [None, "JOINT_FITTED_Q_TRAINING_PHASE", "ENTRY_ONLY_M5_PATH_TRAINING_PHASE", "ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE"])
+def test_model_constructor_forwards_only_source_owned_phase_and_query_kwargs(monkeypatch, phase_name):
+    from gx1.scripts import run_unified_exit_random_access_fixed_step_v1 as owner
+    from gx1.contracts import entry_model_native_training_objective_v1 as phases
+    meta, routes = _phase_constructor_metadata()
+    monkeypatch.setattr(owner, "require_multi_tf_specialist_routing_v4", lambda fields: routes)
+    captured = {}
+    def construct(**kwargs):
+        captured.update(kwargs)
+        return torch.nn.Identity()
+    monkeypatch.setattr(owner, "EntryV10CtxHybridTransformer", construct)
+    phase = phases.JOINT_FITTED_Q_TRAINING_PHASE if phase_name is None else getattr(phases, phase_name)
+    expected = owner._dynamic_m5_model_kwargs(phase)
+    owner._model(meta, {}, torch.device("cpu"), **({} if phase_name is None else expected))
+    assert captured["entry_training_phase"] == phase
+    assert {key: captured[key] for key in expected} == expected
+    assert ("dynamic_m5_query_minutes" in captured) == (phase == phases.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    assert not {"actual_future_elapsed", "path_observed", "censor_reason", "first_mfe_m1_row"} & captured.keys()
+
+
+@pytest.mark.parametrize("fault", ["truncated", "reversed", "bool", "float", "legacy_queries"])
+def test_model_constructor_rejects_wrong_explicit_queries_before_allocation(monkeypatch, fault):
+    from gx1.scripts import run_unified_exit_random_access_fixed_step_v1 as owner
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    queries = list(owner._dynamic_m5_model_kwargs(phase)["dynamic_m5_query_minutes"])
+    if fault == "truncated": queries.pop()
+    elif fault == "reversed": queries.reverse()
+    elif fault == "bool": queries[0] = True
+    elif fault == "float": queries[0] = float(queries[0])
+    else: phase = owner.JOINT_FITTED_Q_TRAINING_PHASE
+    def forbidden(**kwargs): raise AssertionError("Invalid query reached model allocation")
+    monkeypatch.setattr(owner, "EntryV10CtxHybridTransformer", forbidden)
+    with pytest.raises(RuntimeError, match="UNIFIED_EXIT_MODEL_DYNAMIC_QUERY_BINDING_INVALID"):
+        owner._model({}, {}, torch.device("cpu"), entry_training_phase=phase, dynamic_m5_query_minutes=queries)
+
+
+def test_model_constructor_rejects_unknown_phase_before_allocation(monkeypatch):
+    from gx1.scripts import run_unified_exit_random_access_fixed_step_v1 as owner
+    def forbidden(**kwargs): raise AssertionError("Unknown phase reached model allocation")
+    monkeypatch.setattr(owner, "EntryV10CtxHybridTransformer", forbidden)
+    with pytest.raises(RuntimeError, match="UNIFIED_EXIT_MODEL_ENTRY_TRAINING_PHASE_INVALID"):
+        owner._model({}, {}, torch.device("cpu"), entry_training_phase="undeclared_phase")

@@ -339,48 +339,95 @@ def test_dynamic_coordinate_closed_prefix_at_split_close_does_not_require_termin
     assert found["rows"].tolist() == [0, 1]
 
 
-def test_dynamic_coordinate_validator_requires_new_identity_full_population_and_exact_native_order(
-    physical_measurement, tmp_path, monkeypatch,
-):
-    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+def _dynamic_coordinate_case(tmp_path, *, rows=273):
+    """Use the real existing single-epoch witness owner and real pointer/order files."""
+    from tests.test_native_prefix_recipe import _dynamic_single_epoch_design
+    from gx1.contracts.entry_observed_market_horizons_v1 import M5_SINGLE_EPOCH_SCOPE_KEY
+    design, witness = _dynamic_single_epoch_design(tmp_path, rows=rows)
+    train_path = Path(witness["train_parquet"]["path"])
+    _dynamic_m5_pointer_frame(rows).to_parquet(train_path, index=False)
+    witness["train_parquet"] = _binding(train_path)
+    witness_binding = _write(tmp_path / "bound-dynamic-population.json", witness)
+    design["scope"][M5_SINGLE_EPOCH_SCOPE_KEY] = witness_binding
+    control_path = tmp_path / "dynamic-control.parquet"
+    _dynamic_m5_pointer_frame(rows).to_parquet(control_path, index=False)
+    control_manifest = _write(tmp_path / "dynamic-control.manifest.json", {"rows": rows})
+    control_rows_path = tmp_path / "dynamic-control-parents.npy"
+    np.save(control_rows_path, np.arange(256, dtype=np.int64), allow_pickle=False)
+    physical = {"physical_sources": {
+        "train": {"parquet": witness["train_parquet"], "manifest": witness["train_manifest"], "physical_rows": rows},
+        "val": {"parquet": _binding(control_path), "manifest": control_manifest, "physical_rows": rows}},
+        "train_rows": rows, "train_parent_rows": witness["eligible_parent_rows"],
+        "control_parent_rows": _binding(control_rows_path)}
+    design["calendar"].update(source_bindings=physical["physical_sources"],
+        bindings={"CONTROL256_PARENT_ROWS": physical["control_parent_rows"]})
+    design["budget"]["train_only_probe_entries"] = 256
+    design["selection"] = {"seed": 20260911}
+    prefix = {"design": _write(tmp_path / "dynamic-coordinate-design.json", design),
+        "normalization_result": _write(tmp_path / "qualified-normalization.json", {"qualified_by_separate_owner": True}),
+        "labels_result": _write(tmp_path / "qualified-labels.json", {"qualified_by_separate_owner": True})}
+    return design, witness, witness_binding, prefix, physical
+
+
+def _dynamic_coordinate_arguments(case, output):
     from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
-    c = physical_measurement
-    prefix = dict(c.prepared.value)
-    design = copy.deepcopy(c.prepared.design)
-    design["scope"].update(entry_only_training_phase="entry_only_dynamic_m5_path", emission_scope="m5_dynamic_observed")
-    prefix["design"] = _write(tmp_path / "dynamic-coordinate-design.json", design)
-    physical = {"physical_sources": design["calendar"]["source_bindings"],
-        "train_rows": len(c.prepared.case["order"]),
-        "train_parent_rows": design["calendar"]["bindings"]["TRAIN_CALENDAR_PARENT_ROWS"],
-        "control_parent_rows": design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"]}
-    # Sampler/index provenance and genuine pointer reconstruction are tested by
-    # their dedicated owners. This fixture exercises strict coordinate metadata.
-    monkeypatch.setattr(campaign, "_physical_native_sampler", lambda *args, **kwargs: c.prepared.case["selected"])
-    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
-    # The separate witness tests require its actual whole-TRAIN manifest/order;
-    # this case exercises coordinate identity/order, not epoch admission.
-    monkeypatch.setattr(horizons, "require_m5_single_epoch_population", lambda design: None)
-    eligible = np.arange(physical["train_rows"], dtype=np.int64)
-    monkeypatch.setattr(producer, "dynamic_m5_eligible_rows", lambda *args, **kwargs: {
-        "rows": eligible, "physical_rows": len(eligible), "censored_rows_excluded": 0, "rows_after_cutoff": 0})
+    design, witness, witness_binding, prefix, physical = case
+    return {"chronological_prefix": prefix, "dynamic_population_witness": witness_binding,
+        "dynamic_m5_eligibility": {"target_contract": entry_observed_dynamic_m5_path_contract(),
+            "entry_eligibility_cutoff_utc": design["calendar"]["train_control_cutoff"]}, "output_dir": output}
+
+
+def test_dynamic_coordinate_publication_uses_real_witness_and_never_exit_measurements(tmp_path, monkeypatch):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    from gx1.contracts import unified_exit_selected_sampler_v1 as selected_owner
+    case = _dynamic_coordinate_case(tmp_path)
+    design, witness, witness_binding, prefix, physical = case
+    # Full physical normalization/target admission has its own bounded tests.
+    # The actual sampler/witness/coordinate/order chain below remains unstubbed.
+    monkeypatch.setattr(producer, "require_physical_chronological_preprocessing", lambda *a, **k: physical)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("dynamic native coordinates must not enter Exit machinery")
+    monkeypatch.setattr(selected_owner, "require_selected_sampler_artifact", forbidden)
+    monkeypatch.setattr(producer, "_physical_measurement_inputs", forbidden)
+    monkeypatch.setattr(producer, "_physical_measurement_arrays", forbidden)
+    output = tmp_path / "dynamic-native-only"
+    args = _dynamic_coordinate_arguments(case, output)
+    dry = producer.materialize(**args, publish=False)
+    assert dry["entry_measurement_complete"] is False and not output.exists()
+    result = producer.materialize(**args, publish=True)
+    assert result["native_coordinates_complete"] is True
+    assert result["entry_measurement_complete"] is result["native_launch_admitted"] is False
+    publication = json.loads(Path(result["native_coordinate_result"]["path"]).read_text())
+    assert publication["population_witness"] == witness_binding
+    assert publication["model_forwards"] == publication["optimizer_steps"] == publication["fits"] == 0
+    assert not (output / "COMPLETE.json").exists()
+    assert not (output / "MEASUREMENT_COORDINATES.json").exists()
+    assert not list(output.glob("*_MEASUREMENT.npz"))
+    native = json.loads(Path(result["chronological_prefix"]["native_coordinates"]["path"]).read_text())
+    assert native["schema_version"] == campaign.PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH
+    assert "selected_sampler" not in native and "selected_sampler" not in publication
+    checked = campaign.require_physical_native_training_coordinates(
+        result["chronological_prefix"], design=design, physical=physical)
+    assert checked["population_witness"] == witness_binding
+    assert checked["native_sampler_contract"] == witness["native_sampler_contract"]
+    assert "selected_sampler_binding" not in checked and "selected_sampler" not in checked
+    np.testing.assert_array_equal(checked["epoch0_parent_order"],
+                                 np.load(witness["epoch0_parent_order"]["path"]))
+    with pytest.raises(RuntimeError, match="OUTPUT_EXISTS"):
+        producer.materialize(**args, publish=True)
+
+
+def test_dynamic_coordinate_validator_requires_new_identity_full_population_and_exact_native_order(tmp_path, monkeypatch):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    case = _dynamic_coordinate_case(tmp_path)
+    design, witness, witness_binding, prefix, physical = case
+    monkeypatch.setattr(producer, "require_physical_chronological_preprocessing", lambda *a, **k: physical)
+    result = producer.materialize(**_dynamic_coordinate_arguments(case, tmp_path / "native"), publish=True)
+    prefix = result["chronological_prefix"]
     native = json.loads(Path(prefix["native_coordinates"]["path"]).read_text())
-    native["schema_version"] = campaign.PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH
-    native["design"] = prefix["design"]
-    ep = tmp_path / "dynamic-eligible.npy"
-    np.save(ep, eligible, allow_pickle=False)
-    native["bindings"]["TRAIN_ELIGIBLE_PARENT_ROWS"] = _binding(ep)
-    native["eligibility"] = {"rule": campaign.DYNAMIC_M5_PATH_ELIGIBILITY_RULE,
-        "training_phase": "entry_only_dynamic_m5_path", "emission_scope": "m5_dynamic_observed",
-        "target_contract": entry_observed_dynamic_m5_path_contract(),
-        "entry_eligibility_cutoff_utc": design["calendar"]["train_control_cutoff"],
-        "eligible_rows": len(eligible), "censored_rows_excluded": 0,
-        "later_horizons_gate_primary_eligibility": False, "first_prefix_horizon_minutes": 1}
     def binding(value, suffix):
         value["coordinates_sha256"] = campaign.native_sha256({k: v for k, v in value.items() if k != "coordinates_sha256"})
         return _write(tmp_path / (suffix + ".json"), value)
-    good = binding(native, "dynamic-coordinates")
-    checked = campaign.require_physical_native_training_coordinates({**prefix, "native_coordinates": good}, design=design, physical=physical)
-    np.testing.assert_array_equal(checked["eligible_parent_rows"], eligible)
     for field, value in (("training_phase", "entry_only_observed_m5_path"), ("emission_scope", "m5_primary_observed"),
             ("target_contract", {}), ("later_horizons_gate_primary_eligibility", True), ("first_prefix_horizon_minutes", 95)):
         bad = copy.deepcopy(native)
@@ -389,7 +436,39 @@ def test_dynamic_coordinate_validator_requires_new_identity_full_population_and_
             campaign.require_physical_native_training_coordinates({**prefix, "native_coordinates": binding(bad, field)}, design=design, physical=physical)
     bad = copy.deepcopy(native)
     op = tmp_path / "reversed-native-order.npy"
-    np.save(op, c.prepared.case["order"][::-1], allow_pickle=False)
+    np.save(op, np.load(witness["epoch0_parent_order"]["path"])[::-1], allow_pickle=False)
     bad["bindings"]["TRAIN_NATIVE_EPOCH0_ORDER"] = _binding(op)
     with pytest.raises(RuntimeError, match="DYNAMIC_M5_NATIVE_ORDER_MISMATCH"):
         campaign.require_physical_native_training_coordinates({**prefix, "native_coordinates": binding(bad, "reordered")}, design=design, physical=physical)
+    bad = copy.deepcopy(native)
+    bad["selected_sampler"] = witness_binding
+    with pytest.raises(RuntimeError, match="DYNAMIC_EXIT_SAMPLER_FORBIDDEN"):
+        campaign.require_physical_native_training_coordinates({**prefix, "native_coordinates": binding(bad, "exit-mixed")}, design=design, physical=physical)
+
+
+@pytest.mark.parametrize("fault", ["missing", "exit_mixed", "other_path", "source", "order"])
+def test_dynamic_sampler_requires_exact_real_population_source_and_order(tmp_path, fault):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    from gx1.contracts.entry_observed_market_horizons_v1 import M5_SINGLE_EPOCH_SCOPE_KEY
+    design, witness, witness_binding, prefix, physical = _dynamic_coordinate_case(tmp_path)
+    selected = None
+    if fault == "missing": witness_binding = None
+    elif fault == "exit_mixed": selected = witness_binding
+    elif fault == "other_path": witness_binding = _write(tmp_path / "identical-witness-copy.json", witness)
+    elif fault == "source": physical["physical_sources"]["train"]["parquet"] = {**witness["train_parquet"], "sha256": "b" * 64}
+    elif fault == "order":
+        op = tmp_path / "witness-wrong-order.npy"
+        np.save(op, np.load(witness["epoch0_parent_order"]["path"])[::-1], allow_pickle=False)
+        witness["epoch0_parent_order"] = _binding(op)
+        witness_binding = _write(tmp_path / "wrong-order-witness.json", witness)
+        design["scope"][M5_SINGLE_EPOCH_SCOPE_KEY] = witness_binding
+    with pytest.raises(RuntimeError, match="DYNAMIC_POPULATION_"):
+        campaign._physical_native_sampler(selected, artifacts=prefix, design=design, physical=physical,
+                                          dynamic_population_witness=witness_binding)
+
+
+def test_dynamic_native_coordinates_do_not_grant_fresh_campaign_admission(tmp_path):
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    case = _dynamic_coordinate_case(tmp_path)
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_MEASUREMENT_AND_LAUNCH_ADMISSION_PENDING"):
+        campaign.require_fresh_physical_campaign_sampler({"chronological_prefix": case[3]})

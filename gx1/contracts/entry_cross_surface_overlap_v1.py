@@ -11,6 +11,8 @@ intentionally available to both local and MTF representation paths. Their
 shared formula owners declare the exact aliases; the audit still verifies
 every pair on the real decision rows and never silently ignores a mismatch.  Every
 other exact local-to-active-MTF duplicate fails the research dataset build.
+Source-declared constants may coincide with independently observed GC sources;
+these retain full hashes, roles and observation proofs as separate diagnostics.
 """
 
 from __future__ import annotations
@@ -36,16 +38,18 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
     model_native_m5_local_per_bar_exact_aliases,
+    require_model_native_m5_trendline_parameters,
 )
 from gx1.features.htf_features import (
     MODEL_NATIVE_CONTEXT_MTF_PROJECTION,
     MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
+    MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4,
 )
 
 
-SCHEMA_VERSION = "entry_cross_surface_input_overlap_v4"
-POLICY_VERSION = "entry_cross_surface_input_overlap_policy_v4"
+SCHEMA_VERSION = "entry_cross_surface_input_overlap_v5"
+POLICY_VERSION = "entry_cross_surface_input_overlap_policy_v5"
 DECISION_ROUTES = {
     "entry": {
         "local_timeframe": "M5",
@@ -58,7 +62,9 @@ DECISION_ROUTES = {
 }
 
 
-def declared_context_mtf_aliases(*, decision: str) -> frozenset[tuple[str, str]]:
+def declared_context_mtf_aliases(
+    *, decision: str, trendline_parameters: Mapping | None = None,
+) -> frozenset[tuple[str, str]]:
     """Return exact context-token and same-clock local / MTF-last-bar aliases.
 
     The values are duplicated across representation paths, not created by a
@@ -103,7 +109,9 @@ def declared_context_mtf_aliases(*, decision: str) -> frozenset[tuple[str, str]]
                 mtf_name=f"mtf.{tf}.{per_bar_name}",
             )
     if route["local_timeframe"] == "M5" and "M5" in route["active_mtf_timeframes"]:
-        for local_name, per_bar_name in model_native_m5_local_per_bar_exact_aliases():
+        for local_name, per_bar_name in model_native_m5_local_per_bar_exact_aliases(
+            trendline_parameters=trendline_parameters
+        ):
             if local_name not in signal_fields:
                 raise RuntimeError("CROSS_SURFACE_DECLARED_M5_ALIAS_SIGNAL_MISSING: " + local_name)
             mtf_name = "mtf.m5." + per_bar_name
@@ -132,11 +140,95 @@ def _require_hash_mapping(value: Any, *, expected_keys: set[str]) -> dict[str, s
     return result
 
 
+def local_gc_observation_bindings(local_fields: Sequence[str]) -> dict[str, dict[str, str]]:
+    """Bind each actual GC value path to its own source-declared availability path."""
+    from gx1.features import gc_native_context_v1 as gc
+
+    result = {}
+    for prefix in ("local.signal.", "local.ctx_cont."):
+        fields = [str(name) for name in local_fields if str(name).startswith(prefix)]
+        names = [name.removeprefix(prefix) for name in fields]
+        for value_index, observation_index in gc.masking_pairs(names):
+            name = names[value_index]
+            result[fields[value_index]] = {
+                "observation_field": fields[observation_index],
+                "input_role": gc.field_role(name),
+                "registry_sha256": gc.REGISTRY_SHA256,
+            }
+    return result
+
+
+def source_constant_mtf_fields(*, decision: str) -> dict[str, float]:
+    """Only producer-proven constants, never fields constant in one sample."""
+    return {
+        f"mtf.{timeframe.lower()}.{name}": float(value)
+        for timeframe in DECISION_ROUTES[decision]["active_mtf_timeframes"]
+        for name, value in MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4.get(timeframe, {}).items()
+    }
+
+
+def _validated_constant_evidence(
+    *, decision: str, local_field_hashes: Mapping[str, str],
+    active_mtf_field_hashes: Mapping[str, str], local_observation_evidence: Mapping,
+    mtf_source_constant_evidence: Mapping, row_count: int | None = None,
+) -> tuple[dict, dict]:
+    """Require source roles plus actual-domain/own-mask proof on this population."""
+    bindings = local_gc_observation_bindings(list(local_field_hashes))
+    constants = source_constant_mtf_fields(decision=decision)
+    if (not isinstance(local_observation_evidence, Mapping)
+            or set(local_observation_evidence) != set(bindings)
+            or not isinstance(mtf_source_constant_evidence, Mapping)
+            or set(mtf_source_constant_evidence) != set(constants)):
+        raise RuntimeError("CROSS_SURFACE_CONSTANT_SOURCE_EVIDENCE_INVALID")
+    proof_rows = []
+    for item in mtf_source_constant_evidence.values():
+        rows = item.get("rows") if isinstance(item, Mapping) else None
+        if isinstance(rows, bool) or not isinstance(rows, int) or rows <= 0:
+            raise RuntimeError("CROSS_SURFACE_CONSTANT_MTF_DOMAIN_PROOF_INVALID")
+        proof_rows.append(rows)
+    proof_rows = set(proof_rows)
+    if len(proof_rows) != 1:
+        raise RuntimeError("CROSS_SURFACE_CONSTANT_MTF_DOMAIN_PROOF_INVALID")
+    proven_rows = next(iter(proof_rows))
+    if row_count is not None and proven_rows != row_count:
+        raise RuntimeError("CROSS_SURFACE_CONSTANT_MTF_DOMAIN_PROOF_INVALID")
+    for name, binding in bindings.items():
+        evidence = local_observation_evidence[name]
+        if (not isinstance(evidence, Mapping)
+                or set(evidence) != {*binding, "observed_rows", "domain_validated", "observation_values_sha256"}
+                or any(evidence.get(key) != value for key, value in binding.items())
+                or evidence.get("domain_validated") is not True
+                or evidence.get("observation_values_sha256") != local_field_hashes[binding["observation_field"]]
+                or isinstance(evidence.get("observed_rows"), bool)
+                or not isinstance(evidence.get("observed_rows"), int)
+                or evidence["observed_rows"] < 0
+                or evidence["observed_rows"] > proven_rows):
+            raise RuntimeError("CROSS_SURFACE_CONSTANT_GC_OBSERVATION_PROOF_INVALID")
+    for name, value in constants.items():
+        evidence = mtf_source_constant_evidence[name]
+        if (not isinstance(evidence, Mapping)
+                or set(evidence) != {"constant_value", "rows", "domain_validated", "values_sha256"}
+                or isinstance(evidence.get("constant_value"), bool)
+                or not isinstance(evidence.get("constant_value"), (int, float))
+                or evidence.get("constant_value") != value
+                or evidence.get("domain_validated") is not True
+                or evidence.get("values_sha256") != active_mtf_field_hashes.get(name)
+                or isinstance(evidence.get("rows"), bool)
+                or not isinstance(evidence.get("rows"), int)
+                or evidence["rows"] <= 0
+                or evidence["rows"] != proven_rows):
+            raise RuntimeError("CROSS_SURFACE_CONSTANT_MTF_DOMAIN_PROOF_INVALID")
+    return dict(local_observation_evidence), dict(mtf_source_constant_evidence)
+
+
 def classify_active_duplicate_pairs(
     *,
     decision: str,
     local_field_hashes: Mapping[str, str],
     active_mtf_field_hashes: Mapping[str, str],
+    trendline_parameters: Mapping | None = None,
+    local_observation_evidence: Mapping | None = None,
+    mtf_source_constant_evidence: Mapping | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     """Classify exact duplicates on a single actual decision-input population.
 
@@ -146,17 +238,37 @@ def classify_active_duplicate_pairs(
     observed value sequence, not matching summary statistics.
     """
 
-    aliases = declared_context_mtf_aliases(decision=decision)
+    aliases = declared_context_mtf_aliases(
+        decision=decision, trendline_parameters=trendline_parameters
+    )
+    local_evidence, mtf_evidence = {}, {}
+    if local_observation_evidence is not None or mtf_source_constant_evidence is not None:
+        local_evidence, mtf_evidence = _validated_constant_evidence(
+            decision=decision, local_field_hashes=local_field_hashes,
+            active_mtf_field_hashes=active_mtf_field_hashes,
+            local_observation_evidence=local_observation_evidence,
+            mtf_source_constant_evidence=mtf_source_constant_evidence,
+        )
     local_by_hash = _hash_groups(local_field_hashes)
     mtf_by_hash = _hash_groups(active_mtf_field_hashes)
     declared: list[dict[str, Any]] = []
     unexpected: list[dict[str, Any]] = []
+    constant_collisions: list[dict[str, Any]] = []
     for digest in sorted(set(local_by_hash) & set(mtf_by_hash)):
         for local in local_by_hash[digest]:
             for mtf in mtf_by_hash[digest]:
                 row = {"local_field": local, "mtf_field": mtf, "values_sha256": digest}
                 if (local, mtf) in aliases:
                     declared.append(row)
+                elif (local in local_evidence and mtf in mtf_evidence
+                      and local_evidence[local]["observed_rows"] > 0):
+                    constant_collisions.append({
+                        **row,
+                        "constant_value": mtf_evidence[mtf]["constant_value"],
+                        "local_observation_evidence": dict(local_evidence[local]),
+                        "mtf_source_owner": "gx1.features.htf_features.MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4",
+                        "reason": "independent_observed_gc_source_matches_source_defined_mtf_constant",
+                    })
                 else:
                     unexpected.append(row)
     observed_declared = {
@@ -169,6 +281,7 @@ def classify_active_duplicate_pairs(
             for local, mtf in sorted(aliases - observed_declared)
         ],
         "unexpected_active_exact_duplicate_pairs": unexpected,
+        "source_proven_constant_collision_pairs": constant_collisions,
     }
 
 
@@ -284,7 +397,16 @@ def validate_cross_surface_overlap_report(
         != "manifest_bound_history_start_through_surface_end"
     ):
         raise RuntimeError("CROSS_SURFACE_REPORT_ROUTE_INVALID")
+    trendline_parameters = require_model_native_m5_trendline_parameters(
+        policy.get("m5_trendline_parameters")
+    )
     bindings = report.get("input_bindings")
+    cache_binding = bindings.get("mtf_cache") if isinstance(bindings, Mapping) else None
+    if (not isinstance(cache_binding, Mapping)
+            or cache_binding.get("m5_trendline_parameters") != trendline_parameters
+            or policy.get("source_constant_collision_action")
+            != "report_source_domain_and_own_gc_observation_proof"):
+        raise RuntimeError("CROSS_SURFACE_REPORT_SOURCE_SEMANTICS_INVALID")
     signal_binding = (
         bindings.get("signal_manifest") if isinstance(bindings, Mapping) else None
     )
@@ -385,7 +507,9 @@ def validate_cross_surface_overlap_report(
         aliases = row.get("declared_context_mtf_alias_pairs")
         if not isinstance(aliases, list):
             raise RuntimeError("CROSS_SURFACE_REPORT_DECLARED_ALIAS_INVALID")
-        expected_aliases = declared_context_mtf_aliases(decision=decision)
+        expected_aliases = declared_context_mtf_aliases(
+            decision=decision, trendline_parameters=trendline_parameters
+        )
         if len(aliases) != len(expected_aliases):
             raise RuntimeError("CROSS_SURFACE_REPORT_DECLARED_ALIAS_INVALID")
         observed_aliases = {
@@ -401,10 +525,20 @@ def validate_cross_surface_overlap_report(
         }
         if observed_aliases != expected_aliases:
             raise RuntimeError("CROSS_SURFACE_REPORT_DECLARED_ALIAS_INVALID")
+        local_evidence, mtf_evidence = _validated_constant_evidence(
+            decision=decision, local_field_hashes=local_hashes,
+            active_mtf_field_hashes=active_mtf_hashes,
+            local_observation_evidence=row.get("local_observation_evidence"),
+            mtf_source_constant_evidence=row.get("mtf_source_constant_evidence"),
+            row_count=int(row["row_count"]),
+        )
         recomputed = classify_active_duplicate_pairs(
             decision=decision,
             local_field_hashes=local_hashes,
             active_mtf_field_hashes=active_mtf_hashes,
+            trendline_parameters=trendline_parameters,
+            local_observation_evidence=local_evidence,
+            mtf_source_constant_evidence=mtf_evidence,
         )
         if (
             row.get("declared_context_mtf_alias_pairs")
@@ -413,6 +547,8 @@ def validate_cross_surface_overlap_report(
             != recomputed["missing_declared_context_mtf_alias_pairs"]
             or row.get("unexpected_active_exact_duplicate_pairs")
             != recomputed["unexpected_active_exact_duplicate_pairs"]
+            or row.get("source_proven_constant_collision_pairs")
+            != recomputed["source_proven_constant_collision_pairs"]
         ):
             raise RuntimeError("CROSS_SURFACE_REPORT_DUPLICATE_RECOMPUTE_INVALID")
     if not isinstance(bindings, Mapping):

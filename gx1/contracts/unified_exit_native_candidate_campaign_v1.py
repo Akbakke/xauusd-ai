@@ -634,13 +634,13 @@ PHYSICAL_COORDINATES_SCHEMA_V1 = "gx1_physical_native_training_coordinates_v1"
 PHYSICAL_COORDINATES_SCHEMA_V2 = "gx1_physical_native_training_coordinates_v2"
 PHYSICAL_COORDINATES_SCHEMA_M5_PATH = "gx1_physical_native_training_coordinates_m5_path_v1"
 M5_PATH_ELIGIBILITY_RULE = "canonical_m5_path_target_valid_and_available_before_bound_train_cutoff_independent_of_long_horizons"
-PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH = "gx1_physical_native_training_coordinates_dynamic_m5_path_v1"
+PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH = "gx1_physical_native_training_coordinates_dynamic_m5_path_v2"
 DYNAMIC_M5_PATH_ELIGIBILITY_RULE = "any_genuine_first_m1_prefix_component_before_bound_train_cutoff"
 HORIZON_ELIGIBILITY_RULE = "complete_outcomes_at_all_observation_horizons_at_or_before_measured_cutoff"
 
 
-def _physical_native_sampler(selected_binding, *, artifacts, design, physical):
-    """One measured-sampler admission shared by coordinate production and use."""
+def _physical_native_sampler(selected_binding=None, *, artifacts, design, physical, dynamic_population_witness=None):
+    """Bind the measured legacy sampler or the explicit dynamic population witness."""
     from gx1.contracts.unified_exit_selected_sampler_v1 import (
         DIRECT_SELECTION_MODE, require_selected_sampler_artifact,
     )
@@ -650,6 +650,31 @@ def _physical_native_sampler(selected_binding, *, artifacts, design, physical):
     def read(value):
         value = require_binding(value, label="physical native sampler", verify_file=True)
         return read_bound_json(Path(value["path"]), value["sha256"])
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    dynamic = design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if dynamic:
+        import numpy as np
+        from gx1.contracts.entry_observed_market_horizons_v1 import (
+            M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA, require_m5_single_epoch_population,
+        )
+        from gx1.scripts.materialize_unified_exit_chronological_coordinates_v1 import _epoch0_order
+        check(selected_binding is None and dynamic_population_witness is not None,
+              "DYNAMIC_POPULATION_WITNESS_REQUIRED")
+        witness_binding = require_binding(dynamic_population_witness,
+            label="dynamic physical population witness", verify_file=True)
+        single = require_m5_single_epoch_population(design)
+        check(single is not None and witness_binding == single["binding"]
+              and single["witness"]["schema_version"] == M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA
+              and single["train_parquet"] == physical["physical_sources"]["train"]["parquet"]
+              and single["train_manifest"] == physical["physical_sources"]["train"]["manifest"]
+              and single["train_rows"] == physical["train_rows"]
+              and np.array_equal(single["eligible_parent_rows"], np.arange(physical["train_rows"], dtype=np.int64)),
+              "DYNAMIC_POPULATION_WITNESS_MISMATCH")
+        sampler = single["witness"]["native_sampler_contract"]
+        check(np.array_equal(_epoch0_order(sampler), single["epoch0_parent_order"]),
+              "DYNAMIC_POPULATION_ORDER_MISMATCH")
+        return {"population_witness": witness_binding, "native_sampler_contract": sampler}
+    check(dynamic_population_witness is None, "DYNAMIC_POPULATION_WITNESS_FORBIDDEN")
     selected = require_selected_sampler_artifact(read(selected_binding))
     check(selected.get("selection_mode") == DIRECT_SELECTION_MODE
           and selected["selected_sampler_contract"]["entry_pair_population"] == physical["train_rows"],
@@ -710,8 +735,20 @@ def require_physical_native_training_coordinates(
                 for key in ("model_forwards", "optimizer_steps", "fits")),
         "IDENTITY_INVALID",
     )
-    selected_binding = bound(value.get("selected_sampler"))
-    selected = _physical_native_sampler(selected_binding, artifacts=artifacts, design=design, physical=physical)
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    check(dynamic_m5_subset == (design.get("scope", {}).get("entry_only_training_phase")
+          == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE), "DYNAMIC_M5_PHASE_MISMATCH")
+    if dynamic_m5_subset:
+        check("selected_sampler" not in value, "DYNAMIC_EXIT_SAMPLER_FORBIDDEN")
+        witness_binding = bound(value.get("population_witness"))
+        selected = _physical_native_sampler(artifacts=artifacts, design=design, physical=physical,
+            dynamic_population_witness=witness_binding)
+        sampler_contract = selected["native_sampler_contract"]
+    else:
+        check("population_witness" not in value, "DYNAMIC_POPULATION_WITNESS_FORBIDDEN")
+        selected_binding = bound(value.get("selected_sampler"))
+        selected = _physical_native_sampler(selected_binding, artifacts=artifacts, design=design, physical=physical)
+        sampler_contract = selected["selected_sampler_contract"]
     bindings = value.get("bindings")
     keys = ("TRAIN_ELIGIBLE_PARENT_ROWS", "TRAIN_NATIVE_EPOCH0_ORDER",
             "TRAIN_NATIVE4096_PARENT_ROWS", "TRAIN256_PROBE_PARENT_ROWS")
@@ -762,7 +799,7 @@ def require_physical_native_training_coordinates(
             and found["censored_rows_excluded"] == found["rows_after_cutoff"] == 0
             and np.array_equal(eligible, found["rows"])
             and np.array_equal(eligible, np.arange(physical["train_rows"], dtype=np.int64)))
-        full_order = _epoch0_order(selected["selected_sampler_contract"])
+        full_order = _epoch0_order(sampler_contract)
         check(np.array_equal(order, full_order), "DYNAMIC_M5_NATIVE_ORDER_MISMATCH")
     elif m5_path_subset:
         from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
@@ -803,7 +840,7 @@ def require_physical_native_training_coordinates(
         check(value["schema_version"] == (PHYSICAL_COORDINATES_SCHEMA_DYNAMIC_M5_PATH if dynamic_epoch else PHYSICAL_COORDINATES_SCHEMA_M5_PATH)
             and (not dynamic_epoch or single_epoch["train_manifest"] == physical["physical_sources"]["train"]["manifest"])
             and single_epoch["train_parquet"] == physical["physical_sources"]["train"]["parquet"]
-            and single_epoch["witness"]["native_sampler_contract"] == selected["selected_sampler_contract"]
+            and single_epoch["witness"]["native_sampler_contract"] == sampler_contract
             and np.array_equal(eligible, single_epoch["eligible_parent_rows"])
             and np.array_equal(order, single_epoch["epoch0_parent_order"])
             and np.array_equal(planned, order), "SINGLE_EPOCH_WITNESS_MISMATCH")
@@ -814,8 +851,10 @@ def require_physical_native_training_coordinates(
     check(probe.shape == (design["budget"]["train_only_probe_entries"],)
           and np.array_equal(probe, planned[positions]), "PROBE_MISMATCH")
     return {
-        "binding": binding, "artifact": value, "selected_sampler_binding": selected_binding,
-        "selected_sampler": selected, "eligible_parent_rows": eligible,
+        "binding": binding, "artifact": value,
+        **({"population_witness": selected["population_witness"], "native_sampler_contract": sampler_contract}
+           if dynamic_m5_subset else {"selected_sampler_binding": selected_binding, "selected_sampler": selected}),
+        "eligible_parent_rows": eligible,
         "epoch0_parent_order": order, "planned_parent_rows": planned, "probe_parent_rows": probe,
     }
 
@@ -1621,6 +1660,13 @@ def require_fresh_physical_campaign_sampler(recipe: Mapping[str, Any]) -> tuple[
     Actual GPU capacity is measured by the guarded, finite native invocation.
     This route grants no full epoch, full VAL, or inherited model authority.
     """
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    prefix_binding = recipe.get("chronological_prefix", {})
+    if isinstance(prefix_binding, Mapping) and "design" in prefix_binding:
+        design_binding = require_binding(prefix_binding["design"], label="fresh campaign design", verify_file=True)
+        design = read_bound_json(Path(design_binding["path"]), design_binding["sha256"])
+        if design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_MEASUREMENT_AND_LAUNCH_ADMISSION_PENDING")
     prefix = require_chronological_prefix_recipe(recipe)
     coordinates = prefix.get("physical_coordinates")
     # The materializer and campaign invocation loop own finite scope admission.

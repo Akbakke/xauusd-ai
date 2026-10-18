@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -303,6 +303,9 @@ MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES = tuple(
 SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES = (
     tuple(SMC_V30_ADDITION_NAMES_V1) + SWEEP_ANCHORED_ACTIVITY_FEATURE_NAMES
 )
+# One existing BASE field needs the same pre-storage float64 ATR as MTF.
+# These are projection bindings, not additional model or ranker candidates.
+SMC_LOCAL_BASE_PROJECTION_FIELDS = ("smc_pivot_envelope_width_atr",)
 VOLATILITY_SQUEEZE_LOCAL_LAYER_FEATURE_NAMES = tuple(
     VOLATILITY_SQUEEZE_FEATURE_NAMES
 )
@@ -376,19 +379,55 @@ MODEL_NATIVE_MANDATORY_SELECTED_FEATURE_COUNT = len(
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS
 )
 
-# The local M5 snapshot and the new M5 V4 sequence intentionally expose
-# two representations of the SAME closed-bar formula. These aliases are
-# derived from the producers' ordered names, never learned from correlations.
-# The cross-surface audit must still prove every pair bit-identical on the
-# actual decision population. M1 Exit has no same-clock MTF lane, so none of
-# these aliases applies there.
-def model_native_m5_local_per_bar_exact_aliases() -> tuple[tuple[str, str], ...]:
+def require_model_native_m5_trendline_parameters(value: Mapping) -> dict:
+    """Validate the actual local/MTF parameter identities, without inferring equality."""
+    if not isinstance(value, Mapping) or set(value) != {"local", "mtf"}:
+        raise RuntimeError("MODEL_NATIVE_M5_TRENDLINE_PARAMETERS_INVALID")
+    result = {}
+    for route in ("local", "mtf"):
+        item = value[route]
+        if not isinstance(item, Mapping) or set(item) != {"seq_len", "band_atr"}:
+            raise RuntimeError("MODEL_NATIVE_M5_TRENDLINE_PARAMETERS_INVALID")
+        seq_len, band = item["seq_len"], item["band_atr"]
+        if (isinstance(seq_len, bool) or not isinstance(seq_len, int) or seq_len <= 0
+                or isinstance(band, bool) or not isinstance(band, (int, float))
+                or not np.isfinite(band) or band <= 0):
+            raise RuntimeError("MODEL_NATIVE_M5_TRENDLINE_PARAMETERS_INVALID")
+        result[route] = {"seq_len": seq_len, "band_atr": float(band)}
+    return result
+
+
+def model_native_m5_trendline_parameters_from_registry(constants: Mapping) -> dict:
+    """Read the two existing owners' explicit parameters from the bound V4 payload."""
+    try:
+        value = {
+            "local": {"seq_len": constants["entry_m5"]["seq_len"],
+                      "band_atr": constants["entry_m5"]["trendline_band_atr"]},
+            "mtf": {"seq_len": constants["per_tf_seq_lens"]["M5"],
+                    "band_atr": constants["trendline_band_atr"]["M5"]},
+        }
+    except (KeyError, TypeError) as exc:
+        raise RuntimeError("MODEL_NATIVE_M5_TRENDLINE_PARAMETERS_INVALID") from exc
+    return require_model_native_m5_trendline_parameters(value)
+
+
+# Same-clock formula identities are declared by their owners, never learned
+# from correlations. Trendline geometry additionally requires the actual
+# local and MTF candidate windows AND fitted bands to agree. Different genuine
+# windows remain separate features. Every declared alias still needs exact
+# full-population value proof. M1 has no same-clock MTF lane.
+def model_native_m5_local_per_bar_exact_aliases(
+    *, trendline_parameters: Mapping | None = None,
+) -> tuple[tuple[str, str], ...]:
     aliases: list[tuple[str, str]] = []
     aliases.extend((name, "mtf_" + name.replace(".", "_"))
                    for name in CANDLE_PRIMITIVE_MANDATORY_FEATURE_NAMES)
     aliases.extend((name, "mtf_" + name) for name in LEVEL_REGISTRY_M5_LAYER_FEATURE_NAMES)
-    aliases.extend((name, name.removeprefix("chart."))
-                   for name in TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
+    if trendline_parameters is not None:
+        parameters = require_model_native_m5_trendline_parameters(trendline_parameters)
+        if parameters["local"] == parameters["mtf"]:
+            aliases.extend((name, name.removeprefix("chart."))
+                           for name in TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
     aliases.extend((name if name in SWING_EVENT_LAYER_FEATURE_NAMES else "ctx_cont." + name, mtf)
                    for mtf, name in MULTI_TF_V4_SWING_SOURCE_FIELD_BY_FEATURE.items())
     aliases.extend((name, name) for name in MOMENTUM_EVENT_M5_LAYER_FEATURE_NAMES)
@@ -1165,22 +1204,27 @@ def build_momentum_event_m5_layer(
     )
 
 
-def build_smc_local_event_layer(
-    sample_df: pd.DataFrame,
-    source_parquet: Path,
-    *,
-    raw_frame: bool = False,
-) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
-    """Native M5/M1 SMC events and continuous, two-sided anchored activity memory."""
+def smc_local_base_source_projection_metadata() -> list[dict]:
+    """Declare the sole existing base value projected from fresh native OHLC."""
+    return [{
+        "column": name,
+        "projection_owner": "gx1.features.entry_model_native_feature_layers_v1.build_smc_local_source_projection",
+        "atr_owner": "gx1.features.technical_indicators_v1.wilder_atr",
+        "atr_period": 14,
+        "calculation_dtype": "float64",
+        "storage_dtype": "float32",
+        "source_clock": "exact_full_history_native_source_time",
+        "raw_parent_bytes_preserved": True,
+    } for name in SMC_LOCAL_BASE_PROJECTION_FIELDS]
 
+
+def build_smc_local_source_projection(source_parquet: Path) -> pd.DataFrame:
+    """One full-history float64-ATR replay for local SMC and its existing BASE width."""
     context = "SMC_LOCAL_EVENT_LAYER"
-    sample_times = (
-        None if raw_frame else _require_sample_times(sample_df, context=context)
-    )
     src = _read_v29_price_source(
         source_parquet,
         context=context,
-        columns=("time", "high", "low", "close", "atr", "volume"),
+        columns=("time", "high", "low", "close", "volume"),
     )
     source_index = pd.DatetimeIndex(src["time"])
     smc_source = pd.DataFrame(
@@ -1188,19 +1232,38 @@ def build_smc_local_event_layer(
             "high": _require_finite_positive_column(src, "high", context=context),
             "low": _require_finite_positive_column(src, "low", context=context),
             "close": _require_finite_positive_column(src, "close", context=context),
-            "atr": _require_finite_positive_column(src, "atr", context=context),
             "volume": src["volume"].to_numpy(),
         },
         index=source_index,
+    )
+    # Same full-history float64 Wilder owner as the MTF SMC primitives.
+    # A stored float32 ATR changes normalized events before final feature casts.
+    smc_source["atr"] = _htf_atr_v4(
+        smc_source["high"], smc_source["low"], smc_source["close"], 14
     )
     computed = compute_smc_features(
         smc_source,
         include_v30_additions=True,
         include_sweep_anchored_activity=True,
     )
-    raw = computed.loc[:, list(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES)].astype(
-        np.float64
+    return computed.loc[:, [
+        *SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES, *SMC_LOCAL_BASE_PROJECTION_FIELDS
+    ]].astype(np.float64)
+
+
+def build_smc_local_event_layer(
+    sample_df: pd.DataFrame,
+    source_parquet: Path,
+    *,
+    raw_frame: bool = False,
+) -> tuple[np.ndarray, list[str]] | tuple[pd.DataFrame, list[str]]:
+    """Native M5/M1 SMC events and continuous, two-sided anchored activity memory."""
+    context = "SMC_LOCAL_EVENT_LAYER"
+    sample_times = (
+        None if raw_frame else _require_sample_times(sample_df, context=context)
     )
+    projection = build_smc_local_source_projection(source_parquet)
+    raw = projection.loc[:, list(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES)]
     if raw_frame:
         return raw, list(SMC_LOCAL_EVENT_LAYER_FEATURE_NAMES)
     return _align_v29_layer_frame(

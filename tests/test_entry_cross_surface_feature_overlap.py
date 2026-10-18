@@ -16,6 +16,8 @@ from gx1.contracts.entry_cross_surface_overlap_v1 import (
     SCHEMA_VERSION,
     classify_active_duplicate_pairs,
     declared_context_mtf_aliases,
+    local_gc_observation_bindings,
+    source_constant_mtf_fields,
     require_eight_family_coverage,
     validate_cross_surface_overlap_report,
 )
@@ -26,6 +28,12 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
     MODEL_NATIVE_SIGNAL_DIM,
+)
+from gx1.features import gc_native_context_v1 as gc_context
+from gx1.features.entry_model_native_feature_layers_v1 import (
+    TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,
+    model_native_m5_local_per_bar_exact_aliases,
+    model_native_m5_trendline_parameters_from_registry,
 )
 from gx1.features.htf_features import (
     MODEL_NATIVE_MTF_SCALAR_PER_BAR_EXACT_ALIASES_V4,
@@ -39,6 +47,100 @@ from gx1.scripts.audit_entry_cross_surface_feature_overlap_v1 import (
 
 def _digest(byte: str) -> str:
     return byte * 64
+
+
+def _trendline_parameters() -> dict:
+    return {"local": {"seq_len": 96, "band_atr": 0.8},
+            "mtf": {"seq_len": 16, "band_atr": 0.7}}
+
+
+def _constant_evidence(decision, local_hashes, mtf_hashes, *, rows=4, observed_rows=2):
+    local = {
+        name: {**binding, "observed_rows": observed_rows, "domain_validated": True,
+               "observation_values_sha256": local_hashes[binding["observation_field"]]}
+        for name, binding in local_gc_observation_bindings(list(local_hashes)).items()
+    }
+    mtf = {
+        name: {"constant_value": value, "rows": rows, "domain_validated": True,
+               "values_sha256": mtf_hashes[name]}
+        for name, value in source_constant_mtf_fields(decision=decision).items()
+    }
+    return local, mtf
+
+
+@pytest.mark.parametrize("different", ["seq_len", "band_atr", None])
+def test_geometry_alias_requires_actual_window_and_fitted_band_identity(different) -> None:
+    parameters = _trendline_parameters()
+    parameters["mtf"] = dict(parameters["local"])
+    if different is not None:
+        parameters["mtf"][different] += 1
+    names = set(TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
+    aliases = model_native_m5_local_per_bar_exact_aliases(trendline_parameters=parameters)
+    actual = {local for local, _ in aliases} & names
+    assert actual == (names if different is None else set())
+    assert not (set(dict(model_native_m5_local_per_bar_exact_aliases())) & names)
+    declared = declared_context_mtf_aliases(decision="entry", trendline_parameters=parameters)
+    assert all((("local.signal." + name, "mtf.m5." + name.removeprefix("chart.")) in declared)
+               == (different is None) for name in names)
+    # Both genuine ordered feature blocks remain present independently of alias identity.
+    assert len(names) == len(TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES)
+    assert all(name.removeprefix("chart.") in MULTI_TF_PER_BAR_FEATURES_V4 for name in names)
+
+
+def test_geometry_parameters_come_from_each_existing_registry_owner() -> None:
+    registry = {"entry_m5": {"seq_len": 96, "trendline_band_atr": 0.8},
+                "per_tf_seq_lens": {"M5": 16}, "trendline_band_atr": {"M5": 0.7}}
+    assert model_native_m5_trendline_parameters_from_registry(registry) == _trendline_parameters()
+    registry["per_tf_seq_lens"]["M5"] = True
+    with pytest.raises(RuntimeError, match="TRENDLINE_PARAMETERS_INVALID"):
+        model_native_m5_trendline_parameters_from_registry(registry)
+
+
+def test_source_constant_collision_keeps_own_gc_observation_and_dense_guard() -> None:
+    field = gc_context.VALUE_FIELDS[0]
+    observed = gc_context.OBSERVED_FIELDS[0]
+    local_name = "local.ctx_cont." + field
+    local_hashes = {local_name: _digest("b"), "local.ctx_cont." + observed: _digest("c"),
+                    "local.signal.dense_market_field": _digest("b")}
+    mtf_hashes = {"mtf.d1.session_change_flag": _digest("b"),
+                  "mtf.h1.unregistered_dense_constant": _digest("b")}
+    local, mtf = _constant_evidence("entry", local_hashes, mtf_hashes)
+    result = classify_active_duplicate_pairs(
+        decision="entry", local_field_hashes=local_hashes, active_mtf_field_hashes=mtf_hashes,
+        local_observation_evidence=local, mtf_source_constant_evidence=mtf,
+    )
+    collision, = result["source_proven_constant_collision_pairs"]
+    assert collision["local_field"] == local_name
+    assert collision["local_observation_evidence"]["observation_field"] == "local.ctx_cont." + observed
+    assert collision["local_observation_evidence"]["observed_rows"] == 2
+    assert len(result["unexpected_active_exact_duplicate_pairs"]) == 3
+    # A stored all-zero, wholly missing GC vector is not an observed constant.
+    local[local_name]["observed_rows"] = 0
+    missing = classify_active_duplicate_pairs(
+        decision="entry", local_field_hashes=local_hashes, active_mtf_field_hashes=mtf_hashes,
+        local_observation_evidence=local, mtf_source_constant_evidence=mtf,
+    )
+    assert missing["source_proven_constant_collision_pairs"] == []
+    assert len(missing["unexpected_active_exact_duplicate_pairs"]) == 4
+
+
+@pytest.mark.parametrize("tamper", ["domain", "registry", "own_mask_hash", "count", "source_value"])
+def test_constant_collision_rejects_unproved_source_or_observation(tamper) -> None:
+    field, observed = gc_context.VALUE_FIELDS[0], gc_context.OBSERVED_FIELDS[0]
+    local_name = "local.ctx_cont." + field
+    local_hashes = {local_name: _digest("b"), "local.ctx_cont." + observed: _digest("c")}
+    mtf_hashes = {"mtf.d1.session_change_flag": _digest("b")}
+    local, mtf = _constant_evidence("entry", local_hashes, mtf_hashes)
+    if tamper == "domain": mtf["mtf.d1.session_change_flag"]["domain_validated"] = False
+    if tamper == "registry": local[local_name]["registry_sha256"] = _digest("d")
+    if tamper == "own_mask_hash": local[local_name]["observation_values_sha256"] = _digest("d")
+    if tamper == "count": local[local_name]["observed_rows"] = 5
+    if tamper == "source_value": mtf["mtf.d1.session_change_flag"]["constant_value"] = 1.0
+    with pytest.raises(RuntimeError, match="CONSTANT_.*PROOF_INVALID"):
+        classify_active_duplicate_pairs(
+            decision="entry", local_field_hashes=local_hashes, active_mtf_field_hashes=mtf_hashes,
+            local_observation_evidence=local, mtf_source_constant_evidence=mtf,
+        )
 
 
 def test_only_explicit_mtf_context_alias_is_permitted() -> None:
@@ -129,6 +231,8 @@ def _passing_overlap_report() -> dict:
         "failures": [],
         "policy": {
             "version": POLICY_VERSION,
+            "m5_trendline_parameters": _trendline_parameters(),
+            "source_constant_collision_action": "report_source_domain_and_own_gc_observation_proof",
             "decision_population": "manifest_bound_history_start_through_surface_end",
             "decision_routes": {
                 decision: {
@@ -139,6 +243,7 @@ def _passing_overlap_report() -> dict:
             },
         },
         "input_bindings": {
+            "mtf_cache": {"m5_trendline_parameters": _trendline_parameters()},
             "signal_manifest": {
                 "path": "/fixture/signal",
                 "sha256": "a" * 64,
@@ -190,10 +295,14 @@ def _passing_overlap_report() -> dict:
             ).hexdigest()
             local_hashes[local] = digest
             active_mtf_hashes[mtf] = digest
+        local_evidence, mtf_evidence = _constant_evidence(decision, local_hashes, active_mtf_hashes)
         classified = classify_active_duplicate_pairs(
             decision=decision,
             local_field_hashes=local_hashes,
             active_mtf_field_hashes=active_mtf_hashes,
+            trendline_parameters=_trendline_parameters(),
+            local_observation_evidence=local_evidence,
+            mtf_source_constant_evidence=mtf_evidence,
         )
         report[decision] = {
             "local_timeframe": route["local_timeframe"],
@@ -207,6 +316,8 @@ def _passing_overlap_report() -> dict:
             "last_time_ns": int(pd.Timestamp("2026-01-01T00:15:00Z").value),
             "local_field_hashes": local_hashes,
             "active_mtf_field_hashes": active_mtf_hashes,
+            "local_observation_evidence": local_evidence,
+            "mtf_source_constant_evidence": mtf_evidence,
             **classified,
         }
     return report
@@ -297,6 +408,8 @@ def test_full_batch_scanner_detects_an_unknown_active_duplicate(tmp_path: Path) 
             * np.float32(0.01)
             + np.float32(tf_index * 1000)
         )
+        if timeframe == "D1":
+            values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("session_change_flag")] = 0.0
         frame = pd.DataFrame(values, columns=MULTI_TF_PER_BAR_FEATURES_V4)
         frame.attrs["ts_int64"] = cache_times
         frame.attrs["feats_np"] = values
@@ -314,6 +427,15 @@ def test_full_batch_scanner_detects_an_unknown_active_duplicate(tmp_path: Path) 
     ctx_cont = np.arange(
         rows * len(MODEL_NATIVE_CTX_CONT_FIELDS), dtype=np.float32
     ).reshape(rows, -1)
+    for values, names in ((signal, signal_fields), (ctx_cont, MODEL_NATIVE_CTX_CONT_FIELDS)):
+        positions = {name: index for index, name in enumerate(names)}
+        for name in gc_context.binary_fields(names):
+            values[:, positions[name]] = np.arange(rows) % 2
+        for value_index, mask_index in gc_context.masking_pairs(names):
+            values[:, mask_index] = (np.arange(rows) % 3 != 0).astype(np.float32)
+            values[values[:, mask_index] == 0, value_index] = 0.0
+    gc_value_name = gc_context.VALUE_FIELDS[0]
+    ctx_cont[:, MODEL_NATIVE_CTX_CONT_FIELDS.index(gc_value_name)] = 0.0
     ctx_cat = np.zeros((rows, MODEL_NATIVE_CTX_CAT_DIM), dtype=np.int64)
     surface = tmp_path / "m5_surface.parquet"
     pq.write_table(
@@ -341,16 +463,41 @@ def test_full_batch_scanner_detects_an_unknown_active_duplicate(tmp_path: Path) 
         decision="entry",
         local_field_hashes=scan["local_field_hashes"],
         active_mtf_field_hashes=scan["active_mtf_field_hashes"],
+        local_observation_evidence=scan["local_observation_evidence"],
+        mtf_source_constant_evidence=scan["mtf_source_constant_evidence"],
     )
 
     assert scan["row_count"] == rows
     assert scan["source_row_count"] == rows
     assert scan["excluded_pre_history_row_count"] == 0
+    collisions = classified["source_proven_constant_collision_pairs"]
+    assert any(row["local_field"] == "local.ctx_cont." + gc_value_name
+               and row["local_observation_evidence"]["observed_rows"] == 4 for row in collisions)
+    assert scan["mtf_source_constant_evidence"]["mtf.d1.session_change_flag"]["rows"] == rows
     assert any(
         row["local_field"] == f"local.signal.{signal_fields[0]}"
         and row["mtf_field"] == f"mtf.m15.{MULTI_TF_PER_BAR_FEATURES_V4[0]}"
         for row in classified["unexpected_active_exact_duplicate_pairs"]
     )
+    cache["D1"].attrs["feats_np"][:, MULTI_TF_PER_BAR_FEATURES_V4.index("session_change_flag")] = 1.0
+    with pytest.raises(RuntimeError, match="SOURCE_CONSTANT_DOMAIN_INVALID"):
+        _scan_decision_surface(
+            decision="entry", surface_path=surface, decision_seconds=300,
+            signal_fields=signal_fields, cache=cache, batch_size=2,
+            audit_start_ns=int(times_ns[0]),
+        )
+    cache["D1"].attrs["feats_np"][:, MULTI_TF_PER_BAR_FEATURES_V4.index("session_change_flag")] = 0.0
+    ctx_cont[0, MODEL_NATIVE_CTX_CONT_FIELDS.index(gc_context.OBSERVED_FIELDS[0])] = 0.5
+    broken_surface = tmp_path / "invalid_gc_observation.parquet"
+    pq.write_table(pa.table({"time": pa.array(times), "signal": signal.tolist(),
+                             "ctx_cont": ctx_cont.tolist(), "ctx_cat": ctx_cat.tolist()}),
+                   broken_surface)
+    with pytest.raises(RuntimeError, match="NATIVE_GC_MASKED_STORAGE_INVALID"):
+        _scan_decision_surface(
+            decision="entry", surface_path=broken_surface, decision_seconds=300,
+            signal_fields=signal_fields, cache=cache, batch_size=2,
+            audit_start_ns=int(times_ns[0]),
+        )
 
 
 def test_full_batch_scanner_excludes_only_manifest_bound_prehistory_rows(
@@ -372,6 +519,8 @@ def test_full_batch_scanner_excludes_only_manifest_bound_prehistory_rows(
             np.arange(len(MULTI_TF_PER_BAR_FEATURES_V4), dtype=np.float32)[None, :],
             (cache_times.size, len(MULTI_TF_PER_BAR_FEATURES_V4)),
         ).copy()
+        if timeframe == "D1":
+            values[:, MULTI_TF_PER_BAR_FEATURES_V4.index("session_change_flag")] = 0.0
         frame = pd.DataFrame(values, columns=MULTI_TF_PER_BAR_FEATURES_V4)
         frame.attrs["ts_int64"] = cache_times
         frame.attrs["feats_np"] = values

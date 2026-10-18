@@ -13655,6 +13655,65 @@ def _allowed_prefix_training_seeds(design_seed):
     return allowed_prefix_training_seeds(design_seed)
 
 
+def _require_dynamic_prefix_dataset_binding(dataset, *, binding, source, proof, receipt, physical, row_binding):
+    """Rejoin an already qualified pointer/provider binding, without querying futures."""
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    from gx1.contracts.entry_observed_market_v1 import (
+        DynamicM5TargetProvider, entry_observed_dynamic_m5_path_contract,
+    )
+    expected_columns = list(dict.fromkeys([*DYNAMIC_M5_POINTER_COLUMNS, *_FORECAST_TARGET_COLS,
+        *MODEL_NATIVE_FORECAST_VALID_COLUMNS, *horizons.HORIZON_LABEL_COLUMNS]))
+    observed = getattr(dataset, "_entry_observed_market_binding", None)
+    provider = getattr(dataset, "_entry_dynamic_m5_target_provider", None)
+    mask = getattr(dataset, "_policy_dependent_auxiliary_bound_rows", None)
+    admitted = getattr(dataset, "_entry_observed_market_admitted_rows", None)
+    contract = entry_observed_dynamic_m5_path_contract()
+    if (binding.get("mode") != DYNAMIC_M5_PHYSICAL_BINDING_MODE
+            or binding.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+            or binding.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or binding.get("target_contract") != contract or receipt.get("target_contract") != contract
+            or binding.get("source_split") != ("train" if binding["role"] == "TRAIN" else "val")
+            or binding.get("parent_entry_parquet") != source["parquet"]
+            or binding.get("parent_entry_manifest") != source["manifest"]
+            or binding.get("row_binding") != row_binding
+            or binding.get("active_target_columns") != expected_columns
+            or binding.get("targets_rewritten") is not False
+            or binding.get("inactive_diagnostics_refreshed") is not False
+            or binding.get("registry") != receipt["registry"]
+            or binding.get("entry_m1_pointer_sha256") != proof["entry_m1_pointer_sha256"]
+            or not isinstance(observed, Mapping) or observed.get("role") != binding["role"]
+            or observed.get("identity", {}).get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or observed["identity"].get("target_contract") != contract
+            or observed["identity"].get("design") != binding["design"]
+            or observed.get("source_quote_binding") != proof["dynamic_m5_supervision"]["source_quote_binding"]
+            or observed.get("index_binding") != proof["dynamic_m5_supervision"]["index_binding"]
+            or observed.get("dense_future_paths_materialized") is not False
+            or not isinstance(provider, DynamicM5TargetProvider)
+            or provider.query_minutes != _dynamic_m5_model_kwargs(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)["dynamic_m5_query_minutes"]
+            or observed["identity"].get("query_minutes") != list(provider.query_minutes)
+            or provider.index.binding() != observed["index_binding"]
+            or provider.economics != observed["identity"].get("economics")
+            or not isinstance(mask, np.ndarray) or mask.dtype != np.bool_ or mask.shape != (len(dataset),)
+            or not isinstance(admitted, np.ndarray) or admitted.dtype != np.bool_
+            or not np.array_equal(admitted, mask) or not np.array_equal(provider.admitted_rows, mask)
+            or observed.get("admitted_rows") != int(mask.sum())
+            or observed.get("admitted_row_indices_sha256") != hashlib.sha256(np.asarray(np.flatnonzero(mask), dtype="<i8").tobytes()).hexdigest()):
+        raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_POINTER_OR_PROVIDER_MISMATCH]")
+    times = pd.DatetimeIndex(dataset.df["time"]).as_unit("ns")
+    pointers = dataset.df[DYNAMIC_M5_POINTER_COLUMNS[0]].to_numpy()
+    first_prefix = dataset.df[DYNAMIC_M5_POINTER_COLUMNS[1]].to_numpy()
+    fill_pointers = provider.fill_surface["entry_m1_row"].to_numpy()
+    if (times.tz is None or times.hasnans or not times.is_unique or not times.is_monotonic_increasing
+            or hashlib.sha256(np.asarray(times.asi8, dtype="<i8").tobytes()).hexdigest() != source["clock_sha256"]
+            or pointers.dtype != np.dtype("int64") or fill_pointers.dtype != np.dtype("int64")
+            or first_prefix.dtype != np.bool_ or not first_prefix.all()
+            or hashlib.sha256(first_prefix.tobytes()).hexdigest() != observed.get("first_prefix_mask_sha256")
+            or len(provider.fill_surface) != len(dataset) or not np.array_equal(pointers, fill_pointers)
+            or hashlib.sha256(np.asarray(pointers, dtype="<i8").tobytes()).hexdigest() != proof["entry_m1_pointer_sha256"]
+            or binding.get("whole_train_registry_clock") != physical["whole_train_registry_clock"]):
+        raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_CLOCK_OR_POINTER_MISMATCH]")
+
+
 def _prefix_candidate_training_binding(
     *, chronological_prefix, train_ds, val_ds, train_parquet, val_parquet,
     input_normalization, model, seed, batch_size, learning_rate, weight_decay,
@@ -13679,7 +13738,31 @@ def _prefix_candidate_training_binding(
         planned_prefix_training_rows, require_m5_single_epoch_population,
     )
     single_epoch = require_m5_single_epoch_population(design)
+    dynamic = design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if not dynamic and getattr(model, "entry_training_phase", None) == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_MODEL_OR_WITNESS_MISMATCH]")
     functions = _prefix_reference_model_functions(design)
+    if dynamic:
+        from gx1.contracts.entry_observed_market_horizons_v1 import M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA
+        queries = _dynamic_m5_model_kwargs(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)["dynamic_m5_query_minutes"]
+        state = getattr(model, "dynamic_m5_query_horizons", None)
+        config = getattr(model, "cfg", None)
+        configured_queries = getattr(config, "dynamic_m5_query_minutes", None)
+        from gx1.contracts.entry_observed_market_v1 import is_inactive_phase_parameter
+        if (functions != _PREFIX_CURRENT_MODEL_FUNCTIONS or single_epoch is None
+                or single_epoch["witness"]["schema_version"] != M5_DYNAMIC_SINGLE_EPOCH_POPULATION_SCHEMA
+                or getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                or getattr(config, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                or not isinstance(getattr(model, "task_log_variances", None), nn.ParameterDict)
+                or set(model.task_log_variances) != set(_model_joint_task_names(model))
+                or not isinstance(configured_queries, tuple) or any(type(value) is not int for value in configured_queries)
+                or configured_queries != queries
+                or any(parameter.requires_grad or parameter.grad is not None for name, parameter in model.named_parameters()
+                    if is_inactive_phase_parameter(name, ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE))
+                or not isinstance(state, torch.Tensor) or state.dtype != torch.int64
+                or tuple(state.shape) != (len(queries),)
+                or not torch.equal(state, torch.tensor(queries, dtype=torch.int64, device=state.device))):
+            raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_MODEL_OR_WITNESS_MISMATCH]")
     if (functions == _PREFIX_CURRENT_MODEL_FUNCTIONS
             and Path(train_parquet) == Path(val_parquet)):
         raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_SPLIT_BINDING_REQUIRED]")
@@ -13691,6 +13774,8 @@ def _prefix_candidate_training_binding(
             require_physical_native_training_coordinates,
         )
         labels = read(artifacts["labels_result"])
+        if dynamic and labels.get("schema_version") != M5_DYNAMIC_PHYSICAL_TARGET_BINDING_SCHEMA:
+            raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_RECEIPT_REQUIRED]")
         physical = require_physical_chronological_preprocessing(
             artifacts, design=design, normalization=normalization, labels=labels)
         coordinates = require_physical_native_training_coordinates(
@@ -13716,8 +13801,8 @@ def _prefix_candidate_training_binding(
             raise RuntimeError("[CANDIDATE_PREFIX_SOURCE_OR_TARGET_MISMATCH]")
     cutoff = int(pd.Timestamp(design["calendar"]["train_control_cutoff"]).value)
     bindings = [getattr(dataset, "_policy_dependent_auxiliary_binding", None) for dataset in (train_ds, val_ds)]
-    adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
-    training = getattr(adapter, "_random_access_train", None)
+    adapter = None if dynamic else getattr(train_ds, "_unified_exit_lifecycle_v2", None)
+    training = None if dynamic else getattr(adapter, "_random_access_train", None)
     if (train_ds is val_ds
             or design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
             or design["initialization"].get("mode") != "fresh_existing_model_constructor_no_checkpoint_weights"
@@ -13727,18 +13812,23 @@ def _prefix_candidate_training_binding(
             or design["budget"]["maximum_trained_entry_rows"] != planned_prefix_training_rows(design)
             or (physical is None and normalization["fit_cutoff_time_ns"] != cutoff)
             or input_normalization["contract_sha256"] != normalization_identity["base_contract_sha256"]
-            or not isinstance(training, Mapping)
-            or training.get("reference_cutoff_time_ns") != cutoff
-            or training.get("reference_policy") != design["targets"]["reference_policy"]
-            or training.get("normalization_artifact", {}).get("normalization_sha256") != normalization_identity["summary_normalization_sha256"]):
+            or (not dynamic and (not isinstance(training, Mapping)
+                or training.get("reference_cutoff_time_ns") != cutoff
+                or training.get("reference_policy") != design["targets"]["reference_policy"]
+                or training.get("normalization_artifact", {}).get("normalization_sha256") != normalization_identity["summary_normalization_sha256"]))):
         raise RuntimeError("[CANDIDATE_PREFIX_SOURCE_OR_TARGET_MISMATCH]")
-    if physical is not None:
+    if physical is not None and not dynamic:
         actual = adapter.random_access_training_bindings_v1()
         selected = coordinates["selected_sampler"]
         if (actual["sampler_contract"] != selected["selected_sampler_contract"]
                 or {key: actual[key] for key in ("reference_policy", "reference_cutoff_time_ns")}
                 != selected["reference_workload"]):
             raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_SAMPLER_MISMATCH]")
+    if dynamic:
+        from gx1.features import gc_native_context_v1 as gc
+        from gx1.time.session_detector import m5_decision_availability
+        physical = {**physical, "whole_train_registry_clock": gc.require_registry_train_clock_match(
+            m5_decision_availability(pd.DatetimeIndex(train_ds.df["time"])), read(labels["registry"]))}
     control_binding = design["calendar"]["bindings"]["CONTROL256_PARENT_ROWS"]
     # The label binding covers every physical row the original targets were proven for; the training
     # population is the frozen coordinates' eligible rows. They are the same binding (v1) unless the
@@ -13761,7 +13851,10 @@ def _prefix_candidate_training_binding(
             split = "train" if role == "TRAIN" else "val"
             source = physical["physical_sources"][split]
             proof = labels["splits"][split]
-            if (binding.get("mode") != "original_physical_split_targets"
+            if dynamic:
+                _require_dynamic_prefix_dataset_binding(dataset, binding=binding,
+                    source=source, proof=proof, receipt=labels, physical=physical, row_binding=row_binding)
+            elif (binding.get("mode") != "original_physical_split_targets"
                     or binding.get("source_split") != split
                     or binding.get("parent_entry_parquet") != source["parquet"]
                     or binding.get("parent_entry_manifest") != source["manifest"]
@@ -13804,18 +13897,28 @@ def _prefix_candidate_training_binding(
             or not np.array_equal(np.sort(order), parents.numpy())
             or (physical is None and normalization["fit_entry_rows"] != row_bindings[0])):
         raise RuntimeError("[CANDIDATE_PREFIX_POPULATION_INVALID]")
+    if dynamic and (single_epoch["train_parquet"] != physical["physical_sources"]["train"]["parquet"]
+            or single_epoch["train_manifest"] != physical["physical_sources"]["train"]["manifest"]
+            or coordinates.get("population_witness") != single_epoch["binding"]
+            or coordinates.get("native_sampler_contract") != single_epoch["witness"]["native_sampler_contract"]
+            or not np.array_equal(parents.numpy(), single_epoch["eligible_parent_rows"])
+            or not np.array_equal(order, single_epoch["epoch0_parent_order"])):
+        raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_WITNESS_COORDINATES_MISMATCH]")
     binding = {
         "schema_version": "gx1_candidate_prefix_training_binding_v1",
         "model_functions": functions,
         "artifacts": artifacts,
         **({"physical_sources": physical["physical_sources"],
             "native_coordinates": coordinates["binding"],
-            "selected_sampler": coordinates["selected_sampler_binding"]}
+            **({"entry_epoch_order_authority": {"population_witness": coordinates["population_witness"],
+                "native_sampler_contract": coordinates["native_sampler_contract"]}} if dynamic else {
+                "selected_sampler": coordinates["selected_sampler_binding"]})}
            if physical is not None else {"prefix_preparation": normalization["prefix_preparation"]}),
         "train_parent_rows": row_bindings[0], "control_parent_rows": row_bindings[1],
         **({"label_parent_rows": label_row_bindings[0],
-            "horizon_eligibility": {key: eligibility[key] for key in (
-                "rule", "entry_eligibility_cutoff_utc", "eligible_rows", "censored_rows_excluded")}}
+            **({"dynamic_m5_eligibility": dict(eligibility)} if dynamic else {
+                "horizon_eligibility": {key: eligibility[key] for key in (
+                    "rule", "entry_eligibility_cutoff_utc", "eligible_rows", "censored_rows_excluded")}})}
            if eligibility is not None else {}),
         "epoch0_parent_order": order_binding, "train_rows": int(parents.numel()),
         "reference_cutoff_time_ns": cutoff,
@@ -13838,9 +13941,31 @@ def _prefix_candidate_training_binding(
                        for value, split in zip(observed, ("train", "val")))):
             raise RuntimeError("[CANDIDATE_PREFIX_OBSERVED_ENTRY_BINDING_MISMATCH]")
         binding["entry_observed_market"] = {"train": observed[0], "control": observed[1]}
+    if dynamic:
+        binding["entry_training_phase"] = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        binding["active_joint_task_names"] = list(_model_joint_task_names(model))
+        binding["dynamic_m5_query_minutes"] = list(queries)
+        binding["candidate_quality_native_authority_admitted"] = False
     if single_epoch is not None and (any(not isinstance(value, Mapping) for value in observed)
             or observed[0]["identity"].get("training_phase") != single_epoch["witness"]["training_phase"]):
         raise RuntimeError("[CANDIDATE_M5_SINGLE_EPOCH_TARGET_MISMATCH]")
+    if dynamic:
+        order_proof = {"design": copy.deepcopy(artifacts["design"]),
+            "train_source": copy.deepcopy(physical["physical_sources"]["train"]),
+            "entry_epoch_order_authority": copy.deepcopy(binding["entry_epoch_order_authority"]),
+            "prefix_epoch0_order": tuple(order.tolist())}
+        existing = getattr(train_ds, "_entry_dynamic_m5_epoch_order_binding", None)
+        if existing is not None:
+            try:
+                same = (isinstance(existing, dict) and set(existing) == set(order_proof)
+                    and type(existing["prefix_epoch0_order"]) is tuple
+                    and all(type(value) is int for value in existing["prefix_epoch0_order"])
+                    and canonical_json_sha256(existing) == canonical_json_sha256(order_proof))
+            except (TypeError, ValueError, KeyError):
+                same = False
+            if not same:
+                raise RuntimeError("[CANDIDATE_DYNAMIC_EPOCH_ORDER_REBIND_FORBIDDEN]")
+        train_ds._entry_dynamic_m5_epoch_order_binding = order_proof
     return binding, parents, torch.as_tensor(order.copy())
 
 
@@ -13852,6 +13977,58 @@ def _candidate_training_epoch_order(
 
     expected_parents = _candidate_training_parent_rows(len(train_ds), parent_population)
     population_rows = len(train_ds)
+    dynamic = _dynamic_m5_dataset_phase(train_ds)
+    proof = getattr(train_ds, "_entry_dynamic_m5_epoch_order_binding", None)
+    if proof is not None and not dynamic:
+        raise RuntimeError("[CANDIDATE_DYNAMIC_EPOCH_ORDER_PHASE_MISMATCH]")
+    if dynamic:
+        from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
+        from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+        observed = train_ds._entry_observed_market_binding
+        auxiliary = getattr(train_ds, "_policy_dependent_auxiliary_binding", None)
+        if (type(epoch_index) is not int or epoch_index != 0 or parent_population is None
+                or getattr(train_ds, "_unified_exit_lifecycle_v2", None) is not None
+                or not isinstance(proof, dict) or set(proof) != {
+                    "design", "train_source", "entry_epoch_order_authority", "prefix_epoch0_order"}
+                or type(proof["prefix_epoch0_order"]) is not tuple
+                or any(type(value) is not int for value in proof["prefix_epoch0_order"])
+                or not isinstance(auxiliary, Mapping) or auxiliary.get("role") != "TRAIN"
+                or auxiliary.get("mode") != DYNAMIC_M5_PHYSICAL_BINDING_MODE
+                or auxiliary.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                or observed.get("role") != "TRAIN"):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_EPOCH_ORDER_AUTHORITY_REQUIRED]")
+        design_binding = require_binding(proof["design"], label="dynamic native epoch design", verify_file=True)
+        design = read_bound_json(Path(design_binding["path"]), design_binding["sha256"])
+        single_epoch = require_m5_single_epoch_population(design)
+        source = observed.get("physical_source")
+        authority = proof["entry_epoch_order_authority"]
+        if (single_epoch is None or single_epoch["witness"]["training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                or not isinstance(source, Mapping)
+                or proof["train_source"] != source or source != design["calendar"]["source_bindings"]["train"]
+                or source["physical_rows"] != population_rows
+                or Path(train_ds.parquet_path) != Path(source["parquet"]["path"])
+                or auxiliary.get("parent_entry_parquet") != source["parquet"]
+                or auxiliary.get("parent_entry_manifest") != source["manifest"]
+                or observed["identity"].get("design") != design_binding
+                or observed["identity"].get("target_contract") != single_epoch["witness"]["target_contract"]
+                or single_epoch["train_parquet"] != source["parquet"] or single_epoch["train_manifest"] != source["manifest"]
+                or canonical_json_sha256(authority) != canonical_json_sha256({
+                    "population_witness": single_epoch["binding"],
+                    "native_sampler_contract": single_epoch["witness"]["native_sampler_contract"]})
+                or not np.array_equal(expected_parents.numpy(), single_epoch["eligible_parent_rows"])
+                or not np.array_equal(expected_parents.numpy(), np.arange(population_rows, dtype=np.int64))
+                or not np.array_equal(np.asarray(proof["prefix_epoch0_order"], dtype=np.int64), single_epoch["epoch0_parent_order"])):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_EPOCH_ORDER_SOURCE_OR_WITNESS_MISMATCH]")
+        clock = pd.DatetimeIndex(train_ds.df["time"]).as_unit("ns")
+        mask = getattr(train_ds, "_entry_observed_market_admitted_rows", None)
+        bound = getattr(train_ds, "_policy_dependent_auxiliary_bound_rows", None)
+        if (clock.tz is None or clock.hasnans or len(clock) != population_rows
+                or hashlib.sha256(np.asarray(clock.asi8, dtype="<i8").tobytes()).hexdigest() != source["clock_sha256"]
+                or not isinstance(mask, np.ndarray) or mask.dtype != np.bool_ or mask.shape != (population_rows,)
+                or not isinstance(bound, np.ndarray) or bound.dtype != np.bool_ or bound.shape != (population_rows,)
+                or not mask.all() or not np.array_equal(mask, bound)):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_EPOCH_ORDER_CLOCK_OR_POPULATION_MISMATCH]")
+        return torch.tensor(proof["prefix_epoch0_order"], dtype=torch.int64)
     adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
     if getattr(adapter, "_random_access_train", None) is None:
         if parent_population is not None:

@@ -193,14 +193,19 @@ def dynamic_m5_eligible_rows(parquet_path: Path, *, cutoff_utc: str) -> dict[str
             "rows_after_cutoff": int(np.count_nonzero(~eligible_time)), "physical_rows": len(frame)}
 
 
-def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Mapping[str, str],
+def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Mapping[str, str] | None = None,
                 output_dir: Path, publish: bool, horizon_eligibility: Mapping[str, Any] | None = None,
                 m5_path_eligibility: Mapping[str, Any] | None = None,
-                dynamic_m5_eligibility: Mapping[str, Any] | None = None) -> dict[str, Any]:
+                dynamic_m5_eligibility: Mapping[str, Any] | None = None,
+                dynamic_population_witness: Mapping[str, str] | None = None) -> dict[str, Any]:
     if set(chronological_prefix) != {"design", "normalization_result", "labels_result"}:
         raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_PREFIX_INVALID")
     if sum(value is not None for value in (horizon_eligibility, m5_path_eligibility, dynamic_m5_eligibility)) > 1:
         raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_M5_PATH_ELIGIBILITY_INVALID_MIXED_SCOPES")
+    if (dynamic_m5_eligibility is not None) != (dynamic_population_witness is not None):
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_DYNAMIC_POPULATION_WITNESS_REQUIRED")
+    if dynamic_m5_eligibility is not None and selected_sampler is not None:
+        raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_DYNAMIC_EXIT_SAMPLER_FORBIDDEN")
     if dynamic_m5_eligibility is not None:
         from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
         if (set(dynamic_m5_eligibility) != {"target_contract", "entry_eligibility_cutoff_utc"}
@@ -228,8 +233,14 @@ def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Ma
             raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_DYNAMIC_M5_SCOPE_OR_CUTOFF_INVALID")
     if m5_path_eligibility is not None and m5_path_eligibility["entry_eligibility_cutoff_utc"] != design["calendar"]["train_control_cutoff"]:
         raise RuntimeError("PHYSICAL_COORDINATE_PRODUCER_M5_PATH_CUTOFF_INVALID")
-    selected_sampler = require_binding(selected_sampler, label="selected sampler", verify_file=True)
-    selected = _physical_native_sampler(selected_sampler, artifacts=artifacts, design=design, physical=physical)
+    if dynamic_m5_eligibility is not None:
+        dynamic_population_witness = require_binding(dynamic_population_witness,
+            label="dynamic coordinate population witness", verify_file=True)
+        selected = _physical_native_sampler(artifacts=artifacts, design=design, physical=physical,
+            dynamic_population_witness=dynamic_population_witness)
+    else:
+        selected_sampler = require_binding(selected_sampler, label="selected sampler", verify_file=True)
+        selected = _physical_native_sampler(selected_sampler, artifacts=artifacts, design=design, physical=physical)
     dynamic_found = None
     if dynamic_m5_eligibility is not None:
         dynamic_found = dynamic_m5_eligible_rows(Path(physical["physical_sources"]["train"]["parquet"]["path"]),
@@ -244,10 +255,13 @@ def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Ma
     if not publish:
         return {"decision":"INPUTS_VERIFIED_COORDINATES_NOT_PRODUCED", "published":False,
                 "train_rows":physical["train_rows"], "test_data_used":False,
-                "model_forwards":0, "optimizer_steps":0, "fits":0}
+                "model_forwards":0, "optimizer_steps":0, "fits":0,
+                **({"entry_measurement_complete":False, "native_launch_admitted":False}
+                   if dynamic_m5_eligibility is not None else {})}
     output.mkdir(parents=True, exist_ok=False)
     _fsync_directory(output.parent)
-    sampler = selected["selected_sampler_contract"]
+    sampler = (selected["native_sampler_contract"] if dynamic_m5_eligibility is not None
+               else selected["selected_sampler_contract"])
     order = _epoch0_order(sampler)
     eligibility = None
     if horizon_eligibility is not None:
@@ -306,7 +320,9 @@ def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Ma
         "decision":"TRAIN_COORDINATES_FROZEN_NO_MODEL", "design":artifacts["design"],
         "train_source":physical["physical_sources"]["train"]["parquet"],
         "control_source":physical["physical_sources"]["val"]["parquet"],
-        "control_parent_rows":physical["control_parent_rows"], "selected_sampler":selected_sampler,
+        "control_parent_rows":physical["control_parent_rows"],
+        **({"population_witness":dynamic_population_witness} if dynamic_m5_eligibility is not None
+           else {"selected_sampler":selected_sampler}),
         "bindings":bindings, "selection_uses_outcome_values":False, "test_data_used":False,
         "model_forwards":0, "optimizer_steps":0, "fits":0}
     native["coordinates_sha256"] = native_sha256(native)
@@ -314,6 +330,19 @@ def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Ma
         require_physical_native_training_coordinates(
             {**artifacts,"native_coordinates":_binding(stage)}, design=design, physical=physical)
     artifacts["native_coordinates"] = _publish(output/"NATIVE_COORDINATES.json", native, validate=verify_native)
+    if dynamic_m5_eligibility is not None:
+        # Native Entry row/order publication is complete; the legacy Exit
+        # measurement machinery below has no authority over this phase.
+        result = {"schema_version":"gx1_dynamic_m5_native_coordinate_publication_v1",
+            "decision":"NATIVE_COORDINATES_FROZEN_PENDING_ENTRY_MEASUREMENT_AND_LAUNCH_ADMISSION",
+            "chronological_prefix":artifacts, "population_witness":dynamic_population_witness,
+            "native_sampler_contract":sampler, "native_coordinates_complete":True,
+            "entry_measurement_complete":False, "native_launch_admitted":False,
+            "test_data_used":False, "model_forwards":0, "optimizer_steps":0, "fits":0}
+        publication = _publish(output/"DYNAMIC_M5_NATIVE_COORDINATES_RESULT.json", result)
+        return {"decision":result["decision"], "published":True, "native_coordinate_result":publication,
+                "chronological_prefix":artifacts, "native_coordinates_complete":True,
+                "entry_measurement_complete":False, "native_launch_admitted":False}
     root_binding = selected["random_access_root"]
     root = _read({"path":root_binding["path"],"sha256":root_binding["file_sha256"]})
     indexes = {split:{"index":{"path":root["splits"][split]["index_parquet_path"],
@@ -350,8 +379,11 @@ def materialize(*, chronological_prefix: Mapping[str, Any], selected_sampler: Ma
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    for key in ("design","normalization-result","labels-result","selected-sampler"):
+    for key in ("design","normalization-result","labels-result"):
         parser.add_argument("--"+key, type=Path, required=True)
+    authority = parser.add_mutually_exclusive_group(required=True)
+    authority.add_argument("--selected-sampler", type=Path)
+    authority.add_argument("--dynamic-population-witness", type=Path)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--publish", action="store_true")
     parser.add_argument("--horizons-design", type=Path, default=None,
@@ -365,6 +397,8 @@ def main(argv: list[str] | None = None) -> int:
     selections = sum((args.horizons_design is not None, args.m5_path_eligibility, args.dynamic_m5_eligibility))
     if selections > 1 or (bool(selections) != (args.entry_eligibility_cutoff_utc is not None)):
         raise SystemExit("Choose one explicit horizon/fixed-M5/dynamic-M5 eligibility scope bound with --entry-eligibility-cutoff-utc")
+    if args.dynamic_m5_eligibility != (args.dynamic_population_witness is not None):
+        raise SystemExit("Dynamic M5 coordinates require --dynamic-population-witness and forbid --selected-sampler")
     from gx1.contracts.entry_observed_market_v1 import entry_observed_m5_path_contract
     m5_path_eligibility = None if not args.m5_path_eligibility else {
         "target_contract": entry_observed_m5_path_contract(), "entry_eligibility_cutoff_utc": args.entry_eligibility_cutoff_utc}
@@ -377,7 +411,9 @@ def main(argv: list[str] | None = None) -> int:
     result = materialize(chronological_prefix={
         key:_binding(getattr(args,key).expanduser().absolute())
         for key in ("design","normalization_result","labels_result")},
-        selected_sampler=_binding(args.selected_sampler.expanduser().absolute()),
+        selected_sampler=None if args.selected_sampler is None else _binding(args.selected_sampler.expanduser().absolute()),
+        dynamic_population_witness=(None if args.dynamic_population_witness is None
+            else _binding(args.dynamic_population_witness.expanduser().absolute())),
         output_dir=args.output_dir, publish=args.publish, horizon_eligibility=horizon_eligibility,
         m5_path_eligibility=m5_path_eligibility, dynamic_m5_eligibility=dynamic_m5_eligibility)
     print(json.dumps(result,sort_keys=True))

@@ -111,10 +111,16 @@ def test_fresh_components_reject_exposed_mixed_or_reselected_inputs(tmp_path,fau
 
 
 class TinyModel(torch.nn.Module):
-    def __init__(self,normalization):
+    def __init__(self,normalization,entry_training_phase=runner.trainer.JOINT_FITTED_Q_TRAINING_PHASE,
+                 dynamic_m5_query_minutes=None):
+        from gx1.contracts.entry_model_native_joint_task_weighting_v1 import joint_task_names_for_phase
         super().__init__();self.backbone=torch.nn.Linear(3,3);self.head=torch.nn.Linear(3,2)
-        self.task_log_variances=torch.nn.ParameterDict({'entry':torch.nn.Parameter(torch.zeros(())),
-                                                     'exit':torch.nn.Parameter(torch.zeros(()))})
+        self.entry_training_phase=entry_training_phase
+        self.task_log_variances=torch.nn.ParameterDict({name:torch.nn.Parameter(torch.zeros(()))
+            for name in joint_task_names_for_phase(entry_training_phase)})
+        self.cfg=SimpleNamespace(entry_training_phase=entry_training_phase,dynamic_m5_query_minutes=dynamic_m5_query_minutes)
+        if dynamic_m5_query_minutes is not None:
+            self.register_buffer('dynamic_m5_query_horizons',torch.tensor(dynamic_m5_query_minutes,dtype=torch.int64))
         self.register_buffer('normalization_identity',torch.tensor(list(bytes.fromhex(normalization['contract_sha256'])),dtype=torch.uint8))
     def forward(self,*args,**kwargs):raise AssertionError('No forward belongs in component construction')
 
@@ -122,7 +128,8 @@ class TinyModel(torch.nn.Module):
 def test_fresh_model_is_seeded_whole_constructor_and_neutral_tasks(tmp_path,monkeypatch):
     _,_,_,_,_,_,composite=_bindings(tmp_path)
     norm=composite['base_feature_normalization']['artifact']['contract'];calls=[]
-    def construct(meta,normalization,device):calls.append((meta,normalization,device));return TinyModel(normalization)
+    def construct(meta,normalization,device,**model_kwargs):
+        calls.append((meta,normalization,device,model_kwargs));return TinyModel(normalization,**model_kwargs)
     monkeypatch.setattr(runner.val,'_model',construct)
     def forbidden(*a,**kw):raise AssertionError('Old checkpoint or normalization loaded')
     monkeypatch.setattr(runner.val,'load_selected_weight_ema_checkpoint_readonly_v1',forbidden)
@@ -137,8 +144,8 @@ def test_fresh_model_is_seeded_whole_constructor_and_neutral_tasks(tmp_path,monk
     assert not torch.equal(model.backbone.weight,other.backbone.weight)
     assert all(torch.count_nonzero(p)==0 for p in model.task_log_variances.parameters())
     assert all(c[0]==kwargs['metadata'] and c[1]==norm for c in calls)
-    def biased(*args):
-        m=TinyModel(norm);m.task_log_variances['entry'].data.fill_(1);return m
+    def biased(*args,**model_kwargs):
+        m=TinyModel(norm,**model_kwargs);next(iter(m.task_log_variances.values())).data.fill_(1);return m
     monkeypatch.setattr(runner.val,'_model',biased)
     with pytest.raises(RuntimeError,match='FRESH_TASK_WEIGHTS_INVALID'):runner._fresh_prefix_model(**kwargs)
 
@@ -256,11 +263,12 @@ def _component_chain(tmp_path, monkeypatch, physical=None):
         return SimpleNamespace(source_split=kw["source_split"])
 
     monkeypatch.setattr(runner.val.RandomAccessValStateFactoryV1,'from_artifacts',val_factory)
-    def model(meta,normalization,device):
+    def model(meta,normalization,device,**model_kwargs):
         expected_context = "train_context" if "frozen_train_policy_scope" in args else "control_context"
         assert expected_context in seen
         seen["model_constructed"]=True
-        return TinyModel(normalization)
+        seen["model_kwargs"]=model_kwargs
+        return TinyModel(normalization,**model_kwargs)
     monkeypatch.setattr(runner.val,'_model',model)
     def forbidden(*a,**kw):raise AssertionError('Legacy weight, normalization, June audit or full-VAL binding reached')
     for name in ['load_selected_weight_ema_checkpoint_readonly_v1','bind_preserved_v7_input_normalization',
@@ -548,8 +556,8 @@ def test_native_component_ema_uses_actual_observed_phase_and_exactly_preserves_i
     def bind(dataset, scope):
         dataset._entry_observed_market_binding = {'identity': {'training_phase': scope['training_phase']}}
     monkeypatch.setattr(hz, 'bind_observed_entry_dataset', bind)
-    def model(meta, normalization, device):
-        result = TinyModel(normalization)
+    def model(meta, normalization, device, **model_kwargs):
+        result = TinyModel(normalization, **model_kwargs)
         result.head_dip = torch.nn.Linear(3, 2)
         result.head_exit_action = torch.nn.Linear(3, 2)
         return result
@@ -559,6 +567,9 @@ def test_native_component_ema_uses_actual_observed_phase_and_exactly_preserves_i
     model, ema = result['model'], result['weight_ema']
     initial = {name: value.clone() for name, value in model.state_dict().items()}
     assert {'head_dip.weight', 'head_exit_action.weight'} <= ema._phase_inactive_parameter_names
+    optimized = {id(parameter) for group in result['optimizer'].param_groups for parameter in group['params']}
+    assert all(not parameter.requires_grad and id(parameter) not in optimized
+        for name, parameter in model.named_parameters() if name in ema._phase_inactive_parameter_names)
     for _ in range(9):
         with torch.no_grad():
             model.backbone.weight.add_(1.)
@@ -581,3 +592,101 @@ def test_native_component_ema_rejects_unbound_or_mismatched_observed_phase(physi
     with pytest.raises(RuntimeError, match='EMA_PHASE_BINDING_MISMATCH'):
         runner._build_bound_full_train_components(**args,
             observed_entry_scope={'training_phase': ENTRY_ONLY_M5_PATH_TRAINING_PHASE})
+
+
+@pytest.fixture
+def dynamic_constructor_case(physical_component_case, tmp_path, monkeypatch):
+    """Constructor/optimizer UNIT boundary, not a complete dynamic native route.
+
+    The shared scaffold stubs completed data owners. Its pre-prefix order call
+    is separately blocked in production; reuse the scaffold's frozen order
+    here without fabricating or binding dynamic epoch-order authority.
+    """
+    from gx1.contracts import entry_observed_market_horizons_v1 as hz
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    args, seen, prefix, _ = _component_chain(tmp_path, monkeypatch, physical=physical_component_case)
+    phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    def completed_order_boundary(dataset, *, epoch_index, parent_population):
+        assert epoch_index == 0
+        assert dataset._entry_observed_market_binding["identity"]["training_phase"] == phase
+        assert parent_population.dtype == torch.int64
+        assert torch.equal(parent_population, torch.as_tensor(prefix["eligible_parent_rows"]))
+        seen.setdefault("constructor_order_boundary_calls", []).append(epoch_index)
+        return torch.as_tensor(prefix["epoch0_parent_order"].copy(), dtype=torch.int64)
+    monkeypatch.setattr(runner.trainer, "_candidate_training_epoch_order", completed_order_boundary)
+    queries = runner.trainer._dynamic_m5_model_kwargs(phase)["dynamic_m5_query_minutes"]
+    scope = {"training_phase": phase, "query_minutes": queries}
+    def bind(dataset, bound_scope):
+        dataset._entry_observed_market_binding = {"identity": {
+            "training_phase": bound_scope["training_phase"], "query_minutes": list(bound_scope["query_minutes"])}}
+    monkeypatch.setattr(hz, "bind_observed_entry_dataset", bind)
+    def model(meta, normalization, device, **model_kwargs):
+        seen["model_kwargs"] = model_kwargs
+        result = TinyModel(normalization, **model_kwargs)
+        result.head_exit_action = torch.nn.Linear(3, 2)
+        result.head_entry_action_q = torch.nn.Linear(3, 3)
+        result.head_dip = torch.nn.Linear(3, 2)
+        seen["constructed_model"] = result
+        return result
+    monkeypatch.setattr(runner.val, "_model", model)
+    return args, seen, scope
+
+
+def test_native_dynamic_constructor_uses_bound_phase_queries_and_freezes_before_optimizer(dynamic_constructor_case):
+    from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
+    from gx1.contracts.entry_observed_market_v1 import is_inactive_phase_parameter
+    args, seen, scope = dynamic_constructor_case
+    result = runner._build_bound_full_train_components(**args, observed_entry_scope=scope)
+    model, optimizer, ema = result["model"], result["optimizer"], result["weight_ema"]
+    assert seen["constructor_order_boundary_calls"] == [0]
+    assert not hasattr(result["train_ds"], "_entry_dynamic_m5_epoch_order_binding")
+    assert seen["model_kwargs"] == runner.trainer._dynamic_m5_model_kwargs(scope["training_phase"])
+    assert model.entry_training_phase == scope["training_phase"]
+    assert tuple(model.dynamic_m5_query_horizons.tolist()) == scope["query_minutes"] == model.cfg.dynamic_m5_query_minutes
+    active_tasks = {name for name, value in model.task_log_variances.items() if value.requires_grad}
+    assert active_tasks == set(active_joint_task_names(scope["training_phase"]))
+    optimized = {id(parameter) for group in optimizer.param_groups for parameter in group["params"]}
+    assert optimized == {id(parameter) for parameter in model.parameters() if parameter.requires_grad}
+    inactive = {name: parameter.detach().clone() for name, parameter in model.named_parameters()
+        if is_inactive_phase_parameter(name, scope["training_phase"])}
+    assert inactive and set(inactive) == set(ema._phase_inactive_parameter_names)
+    for name, parameter in model.named_parameters():
+        assert parameter.requires_grad is (name not in inactive)
+        if name in inactive: assert id(parameter) not in optimized and parameter.grad is None
+    optimizer.zero_grad(set_to_none=True)
+    model.backbone.weight.sum().backward()
+    optimizer.step()
+    ema.update(model)
+    for name, parameter in model.named_parameters():
+        if name in inactive:
+            assert parameter.grad is None and torch.equal(parameter, inactive[name])
+            assert torch.equal(ema.state_dict_clone()[name], inactive[name])
+
+
+@pytest.mark.parametrize("fault", ["scope_queries", "binding_queries", "model_phase", "model_config_phase", "model_tasks", "model_queries", "model_config"])
+def test_native_dynamic_constructor_rejects_phase_task_or_query_drift_before_optimizer(dynamic_constructor_case, monkeypatch, fault):
+    from gx1.contracts import entry_observed_market_horizons_v1 as hz
+    args, seen, scope = dynamic_constructor_case
+    if fault == "scope_queries": scope["query_minutes"] = scope["query_minutes"][:-1]
+    if fault == "binding_queries":
+        original = hz.bind_observed_entry_dataset
+        def bind(dataset, bound_scope):
+            original(dataset, bound_scope)
+            dataset._entry_observed_market_binding["identity"]["query_minutes"].reverse()
+        monkeypatch.setattr(hz, "bind_observed_entry_dataset", bind)
+    original_model = runner.val._model
+    def model(*args, **kwargs):
+        result = original_model(*args, **kwargs)
+        if fault == "model_phase": result.entry_training_phase = runner.trainer.JOINT_FITTED_Q_TRAINING_PHASE
+        elif fault == "model_config_phase": result.cfg.entry_training_phase = runner.trainer.JOINT_FITTED_Q_TRAINING_PHASE
+        elif fault == "model_tasks": result.task_log_variances.pop(next(iter(result.task_log_variances)))
+        elif fault == "model_queries": result.dynamic_m5_query_horizons[0] += 1
+        elif fault == "model_config": result.cfg.dynamic_m5_query_minutes = result.cfg.dynamic_m5_query_minutes[:-1]
+        return result
+    monkeypatch.setattr(runner.val, "_model", model)
+    def forbidden(*args, **kwargs): raise AssertionError("Invalid component reached optimizer or EMA")
+    monkeypatch.setattr(torch.optim, "AdamW", forbidden)
+    monkeypatch.setattr(runner.trainer, "_WeightEma", forbidden)
+    with pytest.raises(RuntimeError, match="NATIVE_COMPONENT_.*MISMATCH"):
+        runner._build_bound_full_train_components(**args, observed_entry_scope=scope)
+    if fault in {"scope_queries", "binding_queries"}: assert "constructed_model" not in seen
