@@ -266,6 +266,15 @@ redirect, transaksjonsoppslag, ordre eller spending. Det er konsumert og kan
 aldri gjenbrukes som broker-adgang. Nye kall krever ny eksplisitt autorisasjon.
 Claimede benchmark-/auditplaner har samme ikke-relaunch-grense.
 
+Operatørunntak19.10.2026: «Tillat kun de to leseoppslagene» åpner én ny,
+eksakt bundet engangsplan med ett GET for konfigurert practice-kontosammendrag
+og ett GET for XAU_USD-instrumentvilkår. Ingen retry, redirect, kontolisting,
+nye transaksjonsoppslag, ordre eller kontoendring. Frosne tidligere
+observasjoner gjenbrukes; aktuelle vilkår beviser ikke historisk kostsannhet.
+Ingen øvrig broker-/live-/paperadgang følger av dette. Faktisk konsum står
+bare i NEXT_RUN_POLICY og immutable request-/terminalkvitteringer.
+
+
 Repo-opprydding omfatter verifiserte repo-filer og regenererbare cacher;
 DATA/RUNS følger alltid regel 9. Brukerens særskilte godkjenning 06.10.2026
 tillater retting/synkronisering av konkrete CURRENT-referanser i installerte

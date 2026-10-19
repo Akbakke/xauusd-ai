@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-19T04:46:47.842525+00:00",
-  "status": "057_BINDINGS_PASS__058_SOURCE_QUALIFIED_553_CASES_CONSTRUCTOR_PUBLICATION_READY",
+  "observed_utc": "2026-10-19T04:54:58.313489+00:00",
+  "status": "058_QUALIFIED_CURRENT_CONSTRUCTOR_PUBLICATION_READY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "058 source qualified553unique cases; one current constructor metadata publication ready after cleancommit",
+    "current_activity": "058source553qualified and handover dynamicprofile100testsPASS; one metadata-only currentconstructor publication ready after cleancommit",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual current constructor artifact, new exactcoverage declaredcostauthority/observedplan/native recipe and freshmodel/hardware qualification remain; source-only Entry-only gates are qualified. Two precise practiceGET reads authorized, not executed.",
+    "current_blocker": "Actual current constructor artifact, exactcoverage prospectivecostauthority/observedplan/native recipe and actual freshmodel/hardware gates remain. Two authorized practice reads unused.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9493,12 +9493,11 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "048/051 actualphysicalTRAIN118249/VAL17284/currentmetadata and both exhaustive seq/snap reconstructionPASS.",
-        "049 wholeTRAINregistry/050currentsurfaces+overlap/053fullinputlivenessPASS; ATR/OOD diagnostic SHIFT_OBSERVED remains reported, no VALfit.",
-        "054ready: exactly one wholephysicalTRAIN Entry-only inputnormalizationfit, no Exitpopulation/nativeoptimizer.",
-        "Actual fullnative design/physicaltargetreceipt and fresh ONLINE=TARGET=EMA0 baseline, fullfeature/MTFconsumption/parity/Entry-onlyoptimizer/resume/hardware remain.",
-        "Native component and initialmeasurement owners still have concrete legacyExit branches; objective ratio/bpsmetadata must align with actualAPIv12 beforeadmission.",
-        "Requestedoneepoch and native LONG/SHORT/FLAT quality/coverage/abstainedtrace remain; no learning/generalization/economic edge admission."
+        "051 actual TRAIN118249/VAL17284 metadata and both exhaustive source reconstructions passed;049 registry/050 current surfaces/053 full input liveness passed.",
+        "055 actual wholephysicalTRAIN Entry-only normalization passed; no refit or relaunch.",
+        "057 actual fullnative design/witness/targetreceipt/coordinates/cohorts passed; no model admission.",
+        "058 source qualified553cases; current handover explicit dynamic profile repair and actual constructor publication remain. Exactcoverage current prospective costauthority/observedplan/native recipe remain.",
+        "Actual fresh ONLINE=TARGET=EMA0, full feature/MTF model consumption/parity, Entry-only optimizer/resume/hardware and requested one epoch remain. LONG/SHORT/FLAT quality/coverage/abstained traces and generalization/economic edge remain unproven."
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
       "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_GC_MBP1_INFORMATION_COMPLETION_20261018_019/RESULTS/TERMINAL.json",
@@ -9783,7 +9782,7 @@
         ],
         "failure": "Full input liveness rejected regular bull divergence event and strength at1057/109507=0.965235%,below dense1% floor. Raw feature/source calculation correct; source-defined symmetric impulse support owner corrected."
       },
-      "physical_dataset_normalization_complete": false,
+      "physical_dataset_normalization_complete": true,
       "dataset_qualification_stage": {
         "status": "COMPLETE_CONSUMED",
         "plan_path": "configs/research/NATIVE_GC_DATASET_QUALIFICATION_20261018_017.json",
@@ -11941,7 +11940,27 @@
           "max_wall_seconds": 7200,
           "source_frozen_while_running": true,
           "plan_path": "configs/research/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058.json",
-          "plan_sha256": "e0742fb03949d0b94f008480fbfa1b4e57dfe12a1f80f1267bc2964649b082f8"
+          "plan_sha256": "e0742fb03949d0b94f008480fbfa1b4e57dfe12a1f80f1267bc2964649b082f8",
+          "prelaunch_independent_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/PRELAUNCH_INDEPENDENT_REVIEW.json",
+            "sha256": "098b94cba7186f0a9c8186e5bfbcc919e42d9a26a7eb2ce0b37b682a7cc313cd"
+          },
+          "handover_profile_repair_01": {
+            "status": "COMPLETE_100_FOCUSED_OWNER_TESTS_PASS",
+            "planned_invocations": 1,
+            "completed_invocations": 1,
+            "execution_authorized": false,
+            "max_wall_seconds": 600,
+            "scope": "Only explicit dynamic Entry profile recognition in current handover readiness and corresponding focused owner tests. Reuse553qualified source cases; no numerical model/feature/target change.",
+            "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/HANDOVER_PROFILE_REPAIR_01",
+            "training_enabled": false,
+            "relaunch_allowed": false,
+            "passed": 100,
+            "receipt": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/HANDOVER_PROFILE_REPAIR_01/RECEIPT.json",
+              "sha256": "43812e1df667c84d68d01f19dc567259f78b3d865f928ae272a947d30559aa0c"
+            }
+          }
         }
       },
       "operator_pc_reboot_20261018": {

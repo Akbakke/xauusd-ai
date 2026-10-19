@@ -137,6 +137,13 @@ baseline. Brukeren har autorisert nøyaktig to practice-leseoppslag for
 kontosammendrag og XAU_USD-vilkår. Ingen nye transaksjonsoppslag, ordre eller
 andre brokerhandlinger er tillatt; ingen oppslag er utført ennå.057bandt pointer-/mask-/kildekjeden, ikke ferdig beregnede nettoprisbaner.
 
+058produksjonskilde er committet70a7d12d og obligatoriske hooks bestod.
+Før metadatajobben avdekket --check en konkret rest: handover-eieren krevde
+fortsatt legacy VAL-profilen og avviste den deklarerte Entry-profilen. Kun
+den eksplisitte dynamiske profilkoblingen er rettet; legacyvakter beholdes.
+100fokuserte handover-eiertester bestod på4.816s, uendret kilde under test.
+058er fortsatt uclaimet. Uavhengig kilde-/input-/testunionskontroll bestod.
+
 ## Native kjede som gjenstår
 
 1.057s faktiske design/vitne/receipt/koordinater/cohorts er fullført og

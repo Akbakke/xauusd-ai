@@ -27,6 +27,10 @@ def _policy(repo):
     source=Path(__file__).resolve().parents[1]
     p=json.loads((source/'NEXT_RUN_POLICY.json').read_text())
     p['canonical_source_repo']=str(repo)
+    # This fixture intentionally owns the historical joint profile after replacing
+    # current_work; the live policy may now declare an explicit Entry-only scope.
+    p['required_val_profile']={'policy_batch_size':256,'cpu_pipeline_workers':8,
+                               'max_wall_seconds':10800,'progress_interval_forwards':64}
     terminal = repo.parent / 'terminal.json'
     terminal.write_text(json.dumps({'exit_code': 1, 'source_unchanged': True, 'test_data_used': False}))
     p['current_work'] = {
@@ -1099,3 +1103,62 @@ def test_declared_failed_unknown_test_observation_is_visible_and_blocks_readines
     assert out["latest_terminal_evidence_gaps"] == ["test_data_used_unproved_after_failure"]
     assert out["next_run"]["decision"] == "BLOCKED"
     assert out["next_run"]["blocked_reasons"] == ["latest_failed_terminal_test_isolation_unproven"]
+
+
+@pytest.fixture
+def dynamic_readiness_policy(fixture):
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    path, policy = _policy(fixture)
+    policy["current_work"]["native_gc_rebuild_20261017"] = {"dynamic_m5_entry_implementation": {
+        "training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE}}
+    policy["required_val_profile"] = {"max_model_forwards": 16, "max_state_views": 256,
+        "max_wall_seconds": 10800, "progress_interval_forwards": 16}
+    path.write_text(json.dumps(policy))
+    return path, policy
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_dynamic_readiness_profile_observation_never_grants_native_admission(fixture, dynamic_readiness_policy, enabled):
+    path, policy = dynamic_readiness_policy
+    policy["training_enabled"] = enabled
+    path.write_text(json.dumps(policy))
+    observed = next_run_readiness(fixture)
+    assert observed["required_val_profile"] == policy["required_val_profile"]
+    assert observed["decision"] == "BLOCKED"
+    assert "native_window_binding_required" in observed["blocked_reasons"]
+    assert "resume_equivalence_missing" in observed["blocked_reasons"]
+    assert observed["training_started"] is False and "native_window_scope" not in observed
+    assert observed["native_invocation_seconds"] == 12000 and observed["outer_guard_seconds"] == 13800
+
+
+@pytest.mark.parametrize("fault", ["no_scope", "missing_phase", "legacy_phase", "malformed_scope", "legacy_profile",
+    "missing_field", "extra_exit_field", "changed_value", "float_value", "bool_value", "invocation_cap", "outer_cap"])
+def test_dynamic_readiness_profile_requires_explicit_scope_exact_types_and_unchanged_caps(fixture, dynamic_readiness_policy, fault):
+    path, policy = dynamic_readiness_policy
+    rebuild = policy["current_work"]["native_gc_rebuild_20261017"]
+    if fault == "no_scope": rebuild.pop("dynamic_m5_entry_implementation")
+    elif fault == "missing_phase": rebuild["dynamic_m5_entry_implementation"].pop("training_phase")
+    elif fault == "legacy_phase": rebuild["dynamic_m5_entry_implementation"]["training_phase"] = "joint_fitted_q"
+    elif fault == "malformed_scope": rebuild["dynamic_m5_entry_implementation"] = None
+    elif fault == "legacy_profile": policy["required_val_profile"] = {"policy_batch_size": 256,
+        "cpu_pipeline_workers": 8, "max_wall_seconds": 10800, "progress_interval_forwards": 64}
+    elif fault == "missing_field": policy["required_val_profile"].pop("max_state_views")
+    elif fault == "extra_exit_field": policy["required_val_profile"]["policy_batch_size"] = 256
+    elif fault == "changed_value": policy["required_val_profile"]["max_model_forwards"] += 1
+    elif fault == "float_value": policy["required_val_profile"]["max_model_forwards"] = 16.0
+    elif fault == "bool_value": policy["required_val_profile"]["progress_interval_forwards"] = True
+    elif fault == "invocation_cap": policy["native_invocation_seconds"] += 1
+    else: policy["outer_guard_seconds"] += 1
+    path.write_text(json.dumps(policy))
+    with pytest.raises(ValueError, match="NEXT_RUN_PERFORMANCE_PROFILE_INVALID"):
+        next_run_readiness(fixture)
+
+
+def test_readiness_legacy_profile_without_dynamic_scope_is_unchanged(fixture):
+    path, policy = _policy(fixture)
+    observed = next_run_readiness(fixture)
+    assert observed["required_val_profile"] == policy["required_val_profile"] == {
+        "policy_batch_size": 256, "cpu_pipeline_workers": 8,
+        "max_wall_seconds": 10800, "progress_interval_forwards": 64}
+    assert observed["decision"] == "BLOCKED" and observed["training_started"] is False
+    assert "native_window_binding_required" in observed["blocked_reasons"]

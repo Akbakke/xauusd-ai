@@ -214,6 +214,24 @@ def next_run_readiness(
     policy = json.loads(path.read_text())
     expected = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
                 "max_wall_seconds": 10800, "progress_interval_forwards": 64}
+    work = policy.get("current_work", {})
+    rebuild = work.get("native_gc_rebuild_20261017", {}) if isinstance(work, dict) else {}
+    if isinstance(rebuild, dict) and "dynamic_m5_entry_implementation" in rebuild:
+        # This only selects an observation profile, never a training exception.
+        # Direct script execution must reach the same source-owned phase/profile.
+        import sys
+        source_root = str(Path(__file__).resolve().parents[1])
+        if source_root not in sys.path:
+            sys.path.insert(0, source_root)
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import _dynamic_m5_compute_profile
+        dynamic = rebuild["dynamic_m5_entry_implementation"]
+        if not isinstance(dynamic, dict) or dynamic.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            raise ValueError("NEXT_RUN_PERFORMANCE_PROFILE_INVALID")
+        try:
+            expected = _dynamic_m5_compute_profile({"val_limits": policy.get("required_val_profile")})
+        except RuntimeError as exc:
+            raise ValueError("NEXT_RUN_PERFORMANCE_PROFILE_INVALID") from exc
     if (policy.get("schema_version") != "gx1_next_native_run_policy_v1"
             or policy.get("canonical_source_repo") != str(repo.resolve())
             or policy.get("canonical_branch") != "work/gx1-current"
