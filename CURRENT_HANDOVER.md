@@ -59,51 +59,48 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — 074 feilet før modell, 075 retter tidsvindukontrollen
+## Aktuell grense — faktisk TRAIN bestått, ny078kontroll av CONTROL
 
-073 CPU-freshstate er fullført og konsumert; originale bindinger og state bevares.
-074 materialiserte faktisk ny campaign, bekreftet fysisk Boot505 19.10 kl.
-12:32:21.500 UTC, og startet én capped nativeinvokasjon kl.12:45:26 UTC.
-Guard avsluttet child med status1 kl.13:13:22 UTC; Windowscontroller PID8568
-var avsluttet kl.13:18:59. Task er nå Disabled, LastTaskResult1; ingen
-relevante WSL-prosesser står igjen. 074 relanseres aldri.
-Handover-terminalen binder faktisk exit1 og source_unchanged=null, fordi
-full182filers postfailure-seal ikke ble utført før den eksplisitte rettelsen.
+075 rettet faktisk074feil: normaliser UTC-vinduer før likhet og tillat korrekt
+halvåpent declared_end<=cutoff bare i dynamic-grenen. Faktiske entryklokker må
+fortsatt være <cutoff; framtidsmasker, kilde-/cellebindinger og legacy består.
+178 tester PASS. SOURCE_REVIEW SHA
+395804febc28c1d67ceeb7d683121fb29ebf91e11473f3fe60002a5954d4820b.
 
-Faktisk feil er ENTRY_PHYSICAL_AUX_WINDOW_MISMATCH i TRAIN Dataset-binding,
-før modellkonstruksjon: declared_window.end er lik korrekt eksklusiv cutoff,
-men gammel kontroll krevde <cutoff. Manifest-/designklokker bruker også ulike
-tekstformater for samme UTC-instant. 075 normaliserer klokkelikhet og bruker
-samme dynamiske low<declared_end<=high som den eksisterende target-receipt-
-eieren. Legacy <high, faktiske entryklokker <high, kilde-/cellebindinger og
-uavhengige framtidsmasker består. Ingen modell-, mål-, taps- eller optimizer-
-matematikk endres.
+076 er konsumert FAILED_NO_ADMISSION, exit1/source_unchanged=true,374.784s.
+Alle118249 TRAIN-rader bestod faktisk Dataset-/aux-/observed-kobling på264.349s.
+VAL17284 lastet, men CONTROL feilet på fraværende legacyfelt calendar.control256.
+057 binder allerede selection.control_entries=budget.later_control_entries=256
+og SHA-bundet CONTROL256_PARENT_ROWS. 077 fjernet kun det gamle feltoperand i
+CONTROLelse-grenen; hele øvrige produksjons-AST, TRAIN-sti og legacy er identiske.
+077:17 fokuserte PASS, inkludert3 nye avvisninger av feil kontrollantall.
+SOURCE_REVIEW SHA 5369d6ecca2bec46ce4bdcfb045c44967d63a076c53497c665a95bf9b321b833.
+076 terminal SHA 4a6d914b0f177c4260d69ad9fbddb11ef3d3b0b1433bd248b0191c2cb4b904c6;
+TRAIN-delbevis SHA ac34cb1221f2534b50f87250debf714902810f98311cb053a28e6c505bc74e00.
 
-Normal canonical invocation-receipt mangler fordi record-eieren krever en
-checkpoint-pointer også ved FAILED før modell. Ingen pointer/progress finnes;
-original ACTIVE og logger bevares uten fabrikkert kvittering eller recordretry.
-Separat faktisk feilobservasjon:
-/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074/FAILED_OBSERVATION_TERMINAL.json
-SHA dc12ed3a44a3c99788603739307a67e969013aa1860a10b018c8e9e90bfb2557.
+078 er en NY CONTROL-only CPU-plan: bygg VAL17284 og bindCONTROL256 gjennom
+samme canonical auxiliary-/observed-eiere. Gjenbruk076TRAIN-delbevis og077AST-
+bevis for uendret TRAIN-sti. Felles kilde-/klokkevakter består og kan fortsatt
+lese TRAIN-proveniens. Ingen påstand om begge roller i én kjøring, samtidig
+Dataset-kapasitet eller modellkonsum. 4G/512M,0 modellforwards/updates/refits.
+Plan: /home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/PLAN_REVIEWED.json
+SHA 9bc8dd62b104d4e38ae0110d40bc5e9a099b6c773ac9ad2aab51b347ef44b7c8.
+Eksakt ren kilde/policy/plan/controller/worker bindes før engangskjøring.
+Ingen ny native campaign er innrømmet; training_enabled=false.
 
-075: /home/andre2/GX1_RUNS/NATIVE_M5_PHYSICAL_WINDOW_BINDING_REPAIR_20261019_075.
-075 avsluttet:178 PASS,0 FAIL/ERROR/SKIP, inkludert10 nye regresjonscaser.
-Øvrig produksjons-AST og alle eksisterende testfunksjoner er identiske.
-SOURCE_REVIEW SHA 395804febc28c1d67ceeb7d683121fb29ebf91e11473f3fe60002a5954d4820b.
-Neste steg er fokuserte TRAIN/CONTROL-regresjoner og faktisk source-bundet
-CPU Dataset-/målbinding før ny profilbundet freshstate/initialmåling. 076 binder nå én CPU-audit av begge faktiske Dataset-/targetkoblinger,
-4G/512M, uten modellkonstruksjon/forward/updates/refit eller ny rebuild.
-Plan: /home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076/PLAN_REVIEWED.json
-SHA 5f08b8fbaa71afad20b045e951f2ac6404dbb80cf1f54b2dc88a310125656cc8. Ingen
-ny native campaign er innrømmet; training_enabled=false. Gjentatte storfil-
-kontroller er målt, men de er faste per datasett, ikke per rad/horisont.
+074/076 og alle øvrige konsumerte planer relanseres aldri. Original074ACTIVE og
+logger bevares: normal record krevde checkpoint-pointer før modellen fantes,
+så pointer/progress/canonicalreceipt mangler. Separat feilobservasjon er bundet
+i policy; ingenting er fabrikkert. Windows-task er Disabled/LastTaskResult1,
+controller8568 er avsluttet; faktisk før-native Boot505 var19.10 kl.12:32:21.500UTC.
 
-Deretter gjenstår ekte kompaktmodellkonsum, initialbaseline/latency/minne,
-separat faktisk paritet og Entry-only optimizer/resume med fire private
-tekniske updates/fire paritetsforwards, og den bestilte nativeepoken etter
-alle gater. Ingen ekte aktuell forward, optimizersteg eller epoke er fullført.
-Individuell formel-/unit-/warmup-referanse, komplette makrovintager, læring,
-generalisering, økonomisk edge og LONG/SHORT/FLAT-kvalitet er fortsatt ubevist.
+Neste gater: faktiskCONTROL-PASS; ny kildebundet CPU-freshstate fra samme055/057/
+059inputs; ny eksakt nativeinitialmåling av256TRAIN+256CONTROL/32forwards/0steg;
+deretter separat faktisk paritet og Entry-only optimizer/resume med4 private
+tekniske updates/4paritetsforwards, før den bestilte ene nativeepoken.
+Ingen aktuell ekte modellforward, initialbaseline, optimizersteg eller epoke
+har fullført. Individuell formel-/unit-/warmup-referanse, komplette makrovintager,
+læring, generalisering, økonomisk edge og LONG/SHORT/FLAT-kvalitet gjenstår.
 
 ## PC, opprydding og metode
 

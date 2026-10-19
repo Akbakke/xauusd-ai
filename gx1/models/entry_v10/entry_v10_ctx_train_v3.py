@@ -4766,7 +4766,7 @@ def _physical_auxiliary_target_binding(
         if role == "TRAIN":
             require(np.array_equal(rows, np.arange(count, dtype=np.int64)), "TRAIN_COHORT_MISMATCH")
         else:
-            require(len(rows) == calendar["control256"]["rows"] == design["selection"]["control_entries"]
+            require(len(rows) == design["selection"]["control_entries"]
                 == design["budget"]["later_control_entries"], "CONTROL_COHORT_MISMATCH")
         bound_file(source["parquet"])
         bound_file(source["manifest"])

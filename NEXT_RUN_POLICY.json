@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-19T09:57:26.252214+00:00",
-  "status": "076_BOUND_CPU_ACTUAL_DATASET_BINDING_AFTER_SOURCE_WINDOW_FIX",
+  "status": "078_BOUND_CPU_CONTROL_REPAIR_WITH_RETAINED_ACTUAL_TRAIN_PARTIAL",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "076exact cappedCPUphysicalDataset/target rejoin next;075sourcewindowrepair178PASS andpushcomplete.",
+    "current_activity": "078newCONTROLonlyCPUcheck after07717PASS;076actualTRAINpartialreused withexactTRAINpathASTproof.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,11 +112,11 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "SOURCE_ONLY_WINDOW_REPAIR_178PASS_NOT_GENUINE_MODEL",
+    "latest_terminal_role": "SOURCE_ONLY_DYNAMIC_CONTROL_METADATA_REPAIR_17PASS",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PHYSICAL_WINDOW_BINDING_REPAIR_20261019_075/SOURCE_QUALIFICATION_RECEIPT.json",
-      "sha256": "7f5f6f146336dccc652f06245a76ff6d82671d03238785dfc063ece32feb4357"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_CONTROL_COHORT_REPAIR_20261019_077/SOURCE_QUALIFICATION_RECEIPT.json",
+      "sha256": "edcdc09f104eff321614f02fb5863d586a9c6ab77758a22d8f2267d27e57bcf8"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "074consumedbeforemodel on stalephysicalwindowguard.075sourcefix178PASS; actualtwo-roleDatasetbinding and newsource-bound initialmeasurement remainpending.",
+    "current_blocker": "ActualcurrentCONTROLbinding and subsequent newsource-bound freshinitial/modelqualification remainpending.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run076once under4G/512M CPUaudit with exactcleancommit/policy/plan/controller/worker182sourcebindings. No model or optimizer; then newsource-bound freshstate/nativeinitial after actualPASS.",
+    "next_action": "Execute078onceunder4G/512M withcleanboundsource/policy/plan/controllers. Retain076FAILED andTRAINpartial separately; then newsource-bound freshstate/nativeinitial after actualCONTROLpass.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -12893,13 +12893,13 @@
           "source_unchanged_during_qualification": true
         },
         "actual_dataset_binding_preflight_stage_076": {
-          "status": "PLANNED_EXACT_CPU_TWO_ROLE_ACTUAL_BINDING_ZERO_MODEL",
+          "status": "FAILED_CONSUMED_TRAIN_BOUND_CONTROL_LEGACY_FIELD_MISSING",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076",
           "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076/PLAN_REVIEWED.json",
           "plan_sha256": "5f08b8fbaa71afad20b045e951f2ac6404dbb80cf1f54b2dc88a310125656cc8",
-          "execution_authorized": true,
+          "execution_authorized": false,
           "planned_invocations": 1,
-          "completed_invocations": 0,
+          "completed_invocations": 1,
           "relaunch_allowed": false,
           "prelaunch_review": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076/PRELAUNCH_REVIEW.json",
@@ -12919,7 +12919,85 @@
           "physical_dataset_rebuild_allowed": false,
           "test_data_used": false,
           "broker_access_allowed": false,
-          "exit_evaluation": false
+          "exit_evaluation": false,
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076/TERMINAL.json",
+            "sha256": "4a6d914b0f177c4260d69ad9fbddb11ef3d3b0b1433bd248b0191c2cb4b904c6"
+          },
+          "partial_train_observation": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076/PARTIAL_TRAIN_BINDING_OBSERVATION.json",
+            "sha256": "ac34cb1221f2534b50f87250debf714902810f98311cb053a28e6c505bc74e00"
+          },
+          "actual_train_rows_bound": 118249,
+          "actual_control_binding_completed": false
+        },
+        "dynamic_control_cohort_repair_stage_077": {
+          "status": "COMPLETE_SOURCE_QUALIFIED_17PASS_ACTUAL_CONTROL_PENDING",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_CONTROL_COHORT_REPAIR_20261019_077",
+          "diagnosis": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_CONTROL_COHORT_REPAIR_20261019_077/MEASURED_FAILURE_DIAGNOSIS.json",
+            "sha256": "1a49f88528c374974ee81c7ff4d4c1bbed8b7e129d5618bab00039b917f92b96"
+          },
+          "source_qualification_authorized": false,
+          "execution_authorized": false,
+          "planned_invocations": 1,
+          "completed_invocations": 1,
+          "relaunch_allowed": false,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "genuine_model_forwards_allowed": false,
+          "normalization_fit_enabled": false,
+          "physical_dataset_rebuild_allowed": false,
+          "broker_access_allowed": false,
+          "exit_evaluation": false,
+          "test_data_used": false,
+          "source_qualification_receipt": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_CONTROL_COHORT_REPAIR_20261019_077/SOURCE_QUALIFICATION_RECEIPT.json",
+            "sha256": "edcdc09f104eff321614f02fb5863d586a9c6ab77758a22d8f2267d27e57bcf8"
+          },
+          "source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_CONTROL_COHORT_REPAIR_20261019_077/SOURCE_REVIEW.json",
+            "sha256": "5369d6ecca2bec46ce4bdcfb045c44967d63a076c53497c665a95bf9b321b833"
+          }
+        },
+        "actual_control_binding_repair_stage_078": {
+          "status": "PLANNED_EXACT_CPU_CONTROL_ONLY_WITH_RETAINED_TRAIN_PARTIAL",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078",
+          "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/PLAN_REVIEWED.json",
+          "plan_sha256": "9bc8dd62b104d4e38ae0110d40bc5e9a099b6c773ac9ad2aab51b347ef44b7c8",
+          "execution_authorized": true,
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "relaunch_allowed": false,
+          "entry_execution_profile": {
+            "name": "compact_mbp_smc_ema_atr_clock_macro_entry_v1",
+            "contract_sha256": "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125"
+          },
+          "source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_CONTROL_COHORT_REPAIR_20261019_077/SOURCE_REVIEW.json",
+            "sha256": "5369d6ecca2bec46ce4bdcfb045c44967d63a076c53497c665a95bf9b321b833"
+          },
+          "retained_train_observation": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076/PARTIAL_TRAIN_BINDING_OBSERVATION.json",
+            "sha256": "ac34cb1221f2534b50f87250debf714902810f98311cb053a28e6c505bc74e00"
+          },
+          "fresh_roles": [
+            "CONTROL256"
+          ],
+          "single_run_both_roles": false,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "model_forwards_allowed": 0,
+          "optimizer_steps_allowed": 0,
+          "normalization_fit_enabled": false,
+          "physical_dataset_rebuild_allowed": false,
+          "broker_access_allowed": false,
+          "exit_evaluation": false,
+          "test_data_used": false,
+          "prelaunch_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/PRELAUNCH_REVIEW.json",
+            "sha256": "bd8bc6f879e0ed1952ab72622556be0933df81678df58442cf8d79a0c13e3ad3"
+          }
         }
       },
       "operator_pc_reboot_20261018": {

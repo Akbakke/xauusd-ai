@@ -1209,11 +1209,17 @@ def dynamic_physical_dataset_window_case(dynamic_physical_receipt, tmp_path, mon
         row_bindings = {}
         for name, rows in (("TRAIN_CALENDAR_PARENT_ROWS", [0, 1, 2]),
                            ("CONTROL256_PARENT_ROWS", [0])):
+            if name == "CONTROL256_PARENT_ROWS" and fault == "control_rows_count":
+                rows = [0, 1]  # Both valid/in-order, but not the frozen selected count.
             path = tmp_path / (name + "_dynamic_window.npy")
             np.save(path, np.asarray(rows, dtype=np.int64))
             row_bindings[name] = _bind(path)
-        calendar.update(bindings=row_bindings, control256={"rows": 1})
+        calendar.update(bindings=row_bindings)
         design.update(selection={"control_entries": 1}, budget={"later_control_entries": 1})
+        if fault == "selection_count":
+            design["selection"]["control_entries"] = 2
+        if fault == "budget_count":
+            design["budget"]["later_control_entries"] = 2
         design_binding = _write(Path(design_binding["path"]), design)
         receipt["design"] = design_binding
         receipt_binding = _write(tmp_path / "dynamic_dataset_window_receipt.json", receipt)
@@ -1235,6 +1241,7 @@ def test_dynamic_physical_dataset_binding_accepts_equal_instants_and_exclusive_e
     assert " " in manifest["splits"][split]["start"]
     assert manifest["splits"][split]["end"] != sources[split]["declared_window"]["end"]
     calendar = json.loads(Path(design["path"]).read_text())["calendar"]
+    assert "control256" not in calendar
     boundary = "train_control_cutoff" if split == "train" else "development_control_entry_end_exclusive"
     assert pd.Timestamp(sources[split]["declared_window"]["end"]) == pd.Timestamp(calendar[boundary])
     admitted, proof = trainer._physical_auxiliary_target_binding(
@@ -1262,3 +1269,16 @@ def test_dynamic_physical_dataset_binding_rejects_real_window_or_row_boundary_ch
         trainer._physical_auxiliary_target_binding(
             frames[split], parquet_path=Path(sources[split]["parquet"]["path"]),
             result_binding=receipt, expected_design_sha256=design["sha256"], role=role)
+
+
+@pytest.mark.parametrize("fault", ["selection_count", "budget_count", "control_rows_count"])
+def test_dynamic_physical_dataset_binding_rejects_inconsistent_frozen_control_count(
+    dynamic_physical_dataset_window_case, fault,
+):
+    sources, frames, design, receipt = dynamic_physical_dataset_window_case("val", fault)
+    metadata = json.loads(Path(design["path"]).read_text())
+    assert "control256" not in metadata["calendar"]
+    with pytest.raises(RuntimeError, match="ENTRY_PHYSICAL_AUX_CONTROL_COHORT_MISMATCH"):
+        trainer._physical_auxiliary_target_binding(
+            frames["val"], parquet_path=Path(sources["val"]["parquet"]["path"]),
+            result_binding=receipt, expected_design_sha256=design["sha256"], role="CONTROL256")
