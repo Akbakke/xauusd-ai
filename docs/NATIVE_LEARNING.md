@@ -262,3 +262,9 @@ normaliseringsfit, modell-/targetendring eller ekstra læringsarm følger av det
 
 067sourcePASS er ikke faktisk storfil-timing eller modellkonsum. Ny068CPUfresh
 og ny069initial0 kreves; konsumerte063/066 relanseres ikke.
+
+068genuin CPUfresh publisering fullførte09:21:32UTC på268.828s mot066s
+1285.314s,4.781x raskere for samme type klargjøring.182sourcebytes/stat og
+identisk nystartet modelldigest er kontrollert,0forwards/steps/refits. Dette
+måler ingen modell- eller treningsfart. Ny069initial0binding og faktisk
+metadata-inspect-timing gjenstår før nativeporter og modellmåling.

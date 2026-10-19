@@ -71,7 +71,7 @@ Faktiske immutable bevis ligger i GX1_RUNS-røttene055/057/058/059/060 og
 policyen. Tidligere056/058sourcekvitteringer beholdes og gjenbrukes for
 uendrede kontrakter. De beviser ingen ny kompakt modellfunksjon.
 
-## Aktuell:067hashrettelse259PASS;ny068CPUfresh forberedt
+## Aktuell:068CPUfresh ferdig;069initial0 skal bindes
 
 Profil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, eksplisitt referanse
 `{name,contract_sha256}` i recipe, konstruktormetadata, modell og state.
@@ -192,6 +192,19 @@ obligatoriske precommitporter og ren CURRENT. Ny068PLAN SHA9a9045c5574df381d6035
 binder samme057inputs/055norm/059kost,067sourcePASS og beholdt065profilbevis.
 Bare ny source-bound CPUfresh publiseres gjennom samme strenge kildeeier,
 med kvalifisert filverifiseringsscope rundt én publisering. Ingen forward/steg.
+068fullførte faktisk09:21:32UTC,268.828s,exit0/uendret4e620ab7.
+TERMINAL SHA3994782772f952a140254e777b9866b5d8dc7aff971ec7ca8614de2b449b779d;
+RESULT SHA7a74d082c51d90eb1741a6b0107b0ae08e27508cc97c622196eee5060cfd8dee.
+INITIALIZATION SHAcaf8f1ca5d6137098b69af793a2c7b1f02809774df80bc9356e54c59e34a6c74;
+MEASUREMENT_BINDING SHA508a778982fac5ba0f806533ef51465c5c561e0a6dc854b1876bc21a0a6e5353.
+Alle182kildebytes/stat og statefil71,872,094bytes er kontrollert. Ny
+sourceclosureSHA9a53305606286859be60b64b3797e6cf1204832d424da25dea02e00528d0b4ec.
+ONLINE=anchor=EMA0 og statefilSHA er identiske med066 diagnostisk; ingen gamle
+vekter ble lastet. Optimizer er tom;0forwards/steps/refits. CPUklargjøring
+ble4.781x raskere enn0661285.314s, ingen påstand om modell-/treningsfart.
+ACTUAL_CPU_PREPARATION_REVIEW SHA5e6da69770f5e4b5c24e6fe2594206e08f382571236b240b4cccaf6a605175a0.
+068er konsumert, ingen relaunch. Ny069PLAN SHAfb6a1892fd738b2c23f456551047b2f0b788eae0b67c453734e54b377ece826f
+binder samme32forwards/0steps etter nye eksakte campaign-/maskinvareporter.
 
 1.067har rettet bare denne målte gjentakelsen: eksplisitt filverifiseringsscope
   rundt én hel eksisterende CLI-/materializeroperasjon. Første faktiske
@@ -200,8 +213,8 @@ med kvalifisert filverifiseringsscope rundt én publisering. Ingen forward/steg.
   forventetSHA og alle semantiske kilde-/scopeporter. Ingen varig cache.
 2.Mutasjon, feilSHA, inode-/symlinkbytte, scopelevetid og reell bindingkjede
   er kildekvalifisert med259PASS. Ingen sourceendring fant sted under tester.
-3.Publiser deretter ny source-bound CPUfreshstate og ny initial0recipe/
-  campaign. Gjenbruk055normalisering/057data; ikke refit eller rebuild.
+3.068ny source-bound CPUfreshstate er COMPLETE. Bind nå069initial0recipe/
+  campaign til den uendrede182closure og samme055normalisering/057data.
   Mål faktisk metadata-inspect før Windowsinstallasjon/fersk fysiskboot.
 4.Kjør senere nøyaktig én initial0:256TRAIN+256CONTROL/32encoderforwards/
   0steps etter nye eksakte native-/maskinvareporter. Bevar state/RNG/pointer,
