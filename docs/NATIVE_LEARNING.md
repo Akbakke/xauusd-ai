@@ -140,6 +140,9 @@ har én felles planbundet tidsfrist; den fornyes ikke per trinn. Et inputfit-PAS
 gir ingen nativeadmission. Canonical MTF-vinduslengder hentes fra
 produksjonseieren. Source-backed Dataset bruker tre diskarrays for snap/ctx,
 ingen dense96bars speilsekvens og blokkvis eksakt paritet med M5-kilden.
+Transformert TRAIN-støtte skal bruke samme observasjonsmasker både ved fit
+og etter deling av temporal-alias-statistikk. Manglende lagringsnuller skal
+hardnulles etter transformasjonen; de er ingen ekstra markedsobservasjon.
 
 
 Eksisterende full input-liveness skal bestå før markedsfit. Inputfit krever ikke

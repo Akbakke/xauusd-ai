@@ -732,3 +732,66 @@ def test_range_fraction_without_its_source_observation_mask_fails_closed():
     with pytest.raises(RuntimeError, match="MICRO_RANGE_OBSERVATION_MASK_MISSING"):
         fit_surface_normalization(np.arange(8, dtype=np.float32).reshape(-1, 1),
             surface="ctx_cont", field_names=["ctx_cont.close_distance_below_high_range_fraction"])
+
+
+@pytest.mark.parametrize("observed_constant", [0.0, 1.0, 2.5])
+@pytest.mark.parametrize("partitioned", [False, True])
+def test_temporal_alias_support_preserves_observed_gc_constants(observed_constant, partitioned):
+    gc = normalization_contract._gc_context
+    value = "gc_m15_observed_executed_trade_size_min_contracts"
+    assert value in gc.VALUE_FIELDS and value not in gc.STRUCTURAL_VALUE_FIELDS
+    other = next(name for name in gc.VALUE_FIELDS
+                 if name != value and name not in gc.STRUCTURAL_VALUE_FIELDS)
+    observed_fields = dict(zip(gc.VALUE_FIELDS, gc.OBSERVED_FIELDS))
+    names = [value, "ordinary", observed_fields[value], other, observed_fields[other]]
+    mask = np.asarray([0., 1., 1., 0., 1., 1., 1., 0.], np.float32)
+    raw = np.column_stack((mask * observed_constant, np.arange(8, dtype=np.float32),
+                           mask, mask * 3., mask)).astype(np.float32)
+    values = ([MatrixPopulationPart(raw[:3], source="first"),
+               MatrixPopulationPart(raw[3:], source="last")] if partitioned else raw)
+    original = raw.copy()
+    fitted = fit_surface_normalization(values, surface="ctx_cont", field_names=names, column_chunk=1)
+    signal_names = ["ctx_cont." + name for name in names]
+    signal = fit_surface_normalization(values, surface="signal", field_names=signal_names, column_chunk=1)
+    # The other GC field is deliberately NOT an alias: recomputing support
+    # must preserve every field's mask, not just the fields receiving statistics.
+    aliases = [{"signal_index": i, "ctx_cont_index": i,
+                "signal_field": signal_names[i], "ctx_cont_field": names[i]} for i in (0, 2)]
+    shared = normalization_contract.share_temporal_alias_stats_from_signal(
+        fitted, signal, temporal_aliases=aliases, ctx_cont_values=values)
+    assert shared == fitted
+    normalization_contract.require_surface_normalization(shared, surface="ctx_cont", field_names=names)
+    served = apply_surface_normalization(raw, shared)
+    np.testing.assert_array_equal(raw, original)
+    np.testing.assert_array_equal(served[:, (0, 3)], np.zeros((8, 2), np.float32))
+    np.testing.assert_array_equal(served[:, (2, 4)], raw[:, (2, 4)])
+    for i in (0, 3):
+        assert shared["scale_source"][i] == "constant_train_unit_scale"
+        assert shared["center"][i] == raw[mask == 1., i][0]
+        assert shared["scale"][i] == 1.0 and shared["binary_mask"][i] == 0
+    for i in (2, 4):
+        assert shared["scale_source"][i] == "semantic_binary_identity"
+        assert shared["center"][i] == 0.0 and shared["scale"][i] == 1.0
+    # Contract support is measured in float64; the serving result is float32.
+    np.testing.assert_allclose(np.min(served, axis=0), shared["train_transformed_min"],
+                               rtol=np.finfo(np.float32).eps, atol=np.finfo(np.float32).eps)
+    np.testing.assert_allclose(np.max(served, axis=0), shared["train_transformed_max"],
+                               rtol=np.finfo(np.float32).eps, atol=np.finfo(np.float32).eps)
+
+
+@pytest.mark.parametrize("fault", ["mask_domain", "unobserved_storage"])
+def test_temporal_alias_support_rejects_invalid_gc_mask_or_storage(fault):
+    gc = normalization_contract._gc_context
+    value = "gc_m15_observed_executed_trade_size_min_contracts"
+    observed = dict(zip(gc.VALUE_FIELDS, gc.OBSERVED_FIELDS))[value]
+    names = [value, observed]
+    raw = np.asarray([[0., 0.], [1., 1.], [1., 1.]], np.float32)
+    fitted = fit_surface_normalization(raw, surface="ctx_cont", field_names=names, column_chunk=1)
+    bad = raw.copy()
+    if fault == "mask_domain":
+        bad[0, 1] = 0.5
+    else:
+        bad[0, 0] = 1.0
+    with pytest.raises(RuntimeError, match="OBSERVATION.*STORAGE"):
+        normalization_contract.share_temporal_alias_stats_from_signal(
+            fitted, fitted, temporal_aliases=[], ctx_cont_values=bad)

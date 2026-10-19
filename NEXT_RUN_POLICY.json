@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-19T02:20:31.161970+00:00",
-  "status": "053_CURRENT_FULL_INPUT_LIVENESS_PASS__054_WHOLE_TRAIN_NORMALIZATION_READY__TRAINING_FALSE",
+  "observed_utc": "2026-10-19T02:44:07.130839+00:00",
+  "status": "054_CONSUMED_FAILED__055_MASKED_EXTREMA_REPAIR_QUALIFIED_READY__TRAINING_FALSE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Bind clean reviewed source/policy/054plan/controllers and run exactly one wholeTRAIN Entry-only input normalizationfit,4G/512M, one7200sdeadline. Then resolve measured native component/objective/measurement gaps; actual fullnative design+physicaltargetreceipt, fresh baseline/consumption/parity/Entry-onlyoptimizer/resume/hardware before requested one epoch.",
+  "next_action": "Commit/push qualified minimal mask-aware extrema repair/docs; bind clean055source/policy/plan/controllers and run exactly one new wholeTRAIN Entry-only inputfit,4G/512M and one7200sdeadline. Original054 failure remains preserved and is never relaunched. No native modeltraining.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -11513,6 +11513,20 @@
               "tests/test_entry_v10_ctx_dataset_memmap.py": "6566f71cd7fd9ff4e9f138ed1b1b7bb52e635077e41f19aed3e9d630cac1869f"
             },
             "signal_static_contract_unchanged": "f397dbf5502b97332533e2f4333af3dc6d5a85d9a0a252cfb0b1b440c41a65cd"
+          },
+          "measured_054_masked_alias_extrema_repair": {
+            "status": "SOURCE_QUALIFIED_PENDING_ACTUAL_FIT",
+            "repair_of": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054/TERMINAL.json",
+              "sha256": "66e87bbc2cfe57f7b0cfe2feffcba2e7a3aa92c37c397fb52f994d0d9681dbb3"
+            },
+            "source_qualification": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/FOCUSED_SOURCE_QUALIFICATION_RECEIPT.json",
+              "sha256": "2f5c0f29e39a6eb6341a594926e302565d867bf1413a1cb6ee428971919da847"
+            },
+            "cases_passed": 51,
+            "strict_guards_preserved": true,
+            "market_output_exists": false
           }
         },
         "native_objective_metadata_gap": {
@@ -11650,17 +11664,17 @@
           }
         },
         "whole_train_normalization_stage_054": {
-          "status": "READY_REVIEWED_ONE_INPUT_ONLY_WHOLETRAIN_NORMALIZATION_FIT",
+          "status": "FAILED_NO_ADMISSION_OBSERVATION_MASKED_CONSTANT_EXTREMA",
           "plan_path": "configs/research/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054.json",
           "plan_sha256": "0801c0ea009f23256dff701032313b92124a88c9be3f5204ae7afb91ab7363fc",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054",
           "planned_invocations": 1,
-          "completed_invocations": 0,
+          "completed_invocations": 1,
           "normalization_fit_invocations": 1,
-          "execution_authorized": true,
+          "execution_authorized": false,
           "relaunch_allowed": false,
           "training_enabled": false,
-          "normalization_fit_enabled": true,
+          "normalization_fit_enabled": false,
           "native_training_admitted": false,
           "input_admission_complete": false,
           "max_wall_seconds": 7200,
@@ -11675,7 +11689,51 @@
           "controller_source_review": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054/CONTROLLER_SOURCE_REVIEW.json",
             "sha256": "8340ed72ca7763267ec5e53f1e20f6bbf37c9eaa54cbe0e20978161169b1eb74"
-          }
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054/TERMINAL.json",
+            "sha256": "66e87bbc2cfe57f7b0cfe2feffcba2e7a3aa92c37c397fb52f994d0d9681dbb3"
+          },
+          "market_normalization_fit_complete": false,
+          "elapsed_seconds": 336.30131067299953,
+          "source_unchanged": true,
+          "failure": "ENTRY_INPUT_NORMALIZATION_CONSTANT_UNIT_INVALID ctx_cont gc_m15_observed_executed_trade_size_min_contracts",
+          "normalization_output_published": false
+        },
+        "whole_train_normalization_repair_stage_055": {
+          "status": "READY_REVIEWED_51CASE_MASKED_EXTREMA_REPAIR_ONE_WHOLETRAIN_FIT",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055",
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "execution_authorized": true,
+          "normalization_fit_enabled": true,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "input_admission_complete": false,
+          "relaunch_allowed": false,
+          "repair_of": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054/TERMINAL.json",
+            "sha256": "66e87bbc2cfe57f7b0cfe2feffcba2e7a3aa92c37c397fb52f994d0d9681dbb3"
+          },
+          "measured_failure": "ENTRY_INPUT_NORMALIZATION_CONSTANT_UNIT_INVALID ctx_cont gc_m15_observed_executed_trade_size_min_contracts",
+          "implementation_owner": "normalization contract masked extrema helper and focused regressions only",
+          "max_wall_seconds": 7200,
+          "scope": "Exactly one actual wholephysicalTRAIN Entry-only normalizationfit with qualified existing CLI/corefit/audited Dataset owner. AllTRAINcontext beforetargetmasks, unique consumed96bar M5windowunion and allfive closedMTFlanes; mask/role-aware. No label/design/Exitteacher/Exitpopulation/native model optimizer or TEST fit. Publish exact transform once; strict existing contract validation afterwards.",
+          "source_frozen_while_running": true,
+          "plan_path": "configs/research/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055.json",
+          "plan_sha256": "f9895616dd1e6b50193d6633b0640529525937c8e0296fff7934d0fbc0f0e46e",
+          "normalization_fit_invocations": 1,
+          "normalization_output": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
+          "train_rows": 118249,
+          "controller_source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/CONTROLLER_SOURCE_REVIEW.json",
+            "sha256": "1631394f228266525dbda5a60d7e27319e4c609a4fa1c1ff9e8cfc5196d91d80"
+          },
+          "source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/FOCUSED_SOURCE_QUALIFICATION_RECEIPT.json",
+            "sha256": "2f5c0f29e39a6eb6341a594926e302565d867bf1413a1cb6ee428971919da847"
+          },
+          "source_qualification_cases_passed": 51
         }
       },
       "operator_pc_reboot_20261018": {

@@ -123,8 +123,12 @@ exit0 og uendret kilde, uten numerisk rebuild. TRAIN118249/VAL17284.
 053fullførte eksisterende full input-liveness19.10 kl02:09UTC,640.168s,
 exit0/uendret412011fc: alle118249TRAIN/17284VALrader og alle253felt perTF.
 Streng validator/finisher PASS. ATR/OOD SHIFT_OBSERVED beholdes som diagnostikk;
-ingen VAL-fit.054er revidert/klar for én faktisk wholeTRAIN inputnormalisering,
-audit4G/512M og én7200sfrist. Ingen markedsfit er ennå gjennomført.
+ingen VAL-fit.054stoppet før publisering etter336.301s: aliasdeling overskrev
+maskerte ekstremastatistikker med støtte fra manglende lagringsnuller.
+GC M15 minimum tradestørrelse er ekte konstant1 på116782observasjoner,
+1467mangler.055s minste maskebevisste rettelse er uavhengig revidert og
+kvalifisert i51fokuserte caser; én separat ny faktisk fit avventer ren binding;
+strenge konstant-/binærvakter beholdes. Ingen normalisering er publisert.
 Physicaltargetreceipt skal binde det faktiske fulle native-designet før
 nativeadmission; ingen midlertidig data-design. TRAIN-fit trenger ingen targets.
 Normaliserings-/nativeadmission gjenstår. Normaliseringskilden har nå en

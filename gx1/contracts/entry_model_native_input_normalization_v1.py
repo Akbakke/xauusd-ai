@@ -675,13 +675,14 @@ def _population_transformed_extrema(
     parts: Sequence[tuple[np.ndarray, np.ndarray | None, str]],
     *,
     width: int,
+    field_names: Sequence[str],
     center: np.ndarray,
     scale: np.ndarray,
     binary_mask: np.ndarray,
     categorical_mask: np.ndarray,
     column_chunk: int,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Measure exact TRAIN output support without changing any observation."""
+    """Measure exact TRAIN output support, including source-owned hard masks."""
 
     transformed_min = np.full(int(width), np.inf, dtype=np.float64)
     transformed_max = np.full(int(width), -np.inf, dtype=np.float64)
@@ -724,6 +725,31 @@ def _population_transformed_extrema(
                 transformed_max[start:stop],
                 transformed.max(axis=0),
             )
+    observation_pairs = dict((
+        *_gc_context.masking_pairs(field_names),
+        *_micro_context.range_observation_masking_pairs(field_names),
+    ))
+    population_rows = sum(
+        len(matrix) if indices is None else len(indices)
+        for matrix, indices, _source in parts
+    )
+    for value_index, mask_index in observation_pairs.items():
+        raw_value = _materialize_population_columns(parts, total_rows=population_rows,
+            start=value_index, stop=value_index + 1)[:, 0]
+        mask = _materialize_population_columns(parts, total_rows=population_rows,
+            start=mask_index, stop=mask_index + 1)[:, 0]
+        if not np.isin(mask, (0.0, 1.0)).all() or np.any(raw_value[mask == 0.0] != 0.0):
+            raise RuntimeError('ENTRY_INPUT_OBSERVATION_MASKED_STORAGE_INVALID')
+        if binary_mask[value_index] or categorical_mask[value_index]:
+            transformed = raw_value.copy()
+        else:
+            transformed = np.arcsinh(
+                (raw_value - float(center[value_index])) / float(scale[value_index])
+            )
+        transformed[mask == 0.0] = 0.0
+        transformed_min[value_index] = transformed.min()
+        transformed_max[value_index] = transformed.max()
+
     if (
         not np.isfinite(transformed_min).all()
         or not np.isfinite(transformed_max).all()
@@ -976,26 +1002,13 @@ def fit_surface_normalization(
     transformed_min, transformed_max = _population_transformed_extrema(
         parts,
         width=width,
+        field_names=names,
         center=center,
         scale=scale,
         binary_mask=binary_mask,
         categorical_mask=categorical_mask,
         column_chunk=effective_column_chunk,
     )
-    for value_index, mask_index in observation_pairs.items():
-        raw_value = _materialize_population_columns(parts, total_rows=population_rows,
-            start=value_index, stop=value_index + 1)[:, 0]
-        mask = _materialize_population_columns(parts, total_rows=population_rows,
-            start=mask_index, stop=mask_index + 1)[:, 0]
-        if binary_mask[value_index] or categorical_mask[value_index]:
-            transformed = raw_value.copy()
-        else:
-            transformed = np.arcsinh(
-                (raw_value - float(center[value_index])) / float(scale[value_index])
-            )
-        transformed[mask == 0.0] = 0.0
-        transformed_min[value_index] = transformed.min()
-        transformed_max[value_index] = transformed.max()
 
     stats_hash = _stats_sha256(
         field_names=names,
@@ -1298,6 +1311,7 @@ def share_temporal_alias_stats_from_signal(
     transformed_min, transformed_max = _population_transformed_extrema(
         parts,
         width=width,
+        field_names=ctx_names,
         center=center,
         scale=scale,
         binary_mask=binary,
