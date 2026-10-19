@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — 080 feilet før måling; avgrenset 081-kilderettelse
+## Aktuell grense — 081 kvalifisert; ny CPU-fresh082 er bundet
 
 080 er konsumert FAILED_NO_ADMISSION. Native exit1 kl.16:32:51UTC19.10:
 CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH ved coordinatorens cutoffkontroll.
@@ -92,8 +92,17 @@ er AST-identiske. SOURCE_REVIEW SHA60ab082cce967296cb165f80d5b4d5c5a1050da6c60d1
 Ingen ny native campaign, modellmåling eller trening er innrømmet;
 training_enabled=false. 074/076/079/080 og øvrige konsumerte planer relanseres aldri.
 
-Neste: publiser ny faktisk kildebundet freshstate etter081 og bind en ny eksakt
-initial0campaign med gjeldende maskinvare-/bootporter. Deretter kreves ekte
+082 er en ny engangs CPU-fresh med samme055/057/059inputs, kompaktprofil og
+kanoniske produsent.081current-review binder de3endrede eiernes nye bytes;
+gamle067/072/075/077/078originaler bevares innen uendret scope. Begge082script
+er uavhengig kildekontrollert; ingen kode/profil/data/vekter erstattes skjult.
+PLAN: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_CONTROL_BOUND_20261019_082/PLAN.json
+SHA21eb8e6f503f80413e01fe3817de0f877f8eb693181309a046bc1972ed7af171.
+Utfør082 én gang fra ren kilde/policy og hold fryst til terminal. Ingen Dataset,
+modellforward, update eller normaliseringsfit.083er bare fremtidig utsti.
+
+Neste etter faktisk082terminal: bind ny eksakt initial0campaign med gjeldende
+maskinvare-/bootporter. Deretter kreves ekte
 initialbaseline/konsum/latency/minne, separat faktisk paritet og Entry-only
 optimizer/resume med4 private tekniske updates/4paritetsforwards, før den
 bestilte ene nativeepoken. Individuelle formel-/enhets-/warmup-referanser,
