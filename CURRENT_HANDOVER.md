@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — 073 ny kildebundet CPU-klargjøring, ingen modellstart
+## Aktuell grense — 073 fullført, ny 074 initialmåling skal klargjøres
 
 071 er konsumert og ble kontrollert stoppet 11:08:48 UTC før modellstart.
 Preflight gjenhashet samme TRAIN-fil: 427217476879 rchar, men bare 58176
@@ -87,15 +87,24 @@ Faktisk storfil-preflight-tid etter rettelsen er ennå ikke målt.
 
 ## Neste nødvendige steg og ærlige grenser
 
-1. 072 er committet og pushet som 47debf30; ren kilde/handover og obligatoriske
-   porter bestod (10 guard-/61 nativekontraktcaser). Ny 073-plan binder én
-   faktisk CPU-fresh-publisering gjennom eksisterende produsent, med samme
-   055-normalisering, 057-data/cohorts, 059-kost og profil. Ingen refit, gamle
-   vekter, forward eller optimizersteg. Kode/policy fryses før engangskjøringen.
-   Runrot: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREFLIGHT_BOUND_20261019_073.
-2. Etter gyldig 073-freshstate: bind NY 074 eksakt initial0-campaign med 256 TRAIN +
-   256 CONTROL, 32 encoderforwards og 0 steg, etter ferske maskinvare-/bootporter.
-   Mål faktisk felt-/maske-/MTF-konsum, komponenter, latency/minne og actionspor.
+1. 073 fullførte faktisk 11:38:42 UTC på 266.187 s, exit0/uendret 73f260bc.
+   TERMINAL SHA ff4ff9d512907cfe487e8344c5f52dbdae11d14f1340080d9ffec1e7c648221d.
+   INITIALIZATION SHA 5a9e7f05585cc0f0e55e26ce3f1e623f767e1f4023c345dabe00069d94c855a1;
+   MEASUREMENT SHA 44580d7ee1b9b47384d5e2d6cb14deca39379e531124d5aaeeda0df2be2e132d.
+   Alle 182 kildebindinger/181 unike filer og statfelt er kontrollert. Closure
+   SHA 188fdf14a738829f0d412a9194a5db539578e3a7fac1bf653b5393686a1adaea.
+   Fersk ONLINE=anchor=EMA0, tom optimizer og streng CPU-roundtrip bestod.
+   Ingen gamle vekter, modellforward, steg, refit, Exit, TEST eller broker.
+   Behold original073; engangsplanen er konsumert og relanseres aldri.
+2. Ny 074-plan binder 256 TRAIN + 256 CONTROL, 32 encoderforwards og 0 steg.
+   Materialiser ny campaign fra073s eksakte constructor/observedPLAN/11files,
+   kildeclosure, initialization/measurement og uendrede055/057/059-kilder.
+   Runrot: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074.
+   Kun statusdokumenter endres; ingen Pythonendring eller ny CPUfresh er nødvendig.
+   Faktisk prepared Boot504 er lest; ferske maskinvareporter og NY fysisk boot
+   kreves etter materialisering før native. 070-controller/caps er uendret.
+   Eldre069-timing er historisk, ikke målt074fart. Mål faktisk felt-/maske-/MTF-
+   konsum, komponenter, latency/minne og actionspor i den nye initialmålingen.
 3. Deretter separat faktisk paritet og Entry-only optimizer/resume med fire
    private tekniske updates og fire paritetsforwards, ingen CONTROL-updates
    eller gjenbruk av kvalifiseringsvekter. Først så den bestilte nativeepoken.
