@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-19T09:57:26.252214+00:00",
-  "status": "075_REPAIR_ACTUAL_HALF_OPEN_WINDOW_BINDING_AFTER_FAILED074",
+  "status": "076_BOUND_CPU_ACTUAL_DATASET_BINDING_AFTER_SOURCE_WINDOW_FIX",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "075sourcewindowrepairqualified178PASS; actualCPUdatasetbindingpending before newnativecampaign.",
+    "current_activity": "076exact cappedCPUphysicalDataset/target rejoin next;075sourcewindowrepair178PASS andpushcomplete.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,14 +112,14 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "FAILED_CONSUMED_NATIVE_INITIAL_PRE_MODEL",
+    "latest_terminal_role": "SOURCE_ONLY_WINDOW_REPAIR_178PASS_NOT_GENUINE_MODEL",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074/FAILED_OBSERVATION_HANDOVER_TERMINAL.json",
-      "sha256": "5910ce47de24e9de16383fccc858b907b6fc5bc2d86a18d938be1c5118a51a10"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PHYSICAL_WINDOW_BINDING_REPAIR_20261019_075/SOURCE_QUALIFICATION_RECEIPT.json",
+      "sha256": "7f5f6f146336dccc652f06245a76ff6d82671d03238785dfc063ece32feb4357"
     },
-    "terminal_exit_code": 1,
-    "source_unchanged_at_terminal": null,
+    "terminal_exit_code": 0,
+    "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -509,7 +509,7 @@
       "elapsed_seconds": 1016.7850262550019,
       "peak_rss_kib": 16341716
     },
-    "fresh_native_initial_state_complete": true,
+    "fresh_native_initial_state_complete": false,
     "native_initial_measurement_20261009": {
       "status": "COMPLETED_VERIFIED_NO_RELAUNCH",
       "policy_scope": {
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run one new source-bound capped CPU two-role actual Dataset/target binding qualification with zero model forwards/updates; then fresh current-source initialization and exact new native campaign. Never relaunch074.",
+    "next_action": "Run076once under4G/512M CPUaudit with exactcleancommit/policy/plan/controller/worker182sourcebindings. No model or optimizer; then newsource-bound freshstate/nativeinitial after actualPASS.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -12891,6 +12891,35 @@
           },
           "new_regression_cases": 10,
           "source_unchanged_during_qualification": true
+        },
+        "actual_dataset_binding_preflight_stage_076": {
+          "status": "PLANNED_EXACT_CPU_TWO_ROLE_ACTUAL_BINDING_ZERO_MODEL",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076",
+          "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076/PLAN_REVIEWED.json",
+          "plan_sha256": "5f08b8fbaa71afad20b045e951f2ac6404dbb80cf1f54b2dc88a310125656cc8",
+          "execution_authorized": true,
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "relaunch_allowed": false,
+          "prelaunch_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076/PRELAUNCH_REVIEW.json",
+            "sha256": "36033d726b8988c1c6c74961804666784c0454ca22a3f2ff4f13cda02c5ff606"
+          },
+          "entry_execution_profile": {
+            "name": "compact_mbp_smc_ema_atr_clock_macro_entry_v1",
+            "contract_sha256": "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125"
+          },
+          "scope": "One actualCPU TRAIN/CONTROL Dataset loading and exact existing auxiliary/observed binding to catch measured074 failure before any new nativecampaign. Reuse original051/055/057/059data and073constructor. Each role processed then memory released, no pruning/value rewrite. No model construction/forwards/updates/normalizationfit/newdataset/nativeadmission. Prior074recipe gives immutable data inputs only, not executable/native authority.",
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "model_constructed": false,
+          "model_forwards_allowed": 0,
+          "optimizer_steps_allowed": 0,
+          "normalization_fit_enabled": false,
+          "physical_dataset_rebuild_allowed": false,
+          "test_data_used": false,
+          "broker_access_allowed": false,
+          "exit_evaluation": false
         }
       },
       "operator_pc_reboot_20261018": {

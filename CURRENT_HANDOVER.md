@@ -91,7 +91,10 @@ SHA dc12ed3a44a3c99788603739307a67e969013aa1860a10b018c8e9e90bfb2557.
 Øvrig produksjons-AST og alle eksisterende testfunksjoner er identiske.
 SOURCE_REVIEW SHA 395804febc28c1d67ceeb7d683121fb29ebf91e11473f3fe60002a5954d4820b.
 Neste steg er fokuserte TRAIN/CONTROL-regresjoner og faktisk source-bundet
-CPU Dataset-/målbinding før ny profilbundet freshstate/initialmåling. Ingen
+CPU Dataset-/målbinding før ny profilbundet freshstate/initialmåling. 076 binder nå én CPU-audit av begge faktiske Dataset-/targetkoblinger,
+4G/512M, uten modellkonstruksjon/forward/updates/refit eller ny rebuild.
+Plan: /home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_DATASET_BINDING_PREFLIGHT_20261019_076/PLAN_REVIEWED.json
+SHA 5f08b8fbaa71afad20b045e951f2ac6404dbb80cf1f54b2dc88a310125656cc8. Ingen
 ny native campaign er innrømmet; training_enabled=false. Gjentatte storfil-
 kontroller er målt, men de er faste per datasett, ikke per rad/horisont.
 
