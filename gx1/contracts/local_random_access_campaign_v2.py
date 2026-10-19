@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import stat
 import subprocess
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterator, Mapping, Sequence
 
 PLAN_SCHEMA = "gx1_local_random_access_campaign_v2"
 INVOCATION_SCHEMA = "gx1_local_random_access_invocation_v2"
@@ -51,12 +54,71 @@ def canonical_sha256(value: Any) -> str:
     return hashlib.sha256(canonical_bytes(value)).hexdigest()
 
 
-def file_sha256(path: Path) -> str:
+_FileIdentity = tuple[int, int, int, int, int, int]
+_FILE_VERIFICATION_MEMO: ContextVar[dict[tuple[str, _FileIdentity], str] | None] = (
+    ContextVar("campaign_file_verification_memo", default=None)
+)
+
+
+@contextmanager
+def file_verification_scope() -> Iterator[None]:
+    """Reuse stable physical digests only within one validation operation."""
+    if _FILE_VERIFICATION_MEMO.get() is not None:
+        yield
+        return
+    token = _FILE_VERIFICATION_MEMO.set({})
+    try:
+        yield
+    finally:
+        _FILE_VERIFICATION_MEMO.reset(token)
+
+
+def _file_identity(info: os.stat_result) -> _FileIdentity:
+    return (
+        info.st_dev,
+        info.st_ino,
+        info.st_mode,
+        info.st_size,
+        info.st_mtime_ns,
+        info.st_ctime_ns,
+    )
+
+
+def _file_sha256_uncached(
+    path: Path, *, identity: _FileIdentity, scoped: bool
+) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
+        if _file_identity(os.fstat(handle.fileno())) != identity:
+            raise RandomAccessCampaignError("file changed during SHA-256 verification")
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
+        if _file_identity(os.fstat(handle.fileno())) != identity:
+            raise RandomAccessCampaignError("file changed during SHA-256 verification")
+    # Check the pathname as well as the open inode: replacement during a read
+    # must not leave a digest associated with the replacement's identity.
+    if scoped:
+        current = _regular(path, "file verification").lstat()
+    else:
+        current = path.stat()
+    if _file_identity(current) != identity:
+        raise RandomAccessCampaignError("file changed during SHA-256 verification")
     return digest.hexdigest()
+
+
+def file_sha256(path: Path) -> str:
+    memo = _FILE_VERIFICATION_MEMO.get()
+    if memo is None:
+        # Preserve the public unscoped path semantics, including relative paths
+        # and symlinks; binding callers retain their stricter _regular checks.
+        identity = _file_identity(path.stat())
+        return _file_sha256_uncached(path, identity=identity, scoped=False)
+    path = _regular(path, "file verification")
+    identity = _file_identity(path.lstat())
+    key = (str(path), identity)
+    if key not in memo:
+        memo[key] = _file_sha256_uncached(path, identity=identity, scoped=True)
+    return memo[key]
 
 
 def _sha(value: Any, label: str) -> str:

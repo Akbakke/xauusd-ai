@@ -21,6 +21,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     canonical_bytes,
     canonical_sha256,
     file_sha256,
+    file_verification_scope,
     require_boot_identity,
     require_plan,
 )
@@ -790,6 +791,27 @@ def materialize_native_candidate_campaign(
     selection_path: Path | None = None, selection_file_sha256: str | None = None,
     recipe_path: Path, recipe_file_sha256: str, window_count: int,
 ) -> dict[str, Any]:
+    with file_verification_scope():
+        return _materialize_native_candidate_campaign_operation(
+            repo=repo, output=output, runtime=runtime, gpu_uuid=gpu_uuid,
+            prepared_boot_path=prepared_boot_path,
+            prepared_boot_file_sha256=prepared_boot_file_sha256,
+            certificate_path=certificate_path,
+            prior_campaign_path=prior_campaign_path,
+            prior_campaign_file_sha256=prior_campaign_file_sha256,
+            selection_path=selection_path, selection_file_sha256=selection_file_sha256,
+            recipe_path=recipe_path, recipe_file_sha256=recipe_file_sha256,
+            window_count=window_count,
+        )
+
+
+def _materialize_native_candidate_campaign_operation(
+    *, repo: Path, output: Path, runtime: Path, gpu_uuid: str,
+    prepared_boot_path: Path, prepared_boot_file_sha256: str, certificate_path: Path,
+    prior_campaign_path: Path | None = None, prior_campaign_file_sha256: str | None = None,
+    selection_path: Path | None = None, selection_file_sha256: str | None = None,
+    recipe_path: Path, recipe_file_sha256: str, window_count: int,
+) -> dict[str, Any]:
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         NATIVE_KIND, NATIVE_MODULE, NATIVE_PHASE, WINDOW_SCHEMA,
@@ -928,6 +950,11 @@ def materialize_native_candidate_campaign(
 
 
 def main(argv: list[str] | None = None) -> int:
+    with file_verification_scope():
+        return _main_operation(argv)
+
+
+def _main_operation(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--phase",

@@ -247,3 +247,18 @@ genuin konsumkvalifisering gjenstår. Sourcekvitteringen skiller opprinnelig
 377PASS/3FAIL fra smale test-only repairs uten produksjonsendring. Ny profilbundet freshstate/initialbaseline kreves
 før trening;060fullprofilutkast startes ikke. Computegeometri er ikke målt
 latency eller ekstra budsjett.
+
+
+Metadataeffektivitet19.10:063forberedelsen ble kontrollert stoppet etter
+3146.821s og målt1.77TB lesing fra gjentatte bindingkontroller, før en eneste
+modellforward.067er kildekvalifisert med259PASS inkl23nye caser og gjenbruker
+bare faktisk målt fildigest innen én eksplisitt
+valideringsoperasjon, med fersk canonicalpath-/filidentitet og alle opprinnelige
+forventetSHA-/regular-/symlink-/kilde-/scopeporter på hvert kall. Ny operasjon
+og filendring krever ny fysisk hash; ingen varig cache eller adgang gis av
+memoen. Kvalifiser feil/mutasjonsgrensene og mål ekte inspect-kjøretid før ny
+campaign. Pythonkildeendring krever ny source-bound freshstate; ingen ny
+normaliseringsfit, modell-/targetendring eller ekstra læringsarm følger av dette.
+
+067sourcePASS er ikke faktisk storfil-timing eller modellkonsum. Ny068CPUfresh
+og ny069initial0 kreves; konsumerte063/066 relanseres ikke.

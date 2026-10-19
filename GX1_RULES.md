@@ -89,6 +89,13 @@ None beholder fullmodellen. Full fysisk055validering kommer før intern gather;
 aktive rapporteringsgater må følge samme profil. Syntetiske rute-/gradienttester
 er ikke genuin konsum-/latency-/læringsmåling.
 
+Kvalifisert filhashgjenbruk er avgrenset til én eksplisitt valideringsoperasjon:
+første faktiske SHA bindes til stabil canonicalpath/dev/inode/mode/size/mtime_ns/
+ctime_ns, kontrollert før/etter lesing. Hvert kall kontrollerer fortsatt filtype,
+symlink, aktuell identitet og forventetSHA samt alle semantiske porter. Ny
+operasjon eller endret identitet krever fysisk hash på nytt. Ingen varig cache
+eller treningsadgang følger av dette; reell metadata-kjøretid skal måles.
+
 ## Én kodebase, avgrensede agentoppgaver
 
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre

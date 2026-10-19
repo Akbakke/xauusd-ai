@@ -71,7 +71,7 @@ Faktiske immutable bevis ligger i GX1_RUNS-røttene055/057/058/059/060 og
 policyen. Tidligere056/058sourcekvitteringer beholdes og gjenbrukes for
 uendrede kontrakter. De beviser ingen ny kompakt modellfunksjon.
 
-## Aktuell:066fresh ferdig;063 nullstegsmåling skal bindes
+## Aktuell:063 metadata stoppet kontrollert;067 retter målt hashgjentakelse
 
 Profil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, eksplisitt referanse
 `{name,contract_sha256}` i recipe, konstruktormetadata, modell og state.
@@ -160,30 +160,50 @@ MEASUREMENT_BINDING SHA6c418679824865df322889177d0dfe2d15458a817fc354f49436767e1
 Alle182aktuelle kildebytes/stat er kontrollert og binder
 efd07ddcf6f6c46e2a2736d209a861ad234db6e3545460d6400ebc3154309513.
 Tom optimizer, EMA0/scheduler/RNG og strictCPUroundtrip bestod;0forwards/
-steps/refits/Exit/TEST/broker.066er konsumert, ingen relaunch.063er planlagt
-med0steps og32encoderforwards, men er ikke startet.064/066originaler bevares.
+steps/refits/Exit/TEST/broker.066er konsumert, ingen relaunch.063native
+initial0 ble aldri startet;064/066originaler bevares. Ny067Pythonkilde krever
+ny source-bound freshpublisering før senere initial0.
 Kun dupliserte wrapperpreflights er fjernet i066; samme canonical produsent
 validerer fortsatt constructor/observed/physical/fullsource før fresh modell.
 
-## Neste nødvendige steg
+## Målt kontrollplansproblem og neste nødvendige steg
 
-1. Bind063recipe og nullstegsbudsjett til faktisk066freshstate, de samme elleve
-   inputfilene/055normalisering,057design/koordinater og uendrede182kilder.
-   Top-policy chronological_initial_measurement binder nøyaktig samme scope;
-   training_enabled=false. Ingen ny sourceendring eller freshprep er nødvendig
-   for bare policy/docs/nyHEAD når bytes/stat i hele closure er identiske.
-2. Materialiser én ny native campaign gjennom eksisterende capped eier.
-   Verifiser faktisk signert Windows/GPU-telemetri, guard/cert/controller og
-   ny fysisk boot etter ny prepared-boot; først etter maskinvid idle/writer-
-   kontroll. Dette er en ny før-native-port, ikke gjentatt18.10-brukeromstart.
-3. Kjør063én gang:256TRAIN+256CONTROL,16encoderforwards per cohort,0steps.
-   Bevar state/RNG/pointer, mål faktiske felt-/value-mask-/MTF-stier og
-   komponentmasker, latency/peakminne og etterprøvbare LONG/SHORT/FLAT-spor.
-4. Først deretter bind én særskilt teknisk kvalifisering: fire private updates
-   (to mot ett+varig reload+ett) og fire paritetsforwards, ingen CONTROLupdates
-   eller gjenbrukbare vekter. Krever eksakt policy/campaign og faktisk nyboot.
-5. Etter faktiske porter kan én full7391steps nativeepoke starte. Ingen ekstra
-   epoke, VAL-refresh/top-K eller økonomisk checkpointutvalg; siste ONLINE.
+063metadata-klargjøring ble kontrollert stoppet08:58:52UTC etter3146.821s,
+exit143/uendret5289e749. PID24786 fikk SIGTERM, alle fire egne prosesser er
+borte. Ingen nativeinvokasjon, modellforward, optimizersteg eller nyboot.
+TERMINAL SHAe52530d63051e90ff426e5778db77a0cbea0a5d3fd81f0af4861f383d8c9152c.
+Prosessmåling08:58:01 viste1,771,533,517,240bytes lest av prosessen og
+1,724,565,634,742fysiske readbytes, RSS741796KiB/CPU96.5prosent. Samme
+TRAINparquet var åpen. KvitteringSHA76bbb5aec740e05c40fb1d1e5ededf09c9b4869ec67a63cda90bcf94a67078b7.
+Materializer/prefix/witness/budsjett/kohort gjenhasher samme19.146GB TRAIN
+mange ganger.063er konsumert, aldri relaunch; delvisCAMPAIGN er ikke gyldig.
+Alle originale filer beholdes. Top-policy initialadgang er fjernet.
+
+067kilderettelsen bestod09:09:11UTC:259PASS/0FAIL/0ERROR/0SKIP på77.158s,
+inkludert alle23nye hash-/CLI-integrasjonscaser. Eksisterende testfiler og alle
+tre opprinnelige operasjonskropper/signaturer er uendret. Uavhengig review fant
+ingen konkret feil. SOURCE_QUALIFICATION_RECEIPT SHAa759947597537976a23e99abd6b211f3ff5fb922a23184a167887f31c72f39ce;
+SOURCE_REVIEW SHA99bedc4e349e3ff1a926d6f388f73a4417e0d7bb93f90d28d998150e45a0f932.
+Faktisk storfil-tid er ennå ikke målt; ingen genuin modellforward eller trening.
+Kvalifiseringsjobben er avsluttet og konsumert. Neste er ny kildebundet068
+CPUfreshstate, deretter ny069initial0/campaign;063/066 relanseres aldri.
+
+1.067har rettet bare denne målte gjentakelsen: eksplisitt filverifiseringsscope
+  rundt én hel eksisterende CLI-/materializeroperasjon. Første faktiske
+  digest bindes til canonicalpath/dev/inode/mode/size/mtime_ns/ctime_ns med
+  stabilitet før/etter lesing. Hvert kall beholder regular/symlink/stat,
+  forventetSHA og alle semantiske kilde-/scopeporter. Ingen varig cache.
+2.Mutasjon, feilSHA, inode-/symlinkbytte, scopelevetid og reell bindingkjede
+  er kildekvalifisert med259PASS. Ingen sourceendring fant sted under tester.
+3.Publiser deretter ny source-bound CPUfreshstate og ny initial0recipe/
+  campaign. Gjenbruk055normalisering/057data; ikke refit eller rebuild.
+  Mål faktisk metadata-inspect før Windowsinstallasjon/fersk fysiskboot.
+4.Kjør senere nøyaktig én initial0:256TRAIN+256CONTROL/32encoderforwards/
+  0steps etter nye eksakte native-/maskinvareporter. Bevar state/RNG/pointer,
+  mål felt-/value-mask-/MTF-konsum, komponenter, latency/minne og actionspor.
+5.Deretter separat teknisk kvalifisering med fire private updates og fire
+  paritetsforwards, faktisk varig reload, ingen CONTROLupdates/gjenbrukte
+  vekter. Først etter disse portene én full7391steps nativeepoke.
 
 Valgte og avståtte LONG/SHORT/FLAT må rapporteres med kvalitet og dekning.
 Gatevekter alene forklarer ikke beslutningen; alltidFLAT er ikke selektivitet.

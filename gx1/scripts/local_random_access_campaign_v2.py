@@ -22,6 +22,7 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     canonical_bytes,
     canonical_sha256,
     file_sha256,
+    file_verification_scope,
     next_action,
     require_boot_identity,
     require_binding,
@@ -637,6 +638,11 @@ def _require_running_cli(plan_path: Path, plan_file_sha256: str) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    with file_verification_scope():
+        return _main_operation(argv)
+
+
+def _main_operation(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("inspect", "begin", "prepare-reboot"):
