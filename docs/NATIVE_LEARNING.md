@@ -7,9 +7,12 @@ ikke relanser ferdige inputs, kapasitetstester eller engangsplaner.
 
 ## Før en modell kan startes
 
-Aktuell ren/committet/pushet kilde, fysiske inputs, valgt målt sampler,
-preprocessing og TRAIN-/CONTROL-koordinater må være eksakt bundet i den
-kanoniske recipe/campaign. Et separat finite native-vindu og eksisterende
+Aktuell ren/committet/pushet kilde, fysiske inputs, preprocessing og
+TRAIN-/CONTROL-koordinater må være eksakt bundet i kanonisk recipe/campaign.
+Dynamisk Entry-only binder faktisk hele TRAIN-populasjonen og kanonisk
+ordre via eget vitne; dette er ingen målt Exit-samplerbenchmark.
+Manifestets split-end er eksklusiv og kan være lik cutoff. Faktiske
+fit-/pris-/pointerklokker må fortsatt være strengt før riktig cutoff. Et separat finite native-vindu og eksisterende
 cgroup-/host-/GPU-vakter må faktisk godkjenne kjøringen.
 
 Fysisk omstart krever at alle prosjektjobber, writers, låser og GPU-beregninger

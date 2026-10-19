@@ -1,0 +1,190 @@
+{
+  "schema_version": "gx1_actual_dynamic_m5_native_bindings_v1",
+  "execution_ready": true,
+  "plan_id": "NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "created_utc": "2026-10-19T03:50:17.899505+00:00",
+  "one_shot_invocations": 1,
+  "max_wall_seconds": 7200,
+  "data_binding_enabled": true,
+  "normalization_fit_enabled": false,
+  "training_enabled": false,
+  "native_training_admitted": false,
+  "test_data_used": false,
+  "no_data_recompute": true,
+  "source_frozen_while_running": true,
+  "run_id": "XAU_GC_NATIVE_26M_20261018_003",
+  "train_start_utc": "2024-05-01T00:00:00+00:00",
+  "train_end_exclusive": "2026-01-01T00:00:00+00:00",
+  "val_end_exclusive": "2026-04-01T00:00:00+00:00",
+  "later_development_end_exclusive": "2026-07-01T00:00:00+00:00",
+  "test_boundary_utc": "2026-07-01T00:00:00+00:00",
+  "shared_quote_binding": {
+    "authority": {
+      "authority_mode": "pretest_quote_complete_native_v1",
+      "base28_native_m1_subset_proof": {
+        "method": "exact_quote_complete_pretest_rows_are_native_m1_subset_v1",
+        "proof_sha256": "d938827ef160896f0a27a5cea86bd60e0e8eb5a3561cc0aeb7f1bc006c5e8aab",
+        "rows": 5959045,
+        "years": {
+          "year=2009": {
+            "canonical_rows_sha256": "cdeb2f8267d03c554da58691becec27bc92fb21848db92779b85d8cb5904e87a",
+            "rows": 203075
+          },
+          "year=2010": {
+            "canonical_rows_sha256": "67176967ea0aa867aa3ddc33f27ffab9175b100c1283bd5d6ee82f33af7ec13f",
+            "rows": 345149
+          },
+          "year=2011": {
+            "canonical_rows_sha256": "0502801080e66d4f902537b80f17262d14f88e78eab0a533c727de4d405db1b5",
+            "rows": 352256
+          },
+          "year=2012": {
+            "canonical_rows_sha256": "c4321fb6dfd404c8b6b2747cbe1044948f94aa17e64e5209892f16ec9a94d8f8",
+            "rows": 344835
+          },
+          "year=2013": {
+            "canonical_rows_sha256": "7d55f5db0e241035ce1a7ea5042454b2904bfb6f9468a1b439f03ea2d9d2ae62",
+            "rows": 354929
+          },
+          "year=2014": {
+            "canonical_rows_sha256": "99ece9ade399495657dfb2b7dfc887b1dfe321dbc85044a763361e4dbdb6123b",
+            "rows": 347900
+          },
+          "year=2015": {
+            "canonical_rows_sha256": "2dbc04f2a692450c623d254b73241f27d35a1538b55f86f6882bf6ddc9aa6bef",
+            "rows": 339012
+          },
+          "year=2016": {
+            "canonical_rows_sha256": "40035ab6c7aa947cd798cc22d28f434c0f94ff8ecdaeb36c0cc669af7c470bd7",
+            "rows": 348283
+          },
+          "year=2017": {
+            "canonical_rows_sha256": "10309ad01f6242fb66d6fca15b6a17eb16324753eec37eaf2751fd3521d0cac1",
+            "rows": 345095
+          },
+          "year=2018": {
+            "canonical_rows_sha256": "94efe90384bd98ab0bf3d8fb3502e863d4b84fb30265b053dee9d86577375872",
+            "rows": 349977
+          },
+          "year=2019": {
+            "canonical_rows_sha256": "9db8de93196d08d9d2e21056ca8d80dad51889077055c6c543ac7a21eb4e12ba",
+            "rows": 337096
+          },
+          "year=2020": {
+            "canonical_rows_sha256": "764653211c29ccf4707fb20416a0b18dd05278f8dd323558491ac5ad61c6fcfd",
+            "rows": 352841
+          },
+          "year=2021": {
+            "canonical_rows_sha256": "c81b0f24c48151547199d39e94e1cf182117e1df39a8d2f5e949522caa6868c0",
+            "rows": 351435
+          },
+          "year=2022": {
+            "canonical_rows_sha256": "3e6e6c0257dc2ff82c99eabcf00225e1d1166988ad99e44b2a8440c143e496bb",
+            "rows": 352677
+          },
+          "year=2023": {
+            "canonical_rows_sha256": "35c8de3738ab4fbc3199a5e4a8f5d85519612733db7e19e28009a51563219070",
+            "rows": 351962
+          },
+          "year=2024": {
+            "canonical_rows_sha256": "920ed92449bb760c0675e5faf7492c1495a2c1822e11a93b0205426a9ccfb524",
+            "rows": 354866
+          },
+          "year=2025": {
+            "canonical_rows_sha256": "2e24fa5492e0054852083f79182ed1d687dd187a5f475e773cd3e60272ad2b02",
+            "rows": 353499
+          },
+          "year=2026": {
+            "canonical_rows_sha256": "43fc5b7b83487f3f268785971dd1e659e05c2724859a84f7dad829a10b1c0eaf",
+            "rows": 174158
+          }
+        }
+      },
+      "m1_source_manifest_path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "m1_source_manifest_sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d",
+      "m1_source_path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "m1_source_rows": 5959045,
+      "m1_source_sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c",
+      "native_m1_canonical_rows_sha256": "118ee8666ae74a2a59682a7471d07a0527e08019867886bfed4dc9236cd20e08",
+      "native_m1_completion_field": "complete",
+      "native_m1_completion_value": true,
+      "native_m1_manifest_path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "native_m1_manifest_sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39",
+      "native_m1_market_closure_contract": "oanda_complete_true_scheduled_weekly_closure_excluded_v2",
+      "native_m1_producer_source_inventory_sha256": "eef0c680f974a560bc93251d3e2839a6702585af0cb1244ac4745e3870233481",
+      "native_m1_requested_end_utc_exclusive": "2026-07-01T00:00:00+00:00",
+      "native_m1_root": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927",
+      "native_m1_source_chunks_sha256": "e43d831f2d6561b4ae14263a0d4051bdcd605d9830719cd0b56aea33794f5b1d",
+      "native_m1_time_max_utc": "2026-06-30T23:59:00+00:00",
+      "pair_generation_id": "819bfab55de529d0b139285b4dd80766fbdf6dc13040957edbd50a8a3f092f25",
+      "pair_generation_root": null,
+      "pair_lineage_schema_version": "gx1_pretest_native_pair_lineage_v3",
+      "pair_manifest_path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/PRETEST_PAIR.json",
+      "pair_manifest_sha256": "f6742b05f991d50a7fc927f69a26e42796a374dab4864db0b044bae49b394c2e",
+      "schema_version": "gx1_unified_exit_native_pair_m1_authority_v1",
+      "test_accessed": false,
+      "test_boundary_utc": "2026-07-01T00:00:00+00:00"
+    },
+    "authority_sha256": "705b6479287337cc6f10a2949c873fb0968b5940739e20d831e9220f6aa177b4",
+    "clock_sha256": "4e01a0d7dc62117a601a2d183c17f2f35d9efb8f98a85b00498ab2a50e329e0e",
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+    "rows": 5959045,
+    "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c",
+    "size_bytes": 346710199
+  },
+  "input_bindings": {
+    "physical_metadata_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/RESULT.json",
+      "sha256": "ade97995e60b1766c95ad22dd6f1d9a486bbbd3aca395eb822ac479853e8a133"
+    },
+    "physical_metadata_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/TERMINAL.json",
+      "sha256": "91df71f6f30661097998eba226b12d731b35876d7bea4d459d559f22f1d9caea"
+    },
+    "source_reconstruction_bindings": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/SOURCE_RECONSTRUCTION_BINDINGS.json",
+      "sha256": "374b60be4899a88457f0ad45cbdd64557370b5957622a19c970f15a58141d31e"
+    },
+    "full_input_liveness": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_INPUT_LIVENESS_20261019_053/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20261019T015846331564Z.json",
+      "sha256": "f71298e96217f5ac6f773568f2bcd6fb74e715b828f92c4d8fc670daad962c1f"
+    },
+    "entry_only_base_normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
+      "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
+    },
+    "registry": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_049.json",
+      "sha256": "3e444777099a848cd8795688b57a19122d1ac5454f42902a3495e64aad73a757"
+    },
+    "normalization_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/RESULT.json",
+      "sha256": "69caa738a87f7b63b46d1e126e5c4fd97d9f66d4591d44c1bcc2d223937e8175"
+    },
+    "normalization_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/TERMINAL.json",
+      "sha256": "4e7a4c26430268528a1e2dc63b51d44ff9ce2fc7f4d873b89137a28b369e1f4b"
+    }
+  },
+  "design_prescope": {
+    "initialization_seed": 20260911,
+    "selection_seed": 20260911,
+    "control_split_salt": 1,
+    "sampler": {
+      "source_lineage_sha256": "d6bf1d2ddacf0260e6c23e0496f57086ddfcd3ba971e6fa34b4b433f58cf2ed0",
+      "transitions_per_entry": 1,
+      "transition_budget_per_epoch": 118249,
+      "entry_pair_population": 118249
+    }
+  },
+  "source_qualification": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/CONTROLLER_SOURCE_REVIEW_02.json",
+    "sha256": "980a587fd0cb574e6ae7bd0d66242fdabef6ec0d4116ad85c98612f46ee7ce6b"
+  },
+  "resource_owner": "Existing audit4G/512M CPU0-7 numericalthreads1 TasksMax64 CURRENTlock; one shared7200s controller deadline, never renewed per stage.",
+  "scope": "Publish canonical wholephysicalTRAIN rows/order/witness, one full native design, actual dynamic physical target receipt, native coordinates and fixed256TRAIN/control Entry cohorts. Reuse051numeric bytes/053liveness/055transform and existing strictowners. No feature/target/normalization fit, model execution, optimizer, Exit evaluation or native launch authority.",
+  "pending_after": "Actual new constructor metadata and dynamic recipe/campaign/initial/learning admission; fresh zero-step baseline, consumption/parity, Entry-only optimizer/resume/hardware before exactly one requested native epoch."
+}

@@ -792,6 +792,29 @@ def test_dynamic_physical_receipt_rejects_stale_or_false_physical_proof(dynamic_
 
 
 
+@pytest.mark.parametrize("end_after_cutoff", [False, True])
+def test_dynamic_physical_receipt_preserves_exclusive_declared_cutoff(
+    dynamic_physical_receipt, end_after_cutoff,
+):
+    from gx1.contracts.entry_model_native_aux_targets_v3 import require_m5_dynamic_physical_target_receipt
+    receipt, design_binding = dynamic_physical_receipt()
+    design = json.loads(Path(design_binding["path"]).read_text())
+    for split, key in (("train", "train_control_cutoff"), ("val", "development_control_entry_end_exclusive")):
+        design["calendar"]["source_bindings"][split]["declared_window"]["end"] = design["calendar"][key]
+    if end_after_cutoff:
+        design["calendar"]["source_bindings"]["train"]["declared_window"]["end"] = (
+            pd.Timestamp(design["calendar"]["train_control_cutoff"]) + pd.Timedelta(minutes=1)).isoformat()
+    design_binding = _write(Path(design_binding["path"]), design)
+    receipt["design"] = design_binding
+    if end_after_cutoff:
+        with pytest.raises(RuntimeError, match="M5_DYNAMIC_PHYSICAL_TARGET_PHYSICAL_WINDOW_INVALID"):
+            require_m5_dynamic_physical_target_receipt(receipt, design_binding=design_binding, context="TEST_DYNAMIC")
+    else:
+        actual = require_m5_dynamic_physical_target_receipt(receipt, design_binding=design_binding, context="TEST_DYNAMIC")
+        assert actual == receipt
+        assert actual["splits"]["train"]["first_prefix_observed_rows"] == 3
+
+
 def _dynamic_target_arrays(parent_rows):
     from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
     count, query_count = len(parent_rows), len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)

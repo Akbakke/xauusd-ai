@@ -435,7 +435,7 @@ def require_m5_dynamic_physical_target_receipt(
         if not isinstance(window, Mapping) or set(window) != {"start", "end"}:
             fail("PHYSICAL_WINDOW_INVALID")
         low, high = utc(window["start"]), utc(window["end"])
-        if high < low or high >= cutoff:
+        if high < low or high > cutoff:
             fail("PHYSICAL_WINDOW_INVALID")
         parquet = pq.ParquetFile(parquet_binding["path"])
         columns = ["time", *DYNAMIC_M5_POINTER_COLUMNS]

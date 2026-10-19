@@ -57,7 +57,7 @@ står ved lag etter alle aktuelle admissionporter, uten ny epoke/VAL-refresh.
   eller rankerrefit.050RESULT/SURFACE_BINDINGS binder eksakte stier/hasher.
   Dette gir ikke gjeldende fysisk splitmetadata eller inputadmission.
 
-## Aktuell status:055normalisering bestått,056kildekoblinger kvalifisert
+## Aktuell status:055/056bestått,057faktiske bindinger klargjort
 
 051gjeldende fysisk metadata og begge uttømmende seq/snap-rekonstruksjoner
 bestod på TRAIN118249/VAL17284.053full input-liveness bestod alle rader og
@@ -95,16 +95,21 @@ Fast siste ONLINE etter én faktisk hel epoke har egen policy: ingen VAL-/
 økonomisk seleksjon, score eller top-K. Eksisterende varig state beholdes.
 Ingen tung jobb kjører; training_enabled=false og nativeadmission=false.
 
-Physicaltargetreceipt må fortsatt binde SAMME faktiske fulle native-design
-som genuint epochwitness/budsjett.052har bare en inaktiv serializer, ingen plan,
-claim, design, receipt eller jobb. Ikke launch052. Fysisk targetreceipt og det
-nye native-designet bindes én gang før senere admission, uten midlertidig design.
+057er en ny engangsplan for faktiske bindinger: alle118249TRAIN-rader,
+kanonisk epochrekkefølge, vitne med7391batcher/siste9, ett fullt design, fysisk
+targetreceipt og direkte Entry-koordinater/cohorts. CONTROL256 velges med
+eksisterende uniformvelger/seed20260911/salt1 før utfall; TRAIN-probe bruker
+salt0 i fryst nativeordre.055transformasjonen gjenbrukes. Ingen modell eller fit.
+To målte grensefeil er rettet: manifestets eksklusive end==cutoff tillates,
+end>cutoff avvises. Faktiske pris-/pointer-/fitklokker må fortsatt være<cutoff.
+46fokuserte caser bestod på10.945s/uendret kilde.057har ikke claim/terminal ennå.
+052forblir inaktiv; ingen midlertidig designbinding eller relaunch.
 
 ## Native kjede som gjenstår
 
-1.056s avgrensede Entry-only-koblinger er kvalifisert i483unike caser.
-   Commit/push etter obligatoriske hooks. Gjenbruk faktisk055normalisering
-   og de beståtte uendrede data-/kildekontrollene; ingen repeterte fullsuiter.
+1.056er pushet på renc75f9d6a.057s minimale cutoff-rettelser og faktiske
+   bindingsplan committes etter obligatoriske hooks; kjør én capped audit
+   på fryst ren kilde. Ingen nativeadmission gis av denne publiseringen.
 2. Recipe-/kampanje-launch har fortsatt eksplisitt dynamic-PENDING-vakt.
    Ny faktisk Entry-only recipe-/fil-/budsjett-/målebinding må kvalifiseres.
    Initial-/learning-admission må eksplisitt forstå dynamic-coordinatepublication

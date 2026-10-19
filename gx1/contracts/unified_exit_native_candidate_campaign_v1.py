@@ -389,7 +389,7 @@ def _require_dynamic_entry_only_preprocessing(artifacts, *, design, normalizatio
         source = sources[split]; proof = labels["splits"][split]
         require(type(source["physical_rows"]) is int and source["physical_rows"] > 0
                 and utc(source["declared_window"]["start"]) == low
-                and low < utc(source["declared_window"]["end"]) < high
+                and low < utc(source["declared_window"]["end"]) <= high
                 and proof["source_parquet"] == source["parquet"] and proof["source_manifest"] == source["manifest"]
                 and proof["rows"] == proof["first_prefix_observed_rows"] == source["physical_rows"]
                 and proof["physical_clock_sha256"] == source["clock_sha256"]

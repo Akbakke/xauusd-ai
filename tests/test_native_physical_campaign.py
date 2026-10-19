@@ -309,3 +309,35 @@ def test_dynamic_preprocessing_rejects_wrong_normalization_or_input_proof(physic
         artifacts["normalization_result"] = _write(Path(artifacts["normalization_result"]["path"]), normalization)
     with pytest.raises(RuntimeError, match="NATIVE_PHYSICAL_PREPROCESSING_DYNAMIC"):
         native.require_physical_chronological_preprocessing(artifacts, design=design, normalization=normalization, labels=labels)
+
+
+@pytest.mark.parametrize("end_after_cutoff", [False, True])
+def test_dynamic_physical_declared_window_preserves_exclusive_cutoff(
+    physical_recipe, tmp_path, monkeypatch, end_after_cutoff,
+):
+    from pandas import Timestamp, Timedelta
+    from gx1.contracts import entry_model_native_aux_targets_v3 as auxiliary
+    artifacts, design, labels = _dynamic_preprocessing_case(physical_recipe, tmp_path, monkeypatch)
+    # This caller fixture isolates the calendar join. The aux-owner scanner
+    # separately proves every real pointer, raw bar and quote prefix stays before cutoff.
+    monkeypatch.setattr(auxiliary, "require_m5_dynamic_physical_target_receipt", lambda value, **kwargs: dict(value))
+    calendar = design["calendar"]
+    for split, key in (("train", "train_control_cutoff"), ("val", "development_control_entry_end_exclusive")):
+        calendar["source_bindings"][split]["declared_window"]["end"] = calendar[key]
+    if end_after_cutoff:
+        calendar["source_bindings"]["train"]["declared_window"]["end"] = (
+            Timestamp(calendar["train_control_cutoff"]) + Timedelta(minutes=1)).isoformat()
+    artifacts["design"] = _write(Path(artifacts["design"]["path"]), design)
+    labels["design"] = artifacts["design"]
+    artifacts["labels_result"] = _write(Path(artifacts["labels_result"]["path"]), labels)
+    normalization = json.loads(Path(artifacts["normalization_result"]["path"]).read_text())
+    assert Timestamp(normalization["contract"]["fit_end_utc"]) < Timestamp(calendar["train_control_cutoff"])
+    if end_after_cutoff:
+        with pytest.raises(RuntimeError, match="DYNAMIC_SOURCE_OR_POPULATION_MISMATCH"):
+            native.require_physical_chronological_preprocessing(
+                artifacts, design=design, normalization=normalization, labels=labels)
+    else:
+        checked = native.require_physical_chronological_preprocessing(
+            artifacts, design=design, normalization=normalization, labels=labels)
+        assert checked["physical_sources"] == calendar["source_bindings"]
+        assert checked["input_admission_complete"] is checked["native_training_admitted"] is False
