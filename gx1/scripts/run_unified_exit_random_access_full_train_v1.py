@@ -765,8 +765,10 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
             or not isinstance(observed_entry_scope, Mapping) or observed_entry_scope.get("training_phase") != phase
             or set(val_limits) != limits):
         raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_SCOPE_INVALID")
-    prefix = _require_prefix_component_bindings(chronological_prefix, files=files, seed=seed,
-        batch_size=batch_size, learning_rate=learning_rate, weight_decay=weight_decay)
+    # Metadata digests may be reused here; Dataset/model work starts after exit.
+    with file_verification_scope():
+        prefix = _require_prefix_component_bindings(chronological_prefix, files=files, seed=seed,
+            batch_size=batch_size, learning_rate=learning_rate, weight_decay=weight_decay)
     physical = prefix.get("physical_preprocessing", {})
     single = prefix.get("entry_m5_path_single_epoch")
     if (physical.get("entry_training_phase") != phase or single is None
@@ -1372,7 +1374,8 @@ def run_guarded_native_candidate_invocation(
             execution_budget=budget, recipe_file_sha256=recipe_file_sha256, invocation_started=started)
     if "chronological_initial_measurement" in recipe:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_initial_measurement
-        initial_scope = require_chronological_initial_measurement(recipe, execution_budget=budget)
+        with file_verification_scope():
+            initial_scope = require_chronological_initial_measurement(recipe, execution_budget=budget)
         _restore_prefix_initial_measurement_state(components=components, scope=initial_scope, device=device)
     if "chronological_learning_measurement" in recipe:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_learning_measurement

@@ -255,7 +255,11 @@ latency, minne og læringsfart må måles på den bundne ekte datakjeden.
 Gjentatt fysisk hashing av samme store fil innen én valideringsoperasjon
 unngås gjennom kontrakteierens eksplisitte `file_verification_scope()`.
 Dette gjelder eksisterende CLI/materializer og handover-/native-window-/
-full_train-preflight. Første faktiske digest bindes til canonicalpath, dev,
+full_train-preflight, samt avgrenset dynamic-prefix- og initialmetadata.
+Liveness-fildigest delegerer til samme verifiserte eier. Metadata-scopene
+lukkes før Dataset-/modellkonstruksjon og før initialstate restore; de går
+aldri gjennom modell-, batch- eller checkpointarbeid.
+Første faktiske digest bindes til canonicalpath, dev,
 inode, mode, size, mtime_ns og ctime_ns, kontrollert før/etter lesing. Hvert
 kall beholder filtype-, symlink-, identitets-, forventet-SHA- og semantiske
 kontroller. Scope lukkes før budsjettpublisering og modell-/statearbeid;
@@ -272,6 +276,12 @@ før initialmåling, også når modellmatematikken er uendret. Gjenbruk uendret
 normalisering/data, aldri gamle vekter. Endring utenfor closuren krever ingen
 slik republisering når alle bundne bytes/stat og kontraktroller er verifisert.
 Bind alltid en ny eksakt campaign og gjeldende maskinvare-/bootporter.
+Dynamic-coordinatorens kontrollcutoff velges fra samme SHA-bundne DESIGN-
+kalender som kohorteieren: `(train, train)` bruker `train_control_cutoff`,
+`(control, val)` bruker `development_control_entry_end_exclusive`. Andre
+rolle-/splitpar avvises. TRAIN-prefixets cutoff beholdes. Fysiske deklarerte
+vinduer kan slutte tidligere enn kalendergrensen; de erstatter derfor ikke
+kohortens targetcutoff. Per-horisont sensurering og øvrige bindinger beholdes.
 Klargjøringstid, preflight-tid, encoderforward-tid og treningstid rapporteres
 hver for seg. Aktuell status og kvitteringer står bare i NEXT_RUN_POLICY og
 CURRENT_HANDOVER; historikken finnes i Git.

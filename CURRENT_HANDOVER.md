@@ -59,77 +59,55 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — ny freshstate fullført, faktisk modellmåling gjenstår
+## Aktuell grense — 080 feilet før måling; avgrenset 081-kilderettelse
 
-075 rettet faktisk074feil: normaliser UTC-vinduer før likhet og tillat korrekt
-halvåpent declared_end<=cutoff bare i dynamic-grenen. Faktiske entryklokker må
-fortsatt være <cutoff; framtidsmasker, kilde-/cellebindinger og legacy består.
-178 tester PASS. SOURCE_REVIEW SHA
-395804febc28c1d67ceeb7d683121fb29ebf91e11473f3fe60002a5954d4820b.
+080 er konsumert FAILED_NO_ADMISSION. Native exit1 kl.16:32:51UTC19.10:
+CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH ved coordinatorens cutoffkontroll.
+Datasett/modell ble konstruert, men initialmåling, session/checkpoint-pointer,
+progress og canonical terminalreceipt ble ikke publisert. Ingen lærings-/
+forwardsgevinst er bevist. Controller2540 sluttet exit1 kl.16:38:29UTC;
+Windows-task Disabled kl.16:39:16UTC. OriginalACTIVE/logger bevares, ingen
+pointer/progress/receipt er fabrikkert. Separat faktisk feilobservasjon:
+/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_DATA_BINDING_BOUND_20261019_080/FAILED_OBSERVATION.json
+SHA845723e19d68d61163e2aac6ed9293dabbcdabd1ed9ef26b88f3a9bf24282847.
+Alle182kildebindinger/181unike filer/7138661bytes og statfelt ble kontrollert
+mot fryst8ca998bd før081; kilde/policy var uendret under080. Ingen nativeprosesser.
 
-076 er konsumert FAILED_NO_ADMISSION, exit1/source_unchanged=true,374.784s.
-Alle118249 TRAIN-rader bestod faktisk Dataset-/aux-/observed-kobling på264.349s.
-VAL17284 lastet, men CONTROL feilet på fraværende legacyfelt calendar.control256.
-057 binder allerede selection.control_entries=budget.later_control_entries=256
-og SHA-bundet CONTROL256_PARENT_ROWS. 077 fjernet kun det gamle feltoperand i
-CONTROLelse-grenen; hele øvrige produksjons-AST, TRAIN-sti og legacy er identiske.
-077:17 fokuserte PASS, inkludert3 nye avvisninger av feil kontrollantall.
-SOURCE_REVIEW SHA 5369d6ecca2bec46ce4bdcfb045c44967d63a076c53497c665a95bf9b321b833.
-076 terminal SHA 4a6d914b0f177c4260d69ad9fbddb11ef3d3b0b1433bd248b0191c2cb4b904c6;
-TRAIN-delbevis SHA ac34cb1221f2534b50f87250debf714902810f98311cb053a28e6c505bc74e00.
+Faktiske076TRAIN118249- og078VAL17284/CONTROL256-koblinger er bevart; de er
+separate databevis, ikke coordinator- eller modellmåling. 079CPU-fresh fullførte
+på265.962s uten forwards/updates/refit, med ONLINE=anchor=EMA0 og tom optimizer.
+Original079 er konsumert. Endret081closure krever ny faktisk kildebundet fresh-
+publisering; gamle vekter eller gamle initialstier kan ikke gjenbrukes som ny.
 
-078 fullførte faktisk CPU-kontroll: exit0/source_unchanged=true,251.976s.
-Alle17284 VAL-rader ble koblet med256 frosne CONTROL-rader gjennom canonical
-aux-/observed-eierne, med faktisk1minutts kilde-/maske-/pointer-rekonstruksjon
-og korrekt wholeTRAINregistry. TRAIN118249delbevis gjenbrukes fra076 med077AST-
-bevis for uendret TRAIN-sti. Dette er separate kjøringer, ingen samtidig
-Dataset-kapasitet eller modellkonsum er bevist. Original076 forblir FAILED.
-078 RESULT SHA 88200b95aa278f9dcea0bb10872be5e612a8713474fbe700d2aeb472070bc506;
-TERMINAL SHA 6490513affbc02f04bb48f86f3dc624ffc45fbd7540205b4cd9d6dd030edfaf7.
-ACTUAL_REPAIR_REVIEW SHA 7a9896a957320a0fd992ae48539e598e1ae1ac249d63c29f0b9e51a714d77a47.
-078 er konsumert og relanseres aldri. Modeller/forwards/updates/refits=0;
-ingen ny native campaign eller trening er innrømmet; training_enabled=false.
+081 retter bare den observerte coordinator-feilen og målte metadatahashinger.
+TRAINcutoff skal fortsatt være1.januar2026; CONTROL/VAL bruker1.april2026 fra
+sammeSHA-bundne DESIGN.calendar, med eksakt rolle/split. Ingen targetmasker,
+TRAIN-/TEST-tilgang eller legacy utvides. Liveness-digest bruker eksisterende
+verifisert hasheier; egne metadata-scopes lukkes før Dataset/modell/restore.
+Alle forventet-SHA/stat/innholds-/fullscan-kontroller består.199fokuserte tester
+bestod, inkludert14nye; ingen feil/SKIP og uendret kilde under116.838s kjøring.
+AST/syntaks/stale-path/diffkontroll bestod; eksisterende coordinator-testnoder
+er AST-identiske. SOURCE_REVIEW SHA60ab082cce967296cb165f80d5b4d5c5a1050da6c60d12fc5c80ebd23e0e24b4.
+081PLAN ligger i /home/andre2/GX1_RUNS/NATIVE_M5_CONTROL_CUTOFF_METADATA_REPAIR_20261019_081.
+Ingen ny native campaign, modellmåling eller trening er innrømmet;
+training_enabled=false. 074/076/079/080 og øvrige konsumerte planer relanseres aldri.
 
-074/076 og alle øvrige konsumerte planer relanseres aldri. Original074ACTIVE og
-logger bevares: normal record krevde checkpoint-pointer før modellen fantes,
-så pointer/progress/canonicalreceipt mangler. Separat feilobservasjon er bundet
-i policy; ingenting er fabrikkert. Windows-task er Disabled/LastTaskResult1,
-controller8568 er avsluttet; faktisk før-native Boot505 var19.10 kl.12:32:21.500UTC.
-
-079 fullførte faktisk på265.962s, exit0/uendret00c4467f. Ny ONLINE=anchor=EMA0,
-tom optimizer og canonical egen CPU-roundtrip bestod; ingen gamle vekter,
-modellforwards/steg/refits. Alle182bindinger/181unike sourcefiler er kontrollert
-med bytes og statfelt. ClosureSHA901503cb36f0df2cb27896a617f597dd203d3d1b6fbc0a08ff3491d3ab0cfbff.
-INITIALIZATION SHA81550e88408c4bad2db9c03592484fe33db62a1f9c63f53995c8af72484b196c;
-MEASUREMENT SHA40a3e74c57d15940c9b60cc252bb4bd80baba6b17accc20d835278d73c8b9111.
-ACTUAL_CPU_REVIEW SHA6d6c70929a88765662e23eef9cdb066caaf5f50439783306563b8fdfefaa7515.
-Original079 er konsumert og relanseres aldri. Historisk073/078identitet er bevart.
-
-Aktuell080 er en NY initialmåling:256TRAIN+256CONTROL,32encoderforwards og0steg.
-Den binder eksakte NYE079constructor-/observed-/init-/measurementstier og samme
-055/057/059inputs, kompaktprofil og182closure. Identisk OBSERVED_PLAN-byteSHA
-gjør ikke073sti utskiftbar med079sti. Faktisk preparedBoot505 er lest;
-ny campaign og fersk maskinvare/NY fysisk boot kreves før native. Ingen ny
-trening/Exit/TEST/broker eller fullVAL åpnes av dette. training_enabled=false.
-Plan: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_DATA_BINDING_BOUND_20261019_080/PLAN.json SHA0399a8cbb7f42e86a1417ef0ac7c484581a1f5b0953b525184fbea855caaf74d.
-Materialiser080 én gang fra ren kilde/policy; fryst gjennom jobb og native.
-Deretter faktisk konsum/latency/minne/initialbaseline;
-deretter separat faktisk paritet og Entry-only optimizer/resume med4 private
-tekniske updates/4paritetsforwards, før den bestilte ene nativeepoken.
-Ingen aktuell ekte modellforward, initialbaseline, optimizersteg eller epoke
-har fullført. Individuell formel-/unit-/warmup-referanse, komplette makrovintager,
-læring, generalisering, økonomisk edge og LONG/SHORT/FLAT-kvalitet gjenstår.
+Neste: publiser ny faktisk kildebundet freshstate etter081 og bind en ny eksakt
+initial0campaign med gjeldende maskinvare-/bootporter. Deretter kreves ekte
+initialbaseline/konsum/latency/minne, separat faktisk paritet og Entry-only
+optimizer/resume med4 private tekniske updates/4paritetsforwards, før den
+bestilte ene nativeepoken. Individuelle formel-/enhets-/warmup-referanser,
+komplette makrovintager, LONG/SHORT/FLAT-kvalitet/dekning og læring gjenstår.
+Generalisering og økonomisk edge er egne senere vurderinger.
 
 ## PC, opprydding og metode
 
-Brukerens 18.10-omstart er utført; 034/REBOOT_CONFIRMED.json er bindende.
-Ikke utfør samme bestilling igjen. Separat fysisk før-native-omstart for 071
-ble bekreftet: Boot 504, 19.10 kl. 10:44:00.500 UTC, WindowsSSH/Ubuntu og
-182 uendrede kildebindinger. 071/REBOOT_CONFIRMED SHA
-a3e3597c4580f42eb9ab3f0089fbc91abd8ed375d4775af2b67f93aec93affcf.
-Original confirm, faktisk abort og separat reschedule er bevart. Bruk alltid
-kanonisk hasheier; campaign-JSON-hash inkluderer avsluttende newline.
-Ny campaign følger egne ferske maskinvare-/bootkrav.
+Brukerens18.10-omstart er utført;034/REBOOT_CONFIRMED.json er bindende.
+Ikke utfør samme bestilling igjen. Seneste separate før-native Boot506 ble
+bekreftet19.10 kl.15:09:14.500UTC med WindowsSSH/Ubuntu og182uendrede kilder.
+080/REBOOT_CONFIRMED SHAeb380144e863ba44cff10d71cafa8bbb796f8e9d2020c426f0c5b48b5ab55f2d.
+Dette er ingen treningsadgang. Ny campaign følger egne ferske maskinvare-/
+bootkrav. Bruk kanonisk hasheier; campaign-JSON inkluderer avsluttende newline.
 
 DATA/RUNS ryddes bare av retention-eieren. Ingen Pythonfil er bevist slettbar
 ved full referanse-/import-/CLI-/test-/eierkontroll. Historikk finnes i Git;

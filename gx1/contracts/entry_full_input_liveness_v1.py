@@ -15,6 +15,8 @@ import re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from gx1.contracts.local_random_access_campaign_v2 import file_sha256 as _verified_file_sha256
+
 from gx1.contracts.entry_model_native_signal_v1 import (
     FORBIDDEN_LEGACY_BRIDGE_FIELDS,
     MODEL_NATIVE_CONTRACT_MODE,
@@ -262,11 +264,8 @@ ATR_OOD_FIELDS = (
 
 
 def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    """Share stable digests only inside an explicit verification operation."""
+    return _verified_file_sha256(path)
 
 
 def _is_sha256(value: Any) -> bool:

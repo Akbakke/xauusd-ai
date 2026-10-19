@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-19T09:57:26.252214+00:00",
-  "status": "080_BOUND_NEW_COMPACT_INITIAL0_AFTER_ACTUAL079_FRESH_AND_INPUT_REPAIRS",
+  "status": "081_SOURCE_QUALIFIED_NEW_ACTUAL_FRESH_REQUIRED_NO_NATIVE_ADMISSION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Bind new source-bound compactCPUfresh initialization after294unique072source cases; no071relaunch",
+  "next_action": "Publish a new exact current-source compactCPUfresh initialization after081qualified coordinator cutoff and metadatahash repairs. Preserve055/057/059 inputs and079/080originals; no old plan relaunch. New initial0campaign/hardware/boot admission remains required; training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -13095,14 +13095,14 @@
           "elapsed_seconds": 265.9616375380001
         },
         "compact_initial_measurement_stage_080": {
-          "status": "PLANNED_CONDITIONAL_EXACT_NEW_INITIAL0_NATIVE_INVOCATION",
+          "status": "FAILED_CONSUMED_PRE_MEASUREMENT_CONTROL_CUTOFF_MISMATCH",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_DATA_BINDING_BOUND_20261019_080",
           "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_DATA_BINDING_BOUND_20261019_080/PLAN.json",
           "plan_sha256": "0399a8cbb7f42e86a1417ef0ac7c484581a1f5b0953b525184fbea855caaf74d",
-          "execution_authorized": true,
-          "campaign_preparation_authorized": true,
+          "execution_authorized": false,
+          "campaign_preparation_authorized": false,
           "planned_invocations": 1,
-          "completed_invocations": 0,
+          "completed_invocations": 1,
           "relaunch_allowed": false,
           "model_forwards_allowed_only_after_exact_native_campaign_hardware_boot_gates": 32,
           "optimizer_steps_allowed": 0,
@@ -13137,7 +13137,43 @@
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WINDOWS_METADATA_DEADLINE_20261019_070/SOURCE_REVIEW.json",
             "sha256": "2938bdb779b1a91988ab6e1125a6d5fbdcffd64a8945af4ae5aaa4ac1074c714"
           },
-          "metadata_timing_reuse_scope": "Historical069timing isdiagnosticonly.075/077qualifieddataadapterrepairs and076TRAINpartial/078freshCONTROLseparateactualchecks precede079new182closurefresh. Actual080metadata/preflight/encoderlatency isunmeasured. Same070900sWindowsmetadata/caps andNEWphysicalboot gates remain."
+          "metadata_timing_reuse_scope": "Actual080 component_setup=1567.97749005s, invocation_elapsed_at_component_setup=1945.531771991s. Two actual stacks locate finite prefix/initial metadatahashing; exact SHAbytes and encoderlatency remain unmeasured. Failed before published initialmeasurement.070caps retained;082/newfresh/newcampaign required after081sourcechange.",
+          "terminal_observation": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_DATA_BINDING_BOUND_20261019_080/FAILED_OBSERVATION.json",
+            "sha256": "845723e19d68d61163e2aac6ed9293dabbcdabd1ed9ef26b88f3a9bf24282847"
+          },
+          "canonical_terminal_receipt_present": false,
+          "source_unchanged": true,
+          "windows_task_disabled": true,
+          "published_model_measurements": false,
+          "actual_metadata_hash_reviews": [
+            {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_DATA_BINDING_BOUND_20261019_080/METADATA_PREFIX_HASH_REUSE_REVIEW.json",
+              "sha256": "3048520c85279b0bc4930e2ded7642557aa973daeeea6fbfc094d911b1ccdf3a"
+            },
+            {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_DATA_BINDING_BOUND_20261019_080/LIVENESS_INITIAL_METADATA_HASH_REUSE_REVIEW.json",
+              "sha256": "5b312d87c2bd23f4bd11915390128c1050f44749cbdf9617466ba4d8ead9fe48"
+            }
+          ]
+        },
+        "control_cutoff_metadata_repair_stage_081": {
+          "status": "COMPLETE_SOURCE_SYNTHETIC_QUALIFIED_NO_NATIVE_ADMISSION",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_CONTROL_CUTOFF_METADATA_REPAIR_20261019_081",
+          "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_CONTROL_CUTOFF_METADATA_REPAIR_20261019_081/PLAN.json",
+          "plan_sha256": "279bd939a7ddafb05a03a6c1b6512011da3bfd750da8e1d7ee3a4ca1b6dfcb3a",
+          "execution_authorized": false,
+          "training_enabled": false,
+          "source_edit_authorized": false,
+          "relaunch_allowed": false,
+          "native_training_admitted": false,
+          "test_data_used": false,
+          "source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CONTROL_CUTOFF_METADATA_REPAIR_20261019_081/SOURCE_REVIEW.json",
+            "sha256": "60ab082cce967296cb165f80d5b4d5c5a1050da6c60d12fc5c80ebd23e0e24b4"
+          },
+          "pytest_cases_passed": 199,
+          "new_cases_passed": 14
         }
       },
       "operator_pc_reboot_20261018": {
@@ -15837,7 +15873,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-19T11:21:21.806438+00:00",
+  "updated_utc": "2026-10-19T16:51:32.548276+00:00",
   "chronological_initial_measurement": {
     "initialization_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_DATA_BINDING_BOUND_20261019_079/FRESH_INITIALIZATION/INITIALIZATION.json",

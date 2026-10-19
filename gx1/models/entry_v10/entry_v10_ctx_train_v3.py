@@ -15301,8 +15301,9 @@ def _run_resumable_candidate_training(
     if chronological_prefix is not None:
         from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
         from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
-        single_epoch = require_m5_single_epoch_population(read_bound_json(
-            Path(chronological_prefix["design"]["path"]), chronological_prefix["design"]["sha256"]))
+        prefix_design = read_bound_json(
+            Path(chronological_prefix["design"]["path"]), chronological_prefix["design"]["sha256"])
+        single_epoch = require_m5_single_epoch_population(prefix_design)
         if single_epoch is not None:
             if (int(epochs) != 1 or entry_learning_study is not None or chronological_continuation is not None
                     or candidate_resume_origin is not None or int(batch_size) != single_epoch["witness"]["batch_size"]):
@@ -15360,6 +15361,15 @@ def _run_resumable_candidate_training(
         if prefix_binding is not None:
             dynamic_prefix = prefix_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
             cohort = native_binding.get("evaluation_cohort", {})
+            expected_cohort_cutoff = None
+            if dynamic_prefix:
+                cutoff_key = {
+                    ("train", "train"): "train_control_cutoff",
+                    ("control", "val"): "development_control_entry_end_exclusive",
+                }.get((cohort.get("measurement_role"), cohort.get("source_split")))
+                if cutoff_key is None:
+                    raise RuntimeError("[CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH]")
+                expected_cohort_cutoff = int(pd.Timestamp(prefix_design["calendar"][cutoff_key]).value)
             if (cohort.get("plan") != chronological_prefix["design"]
                     or (dynamic_prefix and (
                         native_binding.get("entry_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
@@ -15368,7 +15378,7 @@ def _run_resumable_candidate_training(
                         or native_binding.get("physical_sources") != prefix_binding["physical_sources"]
                         or native_binding.get("entry_supervision_identity") != prefix_binding["entry_observed_market"]["train"]["identity"]
                         or native_binding.get("sequence_source_audit") != prefix_binding["sequence_source_audits"].get(cohort.get("source_split"))
-                        or cohort.get("reference_cutoff_time_ns") != prefix_binding["reference_cutoff_time_ns"]))
+                        or cohort.get("reference_cutoff_time_ns") != expected_cohort_cutoff))
                     or (not dynamic_prefix and (native_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
                         or native_binding.get("factory_receipt", {}).get("composite_normalization_sha256")
                            != prefix_binding["composite_normalization_sha256"]))):

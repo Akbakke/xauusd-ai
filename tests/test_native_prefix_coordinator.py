@@ -1022,3 +1022,115 @@ def test_dynamic_progress_rejects_any_adaptive_or_validation_selection(dynamic_p
     else:progress["validation_snapshot"]={}
     with pytest.raises(RuntimeError,match="SELECTION_STATE_INVALID"):
         trainer._require_candidate_training_progress(progress,**kwargs)
+
+class _PrefixControlGuardReached(Exception):
+    """The real coordinator passed its prefix/context join; no session is built."""
+
+
+@pytest.fixture
+def dynamic_coordinator_control_guard_unit(tmp_path, monkeypatch):
+    """Isolate completed prefix/context owners, not the coordinator's join guard.
+
+    The genuine witness and SHA-bound design reads remain real. The next output
+    owner stops execution before state/optimizer/forward or durable publication.
+    """
+    import inspect
+    from tests.test_native_prefix_recipe import _dynamic_single_epoch_design
+
+    phase = trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    design, witness = _dynamic_single_epoch_design(tmp_path, rows=16)
+    design["calendar"]["development_control_entry_end_exclusive"] = "2026-04-01T00:00:00Z"
+    design_binding = _write(tmp_path / "coordinator-design.json", design)
+    train_cutoff = int(pd.Timestamp(design["calendar"]["train_control_cutoff"]).value)
+    control_cutoff = int(pd.Timestamp(design["calendar"]["development_control_entry_end_exclusive"]).value)
+    val_path = tmp_path / "control-source.parquet"
+    pd.DataFrame({"time": pd.date_range("2026-01-02T00:00Z", periods=16, freq="5min")}).to_parquet(val_path, index=False)
+    sources = {
+        "train": {"parquet": witness["train_parquet"], "manifest": witness["train_manifest"],
+            "physical_rows": 16, "declared_window": {"end": "2026-01-01T00:00:00Z"}},
+        "val": {"parquet": _bind(val_path), "manifest": _write(tmp_path / "control.manifest.json", {"unit_completed_owner": True}),
+            "physical_rows": 16, "declared_window": {"end": "2026-03-01T00:00:00Z"}},
+    }
+    audits = {split: _write(tmp_path / (split + "-audit.json"), {"unit_completed_owner": split})
+              for split in ("train", "val")}
+    identity = {"training_phase": phase, "unit_completed_observed_owner": True}
+    base = _write(tmp_path / "normalization-boundary.json", {"unit_completed_owner": True})
+    prefix = {"entry_training_phase": phase, "reference_cutoff_time_ns": train_cutoff,
+        "entry_only_base_normalization": base, "input_normalization_sha256": "b" * 64,
+        "physical_sources": sources, "sequence_source_audits": audits,
+        "entry_observed_market": {"train": {"identity": identity}}, "maximum_optimizer_steps": 1}
+    context = {"entry_training_phase": phase, "entry_only_base_normalization": base,
+        "base_contract_sha256": "b" * 64, "physical_sources": copy.deepcopy(sources),
+        "entry_supervision_identity": copy.deepcopy(identity), "sequence_source_audit": audits["val"],
+        "evaluation_cohort": {"plan": design_binding, "measurement_role": "control", "source_split": "val",
+            "reference_cutoff_time_ns": control_cutoff}}
+    chronological_prefix = {"design": design_binding}
+    parents = torch.arange(16, dtype=torch.int64)
+
+    def completed_prefix(**kwargs):
+        assert kwargs["chronological_prefix"] == chronological_prefix
+        return copy.deepcopy(prefix), parents.clone(), parents.clone()
+
+    def completed_context(value):
+        assert value is context
+        return copy.deepcopy(context)
+
+    boundary_calls = []
+
+    def output_boundary(*args, **kwargs):
+        boundary_calls.append((args, kwargs))
+        raise _PrefixControlGuardReached
+
+    monkeypatch.setattr(trainer, "_prefix_candidate_training_binding", completed_prefix)
+    monkeypatch.setattr(trainer, "_native_candidate_val_context_binding", completed_context)
+    monkeypatch.setattr(trainer, "_resolve_train_out_bundle_dir", output_boundary)
+    function = trainer._run_resumable_candidate_training
+    kwargs = {name: None for name, parameter in inspect.signature(function).parameters.items()
+              if parameter.default is inspect.Parameter.empty}
+    kwargs.update(train_ds=Rows(16), val_ds=Rows(16), effective_train_rows=16, batch_size=16, epochs=1,
+        weight_ema=object(), execution_budget={"stop_after_optimizer_steps": 0,
+            "stop_after_completed_val_epochs": None, "max_invocation_seconds": 12000,
+            "expected_active_pointer_sha256": None}, chronological_prefix=chronological_prefix,
+        native_val_context=context, checkpoint_monitor=trainer.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR)
+    return SimpleNamespace(run=lambda: function(**kwargs), context=context, prefix=prefix,
+        design_binding=design_binding, audits=audits, boundary_calls=boundary_calls,
+        train_cutoff=train_cutoff, control_cutoff=control_cutoff)
+
+
+@pytest.mark.parametrize("role,split", [("train", "train"), ("control", "val")])
+def test_dynamic_coordinator_control_guard_accepts_role_specific_calendar_cutoffs(dynamic_coordinator_control_guard_unit, role, split):
+    case = dynamic_coordinator_control_guard_unit
+    cutoff = case.train_cutoff if role == "train" else case.control_cutoff
+    case.context["evaluation_cohort"].update(measurement_role=role, source_split=split, reference_cutoff_time_ns=cutoff)
+    case.context["sequence_source_audit"] = case.audits[split]
+    assert case.train_cutoff == int(pd.Timestamp("2026-01-01T00:00Z").value)
+    assert case.control_cutoff == int(pd.Timestamp("2026-04-01T00:00Z").value)
+    assert int(pd.Timestamp(case.prefix["physical_sources"]["val"]["declared_window"]["end"]).value) < case.control_cutoff
+    with pytest.raises(_PrefixControlGuardReached):
+        case.run()
+    assert len(case.boundary_calls) == 1
+    assert case.prefix["reference_cutoff_time_ns"] == case.train_cutoff
+
+
+@pytest.mark.parametrize("fault", ["role", "split", "control_cutoff", "train_cutoff", "plan", "design_bytes"])
+def test_dynamic_coordinator_control_guard_rejects_role_split_cutoff_or_plan_tamper(dynamic_coordinator_control_guard_unit, tmp_path, fault):
+    case = dynamic_coordinator_control_guard_unit
+    cohort = case.context["evaluation_cohort"]
+    if fault == "role":
+        cohort["measurement_role"] = "training_probe"
+    elif fault == "split":
+        cohort["source_split"] = "train"
+        case.context["sequence_source_audit"] = case.audits["train"]
+    elif fault == "control_cutoff":
+        cohort["reference_cutoff_time_ns"] = case.train_cutoff
+    elif fault == "train_cutoff":
+        cohort.update(measurement_role="train", source_split="train", reference_cutoff_time_ns=case.control_cutoff)
+        case.context["sequence_source_audit"] = case.audits["train"]
+    elif fault == "plan":
+        cohort["plan"] = _write(tmp_path / "other-calendar.json", {"different_bound_plan": True})
+    else:
+        with Path(case.design_binding["path"]).open("a") as handle:
+            handle.write("\n")
+    with pytest.raises(RuntimeError, match=None if fault == "design_bytes" else "CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH"):
+        case.run()
+    assert case.boundary_calls == []
