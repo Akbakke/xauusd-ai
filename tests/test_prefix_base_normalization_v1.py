@@ -258,3 +258,129 @@ def test_full_population_fit_requires_exact_sources_before_statistics(tmp_path, 
                  else 'FULL_SOURCE_BINDING_INVALID')
         with pytest.raises(RuntimeError, match=error):
             base._require_full_fit_bindings(**arguments)
+
+
+# The fit math already has its own qualified tests. These cases exercise the
+# existing producer's phase dispatch, preceding input gate and canonical API handoff.
+from tests.test_entry_v10_input_normalization_fit import dynamic_fit_fixture
+from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+
+
+@pytest.fixture()
+def dynamic_base_call(tmp_path, monkeypatch, dynamic_fit_fixture):
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    values = dynamic_fit_fixture
+    artifacts = values["artifacts"]
+    calls = []
+    liveness_path = tmp_path / "liveness.json"
+    liveness_path.write_text(json.dumps({"input_bindings": {
+        "split_manifests": {"train": {"path": str(artifacts.train_manifest_path),
+                                      "sha256": _sha256_file(artifacts.train_manifest_path)}},
+        "fullscan_proof": {"train": {"parquet_path": str(artifacts.train_parquet_path),
+            "parquet_sha256": _sha256_file(artifacts.train_parquet_path), "total_rows": len(values["train_times"])}}}}))
+    monkeypatch.setattr(base, "require_capped_cpu_audit_execution", lambda: calls.append("capped") or {})
+    monkeypatch.setattr(base, "require_capped_lock_ancestry", lambda: calls.append("lock") or {})
+    def checked_liveness(path, **kwargs):
+        calls.append("liveness")
+        assert path == liveness_path
+        assert kwargs["expected_sha256"] == _sha256_file(liveness_path)
+        assert kwargs["expected_dataset_dir"] == artifacts.train_parquet_path.parent
+        assert kwargs["expected_field_order"]["signal"] == values["ordered_signal_names"]
+        assert kwargs["expected_manifest_bindings"]["train"]["path"] == str(artifacts.train_manifest_path)
+        return {"ok": True}
+    monkeypatch.setattr(base, "validate_full_input_liveness_artifact", checked_liveness)
+    monkeypatch.setattr(base, "PRODUCTION_MTF_PER_TF_WINDOW_BARS", tuple(values["per_tf_seq_lens"].items()))
+    class InputDataset:
+        def __init__(self, path, **kwargs):
+            calls.append("dataset")
+            assert path == artifacts.train_parquet_path
+            assert kwargs["sequence_source_audit_json"] == artifacts.train_sequence_source_audit_path
+            assert kwargs["multi_tf_closed_bar"] is True
+            self._np_seq = None
+            self._np_snap = values["train_snap"]
+            self._np_ctx_cont = values["train_ctx_cont"]
+            self._np_ctx_cat = values["train_ctx_cat"]
+            self.df = pd.DataFrame({"time": values["train_times"]})
+            self.signal_names = values["ordered_signal_names"]
+            self._multi_tf_feats = base.load_multi_tf_v4_cache(artifacts.mtf_cache_dir)
+        def source_reconstruction_normalization_input(self):
+            return values["entry_sequence_source"]
+    monkeypatch.setattr(trainer, "EntryV10CtxDataset", InputDataset)
+    real_fit = base.fit_entry_v10_train_input_normalization
+    def observed_fit(**kwargs):
+        calls.append("fit")
+        assert "train_exit_lifecycle" not in kwargs
+        assert kwargs["entry_training_phase"] == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        assert kwargs["train_seq"] is None
+        assert kwargs["entry_sequence_source"] is values["entry_sequence_source"]
+        return real_fit(**kwargs)
+    monkeypatch.setattr(base, "fit_entry_v10_train_input_normalization", observed_fit)
+    monkeypatch.delenv(trainer._TRAIN_MULTI_TF_CACHE_ENV, raising=False)
+    call = dict(train_parquet_path=artifacts.train_parquet_path,
+        train_manifest_path=artifacts.train_manifest_path,
+        train_sequence_source_audit_path=artifacts.train_sequence_source_audit_path,
+        train_sequence_source_audit_sha256=_sha256_file(artifacts.train_sequence_source_audit_path),
+        full_input_liveness_path=liveness_path, full_input_liveness_sha256=_sha256_file(liveness_path),
+        m5_prebuilt_path=artifacts.m5_prebuilt_path, mtf_cache_dir=artifacts.mtf_cache_dir,
+        output_path=tmp_path / "dynamic_normalization.json", publish=False)
+    return call, calls
+
+
+def test_dynamic_base_producer_fits_whole_train_without_labels_design_or_exit(dynamic_base_call):
+    call, calls = dynamic_base_call
+    result = base.fit_dynamic_entry_only(**call)
+    assert calls == ["capped", "lock", "liveness", "dataset", "fit"]
+    assert result["decision"] == "PASS"
+    assert result["contract"]["lineage"]["entry_train_decision_row_count"] == 4
+    assert result["contract"]["lineage"]["exit_train_decision_row_count"] == 0
+    assert result["val_fit_rows"] == result["test_fit_rows"] == 0
+    assert result["native_training_admitted"] is False
+
+
+@pytest.mark.parametrize("fault", ["liveness_hash", "liveness_not_pass", "audit_hash", "cache_conflict"])
+def test_dynamic_base_producer_rejects_unbound_inputs_before_dataset(dynamic_base_call, monkeypatch, fault):
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    call, calls = dynamic_base_call
+    if fault == "liveness_hash": call["full_input_liveness_sha256"] = "0" * 64
+    elif fault == "audit_hash": call["train_sequence_source_audit_sha256"] = "0" * 64
+    elif fault == "liveness_not_pass":
+        monkeypatch.setattr(base, "validate_full_input_liveness_artifact", lambda *a, **k: {"ok": False})
+    else: monkeypatch.setenv(trainer._TRAIN_MULTI_TF_CACHE_ENV, str(call["mtf_cache_dir"].parent))
+    with pytest.raises(RuntimeError, match="DYNAMIC_BASE_NORMALIZATION_"):
+        base.fit_dynamic_entry_only(**call)
+    assert "dataset" not in calls and "fit" not in calls
+
+
+@pytest.mark.parametrize("pilot_flag", ["--child-admission", "--fit-entry-rows"])
+def test_dynamic_base_cli_rejects_pilot_or_subset_scope(tmp_path, pilot_flag):
+    with pytest.raises(SystemExit) as exc:
+        base.main(["--entry-training-phase", ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            "--m5-prebuilt", str(tmp_path / "m5"), "--mtf-cache-dir", str(tmp_path / "cache"),
+            "--output", str(tmp_path / "out"), pilot_flag, str(tmp_path / "legacy")])
+    assert exc.value.code == 2
+
+
+def test_dynamic_base_producer_uses_existing_atomic_publication(dynamic_base_call):
+    call, _ = dynamic_base_call
+    call["publish"] = True
+    result = base.fit_dynamic_entry_only(**call)
+    assert json.loads(call["output_path"].read_text()) == json.loads(json.dumps(result))
+    original = call["output_path"].read_bytes()
+    with pytest.raises(RuntimeError, match="OUTPUT_EXISTS"):
+        base.fit_dynamic_entry_only(**call)
+    assert call["output_path"].read_bytes() == original
+
+
+def test_dynamic_base_cli_calls_the_bound_input_only_route(dynamic_base_call):
+    call, calls = dynamic_base_call
+    flags = {"train-parquet": "train_parquet_path", "train-manifest": "train_manifest_path",
+        "train-sequence-source-audit": "train_sequence_source_audit_path",
+        "train-sequence-source-audit-sha256": "train_sequence_source_audit_sha256",
+        "full-input-liveness": "full_input_liveness_path",
+        "full-input-liveness-sha256": "full_input_liveness_sha256",
+        "m5-prebuilt": "m5_prebuilt_path", "mtf-cache-dir": "mtf_cache_dir", "output": "output_path"}
+    argv = ["--entry-training-phase", ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE]
+    for flag, key in flags.items(): argv.extend(["--" + flag, str(call[key])])
+    assert base.main(argv) == 0
+    assert calls == ["capped", "lock", "liveness", "dataset", "fit"]
+    assert not call["output_path"].exists()

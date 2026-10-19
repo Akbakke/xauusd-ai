@@ -409,7 +409,12 @@ def test_advanced_dataset_source_reconstruction_handles_filtered_rows(
     assert ds._np_seq is None
     assert isinstance(ds._sequence_source_signal, np.memmap)
     assert Path(ds._sequence_source_signal.filename).is_relative_to(memmap_root)
-    assert ds._memmap_tmpdir is None
+    assert ds._memmap_tmpdir is not None
+    for values in (ds._np_snap, ds._np_ctx_cont, ds._np_ctx_cat):
+        assert isinstance(values, np.memmap)
+        assert Path(values.filename).is_relative_to(Path(ds._memmap_tmpdir.name))
+    assert sorted(path.name for path in Path(ds._memmap_tmpdir.name).iterdir()) == [
+        "ctx_cat.int64.mmap", "ctx_cont.float32.mmap", "snap.float32.mmap"]
     assert np.array_equal(
         ds.sequence_for_full_row(1),
         source[positions[1] - MODEL_NATIVE_SEQ_LEN + 1 : positions[1] + 1],
@@ -810,3 +815,58 @@ def test_m5_arrow_dataset_preserves_primary_rows_and_per_cell_forecast_masks(tmp
     assert tuple(values.shape) == (1, targets.MODEL_NATIVE_FORECAST_OUTPUT_DIM)
     assert valid.tolist() == [[True, True, True, False, False, False, False, False, False, False]]
     assert bool((values[~valid] == 0).all())
+
+
+@pytest.mark.parametrize("mismatch_last_row", [False, True])
+def test_source_backed_dataset_uses_three_disk_arrays_and_bounded_exact_parity(
+    tmp_path, monkeypatch, mismatch_last_row,
+):
+    parquet, audit, source, positions = _write_source_backed_advanced_fixture(tmp_path)
+    monkeypatch.setattr(trainer, "_MEMMAP_ROOT", tmp_path / "scratch")
+    monkeypatch.setattr(trainer, "_NESTED_ARROW_BATCH_ROWS", 2)
+    # Even below the usual size threshold, source-backed routes always own
+    # exactly the three current-row disk arrays, never a dense sequence mirror.
+    monkeypatch.setattr(trainer, "_MEMMAP_MIN_BYTES", 2**63 - 1)
+    m5 = install_multi_tf_stub(tmp_path, monkeypatch)
+    original = trainer._require_sequence_source_reconstruction
+    selections = []
+    class BoundedSource(np.ndarray):
+        def __getitem__(self, key):
+            # Observe production row-index lookups, not NumPy's boolean comparisons.
+            if isinstance(key, np.ndarray) and key.dtype.kind in ("i", "u"):
+                selections.append(len(key))
+                assert len(key) <= 2, "whole-TRAIN source selection recreated a wide copy"
+            return super().__getitem__(key)
+    def observed(*args, **kwargs):
+        report, times, signal = original(*args, **kwargs)
+        if mismatch_last_row:
+            signal = np.array(signal, copy=True)
+            signal[positions[-1], 0] += np.float32(1.)
+        return report, times, signal.view(BoundedSource)
+    monkeypatch.setattr(trainer, "_require_sequence_source_reconstruction", observed)
+    kwargs = dict(seq_len=MODEL_NATIVE_SEQ_LEN, m5_prebuilt_path=m5,
+        per_tf_seq_lens=dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS), multi_tf_closed_bar=True,
+        sequence_source_audit_json=audit)
+    if mismatch_last_row:
+        with pytest.raises(RuntimeError, match="RECONSTRUCTION_RUNTIME_BINDING_INVALID"):
+            trainer.EntryV10CtxDataset(parquet, **kwargs)
+    else:
+        ds = trainer.EntryV10CtxDataset(parquet, **kwargs)
+        assert ds._np_seq is None
+        assert all(isinstance(array, np.memmap)
+                   for array in (ds._np_snap, ds._np_ctx_cont, ds._np_ctx_cat))
+        np.testing.assert_array_equal(ds._np_snap, source[positions])
+        assert not (Path(ds._memmap_tmpdir.name) / "seq.float32.mmap").exists()
+        source_input = ds.source_reconstruction_normalization_input()
+        np.testing.assert_array_equal(source_input["sample_positions"], positions)
+        # Same immutable parquet, different storage mode: no source-backed
+        # seq=None state may masquerade as a completed dense sequence cache.
+        monkeypatch.setattr(trainer, "_MEMMAP_MIN_BYTES", 0)
+        dense_kwargs = dict(kwargs)
+        dense_kwargs.pop("sequence_source_audit_json")
+        dense = trainer.EntryV10CtxDataset(parquet, **dense_kwargs)
+        assert isinstance(dense._np_seq, np.memmap)
+        assert dense._sequence_source_reconstructed is False
+        assert dense._memmap_tmpdir.name != ds._memmap_tmpdir.name
+        np.testing.assert_array_equal(dense._np_seq[-1], ds.sequence_for_full_row(len(ds) - 1))
+    assert selections == [2, 1]  # Includes the last partial batch and its mismatch guard.

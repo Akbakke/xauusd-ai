@@ -5265,7 +5265,8 @@ class EntryV10CtxDataset(Dataset):
             ctx_cont_shape = (n_rows, ctx_cont_dim)
             ctx_cat_shape = (n_rows, ctx_cat_dim)
             nested_bytes = (
-                np.prod(seq_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
+                (0 if source_reconstruction else
+                 np.prod(seq_shape, dtype=np.int64) * np.dtype(np.float32).itemsize)
                 + np.prod(snap_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
                 + np.prod(ctx_cont_shape, dtype=np.int64) * np.dtype(np.float32).itemsize
                 + np.prod(ctx_cat_shape, dtype=np.int64) * np.dtype(np.int64).itemsize
@@ -5284,11 +5285,10 @@ class EntryV10CtxDataset(Dataset):
             # filtered rows: it binds every stored window to the immutable M5
             # feature surface rather than pretending emitted labels are an
             # uninterrupted bar stream.
-            use_memmap = (
+            use_memmap = (source_reconstruction or (
                 nested_bytes >= _MEMMAP_MIN_BYTES
                 and not reconstruct_sequence_from_snapshots
-                and not source_reconstruction
-            )
+            ))
             first_sequence: Optional[np.ndarray] = None
             if not source_reconstruction:
                 first_sequence = (
@@ -5307,7 +5307,8 @@ class EntryV10CtxDataset(Dataset):
                     dir=str(memmap_root),
                 )
                 memmap_dir = Path(self._memmap_tmpdir.name)
-                self._np_seq = np.memmap(memmap_dir / "seq.float32.mmap", dtype=np.float32, mode="w+", shape=seq_shape)
+                self._np_seq = (None if source_reconstruction else np.memmap(
+                    memmap_dir / "seq.float32.mmap", dtype=np.float32, mode="w+", shape=seq_shape))
                 self._np_snap = np.memmap(memmap_dir / "snap.float32.mmap", dtype=np.float32, mode="w+", shape=snap_shape)
                 self._np_ctx_cont = np.memmap(
                     memmap_dir / "ctx_cont.float32.mmap", dtype=np.float32, mode="w+", shape=ctx_cont_shape
@@ -5422,14 +5423,20 @@ class EntryV10CtxDataset(Dataset):
                     or not np.array_equal(
                         self._sequence_source_times_ns[positions], sample_times_ns
                     )
-                    or not np.array_equal(
-                        self._np_snap,
-                        self._sequence_source_signal[positions],
-                    )
                 ):
                     raise RuntimeError(
                         "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_RUNTIME_BINDING_INVALID]"
                     )
+                for start in range(0, n_rows, _NESTED_ARROW_BATCH_ROWS):
+                    stop = min(n_rows, start + _NESTED_ARROW_BATCH_ROWS)
+                    if not np.array_equal(
+                        self._np_snap[start:stop],
+                        self._sequence_source_signal[positions[start:stop]],
+                    ):
+                        raise RuntimeError(
+                            "[ENTRY_SEQUENCE_SOURCE_RECONSTRUCTION_RUNTIME_BINDING_INVALID]"
+                        )
+                _flush_memmap_pages(self._np_snap, self._np_ctx_cont, self._np_ctx_cat)
                 self._sequence_source_positions = positions
                 log.info(
                     "[SEQUENCE_SOURCE_RECONSTRUCTION] audit=%s rows=%d "

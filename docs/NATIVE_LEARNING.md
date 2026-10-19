@@ -120,6 +120,31 @@ Alle genuine featurefamilier, ordnede felt, M1/M5/MTF-klokker, targets og
 normaliseringseiere består. Geometri, reference-policy og cutoff hentes fra
 de faktiske bundne eierne, ikke gjettede defaults eller gamle dokumenttall.
 Normalisering tilpasses én gang på hele fysisk TRAIN; ingen VAL/TEST-refit.
+For canonical `entry_only_dynamic_m5_path` er fit-populasjonen eksplisitt
+Entry-only:unionen av faktisk konsumerte96bars M5-vinduer, alle fysiske TRAIN-
+contextbeslutninger før targetmasker og fem kausale MTF-laner. Ingen Exit-
+populasjon eller lærer. Source-backed normalisering krever en ekte bundet
+seq/snap-kilderekonstruksjon og eksakt wholeTRAIN-registryklokke. Den gamle
+joint-populasjonen beholder Exit-kravet; modellfase og fit-populasjon må samsvare.
+Den eksisterende produsenten
+`gx1.scripts.materialize_unified_exit_pilot_base_normalization_v1` har en egen
+`--entry-training-phase entry_only_dynamic_m5_path`-gren. Den krever
+`--train-parquet`, `--train-manifest`, `--train-sequence-source-audit` med
+`--train-sequence-source-audit-sha256`, og forutgående `--full-input-liveness`
+med `--full-input-liveness-sha256`. `--m5-prebuilt` må være den faktisk bundne
+M5-kilden i MTF-cachemanifestet; `--mtf-cache-dir` må stemme med splitmanifestet.
+Bare den planbundne hele TRAIN-populasjonen er lovlig. Output publiseres én gang
+med `--output` og `--publish` under eksisterende capped audit4G/512M og prosjektlås.
+Pilot-/Exit-/subsetargumenter avvises. Canonical MTF-vinduslengder hentes fra
+produksjonseieren. Source-backed Dataset bruker tre diskarrays for snap/ctx,
+ingen dense96bars speilsekvens og blokkvis eksakt paritet med M5-kilden.
+
+
+Eksisterende full input-liveness skal bestå før markedsfit. Inputfit krever ikke
+labels/design; den fysiske målkvitteringen må senere binde det faktiske fulle
+native-designet med genuint epochwitness/budsjett før nativeadmission. En
+midlertidig data-design gir ingen nativeadgang og skal ikke kjøres for dette.
+
 
 Original target-M1 og nyere komplett input-M1 er ulike kilde-/artefaktroller.
 Gjenbrukt uendret-kilde-/algebrabevis er ikke en ny raw quote-måling.

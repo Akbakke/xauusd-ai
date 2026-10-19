@@ -41,14 +41,25 @@ from gx1.features.htf_features import (
     MULTI_TF_SHIFT,
     load_multi_tf_v4_cache,
 )
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, JOINT_FITTED_Q_TRAINING_PHASE,
+)
+from gx1.contracts.gx1_capped_execution_v1 import (
+    require_capped_cpu_audit_execution, require_capped_lock_ancestry,
+)
+from gx1.contracts.entry_full_input_liveness_v1 import validate_full_input_liveness_artifact
+from gx1.contracts.entry_model_native_signal_v1 import require_model_native_signal_contract
+from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
 from gx1.models.entry_v10.entry_v10_input_normalization import (
+    TrainNormalizationArtifacts, fit_entry_v10_train_input_normalization,
     _derive_temporal_aliases,
     select_shared_causal_mtf_fit_population,
 )
 
 from gx1.scripts.materialize_unified_exit_pilot_normalization_inputs_v1 import (
     _canonical_sha256, _clock_hash, _prefix_entry_rows, _merge_intervals,
-    _exact_file,
+    _exact_file, _exact_dir,
 )
 
 
@@ -130,6 +141,26 @@ def _require_full_fit_bindings(
             raise RuntimeError("PILOT_BASE_NORMALIZATION_FULL_SOURCE_BINDING_INVALID")
         if _sha(_exact_file(supplied, "BASE_NORMALIZATION_SOURCE")) != expected_sha:
             raise RuntimeError("PILOT_BASE_NORMALIZATION_FULL_SOURCE_BINDING_INVALID")
+
+
+def _publish_normalization_result(output_path: Path, result: dict[str, Any]) -> None:
+    if output_path.exists() or output_path.is_symlink():
+        raise RuntimeError("PILOT_BASE_NORMALIZATION_OUTPUT_EXISTS")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=f".{output_path.name}.", dir=output_path.parent)
+    try:
+        with os.fdopen(fd, "w") as handle:
+            json.dump(result, handle, sort_keys=True, indent=2, allow_nan=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        if _json(Path(tmp)) != json.loads(json.dumps(result, allow_nan=False)):
+            raise RuntimeError("PILOT_BASE_NORMALIZATION_STAGING_INVALID")
+        _publish_file_noreplace(Path(tmp), output_path)
+        _fsync_directory(output_path.parent)
+    except Exception:
+        # Failed bytes belong to the retention owner, never this fit.
+        raise
 
 
 def fit_base(
@@ -294,35 +325,141 @@ def fit_base(
         if prefix:
             result["normalization_fit_population"] = scope
         if publish:
-            if output_path.exists() or output_path.is_symlink():
-                raise RuntimeError("PILOT_BASE_NORMALIZATION_OUTPUT_EXISTS")
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            fd, tmp = tempfile.mkstemp(prefix=f".{output_path.name}.", dir=output_path.parent)
-            try:
-                with os.fdopen(fd, "w") as handle:
-                    json.dump(result, handle, sort_keys=True, indent=2, allow_nan=False)
-                    handle.write("\n")
-                    handle.flush()
-                    os.fsync(handle.fileno())
-                if _json(Path(tmp)) != json.loads(json.dumps(result, allow_nan=False)):
-                    raise RuntimeError("PILOT_BASE_NORMALIZATION_STAGING_INVALID")
-                _publish_file_noreplace(Path(tmp), output_path)
-                _fsync_directory(output_path.parent)
-            except Exception:
-                # Failed bytes belong to the retention owner, never this fit.
-                raise
+            _publish_normalization_result(output_path, result)
         return result
+
+
+def fit_dynamic_entry_only(
+    *, train_parquet_path: Path, train_manifest_path: Path,
+    train_sequence_source_audit_path: Path, train_sequence_source_audit_sha256: str,
+    full_input_liveness_path: Path, full_input_liveness_sha256: str,
+    m5_prebuilt_path: Path, mtf_cache_dir: Path, output_path: Path, publish: bool,
+) -> dict[str, Any]:
+    """Outcome-blind whole-TRAIN fit through the existing audited Dataset owner."""
+    limits = require_capped_cpu_audit_execution()
+    limits["lock"] = require_capped_lock_ancestry()
+    if type(publish) is not bool:
+        raise RuntimeError("DYNAMIC_BASE_NORMALIZATION_INVOCATION_INVALID")
+    train = _exact_file(train_parquet_path, "DYNAMIC_NORMALIZATION_TRAIN")
+    manifest_path = _exact_file(train_manifest_path, "DYNAMIC_NORMALIZATION_MANIFEST")
+    audit_path = _exact_file(train_sequence_source_audit_path, "DYNAMIC_NORMALIZATION_AUDIT")
+    liveness_path = _exact_file(full_input_liveness_path, "DYNAMIC_NORMALIZATION_LIVENESS")
+    if (manifest_path != train.with_suffix(".manifest.json")
+            or _sha(audit_path) != train_sequence_source_audit_sha256
+            or _sha(liveness_path) != full_input_liveness_sha256):
+        raise RuntimeError("DYNAMIC_BASE_NORMALIZATION_INPUT_BINDING_INVALID")
+    if publish and (output_path.exists() or output_path.is_symlink()):
+        raise RuntimeError("PILOT_BASE_NORMALIZATION_OUTPUT_EXISTS")
+    manifest = _json(manifest_path)
+    signal = manifest.get("extra", {}).get("model_native_signal_contract")
+    require_model_native_signal_contract(signal, context="DYNAMIC_BASE_NORMALIZATION")
+    fields = {"signal": signal["fields"], "ctx_cont": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+              "ctx_cat": list(MODEL_NATIVE_CTX_CAT_FIELDS)}
+    liveness = _json(liveness_path)
+    bindings = liveness.get("input_bindings", {})
+    expected_manifests = dict(bindings.get("split_manifests", {}))
+    expected_manifests["train"] = {"path": str(manifest_path), "sha256": _sha(manifest_path)}
+    validation = validate_full_input_liveness_artifact(
+        liveness_path, expected_sha256=full_input_liveness_sha256,
+        expected_dataset_dir=train.parent, expected_field_order=fields,
+        expected_manifest_bindings=expected_manifests,
+    )
+    train_scan = bindings.get("fullscan_proof", {}).get("train", {})
+    if (validation.get("ok") is not True or train_scan.get("parquet_path") != str(train)):
+        raise RuntimeError("DYNAMIC_BASE_NORMALIZATION_LIVENESS_NOT_BOUND_PASS")
+    # Import the canonical input loader only after the capped and liveness gates.
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    cache_dir = _exact_dir(mtf_cache_dir, "DYNAMIC_NORMALIZATION_MTF_CACHE")
+    cache_key = trainer._TRAIN_MULTI_TF_CACHE_ENV
+    previous_cache = os.environ.get(cache_key)
+    if previous_cache is not None and Path(previous_cache).resolve() != cache_dir:
+        raise RuntimeError("DYNAMIC_BASE_NORMALIZATION_AMBIENT_CACHE_CONFLICT")
+    m5_prebuilt_path = _exact_file(m5_prebuilt_path, "DYNAMIC_NORMALIZATION_M5_PREBUILT")
+    os.environ[cache_key] = str(cache_dir)  # Sole value is the explicit CLI binding.
+    dataset = None
+    try:
+        per_tf = dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)
+        dataset = trainer.EntryV10CtxDataset(
+            train, seq_len=trainer.MODEL_NATIVE_SEQ_LEN, m5_prebuilt_path=m5_prebuilt_path,
+            per_tf_seq_lens=per_tf, multi_tf_closed_bar=True,
+            sequence_source_audit_json=audit_path,
+        )
+        fitted = fit_entry_v10_train_input_normalization(
+            train_seq=dataset._np_seq, train_snap=dataset._np_snap,
+            train_ctx_cont=dataset._np_ctx_cont, train_ctx_cat=dataset._np_ctx_cat,
+            train_times=dataset.df["time"], ordered_signal_names=dataset.signal_names,
+            per_tf_seq_lens=per_tf,
+            artifacts=TrainNormalizationArtifacts(
+                dataset_run_id=require_entry_run_id(manifest["extra"]["entry_run_id"]),
+                train_parquet_path=train, train_manifest_path=manifest_path,
+                m5_prebuilt_path=m5_prebuilt_path, mtf_cache_dir=cache_dir,
+                train_sequence_source_audit_path=audit_path),
+            prevalidated_multi_tf_cache=dataset._multi_tf_feats,
+            entry_sequence_source=dataset.source_reconstruction_normalization_input(),
+            entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        )
+        contract = fitted["normalization_contract"]
+        if (contract["lineage"]["train_parquet_sha256"] != train_scan.get("parquet_sha256")
+                or contract["lineage"]["entry_train_decision_row_count"] != train_scan.get("total_rows")
+                or _sha(manifest_path) != contract["lineage"]["train_manifest_sha256"]
+                or _sha(audit_path) != train_sequence_source_audit_sha256
+                or _sha(liveness_path) != full_input_liveness_sha256):
+            raise RuntimeError("DYNAMIC_BASE_NORMALIZATION_INPUT_CHANGED_DURING_FIT")
+        result = {"schema_version": "gx1_entry_only_dynamic_m5_base_normalization_v1",
+            "decision": "PASS", "entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            "contract": contract, "contract_sha256": contract["contract_sha256"],
+            "fit_population_proof": fitted["fit_population_proof"],
+            "full_input_liveness": {"path": str(liveness_path), "sha256": full_input_liveness_sha256},
+            "sequence_source_audit": {"path": str(audit_path), "sha256": train_sequence_source_audit_sha256},
+            "val_fit_rows": 0, "test_fit_rows": 0, "test_accessed": False,
+            "native_training_admitted": False, "limits": limits}
+        if publish:
+            _publish_normalization_result(output_path, result)
+        return result
+    finally:
+        # Dataset-owned scratch and shared source cache retain their existing lifetimes.
+        del dataset
+        if previous_cache is None:
+            os.environ.pop(cache_key, None)
+        else:
+            os.environ[cache_key] = previous_cache
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("child-admission", "normalization-view", "population-witness", "m5-feature", "m5-prebuilt", "m1-feature", "mtf-cache-dir", "output"):
+    parser.add_argument("--entry-training-phase", choices=(JOINT_FITTED_Q_TRAINING_PHASE,
+                        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE), default=JOINT_FITTED_Q_TRAINING_PHASE)
+    legacy = ("child-admission", "normalization-view", "population-witness", "m5-feature", "m1-feature")
+    dynamic = ("train-parquet", "train-manifest", "train-sequence-source-audit", "full-input-liveness")
+    for name in (*legacy, *dynamic):
+        parser.add_argument(f"--{name}", type=Path)
+    for name in ("m5-prebuilt", "mtf-cache-dir", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    for name in ("train-sequence-source-audit-sha256", "full-input-liveness-sha256"):
+        parser.add_argument(f"--{name}")
     parser.add_argument("--publish", action="store_true")
     parser.add_argument("--fit-entry-rows", type=Path)
     parser.add_argument("--fit-cutoff-time-ns", type=int)
     args = parser.parse_args(argv)
-    result = fit_base(child_admission_path=args.child_admission.resolve(), normalization_view_path=args.normalization_view.resolve(), population_witness_path=args.population_witness.resolve(), m5_feature_path=args.m5_feature.resolve(), m5_prebuilt_path=args.m5_prebuilt.resolve(), m1_feature_path=args.m1_feature.resolve(), mtf_cache_dir=args.mtf_cache_dir.resolve(), output_path=args.output.resolve(), publish=args.publish, fit_entry_rows_path=args.fit_entry_rows, fit_cutoff_time_ns=args.fit_cutoff_time_ns)
+    if args.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        if (any(getattr(args, name.replace("-", "_")) is not None for name in legacy)
+                or args.fit_entry_rows is not None or args.fit_cutoff_time_ns is not None):
+            parser.error("dynamic whole-TRAIN normalization forbids pilot/Exit/subset arguments")
+        required = (*dynamic, "train-sequence-source-audit-sha256", "full-input-liveness-sha256")
+        if any(getattr(args, name.replace("-", "_")) is None for name in required):
+            parser.error("dynamic normalization requires TRAIN, exact source-audit and preceding liveness bindings")
+        result = fit_dynamic_entry_only(train_parquet_path=args.train_parquet,
+            train_manifest_path=args.train_manifest, train_sequence_source_audit_path=args.train_sequence_source_audit,
+            train_sequence_source_audit_sha256=args.train_sequence_source_audit_sha256,
+            full_input_liveness_path=args.full_input_liveness, full_input_liveness_sha256=args.full_input_liveness_sha256,
+            m5_prebuilt_path=args.m5_prebuilt, mtf_cache_dir=args.mtf_cache_dir,
+            output_path=args.output.resolve(), publish=args.publish)
+    else:
+        if (any(getattr(args, name.replace("-", "_")) is None for name in legacy)
+                or any(getattr(args, name.replace("-", "_")) is not None for name in dynamic)
+                or args.train_sequence_source_audit_sha256 is not None or args.full_input_liveness_sha256 is not None):
+            parser.error("joint/pilot normalization requires its original bindings only")
+        result = fit_base(child_admission_path=args.child_admission.resolve(), normalization_view_path=args.normalization_view.resolve(), population_witness_path=args.population_witness.resolve(), m5_feature_path=args.m5_feature.resolve(), m5_prebuilt_path=args.m5_prebuilt.resolve(), m1_feature_path=args.m1_feature.resolve(), mtf_cache_dir=args.mtf_cache_dir.resolve(), output_path=args.output.resolve(), publish=args.publish, fit_entry_rows_path=args.fit_entry_rows, fit_cutoff_time_ns=args.fit_cutoff_time_ns)
     print(json.dumps({"decision": result["decision"], "contract_sha256": result["contract_sha256"], "published": args.publish}, sort_keys=True))
     return 0
 

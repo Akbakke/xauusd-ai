@@ -1,0 +1,73 @@
+{
+  "schema_version": "gx1_current_m5_full_input_liveness_v1",
+  "execution_ready": true,
+  "plan_id": "NATIVE_M5_CURRENT_INPUT_LIVENESS_20261019_053",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_INPUT_LIVENESS_20261019_053",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "created_utc": "2026-10-19T01:44:53.265249+00:00",
+  "run_id": "XAU_GC_NATIVE_26M_20261018_003",
+  "one_shot_invocations": 1,
+  "max_wall_seconds": 7200,
+  "training_enabled": false,
+  "native_training_admitted": false,
+  "test_data_used": false,
+  "no_data_recompute": true,
+  "source_frozen_while_running": true,
+  "current_physical_metadata_result": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/RESULT.json",
+    "sha256": "ade97995e60b1766c95ad22dd6f1d9a486bbbd3aca395eb822ac479853e8a133"
+  },
+  "current_physical_metadata_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/TERMINAL.json",
+    "sha256": "91df71f6f30661097998eba226b12d731b35876d7bea4d459d559f22f1d9caea"
+  },
+  "current_source_reconstruction_bindings": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/SOURCE_RECONSTRUCTION_BINDINGS.json",
+    "sha256": "374b60be4899a88457f0ad45cbdd64557370b5957622a19c970f15a58141d31e"
+  },
+  "registry": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_049.json",
+    "sha256": "3e444777099a848cd8795688b57a19122d1ac5454f42902a3495e64aad73a757"
+  },
+  "dataset_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051",
+  "dataset_stem": "XAU_GC_NATIVE__ENTRY_FITTED_Q",
+  "current_build_proof": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/DATASET_BUILD_PROOF.json",
+    "sha256": "eb462eda9186ae86c8b657b990056a0f1c5c563080e711a8ecfdab8e6bbfab55"
+  },
+  "splits": {
+    "train": {
+      "parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.parquet",
+        "sha256": "351d6874a846e09d759255462335221c04b10961309b7404a1752fb2da3fb725"
+      },
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.manifest.json",
+        "sha256": "d6bf1d2ddacf0260e6c23e0496f57086ddfcd3ba971e6fa34b4b433f58cf2ed0"
+      },
+      "rows": 118249
+    },
+    "val": {
+      "parquet": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_val.parquet",
+        "sha256": "f804af25895a582a2c48fcea19ca71bacc87ab7a39301c1a4f8117c7f29e4113"
+      },
+      "manifest": {
+        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_val.manifest.json",
+        "sha256": "16ad5d2f9736f8de729b9f0adfe5303383fe429cd9f348c549c83556be2921a1"
+      },
+      "rows": 17284
+    }
+  },
+  "mtf_cache_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE",
+  "mtf_manifest_sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4",
+  "whole_train_decision_rows": 118249,
+  "whole_train_decision_clock_sha256": "6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca",
+  "expected_signal_static_contract_sha256": "f397dbf5502b97332533e2f4333af3dc6d5a85d9a0a252cfb0b1b440c41a65cd",
+  "batch_size": 256,
+  "fresh_liveness_report_template": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_INPUT_LIVENESS_20261019_053/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_{utc}.json",
+  "resource_owner": "Existing scripts/gx1_capped_run.sh audit4G/512M CPU0-7 numericalthreads1 TasksMax64 CURRENTlock, one7200s shared deadline; no cap/budget extension",
+  "scope": "Existing exhaustive all-row TRAIN/VAL seq/snap/ctx values, semantics, byte hashes and exact wholeTRAIN GC clock plus original MTFcache owner validation. Reuse051source reconstruction/050overlap; no feature/target regeneration, targetreceipt/design, market normalizationfit or native/Exit training.",
+  "pending_after": "One wholephysicalTRAIN Entry-only normalizationfit using audited source-backed windows and allcontext decisions; actual fullnative design/targetreceipt/initialbaseline/consumption/parity/optimizer/resume/hardware then exactly one epoch."
+}
