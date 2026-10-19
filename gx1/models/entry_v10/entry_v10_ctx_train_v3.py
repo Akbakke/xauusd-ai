@@ -4702,11 +4702,23 @@ def _physical_auxiliary_target_binding(
     cutoff = utc(calendar["train_control_cutoff"])
     end = utc(calendar["development_control_entry_end_exclusive"])
     low, high = (start, cutoff) if split == "train" else (cutoff, end)
+    def window_clock(window: Mapping[str, Any]) -> tuple[pd.Timestamp, pd.Timestamp]:
+        require(isinstance(window, Mapping) and set(window) == {"start", "end"},
+                "WINDOW_MISMATCH")
+        return utc(window["start"]), utc(window["end"])
+
+    declared_start, declared_end = window_clock(source["declared_window"])
+    # Dynamic manifests declare a half-open population window. Its exclusive
+    # end may equal the split cutoff; actual entry clocks remain strictly below
+    # high and each future component keeps its independent observation mask.
+    end_within_split = (low < declared_end <= high if dynamic_emission
+                        else declared_end < high)
     require(start < cutoff < end
-            and manifest["splits"]["train"] == sources["train"]["declared_window"]
-            and manifest["splits"][split] == source["declared_window"]
-            and utc(source["declared_window"]["start"]) == low
-            and utc(source["declared_window"]["end"]) < high,
+            and window_clock(manifest["splits"]["train"])
+                == window_clock(sources["train"]["declared_window"])
+            and window_clock(manifest["splits"][split])
+                == (declared_start, declared_end)
+            and declared_start == low and end_within_split,
             "WINDOW_MISMATCH")
     count = source["physical_rows"]
     require(type(count) is int and count > 0 and len(frame) == count

@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-19T09:57:26.252214+00:00",
-  "status": "074_BOUND_NEW_COMPACT_INITIAL0_AFTER_ACTUAL073_FRESH",
+  "status": "075_REPAIR_ACTUAL_HALF_OPEN_WINDOW_BINDING_AFTER_FAILED074",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Materialize NEW074 exact compactinitial0 campaign from actual073fresh; then fresh hardware/physicalboot before32forwards0steps. Never relaunch071.",
+    "current_activity": "075sourcewindowrepairqualified178PASS; actualCPUdatasetbindingpending before newnativecampaign.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,14 +112,14 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "069_ACTUAL_GENESIS_METADATA_INSPECT_NO_NATIVE",
+    "latest_terminal_role": "FAILED_CONSUMED_NATIVE_INITIAL_PRE_MODEL",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREFLIGHT_BOUND_20261019_073/TERMINAL.json",
-      "sha256": "ff4ff9d512907cfe487e8344c5f52dbdae11d14f1340080d9ffec1e7c648221d"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074/FAILED_OBSERVATION_HANDOVER_TERMINAL.json",
+      "sha256": "5910ce47de24e9de16383fccc858b907b6fc5bc2d86a18d938be1c5118a51a10"
     },
-    "terminal_exit_code": 0,
-    "source_unchanged_at_terminal": true,
+    "terminal_exit_code": 1,
+    "source_unchanged_at_terminal": null,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "074exact campaign/hardware/newboot and genuine256TRAIN+256CONTROLconsumption are pending. Initialbaseline, actualmodel latency, parity/resume and ordered full epoch remain unproved.",
+    "current_blocker": "074consumedbeforemodel on stalephysicalwindowguard.075sourcefix178PASS; actualtwo-roleDatasetbinding and newsource-bound initialmeasurement remainpending.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Bindcleancommit/policy/plan/controller/validatorandexecutenew047once; allgenuineM5channelsandguards/capskeep, unusedwideGCworkingcopiessolvedbycoreprojectionandfieldwiseactualsourceparity. Neverrelaunch044. ThenactualwholeTRAINregistry/currentcontracts/normalization/nativeEntry-onlyqualificationbeforeexactlyoneepoch.",
+    "next_action": "Run one new source-bound capped CPU two-role actual Dataset/target binding qualification with zero model forwards/updates; then fresh current-source initialization and exact new native campaign. Never relaunch074.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -12803,14 +12803,14 @@
           "elapsed_seconds": 266.1874752519998
         },
         "compact_initial_measurement_stage_074": {
-          "status": "PLANNED_CONDITIONAL_EXACT_FIRST_INITIAL0_NATIVE_INVOCATION",
+          "status": "FAILED_CONSUMED_BEFORE_MODEL_WINDOW_MISMATCH",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074",
           "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074/PLAN.json",
           "plan_sha256": "58c90fa788ad8d7b6fcb6b14012c7e437b7a6c444cd05e0e88e7a0f0f3a16c70",
-          "execution_authorized": true,
-          "campaign_preparation_authorized": true,
+          "execution_authorized": false,
+          "campaign_preparation_authorized": false,
           "planned_invocations": 1,
-          "completed_invocations": 0,
+          "completed_invocations": 1,
           "relaunch_allowed": false,
           "model_forwards_allowed_only_after_exact_native_campaign_hardware_boot_gates": 32,
           "optimizer_steps_allowed": 0,
@@ -12841,7 +12841,56 @@
           "native_preflight_source_qualification": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_PREFLIGHT_HASH_SCOPE_20261019_072/SOURCE_REVIEW.json",
             "sha256": "3da28f7c75b14ab7dff72e53344c4d83230985955095d2494a90de88a99061b1"
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074/FAILED_OBSERVATION_TERMINAL.json",
+            "sha256": "dc12ed3a44a3c99788603739307a67e969013aa1860a10b018c8e9e90bfb2557"
+          },
+          "model_forwards": 0,
+          "optimizer_steps": 0,
+          "model_constructed": false,
+          "measured_blocker": "Datasetbinding uses stale strict declared-end and timestamp-string equality despite correct half-open split boundaries.",
+          "normal_canonical_receipt_missing": true,
+          "handover_terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074/FAILED_OBSERVATION_HANDOVER_TERMINAL.json",
+            "sha256": "5910ce47de24e9de16383fccc858b907b6fc5bc2d86a18d938be1c5118a51a10"
           }
+        },
+        "physical_window_binding_repair_stage_075": {
+          "status": "COMPLETE_SOURCE_QUALIFIED_178PASS_ACTUAL_BINDING_PENDING",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_PHYSICAL_WINDOW_BINDING_REPAIR_20261019_075",
+          "source_qualification_authorized": false,
+          "execution_authorized": false,
+          "relaunch_allowed": false,
+          "planned_invocations": 1,
+          "completed_invocations": 1,
+          "diagnosis": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PHYSICAL_WINDOW_BINDING_REPAIR_20261019_075/MEASURED_FAILURE_DIAGNOSIS.json",
+            "sha256": "2d12d9f83de94b6f34d17284a7a7da9bfc69756485e5211de9a1c94afd15acd8"
+          },
+          "prior_failed_terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074/FAILED_OBSERVATION_TERMINAL.json",
+            "sha256": "dc12ed3a44a3c99788603739307a67e969013aa1860a10b018c8e9e90bfb2557"
+          },
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "genuine_model_forwards_allowed": false,
+          "normalization_fit_enabled": false,
+          "physical_dataset_rebuild_allowed": false,
+          "test_data_used": false,
+          "broker_access_allowed": false,
+          "exit_evaluation": false,
+          "scope": "Minimum measured metadata window correction only, focused source regressions, then separately source-bound actual CPU Dataset binding qualification before any new native campaign.",
+          "source_qualification_receipt": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PHYSICAL_WINDOW_BINDING_REPAIR_20261019_075/SOURCE_QUALIFICATION_RECEIPT.json",
+            "sha256": "7f5f6f146336dccc652f06245a76ff6d82671d03238785dfc063ece32feb4357"
+          },
+          "source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PHYSICAL_WINDOW_BINDING_REPAIR_20261019_075/SOURCE_REVIEW.json",
+            "sha256": "395804febc28c1d67ceeb7d683121fb29ebf91e11473f3fe60002a5954d4820b"
+          },
+          "new_regression_cases": 10,
+          "source_unchanged_during_qualification": true
         }
       },
       "operator_pc_reboot_20261018": {

@@ -59,61 +59,48 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — 073 fullført, ny 074 initialmåling skal klargjøres
+## Aktuell grense — 074 feilet før modell, 075 retter tidsvindukontrollen
 
-071 er konsumert og ble kontrollert stoppet 11:08:48 UTC før modellstart.
-Preflight gjenhashet samme TRAIN-fil: 427217476879 rchar, men bare 58176
-physical-read-bytes. Dette var hovedsakelig filkontroll via sidebuffer, ikke
-427 GB fysisk disklesing. Ingen BUNDLE/guard/progress/forward/optimizer.
-Windows PID 8308 er avsluttet, task Disabled; Linux PG 576 har ingen levende
-medlemmer. Original ACTIVE_INVOCATION og terminalkvitteringer bevares.
-STOP_TERMINAL SHA 3a7a94257bf7c4c38989b7d20072ad7dd2ac65254f78933dbe42c8aff8604c1c.
-071 skal aldri relanseres.
+073 CPU-freshstate er fullført og konsumert; originale bindinger og state bevares.
+074 materialiserte faktisk ny campaign, bekreftet fysisk Boot505 19.10 kl.
+12:32:21.500 UTC, og startet én capped nativeinvokasjon kl.12:45:26 UTC.
+Guard avsluttet child med status1 kl.13:13:22 UTC; Windowscontroller PID8568
+var avsluttet kl.13:18:59. Task er nå Disabled, LastTaskResult1; ingen
+relevante WSL-prosesser står igjen. 074 relanseres aldri.
+Handover-terminalen binder faktisk exit1 og source_unchanged=null, fordi
+full182filers postfailure-seal ikke ble utført før den eksplisitte rettelsen.
 
-072 retter bare samme målte kontrollklasse i eksisterende handover-, native-
-window- og full_train-preflight: én eksplisitt filverifiseringsoperasjon med
-kvalifisert hashgjenbruk. Alle opprinnelige kontroller er bevart; scope lukkes
-før budsjettpublisering eller modell-/statearbeid. Ingen modell-, feature-,
-loss-, optimizer- eller normaliseringsmatematikk er endret.
+Faktisk feil er ENTRY_PHYSICAL_AUX_WINDOW_MISMATCH i TRAIN Dataset-binding,
+før modellkonstruksjon: declared_window.end er lik korrekt eksklusiv cutoff,
+men gammel kontroll krevde <cutoff. Manifest-/designklokker bruker også ulike
+tekstformater for samme UTC-instant. 075 normaliserer klokkelikhet og bruker
+samme dynamiske low<declared_end<=high som den eksisterende target-receipt-
+eieren. Legacy <high, faktiske entryklokker <high, kilde-/cellebindinger og
+uavhengige framtidsmasker består. Ingen modell-, mål-, taps- eller optimizer-
+matematikk endres.
 
-072 er avsluttet med 294 unike PASS, inkludert alle 13 nye integrasjonscaser.
-Original 293 PASS/1 FAIL er bevart. Feilen var en foreldet policy-terminal-
-kobling; bare den koblingen ble rettet og den ene berørte casen kjørt på ny.
-Alle eksisterende testfunksjoner er AST-identiske. FINAL_RECEIPT SHA
-4a59db7b3eb021c351769bfce21262fe208f25d571275e131c7a7f8afdb340ad;
-SOURCE_REVIEW SHA 3da28f7c75b14ab7dff72e53344c4d83230985955095d2494a90de88a99061b1.
-Artefakter: /home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_PREFLIGHT_HASH_SCOPE_20261019_072.
-Faktisk storfil-preflight-tid etter rettelsen er ennå ikke målt.
+Normal canonical invocation-receipt mangler fordi record-eieren krever en
+checkpoint-pointer også ved FAILED før modell. Ingen pointer/progress finnes;
+original ACTIVE og logger bevares uten fabrikkert kvittering eller recordretry.
+Separat faktisk feilobservasjon:
+/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074/FAILED_OBSERVATION_TERMINAL.json
+SHA dc12ed3a44a3c99788603739307a67e969013aa1860a10b018c8e9e90bfb2557.
 
-## Neste nødvendige steg og ærlige grenser
+075: /home/andre2/GX1_RUNS/NATIVE_M5_PHYSICAL_WINDOW_BINDING_REPAIR_20261019_075.
+075 avsluttet:178 PASS,0 FAIL/ERROR/SKIP, inkludert10 nye regresjonscaser.
+Øvrig produksjons-AST og alle eksisterende testfunksjoner er identiske.
+SOURCE_REVIEW SHA 395804febc28c1d67ceeb7d683121fb29ebf91e11473f3fe60002a5954d4820b.
+Neste steg er fokuserte TRAIN/CONTROL-regresjoner og faktisk source-bundet
+CPU Dataset-/målbinding før ny profilbundet freshstate/initialmåling. Ingen
+ny native campaign er innrømmet; training_enabled=false. Gjentatte storfil-
+kontroller er målt, men de er faste per datasett, ikke per rad/horisont.
 
-1. 073 fullførte faktisk 11:38:42 UTC på 266.187 s, exit0/uendret 73f260bc.
-   TERMINAL SHA ff4ff9d512907cfe487e8344c5f52dbdae11d14f1340080d9ffec1e7c648221d.
-   INITIALIZATION SHA 5a9e7f05585cc0f0e55e26ce3f1e623f767e1f4023c345dabe00069d94c855a1;
-   MEASUREMENT SHA 44580d7ee1b9b47384d5e2d6cb14deca39379e531124d5aaeeda0df2be2e132d.
-   Alle 182 kildebindinger/181 unike filer og statfelt er kontrollert. Closure
-   SHA 188fdf14a738829f0d412a9194a5db539578e3a7fac1bf653b5393686a1adaea.
-   Fersk ONLINE=anchor=EMA0, tom optimizer og streng CPU-roundtrip bestod.
-   Ingen gamle vekter, modellforward, steg, refit, Exit, TEST eller broker.
-   Behold original073; engangsplanen er konsumert og relanseres aldri.
-2. Ny 074-plan binder 256 TRAIN + 256 CONTROL, 32 encoderforwards og 0 steg.
-   Materialiser ny campaign fra073s eksakte constructor/observedPLAN/11files,
-   kildeclosure, initialization/measurement og uendrede055/057/059-kilder.
-   Runrot: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_PREFLIGHT_BOUND_20261019_074.
-   Kun statusdokumenter endres; ingen Pythonendring eller ny CPUfresh er nødvendig.
-   Faktisk prepared Boot504 er lest; ferske maskinvareporter og NY fysisk boot
-   kreves etter materialisering før native. 070-controller/caps er uendret.
-   Eldre069-timing er historisk, ikke målt074fart. Mål faktisk felt-/maske-/MTF-
-   konsum, komponenter, latency/minne og actionspor i den nye initialmålingen.
-3. Deretter separat faktisk paritet og Entry-only optimizer/resume med fire
-   private tekniske updates og fire paritetsforwards, ingen CONTROL-updates
-   eller gjenbruk av kvalifiseringsvekter. Først så den bestilte nativeepoken.
-
-Ingen ekte aktuell modellforward, gradient/optimizersteg, initialbaseline eller
-nativeepoke er fullført. Full individuell formel-/unit-/warmup-referanse,
-makroens komplette originalvintager, læring, generalisering, økonomisk edge og
-valgte/avståtte LONG/SHORT/FLAT-kvalitet er fortsatt ubevist. Gatevekter alene
-forklarer ingen beslutning. Alltid FLAT er ingen dokumentert selektivitet.
+Deretter gjenstår ekte kompaktmodellkonsum, initialbaseline/latency/minne,
+separat faktisk paritet og Entry-only optimizer/resume med fire private
+tekniske updates/fire paritetsforwards, og den bestilte nativeepoken etter
+alle gater. Ingen ekte aktuell forward, optimizersteg eller epoke er fullført.
+Individuell formel-/unit-/warmup-referanse, komplette makrovintager, læring,
+generalisering, økonomisk edge og LONG/SHORT/FLAT-kvalitet er fortsatt ubevist.
 
 ## PC, opprydding og metode
 

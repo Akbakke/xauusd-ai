@@ -1136,3 +1136,129 @@ def test_dynamic_m5_arrow_getitem_keeps_pointers_target_only_and_provider_lazy(t
     assert actual[observed.DYNAMIC_M5_MARKOUT_TARGET_KEY].shape[0] == 1
     assert all(name not in trainer._dynamic_m5_model_kwargs(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
         for name in _dynamic_target_arrays([0]))
+
+@pytest.fixture
+def dynamic_physical_dataset_window_case(dynamic_physical_receipt, tmp_path, monkeypatch):
+    """Extend the real pointer receipt with only Dataset-binding inputs."""
+    from gx1.contracts import entry_model_native_aux_targets_v3 as targets
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    from gx1.features import gc_native_context_v1 as gc
+    from gx1.time.session_detector import m5_decision_availability
+
+    def prepare(split, fault=None):
+        receipt, design_binding = dynamic_physical_receipt()
+        design = json.loads(Path(design_binding["path"]).read_text())
+        calendar = design["calendar"]
+        sources, frames = calendar["source_bindings"], {}
+        calendar.update({
+            "physical_source_splits": {"train": "train", "control": "val"},
+            "physical_coordinate_namespaces_are_separate": True,
+            "train_entry_start_inclusive": "2025-05-01T00:00:00+00:00",
+        })
+        for key in ("train_control_cutoff", "development_control_entry_end_exclusive"):
+            calendar[key] = pd.Timestamp(calendar[key]).isoformat()
+        for key, boundary in (("train", "train_control_cutoff"),
+                              ("val", "development_control_entry_end_exclusive")):
+            source = sources[key]
+            source["declared_window"] = {
+                "start": pd.Timestamp(source["declared_window"]["start"]).isoformat(),
+                "end": calendar[boundary],
+            }
+            frame = pd.read_parquet(source["parquet"]["path"])
+            for name in targets.MODEL_NATIVE_FORECAST_TARGET_COLUMNS:
+                frame[name] = 0.0
+            for name in targets.MODEL_NATIVE_FORECAST_VALID_COLUMNS:
+                frame[name] = False
+            for name in horizons.HORIZON_LABEL_COLUMNS:
+                frame[name] = np.nan
+            frame[targets.LEGACY_CAUSAL_M1_OBSERVED_COLUMN] = False
+            frame[targets.LEGACY_AUX_COMPLETE_COLUMN] = False
+            if key == split and fault == "row_time_at_high":
+                frame.loc[frame.index[-1], "time"] = pd.Timestamp(calendar[boundary])
+            parquet_path = Path(source["parquet"]["path"])
+            frame.to_parquet(parquet_path, index=False)
+            source["parquet"] = _bind(parquet_path)
+            clock = pd.DatetimeIndex(frame["time"]).as_unit("ns")
+            source["clock_sha256"] = hashlib.sha256(np.asarray(clock.asi8, dtype="<i8").tobytes()).hexdigest()
+            receipt["splits"][key].update(source_parquet=source["parquet"],
+                physical_clock_sha256=source["clock_sha256"])
+            frames[key] = pd.read_parquet(parquet_path)
+        if fault == "end_after_high":
+            boundary = "train_control_cutoff" if split == "train" else "development_control_entry_end_exclusive"
+            sources[split]["declared_window"]["end"] = (
+                pd.Timestamp(calendar[boundary]) + pd.Timedelta(minutes=1)).isoformat()
+        windows = {key: {name: str(pd.Timestamp(value)) for name, value in source["declared_window"].items()}
+                   for key, source in sources.items()}
+        if fault in ("manifest_start_differs", "manifest_end_differs"):
+            key = "start" if fault == "manifest_start_differs" else "end"
+            delta = pd.Timedelta(minutes=1 if key == "start" else -1)
+            windows[split][key] = str(pd.Timestamp(windows[split][key]) + delta)
+        train_clock = m5_decision_availability(pd.DatetimeIndex(frames["train"]["time"]))
+        registry = {"train_decision_rows": len(train_clock),
+            "train_decision_clock_sha256": hashlib.sha256(
+                np.asarray(train_clock.as_unit("ns").asi8, dtype="<i8").tobytes()).hexdigest()}
+        receipt["registry"] = _write(Path(receipt["registry"]["path"]), registry)
+        monkeypatch.setattr(gc, "REGISTRY_SHA256", receipt["registry"]["sha256"])
+        for key, source in sources.items():
+            manifest_path = Path(source["manifest"]["path"])
+            manifest = json.loads(manifest_path.read_text())
+            manifest["splits"] = copy.deepcopy(windows)
+            manifest["extra"]["gc_native_context"] = gc.contract()
+            source["manifest"] = _write(manifest_path, manifest)
+            receipt["splits"][key]["source_manifest"] = source["manifest"]
+        row_bindings = {}
+        for name, rows in (("TRAIN_CALENDAR_PARENT_ROWS", [0, 1, 2]),
+                           ("CONTROL256_PARENT_ROWS", [0])):
+            path = tmp_path / (name + "_dynamic_window.npy")
+            np.save(path, np.asarray(rows, dtype=np.int64))
+            row_bindings[name] = _bind(path)
+        calendar.update(bindings=row_bindings, control256={"rows": 1})
+        design.update(selection={"control_entries": 1}, budget={"later_control_entries": 1})
+        design_binding = _write(Path(design_binding["path"]), design)
+        receipt["design"] = design_binding
+        receipt_binding = _write(tmp_path / "dynamic_dataset_window_receipt.json", receipt)
+        return sources, frames, design_binding, receipt_binding
+
+    return prepare
+
+
+@pytest.mark.parametrize("role,split,mask", [
+    ("TRAIN", "train", [True, True, True]),
+    ("CONTROL256", "val", [True, False, False]),
+])
+def test_dynamic_physical_dataset_binding_accepts_equal_instants_and_exclusive_end(
+    dynamic_physical_dataset_window_case, role, split, mask,
+):
+    sources, frames, design, receipt = dynamic_physical_dataset_window_case(split)
+    manifest = json.loads(Path(sources[split]["manifest"]["path"]).read_text())
+    assert "T" in sources[split]["declared_window"]["start"]
+    assert " " in manifest["splits"][split]["start"]
+    assert manifest["splits"][split]["end"] != sources[split]["declared_window"]["end"]
+    calendar = json.loads(Path(design["path"]).read_text())["calendar"]
+    boundary = "train_control_cutoff" if split == "train" else "development_control_entry_end_exclusive"
+    assert pd.Timestamp(sources[split]["declared_window"]["end"]) == pd.Timestamp(calendar[boundary])
+    admitted, proof = trainer._physical_auxiliary_target_binding(
+        frames[split], parquet_path=Path(sources[split]["parquet"]["path"]),
+        result_binding=receipt, expected_design_sha256=design["sha256"], role=role)
+    assert admitted.tolist() == mask
+    assert proof["mode"] == trainer.DYNAMIC_M5_PHYSICAL_BINDING_MODE
+    assert proof["whole_train_registry_clock"]["exact_match"] is True
+    assert proof["targets_rewritten"] is False
+    assert not frames[split][list(MODEL_NATIVE_FORECAST_VALID_COLUMNS)].to_numpy().any()
+
+
+@pytest.mark.parametrize("role,split", [("TRAIN", "train"), ("CONTROL256", "val")])
+@pytest.mark.parametrize("fault,error", [
+    ("end_after_high", "M5_DYNAMIC_PHYSICAL_TARGET_PHYSICAL_WINDOW_INVALID"),
+    ("manifest_start_differs", "ENTRY_PHYSICAL_AUX_WINDOW_MISMATCH"),
+    ("manifest_end_differs", "ENTRY_PHYSICAL_AUX_WINDOW_MISMATCH"),
+    ("row_time_at_high", "M5_DYNAMIC_PHYSICAL_TARGET_PHYSICAL_CLOCK_INVALID"),
+])
+def test_dynamic_physical_dataset_binding_rejects_real_window_or_row_boundary_changes(
+    dynamic_physical_dataset_window_case, role, split, fault, error,
+):
+    sources, frames, design, receipt = dynamic_physical_dataset_window_case(split, fault)
+    with pytest.raises(RuntimeError, match=error):
+        trainer._physical_auxiliary_target_binding(
+            frames[split], parquet_path=Path(sources[split]["parquet"]["path"]),
+            result_binding=receipt, expected_design_sha256=design["sha256"], role=role)
