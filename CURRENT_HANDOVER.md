@@ -96,8 +96,15 @@ så pointer/progress/canonicalreceipt mangler. Separat feilobservasjon er bundet
 i policy; ingenting er fabrikkert. Windows-task er Disabled/LastTaskResult1,
 controller8568 er avsluttet; faktisk før-native Boot505 var19.10 kl.12:32:21.500UTC.
 
-Neste gater: NY079 kildebundet CPU-freshstate via eksisterende073eier fra
-samme055/057/059inputs og075/077/078/076-kvalifisering; ny eksakt nativeinitialmåling av256TRAIN+256CONTROL/32forwards/0steg;
+Aktuell079 er én NY CPU-freshstate via uendret073produsent, med samme055/057/
+059inputs og nye075/077/078/076-proofgater. Ekstra metadatagater er faktisk
+prøvd, og hele template-AST er identisk etter kun stage/proof/proveniens
+fjernes. Ingen gamle vekter/Datasets/forwards/updates/refits. 4G/512M,7200s.
+Plan: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_DATA_BINDING_BOUND_20261019_079/PLAN.json
+SHA c5c6463b741173cad571fcb42a2ab7c5ce4c24e70b9e44e874df8d330151b170.
+PRELAUNCH_REVIEW SHA d67e4d6aeb3cb3a2c6a4b796c3598edbe578c922791518f22d7717c0aa0c4896.
+079 må bindes til ren HEAD/policy/controller/worker før engangskjøring.
+Deretter ny kildebundet ny eksakt nativeinitialmåling av256TRAIN+256CONTROL/32forwards/0steg;
 deretter separat faktisk paritet og Entry-only optimizer/resume med4 private
 tekniske updates/4paritetsforwards, før den bestilte ene nativeepoken.
 Ingen aktuell ekte modellforward, initialbaseline, optimizersteg eller epoke
