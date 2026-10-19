@@ -470,5 +470,5 @@ def test_dynamic_sampler_requires_exact_real_population_source_and_order(tmp_pat
 def test_dynamic_native_coordinates_do_not_grant_fresh_campaign_admission(tmp_path):
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
     case = _dynamic_coordinate_case(tmp_path)
-    with pytest.raises(RuntimeError, match="DYNAMIC_M5_MEASUREMENT_AND_LAUNCH_ADMISSION_PENDING"):
+    with pytest.raises(RuntimeError, match="NATIVE_PREFIX_RECIPE_INVALID"):
         campaign.require_fresh_physical_campaign_sampler({"chronological_prefix": case[3]})

@@ -24,6 +24,25 @@ moduler. Historiske checkpoints, constructor metadata eller identiske
 vekthasher erstatter ikke genuine initial-/funksjonsparitetsmålinger.
 Endret ONLINE-funksjon krever en ny faktisk initialbaseline.
 
+Dynamisk Entry-only bruker dagens feltdimensjoner, feltrekkefølge, åtte
+spesialistruter og cachebindinger i fersk constructormetadata. Seks eksplisitte
+arkitekturskalarer kan videreføres fra hashbundet metadata; historiske vekter,
+gammelt feltkart og gammel normalisering brukes ikke. Faktisk nullstegs
+ONLINE=TARGET=EMA0 og funksjonsparitet må deretter måles på nye kilder.
+
+Dynamiske nettotargets bruker bid/ask-priser pluss separat hashbundet
+deklarert kurtasje, slippage og finansiering. Kostautoriteten skal dekke
+samme TRAIN/control-periode og samme M1-Parquet og manifest som målgrunnlaget.
+Aktuelle vilkår er prospektive antakelser; de beviser ikke historiske kostnader.
+Ingen utdatert autoritet relabeles, og ingen manglende kostnad settes til null.
+Regelen om stengt broker gjelder også nye leseoppslag uten særskilt tillatelse.
+
+Frosne256TRAIN- og256CONTROL-entries måles separat. Percohort er profilen
+16encoderforwards med batch16,256entries,10800s og progress hver16forwards.
+Alle480horisonter deler samme encoderforward. Disse computegrensene lager
+ingen Exit-stateviews eller handelsregel. Native-/yttergrensene12000/13800s
+og eksisterende maskinvarevakter beholdes.
+
 ## Omstart, mellomlagring og effektivitet
 
 Operatøren ba 09.10 om hyppige trygge segmentgrenser og mellomlagring. Bruk

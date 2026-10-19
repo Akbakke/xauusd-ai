@@ -9,7 +9,7 @@ import torch
 
 from gx1.contracts import unified_exit_bounded_val_cohort_v1 as cohorts
 from gx1.contracts import entry_model_native_train_launch_v1 as budgets
-from tests.test_native_prefix_recipe import prefix_scope, scope, native, runner, _bind, _write
+from tests.test_native_prefix_recipe import prefix_scope, scope, native, runner, _bind, _write, dynamic_native_recipe_metadata
 from tests.test_native_prefix_recipe import test_native_campaign_materialization_window_and_final_review_stop as campaign_check
 from tests.test_native_prefix_coordinator import PrefixHarness, _prepared, equal_tree, digest, trainer
 
@@ -568,3 +568,108 @@ def test_dynamic_initial_final_measurement_freezes_targets_and_restores_native_s
             assert report["target_model_role"] == "frozen_constructor_anchor_no_forward"
     assert h.pointer(output).read_bytes() == pointer and model.training
     equal_tree(trainer._attended_session_rng_state(device=torch.device("cpu")),rng)
+
+
+@pytest.fixture
+def dynamic_initial_scope(dynamic_native_recipe_metadata, tmp_path, monkeypatch):
+    case = dynamic_native_recipe_metadata
+    policy, recipe = case["policy"], case["recipe"]
+    policy.pop("chronological_learning_run")
+    state = tmp_path/"DYNAMIC_INITIAL_STATE.pt"; state.write_bytes(b"unit state; real restore is separately tested")
+    closure = native.require_prefix_measurement_source_binding(recipe)
+    common = {"entry_training_phase":case["witness"]["training_phase"],
+        "target_model_role":"frozen_constructor_anchor_no_forward", "exit_evaluation":False,
+        "native_launch_authorized":False, "exit_model_forward_count":0, **closure}
+    initial = {"schema_version":"gx1_prefix_fresh_initialization_v1",
+        "decision":"ACTUAL_NATIVE_FRESH_COMPONENTS_READY_NO_LEARNING_MEASURED", **common,
+        "chronological_prefix":recipe["chronological_prefix"], "files":recipe["files"],
+        "inherited_checkpoint_weights":False, "optimizer_state_empty":True, "target_frozen":True,
+        "model_forwards":0, "optimizer_steps":0, "ema_steps":0, "normalization_refits":0,
+        "online_model_state_sha256":"a"*64, "target_model_state_sha256":"a"*64, "ema_model_state_sha256":"a"*64,
+        "initial_state":_bind(state), "test_data_used":False,
+        "model_functions":{"online":"unit current ONLINE", "target":"unit current ONLINE"},
+        "source_bindings":{key:value["sha256"] for key,value in recipe["source_bindings"].items()},
+        "entry_only_base_normalization":case["physical"]["entry_only_base_normalization"],
+        "base_contract_sha256":case["physical"]["base_contract_sha256"],
+        "population_witness":recipe["entry_m5_path_single_epoch"]}
+    measurement = {"schema_version":"gx1_prefix_native_measurement_binding_result_v1",
+        "decision":"FROZEN_TRAIN_CONTROL_COORDINATES_AND_NATIVE_MEASUREMENT_BINDING_READY", **common,
+        "actual_model_forwards":0, "optimizer_steps":0, "test_data_used":False,
+        "coordinate_result":recipe["files"]["entry_measurement_coordinates"]}
+    monkeypatch.setattr(cohorts, "build_chronological_measurement_cohort", lambda *args, role: {"role":role})
+    artifacts = {"initialization_result":{}, "measurement_binding_result":{}}
+    def seal():
+        artifacts["initialization_result"] = _write(tmp_path/"dynamic-initial.json", initial)
+        artifacts["measurement_binding_result"] = _write(tmp_path/"dynamic-measurement.json", measurement)
+        recipe["chronological_initial_measurement"] = dict(artifacts)
+        policy["chronological_initial_measurement"] = {**artifacts,
+            "chronological_prefix":recipe["chronological_prefix"], "run_id":recipe["run_id"],
+            "out_bundle_dir":recipe["out_bundle_dir"], "source_bindings_sha256":recipe["source_bindings_sha256"],
+            "entry_m5_path_single_epoch":recipe["entry_m5_path_single_epoch"],
+            "entry_observed_market":recipe["entry_observed_market"],
+            "optimizer_steps":0, "max_invocations":1, "teacher_refresh_allowed":False,
+            "full_epoch_training_allowed":False, "full_val_allowed":False, "test_data_used":False}
+        return case["seal"]()
+    seal()
+    return {**case, "initial":initial, "measurement":measurement, "initial_artifacts":artifacts, "seal_initial":seal}
+
+
+def test_dynamic_initial_scope_uses_current_entry_coordinates_and_zero_step_budget(dynamic_initial_scope):
+    case = dynamic_initial_scope; recipe = case["recipe"]
+    checked = native.require_chronological_initial_measurement(recipe, invocation_number=1,
+        execution_budget={"stop_after_optimizer_steps":0, "expected_active_pointer_sha256":None,
+                          "stop_after_completed_val_epochs":None, "max_invocation_seconds":12000})
+    assert checked["initialization"]["population_witness"] == recipe["entry_m5_path_single_epoch"]
+    assert checked["measurement"]["coordinate_result"] == recipe["files"]["entry_measurement_coordinates"]
+    assert "design" not in json.loads(Path(checked["measurement"]["coordinate_result"]["path"]).read_text())
+
+
+@pytest.mark.parametrize("fault", ["anchor", "exit", "normalization", "witness", "phase", "measurement_phase",
+    "closure", "function", "coordinate", "zero_alias"])
+def test_dynamic_initial_scope_rejects_unbound_constructor_or_exit_work(dynamic_initial_scope, fault):
+    case = dynamic_initial_scope; initial, measurement = case["initial"], case["measurement"]
+    if fault == "anchor": initial["target_model_role"] = "teacher"
+    elif fault == "exit": measurement["exit_model_forward_count"] = 1
+    elif fault == "normalization": initial["base_contract_sha256"] = "f"*64
+    elif fault == "witness": initial["population_witness"] = case["recipe"]["files"]["source_bundle_metadata"]
+    elif fault == "phase": initial["entry_training_phase"] = "joint_fitted_q"
+    elif fault == "measurement_phase": measurement["entry_training_phase"] = "joint_fitted_q"
+    elif fault == "closure": measurement["native_recipe_source_bindings_sha256"] = "f"*64
+    elif fault == "function": initial["model_functions"]["target"] = "different"
+    elif fault == "coordinate": measurement["coordinate_result"] = case["recipe"]["files"]["source_bundle_metadata"]
+    elif fault == "zero_alias": measurement["actual_model_forwards"] = False
+    case["seal_initial"]()
+    with pytest.raises(RuntimeError): native.require_chronological_initial_measurement(case["recipe"])
+
+
+@pytest.fixture
+def dynamic_observation_admission_case(dynamic_initial_observer):
+    model, dataset, cohort, context = dynamic_initial_observer
+    diagnostics = runner._dynamic_m5_prefix_observations(model=model, dataset=dataset, cohort=cohort,
+        context=context, device=torch.device("cpu"), deadline=time.monotonic()+30)
+    observation = {"target_model_role":"frozen_constructor_anchor_no_forward", "exit_evaluation":False,
+                   "native_launch_authorized":False, "diagnostics":diagnostics}
+    return observation, cohort, context["entry_supervision_identity"]
+
+
+@pytest.mark.parametrize("fault", [None, "hash", "mask_pair", "counts", "row", "pointer", "horizon", "candidate",
+    "exit", "coverage", "error", "forwards"])
+def test_dynamic_observation_admission_rejoins_actual_component_masks_and_trace(dynamic_observation_admission_case, fault):
+    observation, cohort, identity = dynamic_observation_admission_case
+    diagnostics = observation["diagnostics"]; frozen = diagnostics["dynamic_frozen_targets"]
+    components = frozen["components"]; traces = diagnostics["dynamic_entry_observations"]
+    if fault == "hash": components["dynamic_mfe_bps"]["target_storage_sha256"] = "bad"
+    elif fault == "mask_pair": components["dynamic_mfe_bps"]["observed_mask_sha256"] = "f"*64
+    elif fault == "counts": components["dynamic_mfe_bps"]["observed_cells"] += 1
+    elif fault == "row": traces[0]["entry_row_index"] += 1
+    elif fault == "pointer": frozen["dynamic_entry_m1_rows"][0] += 1
+    elif fault == "horizon": traces[0]["side_diagnostics"][0]["predicted_best_horizon_minutes"] = [481]
+    elif fault == "candidate": traces[0]["diagnostic_action"] = "LONG"
+    elif fault == "exit": diagnostics["exit_model_forward_count"] = 1
+    elif fault == "coverage": diagnostics["dynamic_candidate_diagnostic_coverage"]["abstained_rows"] -= 1
+    elif fault == "error": diagnostics["dynamic_component_errors"]["dynamic_mfe_bps"]["sum_squared_error_bps2"] = float("nan")
+    elif fault == "forwards": diagnostics["entry_model_forward_count"] = 17
+    if fault:
+        with pytest.raises(RuntimeError): native._require_dynamic_m5_observation(observation, identity=identity, cohort=cohort)
+    else:
+        assert native._require_dynamic_m5_observation(observation, identity=identity, cohort=cohort) == observation

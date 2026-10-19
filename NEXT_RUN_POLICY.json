@@ -4,10 +4,10 @@
   "canonical_branch": "work/gx1-current",
   "training_module": "gx1.scripts.run_unified_exit_native_candidate_window_v1",
   "required_val_profile": {
-    "cpu_pipeline_workers": 8,
+    "max_model_forwards": 16,
+    "max_state_views": 256,
     "max_wall_seconds": 10800,
-    "policy_batch_size": 256,
-    "progress_interval_forwards": 64
+    "progress_interval_forwards": 16
   },
   "train_batch_size": 16,
   "precision": "float32",
@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-19T03:50:17.942004+00:00",
-  "status": "055_NORMALIZATION_PASS__056_SOURCE_PUSHED__057_ACTUAL_NATIVE_BINDINGS_READY_NO_TRAINING",
+  "observed_utc": "2026-10-19T04:46:47.842525+00:00",
+  "status": "057_BINDINGS_PASS__058_SOURCE_QUALIFIED_553_CASES_CONSTRUCTOR_PUBLICATION_READY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Run exactly one057 actualdesign/witness/physicaltargetreceipt/coordinates publication on clean frozen source through existing cappedaudit. Reuse055transform, nofit/model/Exit/TEST. Then qualify actualconstructormetadata and dynamicrecipe/campaign/measurement admission before freshmodelgates and the single requested epoch.",
+  "next_action": "Commit/push qualified058source/docs aftermandatoryhooks, then one capped metadata-only constructor publication. No model/broker in058. Subsequently execute exactlytwo explicitly authorized practiceGET using frozen historicalobservations and existing qualifiedowners under a new boundedcostplan; publish exactcoveragecostauthority/observedplan beforeactualnativebaseline/gates/oneepoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -78,11 +78,11 @@
       "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/STUDY_REVIEW.json",
       "sha256": "eeea3858a7fe2a43ff98ed3a150aa687ee4538eaeadea386c3dbb7ec4b36353d"
     },
-    "current_evidence_scope": "Fresh26month MBP1/M5-path generation remains untrained. Actual051physicalmetadata/reconstruction,053fullinputliveness,055wholeTRAINnormalization and056sourcecomponents passed.057binds actualdesign/population/target/cohort metadata only; fresh baseline/consumption/parity/Entry-onlyoptimizer/resume/hardware and one full native epoch remain. Historical generation results stay bounded historical evidence."
+    "current_evidence_scope": "Current26month MBP1/M5-path generation remains untrained. Actual051physicalmetadata/reconstruction,053fullinputliveness,055wholeTRAINnormalization,056sourcecomponents and057actualfullTRAINdesign/witness/targetreceipt/nativecoordinates/cohorts passed. Currentconstructor metadata, explicitdynamicrecipe/measurement admission, fresh baseline/consumption/parity/Entry-onlyoptimizer/resume/hardware and one full native epoch remain. Older reports are historical generation evidence only."
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "047_DATASET_ONLY_SUCCESSOR_READY__046_PASS_AND_ACTUAL_GC_COPY_MEASURED__TRAINING_FALSE",
+    "current_activity": "058 source qualified553unique cases; one current constructor metadata publication ready after cleancommit",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,20 +112,20 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "022freshM5/model-source/253TFcache COMPLETE; no training, fullnativeinputchain pending.",
+    "latest_terminal_role": "Actual dynamic M5 Entry data/design/population/target/coordinates/cohort binding only, no native model execution",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_034/TERMINAL.json",
-      "sha256": "9a164c0c680fb9680dcc7f4a5d9c64e849feaba696d2ca112b1cb0a18ba2ffe1"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/TERMINAL.json",
+      "sha256": "43f7a5cca12c560225268460ce5c8b463e609da7246198bf1b6861954eb5d978"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
     "selected_sampler_published": true,
     "sampler_selected": false,
     "physical_native_preprocessing_complete": false,
-    "native_training_coordinates_published": false,
+    "native_training_coordinates_published": true,
     "native_component_preparation_authorized": false,
     "test_data_used": false,
     "cleanup_report": "CURRENT_HANDOVER.md",
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Fresh003M1 andnewM5physicaldataset, actualnewTRAINregistryfit/currentcontractpublication, normalization andmodelqualification pending.",
+    "current_blocker": "Actual current constructor artifact, new exactcoverage declaredcostauthority/observedplan/native recipe and freshmodel/hardware qualification remain; source-only Entry-only gates are qualified. Two precise practiceGET reads authorized, not executed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -10363,7 +10363,7 @@
         }
       },
       "dynamic_m5_entry_implementation": {
-        "status": "055_NORMALIZATION_COMPLETE__056_SOURCE_QUALIFIED_PUSHED__057_ACTUAL_BINDINGS_READY",
+        "status": "057_ACTUAL_BINDINGS_COMPLETE__058_SOURCE_QUALIFIED_CONSTRUCTOR_READY",
         "operator_authority": "18October user explicitly requested minute-to-many-hour Entry direction and lowMAEbeforeMFE, days support; approved activegoal and notification after complete build. One nativeepoch remains requested, pending alladmission.",
         "training_phase": "entry_only_dynamic_m5_path",
         "emission_scope": "m5_dynamic_observed",
@@ -10478,7 +10478,8 @@
           "Explicit dynamic native recipe and population/order admission without Exitreferencepolicy/economics/index dependencies",
           "Actual fresh constructor metadata with current2725/2542/253 geometry, canonicaleight specialist/context routes and boundcache; verifiedsix architecture scalars only frommetadata provenance, no oldweights",
           "Initial/learning admission must verify dynamic component/mask/cohort hashes, constructoranchor_no_forward and Entry-only LONG/SHORT/FLAT/abstention traces",
-          "Actual fresh baseline/fullfeature consumption/parity/Entry-onlyoptimizer/resume/hardware and requested exactlyone fullnativeepoch remain unexecuted"
+          "Actual fresh baseline/fullfeature consumption/parity/Entry-onlyoptimizer/resume/hardware and requested exactlyone fullnativeepoch remain unexecuted",
+          "Actualdynamic observed-market plan must bind genuine declared nonspread-cost authority with exact TRAIN/control coverage2024-05-01..2026-04-01. Existing broad2011..July2026 prospectiveauthority cannotbe relabeled; verify current broker evidence and reuse existing prospectivepublisher. Dynamic files require11th train_cost_authority; no cost-zero fallback."
         ],
         "physical_dataset_stage_032": {
           "status": "FAILED_NO_ADMISSION_CONSUMED",
@@ -11572,7 +11573,7 @@
             "val": 17284
           },
           "payload_regenerated": false,
-          "physical_target_receipt_created": false,
+          "physical_target_receipt_created": true,
           "input_liveness_qualified": true,
           "normalization_fitted": true,
           "native_training_admitted": false,
@@ -11588,7 +11589,38 @@
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/RESULT.json",
             "sha256": "69caa738a87f7b63b46d1e126e5c4fd97d9f66d4591d44c1bcc2d223937e8175"
           },
-          "normalization_contract_sha256": "4a454355d43e86db5326ef8b07ff4edee005a9ec4402c69a553b4b4818c7d7b1"
+          "normalization_contract_sha256": "4a454355d43e86db5326ef8b07ff4edee005a9ec4402c69a553b4b4818c7d7b1",
+          "actual_native_bindings_complete": true,
+          "design": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/DESIGN.json",
+            "sha256": "4e8a027a9b8577bf6876601d0508bd7c376bf3620f6ee260ee4e399cc32568f5"
+          },
+          "population_witness": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/WITNESS.json",
+            "sha256": "19b6b9a6c2167b3eb9795ceb1372a0b398e6fc0b2731a035db78b3e082d7f801"
+          },
+          "physical_target_receipt": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
+            "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
+          },
+          "native_coordinate_publication": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/COORDINATES/DYNAMIC_M5_NATIVE_COORDINATES_RESULT.json",
+            "sha256": "3dfc8b506539663def969466380bfbffe2173b93b77dcfeed13e7c413c5d8158"
+          },
+          "native_coordinates": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/COORDINATES/NATIVE_COORDINATES.json",
+            "sha256": "79e0104bffeb457d33672062e28c9df7b428156b191e58fd75f2be4842d3d664"
+          },
+          "measurement_cohorts": {
+            "control": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/CONTROL_MEASUREMENT_COHORT.json",
+              "sha256": "912a1a3b4e4bcb900c0dcd85992c1736a442239e1bef0063cf0d4a7a35c34a8d"
+            },
+            "train": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/TRAIN_MEASUREMENT_COHORT.json",
+              "sha256": "bb3d846cb4fbb17f355dff64cb4112a6cb619c10018a41c8e7f4be39cd640ddb"
+            }
+          }
         },
         "dynamic_target_input_binding_stage_052": {
           "status": "PREPARATION_ONLY_SERIALIZER_RETAINED_NO_DATA_ONLY_DESIGN_RUN_AUTHORITY",
@@ -11818,14 +11850,14 @@
           "source_pushed": true
         },
         "actual_native_binding_stage_057": {
-          "status": "READY_ONE_SHOT_ACTUAL_BINDINGS_NOT_NATIVE_ADMISSION",
+          "status": "COMPLETE_ACTUAL_NATIVE_BINDINGS_NOT_NATIVE_ADMISSION",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057",
           "plan_path": "configs/research/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057.json",
           "plan_sha256": "b3662209ce331b089dbb3cfe8ed5394f33d63f0a9a8784f0431cc3cabc9b0286",
           "planned_invocations": 1,
-          "completed_invocations": 0,
-          "execution_authorized": true,
-          "data_binding_enabled": true,
+          "completed_invocations": 1,
+          "execution_authorized": false,
+          "data_binding_enabled": false,
           "normalization_fit_enabled": false,
           "training_enabled": false,
           "native_training_admitted": false,
@@ -11837,7 +11869,79 @@
             "sha256": "980a587fd0cb574e6ae7bd0d66242fdabef6ec0d4116ad85c98612f46ee7ce6b"
           },
           "focused_source_cases_passed": 46,
-          "scope": "Publish canonical wholephysicalTRAIN rows/order/witness, one full native design, actual dynamic physical target receipt, native coordinates and fixed256TRAIN/control Entry cohorts. Reuse051numeric bytes/053liveness/055transform and existing strictowners. No feature/target/normalization fit, model execution, optimizer, Exit evaluation or native launch authority."
+          "scope": "Publish canonical wholephysicalTRAIN rows/order/witness, one full native design, actual dynamic physical target receipt, native coordinates and fixed256TRAIN/control Entry cohorts. Reuse051numeric bytes/053liveness/055transform and existing strictowners. No feature/target/normalization fit, model execution, optimizer, Exit evaluation or native launch authority.",
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/TERMINAL.json",
+            "sha256": "43f7a5cca12c560225268460ce5c8b463e609da7246198bf1b6861954eb5d978"
+          },
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/RESULT.json",
+            "sha256": "1a4208cc06c2fe357fccfa2348c3b1f0cf9404ed98c4e141f8ad6f53970a5e4c"
+          },
+          "elapsed_seconds": 1015.5135887500037,
+          "source_unchanged": true,
+          "source_commit": "350303f3a6534eeff7a5ddc498e07b2a19bf3369",
+          "finished_utc": "2026-10-19T04:10:24.684505+00:00",
+          "train_rows": 118249,
+          "val_rows": 17284,
+          "planned_optimizer_steps": 7391,
+          "last_batch_rows": 9,
+          "actual_native_bindings_complete": true
+        },
+        "native_recipe_admission_stage_058": {
+          "status": "SOURCE_QUALIFIED_553_CASES_ONE_CURRENT_CONSTRUCTOR_PUBLICATION_READY",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058",
+          "source_qualification_authorized": false,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "normalization_refit_allowed": false,
+          "scope": "Correct measured legacy Exit/economic dependencies only in explicitdynamic native recipe/campaign/profile/initial/learning validation. Reuse057actualstrictchain and055transform; no fakebenchmark/Exitindex/economic proof. Currentconstructor JSON uses verifiedsixscalar architecture provenance plus current fieldroutes/cache; no oldweights. Measured additional live dependency: include genuine train_cost_authority as11th dynamicfile, never remove net-cost semantics. Actual current coverage cost publication remains separate before any native baseline.",
+          "entry_measurement_profile": {
+            "max_model_forwards": 16,
+            "max_state_views": 256,
+            "max_wall_seconds": 10800,
+            "progress_interval_forwards": 16
+          },
+          "entry_measurement_profile_semantics": "Per256row cohort, batch16,16 sharedencoderforwards.480queries share the same encoding. TRAIN/control are separate cohorts; noExitviews. Existing12000s native/13800souter guard remain.",
+          "source_qualification_planned_invocations": 1,
+          "source_qualification_completed_invocations": 1,
+          "source_qualification_max_wall_seconds": 1800,
+          "source_qualification_original_receipt": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/SOURCE_QUALIFICATION_RECEIPT.json",
+            "sha256": "877880ea72d90f393d3cdf71c7393ccef87ad57029a25ae78e3413c82d5cf3b9"
+          },
+          "source_qualification_repair_01": {
+            "planned_invocations": 1,
+            "completed_invocations": 1,
+            "execution_authorized": false,
+            "max_wall_seconds": 600,
+            "scope": "Only two fixture repairs and one stale error expectation. Production/externalworkers unchanged;59affected/dependencyPASS,494unaffectedPASS reused,3unchanged deliberatelegacySKIPs.",
+            "receipt": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/SOURCE_QUALIFICATION_REPAIR_01/SOURCE_QUALIFICATION_RECEIPT.json",
+              "sha256": "916eb62c3edb78b116dac76de57371e36634a51f7fd20e06dd8071bf381a428b"
+            },
+            "passed": 59
+          },
+          "source_qualification_final_receipt": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/SOURCE_QUALIFICATION_FINAL_RECEIPT.json",
+            "sha256": "782cb01e29d870897fd77271c85b2759ba9963bce7cd0b565bb596791b5cae5f"
+          },
+          "source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/SOURCE_REVIEW.json",
+            "sha256": "61cb4040cc24de7806b7a82f4d9560b7dfd04f43f309b982f9339929ce721997"
+          },
+          "unique_qualified_cases": 553,
+          "skipped_legacy_invalid_combinations": 3,
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "execution_authorized": true,
+          "metadata_publication_enabled": true,
+          "normalization_fit_enabled": false,
+          "relaunch_allowed": false,
+          "max_wall_seconds": 7200,
+          "source_frozen_while_running": true,
+          "plan_path": "configs/research/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058.json",
+          "plan_sha256": "e0742fb03949d0b94f008480fbfa1b4e57dfe12a1f80f1267bc2964649b082f8"
         }
       },
       "operator_pc_reboot_20261018": {
@@ -11890,7 +11994,28 @@
       "audit_document": "docs/FEATURE_AUDIT.md",
       "completion_rule": "Do not claim complete until every registered indicator and timeframe has documented source-to-model coverage or an explicit reviewed source limitation, and physical inputs/normalization/baseline/parity are measured."
     },
-    "active_readiness_generation": "18October full-feature M5/MTF audit; historical sampler/baseline/preprocessing receipts remain in their original policy scopes and confer no current readiness."
+    "active_readiness_generation": "18October full-feature M5/MTF audit; historical sampler/baseline/preprocessing receipts remain in their original policy scopes and confer no current readiness.",
+    "read_only_oanda_terms_20261019": {
+      "status": "USER_AUTHORIZED_PREPARATION_NO_REQUESTS_EXECUTED",
+      "authorized_utc_recorded": "2026-10-19T04:32:07.684970+00:00",
+      "authorization": "Explicit user reply: Tillat kun de to leseoppslagene",
+      "authorized_get_requests": 2,
+      "executed_get_requests": 0,
+      "environment": "practice",
+      "allowed_endpoint_kinds": [
+        "configured_account_summary",
+        "configured_account_XAU_USD_instrument_terms"
+      ],
+      "read_only": true,
+      "frozen_historical_observations_required": true,
+      "new_transaction_queries_allowed": false,
+      "account_listing_allowed": false,
+      "automatic_retries_allowed": false,
+      "orders_or_account_mutations_allowed": false,
+      "live_or_paper_execution_allowed": false,
+      "broker_authority_outside_exact_two_reads": false,
+      "raw_or_secret_output_in_chat_or_git_allowed": false
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -14454,5 +14579,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-19T03:50:17.942004+00:00"
+  "updated_utc": "2026-10-19T04:46:47.842525+00:00"
 }

@@ -14111,7 +14111,9 @@ def _dynamic_entry_native_context_binding(context: Mapping[str, Any]) -> dict[st
     from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
     from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
     from gx1.contracts.entry_model_native_input_normalization_v1 import EXPECTED_SURFACES, require_input_normalization_contract
-    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    from gx1.contracts.entry_observed_market_v1 import (
+        entry_observed_dynamic_m5_path_contract, require_entry_observed_market_scope, entry_observed_market_identity,
+    )
 
     limit_keys = ("max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards")
     required = {"entry_training_phase", "entry_supervision_identity", "physical_sources",
@@ -14124,10 +14126,27 @@ def _dynamic_entry_native_context_binding(context: Mapping[str, Any]) -> dict[st
             or split not in ("train", "val") or cohort.get("exit_evaluation") is not False
             or not isinstance(sources, Mapping) or set(sources) != {"train", "val"}
             or not isinstance(identity, Mapping) or identity.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
-            or identity.get("design") != cohort.get("plan")
             or identity.get("target_contract") != entry_observed_dynamic_m5_path_contract()
             or identity.get("query_minutes") != list(_dynamic_m5_model_kwargs(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)["dynamic_m5_query_minutes"])):
         raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_SOURCE_INVALID]")
+    # Supervision belongs to an observed-plan; the cohort belongs to its full
+    # chronological design. Prove the link through the existing strict owner.
+    observed_binding = require_binding(identity.get("design"), label="Entry observed plan", verify_file=True)
+    observed_plan = read_bound_json(Path(observed_binding["path"]), observed_binding["sha256"])
+    native_binding = require_binding(cohort.get("plan"), label="Entry chronological design", verify_file=True)
+    observed_prefix, observed_files = observed_plan.get("chronological_prefix"), observed_plan.get("files")
+    if (not isinstance(observed_prefix, Mapping) or not isinstance(observed_files, Mapping)
+            or observed_prefix.get("design") != native_binding
+            or observed_prefix.get("normalization_result") != context["entry_only_base_normalization"]):
+        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_DESIGN_JOIN_INVALID]")
+    scope = require_entry_observed_market_scope({
+        "entry_observed_market": observed_binding, "chronological_prefix": dict(observed_prefix),
+        "files": {**{f"entry_{source_split}_{kind}": sources[source_split].get(kind)
+                      for source_split in ("train", "val") for kind in ("parquet", "manifest")},
+                  "train_cost_authority": observed_files.get("train_cost_authority")},
+    })
+    if entry_observed_market_identity(scope) != dict(identity) or scope.get("physical_sources") != sources:
+        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_OBSERVED_SCOPE_INVALID]")
     source = sources[split]
     if (cohort.get("parent_entry_parquet") != source.get("parquet")
             or cohort.get("parent_entry_manifest") != source.get("manifest")

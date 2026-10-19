@@ -1030,6 +1030,54 @@ def _planned_prefix_optimizer_steps(design: Mapping[str, Any]) -> int:
     return planned_prefix_optimizer_steps(design)
 
 
+def _dynamic_m5_native_design(recipe):
+    """Select only the explicit phase in an immutable full chronological design."""
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    value = recipe.get("chronological_prefix")
+    if not isinstance(value, Mapping) or "design" not in value:
+        return None
+    binding = require_binding(value["design"], label="dynamic native design", verify_file=True)
+    design = read_bound_json(Path(binding["path"]), binding["sha256"])
+    return design if design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE else None
+
+
+def _require_dynamic_m5_native_prefix(recipe):
+    """Validate actual physical population/order; this does not authorize a run."""
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
+    prefix = require_chronological_prefix_recipe(recipe)
+    physical, single, coordinates = (prefix.get(key) for key in (
+        "physical_preprocessing", "entry_m5_path_single_epoch", "physical_coordinates"))
+    if (not all(isinstance(value, Mapping) for value in (physical, single, coordinates))
+            or physical.get("entry_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or single["witness"]["training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or coordinates.get("population_witness") != single["binding"]
+            or coordinates.get("native_sampler_contract") != single["witness"]["native_sampler_contract"]
+            or prefix["train_rows"] != physical["train_rows"] or physical["train_rows"] != single["train_rows"]
+            or any(key in recipe for key in ("exit_reference_policy", "exit_backup_steps", "chronological_entry_baseline",
+                "chronological_train_only_measurement", "chronological_learning_continuation", "entry_learning_study"))):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_PHYSICAL_POPULATION_REQUIRED")
+    observed = require_observed_entry_scope(recipe)
+    if (not isinstance(observed, Mapping) or observed.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or observed.get("physical_sources") != physical["physical_sources"]
+            or observed.get("target_contract") != single["witness"]["target_contract"]
+            or not isinstance(observed.get("query_minutes"), tuple)
+            or observed["query_minutes"] != tuple(single["witness"]["target_contract"]["query_contract"]["horizon_minutes"])):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_OBSERVED_SCOPE_REQUIRED")
+    return prefix
+
+
+def _dynamic_m5_compute_profile(recipe):
+    """The operator-prescoped two256-row probes each need16 encoder forwards."""
+    expected = {"max_model_forwards": 16, "max_state_views": 256,
+                "max_wall_seconds": 10800, "progress_interval_forwards": 16}
+    value = recipe.get("val_limits")
+    if (not isinstance(value, Mapping) or set(value) != set(expected)
+            or any(type(value[key]) is not int or value[key] != number for key, number in expected.items())):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_COMPUTE_PROFILE_INVALID")
+    return dict(expected)
+
+
 def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, Any]:
     """Read the frozen prefix identity; this alone never grants run authority."""
     import numpy as np
@@ -1049,6 +1097,13 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
         M5_SINGLE_EPOCH_SCOPE_KEY, require_m5_single_epoch_population, planned_prefix_training_rows,
     )
     single_epoch = require_m5_single_epoch_population(design)
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    dynamic = design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if dynamic and ("exit_reference_policy" in recipe
+            or design.get("targets", {}).get("dynamic_target_contract") != entry_observed_dynamic_m5_path_contract()
+            or "reference_policy" in design.get("targets", {})):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_ENTRY_TARGET_REQUIRED")
     if ((single_epoch is None and M5_SINGLE_EPOCH_SCOPE_KEY in recipe)
             or (single_epoch is not None and (recipe.get(M5_SINGLE_EPOCH_SCOPE_KEY) != single_epoch["binding"]
                 or "native_coordinates" not in artifacts or recipe.get("trainer_cli", {}).get("epochs") != 1))):
@@ -1062,8 +1117,8 @@ def require_chronological_prefix_recipe(recipe: Mapping[str, Any]) -> dict[str, 
             or design.get("budget", {}).get("maximum_trained_entry_rows") != planned_prefix_training_rows(design)
             or design.get("budget", {}).get("epochs_completed") != (1 if single_epoch is not None else 0)
             or design.get("budget", {}).get("repeat_or_automatic_extension") is not False
-            or require_reference_policy_contract(recipe.get("exit_reference_policy"))
-                != require_reference_policy_contract(design["targets"]["reference_policy"])):
+            or (not dynamic and require_reference_policy_contract(recipe.get("exit_reference_policy"))
+                != require_reference_policy_contract(design["targets"]["reference_policy"]))):
         raise RuntimeError("NATIVE_PREFIX_DESIGN_OR_TARGET_MISMATCH")
     controls = recipe.get("trainer_cli", {})
     from gx1.contracts.entry_observed_market_horizons_v1 import allowed_prefix_training_seeds
@@ -1318,6 +1373,186 @@ def require_prefix_measurement_source_binding(recipe, *, measurement=None):
     return expected
 
 
+def _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement):
+    """Rejoin constructor provenance and Entry coordinates, without a teacher forward."""
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE as phase
+    physical, single = prefix["physical_preprocessing"], prefix["entry_m5_path_single_epoch"]
+    common = {"entry_training_phase": phase, "target_model_role": "frozen_constructor_anchor_no_forward",
+              "exit_evaluation": False, "native_launch_authorized": False, "exit_model_forward_count": 0}
+    functions = initial.get("model_functions")
+    if (any(type(value.get(key)) is not type(expected) or value[key] != expected
+            for value in (initial, measurement) for key, expected in common.items())
+            or initial.get("entry_only_base_normalization") != physical["entry_only_base_normalization"]
+            or initial.get("base_contract_sha256") != physical["base_contract_sha256"]
+            or initial.get("population_witness") != single["binding"]
+            or initial.get("test_data_used") is not False
+            or any(type(initial.get(key)) is not int or initial[key] != 0
+                   for key in ("model_forwards", "optimizer_steps", "ema_steps", "normalization_refits"))
+            or not isinstance(functions, Mapping) or set(functions) != {"online", "target"}
+            or not isinstance(functions["online"], str) or not functions["online"]
+            or functions["online"] != functions["target"]
+            or any(type(measurement.get(key)) is not int or measurement[key] != 0
+                   for key in ("actual_model_forwards", "optimizer_steps"))
+            or not isinstance(initial.get("online_model_state_sha256"), str)
+            or len(initial["online_model_state_sha256"]) != 64
+            or any(char not in "0123456789abcdef" for char in initial["online_model_state_sha256"])
+            or measurement.get("coordinate_result") != recipe.get("files", {}).get("entry_measurement_coordinates")):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_INITIAL_COMPONENT_BINDING_INVALID")
+    require_prefix_measurement_source_binding(recipe, measurement=initial)
+    require_prefix_measurement_source_binding(recipe, measurement=measurement)
+
+
+def _require_dynamic_m5_observation(observation, *, identity, cohort):
+    """Validate the existing observer's independent components and exact Entry trace."""
+    import math
+    import numpy as np
+    import pyarrow.parquet as pq
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        DYNAMIC_M5_POINTER_COLUMNS, MODEL_NATIVE_AUX_FORECAST_HORIZONS,
+        MODEL_NATIVE_FORECAST_OUTPUT_DIM, MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT,
+    )
+    from gx1.contracts.entry_fitted_q_v1 import ENTRY_FITTED_Q_ACTION_ORDER
+
+    def check(condition, reason):
+        if not condition:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_OBSERVATION_" + reason)
+
+    def digest(value):
+        return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+
+    def number(value, *, nonnegative=False):
+        return type(value) in (int, float) and math.isfinite(value) and (not nonnegative or value >= 0)
+
+    def numeric_array(value, shape, *, counts=False):
+        try:
+            array = np.asarray(value)
+            check(array.shape == shape, "ARRAY_SHAPE_INVALID")
+            flat = array.reshape(-1).tolist()
+            check(all(type(cell) is int and 0 <= cell <= 256 for cell in flat) if counts else
+                  all(number(cell, nonnegative=True) for cell in flat), "ARRAY_DOMAIN_INVALID")
+            return array.astype(np.int64 if counts else np.float64)
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_OBSERVATION_ARRAY_INVALID") from exc
+
+    check(observation.get("target_model_role") == "frozen_constructor_anchor_no_forward"
+          and observation.get("exit_evaluation") is False and observation.get("native_launch_authorized") is False,
+          "CONSTRUCTOR_ANCHOR_REQUIRED")
+    diagnostics = observation.get("diagnostics", {})
+    required = {"dynamic_frozen_targets", "dynamic_component_errors", "dynamic_entry_observations", "dynamic_curve_statistics",
+        "dynamic_candidate_diagnostic_coverage", "entry_model_forward_count", "exit_model_forward_count",
+        "dynamic_candidate_native_authority_admitted", "candidate_target_comparison_uses_prediction_selected_horizons_only",
+        "component_masks_have_independent_denominators", "realized_cash_or_native_policy_evaluated"}
+    check(isinstance(diagnostics, Mapping) and set(diagnostics) == required
+          and type(diagnostics.get("entry_model_forward_count")) is int and diagnostics["entry_model_forward_count"] == 16
+          and type(diagnostics.get("exit_model_forward_count")) is int and diagnostics["exit_model_forward_count"] == 0
+          and diagnostics.get("dynamic_candidate_native_authority_admitted") is False
+          and diagnostics.get("candidate_target_comparison_uses_prediction_selected_horizons_only") is True
+          and diagnostics.get("component_masks_have_independent_denominators") is True
+          and diagnostics.get("realized_cash_or_native_policy_evaluated") is False, "ENTRY_ONLY_DIAGNOSTICS_REQUIRED")
+    parents, times, queries = cohort["parent_entry_row_indices"], cohort["entry_time_ns"], list(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+    frozen = diagnostics["dynamic_frozen_targets"]
+    check(isinstance(frozen, Mapping) and set(frozen) == {"entry_supervision_identity", "parent_entry_rows", "entry_time_ns",
+          "dynamic_entry_m1_rows", "query_minutes", "base_forecast_horizons", "support_forecast_layout", "components"}
+          and frozen["entry_supervision_identity"] == identity and frozen["parent_entry_rows"] == parents
+          and frozen["entry_time_ns"] == times and frozen["query_minutes"] == queries
+          and frozen["base_forecast_horizons"] == list(MODEL_NATIVE_AUX_FORECAST_HORIZONS)
+          and frozen["support_forecast_layout"] == list(MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT), "FROZEN_TARGET_IDENTITY_INVALID")
+    # Read just the immutable pointer column; outcome values and feature inputs are not opened.
+    wanted = np.asarray(parents, np.int64)
+    actual_pointers = np.full(len(parents), -1, np.int64)
+    parquet = pq.ParquetFile(cohort["parent_entry_parquet"]["path"])
+    check(parquet.metadata.num_rows == cohort["population_rows"], "POINTER_POPULATION_INVALID")
+    offset = 0
+    for batch in parquet.iter_batches(batch_size=4096, columns=[DYNAMIC_M5_POINTER_COLUMNS[0]], use_threads=False):
+        rows = batch.column(0).to_numpy(zero_copy_only=False)
+        check(rows.dtype == np.dtype("int64"), "POINTER_DTYPE_INVALID")
+        selected = np.flatnonzero((wanted >= offset) & (wanted < offset + len(rows)))
+        actual_pointers[selected] = rows[wanted[selected] - offset]
+        offset += len(rows)
+    check(offset == cohort["population_rows"] and bool((actual_pointers >= 0).all())
+          and frozen["dynamic_entry_m1_rows"] == actual_pointers.tolist(), "GLOBAL_POINTER_TRACE_INVALID")
+    names = ("dynamic_terminal_net_markout_bps", "dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps",
+             "dynamic_closed_mfe_bps", "dynamic_closed_pre_mfe_mae_upper_bps", "forecast_pred")
+    components, errors = frozen["components"], diagnostics["dynamic_component_errors"]
+    check(isinstance(components, Mapping) and isinstance(errors, Mapping)
+          and set(components) == set(errors) == set(names), "COMPONENTS_INVALID")
+    for index, name in enumerate(names):
+        row, error = components[name], errors[name]
+        shape = (MODEL_NATIVE_FORECAST_OUTPUT_DIM,) if index == 5 else (len(queries), 3 if index == 0 else 2)
+        count_key = "observed_cells_by_forecast_coordinate" if index == 5 else "observed_cells_by_horizon_and_side"
+        check(isinstance(row, Mapping) and set(row) == {"shape", "target_dtype", "mask_dtype", "target_storage_sha256",
+              "observed_mask_sha256", "observed_cells", "observed_rows", count_key}
+              and row["shape"] == [256, *shape] and row["target_dtype"] == "float32" and row["mask_dtype"] == "bool"
+              and digest(row["target_storage_sha256"]) and digest(row["observed_mask_sha256"]), "COMPONENT_STORAGE_INVALID")
+        counts = numeric_array(row[count_key], shape, counts=True)
+        cells, rows = int(counts.sum()), row["observed_rows"]
+        check(type(row["observed_cells"]) is int and row["observed_cells"] == cells
+              and type(rows) is int and 0 <= rows <= 256 and (cells == 0) == (rows == 0)
+              and (not cells or int(counts.max()) <= rows <= cells), "COMPONENT_COUNTS_INVALID")
+        error_keys = {"observed_cells", "observed_rows", "sum_squared_error_bps2", "sum_absolute_error_bps",
+            "sum_squared_error_by_forecast_coordinate_bps2" if index == 5 else "sum_squared_error_by_horizon_and_side_bps2",
+            "sum_absolute_error_by_forecast_coordinate_bps" if index == 5 else "sum_absolute_error_by_horizon_and_side_bps"}
+        check(isinstance(error, Mapping) and set(error) == error_keys | ({"mse_bps2", "mae_bps"} if cells else set())
+              and type(error["observed_cells"]) is int and error["observed_cells"] == cells
+              and type(error["observed_rows"]) is int and error["observed_rows"] == rows, "ERROR_COUNTS_INVALID")
+        for prefix, scalar, average in (("sum_squared_error", "sum_squared_error_bps2", "mse_bps2"),
+                                        ("sum_absolute_error", "sum_absolute_error_bps", "mae_bps")):
+            array_key = prefix + ("_by_forecast_coordinate" if index == 5 else "_by_horizon_and_side") + ("_bps2" if prefix == "sum_squared_error" else "_bps")
+            array = numeric_array(error[array_key], shape)
+            check(bool((array[counts == 0] == 0).all()) and number(error[scalar], nonnegative=True)
+                  and error[scalar] == float(array.sum())
+                  and (not cells or error[average] == float(array.sum()) / cells), "ERROR_AGGREGATION_INVALID")
+    for first, second in ((names[1], names[2]), (names[3], names[4])):
+        check(components[first]["observed_mask_sha256"] == components[second]["observed_mask_sha256"]
+              and components[first]["observed_cells_by_horizon_and_side"] == components[second]["observed_cells_by_horizon_and_side"],
+              "PAIRED_PATH_MASK_MISMATCH")
+    traces = diagnostics["dynamic_entry_observations"]
+    check(isinstance(traces, list) and len(traces) == len(parents) == 256, "TRACE_ROWS_INVALID")
+    actions = dict.fromkeys(ENTRY_FITTED_Q_ACTION_ORDER, 0)
+    tied, abstained = 0, 0
+    for index, trace in enumerate(traces):
+        check(isinstance(trace, Mapping) and set(trace) == {"entry_row_index", "entry_time_ns", "predicted_candidate_quality_bps",
+              "diagnostic_action", "diagnostic_abstained", "side_diagnostics"}
+              and type(trace["entry_row_index"]) is int and trace["entry_row_index"] == parents[index]
+              and type(trace["entry_time_ns"]) is int and trace["entry_time_ns"] == times[index], "TRACE_IDENTITY_INVALID")
+        candidate = trace["predicted_candidate_quality_bps"]
+        check(isinstance(candidate, list) and len(candidate) == 3 and all(number(value) for value in candidate)
+              and candidate[2] == 0, "CANDIDATE_VALUES_INVALID")
+        winners = [position for position,value in enumerate(candidate) if value == max(candidate)]
+        action = ENTRY_FITTED_Q_ACTION_ORDER[winners[0]] if len(winners) == 1 else "TIED_FAIL_CLOSED"
+        check(trace["diagnostic_action"] == action and type(trace["diagnostic_abstained"]) is bool
+              and trace["diagnostic_abstained"] == (action in ("FLAT", "TIED_FAIL_CLOSED")), "CANDIDATE_TRACE_INVALID")
+        if action == "TIED_FAIL_CLOSED": tied += 1
+        else: actions[action] += 1
+        abstained += int(trace["diagnostic_abstained"])
+        sides = trace["side_diagnostics"]
+        check(isinstance(sides, list) and len(sides) == 2, "SIDE_TRACE_INVALID")
+        for side, detail in enumerate(sides):
+            check(isinstance(detail, Mapping) and set(detail) == {"side", "predicted_best_horizon_minutes", *names[:5]}
+                  and detail["side"] == ENTRY_FITTED_Q_ACTION_ORDER[side], "SIDE_TRACE_INVALID")
+            best = detail["predicted_best_horizon_minutes"]
+            check(isinstance(best, list) and bool(best) and all(type(value) is int and value in queries for value in best)
+                  and best == sorted(set(best)), "HORIZON_TRACE_INVALID")
+            for name in names[:5]:
+                cell = detail[name]
+                check(isinstance(cell, Mapping) and type(cell.get("observed_cells")) is int
+                      and 0 <= cell["observed_cells"] <= len(best)
+                      and set(cell) == {"observed_cells", "predicted_mean_bps"} | ({"observed_target_mean_bps"} if cell["observed_cells"] else set())
+                      and number(cell["predicted_mean_bps"])
+                      and (not cell["observed_cells"] or number(cell["observed_target_mean_bps"])), "SIDE_COMPONENT_TRACE_INVALID")
+    statistics, coverage = diagnostics["dynamic_curve_statistics"], diagnostics["dynamic_candidate_diagnostic_coverage"]
+    action_counts = [actions[name] for name in ENTRY_FITTED_Q_ACTION_ORDER]
+    check(isinstance(statistics, Mapping) and type(statistics.get("curve_evaluation_rows")) is int
+          and statistics["curve_evaluation_rows"] == 256
+          and statistics.get("dynamic_candidate_unique_diagnostic_counts") == action_counts
+          and type(statistics.get("dynamic_candidate_tied_diagnostic_rows")) is int
+          and statistics["dynamic_candidate_tied_diagnostic_rows"] == tied
+          and coverage == {"entries":256, "unique_action_counts":action_counts, "tied_fail_closed_rows":tied,
+              "abstained_rows":abstained, "selected_fraction":(256 - abstained) / 256}, "DIAGNOSTIC_COVERAGE_INVALID")
+    return dict(observation)
+
+
 def require_chronological_initial_measurement(recipe, *, invocation_number=None, execution_budget=None):
     """One native initial measurement, using saved fresh weights and zero steps."""
     prefix = require_chronological_prefix_recipe(recipe)
@@ -1348,7 +1583,10 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
     require_binding(initial["initial_state"], label="saved fresh initial state", verify_file=True)
     coordinates = require_binding(measurement["coordinate_result"], label="frozen measurement coordinates", verify_file=True)
     coordinate_result = read_bound_json(Path(coordinates["path"]), coordinates["sha256"])
-    if coordinate_result.get("design") != prefix["artifacts"]["design"]:
+    dynamic = _dynamic_m5_native_design(recipe) is not None
+    coordinate_design = (coordinate_result.get("chronological_prefix", {}).get("design")
+                         if dynamic else coordinate_result.get("design"))
+    if coordinate_design != prefix["artifacts"]["design"]:
         raise RuntimeError("NATIVE_PREFIX_INITIAL_DESIGN_MISMATCH")
     if "physical_preprocessing" in prefix:
         from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_measurement_cohort
@@ -1356,6 +1594,9 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
             raise RuntimeError("NATIVE_PREFIX_INITIAL_PHYSICAL_COORDINATES_MISMATCH")
         for role in ("train", "control"):
             build_chronological_measurement_cohort(prefix["artifacts"]["design"], coordinates, role=role)
+    if _dynamic_m5_native_design(recipe) is not None:
+        prefix = _require_dynamic_m5_native_prefix(recipe)
+        _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement)
     binding = require_binding(recipe.get("next_run_policy"), label="initial measurement policy", verify_file=True)
     if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
@@ -1457,6 +1698,9 @@ def require_chronological_learning_measurement(recipe):
     initial = load(result.get("initialization_result"), "saved fresh initialization")
     measurement = load(result.get("measurement_binding_result"), "frozen measurement coordinates")
     receipt = load(audit.get("receipt"), "initial native terminal receipt")
+    dynamic_prefix = (_require_dynamic_m5_native_prefix(recipe) if _dynamic_m5_native_design(recipe) is not None else None)
+    if dynamic_prefix is not None:
+        _require_dynamic_initial_artifacts(recipe, dynamic_prefix, initial, measurement)
     expected = initial.get("online_model_state_sha256")
     repo = Path(__file__).resolve().parents[2]
     model_source = "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
@@ -1488,6 +1732,13 @@ def require_chronological_learning_measurement(recipe):
             or receipt.get("test_data_used") is not False
             or initial_roles not in allowed_roles):
         raise RuntimeError("NATIVE_PREFIX_LEARNING_INITIAL_MEASUREMENT_INVALID")
+    if dynamic_prefix is not None:
+        if (result.get("target_model_role") != "frozen_constructor_anchor_no_forward"
+                or result.get("exit_evaluation") is not False or result.get("native_launch_authorized") is not False
+                or result.get("model_functions") != initial.get("model_functions")
+                or type(result.get("optimizer_steps")) is not int or result["optimizer_steps"] != 0
+                or initial_roles != {"train", "control"}):
+            raise RuntimeError("NATIVE_DYNAMIC_M5_INITIAL_MEASUREMENT_REQUIRED")
     require_binding(initial["initial_state"], label="saved fresh state", verify_file=True)
     observed = {}
     roles = ("train",) if recipe.get("chronological_train_only_measurement") is True else ("train", "control")
@@ -1510,6 +1761,12 @@ def require_chronological_learning_measurement(recipe):
             if cohort != build_chronological_measurement_cohort(
                     recipe["chronological_prefix"]["design"], measurement["coordinate_result"], role=role):
                 raise RuntimeError("NATIVE_PREFIX_LEARNING_PHYSICAL_COHORT_MISMATCH")
+        if dynamic_prefix is not None:
+            source = dynamic_prefix["physical_preprocessing"]["physical_sources"]["train" if role == "train" else "val"]
+            if (cohort.get("parent_entry_parquet") != source["parquet"]
+                    or cohort.get("parent_entry_manifest") != source["manifest"]):
+                raise RuntimeError("NATIVE_DYNAMIC_M5_INITIAL_OBSERVATION_SOURCE_MISMATCH")
+            _require_dynamic_m5_observation(observation, identity=entry_identity, cohort=cohort)
     derived = {}
     if "chronological_entry_baseline" in recipe:
         entry_binding, entry_baseline = _require_derived_entry_baseline(
@@ -1749,7 +2006,9 @@ def require_m5_single_epoch_run(recipe, *, invocation_number=None, execution_bud
         if recipe["chronological_train_only_measurement"] is not True:
             raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
         expected["chronological_train_only_measurement"] = True
-    if (policy.get("training_enabled") is not False or scope != expected
+    dynamic = _dynamic_m5_native_design(recipe) is not None
+    if ((policy.get("training_enabled") is not True if dynamic else policy.get("training_enabled") is not False)
+            or (dynamic and policy.get("full_epoch_training_allowed") is not True) or scope != expected
             or canonical_sha256(scope) != canonical_sha256(expected)
             or type(windows) is not int or windows < 1
             or any(k in policy for k in ("chronological_learning_run", "native_learning_calibration",
@@ -1801,7 +2060,9 @@ def require_chronological_prefix_run(recipe, *, invocation_number=None, executio
                 or "chronological_learning_measurement" not in recipe):
             raise RuntimeError("NATIVE_PREFIX_TRAIN_ONLY_MEASUREMENT_INVALID")
         expected["chronological_train_only_measurement"] = True
-    if (policy.get("training_enabled") is not False or scope != expected
+    dynamic = _dynamic_m5_native_design(recipe) is not None
+    if ((policy.get("training_enabled") is not True if dynamic else policy.get("training_enabled") is not False)
+            or scope != expected
             or type(windows) is not int or windows < 1
             or type(scope.get("optimizer_steps")) is not int
             or type(scope.get("maximum_trained_entry_rows")) is not int
@@ -1832,7 +2093,11 @@ def require_fresh_physical_campaign_sampler(recipe: Mapping[str, Any]) -> tuple[
         design_binding = require_binding(prefix_binding["design"], label="fresh campaign design", verify_file=True)
         design = read_bound_json(Path(design_binding["path"]), design_binding["sha256"])
         if design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
-            raise RuntimeError("NATIVE_DYNAMIC_M5_MEASUREMENT_AND_LAUNCH_ADMISSION_PENDING")
+            prefix = _require_dynamic_m5_native_prefix(recipe)
+            binding = prefix["entry_m5_path_single_epoch"]["binding"]
+            if "selected_sampler" in recipe.get("files", {}):
+                raise RuntimeError("NATIVE_DYNAMIC_M5_EXIT_SAMPLER_FORBIDDEN")
+            return binding, binding["sha256"]  # population/order authority; no GPU benchmark claim
     prefix = require_chronological_prefix_recipe(recipe)
     coordinates = prefix.get("physical_coordinates")
     # The materializer and campaign invocation loop own finite scope admission.
@@ -1856,6 +2121,58 @@ def require_native_recipe_metadata(
     checked = require_binding(binding, label="native recipe")
     recipe = read_bound_json(Path(checked["path"]), checked["sha256"])
     controls = recipe.get("trainer_cli", {})
+    if _dynamic_m5_native_design(recipe) is not None:
+        import math
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+        from gx1.contracts.entry_model_native_train_recipe_v1 import require_model_native_recipe_env
+        prefix = _require_dynamic_m5_native_prefix(recipe)
+        _dynamic_m5_compute_profile(recipe)
+        files = recipe.get("files", {})
+        expected_files = {"entry_train_parquet", "entry_train_manifest", "entry_val_parquet", "entry_val_manifest",
+            "m5_prebuilt", "source_bundle_metadata", "sequence_source_audit", "val_sequence_source_audit",
+            "entry_only_base_normalization", "entry_measurement_coordinates", "train_cost_authority"}
+        fixed = {"epochs": 1, "batch_size": 16, "num_workers": 0, "grad_accum_steps": 1,
+            "early_stopping_patience": 5, "early_stopping_min_delta": 0.0, "minimum_epochs_before_stop": 1,
+            "save_top_k": 0, "precision_policy": "deterministic_fp32", "learning_rate": 0.0001,
+            "weight_decay": 0.0001, "checkpoint_monitor": DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR}
+        if (recipe.get("schema_version") != "gx1_unified_exit_random_access_full_train_recipe_v1"
+                or recipe.get("profile") != "candidate" or recipe.get("test_data_used") is not False
+                or recipe.get("source_repo") != str(source_repo) or recipe.get("source_commit") != source_commit
+                or recipe.get("recipe_sha256") != native_sha256({k:v for k,v in recipe.items() if k != "recipe_sha256"})
+                or not isinstance(files, Mapping) or set(files) != expected_files
+                or set(controls) != set(fixed) | {"seed", "grad_clip_norm"}
+                or any(type(controls.get(key)) is not type(value) or controls[key] != value for key,value in fixed.items())
+                or type(controls.get("grad_clip_norm")) is not float or not math.isfinite(controls["grad_clip_norm"])
+                or controls["grad_clip_norm"] <= 0):
+            raise RuntimeError("NATIVE_CANDIDATE_DYNAMIC_RECIPE_METADATA_INVALID")
+        require_model_native_recipe_env(recipe.get("recipe_env"), entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+        require_prefix_measurement_source_binding(recipe)
+        checked_files = {key: require_binding(value, label="dynamic native input", verify_file=True) for key,value in files.items()}
+        physical = prefix["physical_preprocessing"]
+        for split in ("train", "val"):
+            if any(checked_files[f"entry_{split}_{kind}"] != physical["physical_sources"][split][kind]
+                   for kind in ("parquet", "manifest")):
+                raise RuntimeError("NATIVE_CANDIDATE_DYNAMIC_SOURCE_MISMATCH")
+        normalization = read_bound_json(Path(physical["entry_only_base_normalization"]["path"]), physical["entry_only_base_normalization"]["sha256"])
+        lineage = normalization["contract"]["lineage"]
+        if (checked_files["entry_only_base_normalization"] != physical["entry_only_base_normalization"]
+                or checked_files["sequence_source_audit"] != physical["sequence_source_audits"]["train"]
+                or checked_files["val_sequence_source_audit"] != physical["sequence_source_audits"]["val"]
+                or checked_files["m5_prebuilt"] != {"path":lineage["m5_prebuilt_path"], "sha256":lineage["m5_prebuilt_sha256"]}
+                or recipe.get("dataset_run_id") != lineage["dataset_run_id"]):
+            raise RuntimeError("NATIVE_CANDIDATE_DYNAMIC_NORMALIZATION_SOURCE_MISMATCH")
+        measurement_binding = checked_files["entry_measurement_coordinates"]
+        measurement = read_bound_json(Path(measurement_binding["path"]), measurement_binding["sha256"])
+        if (measurement.get("chronological_prefix") != prefix["artifacts"]
+                or measurement.get("population_witness") != prefix["entry_m5_path_single_epoch"]["binding"]
+                or measurement.get("native_sampler_contract") != prefix["physical_coordinates"]["native_sampler_contract"]
+                or measurement.get("schema_version") != "gx1_dynamic_m5_native_coordinate_publication_v1"
+                or measurement.get("native_coordinates_complete") is not True
+                or measurement.get("entry_measurement_complete") is not False
+                or measurement.get("native_launch_admitted") is not False or measurement.get("test_data_used") is not False):
+            raise RuntimeError("NATIVE_CANDIDATE_DYNAMIC_COORDINATE_MISMATCH")
+        return recipe, prefix["entry_m5_path_single_epoch"]["train_rows"]
     economics_binding = require_binding(recipe.get("files", {}).get("economics_readiness"), label="native economics readiness")
     economics = read_bound_json(Path(economics_binding["path"]), economics_binding["sha256"])
     monitor = native_checkpoint_monitor(economics["economics_objective_contract"])
@@ -1951,6 +2268,18 @@ def require_reference_learning_plan(recipe: Mapping[str, Any], policy: Mapping[s
 
 
 def _require_native_profile_and_economics(recipe, policy, repo):
+    if _dynamic_m5_native_design(recipe) is not None:
+        from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+        profile = _dynamic_m5_compute_profile(recipe)
+        if (policy.get("schema_version") != "gx1_next_native_run_policy_v1"
+                or policy.get("canonical_source_repo") != str(repo) or policy.get("canonical_branch") != "work/gx1-current"
+                or policy.get("training_module") != NATIVE_MODULE or policy.get("required_val_profile") != profile
+                or policy.get("train_batch_size") != 16 or recipe.get("trainer_cli", {}).get("batch_size") != 16
+                or recipe.get("trainer_cli", {}).get("checkpoint_monitor") != DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+                or policy.get("precision") != "float32" or policy.get("tf32_allowed") is not False
+                or policy.get("native_invocation_seconds") != 12000 or policy.get("outer_guard_seconds") != 13800):
+            raise RuntimeError("NATIVE_NEXT_RUN_DYNAMIC_PROFILE_INVALID")
+        return profile, policy.get("required_evidence", {}), None
     profile = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,
                "max_wall_seconds": 10800, "progress_interval_forwards": 64}
     if (policy.get("schema_version") != "gx1_next_native_run_policy_v1"

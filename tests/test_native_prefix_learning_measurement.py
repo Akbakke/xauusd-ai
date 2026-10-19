@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 import torch
 
-from tests.test_native_prefix_initial_measurement import initial_scope, prefix_scope, scope
-from tests.test_native_prefix_recipe import native, runner, _write, _bind
+from tests.test_native_prefix_initial_measurement import initial_scope, prefix_scope, scope, dynamic_initial_scope
+from tests.test_native_prefix_recipe import native, runner, _write, _bind, dynamic_native_recipe_metadata
 from tests.test_native_prefix_recipe import test_native_campaign_materialization_window_and_final_review_stop as campaign_check
 from tests.test_native_prefix_coordinator import PrefixHarness, _prepared, equal_tree, digest, trainer
 from gx1.contracts import unified_exit_bounded_val_cohort_v1 as cohorts
@@ -245,3 +245,90 @@ def test_learning_admission_checks_observation_source_before_frozen_cohorts(lear
     with pytest.raises(RuntimeError,match="injected source mismatch"):
         native.require_chronological_learning_measurement(recipe)
     assert calls == [True]
+
+
+@pytest.fixture
+def dynamic_learning_measurement(dynamic_initial_scope, tmp_path, monkeypatch):
+    """Admission dispatch unit; the real six-component scanner is tested separately."""
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    case = dynamic_initial_scope; recipe = case["recipe"]
+    initial_artifacts = recipe.pop("chronological_initial_measurement")
+    case["policy"].pop("chronological_initial_measurement")
+    entry_binding = _write(tmp_path/"dynamic-entry-plan.json", {"unit":True})
+    recipe["entry_observed_market"] = entry_binding
+    scope = {"binding":entry_binding, "target_contract":case["witness"]["target_contract"],
+        "economics":{"unit":True}, "training_phase":case["witness"]["training_phase"],
+        "physical_sources":case["physical"]["physical_sources"],
+        "query_minutes":tuple(case["witness"]["target_contract"]["query_contract"]["horizon_minutes"]),
+        "target_m1_source_sha256":"b"*64}
+    monkeypatch.setattr(horizons, "require_observed_entry_scope", lambda value: scope)
+    identity = horizons.observed_entry_identity(scope)
+    coordinates = case["measurement"]["coordinate_result"]
+    cohorts_by_role, observations = {}, {}
+    for role, split in (("train","train"), ("control","val")):
+        source = case["physical"]["physical_sources"][split]
+        cohort = {"plan":recipe["chronological_prefix"]["design"], "measurement_coordinates":coordinates,
+            "measurement_role":role, "entry_row_indices":list(range(256)),
+            "parent_entry_parquet":source["parquet"], "parent_entry_manifest":source["manifest"]}
+        cohorts_by_role[role] = cohort
+        observations[role] = {"role":role, "optimizer_steps":0, "model_state_sha256":"a"*64,
+            "target_model_state_sha256":"a"*64, "test_data_used":False, "cohort":cohort,
+            "entry_observed_market":identity, "target_model_role":"frozen_constructor_anchor_no_forward",
+            "exit_evaluation":False, "native_launch_authorized":False, "diagnostics":{"unit":True}}
+    monkeypatch.setattr(cohorts, "build_chronological_measurement_cohort", lambda *args,role: cohorts_by_role[role])
+    calls = []
+    def checked(observation, *, identity, cohort):
+        assert observation["diagnostics"] == {"unit":True}
+        assert observation["cohort"] == cohort
+        assert observation["entry_observed_market"] == identity
+        calls.append(observation["role"])
+        return dict(observation)
+    monkeypatch.setattr(native, "_require_dynamic_m5_observation", checked)
+    result = {"schema_version":"gx1_native_prefix_initial_measurement_v1",
+        "decision":"FROZEN_INITIAL_TARGETS_AND_PREDICTIONS_READY_NO_LEARNING_MEASURED", **initial_artifacts,
+        "optimizer_steps":0, "model_state_sha256":"a"*64, "target_model_state_sha256":"a"*64,
+        "teacher_refreshed":False, "economic_rollout":False, "test_data_used":False,
+        "entry_observed_market":identity, "target_model_role":"frozen_constructor_anchor_no_forward",
+        "exit_evaluation":False, "native_launch_authorized":False, "model_functions":case["initial"]["model_functions"],
+        **native.require_prefix_measurement_source_binding(recipe)}
+    audit = {"schema_version":"gx1_native_prefix_initial_measurement_audit_v1",
+        "decision":"FROZEN_INITIAL_MEASUREMENT_VERIFIED_NO_LEARNING_MEASURED", "optimizer_steps":0, "test_data_used":False,
+        "fresh_model_optimizer_ema_scheduler_exactly_preserved":True, "saved_cpu_python_numpy_rng_exactly_preserved":True,
+        "receipt":_write(tmp_path/"dynamic-native-terminal.json", {"guard_decision":"PASS", "outcome":"RESUMABLE",
+            "trainer_guard_exit_code":0, "progress_observer_exit_code":0, "test_data_used":False})}
+    def seal():
+        result["observations"] = {role:_write(tmp_path/("dynamic-"+role+"-observation.json"), observation)
+                                  for role,observation in observations.items()}
+        audit["result"] = _write(tmp_path/"dynamic-initial-result.json", result)
+        recipe["chronological_learning_measurement"] = _write(tmp_path/"dynamic-initial-audit.json", audit)
+        case["seal"]()
+    seal()
+    return {**case, "result":result, "observations":observations, "audit":audit,
+            "cohorts":cohorts_by_role, "observed_calls":calls, "seal_learning":seal}
+
+
+def test_dynamic_learning_admission_requires_both_same_frozen_entry_cohorts(dynamic_learning_measurement):
+    case = dynamic_learning_measurement
+    value = native.require_chronological_learning_measurement(case["recipe"])
+    assert set(value["initial_measurement"]["observations"]) == {"train","control"}
+    assert case["observed_calls"] == ["train","control"]
+    assert value["initialization"]["target_model_role"] == "frozen_constructor_anchor_no_forward"
+
+
+@pytest.mark.parametrize("fault", ["anchor", "exit", "functions", "missing_control", "source", "cohort", "closure", "normalization"])
+def test_dynamic_learning_admission_rejects_changed_initial_source_or_measurement(dynamic_learning_measurement, fault):
+    case = dynamic_learning_measurement
+    if fault == "anchor": case["result"]["target_model_role"] = "teacher"
+    elif fault == "exit": case["result"]["exit_evaluation"] = True
+    elif fault == "functions": case["result"]["model_functions"] = {"online":"other", "target":"other"}
+    elif fault == "missing_control": case["observations"].pop("control")
+    elif fault == "source": case["observations"]["train"]["cohort"] = {
+        **case["cohorts"]["train"], "parent_entry_parquet":case["physical"]["physical_sources"]["val"]["parquet"]}
+    elif fault == "cohort": case["observations"]["train"]["cohort"] = {
+        **case["cohorts"]["train"], "entry_row_indices":list(range(1,257))}
+    elif fault == "closure": case["result"]["native_recipe_source_bindings_sha256"] = "f"*64
+    elif fault == "normalization":
+        case["initial"]["base_contract_sha256"] = "f"*64
+        case["result"]["initialization_result"] = _write(Path(case["initial_artifacts"]["initialization_result"]["path"]), case["initial"])
+    case["seal_learning"]()
+    with pytest.raises(RuntimeError): native.require_chronological_learning_measurement(case["recipe"])

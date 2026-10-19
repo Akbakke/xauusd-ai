@@ -384,6 +384,20 @@ def _require_observed_market_plan(
         authority, coverage_start_utc=calendar["train_entry_start_inclusive"],
         coverage_end_utc=calendar["development_control_entry_end_exclusive"],
     )
+    if dynamic_phase:
+        # Costs and targets must describe the same executable quote source.
+        # The cost owner has already validated this policy and its local files.
+        _, cost_policy = load({"path": authority["policy"]["path"],
+            "sha256": authority["policy"]["file_sha256"]}, "Entry dynamic declared cost policy")
+        quote_source = quote_sources[0]
+        quote_authority = quote_source.get("authority")
+        executable = cost_policy.get("executable_bid_ask")
+        if (not isinstance(quote_authority, Mapping) or not isinstance(executable, Mapping)
+                or executable.get("parquet") != {"path": quote_source["path"], "sha256": quote_source["sha256"]}
+                or executable.get("manifest") != {
+                    "path": quote_authority.get("m1_source_manifest_path"),
+                    "sha256": quote_authority.get("m1_source_manifest_sha256")}):
+            raise RuntimeError("ENTRY_OBSERVED_DYNAMIC_M5_COST_QUOTE_SOURCE_MISMATCH")
     return {
         "binding": binding, "plan": plan, "target_contract": plan["target_contract"],
         "training_phase": plan["training_phase"], "economics": economics,

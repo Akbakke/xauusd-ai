@@ -48,7 +48,7 @@ _INITIALIZATION = "completed_smoke_ema_then_fresh_main_optimizer_ema_scheduler"
 _DYNAMIC_M5_DATA_FILES = frozenset({
     "entry_train_parquet", "entry_train_manifest", "entry_val_parquet", "entry_val_manifest",
     "m5_prebuilt", "source_bundle_metadata", "sequence_source_audit", "val_sequence_source_audit",
-    "entry_only_base_normalization", "entry_measurement_coordinates",
+    "entry_only_base_normalization", "entry_measurement_coordinates", "train_cost_authority",
 })
 
 
@@ -78,9 +78,9 @@ def _require_native_full_train_recipe(
 ) -> tuple[dict[str, Any], dict[str, Path], dict[str, Any]]:
     """Verify native source/data/seed authority before a guarded invocation.
 
-    A complete smoke VAL measures the seed; it is not candidate or live
-    admission. The canonical candidate still applies its strict gate/head
-    requirements and selects on its own complete full-VAL net-Bps results.
+    Legacy joint candidates keep their complete smoke/VAL selection contract.
+    The explicit dynamic Entry phase consumes one bound physical TRAIN epoch
+    with fixed ONLINE checkpointing; these checks do not grant launch authority.
     """
 
     recipe = val._read(_bound_artifact({"path": str(recipe_path), "sha256": recipe_file_sha256}))
@@ -93,6 +93,15 @@ def _require_native_full_train_recipe(
         "next_run_policy",
     }
     prefix_mode = "chronological_prefix" in recipe
+    dynamic_phase = None
+    if prefix_mode:
+        prefix_value = recipe["chronological_prefix"]
+        if not isinstance(prefix_value, Mapping) or "design" not in prefix_value:
+            raise RuntimeError("NATIVE_FULL_TRAIN_RECIPE_INVALID")
+        design = val._read(_bound_artifact(prefix_value["design"]))
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        if design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            dynamic_phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     if (
         not required <= set(recipe)
         or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study", "entry_m5_path_single_epoch"}
@@ -101,10 +110,11 @@ def _require_native_full_train_recipe(
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
                                         "frozen_online_readout_evaluation_only" if "frozen_readout_evaluation" in recipe else _INITIALIZATION)
         or recipe["recipe_sha256"] != val.canonical_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})
-        or (set(recipe["files"]) != _DATA_FILES
-            and not (prefix_mode and set(recipe["files"]) in (
-                _DATA_FILES | {"selected_sampler"},
-                _DATA_FILES | {"selected_sampler", "val_sequence_source_audit"})))
+        or (set(recipe["files"]) != _DYNAMIC_M5_DATA_FILES if dynamic_phase is not None else
+            (set(recipe["files"]) != _DATA_FILES
+             and not (prefix_mode and set(recipe["files"]) in (
+                 _DATA_FILES | {"selected_sampler"},
+                 _DATA_FILES | {"selected_sampler", "val_sequence_source_audit"}))))
         or re.fullmatch(r"[A-Za-z0-9_-]{1,128}", str(recipe["run_id"])) is None
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_RECIPE_INVALID")
@@ -120,7 +130,8 @@ def _require_native_full_train_recipe(
         or recipe["source_bindings_sha256"] != launch_owner.canonical_json_sha256(bindings)
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_SOURCE_CLOSURE_MISMATCH")
-    env = trainer.require_model_native_recipe_env(recipe["recipe_env"])
+    env = (trainer.require_model_native_recipe_env(recipe["recipe_env"], entry_training_phase=dynamic_phase)
+           if dynamic_phase is not None else trainer.require_model_native_recipe_env(recipe["recipe_env"]))
     if any(os.environ.get(key, expected) != expected for key, expected in env.items()):
         raise RuntimeError("NATIVE_FULL_TRAIN_RECIPE_ENVIRONMENT_MISMATCH")
     files = {key: _bound_artifact(binding) for key, binding in recipe["files"].items()}
@@ -132,8 +143,10 @@ def _require_native_full_train_recipe(
         seed_launch = {"seed":recipe["trainer_cli"]["seed"],
                        "learning_rate":0.0001, "weight_decay":0.0001}
         _require_component_sampler(files=files, chronological_prefix=recipe["chronological_prefix"])
-        _require_prefix_component_bindings(recipe["chronological_prefix"], files=files,
+        prefix = _require_prefix_component_bindings(recipe["chronological_prefix"], files=files,
             batch_size=16, seed=seed_launch["seed"], learning_rate=0.0001, weight_decay=0.0001)
+        if dynamic_phase is not None:
+            _require_dynamic_m5_constructor_binding(files=files, prefix=prefix)
     else:
         seed_launch_path = _bound_artifact(recipe["seed_launch"])
         seed_launch = val.require_launch_manifest(val._read(seed_launch_path))
@@ -169,36 +182,50 @@ def _require_native_full_train_recipe(
             raise RuntimeError("NATIVE_FULL_TRAIN_COMPLETE_SMOKE_BINDING_REQUIRED")
     # A technical smoke may finish with a selected trade censored at June-end.
     # Its unavailable score cannot select a checkpoint or establish trading quality.
-    controls = {
-        "epochs": 1 if "entry_m5_path_single_epoch" in recipe else 30, "batch_size": 16, "num_workers": 0, "grad_accum_steps": 1,
-        "early_stopping_patience": 5, "early_stopping_min_delta": 0.0,
-        "minimum_epochs_before_stop": 1, "save_top_k": 1,
-        "precision_policy": "deterministic_fp32", "seed": seed_launch["seed"],
-        "learning_rate": seed_launch["learning_rate"], "weight_decay": seed_launch["weight_decay"],
-        "grad_clip_norm": float(trainer._GRAD_CLIP_NORM),
-        "checkpoint_monitor": native_checkpoint_monitor(
-            val._load_val_economics_readiness(files["economics_readiness"])["economics_objective_contract"]
-        ),
-    }
-    if (
-        recipe["trainer_cli"] != controls
-        or any(type(recipe["trainer_cli"][key]) is not type(value) for key, value in controls.items())
-    ):
-        raise RuntimeError("NATIVE_FULL_TRAIN_CONTROLS_MISMATCH")
-    limits = recipe["val_limits"]
-    if (
-        set(limits) not in (
-            {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards"},
-            {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards", "policy_batch_size"},
-            {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards", "policy_batch_size", "cpu_pipeline_workers"},
+    if dynamic_phase is not None:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_recipe_metadata
+        checked, actual_rows = require_native_recipe_metadata(
+            {"path": str(recipe_path), "sha256": recipe_file_sha256},
+            source_repo=repo, source_commit=recipe["source_commit"],
         )
-        or limits.get("policy_batch_size") != 256
-        or limits.get("cpu_pipeline_workers") != 8
-        or any(type(value) is not int or value <= 0 for value in limits.values())
-        or limits["max_wall_seconds"] != 10_800
-        or limits["progress_interval_forwards"] != 64
-    ):
-        raise RuntimeError("NATIVE_FULL_TRAIN_VAL_WINDOW_INVALID")
+        single = prefix.get("entry_m5_path_single_epoch")
+        if (checked != recipe or single is None or type(actual_rows) is not int
+                or actual_rows != single["train_rows"]
+                or actual_rows != len(prefix["eligible_parent_rows"])
+                or prefix["physical_preprocessing"].get("entry_training_phase") != dynamic_phase
+                or recipe["trainer_cli"]["grad_clip_norm"] != float(trainer._GRAD_CLIP_NORM)):
+            raise RuntimeError("NATIVE_FULL_TRAIN_DYNAMIC_IDENTITY_INVALID")
+    else:
+        controls = {
+            "epochs": 1 if "entry_m5_path_single_epoch" in recipe else 30, "batch_size": 16, "num_workers": 0, "grad_accum_steps": 1,
+            "early_stopping_patience": 5, "early_stopping_min_delta": 0.0,
+            "minimum_epochs_before_stop": 1, "save_top_k": 1,
+            "precision_policy": "deterministic_fp32", "seed": seed_launch["seed"],
+            "learning_rate": seed_launch["learning_rate"], "weight_decay": seed_launch["weight_decay"],
+            "grad_clip_norm": float(trainer._GRAD_CLIP_NORM),
+            "checkpoint_monitor": native_checkpoint_monitor(
+                val._load_val_economics_readiness(files["economics_readiness"])["economics_objective_contract"]
+            ),
+        }
+        if (
+            recipe["trainer_cli"] != controls
+            or any(type(recipe["trainer_cli"][key]) is not type(value) for key, value in controls.items())
+        ):
+            raise RuntimeError("NATIVE_FULL_TRAIN_CONTROLS_MISMATCH")
+        limits = recipe["val_limits"]
+        if (
+            set(limits) not in (
+                {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards"},
+                {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards", "policy_batch_size"},
+                {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards", "policy_batch_size", "cpu_pipeline_workers"},
+            )
+            or limits.get("policy_batch_size") != 256
+            or limits.get("cpu_pipeline_workers") != 8
+            or any(type(value) is not int or value <= 0 for value in limits.values())
+            or limits["max_wall_seconds"] != 10_800
+            or limits["progress_interval_forwards"] != 64
+        ):
+            raise RuntimeError("NATIVE_FULL_TRAIN_VAL_WINDOW_INVALID")
     output = Path(recipe["out_bundle_dir"])
     if not output.is_absolute() or output.resolve() != output:
         raise RuntimeError("NATIVE_FULL_TRAIN_OUTPUT_PATH_INVALID")
@@ -211,6 +238,75 @@ def _require_native_full_train_recipe(
     }, context="NATIVE_FULL_TRAIN")
     return recipe, files, provenance
 
+
+
+def _require_dynamic_m5_constructor_binding(*, files, prefix):
+    """Check current geometry/routes/cache without constructing a model or reading values."""
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_SEQ_LEN, ordered_model_native_signal_fields,
+        MODEL_NATIVE_CTX_CONT_FIELDS, MODEL_NATIVE_CTX_CAT_FIELDS,
+    )
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        MODEL_NATIVE_TRAINING_SPECIALISTS, classify_entry_specialist_feature,
+        require_model_native_context_specialist_routing, require_multi_tf_specialist_routing_v4,
+    )
+    metadata = val._read(files["source_bundle_metadata"])
+    manifest = val._read(files["entry_train_manifest"])
+    contract = prefix["normalization"]["contract"]
+    feature = manifest["feature_contract"]
+    signal = list(manifest["extra"]["model_native_signal_contract"]["fields"])
+    surfaces, lineage = contract["surfaces"], contract["lineage"]
+    if (signal != list(ordered_model_native_signal_fields(
+                manifest["extra"]["model_native_signal_contract"]["selected_fields"]))
+            or surfaces["signal"]["field_names"] != signal
+            or feature["ctx_cont_names"] != list(MODEL_NATIVE_CTX_CONT_FIELDS)
+            or surfaces["ctx_cont"]["field_names"] != feature["ctx_cont_names"]
+            or feature["ctx_cat_names"] != list(MODEL_NATIVE_CTX_CAT_FIELDS)
+            or contract["ctx_cat"]["field_names"] != feature["ctx_cat_names"]):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_CONSTRUCTOR_FIELDS_MISMATCH")
+    dimensions = {"seq_input_dim": len(signal), "snap_input_dim": len(signal),
+        "ctx_cont_dim": len(feature["ctx_cont_names"]), "ctx_cat_dim": len(feature["ctx_cat_names"]),
+        "seq_len": MODEL_NATIVE_SEQ_LEN}
+    if (metadata.get("schema_version") != "gx1_native_fresh_constructor_metadata_v1"
+            or manifest["extra"]["seq_len"] != MODEL_NATIVE_SEQ_LEN
+            or any(type(metadata.get(key)) is not int or metadata[key] != value for key, value in dimensions.items())):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_CONSTRUCTOR_GEOMETRY_MISMATCH")
+    mtf = metadata.get("multi_tf", {})
+    cache_binding = manifest["extra"]["multi_tf_cache_binding"]
+    cache_path = _bound_artifact({"path": cache_binding["manifest_path"], "sha256": cache_binding["manifest_sha256"]})
+    cache = val._read(cache_path)
+    if (cache_path != Path(cache_binding["cache_dir"]) / "manifest.json"
+            or mtf.get("shared_cache_dir") != cache_binding["cache_dir"]
+            or mtf.get("shared_cache_manifest_path") != str(cache_path)
+            or mtf.get("shared_cache_manifest_sha256") != cache_binding["manifest_sha256"]
+            or mtf.get("shared_cache_identity_sha256") != cache_binding["cache_identity_sha256"]
+            or cache.get("cache_identity_sha256") != cache_binding["cache_identity_sha256"]
+            or lineage["mtf_cache_manifest_path"] != str(cache_path)
+            or lineage["mtf_cache_manifest_sha256"] != cache_binding["manifest_sha256"]
+            or mtf.get("feature_names") != cache["feature_names"]
+            or lineage["per_tf_seq_lens"] != dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_CONSTRUCTOR_CACHE_MISMATCH")
+    require_multi_tf_specialist_routing_v4(mtf["feature_names"])
+    for tf, window in PRODUCTION_MTF_PER_TF_WINDOW_BARS:
+        width_key, window_key = f"{tf.lower()}_seq_dim", f"{tf.lower()}_seq_len"
+        if (type(mtf.get(width_key)) is not int or mtf[width_key] != len(cache["feature_names"])
+                or type(mtf.get(window_key)) is not int or mtf[window_key] != window
+                or surfaces[f"mtf_{tf.lower()}"]["field_names"] != cache["feature_names"]):
+            raise RuntimeError("NATIVE_DYNAMIC_M5_CONSTRUCTOR_MTF_GEOMETRY_MISMATCH")
+    specialist = metadata.get("specialist_fusion", {})
+    indices = specialist.get("input_indices")
+    expected = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    for index, name in enumerate(signal):
+        owner = classify_entry_specialist_feature(name)
+        if owner not in expected:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_CONSTRUCTOR_SPECIALIST_MISMATCH")
+        expected[owner].append(index)
+    if (not isinstance(indices, Mapping) or indices != expected
+            or any(type(index) is not int for values in indices.values() for index in values)):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_CONSTRUCTOR_SPECIALIST_MISMATCH")
+    require_model_native_context_specialist_routing(
+        specialist.get("context_routing"), ordered_signal_names=signal, context="NATIVE_DYNAMIC_M5_CONSTRUCTOR")
 
 
 def _require_component_sampler(*, files, chronological_prefix):

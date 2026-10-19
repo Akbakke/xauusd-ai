@@ -57,7 +57,7 @@ står ved lag etter alle aktuelle admissionporter, uten ny epoke/VAL-refresh.
   eller rankerrefit.050RESULT/SURFACE_BINDINGS binder eksakte stier/hasher.
   Dette gir ikke gjeldende fysisk splitmetadata eller inputadmission.
 
-## Aktuell status:055/056bestått,057faktiske bindinger klargjort
+## Aktuell status:057faktiske bindinger bestått,058nativeporter under arbeid
 
 051gjeldende fysisk metadata og begge uttømmende seq/snap-rekonstruksjoner
 bestod på TRAIN118249/VAL17284.053full input-liveness bestod alle rader og
@@ -95,31 +95,59 @@ Fast siste ONLINE etter én faktisk hel epoke har egen policy: ingen VAL-/
 økonomisk seleksjon, score eller top-K. Eksisterende varig state beholdes.
 Ingen tung jobb kjører; training_enabled=false og nativeadmission=false.
 
-057er en ny engangsplan for faktiske bindinger: alle118249TRAIN-rader,
-kanonisk epochrekkefølge, vitne med7391batcher/siste9, ett fullt design, fysisk
-targetreceipt og direkte Entry-koordinater/cohorts. CONTROL256 velges med
-eksisterende uniformvelger/seed20260911/salt1 før utfall; TRAIN-probe bruker
-salt0 i fryst nativeordre.055transformasjonen gjenbrukes. Ingen modell eller fit.
-To målte grensefeil er rettet: manifestets eksklusive end==cutoff tillates,
-end>cutoff avvises. Faktiske pris-/pointer-/fitklokker må fortsatt være<cutoff.
-46fokuserte caser bestod på10.945s/uendret kilde.057har ikke claim/terminal ennå.
-052forblir inaktiv; ingen midlertidig designbinding eller relaunch.
+057COMPLETE19.10 kl04:10:24UTC,1015.514s, exit0/uendret350303f3.
+Alle fire trinn bestod:118249TRAIN-rader, kanonisk epochrekkefølge, vitne med
+7391batcher/siste9, ett fullt design, fysisk targetreceipt og ekte native-
+koordinater og256TRAIN-/256CONTROL-cohorts. Ingen feature-/target-/normfit,
+modellforward eller optimizersteg. Alle057workers er borte; ikke relaunch.
+RESULTSHA1a4208cc06c2fe357fccfa2348c3b1f0cf9404ed98c4e141f8ad6f53970a5e4c.
+DesignSHA4e8a027a9b8577bf6876601d0508bd7c376bf3620f6ee260ee4e399cc32568f5;
+targetreceiptSHA dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d.
+Eksakte øvrige bindinger står i057RESULT og NEXT_RUN_POLICY.
+
+CONTROL256 er valgt uten outcome-utvalg med eksisterende uniformvelger,
+seed20260911/salt1. TRAIN-probe bruker salt0 i fryst nativeordre.055transform
+ble gjenbrukt. To målte cutoff-feil er rettet: eksklusiv manifestend==cutoff
+aksepteres, end>cutoff avvises; faktiske pris-/pointer-/fitklokker er fortsatt
+strengt før cutoff.46fokuserte+61modellgrense+10guardrailcaser bestod.
+052forblir inaktiv.057gir ingen modell-/nativeadmission.
+
+058s kildebølge er kvalifisert:553unike PASS og3utelatte ugyldige legacy-
+kombinasjoner. Originalrunden hadde530PASS/3FAIL/20setupfeil/3SKIP på312.778s.
+Kun to fixturefeil og én foreldet feilmeldingsforventning ble rettet;59berørte/
+avhengige caser bestod på14.475s.494uendrede PASS gjenbrukes. Alle
+produksjonsbytes og eksterne workers var uendret i reparasjonen.
+Det er ingen modell-/nativeadmission. Nestejobb publiserer bare dagens
+constructormetadata; kun én capped engangsinvokasjon, ingen fit/forward.
+
+058retter bare målte legacy Exit-/økonomiavhengigheter i eksplisitte native
+Entry-only recipe-/kampanje-/initial-/læringsporter. Felles eiere og legacyvakter
+beholdes. Aktuell constructormetadata må publiseres med dagens2725/2542/253-
+geometri og ruter/cache. Bare seks arkitekturskalarer videreføres eksplisitt
+fra verifisert, policybundet metadata; ingen gamle vekter/feltkart kopieres.
+Profilen forhåndsvelges per256-cohort:16encoderforwards/256entries/10800s,
+progress hver16forwards.480queries deler encoderforward; ingen Exit-stateviews.
+
+En legitim ekstra avhengighet er avdekket: dynamiske nettomål krever separat
+hashbundet kurtasje-/slippage-/finansieringsautoritet. Bid/ask-spread ligger i
+prisgrunnlaget. Kostfilen er den11.dynamiske inputfilen; den fjernes ikke som
+Exit-rest og erstattes aldri med null. Faktisk deklarert kostautoritet med
+nøyaktig TRAIN/control-dekning og verifisert aktuell kilde gjenstår før native
+baseline. Brukeren har autorisert nøyaktig to practice-leseoppslag for
+kontosammendrag og XAU_USD-vilkår. Ingen nye transaksjonsoppslag, ordre eller
+andre brokerhandlinger er tillatt; ingen oppslag er utført ennå.057bandt pointer-/mask-/kildekjeden, ikke ferdig beregnede nettoprisbaner.
 
 ## Native kjede som gjenstår
 
-1.056er pushet på renc75f9d6a.057s minimale cutoff-rettelser og faktiske
-   bindingsplan committes etter obligatoriske hooks; kjør én capped audit
-   på fryst ren kilde. Ingen nativeadmission gis av denne publiseringen.
-2. Recipe-/kampanje-launch har fortsatt eksplisitt dynamic-PENDING-vakt.
-   Ny faktisk Entry-only recipe-/fil-/budsjett-/målebinding må kvalifiseres.
-   Initial-/learning-admission må eksplisitt forstå dynamic-coordinatepublication
-   og fixed-ONLINE-policy før faktisk nativebaseline;
-   ingen gammel Exit-sampler/readiness eller ubrukte økonomiinputs skal
-   presenteres som native Entry-bevis. Komponenttester åpner ingen launch.
-3. Bind faktisk fullt native-design med inputs.full_input_liveness og begge
-   inputs.sequence_source_audits, hele TRAINs epochwitness/budsjett og fysisk
-   targetreceipt gjennom eksisterende strenge eiere. Frosne TRAIN-probe- og
-   CONTROL256-rader brukes uten outcome-utvalg eller Exit-statekoordinater.
+1.057s faktiske design/vitne/receipt/koordinater/cohorts er fullført og
+   konsumerte. Gjenbruk dem og055normaliseringen; ingen relaunch eller refit.
+2.058kvalifiserer eksplisitt dynamic recipe-/miljø-/populasjons-/profil- og
+   måleadmission. Tidligere PENDING erstattes bare av samme strenge057kjede,
+   ekte Entry-bevis og presis finite policybinding; ingen automatisk launch.
+3. Publiser dagens constructormetadata og bind faktisk ny recipe/campaign.
+   Før initialmåling må fersk konstruktortilstand og immutable kilder være
+   eksakt bundet; ingen gamle vekter, Exit-policy, benchmark eller økonomiinputs.
+
 4. Bevis fersk ONLINE=TARGET=EMA0, alle feature-/MTF-ruter, faktisk konsum/
    paritet og Entry-only optimizer/resume med spor for valgte og avståtte
    LONG/SHORT/FLAT. Ingen legacy Q/cash/Exit-forward i dynamiske målinger.

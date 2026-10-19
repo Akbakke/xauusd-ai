@@ -815,6 +815,76 @@ def test_dynamic_physical_receipt_preserves_exclusive_declared_cutoff(
         assert actual["splits"]["train"]["first_prefix_observed_rows"] == 3
 
 
+
+@pytest.mark.parametrize("fault", [None, "quote_path", "quote_sha", "manifest_path", "manifest_sha", "missing_manifest_authority"])
+def test_dynamic_scope_cost_owner_requires_exact_target_quote_source(
+        dynamic_physical_receipt, tmp_path, monkeypatch, economics, fault):
+    """Cost validity alone cannot join a different source to dynamic targets."""
+    receipt, design_binding = dynamic_physical_receipt()
+    design = json.loads(Path(design_binding["path"]).read_text())
+    design["calendar"]["train_entry_start_inclusive"] = "2025-05-01T00:00:00Z"
+    sources = design["calendar"]["source_bindings"]
+    quote_manifest = _write(tmp_path / "original_quotes.manifest.json", {"quote_complete_m1": True})
+    target_quote = receipt["splits"]["train"]["dynamic_m5_supervision"]["source_quote_binding"]
+    target_quote["authority"] = {"m1_source_manifest_path": quote_manifest["path"],
+        "m1_source_manifest_sha256": quote_manifest["sha256"]}
+    if fault == "missing_manifest_authority":
+        target_quote["authority"].pop("m1_source_manifest_sha256")
+    for split in ("train", "val"):
+        proof = receipt["splits"][split]
+        proof["dynamic_m5_supervision"]["source_quote_binding"] = copy.deepcopy(target_quote)
+        manifest_path = Path(sources[split]["manifest"]["path"])
+        manifest = json.loads(manifest_path.read_text())
+        manifest["extra"]["dynamic_m5_supervision"] = proof["dynamic_m5_supervision"]
+        sources[split]["manifest"] = _write(manifest_path, manifest)
+        proof["source_manifest"] = sources[split]["manifest"]
+    design_binding = _write(Path(design_binding["path"]), design)
+    receipt["design"] = design_binding
+    receipt_binding = _write(tmp_path / "dynamic_receipt.json", receipt)
+    cost_quote = {key: target_quote[key] for key in ("path", "sha256")}
+    cost_manifest = dict(quote_manifest)
+    if fault == "quote_path":
+        other = tmp_path / "other_quotes.parquet"
+        other.write_bytes(Path(cost_quote["path"]).read_bytes())
+        cost_quote = _bind(other)  # Same bytes must not admit another path.
+    elif fault == "quote_sha": cost_quote["sha256"] = "a" * 64
+    elif fault == "manifest_path":
+        cost_manifest = _write(tmp_path / "other_quotes.manifest.json", {"quote_complete_m1": True})
+    elif fault == "manifest_sha": cost_manifest["sha256"] = "b" * 64
+    cost_policy = _write(tmp_path / "cost_policy.json", {
+        "executable_bid_ask": {"parquet": cost_quote, "manifest": cost_manifest}})
+    cost_authority = _write(tmp_path / "cost_authority.json", {"policy": {
+        "path": cost_policy["path"], "file_sha256": cost_policy["sha256"], "artifact_sha256": "c" * 64}})
+    files = {"entry_" + split + "_" + kind: sources[split][kind]
+        for split in ("train", "val") for kind in ("parquet", "manifest")}
+    files["train_cost_authority"] = cost_authority
+    prefix = {"design": design_binding, "labels_result": receipt_binding,
+        "normalization_result": _write(tmp_path / "normalization.json", {}),
+        "native_coordinates": _write(tmp_path / "coordinates.json", {})}
+    plan = {"schema_version": observed.DYNAMIC_M5_SCHEMA_VERSION + "_learning_design",
+        "target_contract": observed.entry_observed_dynamic_m5_path_contract(), "chronological_prefix": prefix,
+        "files": files, "training_phase": receipt["training_phase"],
+        "exit_updates_entry": False, "native_launch_authorized": False, "test_data_used": False}
+    recipe = {"files": files, "chronological_prefix": prefix,
+        "entry_observed_market": _write(tmp_path / "observed_design.json", plan)}
+    calls = []
+    def validated_economics(authority, **coverage):
+        # Other tests own complete cost-policy validation. Exercise this join
+        # after that owner succeeds, without inventing a valid broker package.
+        calls.append((authority, coverage))
+        return economics
+    monkeypatch.setattr(observed, "entry_observed_market_economics", validated_economics)
+    if fault:
+        with pytest.raises(RuntimeError, match="DYNAMIC_M5_COST_QUOTE_SOURCE_MISMATCH"):
+            observed.require_entry_observed_market_scope(recipe)
+    else:
+        scope_value = observed.require_entry_observed_market_scope(recipe)
+        assert scope_value["target_m1_source_sha256"] == target_quote["sha256"]
+        assert scope_value["economics"] == economics
+    assert len(calls) == 1
+    assert calls[0][1] == {"coverage_start_utc": "2025-05-01T00:00:00Z",
+        "coverage_end_utc": "2025-05-05T00:00:00Z"}
+
 def _dynamic_target_arrays(parent_rows):
     from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
     count, query_count = len(parent_rows), len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)

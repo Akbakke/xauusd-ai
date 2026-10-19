@@ -1030,3 +1030,42 @@ def test_env_reader_rejects_a_key_the_recipe_does_not_own() -> None:
 
     with pytest.raises(RuntimeError, match="RECIPE_KEY_UNKNOWN"):
         trainer._env_str("ENTRY_NOT_A_RECIPE_KEY")
+
+
+def test_dynamic_recipe_env_is_explicit_phase_projection_without_changing_joint_contract():
+    from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, JOINT_FITTED_Q_TRAINING_PHASE,
+    )
+    before = model_native_recipe_env_contract_metadata()
+    dynamic = {**MODEL_NATIVE_RECIPE_ENV, "GX1_V10_CKPT_MONITOR": DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR}
+    assert require_model_native_recipe_env(dynamic, entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE) == dynamic
+    assert set(dynamic) == set(MODEL_NATIVE_RECIPE_ENV)
+    assert require_model_native_recipe_env(MODEL_NATIVE_RECIPE_ENV) == MODEL_NATIVE_RECIPE_ENV
+    assert require_model_native_recipe_env(MODEL_NATIVE_RECIPE_ENV, entry_training_phase=JOINT_FITTED_Q_TRAINING_PHASE) == MODEL_NATIVE_RECIPE_ENV
+    assert model_native_recipe_env_contract_metadata() == before
+    for phase in (None, JOINT_FITTED_Q_TRAINING_PHASE):
+        with pytest.raises(RuntimeError, match="RECIPE_ENV_MISMATCH"):
+            require_model_native_recipe_env(dynamic, entry_training_phase=phase)
+    with pytest.raises(RuntimeError, match="RECIPE_ENV_MISMATCH"):
+        require_model_native_recipe_env(MODEL_NATIVE_RECIPE_ENV, entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+
+
+@pytest.mark.parametrize("fault", ["missing", "extra", "changed", "typed_value", "phase"])
+def test_dynamic_recipe_env_rejects_unbound_or_untyped_projection(fault):
+    from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    value = {**MODEL_NATIVE_RECIPE_ENV, "GX1_V10_CKPT_MONITOR": DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR}
+    phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if fault == "missing":
+        value.pop("GX1_CTX_CONTRACT")
+    elif fault == "extra":
+        value["UNDECLARED"] = "1"
+    elif fault == "changed":
+        value["GX1_CTX_CONTRACT"] = "other"
+    elif fault == "typed_value":
+        value["ENTRY_TRAIN_LR_COSINE_DECAY"] = 1
+    else:
+        phase = "unbound_phase"
+    with pytest.raises(RuntimeError, match="RECIPE_ENV_|ENTRY_TRAINING_PHASE_INVALID"):
+        require_model_native_recipe_env(value, entry_training_phase=phase)

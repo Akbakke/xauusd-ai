@@ -573,3 +573,212 @@ def test_report_only_snapshot_requires_exact_saved_train32_cursor(tmp_path, fiel
     session.save_checkpoint(state)
     with pytest.raises(RuntimeError, match="CHECKPOINT_PHASE_INVALID"):
         session.save_validation_checkpoint(model=model, report_only=True)
+
+
+@pytest.fixture
+def dynamic_full_train_recipe_scope(tmp_path, monkeypatch):
+    """Runner metadata unit boundary; no physical admission or model construction proof.
+
+    Previously qualified physical/prefix owners are isolated, while file seals,
+    current source-owned geometry/routes, env, typed controls and profile are real.
+    """
+    import numpy as np
+    from gx1.scripts import run_unified_exit_random_access_full_train_v1 as runner
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+    from gx1.contracts.entry_model_native_train_recipe_v1 import MODEL_NATIVE_RECIPE_ENV
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE as phase
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_SEQ_LEN, MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+        MODEL_NATIVE_CTX_CONT_FIELDS, MODEL_NATIVE_CTX_CAT_FIELDS, ordered_model_native_signal_fields,
+    )
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+    from gx1.features.htf_features import MULTI_TF_PER_BAR_FEATURES_V4
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        MODEL_NATIVE_TRAINING_SPECIALISTS, classify_entry_specialist_feature,
+        MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT, model_native_context_temporal_alias_policy,
+    )
+    def write(path, value):
+        path.write_text(json.dumps(value, sort_keys=True))
+        return {"path": str(path), "sha256": runner.val.file_sha256(path)}
+    selected = list(MODEL_NATIVE_MANDATORY_SELECTED_FIELDS + MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
+    signal = list(ordered_model_native_signal_fields(selected))
+    mtf_names = list(MULTI_TF_PER_BAR_FEATURES_V4)
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    cache_binding = write(cache_dir / "manifest.json", {"feature_names": mtf_names, "cache_identity_sha256": "a" * 64})
+    cache = {"cache_dir": str(cache_dir), "manifest_path": cache_binding["path"],
+        "manifest_sha256": cache_binding["sha256"], "cache_identity_sha256": "a" * 64}
+    surfaces = {"signal": {"field_names": signal}, "ctx_cont": {"field_names": list(MODEL_NATIVE_CTX_CONT_FIELDS)}}
+    surfaces.update({f"mtf_{tf.lower()}": {"field_names": mtf_names} for tf, _ in PRODUCTION_MTF_PER_TF_WINDOW_BARS})
+    files = {name: tmp_path / (name + ".json") for name in runner._DYNAMIC_M5_DATA_FILES}
+    for name, path in files.items():
+        write(path, {"fixture": name})
+    normalization = {"contract": {"surfaces": surfaces, "ctx_cat": {"field_names": list(MODEL_NATIVE_CTX_CAT_FIELDS)},
+        "lineage": {"mtf_cache_manifest_path": cache_binding["path"], "mtf_cache_manifest_sha256": cache_binding["sha256"],
+            "per_tf_seq_lens": dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS), "dataset_run_id": "DYNAMIC_DATA",
+            "m5_prebuilt_path": str(files["m5_prebuilt"]), "m5_prebuilt_sha256": runner.val.file_sha256(files["m5_prebuilt"])}}}
+    write(files["entry_only_base_normalization"], normalization)
+    manifest = {"feature_contract": {"ctx_cont_names": list(MODEL_NATIVE_CTX_CONT_FIELDS), "ctx_cat_names": list(MODEL_NATIVE_CTX_CAT_FIELDS)},
+        "extra": {"seq_len": MODEL_NATIVE_SEQ_LEN, "model_native_signal_contract": {"fields": signal, "selected_fields": selected}, "multi_tf_cache_binding": cache}}
+    write(files["entry_train_manifest"], manifest)
+    routing = copy.deepcopy(MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT)
+    routing["temporal_alias_policy"] = model_native_context_temporal_alias_policy(signal)
+    indices = {name: [] for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
+    for i, name in enumerate(signal):
+        indices[classify_entry_specialist_feature(name)].append(i)
+    metadata = {"schema_version": "gx1_native_fresh_constructor_metadata_v1", "seq_input_dim": len(signal),
+        "snap_input_dim": len(signal), "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS),
+        "ctx_cat_dim": len(MODEL_NATIVE_CTX_CAT_FIELDS), "seq_len": MODEL_NATIVE_SEQ_LEN, "dropout": 0.05,
+        "multi_tf": {"multi_tf_num_layers": 2, "multi_tf_scale": 0.5, "feature_names": mtf_names, "shared_cache_dir": cache["cache_dir"],
+            "shared_cache_manifest_path": cache_binding["path"], "shared_cache_manifest_sha256": cache_binding["sha256"],
+            "shared_cache_identity_sha256": cache["cache_identity_sha256"]},
+        "specialist_fusion": {"num_layers": 1, "fusion_scale": 0.25, "cross_family_fusion_scale": 0.25,
+            "input_indices": indices, "context_routing": routing}}
+    for tf, length in PRODUCTION_MTF_PER_TF_WINDOW_BARS:
+        metadata["multi_tf"].update({f"{tf.lower()}_seq_dim": len(mtf_names), f"{tf.lower()}_seq_len": length})
+    write(files["source_bundle_metadata"], metadata)
+    design_binding = write(tmp_path / "design.json", {"scope": {"entry_only_training_phase": phase}})
+    witness_binding = write(tmp_path / "witness.json", {"fixture": "isolated physical witness boundary"})
+    artifacts = {"design": design_binding, "normalization_result": {"path": str(files["entry_only_base_normalization"]),
+        "sha256": runner.val.file_sha256(files["entry_only_base_normalization"])},
+        "labels_result": write(tmp_path / "labels.json", {"fixture": "isolated target receipt boundary"}),
+        "native_coordinates": write(tmp_path / "coordinates.json", {"fixture": "isolated source order boundary"})}
+    physical = {"entry_training_phase": phase, "physical_sources": {
+        split: {kind: {"path": str(files[f"entry_{split}_{kind}"]), "sha256": runner.val.file_sha256(files[f"entry_{split}_{kind}"])}
+                for kind in ("parquet", "manifest")} for split in ("train", "val")},
+        "entry_only_base_normalization": artifacts["normalization_result"],
+        "sequence_source_audits": {split: {"path": str(files[key]), "sha256": runner.val.file_sha256(files[key])}
+            for split, key in (("train", "sequence_source_audit"), ("val", "val_sequence_source_audit"))}}
+    sampler = {"fixture": "unchanged canonical native sampler boundary"}
+    target_contract = entry_observed_dynamic_m5_path_contract()
+    physical["train_rows"] = 3
+    prefix = {"artifacts": artifacts, "bindings": artifacts, "normalization": normalization, "train_rows": 3,
+        "physical_preprocessing": physical, "physical_coordinates": {"native_sampler_contract": sampler,
+            "population_witness": witness_binding},
+        "entry_m5_path_single_epoch": {"binding": witness_binding, "train_rows": 3, "witness": {
+            "training_phase": phase, "target_contract": target_contract, "native_sampler_contract": sampler}},
+        "eligible_parent_rows": np.arange(3, dtype=np.int64)}
+    observed_binding = write(tmp_path / "observed-entry-plan.json", {"fixture": "isolated observed scope boundary"})
+    write(files["entry_measurement_coordinates"], {"schema_version": "gx1_dynamic_m5_native_coordinate_publication_v1",
+        "chronological_prefix": artifacts, "population_witness": witness_binding, "native_sampler_contract": sampler,
+        "native_coordinates_complete": True, "entry_measurement_complete": False,
+        "native_launch_admitted": False, "test_data_used": False})
+    env = {**MODEL_NATIVE_RECIPE_ENV, "GX1_V10_CKPT_MONITOR": DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR}
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    recipe = {"schema_version": runner.NATIVE_FULL_TRAIN_RECIPE_SCHEMA, "profile": "candidate",
+        "source_repo": str(Path(runner.__file__).resolve().parents[2]), "source_commit": "c" * 40,
+        "source_bindings": {}, "source_bindings_sha256": runner.val.canonical_sha256({}),
+        "run_id": "DYNAMIC_METADATA_UNIT", "dataset_run_id": "DYNAMIC_DATA", "gx1_data_root": str(tmp_path),
+        "out_bundle_dir": str(tmp_path / "out"), "files": {}, "seed_launch": None, "seed_authority": None,
+        "smoke_full_val": None, "recipe_env": env, "val_limits": {"max_model_forwards": 16,
+            "max_state_views": 256, "max_wall_seconds": 10800, "progress_interval_forwards": 16},
+        "initialization": "fresh_existing_model_constructor_no_checkpoint_weights", "test_data_used": False,
+        "next_run_policy": {}, "chronological_prefix": artifacts, "entry_m5_path_single_epoch": witness_binding,
+        "entry_observed_market": observed_binding,
+        "trainer_cli": {"epochs": 1, "batch_size": 16, "num_workers": 0, "grad_accum_steps": 1,
+            "early_stopping_patience": 5, "early_stopping_min_delta": 0.0, "minimum_epochs_before_stop": 1,
+            "save_top_k": 0, "precision_policy": "deterministic_fp32", "seed": 1337,
+            "learning_rate": 0.0001, "weight_decay": 0.0001, "grad_clip_norm": float(trainer._GRAD_CLIP_NORM),
+            "checkpoint_monitor": DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR}}
+    calls = []
+    monkeypatch.setattr(runner.val, "_assert_clean_source", lambda value: calls.append("clean"))
+    monkeypatch.setattr(runner, "_native_recipe_source_bindings", lambda repo: {})
+    monkeypatch.setattr(runner, "_require_component_sampler", lambda **kwargs: calls.append("sampler"))
+    monkeypatch.setattr(runner, "_require_prefix_component_bindings", lambda *args, **kwargs: prefix)
+    monkeypatch.setattr(campaign, "require_chronological_prefix_recipe", lambda value: prefix)
+    def observed_scope(value):
+        assert value["entry_observed_market"] == observed_binding
+        assert runner.val._read(runner._bound_artifact(value["entry_observed_market"])) == {"fixture": "isolated observed scope boundary"}
+        calls.append("observed_scope")
+        return {"training_phase": phase, "physical_sources": physical["physical_sources"],
+            "target_contract": target_contract, "query_minutes": tuple(target_contract["query_contract"]["horizon_minutes"])}
+    monkeypatch.setattr(horizons, "require_observed_entry_scope", observed_scope)
+    monkeypatch.setattr(campaign, "require_prefix_measurement_source_binding", lambda value: calls.append("measurement_source"))
+    monkeypatch.setattr(runner.trainer, "_resolve_train_out_bundle_dir", lambda *args: tmp_path / "out")
+    monkeypatch.setattr(runner.launch_owner, "require_training_recipe_source_provenance_metadata", lambda value, **kwargs: value)
+    def seal():
+        recipe["files"] = {key: {"path": str(path), "sha256": runner.val.file_sha256(path)} for key, path in files.items()}
+        recipe["recipe_sha256"] = runner.val.canonical_sha256({key: value for key, value in recipe.items() if key != "recipe_sha256"})
+        return write(tmp_path / "recipe.json", recipe)
+    return runner, recipe, files, prefix, calls, seal
+
+
+def test_dynamic_full_train_recipe_reuses_actual_metadata_owner_without_exit(dynamic_full_train_recipe_scope):
+    runner, recipe, files, prefix, calls, seal = dynamic_full_train_recipe_scope
+    binding = seal()
+    checked, bound_files, provenance = runner._require_native_full_train_recipe(Path(binding["path"]), binding["sha256"])
+    assert checked == recipe and bound_files == files
+    assert calls == ["clean", "sampler", "observed_scope", "measurement_source"]
+    assert provenance["source_commit"] == recipe["source_commit"]
+    assert "economics_readiness" not in bound_files and "selected_sampler" not in bound_files
+    assert "train_cost_authority" in bound_files
+
+
+@pytest.mark.parametrize("fault", ["epochs", "topk", "monitor", "profile", "profile_type", "extra_exit_profile",
+    "extra_exit_file", "missing_file", "missing_cost_file", "source", "environment", "phase", "count", "clip"])
+def test_dynamic_full_train_recipe_rejects_mixed_scope(dynamic_full_train_recipe_scope, fault):
+    runner, recipe, files, prefix, calls, seal = dynamic_full_train_recipe_scope
+    if fault == "epochs": recipe["trainer_cli"]["epochs"] = 2
+    elif fault == "topk": recipe["trainer_cli"]["save_top_k"] = 1
+    elif fault == "monitor": recipe["trainer_cli"]["checkpoint_monitor"] = COUPLED_NET_CHECKPOINT_MONITOR
+    elif fault == "profile": recipe["val_limits"]["max_state_views"] += 1
+    elif fault == "profile_type": recipe["val_limits"]["max_model_forwards"] = 16.0
+    elif fault == "extra_exit_profile": recipe["val_limits"]["policy_batch_size"] = 256
+    elif fault == "extra_exit_file": files["economics_readiness"] = files["sequence_source_audit"]
+    elif fault == "missing_file": files.pop("val_sequence_source_audit")
+    elif fault == "missing_cost_file": files.pop("train_cost_authority")
+    elif fault == "source": recipe["source_bindings_sha256"] = "d" * 64
+    elif fault == "environment": recipe["recipe_env"]["GX1_V10_CKPT_MONITOR"] = COUPLED_NET_CHECKPOINT_MONITOR
+    elif fault == "phase":
+        path = Path(recipe["chronological_prefix"]["design"]["path"])
+        path.write_text(json.dumps({"scope": {"entry_only_training_phase": "joint_fitted_q"}}))
+        recipe["chronological_prefix"]["design"]["sha256"] = runner.val.file_sha256(path)
+    elif fault == "count": prefix["eligible_parent_rows"] = prefix["eligible_parent_rows"][:-1]
+    else: recipe["trainer_cli"]["grad_clip_norm"] *= 2.0
+    binding = seal()
+    with pytest.raises(RuntimeError):
+        runner._require_native_full_train_recipe(Path(binding["path"]), binding["sha256"])
+
+
+@pytest.mark.parametrize("fault", ["schema", "signal_width", "typed_width", "context_width", "window", "mtf_width",
+    "mtf_order", "cache_identity", "signal_order", "context_order", "specialist", "context_route", "mask_field"])
+def test_dynamic_constructor_metadata_rejects_stale_current_geometry(dynamic_full_train_recipe_scope, fault):
+    runner, recipe, files, prefix, calls, seal = dynamic_full_train_recipe_scope
+    path = files["source_bundle_metadata"]
+    metadata = json.loads(path.read_text())
+    if fault == "schema": metadata["schema_version"] = "legacy"
+    elif fault == "signal_width": metadata["seq_input_dim"] -= 1
+    elif fault == "typed_width": metadata["seq_input_dim"] = float(metadata["seq_input_dim"])
+    elif fault == "context_width": metadata["ctx_cont_dim"] -= 1
+    elif fault == "window": metadata["multi_tf"]["d1_seq_len"] -= 1
+    elif fault == "mtf_width": metadata["multi_tf"]["h1_seq_dim"] -= 1
+    elif fault == "mtf_order": metadata["multi_tf"]["feature_names"] = list(reversed(metadata["multi_tf"]["feature_names"]))
+    elif fault == "cache_identity": metadata["multi_tf"]["shared_cache_identity_sha256"] = "b" * 64
+    elif fault == "signal_order": prefix["normalization"]["contract"]["surfaces"]["signal"]["field_names"] = list(reversed(prefix["normalization"]["contract"]["surfaces"]["signal"]["field_names"]))
+    elif fault == "context_order": prefix["normalization"]["contract"]["surfaces"]["ctx_cont"]["field_names"] = list(reversed(prefix["normalization"]["contract"]["surfaces"]["ctx_cont"]["field_names"]))
+    elif fault == "specialist": next(iter(metadata["specialist_fusion"]["input_indices"].values())).pop()
+    elif fault == "context_route": metadata["specialist_fusion"]["context_routing"]["ctx_cont_dim"] -= 1
+    else: prefix["normalization"]["contract"]["surfaces"]["mtf_m5"]["field_names"] = prefix["normalization"]["contract"]["surfaces"]["mtf_m5"]["field_names"][:-1]
+    path.write_text(json.dumps(metadata))
+    binding = seal()
+    with pytest.raises(RuntimeError, match="CONSTRUCTOR_|CONTEXT_SPECIALIST_ROUTING"):
+        runner._require_native_full_train_recipe(Path(binding["path"]), binding["sha256"])
+
+
+@pytest.mark.parametrize("artifact", ["source_bundle_metadata", "train_cost_authority"])
+def test_dynamic_full_train_recipe_keeps_file_bytes_and_clean_source_guards(dynamic_full_train_recipe_scope, monkeypatch, artifact):
+    runner, recipe, files, prefix, calls, seal = dynamic_full_train_recipe_scope
+    binding = seal()
+    files[artifact].write_text("{}")
+    with pytest.raises(RuntimeError, match="ARTIFACT_BYTES_INVALID"):
+        runner._require_native_full_train_recipe(Path(binding["path"]), binding["sha256"])
+    binding = seal()
+    def dirty(value):
+        raise RuntimeError("DIRTY_SOURCE_UNIT_BOUNDARY")
+    monkeypatch.setattr(runner.val, "_assert_clean_source", dirty)
+    with pytest.raises(RuntimeError, match="DIRTY_SOURCE_UNIT_BOUNDARY"):
+        runner._require_native_full_train_recipe(Path(binding["path"]), binding["sha256"])

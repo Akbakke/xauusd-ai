@@ -348,25 +348,38 @@ def resolve_weight_ema_decay(
     )
 
 
-def require_model_native_recipe_env(value: Mapping[str, Any]) -> dict[str, str]:
+def require_model_native_recipe_env(
+    value: Mapping[str, Any], *, entry_training_phase: str | None = None,
+) -> dict[str, str]:
     """Require the exact source-owned key/value surface without pass-through."""
 
     if not isinstance(value, Mapping):
         raise RuntimeError("MODEL_NATIVE_RECIPE_ENV_MISSING")
+    expected = dict(MODEL_NATIVE_RECIPE_ENV)
+    if entry_training_phase is not None:
+        from gx1.contracts.entry_model_native_training_objective_v1 import (
+            ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, require_entry_training_phase,
+        )
+        phase = require_entry_training_phase(entry_training_phase, context="MODEL_NATIVE_RECIPE_ENV")
+        if phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+            if any(type(key) is not str or type(item) is not str for key, item in value.items()):
+                raise RuntimeError("MODEL_NATIVE_RECIPE_ENV_TYPE_INVALID")
+            expected["GX1_V10_CKPT_MONITOR"] = DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
     normalized = {str(key): str(item) for key, item in value.items()}
-    if normalized != MODEL_NATIVE_RECIPE_ENV:
-        missing = sorted(set(MODEL_NATIVE_RECIPE_ENV) - set(normalized))
-        extra = sorted(set(normalized) - set(MODEL_NATIVE_RECIPE_ENV))
+    if normalized != expected:
+        missing = sorted(set(expected) - set(normalized))
+        extra = sorted(set(normalized) - set(expected))
         changed = sorted(
             key
-            for key in set(normalized).intersection(MODEL_NATIVE_RECIPE_ENV)
-            if normalized[key] != MODEL_NATIVE_RECIPE_ENV[key]
+            for key in set(normalized).intersection(expected)
+            if normalized[key] != expected[key]
         )
         raise RuntimeError(
             "MODEL_NATIVE_RECIPE_ENV_MISMATCH: "
             f"missing={missing} extra={extra} changed={changed}"
         )
-    return dict(MODEL_NATIVE_RECIPE_ENV)
+    return expected
 
 
 def model_native_recipe_env_contract_metadata() -> dict[str, Any]:

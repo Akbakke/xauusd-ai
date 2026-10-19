@@ -787,6 +787,7 @@ def dynamic_context_normalization_contract():
 def dynamic_context_unit(tmp_path, monkeypatch, dynamic_context_normalization_contract):
     """Real normalization contract; the separately tested cohort owner is a unit boundary."""
     from gx1.contracts import unified_exit_bounded_val_cohort_v1 as cohorts
+    from gx1.contracts import entry_observed_market_v1 as observed_owner
     from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
     norm = copy.deepcopy(dynamic_context_normalization_contract)
     lineage = norm["lineage"]
@@ -800,9 +801,32 @@ def dynamic_context_unit(tmp_path, monkeypatch, dynamic_context_normalization_co
     base = _write(tmp_path / "base.json", {"schema_version":"gx1_entry_only_dynamic_m5_base_normalization_v1",
         "decision":"PASS","entry_training_phase":trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
         "native_training_admitted":False,"contract":norm,"contract_sha256":norm["contract_sha256"],"sequence_source_audit":audit})
-    identity = {"training_phase":trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,"design":plan,
-        "query_minutes":list(trainer._dynamic_m5_model_kwargs(trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)["dynamic_m5_query_minutes"]),
-        "target_contract":entry_observed_dynamic_m5_path_contract()}
+    cost = _write(tmp_path / "cost-unit.json", {"unit_scope_boundary":True})
+    prefix = {"design":plan, "normalization_result":base,
+        "labels_result":_write(tmp_path/"labels-unit.json", {"unit_scope_boundary":True}),
+        "native_coordinates":_write(tmp_path/"coordinates-unit.json", {"unit_scope_boundary":True})}
+    source_files = {**{f"entry_{split}_{kind}":sources[split][kind] for split in ("train","val") for kind in ("parquet","manifest")},
+                    "train_cost_authority":cost}
+    observed_plan = {"schema_version":observed_owner.DYNAMIC_M5_SCHEMA_VERSION+"_learning_design",
+        "chronological_prefix":prefix, "files":source_files,
+        "target_contract":entry_observed_dynamic_m5_path_contract(),
+        "training_phase":trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "exit_updates_entry":False, "native_launch_authorized":False, "test_data_used":False}
+    observed_binding = _write(tmp_path/"observed-plan-unit.json", observed_plan)
+    scope = {"binding":observed_binding, "target_contract":observed_plan["target_contract"],
+        "training_phase":trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "query_minutes":tuple(trainer._dynamic_m5_model_kwargs(trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)["dynamic_m5_query_minutes"]),
+        "economics":{"unit_separate_scope_owner":True}, "target_m1_source_sha256":"8"*64, "physical_sources":sources}
+    identity = observed_owner.entry_observed_market_identity(scope)
+    scope_calls = []
+    def checked_scope(value):
+        # Receipt, costs and source coverage are strict-owner tests. This join
+        # unit proves exactly what this caller passes to that existing owner.
+        expected = {"entry_observed_market":observed_binding, "chronological_prefix":prefix, "files":source_files}
+        if value != expected: raise RuntimeError("UNIT_OBSERVED_SCOPE_BINDING_MISMATCH")
+        scope_calls.append(value)
+        return scope
+    monkeypatch.setattr(observed_owner, "require_entry_observed_market_scope", checked_scope)
     cohort = {"training_phase":trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,"source_split":"train","plan":plan,
         "parent_entry_parquet":sources["train"]["parquet"],"parent_entry_manifest":sources["train"]["manifest"],
         "population_rows":sources["train"]["physical_rows"],"source_clock_sha256":sources["train"]["clock_sha256"],"exit_evaluation":False}
@@ -813,7 +837,7 @@ def dynamic_context_unit(tmp_path, monkeypatch, dynamic_context_normalization_co
         "entry_supervision_identity":identity,"physical_sources":sources,
         "entry_only_base_normalization":base,"base_contract_sha256":norm["contract_sha256"],"evaluation_cohort":cohort,
         "val_sequence_audit":audit,"max_model_forwards":16,"max_state_views":256,"max_wall_seconds":120,"progress_interval_forwards":16}
-    return SimpleNamespace(context=context,calls=calls)
+    return SimpleNamespace(context=context,calls=calls,scope_calls=scope_calls,observed_plan=observed_plan)
 
 
 def test_dynamic_native_context_binds_entry_inputs_without_exit_factory(dynamic_context_unit):
@@ -841,6 +865,28 @@ def test_dynamic_native_context_rejects_source_phase_normalization_or_legacy_mix
     elif fault=="audit":context["val_sequence_audit"]["sha256"]="9"*64
     else:context["max_wall_seconds"]=True
     with pytest.raises(RuntimeError):trainer._native_candidate_val_context_binding(context)
+
+
+@pytest.mark.parametrize("fault", [None, "missing_prefix", "wrong_native", "wrong_normalization", "changed_plan", "economics"])
+def test_dynamic_context_joins_distinct_observed_plan_and_native_design(dynamic_context_unit, tmp_path, fault):
+    case = dynamic_context_unit; context = copy.deepcopy(case.context)
+    observed_binding = context["entry_supervision_identity"]["design"]
+    assert observed_binding != context["evaluation_cohort"]["plan"]
+    if fault in {"missing_prefix", "wrong_native", "wrong_normalization", "changed_plan"}:
+        plan = json.loads(Path(observed_binding["path"]).read_text())
+        if fault == "missing_prefix": plan.pop("chronological_prefix")
+        elif fault == "wrong_native": plan["chronological_prefix"]["design"] = _write(tmp_path/"other-native.json", {"different_native_design":True})
+        elif fault == "wrong_normalization": plan["chronological_prefix"]["normalization_result"] = _write(tmp_path/"other-base.json", {"different_base":True})
+        else: Path(observed_binding["path"]).write_text("{}")
+        if fault != "changed_plan": context["entry_supervision_identity"]["design"] = _write(Path(observed_binding["path"]), plan)
+    elif fault == "economics": context["entry_supervision_identity"]["economics"] = {"unbound_costs":True}
+    if fault:
+        with pytest.raises(RuntimeError): trainer._dynamic_entry_native_context_binding(context)
+    else:
+        bound = trainer._dynamic_entry_native_context_binding(context)
+        assert bound["entry_supervision_identity"]["design"] == observed_binding
+        assert bound["evaluation_cohort"]["plan"] == context["evaluation_cohort"]["plan"]
+        assert len(case.scope_calls) == 1
 
 
 def test_dynamic_session_contract_seals_base_audits_and_witness_without_exit_manifest(tmp_path,dynamic_prefix_binding_unit):

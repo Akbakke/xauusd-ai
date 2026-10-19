@@ -508,6 +508,14 @@ def test_m5_single_epoch_requires_own_exact_policy_fresh_measurement_and_actual_
         entry_observed_market={"synthetic":True}, chronological_learning_measurement=measured["artifacts"]["initial_measurement_audit"],
         run_id="SINGLE_EPOCH",out_bundle_dir=str(tmp_path/"MODEL"))
     policy.pop("native_learning_calibration")
+    if dynamic:
+        from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+        recipe["val_limits"] = {"max_model_forwards":16, "max_state_views":256,
+                                "max_wall_seconds":10800, "progress_interval_forwards":16}
+        policy["required_val_profile"] = dict(recipe["val_limits"])
+        recipe["trainer_cli"]["checkpoint_monitor"] = DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+        policy["training_enabled"] = True
+        policy["full_epoch_training_allowed"] = True
     expected = {"population_witness":single["binding"], "chronological_prefix":prefix["artifacts"],
         "chronological_learning_measurement":measured["artifacts"]["initial_measurement_audit"],
         "run_id":recipe["run_id"], "out_bundle_dir":recipe["out_bundle_dir"],
@@ -525,8 +533,14 @@ def test_m5_single_epoch_requires_own_exact_policy_fresh_measurement_and_actual_
     elif fault == "refresh": expected["teacher_refresh_allowed"] = True
     elif fault == "missing_initial": recipe.pop("chronological_learning_measurement")
     elif fault == "unbounded_windows": expected["max_invocations"] = None
+    elif fault == "training_false": policy["training_enabled"] = False
+    elif fault == "training_missing": policy.pop("training_enabled")
+    elif fault == "training_integer": policy["training_enabled"] = 1
+    elif fault == "epoch_false": policy["full_epoch_training_allowed"] = False
+    elif fault == "epoch_missing": policy.pop("full_epoch_training_allowed")
+    elif fault == "epoch_integer": policy["full_epoch_training_allowed"] = 1
     save()
-    if fault == "unbound_policy": write("NEXT_RUN_POLICY.json", {**policy,"training_enabled":True})
+    if fault == "unbound_policy": write("NEXT_RUN_POLICY.json", {**policy,"training_enabled":not policy["training_enabled"]})
     budget = {"stop_after_optimizer_steps":single["optimizer_steps"], "stop_after_completed_val_epochs":None,
         "max_invocation_seconds":12000}
     if fault is not None:
@@ -636,3 +650,141 @@ def test_dynamic_phase_without_actual_epoch_witness_never_inherits_old_prefix_bu
         horizons.planned_prefix_optimizer_steps(design)
     with pytest.raises(RuntimeError, match="WITNESS_REQUIRED"):
         horizons.planned_prefix_training_rows(design)
+
+
+@pytest.fixture
+def dynamic_native_recipe_metadata(prefix_scope, tmp_path, monkeypatch):
+    """Recipe join unit; real physical/scanner gates are independently qualified."""
+    import copy
+    from gx1.contracts import entry_model_native_train_recipe_v1 as env_owner
+    from gx1.contracts.entry_model_native_train_launch_v1 import artifact_binding, canonical_json_sha256
+    from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+    policy, recipe, _, seal = prefix_scope
+    design = copy.deepcopy(json.loads(Path(recipe["chronological_prefix"]["design"]["path"]).read_text()))
+    dynamic_design, witness = _dynamic_single_epoch_design(tmp_path, rows=273)
+    design["scope"].update(dynamic_design["scope"])
+    design["calendar"].update(dynamic_design["calendar"])
+    design["calendar"].update(physical_source_splits={"train":"train", "control":"val"},
+                              physical_coordinate_namespaces_are_separate=True)
+    design["budget"].update(dynamic_design["budget"])
+    design["targets"] = {"dynamic_target_contract": witness["target_contract"]}
+    names = ("entry_val_parquet", "entry_val_manifest", "m5_prebuilt", "source_bundle_metadata",
+             "sequence_source_audit", "val_sequence_source_audit", "entry_measurement_coordinates", "train_cost_authority")
+    files = {name: tmp_path / ("dynamic-native-" + name + ".json") for name in names}
+    for path in files.values(): _write(path, {})
+    files.update(entry_train_parquet=Path(witness["train_parquet"]["path"]),
+        entry_train_manifest=Path(witness["train_manifest"]["path"]),
+        entry_only_base_normalization=tmp_path/"dynamic-native-base.json")
+    norm = {"contract":{"lineage":{"dataset_run_id":"DYNAMIC_UNIT",
+        "m5_prebuilt_path":str(files["m5_prebuilt"]), "m5_prebuilt_sha256":_bind(files["m5_prebuilt"])["sha256"]}}}
+    normalization = _write(files["entry_only_base_normalization"], norm)
+    artifacts = {"design":_write(tmp_path/"dynamic-native-design.json", design),
+        "normalization_result":normalization, "labels_result":_write(tmp_path/"dynamic-native-labels.json", {}),
+        "native_coordinates":_write(tmp_path/"dynamic-native-coordinates.json", {})}
+    physical = {"entry_training_phase":witness["training_phase"], "train_rows":witness["train_rows"],
+        "entry_only_base_normalization":normalization, "base_contract_sha256":"d"*64,
+        "physical_sources":{split:{kind:_bind(files[f"entry_{split}_{kind}"]) for kind in ("parquet","manifest")}
+                            for split in ("train","val")},
+        "sequence_source_audits":{"train":_bind(files["sequence_source_audit"]),
+                                  "val":_bind(files["val_sequence_source_audit"])}}
+    coordinates = {"population_witness":design["scope"]["entry_m5_path_single_epoch"],
+        "native_sampler_contract":witness["native_sampler_contract"]}
+    monkeypatch.setattr(native, "require_physical_chronological_preprocessing", lambda *a, **kw: physical)
+    monkeypatch.setattr(native, "require_physical_native_training_coordinates", lambda *a, **kw: coordinates)
+    _write(files["entry_measurement_coordinates"], {"schema_version":"gx1_dynamic_m5_native_coordinate_publication_v1",
+        "chronological_prefix":artifacts, "population_witness":coordinates["population_witness"],
+        "native_sampler_contract":coordinates["native_sampler_contract"], "native_coordinates_complete":True,
+        "entry_measurement_complete":False, "native_launch_admitted":False, "test_data_used":False})
+    recipe.pop("exit_reference_policy")
+    recipe.update(chronological_prefix=artifacts, entry_m5_path_single_epoch=coordinates["population_witness"],
+        dataset_run_id="DYNAMIC_UNIT", files={key:_bind(path) for key,path in files.items()})
+    recipe["trainer_cli"].update(epochs=1, save_top_k=0, checkpoint_monitor=DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR)
+    recipe["val_limits"] = {"max_model_forwards":16, "max_state_views":256,
+                            "max_wall_seconds":10800, "progress_interval_forwards":16}
+    policy["required_val_profile"] = dict(recipe["val_limits"])
+    source = Path(recipe["source_repo"])/"gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
+    source.parent.mkdir(parents=True, exist_ok=True); source.write_text("synthetic dynamic constructor source")
+    recipe["source_bindings"] = {str(source.relative_to(Path(recipe["source_repo"]))):artifact_binding(source)}
+    recipe["source_bindings_sha256"] = canonical_json_sha256(recipe["source_bindings"])
+    recipe["recipe_env"] = {**env_owner.MODEL_NATIVE_RECIPE_ENV, "GX1_V10_CKPT_MONITOR":DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR}
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    observed_binding = _write(tmp_path/"dynamic-native-observed-plan.json", {"unit":True})
+    recipe["entry_observed_market"] = observed_binding
+    observed_scope = {"binding":observed_binding, "economics":{"unit":True}, "target_m1_source_sha256":"b"*64,
+        "training_phase":witness["training_phase"], "physical_sources":copy.deepcopy(physical["physical_sources"]),
+        "target_contract":witness["target_contract"],
+        "query_minutes":tuple(witness["target_contract"]["query_contract"]["horizon_minutes"])}
+    def checked_scope(value):
+        if value.get("entry_observed_market") != observed_binding:
+            raise RuntimeError("UNIT_OBSERVED_SCOPE_BINDING_CHANGED")
+        return observed_scope
+    monkeypatch.setattr(horizons, "require_observed_entry_scope", checked_scope)
+    seal()
+    return {"policy":policy, "recipe":recipe, "files":files, "seal":seal,
+            "physical":physical, "coordinates":coordinates, "design":design, "witness":witness,
+            "observed_scope":observed_scope}
+
+
+def test_dynamic_native_recipe_binds_actual_population_without_exit_or_economics(dynamic_native_recipe_metadata):
+    case = dynamic_native_recipe_metadata; recipe = case["recipe"]
+    prefix = native.require_chronological_prefix_recipe(recipe)
+    assert prefix["entry_m5_path_single_epoch"]["train_rows"] == 273
+    binding, digest = native.require_fresh_physical_campaign_sampler(recipe)
+    assert binding == recipe["entry_m5_path_single_epoch"] and digest == binding["sha256"]
+    checked, rows = native.require_native_recipe_metadata(case["seal"](),
+        source_repo=Path(recipe["source_repo"]), source_commit=recipe["source_commit"])
+    assert checked == recipe and rows == 273
+    profile, _, objective = native._require_native_profile_and_economics(recipe, case["policy"], Path(recipe["source_repo"]))
+    assert profile == recipe["val_limits"] and objective is None
+    assert not {"selected_sampler","random_access_root","economics_readiness"}.intersection(recipe["files"])
+
+
+@pytest.mark.parametrize("fault", ["exit_policy", "target", "legacy_file", "monitor", "save_top_k", "missing_bound",
+    "extra_bound", "bool_bound", "source", "normalization", "coordinate", "witness", "profile", "missing_scope", "scope_phase"])
+def test_dynamic_native_recipe_rejects_legacy_or_unbound_controls(dynamic_native_recipe_metadata, fault):
+    case = dynamic_native_recipe_metadata; recipe = case["recipe"]
+    if fault == "exit_policy": recipe["exit_reference_policy"] = {}
+    elif fault == "target":
+        case["design"]["targets"]["dynamic_target_contract"] = {}
+        recipe["chronological_prefix"]["design"] = _write(Path(recipe["chronological_prefix"]["design"]["path"]), case["design"])
+    elif fault == "legacy_file": recipe["files"]["economics_readiness"] = recipe["files"]["source_bundle_metadata"]
+    elif fault == "monitor": recipe["trainer_cli"]["checkpoint_monitor"] = "entry_policy_pnl"
+    elif fault == "save_top_k": recipe["trainer_cli"]["save_top_k"] = 1
+    elif fault == "missing_bound": recipe["val_limits"].pop("max_model_forwards")
+    elif fault == "extra_bound": recipe["val_limits"]["policy_batch_size"] = 256
+    elif fault == "bool_bound": recipe["val_limits"]["progress_interval_forwards"] = True
+    elif fault == "source": recipe["files"]["entry_train_parquet"] = recipe["files"]["entry_val_parquet"]
+    elif fault == "normalization": recipe["dataset_run_id"] = "OTHER"
+    elif fault == "coordinate": recipe["files"]["entry_measurement_coordinates"] = recipe["files"]["source_bundle_metadata"]
+    elif fault == "witness": recipe["entry_m5_path_single_epoch"] = recipe["files"]["source_bundle_metadata"]
+    elif fault == "missing_scope": recipe.pop("entry_observed_market")
+    elif fault == "scope_phase": case["observed_scope"]["training_phase"] = "joint_fitted_q"
+    else:
+        case["policy"]["required_val_profile"]["max_model_forwards"] = 32
+        with pytest.raises(RuntimeError, match="DYNAMIC_PROFILE"):
+            native._require_native_profile_and_economics(recipe, case["policy"], Path(recipe["source_repo"]))
+        return
+    with pytest.raises(RuntimeError):
+        native.require_native_recipe_metadata(case["seal"](),
+            source_repo=Path(recipe["source_repo"]), source_commit=recipe["source_commit"])
+
+
+@pytest.mark.parametrize("fault", ["training_false", "training_missing", "training_integer", "epoch_false", "epoch_missing", "epoch_integer"])
+def test_dynamic_positive_epoch_never_uses_false_or_untyped_global_training_authority(scope, tmp_path, monkeypatch, fault):
+    test_m5_single_epoch_requires_own_exact_policy_fresh_measurement_and_actual_ceiling(
+        scope, tmp_path, monkeypatch, fault, True)
+
+
+@pytest.mark.parametrize("training_enabled", [False, None, 1, True])
+def test_dynamic_positive_prefix_probe_requires_exact_true_global_training(prefix_scope, monkeypatch, training_enabled):
+    policy, recipe, _, seal = prefix_scope
+    # Isolate this global-policy dispatch predicate; physical admission has its own tests.
+    monkeypatch.setattr(native, "_dynamic_m5_native_design", lambda value: {"unit_dynamic_phase":True})
+    monkeypatch.setattr(native, "_require_native_profile_and_economics", lambda *args: None)
+    if training_enabled is None: policy.pop("training_enabled")
+    else: policy["training_enabled"] = training_enabled
+    seal()
+    if training_enabled is True:
+        assert native.require_chronological_prefix_run(recipe)["optimizer_step_ceiling"] == 256
+    else:
+        with pytest.raises(RuntimeError, match="NOT_AUTHORIZED"): native.require_chronological_prefix_run(recipe)
