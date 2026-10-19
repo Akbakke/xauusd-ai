@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — TRAIN/CONTROL-data koblet, ny source-bundet freshstate gjenstår
+## Aktuell grense — ny freshstate fullført, faktisk modellmåling gjenstår
 
 075 rettet faktisk074feil: normaliser UTC-vinduer før likhet og tillat korrekt
 halvåpent declared_end<=cutoff bare i dynamic-grenen. Faktiske entryklokker må
@@ -96,15 +96,24 @@ så pointer/progress/canonicalreceipt mangler. Separat feilobservasjon er bundet
 i policy; ingenting er fabrikkert. Windows-task er Disabled/LastTaskResult1,
 controller8568 er avsluttet; faktisk før-native Boot505 var19.10 kl.12:32:21.500UTC.
 
-Aktuell079 er én NY CPU-freshstate via uendret073produsent, med samme055/057/
-059inputs og nye075/077/078/076-proofgater. Ekstra metadatagater er faktisk
-prøvd, og hele template-AST er identisk etter kun stage/proof/proveniens
-fjernes. Ingen gamle vekter/Datasets/forwards/updates/refits. 4G/512M,7200s.
-Plan: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_DATA_BINDING_BOUND_20261019_079/PLAN.json
-SHA c5c6463b741173cad571fcb42a2ab7c5ce4c24e70b9e44e874df8d330151b170.
-PRELAUNCH_REVIEW SHA d67e4d6aeb3cb3a2c6a4b796c3598edbe578c922791518f22d7717c0aa0c4896.
-079 må bindes til ren HEAD/policy/controller/worker før engangskjøring.
-Deretter ny kildebundet ny eksakt nativeinitialmåling av256TRAIN+256CONTROL/32forwards/0steg;
+079 fullførte faktisk på265.962s, exit0/uendret00c4467f. Ny ONLINE=anchor=EMA0,
+tom optimizer og canonical egen CPU-roundtrip bestod; ingen gamle vekter,
+modellforwards/steg/refits. Alle182bindinger/181unike sourcefiler er kontrollert
+med bytes og statfelt. ClosureSHA901503cb36f0df2cb27896a617f597dd203d3d1b6fbc0a08ff3491d3ab0cfbff.
+INITIALIZATION SHA81550e88408c4bad2db9c03592484fe33db62a1f9c63f53995c8af72484b196c;
+MEASUREMENT SHA40a3e74c57d15940c9b60cc252bb4bd80baba6b17accc20d835278d73c8b9111.
+ACTUAL_CPU_REVIEW SHA6d6c70929a88765662e23eef9cdb066caaf5f50439783306563b8fdfefaa7515.
+Original079 er konsumert og relanseres aldri. Historisk073/078identitet er bevart.
+
+Aktuell080 er en NY initialmåling:256TRAIN+256CONTROL,32encoderforwards og0steg.
+Den binder eksakte NYE079constructor-/observed-/init-/measurementstier og samme
+055/057/059inputs, kompaktprofil og182closure. Identisk OBSERVED_PLAN-byteSHA
+gjør ikke073sti utskiftbar med079sti. Faktisk preparedBoot505 er lest;
+ny campaign og fersk maskinvare/NY fysisk boot kreves før native. Ingen ny
+trening/Exit/TEST/broker eller fullVAL åpnes av dette. training_enabled=false.
+Plan: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_DATA_BINDING_BOUND_20261019_080/PLAN.json SHA0399a8cbb7f42e86a1417ef0ac7c484581a1f5b0953b525184fbea855caaf74d.
+Materialiser080 én gang fra ren kilde/policy; fryst gjennom jobb og native.
+Deretter faktisk konsum/latency/minne/initialbaseline;
 deretter separat faktisk paritet og Entry-only optimizer/resume med4 private
 tekniske updates/4paritetsforwards, før den bestilte ene nativeepoken.
 Ingen aktuell ekte modellforward, initialbaseline, optimizersteg eller epoke
