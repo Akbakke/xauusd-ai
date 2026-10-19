@@ -59,56 +59,73 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — faktisk initialmåling083 fullført; neste faktiske treningssteg
+## Aktuell grense — 083initial +085bevaringsaudit fullført;086I/O-rettelse
 
-083 fullførte initialbaseline med 256 TRAIN + 256 CONTROL, 16 Entry-forwards
+083 fullførte faktisk initialbaseline:256 TRAIN +256 CONTROL,16 Entry-forwards
 per rolle, totalt32. Exit-forwards/optimizersteg/VAL-epoker=0. Canonical receipt
-ble publisert19.10 kl.19:01:09UTC med guardPASS/exit0 og RESUMABLE, som er
-forventet ved initial0taket. Dette er ingen fullført epoke eller målt læring.
-Windows-controller5624 er avsluttet; taskDisabled kl.19:06:06UTC. Frysen er løftet.
-Original083 er konsumert og relanseres aldri. Initialresultat:
-/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_CONTROL_BOUND_20261019_083/.gx1-candidate-training-session.BUNDLE/initial_measurement/RESULT.json
-SHA173ad22f59441cf797c3c6b328254a4f7c49e3d63c3ff801342a2f7d0eb60eda.
-Terminalreceipt SHA4eee83d013f51e6e9fb7c0599c98708c96361c7035e2a0f9a2bb9ea58912beef.
-ACTUAL_TERMINAL_REVIEW SHA24cb00f86dd12cd42b548be3e7ddff5b8bb8184e35ca4f03cfb540710422889b.
+19.10 kl.19:01:09UTC er guardPASS/exit0/RESUMABLE ved initial0taket.
+Original083 er konsumert; Windows-controller5624 avsluttet og taskDisabled.
+RESULT SHA173ad22f59441cf797c3c6b328254a4f7c49e3d63c3ff801342a2f7d0eb60eda;
+terminalreceipt SHA4eee83d013f51e6e9fb7c0599c98708c96361c7035e2a0f9a2bb9ea58912beef.
+To uavhengige metadata-/outputkontroller bekreftet082-init/055-normalisering/
+057-targets og aktiv kompaktprofil. ONLINE=anchor har initialhash9c4cf514...a79b4a.
+Separate masker og480queries beholdes; faktisk7lokale/5TF/25samarbeidstokens er
+observert. Utrente TRAIN LONG3/SHORT0/FLAT253 og CONTROL FLAT256 er baseline,
+ikke lært selektivitet eller dokumentert featurepåvirkning/formelkorrekthet.
 
-To uavhengige kilde-/outputkontroller fant konsistente082-init/055-normalisering/
-057-mål/masker/koordinater og aktiv kompaktprofil. ONLINE=anchor beholder initial-
-hash9c4cf514cbfd5b6f9366f69065abcc0878ef274117e2b5c7e703656e86a79b4a.
-Separate komponentmasker og alle480 queries er bevart. Utrente diagnostiske
-handlinger TRAIN LONG3/SHORT0/FLAT253 og CONTROL FLAT256 er baseline, ikke lært
-selektivitet. Faktisk7lokale/5TF/25samarbeidstokens er observert; individuell
-featurepåvirkning eller komplett formelkorrekthet følger ikke av dette.
+085 er faktisk COMPLETE/exit0/uendret81cd208c på63.040s, kl.19:21:18UTC.
+Actual082fresh og083checkpoint er fysiskSHA-verifisert og CPU-lastet; modell,
+targetmodell, optimizer, EMA, scheduler og lagret CPU/Python/NumPy-RNG er
+sammenlignet eksakt. CUDA-RNG sammenlignes ikke mot CPU-initialiseringen.
+Eksisterende strict initialaudit-eier bestod. Ingen konstruksjon/forwards/steg.
+/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261019_085/TERMINAL.json
+SHAb594d90907e7f903e93ac003331c93577b29040eb1f8697393aa7cdf5a080971;
+INITIAL_MEASUREMENT_AUDIT SHA3ae5434c65736c2e1d2c85ebf863d858fad1f164d4511bc7d91b6d6c917bb07d.
+Original085 er konsumert; launchPID133675 er borte, frysen er løftet.
 
-083 samlet native4007.463s inkluderer setup1329.333s og checkpoint360.268s.
-Ren encoderlatency er ikke separat målt; ingen trenings-ETA utledes av dette.
-En enkelt ikke-blokkerende stackobservasjon målte gjentatt fysisk hashing i
-ren dynamic-context-validering før modellarbeid. Metadatarettelse084 er
-UTSATT/UKJØRT: dagens kontrakt ville ellers kreve ny CPUfresh og ny initial0,
-selv med uendret modellmatematikk. For korteste korrekte vei til faktiske
-treningssteg er productiontrainer restaurert byteidentisk310. Rettelse/test
-bevares kun i Gitstash1678872c75485d7a0e1186d13c2a6ee53d894db3, ikke som aktiv
-kode.084/DEFERRED_PATCH SHAd21f187b0b241661b5ba1e7f17aa0bad290f00e6ad25006d09a9a572d9809d02.
-Ingen084test eller jobb ble startet; ingen nye PASS- eller hastighetsbevis.
+Brukeren krever minst mulig unødvendig datalesing.086 retter konkret kildefunn:
+checkpointprogress validerer policy gjentatte ganger via wholeTRAIN-SHA og
+observed-scope/4096pointeraudit. Components/Dataset/M1provider gjenbrukes allerede
+per nativeinvokasjon og privat4armer; ingen helfilhash/nyM1lasting/refit ble funnet
+perbatch. Kallantall er kildeavledet, ikke målt fysisk disklesing eller tidsgevinst.
+083samlet4007.463s inkluderer setup1329.333s/checkpoint360.268s; ren latency ukjent.
 
-Gjenbruk076TRAIN/078VAL-CONTROL/081199PASS/082CPUfresh/083initialbevis innen sine
-uendrede roller. Neste steg er faktisk083initialaudit og ny eksakt privat4-
-Entry-kvalifisering:2direkte TRAIN-steg mot1steg→durable load→1steg, totalt4
-private updates og4paritetsforwards. Rekkefølge/state/RNG/optimizer/scheduler/
-EMA/progress må samsvare; ingen Exit/CONTROL-updates. Hovedtreningsvekter
-starter fortsatt fresh; privatkontrollvekter brukes ikke til hovedtrening.
-training_enabled=false inntil denne avgrensede kvalifiseringen er eksakt bundet.
-085 er nå bundet som én cappedCPUaudit av faktiske082/083checkpointbytes og
-lagret modell/optimizer/EMA/scheduler/CPU-Python-NumPy-RNG. Den bruker ingen
-modellforwards eller oppdateringer; strict initialaudit publiseres først etter
-faktisk bevaringskontroll. PLAN ligger i
-/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261019_085/PLAN.json
-SHA69fa89bae94ce500c21ea5b6afd5d1d21eebb44799e9aff21de1262454a83504.
-Deretter kreves eget opptak for den allerede bestilte ene nativeepoken; ny
-campaign og gjeldende maskinvare-/bootporter beholdes. Individuelle formel-/
-enhets-/warmup-referanser, komplette makrovintager og LONG/SHORT/FLAT-kvalitet/
-dekning gjenstår. Ingen treningshastighet eller økonomisk effekt er målt ennå.
-Generalisering og økonomisk edge er egne senere vurderinger.
+Minste086rettelse: Sessionlokalt, ikke serialisert bevis for eksakt policy/
+prefix/monitor/kontrakt etter én streng fysisk+semantisk kontroll og full
+filidentitetssjekk. Checkpoint/progress gjenbruker beviset med ny stat/type/
+symlink/ctime-kontroll, uten wholeTRAINstream/pointeraudit. Ny Session/resume/
+read-only validerer fysisk på nytt. Begge uavhengige kosthashstier delegerer til
+felles eier, så alle kostavhengigheter inngår. Mutable checkpointSHA/load/save,
+modell-/optimizer-/RNG-semantikk og alle target-/masker-/MTF-/profilregler består.
+Den tidligere084purecontext-metadatarettelsen tas inn i samme nye kildebølge.
+PLAN: /home/andre2/GX1_RUNS/NATIVE_M5_VERIFIED_CHECKPOINT_IO_20261019_086/PLAN.json
+SHA86fd30a7901ffb5b6c764e4b9f4bca8b27516c4e9922e3123820307adf23ec7c.
+087 er faktisk PASS_SOURCE_SYNTHETIC_ONLY på109.725s, kl.19:43:24UTC,
+exit0/uendret81cd208c.375nåværende tester og21byteidentiske bevarte086PASS gir
+396unikePASS, inkludert57nye;0feil/error/SKIP. Første086forsøk stoppet korrekt
+på3raders nytestfixture; barefixture ble utvidettil17genuine TRAIN/VAL-rader,
+medsamme strenge eiere/to batcher/halerad1. Original086feilkvitteringbevares.
+Nyeguardtester måler råfilstreamgjenbruk/ingennyrålesing vedcheckpointmetadata,
+fil-/kost-/NPY-/Parquet-/symlink-/ctime-/SHA-/prefix-/policy-/kontraktvakter,
+ferskSession/resume/read-only, mutablecheckpointtamper ogscopegrense vedforward.
+Eksisterende policy/session/coordinator/initial/kostregresjoner:339PASS.
+SOURCE_REVIEW: /home/andre2/GX1_RUNS/NATIVE_M5_VERIFIED_CHECKPOINT_IO_QUAL_20261019_087/SOURCE_REVIEW.json
+SHA64b1cbc7b2a4a27fa7718258acfd92601bda54e08bcede87a4e29c0c5c9d72ae.
+TERMINAL SHA3f1fa64f01aa4e813b7bbf936b33fdf2b3887a0336fba9df9fc85fc77b52b12f.
+Fysisk182-rollekontroll/181filer: barede5deklarerte metadataeierne erendret;
+øvrigeclosurefeltereksakte. AST beviseropprinnelig modell-/state-/RNG-semantikk
+etterfjerningavnyecontextargumenter; ingenmål/feature/normaliseringsendring.
+Faktisknative disklesing/encoder-/treningshastighet er fortsattumålt.
+training_enabled=false. Ingen source/synthetictest er native læringsadgang.
+
+Endret086sourceclosure krever ny korrekt kildebundet CPUfresh/initialmåling og
+nativeadmission.083/085 bevares som sine originale kildebevis. Deretter kreves
+privat4 Entry-only updates/4paritetsforwards/direct-resume-ekvivalens, og eget
+opptak for den bestilte ene hele nativeepoken. Private kontrollvekter brukes
+ikke som hovedtrening. Alle individuelle genuine indikatorformler/enheter/
+warmup på5TF, komplette makrovintager, LONG/SHORT/FLAT-kvalitet/dekning og
+beslutningssporbarhet gjenstår i sitt fulle omfang. Ingen læring/generaliserings-
+eller økonomisk edge-konklusjon følger av initialmålingen.
 
 ## PC, opprydding og metode
 

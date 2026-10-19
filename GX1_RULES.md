@@ -108,6 +108,17 @@ faktiske disklesinger/read_bytes; ingen TB-/hastighets-/ETA-påstand uten
 korrekt målerolle. Rett målte flaskehalser med minste endring og bevar kausalitet,
 masker, features/MTF og alle sikkerhetsvakter.
 
+For checkpointpolicy kan en eksplisitt, runtime-only Session-kontekst binde én
+full fysisk og semantisk inputkontroll til eksakt sessionkontrakt/prefix/monitor/
+policy. Alle faktisk verifiserte immutable input- og kostavhengigheter fanges,
+og filidentitet revalideres samlet før beviset forsegles. Hver gjenbruk krever
+uendret canonicalpath/type/symlink/dev/inode/mode/size/mtime_ns/ctime_ns og
+eksakte kontrakt-/prefix-/monitor-/policybindinger; endring feiler lukket uten
+automatisk ny binding. En ny Session, også resume/read-only, gjør fersk fysisk
+validering. Beviset serialiseres aldri og mates aldri tilbake til filhasheren.
+Det erstatter ikke mutable checkpointfilers eksisterende SHA/load/save-kontroll.
+Selve filhash-memoet er fortsatt avgrenset til den korte metadataoperasjonen.
+
 ## Én kodebase, avgrensede agentoppgaver
 
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre

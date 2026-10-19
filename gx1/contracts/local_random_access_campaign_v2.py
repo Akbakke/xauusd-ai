@@ -10,6 +10,7 @@ import stat
 import subprocess
 from contextlib import contextmanager
 from contextvars import ContextVar
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterator, Mapping, Sequence
@@ -119,6 +120,60 @@ def file_sha256(path: Path) -> str:
     if key not in memo:
         memo[key] = _file_sha256_uncached(path, identity=identity, scoped=True)
     return memo[key]
+
+
+
+@contextmanager
+def fresh_file_verification_scope() -> Iterator[None]:
+    """Own a new finite metadata operation; never inherit an earlier digest memo."""
+    if _FILE_VERIFICATION_MEMO.get() is not None:
+        raise RandomAccessCampaignError("fresh file verification requires no outer scope")
+    with file_verification_scope():
+        yield
+
+
+@dataclass(frozen=True)
+class VerifiedFileSnapshot:
+    """Immutable input identities, not a digest cache or checkpoint-file verifier.
+
+    capture_verified_file_snapshot follows full strict metadata validation. The saved
+    digests document the completed physical checks; file_sha256 never consults
+    this object. A changed file invalidates the whole snapshot rather than
+    silently refreshing it during model or checkpoint work.
+    """
+
+    _entries: tuple[tuple[str, _FileIdentity, str], ...]
+
+    @property
+    def file_count(self) -> int:
+        return len(self._entries)
+
+    def require_unchanged(self) -> None:
+        if not self._entries:
+            raise RandomAccessCampaignError("empty verified file snapshot")
+        for filename, identity, digest in self._entries:
+            path = _regular(Path(filename), "verified immutable input")
+            if (_SHA.fullmatch(digest) is None
+                    or _file_identity(path.lstat()) != identity):
+                raise RandomAccessCampaignError("verified immutable input identity changed")
+
+
+def capture_verified_file_snapshot() -> VerifiedFileSnapshot:
+    """Seal the complete successful physical-read set after semantic validation.
+
+    The final identity sweep also detects mutation between an earlier SHA read
+    and a later pointer/manifest audit. The finite digest scope must close before
+    any model, mutable state load/save or checkpoint publication.
+    """
+    memo = _FILE_VERIFICATION_MEMO.get()
+    if not memo:
+        raise RandomAccessCampaignError("verified file snapshot requires nonempty active scope")
+    snapshot = VerifiedFileSnapshot(tuple(
+        (filename, identity, digest)
+        for (filename, identity), digest in sorted(memo.items())
+    ))
+    snapshot.require_unchanged()
+    return snapshot
 
 
 def _sha(value: Any, label: str) -> str:

@@ -8,6 +8,7 @@ three retained checkpoint records.
 """
 from __future__ import annotations
 
+import json
 import math
 from typing import Any, Mapping, Sequence
 
@@ -113,55 +114,151 @@ def _m5_single_epoch_checkpoint_scope(prefix_training_binding):
     return {**expected, "optimizer_steps":single["optimizer_steps"]}
 
 
+_VERIFIED_CHECKPOINT_POLICY_SEAL = object()
+
+
+class _VerifiedCheckpointPolicy:
+    """Session-only completed policy proof; never a serialized resume authority."""
+
+    __slots__ = ("_contract_sha256", "_prefix_sha256", "_monitor", "_policy_json", "_snapshot")
+
+    def __init__(self, *, contract_sha256, prefix_sha256, monitor, policy_json, snapshot, _seal):
+        if _seal is not _VERIFIED_CHECKPOINT_POLICY_SEAL:
+            raise RuntimeError("[ENTRY_CANDIDATE_VERIFIED_CHECKPOINT_CONTEXT_INVALID]")
+        for name, value in (("_contract_sha256", contract_sha256), ("_prefix_sha256", prefix_sha256),
+                            ("_monitor", monitor), ("_policy_json", policy_json), ("_snapshot", snapshot)):
+            object.__setattr__(self, name, value)
+
+    def __setattr__(self, name, value):
+        raise AttributeError("verified checkpoint context is immutable")
+
+    def __reduce_ex__(self, protocol):
+        raise TypeError("verified checkpoint context is runtime-only")
+
+    def require_contract(self, contract: Mapping[str, Any]) -> None:
+        from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256
+        try:
+            same = isinstance(contract, Mapping) and canonical_sha256(dict(contract)) == self._contract_sha256
+        except (TypeError, ValueError):
+            same = False
+        if not same:
+            raise RuntimeError("[ENTRY_CANDIDATE_VERIFIED_CHECKPOINT_CONTRACT_MISMATCH]")
+        self.metadata(checkpoint_monitor=contract["training"]["checkpoint_policy"]["checkpoint_monitor"],
+            prefix_training_binding=contract["chronological_prefix"])
+        if _policy_json(contract["training"]["checkpoint_policy"]) != self._policy_json:
+            raise RuntimeError("[ENTRY_CANDIDATE_VERIFIED_CHECKPOINT_POLICY_MISMATCH]")
+
+    def metadata(self, *, checkpoint_monitor, prefix_training_binding) -> dict[str, Any]:
+        from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256
+        try:
+            same_prefix = (isinstance(prefix_training_binding, Mapping)
+                and canonical_sha256(dict(prefix_training_binding)) == self._prefix_sha256)
+        except (TypeError, ValueError):
+            same_prefix = False
+        if checkpoint_monitor != self._monitor or not same_prefix:
+            raise RuntimeError("[ENTRY_CANDIDATE_VERIFIED_CHECKPOINT_BINDING_MISMATCH]")
+        self._snapshot.require_unchanged()
+        return json.loads(self._policy_json)
+
+
+def _policy_json(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False)
+
+
+def prepare_verified_checkpoint_policy(*, contract: Mapping[str, Any]) -> _VerifiedCheckpointPolicy:
+    """Physically validate one dynamic Session's exact immutable policy inputs."""
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.local_random_access_campaign_v2 import (
+        canonical_sha256, fresh_file_verification_scope, capture_verified_file_snapshot,
+    )
+    try:
+        # Use a detached JSON value during validation; reject caller mutation at
+        # the closing contract join rather than sealing a mixture of versions.
+        if not isinstance(contract, Mapping):
+            raise TypeError
+        frozen = json.loads(_policy_json(dict(contract)))
+        prefix = frozen["chronological_prefix"]
+        declared = frozen["training"]["checkpoint_policy"]
+        monitor = declared["checkpoint_monitor"]
+        if (frozen.get("schema_version") != "gx1_candidate_training_session_v1"
+                or not isinstance(prefix, dict)
+                or prefix.get("entry_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+            raise ValueError
+    except (KeyError, TypeError, ValueError):
+        raise RuntimeError("[ENTRY_CANDIDATE_VERIFIED_CHECKPOINT_CONTRACT_INVALID]") from None
+    with fresh_file_verification_scope():
+        # Default semantic path remains the sole owner of witness/receipt/cost
+        # and complete pointer validation. This call runs exactly once here.
+        expected = checkpoint_policy_metadata(checkpoint_monitor=monitor, prefix_training_binding=prefix)
+        if declared != expected or _policy_json(declared) != _policy_json(expected):
+            raise RuntimeError("[ENTRY_CANDIDATE_VERIFIED_CHECKPOINT_POLICY_MISMATCH]")
+        snapshot = capture_verified_file_snapshot()
+        snapshot.require_unchanged()
+        verified = _VerifiedCheckpointPolicy(contract_sha256=canonical_sha256(frozen),
+            prefix_sha256=canonical_sha256(prefix), monitor=monitor, policy_json=_policy_json(expected),
+            snapshot=snapshot, _seal=_VERIFIED_CHECKPOINT_POLICY_SEAL)
+        verified.require_contract(contract)
+    return verified
+
+
 def checkpoint_policy_metadata(
     *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
     prefix_training_binding: Mapping[str, Any] | None = None,
+    verified_context: Any = None,
 ) -> dict[str, Any]:
     """Return the exact external-candidate policy in JSON-safe form."""
 
-    if checkpoint_monitor not in {
-        CHECKPOINT_MONITOR, COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR,
-        DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
-    }:
-        raise RuntimeError("[ENTRY_CANDIDATE_CHECKPOINT_MONITOR_INVALID]")
-    single = _m5_single_epoch_checkpoint_scope(prefix_training_binding)
-    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
-    dynamic = (isinstance(prefix_training_binding, Mapping)
-               and prefix_training_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
-    if dynamic:
-        if single is None or checkpoint_monitor != DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
-            raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_FIXED_MONITOR_REQUIRED]")
+    if verified_context is not None:
+        if not isinstance(verified_context, _VerifiedCheckpointPolicy):
+            raise RuntimeError("[ENTRY_CANDIDATE_VERIFIED_CHECKPOINT_CONTEXT_INVALID]")
+        return verified_context.metadata(
+            checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_training_binding,
+        )
+    from gx1.contracts.local_random_access_campaign_v2 import file_verification_scope
+    with file_verification_scope():
+        if checkpoint_monitor not in {
+            CHECKPOINT_MONITOR, COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR,
+            DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+        }:
+            raise RuntimeError("[ENTRY_CANDIDATE_CHECKPOINT_MONITOR_INVALID]")
+        single = _m5_single_epoch_checkpoint_scope(prefix_training_binding)
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        dynamic = (isinstance(prefix_training_binding, Mapping)
+                   and prefix_training_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+        if dynamic:
+            if single is None or checkpoint_monitor != DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
+                raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_FIXED_MONITOR_REQUIRED]")
+            return {
+                "schema_version": DYNAMIC_M5_FIXED_ONLINE_SCHEMA_VERSION,
+                "checkpoint_monitor": DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+                "checkpoint_mode": "fixed_final_online", "max_epochs": 1,
+                "entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+                "entry_m5_path_single_epoch": single, "selected_model_variant": "ONLINE",
+                "selection_boundary": "complete_one_whole_physical_train_epoch",
+                "validation_selection": False, "economic_selection": False,
+                "early_stopping": False, "save_top_k": 0, "native_training_admitted": False,
+            }
+        if checkpoint_monitor == DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
+            raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_FIXED_MONITOR_REQUIRES_BOUND_PREFIX]")
+        if single is not None and checkpoint_monitor not in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR}:
+            raise RuntimeError("[ENTRY_CANDIDATE_M5_EPOCH_MONITOR_INVALID]")
         return {
-            "schema_version": DYNAMIC_M5_FIXED_ONLINE_SCHEMA_VERSION,
-            "checkpoint_monitor": DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
-            "checkpoint_mode": "fixed_final_online", "max_epochs": 1,
-            "entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
-            "entry_m5_path_single_epoch": single, "selected_model_variant": "ONLINE",
-            "selection_boundary": "complete_one_whole_physical_train_epoch",
-            "validation_selection": False, "economic_selection": False,
-            "early_stopping": False, "save_top_k": 0, "native_training_admitted": False,
+            "schema_version": (M5_SINGLE_EPOCH_SCHEMA_VERSION if single is not None else
+                MARKED_NET_SCHEMA_VERSION if checkpoint_monitor == MARKED_NET_CHECKPOINT_MONITOR
+                else COUPLED_NET_SCHEMA_VERSION if checkpoint_monitor == COUPLED_NET_CHECKPOINT_MONITOR
+                else SCHEMA_VERSION
+            ),
+            "max_epochs": 1 if single is not None else MAX_EPOCHS,
+            **({"entry_m5_path_single_epoch": single} if single is not None else {}),
+            "validation_frequency_epochs": VALIDATION_FREQUENCY_EPOCHS,
+            "early_stop_patience": EARLY_STOP_PATIENCE,
+            "minimum_epochs_before_stop": MINIMUM_EPOCHS_BEFORE_STOP,
+            "save_top_k": SAVE_TOP_K,
+            "early_stop_min_delta": EARLY_STOP_MIN_DELTA,
+            "checkpoint_monitor": checkpoint_monitor,
+            "checkpoint_mode": CHECKPOINT_MODE,
+            "constant_action_checkpoint_eligible": CONSTANT_ACTION_CHECKPOINT_ELIGIBLE,
         }
-    if checkpoint_monitor == DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
-        raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_FIXED_MONITOR_REQUIRES_BOUND_PREFIX]")
-    if single is not None and checkpoint_monitor not in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR}:
-        raise RuntimeError("[ENTRY_CANDIDATE_M5_EPOCH_MONITOR_INVALID]")
-    return {
-        "schema_version": (M5_SINGLE_EPOCH_SCHEMA_VERSION if single is not None else
-            MARKED_NET_SCHEMA_VERSION if checkpoint_monitor == MARKED_NET_CHECKPOINT_MONITOR
-            else COUPLED_NET_SCHEMA_VERSION if checkpoint_monitor == COUPLED_NET_CHECKPOINT_MONITOR
-            else SCHEMA_VERSION
-        ),
-        "max_epochs": 1 if single is not None else MAX_EPOCHS,
-        **({"entry_m5_path_single_epoch": single} if single is not None else {}),
-        "validation_frequency_epochs": VALIDATION_FREQUENCY_EPOCHS,
-        "early_stop_patience": EARLY_STOP_PATIENCE,
-        "minimum_epochs_before_stop": MINIMUM_EPOCHS_BEFORE_STOP,
-        "save_top_k": SAVE_TOP_K,
-        "early_stop_min_delta": EARLY_STOP_MIN_DELTA,
-        "checkpoint_monitor": checkpoint_monitor,
-        "checkpoint_mode": CHECKPOINT_MODE,
-        "constant_action_checkpoint_eligible": CONSTANT_ACTION_CHECKPOINT_ELIGIBLE,
-    }
 
 
 def validation_entry_action_counts(stats: Mapping[str, Any]) -> list[int]:
@@ -215,11 +312,12 @@ def require_checkpoint_policy(
     value: Mapping[str, Any], *, context: str,
     checkpoint_monitor: str = CHECKPOINT_MONITOR,
     prefix_training_binding: Mapping[str, Any] | None = None,
+    verified_context: Any = None,
 ) -> dict[str, Any]:
     """Reject a recipe/session that drifts from its explicit frozen policy."""
 
     expected = checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor,
-        prefix_training_binding=prefix_training_binding)
+        prefix_training_binding=prefix_training_binding, verified_context=verified_context)
     if not isinstance(value, Mapping) or dict(value) != expected:
         raise RuntimeError(f"[{context}_CHECKPOINT_POLICY_INVALID]")
     if "entry_m5_path_single_epoch" in expected:
@@ -367,6 +465,7 @@ __all__ = [
     "VALIDATION_FREQUENCY_EPOCHS",
     "checkpoint_metric",
     "checkpoint_policy_metadata",
+    "prepare_verified_checkpoint_policy",
     "metric_improved",
     "require_checkpoint_policy",
     "retain_top_k",

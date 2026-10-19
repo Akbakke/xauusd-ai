@@ -110,6 +110,7 @@ from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
     CONSTANT_ACTION_INELIGIBLE_REASON,
     checkpoint_metric,
     checkpoint_policy_metadata,
+    prepare_verified_checkpoint_policy,
     constant_action_checkpoint_ineligible,
     metric_improved as candidate_metric_improved,
     validation_entry_action_counts,
@@ -1547,6 +1548,7 @@ _CANDIDATE_TRAINING_VALIDATION_CHECKPOINT_INTERVAL_BATCHES = 64
 def _new_candidate_training_progress(
     *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
     prefix_training_binding: Mapping[str, Any] | None = None,
+    verified_context: Any = None,
 ) -> dict[str, Any]:
     """Create the only allowed initial full-candidate progress surface.
 
@@ -1567,6 +1569,7 @@ def _new_candidate_training_progress(
         "checkpoint_selection": {
             "checkpoint_policy": checkpoint_policy_metadata(
                 checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_training_binding,
+                verified_context=verified_context,
             ),
             "best_checkpoint": None,
             "best_state": None,
@@ -1597,6 +1600,7 @@ def _new_candidate_training_progress(
 def _require_candidate_training_progress(
     value: Mapping[str, Any], *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
     prefix_training_binding: Mapping[str, Any] | None = None,
+    verified_context: Any = None,
 ) -> dict[str, Any]:
     """Validate progress before it can control a resumed candidate."""
 
@@ -1644,10 +1648,11 @@ def _require_candidate_training_progress(
             selection.get("checkpoint_policy", {}),
             context="CANDIDATE_TRAINING_SELECTION",
             checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_training_binding,
+            verified_context=verified_context,
         )
         if checkpoint_monitor == DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
             expected = _new_candidate_training_progress(checkpoint_monitor=checkpoint_monitor,
-                prefix_training_binding=prefix_training_binding)["checkpoint_selection"]
+                prefix_training_binding=prefix_training_binding, verified_context=verified_context)["checkpoint_selection"]
             if dict(selection) != expected or progress.get("validation_snapshot") is not None:
                 raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_ADAPTIVE_SELECTION_FORBIDDEN]")
             top_k = []
@@ -2315,6 +2320,13 @@ class _CandidateTrainingSession:
         self._contract = resolved_contract
         self._contract_bytes = _candidate_training_session_json_bytes(self._contract)
         self._contract_sha256 = hashlib.sha256(self._contract_bytes).hexdigest()
+        prefix = self._contract.get("chronological_prefix")
+        self._verified_checkpoint_policy_context = (
+            prepare_verified_checkpoint_policy(contract=self._contract)
+            if isinstance(prefix, Mapping)
+            and prefix.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            else None
+        )
 
     def _require_read_path(self, path: Path) -> None:
         if self._read_only and (
@@ -2333,12 +2345,20 @@ class _CandidateTrainingSession:
         return self._contract_sha256
 
     @property
+    def verified_checkpoint_policy_context(self) -> Any:
+        context = self._verified_checkpoint_policy_context
+        if context is not None:
+            context.require_contract(self._contract)
+        return context
+
+    @property
     def checkpoint_monitor(self) -> str:
         policy = self._contract["training"]["checkpoint_policy"]
         monitor = policy["checkpoint_monitor"]
         require_checkpoint_policy(
             policy, context="CANDIDATE_TRAINING_SESSION",
             checkpoint_monitor=monitor, prefix_training_binding=self._contract.get("chronological_prefix"),
+            verified_context=self.verified_checkpoint_policy_context,
         )
         return str(monitor)
 
@@ -2426,6 +2446,7 @@ class _CandidateTrainingSession:
         state["training_progress"] = _require_candidate_training_progress(
             state["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
             prefix_training_binding=self._contract.get("chronological_prefix"),
+            verified_context=self.verified_checkpoint_policy_context,
         )
         self.validate_top_k_checkpoints(
             state["training_progress"]["checkpoint_selection"][
@@ -2465,6 +2486,7 @@ class _CandidateTrainingSession:
         value["training_progress"] = _require_candidate_training_progress(
             value["training_progress"], checkpoint_monitor=self.checkpoint_monitor,
             prefix_training_binding=self._contract.get("chronological_prefix"),
+            verified_context=self.verified_checkpoint_policy_context,
         )
         self.validate_top_k_checkpoints(
             value["training_progress"]["checkpoint_selection"][
@@ -14203,79 +14225,81 @@ def _candidate_training_epoch_order(
 
 def _dynamic_entry_native_context_binding(context: Mapping[str, Any]) -> dict[str, Any]:
     """Seal an Entry-only measurement context; never construct Exit state views."""
-    from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
+    from gx1.contracts.local_random_access_campaign_v2 import file_verification_scope, require_binding, read_bound_json
     from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
     from gx1.contracts.entry_model_native_input_normalization_v1 import EXPECTED_SURFACES, require_input_normalization_contract
     from gx1.contracts.entry_observed_market_v1 import (
         entry_observed_dynamic_m5_path_contract, require_entry_observed_market_scope, entry_observed_market_identity,
     )
 
-    limit_keys = ("max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards")
-    required = {"entry_training_phase", "entry_supervision_identity", "physical_sources",
-        "entry_only_base_normalization", "base_contract_sha256", "evaluation_cohort", "val_sequence_audit", *limit_keys}
-    if set(context) != required or context["entry_training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
-        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_INVALID]")
-    cohort = require_bounded_val_cohort(context["evaluation_cohort"])
-    identity, sources, split = context["entry_supervision_identity"], context["physical_sources"], cohort.get("source_split")
-    if (cohort.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
-            or split not in ("train", "val") or cohort.get("exit_evaluation") is not False
-            or not isinstance(sources, Mapping) or set(sources) != {"train", "val"}
-            or not isinstance(identity, Mapping) or identity.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
-            or identity.get("target_contract") != entry_observed_dynamic_m5_path_contract()
-            or identity.get("query_minutes") != list(_dynamic_m5_model_kwargs(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)["dynamic_m5_query_minutes"])):
-        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_SOURCE_INVALID]")
-    # Supervision belongs to an observed-plan; the cohort belongs to its full
-    # chronological design. Prove the link through the existing strict owner.
-    observed_binding = require_binding(identity.get("design"), label="Entry observed plan", verify_file=True)
-    observed_plan = read_bound_json(Path(observed_binding["path"]), observed_binding["sha256"])
-    native_binding = require_binding(cohort.get("plan"), label="Entry chronological design", verify_file=True)
-    observed_prefix, observed_files = observed_plan.get("chronological_prefix"), observed_plan.get("files")
-    if (not isinstance(observed_prefix, Mapping) or not isinstance(observed_files, Mapping)
-            or observed_prefix.get("design") != native_binding
-            or observed_prefix.get("normalization_result") != context["entry_only_base_normalization"]):
-        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_DESIGN_JOIN_INVALID]")
-    scope = require_entry_observed_market_scope({
-        "entry_observed_market": observed_binding, "chronological_prefix": dict(observed_prefix),
-        "files": {**{f"entry_{source_split}_{kind}": sources[source_split].get(kind)
-                      for source_split in ("train", "val") for kind in ("parquet", "manifest")},
-                  "train_cost_authority": observed_files.get("train_cost_authority")},
-    })
-    if entry_observed_market_identity(scope) != dict(identity) or scope.get("physical_sources") != sources:
-        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_OBSERVED_SCOPE_INVALID]")
-    source = sources[split]
-    if (cohort.get("parent_entry_parquet") != source.get("parquet")
-            or cohort.get("parent_entry_manifest") != source.get("manifest")
-            or cohort.get("population_rows") != source.get("physical_rows")
-            or cohort.get("source_clock_sha256") != source.get("clock_sha256")):
-        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_SOURCE_INVALID]")
-    base_binding = require_binding(context["entry_only_base_normalization"], label="Entry-only normalization", verify_file=True)
-    base = read_bound_json(Path(base_binding["path"]), base_binding["sha256"])
-    raw = base.get("contract", {})
-    contract = require_input_normalization_contract(raw,
-        expected_field_names={name: raw.get("surfaces", {}).get(name, {}).get("field_names", ()) for name in EXPECTED_SURFACES},
-        expected_ctx_cat_names=raw.get("ctx_cat", {}).get("field_names", ()),
-        expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
-    lineage, train = contract["lineage"], sources["train"]
-    if (base.get("schema_version") != "gx1_entry_only_dynamic_m5_base_normalization_v1"
-            or base.get("decision") != "PASS" or base.get("native_training_admitted") is not False
-            or base.get("entry_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
-            or base.get("contract_sha256") != context["base_contract_sha256"] or contract["contract_sha256"] != context["base_contract_sha256"]
-            or lineage["train_parquet_path"] != train["parquet"]["path"] or lineage["train_parquet_sha256"] != train["parquet"]["sha256"]
-            or lineage["train_manifest_path"] != train["manifest"]["path"] or lineage["train_manifest_sha256"] != train["manifest"]["sha256"]
-            or lineage["entry_train_decision_row_count"] != train["physical_rows"]):
-        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_NORMALIZATION_INVALID]")
-    audit = require_binding(context["val_sequence_audit"], label="Entry-only sequence audit", verify_file=True)
-    if split == "train" and audit != base.get("sequence_source_audit"):
-        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_AUDIT_INVALID]")
-    limits = {key: context[key] for key in limit_keys}
-    if any(type(value) is not int or value <= 0 for value in limits.values()):
-        raise RuntimeError("[CANDIDATE_NATIVE_VAL_LIMITS_INVALID]")
-    return {"schema_version": "gx1_candidate_native_dynamic_entry_context_v1",
-        "entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
-        "entry_supervision_identity": dict(identity), "physical_sources": dict(sources),
-        "entry_only_base_normalization": base_binding, "base_contract_sha256": contract["contract_sha256"],
-        "evaluation_cohort": cohort, "sequence_source_audit": audit, "compute_limits": limits,
-        "report_only": True, "exit_evaluation": False, "native_launch_authorized": False, "test_accessed": False}
+    # Seal this finite metadata operation before returning to model/state work.
+    with file_verification_scope():
+        limit_keys = ("max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards")
+        required = {"entry_training_phase", "entry_supervision_identity", "physical_sources",
+            "entry_only_base_normalization", "base_contract_sha256", "evaluation_cohort", "val_sequence_audit", *limit_keys}
+        if set(context) != required or context["entry_training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_INVALID]")
+        cohort = require_bounded_val_cohort(context["evaluation_cohort"])
+        identity, sources, split = context["entry_supervision_identity"], context["physical_sources"], cohort.get("source_split")
+        if (cohort.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                or split not in ("train", "val") or cohort.get("exit_evaluation") is not False
+                or not isinstance(sources, Mapping) or set(sources) != {"train", "val"}
+                or not isinstance(identity, Mapping) or identity.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                or identity.get("target_contract") != entry_observed_dynamic_m5_path_contract()
+                or identity.get("query_minutes") != list(_dynamic_m5_model_kwargs(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)["dynamic_m5_query_minutes"])):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_SOURCE_INVALID]")
+        # Supervision belongs to an observed-plan; the cohort belongs to its full
+        # chronological design. Prove the link through the existing strict owner.
+        observed_binding = require_binding(identity.get("design"), label="Entry observed plan", verify_file=True)
+        observed_plan = read_bound_json(Path(observed_binding["path"]), observed_binding["sha256"])
+        native_binding = require_binding(cohort.get("plan"), label="Entry chronological design", verify_file=True)
+        observed_prefix, observed_files = observed_plan.get("chronological_prefix"), observed_plan.get("files")
+        if (not isinstance(observed_prefix, Mapping) or not isinstance(observed_files, Mapping)
+                or observed_prefix.get("design") != native_binding
+                or observed_prefix.get("normalization_result") != context["entry_only_base_normalization"]):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_DESIGN_JOIN_INVALID]")
+        scope = require_entry_observed_market_scope({
+            "entry_observed_market": observed_binding, "chronological_prefix": dict(observed_prefix),
+            "files": {**{f"entry_{source_split}_{kind}": sources[source_split].get(kind)
+                          for source_split in ("train", "val") for kind in ("parquet", "manifest")},
+                      "train_cost_authority": observed_files.get("train_cost_authority")},
+        })
+        if entry_observed_market_identity(scope) != dict(identity) or scope.get("physical_sources") != sources:
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_OBSERVED_SCOPE_INVALID]")
+        source = sources[split]
+        if (cohort.get("parent_entry_parquet") != source.get("parquet")
+                or cohort.get("parent_entry_manifest") != source.get("manifest")
+                or cohort.get("population_rows") != source.get("physical_rows")
+                or cohort.get("source_clock_sha256") != source.get("clock_sha256")):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_SOURCE_INVALID]")
+        base_binding = require_binding(context["entry_only_base_normalization"], label="Entry-only normalization", verify_file=True)
+        base = read_bound_json(Path(base_binding["path"]), base_binding["sha256"])
+        raw = base.get("contract", {})
+        contract = require_input_normalization_contract(raw,
+            expected_field_names={name: raw.get("surfaces", {}).get(name, {}).get("field_names", ()) for name in EXPECTED_SURFACES},
+            expected_ctx_cat_names=raw.get("ctx_cat", {}).get("field_names", ()),
+            expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+        lineage, train = contract["lineage"], sources["train"]
+        if (base.get("schema_version") != "gx1_entry_only_dynamic_m5_base_normalization_v1"
+                or base.get("decision") != "PASS" or base.get("native_training_admitted") is not False
+                or base.get("entry_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                or base.get("contract_sha256") != context["base_contract_sha256"] or contract["contract_sha256"] != context["base_contract_sha256"]
+                or lineage["train_parquet_path"] != train["parquet"]["path"] or lineage["train_parquet_sha256"] != train["parquet"]["sha256"]
+                or lineage["train_manifest_path"] != train["manifest"]["path"] or lineage["train_manifest_sha256"] != train["manifest"]["sha256"]
+                or lineage["entry_train_decision_row_count"] != train["physical_rows"]):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_NORMALIZATION_INVALID]")
+        audit = require_binding(context["val_sequence_audit"], label="Entry-only sequence audit", verify_file=True)
+        if split == "train" and audit != base.get("sequence_source_audit"):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_AUDIT_INVALID]")
+        limits = {key: context[key] for key in limit_keys}
+        if any(type(value) is not int or value <= 0 for value in limits.values()):
+            raise RuntimeError("[CANDIDATE_NATIVE_VAL_LIMITS_INVALID]")
+        return {"schema_version": "gx1_candidate_native_dynamic_entry_context_v1",
+            "entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            "entry_supervision_identity": dict(identity), "physical_sources": dict(sources),
+            "entry_only_base_normalization": base_binding, "base_contract_sha256": contract["contract_sha256"],
+            "evaluation_cohort": cohort, "sequence_source_audit": audit, "compute_limits": limits,
+            "report_only": True, "exit_evaluation": False, "native_launch_authorized": False, "test_accessed": False}
 
 
 def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[str, Any]:
@@ -15511,7 +15535,7 @@ def _run_resumable_candidate_training(
         target_model.requires_grad_(False)
         target_model.eval()
         progress = _new_candidate_training_progress(checkpoint_monitor=checkpoint_monitor,
-            prefix_training_binding=prefix_binding)
+            prefix_training_binding=prefix_binding, verified_context=session.verified_checkpoint_policy_context)
         phase = "train"
         epoch_index = 0
         next_batch_offset = 0
@@ -15547,7 +15571,7 @@ def _run_resumable_candidate_training(
                 raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_RESUME_ORDER_MISMATCH]")
         progress = _require_candidate_training_progress(
             restored["training_progress"], checkpoint_monitor=checkpoint_monitor,
-            prefix_training_binding=prefix_binding,
+            prefix_training_binding=prefix_binding, verified_context=session.verified_checkpoint_policy_context,
         )
         phase = str(restored["phase"])
         epoch_index = int(restored["epoch_index"])
@@ -15669,6 +15693,7 @@ def _run_resumable_candidate_training(
                 "rng_state": _attended_session_rng_state(device=device),
                 "training_progress": _require_candidate_training_progress(
                     progress, checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_binding,
+                    verified_context=session.verified_checkpoint_policy_context,
                 ),
                 "complete": bool(complete_value),
             }
@@ -15707,6 +15732,7 @@ def _run_resumable_candidate_training(
     def _result() -> dict[str, Any]:
         checked = _require_candidate_training_progress(
             progress, checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_binding,
+            verified_context=session.verified_checkpoint_policy_context,
         )
         selection = dict(checked["checkpoint_selection"])
         return {
@@ -16266,6 +16292,7 @@ def load_completed_candidate_epoch_for_seal(
     progress = _require_candidate_training_progress(
         state["training_progress"], checkpoint_monitor=session.checkpoint_monitor,
         prefix_training_binding=contract.get("chronological_prefix"),
+        verified_context=session.verified_checkpoint_policy_context,
     )
     selection = dict(progress["checkpoint_selection"])
     if (

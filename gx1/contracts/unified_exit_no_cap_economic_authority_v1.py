@@ -47,11 +47,9 @@ def canonical_sha256(value: Any) -> str:
 
 
 def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    from gx1.contracts.local_random_access_campaign_v2 import file_sha256 as verified_file_sha256
+
+    return verified_file_sha256(path)
 
 
 def _publication_source_path(

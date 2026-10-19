@@ -81,7 +81,9 @@ def _require_local_file(binding: Mapping[str, Any], label: str, verify: bool) ->
         source = Path(path)
         if source.is_symlink() or not source.is_file():
             raise RuntimeError(f"UNIFIED_EXIT_BROKER_EVIDENCE_{label}_SOURCE_INVALID")
-        observed = hashlib.sha256(source.read_bytes()).hexdigest()
+        from gx1.contracts.local_random_access_campaign_v2 import file_sha256 as verified_file_sha256
+
+        observed = verified_file_sha256(source)
         if observed != digest:
             raise RuntimeError(f"UNIFIED_EXIT_BROKER_EVIDENCE_{label}_SOURCE_HASH_MISMATCH")
 

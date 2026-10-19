@@ -265,6 +265,15 @@ kall beholder filtype-, symlink-, identitets-, forventet-SHA- og semantiske
 kontroller. Scope lukkes før budsjettpublisering og modell-/statearbeid;
 ny operasjon eller endret fil krever ny fysisk hash. Ingen varig cache.
 
+Checkpointpolicyens runtime-bevis er separat fra hash-memoet: én fersk strict
+policy-/receipt-/pointervalidering per Session fanger alle fysisk verifiserte
+immutable data- og kostfiler og revaliderer samlet identitet før forsegling.
+Det binder hele sessionkontrakten, prefix, monitor og eksakt policy-JSON.
+Gjenbruk krever alle identiteter uendret og gir en ny kopi av metadata uten ny
+wholeTRAINstream/pointeraudit. Endring feiler lukket. Beviset serialiseres ikke,
+overlever ikke ny Session/resume/read-only-admission og brukes aldri av
+filhasheren. Checkpointfilenes egne SHA-/load-/save-vakter består.
+
 Bruk den kanoniske hasheieren for den aktuelle rollen. Campaign-eierens
 kanoniske JSON inkluderer avsluttende newline; fil-SHA og andre kontrakters
 semantiske SHA er ulike roller og er ikke utskiftbare. Et kontrollert stopp
