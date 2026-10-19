@@ -13,7 +13,7 @@ from typing import Any, Mapping
 
 from gx1.contracts.local_random_access_campaign_v2 import (
     ACTIVE_SCHEMA, PROGRESS_SCHEMA, canonical_sha256, file_sha256,
-    read_bound_json, require_plan, require_progress,
+    read_bound_json, require_plan, require_progress, file_verification_scope,
 )
 from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
     NATIVE_KIND, NATIVE_PHASE, build_native_cursor, require_native_cursor,
@@ -109,15 +109,16 @@ def _expected_training_pointer(
 
 def run_window(*, policy_path: Path, policy_file_sha256: str, progress_path: Path) -> dict[str, Any]:
     native.trainer._require_cuda_trainer_guard_execution(execution_tier="canonical")
-    policy, plan, invocation, marker = _context(policy_path, policy_file_sha256)
-    if str(progress_path) != policy["progress_path"]:
-        raise RuntimeError("NATIVE_CANDIDATE_PROGRESS_ARGUMENT_MISMATCH")
-    expected_pointer = _expected_training_pointer(policy=policy, invocation=invocation, marker=marker)
-    progress_path = Path(policy["progress_path"])
-    if progress_path.exists() or progress_path.is_symlink():
-        raise RuntimeError("NATIVE_CANDIDATE_WINDOW_PROGRESS_EXISTS")
-    recipe = read_bound_json(Path(policy["recipe"]["path"]), policy["recipe"]["sha256"])
-    step_ceiling = require_native_run_scope(recipe, invocation_number=policy["invocation_number"])
+    with file_verification_scope():
+        policy, plan, invocation, marker = _context(policy_path, policy_file_sha256)
+        if str(progress_path) != policy["progress_path"]:
+            raise RuntimeError("NATIVE_CANDIDATE_PROGRESS_ARGUMENT_MISMATCH")
+        expected_pointer = _expected_training_pointer(policy=policy, invocation=invocation, marker=marker)
+        progress_path = Path(policy["progress_path"])
+        if progress_path.exists() or progress_path.is_symlink():
+            raise RuntimeError("NATIVE_CANDIDATE_WINDOW_PROGRESS_EXISTS")
+        recipe = read_bound_json(Path(policy["recipe"]["path"]), policy["recipe"]["sha256"])
+        step_ceiling = require_native_run_scope(recipe, invocation_number=policy["invocation_number"])
     budget_path = Path(policy["budget_path"])
     campaign._prepare_private_directory(budget_path.parent, label="native window budget")
     campaign._atomic_new(budget_path, {

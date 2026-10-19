@@ -235,47 +235,43 @@ et observert siste1minuttsforløp læringsaktivt selv når neste open mangler.
 Kvalitetsdifferansen bruker kun modellens eksplisitte inclusiveprognoser.
 Maksimum velges over predikerte horisonter, aldri fremtidens beste fasit.
 
-Operatørpresisering19.10 åpner én kompakt førsterunde før fullflaten:
-MBP+SMC/struktur+EMA/ATR/minimalkontekst, alle2410GCkanaler og61makro beholdt.
-Valgt kildeforslag2622/2525/139,7lokale/5MTF-familier; full055normalisering
-før modellintern utvelgelse. Hele biblioteket og defaultfullmodell beholdes.
-061implementerer én kildekompilert profilreferanse i metadata/recipe/modell/state,
-reelle local7/MTF5-moduleløp og filtrerte projeksjoner. Hele fysisk055-input
-valideres før gather. Dynamisk målerapportering følger samme aktive gateformer;
-fullNone beholder8/40/253. 380fokuserte kilde-/syntetiske modellcaser er godkjent i061;
-genuin konsumkvalifisering gjenstår. Sourcekvitteringen skiller opprinnelig
-377PASS/3FAIL fra smale test-only repairs uten produksjonsendring. Ny profilbundet freshstate/initialbaseline kreves
-før trening;060fullprofilutkast startes ikke. Computegeometri er ikke målt
-latency eller ekstra budsjett.
+## Kompakt førsteprofil og effektiv validering
 
+Første navngitte profil er `compact_mbp_smc_ema_atr_clock_macro_entry_v1`:
+MBP + SMC/struktur + EMA/ATR + nødvendig klokke-/makrokontekst. Alle 2410
+GC-verdi-/maskekanaler og 61 makrofelt beholdes. Hele biblioteket og standard-
+fullmodellen beholdes. Profilreferansen `{name,contract_sha256}` følger
+metadata, recipe, modell og state; ingen implicit profilerstatning.
 
-Metadataeffektivitet19.10:063forberedelsen ble kontrollert stoppet etter
-3146.821s og målt1.77TB lesing fra gjentatte bindingkontroller, før en eneste
-modellforward.067er kildekvalifisert med259PASS inkl23nye caser og gjenbruker
-bare faktisk målt fildigest innen én eksplisitt
-valideringsoperasjon, med fersk canonicalpath-/filidentitet og alle opprinnelige
-forventetSHA-/regular-/symlink-/kilde-/scopeporter på hvert kall. Ny operasjon
-og filendring krever ny fysisk hash; ingen varig cache eller adgang gis av
-memoen. Kvalifiser feil/mutasjonsgrensene og mål ekte inspect-kjøretid før ny
-campaign. Pythonkildeendring krever ny source-bound freshstate; ingen ny
-normaliseringsfit, modell-/targetendring eller ekstra læringsarm følger av dette.
+Kompaktprofilen har 2622 signal-/2525 context-/139 MTF-felt, 7 lokale og 5
+MTF-familier. Bare aktive encodere og projeksjoner konstrueres og kjøres;
+fullprofilen beholder 8 lokale/40 familie×TF-ruter/253 MTF-felt. Full fysisk
+055-inputvalidering og normalisering kommer før intern gather. Rapportering
+bruker samme aktive profilbredder. MBP-felt må aldri droppes fra et familienavn;
+74 genuine GC-kanaler ligger fortsatt i den aktive candle-ruten.
+Kilde-/syntetiske rutetester beviser beregningsgeometri. Faktisk modellkonsum,
+latency, minne og læringsfart må måles på den bundne ekte datakjeden.
 
-067sourcePASS er ikke faktisk storfil-timing eller modellkonsum. Ny068CPUfresh
-og ny069initial0 kreves; konsumerte063/066 relanseres ikke.
+Gjentatt fysisk hashing av samme store fil innen én valideringsoperasjon
+unngås gjennom kontrakteierens eksplisitte `file_verification_scope()`.
+Dette gjelder eksisterende CLI/materializer og handover-/native-window-/
+full_train-preflight. Første faktiske digest bindes til canonicalpath, dev,
+inode, mode, size, mtime_ns og ctime_ns, kontrollert før/etter lesing. Hvert
+kall beholder filtype-, symlink-, identitets-, forventet-SHA- og semantiske
+kontroller. Scope lukkes før budsjettpublisering og modell-/statearbeid;
+ny operasjon eller endret fil krever ny fysisk hash. Ingen varig cache.
 
-068genuin CPUfresh publisering fullførte09:21:32UTC på268.828s mot066s
-1285.314s,4.781x raskere for samme type klargjøring.182sourcebytes/stat og
-identisk nystartet modelldigest er kontrollert,0forwards/steps/refits. Dette
-måler ingen modell- eller treningsfart. Ny069initial0binding og faktisk
-metadata-inspect-timing gjenstår før nativeporter og modellmåling.
+Bruk den kanoniske hasheieren for den aktuelle rollen. Campaign-eierens
+kanoniske JSON inkluderer avsluttende newline; fil-SHA og andre kontrakters
+semantiske SHA er ulike roller og er ikke utskiftbare. Et kontrollert stopp
+bevarer alle originalkvitteringer og konsumerer den claimede engangsplanen.
+En feil i etterkontroll må rette etterkontrollen, aldri omskrive originalbevis.
 
-069actualGENESISinspect bestod på350.678s, over Windowsmetadata90/180s.070
-retter bare begrensetmetadatafrist til900s; øvrige grenser bevares. Timing
-gjelder GENESIS, ikke faktisk post-record. Controller-only PS er utenfor068s
-182closure: behold verifisertCPUfreshstate uten ny publisering når heleclosure
-er uendret, men bind ny071campaign/HEAD før første ekte initial0.
-
-070Windowsmetadata900s er kvalifisert med16pytestPASS og faktisk Windows
-parameter-/pipe-/timeout-/bootowner-hardeningPASS. Bare metadatafrister er
-endret;182Pythonclosure og068freshstate er bevart. Ny071campaignbinding og
-maskinvare-/bootporter gjenstår før første modellforward.
+Endret modellkildeclosure krever ny faktisk kildebundet CPU-fresh-publisering
+før initialmåling, også når modellmatematikken er uendret. Gjenbruk uendret
+normalisering/data, aldri gamle vekter. Endring utenfor closuren krever ingen
+slik republisering når alle bundne bytes/stat og kontraktroller er verifisert.
+Bind alltid en ny eksakt campaign og gjeldende maskinvare-/bootporter.
+Klargjøringstid, preflight-tid, encoderforward-tid og treningstid rapporteres
+hver for seg. Aktuell status og kvitteringer står bare i NEXT_RUN_POLICY og
+CURRENT_HANDOVER; historikken finnes i Git.

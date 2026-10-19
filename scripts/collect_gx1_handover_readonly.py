@@ -259,27 +259,28 @@ def next_run_readiness(
         source_root = str(Path(__file__).resolve().parents[1])
         if source_root not in sys.path:
             sys.path.insert(0, source_root)
-        from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+        from gx1.contracts.local_random_access_campaign_v2 import file_verification_scope, read_bound_json
         from gx1.contracts.unified_exit_random_access_sampler_v1 import canonical_sha256 as native_sha256
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
             require_native_window_policy, require_native_run_scope,
         )
-        window_path = _regular_file(str(native_window_policy), label="native_window_policy")
-        window = require_native_window_policy(read_bound_json(window_path, native_window_policy_file_sha256))
-        recipe_path = _regular_file(window["recipe"]["path"], label="native_recipe")
-        recipe = read_bound_json(recipe_path, window["recipe"]["sha256"])
-        if (recipe.get("schema_version") != "gx1_unified_exit_random_access_full_train_recipe_v1"
-                or recipe.get("profile") != "candidate" or recipe.get("test_data_used") is not False
-                or recipe.get("source_repo") != str(repo.resolve()) or recipe.get("source_commit") != head
-                or recipe.get("recipe_sha256") != native_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})):
-            raise ValueError("NEXT_RUN_NATIVE_RECIPE_IDENTITY_INVALID")
-        # The same owner enforces risk, bounded calibration and all full-run
-        # evidence roles; do not duplicate its proof/profile interpretation.
-        ceiling = require_native_run_scope(recipe, invocation_number=window["invocation_number"])
-        native_scope = {"invocation_number": window["invocation_number"],
-                        "optimizer_step_ceiling": ceiling,
-                        "full_epoch_training_allowed": ceiling is None,
-                        "window_policy_file_sha256": native_window_policy_file_sha256}
+        with file_verification_scope():
+            window_path = _regular_file(str(native_window_policy), label="native_window_policy")
+            window = require_native_window_policy(read_bound_json(window_path, native_window_policy_file_sha256))
+            recipe_path = _regular_file(window["recipe"]["path"], label="native_recipe")
+            recipe = read_bound_json(recipe_path, window["recipe"]["sha256"])
+            if (recipe.get("schema_version") != "gx1_unified_exit_random_access_full_train_recipe_v1"
+                    or recipe.get("profile") != "candidate" or recipe.get("test_data_used") is not False
+                    or recipe.get("source_repo") != str(repo.resolve()) or recipe.get("source_commit") != head
+                    or recipe.get("recipe_sha256") != native_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})):
+                raise ValueError("NEXT_RUN_NATIVE_RECIPE_IDENTITY_INVALID")
+            # The same owner enforces risk, bounded calibration and all full-run
+            # evidence roles; do not duplicate its proof/profile interpretation.
+            ceiling = require_native_run_scope(recipe, invocation_number=window["invocation_number"])
+            native_scope = {"invocation_number": window["invocation_number"],
+                            "optimizer_step_ceiling": ceiling,
+                            "full_epoch_training_allowed": ceiling is None,
+                            "window_policy_file_sha256": native_window_policy_file_sha256}
     else:
         # An unbound handover remains observation-only, including when the
         # policy has declared a bounded learning measurement permissible.

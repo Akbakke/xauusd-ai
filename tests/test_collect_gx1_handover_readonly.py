@@ -1162,3 +1162,85 @@ def test_readiness_legacy_profile_without_dynamic_scope_is_unchanged(fixture):
         "max_wall_seconds": 10800, "progress_interval_forwards": 64}
     assert observed["decision"] == "BLOCKED" and observed["training_started"] is False
     assert "native_window_binding_required" in observed["blocked_reasons"]
+
+
+@pytest.fixture
+def native_scope_binding_witness(bound_window, monkeypatch, tmp_path):
+    """Exercise the real collector gates and physical hash owner on small bytes."""
+    from gx1.contracts import local_random_access_campaign_v2 as hashes
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as native
+    repo, _policy_value, _recipe, _window, _write, publish = bound_window
+    arguments = publish()
+    shared = tmp_path / "shared-physical-binding.bin"
+    shared.write_bytes(b"scoped native readiness witness\n" * 64)
+    binding = {"path": str(shared), "sha256": hashlib.sha256(shared.read_bytes()).hexdigest()}
+    reads = []
+    faults = {}
+    raw_hash = hashes._file_sha256_uncached
+    original_window = native.require_native_window_policy
+    original_scope = native.require_native_run_scope
+
+    def counted_hash(path, **kwargs):
+        if path == shared:
+            reads.append(path)
+        return raw_hash(path, **kwargs)
+
+    def witness_window(*args, **kwargs):
+        hashes.require_binding(binding, label="physical scope witness", verify_file=True)
+        if faults.get("raise_at") == "window":
+            raise RuntimeError("injected window validation failure")
+        return original_window(*args, **kwargs)
+
+    def witness_scope(*args, **kwargs):
+        if faults.get("mutate"):
+            shared.write_bytes(b"X" * shared.stat().st_size)
+        hashes.require_binding(binding, label="physical scope witness", verify_file=True)
+        if faults.get("raise_at") == "scope":
+            raise RuntimeError("injected scope validation failure")
+        return original_scope(*args, **kwargs)
+
+    monkeypatch.setattr(hashes, "_file_sha256_uncached", counted_hash)
+    monkeypatch.setattr(native, "require_native_window_policy", witness_window)
+    monkeypatch.setattr(native, "require_native_run_scope", witness_scope)
+    return repo, arguments, shared, reads, faults, hashes
+
+
+def test_native_readiness_reuses_physical_digest_only_within_its_operation(native_scope_binding_witness):
+    repo, arguments, shared, reads, _faults, hashes = native_scope_binding_witness
+    assert hashes._FILE_VERIFICATION_MEMO.get() is None
+    first = next_run_readiness(repo, **arguments)
+    assert first["decision"] == "READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES"
+    assert first["training_started"] is False
+    assert len(reads) == 1
+    assert hashes._FILE_VERIFICATION_MEMO.get() is None
+    hashes.file_sha256(shared)
+    assert len(reads) == 2
+    second = next_run_readiness(repo, **arguments)
+    assert second["decision"] == first["decision"]
+    assert second["native_window_scope"] == first["native_window_scope"]
+    assert second["training_started"] is False
+    assert len(reads) == 3
+    assert hashes._FILE_VERIFICATION_MEMO.get() is None
+
+
+@pytest.mark.parametrize("where", ["window", "scope"])
+def test_native_readiness_scope_resets_after_validation_exception(native_scope_binding_witness, where):
+    repo, arguments, shared, reads, faults, hashes = native_scope_binding_witness
+    faults["raise_at"] = where
+    with pytest.raises(RuntimeError, match="injected .* validation failure"):
+        next_run_readiness(repo, **arguments)
+    assert len(reads) == 1
+    assert hashes._FILE_VERIFICATION_MEMO.get() is None
+    hashes.file_sha256(shared)
+    assert len(reads) == 2
+
+
+def test_native_readiness_rejects_changed_physical_binding_inside_scope(native_scope_binding_witness):
+    repo, arguments, shared, reads, faults, hashes = native_scope_binding_witness
+    faults["mutate"] = True
+    with pytest.raises(hashes.RandomAccessCampaignError, match="SHA-256"):
+        next_run_readiness(repo, **arguments)
+    assert len(reads) == 2
+    assert hashes._FILE_VERIFICATION_MEMO.get() is None
+    hashes.file_sha256(shared)
+    assert len(reads) == 3

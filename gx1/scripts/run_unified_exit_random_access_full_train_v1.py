@@ -35,6 +35,7 @@ from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import RESULT_SCH
 from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
     native_checkpoint_monitor, DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
 )
+from gx1.contracts.local_random_access_campaign_v2 import file_verification_scope
 
 
 NATIVE_FULL_TRAIN_RECIPE_SCHEMA = "gx1_unified_exit_random_access_full_train_recipe_v1"
@@ -1301,20 +1302,21 @@ def run_guarded_native_candidate_invocation(
 
     started = time.monotonic()
     trainer._require_cuda_trainer_guard_execution(execution_tier="canonical")
-    recipe, files, provenance = _require_native_full_train_recipe(
-        recipe_path, recipe_file_sha256,
-    )
-    budget = launch_owner.require_candidate_execution_budget(
-        execution_budget_path, execution_budget_file_sha256,
-        recipe_path=recipe_path, recipe_sha256=recipe_file_sha256, recipe=recipe,
-    )
-    if (
-        "resume_probe_val_rows" in budget
-        or recipe["val_limits"]["max_wall_seconds"] + 60 >= budget["max_invocation_seconds"]
-    ):
-        raise RuntimeError("NATIVE_FULL_TRAIN_INVOCATION_BUDGET_INVALID")
-    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_run_scope
-    require_native_run_scope(recipe, execution_budget=budget)
+    with file_verification_scope():
+        recipe, files, provenance = _require_native_full_train_recipe(
+            recipe_path, recipe_file_sha256,
+        )
+        budget = launch_owner.require_candidate_execution_budget(
+            execution_budget_path, execution_budget_file_sha256,
+            recipe_path=recipe_path, recipe_sha256=recipe_file_sha256, recipe=recipe,
+        )
+        if (
+            "resume_probe_val_rows" in budget
+            or recipe["val_limits"]["max_wall_seconds"] + 60 >= budget["max_invocation_seconds"]
+        ):
+            raise RuntimeError("NATIVE_FULL_TRAIN_INVOCATION_BUDGET_INVALID")
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_native_run_scope
+        require_native_run_scope(recipe, execution_budget=budget)
     controls = recipe["trainer_cli"]
     frozen_train_scope = None
     if "frozen_train_policy_evaluation" in recipe or "frozen_entry_selector_probe" in recipe:
