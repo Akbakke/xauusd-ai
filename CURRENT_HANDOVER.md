@@ -127,19 +127,27 @@ warmup på5TF, komplette makrovintager, LONG/SHORT/FLAT-kvalitet/dekning og
 beslutningssporbarhet gjenstår i sitt fulle omfang. Ingen læring/generaliserings-
 eller økonomisk edge-konklusjon følger av initialmålingen.
 
-## Neste avgrensede kjøring —088 CPUfresh med I/O-måling
+## Aktuell grense —088 CPUfresh ferdig,089 initial0 bundet
 
-086-koden er publisert som eac0378e;087s396PASS og originale kvitteringer består.
-088 gjenbruker082s fungerende CPUfresh-produser med eksakt087kildeoverlegg,
-bevarer081/067/072/075/077/078bevis og055/057/059inputs. Ingen Dataset-rebuild,
-forward, optimizersteg eller normaliseringsfit. Planen er ny og engangsbegrenset;
-082/083/085/086/087 relanseres ikke. Skriptreview bestod: de opprinnelige hjelperne og produsentkallet har identisk
-AST;087fem→081tre→historisk kildebinding er kontrollert uten datalesing. Før
-start kreves ren kilde og eksakte SHA-bindinger med samme audit4G/512M/7200s-
-vakter. Treningsadgang er stengt.
-Prosesslokal rchar/read_bytes og veggtid skal måles separat; dette er ikke
-maskinens totale disk-I/O eller målt native treningshastighet. Etter faktisk
-CPU-PASS kreves egen089initialmåling og privat4/nativeopptak som beskrevet over.
+088 er COMPLETE/exit0/uendret3fcfd9a3, ferdig19.10 kl.19:59:19UTC på119.478s.
+Controller135108 er borte. Kanonisk CPUfresh/strict-load-roundtrip bestod;
+ONLINE=anchor=EMA0 har samme seedbundne9c4cf514...a79b4a, tom optimizer,
+0forwards/steg/refits/Exit.182roller/181filer/f571e0c9...a1010b2 matcher087.
+TERMINAL SHA cb5a6e4c59fb4352621fdea602d362be74417f90f9b726e07e79bd7f45885271;
+ACTUAL_CPU_PREPARATION_REVIEW SHA ba6adf78d7549bd5890dddaddd5f15eeffe6236d08ff1b9ca8cbdb303b2fb845.
+Workerens faktiske I/O:49,225,731,573 logiske rcharbytes og45,621,625,664
+storage-accounted read_bytes. Dette er prosesslokalt, ikke hosttotal eller
+målt native treningsfart; ingen før/etter-diskbaseline finnes. Ingen Dataset-
+rebuild. Original088 er konsumert og relanseres aldri.
+
+Ny089 bruker actual088fersktilstand/metadata og samme055/057/059/kompaktprofil.
+Kun initial0:256TRAIN+256CONTROL/32Entryforwards/0optimizersteg. Egen recipe,
+campaign og install kreves før ny fysisk Windowsboot/signert maskinvareopptak.
+Ingen gammel083boot/claim/campaign/vekter gjenbrukes som ny kjøring. Kilde og
+policy fryses under materializer/native. training_enabled=false består.
+Etter faktisk089terminal må ny bevaringsaudit, privat4Entry-only/paritet/resume
+og eget opptak til den bestilte ene hele nativeepoken fullføres. Hele målet og
+alle ubeviste indikator-/kvalitetsgrenser ovenfor består.
 
 ## PC, opprydding og metode
 
