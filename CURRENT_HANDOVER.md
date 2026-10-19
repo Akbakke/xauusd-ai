@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — faktisk TRAIN bestått, ny078kontroll av CONTROL
+## Aktuell grense — TRAIN/CONTROL-data koblet, ny source-bundet freshstate gjenstår
 
 075 rettet faktisk074feil: normaliser UTC-vinduer før likhet og tillat korrekt
 halvåpent declared_end<=cutoff bare i dynamic-grenen. Faktiske entryklokker må
@@ -78,15 +78,17 @@ SOURCE_REVIEW SHA 5369d6ecca2bec46ce4bdcfb045c44967d63a076c53497c665a95bf9b321b8
 076 terminal SHA 4a6d914b0f177c4260d69ad9fbddb11ef3d3b0b1433bd248b0191c2cb4b904c6;
 TRAIN-delbevis SHA ac34cb1221f2534b50f87250debf714902810f98311cb053a28e6c505bc74e00.
 
-078 er en NY CONTROL-only CPU-plan: bygg VAL17284 og bindCONTROL256 gjennom
-samme canonical auxiliary-/observed-eiere. Gjenbruk076TRAIN-delbevis og077AST-
-bevis for uendret TRAIN-sti. Felles kilde-/klokkevakter består og kan fortsatt
-lese TRAIN-proveniens. Ingen påstand om begge roller i én kjøring, samtidig
-Dataset-kapasitet eller modellkonsum. 4G/512M,0 modellforwards/updates/refits.
-Plan: /home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/PLAN_REVIEWED.json
-SHA 9bc8dd62b104d4e38ae0110d40bc5e9a099b6c773ac9ad2aab51b347ef44b7c8.
-Eksakt ren kilde/policy/plan/controller/worker bindes før engangskjøring.
-Ingen ny native campaign er innrømmet; training_enabled=false.
+078 fullførte faktisk CPU-kontroll: exit0/source_unchanged=true,251.976s.
+Alle17284 VAL-rader ble koblet med256 frosne CONTROL-rader gjennom canonical
+aux-/observed-eierne, med faktisk1minutts kilde-/maske-/pointer-rekonstruksjon
+og korrekt wholeTRAINregistry. TRAIN118249delbevis gjenbrukes fra076 med077AST-
+bevis for uendret TRAIN-sti. Dette er separate kjøringer, ingen samtidig
+Dataset-kapasitet eller modellkonsum er bevist. Original076 forblir FAILED.
+078 RESULT SHA 88200b95aa278f9dcea0bb10872be5e612a8713474fbe700d2aeb472070bc506;
+TERMINAL SHA 6490513affbc02f04bb48f86f3dc624ffc45fbd7540205b4cd9d6dd030edfaf7.
+ACTUAL_REPAIR_REVIEW SHA 7a9896a957320a0fd992ae48539e598e1ae1ac249d63c29f0b9e51a714d77a47.
+078 er konsumert og relanseres aldri. Modeller/forwards/updates/refits=0;
+ingen ny native campaign eller trening er innrømmet; training_enabled=false.
 
 074/076 og alle øvrige konsumerte planer relanseres aldri. Original074ACTIVE og
 logger bevares: normal record krevde checkpoint-pointer før modellen fantes,
@@ -94,8 +96,8 @@ så pointer/progress/canonicalreceipt mangler. Separat feilobservasjon er bundet
 i policy; ingenting er fabrikkert. Windows-task er Disabled/LastTaskResult1,
 controller8568 er avsluttet; faktisk før-native Boot505 var19.10 kl.12:32:21.500UTC.
 
-Neste gater: faktiskCONTROL-PASS; ny kildebundet CPU-freshstate fra samme055/057/
-059inputs; ny eksakt nativeinitialmåling av256TRAIN+256CONTROL/32forwards/0steg;
+Neste gater: NY079 kildebundet CPU-freshstate via eksisterende073eier fra
+samme055/057/059inputs og075/077/078/076-kvalifisering; ny eksakt nativeinitialmåling av256TRAIN+256CONTROL/32forwards/0steg;
 deretter separat faktisk paritet og Entry-only optimizer/resume med4 private
 tekniske updates/4paritetsforwards, før den bestilte ene nativeepoken.
 Ingen aktuell ekte modellforward, initialbaseline, optimizersteg eller epoke

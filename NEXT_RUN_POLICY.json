@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-19T09:57:26.252214+00:00",
-  "status": "078_BOUND_CPU_CONTROL_REPAIR_WITH_RETAINED_ACTUAL_TRAIN_PARTIAL",
+  "status": "078_COMPLETE_ACTUAL_CONTROL_REPAIR_CURRENT_FRESH_INITIAL_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "078newCONTROLonlyCPUcheck after07717PASS;076actualTRAINpartialreused withexactTRAINpathASTproof.",
+    "current_activity": "Actual078CONTROLbindingPASS after077sourcefix; actual076TRAINpartialreused withunchangedTRAINpath. Preparefreshcurrent-source compactstate next.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,11 +112,11 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "SOURCE_ONLY_DYNAMIC_CONTROL_METADATA_REPAIR_17PASS",
+    "latest_terminal_role": "ACTUAL_CPU_CONTROL_REPAIR_PASS_WITH_SEPARATE_RETAINED_TRAIN_PARTIAL",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_GC_OBSERVED_SMC_REGISTRY_20261018_020",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_CONTROL_COHORT_REPAIR_20261019_077/SOURCE_QUALIFICATION_RECEIPT.json",
-      "sha256": "edcdc09f104eff321614f02fb5863d586a9c6ab77758a22d8f2267d27e57bcf8"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/TERMINAL.json",
+      "sha256": "6490513affbc02f04bb48f86f3dc624ffc45fbd7540205b4cd9d6dd030edfaf7"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "ActualcurrentCONTROLbinding and subsequent newsource-bound freshinitial/modelqualification remainpending.",
+    "current_blocker": "No current-source freshinitial/genuinecompactforward/initialbaseline/parity/Entry-onlyoptimizer/resume/nativeepoch yet. Independentallfieldformulaandmacrooriginalvintagecoverage alsoincomplete.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute078onceunder4G/512M withcleanboundsource/policy/plan/controllers. Retain076FAILED andTRAINpartial separately; then newsource-bound freshstate/nativeinitial after actualCONTROLpass.",
+    "next_action": "Prepare one NEW079compactCPUfreshplan fromexisting073owner, verify075/077sourcequalification and078actualcontrol+076TRAINpartial, keep055/057/059inputs. ZeroDatasets/forward/update/refit. Then exact newnativeinitial after freshcampaign/hardware/boot gates, neverrelaunch078/076/074.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -12961,13 +12961,13 @@
           }
         },
         "actual_control_binding_repair_stage_078": {
-          "status": "PLANNED_EXACT_CPU_CONTROL_ONLY_WITH_RETAINED_TRAIN_PARTIAL",
+          "status": "COMPLETE_CONSUMED_ACTUAL_CONTROL_PASS_WITH_RETAINED_TRAIN_PARTIAL",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078",
           "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/PLAN_REVIEWED.json",
           "plan_sha256": "9bc8dd62b104d4e38ae0110d40bc5e9a099b6c773ac9ad2aab51b347ef44b7c8",
-          "execution_authorized": true,
+          "execution_authorized": false,
           "planned_invocations": 1,
-          "completed_invocations": 0,
+          "completed_invocations": 1,
           "relaunch_allowed": false,
           "entry_execution_profile": {
             "name": "compact_mbp_smc_ema_atr_clock_macro_entry_v1",
@@ -12997,7 +12997,26 @@
           "prelaunch_review": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/PRELAUNCH_REVIEW.json",
             "sha256": "bd8bc6f879e0ed1952ab72622556be0933df81678df58442cf8d79a0c13e3ad3"
-          }
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/TERMINAL.json",
+            "sha256": "6490513affbc02f04bb48f86f3dc624ffc45fbd7540205b4cd9d6dd030edfaf7"
+          },
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/RESULT.json",
+            "sha256": "88200b95aa278f9dcea0bb10872be5e612a8713474fbe700d2aeb472070bc506"
+          },
+          "actual_repair_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/ACTUAL_REPAIR_REVIEW.json",
+            "sha256": "7a9896a957320a0fd992ae48539e598e1ae1ac249d63c29f0b9e51a714d77a47"
+          },
+          "actual_control_physical_rows_bound": 17284,
+          "actual_control_rows_admitted": 256,
+          "retained_actual_train_rows_bound": 118249,
+          "elapsed_seconds": 251.97568117500032,
+          "source_unchanged": true,
+          "model_forwards": 0,
+          "optimizer_steps": 0
         }
       },
       "operator_pc_reboot_20261018": {
