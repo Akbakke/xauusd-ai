@@ -71,7 +71,7 @@ Faktiske immutable bevis ligger i GX1_RUNS-røttene055/057/058/059/060 og
 policyen. Tidligere056/058sourcekvitteringer beholdes og gjenbrukes for
 uendrede kontrakter. De beviser ingen ny kompakt modellfunksjon.
 
-## Aktuell:070metadata900s kvalifisert;ny071initial0binding gjenstår
+## Aktuell:071førsteinitial0 skal bindes til kvalifisert900scontroller
 
 Profil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, eksplisitt referanse
 `{name,contract_sha256}` i recipe, konstruktormetadata, modell og state.
@@ -229,6 +229,15 @@ WINDOWS_HARDENING_RECEIPT SHAa172cf4fb2dfefcf2551be1364161003db404cdb466c6a2365a
 Alle andre controllerbytes og installer/observer/clock/caps er uendret;
 182Pythonkilder/stat matcher fortsatt. Ny071initial0recipe/campaign/HEADbinding
 er neste;068state beholdes. Ingen faktisk modellforward eller trening ennå.
+070er committet/pushetb86ebde1b90f9cb775d37496bd779d13cb478101 med
+beståtte precommitporter og ren CURRENT.071PLAN SHA6bd1fd69c898ab5b228bc266da05f245e49b061a7c5bea6dde0edfd0e40373f4
+binder samme068initial-/measurementfiler,11inputs/profil/prefix/kohorter og
+32forwards/0steps. Uavhengig gjenbruksreview SHA9833e91f328ceb677743273187b4730e6dcca299a434dd5a8b927836103cc56d
+kontrollerte alle182kildebindinger og at metadata ikke binder gammelrunid/
+outputsti. Ny policy/recipe binder071identitet; behold eksakt068constructorsti.
+Bind deretter ny campaign og900scontrollerstaging. Maskinvid idle/writer- og
+signert maskinvarekontroll må fornyes etter CPUmaterialisering før ny fysisk
+før-nativeboot.18.10-brukeromstart er fortsatt allerede oppfylt.
 
 1.067har rettet bare denne målte gjentakelsen: eksplisitt filverifiseringsscope
   rundt én hel eksisterende CLI-/materializeroperasjon. Første faktiske
