@@ -1,0 +1,83 @@
+{
+  "authorized_get_requests": 2,
+  "automatic_retries_allowed": false,
+  "broker_environment": "practice",
+  "canonical_branch": "work/gx1-current",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "cost_prescope": {
+    "central_latency_slippage_bps_per_execution": 2.0,
+    "commission_bps_per_execution": 0.0,
+    "coverage_end_utc_exclusive": "2026-04-01T00:00:00+00:00",
+    "coverage_start_utc": "2024-05-01T00:00:00+00:00",
+    "economics_pass_claimed": false,
+    "financing_rule": "existing_owner_max_zero_negative_actual_new_side_rate",
+    "gslo_fee_account_currency_per_execution": 0.0,
+    "historical_cost_truth_qualified": false,
+    "hold_risk_penalty_long_annual_bps": 0.0,
+    "hold_risk_penalty_short_annual_bps": 0.0,
+    "val_latency_slippage_bps_per_execution": [
+      1.0,
+      2.0,
+      4.0
+    ]
+  },
+  "execution_ready": true,
+  "frozen_historical_observations_required": true,
+  "input_bindings": {
+    "actual_native_bindings_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/RESULT.json",
+      "sha256": "1a4208cc06c2fe357fccfa2348c3b1f0cf9404ed98c4e141f8ad6f53970a5e4c"
+    },
+    "actual_native_bindings_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/TERMINAL.json",
+      "sha256": "43f7a5cca12c560225268460ce5c8b463e609da7246198bf1b6861954eb5d978"
+    },
+    "current_constructor_metadata_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/RESULT.json",
+      "sha256": "4eb94982e072f5265b3f27ef506e6f712eadfe330195d2a6eb052608348d1c27"
+    },
+    "current_constructor_metadata_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/TERMINAL.json",
+      "sha256": "835e27454980f00eb2adaa1962466d9995cce68ed0e81d90fac274b02a93a905"
+    },
+    "frozen_broker_evidence": {
+      "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/COST_TERMS_REVALIDATION_001/BROKER_EVIDENCE.json",
+      "sha256": "e5b649b841bf4ac7114d355efb01ea1ddf0ea369e58c1c4fb49b721672caec59"
+    },
+    "no_gslo_policy_source": {
+      "path": "/home/andre2/src/GX1_EXIT_LIFECYCLE_V2/gx1/execution/oanda_client.py",
+      "sha256": "715b7b87e0bcfe549926a957b7d45534dc2d1245ebdf325cc5acedfb261c19c4"
+    },
+    "quote_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+    },
+    "quote_parquet": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    }
+  },
+  "max_wall_seconds": 1800,
+  "metadata_publication_enabled": true,
+  "native_training_admitted": false,
+  "no_data_recompute": true,
+  "normalization_fit_enabled": false,
+  "observation_window": {
+    "cutoff_utc": "2026-05-31T23:59:59+00:00",
+    "post_cutoff_observations_excluded": true,
+    "start_utc": "2025-01-01T00:00:00+00:00",
+    "test_data_used": false
+  },
+  "one_shot_invocations": 1,
+  "plan_id": "NATIVE_M5_CURRENT_COST_TERMS_20261019_059",
+  "preregistered_at_utc": "2026-10-19T04:55:20.114530+00:00",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_COST_TERMS_20261019_059",
+  "schema_version": "gx1_current_m5_cost_terms_publication_v1",
+  "source_frozen_while_running": true,
+  "source_qualification": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_RECIPE_ADMISSION_20261019_058/SOURCE_REVIEW.json",
+    "sha256": "61cb4040cc24de7806b7a82f4d9560b7dfd04f43f309b982f9339929ce721997"
+  },
+  "test_data_used": false,
+  "training_enabled": false
+}
