@@ -589,6 +589,136 @@ def _component_optimizer_state(*, model, entry_phase, train_rows, batch_size, ep
     return optimizer, weight_ema, scheduler, ema_derivation
 
 
+def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sha256: str,
+                                          output_dir: Path) -> dict[str, dict[str, str]]:
+    """Publish genuine fresh CPU state, without Dataset construction or learning.
+
+    The sealed preparation recipe carries final input/control identities but no
+    initial/learning artifacts. Receipts bind its source closure and inputs,
+    rather than its file hash, so final recipe/policy binding is acyclic.
+    """
+    import tempfile
+    from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execution, require_capped_lock_ancestry
+    from gx1.contracts.immutable_event_authority_v1 import _fsync_directory, _publish_bytes, _publish_file_noreplace
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        _require_dynamic_initial_artifacts, require_prefix_measurement_source_binding,
+    )
+    from gx1.contracts.unified_exit_random_access_state_view_v1 import _structured_sha256
+    require_capped_cpu_audit_execution()
+    require_capped_lock_ancestry()
+    recipe, files, _ = _require_native_full_train_recipe(recipe_path, recipe_file_sha256)
+    phase = trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if (set(files) != _DYNAMIC_M5_DATA_FILES or "chronological_prefix" not in recipe
+            or any(key in recipe for key in ("chronological_initial_measurement", "chronological_learning_measurement"))):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_RECIPE_REQUIRED")
+    policy = val._read(_bound_artifact(recipe["next_run_policy"]))
+    if policy.get("training_enabled") is not False or policy.get("full_epoch_training_allowed") is not False:
+        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_TRAINING_FORBIDDEN")
+    controls = recipe["trainer_cli"]
+    prefix = _require_prefix_component_bindings(recipe["chronological_prefix"], files=files,
+        seed=controls["seed"], batch_size=controls["batch_size"],
+        learning_rate=controls["learning_rate"], weight_decay=controls["weight_decay"])
+    physical, single = prefix.get("physical_preprocessing", {}), prefix.get("entry_m5_path_single_epoch")
+    if (physical.get("entry_training_phase") != phase or single is None
+            or single["witness"]["training_phase"] != phase
+            or prefix.get("model_functions") != trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
+            or controls["epochs"] != 1 or controls["batch_size"] != 16
+            or single["train_rows"] != len(prefix["eligible_parent_rows"])):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_IDENTITY_INVALID")
+    output_dir = Path(output_dir)
+    if (not output_dir.is_absolute() or output_dir != output_dir.resolve()
+            or output_dir.exists() or output_dir.is_symlink()
+            or not output_dir.parent.is_dir() or output_dir.parent != output_dir.parent.resolve()):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_OUTPUT_INVALID")
+    metadata = val._read(files["source_bundle_metadata"])
+    normalization = val._read(files["entry_only_base_normalization"])["contract"]
+    val._bind_multi_tf_cache_from_source_bundle_metadata(metadata)
+    device = torch.device("cpu")
+    model, seed_binding = _fresh_prefix_model(metadata=metadata, normalization=normalization,
+        device=device, seed=controls["seed"], entry_training_phase=phase)
+    _configure_component_training_phase(model, phase)
+    optimizer, weight_ema, scheduler, ema_derivation = _component_optimizer_state(
+        model=model, entry_phase=phase, train_rows=single["train_rows"],
+        batch_size=controls["batch_size"], epochs=controls["epochs"],
+        learning_rate=controls["learning_rate"], weight_decay=controls["weight_decay"])
+    model_state = {name: value.detach() for name, value in model.state_dict().items()}
+    expected = trainer._model_state_sha256(model)
+    ema_state = weight_ema.checkpoint_state()
+    if (any(value.device.type != "cpu" or value.requires_grad for value in model_state.values())
+            or optimizer.state_dict()["state"] or ema_state["steps"] != 0
+            or val.canonical_model_state_sha256(ema_state["shadow"]) != expected
+            or expected != seed_binding["model_state_sha256"]):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_STATE_INVALID")
+    rng = trainer._attended_session_rng_state(device=device)
+    def rng_identity(value):
+        if isinstance(value, torch.Tensor):
+            return value.detach().cpu().numpy()
+        if isinstance(value, Mapping):
+            return {key: rng_identity(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [rng_identity(item) for item in value]
+        return value
+    rng_sha256 = _structured_sha256(rng_identity(rng))
+    closure = require_prefix_measurement_source_binding(recipe)
+    common = {"entry_training_phase": phase, "target_model_role": "frozen_constructor_anchor_no_forward",
+        "exit_evaluation": False, "native_launch_authorized": False, "exit_model_forward_count": 0, **closure}
+    initial = {"schema_version": "gx1_prefix_fresh_initialization_v1",
+        "decision": "ACTUAL_NATIVE_FRESH_COMPONENTS_READY_NO_LEARNING_MEASURED", **common,
+        "chronological_prefix": recipe["chronological_prefix"], "files": recipe["files"],
+        "inherited_checkpoint_weights": False, "optimizer_state_empty": True, "target_frozen": True,
+        "model_forwards": 0, "optimizer_steps": 0, "ema_steps": 0, "normalization_refits": 0,
+        "online_model_state_sha256": expected, "target_model_state_sha256": expected, "ema_model_state_sha256": expected,
+        "model_functions": prefix["model_functions"], "seed_binding": seed_binding, "ema_derivation": ema_derivation,
+        "source_bindings": {"gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py":
+            val.file_sha256(Path(recipe["source_repo"]) / "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py")},
+        "entry_only_base_normalization": physical["entry_only_base_normalization"],
+        "base_contract_sha256": physical["base_contract_sha256"], "population_witness": single["binding"],
+        "train_rows": single["train_rows"], "rng_state_sha256": rng_sha256,
+        "optimizer_state_sha256": val.canonical_sha256(optimizer.state_dict()),
+        "lr_scheduler_state_sha256": val.canonical_sha256(None if scheduler is None else scheduler.state_dict()),
+        "native_training_admitted": False, "test_data_used": False}
+    measurement = {"schema_version": "gx1_prefix_native_measurement_binding_result_v1",
+        "decision": "FROZEN_TRAIN_CONTROL_COORDINATES_AND_NATIVE_MEASUREMENT_BINDING_READY", **common,
+        "actual_model_forwards": 0, "optimizer_steps": 0, "test_data_used": False,
+        "coordinate_result": recipe["files"]["entry_measurement_coordinates"]}
+    # state_dict tensors are detached CPU values. The immutable archive may share
+    # their storage for ONLINE and its identical no-forward constructor anchor.
+    state = {"schema_version": "gx1_prefix_fresh_initial_state_v1",
+        "chronological_prefix": recipe["chronological_prefix"], "model_functions": prefix["model_functions"],
+        "model_forwards": 0, "optimizer_steps": 0, "checkpoint_loaded": False,
+        "model_state": model_state, "target_model_state": dict(model_state),
+        "optimizer_state": optimizer.state_dict(), "weight_ema_state": ema_state,
+        "lr_scheduler_state": None if scheduler is None else scheduler.state_dict(), "rng_state": rng}
+    stage = Path(tempfile.mkdtemp(prefix="." + output_dir.name + ".staging.", dir=output_dir.parent))
+    staged_state = stage / "INITIAL_STATE.pt"
+    torch.save(state, staged_state)
+    trainer._fsync_regular_file(staged_state)
+    state_sha256 = val.file_sha256(staged_state)
+    initial["initial_state"] = {"path": str(output_dir / staged_state.name), "sha256": state_sha256}
+    del state, ema_state, model_state
+    components = {"model": model, "optimizer": optimizer, "weight_ema": weight_ema, "lr_scheduler": scheduler,
+        "chronological_prefix": recipe["chronological_prefix"], "model_functions": prefix["model_functions"],
+        "seed_binding": seed_binding, "weight_ema_derivation": ema_derivation}
+    staged_initial = {**initial, "initial_state": {"path": str(staged_state), "sha256": state_sha256}}
+    _restore_prefix_initial_measurement_state(components=components,
+        scope={"initialization": staged_initial}, device=device)
+    if (_structured_sha256(rng_identity(trainer._attended_session_rng_state(device=device))) != rng_sha256
+            or trainer._model_state_sha256(model) != expected):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_ROUNDTRIP_INVALID")
+    _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement)
+    for name, value in (("INITIALIZATION.json", initial), ("MEASUREMENT_BINDING.json", measurement)):
+        encoded = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+        _publish_bytes(stage / name, encoded)
+        if json.loads((stage / name).read_text()) != value:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_JSON_INVALID")
+    _fsync_directory(stage)
+    _publish_file_noreplace(stage, output_dir)
+    _fsync_directory(output_dir.parent)
+    return {key: {"path": str(output_dir / name), "sha256": val.file_sha256(output_dir / name)}
+        for key, name in (("initialization_result", "INITIALIZATION.json"),
+                          ("measurement_binding_result", "MEASUREMENT_BINDING.json"))}
+
+
 def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_entry_scope,
         dataset_run_id, device, batch_size, epochs, seed, learning_rate, weight_decay, val_limits):
     """Bind the existing Entry Dataset/model without constructing any Exit owner."""

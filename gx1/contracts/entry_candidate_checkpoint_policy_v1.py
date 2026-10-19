@@ -82,10 +82,34 @@ def _m5_single_epoch_checkpoint_scope(prefix_training_binding):
         if (not dynamic_prefix or not dynamic_witness
                 or prefix_training_binding.get("fixed_final_model_variant") != "ONLINE"
                 or prefix_training_binding.get("physical_sources", {}).get("train", {}).get("manifest") != single["train_manifest"]
-                or any(observed[role]["identity"].get("design") != binding
-                    or observed[role]["identity"].get("target_contract") != single["witness"]["target_contract"]
+                or any(observed[role]["identity"].get("target_contract") != single["witness"]["target_contract"]
                     for role in observed)):
             raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_EPOCH_BINDING_INVALID]")
+        from gx1.contracts.entry_observed_market_v1 import (
+            require_entry_observed_market_scope, entry_observed_market_identity,
+        )
+        identity = observed["train"]["identity"]
+        if observed["control"]["identity"] != identity:
+            raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_OBSERVED_IDENTITY_MISMATCH]")
+        observed_binding = require_binding(identity.get("design"),
+            label="dynamic checkpoint observed plan", verify_file=True)
+        observed_plan = read_bound_json(Path(observed_binding["path"]), observed_binding["sha256"])
+        observed_prefix, observed_files = observed_plan.get("chronological_prefix"), observed_plan.get("files")
+        if (not isinstance(observed_prefix, Mapping) or not isinstance(observed_files, Mapping)
+                or observed_prefix.get("design") != binding
+                or observed_prefix != prefix_training_binding.get("artifacts")
+                or observed_prefix.get("normalization_result") != prefix_training_binding.get("entry_only_base_normalization")):
+            raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_DESIGN_JOIN_INVALID]")
+        sources = prefix_training_binding["physical_sources"]
+        scope = require_entry_observed_market_scope({
+            "entry_observed_market": observed_binding, "chronological_prefix": dict(observed_prefix),
+            "files": {**{f"entry_{split}_{kind}": sources[split].get(kind)
+                          for split in ("train", "val") for kind in ("parquet", "manifest")},
+                      "train_cost_authority": observed_files.get("train_cost_authority")},
+        })
+        if (entry_observed_market_identity(scope) != identity
+                or scope.get("physical_sources") != sources):
+            raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_OBSERVED_SCOPE_INVALID]")
     return {**expected, "optimizer_steps":single["optimizer_steps"]}
 
 

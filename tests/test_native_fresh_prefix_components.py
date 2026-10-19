@@ -845,3 +845,135 @@ def test_dynamic_native_wrapper_binds_fixed_online_without_exit_economics(dynami
     assert seen["save_top_k"] == 0
     assert seen["chronological_prefix"] == args["chronological_prefix"]
     # CUDA guard/session are spies: this is a wrapper join unit, no GPU admission.
+
+
+@pytest.fixture
+def dynamic_fresh_preparation(dynamic_entry_component_chain, tmp_path, monkeypatch):
+    """Small model state proof; physical/source admission is an isolated owner boundary."""
+    from torch.optim.adamw import AdamW
+    from gx1.contracts import gx1_capped_execution_v1 as cap
+    args, events, prefix, _ = dynamic_entry_component_chain
+    # The model-only producer must not enter the Dataset/session chain used by
+    # the component fixture. Its optimizer is the same real owner without that spy.
+    monkeypatch.setattr(torch.optim, "AdamW", AdamW)
+    def forbidden(*args, **kwargs):
+        pytest.fail("Fresh preparation attempted Dataset, forward, optimizer step or EMA update")
+    monkeypatch.setattr(runner.val, "EntryV10CtxDataset", forbidden)
+    monkeypatch.setattr(AdamW, "step", forbidden)
+    monkeypatch.setattr(runner.trainer._WeightEma, "update", forbidden)
+    checks = []
+    monkeypatch.setattr(cap, "require_capped_cpu_audit_execution", lambda: checks.append("audit"))
+    monkeypatch.setattr(cap, "require_capped_lock_ancestry", lambda: checks.append("lock"))
+    bindings = args["chronological_prefix"]
+    bindings["native_coordinates"] = _write(tmp_path / "preparation-native-coordinates.json", {"unit": "frozen"})
+    model_path = Path(runner.__file__).resolve().parents[2] / "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
+    source = {"python:model": runner.launch_owner.artifact_binding(model_path)}
+    policy = {"training_enabled": False, "full_epoch_training_allowed": False}
+    policy_binding = _write(tmp_path / "preparation-policy.json", policy)
+    recipe = {"source_repo": str(Path(runner.__file__).resolve().parents[2]),
+        "files": {key: _bind(path) for key, path in args["files"].items()},
+        "chronological_prefix": bindings, "next_run_policy": policy_binding,
+        "source_bindings": source, "source_bindings_sha256": runner.launch_owner.canonical_json_sha256(source),
+        "trainer_cli": {"seed": args["seed"], "batch_size": args["batch_size"], "epochs": args["epochs"],
+            "learning_rate": args["learning_rate"], "weight_decay": args["weight_decay"]}}
+    def require_preparation(path, digest):
+        value = runner.val._read(runner._bound_artifact({"path": str(path), "sha256": digest}))
+        return value, {key: Path(binding["path"]) for key, binding in value["files"].items()}, {}
+    monkeypatch.setattr(runner, "_require_native_full_train_recipe", require_preparation)
+    def seal():
+        return _write(tmp_path / "PREPARATION_RECIPE.json", recipe)
+    return {"args": args, "events": events, "prefix": prefix, "checks": checks,
+        "recipe": recipe, "policy": policy, "policy_path": Path(policy_binding["path"]), "seal": seal,
+        "output": tmp_path / "initial-components"}
+
+
+def test_dynamic_fresh_preparation_publishes_exact_owner_state_without_dataset(dynamic_fresh_preparation, monkeypatch):
+    case = dynamic_fresh_preparation
+    original_restore = runner._restore_prefix_initial_measurement_state
+    restored = []
+    def restore(**kwargs):
+        binding = kwargs["scope"]["initialization"]["initial_state"]
+        path = Path(binding["path"])
+        assert path.is_file() and path.parent != case["output"] and not case["output"].exists()
+        restored.append(dict(binding))
+        return original_restore(**kwargs)
+    monkeypatch.setattr(runner, "_restore_prefix_initial_measurement_state", restore)
+    preparation = case["seal"]()
+    artifacts = runner.publish_dynamic_m5_fresh_initialization(recipe_path=Path(preparation["path"]),
+        recipe_file_sha256=preparation["sha256"], output_dir=case["output"])
+    assert set(artifacts) == {"initialization_result", "measurement_binding_result"}
+    assert {path.name for path in case["output"].iterdir()} == {
+        "INITIAL_STATE.pt", "INITIALIZATION.json", "MEASUREMENT_BINDING.json"}
+    initial = runner.val._read(runner._bound_artifact(artifacts["initialization_result"]))
+    measurement = runner.val._read(runner._bound_artifact(artifacts["measurement_binding_result"]))
+    state = torch.load(runner._bound_artifact(initial["initial_state"]), map_location="cpu", weights_only=False)
+    assert case["checks"] == ["audit", "lock"] and len(restored) == 1
+    assert restored[0]["sha256"] == initial["initial_state"]["sha256"]
+    assert initial["initial_state"]["path"] == str(case["output"] / "INITIAL_STATE.pt")
+    assert [event[0] for event in case["events"]] == ["model"]
+    assert state["optimizer_state"]["state"] == {} and state["weight_ema_state"]["steps"] == 0
+    assert initial["target_frozen"] is True and initial["inherited_checkpoint_weights"] is False
+    assert initial["model_forwards"] == initial["optimizer_steps"] == initial["ema_steps"] == initial["normalization_refits"] == 0
+    assert measurement["actual_model_forwards"] == measurement["optimizer_steps"] == 0
+    assert measurement["coordinate_result"] == case["recipe"]["files"]["entry_measurement_coordinates"]
+    assert initial["native_recipe_source_bindings"] == case["recipe"]["source_bindings"]
+    assert all("recipe_sha256" not in record for record in (initial, measurement, state))
+    # Compare against the same genuine model/optimizer owners used by components,
+    # rather than constructing a second data loader or inventing expected weights.
+    args = case["args"]
+    metadata = runner.val._read(args["files"]["source_bundle_metadata"])
+    normalization = runner.val._read(args["files"]["entry_only_base_normalization"])["contract"]
+    model, seed = runner._fresh_prefix_model(metadata=metadata, normalization=normalization,
+        device=torch.device("cpu"), seed=args["seed"], entry_training_phase=runner.trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    runner._configure_component_training_phase(model, runner.trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    optimizer, ema, scheduler, derivation = runner._component_optimizer_state(model=model,
+        entry_phase=runner.trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        train_rows=case["prefix"]["entry_m5_path_single_epoch"]["train_rows"], batch_size=args["batch_size"],
+        epochs=args["epochs"], learning_rate=args["learning_rate"], weight_decay=args["weight_decay"])
+    expected = runner.trainer._model_state_sha256(model)
+    assert expected == seed["model_state_sha256"] == initial["online_model_state_sha256"]
+    for surface in (state["model_state"], state["target_model_state"], state["weight_ema_state"]["shadow"]):
+        assert runner.val.canonical_model_state_sha256(surface) == expected
+        assert all(not tensor.requires_grad and tensor.device.type == "cpu" for tensor in surface.values())
+    assert runner.val.canonical_sha256(state["optimizer_state"]) == initial["optimizer_state_sha256"] == runner.val.canonical_sha256(optimizer.state_dict())
+    assert runner.val.canonical_sha256(state["lr_scheduler_state"]) == initial["lr_scheduler_state_sha256"] == runner.val.canonical_sha256(None if scheduler is None else scheduler.state_dict())
+    assert initial["ema_derivation"] == derivation
+    rng = runner.trainer._attended_session_rng_state(device=torch.device("cpu"))
+    assert set(rng) == set(state["rng_state"])
+    for key, value in rng.items():
+        if isinstance(value, torch.Tensor): assert torch.equal(value, state["rng_state"][key])
+        else: assert value == state["rng_state"][key]
+
+
+@pytest.mark.parametrize("fault", ["existing_output", "initial_scope", "learning_scope", "training", "phase", "row_count"])
+def test_dynamic_fresh_preparation_rejects_scope_before_model_creation(dynamic_fresh_preparation, fault):
+    case = dynamic_fresh_preparation
+    if fault == "existing_output": case["output"].mkdir()
+    elif fault == "initial_scope": case["recipe"]["chronological_initial_measurement"] = {}
+    elif fault == "learning_scope": case["recipe"]["chronological_learning_measurement"] = {}
+    elif fault == "training":
+        case["policy"]["training_enabled"] = True
+        case["recipe"]["next_run_policy"] = _write(case["policy_path"], case["policy"])
+    elif fault == "phase": case["prefix"]["physical_preprocessing"]["entry_training_phase"] = runner.trainer.JOINT_FITTED_Q_TRAINING_PHASE
+    else: case["prefix"]["entry_m5_path_single_epoch"]["train_rows"] += 1
+    binding = case["seal"]()
+    with pytest.raises(RuntimeError, match="NATIVE_DYNAMIC_M5_FRESH_PREPARATION_"):
+        runner.publish_dynamic_m5_fresh_initialization(recipe_path=Path(binding["path"]),
+            recipe_file_sha256=binding["sha256"], output_dir=case["output"])
+    assert not case["events"]
+
+
+def test_dynamic_fresh_preparation_strictloads_staged_optimizer_before_publication(dynamic_fresh_preparation, monkeypatch):
+    case = dynamic_fresh_preparation
+    original_save = torch.save
+    def corrupt(value, path):
+        value = copy.deepcopy(value)
+        value["optimizer_state"]["param_groups"][0]["lr"] *= 2.0
+        original_save(value, path)
+    monkeypatch.setattr(torch, "save", corrupt)
+    binding = case["seal"]()
+    with pytest.raises(RuntimeError, match="INITIAL_OPTIMIZER_STATE_MISMATCH"):
+        runner.publish_dynamic_m5_fresh_initialization(recipe_path=Path(binding["path"]),
+            recipe_file_sha256=binding["sha256"], output_dir=case["output"])
+    assert not case["output"].exists()
+    assert len(list(case["output"].parent.glob(".initial-components.staging.*/INITIAL_STATE.pt"))) == 1

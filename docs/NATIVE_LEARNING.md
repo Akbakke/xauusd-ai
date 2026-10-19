@@ -209,3 +209,10 @@ er queryinput; faktisk framtidig tilgjengelighet er aldri input. Dermed forblir
 et observert siste1minuttsforløp læringsaktivt selv når neste open mangler.
 Kvalitetsdifferansen bruker kun modellens eksplisitte inclusiveprognoser.
 Maksimum velges over predikerte horisonter, aldri fremtidens beste fasit.
+
+Operatørpresisering19.10 åpner én kompakt førsterunde før fullflaten:
+MBP+SMC/struktur+EMA/ATR/minimalkontekst, alle2410GCkanaler og61makro beholdt.
+Valgt kildeforslag2622/2525/139,7lokale/5MTF-familier; full055normalisering
+før modellintern utvelgelse. Hele biblioteket og defaultfullmodell beholdes.
+Eksakt profil er ennå ikke implementert/konsumkvalifisert; ny faktisk baseline
+kreves før trening. Computegeometri er ikke målt latency eller ekstra budsjett.

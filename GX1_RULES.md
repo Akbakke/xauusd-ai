@@ -61,6 +61,22 @@ blokkeringer og vedtatte designgap fortløpende med minst nødvendig endring;
 ikke bruk tid på kosmetisk ombygging. Dobbeltsjekk utført arbeid. Usikre
 målvalg spørres operatøren om mens uavhengig arbeid fortsetter.
 
+## Første kompakte treningsprofil, operatørpresisering19.10.2026
+
+Brukeren ønsker først MBP-1, SMC, EMA, ATR og minste nødvendige kontekst,
+med candlestick-/chart-pattern- og overlappende felt parkert for raskere
+læringsrunder. Hele rådata-/featurebiblioteket og fullmodellens åtte
+spesialistfamilier bevares. Kravet om alle genuine felt i hver første
+treningsprofil er avløst av denne avgrensede profilplanleggingen; feltvalg,
+familie-/encoderstier og MTF-vinduer må være eksplisitt navngitt og hashbundet
+før trening. Reell skip/reduksjon i beregning skilles fra bare nullmaskering.
+Ingen felt erklæres støy uten måling. Eksakte aliaser skilles fra korrelerte
+signaler; MBP-informasjon droppes aldri ved å gjette fra familienavnet.
+Aktuell latency/minne måles på reelle data;30dagers trening er ingen målt
+forutsetning. Kausalitet, kostnader, TRAIN-fit, fersk profilbundet baseline,
+konsum/paritet/Entry-only/resume/maskinvare og alle sikkerhetsgrenser består.
+Ingen ny epoke/HPO, Exit eller TEST-adgang følger av profilvalget.
+
 ## Én kodebase, avgrensede agentoppgaver
 
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre

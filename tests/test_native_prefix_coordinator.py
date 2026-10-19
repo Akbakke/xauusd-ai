@@ -572,6 +572,7 @@ def dynamic_prefix_binding_unit(physical_prepared, tmp_path, monkeypatch):
     from tests.test_native_fresh_prefix_components import TinyModel
     from gx1.contracts import entry_observed_market_horizons_v1 as horizons
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    from gx1.contracts import entry_observed_market_v1 as observed_owner
     from gx1.contracts.entry_observed_market_v1 import DynamicM5TargetProvider, entry_observed_dynamic_m5_path_contract
     from gx1.time.session_detector import m5_decision_availability
     data = physical_prepared
@@ -605,6 +606,7 @@ def dynamic_prefix_binding_unit(physical_prepared, tmp_path, monkeypatch):
     data.design["scope"].update(part["scope"]);data.design["budget"].update(part["budget"])
     data.design["calendar"].update(part["calendar"],source_bindings=sources)
     data.design.pop("targets",None)  # Dynamic binding must not manufacture an Exit policy.
+    data.design.setdefault("inputs", {})["entry_only_base_normalization"] = data.value["normalization_result"]
     data.value["design"] = _write(Path(data.value["design"]["path"]),data.design)
     registry = _write(directory / "registry-clock.json",{
         "train_decision_rows":len(data.train),
@@ -643,8 +645,29 @@ def dynamic_prefix_binding_unit(physical_prepared, tmp_path, monkeypatch):
         "train_decision_clock_sha256":json.loads(Path(registry["path"]).read_text())["train_decision_clock_sha256"],"exact_match":True}
     class Dataset(Rows):
         pass
-    identity = {"design":data.value["design"],"target_contract":target,"training_phase":witness["training_phase"],
-        "query_minutes":list(queries),"economics":{"qualified_owner_stub":True}}
+    source_files = {**{f"entry_{split}_{kind}":sources[split][kind]
+        for split in ("train", "val") for kind in ("parquet", "manifest")},
+        "train_cost_authority":_write(directory / "cost-scope-boundary.json", {"qualified_owner_stub":True})}
+    observed_plan = {"schema_version":observed_owner.DYNAMIC_M5_SCHEMA_VERSION + "_learning_design",
+        "chronological_prefix":copy.deepcopy(data.value), "files":source_files,
+        "target_contract":target, "training_phase":witness["training_phase"],
+        "exit_updates_entry":False, "native_launch_authorized":False, "test_data_used":False}
+    observed_binding = _write(directory / "observed-plan.json", observed_plan)
+    scope = {"binding":observed_binding, "target_contract":target,
+        "training_phase":witness["training_phase"], "query_minutes":queries,
+        "economics":{"qualified_owner_stub":True}, "target_m1_source_sha256":"8"*64,
+        "physical_sources":copy.deepcopy(sources)}
+    identity = observed_owner.entry_observed_market_identity(scope)
+    scope_calls = []
+    def checked_scope(value):
+        # Physical receipt, quote and cost validation are a separately tested
+        # owner boundary. Keep this caller's complete hash-bound join real.
+        expected = {"entry_observed_market":observed_binding,
+            "chronological_prefix":data.value, "files":source_files}
+        if value != expected: raise RuntimeError("UNIT_OBSERVED_SCOPE_BINDING_MISMATCH")
+        scope_calls.append(copy.deepcopy(value))
+        return scope
+    monkeypatch.setattr(observed_owner, "require_entry_observed_market_scope", checked_scope)
     expected_columns = list(dict.fromkeys([*trainer.DYNAMIC_M5_POINTER_COLUMNS,*trainer._FORECAST_TARGET_COLS,
         *trainer.MODEL_NATIVE_FORECAST_VALID_COLUMNS,*horizons.HORIZON_LABEL_COLUMNS]))
     for split,role in (("train","TRAIN"),("val","CONTROL256")):
@@ -678,12 +701,19 @@ def dynamic_prefix_binding_unit(physical_prepared, tmp_path, monkeypatch):
         data.files["entry_"+split+"_parquet"] = dataset.parquet_path
     args = _binding_args(data)
     args["model"] = TinyModel(args["input_normalization"],**trainer._dynamic_m5_model_kwargs(witness["training_phase"]))
-    return SimpleNamespace(data=data,args=args,coordinates=coordinates,witness=witness,seen=seen)
+    return SimpleNamespace(data=data,args=args,coordinates=coordinates,witness=witness,seen=seen,
+        scope=scope,scope_calls=scope_calls,observed_plan=observed_plan,observed_binding=observed_binding)
 
 
 def test_dynamic_prefix_binding_unit_joins_real_witness_clock_pointer_and_roles_without_exit(dynamic_prefix_binding_unit):
     case = dynamic_prefix_binding_unit
+    before = [copy.deepcopy(dataset._entry_observed_market_binding["identity"])
+              for dataset in (case.data.train, case.data.control)]
     binding,parents,order = trainer._prefix_candidate_training_binding(**case.args)
+    assert case.observed_binding != case.data.value["design"]
+    assert len(case.scope_calls) == 2
+    assert [dataset._entry_observed_market_binding["identity"]
+            for dataset in (case.data.train, case.data.control)] == before
     assert case.seen == ["qualified_preprocessing_boundary","qualified_coordinate_boundary"]
     assert not hasattr(case.data.train,"_unified_exit_lifecycle_v2") and "targets" not in case.data.design
     assert np.array_equal(parents.numpy(),np.load(case.witness["eligible_parent_rows"]["path"]))
@@ -700,6 +730,46 @@ def test_dynamic_prefix_binding_unit_joins_real_witness_clock_pointer_and_roles_
         "native_sampler_contract":case.witness["native_sampler_contract"]}
     assert "dynamic_m5_eligibility" in binding and "horizon_eligibility" not in binding
     assert binding["active_joint_task_names"] == list(trainer._model_joint_task_names(case.args["model"]))
+
+
+@pytest.mark.parametrize("stage", ["prefix", "epoch_order", "checkpoint", "session"])
+@pytest.mark.parametrize("fault", ["missing_native", "different_native", "normalization", "receipt",
+    "scope_identity", "scope_sources", "scope_rejection", "stale_observed_plan"])
+def test_dynamic_prefix_and_epoch_reject_broken_observed_to_native_join(dynamic_prefix_binding_unit, tmp_path, monkeypatch, stage, fault):
+    from gx1.contracts import entry_observed_market_v1 as observed_owner
+    case = dynamic_prefix_binding_unit
+    parents = prefix = None
+    if stage != "prefix":
+        prefix, parents, _ = trainer._prefix_candidate_training_binding(**case.args)
+    if fault in {"missing_native", "different_native", "normalization", "receipt"}:
+        plan = copy.deepcopy(case.observed_plan)
+        if fault == "missing_native": plan["chronological_prefix"].pop("design")
+        elif fault == "different_native":
+            plan["chronological_prefix"]["design"] = _write(Path(case.observed_binding["path"]).parent / "other-native.json", {"different":True})
+        elif fault == "normalization":
+            plan["chronological_prefix"]["normalization_result"] = _write(Path(case.observed_binding["path"]).parent / "other-normalization.json", {"different":True})
+        else:
+            plan["chronological_prefix"]["labels_result"] = _write(Path(case.observed_binding["path"]).parent / "other-receipt.json", {"different":True})
+        changed = _write(Path(case.observed_binding["path"]), plan)
+        for dataset in (case.data.train, case.data.control):
+            dataset._entry_observed_market_binding["identity"]["design"] = changed
+    elif fault == "scope_identity": case.scope["economics"] = {"different":True}
+    elif fault == "scope_sources": case.scope["physical_sources"]["val"]["physical_rows"] += 1
+    elif fault == "scope_rejection":
+        def rejected(value): raise RuntimeError("STRICT_OBSERVED_OWNER_REJECTED")
+        monkeypatch.setattr(observed_owner, "require_entry_observed_market_scope", rejected)
+    else:
+        with Path(case.observed_binding["path"]).open("a") as handle: handle.write("\n")
+    with pytest.raises(RuntimeError):
+        if stage == "prefix": trainer._prefix_candidate_training_binding(**case.args)
+        elif stage == "epoch_order": trainer._candidate_training_epoch_order(case.data.train, epoch_index=0, parent_population=parents)
+        elif stage == "checkpoint":
+            trainer.checkpoint_policy_metadata(checkpoint_monitor=trainer.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+                prefix_training_binding=prefix)
+        else:
+            from tests.test_candidate_training_session import _dynamic_session_contract_arguments
+            args = _dynamic_session_contract_arguments(tmp_path, prefix=prefix, input_normalization=case.args["input_normalization"])
+            trainer._candidate_training_session_contract(**args)
 
 
 @pytest.mark.parametrize("fault",["legacy_mode","pointer","clock","provider_mask","row_binding","registry_clock","phase","tasks","model_queries","order"])

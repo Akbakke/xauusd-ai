@@ -13696,6 +13696,10 @@ def _require_dynamic_prefix_dataset_binding(dataset, *, binding, source, proof, 
     from gx1.contracts import entry_observed_market_horizons_v1 as horizons
     from gx1.contracts.entry_observed_market_v1 import (
         DynamicM5TargetProvider, entry_observed_dynamic_m5_path_contract,
+        require_entry_observed_market_scope, entry_observed_market_identity,
+    )
+    from gx1.contracts.local_random_access_campaign_v2 import (
+        require_binding, read_bound_json,
     )
     expected_columns = list(dict.fromkeys([*DYNAMIC_M5_POINTER_COLUMNS, *_FORECAST_TARGET_COLS,
         *MODEL_NATIVE_FORECAST_VALID_COLUMNS, *horizons.HORIZON_LABEL_COLUMNS]))
@@ -13720,7 +13724,6 @@ def _require_dynamic_prefix_dataset_binding(dataset, *, binding, source, proof, 
             or not isinstance(observed, Mapping) or observed.get("role") != binding["role"]
             or observed.get("identity", {}).get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
             or observed["identity"].get("target_contract") != contract
-            or observed["identity"].get("design") != binding["design"]
             or observed.get("source_quote_binding") != proof["dynamic_m5_supervision"]["source_quote_binding"]
             or observed.get("index_binding") != proof["dynamic_m5_supervision"]["index_binding"]
             or observed.get("dense_future_paths_materialized") is not False
@@ -13735,6 +13738,28 @@ def _require_dynamic_prefix_dataset_binding(dataset, *, binding, source, proof, 
             or observed.get("admitted_rows") != int(mask.sum())
             or observed.get("admitted_row_indices_sha256") != hashlib.sha256(np.asarray(np.flatnonzero(mask), dtype="<i8").tobytes()).hexdigest()):
         raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_POINTER_OR_PROVIDER_MISMATCH]")
+    # Supervision has its own plan identity; its prefix owns the physical
+    # chronological design. Revalidate that link through the strict scope owner.
+    observed_binding = require_binding(observed["identity"].get("design"),
+        label="dynamic Entry observed plan", verify_file=True)
+    observed_plan = read_bound_json(Path(observed_binding["path"]), observed_binding["sha256"])
+    native_binding = require_binding(binding["design"], label="dynamic Entry physical design", verify_file=True)
+    observed_prefix, observed_files = observed_plan.get("chronological_prefix"), observed_plan.get("files")
+    if (not isinstance(observed_prefix, Mapping) or not isinstance(observed_files, Mapping)
+            or observed_prefix.get("design") != native_binding
+            or observed_prefix.get("normalization_result") != physical["entry_only_base_normalization"]
+            or observed_prefix.get("labels_result") != binding["result"]):
+        raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_DESIGN_JOIN_INVALID]")
+    sources = physical["physical_sources"]
+    scope = require_entry_observed_market_scope({
+        "entry_observed_market": observed_binding, "chronological_prefix": dict(observed_prefix),
+        "files": {**{f"entry_{split}_{kind}": sources[split].get(kind)
+                      for split in ("train", "val") for kind in ("parquet", "manifest")},
+                  "train_cost_authority": observed_files.get("train_cost_authority")},
+    })
+    if (entry_observed_market_identity(scope) != observed["identity"]
+            or scope.get("physical_sources") != sources):
+        raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_OBSERVED_SCOPE_INVALID]")
     times = pd.DatetimeIndex(dataset.df["time"]).as_unit("ns")
     pointers = dataset.df[DYNAMIC_M5_POINTER_COLUMNS[0]].to_numpy()
     first_prefix = dataset.df[DYNAMIC_M5_POINTER_COLUMNS[1]].to_numpy()
@@ -14022,6 +14047,9 @@ def _candidate_training_epoch_order(
     if dynamic:
         from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
         from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+        from gx1.contracts.entry_observed_market_v1 import (
+            require_entry_observed_market_scope, entry_observed_market_identity,
+        )
         observed = train_ds._entry_observed_market_binding
         auxiliary = getattr(train_ds, "_policy_dependent_auxiliary_binding", None)
         if (type(epoch_index) is not int or epoch_index != 0 or parent_population is None
@@ -14047,7 +14075,6 @@ def _candidate_training_epoch_order(
                 or Path(train_ds.parquet_path) != Path(source["parquet"]["path"])
                 or auxiliary.get("parent_entry_parquet") != source["parquet"]
                 or auxiliary.get("parent_entry_manifest") != source["manifest"]
-                or observed["identity"].get("design") != design_binding
                 or observed["identity"].get("target_contract") != single_epoch["witness"]["target_contract"]
                 or single_epoch["train_parquet"] != source["parquet"] or single_epoch["train_manifest"] != source["manifest"]
                 or canonical_json_sha256(authority) != canonical_json_sha256({
@@ -14057,6 +14084,25 @@ def _candidate_training_epoch_order(
                 or not np.array_equal(expected_parents.numpy(), np.arange(population_rows, dtype=np.int64))
                 or not np.array_equal(np.asarray(proof["prefix_epoch0_order"], dtype=np.int64), single_epoch["epoch0_parent_order"])):
             raise RuntimeError("[CANDIDATE_DYNAMIC_EPOCH_ORDER_SOURCE_OR_WITNESS_MISMATCH]")
+        observed_binding = require_binding(observed["identity"].get("design"),
+            label="dynamic epoch observed plan", verify_file=True)
+        observed_plan = read_bound_json(Path(observed_binding["path"]), observed_binding["sha256"])
+        observed_prefix, observed_files = observed_plan.get("chronological_prefix"), observed_plan.get("files")
+        if (not isinstance(observed_prefix, Mapping) or not isinstance(observed_files, Mapping)
+                or observed_prefix.get("design") != design_binding
+                or observed_prefix.get("normalization_result") != design.get("inputs", {}).get("entry_only_base_normalization")
+                or observed_prefix.get("labels_result") != auxiliary.get("result")):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_EPOCH_ORDER_DESIGN_JOIN_INVALID]")
+        sources = design["calendar"]["source_bindings"]
+        scope = require_entry_observed_market_scope({
+            "entry_observed_market": observed_binding, "chronological_prefix": dict(observed_prefix),
+            "files": {**{f"entry_{split}_{kind}": sources[split].get(kind)
+                          for split in ("train", "val") for kind in ("parquet", "manifest")},
+                      "train_cost_authority": observed_files.get("train_cost_authority")},
+        })
+        if (entry_observed_market_identity(scope) != observed["identity"]
+                or scope.get("physical_sources") != sources):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_EPOCH_ORDER_OBSERVED_SCOPE_INVALID]")
         clock = pd.DatetimeIndex(train_ds.df["time"]).as_unit("ns")
         mask = getattr(train_ds, "_entry_observed_market_admitted_rows", None)
         bound = getattr(train_ds, "_policy_dependent_auxiliary_bound_rows", None)

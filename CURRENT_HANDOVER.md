@@ -166,6 +166,62 @@ andre outputs eller TEST og kan ikke kvalifisere dagens dynamiske Entry.
 Eksisterende Entry-only optimizer og varig state/resume gjenbrukes; ekte
 dynamisk ekvivalens og modellkonsum gjenstår.
 
+059COMPLETE19.10 kl05:02:07UTC,11.361s, exit0/uendret2b0909d1.
+Nøyaktig to godkjente practiceGET ble forsøkt og fullført i riktig rekkefølge.
+Frosne historiske observasjoner er identisk bevart. KostautoritetSHA
+e93ed40451a24344f94716e1f5ebe4cd348e6c7c3120e7509d6d55827bf40522.
+Tillatelsen er konsumert; ingen flere brokerkall eller relaunch059.
+Gjeldende prospektive kostantakelser er kvalifisert, historisk kostsannhet
+og økonomisk edge er fortsatt ubevist.
+
+060retter en målt gjenværende blokkering før modellbygging: prefix-Dataset
+sammenligner observedPLAN-binding direkte med fullDESIGN057. Riktig join
+går via observedPLAN.chronological_prefix.design; begge identiteter beholdes.
+En avgrenset ekte freshCPUstate-/initialization-/measurementbinding-produsent
+bygges i eksisterende full_train-eier. Ingen modellforward/optimizer/refit/
+Exit/TEST i forberedelsen; native trening er fortsatt stengt.
+Dataset-kilden bruker auditstyrt rekonstruksjon og memmap, så logisk141.82GB
+sekvens-RAM materialiseres ikke. Beregnet midlertidig diskbehov er omtrent
+26.9GB før modelltilstand; faktisk peak-RAM gjenstår å måle. Ingen
+forebyggende minnepatch er begrunnet.
+
+060første sourcekvalifisering:186PASS/8FAIL,100.579s, uendret kilde.
+Alle8feil stopper samme gjenværende PLAN-versus-DESIGN-join i checkpoint-
+eieren; ingen separat sessionfeil er bevist. Kun denne dynamiske join og
+tilhørende fixtures/regresjoner rettes. Ny freshCPU-produsent og dens8nye
+testcaser bestod. Originalkvittering bevares; én fokusert repair er planlagt.
+
+Ny brukerpresisering19.10: første trening ønskes kompakt med MBP-1, SMC,
+EMA, ATR og minste nødvendige kontekst; candlestick/chartpatterns og
+overlappende felt kan stå utenfor først. Hele datasettet/featurebiblioteket
+og fullmodellens standardprofil beholdes. Eksakt felt- og beregningsprofil
+kartlegges nå; ingen målt treningstid finnes og30dagersestimat er ikke
+verifisert. Færre felt må også spare faktiske modellberegninger.
+060s full-feature-runtimeforberedelse er uclaimet og pauses for dette
+profilvalget. Ingen ekstra treningsbudsjett eller launch følger av notatet.
+
+060sourcebølgen er nå kvalifisert:242unike PASS,0FAIL/ERROR/SKIP.
+Original186PASS/8FAIL er bevart; alle8sammecheckpointjoin. Repair167PASS
+på78.681s; øvrige uendrede caser gjenbrukes. Kun2trainerjoins,1checkpointjoin
+og ekteCPUfreshprodusent er endret; modell-/feature-/targetmatematikk urørt.
+060runtime er uclaimet og forblir stengt for den nye kompakte førsterunden.
+
+Én konkret kompaktprofil er kildevalgt, ikke implementert:2622signal/2525ctx/
+139felt perTF,7lokale og5MTF-familier. Alle1205GCverdier+1205masker og
+61D1/makrofelt beholdes; lokal candle-rute beholder74ekteMBPkanaler.
+Fysisk2725/2542/253 og055transformen beholdes før intern feltutvelgelse;
+ingen datasetrebuild/normrefit. MTFrutepass blir40→25 og lokal8→7; dette
+er geometri, ingen målt latency. Vinduer og lagdybde beholdes. Førsteprofil
+krever egen eksplisitt funksjon-/routingkontrakt og fersk faktisk baseline.
+Eksakte ordnede navn står i COMPACT_FIRST_ROUND_PROFILE_PROPOSAL.json.
+
+Ny individuell feltindeks er publisert med1265MTFoppføringer,1205GCverdier/
+1205masker,2542kontekstaliaser og183andre lokale felt. Den peker til eksakte
+kilde-/testscope og markerer ubeviste unit/warmup/uavhengige numerikk-/
+faktisk dynamisk-forwardfelt; ingen full individuell formelPASS hevdes.
+276runtimealiaspar og217historiske sourcepar er ulike tellinger;53GCfelt
+perTF beholder eksplisitt M5profilklokke. Les060feltindeksen for hullene.
+
 ## Native kjede som gjenstår
 
 1.057s faktiske design/vitne/receipt/koordinater/cohorts er fullført og

@@ -327,3 +327,19 @@ Aktivert1205registry er etterkontrollert i75unike forbrukercaser. En konkret
 normaliseringsfeil i min/max for maskerte binærverdier er rettet uten svekkede
 domene-/statsvakter. Dette er syntetiske kilde-/modellmekaniske kontroller;
 ny fysisk003inputkjede, faktisk inputparitet og læring er fortsatt egne krav.
+
+## Gjeldende individuelle bevis19.10
+
+060/INDIVIDUAL_FEATURE_EVIDENCE_INDEX.json binder253×5MTF-felt,1205GCverdier
+og1205separate masker,2542signal/context-aliaser og183andre lokale signaler.
+Indeksen skiller kilde-/klokkebevis, shared-owner-paritet, uavhengig numerisk
+referanse og ennå umålt aktuell modellforward. Ubeviste unit-/warmup-/
+referansefelter er eksplisitte; dette er ikke en full individuell formelPASS.
+276runtimealiaspar og217historiske sourcepar er forskjellige tellinger.
+53GCkontekstfelt perTF beholder fysisk M5profilklokke.
+
+Første kompakte profil er ett kildeforslag, ikke en målt støyseleksjon:
+alle2410GCkanaler beholdes. Lokal candle-rute inneholder74GCkanaler og
+volatility-ruten102; familienavn alene gir ingen trygg slukking av MBP.
+2622/2525/139-forslaget og7lokal/5MTF er ennå ikke implementert. Fullbibliotek
+og eksakte rawkilder beholdes; ingen ekstra fit/HPO følger av dette.

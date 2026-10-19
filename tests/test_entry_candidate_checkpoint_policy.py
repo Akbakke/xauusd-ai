@@ -181,27 +181,55 @@ def test_m5_checkpoint_policy_rejects_changed_scope_or_checkpoint_identity(tmp_p
             prefix_training_binding=prefix)
 
 
-def _dynamic_m5_checkpoint_prefix(tmp_path):
+def _dynamic_m5_checkpoint_prefix(tmp_path, monkeypatch):
+    """Checkpoint unit: a real witness; quote/cost/preprocessing is a strict-owner boundary."""
+    import copy
     from tests.test_native_prefix_recipe import _dynamic_single_epoch_design, _write
     from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+    from gx1.contracts import entry_observed_market_v1 as observed_owner
     design, witness = _dynamic_single_epoch_design(tmp_path, rows=17)
     single = require_m5_single_epoch_population(design)
     binding = _write(tmp_path / "dynamic-checkpoint-design.json", design)
-    identity = {"training_phase": witness["training_phase"], "design": binding,
-                "target_contract": witness["target_contract"]}
+    base = _write(tmp_path / "base-scope-boundary.json", {"qualified_owner_unit_boundary":True})
+    artifacts = {"design":binding, "normalization_result":base,
+        "labels_result":_write(tmp_path / "labels-scope-boundary.json", {"qualified_owner_unit_boundary":True}),
+        "native_coordinates":_write(tmp_path / "coordinates-scope-boundary.json", {"qualified_owner_unit_boundary":True})}
+    sources = {"train":{"parquet":single["train_parquet"], "manifest":single["train_manifest"]},
+        "val":{"parquet":_write(tmp_path / "val-parquet-scope-boundary.json", {"qualified_owner_unit_boundary":True}),
+               "manifest":_write(tmp_path / "val-manifest-scope-boundary.json", {"qualified_owner_unit_boundary":True})}}
+    source_files = {**{f"entry_{split}_{kind}":sources[split][kind]
+        for split in ("train", "val") for kind in ("parquet", "manifest")},
+        "train_cost_authority":_write(tmp_path / "cost-scope-boundary.json", {"qualified_owner_unit_boundary":True})}
+    plan = {"schema_version":observed_owner.DYNAMIC_M5_SCHEMA_VERSION + "_learning_design",
+        "target_contract":witness["target_contract"], "chronological_prefix":artifacts,
+        "files":source_files, "training_phase":witness["training_phase"],
+        "exit_updates_entry":False, "native_launch_authorized":False, "test_data_used":False}
+    observed_binding = _write(tmp_path / "observed-plan.json", plan)
+    scope = {"binding":observed_binding, "target_contract":witness["target_contract"],
+        "training_phase":witness["training_phase"],
+        "query_minutes":tuple(witness["target_contract"]["query_contract"]["horizon_minutes"]),
+        "economics":{"qualified_owner_unit_boundary":True}, "target_m1_source_sha256":"0"*64,
+        "physical_sources":copy.deepcopy(sources)}
+    identity = observed_owner.entry_observed_market_identity(scope)
+    def checked_scope(value):
+        expected = {"entry_observed_market":observed_binding,
+            "chronological_prefix":artifacts, "files":source_files}
+        if value != expected: raise RuntimeError("DYNAMIC_M5_UNIT_SCOPE_BINDING_MISMATCH")
+        return scope
+    monkeypatch.setattr(observed_owner, "require_entry_observed_market_scope", checked_scope)
     return {"schema_version": "gx1_candidate_prefix_training_binding_v1",
         "entry_training_phase": witness["training_phase"], "fixed_final_model_variant": "ONLINE",
-        "artifacts": {"design": binding},
+        "artifacts":copy.deepcopy(artifacts), "entry_only_base_normalization":base,
         "entry_m5_path_single_epoch": {"population_witness": single["binding"],
             "train_rows": single["train_rows"], "last_batch_rows": single["last_batch_rows"], "drop_last": False},
         "train_rows": single["train_rows"], "maximum_optimizer_steps": single["optimizer_steps"],
-        "maximum_completed_epochs": 1,
-        "physical_sources": {"train": {"parquet": single["train_parquet"], "manifest": single["train_manifest"]}},
-        "entry_observed_market": {role: {"identity": dict(identity)} for role in ("train", "control")}}
+        "maximum_completed_epochs": 1, "physical_sources":copy.deepcopy(sources),
+        "entry_observed_market": {role: {"identity":copy.deepcopy(identity)} for role in ("train", "control")}}
 
 
-def test_dynamic_m5_fixed_online_checkpoint_policy_has_no_validation_or_economic_selection(tmp_path):
-    prefix = _dynamic_m5_checkpoint_prefix(tmp_path)
+def test_dynamic_m5_fixed_online_checkpoint_policy_has_no_validation_or_economic_selection(tmp_path, monkeypatch):
+    prefix = _dynamic_m5_checkpoint_prefix(tmp_path, monkeypatch)
+    assert prefix["entry_observed_market"]["train"]["identity"]["design"] != prefix["artifacts"]["design"]
     monitor = policy.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
     actual = policy.checkpoint_policy_metadata(checkpoint_monitor=monitor, prefix_training_binding=prefix)
     assert actual == {
@@ -227,15 +255,15 @@ def test_dynamic_m5_fixed_online_checkpoint_policy_has_no_validation_or_economic
 
 @pytest.mark.parametrize("monitor", [policy.CHECKPOINT_MONITOR, policy.COUPLED_NET_CHECKPOINT_MONITOR,
                                     policy.MARKED_NET_CHECKPOINT_MONITOR])
-def test_dynamic_m5_prefix_rejects_legacy_checkpoint_monitors(tmp_path, monitor):
+def test_dynamic_m5_prefix_rejects_legacy_checkpoint_monitors(tmp_path, monkeypatch, monitor):
     with pytest.raises(RuntimeError, match="DYNAMIC_M5_FIXED_MONITOR_REQUIRED"):
         policy.checkpoint_policy_metadata(checkpoint_monitor=monitor,
-            prefix_training_binding=_dynamic_m5_checkpoint_prefix(tmp_path))
+            prefix_training_binding=_dynamic_m5_checkpoint_prefix(tmp_path, monkeypatch))
 
 
 @pytest.mark.parametrize("fault", ["no_prefix", "legacy", "no_witness", "phase", "manifest", "design", "target", "ema"])
-def test_dynamic_fixed_monitor_requires_actual_dynamic_prefix_and_whole_train_witness(tmp_path, fault):
-    prefix = _dynamic_m5_checkpoint_prefix(tmp_path)
+def test_dynamic_fixed_monitor_requires_actual_dynamic_prefix_and_whole_train_witness(tmp_path, monkeypatch, fault):
+    prefix = _dynamic_m5_checkpoint_prefix(tmp_path, monkeypatch)
     if fault == "no_prefix": prefix = None
     elif fault == "legacy":
         prefix = _m5_checkpoint_prefix(tmp_path)
@@ -246,5 +274,31 @@ def test_dynamic_fixed_monitor_requires_actual_dynamic_prefix_and_whole_train_wi
     elif fault == "target": prefix["entry_observed_market"]["train"]["identity"]["target_contract"] = {}
     elif fault == "ema": prefix["fixed_final_model_variant"] = "EMA"
     with pytest.raises(RuntimeError, match="DYNAMIC_M5"):
+        policy.checkpoint_policy_metadata(checkpoint_monitor=policy.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+            prefix_training_binding=prefix)
+
+
+@pytest.mark.parametrize("fault", ["native_design", "normalization", "receipt", "stale_plan", "scope_rejection"])
+def test_dynamic_checkpoint_rejects_broken_distinct_observed_plan_join(tmp_path, monkeypatch, fault):
+    import copy
+    import json
+    from pathlib import Path
+    from tests.test_native_prefix_recipe import _write
+    from gx1.contracts import entry_observed_market_v1 as observed_owner
+    prefix = _dynamic_m5_checkpoint_prefix(tmp_path, monkeypatch)
+    observed = prefix["entry_observed_market"]["train"]["identity"]["design"]
+    if fault in {"native_design", "normalization", "receipt"}:
+        plan = json.loads(Path(observed["path"]).read_text())
+        key = {"native_design":"design", "normalization":"normalization_result", "receipt":"labels_result"}[fault]
+        plan["chronological_prefix"][key] = _write(tmp_path / ("other-" + key + ".json"), {"different":True})
+        changed = _write(Path(observed["path"]), plan)
+        for role in ("train", "control"):
+            prefix["entry_observed_market"][role]["identity"]["design"] = copy.deepcopy(changed)
+    elif fault == "scope_rejection":
+        def rejected(value): raise RuntimeError("DYNAMIC_M5_STRICT_SCOPE_OWNER_REJECTED")
+        monkeypatch.setattr(observed_owner, "require_entry_observed_market_scope", rejected)
+    else:
+        with Path(observed["path"]).open("a") as handle: handle.write("\n")
+    with pytest.raises(RuntimeError):
         policy.checkpoint_policy_metadata(checkpoint_monitor=policy.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
             prefix_training_binding=prefix)
