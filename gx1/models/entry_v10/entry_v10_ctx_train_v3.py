@@ -1382,14 +1382,18 @@ if ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED not in (
         f"got={ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED!r} expected one of "
         f"{MODEL_NATIVE_WEIGHT_EMA_DECAY_DECLARED_VALUES}"
     )
-# The only checkpoint authority is realized executable Entry-policy PnL on
-# complete VAL episodes. Aggregate auxiliary loss and historical direction
-# class accuracy are diagnostics and cannot select the shipped policy.
+# Import has no recipe phase. Admit only the two source-owned monitor enums;
+# legacy CLI/native recipe/checkpoint owners still require the exact phase-
+# specific value before data, model construction or training. Unknown values
+# remain invalid, and an import alone grants no checkpoint or launch authority.
 ENTRY_CKPT_MONITOR = _env_str("GX1_V10_CKPT_MONITOR").strip().lower()
-if ENTRY_CKPT_MONITOR != "entry_policy_pnl":
+if ENTRY_CKPT_MONITOR not in (
+    MODEL_NATIVE_RECIPE_ENV["GX1_V10_CKPT_MONITOR"],
+    DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+):
     raise RuntimeError(
         "[ENTRY_CKPT_MONITOR_INVALID] "
-        f"got={ENTRY_CKPT_MONITOR!r} expected=entry_policy_pnl"
+        f"got={ENTRY_CKPT_MONITOR!r} expected=source_owned_checkpoint_monitor"
     )
 
 # -----------------------------------------------------------------------------

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-19T05:59:41.111933+00:00",
-  "status": "062_COMPACT_FRESH_PREPARATION_PLANNED_AFTER_061_380PASS",
+  "observed_utc": "2026-10-19T06:16:21.418889+00:00",
+  "status": "064_COMPACT_FRESH_CPU_PREPARATION_AFTER_CURRENT_IMPORT55PASS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Commit/push source-qualified compact profile061 and exact062CPUfresh plan/policy. Verify clean source, bind currentHEAD/owners/code/policy and execute exactlyone capped062fresh preparation. Then qualify genuine063initialbaseline/fullhistory consumption/parity/Entry-only/resume/hardware before the already requested one full nativeepoch. Old060fullprofile draft remains unclaimed/inactive. No broker/Exit/TEST/extraarms.",
+  "next_action": "Commit/push one measured importenum guard plus fresh-process tests/docs; bind NEW064exact clean HEAD/policy/owners then run its one capped CPUfresh preparation. Consumed062neverrelaunch. Reuse061unchanged380functional cases and actual055/057/059data. Genuine063initialbaseline/consumption/parity/Entry-only/resume/hardware still pending; no training/broker/Exit/TEST/extraarms.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -12168,7 +12168,7 @@
           "genuine_model_consumption_qualified": false
         },
         "compact_fresh_preparation_stage_062": {
-          "status": "PLANNED_EXACT_ONE_CPU_FRESH_PREPARATION",
+          "status": "FAILED_CONSUMED_IMPORT_MONITOR_PHASE_GUARD_BEFORE_MODEL",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_20261019_062",
           "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_20261019_062/PLAN.json",
           "plan_sha256": "4455b258982367184b1f40639d05ec94742be0acc5039412cbe2a47f70361fbf",
@@ -12179,6 +12179,38 @@
           "source_review": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_EXECUTION_PROFILE_20261019_061/SOURCE_REVIEW.json",
             "sha256": "af35febdf458e53a217c931bf5763d1d1fa10fae41c167f3a852b2d7237bdb06"
+          },
+          "execution_authorized": false,
+          "planned_invocations": 1,
+          "completed_invocations": 1,
+          "relaunch_allowed": false,
+          "fresh_preparation_enabled": true,
+          "normalization_fit_enabled": false,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "model_forwards_allowed": false,
+          "genuine_dataset_materialization_allowed": false,
+          "broker_access_allowed": false,
+          "exit_evaluation": false,
+          "test_data_used": false,
+          "scope": "Publish explicit compact metadata from qualified058fullgeometry plus genuine CPUfresh ONLINE/anchor/EMA0/emptyoptimizer/RNG state through existing owner. Reuse actual057/055/059; zero Dataset/forward/optimizerstep/normfit. Capped audit4G512M7200seconds, frozen clean source/policy, exact source-bound one-shot claim.",
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_20261019_062/TERMINAL.json",
+            "sha256": "dd30414358c0d975a490130a53ff55d83fe330116f874f03b025cc2de6bca599"
+          },
+          "model_forwards": 0,
+          "optimizer_steps": 0,
+          "model_constructed": false,
+          "constructor_metadata_published": false,
+          "measured_blocker": "Trainer import1388-93 admits only legacy entry_policy_pnl and rejects the correctly phase-validated fixed final ONLINE dynamic monitor before constructor import."
+        },
+        "compact_fresh_preparation_stage_064": {
+          "status": "PLANNED_EXACT_ONE_AFTER_IMPORT_QUALIFIED55_REUSE380",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_REPAIR_20261019_064",
+          "source_qualification_authorized": false,
+          "entry_execution_profile": {
+            "name": "compact_mbp_smc_ema_atr_clock_macro_entry_v1",
+            "contract_sha256": "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125"
           },
           "execution_authorized": true,
           "planned_invocations": 1,
@@ -12193,7 +12225,24 @@
           "broker_access_allowed": false,
           "exit_evaluation": false,
           "test_data_used": false,
-          "scope": "Publish explicit compact metadata from qualified058fullgeometry plus genuine CPUfresh ONLINE/anchor/EMA0/emptyoptimizer/RNG state through existing owner. Reuse actual057/055/059; zero Dataset/forward/optimizerstep/normfit. Capped audit4G512M7200seconds, frozen clean source/policy, exact source-bound one-shot claim."
+          "measured_blocker": "Actual062failed import: phasevalidated fixed-final monitor rejected by legacyonly importpredicate. Knownenum check admits only canonicaldefault and sourceowned dynamicconstant; legacy CLI/phase recipe/checkpoint/session remain strict.",
+          "scope": "One new compact CPUfreshstate only after importsource qualification/cleanbinding. No new training arm or consumed062relaunch. Preserve all actual055/057/059data and061modelmath/qualifiedfunctionalproofs.",
+          "source_qualification_plan": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_REPAIR_20261019_064/SOURCE_QUALIFICATION_PLAN.json",
+          "source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_REPAIR_20261019_064/SOURCE_REVIEW.json",
+            "sha256": "69b4d0b43ff3e2681a6f571e47113cecb7ffa4d0beab89548e0963da66c08819"
+          },
+          "source_qualification_final": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_REPAIR_20261019_064/SOURCE_QUALIFICATION_FINAL_RECEIPT.json",
+            "sha256": "4fa911c2c903281e759309de7544526c2ad6b86586931b64a820dcf9ba621ebf"
+          },
+          "functional_reuse_proof": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_REPAIR_20261019_064/FUNCTION_AST_REUSE.json",
+            "sha256": "967c0b2e7a0396e3371911c621e7f9f066cfc6e1caf46ddb8c3da9d89d617d40"
+          },
+          "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_REPAIR_20261019_064/PLAN.json",
+          "plan_sha256": "d1e8fdc27fd68cc4ad8665a22b8cfdf57286ee7bac6e2971f5b70465625396ac",
+          "source_import_and_strict_phase_guards_qualified": true
         }
       },
       "operator_pc_reboot_20261018": {
@@ -12284,7 +12333,7 @@
       }
     },
     "first_round_compact_profile_20261019": {
-      "status": "SOURCE_IMPLEMENTED_AND_QUALIFIED_PENDING_GENUINE_PREPARATION",
+      "status": "SOURCE_PROFILE380_AND_FRESH_IMPORT55_QUALIFIED_PENDING_ACTUAL_STATE",
       "operator_request": "Start with MBP1+SMC+EMA+ATR and minimum necessary indicators; park candlestick/chart-pattern and overlapping fields for first rounds to reduce compute.",
       "full_data_and_feature_library_retained": true,
       "default_full_model_preserved": true,
@@ -12326,8 +12375,8 @@
         "contract_sha256": "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125"
       },
       "source_review": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_EXECUTION_PROFILE_20261019_061/SOURCE_REVIEW.json",
-        "sha256": "af35febdf458e53a217c931bf5763d1d1fa10fae41c167f3a852b2d7237bdb06"
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREPARATION_REPAIR_20261019_064/SOURCE_REVIEW.json",
+        "sha256": "69b4d0b43ff3e2681a6f571e47113cecb7ffa4d0beab89548e0963da66c08819"
       }
     }
   },

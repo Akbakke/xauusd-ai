@@ -71,7 +71,7 @@ Faktiske immutable bevis ligger i GX1_RUNS-røttene055/057/058/059/060 og
 policyen. Tidligere056/058sourcekvitteringer beholdes og gjenbrukes for
 uendrede kontrakter. De beviser ingen ny kompakt modellfunksjon.
 
-## Aktuell061: kompakt kilde kvalifisert;062fersk modelltilstand planlagt
+## Aktuell:061profil og064import kvalifisert;NY064CPUfreshplan klar
 
 Profil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, eksplisitt referanse
 `{name,contract_sha256}` i recipe, konstruktormetadata, modell og state.
@@ -106,15 +106,24 @@ senere berørte caser er slått sammen per eksakt JUnit-ID, ingen uavklart feil.
 SOURCE_QUALIFICATION_FINAL_RECEIPT.jsonSHAb623a3de5b6d570773febb5ad0b11c4437f2c37f5594180a4ff287b233500930.
 SOURCE_REVIEW.jsonSHAaf35febdf458e53a217c931bf5763d1d1fa10fae41c167f3a852b2d7237bdb06.
 
-062er en NY plan for kompakt CPUfreshstate, execution_readytrue med eksakt
-policybinding, men uclaimet. PLAN_SHA4455b258982367184b1f40639d05ec94742be0acc5039412cbe2a47f70361fbf.
-Den bevarer058full fysisk metadata utenom aktuell source_commit/created_utc/
-entry_execution_profile, med eksplisitt058proveniens. ProfileSHA er
-2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125 i både
-metadata/recipe/modell/state. Planen gjenbruker057/055/059 og publiserer bare
-fresh ONLINE=anchor=EMA0, tom optimizer/RNG og initialmålebinding via
-samme eksisterende eier. Ingen Dataset, forward, step, normfit eller broker.
-063/BUNDLE er fremtidig initialmåling;062må først ha faktisk terminal.
+062er faktisk avsluttet FAILED_NO_ADMISSION06:04:35UTC etter2.530s, kilde
+uendret3a76a7b7. Ingen metadata eller modellstate ble publisert; ingen modell,
+Dataset, forward, step, normfit, Exit/TEST/broker. Engangsplanen er konsumert
+og skal aldri relanseres. TERMINAL.json er bindende i policyen.
+
+Målt blokkering: dynamisk recipe-env er korrekt fasevalidert før full_train-
+import, men trainerens importvakt1388–93 tillater bare legacy entry_policy_pnl
+og avviser vedtatt fixed-final-ONLINE-monitor. Kun denne konkrete import-
+faseregelen er rettet med kun de to sourceeide kjente enumverdiene. Strenge
+legacy-CLI-/native-phase-/recipe-/checkpoint-/sessionporter er bevart.
+064bestod55aktuelle recipecaser inkl6fresh-prosessimport-/feilfasecaser på
+104.300s, exit0/uendret kilde. Legacy og dynamic importerer; ukjentmonitor,
+begge feilphasekombinasjoner og dynamicmonitor i legacyCLI avvises faktisk.
+Alle funksjoner/klasser og øvrige modultoppnoder er AST-identiske; kun én
+import-If er endret.061s380uendrede funksjonscaser gjenbrukes med separat
+FUNCTION_AST_REUSE.json. Ingen miljøomgåelse eller relaunch062.
+NY064CPUfreshplan er klar og uclaimet med egen policy/sourcebinding; bruker
+samme kvalifiserte data/profil og future063/BUNDLE. Ingen ny treningsarm.
 
 Ingen genuin kompakt modellforward, fresh modellstate, initialbaseline,
 optimizersteg eller nativeepoke er gjennomført. Ingen læring/generaliserings-
@@ -122,11 +131,11 @@ eller edgepåstand. Separate kilde-/modelltester bruker syntetiske inputs.
 
 ## Neste nødvendige steg
 
-1.061source er kvalifisert. Fullfør obligatoriske hooks, syntaks, stale-path
-   og git diff --check, commit/push, og kontroller ren source. Bind062til
-   eksakt gjeldendeHEAD/kode/policy/kjøreeiere, kjør den ene capped CPUjobben.
-   Ingen relaunch058/059 eller start av gammelt060fullprofilutkast.
-2. Etter faktisk062terminal: bind063profilbundet initialbaseline på ekte
+1.064importguard er kvalifisert med55PASS og061funksjonsbevis gjenbrukt.
+   Fullfør obligatoriske hooks/syntaks/stalepath/diffcheck og commit/push.
+   BindNY064CPUfreshplan til eksakt source/policy/owners og kjør én capped
+   invokasjon. Ingen relaunch058/059/062 eller gammelt060fullprofilutkast.
+2. Etter faktisk vellykket064terminal: bind063profilbundet initialbaseline på ekte
    data. Mål alle aktive felt-/value-mask-/MTF-stier, konsum/paritet og
    Entry-only optimizer/resume. Ingen Exit-grad/vektendring; samme frosne
    kohorter/queries/per-horisont masker. Mål faktisk latency og peakminne.

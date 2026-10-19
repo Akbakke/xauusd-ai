@@ -4,6 +4,7 @@ import ast
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -1069,3 +1070,101 @@ def test_dynamic_recipe_env_rejects_unbound_or_untyped_projection(fault):
         phase = "unbound_phase"
     with pytest.raises(RuntimeError, match="RECIPE_ENV_|ENTRY_TRAINING_PHASE_INVALID"):
         require_model_native_recipe_env(value, entry_training_phase=phase)
+
+
+
+def _fresh_checkpoint_monitor_process(case: str) -> subprocess.CompletedProcess[str]:
+    """Use a genuinely fresh interpreter under the parent's capped limits.
+
+    Only source-owned recipe keys are updated. OS/cgroup/affinity inheritance
+    remains intact; no phase/bypass environment key or production monkeypatch
+    is introduced, and no dataset/model/forward entrypoint is called.
+    """
+    source = r"""
+import importlib
+import os
+import sys
+from pathlib import Path
+from gx1.contracts.entry_model_native_train_recipe_v1 import (
+    MODEL_NATIVE_RECIPE_ENV, require_model_native_recipe_env,
+)
+from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
+    DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+)
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, JOINT_FITTED_Q_TRAINING_PHASE,
+)
+case = sys.argv[1]
+value = dict(MODEL_NATIVE_RECIPE_ENV)
+if case in {"dynamic", "legacy_fixed_mismatch", "dynamic_legacy_boundary"}:
+    value["GX1_V10_CKPT_MONITOR"] = DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+elif case == "unknown":
+    value["GX1_V10_CKPT_MONITOR"] = "unregistered_checkpoint_monitor_for_regression"
+phase = (ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+         if case in {"dynamic", "dynamic_legacy_mismatch", "dynamic_legacy_boundary"}
+         else JOINT_FITTED_Q_TRAINING_PHASE)
+module_name = "gx1.scripts.run_unified_exit_random_access_full_train_v1"
+assert module_name not in sys.modules
+if case in {"legacy_fixed_mismatch", "dynamic_legacy_mismatch"}:
+    try:
+        require_model_native_recipe_env(value, entry_training_phase=phase)
+    except RuntimeError as exc:
+        assert "MODEL_NATIVE_RECIPE_ENV_MISMATCH" in str(exc)
+    else:
+        raise AssertionError("canonical monitor/phase mismatch was accepted")
+    assert module_name not in sys.modules
+    print("CANONICAL_PHASE_MISMATCH_REJECTED_BEFORE_NATIVE_IMPORT")
+else:
+    if case != "unknown":
+        value = require_model_native_recipe_env(value, entry_training_phase=phase)
+    os.environ.update(value)
+    native = importlib.import_module(module_name)
+    assert Path(native.__file__).resolve() == Path.cwd() / "gx1/scripts/run_unified_exit_random_access_full_train_v1.py"
+    assert native.trainer.ENTRY_CKPT_MONITOR == value["GX1_V10_CKPT_MONITOR"]
+    if case == "dynamic_legacy_boundary":
+        try:
+            native.trainer._enforce_canonical_train_env_contract()
+        except RuntimeError as exc:
+            assert "MODEL_NATIVE_RECIPE_ENV_MISMATCH" in str(exc)
+            assert "ENTRY_TRAIN_RECIPE_ENV_INVALID" in str(exc)
+        else:
+            raise AssertionError("legacy default boundary accepted dynamic monitor")
+        print("LEGACY_DEFAULT_PHASE_REJECTED_DYNAMIC_MONITOR")
+    else:
+        print("FRESH_FULL_TRAIN_IMPORT_OK")
+"""
+    environment = os.environ.copy()
+    environment.update(MODEL_NATIVE_RECIPE_ENV)
+    return subprocess.run(
+        [sys.executable, "-c", source, case], cwd=REPO, env=environment,
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, timeout=60, check=False,
+    )
+
+
+@pytest.mark.parametrize("case", ["legacy", "dynamic"])
+def test_fresh_full_train_import_accepts_canonical_monitor_environment(case: str) -> None:
+    result = _fresh_checkpoint_monitor_process(case)
+    assert result.returncode == 0, result.stderr
+    assert "FRESH_FULL_TRAIN_IMPORT_OK" in result.stdout
+
+
+def test_fresh_full_train_import_rejects_unknown_checkpoint_monitor() -> None:
+    result = _fresh_checkpoint_monitor_process("unknown")
+    assert result.returncode == 1
+    assert "[ENTRY_CKPT_MONITOR_INVALID]" in result.stderr
+    assert "FRESH_FULL_TRAIN_IMPORT_OK" not in result.stdout
+
+
+@pytest.mark.parametrize("case", ["legacy_fixed_mismatch", "dynamic_legacy_mismatch"])
+def test_fresh_recipe_env_rejects_monitor_phase_mismatch_before_native_import(case: str) -> None:
+    result = _fresh_checkpoint_monitor_process(case)
+    assert result.returncode == 0, result.stderr
+    assert "CANONICAL_PHASE_MISMATCH_REJECTED_BEFORE_NATIVE_IMPORT" in result.stdout
+    assert "FRESH_FULL_TRAIN_IMPORT_OK" not in result.stdout
+
+
+def test_fresh_legacy_boundary_rejects_dynamic_monitor_after_phase_validated_import() -> None:
+    result = _fresh_checkpoint_monitor_process("dynamic_legacy_boundary")
+    assert result.returncode == 0, result.stderr
+    assert "LEGACY_DEFAULT_PHASE_REJECTED_DYNAMIC_MONITOR" in result.stdout
