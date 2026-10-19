@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — 072 kvalifisert, ingen modellstart
+## Aktuell grense — 073 ny kildebundet CPU-klargjøring, ingen modellstart
 
 071 er konsumert og ble kontrollert stoppet 11:08:48 UTC før modellstart.
 Preflight gjenhashet samme TRAIN-fil: 427217476879 rchar, men bare 58176
@@ -87,11 +87,13 @@ Faktisk storfil-preflight-tid etter rettelsen er ennå ikke målt.
 
 ## Neste nødvendige steg og ærlige grenser
 
-1. Avslutt 072 med syntaks, stale-path, diff og obligatoriske commitporter.
-   Bind deretter en NY kildebundet CPU-fresh-publisering gjennom eksisterende
-   produsent. Gjenbruk 055-normalisering, 057-data/cohorts, 059-kost og profilen;
-   ingen refit, gamle vekter, forward eller optimizersteg i denne klargjøringen.
-2. Etter gyldig freshstate: bind en NY eksakt initial0-campaign med 256 TRAIN +
+1. 072 er committet og pushet som 47debf30; ren kilde/handover og obligatoriske
+   porter bestod (10 guard-/61 nativekontraktcaser). Ny 073-plan binder én
+   faktisk CPU-fresh-publisering gjennom eksisterende produsent, med samme
+   055-normalisering, 057-data/cohorts, 059-kost og profil. Ingen refit, gamle
+   vekter, forward eller optimizersteg. Kode/policy fryses før engangskjøringen.
+   Runrot: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_PREFLIGHT_BOUND_20261019_073.
+2. Etter gyldig 073-freshstate: bind NY 074 eksakt initial0-campaign med 256 TRAIN +
    256 CONTROL, 32 encoderforwards og 0 steg, etter ferske maskinvare-/bootporter.
    Mål faktisk felt-/maske-/MTF-konsum, komponenter, latency/minne og actionspor.
 3. Deretter separat faktisk paritet og Entry-only optimizer/resume med fire
