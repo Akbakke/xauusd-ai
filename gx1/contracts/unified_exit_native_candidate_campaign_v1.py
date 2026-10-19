@@ -27,6 +27,20 @@ NATIVE_MODULE = "gx1.scripts.run_unified_exit_native_candidate_window_v1"
 WINDOW_SCHEMA = "gx1_native_candidate_window_policy_v1"
 PREFIX_RESUME_EQUIVALENCE_SCHEMA = "gx1_prefix_resume_equivalence_plan_v1"
 
+DYNAMIC_M5_TECHNICAL_CURSOR_CEILING = 2
+DYNAMIC_M5_TECHNICAL_QUALIFICATION_SCHEMA = "gx1_dynamic_m5_technical_qualification_v1"
+DYNAMIC_M5_TECHNICAL_FIXED_SCOPE = {
+    "schema_version": DYNAMIC_M5_TECHNICAL_QUALIFICATION_SCHEMA,
+    "batch_size": 16, "train_entries": 32, "optimizer_steps": DYNAMIC_M5_TECHNICAL_CURSOR_CEILING,
+    "technical_optimizer_updates": 4, "control_optimizer_updates": 0,
+    "parity_entries_per_role": 16, "parity_model_forwards": 4,
+    "parity_absolute_tolerance_bps": 1e-4, "parity_relative_tolerance": 0.0,
+    "max_invocations": 1, "max_invocation_seconds": 12000,
+    "teacher_refresh_allowed": False, "full_epoch_training_allowed": False,
+    "full_val_allowed": False, "private_weights_reusable": False,
+    "native_launch_authorized": False, "test_data_used": False,
+}
+
 
 OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA = "gx1_candidate_optimizer_procedure_transition_v1"
 OPTIMIZER_PROCEDURE_TRANSITION_POLICY = "separate_model_and_task_weights_v1"
@@ -1553,10 +1567,9 @@ def _require_dynamic_m5_observation(observation, *, identity, cohort):
     return dict(observation)
 
 
-def require_chronological_initial_measurement(recipe, *, invocation_number=None, execution_budget=None):
-    """One native initial measurement, using saved fresh weights and zero steps."""
+def _require_prefix_fresh_measurement_artifacts(recipe, value):
+    """Share the unchanged fresh/source/coordinate checks across explicit scopes."""
     prefix = require_chronological_prefix_recipe(recipe)
-    value = recipe.get("chronological_initial_measurement")
     if not isinstance(value, Mapping) or set(value) != {"initialization_result", "measurement_binding_result"}:
         raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_INVALID")
     artifacts = {k: require_binding(v, label="initial measurement artifact", verify_file=True)
@@ -1597,6 +1610,84 @@ def require_chronological_initial_measurement(recipe, *, invocation_number=None,
     if _dynamic_m5_native_design(recipe) is not None:
         prefix = _require_dynamic_m5_native_prefix(recipe)
         _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement)
+    return prefix, artifacts, initial, measurement
+
+
+def require_dynamic_m5_technical_qualification(recipe, *, invocation_number=None, execution_budget=None):
+    """Admit one disposable mechanics proof, never a shortened production epoch."""
+    key = "entry_dynamic_m5_technical_qualification"
+    forbidden = {"chronological_initial_measurement", "chronological_learning_measurement",
+        "chronological_learning_continuation", "chronological_train_only_measurement",
+        "candidate_resume_origin", "native_calibration", "frozen_readout_evaluation",
+        "entry_gradient_diagnostic", "entry_learning_study", "chronological_entry_baseline",
+        "frozen_train_policy_evaluation", "frozen_entry_selector_probe"}
+    if _dynamic_m5_native_design(recipe) is None or any(name in recipe for name in forbidden):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_TECHNICAL_MIXED_SCOPE")
+    binding = require_binding(recipe.get(key), label="dynamic technical qualification", verify_file=True)
+    plan = read_bound_json(Path(binding["path"]), binding["sha256"])
+    extra = {"entry_training_phase", "chronological_prefix", "initialization_result", "measurement_binding_result",
+        "entry_execution_profile", "files", "run_id", "out_bundle_dir", "source_bindings_sha256",
+        "measurement_cohort_sha256", "native_train_parent_rows", "initial_measurement_result", "initial_measurement_audit"}
+    if (not isinstance(plan, Mapping) or set(plan) != set(DYNAMIC_M5_TECHNICAL_FIXED_SCOPE) | extra
+            or any(type(plan.get(name)) is not type(expected) or plan[name] != expected
+                   for name, expected in DYNAMIC_M5_TECHNICAL_FIXED_SCOPE.items())):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_TECHNICAL_PLAN_INVALID")
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    reference = require_dynamic_m5_execution_profile(recipe)
+    if (reference is None or plan["entry_execution_profile"] != reference
+            or plan["entry_training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or any(plan[name] != recipe.get(name) for name in (
+                "chronological_prefix", "files", "run_id", "out_bundle_dir", "source_bindings_sha256"))):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_TECHNICAL_RECIPE_MISMATCH")
+    prefix, artifacts, initial, measurement = _require_prefix_fresh_measurement_artifacts(
+        recipe, {name: plan[name] for name in ("initialization_result", "measurement_binding_result")})
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_measurement_cohort
+    cohorts = {role: build_chronological_measurement_cohort(prefix["artifacts"]["design"],
+        measurement["coordinate_result"], role=role) for role in ("train", "control")}
+    parents = prefix["physical_coordinates"]["epoch0_parent_order"][:DYNAMIC_M5_TECHNICAL_FIXED_SCOPE["train_entries"]].tolist()
+    if (len(parents) != 32 or not isinstance(plan["native_train_parent_rows"], list)
+            or plan["native_train_parent_rows"] != parents
+            or any(type(parent) is not int for parent in plan["native_train_parent_rows"])
+            or plan["measurement_cohort_sha256"] != {role: value["cohort_sha256"] for role, value in cohorts.items()}):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_TECHNICAL_ROWS_MISMATCH")
+    completed = require_chronological_learning_measurement(recipe,
+        initial_measurement_audit=plan["initial_measurement_audit"])
+    if (completed["artifacts"]["initial_measurement_result"] != plan["initial_measurement_result"]
+            or any(completed["artifacts"][name] != artifacts[name] for name in artifacts)):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_TECHNICAL_INITIAL_AUDIT_MISMATCH")
+    artifacts = completed["artifacts"]
+    repo = Path(__file__).resolve().parents[2]
+    policy_binding = require_binding(recipe.get("next_run_policy"), label="dynamic technical policy", verify_file=True)
+    if Path(policy_binding["path"]) != repo / "NEXT_RUN_POLICY.json":
+        raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
+    policy = read_bound_json(Path(policy_binding["path"]), policy_binding["sha256"])
+    _require_native_profile_and_economics(recipe, policy, repo)
+    expected = {"plan": binding, **dict(plan)}
+    _expected_observed_entry_binding(recipe, expected)
+    if (policy.get("training_enabled") is not True or policy.get("full_epoch_training_allowed") is not False
+            or policy.get(key) != expected or any(name in policy for name in (
+                "chronological_initial_measurement", "chronological_learning_run", "native_learning_calibration",
+                "entry_m5_path_single_epoch_run", "frozen_readout_evaluation"))):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_TECHNICAL_NOT_AUTHORIZED")
+    if invocation_number is not None and (type(invocation_number) is not int or invocation_number != 1):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_TECHNICAL_INVOCATION_INVALID")
+    if execution_budget is not None and (
+            type(execution_budget.get("stop_after_optimizer_steps")) is not int
+            or execution_budget["stop_after_optimizer_steps"] != DYNAMIC_M5_TECHNICAL_CURSOR_CEILING
+            or execution_budget.get("expected_active_pointer_sha256") is not None
+            or execution_budget.get("stop_after_completed_val_epochs") is not None
+            or execution_budget.get("max_invocation_seconds") != 12000 or "resume_probe_val_rows" in execution_budget):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_TECHNICAL_BUDGET_INVALID")
+    return {"plan_binding": binding, "plan": dict(plan), "prefix": prefix, "artifacts": artifacts,
+        "initialization": initial, "measurement": measurement, "cohorts": cohorts,
+        "optimizer_step_ceiling": DYNAMIC_M5_TECHNICAL_CURSOR_CEILING}
+
+
+def require_chronological_initial_measurement(recipe, *, invocation_number=None, execution_budget=None):
+    """One native initial measurement, using saved fresh weights and zero steps."""
+    prefix, artifacts, initial, measurement = _require_prefix_fresh_measurement_artifacts(
+        recipe, recipe.get("chronological_initial_measurement"))
+    repo = Path(__file__).resolve().parents[2]
     binding = require_binding(recipe.get("next_run_policy"), label="initial measurement policy", verify_file=True)
     if Path(binding["path"]) != repo / "NEXT_RUN_POLICY.json":
         raise RuntimeError("NATIVE_NEXT_RUN_POLICY_PATH_INVALID")
@@ -1685,10 +1776,10 @@ def _require_derived_entry_baseline(recipe, *, initial_result, train_observation
     return binding, baseline
 
 
-def require_chronological_learning_measurement(recipe):
+def require_chronological_learning_measurement(recipe, *, initial_measurement_audit=None):
     """Bind the completed initial observation; prefix identity is checked by the caller."""
-    binding = require_binding(recipe.get("chronological_learning_measurement"),
-                              label="completed initial measurement audit", verify_file=True)
+    binding = require_binding(recipe.get("chronological_learning_measurement") if initial_measurement_audit is None
+                              else initial_measurement_audit, label="completed initial measurement audit", verify_file=True)
     audit = read_bound_json(Path(binding["path"]), binding["sha256"])
     def load(value, label):
         checked = require_binding(value, label=label, verify_file=True)
@@ -2477,6 +2568,9 @@ def require_native_run_scope(
     The sole pre-training exception is a finite, declared TRAIN calibration.
     It uses the normal native session, production profile and machine guards.
     """
+    if "entry_dynamic_m5_technical_qualification" in recipe:
+        return require_dynamic_m5_technical_qualification(recipe, invocation_number=invocation_number,
+            execution_budget=execution_budget)["optimizer_step_ceiling"]
     if "entry_m5_path_single_epoch" in recipe:
         if "chronological_initial_measurement" in recipe:
             require_chronological_initial_measurement(recipe, invocation_number=invocation_number,

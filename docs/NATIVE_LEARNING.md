@@ -43,6 +43,31 @@ Alle480horisonter deler samme encoderforward. Disse computegrensene lager
 ingen Exit-stateviews eller handelsregel. Native-/yttergrensene12000/13800s
 og eksisterende maskinvarevakter beholdes.
 
+## Teknisk kvalifisering av dynamisk Entry
+
+Før epoken må faktisk dynamisk komponentparitet og Entry-only optimizer/resume
+bevises på samme kompaktprofil og frosne data. Legacy entry_action_q_bps-smoke
+er ingen slik kontroll. Initialmåling bruker null optimizersteg og
+training_enabled=false. En særskilt hashbundet teknisk kvalifisering må ha
+training_enabled=true, full_epoch_training_allowed=false og eksakt avgrenset
+policy/recipe/campaign før noen teknisk update tillates.
+
+Paritet bruker første16 i de samme256TRAIN/256CONTROL-kohortene, evalmodus
+med og uten gradientsporing, fire forwards og null updates. Alle480queryer,
+komponenter, forecasts, kandidatretning og ties kontrolleres; toleranse er
+forhåndsvalgt1e-4bps/rtol0. Modell, RNG, optimizer/EMA og originalpointer
+bevares. Batchenes inputs, queries, targets og masker bindes separat.
+
+Resume-kontrollen bruker første32rader i057s kanoniske TRAIN-ordre, batch16:
+to sammenhengende steg mot ett steg, faktisk varig lagring/gjenlasting og
+samme andre steg. Fire tekniske updates totalt; samme eksisterende loss,
+AdamW, EMA, scheduler, clipping og gradvakter. ONLINE/anker/optimizer/EMA/
+scheduler/RNG/orden/cursor skal være ekvivalente. Ingen CONTROL-updates,
+vektsortering eller gjenbruk av kvalifiseringsvektene i hovedepoken. Dette
+er én serialiseringskontroll, ingen ekstra økonomisk treningsarm eller HPO.
+Kildens faktiske innrømmelse og målte terminalkvitteringer må fortsatt finnes;
+metodebeskrivelsen starter ingen jobb og åpner ingen port.
+
 ## Omstart, mellomlagring og effektivitet
 
 Operatøren ba 09.10 om hyppige trygge segmentgrenser og mellomlagring. Bruk

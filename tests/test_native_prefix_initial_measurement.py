@@ -624,6 +624,134 @@ def test_dynamic_initial_scope_uses_current_entry_coordinates_and_zero_step_budg
     assert "design" not in json.loads(Path(checked["measurement"]["coordinate_result"]["path"]).read_text())
 
 
+@pytest.fixture
+def dynamic_initial_campaign_review(dynamic_initial_scope, tmp_path, monkeypatch):
+    from gx1.contracts import local_random_access_campaign_v2 as campaign
+    from tests.test_native_prefix_recipe import _cursor
+
+    case = dynamic_initial_scope
+    # Isolate receipt-chain transport; actual scope and cursor byte guards remain real.
+    monkeypatch.setattr(campaign, "require_receipt_chain", lambda plan, receipts, **kw: receipts)
+
+    def completed_cursor(*, steps=0, recipe_binding=None):
+        binding = case["seal_initial"]() if recipe_binding is None else recipe_binding
+        _, cursor = _cursor(tmp_path, binding, steps)
+        plan = {"phase": "native_candidate", "checked_invocations": [{}], "native_recipe": binding}
+        receipt = {"outcome": "RESUMABLE", "checkpoint_pointer_snapshot": cursor}
+        return plan, [receipt]
+
+    return case, campaign, completed_cursor
+
+
+def test_dynamic_initial_campaign_with_m5_witness_stops_for_review_at_zero(
+    dynamic_initial_campaign_review, monkeypatch,
+):
+    case, campaign, completed_cursor = dynamic_initial_campaign_review
+    plan, receipts = completed_cursor()
+    assert "entry_m5_path_single_epoch" in case["recipe"]
+    real_scope = native.require_native_run_scope
+    checked = []
+
+    def scope(recipe, **kw):
+        checked.append(recipe)
+        return real_scope(recipe, **kw)
+
+    def epoch_forbidden(*args, **kw):
+        raise AssertionError("initial0 must not claim a completed learning epoch")
+
+    monkeypatch.setattr(native, "require_native_run_scope", scope)
+    monkeypatch.setattr(native, "require_m5_single_epoch_run", epoch_forbidden)
+    assert campaign.next_action(plan, receipts, current_boot={}) == {
+        "decision": "BLOCKED_NATIVE_LEARNING_REVIEW_REQUIRED"}
+    assert checked == [case["recipe"]]
+
+
+@pytest.mark.parametrize("fault", ["mixed_measurement", "training_enabled", "nonzero_cursor"])
+def test_dynamic_initial_campaign_review_keeps_scope_and_zero_step_guards(
+    dynamic_initial_campaign_review, fault,
+):
+    case, campaign, completed_cursor = dynamic_initial_campaign_review
+    if fault == "mixed_measurement":
+        case["recipe"]["chronological_learning_measurement"] = case["recipe"]["files"]["entry_measurement_coordinates"]
+        reason = "NATIVE_M5_SINGLE_EPOCH_MIXED_OR_UNMEASURED_SCOPE"
+    elif fault == "training_enabled":
+        case["policy"]["training_enabled"] = True
+        reason = "NATIVE_PREFIX_INITIAL_MEASUREMENT_NOT_AUTHORIZED"
+    else:
+        reason = "native prefix cursor exceeded fixed experiment"
+    plan, receipts = completed_cursor(steps=1 if fault == "nonzero_cursor" else 0)
+    with pytest.raises(RuntimeError, match=reason):
+        campaign.next_action(plan, receipts, current_boot={})
+
+
+@pytest.mark.parametrize("scope_rejected", [False, True])
+def test_dynamic_campaign_technical_completion_requires_validated_scope_without_epoch_claim(
+    dynamic_initial_campaign_review, tmp_path, monkeypatch, scope_rejected,
+):
+    case, campaign, completed_cursor = dynamic_initial_campaign_review
+    recipe = copy.deepcopy(case["recipe"])
+    recipe.pop("chronological_initial_measurement")
+    recipe["entry_dynamic_m5_technical_qualification"] = {"unit_dispatch_only": True}
+    ceiling = native.DYNAMIC_M5_TECHNICAL_CURSOR_CEILING
+    plan, receipts = completed_cursor(steps=ceiling, recipe_binding=_write(tmp_path / "technical-review-recipe.json", recipe))
+    checked = []
+
+    def scope(value, **kw):
+        checked.append(value)
+        if scope_rejected:
+            raise RuntimeError("synthetic strict technical scope rejected")
+        return ceiling
+
+    def epoch_forbidden(*args, **kw):
+        raise AssertionError("technical qualification must not claim a completed learning epoch")
+
+    # Only dispatch is tested here; the technical scope owner has separate strict fixtures.
+    monkeypatch.setattr(native, "require_native_run_scope", scope)
+    monkeypatch.setattr(native, "require_m5_single_epoch_run", epoch_forbidden)
+    if scope_rejected:
+        with pytest.raises(RuntimeError, match="strict technical scope rejected"):
+            campaign.next_action(plan, receipts, current_boot={})
+    else:
+        assert campaign.next_action(plan, receipts, current_boot={}) == {
+            "decision": "BLOCKED_NATIVE_LEARNING_REVIEW_REQUIRED"}
+    assert checked == [recipe]
+
+
+@pytest.mark.parametrize("fault", [None, "epoch_gate_rejects", "batch_offset"])
+def test_dynamic_campaign_epoch_completion_keeps_full_epoch_gate(
+    dynamic_initial_campaign_review, tmp_path, monkeypatch, fault,
+):
+    case, campaign, completed_cursor = dynamic_initial_campaign_review
+    recipe = copy.deepcopy(case["recipe"])
+    recipe.pop("chronological_initial_measurement")
+    recipe["chronological_learning_measurement"] = recipe["files"]["entry_measurement_coordinates"]
+    steps = case["witness"]["optimizer_steps"]
+    plan, receipts = completed_cursor(steps=steps, recipe_binding=_write(tmp_path / "epoch-review-recipe.json", recipe))
+    # Dispatch-only unit: prerequisite admission owners have their own strict tests.
+    # This proves the completed epoch still reaches its full owner and offset check.
+    monkeypatch.setattr(native, "require_native_run_scope", lambda value, **kw: steps)
+    checked = []
+    single = {"binding": recipe["entry_m5_path_single_epoch"], "train_rows": case["witness"]["train_rows"],
+              "optimizer_steps": steps + (fault == "batch_offset")}
+
+    def epoch(value):
+        checked.append(value)
+        if fault == "epoch_gate_rejects":
+            raise RuntimeError("synthetic full epoch owner rejected admission")
+        return {"entry_m5_path_single_epoch": single}
+
+    monkeypatch.setattr(native, "require_m5_single_epoch_run", epoch)
+    if fault is None:
+        assert campaign.next_action(plan, receipts, current_boot={}) == {
+            "decision": "BLOCKED_NATIVE_LEARNING_REVIEW_REQUIRED", "train_epochs_consumed": 1,
+            "unique_train_rows": single["train_rows"], "population_witness": single["binding"]}
+    else:
+        reason = "full epoch owner rejected admission" if fault == "epoch_gate_rejects" else "M5 single epoch final batch offset differs"
+        with pytest.raises(RuntimeError, match=reason):
+            campaign.next_action(plan, receipts, current_boot={})
+    assert checked == [recipe]
+
+
 @pytest.mark.parametrize("fault", ["anchor", "exit", "normalization", "witness", "phase", "measurement_phase",
     "closure", "function", "coordinate", "zero_alias"])
 def test_dynamic_initial_scope_rejects_unbound_constructor_or_exit_work(dynamic_initial_scope, fault):

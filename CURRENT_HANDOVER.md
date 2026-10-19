@@ -71,7 +71,7 @@ Faktiske immutable bevis ligger i GX1_RUNS-røttene055/057/058/059/060 og
 policyen. Tidligere056/058sourcekvitteringer beholdes og gjenbrukes for
 uendrede kontrakter. De beviser ingen ny kompakt modellfunksjon.
 
-## Aktuell:061profil og064import kvalifisert;NY064CPUfreshplan klar
+## Aktuell:065 kilde707PASS;NY066fresh før faktisk063
 
 Profil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, eksplisitt referanse
 `{name,contract_sha256}` i recipe, konstruktormetadata, modell og state.
@@ -122,26 +122,58 @@ begge feilphasekombinasjoner og dynamicmonitor i legacyCLI avvises faktisk.
 Alle funksjoner/klasser og øvrige modultoppnoder er AST-identiske; kun én
 import-If er endret.061s380uendrede funksjonscaser gjenbrukes med separat
 FUNCTION_AST_REUSE.json. Ingen miljøomgåelse eller relaunch062.
-NY064CPUfreshplan er klar og uclaimet med egen policy/sourcebinding; bruker
-samme kvalifiserte data/profil og future063/BUNDLE. Ingen ny treningsarm.
+064fullførte faktisk06:42:38UTC,1332.114s,exit0/uendret3d496a9d.
+TERMINAL SHA4885573d4a4de4dafe1d90eeefd115ba992e925bd41a56fe4fb5bde0c1d784c6;
+RESULT SHAedcfc0c4accae8fcd4f4a44289fe5c5533a588de1912e90d9ff153e349ea795d.
+Kompaktmetadata, observedPLAN og ekte freshCPU ONLINE=anchor=EMA0, tom
+optimizer, scheduler/RNG og streng roundtrip er publisert. ModellstateSHA
+9c4cf514cbfd5b6f9366f69065abcc0878ef274117e2b5c7e703656e86a79b4a.
+INITIALIZATION SHA9cb966a9121304bd96f4f7c805a347793f26177af246d01404bcf2807e97fe35;
+MEASUREMENT_BINDING SHA0430743127585287bb1a584d454f4540cf885bbd6d535331dae7328129a6fc08.
+Ingen genuin forward, optimizersteg, normrefit, Exit/TEST/broker eller native-
+epoke.064er konsumert; ingen relaunch. Den planlagte stoppsjekken fant faktisk
+COMPLETE, så ingen signal ble sendt. Ingen læring/generaliserings-/edgepåstand.
 
-Ingen genuin kompakt modellforward, fresh modellstate, initialbaseline,
-optimizersteg eller nativeepoke er gjennomført. Ingen læring/generaliserings-
-eller edgepåstand. Separate kilde-/modelltester bruker syntetiske inputs.
+065kilden er nå implementert med avgrenset filansvar og uavhengig review.
+Bare initial0/teknisk2 går til eksisterende review-stop; ekte full-epoch-port
+beholdes. Én eksplisitt teknisk gate binder senere faktisk063audit og gir
+kun fire private tekniske updates (to mot ett+varig reload+ett), fire paritets-
+forwards og ingen CONTROL-updates/vektutvalg. Global trening må være true
+kun ved en senere eksakt slik innrømmelse; nå er den false. Samme canonical
+train_epoch/checkpoint/AdamW/EMA/scheduler/RNG-eiere brukes, ingen alternativ
+loss eller step. Perkeybatchhasher, klokker/pointere, komponenter/ties og
+bevart initialstate inngår. Alle faktiske nativebevis er fortsatt umålt.
+065fullførte07:11:06UTC på219.379s, exit0/uendret testbundet kilde:
+707PASS/0FAIL/0ERROR og3uaktuelle eldre derived-target/ikke-TRAIN-only-
+kombinasjoner eksplisitt SKIP. Alle71nye caser bestod (20GC+9completion+42
+teknisk); hver eksisterende testfunksjon er AST-identisk. Ingen testassert er
+endret for å skape PASS. SOURCE_QUALIFICATION_FINAL_RECEIPT SHA
+72cd6ca3be194aac66580a7433153bb63e36e455c956308eb55e62e02d94019b;
+SOURCE_REVIEW SHA02719e96415aef5c1a88f149f6bd099b44bf3a9f1779507ae089f56df81d087d.
+Modell/feature/trainer/objective-bytes er uendret. Ingen genuin forward/update.
+NY066freshplan er publisert separat;064state/kvitteringer bevares uendret.
+Kun dupliserte wrapperpreflights er fjernet i066; samme canonical produsent
+validerer fortsatt constructor/observed/physical/fullsource før fresh modell.
 
 ## Neste nødvendige steg
 
-1.064importguard er kvalifisert med55PASS og061funksjonsbevis gjenbrukt.
-   Fullfør obligatoriske hooks/syntaks/stalepath/diffcheck og commit/push.
-   BindNY064CPUfreshplan til eksakt source/policy/owners og kjør én capped
-   invokasjon. Ingen relaunch058/059/062 eller gammelt060fullprofilutkast.
-2. Etter faktisk vellykket064terminal: bind063profilbundet initialbaseline på ekte
-   data. Mål alle aktive felt-/value-mask-/MTF-stier, konsum/paritet og
-   Entry-only optimizer/resume. Ingen Exit-grad/vektendring; samme frosne
-   kohorter/queries/per-horisont masker. Mål faktisk latency og peakminne.
-3. Først etter faktiske maskinvare-/input-/funksjonsporter og eksakt ny
-   campaignbinding kan én full7391steps nativeepoke starte. Ingen ny epoke,
-   VAL-refresh, top-K eller økonomisk checkpointutvalg. Siste ONLINE beholdes.
+1.065har rettet og kildekvalifisert målt completion-join: initial0 med M5-witness blir feilaktig sendt
+   til full-epoch-only validator. Allerede validert initialmåling skal bruke
+   eksisterende review-stop; ekte epoch beholder strenge porter. Kvalifiser
+   dynamisk komponentparitet og eksisterende Entry-only optimizer/resume-eiere;
+   legacy entry_action_q_bps-smoke er ikke slik dokumentasjon. Ingen ekstra
+   økonomisk treningsarm/HPO/epoke eller generell guardlettelse.
+2. Fullfør fokuserte kontroller/hooks/syntaks/stalepath/diffcheck og commit/push.
+  064binder alle182kildene eksakt; bind og kjør NY066freshprep før063 etter
+   ren commit. Original064state/kvitteringer bevares. Ingen
+   rebuild/refit av055/057/059 eller relaunch av konsumerte planer.
+3. Bind063initialbaseline på ekte data, frosne256TRAIN/256CONTROL, alle aktive
+   felt-/value-mask-/MTF-stier og komponentmasker. Kvalifiser konsum/paritet,
+   Entry-only optimizer/resume, faktisk latency/peakminne og native hardware/
+   campaign/freshboot. Ingen Exit-grad/vektendring.
+4. Først etter faktiske porter og eksakt ny campaignbinding kan én full
+  7391steps nativeepoke starte. Ingen ekstra epoke, VAL-refresh, top-K eller
+   økonomisk checkpointutvalg. Siste ONLINE beholdes.
 
 Valgte og avståtte LONG/SHORT/FLAT må rapporteres med kvalitet og dekning.
 Gatevekter alene forklarer ikke beslutningen; alltidFLAT er ikke selektivitet.

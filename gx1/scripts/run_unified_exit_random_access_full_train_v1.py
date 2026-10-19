@@ -104,10 +104,11 @@ def _require_native_full_train_recipe(
             dynamic_phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study", "entry_m5_path_single_epoch", "entry_execution_profile"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study", "entry_m5_path_single_epoch", "entry_execution_profile", "entry_dynamic_m5_technical_qualification"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
         or ("entry_execution_profile" in recipe and dynamic_phase is None)
+        or ("entry_dynamic_m5_technical_qualification" in recipe and dynamic_phase is None)
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
                                         "frozen_online_readout_evaluation_only" if "frozen_readout_evaluation" in recipe else _INITIALIZATION)
         or recipe["recipe_sha256"] != val.canonical_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})
@@ -640,7 +641,7 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
     recipe, files, _ = _require_native_full_train_recipe(recipe_path, recipe_file_sha256)
     phase = trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     if (set(files) != _DYNAMIC_M5_DATA_FILES or "chronological_prefix" not in recipe
-            or any(key in recipe for key in ("chronological_initial_measurement", "chronological_learning_measurement"))):
+            or any(key in recipe for key in ("chronological_initial_measurement", "chronological_learning_measurement", "entry_dynamic_m5_technical_qualification"))):
         raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_RECIPE_REQUIRED")
     policy = val._read(_bound_artifact(recipe["next_run_policy"]))
     if policy.get("training_enabled") is not False or policy.get("full_epoch_training_allowed") is not False:
@@ -1361,6 +1362,12 @@ def run_guarded_native_candidate_invocation(
         return _run_frozen_readout_validation(
             components=components, recipe=recipe, device=device, output=output,
             recipe_file_sha256=recipe_file_sha256, invocation_started=started)
+    if "entry_dynamic_m5_technical_qualification" in recipe:
+        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_dynamic_m5_technical_qualification
+        technical_scope = require_dynamic_m5_technical_qualification(recipe, execution_budget=budget)
+        return _run_dynamic_m5_technical_qualification(components=components, scope=technical_scope,
+            recipe=recipe, files=files, output=output, device=device, provenance=provenance,
+            execution_budget=budget, recipe_file_sha256=recipe_file_sha256, invocation_started=started)
     if "chronological_initial_measurement" in recipe:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_initial_measurement
         initial_scope = require_chronological_initial_measurement(recipe, execution_budget=budget)
@@ -2230,22 +2237,299 @@ def _restore_prefix_initial_measurement_state(*, components, scope, device):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_MODEL_MISMATCH")
 
 
-def _dynamic_m5_prefix_observations(*, model, dataset, cohort, context, device, deadline):
-    """Observe one frozen Entry cohort through the existing one-forward curve evaluator."""
+def _dynamic_m5_technical_tree_sha256(value):
+    """Use the existing typed ndarray digest for exact nested checkpoint evidence."""
+    from gx1.contracts.unified_exit_random_access_state_view_v1 import _structured_sha256
+    def project(item):
+        if isinstance(item, torch.Tensor):
+            return item.detach().cpu().numpy()
+        if isinstance(item, Mapping):
+            return {key: project(raw) for key, raw in item.items()}
+        if isinstance(item, (list, tuple)):
+            return [project(raw) for raw in item]
+        return item
+    return _structured_sha256(project(value))
+
+
+def _dynamic_m5_technical_batch_manifest(batch):
+    """Describe actual tensors by role, preserving each nested MTF leaf."""
+    import hashlib
+    from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_TIMEFRAMES
+    inputs = {"seq_x", "snap_x", "ctx_cont", "ctx_cat", *("seq_" + tf.lower() for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES)}
+    from gx1.contracts.entry_observed_market_v1 import (
+        DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY, DYNAMIC_M5_MFE_TARGET_KEY,
+        DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY, DYNAMIC_M5_CLOSED_MFE_TARGET_KEY,
+        DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+    )
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+    )
+    pointers = {"entry_row_index", "dynamic_entry_parent_row_index", "dynamic_entry_m1_row"}
+    targets = {DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_MAE_TARGET_KEY,
+        DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY,
+        *(f"y_forecast_ret_K{h}" for h in trainer.FORECAST_HORIZONS)}
+    masks = {DYNAMIC_M5_MARKOUT_VALID_KEY, DYNAMIC_M5_PATH_VALID_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+        M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY}
+    groups = {name: {} for name in ("inputs", "targets", "masks", "pointers", "other_batch_tensors")}
+    def walk(value, path, root):
+        if isinstance(value, torch.Tensor):
+            array = np.ascontiguousarray(value.detach().cpu().numpy())
+            group = ("inputs" if root in inputs else "pointers" if root in pointers else
+                     "masks" if root in masks else "targets" if root in targets else
+                     "other_batch_tensors")
+            groups[group][path] = {"shape": list(value.shape), "dtype": str(value.dtype),
+                "storage_sha256": hashlib.sha256(array.tobytes()).hexdigest()}
+        elif isinstance(value, Mapping):
+            for key, item in value.items():
+                walk(item, path + "." + str(key), root)
+        elif isinstance(value, (tuple, list)):
+            for index, item in enumerate(value):
+                walk(item, path + "." + str(index), root)
+    for name, value in batch.items():
+        walk(value, str(name), str(name))
+    return groups
+
+
+def _dynamic_m5_forward_parity(*, model, batch, device):
+    """Same eval batch through the two actual curve-evaluation/training paths."""
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import DYNAMIC_M5_TECHNICAL_FIXED_SCOPE
+    fields = ("dynamic_terminal_net_markout_bps", "dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps",
+        "dynamic_closed_mfe_bps", "dynamic_closed_pre_mfe_mae_upper_bps", "forecast_pred",
+        "dynamic_entry_quality_bps_candidate", "dynamic_entry_action_quality_bps_candidate")
+    exact = ("dynamic_query_horizon_minutes", "dynamic_entry_quality_best_horizon_mask")
+    if (model.training or int(batch["seq_x"].shape[0]) != 16
+            or any(parameter.grad is not None for parameter in model.parameters())):
+        raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_STATE_INVALID")
+    before = trainer._model_state_sha256(model)
+    rng = trainer._attended_session_rng_state(device=device)
+    input_hash = _dynamic_m5_technical_tree_sha256(batch)
+    manifest = _dynamic_m5_technical_batch_manifest(batch)
+    modes = [(module, module.training) for module in model.modules()]
+    snapshots = []
+    try:
+        for context in (torch.no_grad, torch.enable_grad):
+            trainer._restore_attended_session_rng_state(rng, device=device)
+            with context():
+                out = trainer._model_forward_fp32(model, batch["seq_x"].to(device), batch["snap_x"].to(device),
+                    ctx_cat=batch["ctx_cat"].to(device), ctx_cont=batch["ctx_cont"].to(device),
+                    **trainer._multi_tf_kwargs_from_batch(batch, device))
+                losses, cells = trainer._dynamic_m5_task_loss_surfaces(out, batch, device)
+                trainer._joint_task_loss(model, losses)
+                values = {name: out[name].detach().cpu().clone() for name in (*fields, *exact)}
+                if any(not bool(torch.isfinite(values[name]).all()) for name in fields):
+                    raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_NONFINITE")
+                queries = trainer._dynamic_m5_model_kwargs(model.entry_training_phase)["dynamic_m5_query_minutes"]
+                query = values["dynamic_query_horizon_minutes"]
+                quality, candidate, mask = (values[name] for name in ("dynamic_entry_quality_bps_candidate",
+                    "dynamic_entry_action_quality_bps_candidate", "dynamic_entry_quality_best_horizon_mask"))
+                if (query.dtype != torch.int64 or tuple(query.shape) != (len(queries),)
+                        or not torch.equal(query, torch.tensor(queries, dtype=torch.int64))
+                        or tuple(quality.shape) != (16, len(queries), 3) or tuple(candidate.shape) != (16, 3)
+                        or mask.dtype != torch.bool or tuple(mask.shape) != (16, len(queries), 2)
+                        or bool((quality[..., 2] != 0).any()) or bool((candidate[:, 2] != 0).any())
+                        or not torch.equal(candidate[:, :2], quality[..., :2].amax(dim=1))
+                        or not torch.equal(mask, quality[..., :2] == candidate[:, None, :2])):
+                    raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_QUERY_OR_TIE_INVALID")
+                snapshots.append((values, dict(cells)))
+            del out, losses, values
+        left, right = snapshots[0][0], snapshots[1][0]
+        tolerance = DYNAMIC_M5_TECHNICAL_FIXED_SCOPE["parity_absolute_tolerance_bps"]
+        comparisons = {}
+        for name in fields:
+            if left[name].shape != right[name].shape or left[name].dtype != right[name].dtype:
+                raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_SHAPE_CHANGED:" + name)
+            delta = left[name].double() - right[name].double()
+            comparisons[name] = {"shape": list(left[name].shape), "dtype": str(left[name].dtype),
+                "max_absolute_difference_bps": float(delta.abs().max()),
+                "rms_difference_bps": float(delta.square().mean().sqrt()),
+                "absolute_tolerance_bps": tolerance, "relative_tolerance": 0.0}
+            if not torch.allclose(left[name], right[name], atol=tolerance, rtol=0.0):
+                raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_VALUES_CHANGED:" + name)
+        if any(not torch.equal(left[name], right[name]) for name in exact) or snapshots[0][1] != snapshots[1][1]:
+            raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_QUERY_MASK_CHANGED")
+        winner = lambda value: value == value.amax(dim=1, keepdim=True)
+        if not torch.equal(winner(left["dynamic_entry_action_quality_bps_candidate"]),
+                           winner(right["dynamic_entry_action_quality_bps_candidate"])):
+            raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_ACTION_OR_TIE_CHANGED")
+        return {"model_forwards": 2, "optimizer_steps": 0, "model_state_sha256": before,
+            "materialized_batch_sha256": input_hash, "typed_batch_manifest": manifest, "output_comparisons": comparisons,
+            "query_and_best_horizon_masks_exact": True, "candidate_actions_and_ties_exact": True,
+            "supervised_cells": snapshots[0][1],
+            "reference_outputs_sha256": _dynamic_m5_technical_tree_sha256(left),
+            "rng_exactly_preserved": True, "module_modes_exactly_preserved": True}
+    finally:
+        for module, training in modes:
+            module.training = training
+        trainer._restore_attended_session_rng_state(rng, device=device)
+        if (trainer._model_state_sha256(model) != before or _dynamic_m5_technical_tree_sha256(batch) != input_hash
+                or any(parameter.grad is not None for parameter in model.parameters())):
+            raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_CHANGED_STATE")
+
+
+def _run_dynamic_m5_technical_qualification(*, components, scope, recipe, files, output, device,
+        provenance, execution_budget, recipe_file_sha256, invocation_started):
+    """One four-update mechanics proof using the unchanged durable coordinator."""
+    from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
+    from gx1.contracts.entry_observed_market_v1 import is_inactive_phase_parameter
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        DYNAMIC_M5_TECHNICAL_CURSOR_CEILING, require_dynamic_m5_technical_qualification,
+    )
+    checked = require_dynamic_m5_technical_qualification(recipe, invocation_number=1, execution_budget=execution_budget)
+    if checked["plan_binding"] != scope["plan_binding"] or device.type != "cuda":
+        raise RuntimeError("DYNAMIC_M5_TECHNICAL_SCOPE_CHANGED")
+    directory = output.parent / "DYNAMIC_M5_TECHNICAL_QUALIFICATION"
+    session_directory = output.parent / (trainer._CANDIDATE_TRAINING_SESSION_DIR_PREFIX + output.name)
+    if any(path.exists() or path.is_symlink() for path in (directory, output, session_directory)):
+        raise RuntimeError("DYNAMIC_M5_TECHNICAL_OUTPUT_EXISTS")
+    directory.mkdir(mode=0o700)
+    trainer._fsync_directory(directory.parent)
+    def write(path, value):
+        _publish_bytes(path, (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode())
+        return {"path": str(path), "sha256": val.file_sha256(path)}
+    def deadline():
+        if time.monotonic() - invocation_started >= execution_budget["max_invocation_seconds"] - 60:
+            raise RuntimeError("DYNAMIC_M5_TECHNICAL_WALL_LIMIT")
+    controls = recipe["trainer_cli"]
+    model = components["model"]
+    phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    def fresh():
+        optimizer, ema, scheduler, derivation = _component_optimizer_state(model=model, entry_phase=phase,
+            train_rows=components["effective_train_rows"], batch_size=16, epochs=1,
+            learning_rate=controls["learning_rate"], weight_decay=controls["weight_decay"])
+        components.update(optimizer=optimizer, weight_ema=ema, lr_scheduler=scheduler, weight_ema_derivation=derivation)
+        _restore_prefix_initial_measurement_state(components=components, scope=scope, device=device)
+    fresh()
+    initial_hash = trainer._model_state_sha256(model)
+    inactive_hash = lambda: _dynamic_m5_technical_tree_sha256({name: parameter for name, parameter in model.named_parameters()
+        if is_inactive_phase_parameter(name, phase)})
+    initial_inactive_hash = inactive_hash()
+    modes = [(module, module.training) for module in model.modules()]
+    parity = {}
+    def optimizer_ema_snapshot():
+        return _dynamic_m5_technical_tree_sha256({"optimizer": components["optimizer"].state_dict(),
+            "ema": components["weight_ema"].checkpoint_state(),
+            "scheduler": None if components["lr_scheduler"] is None else components["lr_scheduler"].state_dict()})
+    parity_training_state = optimizer_ema_snapshot()
+    parity_rng = _dynamic_m5_technical_tree_sha256(trainer._attended_session_rng_state(device=device))
+    try:
+        model.eval()
+        for role, dataset_key in (("train", "train_probe_ds"), ("control", "val_ds")):
+            deadline()
+            cohort, dataset = scope["cohorts"][role], components[dataset_key]
+            cohort = _require_dynamic_m5_measurement_source(model=model, dataset=dataset, cohort=cohort,
+                context=components["native_val_context"])
+            if (cohort["cohort_sha256"] != scope["plan"]["measurement_cohort_sha256"][role]
+                    or cohort.get("exit_evaluation") is not False
+                    or getattr(dataset, "_entry_observed_market_binding", {}).get("identity") != components["entry_observed_market"]):
+                raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_COHORT_CHANGED")
+            parents = cohort["parent_entry_row_indices"][:16]
+            loader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=val._ExactSampler(parents),
+                num_workers=0, generator=torch.Generator().manual_seed(0))
+            batch = next(iter(loader))
+            if batch["entry_row_index"].tolist() != parents or batch["dynamic_entry_parent_row_index"].tolist() != parents:
+                raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_PARENT_CHANGED")
+            batch = trainer._materialize_dynamic_m5_batch_targets(batch, dataset)
+            parity[role] = {"cohort_sha256": cohort["cohort_sha256"], "parent_entry_rows": parents,
+                "entry_time_ns": cohort["entry_time_ns"][:16], "source_clock_sha256": cohort["source_clock_sha256"],
+                "dynamic_entry_m1_rows": batch["dynamic_entry_m1_row"].tolist(),
+                **_dynamic_m5_forward_parity(model=model, batch=batch, device=device)}
+            del batch, loader
+    finally:
+        for module, training in modes:
+            module.training = training
+    if (trainer._model_state_sha256(model) != initial_hash or optimizer_ema_snapshot() != parity_training_state
+            or _dynamic_m5_technical_tree_sha256(trainer._attended_session_rng_state(device=device)) != parity_rng
+            or any(parameter.grad is not None for parameter in model.parameters())):
+        raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_CHANGED_ONLINE_OR_TRAINING_STATE")
+    actual_order = components["prefix_epoch0_parent_order"][:32].tolist()
+    if actual_order != scope["plan"]["native_train_parent_rows"]:
+        raise RuntimeError("DYNAMIC_M5_TECHNICAL_TRAIN_ROWS_CHANGED")
+    def run_segment(name, destination, steps, pointer):
+        deadline()
+        budget = {**dict(execution_budget), "stop_after_optimizer_steps": steps,
+            "expected_active_pointer_sha256": pointer}
+        binding = write(directory / (name + "_BUDGET.json"), budget)
+        # Check each true child budget/hash through its unchanged source owner.
+        launch_owner.require_candidate_execution_budget(Path(binding["path"]), binding["sha256"],
+            recipe_path=Path(provenance["recipe_audit_path"]), recipe_sha256=recipe_file_sha256, recipe=recipe)
+        try:
+            _run_bound_full_train_candidate(components=components, files=files, device=device,
+                run_id=recipe["run_id"], dataset_run_id=recipe["dataset_run_id"], output=destination,
+                gx1_data=recipe["gx1_data_root"], seed=controls["seed"], learning_rate=controls["learning_rate"],
+                weight_decay=controls["weight_decay"], grad_clip_norm=controls["grad_clip_norm"],
+                recipe_source_provenance=provenance, execution_budget=budget,
+                execution_budget_sha256=binding["sha256"], invocation_started_monotonic=invocation_started)
+        except trainer._CandidateExecutionPaused as paused:
+            evidence = dict(paused.evidence)
+        else:
+            raise RuntimeError("DYNAMIC_M5_TECHNICAL_EXPECTED_PAUSE_MISSING")
+        if (evidence.get("reason") != "optimizer_step_ceiling" or evidence.get("phase") != "train"
+                or any(type(evidence.get(key)) is not int or evidence[key] != wanted
+                       for key, wanted in (("epoch_index", 0), ("next_batch_offset", steps), ("global_optimizer_steps", steps)))
+                or evidence.get("completed_val_epochs") != 0):
+            raise RuntimeError("DYNAMIC_M5_TECHNICAL_CURSOR_INVALID")
+        if inactive_hash() != initial_inactive_hash:
+            raise RuntimeError("DYNAMIC_M5_TECHNICAL_INACTIVE_WEIGHTS_CHANGED")
+        contract = val._read(Path(evidence["session_directory"]) / trainer._CANDIDATE_TRAINING_CONTRACT_FILENAME)
+        session = trainer._CandidateTrainingSession(out_bundle_dir=destination, contract=contract, read_only=True)
+        state = session.load_checkpoint()
+        if (state["global_optimizer_steps"] != steps or state["next_batch_offset"] != steps
+                or state["phase"] != "train" or state["epoch_index"] != 0 or state["complete"] is not False
+                or val.canonical_model_state_sha256(state["target_model_state"]) != initial_hash
+                or trainer._model_state_sha256(model) != val.canonical_model_state_sha256(state["model_state"])):
+            raise RuntimeError("DYNAMIC_M5_TECHNICAL_SAVED_STATE_INVALID")
+        fields = ("model_state", "target_model_state", "optimizer_state", "weight_ema_state", "lr_scheduler_state",
+                  "rng_state", "epoch_order", "training_progress")
+        hashes = {key: _dynamic_m5_technical_tree_sha256(state[key]) for key in fields}
+        del state
+        return evidence, hashes
+    # Fresh restoration resets all state before each independent trajectory.
+    fresh()
+    reference_pause, reference_hashes = run_segment("UNINTERRUPTED", directory / "REFERENCE_BUNDLE", 2, None)
+    fresh()
+    first_pause, _ = run_segment("BEFORE_DURABLE_RELOAD", output, 1, None)
+    # Deliberately reset the live state: the next call MUST restore the actual
+    # saved step1 optimizer/model/EMA/scheduler/RNG via the existing coordinator.
+    fresh()
+    final_pause, resumed_hashes = run_segment("AFTER_DURABLE_RELOAD", output,
+        DYNAMIC_M5_TECHNICAL_CURSOR_CEILING, first_pause["active_pointer_sha256"])
+    if reference_hashes != resumed_hashes:
+        raise RuntimeError("DYNAMIC_M5_TECHNICAL_RESUME_NOT_EXACT")
+    updates = reference_pause["global_optimizer_steps"] + first_pause["global_optimizer_steps"] + (
+        final_pause["global_optimizer_steps"] - first_pause["global_optimizer_steps"])
+    if updates != 4 or sum(value["model_forwards"] for value in parity.values()) != 4:
+        raise RuntimeError("DYNAMIC_M5_TECHNICAL_COMPUTE_COUNT_INVALID")
+    result = {"schema_version": "gx1_dynamic_m5_technical_qualification_result_v1",
+        "decision": "PASS_DYNAMIC_M5_MECHANICS_PRIVATE_WEIGHTS_NOT_REUSABLE", "plan": scope["plan_binding"],
+        "initialization_result": scope["artifacts"]["initialization_result"],
+        "measurement_binding_result": scope["artifacts"]["measurement_binding_result"],
+        "initial_measurement_result": scope["artifacts"]["initial_measurement_result"],
+        "initial_measurement_audit": scope["artifacts"]["initial_measurement_audit"],
+        "initial_model_state_sha256": initial_hash, "entry_execution_profile": recipe["entry_execution_profile"],
+        "source_bindings_sha256": recipe["source_bindings_sha256"], "files": recipe["files"],
+        "entry_observed_market": components["entry_observed_market"], "parity": parity,
+        "native_train_parent_rows": actual_order, "technical_optimizer_updates": updates,
+        "control_optimizer_updates": 0, "parity_model_forwards": 4,
+        "resume_comparison_state_sha256": resumed_hashes, "resume_exact": True,
+        "exit_model_forward_count": 0, "teacher_refreshed": False,
+        "private_weights_reusable": False, "private_states_retained_for_audit_only": True,
+        "full_epoch_training_allowed": False, "native_launch_authorized": False, "test_data_used": False}
+    final_pause["entry_dynamic_m5_technical_qualification"] = write(directory / "RESULT.json", result)
+    receipt = trainer._write_candidate_execution_pause_receipt(final_pause, out_bundle_dir=output,
+        gx1_data_override=recipe["gx1_data_root"])
+    return {"decision": "PAUSED_RESUMABLE", "pause": final_pause,
+        "pause_receipt": {"path": str(receipt), "sha256": val.file_sha256(receipt)},
+        "recipe_file_sha256": recipe_file_sha256, "resume_state": _native_resume_state(components=components, output=output),
+        "bundle_written": False, "test_data_used": False}
+
+
+def _require_dynamic_m5_measurement_source(*, model, dataset, cohort, context):
+    """Shared actual Dataset/clock/parent join for observations and parity."""
     import hashlib
     import pandas as pd
     from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
-    from gx1.contracts.entry_observed_market_v1 import (
-        DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
-        DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY,
-        DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
-    )
-    from gx1.contracts.entry_fitted_q_v1 import ENTRY_FITTED_Q_ACTION_ORDER
-    from gx1.contracts.entry_observed_market_horizons_v1 import (
-        M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
-    )
-    from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT
     phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     cohort = require_bounded_val_cohort(cohort)
     binding = getattr(dataset, "_entry_observed_market_binding", {})
@@ -2269,6 +2553,28 @@ def _dynamic_m5_prefix_observations(*, model, dataset, cohort, context, device, 
     if (hashlib.sha256(np.asarray(times.asi8, dtype="<i8").tobytes()).hexdigest() != cohort["source_clock_sha256"]
             or times.asi8[parents].tolist() != cohort["entry_time_ns"]):
         raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_CLOCK_INVALID")
+    return cohort
+
+
+def _dynamic_m5_prefix_observations(*, model, dataset, cohort, context, device, deadline):
+    """Observe one frozen Entry cohort through the existing one-forward curve evaluator."""
+    import hashlib
+    import pandas as pd
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_v1 import (
+        DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
+        DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY,
+        DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+    )
+    from gx1.contracts.entry_fitted_q_v1 import ENTRY_FITTED_Q_ACTION_ORDER
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+    )
+    from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT
+    phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    cohort = _require_dynamic_m5_measurement_source(model=model, dataset=dataset, cohort=cohort, context=context)
+    parents = cohort["parent_entry_row_indices"]
     queries = tuple(trainer._dynamic_m5_model_kwargs(phase)["dynamic_m5_query_minutes"])
     specs = (
         ("dynamic_terminal_net_markout_bps", DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY),

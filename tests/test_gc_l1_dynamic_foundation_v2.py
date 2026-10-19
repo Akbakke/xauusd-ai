@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 from gx1.features.gc_order_flow_v1 import (L1FeatureCollectorV2,bbo_transition_v2,
     value_area_v2,profile_values_v2,dynamic_profiles_v2)
 
@@ -314,3 +315,101 @@ def test_streamed_profiles_measure_memory_partial_coverage_and_keep_m5_clock_at_
     bounded=DynamicProfileStateV2(1,max_state_bytes=1)
     with pytest.raises(RuntimeError,match='STREAM_STATE_MEMORY_BOUND'):
         bounded.step(start[0],{100:10},True,0,100,anchors[0])
+
+
+@pytest.mark.parametrize('tf,duration',[('M5',5),('M15',15),('H1',60),('H4',240),('D1',1440)])
+def test_microprice_and_displayed_order_time_weighted_reference_all_tf(tf,duration):
+    from gx1.features.gc_order_flow_v1 import (
+        aggregate_observed_book_v1,L1_FIELDS_V2,L1_ORDER_COUNT_FIELDS_V1,
+    )
+    from gx1.contracts import gc_source_disposition_v1 as timing
+    from gx1.time.session_detector import TRADING_SESSION_BOUNDARY_OFFSET
+    start=(pd.Timestamp('2024-05-02',tz='UTC')+TRADING_SESSION_BOUNDARY_OFFSET).value
+    # An explicit preceding clean minute supplies the first target's anchor.
+    origin=start-timing.MINUTE_NS
+    collector=L1FeatureCollectorV2(np.arange(3),1,origin_ns=origin,include_order_counts=True)
+    rows=np.array([[origin,100,104,30,10,3,5],
+        [start,100,104,30,10,3,5],[start+15*NS,100,102,10,30,5,3],
+        [start+60*NS,100,106,20,20,2,4],[start+90*NS,102,104,30,10,6,2]],np.int64)
+    collector.consume(rows);collector.finish(start+120*NS)
+    values,bbo=collector.values([False,True,True])
+    orders,count_valid=collector.order_count_values([False,True,True])
+    assert bbo.tolist()==count_valid.tolist()==[False,True,True]
+    # Minute0: (15*1+45*(-1/2))/60=-1/8 ticks.
+    # Minute1: (30*0+30*(1/2))/60=1/4 ticks.
+    np.testing.assert_allclose(values['tw_microprice_offset_ticks'][1:],[-1/8,1/4],rtol=0,atol=1e-15)
+    np.testing.assert_allclose(orders['tw_bid_contracts_per_order'][1:],[4,7.5],rtol=0,atol=1e-15)
+    np.testing.assert_allclose(orders['tw_ask_contracts_per_order'][1:],[8,5],rtol=0,atol=1e-15)
+    minutes=start+np.arange(duration)*timing.MINUTE_NS
+    book={name:np.full(duration,np.nan) for name in L1_FIELDS_V2+L1_ORDER_COUNT_FIELDS_V1}
+    for name in L1_FIELDS_V2:book[name][:2]=values[name][1:]
+    for name in L1_ORDER_COUNT_FIELDS_V1:book[name][:2]=orders[name][1:]
+    admitted=np.arange(duration)<2
+    book.update(ofi_valid=admitted,bbo_valid=admitted,order_count_valid=admitted,
+        covered_ns=np.where(admitted,timing.MINUTE_NS,0),
+        order_covered_ns=np.where(admitted,timing.MINUTE_NS,0),
+        opening_mid_tick=np.r_[collector.first[1:],np.full(duration-2,np.nan)],
+        closing_mid_tick=np.r_[collector.last[1:],np.full(duration-2,np.nan)])
+    out=aggregate_observed_book_v1(minutes,np.zeros(duration,np.int16),book,tf)
+    expected={'observed_book_tw_microprice_offset_ticks':1/16,
+        'observed_book_tw_imbalance':0.,'observed_book_tw_spread_ticks':13/4,
+        'observed_book_tw_bid_contracts':20.,'observed_book_tw_ask_contracts':20.,
+        'observed_order_tw_bid_orders':17/4,'observed_order_tw_ask_orders':13/4,
+        'observed_order_tw_order_count_imbalance':5/48,
+        'observed_order_tw_bid_contracts_per_order':23/4,
+        'observed_order_tw_ask_contracts_per_order':13/2}
+    for name,value in expected.items():np.testing.assert_allclose(out[name],[value],rtol=0,atol=1e-15,err_msg=name)
+    assert out['observed_book_coverage_fraction'][0]==2/duration
+    assert out['observed_order_coverage_fraction'][0]==2/duration
+    # Time-weighted instantaneous quantities are not ratios of time averages.
+    assert out['observed_order_tw_bid_contracts_per_order'][0]!=20/(17/4)
+    assert out['observed_order_tw_ask_contracts_per_order'][0]!=20/(13/4)
+
+
+@pytest.mark.parametrize('tf,duration',[('M5',5),('M15',15),('H1',60),('H4',240),('D1',1440)])
+def test_spread_event_count_sum_and_max_all_tf_reset_first_and_file_anchors(tf,duration):
+    import pyarrow as pa
+    from gx1.features.gc_order_flow_v1 import aggregate_observed_event_diagnostics_v1
+    from gx1.contracts import gc_continuous_source_v1 as source
+    from gx1.contracts import gc_source_disposition_v1 as timing
+    from gx1.time.session_detector import TRADING_SESSION_BOUNDARY_OFFSET
+    start=(pd.Timestamp('2024-05-02',tz='UTC')+TRADING_SESSION_BOUNDARY_OFFSET).value
+    collector=L1FeatureCollectorV2(np.arange(duration),1,origin_ns=start,include_event_diagnostics=True)
+
+    def consume(seconds,spreads):
+        receive=start+np.asarray(seconds,np.int64)*NS
+        data={name:pa.array(value) for name,value in {
+            'ts_recv':receive,'ts_event':(receive-100).astype(np.uint64),
+            'ts_in_delta':np.zeros(len(receive),np.int32),
+            'flags':np.full(len(receive),source.L1_F_LAST,np.uint8),
+            'action':np.array(['A']*len(receive)),
+            'bid_px_00':np.full(len(receive),100,np.int64),
+            'ask_px_00':100+np.asarray(spreads,np.int64),
+            'bid_sz_00':np.full(len(receive),10,np.uint32),
+            'ask_sz_00':np.full(len(receive),20,np.uint32)}.items()}
+        collector(data,np.zeros(len(receive),np.int64),np.zeros(len(receive),bool))
+
+    collector.file_start({'end_ns':start+60*NS})
+    consume([0,10,20,40],[2,5,4,6])       # +3,-1,+2 ticks.
+    collector.file_start({'end_ns':start+120*NS})
+    consume([60,70,80],[1,5,2])           # New anchor; +4,-3, NOT prior6->1.
+    collector.finish()
+    candidate=np.arange(duration)<2
+    raw=collector.event_diagnostics(candidate)
+    for name,expected in {
+        'qualified_final_event_count':[4,3],'spread_change_count':[3,2],
+        'spread_expansion_count':[2,1],'spread_contraction_count':[1,1],
+        'spread_expansion_sum_ticks':[5,4],'spread_contraction_sum_ticks':[1,3],
+        'spread_max_expansion_ticks':[3,4],'spread_max_contraction_ticks':[1,3]}.items():
+        np.testing.assert_array_equal(raw[name][:2],expected,err_msg=name)
+    out=aggregate_observed_event_diagnostics_v1(start+np.arange(duration)*timing.MINUTE_NS,
+        np.zeros(duration,np.int16),raw,tf)
+    for name,expected in {
+        'qualified_final_event_count':7,'spread_change_count':5,
+        'spread_expansion_count':3,'spread_contraction_count':2,
+        'spread_expansion_sum_ticks':9,'spread_contraction_sum_ticks':4,
+        'spread_max_expansion_ticks':4,'spread_max_contraction_ticks':3,
+        'spread_state_min_ticks':1,'spread_state_max_ticks':6}.items():
+        assert out['observed_event_'+name].tolist()==[expected],name
+    assert out['observed_event_accepted_minutes'].tolist()==[2]
+    assert out['observed_event_coverage_fraction'][0]==2/duration

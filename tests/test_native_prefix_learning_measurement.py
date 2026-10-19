@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from tests.test_native_prefix_initial_measurement import initial_scope, prefix_scope, scope, dynamic_initial_scope
+from tests.test_native_prefix_initial_measurement import initial_scope, prefix_scope, scope, dynamic_initial_scope, dynamic_initial_observer
 from tests.test_native_prefix_recipe import native, runner, _write, _bind, dynamic_native_recipe_metadata
 from tests.test_native_prefix_recipe import test_native_campaign_materialization_window_and_final_review_stop as campaign_check
 from tests.test_native_prefix_coordinator import PrefixHarness, _prepared, equal_tree, digest, trainer
@@ -332,3 +332,245 @@ def test_dynamic_learning_admission_rejects_changed_initial_source_or_measuremen
         case["result"]["initialization_result"] = _write(Path(case["initial_artifacts"]["initialization_result"]["path"]), case["initial"])
     case["seal_learning"]()
     with pytest.raises(RuntimeError): native.require_chronological_learning_measurement(case["recipe"])
+
+
+@pytest.fixture
+def dynamic_technical_scope(dynamic_learning_measurement, tmp_path):
+    """Real immutable bindings; physical/model execution remains separately qualified."""
+    import numpy as np
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_compact_entry_execution_profile
+    case = dynamic_learning_measurement
+    recipe, policy = case["recipe"], case["policy"]
+    profile = compile_compact_entry_execution_profile()
+    reference = {name: profile[name] for name in ("name", "contract_sha256")}
+    recipe["entry_execution_profile"] = reference
+    metadata = case["files"]["source_bundle_metadata"]
+    recipe["files"]["source_bundle_metadata"] = _write(metadata, {"entry_execution_profile":reference})
+    case["initial"]["files"] = copy.deepcopy(recipe["files"])
+    initial_binding = _write(Path(case["initial_artifacts"]["initialization_result"]["path"]), case["initial"])
+    case["result"]["initialization_result"] = initial_binding
+    case["coordinates"]["epoch0_parent_order"] = np.load(case["witness"]["epoch0_parent_order"]["path"], allow_pickle=False)
+    for cohort in case["cohorts"].values():
+        cohort["cohort_sha256"] = native.canonical_sha256(cohort)
+    case["seal_learning"]()
+    audit_binding = recipe.pop("chronological_learning_measurement")
+    policy.pop("chronological_learning_run", None)
+    policy.update(training_enabled=True, full_epoch_training_allowed=False)
+    plan = {**native.DYNAMIC_M5_TECHNICAL_FIXED_SCOPE,
+        "entry_training_phase":case["witness"]["training_phase"],
+        "chronological_prefix":recipe["chronological_prefix"], "initialization_result":initial_binding,
+        "measurement_binding_result":case["result"]["measurement_binding_result"],
+        "initial_measurement_result":case["audit"]["result"], "initial_measurement_audit":audit_binding,
+        "entry_execution_profile":reference, "files":copy.deepcopy(recipe["files"]),
+        "run_id":recipe["run_id"], "out_bundle_dir":recipe["out_bundle_dir"],
+        "source_bindings_sha256":recipe["source_bindings_sha256"],
+        "measurement_cohort_sha256":{role:value["cohort_sha256"] for role,value in case["cohorts"].items()},
+        "native_train_parent_rows":case["coordinates"]["epoch0_parent_order"][:32].tolist()}
+    def seal():
+        binding = _write(tmp_path/"dynamic-technical-plan.json", plan)
+        recipe["entry_dynamic_m5_technical_qualification"] = binding
+        policy["entry_dynamic_m5_technical_qualification"] = {
+            "plan":binding, **copy.deepcopy(plan), "entry_observed_market":recipe["entry_observed_market"]}
+        return case["seal"]()
+    seal()
+    budget = {"stop_after_optimizer_steps":native.DYNAMIC_M5_TECHNICAL_CURSOR_CEILING,
+        "expected_active_pointer_sha256":None, "stop_after_completed_val_epochs":None, "max_invocation_seconds":12000}
+    return {**case, "technical_plan":plan, "seal_technical":seal, "technical_budget":budget}
+
+
+def test_dynamic_technical_gate_binds_actual_initial_audit_four_updates_and_one_public_window(dynamic_technical_scope):
+    case = dynamic_technical_scope
+    checked = native.require_dynamic_m5_technical_qualification(case["recipe"], invocation_number=1,
+        execution_budget=case["technical_budget"])
+    assert checked["optimizer_step_ceiling"] == native.DYNAMIC_M5_TECHNICAL_CURSOR_CEILING == 2
+    assert checked["plan"]["technical_optimizer_updates"] == 4
+    assert checked["plan"]["control_optimizer_updates"] == 0
+    assert checked["plan"]["parity_model_forwards"] == 4
+    assert checked["artifacts"]["initial_measurement_result"] == case["audit"]["result"]
+    assert case["observed_calls"] == ["train", "control"]
+    assert native.require_native_run_scope(case["recipe"], invocation_number=1,
+        execution_budget=case["technical_budget"]) == 2
+
+
+@pytest.mark.parametrize("fault", ["training_false", "training_int", "full_epoch", "missing_full_epoch", "updates",
+    "updates_bool", "batch", "control_update", "private_reuse", "unbound_policy", "cohort", "parent_rows",
+    "profile", "file", "audit_bytes", "audit_status", "initial_result", "source_closure", "mixed_initial",
+    "mixed_learning", "mixed_native_epoch"])
+def test_dynamic_technical_gate_rejects_scope_authority_or_actual_initial_drift(dynamic_technical_scope, fault, tmp_path):
+    case = dynamic_technical_scope
+    policy, recipe, plan = case["policy"], case["recipe"], case["technical_plan"]
+    if fault == "training_false": policy["training_enabled"] = False
+    elif fault == "training_int": policy["training_enabled"] = 1
+    elif fault == "full_epoch": policy["full_epoch_training_allowed"] = True
+    elif fault == "missing_full_epoch": policy.pop("full_epoch_training_allowed")
+    elif fault == "updates": plan["technical_optimizer_updates"] = 5
+    elif fault == "updates_bool": plan["optimizer_steps"] = True
+    elif fault == "batch": plan["batch_size"] = 8
+    elif fault == "control_update": plan["control_optimizer_updates"] = 1
+    elif fault == "private_reuse": plan["private_weights_reusable"] = True
+    elif fault == "cohort": plan["measurement_cohort_sha256"]["train"] = "f"*64
+    elif fault == "parent_rows": plan["native_train_parent_rows"] = list(reversed(plan["native_train_parent_rows"]))
+    elif fault == "profile": plan["entry_execution_profile"] = None
+    elif fault == "file": plan["files"]["entry_val_manifest"] = plan["files"]["entry_train_manifest"]
+    elif fault == "audit_bytes": Path(plan["initial_measurement_audit"]["path"]).write_text("{}")
+    elif fault == "audit_status":
+        case["audit"]["decision"] = "UNREVIEWED"
+        plan["initial_measurement_audit"] = _write(tmp_path/"changed-audit.json", case["audit"])
+    elif fault == "initial_result": plan["initial_measurement_result"] = _write(tmp_path/"different-result.json", {})
+    elif fault == "source_closure": plan["source_bindings_sha256"] = "f"*64
+    elif fault == "mixed_initial": recipe["chronological_initial_measurement"] = {}
+    elif fault == "mixed_learning": recipe["chronological_learning_measurement"] = {}
+    elif fault == "mixed_native_epoch": policy["entry_m5_path_single_epoch_run"] = {}
+    case["seal_technical"]()
+    if fault == "unbound_policy":
+        policy["entry_dynamic_m5_technical_qualification"]["technical_optimizer_updates"] = 5
+        case["seal"]()
+    with pytest.raises(RuntimeError):
+        native.require_native_run_scope(recipe, invocation_number=1, execution_budget=case["technical_budget"])
+
+
+@pytest.mark.parametrize("field,value", [("stop_after_optimizer_steps",0), ("stop_after_optimizer_steps",1),
+    ("stop_after_optimizer_steps",3), ("stop_after_optimizer_steps",True), ("expected_active_pointer_sha256","a"*64),
+    ("stop_after_completed_val_epochs",1), ("max_invocation_seconds",11999), ("resume_probe_val_rows",32)])
+def test_dynamic_technical_gate_rejects_other_budget_or_resume_pointer(dynamic_technical_scope, field, value):
+    case = dynamic_technical_scope
+    with pytest.raises(RuntimeError, match="TECHNICAL_BUDGET"):
+        native.require_native_run_scope(case["recipe"], execution_budget={**case["technical_budget"], field:value})
+    for invalid in (0, 2, True):
+        with pytest.raises(RuntimeError, match="TECHNICAL_INVOCATION"):
+            native.require_native_run_scope(case["recipe"], invocation_number=invalid)
+
+
+def test_dynamic_technical_materializer_uses_real_scope_and_one_ceiling2_window(dynamic_technical_scope, monkeypatch, tmp_path):
+    from tests.test_native_prefix_recipe import materializer, _boot
+    case = dynamic_technical_scope
+    recipe = case["recipe"]; rb = case["seal_technical"](); repo = Path(recipe["source_repo"])
+    monkeypatch.setattr(materializer, "_source_commit", lambda _:recipe["source_commit"])
+    guards, controllers = {}, {}
+    for names, target in ((("runner","guard","query","certificate"), guards),
+                          (("controller","observer","campaign_cli"), controllers)):
+        for name in names:
+            path=repo/"sources"/name; path.parent.mkdir(exist_ok=True); path.write_text(name); target[name]=_bind(path)
+    (repo/"scripts").mkdir(); (repo/"scripts/gx1_capped_run.sh").write_text("synthetic")
+    (repo/".venv/bin").mkdir(parents=True); (repo/".venv/bin/python").write_text("synthetic")
+    monkeypatch.setattr(materializer, "_sources", lambda *a:(guards,controllers))
+    boot=tmp_path/"technical-boot.json"; _write(boot,_boot(100,0))
+    def materialize(output, windows):
+        return materializer.materialize_native_candidate_campaign(repo=repo, output=output,
+            runtime=tmp_path/(output.name+"-runtime"), gpu_uuid="GPU-fixture", prepared_boot_path=boot,
+            prepared_boot_file_sha256=native.file_sha256(boot), certificate_path=Path(guards["certificate"]["path"]),
+            recipe_path=Path(rb["path"]), recipe_file_sha256=rb["sha256"], window_count=windows)
+    result=materialize(tmp_path/"technical-campaign",1)
+    assert result["plan"]["entry_pairs_per_epoch"] == case["witness"]["train_rows"]
+    assert len(result["plan"]["checked_invocations"]) == 1
+    with pytest.raises(RuntimeError, match="TECHNICAL_INVOCATION"):
+        materialize(tmp_path/"too-many-windows",2)
+    assert not (tmp_path/"too-many-windows").exists()
+    recipe["chronological_initial_measurement"] = {}; rb=case["seal_technical"]()
+    with pytest.raises(RuntimeError, match="TECHNICAL_MIXED_SCOPE"):
+        materialize(tmp_path/"mixed-window",1)
+    assert not (tmp_path/"mixed-window").exists()
+
+
+def _dynamic_technical_parity_case(dynamic_initial_observer):
+    model, dataset, _, _ = dynamic_initial_observer
+    loader=torch.utils.data.DataLoader(dataset,batch_size=16,num_workers=0)
+    batch=runner.trainer._materialize_dynamic_m5_batch_targets(next(iter(loader)),dataset)
+    original=model.forward
+    def forward(*args, **kwargs):
+        out=original(*args,**kwargs)
+        quality=out["dynamic_terminal_net_markout_bps"][..., :2]-out["dynamic_pre_mfe_mae_upper_bps"]
+        out["dynamic_entry_quality_bps_candidate"]=torch.cat((quality,torch.zeros_like(quality[..., :1])),dim=-1)
+        return out
+    model.forward=forward
+    return model,batch
+
+
+def test_dynamic_curve_parity_checks_complete_queries_masks_and_preserves_online_rng(dynamic_initial_observer):
+    model,batch=_dynamic_technical_parity_case(dynamic_initial_observer)
+    before=runner.trainer._model_state_sha256(model)
+    rng=runner._dynamic_m5_technical_tree_sha256(runner.trainer._attended_session_rng_state(device=torch.device("cpu")))
+    result=runner._dynamic_m5_forward_parity(model=model,batch=batch,device=torch.device("cpu"))
+    assert result["model_forwards"] == model.forwards == 2
+    assert result["optimizer_steps"] == 0 and result["query_and_best_horizon_masks_exact"] is True
+    assert result["output_comparisons"]["dynamic_terminal_net_markout_bps"]["shape"] == [16,480,3]
+    assert all(row["max_absolute_difference_bps"] <= row["absolute_tolerance_bps"] for row in result["output_comparisons"].values())
+    manifest=result["typed_batch_manifest"]
+    assert manifest["inputs"]["seq_x"]["shape"][0] == 16
+    assert manifest["masks"]["dynamic_path_observed"]["dtype"] == "torch.bool"
+    assert manifest["pointers"]["dynamic_entry_parent_row_index"]["dtype"] == "torch.int64"
+    assert manifest["targets"]["y_dynamic_mfe_bps"]["shape"] == [16,480,2]
+    assert runner.trainer._model_state_sha256(model) == before
+    assert runner._dynamic_m5_technical_tree_sha256(runner.trainer._attended_session_rng_state(device=torch.device("cpu"))) == rng
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+
+@pytest.mark.parametrize("fault", ["curve", "forecast", "query", "unknown_query", "horizon_mask", "candidate_tie", "nonfinite", "shape"])
+def test_dynamic_curve_parity_rejects_autograd_path_drift(dynamic_initial_observer, fault):
+    model,batch=_dynamic_technical_parity_case(dynamic_initial_observer)
+    original=model.forward
+    def forward(*args,**kwargs):
+        out=original(*args,**kwargs)
+        if fault == "unknown_query":
+            out["dynamic_query_horizon_minutes"]=out["dynamic_query_horizon_minutes"]+1
+        if torch.is_grad_enabled():
+            if fault == "curve": out["dynamic_mfe_bps"]=out["dynamic_mfe_bps"]+.01
+            elif fault == "forecast": out["forecast_pred"]=out["forecast_pred"]+.01
+            elif fault == "nonfinite": out["forecast_pred"]=out["forecast_pred"]*float("nan")
+            elif fault == "shape": out["dynamic_mfe_bps"]=out["dynamic_mfe_bps"][:,:-1]
+            elif fault == "query": out["dynamic_query_horizon_minutes"]=out["dynamic_query_horizon_minutes"]+1
+            elif fault == "horizon_mask": out["dynamic_entry_quality_best_horizon_mask"]=~out["dynamic_entry_quality_best_horizon_mask"]
+            elif fault == "candidate_tie":
+                out["dynamic_entry_action_quality_bps_candidate"]=out["dynamic_entry_action_quality_bps_candidate"].clone()
+                out["dynamic_entry_action_quality_bps_candidate"][:,0]=1.
+        return out
+    model.forward=forward
+    with pytest.raises(RuntimeError):
+        runner._dynamic_m5_forward_parity(model=model,batch=batch,device=torch.device("cpu"))
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+
+
+def test_dynamic_curve_parity_rejects_changed_exact_action_ties_inside_numeric_allowance(dynamic_initial_observer):
+    model,batch=_dynamic_technical_parity_case(dynamic_initial_observer)
+    original=model.forward
+    def forward(*args,**kwargs):
+        out=original(*args,**kwargs)
+        terminal=out["dynamic_terminal_net_markout_bps"].clone()
+        terminal[..., :2]=out["dynamic_pre_mfe_mae_upper_bps"]
+        if torch.is_grad_enabled(): terminal[...,0] += 1e-5
+        out["dynamic_terminal_net_markout_bps"]=terminal
+        quality=terminal[...,:2]-out["dynamic_pre_mfe_mae_upper_bps"]
+        out["dynamic_entry_quality_bps_candidate"]=torch.cat((quality,torch.zeros_like(quality[...,:1])),dim=-1)
+        best=quality.amax(dim=1)
+        out["dynamic_entry_action_quality_bps_candidate"]=torch.cat((best,torch.zeros_like(best[:,:1])),dim=-1)
+        out["dynamic_entry_quality_best_horizon_mask"]=quality==best[:,None,:]
+        return out
+    model.forward=forward
+    with pytest.raises(RuntimeError,match="ACTION_OR_TIE_CHANGED"):
+        runner._dynamic_m5_forward_parity(model=model,batch=batch,device=torch.device("cpu"))
+
+
+def test_dynamic_technical_guarded_dispatch_uses_exact_scope_before_qualification(dynamic_technical_scope, monkeypatch, tmp_path):
+    case=dynamic_technical_scope;recipe=case["recipe"];rb=case["seal_technical"]();seen=[]
+    monkeypatch.setattr(runner.trainer,"_require_cuda_trainer_guard_execution",lambda **kw:seen.append("guard"))
+    monkeypatch.setattr(runner.trainer,"_resolve_device",lambda _:torch.device("cuda"))
+    monkeypatch.setattr(runner,"_require_native_full_train_recipe",lambda *a:(recipe,case["files"],{"unit":True}))
+    monkeypatch.setattr(runner.launch_owner,"require_candidate_execution_budget",lambda *a,**kw:case["technical_budget"])
+    components={"same_bound_component":True}
+    monkeypatch.setattr(runner,"_build_bound_full_train_components",lambda **kw:components)
+    def technical(**kwargs):
+        assert kwargs["components"] is components
+        assert kwargs["scope"]["artifacts"]["initial_measurement_result"] == case["audit"]["result"]
+        assert kwargs["scope"]["plan"]["technical_optimizer_updates"] == 4
+        seen.append("technical")
+        return {"decision":"PRIVATE_TECHNICAL_UNIT"}
+    monkeypatch.setattr(runner,"_run_dynamic_m5_technical_qualification",technical)
+    result=runner.run_guarded_native_candidate_invocation(recipe_path=Path(rb["path"]),recipe_file_sha256=rb["sha256"],
+        execution_budget_path=tmp_path/"unused-budget.json",execution_budget_file_sha256="a"*64)
+    assert result == {"decision":"PRIVATE_TECHNICAL_UNIT"} and seen == ["guard","technical"]
+    case["policy"]["training_enabled"]=False;case["seal"]();seen.clear()
+    with pytest.raises(RuntimeError,match="TECHNICAL_NOT_AUTHORIZED"):
+        runner.run_guarded_native_candidate_invocation(recipe_path=Path(rb["path"]),recipe_file_sha256=rb["sha256"],
+            execution_budget_path=tmp_path/"unused-budget.json",execution_budget_file_sha256="a"*64)
+    assert seen == ["guard"]

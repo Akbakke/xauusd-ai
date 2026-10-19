@@ -347,3 +347,22 @@ streng navn/SHA-reference, full fysisk055validering før gather og reelt modulsk
 gjenstår. Legacy wholefeature LIVE-only-audit skal fortsatt avvise conditional
 GC-/maskestatus; dens forventede avvisning er separat fra faktisk053liveness.
 Fullbibliotek og eksakte rawkilder beholdes; ingen ekstra fit/HPO følger av dette.
+
+Den avgrensede13felt-kontrollen i065/MACRO13_READ_ONLY_REVIEW.json binder
+aktuelle source-/051-/055-metadata. Treasury9 bruker tre daglige yieldserier
+med tilgjengelighet etter slutten av D+1 New York. COT4 bruker maksimum av
+as-of+7d og slutten av offisiell, eventuelt forsinket publiseringsdato;
+kalenderen binder13forsinkelser i2025. As-of-join er strengt bakover med
+available_at<decision. Ingen faktisk framtidslekkasje ble påvist i denne
+avgrensede kontrollen. Treasuryflagget revised_after_publication=false er
+kopiert fra manifestet, ikke målt mot originale publiseringer. Årsarkiver
+og publiseringskalender beviser ikke alle originalverdier eller rettelser.
+Dette er et konkret originalvintage-bevisgap, ingen full PIT-kvalifisering.
+
+Fire avgrensede GC-referansetester er lagt til i eksisterende testeiere:
+alle sju kjente kumulative felt ved UTC-dato/gap/roll, tidsvektet mikropris
+og vist ordrestørrelse, volum/antall ved ujevne T-antall og spread-event
+count/sum/max med filankertilbakestilling. Hver har håndberegnet tallfasit på
+alle femTF (20caser). Alle20casene bestod i065s faktiske707PASS-kjøring. Dette er uavhengige
+tallreferanser, ingen aktuell fysisk26måneders formel-/modellkonsumPASS.
+Produksjonsformlene er uendret.

@@ -1487,7 +1487,10 @@ def next_action(
                         or state["active_val_cursor"] is not None or state["global_optimizer_steps"] > step_ceiling):
                     raise RandomAccessCampaignError("native prefix cursor exceeded fixed experiment")
                 if state["global_optimizer_steps"] == step_ceiling:
-                    if "entry_m5_path_single_epoch" in recipe:
+                    # Validated initial/technical scopes reuse the witness without consuming an epoch.
+                    if ("entry_m5_path_single_epoch" in recipe
+                            and "chronological_initial_measurement" not in recipe
+                            and "entry_dynamic_m5_technical_qualification" not in recipe):
                         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_m5_single_epoch_run
                         bound = require_m5_single_epoch_run(recipe)
                         single = bound["entry_m5_path_single_epoch"]

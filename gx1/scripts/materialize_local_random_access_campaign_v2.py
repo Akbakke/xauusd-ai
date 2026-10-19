@@ -793,6 +793,7 @@ def materialize_native_candidate_campaign(
     from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         NATIVE_KIND, NATIVE_MODULE, NATIVE_PHASE, WINDOW_SCHEMA,
+        DYNAMIC_M5_TECHNICAL_CURSOR_CEILING,
         require_native_completed_smoke, require_native_recipe_metadata, require_native_window_policy, require_native_run_scope,
         require_fresh_physical_campaign_sampler,
         OPTIMIZER_PROCEDURE_TRANSITION_SCHEMA, OPTIMIZER_PROCEDURE_ORIGIN_CURSOR,
@@ -824,9 +825,10 @@ def materialize_native_candidate_campaign(
             origin = require_frozen_readout_evaluation(recipe)["origin_resume_state"]
             epoch_stop *= origin["epoch_index"] + 1
         if "entry_m5_path_single_epoch" in recipe:
-            # This named successor alone consumes one complete eligible epoch.
-            # The metadata and run-scope owners have verified actual N/order.
-            if ceiling != (0 if "chronological_initial_measurement" in recipe else epoch_stop):
+            # The owners have validated actual N/order and the explicit mode:
+            # initial0, bounded technical qualification, or one complete epoch.
+            if ceiling != (0 if "chronological_initial_measurement" in recipe else
+                           DYNAMIC_M5_TECHNICAL_CURSOR_CEILING if "entry_dynamic_m5_technical_qualification" in recipe else epoch_stop):
                 raise RandomAccessCampaignError("M5 single epoch ceiling differs from actual eligible population")
         elif ceiling is not None and ceiling >= epoch_stop:
             raise RandomAccessCampaignError("native calibration cannot complete a TRAIN epoch")

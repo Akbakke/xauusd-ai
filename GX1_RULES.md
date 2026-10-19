@@ -76,6 +76,11 @@ Aktuell latency/minne måles på reelle data;30dagers trening er ingen målt
 forutsetning. Kausalitet, kostnader, TRAIN-fit, fersk profilbundet baseline,
 konsum/paritet/Entry-only/resume/maskinvare og alle sikkerhetsgrenser består.
 Ingen ny epoke/HPO, Exit eller TEST-adgang følger av profilvalget.
+Faktisk dynamisk paritet og Entry-only optimizer/resume må kvalifiseres før
+epoken. Eventuelle tekniske updates krever egen eksakt hashbundet policy,
+recipe/campaign og training_enabled=true, mens full_epoch_training_allowed
+forblir false. Nullstegs initialmåling beholder training_enabled=false.
+Kvalifiseringsvekter brukes ikke til hovedepoken eller modellutvalg.
 
 Første navngitte profil er `compact_mbp_smc_ema_atr_clock_macro_entry_v1`,
 kompilert av eksisterende featuregruppe-eier og bundet som eksakt

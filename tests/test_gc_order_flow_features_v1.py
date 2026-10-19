@@ -720,3 +720,84 @@ def test_trusted_T_statistics_keep_identical_prints_and_batch_carry_without_nonT
     assert [int(stats[side+'_trade_records'][0]) for side in ('buy','sell','unknown')]==[2,1,1]
     assert stats['size_sum_contracts'][0]==11 and stats['size_sum_squared_contracts2'][0]==33
     assert stats['size_min_contracts'][0]==2 and stats['size_max_contracts'][0]==4
+
+
+@pytest.mark.parametrize('tf,duration',[('M5',5),('M15',15),('H1',60),('H4',240),('D1',1440)])
+def test_known_cumulative_seven_field_reference_on_each_tf(tf,duration):
+    """Independent integer ledger; UTC-day/gap/roll are distinct resets."""
+    import pandas as pd
+    from gx1.time.session_detector import TRADING_SESSION_BOUNDARY_OFFSET
+    prefix=pd.DatetimeIndex(['2024-05-01T23:58Z','2024-05-01T23:59Z',
+        '2024-05-02T00:00Z','2024-05-02T00:02Z','2024-05-02T00:03Z']).as_unit('ns').asi8
+    # This source-owned session boundary is also on every smaller TF grid.
+    start=(pd.Timestamp('2024-05-02',tz='UTC')+TRADING_SESSION_BOUNDARY_OFFSET).value
+    minutes=np.r_[prefix,start+np.arange(duration)*t.MINUTE_NS]
+    selected=np.r_[np.array([0,0,0,0,1],np.int16),np.ones(duration,np.int16)]
+    metrics={name:np.zeros(len(minutes),np.uint64) for name in c.METRICS}
+    for name,values in {'buy':[3,1,2,4,5],'sell':[1,2,3,1,1],
+                        'unknown':[0,2,1,0,3],'volume':[4,5,6,5,9],
+                        'trades':[2,3,3,2,3]}.items():
+        metrics[name][:5]=values
+    # Only these two tail minutes are observed in the complete TF clock.
+    # The final clock minute has a deliberately large unadmitted print.
+    left,right,last=5+duration-3,5+duration-2,5+duration-1
+    for name,values in {'buy':[2,7,500],'sell':[3,1,0],'unknown':[1,2,0],
+                        'volume':[6,10,500],'trades':[3,3,1]}.items():
+        metrics[name][[left,right,last]]=values
+    volume=np.zeros(len(minutes),bool);volume[:5]=True;volume[[left,right]]=True
+    masks={'volume':volume,'delta':volume&(metrics['unknown']==0),'cvd':volume&(metrics['unknown']==0)}
+    actual=f.known_cumulative_contributions_v1(minutes,selected,masks,metrics)
+    names=('buy_contracts','sell_contracts','unknown_contracts','volume_contracts',
+           'known_delta_contracts','unknown_fraction','observed_minutes')
+    # Second row retains unknowns; row2 resets at midnight, row3 after missing
+    # 00:01, and row4 on the contract change, despite consecutive minute clocks.
+    expected=np.array([[3,1,0,4,2,0,1],[4,3,2,9,1,2/9,2],
+        [2,3,1,6,-1,1/6,1],[4,1,0,5,3,0,1],[5,1,3,9,4,1/3,1]],float)
+    np.testing.assert_allclose(np.column_stack([actual[name][:5] for name in names]),expected,rtol=0,atol=1e-15)
+    tail=np.array([9,4,3,16,5,3/16,2],float)
+    np.testing.assert_allclose([actual[name][right] for name in names],tail,rtol=0,atol=1e-15)
+    assert all(np.isnan(actual[name][last]) for name in names)
+    ohlc=np.tile([100,101,99,100],(len(minutes),1)).astype(np.int64)
+    surface,_=f.timeframe_skeleton(minutes,selected,metrics,masks,ohlc,tf,100000000)
+    f.add_known_cumulative_contributions_v1(surface,actual,minutes)
+    row=np.flatnonzero(surface['bar_start_ns']==start).item()
+    assert surface['observed_valid'][row]
+    assert surface['observed_accepted_minutes'][row]==2
+    assert int(surface['observed_last_minute_ns'][row])==int(minutes[right])
+    np.testing.assert_allclose([surface['observed_known_cumulative_'+name][row] for name in names],tail,rtol=0,atol=1e-15)
+
+
+@pytest.mark.parametrize('tf,duration',[('M5',5),('M15',15),('H1',60),('H4',240),('D1',1440)])
+def test_unequal_trade_record_counts_have_exact_all_tf_quantity_weighted_means(tf,duration):
+    """Seven actual print sizes: B1,B3,A2 / B10,A4,A4,N5."""
+    import pandas as pd
+    from gx1.time.session_detector import TRADING_SESSION_BOUNDARY_OFFSET
+    a=list(minute_inputs(duration))
+    start=(pd.Timestamp('2024-05-02',tz='UTC')+TRADING_SESSION_BOUNDARY_OFFSET).value
+    a[0]=start+np.arange(duration)*t.MINUTE_NS
+    for values in a[2].values():values[:]=0
+    for name,values in {'buy':[4,10],'sell':[2,8],'unknown':[0,5],
+                        'volume':[6,23],'trades':[3,4]}.items():a[2][name][:2]=values
+    for values in a[3].values():values[:]=False
+    a[3]['volume'][:2]=True;a[3]['delta'][0]=a[3]['cvd'][0]=True
+    stats={name:np.zeros(duration,np.uint64) for name in f.TRUSTED_TRADE_SIZE_FIELDS_V1}
+    for name,values in {'buy_trade_records':[2,1],'sell_trade_records':[1,2],
+        'unknown_trade_records':[0,1],'size_sum_contracts':[6,23],
+        'size_sum_squared_contracts2':[14,157],'size_min_contracts':[1,4],
+        'size_max_contracts':[3,10]}.items():stats[name][:2]=values
+    surface,_=f.timeframe_skeleton(*a,tf,100000000)
+    sized=f.aggregate_observed_trade_size_v1(a[0],a[1],a[2],a[3],stats,tf)
+    assert surface['observed_valid'].tolist()==[True]
+    assert surface['observed_volume'][0]==29 and surface['observed_trades'][0]==7
+    assert surface['observed_avg_executed_trade_contracts'][0]==29/7
+    assert surface['observed_avg_executed_trade_contracts'][0]!=(2+23/4)/2
+    assert surface['observed_known_delta_contracts'][0]==4
+    assert surface['observed_unknown'][0]==5 and not surface['observed_signed_complete'][0]
+    for side,records,mean in (('buy',3,14/3),('sell',3,10/3),('unknown',1,5.)):
+        assert sized['observed_'+side+'_trade_records'][0]==records
+        assert sized['observed_'+side+'_trade_size_valid'][0]
+        assert sized['observed_'+side+'_avg_executed_trade_contracts'][0]==mean
+    # n=7, sum=29, sumsq=171: population variance numerator=7*171-29^2=356.
+    np.testing.assert_allclose(sized['observed_executed_trade_size_std_contracts'],[np.sqrt(356)/7],rtol=0,atol=1e-15)
+    assert sized['observed_executed_trade_size_min_contracts'][0]==1
+    assert sized['observed_executed_trade_size_max_contracts'][0]==10
