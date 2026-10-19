@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — 081 kvalifisert; ny CPU-fresh082 er bundet
+## Aktuell grense — 082 fresh fullført; ny initialmåling083 er bundet
 
 080 er konsumert FAILED_NO_ADMISSION. Native exit1 kl.16:32:51UTC19.10:
 CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH ved coordinatorens cutoffkontroll.
@@ -92,17 +92,24 @@ er AST-identiske. SOURCE_REVIEW SHA60ab082cce967296cb165f80d5b4d5c5a1050da6c60d1
 Ingen ny native campaign, modellmåling eller trening er innrømmet;
 training_enabled=false. 074/076/079/080 og øvrige konsumerte planer relanseres aldri.
 
-082 er en ny engangs CPU-fresh med samme055/057/059inputs, kompaktprofil og
-kanoniske produsent.081current-review binder de3endrede eiernes nye bytes;
-gamle067/072/075/077/078originaler bevares innen uendret scope. Begge082script
-er uavhengig kildekontrollert; ingen kode/profil/data/vekter erstattes skjult.
-PLAN: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_CONTROL_BOUND_20261019_082/PLAN.json
-SHA21eb8e6f503f80413e01fe3817de0f877f8eb693181309a046bc1972ed7af171.
-Utfør082 én gang fra ren kilde/policy og hold fryst til terminal. Ingen Dataset,
-modellforward, update eller normaliseringsfit.083er bare fremtidig utsti.
+082 er faktisk COMPLETE, exit0/uendret ec8ba000,120.077s. Alle182kildebindinger/
+181filer/7139439bytes og statfelt er verifisert; closurea42e3482378d4348cdd100163c711999ccdfe27c9f0fd1bc05bee7e573477ae7.
+Egen kanonisk CPU-roundtrip, tom optimizer og ONLINE=anchor=EMA0 bestod;
+forwards/updates/refits=0. Original082 er konsumert og relanseres aldri.
+INITIALIZATION SHAc520305a5a6ed0aec5729a2ec1948af78749a8029e33395b5be406abeca6eccd;
+MEASUREMENT SHA4a92c6b2ca6228d1815dda62802c96d96d48f6ef876405295dc32bb09f4c1511.
+ACTUAL_CPU_REVIEW SHAf015a4b4d764bb9ce985f73307d5dd2f9e29284b34a1a9d507433a78184e942e.
+Dette er klargjøringstid, ingen målt encoder-/treningsfart eller læring.
 
-Neste etter faktisk082terminal: bind ny eksakt initial0campaign med gjeldende
-maskinvare-/bootporter. Deretter kreves ekte
+083 er en NY initial0måling med256TRAIN+256CONTROL,32encoderforwards og0steg.
+Den binder eksakte082constructor-/observed-/init-/measurementstier og uendret
+055/057/059input. Samme observed-planbyteSHA gjør ikke079sti til082sti.
+PLAN: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_CONTROL_BOUND_20261019_083/PLAN.json
+SHA72b9a599185c1867cf1ede37304ec5f093b9e612e622c68b776f91b6159c4f09.
+Materialiser083én gang fra ren kilde/policy; hold fryst gjennom jobb/native.
+Ny eksakt campaign, gjeldende maskinvare/signedtelemetry og NY fysisk boot
+kreves før native. Ingen trening/Exit/TEST/broker/fullVAL; training_enabled=false.
+Deretter kreves ekte
 initialbaseline/konsum/latency/minne, separat faktisk paritet og Entry-only
 optimizer/resume med4 private tekniske updates/4paritetsforwards, før den
 bestilte ene nativeepoken. Individuelle formel-/enhets-/warmup-referanser,
