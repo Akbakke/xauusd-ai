@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-19T19:11:33.643104+00:00",
-  "status": "083_ACTUAL_INITIAL_FORWARD_MEASUREMENT_COMPLETE_PREPARE_EXACT_PRIVATE4_ENTRY_QUALIFICATION",
+  "observed_utc": "2026-10-19T19:17:38.077532+00:00",
+  "status": "083_INITIAL_FORWARD_COMPLETE_085_CPU_PRESERVATION_AUDIT_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Auditactual083initialmeasurement under unchanged182sourceclosure and exact082init/measurement identities; bind NEW private4Entry-only technicalqualification with matching cohorts/profile/prefix and currentrecipe/campaign/hardware/newboot gates. Keep trainingfalse until exactlimited admission.084metadata patch deferred inGit; no083relaunch,Exit,TEST,broker,fullVAL/fullEpoch.",
+  "next_action": "Executeexact085once undercappedCPUaudit from cleansource; physicallyverify082/083states and savedCPU/Python/NumPyRNG, publishstrictinitialaudit thenvalidateexistingproductionowner. Keeptrainingfalse/0model-forwards/0updates. AfteractualPASS bindnewprivate4Entry-onlyqualification,exactcampaign/hardware/newboot. No083relaunch/Exit/TEST/broker/fullVAL/fullEpoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "083initial0complete32Entryforwards0updates; preservepassedcurrentclosure and prepareactualinitialaudit plus exactnewprivate4Entryoptimizer/parity/resume.",
+    "current_activity": "085CPUinitialcheckpointpreservationaudit bound afteractual08332Entryforwards/0updates; no productioncodechange.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -113,7 +113,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "LAST_PLAN_RUNNER_TERMINAL_CAMPAIGN_MATERIALIZATION_NATIVE_CANONICAL_RECEIPT_SEPARATE",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_CONTROL_BOUND_20261019_083",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261019_085",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_CONTROL_BOUND_20261019_083/CAMPAIGN_PREPARATION_TERMINAL.json",
       "sha256": "5a9f228f4971c6818114305a956a74f2578d1d60b6c11d1baaab062ee99056ac"
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actualprivate4 Entry-only optimizer/direct-resume/parity qualification and exactnextcampaign remain; no genuine current-generation optimizerupdate yet.",
+    "current_blocker": "Actualinitialstatepreservationaudit andthenprivate4Entry-onlyoptimizer/parity/direct-resumequalification remain. No current-generation optimizerupdates yet.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Auditactual083initialmeasurement under unchanged182sourceclosure and exact082init/measurement identities; bind NEW private4Entry-only technicalqualification with matching cohorts/profile/prefix and currentrecipe/campaign/hardware/newboot gates. Keep trainingfalse until exactlimited admission.084metadata patch deferred inGit; no083relaunch,Exit,TEST,broker,fullVAL/fullEpoch.",
+    "next_action": "Executeexact085once undercappedCPUaudit from cleansource; physicallyverify082/083states and savedCPU/Python/NumPyRNG, publishstrictinitialaudit thenvalidateexistingproductionowner. Keeptrainingfalse/0model-forwards/0updates. AfteractualPASS bindnewprivate4Entry-onlyqualification,exactcampaign/hardware/newboot. No083relaunch/Exit/TEST/broker/fullVAL/fullEpoch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -13354,6 +13354,25 @@
             "sha256": "d2b391bd204a2b06b5158771c5221cd8d4b9d800e598553e3142c07cc76ee33a"
           },
           "all_182_current_source_binding_fields_physically_reverified": true
+        },
+        "compact_initial_state_audit_stage_085": {
+          "status": "PLANNED_ONCE_CAPPED_CPU_INITIAL_STATE_PRESERVATION_AUDIT",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261019_085",
+          "plan": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261019_085/PLAN.json",
+            "sha256": "69fa89bae94ce500c21ea5b6afd5d1d21eebb44799e9aff21de1262454a83504"
+          },
+          "execution_authorized": true,
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "relaunch_allowed": false,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "model_forwards_allowed": 0,
+          "optimizer_updates_allowed": 0,
+          "exit_evaluation": false,
+          "test_data_used": false,
+          "requires_clean_source_and_exact_policy_worker_bindings": true
         }
       },
       "operator_pc_reboot_20261018": {
@@ -16062,7 +16081,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-19T19:11:33.643104+00:00",
+  "updated_utc": "2026-10-19T19:17:38.077532+00:00",
   "chronological_initial_measurement": {
     "initialization_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_CONTROL_BOUND_20261019_082/FRESH_INITIALIZATION/INITIALIZATION.json",

@@ -98,6 +98,12 @@ private updates og4paritetsforwards. Rekkefølge/state/RNG/optimizer/scheduler/
 EMA/progress må samsvare; ingen Exit/CONTROL-updates. Hovedtreningsvekter
 starter fortsatt fresh; privatkontrollvekter brukes ikke til hovedtrening.
 training_enabled=false inntil denne avgrensede kvalifiseringen er eksakt bundet.
+085 er nå bundet som én cappedCPUaudit av faktiske082/083checkpointbytes og
+lagret modell/optimizer/EMA/scheduler/CPU-Python-NumPy-RNG. Den bruker ingen
+modellforwards eller oppdateringer; strict initialaudit publiseres først etter
+faktisk bevaringskontroll. PLAN ligger i
+/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261019_085/PLAN.json
+SHA69fa89bae94ce500c21ea5b6afd5d1d21eebb44799e9aff21de1262454a83504.
 Deretter kreves eget opptak for den allerede bestilte ene nativeepoken; ny
 campaign og gjeldende maskinvare-/bootporter beholdes. Individuelle formel-/
 enhets-/warmup-referanser, komplette makrovintager og LONG/SHORT/FLAT-kvalitet/
