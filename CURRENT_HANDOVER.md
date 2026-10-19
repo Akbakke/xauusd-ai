@@ -59,69 +59,57 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense — 082 fresh fullført; ny initialmåling083 er bundet
+## Aktuell grense — faktisk initialmåling083 fullført; neste faktiske treningssteg
 
-080 er konsumert FAILED_NO_ADMISSION. Native exit1 kl.16:32:51UTC19.10:
-CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH ved coordinatorens cutoffkontroll.
-Datasett/modell ble konstruert, men initialmåling, session/checkpoint-pointer,
-progress og canonical terminalreceipt ble ikke publisert. Ingen lærings-/
-forwardsgevinst er bevist. Controller2540 sluttet exit1 kl.16:38:29UTC;
-Windows-task Disabled kl.16:39:16UTC. OriginalACTIVE/logger bevares, ingen
-pointer/progress/receipt er fabrikkert. Separat faktisk feilobservasjon:
-/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_DATA_BINDING_BOUND_20261019_080/FAILED_OBSERVATION.json
-SHA845723e19d68d61163e2aac6ed9293dabbcdabd1ed9ef26b88f3a9bf24282847.
-Alle182kildebindinger/181unike filer/7138661bytes og statfelt ble kontrollert
-mot fryst8ca998bd før081; kilde/policy var uendret under080. Ingen nativeprosesser.
+083 fullførte initialbaseline med 256 TRAIN + 256 CONTROL, 16 Entry-forwards
+per rolle, totalt32. Exit-forwards/optimizersteg/VAL-epoker=0. Canonical receipt
+ble publisert19.10 kl.19:01:09UTC med guardPASS/exit0 og RESUMABLE, som er
+forventet ved initial0taket. Dette er ingen fullført epoke eller målt læring.
+Windows-controller5624 er avsluttet; taskDisabled kl.19:06:06UTC. Frysen er løftet.
+Original083 er konsumert og relanseres aldri. Initialresultat:
+/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_CONTROL_BOUND_20261019_083/.gx1-candidate-training-session.BUNDLE/initial_measurement/RESULT.json
+SHA173ad22f59441cf797c3c6b328254a4f7c49e3d63c3ff801342a2f7d0eb60eda.
+Terminalreceipt SHA4eee83d013f51e6e9fb7c0599c98708c96361c7035e2a0f9a2bb9ea58912beef.
+ACTUAL_TERMINAL_REVIEW SHA24cb00f86dd12cd42b548be3e7ddff5b8bb8184e35ca4f03cfb540710422889b.
 
-Faktiske076TRAIN118249- og078VAL17284/CONTROL256-koblinger er bevart; de er
-separate databevis, ikke coordinator- eller modellmåling. 079CPU-fresh fullførte
-på265.962s uten forwards/updates/refit, med ONLINE=anchor=EMA0 og tom optimizer.
-Original079 er konsumert. Endret081closure krever ny faktisk kildebundet fresh-
-publisering; gamle vekter eller gamle initialstier kan ikke gjenbrukes som ny.
+To uavhengige kilde-/outputkontroller fant konsistente082-init/055-normalisering/
+057-mål/masker/koordinater og aktiv kompaktprofil. ONLINE=anchor beholder initial-
+hash9c4cf514cbfd5b6f9366f69065abcc0878ef274117e2b5c7e703656e86a79b4a.
+Separate komponentmasker og alle480 queries er bevart. Utrente diagnostiske
+handlinger TRAIN LONG3/SHORT0/FLAT253 og CONTROL FLAT256 er baseline, ikke lært
+selektivitet. Faktisk7lokale/5TF/25samarbeidstokens er observert; individuell
+featurepåvirkning eller komplett formelkorrekthet følger ikke av dette.
 
-081 retter bare den observerte coordinator-feilen og målte metadatahashinger.
-TRAINcutoff skal fortsatt være1.januar2026; CONTROL/VAL bruker1.april2026 fra
-sammeSHA-bundne DESIGN.calendar, med eksakt rolle/split. Ingen targetmasker,
-TRAIN-/TEST-tilgang eller legacy utvides. Liveness-digest bruker eksisterende
-verifisert hasheier; egne metadata-scopes lukkes før Dataset/modell/restore.
-Alle forventet-SHA/stat/innholds-/fullscan-kontroller består.199fokuserte tester
-bestod, inkludert14nye; ingen feil/SKIP og uendret kilde under116.838s kjøring.
-AST/syntaks/stale-path/diffkontroll bestod; eksisterende coordinator-testnoder
-er AST-identiske. SOURCE_REVIEW SHA60ab082cce967296cb165f80d5b4d5c5a1050da6c60d12fc5c80ebd23e0e24b4.
-081PLAN ligger i /home/andre2/GX1_RUNS/NATIVE_M5_CONTROL_CUTOFF_METADATA_REPAIR_20261019_081.
-Ingen ny native campaign, modellmåling eller trening er innrømmet;
-training_enabled=false. 074/076/079/080 og øvrige konsumerte planer relanseres aldri.
+083 samlet native4007.463s inkluderer setup1329.333s og checkpoint360.268s.
+Ren encoderlatency er ikke separat målt; ingen trenings-ETA utledes av dette.
+En enkelt ikke-blokkerende stackobservasjon målte gjentatt fysisk hashing i
+ren dynamic-context-validering før modellarbeid. Metadatarettelse084 er
+UTSATT/UKJØRT: dagens kontrakt ville ellers kreve ny CPUfresh og ny initial0,
+selv med uendret modellmatematikk. For korteste korrekte vei til faktiske
+treningssteg er productiontrainer restaurert byteidentisk310. Rettelse/test
+bevares kun i Gitstash1678872c75485d7a0e1186d13c2a6ee53d894db3, ikke som aktiv
+kode.084/DEFERRED_PATCH SHAd21f187b0b241661b5ba1e7f17aa0bad290f00e6ad25006d09a9a572d9809d02.
+Ingen084test eller jobb ble startet; ingen nye PASS- eller hastighetsbevis.
 
-082 er faktisk COMPLETE, exit0/uendret ec8ba000,120.077s. Alle182kildebindinger/
-181filer/7139439bytes og statfelt er verifisert; closurea42e3482378d4348cdd100163c711999ccdfe27c9f0fd1bc05bee7e573477ae7.
-Egen kanonisk CPU-roundtrip, tom optimizer og ONLINE=anchor=EMA0 bestod;
-forwards/updates/refits=0. Original082 er konsumert og relanseres aldri.
-INITIALIZATION SHAc520305a5a6ed0aec5729a2ec1948af78749a8029e33395b5be406abeca6eccd;
-MEASUREMENT SHA4a92c6b2ca6228d1815dda62802c96d96d48f6ef876405295dc32bb09f4c1511.
-ACTUAL_CPU_REVIEW SHAf015a4b4d764bb9ce985f73307d5dd2f9e29284b34a1a9d507433a78184e942e.
-Dette er klargjøringstid, ingen målt encoder-/treningsfart eller læring.
-
-083 er en NY initial0måling med256TRAIN+256CONTROL,32encoderforwards og0steg.
-Den binder eksakte082constructor-/observed-/init-/measurementstier og uendret
-055/057/059input. Samme observed-planbyteSHA gjør ikke079sti til082sti.
-PLAN: /home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_CONTROL_BOUND_20261019_083/PLAN.json
-SHA72b9a599185c1867cf1ede37304ec5f093b9e612e622c68b776f91b6159c4f09.
-Materialiser083én gang fra ren kilde/policy; hold fryst gjennom jobb/native.
-Ny eksakt campaign, gjeldende maskinvare/signedtelemetry og NY fysisk boot
-kreves før native. Ingen trening/Exit/TEST/broker/fullVAL; training_enabled=false.
-Deretter kreves ekte
-initialbaseline/konsum/latency/minne, separat faktisk paritet og Entry-only
-optimizer/resume med4 private tekniske updates/4paritetsforwards, før den
-bestilte ene nativeepoken. Individuelle formel-/enhets-/warmup-referanser,
-komplette makrovintager, LONG/SHORT/FLAT-kvalitet/dekning og læring gjenstår.
+Gjenbruk076TRAIN/078VAL-CONTROL/081199PASS/082CPUfresh/083initialbevis innen sine
+uendrede roller. Neste steg er faktisk083initialaudit og ny eksakt privat4-
+Entry-kvalifisering:2direkte TRAIN-steg mot1steg→durable load→1steg, totalt4
+private updates og4paritetsforwards. Rekkefølge/state/RNG/optimizer/scheduler/
+EMA/progress må samsvare; ingen Exit/CONTROL-updates. Hovedtreningsvekter
+starter fortsatt fresh; privatkontrollvekter brukes ikke til hovedtrening.
+training_enabled=false inntil denne avgrensede kvalifiseringen er eksakt bundet.
+Deretter kreves eget opptak for den allerede bestilte ene nativeepoken; ny
+campaign og gjeldende maskinvare-/bootporter beholdes. Individuelle formel-/
+enhets-/warmup-referanser, komplette makrovintager og LONG/SHORT/FLAT-kvalitet/
+dekning gjenstår. Ingen treningshastighet eller økonomisk effekt er målt ennå.
 Generalisering og økonomisk edge er egne senere vurderinger.
 
 ## PC, opprydding og metode
 
 Brukerens18.10-omstart er utført;034/REBOOT_CONFIRMED.json er bindende.
-Ikke utfør samme bestilling igjen. Seneste separate før-native Boot506 ble
-bekreftet19.10 kl.15:09:14.500UTC med WindowsSSH/Ubuntu og182uendrede kilder.
-080/REBOOT_CONFIRMED SHAeb380144e863ba44cff10d71cafa8bbb796f8e9d2020c426f0c5b48b5ab55f2d.
+Ikke utfør samme bestilling igjen. Seneste separate før-native Boot507 ble
+bekreftet19.10 kl.17:45:21.500UTC med WindowsSSH/Ubuntu og182uendrede kilder.
+083/REBOOT_CONFIRMED SHA0b37fe28a4d30d1d384a19b69e59d919204617a13a7d1ad56ac2badf70218039.
 Dette er ingen treningsadgang. Ny campaign følger egne ferske maskinvare-/
 bootkrav. Bruk kanonisk hasheier; campaign-JSON inkluderer avsluttende newline.
 
