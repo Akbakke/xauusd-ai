@@ -96,6 +96,18 @@ symlink, aktuell identitet og forventetSHA samt alle semantiske porter. Ny
 operasjon eller endret identitet krever fysisk hash på nytt. Ingen varig cache
 eller treningsadgang følger av dette; reell metadata-kjøretid skal måles.
 
+Brukervedtak19.10: organiser datalesing og trening for minst mulig unødvendig
+arbeid. Gjenbruk ferdige features, targets, normalisering og beståtte kontroller
+innen deres eksakte uendrede omfang. Skill engangsvalidering fra batcharbeid;
+ingen gjentatte fullscan/hashinger av samme input inne i batchløkka. Innen én
+metadataoperasjon brukes eksisterende verifisert hasheier én gang per stabil
+filidentitet. Ingen cache føres gjennom modell-/state-/checkpointarbeid.
+Mål oppstart/validering, modellkonstruksjon, batchlesing, GPU-steg og checkpoint
+separat før videre ytelsesendringer. Skill logiske lesevolumer/rchar fra
+faktiske disklesinger/read_bytes; ingen TB-/hastighets-/ETA-påstand uten
+korrekt målerolle. Rett målte flaskehalser med minste endring og bevar kausalitet,
+masker, features/MTF og alle sikkerhetsvakter.
+
 ## Én kodebase, avgrensede agentoppgaver
 
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre

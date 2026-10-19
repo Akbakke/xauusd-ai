@@ -13517,7 +13517,32 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_CONTROL_BOUND_20261019_083/RUNTIME/receipts/invocation-0001.json",
       "sha256": "4eee83d013f51e6e9fb7c0599c98708c96361c7035e2a0f9a2bb9ea58912beef"
     },
-    "latest_terminal_evidence_scope": "Collector exit_code/source_unchanged interface consumes actual083plan-runner terminal. Actual later native outcome is separately bound in native_terminal_receipt and compact_initial_measurement_stage_083; no transformed or fabricated terminal."
+    "latest_terminal_evidence_scope": "Collector exit_code/source_unchanged interface consumes actual083plan-runner terminal. Actual later native outcome is separately bound in native_terminal_receipt and compact_initial_measurement_stage_083; no transformed or fabricated terminal.",
+    "training_efficiency_request_20261019": {
+      "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
+      "status": "REQUIRED_MEASURED_IO_AND_COMPUTE_EFFICIENCY",
+      "reuse_existing_feature_target_normalization_artifacts": true,
+      "full_scan_or_hash_inside_batch_loop_allowed": false,
+      "verification_reuse_scope": "Existingfile_verification_scope only within finite puremetadataoperations; firstphysicalhash/stat/SHA/type/symlink/semanticguards retained; no memoovermodel/state/checkpoint.",
+      "measure_separately": [
+        "metadata_validation",
+        "dataset_and_model_setup",
+        "batch_input_read",
+        "forward_backward_optimizer",
+        "checkpoint_publication"
+      ],
+      "io_metrics_roles_separate": [
+        "logical_read_rchar",
+        "physical_disk_read_bytes"
+      ],
+      "training_eta_must_be_measured": true,
+      "known_measured_setup_observation": "083setup1329.333s; single actualnonblockingstack showedduplicatephysicalSHA duringfinitecontextmetadata. ItdoesnotattributeentiresetuporprovephysicalTBread.",
+      "metadata_patch_deferred_evidence": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CONTEXT_METADATA_SCOPE_20261019_084/DEFERRED_PATCH.json",
+        "sha256": "d21f187b0b241661b5ba1e7f17aa0bad290f00e6ad25006d09a9a572d9809d02"
+      },
+      "performance_claims_pending": true
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -16081,7 +16106,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-19T19:17:38.077532+00:00",
+  "updated_utc": "2026-10-19T19:19:27.494775+00:00",
   "chronological_initial_measurement": {
     "initialization_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_CONTROL_BOUND_20261019_082/FRESH_INITIALIZATION/INITIALIZATION.json",

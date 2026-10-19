@@ -122,4 +122,8 @@ bootkrav. Bruk kanonisk hasheier; campaign-JSON inkluderer avsluttende newline.
 DATA/RUNS ryddes bare av retention-eieren. Ingen Pythonfil er bevist slettbar
 ved full referanse-/import-/CLI-/test-/eierkontroll. Historikk finnes i Git;
 ingen kvitteringer/data/checkpoints slettes ved denne dokumentoppdateringen.
+Brukerkrav19.10: prioriter effektiv datalesing og trening. Gjenbruk ferdige
+inputs og skill engangsvalidering fra batcharbeid. Mål metadata/setup, batch-I/O,
+GPU-steg og checkpoint separat; rchar er ikke fysisk disklesing. Se bindende
+effektivitetsregel i GX1_RULES.md og training_efficiency_request_20261019 i policy.
 Metode: docs/NATIVE_LEARNING.md. Feltbevis: docs/FEATURE_AUDIT.md.
