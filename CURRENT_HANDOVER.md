@@ -71,7 +71,7 @@ Faktiske immutable bevis ligger i GX1_RUNS-røttene055/057/058/059/060 og
 policyen. Tidligere056/058sourcekvitteringer beholdes og gjenbrukes for
 uendrede kontrakter. De beviser ingen ny kompakt modellfunksjon.
 
-## Aktuell:065 kilde707PASS;NY066fresh før faktisk063
+## Aktuell:066fresh ferdig;063 nullstegsmåling skal bindes
 
 Profil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, eksplisitt referanse
 `{name,contract_sha256}` i recipe, konstruktormetadata, modell og state.
@@ -151,29 +151,39 @@ endret for å skape PASS. SOURCE_QUALIFICATION_FINAL_RECEIPT SHA
 72cd6ca3be194aac66580a7433153bb63e36e455c956308eb55e62e02d94019b;
 SOURCE_REVIEW SHA02719e96415aef5c1a88f149f6bd099b44bf3a9f1779507ae089f56df81d087d.
 Modell/feature/trainer/objective-bytes er uendret. Ingen genuin forward/update.
-NY066freshplan er publisert separat;064state/kvitteringer bevares uendret.
+066fullførte faktisk07:41:47UTC,1285.314s,exit0/uendret0b516650.
+TERMINAL SHA0c30d18fa2d893b94428e7de6e1968d8ebaae7c64626a0a6f1311e8d3ad6f518;
+RESULT SHAbff598a3dc6bba3a356ebd18e3cb784b3cadad9e70c5af02cb7c70734a785b46.
+Genuin CPUfresh ONLINE=anchor=EMA0 er9c4cf514cbfd5b6f9366f69065abcc0878ef274117e2b5c7e703656e86a79b4a;
+INITIALIZATION SHAd60121d7cc12ab0f28f727e0c586ced87e375b2753bdccc3d20fc22d7033a098;
+MEASUREMENT_BINDING SHA6c418679824865df322889177d0dfe2d15458a817fc354f49436767e1c0f8d0d.
+Alle182aktuelle kildebytes/stat er kontrollert og binder
+efd07ddcf6f6c46e2a2736d209a861ad234db6e3545460d6400ebc3154309513.
+Tom optimizer, EMA0/scheduler/RNG og strictCPUroundtrip bestod;0forwards/
+steps/refits/Exit/TEST/broker.066er konsumert, ingen relaunch.063er planlagt
+med0steps og32encoderforwards, men er ikke startet.064/066originaler bevares.
 Kun dupliserte wrapperpreflights er fjernet i066; samme canonical produsent
 validerer fortsatt constructor/observed/physical/fullsource før fresh modell.
 
 ## Neste nødvendige steg
 
-1.065har rettet og kildekvalifisert målt completion-join: initial0 med M5-witness blir feilaktig sendt
-   til full-epoch-only validator. Allerede validert initialmåling skal bruke
-   eksisterende review-stop; ekte epoch beholder strenge porter. Kvalifiser
-   dynamisk komponentparitet og eksisterende Entry-only optimizer/resume-eiere;
-   legacy entry_action_q_bps-smoke er ikke slik dokumentasjon. Ingen ekstra
-   økonomisk treningsarm/HPO/epoke eller generell guardlettelse.
-2. Fullfør fokuserte kontroller/hooks/syntaks/stalepath/diffcheck og commit/push.
-  064binder alle182kildene eksakt; bind og kjør NY066freshprep før063 etter
-   ren commit. Original064state/kvitteringer bevares. Ingen
-   rebuild/refit av055/057/059 eller relaunch av konsumerte planer.
-3. Bind063initialbaseline på ekte data, frosne256TRAIN/256CONTROL, alle aktive
-   felt-/value-mask-/MTF-stier og komponentmasker. Kvalifiser konsum/paritet,
-   Entry-only optimizer/resume, faktisk latency/peakminne og native hardware/
-   campaign/freshboot. Ingen Exit-grad/vektendring.
-4. Først etter faktiske porter og eksakt ny campaignbinding kan én full
-  7391steps nativeepoke starte. Ingen ekstra epoke, VAL-refresh, top-K eller
-   økonomisk checkpointutvalg. Siste ONLINE beholdes.
+1. Bind063recipe og nullstegsbudsjett til faktisk066freshstate, de samme elleve
+   inputfilene/055normalisering,057design/koordinater og uendrede182kilder.
+   Top-policy chronological_initial_measurement binder nøyaktig samme scope;
+   training_enabled=false. Ingen ny sourceendring eller freshprep er nødvendig
+   for bare policy/docs/nyHEAD når bytes/stat i hele closure er identiske.
+2. Materialiser én ny native campaign gjennom eksisterende capped eier.
+   Verifiser faktisk signert Windows/GPU-telemetri, guard/cert/controller og
+   ny fysisk boot etter ny prepared-boot; først etter maskinvid idle/writer-
+   kontroll. Dette er en ny før-native-port, ikke gjentatt18.10-brukeromstart.
+3. Kjør063én gang:256TRAIN+256CONTROL,16encoderforwards per cohort,0steps.
+   Bevar state/RNG/pointer, mål faktiske felt-/value-mask-/MTF-stier og
+   komponentmasker, latency/peakminne og etterprøvbare LONG/SHORT/FLAT-spor.
+4. Først deretter bind én særskilt teknisk kvalifisering: fire private updates
+   (to mot ett+varig reload+ett) og fire paritetsforwards, ingen CONTROLupdates
+   eller gjenbrukbare vekter. Krever eksakt policy/campaign og faktisk nyboot.
+5. Etter faktiske porter kan én full7391steps nativeepoke starte. Ingen ekstra
+   epoke, VAL-refresh/top-K eller økonomisk checkpointutvalg; siste ONLINE.
 
 Valgte og avståtte LONG/SHORT/FLAT må rapporteres med kvalitet og dekning.
 Gatevekter alene forklarer ikke beslutningen; alltidFLAT er ikke selektivitet.
