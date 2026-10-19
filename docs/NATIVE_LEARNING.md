@@ -135,7 +135,9 @@ med `--full-input-liveness-sha256`. `--m5-prebuilt` må være den faktisk bundne
 M5-kilden i MTF-cachemanifestet; `--mtf-cache-dir` må stemme med splitmanifestet.
 Bare den planbundne hele TRAIN-populasjonen er lovlig. Output publiseres én gang
 med `--output` og `--publish` under eksisterende capped audit4G/512M og prosjektlås.
-Pilot-/Exit-/subsetargumenter avvises. Canonical MTF-vinduslengder hentes fra
+Pilot-/Exit-/subsetargumenter avvises. Fit og etterfølgende streng validering
+har én felles planbundet tidsfrist; den fornyes ikke per trinn. Et inputfit-PASS
+gir ingen nativeadmission. Canonical MTF-vinduslengder hentes fra
 produksjonseieren. Source-backed Dataset bruker tre diskarrays for snap/ctx,
 ingen dense96bars speilsekvens og blokkvis eksakt paritet med M5-kilden.
 

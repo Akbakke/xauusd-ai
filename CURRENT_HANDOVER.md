@@ -57,72 +57,68 @@ står ved lag etter alle aktuelle admissionporter, uten ny epoke/VAL-refresh.
   eller rankerrefit.050RESULT/SURFACE_BINDINGS binder eksakte stier/hasher.
   Dette gir ikke gjeldende fysisk splitmetadata eller inputadmission.
 
-## Aktuell status:051ferdig,052target- og inputbinding forberedes
+## Aktuell status:053inputkontroll bestått,054normalisering klar
 
-051COMPLETE19.10 kl01:28:27UTC,1315.079s, exit0 og uendret737f5745.
-Typed fysisk metadata er publisert i TRAIN_VAL_051 med hardlinks til identiske
-047TRAIN/VAL/ECDF-bytes. Alle opprinnelige target-/pointer-/GroupA-/GCparitets-
-bevis bevares. Ny gjeldende wholeTRAIN-klokke matcher049eksakt.
+051fullførte typed fysisk metadata i TRAIN_VAL_051 og begge uttømmende
+seq/snap-kilderekonstruksjoner19.10 kl01:28UTC,1315.079s, exit0/uendret737f5745.
+TRAIN118249/VAL17284, identiske047Parquet-/ECDF-bytes. WholeTRAIN-klokken
+matcher049eksakt; gjeldende051manifest og050flater er bundet.051relanseres ikke.
 
-Begge nye eksisterende uttømmende seq/snap-kilderekonstruksjoner bestod:
-TRAIN118249på768.984s og VAL17284på181.333s. Det er samme numeriske
-payload og samme målte sekvenskjede som047; de nye rapportene binder051-
-manifestene og050M5flaten. Streng finisher bestod. Alle051workers er borte.
-RESULT og SOURCE_RECONSTRUCTION_BINDINGS er bundet i051TERMINAL/policy.
-051startes aldri igjen. Ingen markedsfit, inputadmission eller nativeepoke.
+053COMPLETE19.10 kl02:09:26UTC,640.168s, exit0/uendret412011fc. Eksisterende
+full input-liveness skannet alle TRAIN118249/VAL17284rader,2725signal-,
+2542ctx-cont- og1ctx-cat-felt samt253felt perTF/1265MTF-feltstatuser.
+Streng eksisterende validator og finisher bestod med faktiske buildproof-,
+rekonstruksjons-, registry- og overflatebindinger. ATR/OOD viser SHIFT_OBSERVED;
+diagnostikken beholdes, ingen VAL-fit brukes til å skjule den. Alle053workers
+er borte; planen er konsumert. Dette er inputbevis, ingen lærings-/edgepåstand.
 
-Normaliseringskilden har en eksplisitt canonical dynamisk Entry-only-gren:
+Normaliseringskilden har en kvalifisert eksplisitt dynamisk Entry-only-gren:
 hele fysisk TRAIN før targetmasker, audited source-backed union av faktisk
 konsumerte96bars M5-vinduer, alle TRAIN-contextbeslutninger og eksisterende
-femMTF-selector med tom Exit-klokke. Joint-default og gamle Exit-krav består.
-22normaliseringstester og5uendrede dynamiske modelltester bestod; obligatoriske
-61modellkontrakttester og10guardrailtester bestod ved commit. Signalkontrakten
-f397dbf5 er målt uendret. Dette er kildekvalifisering, ingen markedsfit.
+femMTF-selector med tom Exit-klokke. Joint-default/Exit-krav består.
+22normaliseringstester+5uendrede dynamiske modelltester er kvalifisert.
+Eksisterende CLI/caller og Dataset-eier er videre kvalifisert i47unike caser:
+45uendrede PASS og2berørte spiontester etter fixture-onlyavgrensning; ingen
+produksjonsendring i reparasjonen. Tre source-backed diskarrays erstatter den
+målte brede kopien; seq=None og512raders eksakt snapshotparitet, også siste
+partialblokk.61modellkontrakt- og10guardrailtester bestod ved412commit.
+Signalkontrakten f397dbf5 er målt uendret. Beståtte kildekontroller gjenbrukes.
 
-Ingen tung jobb kjører nå.053forbereder eksisterende uttømmende input-liveness
-på alle051TRAIN/VAL-rader:batch256,audit4G/512M,én7200sfrist og kildefrys.
-Controller/finisher er revidert og klare for ren kildebinding.
-Gjeldende buildproof skal bindes både fra051resultatet og i liveness-artefakten.
-De beståtte051sekvens-/050overlapkontrollene gjenbrukes; ingen rebuild/refit.
+Ingen tung jobb kjører nå.054er revidert og klar for ren kildebinding:
+nøyaktig én faktisk wholeTRAIN Entry-only-normaliseringsfit med kvalifisert
+CLI/loader/corefit, deretter streng eksisterende kontrakt-/populasjonskontroll.
+Audit4G/512M, CPU0–7, numerikktråder1, TasksMax64 og én felles7200sfrist.
+MTF-vinduer er M5=16/M15=64/H1=96/H4=96/D1=252. Ingen target-/label-/design-
+eller Exit-populasjon, ingen VAL/TEST-fit eller native optimizer. Normalisering
+kan fittes uten fysisk targetreceipt. Faktisk4G-fit er ennå ikke gjennomført.
+Kun054normalization_fit_enabled=true; training_enabled=false består.
 
 Physicaltargetreceipt må ifølge eksisterende kampanjeeier binde SAMME fulle
-design som faktisk epochwitness/budsjett. Den publiseres derfor først når det
-faktiske native-designet foreligger, før nativeadmission. En forbigående data-
-design ville kreve en ny receipt senere.052har bare en inaktiv serializer;
-ingen plan, claim, design, receipt eller jobb er opprettet. Ikke launch052.
-Den eksisterende pointer-/maskeserializeren og strenge valideringen kan gjenbrukes.
-
-Normalisering kan tilpasses direkte fra TRAIN-inputene uten labels/design/
-Exit/teacher. Den eksisterende CLI har en kildekvalifisert dynamisk callergren.
-Samme Dataset-eier gjenbrukes; bare source-backed-ruten får tre diskarrays
-(snap/ctx/cat), ingen dense seq, og blokkvis identisk kildesnapshotparitet.
-Dette fjerner den konkrete brede Float64-/anonymous-/paritetskopien.
-Faktisk4G-kjøring skal fortsatt kvalifiseres. Kvalifisert normkontrakt/corefit
-og jointdefault beholdes.
-47berørte caller-/lagringstester er kvalifisert:45uendrede PASS gjenbrukes
-og2berørte spiontester bestod etter én fixture-onlyavgrensning. Produksjonskoden
-var uendret i reparasjonen. Signalkontrakten er målt uendret. Ingen markedsfit
-er startet. Root koordinerer commit og neste jobbfrys.
+design som faktisk epochwitness/budsjett. Den publiseres én gang når det faktiske
+native-designet foreligger, før nativeadmission.052har bare en inaktiv serializer;
+ingen plan, claim, design, receipt eller jobb finnes. Ikke launch052.
 
 ## Native kjede som gjenstår
 
-1. Caller-/lagringseiere og053controller er kvalifisert/revidert. Commit/push
-   etter obligatoriske hooks og bind ren kilde. Kjør053eksisterende input-liveness én gang og observer sparsomt.
-2. Etter faktisk input-PASS:bind én Entry-only-normaliseringsfit på hele fysisk
-   TRAIN. Physicaltargetreceipt bindes det faktiske fulle native-designet før
-   nativeadmission; ingen midlertidig data-design eller blind SHA-erstatning.
-3. Normaliser hele fysisk TRAIN én gang. Bevis fersk ONLINE=TARGET=EMA0,
-   alle feature-/MTF-ruter, faktisk konsum/paritet og Entry-only optimizer/
-   resume med beslutningsspor for valgte og avståtte LONG/SHORT/FLAT.
-4. Full_train-komponentkjede og initial-/gradient-/paritetsobservatører
-   trenger fortsatt eksplisitt Entry-kurvegren uten legacy Q/cash/token/
-   Exit-forward. Komponent-/fixturekontroller alene gir ingen nativeadgang.
-   Objektiveieren har dessuten gammel unitless-ratio-tekst/bps=false, mens
-   outputAPIv12 faktisk bruker quality-bps. Dette målte metadataavviket skal
-   rettes i samme nativebølge; native autoritet forblir stengt.
-5. Etter faktiske mål-/input-/baseline-/konsum-/optimizer-/resume-/maskinvare-
-   porter: bind faktisk N/ordre og ceil(N/16), behold siste delbatch og tren
-   nøyaktig én epoke med varige checkpoints. Stopp før ny epoke/VAL-refresh.
+1. Bind ren committet/pushet kilde, policy,054plan og reviderte controllere.
+   Kjør054én gang og observer sparsomt med fryst kilde/policy. Ingen relaunch.
+2. Etter faktisk normaliseringsterminal: rett de målte native gapene i deres
+   eksisterende eiere. Campaign-preprocessing og prefixkomponentbinding
+   krever fortsatt composite-/Exit-inputs. Full_train-komponentbyggeren og
+   initialmålecohorten må få eksplisitt Entry-only-kurvegren uten Exit-reference-
+   policy, corpus, adapter, teacher eller Exit-observasjoner. Behold fungerende
+   fasefølsom constructor/frys/optimizer/EMA og joint-default.
+3. Objektiveieren erklærer fremdeles unitless_ratio/bps=false, mens outputAPIv12
+   bruker predikert netto endepunktsbps minus predikert pre-MFE-MAE upper.
+   Rett deklarasjon og strenge bundle-/smoke-/eksportkonsumenter samlet;
+   native autoritet forblir stengt. Ingen numerisk feature-/targetendring.
+4. Bind faktisk fullt native-design, hele TRAINs epochwitness/budsjett og
+   fysisk targetreceipt gjennom eksisterende strenge eiere. Bevis fersk
+   ONLINE=TARGET=EMA0, alle feature-/MTF-ruter, faktisk konsum/paritet og
+   Entry-only optimizer/resume med spor for valgte og avståtte LONG/SHORT/FLAT.
+5. Først etter alle faktiske mål-/input-/baseline-/konsum-/optimizer-/resume-/
+   maskinvareporter: bind faktisk N/ordre og ceil(N/16), behold siste delbatch
+   og tren nøyaktig én epoke med varige checkpoints. Ingen ny epoke/VAL-refresh.
 
 Entry-kurver bruker delte immutable M1quotes/pointere og samme encoderforward
 for1..480min. Endepunkt og bane har egne observasjonsmasker; gap sensurerer

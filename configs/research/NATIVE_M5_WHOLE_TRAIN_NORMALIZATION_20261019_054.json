@@ -1,0 +1,83 @@
+{
+  "schema_version": "gx1_whole_train_dynamic_m5_normalization_fit_v1",
+  "execution_ready": true,
+  "plan_id": "NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "created_utc": "2026-10-19T02:11:52.431719+00:00",
+  "run_id": "XAU_GC_NATIVE_26M_20261018_003",
+  "one_shot_invocations": 1,
+  "normalization_fit_invocations": 1,
+  "max_wall_seconds": 7200,
+  "training_enabled": false,
+  "normalization_fit_enabled": true,
+  "native_training_admitted": false,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "source_frozen_while_running": true,
+  "no_data_recompute": true,
+  "physical_metadata_result": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/RESULT.json",
+    "sha256": "ade97995e60b1766c95ad22dd6f1d9a486bbbd3aca395eb822ac479853e8a133"
+  },
+  "source_reconstruction_bindings": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/SOURCE_RECONSTRUCTION_BINDINGS.json",
+    "sha256": "374b60be4899a88457f0ad45cbdd64557370b5957622a19c970f15a58141d31e"
+  },
+  "input_liveness_result": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_INPUT_LIVENESS_20261019_053/RESULT.json",
+    "sha256": "cf375515fabe2bbdbb6996d91927c5df109c13f218a1c6de0e843fccd09e64ca"
+  },
+  "input_liveness_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_INPUT_LIVENESS_20261019_053/TERMINAL.json",
+    "sha256": "ead98785507c6fe29833eab93dadb8aa3b91b915fcc86a2aa8dbb2eb75cff781"
+  },
+  "full_input_liveness": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_INPUT_LIVENESS_20261019_053/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20261019T015846331564Z.json",
+    "sha256": "f71298e96217f5ac6f773568f2bcd6fb74e715b828f92c4d8fc670daad962c1f"
+  },
+  "train_parquet": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.parquet",
+    "sha256": "351d6874a846e09d759255462335221c04b10961309b7404a1752fb2da3fb725"
+  },
+  "train_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.manifest.json",
+    "sha256": "d6bf1d2ddacf0260e6c23e0496f57086ddfcd3ba971e6fa34b4b433f58cf2ed0"
+  },
+  "train_sequence_source_audit": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/SOURCE_RECONSTRUCTION_train.json",
+    "sha256": "f9ddf882de5b2481a274849d5775e23197b2012b6599a52c1078286a85fc2c55"
+  },
+  "train_rows": 118249,
+  "whole_train_decision_clock_sha256": "6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca",
+  "m5_prebuilt": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+    "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+  },
+  "mtf_cache_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE",
+  "mtf_manifest_sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4",
+  "registry": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_049.json",
+    "sha256": "3e444777099a848cd8795688b57a19122d1ac5454f42902a3495e64aad73a757"
+  },
+  "entry_training_phase": "entry_only_dynamic_m5_path",
+  "fit_population": "unique_physical_train_rows_entry_only_dynamic_m5_path_v1",
+  "per_tf_seq_lens": {
+    "M5": 16,
+    "M15": 64,
+    "H1": 96,
+    "H4": 96,
+    "D1": 252
+  },
+  "normalization_output": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054/NORMALIZATION.json",
+  "expected_signal_static_contract_sha256": "f397dbf5502b97332533e2f4333af3dc6d5a85d9a0a252cfb0b1b440c41a65cd",
+  "source_qualification": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_INPUT_LIVENESS_20261019_053/CONTROLLER_SOURCE_REVIEW.json",
+    "sha256": "4e1a46ac90036fd3b31b140a17623cf16497a382dea2a6ca25d1818b9afea82d"
+  },
+  "source_qualification_head": "412011fc2fd4076a93a02b8719c8a6a520a1d0de",
+  "resource_owner": "Existing audit4G/512M CPU0-7 numericalthreads1 TasksMax64 CURRENTlock, one7200s shareddeadline. No cap or budget extension.",
+  "scope": "Exactly one actual wholephysicalTRAIN Entry-only normalizationfit with qualified existing CLI/corefit/audited Dataset owner. AllTRAINcontext beforetargetmasks, unique consumed96bar M5windowunion and allfive closedMTFlanes; mask/role-aware. No label/design/Exitteacher/Exitpopulation/native model optimizer or TEST fit. Publish exact transform once; strict existing contract validation afterwards.",
+  "pending_after": "Actual fullnative design with wholeTRAINepochwitness/budget and physicaltargetreceipt; fresh ONLINE=TARGET=EMA0 baseline, fullfeature/modelconsumption/parity/Entry-onlyoptimizer/resume/hardware, then exactly one native epoch. Existing nativeobjective ratio/bps metadata and full_train legacy Exit branches still require concrete source fixes before admission."
+}
