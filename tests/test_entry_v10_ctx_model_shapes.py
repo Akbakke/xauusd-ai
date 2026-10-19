@@ -67,9 +67,17 @@ from tests.model_native_input_normalization_support import (
 SEQ_DIM = 16
 SEQ_LEN = 4
 TF_DIM = len(EXACT_SPECIALIST_NAMES)
+from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+
 INPUT_NORMALIZATION = input_normalization_fixture(
     signal_names=[f"signal_{index}" for index in range(SEQ_DIM)],
     mtf_names=[f"mtf_{index}" for index in range(TF_DIM)],
+)
+
+DYNAMIC_INPUT_NORMALIZATION = input_normalization_fixture(
+    signal_names=[f"signal_{index}" for index in range(SEQ_DIM)],
+    mtf_names=[f"mtf_{index}" for index in range(TF_DIM)],
+    entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
 )
 
 
@@ -133,6 +141,8 @@ def _make_model(**overrides) -> EntryV10CtxHybridTransformer:
         "temporal_alias_ctx_cont_indices": [],
         "input_normalization": INPUT_NORMALIZATION,
     }
+    if overrides.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        kwargs["input_normalization"] = DYNAMIC_INPUT_NORMALIZATION
     kwargs.update(overrides)
     kwargs.setdefault(
         "multi_tf_specialist_input_indices",
@@ -2268,3 +2278,10 @@ def test_dynamic_m5_public_phase_cannot_be_mutated_into_legacy_authority():
     model.entry_training_phase = "joint_fitted_q"
     with pytest.raises(RuntimeError, match="ENTRY_MODEL_PHASE_BINDING_INVALID"):
         _forward(model)
+
+
+def test_dynamic_m5_constructor_rejects_joint_normalization_population():
+    with pytest.raises(RuntimeError, match="NORMALIZATION_PHASE_POPULATION_MISMATCH"):
+        _make_dynamic_m5_model(input_normalization=INPUT_NORMALIZATION)
+    with pytest.raises(RuntimeError, match="NORMALIZATION_PHASE_POPULATION_MISMATCH"):
+        _make_model(input_normalization=DYNAMIC_INPUT_NORMALIZATION)

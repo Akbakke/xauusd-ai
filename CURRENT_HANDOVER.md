@@ -1,182 +1,121 @@
 # CURRENT HANDOVER — XAUUSD M5 Entry, minutter til timer
 
 Autoritativt arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Les GX1_RULES.md. NEXT_RUN_POLICY.json eier arbeidsstatus og eksakte bindinger.
-Flere avgrensede agenter, én integrator og én capped tung jobb. Ingen endring
-av kilde/policy/controller under fryst kjøring. Faktiske prosesser og terminaler
-overstyrer prose; fullførte/avbrutte engangsplaner startes aldri igjen.
+Les GX1_RULES.md. NEXT_RUN_POLICY.json eier status og eksakte bindinger.
+Én integrator, avgrensede agenter og én capped tung jobb. Kilde, policy og
+kjøreeiere fryses under jobb. Faktiske terminaler overstyrer prosa.
+Konsumerte planer relanseres aldri. Trening er fortsatt stengt.
 
 ## Mål og avgrensning
 
-Bare Entry i denne bølgen. M5 er beslutningsklokken. Lær separat netto
-endepunktsretning, signert MFE og konservativ MAE før første MFE fra ett minutt
-til mange timer; dager er støtte. Verken95min,480min eller dagshorisont er
-maksimal holdetid eller tvungen exit. Ingen Exit-vurdering/-target/-gradienter.
+M5 Entry lærer LONG, SHORT og FLAT fra observerbar markedstilstand: separat
+netto endepunktsretning, signert MFE og konservativ MAE før første MFE fra
+ett minutt til mange timer. Dager er støtte. En beregningshorisont er ingen
+maksimal holdetid eller Exit-regel. Ingen Exit-vurdering eller Exit-trening.
 
-Alle genuine indikatorer, åtte spesialister og niende D1/makrokontekst skal
-følges gjennom lukket M5/M15/H1/H4/D1 til faktisk modellkonsum. M30 krever
-målt merverdi. Samme modell med eksisterende spesialister er hovedspor;
-SMC-/MBP-modeller eller stacking krever identisk kronologisk OOF-bevis.
+Alle genuine indikatorer skal følges gjennom lukket M5/M15/H1/H4/D1 til
+faktisk modellkonsum. Åtte spesialister og niende D1/makrokontekst beholdes.
+M30 eller egne SMC/MBP-modeller/stacking krever målt merverdi med samme
+kronologiske OOF-oppsett. Kvalitet, dekning og avståtte entries skal måles.
+Fremtidige targets, masker og sensurgrunner brukes aldri som inputs.
 
-Bruk de26rike MBP-månedene først: TRAIN [2024-05-01,2026-01-01), VAL
+Bruk26rike MBP-måneder: TRAIN [2024-05-01,2026-01-01), VAL
 [2026-01-01,2026-04-01), senere utviklingskontroll [2026-04-01,2026-07-01).
 Alle26m er gjenbrukt utvikling. TEST fra juli er forseglet. Ingen broker,
-live/paper, ordre, spending eller promotion. Den bestilte ene fulle nativeepoken
-står ved lag etter alle eksisterende admissionporter. Trening er fortsatt stengt.
+live/paper, ordre, spending eller promotion. Nøyaktig én bestilt nativeepoke
+står ved lag etter alle aktuelle admissionporter, uten ny epoke/VAL-refresh.
 
 ## Gjort og målt
 
--024restaurerte faktisk78305M1/25059620GCkontrakter fra identiske Tposter som
-  var feilaktig avvist.66råfiler/892100712records og9173893prisnivårader er
-  bevart; ingen T dedupliseres.17PTPminutter/18bok-eventbøtter sensureres.
--025registry har1205genuine verdier+1205masker,30observerte konstanter,
-  0uobserverte/0formelaliaser. Den bruker gammel109507TRAINklokke og er kun
-  produksjonsprovenans for ny fysisk populasjon; ny wholeTRAINfit gjenstår.
--253primitive felt perTF og217eksplisitte sammeformelaliaser finnes. Alle fem
-  lukkede TF og genuine BID/ASK-ruter beholdes. Formel-/eierinventar:
-  docs/FEATURE_AUDIT.md. Ikke slett ekte features for å omgå en kontroll.
--022M5/cache/model-source og026M1 er COMPLETE, uendret kilde og TEST=false.
-  Event003 har1140982M5enrichedrader og1111058M1enrichedrader,2576kolonner,
-  2725signal/2542ctx-cont/1ctx-cat.022/026startes aldri igjen.
-- M1alignment er uttømmende kontrollert:1110839rader etter219rader eksisterende
-  warmup,0manglende punkter, siste2026-06-30T23:59Z. History-start for fysisk
-  M5 er faktisk kilderad2023-05-09T22:05Z. Uendrede bevis gjenbrukes.
--034gjenbrukte032s byteidentiske rankermatrixcheckpoint og kildebevis.
-  Ranker229.073s, signalmanifest66.440s, M1featurebase1277.268s og
-  M5featurebase730.810s fullførte. M1featurebase:1110839rader,
-  SHA c2bfdf4634150c38614ccf2923fee48f6b4e15dcca282a05bc7e0c0771b88a4b.
-  M5featurebase:1140763rader,
-  SHA baa4a2ee4820caa2cabf48018c670d1b7ac0b5fd827d08b632ebeb4b0ecb79b9.
-  Dette er publiserte komponenter, fortsatt ingen fysisk TRAIN/VAL- eller
-  modellinputadmission.
+- Faktiske GC-kilder er restaurert og bevart:66råfiler/892100712records,
+  9173893prisnivårader; identiske genuine Tposter dedupliseres ikke.
+ 17PTPminutter/18bok-eventbøtter sensureres. MBP-1 viser aggregert BBO,
+  ikke L2/MBOordreidentitet. Makroens komplette originalvintager er ubevist.
+-1205genuine GCverdier+1205masker,253primitive felt perTF og217deklarerte
+  sammeformelaliaser er inventert. Alle fem lukkede TF beholdes. Signalbredde
+  er2725, ctx-cont2542 og ctx-cat1. Formel-/eierkart: docs/FEATURE_AUDIT.md.
+  Deklarert/publisert støtte er ikke full individuell numerisk/formelkonsumtest.
+-022/026/rawquotes/cache/model-source og039numeriske M1/M5featureflater
+  gjenbrukes. Uttømmende M1alignment har1110839beholdte rader og0mangler.
+-047bygde dynamisk TRAIN118249/VAL17284. Begge faktiske uttømmende
+  seq/snap-kilderekonstruksjoner bestod. GCparitet mot M5flatens2410kanaler:
+  TRAIN306759260 og VAL348570350celler,0avvik, hele kausale historievinduet.
+  Bare siste inventarvakt avviste genuine GroupA-checkpointmapper.
+-048ferdigstilte det samme inventaret uten rebuild:114publiserte filer og
+ 8gjenbrukte inputs, eksisterende strenge checkpoint-validator PASS.047s
+  opprinnelige feilkvittering og alle checkpoints er bevart.
+-049fittet ferskt GCregistry på alle118249fysiske TRAIN-beslutninger før
+  taskmasker, bare tidskolonnen fra datasettet. BeslutningsklokkeSHA
+ `6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca`.
+ 1205verdier+1205masker,30observerte konstanter,0uobserverte/0formelaliaser.
+  Ordnet verdi-/maske-/eier-/kilde-/formel-/rolle-/lagringsekvivalens mot025
+  er målt. Ny config049 er aktiv; gamle025målebevis er originalprovenans.
+-050COMPLETE19.10 kl00:11:08UTC,686.736s, exit0 og uendret kilde.
+  Gjeldende signalmanifest og M1/M5sidecars er publisert i SURFACES_050 med
+  harde lenker til identiske039Parquetbytes. Faktisk ny eksisterende v5-
+  overlapaudit bestod alle verdi-/maske-/domenehashbindinger. Ingen feature-
+  eller rankerrefit.050RESULT/SURFACE_BINDINGS binder eksakte stier/hasher.
+  Dette gir ikke gjeldende fysisk splitmetadata eller inputadmission.
 
-## Aktuell status: fysisk datasett og actualTRAINregistry ferdige
+## Aktuell bølge:051metadata og eksplisitt Entry-only-normalisering
 
-047 er konsumert og har terminal23:07:28UTC,2745.563s, uendret kilde.
-Eksakt kildegjenbruk bestod; datasetbuilder exit0 etter1668.370s. Fysisk
-TRAIN118249 og VAL17284 rader er skrevet. Begge uttømmende seq/snap-
-kilderekonstruksjoner bestod, henholdsvis767.500s og169.824s. Kjøringen
-brukte2725signal/2542ctx-cont/1ctx-cat og beholdt genuine kortere forløp.
+Ingen tung jobb er startet i denne bølgen.051er revidert og klar for kildefrys:
+ny TRAIN_VAL_051 med harde lenker til originale047TRAIN/VAL/ECDF-bytes,
+eksisterende manifesteier og typed oppdatering av proof til049/050.
+Opprinnelige targets, pointere, GroupA, GCparitet og produsentprovenans
+bevares. Ingen blind SHA-erstatning eller ny dataproduksjon.
 
-GCparitet mot faktisk M5flate er målt for alle2410verdi-/maskefelt:
-TRAIN306759260 og VAL348570350 celler,0avvik. Dette gjelder hele kausale
-historievinduet før emisjon, ikke bare de emitterte radene. Læring og native
-modellkonsum er fortsatt ikke bevist.
+Gamle047rekonstruksjonsrapporter binder gamle stier/sidecars.051må derfor
+kjøre begge eksisterende uttømmende rekonstruksjoner på de nye eksakte
+bindingene. Metadata og begge auditer deler én1800sfrist, audit4G/512M,
+én numerisk tråd og eksisterende capped-eier. Ingen budsjettutvidelse.
+WorkerRESULT alene er ingen ferdig051terminal eller inputadmission.
 
-Bare siste inventarvakt feilet: `PUBLISHED_DATASET_INVENTORY_INVALID`.
-Den krevde flate filer, men eksisterende produsent publiserer også to genuine
-GroupA-checkpointmapper som er eksplisitt bundet av splitmanifestene.
-TRAIN har46chunks+2JSON, VAL51chunks+2JSON. Ingenting skal slettes,
-ignoreres eller bygges på nytt. Alle047prosesser er borte.
+Kildekontroll avdekket at normaliseringsfit fortsatt krever Exit-lifecycle
+og felles Entry+Exit-populasjon. Minste eksplisitte Entry-only-gren bygges
+før051fryses: canonical dynamisk fase, hele fysisk TRAIN før targetmasker,
+source-backed union av faktisk konsumerte96bars M5-vinduer, alle TRAIN-
+contextbeslutninger og eksisterende femMTF-selector med tom Exit-klokke.
+Joint-default og gamle Exit-krav beholdes.22normaliseringstester bestod etter
+fixture-onlyrettelse;5uendrede dynamiske modelltester fra første kjøring
+gjenbrukes. Aktuell signalkontrakt er målt uendret. Ingen markedsfit er startet.
 
-048 ferdigstilte inventaret23:36:57UTC,50.168s, exit0, uendret kilde.
-Eksisterende strenge checkpoint-validator bestod for begge mapper. Alle114
-publiserte filer og8gjenbrukte inputs er forseglet, inkludert101checkpointfiler.
-Ingen datasett ble bygget om. 048RESULT/TERMINAL binder faktisk
-MATERIALIZED_PENDING_INPUT_ADMISSION; 047s feilkvittering er bevart urørt.
+## Native kjede som gjenstår
 
-049 bestod23:45:03UTC,73.684s, exit0 og uendret kilde. Fersk registryfit
-brukte alle118249fysiske TRAINrader før task-/horisontmasker, bare tidskolonnen
-fra datasettet. Første/siste beslutning:2024-05-01T00:05 og2025-12-31T21:55UTC.
-BeslutningsklokkeSHA6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca.
-210retainedseed+995kandidater gir1205genuine verdifelt med samme ordnede
-masker, eiere, kilder, formler, roller og lagringssemantikk.0uobserverte,
-0formelaliaser,30observerte konstanter beholdt. Eksisterende fit-/evaluator- og
-klokkeeierkode er bevist identisk med025. Nytt registry er immutable publisert
-i049/ADMISSION. Eksakte bytes er kopiert til ny immutable config049; bare
-GC-eierens REGISTRY_PATH/SHA256 er endret. Alle andre modul-AST-noder er like.
-Aktive kildekonstanter peker til049; gamle sidecars er fortsatt originalprovenans.
-
-Ny050 forbereder gjeldende signalmanifest og M1/M5sidecars via eksisterende
-eiere, med harde lenker til uendrede039Parquetbytes i fersk SURFACES_050.
-022/026/sharedfeaturekontrakten er uendret og trenger ingen rebuild. Fornyet
-rankerbevis merker GC-eierens pointer som NÅDD metadata med målt049-
-evaluatorekvivalens; den kalles ikke lenger en uendret/unådd kildefil.
-
-Fersk eksisterende v5overlapaudit er påkrevd:039rapporten binder gamle signal-/
-flatebaner og025registrySHA i konstantevidensen.050 gjør derfor faktisk ny
-verdi-/maske-/domenehashkontroll med samme4G/512M/batch4096, ingen ny feature-
-eller modellberegning. Signalfilnavnets UTC genereres rett før eksisterende
-produsentkall innen fryst, eksakt mal/namespace; dens300sekunders klokkevakt
-beholdes. 050 gir ikke current fysisk splitmetadata eller inputadmission.
-
-044s målte brede GCkopier er løst i gjeldende kode: owner-avledet22kolonners
-arbeidsramme og feltvis GCparitet, alle faktiske modellkanaler bevart.
-046s44berørte PASS og045s21uendrede writerPASS gjenbrukes; ingen omkjøring.
-
-## Entry-kurver og native kjede
-
-Delte originale M1quotes/pointers og en liten horisontdekoder bruker samme
-encoderforward for1..480min. Terminalmarkout og banemål har uavhengige
-observasjonsmasker. Ukjente gap sensurerer MFE/MAE; kortere gyldige prefikser
-beholdes. `closed_m1_prefix` og `terminal_open_inclusive` har egne aktive
-MFE-/MAE-mål med samme heads; ingen fasit erstatter en annen. Fremtidige
-masker/censor/peak/realisert elapsed brukes aldri som inputs.
-
-Ratioen R/(abs(R)+MAE) kunne ikke velge FLAT på grunn av høy MAE når en
-R-prognose var positiv. Nå er kandidaten eksplisitt kvalitets-bps:
-predikert netto endepunktsmarkout minus predikert pre-MFE-MAE upper.
-Koeffisient1 er valgt lik-bps kvalitetssemantikk; ingen cash/optimalitet eller
-ubetinget felles forventningsclaim ved ulike masker. Bare predikerte
-horisonter sammenlignes, aldri fremtidens beste fasit. Output-APIv12.
-Native LONG/SHORT/FLAT-autoritet krever fortsatt målte kvalitets-/deknings-/
-avståelsesbevis, fersk baseline og etterprøvbart beslutningsspor.
-
-030/031komponentbevis består.033hadde249beståtte/30feil; de berørte
-availability-/fixturefeilene ble rettet.035kjørte bare de tre berørte filene:
-54beståtte,0feil, uendret kilde. Modell-/targetkontroller gjenbrukes.
-Dette er kilde-/konsistensbevis, ingen markedsfit, generalisering eller edge.
-
-Native konstruktør er rettet for eksplisitt fase/querybinding og frysing av
-inaktive parametre før optimizer. Prefixbinding/epoke0-ordre bruker ekte
-dynamisk wholeTRAIN-vitne, klokke, pointere og rollemasker uten Exitadapter.
-Dynamiske koordinater har egen v2-identitet og stopper før Exit-målinger;
-måle-/launchadmission er fortsatt eksplisitt stengt. Disse rettelsene
-er kvalifisert:036 hadde424PASS/10fixturefeil;038 kjørte bare de to
-berørte fixturefilene og fikk55PASS/0feil. Produksjonskoden er byteidentisk
-mellom036/038. De opprinnelige feilkvitteringene beholdes.
-Full_train-komponentkjeden og initial-/gradient-/paritetsobservatører krever fortsatt en Entry-kurvegren uten legacy Q/cash/
-token/Exit-forward. Komponentrettelser alene er ingen nativekjøreautoritet.
-
-037 stoppet før claim/tyngre trinn fordi M1-klokkebevisets hele kildefilhash
-var eldre enn SMC-rettelsen. Ingen komponenter ble bygget.037 er konsumert,
-aldri relansering.040 kjørte den eksisterende eksakte klokkekontrollen på nytt
-med aktuell fil:5.732s, exit0, uendret kilde,1110839beholdte rader,0mangler
-og samme rå-/beriket klokkehash. Ny039 bruker dette beviset og de samme
-kvalifiserte produksjonsfunksjonene; ingen ekstra modell-/rankerfit.
-
-## Fysisk PC-omstart er gjennomført
-
-Brukerens18.10-forespørsel er oppfylt ved første trygge terminalgrense.
-Shutdown exit0; faktisk ny Windowsboot2026-10-18T18:44:29.5000000Z.
-WindowsOpenSSH og Ubuntu-22.04 er autentisert etterpå. Ren HEAD4634fc65 og
-12lagrede artefakthasher er kontrollert eksakt etter omstart. Gamle
-kampanje-/bootstrapoppgaver ble ikke reaktivert. `REBOOT_CONFIRMED.json`
-i034runroten overstyrer det eldre PENDING-notatet. Samme forespørsel skal
-ikke utløse enda en omstart. Faktisk maskinvare-/telemetriport er separat
-fra boot og må kontrolleres før neste relevante kjøring.
-
-## Neste steg
-
-1. Revider/bind/kjør050 én gang fra ren kilde: gjeldende signal- og M1/M5-
-   metadata ved harde lenker samt faktisk ny eksisterende v5overlapaudit.
-   Alle opprinnelige bytes og kvitteringer bevares.
-2. Bevis end-to-end gjeldende kontrakt- og wholeTRAINklokkebinding før
-   inputadmission. Ingen blind SHA-utskifting, gammel fit eller relansering.
+1. Source-/controllereview og fokuserte tester er ferdige. Commit/push etter
+   obligatoriske hooks, bind ren kilde og kjør051én
+   gang. Ingen kilde-/policyendring under fryst jobb; observer sparsomt.
+2. Bind faktisk gjeldende dynamisk fysisk targetreceipt og kjør eksisterende
+   uttømmende input-liveness på TRAIN/VAL med hele TRAIN-klokkegaten.
 3. Normaliser hele fysisk TRAIN én gang. Bevis fersk ONLINE=TARGET=EMA0,
-   hele feature-/MTF-konsumet, paritet, Entry-only optimizer/resume og ekte
-   valgte/avståtte LONG/SHORT/FLAT med kvalitets- og dekningsspor.
-4. Bind faktisk N/ordre og ceil(N/16), behold siste delbatch og tren nøyaktig
-   én epoke med varige checkpoints etter gjeldende admission. Stopp før
-   VAL/lærerrefresh/ny epoke.
+   alle feature-/MTF-ruter, faktisk konsum/paritet og Entry-only optimizer/
+   resume med beslutningsspor for valgte og avståtte LONG/SHORT/FLAT.
+4. Full_train-komponentkjede og initial-/gradient-/paritetsobservatører
+   trenger fortsatt eksplisitt Entry-kurvegren uten legacy Q/cash/token/
+   Exit-forward. Komponent-/fixturekontroller alene gir ingen nativeadgang.
+   Objektiveieren har dessuten gammel unitless-ratio-tekst/bps=false, mens
+   outputAPIv12 faktisk bruker quality-bps. Dette målte metadataavviket skal
+   rettes i samme nativebølge; native autoritet forblir stengt.
+5. Etter faktiske mål-/input-/baseline-/konsum-/optimizer-/resume-/maskinvare-
+   porter: bind faktisk N/ordre og ceil(N/16), behold siste delbatch og tren
+   nøyaktig én epoke med varige checkpoints. Stopp før ny epoke/VAL-refresh.
 
-Fysisk datasett og ny registryfit er ferdigstilt. Gjeldende metadatabinding,
-normalisering, aktuell Transformerlæring,
-generalisering og nettoøkonomi er fortsatt ufullført. AlltidFLAT beviser ikke
-selektivitet. Gatevekter alene er ingen årsaksforklaring. MBP-1 viser BBO,
-ikke L2/MBOordreidentitet; rå prisgrid bevares, modellen bruker deklarerte
-sammendrag. Makroens komplette historiske originalvintager er ikke bevist.
-DATA/RUNS ryddes bare av retention-eieren. Ingen Pythonfil er bevist slettbar
-etter full referanse-/import-/CLI-/test-/eierkontroll. Historikken finnes i Git.
+Entry-kurver bruker delte immutable M1quotes/pointere og samme encoderforward
+for1..480min. Endepunkt og bane har egne observasjonsmasker; gap sensurerer
+bare relevante horisonter. Kortere gyldige prefikser beholdes. Kandidatkvalitet
+APIv12 er predikert netto endepunktsbps minus predikert pre-MFE-MAE upper,
+FLAT0 og konservative ties. Bare prognoser sammenlignes, ingen bestefremtid-
+fasit. Ekte LONG/SHORT/FLAT-kvalitet og dekning er ennå ikke målt.
 
-Metode: docs/NATIVE_LEARNING.md. Eksakte status-/bevisbindinger: NEXT_RUN_POLICY.json.
+## PC og grenser
+
+Brukerens18.10-PC-omstart er gjennomført: shutdown exit0, ny Windowsboot
+2026-10-18T18:44:29.5000000Z, autentisert WindowsSSH/Ubuntu og bevarte12hasher.
+034/REBOOT_CONFIRMED.json overstyrer eldre PENDING-notat. Ikke gjenta samme
+omstart. Aktuell maskinvareadmission er separat fra bekreftet boot.
+
+Teknisk ferdigstilling, læring, generalisering og økonomisk edge er separate
+bevis. AlltidFLAT beviser ikke selektivitet; gatevekter alene forklarer ikke
+beslutningen. DATA/RUNS ryddes bare av retention-eieren. Ingen Pythonfil er
+bevist slettbar ved full referanse-/import-/CLI-/test-/eierkontroll.
+Historikken finnes i Git. Metode: docs/NATIVE_LEARNING.md.

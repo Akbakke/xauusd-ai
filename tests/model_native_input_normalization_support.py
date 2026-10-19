@@ -27,6 +27,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CAT_FIELDS,
     MODEL_NATIVE_CTX_CONT_FIELDS,
 )
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, JOINT_FITTED_Q_TRAINING_PHASE,
+)
 from gx1.features.entry_specialist_feature_groups_v1 import (
     model_native_context_temporal_alias_policy,
 )
@@ -125,6 +128,7 @@ def input_normalization_fixture(
     rows: int = 128,
     per_tf_seq_lens: dict[str, int] | None = None,
     dataset_run_id: str = "MODEL_NORMALIZATION_FIXTURE_V1",
+    entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE,
 ) -> dict:
     row = np.arange(rows, dtype=np.float32)
     ctx = np.column_stack(
@@ -257,8 +261,8 @@ def input_normalization_fixture(
         "train_manifest_path": "/fixture/train.manifest.json",
         "train_manifest_sha256": "2" * 64,
         "train_row_count": rows,
-        "entry_train_decision_row_count": rows - 1,
-        "exit_train_decision_row_count": 1,
+        "entry_train_decision_row_count": (rows if entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE else rows - 1),
+        "exit_train_decision_row_count": (0 if entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE else 1),
         "local_fit_row_count": rows,
         "context_fit_row_count": rows,
         "val_fit_row_count": 0,
@@ -298,6 +302,7 @@ def input_normalization_fixture(
         ),
         lineage=lineage,
         temporal_aliases=alias_policy["aliases"],
+        entry_training_phase=entry_training_phase,
     )
 
 

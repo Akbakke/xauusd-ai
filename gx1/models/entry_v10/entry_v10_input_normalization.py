@@ -10,6 +10,7 @@ normalization math and immutable schema remain owned by
   checked bit-for-bit, and inherit local-population statistics;
 * MTF fits union Entry +5m and Exit +1m route consumption per cache row;
 * VAL and TEST contribute exactly zero observations.
+* the explicit dynamic M5 phase fits only Entry consumption, without Exit rows.
 
 The helper deliberately has no subsample argument.  A training sampler is a
 downstream concern and therefore cannot change the fitted population.
@@ -25,12 +26,14 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS,
     EXPECTED_SURFACES,
     EXPECTED_TFS,
     MatrixPopulationPart,
+    normalization_fit_population_for_phase,
     MTF_SEMANTIC_CATEGORICAL_DOMAINS,
     SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS,
     build_input_normalization_contract,
@@ -49,10 +52,18 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_CTX_CONT_FIELDS,
     MODEL_NATIVE_SEQ_LEN,
     MODEL_NATIVE_SIGNAL_DIM,
+    require_model_native_signal_contract,
 )
 from gx1.contracts.entry_sequence_source_reconstruction_v1 import (
     require_sequence_source_reconstruction_audit,
 )
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, JOINT_FITTED_Q_TRAINING_PHASE,
+    require_entry_training_phase,
+)
+from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+from gx1.features import gc_native_context_v1 as _gc_context
+from gx1.time.session_detector import m5_decision_availability
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CONTEXT_SPECIALIST_ROUTING_CONTRACT,
     model_native_context_temporal_alias_policy,
@@ -963,14 +974,10 @@ def _select_entry_local_population_from_source(
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_ENTRY_SOURCE_POPULATION_INVALID]"
         )
-    digest = hashlib.sha256()
-    digest.update(b"entry_exit_shared_local_entry_m5_rows_v1\0")
-    digest.update(bytes.fromhex(_field_names_sha256(signal_names)))
-    _update_physical_rows_hash(
-        digest,
-        physical_indices=selected_indices,
-        timestamps_ns=source_times[selected_indices],
-        values=signal[selected_indices],
+    values_sha256 = _hash_selected_surface_rows(
+        namespace="entry_exit_shared_local_entry_m5_rows_v1",
+        matrix=signal, row_indices=selected_indices, timestamps_ns=source_times,
+        field_names=signal_names, dtype="<f4",
     )
     proof = {
         "route": "entry_m5_local",
@@ -982,7 +989,7 @@ def _select_entry_local_population_from_source(
             selected_indices,
             namespace="entry_local_m5_rows",
         ),
-        "selected_row_values_sha256": digest.hexdigest(),
+        "selected_row_values_sha256": values_sha256,
         "time_min_utc": _timestamp_iso_utc(source_times[selected_indices[0]]),
         "time_max_utc": _timestamp_iso_utc(source_times[selected_indices[-1]]),
     }
@@ -1341,6 +1348,8 @@ def select_shared_causal_mtf_fit_population(
     proof = {
         "tf": tf,
         "selection": (
+            "union_of_entry_plus5_train_windows_each_cache_row_once"
+            if not require_exit_route and exit_ts.size == 0 else
             "union_of_entry_plus5_exit_plus1_train_windows_each_cache_row_once"
         ),
         "target_availability_shift_seconds": None,
@@ -1584,6 +1593,38 @@ def _validate_exit_train_population(
     }
 
 
+def _require_dynamic_whole_train_population(
+    *, artifacts: TrainNormalizationArtifacts, manifest: Mapping[str, Any],
+    train_times_ns: np.ndarray,
+) -> dict[str, Any]:
+    """Prove all physical TRAIN clocks before any target eligibility can select rows."""
+    extra = manifest.get("extra", {})
+    if (extra.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+            or extra.get("gc_native_context") != _gc_context.contract()):
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_DYNAMIC_SOURCE_SCOPE_INVALID]")
+    require_model_native_signal_contract(
+        extra.get("model_native_signal_contract"), context="ENTRY_ONLY_NORMALIZATION")
+    path = Path(artifacts.train_parquet_path)
+    before = path.stat()
+    clock = pd.DatetimeIndex(pd.to_datetime(
+        pq.read_table(path, columns=["time"])["time"].to_pandas(), utc=True,
+    )).as_unit("ns")
+    after = path.stat()
+    identity = (before.st_size, before.st_mtime_ns)
+    if (identity != (after.st_size, after.st_mtime_ns)
+            or not np.array_equal(clock.asi8, train_times_ns)):
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_WHOLE_TRAIN_CLOCK_INVALID]")
+    matched = _gc_context.require_registry_train_clock_match(m5_decision_availability(clock))
+    return {**matched, "population": "whole_physical_TRAIN_before_target_availability_selection",
+            "registry_path": _gc_context.REGISTRY_PATH,
+            "registry_sha256": _gc_context.REGISTRY_SHA256,
+            "physical_train_parquet_path": str(path),
+            "physical_train_size_bytes": int(before.st_size),
+            "physical_train_mtime_ns": int(before.st_mtime_ns),
+            "physical_train_bar_clock_sha256": hashlib.sha256(clock.asi8.tobytes()).hexdigest(),
+            "decision_clock_owner": "gx1.time.session_detector.m5_decision_availability"}
+
+
 def fit_entry_v10_train_input_normalization(
     *,
     train_seq: Any,
@@ -1591,20 +1632,28 @@ def fit_entry_v10_train_input_normalization(
     train_ctx_cont: Any,
     train_ctx_cat: Any,
     train_times: Any,
-    train_exit_lifecycle: Any,
+    train_exit_lifecycle: Any = None,
     ordered_signal_names: Sequence[str],
     per_tf_seq_lens: Mapping[str, int],
     artifacts: TrainNormalizationArtifacts,
     prevalidated_multi_tf_cache: MultiTFV4DiskCache | None = None,
     row_chunk: int = DEFAULT_ROW_CHUNK,
     entry_sequence_source: Mapping[str, Any] | None = None,
+    entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE,
 ) -> dict[str, Any]:
     """Fit and bind the exact full-TRAIN model-native input transform.
 
     The returned mapping contains the immutable contract plus an auxiliary
-    population proof.  No file is written and no model/trainer is mutated.
+    population proof. Dynamic M5 requires the audited source-backed whole-TRAIN
+    Entry population; legacy phases retain their shared Entry/Exit population.
+    No file is written and no model/trainer is mutated.
     """
 
+    phase = require_entry_training_phase(entry_training_phase, context="ENTRY_NORMALIZATION_FIT")
+    dynamic = phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if dynamic and (train_exit_lifecycle is not None or entry_sequence_source is None
+                    or train_seq is not None):
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_DYNAMIC_SOURCE_BACKING_REQUIRED_NO_EXIT]")
     signal_names = [str(name) for name in ordered_signal_names]
     if len(signal_names) != MODEL_NATIVE_SIGNAL_DIM:
         raise RuntimeError(
@@ -1669,6 +1718,9 @@ def fit_entry_v10_train_input_normalization(
     manifest = _read_json_object(
         Path(base_lineage["train_manifest_path"]), label="train_manifest"
     )
+    whole_train_clock = (_require_dynamic_whole_train_population(
+        artifacts=artifacts, manifest=manifest, train_times_ns=train_times_ns,
+    ) if dynamic else None)
     split_times = manifest.get("ts_min_max_by_split", {}).get("train")
     if not isinstance(split_times, Mapping):
         raise RuntimeError(
@@ -1754,10 +1806,9 @@ def fit_entry_v10_train_input_normalization(
             entry_sequence_source_provenance
         )
 
-    exit_population = _validate_exit_train_population(
-        train_exit_lifecycle,
-        temporal_aliases=aliases,
-    )
+    exit_population = (None if dynamic else _validate_exit_train_population(
+        train_exit_lifecycle, temporal_aliases=aliases,
+    ))
     if entry_sequence_source is None:
         if seq is None:
             raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_SEQUENCE_BACKING_MISSING]")
@@ -1787,72 +1838,81 @@ def fit_entry_v10_train_input_normalization(
                 signal_names=signal_names,
             )
         )
-    exit_local_indices = exit_population["local_row_indices"]
-    exit_current_indices = exit_population["current_row_indices"]
-    exit_source_times_ns = exit_population["source_times_ns"]
-    exit_decision_times_ns = exit_population["current_decision_times_ns"]
-    # ``select_shared_causal_mtf_fit_population`` follows the same shared MTF
-    # API as training: it receives the native M1 state-bar start and applies
-    # the one 60-second availability shift.  Passing current_decision_times
-    # here would shift a second time and fit normalization on leaked MTF rows.
-    exit_state_bar_start_times_ns = exit_source_times_ns[exit_current_indices]
-    exit_local_proof = {
-        "route": "exit_m1_local",
-        "selection": "union_of_exit_train_480_windows_each_physical_m1_row_once",
-        "sequence_bars": 480,
-        "decision_row_count": int(exit_current_indices.size),
-        "selected_unique_row_count": int(exit_local_indices.size),
-        "selected_row_indices_sha256": _hash_int64_indices(
-            exit_local_indices,
-            namespace="exit_local_m1_rows",
-        ),
-        "selected_row_values_sha256": _hash_selected_surface_rows(
-            namespace="entry_exit_shared_local_exit_m1_rows_v1",
-            matrix=exit_population["signal"],
-            row_indices=exit_local_indices,
-            timestamps_ns=exit_source_times_ns,
-            field_names=signal_names,
-            dtype="<f4",
-        ),
-        "time_min_utc": _timestamp_iso_utc(
-            exit_source_times_ns[exit_local_indices[0]]
-        ),
-        "time_max_utc": _timestamp_iso_utc(
-            exit_source_times_ns[exit_local_indices[-1]]
-        ),
-    }
-    exit_local_proof["selection_proof_sha256"] = _canonical_sha256(
-        exit_local_proof
-    )
-    local_parts = [
-        *entry_local_parts,
-        MatrixPopulationPart(
-            exit_population["signal"],
-            row_indices=exit_local_indices,
-            source="exit_m1_local",
-        ),
-    ]
-    context_cont_parts = [
-        MatrixPopulationPart(ctx_cont, source="entry_m5_decisions"),
-        MatrixPopulationPart(
-            exit_population["ctx_cont"],
-            row_indices=exit_current_indices,
-            source="exit_m1_decisions",
-        ),
-    ]
-    context_cat_parts = [
-        MatrixPopulationPart(ctx_cat, source="entry_m5_decisions"),
-        MatrixPopulationPart(
-            exit_population["ctx_cat"],
-            row_indices=exit_current_indices,
-            source="exit_m1_decisions",
-        ),
-    ]
-    local_row_count = int(
-        entry_local_proof["selected_unique_row_count"]
-    ) + int(exit_local_indices.size)
-    context_row_count = row_count + int(exit_current_indices.size)
-
+    if dynamic:
+        exit_local_indices = np.empty(0, dtype=np.int64)
+        exit_current_indices = np.empty(0, dtype=np.int64)
+        exit_state_bar_start_times_ns = np.empty(0, dtype=np.int64)
+        local_parts = entry_local_parts
+        context_cont_parts = [MatrixPopulationPart(ctx_cont, source="entry_m5_decisions")]
+        context_cat_parts = [MatrixPopulationPart(ctx_cat, source="entry_m5_decisions")]
+        local_row_count = int(entry_local_proof["selected_unique_row_count"])
+        context_row_count = row_count
+    else:
+        exit_local_indices = exit_population["local_row_indices"]
+        exit_current_indices = exit_population["current_row_indices"]
+        exit_source_times_ns = exit_population["source_times_ns"]
+        exit_decision_times_ns = exit_population["current_decision_times_ns"]
+        # ``select_shared_causal_mtf_fit_population`` follows the same shared MTF
+        # API as training: it receives the native M1 state-bar start and applies
+        # the one 60-second availability shift.  Passing current_decision_times
+        # here would shift a second time and fit normalization on leaked MTF rows.
+        exit_state_bar_start_times_ns = exit_source_times_ns[exit_current_indices]
+        exit_local_proof = {
+            "route": "exit_m1_local",
+            "selection": "union_of_exit_train_480_windows_each_physical_m1_row_once",
+            "sequence_bars": 480,
+            "decision_row_count": int(exit_current_indices.size),
+            "selected_unique_row_count": int(exit_local_indices.size),
+            "selected_row_indices_sha256": _hash_int64_indices(
+                exit_local_indices,
+                namespace="exit_local_m1_rows",
+            ),
+            "selected_row_values_sha256": _hash_selected_surface_rows(
+                namespace="entry_exit_shared_local_exit_m1_rows_v1",
+                matrix=exit_population["signal"],
+                row_indices=exit_local_indices,
+                timestamps_ns=exit_source_times_ns,
+                field_names=signal_names,
+                dtype="<f4",
+            ),
+            "time_min_utc": _timestamp_iso_utc(
+                exit_source_times_ns[exit_local_indices[0]]
+            ),
+            "time_max_utc": _timestamp_iso_utc(
+                exit_source_times_ns[exit_local_indices[-1]]
+            ),
+        }
+        exit_local_proof["selection_proof_sha256"] = _canonical_sha256(
+            exit_local_proof
+        )
+        local_parts = [
+            *entry_local_parts,
+            MatrixPopulationPart(
+                exit_population["signal"],
+                row_indices=exit_local_indices,
+                source="exit_m1_local",
+            ),
+        ]
+        context_cont_parts = [
+            MatrixPopulationPart(ctx_cont, source="entry_m5_decisions"),
+            MatrixPopulationPart(
+                exit_population["ctx_cont"],
+                row_indices=exit_current_indices,
+                source="exit_m1_decisions",
+            ),
+        ]
+        context_cat_parts = [
+            MatrixPopulationPart(ctx_cat, source="entry_m5_decisions"),
+            MatrixPopulationPart(
+                exit_population["ctx_cat"],
+                row_indices=exit_current_indices,
+                source="exit_m1_decisions",
+            ),
+        ]
+        local_row_count = int(
+            entry_local_proof["selected_unique_row_count"]
+        ) + int(exit_local_indices.size)
+        context_row_count = row_count + int(exit_current_indices.size)
     signal_surface = fit_surface_normalization(
         local_parts,
         surface="signal",
@@ -1889,6 +1949,7 @@ def fit_entry_v10_train_input_normalization(
                 entry_train_times_ns=train_times_ns,
                 exit_train_times_ns=exit_state_bar_start_times_ns,
                 seq_len=int(per_tf_seq_lens[tf]),
+                require_exit_route=not dynamic,
             )
         )
         surface_name = f"mtf_{tf.lower()}"
@@ -1910,9 +1971,11 @@ def fit_entry_v10_train_input_normalization(
         )
 
     fit_start_utc = _timestamp_iso_utc(
+        int(train_times_ns[0]) if dynamic else
         min(int(train_times_ns[0]), int(exit_state_bar_start_times_ns[0]))
     )
     fit_end_utc = _timestamp_iso_utc(
+        int(train_times_ns[-1]) if dynamic else
         max(int(train_times_ns[-1]), int(exit_state_bar_start_times_ns[-1]))
     )
     lineage = {
@@ -1945,6 +2008,7 @@ def fit_entry_v10_train_input_normalization(
         ctx_cat=ctx_cat_contract,
         lineage=lineage,
         temporal_aliases=aliases,
+        entry_training_phase=phase,
     )
 
     entry_train_indices = np.arange(row_count, dtype=np.int64)
@@ -1955,44 +2019,48 @@ def fit_entry_v10_train_input_normalization(
         ctx_cat=ctx_cat,
         row_chunk=int(row_chunk),
     )
-    exit_context_values_sha256 = _canonical_sha256(
-        {
-            "signal": _hash_selected_surface_rows(
-                namespace="exit_m1_decision_signal_v1",
-                matrix=exit_population["signal"],
-                row_indices=exit_current_indices,
-                timestamps_ns=exit_source_times_ns,
-                field_names=signal_names,
-                dtype="<f4",
-            ),
-            "ctx_cont": _hash_selected_surface_rows(
-                namespace="exit_m1_decision_ctx_cont_v1",
-                matrix=exit_population["ctx_cont"],
-                row_indices=exit_current_indices,
-                timestamps_ns=exit_source_times_ns,
-                field_names=MODEL_NATIVE_CTX_CONT_FIELDS,
-                dtype="<f4",
-            ),
-            "ctx_cat": _hash_selected_surface_rows(
-                namespace="exit_m1_decision_ctx_cat_v1",
-                matrix=exit_population["ctx_cat"],
-                row_indices=exit_current_indices,
-                timestamps_ns=exit_source_times_ns,
-                field_names=MODEL_NATIVE_CTX_CAT_FIELDS,
-                dtype="<i8",
-            ),
-        }
-    )
+    if not dynamic:
+        exit_context_values_sha256 = _canonical_sha256(
+            {
+                "signal": _hash_selected_surface_rows(
+                    namespace="exit_m1_decision_signal_v1",
+                    matrix=exit_population["signal"],
+                    row_indices=exit_current_indices,
+                    timestamps_ns=exit_source_times_ns,
+                    field_names=signal_names,
+                    dtype="<f4",
+                ),
+                "ctx_cont": _hash_selected_surface_rows(
+                    namespace="exit_m1_decision_ctx_cont_v1",
+                    matrix=exit_population["ctx_cont"],
+                    row_indices=exit_current_indices,
+                    timestamps_ns=exit_source_times_ns,
+                    field_names=MODEL_NATIVE_CTX_CONT_FIELDS,
+                    dtype="<f4",
+                ),
+                "ctx_cat": _hash_selected_surface_rows(
+                    namespace="exit_m1_decision_ctx_cat_v1",
+                    matrix=exit_population["ctx_cat"],
+                    row_indices=exit_current_indices,
+                    timestamps_ns=exit_source_times_ns,
+                    field_names=MODEL_NATIVE_CTX_CAT_FIELDS,
+                    dtype="<i8",
+                ),
+            }
+        )
     population_proof = {
         "schema_version": FIT_POPULATION_PROOF_SCHEMA_VERSION,
         "fit_scope": "train_only",
         "signal_population": (
+            "union_unique_physical_entry_m5_local_rows" if dynamic else
             "union_unique_physical_entry_m5_and_exit_m1_local_rows"
         ),
         "ctx_cont_population": (
+            "all_physical_entry_train_decisions" if dynamic else
             "entry_train_decisions_plus_unique_exit_m1_current_decisions"
         ),
         "ctx_cat_population": (
+            "all_physical_entry_train_decisions" if dynamic else
             "entry_train_decisions_plus_unique_exit_m1_current_decisions"
         ),
         "sequence_population": (
@@ -2009,16 +2077,15 @@ def fit_entry_v10_train_input_normalization(
                     entry_train_indices,
                     namespace="entry_train_decision_rows",
                 ),
-                "exit": _hash_int64_indices(
-                    exit_current_indices,
-                    namespace="exit_train_decision_rows",
-                ),
+                **({} if dynamic else {"exit": _hash_int64_indices(
+                    exit_current_indices, namespace="exit_train_decision_rows",
+                )}),
             }
         ),
         "train_decision_row_values_sha256": _canonical_sha256(
             {
                 "entry": entry_context_values_sha256,
-                "exit": exit_context_values_sha256,
+                **({} if dynamic else {"exit": exit_context_values_sha256}),
             }
         ),
         "val_fit_row_count": 0,
@@ -2032,7 +2099,7 @@ def fit_entry_v10_train_input_normalization(
         ),
         "local_populations": {
             "entry": entry_local_proof,
-            "exit": exit_local_proof,
+            **({} if dynamic else {"exit": exit_local_proof}),
         },
         "context_populations": {
             "entry": {
@@ -2043,17 +2110,25 @@ def fit_entry_v10_train_input_normalization(
                 ),
                 "values_sha256": entry_context_values_sha256,
             },
-            "exit": {
+            **({} if dynamic else {"exit": {
                 "decision_row_count": int(exit_current_indices.size),
                 "decision_times_sha256": _hash_int64_indices(
                     exit_decision_times_ns,
                     namespace="exit_context_decision_times",
                 ),
                 "values_sha256": exit_context_values_sha256,
-            },
+            }}),
         },
         "mtf_populations": tf_population_proofs,
     }
+    if dynamic:
+        population_proof["entry_training_phase"] = phase
+        population_proof["fit_population"] = normalization_fit_population_for_phase(phase)
+        population_proof["gc_registry_whole_train_clock"] = whole_train_clock
+        final_stat = Path(artifacts.train_parquet_path).stat()
+        if (final_stat.st_size != whole_train_clock["physical_train_size_bytes"] or
+                final_stat.st_mtime_ns != whole_train_clock["physical_train_mtime_ns"]):
+            raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_WHOLE_TRAIN_CHANGED]")
     population_proof["proof_sha256"] = _canonical_sha256(population_proof)
     # MTF fitting scans its full declared populations.  These are immutable,
     # read-only cache mappings, so release their clean pages before model

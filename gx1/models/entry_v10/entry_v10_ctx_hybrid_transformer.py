@@ -704,6 +704,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             input_normalization,
             expected_field_names=normalization_field_names,
             expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS,
+            expected_entry_training_phase=self.entry_training_phase,
         )
         expected_surface_widths = {
             "signal": int(seq_input_dim),

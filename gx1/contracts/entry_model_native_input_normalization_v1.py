@@ -29,6 +29,11 @@ from gx1.features.htf_features import (
     MULTI_TF_TIMEFRAMES,
 )
 
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, JOINT_FITTED_Q_TRAINING_PHASE,
+    require_entry_training_phase,
+)
+
 from gx1.features import gc_native_context_v1 as _gc_context
 from gx1.features import micro_structure_v1 as _micro_context
 from gx1.features.basic_v1 import session_native_binary_event_fields
@@ -36,6 +41,14 @@ from gx1.features.basic_v1 import session_native_binary_event_fields
 SCHEMA_VERSION = "entry_model_native_input_normalization_v11"
 TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v7"
 FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
+DYNAMIC_M5_FIT_POPULATION = "unique_physical_train_rows_entry_only_dynamic_m5_path_v1"
+
+
+def normalization_fit_population_for_phase(entry_training_phase: str) -> str:
+    phase = require_entry_training_phase(entry_training_phase, context="ENTRY_NORMALIZATION")
+    return (DYNAMIC_M5_FIT_POPULATION
+            if phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE else FIT_POPULATION)
+
 CONTINUOUS_TRANSFORM = "asinh_affine_invertible_non_saturating"
 FIT_COLUMN_CHUNK = 32
 FIT_ROW_CHUNK = 4096
@@ -138,7 +151,12 @@ def _parse_utc(value: Any, *, field: str) -> datetime:
     return parsed
 
 
-def _require_lineage(value: Mapping[str, Any]) -> dict[str, Any]:
+def _require_lineage(
+    value: Mapping[str, Any], *, fit_population: str = FIT_POPULATION,
+) -> dict[str, Any]:
+    if fit_population not in (FIT_POPULATION, DYNAMIC_M5_FIT_POPULATION):
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_FIT_POPULATION_INVALID]")
+    entry_only = fit_population == DYNAMIC_M5_FIT_POPULATION
     if not isinstance(value, Mapping) or set(value) != _LINEAGE_KEYS:
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_LINEAGE_SCHEMA_INVALID]")
     data = dict(value)
@@ -176,10 +194,12 @@ def _require_lineage(value: Mapping[str, Any]) -> dict[str, Any]:
     if any(
         isinstance(data[field], bool)
         or not isinstance(data[field], int)
-        or int(data[field]) < (2 if field != "exit_train_decision_row_count" else 1)
+        or int(data[field]) < (2 if field != "exit_train_decision_row_count" else (0 if entry_only else 1))
         for field in population_counts
     ):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_TRAIN_ROWS_INVALID]")
+    if entry_only and data["exit_train_decision_row_count"] != 0:
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_ENTRY_ONLY_EXIT_ROWS_FORBIDDEN]")
     if (
         int(data["context_fit_row_count"])
         != int(data["entry_train_decision_row_count"])
@@ -1323,7 +1343,9 @@ def build_input_normalization_contract(
     ctx_cat: Mapping[str, Any],
     lineage: Mapping[str, Any],
     temporal_aliases: Sequence[Mapping[str, Any]],
+    entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE,
 ) -> dict[str, Any]:
+    fit_population = normalization_fit_population_for_phase(entry_training_phase)
     if tuple(surfaces) != EXPECTED_SURFACES:
         raise RuntimeError(
             "[ENTRY_INPUT_NORMALIZATION_SURFACES_INVALID] "
@@ -1341,7 +1363,7 @@ def build_input_normalization_contract(
         name: str(normalized_surfaces[name]["stats_sha256"])
         for name in EXPECTED_SURFACES
     }
-    normalized_lineage = _require_lineage(lineage)
+    normalized_lineage = _require_lineage(lineage, fit_population=fit_population)
     normalized_ctx_cat = require_ctx_cat_contract(
         ctx_cat,
         field_names=list(CTX_CAT_DOMAINS),
@@ -1395,7 +1417,7 @@ def build_input_normalization_contract(
         "schema_version": SCHEMA_VERSION,
         "transform": TRANSFORM,
         "fit_scope": "train_only",
-        "fit_population": FIT_POPULATION,
+        "fit_population": fit_population,
         "fit_start_utc": str(fit_start_utc),
         "fit_end_utc": str(fit_end_utc),
         "continuous_transform": CONTINUOUS_TRANSFORM,
@@ -1418,6 +1440,7 @@ def require_input_normalization_contract(
     *,
     expected_field_names: Mapping[str, Sequence[str]],
     expected_ctx_cat_names: Sequence[str],
+    expected_entry_training_phase: str | None = None,
 ) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_MISSING]")
@@ -1441,17 +1464,23 @@ def require_input_normalization_contract(
     }
     if set(data) != expected_keys:
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_SCHEMA_INVALID]")
+    fit_population = data.get("fit_population")
+    if fit_population not in (FIT_POPULATION, DYNAMIC_M5_FIT_POPULATION):
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_FIT_POPULATION_INVALID]")
+    if (expected_entry_training_phase is not None and fit_population
+            != normalization_fit_population_for_phase(expected_entry_training_phase)):
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_PHASE_POPULATION_MISMATCH]")
     exact = {
         "schema_version": SCHEMA_VERSION,
         "transform": TRANSFORM,
         "fit_scope": "train_only",
-        "fit_population": FIT_POPULATION,
+        "fit_population": fit_population,
         "continuous_transform": CONTINUOUS_TRANSFORM,
         "continuous_inverse": "x=sinh(z)*scale+center",
     }
     if any(data.get(key) != expected for key, expected in exact.items()):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_IDENTITY_INVALID]")
-    lineage = _require_lineage(data["lineage"])
+    lineage = _require_lineage(data["lineage"], fit_population=fit_population)
     ctx_cat = require_ctx_cat_contract(
         data["ctx_cat"],
         field_names=expected_ctx_cat_names,

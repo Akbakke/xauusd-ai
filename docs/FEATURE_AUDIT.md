@@ -115,9 +115,13 @@ har genuine observasjoner:1205verdier+1205masker,30observerte konstanter,
 0uobserverte og0formelaliaser. Ordnet verdi-/maske-/eier-/kilde-/formel-/rolle-/
 lagringsekvivalens er målt mot025; bare diagnostisk fitklokke/statistikk endres.
 Ny immutable config049 og kun GC-eierens REGISTRY_PATH/SHA256 aktiverer dette;
-alle andre modul-AST-noder er identiske. Ferske gjeldende signal-/flate-/split-
-metadata og input-/normaliseringsadmission gjenstår;050 forbereder signal,
-M1/M5hardlinkmetadata og faktisk ny existing-owner v5overlapaudit.
+alle andre modul-AST-noder er identiske.050fullførte gjeldende signal- og
+M1/M5hardlinkmetadata samt faktisk ny existing-owner v5overlapaudit19.10
+kl00:11UTC,686.736s, uendret kilde.051forbereder typed fysisk splitmetadata
+og begge nye eksakt bundne seq/snap-rekonstruksjoner uten numerisk rebuild.
+Input-/normaliseringsadmission gjenstår. Normaliseringskilden har nå en
+uttrykkelig dynamisk Entry-only-gren uten Exit-populasjon;22berørte tester
+bestod og5uendrede dynamiske modelltester gjenbrukes. Ingen markedsfit.
 Originalkvitteringer, datasettbytes og025s gamle populasjonsbevis omskrives ikke.
 
 022M5/cache/model-source og026M1 er fysisk COMPLETE, exit0, uendret kilde og
@@ -278,8 +282,9 @@ prediksjoner i bps) har ingen native autoritet før separat kontrakt og måling.
 Lik bps-vekt1 er valgt semantikk; ulike masker gir ingen ubetinget felles
 forventningsclaim. Ratioen kunne ikke avstå på grunn av høy MAE alene.
 
-Ingen ny dynamisk fysisk TRAIN-klokke, ny registryfit, normalisering, fersk
-initialbaseline/paritet eller faktisk dynamisk læring er fullført. Den ene
+Dynamisk fysisk TRAIN118249/VAL17284 og fersk wholeTRAIN-registryfit er
+fullført i047/048/049. Gjeldende fysisk metadatabinding, normalisering, fersk
+initialbaseline/paritet og faktisk dynamisk læring gjenstår. Den ene
 bestilte epoken krever fortsatt alle eksisterende kildescope-/input-/mål-/
 optimizer-/resume-/maskinvareporter. Dette dokumentet og handovervelgeren gir
 ingen launchautoritet; status og eksakte bevisbindinger eies av policyen.

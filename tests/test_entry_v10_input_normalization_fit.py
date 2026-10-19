@@ -7,6 +7,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 
 
@@ -18,12 +20,21 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.contracts.entry_exit_feature_base_v1 import (
     EXIT_DECISION_BAR_SECONDS,
+    ENTRY_MTF_CONTEXT_TIMEFRAMES,
 )
 from gx1.contracts.unified_exit_lifecycle_v1 import UnifiedExitLifecycleSplit
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     MTF_SEMANTIC_CATEGORICAL_DOMAINS,
     SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS,
     fit_surface_normalization,
+    require_input_normalization_contract,
+    FIT_POPULATION, DYNAMIC_M5_FIT_POPULATION,
+)
+from gx1.features import gc_native_context_v1 as gc_context
+from gx1.features.micro_structure_v1 import range_observation_binary_fields, range_observation_masking_pairs
+from gx1.features.basic_v1 import session_native_binary_event_fields
+from gx1.contracts.entry_model_native_training_objective_v1 import (
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, JOINT_FITTED_Q_TRAINING_PHASE,
 )
 from gx1.features.htf_features import (
     HTF_V4_MATRIX_CONTRACT,
@@ -31,6 +42,7 @@ from gx1.features.htf_features import (
     MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4,
     MULTI_TF_PER_BAR_FEATURES_V4,
     MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4,
+    MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4,
     MULTI_TF_RESAMPLE_RULES,
     build_multi_tf_v4_closed_timestamp_indices,
     load_multi_tf_v4_cache,
@@ -105,6 +117,20 @@ def _fill_semantic_categoricals(
             matrix[:, index] = values
 
 
+def _valid_observation_storage(values: np.ndarray, names) -> None:
+    positions = {name: i for i, name in enumerate(names)}
+    row = np.arange(len(values))
+    binary = (gc_context.binary_fields(names) | range_observation_binary_fields(names)
+              | session_native_binary_event_fields(names)
+              | set(MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4).intersection(names))
+    for name in binary:
+        # Preserve the distinct source-valid patterns already supplied by MTF fixtures.
+        if not np.isin(values[:, positions[name]], (0.0, 1.0)).all():
+            values[:, positions[name]] = row % 2
+    for vi, mi in (*gc_context.masking_pairs(names), *range_observation_masking_pairs(names)):
+        values[values[:, mi] == 0, vi] = 0
+
+
 def _mtf_values(rows: int) -> np.ndarray:
     row = np.arange(rows, dtype=np.float32)[:, None]
     column = np.arange(len(MULTI_TF_PER_BAR_FEATURES_V4), dtype=np.float32)[
@@ -128,6 +154,7 @@ def _mtf_values(rows: int) -> np.ndarray:
         values[:, position] = np.asarray(domain, dtype=np.float32)[
             np.arange(rows) % len(domain)
         ]
+    _valid_observation_storage(values, MULTI_TF_PER_BAR_FEATURES_V4)
     return values
 
 
@@ -176,6 +203,7 @@ def _train_arrays(
         + ctx_column * np.float32(0.002)
     ).astype(np.float32)
     signal_names = _signal_names()
+    _valid_observation_storage(ctx_cont, MODEL_NATIVE_CTX_CONT_FIELDS)
     _fill_semantic_categoricals(snap, signal_names, axis_rows=rows)
     for field in ("atr_bps", "spread_bps"):
         snap[:, signal_names.index(f"ctx_cont.{field}")] = ctx_cont[
@@ -224,6 +252,7 @@ class _FakeTrainExitLifecycle:
             row * (np.float32(0.05) + ctx_column % 11 * np.float32(0.002))
             + ctx_column * np.float32(0.0011)
         ).astype(np.float32)
+        _valid_observation_storage(self.ctx_cont, MODEL_NATIVE_CTX_CONT_FIELDS)
         _fill_semantic_categoricals(self.signal, signal_names, axis_rows=rows)
         for field in ("atr_bps", "spread_bps"):
             self.signal[
@@ -305,6 +334,10 @@ def _artifacts(
             frame.attrs["feats_np"][:, position] = np.asarray(
                 domain, dtype=np.float32
             )[np.arange(len(frame)) % len(domain)]
+    for timeframe, frame in features.items():
+        _valid_observation_storage(frame.attrs["feats_np"], MULTI_TF_PER_BAR_FEATURES_V4)
+        for name, value in MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4.get(timeframe, {}).items():
+            frame.attrs["feats_np"][:, list(MULTI_TF_PER_BAR_FEATURES_V4).index(name)] = value
     for tf_offset, (timeframe, frame) in enumerate(features.items()):
         scalar_fields = MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[
             timeframe
@@ -477,7 +510,7 @@ def test_overlapping_mtf_windows_fit_each_source_row_once() -> None:
     assert window["right_index_exclusive"] == 12
     assert window["selected_unique_row_count"] == 4
     assert proof["selection"] == (
-        "union_of_entry_plus5_exit_plus1_train_windows_each_cache_row_once"
+        "union_of_entry_plus5_train_windows_each_cache_row_once"
     )
 
 
@@ -603,7 +636,7 @@ def test_shared_train_fit_deduplicates_entry_exit_and_binds_all_lineage(
     ] == exit_local_rows
     assert proof["mtf_populations"]["M5"]["routes"]["entry"][
         "enabled"
-    ] is False
+    ] is ("M5" in ENTRY_MTF_CONTEXT_TIMEFRAMES)
     assert proof["mtf_populations"]["M5"]["routes"]["exit"][
         "target_availability_shift_seconds"
     ] == 60
@@ -821,3 +854,150 @@ def test_mtf_fit_rejects_off_grid_local_decision_clocks() -> None:
             route="entry",
             allow_empty=False,
         )
+
+
+@pytest.fixture()
+def dynamic_fit_fixture(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+        ordered_model_native_signal_fields, model_native_signal_contract_metadata,
+    )
+    from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+    from gx1.scripts.audit_entry_sequence_source_reconstruction_v1 import audit_sequence_source_reconstruction
+    selected = (*MODEL_NATIVE_MANDATORY_SELECTED_FIELDS, *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS)
+    names = list(ordered_model_native_signal_fields(selected))
+    positions = np.asarray([95, 96, 101, 103], dtype=np.int64)
+    source_times = pd.date_range("2026-02-14T16:05Z", periods=104, freq="5min").as_unit("ns")
+    row = np.arange(104, dtype=np.float32)[:, None]
+    source = (row * .25 + np.arange(len(names), dtype=np.float32)[None, :] * .01).astype(np.float32)
+    context = (row * .5 + np.arange(len(MODEL_NATIVE_CTX_CONT_FIELDS), dtype=np.float32)[None, :] * .01).astype(np.float32)
+    _valid_observation_storage(source, names)
+    _valid_observation_storage(context, MODEL_NATIVE_CTX_CONT_FIELDS)
+    _fill_semantic_categoricals(source, names, axis_rows=len(source))
+    for alias in normalization._derive_temporal_aliases(names):
+        source[:, alias["signal_index"]] = context[:, alias["ctx_cont_index"]]
+    cat = np.column_stack([np.arange(104) % 4 for _ in MODEL_NATIVE_CTX_CAT_FIELDS]).astype(np.int64)
+    times = source_times[positions]
+    artifacts = _artifacts(tmp_path, signal_names=names, train_times=times)
+    surface = tmp_path / "dynamic_m5_surface.parquet"
+    pq.write_table(pa.table({"time": source_times, "signal": pa.array(source.tolist()),
+                            "ctx_cont": pa.array(context.tolist()), "ctx_cat": pa.array(cat.tolist())}), surface)
+    sidecar = Path(str(surface) + ".manifest.json")
+    sidecar.write_text(json.dumps({"schema_version": "gx1_entry_exit_m5_feature_surface_v8",
+        "output_parquet": str(surface), "output_parquet_sha256": _sha256_file(surface),
+        "rows": len(source), "signal_dim": MODEL_NATIVE_SIGNAL_DIM,
+        "ctx_cont_dim": len(MODEL_NATIVE_CTX_CONT_FIELDS), "ctx_cat_dim": len(MODEL_NATIVE_CTX_CAT_FIELDS)}))
+    sequence = np.stack([source[p - MODEL_NATIVE_SEQ_LEN + 1:p + 1] for p in positions])
+    pq.write_table(pa.table({"time": times, "seq": pa.array(sequence.tolist()),
+        "snap": pa.array(source[positions].tolist()), "ctx_cont": pa.array(context[positions].tolist()),
+        "ctx_cat": pa.array(cat[positions].tolist())}), artifacts.train_parquet_path)
+    registry = dict(gc_context.REGISTRY)
+    registry.update(train_decision_rows=len(times), train_decision_clock_sha256=hashlib.sha256(
+        normalization.m5_decision_availability(times).as_unit("ns").asi8.tobytes()).hexdigest())
+    monkeypatch.setattr(gc_context, "REGISTRY", registry)
+    manifest = json.loads(artifacts.train_manifest_path.read_text())
+    manifest["extra"].update(emission_scope=M5_DYNAMIC_OBSERVED_EMISSION_SCOPE,
+        gc_native_context=gc_context.contract(), model_native_signal_contract=model_native_signal_contract_metadata(selected),
+        signal_bridge={"seq_structure_extension_v1": {"feature_surface": {
+            "dataset_run_id": artifacts.dataset_run_id, "inline_split_recomputation": False,
+            "manifest_path": str(sidecar), "manifest_sha256": _sha256_file(sidecar),
+            "pair_generation_id": "synthetic_dynamic_source", "path": str(surface), "rows": len(source),
+            "schema_version": "gx1_entry_exit_m5_feature_surface_v8", "sha256": _sha256_file(surface),
+            "signal_manifest_sha256": "1" * 64, "time_alignment": "exact_entry_m5_source_timeline"}}})
+    artifacts.train_manifest_path.write_text(json.dumps(manifest))
+    audit = audit_sequence_source_reconstruction(parquet_path=artifacts.train_parquet_path,
+                                                 manifest_path=artifacts.train_manifest_path)
+    audit_path = tmp_path / "SOURCE_RECONSTRUCTION.json"
+    audit_path.write_text(json.dumps(audit))
+    artifacts = replace(artifacts, train_sequence_source_audit_path=audit_path)
+    return {"train_seq": None, "train_snap": source[positions], "train_ctx_cont": context[positions],
+        "train_ctx_cat": cat[positions], "train_times": times, "ordered_signal_names": names,
+        "per_tf_seq_lens": {tf: 3 for tf in MULTI_TF_RESAMPLE_RULES}, "artifacts": artifacts,
+        "entry_sequence_source": {"signal": source, "times_ns": source_times.asi8,
+                                   "sample_positions": positions, "audit": audit},
+        "entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE}
+
+
+def test_dynamic_fit_uses_all_physical_train_rows_without_exit(dynamic_fit_fixture):
+    result = fit_entry_v10_train_input_normalization(**dynamic_fit_fixture)
+    contract, proof = result["normalization_contract"], result["fit_population_proof"]
+    assert contract["fit_population"] == DYNAMIC_M5_FIT_POPULATION
+    assert contract["lineage"]["entry_train_decision_row_count"] == 4
+    assert contract["lineage"]["exit_train_decision_row_count"] == 0
+    assert contract["lineage"]["context_fit_row_count"] == 4
+    assert contract["surfaces"]["signal"]["fit_row_count"] == 104
+    assert set(proof["context_populations"]) == set(proof["local_populations"]) == {"entry"}
+    assert proof["gc_registry_whole_train_clock"]["exact_match"] is True
+    for tf in MULTI_TF_RESAMPLE_RULES:
+        routes = proof["mtf_populations"][tf]["routes"]
+        assert routes["entry"]["enabled"] is True
+        assert routes["entry"]["decision_row_count"] == 4
+        assert routes["exit"]["enabled"] is False
+        assert routes["exit"]["decision_row_count"] == 0
+    fields = {name: surface["field_names"] for name, surface in contract["surfaces"].items()}
+    require_input_normalization_contract(contract, expected_field_names=fields,
+        expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS,
+        expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    with pytest.raises(RuntimeError, match="PHASE_POPULATION_MISMATCH"):
+        require_input_normalization_contract(contract, expected_field_names=fields,
+            expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS,
+            expected_entry_training_phase=JOINT_FITTED_Q_TRAINING_PHASE)
+    joint_lie = dict(contract, fit_population=FIT_POPULATION)
+    with pytest.raises(RuntimeError, match="TRAIN_ROWS_INVALID"):
+        require_input_normalization_contract(joint_lie, expected_field_names=fields,
+                                            expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS)
+    exit_lie = dict(contract, lineage=dict(contract["lineage"], exit_train_decision_row_count=1))
+    with pytest.raises(RuntimeError, match="ENTRY_ONLY_EXIT_ROWS_FORBIDDEN"):
+        require_input_normalization_contract(exit_lie, expected_field_names=fields,
+                                            expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS)
+
+
+def test_dynamic_fit_rejects_whole_train_subset(dynamic_fit_fixture):
+    values = dict(dynamic_fit_fixture)
+    subset = [0, 2, 3]  # Same first/last timestamps cannot hide a missing physical middle row.
+    for key in ("train_snap", "train_ctx_cont", "train_ctx_cat", "train_times"):
+        values[key] = values[key][subset]
+    values["entry_sequence_source"] = dict(values["entry_sequence_source"],
+        sample_positions=values["entry_sequence_source"]["sample_positions"][subset])
+    with pytest.raises(RuntimeError, match="WHOLE_TRAIN_CLOCK_INVALID"):
+        fit_entry_v10_train_input_normalization(**values)
+
+
+def test_dynamic_fit_rejects_registry_clock_mismatch(dynamic_fit_fixture, monkeypatch):
+    monkeypatch.setitem(gc_context.REGISTRY, "train_decision_clock_sha256", "0" * 64)
+    with pytest.raises(RuntimeError, match="PHYSICAL_TRAIN_CLOCK_MISMATCH"):
+        fit_entry_v10_train_input_normalization(**dynamic_fit_fixture)
+
+
+@pytest.mark.parametrize("fault", ["exit", "dense", "unaudited"])
+def test_dynamic_fit_requires_source_backing_without_exit(dynamic_fit_fixture, fault):
+    values = dict(dynamic_fit_fixture)
+    if fault == "exit": values["train_exit_lifecycle"] = object()
+    elif fault == "dense": values["train_seq"] = object()
+    else: values["entry_sequence_source"] = None
+    with pytest.raises(RuntimeError, match="DYNAMIC_SOURCE_BACKING_REQUIRED_NO_EXIT"):
+        fit_entry_v10_train_input_normalization(**values)
+
+
+def test_source_backed_physical_row_hash_preserves_legacy_chunk_bytes():
+    rows = normalization.DEFAULT_ROW_CHUNK + 17
+    matrix = np.arange((rows + 9) * 3, dtype=np.float32).reshape(rows + 9, 3)
+    indices = np.arange(7, 7 + rows, dtype=np.int64)
+    times = np.arange(len(matrix), dtype=np.int64) * 300_000_000_000
+    names = ["synthetic_a", "synthetic_b", "synthetic_c"]
+    digest = hashlib.sha256()
+    digest.update(b"entry_exit_shared_local_entry_m5_rows_v1\0")
+    digest.update(bytes.fromhex(normalization._field_names_sha256(names)))
+    normalization._update_physical_rows_hash(digest, physical_indices=indices,
+        timestamps_ns=times[indices], values=matrix[indices])
+    assert normalization._hash_selected_surface_rows(
+        namespace="entry_exit_shared_local_entry_m5_rows_v1", matrix=matrix,
+        row_indices=indices, timestamps_ns=times, field_names=names, dtype="<f4") == digest.hexdigest()
+
+
+def test_joint_default_still_requires_exit_lifecycle(dynamic_fit_fixture):
+    values = dict(dynamic_fit_fixture)
+    values.pop("entry_training_phase")
+    with pytest.raises(RuntimeError, match="EXIT_LIFECYCLE_REQUIRED"):
+        fit_entry_v10_train_input_normalization(**values)

@@ -1,0 +1,57 @@
+{
+  "schema_version": "gx1_current_gc_physical_metadata_view_v1",
+  "execution_ready": true,
+  "plan_id": "NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051",
+  "run_root": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051",
+  "canonical_repo": "/home/andre2/src/GX1_CURRENT",
+  "canonical_branch": "work/gx1-current",
+  "created_utc": "2026-10-19T00:36:56.209224+00:00",
+  "run_id": "XAU_GC_NATIVE_26M_20261018_003",
+  "event_root": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003",
+  "one_shot_invocations": 1,
+  "max_wall_seconds": 1800,
+  "training_enabled": false,
+  "native_training_admitted": false,
+  "test_data_used": false,
+  "no_data_recompute": true,
+  "source_frozen_while_running": true,
+  "source_dataset_plan": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_DYNAMIC_DATASET_BUILD_20261018_047/PLAN.json",
+    "sha256": "a77ecd7f5d0ecbb42e489bb0198a90c993c8c75d575eef59a4fc58a460c94e2a"
+  },
+  "physical_publication_result": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_PHYSICAL_INVENTORY_RECONCILIATION_20261018_048/RESULT.json",
+    "sha256": "1906422253cdb848e056a2bdb2af07cbbd5555bbe0eda241100854482ad4f42e"
+  },
+  "physical_publication_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_PHYSICAL_INVENTORY_RECONCILIATION_20261018_048/TERMINAL.json",
+    "sha256": "cbed43d689f2b6c7f4aa7a18ef96262c325825eee5228eb5a0f5f9b320ac703b"
+  },
+  "registry_equivalence_result": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_ACTUAL_TRAIN_REGISTRY_20261018_049/ADMISSION/RESULT.json",
+    "sha256": "75e523018bf4bf6ae89df2a340251b9fffefc8f74965e884f535ae2c64f3743f"
+  },
+  "current_surface_result": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_SURFACE_BINDING_20261018_050/RESULT.json",
+    "sha256": "092471e916bf6abbe64bba9490dbc98b1638b91af9bfb9652541e8f30a38e12f"
+  },
+  "current_surface_terminal": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_SURFACE_BINDING_20261018_050/TERMINAL.json",
+    "sha256": "bf3166c5d1dc60d3e4a4b4b5d7f3cf8ad0f37bdfc7ab773f978548da854c36d5"
+  },
+  "output_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051",
+  "dataset_stem": "XAU_GC_NATIVE__ENTRY_FITTED_Q",
+  "expected_split_rows": {
+    "train": 118249,
+    "val": 17284
+  },
+  "resource_owner": "Existing scripts/gx1_capped_run.sh audit4G/512M CPU0-7 one numericalthread TasksMax64 currentlock, one1800s shared deadline",
+  "scope": "Typed metadata view of actual047unchangedTRAIN/VAL/ECDF hardlinks, actual049 effective-function equivalence and current050signal/M1M5/overlap. Existing manifestwriter/atomicpublisher/livenessmetadata/wholeTRAINclock validators. Preserve original047numeric/target/pointer/GroupA/GCparity provenance; no data/target regeneration, normalization, Exit/native training. Both fresh existing exhaustive TRAIN/VAL seq/snap source-reconstruction audits must pass with the new exact view and surface bindings under the same1800s deadline.",
+  "pending_after": "Current dynamicphysical targetreceipt binding and wholeTRAIN input/liveness; explicit Entry-only normalization branch and fresh native Entry qualification before one epoch.",
+  "fresh_source_reconstruction_required": true,
+  "source_reconstruction_owner": "gx1.scripts.audit_entry_sequence_source_reconstruction_v1",
+  "source_reconstruction_outputs": {
+    "train": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/SOURCE_RECONSTRUCTION_train.json",
+    "val": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/SOURCE_RECONSTRUCTION_val.json"
+  }
+}
