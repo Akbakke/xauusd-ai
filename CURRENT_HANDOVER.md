@@ -127,27 +127,39 @@ warmup på5TF, komplette makrovintager, LONG/SHORT/FLAT-kvalitet/dekning og
 beslutningssporbarhet gjenstår i sitt fulle omfang. Ingen læring/generaliserings-
 eller økonomisk edge-konklusjon følger av initialmålingen.
 
-## Aktuell grense —088 CPUfresh ferdig,089 initial0 bundet
+## Aktuell grense —089 initialmåling ferdig,090 bevaringsaudit klar
 
-088 er COMPLETE/exit0/uendret3fcfd9a3, ferdig19.10 kl.19:59:19UTC på119.478s.
-Controller135108 er borte. Kanonisk CPUfresh/strict-load-roundtrip bestod;
-ONLINE=anchor=EMA0 har samme seedbundne9c4cf514...a79b4a, tom optimizer,
-0forwards/steg/refits/Exit.182roller/181filer/f571e0c9...a1010b2 matcher087.
-TERMINAL SHA cb5a6e4c59fb4352621fdea602d362be74417f90f9b726e07e79bd7f45885271;
-ACTUAL_CPU_PREPARATION_REVIEW SHA ba6adf78d7549bd5890dddaddd5f15eeffe6236d08ff1b9ca8cbdb303b2fb845.
-Workerens faktiske I/O:49,225,731,573 logiske rcharbytes og45,621,625,664
-storage-accounted read_bytes. Dette er prosesslokalt, ikke hosttotal eller
-målt native treningsfart; ingen før/etter-diskbaseline finnes. Ingen Dataset-
-rebuild. Original088 er konsumert og relanseres aldri.
+088CPUfresh bestod på119.478s og er konsumert. Worker målte49.226GBlogisk og
+45.622GBstorage-accounted lesing; dette er ingen native treningsfart.
+089 er nå faktisk guardPASS/exit0/RESUMABLE, ferdig19.10 kl.21:31:22UTC:
+256TRAIN+256CONTROL,32Entryforwards,0Exit/optimizersteg. Linux730/Win8112 er
+borte; den konsumerte bundne tasken ble deaktivert21:40:27UTC. Frysen er løftet.
+Fysisk boot508/20:35:42.500UTC og182kilder/17kontrollartefakter er bekreftet.
+REBOOT_CONFIRMED SHA9774b6dcbc097a075ab575b3e55d0db73fda57ac36d798ca6bda5e96ed94da9e.
+Canonical native receipt SHA89d8cb93e50e4adc97c3f6c44b0e7e599cbb988d264a5ed6e1bf915498a5f09d;
+initialRESULT SHAb1a159a9582713833e849a2c878c442820f42726a1ece1cdfe6cc10f35c334a6.
 
-Ny089 bruker actual088fersktilstand/metadata og samme055/057/059/kompaktprofil.
-Kun initial0:256TRAIN+256CONTROL/32Entryforwards/0optimizersteg. Egen recipe,
-campaign og install kreves før ny fysisk Windowsboot/signert maskinvareopptak.
-Ingen gammel083boot/claim/campaign/vekter gjenbrukes som ny kjøring. Kilde og
-policy fryses under materializer/native. training_enabled=false består.
-Etter faktisk089terminal må ny bevaringsaudit, privat4Entry-only/paritet/resume
-og eget opptak til den bestilte ene hele nativeepoken fullføres. Hele målet og
-alle ubeviste indikator-/kvalitetsgrenser ovenfor består.
+Nåværende f571e0c9...a1010b2-kildeclosure og kompaktprofil består. Alle lagrede
+prediksjons-/aggregatverdier og typed target-/maskedigester matcher083; bare
+to ærlige observerte planstier per rolle er082→088. Hele prediksjonskurvenes
+tensorbytes er ikke lagret og er ikke direkte sammenlignet. TRAIN3LONG/0SHORT/
+253FLAT og CONTROL256FLAT er fortsatt utrent baseline, ikke lært selektivitet.
+
+Faktiske089tider: native2829.404s, komponentoppsett1148.267s, checkpoint0.508425s.
+Forrige083 hadde4007.463s/1329.333s/360.267785s. Dette er to konkrete
+initialmålinger; ingen påstand om encoder-only/GPU-stegfart eller epoke-ETA.
+Passiv stack viste gjenværende oppstartshash ved prefixkoordinater;21:18 hadde
+prosessen1.194TBlogisk/21.55GBstorage-accounted lesing. Ingen ny kodeendring
+avledes før målt behov; behold samme kvalifiserte f571kilde til læringsporten.
+
+Ny090CPUaudit sammenligner faktisk088fresh og089checkpoint for modell/anchor,
+optimizer/EMA/scheduler og lagretCPU/Python/NumPyRNG med eksisterende085produser.
+Kun én policy-stagekey er endret; ingen modelldata-forward/steg/refit. Etter
+faktisk strictPASS bindes091 via eksisterende technical4-gren:4paritetsforwards,
+4privateEntry-onlyupdates/direct-resumeekvivalens, logiskcursor2. Dette krever
+egen eksakt policy/training_enabled=true/fullEpoch=false, recipe/campaign og
+fersk boot/maskinvare. Hovedepoken bruker aldri de private kontrollvektene.
+Den bestilte ene hele epoken og øvrige indikator-/kvalitetsgrenser gjenstår.
 
 ## PC, opprydding og metode
 
