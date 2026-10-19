@@ -127,7 +127,7 @@ warmup på5TF, komplette makrovintager, LONG/SHORT/FLAT-kvalitet/dekning og
 beslutningssporbarhet gjenstår i sitt fulle omfang. Ingen læring/generaliserings-
 eller økonomisk edge-konklusjon følger av initialmålingen.
 
-## Aktuell grense —089 initialmåling ferdig,090 bevaringsaudit klar
+## Aktuell grense —090 strictPASS,091 privat læringsmekanikk bundet
 
 088CPUfresh bestod på119.478s og er konsumert. Worker målte49.226GBlogisk og
 45.622GBstorage-accounted lesing; dette er ingen native treningsfart.
@@ -152,14 +152,21 @@ Passiv stack viste gjenværende oppstartshash ved prefixkoordinater;21:18 hadde
 prosessen1.194TBlogisk/21.55GBstorage-accounted lesing. Ingen ny kodeendring
 avledes før målt behov; behold samme kvalifiserte f571kilde til læringsporten.
 
-Ny090CPUaudit sammenligner faktisk088fresh og089checkpoint for modell/anchor,
-optimizer/EMA/scheduler og lagretCPU/Python/NumPyRNG med eksisterende085produser.
-Kun én policy-stagekey er endret; ingen modelldata-forward/steg/refit. Etter
-faktisk strictPASS bindes091 via eksisterende technical4-gren:4paritetsforwards,
-4privateEntry-onlyupdates/direct-resumeekvivalens, logiskcursor2. Dette krever
-egen eksakt policy/training_enabled=true/fullEpoch=false, recipe/campaign og
-fersk boot/maskinvare. Hovedepoken bruker aldri de private kontrollvektene.
-Den bestilte ene hele epoken og øvrige indikator-/kvalitetsgrenser gjenstår.
+090 er faktisk COMPLETE/exit0/uendret195aae59 på59.085s. Lagrede modell-/anchor-,
+optimizer-/EMA-/scheduler- ogCPU/Python/NumPyRNG-tilstander matcher088fresh eksakt.
+Strict8fieldaudit og produksjonseierens kontroll bestod;0forwards/steg/refits.
+TERMINAL SHA0b3d5dad839a9b029457e63f0a707f266d2b93866e56d3cce20baf9ba9fe5f64;
+INITIAL_MEASUREMENT_AUDIT SHA31571f9c12342cce357187dc204f746cde72ebaafc619fe38e0cd6039dfa48ec.
+Ingen090relansering.091planen er bygget fra eksisterende eiere og faktisk057-
+epoch0-rekkefølge, ikke probeutvalgets første rader.0forwards/steg/refits.
+
+Ny091 bruker eksisterende technical4-gren:4paritetsforwards og4privateEntry-only-
+updates/direct-resumeekvivalens, logiskcursor2. Kun denne eksakte policyblokken
+har training_enabled=true;fullEpoch/fullVAL=false. Egen recipe/campaign og
+fersk boot/signerte maskinvareporter kreves før nativejobb.055/057/059/088/
+089/090 og kvalifisertf571kilde gjenbrukes; ingen ny datasetbygging eller refit.
+Hovedepoken bruker aldri de private kontrollvektene. Den bestilte ene hele
+epoken og øvrige indikator-/kvalitetsgrenser gjenstår.
 
 ## PC, opprydding og metode
 
