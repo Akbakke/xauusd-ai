@@ -31,6 +31,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
+    COMPACT_ENTRY_EXECUTION_PROFILE_NAME as COMPACT_ENTRY_EXECUTION_PROFILE_NAME,
+    compile_compact_entry_execution_profile as compile_compact_entry_execution_profile,
+    require_compact_entry_execution_profile_reference,
 )
 from gx1.features.htf_features import (
     HTF_V4_CACHE_SCHEMA_VERSION,
@@ -72,10 +75,15 @@ PRODUCTION_SPECIALISTS = (
 )
 
 
-def entry_exit_production_architecture_contract() -> dict[str, Any]:
+def entry_exit_production_architecture_contract(
+    *, entry_execution_profile: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     """Return a fresh copy of the only production-selectable architecture."""
 
-    return {
+    profile = require_compact_entry_execution_profile_reference(
+        entry_execution_profile, context="PRODUCTION_ARCHITECTURE",
+    )
+    result = {
         "schema_version": ENTRY_EXIT_PRODUCTION_ARCHITECTURE_SCHEMA_VERSION,
         "schemas": {
             "signal": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
@@ -124,12 +132,19 @@ def entry_exit_production_architecture_contract() -> dict[str, Any]:
             "capacity_forces_exit": False,
         },
     }
+    if profile is not None:
+        result["entry_execution_profile"] = profile
+    return result
 
 
-def current_entry_exit_architecture_observation() -> dict[str, Any]:
+def current_entry_exit_architecture_observation(
+    *, entry_execution_profile: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
     """Project current code constants into the frozen production contract."""
 
-    observed = entry_exit_production_architecture_contract()
+    observed = entry_exit_production_architecture_contract(
+        entry_execution_profile=entry_execution_profile,
+    )
     observed["schemas"] = {
         "signal": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
         "input_normalization": INPUT_NORMALIZATION_SCHEMA_VERSION,
@@ -226,7 +241,8 @@ def require_entry_exit_production_architecture(
 
     if not isinstance(context, str) or not context.strip():
         raise RuntimeError("ENTRY_EXIT_PRODUCTION_ARCHITECTURE_CONTEXT_INVALID")
-    expected = entry_exit_production_architecture_contract()
+    profile = value.get("entry_execution_profile") if isinstance(value, Mapping) else None
+    expected = entry_exit_production_architecture_contract(entry_execution_profile=profile)
     mismatch = _first_mismatch(expected, value, path="architecture")
     if mismatch is not None:
         path, expected_value, observed_value = mismatch

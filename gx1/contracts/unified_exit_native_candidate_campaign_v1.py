@@ -2111,6 +2111,26 @@ def require_fresh_physical_campaign_sampler(recipe: Mapping[str, Any]) -> tuple[
     return binding, selected["artifact_sha256"]
 
 
+def require_dynamic_m5_execution_profile(recipe: Mapping[str, Any]) -> dict[str, str] | None:
+    """Join one explicit compact model function to its immutable constructor."""
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        require_compact_entry_execution_profile_reference,
+    )
+    binding = require_binding(recipe.get("files", {}).get("source_bundle_metadata"),
+                              label="Entry execution-profile constructor", verify_file=True)
+    metadata = read_bound_json(Path(binding["path"]), binding["sha256"])
+    if not isinstance(metadata, Mapping):
+        raise RuntimeError("NATIVE_ENTRY_EXECUTION_PROFILE_METADATA_INVALID")
+    declared = recipe.get("entry_execution_profile")
+    if metadata.get("entry_execution_profile") != declared:
+        raise RuntimeError("NATIVE_ENTRY_EXECUTION_PROFILE_RECIPE_CONSTRUCTOR_MISMATCH")
+    reference = require_compact_entry_execution_profile_reference(
+        declared, context="NATIVE_ENTRY_EXECUTION_PROFILE")
+    if ("entry_execution_profile" in recipe or "entry_execution_profile" in metadata) and _dynamic_m5_native_design(recipe) is None:
+        raise RuntimeError("NATIVE_ENTRY_EXECUTION_PROFILE_DYNAMIC_ENTRY_REQUIRED")
+    return reference
+
+
 def require_native_recipe_metadata(
     binding: Mapping[str, str], *, source_repo: Path, source_commit: str,
 ) -> tuple[dict[str, Any], int]:
@@ -2128,6 +2148,7 @@ def require_native_recipe_metadata(
         from gx1.contracts.entry_model_native_train_recipe_v1 import require_model_native_recipe_env
         prefix = _require_dynamic_m5_native_prefix(recipe)
         _dynamic_m5_compute_profile(recipe)
+        require_dynamic_m5_execution_profile(recipe)
         files = recipe.get("files", {})
         expected_files = {"entry_train_parquet", "entry_train_manifest", "entry_val_parquet", "entry_val_manifest",
             "m5_prebuilt", "source_bundle_metadata", "sequence_source_audit", "val_sequence_source_audit",

@@ -782,3 +782,87 @@ def test_dynamic_full_train_recipe_keeps_file_bytes_and_clean_source_guards(dyna
     monkeypatch.setattr(runner.val, "_assert_clean_source", dirty)
     with pytest.raises(RuntimeError, match="DIRTY_SOURCE_UNIT_BOUNDARY"):
         runner._require_native_full_train_recipe(Path(binding["path"]), binding["sha256"])
+
+
+def _compact_reference():
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_compact_entry_execution_profile
+    compiled = compile_compact_entry_execution_profile()
+    return {key:compiled[key] for key in ("name", "contract_sha256")}
+
+
+def test_dynamic_full_train_compact_profile_binds_same_recipe_and_metadata(dynamic_full_train_recipe_scope):
+    runner, recipe, files, prefix, calls, seal = dynamic_full_train_recipe_scope
+    reference = _compact_reference()
+    normalization_before = copy.deepcopy(prefix["normalization"])
+    metadata = json.loads(files["source_bundle_metadata"].read_text())
+    metadata["entry_execution_profile"] = reference
+    files["source_bundle_metadata"].write_text(json.dumps(metadata))
+    recipe["entry_execution_profile"] = reference
+    binding = seal()
+    actual, _, _ = runner._require_native_full_train_recipe(Path(binding["path"]), binding["sha256"])
+    assert actual["entry_execution_profile"] == reference
+    assert prefix["normalization"] == normalization_before
+
+
+@pytest.mark.parametrize("fault", ["missing_recipe", "missing_metadata", "recipe_reference", "metadata_reference", "phase", "active_only_width"])
+def test_dynamic_full_train_compact_profile_rejects_mismatched_or_nonphysical_binding(dynamic_full_train_recipe_scope, fault):
+    runner, recipe, files, prefix, calls, seal = dynamic_full_train_recipe_scope
+    reference = _compact_reference()
+    metadata = json.loads(files["source_bundle_metadata"].read_text())
+    metadata["entry_execution_profile"] = copy.deepcopy(reference)
+    recipe["entry_execution_profile"] = copy.deepcopy(reference)
+    if fault == "missing_recipe": recipe.pop("entry_execution_profile")
+    elif fault == "missing_metadata": metadata.pop("entry_execution_profile")
+    elif fault == "recipe_reference": recipe["entry_execution_profile"]["contract_sha256"] = "0"*64
+    elif fault == "metadata_reference": metadata["entry_execution_profile"]["contract_sha256"] = "0"*64
+    elif fault == "active_only_width": metadata["seq_input_dim"] = 2622
+    else:
+        path = Path(recipe["chronological_prefix"]["design"]["path"])
+        design = json.loads(path.read_text()); design["scope"]["entry_only_training_phase"] = "joint_fitted_q"
+        path.write_text(json.dumps(design))
+        recipe["chronological_prefix"]["design"]["sha256"] = runner.val.file_sha256(path)
+    files["source_bundle_metadata"].write_text(json.dumps(metadata))
+    binding = seal()
+    with pytest.raises(RuntimeError):
+        runner._require_native_full_train_recipe(Path(binding["path"]), binding["sha256"])
+
+
+def test_shared_native_model_constructor_forwards_compact_profile_after_full_geometry(dynamic_full_train_recipe_scope, monkeypatch):
+    from gx1.scripts import run_unified_exit_random_access_fixed_step_v1 as constructor
+    runner, recipe, files, prefix, calls, seal = dynamic_full_train_recipe_scope
+    metadata = json.loads(files["source_bundle_metadata"].read_text())
+    metadata["entry_execution_profile"] = reference = _compact_reference()
+    observed = {}
+    class CapturedModel:
+        def __init__(self, **kwargs): observed.update(kwargs)
+        def to(self, device): observed["device"] = device; return self
+    monkeypatch.setattr(constructor, "EntryV10CtxHybridTransformer", CapturedModel)
+    kwargs = runner.trainer._dynamic_m5_model_kwargs(runner.trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    constructor._model(metadata, prefix["normalization"]["contract"], torch.device("cpu"),
+        **kwargs, entry_execution_profile=reference)
+    assert observed["entry_execution_profile"] == reference
+    assert observed["seq_input_dim"] == metadata["seq_input_dim"]
+    assert observed["ctx_cont_dim"] == metadata["ctx_cont_dim"]
+    assert observed["input_normalization"] is prefix["normalization"]["contract"]
+
+
+@pytest.mark.parametrize("fault", ["missing_argument", "missing_metadata", "phase", "query", "signal_order", "context_order", "mtf_order", "active_only_width"])
+def test_shared_native_model_compact_profile_rejects_before_constructor(dynamic_full_train_recipe_scope, monkeypatch, fault):
+    from gx1.scripts import run_unified_exit_random_access_fixed_step_v1 as constructor
+    runner, recipe, files, prefix, calls, seal = dynamic_full_train_recipe_scope
+    metadata = json.loads(files["source_bundle_metadata"].read_text())
+    metadata["entry_execution_profile"] = reference = _compact_reference()
+    norm = copy.deepcopy(prefix["normalization"]["contract"])
+    kwargs = {**runner.trainer._dynamic_m5_model_kwargs(runner.trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE),
+        "entry_execution_profile":reference}
+    def forbidden(**kwargs): pytest.fail("Invalid compact metadata reached model constructor")
+    monkeypatch.setattr(constructor, "EntryV10CtxHybridTransformer", forbidden)
+    if fault == "missing_argument": kwargs.pop("entry_execution_profile")
+    elif fault == "missing_metadata": metadata.pop("entry_execution_profile")
+    elif fault == "phase": kwargs["entry_training_phase"] = runner.trainer.JOINT_FITTED_Q_TRAINING_PHASE
+    elif fault == "query": kwargs.pop("dynamic_m5_query_minutes")
+    elif fault == "signal_order": norm["surfaces"]["signal"]["field_names"].reverse()
+    elif fault == "context_order": norm["surfaces"]["ctx_cont"]["field_names"].reverse()
+    elif fault == "mtf_order": metadata["multi_tf"]["feature_names"].reverse()
+    else: metadata["seq_input_dim"] = 2622
+    with pytest.raises(RuntimeError): constructor._model(metadata, norm, torch.device("cpu"), **kwargs)

@@ -6236,6 +6236,35 @@ class EntryV10CtxDataset(Dataset):
 # -----------------------------------------------------------------------------
 # Training loops
 # -----------------------------------------------------------------------------
+def _dynamic_m5_gate_execution_kwargs(model) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Bind compact gate diagnostics to the one compiled execution view.
+
+    Empty overrides preserve every existing full-profile helper default and
+    call signature. The physical input/normalization contracts stay complete.
+    """
+    value = getattr(model, "entry_execution_profile", None)
+    if value is None:
+        return {}, {}
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        compile_compact_entry_execution_profile,
+        require_compact_entry_execution_profile_reference,
+    )
+    require_compact_entry_execution_profile_reference(
+        value, context="ENTRY_DYNAMIC_M5_GATE_PROFILE",
+    )
+    if getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE")
+    compiled = compile_compact_entry_execution_profile()
+    widths = {
+        "specialist_gate": len(compiled["local_specialists"]),
+        "tf_gate": ENTRY_MTF_CONTEXT_COUNT,
+        "family_tf_cooperation_gate": ENTRY_MTF_CONTEXT_COUNT * len(compiled["mtf_specialists"]),
+    }
+    return {"gate_widths": widths}, {
+        "gate_shape": (ENTRY_MTF_CONTEXT_COUNT, len(compiled["mtf_indices"])),
+    }
+
+
 def _new_cooperation_gate_epoch_accumulator(
     gate_widths: Mapping[str, int] = _MODEL_NATIVE_COOPERATION_GATE_WIDTHS,
 ) -> dict[str, dict[str, Any]]:
@@ -10041,12 +10070,15 @@ def train_epoch(
         )
     ):
         raise RuntimeError("[TRAIN_PERFORMANCE_MEASUREMENT_ARGUMENT_INVALID]")
+    cooperation_gate_kwargs, feature_gate_kwargs = (
+        _dynamic_m5_gate_execution_kwargs(model) if dynamic_phase else ({}, {})
+    )
     _accum_count = 0
     optimizer.zero_grad(set_to_none=True)
     total = 0.0
     entry_q_loss_sum = 0.0
-    cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator()
-    feature_tf_gate_epoch = _new_feature_tf_gate_epoch_accumulator()
+    cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator(**cooperation_gate_kwargs)
+    feature_tf_gate_epoch = _new_feature_tf_gate_epoch_accumulator(**feature_gate_kwargs)
     exit_cooperation_gate_epoch = _new_cooperation_gate_epoch_accumulator(
         _UNIFIED_EXIT_COOPERATION_GATE_WIDTHS
     )
@@ -10144,8 +10176,8 @@ def train_epoch(
             batch = _materialize_dynamic_m5_batch_targets(batch, dataset)
             task_losses, dynamic_cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
             _accumulate_dynamic_m5_loss_evidence(dynamic_evidence, task_losses, dynamic_cells)
-            _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out)
-            _accumulate_feature_tf_gate_epoch(feature_tf_gate_epoch, out)
+            _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out, **cooperation_gate_kwargs)
+            _accumulate_feature_tf_gate_epoch(feature_tf_gate_epoch, out, **feature_gate_kwargs)
             entry_action_q_loss = None
             unified_exit_stats = unified_exit_loss = None
             path_phase = True
@@ -10627,7 +10659,7 @@ def train_epoch(
         stats["dynamic_candidate_native_authority_admitted"] = False
     if _learning_diagnostics is not None:
         stats["candidate_learning_diagnostics"] = _learning_diagnostics
-    stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch))
+    stats.update(_finalize_cooperation_gate_epoch(cooperation_gate_epoch, **cooperation_gate_kwargs))
     stats.update(_finalize_feature_tf_gate_epoch(feature_tf_gate_epoch))
     if entry_only:
         for name, parameter in model.named_parameters():
@@ -12691,8 +12723,9 @@ def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
     if getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
         raise RuntimeError("ENTRY_DYNAMIC_M5_MODEL_PHASE_MISMATCH")
     evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
-    cooperation = _new_cooperation_gate_epoch_accumulator()
-    feature_gate = _new_feature_tf_gate_epoch_accumulator()
+    cooperation_gate_kwargs, feature_gate_kwargs = _dynamic_m5_gate_execution_kwargs(model)
+    cooperation = _new_cooperation_gate_epoch_accumulator(**cooperation_gate_kwargs)
+    feature_gate = _new_feature_tf_gate_epoch_accumulator(**feature_gate_kwargs)
     total, rows = 0., 0
     counts, tied = np.zeros(3, np.int64), 0
     with torch.no_grad():
@@ -12704,8 +12737,8 @@ def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
             losses, cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
             loss, _ = _joint_task_loss(model, losses)
             _accumulate_dynamic_m5_loss_evidence(evidence, losses, cells)
-            _accumulate_cooperation_gate_epoch(cooperation, out)
-            _accumulate_feature_tf_gate_epoch(feature_gate, out)
+            _accumulate_cooperation_gate_epoch(cooperation, out, **cooperation_gate_kwargs)
+            _accumulate_feature_tf_gate_epoch(feature_gate, out, **feature_gate_kwargs)
             size = int(batch["seq_x"].shape[0])
             rows += size
             total += float(loss) * size
@@ -12728,7 +12761,7 @@ def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
         "dynamic_candidate_tied_diagnostic_rows": tied,
         "realized_cash_or_native_policy_evaluated": False}
     stats.update(_finalize_joint_task_loss_evidence(evidence))
-    stats.update(_finalize_cooperation_gate_epoch(cooperation))
+    stats.update(_finalize_cooperation_gate_epoch(cooperation, **cooperation_gate_kwargs))
     stats.update(_finalize_feature_tf_gate_epoch(feature_gate))
     return total / rows, float("nan"), float("nan"), float("nan"), stats
 

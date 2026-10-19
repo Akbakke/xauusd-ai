@@ -77,6 +77,13 @@ forutsetning. Kausalitet, kostnader, TRAIN-fit, fersk profilbundet baseline,
 konsum/paritet/Entry-only/resume/maskinvare og alle sikkerhetsgrenser består.
 Ingen ny epoke/HPO, Exit eller TEST-adgang følger av profilvalget.
 
+Første navngitte profil er `compact_mbp_smc_ema_atr_clock_macro_entry_v1`,
+kompilert av eksisterende featuregruppe-eier og bundet som eksakt
+`entry_execution_profile={name,contract_sha256}` i metadata/recipe/modell/state.
+None beholder fullmodellen. Full fysisk055validering kommer før intern gather;
+aktive rapporteringsgater må følge samme profil. Syntetiske rute-/gradienttester
+er ikke genuin konsum-/latency-/læringsmåling.
+
 ## Én kodebase, avgrensede agentoppgaver
 
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre

@@ -788,3 +788,54 @@ def test_dynamic_positive_prefix_probe_requires_exact_true_global_training(prefi
         assert native.require_chronological_prefix_run(recipe)["optimizer_step_ceiling"] == 256
     else:
         with pytest.raises(RuntimeError, match="NOT_AUTHORIZED"): native.require_chronological_prefix_run(recipe)
+
+
+def test_entry_execution_profile_joins_constructor_and_recipe_without_changing_full_default(tmp_path, monkeypatch):
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_compact_entry_execution_profile
+    compiled = compile_compact_entry_execution_profile()
+    reference = {key: compiled[key] for key in ("name", "contract_sha256")}
+    constructor = tmp_path / "constructor.json"
+    recipe = {"files": {"source_bundle_metadata": _write(constructor, {})}}
+    monkeypatch.setattr(native, "_dynamic_m5_native_design", lambda _: None)
+    assert native.require_dynamic_m5_execution_profile(recipe) is None
+    recipe["entry_execution_profile"] = reference
+    recipe["files"]["source_bundle_metadata"] = _write(constructor, {"entry_execution_profile": reference})
+    monkeypatch.setattr(native, "_dynamic_m5_native_design", lambda _: {"scope": "explicit-dynamic-test-boundary"})
+    assert native.require_dynamic_m5_execution_profile(recipe) == reference
+
+
+@pytest.mark.parametrize("fault", ["recipe_missing", "constructor_missing", "different_hash", "unknown_name", "extra_field", "wrong_type", "non_dynamic", "non_dynamic_none"])
+def test_entry_execution_profile_rejects_unbound_or_wrong_model_function(tmp_path, monkeypatch, fault):
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_compact_entry_execution_profile
+    compiled = compile_compact_entry_execution_profile()
+    reference = {key: compiled[key] for key in ("name", "contract_sha256")}
+    metadata = {"entry_execution_profile": copy.deepcopy(reference)}
+    recipe = {"entry_execution_profile": copy.deepcopy(reference), "files": {}}
+    expected = "NATIVE_ENTRY_EXECUTION_PROFILE_RECIPE_CONSTRUCTOR_MISMATCH"
+    if fault == "recipe_missing":
+        recipe.pop("entry_execution_profile")
+    elif fault == "constructor_missing":
+        metadata.pop("entry_execution_profile")
+    elif fault == "different_hash":
+        recipe["entry_execution_profile"]["contract_sha256"] = "0" * 64
+    elif fault == "unknown_name":
+        metadata["entry_execution_profile"]["name"] = "unregistered-profile"
+        recipe["entry_execution_profile"] = copy.deepcopy(metadata["entry_execution_profile"])
+        expected = "ENTRY_EXECUTION_PROFILE"
+    elif fault == "extra_field":
+        metadata["entry_execution_profile"]["arbitrary_feature_selection"] = True
+        recipe["entry_execution_profile"] = copy.deepcopy(metadata["entry_execution_profile"])
+        expected = "ENTRY_EXECUTION_PROFILE"
+    elif fault == "wrong_type":
+        metadata["entry_execution_profile"] = "compact"
+        recipe["entry_execution_profile"] = "compact"
+        expected = "ENTRY_EXECUTION_PROFILE"
+    else:
+        expected = "NATIVE_ENTRY_EXECUTION_PROFILE_DYNAMIC_ENTRY_REQUIRED"
+        if fault == "non_dynamic_none":
+            metadata["entry_execution_profile"] = None
+            recipe["entry_execution_profile"] = None
+    recipe["files"]["source_bundle_metadata"] = _write(tmp_path / "constructor.json", metadata)
+    monkeypatch.setattr(native, "_dynamic_m5_native_design", lambda _: None if fault in {"non_dynamic", "non_dynamic_none"} else {"scope": "explicit-dynamic-test-boundary"})
+    with pytest.raises(RuntimeError, match=expected):
+        native.require_dynamic_m5_execution_profile(recipe)

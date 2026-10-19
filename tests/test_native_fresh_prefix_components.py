@@ -112,13 +112,16 @@ def test_fresh_components_reject_exposed_mixed_or_reselected_inputs(tmp_path,fau
 
 class TinyModel(torch.nn.Module):
     def __init__(self,normalization,entry_training_phase=runner.trainer.JOINT_FITTED_Q_TRAINING_PHASE,
-                 dynamic_m5_query_minutes=None):
+                 dynamic_m5_query_minutes=None, entry_execution_profile=None):
         from gx1.contracts.entry_model_native_joint_task_weighting_v1 import joint_task_names_for_phase
         super().__init__();self.backbone=torch.nn.Linear(3,3);self.head=torch.nn.Linear(3,2)
         self.entry_training_phase=entry_training_phase
         self.task_log_variances=torch.nn.ParameterDict({name:torch.nn.Parameter(torch.zeros(()))
             for name in joint_task_names_for_phase(entry_training_phase)})
         self.cfg=SimpleNamespace(entry_training_phase=entry_training_phase,dynamic_m5_query_minutes=dynamic_m5_query_minutes)
+        if entry_execution_profile is not None:
+            self.entry_execution_profile = dict(entry_execution_profile)
+            self.cfg.entry_execution_profile = dict(entry_execution_profile)
         if dynamic_m5_query_minutes is not None:
             self.register_buffer('dynamic_m5_query_horizons',torch.tensor(dynamic_m5_query_minutes,dtype=torch.int64))
         self.register_buffer('normalization_identity',torch.tensor(list(bytes.fromhex(normalization['contract_sha256'])),dtype=torch.uint8))
@@ -977,3 +980,48 @@ def test_dynamic_fresh_preparation_strictloads_staged_optimizer_before_publicati
             recipe_file_sha256=binding["sha256"], output_dir=case["output"])
     assert not case["output"].exists()
     assert len(list(case["output"].parent.glob(".initial-components.staging.*/INITIAL_STATE.pt"))) == 1
+
+
+def test_fresh_compact_model_binds_explicit_canonical_profile_without_checkpoint_or_forward(tmp_path, monkeypatch):
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_compact_entry_execution_profile
+    _,_,_,_,_,_,composite = _bindings(tmp_path)
+    norm = composite["base_feature_normalization"]["artifact"]["contract"]
+    compiled = compile_compact_entry_execution_profile()
+    reference = {key:compiled[key] for key in ("name", "contract_sha256")}
+    calls = []
+    def construct(metadata, normalization, device, **kwargs):
+        calls.append(kwargs)
+        return TinyModel(normalization, **kwargs)
+    monkeypatch.setattr(runner.val, "_model", construct)
+    model, binding = runner._fresh_prefix_model(metadata={"entry_execution_profile":reference},
+        normalization=norm, device=torch.device("cpu"), seed=20260911,
+        entry_training_phase=runner.trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        entry_execution_profile=reference)
+    assert calls == [{**runner.trainer._dynamic_m5_model_kwargs(runner.trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE),
+        "entry_execution_profile":reference}]
+    assert model.entry_execution_profile == model.cfg.entry_execution_profile == binding["entry_execution_profile"] == reference
+    assert binding["checkpoint_loaded"] is False
+
+
+@pytest.mark.parametrize("fault", ["missing_argument", "metadata_reference", "phase", "constructed_profile"])
+def test_fresh_compact_model_rejects_profile_mismatch_before_optimizer(tmp_path, monkeypatch, fault):
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_compact_entry_execution_profile
+    _,_,_,_,_,_,composite = _bindings(tmp_path)
+    compiled = compile_compact_entry_execution_profile()
+    reference = {key:compiled[key] for key in ("name", "contract_sha256")}
+    args = {"metadata":{"entry_execution_profile":dict(reference)},
+        "normalization":composite["base_feature_normalization"]["artifact"]["contract"],
+        "device":torch.device("cpu"), "seed":20260911,
+        "entry_training_phase":runner.trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "entry_execution_profile":reference}
+    calls = []
+    def construct(metadata, normalization, device, **kwargs):
+        calls.append(kwargs)
+        if fault == "constructed_profile": kwargs.pop("entry_execution_profile")
+        return TinyModel(normalization, **kwargs)
+    monkeypatch.setattr(runner.val, "_model", construct)
+    if fault == "missing_argument": args.pop("entry_execution_profile")
+    elif fault == "metadata_reference": args["metadata"]["entry_execution_profile"]["contract_sha256"] = "0"*64
+    elif fault == "phase": args["entry_training_phase"] = runner.trainer.JOINT_FITTED_Q_TRAINING_PHASE
+    with pytest.raises(RuntimeError): runner._fresh_prefix_model(**args)
+    assert len(calls) == (1 if fault == "constructed_profile" else 0)

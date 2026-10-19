@@ -341,5 +341,9 @@ referansefelter er eksplisitte; dette er ikke en full individuell formelPASS.
 Første kompakte profil er ett kildeforslag, ikke en målt støyseleksjon:
 alle2410GCkanaler beholdes. Lokal candle-rute inneholder74GCkanaler og
 volatility-ruten102; familienavn alene gir ingen trygg slukking av MBP.
-2622/2525/139-forslaget og7lokal/5MTF er ennå ikke implementert. Fullbibliotek
-og eksakte rawkilder beholdes; ingen ekstra fit/HPO følger av dette.
+061implementerer2622/2525/139 og7lokal/5MTF som én canonical profil med
+streng navn/SHA-reference, full fysisk055validering før gather og reelt modulskip.
+061har380godkjente source-/syntetiske modellcaser; genuin konsum-/latencymåling
+gjenstår. Legacy wholefeature LIVE-only-audit skal fortsatt avvise conditional
+GC-/maskestatus; dens forventede avvisning er separat fra faktisk053liveness.
+Fullbibliotek og eksakte rawkilder beholdes; ingen ekstra fit/HPO følger av dette.

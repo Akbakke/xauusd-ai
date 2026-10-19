@@ -129,7 +129,7 @@ Ingen kandidat gis native autoritet ved bare å flytte formelen inn i forward.
 Fremtidens beste horisont er aldri fasit for en udokumentert scalar.
 
 
-Første reelle smoke skal bevise samme fysiske batch gjennom alle familier,
+Første reelle smoke skal bevise samme fysiske batch gjennom profilens eksplisitte aktive familier,
 GC-value/mask-par, alle MTF, normalisering og modell, samt fersk initialbaseline
 og train/serve-paritet. Entry-only-fasen må bevise Exit-grad=None og uendrede
 Exit-vekter. Bruk allerede beståtte uendrede kontroller; en ny funksjon krever
@@ -214,5 +214,11 @@ Operatørpresisering19.10 åpner én kompakt førsterunde før fullflaten:
 MBP+SMC/struktur+EMA/ATR/minimalkontekst, alle2410GCkanaler og61makro beholdt.
 Valgt kildeforslag2622/2525/139,7lokale/5MTF-familier; full055normalisering
 før modellintern utvelgelse. Hele biblioteket og defaultfullmodell beholdes.
-Eksakt profil er ennå ikke implementert/konsumkvalifisert; ny faktisk baseline
-kreves før trening. Computegeometri er ikke målt latency eller ekstra budsjett.
+061implementerer én kildekompilert profilreferanse i metadata/recipe/modell/state,
+reelle local7/MTF5-moduleløp og filtrerte projeksjoner. Hele fysisk055-input
+valideres før gather. Dynamisk målerapportering følger samme aktive gateformer;
+fullNone beholder8/40/253. 380fokuserte kilde-/syntetiske modellcaser er godkjent i061;
+genuin konsumkvalifisering gjenstår. Sourcekvitteringen skiller opprinnelig
+377PASS/3FAIL fra smale test-only repairs uten produksjonsendring. Ny profilbundet freshstate/initialbaseline kreves
+før trening;060fullprofilutkast startes ikke. Computegeometri er ikke målt
+latency eller ekstra budsjett.

@@ -104,9 +104,10 @@ def _require_native_full_train_recipe(
             dynamic_phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study", "entry_m5_path_single_epoch"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study", "entry_m5_path_single_epoch", "entry_execution_profile"}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
+        or ("entry_execution_profile" in recipe and dynamic_phase is None)
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
                                         "frozen_online_readout_evaluation_only" if "frozen_readout_evaluation" in recipe else _INITIALIZATION)
         or recipe["recipe_sha256"] != val.canonical_sha256({k: v for k, v in recipe.items() if k != "recipe_sha256"})
@@ -146,7 +147,10 @@ def _require_native_full_train_recipe(
         prefix = _require_prefix_component_bindings(recipe["chronological_prefix"], files=files,
             batch_size=16, seed=seed_launch["seed"], learning_rate=0.0001, weight_decay=0.0001)
         if dynamic_phase is not None:
-            _require_dynamic_m5_constructor_binding(files=files, prefix=prefix)
+            from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_dynamic_m5_execution_profile
+            execution_profile = require_dynamic_m5_execution_profile(recipe)
+            _require_dynamic_m5_constructor_binding(files=files, prefix=prefix,
+                entry_execution_profile=execution_profile)
     else:
         seed_launch_path = _bound_artifact(recipe["seed_launch"])
         seed_launch = val.require_launch_manifest(val._read(seed_launch_path))
@@ -240,7 +244,7 @@ def _require_native_full_train_recipe(
 
 
 
-def _require_dynamic_m5_constructor_binding(*, files, prefix):
+def _require_dynamic_m5_constructor_binding(*, files, prefix, entry_execution_profile=None):
     """Check current geometry/routes/cache without constructing a model or reading values."""
     from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
     from gx1.contracts.entry_model_native_signal_v1 import (
@@ -307,6 +311,18 @@ def _require_dynamic_m5_constructor_binding(*, files, prefix):
         raise RuntimeError("NATIVE_DYNAMIC_M5_CONSTRUCTOR_SPECIALIST_MISMATCH")
     require_model_native_context_specialist_routing(
         specialist.get("context_routing"), ordered_signal_names=signal, context="NATIVE_DYNAMIC_M5_CONSTRUCTOR")
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        compile_compact_entry_execution_profile, require_compact_entry_execution_profile_reference,
+    )
+    execution_profile = require_compact_entry_execution_profile_reference(
+        entry_execution_profile, context="NATIVE_DYNAMIC_M5_CONSTRUCTOR")
+    if execution_profile is not None:
+        physical = compile_compact_entry_execution_profile()["physical_field_names"]
+        if (signal != list(physical["signal"])
+                or feature["ctx_cont_names"] != list(physical["ctx_cont"])
+                or feature["ctx_cat_names"] != list(physical["ctx_cat"])
+                or mtf["feature_names"] != list(physical["mtf"])):
+            raise RuntimeError("NATIVE_DYNAMIC_M5_CONSTRUCTOR_COMPACT_PHYSICAL_FIELDS_INVALID")
 
 
 def _require_component_sampler(*, files, chronological_prefix):
@@ -512,11 +528,25 @@ def _require_component_model_phase(model, entry_training_phase):
 
 
 def _fresh_prefix_model(*, metadata, normalization, device, seed,
-                        entry_training_phase=trainer.JOINT_FITTED_Q_TRAINING_PHASE):
+                        entry_training_phase=trainer.JOINT_FITTED_Q_TRAINING_PHASE,
+                        entry_execution_profile=None):
     """Call the existing complete constructor, never any checkpoint loader."""
+    from gx1.features.entry_specialist_feature_groups_v1 import require_compact_entry_execution_profile_reference
+    execution_profile = require_compact_entry_execution_profile_reference(
+        entry_execution_profile, context="NATIVE_PREFIX_FRESH_MODEL")
+    metadata_profile = require_compact_entry_execution_profile_reference(
+        metadata.get("entry_execution_profile"), context="NATIVE_PREFIX_FRESH_METADATA")
+    if execution_profile != metadata_profile:
+        raise RuntimeError("NATIVE_PREFIX_FRESH_EXECUTION_PROFILE_MISMATCH")
+    if execution_profile is not None and entry_training_phase != trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        raise RuntimeError("NATIVE_PREFIX_FRESH_COMPACT_DYNAMIC_PHASE_REQUIRED")
     trainer._set_deterministic(seed, device, "deterministic_fp32")
     model = val._model(metadata, normalization, device,
-        **trainer._dynamic_m5_model_kwargs(entry_training_phase))
+        **trainer._dynamic_m5_model_kwargs(entry_training_phase),
+        **({"entry_execution_profile":execution_profile} if execution_profile is not None else {}))
+    if execution_profile is not None and (getattr(model, "entry_execution_profile", None) != execution_profile
+            or getattr(getattr(model, "cfg", None), "entry_execution_profile", None) != execution_profile):
+        raise RuntimeError("NATIVE_PREFIX_FRESH_MODEL_EXECUTION_PROFILE_MISMATCH")
     _require_component_model_phase(model, entry_training_phase)
     if any(torch.count_nonzero(parameter.detach()).item() for parameter in model.task_log_variances.parameters()):
         raise RuntimeError("NATIVE_PREFIX_FRESH_TASK_WEIGHTS_INVALID")
@@ -525,6 +555,7 @@ def _fresh_prefix_model(*, metadata, normalization, device, seed,
         "seed": seed, "model_state_sha256": trainer._model_state_sha256(model),
         "input_normalization_sha256": normalization["contract_sha256"],
         "checkpoint_loaded": False,
+        **({"entry_execution_profile":execution_profile} if execution_profile is not None else {}),
     }
 
 
@@ -635,7 +666,8 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
     val._bind_multi_tf_cache_from_source_bundle_metadata(metadata)
     device = torch.device("cpu")
     model, seed_binding = _fresh_prefix_model(metadata=metadata, normalization=normalization,
-        device=device, seed=controls["seed"], entry_training_phase=phase)
+        device=device, seed=controls["seed"], entry_training_phase=phase,
+        **({"entry_execution_profile":metadata["entry_execution_profile"]} if metadata.get("entry_execution_profile") is not None else {}))
     _configure_component_training_phase(model, phase)
     optimizer, weight_ema, scheduler, ema_derivation = _component_optimizer_state(
         model=model, entry_phase=phase, train_rows=single["train_rows"],
@@ -780,7 +812,8 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
             or any(tuple(binding.get("query_minutes", ())) != queries for binding in (identity, observed_entry_scope))):
         raise RuntimeError("NATIVE_COMPONENT_SCOPE_DYNAMIC_QUERY_MISMATCH")
     model, seed_binding = _fresh_prefix_model(metadata=meta, normalization=normalization,
-        device=device, seed=seed, entry_training_phase=phase)
+        device=device, seed=seed, entry_training_phase=phase,
+        **({"entry_execution_profile":meta["entry_execution_profile"]} if meta.get("entry_execution_profile") is not None else {}))
     _configure_component_training_phase(model, phase)
     # This owner establishes the strict population/order authority before the
     # epoch order is requested and before any optimizer is constructed.

@@ -17,6 +17,7 @@ from gx1.contracts.entry_exit_production_architecture_v1 import (
     current_entry_exit_architecture_observation,
     entry_exit_production_architecture_contract,
     require_entry_exit_production_architecture,
+    compile_compact_entry_execution_profile,
 )
 from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
@@ -426,3 +427,46 @@ def test_architecture_accepts_producer_sorted_json_roundtrip():
     persisted["entry"]["mtf_route"].reverse()
     with pytest.raises(RuntimeError, match="PRODUCTION_ARCHITECTURE_MISMATCH"):
         require_entry_exit_production_architecture(persisted, context="PERSISTED")
+
+
+
+def test_compact_architecture_reference_preserves_complete_physical_default() -> None:
+    full = entry_exit_production_architecture_contract()
+    compiled = compile_compact_entry_execution_profile()
+    ref = {"name": compiled["name"], "contract_sha256": compiled["contract_sha256"]}
+    observed = current_entry_exit_architecture_observation(entry_execution_profile=ref)
+    expected = entry_exit_production_architecture_contract(entry_execution_profile=ref)
+    assert require_entry_exit_production_architecture(observed, context="TEST_COMPACT") == expected
+    assert expected.pop("entry_execution_profile") == ref
+    assert expected == full
+    assert entry_exit_production_architecture_contract(entry_execution_profile=None) == full
+    assert current_entry_exit_architecture_observation() == full
+
+
+@pytest.mark.parametrize("path,value", [
+    (("shared_surface", "signal_dim"), 2622),
+    (("shared_surface", "ctx_cont_dim"), 2525),
+    (("mtf", "per_tf_widths", "M5"), 139),
+    (("entry", "sequence_bars"), 16),
+    (("local_specialists",), ["smc_liquidity_encoder"]),
+])
+def test_compact_architecture_still_rejects_physical_shape_and_source_route_drift(path, value) -> None:
+    compiled = compile_compact_entry_execution_profile()
+    ref = {"name": compiled["name"], "contract_sha256": compiled["contract_sha256"]}
+    observed = current_entry_exit_architecture_observation(entry_execution_profile=ref)
+    target = observed
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    with pytest.raises(RuntimeError, match="ENTRY_EXIT_PRODUCTION_ARCHITECTURE_MISMATCH"):
+        require_entry_exit_production_architecture(observed, context="TEST_COMPACT_DRIFT")
+
+
+def test_compact_architecture_rejects_forged_reference_and_unbound_extra_profile() -> None:
+    observed = current_entry_exit_architecture_observation()
+    observed["entry_execution_profile"] = {"name": "unregistered", "contract_sha256": "0" * 64}
+    with pytest.raises(RuntimeError, match="COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE"):
+        require_entry_exit_production_architecture(observed, context="TEST_COMPACT_FORGED")
+    observed["entry_execution_profile"] = None
+    with pytest.raises(RuntimeError, match="ENTRY_EXIT_PRODUCTION_ARCHITECTURE_MISMATCH"):
+        require_entry_exit_production_architecture(observed, context="TEST_COMPACT_UNBOUND")

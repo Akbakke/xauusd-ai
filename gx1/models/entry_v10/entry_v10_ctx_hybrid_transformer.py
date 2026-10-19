@@ -80,6 +80,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_CTX_CAT_DOMAINS,
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION,
+    compile_compact_entry_execution_profile,
+    require_compact_entry_execution_profile_reference,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
@@ -430,6 +432,7 @@ class CtxModelConfig:
     ctx_cont_scale: float = 0.25
     entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE
     dynamic_m5_query_minutes: Optional[Tuple[int, ...]] = None
+    entry_execution_profile: Optional[Mapping[str, str]] = None
 
 
 class EntryV10CtxHybridTransformer(nn.Module):
@@ -489,7 +492,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
         cross_family_fusion_scale: float,
         entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE,
         dynamic_m5_query_minutes: Optional[Sequence[int]] = None,
+        entry_execution_profile: Optional[Mapping[str, str]] = None,
     ) -> None:
+        profile_reference = require_compact_entry_execution_profile_reference(
+            entry_execution_profile, context="ENTRY_MODEL_EXECUTION_PROFILE",
+        )
+        if profile_reference is not None and entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE")
+        compiled_profile = (compile_compact_entry_execution_profile()
+                            if profile_reference is not None else None)
         unit_test_shape = (
             getattr(self, "_gx1_unit_test_architecture_token", None)
             is _UNIT_TEST_ARCHITECTURE_SENTINEL
@@ -497,7 +508,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if unit_test_shape:
             object.__delattr__(self, "_gx1_unit_test_architecture_token")
         else:
-            architecture = current_entry_exit_architecture_observation()
+            architecture = (
+                current_entry_exit_architecture_observation(entry_execution_profile=profile_reference)
+                if profile_reference is not None else current_entry_exit_architecture_observation()
+            )
             architecture["shared_surface"] = {
                 "signal_dim": seq_input_dim,
                 "snap_dim": snap_input_dim,
@@ -547,6 +561,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         super().__init__()
         self.entry_training_phase = require_entry_training_phase(
             entry_training_phase, context="ENTRY_MODEL_CONSTRUCTION",
+        )
+        self.entry_execution_profile = profile_reference
+        self._entry_execution_profile_identity = (
+            (profile_reference["name"], profile_reference["contract_sha256"])
+            if profile_reference is not None else None
         )
         dynamic_phase = self.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
         if dynamic_phase:
@@ -621,6 +640,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             snap_input_dim=snap_input_dim,
             entry_training_phase=self.entry_training_phase,
             dynamic_m5_query_minutes=bound_queries,
+            entry_execution_profile=profile_reference,
             seq_len=seq_len,
             dropout=float(dropout),
             ctx_cont_dim=int(ctx_cont_dim),
@@ -715,6 +735,25 @@ class EntryV10CtxHybridTransformer(nn.Module):
             "mtf_h4": int(self.cfg.h4_seq_dim),
             "mtf_d1": int(self.cfg.d1_seq_dim),
         }
+        if compiled_profile is not None:
+            physical_names = compiled_profile["physical_field_names"]
+            if (
+                normalization_field_names["signal"] != list(physical_names["signal"])
+                or normalization_field_names["ctx_cont"] != list(physical_names["ctx_cont"])
+                or tuple(MODEL_NATIVE_CTX_CAT_FIELDS) != tuple(physical_names["ctx_cat"])
+                or any(normalization_field_names[surface] != list(physical_names["mtf"])
+                       for surface in normalization_field_names if surface.startswith("mtf_"))
+            ):
+                raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_PHYSICAL_FIELDS_INVALID")
+            self.register_buffer(
+                "entry_execution_profile_contract_sha256",
+                torch.tensor(list(bytes.fromhex(profile_reference["contract_sha256"])), dtype=torch.uint8),
+            )
+            self.register_buffer(
+                "entry_signal_projection_idx",
+                torch.tensor(compiled_profile["signal_indices"], dtype=torch.long),
+                persistent=False,
+            )
         if any(
             len(normalization_field_names[surface]) != width
             for surface, width in expected_surface_widths.items()
@@ -832,6 +871,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
             for index in range(int(snap_input_dim))
             if index not in set(temporal_alias_signal_indices)
         ]
+        if compiled_profile is not None:
+            active_signal_indices = set(compiled_profile["signal_indices"])
+            generic_snap_indices = [index for index in generic_snap_indices
+                                    if index in active_signal_indices]
+            if generic_snap_indices != list(compiled_profile["generic_snap_signal_indices"]):
+                raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_SNAP_ALIAS_INVALID")
         if not generic_snap_indices:
             raise RuntimeError("GENERIC_SNAP_INPUT_EMPTY_AFTER_ALIAS_EXCLUSION")
 
@@ -843,7 +888,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         # Forward/Exit call from synchronizing a CUDA index tensor merely to
         # decide which nominal embeddings belong in this projection.
         self._generic_snap_index_set = frozenset(generic_snap_indices)
-        self.seq_proj = nn.Linear(int(seq_input_dim), d_model)
+        self.seq_proj = nn.Linear(
+            len(compiled_profile["signal_indices"]) if compiled_profile is not None else int(seq_input_dim),
+            d_model,
+        )
         self.snap_proj = nn.Linear(len(generic_snap_indices), d_model)
         self.register_buffer(
             "generic_snap_idx",
@@ -874,6 +922,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     d_model,
                 )
                 for index in signal_categorical_indices
+                if compiled_profile is None or index in active_signal_indices
             }
         )
 
@@ -1055,6 +1104,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             for name, indices in cleaned_ctx_cont_nominal.items()
         }
         self._specialist_names = EXACT_SPECIALIST_NAMES
+        self._mtf_specialist_names = EXACT_SPECIALIST_NAMES
         if (
             not isinstance(multi_tf_specialist_input_indices, dict)
             or tuple(multi_tf_specialist_input_indices)
@@ -1107,6 +1157,59 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 "MULTI_TF_SPECIALIST_INDEX_COVERAGE_INVALID: every field must "
                 "have exactly one family owner"
             )
+        if compiled_profile is not None:
+            def _profile_partition(full, expected, names, label):
+                active = {index for indices in expected.values() for index in indices}
+                selected = {name: [index for index in full[name] if index in active]
+                            for name in names}
+                if selected != {name: list(expected[name]) for name in names}:
+                    raise RuntimeError(f"COMPACT_ENTRY_EXECUTION_PROFILE_OWNER_INVALID:{label}")
+                return selected
+
+            self._specialist_names = tuple(compiled_profile["local_specialists"])
+            self._mtf_specialist_names = tuple(compiled_profile["mtf_specialists"])
+            cleaned = _profile_partition(
+                cleaned, compiled_profile["local_signal_indices_by_specialist"],
+                self._specialist_names, "signal",
+            )
+            cleaned_ctx_cont = _profile_partition(
+                cleaned_ctx_cont, compiled_profile["ctx_cont_indices_by_specialist"],
+                self._specialist_names, "ctx_cont",
+            )
+            cleaned_ctx_cat = {name: cleaned_ctx_cat[name] for name in self._specialist_names}
+            cleaned_ctx_cont_nominal = {
+                name: [index for index in cleaned_ctx_cont_nominal[name]
+                       if index in cleaned_ctx_cont[name]]
+                for name in self._specialist_names
+            }
+            cleaned_ctx_cont_numeric = {
+                name: [index for index in cleaned_ctx_cont[name]
+                       if index not in cleaned_ctx_cont_nominal[name]]
+                for name in self._specialist_names
+            }
+            seen_nominal = {index for indices in cleaned_ctx_cont_nominal.values() for index in indices}
+            self._specialist_ctx_cont_nominal_index_tuples = {
+                name: tuple(indices) for name, indices in cleaned_ctx_cont_nominal.items()
+            }
+            self._specialist_input_index_sets = {
+                name: frozenset(indices) for name, indices in cleaned.items()
+            }
+            cleaned_mtf = _profile_partition(
+                cleaned_mtf, compiled_profile["mtf_indices_by_specialist"],
+                self._mtf_specialist_names, "mtf",
+            )
+        self._mtf_feature_gate_width = (
+            len(compiled_profile["mtf_indices"]) if compiled_profile is not None
+            else int(self.cfg.m5_seq_dim)
+        )
+        if compiled_profile is not None:
+            positions = {index: position for position, index in enumerate(compiled_profile["mtf_indices"])}
+            for name, indices in cleaned_mtf.items():
+                self.register_buffer(
+                    f"multi_tf_feature_gate_idx_{name}",
+                    torch.tensor([positions[index] for index in indices], dtype=torch.long),
+                    persistent=False,
+                )
         self._multi_tf_specialist_index_tuples = {
             name: tuple(indices) for name, indices in cleaned_mtf.items()
         }
@@ -1341,7 +1444,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
                 if global_index in self._multi_tf_categorical_index_set
             )
-            for name in self._specialist_names
+            for name in self._mtf_specialist_names
         }
         self.mtf_nominal_embeddings = nn.ModuleDict(
             {
@@ -1360,18 +1463,18 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.mtf_family_proj = nn.ModuleDict(
             {
                 name: nn.Linear(len(cleaned_mtf[name]), d_model)
-                for name in self._specialist_names
+                for name in self._mtf_specialist_names
             }
         )
         self.mtf_family_encoder = nn.ModuleDict(
             {
                 name: _mk_encoder(mtf_layers)
-                for name in self._specialist_names
+                for name in self._mtf_specialist_names
             }
         )
         self.mtf_feature_context_gate = nn.ModuleDict()
         for tf_name in TF_INPUT_SCALE_NAMES:
-            for name in self._specialist_names:
+            for name in self._mtf_specialist_names:
                 key = f"{tf_name}__{name}"
                 gate = nn.Linear(d_model, len(cleaned_mtf[name]))
                 # 2*sigmoid(0)=1: every feature×timeframe path starts neutral;
@@ -1382,10 +1485,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.family_axis_attn = _mk_encoder(1)
         self.timeframe_axis_attn = _mk_encoder(1)
         self.family_tf_token_identity = nn.Parameter(
-            torch.empty(1, 5, len(self._specialist_names), d_model)
+            torch.empty(1, 5, len(self._mtf_specialist_names), d_model)
         )
         nn.init.normal_(self.family_tf_token_identity, std=0.02)
-        cooperation_token_count = 5 * len(self._specialist_names)
+        cooperation_token_count = 5 * len(self._mtf_specialist_names)
         self.family_tf_context_gate = nn.Linear(
             d_model,
             cooperation_token_count,
@@ -1397,17 +1500,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.family_tf_token_order = tuple(
             f"{tf_name}:{specialist}"
             for tf_name in TF_INPUT_SCALE_NAMES
-            for specialist in self._specialist_names
+            for specialist in self._mtf_specialist_names
         )
         self.entry_family_tf_token_order = tuple(
             f"{tf_name.lower()}:{specialist}"
             for tf_name in ENTRY_MTF_CONTEXT_TIMEFRAMES
-            for specialist in self._specialist_names
+            for specialist in self._mtf_specialist_names
         )
         self.exit_family_tf_token_order = tuple(
             f"{tf_name.lower()}:{specialist}"
             for tf_name in EXIT_MTF_CONTEXT_TIMEFRAMES
-            for specialist in self._specialist_names
+            for specialist in self._mtf_specialist_names
         )
         self.cross_tf_attn = _mk_encoder(1)
         self.tf_token_identity = nn.Parameter(torch.empty(1, 5, d_model))
@@ -1589,6 +1692,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
     def require_input_normalization_state(self) -> None:
         """Prove persistent buffers still match the immutable metadata contract."""
 
+        if self._entry_execution_profile_identity is not None:
+            expected_profile_hash = torch.tensor(
+                list(bytes.fromhex(self._entry_execution_profile_identity[1])),
+                dtype=torch.uint8,
+            )
+            if not torch.equal(self.entry_execution_profile_contract_sha256.detach().cpu(), expected_profile_hash):
+                raise RuntimeError("ENTRY_MODEL_EXECUTION_PROFILE_STATE_BINDING_INVALID")
         contract = self._input_normalization_contract
         expected_contract_hash = torch.tensor(
             list(bytes.fromhex(str(contract["contract_sha256"]))),
@@ -2033,7 +2143,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         seq_numeric = seq_n.masked_fill(signal_categorical_mask.view(1, 1, -1), 0.0)
         snap_numeric = snap_n.masked_fill(signal_categorical_mask.view(1, -1), 0.0)
 
-        seq_h = self.seq_proj(seq_numeric)
+        seq_projection_values = (
+            seq_numeric.index_select(2, self.entry_signal_projection_idx.to(seq_numeric.device))
+            if self._entry_execution_profile_identity is not None else seq_numeric
+        )
+        seq_h = self.seq_proj(seq_projection_values)
         for index_text, embedding in self.signal_nominal_embeddings.items():
             index = int(index_text)
             seq_h = seq_h + embedding(seq_x[..., index].long())
@@ -2169,12 +2283,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
             effective_scale = self._effective_tf_input_scale(suffix)
             full_feature_gate = torch.zeros(
                 batch_size,
-                int(expected_dim),
+                self._mtf_feature_gate_width,
                 device=tensor.device,
                 dtype=normalized_tf.dtype,
             )
             family_tokens: list[torch.Tensor] = []
-            for specialist in self._specialist_names:
+            for specialist in self._mtf_specialist_names:
                 family_idx = getattr(
                     self,
                     f"multi_tf_specialist_idx_{specialist}",
@@ -2186,7 +2300,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
                 full_feature_gate = full_feature_gate.scatter(
                     1,
-                    family_idx.view(1, -1).expand(batch_size, -1),
+                    (getattr(self, f"multi_tf_feature_gate_idx_{specialist}").to(tensor.device)
+                     if self._entry_execution_profile_identity is not None else family_idx)
+                    .view(1, -1).expand(batch_size, -1),
                     feature_gate.to(full_feature_gate.dtype),
                 )
                 family_values = numeric_tf.index_select(dim=2, index=family_idx)
@@ -2223,7 +2339,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             # sequence. Only equal-length calls to the SAME encoder are merged.
             # No padding, cross-example attention, new weights or feature loss.
             pooled: dict[tuple[str, str], torch.Tensor] = {}
-            for specialist in self._specialist_names:
+            for specialist in self._mtf_specialist_names:
                 by_length: dict[int, list[str]] = {}
                 for suffix in route:
                     length = int(projected_eval_rows[specialist][suffix].shape[1])
@@ -2239,13 +2355,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     for suffix, piece in zip(suffixes, pieces):
                         pooled[(suffix, specialist)] = _sequence_readout(piece)
             family_grid_rows = [
-                torch.stack([pooled[(suffix, specialist)] for specialist in self._specialist_names], dim=1)
+                torch.stack([pooled[(suffix, specialist)] for specialist in self._mtf_specialist_names], dim=1)
                 for suffix in route
             ]
 
         family_tf_feature_gate = torch.stack(feature_gate_rows, dim=1)
         family_grid = torch.stack(family_grid_rows, dim=1)
-        expected_grid_shape = (route_count, len(self._specialist_names))
+        expected_grid_shape = (route_count, len(self._mtf_specialist_names))
         if tuple(family_grid.shape[1:3]) != expected_grid_shape:
             raise RuntimeError(
                 f"{route_label.upper()}_FAMILY_TF_GRID_SHAPE_INVALID: "
@@ -2257,7 +2373,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         family_grid = family_grid + route_family_identity
         family_axis = family_grid.permute(0, 2, 1, 3).reshape(
-            batch_size * len(self._specialist_names),
+            batch_size * len(self._mtf_specialist_names),
             route_count,
             int(self.cfg.d_model),
         )
@@ -2267,13 +2383,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         family_grid = family_axis.reshape(
             batch_size,
-            len(self._specialist_names),
+            len(self._mtf_specialist_names),
             route_count,
             int(self.cfg.d_model),
         ).permute(0, 2, 1, 3)
         timeframe_axis = family_grid.reshape(
             batch_size * route_count,
-            len(self._specialist_names),
+            len(self._mtf_specialist_names),
             int(self.cfg.d_model),
         )
         timeframe_axis = _memory_bounded_transformer_encoder(
@@ -2283,7 +2399,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         family_grid = timeframe_axis.reshape(
             batch_size,
             route_count,
-            len(self._specialist_names),
+            len(self._mtf_specialist_names),
             int(self.cfg.d_model),
         )
         _assert_finite(f"{route_label}.family_tf_feature_gate", family_tf_feature_gate)
@@ -2291,7 +2407,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
 
         cooperation_tokens = family_grid.reshape(
             batch_size,
-            route_count * len(self._specialist_names),
+            route_count * len(self._mtf_specialist_names),
             int(self.cfg.d_model),
         )
         full_family_context_logits = self.family_tf_context_gate(
@@ -2299,7 +2415,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         ).reshape(
             batch_size,
             len(TF_INPUT_SCALE_NAMES),
-            len(self._specialist_names),
+            len(self._mtf_specialist_names),
         )
         route_family_context_logits = full_family_context_logits.index_select(
             1,
@@ -2313,7 +2429,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         family_gate_by_tf = family_tf_cooperation_gate.reshape(
             batch_size,
             route_count,
-            len(self._specialist_names),
+            len(self._mtf_specialist_names),
         )
         family_gate_within_tf = family_gate_by_tf / family_gate_by_tf.sum(
             dim=2,
@@ -2436,6 +2552,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
     ) -> Dict[str, torch.Tensor]:
         """Shared causal local/MTF scan with optional episode path/Q projection."""
 
+        if self._entry_execution_profile_identity is not None:
+            raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_EXIT_NOT_SUPPORTED")
         if type(market_state_only) is not bool:
             raise RuntimeError("UNIFIED_EXIT_EPISODE_MARKET_STATE_MODE_INVALID")
 
@@ -3035,6 +3153,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
     ) -> Dict[str, torch.Tensor]:
         """Evaluate independent sampled states with bounded causal tails."""
 
+        if self._entry_execution_profile_identity is not None:
+            raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_EXIT_NOT_SUPPORTED")
         _assert_shape(
             "entry_decision_representation", entry_decision_representation, 2
         )
@@ -3398,6 +3518,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         zero.  Hidden tensors are never detached by this owner.
         """
 
+        if self._entry_execution_profile_identity is not None:
+            raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_EXIT_NOT_SUPPORTED")
         if self.training:
             raise RuntimeError("UNIFIED_EXIT_INCREMENTAL_STEP_REQUIRES_EVAL")
         _assert_shape("entry_decision_representation", entry_decision_representation, 2)
@@ -3850,6 +3972,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
         seq_d1: torch.Tensor,
         liquidation_relative_values: bool = False,
     ) -> Dict[str, torch.Tensor]:
+        expected_profile = (
+            dict(zip(("name", "contract_sha256"), self._entry_execution_profile_identity))
+            if self._entry_execution_profile_identity is not None else None
+        )
+        if (self.entry_execution_profile != expected_profile
+                or self.cfg.entry_execution_profile != expected_profile):
+            raise RuntimeError("ENTRY_MODEL_EXECUTION_PROFILE_BINDING_INVALID")
         if self.entry_training_phase != self.cfg.entry_training_phase:
             raise RuntimeError("ENTRY_MODEL_PHASE_BINDING_INVALID")
         if type(liquidation_relative_values) is not bool:

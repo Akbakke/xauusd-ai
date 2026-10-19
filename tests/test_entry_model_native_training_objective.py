@@ -189,3 +189,141 @@ def test_dynamic_curve_observer_must_be_callable_before_any_forward():
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     with pytest.raises(RuntimeError, match="BATCH_OBSERVER_INVALID"):
         trainer._validate_dynamic_m5_curves(None, None, None, batch_observer=1)
+
+
+
+def _dynamic_gate_execution_case(monkeypatch, *, compact):
+    """Exercise real gate evidence owners with synthetic loss/target plumbing."""
+    from types import SimpleNamespace
+    import torch
+    from torch import nn
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_compact_entry_execution_profile
+
+    compiled = compile_compact_entry_execution_profile() if compact else None
+    reference = ({key: compiled[key] for key in ("name", "contract_sha256")}
+                 if compact else None)
+    widths = ({"specialist_gate": len(compiled["local_specialists"]),
+               "tf_gate": trainer.ENTRY_MTF_CONTEXT_COUNT,
+               "family_tf_cooperation_gate": trainer.ENTRY_MTF_CONTEXT_COUNT * len(compiled["mtf_specialists"])}
+              if compact else dict(trainer._MODEL_NATIVE_COOPERATION_GATE_WIDTHS))
+    shape = ((trainer.ENTRY_MTF_CONTEXT_COUNT, len(compiled["mtf_indices"]))
+             if compact else trainer._MODEL_NATIVE_FEATURE_TF_GATE_SHAPE)
+    tasks = trainer.joint_task_names_for_phase(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    calls = {"forward": 0, "materialize": 0}
+
+    class Model(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.entry_training_phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            self.entry_execution_profile = reference
+            self.shared_encoder = nn.Linear(1, 1, bias=False)
+            self.exit_path_proj = nn.Linear(1, 1).requires_grad_(False)
+            with torch.no_grad():
+                self.shared_encoder.weight.fill_(0.5)
+            self.task_log_variances = nn.ParameterDict({
+                name: nn.Parameter(torch.zeros(())) for name in tasks
+            })
+
+        def forward(self, seq_x, snap_x, **kwargs):
+            calls["forward"] += 1
+            rows = int(seq_x.shape[0])
+            return {
+                "synthetic_loss": self.shared_encoder(seq_x).square().mean(),
+                **{name: torch.full((rows, width), 1. / width) for name, width in widths.items()},
+                "family_tf_feature_gate": torch.ones(rows, *shape),
+                "dynamic_entry_action_quality_bps_candidate": torch.tensor([[2., 1., 0.]]).expand(rows, -1),
+            }
+
+    class ForbiddenTarget(nn.Module):
+        def forward(self, *args, **kwargs):
+            raise AssertionError("dynamic Entry gate diagnostics must not query TARGET/Exit")
+
+    dataset = object.__new__(trainer.EntryV10CtxDataset)
+    dataset._unified_exit_lifecycle_v2 = None
+    dataset._entry_observed_market_binding = {"identity": {"training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE}}
+    batch = {
+        "seq_x": torch.tensor([[1.], [2.]]), "snap_x": torch.zeros(2, 1),
+        "ctx_cont": torch.zeros(2, 1), "ctx_cat": torch.zeros(2, 1, dtype=torch.long),
+        "entry_row_index": torch.tensor([0, 1]),
+    }
+
+    class Loader:
+        def __init__(self):
+            self.dataset = dataset
+        def __len__(self):
+            return 1
+        def __iter__(self):
+            yield batch
+
+    def materialize(value, source):
+        assert source is dataset
+        calls["materialize"] += 1
+        return value
+
+    monkeypatch.setattr(trainer, "_materialize_dynamic_m5_batch_targets", materialize)
+    monkeypatch.setattr(trainer, "_multi_tf_kwargs_from_batch", lambda *args: {})
+    monkeypatch.setattr(trainer, "_model_forward_fp32", lambda model, *args, **kwargs: model(*args, **kwargs))
+    monkeypatch.setattr(trainer, "_dynamic_m5_task_loss_surfaces", lambda out, batch, device: (
+        {name: out["synthetic_loss"] for name in tasks},
+        {name: int(batch["seq_x"].shape[0]) for name in tasks},
+    ))
+    model = Model()
+    return SimpleNamespace(trainer=trainer, model=model, target=ForbiddenTarget(),
+                           loader=Loader(), widths=widths, shape=shape, calls=calls,
+                           exit_initial={name: value.detach().clone() for name, value in model.exit_path_proj.state_dict().items()})
+
+
+def _assert_dynamic_gate_stats(stats, case):
+    for name, width in case.widths.items():
+        assert len(stats[name + "_mean_weight"]) == width
+        assert stats[name + "_rows"] == 2
+    assert len(stats["family_tf_feature_gate_mean_weight"]) == case.shape[0] * case.shape[1]
+    assert stats["family_tf_feature_gate_rows"] == 2
+    assert case.calls == {"forward": 1, "materialize": 1}
+
+
+@pytest.mark.parametrize("compact", [False, True])
+def test_dynamic_curve_validator_uses_bound_execution_gate_shapes(monkeypatch, compact):
+    import math
+    import torch
+    case = _dynamic_gate_execution_case(monkeypatch, compact=compact)
+    result = case.trainer._validate_dynamic_m5_curves(case.model.eval(), case.loader, torch.device("cpu"))
+    assert math.isfinite(result[0])
+    _assert_dynamic_gate_stats(result[-1], case)
+    assert result[-1]["exit_model_forward_count"] == 0
+
+
+@pytest.mark.parametrize("compact", [False, True])
+def test_dynamic_train_epoch_uses_bound_execution_gate_shapes(monkeypatch, compact):
+    import math
+    import torch
+    case = _dynamic_gate_execution_case(monkeypatch, compact=compact)
+    optimizer = torch.optim.SGD(case.model.parameters(), lr=0.001)
+    loss, stats, complete = case.trainer.train_epoch(
+        case.model, case.target, case.loader, optimizer, torch.device("cpu"), 1, {}, {},
+    )
+    assert complete and math.isfinite(loss)
+    _assert_dynamic_gate_stats(stats, case)
+    assert stats["exit_training_active"] is False
+    assert all(not parameter.requires_grad and parameter.grad is None
+               for parameter in case.model.exit_path_proj.parameters())
+    assert all(torch.equal(value, case.exit_initial[name])
+               for name, value in case.model.exit_path_proj.state_dict().items())
+
+
+def test_dynamic_gate_execution_none_keeps_original_defaults():
+    from types import SimpleNamespace
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    assert trainer._dynamic_m5_gate_execution_kwargs(SimpleNamespace()) == ({}, {})
+    assert trainer._dynamic_m5_gate_execution_kwargs(SimpleNamespace(entry_execution_profile=None)) == ({}, {})
+
+
+def test_dynamic_gate_execution_rejects_forged_profile_before_diagnostics():
+    from types import SimpleNamespace
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    with pytest.raises(RuntimeError, match="COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE"):
+        trainer._dynamic_m5_gate_execution_kwargs(SimpleNamespace(
+            entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            entry_execution_profile={"name": "unregistered", "contract_sha256": "0" * 64},
+        ))

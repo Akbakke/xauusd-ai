@@ -37,6 +37,9 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     SPECIALIST_CONTRACT_MODES,
     SPECIALIST_GROUPS,
     classify_entry_specialist_feature,
+    COMPACT_ENTRY_EXECUTION_PROFILE_NAME,
+    compile_compact_entry_execution_profile,
+    require_compact_entry_execution_profile_reference,
     model_native_context_temporal_alias_policy,
     require_model_native_specialist_contract_mode,
     required_training_specialists_for_mode,
@@ -338,6 +341,14 @@ def _write_smart_seq513_fixture(
     family_counts: dict[str, int] | None = None,
 ) -> tuple[Path, Path]:
     fields, selected = _smart_seq513_fields()
+    from gx1.features.gc_native_context_v1 import REGISTRY, field_role
+    from gx1.features.micro_structure_v1 import range_observation_binary_fields
+    gc_pairs = tuple(("ctx_cont." + row["name"], "ctx_cont." + row["availability_field"])
+                     for row in REGISTRY["fields"])
+    observation_set = {mask for _, mask in gc_pairs}
+    observation_set.update(name for name in fields if field_role(name) == "gc_observation_mask")
+    observation_set.update(range_observation_binary_fields(fields))
+    observation_fields = tuple(name for name in fields if name in observation_set)
     signal_contract = model_native_signal_contract_metadata(selected)
     dataset_dir = tmp_path / "smart_dataset"
     dataset_dir.mkdir()
@@ -373,7 +384,10 @@ def _write_smart_seq513_fixture(
         # all-positive column declares every `_slope`/`_delta`/`_spread`/`_z`
         # field one-sided, which the liveness semantics gate rejects exactly as
         # it would on real bytes.
-        _rows = 8
+        # Include source-declared structural GC values as well as availability.
+        # Deterministic 64-bit vectors retain binary domains and distinct masked
+        # patterns. These are routing fixtures, not observed-market evidence.
+        _rows = 64
         _snap = np.stack(
             [
                 np.linspace(0.1, 1.0, len(fields), dtype=np.float32)
@@ -394,6 +408,14 @@ def _write_smart_seq513_fixture(
                 _snap[:, _index] = _row_ramp[:, 0] * np.float32(
                     1.0 - _index * 1e-5
                 )
+        field_index = {name: index for index, name in enumerate(fields)}
+        for name in observation_fields:
+            digest = hashlib.sha256(name.encode()).digest()
+            _snap[:, field_index[name]] = np.unpackbits(
+                np.frombuffer(digest, dtype=np.uint8)
+            )[:_rows].astype(np.float32)
+        for value, mask in gc_pairs:
+            _snap[_snap[:, field_index[mask]] == 0.0, field_index[value]] = 0.0
         snap = _snap.tolist()
         pd.DataFrame({"snap": snap}).to_parquet(parquet_path, index=False)
         (dataset_dir / f"sample_{split}.manifest.json").write_text(
@@ -460,21 +482,46 @@ def test_specialist_feature_group_audit_passes_model_native_seq513_contract_prep
     for split in ("train", "val"):
         (dataset_dir / f"unbound_decoy_{split}.parquet").write_bytes(b"decoy")
 
-    report = run(
-        _audit_args(
-            tmp_path,
-            dataset_dir,
-            seq_manifest,
-            contract_mode=MODEL_NATIVE_CONTRACT_MODE,
-        )
+    args = _audit_args(
+        tmp_path, dataset_dir, seq_manifest, contract_mode=MODEL_NATIVE_CONTRACT_MODE,
     )
+    with pytest.raises(SystemExit) as raised:
+        run(args)
+    assert raised.value.code == 2
+    published_reports = list(Path(args.out_dir).glob("ENTRY_SPECIALIST_FEATURE_GROUP_AUDIT_*.json"))
+    assert len(published_reports) == 1
+    report = json.loads(published_reports[0].read_text())
 
-    assert report["decision"] == "PASS"
+    # Contract/routing preparation remains valid. This legacy whole-feature
+    # liveness audit deliberately accepts only dense LIVE/ALLOWED_RARE_EVENT;
+    # conditional GC and structural masks cannot honestly become dense signals
+    # through a synthetic ramp. Actual physical 053 evidence is separate.
+    from gx1.features.gc_native_context_v1 import REGISTRY, field_role
+    from gx1.features.micro_structure_v1 import range_observation_binary_fields
+    gc_values = {"ctx_cont." + row["name"] for row in REGISTRY["fields"]}
+    structural = {"ctx_cont." + row["availability_field"] for row in REGISTRY["fields"]}
+    structural.update(name for name in gc_values if field_role(name) == "gc_observation_mask")
+    structural.update(range_observation_binary_fields(_smart_seq513_fields()[0]))
+    expected_conditional = gc_values | structural
+    assert report["decision"] == "FAIL"
+    assert len(expected_conditional) == 2411
+    assert len(structural) == 1281 and len(gc_values - structural) == 1130
+    assert set(report["train_dead_signal_features"]) == expected_conditional
+    assert report["every_train_signal_feature_live"] is False
+    train_rows = {row["feature"]: row for row in report["signal_feature_liveness"]
+                  if row["split"] == "train"}
+    assert all(train_rows[name]["status"] == "STRUCTURAL_OBSERVATION_MASK" for name in structural)
+    assert all(train_rows[name]["status"] == "OBSERVED_MASKED_SOURCE" for name in gc_values - structural)
+    assert all(row["finite"] for row in train_rows.values())
+    assert len(report["failures"]) == 1
+    assert report["failures"][0].startswith("train: every owner-declared signal field must satisfy canonical finite/variable/activity support;")
+    assert report["failures"][0].endswith("total=2411")
+    assert report["no_train_exact_duplicate_signal_values"] is True
     assert report["contract_mode"] == MODEL_NATIVE_CONTRACT_MODE
     assert report["signal_field_count"] == MODEL_NATIVE_EXPECTED_SIGNAL_DIM
     assert report["selected_feature_count"] == MODEL_NATIVE_EXPECTED_SELECTED_FEATURE_COUNT
     assert report["required_training_specialists"] == list(MODEL_NATIVE_TRAINING_SPECIALISTS)
-    assert report["specialist_model_contract"] == MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT
+    assert report["specialist_model_contract"] == json.loads(json.dumps(MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT))
     published = json.loads(Path(report["json_path"]).read_text())
     assert published["specialist_model_contract"] == json.loads(
         json.dumps(MODEL_NATIVE_SPECIALIST_MODEL_CONTRACT)
@@ -1138,3 +1185,104 @@ def test_family_timeframe_lane_has_no_unclassifiable_or_contradicted_field() -> 
         not in MODEL_NATIVE_TRAINING_SPECIALISTS
     ]
     assert not unmapped, unmapped
+
+
+# Digests were measured from the prequalified 060 proposal (3721f91e...),
+# independently of this compiler. The external artifact is not a test/runtime
+# dependency and neither formulas nor normalization are selected again here.
+def test_compact_profile_matches_prequalified_ordered_field_sets() -> None:
+    compiled = compile_compact_entry_execution_profile()
+    assert compiled["name"] == COMPACT_ENTRY_EXECUTION_PROFILE_NAME
+    assert compiled["contract_sha256"] == "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125"
+    expected = {
+        "signal": (2622, "0acd1c2c9c73f8ef1e4acaa06a01f8fabd74ae4df57ba33baff3ee7a1d580549"),
+        "ctx_cont": (2525, "6e565dd7fc69977cfb26926e93e8844875989df4b718becd3302f6d9d0575d7a"),
+        "mtf": (139, "06702ede1ada77f56fdd6c97281a724b2ec6f43cdccd51e74238b415a08ca3e6"),
+    }
+    for surface, (width, digest) in expected.items():
+        names = compiled["active_field_names"][surface]
+        assert len(names) == len(set(names)) == width
+        payload = json.dumps(names, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        assert hashlib.sha256(payload.encode()).hexdigest() == digest
+        indices = compiled[{"signal": "signal_indices", "ctx_cont": "ctx_cont_indices", "mtf": "mtf_indices"}[surface]]
+        physical = compiled["physical_field_names"][surface]
+        assert tuple(physical[i] for i in indices) == names
+        assert tuple(sorted(indices)) == indices
+    assert tuple(map(len, compiled["physical_field_names"].values())) == (2725, 2542, 1, 253)
+    payload = {k: v for k, v in compiled.items() if k != "contract_sha256"}
+    assert compiled["contract_sha256"] == hashlib.sha256(json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+    ).encode()).hexdigest()
+
+
+def test_compact_profile_preserves_gc_macro_and_actual_owner_routes() -> None:
+    from gx1.features.gc_native_context_v1 import REGISTRY
+    from gx1.features.d1_macro_context_v1 import D1_MACRO_CONTEXT_FIELDS
+
+    compiled = compile_compact_entry_execution_profile()
+    fields = compiled["physical_field_names"]
+    selected = compiled["active_field_names"]
+    gc = tuple(n for row in REGISTRY["fields"]
+               for n in (row["name"], row["availability_field"]))
+    gc_set = set(gc)
+    assert len(REGISTRY["fields"]) == 1205
+    assert tuple(n for n in selected["ctx_cont"] if n in gc_set) == gc
+    assert tuple(n for n in selected["signal"] if n.removeprefix("ctx_cont.") in gc_set) == tuple("ctx_cont." + n for n in gc)
+    assert compiled["macro_context_fields"] == tuple(D1_MACRO_CONTEXT_FIELDS)
+    assert len(D1_MACRO_CONTEXT_FIELDS) == 61
+    assert set(D1_MACRO_CONTEXT_FIELDS).issubset(selected["ctx_cont"])
+    assert {"ctx_cont." + n for n in D1_MACRO_CONTEXT_FIELDS}.issubset(selected["signal"])
+    assert compiled["local_specialists"] == tuple(f for f in MODEL_NATIVE_TRAINING_SPECIALISTS if f != "chart_geometry_encoder")
+    assert compiled["mtf_specialists"] == (
+        "structure_swing_encoder", "smc_liquidity_encoder", "trend_ema_encoder",
+        "vol_compression_encoder", "session_regime_encoder",
+    )
+    for route_key, surface, selected_key in (
+        ("local_signal_indices_by_specialist", "signal", "signal_indices"),
+        ("ctx_cont_indices_by_specialist", "ctx_cont", "ctx_cont_indices"),
+        ("mtf_indices_by_specialist", "mtf", "mtf_indices"),
+    ):
+        routes = compiled[route_key]
+        indices = [i for values in routes.values() for i in values]
+        assert len(indices) == len(set(indices))
+        assert sorted(indices) == list(compiled[selected_key])
+        for owner, positions in routes.items():
+            assert positions
+            assert all(classify_entry_specialist_feature(fields[surface][i]) == owner for i in positions)
+    for family, expected in (("price_action_candle_encoder", 74), ("vol_compression_encoder", 102)):
+        names = [fields["signal"][i] for i in compiled["local_signal_indices_by_specialist"][family]]
+        assert sum(n.removeprefix("ctx_cont.") in gc_set for n in names) == expected
+    assert len(compiled["generic_snap_signal_indices"]) == 97
+    assert all(not fields["signal"][i].startswith("ctx_cont.") for i in compiled["generic_snap_signal_indices"])
+
+
+@pytest.mark.parametrize("mutation", [
+    "missing_name", "extra", "wrong_name", "wrong_sha", "non_string_sha",
+])
+def test_compact_profile_reference_rejects_unregistered_or_tampered_selection(mutation: str) -> None:
+    compiled = compile_compact_entry_execution_profile()
+    ref = {"name": compiled["name"], "contract_sha256": compiled["contract_sha256"]}
+    if mutation == "missing_name":
+        del ref["name"]
+    elif mutation == "extra":
+        ref["signal_indices"] = []
+    elif mutation == "wrong_name":
+        ref["name"] += "_alternative"
+    elif mutation == "wrong_sha":
+        ref["contract_sha256"] = "0" * 64
+    else:
+        ref["contract_sha256"] = True
+    with pytest.raises(RuntimeError, match="COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE"):
+        require_compact_entry_execution_profile_reference(ref)
+
+
+def test_compact_profile_default_and_fresh_reference_are_immutable_by_caller() -> None:
+    assert require_compact_entry_execution_profile_reference(None) is None
+    compiled = compile_compact_entry_execution_profile()
+    ref = {"name": compiled["name"], "contract_sha256": compiled["contract_sha256"]}
+    validated = require_compact_entry_execution_profile_reference(ref)
+    assert validated == ref and validated is not ref
+    original = compiled["contract_sha256"]
+    compiled["physical_field_names"]["signal"] = ()
+    assert compile_compact_entry_execution_profile()["contract_sha256"] == original
+    assert require_compact_entry_execution_profile_reference(ref) == ref

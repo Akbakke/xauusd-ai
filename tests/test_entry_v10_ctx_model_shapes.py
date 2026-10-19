@@ -2285,3 +2285,254 @@ def test_dynamic_m5_constructor_rejects_joint_normalization_population():
         _make_dynamic_m5_model(input_normalization=INPUT_NORMALIZATION)
     with pytest.raises(RuntimeError, match="NORMALIZATION_PHASE_POPULATION_MISMATCH"):
         _make_model(input_normalization=DYNAMIC_INPUT_NORMALIZATION)
+
+
+@pytest.fixture(scope="module")
+def _compact_entry_model_case():
+    """Full source-owned widths; tiny synthetic histories prove routing only."""
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        compile_compact_entry_execution_profile, group_features_by_specialist,
+        model_native_context_temporal_alias_policy, require_multi_tf_specialist_routing_v4,
+    )
+    profile = compile_compact_entry_execution_profile()
+    physical = profile["physical_field_names"]
+    signal_names, mtf_names = list(physical["signal"]), list(physical["mtf"])
+    grouped = group_features_by_specialist(signal_names)
+    aliases = model_native_context_temporal_alias_policy(signal_names)["aliases"]
+    normalization = input_normalization_fixture(
+        signal_names=signal_names, mtf_names=mtf_names,
+        entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+    )
+    reference = {key: profile[key] for key in ("name", "contract_sha256")}
+    torch.manual_seed(7061)
+    model = _make_dynamic_m5_model(
+        seq_input_dim=len(signal_names), snap_input_dim=len(signal_names),
+        specialist_input_indices={
+            family: [index for index, name in enumerate(signal_names) if name in set(grouped[family])]
+            for family in EXACT_SPECIALIST_NAMES
+        },
+        **{tf.lower() + "_seq_dim": len(mtf_names) for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES},
+        multi_tf_specialist_input_indices={
+            family: list(indices) for family, indices in require_multi_tf_specialist_routing_v4(mtf_names).items()
+        },
+        temporal_alias_signal_indices=[int(alias["signal_index"]) for alias in aliases],
+        temporal_alias_ctx_cont_indices=[int(alias["ctx_cont_index"]) for alias in aliases],
+        input_normalization=normalization, entry_execution_profile=reference, dropout=0.,
+    ).eval()
+
+    def valid_values(shape, surface):
+        field_names = normalization["surfaces"][surface]["field_names"]
+        raw = torch.randn(*shape) * 0.1
+        contract = normalization["surfaces"][surface]
+        for index, binary in enumerate(contract["binary_mask"]):
+            if binary:
+                raw[..., index] = 0.
+        for name, domain in contract["categorical_domains"].items():
+            raw[..., field_names.index(name)] = min(domain)
+        if "ema_stack_aligned_v2" in field_names:
+            raw[..., field_names.index("ema_stack_aligned_v2")] = 0.
+        return _valid_range_observation_input(raw, field_names)
+
+    seq = valid_values((1, SEQ_LEN, len(signal_names)), "signal")
+    cont = valid_values((1, MODEL_NATIVE_CTX_CONT_DIM), "ctx_cont")
+    from gx1.features.gc_native_context_v1 import masking_pairs
+    for _, mask in masking_pairs(physical["ctx_cont"]):
+        cont[:, mask] = 1.
+    for alias in aliases:
+        seq[..., int(alias["signal_index"])] = cont[:, int(alias["ctx_cont_index"])].unsqueeze(1)
+    cat = torch.zeros(1, MODEL_NATIVE_CTX_CAT_DIM, dtype=torch.long)
+    tf_inputs = {
+        "seq_" + tf.lower(): valid_values((1, SEQ_LEN, len(mtf_names)), "mtf_" + tf.lower())
+        for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES
+    }
+    return profile, model, (seq, seq[:, -1, :].clone(), cat, cont, tf_inputs)
+
+
+def _compact_case_forward(model, inputs):
+    seq, snap, cat, cont, timeframes = inputs
+    return model(seq, snap, ctx_cat=cat, ctx_cont=cont, **timeframes)
+
+
+def test_compact_entry_builds_and_executes_only_source_owned_local7_mtf5(_compact_entry_model_case, monkeypatch):
+    profile, original, inputs = _compact_entry_model_case
+    model = deepcopy(original).eval()
+    assert tuple(model.specialist_encoder) == tuple(profile["local_specialists"])
+    assert tuple(model.specialist_proj) == tuple(profile["local_specialists"])
+    assert tuple(model.mtf_family_encoder) == tuple(profile["mtf_specialists"])
+    assert tuple(model.mtf_family_proj) == tuple(profile["mtf_specialists"])
+    assert model.seq_proj.in_features == len(profile["signal_indices"])
+    assert model.snap_proj.in_features == len(profile["generic_snap_signal_indices"])
+    assert tuple(model.generic_snap_idx.tolist()) == tuple(profile["generic_snap_signal_indices"])
+    assert model._input_normalization_field_names["signal"] == list(profile["physical_field_names"]["signal"])
+    calls = Counter()
+    local = {id(module): name for name, module in model.specialist_encoder.items()}
+    mtf = {id(module): name for name, module in model.mtf_family_encoder.items()}
+    encode = model_module._memory_bounded_transformer_encoder
+
+    def observed(encoder, values, **kwargs):
+        if id(encoder) in local:
+            calls[("local", local[id(encoder)])] += 1
+        if id(encoder) in mtf:
+            calls[("mtf", mtf[id(encoder)])] += 1
+        return encode(encoder, values, **kwargs)
+
+    monkeypatch.setattr(model_module, "_memory_bounded_transformer_encoder", observed)
+    with torch.no_grad():
+        output = _compact_case_forward(model, inputs)
+    assert {family: calls[("local", family)] for family in profile["local_specialists"]} == {
+        family: 1 for family in profile["local_specialists"]
+    }
+    assert {family: calls[("mtf", family)] for family in profile["mtf_specialists"]} == {
+        family: len(ENTRY_MTF_CONTEXT_TIMEFRAMES) for family in profile["mtf_specialists"]
+    }
+    assert sum(calls.values()) == len(profile["local_specialists"]) + len(profile["mtf_specialists"]) * len(ENTRY_MTF_CONTEXT_TIMEFRAMES)
+    assert output["specialist_gate"].shape == (1, len(profile["local_specialists"]))
+    assert output["family_tf_cooperation_gate"].shape == (1, len(ENTRY_MTF_CONTEXT_TIMEFRAMES) * len(profile["mtf_specialists"]))
+    assert output["family_tf_feature_gate"].shape == (1, len(ENTRY_MTF_CONTEXT_TIMEFRAMES), len(profile["mtf_indices"]))
+    assert bool((output["family_tf_feature_gate"] > 0.).all())
+    assert output["dynamic_terminal_net_markout_bps"].shape == (1, len(model.dynamic_m5_query_horizons), 3)
+    assert "entry_action_q_bps" not in output and "dip_pred" not in output
+
+
+def test_compact_entry_parked_inputs_have_no_prediction_or_gate_influence(_compact_entry_model_case):
+    profile, model, inputs = _compact_entry_model_case
+    changed = deepcopy(inputs)
+    names = profile["physical_field_names"]
+    for field in ("candle.raw_body_signed_range", "chart.geomline_above_dist_atr"):
+        index = list(names["signal"]).index(field)
+        changed[0][..., index] += 0.25
+        changed[1][:, index] = changed[0][:, -1, index]
+    ctx_field = "d1_close_pct_in_20day_range_canon_v2"
+    ci, si = list(names["ctx_cont"]).index(ctx_field), list(names["signal"]).index("ctx_cont." + ctx_field)
+    changed[3][:, ci] += 0.25
+    changed[0][..., si] = changed[3][:, ci].unsqueeze(1)
+    changed[1][:, si] = changed[3][:, ci]
+    for raw in changed[4].values():
+        raw[..., list(names["mtf"]).index("mtf_candle_raw_body_signed_range")] += 0.25
+        raw[..., list(names["mtf"]).index("mtf_geometry_support_dist_atr")] += 0.25
+    with torch.no_grad():
+        before, after = _compact_case_forward(model, inputs), _compact_case_forward(model, changed)
+    assert before.keys() == after.keys()
+    assert all(torch.equal(before[key], after[key]) for key in before)
+
+
+@pytest.mark.parametrize("fault", ["parked_nan", "parked_alias", "parked_binary", "parked_mtf_binary"])
+def test_compact_entry_full_input_guards_run_before_pruning(_compact_entry_model_case, fault):
+    profile, model, original = _compact_entry_model_case
+    inputs = deepcopy(original)
+    names = profile["physical_field_names"]
+    if fault == "parked_nan":
+        index = list(names["signal"]).index("candle.raw_body_signed_range")
+        inputs[0][0, 0, index] = float("nan")
+        error = "NONFINITE"
+    elif fault == "parked_alias":
+        index = list(names["ctx_cont"]).index("d1_close_pct_in_20day_range_canon_v2")
+        inputs[3][:, index] += 1.
+        error = "SNAP_CTX_CONT_ALIAS_NOT_BIT_IDENTICAL"
+    elif fault == "parked_binary":
+        ci = list(names["ctx_cont"]).index("close_range_observed")
+        si = list(names["signal"]).index("ctx_cont.close_range_observed")
+        inputs[3][:, ci] = 2.
+        inputs[0][..., si] = 2.
+        inputs[1][:, si] = 2.
+        error = "BINARY_VALUE_INVALID"
+    else:
+        index = list(names["mtf"]).index("close_range_observed")
+        inputs[4]["seq_d1"][..., index] = 2.
+        error = "BINARY_VALUE_INVALID"
+    with torch.no_grad(), pytest.raises(RuntimeError, match=error):
+        _compact_case_forward(model, inputs)
+
+
+def test_compact_entry_all_active_local_and_mtf_encoders_receive_component_gradients(_compact_entry_model_case):
+    from gx1.contracts.entry_observed_market_v1 import is_exit_owned_parameter
+    profile, original, inputs = _compact_entry_model_case
+    model = deepcopy(original).train()
+    with torch.no_grad():
+        model.specialist_out.weight.copy_(torch.eye(model.cfg.d_model))
+    seq, snap, cat, cont, timeframes = inputs
+    leaves = (seq.detach().clone().requires_grad_(True),
+              snap.detach().clone().requires_grad_(True), cat.clone(),
+              cont.detach().clone().requires_grad_(True),
+              {key: value.detach().clone().requires_grad_(True) for key, value in timeframes.items()})
+    output = _compact_case_forward(model, leaves)
+    loss = sum(output[key].square().mean() for key in (
+        "dynamic_terminal_net_markout_bps", "dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps",
+        "dynamic_closed_mfe_bps", "dynamic_closed_pre_mfe_mae_upper_bps", "forecast_pred",
+    ))
+    loss.backward()
+    for modules in (model.specialist_proj, model.specialist_encoder,
+                    model.specialist_ctx_cont_proj, model.mtf_family_proj, model.mtf_family_encoder):
+        for name, module in modules.items():
+            gradients = [parameter.grad for parameter in module.parameters()]
+            assert all(gradient is not None and bool(torch.isfinite(gradient).all()) for gradient in gradients), name
+            assert any(bool((gradient != 0.).any()) for gradient in gradients), name
+    assert all(parameter.grad is None for name, parameter in model.named_parameters() if is_exit_owned_parameter(name))
+    signal_names = profile["physical_field_names"]["signal"]
+    routed = {signal_names[index] for family in model.specialist_proj
+              for index in getattr(model, "specialist_idx_" + family).tolist()}
+    assert {"ctx_cont." + name for name in profile["gc_context_fields"]}.issubset(routed)
+    for raw, active in ((leaves[0], profile["signal_indices"]),
+                        (leaves[1], profile["signal_indices"]),
+                        (leaves[3], profile["ctx_cont_indices"])):
+        parked = [index for index in range(raw.shape[-1]) if index not in set(active)]
+        assert raw.grad is not None
+        assert torch.equal(raw.grad[..., parked], torch.zeros_like(raw.grad[..., parked]))
+    for raw in leaves[4].values():
+        parked = [index for index in range(raw.shape[-1]) if index not in set(profile["mtf_indices"])]
+        assert raw.grad is not None
+        assert torch.equal(raw.grad[..., parked], torch.zeros_like(raw.grad[..., parked]))
+
+
+def test_compact_entry_default_none_preserves_full_model_state_rng_and_outputs():
+    torch.manual_seed(7062)
+    implicit = _make_dynamic_m5_model(dropout=0.).eval()
+    expected_rng = torch.get_rng_state().clone()
+    torch.manual_seed(7062)
+    explicit = _make_dynamic_m5_model(dropout=0., entry_execution_profile=None).eval()
+    assert torch.equal(torch.get_rng_state(), expected_rng)
+    assert implicit.state_dict().keys() == explicit.state_dict().keys()
+    assert all(torch.equal(value, explicit.state_dict()[name]) for name, value in implicit.state_dict().items())
+    assert implicit._specialist_names == implicit._mtf_specialist_names == EXACT_SPECIALIST_NAMES
+    inputs = _make_inputs(batch_size=1)
+    with torch.no_grad():
+        left, right = _compact_case_forward(implicit, inputs), _compact_case_forward(explicit, inputs)
+    assert all(torch.equal(left[key], right[key]) for key in left)
+
+
+def test_compact_entry_profile_identity_is_persistent_and_cannot_mutate(_compact_entry_model_case):
+    profile, original, inputs = _compact_entry_model_case
+    model = deepcopy(original)
+    model.require_input_normalization_state()
+    assert model.entry_execution_profile == model.cfg.entry_execution_profile == {
+        key: profile[key] for key in ("name", "contract_sha256")
+    }
+    assert "entry_execution_profile_contract_sha256" in model.state_dict()
+    with torch.no_grad():
+        model.entry_execution_profile_contract_sha256[0] ^= 1
+    with pytest.raises(RuntimeError, match="EXECUTION_PROFILE_STATE_BINDING_INVALID"):
+        model.require_input_normalization_state()
+    model = deepcopy(original)
+    model.entry_execution_profile = {**model.entry_execution_profile, "contract_sha256": "0" * 64}
+    with pytest.raises(RuntimeError, match="EXECUTION_PROFILE_BINDING_INVALID"):
+        _compact_case_forward(model, inputs)
+
+
+def test_compact_entry_profile_rejects_legacy_phase_and_wrong_physical_contract(_compact_entry_model_case):
+    profile, _, _ = _compact_entry_model_case
+    reference = {key: profile[key] for key in ("name", "contract_sha256")}
+    with pytest.raises(RuntimeError, match="COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE"):
+        _make_model(entry_execution_profile=reference)
+    with pytest.raises(RuntimeError, match="COMPACT_ENTRY_EXECUTION_PROFILE_PHYSICAL_FIELDS_INVALID"):
+        _make_dynamic_m5_model(entry_execution_profile=reference)
+
+
+def test_compact_entry_rejects_exit_without_evaluating_any_exit_module(_compact_entry_model_case):
+    _, model, _ = _compact_entry_model_case
+    with pytest.raises(RuntimeError, match="COMPACT_ENTRY_EXECUTION_PROFILE_EXIT_NOT_SUPPORTED"):
+        model.forward_exit_random_access_batch(
+            entry_decision_representation=None, m1_local_history_x=None, state_ctx_cat=None,
+            state_ctx_cont=None, trade_path_tail_x=None, trade_path_lengths=None,
+            normalized_lifetime_summary_x=None, exit_mtf_histories=None,
+            exit_mtf_gathers=None, exit_mtf_history_lengths=None,
+        )

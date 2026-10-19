@@ -24,6 +24,9 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     RETIRED_MODEL_NATIVE_SIGNAL_FIELDS,
     MODEL_NATIVE_SELECTED_FEATURE_COUNT,
     MODEL_NATIVE_SIGNAL_DIM,
+    MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+    ordered_model_native_signal_fields,
 )
 from gx1.features.entry_model_native_feature_layers_v1 import (
     CANDLE_PRIMITIVE_MANDATORY_FEATURE_NAMES,
@@ -1452,3 +1455,171 @@ for _family, _features in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES:
             f"family={_family} observed={_observed_specialist_counts} "
             f"expected={_expected_specialist_counts}"
         )
+
+
+# One pre-scoped Entry execution view. Physical features and their frozen TRAIN
+# normalization remain complete; these gathers run only after full validation.
+COMPACT_ENTRY_EXECUTION_PROFILE_NAME = (
+    "compact_mbp_smc_ema_atr_clock_macro_entry_v1"
+)
+_COMPACT_ENTRY_PROFILE_PROPOSAL_SHA256 = (
+    "3721f91ef255bad08b450f15c862f12f90cf6734c269471479b782af9e1590b4"
+)
+_COMPACT_LOCAL_TREND_PARKED = frozenset((
+    "_v1_kama30_change_5_atr",
+    "_v1_tema20_change_3_atr",
+    "chart.local_kama_efficiency_30",
+))
+_COMPACT_LOCAL_ATR_FIELDS = frozenset((
+    "atr_z", "ctx_cont.atr_bps", "ctx_cont._v1h1_atr_bps",
+    "ctx_cont._v1h4_atr_bps", "ctx_cont.d1_atr14_bps_canon_v2",
+))
+_COMPACT_MTF_TREND_PARKED = frozenset((
+    "adx14", "di_spread_signed", "_v1_tema20_change_3_atr",
+    "_v1_kama30_change_5_atr", "chart.local_kama_efficiency_30",
+    "macd_line_atr_change_3", "macd_line_atr_change_5",
+))
+_COMPACT_MTF_CLOCK_FIELDS = frozenset((
+    "spread_bps", "spread_bps_delta_1", "spread_extremes_sum_bps",
+    "quote_range_asymmetry_bps", "session_change_flag",
+))
+
+
+def compile_compact_entry_execution_profile() -> dict[str, object]:
+    """Compile the single approved view from source-owned ordered surfaces.
+
+    Every index addresses the FULL physical tensor, never an already gathered
+    view. No artifact, model, data or normalization fit is read here. The
+    proposal digest is provenance for this fixed selection, not a runtime path.
+    """
+    signal = ordered_model_native_signal_fields((
+        *MODEL_NATIVE_MANDATORY_SELECTED_FIELDS,
+        *MODEL_NATIVE_AVAILABLE_CANDIDATE_FIELDS,
+    ))
+    ctx_cont = tuple(MODEL_NATIVE_CTX_CONT_FIELDS)
+    ctx_cat = tuple(MODEL_NATIVE_CTX_CAT_FIELDS)
+    mtf = tuple(MULTI_TF_PER_BAR_FEATURES_V4)
+    full_mtf_routes = require_multi_tf_specialist_routing_v4(mtf)
+    signal_owner = tuple(classify_entry_specialist_feature(n) for n in signal)
+
+    def keep_local(name: str, owner: str) -> bool:
+        if name.removeprefix("ctx_cont.") in _GC_OWNERS:
+            return True
+        if owner in (
+            "structure_swing_encoder", "smc_liquidity_encoder",
+            "session_regime_encoder",
+        ):
+            return True
+        if owner == "trend_ema_encoder":
+            return name not in _COMPACT_LOCAL_TREND_PARKED
+        if owner == "vol_compression_encoder":
+            return name in _COMPACT_LOCAL_ATR_FIELDS
+        return owner == "momentum_flow_encoder" and name == "ret_1"
+
+    signal_indices = tuple(i for i, (name, owner) in enumerate(
+        zip(signal, signal_owner)
+    ) if keep_local(name, owner))
+    selected_signal = tuple(signal[i] for i in signal_indices)
+    selected_signal_set = set(selected_signal)
+    ctx_indices = tuple(i for i, name in enumerate(ctx_cont)
+                        if "ctx_cont." + name in selected_signal_set)
+    selected_ctx = tuple(ctx_cont[i] for i in ctx_indices)
+    ctx_owners = tuple(classify_entry_specialist_feature("ctx_cont." + n)
+                       for n in ctx_cont)
+    local_routes = {
+        family: tuple(i for i in signal_indices if signal_owner[i] == family)
+        for family in MODEL_NATIVE_TRAINING_SPECIALISTS
+    }
+    local_routes = {family: indices for family, indices in local_routes.items()
+                    if indices}
+    ctx_routes = {
+        family: tuple(i for i in ctx_indices if ctx_owners[i] == family)
+        for family in local_routes
+    }
+    selected_mtf_routes = {}
+    for family, indices in full_mtf_routes.items():
+        if family in ("structure_swing_encoder", "smc_liquidity_encoder"):
+            chosen = indices
+        elif family == "trend_ema_encoder":
+            chosen = tuple(i for i in indices
+                           if mtf[i] not in _COMPACT_MTF_TREND_PARKED)
+        elif family == "vol_compression_encoder":
+            chosen = tuple(i for i in indices if mtf[i] in ("atr_bps_14", "atr_z"))
+        elif family == "session_regime_encoder":
+            chosen = tuple(i for i in indices if mtf[i] in _COMPACT_MTF_CLOCK_FIELDS)
+        else:
+            chosen = ()
+        if chosen:
+            selected_mtf_routes[family] = chosen
+    selected_mtf_set = {i for indices in selected_mtf_routes.values() for i in indices}
+    mtf_indices = tuple(i for i in range(len(mtf)) if i in selected_mtf_set)
+    selected_mtf = tuple(mtf[i] for i in mtf_indices)
+    # Current aliases already have one family context projection. Preserve
+    # their complete temporal sequence while excluding a generic snap copy.
+    alias_indices = set(model_native_context_temporal_alias_policy(signal)["signal_indices"])
+    generic_snap_indices = tuple(i for i in signal_indices if i not in alias_indices)
+    gc_ctx = tuple(n for n in ctx_cont if n in _GC_OWNERS)
+    expected_local = tuple(f for f in MODEL_NATIVE_TRAINING_SPECIALISTS
+                           if f != "chart_geometry_encoder")
+    expected_mtf = (
+        "structure_swing_encoder", "smc_liquidity_encoder", "trend_ema_encoder",
+        "vol_compression_encoder", "session_regime_encoder",
+    )
+    if (
+        (len(signal), len(ctx_cont), len(ctx_cat), len(mtf)) != (2725, 2542, 1, 253)
+        or (len(signal_indices), len(ctx_indices), len(mtf_indices),
+            len(generic_snap_indices)) != (2622, 2525, 139, 97)
+        or tuple(local_routes) != expected_local
+        or tuple(selected_mtf_routes) != expected_mtf
+        or len(gc_ctx) != 2410 or set(gc_ctx) != set(_GC_OWNERS)
+        or not set(gc_ctx).issubset(selected_ctx)
+        or not {"ctx_cont." + n for n in gc_ctx}.issubset(selected_signal_set)
+        or len(_D1_MACRO_CONTEXT_FIELDS) != 61
+        or not set(_D1_MACRO_CONTEXT_FIELDS).issubset(selected_ctx)
+        or not {"ctx_cont." + n for n in _D1_MACRO_CONTEXT_FIELDS}.issubset(selected_signal_set)
+    ):
+        raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_SOURCE_DRIFT")
+    payload = {
+        "schema_version": "gx1_compact_entry_execution_profile_v1",
+        "name": COMPACT_ENTRY_EXECUTION_PROFILE_NAME,
+        "proposal_sha256": _COMPACT_ENTRY_PROFILE_PROPOSAL_SHA256,
+        "gather_stage": (
+            "after_complete_current_055_normalization_and_input_alias_domain_validation_before_projection"
+        ),
+        "physical_field_names": {
+            "signal": signal, "ctx_cont": ctx_cont, "ctx_cat": ctx_cat, "mtf": mtf,
+        },
+        "active_field_names": {
+            "signal": selected_signal, "ctx_cont": selected_ctx,
+            "ctx_cat": ctx_cat, "mtf": selected_mtf,
+        },
+        "signal_indices": signal_indices,
+        "ctx_cont_indices": ctx_indices,
+        "generic_snap_signal_indices": generic_snap_indices,
+        "local_specialists": tuple(local_routes),
+        "mtf_specialists": tuple(selected_mtf_routes),
+        "local_signal_indices_by_specialist": local_routes,
+        "ctx_cont_indices_by_specialist": ctx_routes,
+        "mtf_indices_by_specialist": selected_mtf_routes,
+        "mtf_indices": mtf_indices,
+        "gc_context_fields": gc_ctx,
+        "macro_context_fields": tuple(_D1_MACRO_CONTEXT_FIELDS),
+    }
+    return {**payload, "contract_sha256": _canonical_sha256(payload)}
+
+
+def require_compact_entry_execution_profile_reference(
+    value: object, *, context: str = "ENTRY_EXECUTION_PROFILE",
+) -> dict[str, str] | None:
+    """Accept full default or only the exact source-compiled compact reference."""
+    if value is None:
+        return None
+    if not isinstance(context, str) or not context.strip():
+        raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_CONTEXT_INVALID")
+    if not isinstance(value, Mapping) or set(value) != {"name", "contract_sha256"}:
+        raise RuntimeError(f"{context}_COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE_INVALID")
+    compiled = compile_compact_entry_execution_profile()
+    expected = {"name": compiled["name"], "contract_sha256": compiled["contract_sha256"]}
+    if any(type(value[key]) is not str or value[key] != expected[key] for key in expected):
+        raise RuntimeError(f"{context}_COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE_MISMATCH")
+    return expected

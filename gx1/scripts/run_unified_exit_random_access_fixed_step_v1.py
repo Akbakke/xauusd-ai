@@ -565,6 +565,7 @@ class _ParentSampler(Sampler[int]):
 def _model(
     meta: Mapping[str, Any], normalization: Mapping[str, Any], device: torch.device,
     *, entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE, dynamic_m5_query_minutes=None,
+    entry_execution_profile: Mapping[str, str] | None = None,
 ) -> EntryV10CtxHybridTransformer:
     phase = require_entry_training_phase(entry_training_phase, context="UNIFIED_EXIT_MODEL")
     phase_kwargs = _dynamic_m5_model_kwargs(phase)
@@ -574,6 +575,39 @@ def _model(
                 or any(type(value) is not int for value in dynamic_m5_query_minutes)
                 or tuple(dynamic_m5_query_minutes) != expected):
             raise RuntimeError("UNIFIED_EXIT_MODEL_DYNAMIC_QUERY_BINDING_INVALID")
+    from gx1.features.entry_specialist_feature_groups_v1 import (
+        compile_compact_entry_execution_profile, require_compact_entry_execution_profile_reference,
+    )
+    execution_profile = require_compact_entry_execution_profile_reference(
+        entry_execution_profile, context="UNIFIED_EXIT_MODEL")
+    metadata_profile = require_compact_entry_execution_profile_reference(
+        meta.get("entry_execution_profile"), context="UNIFIED_EXIT_MODEL_METADATA")
+    if execution_profile != metadata_profile:
+        raise RuntimeError("UNIFIED_EXIT_MODEL_EXECUTION_PROFILE_MISMATCH")
+    if execution_profile is not None:
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+        from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SEQ_LEN
+        if phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE or dynamic_m5_query_minutes is None:
+            raise RuntimeError("UNIFIED_EXIT_MODEL_COMPACT_DYNAMIC_PHASE_REQUIRED")
+        physical = compile_compact_entry_execution_profile()["physical_field_names"]
+        dimensions = {"seq_input_dim":len(physical["signal"]), "snap_input_dim":len(physical["signal"]),
+            "ctx_cont_dim":len(physical["ctx_cont"]), "ctx_cat_dim":len(physical["ctx_cat"]), "seq_len":MODEL_NATIVE_SEQ_LEN}
+        surfaces = normalization.get("surfaces", {})
+        if (any(type(meta.get(key)) is not int or meta[key] != width for key, width in dimensions.items())
+                or surfaces.get("signal", {}).get("field_names") != list(physical["signal"])
+                or surfaces.get("ctx_cont", {}).get("field_names") != list(physical["ctx_cont"])
+                or normalization.get("ctx_cat", {}).get("field_names") != list(physical["ctx_cat"])
+                or meta.get("multi_tf", {}).get("feature_names") != list(physical["mtf"])):
+            raise RuntimeError("UNIFIED_EXIT_MODEL_COMPACT_PHYSICAL_FIELDS_INVALID")
+        for tf, window in PRODUCTION_MTF_PER_TF_WINDOW_BARS:
+            lane = tf.lower()
+            if (type(meta["multi_tf"].get(lane + "_seq_dim")) is not int
+                    or meta["multi_tf"][lane + "_seq_dim"] != len(physical["mtf"])
+                    or type(meta["multi_tf"].get(lane + "_seq_len")) is not int
+                    or meta["multi_tf"][lane + "_seq_len"] != window
+                    or surfaces.get("mtf_" + lane, {}).get("field_names") != list(physical["mtf"])):
+                raise RuntimeError("UNIFIED_EXIT_MODEL_COMPACT_PHYSICAL_FIELDS_INVALID")
     mtf = meta["multi_tf"]
     specialist = meta["specialist_fusion"]
     indices = specialist["input_indices"]
@@ -622,6 +656,7 @@ def _model(
         cross_family_fusion_scale=float(specialist["cross_family_fusion_scale"]),
         input_normalization=normalization,
         **phase_kwargs,
+        **({"entry_execution_profile": execution_profile} if execution_profile is not None else {}),
     ).to(device)
 
 
