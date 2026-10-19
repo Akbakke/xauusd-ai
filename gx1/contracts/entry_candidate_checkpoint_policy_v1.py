@@ -16,6 +16,8 @@ SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v6"
 COUPLED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v7"
 MARKED_NET_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_v8"
 M5_SINGLE_EPOCH_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_m5_single_epoch_v1"
+DYNAMIC_M5_FIXED_ONLINE_SCHEMA_VERSION = "gx1_entry_candidate_checkpoint_policy_dynamic_m5_fixed_online_v1"
+DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR = "fixed_final_online_single_epoch_no_validation_selection"
 # A validation epoch whose Entry argmax is one action for every row (all
 # FLAT, all LONG or all SHORT) is a constant policy, never a selectable
 # optimum (docs/LEARNING_GATE.md: constant action choice is not PASS).
@@ -46,7 +48,11 @@ def _m5_single_epoch_checkpoint_scope(prefix_training_binding):
         return None
     if not isinstance(prefix_training_binding, Mapping):
         raise RuntimeError("[ENTRY_CANDIDATE_M5_EPOCH_BINDING_INVALID]")
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    dynamic_prefix = prefix_training_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     if "entry_m5_path_single_epoch" not in prefix_training_binding:
+        if dynamic_prefix:
+            raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_EPOCH_BINDING_REQUIRED]")
         return None
     from pathlib import Path
     from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
@@ -67,9 +73,19 @@ def _m5_single_epoch_checkpoint_scope(prefix_training_binding):
             or prefix_training_binding.get("physical_sources", {}).get("train", {}).get("parquet") != single["train_parquet"]
             or not isinstance(observed, Mapping) or set(observed) != {"train","control"}
             or any(not isinstance(observed[role], Mapping)
-                or observed[role].get("identity", {}).get("training_phase") != single["witness"]["training_phase"]
+                or not isinstance(observed[role].get("identity"), Mapping)
+                or observed[role]["identity"].get("training_phase") != single["witness"]["training_phase"]
                 for role in observed)):
         raise RuntimeError("[ENTRY_CANDIDATE_M5_EPOCH_BINDING_INVALID]")
+    dynamic_witness = single["witness"]["training_phase"] == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if dynamic_prefix or dynamic_witness:
+        if (not dynamic_prefix or not dynamic_witness
+                or prefix_training_binding.get("fixed_final_model_variant") != "ONLINE"
+                or prefix_training_binding.get("physical_sources", {}).get("train", {}).get("manifest") != single["train_manifest"]
+                or any(observed[role]["identity"].get("design") != binding
+                    or observed[role]["identity"].get("target_contract") != single["witness"]["target_contract"]
+                    for role in observed)):
+            raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_EPOCH_BINDING_INVALID]")
     return {**expected, "optimizer_steps":single["optimizer_steps"]}
 
 
@@ -81,9 +97,28 @@ def checkpoint_policy_metadata(
 
     if checkpoint_monitor not in {
         CHECKPOINT_MONITOR, COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR,
+        DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
     }:
         raise RuntimeError("[ENTRY_CANDIDATE_CHECKPOINT_MONITOR_INVALID]")
     single = _m5_single_epoch_checkpoint_scope(prefix_training_binding)
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    dynamic = (isinstance(prefix_training_binding, Mapping)
+               and prefix_training_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    if dynamic:
+        if single is None or checkpoint_monitor != DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
+            raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_FIXED_MONITOR_REQUIRED]")
+        return {
+            "schema_version": DYNAMIC_M5_FIXED_ONLINE_SCHEMA_VERSION,
+            "checkpoint_monitor": DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+            "checkpoint_mode": "fixed_final_online", "max_epochs": 1,
+            "entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            "entry_m5_path_single_epoch": single, "selected_model_variant": "ONLINE",
+            "selection_boundary": "complete_one_whole_physical_train_epoch",
+            "validation_selection": False, "economic_selection": False,
+            "early_stopping": False, "save_top_k": 0, "native_training_admitted": False,
+        }
+    if checkpoint_monitor == DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
+        raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_FIXED_MONITOR_REQUIRES_BOUND_PREFIX]")
     if single is not None and checkpoint_monitor not in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR}:
         raise RuntimeError("[ENTRY_CANDIDATE_M5_EPOCH_MONITOR_INVALID]")
     return {
@@ -173,8 +208,10 @@ def require_checkpoint_policy(
 def checkpoint_metric(
     metrics: Mapping[str, Any], *, checkpoint_monitor: str = CHECKPOINT_MONITOR,
 ) -> float:
-    """Read the selected metric without falling back to a different objective."""
+    """Read a selectable metric; fixed-final ONLINE has no ranking metric."""
 
+    if checkpoint_monitor == DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
+        raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_M5_FIXED_FINAL_NO_METRIC]")
     checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor)
     if checkpoint_monitor == MARKED_NET_CHECKPOINT_MONITOR:
         marked = metrics.get("marked_policy_evaluation", {})
@@ -288,6 +325,8 @@ def retain_top_k(
 
 
 __all__ = [
+    "DYNAMIC_M5_FIXED_ONLINE_SCHEMA_VERSION",
+    "DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR",
     "MARKED_NET_SCHEMA_VERSION",
     "MARKED_NET_CHECKPOINT_MONITOR",
     "native_checkpoint_monitor",

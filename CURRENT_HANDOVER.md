@@ -57,79 +57,67 @@ står ved lag etter alle aktuelle admissionporter, uten ny epoke/VAL-refresh.
   eller rankerrefit.050RESULT/SURFACE_BINDINGS binder eksakte stier/hasher.
   Dette gir ikke gjeldende fysisk splitmetadata eller inputadmission.
 
-## Aktuell status:054feil bevart,055maskeringsrettelse kvalifisert
+## Aktuell status:055normalisering bestått,056kildekoblinger kvalifisert
 
-051fullførte typed fysisk metadata i TRAIN_VAL_051 og begge uttømmende
-seq/snap-kilderekonstruksjoner19.10 kl01:28UTC,1315.079s, exit0/uendret737f5745.
-TRAIN118249/VAL17284, identiske047Parquet-/ECDF-bytes. WholeTRAIN-klokken
-matcher049eksakt; gjeldende051manifest og050flater er bundet.051relanseres ikke.
+051gjeldende fysisk metadata og begge uttømmende seq/snap-rekonstruksjoner
+bestod på TRAIN118249/VAL17284.053full input-liveness bestod alle rader og
+253felt perTF med faktiske buildproof-/registry-/overflatebindinger.
+ATR/OOD SHIFT_OBSERVED beholdes som diagnostikk; ingen VAL-fit.
 
-053COMPLETE19.10 kl02:09:26UTC,640.168s, exit0/uendret412011fc. Eksisterende
-full input-liveness skannet alle TRAIN118249/VAL17284rader,2725signal-,
-2542ctx-cont- og1ctx-cat-felt samt253felt perTF/1265MTF-feltstatuser.
-Streng eksisterende validator og finisher bestod med faktiske buildproof-,
-rekonstruksjons-, registry- og overflatebindinger. ATR/OOD viser SHIFT_OBSERVED;
-diagnostikken beholdes, ingen VAL-fit brukes til å skjule den. Alle053workers
-er borte; planen er konsumert. Dette er inputbevis, ingen lærings-/edgepåstand.
+055COMPLETE19.10 kl02:53:02UTC,357.914s, exit0/uendretfed117b1. Faktisk
+Entry-only wholeTRAIN-normalisering og streng eksisterende kontrakt-/prooffinisher
+bestod. Context fitter118249beslutninger før targetmasker. Lokal96bars-union
+har118800unike kilderader; MTF-fit M5/M15/H1/H4/D1 er118720/39638/9995/2686/683.
+WholeTRAIN-klokken matcher049eksakt. Exit-/VAL-/TEST-fitrader er0.
+NormaliseringskontraktSHA4a454355d43e86db5326ef8b07ff4edee005a9ec4402c69a553b4b4818c7d7b1;
+NORMALIZATION.jsonSHAc02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62.
+Alle055workers er borte. Behold transformasjonen; ingen ny fit eller relaunch.
 
-Normaliseringskilden har en kvalifisert eksplisitt dynamisk Entry-only-gren:
-hele fysisk TRAIN før targetmasker, audited source-backed union av faktisk
-konsumerte96bars M5-vinduer, alle TRAIN-contextbeslutninger og eksisterende
-femMTF-selector med tom Exit-klokke. Joint-default/Exit-krav består.
-22normaliseringstester+5uendrede dynamiske modelltester er kvalifisert.
-Eksisterende CLI/caller og Dataset-eier er videre kvalifisert i47unike caser:
-45uendrede PASS og2berørte spiontester etter fixture-onlyavgrensning; ingen
-produksjonsendring i reparasjonen. Tre source-backed diskarrays erstatter den
-målte brede kopien; seq=None og512raders eksakt snapshotparitet, også siste
-partialblokk.61modellkontrakt- og10guardrailtester bestod ved412commit.
-Signalkontrakten f397dbf5 er målt uendret. Beståtte kildekontroller gjenbrukes.
+054s opprinnelige feilkvittering bevares. Dens aliasstøtte overskrev korrekt
+maskering og behandlet manglende lagringsnuller som markedsmålinger for ekte
+konstant1. Minste rettelse flyttet eksisterende maskebevisst støtteberegning til
+felles fit-/aliaseier, uten svekkede konstant-/binærvakter.51fokuserte caser og
+61modellkontrakt-/10guardrailtester bestod før055; faktiske055bytes beviser nå fit.
 
-054stoppet19.10 kl02:27:43UTC etter336.301s, exit1/uendretf7c038aa.
-Ingen normalisering ble publisert, og alle workers er borte. Faktisk Dataset-
-lasting, source-backed96bars/snap og femMTF nådde fit; kontraktbyggingen avviste
-ctx-feltet gc_m15_observed_executed_trade_size_min_contracts som constant-unit.
-049beviser116782observerte verdier lik1 og1467mangler. Feltet er market_value,
-ikke binærmaske. Den etterfølgende aliasrutinens umaskerte støtteberegning
-overskrev fitens korrekte maskerte støtte og ga asinh(-1) for manglende lagringsnuller.
-Dette er en konkret normaliseringsfeil, ingen handels-/læringsdom.
-054er konsumert og relanseres aldri; original feilkvittering/logg bevares.
+056er en avgrenset kildebølge for målte nativekoblinger: eksisterende campaign,
+Dataset/provider, prefixidentitet og initialmålecohort får eksplisitt dynamisk
+Entry-only-gren uten Exit-corpus, reference-policy, sampler eller observasjoner.
+Objektiveier og eksakte konsumenter samordnes med APIv12quality-bps; legacy
+serving/eksport åpnes ikke. Fasefølsom frys/optimizer/EMA og native varig state/
+resume-eier gjenbrukes. Én integrator eier policy/launch; avgrensede agenter
+har separate filer/funksjonsregioner.483unike kilde-/komponentcaser er nå
+kvalifisert: opprinnelig480PASS/3fixturefeil på311.958s; bare testens for korte
+run-ID ble rettet.9berørte caser bestod på4.152s,474uendrede PASS gjenbrukes.
+Alle produksjonsbytes var uendret i reparasjonen. Kvalifiseringen omfatter
+phase-/source-/clock-/mask-/order-/context-/fixedcheckpoint-/session- og
+initial/finalkurvemåling med syntetiske kilder, ikke genuin modellkonsum/læring.
+Fast siste ONLINE etter én faktisk hel epoke har egen policy: ingen VAL-/
+økonomisk seleksjon, score eller top-K. Eksisterende varig state beholdes.
+Ingen tung jobb kjører; training_enabled=false og nativeadmission=false.
 
-055har minste maskebevisste rettelse i eksisterende extrema-eier og bruker
-samme eier ved fit og aliasdeling. Uavhengig diffreview PASS;51fokuserte
-normaliserings-/alias-/dynamisk-/joint-regresjoner bestod på12.887s,
-inkludert8nye feilregresjoner, med uendret kilde under testen.
-Konstant-/binær-/lagringsvakter og genuine felt beholdes. Etter kildekvalifisering
-bindes én ny separat wholeTRAIN Entry-only inputfit med samme faktiske inputs,
-audit4G/512M, CPU0–7, numerikktråder1, TasksMax64 og én7200sfrist.
-MTF-vinduer er M5=16/M15=64/H1=96/H4=96/D1=252. Ingen targets/design/Exit-
-populasjon, VAL/TEST-fit eller native optimizer. Ingen tung jobb kjører nå;
-055er revidert/klar for commit og ren kilde-/planbinding før én engangsfit.
-training_enabled=false og nativeadmission=false består.
-
-Physicaltargetreceipt må ifølge eksisterende kampanjeeier binde SAMME fulle
-design som faktisk epochwitness/budsjett. Den publiseres én gang når det faktiske
-native-designet foreligger, før nativeadmission.052har bare en inaktiv serializer;
-ingen plan, claim, design, receipt eller jobb finnes. Ikke launch052.
+Physicaltargetreceipt må fortsatt binde SAMME faktiske fulle native-design
+som genuint epochwitness/budsjett.052har bare en inaktiv serializer, ingen plan,
+claim, design, receipt eller jobb. Ikke launch052. Fysisk targetreceipt og det
+nye native-designet bindes én gang før senere admission, uten midlertidig design.
 
 ## Native kjede som gjenstår
 
-1. Maskeringsrettelsen er kildekvalifisert i51caser. Bind ny055plan/kilde/policy og
-   reviderte controllere. Kjør én ny separat wholeTRAIN inputfit og observer
-   sparsomt med fryst kilde/policy. Konsumert054relanseres aldri.
-2. Etter faktisk normaliseringsterminal: rett de målte native gapene i deres
-   eksisterende eiere. Campaign-preprocessing og prefixkomponentbinding
-   krever fortsatt composite-/Exit-inputs. Full_train-komponentbyggeren og
-   initialmålecohorten må få eksplisitt Entry-only-kurvegren uten Exit-reference-
-   policy, corpus, adapter, teacher eller Exit-observasjoner. Behold fungerende
-   fasefølsom constructor/frys/optimizer/EMA og joint-default.
-3. Objektiveieren erklærer fremdeles unitless_ratio/bps=false, mens outputAPIv12
-   bruker predikert netto endepunktsbps minus predikert pre-MFE-MAE upper.
-   Rett deklarasjon og strenge bundle-/smoke-/eksportkonsumenter samlet;
-   native autoritet forblir stengt. Ingen numerisk feature-/targetendring.
-4. Bind faktisk fullt native-design, hele TRAINs epochwitness/budsjett og
-   fysisk targetreceipt gjennom eksisterende strenge eiere. Bevis fersk
-   ONLINE=TARGET=EMA0, alle feature-/MTF-ruter, faktisk konsum/paritet og
-   Entry-only optimizer/resume med spor for valgte og avståtte LONG/SHORT/FLAT.
+1.056s avgrensede Entry-only-koblinger er kvalifisert i483unike caser.
+   Commit/push etter obligatoriske hooks. Gjenbruk faktisk055normalisering
+   og de beståtte uendrede data-/kildekontrollene; ingen repeterte fullsuiter.
+2. Recipe-/kampanje-launch har fortsatt eksplisitt dynamic-PENDING-vakt.
+   Ny faktisk Entry-only recipe-/fil-/budsjett-/målebinding må kvalifiseres.
+   Initial-/learning-admission må eksplisitt forstå dynamic-coordinatepublication
+   og fixed-ONLINE-policy før faktisk nativebaseline;
+   ingen gammel Exit-sampler/readiness eller ubrukte økonomiinputs skal
+   presenteres som native Entry-bevis. Komponenttester åpner ingen launch.
+3. Bind faktisk fullt native-design med inputs.full_input_liveness og begge
+   inputs.sequence_source_audits, hele TRAINs epochwitness/budsjett og fysisk
+   targetreceipt gjennom eksisterende strenge eiere. Frosne TRAIN-probe- og
+   CONTROL256-rader brukes uten outcome-utvalg eller Exit-statekoordinater.
+4. Bevis fersk ONLINE=TARGET=EMA0, alle feature-/MTF-ruter, faktisk konsum/
+   paritet og Entry-only optimizer/resume med spor for valgte og avståtte
+   LONG/SHORT/FLAT. Ingen legacy Q/cash/Exit-forward i dynamiske målinger.
 5. Først etter alle faktiske mål-/input-/baseline-/konsum-/optimizer-/resume-/
    maskinvareporter: bind faktisk N/ordre og ceil(N/16), behold siste delbatch
    og tren nøyaktig én epoke med varige checkpoints. Ingen ny epoke/VAL-refresh.

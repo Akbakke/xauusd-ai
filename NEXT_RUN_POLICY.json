@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-19T02:44:07.130839+00:00",
-  "status": "054_CONSUMED_FAILED__055_MASKED_EXTREMA_REPAIR_QUALIFIED_READY__TRAINING_FALSE",
+  "observed_utc": "2026-10-19T03:33:11.461190+00:00",
+  "status": "055_NORMALIZATION_PASS__056_ENTRY_ONLY_COMPONENTS_SOURCE_QUALIFIED__NATIVE_RECIPE_AND_ACTUAL_GATES_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Commit/push qualified minimal mask-aware extrema repair/docs; bind clean055source/policy/plan/controllers and run exactly one new wholeTRAIN Entry-only inputfit,4G/512M and one7200sdeadline. Original054 failure remains preserved and is never relaunched. No native modeltraining.",
+  "next_action": "Commit/push qualified056Entry-only source/docs aftermandatoryhooks, reuseactual055transform. Bind actual fullnative design+wholeTRAINwitness+physicaltargetreceipt+coordinates; then qualify explicitdynamic recipe/initialmeasurement/learningmeasurement admission owners before anyactualzero-step baseline/consumption/parity/optimizer/resume/hardware or requestedoneepoch. Existing launchPENDING remains untilgenuineactualgates.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -11424,7 +11424,7 @@
           }
         },
         "entry_only_normalization_gap": {
-          "status": "EXPLICIT_ENTRY_ONLY_SOURCE_BRANCH_QUALIFIED_MARKET_FIT_PENDING",
+          "status": "MARKET_WHOLETRAIN_FIT_COMPLETE_NATIVE_CONSUMPTION_PENDING",
           "owner": "gx1/models/entry_v10/entry_v10_input_normalization.py::fit_entry_v10_train_input_normalization",
           "observed_requirement": "Existing wholeTRAIN route requires train_exit_lifecycle and includes Exit M1 population; no honest current Entry-only CLI route yet.",
           "required_design": "Canonical dynamicM5phase, exactwholephysicalTRAINbeforetaskmasks, audited source-backed96barwindowunion/allcontextrows/fiveMTFlanes; noExit. Jointdefault preserved, phase-population pairing enforced.",
@@ -11515,7 +11515,7 @@
             "signal_static_contract_unchanged": "f397dbf5502b97332533e2f4333af3dc6d5a85d9a0a252cfb0b1b440c41a65cd"
           },
           "measured_054_masked_alias_extrema_repair": {
-            "status": "SOURCE_QUALIFIED_PENDING_ACTUAL_FIT",
+            "status": "ACTUAL_055_FIT_PASS_REUSE_TRANSFORM",
             "repair_of": {
               "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_20261019_054/TERMINAL.json",
               "sha256": "66e87bbc2cfe57f7b0cfe2feffcba2e7a3aa92c37c397fb52f994d0d9681dbb3"
@@ -11526,11 +11526,15 @@
             },
             "cases_passed": 51,
             "strict_guards_preserved": true,
-            "market_output_exists": false
+            "market_output_exists": true,
+            "normalization": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
+              "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
+            }
           }
         },
         "native_objective_metadata_gap": {
-          "status": "SOURCE_VERIFIED_PENDING_NATIVE_COMPONENT_WAVE",
+          "status": "SOURCE_QUALIFIED_056_QUALITY_BPS_DECLARATION_NO_NATIVE_AUTHORITY",
           "owner": "gx1/contracts/entry_model_native_training_objective_v1.py::_expected_objective",
           "observed": [
             "dynamic entry_decision_authority still says unitless_ratio",
@@ -11543,7 +11547,11 @@
             "smoke_bundle_audit strict objective validator"
           ],
           "required_action": "Align explicit objective units and candidate description with existing outputs_v12 during next native component wave; preserve native authority false. No numerical feature/target change.",
-          "native_training_admitted": false
+          "native_training_admitted": false,
+          "source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_ONLY_COMPONENT_QUALIFICATION_20261019_056/SOURCE_REVIEW.json",
+            "sha256": "99a12c225f2ad1e59159cbfca7116972ab991689fb52499f60688a03909ed8d5"
+          }
         },
         "current_dynamic_physical_generation": {
           "dataset_dir": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051",
@@ -11567,12 +11575,21 @@
           "payload_regenerated": false,
           "physical_target_receipt_created": false,
           "input_liveness_qualified": true,
-          "normalization_fitted": false,
+          "normalization_fitted": true,
           "native_training_admitted": false,
           "full_input_liveness": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_INPUT_LIVENESS_20261019_053/ENTRY_FULL_INPUT_LIVENESS_CONTRACT_20261019T015846331564Z.json",
             "sha256": "f71298e96217f5ac6f773568f2bcd6fb74e715b828f92c4d8fc670daad962c1f"
-          }
+          },
+          "normalization": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
+            "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
+          },
+          "normalization_result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/RESULT.json",
+            "sha256": "69caa738a87f7b63b46d1e126e5c4fd97d9f66d4591d44c1bcc2d223937e8175"
+          },
+          "normalization_contract_sha256": "4a454355d43e86db5326ef8b07ff4edee005a9ec4402c69a553b4b4818c7d7b1"
         },
         "dynamic_target_input_binding_stage_052": {
           "status": "PREPARATION_ONLY_SERIALIZER_RETAINED_NO_DATA_ONLY_DESIGN_RUN_AUTHORITY",
@@ -11701,12 +11718,12 @@
           "normalization_output_published": false
         },
         "whole_train_normalization_repair_stage_055": {
-          "status": "READY_REVIEWED_51CASE_MASKED_EXTREMA_REPAIR_ONE_WHOLETRAIN_FIT",
+          "status": "COMPLETE_WHOLE_TRAIN_ENTRY_ONLY_NORMALIZATION_PASS",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055",
           "planned_invocations": 1,
-          "completed_invocations": 0,
-          "execution_authorized": true,
-          "normalization_fit_enabled": true,
+          "completed_invocations": 1,
+          "execution_authorized": false,
+          "normalization_fit_enabled": false,
           "training_enabled": false,
           "native_training_admitted": false,
           "input_admission_complete": false,
@@ -11733,7 +11750,71 @@
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/FOCUSED_SOURCE_QUALIFICATION_RECEIPT.json",
             "sha256": "2f5c0f29e39a6eb6341a594926e302565d867bf1413a1cb6ee428971919da847"
           },
-          "source_qualification_cases_passed": 51
+          "source_qualification_cases_passed": 51,
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/TERMINAL.json",
+            "sha256": "4e7a4c26430268528a1e2dc63b51d44ff9ce2fc7f4d873b89137a28b369e1f4b"
+          },
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/RESULT.json",
+            "sha256": "69caa738a87f7b63b46d1e126e5c4fd97d9f66d4591d44c1bcc2d223937e8175"
+          },
+          "normalization": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
+            "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
+          },
+          "contract_sha256": "4a454355d43e86db5326ef8b07ff4edee005a9ec4402c69a553b4b4818c7d7b1",
+          "fit_population_proof_sha256": "a67f38a7d89330d0405ec7eb52495e73f5d05dc620cedbb8cecbdd026f7d82cc",
+          "market_normalization_fit_complete": true,
+          "elapsed_seconds": 357.91441624800063,
+          "source_unchanged": true,
+          "fit_rows": {
+            "context": 118249,
+            "local": 118800,
+            "mtf": {
+              "D1": 683,
+              "H1": 9995,
+              "H4": 2686,
+              "M15": 39638,
+              "M5": 118720
+            }
+          }
+        },
+        "native_component_stage_056": {
+          "status": "SOURCE_QUALIFIED_483_UNIQUE_CASES_NATIVE_ADMISSION_PENDING",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_ONLY_COMPONENT_QUALIFICATION_20261019_056",
+          "source_qualification_authorized": false,
+          "source_qualification_planned_invocations": 1,
+          "source_qualification_completed_invocations": 1,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "normalization_refit_allowed": false,
+          "scope": "Only measured dynamic Entry-only campaign/preprocessing/component/initialmeasurement and objective metadata couplings. Existing Dataset/provider/model/loss/optimizer/EMA/stateowners reused. No Exit training/evaluation, no fakecomposite/Exit-coordinate/economics proof. Source-only focusedqualification afterallownersfreeze.",
+          "native_launch_remaining": "Actual fullnative design/witness/physicaltargetreceipt; exact new Entry-only recipe/finite campaign; fresh initialbaseline/fullfeatureconsumption/parity/Entry-onlyoptimizer/resume/hardware. Existing explicit launchPENDINGguard retained.",
+          "source_qualification_receipt": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_ONLY_COMPONENT_QUALIFICATION_20261019_056/SOURCE_QUALIFICATION_RECEIPT.json",
+            "sha256": "9989498bfa19be84812edee76cfcb2185294f4c6695aec4890e6cdd5788d0902"
+          },
+          "repair_01": {
+            "scope": "Only fixture run_id UNIT ->valid UNIT_DYNAMIC_M5; allproductionbytesunchanged; rerun9affectedcases, reuse474unaffectedpasses.",
+            "source_qualification_authorized": false,
+            "planned_invocations": 1,
+            "completed_invocations": 1,
+            "max_wall_seconds": 180,
+            "training_enabled": false,
+            "receipt": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_ONLY_COMPONENT_QUALIFICATION_20261019_056/SOURCE_QUALIFICATION_REPAIR_01/SOURCE_QUALIFICATION_RECEIPT.json",
+              "sha256": "d529a2351c39e4474dbcec3c0e7ffd0d24bec4ce4293893e12e1ac7edbcf7e03"
+            }
+          },
+          "source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_ONLY_COMPONENT_QUALIFICATION_20261019_056/SOURCE_REVIEW.json",
+            "sha256": "99a12c225f2ad1e59159cbfca7116972ab991689fb52499f60688a03909ed8d5"
+          },
+          "unique_qualified_cases": 483,
+          "unchanged_cases_reused": 474,
+          "repaired_cases_passed": 9,
+          "numerical_model_feature_target_change": false
         }
       },
       "operator_pc_reboot_20261018": {

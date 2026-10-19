@@ -34,6 +34,8 @@ from gx1.contracts.entry_model_native_signal_v1 import (
     MODEL_NATIVE_SIGNAL_DIM,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+    require_native_serving_training_phase,
     require_training_objective_contract,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -774,6 +776,15 @@ def _require_dynamic_specialist_gate_connectivity(
     }
 
 
+def _require_admitted_smoke_training_phase(report: Mapping[str, Any], *, context: str) -> None:
+    proof = report.get("model_native_training_objective_contract")
+    objective = proof.get("objective") if isinstance(proof, Mapping) else None
+    if (isinstance(objective, Mapping)
+            and objective.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+        checked = require_training_objective_contract(objective, context=context)
+        require_native_serving_training_phase(checked["entry_training_phase"], context=context)
+
+
 def require_smoke_bundle_training_pipeline_contract(
     value: Any,
     *,
@@ -792,6 +803,7 @@ def require_smoke_bundle_training_pipeline_contract(
 
     _require(isinstance(value, Mapping), f"[{context}_SMOKE_AUDIT_MISSING]")
     report = dict(value)
+    _require_admitted_smoke_training_phase(report, context=context)
     _require(report.get("schema_version") == SCHEMA_VERSION, f"[{context}_SCHEMA_INVALID]")
     _require(
         report.get("decision") in {"PASS", "FAIL"}
@@ -1022,6 +1034,7 @@ def require_smoke_bundle_audit_contract(
 
     _require(isinstance(value, Mapping), f"[{context}_SMOKE_AUDIT_MISSING]")
     report = dict(value)
+    _require_admitted_smoke_training_phase(report, context=context)
     _require(report.get("schema_version") == SCHEMA_VERSION, f"[{context}_SCHEMA_INVALID]")
     _require(report.get("decision") == PASS_DECISION, f"[{context}_DECISION_INVALID]")
     _require(report.get("failures") == [], f"[{context}_FAILURES_NOT_EMPTY]")

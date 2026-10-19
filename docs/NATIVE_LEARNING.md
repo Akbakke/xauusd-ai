@@ -150,6 +150,20 @@ labels/design; den fysiske målkvitteringen må senere binde det faktiske fulle
 native-designet med genuint epochwitness/budsjett før nativeadmission. En
 midlertidig data-design gir ingen nativeadgang og skal ikke kjøres for dette.
 
+Det faktiske dynamiske native-designet binder inputs.full_input_liveness og
+inputs.sequence_source_audits for både TRAIN/VAL. Samme targetreceipt/designeier
+beholdes. Dynamic prefix bruker den direkte Entry-only-normaliseringsartefakten
+og sin base_contract_sha256; composite-/summary-/Exit-first-state-bevis hører til
+legacygrenen. Entry-cohort bruker frosne fysiske parent-ID-er og klokker, ikke
+Exit-statekoordinater. Begge grener må være eksakt fasebundet.
+Dynamisk single-epoch bruker fast siste ONLINE etter hele den bundne TRAIN-
+epoken. Egen checkpointpolicy avviser VAL-/økonomisk utvalg og metric-score;
+ingen top-K eller tidligstopp bestemmer denne modellen. Varige state-slots,
+lagringsfrekvens, optimizer/EMA/RNG og resume-eier beholdes. Initial/final-
+kurvemåling har samme frosne parentrader og separate target-/maskehash, én
+encoderforward perbatch, og ingen Exit-factory eller Exit-forward.
+
+
 
 Original target-M1 og nyere komplett input-M1 er ulike kilde-/artefaktroller.
 Gjenbrukt uendret-kilde-/algebrabevis er ikke en ny raw quote-måling.

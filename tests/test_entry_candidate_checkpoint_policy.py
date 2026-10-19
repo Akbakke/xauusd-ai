@@ -179,3 +179,72 @@ def test_m5_checkpoint_policy_rejects_changed_scope_or_checkpoint_identity(tmp_p
     with pytest.raises(RuntimeError,match="M5_EPOCH_BINDING"):
         policy.checkpoint_policy_metadata(checkpoint_monitor=policy.MARKED_NET_CHECKPOINT_MONITOR,
             prefix_training_binding=prefix)
+
+
+def _dynamic_m5_checkpoint_prefix(tmp_path):
+    from tests.test_native_prefix_recipe import _dynamic_single_epoch_design, _write
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+    design, witness = _dynamic_single_epoch_design(tmp_path, rows=17)
+    single = require_m5_single_epoch_population(design)
+    binding = _write(tmp_path / "dynamic-checkpoint-design.json", design)
+    identity = {"training_phase": witness["training_phase"], "design": binding,
+                "target_contract": witness["target_contract"]}
+    return {"schema_version": "gx1_candidate_prefix_training_binding_v1",
+        "entry_training_phase": witness["training_phase"], "fixed_final_model_variant": "ONLINE",
+        "artifacts": {"design": binding},
+        "entry_m5_path_single_epoch": {"population_witness": single["binding"],
+            "train_rows": single["train_rows"], "last_batch_rows": single["last_batch_rows"], "drop_last": False},
+        "train_rows": single["train_rows"], "maximum_optimizer_steps": single["optimizer_steps"],
+        "maximum_completed_epochs": 1,
+        "physical_sources": {"train": {"parquet": single["train_parquet"], "manifest": single["train_manifest"]}},
+        "entry_observed_market": {role: {"identity": dict(identity)} for role in ("train", "control")}}
+
+
+def test_dynamic_m5_fixed_online_checkpoint_policy_has_no_validation_or_economic_selection(tmp_path):
+    prefix = _dynamic_m5_checkpoint_prefix(tmp_path)
+    monitor = policy.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+    actual = policy.checkpoint_policy_metadata(checkpoint_monitor=monitor, prefix_training_binding=prefix)
+    assert actual == {
+        "schema_version": policy.DYNAMIC_M5_FIXED_ONLINE_SCHEMA_VERSION,
+        "checkpoint_monitor": monitor, "checkpoint_mode": "fixed_final_online", "max_epochs": 1,
+        "entry_training_phase": prefix["entry_training_phase"],
+        "entry_m5_path_single_epoch": {**prefix["entry_m5_path_single_epoch"], "optimizer_steps": 2},
+        "selected_model_variant": "ONLINE", "selection_boundary": "complete_one_whole_physical_train_epoch",
+        "validation_selection": False, "economic_selection": False,
+        "early_stopping": False, "save_top_k": 0, "native_training_admitted": False}
+    assert policy.require_checkpoint_policy(actual, context="UNIT", checkpoint_monitor=monitor,
+        prefix_training_binding=prefix) == actual
+    for field, value in (("max_epochs", 2), ("selected_model_variant", "EMA"),
+                         ("validation_selection", True), ("save_top_k", 1)):
+        with pytest.raises(RuntimeError, match="CHECKPOINT_POLICY_INVALID"):
+            policy.require_checkpoint_policy({**actual, field: value}, context="UNIT", checkpoint_monitor=monitor,
+                prefix_training_binding=prefix)
+    for metrics in ({}, {monitor: 1.0}, {policy.CHECKPOINT_MONITOR: 99.0},
+                    {"entry_exit_policy_metrics": {"mean_net_bps_per_entry": 1000.0}}):
+        with pytest.raises(RuntimeError, match="FIXED_FINAL_NO_METRIC"):
+            policy.checkpoint_metric(metrics, checkpoint_monitor=monitor)
+
+
+@pytest.mark.parametrize("monitor", [policy.CHECKPOINT_MONITOR, policy.COUPLED_NET_CHECKPOINT_MONITOR,
+                                    policy.MARKED_NET_CHECKPOINT_MONITOR])
+def test_dynamic_m5_prefix_rejects_legacy_checkpoint_monitors(tmp_path, monitor):
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_FIXED_MONITOR_REQUIRED"):
+        policy.checkpoint_policy_metadata(checkpoint_monitor=monitor,
+            prefix_training_binding=_dynamic_m5_checkpoint_prefix(tmp_path))
+
+
+@pytest.mark.parametrize("fault", ["no_prefix", "legacy", "no_witness", "phase", "manifest", "design", "target", "ema"])
+def test_dynamic_fixed_monitor_requires_actual_dynamic_prefix_and_whole_train_witness(tmp_path, fault):
+    prefix = _dynamic_m5_checkpoint_prefix(tmp_path)
+    if fault == "no_prefix": prefix = None
+    elif fault == "legacy":
+        prefix = _m5_checkpoint_prefix(tmp_path)
+    elif fault == "no_witness": prefix.pop("entry_m5_path_single_epoch")
+    elif fault == "phase": prefix["entry_training_phase"] = "entry_only_observed_m5_path"
+    elif fault == "manifest": prefix["physical_sources"]["train"]["manifest"] = {"path": "old", "sha256": "0" * 64}
+    elif fault == "design": prefix["entry_observed_market"]["control"]["identity"]["design"] = {"path": "old", "sha256": "0" * 64}
+    elif fault == "target": prefix["entry_observed_market"]["train"]["identity"]["target_contract"] = {}
+    elif fault == "ema": prefix["fixed_final_model_variant"] = "EMA"
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5"):
+        policy.checkpoint_policy_metadata(checkpoint_monitor=policy.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+            prefix_training_binding=prefix)

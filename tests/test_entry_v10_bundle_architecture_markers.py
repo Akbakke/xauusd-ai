@@ -134,3 +134,30 @@ def test_trainer_writes_every_direct_loader_metadata_requirement() -> None:
         ):
             required.add(node.args[1].value)
     assert required <= metadata_keys, sorted(required - metadata_keys)
+
+
+@pytest.mark.parametrize("owner", ["meta", "lock"])
+def test_dynamic_bundle_is_rejected_before_legacy_serving_metadata(owner):
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, training_objective_contract_metadata)
+    payload = {"model_native_training_objective": training_objective_contract_metadata(
+        entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)}
+    meta, lock = (payload, {}) if owner == "meta" else ({}, payload)
+    with pytest.raises(RuntimeError, match="DYNAMIC_ENTRY_CANDIDATE_NATIVE_AUTHORITY_NOT_ADMITTED"):
+        bundle._require_exact_model_native_bundle_metadata(meta, lock)
+
+
+def test_dynamic_bundle_is_rejected_before_architecture_or_weight_load(tmp_path, monkeypatch):
+    import json
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, training_objective_contract_metadata)
+    payload = {"model_native_training_objective": training_objective_contract_metadata(
+        entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)}
+    (tmp_path / "bundle_metadata.json").write_text(json.dumps(payload))
+    (tmp_path / "MASTER_TRANSFORMER_LOCK.json").write_text(json.dumps(payload))
+    (tmp_path / "model_state_dict.pt").write_bytes(b"unread")
+    def forbidden(*args, **kwargs): pytest.fail("No architecture reconstruction or weights before rejection")
+    monkeypatch.setattr(bundle, "require_entry_exit_production_architecture", forbidden)
+    monkeypatch.setattr(torch, "load", forbidden)
+    with pytest.raises(RuntimeError, match="DYNAMIC_ENTRY_CANDIDATE_NATIVE_AUTHORITY_NOT_ADMITTED"):
+        bundle.load_entry_v10_ctx_bundle(bundle_dir=tmp_path.resolve(), device="cpu")

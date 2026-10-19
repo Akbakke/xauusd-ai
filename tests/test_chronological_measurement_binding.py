@@ -519,3 +519,136 @@ def test_physical_measurement_rejects_fabricated_early_support(physical_measurem
         rb = _write(Path(c.binding["path"]), c.result)
         with pytest.raises(RuntimeError, match="M1_SUPPORT_MISMATCH"):
             owner.build_chronological_measurement_cohort(c.prepared.value["design"], rb, role="train")
+
+
+@pytest.fixture
+def dynamic_m5_measurement(tmp_path, monkeypatch):
+    """Synthetic binding mechanics; upstream preprocessing/coordinate gates are spied."""
+    import hashlib
+    from types import SimpleNamespace
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+    )
+    sources = {}
+    clocks = {}
+    for split, start in (("train", "2025-12-01T00:00Z"), ("val", "2026-01-01T00:00Z")):
+        clock = pd.date_range(start, periods=300, freq="5min").as_unit("ns")
+        clocks[split] = clock
+        parquet = tmp_path / (split + "-entry.parquet")
+        pd.DataFrame({"time": clock}).to_parquet(parquet, index=False)
+        sources[split] = {"parquet": _binding(parquet),
+            "manifest": _write(tmp_path / (split + "-entry.json"), {"split": split}),
+            "physical_rows": len(clock),
+            "clock_sha256": hashlib.sha256(np.asarray(clock.asi8, dtype="<i8").tobytes()).hexdigest()}
+    control_rows = tmp_path / "CONTROL256.npy"
+    np.save(control_rows, np.arange(256, dtype=np.int64))
+    design = {"schema_version": "gx1_frozen_chronological_learning_design_v1",
+        "status": "DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE",
+        "scope": {"entry_only_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+            "test_sealed": True, "existing_control_periods_are_reused_development": True,
+            "native_launch_authorized": False, "one_experiment": True},
+        "calendar": {"train_entry_start_inclusive": "2025-12-01T00:00Z",
+            "train_control_cutoff": "2026-01-01T00:00Z",
+            "development_control_entry_end_exclusive": "2026-04-01T00:00Z"},
+        "budget": {"train_only_probe_entries": 256}, "selection": {"control_entries": 256}}
+    db = _write(tmp_path / "dynamic-design.json", design)
+    witness = _write(tmp_path / "population.json", {"synthetic": "population witness"})
+    artifacts = {"design": db,
+        "normalization_result": _write(tmp_path / "normalization.json", {"synthetic": "normalization"}),
+        "labels_result": _write(tmp_path / "labels.json", {"synthetic": "labels"}),
+        "native_coordinates": _write(tmp_path / "native.json", {"synthetic": "native coordinates"})}
+    physical = {"physical_sources": sources, "control_parent_rows": _binding(control_rows)}
+    coordinates = {"binding": artifacts["native_coordinates"], "population_witness": witness,
+        "native_sampler_contract": {"synthetic": "native Entry sampler"},
+        "probe_parent_rows": np.arange(256, dtype=np.int64)[::-1]}
+    calls = []
+    def preprocessing(observed, **kw):
+        calls.append("preprocessing")
+        assert observed == artifacts and kw["design"] == design
+        return physical
+    def native(observed, **kw):
+        calls.append("coordinates")
+        assert observed == artifacts and kw["design"] == design and kw["physical"] is physical
+        return coordinates
+    monkeypatch.setattr(campaign, "require_physical_chronological_preprocessing", preprocessing)
+    monkeypatch.setattr(campaign, "require_physical_native_training_coordinates", native)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("dynamic Entry measurement reached Exit measurement inputs")
+    monkeypatch.setattr(owner, "_physical_measurement_inputs", forbidden)
+    monkeypatch.setattr(owner, "_physical_measurement_arrays", forbidden)
+    monkeypatch.setattr(owner, "build_chronological_control_cohort", forbidden)
+    result = {"schema_version": "gx1_dynamic_m5_native_coordinate_publication_v1",
+        "decision": "NATIVE_COORDINATES_FROZEN_PENDING_ENTRY_MEASUREMENT_AND_LAUNCH_ADMISSION",
+        "chronological_prefix": artifacts, "population_witness": witness,
+        "native_sampler_contract": coordinates["native_sampler_contract"], "native_coordinates_complete": True,
+        "entry_measurement_complete": False, "native_launch_admitted": False,
+        "test_data_used": False, "model_forwards": 0, "optimizer_steps": 0, "fits": 0}
+    rb = _write(tmp_path / "dynamic-publication.json", result)
+    return SimpleNamespace(design=design, db=db, rb=rb, result=result, artifacts=artifacts,
+        coordinates=coordinates, physical=physical, clocks=clocks, calls=calls, control_rows=control_rows)
+
+
+@pytest.mark.parametrize("role", ["train", "control"])
+def test_dynamic_measurement_keeps_frozen_parent_ids_and_separate_entry_sources(dynamic_m5_measurement, role):
+    c = dynamic_m5_measurement
+    value = owner.build_chronological_measurement_cohort(c.db, c.rb, role=role)
+    assert owner.require_bounded_val_cohort(value) == value
+    split = "train" if role == "train" else "val"
+    expected = c.coordinates["probe_parent_rows"] if role == "train" else np.arange(256, dtype=np.int64)
+    assert value["entry_row_indices"] == value["parent_entry_row_indices"] == expected.tolist()
+    assert value["entry_time_ns"] == c.clocks[split].asi8[expected].tolist()
+    assert value["parent_entry_parquet"] == c.physical["physical_sources"][split]["parquet"]
+    assert value["parent_entry_manifest"] == c.physical["physical_sources"][split]["manifest"]
+    assert value["source_split"] == value["split"] == split
+    assert value["measurement_only"] is True and value["exit_evaluation"] is False
+    assert value["native_launch_authorized"] is value["selection_uses_outcome_values"] is False
+    assert value["native_coordinates"] == c.coordinates["binding"]
+    assert value["population_witness"] == c.coordinates["population_witness"]
+    assert value["reference_cutoff_time_ns"] == pd.Timestamp(
+        "2026-01-01T00:00Z" if role == "train" else "2026-04-01T00:00Z").value
+    assert not ({"source_index", "sampled_state_indices", "source_m1", "source_m1_manifest"} & set(value))
+    assert c.calls == ["preprocessing", "coordinates"] * 2
+
+
+@pytest.mark.parametrize("fault", ["phase", "test_scope", "witness", "sampler", "exit_fields", "forwards",
+    "bool_count", "admission", "changed_source", "clock_hash", "clock_window", "duplicate", "outside", "control_order"])
+def test_dynamic_measurement_rejects_source_population_scope_or_row_drift(dynamic_m5_measurement, fault):
+    c = dynamic_m5_measurement
+    role = "train"
+    if fault == "phase": c.design["scope"].pop("entry_only_training_phase")
+    elif fault == "test_scope": c.design["scope"]["test_sealed"] = False
+    elif fault == "witness": c.result["population_witness"] = c.artifacts["native_coordinates"]
+    elif fault == "sampler": c.result["native_sampler_contract"] = {"wrong": "sampler"}
+    elif fault == "exit_fields": c.result["sampled_state_indices"] = []
+    elif fault == "forwards": c.result["model_forwards"] = 1
+    elif fault == "bool_count": c.result["optimizer_steps"] = False
+    elif fault == "admission": c.result["native_launch_admitted"] = True
+    elif fault == "changed_source":
+        path = Path(c.physical["physical_sources"]["train"]["parquet"]["path"])
+        path.write_bytes(path.read_bytes() + b"changed")
+    elif fault == "clock_hash": c.physical["physical_sources"]["train"]["clock_sha256"] = "0" * 64
+    elif fault == "clock_window": c.design["calendar"]["train_entry_start_inclusive"] = "2025-12-02T00:00Z"
+    elif fault == "duplicate": c.coordinates["probe_parent_rows"][0] = c.coordinates["probe_parent_rows"][1]
+    elif fault == "outside": c.coordinates["probe_parent_rows"][0] = 300
+    elif fault == "control_order":
+        role = "control"
+        np.save(c.control_rows, np.arange(256, dtype=np.int64)[::-1])
+        c.physical["control_parent_rows"] = _binding(c.control_rows)
+    # Rebind explicit design edits so this checks semantics, not merely stale file hashes.
+    if fault in {"phase", "test_scope", "clock_window"}:
+        c.db = _write(Path(c.db["path"]), c.design)
+        c.artifacts["design"] = c.db
+    rb = _write(Path(c.rb["path"]), c.result)
+    with pytest.raises(RuntimeError):
+        owner.build_chronological_measurement_cohort(c.db, rb, role=role)
+
+
+def test_dynamic_measurement_cannot_be_promoted_to_exit_rollout(dynamic_m5_measurement):
+    c = dynamic_m5_measurement
+    with pytest.raises(RuntimeError, match="DYNAMIC_ROLLOUT_FORBIDDEN"):
+        owner.build_chronological_train_rollout_cohort(c.db, c.rb)
+    value = owner.build_chronological_measurement_cohort(c.db, c.rb, role="train")
+    value["parent_entry_row_indices"] = value["parent_entry_row_indices"][::-1]
+    with pytest.raises(RuntimeError, match="BINDING_MISMATCH"):
+        owner.require_bounded_val_cohort(value)

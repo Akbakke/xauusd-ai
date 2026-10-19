@@ -690,3 +690,158 @@ def test_native_dynamic_constructor_rejects_phase_task_or_query_drift_before_opt
     with pytest.raises(RuntimeError, match="NATIVE_COMPONENT_.*MISMATCH"):
         runner._build_bound_full_train_components(**args, observed_entry_scope=scope)
     if fault in {"scope_queries", "binding_queries"}: assert "constructed_model" not in seen
+
+
+@pytest.fixture
+def dynamic_entry_component_chain(tmp_path, monkeypatch):
+    """Component join unit: strict data/cohort/session owners are separately qualified."""
+    from gx1.contracts import entry_observed_market_horizons_v1 as hz
+    from gx1.contracts import unified_exit_bounded_val_cohort_v1 as cohorts
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+    phase = runner.trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    queries = runner.trainer._dynamic_m5_model_kwargs(phase)["dynamic_m5_query_minutes"]
+    files = {key: tmp_path / (key + ".json") for key in runner._DYNAMIC_M5_DATA_FILES}
+    for path in files.values(): path.write_text("{}")
+    base = {"contract_sha256": "a" * 64, "lineage": {"dataset_run_id": "UNIT_DYNAMIC_M5"}}
+    _write(files["entry_only_base_normalization"], {"contract": base})
+    meta = {"seq_len": 96, "multi_tf": {tf.lower() + "_seq_len": count
+            for tf, count in PRODUCTION_MTF_PER_TF_WINDOW_BARS}}
+    _write(files["source_bundle_metadata"], meta)
+    design = {"scope": {"entry_only_training_phase": phase}}
+    bindings = {"design": _write(tmp_path / "design-dynamic.json", design),
+        "normalization_result": _bind(files["entry_only_base_normalization"]),
+        "labels_result": _write(tmp_path / "labels-dynamic.json", {})}
+    for split in ("train", "val"):
+        _write(files[f"entry_{split}_manifest"], {"extra": {"entry_run_id": "UNIT_DYNAMIC_M5"}})
+    source = {split: {"parquet": _bind(files[f"entry_{split}_parquet"]),
+        "manifest": _bind(files[f"entry_{split}_manifest"]), "physical_rows": count}
+        for split, count in (("train", 17), ("val", 16))}
+    single = {"binding": _write(tmp_path / "witness-dynamic.json", {}), "train_rows": 17,
+        "last_batch_rows": 1, "optimizer_steps": 2,
+        "witness": {"training_phase": phase, "native_sampler_contract": {"unit": "frozen Entry order"}}}
+    physical = {"entry_training_phase": phase, "physical_sources": source,
+        "entry_only_base_normalization": _bind(files["entry_only_base_normalization"]),
+        "base_contract_sha256": base["contract_sha256"],
+        "sequence_source_audits": {"train": _bind(files["sequence_source_audit"]),
+                                   "val": _bind(files["val_sequence_source_audit"])}}
+    prefix = {"bindings": bindings, "design": design, "physical_preprocessing": physical,
+        "entry_m5_path_single_epoch": single, "model_functions": runner.trainer._PREFIX_CURRENT_MODEL_FUNCTIONS,
+        "eligible_parent_rows": np.arange(17, dtype=np.int64),
+        "epoch0_parent_order": np.arange(17, dtype=np.int64)[::-1].copy()}
+    events = []
+    monkeypatch.setattr(runner, "_require_prefix_component_bindings", lambda *a, **kw: prefix)
+    monkeypatch.setattr(runner.val, "_bind_multi_tf_cache_from_source_bundle_metadata", lambda m: None)
+    class Dataset:
+        def __init__(self, path, **kwargs):
+            self.parquet_path = path; self.count = 17 if path == files["entry_train_parquet"] else 16
+            events.append(("dataset", path, kwargs))
+        def __len__(self): return self.count
+        def bind_policy_dependent_auxiliary_targets(self, **kwargs):
+            self.role = kwargs["role"]; events.append(("labels", self.role))
+    monkeypatch.setattr(runner.val, "EntryV10CtxDataset", Dataset)
+    identity = {"training_phase": phase, "query_minutes": list(queries)}
+    def bind(dataset, scope):
+        dataset._entry_observed_market_binding = {"identity": copy.deepcopy(identity), "role": dataset.role}
+    monkeypatch.setattr(hz, "bind_observed_entry_dataset", bind)
+    def model(metadata, normalization, device, **kwargs):
+        events.append(("model", kwargs)); value = TinyModel(normalization, **kwargs)
+        value.head_exit_action = torch.nn.Linear(3, 2)
+        return value
+    monkeypatch.setattr(runner.val, "_model", model)
+    def session(**kwargs):
+        assert kwargs["train_ds"].role == "TRAIN" and kwargs["val_ds"].role == "CONTROL256"
+        assert not kwargs["model"].head_exit_action.weight.requires_grad
+        kwargs["train_ds"].verified = True; events.append(("session_binding",))
+        return {"unit_verified": True}, torch.arange(17), torch.arange(17).flip(0)
+    monkeypatch.setattr(runner.trainer, "_prefix_candidate_training_binding", session)
+    def order(dataset, **kwargs):
+        assert dataset.verified; events.append(("epoch_order",)); return torch.arange(17).flip(0)
+    monkeypatch.setattr(runner.trainer, "_candidate_training_epoch_order", order)
+    cohort = {"measurement_only": True, "training_phase": phase, "source_split": "val"}
+    monkeypatch.setattr(cohorts, "build_chronological_measurement_cohort", lambda *a, **kw: copy.deepcopy(cohort))
+    monkeypatch.setattr(runner.trainer, "_native_candidate_val_context_binding",
+                        lambda context: events.append(("context", copy.deepcopy(context))))
+    def forbidden(*a, **kw): pytest.fail("Dynamic Entry construction entered an Exit owner")
+    monkeypatch.setattr(runner, "_require_component_sampler", forbidden)
+    monkeypatch.setattr(runner, "build_random_access_train_adapter_factory_v1", forbidden)
+    monkeypatch.setattr(runner.val, "UnifiedExitLifecycleCorpus", forbidden)
+    original = runner.torch.optim.AdamW
+    def optimizer(*a, **kw):
+        assert any(event[0] == "session_binding" for event in events)
+        assert any(event[0] == "context" for event in events)
+        events.append(("optimizer",)); return original(*a, **kw)
+    monkeypatch.setattr(runner.torch.optim, "AdamW", optimizer)
+    args = dict(files=files, dataset_run_id="UNIT_DYNAMIC_M5", seed_launch_path=None, seed_authority_path=None,
+        seed_authority_file_sha256=None, device=torch.device("cpu"), batch_size=16, epochs=1,
+        seed=20260911, learning_rate=.0001, weight_decay=.0001,
+        val_limits={"max_model_forwards": 100, "max_state_views": 256, "max_wall_seconds": 600,
+                    "progress_interval_forwards": 16}, chronological_prefix=bindings,
+        observed_entry_scope={"training_phase": phase, "query_minutes": queries})
+    return args, events, prefix, identity
+
+
+def test_dynamic_entry_component_uses_no_exit_and_validates_order_before_optimizer(dynamic_entry_component_chain):
+    args, events, prefix, identity = dynamic_entry_component_chain
+    result = runner._build_bound_full_train_components(**args)
+    assert result["entry_observed_market"] == identity
+    assert result["effective_train_rows"] == 17
+    assert result["entry_m5_path_single_epoch"]["last_batch_rows"] == 1
+    assert result["train_probe_ds"] is not result["train_ds"]
+    assert result["native_val_context"]["val_sequence_audit"] == prefix["physical_preprocessing"]["sequence_source_audits"]["val"]
+    assert "state_factory" not in result["native_val_context"] and "measurement_state_factories" not in result
+    assert result["unified_exit_lifecycle_evidence"]["exit_lifecycle_bound"] is False
+    names = [event[0] for event in events]
+    assert names.index("session_binding") < names.index("epoch_order") < names.index("optimizer")
+    assert result["optimizer"].state_dict()["state"] == {} and result["weight_ema"].steps == 0
+    optimized = {id(parameter) for group in result["optimizer"].param_groups for parameter in group["params"]}
+    assert id(result["model"].head_exit_action.weight) not in optimized
+    assert not result["model"].head_exit_action.weight.requires_grad
+    dataset_calls = [event for event in events if event[0] == "dataset"]
+    assert dataset_calls[0][2]["sequence_source_audit_json"] == args["files"]["sequence_source_audit"]
+    assert dataset_calls[1][2]["sequence_source_audit_json"] == args["files"]["val_sequence_source_audit"]
+
+
+@pytest.mark.parametrize("fault", ["exit_reference", "exit_file", "missing_scope", "geometry", "source", "order", "dataset_id"])
+def test_dynamic_entry_component_rejects_mixed_identity_before_optimizer(dynamic_entry_component_chain, monkeypatch, fault):
+    args, events, prefix, identity = dynamic_entry_component_chain
+    if fault == "exit_reference": args["exit_reference_policy"] = {"legacy": True}
+    elif fault == "exit_file": args["files"]["random_access_root"] = args["files"]["entry_measurement_coordinates"]
+    elif fault == "missing_scope": args["observed_entry_scope"] = None
+    elif fault == "geometry":
+        path = args["files"]["source_bundle_metadata"]; meta = json.loads(path.read_text()); meta["multi_tf"]["m5_seq_len"] += 1; _write(path, meta)
+    elif fault == "source": args["files"]["entry_train_parquet"].write_text("changed")
+    elif fault == "order": prefix["epoch0_parent_order"] = prefix["epoch0_parent_order"][::-1].copy()
+    elif fault == "dataset_id": args["dataset_run_id"] = "OTHER"
+    def forbidden(*a, **kw): pytest.fail("Invalid dynamic components reached optimizer")
+    monkeypatch.setattr(runner.torch.optim, "AdamW", forbidden)
+    with pytest.raises(RuntimeError, match="NATIVE_(DYNAMIC_M5|PREFIX_NATIVE_ORDER_MISMATCH)"):
+        runner._build_bound_full_train_components(**args)
+    assert not any(event[0] == "optimizer" for event in events)
+
+
+def test_dynamic_native_wrapper_binds_fixed_online_without_exit_economics(dynamic_entry_component_chain, tmp_path, monkeypatch):
+    from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+    args, events, prefix, identity = dynamic_entry_component_chain
+    components = runner._build_bound_full_train_components(**args)
+    meta = components["metadata"]
+    meta.update(dropout=.1, specialist_fusion={"num_layers": 1, "fusion_scale": 1., "cross_family_fusion_scale": 1.})
+    meta["multi_tf"].update(multi_tf_num_layers=1, multi_tf_scale=1.)
+    monkeypatch.setattr(runner.trainer, "_require_cuda_trainer_guard_execution", lambda **kw: None)
+    monkeypatch.setattr(runner.trainer, "_guard_no_rl", lambda: None)
+    monkeypatch.setattr(runner.trainer, "_GRAD_CLIP_NORM", runner.trainer._GRAD_CLIP_NORM)
+    monkeypatch.setattr(runner.trainer, "_WEIGHT_DECAY", runner.trainer._WEIGHT_DECAY)
+    seen = {}
+    monkeypatch.setattr(runner.trainer, "_run_resumable_candidate_training", lambda **kw: seen.update(kw) or {"unit": True})
+    def forbidden(*a, **kw): pytest.fail("Dynamic wrapper loaded Exit/economic readiness")
+    monkeypatch.setattr(runner.val, "_load_val_economics_readiness", forbidden)
+    result = runner._run_bound_full_train_candidate(components=components, files=args["files"],
+        device=torch.device("cuda"), run_id="UNIT_DYNAMIC_M5", dataset_run_id="UNIT_DYNAMIC_M5", output=tmp_path / "offline",
+        gx1_data=str(tmp_path), seed=args["seed"], learning_rate=args["learning_rate"], weight_decay=args["weight_decay"],
+        grad_clip_norm=1., recipe_source_provenance={"unit": True}, execution_budget={"unit": True},
+        execution_budget_sha256="b" * 64, invocation_started_monotonic=0.)
+    assert result == {"unit": True}
+    assert seen["checkpoint_monitor"] == DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+    assert seen["unified_exit_lifecycle_manifest_path"] is None and seen["epochs"] == 1
+    assert seen["save_top_k"] == 0
+    assert seen["chronological_prefix"] == args["chronological_prefix"]
+    # CUDA guard/session are spies: this is a wrapper join unit, no GPU admission.

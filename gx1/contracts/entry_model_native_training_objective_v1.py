@@ -76,6 +76,14 @@ def require_entry_training_phase(value: Any, *, context: str) -> str:
     return str(value)
 
 
+def require_native_serving_training_phase(value: Any, *, context: str) -> str:
+    """Reject unadmitted dynamic candidates; all remaining serving guards apply."""
+    phase = require_entry_training_phase(value, context=context)
+    if phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        raise RuntimeError(f"[{context}_DYNAMIC_ENTRY_CANDIDATE_NATIVE_AUTHORITY_NOT_ADMITTED]")
+    return phase
+
+
 def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
     phase = require_entry_training_phase(
         entry_training_phase, context="ENTRY_MODEL_NATIVE_OBJECTIVE"
@@ -118,7 +126,7 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
             "active_joint_task_names": list(active_joint_task_names(phase)),
             "entry_action_q_loss": "inactive_no_legacy_bps_authority",
             "unified_exit_action_q_loss": "inactive_no_exit_targets_or_gradients",
-            "entry_decision_authority": "none_dynamic_unitless_ratio_candidate_not_admitted",
+            "entry_decision_authority": "none_dynamic_quality_bps_candidate_not_admitted",
             "entry_primary_target_contract": entry_observed_dynamic_m5_path_contract(),
             "dynamic_component_losses": {
                 name: "independently_masked_raw_bps_mean_squared_error"
@@ -128,8 +136,9 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
             "dynamic_path_loss_reduction": "all_observed_cells_of_both_endpoint_kinds_per_task",
             "dynamic_candidate_uses_endpoint_kind": "terminal_open_inclusive",
             "dynamic_candidate_has_supervised_target": False,
-            "dynamic_candidate_is_expected_future_ratio": False,
-            "dynamic_candidate_is_cash_or_bps": False,
+            "dynamic_candidate_quality_contract": entry_observed_dynamic_m5_path_contract()["candidate_quality_contract"],
+            "dynamic_candidate_is_unconditional_expected_quality": False,
+            "dynamic_candidate_is_cash": False,
             "dynamic_candidate_native_authority_admitted": False,
             "inactive_legacy_auxiliary_heads": ["entry_action_q", "position_size", "dip", "timing", "tail_risk", "vol_forecast", "side_mae", "trendline_event"],
             "long_horizon_forecasts": "independently_masked_learning_support_without_entry_authority",

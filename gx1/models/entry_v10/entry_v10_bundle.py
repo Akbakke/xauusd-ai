@@ -54,6 +54,8 @@ from gx1.contracts.entry_exit_production_architecture_v1 import (
     require_entry_exit_production_architecture,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+    require_native_serving_training_phase,
     require_training_objective_contract,
 )
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
@@ -336,6 +338,17 @@ def _bundle_architecture_observation(
     return observed
 
 
+def _require_admitted_bundle_training_phase(meta, lock) -> None:
+    for owner, payload in (("META", meta), ("LOCK", lock)):
+        objective = payload.get("model_native_training_objective") if isinstance(payload, Mapping) else None
+        if (isinstance(objective, Mapping)
+                and objective.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+            checked = require_training_objective_contract(objective, context=f"ENTRY_BUNDLE_{owner}")
+            require_native_serving_training_phase(
+                checked["entry_training_phase"], context=f"ENTRY_BUNDLE_{owner}",
+            )
+
+
 def _require_exact_model_native_bundle_metadata(
     meta: Mapping[str, Any],
     lock: Mapping[str, Any],
@@ -346,6 +359,7 @@ def _require_exact_model_native_bundle_metadata(
     the loader never infers a missing value from the other file or a default.
     """
 
+    _require_admitted_bundle_training_phase(meta, lock)
     stale_artifacts = [
         f"{owner}.{key}"
         for owner, payload in (("meta", meta), ("lock", lock))
@@ -1843,6 +1857,7 @@ def load_entry_v10_ctx_bundle(
         meta = json.loads(meta_bytes.decode("utf-8"))
     except Exception as exc:
         raise RuntimeError("[ENTRY_BUNDLE_MODEL_NATIVE_JSON_INVALID]") from exc
+    _require_admitted_bundle_training_phase(meta, lock)
     for owner, payload in (("META", meta), ("LOCK", lock)):
         require_entry_exit_production_architecture(
             _bundle_architecture_observation(payload),

@@ -128,12 +128,13 @@ maskerte ekstremastatistikker med støtte fra manglende lagringsnuller.
 GC M15 minimum tradestørrelse er ekte konstant1 på116782observasjoner,
 1467mangler.055s minste maskebevisste rettelse er uavhengig revidert og
 kvalifisert i51fokuserte caser; én separat ny faktisk fit avventer ren binding;
-strenge konstant-/binærvakter beholdes. Ingen normalisering er publisert.
+strenge konstant-/binærvakter beholdes.055publiserte deretter den faktiske transformasjonen.
 Physicaltargetreceipt skal binde det faktiske fulle native-designet før
 nativeadmission; ingen midlertidig data-design. TRAIN-fit trenger ingen targets.
-Normaliserings-/nativeadmission gjenstår. Normaliseringskilden har nå en
-uttrykkelig dynamisk Entry-only-gren uten Exit-populasjon;22berørte tester
-bestod og5uendrede dynamiske modelltester gjenbrukes. Ingen markedsfit.
+055bestod faktisk wholeTRAIN-normalisering og streng finisher02:53UTC,
+357.914s, exit0/uendretfed117b1: context118249/lokalunion118800 og femMTFlaner.
+Ingen Exit-/VAL-/TEST-fit. Den publiserte transformasjonen gjenbrukes.
+Nativeadmission, faktisk modellkonsum og læring gjenstår.
 Originalkvitteringer, datasettbytes og025s gamle populasjonsbevis omskrives ikke.
 
 022M5/cache/model-source og026M1 er fysisk COMPLETE, exit0, uendret kilde og
@@ -296,7 +297,7 @@ forventningsclaim. Ratioen kunne ikke avstå på grunn av høy MAE alene.
 
 Dynamisk fysisk TRAIN118249/VAL17284 og fersk wholeTRAIN-registryfit er
 fullført i047/048/049. Gjeldende051fysisk metadatabinding og053full input-liveness er fullført.
-WholeTRAIN-normalisering, fersk initialbaseline/paritet og dynamisk læring gjenstår. Den ene
+055wholeTRAIN-normalisering er bestått; fersk initialbaseline/paritet og dynamisk læring gjenstår. Den ene
 bestilte epoken krever fortsatt alle eksisterende kildescope-/input-/mål-/
 optimizer-/resume-/maskinvareporter. Dette dokumentet og handovervelgeren gir
 ingen launchautoritet; status og eksakte bevisbindinger eies av policyen.

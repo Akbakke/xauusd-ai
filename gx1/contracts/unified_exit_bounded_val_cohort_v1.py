@@ -351,6 +351,104 @@ def _physical_measurement_arrays(inputs):
     return arrays, {"source_m1": source, "source_m1_manifest": mb}
 
 
+def _dynamic_m5_measurement_cohort(design_binding, binding, result, *, role):
+    """Use frozen Entry parent IDs; no Exit index or sampled-state namespace."""
+    from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_DECISION_BAR_SECONDS
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+    )
+    from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
+        require_physical_chronological_preprocessing, require_physical_native_training_coordinates,
+    )
+
+    def read(value):
+        checked = require_binding(value, label="dynamic M5 measurement input", verify_file=True)
+        return read_bound_json(Path(checked["path"]), checked["sha256"])
+
+    design_binding = require_binding(design_binding, label="chronological design", verify_file=True)
+    design = read(design_binding)
+    scope = design.get("scope", {})
+    artifacts = result.get("chronological_prefix")
+    if (design.get("schema_version") != "gx1_frozen_chronological_learning_design_v1"
+            or design.get("status") != "DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE"
+            or scope.get("entry_only_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or scope.get("test_sealed") is not True
+            or scope.get("existing_control_periods_are_reused_development") is not True
+            or scope.get("native_launch_authorized") is not False
+            or scope.get("one_experiment") is not True
+            or not isinstance(artifacts, Mapping)
+            or set(artifacts) != {"design", "normalization_result", "labels_result", "native_coordinates"}
+            or artifacts["design"] != design_binding
+            or set(result) != {"schema_version", "decision", "chronological_prefix", "population_witness",
+                "native_sampler_contract", "native_coordinates_complete", "entry_measurement_complete",
+                "native_launch_admitted", "test_data_used", "model_forwards", "optimizer_steps", "fits"}
+            or result.get("decision") != "NATIVE_COORDINATES_FROZEN_PENDING_ENTRY_MEASUREMENT_AND_LAUNCH_ADMISSION"
+            or result.get("native_coordinates_complete") is not True
+            or result.get("entry_measurement_complete") is not False
+            or result.get("native_launch_admitted") is not False
+            or result.get("test_data_used") is not False
+            or any(type(result.get(key)) is not int or result[key] != 0
+                   for key in ("model_forwards", "optimizer_steps", "fits"))):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DYNAMIC_RESULT_INVALID")
+    physical = require_physical_chronological_preprocessing(
+        artifacts, design=design, normalization=read(artifacts["normalization_result"]),
+        labels=read(artifacts["labels_result"]))
+    coordinates = require_physical_native_training_coordinates(artifacts, design=design, physical=physical)
+    if (result["population_witness"] != coordinates.get("population_witness")
+            or result["native_sampler_contract"] != coordinates.get("native_sampler_contract")):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DYNAMIC_POPULATION_MISMATCH")
+    split = "train" if role == "train" else "val"
+    source = physical["physical_sources"][split]
+    source_parquet = require_binding(source["parquet"], label="dynamic M5 Entry source", verify_file=True)
+    source_manifest = require_binding(source["manifest"], label="dynamic M5 Entry manifest", verify_file=True)
+    clock = pd.DatetimeIndex(pd.to_datetime(
+        pd.read_parquet(source_parquet["path"], columns=["time"])["time"], utc=True, errors="raise")).as_unit("ns")
+    population = source["physical_rows"]
+    source_clock_sha = hashlib.sha256(np.asarray(clock.asi8, dtype="<i8").tobytes()).hexdigest()
+    calendar = design["calendar"]
+    start_key, cutoff_key = (("train_entry_start_inclusive", "train_control_cutoff") if role == "train"
+                            else ("train_control_cutoff", "development_control_entry_end_exclusive"))
+    start, cutoff = (pd.Timestamp(calendar[key]) for key in (start_key, cutoff_key))
+    if (type(population) is not int or population <= 0 or len(clock) != population
+            or clock.hasnans or not clock.is_unique or not clock.is_monotonic_increasing
+            or not clock.floor(pd.Timedelta(seconds=ENTRY_DECISION_BAR_SECONDS)).equals(clock)
+            or source_clock_sha != source["clock_sha256"]
+            or any(pd.isna(stamp) or stamp.tzinfo is None or stamp.utcoffset() != pd.Timedelta(0)
+                   for stamp in (start, cutoff))
+            or not start < cutoff <= pd.Timestamp("2026-07-01T00:00:00Z")
+            or np.any(clock.asi8 < start.value) or np.any(clock.asi8 >= cutoff.value)):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DYNAMIC_CLOCK_INVALID")
+    if role == "train":
+        parents = np.asarray(coordinates["probe_parent_rows"])
+        requested = design["budget"]["train_only_probe_entries"]
+    else:
+        rows_binding = require_binding(physical["control_parent_rows"], label="frozen control rows", verify_file=True)
+        parents = np.load(rows_binding["path"], allow_pickle=False)
+        requested = design["selection"]["control_entries"]
+    if (type(requested) is not int or requested != 256
+            or parents.dtype != np.dtype("int64") or parents.shape != (requested,)
+            or len(np.unique(parents)) != requested or np.any(parents < 0) or np.any(parents >= population)
+            or (role == "control" and not np.array_equal(parents, np.unique(parents)))):
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DYNAMIC_ROWS_INVALID")
+    value = {
+        "schema_version": MEASUREMENT_SCHEMA, "split": split, "source_split": split,
+        "measurement_only": True, "measurement_role": role,
+        "evaluation_role": ("chronological_training_probe" if role == "train"
+                            else "chronological_reused_development_control"),
+        "training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "plan": design_binding, "measurement_coordinates": binding,
+        "native_coordinates": coordinates["binding"], "population_witness": coordinates["population_witness"],
+        "parent_entry_parquet": source_parquet, "parent_entry_manifest": source_manifest,
+        "population_rows": population, "source_clock_sha256": source_clock_sha,
+        "entry_row_indices": parents.tolist(), "parent_entry_row_indices": parents.tolist(),
+        "entry_time_ns": clock.asi8[parents].tolist(), "reference_cutoff_time_ns": int(cutoff.value),
+        "selection_uses_outcome_values": False, "exit_evaluation": False,
+        "native_launch_authorized": False, "test_data_used": False,
+    }
+    value["cohort_sha256"] = canonical_sha256(value)
+    return value
+
+
 def build_chronological_measurement_cohort(
     design_binding: Mapping[str, str], coordinates_binding: Mapping[str, str], *, role: str,
 ) -> dict[str, Any]:
@@ -359,6 +457,8 @@ def build_chronological_measurement_cohort(
         raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_ROLE_INVALID")
     binding = require_binding(coordinates_binding, label="measurement coordinates", verify_file=True)
     result = read_bound_json(Path(binding["path"]), binding["sha256"])
+    if result.get("schema_version") == "gx1_dynamic_m5_native_coordinate_publication_v1":
+        return _dynamic_m5_measurement_cohort(design_binding, binding, result, role=role)
     physical = result.get("schema_version") == "gx1_physical_prefix_measurement_coordinates_v1"
     inputs = _physical_measurement_inputs(design_binding, result, role=role) if physical else None
     control = inputs["control"] if physical else build_chronological_control_cohort(design_binding)
@@ -448,6 +548,8 @@ def build_chronological_train_rollout_cohort(
     """Reuse frozen TRAIN identities with an observation end, never launch authority."""
     probe = build_chronological_measurement_cohort(
         design_binding, coordinates_binding, role="train")
+    if probe.get("exit_evaluation") is False:
+        raise RuntimeError("CHRONOLOGICAL_MEASUREMENT_DYNAMIC_ROLLOUT_FORBIDDEN")
     # Rollout/one-position accounting requires chronological order. Preserve the
     # exact frozen identities and their parent mapping; no outcome-based selection.
     pairs = sorted(zip(probe["entry_row_indices"], probe["parent_entry_row_indices"]))

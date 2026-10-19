@@ -32,7 +32,9 @@ from gx1.contracts.unified_exit_random_access_val_checkpoint_v1 import (
     require_selected_weight_ema_checkpoint_binding_v1,
 )
 from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import RESULT_SCHEMA_VERSION
-from gx1.contracts.entry_candidate_checkpoint_policy_v1 import native_checkpoint_monitor
+from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
+    native_checkpoint_monitor, DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+)
 
 
 NATIVE_FULL_TRAIN_RECIPE_SCHEMA = "gx1_unified_exit_random_access_full_train_recipe_v1"
@@ -43,6 +45,12 @@ _DATA_FILES = frozenset({
     "entry_val_parquet", "entry_val_manifest", "m5_prebuilt", "sequence_source_audit",
 })
 _INITIALIZATION = "completed_smoke_ema_then_fresh_main_optimizer_ema_scheduler"
+_DYNAMIC_M5_DATA_FILES = frozenset({
+    "entry_train_parquet", "entry_train_manifest", "entry_val_parquet", "entry_val_manifest",
+    "m5_prebuilt", "source_bundle_metadata", "sequence_source_audit", "val_sequence_source_audit",
+    "entry_only_base_normalization", "entry_measurement_coordinates",
+})
+
 
 
 def _native_recipe_source_bindings(repo: Path) -> dict[str, Any]:
@@ -215,6 +223,12 @@ def _require_component_sampler(*, files, chronological_prefix):
         if "selected_sampler" in files:
             raise RuntimeError("NATIVE_FULL_TRAIN_LEGACY_SAMPLER_CHANGE_FORBIDDEN")
         return None
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+        if "selected_sampler" in files or require_m5_single_epoch_population(design) is None:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_EXIT_SAMPLER_FORBIDDEN")
+        return None  # the exact Entry population witness owns this phase's order
     if "selected_sampler" not in files:
         raise RuntimeError("NATIVE_PREFIX_MEASURED_SAMPLER_REQUIRED")
     from gx1.contracts.unified_exit_selected_sampler_v1 import (
@@ -302,11 +316,23 @@ def _require_prefix_component_bindings(value, *, files, seed, batch_size, learni
             for kind in ("parquet", "manifest"):
                 if str(files[f"entry_{split}_{kind}"]) != physical["physical_sources"][split][kind]["path"]:
                     raise RuntimeError("NATIVE_PREFIX_COMPONENT_SOURCE_INVALID")
-        if _bound_artifact(physical["composite_normalization"]) != files["child_composite_normalization"]:
+        dynamic = physical.get("entry_training_phase") == trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        normalization_key = "entry_only_base_normalization" if dynamic else "composite_normalization"
+        file_key = "entry_only_base_normalization" if dynamic else "child_composite_normalization"
+        if _bound_artifact(physical[normalization_key]) != files.get(file_key):
             raise RuntimeError("NATIVE_PREFIX_COMPONENT_NORMALIZATION_INVALID")
         coordinates = require_physical_native_training_coordinates(
             value, design=design, physical=physical)
-        if (coordinates["selected_sampler_binding"]["path"] != str(files.get("selected_sampler"))
+        if dynamic:
+            if ("selected_sampler" in files or single_epoch is None
+                    or coordinates.get("population_witness") != single_epoch["binding"]
+                    or coordinates.get("native_sampler_contract") != single_epoch["witness"]["native_sampler_contract"]
+                    or "val_sequence_source_audit" not in files):
+                raise RuntimeError("NATIVE_PREFIX_COMPONENT_COORDINATE_SOURCES_INVALID")
+            for split, key in (("train", "sequence_source_audit"), ("val", "val_sequence_source_audit")):
+                if _bound_artifact(physical["sequence_source_audits"][split]) != files.get(key):
+                    raise RuntimeError("NATIVE_PREFIX_COMPONENT_COORDINATE_SOURCES_INVALID")
+        elif (coordinates["selected_sampler_binding"]["path"] != str(files.get("selected_sampler"))
                 or coordinates["selected_sampler_binding"]["sha256"] != val.file_sha256(files["selected_sampler"])
                 or "val_sequence_source_audit" not in files):
             raise RuntimeError("NATIVE_PREFIX_COMPONENT_COORDINATE_SOURCES_INVALID")
@@ -433,6 +459,143 @@ def _bound_measurement_state_factory(*, manifest, index_path, manifest_path, roo
     )
 
 
+def _configure_component_training_phase(model, entry_phase):
+    _require_component_model_phase(model, entry_phase)
+    from gx1.contracts.entry_observed_market_v1 import is_inactive_phase_parameter
+    from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
+    for name, parameter in model.named_parameters():
+        parameter.requires_grad_(not is_inactive_phase_parameter(name, entry_phase))
+    model.train()
+    active_tasks = {name for name, parameter in model.task_log_variances.items() if parameter.requires_grad}
+    if active_tasks != set(active_joint_task_names(entry_phase)):
+        raise RuntimeError("NATIVE_COMPONENT_ACTIVE_TASK_VARIANCES_MISMATCH")
+
+
+def _component_optimizer_state(*, model, entry_phase, train_rows, batch_size, epochs,
+                               learning_rate, weight_decay):
+    joint = [parameter for parameter in model.task_log_variances.parameters() if parameter.requires_grad]
+    joint_ids = {id(parameter) for parameter in joint}
+    optimizer = torch.optim.AdamW([
+        {"params": [p for p in model.parameters() if p.requires_grad and id(p) not in joint_ids], "weight_decay": weight_decay},
+        {"params": joint, "weight_decay": 0.0},
+    ], lr=learning_rate)
+    ema_derivation = trainer.resolve_weight_ema_decay(
+        trainer.ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED,
+        train_rows=train_rows,
+        batch_size=batch_size, grad_accum_steps=1,
+    )
+    weight_ema = trainer._WeightEma(model, float(ema_derivation["weight_ema_decay"]),
+        entry_training_phase=entry_phase)
+    scheduler = (
+        torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.0)
+        if trainer.ENTRY_TRAIN_LR_COSINE_DECAY == 1 else None
+    )
+    return optimizer, weight_ema, scheduler, ema_derivation
+
+
+def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_entry_scope,
+        dataset_run_id, device, batch_size, epochs, seed, learning_rate, weight_decay, val_limits):
+    """Bind the existing Entry Dataset/model without constructing any Exit owner."""
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_horizons_v1 import bind_observed_entry_dataset
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological_measurement_cohort
+    phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    limits = {"max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards"}
+    if (set(files) != _DYNAMIC_M5_DATA_FILES or epochs != 1 or batch_size != 16
+            or not isinstance(observed_entry_scope, Mapping) or observed_entry_scope.get("training_phase") != phase
+            or set(val_limits) != limits):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_SCOPE_INVALID")
+    prefix = _require_prefix_component_bindings(chronological_prefix, files=files, seed=seed,
+        batch_size=batch_size, learning_rate=learning_rate, weight_decay=weight_decay)
+    physical = prefix.get("physical_preprocessing", {})
+    single = prefix.get("entry_m5_path_single_epoch")
+    if (physical.get("entry_training_phase") != phase or single is None
+            or single["witness"]["training_phase"] != phase):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_PHYSICAL_BINDING_REQUIRED")
+    meta = val._read(files["source_bundle_metadata"])
+    val._bind_multi_tf_cache_from_source_bundle_metadata(meta)
+    per_tf = {tf.upper(): int(meta["multi_tf"][tf + "_seq_len"])
+              for tf in ("m5", "m15", "h1", "h4", "d1")}
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+    if int(meta["seq_len"]) != trainer.MODEL_NATIVE_SEQ_LEN or per_tf != dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_GEOMETRY_MISMATCH")
+    normalization = val._read(files["entry_only_base_normalization"])["contract"]
+    if (normalization["contract_sha256"] != physical["base_contract_sha256"]
+            or normalization["lineage"]["dataset_run_id"] != dataset_run_id):
+        raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_DATASET_IDENTITY_MISMATCH")
+    datasets = {}
+    for split, role, audit_key in (("train", "TRAIN", "sequence_source_audit"),
+                                  ("val", "CONTROL256", "val_sequence_source_audit")):
+        source = physical["physical_sources"][split]
+        for kind in ("parquet", "manifest"):
+            if {"path": str(files[f"entry_{split}_{kind}"]), "sha256": val.file_sha256(files[f"entry_{split}_{kind}"])} != source[kind]:
+                raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_SOURCE_MISMATCH")
+        from gx1.contracts.entry_run_lineage_v1 import require_entry_run_id
+        manifest_run = val._read(files[f"entry_{split}_manifest"]).get("extra", {}).get("entry_run_id")
+        if require_entry_run_id(manifest_run) != dataset_run_id:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_DATASET_IDENTITY_MISMATCH")
+        dataset = val.EntryV10CtxDataset(files[f"entry_{split}_parquet"], seq_len=int(meta["seq_len"]),
+            m5_prebuilt_path=files["m5_prebuilt"], per_tf_seq_lens=per_tf,
+            multi_tf_closed_bar=True, sequence_source_audit_json=files[audit_key])
+        if len(dataset) != source["physical_rows"]:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_SOURCE_MISMATCH")
+        dataset.bind_policy_dependent_auxiliary_targets(
+            result_path=Path(chronological_prefix["labels_result"]["path"]),
+            expected_result_sha256=chronological_prefix["labels_result"]["sha256"],
+            expected_design_sha256=chronological_prefix["design"]["sha256"], role=role)
+        bind_observed_entry_dataset(dataset, observed_entry_scope)
+        if getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_EXIT_LIFECYCLE_FORBIDDEN")
+        datasets[split] = dataset
+    train_probe = copy.copy(datasets["train"])
+    identity = datasets["train"]._entry_observed_market_binding["identity"]
+    queries = trainer._dynamic_m5_model_kwargs(phase)["dynamic_m5_query_minutes"]
+    if (identity != datasets["val"]._entry_observed_market_binding["identity"]
+            or any(tuple(binding.get("query_minutes", ())) != queries for binding in (identity, observed_entry_scope))):
+        raise RuntimeError("NATIVE_COMPONENT_SCOPE_DYNAMIC_QUERY_MISMATCH")
+    model, seed_binding = _fresh_prefix_model(metadata=meta, normalization=normalization,
+        device=device, seed=seed, entry_training_phase=phase)
+    _configure_component_training_phase(model, phase)
+    # This owner establishes the strict population/order authority before the
+    # epoch order is requested and before any optimizer is constructed.
+    session_binding, parents, expected_order = trainer._prefix_candidate_training_binding(
+        chronological_prefix=chronological_prefix, train_ds=datasets["train"], val_ds=datasets["val"],
+        train_parquet=files["entry_train_parquet"], val_parquet=files["entry_val_parquet"],
+        input_normalization=normalization, model=model, seed=seed, batch_size=batch_size,
+        learning_rate=learning_rate, weight_decay=weight_decay)
+    order = trainer._candidate_training_epoch_order(datasets["train"], epoch_index=0, parent_population=parents)
+    if (not torch.equal(order, expected_order) or not np.array_equal(order.numpy(), prefix["epoch0_parent_order"])
+            or parents.numel() != single["train_rows"]):
+        raise RuntimeError("NATIVE_PREFIX_NATIVE_ORDER_MISMATCH")
+    cohort = build_chronological_measurement_cohort(chronological_prefix["design"],
+        {"path": str(files["entry_measurement_coordinates"]), "sha256": val.file_sha256(files["entry_measurement_coordinates"])}, role="control")
+    context = {"entry_training_phase": phase, "entry_supervision_identity": identity,
+        "physical_sources": physical["physical_sources"],
+        "entry_only_base_normalization": physical["entry_only_base_normalization"],
+        "base_contract_sha256": physical["base_contract_sha256"], "evaluation_cohort": cohort,
+        "val_sequence_audit": physical["sequence_source_audits"]["val"], **dict(val_limits)}
+    trainer._native_candidate_val_context_binding(context)
+    optimizer, weight_ema, scheduler, ema_derivation = _component_optimizer_state(
+        model=model, entry_phase=phase, train_rows=int(parents.numel()), batch_size=batch_size,
+        epochs=epochs, learning_rate=learning_rate, weight_decay=weight_decay)
+    schedule = {"schema_version": "gx1_entry_only_dynamic_m5_native_epoch_schedule_v1", "epoch_index": 0,
+        "entry_pair_count": int(parents.numel()), "drop_last": False,
+        "population_witness": single["binding"], "native_sampler_contract": single["witness"]["native_sampler_contract"]}
+    schedule["schedule_sha256"] = val.canonical_sha256(schedule)
+    return {"model": model, "optimizer": optimizer, "weight_ema": weight_ema, "lr_scheduler": scheduler,
+        "train_ds": datasets["train"], "val_ds": datasets["val"], "train_probe_ds": train_probe,
+        "native_val_context": context, "input_normalization": normalization, "metadata": meta,
+        "per_tf_seq_lens": per_tf, "seed_binding": seed_binding, "weight_ema_derivation": ema_derivation,
+        "full_population_schedule": schedule, "chronological_prefix": prefix["bindings"],
+        "model_functions": prefix["model_functions"], "prefix_parent_population": parents.numpy().copy(),
+        "prefix_epoch0_parent_order": order.numpy().copy(), "effective_train_rows": int(parents.numel()),
+        "entry_m5_path_single_epoch": single, "entry_observed_market": identity,
+        "entry_only_session_binding": session_binding,
+        "unified_exit_lifecycle_evidence": {"schema_version": "gx1_native_entry_only_dynamic_m5_input_lineage_v1",
+            "physical_sources": physical["physical_sources"], "base_normalization": physical["entry_only_base_normalization"],
+            "sequence_source_audits": physical["sequence_source_audits"], "exit_lifecycle_bound": False}}
+
+
 def _build_bound_full_train_components(
     *, files: Mapping[str, Path], dataset_run_id: str,
     seed_launch_path: Path | None, seed_authority_path: Path | None,
@@ -462,6 +625,17 @@ def _build_bound_full_train_components(
         trainer._require_cuda_trainer_guard_execution(execution_tier="canonical")
     elif device.type != "cpu":
         raise RuntimeError("NATIVE_FULL_TRAIN_DEVICE_INVALID")
+    if chronological_prefix is not None:
+        design = val._read(_bound_artifact(chronological_prefix["design"]))
+        if design.get("scope", {}).get("entry_only_training_phase") == trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            if (any(value is not None for value in (seed_launch_path, seed_authority_path, seed_authority_file_sha256,
+                                                    exit_reference_policy, frozen_train_policy_scope))
+                    or exit_backup_steps != 1):
+                raise RuntimeError("NATIVE_DYNAMIC_M5_LEGACY_COMPONENT_FORBIDDEN")
+            return _build_dynamic_m5_entry_components(files=files, chronological_prefix=chronological_prefix,
+                observed_entry_scope=observed_entry_scope, dataset_run_id=dataset_run_id,
+                device=device, batch_size=batch_size, epochs=epochs,
+                seed=seed, learning_rate=learning_rate, weight_decay=weight_decay, val_limits=val_limits)
     trainer._set_deterministic(seed, device, "deterministic_fp32")
     selected_sampler = _require_component_sampler(
         files=files, chronological_prefix=chronological_prefix,
@@ -762,35 +936,14 @@ def _build_bound_full_train_components(
             expected_weight_ema_decay=float(source_launch["weight_ema_decay"]),
         )
         val.bind_preserved_v7_input_normalization(model, input_norm)
-    _require_component_model_phase(model, entry_phase)
-    from gx1.contracts.entry_observed_market_v1 import is_inactive_phase_parameter
-    from gx1.contracts.entry_model_native_training_objective_v1 import active_joint_task_names
-    for name, parameter in model.named_parameters():
-        parameter.requires_grad_(not is_inactive_phase_parameter(name, entry_phase))
-    model.train()
-    active_tasks = {name for name, parameter in model.task_log_variances.items() if parameter.requires_grad}
-    if active_tasks != set(active_joint_task_names(entry_phase)):
-        raise RuntimeError("NATIVE_COMPONENT_ACTIVE_TASK_VARIANCES_MISMATCH")
-    joint = [parameter for parameter in model.task_log_variances.parameters() if parameter.requires_grad]
-    joint_ids = {id(parameter) for parameter in joint}
-    optimizer = torch.optim.AdamW([
-        {"params": [p for p in model.parameters() if p.requires_grad and id(p) not in joint_ids], "weight_decay": weight_decay},
-        {"params": joint, "weight_decay": 0.0},
-    ], lr=learning_rate)
+    _configure_component_training_phase(model, entry_phase)
     effective_train_rows = (len(prefix["eligible_parent_rows"]) if prefix is not None
                             else root["latest_year_population"]["splits"]["train"]["selected_entry_row_count"]
                             if latest_year else len(datasets["train"]))
-    ema_derivation = trainer.resolve_weight_ema_decay(
-        trainer.ENTRY_TRAIN_WEIGHT_EMA_DECAY_DECLARED,
+    optimizer, weight_ema, scheduler, ema_derivation = _component_optimizer_state(
+        model=model, entry_phase=entry_phase,
         train_rows=(len(prefix["eligible_parent_rows"]) if prefix is not None else len(datasets["train"])),
-        batch_size=batch_size, grad_accum_steps=1,
-    )
-    weight_ema = trainer._WeightEma(model, float(ema_derivation["weight_ema_decay"]),
-        entry_training_phase=entry_phase)
-    scheduler = (
-        torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.0)
-        if trainer.ENTRY_TRAIN_LR_COSINE_DECAY == 1 else None
-    )
+        batch_size=batch_size, epochs=epochs, learning_rate=learning_rate, weight_decay=weight_decay)
     return {
         "model": model, "optimizer": optimizer, "weight_ema": weight_ema,
         "lr_scheduler": scheduler, "train_ds": datasets["train"],
@@ -846,12 +999,12 @@ def _run_bound_full_train_candidate(
         batch_size=16, num_workers=0, pin_memory=True,
         persistent_workers=False, prefetch_factor=None,
         epochs=1 if "entry_m5_path_single_epoch" in components else 30, early_stopping_patience=5, early_stopping_min_delta=0.0,
-        minimum_epochs_before_stop=1, save_top_k=1,
+        minimum_epochs_before_stop=1, save_top_k=(0 if "entry_only_session_binding" in components else 1),
         out_bundle_dir=output, gx1_data_override=gx1_data,
         run_id=run_id, dataset_run_id=dataset_run_id,
         train_parquet=files["entry_train_parquet"], val_parquet=files["entry_val_parquet"],
         m5_prebuilt_path=files["m5_prebuilt"],
-        unified_exit_lifecycle_manifest_path=files["random_access_root"],
+        unified_exit_lifecycle_manifest_path=(None if "entry_only_session_binding" in components else files["random_access_root"]),
         seed=seed, grad_accum_steps=1, grad_clip_norm=grad_clip_norm,
         weight_decay=weight_decay, lr=learning_rate, dropout=float(meta["dropout"]),
         seq_len=int(meta["seq_len"]),
@@ -864,9 +1017,9 @@ def _run_bound_full_train_candidate(
         precision_policy="deterministic_fp32", execution_budget=execution_budget,
         execution_budget_sha256=execution_budget_sha256,
         invocation_started_monotonic=invocation_started_monotonic,
-        checkpoint_monitor=native_checkpoint_monitor(
-            val._load_val_economics_readiness(files["economics_readiness"])["economics_objective_contract"]
-        ),
+        checkpoint_monitor=(DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+            if "entry_only_session_binding" in components else native_checkpoint_monitor(
+                val._load_val_economics_readiness(files["economics_readiness"])["economics_objective_contract"])),
         candidate_resume_origin=candidate_resume_origin,
         chronological_continuation=components.get("chronological_continuation"),
         entry_learning_study=components.get("entry_learning_study"),
@@ -1818,6 +1971,177 @@ def _restore_prefix_initial_measurement_state(*, components, scope, device):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_MODEL_MISMATCH")
 
 
+def _dynamic_m5_prefix_observations(*, model, dataset, cohort, context, device, deadline):
+    """Observe one frozen Entry cohort through the existing one-forward curve evaluator."""
+    import hashlib
+    import pandas as pd
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_observed_market_v1 import (
+        DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
+        DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY,
+        DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+    )
+    from gx1.contracts.entry_fitted_q_v1 import ENTRY_FITTED_Q_ACTION_ORDER
+    from gx1.contracts.entry_observed_market_horizons_v1 import (
+        M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+    )
+    from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT
+    phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    cohort = require_bounded_val_cohort(cohort)
+    binding = getattr(dataset, "_entry_observed_market_binding", {})
+    source = context["physical_sources"].get(cohort.get("source_split"), {})
+    parents = cohort.get("parent_entry_row_indices")
+    if (not isinstance(dataset, val.EntryV10CtxDataset)
+            or cohort.get("training_phase") != phase or cohort.get("exit_evaluation") is not False
+            or cohort.get("entry_row_indices") != parents or len(parents) != 256
+            or getattr(model, "entry_training_phase", None) != phase
+            or binding.get("identity") != context["entry_supervision_identity"]
+            or binding.get("role") != ("TRAIN" if cohort.get("measurement_role") == "train" else "CONTROL256")
+            or binding.get("physical_source") != source
+            or Path(dataset.parquet_path) != Path(source["parquet"]["path"])
+            or source["parquet"] != cohort["parent_entry_parquet"]
+            or source["manifest"] != cohort["parent_entry_manifest"]
+            or len(dataset) != source["physical_rows"] or len(dataset) != cohort["population_rows"]
+            or any(getattr(dataset, name, None) is not None for name in (
+                "_unified_exit_lifecycle", "_unified_exit_lifecycle_v2"))):
+        raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_SOURCE_INVALID")
+    times = pd.DatetimeIndex(pd.to_datetime(dataset.df["time"], utc=True)).as_unit("ns")
+    if (hashlib.sha256(np.asarray(times.asi8, dtype="<i8").tobytes()).hexdigest() != cohort["source_clock_sha256"]
+            or times.asi8[parents].tolist() != cohort["entry_time_ns"]):
+        raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_CLOCK_INVALID")
+    queries = tuple(trainer._dynamic_m5_model_kwargs(phase)["dynamic_m5_query_minutes"])
+    specs = (
+        ("dynamic_terminal_net_markout_bps", DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY),
+        ("dynamic_mfe_bps", DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY),
+        ("dynamic_pre_mfe_mae_upper_bps", DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY),
+        ("dynamic_closed_mfe_bps", DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY),
+        ("dynamic_closed_pre_mfe_mae_upper_bps", DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY),
+    )
+    component_specs = (*specs, ("forecast_pred", "_measurement_forecast_target", "_measurement_forecast_mask"))
+    accum = {name: {"target": hashlib.sha256(), "mask": hashlib.sha256(), "rows": 0,
+        "counts": np.zeros((trainer.FORECAST_HEAD_DIM,) if index == 5 else (len(queries), 3 if index == 0 else 2), np.int64),
+        "squared": np.zeros((trainer.FORECAST_HEAD_DIM,) if index == 5 else (len(queries), 3 if index == 0 else 2), np.float64),
+        "absolute": np.zeros((trainer.FORECAST_HEAD_DIM,) if index == 5 else (len(queries), 3 if index == 0 else 2), np.float64)}
+        for index, (name, _, _) in enumerate(component_specs)}
+    traces, observed_parents, pointers = [], [], []
+    forward_count = 0
+    def observe(*, batch, out):
+        nonlocal forward_count
+        if time.monotonic() >= deadline:
+            raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_WALL_LIMIT")
+        rows = batch["entry_row_index"].tolist()
+        start = len(observed_parents)
+        if (rows != parents[start:start + len(rows)]
+                or batch["dynamic_entry_parent_row_index"].tolist() != rows):
+            raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_ORDER_INVALID")
+        observed_parents.extend(rows)
+        pointers.extend(batch["dynamic_entry_m1_row"].tolist())
+        forward_count += 1
+        if forward_count > context["max_model_forwards"] or len(observed_parents) > context["max_state_views"]:
+            raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_COMPUTE_LIMIT")
+        batch = {**batch,
+            "_measurement_forecast_target": torch.cat((torch.stack([batch[f"y_forecast_ret_K{h}"]
+                for h in trainer.FORECAST_HORIZONS], dim=1), batch[SUPPORT_FORECAST_TARGET_BATCH_KEY]), dim=1),
+            "_measurement_forecast_mask": torch.cat((batch[M5_FORECAST_VALID_BATCH_KEY],
+                batch[SUPPORT_FORECAST_VALID_BATCH_KEY]), dim=1)}
+        values = {}
+        for name, target_key, mask_key in component_specs:
+            target = batch[target_key].detach().cpu().numpy()
+            mask = batch[mask_key].detach().cpu().numpy()
+            prediction = out[name].detach().float().cpu().numpy()
+            row = accum[name]
+            row["target"].update(np.asarray(target, dtype="<f4", order="C").tobytes())
+            row["mask"].update(np.asarray(mask, dtype=np.bool_, order="C").tobytes())
+            row["rows"] += int(mask.reshape(len(rows), -1).any(axis=1).sum())
+            row["counts"] += mask.sum(axis=0)
+            error = prediction.astype(np.float64) - target.astype(np.float64)
+            row["squared"] += np.where(mask, error * error, 0).sum(axis=0)
+            row["absolute"] += np.where(mask, np.abs(error), 0).sum(axis=0)
+            values[name] = (prediction, target, mask)
+        candidate = out["dynamic_entry_action_quality_bps_candidate"].detach().float().cpu().numpy()
+        horizon_mask = out.get("dynamic_entry_quality_best_horizon_mask")
+        horizon_values = out.get("dynamic_query_horizon_minutes")
+        if (not isinstance(horizon_mask, torch.Tensor) or horizon_mask.dtype != torch.bool
+                or tuple(horizon_mask.shape) != (len(rows), len(queries), 2)
+                or not isinstance(horizon_values, torch.Tensor) or horizon_values.dtype != torch.int64
+                or horizon_values.detach().cpu().tolist() != list(queries)):
+            raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_QUERY_INVALID")
+        horizon_mask = horizon_mask.detach().cpu().numpy()
+        for i, parent in enumerate(rows):
+            winners = np.flatnonzero(candidate[i] == candidate[i].max())
+            action = ENTRY_FITTED_Q_ACTION_ORDER[int(winners[0])] if len(winners) == 1 else "TIED_FAIL_CLOSED"
+            sides = []
+            for side in range(2):
+                best = np.flatnonzero(horizon_mask[i, :, side])
+                if not len(best):
+                    raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_HORIZON_EMPTY")
+                detail = {"side": ENTRY_FITTED_Q_ACTION_ORDER[side],
+                    "predicted_best_horizon_minutes": [queries[h] for h in best]}
+                for name, _, _ in specs:
+                    prediction, target, mask = values[name]
+                    valid = mask[i, best, side]
+                    detail[name] = {"observed_cells": int(valid.sum()),
+                        "predicted_mean_bps": float(prediction[i, best, side].astype(np.float64).mean()),
+                        **({"observed_target_mean_bps": float(target[i, best, side][valid].astype(np.float64).mean())}
+                           if valid.any() else {})}
+                sides.append(detail)
+            traces.append({"entry_row_index": parent, "entry_time_ns": cohort["entry_time_ns"][start + i],
+                "predicted_candidate_quality_bps": candidate[i].tolist(), "diagnostic_action": action,
+                "diagnostic_abstained": action in ("FLAT", "TIED_FAIL_CLOSED"),
+                "side_diagnostics": sides})
+    if math.ceil(len(parents) / 16) > context["max_model_forwards"] or len(parents) > context["max_state_views"]:
+        raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_COMPUTE_LIMIT")
+    source_loader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=val._ExactSampler(parents),
+        num_workers=0, generator=torch.Generator().manual_seed(0))
+    class DeadlineLoader:
+        def __init__(self):
+            self.dataset = dataset
+        def __iter__(self):
+            for batch in source_loader:
+                if time.monotonic() >= deadline:
+                    raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_WALL_LIMIT")
+                yield batch
+    loader = DeadlineLoader()
+    # The observer sees the exact materialized targets and outputs of this one evaluator call.
+    _, _, _, _, statistics = trainer._validate_dynamic_m5_curves(
+        model, loader, device, batch_observer=observe)
+    if observed_parents != parents or statistics.get("curve_evaluation_rows") != len(parents):
+        raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_INCOMPLETE")
+    frozen, errors = {}, {}
+    for name, _, _ in component_specs:
+        row = accum[name]
+        count = int(row["counts"].sum())
+        frozen[name] = {"shape": [len(parents), *row["counts"].shape], "target_dtype": "float32",
+            "mask_dtype": "bool", "target_storage_sha256": row["target"].hexdigest(),
+            "observed_mask_sha256": row["mask"].hexdigest(), "observed_cells": count,
+            "observed_rows": row["rows"],
+            ("observed_cells_by_forecast_coordinate" if name == "forecast_pred" else "observed_cells_by_horizon_and_side"): row["counts"].tolist()}
+        errors[name] = {"observed_cells": count, "observed_rows": row["rows"],
+            "sum_squared_error_bps2": float(row["squared"].sum()),
+            "sum_absolute_error_bps": float(row["absolute"].sum()),
+            **({"mse_bps2": float(row["squared"].sum() / count),
+                "mae_bps": float(row["absolute"].sum() / count)} if count else {}),
+            ("sum_squared_error_by_forecast_coordinate_bps2" if name == "forecast_pred" else "sum_squared_error_by_horizon_and_side_bps2"): row["squared"].tolist(),
+            ("sum_absolute_error_by_forecast_coordinate_bps" if name == "forecast_pred" else "sum_absolute_error_by_horizon_and_side_bps"): row["absolute"].tolist()}
+    return {"dynamic_frozen_targets": {"entry_supervision_identity": context["entry_supervision_identity"],
+            "parent_entry_rows": parents, "entry_time_ns": cohort["entry_time_ns"], "dynamic_entry_m1_rows": pointers,
+            "query_minutes": list(queries), "base_forecast_horizons": list(trainer.FORECAST_HORIZONS),
+            "support_forecast_layout": list(MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT), "components": frozen},
+        "dynamic_component_errors": errors, "dynamic_entry_observations": traces,
+        "dynamic_curve_statistics": statistics,
+        "dynamic_candidate_diagnostic_coverage": {"entries": len(traces),
+            "unique_action_counts": statistics["dynamic_candidate_unique_diagnostic_counts"],
+            "tied_fail_closed_rows": statistics["dynamic_candidate_tied_diagnostic_rows"],
+            "abstained_rows": sum(row["diagnostic_abstained"] for row in traces),
+            "selected_fraction": sum(not row["diagnostic_abstained"] for row in traces) / len(traces)},
+        "entry_model_forward_count": forward_count,
+        "exit_model_forward_count": 0, "dynamic_candidate_native_authority_admitted": False,
+        "candidate_target_comparison_uses_prediction_selected_horizons_only": True,
+        "component_masks_have_independent_denominators": True,
+        "realized_cash_or_native_policy_evaluated": False}
+
+
 def _run_prefix_initial_measurement(*, components, scope, recipe, output, device,
                                   invocation_started, pause_evidence, optimizer_steps=0):
     """Measure initial or fixed final ONLINE state at a durable native boundary."""
@@ -1832,6 +2156,10 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         raise RuntimeError("NATIVE_PREFIX_INITIAL_PAUSE_INVALID")
     context = components["native_val_context"]
     entry_identity = components.get("entry_observed_market")
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    dynamic = isinstance(entry_identity, Mapping) and entry_identity.get("training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if dynamic != ("entry_only_session_binding" in components):
+        raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_COMPONENT_MISMATCH")
     if (("entry_observed_market" in recipe or "entry_observed_market_horizons" in recipe)) != (entry_identity is not None):
         raise RuntimeError("NATIVE_PREFIX_OBSERVED_ENTRY_COMPONENT_MISMATCH")
     entry_evidence = {} if entry_identity is None else {"entry_observed_market": entry_identity}
@@ -1848,6 +2176,15 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                 or any(getattr(components[key], "_entry_observed_market_binding", {}).get("identity") != entry_identity
                        for key in ("train_probe_ds", "val_ds"))):
             raise RuntimeError("NATIVE_PREFIX_OBSERVED_ENTRY_SESSION_MISMATCH")
+    if dynamic:
+        if (session._contract.get("chronological_prefix") != components["entry_only_session_binding"]
+                or context.get("entry_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                or context.get("entry_supervision_identity") != entry_identity
+                or "measurement_state_factories" in components):
+            raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_SESSION_MISMATCH")
+        context_binding = trainer._native_candidate_val_context_binding(context)
+        if session._contract.get("native_bounded_control") != context_binding:
+            raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_CONTEXT_MISMATCH")
     before = val.file_sha256(session._active_path)
     if before != pause_evidence["active_pointer_sha256"]:
         raise RuntimeError("NATIVE_PREFIX_INITIAL_POINTER_MISMATCH")
@@ -1873,13 +2210,15 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_prefix_measurement_source_binding
     source_binding = require_prefix_measurement_source_binding(recipe)
     factories = components.get("measurement_state_factories")
-    if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS:
+    if not dynamic and functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS:
         if (not isinstance(factories, Mapping) or set(factories) != {"train", "control"}
                 or any(getattr(factories[role], "source_split", None) != split
                        for role, split in (("train", "train"), ("control", "val")))):
             raise RuntimeError("NATIVE_PREFIX_PHYSICAL_MEASUREMENT_FACTORIES_REQUIRED")
-    target = trainer._copy_frozen_prefix_reference_model(model, model_functions=functions).to(device)
-    target.load_state_dict(state["target_model_state"], strict=True)
+    target = None
+    if not dynamic:
+        target = trainer._copy_frozen_prefix_reference_model(model, model_functions=functions).to(device)
+        target.load_state_dict(state["target_model_state"], strict=True)
     out = directory / ("initial_measurement" if optimizer_steps == 0 else "final_online_measurement")
     if out.exists() or out.is_symlink():
         raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_EXISTS")
@@ -1896,50 +2235,62 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                 raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_WALL_LIMIT")
             cohort = build_chronological_measurement_cohort(recipe["chronological_prefix"]["design"],
                 scope["measurement"]["coordinate_result"], role=role)
-            if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS and role == "train":
+            if not dynamic and functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS and role == "train":
                 samples = components["train_ds"]._unified_exit_lifecycle_v2._random_access_train["samples_by_entry"]
                 observed = [[int(item["state_index"]) for item in sorted(samples[child], key=lambda item: item["sample_slot"])]
                             for child in cohort["entry_row_indices"]]
                 if observed != cohort["sampled_state_indices"]:
                     raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_TRAIN_SAMPLES_CHANGED")
-            _, diagnostics, _ = val._entry_representations(model=model, dataset=components[dataset_key],
-                parent_rows=cohort["parent_entry_row_indices"], device=device, batch_size=16,
-                candidate_target_model=target, candidate_state_factory=(factories[role] if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS else context["state_factory"]),
-                candidate_child_rows=cohort["entry_row_indices"], exit_boundary_model=target,
-                evaluation_cohort=cohort)
-            if (len(diagnostics["bounded_entry_observations"]) != 256
-                    or len(diagnostics["bounded_exit_anchor_observations"]) != 256
-                    or len(diagnostics["bounded_exit_sampled_observations"]) != 1024):
-                raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_INCOMPLETE")
+            if dynamic:
+                diagnostics = _dynamic_m5_prefix_observations(model=model, dataset=components[dataset_key],
+                    cohort=cohort, context=context, device=device, deadline=deadline)
+            else:
+                _, diagnostics, _ = val._entry_representations(model=model, dataset=components[dataset_key],
+                    parent_rows=cohort["parent_entry_row_indices"], device=device, batch_size=16,
+                    candidate_target_model=target, candidate_state_factory=(factories[role] if functions == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS else context["state_factory"]),
+                    candidate_child_rows=cohort["entry_row_indices"], exit_boundary_model=target,
+                    evaluation_cohort=cohort)
+                if (len(diagnostics["bounded_entry_observations"]) != 256
+                        or len(diagnostics["bounded_exit_anchor_observations"]) != 256
+                        or len(diagnostics["bounded_exit_sampled_observations"]) != 1024):
+                    raise RuntimeError("NATIVE_PREFIX_INITIAL_MEASUREMENT_INCOMPLETE")
             if time.monotonic() >= deadline:
                 raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_WALL_LIMIT")
             if optimizer_steps == final_step:
                 baseline = val._read(_bound_artifact(scope["initial_measurement"]["observations"][role]))
-                if "entry_baseline" in scope:
+                if "entry_baseline" in scope and not dynamic:
                     if role != "train" or recipe.get("chronological_train_only_measurement") is not True:
                         raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_TRAIN_ONLY_REQUIRED")
                     baseline["diagnostics"]["bounded_entry_observations"] = scope["entry_baseline"]["entry_observations"]
                 if (baseline["cohort"] != cohort or baseline["target_model_state_sha256"] != target_hash
                         or baseline.get("entry_observed_market") != entry_identity):
                     raise RuntimeError("NATIVE_PREFIX_FINAL_COHORT_OR_TEACHER_CHANGED")
-                for key, prediction in (("bounded_entry_observations", "predicted_q_bps"),
-                        ("bounded_exit_anchor_observations", "prediction_hold_bps"),
-                        ("bounded_exit_sampled_observations", "prediction_hold_bps")):
-                    old, new = baseline["diagnostics"][key], diagnostics[key]
-                    without_predictions = lambda rows: [{k:v for k,v in row.items() if k != prediction} for row in rows]
-                    if without_predictions(old) != without_predictions(new):
+                if dynamic:
+                    if ("entry_baseline" in scope
+                            or baseline["diagnostics"].get("dynamic_frozen_targets") != diagnostics["dynamic_frozen_targets"]):
                         raise RuntimeError("NATIVE_PREFIX_FINAL_FROZEN_TARGET_CHANGED")
-                    diagnostics[key] = [{**saved, prediction: fresh[prediction]} for saved, fresh in zip(old, new)]
+                else:
+                    for key, prediction in (("bounded_entry_observations", "predicted_q_bps"),
+                            ("bounded_exit_anchor_observations", "prediction_hold_bps"),
+                            ("bounded_exit_sampled_observations", "prediction_hold_bps")):
+                        old, new = baseline["diagnostics"][key], diagnostics[key]
+                        without_predictions = lambda rows: [{k:v for k,v in row.items() if k != prediction} for row in rows]
+                        if without_predictions(old) != without_predictions(new):
+                            raise RuntimeError("NATIVE_PREFIX_FINAL_FROZEN_TARGET_CHANGED")
+                        diagnostics[key] = [{**saved, prediction: fresh[prediction]} for saved, fresh in zip(old, new)]
             report = {"schema_version": ("gx1_prefix_initial_prediction_observation_v1" if optimizer_steps == 0
                                           else "gx1_prefix_final_online_prediction_observation_v1"),
                 "role": role, "cohort": cohort, "model_state_sha256": expected,
                 "target_model_state_sha256": target_hash, "diagnostics": diagnostics,
-                "optimizer_steps": optimizer_steps, "test_data_used": False, **entry_evidence}
+                "optimizer_steps": optimizer_steps, "test_data_used": False, **entry_evidence,
+                **({"target_model_role": "frozen_constructor_anchor_no_forward", "exit_evaluation": False,
+                    "native_launch_authorized": False} if dynamic else {})}
             path = out / (role.upper() + "_OBSERVATION.json")
             trainer._candidate_training_session_atomic_write_json(path, report)
             observations[role] = {"path": str(path), "sha256": val.file_sha256(path)}
             print(json.dumps({"event": "PREFIX_MEASUREMENT_ROLE_COMPLETE", "role": role,
-                              "optimizer_steps": optimizer_steps, "entries": 256, "sampled_states": 1024}), flush=True)
+                              "optimizer_steps": optimizer_steps, "entries": 256,
+                              **({"entry_forwards": diagnostics["entry_model_forward_count"]} if dynamic else {"sampled_states": 1024})}), flush=True)
     finally:
         for module, training in modes:
             module.training = training
@@ -1957,7 +2308,9 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         "model_functions": dict(functions), **source_binding, **entry_evidence,
         "measurement_roles": list(observations),
         "optimizer_steps": optimizer_steps, "teacher_refreshed": False, "economic_rollout": False,
-        "test_data_used": False, "elapsed_native_seconds": time.monotonic() - invocation_started}
+        "test_data_used": False, "elapsed_native_seconds": time.monotonic() - invocation_started,
+        **({"target_model_role": "frozen_constructor_anchor_no_forward", "exit_evaluation": False,
+            "native_launch_authorized": False} if dynamic else {})}
     if optimizer_steps == final_step:
         result.update(initial_measurement=scope["artifacts"]["initial_measurement_result"],
                       initial_measurement_audit=scope["artifacts"]["initial_measurement_audit"],
@@ -2308,7 +2661,8 @@ def _native_resume_state(*, components: Mapping[str, Any], output: Path) -> dict
     state_path = directory / trainer._CANDIDATE_TRAINING_STATE_FILENAMES[slot]
     state_binding = {"path": str(state_path), "sha256": pointer["state_sha256"]}
     _bound_artifact(state_binding)
-    schedule = components["train_ds"]._unified_exit_lifecycle_v2.random_access_full_population_schedule_v1()
+    schedule = (components["full_population_schedule"] if "entry_only_session_binding" in components else
+                components["train_ds"]._unified_exit_lifecycle_v2.random_access_full_population_schedule_v1())
     if schedule["epoch_index"] != pointer["epoch_index"]:
         raise RuntimeError("NATIVE_FULL_TRAIN_DURABLE_SCHEDULE_MISMATCH")
     cursor_path = directory / "native_val" / f"epoch_{pointer['epoch_index'] + 1:04d}" / "ROLLOUT_PROGRESS.json"

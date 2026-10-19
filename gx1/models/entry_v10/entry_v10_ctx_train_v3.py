@@ -87,6 +87,7 @@ from gx1.contracts.entry_model_native_training_objective_v1 import (
     ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
     JOINT_FITTED_Q_TRAINING_PHASE,
     training_objective_contract_metadata,
+    require_native_serving_training_phase,
 )
 from gx1.contracts.entry_model_native_training_run_lineage_v1 import (
     FULL_POPULATION_ALGORITHM,
@@ -105,6 +106,7 @@ from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
     CHECKPOINT_MONITOR,
     COUPLED_NET_CHECKPOINT_MONITOR,
     MARKED_NET_CHECKPOINT_MONITOR,
+    DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
     CONSTANT_ACTION_INELIGIBLE_REASON,
     checkpoint_metric,
     checkpoint_policy_metadata,
@@ -1550,7 +1552,7 @@ def _new_candidate_training_progress(
     early stopping, model selection, task liveness, or full-trajectory VAL.
     """
 
-    return {
+    progress = {
         "schema_version": _CANDIDATE_TRAINING_PROGRESS_SCHEMA_VERSION,
         "joint_task_supervision_observed": {
             name: False for name in joint_task_names_for_phase(_prefix_training_phase(prefix_training_binding))
@@ -1581,6 +1583,11 @@ def _new_candidate_training_progress(
         },
         "validation_snapshot": None,
     }
+
+    if checkpoint_monitor == DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
+        for key in ("best_val", "best_policy_pnl", "best_unique_target_action_agreement"):
+            progress["checkpoint_selection"][key] = None
+    return progress
 
 
 def _require_candidate_training_progress(
@@ -1634,9 +1641,16 @@ def _require_candidate_training_progress(
             context="CANDIDATE_TRAINING_SELECTION",
             checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_training_binding,
         )
-        top_k = retain_top_k(
-            selection["top_k_checkpoints"], top_k=int(policy["save_top_k"])
-        )
+        if checkpoint_monitor == DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR:
+            expected = _new_candidate_training_progress(checkpoint_monitor=checkpoint_monitor,
+                prefix_training_binding=prefix_training_binding)["checkpoint_selection"]
+            if dict(selection) != expected or progress.get("validation_snapshot") is not None:
+                raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_ADAPTIVE_SELECTION_FORBIDDEN]")
+            top_k = []
+        else:
+            top_k = retain_top_k(
+                selection["top_k_checkpoints"], top_k=int(policy["save_top_k"])
+            )
     except RuntimeError as exc:
         raise RuntimeError("[CANDIDATE_TRAINING_SELECTION_STATE_INVALID]") from exc
     if top_k != list(selection["top_k_checkpoints"]):
@@ -12153,7 +12167,7 @@ def _candidate_training_session_contract(
     train_parquet: Path,
     val_parquet: Path,
     m5_prebuilt_path: Path,
-    lifecycle_manifest_path: Path,
+    lifecycle_manifest_path: Path | None,
     input_normalization: Mapping[str, Any],
     seed: int,
     batch_size: int,
@@ -12196,6 +12210,10 @@ def _candidate_training_session_contract(
     semantics.
     """
 
+    dynamic_prefix = (isinstance(prefix_training_binding, Mapping)
+                      and prefix_training_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    if dynamic_prefix and (exit_reference_policy is not None or lifecycle_manifest_path is not None or exit_backup_steps != 1):
+        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_EXIT_SOURCES_FORBIDDEN]")
     if type(exit_backup_steps) is not int or exit_backup_steps not in (1, 5):
         raise RuntimeError("[CANDIDATE_TRAINING_BACKUP_POLICY_INVALID]")
     if exit_reference_policy is not None:
@@ -12209,7 +12227,7 @@ def _candidate_training_session_contract(
                 or type(reference_cutoff_time_ns) is not int or reference_cutoff_time_ns <= 0
                 or prefix_training_binding.get("reference_cutoff_time_ns") != reference_cutoff_time_ns
                 or prefix_training_binding.get("input_normalization_sha256") != input_normalization.get("contract_sha256")
-                or exit_reference_policy is None))):
+                or (not dynamic_prefix and exit_reference_policy is None)))):
         raise RuntimeError("[CANDIDATE_PREFIX_SESSION_CONTRACT_INVALID]")
     if execution_tier != "canonical" or device_type not in ("cpu", "cuda"):
         raise RuntimeError("[CANDIDATE_TRAINING_EXECUTION_TIER_INVALID]")
@@ -12229,7 +12247,8 @@ def _candidate_training_session_contract(
         or int(grad_accum_steps) != 1
         or int(early_stopping_patience) < 1
         or int(minimum_epochs_before_stop) < 1
-        or int(save_top_k) < 1
+        or (type(save_top_k) is not int or save_top_k != 0 or int(epochs) != 1
+            if dynamic_prefix else int(save_top_k) < 1)
         or int(seq_len) < 1
         or set(per_tf_seq_lens) != set(MULTI_TF_TIMEFRAMES)
         or any(int(per_tf_seq_lens[name]) < 1 for name in MULTI_TF_TIMEFRAMES)
@@ -12249,15 +12268,12 @@ def _candidate_training_session_contract(
         or not math.isfinite(float(cross_family_fusion_scale))
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]")
-    checkpoint_policy = {
-        **checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor,
-            prefix_training_binding=prefix_training_binding),
-        "max_epochs": int(epochs),
-        "early_stop_patience": int(early_stopping_patience),
-        "minimum_epochs_before_stop": int(minimum_epochs_before_stop),
-        "save_top_k": int(save_top_k),
-        "early_stop_min_delta": float(early_stopping_min_delta),
-    }
+    checkpoint_policy = checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor,
+        prefix_training_binding=prefix_training_binding)
+    if not dynamic_prefix:
+        checkpoint_policy.update(max_epochs=int(epochs), early_stop_patience=int(early_stopping_patience),
+            minimum_epochs_before_stop=int(minimum_epochs_before_stop), save_top_k=int(save_top_k),
+            early_stop_min_delta=float(early_stopping_min_delta))
     try:
         require_checkpoint_policy(
             checkpoint_policy, context="CANDIDATE_TRAINING_RECIPE",
@@ -12274,10 +12290,19 @@ def _candidate_training_session_contract(
         "train_parquet": Path(train_parquet).resolve(strict=True),
         "val_parquet": Path(val_parquet).resolve(strict=True),
         "m5_prebuilt_path": Path(m5_prebuilt_path).resolve(strict=True),
-        "unified_exit_lifecycle_manifest": Path(lifecycle_manifest_path).resolve(
-            strict=True
-        ),
+        **({} if dynamic_prefix else {"unified_exit_lifecycle_manifest": Path(lifecycle_manifest_path).resolve(strict=True)}),
     }
+    if dynamic_prefix:
+        from gx1.contracts.local_random_access_campaign_v2 import require_binding
+        base = require_binding(prefix_training_binding.get("entry_only_base_normalization"),
+                               label="Entry-only session normalization", verify_file=True)
+        artifact_paths["entry_only_base_normalization"] = Path(base["path"])
+        audits = prefix_training_binding.get("sequence_source_audits")
+        if not isinstance(audits, Mapping) or set(audits) != {"train", "val"}:
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_SESSION_AUDITS_REQUIRED]")
+        for split in ("train", "val"):
+            audit = require_binding(audits[split], label="Entry-only session sequence audit", verify_file=True)
+            artifact_paths[split + "_sequence_source_audit"] = Path(audit["path"])
     if any(path.is_symlink() or not path.is_file() for path in artifact_paths.values()):
         raise RuntimeError("[CANDIDATE_TRAINING_ARTIFACT_PATH_INVALID]")
     from gx1.contracts.entry_model_native_train_launch_v1 import (
@@ -12335,9 +12360,9 @@ def _candidate_training_session_contract(
             "weight_decay": float(weight_decay),
             "learning_rate": float(lr),
             "dropout": float(dropout),
-            "early_stopping_patience": int(early_stopping_patience),
-            "early_stopping_min_delta": float(early_stopping_min_delta),
-            "minimum_epochs_before_stop": int(minimum_epochs_before_stop),
+            **({} if dynamic_prefix else {"early_stopping_patience": int(early_stopping_patience),
+                "early_stopping_min_delta": float(early_stopping_min_delta),
+                "minimum_epochs_before_stop": int(minimum_epochs_before_stop)}),
             "save_top_k": int(save_top_k),
             "checkpoint_policy": checkpoint_policy,
             "seq_len": int(seq_len),
@@ -12658,8 +12683,10 @@ def _write_pre_candidate_time_window_integration_report(
     return report_path
 
 
-def _validate_dynamic_m5_curves(model, loader, device):
+def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
     """Curve diagnostics only: no Exit replay, cash policy or native decision."""
+    if batch_observer is not None and not callable(batch_observer):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_BATCH_OBSERVER_INVALID")
     dataset = loader.dataset
     if getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
         raise RuntimeError("ENTRY_DYNAMIC_M5_MODEL_PHASE_MISMATCH")
@@ -12686,6 +12713,8 @@ def _validate_dynamic_m5_curves(model, loader, device):
             if (not isinstance(candidate, torch.Tensor) or tuple(candidate.shape) != (size, 3)
                     or not bool(torch.isfinite(candidate).all()) or not bool((candidate[:, 2] == 0).all())):
                 raise RuntimeError("ENTRY_DYNAMIC_M5_CANDIDATE_DIAGNOSTIC_INVALID")
+            if batch_observer is not None:
+                batch_observer(batch=batch, out=out)
             winners = candidate == candidate.amax(dim=1, keepdim=True)
             unique = winners.sum(dim=1) == 1
             tied += int((~unique).sum())
@@ -13937,7 +13966,9 @@ def _prefix_candidate_training_binding(
         "fixed_final_model_variant": "ONLINE",
         "initial_model_state_sha256": _model_state_sha256(model),
         "input_normalization_sha256": input_normalization["contract_sha256"],
-        "composite_normalization_sha256": normalization_identity["composite_normalization_sha256"],
+        **({"entry_only_base_normalization": normalization_identity["entry_only_base_normalization"],
+            "sequence_source_audits": normalization_identity["sequence_source_audits"]}
+           if dynamic else {"composite_normalization_sha256": normalization_identity["composite_normalization_sha256"]}),
     }
     observed = [getattr(dataset, "_entry_observed_market_binding", None) for dataset in (train_ds, val_ds)]
     if any(value is not None for value in observed):
@@ -14075,9 +14106,70 @@ def _candidate_training_epoch_order(
     return torch.as_tensor(ordered_parents.copy(), dtype=torch.int64)
 
 
+def _dynamic_entry_native_context_binding(context: Mapping[str, Any]) -> dict[str, Any]:
+    """Seal an Entry-only measurement context; never construct Exit state views."""
+    from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
+    from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
+    from gx1.contracts.entry_model_native_input_normalization_v1 import EXPECTED_SURFACES, require_input_normalization_contract
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+
+    limit_keys = ("max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards")
+    required = {"entry_training_phase", "entry_supervision_identity", "physical_sources",
+        "entry_only_base_normalization", "base_contract_sha256", "evaluation_cohort", "val_sequence_audit", *limit_keys}
+    if set(context) != required or context["entry_training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_INVALID]")
+    cohort = require_bounded_val_cohort(context["evaluation_cohort"])
+    identity, sources, split = context["entry_supervision_identity"], context["physical_sources"], cohort.get("source_split")
+    if (cohort.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or split not in ("train", "val") or cohort.get("exit_evaluation") is not False
+            or not isinstance(sources, Mapping) or set(sources) != {"train", "val"}
+            or not isinstance(identity, Mapping) or identity.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or identity.get("design") != cohort.get("plan")
+            or identity.get("target_contract") != entry_observed_dynamic_m5_path_contract()
+            or identity.get("query_minutes") != list(_dynamic_m5_model_kwargs(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)["dynamic_m5_query_minutes"])):
+        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_SOURCE_INVALID]")
+    source = sources[split]
+    if (cohort.get("parent_entry_parquet") != source.get("parquet")
+            or cohort.get("parent_entry_manifest") != source.get("manifest")
+            or cohort.get("population_rows") != source.get("physical_rows")
+            or cohort.get("source_clock_sha256") != source.get("clock_sha256")):
+        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_SOURCE_INVALID]")
+    base_binding = require_binding(context["entry_only_base_normalization"], label="Entry-only normalization", verify_file=True)
+    base = read_bound_json(Path(base_binding["path"]), base_binding["sha256"])
+    raw = base.get("contract", {})
+    contract = require_input_normalization_contract(raw,
+        expected_field_names={name: raw.get("surfaces", {}).get(name, {}).get("field_names", ()) for name in EXPECTED_SURFACES},
+        expected_ctx_cat_names=raw.get("ctx_cat", {}).get("field_names", ()),
+        expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    lineage, train = contract["lineage"], sources["train"]
+    if (base.get("schema_version") != "gx1_entry_only_dynamic_m5_base_normalization_v1"
+            or base.get("decision") != "PASS" or base.get("native_training_admitted") is not False
+            or base.get("entry_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or base.get("contract_sha256") != context["base_contract_sha256"] or contract["contract_sha256"] != context["base_contract_sha256"]
+            or lineage["train_parquet_path"] != train["parquet"]["path"] or lineage["train_parquet_sha256"] != train["parquet"]["sha256"]
+            or lineage["train_manifest_path"] != train["manifest"]["path"] or lineage["train_manifest_sha256"] != train["manifest"]["sha256"]
+            or lineage["entry_train_decision_row_count"] != train["physical_rows"]):
+        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_NORMALIZATION_INVALID]")
+    audit = require_binding(context["val_sequence_audit"], label="Entry-only sequence audit", verify_file=True)
+    if split == "train" and audit != base.get("sequence_source_audit"):
+        raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_AUDIT_INVALID]")
+    limits = {key: context[key] for key in limit_keys}
+    if any(type(value) is not int or value <= 0 for value in limits.values()):
+        raise RuntimeError("[CANDIDATE_NATIVE_VAL_LIMITS_INVALID]")
+    return {"schema_version": "gx1_candidate_native_dynamic_entry_context_v1",
+        "entry_training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "entry_supervision_identity": dict(identity), "physical_sources": dict(sources),
+        "entry_only_base_normalization": base_binding, "base_contract_sha256": contract["contract_sha256"],
+        "evaluation_cohort": cohort, "sequence_source_audit": audit, "compute_limits": limits,
+        "report_only": True, "exit_evaluation": False, "native_launch_authorized": False, "test_accessed": False}
+
+
 def _native_candidate_val_context_binding(context: Mapping[str, Any]) -> dict[str, Any]:
     """Bind native VAL sources and compute limits into the durable session."""
 
+    if (isinstance(context, Mapping)
+            and context.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+        return _dynamic_entry_native_context_binding(context)
     required = {
         "frame", "state_factory", "parent_coordinate_evidence", "val_sequence_audit",
         "max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards",
@@ -15144,23 +15236,42 @@ def _run_resumable_candidate_training(
         raise RuntimeError("[CANDIDATE_TRAINING_VAL_POPULATION_INVALID]")
     native_binding = None
     if native_val_context is not None:
-        if checkpoint_monitor not in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR} or weight_ema is None or execution_budget is None:
+        dynamic_prefix = (prefix_binding is not None
+                          and prefix_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+        allowed_monitors = ({DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR} if dynamic_prefix
+                            else {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR})
+        if checkpoint_monitor not in allowed_monitors or weight_ema is None or execution_budget is None:
             raise RuntimeError("[CANDIDATE_NATIVE_VAL_SESSION_CONFIGURATION_INVALID]")
         native_binding = _native_candidate_val_context_binding(native_val_context)
-        if prefix_binding is not None and (
-                native_binding.get("evaluation_cohort", {}).get("plan") != chronological_prefix["design"]
-                or native_binding.get("factory_receipt", {}).get("composite_normalization_sha256")
-                != prefix_binding["composite_normalization_sha256"]):
-            raise RuntimeError("[CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH]")
+        if prefix_binding is not None:
+            dynamic_prefix = prefix_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            cohort = native_binding.get("evaluation_cohort", {})
+            if (cohort.get("plan") != chronological_prefix["design"]
+                    or (dynamic_prefix and (
+                        native_binding.get("entry_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                        or native_binding.get("entry_only_base_normalization") != prefix_binding["entry_only_base_normalization"]
+                        or native_binding.get("base_contract_sha256") != prefix_binding["input_normalization_sha256"]
+                        or native_binding.get("physical_sources") != prefix_binding["physical_sources"]
+                        or native_binding.get("entry_supervision_identity") != prefix_binding["entry_observed_market"]["train"]["identity"]
+                        or native_binding.get("sequence_source_audit") != prefix_binding["sequence_source_audits"].get(cohort.get("source_split"))
+                        or cohort.get("reference_cutoff_time_ns") != prefix_binding["reference_cutoff_time_ns"]))
+                    or (not dynamic_prefix and (native_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                        or native_binding.get("factory_receipt", {}).get("composite_normalization_sha256")
+                           != prefix_binding["composite_normalization_sha256"]))):
+                raise RuntimeError("[CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH]")
         if execution_budget.get("resume_probe_val_rows") is not None:
             raise RuntimeError("[CANDIDATE_NATIVE_VAL_LEGACY_PROBE_FORBIDDEN]")
-    elif checkpoint_monitor in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR}:
+    elif checkpoint_monitor in {COUPLED_NET_CHECKPOINT_MONITOR, MARKED_NET_CHECKPOINT_MONITOR, DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR}:
         raise RuntimeError("[CANDIDATE_NATIVE_VAL_CONTEXT_REQUIRED]")
     train_adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
     random_access_binding = getattr(train_adapter, "_random_access_train", None)
     exit_backup_steps = random_access_binding.get("backup_steps", 1) if random_access_binding is not None else 1
     exit_reference_policy = random_access_binding.get("reference_policy") if random_access_binding is not None else None
     reference_cutoff = random_access_binding.get("reference_cutoff_time_ns") if random_access_binding is not None else None
+    if prefix_binding is not None and prefix_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+        if train_adapter is not None:
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_EXIT_ADAPTER_FORBIDDEN]")
+        reference_cutoff = prefix_binding["reference_cutoff_time_ns"]
     if (prefix_binding is None) != (reference_cutoff is None):
         raise RuntimeError("[CANDIDATE_PREFIX_CUTOFF_SESSION_BINDING_REQUIRED]")
     resolved_out_bundle_dir = _resolve_train_out_bundle_dir(
@@ -15175,7 +15286,9 @@ def _run_resumable_candidate_training(
             train_parquet=Path(train_parquet),
             val_parquet=Path(val_parquet),
             m5_prebuilt_path=Path(m5_prebuilt_path),
-            lifecycle_manifest_path=Path(unified_exit_lifecycle_manifest_path),
+            lifecycle_manifest_path=(None if prefix_binding is not None
+                and prefix_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                else Path(unified_exit_lifecycle_manifest_path)),
             input_normalization=input_normalization,
             seed=seed,
             batch_size=batch_size,
@@ -15521,6 +15634,8 @@ def _run_resumable_candidate_training(
             )
             return _result()
         selection = progress["checkpoint_selection"]
+        if checkpoint_monitor == DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR and phase != "train":
+            raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_VALIDATION_SELECTION_FORBIDDEN]")
         if phase == "train":
             if next_batch_offset > expected_train_batches:
                 raise RuntimeError("[CANDIDATE_TRAINING_BATCH_OFFSET_INVALID]")
@@ -18454,6 +18569,9 @@ def run_train(
             f"state={trained_model_native_state_contract.get('entry_run_id')!r}"
         )
 
+    require_native_serving_training_phase(
+        model_native_training_objective["entry_training_phase"], context="ENTRY_TRAIN_EXPORT",
+    )
     direction_decision_contract = model_direction_decision_contract_metadata()
     model_native_entry_fitted_q = entry_fitted_q_contract()
     entry_fitted_q_production_economics = (

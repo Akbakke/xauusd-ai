@@ -852,10 +852,11 @@ def test_dynamic_m5_objective_has_no_admitted_native_ratio_or_legacy_q_authority
     assert objective["exit_gradients_active"] is False
     assert objective["dynamic_candidate_native_authority_admitted"] is False
     assert objective["dynamic_candidate_has_supervised_target"] is False
-    assert objective["dynamic_candidate_is_expected_future_ratio"] is False
-    assert objective["dynamic_candidate_is_cash_or_bps"] is False
+    assert objective["dynamic_candidate_is_unconditional_expected_quality"] is False
+    assert objective["dynamic_candidate_is_cash"] is False
+    assert objective["dynamic_candidate_quality_contract"]["units"] == "quality_bps"
     assert objective["entry_action_q_loss"] == "inactive_no_legacy_bps_authority"
-    assert objective["entry_decision_authority"] == "none_dynamic_unitless_ratio_candidate_not_admitted"
+    assert objective["entry_decision_authority"] == "none_dynamic_quality_bps_candidate_not_admitted"
     assert require_training_objective_contract(objective, context="TEST") == objective
     objective["dynamic_candidate_native_authority_admitted"] = True
     with pytest.raises(RuntimeError, match="TRAINING_OBJECTIVE_CONTRACT_INVALID"):

@@ -622,7 +622,9 @@ def dynamic_prefix_binding_unit(physical_prepared, tmp_path, monkeypatch):
     data.value["native_coordinates"] = _write(directory / "coordinate-boundary.json",coordinates)
     physical = {"physical_sources":sources,"train_parent_rows":full_rows,
         "base_contract_sha256":data.composite["base_feature_normalization"]["contract_sha256"],
-        "composite_normalization_sha256":data.composite["composite_normalization_sha256"]}
+        "entry_only_base_normalization":data.value["normalization_result"],
+        "sequence_source_audits":{split:_write(directory / (split + "-audit-boundary.json"),{"split":split})
+                                  for split in ("train","val")}}
     seen = []
     def preprocessing(artifacts, **kwargs):
         assert "targets" not in kwargs["design"]
@@ -690,7 +692,9 @@ def test_dynamic_prefix_binding_unit_joins_real_witness_clock_pointer_and_roles_
     assert binding["maximum_optimizer_steps"] == case.witness["optimizer_steps"]
     assert binding["entry_training_phase"] == case.witness["training_phase"]
     assert binding["candidate_quality_native_authority_admitted"] is False
-    assert "selected_sampler" not in binding
+    assert "selected_sampler" not in binding and "composite_normalization_sha256" not in binding
+    assert binding["entry_only_base_normalization"] == case.data.value["normalization_result"]
+    assert set(binding["sequence_source_audits"]) == {"train", "val"}
     assert binding["entry_epoch_order_authority"] == {
         "population_witness":case.data.design["scope"]["entry_m5_path_single_epoch"],
         "native_sampler_contract":case.witness["native_sampler_contract"]}
@@ -770,3 +774,135 @@ def test_dynamic_prefix_epoch_order_proof_allows_exact_rebind_and_rejects_tamper
     with pytest.raises(RuntimeError,match="CANDIDATE_DYNAMIC_EPOCH_ORDER_REBIND_FORBIDDEN"):
         trainer._prefix_candidate_training_binding(**case.args)
     assert case.data.train._entry_dynamic_m5_epoch_order_binding == before
+
+
+@pytest.fixture(scope="module")
+def dynamic_context_normalization_contract():
+    from tests.model_native_input_normalization_support import input_normalization_fixture
+    return input_normalization_fixture(signal_names=["ordinary"], mtf_names=["ordinary_mtf"], rows=8,
+        entry_training_phase=trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+
+
+@pytest.fixture
+def dynamic_context_unit(tmp_path, monkeypatch, dynamic_context_normalization_contract):
+    """Real normalization contract; the separately tested cohort owner is a unit boundary."""
+    from gx1.contracts import unified_exit_bounded_val_cohort_v1 as cohorts
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    norm = copy.deepcopy(dynamic_context_normalization_contract)
+    lineage = norm["lineage"]
+    sources = {"train":{"parquet":{"path":lineage["train_parquet_path"],"sha256":lineage["train_parquet_sha256"]},
+        "manifest":{"path":lineage["train_manifest_path"],"sha256":lineage["train_manifest_sha256"]},
+        "physical_rows":lineage["entry_train_decision_row_count"],"clock_sha256":"4"*64},
+        "val":{"parquet":{"path":"/fixture/val.parquet","sha256":"5"*64},
+        "manifest":{"path":"/fixture/val.manifest.json","sha256":"6"*64},"physical_rows":8,"clock_sha256":"7"*64}}
+    plan = _write(tmp_path / "design-unit.json", {"unit_boundary":True})
+    audit = _write(tmp_path / "train-audit.json", {"unit_boundary":True,"split":"train"})
+    base = _write(tmp_path / "base.json", {"schema_version":"gx1_entry_only_dynamic_m5_base_normalization_v1",
+        "decision":"PASS","entry_training_phase":trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "native_training_admitted":False,"contract":norm,"contract_sha256":norm["contract_sha256"],"sequence_source_audit":audit})
+    identity = {"training_phase":trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,"design":plan,
+        "query_minutes":list(trainer._dynamic_m5_model_kwargs(trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)["dynamic_m5_query_minutes"]),
+        "target_contract":entry_observed_dynamic_m5_path_contract()}
+    cohort = {"training_phase":trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,"source_split":"train","plan":plan,
+        "parent_entry_parquet":sources["train"]["parquet"],"parent_entry_manifest":sources["train"]["manifest"],
+        "population_rows":sources["train"]["physical_rows"],"source_clock_sha256":sources["train"]["clock_sha256"],"exit_evaluation":False}
+    calls=[]
+    def checked(value):calls.append(value);return value
+    monkeypatch.setattr(cohorts,"require_bounded_val_cohort",checked)
+    context={"entry_training_phase":trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "entry_supervision_identity":identity,"physical_sources":sources,
+        "entry_only_base_normalization":base,"base_contract_sha256":norm["contract_sha256"],"evaluation_cohort":cohort,
+        "val_sequence_audit":audit,"max_model_forwards":16,"max_state_views":256,"max_wall_seconds":120,"progress_interval_forwards":16}
+    return SimpleNamespace(context=context,calls=calls)
+
+
+def test_dynamic_native_context_binds_entry_inputs_without_exit_factory(dynamic_context_unit):
+    case=dynamic_context_unit
+    bound=trainer._native_candidate_val_context_binding(case.context)
+    assert case.calls == [case.context["evaluation_cohort"]]
+    assert bound["entry_only_base_normalization"] == case.context["entry_only_base_normalization"]
+    assert bound["base_contract_sha256"] == case.context["base_contract_sha256"]
+    assert bound["sequence_source_audit"] == case.context["val_sequence_audit"]
+    assert bound["physical_sources"] == case.context["physical_sources"]
+    assert bound["exit_evaluation"] is bound["native_launch_authorized"] is False
+    assert "factory_receipt" not in bound and "entry_q_target_semantics" not in bound
+
+
+@pytest.mark.parametrize("fault", ["legacy_factory","clock","source","phase","target","query","normhash","audit","limit"])
+def test_dynamic_native_context_rejects_source_phase_normalization_or_legacy_mixing(dynamic_context_unit,fault):
+    context=copy.deepcopy(dynamic_context_unit.context)
+    if fault=="legacy_factory":context["state_factory"]=object()
+    elif fault=="clock":context["evaluation_cohort"]["source_clock_sha256"]="9"*64
+    elif fault=="source":context["evaluation_cohort"]["parent_entry_parquet"]=context["physical_sources"]["val"]["parquet"]
+    elif fault=="phase":context["entry_supervision_identity"]["training_phase"]="joint_fitted_q"
+    elif fault=="target":context["entry_supervision_identity"]["target_contract"]={}
+    elif fault=="query":context["entry_supervision_identity"]["query_minutes"]=[1]
+    elif fault=="normhash":context["base_contract_sha256"]="9"*64
+    elif fault=="audit":context["val_sequence_audit"]["sha256"]="9"*64
+    else:context["max_wall_seconds"]=True
+    with pytest.raises(RuntimeError):trainer._native_candidate_val_context_binding(context)
+
+
+def test_dynamic_session_contract_seals_base_audits_and_witness_without_exit_manifest(tmp_path,dynamic_prefix_binding_unit):
+    from tests.test_candidate_training_session import _dynamic_session_contract_arguments
+    case=dynamic_prefix_binding_unit
+    prefix,_,_=trainer._prefix_candidate_training_binding(**case.args)
+    args=_dynamic_session_contract_arguments(tmp_path,prefix=prefix,input_normalization=case.args["input_normalization"])
+    contract=trainer._candidate_training_session_contract(**args)
+    assert "unified_exit_lifecycle_manifest" not in contract["artifacts"]
+    assert contract["artifacts"]["entry_only_base_normalization"] == prefix["entry_only_base_normalization"]
+    for split in ("train","val"):
+        assert contract["artifacts"][split+"_sequence_source_audit"] == prefix["sequence_source_audits"][split]
+    assert "exit_reference_policy" not in contract["training"]
+    assert contract["training"]["reference_cutoff_time_ns"] == prefix["reference_cutoff_time_ns"]
+    assert contract["training"]["checkpoint_policy"]["checkpoint_monitor"] == trainer.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
+    assert contract["authority"]["bundle"] is contract["authority"]["test"] is False
+
+
+@pytest.mark.parametrize("fault",["exitpolicy","exitmanifest","backup","missing_audit","changed_base","legacy_without_exitpolicy","economic_monitor"])
+def test_dynamic_session_contract_rejects_exit_mixing_or_changed_source_seals(tmp_path,dynamic_prefix_binding_unit,fault):
+    from tests.test_candidate_training_session import _dynamic_session_contract_arguments
+    case=dynamic_prefix_binding_unit
+    prefix,_,_=trainer._prefix_candidate_training_binding(**case.args)
+    args=_dynamic_session_contract_arguments(tmp_path,prefix=prefix,input_normalization=case.args["input_normalization"])
+    if fault=="exitpolicy":args["exit_reference_policy"]={"fake":True}
+    elif fault=="exitmanifest":args["lifecycle_manifest_path"]=args["train_parquet"]
+    elif fault=="backup":args["exit_backup_steps"]=5
+    elif fault=="missing_audit":prefix["sequence_source_audits"].pop("val")
+    elif fault=="changed_base":Path(prefix["entry_only_base_normalization"]["path"]).write_bytes(b"changed")
+    elif fault=="economic_monitor":args["checkpoint_monitor"]=MARKED_NET_CHECKPOINT_MONITOR
+    else:prefix["entry_training_phase"]="joint_fitted_q"
+    with pytest.raises(RuntimeError):trainer._candidate_training_session_contract(**args)
+
+
+def test_dynamic_progress_preserves_empty_fixed_boundary_selection(dynamic_prefix_binding_unit):
+    case=dynamic_prefix_binding_unit
+    prefix,_,_=trainer._prefix_candidate_training_binding(**case.args)
+    kwargs={"checkpoint_monitor":trainer.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,"prefix_training_binding":prefix}
+    progress=trainer._new_candidate_training_progress(**kwargs)
+    selected=progress["checkpoint_selection"]
+    assert selected["checkpoint_policy"]["save_top_k"] == 0
+    assert selected["best_val"] is selected["best_policy_pnl"] is selected["best_unique_target_action_agreement"] is None
+    assert selected["top_k_checkpoints"] == [] and progress["validation_snapshot"] is None
+    assert trainer._require_candidate_training_progress(progress,**kwargs) == progress
+    # Genuine task gradient/observation evidence may advance independently of selection.
+    for flags in ("joint_task_supervision_observed","joint_task_gradient_observed"):
+        progress[flags]={name:True for name in progress[flags]}
+    assert trainer._require_candidate_training_progress(progress,**kwargs) == progress
+
+
+@pytest.mark.parametrize("fault",["score","topk","best_model","earlystop","valstate","valepoch"])
+def test_dynamic_progress_rejects_any_adaptive_or_validation_selection(dynamic_prefix_binding_unit,fault):
+    case=dynamic_prefix_binding_unit
+    prefix,_,_=trainer._prefix_candidate_training_binding(**case.args)
+    kwargs={"checkpoint_monitor":trainer.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,"prefix_training_binding":prefix}
+    progress=trainer._new_candidate_training_progress(**kwargs)
+    selection=progress["checkpoint_selection"]
+    if fault=="score":selection["best_val"]=0.
+    elif fault=="topk":selection["top_k_checkpoints"]=[{}]
+    elif fault=="best_model":selection["best_state"]={}
+    elif fault=="earlystop":selection["early_stopped"]=True
+    elif fault=="valepoch":selection["last_epoch"]=1
+    else:progress["validation_snapshot"]={}
+    with pytest.raises(RuntimeError,match="SELECTION_STATE_INVALID"):
+        trainer._require_candidate_training_progress(progress,**kwargs)

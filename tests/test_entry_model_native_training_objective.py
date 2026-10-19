@@ -8,6 +8,9 @@ from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     joint_task_weighting_objective_contract,
 )
 from gx1.contracts.entry_model_native_training_objective_v1 import (
+    SCHEMA_VERSION,
+    ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+    require_native_serving_training_phase,
     require_training_objective_contract,
     training_objective_contract_metadata,
 )
@@ -51,7 +54,7 @@ def test_training_objective_contract_is_exact_and_learned() -> None:
 def test_entry_only_phase_declares_observed_market_target_without_exit() -> None:
     payload = training_objective_contract_metadata(entry_training_phase="entry_only")
 
-    assert payload["schema_version"] == "entry_model_native_training_objective_v13"
+    assert payload["schema_version"] == SCHEMA_VERSION
     assert payload["entry_training_phase"] == "entry_only"
     assert payload["exit_gradients_active"] is False
     assert payload["entry_action_q_target"] == (
@@ -116,7 +119,7 @@ def test_training_objective_rejects_extra_surface() -> None:
 
 def test_entry_only_horizon_phase_declares_the_20_day_observed_target_without_exit() -> None:
     payload = training_objective_contract_metadata(entry_training_phase="entry_only_observed_horizon_20d")
-    assert payload["schema_version"] == "entry_model_native_training_objective_v13"
+    assert payload["schema_version"] == SCHEMA_VERSION
     assert payload["entry_training_phase"] == "entry_only_observed_horizon_20d"
     assert payload["exit_gradients_active"] is False
     assert "20_trading_days" in payload["entry_action_q_target"] and "without_exit_model" in payload["entry_action_q_target"]
@@ -137,3 +140,52 @@ def test_m5_path_phase_is_utility_without_exit_or_legacy_auxiliary_learning():
     assert value['fixed_relative_task_weights'] is False
     assert 'dip' in value['inactive_legacy_auxiliary_heads']
     assert require_training_objective_contract(value, context='TEST') == value
+
+
+def test_dynamic_objective_matches_existing_quality_bps_candidate_without_native_authority():
+    from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
+    value = training_objective_contract_metadata(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    quality = entry_observed_dynamic_m5_path_contract()["candidate_quality_contract"]
+    assert value["dynamic_candidate_quality_contract"] == quality
+    assert quality["units"] == "quality_bps" and quality["native_authority_admitted"] is False
+    assert value["entry_decision_authority"] == "none_dynamic_quality_bps_candidate_not_admitted"
+    assert value["dynamic_candidate_is_cash"] is False
+    assert value["dynamic_candidate_is_unconditional_expected_quality"] is False
+    assert value["dynamic_candidate_has_supervised_target"] is False
+    assert value["dynamic_candidate_native_authority_admitted"] is False
+    assert value["exit_gradients_active"] is False
+    assert "dynamic_candidate_is_cash_or_bps" not in value
+    assert "dynamic_candidate_is_expected_future_ratio" not in value
+    assert require_training_objective_contract(value, context="TEST") == value
+
+
+@pytest.mark.parametrize("fault", ["ratio", "units", "cash", "supervised_best_horizon", "authority"])
+def test_dynamic_objective_rejects_stale_ratio_or_false_quality_claims(fault):
+    import copy
+    value = training_objective_contract_metadata(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    value = copy.deepcopy(value)
+    if fault == "ratio": value["entry_decision_authority"] = "none_dynamic_unitless_ratio_candidate_not_admitted"
+    elif fault == "units": value["dynamic_candidate_quality_contract"]["units"] = "unitless"
+    elif fault == "cash": value["dynamic_candidate_is_cash"] = True
+    elif fault == "supervised_best_horizon": value["dynamic_candidate_has_supervised_target"] = True
+    else: value["dynamic_candidate_native_authority_admitted"] = True
+    with pytest.raises(RuntimeError, match="TRAINING_OBJECTIVE_CONTRACT_INVALID"):
+        require_training_objective_contract(value, context="TEST")
+
+
+def test_unadmitted_dynamic_phase_cannot_export_or_pass_legacy_smoke():
+    from gx1.contracts.entry_model_native_smoke_bundle_audit_v1 import (
+        require_smoke_bundle_training_pipeline_contract, require_smoke_bundle_audit_contract)
+    objective = training_objective_contract_metadata(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    with pytest.raises(RuntimeError, match="DYNAMIC_ENTRY_CANDIDATE_NATIVE_AUTHORITY_NOT_ADMITTED"):
+        require_native_serving_training_phase(ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, context="ENTRY_TRAIN_EXPORT")
+    assert require_native_serving_training_phase("joint_fitted_q", context="TEST") == "joint_fitted_q"
+    for owner in (require_smoke_bundle_training_pipeline_contract, require_smoke_bundle_audit_contract):
+        with pytest.raises(RuntimeError, match="DYNAMIC_ENTRY_CANDIDATE_NATIVE_AUTHORITY_NOT_ADMITTED"):
+            owner({"model_native_training_objective_contract": {"objective": objective}}, context="TEST")
+
+
+def test_dynamic_curve_observer_must_be_callable_before_any_forward():
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    with pytest.raises(RuntimeError, match="BATCH_OBSERVER_INVALID"):
+        trainer._validate_dynamic_m5_curves(None, None, None, batch_observer=1)

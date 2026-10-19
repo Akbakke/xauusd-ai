@@ -326,6 +326,170 @@ def require_optimizer_procedure_origin(
     return dict(origin)
 
 
+def _require_dynamic_entry_only_preprocessing(artifacts, *, design, normalization, labels):
+    """Join the measured Entry-only transform, never an Exit/composite surrogate."""
+    import numpy as np
+    import pandas as pd
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE as phase
+    from gx1.contracts.entry_model_native_aux_targets_v3 import M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+    from gx1.contracts.entry_model_native_input_normalization_v1 import (
+        DYNAMIC_M5_FIT_POPULATION, require_input_normalization_contract,
+    )
+    from gx1.contracts.entry_model_native_signal_v1 import (
+        MODEL_NATIVE_CTX_CONT_FIELDS, MODEL_NATIVE_CTX_CAT_FIELDS, MODEL_NATIVE_SEQ_LEN,
+        MODEL_NATIVE_SIGNAL_DIM, require_model_native_signal_contract,
+    )
+    from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
+    from gx1.contracts.entry_full_input_liveness_v1 import validate_full_input_liveness_artifact
+    from gx1.contracts.entry_sequence_source_reconstruction_v1 import require_sequence_source_reconstruction_audit
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_m5_single_epoch_population
+    from gx1.features.htf_features import MULTI_TF_TIMEFRAMES, MULTI_TF_PER_BAR_FEATURES_V4
+    from gx1.features import gc_native_context_v1 as gc
+    from gx1.models.entry_v10.entry_v10_input_normalization import (
+        FIT_POPULATION_PROOF_SCHEMA_VERSION, _canonical_sha256 as normalization_sha256,
+    )
+
+    def require(condition, reason):
+        if not condition:
+            raise RuntimeError("NATIVE_PHYSICAL_PREPROCESSING_DYNAMIC_" + reason)
+
+    def read(binding):
+        bound = require_binding(binding, label="dynamic physical preprocessing", verify_file=True)
+        return read_bound_json(Path(bound["path"]), bound["sha256"])
+
+    def utc(value):
+        stamp = pd.Timestamp(value)
+        require(not pd.isna(stamp) and stamp.tzinfo is not None
+                and stamp.utcoffset() == pd.Timedelta(0), "CLOCK_INVALID")
+        return stamp
+
+    require(all(read(artifacts[key]) == value for key, value in
+                (("design", design), ("normalization_result", normalization), ("labels_result", labels))),
+            "ARGUMENT_BINDING_MISMATCH")
+    require(design.get("schema_version") == "gx1_frozen_chronological_learning_design_v1"
+            and design["scope"].get("emission_scope") == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+            and normalization.get("schema_version") == "gx1_entry_only_dynamic_m5_base_normalization_v1"
+            and normalization.get("decision") == "PASS" and normalization.get("entry_training_phase") == phase
+            and normalization.get("val_fit_rows") == normalization.get("test_fit_rows") == 0
+            and normalization.get("test_accessed") is False
+            and normalization.get("native_training_admitted") is False, "ENTRY_ONLY_NORMALIZATION_REQUIRED")
+    calendar = design["calendar"]; sources = calendar["source_bindings"]
+    start, cutoff, end = map(utc, (calendar["train_entry_start_inclusive"], calendar["train_control_cutoff"],
+                                 calendar["development_control_entry_end_exclusive"]))
+    require(start < cutoff < end and all(sources["train"][key]["path"] != sources["val"][key]["path"]
+            for key in ("parquet", "manifest")), "WINDOW_OR_SOURCE_INVALID")
+    inputs = design.get("inputs", {})
+    audits = inputs.get("sequence_source_audits", {})
+    require(isinstance(audits, Mapping) and set(audits) == {"train", "val"}
+            and audits["train"] == normalization.get("sequence_source_audit")
+            and inputs.get("full_input_liveness") == normalization.get("full_input_liveness"),
+            "INPUT_PROOF_BINDING_MISMATCH")
+    manifests, reconstructions = {}, {}
+    for split, low, high in (("train", start, cutoff), ("val", cutoff, end)):
+        source = sources[split]; proof = labels["splits"][split]
+        require(type(source["physical_rows"]) is int and source["physical_rows"] > 0
+                and utc(source["declared_window"]["start"]) == low
+                and low < utc(source["declared_window"]["end"]) < high
+                and proof["source_parquet"] == source["parquet"] and proof["source_manifest"] == source["manifest"]
+                and proof["rows"] == proof["first_prefix_observed_rows"] == source["physical_rows"]
+                and proof["physical_clock_sha256"] == source["clock_sha256"]
+                and utc(proof["dynamic_m5_supervision"]["index_binding"]["split_end_exclusive"]) == high,
+                "SOURCE_OR_POPULATION_MISMATCH")
+        manifest = read(source["manifest"]); manifests[split] = manifest
+        require_model_native_signal_contract(manifest["extra"].get("model_native_signal_contract"),
+                                             context="DYNAMIC_PHYSICAL_PREPROCESSING")
+        require(manifest.get("output_data_path") == source["parquet"]["path"]
+                and manifest["extra"].get("rows") == source["physical_rows"]
+                and manifest["extra"].get("emission_scope") == M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+                and manifest["extra"].get("gc_native_context") == gc.contract(), "MANIFEST_MISMATCH")
+        reconstructions[split] = require_sequence_source_reconstruction_audit(read(audits[split]),
+            expected_parquet_path=Path(source["parquet"]["path"]), expected_manifest_path=Path(source["manifest"]["path"]),
+            expected_parquet_sha256=source["parquet"]["sha256"], expected_manifest_sha256=source["manifest"]["sha256"],
+            expected_feature_surface=manifest, expected_rows=source["physical_rows"],
+            expected_seq_len=MODEL_NATIVE_SEQ_LEN, expected_signal_dim=MODEL_NATIVE_SIGNAL_DIM)
+    require(labels["splits"]["train"]["dynamic_m5_supervision"]["source_quote_binding"]
+            == labels["splits"]["val"]["dynamic_m5_supervision"]["source_quote_binding"], "SHARED_QUOTE_MISMATCH")
+    signal_names = manifests["train"]["extra"]["model_native_signal_contract"]["fields"]
+    field_order = {"signal": signal_names, "ctx_cont": list(MODEL_NATIVE_CTX_CONT_FIELDS), "ctx_cat": list(MODEL_NATIVE_CTX_CAT_FIELDS)}
+    live_binding = require_binding(inputs["full_input_liveness"], label="current full-input liveness", verify_file=True)
+    live_validation = validate_full_input_liveness_artifact(live_binding["path"], expected_sha256=live_binding["sha256"],
+        expected_dataset_dir=Path(sources["train"]["parquet"]["path"]).parent, expected_field_order=field_order,
+        expected_manifest_bindings={split: source["manifest"] for split, source in sources.items()})
+    require(live_validation.get("ok") is True, "INPUT_LIVENESS_INVALID")
+    liveness = read(live_binding)
+    fields = {"signal": signal_names, "ctx_cont": list(MODEL_NATIVE_CTX_CONT_FIELDS),
+              **{"mtf_" + tf.lower(): list(MULTI_TF_PER_BAR_FEATURES_V4) for tf in MULTI_TF_TIMEFRAMES}}
+    contract = require_input_normalization_contract(normalization["contract"], expected_field_names=fields,
+        expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS, expected_entry_training_phase=phase)
+    require(contract["contract_sha256"] == normalization["contract_sha256"], "NORMALIZATION_CONTRACT_MISMATCH")
+    lineage = contract["lineage"]; train_source = sources["train"]; n = train_source["physical_rows"]
+    require(lineage["train_parquet_path"] == train_source["parquet"]["path"]
+            and lineage["train_parquet_sha256"] == train_source["parquet"]["sha256"]
+            and lineage["train_manifest_path"] == train_source["manifest"]["path"]
+            and lineage["train_manifest_sha256"] == train_source["manifest"]["sha256"]
+            and lineage["train_row_count"] == lineage["entry_train_decision_row_count"] == lineage["context_fit_row_count"] == n
+            and lineage["exit_train_decision_row_count"] == lineage["val_fit_row_count"] == lineage["test_fit_row_count"] == 0
+            and lineage["per_tf_seq_lens"] == dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)
+            and contract["fit_population"] == DYNAMIC_M5_FIT_POPULATION
+            and start <= utc(contract["fit_start_utc"]) <= utc(contract["fit_end_utc"]) < cutoff,
+            "WHOLE_TRAIN_NORMALIZATION_SCOPE_MISMATCH")
+    proof = normalization["fit_population_proof"]
+    require(proof.get("schema_version") == FIT_POPULATION_PROOF_SCHEMA_VERSION
+            and proof["proof_sha256"] == normalization_sha256({key: value for key, value in proof.items() if key != "proof_sha256"})
+            and proof["entry_training_phase"] == phase and proof["fit_population"] == DYNAMIC_M5_FIT_POPULATION
+            and proof["fit_scope"] == "train_only"
+            and proof["train_decision_row_count"] == proof["entry_train_decision_row_count"] == proof["context_fit_row_count"] == n
+            and proof["exit_train_decision_row_count"] == proof["val_fit_row_count"] == proof["test_fit_row_count"] == 0
+            and set(proof["local_populations"]) == set(proof["context_populations"]) == {"entry"}
+            and proof["local_fit_row_count"] == lineage["local_fit_row_count"], "FIT_POPULATION_PROOF_INVALID")
+    require(proof["local_populations"]["entry"]["selected_unique_row_count"] == lineage["local_fit_row_count"]
+            == contract["surfaces"]["signal"]["fit_row_count"]
+            and contract["surfaces"]["ctx_cont"]["fit_row_count"] == n, "LOCAL_CONTEXT_POPULATION_MISMATCH")
+    for tf, seq_len in PRODUCTION_MTF_PER_TF_WINDOW_BARS:
+        item = proof["mtf_populations"][tf]; routes = item["routes"]
+        require(item["seq_len"] == seq_len and routes["entry"]["enabled"] is True
+                and routes["entry"]["decision_row_count"] == n
+                and routes["exit"]["enabled"] is False and routes["exit"]["decision_row_count"] == 0
+                and item["selected_unique_row_count"] == lineage["per_tf_fit_windows"][tf]["selected_unique_row_count"]
+                == contract["surfaces"]["mtf_" + tf.lower()]["fit_row_count"], "MTF_ENTRY_ONLY_POPULATION_MISMATCH")
+    source_proof = proof["entry_sequence_source_provenance"]
+    require(source_proof["audit_path"] == audits["train"]["path"] and source_proof["audit_sha256"] == audits["train"]["sha256"]
+            and source_proof["audit"] == reconstructions["train"], "FIT_RECONSTRUCTION_MISMATCH")
+    clock = proof["gc_registry_whole_train_clock"]
+    live_clock = liveness["materializer_provenance"]["gc_registry_whole_train_clock"]
+    require(clock["exact_match"] is True and clock["rows"] == n
+            and clock["population"] == "whole_physical_TRAIN_before_target_availability_selection"
+            and clock["physical_train_parquet_path"] == train_source["parquet"]["path"]
+            and clock["physical_train_bar_clock_sha256"] == train_source["clock_sha256"]
+            and clock["registry_path"] == gc.REGISTRY_PATH and clock["registry_sha256"] == gc.REGISTRY_SHA256
+            and clock["rows"] == gc.REGISTRY["train_decision_rows"]
+            and clock["train_decision_clock_sha256"] == gc.REGISTRY["train_decision_clock_sha256"]
+            and live_clock["exact_match"] is True and live_clock["rows"] == n
+            and live_clock["train_decision_clock_sha256"] == clock["train_decision_clock_sha256"]
+            and live_clock["physical_train_parquet_sha256"] == train_source["parquet"]["sha256"]
+            and live_clock["registry"] == {"path": gc.REGISTRY_PATH, "sha256": gc.REGISTRY_SHA256},
+            "CURRENT_REGISTRY_CLOCK_MISMATCH")
+    single = require_m5_single_epoch_population(design)
+    train_binding = require_binding(calendar["bindings"]["TRAIN_CALENDAR_PARENT_ROWS"], label="physical TRAIN rows", verify_file=True)
+    control_binding = require_binding(calendar["bindings"]["CONTROL256_PARENT_ROWS"], label="physical control rows", verify_file=True)
+    train = np.load(train_binding["path"], allow_pickle=False); control = np.load(control_binding["path"], allow_pickle=False)
+    require(single is not None and single["train_rows"] == n and single["train_parquet"] == train_source["parquet"]
+            and single["train_manifest"] == train_source["manifest"]
+            and train.dtype == control.dtype == np.dtype("int64") and train.shape == (n,)
+            and np.array_equal(train, np.arange(n, dtype=np.int64))
+            and np.array_equal(train, single["eligible_parent_rows"])
+            and control.shape == (design["selection"]["control_entries"],)
+            and len(control) == design["budget"]["later_control_entries"] == 256
+            and np.array_equal(control, np.unique(control)) and np.all(control >= 0)
+            and np.all(control < sources["val"]["physical_rows"]), "ROW_BINDING_MISMATCH")
+    return {"physical_sources": dict(sources), "train_parent_rows": train_binding,
+        "control_parent_rows": control_binding, "train_rows": n,
+        "entry_training_phase": phase, "entry_only_base_normalization": dict(artifacts["normalization_result"]),
+        "base_contract_sha256": contract["contract_sha256"], "normalization_fit_population": DYNAMIC_M5_FIT_POPULATION,
+        "full_input_liveness": live_binding, "sequence_source_audits": dict(audits),
+        "native_coordinates_bound": False, "input_admission_complete": False, "native_training_admitted": False}
+
+
 def require_physical_chronological_preprocessing(
     artifacts: Mapping[str, Any],
     *,
@@ -385,6 +549,8 @@ def require_physical_chronological_preprocessing(
     if m5_emission:
         if dynamic_emission:
             require_m5_dynamic_physical_target_receipt(labels, design_binding=artifacts["design"], context="NATIVE_PHYSICAL_PREPROCESSING")
+            return _require_dynamic_entry_only_preprocessing(
+                artifacts, design=design, normalization=normalization, labels=labels)
         else:
             require_m5_primary_physical_target_receipt(labels, design_binding=artifacts["design"], context="NATIVE_PHYSICAL_PREPROCESSING")
         from gx1.contracts.entry_model_native_training_objective_v1 import (

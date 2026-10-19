@@ -406,3 +406,165 @@ def test_physical_initial_observation_binds_complete_recipe_source_not_only_mode
         assert observation["native_recipe_source_bindings"] == sources
     assert native.require_prefix_measurement_source_binding(
         {"chronological_prefix":{"design":{"legacy":True}}}, measurement={}) == {}
+
+
+@pytest.fixture
+def dynamic_initial_observer(tmp_path, monkeypatch):
+    import hashlib
+    import numpy as np
+    import pandas as pd
+    from tests.test_entry_observed_market_native import _dynamic_training_fixture, SmallDynamicEntry
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
+    loader, template = _dynamic_training_fixture(monkeypatch)
+    dataset = loader.dataset
+    clock = pd.date_range("2025-12-01T00:00Z", periods=300, freq="5min").as_unit("ns")
+    dataset.df = pd.DataFrame({"time": clock, "dynamic_entry_m1_row": np.arange(300, dtype=np.int64) * 5})
+    dataset.indices = np.arange(300, dtype=np.int64)
+    dataset.parquet_path = tmp_path / "entry.parquet"
+    dataset.df.to_parquet(dataset.parquet_path, index=False)
+    source = {"parquet": _bind(dataset.parquet_path), "manifest": {"path": "synthetic", "sha256": "a"*64},
+        "physical_rows": 300, "clock_sha256": hashlib.sha256(np.asarray(clock.asi8, dtype="<i8").tobytes()).hexdigest()}
+    dataset._entry_observed_market_binding.update(physical_source=source, role="TRAIN")
+    identity = dataset._entry_observed_market_binding["identity"]
+    parents = list(range(255, -1, -1))
+    cohort = {"training_phase": identity["training_phase"], "exit_evaluation": False,
+        "entry_row_indices": parents, "parent_entry_row_indices": parents, "measurement_role": "train",
+        "source_split": "train", "parent_entry_parquet": source["parquet"], "parent_entry_manifest": source["manifest"],
+        "population_rows": 300, "source_clock_sha256": source["clock_sha256"], "entry_time_ns": clock.asi8[parents].tolist()}
+    monkeypatch.setattr(cohorts, "require_bounded_val_cohort", lambda value: value)
+    def bound_loader(observed, **kwargs):
+        assert observed is dataset and kwargs["batch_size"] == 16 and kwargs["num_workers"] == 0
+        class Loader:
+            def __iter__(self):
+                for offset in range(0, len(parents), 16):
+                    rows = torch.tensor(parents[offset:offset+16])
+                    batch = {k:torch.cat([v]*8) for k,v in template.items()}
+                    batch.update(entry_row_index=rows, dynamic_entry_parent_row_index=rows,
+                        dynamic_entry_m1_row=rows*5)
+                    yield batch
+        return Loader()
+    monkeypatch.setattr(torch.utils.data, "DataLoader", bound_loader)
+    class Model(SmallDynamicEntry):
+        def __init__(self):
+            super().__init__()
+            self.forwards = 0
+        def forward(self, *args, **kwargs):
+            self.forwards += 1
+            out = super().forward(*args, **kwargs)
+            quality = out["dynamic_terminal_net_markout_bps"][..., :2] - out["dynamic_pre_mfe_mae_upper_bps"]
+            out["dynamic_entry_quality_best_horizon_mask"] = quality == quality.amax(dim=1, keepdim=True)
+            out["dynamic_query_horizon_minutes"] = torch.tensor(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+            return out
+    model = Model().eval()
+    with torch.no_grad():
+        model.head_dynamic_terminal_net_markout.weight.zero_()
+        model.head_dynamic_terminal_net_markout.bias.fill_(-2)
+    context = {"physical_sources": {"train": source}, "entry_supervision_identity": identity,
+        "max_model_forwards": 16, "max_state_views": 256}
+    return model, dataset, cohort, context
+
+
+def test_dynamic_initial_observer_reuses_one_provider_and_encoder_forward_per_batch(dynamic_initial_observer):
+    model, dataset, cohort, context = dynamic_initial_observer
+    before = copy.deepcopy(model.state_dict())
+    result = runner._dynamic_m5_prefix_observations(model=model, dataset=dataset, cohort=cohort,
+        context=context, device=torch.device("cpu"), deadline=time.monotonic()+30)
+    assert model.forwards == result["entry_model_forward_count"] == 16
+    calls = dataset._entry_dynamic_m5_target_provider.calls
+    assert len(calls) == 16 and [int(row) for batch in calls for row in batch] == cohort["parent_entry_row_indices"]
+    errors = result["dynamic_component_errors"]
+    assert errors["dynamic_terminal_net_markout_bps"]["observed_cells"] == 384
+    assert errors["dynamic_mfe_bps"]["observed_cells"] == errors["dynamic_closed_mfe_bps"]["observed_cells"] == 256
+    assert errors["dynamic_pre_mfe_mae_upper_bps"]["observed_cells"] == 256
+    assert errors["dynamic_closed_pre_mfe_mae_upper_bps"]["observed_cells"] == 256
+    traces = result["dynamic_entry_observations"]
+    assert len(traces) == 256 and all(row["diagnostic_action"] == "FLAT" and row["diagnostic_abstained"] for row in traces)
+    assert all(len(row["side_diagnostics"]) == 2 for row in traces)
+    assert result["exit_model_forward_count"] == 0 and result["realized_cash_or_native_policy_evaluated"] is False
+    assert result["dynamic_frozen_targets"]["parent_entry_rows"] == cohort["parent_entry_row_indices"]
+    equal_tree(model.state_dict(), before)
+
+
+@pytest.mark.parametrize("fault", ["source", "clock", "lifecycle", "budget", "deadline"])
+def test_dynamic_initial_observer_rejects_source_or_compute_drift_before_forward(dynamic_initial_observer, fault):
+    model, dataset, cohort, context = dynamic_initial_observer
+    deadline = time.monotonic()+30
+    if fault == "source": dataset.parquet_path = Path("wrong.parquet")
+    elif fault == "clock": cohort["source_clock_sha256"] = "0"*64
+    elif fault == "lifecycle": dataset._unified_exit_lifecycle_v2 = object()
+    elif fault == "budget": context["max_model_forwards"] = 15
+    else: deadline = time.monotonic()-1
+    with pytest.raises(RuntimeError):
+        runner._dynamic_m5_prefix_observations(model=model, dataset=dataset, cohort=cohort,
+            context=context, device=torch.device("cpu"), deadline=deadline)
+    assert model.forwards == 0 and dataset._entry_dynamic_m5_target_provider.calls == []
+
+
+@pytest.mark.parametrize("fault", [None, "target", "mask", "partial_failure"])
+def test_dynamic_initial_final_measurement_freezes_targets_and_restores_native_state(tmp_path, monkeypatch, fault):
+    from types import SimpleNamespace
+    artifacts = tmp_path / "artifacts"; artifacts.mkdir()
+    h = PrefixHarness(tmp_path / "run", _prepared(artifacts))
+    output = h.root / "DYNAMIC_MEASURED"
+    model, pause = h.run_prefix(output, 0)
+    initial_hash = trainer._model_state_sha256(model)
+    state = h.state(output)
+    pointer = h.pointer(output).read_bytes()
+    phase = "entry_only_dynamic_m5_path"
+    model.entry_training_phase = phase
+    identity = {"training_phase": phase}
+    functions = dict(trainer._PREFIX_CURRENT_MODEL_FUNCTIONS)
+    prefix = {"entry_training_phase": phase, "model_functions": functions,
+        "entry_observed_market": {role:{"identity":identity} for role in ("train", "control")}}
+    context = {"entry_training_phase": phase, "entry_supervision_identity": identity, "max_wall_seconds": 30}
+    context_binding = {"synthetic": "dynamic context"}
+    fake_session = SimpleNamespace(_active_path=h.pointer(output),
+        _contract={"chronological_prefix":prefix, "native_bounded_control":context_binding}, load_checkpoint=lambda:state)
+    monkeypatch.setattr(trainer, "_CandidateTrainingSession", lambda **kw: fake_session)
+    monkeypatch.setattr(trainer, "_prefix_reference_model_functions", lambda design:functions)
+    monkeypatch.setattr(trainer, "_native_candidate_val_context_binding", lambda value:context_binding)
+    def forbidden(*args, **kwargs): raise AssertionError("dynamic observation used Exit/teacher")
+    monkeypatch.setattr(trainer, "_copy_frozen_prefix_reference_model", forbidden)
+    monkeypatch.setattr(runner.val, "_entry_representations", forbidden)
+    monkeypatch.setattr(cohorts, "build_chronological_measurement_cohort", lambda *args, role:
+        {"measurement_role":role, "parent_entry_row_indices":list(range(256)), "entry_row_indices":list(range(256))})
+    calls = []
+    def observe(**kwargs):
+        role = kwargs["cohort"]["measurement_role"]; calls.append(role)
+        torch.rand(5)
+        if fault == "partial_failure" and role == "control": raise RuntimeError("dynamic control failure")
+        return {"entry_model_forward_count":16,
+            "dynamic_frozen_targets":{"target_sha":"changed" if fault == "target" and state["global_optimizer_steps"] else "target",
+                "mask_sha":"changed" if fault == "mask" and state["global_optimizer_steps"] else "mask"},
+            "dynamic_entry_observations":[{"prediction":float(model.weight[0,0])}]}
+    monkeypatch.setattr(runner, "_dynamic_m5_prefix_observations", observe)
+    ds = SimpleNamespace(_entry_observed_market_binding={"identity":identity})
+    components = {**h.last_kwargs, "train_probe_ds":ds, "val_ds":ds, "native_val_context":context,
+        "entry_observed_market":identity, "entry_only_session_binding":prefix}
+    scope_value = {"initialization":{"online_model_state_sha256":initial_hash,"model_functions":functions},
+        "measurement":{"coordinate_result":{"synthetic":True}},
+        "artifacts":{"initialization_result":{"synthetic":True},"measurement_binding_result":{"synthetic":True}}}
+    recipe = {"chronological_prefix":h.data.value,"entry_observed_market":{"synthetic":True}}
+    rng = trainer._attended_session_rng_state(device=torch.device("cpu"))
+    kwargs = dict(components=components,scope=scope_value,recipe=recipe,output=output,
+        device=torch.device("cpu"),invocation_started=time.monotonic(),pause_evidence=pause)
+    if fault == "partial_failure":
+        with pytest.raises(RuntimeError,match="dynamic control failure"): runner._run_prefix_initial_measurement(**kwargs)
+    else:
+        initial = runner._run_prefix_initial_measurement(**kwargs)
+        scope_value["initial_measurement"] = json.loads(Path(initial["path"]).read_text())
+        scope_value["artifacts"].update(initial_measurement_result=initial,initial_measurement_audit={"synthetic":True})
+        with torch.no_grad(): model.weight.add_(.25)
+        state.update(global_optimizer_steps=256,model_state=copy.deepcopy(model.state_dict()),
+            optimizer_state={"state":{0:{}}},weight_ema_state={"steps":256})
+        final_pause = {**pause,"next_batch_offset":256,"global_optimizer_steps":256}
+        if fault:
+            with pytest.raises(RuntimeError,match="FINAL_FROZEN_TARGET_CHANGED"):
+                runner._run_prefix_initial_measurement(**{**kwargs,"pause_evidence":final_pause},optimizer_steps=256)
+        else:
+            final = runner._run_prefix_initial_measurement(**{**kwargs,"pause_evidence":final_pause},optimizer_steps=256)
+            report = json.loads(Path(final["path"]).read_text())
+            assert report["frozen_targets_exactly_preserved"] is True and report["exit_evaluation"] is False
+            assert report["target_model_role"] == "frozen_constructor_anchor_no_forward"
+    assert h.pointer(output).read_bytes() == pointer and model.training
+    equal_tree(trainer._attended_session_rng_state(device=torch.device("cpu")),rng)

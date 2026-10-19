@@ -965,3 +965,20 @@ def test_candidate_child_population_restore_preserves_state_and_requires_exact_b
     for wrong in (None, torch.tensor([1, 3, 5])):
         with pytest.raises(RuntimeError, match="CHECKPOINT_ORDER_INVALID"):
             trainer._restore_candidate_training_checkpoint(saved, parent_population=wrong, **kwargs)
+
+
+def _dynamic_session_contract_arguments(tmp_path, *, prefix, input_normalization):
+    """Session serialization unit input; the caller supplies a verified real witness binding."""
+    m5=tmp_path/"m5.parquet";m5.write_bytes(b"session-unit-feature-boundary")
+    return dict(out_bundle_dir=tmp_path/"BUNDLE",run_id="UNIT_TRAIN",dataset_run_id="UNIT_DATA",
+        train_parquet=Path(prefix["physical_sources"]["train"]["parquet"]["path"]),
+        val_parquet=Path(prefix["physical_sources"]["val"]["parquet"]["path"]),m5_prebuilt_path=m5,
+        lifecycle_manifest_path=None,input_normalization=input_normalization,seed=1,batch_size=16,epochs=1,
+        grad_accum_steps=1,grad_clip_norm=1.,weight_decay=.0001,lr=.0001,dropout=0.,
+        early_stopping_patience=EARLY_STOP_PATIENCE,early_stopping_min_delta=EARLY_STOP_MIN_DELTA,
+        minimum_epochs_before_stop=MINIMUM_EPOCHS_BEFORE_STOP,save_top_k=0,seq_len=96,
+        per_tf_seq_lens={tf:4 for tf in trainer.MULTI_TF_TIMEFRAMES},multi_tf_num_layers=1,specialist_num_layers=1,
+        multi_tf_scale=1.,specialist_fusion_scale=1.,cross_family_fusion_scale=1.,execution_tier="canonical",device_type="cpu",
+        recipe_source_provenance=_recipe_source_provenance(source_commit="a"*40),
+        checkpoint_monitor=trainer.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
+        reference_cutoff_time_ns=prefix["reference_cutoff_time_ns"],prefix_training_binding=prefix)
