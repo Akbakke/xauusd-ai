@@ -268,3 +268,14 @@ og ny069initial0 kreves; konsumerte063/066 relanseres ikke.
 identisk nystartet modelldigest er kontrollert,0forwards/steps/refits. Dette
 måler ingen modell- eller treningsfart. Ny069initial0binding og faktisk
 metadata-inspect-timing gjenstår før nativeporter og modellmåling.
+
+069actualGENESISinspect bestod på350.678s, over Windowsmetadata90/180s.070
+retter bare begrensetmetadatafrist til900s; øvrige grenser bevares. Timing
+gjelder GENESIS, ikke faktisk post-record. Controller-only PS er utenfor068s
+182closure: behold verifisertCPUfreshstate uten ny publisering når heleclosure
+er uendret, men bind ny071campaign/HEAD før første ekte initial0.
+
+070Windowsmetadata900s er kvalifisert med16pytestPASS og faktisk Windows
+parameter-/pipe-/timeout-/bootowner-hardeningPASS. Bare metadatafrister er
+endret;182Pythonclosure og068freshstate er bevart. Ny071campaignbinding og
+maskinvare-/bootporter gjenstår før første modellforward.

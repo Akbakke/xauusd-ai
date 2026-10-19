@@ -37,11 +37,11 @@ $metadataFunction = $controllerAst.Find({
 }, $true)
 if ($null -eq $metadataFunction) { throw 'metadata function was not found' }
 $metadataBindingOnly = [ScriptBlock]::Create($metadataFunction.Body.ParamBlock.Extent.Text + [Environment]::NewLine + 'return $TimeoutMilliseconds')
-if ((& $metadataBindingOnly -Arguments @('inspect')) -ne 90000 -or
-    (& $metadataBindingOnly -Arguments @('inspect') -TimeoutMilliseconds 180000) -ne 180000) {
+if ((& $metadataBindingOnly -Arguments @('inspect')) -ne 900000 -or
+    (& $metadataBindingOnly -Arguments @('inspect') -TimeoutMilliseconds 900000) -ne 900000) {
     throw 'metadata default or terminal deadline differs'
 }
-foreach ($invalidMetadataTimeout in @(0, 180001)) {
+foreach ($invalidMetadataTimeout in @(0, 900001)) {
     $rejectedMetadataTimeout = $false
     try { & $metadataBindingOnly -Arguments @('inspect') -TimeoutMilliseconds $invalidMetadataTimeout | Out-Null }
     catch [System.Management.Automation.ParameterBindingException] { $rejectedMetadataTimeout = $true }
@@ -155,7 +155,7 @@ function Write-Gx1BootIdentity {
 function Invoke-Gx1Json {
     param([string[]]$Arguments, [int]$TimeoutMilliseconds)
     $script:inspectCalls++
-    if ($TimeoutMilliseconds -ne 90000) { throw "wrong inspect timeout: $TimeoutMilliseconds" }
+    if ($TimeoutMilliseconds -ne 900000) { throw "wrong inspect timeout: $TimeoutMilliseconds" }
     return [pscustomobject]@{ ok = $true; result = [pscustomobject]@{} }
 }
 $PlanJson = '/tmp/plan.json'

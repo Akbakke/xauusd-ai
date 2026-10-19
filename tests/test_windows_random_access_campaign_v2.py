@@ -221,7 +221,7 @@ def test_single_wsl_boot_owner_is_source_bound_before_inspect() -> None:
     assert function.count("Write-Gx1BootIdentity") == 1
     assert function.count("'inspect'") == 1
     assert function.count("-WslTimeoutMilliseconds 30000") == 1
-    assert function.count("-TimeoutMilliseconds 90000") == 1
+    assert function.count("-TimeoutMilliseconds 900000") == 1
     for forbidden in ("while (", "Start-Sleep", "continue"):
         assert forbidden not in function
     for forbidden in ("Invoke-Gx1WslBootstrapRecovery", "Invoke-Gx1WslControlBounded", "Invoke-Gx1WslRecoveryProbe", "New-Gx1WslRecoveryIntent", "--terminate", "@('--shutdown')"):
@@ -255,7 +255,7 @@ def test_task_deadline_preserves_native_guard_and_terminal_margin() -> None:
     assert "registered.Settings.ExecutionTimeLimit" in source
 
 
-def test_post_record_metadata_deadline_preserves_startup_limit() -> None:
+def test_metadata_deadline_is_bounded_with_native_caps_retained() -> None:
     import re
 
     source = CONTROLLER.read_text(encoding="utf-8")
@@ -267,8 +267,8 @@ def test_post_record_metadata_deadline_preserves_startup_limit() -> None:
     ).groups())
     terminal = source[source.index("$after = Invoke-Gx1Json"):source.index("# Respect the inspected terminal")]
     requested = int(re.search(r"-TimeoutMilliseconds (\d+)", terminal)[1])
-    assert lower == 1 and default == 90000
-    assert requested == upper == 180000
-    assert source.count("-TimeoutMilliseconds 180000") == 1
+    assert lower == 1 and default == 900000
+    assert requested == upper == 900000
+    assert source.count("-TimeoutMilliseconds 900000") == 2
     assert source.index("'record'") < source.index("$after = Invoke-Gx1Json")
     assert "metadata_deadline_parameter_binding=PASS" in HARDENING_TEST.read_text(encoding="utf-8")

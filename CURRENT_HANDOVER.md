@@ -71,7 +71,7 @@ Faktiske immutable bevis ligger i GX1_RUNS-røttene055/057/058/059/060 og
 policyen. Tidligere056/058sourcekvitteringer beholdes og gjenbrukes for
 uendrede kontrakter. De beviser ingen ny kompakt modellfunksjon.
 
-## Aktuell:068CPUfresh ferdig;069initial0 skal bindes
+## Aktuell:070metadata900s kvalifisert;ny071initial0binding gjenstår
 
 Profil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, eksplisitt referanse
 `{name,contract_sha256}` i recipe, konstruktormetadata, modell og state.
@@ -205,6 +205,30 @@ ble4.781x raskere enn0661285.314s, ingen påstand om modell-/treningsfart.
 ACTUAL_CPU_PREPARATION_REVIEW SHA5e6da69770f5e4b5c24e6fe2594206e08f382571236b240b4cccaf6a605175a0.
 068er konsumert, ingen relaunch. Ny069PLAN SHAfb6a1892fd738b2c23f456551047b2f0b788eae0b67c453734e54b377ece826f
 binder samme32forwards/0steps etter nye eksakte campaign-/maskinvareporter.
+069campaign-klargjøring COMPLETE på618.121s, exit0/uendret6af794cd.
+CAMPAIGN_PREPARATION_TERMINAL SHA1f985c92ea4dcc16e498dbbadebc99f2840bc032569d33aa4150dd239a3766b0;
+CAMPAIGN_PLAN SHAb0851564fe0e0a45099c02762fe322f42091ac596eb4f59a5e5451cbafc24204.
+Reell GENESISinspect fullførte09:43:09UTC på350.678s, exit0/uendret kilde,
+REBOOT_REQUIRED/CUDA=false. METADATA_INSPECT_TERMINAL SHA8a4d87bbf44ab0a93421249a992c79b1a88358a89c313bdd679fbed84216db47.
+Ingen ACTIVE/BUNDLE/invokasjonskvitteringer/native/forward/steg eller omstart.
+Dagens Windowsstartup90s ville avbrutt denne kontrollen. Sammenligningen mot
+180s er bare GENESIS-tid, ikke målt post-record-tid.069adgang er derfor lukket
+og top-policy initialscope fjernet. Ingen relaunch av metadataengangsplanene.
+070retter bare metadatafrister til begrenset900s; GPU12000/ytre13800, boot,
+telemetri, task4h og alle øvrige vakter beholdes. Eksisterende pytest og faktisk
+Windows-hardening/parameterbinding skal kvalifiseres. Controller/observer er
+utenfor068s182closure, som fortsatt matcher alle bytes/stat; ikke lag nyCPUfresh
+for bare denne PS-endringen. Bind deretter ny071campaign/HEAD med samme068state
+og samme første32forwards/0steps etter ferske maskinvare-/bootporter.
+070bestod16pytest/0FAIL/ERROR/SKIP på1.732s med uendret kilde. Faktisk
+Windows-hardening bestod på4.744s: ekte parameter900000/default/max og
+avvisning0/900001,200000stdout+200000stderr, beholdte childexitkoder og
+prosesstimeout185ms, én boot/inspect og ekstern rebootgrense. Ingen faktisk
+controllerbody/kampanje/reboot/native ble kjørt. SOURCE_REVIEW SHA2938bdb779b1a91988ab6e1125a6d5fbdcffd64a8945af4ae5aaa4ac1074c714;
+WINDOWS_HARDENING_RECEIPT SHAa172cf4fb2dfefcf2551be1364161003db404cdb466c6a2365a3d64f0154679d.
+Alle andre controllerbytes og installer/observer/clock/caps er uendret;
+182Pythonkilder/stat matcher fortsatt. Ny071initial0recipe/campaign/HEADbinding
+er neste;068state beholdes. Ingen faktisk modellforward eller trening ennå.
 
 1.067har rettet bare denne målte gjentakelsen: eksplisitt filverifiseringsscope
   rundt én hel eksisterende CLI-/materializeroperasjon. Første faktiske
@@ -213,9 +237,10 @@ binder samme32forwards/0steps etter nye eksakte campaign-/maskinvareporter.
   forventetSHA og alle semantiske kilde-/scopeporter. Ingen varig cache.
 2.Mutasjon, feilSHA, inode-/symlinkbytte, scopelevetid og reell bindingkjede
   er kildekvalifisert med259PASS. Ingen sourceendring fant sted under tester.
-3.068ny source-bound CPUfreshstate er COMPLETE. Bind nå069initial0recipe/
-  campaign til den uendrede182closure og samme055normalisering/057data.
-  Mål faktisk metadata-inspect før Windowsinstallasjon/fersk fysiskboot.
+3.068CPUfreshstate/069metadata-inspect og070Windowsmetadata900s er COMPLETE.
+  Bind ny071initial0recipe/campaign til samme uendrede
+  182closure/068state/055norm/057data. Rebruk350.678s GENESIS-tid som eksplisitt
+  avgrenset bevis; ingen faktisk post-record-tid er ennå målt.
 4.Kjør senere nøyaktig én initial0:256TRAIN+256CONTROL/32encoderforwards/
   0steps etter nye eksakte native-/maskinvareporter. Bevar state/RNG/pointer,
   mål felt-/value-mask-/MTF-konsum, komponenter, latency/minne og actionspor.
