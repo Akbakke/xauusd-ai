@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-19T19:29:05.014911+00:00",
-  "status": "087_CHECKPOINT_IO_SOURCE_QUALIFIED_396_PASS_PREPARE_NEW_SOURCE_FRESH_STATE",
+  "status": "088_CURRENT_SOURCE_CPU_FRESH_EXACT_ONE_SHOT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Publishqualified086code/docs afterfocusedsyntax/stalepath/diffcheck andcleancommit; adapt082freshpublisheronlywithactual087five-owneroverlay whilepreserving081/067proofs. BindNEW088CPUfresh,0forwards/updates/refits; afteractualPASS bindnewinitial0/private4/fullorderedepochseparatelywithunchangedphysical/thermal/newbootgates. Nooldplanrelaunch/Exit/TEST/broker.",
+  "next_action": "Run exact new088 current-source CPUfresh once through existing audit4G/512M7200s cap after clean binding. Zero Dataset rebuild/forwards/updates/refits. Observe worker rchar/read_bytes separately, then bind fresh089initial/private4/fullorderedepoch only after their own existing gates.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "086checkpointmetadataIOrepair actualsource/syntheticqualified:396uniquecases/57newPASS. Nextcorrectnew-sourcefreshCPUstatebeforeactualnativequalification.",
+    "current_activity": "Publish and measure one current-source CPUfresh state after actual087checkpointIOqualification; no dataset rebuild or training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -13485,6 +13485,65 @@
           "failures": 0,
           "errors": 0,
           "skips": 0
+        },
+        "compact_fresh_verified_io_stage_088": {
+          "status": "READY_EXACT_NEW_ONE_SHOT_CPU_FRESH_NOT_NATIVE_ADMISSION",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_VERIFIED_IO_20261019_088",
+          "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_VERIFIED_IO_20261019_088/PLAN.json",
+          "plan_sha256": "f01d644736e3c6b65a842b26f6399dd6f4c48274a535b12cee4da31aa1c5582a",
+          "entry_execution_profile": {
+            "name": "compact_mbp_smc_ema_atr_clock_macro_entry_v1",
+            "contract_sha256": "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125"
+          },
+          "execution_authorized": true,
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "relaunch_allowed": false,
+          "fresh_preparation_enabled": true,
+          "normalization_fit_enabled": false,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "model_forwards_allowed": false,
+          "genuine_dataset_materialization_allowed": false,
+          "broker_access_allowed": false,
+          "exit_evaluation": false,
+          "test_data_used": false,
+          "current_source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CONTROL_CUTOFF_METADATA_REPAIR_20261019_081/SOURCE_REVIEW.json",
+            "sha256": "60ab082cce967296cb165f80d5b4d5c5a1050da6c60d12fc5c80ebd23e0e24b4"
+          },
+          "source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_METADATA_HASH_SCOPE_20261019_067/SOURCE_REVIEW.json",
+            "sha256": "99bedc4e349e3ff1a926d6f388f73a4417e0d7bb93f90d28d998150e45a0f932"
+          },
+          "retained_profile_source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_MECHANICS_QUALIFICATION_20261019_065/SOURCE_REVIEW.json",
+            "sha256": "02719e96415aef5c1a88f149f6bd099b44bf3a9f1779507ae089f56df81d087d"
+          },
+          "native_preflight_source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_PREFLIGHT_HASH_SCOPE_20261019_072/SOURCE_REVIEW.json",
+            "sha256": "3da28f7c75b14ab7dff72e53344c4d83230985955095d2494a90de88a99061b1"
+          },
+          "dynamic_cohort_source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_CONTROL_COHORT_REPAIR_20261019_077/SOURCE_REVIEW.json",
+            "sha256": "5369d6ecca2bec46ce4bdcfb045c44967d63a076c53497c665a95bf9b321b833"
+          },
+          "actual_input_repair_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_CONTROL_BINDING_REPAIR_20261019_078/ACTUAL_REPAIR_REVIEW.json",
+            "sha256": "7a9896a957320a0fd992ae48539e598e1ae1ac249d63c29f0b9e51a714d77a47"
+          },
+          "scope": "New current-source CPU fresh publication after actual087 source/synthetic checkpoint IO qualification. Retain actual055/057/059 data, targets, normalization and all unchanged prior proofs; exact087 five-owner overlay plus081 preserved sources. No dataset reconstruction, forward, optimizer update, normalization fit, Exit, broker or TEST. Consumed082/083/085/086/087 are not relaunched.",
+          "current_io_source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_VERIFIED_CHECKPOINT_IO_QUAL_20261019_087/SOURCE_REVIEW.json",
+            "sha256": "64b1cbc7b2a4a27fa7718258acfd92601bda54e08bcede87a4e29c0c5c9d72ae"
+          },
+          "optimizer_steps_allowed": 0,
+          "io_observation_scope": "Worker /proc/self/io rchar and read_bytes separately; process-local counters, not host or exact process-tree total.",
+          "fresh_windows_reboot_required": false,
+          "prelaunch_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_VERIFIED_IO_20261019_088/PRELAUNCH_REVIEW.json",
+            "sha256": "4ef11cb1288df8e7fa889c421b01d329cdfe8e99644ae5306af54f2360a2a364"
+          }
         }
       },
       "operator_pc_reboot_20261018": {
@@ -16225,7 +16284,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-19T19:47:59.099076+00:00",
+  "updated_utc": "2026-10-19T19:56:52.556717+00:00",
   "chronological_initial_measurement": {
     "initialization_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_CONTROL_BOUND_20261019_082/FRESH_INITIALIZATION/INITIALIZATION.json",

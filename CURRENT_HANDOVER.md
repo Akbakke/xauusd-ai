@@ -127,6 +127,20 @@ warmup på5TF, komplette makrovintager, LONG/SHORT/FLAT-kvalitet/dekning og
 beslutningssporbarhet gjenstår i sitt fulle omfang. Ingen læring/generaliserings-
 eller økonomisk edge-konklusjon følger av initialmålingen.
 
+## Neste avgrensede kjøring —088 CPUfresh med I/O-måling
+
+086-koden er publisert som eac0378e;087s396PASS og originale kvitteringer består.
+088 gjenbruker082s fungerende CPUfresh-produser med eksakt087kildeoverlegg,
+bevarer081/067/072/075/077/078bevis og055/057/059inputs. Ingen Dataset-rebuild,
+forward, optimizersteg eller normaliseringsfit. Planen er ny og engangsbegrenset;
+082/083/085/086/087 relanseres ikke. Skriptreview bestod: de opprinnelige hjelperne og produsentkallet har identisk
+AST;087fem→081tre→historisk kildebinding er kontrollert uten datalesing. Før
+start kreves ren kilde og eksakte SHA-bindinger med samme audit4G/512M/7200s-
+vakter. Treningsadgang er stengt.
+Prosesslokal rchar/read_bytes og veggtid skal måles separat; dette er ikke
+maskinens totale disk-I/O eller målt native treningshastighet. Etter faktisk
+CPU-PASS kreves egen089initialmåling og privat4/nativeopptak som beskrevet over.
+
 ## PC, opprydding og metode
 
 Brukerens18.10-omstart er utført;034/REBOOT_CONFIRMED.json er bindende.
