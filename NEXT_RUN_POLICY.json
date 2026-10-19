@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-19T09:01:09.698832+00:00",
-  "status": "067_SCOPED_HASH_SOURCE_259PASS__NEW068_FRESH_AND_ACTUAL_METADATA_TIMING_REQUIRED",
+  "observed_utc": "2026-10-19T09:15:33.648683+00:00",
+  "status": "068_EXACT_NEW_CPUFRESH_PREPARATION_AFTER_067_SOURCE_PASS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Commit qualified067scopedhash change, then bind exactly one new068CPUfresh publication through existing strictproducer with same data/055norm and explicit scoped fileverification; no forwards/steps. Preserve063/066, do not relaunch. New069initial0 recipe/campaign and actual inspect timing/nativehardware/newboot remain before model measurement.",
+  "next_action": "Execute exactly one newly source-bound068CPUfresh publication after clean committed067code and reviewed exact068assets. Reuse055norm/057bindings/059costs; explicit qualified operation-local hashscope. No forward/optimizer/refit. After actualterminal bind new069initial0campaign and measure actual inspect timing before nativehardware/newboot. Never relaunch063/066.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "067source259PASS/23newPASS; new source-bound068CPUfresh preparation next",
+    "current_activity": "067source committed/pushedf8297805; bind reviewed068CPUfresh one-shot",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "NewPythonclosure requires new068source-bound CPUfresh publication, then new069initial0recipe/campaign and actual metadata inspect timing/nativehardware/newboot. Currentcompactgeneration untrained.",
+    "current_blocker": "New068actualCPUfresh state/closure, then new069initial0recipe/campaign and actual metadata inspect timing/nativehardware/newboot remain; currentcompactgeneration untrained.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9496,7 +9496,7 @@
         "051/049/050/053 physical dataset/currentsurface/liveness and055wholeTRAIN Entry-only normalization passed; reuse without rebuild/refit.",
         "057actual native design/witness/targetreceipt/coordinates/cohorts and058full currentmetadata passed;064compactmetadata/freshstate passed on3d496.",
         "059exacttwo practiceGET and prospectivecostauthority COMPLETE_CONSUMED; zero remaining brokerauthority.064observedplan published.",
-        "065source707PASS/71newPASS and066current182closure freshstate COMPLETE. Bind063exact nativeinitial0 campaign, hardware/newboot and actual TRAIN256+CONTROL256 modelconsumption; later dynamicparity/Entry-onlyoptimizer/resume and one full epoch remain.",
+        "065source707PASS/71newPASS preserved;067source259PASS/23newPASS scoped hashing correction pushedf8297805.063metadata controlled-stopped with zero nativeforwards/steps. New068fresh/currentclosure, new069initial0binding/hardware/newboot and actual modelconsumption, then dynamicparity/Entry-onlyoptimizer/resume and one full epoch remain.",
         "Requested one full nativeepoch and LONG/SHORT/FLAT quality/coverage/abstained traces, generalization/economicedge remain unproven."
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
@@ -12464,7 +12464,7 @@
           "elapsed_seconds": 77.15845345200069
         },
         "compact_fresh_preparation_stage_068": {
-          "status": "PLANNED_CONDITIONAL_NEW_SOURCE_BOUND_CPUFRESH_AFTER067",
+          "status": "READY_EXACT_ONE_SHOT_NEW_SOURCE_BOUND_CPUFRESH",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_HASH_BOUND_20261019_068",
           "execution_authorized": true,
           "planned_invocations": 1,
@@ -12488,7 +12488,9 @@
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_METADATA_HASH_SCOPE_20261019_067/SOURCE_REVIEW.json",
             "sha256": "99bedc4e349e3ff1a926d6f388f73a4417e0d7bb93f90d28d998150e45a0f932"
           },
-          "scope": "One new source-bound CPUfresh publication after committed067Pythonclosure; reuse genuine055normalization/057design+cohorts/059costs and samefull11inputs. Existing strict canonicalproducer and actual artifact/RNG/CPUstrictload guards; explicit file_verification_scope only reuses actualdigest within this one preparation. No duplicated wrapperpreflight, model changes, neweconomicarm, normalizationrefit, genuineforward or steps."
+          "scope": "One new source-bound CPUfresh publication after committed067Pythonclosure; reuse genuine055normalization/057design+cohorts/059costs and samefull11inputs. Existing strict canonicalproducer and actual artifact/RNG/CPUstrictload guards; explicit file_verification_scope only reuses actualdigest within this one preparation. No duplicated wrapperpreflight, model changes, neweconomicarm, normalizationrefit, genuineforward or steps.",
+          "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_HASH_BOUND_20261019_068/PLAN.json",
+          "plan_sha256": "9a9045c5574df381d6035f77ffd4b860214335100018160858b038872eb165df"
         }
       },
       "operator_pc_reboot_20261018": {
@@ -15188,5 +15190,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-19T09:10:46.049193+00:00"
+  "updated_utc": "2026-10-19T09:15:33.648683+00:00"
 }

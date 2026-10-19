@@ -71,7 +71,7 @@ Faktiske immutable bevis ligger i GX1_RUNS-røttene055/057/058/059/060 og
 policyen. Tidligere056/058sourcekvitteringer beholdes og gjenbrukes for
 uendrede kontrakter. De beviser ingen ny kompakt modellfunksjon.
 
-## Aktuell:063 metadata stoppet kontrollert;067 retter målt hashgjentakelse
+## Aktuell:067hashrettelse259PASS;ny068CPUfresh forberedt
 
 Profil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, eksplisitt referanse
 `{name,contract_sha256}` i recipe, konstruktormetadata, modell og state.
@@ -187,6 +187,11 @@ SOURCE_REVIEW SHA99bedc4e349e3ff1a926d6f388f73a4417e0d7bb93f90d28d998150e45a0f93
 Faktisk storfil-tid er ennå ikke målt; ingen genuin modellforward eller trening.
 Kvalifiseringsjobben er avsluttet og konsumert. Neste er ny kildebundet068
 CPUfreshstate, deretter ny069initial0/campaign;063/066 relanseres aldri.
+067er committet/pushetf829780574ebebda791f9784a02d136a6453cc93 med beståtte
+obligatoriske precommitporter og ren CURRENT. Ny068PLAN SHA9a9045c5574df381d6035f77ffd4b860214335100018160858b038872eb165df
+binder samme057inputs/055norm/059kost,067sourcePASS og beholdt065profilbevis.
+Bare ny source-bound CPUfresh publiseres gjennom samme strenge kildeeier,
+med kvalifisert filverifiseringsscope rundt én publisering. Ingen forward/steg.
 
 1.067har rettet bare denne målte gjentakelsen: eksplisitt filverifiseringsscope
   rundt én hel eksisterende CLI-/materializeroperasjon. Første faktiske
