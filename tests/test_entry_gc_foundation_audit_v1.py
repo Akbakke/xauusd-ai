@@ -388,3 +388,27 @@ def test_event_book_unobserved_field_is_not_numeric_qualification_and_infinity_r
     assert result['unobserved']['finite_published_values_compared']==0
     with pytest.raises(RuntimeError,match='GC_EVENT_BOOK_NUMERIC_MASK'):
         audit.compare_event_book_reference(expected,{'unobserved':np.array([np.inf])},bounds,units)
+
+
+
+def test_event_book_published_projection_without_availability_preserves_actual_grid(monkeypatch):
+    import pyarrow.parquet as pq
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    minutes,selected,_,source=_event_book_fixture('M5')
+    # Same M1 publication dictionary as the writer: no available_ns column.
+    publication=pa.table({'bar_start_ns':minutes,'contract_index':selected,**source})
+    buffer=pa.BufferOutputStream();pq.write_table(publication,buffer)
+    parquet=pq.ParquetFile(pa.BufferReader(buffer.getvalue()))
+    monkeypatch.setattr(audit.pq,'ParquetFile',lambda _:parquet)
+    events={'bar_start_ns':minutes.copy(),'contract_index':selected.copy(),'available_ns':minutes+MINUTE}
+    book,groups=audit.read_event_numeric_book('in-memory-book',int(minutes[0]),int(minutes[-1]+MINUTE),
+        pd.Timestamp('2026-07-01T00:00:00Z').value,events)
+    assert groups==[0] and 'available_ns' not in book
+    assert np.array_equal(book['bar_start_ns'],minutes)
+    assert np.array_equal(book['contract_index'],selected)
+    assert set(book)-{'bar_start_ns','contract_index'} <= set(source)
+    for name in ('bar_start_ns','contract_index'):
+        shifted={key:value.copy() for key,value in events.items()};shifted[name][0]+=1
+        with pytest.raises(RuntimeError,match='GC_EVENT_BOOK_SHARED_M1_CLOCK_OR_CONTRACT'):
+            audit.read_event_numeric_book('in-memory-book',int(minutes[0]),int(minutes[-1]+MINUTE),
+                pd.Timestamp('2026-07-01T00:00:00Z').value,shifted)

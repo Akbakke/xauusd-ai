@@ -1131,8 +1131,8 @@ def compare_event_clock_reference(reference, actual):
     return report
 
 
-GC_EVENT_BOOK_PLAN_ID = 'NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120'
-GC_EVENT_BOOK_POLICY_KEY = 'gc_event_book_numeric_reference_120'
+GC_EVENT_BOOK_PLAN_ID = 'NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121'
+GC_EVENT_BOOK_POLICY_KEY = 'gc_event_book_numeric_reference_121'
 # Independent declarations; tests compare these to the actual executable owners.
 GC_EVENT_REFERENCE_REDUCERS = {
     'qualified_final_event_count': ('sum','event_count'),
@@ -1362,6 +1362,17 @@ def read_event_numeric_columns(path, columns, start, end, seal):
     return values, groups
 
 
+def read_event_numeric_book(path, start, end, seal, events):
+    """The published book M1 has clock/contract keys, no availability column."""
+    common = ['bar_start_ns','contract_index']
+    columns = common+['ofi_valid','bbo_valid','order_count_valid','covered_ns','order_covered_ns',
+        'opening_mid_tick','closing_mid_tick']+list(GC_BOOK_REFERENCE_ADDITIVE)+list(GC_BOOK_REFERENCE_MEANS)+list(GC_ORDER_REFERENCE_MEANS)
+    book,groups=read_event_numeric_columns(path,columns,start,end,seal)
+    if any(not np.array_equal(events[name],book[name]) for name in common):
+        raise RuntimeError('GC_EVENT_BOOK_SHARED_M1_CLOCK_OR_CONTRACT')
+    return book,groups
+
+
 def run_gc_event_numeric(binding_path, *, event_book=False):
     plan_id = GC_EVENT_BOOK_PLAN_ID if event_book else GC_EVENT_NUMERIC_PLAN_ID
     policy_key = GC_EVENT_BOOK_POLICY_KEY if event_book else GC_EVENT_NUMERIC_POLICY_KEY
@@ -1431,11 +1442,7 @@ def run_gc_event_numeric(binding_path, *, event_book=False):
         raise RuntimeError('GC_EVENT_NUMERIC_M1_AVAILABILITY')
     reports = {}; strict_report = None; book_groups = None
     if event_book:
-        columns = common+['ofi_valid','bbo_valid','order_count_valid','covered_ns','order_covered_ns',
-            'opening_mid_tick','closing_mid_tick']+list(GC_BOOK_REFERENCE_ADDITIVE)+list(GC_BOOK_REFERENCE_MEANS)+list(GC_ORDER_REFERENCE_MEANS)
-        book,book_groups=read_event_numeric_columns(Path(inputs['m1_book']['path']),columns,start,end,seal)
-        if any(not np.array_equal(m1[name],book[name]) for name in common):
-            raise RuntimeError('GC_EVENT_BOOK_SHARED_M1_CLOCK_OR_CONTRACT')
+        book,book_groups=read_event_numeric_book(Path(inputs['m1_book']['path']),start,end,seal,m1)
     for tf in tfs:
         if event_book:
             reference,bounds,units,clock,strict=reference_event_book_aggregates(

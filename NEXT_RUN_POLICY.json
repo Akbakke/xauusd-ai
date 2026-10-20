@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T21:55:25.012270+00:00",
-  "status": "120_PHYSICAL_EVENT_BOOK_REFERENCE_CLAIMED_AFTER_33_TEST_PASS__TRAINING_CLOSED",
+  "observed_utc": "2026-10-20T22:02:14.777622+00:00",
+  "status": "121_MINIMUM_BOOK_SCHEMA_FIX_SOURCE_QUALIFICATION_BOUND__PHYSICAL_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactly one120claimed capped4G/512M physical reference audit after33actual focused tests and executed370fieldcoverage. Compare8published024M1/TF/strictM5files by projected safe development columns. Report per-field observed/unobserved numeric coverage, ownmask/denominators, analytic bounds. No raw scan/rebuild/model/refit/native epoch/Exit/TEST.",
+  "next_action": "Run exactly one121capped focused sourcequalification after concrete published-book schema fix; include real tiny Parquet no-availability/grid-contract regression. Only after actual PASS bind one121physical comparison.120physical failed/consumed; original receipts preserved. No production formula/rebuild/model/refit/extraepoch/Exit/TEST.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "120_PUBLISHED_M1_TO_TF_EVENT_BOOK_ORDER_PHYSICAL_REFERENCE",
+    "current_activity": "121_MINIMUM_BOOK_SCHEMA_FIX_FOCUSED_SOURCE_QUALIFICATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,13 +118,13 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "120_actual_focused_event_book_source_qualification",
+    "latest_terminal_role": "120_actual_physical_audit_schema_failure",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120/SOURCE_QUALIFICATION_TERMINAL.json",
-      "sha256": "9e59a08116ab43d8000a317d276c4ef73e4520145ead6af67dd67619d1ab8ed5"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120/TERMINAL.json",
+      "sha256": "48a0d10e11a7ef6f4a02aab72bb0f357c8f875cbf163896f8a943fa5c5962ddf"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "120physical grouped arithmetic and mask comparison pending;33sourcecases/370actual owner fieldcoverage pass. No raw-to-M1/nativeconsumption/learning/economic acceptance.",
+    "current_blocker": "120actual audit requested unpublished M1book available_ns column; failed before formula comparisons.121projects only25writer-declared columns and joins realbar_start/contract; sourcequalification/regression and new physical comparison pending.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one120claimed capped4G/512M physical reference audit after33actual focused tests and executed370fieldcoverage. Compare8published024M1/TF/strictM5files by projected safe development columns. Report per-field observed/unobserved numeric coverage, ownmask/denominators, analytic bounds. No raw scan/rebuild/model/refit/native epoch/Exit/TEST.",
+    "next_action": "Run exactly one121capped focused sourcequalification after concrete published-book schema fix; include real tiny Parquet no-availability/grid-contract regression. Only after actual PASS bind one121physical comparison.120physical failed/consumed; original receipts preserved. No production formula/rebuild/model/refit/extraepoch/Exit/TEST.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -15867,7 +15867,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
     },
-    "latest_terminal_evidence_scope": "120one capped CPUsourcejob33PASS/0fail/error/skip in4.760s;206sourcefiles andpolicy unchanged. Actual registry/formulaowner coverage350TF+20strictM5 executed. No physical sourceinput scan yet.",
+    "latest_terminal_evidence_scope": "120cappedphysicalaudit exit1 after3.816s,206sourcefiles unchanged; originalmodule result/terminal absent, testcounter unreported. ActualKeyErroravailable_ns inbookprojection, notproductionformula verdict. No relaunch.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -16038,7 +16038,7 @@
       "physical_network_latency_calibrated": false
     },
     "gc_event_book_numeric_reference_120": {
-      "status": "EXECUTION_CLAIMED",
+      "status": "FAILED_AUDIT_BOOK_SCHEMA_PROJECTION_NO_FORMULA_ADMISSION",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120/PLAN.json",
         "sha256": "34f5c31c0eeb1ce388a88c8b0a1040c89bc9255eaeb8279de5fd91d80d75a8ff"
@@ -16049,7 +16049,7 @@
       },
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "physical_audit_timeout_seconds": 1800,
       "training_enabled": false,
@@ -16063,7 +16063,44 @@
       "source_qualification": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120/SOURCE_REVIEW.json",
         "sha256": "1fb8836a25a88d00c39846ba57f69545a24e0629cd087ea8f65154c611e14684"
-      }
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120/TERMINAL.json",
+        "sha256": "48a0d10e11a7ef6f4a02aab72bb0f357c8f875cbf163896f8a943fa5c5962ddf"
+      },
+      "actual_failure_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120/ACTUAL_FAILURE_REVIEW.json",
+        "sha256": "97515f9c78b3d8cce25e4c4f1c161d520445275e1d100b87697496581f81afc1"
+      },
+      "elapsed_seconds": 3.8157750549999037
+    },
+    "gc_event_book_numeric_reference_121": {
+      "status": "PREPARED_PENDING_SOURCE_QUALIFICATION",
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/PLAN.json",
+        "sha256": "aa9b7cc59061586c5103faff586876202a12a4e488601865d6582de5512bb694"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/DESIGN.json",
+        "sha256": "edda157ef5d80f5ebfbbc2b9ece2325eec3b8fa8f28a91aff7241e9a2c715d8f"
+      },
+      "physical_audit_timeout_seconds": 1800,
+      "prior_failed_physical_attempt": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120/ACTUAL_FAILURE_REVIEW.json",
+        "sha256": "97515f9c78b3d8cce25e4c4f1c161d520445275e1d100b87697496581f81afc1"
+      },
+      "training_enabled": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "native_training_admitted": false,
+      "test_data_used": false,
+      "normalization_fit_enabled": false,
+      "exit_evaluation": false,
+      "broker_access_allowed": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -18628,7 +18665,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T21:55:25.012270+00:00",
+  "updated_utc": "2026-10-20T22:02:14.777622+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -19045,5 +19082,28 @@
       "sha256": "1fb8836a25a88d00c39846ba57f69545a24e0629cd087ea8f65154c611e14684"
     },
     "source_unchanged": true
+  },
+  "gc_event_book_source_121": {
+    "status": "BOUND_ONE_MINIMUM_BOOK_SCHEMA_FIX_SOURCE_QUALIFICATION",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "ba9c6823cdfd6fecfee7d9571225b5a73cfb227bbcdb9e77e9cd738a72825047"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/run_focused_source_qualification.py",
+      "sha256": "68f61bea52fb8d04b18e28294c744b93922bde180a1337434a73db860d3bb467"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

@@ -31,22 +31,27 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — samlet event-/bok-/ordre-fasit120
+## Gjeldende arbeid — minste bokskjemarettelse121 etter120-feil
 
-120 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120`.
-Eksisterende auditeier utvides med en uavhengig gruppert referanse fra publiserte024M1-
-event-/bokdata til alle femTF, pluss separate bevarte strikte M5-felt. Deklarert omfang er
-350TF-felt og20strikte M5-felt; tellingen må bekreftes mot eksekverbar kontrakteier.
-BBO og viste ordre beholder egne masker/tidsnevnere; fullgrid/kontrakt og delvis-observed
-holdes atskilt fra all-five-strict. Eventsum/min/max/rate/coverage følger egne domener.
-Ingen rå→M1-/nettverkslatens-/modellkonsumclaim. Åtte ferdige inputfiler er363237419B;
-kun nødvendige kolonner og trygge utviklingsradgrupper skal brukes. Ingen råscan/rebuild.
-Sourcequalification er faktisk COMPLETE:33PASS/0fail/error/skip på4,760s,206kilder ogpolicy
-bevart.13nye hånd-/kontraktcaser kjørte;370feltlisten er matchet mot eksekverbar registry-
-og formelkontrakteier. SOURCE_REVIEW.json binder XML og faktisk source-terminal.
-Fysisk120audit er nå eksakt claimet én gang,4G/512M capped CPU og1800s; kilde/policy fryses. Source- og fysisk claim/terminal har separate navn.
-Én capped fokusert kildejobb skal bestå før én fysisk audit. Ingen ny native baseline,
-epoke, normalisering, Exit ellerTEST.118og117uendrede bevis gjenbrukes.
+120sourcequalification bestod33caser, inkludert13nye, på4,760s;370feltlisten ble matchet
+mot eksekverbar registry-/formelkontrakteier. Den fysiske120auditen er derimot FAILED:
+exit1 etter3,816s,206kilder ogpolicy uendret. Auditens bokprojeksjon ba om available_ns,
+som ikke finnes i publisert M1_GC_INPUTS. Writer232–240/947–955 bekrefter at bare
+bar_start_ns/contract_index er felles boknøkler; available_ns tilføyes eventfilen separat.
+Ingen formelsammenligning ble godkjent, ingen modulRESULT/terminal publisert. Original
+launchterminal/claim/staging og failure-review bevares;120er konsumert og relanseres aldri.
+Modulens TEST-teller er urapportert i originalkvitteringen; ingen null konstrueres.
+
+121 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121`.
+Minste rettelse gjelder bare auditens25faktisk publiserte bokkolonner og join på faktisk
+bar_start_ns/contract_index. Eventfilens egen available_ns-kontroll beholdes; ingen syntese.
+En liten Arrow/Parquet-regresjon uten bokavailable legges til. Produksjonsformler og
+native183closure er uendret. Omfanget er fortsatt350TF-felt+20strikte M5-felt fra samme
+åtte ferdige024filer363237419B; ingen råscan/rebuild/normalisering/modell/Exit.
+Kun én ny capped fokusert121sourcejobb er bundet etter uavhengig lesereview av minste diff.
+Fysisk121launch er stengt til faktisk kildePASS og eksakt binding.
+Kildeplan/controller binder begge1800s; source-/fysiskclaim og terminal er separate.
+117mekanikk og118klokkefasit gjenbrukes. Ingen ekstra nativeepoke ellerTEST-adgang.
 
 ## Siste kontroll — GC-klokkefasit118 fullført; øvrige formelgrupper gjenstår
 
