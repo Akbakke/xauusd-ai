@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —091 paritetsfeil, kun konkret retting tillatt
+## Aktuell grense —093 testbinding stoppet før modell;091 paritet fortsatt åpen
 
 091 er FAILED/guardexit1,20.10 kl.00:14:15UTC. Feilen er
 DYNAMIC_M5_TECHNICAL_PARITY_VALUES_CHANGED:dynamic_terminal_net_markout_bps
@@ -94,11 +94,18 @@ ubevist. 092 er COMPLETE:95PASS/3eldre uaktuelle kombinasjonerSKIP,0fail/error,
 SHA612fd6ce722f8bb2f146607a6c1303972f9cb2f3f4d4e5f0836d5e0005fecca2.
 Ny closureb552bdb173050cbf7a8113ff71822ad6da049759cad57594cae68eaa391e3519
 har182roller/181filer/7152709B; bare FullTrain-stien endret fra088/f571.
-Ingen ekte modelldata-forward/update eller målt ny I/O-gevinst.093CPUfresh
-er nå bundet til én4Gaudit/7200s klargjøring med dette kildeoverlegget; eksisterende
-055/057/059inputs gjenbrukes. PlanSHA17527caa428a02fb9d91059d0e8e4392b688ea1233c7cbb716047aa3bd25be53.
-Begge faktiske metadatahjelpere bestod før launch (0.121s), uten produsent eller
-modelldata. Ny094initial er bare fremtidig outputsti; ingen nativeadgang følger.
+Ingen ekte modelldata-forward/update eller målt ny I/O-gevinst.093 feilet på
+0.438s før modellkonstruksjon: RETAINED_PROFILE_SOURCE_CHANGED for test_native_
+prefix_learning_measurement.py.092 kvalifiserte testfilen, men en senere065-
+referanse fikk ikke nytt forventet SHA.093 er konsumert og bevares; ingen rerun.
+Ny094 ekstern klargjøringsworker retter akkurat denne testbindingen uten
+endring i b552-produksjonskilden eller andre vakter.065-testSHA er identisk
+med73d-originalen; hele testmodulens AST er identisk når de3nye092kvalifiserte
+casene fjernes.094 er bundet til én4G/7200s CPUfresh, planSHA
+adb632a9abb611ed5b217ee09a0c8a5e122af68057ab7dff58018964cafbd01d.
+055/057/059 gjenbrukes; fremtidig095initial er ingen nativeadgang.
+Ingen GPU-/native-/epokeadgang. Den rene metadataforhåndskontrollen dekket
+ikke publisherens senere retained-profile-kjede; denne grensen er korrigert.
 
 088fresh/089initial32forwards/090state-RNG-audit forblir faktiske bevis vedf571.
 Ny full_train-byte krever ny closure/fresh/initial0/stateaudit gjennom eksisterende
