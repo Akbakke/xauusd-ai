@@ -59,74 +59,64 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —094 CPUfresh ferdig;091 paritet fortsatt åpen
+## Aktuell grense —095 initial0 ferdig;096 CPU-stateaudit klar
 
-091 er FAILED/guardexit1,20.10 kl.00:14:15UTC. Feilen er
-DYNAMIC_M5_TECHNICAL_PARITY_VALUES_CHANGED:dynamic_terminal_net_markout_bps
-(full_train2352 fra2441). Den oppstod før tekniske optimizeroppdateringer.
-Kvalifiseringsmappen finnes, men ingen resultatfil eller kanonisk native-
-terminalkvittering ble produsert. Originale guard-/trainerlogger er bevart.
-ACTUAL_FAILURE_REVIEW SHA3ce95c60ec07c788706c200f386f7eafc898f6b82475d937567c75ee258b6c4c.
-Linux751 og Windows9156 er borte; taskReady/LastResult1 og0bundne prosesser
-ble bekreftet00:26:35UTC. Kun konsumert091task er deaktivert. Frysen er løftet;
-ingen091relansering. training_enabled/fullEpoch/fullVAL=false.
+095 er faktisk ferdig med guardPASS/exit0:256 TRAIN +256 CONTROL-entries,
+16 Entry-forwards per rolle og0optimizersteg. Initialt resultat målte
+2589.611s; komponentoppsett867.906s og checkpoint0.508227s. Dette er ikke
+treningsgjennomstrømning.182kildebindinger er fysisk hash-/statkontrollert
+uendret ved0f857/b552. WindowsReady/LastResult0 og ingen bundne Windows-/
+Linuxprosesser ble bekreftet; kun konsumert095task er deaktivert. Frysen er
+løftet. Ingen095relansering, trening eller lærings-/edgekonklusjon. Alle registrerte
+TRAIN-/CONTROL-utverdier, valg, mål-/maskedigest og aggregater er eksakt lik089;
+bare to designstier per rolle skiftet. Native walltime er239.793s kortere
+(8.48%), men dette er ingen kontrollert A/B eller målt treningsfart.
 
-Fysisk Boot509/19.10 kl.22:29:44.500UTC er bekreftet med autentisert
-WindowsSSH/Ubuntu,182kilder,26artefaktpayloadhasher og11inputstatidentiteter.
-REBOOT_CONFIRMED SHA84676ef86a4767f86887f16b7b694df99d76057c92551ff248348a2a8246b34d.
-En kanonisk pending→archive-flytting bevarte eksakt intent-SHA; den er eksplisitt
-registrert. Boot alene gir ingen treningsadgang.
+Fysisk Boot510/20.10 kl.01:38:51.500UTC er bekreftet med WindowsSSH/Ubuntu,
+182kilder,27artefaktpayloads og11inputstatidentiteter bevart. Pending→archive
+bevarte intent-SHA.095/REBOOT_CONFIRMED.json SHA
+5f50df0c302bdf56fd79982e5478354df076fd65197862a67d3c0f1393b344a0.
+Boot alene er ingen treningsadgang.
 
-Målt oppsett1184.433s/invocation1335.183s; seneste prosessobservasjon00:04
-viste2.994TBlogisk/20.859GBdiskregistrert lesing. En passiv stack traff uncached
-hash under technicaladmission. Fire rene metadata-kall (opprinnelige824/1371/
-1382/2383) bruker nå eksisterende finite file_verification_scope; scopene lukkes
-før restore/forward/update/optimizer. Kildeendringen må fortsatt kvalifiseres.
-Ingen kontroll, modellverdi eller toleranse er lempet.
+094 CPUfresh er COMPLETE121.926s/0forwards/updates/refits. Model/anchor/EMA
+har samme9c4cf514… og initialstate-bytene sammec62cc1ad… som088.093 feilet
+før modellkonstruksjon på en gammel testSHA-binding; den er konsumert og
+bevart.094 retter kun den kvalifiserte bindingen, med b552-produksjonskilde.
+096 gjenbruker eksisterende090stateaudit med én endret policykey; planen
+binder faktisk094fresh/095initial0 og én4G/900s CPU-kjøring uten forwards.
+Den må fysisk bevise model/anchor/optimizer/EMA/scheduler og CPU/Python/
+NumPyRNG før streng eksisterende initialaudit godtas.
 
-Manglende paritetstall er også rettet i kilden: samme to forwards per rolle
-registrerer faktisk hostdispatch med CPU-only profiler; max/RMS, antall avvik,
-outputstørrelse og gjenoppretting følger PARITY_FAILURE.json ved feil. Ingen
-ny forward, kernelendring eller toleranseendring. Hostdispatch er ikke CUDA-
-kernel-/hastighetsbevis; overhead er umålt. Årsaken til091avviket er fortsatt
-ubevist. 092 er COMPLETE:95PASS/3eldre uaktuelle kombinasjonerSKIP,0fail/error,
-40.089s og uendret kilde. De tre nye diagnosecasene bestod. SOURCE_REVIEW
-SHA612fd6ce722f8bb2f146607a6c1303972f9cb2f3f4d4e5f0836d5e0005fecca2.
-Ny closureb552bdb173050cbf7a8113ff71822ad6da049759cad57594cae68eaa391e3519
-har182roller/181filer/7152709B; bare FullTrain-stien endret fra088/f571.
-Ingen ekte modelldata-forward/update eller målt ny I/O-gevinst.093 feilet på
-0.438s før modellkonstruksjon: RETAINED_PROFILE_SOURCE_CHANGED for test_native_
-prefix_learning_measurement.py.092 kvalifiserte testfilen, men en senere065-
-referanse fikk ikke nytt forventet SHA.093 er konsumert og bevares; ingen rerun.
-Ny094 ekstern klargjøringsworker retter akkurat denne testbindingen uten
-endring i b552-produksjonskilden eller andre vakter.065-testSHA er identisk
-med73d-originalen; hele testmodulens AST er identisk når de3nye092kvalifiserte
-casene fjernes.094 er bundet til én4G/7200s CPUfresh, planSHA
-adb632a9abb611ed5b217ee09a0c8a5e122af68057ab7dff58018964cafbd01d.
-055/057/059 gjenbrukes; fremtidig095initial er ingen nativeadgang.
-094 er COMPLETE121.926s/exit0/uendret kilde. Native state/anchor/EMA har
-samme9c4cf514… og initialstate-bytene sammec62cc1ad… som088; optimizer er tom.
-Det er målt0forwards/updates/refits. Worker-I/O49.227GBlogisk/42.337GB
-kernelregistrert disklesing; dette er CPUklargjøring, ikke native throughput.
-ACTUAL_CPU_PREPARATION_REVIEW binder originalterminal/resultat/initial/IO.
-093 er fortsatt feilet/konsumert. Hele den faktiske metadata-/retained-kjeden
-153–205 ble kontrollert før094, med ekte cappedvakter og uten modellprodusent.
-095initial0 er bundet til én32forward-/0update-måling, betinget av nye
-fysiske boot-/maskinvare-/campaignporter. PlanSHA019cc3a112c257f558d3eaa81055dbf97c85ebbf1c12fd527c0bcf15dd92a8ab.
-095 er ennå ikke materialisert/installert/bootgodkjent eller startet. training=false,
-fullEpoch/fullVAL=false.091paritetsårsak og I/O-
-rettelsens faktiske nativegevinst er ennå ikke målt.
+091 paritet feilet før optimizer på dynamic_terminal_net_markout_bps.
+Original ACTUAL_FAILURE_REVIEW SHA
+3ce95c60ec07c788706c200f386f7eafc898f6b82475d937567c75ee258b6c4c bevares.
+Årsaken er fortsatt ubevist. Fire rene metadata-kall bruker nå eksisterende
+finite file_verification_scope, lukket før restore/forward/update/optimizer.
+Samme to paritetsforwards har CPU-only hostdispatch/max/RMS/failurediagnostikk;
+ingen ny forward, kernelendring eller toleranseendring.092 kvalifiserte dette:
+95PASS/3eldre eksplisitt uaktuelle SKIP,0fail/error. SOURCE_REVIEW SHA
+612fd6ce722f8bb2f146607a6c1303972f9cb2f3f4d4e5f0836d5e0005fecca2.
+Aktuell closure er b552bdb173050cbf7a8113ff71822ad6da049759cad57594cae68eaa391e3519.
 
-088fresh/089initial32forwards/090state-RNG-audit forblir faktiske bevis vedf571.
-Ny full_train-byte krever ny closure/fresh/initial0/stateaudit gjennom eksisterende
-gater; gammel091 blir aldri bevis for endret kilde. Den bestilte ene hele epoken,
-full indikatorrevisjon og LONG/SHORT/FLAT-kvalitet/dekning/sporbarhet gjenstår.
-Ingen læring/generaliserings-/økonomisk edge-konklusjon følger av denne feilen.
+En passiv095stack traff fortsatt uncached SHA under dynamiccohort-eieren
+unified_exit_bounded_val_cohort_v1.py354–449. Den rene metadataoperasjonen
+kan få ett eksisterende finite hashscope, med alle SHA/stat-/identitets-
+kontroller beholdt og lukking før modellarbeid. Ingen endring ennå. Behold
+b552 gjennom faktisk paritetsdiagnose; samle deretter denne målte I/O-retten
+med eventuell målt paritetsrettelse for å unngå ekstra kildegenerasjoner.
+Siste observerte prosessrchar02:28 var1.422TBlogisk, kernelregistrert lesing
+25.158GB; dette er ikke totaltall eller1.422TBfysisk disklesing.
+
+Neste:096stateaudit, deretter ny097teknisk paritetsdiagnose med samme kilde
+og eksakte nye campaign-/boot-/maskinvareporter. Ingen full epoke før faktisk
+paritet/Entry-only optimizer/resume er kvalifisert. training_enabled/fullEpoch/
+fullVAL=false. Den bestilte epoken, full indikatorrevisjon og lærte LONG/SHORT/
+FLAT-kvalitet/dekning/sporbarhet gjenstår. TEST/Exit/broker forblir stengt.
 
 ## PC, opprydding og metode
 
 Brukerens18.10-omstart er utført;034/REBOOT_CONFIRMED.json er bindende.
-Ikke utfør samme bestilling igjen. Seneste separate før-native Boot509 er
+Ikke utfør samme bestilling igjen. Seneste separate før-native Boot510 er
 bekreftet med kvitteringen og bevaringsomfanget i aktuell grense ovenfor.
 Dette er ingen treningsadgang. Ny campaign følger egne ferske maskinvare-/
 bootkrav. Bruk kanonisk hasheier; campaign-JSON inkluderer avsluttende newline.
