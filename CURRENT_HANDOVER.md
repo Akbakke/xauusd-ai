@@ -126,14 +126,22 @@ bevarte samme produksjonskilde; bare konkrete testfixtureavvik ble rettet.
 Beståtte caser gjenbrukes, siste berørte runde hadde300PASS/3eksplisitte
 nonTRAIN-derived-SKIP. Alle11berørte moduler er dekket; ingen ny fullsuite.
 SOURCE_QUALIFICATION_REVIEW.json og TERMINAL.json i110binder bevisene.
-Syntetiske tester er ingen faktisk TRAIN-fit. Ny111fit må bindes separat.
+Syntetiske tester er ingen faktisk TRAIN-fit. Ny111fit er nå separat forberedt:
+
+111root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111`.
+PLAN.json binder118249TRAIN-rader,chunk128/progress64,108recipe kun som
+target-/dataproveniens og057populasjon. Én capped CPUaudit4G/512M,3600s tak;
+ingen ny featurebuild/inputnormalisering/modell/optimizer/VAL-fit/TEST.
+Eksakt ren sourceHEAD/policy/script/executionbinding kreves før launch.
+Realfit er ikke startet; siste terminal er110.
 
 VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
 Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.
 Etter endret sourceclosure er105/106/107 historiske funksjonsbevis; ny aktuell
 CPUfresh/initial/paritet/resume må kvalifiseres før eventuell ny trening.
-Realfit, modellforwards og trening er fortsatt stengt inntil egne eksakte
-bindinger/kvalifiseringer. Ingen gamle kampanjer eller initialmålinger relanseres.
+Bare111targetfit er forberedt; modellforwards og trening er fortsatt stengt
+inntil egne eksakte bindinger/kvalifiseringer. Ingen gamle kampanjer eller
+initialmålinger relanseres.
 
 Alle1205GCverdier+masker har kildekart for formel/enhet/domene/warmup;
 23tekniske formler×5TF har115feltposter. Dette er ikke full uavhengig numerisk
