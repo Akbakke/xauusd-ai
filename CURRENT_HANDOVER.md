@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —097 målt paritetsfeil;098 minimal samlet rettelse
+## Aktuell grense —098 kilde/syntetikk bestått; ny nativebinding gjenstår
 
 097 er FAILED/guardexit1,20.10 kl.03:56:24UTC, før optimizer. Faktisk diagnose
 ble atomisk publisert i DYNAMIC_M5_TECHNICAL_QUALIFICATION/PARITY_FAILURE.json,
@@ -93,10 +93,14 @@ paritetsagenten eier trainerens eksisterende _model_forward_fp32/presisjons-
 context og fokustester. MHAfastpathFalse gjelder bare dynamisk Entry/
 deterministiskFP32 rundt modellkallet og gjenoppretter tidligere flagg i finally;
 SDPAvalg, autograd, modellmodus, RNG, presisjon og øvrig trainer-AST er uendret.
-Hele kohort-AST er ellers identisk; eksisterende tester er uendret. Én098
-capped kildesyntetisk kvalifisering er klar, med25nye caser. Ingen CUDA-/
-hastighets-PASS er målt på denne kilden.
-Ingen ekte modelldata-forward eller optimizer er autorisert i denne bølgen.
+Hele kohort-AST er ellers identisk; eksisterende tester er uendret.098 er
+faktisk COMPLETE225.577s:219PASS/3eksakte kjente legacy-SKIP,0fail/error,
+og alle25nye caser PASS. Source_reviewSHAe92b41251f30821b8ef18747bc181dc6703cf522edeac728e4fa3d12ca284c22.
+Ny closureSHA8517c075eb74dacc85c21c2441d6e00d23335f0eff02144bc32b5e009e41924f
+har182roller/181filer/7153839B; bare kohortowner og trainer har endret bytes.
+Ingen CUDA-/hastighets-PASS er målt på denne kilden.
+098planen er konsumert; ingen relansering. Ingen ekte modelldata-forward
+eller optimizer er autorisert i denne bølgen.
 Nye kildebytes krever ny closure/CPUfresh/faktisk initial0/stateaudit og
 paritet/Entry-only optimizer/resume gjennom eksisterende gater før epoken.
 Ny099CPUfresh må bevare087→092→098-kvalifiseringskjeden med nøyaktig
