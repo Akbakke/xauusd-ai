@@ -57,7 +57,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
   Disse originale bevisene er bevart;103 endrer trainerclosure og krever ny
   faktisk kildebundet CPUfresh og videre eksisterende native porter.
 
-## Aktuell grense —102 konsumert FAILED;103 bestått;104 CPUfresh klargjort
+## Aktuell grense —103 bestått;104 CPUfresh ferdig;105 initial0 skal bindes
 
 102s separate nativekvalifisering stoppet20.10 kl.07:34:11UTC med guard
 child_status1 og eksakt Windows-task LastTaskResult1. Ingen bundne Linux-
@@ -122,13 +122,20 @@ batch-/480løkke. Intermediate rchar er logiske lesebytes; read_bytes er separat
 lagringsregnskap. Ingen TB-per-batch-, farts- eller ETA-påstand er bevist.
 103 samler det konkrete doble policyarbeidet i samme nødvendige kildebølge.
 
-104PLAN er bundet til faktisk103-kvalifisering og dc1c-closure, med alle
-historiske087/092/098-bindinger bevart. Først én capped4G/512M metadata-
-precheck av hele publisher-prefix252–306; stopp før recipe-/modellimport307,
-ingenclaim. Bare faktiskPASS åpner den ene allerede bundne104CPUfresh-
-kjøringen med7200s og de samme vaktene. Ingen forwards/updates/refit/Exit.
-Deretter nativeinitial/state-/technical-porter med nye bundne identiteter;
-105initialoutput er foreløpig bare en planlagt sti, ingen nativeadgang. Den bestilte fulle epoken og målt
+104 er faktisk COMPLETE/exit0/sourceunchanged20.10 kl.08:20:50UTC på120.688s.
+Først bestod hele metadata-prefix252–306 på0.208s, utenclaim/Torch/modellimport.
+Deretter ble genuinCPUfresh publisert:0forwards/updates/refits/Exit, ingen gamle
+vekter.182kilder SHA/stat,11inputidentiteter og71,872,094Binitialblobc62cc1ad…
+er fysisk kontrollert; constructor ONLINE/anker/EMA9c4cf514… er lik099.
+INIT f5a78482f6c85d85301d4e2f10efcb2a7f6e1ad740a1582a7a15f6380852586f,
+MEAS8f3351bda4306808b30afa312be64ceac5664041c2f7b4cf1fe09083c67b5283.
+WorkerIO49.232GBrchar/44.555GBread_bytes er ulike roller, ikke hosttotal eller
+målt nativegevinst.104 er konsumert; originalkvitteringer og state bevares.
+
+105initial0 har ny eksakt PLAN/RECIPE/budget bundet til104/103/dc1c; bare
+campaignklargjøring åpnes. Nytt frosset nativevindu, signert hardware og fysisk
+Windowsboot kreves før32Entryforwards/0updates. training_enabled=false.
+Initial/savedstate/paritet/Entry-onlyoptimizer/resume og bestilt epoke gjenstår. Den bestilte fulle epoken og målt
 LONG/SHORT/FLAT-kvalitet/dekning/sporbarhet gjenstår. Ingen utvidelse til Exit,
 TEST, broker, HPO eller andre modeller. Stabil langkjøring observeres15–30min.
 
