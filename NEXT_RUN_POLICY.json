@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-20T15:51:47.035568+00:00",
-  "status": "111_WHOLE_TRAIN_TARGET_RMS_FIT_PREPARED__NATIVE_TRAINING_CLOSED",
+  "status": "111_TRAIN_RMS_FIT_COMPLETE__NEW_NATIVE_INITIAL_PARITY_RESUME_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute new111wholeTRAIN target-RMS fit exactly once through capped audit4G/512M.108recipe is provenance only; no relaunch. Read26targetcolumns/M1quote, reuse055inputnormalization; no native model/optimizer/VALfit/TEST. Require immutable terminal before newsource-bound nativefresh/initial/parity/resume preparation.",
+  "next_action": "Prepare a NEW112source-bound CPUfresh state with exact111dynamic_m5_loss_scales recipebinding and currentclosedtrainingpolicy, then newzero-update initialbaseline and actualparity/Entry-only/resume qualification. Reuse055inputs/normalization/057populations;108epoch and111fit areconsumed, noextraepoch or oldplanrelaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -117,8 +117,8 @@
     "latest_terminal_role": "COMPLETE_CPU_ONLY_SAVED_TASK_SCALE_AUDIT_NO_MODEL_OR_FIT",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/TERMINAL.json",
-      "sha256": "015d5a7f00818a93382e0e54ed4e25d3a92bb75ed4c9629bfb8c16f40cf0aa06"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/TERMINAL.json",
+      "sha256": "24c4d0063c8cf1738050c127b39c91327d2a88f00a7afc8ee8221a11299874e0"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -15287,7 +15287,7 @@
           "primary_entry_quality_qualified": false
         },
         "loss_unit_design_gap": {
-          "status": "SOURCE_QUALIFIED_WHOLE_TRAIN_SCALE_FIT_PREPARED",
+          "status": "RESOLVED_SOURCE_AND_WHOLE_TRAIN_RMS_FIT_NATIVE_REQUALIFICATION_REMAINS",
           "evidence": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TASK_SCALE_AUDIT.json",
             "sha256": "97cda80ee2c2cea53015a50f60a5d66bf6af524ae163b7ba8a22c38d34ec2b5d"
@@ -15377,7 +15377,7 @@
           }
         },
         "loss_unit_fit_stage_111": {
-          "status": "PREPARED_TARGET_ONLY_FIT",
+          "status": "COMPLETE_4810_TRAIN_RMS_COORDINATES_NEW_NATIVE_QUALIFICATION_REQUIRED",
           "plan": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/PLAN.json",
             "sha256": "6d24d101372463590754e4fd50af1ca7b2230fed1bea772e15ca48aaac3a73f9"
@@ -15387,7 +15387,27 @@
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_QUALIFICATION_REVIEW.json",
             "sha256": "fc3553669a1a3e5ced7272c2e586395df9a9ce0700df8262c312f0aa064ecf55"
           },
-          "training_enabled": false
+          "training_enabled": false,
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/TERMINAL.json",
+            "sha256": "24c4d0063c8cf1738050c127b39c91327d2a88f00a7afc8ee8221a11299874e0"
+          },
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/RESULT.json",
+            "sha256": "4be4bcdc4c285a0b620f06349228386113e5054e6879ede6be994e90717de223"
+          },
+          "loss_scales": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/LOSS_SCALES.json",
+            "sha256": "93fa60c423a4adebd888f7a905b31adc61a3094d8e7a04169f4049db540fc88d"
+          },
+          "review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/PUBLISHED_SCALE_REVIEW.json",
+            "sha256": "8dbaa6c22a04fc30b5327c5e053071d1412e078500ca28e23c098846b827169d"
+          },
+          "fit_rows": 118249,
+          "learnable_coordinates": 4810,
+          "source_unchanged": true,
+          "verified_metadata_inputs_unchanged": true
         }
       },
       "operator_pc_reboot_20261018": {
@@ -18208,11 +18228,11 @@
   },
   "updated_utc": "2026-10-20T15:51:47.035568+00:00",
   "dynamic_m5_loss_scale_fit_run": {
-    "status": "PREPARED_SINGLE_MODEL_FREE_TRAIN_STATISTIC_FIT",
-    "execution_authorized": true,
+    "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
+    "execution_authorized": false,
     "training_enabled": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/PLAN.json",
@@ -18236,6 +18256,31 @@
     "input_normalization_refit": false,
     "native_model_runs": 0,
     "native_optimizer_updates": 0,
-    "test_data_used": false
+    "test_data_used": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/TERMINAL.json",
+      "sha256": "24c4d0063c8cf1738050c127b39c91327d2a88f00a7afc8ee8221a11299874e0"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/RESULT.json",
+      "sha256": "4be4bcdc4c285a0b620f06349228386113e5054e6879ede6be994e90717de223"
+    },
+    "loss_scales": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/LOSS_SCALES.json",
+      "sha256": "93fa60c423a4adebd888f7a905b31adc61a3094d8e7a04169f4049db540fc88d"
+    },
+    "published_scale_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/PUBLISHED_SCALE_REVIEW.json",
+      "sha256": "8dbaa6c22a04fc30b5327c5e053071d1412e078500ca28e23c098846b827169d"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/CONTROLLER_TERMINAL.json",
+      "sha256": "d2349795442b53cd101a7b14a900e32a2c5c2c8aa64924424272bd250ee21100"
+    },
+    "source_preserved": true,
+    "setup_seconds": 83.04865333899943,
+    "fit_seconds": 129.66304274899994,
+    "elapsed_seconds": 212.79313149600057,
+    "max_rss_kib": 3078268
   }
 }

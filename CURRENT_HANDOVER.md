@@ -126,20 +126,26 @@ bevarte samme produksjonskilde; bare konkrete testfixtureavvik ble rettet.
 Beståtte caser gjenbrukes, siste berørte runde hadde300PASS/3eksplisitte
 nonTRAIN-derived-SKIP. Alle11berørte moduler er dekket; ingen ny fullsuite.
 SOURCE_QUALIFICATION_REVIEW.json og TERMINAL.json i110binder bevisene.
-Syntetiske tester er ingen faktisk TRAIN-fit. Ny111fit er nå separat forberedt:
+Syntetiske tester er ingen faktisk TRAIN-fit. Ny111fit er nå faktisk COMPLETE:
 
 111root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111`.
-PLAN.json binder118249TRAIN-rader,chunk128/progress64,108recipe kun som
-target-/dataproveniens og057populasjon. Én capped CPUaudit4G/512M,3600s tak;
-ingen ny featurebuild/inputnormalisering/modell/optimizer/VAL-fit/TEST.
-Eksakt ren sourceHEAD/policy/script/executionbinding kreves før launch.
-Realfit er ikke startet; siste terminal er110.
+Én capped CPUaudit4G/512M gikk gjennom118249TRAIN-rader én gang i924chunks.
+Oppstart83,049s,fit129,663s,total212,793s; peakRSS3078268KiB. Alle4810
+koordinater har positive observedcounts og RMS; råsqrtaritmetikken ble
+uavhengig kontrollert fra publiserte summer/counts uten targetrebuild.
+LOSS_SCALES.json SHA93fa60c423a4adebd888f7a905b31adc61a3094d8e7a04169f4049db540fc88d.
+PUBLISHED_SCALE_REVIEW.json SHA8dbaa6c22a04fc30b5327c5e053071d1412e078500ca28e23c098846b827169d.
+172kildebindinger og25metadata-inputidentiteter er bevart. Ingen ny featurebuild,
+inputnormalisering,model/forward/optimizer,GPU,VAL-fit ellerTEST.111er konsumert;
+artefaktet gjenbrukes og refittes ikke påVAL. Dette er ikke bedre prediksjon.
+Siste terminal er111. Neste: NY112CPUfresh med denne skalaens recipebinding,
+deretter fersk nullstegsinitial/paritet/Entry-only/resume; ingen ny epoke åpnes.
 
 VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
 Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.
 Etter endret sourceclosure er105/106/107 historiske funksjonsbevis; ny aktuell
 CPUfresh/initial/paritet/resume må kvalifiseres før eventuell ny trening.
-Bare111targetfit er forberedt; modellforwards og trening er fortsatt stengt
+111targetfit er fullført; nye modellforwards og trening er fortsatt stengt
 inntil egne eksakte bindinger/kvalifiseringer. Ingen gamle kampanjer eller
 initialmålinger relanseres.
 
