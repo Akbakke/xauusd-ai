@@ -31,6 +31,25 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
+## Gjeldende arbeid — avgrenset GC-klokkefasit118
+
+118 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118`.
+Ny modus i eksisterende GC-auditeier kontrollerer tre source-clock-midler på alle femTF
+mot uavhengig math.fsum-fasit fra publiserte024M1-summer/egne antall. Negative verdier
+beholdes. Fullgrid, kontrakt, egne gyldighetsmasker og ujevne nevnerantall kontrolleres;
+float64-grensen er analytisk, ikke tilpasset fra avvik. Dette er bare M1→TF, ikke råevent→M1.
+Først én capped fokusert kildekvalifisering; fysisk audit forblir stengt til faktisk PASS.
+De seks ferdige inputfilene er totalt229838465B komprimert; kun nødvendige kolonner
+og utviklingsradgrupper før juli2026 skal dekodes. Ingen ny råscan/build/model/normalisering.
+Audit-/testfilene ligger utenfor117s183produksjonsroller. Det bevarer117s uendrede
+funksjonsbevis og krever ingen ny native baseline-/paritetsrunde for denne auditen.
+
+Målrettet lesereview av117-stakken fant eksisterende finite hashscope i
+_dynamic_entry_native_context_binding og nested cohortscope. Ingen manglende memo eller
+hash-per-treningsbatch ble påvist. En ny metadataoperasjon/session etter modell-/state-
+arbeid krever fersk validering etter gjeldende regler. Ingen produksjonspatch eller ny
+baseline-loop startes på grunnlag av denne ene stakkmålingen; samlet tidsattribusjon mangler.
+
 ## Aktuelt — hel epoke ferdig; Entry-kvalitet er ikke kvalifisert
 
 108root: `/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108`.

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T21:23:25.901976+00:00",
-  "status": "117_TRAIN_RMS_ENTRY_PARITY_RESUME_PASS__MAIN_EPOCH_108_ALREADY_COMPLETE__FURTHER_TRAINING_CLOSED",
+  "observed_utc": "2026-10-20T21:33:53.959833+00:00",
+  "status": "118_GC_CLOCK_NUMERIC_SOURCE_QUALIFICATION_BOUND__117_MECHANICS_PASS__FURTHER_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "117actual private TRAIN-RMS mechanics COMPLETE. Reuse114fresh/115initial/116audit/111RMS and all unchanged qualified inputs. Review concrete remaining active-feature independent numeric gaps and measured metadata I/O only.108already consumed the one ordered main epoch; no further main training/fullVAL without an exact new admitted learning plan. No Exit/TEST/broker.",
+  "next_action": "Run exactly one118capped focused sourcequalification of the existing GC audit owner and testmodule. Only after actual PASS bind one118published M1-to-five-TF sourceclock numeric audit; no raw MBP scan, rebuild, model, inputnormalization, native training, Exit or TEST. Reuse117mechanics for unchanged183production source roles. No IO sourcepatch is justified by the single117stack sample: its existing finite scope already applies.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "117_COMPLETE__ACTIVE_FEATURE_NUMERIC_AND_MEASURED_IO_GAPS_REMAIN",
+    "current_activity": "118_ACTIVE_GC_CLOCK_NUMERIC_REFERENCE_SOURCE_QUALIFICATION_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No current native job.117current TRAIN-RMS Entry-only optimizer/parity/resume PASS; one ordered main epoch108already complete. Current RMS has not had another main learning epoch. Independent active-feature numeric references and primary LONG/SHORT/FLAT quality coverage explanations generalization and economy remain unqualified. No extraepoch authority.",
+    "current_blocker": "Independent unequal-count clockmean reference on published M1-to-five-TF data pending118. Sourcequalification must pass before actual scan.117mechanics passed on unchanged production closure; no new main epoch authority.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "117actual private TRAIN-RMS mechanics COMPLETE. Reuse114fresh/115initial/116audit/111RMS and all unchanged qualified inputs. Review concrete remaining active-feature independent numeric gaps and measured metadata I/O only.108already consumed the one ordered main epoch; no further main training/fullVAL without an exact new admitted learning plan. No Exit/TEST/broker.",
+    "next_action": "Run exactly one118capped focused sourcequalification of the existing GC audit owner and testmodule. Only after actual PASS bind one118published M1-to-five-TF sourceclock numeric audit; no raw MBP scan, rebuild, model, inputnormalization, native training, Exit or TEST. Reuse117mechanics for unchanged183production source roles. No IO sourcepatch is justified by the single117stack sample: its existing finite scope already applies.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -15988,7 +15988,30 @@
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
       "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
     },
-    "current_generation_acceptance_scope": "114genuine fresh,115zero-update initial,116strict savedstate/RNG and117actual Entry-only optimizer/parity/resume PASS with111TRAIN RMS. Private weights nonreusable. No primary Entry quality generalization or economic admission."
+    "current_generation_acceptance_scope": "114genuine fresh,115zero-update initial,116strict savedstate/RNG and117actual Entry-only optimizer/parity/resume PASS with111TRAIN RMS. Private weights nonreusable. No primary Entry quality generalization or economic admission.",
+    "gc_clock_numeric_reference_118": {
+      "status": "PREPARED_PENDING_FOCUSED_SOURCE_QUALIFICATION",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/PLAN.json",
+        "sha256": "f452c59fc194a99bea4c27fb0b09ab699c1c4ab50a9daf3b5727294f8c500b00"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/DESIGN.json",
+        "sha256": "6aa01d7919fc2c9d7593e619c662fca402d06ed6f01cc43b509df78008bd42fd"
+      },
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "training_enabled": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "native_training_admitted": false,
+      "test_data_used": false,
+      "normalization_fit_enabled": false,
+      "exit_evaluation": false,
+      "broker_access_allowed": false
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -18552,7 +18575,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T21:23:25.901976+00:00",
+  "updated_utc": "2026-10-20T21:33:53.959833+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -18870,5 +18893,28 @@
     "source_bindings_sha256": "5385ca4c7afdd8b1c779dfcd4406b26f004372faad05ba388c266466b48676b1",
     "measurement_rows": 512,
     "entry_model_forwards": 32
+  },
+  "gc_clock_numeric_source_118": {
+    "status": "BOUND_ONE_FOCUSED_SOURCE_QUALIFICATION",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "11516b2738ca63e4c2fe3c2d447b16d54ade1d2b1796782743204e32f68e5b15"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/run_focused_source_qualification.py",
+      "sha256": "5d3b33db538c800db8fdbf66205a4fd5b04369d1661394c3f40a1346ecb3c79a"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

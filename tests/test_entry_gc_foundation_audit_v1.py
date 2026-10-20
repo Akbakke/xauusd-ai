@@ -1,5 +1,6 @@
 """Adversarial mechanics of the audit, not evidence of trading value."""
 import numpy as np
+import pytest
 import pandas as pd
 import pyarrow as pa
 from gx1.scripts.audit_entry_gc_foundation_v1 import reference_horizon,mask_attribution,NS,MINUTE,DAY
@@ -94,3 +95,127 @@ def test_actual_h20_train_epoch_ignores_changed_exit_teacher_and_uses_h20(monkey
     assert len(seen) == 4 and all(torch.equal(y, expected) for y in seen)
     assert losses[0] == losses[1]
     assert all(torch.equal(states[0][key], states[1][key]) for key in states[0])
+
+
+_CLOCK_MINUTES = {'M5':5, 'M15':15, 'H1':60, 'H4':240, 'D1':1440}
+
+
+def _event_clock_fixture(timeframe):
+    # Independent explicit grids: 22Z is an opening boundary on every TF.
+    start = pd.Timestamp('2024-05-01T22:00:00Z').value
+    size = _CLOCK_MINUTES[timeframe]
+    minutes = start + np.arange(size, dtype=np.int64)*MINUTE
+    selected = np.zeros(size, np.int16)
+    events = {'qualified_final_event_count': np.full(size, np.nan)}
+    events['qualified_final_event_count'][:3] = [5,6,1]
+    for domain, counts, sums in (
+            ('send_to_capture',[1,3,0],[-10,90,0]),
+            ('receive_minus_event',[2,1,0],[-80,20,0]),
+            ('matching_clock',[1,2,0],[-60,30,0])):
+        events[domain+'_count'] = np.full(size, np.nan)
+        events[domain+'_sum_ns'] = np.full(size, np.nan)
+        events[domain+'_count'][:3] = counts
+        events[domain+'_sum_ns'][:3] = sums
+    return minutes, selected, events
+
+
+@pytest.mark.parametrize('timeframe', tuple(_CLOCK_MINUTES))
+def test_event_clock_independent_unequal_count_signed_reference_all_five_tf(monkeypatch,timeframe):
+    from gx1.scripts.audit_entry_gc_foundation_v1 import reference_event_clock_means,compare_event_clock_reference
+    from gx1.features import gc_order_flow_v1 as owner
+    production=owner.aggregate_observed_event_diagnostics_v1
+    monkeypatch.setattr(owner,'aggregate_observed_event_diagnostics_v1',
+        lambda *a,**k: (_ for _ in ()).throw(AssertionError('independent reference must not call producer')))
+    minutes,selected,events = _event_clock_fixture(timeframe)
+    reference = reference_event_clock_means(minutes,selected,events,timeframe)
+    assert reference['bar_start_ns'].tolist() == [minutes[0]]
+    assert reference['available_ns'].tolist() == [minutes[0]+_CLOCK_MINUTES[timeframe]*MINUTE]
+    assert reference['observed_event_valid'].tolist() == [True]
+    assert reference['observed_event_accepted_minutes'].tolist() == [3]
+    for domain,count,total,mean,wrong in (
+            ('send_to_capture',4,80,20,10),
+            ('receive_minus_event',3,-60,-20,-10),
+            ('matching_clock',3,-30,-10,-22.5)):
+        prefix='observed_event_'+domain
+        assert reference[prefix+'_count'].tolist() == [count]
+        assert reference[prefix+'_sum_ns'].tolist() == [total]
+        assert reference[prefix+'_mean_ns'].tolist() == [mean]
+        assert reference[prefix+'_mean_of_means'].tolist() == [wrong]
+        assert reference[prefix+'_unequal_positive_counts'].tolist() == [True]
+    # The separate mechanical comparison also pins the actual production
+    # aggregator to the hand answer; it is never used to build the oracle.
+    accepted=np.isfinite(events['qualified_final_event_count'])
+    full={name:events.get(name,np.where(accepted,0.,np.nan))
+        for name in owner.EVENT_DIAGNOSTIC_REDUCERS_V1}
+    full['qualified_covered_ns']=np.where(accepted,MINUTE,np.nan)
+    actual={'bar_start_ns':minutes[[0]],
+        'available_ns':minutes[[0]]+_CLOCK_MINUTES[timeframe]*MINUTE,
+        **production(minutes,selected,full,timeframe)}
+    report=compare_event_clock_reference(reference,actual)
+    assert all(item['discriminating_buckets']==1 for item in report['domains'].values())
+    actual['observed_event_send_to_capture_mean_ns'][0]=10
+    with pytest.raises(RuntimeError,match='GC_EVENT_NUMERIC_VALUE'):
+        compare_event_clock_reference(reference,actual)
+
+
+@pytest.mark.parametrize('timeframe', tuple(_CLOCK_MINUTES))
+def test_event_clock_zero_domain_missing_grid_and_unaccepted_contract_roll(timeframe):
+    from gx1.scripts.audit_entry_gc_foundation_v1 import reference_event_clock_means
+    minutes,selected,events=_event_clock_fixture(timeframe)
+    events['matching_clock_count'][:3]=0;events['matching_clock_sum_ns'][:3]=0
+    reference=reference_event_clock_means(minutes,selected,events,timeframe)
+    assert reference['observed_event_valid'].tolist()==[True]
+    assert reference['observed_event_matching_clock_valid'].tolist()==[False]
+    assert np.isnan(reference['observed_event_matching_clock_mean_ns']).all()
+    assert reference['observed_event_send_to_capture_mean_ns'].tolist()==[20]
+    # All physical minutes participate in full-grid/contract validation,
+    # including an unaccepted final minute; partial accepted coverage is legal.
+    selected[-1]=1
+    rolled=reference_event_clock_means(minutes,selected,events,timeframe)
+    assert rolled['observed_event_valid'].tolist()==[False]
+    selected[-1]=-1
+    unknown=reference_event_clock_means(minutes,selected,events,timeframe)
+    assert unknown['observed_event_valid'].tolist()==[False]
+    selected[-1]=0
+    take=np.arange(len(minutes))!=3
+    missing=reference_event_clock_means(minutes[take],selected[take],
+        {name:value[take] for name,value in events.items()},timeframe)
+    assert missing['observed_event_valid'].tolist()==[False]
+
+
+def test_event_clock_no_discriminating_witness_is_not_a_numeric_pass():
+    from gx1.scripts.audit_entry_gc_foundation_v1 import reference_event_clock_means,compare_event_clock_reference
+    minutes,selected,events=_event_clock_fixture('M5')
+    events['send_to_capture_count'][:3]=[1,1,0]
+    reference=reference_event_clock_means(minutes,selected,events,'M5')
+    with pytest.raises(RuntimeError,match='GC_EVENT_NUMERIC_NO_UNEQUAL_COUNT_WITNESS'):
+        compare_event_clock_reference(reference,reference)
+
+
+def test_event_clock_footer_rejects_test_intersection_before_any_payload(monkeypatch):
+    from types import SimpleNamespace
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    seal=pd.Timestamp('2026-07-01T00:00:00Z').value
+    rows=[SimpleNamespace(min=seal-3*MINUTE,max=seal-2*MINUTE,has_min_max=True),
+        SimpleNamespace(min=seal-MINUTE,max=seal,has_min_max=True)]
+    class Parquet:
+        schema_arrow=SimpleNamespace(names=['bar_start_ns'])
+        metadata=SimpleNamespace(num_row_groups=2,row_group=lambda i:
+            SimpleNamespace(column=lambda _:SimpleNamespace(statistics=rows[i])))
+        def read_row_groups(self,*args,**kwargs):
+            raise AssertionError('unsafe footer must fail before any group decode')
+    monkeypatch.setattr(audit.pq,'ParquetFile',lambda _:Parquet())
+    with pytest.raises(RuntimeError,match='GC_EVENT_NUMERIC_ROW_GROUP_INTERSECTS_TEST'):
+        audit.read_event_numeric_columns('never-read',['bar_start_ns'],seal-4*MINUTE,seal,seal)
+
+
+@pytest.mark.parametrize('infinity', [np.inf,-np.inf])
+def test_event_clock_unobserved_mean_requires_nan_not_infinity(infinity):
+    from gx1.scripts.audit_entry_gc_foundation_v1 import reference_event_clock_means,compare_event_clock_reference
+    minutes,selected,events=_event_clock_fixture('M5')
+    events['matching_clock_count'][:3]=0;events['matching_clock_sum_ns'][:3]=0
+    reference=reference_event_clock_means(minutes,selected,events,'M5')
+    actual={name:value.copy() for name,value in reference.items()}
+    actual['observed_event_matching_clock_mean_ns'][0]=infinity
+    with pytest.raises(RuntimeError,match='GC_EVENT_NUMERIC_FINITE_MASK'):
+        compare_event_clock_reference(reference,actual)

@@ -1005,11 +1005,261 @@ def run_p0_diagnosis(binding_path):
         raise
 
 
+GC_EVENT_NUMERIC_PLAN_ID = 'NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118'
+GC_EVENT_NUMERIC_ROOT = Path('/home/andre2/GX1_RUNS') / GC_EVENT_NUMERIC_PLAN_ID
+GC_EVENT_NUMERIC_POLICY_KEY = 'gc_clock_numeric_reference_118'
+GC_EVENT_CLOCK_DOMAINS = ('send_to_capture', 'receive_minus_event', 'matching_clock')
+
+
+def reference_event_clock_means(minutes, selected, events, timeframe):
+    """Independent arithmetic on published M1 float64 sums, not raw ns truth.
+
+    Only duration/session constants are shared with production. Integer flooring
+    and math.fsum do not call its label/aggregation/reduceat implementations.
+    The error envelope is the float64 forward bound gamma_(k-1)*sum(abs(s_i)),
+    plus rounding of fsum and the two quotients; no data-fitted tolerance.
+    """
+    import math
+    from gx1.features.htf_features import MULTI_TF_SHIFT
+    from gx1.time.session_detector import TRADING_SESSION_BOUNDARY_OFFSET
+    minutes = np.asarray(minutes, np.int64); selected = np.asarray(selected)
+    duration = MULTI_TF_SHIFT[timeframe].value
+    offset = TRADING_SESSION_BOUNDARY_OFFSET.value % duration
+    if (minutes.ndim != 1 or not len(minutes) or selected.shape != minutes.shape
+            or np.any(np.diff(minutes) <= 0) or np.any(minutes % MINUTE)
+            or np.any(~np.isfinite(selected)) or np.any(selected != np.floor(selected))):
+        raise RuntimeError('GC_EVENT_REFERENCE_M1_GRID_OR_CONTRACT')
+    required = ['qualified_final_event_count'] + [d + suffix for d in GC_EVENT_CLOCK_DOMAINS
+        for suffix in ('_count', '_sum_ns')]
+    arrays = {name: np.asarray(events[name], np.float64) for name in required}
+    if any(v.shape != minutes.shape or np.isinf(v).any() for v in arrays.values()):
+        raise RuntimeError('GC_EVENT_REFERENCE_M1_SHAPE_OR_INFINITY')
+    labels = ((minutes - offset) // duration) * duration + offset
+    stamps, first, sizes = np.unique(labels, return_index=True, return_counts=True)
+    out = {'bar_start_ns': stamps, 'available_ns': stamps + duration,
+        'observed_event_valid': np.zeros(len(stamps), bool),
+        'observed_event_accepted_minutes': np.zeros(len(stamps), np.int64)}
+    for domain in GC_EVENT_CLOCK_DOMAINS:
+        prefix = 'observed_event_' + domain
+        for suffix in ('_count', '_sum_ns', '_mean_ns', '_sum_bound', '_mean_bound', '_mean_of_means'):
+            out[prefix + suffix] = np.full(len(stamps), np.nan)
+        out[prefix + '_valid'] = np.zeros(len(stamps), bool)
+        out[prefix + '_unequal_positive_counts'] = np.zeros(len(stamps), bool)
+    unit = np.finfo(np.float64).eps / 2
+    for row, (stamp, start, size) in enumerate(zip(stamps, first, sizes)):
+        stop = start + size; sl = slice(start, stop)
+        qualified = arrays['qualified_final_event_count'][sl]
+        accepted = np.isfinite(qualified) & (qualified > 0)
+        out['observed_event_accepted_minutes'][row] = int(accepted.sum())
+        contracts = selected[sl]
+        valid = (size == duration // MINUTE and minutes[start] == stamp
+            and minutes[stop-1] == stamp + duration - MINUTE
+            and np.all(contracts >= 0) and np.all(contracts == contracts[0]) and accepted.any())
+        out['observed_event_valid'][row] = valid
+        if not valid:
+            continue
+        for domain in GC_EVENT_CLOCK_DOMAINS:
+            prefix = 'observed_event_' + domain
+            counts = arrays[domain + '_count'][sl][accepted]
+            sums = arrays[domain + '_sum_ns'][sl][accepted]
+            if (not np.isfinite(counts).all() or not np.isfinite(sums).all()
+                    or np.any(counts < 0) or np.any(counts != np.floor(counts))
+                    or np.any((counts == 0) & (sums != 0))):
+                raise RuntimeError('GC_EVENT_REFERENCE_M1_DOMAIN:' + domain)
+            count = sum(int(n) for n in counts)
+            if count > 2**53:
+                raise RuntimeError('GC_EVENT_REFERENCE_COUNT_FLOAT64_EXACTNESS')
+            total = math.fsum(float(v) for v in sums)
+            magnitude = math.fsum(abs(float(v)) for v in sums)
+            k = len(sums); gamma = (k-1)*unit / (1-(k-1)*unit)
+            bound = gamma*magnitude + unit*abs(total)
+            out[prefix + '_count'][row] = count
+            out[prefix + '_sum_ns'][row] = total
+            out[prefix + '_sum_bound'][row] = bound
+            out[prefix + '_valid'][row] = count > 0
+            if count:
+                mean = total/count
+                out[prefix + '_mean_ns'][row] = mean
+                # Bounds both stored production quotient and reference quotient.
+                out[prefix + '_mean_bound'][row] = (bound/count + 2*unit*abs(mean))/(1-unit)
+                positive = counts > 0
+                out[prefix + '_mean_of_means'][row] = math.fsum(
+                    float(s)/int(n) for s, n in zip(sums[positive], counts[positive])) / int(positive.sum())
+                out[prefix + '_unequal_positive_counts'][row] = len(set(map(int, counts[positive]))) > 1
+    return out
+
+
+def compare_event_clock_reference(reference, actual):
+    """Check masks, counts, float64 forward bounds and discriminating coverage."""
+    for name in ('bar_start_ns', 'available_ns', 'observed_event_valid', 'observed_event_accepted_minutes'):
+        if not np.array_equal(reference[name], np.asarray(actual[name])):
+            raise RuntimeError('GC_EVENT_NUMERIC_GRID_OR_MASK:' + name)
+    report = {'buckets': len(reference['bar_start_ns']), 'domains': {}}
+    for domain in GC_EVENT_CLOCK_DOMAINS:
+        prefix = 'observed_event_' + domain; valid = reference[prefix + '_valid']
+        if not np.array_equal(valid, np.asarray(actual[prefix + '_valid'])):
+            raise RuntimeError('GC_EVENT_NUMERIC_DOMAIN_VALIDITY:' + domain)
+        errors = {}
+        for suffix, bound_suffix in (('_count', None), ('_sum_ns', '_sum_bound'), ('_mean_ns', '_mean_bound')):
+            expected = reference[prefix + suffix]; observed = np.asarray(actual[prefix + suffix], np.float64)
+            if np.isinf(observed).any() or not np.array_equal(np.isnan(expected), np.isnan(observed)):
+                raise RuntimeError('GC_EVENT_NUMERIC_FINITE_MASK:' + prefix + suffix)
+            finite = np.isfinite(expected); delta = np.abs(observed[finite] - expected[finite])
+            bound = 0 if bound_suffix is None else reference[prefix + bound_suffix][finite]
+            if np.any(delta > bound):
+                raise RuntimeError('GC_EVENT_NUMERIC_VALUE:' + prefix + suffix)
+            if finite.any(): errors[suffix.lstrip('_')] = float(delta.max())
+        if valid.any():
+            quotient = np.asarray(actual[prefix + '_sum_ns'])[valid] / np.asarray(actual[prefix + '_count'])[valid]
+            if not np.array_equal(quotient, np.asarray(actual[prefix + '_mean_ns'])[valid]):
+                raise RuntimeError('GC_EVENT_NUMERIC_STORED_RATIO:' + domain)
+        unequal = valid & reference[prefix + '_unequal_positive_counts']
+        discriminating = unequal & (np.abs(reference[prefix + '_mean_of_means'] - reference[prefix + '_mean_ns'])
+            > reference[prefix + '_mean_bound'])
+        if not discriminating.any():
+            raise RuntimeError('GC_EVENT_NUMERIC_NO_UNEQUAL_COUNT_WITNESS:' + domain)
+        row = int(np.flatnonzero(discriminating)[0])
+        report['domains'][domain] = {'observed_buckets': int(valid.sum()),
+            'unequal_positive_count_buckets': int(unequal.sum()),
+            'discriminating_buckets': int(discriminating.sum()), 'max_absolute_error': errors,
+            'first_witness': {'bar_start_ns': int(reference['bar_start_ns'][row]),
+                'count': float(reference[prefix + '_count'][row]),
+                'sum_ns': float(reference[prefix + '_sum_ns'][row]),
+                'reference_mean_ns': float(reference[prefix + '_mean_ns'][row]),
+                'mean_of_means_ns': float(reference[prefix + '_mean_of_means'][row]),
+                'mean_error_bound_ns': float(reference[prefix + '_mean_bound'][row])}}
+    return report
+
+
+def read_event_numeric_columns(path, columns, start, end, seal):
+    """Inspect all selected footer boundaries before decoding any payload."""
+    parquet = pq.ParquetFile(path); clock = parquet.schema_arrow.names.index('bar_start_ns')
+    groups = []
+    for row in range(parquet.metadata.num_row_groups):
+        stats = parquet.metadata.row_group(row).column(clock).statistics
+        if stats is None or not stats.has_min_max:
+            raise RuntimeError('GC_EVENT_NUMERIC_ROW_GROUP_CLOCK_UNPROVEN')
+        low, high = int(stats.min), int(stats.max)
+        if high < start or low >= end:
+            continue
+        if high >= seal:
+            raise RuntimeError('GC_EVENT_NUMERIC_ROW_GROUP_INTERSECTS_TEST')
+        groups.append(row)
+    if not groups:
+        raise RuntimeError('GC_EVENT_NUMERIC_NO_SAFE_ROW_GROUPS')
+    table = parquet.read_row_groups(groups, columns=columns, use_threads=False)
+    times = table['bar_start_ns'].to_numpy()
+    if np.any(times >= seal):
+        raise RuntimeError('GC_EVENT_NUMERIC_TEST_CLOCK')
+    take = (times >= start) & (times < end)
+    values = {name: table[name].to_numpy()[take] for name in columns}
+    return values, groups
+
+
+def run_gc_event_numeric(binding_path):
+    root = GC_EVENT_NUMERIC_ROOT
+    if binding_path != root/'GC_EVENT_NUMERIC_EXECUTION_BINDING.json':
+        raise RuntimeError('GC_EVENT_NUMERIC_BINDING_PATH')
+    io.require_regular_file(binding_path, 'GC_EVENT_NUMERIC_BINDING')
+    binding = io.read_json(binding_path); plan_path = root/'PLAN.json'
+    io.verify_digest(plan_path, binding['plan_sha256'], 'GC_EVENT_NUMERIC_PLAN'); plan = io.read_json(plan_path)
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json', binding['policy_sha256'], 'GC_EVENT_NUMERIC_POLICY')
+    policy = io.read_json(REPO/'NEXT_RUN_POLICY.json'); gate = policy['current_work'][GC_EVENT_NUMERIC_POLICY_KEY]
+    if (plan['schema_version'] != 'gx1_gc_event_numeric_audit_plan_v1'
+            or plan['plan_id'] != GC_EVENT_NUMERIC_PLAN_ID or plan['run_root'] != str(root)
+            or plan['policy_key'] != GC_EVENT_NUMERIC_POLICY_KEY or plan['max_invocations'] != 1
+            or gate['status'] != 'EXECUTION_CLAIMED' or gate['claimed_invocations'] != 1
+            or gate['completed_invocations'] != 0 or gate['execution_authorized'] is not False
+            or gate['relaunch_allowed'] is not False
+            or gate['plan'] != {'path': str(plan_path), 'sha256': binding['plan_sha256']}
+            or policy['training_enabled'] is not False or io.git_head() != binding['source_head']
+            or subprocess.check_output(['git','status','--porcelain'], cwd=REPO, text=True)):
+        raise RuntimeError('GC_EVENT_NUMERIC_AUTHORITY')
+    if set(binding['code_sha256']) != set(plan['code_paths']):
+        raise RuntimeError('GC_EVENT_NUMERIC_CODE_INVENTORY')
+    for name, digest in binding['code_sha256'].items(): io.verify_digest(REPO/name, digest, 'GC_EVENT_NUMERIC_CODE')
+    proof = require_capped_cpu_audit_execution(); proof['lock'] = require_capped_lock_ancestry()
+    io.write_json(root/'GC_EVENT_NUMERIC_CLAIM.json', {'invocation': 1, 'plan_sha256': binding['plan_sha256'],
+        'source_head': binding['source_head']})
+    staging = root/'.GC_EVENT_NUMERIC_RESULTS.staging'; staging.mkdir(exist_ok=False)
+    stamps = [pd.Timestamp(plan[name]) for name in ('scan_start_utc','scan_end_utc','TEST_seal_utc')]
+    if any(t.tzinfo is None for t in stamps): raise RuntimeError('GC_EVENT_NUMERIC_TIMEZONE')
+    start, end, seal = [t.value for t in stamps]
+    from gx1.contracts.gc_source_disposition_v1 import STUDY_START_NS, WINDOW_END_NS
+    if not STUDY_START_NS <= start < end <= seal or seal != WINDOW_END_NS:
+        raise RuntimeError('GC_EVENT_NUMERIC_SCAN_BOUNDARY')
+    publication = binding_read(plan['publication_terminal'])
+    source_root = Path(plan['publication_terminal']['path']).parent
+    if (source_root != Path('/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/RESULTS')
+            or Path(plan['publication_terminal']['path']).name != 'TERMINAL.json'
+            or publication['status'] != 'COMPLETE' or publication['exit_code'] != 0
+            or publication['source_unchanged'] is not True or publication['test_data_used'] is not False):
+        raise RuntimeError('GC_EVENT_NUMERIC_PUBLICATION')
+    inputs = plan['inputs']; tfs = ('M5','M15','H1','H4','D1')
+    if set(inputs) != {'m1_events','timeframes'} or set(inputs['timeframes']) != set(tfs):
+        raise RuntimeError('GC_EVENT_NUMERIC_INPUT_INVENTORY')
+    files = {'M1_EVENT_DIAGNOSTICS.parquet': inputs['m1_events']}
+    files.update({'TRADE_FEATURES_'+tf+'.parquet': inputs['timeframes'][tf] for tf in tfs})
+    identities = {}
+    for name, item in files.items():
+        path = source_root/name; artifact = publication['artifacts'][name]
+        if item != {'path': str(path), 'sha256': artifact['sha256']}:
+            raise RuntimeError('GC_EVENT_NUMERIC_PUBLISHED_BINDING:' + name)
+        before = path.stat(); binding_read(item); after = path.stat()
+        identity = lambda s: (s.st_dev,s.st_ino,s.st_mode,s.st_size,s.st_mtime_ns,s.st_ctime_ns)
+        if identity(before) != identity(after) or after.st_size != artifact['bytes']:
+            raise RuntimeError('GC_EVENT_NUMERIC_INPUT_CHANGED:' + name)
+        identities[str(path)] = identity(after)
+    common = ['bar_start_ns','available_ns','contract_index']
+    source_columns = common + ['qualified_final_event_count'] + [d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns')]
+    m1, m1_groups = read_event_numeric_columns(Path(inputs['m1_events']['path']),source_columns,start,end,seal)
+    if not np.array_equal(m1['available_ns'],m1['bar_start_ns']+MINUTE):
+        raise RuntimeError('GC_EVENT_NUMERIC_M1_AVAILABILITY')
+    reports = {}
+    for tf in tfs:
+        reference = reference_event_clock_means(m1['bar_start_ns'],m1['contract_index'],m1,tf)
+        keep = (reference['bar_start_ns'] >= start) & (reference['available_ns'] <= end)
+        excluded = int((~keep).sum())
+        reference = {name: value[keep] for name,value in reference.items()}
+        columns = common[:2] + ['observed_event_valid','observed_event_accepted_minutes'] + [
+            'observed_event_'+d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns','_mean_ns','_valid')]
+        actual, groups = read_event_numeric_columns(Path(inputs['timeframes'][tf]['path']),columns,start,end,seal)
+        keep = actual['available_ns'] <= end; actual = {name:value[keep] for name,value in actual.items()}
+        reports[tf] = compare_event_clock_reference(reference,actual)
+        reports[tf]['decoded_row_groups'] = groups
+        reports[tf]['partial_scan_edge_buckets_excluded'] = excluded
+    for path, wanted in identities.items():
+        io.require_regular_file(Path(path),'GC_EVENT_NUMERIC_POST_INPUT')
+        if identity(Path(path).stat()) != wanted: raise RuntimeError('GC_EVENT_NUMERIC_POST_INPUT_CHANGED')
+    for name,digest in binding['code_sha256'].items(): io.verify_digest(REPO/name,digest,'GC_EVENT_NUMERIC_POST_CODE')
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],'GC_EVENT_NUMERIC_POST_POLICY')
+    io.verify_digest(plan_path,binding['plan_sha256'],'GC_EVENT_NUMERIC_POST_PLAN')
+    io.verify_digest(Path(plan['publication_terminal']['path']),plan['publication_terminal']['sha256'],
+        'GC_EVENT_NUMERIC_POST_PUBLICATION')
+    if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):
+        raise RuntimeError('GC_EVENT_NUMERIC_SOURCE_CHANGED')
+    result = {'status':'COMPLETE_M1_TO_FIVE_TF_CLOCK_REFERENCE_ONLY','source_head':binding['source_head'],
+        'plan_sha256':binding['plan_sha256'],'inputs':inputs,'source_publication':plan['publication_terminal'],
+        'scan_start_utc':plan['scan_start_utc'],'scan_end_utc':plan['scan_end_utc'],'TEST_seal_utc':plan['TEST_seal_utc'],
+        'm1_decoded_row_groups':m1_groups,'m1_rows':len(m1['bar_start_ns']),'timeframes':reports,'limits':proof,
+        'reference_uses_published_float64_M1_sums':True,'raw_to_M1_formula_proven':False,
+        'physical_network_latency_calibrated':False,'model_consumption_proven':False,
+        'partial_scan_edge_buckets_excluded':True,'test_data_used':False,'model_forwards':0,'optimizer_updates':0}
+    output = staging/'GC_EVENT_NUMERIC_RESULT.json'; io.write_json(output,result)
+    io.write_json(staging/'GC_EVENT_NUMERIC_TERMINAL.json', {'status':'COMPLETE','exit_code':0,
+        'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),
+        'result_sha256':io.sha256_file(output)})
+    publish_bundle_directory_noreplace(staging,root/'GC_EVENT_NUMERIC_RESULTS')
+    print('GC_EVENT_NUMERIC_REFERENCE_COMPLETE',flush=True)
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser();group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--binding',type=Path);group.add_argument('--evaluation-binding',type=Path)
+    group.add_argument('--gc-event-numeric-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.binding is not None:run(args.binding)
+    if args.gc_event_numeric_binding is not None:run_gc_event_numeric(args.gc_event_numeric_binding)
+    elif args.binding is not None:run(args.binding)
     elif args.evaluation_binding is not None:run_evaluation(args.evaluation_binding)
     elif args.l1_binding is not None:run_l1_quality(args.l1_binding)
     elif args.cash_binding is not None:run_cash_review(args.cash_binding)
