@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T21:33:53.959833+00:00",
-  "status": "118_GC_CLOCK_NUMERIC_SOURCE_QUALIFICATION_BOUND__117_MECHANICS_PASS__FURTHER_TRAINING_CLOSED",
+  "observed_utc": "2026-10-20T21:37:05.762192+00:00",
+  "status": "119_CORRECTED_GC_CLOCK_SOURCE_QUALIFICATION_BOUND__118_PHYSICAL_SCAN_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Run exactly one118capped focused sourcequalification of the existing GC audit owner and testmodule. Only after actual PASS bind one118published M1-to-five-TF sourceclock numeric audit; no raw MBP scan, rebuild, model, inputnormalization, native training, Exit or TEST. Reuse117mechanics for unchanged183production source roles. No IO sourcepatch is justified by the single117stack sample: its existing finite scope already applies.",
+  "next_action": "Run exactly one119capped focused sourcequalification of118GCclock reference.118sourceprelaunch rejected before claim/test because timeoutbinding mismatch; preserve it and do not relaunch. After actual119PASS bind one118published M1-to-five-TF numeric audit. No model, raw scan, rebuild, normalization, Exit, TEST or further native training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "118_ACTIVE_GC_CLOCK_NUMERIC_REFERENCE_SOURCE_QUALIFICATION_PREPARATION",
+    "current_activity": "119_CORRECTED_SOURCE_QUALIFICATION_FOR_118_NUMERIC_REFERENCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Independent unequal-count clockmean reference on published M1-to-five-TF data pending118. Sourcequalification must pass before actual scan.117mechanics passed on unchanged production closure; no new main epoch authority.",
+    "current_blocker": "118sourcequalification rejected before claim/test for controller-plan timeout mismatch.119new exact sourceplan binds1800s to unchanged controller guard; physical118scan pending actual focused tests.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exactly one118capped focused sourcequalification of the existing GC audit owner and testmodule. Only after actual PASS bind one118published M1-to-five-TF sourceclock numeric audit; no raw MBP scan, rebuild, model, inputnormalization, native training, Exit or TEST. Reuse117mechanics for unchanged183production source roles. No IO sourcepatch is justified by the single117stack sample: its existing finite scope already applies.",
+    "next_action": "Run exactly one119capped focused sourcequalification of118GCclock reference.118sourceprelaunch rejected before claim/test because timeoutbinding mismatch; preserve it and do not relaunch. After actual119PASS bind one118published M1-to-five-TF numeric audit. No model, raw scan, rebuild, normalization, Exit, TEST or further native training.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18575,7 +18575,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T21:33:53.959833+00:00",
+  "updated_utc": "2026-10-20T21:37:05.762192+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -18895,8 +18895,8 @@
     "entry_model_forwards": 32
   },
   "gc_clock_numeric_source_118": {
-    "status": "BOUND_ONE_FOCUSED_SOURCE_QUALIFICATION",
-    "execution_authorized": true,
+    "status": "REJECTED_BEFORE_CLAIM_OR_TEST_EXECUTION_CONSUMED_NO_RELAUNCH",
+    "execution_authorized": false,
     "planned_invocations": 1,
     "completed_invocations": 0,
     "relaunch_allowed": false,
@@ -18915,6 +18915,40 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "prelaunch_attempts": 1,
+    "test_jobs_started": 0,
+    "prelaunch_rejection": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/SOURCE_QUALIFICATION_PRELAUNCH_REJECTION_001.json",
+      "sha256": "30d76692f72581bfc3e3de73d845ed290e666d8a33703e29f811c6af5c424f55"
+    }
+  },
+  "gc_clock_numeric_source_119": {
+    "status": "BOUND_ONE_CORRECTED_FOCUSED_SOURCE_QUALIFICATION",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_SOURCE_QUALIFICATION_20261020_119/PLAN.json",
+      "sha256": "8c2c76db9750ce52e89a63549a9e796e6783c6334f2845c251e9e86cfd7f487c"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_SOURCE_QUALIFICATION_20261020_119/run_focused_source_qualification.py",
+      "sha256": "261446ebca7f5a281e93142ef90940b15701c284d13a5941c283ffe9f3ff5aab"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_SOURCE_QUALIFICATION_20261020_119",
+    "prior_rejected_attempt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/SOURCE_QUALIFICATION_PRELAUNCH_REJECTION_001.json",
+      "sha256": "30d76692f72581bfc3e3de73d845ed290e666d8a33703e29f811c6af5c424f55"
+    }
   }
 }
