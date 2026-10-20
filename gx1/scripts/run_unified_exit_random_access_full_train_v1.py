@@ -821,11 +821,12 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
     _configure_component_training_phase(model, phase)
     # This owner establishes the strict population/order authority before the
     # epoch order is requested and before any optimizer is constructed.
-    session_binding, parents, expected_order = trainer._prefix_candidate_training_binding(
-        chronological_prefix=chronological_prefix, train_ds=datasets["train"], val_ds=datasets["val"],
-        train_parquet=files["entry_train_parquet"], val_parquet=files["entry_val_parquet"],
-        input_normalization=normalization, model=model, seed=seed, batch_size=batch_size,
-        learning_rate=learning_rate, weight_decay=weight_decay)
+    with file_verification_scope():
+        session_binding, parents, expected_order = trainer._prefix_candidate_training_binding(
+            chronological_prefix=chronological_prefix, train_ds=datasets["train"], val_ds=datasets["val"],
+            train_parquet=files["entry_train_parquet"], val_parquet=files["entry_val_parquet"],
+            input_normalization=normalization, model=model, seed=seed, batch_size=batch_size,
+            learning_rate=learning_rate, weight_decay=weight_decay)
     order = trainer._candidate_training_epoch_order(datasets["train"], epoch_index=0, parent_population=parents)
     if (not torch.equal(order, expected_order) or not np.array_equal(order.numpy(), prefix["epoch0_parent_order"])
             or parents.numel() != single["train_rows"]):
@@ -1368,7 +1369,8 @@ def run_guarded_native_candidate_invocation(
             recipe_file_sha256=recipe_file_sha256, invocation_started=started)
     if "entry_dynamic_m5_technical_qualification" in recipe:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_dynamic_m5_technical_qualification
-        technical_scope = require_dynamic_m5_technical_qualification(recipe, execution_budget=budget)
+        with file_verification_scope():
+            technical_scope = require_dynamic_m5_technical_qualification(recipe, execution_budget=budget)
         return _run_dynamic_m5_technical_qualification(components=components, scope=technical_scope,
             recipe=recipe, files=files, output=output, device=device, provenance=provenance,
             execution_budget=budget, recipe_file_sha256=recipe_file_sha256, invocation_started=started)
@@ -1379,16 +1381,17 @@ def run_guarded_native_candidate_invocation(
         _restore_prefix_initial_measurement_state(components=components, scope=initial_scope, device=device)
     if "chronological_learning_measurement" in recipe:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_learning_measurement
-        learning_scope = require_chronological_learning_measurement(recipe)
-        if "entry_m5_path_single_epoch" in recipe:
-            from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_m5_single_epoch_run
-            epoch_scope = require_m5_single_epoch_run(recipe, execution_budget=budget)
-            learning_scope["entry_m5_path_single_epoch"] = epoch_scope["entry_m5_path_single_epoch"]
-        from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_continuation
-        continuation = require_chronological_continuation(recipe)
-        if continuation:
-            learning_scope["continuation"] = continuation
-            components["chronological_continuation"] = continuation
+        with file_verification_scope():
+            learning_scope = require_chronological_learning_measurement(recipe)
+            if "entry_m5_path_single_epoch" in recipe:
+                from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_m5_single_epoch_run
+                epoch_scope = require_m5_single_epoch_run(recipe, execution_budget=budget)
+                learning_scope["entry_m5_path_single_epoch"] = epoch_scope["entry_m5_path_single_epoch"]
+            from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_chronological_continuation
+            continuation = require_chronological_continuation(recipe)
+            if continuation:
+                learning_scope["continuation"] = continuation
+                components["chronological_continuation"] = continuation
         _restore_prefix_initial_measurement_state(components=components, scope=learning_scope, device=device)
     if "entry_learning_study" in recipe:
         from gx1.contracts.unified_exit_native_candidate_campaign_v1 import require_entry_learning_study_run
@@ -2295,7 +2298,7 @@ def _dynamic_m5_technical_batch_manifest(batch):
     return groups
 
 
-def _dynamic_m5_forward_parity(*, model, batch, device):
+def _dynamic_m5_forward_parity(*, model, batch, device, diagnostics=None):
     """Same eval batch through the two actual curve-evaluation/training paths."""
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import DYNAMIC_M5_TECHNICAL_FIXED_SCOPE
     fields = ("dynamic_terminal_net_markout_bps", "dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps",
@@ -2311,13 +2314,33 @@ def _dynamic_m5_forward_parity(*, model, batch, device):
     manifest = _dynamic_m5_technical_batch_manifest(batch)
     modes = [(module, module.training) for module in model.modules()]
     snapshots = []
+    evidence = {} if diagnostics is None else diagnostics
+    evidence.update(model_forwards=0, optimizer_steps=0, execution_passes=[], output_comparisons={})
     try:
         for context in (torch.no_grad, torch.enable_grad):
             trainer._restore_attended_session_rng_state(rng, device=device)
             with context():
-                out = trainer._model_forward_fp32(model, batch["seq_x"].to(device), batch["snap_x"].to(device),
-                    ctx_cat=batch["ctx_cat"].to(device), ctx_cont=batch["ctx_cont"].to(device),
-                    **trainer._multi_tf_kwargs_from_batch(batch, device))
+                execution = {"context": context.__name__, "grad_enabled": torch.is_grad_enabled(),
+                    "inference_mode_enabled": torch.is_inference_mode_enabled(), "model_training": model.training,
+                    "training_module_count": sum(int(module.training) for module, _ in modes),
+                    "device": str(device), "autocast_enabled": torch.is_autocast_enabled(),
+                    "mha_fastpath_enabled": torch.backends.mha.get_fastpath_enabled(),
+                    "deterministic_algorithms_enabled": torch.are_deterministic_algorithms_enabled(),
+                    "float32_matmul_precision": torch.get_float32_matmul_precision()}
+                evidence["execution_passes"].append(execution)
+                # Observe host-dispatched ATen attention operators on these two
+                # existing forwards only. This is not a CUDA-kernel/timing probe;
+                # module hooks would themselves disable the fastpath under test.
+                with torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CPU],
+                        record_shapes=False, profile_memory=False, with_stack=False) as profile:
+                    out = trainer._model_forward_fp32(model, batch["seq_x"].to(device), batch["snap_x"].to(device),
+                        ctx_cat=batch["ctx_cat"].to(device), ctx_cont=batch["ctx_cont"].to(device),
+                        **trainer._multi_tf_kwargs_from_batch(batch, device))
+                evidence["model_forwards"] += 1
+                execution["host_attention_operator_calls"] = {
+                    event.key: event.count for event in profile.key_averages()
+                    if event.key.startswith("aten::") and ("attention" in event.key or "transformer" in event.key)}
+                del profile
                 losses, cells = trainer._dynamic_m5_task_loss_surfaces(out, batch, device)
                 trainer._joint_task_loss(model, losses)
                 values = {name: out[name].detach().cpu().clone() for name in (*fields, *exact)}
@@ -2339,15 +2362,22 @@ def _dynamic_m5_forward_parity(*, model, batch, device):
             del out, losses, values
         left, right = snapshots[0][0], snapshots[1][0]
         tolerance = DYNAMIC_M5_TECHNICAL_FIXED_SCOPE["parity_absolute_tolerance_bps"]
-        comparisons = {}
+        comparisons = evidence["output_comparisons"]
         for name in fields:
             if left[name].shape != right[name].shape or left[name].dtype != right[name].dtype:
                 raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_SHAPE_CHANGED:" + name)
             delta = left[name].double() - right[name].double()
+            worst = np.unravel_index(int(delta.abs().argmax()), tuple(delta.shape))
             comparisons[name] = {"shape": list(left[name].shape), "dtype": str(left[name].dtype),
                 "max_absolute_difference_bps": float(delta.abs().max()),
                 "rms_difference_bps": float(delta.square().mean().sqrt()),
-                "absolute_tolerance_bps": tolerance, "relative_tolerance": 0.0}
+                "absolute_tolerance_bps": tolerance, "relative_tolerance": 0.0,
+                "cells_above_absolute_tolerance": int((delta.abs() > tolerance).sum()),
+                "max_absolute_difference_index": [int(index) for index in worst],
+                "left_at_max_absolute_difference_bps": float(left[name][worst]),
+                "right_at_max_absolute_difference_bps": float(right[name][worst]),
+                "left_max_absolute_output_bps": float(left[name].abs().max()),
+                "right_max_absolute_output_bps": float(right[name].abs().max())}
             if not torch.allclose(left[name], right[name], atol=tolerance, rtol=0.0):
                 raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_VALUES_CHANGED:" + name)
         if any(not torch.equal(left[name], right[name]) for name in exact) or snapshots[0][1] != snapshots[1][1]:
@@ -2361,6 +2391,7 @@ def _dynamic_m5_forward_parity(*, model, batch, device):
             "query_and_best_horizon_masks_exact": True, "candidate_actions_and_ties_exact": True,
             "supervised_cells": snapshots[0][1],
             "reference_outputs_sha256": _dynamic_m5_technical_tree_sha256(left),
+            "execution_passes": evidence["execution_passes"],
             "rng_exactly_preserved": True, "module_modes_exactly_preserved": True}
     finally:
         for module, training in modes:
@@ -2369,6 +2400,11 @@ def _dynamic_m5_forward_parity(*, model, batch, device):
         if (trainer._model_state_sha256(model) != before or _dynamic_m5_technical_tree_sha256(batch) != input_hash
                 or any(parameter.grad is not None for parameter in model.parameters())):
             raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_CHANGED_STATE")
+        evidence["model_input_and_gradient_state_preserved"] = True
+        evidence["rng_restored_exactly"] = (
+            _dynamic_m5_technical_tree_sha256(trainer._attended_session_rng_state(device=device))
+            == _dynamic_m5_technical_tree_sha256(rng))
+        evidence["module_modes_restored_exactly"] = all(module.training == training for module, training in modes)
 
 
 def _run_dynamic_m5_technical_qualification(*, components, scope, recipe, files, output, device,
@@ -2380,7 +2416,8 @@ def _run_dynamic_m5_technical_qualification(*, components, scope, recipe, files,
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
         DYNAMIC_M5_TECHNICAL_CURSOR_CEILING, require_dynamic_m5_technical_qualification,
     )
-    checked = require_dynamic_m5_technical_qualification(recipe, invocation_number=1, execution_budget=execution_budget)
+    with file_verification_scope():
+        checked = require_dynamic_m5_technical_qualification(recipe, invocation_number=1, execution_budget=execution_budget)
     if checked["plan_binding"] != scope["plan_binding"] or device.type != "cuda":
         raise RuntimeError("DYNAMIC_M5_TECHNICAL_SCOPE_CHANGED")
     directory = output.parent / "DYNAMIC_M5_TECHNICAL_QUALIFICATION"
@@ -2437,8 +2474,19 @@ def _run_dynamic_m5_technical_qualification(*, components, scope, recipe, files,
             batch = trainer._materialize_dynamic_m5_batch_targets(batch, dataset)
             parity[role] = {"cohort_sha256": cohort["cohort_sha256"], "parent_entry_rows": parents,
                 "entry_time_ns": cohort["entry_time_ns"][:16], "source_clock_sha256": cohort["source_clock_sha256"],
-                "dynamic_entry_m1_rows": batch["dynamic_entry_m1_row"].tolist(),
-                **_dynamic_m5_forward_parity(model=model, batch=batch, device=device)}
+                "dynamic_entry_m1_rows": batch["dynamic_entry_m1_row"].tolist()}
+            diagnostics = {}
+            try:
+                parity[role].update(_dynamic_m5_forward_parity(
+                    model=model, batch=batch, device=device, diagnostics=diagnostics))
+            except RuntimeError as error:
+                write(directory / "PARITY_FAILURE.json", {
+                    "schema_version": "gx1_dynamic_m5_technical_parity_failure_v1",
+                    "error": str(error), "failed_role": role, "cohort": parity[role],
+                    "diagnostics": diagnostics, "previous_completed_roles": {
+                        name: value for name, value in parity.items() if name != role},
+                    "optimizer_updates": 0, "native_training_admitted": False, "test_data_used": False})
+                raise
             del batch, loader
     finally:
         for module, training in modes:

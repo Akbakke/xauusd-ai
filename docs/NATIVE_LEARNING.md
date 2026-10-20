@@ -57,6 +57,13 @@ med og uten gradientsporing, fire forwards og null updates. Alle480queryer,
 komponenter, forecasts, kandidatretning og ties kontrolleres; toleranse er
 forhåndsvalgt1e-4bps/rtol0. Modell, RNG, optimizer/EMA og originalpointer
 bevares. Batchenes inputs, queries, targets og masker bindes separat.
+Ved paritetsfeil publiseres PARITY_FAILURE.json atomisk før samme feil kastes
+videre: rolle/kohort, fullførte forwards, faktiske sammenligningstall og
+gjenopprettingsobservasjoner. De samme to forwardene per rolle observeres
+med CPU-only Torch-profiler uten shapes, stacks eller minneprofil. Kun
+ATen-attention-/transformer-operatørnavn og antall lagres. Dette viser
+hostdispatch, ikke CUDA-kernel eller treningshastighet; overhead er umålt.
+Ingen ekstra forwards, endret toleranse eller backendvalg følger av diagnosen.
 
 Resume-kontrollen bruker første32rader i057s kanoniske TRAIN-ordre, batch16:
 to sammenhengende steg mot ett steg, faktisk varig lagring/gjenlasting og
@@ -255,7 +262,9 @@ latency, minne og læringsfart må måles på den bundne ekte datakjeden.
 Gjentatt fysisk hashing av samme store fil innen én valideringsoperasjon
 unngås gjennom kontrakteierens eksplisitte `file_verification_scope()`.
 Dette gjelder eksisterende CLI/materializer og handover-/native-window-/
-full_train-preflight, samt avgrenset dynamic-prefix- og initialmetadata.
+full_train-preflight, samt avgrenset dynamic-prefix-, initial-, technical-
+og learning/epoch/continuation-metadata. Den sene prefix-sessionbindingen
+har sitt eget korte scope før optimizerkonstruksjon.
 Liveness-fildigest delegerer til samme verifiserte eier. Metadata-scopene
 lukkes før Dataset-/modellkonstruksjon og før initialstate restore; de går
 aldri gjennom modell-, batch- eller checkpointarbeid.

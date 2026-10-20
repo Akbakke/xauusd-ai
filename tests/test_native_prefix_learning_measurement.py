@@ -574,3 +574,130 @@ def test_dynamic_technical_guarded_dispatch_uses_exact_scope_before_qualificatio
         runner.run_guarded_native_candidate_invocation(recipe_path=Path(rb["path"]),recipe_file_sha256=rb["sha256"],
             execution_budget_path=tmp_path/"unused-budget.json",execution_budget_file_sha256="a"*64)
     assert seen == ["guard"]
+
+def test_dynamic_curve_parity_retains_actual_terminal_drift_and_restores_state(dynamic_initial_observer):
+    model, batch = _dynamic_technical_parity_case(dynamic_initial_observer)
+    device = torch.device("cpu")
+    before = runner.trainer._model_state_sha256(model)
+    batch_before = runner._dynamic_m5_technical_tree_sha256(batch)
+    rng_before = runner._dynamic_m5_technical_tree_sha256(runner.trainer._attended_session_rng_state(device=device))
+    modes_before = [module.training for module in model.modules()]
+    original = model.forward
+    def drifting_forward(*args, **kwargs):
+        out = original(*args, **kwargs)
+        if torch.is_grad_enabled():
+            terminal = out["dynamic_terminal_net_markout_bps"].clone()
+            terminal[..., 0] += .01
+            quality = terminal[..., :2] - out["dynamic_pre_mfe_mae_upper_bps"]
+            best = quality.amax(dim=1)
+            out.update(dynamic_terminal_net_markout_bps=terminal,
+                dynamic_entry_quality_bps_candidate=torch.cat((quality, torch.zeros_like(quality[..., :1])), dim=-1),
+                dynamic_entry_action_quality_bps_candidate=torch.cat((best, torch.zeros_like(best[:, :1])), dim=-1),
+                dynamic_entry_quality_best_horizon_mask=quality == best[:, None, :])
+        return out
+    model.forward = drifting_forward
+    diagnostics = {}
+    with pytest.raises(RuntimeError, match="PARITY_VALUES_CHANGED:dynamic_terminal_net_markout_bps"):
+        runner._dynamic_m5_forward_parity(model=model, batch=batch, device=device, diagnostics=diagnostics)
+    assert model.forwards == diagnostics["model_forwards"] == 2
+    assert diagnostics["optimizer_steps"] == 0
+    comparison = diagnostics["output_comparisons"]["dynamic_terminal_net_markout_bps"]
+    assert comparison["shape"] == [16, 480, 3] and comparison["dtype"] == "torch.float32"
+    assert comparison["cells_above_absolute_tolerance"] == 16 * 480
+    assert comparison["absolute_tolerance_bps"] == 1e-4 and comparison["relative_tolerance"] == 0.0
+    assert comparison["max_absolute_difference_bps"] == pytest.approx(.01, abs=1e-6)
+    assert comparison["rms_difference_bps"] == pytest.approx(.01 / (3 ** .5), abs=1e-6)
+    assert comparison["max_absolute_difference_index"] == [0, 0, 0]
+    assert comparison["left_at_max_absolute_difference_bps"] == pytest.approx(-2.0)
+    assert comparison["right_at_max_absolute_difference_bps"] == pytest.approx(-1.99)
+    assert comparison["left_max_absolute_output_bps"] == pytest.approx(2.0)
+    assert comparison["right_max_absolute_output_bps"] == pytest.approx(2.0)
+    assert [item["context"] for item in diagnostics["execution_passes"]] == ["no_grad", "enable_grad"]
+    assert [item["grad_enabled"] for item in diagnostics["execution_passes"]] == [False, True]
+    assert all(item["model_training"] is False and item["training_module_count"] == 0
+        for item in diagnostics["execution_passes"])
+    assert diagnostics["model_input_and_gradient_state_preserved"] is True
+    assert diagnostics["rng_restored_exactly"] is True and diagnostics["module_modes_restored_exactly"] is True
+    assert runner.trainer._model_state_sha256(model) == before
+    assert runner._dynamic_m5_technical_tree_sha256(batch) == batch_before
+    assert runner._dynamic_m5_technical_tree_sha256(runner.trainer._attended_session_rng_state(device=device)) == rng_before
+    assert [module.training for module in model.modules()] == modes_before
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+
+def test_dynamic_curve_parity_records_real_cpu_attention_dispatch_on_existing_forwards(dynamic_initial_observer):
+    model, batch = _dynamic_technical_parity_case(dynamic_initial_observer)
+    original = model.forward
+    def attention_forward(*args, **kwargs):
+        # Exercise the real profiler/ATen path without hooks, backend changes or RNG draws.
+        q = torch.arange(8, dtype=torch.float32).reshape(1, 1, 2, 4)
+        torch.nn.functional.scaled_dot_product_attention(q, q, q)
+        return original(*args, **kwargs)
+    model.forward = attention_forward
+    diagnostics = {}
+    result = runner._dynamic_m5_forward_parity(model=model, batch=batch, device=torch.device("cpu"),
+        diagnostics=diagnostics)
+    assert result["model_forwards"] == diagnostics["model_forwards"] == model.forwards == 2
+    assert result["execution_passes"] == diagnostics["execution_passes"]
+    for execution in result["execution_passes"]:
+        calls = execution["host_attention_operator_calls"]
+        assert calls["aten::scaled_dot_product_attention"] == 1
+        assert all(name.startswith("aten::") and type(count) is int and count > 0
+            for name, count in calls.items())
+        assert execution["device"] == "cpu" and execution["inference_mode_enabled"] is False
+        assert execution["model_training"] is False and execution["autocast_enabled"] is False
+        assert type(execution["mha_fastpath_enabled"]) is bool
+        assert type(execution["deterministic_algorithms_enabled"]) is bool
+        assert isinstance(execution["float32_matmul_precision"], str)
+    assert diagnostics["rng_restored_exactly"] is True
+    assert diagnostics["model_input_and_gradient_state_preserved"] is True
+
+
+def test_dynamic_technical_caller_publishes_role_failure_and_reraises_original(dynamic_initial_observer, monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    model, dataset, cohort, _ = dynamic_initial_observer
+    cohort = {**cohort, "cohort_sha256": "unit completed cohort"}
+    scope = {"plan_binding": {"unit": "completed admission"}, "cohorts": {"train": cohort},
+        "plan": {"measurement_cohort_sha256": {"train": cohort["cohort_sha256"]}}}
+    # Isolate already-qualified scope/optimizer/restore boundaries. Exercise the actual
+    # single caller, immutable publisher and rethrow; this is not native admission.
+    monkeypatch.setattr(native, "require_dynamic_m5_technical_qualification", lambda *a, **kw: scope)
+    optimizer = SimpleNamespace(state_dict=lambda: {})
+    ema = SimpleNamespace(checkpoint_state=lambda: {"steps": 0})
+    monkeypatch.setattr(runner, "_component_optimizer_state", lambda **kw: (optimizer, ema, None, {}))
+    monkeypatch.setattr(runner, "_restore_prefix_initial_measurement_state", lambda **kw: None)
+    monkeypatch.setattr(runner, "_require_dynamic_m5_measurement_source", lambda **kw: kw["cohort"])
+    actual_rng = runner.trainer._attended_session_rng_state
+    monkeypatch.setattr(runner.trainer, "_attended_session_rng_state",
+        lambda **kw: actual_rng(device=torch.device("cpu")))
+    failure = RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_VALUES_CHANGED:dynamic_terminal_net_markout_bps")
+    observed_diagnostics = {"model_forwards": 2, "optimizer_steps": 0,
+        "output_comparisons": {"dynamic_terminal_net_markout_bps": {"max_absolute_difference_bps": .01}},
+        "rng_restored_exactly": True, "model_input_and_gradient_state_preserved": True}
+    def fail_parity(*, model, batch, device, diagnostics):
+        diagnostics.update(observed_diagnostics)
+        raise failure
+    monkeypatch.setattr(runner, "_dynamic_m5_forward_parity", fail_parity)
+    def forbidden_update(**kwargs):
+        raise AssertionError("failure observation reached optimizer coordinator")
+    monkeypatch.setattr(runner, "_run_bound_full_train_candidate", forbidden_update)
+    identity = dataset._entry_observed_market_binding["identity"]
+    components = {"model": model, "effective_train_rows": 32, "train_probe_ds": dataset,
+        "entry_observed_market": identity, "native_val_context": {}}
+    with pytest.raises(RuntimeError) as caught:
+        runner._run_dynamic_m5_technical_qualification(components=components, scope=scope,
+            recipe={"trainer_cli": {"learning_rate": .0001, "weight_decay": .0001}}, files={},
+            output=tmp_path / "BUNDLE", device=torch.device("cuda"), provenance={},
+            execution_budget={"max_invocation_seconds": 12000}, recipe_file_sha256="a" * 64,
+            invocation_started=time.monotonic())
+    assert caught.value is failure
+    path = tmp_path / "DYNAMIC_M5_TECHNICAL_QUALIFICATION" / "PARITY_FAILURE.json"
+    report = json.loads(path.read_text())
+    assert report["schema_version"] == "gx1_dynamic_m5_technical_parity_failure_v1"
+    assert report["error"] == str(failure) and report["failed_role"] == "train"
+    assert report["cohort"]["parent_entry_rows"] == cohort["parent_entry_row_indices"][:16]
+    assert report["cohort"]["dynamic_entry_m1_rows"] == [row * 5 for row in cohort["parent_entry_row_indices"][:16]]
+    assert report["diagnostics"] == observed_diagnostics and report["previous_completed_roles"] == {}
+    assert report["optimizer_updates"] == 0 and report["native_training_admitted"] is False
+    assert report["test_data_used"] is False
+    assert not (path.parent / "RESULT.json").exists()

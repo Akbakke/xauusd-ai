@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-19T21:52:29.482528+00:00",
-  "status": "090_SAVED_STATE_AUDIT_COMPLETE_091_EXACT_PRIVATE_TECHNICAL4_READY",
-  "training_enabled": true,
+  "observed_utc": "2026-10-20T00:28:17.026949+00:00",
+  "status": "091_FAILED_PARITY__092_FOCUSED_SOURCE_QUALIFICATION_READY_NO_NATIVE_ADMISSION",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Materialize/install exactnew091technical4nativecampaign once, then freshphysicalboot/signedhardwaregates. Existing branch:4parityforwards/4privateEntry-onlyupdates, logicalcursor2, exactdirect/resumeequivalence. Samef571closure/055norm/057inputs/059costs/088fresh/089actualinitial/090strictaudit; nodatasetrebuild/refit/Exit/CONTROLupdates/TEST/broker/privateweightreuse. Requested mainorderedoneepoch requiresactual091PASS andseparatenewadmission; no consumedplanrelaunch.",
+  "next_action": "Runexact092source/syntheticguard/parityqualificationonceunder4Gauditcap.0genuinemarketforwards/0nativeupdates.No091relaunch;newsourceclosure/fresh/initial/state/paritygatesrequiredafterPASS.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -78,11 +78,11 @@
       "path": "/home/andre2/GX1_RUNS/ENTRY_LEARNING_CURVE_20261010_001/STUDY_REVIEW.json",
       "sha256": "eeea3858a7fe2a43ff98ed3a150aa687ee4538eaeadea386c3dbb7ec4b36353d"
     },
-    "current_evidence_scope": "Actual089currentf571initial32Entryforwards/0updates andactual090CPUstate/RNGpreservation strictPASS complete. Exact091private4mechanics scopeadmittedonlyafternewnativecampaign/freshboot/hardware; nogeneralization/economicedge/mainfullepochclaim. Samequalifiedcompactsource, no sourcechange/datarebuild/refit."
+    "current_evidence_scope": "Actual091failed onno_grad/enable_grad dynamicterminalcurveparity beforetechnicalupdates; guardexit1/751and9156absent/taskdisabled. No learning/economicedgeverdict. Actual089initial32forwards and090preservation remain validatf571. Currentread-onlycauseanalysis+minimumI/Orepair only; no newtrainingadmission."
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Actual089initial32Entryforwardscomplete/0updates; recordedoutputs equal083excepthonestobservedplanpaths. Actualnativeelapsed2829.404s/setup1148.267s/checkpoint0.508425s; no trainingthroughput orlearningclaim. NextstrictCPUstateaudit090.",
+    "current_activity": "Repair measured repeated immutable metadata hashing and missing numeric parity failure evidence after consumed091. Source-only and bounded synthetic qualification; no genuine model forward or native admission.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,13 +112,13 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "CURRENT090_CPU_SAVED_STATE_AUDIT_COMPLETE__ACTUAL089_NATIVE_RECEIPT_SEPARATELY_BOUND",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261019_090",
+    "latest_terminal_role": "ACTUAL091_FAILURE_REVIEW__ORIGINAL_GUARD_AND_TRAINER_LOGS_BOUND__NO_NATIVE_RECEIPT_PRODUCED",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_TECHNICAL4_VERIFIED_IO_20261019_091",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261019_090/TERMINAL.json",
-      "sha256": "0b3d5dad839a9b029457e63f0a707f266d2b93866e56d3cce20baf9ba9fe5f64"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_TECHNICAL4_VERIFIED_IO_20261019_091/ACTUAL_FAILURE_REVIEW.json",
+      "sha256": "3ce95c60ec07c788706c200f386f7eafc898f6b82475d937567c75ee258b6c4c"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Newmetadata-only182sourceclosure requirescurrent-sourceCPUfresh andnewinitial/nativequalification; no nativecurrent-generation optimizerupdate/full epochyet.",
+    "current_blocker": "091 TRAIN no_grad/grad absolute parity failed before optimizer updates; actual magnitude/operator route unmeasured in old log. Current FullTrain source changed, requiring exact new source-bound fresh/initial/state gates.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Publishqualified086code/docs afterfocusedsyntax/stalepath/diffcheck andcleancommit; adapt082freshpublisheronlywithactual087five-owneroverlay whilepreserving081/067proofs. BindNEW088CPUfresh,0forwards/updates/refits; afteractualPASS bindnewinitial0/private4/fullorderedepochseparatelywithunchangedphysical/thermal/newbootgates. Nooldplanrelaunch/Exit/TEST/broker.",
+    "next_action": "Qualify minimal four metadata scopes and parity failure observability; preserve1e-4absolute/rtol0 and same first error. Bind exact new source preparation only after focused checks. Never relaunch091.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -13688,7 +13688,7 @@
           "elapsed_seconds": 59.08526279099988
         },
         "compact_technical4_verified_io_stage_091": {
-          "status": "EXACT_NEW_EXISTING_TECHNICAL4_BRANCH_READY_FOR_CAMPAIGN_PREPARATION",
+          "status": "FAILED_CONSUMED_FP32_NO_GRAD_GRAD_PARITY_BEFORE_OPTIMIZER",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_TECHNICAL4_VERIFIED_IO_20261019_091",
           "plan": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_TECHNICAL4_VERIFIED_IO_20261019_091/PLAN.json",
@@ -13698,12 +13698,12 @@
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_TECHNICAL4_VERIFIED_IO_20261019_091/TECHNICAL_QUALIFICATION_PLAN.json",
             "sha256": "1bef5ab2eba693f4b15168c892d3e360cd6b459dbf8eae39fa896eefd68a9738"
           },
-          "execution_authorized": true,
-          "campaign_preparation_authorized": true,
-          "completed_invocations": 0,
+          "execution_authorized": false,
+          "campaign_preparation_authorized": false,
+          "completed_invocations": 1,
           "planned_invocations": 1,
           "relaunch_allowed": false,
-          "training_enabled": true,
+          "training_enabled": false,
           "full_epoch_training_allowed": false,
           "full_val_allowed": false,
           "native_training_admitted": false,
@@ -13716,7 +13716,56 @@
           "source_bindings_sha256": "f571e0c993cd50b0b28ec7340cca6a24e8683e6683b9fe260db6a7396a1010b2",
           "test_data_used": false,
           "broker_access_allowed": false,
-          "exit_evaluation": false
+          "exit_evaluation": false,
+          "actual_failure_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_TECHNICAL4_VERIFIED_IO_20261019_091/ACTUAL_FAILURE_REVIEW.json",
+            "sha256": "3ce95c60ec07c788706c200f386f7eafc898f6b82475d937567c75ee258b6c4c"
+          },
+          "windows_task_disabled": true,
+          "full_epoch_complete": false,
+          "parity_passed": false
+        },
+        "measured_native_validation_hash_gap_20261020": {
+          "status": "FOUR_EXISTING_FINITE_METADATA_SCOPES_IMPLEMENTED_UNQUALIFIED",
+          "source_repair_authorized": false,
+          "source_file": "gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+          "measured_live_stack": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_TECHNICAL4_VERIFIED_IO_20261019_091/LIVE_STACK_OBSERVATION_001.json",
+            "sha256": "c36b9d47bfe0e7ee254c47eb3a678c58dc683f57e5c0ada48731a54f3bd9dea3"
+          },
+          "call_sites": [
+            824,
+            1371,
+            1382,
+            2383
+          ],
+          "allowed_change": "Useexistingfinitefile_verification_scope onlyaroundeachpuremetadatavalidation, closebeforeparity/forward/update/restore. Keepallchecksandnumerics. Previous089prefixbindinghashhotspot maybereviewedforamatchingminimalcallsitefix. No broadrefactor.",
+          "training_enabled": false,
+          "model_forwards_allowed": 0,
+          "optimizer_updates_allowed": 0,
+          "test_data_used": false,
+          "diagnostic_repair_authorized": "Persist numeric parity failure and actual existing-forward execution evidence before rethrow; no additional genuine forward, tolerance change, kernel change, optimizer update or new native admission.",
+          "parity_diagnostics_source_implemented": true
+        },
+        "admission_io_parity_source_qualification_092": {
+          "status": "READY_FROZEN_SOURCE_SYNTHETIC_ONLY",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_PARITY_DIAGNOSTICS_ADMISSION_IO_20261020_092",
+          "source_edit_authorized": false,
+          "qualification": {
+            "execution_authorized": true,
+            "plan": {
+              "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PARITY_DIAGNOSTICS_ADMISSION_IO_20261020_092/QUALIFICATION_PLAN.json",
+              "sha256": "e6146e4b41040899b2249d945791554dac667594ba23b7bf9185bf522c383ccb"
+            }
+          },
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "relaunch_allowed": false,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "genuine_market_model_forwards": 0,
+          "native_optimizer_updates": 0,
+          "test_data_used": false
         }
       },
       "operator_pc_reboot_20261018": {
@@ -13861,10 +13910,10 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_CONTROL_BOUND_20261019_083/RUNTIME/receipts/invocation-0001.json",
       "sha256": "4eee83d013f51e6e9fb7c0599c98708c96361c7035e2a0f9a2bb9ea58912beef"
     },
-    "latest_terminal_evidence_scope": "Collector exit_code/source_unchanged interface consumes actual083plan-runner terminal. Actual later native outcome is separately bound in native_terminal_receipt and compact_initial_measurement_stage_083; no transformed or fabricated terminal.",
+    "latest_terminal_evidence_scope": "Bound091 ACTUAL_FAILURE_REVIEW is observation-only evidence of original guard child_status=1 and process/task termination; native campaign producer receipt was not published. No success, learning or relaunch authority.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
-      "status": "MEASURED_CHECKPOINT_METADATA_REPAIR_SOURCE_SYNTHETIC_QUALIFIED_NATIVE_TIMING_PENDING",
+      "status": "ACTUAL091_REPEATED_VALIDATION_HASHING_MEASURED_FOUR_SCOPE_REPAIR_PENDING_QUALIFICATION",
       "reuse_existing_feature_target_normalization_artifacts": true,
       "full_scan_or_hash_inside_batch_loop_allowed": false,
       "verification_reuse_scope": "Existingfile_verification_scope only within finite puremetadataoperations; firstphysicalhash/stat/SHA/type/symlink/semanticguards retained; no memoovermodel/state/checkpoint.",
@@ -13926,6 +13975,10 @@
     "latest_native_initial_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_VERIFIED_IO_20261019_089/ACTUAL_INITIAL_MEASUREMENT_REVIEW.json",
       "sha256": "8c83b8369f638d65ef5edc4608859f489896c353863b8ef2ae605675b357687b"
+    },
+    "latest_failed_native_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_TECHNICAL4_VERIFIED_IO_20261019_091/ACTUAL_FAILURE_REVIEW.json",
+      "sha256": "3ce95c60ec07c788706c200f386f7eafc898f6b82475d937567c75ee258b6c4c"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -16490,7 +16543,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-19T21:52:29.482528+00:00",
+  "updated_utc": "2026-10-20T00:28:17.026949+00:00",
   "entry_dynamic_m5_technical_qualification": {
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_TECHNICAL4_VERIFIED_IO_20261019_091/TECHNICAL_QUALIFICATION_PLAN.json",
