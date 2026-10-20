@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —095 initial0 ferdig;096 CPU-stateaudit klar
+## Aktuell grense —095/096 ferdig;097 teknisk plan klargjøres
 
 095 er faktisk ferdig med guardPASS/exit0:256 TRAIN +256 CONTROL-entries,
 16 Entry-forwards per rolle og0optimizersteg. Initialt resultat målte
@@ -84,8 +84,10 @@ før modellkonstruksjon på en gammel testSHA-binding; den er konsumert og
 bevart.094 retter kun den kvalifiserte bindingen, med b552-produksjonskilde.
 096 gjenbruker eksisterende090stateaudit med én endret policykey; planen
 binder faktisk094fresh/095initial0 og én4G/900s CPU-kjøring uten forwards.
-Den må fysisk bevise model/anchor/optimizer/EMA/scheduler og CPU/Python/
-NumPyRNG før streng eksisterende initialaudit godtas.
+096 er faktisk COMPLETE59.802s/exit0/uendret kilde, med0forwards/updates.
+Model/anchor/optimizer/EMA/scheduler og CPU/Python/NumPyRNG er eksakt bevart;
+streng eksisterende initialaudit bestod. AuditSHA
+aecb65ca1f17eb44803a39f33b3cead32221e8702cf01d466f1a985d68db2986.
 
 091 paritet feilet før optimizer på dynamic_terminal_net_markout_bps.
 Original ACTUAL_FAILURE_REVIEW SHA
@@ -107,7 +109,8 @@ med eventuell målt paritetsrettelse for å unngå ekstra kildegenerasjoner.
 Siste observerte prosessrchar02:28 var1.422TBlogisk, kernelregistrert lesing
 25.158GB; dette er ikke totaltall eller1.422TBfysisk disklesing.
 
-Neste:096stateaudit, deretter ny097teknisk paritetsdiagnose med samme kilde
+Neste:klargjør097teknisk plan fra095recipe/094fresh/096audit, deretter
+ny097teknisk paritetsdiagnose med samme kilde
 og eksakte nye campaign-/boot-/maskinvareporter. Ingen full epoke før faktisk
 paritet/Entry-only optimizer/resume er kvalifisert. training_enabled/fullEpoch/
 fullVAL=false. Den bestilte epoken, full indikatorrevisjon og lærte LONG/SHORT/

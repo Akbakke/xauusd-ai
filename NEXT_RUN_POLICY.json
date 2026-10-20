@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T02:46:14.576971+00:00",
-  "status": "095_INITIAL0_COMPLETE_096_CPU_STATE_AUDIT_READY_PARITY_UNRESOLVED",
+  "observed_utc": "2026-10-20T02:50:16.688642+00:00",
+  "status": "096_STATE_RNG_AUDIT_COMPLETE_097_METADATA_PREPARATION_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "18October current request authorizes full indicator/TF/MBP/code audit and necessary bounded repairs/data completion. Exact native one-epoch request remains recorded; target alignment and current data/function/campaign qualification are required before launch. No TEST/broker/trading/spending.",
-  "next_action": "Run exactly one existing bounded CPU state audit096 on actual094fresh/095initial0. Keep b552 production source unchanged for actual parity diagnostics; prepare new097technical4 only after096 strictPASS and exact new campaign/hardware/freshboot. No epoch/training authority.",
+  "next_action": "Prepare097technical4plan from095recipe+094fresh+strict096audit with existing capped metadata worker. No model/native admission yet; preserve b552 production source for actual parity diagnostic.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "095initial0 complete32Entryforwards/0updates; taskdisabled and boundprocessesabsent; sourcefreeze released. Ready096CPUstateaudit, paritydiagnosticstillpending.",
+    "current_activity": "096actualstate/RNGauditCOMPLETE59.802s/0forwards/updates; prepare097technicalplanonly.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,11 +112,11 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "ACTUAL094_CPU_FRESH_TERMINAL_WITH095_NATIVE_RECEIPT_SEPARATELY_RECORDED",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_RETAINED_TEST_BINDING_20261020_094",
+    "latest_terminal_role": "ACTUAL096_CPU_STATE_AND_RNG_AUDIT_COMPLETE",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261020_096",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_RETAINED_TEST_BINDING_20261020_094/TERMINAL.json",
-      "sha256": "6cb80dccafc63f474aed8348e1da4938acd1008ec9eb65f8a11c1cef49aa8889"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261020_096/TERMINAL.json",
+      "sha256": "c30089ba605d3ddddf2b114ada4a69edd73bd5dd62be715d665bbcbe0204e29a"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "096same-source state/RNG audit and new097actual parity diagnostics pending; measured dynamiccohort metadatahash scope gap deferred for combined sourcefix; no optimizersteps/epoch yet.",
+    "current_blocker": "Actualsame-source parity/Entry-onlyoptimizer/resume remains;097technicalplanpreparationonly, modeldisabled.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exactly one existing bounded CPU state audit096 on actual094fresh/095initial0. Keep b552 production source unchanged for actual parity diagnostics; prepare new097technical4 only after096 strictPASS and exact new campaign/hardware/freshboot. No epoch/training authority.",
+    "next_action": "Prepare097technical4plan from095recipe+094fresh+strict096audit with existing capped metadata worker. No model/native admission yet; preserve b552 production source for actual parity diagnostic.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -13927,14 +13927,14 @@
           }
         },
         "compact_initial_state_audit_stage_096": {
-          "status": "READY_ONE_CAPPED_CPU_STATE_AUDIT_ZERO_FORWARDS",
+          "status": "COMPLETE_CONSUMED_ACTUAL_STATE_AND_RNG_PRESERVATION_STRICT_PASS",
           "plan": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261020_096/PLAN.json",
             "sha256": "20c2c67c6aae44dd22827df02e23e0f9e8e985e93bc64dd157eeb1c10c5e7b96"
           },
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261020_096",
-          "execution_authorized": true,
-          "completed_invocations": 0,
+          "execution_authorized": false,
+          "completed_invocations": 1,
           "planned_invocations": 1,
           "relaunch_allowed": false,
           "training_enabled": false,
@@ -13943,7 +13943,20 @@
           "optimizer_updates_allowed": 0,
           "normalization_fit_enabled": false,
           "test_data_used": false,
-          "scope": "Physically hash and CPUload actual094fresh and095initial0checkpoint; compare model/anchor/optimizer/EMA/scheduler and saved CPU/Python/NumPy RNG; publish existing strict8field initialaudit and validate with existing owner. No model construction/forward/update/refit/TEST/Exit/broker/nativecampaign."
+          "scope": "Physically hash and CPUload actual094fresh and095initial0checkpoint; compare model/anchor/optimizer/EMA/scheduler and saved CPU/Python/NumPy RNG; publish existing strict8field initialaudit and validate with existing owner. No model construction/forward/update/refit/TEST/Exit/broker/nativecampaign.",
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261020_096/TERMINAL.json",
+            "sha256": "c30089ba605d3ddddf2b114ada4a69edd73bd5dd62be715d665bbcbe0204e29a"
+          },
+          "initial_measurement_audit": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261020_096/INITIAL_MEASUREMENT_AUDIT.json",
+            "sha256": "aecb65ca1f17eb44803a39f33b3cead32221e8702cf01d466f1a985d68db2986"
+          },
+          "preservation_proof": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261020_096/STATE_PRESERVATION_PROOF.json",
+            "sha256": "0e85f4ed76a1de7396f3916ec37730ed4a423dd49439d487589557e96bbac411"
+          },
+          "elapsed_seconds": 59.801782235000246
         },
         "measured_dynamic_cohort_hash_gap_095": {
           "status": "MEASURED_READONLY_MINIMAL_OWNER_SCOPE_DEFERRED_UNTIL_PARITY_DIAGNOSIS",
@@ -13957,6 +13970,27 @@
           "source_edit_authorized": false,
           "training_enabled": false,
           "actual_speedup_measured": false
+        },
+        "compact_parity_diagnostic4_stage_097": {
+          "status": "READY_METADATA_PLAN_PREPARATION_NO_NATIVE_ADMISSION",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_PARITY_DIAGNOSTIC4_20261020_097",
+          "technical_plan_preparation_authorized": true,
+          "technical_plan_preparation_worker": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_PARITY_DIAGNOSTIC4_20261020_097/prepare_technical_plan.py",
+            "sha256": "b9595081ec2016c86fa8e9148c186be9ca6f8fa3bf63598061f943d62c2db85c"
+          },
+          "execution_authorized": false,
+          "campaign_preparation_authorized": false,
+          "completed_invocations": 0,
+          "planned_invocations": 1,
+          "relaunch_allowed": false,
+          "native_training_admitted": false,
+          "full_epoch_training_allowed": false,
+          "full_val_allowed": false,
+          "test_data_used": false,
+          "exit_evaluation": false,
+          "broker_access_allowed": false,
+          "source_bindings_sha256": "b552bdb173050cbf7a8113ff71822ad6da049759cad57594cae68eaa391e3519"
         }
       },
       "operator_pc_reboot_20261018": {
