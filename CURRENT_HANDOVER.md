@@ -35,16 +35,17 @@ leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
 124 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124`.
 Avgrensningen er412 aktive felt:316 dynamiske profiler,64 histogram og32 footprint.
-Design/plan og referanse i eksisterende auditeier/testfil er klar. Forventet
-kildeomfang er116caser:77uendrede og39nye, ennå uten faktisk testresultat.
+Design/plan og referanse i eksisterende auditeier/testfil er klar. Faktisk
+kildejobb bestod116caser:77uendrede og39nye,0fail/error/skip på6,401s.
 Heltalls-/rasjonalreferansen er uavhengig av produksjonsformlene. Ni ferdige filer utgjør306497131 byte. Prisnivåfilen
 skal strømmes én gang, med M1-batchcarry, eksakt B/A/N-/maske-/kontraktparitet,
 fem åpne TF-histogrammer og to separate M5-profiltilstander. Ingen TB-råscan.
 Strict/observed, ukjent side, side-POC uten volum, POC-/VA-ties, tomme mellomticks,
 NY18/sommertid, manglende første sessionsprefix, hull/roll og prior-response over
 sessionskifte inngår. M5-kontekst bruker bare eksakt lukket snapshot, ingen fallback.
-Fysisk124 er ikke claimet. Én kildekvalifisering kan kjøres etter ferdig kode,
-uavhengig review og ren kildebinding; fysisk audit krever faktisk PASS først.
+206kildefiler ogpolicy er bevart. SOURCE_REVIEW.json binder faktisk XML/terminal.
+Fysisk124 er nå claimet én gang etter dette PASS-et; sammenligningen er ennå
+ukvalifisert. Alle åtte parquetfootere sjekkes før første payloadlesing.
 Eksisterende779feltsbevis og117native-mekanikk gjenbrukes. Basis14 er utenfor124.
 Ingen modellforward, optimizer, ny normalisering/baseline/epoke, Exit eller TEST.
 
