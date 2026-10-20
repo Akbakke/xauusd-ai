@@ -1337,6 +1337,182 @@ def compare_event_book_reference(reference, actual, bounds, units):
     return report
 
 
+GC_TRADE_PLAN_ID = 'NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122'
+GC_TRADE_POLICY_KEY = 'gc_trade_cumulative_numeric_reference_122'
+GC_TRADE_QUANTITIES = ('volume','buy','sell','unknown','trades')
+GC_TRADE_SIZE_STATISTICS = ('buy_trade_records','sell_trade_records','unknown_trade_records',
+    'size_sum_contracts','size_sum_squared_contracts2','size_min_contracts','size_max_contracts')
+GC_TRADE_CVD_FIELDS = ('cvd_segment_delta_contracts','cvd_segment_volume_contracts','cvd_segment_minutes')
+GC_TRADE_KNOWN_FIELDS = ('buy_contracts','sell_contracts','unknown_contracts','volume_contracts',
+    'known_delta_contracts','unknown_fraction','observed_minutes')
+GC_TRADE_AUXILIARY_COLUMNS = ('observed_clock_minutes','observed_expected_clock_minutes',
+    'observed_first_minute_ns','observed_last_minute_ns')
+
+
+def trade_reference_units():
+    units={'bar_start_ns':'utc_nanoseconds_metadata','available_ns':'utc_nanoseconds_metadata',
+        'contract_index':'contract_index_metadata','volume_valid':'binary','signed_valid':'binary',
+        'delta_contracts':'contracts','known_aggressor_fraction':'fraction',
+        'observed_valid':'binary','observed_contract_valid':'binary','observed_signed_complete':'binary',
+        'observed_avg_executed_trade_contracts':'contracts_per_T_record','observed_known_delta_contracts':'contracts',
+        'observed_known_aggressor_fraction':'fraction','observed_accepted_minutes':'minutes',
+        'observed_signed_minutes':'minutes','observed_coverage_fraction':'fraction','observed_signed_minute_fraction':'fraction',
+        'observed_clock_minutes':'minutes','observed_expected_clock_minutes':'minutes',
+        'observed_first_minute_ns':'utc_nanoseconds_metadata','observed_last_minute_ns':'utc_nanoseconds_metadata'}
+    for name in GC_TRADE_QUANTITIES:
+        unit='T_record_count' if name=='trades' else 'contracts';units[name]=unit
+        target={'buy':'buy_known','sell':'sell_known'}.get(name,name);units['observed_'+target]=unit
+    units.update({name:'minutes' if name.endswith('_minutes') else 'contracts' for name in GC_TRADE_CVD_FIELDS})
+    units.update({'observed_known_cumulative_'+name:('fraction' if name=='unknown_fraction'
+        else 'minutes' if name=='observed_minutes' else 'contracts') for name in GC_TRADE_KNOWN_FIELDS})
+    for side in ('buy','sell','unknown'):
+        units['observed_'+side+'_trade_records']='T_record_count'
+        units['observed_'+side+'_avg_executed_trade_contracts']='contracts_per_T_record'
+        units['observed_'+side+'_trade_size_valid']='binary'
+    for name in ('std','min','max'):units['observed_executed_trade_size_'+name+'_contracts']='contracts'
+    return units
+
+
+def trade_numeric_active_fields():
+    observed={name for name in trade_reference_units() if name.startswith('observed_')} - set(GC_TRADE_AUXILIARY_COLUMNS)
+    strict=('volume_valid','signed_valid')+GC_TRADE_QUANTITIES+('delta_contracts','known_aggressor_fraction')+GC_TRADE_CVD_FIELDS
+    fields={}
+    for tf in ('M5','M15','H1','H4','D1'):
+        kept=strict if tf in ('M5','M15','H1') else ('volume_valid','volume','unknown','trades','known_aggressor_fraction') if tf=='H4' else ()
+        fields[tf]={name:'gc_'+tf.lower()+'_'+name for name in sorted(observed | set(kept))}
+    return fields
+
+
+def reference_trade_cumulatives(minutes, selected, trade, stats):
+    """One exact M1 pass; known and fully signed ledgers have distinct resets."""
+    minutes=np.asarray(minutes,np.int64);selected=np.asarray(selected)
+    if (not len(minutes) or selected.shape!=minutes.shape or np.any(np.diff(minutes)<=0)
+            or np.any(minutes%MINUTE) or np.any(selected!=np.floor(selected))):
+        raise RuntimeError('GC_TRADE_REFERENCE_M1_GRID')
+    if set(stats)!=set(GC_TRADE_SIZE_STATISTICS):raise RuntimeError('GC_TRADE_REFERENCE_STATS_SCHEMA')
+    for values in [trade[name] for name in GC_TRADE_QUANTITIES]+list(stats.values()):
+        if np.asarray(values).shape!=minutes.shape or np.asarray(values).dtype!=np.dtype('uint64'):
+            raise RuntimeError('GC_TRADE_REFERENCE_EXACT_UINT64')
+    for name in ('volume_valid','signed_valid'):
+        if np.asarray(trade[name]).shape!=minutes.shape or not np.isin(trade[name],(0,1)).all():
+            raise RuntimeError('GC_TRADE_REFERENCE_M1_MASK')
+    known={name:np.full(len(minutes),np.nan) for name in GC_TRADE_KNOWN_FIELDS}
+    cvd={name:np.full(len(minutes),np.nan) for name in GC_TRADE_CVD_FIELDS}
+    accum=[0]*5;signed=[0]*3;previous_known=previous_signed=None
+    for i,minute in enumerate(minutes):
+        volume,buy,sell,unknown,records=(int(trade[name][i]) for name in GC_TRADE_QUANTITIES)
+        counts=[int(stats[side+'_trade_records'][i]) for side in ('buy','sell','unknown')]
+        if (sum(counts)!=records or int(stats['size_sum_contracts'][i])!=volume
+                or volume!=buy+sell+unknown):
+            raise RuntimeError('GC_TRADE_REFERENCE_ALL_M1_RECORD_OR_QUANTITY_PARITY')
+        if any(count==0 and quantity>0 for count,quantity in zip(counts,(buy,sell,unknown))):
+            raise RuntimeError('GC_TRADE_REFERENCE_M1_SIDE_VOLUME_WITHOUT_RECORDS')
+        valid=bool(trade['volume_valid'][i]);signed_valid=bool(trade['signed_valid'][i])
+        if signed_valid and (not valid or unknown):raise RuntimeError('GC_TRADE_REFERENCE_SIGNED_DOMAIN')
+        if valid:
+            if selected[i]<0 or volume<=0 or records<=0:raise RuntimeError('GC_TRADE_REFERENCE_ACCEPTED_DOMAIN')
+            if (previous_known is None or i!=previous_known+1 or minute-minutes[previous_known]!=MINUTE
+                    or selected[i]!=selected[previous_known] or minute//DAY!=minutes[previous_known]//DAY):accum=[0]*5
+            accum=[a+b for a,b in zip(accum,(buy,sell,unknown,volume,1))]
+            if accum[3]>2**53:raise RuntimeError('GC_TRADE_REFERENCE_FLOAT_QUANTITY_BOUND')
+            values=accum[:4]+[accum[0]-accum[1],accum[2]/accum[3],accum[4]]
+            for name,value in zip(GC_TRADE_KNOWN_FIELDS,values):known[name][i]=value
+            previous_known=i
+        if signed_valid:
+            if (previous_signed is None or i!=previous_signed+1 or minute-minutes[previous_signed]!=MINUTE
+                    or selected[i]!=selected[previous_signed] or minute//DAY!=minutes[previous_signed]//DAY):signed=[0]*3
+            signed=[signed[0]+buy-sell,signed[1]+volume,signed[2]+1]
+            for name,value in zip(GC_TRADE_CVD_FIELDS,signed):cvd[name][i]=value
+            previous_signed=i
+    return known,cvd
+
+
+def reference_trade_aggregates(minutes, selected, trade, stats, known, cvd, timeframe):
+    """Independent Python-int totals and variance; no production reducers."""
+    import math
+    from gx1.features.htf_features import MULTI_TF_SHIFT
+    from gx1.time.session_detector import TRADING_SESSION_BOUNDARY_OFFSET
+    duration=MULTI_TF_SHIFT[timeframe].value;offset=TRADING_SESSION_BOUNDARY_OFFSET.value%duration
+    minutes=np.asarray(minutes,np.int64);selected=np.asarray(selected)
+    labels=((minutes-offset)//duration)*duration+offset
+    stamps=np.unique(labels);starts=np.searchsorted(minutes,stamps);stops=np.searchsorted(minutes,stamps+duration)
+    units=trade_reference_units();expected=duration//MINUTE
+    out={name:np.full(len(stamps),False if unit=='binary' else np.nan,
+        dtype=bool if unit=='binary' else np.float64) for name,unit in units.items()}
+    out['bar_start_ns']=stamps;out['available_ns']=stamps+duration
+    bounds={name:np.zeros(len(stamps)) for name in out}
+    for row,(stamp,start,stop) in enumerate(zip(stamps,starts,stops)):
+        sl=slice(start,stop);size=stop-start;contracts=selected[sl]
+        accepted=np.asarray(trade['volume_valid'][sl],bool);signed=np.asarray(trade['signed_valid'][sl],bool)
+        same=bool(np.all(contracts>=0) and np.all(contracts==contracts[0]))
+        full=size==expected and minutes[start]==stamp and minutes[stop-1]==stamp+duration-MINUTE
+        strict=bool(full and same and accepted.all());strict_signed=bool(strict and signed.all())
+        number=int(accepted.sum());signed_number=int((accepted & signed).sum());observed=bool(full and same and number)
+        for name,value in {'contract_index':contracts[0],'volume_valid':strict,'signed_valid':strict_signed,
+                'observed_valid':observed,'observed_contract_valid':same,'observed_clock_minutes':size,
+                'observed_expected_clock_minutes':expected,'observed_accepted_minutes':number,
+                'observed_signed_minutes':signed_number,'observed_coverage_fraction':number/expected}.items():out[name][row]=value
+        if number:out['observed_signed_minute_fraction'][row],bounds['observed_signed_minute_fraction'][row]=_event_book_ratio(signed_number,number)
+        totals={name:sum(int(v) for v in trade[name][sl][accepted]) for name in GC_TRADE_QUANTITIES}
+        pooled={}
+        for name in GC_TRADE_SIZE_STATISTICS:
+            values=[int(v) for v in stats[name][sl][accepted]]
+            pooled[name]=(min(values) if values else 0) if name=='size_min_contracts' else (max(values) if values else 0) if name=='size_max_contracts' else sum(values)
+            if pooled[name]>2**64-1:raise RuntimeError('GC_TRADE_REFERENCE_UINT64_OVERFLOW')
+        records=sum(pooled[side+'_trade_records'] for side in ('buy','sell','unknown'))
+        if records>2**64-1:raise RuntimeError('GC_TRADE_REFERENCE_UINT64_OVERFLOW')
+        variance=records*pooled['size_sum_squared_contracts2']-pooled['size_sum_contracts']**2
+        if variance<0:raise RuntimeError('GC_TRADE_REFERENCE_NEGATIVE_INTEGER_VARIANCE')
+        if any(value>2**53 for value in totals.values()):raise RuntimeError('GC_TRADE_REFERENCE_FLOAT_QUANTITY_BOUND')
+        for name in GC_TRADE_QUANTITIES:
+            if strict and (name not in ('buy','sell') or strict_signed):out[name][row]=totals[name]
+            if observed:out['observed_'+{'buy':'buy_known','sell':'sell_known'}.get(name,name)][row]=totals[name]
+        if strict:
+            out['known_aggressor_fraction'][row],bounds['known_aggressor_fraction'][row]=_event_book_ratio(totals['buy']+totals['sell'],totals['volume'])
+        if strict_signed:
+            out['delta_contracts'][row]=totals['buy']-totals['sell']
+            for name in GC_TRADE_CVD_FIELDS:out[name][row]=cvd[name][stop-1]
+        for side in ('buy','sell','unknown'):
+            count=pooled[side+'_trade_records'];ready=observed and count>0
+            if count>2**53:raise RuntimeError('GC_TRADE_REFERENCE_FLOAT_COUNT_BOUND')
+            if not count and totals[side]:raise RuntimeError('GC_TRADE_REFERENCE_SIDE_VOLUME_WITHOUT_RECORDS')
+            out['observed_'+side+'_trade_size_valid'][row]=ready
+            if observed:out['observed_'+side+'_trade_records'][row]=count
+            if ready:
+                key='observed_'+side+'_avg_executed_trade_contracts'
+                out[key][row],bounds[key][row]=_event_book_ratio(totals[side],count)
+        if observed:
+            positions=np.flatnonzero(accepted)+start;first,last=int(positions[0]),int(positions[-1])
+            out['observed_first_minute_ns'][row]=float(minutes[first]);out['observed_last_minute_ns'][row]=float(minutes[last])
+            out['observed_signed_complete'][row]=totals['unknown']==0
+            out['observed_known_delta_contracts'][row]=totals['buy']-totals['sell']
+            for name,numerator,denominator in (
+                    ('observed_avg_executed_trade_contracts',totals['volume'],totals['trades']),
+                    ('observed_known_aggressor_fraction',totals['buy']+totals['sell'],totals['volume'])):
+                out[name][row],bounds[name][row]=_event_book_ratio(numerator,denominator)
+            for name in GC_TRADE_KNOWN_FIELDS:
+                key='observed_known_cumulative_'+name;out[key][row]=known[name][last]
+                if name=='unknown_fraction':bounds[key][row]=np.finfo(np.float64).eps/2*abs(out[key][row])
+            value=math.sqrt(float(variance))/records if records else np.nan
+            key='observed_executed_trade_size_std_contracts';out[key][row]=value
+            # Integer-to-binary64, sqrt and division in BOTH paths: gamma_6.
+            unit=np.finfo(np.float64).eps/2;bounds[key][row]=6*unit*abs(value)/(1-6*unit)
+            for name in ('min','max'):out['observed_executed_trade_size_'+name+'_contracts'][row]=pooled['size_'+name+'_contracts']
+    return out,bounds,units
+
+
+def compare_trade_reference(reference, actual, bounds, units):
+    for name in ('bar_start_ns','available_ns'):
+        if (np.asarray(actual[name]).dtype!=np.dtype('int64')
+                or not np.array_equal(reference[name],actual[name])):
+            raise RuntimeError('GC_TRADE_REFERENCE_EXACT_TF_GRID:'+name)
+    contract=np.asarray(actual['contract_index'])
+    if (not np.issubdtype(contract.dtype,np.integer)
+            or not np.array_equal(np.asarray(reference['contract_index'],np.int64),contract.astype(np.int64))):
+        raise RuntimeError('GC_TRADE_REFERENCE_EXACT_TF_GRID:contract_index')
+    return compare_event_book_reference(reference,actual,bounds,units)
+
+
 def read_event_numeric_columns(path, columns, start, end, seal):
     """Inspect all selected footer boundaries before decoding any payload."""
     parquet = pq.ParquetFile(path); clock = parquet.schema_arrow.names.index('bar_start_ns')
@@ -1373,12 +1549,26 @@ def read_event_numeric_book(path, start, end, seal, events):
     return book,groups
 
 
-def run_gc_event_numeric(binding_path, *, event_book=False):
-    plan_id = GC_EVENT_BOOK_PLAN_ID if event_book else GC_EVENT_NUMERIC_PLAN_ID
-    policy_key = GC_EVENT_BOOK_POLICY_KEY if event_book else GC_EVENT_NUMERIC_POLICY_KEY
+def read_trade_numeric_inputs(inputs, start, end, seal):
+    core=['bar_start_ns','contract_index','volume_valid','signed_valid']+list(GC_TRADE_QUANTITIES)
+    trade,groups=read_event_numeric_columns(Path(inputs['m1_trade']['path']),core,start,end,seal)
+    sizes,size_groups=read_event_numeric_columns(Path(inputs['m1_trade_sizes']['path']),
+        ['bar_start_ns','available_ns','contract_index']+list(GC_TRADE_SIZE_STATISTICS),start,end,seal)
+    if (any(np.asarray(value).dtype!=np.dtype('int64') for value in
+            (trade['bar_start_ns'],sizes['bar_start_ns'],sizes['available_ns']))
+            or any(not np.issubdtype(np.asarray(table['contract_index']).dtype,np.integer) for table in (trade,sizes))
+            or any(not np.array_equal(trade[name],sizes[name]) for name in ('bar_start_ns','contract_index'))
+            or not np.array_equal(sizes['available_ns'],sizes['bar_start_ns']+MINUTE)):
+        raise RuntimeError('GC_TRADE_REFERENCE_PUBLISHED_M1_JOIN_OR_AVAILABILITY')
+    return trade,{name:sizes[name] for name in GC_TRADE_SIZE_STATISTICS},groups,size_groups
+
+
+def run_gc_event_numeric(binding_path, *, event_book=False, trade=False):
+    plan_id = GC_TRADE_PLAN_ID if trade else GC_EVENT_BOOK_PLAN_ID if event_book else GC_EVENT_NUMERIC_PLAN_ID
+    policy_key = GC_TRADE_POLICY_KEY if trade else GC_EVENT_BOOK_POLICY_KEY if event_book else GC_EVENT_NUMERIC_POLICY_KEY
     root = Path('/home/andre2/GX1_RUNS')/plan_id
-    prefix = 'GC_EVENT_BOOK_NUMERIC' if event_book else 'GC_EVENT_NUMERIC'
-    schema = 'gx1_gc_event_book_numeric_audit_plan_v1' if event_book else 'gx1_gc_event_numeric_audit_plan_v1'
+    prefix = 'GC_TRADE_NUMERIC' if trade else 'GC_EVENT_BOOK_NUMERIC' if event_book else 'GC_EVENT_NUMERIC'
+    schema = 'gx1_gc_trade_numeric_audit_plan_v1' if trade else 'gx1_gc_event_book_numeric_audit_plan_v1' if event_book else 'gx1_gc_event_numeric_audit_plan_v1'
     if binding_path != root/(prefix+'_EXECUTION_BINDING.json'):
         raise RuntimeError('GC_EVENT_NUMERIC_BINDING_PATH')
     io.require_regular_file(binding_path, 'GC_EVENT_NUMERIC_BINDING')
@@ -1407,7 +1597,8 @@ def run_gc_event_numeric(binding_path, *, event_book=False):
     if any(t.tzinfo is None for t in stamps): raise RuntimeError('GC_EVENT_NUMERIC_TIMEZONE')
     start, end, seal = [t.value for t in stamps]
     from gx1.contracts.gc_source_disposition_v1 import STUDY_START_NS, WINDOW_END_NS
-    if not STUDY_START_NS <= start < end <= seal or seal != WINDOW_END_NS:
+    if (not STUDY_START_NS <= start < end <= seal or seal != WINDOW_END_NS
+            or (trade and start != STUDY_START_NS)):
         raise RuntimeError('GC_EVENT_NUMERIC_SCAN_BOUNDARY')
     publication = binding_read(plan['publication_terminal'])
     source_root = Path(plan['publication_terminal']['path']).parent
@@ -1417,10 +1608,11 @@ def run_gc_event_numeric(binding_path, *, event_book=False):
             or publication['source_unchanged'] is not True or publication['test_data_used'] is not False):
         raise RuntimeError('GC_EVENT_NUMERIC_PUBLICATION')
     inputs = plan['inputs']; tfs = ('M5','M15','H1','H4','D1')
-    keys = {'m1_events','m1_book','strict_m5_book','timeframes'} if event_book else {'m1_events','timeframes'}
+    keys = {'m1_trade','m1_trade_sizes','timeframes'} if trade else {'m1_events','m1_book','strict_m5_book','timeframes'} if event_book else {'m1_events','timeframes'}
     if set(inputs) != keys or set(inputs['timeframes']) != set(tfs):
         raise RuntimeError('GC_EVENT_NUMERIC_INPUT_INVENTORY')
-    files = {'M1_EVENT_DIAGNOSTICS.parquet': inputs['m1_events']}
+    files = {'M1_GC_INPUTS.parquet':inputs['m1_trade'],
+        'M1_TRADE_SIZE_STATISTICS_UNMASKED.parquet':inputs['m1_trade_sizes']} if trade else {'M1_EVENT_DIAGNOSTICS.parquet': inputs['m1_events']}
     files.update({'TRADE_FEATURES_'+tf+'.parquet': inputs['timeframes'][tf] for tf in tfs})
     if event_book:
         files.update({'M1_GC_INPUTS.parquet':inputs['m1_book'],'M5_GC_FEATURES.parquet':inputs['strict_m5_book']})
@@ -1437,14 +1629,25 @@ def run_gc_event_numeric(binding_path, *, event_book=False):
     common = ['bar_start_ns','available_ns','contract_index']
     source_columns = common + ['qualified_final_event_count'] + [d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns')]
     if event_book:source_columns=common+list(GC_EVENT_REFERENCE_REDUCERS)+['qualified_covered_ns']
-    m1, m1_groups = read_event_numeric_columns(Path(inputs['m1_events']['path']),source_columns,start,end,seal)
-    if not np.array_equal(m1['available_ns'],m1['bar_start_ns']+MINUTE):
-        raise RuntimeError('GC_EVENT_NUMERIC_M1_AVAILABILITY')
+    if trade:
+        m1,trade_stats,m1_groups,trade_size_groups=read_trade_numeric_inputs(inputs,start,end,seal)
+        stamps=m1['bar_start_ns']
+        if (not len(stamps) or stamps[0]!=start or stamps[-1]!=end-MINUTE
+                or len(stamps)!=(end-start)//MINUTE or np.any(np.diff(stamps)!=MINUTE)):
+            raise RuntimeError('GC_TRADE_REFERENCE_FULL_PUBLISHED_M1_GRID')
+        known,cvd=reference_trade_cumulatives(stamps,m1['contract_index'],m1,trade_stats)
+    else:
+        m1, m1_groups = read_event_numeric_columns(Path(inputs['m1_events']['path']),source_columns,start,end,seal)
+        if not np.array_equal(m1['available_ns'],m1['bar_start_ns']+MINUTE):
+            raise RuntimeError('GC_EVENT_NUMERIC_M1_AVAILABILITY')
     reports = {}; strict_report = None; book_groups = None
     if event_book:
         book,book_groups=read_event_numeric_book(Path(inputs['m1_book']['path']),start,end,seal,m1)
     for tf in tfs:
-        if event_book:
+        if trade:
+            reference,bounds,units=reference_trade_aggregates(
+                m1['bar_start_ns'],m1['contract_index'],m1,trade_stats,known,cvd,tf)
+        elif event_book:
             reference,bounds,units,clock,strict=reference_event_book_aggregates(
                 m1['bar_start_ns'],m1['contract_index'],m1,book,tf)
         else:reference = reference_event_clock_means(m1['bar_start_ns'],m1['contract_index'],m1,tf)
@@ -1453,10 +1656,15 @@ def run_gc_event_numeric(binding_path, *, event_book=False):
         reference = {name: value[keep] for name,value in reference.items()}
         columns = common[:2] + ['observed_event_valid','observed_event_accepted_minutes'] + [
             'observed_event_'+d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns','_mean_ns','_valid')]
-        if event_book:columns=list(reference)
+        if event_book or trade:columns=list(reference)
         actual, groups = read_event_numeric_columns(Path(inputs['timeframes'][tf]['path']),columns,start,end,seal)
         keep = actual['available_ns'] <= end; actual = {name:value[keep] for name,value in actual.items()}
-        if event_book:
+        if trade:
+            bounds={name:value[reference_keep] for name,value in bounds.items()}
+            reports[tf]={'fields':compare_trade_reference(reference,actual,bounds,units),
+                'known_endpoint_before_tf_end_buckets':int(np.count_nonzero(
+                    reference['observed_valid'] & (reference['observed_last_minute_ns']<reference['available_ns']-MINUTE)))}
+        elif event_book:
             bounds={name:value[reference_keep] for name,value in bounds.items()}
             clock={name:value[reference_keep] for name,value in clock.items()}
             reports[tf]={'clock_mean_discrimination':compare_event_clock_reference(clock,actual),
@@ -1501,6 +1709,19 @@ def run_gc_event_numeric(binding_path, *, event_book=False):
             auxiliary_columns=sorted(GC_EVENT_BOOK_AUXILIARY_COLUMNS),
             native_availability_projection_proven=False,
             published_ofi_incident_masks_reused_without_raw_reconstruction=True)
+    if trade:
+        active=trade_numeric_active_fields()
+        for tf,fields in active.items():
+            for column in fields:
+                if not reports[tf]['fields'][column]['numeric_reference_qualified']:
+                    raise RuntimeError('GC_TRADE_REFERENCE_ACTIVE_FIELD_UNOBSERVED:'+tf+':'+column)
+        result.update(status='COMPLETE_SCOPED_TRADE_CUMULATIVE_M1_TO_TF_REFERENCE',
+            reference_uses_published_float64_M1_sums=False,reference_uses_published_uint64_M1_statistics=True,
+            m1_trade_size_decoded_row_groups=trade_size_groups,all_m1_size_parity_rows=len(m1['bar_start_ns']),
+            cumulative_m1_passes=1,active_field_names=active,auxiliary_columns=list(GC_TRADE_AUXILIARY_COLUMNS),
+            unregistered_strict_outputs_are_auxiliary=True,native_availability_projection_proven=False,
+            cumulative_reset_clock='UTC date, contract, invalid M1 or nonconsecutive minute',
+            published_trade_masks_reused_without_raw_reconstruction=True)
     output = staging/(prefix+'_RESULT.json'); io.write_json(output,result)
     io.write_json(staging/(prefix+'_TERMINAL.json'), {'status':'COMPLETE','exit_code':0,
         'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),
@@ -1514,8 +1735,10 @@ if __name__=='__main__':
     group.add_argument('--binding',type=Path);group.add_argument('--evaluation-binding',type=Path)
     group.add_argument('--gc-event-numeric-binding',type=Path)
     group.add_argument('--gc-event-book-numeric-binding',type=Path)
+    group.add_argument('--gc-trade-numeric-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.gc_event_book_numeric_binding is not None:run_gc_event_numeric(args.gc_event_book_numeric_binding,event_book=True)
+    if args.gc_trade_numeric_binding is not None:run_gc_event_numeric(args.gc_trade_numeric_binding,trade=True)
+    elif args.gc_event_book_numeric_binding is not None:run_gc_event_numeric(args.gc_event_book_numeric_binding,event_book=True)
     elif args.gc_event_numeric_binding is not None:run_gc_event_numeric(args.gc_event_numeric_binding)
     elif args.binding is not None:run(args.binding)
     elif args.evaluation_binding is not None:run_evaluation(args.evaluation_binding)

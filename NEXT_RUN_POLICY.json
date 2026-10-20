@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T22:13:10.489649+00:00",
-  "status": "121_SCOPED_370_EVENT_BOOK_ORDER_NUMERIC_REFERENCE_COMPLETE_NATIVE_TRAINING_CLOSED",
+  "observed_utc": "2026-10-20T22:26:59.423323+00:00",
+  "status": "122_TRADE_CUMULATIVE_REFERENCE_ONE_SOURCE_QUALIFICATION_READY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Reuse completed121 scoped370field event/book/order M1-to-TF reference,118clock subset and117 native mechanics; no reruns or new main epoch. Remaining bounded independent numeric groups: trade/cumulatives, two-sided SMC, basis, profile/footprint, raw-to-M1 and technical formulas; then actual individual native availability/consumption and LONG/SHORT/FLAT quality/coverage/explanations. Bind each concrete next scope before any capped job. No TEST, Exit, broker, raw TB rescan, HPO or extraepoch.",
+  "next_action": "Execute one exact122 capped focused source qualification on existing audit test module after peer review; expected53cases from staticcount, actual count required. Production183roles preserved; no physical audit before sourcePASS, no new native epoch/Exit/TEST.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "INDEPENDENT_FEATURE_NUMERIC_AUDITS_AFTER_121_COMPLETE",
+    "current_activity": "122_INDEPENDENT_TRADE_SIZE_CUMULATIVE_REFERENCE_SOURCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "121passed all370active published M1-to-TF/strictM5 fields. Remaining formula groups, raw-to-M1 firstleg, native availability projection/individual model consumption and primary Entry quality remain unqualified.108ordered epoch is consumed; changed111RMS has no new main learning round or exact new epoch admission.",
+    "current_blocker": "122independent reference source implemented; exact uint64 arithmetic, own masks/resets/full origin and int64grid checks await actual focused tests.211active plus auxiliary outputs remain physically unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Reuse completed121 scoped370field event/book/order M1-to-TF reference,118clock subset and117 native mechanics; no reruns or new main epoch. Remaining bounded independent numeric groups: trade/cumulatives, two-sided SMC, basis, profile/footprint, raw-to-M1 and technical formulas; then actual individual native availability/consumption and LONG/SHORT/FLAT quality/coverage/explanations. Bind each concrete next scope before any capped job. No TEST, Exit, broker, raw TB rescan, HPO or extraepoch.",
+    "next_action": "Execute one exact122 capped focused source qualification on existing audit test module after peer review; expected53cases from staticcount, actual count required. Production183roles preserved; no physical audit before sourcePASS, no new native epoch/Exit/TEST.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16178,6 +16178,30 @@
       "native_availability_projection_proven": false,
       "model_consumption_proven": false,
       "physical_network_latency_calibrated": false
+    },
+    "gc_trade_cumulative_numeric_reference_122": {
+      "status": "SOURCE_IMPLEMENTATION_IN_PROGRESS",
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/PLAN.json",
+        "sha256": "e53626fc9f925f626a82fad1e4e3d2609a646c09c5b177c608e0f4261fed7f59"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/DESIGN.json",
+        "sha256": "a94f911e2fe55eac1da293254f2a3770d960aa80d7cf025e834f57f7010b6a04"
+      },
+      "physical_audit_timeout_seconds": 1800,
+      "training_enabled": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "native_training_admitted": false,
+      "test_data_used": false,
+      "normalization_fit_enabled": false,
+      "exit_evaluation": false,
+      "broker_access_allowed": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -18742,7 +18766,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T22:13:10.489649+00:00",
+  "updated_utc": "2026-10-20T22:26:59.423323+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -19191,5 +19215,28 @@
       "sha256": "7246547682b699832fbd4551c74615cdbd4233bcce1c9b40ed0a37709835f888"
     },
     "source_unchanged": true
+  },
+  "gc_trade_source_122": {
+    "status": "ONE_SHOT_SOURCE_QUALIFICATION_READY",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "b87e7c5764c264b602b0e0ed880ba58f5d1a8b890d081e4faf436e94ae5204a3"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/run_focused_source_qualification.py",
+      "sha256": "4eac7a045dc39f6112607ae07fdc6838f580dd650ae1e83b7725fa8fd7191b85"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

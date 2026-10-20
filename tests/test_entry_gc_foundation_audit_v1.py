@@ -412,3 +412,190 @@ def test_event_book_published_projection_without_availability_preserves_actual_g
         with pytest.raises(RuntimeError,match='GC_EVENT_BOOK_SHARED_M1_CLOCK_OR_CONTRACT'):
             audit.read_event_numeric_book('in-memory-book',int(minutes[0]),int(minutes[-1]+MINUTE),
                 pd.Timestamp('2026-07-01T00:00:00Z').value,shifted)
+
+
+
+def _trade_numeric_fixture(timeframe, record_minutes=None, valid_minutes=None):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    size=_CLOCK_MINUTES[timeframe];start=pd.Timestamp('2024-05-01T22:00:00Z').value
+    minutes=start+np.arange(size,dtype=np.int64)*MINUTE;selected=np.zeros(size,np.int16)
+    records={0:[('B',1),('B',3),('A',2)],1:[('B',10),('A',4),('A',4),('N',5)],2:[('B',1000)]} if record_minutes is None else record_minutes
+    valid=(0,1) if valid_minutes is None else valid_minutes
+    trade={name:np.zeros(size,np.uint64) for name in audit.GC_TRADE_QUANTITIES}
+    stats={name:np.zeros(size,np.uint64) for name in audit.GC_TRADE_SIZE_STATISTICS}
+    trade['volume_valid']=np.zeros(size,bool);trade['signed_valid']=np.zeros(size,bool)
+    for row,items in records.items():
+        quantities=[v for _,v in items]
+        trade['volume'][row]=sum(quantities);trade['trades'][row]=len(items)
+        for code,side in (('B','buy'),('A','sell'),('N','unknown')):
+            trade[side][row]=sum(v for label,v in items if label==code)
+            stats[side+'_trade_records'][row]=sum(label==code for label,_ in items)
+        stats['size_sum_contracts'][row]=sum(quantities);stats['size_sum_squared_contracts2'][row]=sum(v*v for v in quantities)
+        stats['size_min_contracts'][row]=min(quantities);stats['size_max_contracts'][row]=max(quantities)
+    trade['volume_valid'][list(valid)]=True
+    trade['signed_valid']=trade['volume_valid'] & (trade['unknown']==0)
+    return minutes,selected,trade,stats
+
+
+@pytest.mark.parametrize('timeframe', tuple(_CLOCK_MINUTES))
+def test_trade_numeric_pooled_hand_values_and_actual_producers_all_five_tf(monkeypatch,timeframe):
+    import math
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_order_flow_v1 as owner
+    from gx1.contracts import gc_continuous_source_v1 as source
+    minutes,selected,trade,stats=_trade_numeric_fixture(timeframe)
+    with monkeypatch.context() as guard:
+        for name in ('timeframe_skeleton','relative_cvd','known_cumulative_contributions_v1','aggregate_observed_trade_size_v1'):
+            guard.setattr(owner,name,lambda *a,**k:(_ for _ in ()).throw(AssertionError('oracle calls producer')))
+        guard.setattr(source,'reset_segments',lambda *a,**k:(_ for _ in ()).throw(AssertionError('oracle delegates resets')))
+        known,cvd=audit.reference_trade_cumulatives(minutes,selected,trade,stats)
+        reference,bounds,units=audit.reference_trade_aggregates(minutes,selected,trade,stats,known,cvd,timeframe)
+    assert len(reference)==53
+    expected={'observed_volume':29,'observed_trades':7,'observed_buy_known':14,'observed_sell_known':10,
+        'observed_unknown':5,'observed_known_delta_contracts':4,'observed_known_aggressor_fraction':24/29,
+        'observed_avg_executed_trade_contracts':29/7,'observed_accepted_minutes':2,'observed_signed_minutes':1,
+        'observed_coverage_fraction':2/_CLOCK_MINUTES[timeframe],'observed_signed_minute_fraction':.5,
+        'observed_buy_trade_records':3,'observed_sell_trade_records':3,'observed_unknown_trade_records':1,
+        'observed_buy_avg_executed_trade_contracts':14/3,'observed_sell_avg_executed_trade_contracts':10/3,
+        'observed_unknown_avg_executed_trade_contracts':5,'observed_executed_trade_size_std_contracts':math.sqrt(356)/7,
+        'observed_executed_trade_size_min_contracts':1,'observed_executed_trade_size_max_contracts':10,
+        'observed_known_cumulative_buy_contracts':14,'observed_known_cumulative_sell_contracts':10,
+        'observed_known_cumulative_unknown_contracts':5,'observed_known_cumulative_volume_contracts':29,
+        'observed_known_cumulative_known_delta_contracts':4,'observed_known_cumulative_unknown_fraction':5/29,
+        'observed_known_cumulative_observed_minutes':2,'observed_last_minute_ns':float(minutes[1])}
+    for name,value in expected.items():assert abs(float(reference[name][0])-value)<=bounds[name][0],name
+    assert not reference['volume_valid'][0] and not reference['signed_valid'][0]
+    assert np.isnan(reference['volume'][0]) and np.isnan(reference['cvd_segment_delta_contracts'][0])
+    masks={'volume':trade['volume_valid'],'delta':trade['signed_valid'],'cvd':trade['signed_valid']}
+    actual,mapping=owner.timeframe_skeleton(minutes,selected,trade,masks,np.zeros((len(minutes),4),np.int64),timeframe,1)
+    owner.add_structure_and_cvd(actual,owner.relative_cvd(minutes,selected,masks,trade),mapping,minutes)
+    owner.add_known_cumulative_contributions_v1(actual,owner.known_cumulative_contributions_v1(minutes,selected,masks,trade),minutes)
+    actual.update(owner.aggregate_observed_trade_size_v1(minutes,selected,trade,masks,stats,timeframe))
+    actual={name:actual[name] for name in reference}
+    audit.compare_trade_reference(reference,actual,bounds,units)
+    actual['observed_buy_avg_executed_trade_contracts'][0]=6 # Incorrect mean of the two minute side means.
+    with pytest.raises(RuntimeError,match='GC_EVENT_BOOK_NUMERIC_VALUE'):
+        audit.compare_trade_reference(reference,actual,bounds,units)
+
+
+@pytest.mark.parametrize('timeframe', tuple(_CLOCK_MINUTES))
+def test_trade_numeric_unadmitted_roll_missing_clock_and_all_m1_parity(timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    minutes,selected,trade,stats=_trade_numeric_fixture(timeframe)
+    selected[-1]=1
+    known,cvd=audit.reference_trade_cumulatives(minutes,selected,trade,stats)
+    out=audit.reference_trade_aggregates(minutes,selected,trade,stats,known,cvd,timeframe)[0]
+    assert not out['observed_valid'][0] and out['observed_accepted_minutes'][0]==2
+    assert np.isnan(out['observed_volume'][0])
+    selected[-1]=0;take=np.arange(len(minutes))!=len(minutes)-1
+    mt,st=minutes[take],selected[take];tr={k:v[take] for k,v in trade.items()};ss={k:v[take] for k,v in stats.items()}
+    known,cvd=audit.reference_trade_cumulatives(mt,st,tr,ss)
+    assert not audit.reference_trade_aggregates(mt,st,tr,ss,known,cvd,timeframe)[0]['observed_valid'][0]
+    # The last raw trade is outside the accepted domain but must still reconcile.
+    stats['size_sum_contracts'][2]+=1
+    with pytest.raises(RuntimeError,match='GC_TRADE_REFERENCE_ALL_M1_RECORD_OR_QUANTITY_PARITY'):
+        audit.reference_trade_cumulatives(minutes,selected,trade,stats)
+
+
+def test_trade_numeric_large_almost_constant_sizes_exact_variance_and_absent_sides():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    minutes,selected,trade,stats=_trade_numeric_fixture('M5', {0:[('B',100000001),('B',100000002)]},(0,))
+    assert int(stats['size_sum_squared_contracts2'][0])==20000000600000005
+    known,cvd=audit.reference_trade_cumulatives(minutes,selected,trade,stats)
+    out=audit.reference_trade_aggregates(minutes,selected,trade,stats,known,cvd,'M5')[0]
+    assert out['observed_executed_trade_size_std_contracts'].tolist()==[.5]
+    assert out['observed_buy_avg_executed_trade_contracts'].tolist()==[100000001.5]
+    for side in ('sell','unknown'):
+        assert out['observed_'+side+'_trade_records'].tolist()==[0]
+        assert out['observed_'+side+'_trade_size_valid'].tolist()==[False]
+        assert np.isnan(out['observed_'+side+'_avg_executed_trade_contracts']).all()
+
+
+def test_trade_numeric_independent_ledgers_reset_utc_gap_invalid_and_roll():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    minutes,selected,trade,stats=_trade_numeric_fixture('M15',
+        {0:[('B',2)],1:[('N',3)],2:[('A',5)],3:[('B',1000)],4:[('B',7)],5:[('A',11)],6:[('B',13)],7:[('A',17)]},
+        (0,1,2,4,5,6,7))
+    take=np.arange(len(minutes))<8;trade={k:v[take] for k,v in trade.items()};stats={k:v[take] for k,v in stats.items()}
+    start=pd.Timestamp('2024-05-01T23:58:00Z').value
+    minutes=start+np.array([0,1,2,3,4,6,7,8],np.int64)*MINUTE;selected=np.array([0,0,0,0,0,0,1,1],np.int16)
+    known,cvd=audit.reference_trade_cumulatives(minutes,selected,trade,stats)
+    np.testing.assert_array_equal(known['volume_contracts'],[2,5,5,np.nan,7,11,13,30])
+    np.testing.assert_array_equal(known['known_delta_contracts'],[2,2,-5,np.nan,7,-11,13,-4])
+    np.testing.assert_array_equal(known['observed_minutes'],[1,2,1,np.nan,1,1,1,2])
+    np.testing.assert_array_equal(cvd['cvd_segment_delta_contracts'],[2,np.nan,-5,np.nan,7,-11,13,-4])
+    np.testing.assert_array_equal(cvd['cvd_segment_minutes'],[1,np.nan,1,np.nan,1,1,1,2])
+
+
+def test_trade_numeric_d1_cumulative_endpoint_resets_at_utc_not_tf_open():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    size=_CLOCK_MINUTES['D1']
+    minutes,selected,trade,stats=_trade_numeric_fixture('D1',{i:[('B',1)] for i in range(size)},tuple(range(size)))
+    known,cvd=audit.reference_trade_cumulatives(minutes,selected,trade,stats)
+    out=audit.reference_trade_aggregates(minutes,selected,trade,stats,known,cvd,'D1')[0]
+    assert out['volume_valid'][0] and out['signed_valid'][0] and out['observed_valid'][0]
+    assert out['volume'][0]==out['observed_volume'][0]==1440
+    assert out['cvd_segment_volume_contracts'][0]==out['cvd_segment_delta_contracts'][0]==1320
+    assert out['observed_known_cumulative_volume_contracts'][0]==1320
+    assert out['observed_known_cumulative_observed_minutes'][0]==1320
+
+
+def test_trade_numeric_actual_registry_211_and_all_tf_auxiliary_scope():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_native_context_v1 as owner,gc_order_flow_v1 as formulas
+    declared=audit.trade_numeric_active_fields()
+    assert [len(v) for v in declared.values()]==[46,46,46,39,34]
+    expected={name for fields in declared.values() for name in fields.values()};actual=set()
+    for tf,columns in declared.items():
+        tables={'TRADE_FEATURES_'+tf+'.parquet','retained::TRADE_FEATURES_'+tf+'.parquet'}
+        actual.update(field['name'] for field in owner.REGISTRY['fields'] if field['table'] in tables and field['column'] in columns)
+    assert len(expected)==211 and actual==expected and expected<=set(owner.contract()['value_fields'])
+    assert audit.GC_TRADE_SIZE_STATISTICS==formulas.TRUSTED_TRADE_SIZE_FIELDS_V1
+    assert audit.GC_TRADE_CVD_FIELDS==formulas.CVD_FIELDS
+    assert len(audit.trade_reference_units())==53
+
+
+def test_trade_numeric_real_tiny_projection_nine_and_ten_columns_without_core_availability(monkeypatch):
+    import pyarrow.parquet as pq
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    minutes,selected,trade,stats=_trade_numeric_fixture('M5')
+    core={'bar_start_ns':minutes,'contract_index':selected,**trade}
+    size={'bar_start_ns':minutes,'available_ns':minutes+MINUTE,'contract_index':selected,**stats}
+    readers={};open_parquet=pq.ParquetFile
+    for key,columns in [('core',core),('sizes',size)]:
+        stream=pa.BufferOutputStream();pq.write_table(pa.table(columns),stream)
+        readers[key]=open_parquet(pa.BufferReader(stream.getvalue()))
+    monkeypatch.setattr(audit.pq,'ParquetFile',lambda path:readers[str(path)])
+    args=({'m1_trade':{'path':'core'},'m1_trade_sizes':{'path':'sizes'}},int(minutes[0]),int(minutes[-1]+MINUTE),
+        pd.Timestamp('2026-07-01T00:00:00Z').value)
+    projected,projected_sizes,groups,size_groups=audit.read_trade_numeric_inputs(*args)
+    assert len(projected)==9 and 'available_ns' not in projected and len(projected_sizes)==7
+    assert groups==size_groups==[0]
+    # Each actual shared key and the size-only availability is checked independently.
+    for name in ('bar_start_ns','contract_index','available_ns'):
+        changed={key:value.copy() for key,value in size.items()};changed[name][0]+=1
+        stream=pa.BufferOutputStream();pq.write_table(pa.table(changed),stream)
+        readers['sizes']=open_parquet(pa.BufferReader(stream.getvalue()))
+        with pytest.raises(RuntimeError,match='GC_TRADE_REFERENCE_PUBLISHED_M1_JOIN_OR_AVAILABILITY'):
+            audit.read_trade_numeric_inputs(*args)
+
+
+@pytest.mark.parametrize('name', ['bar_start_ns','available_ns','contract_index'])
+def test_trade_numeric_exact_grid_rejects_one_ns_or_contract_change(name):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    minutes,selected,trade,stats=_trade_numeric_fixture('M5')
+    known,cvd=audit.reference_trade_cumulatives(minutes,selected,trade,stats)
+    reference,bounds,units=audit.reference_trade_aggregates(minutes,selected,trade,stats,known,cvd,'M5')
+    actual={key:value.copy() for key,value in reference.items()}
+    actual['contract_index']=actual['contract_index'].astype(np.int16)
+    actual[name][0]+=1
+    with pytest.raises(RuntimeError,match='GC_TRADE_REFERENCE_EXACT_TF_GRID'):
+        audit.compare_trade_reference(reference,actual,bounds,units)
+
+
+def test_trade_numeric_unadmitted_side_quantity_requires_own_record_before_mask():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    minutes,selected,trade,stats=_trade_numeric_fixture('M5')
+    stats['buy_trade_records'][2]=0;stats['sell_trade_records'][2]=1
+    with pytest.raises(RuntimeError,match='GC_TRADE_REFERENCE_M1_SIDE_VOLUME_WITHOUT_RECORDS'):
+        audit.reference_trade_cumulatives(minutes,selected,trade,stats)

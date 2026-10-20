@@ -31,6 +31,24 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
+## Gjeldende arbeid — trade-/størrelse-/kumulativfasit122
+
+122 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122`.
+Design/plan og kilde er klar i eksisterende auditeier/testfil; ingen produksjonsformler er endret.
+Omfanget er211aktive felt:34observed×5TF og41retained (12M5/M15/H1,5H4,ingenD1).
+Uregistrerte strikte alleTF-output kontrolleres separat som støtte, ikke nye aktive felt.
+Bare ni M1-tradekolonner og ti sizekolonner samt fem ferdigeTF-filer skal leses;
+sju filer253166440B komprimert, ingen råscan/OHLC/rebuild/fit/modell/Exit/TEST.
+CoreM1 har bare bar_start_ns/contract_index; bare sizefilen har available_ns.
+UNMASKEDsize avstemmes før egen publisert volumemaske. Pythonheltall bevarer
+volum/sidetall og nQ−S². Begge kumulative M1-stier beregnes én gang og resetter
+ved UTC-dato/roll/ugyldig forrige M1/hull. Strictsigned-CVD bruker TF-endepunkt;
+knowncum bruker siste observerte M1 og beholder unknown. Ingen22UTC-reset.
+183nativeproduksjonsroller/182filer er kontrollert uendret. Statisk opptelling er
+34beholdte+19nyecaser; faktisk antall/PASS er ennå umålt. Én kildejobb er åpnet
+etter peerreview; fysisk kjøring er IKKE startet eller kvalifisert.
+121/118og117gjenbrukes. Ingen ny nativeepoke er åpnet.
+
 ## Siste kontroll — 370 event-/bok-/ordrefelt bestod fysisk tallreferanse121
 
 121 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121`.
