@@ -1743,7 +1743,356 @@ def read_smc_numeric_inputs(inputs, start, end, seal):
     return values,groups
 
 
-def read_event_numeric_columns(path, columns, start, end, seal):
+GC_PROFILE_PLAN_ID = 'NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124'
+GC_PROFILE_POLICY_KEY = 'gc_profile_footprint_numeric_reference_124'
+GC_PROFILE_M1_COLUMNS = ('bar_start_ns','contract_index','volume_valid','signed_valid',
+    'volume','buy','sell','unknown','close_tick')
+GC_PROFILE_LADDER_COLUMNS = ('bar_start_ns','contract_index','price_tick','buy','sell','unknown','signed_valid')
+GC_PROFILE_HISTOGRAM_FIELDS = ('vwap_usd','poc_usd','q25_usd','median_usd','q75_usd','price_levels')
+GC_PROFILE_FOOTPRINT_FIELDS = ('max_level_delta_contracts','min_level_delta_contracts','buy_poc_usd','sell_poc_usd')
+GC_PROFILE_OBSERVED_FOOTPRINT = {'max_level_delta_contracts':'observed_known_max_level_delta_contracts',
+    'min_level_delta_contracts':'observed_known_min_level_delta_contracts','buy_poc_usd':'observed_buy_known_poc_usd',
+    'sell_poc_usd':'observed_sell_known_poc_usd'}
+GC_PROFILE_FAMILIES = ('rolling15','rolling60','anchored_segment','session_observed')
+GC_PROFILE_VALUES = ('vwap_usd','poc_usd','val_usd','vah_usd','volume_contracts')
+
+
+def profile_dynamic_units():
+    units={family+'_'+name:('contracts' if name=='volume_contracts' else 'USD')
+        for family in GC_PROFILE_FAMILIES for name in GC_PROFILE_VALUES}
+    units.update({family+'_valid':'binary' for family in GC_PROFILE_FAMILIES})
+    units.update(session_complete_valid='binary',session_accepted_minutes='minutes',session_expected_minutes='minutes')
+    units.update({family+'_'+level+'_'+suffix:'ticks' for family in GC_PROFILE_FAMILIES[:3]
+        for level in ('vwap','poc','val','vah') for suffix in ('distance_ticks','prior_level_response_ticks')})
+    return units
+
+
+def profile_reference_units():
+    units={'bar_start_ns':'utc_nanoseconds_metadata','available_ns':'utc_nanoseconds_metadata',
+        'contract_index':'contract_index_metadata'}
+    for prefix in ('','observed_'):
+        units.update({prefix+name:('price_levels' if name=='price_levels' else 'USD') for name in GC_PROFILE_HISTOGRAM_FIELDS})
+    units.update(observed_val_usd='USD',observed_vah_usd='USD')
+    for name in GC_PROFILE_FOOTPRINT_FIELDS:
+        unit='contracts' if name.endswith('_contracts') else 'USD'
+        units[name]=unit;units[GC_PROFILE_OBSERVED_FOOTPRINT[name]]=unit
+    units.update({'observed_profile_'+name:unit for name,unit in profile_dynamic_units().items()})
+    units.update(observed_profile_source_coverage_fraction='fraction',observed_profile_snapshot_age_minutes='minutes',
+        observed_profile_snapshot_available_ns='utc_nanoseconds_metadata')
+    return units
+
+
+def profile_numeric_active_fields():
+    fields={}
+    observed={name for name in profile_reference_units() if name.startswith('observed_')}
+    observed.remove('observed_profile_snapshot_available_ns')
+    for tf in ('M5','M15','H1','H4','D1'):
+        strict=set(GC_PROFILE_HISTOGRAM_FIELDS) if tf!='D1' else set()
+        if tf in ('M5','M15','H1'):strict.update(GC_PROFILE_FOOTPRINT_FIELDS)
+        fields[tf]={name:'gc_'+tf.lower()+'_'+name for name in sorted(observed|strict)}
+    fields['strict_m5']={name:'gc_book_'+name for name in profile_dynamic_units()}
+    return fields
+
+
+def reference_profile_anchors(starts):
+    """Independent IANA local-date arithmetic, distinct from producer pandas."""
+    from datetime import timedelta, time
+    from zoneinfo import ZoneInfo
+    zone=ZoneInfo('America/New_York');cache={};out=[]
+    for stamp in starts:
+        local=datetime.fromtimestamp(int(stamp)//NS,timezone.utc).astimezone(zone)
+        day=local.date()-timedelta(days=int(local.hour<18))
+        if day not in cache:cache[day]=int(datetime.combine(day,time(18),tzinfo=zone).timestamp())*NS
+        out.append(cache[day])
+    return np.asarray(out,np.int64)
+
+
+def _profile_summary(histogram):
+    if not histogram or any(not isinstance(price,int) or price<=0 or not isinstance(qty,int) or qty<=0
+            for price,qty in histogram.items()):raise RuntimeError('GC_PROFILE_REFERENCE_HISTOGRAM_DOMAIN')
+    prices=sorted(histogram);volume=sum(histogram.values())
+    if volume>2**53:raise RuntimeError('GC_PROFILE_REFERENCE_FLOAT_QUANTITY_BOUND')
+    center=max(range(len(prices)),key=lambda i:(histogram[prices[i]],-prices[i]));left=right=center
+    used=histogram[prices[center]]
+    while used*10<volume*7:
+        lower=(-1 if left==0 else histogram[prices[left-1]] if prices[left]-prices[left-1]==1 else 0)
+        upper=(-1 if right==len(prices)-1 else histogram[prices[right+1]] if prices[right+1]-prices[right]==1 else 0)
+        # Traversing empty ticks adds zero. If chosen, jump that empty run to
+        # its next occupied level; the opposing immediate neighbor is unchanged.
+        if lower>=upper:left-=1;used+=histogram[prices[left]]
+        else:right+=1;used+=histogram[prices[right]]
+    return {'vwap':(sum(price*histogram[price] for price in prices),volume),
+        'poc':(prices[center],1),'val':(prices[left],1),'vah':(prices[right],1),'volume':volume}
+
+
+def _profile_rational_price(numerator, denominator, tick_size, price_scale):
+    from fractions import Fraction
+    value=float(Fraction(int(numerator)*int(tick_size),int(denominator)*int(price_scale)))
+    unit=np.finfo(np.float64).eps/2
+    # Producer VWAP: integer division, tick-scale division, product; reference
+    # rational conversion adds one rounding. Covers the fewer-op level prices.
+    return value,4*unit*abs(value)/(1-4*unit)/(1-unit)
+
+
+def reference_profile_histogram(histogram, tick_size, price_scale):
+    """Python-int side totals, lower-crossing quantiles and contiguous 70% VA."""
+    if (not histogram or any(not isinstance(price,int) or price<=0 or len(qty)!=3
+            or any(not isinstance(v,int) or v<0 for v in qty) or sum(qty)<=0 for price,qty in histogram.items())):
+        raise RuntimeError('GC_PROFILE_REFERENCE_HISTOGRAM_DOMAIN')
+    prices=sorted(histogram);total={price:sum(histogram[price]) for price in prices};summary=_profile_summary(total)
+    values={};bounds={}
+    for name in ('vwap','poc','val','vah'):
+        values[name+'_usd'],bounds[name+'_usd']=_profile_rational_price(*summary[name],tick_size,price_scale)
+    values.update(volume_contracts=summary['volume'],price_levels=len(prices))
+    cumulative=0;crossings={};thresholds={'q25_usd':(summary['volume']+3)//4,
+        'median_usd':(summary['volume']+1)//2,'q75_usd':(summary['volume']*3+3)//4}
+    for price in prices:
+        cumulative+=total[price]
+        for name,threshold in thresholds.items():
+            if name not in crossings and cumulative>=threshold:crossings[name]=price
+    for name,price in crossings.items():values[name],bounds[name]=_profile_rational_price(price,1,tick_size,price_scale)
+    deltas=[histogram[price][0]-histogram[price][1] for price in prices]
+    values.update(max_level_delta_contracts=max(deltas),min_level_delta_contracts=min(deltas))
+    for side,index in (('buy',0),('sell',1)):
+        winner=max(prices,key=lambda price:(histogram[price][index],-price))
+        name=side+'_poc_usd'
+        values[name],bounds[name]=(_profile_rational_price(winner,1,tick_size,price_scale)
+            if histogram[winner][index] else (np.nan,0.))
+    for name in values:bounds.setdefault(name,0.)
+    return values,bounds
+
+
+def _profile_distance(close_tick, level, level_value, level_error, tick_size, price_scale):
+    from fractions import Fraction
+    reference=float(Fraction(int(close_tick))-Fraction(*level))
+    close,close_error=smc_price_reference(close_tick,tick_size,price_scale)
+    tick,tick_error=smc_price_reference(1,tick_size,price_scale)
+    unit=np.finfo(np.float64).eps/2
+    numerator=close-level_value
+    numerator_error=close_error+level_error+2*unit*(abs(close)+abs(level_value)+close_error+level_error)/(1-unit)
+    rounded,bound=_event_book_ratio(numerator,tick,numerator_error,tick_error)
+    # Triangle bound between the rational reference and independently rounded
+    # operands; this is deterministic arithmetic, never a fitted tolerance.
+    return reference,bound+abs(rounded-reference)
+
+
+def reference_profile_step(state, start, histogram, contract, close_tick, anchor, accepted_minutes=5,
+        *, tick_size, price_scale, valid=True):
+    previous=state.get('previous');reset=previous is None or contract!=previous[1] or anchor!=previous[2]
+    if previous is not None and contract==previous[1] and start<=previous[0]:
+        raise RuntimeError('GC_PROFILE_REFERENCE_CONTRACT_STREAM_ORDER')
+    if reset:state.update(session={},accepted=0)
+    if reset or previous is None or not previous[3] or start-previous[0]!=5*MINUTE:state.update(rolling=[],segment={})
+    units=profile_dynamic_units();values={name:False if unit=='binary' else np.nan for name,unit in units.items()}
+    bounds={name:0. for name in values}
+    values.update(session_accepted_minutes=0,session_expected_minutes=(start+5*MINUTE-anchor)//MINUTE)
+    levels={}
+    if not valid:state.update(rolling=[],segment={})
+    else:
+        if not histogram or not 0<accepted_minutes<=5:raise RuntimeError('GC_PROFILE_REFERENCE_VALID_WITHOUT_TRADES')
+        state['rolling'].append(dict(histogram));state['rolling']=state['rolling'][-12:]
+        for target in (state['segment'],state['session']):
+            for price,qty in histogram.items():target[price]=target.get(price,0)+qty
+        state['accepted']+=accepted_minutes
+        families={'anchored_segment':state['segment'],'session_observed':state['session']}
+        for length in (3,12):
+            if len(state['rolling'])>=length:
+                combined={}
+                for hist in state['rolling'][-length:]:
+                    for price,qty in hist.items():combined[price]=combined.get(price,0)+qty
+                families['rolling'+str(length*5)]=combined
+        for family,hist in families.items():
+            summary=_profile_summary(hist);values[family+'_valid']=True;values[family+'_volume_contracts']=summary['volume']
+            for level in ('vwap','poc','val','vah'):
+                key=family+'_'+level;levels[key]=summary[level]
+                values[key+'_usd'],bounds[key+'_usd']=_profile_rational_price(*summary[level],tick_size,price_scale)
+        values['session_accepted_minutes']=state['accepted']
+        values['session_complete_valid']=state['accepted']==values['session_expected_minutes']
+        same=previous is not None and start-previous[0]==5*MINUTE and contract==previous[1] and previous[3]
+        for family in GC_PROFILE_FAMILIES[:3]:
+            for level in ('vwap','poc','val','vah'):
+                key=family+'_'+level
+                if key in levels:
+                    values[key+'_distance_ticks'],bounds[key+'_distance_ticks']=_profile_distance(
+                        close_tick,levels[key],values[key+'_usd'],bounds[key+'_usd'],tick_size,price_scale)
+                if same and key in previous[4]:
+                    values[key+'_prior_level_response_ticks'],bounds[key+'_prior_level_response_ticks']=_profile_distance(
+                        close_tick,previous[4][key],previous[5][key+'_usd'],previous[6][key+'_usd'],tick_size,price_scale)
+    state['previous']=(int(start),int(contract),int(anchor),bool(valid),levels,values,bounds)
+    return values,bounds
+
+
+def validate_profile_m1_schema(m1):
+    if set(m1)!=set(GC_PROFILE_M1_COLUMNS):raise RuntimeError('GC_PROFILE_REFERENCE_M1_SCHEMA')
+    minutes=np.asarray(m1['bar_start_ns']);shape=minutes.shape
+    if (minutes.ndim!=1 or not len(minutes) or minutes.dtype!=np.dtype('int64') or np.any(np.diff(minutes)!=MINUTE)
+            or any(np.asarray(value).shape!=shape for value in m1.values())
+            or not np.issubdtype(np.asarray(m1['contract_index']).dtype,np.integer)
+            or any(np.asarray(m1[name]).dtype.kind!='b' for name in ('volume_valid','signed_valid'))
+            or any(np.asarray(m1[name]).dtype!=np.dtype('uint64') for name in ('volume','buy','sell','unknown'))
+            or not np.issubdtype(np.asarray(m1['close_tick']).dtype,np.integer)):
+        raise RuntimeError('GC_PROFILE_REFERENCE_M1_SCHEMA')
+    admitted=m1['volume_valid']
+    if (np.any(m1['signed_valid'] & ~admitted) or np.any(m1['signed_valid'] & (m1['unknown']!=0))
+            or np.any(m1['contract_index'][admitted]<0)
+            or np.any(m1['close_tick'][admitted]<=0) or np.any(m1['close_tick'][admitted]>2**53)):
+        raise RuntimeError('GC_PROFILE_REFERENCE_M1_SCHEMA')
+
+
+def reference_profile_grid(m1, timeframe):
+    from gx1.features.htf_features import MULTI_TF_SHIFT
+    from gx1.time.session_detector import TRADING_SESSION_BOUNDARY_OFFSET
+    validate_profile_m1_schema(m1)
+    minutes=m1['bar_start_ns'];duration=MULTI_TF_SHIFT[timeframe].value;offset=TRADING_SESSION_BOUNDARY_OFFSET.value%duration
+    labels=((minutes-offset)//duration)*duration+offset;stamps=np.unique(labels)
+    starts=np.searchsorted(minutes,stamps);stops=np.searchsorted(minutes,stamps+duration);n=len(stamps)
+    grid={'bar_start_ns':stamps,'available_ns':stamps+duration,'contract_index':np.zeros(n,np.int64)}
+    grid.update({name:np.zeros(n,bool) for name in ('volume_valid','signed_valid','observed_valid')})
+    grid.update({name:np.zeros(n,np.int64) for name in ('accepted_minutes','expected_minutes','observed_volume',
+        'buy','sell','unknown','strict_close_tick','observed_close_tick')})
+    for row,(stamp,begin,end) in enumerate(zip(stamps,starts,stops)):
+        contracts=m1['contract_index'][begin:end];admitted=m1['volume_valid'][begin:end]
+        same=bool(np.all(contracts>=0) and np.all(contracts==contracts[0]))
+        full=(end-begin==duration//MINUTE and minutes[begin]==stamp and minutes[end-1]==stamp+duration-MINUTE)
+        count=int(admitted.sum());grid['contract_index'][row]=contracts[0]
+        grid['volume_valid'][row]=bool(full and same and admitted.all())
+        grid['signed_valid'][row]=bool(grid['volume_valid'][row] and m1['signed_valid'][begin:end].all())
+        grid['observed_valid'][row]=bool(full and same and count)
+        grid['accepted_minutes'][row]=count;grid['expected_minutes'][row]=duration//MINUTE
+        for side in ('buy','sell','unknown'):
+            qty=sum(int(v) for v in m1[side][begin:end][admitted])
+            if qty>2**53:raise RuntimeError('GC_PROFILE_REFERENCE_FLOAT_QUANTITY_BOUND')
+            grid[side][row]=qty
+        grid['observed_volume'][row]=sum(int(grid[side][row]) for side in ('buy','sell','unknown'))
+        if grid['observed_volume'][row]>2**53:raise RuntimeError('GC_PROFILE_REFERENCE_FLOAT_QUANTITY_BOUND')
+        grid['strict_close_tick'][row]=m1['close_tick'][end-1]
+        if count:grid['observed_close_tick'][row]=m1['close_tick'][begin+np.flatnonzero(admitted)[-1]]
+    return grid
+
+
+def reference_profile_ladder(m1, batches, tick_size, price_scale):
+    """One published ladder pass; five open TF maps, two M5 profile states.
+
+    No all-M1 histogram collection is retained. TF outputs are caller-owned
+    arrays, not a second source scan. Contract-major rows remain in stream order.
+    """
+    validate_profile_m1_schema(m1)
+    tfs=('M5','M15','H1','H4','D1');grids={tf:reference_profile_grid(m1,tf) for tf in tfs}
+    units=profile_reference_units();dynamic_units=profile_dynamic_units();references={};bounds={}
+    for tf,grid in grids.items():
+        n=len(grid['bar_start_ns']);references[tf]={name:np.full(n,False if unit=='binary' else np.nan)
+            for name,unit in units.items()};bounds[tf]={name:np.zeros(n) for name in units}
+        for name in ('bar_start_ns','available_ns','contract_index'):references[tf][name]=grid[name].copy()
+    m5=grids['M5'];anchors=reference_profile_anchors(m5['bar_start_ns']);n=len(anchors)
+    snapshots={mode:{name:np.full(n,False if unit=='binary' else np.nan) for name,unit in dynamic_units.items()}
+        for mode in ('observed','strict')}
+    snapshot_bounds={mode:{name:np.zeros(n) for name in dynamic_units} for mode in snapshots}
+    for values in snapshots.values():
+        values['session_accepted_minutes'][:]=0
+        values['session_expected_minutes'][:]=(m5['available_ns']-anchors)//MINUTE
+    states={tf:None for tf in tfs};emitted={tf:np.zeros(len(grid['bar_start_ns']),bool) for tf,grid in grids.items()}
+    dynamic_states={'observed':{},'strict':{}};seen=np.zeros(len(m1['bar_start_ns']),bool)
+    current=None;minute_hist={};minute_sides=[0,0,0];rows_seen=0;maximum_levels=0
+    def flush_tf(tf):
+        state=states[tf]
+        if state is None:return
+        row,hist=state;grid=grids[tf]
+        if emitted[tf][row]:raise RuntimeError('GC_PROFILE_REFERENCE_TF_REVISIT')
+        values,limits=reference_profile_histogram(hist,tick_size,price_scale)
+        if values['volume_contracts']!=int(grid['observed_volume'][row]):
+            raise RuntimeError('GC_PROFILE_REFERENCE_TF_VOLUME_CONSERVATION')
+        for index,side in enumerate(('buy','sell','unknown')):
+            if sum(qty[index] for qty in hist.values())!=int(grid[side][row]):
+                raise RuntimeError('GC_PROFILE_REFERENCE_TF_SIDE_CONSERVATION')
+        target=references[tf];errors=bounds[tf]
+        if grid['observed_valid'][row]:
+            for name in GC_PROFILE_HISTOGRAM_FIELDS+('val_usd','vah_usd'):
+                target['observed_'+name][row]=values[name];errors['observed_'+name][row]=limits[name]
+            for name,destination in GC_PROFILE_OBSERVED_FOOTPRINT.items():target[destination][row]=values[name];errors[destination][row]=limits[name]
+        if grid['volume_valid'][row]:
+            for name in GC_PROFILE_HISTOGRAM_FIELDS:target[name][row]=values[name];errors[name][row]=limits[name]
+            if grid['signed_valid'][row]:
+                for name in GC_PROFILE_FOOTPRINT_FIELDS:target[name][row]=values[name];errors[name][row]=limits[name]
+        if tf=='M5':
+            total={price:sum(qty) for price,qty in hist.items()}
+            for mode,valid,close,accepted in (
+                    ('observed',grid['observed_valid'][row],grid['observed_close_tick'][row],grid['accepted_minutes'][row]),
+                    ('strict',grid['volume_valid'][row],grid['strict_close_tick'][row],5)):
+                if valid:
+                    result,error=reference_profile_step(dynamic_states[mode],int(grid['bar_start_ns'][row]),total,
+                        int(grid['contract_index'][row]),int(close),int(anchors[row]),int(accepted),
+                        tick_size=tick_size,price_scale=price_scale)
+                    for name,value in result.items():snapshots[mode][name][row]=value;snapshot_bounds[mode][name][row]=error[name]
+        emitted[tf][row]=True
+    def flush_minute():
+        nonlocal maximum_levels
+        if current is None:return
+        if seen[current]:raise RuntimeError('GC_PROFILE_REFERENCE_LADDER_MINUTE_REVISIT')
+        if (any(minute_sides[index]!=int(m1[side][current]) for index,side in enumerate(('buy','sell','unknown')))
+                or sum(minute_sides)!=int(m1['volume'][current])):
+            raise RuntimeError('GC_PROFILE_REFERENCE_LADDER_SIDE_CONSERVATION')
+        seen[current]=True;maximum_levels=max(maximum_levels,len(minute_hist))
+        for tf,grid in grids.items():
+            duration=int(grid['available_ns'][0]-grid['bar_start_ns'][0])
+            row=(int(m1['bar_start_ns'][current])-int(grid['bar_start_ns'][0]))//duration
+            if not grid['observed_valid'][row] and not grid['volume_valid'][row]:continue
+            if states[tf] is None or states[tf][0]!=row:flush_tf(tf);states[tf]=(row,{})
+            target=states[tf][1]
+            for price,qty in minute_hist.items():
+                old=target.get(price,(0,0,0));target[price]=tuple(old[j]+qty[j] for j in range(3))
+    for batch in batches:
+        if set(batch)!=set(GC_PROFILE_LADDER_COLUMNS):raise RuntimeError('GC_PROFILE_REFERENCE_LADDER_SCHEMA')
+        arrays={name:np.asarray(value) for name,value in batch.items()};clock=arrays['bar_start_ns'];shape=clock.shape
+        if (clock.ndim!=1 or clock.dtype!=np.dtype('int64') or any(value.shape!=shape for value in arrays.values())
+                or arrays['price_tick'].dtype!=np.dtype('int64') or not np.issubdtype(arrays['contract_index'].dtype,np.integer)
+                or arrays['signed_valid'].dtype.kind!='b'
+                or any(arrays[name].dtype!=np.dtype('uint64') for name in ('buy','sell','unknown'))):
+            raise RuntimeError('GC_PROFILE_REFERENCE_LADDER_SCHEMA')
+        indices=np.searchsorted(m1['bar_start_ns'],clock);clipped=np.minimum(indices,len(seen)-1)
+        if (np.any(indices>=len(seen)) or not np.array_equal(m1['bar_start_ns'][clipped],clock)
+                or not np.array_equal(m1['contract_index'][clipped],arrays['contract_index'])
+                or not m1['volume_valid'][clipped].all()
+                or not np.array_equal(m1['signed_valid'][clipped],arrays['signed_valid'])
+                or np.any(arrays['price_tick']<=0) or np.any(arrays['price_tick']>2**53)):
+            raise RuntimeError('GC_PROFILE_REFERENCE_LADDER_M1_MAPPING')
+        for i,row in enumerate(indices):
+            row=int(row)
+            if current!=row:flush_minute();current=row;minute_hist={};minute_sides=[0,0,0]
+            price=int(arrays['price_tick'][i])
+            if price in minute_hist:raise RuntimeError('GC_PROFILE_REFERENCE_LADDER_DUPLICATE_LEVEL')
+            qty=tuple(int(arrays[side][i]) for side in ('buy','sell','unknown'))
+            if sum(qty)<=0:raise RuntimeError('GC_PROFILE_REFERENCE_HISTOGRAM_DOMAIN')
+            minute_hist[price]=qty
+            for side in range(3):minute_sides[side]+=qty[side]
+        rows_seen+=len(clock)
+    flush_minute()
+    for tf in tfs:
+        flush_tf(tf)
+        if not np.array_equal(emitted[tf],grids[tf]['observed_valid']):
+            raise RuntimeError('GC_PROFILE_REFERENCE_TF_HISTOGRAM_COVERAGE')
+    if not np.array_equal(seen,m1['volume_valid']):raise RuntimeError('GC_PROFILE_REFERENCE_LADDER_MINUTE_COVERAGE')
+    # Exact closed-M5 projection; missing snapshots are never backsearched.
+    for tf,grid in grids.items():
+        position=np.searchsorted(m5['available_ns'],grid['available_ns'],side='right')-1
+        clip=np.clip(position,0,n-1);match=(position>=0)&(m5['available_ns'][clip]==grid['available_ns'])
+        for name,values in snapshots['observed'].items():
+            destination='observed_profile_'+name
+            references[tf][destination]=match & values[clip].astype(bool) if dynamic_units[name]=='binary' else np.where(match,values[clip],np.nan)
+            bounds[tf][destination]=snapshot_bounds['observed'][name][clip]
+        references[tf]['observed_profile_source_coverage_fraction']=np.where(match,m5['accepted_minutes'][clip]/5,np.nan)
+        # Division by5 has one rounding; both producer/reference share exact ints.
+        bounds[tf]['observed_profile_source_coverage_fraction']=np.finfo(np.float64).eps/2*np.abs(references[tf]['observed_profile_source_coverage_fraction'])
+        references[tf]['observed_profile_snapshot_available_ns']=np.where(match,m5['available_ns'][clip],np.nan)
+        references[tf]['observed_profile_snapshot_age_minutes']=np.where(match,0.,np.nan)
+    references['strict_m5']={name:m5[name].copy() for name in ('bar_start_ns','available_ns','contract_index')}
+    references['strict_m5'].update(snapshots['strict']);bounds['strict_m5']={name:np.zeros(n) for name in references['strict_m5']}
+    bounds['strict_m5'].update(snapshot_bounds['strict'])
+    return references,bounds,{'ladder_rows':rows_seen,'admitted_minutes':int(m1['volume_valid'].sum()),
+        'seen_minutes':int(seen.sum()),'ladder_passes':1,'maximum_single_minute_levels':maximum_levels,
+        'open_timeframe_histograms':5,'dynamic_m5_domains':2,'all_m1_histograms_retained':False}
+
+
+def event_numeric_row_groups(path, start, end, seal):
     """Inspect all selected footer boundaries before decoding any payload."""
     parquet = pq.ParquetFile(path); clock = parquet.schema_arrow.names.index('bar_start_ns')
     groups = []
@@ -1759,6 +2108,11 @@ def read_event_numeric_columns(path, columns, start, end, seal):
         groups.append(row)
     if not groups:
         raise RuntimeError('GC_EVENT_NUMERIC_NO_SAFE_ROW_GROUPS')
+    return parquet,groups
+
+
+def read_event_numeric_columns(path, columns, start, end, seal):
+    parquet,groups=event_numeric_row_groups(path,start,end,seal)
     table = parquet.read_row_groups(groups, columns=columns, use_threads=False)
     times = table['bar_start_ns'].to_numpy()
     if np.any(times >= seal):
@@ -1766,6 +2120,26 @@ def read_event_numeric_columns(path, columns, start, end, seal):
     take = (times >= start) & (times < end)
     values = {name: table[name].to_numpy()[take] for name in columns}
     return values, groups
+
+
+def read_profile_numeric_inputs(inputs, start, end, seal):
+    m1,groups=read_event_numeric_columns(Path(inputs['m1_profile']['path']),list(GC_PROFILE_M1_COLUMNS),start,end,seal)
+    validate_profile_m1_schema(m1)
+    return m1,groups
+
+
+def iter_profile_numeric_ladder(path, start, end, seal):
+    parquet,groups=event_numeric_row_groups(path,start,end,seal)
+    if set(parquet.schema_arrow.names)!=set(GC_PROFILE_LADDER_COLUMNS):
+        raise RuntimeError('GC_PROFILE_REFERENCE_LADDER_SCHEMA')
+    def stream():
+        for batch in parquet.iter_batches(batch_size=65536,row_groups=groups,columns=list(GC_PROFILE_LADDER_COLUMNS),use_threads=False):
+            values={name:batch.column(batch.schema.get_field_index(name)).to_numpy(zero_copy_only=False) for name in GC_PROFILE_LADDER_COLUMNS}
+            clock=values['bar_start_ns']
+            if np.any(clock>=seal):raise RuntimeError('GC_PROFILE_REFERENCE_LADDER_TEST_CLOCK')
+            take=(clock>=start)&(clock<end)
+            yield {name:value[take] for name,value in values.items()}
+    return stream(),groups
 
 
 def read_event_numeric_book(path, start, end, seal, events):
@@ -1793,12 +2167,12 @@ def read_trade_numeric_inputs(inputs, start, end, seal):
     return trade,{name:sizes[name] for name in GC_TRADE_SIZE_STATISTICS},groups,size_groups
 
 
-def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=False):
-    plan_id = GC_SMC_PLAN_ID if smc else GC_TRADE_PLAN_ID if trade else GC_EVENT_BOOK_PLAN_ID if event_book else GC_EVENT_NUMERIC_PLAN_ID
-    policy_key = GC_SMC_POLICY_KEY if smc else GC_TRADE_POLICY_KEY if trade else GC_EVENT_BOOK_POLICY_KEY if event_book else GC_EVENT_NUMERIC_POLICY_KEY
+def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=False, profile=False):
+    plan_id = GC_PROFILE_PLAN_ID if profile else GC_SMC_PLAN_ID if smc else GC_TRADE_PLAN_ID if trade else GC_EVENT_BOOK_PLAN_ID if event_book else GC_EVENT_NUMERIC_PLAN_ID
+    policy_key = GC_PROFILE_POLICY_KEY if profile else GC_SMC_POLICY_KEY if smc else GC_TRADE_POLICY_KEY if trade else GC_EVENT_BOOK_POLICY_KEY if event_book else GC_EVENT_NUMERIC_POLICY_KEY
     root = Path('/home/andre2/GX1_RUNS')/plan_id
-    prefix = 'GC_SMC_NUMERIC' if smc else 'GC_TRADE_NUMERIC' if trade else 'GC_EVENT_BOOK_NUMERIC' if event_book else 'GC_EVENT_NUMERIC'
-    schema = 'gx1_gc_smc_numeric_audit_plan_v1' if smc else 'gx1_gc_trade_numeric_audit_plan_v1' if trade else 'gx1_gc_event_book_numeric_audit_plan_v1' if event_book else 'gx1_gc_event_numeric_audit_plan_v1'
+    prefix = 'GC_PROFILE_NUMERIC' if profile else 'GC_SMC_NUMERIC' if smc else 'GC_TRADE_NUMERIC' if trade else 'GC_EVENT_BOOK_NUMERIC' if event_book else 'GC_EVENT_NUMERIC'
+    schema = 'gx1_gc_profile_numeric_audit_plan_v1' if profile else 'gx1_gc_smc_numeric_audit_plan_v1' if smc else 'gx1_gc_trade_numeric_audit_plan_v1' if trade else 'gx1_gc_event_book_numeric_audit_plan_v1' if event_book else 'gx1_gc_event_numeric_audit_plan_v1'
     if binding_path != root/(prefix+'_EXECUTION_BINDING.json'):
         raise RuntimeError('GC_EVENT_NUMERIC_BINDING_PATH')
     io.require_regular_file(binding_path, 'GC_EVENT_NUMERIC_BINDING')
@@ -1828,7 +2202,7 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=Fal
     start, end, seal = [t.value for t in stamps]
     from gx1.contracts.gc_source_disposition_v1 import STUDY_START_NS, WINDOW_END_NS
     if (not STUDY_START_NS <= start < end <= seal or seal != WINDOW_END_NS
-            or ((trade or smc) and start != STUDY_START_NS)):
+            or ((trade or smc or profile) and start != STUDY_START_NS)):
         raise RuntimeError('GC_EVENT_NUMERIC_SCAN_BOUNDARY')
     publication = binding_read(plan['publication_terminal'])
     source_root = Path(plan['publication_terminal']['path']).parent
@@ -1838,10 +2212,11 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=Fal
             or publication['source_unchanged'] is not True or publication['test_data_used'] is not False):
         raise RuntimeError('GC_EVENT_NUMERIC_PUBLICATION')
     inputs = plan['inputs']; tfs = ('M5','M15','H1','H4','D1')
-    keys = {'m1_smc','roll_schedule','timeframes','strict_m5_price'} if smc else {'m1_trade','m1_trade_sizes','timeframes'} if trade else {'m1_events','m1_book','strict_m5_book','timeframes'} if event_book else {'m1_events','timeframes'}
+    keys = {'m1_profile','m1_ladder','roll_schedule','timeframes','strict_m5_profile'} if profile else {'m1_smc','roll_schedule','timeframes','strict_m5_price'} if smc else {'m1_trade','m1_trade_sizes','timeframes'} if trade else {'m1_events','m1_book','strict_m5_book','timeframes'} if event_book else {'m1_events','timeframes'}
     if set(inputs) != keys or set(inputs['timeframes']) != set(tfs):
         raise RuntimeError('GC_EVENT_NUMERIC_INPUT_INVENTORY')
-    files = {'M1_GC_INPUTS.parquet':inputs['m1_smc'],'ROLL_SCHEDULE.json':inputs['roll_schedule'],
+    files = {'M1_GC_INPUTS.parquet':inputs['m1_profile'],'FOOTPRINT_M1_LEVELS.parquet':inputs['m1_ladder'],
+        'ROLL_SCHEDULE.json':inputs['roll_schedule'],'M5_GC_FEATURES.parquet':inputs['strict_m5_profile']} if profile else {'M1_GC_INPUTS.parquet':inputs['m1_smc'],'ROLL_SCHEDULE.json':inputs['roll_schedule'],
         'M5_GC_FEATURES.parquet':inputs['strict_m5_price']} if smc else {'M1_GC_INPUTS.parquet':inputs['m1_trade'],
         'M1_TRADE_SIZE_STATISTICS_UNMASKED.parquet':inputs['m1_trade_sizes']} if trade else {'M1_EVENT_DIAGNOSTICS.parquet': inputs['m1_events']}
     files.update({'TRADE_FEATURES_'+tf+'.parquet': inputs['timeframes'][tf] for tf in tfs})
@@ -1860,8 +2235,9 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=Fal
     common = ['bar_start_ns','available_ns','contract_index']
     source_columns = common + ['qualified_final_event_count'] + [d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns')]
     if event_book:source_columns=common+list(GC_EVENT_REFERENCE_REDUCERS)+['qualified_covered_ns']
-    if smc:
-        m1,m1_groups=read_smc_numeric_inputs(inputs,start,end,seal)
+    if profile or smc:
+        m1,m1_groups=(read_profile_numeric_inputs(inputs,start,end,seal) if profile
+            else read_smc_numeric_inputs(inputs,start,end,seal))
         stamps=m1['bar_start_ns']
         if (stamps.dtype!=np.dtype('int64') or not len(stamps) or stamps[0]!=start or stamps[-1]!=end-MINUTE
                 or len(stamps)!=(end-start)//MINUTE or np.any(np.diff(stamps)!=MINUTE)):
@@ -1874,11 +2250,23 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=Fal
                 or not np.issubdtype(m1['contract_index'].dtype,np.integer)
                 or np.any(m1['contract_index']>=len(symbols))):
             raise RuntimeError('GC_SMC_REFERENCE_ROLL_METADATA')
-        tick_size=next(iter(ticks));tolerance=plan['pivot_comparison_tolerance_usd']
-        if tolerance!=1e-12:raise RuntimeError('GC_SMC_REFERENCE_OWNER_PIVOT_TOLERANCE_CHANGED')
-        accepted=np.asarray(m1['volume_valid'],bool)
-        maximum=max(int(np.max(np.abs(m1[name][accepted]),initial=0)) for name in GC_SMC_M1_COLUMNS[4:])
-        price_order=validate_smc_tick_order(maximum,tick_size,PRICE_SCALE,tolerance)
+        tick_size=next(iter(ticks))
+        if not isinstance(tick_size,int) or tick_size<=0:raise RuntimeError('GC_PROFILE_REFERENCE_TICK_METADATA')
+        if profile:
+            inventory=binding_read(plan['pending_field_inventory']);declared=profile_numeric_active_fields()
+            expected={name for fields in declared.values() for name in fields.values()}
+            pending=[item['name'] for group in ('dynamic_profiles','native_timeframe_histogram','footprint')
+                for item in inventory['groups'][group]]
+            if len(expected)!=412 or len(pending)!=412 or set(pending)!=expected:
+                raise RuntimeError('GC_PROFILE_REFERENCE_PENDING_412_INVENTORY')
+            batches,ladder_groups=iter_profile_numeric_ladder(Path(inputs['m1_ladder']['path']),start,end,seal)
+            profile_refs,profile_bounds,profile_report=reference_profile_ladder(m1,batches,tick_size,PRICE_SCALE)
+        else:
+            tolerance=plan['pivot_comparison_tolerance_usd']
+            if tolerance!=1e-12:raise RuntimeError('GC_SMC_REFERENCE_OWNER_PIVOT_TOLERANCE_CHANGED')
+            accepted=np.asarray(m1['volume_valid'],bool)
+            maximum=max(int(np.max(np.abs(m1[name][accepted]),initial=0)) for name in GC_SMC_M1_COLUMNS[4:])
+            price_order=validate_smc_tick_order(maximum,tick_size,PRICE_SCALE,tolerance)
     elif trade:
         m1,trade_stats,m1_groups,trade_size_groups=read_trade_numeric_inputs(inputs,start,end,seal)
         stamps=m1['bar_start_ns']
@@ -1894,7 +2282,9 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=Fal
     if event_book:
         book,book_groups=read_event_numeric_book(Path(inputs['m1_book']['path']),start,end,seal,m1)
     for tf in tfs:
-        if smc:
+        if profile:
+            reference,bounds,units=profile_refs.pop(tf),profile_bounds.pop(tf),profile_reference_units()
+        elif smc:
             reference,bounds,units=reference_smc_aggregates(m1,tf,tick_size,PRICE_SCALE)
         elif trade:
             reference,bounds,units=reference_trade_aggregates(
@@ -1908,10 +2298,25 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=Fal
         reference = {name: value[keep] for name,value in reference.items()}
         columns = common[:2] + ['observed_event_valid','observed_event_accepted_minutes'] + [
             'observed_event_'+d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns','_mean_ns','_valid')]
-        if event_book or trade or smc:columns=list(reference)
+        if event_book or trade or smc or profile:columns=list(reference)
         actual, groups = read_event_numeric_columns(Path(inputs['timeframes'][tf]['path']),columns,start,end,seal)
         keep = actual['available_ns'] <= end; actual = {name:value[keep] for name,value in actual.items()}
-        if smc:
+        if profile:
+            bounds={name:value[reference_keep] for name,value in bounds.items()}
+            reports[tf]={'fields':compare_trade_reference(reference,actual,bounds,units)}
+            for name,item in reports[tf]['fields'].items():
+                if units[name]=='binary':item['positive_reference_values']=int(np.count_nonzero(reference[name]==1))
+            if tf=='M5':
+                values=profile_refs.pop('strict_m5');limits=profile_bounds.pop('strict_m5')
+                rows=(values['bar_start_ns']>=start)&(values['available_ns']<=end)
+                values={name:value[rows] for name,value in values.items()};limits={name:value[rows] for name,value in limits.items()}
+                strict_units={name:profile_reference_units()[name] for name in common};strict_units.update(profile_dynamic_units())
+                old,old_groups=read_event_numeric_columns(Path(inputs['strict_m5_profile']['path']),list(values),start,end,seal)
+                take=old['available_ns']<=end;old={name:value[take] for name,value in old.items()}
+                strict_report={'fields':compare_trade_reference(values,old,limits,strict_units),'decoded_row_groups':old_groups}
+                for name,item in strict_report['fields'].items():
+                    if strict_units[name]=='binary':item['positive_reference_values']=int(np.count_nonzero(values[name]==1))
+        elif smc:
             bounds={name:value[reference_keep] for name,value in bounds.items()}
             reports[tf]={'fields':compare_trade_reference(reference,actual,bounds,units)}
             for name,item in reports[tf]['fields'].items():
@@ -2000,6 +2405,22 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=Fal
             native_availability_projection_proven=False,published_volume_masks_reused_without_raw_reconstruction=True,
             pivot_confirmation='three completed right candles; independent causal prefixes',
             observed_gap_semantics='pivot memory retained; zones and origins censored after whole missing same-contract candle')
+    if profile:
+        for tf,fields in profile_numeric_active_fields().items():
+            measured=strict_report['fields'] if tf=='strict_m5' else reports[tf]['fields']
+            for column in fields:
+                if not measured[column]['numeric_reference_qualified']:
+                    raise RuntimeError('GC_PROFILE_REFERENCE_ACTIVE_FIELD_UNOBSERVED:'+tf+':'+column)
+        io.verify_digest(Path(plan['pending_field_inventory']['path']),plan['pending_field_inventory']['sha256'],
+            'GC_PROFILE_REFERENCE_POST_PENDING_INVENTORY')
+        result.update(status='COMPLETE_SCOPED_PROFILE_FOOTPRINT_M1_TO_TF_REFERENCE',
+            reference_uses_published_float64_M1_sums=False,reference_uses_published_integer_M1_ladder=True,
+            pending_field_inventory=plan['pending_field_inventory'],active_field_names=profile_numeric_active_fields(),
+            ladder_decoded_row_groups=ladder_groups,ladder_reference=profile_report,strict_m5_profile=strict_report,
+            unregistered_strict_outputs_are_auxiliary=True,native_availability_projection_proven=False,
+            profile_projection='exact M5 available equals TF available; no older-valid backsearch',
+            dynamic_profile_clock='consecutive closed M5; NY18 IANA session anchor',
+            raw_to_M1_formula_proven=False,published_volume_signed_masks_reused_without_raw_reconstruction=True)
     output = staging/(prefix+'_RESULT.json'); io.write_json(output,result)
     io.write_json(staging/(prefix+'_TERMINAL.json'), {'status':'COMPLETE','exit_code':0,
         'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),
@@ -2015,8 +2436,10 @@ if __name__=='__main__':
     group.add_argument('--gc-event-book-numeric-binding',type=Path)
     group.add_argument('--gc-trade-numeric-binding',type=Path)
     group.add_argument('--gc-smc-numeric-binding',type=Path)
+    group.add_argument('--gc-profile-numeric-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.gc_smc_numeric_binding is not None:run_gc_event_numeric(args.gc_smc_numeric_binding,smc=True)
+    if args.gc_profile_numeric_binding is not None:run_gc_event_numeric(args.gc_profile_numeric_binding,profile=True)
+    elif args.gc_smc_numeric_binding is not None:run_gc_event_numeric(args.gc_smc_numeric_binding,smc=True)
     elif args.gc_trade_numeric_binding is not None:run_gc_event_numeric(args.gc_trade_numeric_binding,trade=True)
     elif args.gc_event_book_numeric_binding is not None:run_gc_event_numeric(args.gc_event_book_numeric_binding,event_book=True)
     elif args.gc_event_numeric_binding is not None:run_gc_event_numeric(args.gc_event_numeric_binding)

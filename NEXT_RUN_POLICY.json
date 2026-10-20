@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T22:57:13.464522+00:00",
-  "status": "123_COMPLETE_198_SMC_PRICE_FIELDS_779_TOTAL_NUMERIC_REFERENCE",
+  "observed_utc": "2026-10-20T23:12:02.933436+00:00",
+  "status": "124_PROFILE_FOOTPRINT_SOURCE_READY_116_CASES_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Reuse completed123 and117; no job running. Prepare one independent profile/histogram/footprint reference for remaining412fields using finished M1ladder/metrics only, and separate14basis fields. Publish fresh exact scope/source qualification before physical audit. Remaining raw-to-M1, independent nativeasof, technical fields and individual consumption/Entryquality are separate gaps. No native epoch, fullVAL, Exit, broker or TEST admission.",
+  "next_action": "Complete independent412profile/histogram/footprint audit source and focusedtests; root review then exactlyone source-bound capped sourcequalification. Physical124 remains unclaimed until actualsourcePASS/exactnewbinding. Reuse779completed fields/finished9inputfiles; no nativeepoch/newbaseline/refit/Exit/TEST/broker.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "123_COMPLETE_PENDING426_GROUPED_NO_JOB_RUNNING",
+    "current_activity": "124_PROFILE_FOOTPRINT_SOURCE_REVIEW_AND_FOCUSED_QUALIFICATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "123 passed198active fields/31.086s;779of1205 publishedM1-to-TF GCvalues now independently checked. Pending426:316dynamicprofiles+64histogram+32footprint+14basis; upstream raw-to-M1, downstream nativeasof/individualuse and learned Entryquality remain unqualified. No training authority.",
+    "current_blocker": "Independent412field oracle implemented in existingauditowner andtestfile. Expected116focused cases=77unchanged+39new; noactualtestPASSyet. SourceSHAclosure117unchanged. Physical124remainsunclaimed; no models/training/TEST.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -16359,6 +16359,31 @@
       "observed_constant_fields": 2,
       "all_nan_auxiliary_columns_not_numerically_qualified": 44,
       "elapsed_seconds": 31.08603039800073
+    },
+    "gc_profile_footprint_numeric_reference_124": {
+      "status": "PLANNED_SOURCE_QUALIFICATION_REQUIRED",
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/PLAN.json",
+        "sha256": "badd480e3a7cd2766103d6ed81f159d8afc595123648ee70265268aec8b0be2f"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/DESIGN.json",
+        "sha256": "9852bc3a0893ecf145901b03b338fd85bb9fd88969718b8ed82b6396c8bd44f7"
+      },
+      "physical_audit_timeout_seconds": 1800,
+      "declared_active_fields": 412,
+      "training_enabled": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "native_training_admitted": false,
+      "test_data_used": false,
+      "normalization_fit_enabled": false,
+      "exit_evaluation": false,
+      "broker_access_allowed": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19434,5 +19459,28 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123/SOURCE_REVIEW.json",
       "sha256": "b70fb321c25cb8249e18d3dd4eb435b981a8df3ae894efa890c3b6cacb5adf25"
     }
+  },
+  "gc_profile_source_124": {
+    "status": "SOURCE_READY_EXPECTED_116_FOCUSED_CASES_PENDING",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "beaa67bd1808ce53c48d474146c6105ff9db3632b32fec01ec853a5c0dd3198b"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/run_focused_source_qualification.py",
+      "sha256": "8b9e052422f45d2decae7ad684b3368fce76cbbc66830a3cc8dfd4f1b57e59c0"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

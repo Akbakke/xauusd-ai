@@ -806,3 +806,353 @@ def test_smc_numeric_actual_registry_198_and_auxiliary_outputs():
     trade={name for fields in audit.trade_numeric_active_fields().values() for name in fields.values()}
     event={name for fields in audit.event_book_numeric_active_fields().values() for name in fields.values()}
     assert not expected.intersection(trade|event)
+
+
+# Independent profile/footprint hand references. Existing 77 cases above stay fixed.
+@pytest.mark.parametrize('hist,expected', [
+    ({104:(0,0,6),100:(3,1,0),102:(4,0,0),101:(0,2,0)},
+     {'volume_contracts':16,'vwap_usd':10.2125,'poc_usd':10.4,'q25_usd':10.,
+      'median_usd':10.2,'q75_usd':10.4,'price_levels':4,
+      'max_level_delta_contracts':4,'min_level_delta_contracts':-2,
+      'buy_poc_usd':10.2,'sell_poc_usd':10.1}),
+    ({100:(0,4,0),101:(0,2,0),104:(0,0,7)},
+     {'volume_contracts':13,'vwap_usd':133/13,'poc_usd':10.4,'q25_usd':10.,
+      'median_usd':10.4,'q75_usd':10.4,'price_levels':3,
+      'max_level_delta_contracts':0,'min_level_delta_contracts':-4,
+      'buy_poc_usd':np.nan,'sell_poc_usd':10.}),
+    ({100:(0,0,2),102:(0,0,3)},
+     {'volume_contracts':5,'vwap_usd':10.12,'poc_usd':10.2,'q25_usd':10.,
+      'median_usd':10.2,'q75_usd':10.2,'price_levels':2,
+      'max_level_delta_contracts':0,'min_level_delta_contracts':0,
+      'buy_poc_usd':np.nan,'sell_poc_usd':np.nan}),
+])
+def test_profile_numeric_literal_histogram_quantiles_and_known_footprint(monkeypatch,hist,expected):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_order_flow_v1 as owner
+    with monkeypatch.context() as no_delegate:
+        for name in ('histogram_features','value_area_v2','profile_values_v2'):
+            no_delegate.setattr(owner,name,lambda *a,**k:(_ for _ in ()).throw(AssertionError('profile oracle delegates')))
+        values,bounds=audit.reference_profile_histogram(hist,100000000,10**9)
+    for name,value in expected.items():
+        if np.isnan(value):assert np.isnan(values[name]),name
+        else:assert values[name]==pytest.approx(value,rel=0,abs=1e-13),name
+    ticks=list(hist);quantities=np.array(list(hist.values()),np.uint64)
+    actual=owner.histogram_features(ticks,*quantities.T,100000000)
+    for name,value in actual.items():
+        if np.isnan(value):assert np.isnan(values[name]),name
+        else:assert abs(values[name]-value)<=bounds[name],name
+
+
+@pytest.mark.parametrize('hist,poc,low,high', [
+    ({100:(4,0,0),102:(8,0,0),104:(4,0,0)},102,100,102),
+    ({102:(4,0,0),100:(4,0,0)},100,100,102),
+    ({100:(3,0,0),101:(4,0,0),102:(3,0,0)},101,100,101),
+])
+def test_profile_numeric_literal_contiguous_70pct_value_area_gaps_and_ties(hist,poc,low,high):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_order_flow_v1 as owner
+    values,bounds=audit.reference_profile_histogram(hist,100000000,10**9)
+    assert values['poc_usd']==pytest.approx(poc/10,rel=0,abs=1e-13)
+    assert values['val_usd']==pytest.approx(low/10,rel=0,abs=1e-13)
+    assert values['vah_usd']==pytest.approx(high/10,rel=0,abs=1e-13)
+    assert owner.value_area_v2({price:sum(qty) for price,qty in hist.items()})==(poc,low,high)
+    # The empty ticks are interval space, not extra volume or price levels.
+    assert values['price_levels']==len(hist)
+
+
+def test_profile_numeric_independent_ny18_dst_and_partial_initial_prefix(monkeypatch):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_order_flow_v1 as owner
+    stamps=pd.DatetimeIndex(['2024-03-10T21:55Z','2024-03-10T22:00Z',
+        '2024-11-03T22:55Z','2024-11-03T23:00Z','2024-05-01T00:00Z']).asi8
+    expected=pd.DatetimeIndex(['2024-03-09T23:00Z','2024-03-10T22:00Z',
+        '2024-11-02T22:00Z','2024-11-03T23:00Z','2024-04-30T22:00Z']).asi8
+    with monkeypatch.context() as no_delegate:
+        no_delegate.setattr(owner,'profile_anchors_v2',lambda *a,**k:(_ for _ in ()).throw(AssertionError('session oracle delegates')))
+        actual=audit.reference_profile_anchors(stamps)
+    assert actual.dtype==np.int64
+    np.testing.assert_array_equal(actual,expected)
+    np.testing.assert_array_equal(owner.profile_anchors_v2(stamps),expected)
+    assert ((stamps[-1]+5*MINUTE-actual[-1])//MINUTE)==125
+
+
+def test_profile_numeric_literal_m5_three_twelve_windows_eviction_and_owner_independence(monkeypatch):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_order_flow_v1 as owner
+    start=pd.Timestamp('2024-05-01T22:00Z').value
+    starts=start+np.arange(13,dtype=np.int64)*5*MINUTE
+    state={};reference=[];bounds=[]
+    with monkeypatch.context() as no_delegate:
+        for name in ('DynamicProfileStateV2','profile_values_v2','value_area_v2','dynamic_profiles_v2'):
+            no_delegate.setattr(owner,name,lambda *a,**k:(_ for _ in ()).throw(AssertionError('dynamic oracle delegates')))
+        for i,stamp in enumerate(starts):
+            row,bound=audit.reference_profile_step(state,int(stamp),{100+i:i+1},0,103+i,start,
+                tick_size=10**9,price_scale=10**9)
+            reference.append(row);bounds.append(bound)
+    assert len(reference[0])==len(bounds[0])==51
+    assert [r['rolling15_valid'] for r in reference]==[False,False]+[True]*11
+    assert [r['rolling60_valid'] for r in reference]==[False]*11+[True,True]
+    assert all(r['session_complete_valid'] for r in reference)
+    assert reference[2]['rolling15_volume_contracts']==6
+    assert reference[2]['rolling15_vwap_usd']==pytest.approx(304/3,rel=0,abs=1e-12)
+    assert (reference[2]['rolling15_poc_usd'],reference[2]['rolling15_val_usd'],reference[2]['rolling15_vah_usd'])==(102,101,102)
+    assert reference[11]['rolling60_volume_contracts']==78
+    assert reference[11]['rolling60_vwap_usd']==pytest.approx(322/3,rel=0,abs=1e-12)
+    assert np.isnan(reference[11]['rolling60_poc_prior_level_response_ticks'])
+    assert reference[12]['rolling60_volume_contracts']==90
+    assert reference[12]['rolling60_vwap_usd']==pytest.approx(4864/45,rel=0,abs=1e-12)
+    assert reference[12]['rolling60_val_usd']==107
+    assert reference[12]['anchored_segment_volume_contracts']==91
+    assert reference[12]['anchored_segment_vwap_usd']==108
+    assert reference[12]['anchored_segment_val_usd']==106
+    assert reference[12]['rolling15_volume_contracts']==36
+    assert reference[12]['rolling15_vwap_usd']==pytest.approx(1999/18,rel=0,abs=1e-12)
+    assert reference[12]['rolling60_vwap_prior_level_response_ticks']==pytest.approx(23/3,rel=0,abs=1e-12)
+    assert reference[12]['session_accepted_minutes']==reference[12]['session_expected_minutes']==65
+    actual=owner.DynamicProfileStateV2(1.)
+    for i,stamp in enumerate(starts):
+        published=actual.step(int(stamp),{100+i:i+1},True,0,float(103+i),start)
+        for name,value in published.items():
+            if np.isnan(value):assert np.isnan(reference[i][name]),name
+            else:assert abs(reference[i][name]-value)<=bounds[i][name],name
+
+
+def test_profile_numeric_anchor_prior_response_partial_minutes_invalid_gap_and_roll():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    anchor=pd.Timestamp('2024-05-01T22:00Z').value
+    starts=anchor+np.array([-15,-10,-5,0,5,10,15,25],np.int64)*MINUTE
+    histograms=[{100:1},{101:2},{102:3},{110:4},{120:5},{},{130:7},{140:11}]
+    contracts=[0,0,0,0,1,1,1,1];accepted=[5,5,5,5,2,0,3,5]
+    close=[100,101,102,111,121,125,131,141];state={};rows=[]
+    for i,stamp in enumerate(starts):
+        row,_=audit.reference_profile_step(state,int(stamp),histograms[i],contracts[i],close[i],
+            anchor-DAY if i<3 else anchor,accepted[i],tick_size=10**9,price_scale=10**9,valid=i!=5)
+        rows.append(row)
+    assert rows[2]['rolling15_valid'] and not rows[2]['session_complete_valid']
+    assert not rows[3]['rolling15_valid'] and np.isnan(rows[3]['rolling15_poc_usd'])
+    # Prior levels can remain observable across the new NY18 anchor.
+    assert rows[3]['rolling15_poc_prior_level_response_ticks']==9
+    assert rows[3]['anchored_segment_poc_prior_level_response_ticks']==9
+    assert rows[3]['session_complete_valid'] and rows[3]['session_accepted_minutes']==5
+    assert rows[3]['anchored_segment_volume_contracts']==4
+    assert rows[4]['session_observed_volume_contracts']==5 and rows[4]['session_accepted_minutes']==2
+    assert not rows[4]['session_complete_valid']
+    assert np.isnan(rows[4]['anchored_segment_poc_prior_level_response_ticks'])
+    assert rows[5]['session_accepted_minutes']==0 and not rows[5]['session_observed_valid']
+    assert np.isnan(rows[5]['session_observed_volume_contracts'])
+    assert rows[6]['anchored_segment_volume_contracts']==7
+    assert rows[6]['session_observed_volume_contracts']==12 and rows[6]['session_accepted_minutes']==5
+    assert np.isnan(rows[6]['anchored_segment_poc_prior_level_response_ticks'])
+    assert rows[7]['anchored_segment_volume_contracts']==11
+    assert rows[7]['session_observed_volume_contracts']==23 and rows[7]['session_accepted_minutes']==10
+    assert rows[7]['session_expected_minutes']==30 and not rows[7]['rolling15_valid']
+    assert np.isnan(rows[7]['anchored_segment_poc_prior_level_response_ticks'])
+    initial,_=audit.reference_profile_step({},pd.Timestamp('2024-05-01T00:00Z').value,{100:2},0,100,
+        pd.Timestamp('2024-04-30T22:00Z').value,tick_size=10**9,price_scale=10**9)
+    assert initial['session_accepted_minutes']==5 and initial['session_expected_minutes']==125
+    assert not initial['session_complete_valid']
+
+
+def _profile_numeric_fixture(timeframe,partial=True):
+    n=_CLOCK_MINUTES[timeframe];start=pd.Timestamp('2024-05-01T22:00Z').value
+    clock=start+np.arange(n,dtype=np.int64)*MINUTE
+    m1={'bar_start_ns':clock,'contract_index':np.zeros(n,np.int16),
+        'volume_valid':np.ones(n,bool),'signed_valid':np.ones(n,bool),
+        'volume':np.ones(n,np.uint64),'buy':np.ones(n,np.uint64),
+        'sell':np.zeros(n,np.uint64),'unknown':np.zeros(n,np.uint64),'close_tick':np.full(n,100,np.int64)}
+    m1['volume'][:2]=[4,12];m1['buy'][:2]=[3,4];m1['sell'][:2]=[1,2];m1['unknown'][1]=6
+    m1['signed_valid'][1]=False;m1['close_tick'][1]=104
+    if partial:m1['volume_valid'][2]=m1['signed_valid'][2]=False
+    rows=[]
+    for i in range(n):
+        if not m1['volume_valid'][i]:continue
+        levels=[(100,3,1,0)] if i==0 else ([(101,0,2,0),(102,4,0,0),(104,0,0,6)] if i==1 else [(100,1,0,0)])
+        rows.extend((int(clock[i]),0,price,buy,sell,unknown,bool(m1['signed_valid'][i]))
+            for price,buy,sell,unknown in levels)
+    names=('bar_start_ns','contract_index','price_tick','buy','sell','unknown','signed_valid')
+    dtypes=(np.int64,np.int16,np.int64,np.uint64,np.uint64,np.uint64,bool)
+    ladder={name:np.array([row[j] for row in rows],dtype) for j,(name,dtype) in enumerate(zip(names,dtypes))}
+    return m1,ladder
+
+
+@pytest.mark.parametrize('timeframe',tuple(_CLOCK_MINUTES))
+def test_profile_numeric_all_tf_partial_histogram_exact_m5_snapshot_and_domains(timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,ladder=_profile_numeric_fixture(timeframe);n=len(m1['bar_start_ns'])
+    # Continue the same minute over a real batch boundary without replay/sort.
+    batches=[{k:v[:2] for k,v in ladder.items()},{k:v[2:] for k,v in ladder.items()}]
+    refs,bounds,report=audit.reference_profile_ladder(m1,batches,100000000,10**9)
+    out=refs[timeframe];grid=audit.reference_profile_grid(m1,timeframe)
+    assert len(out)==79 and len(refs['strict_m5'])==54
+    assert grid['observed_valid'].tolist()==[True] and grid['volume_valid'].tolist()==[False]
+    assert grid['signed_valid'].tolist()==[False] and grid['accepted_minutes'].tolist()==[n-1]
+    assert grid['observed_volume'][0]==n+13
+    assert out['observed_vwap_usd'][0]==pytest.approx((100*n+1334)/(n+13)/10,rel=0,abs=1e-12)
+    assert out['observed_price_levels'][0]==4 and out['observed_known_min_level_delta_contracts'][0]==-2
+    assert out['observed_buy_known_poc_usd'][0]==10. and out['observed_sell_known_poc_usd'][0]==10.1
+    assert np.isnan(out['vwap_usd']).all() and np.isnan(out['buy_poc_usd']).all()
+    assert out['observed_profile_source_coverage_fraction'][0]==(.8 if timeframe=='M5' else 1.)
+    assert out['observed_profile_snapshot_age_minutes'].tolist()==[0.]
+    np.testing.assert_array_equal(out['observed_profile_snapshot_available_ns'],out['available_ns'])
+    assert report['ladder_passes']==1 and report['seen_minutes']==report['admitted_minutes']==n-1
+    # A full clock with rejected input is distinct from missing clock and roll.
+    missing={name:np.delete(value,2) for name,value in m1.items()}
+    with pytest.raises(RuntimeError,match='GC_PROFILE_REFERENCE_M1_SCHEMA'):
+        audit.reference_profile_grid(missing,timeframe)
+    rolled={name:value.copy() for name,value in m1.items()};rolled['contract_index'][2]=1
+    assert not audit.reference_profile_grid(rolled,timeframe)['observed_valid'][0]
+    # Validity at TF end uses its exact final M5, even after earlier valid state.
+    rejected={name:value.copy() for name,value in m1.items()}
+    rejected['volume_valid'][-5:]=False;rejected['signed_valid'][-5:]=False
+    keep=ladder['bar_start_ns']<m1['bar_start_ns'][-5]
+    cut={name:value[keep] for name,value in ladder.items()}
+    rejected_out=audit.reference_profile_ladder(rejected,[cut],100000000,10**9)[0][timeframe]
+    assert not rejected_out['observed_profile_anchored_segment_valid'][0]
+    assert np.isnan(rejected_out['observed_profile_anchored_segment_poc_usd'][0])
+    assert rejected_out['observed_profile_source_coverage_fraction'].tolist()==[0.]
+    assert rejected_out['observed_profile_snapshot_age_minutes'].tolist()==[0.]
+
+
+@pytest.mark.parametrize('timeframe',tuple(_CLOCK_MINUTES))
+def test_profile_numeric_all_tf_unsigned_strict_histogram_with_unknown_known_footprint(timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,ladder=_profile_numeric_fixture(timeframe,partial=False);n=len(m1['bar_start_ns'])
+    refs,_,report=audit.reference_profile_ladder(m1,[ladder],100000000,10**9)
+    out=refs[timeframe];grid=audit.reference_profile_grid(m1,timeframe)
+    assert grid['volume_valid'].tolist()==[True] and grid['signed_valid'].tolist()==[False]
+    assert grid['observed_volume'].tolist()==[n+14]
+    assert out['poc_usd'][0]==out['observed_poc_usd'][0]==10.
+    assert out['vwap_usd'][0]==pytest.approx((100*n+1434)/(n+14)/10,rel=0,abs=1e-12)
+    assert out['observed_known_max_level_delta_contracts'].tolist()==[n]
+    assert out['observed_known_min_level_delta_contracts'].tolist()==[-2]
+    for name in ('max_level_delta_contracts','min_level_delta_contracts','buy_poc_usd','sell_poc_usd'):
+        assert np.isnan(out[name]).all(),name
+    assert np.isfinite(out['observed_buy_known_poc_usd']).all()
+    assert report['seen_minutes']==report['admitted_minutes']==n
+
+
+@pytest.mark.parametrize('failure',('missing','float_clock','float_contract','mask_dtype','quantity_dtype','signed_unknown','signed_unadmitted'))
+def test_profile_numeric_m1_schema_rejects_malformed_clock_dtype_and_signed_domains(failure):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,_=_profile_numeric_fixture('M5')
+    if failure=='missing':del m1['close_tick']
+    elif failure=='float_clock':m1['bar_start_ns']=m1['bar_start_ns'].astype(np.float64)
+    elif failure=='float_contract':m1['contract_index']=m1['contract_index'].astype(np.float64)
+    elif failure=='mask_dtype':m1['volume_valid']=m1['volume_valid'].astype(np.int8)
+    elif failure=='quantity_dtype':m1['buy']=m1['buy'].astype(np.int64)
+    elif failure=='signed_unknown':m1['signed_valid'][1]=True
+    elif failure=='signed_unadmitted':m1['signed_valid'][2]=True
+    with pytest.raises(RuntimeError,match='GC_PROFILE_REFERENCE_M1_SCHEMA'):
+        audit.reference_profile_grid(m1,'M5')
+
+
+@pytest.mark.parametrize('failure,error', [
+    ('clock','LADDER_M1_MAPPING'),('contract','LADDER_M1_MAPPING'),
+    ('signed','LADDER_M1_MAPPING'),('dtype','LADDER_SCHEMA'),
+    ('duplicate','LADDER_DUPLICATE_LEVEL'),('revisit','LADDER_MINUTE_REVISIT'),
+    ('quantity','LADDER_SIDE_CONSERVATION'),('source_volume','LADDER_SIDE_CONSERVATION'),
+    ('coverage','LADDER_MINUTE_COVERAGE'),
+])
+def test_profile_numeric_ladder_mapping_duplicates_conservation_and_coverage(failure,error):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,ladder=_profile_numeric_fixture('M5');batches=[ladder]
+    if failure=='clock':ladder['bar_start_ns'][0]+=1
+    elif failure=='contract':ladder['contract_index'][0]=1
+    elif failure=='signed':ladder['signed_valid'][0]=False
+    elif failure=='dtype':ladder['buy']=ladder['buy'].astype(np.float64)
+    elif failure=='duplicate':batches=[{k:v[:1] for k,v in ladder.items()},ladder]
+    elif failure=='revisit':batches=[ladder,{k:v[:1] for k,v in ladder.items()}]
+    elif failure=='quantity':ladder['buy'][0]+=np.uint64(1)
+    elif failure=='source_volume':m1['volume'][0]+=np.uint64(1)
+    elif failure=='coverage':
+        # Even when a mixed-contract TF cannot be published, each admitted M1
+        # must still be represented: an all-NaN output cannot hide missing input.
+        m1['contract_index'][2]=1
+        batches=[{k:v[:-1] for k,v in ladder.items()}]
+    with pytest.raises(RuntimeError,match='GC_PROFILE_REFERENCE_'+error):
+        audit.reference_profile_ladder(m1,batches,100000000,10**9)
+
+
+def test_profile_numeric_physical_stream_skips_invalid_contract_without_resetting_session():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,ladder=_profile_numeric_fixture('M15',partial=False)
+    m1['volume_valid'][5:10]=False;m1['signed_valid'][5:10]=False;m1['contract_index'][5:10]=1
+    take=(ladder['bar_start_ns']<m1['bar_start_ns'][5])|(ladder['bar_start_ns']>=m1['bar_start_ns'][10])
+    ladder={name:values[take] for name,values in ladder.items()}
+    refs,bounds,_=audit.reference_profile_ladder(m1,[ladder],100000000,10**9)
+    observed=refs['M5'];strict=refs['strict_m5']
+    for prefix,out in (('observed_profile_',observed),('',strict)):
+        assert out[prefix+'session_observed_volume_contracts'][0]==19
+        assert not out[prefix+'session_observed_valid'][1]
+        assert np.isnan(out[prefix+'session_observed_volume_contracts'][1])
+        assert out[prefix+'session_accepted_minutes'][1]==0
+        assert out[prefix+'session_expected_minutes'][1]==10
+        assert out[prefix+'anchored_segment_volume_contracts'][2]==5
+        assert out[prefix+'session_observed_volume_contracts'][2]==24
+        assert out[prefix+'session_accepted_minutes'][2]==10
+        assert out[prefix+'session_expected_minutes'][2]==15
+        assert not out[prefix+'rolling15_valid'][2]
+        assert np.isnan(out[prefix+'anchored_segment_poc_prior_level_response_ticks'][2])
+    # No finite observations is not numerical qualification, despite exact masks.
+    key='observed_profile_rolling60_vwap_usd'
+    columns=('bar_start_ns','available_ns','contract_index',key)
+    expected={name:observed[name] for name in columns}
+    report=audit.compare_trade_reference(expected,{name:value.copy() for name,value in expected.items()},
+        {name:bounds['M5'][name] for name in columns},{name:audit.profile_reference_units()[name] for name in columns})
+    assert not report[key]['numeric_reference_qualified'] and report[key]['finite_published_values_compared']==0
+
+
+def test_profile_numeric_real_nine_and_seven_column_readers_without_availability(monkeypatch):
+    import pyarrow.parquet as pq
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,ladder=_profile_numeric_fixture('M5');readers={}
+    for name,values in (('m1',m1),('ladder',ladder)):
+        stream=pa.BufferOutputStream();pq.write_table(pa.table(values),stream)
+        readers[name]=pq.ParquetFile(pa.BufferReader(stream.getvalue()))
+    monkeypatch.setattr(audit.pq,'ParquetFile',lambda path:readers[str(path)])
+    start=int(m1['bar_start_ns'][0]);end=int(m1['bar_start_ns'][-1])+MINUTE;seal=end+DAY
+    source,groups=audit.read_profile_numeric_inputs({'m1_profile':{'path':'m1'}},start,end,seal)
+    batches,ladder_groups=audit.iter_profile_numeric_ladder('ladder',start,end,seal)
+    actual=list(batches)
+    assert groups==ladder_groups==[0] and set(source)==set(audit.GC_PROFILE_M1_COLUMNS) and len(source)==9
+    assert len(actual)==1 and set(actual[0])==set(audit.GC_PROFILE_LADDER_COLUMNS) and len(actual[0])==7
+    assert 'available_ns' not in source and 'available_ns' not in actual[0]
+    for name,value in m1.items():np.testing.assert_array_equal(source[name],value)
+    for name,value in ladder.items():np.testing.assert_array_equal(actual[0][name],value)
+    assert source['volume_valid'].dtype.kind==actual[0]['signed_valid'].dtype.kind=='b'
+    assert audit.reference_profile_ladder(source,actual,100000000,10**9)[2]['seen_minutes']==4
+
+
+def test_profile_numeric_actual_registry_412_no_overlap_previous_779_and_auxiliary_scope():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_native_context_v1 as registry
+    declared=audit.profile_numeric_active_fields()
+    assert [len(fields) for fields in declared.values()]==[75,75,75,71,65,51]
+    expected={name for columns in declared.values() for name in columns.values()};actual=set()
+    for tf,columns in declared.items():
+        tables={'M5_GC_FEATURES.parquet'} if tf=='strict_m5' else {'TRADE_FEATURES_'+tf+'.parquet','retained::TRADE_FEATURES_'+tf+'.parquet'}
+        actual.update(field['name'] for field in registry.REGISTRY['fields'] if field['table'] in tables and field['column'] in columns)
+    assert len(expected)==412 and actual==expected and expected<=set(registry.contract()['value_fields'])
+    smc,book=audit.smc_numeric_active_fields()
+    previous={name for scope in (audit.event_book_numeric_active_fields(),audit.trade_numeric_active_fields(),smc)
+        for columns in scope.values() for name in columns.values()}|set(book.values())
+    assert len(previous)==779 and not previous.intersection(expected)
+    assert len(audit.profile_reference_units())==79 and len(audit.profile_dynamic_units())==51
+    assert all('observed_profile_snapshot_available_ns' not in fields for fields in declared.values())
+
+
+def test_profile_numeric_large_integer_lower_crossings_and_exact_quantity_bound():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_order_flow_v1 as owner
+    a=2**51
+    hist={100:(a-1,0,0),101:(1,0,0),102:(a-1,0,0),103:(1,0,0),104:(a-1,0,0),105:(a,0,0)}
+    values,bounds=audit.reference_profile_histogram(hist,100000000,10**9)
+    assert values['volume_contracts']==2**53-1
+    for name,expected in (('q25_usd',10.1),('median_usd',10.3),('q75_usd',10.5)):
+        assert values[name]==pytest.approx(expected,rel=0,abs=1e-13)
+    actual=owner.histogram_features(list(hist),np.array([q[0] for q in hist.values()],np.uint64),
+        np.zeros(6,np.uint64),np.zeros(6,np.uint64),100000000)
+    for name in ('q25_usd','median_usd','q75_usd'):
+        assert abs(values[name]-actual[name])<=bounds[name],name
+    with pytest.raises(RuntimeError,match='GC_PROFILE_REFERENCE_FLOAT_QUANTITY_BOUND'):
+        audit.reference_profile_histogram({100:(2**53+1,0,0)},100000000,10**9)
