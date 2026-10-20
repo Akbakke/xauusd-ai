@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T22:32:05.034671+00:00",
-  "status": "122_SCOPED_211_TRADE_CUMULATIVE_NUMERIC_REFERENCE_COMPLETE_NATIVE_TRAINING_CLOSED",
+  "observed_utc": "2026-10-20T22:46:49.384223+00:00",
+  "status": "123_SMC_PRICE_REFERENCE_ONE_SOURCE_QUALIFICATION_READY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Reuse completed122 independent211trade/size/cumulative and121 independent370event/book/order references:581disjoint active GCfields at published-M1-to-TF stage;118clockproof overlaps121. No rerun of051/053/055/115/117. Next remaining bounded numeric groups: two-sided SMC, basis, profile/footprint, technical formulas and raw-to-M1; separately independent TF-to-decision availability and individual model sensitivity/Entry quality. Bind each concrete next scope; no rawTBrescan/new main epoch/HPO/fullVAL/Exit/TEST/broker.",
+  "next_action": "Execute one exact123 capped focused source qualification on existing audit test module after finalpeer; expected77cases from staticcount, actualXMLrequired. Production183roles preserved; no physical audit before sourcePASS and exactbinding, no newbaseline/nativeepoch/Exit/TEST.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "INDEPENDENT_FEATURE_NUMERIC_AUDITS_AFTER_122_COMPLETE",
+    "current_activity": "123_INDEPENDENT_GC_SMC_PRICE_REFERENCE_SOURCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "581disjoint active GCfields now have scoped independent published-M1-to-TF references. Remaining SMC/profile/basis/technical/raw-firstleg numeric groups, independent TF-to-decision availability and individual sensitivity/Entry quality remain unqualified.108ordered epoch consumed;111RMS has no new main-learning round or exact new epoch admission.",
+    "current_blocker": "123independent SMC/price source ready after integer causal replay, role-specific masks/reset, rational price bounds and full actual source grid checks; focused source tests and physical198field reference remain unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Reuse completed122 independent211trade/size/cumulative and121 independent370event/book/order references:581disjoint active GCfields at published-M1-to-TF stage;118clockproof overlaps121. No rerun of051/053/055/115/117. Next remaining bounded numeric groups: two-sided SMC, basis, profile/footprint, technical formulas and raw-to-M1; separately independent TF-to-decision availability and individual model sensitivity/Entry quality. Bind each concrete next scope; no rawTBrescan/new main epoch/HPO/fullVAL/Exit/TEST/broker.",
+    "next_action": "Execute one exact123 capped focused source qualification on existing audit test module after finalpeer; expected77cases from staticcount, actualXMLrequired. Production183roles preserved; no physical audit before sourcePASS and exactbinding, no newbaseline/nativeepoch/Exit/TEST.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16294,6 +16294,30 @@
       ],
       "raw_to_M1_proven": false,
       "native_model_consumption_proven": false
+    },
+    "gc_smc_price_numeric_reference_123": {
+      "status": "SOURCE_IMPLEMENTATION_IN_PROGRESS",
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123/PLAN.json",
+        "sha256": "1f8c41921fb5e90f67c09cb7594011909e9e3542cb082a2f7e0024d043b07e8d"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123/DESIGN.json",
+        "sha256": "abaf7f8b51c78986791c343ba436d203ca35496fbf3991074d72c8d05c05e724"
+      },
+      "physical_audit_timeout_seconds": 1800,
+      "training_enabled": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "native_training_admitted": false,
+      "test_data_used": false,
+      "normalization_fit_enabled": false,
+      "exit_evaluation": false,
+      "broker_access_allowed": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -18858,7 +18882,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T22:32:05.034671+00:00",
+  "updated_utc": "2026-10-20T22:46:49.384223+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -19338,5 +19362,28 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/SOURCE_REVIEW.json",
       "sha256": "27137e3cc7b93fe65d191a4c2abc313bb2bdf0bc2b2f147b62f418e011fdd888"
     }
+  },
+  "gc_smc_source_123": {
+    "status": "ONE_SHOT_SOURCE_QUALIFICATION_READY",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "01500bdd08041699ebd60266ea132bf520b28fb6fcc47656650e0d38ebb50ed4"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123/run_focused_source_qualification.py",
+      "sha256": "e90e590d58a6e62b5e3eed831fc08a8be679dcd3b79db22954b11c4015d595f5"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

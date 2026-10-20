@@ -1513,6 +1513,236 @@ def compare_trade_reference(reference, actual, bounds, units):
     return compare_event_book_reference(reference,actual,bounds,units)
 
 
+GC_SMC_PLAN_ID = 'NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123'
+GC_SMC_POLICY_KEY = 'gc_smc_price_numeric_reference_123'
+GC_SMC_PRICE_FIELDS = ('open_usd','high_usd','low_usd','close_usd')
+GC_SMC_ZONE_FIELDS = ('active','created','first_retouch','low','high','age_bars','origin_volume_contracts')
+GC_SMC_FIELDS = ('structure_available','bos_up','bos_down','sweep_up_event','sweep_down_event') + tuple(
+    'ob_'+side+'_'+field for side in ('bull','bear') for field in GC_SMC_ZONE_FIELDS) + (
+    'ob_bull_input_valid','ob_bear_input_valid')
+GC_SMC_M1_COLUMNS = ('bar_start_ns','contract_index','volume_valid','volume',
+    'open_tick','high_tick','low_tick','close_tick')
+GC_SMC_DIAGNOSTICS = ('boundary_gap_minutes','elapsed_minutes','skipped_candles')
+
+
+def smc_reference_units():
+    units={'bar_start_ns':'utc_nanoseconds_metadata','available_ns':'utc_nanoseconds_metadata',
+        'contract_index':'contract_index_metadata','volume_valid':'binary','volume':'contracts',
+        'observed_valid':'binary','observed_contract_valid':'binary','observed_volume':'contracts',
+        'observed_first_minute_ns':'utc_nanoseconds_metadata','observed_last_minute_ns':'utc_nanoseconds_metadata'}
+    for prefix in ('','observed_'):
+        units.update({prefix+name:'USD' for name in GC_SMC_PRICE_FIELDS})
+    for prefix in ('','observed_proxy_'):
+        for name in GC_SMC_FIELDS:
+            units[prefix+name]=('USD' if name.endswith(('_low','_high')) else 'contracts' if
+                name.endswith('_origin_volume_contracts') else 'observed_bars' if name.endswith('_age_bars') else 'binary')
+    units.update({'observed_proxy_'+name:('observed_bars' if name=='skipped_candles' else 'minutes')
+        for name in GC_SMC_DIAGNOSTICS})
+    units.update({'observed_proxy_ob_'+side+'_state_valid':'binary' for side in ('bull','bear')})
+    return units
+
+
+def smc_numeric_active_fields():
+    fields={}
+    for tf in ('M5','M15','H1','H4','D1'):
+        observed={'observed_proxy_'+name for name in GC_SMC_FIELDS+GC_SMC_DIAGNOSTICS}
+        strict=set(GC_SMC_FIELDS) if tf=='M5' else set(GC_SMC_FIELDS)-{'structure_available'} if tf=='M15' else set()
+        prices={'observed_'+name for name in GC_SMC_PRICE_FIELDS}
+        if tf!='D1':prices.update(GC_SMC_PRICE_FIELDS)
+        fields[tf]={name:'gc_'+tf.lower()+'_'+name for name in sorted(observed|strict|prices)}
+    return fields,{'close_usd':'gc_book_close_usd'}
+
+
+def smc_price_reference(ticks, tick_size, price_scale):
+    """Rational price oracle; bounds cover both binary64 operation orders.
+
+    TF: integer conversion, scale division, multiplication. Legacy close:
+    integer conversion, multiplication, division. Reference rounding adds one
+    more operation. gamma_4 is expressed relative to the rounded reference.
+    """
+    from fractions import Fraction
+    value=float(Fraction(int(ticks)*int(tick_size),int(price_scale)))
+    unit=np.finfo(np.float64).eps/2
+    return value,(4*unit/(1-4*unit))*abs(value)/(1-unit)
+
+
+def validate_smc_tick_order(maximum_tick, tick_size, price_scale, pivot_tolerance):
+    if (not isinstance(tick_size,int) or tick_size<=0 or not isinstance(price_scale,int) or price_scale<=0
+            or maximum_tick<0 or maximum_tick>2**53 or not np.isfinite(pivot_tolerance) or pivot_tolerance<=0):
+        raise RuntimeError('GC_SMC_REFERENCE_PRICE_DOMAIN')
+    maximum,error=smc_price_reference(maximum_tick,tick_size,price_scale)
+    step,step_error=smc_price_reference(1,tick_size,price_scale)
+    # Owner compares high >= window_max - tolerance (low mirrored). Include
+    # subtraction rounding as well as both converted prices; never fit EPS.
+    subtraction=np.finfo(np.float64).eps/2*(abs(maximum)+pivot_tolerance)
+    if step-step_error-2*error-subtraction<=pivot_tolerance:
+        raise RuntimeError('GC_SMC_REFERENCE_TICK_TOLERANCE_NOT_SEPARATED')
+    return {'maximum_tick':int(maximum_tick),'minimum_price_step_usd':step,
+        'maximum_price_roundoff_bound_usd':error,'pivot_comparison_tolerance_usd':pivot_tolerance,
+        'ordering_separation_proven':True}
+
+
+def reference_smc_sequence(ohlc_ticks, volume, *, zone_reset=None):
+    """Independent chronological integer replay; no producer pivot/SMC calls."""
+    from gx1.features.smc_v1 import SWING_LOOKBACK
+    if SWING_LOOKBACK!=3:raise RuntimeError('GC_SMC_REFERENCE_LOOKBACK_CHANGED')
+    candles=np.asarray(ohlc_ticks);quantity=np.asarray(volume);n=len(candles)
+    if (candles.shape!=(n,4) or not np.issubdtype(candles.dtype,np.integer) or quantity.shape!=(n,)
+            or np.any(quantity<=0) or np.any(quantity>2**53)
+            or np.any(candles[:,2]>candles[:,0]) or np.any(candles[:,0]>candles[:,1])
+            or np.any(candles[:,2]>candles[:,3]) or np.any(candles[:,3]>candles[:,1])):
+        raise RuntimeError('GC_SMC_REFERENCE_CANDLE_DOMAIN')
+    reset=np.zeros(n,bool) if zone_reset is None else np.asarray(zone_reset,bool)
+    if reset.shape!=(n,):raise RuntimeError('GC_SMC_REFERENCE_RESET_SHAPE')
+    out={name:np.full(n,np.nan) for name in GC_SMC_FIELDS}
+    pivots={name:np.full(n,-1,np.int64) for name in ('last_high_idx','prev_high_idx','last_low_idx','prev_low_idx')}
+    highs=[];lows=[];last={'high':None,'low':None};previous={'high':None,'low':None}
+    consumed_bos={'high':None,'low':None};consumed_sweep={'high':None,'low':None}
+    origins={'bull':None,'bear':None};zones={'bull':None,'bear':None};known={'bull':True,'bear':True}
+    for i,bar in enumerate(candles):
+        o,h,l,c=map(int,bar);highs.append(h);lows.append(l)
+        center=i-SWING_LOOKBACK
+        if center>=SWING_LOOKBACK:
+            for side,values,operation in (('high',highs,max),('low',lows,min)):
+                # The current prefix ends exactly at the third right candle.
+                if values[center]==operation(values[center-SWING_LOOKBACK:i+1]):
+                    previous[side],last[side]=last[side],(center,values[center])
+        for side in ('high','low'):
+            if last[side] is not None:pivots['last_'+side+'_idx'][i]=last[side][0]
+            if previous[side] is not None:pivots['prev_'+side+'_idx'][i]=previous[side][0]
+        levels=[entry[1] for entry in (*last.values(),*previous.values()) if entry is not None]
+        out['structure_available'][i]=float(len(levels)==4 and max(levels)>min(levels))
+        events={}
+        for side,price,up in (('high',h,True),('low',l,False)):
+            level=last[side];identity=None if level is None else level[0]
+            bos=level is not None and (c>level[1] if up else c<level[1]) and consumed_bos[side]!=identity
+            if bos:consumed_bos[side]=identity
+            sweep=level is not None and consumed_bos[side]!=identity and (
+                price>level[1] and c<=level[1] if up else price<level[1] and c>=level[1])
+            event=sweep and consumed_sweep[side]!=identity
+            if event:consumed_sweep[side]=identity
+            events[side]=bool(bos)
+            out['bos_'+('up' if up else 'down')][i]=float(bos) if level is not None else np.nan
+            out['sweep_'+('up' if up else 'down')+'_event'][i]=float(event) if level is not None else np.nan
+        if reset[i]:
+            origins={'bull':None,'bear':None};zones={'bull':None,'bear':None};known={'bull':False,'bear':False}
+        for side,level_side in (('bull','high'),('bear','low')):
+            origin=origins[side];created=events[level_side] and origin is not None
+            if created:
+                zones[side]=[int(candles[origin,2]),int(candles[origin,1]),int(quantity[origin]),i,False]
+                known[side]=True
+            zone=zones[side];retouch=False
+            if zone is not None:
+                lower,upper,qty,born,touched=zone
+                if c<lower if side=='bull' else c>upper:zones[side]=zone=None
+                elif i>born and not touched and l<=upper and h>=lower:retouch=True;zone[4]=True
+            ready=last[level_side] is not None;prefix='ob_'+side+'_'
+            out[prefix+'input_valid'][i]=float(ready)
+            if ready and known[side]:
+                for field,value in (('active',zone is not None),('created',created),('first_retouch',retouch)):
+                    out[prefix+field][i]=float(value)
+                if zone is not None:
+                    for field,value in zip(('low','high','origin_volume_contracts','age_bars'),(*zone[:3],i-zone[3])):
+                        out[prefix+field][i]=value
+        # Current candle can only become an origin for a subsequent candle.
+        if c<o:origins['bull']=i
+        if c>o:origins['bear']=i
+    return out,pivots
+
+
+def validate_smc_m1_schema(m1):
+    if set(m1)!=set(GC_SMC_M1_COLUMNS):raise RuntimeError('GC_SMC_REFERENCE_M1_SCHEMA')
+    minutes=np.asarray(m1['bar_start_ns']);shape=minutes.shape
+    if (minutes.ndim!=1 or not len(minutes) or minutes.dtype!=np.dtype('int64')
+            or any(np.asarray(value).shape!=shape for value in m1.values())
+            or not np.issubdtype(np.asarray(m1['contract_index']).dtype,np.integer)
+            or np.asarray(m1['volume_valid']).dtype.kind!='b' or np.asarray(m1['volume']).dtype!=np.dtype('uint64')
+            or any(not np.issubdtype(np.asarray(m1[name]).dtype,np.integer) for name in GC_SMC_M1_COLUMNS[4:])
+            or np.any(np.diff(minutes)<=0)):
+        raise RuntimeError('GC_SMC_REFERENCE_M1_SCHEMA')
+    admitted=np.asarray(m1['volume_valid']);o,h,l,c=[np.asarray(m1[name])[admitted] for name in GC_SMC_M1_COLUMNS[4:]]
+    if (np.any(m1['volume'][admitted]==0) or any(np.any(values<0) or np.any(values>2**53) for values in (o,h,l,c))
+            or np.any(l>o) or np.any(o>h) or np.any(l>c) or np.any(c>h)):
+        raise RuntimeError('GC_SMC_REFERENCE_ADMITTED_CANDLE_DOMAIN')
+
+
+def reference_smc_aggregates(m1, timeframe, tick_size, price_scale):
+    """M1 integer OHLC/quantity reconstruction followed by independent replay."""
+    from gx1.features.htf_features import MULTI_TF_SHIFT
+    from gx1.time.session_detector import TRADING_SESSION_BOUNDARY_OFFSET
+    duration=MULTI_TF_SHIFT[timeframe].value;offset=TRADING_SESSION_BOUNDARY_OFFSET.value%duration
+    validate_smc_m1_schema(m1)
+    minutes=np.asarray(m1['bar_start_ns']);selected=np.asarray(m1['contract_index'])
+    labels=((minutes-offset)//duration)*duration+offset;stamps=np.unique(labels)
+    starts=np.searchsorted(minutes,stamps);stops=np.searchsorted(minutes,stamps+duration);expected=duration//MINUTE
+    units=smc_reference_units();out={name:np.full(len(stamps),False if unit=='binary' and name.startswith('observed_proxy_ob_')
+        and name.endswith('_state_valid') else np.nan) for name,unit in units.items()}
+    for name in ('volume_valid','observed_valid','observed_contract_valid'):out[name]=np.zeros(len(stamps),bool)
+    out['bar_start_ns']=stamps;out['available_ns']=stamps+duration;out['contract_index']=np.zeros(len(stamps),np.int64)
+    bounds={name:np.zeros(len(stamps)) for name in out}
+    ticks={prefix:np.zeros((len(stamps),4),np.int64) for prefix in ('','observed_')}
+    for row,(stamp,start,stop) in enumerate(zip(stamps,starts,stops)):
+        contracts=selected[start:stop];accepted=np.asarray(m1['volume_valid'][start:stop],bool)
+        same=bool(np.all(contracts>=0) and np.all(contracts==contracts[0]))
+        full=(stop-start==expected and minutes[start]==stamp and minutes[stop-1]==stamp+duration-MINUTE
+            and np.all(np.diff(minutes[start:stop])==MINUTE))
+        strict=bool(full and same and accepted.all());observed=bool(full and same and accepted.any())
+        out['contract_index'][row]=contracts[0];out['observed_contract_valid'][row]=same
+        out['volume_valid'][row]=strict;out['observed_valid'][row]=observed
+        for prefix,valid,positions in (('',strict,np.arange(start,stop)),('observed_',observed,np.flatnonzero(accepted)+start)):
+            if not valid:continue
+            qty=sum(int(v) for v in m1['volume'][positions])
+            if qty<=0 or qty>2**53:raise RuntimeError('GC_SMC_REFERENCE_VOLUME_EXACTNESS')
+            out[prefix+'volume'][row]=qty
+            values=(int(m1['open_tick'][positions[0]]),max(map(int,m1['high_tick'][positions])),
+                min(map(int,m1['low_tick'][positions])),int(m1['close_tick'][positions[-1]]))
+            ticks[prefix][row]=values
+            for name,value in zip(GC_SMC_PRICE_FIELDS,values):
+                out[prefix+name][row],bounds[prefix+name][row]=smc_price_reference(value,tick_size,price_scale)
+            if prefix:
+                for edge,position in (('first',positions[0]),('last',positions[-1])):
+                    value=int(minutes[position])
+                    if int(float(value))!=value:raise RuntimeError('GC_SMC_REFERENCE_ENDPOINT_PRECISION')
+                    out['observed_'+edge+'_minute_ns'][row]=value
+    for prefix,valid_name in (('','volume_valid'),('observed_','observed_valid')):
+        groups=[];current=[];previous=None;last_segment=None;segment=0
+        for row in range(len(stamps)):
+            if row and (out['contract_index'][row]!=out['contract_index'][row-1]
+                    or not out['observed_contract_valid'][row] or not out['observed_contract_valid'][row-1]):segment+=1
+            if not out[valid_name][row]:continue
+            continuation=previous is not None and (segment==last_segment if prefix else
+                row==previous+1 and stamps[row]-stamps[previous]==duration and segment==last_segment)
+            if current and not continuation:groups.append(current);current=[]
+            current.append(row);previous=row;last_segment=segment
+        if current:groups.append(current)
+        for group in groups:
+            rows=np.asarray(group,np.int64);reset=np.zeros(len(rows),bool)
+            if prefix:
+                elapsed=np.diff(stamps[rows]);skipped=elapsed//duration-1;reset[1:]=skipped>0
+                for name,values in (('elapsed_minutes',elapsed//MINUTE),('skipped_candles',skipped),
+                        ('boundary_gap_minutes',np.maximum((out['observed_first_minute_ns'][rows[1:]]-
+                            out['observed_last_minute_ns'][rows[:-1]])/MINUTE-1,0))):
+                    out['observed_proxy_'+name][rows[1:]]=values
+            replay,_=reference_smc_sequence(ticks[prefix][rows],out[prefix+'volume'][rows],zone_reset=reset)
+            target='observed_proxy_' if prefix else ''
+            for name,values in replay.items():
+                if name.endswith(('_low','_high')):
+                    for local in np.flatnonzero(np.isfinite(values)):
+                        price,error=smc_price_reference(int(values[local]),tick_size,price_scale)
+                        out[target+name][rows[local]]=price;bounds[target+name][rows[local]]=error
+                else:out[target+name][rows]=values
+            if prefix:
+                for side in ('bull','bear'):
+                    out['observed_proxy_ob_'+side+'_state_valid'][rows]=np.isfinite(replay['ob_'+side+'_active'])
+    return out,bounds,units
+
+
+def read_smc_numeric_inputs(inputs, start, end, seal):
+    values,groups=read_event_numeric_columns(Path(inputs['m1_smc']['path']),list(GC_SMC_M1_COLUMNS),start,end,seal)
+    validate_smc_m1_schema(values)
+    return values,groups
+
+
 def read_event_numeric_columns(path, columns, start, end, seal):
     """Inspect all selected footer boundaries before decoding any payload."""
     parquet = pq.ParquetFile(path); clock = parquet.schema_arrow.names.index('bar_start_ns')
@@ -1563,12 +1793,12 @@ def read_trade_numeric_inputs(inputs, start, end, seal):
     return trade,{name:sizes[name] for name in GC_TRADE_SIZE_STATISTICS},groups,size_groups
 
 
-def run_gc_event_numeric(binding_path, *, event_book=False, trade=False):
-    plan_id = GC_TRADE_PLAN_ID if trade else GC_EVENT_BOOK_PLAN_ID if event_book else GC_EVENT_NUMERIC_PLAN_ID
-    policy_key = GC_TRADE_POLICY_KEY if trade else GC_EVENT_BOOK_POLICY_KEY if event_book else GC_EVENT_NUMERIC_POLICY_KEY
+def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=False):
+    plan_id = GC_SMC_PLAN_ID if smc else GC_TRADE_PLAN_ID if trade else GC_EVENT_BOOK_PLAN_ID if event_book else GC_EVENT_NUMERIC_PLAN_ID
+    policy_key = GC_SMC_POLICY_KEY if smc else GC_TRADE_POLICY_KEY if trade else GC_EVENT_BOOK_POLICY_KEY if event_book else GC_EVENT_NUMERIC_POLICY_KEY
     root = Path('/home/andre2/GX1_RUNS')/plan_id
-    prefix = 'GC_TRADE_NUMERIC' if trade else 'GC_EVENT_BOOK_NUMERIC' if event_book else 'GC_EVENT_NUMERIC'
-    schema = 'gx1_gc_trade_numeric_audit_plan_v1' if trade else 'gx1_gc_event_book_numeric_audit_plan_v1' if event_book else 'gx1_gc_event_numeric_audit_plan_v1'
+    prefix = 'GC_SMC_NUMERIC' if smc else 'GC_TRADE_NUMERIC' if trade else 'GC_EVENT_BOOK_NUMERIC' if event_book else 'GC_EVENT_NUMERIC'
+    schema = 'gx1_gc_smc_numeric_audit_plan_v1' if smc else 'gx1_gc_trade_numeric_audit_plan_v1' if trade else 'gx1_gc_event_book_numeric_audit_plan_v1' if event_book else 'gx1_gc_event_numeric_audit_plan_v1'
     if binding_path != root/(prefix+'_EXECUTION_BINDING.json'):
         raise RuntimeError('GC_EVENT_NUMERIC_BINDING_PATH')
     io.require_regular_file(binding_path, 'GC_EVENT_NUMERIC_BINDING')
@@ -1598,7 +1828,7 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False):
     start, end, seal = [t.value for t in stamps]
     from gx1.contracts.gc_source_disposition_v1 import STUDY_START_NS, WINDOW_END_NS
     if (not STUDY_START_NS <= start < end <= seal or seal != WINDOW_END_NS
-            or (trade and start != STUDY_START_NS)):
+            or ((trade or smc) and start != STUDY_START_NS)):
         raise RuntimeError('GC_EVENT_NUMERIC_SCAN_BOUNDARY')
     publication = binding_read(plan['publication_terminal'])
     source_root = Path(plan['publication_terminal']['path']).parent
@@ -1608,10 +1838,11 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False):
             or publication['source_unchanged'] is not True or publication['test_data_used'] is not False):
         raise RuntimeError('GC_EVENT_NUMERIC_PUBLICATION')
     inputs = plan['inputs']; tfs = ('M5','M15','H1','H4','D1')
-    keys = {'m1_trade','m1_trade_sizes','timeframes'} if trade else {'m1_events','m1_book','strict_m5_book','timeframes'} if event_book else {'m1_events','timeframes'}
+    keys = {'m1_smc','roll_schedule','timeframes','strict_m5_price'} if smc else {'m1_trade','m1_trade_sizes','timeframes'} if trade else {'m1_events','m1_book','strict_m5_book','timeframes'} if event_book else {'m1_events','timeframes'}
     if set(inputs) != keys or set(inputs['timeframes']) != set(tfs):
         raise RuntimeError('GC_EVENT_NUMERIC_INPUT_INVENTORY')
-    files = {'M1_GC_INPUTS.parquet':inputs['m1_trade'],
+    files = {'M1_GC_INPUTS.parquet':inputs['m1_smc'],'ROLL_SCHEDULE.json':inputs['roll_schedule'],
+        'M5_GC_FEATURES.parquet':inputs['strict_m5_price']} if smc else {'M1_GC_INPUTS.parquet':inputs['m1_trade'],
         'M1_TRADE_SIZE_STATISTICS_UNMASKED.parquet':inputs['m1_trade_sizes']} if trade else {'M1_EVENT_DIAGNOSTICS.parquet': inputs['m1_events']}
     files.update({'TRADE_FEATURES_'+tf+'.parquet': inputs['timeframes'][tf] for tf in tfs})
     if event_book:
@@ -1629,7 +1860,26 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False):
     common = ['bar_start_ns','available_ns','contract_index']
     source_columns = common + ['qualified_final_event_count'] + [d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns')]
     if event_book:source_columns=common+list(GC_EVENT_REFERENCE_REDUCERS)+['qualified_covered_ns']
-    if trade:
+    if smc:
+        m1,m1_groups=read_smc_numeric_inputs(inputs,start,end,seal)
+        stamps=m1['bar_start_ns']
+        if (stamps.dtype!=np.dtype('int64') or not len(stamps) or stamps[0]!=start or stamps[-1]!=end-MINUTE
+                or len(stamps)!=(end-start)//MINUTE or np.any(np.diff(stamps)!=MINUTE)):
+            raise RuntimeError('GC_SMC_REFERENCE_FULL_PUBLISHED_M1_GRID')
+        from gx1.features.gc_order_flow_v1 import PRICE_SCALE
+        roll=io.read_json(Path(inputs['roll_schedule']['path']))
+        symbols=roll['contract_order'];metadata=roll['metadata_identity']
+        ticks={metadata[symbol][2] for symbol in symbols}
+        if (roll['origin_ns']!=start or not symbols or len(set(symbols))!=len(symbols) or len(ticks)!=1
+                or not np.issubdtype(m1['contract_index'].dtype,np.integer)
+                or np.any(m1['contract_index']>=len(symbols))):
+            raise RuntimeError('GC_SMC_REFERENCE_ROLL_METADATA')
+        tick_size=next(iter(ticks));tolerance=plan['pivot_comparison_tolerance_usd']
+        if tolerance!=1e-12:raise RuntimeError('GC_SMC_REFERENCE_OWNER_PIVOT_TOLERANCE_CHANGED')
+        accepted=np.asarray(m1['volume_valid'],bool)
+        maximum=max(int(np.max(np.abs(m1[name][accepted]),initial=0)) for name in GC_SMC_M1_COLUMNS[4:])
+        price_order=validate_smc_tick_order(maximum,tick_size,PRICE_SCALE,tolerance)
+    elif trade:
         m1,trade_stats,m1_groups,trade_size_groups=read_trade_numeric_inputs(inputs,start,end,seal)
         stamps=m1['bar_start_ns']
         if (not len(stamps) or stamps[0]!=start or stamps[-1]!=end-MINUTE
@@ -1644,7 +1894,9 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False):
     if event_book:
         book,book_groups=read_event_numeric_book(Path(inputs['m1_book']['path']),start,end,seal,m1)
     for tf in tfs:
-        if trade:
+        if smc:
+            reference,bounds,units=reference_smc_aggregates(m1,tf,tick_size,PRICE_SCALE)
+        elif trade:
             reference,bounds,units=reference_trade_aggregates(
                 m1['bar_start_ns'],m1['contract_index'],m1,trade_stats,known,cvd,tf)
         elif event_book:
@@ -1656,10 +1908,21 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False):
         reference = {name: value[keep] for name,value in reference.items()}
         columns = common[:2] + ['observed_event_valid','observed_event_accepted_minutes'] + [
             'observed_event_'+d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns','_mean_ns','_valid')]
-        if event_book or trade:columns=list(reference)
+        if event_book or trade or smc:columns=list(reference)
         actual, groups = read_event_numeric_columns(Path(inputs['timeframes'][tf]['path']),columns,start,end,seal)
         keep = actual['available_ns'] <= end; actual = {name:value[keep] for name,value in actual.items()}
-        if trade:
+        if smc:
+            bounds={name:value[reference_keep] for name,value in bounds.items()}
+            reports[tf]={'fields':compare_trade_reference(reference,actual,bounds,units)}
+            for name,item in reports[tf]['fields'].items():
+                if units[name]=='binary':item['positive_reference_values']=int(np.count_nonzero(reference[name]==1))
+            if tf=='M5':
+                names=common+['close_usd'];values={name:reference[name] for name in names}
+                limits={name:bounds[name] for name in names};price_units={name:units[name] for name in names}
+                old,old_groups=read_event_numeric_columns(Path(inputs['strict_m5_price']['path']),names,start,end,seal)
+                take=old['available_ns']<=end;old={name:value[take] for name,value in old.items()}
+                strict_report={'fields':compare_trade_reference(values,old,limits,price_units),'decoded_row_groups':old_groups}
+        elif trade:
             bounds={name:value[reference_keep] for name,value in bounds.items()}
             reports[tf]={'fields':compare_trade_reference(reference,actual,bounds,units),
                 'known_endpoint_before_tf_end_buckets':int(np.count_nonzero(
@@ -1722,6 +1985,21 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False):
             unregistered_strict_outputs_are_auxiliary=True,native_availability_projection_proven=False,
             cumulative_reset_clock='UTC date, contract, invalid M1 or nonconsecutive minute',
             published_trade_masks_reused_without_raw_reconstruction=True)
+    if smc:
+        active,strict_active=smc_numeric_active_fields()
+        for tf,fields in active.items():
+            for column in fields:
+                if not reports[tf]['fields'][column]['numeric_reference_qualified']:
+                    raise RuntimeError('GC_SMC_REFERENCE_ACTIVE_FIELD_UNOBSERVED:'+tf+':'+column)
+        if not strict_report['fields']['close_usd']['numeric_reference_qualified']:
+            raise RuntimeError('GC_SMC_REFERENCE_BOOK_CLOSE_UNOBSERVED')
+        result.update(status='COMPLETE_SCOPED_SMC_PRICE_M1_TO_TF_REFERENCE',
+            reference_uses_published_float64_M1_sums=False,reference_uses_published_integer_M1_ohlc=True,
+            active_field_names=active,strict_m5_active_field_names=strict_active,strict_m5_price=strict_report,
+            integer_price_order_proof=price_order,unregistered_strict_outputs_are_auxiliary=True,
+            native_availability_projection_proven=False,published_volume_masks_reused_without_raw_reconstruction=True,
+            pivot_confirmation='three completed right candles; independent causal prefixes',
+            observed_gap_semantics='pivot memory retained; zones and origins censored after whole missing same-contract candle')
     output = staging/(prefix+'_RESULT.json'); io.write_json(output,result)
     io.write_json(staging/(prefix+'_TERMINAL.json'), {'status':'COMPLETE','exit_code':0,
         'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),
@@ -1736,8 +2014,10 @@ if __name__=='__main__':
     group.add_argument('--gc-event-numeric-binding',type=Path)
     group.add_argument('--gc-event-book-numeric-binding',type=Path)
     group.add_argument('--gc-trade-numeric-binding',type=Path)
+    group.add_argument('--gc-smc-numeric-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.gc_trade_numeric_binding is not None:run_gc_event_numeric(args.gc_trade_numeric_binding,trade=True)
+    if args.gc_smc_numeric_binding is not None:run_gc_event_numeric(args.gc_smc_numeric_binding,smc=True)
+    elif args.gc_trade_numeric_binding is not None:run_gc_event_numeric(args.gc_trade_numeric_binding,trade=True)
     elif args.gc_event_book_numeric_binding is not None:run_gc_event_numeric(args.gc_event_book_numeric_binding,event_book=True)
     elif args.gc_event_numeric_binding is not None:run_gc_event_numeric(args.gc_event_numeric_binding)
     elif args.binding is not None:run(args.binding)

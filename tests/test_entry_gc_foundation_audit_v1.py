@@ -623,3 +623,186 @@ def test_trade_numeric_full_unsigned_unknown_keeps_known_contributions_all_tf(ti
     for name,value in {'buy_contracts':buy,'sell_contracts':0,'unknown_contracts':unknown,
             'volume_contracts':volume,'known_delta_contracts':buy,'observed_minutes':count}.items():
         assert out['observed_known_cumulative_'+name][0]==value,name
+
+
+# Literal integer-grid SMC paths: no mocked producer pivots or future labels.
+def _smc_ob_candles(mirror=False):
+    high=np.array([9,10,11,14,12,11,10,11,15,14,13,12,11,10,9,8])*4
+    low=high-16;low[4]=12
+    close=high-4;close[8]=58
+    open_=close+2;open_[8]=59
+    candles=np.column_stack((open_,high,low,close)).astype(np.int64)
+    if mirror:candles=np.column_stack((200-open_,200-low,200-high,200-close)).astype(np.int64)
+    return candles,np.arange(10,26,dtype=np.uint64)
+
+
+def _smc_m1_candles(timeframe, candles):
+    size=_CLOCK_MINUTES[timeframe];duration=size*MINUTE
+    origin=pd.Timestamp('2024-05-02T00:00:00Z').value
+    origin=((origin-(22*60*MINUTE)%duration)//duration)*duration+(22*60*MINUTE)%duration
+    n=len(candles)*size;minutes=origin+np.arange(n,dtype=np.int64)*MINUTE
+    repeated=np.repeat(candles,size,axis=0)
+    return {'bar_start_ns':minutes,'contract_index':np.zeros(n,np.int16),
+        'volume_valid':np.ones(n,bool),'volume':np.repeat(np.arange(10,10+len(candles),dtype=np.uint64),size),
+        **{name:repeated[:,column].copy() for column,name in enumerate(('open_tick','high_tick','low_tick','close_tick'))}}
+
+
+@pytest.mark.parametrize('mirror',[False,True])
+def test_smc_numeric_literal_pivot_ties_right_three_and_one_shot_events(monkeypatch,mirror):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import smc_v1 as owner
+    high=np.array([9,10,11,14,12,11,10,15,15,14,13,12,16,17,16,18])*4
+    low=np.zeros(len(high),np.int64)
+    close=np.array([8,9,10,13,11,10,9,13,14,13,12,11,14,16,14,16])*4
+    open_=close+1;candles=np.column_stack((open_,high,low,close))
+    if mirror:candles=np.column_stack((200-open_,200-low,200-high,200-close))
+    producer=owner.replay_volume_order_block_proxies_v1
+    def forbidden(*args,**kwargs):raise AssertionError('independent oracle delegated producer')
+    with monkeypatch.context() as blocked:
+        for name in ('replay_volume_order_block_proxies_v1','replay_smc_causal_structure_v2','_detect_swing_pivots'):
+            blocked.setattr(owner,name,forbidden)
+        out,pivots=audit.reference_smc_sequence(candles,np.arange(10,26,dtype=np.uint64))
+        for end in range(1,len(candles)+1):
+            prefix=audit.reference_smc_sequence(candles[:end],np.arange(10,10+end,dtype=np.uint64))[0]
+            for name in out:np.testing.assert_equal(prefix[name],out[name][:end])
+    direction='down' if mirror else 'up';level='low' if mirror else 'high'
+    assert pivots['last_'+level+'_idx'][:6].tolist()==[-1]*6
+    assert pivots['last_'+level+'_idx'][6:12].tolist()==[3,3,3,3,7,8]
+    assert np.flatnonzero(out['sweep_'+direction+'_event']==1).tolist()==[7,12]
+    assert np.flatnonzero(out['bos_'+direction]==1).tolist()==[13]
+    actual=producer(*[candles[:,j]*.25 for j in range(4)],np.arange(10,26,dtype=np.uint64))
+    for name,values in out.items():
+        expected=values*.25 if name.endswith(('_low','_high')) else values
+        np.testing.assert_equal(actual[name],expected)
+
+
+@pytest.mark.parametrize('mirror',[False,True])
+def test_smc_numeric_literal_origin_zone_first_retouch_equality_and_invalidation(mirror):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    candles,volume=_smc_ob_candles(mirror);out,_=audit.reference_smc_sequence(candles,volume)
+    side='bear' if mirror else 'bull';p='ob_'+side+'_'
+    assert out['structure_available'].tolist()==[0]*16
+    assert out[p+'input_valid'][:6].tolist()==[0]*6 and out[p+'input_valid'][6]==1
+    assert np.isnan(out[p+'active'][:6]).all() and out[p+'active'][6:8].tolist()==[0,0]
+    assert out[p+'created'][8]==out[p+'active'][8]==1 and out[p+'first_retouch'][8]==0
+    assert out[p+'origin_volume_contracts'][8:16].tolist()==[17]*8
+    assert out[p+'age_bars'][8:16].tolist()==list(range(8))
+    lower,upper=(156,172) if mirror else (28,44)
+    assert out[p+'low'][8]==lower and out[p+'high'][8]==upper
+    assert out[p+'first_retouch'][9:11].tolist()==[1,0] and out[p+'active'][15]==1
+    changed=candles.copy()
+    if mirror:changed[9,1]=176;changed[9,3]=174
+    else:changed[9,2]=24;changed[9,3]=26
+    invalid=audit.reference_smc_sequence(changed,volume)[0]
+    assert invalid[p+'active'][9]==invalid[p+'first_retouch'][9]==0
+    for field in ('low','high','age_bars','origin_volume_contracts'):assert np.isnan(invalid[p+field][9])
+
+
+@pytest.mark.parametrize('mirror',[False,True])
+def test_smc_numeric_created_can_invalidate_immediately_without_current_origin(mirror):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    high=np.array([30,10,11,12,14,12,11,10,16])*4;low=high-12;low[0]=80
+    close=np.array([21,9,10,11,13,11,10,9,15])*4;open_=close-1;open_[0]=116
+    candles=np.column_stack((open_,high,low,close))
+    if mirror:candles=np.column_stack((200-open_,200-low,200-high,200-close))
+    out,_=audit.reference_smc_sequence(candles,np.arange(10,19,dtype=np.uint64))
+    p='ob_'+('bear' if mirror else 'bull')+'_'
+    assert out[p+'created'][8]==1 and out[p+'active'][8]==out[p+'first_retouch'][8]==0
+    assert np.isnan(out[p+'origin_volume_contracts'][8]) and np.isnan(out[p+'age_bars'][8])
+
+
+@pytest.mark.parametrize('timeframe',tuple(_CLOCK_MINUTES))
+def test_smc_numeric_all_tf_partial_price_ignores_unadmitted_extremes(timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    size=_CLOCK_MINUTES[timeframe]
+    m1=_smc_m1_candles(timeframe,np.array([[100,1000,1,100]],np.int64))
+    m1['volume_valid'][:]=False;m1['volume_valid'][[1,size-2]]=True
+    m1['volume'][:]=999999;m1['volume'][[1,size-2]]=[2,3]
+    for name,values in zip(audit.GC_SMC_M1_COLUMNS[4:],([100,120],[110,130],[90,115],[105,125])):
+        m1[name][[1,size-2]]=values
+    out,bounds,units=audit.reference_smc_aggregates(m1,timeframe,100000000,10**9)
+    assert out['observed_volume'].tolist()==[5] and out['observed_valid'].tolist()==[True]
+    assert out['volume_valid'].tolist()==[False]
+    for name,value in zip(audit.GC_SMC_PRICE_FIELDS,(10,13,9,12.5)):
+        assert out['observed_'+name][0]==value and np.isnan(out[name][0])
+    assert out['observed_first_minute_ns'][0]==m1['bar_start_ns'][1]
+    assert out['observed_last_minute_ns'][0]==m1['bar_start_ns'][size-2]
+    report=audit.compare_trade_reference(out,{k:v.copy() for k,v in out.items()},bounds,units)
+    assert report['observed_proxy_ob_bull_low']['numeric_reference_qualified'] is False
+    # Physical missing M1 is distinct from a complete clock with false admission.
+    missing={name:np.delete(value,0) for name,value in m1.items()}
+    assert not audit.reference_smc_aggregates(missing,timeframe,100000000,10**9)[0]['observed_valid'][0]
+
+
+@pytest.mark.parametrize('timeframe',tuple(_CLOCK_MINUTES))
+def test_smc_numeric_all_tf_full_partial_missing_and_contract_reset_domains(timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    candles,_=_smc_ob_candles();size=_CLOCK_MINUTES[timeframe]
+    m1=_smc_m1_candles(timeframe,candles)
+    full=audit.reference_smc_aggregates(m1,timeframe,100000000,10**9)[0]
+    assert full['ob_bull_created'][8]==full['observed_proxy_ob_bull_created'][8]==1
+    assert full['ob_bull_origin_volume_contracts'][8]==17*size
+    assert full['observed_proxy_ob_bull_first_retouch'][9]==1
+    # A partial candle preserves the observed zone; strict replay starts over.
+    m1['volume_valid'][9*size:10*size]=False;m1['volume_valid'][[9*size+1,10*size-2]]=True
+    partial=audit.reference_smc_aggregates(m1,timeframe,100000000,10**9)[0]
+    assert partial['observed_proxy_ob_bull_active'][9]==1 and partial['observed_proxy_ob_bull_first_retouch'][9]==1
+    assert partial['observed_proxy_skipped_candles'][9]==0 and np.isnan(partial['ob_bull_active'][9])
+    # A whole missing same-contract candle keeps pivots but censors zones/origins.
+    m1['volume_valid'][9*size:10*size]=False
+    missing=audit.reference_smc_aggregates(m1,timeframe,100000000,10**9)[0]
+    assert missing['observed_proxy_ob_bull_input_valid'][10]==1
+    assert missing['observed_proxy_skipped_candles'][10]==1
+    assert np.isnan(missing['observed_proxy_ob_bull_active'][10])
+    assert not missing['observed_proxy_ob_bull_state_valid'][10] and missing['ob_bull_input_valid'][10]==0
+    # Even a contract change in a filtered-out bucket resets observed pivots.
+    m1['contract_index'][9*size]=1
+    rolled=audit.reference_smc_aggregates(m1,timeframe,100000000,10**9)[0]
+    assert not rolled['observed_contract_valid'][9]
+    assert rolled['observed_proxy_ob_bull_input_valid'][10]==0
+    assert np.isnan(rolled['observed_proxy_elapsed_minutes'][10])
+
+
+def test_smc_numeric_rational_price_bounds_cover_both_owner_orders_and_tick_separation():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    for tick in (23141,26003,100000001):
+        expected,bound=audit.smc_price_reference(tick,100000000,10**9)
+        assert abs(float(tick)*(100000000/10**9)-expected)<=bound
+        assert abs(float(tick)*100000000/10**9-expected)<=bound
+    assert audit.validate_smc_tick_order(100000001,100000000,10**9,1e-12)['ordering_separation_proven']
+    with pytest.raises(RuntimeError,match='TICK_TOLERANCE_NOT_SEPARATED'):
+        audit.validate_smc_tick_order(100000001,1,10**20,1e-12)
+
+
+def test_smc_numeric_real_eight_column_projection_and_admission_schema(monkeypatch):
+    import pyarrow.parquet as pq
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1=_smc_m1_candles('M5',np.array([[100,110,90,105]],np.int64))
+    stream=pa.BufferOutputStream();pq.write_table(pa.table(m1),stream)
+    reader=pq.ParquetFile(pa.BufferReader(stream.getvalue()))
+    monkeypatch.setattr(audit.pq,'ParquetFile',lambda path:reader)
+    values,groups=audit.read_smc_numeric_inputs({'m1_smc':{'path':'core'}},int(m1['bar_start_ns'][0]),
+        int(m1['bar_start_ns'][-1]+MINUTE),pd.Timestamp('2026-07-01T00:00:00Z').value)
+    assert set(values)==set(audit.GC_SMC_M1_COLUMNS) and len(values)==8 and 'available_ns' not in values and groups==[0]
+    for bad in (np.array([2]*5),np.array([np.nan]*5)):
+        changed={k:v.copy() for k,v in m1.items()};changed['volume_valid']=bad
+        with pytest.raises(RuntimeError,match='M1_SCHEMA'):audit.validate_smc_m1_schema(changed)
+    changed={k:v.copy() for k,v in m1.items()};changed['volume']=changed['volume'][:-1]
+    with pytest.raises(RuntimeError,match='M1_SCHEMA'):audit.validate_smc_m1_schema(changed)
+
+
+def test_smc_numeric_actual_registry_198_and_auxiliary_outputs():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_native_context_v1 as owner,smc_v1 as formulas
+    declared,book=audit.smc_numeric_active_fields()
+    assert [len(fields) for fields in declared.values()]==[53,52,32,32,28]
+    expected={name for fields in declared.values() for name in fields.values()}|set(book.values());actual=set()
+    for tf,columns in declared.items():
+        tables={'TRADE_FEATURES_'+tf+'.parquet','retained::TRADE_FEATURES_'+tf+'.parquet'}
+        actual.update(field['name'] for field in owner.REGISTRY['fields'] if field['table'] in tables and field['column'] in columns)
+    actual.update(field['name'] for field in owner.REGISTRY['fields'] if field['table']=='M5_GC_FEATURES.parquet' and field['name'] in book.values())
+    assert len(expected)==198 and actual==expected and expected<=set(owner.contract()['value_fields'])
+    assert audit.GC_SMC_FIELDS==formulas.VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1 and len(audit.smc_reference_units())==65
+    trade={name for fields in audit.trade_numeric_active_fields().values() for name in fields.values()}
+    event={name for fields in audit.event_book_numeric_active_fields().values() for name in fields.values()}
+    assert not expected.intersection(trade|event)
