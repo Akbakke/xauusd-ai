@@ -89,8 +89,16 @@ registrerer faktisk hostdispatch med CPU-only profiler; max/RMS, antall avvik,
 outputstørrelse og gjenoppretting følger PARITY_FAILURE.json ved feil. Ingen
 ny forward, kernelendring eller toleranseendring. Hostdispatch er ikke CUDA-
 kernel-/hastighetsbevis; overhead er umålt. Årsaken til091avviket er fortsatt
-ubevist. 092 er bundet til én capped4G kilde-/syntetisk kontroll av finite scopes,
-paritet og feildiagnose. Ingen ekte modelldata/updates/nativeinnrømmelse.
+ubevist. 092 er COMPLETE:95PASS/3eldre uaktuelle kombinasjonerSKIP,0fail/error,
+40.089s og uendret kilde. De tre nye diagnosecasene bestod. SOURCE_REVIEW
+SHA612fd6ce722f8bb2f146607a6c1303972f9cb2f3f4d4e5f0836d5e0005fecca2.
+Ny closureb552bdb173050cbf7a8113ff71822ad6da049759cad57594cae68eaa391e3519
+har182roller/181filer/7152709B; bare FullTrain-stien endret fra088/f571.
+Ingen ekte modelldata-forward/update eller målt ny I/O-gevinst.093CPUfresh
+er nå bundet til én4Gaudit/7200s klargjøring med dette kildeoverlegget; eksisterende
+055/057/059inputs gjenbrukes. PlanSHA17527caa428a02fb9d91059d0e8e4392b688ea1233c7cbb716047aa3bd25be53.
+Begge faktiske metadatahjelpere bestod før launch (0.121s), uten produsent eller
+modelldata. Ny094initial er bare fremtidig outputsti; ingen nativeadgang følger.
 
 088fresh/089initial32forwards/090state-RNG-audit forblir faktiske bevis vedf571.
 Ny full_train-byte krever ny closure/fresh/initial0/stateaudit gjennom eksisterende
