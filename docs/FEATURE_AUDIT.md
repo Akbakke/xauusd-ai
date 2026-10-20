@@ -297,7 +297,8 @@ forventningsclaim. Ratioen kunne ikke avstå på grunn av høy MAE alene.
 
 Dynamisk fysisk TRAIN118249/VAL17284 og fersk wholeTRAIN-registryfit er
 fullført i047/048/049. Gjeldende051fysisk metadatabinding og053full input-liveness er fullført.
-055wholeTRAIN-normalisering er bestått; fersk initialbaseline/paritet og dynamisk læring gjenstår. Den ene
+055wholeTRAIN-normalisering er bestått. Aktuell initialbaseline står i policy;
+paritet og dynamisk læring krever fortsatt egne målte bevis. Den ene
 bestilte epoken krever fortsatt alle eksisterende kildescope-/input-/mål-/
 optimizer-/resume-/maskinvareporter. Dette dokumentet og handovervelgeren gir
 ingen launchautoritet; status og eksakte bevisbindinger eies av policyen.
@@ -343,9 +344,9 @@ alle2410GCkanaler beholdes. Lokal candle-rute inneholder74GCkanaler og
 volatility-ruten102; familienavn alene gir ingen trygg slukking av MBP.
 061implementerer2622/2525/139 og7lokal/5MTF som én canonical profil med
 streng navn/SHA-reference, full fysisk055validering før gather og reelt modulskip.
-061har380godkjente source-/syntetiske modellcaser; genuin konsum-/latencymåling
-gjenstår. Legacy wholefeature LIVE-only-audit skal fortsatt avvise conditional
-GC-/maskestatus; dens forventede avvisning er separat fra faktisk053liveness.
+061har380godkjente source-/syntetiske modellcaser. Aktuell initialbaseline
+måler ekte512entries; full individuell konsum- og latencymåling gjenstår. Legacy wholefeature LIVE-only-audit skal fortsatt avvise
+conditional GC-/maskestatus; dens forventede avvisning er separat fra faktisk053liveness.
 Fullbibliotek og eksakte rawkilder beholdes; ingen ekstra fit/HPO følger av dette.
 
 Den avgrensede13felt-kontrollen i065/MACRO13_READ_ONLY_REVIEW.json binder
@@ -366,3 +367,42 @@ count/sum/max med filankertilbakestilling. Hver har håndberegnet tallfasit på
 alle femTF (20caser). Alle20casene bestod i065s faktiske707PASS-kjøring. Dette er uavhengige
 tallreferanser, ingen aktuell fysisk26måneders formel-/modellkonsumPASS.
 Produksjonsformlene er uendret.
+
+## Supplerende formel-, enhets- og warmupbevis
+
+Manifestet i `/home/andre2/GX1_RUNS/NATIVE_M5_READONLY_FORMULA_UNIT_WARMUP_20261020_001/MANIFEST.json`
+binder19aktuelle små kildefiler og fire adjudikasjonsrapporter. SHA er
+b4919b15710a957b34c406d04a9175963272c0748fa35f68f29ebddf93773911.
+060s opprinnelige indeks bevares. Dette er kildeavledet semantikk, ingen
+ny fysisk rådatareplay, modellforward, numerisk fullfasit eller læringsPASS.
+
+De disjunkte GCgruppene er215profil-/T-felt,75BBO-/flowfelt og60SMCfelt:
+350verdier med350separate observasjonsmasker. Kildeformel, enhet, klokke,
+reset, warmup og eksisterende referansers konkrete grenser er dokumentert.
+855øvrige GCverdier er ikke revidert av denne bølgen.23tekniske formler er
+beskrevet på alle femTF:115outputposter, ikke115uavhengige indikatorer.
+
+Profilrapporten skiller GCkontraktvolumvektet tradeVWAP fra OHLC/tickVWAP;
+15/60minutters profil bruker3/12M5bøtter også ved lukket høyereTF-kontekst.
+POC-ties velger laveste pris;70%valuearea utvides sammenhengende med eksplisitt
+tie-regel. Trade-recordstørrelse er ikke kundens parentordre. Ingen egen
+POC-konsentrasjons-/HHI-skalar ble funnet; dette er et mulig utvidelsesforslag,
+ikke en målt feil som åpner en ny rebuild.
+
+Bokrapporten skiller tidsvektet BBO-sizeimbalance/mikropris, vist antall/
+størrelse og eksekverte T-poster. Spreadutvidelse er count/sum/max i ticks,
+ikke en kalibrert shock-zscore. Full uavhengig raw→M1→alleTF-fasit for hele
+OFI/refill/depletion-vektoren og kombinerte reset-/feildomener gjenstår.
+
+SMCrapporten beskriver mekaniske observerte proxyer: trehøyrebarsbekreftede
+pivoter, engangsBOS/sweep, tidligere motsatt candle som OB-opprinnelse og
+senere wick-retouch. Age teller observerte candles. Hull nullstiller soner;
+latest-invalid maskeres uten fallback til eldre gyldig signal. H4-klokken
+starter02/06/10/14/18/22UTC og D1 ved22UTC. Volum følger opprinnelsescandlen;
+det er ingen påstand om institusjonsidentitet eller volumterskel for BOS.
+
+Teknisk rapport beskriver WilderATR/RSI/ADX-seeding, EMA/SMA-seed og slope-lag,
+stack/stateage, quote-volumeVWAP, BBpopulationddof0, enheter og første gyldige
+rad perTF. Gyldige nullverdier skilles fra udefinerte normaliserte kvotienter.
+Formel-/warmupbevis alene erstatter ikke uavhengig numerisk kontroll av alle
+felt, faktisk modellkonsum eller etterfølgende kvalifisert læring.

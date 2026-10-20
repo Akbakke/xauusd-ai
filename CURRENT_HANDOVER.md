@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —099 faktisk ferdig;100 initial0 skal bindes
+## Aktuell grense —100 initial0 bestått;101 tilstandskontroll klar
 
 097 er konsumert FAILED/guardexit1 før optimizer:2TRAIN-forwards/0CONTROL,
 maxterminalavvik0.000135153532bps mot låst1e-4. Original PARITY_FAILURE.json
@@ -90,24 +90,46 @@ konsumert; ingen relansering. Worker rchar49.229GB er logiske lesebytes;
 lagringsregnskap44.181GB er separat. Ingen påstand om samlet host-I/O eller
 målt nativehastighetsgevinst. De ferdige datasettene og normaliseringen gjenbrukes.
 
-Ny100 initial0 er eneste neste modellkjøring: samme frosne256TRAIN+256CONTROL,
-32Entry-forwards/0updates/0refit.100recipe/campaign skal bindes til099s faktiske
-freshartefakter,098closure og nåværende kilde/policy. Ny fysisk Windowsboot
-og signerte maskinvarevakter kreves.100BUNDLE er foreløpig sti, ingen utført
-nativekjøring. Globaltraining/fullEpoch/fullVAL=false. Gjenbruk095/096 som
-historiske b552-bevis, ikke initialbaseline for nye kildebytes. Etter100 kreves
-fersk stateaudit og faktisk paritet/Entry-onlyoptimizer/resume før bestilt epoke.
+100 er faktisk COMPLETE/guardPASS/exit0, konsumert20.10 kl.05:56:46UTC.
+TRAIN256+CONTROL256 ga16+16Entry-forwards,0optimizersteg og0Exit-forwards.
+Initialmålingen tok1869.792s; kanonisk invokasjon2049.761s. Komponentoppsett
+739.453s og checkpointskriving0.539s. Forrige095initialmåling tok2589.611s;
+dette er observerte rundetider, ikke kontrollert A/B eller treningshastighet.
+Mål/kohorter/seks komponentmasker er bevart mot095; queryaksen er1..480.
+Initiale handlinger TRAIN3LONG/0SHORT/253FLAT, CONTROL256FLAT er ikke lært
+selektivitet. Modell/anker-statehash9c4cf514… er lik099constructor.
+Alle182kilder SHA/stat,39statiske artefakter og11inputidentiteter er bevart.
+Ingen rådatastrøm ble rehashet av sluttkontrollen.100task er deaktivert med
+LastTaskResult0 og ingen bundne prosesser. ACTUAL_TERMINAL_REVIEW.json:
+220a6360d25a3d6e57db92b6bd2ddeaac4ca01efc15f78df0542998fcd065b98.
 
-Seneste Boot511/20.10 kl.03:24:10.500UTC er bekreftet med WindowsSSH/Ubuntu;
-097/REBOOT_CONFIRMED SHA c16f593ad9e29f036d18f9e9ace92740705c466c5cb775a47b9182b4aa49d4e4.
-Dette er ingen100adgang. Bestilt epoke, full indikatorrevisjon og lært
-LONG/SHORT/FLAT-kvalitet/dekning/sporbarhet gjenstår. Ingen lærings-,
-generaliserings- eller økonomisk edge-konklusjon. TEST/Exit/broker stengt.
+Ny101 er bare én capped4G/512M CPUkontroll av faktisk099fresh og100lagret
+initialtilstand. Eksakt modell/anker/optimizer/EMA/scheduler og lagret CPU/
+Python/NumPyRNG skal sammenlignes med eksisterende streng eier. Ingen modell-
+forward, update, refit eller nativecampaign. Etter101 kreves en ny eksakt
+native teknisk4-plan for paritet/Entry-onlyoptimizer/resume før bestilt epoke.
+100/095/096/097 er konsumert og skal ikke relanseres.
+
+Seneste fysiske WindowsBoot512/20.10 kl.05:18:17.500UTC er bekreftet med
+WindowsSSH/Ubuntu,182kilder/39artefakter/11inputidentiteter bevart.
+100/REBOOT_CONFIRMED SHA e82a5f3a013a294af02221d755f05c0e398fb153a52f0097c5187005695674bf.
+Dette er gjennomført100profilboot; neste nativecampaign har egne porter.
+
+Individuelt formel-/enhets-/warmupbevis er supplert for350GCverdier med350
+separate masker og23tekniske formler×5TF=115feltposter. De tre GCgruppene
+215profil/trade+75bok/flow+60SMC er disjunkte. Manifest under
+NATIVE_M5_READONLY_FORMULA_UNIT_WARMUP_20261020_001 harSHA
+b4919b15710a957b34c406d04a9175963272c0748fa35f68f29ebddf93773911.
+Dette er kildebevis;855andreGCverdier er ikke behandlet i denne bølgen,
+og komplette uavhengige tallreferanser og individuelt modellkonsum gjenstår.
+Bestilt epoke, full indikatorrevisjon og lært kvalitet/dekning/sporbarhet er
+fortsatt uferdig. Ingen lærings-, generaliserings- eller økonomisk edge-konklusjon.
+TEST/Exit/broker er stengt.
 
 ## PC, opprydding og metode
 
 Brukerens18.10-omstart er utført;034/REBOOT_CONFIRMED.json er bindende.
-Ikke utfør samme bestilling igjen. Seneste separate før-native Boot511 er
+Ikke utfør samme bestilling igjen. Seneste separate før-native Boot512 er
 bekreftet med kvitteringen og bevaringsomfanget i aktuell grense ovenfor.
 Dette er ingen treningsadgang. Ny campaign følger egne ferske maskinvare-/
 bootkrav. Bruk kanonisk hasheier; campaign-JSON inkluderer avsluttende newline.
