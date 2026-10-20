@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T04:27:08.377618+00:00",
-  "status": "098_SOURCE_SYNTHETIC_COMPLETE_NEW_SOURCE_NATIVE_REBIND_PENDING",
+  "observed_utc": "2026-10-20T04:36:38.742160+00:00",
+  "status": "099_CPU_FRESH_READY_ACTUAL_METADATA_PREFIX_PRECHECK_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only098measured source repair/focusedqualification preparation; no genuine model/native execution.097consumed, originaldiagnostic/logs retained. Newsource requires freshclosure/freshinitial/baseline/state/parity/optimizerresume admission.",
-  "next_action": "Prepare new099CPUfresh only after exact087→092→098qualified sourcechain and completepublisher153–205precheck including065171–178; all055/057/059 inputs reused. Newcurrentclosure/freshinitial/initial0/stateaudit/actualCUDAparity/Entry-onlyoptimizerresume remain before requestedepoch. No098/097relaunch or nativeexecution now.",
+  "next_action": "Run actual099cappedmetadata-prefix206–259precheck (stopbefore260; noCLAIM/modelimport); onlyafterPASS runexact099one-shotCPUfresh withallguards/7200s/4G unchanged. Reuse055/057/059inputs; no native model/train/Exit/TEST/broker. Future100requiresnewexactinitialcampaign/hardware/freshboot after099completion.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "098source/syntheticqualificationCOMPLETE219PASS/3exactlegacySKIP;25newcasesPASS; sourceunchangedddc98c5e. New2productionpathclosurepublished, actualCUDA/speedpending.",
+    "current_activity": "099externalstrict087→092→098rebindingprepared/reviewed; exactCPUfreshplanbound, actualmetadata-prefixprechecknotyetexecuted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "NewsourceCPUfresh/baseline/parity/optimizerresume notyetbound. Needstrict099sourcechain overlay and fullpublisherprecheck, then actualnativeproof. Full epoch/trainingdisabled.",
+    "current_blocker": "Actual099metadata-prefixprecheck/freshCPUstillpending; no native/parity/epochadmission onnewsource.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare new099CPUfresh only after exact087→092→098qualified sourcechain and completepublisher153–205precheck including065171–178; all055/057/059 inputs reused. Newcurrentclosure/freshinitial/initial0/stateaudit/actualCUDAparity/Entry-onlyoptimizerresume remain before requestedepoch. No098/097relaunch or nativeexecution now.",
+    "next_action": "Run actual099cappedmetadata-prefix206–259precheck (stopbefore260; noCLAIM/modelimport); onlyafterPASS runexact099one-shotCPUfresh withallguards/7200s/4G unchanged. Reuse055/057/059inputs; no native model/train/Exit/TEST/broker. Future100requiresnewexactinitialcampaign/hardware/freshboot after099completion.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -14083,6 +14083,38 @@
           "actual_cuda_parity_repair_verified": false,
           "actual_io_gain_measured": false,
           "new_cases_passed": 25
+        },
+        "fresh_entry_preparation_stage_099": {
+          "status": "READY_EXACT_CAPPED_METADATA_PRECHECK_THEN_ONE_CPU_FRESH",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_COHORT_ATTENTION_20261020_099",
+          "plan_path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_COHORT_ATTENTION_20261020_099/PLAN.json",
+          "plan_sha256": "3b9020f0bac157a056c1286ae22c92c78b80752e5c9c73a46e43f34fc01d3834",
+          "execution_authorized": true,
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "relaunch_allowed": false,
+          "fresh_preparation_enabled": true,
+          "normalization_fit_enabled": false,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "entry_execution_profile": {
+            "name": "compact_mbp_smc_ema_atr_clock_macro_entry_v1",
+            "contract_sha256": "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125"
+          },
+          "source_bindings_sha256": "8517c075eb74dacc85c21c2441d6e00d23335f0eff02144bc32b5e009e41924f",
+          "genuine_market_model_forwards": 0,
+          "native_optimizer_updates": 0,
+          "test_data_used": false,
+          "current_cohort_attention_source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COHORT_IO_PARITY_PATH_REPAIR_20261020_098/SOURCE_REVIEW.json",
+            "sha256": "e92b41251f30821b8ef18747bc181dc6703cf522edeac728e4fa3d12ca284c22"
+          },
+          "prelaunch_source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_COHORT_ATTENTION_20261020_099/PRELAUNCH_REVIEW.json",
+            "sha256": "8d08302826b6ac185db210906400644dc72511f2fc05a3635777a36026669701"
+          },
+          "actual_metadata_precheck_required": true,
+          "future100_output_is_path_only_not_admission": true
         }
       },
       "operator_pc_reboot_20261018": {

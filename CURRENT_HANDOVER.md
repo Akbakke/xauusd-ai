@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —098 kilde/syntetikk bestått; ny nativebinding gjenstår
+## Aktuell grense —098 bestått;099 CPUfresh og full metadataprecheck bundet
 
 097 er FAILED/guardexit1,20.10 kl.03:56:24UTC, før optimizer. Faktisk diagnose
 ble atomisk publisert i DYNAMIC_M5_TECHNICAL_QUALIFICATION/PARITY_FAILURE.json,
@@ -106,8 +106,15 @@ paritet/Entry-only optimizer/resume gjennom eksisterende gater før epoken.
 Ny099CPUfresh må bevare087→092→098-kvalifiseringskjeden med nøyaktig
 de to098produksjonsstiene som overlay og to testfiler separat.087s direkte
 trener-SHA-kontroll og092s after-closure må bindes til korrekt generasjon.
-Prelaunch må gjennom hele publisher153–205, også065-koblingen171–178;
-controllerhjelpere alene fanget ikke den faktiske093-feilen.
+099-planSHA3b9020f0bac157a056c1286ae22c92c78b80752e5c9c73a46e43f34fc01d3834
+er bundet til én4G/7200s CPUfresh. Eksterne helpers bevarer087→092→098 og
+tillater nøyaktig to nye produksjonsstier/to testfiler. Fem helper-kopier er
+AST-identiske, canonicalproducer-kallet er uendret. Ny099publisher krever
+metadataprecheck206–259 inklusive, stopp før260;065-koblingen er225–232.
+Dette er lesekontroll med ekte cappedguard, uten falskCLAIM eller påstand
+om full admission. Controllerhjelpere alene fanget ikke den faktiske093-feilen.
+Precheck og CPUfresh er ennå ikke kjørt; kilde/policy fryses før dem.100BUNDLE
+er bare fremtidig sti, ikke nativeadgang. TRAIN/VAL/normalisering gjenbrukes.
 
 Gjenbruk095/096 som avgrenset b552-bevis:095 bestod32Entry-forwards,256TRAIN
 +256CONTROL,0updates,2589.611s. Alle registrerte utverdier, valg, mål-/maske-
