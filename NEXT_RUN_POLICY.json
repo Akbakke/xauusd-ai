@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T07:53:07.599077+00:00",
-  "status": "102_FAILED_CONSUMED__103_ENTRY_EPOCH_GUARD_AND_STARTUP_SCOPE_REPAIR",
+  "observed_utc": "2026-10-20T08:14:53.916631+00:00",
+  "status": "103_148_PASS__104_EXACT_CPU_FRESH_PRECHECK_THEN_ONE_SHOT_READY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "One exact100initial0 only after newcampaign/freshphysicalWindowsboot/signedhardware guards;32Entryforwards/0updates.099CPUfresh consumed;097native consumed. Native098parity repair andIOgain unproven. No fullnativeepoch until freshinitial/state/parity/Entry-onlyoptimizer/resume gates.",
-  "next_action": "Repair exact observed dynamicEntry epoch lifecycle mismatch and contiguous metadata doublevalidation in one sourcewave; focused source/synthetic qualification only. Preserve102 failure/privatecheckpoint and all inputs. Fresh exact source/native qualification required before ordered epoch; no consumed plan relaunch.",
+  "next_action": "Execute exactlyone capped104 metadata-prefix precheck over all publisher joins through line306, stopbefore307 recipe/model imports without any claim. Only after actualPASS runexact104 CPUfresh once via capped4G/512M/7200s. Reuse qualified051/055/057/059inputs and original087/092/098receipts; new103overlaydc1c changesonlytrainer. No native launch/modelforward/optimizerupdate/refit/Exit/TEST/broker or consumedplan relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,7 +82,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "103 exact measured dynamicEntry epoch guard repair plus finite startup metadata scope;102 consumed and taskDisabled.",
+    "current_activity": "104 exact CPUfresh ready after actual103 qualification; full metadata-prefix precheck required before one-shot claim.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -112,13 +112,13 @@
     "gc_goal_status": "MBP1_NATIVE_MTF_COMPLETION_IN_PROGRESS",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "ACTUAL102_FAILED_BEFORE_FIRST_TRAIN_BATCH_OR_UPDATE",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_PARITY_RESUME4_20261020_102",
+    "latest_terminal_role": "ACTUAL103_SOURCE_SYNTHETIC_ENTRY_EPOCH_GUARD_AND_FINITE_POLICY_SCOPE",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_EPOCH_GUARD_20261020_104",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_PARITY_RESUME4_20261020_102/TERMINAL_RECONCILIATION.json",
-      "sha256": "df368a32819ae339fb12129de0affe938d3aab33388a01d6009296353ac79350"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103/QUALIFICATION_TERMINAL.json",
+      "sha256": "1d828f3b236efd8c78073f84dfa7403891af1795213b31d9b800de16d036c954"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -136,7 +136,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Native technical qualification stopped at Exit lifecycle setter in Entry-only epoch loop before first training batch. Focused repair/qualification and fresh exact native binding remain before full epoch.",
+    "current_blocker": "104 physical CPUfresh not yet executed; actual newsource initial/native optimizer/resume and full ordered epoch remain gated.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -509,7 +509,7 @@
       "elapsed_seconds": 1016.7850262550019,
       "peak_rss_kib": 16341716
     },
-    "fresh_native_initial_state_complete": true,
+    "fresh_native_initial_state_complete": false,
     "native_initial_measurement_20261009": {
       "status": "COMPLETED_VERIFIED_NO_RELAUNCH",
       "policy_scope": {
@@ -7610,7 +7610,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Repair exact observed dynamicEntry epoch lifecycle mismatch and contiguous metadata doublevalidation in one sourcewave; focused source/synthetic qualification only. Preserve102 failure/privatecheckpoint and all inputs. Fresh exact source/native qualification required before ordered epoch; no consumed plan relaunch.",
+    "next_action": "Execute exactlyone capped104 metadata-prefix precheck over all publisher joins through line306, stopbefore307 recipe/model imports without any claim. Only after actualPASS runexact104 CPUfresh once via capped4G/512M/7200s. Reuse qualified051/055/057/059inputs and original087/092/098receipts; new103overlaydc1c changesonlytrainer. No native launch/modelforward/optimizerupdate/refit/Exit/TEST/broker or consumedplan relaunch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -14493,27 +14493,55 @@
           }
         },
         "entry_epoch_guard_startup_scope_repair_103": {
-          "status": "READY_ONE_FOCUSED_SOURCE_SYNTHETIC_QUALIFICATION",
+          "status": "COMPLETE_148_PASS_5_NEW_CASES_SOURCE_SYNTHETIC_ONLY",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103",
           "plan": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103/PLAN.json",
             "sha256": "71a37f9581f174edd60bfe2a0ee47e7e90c2ad221bbcf5646586616a5ead676c"
           },
           "source_edit_authorized": false,
-          "qualification_execution_authorized": true,
+          "qualification_execution_authorized": false,
           "execution_authorized": false,
           "planned_invocations": 1,
-          "completed_invocations": 0,
+          "completed_invocations": 1,
           "training_enabled": false,
           "native_training_admitted": false,
           "relaunch_allowed": false,
           "qualification": {
-            "execution_authorized": true,
+            "execution_authorized": false,
             "plan": {
               "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103/QUALIFICATION_PLAN.json",
               "sha256": "518a236391841d8c520401dc631a5578475bb56435c56d52350b98e720afd883"
             }
-          }
+          },
+          "source_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103/SOURCE_REVIEW.json",
+            "sha256": "89d506544e9193050b474cc042d66d48d02d4dadd844a1d84c898c6f75929521"
+          },
+          "static_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103/STATIC_AST_REVIEW.json",
+            "sha256": "d28cdd79333d0e72f9c76890a21f62b669c4573ff8ad3eb641ca879286a72e02"
+          },
+          "source_closure_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103/CURRENT_SOURCE_CLOSURE_REVIEW.json",
+            "sha256": "222df838c0290e55da79d3e1c2a995aac2c16d408bbff4fba6eb86cee02cceda"
+          },
+          "source_bindings_sha256": "dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d",
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103/QUALIFICATION_TERMINAL.json",
+            "sha256": "1d828f3b236efd8c78073f84dfa7403891af1795213b31d9b800de16d036c954"
+          },
+          "controller_terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103/QUALIFICATION_CONTROLLER_TERMINAL.json",
+            "sha256": "e6ba99f14e5a9825d295b1161f62014a50e04be0e0d31eb21057c633d18b1ba3"
+          },
+          "passed": 148,
+          "skipped": 0,
+          "failed": 0,
+          "errors": 0,
+          "new_cases_passed": 5,
+          "actual_io_gain_measured": false,
+          "actual_native_optimizer_resume_qualified": false
         },
         "training_efficiency_startup_diagnosis_102": {
           "source_review": {
@@ -14525,6 +14553,50 @@
           "actual_epoch_throughput_measured": false,
           "actual_io_gain_measured": false,
           "remediation_stage": "entry_epoch_guard_startup_scope_repair_103"
+        },
+        "fresh_entry_preparation_stage_104": {
+          "status": "READY_ONE_SHOT_CPU_FRESH_AFTER_EXACT_METADATA_PREFIX_PRECHECK",
+          "plan": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_EPOCH_GUARD_20261020_104/PLAN.json",
+            "sha256": "a5ecafcea9b4a4d5335e60e7ac247c9404ed3c82257aa553f975b526f3ff1a9b"
+          },
+          "plan_sha256": "a5ecafcea9b4a4d5335e60e7ac247c9404ed3c82257aa553f975b526f3ff1a9b",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_EPOCH_GUARD_20261020_104",
+          "execution_authorized": true,
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "fresh_preparation_enabled": true,
+          "normalization_fit_enabled": false,
+          "training_enabled": false,
+          "native_training_admitted": false,
+          "relaunch_allowed": false,
+          "entry_execution_profile": {
+            "name": "compact_mbp_smc_ema_atr_clock_macro_entry_v1",
+            "contract_sha256": "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125"
+          },
+          "max_wall_seconds": 7200,
+          "metadata_prefix_precheck_required_before_claim": true,
+          "metadata_prefix_precheck_authorized": true,
+          "metadata_prefix_precheck_max_invocations": 1,
+          "metadata_prefix_precheck_max_wall_seconds": 900,
+          "metadata_prefix_precheck_model_imports_allowed": false,
+          "metadata_prefix_precheck_claim_writes_allowed": false,
+          "worker_sha256": {
+            "run_fresh_entry_preparation.py": "bbda43fa84a0f0fee415ddd651b4821932191e353b01f92bffba6ef2409bfc09",
+            "publish_fresh_preparation.py": "bc30b2ec4c533efd4244a5385bdfda67e6197920b40b0a5ceb77abcb9ab4e426",
+            "precheck_fresh_metadata.py": "207eab8c119d5f29db5067ac8790cbebedd272ec3257ad4acc81e798e0df68d8"
+          },
+          "source_bindings_sha256": "dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d",
+          "current_epoch_source_qualification": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ENTRY_EPOCH_GUARD_STARTUP_SCOPE_REPAIR_20261020_103/SOURCE_REVIEW.json",
+            "sha256": "89d506544e9193050b474cc042d66d48d02d4dadd844a1d84c898c6f75929521"
+          },
+          "future_initial_measurement_output": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_EPOCH_GUARD_20261020_105/BUNDLE",
+          "future_native_launch_authorized": false,
+          "exit_evaluation": false,
+          "test_data_used": false,
+          "broker_access_allowed": false,
+          "private_weights_reusable": false
         }
       },
       "operator_pc_reboot_20261018": {
@@ -14669,7 +14741,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_CONTROL_BOUND_20261019_083/RUNTIME/receipts/invocation-0001.json",
       "sha256": "4eee83d013f51e6e9fb7c0599c98708c96361c7035e2a0f9a2bb9ea58912beef"
     },
-    "latest_terminal_evidence_scope": "Signed guard childexit1/exact Windows task Last1; no canonical invocation receipt or recovered directwait. Four parityforwards source-control-flow evidenced, zero train batchforward/update; saved referencecheckpoint step0. Original claims/states preserved.",
+    "latest_terminal_evidence_scope": "148unique source/synthetic testsPASS,5newcasesPASS,sourcebefore=after,no genuine marketforwards/nativeupdates. Canonical182roles/181files/7154326B,onlytrainerchanged versus preserved102recipe8517.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL091_METADATA_HASHING_REPAIR_092_QUALIFIED_NEW_FRESH_IO_MEASUREMENT_PENDING",
@@ -17311,5 +17383,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T07:57:39.551498+00:00"
+  "updated_utc": "2026-10-20T08:14:53.916631+00:00"
 }

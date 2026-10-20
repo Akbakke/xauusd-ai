@@ -53,11 +53,11 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 098s kilde-/syntetiske kvalifisering bestod219caser/3eksakte legacy-SKIP.
   Faktisk099CPUfresh tok121.070s,0forwards/updates/refits, closure8517…;
   faktisk100initialmålte256TRAIN+256CONTROL,32Entry-forwards/0updates,
- 1869.792s.101strictsavedstate/RNG bestod på62.220s,0forwards/updates.
+  1869.792s.101strictsavedstate/RNG bestod på62.220s,0forwards/updates.
   Disse originale bevisene er bevart;103 endrer trainerclosure og krever ny
   faktisk kildebundet CPUfresh og videre eksisterende native porter.
 
-## Aktuell grense —102 konsumert FAILED;103 avgrenset rettelse
+## Aktuell grense —102 konsumert FAILED;103 bestått;104 CPUfresh klargjort
 
 102s separate nativekvalifisering stoppet20.10 kl.07:34:11UTC med guard
 child_status1 og eksakt Windows-task LastTaskResult1. Ingen bundne Linux-
@@ -85,8 +85,14 @@ verifisert dynamisk M5-prefixfase hopper over Exit-epoch-setteren; øvrige faser
 beholder ekte binding/fail-closed feil. Ett kort eksisterende hashscope omslutter
 policybygger+require; begge semantiske kontroller beholdes og scopet lukkes før
 artifact-/Session-/statearbeid. Ingen annen top-level trainer-AST er endret.
-Fokusert kilde-/syntetisk kvalifisering gjenstår; ingen native treningsadgang.
-Rettelsens faktiske I/O-/tidsgevinst og native optimizer/resume er ikke bevist.
+103s fokuserte capped kvalifisering bestod148unike caser/0skip/0feil på83.270s,
+inkludert alle5nye caser for dynamisk fresh/resume, strict legacy og finite
+metadata-scope. Direct controller exit0; sourcebefore=after. SOURCE_REVIEW.json
+SHA89d506544e9193050b474cc042d66d48d02d4dadd844a1d84c898c6f75929521.
+Ny canonical closure dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d
+har182roller/181filer/7154326B; baretrainer er endret mot102s8517-recipe.
+Fersk CPUstate og videre native porter gjenstår. Rettelsens faktiske I/O-/
+tidsgevinst og native optimizer/resume er fortsatt ikke bevist.
 
 ## Individuell indikatorrevisjon
 
@@ -116,9 +122,13 @@ batch-/480løkke. Intermediate rchar er logiske lesebytes; read_bytes er separat
 lagringsregnskap. Ingen TB-per-batch-, farts- eller ETA-påstand er bevist.
 103 samler det konkrete doble policyarbeidet i samme nødvendige kildebølge.
 
-Neste steg: fokuserte103tester, syntaks/stale-path/diffkontroll og eksakt ny
-sourceclosure; deretter eksisterende CPUfresh/nativeinitial/state-/technical-
-porter med nye bundne engangsidentiteter. Den bestilte fulle epoken og målt
+104PLAN er bundet til faktisk103-kvalifisering og dc1c-closure, med alle
+historiske087/092/098-bindinger bevart. Først én capped4G/512M metadata-
+precheck av hele publisher-prefix252–306; stopp før recipe-/modellimport307,
+ingenclaim. Bare faktiskPASS åpner den ene allerede bundne104CPUfresh-
+kjøringen med7200s og de samme vaktene. Ingen forwards/updates/refit/Exit.
+Deretter nativeinitial/state-/technical-porter med nye bundne identiteter;
+105initialoutput er foreløpig bare en planlagt sti, ingen nativeadgang. Den bestilte fulle epoken og målt
 LONG/SHORT/FLAT-kvalitet/dekning/sporbarhet gjenstår. Ingen utvidelse til Exit,
 TEST, broker, HPO eller andre modeller. Stabil langkjøring observeres15–30min.
 
