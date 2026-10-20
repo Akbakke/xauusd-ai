@@ -196,20 +196,26 @@ eller filvis attribusjon. write_bytes72032256 i produsentvinduet.112ble
 avbrutt etter554GB uten publisert state, så ingen kontrollert fartsratio
 påstås. Dette er teknisk initialisering og faktisk I/O, ingen ny læring.
 
-114er konsumert og relanseres aldri. Neste steg er NY115nullstegs initial
-med actual114freshrefene og111RMS. Full chronological_initial_measurement-
-policy må inkludereRMS; recipefeltet har kun de to freshrefene. Eget budsjett,
-campaign og aktuelle hardware-/freshbootgater kreves før noen markedsforward.
-115PLAN er opprettet og policy binder nøyaktig32Entryforwards på samme
-256TRAIN+256CONTROL,0updates. Campaign/recipe/budsjett og aktuelle
-signerte hardware-/freshbootporter er under forberedelse; ingen nativejobb
-er startet. Nye paritets-/Entry-only optimizer-/resume-kontroller krever egne
-eksakte bindinger. Ingen ny epoke/fullVAL/Exit/TEST.
+114og115er konsumert og relanseres aldri.115er faktisk COMPLETE:
+Root `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_INITIAL_20261020_115`.
+Canonical18:49:31–19:22:43UTC tok1991,766s,guardPASS/trainer0/observer0.
+Nøyaktig32Entryforwards på samme256TRAIN+256CONTROL,0updates/Exit/fullVAL.
+Actual111TRAIN-RMS og opprinnelig114ONLINE/targetanker er bevart.
+Alle183kilderoller og12inputstatidentiteter er uendret; ingen store data eller
+statepayload ble rehashet i sluttkontrollen. ACTUAL_INITIAL_TERMINAL_REVIEW.json
+SHAebb34a8ce2ac53116bf0d3fbd894503ef7e03a49847e248e3f3d5e8b96a6b7be.
+Den originale canonicalkvitteringen har SHA862abfaa1146145193a54466bd3316c483d29565485238e2977913dd3f61d73f.
+Windows-task er Disabled/Last0. GenericRESUMABLE gir ingen fortsettelsesadgang.
+
+Neste steg er NY kildebundet savedstate/RNG-kontroll og avgrenset privat
+Entry-only optimizer/paritet/resume med111RMS og115initial. Ingen gamle planer
+relanseres; beståtte uendrede data-/normaliseringskontroller gjenbrukes.
+108har allerede oppfylt den bestilte ene epoken. Ingen ekstraepoke/fullVAL/Exit/TEST.
 
 VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
 Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.
-Etter endret sourceclosure er105/106/107 historiske funksjonsbevis; ny aktuell
-CPUfresh/initial/paritet/resume må kvalifiseres før eventuell ny trening.
+Etter endret sourceclosure er105/106/107 historiske funksjonsbevis; aktuell
+CPUfresh/initial er nå kvalifisert; ny paritet/resume gjenstår før eventuell ny trening.
 111targetfit er fullført; nye modellforwards og trening er fortsatt stengt
 inntil egne eksakte bindinger/kvalifiseringer. Ingen gamle kampanjer eller
 initialmålinger relanseres.
@@ -224,10 +230,13 @@ point-in-time-kvalifisering. TEST er fortsatt forseglet og urørt.
 
 ## Maskin, effektivitet og opprydding
 
-108bekrefter fysisk Windowsboot516/20.10kl.13:09:26.500UTC,
-REBOOT_CONFIRMED.json SHAc63ea6791d64a1cae1689c63944c09dd405ec29d69653c3dcf2c1fca9a4bdc51.
-18.10-omstartbestillingen er også allerede fullført. Ingen ny omstart nå.
-Signerte108maksima var57°Ccore/66°Cminne/133.84W/1802MiB; vaktene bestod.
+115bekrefter fysisk Windowsboot517/20.10kl.18:45:08.500UTC,
+REBOOT_CONFIRMED.json SHAde36ff5999acec3d6c0226d1f41922d08d87434cdec373ab530ca2c857720f6f.
+18.10-omstartbestillingen og108boot516 er også allerede fullført.
+Ingen samme omstart gjentas.115signert monitor omfattet1511prøver med maks
+55°Ccore/64°Cminne/129.59W/738MiB; vaktene bestod. Dette er samplede maksima.
+115setup tok715,733s og checkpointskriving0,531s; eksisterende MTF/targets/
+normalisering ble gjenbrukt. Nullstegsmålingen tok33m12s totalt, ingen ny epoke.
 
 Hele108tok6090.176sinkludert oppstart/avslutning; sessionstart til siste
 checkpoint3910.443s, inklusive loader/checkpointarbeid. Ingen ren GPU-benchmark.
