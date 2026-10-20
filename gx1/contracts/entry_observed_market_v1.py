@@ -942,8 +942,8 @@ def _read_dynamic_m1_index(source_binding, *, expected_index_binding, split_end_
     return index
 
 
-def bind_entry_dynamic_m5_dataset(dataset: Any, scope: Mapping[str, Any]) -> None:
-    """Rejoin physical row pointers to a shared M1 index, never dense N x H paths."""
+def read_dynamic_m5_target_source(scope: Mapping[str, Any], *, split: str) -> dict[str, Any]:
+    """Read the existing physical target projection without Dataset or features."""
     import numpy as np
     import pandas as pd
     import pyarrow.parquet as pq
@@ -953,34 +953,15 @@ def bind_entry_dynamic_m5_dataset(dataset: Any, scope: Mapping[str, Any]) -> Non
     )
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     from gx1.contracts.entry_model_native_aux_targets_v3 import (
-        M5_DYNAMIC_OBSERVED_EMISSION_SCOPE, MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
-        MODEL_NATIVE_FORECAST_VALID_COLUMNS, require_auxiliary_emission_training_phase,
-        require_m5_forecast_observation_storage,
+        MODEL_NATIVE_FORECAST_TARGET_COLUMNS, MODEL_NATIVE_FORECAST_VALID_COLUMNS,
     )
     from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
     from gx1.contracts import entry_observed_market_horizons_v1 as horizons
-    auxiliary_contract = getattr(dataset, "aux_head_target_contract", {})
-    require_auxiliary_emission_training_phase(auxiliary_contract,
-        entry_training_phase=scope["training_phase"], context="DYNAMIC_M5_ENTRY")
-    auxiliary = getattr(dataset, "_policy_dependent_auxiliary_binding", None)
-    mask = getattr(dataset, "_policy_dependent_auxiliary_bound_rows", None)
-    if (getattr(dataset, "_entry_observed_market_binding", None) is not None
-            or scope["training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
-            or scope["target_contract"] != entry_observed_dynamic_m5_path_contract()
-            or auxiliary_contract.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
-            or not isinstance(auxiliary, Mapping) or auxiliary.get("mode") != DYNAMIC_M5_PHYSICAL_BINDING_MODE
-            or auxiliary.get("role") not in ("TRAIN", "CONTROL256", "CONTROL_STUDY")
-            or (auxiliary.get("role") == "CONTROL_STUDY" and not isinstance(auxiliary.get("entry_learning_study"), Mapping))
-            or not isinstance(mask, np.ndarray) or mask.dtype != np.bool_
-            or mask.shape != (len(dataset.df),) or not mask.any()):
-        raise RuntimeError("DYNAMIC_M5_DATASET_SCOPE_INVALID")
-    split = "train" if auxiliary["role"] == "TRAIN" else "val"
+    if (not isinstance(scope, Mapping) or split not in ("train", "val")
+            or scope.get("training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or scope.get("target_contract") != entry_observed_dynamic_m5_path_contract()):
+        raise RuntimeError("DYNAMIC_M5_TARGET_SOURCE_SCOPE_INVALID")
     source = scope["physical_sources"][split]
-    if (Path(dataset.parquet_path) != Path(source["parquet"]["path"])
-            or auxiliary.get("parent_entry_parquet") != source["parquet"]
-            or auxiliary.get("parent_entry_manifest") != source["manifest"]
-            or len(dataset.df) != source["physical_rows"]):
-        raise RuntimeError("DYNAMIC_M5_DATASET_SOURCE_INVALID")
     require_binding(source["parquet"], label="dynamic Entry physical pointers", verify_file=True)
     require_binding(source["manifest"], label="dynamic Entry physical manifest", verify_file=True)
     manifest = read_bound_json(Path(source["manifest"]["path"]), source["manifest"]["sha256"])
@@ -1000,10 +981,9 @@ def bind_entry_dynamic_m5_dataset(dataset: Any, scope: Mapping[str, Any]) -> Non
         raise RuntimeError("DYNAMIC_M5_POINTER_MANIFEST_INVALID")
     columns = ["time", *DYNAMIC_M5_POINTER_COLUMNS, *MODEL_NATIVE_FORECAST_TARGET_COLUMNS,
         *MODEL_NATIVE_FORECAST_VALID_COLUMNS, *horizons.HORIZON_LABEL_COLUMNS]
-    frame = pq.read_table(dataset.parquet_path, columns=columns).to_pandas()
+    frame = pq.read_table(Path(source["parquet"]["path"]), columns=columns).to_pandas()
     clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True)).as_unit("ns")
-    input_clock = pd.DatetimeIndex(pd.to_datetime(dataset.df["time"], utc=True)).as_unit("ns")
-    if (not clock.equals(input_clock) or len(frame) != source["physical_rows"]
+    if (len(frame) != source["physical_rows"]
             or hashlib.sha256(np.asarray(clock.asi8, dtype="<i8").tobytes()).hexdigest() != source["clock_sha256"]):
         raise RuntimeError("DYNAMIC_M5_DATASET_CLOCK_INVALID")
     index = _read_dynamic_m1_index(meta["source_quote_binding"],
@@ -1034,6 +1014,50 @@ def bind_entry_dynamic_m5_dataset(dataset: Any, scope: Mapping[str, Any]) -> Non
                             ("dynamic_first_path_censor_reason", closed["path_censor_reason"])):
         if not np.array_equal(frame[column].to_numpy(), queried):
             raise RuntimeError("DYNAMIC_M5_FIRST_PREFIX_REASON_MISMATCH")
+    return {"frame": frame, "index": index, "fill": fill, "first": first,
+            "closed": closed, "first_valid": first_valid, "metadata": meta}
+
+
+def bind_entry_dynamic_m5_dataset(dataset: Any, scope: Mapping[str, Any]) -> None:
+    """Rejoin physical row pointers to a shared M1 index, never dense N x H paths."""
+    import numpy as np
+    import pandas as pd
+    from pathlib import Path
+    from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        M5_DYNAMIC_OBSERVED_EMISSION_SCOPE, require_auxiliary_emission_training_phase,
+        require_m5_forecast_observation_storage,
+    )
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    auxiliary_contract = getattr(dataset, "aux_head_target_contract", {})
+    require_auxiliary_emission_training_phase(auxiliary_contract,
+        entry_training_phase=scope["training_phase"], context="DYNAMIC_M5_ENTRY")
+    auxiliary = getattr(dataset, "_policy_dependent_auxiliary_binding", None)
+    mask = getattr(dataset, "_policy_dependent_auxiliary_bound_rows", None)
+    if (getattr(dataset, "_entry_observed_market_binding", None) is not None
+            or scope["training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+            or scope["target_contract"] != entry_observed_dynamic_m5_path_contract()
+            or auxiliary_contract.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE
+            or not isinstance(auxiliary, Mapping) or auxiliary.get("mode") != DYNAMIC_M5_PHYSICAL_BINDING_MODE
+            or auxiliary.get("role") not in ("TRAIN", "CONTROL256", "CONTROL_STUDY")
+            or (auxiliary.get("role") == "CONTROL_STUDY" and not isinstance(auxiliary.get("entry_learning_study"), Mapping))
+            or not isinstance(mask, np.ndarray) or mask.dtype != np.bool_
+            or mask.shape != (len(dataset.df),) or not mask.any()):
+        raise RuntimeError("DYNAMIC_M5_DATASET_SCOPE_INVALID")
+    split = "train" if auxiliary["role"] == "TRAIN" else "val"
+    source = scope["physical_sources"][split]
+    if (Path(dataset.parquet_path) != Path(source["parquet"]["path"])
+            or auxiliary.get("parent_entry_parquet") != source["parquet"]
+            or auxiliary.get("parent_entry_manifest") != source["manifest"]
+            or len(dataset.df) != source["physical_rows"]):
+        raise RuntimeError("DYNAMIC_M5_DATASET_SOURCE_INVALID")
+    target_source = read_dynamic_m5_target_source(scope, split=split)
+    frame, index, fill = (target_source[key] for key in ("frame", "index", "fill"))
+    first, first_valid, meta = (target_source[key] for key in ("first", "first_valid", "metadata"))
+    clock = pd.DatetimeIndex(pd.to_datetime(frame["time"], utc=True)).as_unit("ns")
+    input_clock = pd.DatetimeIndex(pd.to_datetime(dataset.df["time"], utc=True)).as_unit("ns")
+    if not clock.equals(input_clock):
+        raise RuntimeError("DYNAMIC_M5_DATASET_CLOCK_INVALID")
     admitted = mask.copy()
     forecast_valid = require_m5_forecast_observation_storage(frame, context="DYNAMIC_M5_ENTRY")
     support, support_valid = horizons.build_masked_support_forecast_targets(

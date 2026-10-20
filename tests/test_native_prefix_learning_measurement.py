@@ -273,12 +273,16 @@ def dynamic_learning_measurement(dynamic_initial_scope, tmp_path, monkeypatch):
         cohorts_by_role[role] = cohort
         observations[role] = {"role":role, "optimizer_steps":0, "model_state_sha256":"a"*64,
             "target_model_state_sha256":"a"*64, "test_data_used":False, "cohort":cohort,
-            "entry_observed_market":identity, "target_model_role":"frozen_constructor_anchor_no_forward",
-            "exit_evaluation":False, "native_launch_authorized":False, "diagnostics":{"unit":True}}
+            "entry_observed_market":identity, "dynamic_m5_loss_scales":case["loss_scale_identity"],
+        "target_model_role":"frozen_constructor_anchor_no_forward",
+            "exit_evaluation":False, "native_launch_authorized":False, "diagnostics":{"unit":True,
+                "dynamic_curve_statistics":{"dynamic_m5_loss_scales":case["loss_scale_identity"],
+                    "dynamic_loss_residual_units":"TRAIN_target_RMS_units"}}}
     monkeypatch.setattr(cohorts, "build_chronological_measurement_cohort", lambda *args,role: cohorts_by_role[role])
     calls = []
     def checked(observation, *, identity, cohort):
-        assert observation["diagnostics"] == {"unit":True}
+        assert observation["diagnostics"] == {"unit":True, "dynamic_curve_statistics":{
+            "dynamic_m5_loss_scales":case["loss_scale_identity"], "dynamic_loss_residual_units":"TRAIN_target_RMS_units"}}
         assert observation["cohort"] == cohort
         assert observation["entry_observed_market"] == identity
         calls.append(observation["role"])
@@ -288,7 +292,8 @@ def dynamic_learning_measurement(dynamic_initial_scope, tmp_path, monkeypatch):
         "decision":"FROZEN_INITIAL_TARGETS_AND_PREDICTIONS_READY_NO_LEARNING_MEASURED", **initial_artifacts,
         "optimizer_steps":0, "model_state_sha256":"a"*64, "target_model_state_sha256":"a"*64,
         "teacher_refreshed":False, "economic_rollout":False, "test_data_used":False,
-        "entry_observed_market":identity, "target_model_role":"frozen_constructor_anchor_no_forward",
+        "entry_observed_market":identity, "dynamic_m5_loss_scales":case["loss_scale_identity"],
+        "target_model_role":"frozen_constructor_anchor_no_forward",
         "exit_evaluation":False, "native_launch_authorized":False, "model_functions":case["initial"]["model_functions"],
         **native.require_prefix_measurement_source_binding(recipe)}
     audit = {"schema_version":"gx1_native_prefix_initial_measurement_audit_v1",
@@ -370,7 +375,8 @@ def dynamic_technical_scope(dynamic_learning_measurement, tmp_path):
         binding = _write(tmp_path/"dynamic-technical-plan.json", plan)
         recipe["entry_dynamic_m5_technical_qualification"] = binding
         policy["entry_dynamic_m5_technical_qualification"] = {
-            "plan":binding, **copy.deepcopy(plan), "entry_observed_market":recipe["entry_observed_market"]}
+            "plan":binding, **copy.deepcopy(plan), "entry_observed_market":recipe["entry_observed_market"],
+            "dynamic_m5_loss_scales":recipe["dynamic_m5_loss_scales"]}
         return case["seal"]()
     seal()
     budget = {"stop_after_optimizer_steps":native.DYNAMIC_M5_TECHNICAL_CURSOR_CEILING,

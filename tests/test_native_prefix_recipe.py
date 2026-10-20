@@ -719,16 +719,44 @@ def dynamic_native_recipe_metadata(prefix_scope, tmp_path, monkeypatch):
             raise RuntimeError("UNIT_OBSERVED_SCOPE_BINDING_CHANGED")
         return observed_scope
     monkeypatch.setattr(horizons, "require_observed_entry_scope", checked_scope)
+    from gx1.contracts import entry_dynamic_m5_loss_scale_v1 as loss_owner
+    from tests.test_entry_dynamic_m5_loss_scale import _synthetic_loaded_loss_scales
+    loss_scales = _synthetic_loaded_loss_scales(tmp_path / "recipe-loss-owner-boundary")
+    loss_identity = loss_owner.dynamic_m5_loss_scale_identity(loss_scales)
+    recipe["dynamic_m5_loss_scales"] = loss_scales["binding"]
+    policy["chronological_learning_run"]["dynamic_m5_loss_scales"] = loss_scales["binding"]
+    # The physical target-lineage owner is the same completed boundary isolated
+    # above. Keep artifact bytes/stats/identity checks real; this explicit small
+    # synthetic fit makes no fit claim about the fixture's273physical rows.
+    stable_scope_fields = ("training_phase", "target_contract", "economics", "target_m1_source_sha256", "query_minutes")
+    stable_scope = copy.deepcopy({key: observed_scope[key] for key in stable_scope_fields})
+    stable_train_source = copy.deepcopy(observed_scope["physical_sources"]["train"])
+    stable_witness_fields = ("train_parquet", "train_manifest", "entry_eligibility_cutoff_utc", "eligible_parent_rows")
+    stable_witness = copy.deepcopy({key: witness[key] for key in stable_witness_fields})
+    stable_population_binding = copy.deepcopy(coordinates["population_witness"])
+    def completed_loss_lineage(checked, population):
+        # A later initial/learning plan may copy this scope and replace its plan
+        # binding. Only immutable TRAIN target lineage determines these units.
+        if ({key: checked.get(key) for key in stable_scope_fields} != stable_scope
+                or checked.get("physical_sources", {}).get("train") != stable_train_source
+                or population.get("train_rows") != witness["train_rows"]
+                or population.get("binding") != stable_population_binding
+                or {key: population.get("witness", {}).get(key) for key in stable_witness_fields} != stable_witness):
+            raise RuntimeError("UNIT_DYNAMIC_LOSS_TRAIN_LINEAGE_CHANGED")
+        return copy.deepcopy(loss_scales["fit_lineage"])
+    monkeypatch.setattr(loss_owner, "dynamic_m5_loss_fit_lineage", completed_loss_lineage)
     seal()
     return {"policy":policy, "recipe":recipe, "files":files, "seal":seal,
             "physical":physical, "coordinates":coordinates, "design":design, "witness":witness,
-            "observed_scope":observed_scope}
+            "observed_scope":observed_scope, "loss_scales":loss_scales, "loss_scale_identity":loss_identity}
 
 
 def test_dynamic_native_recipe_binds_actual_population_without_exit_or_economics(dynamic_native_recipe_metadata):
     case = dynamic_native_recipe_metadata; recipe = case["recipe"]
     prefix = native.require_chronological_prefix_recipe(recipe)
     assert prefix["entry_m5_path_single_epoch"]["train_rows"] == 273
+    assert native._require_dynamic_m5_loss_scale_identity(recipe, prefix=prefix,
+        observed_scope=case["observed_scope"]) == case["loss_scale_identity"]
     binding, digest = native.require_fresh_physical_campaign_sampler(recipe)
     assert binding == recipe["entry_m5_path_single_epoch"] and digest == binding["sha256"]
     checked, rows = native.require_native_recipe_metadata(case["seal"](),
@@ -739,8 +767,32 @@ def test_dynamic_native_recipe_binds_actual_population_without_exit_or_economics
     assert not {"selected_sampler","random_access_root","economics_readiness"}.intersection(recipe["files"])
 
 
+def test_dynamic_loss_units_allow_copied_scope_with_later_plan_binding(dynamic_native_recipe_metadata, tmp_path):
+    case = dynamic_native_recipe_metadata
+    prefix = native.require_chronological_prefix_recipe(case["recipe"])
+    copied = copy.deepcopy(case["observed_scope"])
+    copied["binding"] = _write(tmp_path / "later-observed-plan.json", {"new_plan_same_train_lineage": True})
+    assert native._require_dynamic_m5_loss_scale_identity(case["recipe"], prefix=prefix,
+        observed_scope=copied) == case["loss_scale_identity"]
+
+
+@pytest.mark.parametrize("fault", ["train_source", "target_source", "train_rows"])
+def test_dynamic_loss_units_reject_actual_train_lineage_change(dynamic_native_recipe_metadata, fault):
+    case = dynamic_native_recipe_metadata
+    prefix = native.require_chronological_prefix_recipe(case["recipe"])
+    scope = copy.deepcopy(case["observed_scope"])
+    if fault == "train_source": scope["physical_sources"]["train"] = scope["physical_sources"]["val"]
+    elif fault == "target_source": scope["target_m1_source_sha256"] = "f" * 64
+    else:
+        prefix = copy.deepcopy(prefix)
+        prefix["entry_m5_path_single_epoch"]["train_rows"] += 1
+    with pytest.raises(RuntimeError, match="UNIT_DYNAMIC_LOSS_TRAIN_LINEAGE_CHANGED"):
+        native._require_dynamic_m5_loss_scale_identity(case["recipe"], prefix=prefix, observed_scope=scope)
+
+
 @pytest.mark.parametrize("fault", ["exit_policy", "target", "legacy_file", "monitor", "save_top_k", "missing_bound",
-    "extra_bound", "bool_bound", "source", "normalization", "coordinate", "witness", "profile", "missing_scope", "scope_phase"])
+    "extra_bound", "bool_bound", "source", "normalization", "coordinate", "witness", "profile", "missing_scope", "scope_phase",
+    "missing_loss_scales", "changed_loss_scales", "loss_scale_bytes", "loss_scale_lineage"])
 def test_dynamic_native_recipe_rejects_legacy_or_unbound_controls(dynamic_native_recipe_metadata, fault):
     case = dynamic_native_recipe_metadata; recipe = case["recipe"]
     if fault == "exit_policy": recipe["exit_reference_policy"] = {}
@@ -759,6 +811,11 @@ def test_dynamic_native_recipe_rejects_legacy_or_unbound_controls(dynamic_native
     elif fault == "witness": recipe["entry_m5_path_single_epoch"] = recipe["files"]["source_bundle_metadata"]
     elif fault == "missing_scope": recipe.pop("entry_observed_market")
     elif fault == "scope_phase": case["observed_scope"]["training_phase"] = "joint_fitted_q"
+    elif fault == "missing_loss_scales": recipe.pop("dynamic_m5_loss_scales")
+    elif fault == "changed_loss_scales": recipe["dynamic_m5_loss_scales"] = {**recipe["dynamic_m5_loss_scales"], "sha256":"0"*64}
+    elif fault == "loss_scale_bytes":
+        path = Path(recipe["dynamic_m5_loss_scales"]["path"]); path.write_bytes(path.read_bytes()+b"\n")
+    elif fault == "loss_scale_lineage": case["loss_scales"]["fit_lineage"]["train_control_cutoff"] = "2025-03-01T00:00:00Z"
     else:
         case["policy"]["required_val_profile"]["max_model_forwards"] = 32
         with pytest.raises(RuntimeError, match="DYNAMIC_PROFILE"):

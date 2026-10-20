@@ -192,6 +192,11 @@ def prepare_verified_checkpoint_policy(*, contract: Mapping[str, Any]) -> _Verif
         expected = checkpoint_policy_metadata(checkpoint_monitor=monitor, prefix_training_binding=prefix)
         if declared != expected or _policy_json(declared) != _policy_json(expected):
             raise RuntimeError("[ENTRY_CANDIDATE_VERIFIED_CHECKPOINT_POLICY_MISMATCH]")
+        from gx1.contracts.local_random_access_campaign_v2 import require_binding
+        loss_units = prefix.get("dynamic_m5_loss_scales")
+        if not isinstance(loss_units, Mapping):
+            raise RuntimeError("[ENTRY_CANDIDATE_DYNAMIC_LOSS_SCALE_BINDING_REQUIRED]")
+        require_binding(loss_units.get("binding"), label="Session TRAIN loss units", verify_file=True)
         snapshot = capture_verified_file_snapshot()
         snapshot.require_unchanged()
         verified = _VerifiedCheckpointPolicy(contract_sha256=canonical_sha256(frozen),

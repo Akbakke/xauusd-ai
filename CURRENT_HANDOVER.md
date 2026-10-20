@@ -108,15 +108,32 @@ lagrede, deklarerte mål og ingen utførte handler eller bekreftet økonomisk ed
 Kandidaten bruker max_h(terminal(h)−preMAE(h)) for samme h per side; arkitekturen
 tvinger ikke h1, og ingen etterfølgende horisontveto eller filter innføres.
 
-Neste er et eksplisitt, minimalt TRAIN-basert loss-enhetsdesign i eksisterende
-kontrakt-/target-/trenereiere. Rawbps-targets, prognoser, masker og rapportering
-beholdes. Statistikk, koordinat-/horisontroller, maskerte counts og håndtering
-av nullskala må deklareres før ny capped targetstatistikk-fit. VAL-diagnostisk
-targetstd skal aldri gjenbrukes til fit, og CONTROL-resultater velger ingen
-skala eller vekter. En taskskala alene endrer ikke M5/dag-forholdet inni samme
-task. Ingen nye modeller, håndsatte relative vekter eller ekstraepoke nå.
-Ferdige inputs/targets/055inputnormalisering gjenbrukes.109og108er konsumert;
-ny targetfit og eventuell trening krever egne eksakte bindinger/kvalifisering.
+110 er COMPLETE for loss-only TRAIN-RMS-kilde og avgrensede kildekontroller.
+DESIGN.json under `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110`,
+SHAa4042a68b4b3931a374a7791e2fd87bef9bb7fb2a4184d271b0d90026bd87840.
+RMS=sqrt(sum(target_float32² i float64)/observed_count) tilpasses separat for
+4810 lærbare koordinater:480×2 terminal-L/S,fire480×2pathflater og10forecast.
+Kun feilene skaleres før eksisterende pooling; rawbps-targets/prognoser/masker
+og rå feilrapportering beholdes. FLAT0 bypasser divisjon med gammel denominator.
+Count0/RMS0/ikke-finit skala feiler; ingen sentrering, epsilon eller unitfallback.
+
+Ny genuin statistikkeier er entry_dynamic_m5_loss_scale_v1.py; eksisterende
+mål-eier deler en target-only kildefabrikk. Recipe→dataset→targetbatch→unitloss
+og session/resume/initial-binding er implementert og kildekvalifisert. StatistikkCLI skal lese
+bare26targetkolonner og originalt M1-quoteprefix, ingen features/Dataset/modell.
+Ferdige inputs/targets/055inputnormalisering gjenbrukes. Fire capped kildejobber
+bevarte samme produksjonskilde; bare konkrete testfixtureavvik ble rettet.
+Beståtte caser gjenbrukes, siste berørte runde hadde300PASS/3eksplisitte
+nonTRAIN-derived-SKIP. Alle11berørte moduler er dekket; ingen ny fullsuite.
+SOURCE_QUALIFICATION_REVIEW.json og TERMINAL.json i110binder bevisene.
+Syntetiske tester er ingen faktisk TRAIN-fit. Ny111fit må bindes separat.
+
+VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
+Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.
+Etter endret sourceclosure er105/106/107 historiske funksjonsbevis; ny aktuell
+CPUfresh/initial/paritet/resume må kvalifiseres før eventuell ny trening.
+Realfit, modellforwards og trening er fortsatt stengt inntil egne eksakte
+bindinger/kvalifiseringer. Ingen gamle kampanjer eller initialmålinger relanseres.
 
 Alle1205GCverdier+masker har kildekart for formel/enhet/domene/warmup;
 23tekniske formler×5TF har115feltposter. Dette er ikke full uavhengig numerisk

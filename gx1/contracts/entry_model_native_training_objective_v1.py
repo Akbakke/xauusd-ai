@@ -121,6 +121,7 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
     if phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
         from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
         from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_ENDPOINT_KINDS
+        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_contract
         expected.update({
             "all_advertised_heads_supervised": True,
             "active_joint_task_names": list(active_joint_task_names(phase)),
@@ -129,9 +130,12 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
             "entry_decision_authority": "none_dynamic_quality_bps_candidate_not_admitted",
             "entry_primary_target_contract": entry_observed_dynamic_m5_path_contract(),
             "dynamic_component_losses": {
-                name: "independently_masked_raw_bps_mean_squared_error"
+                name: "independently_masked_TRAIN_target_RMS_scaled_squared_error"
                 for name in DYNAMIC_M5_JOINT_TASK_NAMES
             },
+            "dynamic_loss_unit_contract": dynamic_m5_loss_scale_contract(),
+            "train_fitted_loss_scales": True,
+            "raw_bps_component_diagnostics_preserved": True,
             "dynamic_path_endpoint_kinds": list(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS),
             "dynamic_path_loss_reduction": "all_observed_cells_of_both_endpoint_kinds_per_task",
             "dynamic_candidate_uses_endpoint_kind": "terminal_open_inclusive",

@@ -205,20 +205,34 @@ valgte/avståtte kandidater og dekning. Samlet forbedring over alle480horisonter
 beviser ikke forbedring ved ett minutt. Prediksjons-MAE er absolutt prognosefeil;
 den må ikke forveksles med targetets adverse excursion før første MFE.
 
-Den gjeldende dynamiske losskilden pooler rawbps-MSE. Inclusive/closed MFE
-deler én task og denominator, tilsvarende for preMAE. Terminalrapportens
-FLAT0 er observert og inngår i denominator; skill dette fra LONG/SHORT alene.
-Fire M5-forecasts og seks dagskoordinater deler forecast-tasken. De fire lærte
-ONLINE-logvariansene må avleses fra samme faktiske checkpoint når effektiv
-vekting vurderes: exp(−s)·råtasktap+s. Cellevektet pooled diagnostikk er ikke
-nødvendigvis lik evaluatorens radvektede gjennomsnitt av batchloss.
+Rå feilrapportering bruker maskert rawbps-MSE. Optimeringens nye loss-only
+enhet er hver koordinats fryste TRAIN-RMS: sqrt(sum(target_float32² i float64)
+/observed_count), uten sentrering. Alle fysiske TRAIN-rader inngår én gang;
+inklusive/lukkede endepunkter og hver side/query har egne4810skalaer sammen
+med forecast-koordinatene. Kvadrer residual/RMS før dagens maskerte pooling.
+
+Inclusive/closed MFE deler fortsatt én task og denominator, tilsvarende for
+preMAE. Terminalens FLAT0 bypasser divisjon og inngår fortsatt som kjent null
+i denominator; skill dette fra LONG/SHORT alene. Fire M5-forecasts og seks
+dagskoordinater deler forecast-tasken. De fire lærte ONLINE-logvariansene
+bruker exp(−s)·dimensjonsløst_tasktap+s. Rawbps-diagnostikk og unitloss skal ha
+separate felt; ingen rå bps²-metrikk skal stille endre enhet. Cellevektet pooled
+diagnostikk er ikke nødvendigvis lik evaluatorens radvektede batchloss.
+
+En genuin lærbar koordinat med count0, RMS0 eller ikke-finit skala stopper før
+optimizer. Ingen epsilon, klipping eller unitfallback. Fit-lineage binder
+stabile data/klokker/populasjon/targets/økonomi/M1-indeks, aldri en framtidig
+fresh-PLAN. Samme artifact-/kontrakt-/lineageidentitet må følge recipe,
+initialmåling, target-only batch, session, sluttmåling og resume. Modellens
+inputgeometri og rawbps-heads endres ikke. Kildekvalifisering og faktisk
+TRAIN-fit er ulike bevis; gjeldende adgang står bare i NEXT_RUN_POLICY.
 
 Forecast-gruppebidrag beregnes fra gruppens SSE delt på hele forecast-count,
 multiplisert med samme lærte presisjon. Gruppens egen MSE er en annen størrelse.
 Det felles+s-leddet kan ikke entydig fordeles mellom horisontgruppene.
 Store residualandeler beviser ikke parametergradientdominans eller årsak til
 en konkret prognosefeil. En fallende lært presisjon kan redusere vektet tap
-samtidig som rå prognosefeil øker; rapporter begge.
+samtidig som rå prognosefeil øker; rapporter råfeil, unitloss og faktisk presisjon.
 
 Et nytt loss-enhetsdesign krever en eksplisitt kontrakt før fit. Eventuelle
 skalaer skal tilpasses bare eksakt wholeTRAIN-targetpopulasjon med egne

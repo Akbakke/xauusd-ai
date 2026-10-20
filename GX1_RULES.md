@@ -119,6 +119,17 @@ validering. Beviset serialiseres aldri og mates aldri tilbake til filhasheren.
 Det erstatter ikke mutable checkpointfilers eksisterende SHA/load/save-kontroll.
 Selve filhash-memoet er fortsatt avgrenset til den korte metadataoperasjonen.
 
+Loss-only enheter kan tilpasses fra den eksakte wholeTRAIN-targetpopulasjonen
+med separate koordinat-/horisontmasker og counts, etter erklært kontrakt og
+egen capped fit-binding. Rå mål, prognoser og beslutningsverdier beholdes i bps.
+Inputnormalisering refittes ikke av dette. TRAIN-RMS innebærer ingen sentrering,
+epsilon, klipping eller gjettet relativ taskvekt; en uobservert eller nullskala
+for en lærbar koordinat stopper før optimizer. Analytisk FLAT0 beholdes som
+kjent null med eksisterende denominator. VAL-targetstatistikk er diagnostikk,
+aldri fitgrunnlag, og CONTROL-resultater velger ingen skala. Rå prognosefeil og
+dimensjonsløst optimeringstap rapporteres separat. En loss-endring eller fit
+åpner ingen ny epoke, og erstatter ingen ny kilde-/baseline-/paritetskontroll.
+
 ## Én kodebase, avgrensede agentoppgaver
 
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre

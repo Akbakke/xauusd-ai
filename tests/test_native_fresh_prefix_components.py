@@ -731,6 +731,21 @@ def dynamic_entry_component_chain(tmp_path, monkeypatch):
         "entry_m5_path_single_epoch": single, "model_functions": runner.trainer._PREFIX_CURRENT_MODEL_FUNCTIONS,
         "eligible_parent_rows": np.arange(17, dtype=np.int64),
         "epoch0_parent_order": np.arange(17, dtype=np.int64)[::-1].copy()}
+    from gx1.contracts import entry_dynamic_m5_loss_scale_v1 as loss_owner
+    from tests.test_entry_dynamic_m5_loss_scale import _synthetic_loaded_loss_scales
+    loss_scales = _synthetic_loaded_loss_scales(tmp_path / "component-loss-units")
+    loss_identity = loss_owner.dynamic_m5_loss_scale_identity(loss_scales)
+    prefix["dynamic_m5_loss_scales"] = loss_identity
+    # This component unit already isolates completed physical/quote ownership.
+    # The artifact itself still goes through the real strict loader before model
+    # or Dataset construction; its three synthetic rows claim no physical fit.
+    def completed_loss_lineage(scope, population):
+        assert scope["training_phase"] == phase and population is single
+        return copy.deepcopy(loss_scales["fit_lineage"])
+    monkeypatch.setattr(runner, "dynamic_m5_loss_fit_lineage", completed_loss_lineage)
+    # The fresh artifact publisher re-enters this completed target-lineage owner
+    # through campaign, which imports the contract owner rather than runner's alias.
+    monkeypatch.setattr(loss_owner, "dynamic_m5_loss_fit_lineage", completed_loss_lineage)
     events = []
     monkeypatch.setattr(runner, "_require_prefix_component_bindings", lambda *a, **kw: prefix)
     monkeypatch.setattr(runner.val, "_bind_multi_tf_cache_from_source_bundle_metadata", lambda m: None)
@@ -755,7 +770,9 @@ def dynamic_entry_component_chain(tmp_path, monkeypatch):
         assert kwargs["train_ds"].role == "TRAIN" and kwargs["val_ds"].role == "CONTROL256"
         assert not kwargs["model"].head_exit_action.weight.requires_grad
         kwargs["train_ds"].verified = True; events.append(("session_binding",))
-        return {"unit_verified": True}, torch.arange(17), torch.arange(17).flip(0)
+        assert kwargs["train_ds"]._entry_dynamic_m5_loss_scale_identity == loss_identity
+        assert kwargs["val_ds"]._entry_dynamic_m5_loss_scale_identity == loss_identity
+        return {"unit_verified": True, "dynamic_m5_loss_scales": loss_identity}, torch.arange(17), torch.arange(17).flip(0)
     monkeypatch.setattr(runner.trainer, "_prefix_candidate_training_binding", session)
     def order(dataset, **kwargs):
         assert dataset.verified; events.append(("epoch_order",)); return torch.arange(17).flip(0)
@@ -779,7 +796,8 @@ def dynamic_entry_component_chain(tmp_path, monkeypatch):
         seed=20260911, learning_rate=.0001, weight_decay=.0001,
         val_limits={"max_model_forwards": 100, "max_state_views": 256, "max_wall_seconds": 600,
                     "progress_interval_forwards": 16}, chronological_prefix=bindings,
-        observed_entry_scope={"training_phase": phase, "query_minutes": queries})
+        observed_entry_scope={"training_phase": phase, "query_minutes": queries},
+        dynamic_m5_loss_scales=loss_scales["binding"])
     return args, events, prefix, identity
 
 
@@ -787,6 +805,9 @@ def test_dynamic_entry_component_uses_no_exit_and_validates_order_before_optimiz
     args, events, prefix, identity = dynamic_entry_component_chain
     result = runner._build_bound_full_train_components(**args)
     assert result["entry_observed_market"] == identity
+    assert result["dynamic_m5_loss_scales"] == prefix["dynamic_m5_loss_scales"]
+    assert result["train_ds"]._entry_dynamic_m5_loss_scale_identity == prefix["dynamic_m5_loss_scales"]
+    assert result["val_ds"]._entry_dynamic_m5_loss_scale_identity == prefix["dynamic_m5_loss_scales"]
     assert result["effective_train_rows"] == 17
     assert result["entry_m5_path_single_epoch"]["last_batch_rows"] == 1
     assert result["train_probe_ds"] is not result["train_ds"]
@@ -802,6 +823,19 @@ def test_dynamic_entry_component_uses_no_exit_and_validates_order_before_optimiz
     dataset_calls = [event for event in events if event[0] == "dataset"]
     assert dataset_calls[0][2]["sequence_source_audit_json"] == args["files"]["sequence_source_audit"]
     assert dataset_calls[1][2]["sequence_source_audit_json"] == args["files"]["val_sequence_source_audit"]
+
+
+@pytest.mark.parametrize("fault", ["missing", "changed"])
+def test_dynamic_component_loss_artifact_rejected_before_dataset_model_or_optimizer(dynamic_entry_component_chain, monkeypatch, fault):
+    args, events, _, _ = dynamic_entry_component_chain
+    args["dynamic_m5_loss_scales"] = (None if fault == "missing" else
+        {**args["dynamic_m5_loss_scales"], "sha256": "0" * 64})
+    def forbidden(*a, **kw): pytest.fail("Unbound loss units reached model or optimizer")
+    monkeypatch.setattr(runner.val, "_model", forbidden)
+    monkeypatch.setattr(runner.torch.optim, "AdamW", forbidden)
+    with pytest.raises((RuntimeError, ValueError), match="(binding invalid|SHA-256 mismatch)"):
+        runner._build_bound_full_train_components(**args)
+    assert events == []
 
 
 @pytest.mark.parametrize("fault", ["exit_reference", "exit_file", "missing_scope", "geometry", "source", "order", "dataset_id"])
@@ -873,7 +907,10 @@ def dynamic_fresh_preparation(dynamic_entry_component_chain, tmp_path, monkeypat
     source = {"python:model": runner.launch_owner.artifact_binding(model_path)}
     policy = {"training_enabled": False, "full_epoch_training_allowed": False}
     policy_binding = _write(tmp_path / "preparation-policy.json", policy)
+    from gx1.contracts import entry_observed_market_horizons_v1 as horizons
+    monkeypatch.setattr(horizons, "require_observed_entry_scope", lambda recipe: args["observed_entry_scope"])
     recipe = {"source_repo": str(Path(runner.__file__).resolve().parents[2]),
+        "dynamic_m5_loss_scales": args["dynamic_m5_loss_scales"],
         "files": {key: _bind(path) for key, path in args["files"].items()},
         "chronological_prefix": bindings, "next_run_policy": policy_binding,
         "source_bindings": source, "source_bindings_sha256": runner.launch_owner.canonical_json_sha256(source),
@@ -918,6 +955,8 @@ def test_dynamic_fresh_preparation_publishes_exact_owner_state_without_dataset(d
     assert initial["target_frozen"] is True and initial["inherited_checkpoint_weights"] is False
     assert initial["model_forwards"] == initial["optimizer_steps"] == initial["ema_steps"] == initial["normalization_refits"] == 0
     assert measurement["actual_model_forwards"] == measurement["optimizer_steps"] == 0
+    assert initial["dynamic_m5_loss_scales"] == measurement["dynamic_m5_loss_scales"] == state["dynamic_m5_loss_scales"]
+    assert initial["dynamic_m5_loss_scales"] == case["prefix"]["dynamic_m5_loss_scales"]
     assert measurement["coordinate_result"] == case["recipe"]["files"]["entry_measurement_coordinates"]
     assert initial["native_recipe_source_bindings"] == case["recipe"]["source_bindings"]
     assert all("recipe_sha256" not in record for record in (initial, measurement, state))

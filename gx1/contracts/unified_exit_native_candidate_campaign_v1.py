@@ -1055,6 +1055,21 @@ def _dynamic_m5_native_design(recipe):
     return design if design.get("scope", {}).get("entry_only_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE else None
 
 
+def _require_dynamic_m5_loss_scale_identity(recipe, *, prefix, observed_scope=None):
+    """Strict TRAIN loss-unit binding, independent of a later observed-plan path."""
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+        DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY, dynamic_m5_loss_fit_lineage,
+        dynamic_m5_loss_scale_identity, load_dynamic_m5_loss_scales,
+    )
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
+    if DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY not in recipe:
+        raise RuntimeError("NATIVE_DYNAMIC_M5_LOSS_SCALES_REQUIRED")
+    scope = require_observed_entry_scope(recipe) if observed_scope is None else observed_scope
+    scales = load_dynamic_m5_loss_scales(recipe[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY],
+        expected_lineage=dynamic_m5_loss_fit_lineage(scope, prefix["entry_m5_path_single_epoch"]))
+    return dynamic_m5_loss_scale_identity(scales)
+
+
 def _require_dynamic_m5_native_prefix(recipe):
     """Validate actual physical population/order; this does not authorize a run."""
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
@@ -1078,6 +1093,7 @@ def _require_dynamic_m5_native_prefix(recipe):
             or not isinstance(observed.get("query_minutes"), tuple)
             or observed["query_minutes"] != tuple(single["witness"]["target_contract"]["query_contract"]["horizon_minutes"])):
         raise RuntimeError("NATIVE_DYNAMIC_M5_OBSERVED_SCOPE_REQUIRED")
+    _require_dynamic_m5_loss_scale_identity(recipe, prefix=prefix, observed_scope=observed)
     return prefix
 
 
@@ -1391,7 +1407,9 @@ def _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement):
     """Rejoin constructor provenance and Entry coordinates, without a teacher forward."""
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE as phase
     physical, single = prefix["physical_preprocessing"], prefix["entry_m5_path_single_epoch"]
+    loss_scale_identity = _require_dynamic_m5_loss_scale_identity(recipe, prefix=prefix)
     common = {"entry_training_phase": phase, "target_model_role": "frozen_constructor_anchor_no_forward",
+              "dynamic_m5_loss_scales": loss_scale_identity,
               "exit_evaluation": False, "native_launch_authorized": False, "exit_model_forward_count": 0}
     functions = initial.get("model_functions")
     if (any(type(value.get(key)) is not type(expected) or value[key] != expected
@@ -1801,7 +1819,8 @@ def require_chronological_learning_measurement(recipe, *, initial_measurement_au
     if _observed_entry_in(recipe):
         from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_identity, require_observed_entry_scope
         entry_identity = observed_entry_identity(require_observed_entry_scope(recipe))
-    if result.get("entry_observed_market") != entry_identity:
+    if (result.get("entry_observed_market") != entry_identity
+            or (dynamic_prefix is not None and result.get("dynamic_m5_loss_scales") != initial.get("dynamic_m5_loss_scales"))):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_ENTRY_TARGET_IDENTITY_MISMATCH")
     initial_roles = set(result.get("observations", {}))
     allowed_roles = ({"train"}, {"train", "control"}) if recipe.get("chronological_train_only_measurement") is True else ({"train", "control"},)
@@ -1857,6 +1876,10 @@ def require_chronological_learning_measurement(recipe, *, initial_measurement_au
             if (cohort.get("parent_entry_parquet") != source["parquet"]
                     or cohort.get("parent_entry_manifest") != source["manifest"]):
                 raise RuntimeError("NATIVE_DYNAMIC_M5_INITIAL_OBSERVATION_SOURCE_MISMATCH")
+            statistics = observation.get("diagnostics", {}).get("dynamic_curve_statistics", {})
+            if (statistics.get("dynamic_m5_loss_scales") != initial.get("dynamic_m5_loss_scales")
+                    or statistics.get("dynamic_loss_residual_units") != "TRAIN_target_RMS_units"):
+                raise RuntimeError("NATIVE_DYNAMIC_M5_INITIAL_OBSERVATION_LOSS_SCALE_MISMATCH")
             _require_dynamic_m5_observation(observation, identity=entry_identity, cohort=cohort)
     derived = {}
     if "chronological_entry_baseline" in recipe:
@@ -2232,7 +2255,10 @@ def require_native_recipe_metadata(
     checked = require_binding(binding, label="native recipe")
     recipe = read_bound_json(Path(checked["path"]), checked["sha256"])
     controls = recipe.get("trainer_cli", {})
-    if _dynamic_m5_native_design(recipe) is not None:
+    dynamic_design = _dynamic_m5_native_design(recipe)
+    if dynamic_design is None and "dynamic_m5_loss_scales" in recipe:
+        raise RuntimeError("NATIVE_DYNAMIC_M5_LOSS_SCALE_PHASE_INVALID")
+    if dynamic_design is not None:
         import math
         from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
         from gx1.contracts.entry_candidate_checkpoint_policy_v1 import DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
@@ -3073,6 +3099,11 @@ def _expected_observed_entry_binding(recipe, expected: dict) -> None:
     if scope is not None:
         key = [k for k in OBSERVED_ENTRY_RECIPE_KEYS if k in recipe][0]
         expected[key] = scope["binding"]
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        if scope.get("training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY
+            expected[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY] = require_binding(
+                recipe.get(DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY), label="dynamic loss-scale policy binding", verify_file=False)
 
 
 def require_entry_learning_study_run(recipe, *, invocation_number=None, execution_budget=None):

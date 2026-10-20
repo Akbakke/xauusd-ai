@@ -930,6 +930,8 @@ class SmallDynamicEntry(SmallEntry):
         from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
         from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
         assert not set(kwargs).intersection(_dynamic_target_arrays([0]))
+        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import DYNAMIC_M5_LOSS_SCALE_BATCH_KEY
+        assert DYNAMIC_M5_LOSS_SCALE_BATCH_KEY not in kwargs
         hidden = self.shared_encoder(seq_x)
         q = self.head_dynamic_terminal_net_markout(hidden)[:, None].expand(-1, len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES), -1)
         mfe = self.head_dynamic_mfe(hidden)[:, None].expand_as(q)
@@ -944,7 +946,41 @@ class SmallDynamicEntry(SmallEntry):
         }
 
 
-def _dynamic_training_fixture(monkeypatch):
+def _loaded_dynamic_loss_scales(tmp_path, economics):
+    """Real small artifact/loader; no physical-input or native admission claim."""
+    from gx1.contracts import entry_dynamic_m5_loss_scale_v1 as units
+    def binding(name, payload):
+        path = tmp_path / name
+        path.write_bytes(payload)
+        return {"path": str(path), "sha256": hashlib.sha256(payload).hexdigest()}
+    train = binding("loss-unit-train.parquet", b"synthetic target-fit population")
+    manifest = binding("loss-unit-train.manifest.json", b"{}")
+    witness = binding("loss-unit-witness.json", b"{}")
+    parents = binding("loss-unit-parents.npy", np.arange(2, dtype="<i8").tobytes())
+    lineage = {"fit_partition": "train", "train_rows": 2,
+        "train_control_cutoff": "2025-06-01T00:00:00Z",
+        "train_physical_source": {"physical_rows": 2, "parquet": train, "manifest": manifest},
+        "population_witness": witness, "eligible_parent_rows": parents,
+        "target_contract": observed.entry_observed_dynamic_m5_path_contract(), "economics": economics,
+        "source_quote_binding": {"path": "/synthetic/quotes.parquet", "sha256": "a" * 64},
+        "index_binding": {"source_sha256": "a" * 64}}
+    pairs = {"dynamic_terminal_net_markout_bps": (2., 4.), "dynamic_mfe_bps": (5., 10.),
+        "dynamic_pre_mfe_mae_upper_bps": (1., 2.), "dynamic_closed_mfe_bps": (2., 6.),
+        "dynamic_closed_pre_mfe_mae_upper_bps": (4., 2.)}
+    surfaces = {}
+    for name, shape in units.dynamic_m5_loss_scale_contract()["surface_shapes"].items():
+        target = np.empty((2, *shape), np.float32)
+        target[:] = np.arange(1, 11, dtype=np.float32) if name == "forecast_pred" else pairs[name]
+        if name == "dynamic_terminal_net_markout_bps":
+            target = np.concatenate((target, np.zeros((*target.shape[:-1], 1), np.float32)), axis=-1)
+        surfaces[name] = target, np.ones_like(target, bool)
+    value = units.fit_dynamic_m5_loss_scales(batches=[(np.arange(2, dtype=np.int64), surfaces)],
+        lineage=lineage, expected_parent_rows=np.arange(2, dtype=np.int64), fit_split="train")
+    artifact = binding("loss-units.json", (json.dumps(value, sort_keys=True) + "\n").encode())
+    return units.load_dynamic_m5_loss_scales(artifact, expected_lineage=lineage)
+
+
+def _dynamic_training_fixture(monkeypatch, tmp_path, economics=None, *, loss_scales=None):
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     from gx1.contracts.entry_observed_market_horizons_v1 import (
         M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
@@ -960,6 +996,7 @@ def _dynamic_training_fixture(monkeypatch):
             self.calls.append(rows.copy())
             return _dynamic_target_arrays(rows)
     dataset._entry_dynamic_m5_target_provider = Provider()
+    trainer._bind_dynamic_m5_loss_scales(dataset, loss_scales if loss_scales is not None else _loaded_dynamic_loss_scales(tmp_path, economics), device=torch.device("cpu"))
     batch = next(iter(old))
     batch = {key: value for key, value in batch.items() if key in (
         "seq_x", "snap_x", "ctx_cont", "ctx_cat", "entry_row_index")}
@@ -979,9 +1016,9 @@ def _dynamic_training_fixture(monkeypatch):
     return Loader(), batch
 
 
-def test_dynamic_m5_real_train_and_curve_eval_preserve_exit_and_query_only_current_batches(monkeypatch):
+def test_dynamic_m5_real_train_and_curve_eval_preserve_exit_and_query_only_current_batches(monkeypatch, tmp_path, economics):
     torch.manual_seed(9029)
-    loader, _ = _dynamic_training_fixture(monkeypatch)
+    loader, _ = _dynamic_training_fixture(monkeypatch, tmp_path, economics)
     model = SmallDynamicEntry()
     before = copy.deepcopy(model.state_dict())
     optimizer = torch.optim.AdamW(model.parameters(), lr=.01, weight_decay=.5)
@@ -997,6 +1034,8 @@ def test_dynamic_m5_real_train_and_curve_eval_preserve_exit_and_query_only_curre
     assert stats["joint_task_supervised_cells_dynamic_terminal_net_markout_bps"] == 6
     assert stats["joint_task_supervised_cells_dynamic_mfe_bps"] == 8
     assert stats["joint_task_supervised_cells_dynamic_pre_mfe_mae_upper_bps"] == 8
+    assert stats["dynamic_loss_residual_units"] == "TRAIN_target_RMS_units"
+    assert stats["joint_task_unit_loss_mean_forecast_return_bps"] != stats["joint_task_raw_loss_mean_forecast_return_bps"]
     assert not torch.equal(model.shared_encoder.weight, before["shared_encoder.weight"])
     for name, parameter in model.named_parameters():
         if observed.is_inactive_phase_parameter(name, model.entry_training_phase):
@@ -1010,8 +1049,8 @@ def test_dynamic_m5_real_train_and_curve_eval_preserve_exit_and_query_only_curre
     assert all(np.array_equal(rows, [0, 1]) for rows in loader.dataset._entry_dynamic_m5_target_provider.calls)
 
 
-def test_dynamic_m5_closed_only_tail_has_real_learning_without_terminal_or_inclusive_imputation(monkeypatch):
-    loader, batch = _dynamic_training_fixture(monkeypatch)
+def test_dynamic_m5_closed_only_tail_has_real_learning_without_terminal_or_inclusive_imputation(monkeypatch, tmp_path, economics):
+    loader, batch = _dynamic_training_fixture(monkeypatch, tmp_path, economics)
     model = SmallDynamicEntry()
     prepared = trainer._materialize_dynamic_m5_batch_targets(batch, loader.dataset)
     for key in (observed.DYNAMIC_M5_MARKOUT_TARGET_KEY, observed.DYNAMIC_M5_MFE_TARGET_KEY,
@@ -1038,8 +1077,8 @@ def test_dynamic_m5_closed_only_tail_has_real_learning_without_terminal_or_inclu
 
 
 @pytest.mark.parametrize("fault", ["false_nonzero", "observed_nan", "closed_negative_mae", "mask_dtype", "flat_nonzero", "pointer"])
-def test_dynamic_m5_batch_loss_rejects_invalid_cells_and_global_pointer_drift(monkeypatch, fault):
-    loader, batch = _dynamic_training_fixture(monkeypatch)
+def test_dynamic_m5_batch_loss_rejects_invalid_cells_and_global_pointer_drift(monkeypatch, tmp_path, economics, fault):
+    loader, batch = _dynamic_training_fixture(monkeypatch, tmp_path, economics)
     if fault == "pointer":
         batch["dynamic_entry_m1_row"] = torch.tensor([101, 105])
         with pytest.raises(RuntimeError, match="POINTER_MISMATCH"):
@@ -1055,8 +1094,8 @@ def test_dynamic_m5_batch_loss_rejects_invalid_cells_and_global_pointer_drift(mo
         trainer._dynamic_m5_task_loss_surfaces(SmallDynamicEntry()(prepared["seq_x"], prepared["snap_x"]), prepared, torch.device("cpu"))
 
 
-def test_dynamic_m5_all_unobserved_tasks_fail_before_optimizer_and_weights_move(monkeypatch):
-    loader, batch = _dynamic_training_fixture(monkeypatch)
+def test_dynamic_m5_all_unobserved_tasks_fail_before_optimizer_and_weights_move(monkeypatch, tmp_path, economics):
+    loader, batch = _dynamic_training_fixture(monkeypatch, tmp_path, economics)
     model = SmallDynamicEntry()
     prepared = trainer._materialize_dynamic_m5_batch_targets(batch, loader.dataset)
     for key in _dynamic_target_arrays([0]): prepared[key].zero_()
@@ -1078,7 +1117,7 @@ def test_dynamic_m5_model_kwargs_contain_only_declared_phase_and_known_queries()
 
 
 
-def test_dynamic_m5_arrow_getitem_keeps_pointers_target_only_and_provider_lazy(tmp_path, monkeypatch):
+def test_dynamic_m5_arrow_getitem_keeps_pointers_target_only_and_provider_lazy(tmp_path, monkeypatch, economics):
     import pyarrow as pa
     import pyarrow.parquet as pq
     from tests.test_entry_v10_ctx_dataset_memmap import _write_advanced_parquet
@@ -1122,6 +1161,7 @@ def test_dynamic_m5_arrow_getitem_keeps_pointers_target_only_and_provider_lazy(t
             self.calls.append(rows.copy())
             return _dynamic_target_arrays(rows)
     ds._entry_dynamic_m5_target_provider = Provider()
+    trainer._bind_dynamic_m5_loss_scales(ds, _loaded_dynamic_loss_scales(tmp_path, economics), device=torch.device("cpu"))
     row = ds[0]
     assert row["entry_row_index"].item() == 10
     assert row["dynamic_entry_parent_row_index"].item() == 0
@@ -1282,3 +1322,144 @@ def test_dynamic_physical_dataset_binding_rejects_inconsistent_frozen_control_co
         trainer._physical_auxiliary_target_binding(
             frames["val"], parquet_path=Path(sources["val"]["parquet"]["path"]),
             result_binding=receipt, expected_design_sha256=design["sha256"], role="CONTROL256")
+
+
+def test_dynamic_train_rms_loss_preserves_raw_metrics_and_endpoint_denominators(monkeypatch, tmp_path, economics):
+    loader, batch = _dynamic_training_fixture(monkeypatch, tmp_path, economics)
+    prepared = trainer._materialize_dynamic_m5_batch_targets(batch, loader.dataset)
+    out = SmallDynamicEntry()(prepared["seq_x"], prepared["snap_x"])
+    out = {name: torch.zeros_like(value, requires_grad=True) for name, value in out.items()}
+    raw, counts = trainer._dynamic_m5_task_loss_surfaces(out, prepared, torch.device("cpu"))
+    scaled, scaled_counts = trainer._dynamic_m5_task_loss_surfaces(out, prepared, torch.device("cpu"), loss_units="train_rms")
+    assert counts == scaled_counts == {"dynamic_terminal_net_markout_bps": 3,
+        "dynamic_mfe_bps": 4, "dynamic_pre_mfe_mae_upper_bps": 4, "forecast_return_bps": 3}
+    # Hand-calculated residuals: terminal includes its analytic FLAT zero;
+    # inclusive/closed use distinct units before the original joint task pool.
+    assert float(raw["dynamic_terminal_net_markout_bps"]) == pytest.approx(52 / 3)
+    assert float(scaled["dynamic_terminal_net_markout_bps"]) == pytest.approx((4 / 2) ** 2 / 3 + (6 / 4) ** 2 / 3)
+    assert float(raw["dynamic_mfe_bps"]) == pytest.approx(39 / 4)
+    assert float(scaled["dynamic_mfe_bps"]) == pytest.approx((1 + .04 + .25 + .25) / 4)
+    assert float(scaled["dynamic_pre_mfe_mae_upper_bps"]) == pytest.approx((1 + .25 + .25 + .25) / 4)
+    assert float(scaled["forecast_return_bps"]) == pytest.approx((4 + 4 + .36) / 3)
+    model = SmallDynamicEntry()
+    total, diagnostics = trainer._joint_task_loss(model, scaled, loss_units="train_rms")
+    assert any(key.startswith("joint_task_unit_loss_") for key in diagnostics)
+    assert not any(key.startswith("joint_task_raw_loss_") for key in diagnostics)
+    total.backward()
+    assert out["dynamic_terminal_net_markout_bps"].grad[0, 0, 0].item() == pytest.approx(-2 / 3)
+    assert out["dynamic_terminal_net_markout_bps"].grad[0, 0, 1].item() == pytest.approx(.25)
+    assert torch.count_nonzero(out["dynamic_terminal_net_markout_bps"].grad[..., 2]) == 0
+
+
+def test_dynamic_loss_units_are_verified_once_and_never_hash_from_a_batch(monkeypatch, tmp_path, economics):
+    from gx1.contracts import entry_dynamic_m5_loss_scale_v1 as units
+    from gx1.contracts import local_random_access_campaign_v2 as common
+    loader, batch = _dynamic_training_fixture(monkeypatch, tmp_path, economics)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("runtime loss units reopened an admitted artifact/lineage")
+    monkeypatch.setattr(common, "_file_sha256_uncached", forbidden)
+    monkeypatch.setattr(units, "_require_lineage", forbidden)
+    scales = loader.dataset._entry_dynamic_m5_loss_scale_tensors
+    for _ in range(2):
+        prepared = trainer._materialize_dynamic_m5_batch_targets(batch, loader.dataset)
+        assert prepared[units.DYNAMIC_M5_LOSS_SCALE_BATCH_KEY]["rms"] is scales
+        assert units.DYNAMIC_M5_LOSS_SCALE_BATCH_KEY not in batch
+        out = SmallDynamicEntry()(prepared["seq_x"], prepared["snap_x"])
+        trainer._dynamic_m5_task_loss_surfaces(out, prepared, torch.device("cpu"), loss_units="train_rms")
+
+
+def test_dynamic_training_missing_loss_units_fails_before_forward_or_optimizer(monkeypatch, tmp_path, economics):
+    loader, _ = _dynamic_training_fixture(monkeypatch, tmp_path, economics)
+    del loader.dataset._entry_dynamic_m5_loss_scales
+    model = SmallDynamicEntry()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.01)
+    before = copy.deepcopy(model.state_dict())
+    monkeypatch.setattr(model, "forward", lambda *a, **kw: pytest.fail("forward before loss-unit admission"))
+    with pytest.raises(RuntimeError, match="LOSS_SCALES_REQUIRED"):
+        trainer.train_epoch(model, ForbiddenTeacher(), loader, optimizer, torch.device("cpu"), 1, {}, {})
+    assert not optimizer.state
+    assert all(torch.equal(value, before[name]) for name, value in model.state_dict().items())
+
+
+@pytest.mark.parametrize("fault", ["different_artifact", "different_lineage", "writable", "zero"])
+def test_dynamic_loss_unit_rebinding_and_invalid_runtime_units_fail(monkeypatch, tmp_path, economics, fault):
+    loader, batch = _dynamic_training_fixture(monkeypatch, tmp_path, economics)
+    scales = copy.deepcopy(loader.dataset._entry_dynamic_m5_loss_scales)
+    for array in scales["rms"].values(): array.setflags(write=False)
+    if fault == "different_artifact": scales["artifact_sha256"] = "b" * 64
+    elif fault == "different_lineage": scales["fit_lineage"]["train_control_cutoff"] = "2025-07-01T00:00:00Z"
+    else:
+        scales["rms"]["forecast_pred"].setflags(write=True)
+        if fault == "zero":
+            scales["rms"]["forecast_pred"][0] = 0
+            scales["rms"]["forecast_pred"].setflags(write=False)
+    with pytest.raises(RuntimeError, match="LOSS_SCALE_(REBIND_FORBIDDEN|CONTEXT_INVALID)"):
+        trainer._bind_dynamic_m5_loss_scales(loader.dataset, scales, device=torch.device("cpu"))
+
+
+def test_dynamic_loss_units_are_part_of_actual_session_resume_identity(monkeypatch, tmp_path, economics):
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_identity
+    loaded = _loaded_dynamic_loss_scales(tmp_path, economics)
+    identity = dynamic_m5_loss_scale_identity(loaded)
+    # Isolate the separately qualified checkpoint-policy owner only; exercise
+    # the actual durable Session contract writer and exact resume comparison.
+    class PolicyContext:
+        def require_contract(self, contract): pass
+    monkeypatch.setattr(trainer, "prepare_verified_checkpoint_policy", lambda **kw: PolicyContext())
+    contract = {"schema_version": "gx1_candidate_training_session_v1", "chronological_prefix": {
+        "entry_training_phase": "entry_only_dynamic_m5_path", "dynamic_m5_loss_scales": identity}}
+    out = tmp_path / "loss-unit-session"
+    first = trainer._CandidateTrainingSession(out_bundle_dir=out, contract=contract)
+    resumed = trainer._CandidateTrainingSession(out_bundle_dir=out, contract=copy.deepcopy(contract))
+    assert first._contract_sha256 == resumed._contract_sha256
+    changed = copy.deepcopy(contract)
+    changed["chronological_prefix"]["dynamic_m5_loss_scales"]["artifact_sha256"] = "c" * 64
+    before = first._contract_path.read_bytes()
+    with pytest.raises(RuntimeError, match="SESSION_CONTRACT_MISMATCH"):
+        trainer._CandidateTrainingSession(out_bundle_dir=out, contract=changed)
+    assert first._contract_path.read_bytes() == before
+
+
+@pytest.mark.parametrize("fault", [None, "missing", "changed_lineage", "changed_bytes"])
+def test_dynamic_recipe_loss_scale_gate_uses_real_bound_artifact(monkeypatch, tmp_path, economics, fault):
+    from gx1.contracts import entry_dynamic_m5_loss_scale_v1 as units
+    loaded = _loaded_dynamic_loss_scales(tmp_path, economics)
+    recipe = {units.DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY: loaded["binding"]}
+    expected_lineage = copy.deepcopy(loaded["fit_lineage"])
+    monkeypatch.setattr(units, "dynamic_m5_loss_fit_lineage", lambda scope, population: expected_lineage)
+    if fault == "missing": recipe.clear()
+    elif fault == "changed_lineage": expected_lineage["train_rows"] = 3
+    elif fault == "changed_bytes": Path(loaded["binding"]["path"]).write_text("{}")
+    call = lambda: native._require_dynamic_m5_loss_scale_identity(recipe,
+        prefix={"entry_m5_path_single_epoch": {}}, observed_scope={})
+    if fault:
+        with pytest.raises(RuntimeError): call()
+    else:
+        assert call() == units.dynamic_m5_loss_scale_identity(loaded)
+
+
+def test_dynamic_session_policy_captures_loss_artifact_once_and_rejects_stat_drift(
+        tmp_path, monkeypatch, dynamic_physical_receipt, economics):
+    from gx1.contracts import entry_candidate_checkpoint_policy_v1 as policy
+    from gx1.contracts import local_random_access_campaign_v2 as common
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_identity
+    from tests.test_verified_checkpoint_policy_v1 import verified_contract
+    # Reuse the real17-row pointer/cost fixture after this module is loaded,
+    # avoiding a module-level circular fixture import.
+    contract, calls, _ = verified_contract.__wrapped__(tmp_path, monkeypatch, dynamic_physical_receipt)
+    loaded = _loaded_dynamic_loss_scales(tmp_path, economics)
+    contract["chronological_prefix"]["dynamic_m5_loss_scales"] = dynamic_m5_loss_scale_identity(loaded)
+    path = Path(loaded["binding"]["path"])
+    calls["hashes"].clear()
+    context = policy.prepare_verified_checkpoint_policy(contract=contract)
+    assert calls["hashes"].count(str(path)) == 1
+    reads = copy.deepcopy(calls)
+    context.require_contract(contract)
+    assert calls == reads
+    original = path.read_bytes()
+    path.write_bytes(original + b" ")
+    with pytest.raises(common.RandomAccessCampaignError, match="identity changed"):
+        context.require_contract(contract)
+    assert calls == reads
+    with pytest.raises(common.RandomAccessCampaignError):
+        policy.prepare_verified_checkpoint_policy(contract=contract)

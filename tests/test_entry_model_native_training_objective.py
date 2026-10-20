@@ -152,6 +152,14 @@ def test_dynamic_objective_matches_existing_quality_bps_candidate_without_native
     assert value["dynamic_candidate_is_cash"] is False
     assert value["dynamic_candidate_is_unconditional_expected_quality"] is False
     assert value["dynamic_candidate_has_supervised_target"] is False
+    assert value["train_fitted_loss_scales"] is True
+    assert value["raw_bps_component_diagnostics_preserved"] is True
+    assert set(value["dynamic_component_losses"].values()) == {
+        "independently_masked_TRAIN_target_RMS_scaled_squared_error"}
+    assert value["dynamic_loss_unit_contract"]["fit_partition"] == "train"
+    assert value["dynamic_loss_unit_contract"]["raw_target_and_output_units"] == "bps"
+    assert value["dynamic_loss_unit_contract"]["centering"] is False
+    assert value["dynamic_loss_unit_contract"]["epsilon_or_unit_fallback"] is False
     assert value["dynamic_candidate_native_authority_admitted"] is False
     assert value["exit_gradients_active"] is False
     assert "dynamic_candidate_is_cash_or_bps" not in value
@@ -192,7 +200,7 @@ def test_dynamic_curve_observer_must_be_callable_before_any_forward():
 
 
 
-def _dynamic_gate_execution_case(monkeypatch, *, compact):
+def _dynamic_gate_execution_case(monkeypatch, tmp_path, *, compact):
     """Exercise real gate evidence owners with synthetic loss/target plumbing."""
     from types import SimpleNamespace
     import torch
@@ -242,6 +250,9 @@ def _dynamic_gate_execution_case(monkeypatch, *, compact):
     dataset = object.__new__(trainer.EntryV10CtxDataset)
     dataset._unified_exit_lifecycle_v2 = None
     dataset._entry_observed_market_binding = {"identity": {"training_phase": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE}}
+    from tests.test_entry_dynamic_m5_loss_scale import _synthetic_loaded_loss_scales
+    trainer._bind_dynamic_m5_loss_scales(dataset, _synthetic_loaded_loss_scales(tmp_path),
+        device=torch.device("cpu"))
     batch = {
         "seq_x": torch.tensor([[1.], [2.]]), "snap_x": torch.zeros(2, 1),
         "ctx_cont": torch.zeros(2, 1), "ctx_cat": torch.zeros(2, 1, dtype=torch.long),
@@ -264,7 +275,7 @@ def _dynamic_gate_execution_case(monkeypatch, *, compact):
     monkeypatch.setattr(trainer, "_materialize_dynamic_m5_batch_targets", materialize)
     monkeypatch.setattr(trainer, "_multi_tf_kwargs_from_batch", lambda *args: {})
     monkeypatch.setattr(trainer, "_model_forward_fp32", lambda model, *args, **kwargs: model(*args, **kwargs))
-    monkeypatch.setattr(trainer, "_dynamic_m5_task_loss_surfaces", lambda out, batch, device: (
+    monkeypatch.setattr(trainer, "_dynamic_m5_task_loss_surfaces", lambda out, batch, device, *, loss_units="raw_bps": (
         {name: out["synthetic_loss"] for name in tasks},
         {name: int(batch["seq_x"].shape[0]) for name in tasks},
     ))
@@ -284,10 +295,10 @@ def _assert_dynamic_gate_stats(stats, case):
 
 
 @pytest.mark.parametrize("compact", [False, True])
-def test_dynamic_curve_validator_uses_bound_execution_gate_shapes(monkeypatch, compact):
+def test_dynamic_curve_validator_uses_bound_execution_gate_shapes(monkeypatch, tmp_path, compact):
     import math
     import torch
-    case = _dynamic_gate_execution_case(monkeypatch, compact=compact)
+    case = _dynamic_gate_execution_case(monkeypatch, tmp_path, compact=compact)
     result = case.trainer._validate_dynamic_m5_curves(case.model.eval(), case.loader, torch.device("cpu"))
     assert math.isfinite(result[0])
     _assert_dynamic_gate_stats(result[-1], case)
@@ -295,10 +306,10 @@ def test_dynamic_curve_validator_uses_bound_execution_gate_shapes(monkeypatch, c
 
 
 @pytest.mark.parametrize("compact", [False, True])
-def test_dynamic_train_epoch_uses_bound_execution_gate_shapes(monkeypatch, compact):
+def test_dynamic_train_epoch_uses_bound_execution_gate_shapes(monkeypatch, tmp_path, compact):
     import math
     import torch
-    case = _dynamic_gate_execution_case(monkeypatch, compact=compact)
+    case = _dynamic_gate_execution_case(monkeypatch, tmp_path, compact=compact)
     optimizer = torch.optim.SGD(case.model.parameters(), lr=0.001)
     loss, stats, complete = case.trainer.train_epoch(
         case.model, case.target, case.loader, optimizer, torch.device("cpu"), 1, {}, {},
@@ -327,3 +338,22 @@ def test_dynamic_gate_execution_rejects_forged_profile_before_diagnostics():
             entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
             entry_execution_profile={"name": "unregistered", "contract_sha256": "0" * 64},
         ))
+
+
+@pytest.mark.parametrize("fault", ["old_raw_loss", "control_fit", "centering", "epsilon", "hidden_target_unit"])
+def test_dynamic_objective_rejects_loss_unit_semantic_drift(fault):
+    import copy
+    value = copy.deepcopy(training_objective_contract_metadata(
+        entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE))
+    if fault == "old_raw_loss":
+        value["dynamic_component_losses"]["forecast_return_bps"] = "independently_masked_raw_bps_mean_squared_error"
+    elif fault == "control_fit":
+        value["dynamic_loss_unit_contract"]["fit_partition"] = "val"
+    elif fault == "centering":
+        value["dynamic_loss_unit_contract"]["centering"] = True
+    elif fault == "epsilon":
+        value["dynamic_loss_unit_contract"]["epsilon_or_unit_fallback"] = True
+    else:
+        value["dynamic_loss_unit_contract"]["raw_target_and_output_units"] = "normalized_target"
+    with pytest.raises(RuntimeError, match="TRAINING_OBJECTIVE_CONTRACT_INVALID"):
+        require_training_objective_contract(value, context="TEST")

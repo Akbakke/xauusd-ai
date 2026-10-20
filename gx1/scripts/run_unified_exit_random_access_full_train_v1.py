@@ -36,6 +36,10 @@ from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
     native_checkpoint_monitor, DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
 )
 from gx1.contracts.local_random_access_campaign_v2 import file_verification_scope
+from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+    DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY, dynamic_m5_loss_fit_lineage,
+    dynamic_m5_loss_scale_identity, load_dynamic_m5_loss_scales,
+)
 
 
 NATIVE_FULL_TRAIN_RECIPE_SCHEMA = "gx1_unified_exit_random_access_full_train_recipe_v1"
@@ -105,9 +109,10 @@ def _require_native_full_train_recipe(
             dynamic_phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     if (
         not required <= set(recipe)
-        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study", "entry_m5_path_single_epoch", "entry_execution_profile", "entry_dynamic_m5_technical_qualification"}
+        or set(recipe) - required - {"candidate_resume_origin", "native_calibration", "exit_backup_steps", "exit_reference_policy", "frozen_readout_evaluation", "chronological_prefix", "chronological_initial_measurement", "chronological_learning_measurement", "entry_gradient_diagnostic", "chronological_train_only_measurement", "chronological_entry_baseline", "chronological_learning_continuation", "entry_observed_market_horizons", "frozen_train_policy_evaluation", "frozen_entry_selector_probe", "entry_observed_market", "entry_learning_study", "entry_m5_path_single_epoch", "entry_execution_profile", "entry_dynamic_m5_technical_qualification", DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY}
         or recipe["schema_version"] != NATIVE_FULL_TRAIN_RECIPE_SCHEMA
         or recipe["profile"] != "candidate" or recipe["test_data_used"] is not False
+        or ((DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY in recipe) != (dynamic_phase is not None))
         or ("entry_execution_profile" in recipe and dynamic_phase is None)
         or ("entry_dynamic_m5_technical_qualification" in recipe and dynamic_phase is None)
         or recipe["initialization"] != ("fresh_existing_model_constructor_no_checkpoint_weights" if prefix_mode else
@@ -658,6 +663,11 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
             or controls["epochs"] != 1 or controls["batch_size"] != 16
             or single["train_rows"] != len(prefix["eligible_parent_rows"])):
         raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_IDENTITY_INVALID")
+    from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
+    with file_verification_scope():
+        loss_scales = load_dynamic_m5_loss_scales(recipe[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY],
+            expected_lineage=dynamic_m5_loss_fit_lineage(require_observed_entry_scope(recipe), single))
+    loss_scale_identity = dynamic_m5_loss_scale_identity(loss_scales)
     output_dir = Path(output_dir)
     if (not output_dir.is_absolute() or output_dir != output_dir.resolve()
             or output_dir.exists() or output_dir.is_symlink()
@@ -695,6 +705,7 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
     rng_sha256 = _structured_sha256(rng_identity(rng))
     closure = require_prefix_measurement_source_binding(recipe)
     common = {"entry_training_phase": phase, "target_model_role": "frozen_constructor_anchor_no_forward",
+        DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY: loss_scale_identity,
         "exit_evaluation": False, "native_launch_authorized": False, "exit_model_forward_count": 0, **closure}
     initial = {"schema_version": "gx1_prefix_fresh_initialization_v1",
         "decision": "ACTUAL_NATIVE_FRESH_COMPONENTS_READY_NO_LEARNING_MEASURED", **common,
@@ -718,6 +729,7 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
     # state_dict tensors are detached CPU values. The immutable archive may share
     # their storage for ONLINE and its identical no-forward constructor anchor.
     state = {"schema_version": "gx1_prefix_fresh_initial_state_v1",
+        DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY: loss_scale_identity,
         "chronological_prefix": recipe["chronological_prefix"], "model_functions": prefix["model_functions"],
         "model_forwards": 0, "optimizer_steps": 0, "checkpoint_loaded": False,
         "model_state": model_state, "target_model_state": dict(model_state),
@@ -732,7 +744,8 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
     del state, ema_state, model_state
     components = {"model": model, "optimizer": optimizer, "weight_ema": weight_ema, "lr_scheduler": scheduler,
         "chronological_prefix": recipe["chronological_prefix"], "model_functions": prefix["model_functions"],
-        "seed_binding": seed_binding, "weight_ema_derivation": ema_derivation}
+        "seed_binding": seed_binding, "weight_ema_derivation": ema_derivation,
+        DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY: loss_scale_identity}
     staged_initial = {**initial, "initial_state": {"path": str(staged_state), "sha256": state_sha256}}
     _restore_prefix_initial_measurement_state(components=components,
         scope={"initialization": staged_initial}, device=device)
@@ -754,7 +767,8 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
 
 
 def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_entry_scope,
-        dataset_run_id, device, batch_size, epochs, seed, learning_rate, weight_decay, val_limits):
+        dataset_run_id, device, batch_size, epochs, seed, learning_rate, weight_decay, val_limits,
+        dynamic_m5_loss_scales=None):
     """Bind the existing Entry Dataset/model without constructing any Exit owner."""
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     from gx1.contracts.entry_observed_market_horizons_v1 import bind_observed_entry_dataset
@@ -785,6 +799,10 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
     if (normalization["contract_sha256"] != physical["base_contract_sha256"]
             or normalization["lineage"]["dataset_run_id"] != dataset_run_id):
         raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_DATASET_IDENTITY_MISMATCH")
+    with file_verification_scope():
+        loss_scales = load_dynamic_m5_loss_scales(dynamic_m5_loss_scales,
+            expected_lineage=dynamic_m5_loss_fit_lineage(observed_entry_scope, single))
+    loss_scale_identity = dynamic_m5_loss_scale_identity(loss_scales)
     datasets = {}
     for split, role, audit_key in (("train", "TRAIN", "sequence_source_audit"),
                                   ("val", "CONTROL256", "val_sequence_source_audit")):
@@ -806,6 +824,7 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
             expected_result_sha256=chronological_prefix["labels_result"]["sha256"],
             expected_design_sha256=chronological_prefix["design"]["sha256"], role=role)
         bind_observed_entry_dataset(dataset, observed_entry_scope)
+        trainer._bind_dynamic_m5_loss_scales(dataset, loss_scales, device=device)
         if getattr(dataset, "_unified_exit_lifecycle_v2", None) is not None:
             raise RuntimeError("NATIVE_DYNAMIC_M5_EXIT_LIFECYCLE_FORBIDDEN")
         datasets[split] = dataset
@@ -855,6 +874,7 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
         "prefix_epoch0_parent_order": order.numpy().copy(), "effective_train_rows": int(parents.numel()),
         "entry_m5_path_single_epoch": single, "entry_observed_market": identity,
         "entry_only_session_binding": session_binding,
+        DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY: loss_scale_identity,
         "unified_exit_lifecycle_evidence": {"schema_version": "gx1_native_entry_only_dynamic_m5_input_lineage_v1",
             "physical_sources": physical["physical_sources"], "base_normalization": physical["entry_only_base_normalization"],
             "sequence_source_audits": physical["sequence_source_audits"], "exit_lifecycle_bound": False}}
@@ -872,6 +892,7 @@ def _build_bound_full_train_components(
     chronological_prefix: Mapping[str, Any] | None = None,
     frozen_train_policy_scope: Mapping[str, Any] | None = None,
     observed_entry_scope: Mapping[str, Any] | None = None,
+    dynamic_m5_loss_scales: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bind legacy full TRAIN/June or explicit fresh-prefix components.
 
@@ -899,7 +920,10 @@ def _build_bound_full_train_components(
             return _build_dynamic_m5_entry_components(files=files, chronological_prefix=chronological_prefix,
                 observed_entry_scope=observed_entry_scope, dataset_run_id=dataset_run_id,
                 device=device, batch_size=batch_size, epochs=epochs,
-                seed=seed, learning_rate=learning_rate, weight_decay=weight_decay, val_limits=val_limits)
+                seed=seed, learning_rate=learning_rate, weight_decay=weight_decay, val_limits=val_limits,
+                dynamic_m5_loss_scales=dynamic_m5_loss_scales)
+    if dynamic_m5_loss_scales is not None:
+        raise RuntimeError("NATIVE_DYNAMIC_M5_LOSS_SCALE_PHASE_INVALID")
     trainer._set_deterministic(seed, device, "deterministic_fp32")
     selected_sampler = _require_component_sampler(
         files=files, chronological_prefix=chronological_prefix,
@@ -1344,6 +1368,8 @@ def run_guarded_native_candidate_invocation(
         **({"chronological_prefix":recipe["chronological_prefix"]} if prefix_mode else {}),
         **({"frozen_train_policy_scope":frozen_train_scope} if frozen_train_scope is not None else {}),
         **({"observed_entry_scope":observed_entry_scope} if observed_entry_scope is not None else {}),
+        **({DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY: recipe[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY]}
+           if DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY in recipe else {}),
     )
     print(json.dumps({"event": "NATIVE_COMPONENT_SETUP", "report_only": True,
                       "component_wall_seconds": time.monotonic() - component_started,
@@ -2196,6 +2222,10 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
 def _restore_prefix_initial_measurement_state(*, components, scope, device):
     """Load the saved fresh state, never an exposed historical checkpoint."""
     initial = scope["initialization"]
+    dynamic = getattr(components["model"], "entry_training_phase", None) == trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+    if dynamic and (not isinstance(components.get(DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY), Mapping)
+            or initial.get(DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY) != components[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY]):
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_LOSS_SCALE_MISMATCH")
     state = torch.load(_bound_artifact(initial["initial_state"]), map_location="cpu", weights_only=False)
     expected = initial["online_model_state_sha256"]
     functions = components.get("model_functions")
@@ -2206,6 +2236,7 @@ def _restore_prefix_initial_measurement_state(*, components, scope, device):
                 and any(value.get("model_functions") != functions for value in (initial, state)))):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_FUNCTION_BINDING_INVALID")
     if (state.get("schema_version") != "gx1_prefix_fresh_initial_state_v1"
+            or (dynamic and state.get(DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY) != components[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY])
             or state.get("chronological_prefix") != components["chronological_prefix"]
             or state.get("model_forwards") != 0 or state.get("optimizer_steps") != 0
             or state.get("checkpoint_loaded") is not False
@@ -2341,8 +2372,8 @@ def _dynamic_m5_forward_parity(*, model, batch, device, diagnostics=None):
                     event.key: event.count for event in profile.key_averages()
                     if event.key.startswith("aten::") and ("attention" in event.key or "transformer" in event.key)}
                 del profile
-                losses, cells = trainer._dynamic_m5_task_loss_surfaces(out, batch, device)
-                trainer._joint_task_loss(model, losses)
+                losses, cells = trainer._dynamic_m5_task_loss_surfaces(out, batch, device, loss_units="train_rms")
+                trainer._joint_task_loss(model, losses, loss_units="train_rms")
                 values = {name: out[name].detach().cpu().clone() for name in (*fields, *exact)}
                 if any(not bool(torch.isfinite(values[name]).all()) for name in fields):
                     raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_NONFINITE")
@@ -2781,6 +2812,8 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
     if (("entry_observed_market" in recipe or "entry_observed_market_horizons" in recipe)) != (entry_identity is not None):
         raise RuntimeError("NATIVE_PREFIX_OBSERVED_ENTRY_COMPONENT_MISMATCH")
     entry_evidence = {} if entry_identity is None else {"entry_observed_market": entry_identity}
+    if dynamic:
+        entry_evidence[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY] = components[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY]
     deadline = min(invocation_started + 12000 - 60, time.monotonic() + context["max_wall_seconds"])
     if time.monotonic() >= deadline:
         raise RuntimeError("NATIVE_PREFIX_INITIAL_INSUFFICIENT_WINDOW")
@@ -2798,6 +2831,7 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         if (session._contract.get("chronological_prefix") != components["entry_only_session_binding"]
                 or context.get("entry_training_phase") != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
                 or context.get("entry_supervision_identity") != entry_identity
+                or components.get(DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY) != session._contract.get("chronological_prefix", {}).get(DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY)
                 or "measurement_state_factories" in components):
             raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_SESSION_MISMATCH")
         context_binding = trainer._native_candidate_val_context_binding(context)

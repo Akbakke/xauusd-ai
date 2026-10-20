@@ -415,7 +415,9 @@ def dynamic_initial_observer(tmp_path, monkeypatch):
     import pandas as pd
     from tests.test_entry_observed_market_native import _dynamic_training_fixture, SmallDynamicEntry
     from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
-    loader, template = _dynamic_training_fixture(monkeypatch)
+    from tests.test_entry_dynamic_m5_loss_scale import _synthetic_loaded_loss_scales
+    loader, template = _dynamic_training_fixture(monkeypatch, tmp_path,
+        loss_scales=_synthetic_loaded_loss_scales(tmp_path))
     dataset = loader.dataset
     clock = pd.date_range("2025-12-01T00:00Z", periods=300, freq="5min").as_unit("ns")
     dataset.df = pd.DataFrame({"time": clock, "dynamic_entry_m1_row": np.arange(300, dtype=np.int64) * 5})
@@ -514,7 +516,11 @@ def test_dynamic_initial_final_measurement_freezes_targets_and_restores_native_s
     model.entry_training_phase = phase
     identity = {"training_phase": phase}
     functions = dict(trainer._PREFIX_CURRENT_MODEL_FUNCTIONS)
+    from tests.test_entry_dynamic_m5_loss_scale import _synthetic_loaded_loss_scales
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_identity
+    loss_units = dynamic_m5_loss_scale_identity(_synthetic_loaded_loss_scales(tmp_path))
     prefix = {"entry_training_phase": phase, "model_functions": functions,
+        "dynamic_m5_loss_scales": loss_units,
         "entry_observed_market": {role:{"identity":identity} for role in ("train", "control")}}
     context = {"entry_training_phase": phase, "entry_supervision_identity": identity, "max_wall_seconds": 30}
     context_binding = {"synthetic": "dynamic context"}
@@ -540,7 +546,8 @@ def test_dynamic_initial_final_measurement_freezes_targets_and_restores_native_s
     monkeypatch.setattr(runner, "_dynamic_m5_prefix_observations", observe)
     ds = SimpleNamespace(_entry_observed_market_binding={"identity":identity})
     components = {**h.last_kwargs, "train_probe_ds":ds, "val_ds":ds, "native_val_context":context,
-        "entry_observed_market":identity, "entry_only_session_binding":prefix}
+        "entry_observed_market":identity, "entry_only_session_binding":prefix,
+        "dynamic_m5_loss_scales":loss_units}
     scope_value = {"initialization":{"online_model_state_sha256":initial_hash,"model_functions":functions},
         "measurement":{"coordinate_result":{"synthetic":True}},
         "artifacts":{"initialization_result":{"synthetic":True},"measurement_binding_result":{"synthetic":True}}}
@@ -578,6 +585,7 @@ def dynamic_initial_scope(dynamic_native_recipe_metadata, tmp_path, monkeypatch)
     state = tmp_path/"DYNAMIC_INITIAL_STATE.pt"; state.write_bytes(b"unit state; real restore is separately tested")
     closure = native.require_prefix_measurement_source_binding(recipe)
     common = {"entry_training_phase":case["witness"]["training_phase"],
+        "dynamic_m5_loss_scales":case["loss_scale_identity"],
         "target_model_role":"frozen_constructor_anchor_no_forward", "exit_evaluation":False,
         "native_launch_authorized":False, "exit_model_forward_count":0, **closure}
     initial = {"schema_version":"gx1_prefix_fresh_initialization_v1",
@@ -606,7 +614,7 @@ def dynamic_initial_scope(dynamic_native_recipe_metadata, tmp_path, monkeypatch)
             "chronological_prefix":recipe["chronological_prefix"], "run_id":recipe["run_id"],
             "out_bundle_dir":recipe["out_bundle_dir"], "source_bindings_sha256":recipe["source_bindings_sha256"],
             "entry_m5_path_single_epoch":recipe["entry_m5_path_single_epoch"],
-            "entry_observed_market":recipe["entry_observed_market"],
+            "entry_observed_market":recipe["entry_observed_market"], "dynamic_m5_loss_scales":recipe["dynamic_m5_loss_scales"],
             "optimizer_steps":0, "max_invocations":1, "teacher_refresh_allowed":False,
             "full_epoch_training_allowed":False, "full_val_allowed":False, "test_data_used":False}
         return case["seal"]()
@@ -801,3 +809,21 @@ def test_dynamic_observation_admission_rejoins_actual_component_masks_and_trace(
         with pytest.raises(RuntimeError): native._require_dynamic_m5_observation(observation, identity=identity, cohort=cohort)
     else:
         assert native._require_dynamic_m5_observation(observation, identity=identity, cohort=cohort) == observation
+
+
+@pytest.mark.parametrize("fault", ["recipe", "initial", "measurement", "policy"])
+def test_dynamic_initial_scope_requires_same_loss_units_in_all_frozen_bindings(dynamic_initial_scope, fault):
+    case = dynamic_initial_scope
+    if fault == "recipe":
+        case["recipe"]["dynamic_m5_loss_scales"] = {**case["recipe"]["dynamic_m5_loss_scales"], "sha256": "e" * 64}
+    elif fault in ("initial", "measurement"):
+        case[fault]["dynamic_m5_loss_scales"]["artifact_sha256"] = "e" * 64
+    case["seal_initial"]()
+    if fault == "policy":
+        case["policy"]["chronological_initial_measurement"]["dynamic_m5_loss_scales"] = {
+            **case["recipe"]["dynamic_m5_loss_scales"], "sha256": "e" * 64}
+        case["seal"]()
+    with pytest.raises(RuntimeError):
+        native.require_chronological_initial_measurement(case["recipe"], execution_budget={
+            "stop_after_optimizer_steps": 0, "expected_active_pointer_sha256": None,
+            "stop_after_completed_val_epochs": None, "max_invocation_seconds": 12000})

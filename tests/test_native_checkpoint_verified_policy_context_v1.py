@@ -26,7 +26,12 @@ def session_case(tmp_path, monkeypatch):
         path = tmp_path / (role + ".bin")
         path.write_bytes((role + "-immutable-input\n").encode())
         inputs[role] = {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    from tests.test_entry_dynamic_m5_loss_scale import _synthetic_loaded_loss_scales
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_identity
+    loaded_units = _synthetic_loaded_loss_scales(tmp_path)
+    inputs["loss_units"] = loaded_units["binding"]
     prefix = {"entry_training_phase": trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+              "dynamic_m5_loss_scales": dynamic_m5_loss_scale_identity(loaded_units),
               "unit_input_bindings": copy.deepcopy(inputs)}
     semantic_calls = []
 

@@ -668,6 +668,17 @@ def dynamic_prefix_binding_unit(physical_prepared, tmp_path, monkeypatch):
         scope_calls.append(copy.deepcopy(value))
         return scope
     monkeypatch.setattr(observed_owner, "require_entry_observed_market_scope", checked_scope)
+    from gx1.contracts import entry_dynamic_m5_loss_scale_v1 as loss_owner
+    from tests.test_entry_dynamic_m5_loss_scale import _synthetic_loaded_loss_scales
+    loss_scales = _synthetic_loaded_loss_scales(directory / "loss-unit-owner-boundary")
+    loss_identity = loss_owner.dynamic_m5_loss_scale_identity(loss_scales)
+    # Completed physical/quote ownership is isolated above. Keep the actual
+    # loader, identity, dataset binding and cross-role consistency checks real;
+    # this three-row synthetic fit is not a fit of the physical fixture rows.
+    def completed_loss_lineage(checked, population):
+        assert checked is scope and population["train_rows"] == witness["train_rows"]
+        return copy.deepcopy(loss_scales["fit_lineage"])
+    monkeypatch.setattr(loss_owner, "dynamic_m5_loss_fit_lineage", completed_loss_lineage)
     expected_columns = list(dict.fromkeys([*trainer.DYNAMIC_M5_POINTER_COLUMNS,*trainer._FORECAST_TARGET_COLS,
         *trainer.MODEL_NATIVE_FORECAST_VALID_COLUMNS,*horizons.HORIZON_LABEL_COLUMNS]))
     for split,role in (("train","TRAIN"),("val","CONTROL256")):
@@ -697,19 +708,25 @@ def dynamic_prefix_binding_unit(physical_prepared, tmp_path, monkeypatch):
             **proof["dynamic_m5_supervision"],"dense_future_paths_materialized":False,"admitted_rows":int(mask.sum()),
             "admitted_row_indices_sha256":hashlib.sha256(np.asarray(rows,dtype="<i8").tobytes()).hexdigest(),
             "first_prefix_mask_sha256":hashlib.sha256(dataset.df.iloc[:,2].to_numpy().tobytes()).hexdigest()}
+        trainer._bind_dynamic_m5_loss_scales(dataset, loss_scales, device=torch.device("cpu"))
         setattr(data,"train" if split == "train" else "control",dataset)
         data.files["entry_"+split+"_parquet"] = dataset.parquet_path
     args = _binding_args(data)
     args["model"] = TinyModel(args["input_normalization"],**trainer._dynamic_m5_model_kwargs(witness["training_phase"]))
     return SimpleNamespace(data=data,args=args,coordinates=coordinates,witness=witness,seen=seen,
-        scope=scope,scope_calls=scope_calls,observed_plan=observed_plan,observed_binding=observed_binding)
+        scope=scope,scope_calls=scope_calls,observed_plan=observed_plan,observed_binding=observed_binding,
+        loss_scales=loss_scales,loss_scale_identity=loss_identity)
 
 
 def test_dynamic_prefix_binding_unit_joins_real_witness_clock_pointer_and_roles_without_exit(dynamic_prefix_binding_unit):
     case = dynamic_prefix_binding_unit
     before = [copy.deepcopy(dataset._entry_observed_market_binding["identity"])
               for dataset in (case.data.train, case.data.control)]
+    before_frames = [dataset.df.copy(deep=True) for dataset in (case.data.train, case.data.control)]
     binding,parents,order = trainer._prefix_candidate_training_binding(**case.args)
+    assert binding["dynamic_m5_loss_scales"] == case.loss_scale_identity
+    for dataset, frame in zip((case.data.train, case.data.control), before_frames):
+        pd.testing.assert_frame_equal(dataset.df, frame)
     assert case.observed_binding != case.data.value["design"]
     assert len(case.scope_calls) == 2
     assert [dataset._entry_observed_market_binding["identity"]
@@ -730,6 +747,25 @@ def test_dynamic_prefix_binding_unit_joins_real_witness_clock_pointer_and_roles_
         "native_sampler_contract":case.witness["native_sampler_contract"]}
     assert "dynamic_m5_eligibility" in binding and "horizon_eligibility" not in binding
     assert binding["active_joint_task_names"] == list(trainer._model_joint_task_names(case.args["model"]))
+
+
+@pytest.mark.parametrize("fault", ["missing", "other_artifact", "other_lineage"])
+def test_dynamic_prefix_rejects_missing_or_cross_role_loss_units_without_state_change(dynamic_prefix_binding_unit, fault):
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_identity
+    case = dynamic_prefix_binding_unit
+    dataset = case.data.control
+    before = {name: value.detach().clone() for name, value in case.args["model"].state_dict().items()}
+    if fault == "missing":
+        del dataset._entry_dynamic_m5_loss_scales
+    else:
+        loaded = dataset._entry_dynamic_m5_loss_scales
+        if fault == "other_artifact": loaded["artifact_sha256"] = "f" * 64
+        else: loaded["fit_lineage"]["train_control_cutoff"] = "2025-03-01T00:00:00Z"
+        dataset._entry_dynamic_m5_loss_scale_identity = dynamic_m5_loss_scale_identity(loaded)
+    with pytest.raises(RuntimeError, match="(LOSS_SCALES_REQUIRED|LOSS_SCALE_BINDING_MISMATCH|LOSS_SCALE_LINEAGE_MISMATCH)"):
+        trainer._prefix_candidate_training_binding(**case.args)
+    for name, value in case.args["model"].state_dict().items():
+        assert torch.equal(value, before[name])
 
 
 @pytest.mark.parametrize("stage", ["prefix", "epoch_order", "checkpoint", "session"])
@@ -973,9 +1009,10 @@ def test_dynamic_session_contract_seals_base_audits_and_witness_without_exit_man
     assert contract["training"]["reference_cutoff_time_ns"] == prefix["reference_cutoff_time_ns"]
     assert contract["training"]["checkpoint_policy"]["checkpoint_monitor"] == trainer.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
     assert contract["authority"]["bundle"] is contract["authority"]["test"] is False
+    assert contract["chronological_prefix"]["dynamic_m5_loss_scales"] == case.loss_scale_identity
 
 
-@pytest.mark.parametrize("fault",["exitpolicy","exitmanifest","backup","missing_audit","changed_base","legacy_without_exitpolicy","economic_monitor"])
+@pytest.mark.parametrize("fault",["exitpolicy","exitmanifest","backup","missing_audit","changed_base","legacy_without_exitpolicy","economic_monitor","missing_loss_units","changed_loss_units"])
 def test_dynamic_session_contract_rejects_exit_mixing_or_changed_source_seals(tmp_path,dynamic_prefix_binding_unit,fault):
     from tests.test_candidate_training_session import _dynamic_session_contract_arguments
     case=dynamic_prefix_binding_unit
@@ -987,6 +1024,8 @@ def test_dynamic_session_contract_rejects_exit_mixing_or_changed_source_seals(tm
     elif fault=="missing_audit":prefix["sequence_source_audits"].pop("val")
     elif fault=="changed_base":Path(prefix["entry_only_base_normalization"]["path"]).write_bytes(b"changed")
     elif fault=="economic_monitor":args["checkpoint_monitor"]=MARKED_NET_CHECKPOINT_MONITOR
+    elif fault=="missing_loss_units":prefix.pop("dynamic_m5_loss_scales")
+    elif fault=="changed_loss_units":prefix["dynamic_m5_loss_scales"]["contract_sha256"]="0"*64
     else:prefix["entry_training_phase"]="joint_fitted_q"
     with pytest.raises(RuntimeError):trainer._candidate_training_session_contract(**args)
 
@@ -1059,6 +1098,10 @@ def dynamic_coordinator_control_guard_unit(tmp_path, monkeypatch):
         "entry_only_base_normalization": base, "input_normalization_sha256": "b" * 64,
         "physical_sources": sources, "sequence_source_audits": audits,
         "entry_observed_market": {"train": {"identity": identity}}, "maximum_optimizer_steps": 1}
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_identity
+    from tests.test_entry_dynamic_m5_loss_scale import _synthetic_loaded_loss_scales
+    prefix["dynamic_m5_loss_scales"] = dynamic_m5_loss_scale_identity(
+        _synthetic_loaded_loss_scales(tmp_path / "coordinator-loss-owner-boundary"))
     context = {"entry_training_phase": phase, "entry_only_base_normalization": base,
         "base_contract_sha256": "b" * 64, "physical_sources": copy.deepcopy(sources),
         "entry_supervision_identity": copy.deepcopy(identity), "sequence_source_audit": audits["val"],

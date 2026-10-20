@@ -422,6 +422,52 @@ def _dynamic_m5_model_kwargs(phase):
     return result
 
 
+def _bind_dynamic_m5_loss_scales(dataset, scales, *, device):
+    """Attach verified TRAIN loss units, never model inputs or model state."""
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+        dynamic_m5_loss_scale_contract, dynamic_m5_loss_scale_identity,
+    )
+    if not _dynamic_m5_dataset_phase(dataset):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALE_PHASE_INVALID")
+    expected = dynamic_m5_loss_scale_contract()
+    if (not isinstance(scales, Mapping) or set(scales) != {
+            "binding", "artifact_sha256", "contract_sha256", "fit_lineage", "rms"}
+            or scales["contract_sha256"] != expected["contract_sha256"]
+            or not isinstance(scales["rms"], Mapping) or set(scales["rms"]) != set(expected["surface_shapes"])):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALE_CONTEXT_INVALID")
+    identity = dynamic_m5_loss_scale_identity(scales)
+    arrays = {}
+    for name, shape in expected["surface_shapes"].items():
+        array = scales["rms"][name]
+        if (not isinstance(array, np.ndarray) or array.dtype != np.float32
+                or tuple(array.shape) != tuple(shape) or array.flags.writeable
+                or not np.isfinite(array).all() or np.any(array <= 0)):
+            raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALE_CONTEXT_INVALID:" + name)
+        arrays[name] = array.copy()
+        arrays[name].setflags(write=False)
+    existing = getattr(dataset, "_entry_dynamic_m5_loss_scales", None)
+    if existing is not None and (dynamic_m5_loss_scale_identity(existing) != identity
+            or any(not np.array_equal(existing["rms"][name], arrays[name]) for name in arrays)):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALE_REBIND_FORBIDDEN")
+    dataset._entry_dynamic_m5_loss_scales = {
+        **copy.deepcopy({key: value for key, value in scales.items() if key != "rms"}), "rms": arrays}
+    dataset._entry_dynamic_m5_loss_scale_identity = copy.deepcopy(identity)
+    dataset._entry_dynamic_m5_loss_scale_tensors = {
+        name: torch.tensor(array, dtype=torch.float32, device=device) for name, array in arrays.items()}
+
+
+def _require_dynamic_m5_dataset_loss_scales(dataset):
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_identity
+    scales = getattr(dataset, "_entry_dynamic_m5_loss_scales", None)
+    tensors = getattr(dataset, "_entry_dynamic_m5_loss_scale_tensors", None)
+    identity = getattr(dataset, "_entry_dynamic_m5_loss_scale_identity", None)
+    if (not isinstance(scales, Mapping) or not isinstance(tensors, Mapping)
+            or set(tensors) != set(scales.get("rms", {}))
+            or dynamic_m5_loss_scale_identity(scales) != identity):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALES_REQUIRED")
+    return scales
+
+
 def _materialize_dynamic_m5_batch_targets(batch, dataset):
     """Only this batch's physical parents are queried, once; no dense epoch cache."""
     if not _dynamic_m5_dataset_phase(dataset):
@@ -451,7 +497,13 @@ def _materialize_dynamic_m5_batch_targets(batch, dataset):
         DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY)
     if not isinstance(values, Mapping) or not set(keys).issubset(values):
         raise RuntimeError("ENTRY_DYNAMIC_M5_PROVIDER_OUTPUT_INVALID")
+    _require_dynamic_m5_dataset_loss_scales(dataset)
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import DYNAMIC_M5_LOSS_SCALE_BATCH_KEY
     result = dict(batch)
+    result[DYNAMIC_M5_LOSS_SCALE_BATCH_KEY] = {
+        "identity": copy.deepcopy(dataset._entry_dynamic_m5_loss_scale_identity),
+        "rms": dataset._entry_dynamic_m5_loss_scale_tensors,
+    }
     for key in keys:
         value = values[key]
         is_mask = key in (DYNAMIC_M5_MARKOUT_VALID_KEY, DYNAMIC_M5_PATH_VALID_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY)
@@ -462,8 +514,17 @@ def _materialize_dynamic_m5_batch_targets(batch, dataset):
     return result
 
 
-def _dynamic_m5_task_loss_surfaces(out, batch, device):
-    """Each component has its own observed-cell denominator; none is imputed."""
+def _dynamic_m5_task_loss_surfaces(out, batch, device, *, loss_units="raw_bps"):
+    """Raw diagnostics or explicit TRAIN-RMS loss; observed counts are identical."""
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+        DYNAMIC_M5_LOSS_SCALE_BATCH_KEY, dynamic_m5_scaled_square_sum,
+    )
+    if loss_units not in ("raw_bps", "train_rms"):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_UNITS_INVALID")
+    scale_context = batch.get(DYNAMIC_M5_LOSS_SCALE_BATCH_KEY)
+    if loss_units == "train_rms" and (not isinstance(scale_context, Mapping)
+            or set(scale_context) != {"identity", "rms"} or not isinstance(scale_context["rms"], Mapping)):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALES_REQUIRED")
     from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
     from gx1.contracts.entry_observed_market_v1 import (
         DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
@@ -487,7 +548,7 @@ def _dynamic_m5_task_loss_surfaces(out, batch, device):
         if (not isinstance(target, torch.Tensor) or target.dtype != torch.float32
                 or not isinstance(valid, torch.Tensor) or valid.dtype != torch.bool or tuple(target.shape) != shape or valid.shape != target.shape):
             raise RuntimeError("ENTRY_DYNAMIC_M5_TARGET_SHAPE_OR_DTYPE_INVALID:" + output_key)
-        surfaces.append((name, out.get(output_key), target.detach().to(device), valid.detach().to(device)))
+        surfaces.append((name, output_key, out.get(output_key), target.detach().to(device), valid.detach().to(device)))
     base = torch.stack([batch[f"y_forecast_ret_K{h}"] for h in FORECAST_HORIZONS], dim=1).to(device).float()
     support, sv, bv = batch.get(SUPPORT_FORECAST_TARGET_BATCH_KEY), batch.get(SUPPORT_FORECAST_VALID_BATCH_KEY), batch.get(M5_FORECAST_VALID_BATCH_KEY)
     if (not isinstance(support, torch.Tensor) or support.dtype != torch.float32
@@ -495,10 +556,10 @@ def _dynamic_m5_task_loss_surfaces(out, batch, device):
             or not isinstance(bv, torch.Tensor) or bv.dtype != torch.bool or bv.shape != base.shape
             or tuple(support.shape) != (size, FORECAST_HEAD_DIM-len(FORECAST_HORIZONS)) or sv.shape != support.shape):
         raise RuntimeError("ENTRY_DYNAMIC_M5_SUPPORT_SHAPE_OR_DTYPE_INVALID")
-    surfaces.append(("forecast_return_bps", out.get("forecast_pred"),
+    surfaces.append(("forecast_return_bps", "forecast_pred", out.get("forecast_pred"),
         torch.cat((base, support.detach().to(device)), dim=1), torch.cat((bv.detach().to(device), sv.detach().to(device)), dim=1)))
     sums, cells = {}, {}
-    for name, prediction, target, valid in surfaces:
+    for name, output_key, prediction, target, valid in surfaces:
         if (not isinstance(prediction, torch.Tensor) or prediction.shape != target.shape
                 or not bool(torch.isfinite(prediction).all()) or not bool(torch.isfinite(target).all())
                 or bool((target[~valid] != 0).any())):
@@ -509,10 +570,14 @@ def _dynamic_m5_task_loss_surfaces(out, batch, device):
             raise RuntimeError("ENTRY_DYNAMIC_M5_FLAT_CONTRACT_INVALID")
         if name == "dynamic_pre_mfe_mae_upper_bps" and (bool((target[valid] < 0).any()) or bool((prediction < 0).any())):
             raise RuntimeError("ENTRY_DYNAMIC_M5_NEGATIVE_MAE")
-        count = int(valid.sum())
+        if loss_units == "train_rms":
+            squared, count = dynamic_m5_scaled_square_sum(prediction, target, valid,
+                surface=output_key, rms=scale_context["rms"].get(output_key))
+        else:
+            count = int(valid.sum())
+            squared = (prediction[valid] - target[valid]).square().sum() if count else None
         cells[name] = cells.get(name, 0) + count
         if count:
-            squared = (prediction[valid] - target[valid]).square().sum()
             sums[name] = sums[name] + squared if name in sums else squared
     return {name: value / cells[name] for name, value in sums.items()}, cells
 
@@ -520,6 +585,7 @@ def _dynamic_m5_task_loss_surfaces(out, batch, device):
 def _joint_task_loss(
     model: nn.Module,
     task_losses: Mapping[str, torch.Tensor],
+    *, loss_units: str = "raw_bps",
 ) -> tuple[torch.Tensor, dict[str, float]]:
     """Apply the sole learned multi-task scalarization to nonempty tasks.
 
@@ -528,6 +594,9 @@ def _joint_task_loss(
     weight without outcome evidence.
     """
 
+    if loss_units not in ("raw_bps", "train_rms") or (loss_units == "train_rms"
+            and getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+        raise RuntimeError("ENTRY_JOINT_TASK_LOSS_UNITS_INVALID")
     task_names = _model_joint_task_names(model)
     log_variances = getattr(model, "task_log_variances", None)
     if not isinstance(log_variances, nn.ParameterDict):
@@ -558,7 +627,8 @@ def _joint_task_loss(
         log_variance = log_variances[task_name]
         weighted = torch.exp(-log_variance) * raw_loss + log_variance
         total = weighted if total is None else total + weighted
-        diagnostic_tensors[f"joint_task_raw_loss_{task_name}"] = raw_loss.detach().reshape(())
+        loss_label = "unit_loss" if loss_units == "train_rms" else "raw_loss"
+        diagnostic_tensors[f"joint_task_{loss_label}_{task_name}"] = raw_loss.detach().reshape(())
         diagnostic_tensors[f"joint_task_log_variance_{task_name}"] = log_variance.detach().reshape(())
         diagnostic_tensors[f"joint_task_effective_precision_{task_name}"] = torch.exp(-log_variance.detach()).reshape(())
     if total is None:
@@ -10047,8 +10117,11 @@ def train_epoch(
     entry_only = observed_entry is not None
     dynamic_phase = _dynamic_m5_dataset_phase(dataset)
     dynamic_evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE) if dynamic_phase else None
-    if dynamic_phase and getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
-        raise RuntimeError("ENTRY_DYNAMIC_M5_MODEL_PHASE_MISMATCH")
+    dynamic_unit_evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE) if dynamic_phase else None
+    if dynamic_phase:
+        _require_dynamic_m5_dataset_loss_scales(dataset)
+        if getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
+            raise RuntimeError("ENTRY_DYNAMIC_M5_MODEL_PHASE_MISMATCH")
     if entry_only:
         from gx1.contracts.entry_observed_market_v1 import require_entry_only_gradients
         from gx1.contracts.entry_observed_market_horizons_v1 import observed_entry_batch_targets
@@ -10229,8 +10302,12 @@ def train_epoch(
             raise RuntimeError("[UNIFIED_EXIT_TRAIN_ENTRY_EVIDENCE_MISSING]")
         if dynamic_phase:
             batch = _materialize_dynamic_m5_batch_targets(batch, dataset)
-            task_losses, dynamic_cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
-            _accumulate_dynamic_m5_loss_evidence(dynamic_evidence, task_losses, dynamic_cells)
+            raw_losses, dynamic_cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
+            task_losses, unit_cells = _dynamic_m5_task_loss_surfaces(out, batch, device, loss_units="train_rms")
+            if unit_cells != dynamic_cells:
+                raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALE_DENOMINATOR_CHANGED")
+            _accumulate_dynamic_m5_loss_evidence(dynamic_evidence, raw_losses, dynamic_cells)
+            _accumulate_dynamic_m5_loss_evidence(dynamic_unit_evidence, task_losses, dynamic_cells)
             _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out, **cooperation_gate_kwargs)
             _accumulate_feature_tf_gate_epoch(feature_tf_gate_epoch, out, **feature_gate_kwargs)
             entry_action_q_loss = None
@@ -10376,7 +10453,8 @@ def train_epoch(
             task_losses.update(dip_forecast_task_losses(out, batch, device))
         for task_name in task_losses:
             task_supervision_observed[task_name] = True
-        loss, _joint_task_stats = _joint_task_loss(model, task_losses)
+        loss, _joint_task_stats = _joint_task_loss(model, task_losses,
+            **({"loss_units": "train_rms"} if dynamic_phase else {}))
         exit_supervised = not entry_only and int(unified_exit_stats["q_valid_cells"]) > 0
         if exit_supervised:
             task_supervision_observed["unified_exit_action"] = True
@@ -10711,6 +10789,7 @@ def train_epoch(
             if key.startswith(("entry_action_q_", "side_mae_", "trendline_", "unified_exit_")):
                 stats.pop(key)
         stats.update(_finalize_joint_task_loss_evidence(dynamic_evidence))
+        stats.update(_finalize_dynamic_m5_unit_loss_evidence(dynamic_unit_evidence, dataset))
         stats["dynamic_candidate_native_authority_admitted"] = False
     if _learning_diagnostics is not None:
         stats["candidate_learning_diagnostics"] = _learning_diagnostics
@@ -11271,6 +11350,15 @@ def _accumulate_dynamic_m5_loss_evidence(accumulator, task_losses, supervised_ce
         if count:
             evidence[name]["weighted_sum"] += float(task_losses[name].detach()) * count
             evidence[name]["supervised_cells"] += count
+
+
+def _finalize_dynamic_m5_unit_loss_evidence(accumulator, dataset):
+    _require_dynamic_m5_dataset_loss_scales(dataset)
+    raw_keys = _finalize_joint_task_loss_evidence(accumulator)
+    return {**{key.replace("joint_task_raw_loss_mean_", "joint_task_unit_loss_mean_"): value
+               for key, value in raw_keys.items() if key.startswith("joint_task_raw_loss_mean_")},
+        "dynamic_m5_loss_scales": copy.deepcopy(dataset._entry_dynamic_m5_loss_scale_identity),
+        "dynamic_loss_residual_units": "TRAIN_target_RMS_units"}
 
 
 def _finalize_joint_task_loss_evidence(
@@ -12301,6 +12389,17 @@ def _candidate_training_session_contract(
                       and prefix_training_binding.get("entry_training_phase") == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     if dynamic_prefix and (exit_reference_policy is not None or lifecycle_manifest_path is not None or exit_backup_steps != 1):
         raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_EXIT_SOURCES_FORBIDDEN]")
+    if dynamic_prefix:
+        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_contract
+        from gx1.contracts.local_random_access_campaign_v2 import require_binding
+        units = prefix_training_binding.get("dynamic_m5_loss_scales")
+        if (not isinstance(units, Mapping) or set(units) != {
+                "binding", "artifact_sha256", "contract_sha256", "fit_lineage_sha256"}
+                or units["contract_sha256"] != dynamic_m5_loss_scale_contract()["contract_sha256"]
+                or any(not isinstance(units[key], str) or re.fullmatch(r"[0-9a-f]{64}", units[key]) is None
+                       for key in ("artifact_sha256", "fit_lineage_sha256"))):
+            raise RuntimeError("[CANDIDATE_DYNAMIC_LOSS_SCALE_SESSION_BINDING_REQUIRED]")
+        require_binding(units["binding"], label="dynamic Session loss units", verify_file=False)
     if type(exit_backup_steps) is not int or exit_backup_steps not in (1, 5):
         raise RuntimeError("[CANDIDATE_TRAINING_BACKUP_POLICY_INVALID]")
     if exit_reference_policy is not None:
@@ -12782,7 +12881,9 @@ def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
     dataset = loader.dataset
     if getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
         raise RuntimeError("ENTRY_DYNAMIC_M5_MODEL_PHASE_MISMATCH")
+    _require_dynamic_m5_dataset_loss_scales(dataset)
     evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    unit_evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     cooperation_gate_kwargs, feature_gate_kwargs = _dynamic_m5_gate_execution_kwargs(model)
     cooperation = _new_cooperation_gate_epoch_accumulator(**cooperation_gate_kwargs)
     feature_gate = _new_feature_tf_gate_epoch_accumulator(**feature_gate_kwargs)
@@ -12794,9 +12895,13 @@ def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
             out = _model_forward_fp32(model, batch["seq_x"].to(device), batch["snap_x"].to(device),
                 ctx_cat=batch["ctx_cat"].to(device), ctx_cont=batch["ctx_cont"].to(device),
                 **_multi_tf_kwargs_from_batch(batch, device))
-            losses, cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
-            loss, _ = _joint_task_loss(model, losses)
-            _accumulate_dynamic_m5_loss_evidence(evidence, losses, cells)
+            raw_losses, cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
+            losses, unit_cells = _dynamic_m5_task_loss_surfaces(out, batch, device, loss_units="train_rms")
+            if cells != unit_cells:
+                raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALE_DENOMINATOR_CHANGED")
+            loss, _ = _joint_task_loss(model, losses, loss_units="train_rms")
+            _accumulate_dynamic_m5_loss_evidence(evidence, raw_losses, cells)
+            _accumulate_dynamic_m5_loss_evidence(unit_evidence, losses, cells)
             _accumulate_cooperation_gate_epoch(cooperation, out, **cooperation_gate_kwargs)
             _accumulate_feature_tf_gate_epoch(feature_gate, out, **feature_gate_kwargs)
             size = int(batch["seq_x"].shape[0])
@@ -12821,6 +12926,7 @@ def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
         "dynamic_candidate_tied_diagnostic_rows": tied,
         "realized_cash_or_native_policy_evaluated": False}
     stats.update(_finalize_joint_task_loss_evidence(evidence))
+    stats.update(_finalize_dynamic_m5_unit_loss_evidence(unit_evidence, dataset))
     stats.update(_finalize_cooperation_gate_epoch(cooperation, **cooperation_gate_kwargs))
     stats.update(_finalize_feature_tf_gate_epoch(feature_gate))
     return total / rows, float("nan"), float("nan"), float("nan"), stats
@@ -13866,6 +13972,7 @@ def _require_dynamic_prefix_dataset_binding(dataset, *, binding, source, proof, 
             or hashlib.sha256(np.asarray(pointers, dtype="<i8").tobytes()).hexdigest() != proof["entry_m1_pointer_sha256"]
             or binding.get("whole_train_registry_clock") != physical["whole_train_registry_clock"]):
         raise RuntimeError("[CANDIDATE_PREFIX_DYNAMIC_CLOCK_OR_POINTER_MISMATCH]")
+    return scope
 
 
 def _prefix_candidate_training_binding(
@@ -13995,6 +14102,7 @@ def _prefix_candidate_training_binding(
     if eligibility is None and label_row_bindings != row_bindings:
         raise RuntimeError("[CANDIDATE_PREFIX_PHYSICAL_LABEL_MISMATCH]")
     populations = []
+    loss_scale_identity = None
     for dataset, binding, role, row_binding, training_binding in zip(
             (train_ds, val_ds), bindings, ("TRAIN", "CONTROL256"), label_row_bindings, row_bindings):
         if (not isinstance(binding, Mapping) or binding.get("role") != role
@@ -14006,8 +14114,18 @@ def _prefix_candidate_training_binding(
             source = physical["physical_sources"][split]
             proof = labels["splits"][split]
             if dynamic:
-                _require_dynamic_prefix_dataset_binding(dataset, binding=binding,
+                loss_scope = _require_dynamic_prefix_dataset_binding(dataset, binding=binding,
                     source=source, proof=proof, receipt=labels, physical=physical, row_binding=row_binding)
+                from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+                    dynamic_m5_loss_fit_lineage, dynamic_m5_loss_scale_identity,
+                )
+                scales = _require_dynamic_m5_dataset_loss_scales(dataset)
+                if scales["fit_lineage"] != dynamic_m5_loss_fit_lineage(loss_scope, single_epoch):
+                    raise RuntimeError("[CANDIDATE_PREFIX_LOSS_SCALE_LINEAGE_MISMATCH]")
+                current_loss_scale_identity = dynamic_m5_loss_scale_identity(scales)
+                if loss_scale_identity is not None and loss_scale_identity != current_loss_scale_identity:
+                    raise RuntimeError("[CANDIDATE_PREFIX_LOSS_SCALE_BINDING_MISMATCH]")
+                loss_scale_identity = current_loss_scale_identity
             elif (binding.get("mode") != "original_physical_split_targets"
                     or binding.get("source_split") != split
                     or binding.get("parent_entry_parquet") != source["parquet"]
@@ -14102,6 +14220,7 @@ def _prefix_candidate_training_binding(
         binding["active_joint_task_names"] = list(_model_joint_task_names(model))
         binding["dynamic_m5_query_minutes"] = list(queries)
         binding["candidate_quality_native_authority_admitted"] = False
+        binding["dynamic_m5_loss_scales"] = loss_scale_identity
     if single_epoch is not None and (any(not isinstance(value, Mapping) for value in observed)
             or observed[0]["identity"].get("training_phase") != single_epoch["witness"]["training_phase"]):
         raise RuntimeError("[CANDIDATE_M5_SINGLE_EPOCH_TARGET_MISMATCH]")

@@ -178,6 +178,10 @@ def verified_contract(tmp_path, monkeypatch, dynamic_physical_receipt):
         "train_rows": rows, "maximum_optimizer_steps": -(-rows // 16), "maximum_completed_epochs": 1,
         "physical_sources": sources,
         "entry_observed_market": {role: {"identity": copy.deepcopy(identity)} for role in ("train", "control")}}
+    from tests.test_entry_dynamic_m5_loss_scale import _synthetic_loaded_loss_scales
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_identity
+    loaded_units = _synthetic_loaded_loss_scales(tmp_path)
+    prefix["dynamic_m5_loss_scales"] = dynamic_m5_loss_scale_identity(loaded_units)
     monitor = policy.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR
     expected = policy.checkpoint_policy_metadata(checkpoint_monitor=monitor, prefix_training_binding=prefix)
     contract = {"schema_version": "gx1_candidate_training_session_v1", "run_id": "UNIT",
@@ -196,7 +200,8 @@ def verified_contract(tmp_path, monkeypatch, dynamic_physical_receipt):
     paths = {"parquet": Path(sources["train"]["parquet"]["path"]),
         "manifest": Path(sources["val"]["manifest"]["path"]),
         "npy": Path(witness["epoch0_parent_order"]["path"]),
-        "cost_evidence": cost_evidence, "cost_component": cost_component}
+        "cost_evidence": cost_evidence, "cost_component": cost_component,
+        "loss_units": Path(loaded_units["binding"]["path"])}
     return contract, calls, paths
 
 
@@ -290,17 +295,24 @@ def test_verified_policy_rejects_context_or_contract_substitution(verified_contr
 
 
 def test_verified_policy_new_context_and_default_path_revalidate_fresh_physical_bytes(verified_contract):
-    contract, calls, _ = verified_contract
+    contract, calls, paths = verified_contract
     one = policy.prepare_verified_checkpoint_policy(contract=contract)
     two = policy.prepare_verified_checkpoint_policy(contract=copy.deepcopy(contract))
     assert one is not two
     assert len(calls["pointer_audits"]) == 2
-    assert all(count == 2 for count in Counter(calls["hashes"]).values())
+    fresh_reads = Counter(calls["hashes"])
+    loss_artifact = str(paths["loss_units"])
+    assert loss_artifact in fresh_reads
+    assert all(count == 2 for count in fresh_reads.values()), fresh_reads
     expected = contract["training"]["checkpoint_policy"]
     assert _metadata(contract) == expected
     assert _metadata(contract) == expected
     assert len(calls["pointer_audits"]) == 4
-    assert all(count == 4 for count in Counter(calls["hashes"]).values())
+    # Each fresh Session captures the loss artifact. The two default policy
+    # metadata calls rerun pointer/cost policy guards, which do not consume
+    # TRAIN loss units; they must rehash every other previously admitted file.
+    expected_reads = Counter({path: 2 if path == loss_artifact else 4 for path in fresh_reads})
+    assert Counter(calls["hashes"]) == expected_reads, (Counter(calls["hashes"]), expected_reads)
     with files.file_verification_scope():
         with pytest.raises(files.RandomAccessCampaignError, match="no outer scope"):
             policy.prepare_verified_checkpoint_policy(contract=contract)

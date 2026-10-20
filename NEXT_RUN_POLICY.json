@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T15:39:05.561990+00:00",
-  "status": "109_TASK_SCALES_AND_SHORT_HORIZON_PANEL_COMPLETE__TRAIN_ONLY_LOSS_UNIT_DESIGN_PENDING_NO_TRAINING",
+  "observed_utc": "2026-10-20T15:51:47.035568+00:00",
+  "status": "110_TRAIN_RMS_SOURCE_QUALIFIED__REAL_FIT_AND_NATIVE_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Declare and implement the minimal loss-only per-coordinate/horizon TRAIN scale design in existing objective/target/trainer owners, preserving rawbps targets/outputs/reporting, separate masks, compactfeatures/MTF, native model and legacy isolation. Specify TRAIN statistic, mask/count/lineage and zero-scale handling before a new bounded fit; never reuse VAL targetstd or select scales from CONTROL performance. Reuse completed physicalinputs/targets/055inputnormalization. No extraepoch, HPO, Exit, TEST, broker or consumed109/108relaunch.",
+  "next_action": "Bind a new111single model-free wholeTRAIN target-RMS fit using qualified110source, existing108recipe solely as target/data provenance and057population. Preserve masks/rawbps/055inputnormalization. No native model/epoch or oldplanrelaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -84,7 +84,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "109_TASK_SCALES_AND_SHORT_HORIZON_PANEL_COMPLETE__TRAIN_ONLY_LOSS_UNIT_DESIGN_PENDING_NO_TRAINING",
+    "current_activity": "110_TRAIN_RMS_LOSS_UNIT_SOURCE_IMPLEMENTATION__FIT_AND_TRAINING_CLOSED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -117,8 +117,8 @@
     "latest_terminal_role": "COMPLETE_CPU_ONLY_SAVED_TASK_SCALE_AUDIT_NO_MODEL_OR_FIT",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TERMINAL.json",
-      "sha256": "c15b66e74bafe3f7ecce691e050beef6acd0cef70f5e4eeecf22536cf83dfa83"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/TERMINAL.json",
+      "sha256": "015d5a7f00818a93382e0e54ed4e25d3a92bb75ed4c9629bfb8c16f40cf0aa06"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -511,7 +511,7 @@
       "elapsed_seconds": 1016.7850262550019,
       "peak_rss_kib": 16341716
     },
-    "fresh_native_initial_state_complete": true,
+    "fresh_native_initial_state_complete": false,
     "native_initial_measurement_20261009": {
       "status": "COMPLETED_VERIFIED_NO_RELAUNCH",
       "policy_scope": {
@@ -693,7 +693,7 @@
       "frozen_full_initial_state_exact": true,
       "learning_proven": false
     },
-    "native_initial_measurement_completed": true,
+    "native_initial_measurement_completed": false,
     "native_smoke_20261009": {
       "authorized": false,
       "status": "PREPARED_NOT_LAUNCHED_SUPERSEDED_ENTRY_INDEPENDENCE_DECISION",
@@ -2206,7 +2206,7 @@
       },
       "test_data_used": false
     },
-    "current_generation_initial_baseline_role": "Actual105zero-update ONLINE initial measurement bound to104fresh and106savedstate/RNG audit, exact compactprofile/currentdc1c; paired108final uses identical frozen cohorts/targets/masks.",
+    "current_generation_initial_baseline_role": "Historical105baseline for consumed108/dc1c closure only. Current110loss-unit source changes require newly bound CPUfresh/initial/parity/resume evidence before newnativeuse; old105/106/107artifacts preserved and not relaunched.",
     "sampler_capacity_terminal_20261011": {
       "observed": true,
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
@@ -7612,7 +7612,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Declare and implement the minimal loss-only per-coordinate/horizon TRAIN scale design in existing objective/target/trainer owners, preserving rawbps targets/outputs/reporting, separate masks, compactfeatures/MTF, native model and legacy isolation. Specify TRAIN statistic, mask/count/lineage and zero-scale handling before a new bounded fit; never reuse VAL targetstd or select scales from CONTROL performance. Reuse completed physicalinputs/targets/055inputnormalization. No extraepoch, HPO, Exit, TEST, broker or consumed109/108relaunch.",
+    "next_action": "Finish exact110source integration and one capped focused qualification of TRAIN-only targetRMS lossunits. Bind declared110DESIGN; preserve rawbps/data/masks/compactprofile/legacy and all108/109receipts. No realfit or newnativeepoch until separateexactqualification/binding.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -15287,7 +15287,7 @@
           "primary_entry_quality_qualified": false
         },
         "loss_unit_design_gap": {
-          "status": "MEASURED_RAW_BPS_SCALE_IMBALANCE_DESIGN_REQUIRED_BEFORE_FIT_OR_TRAINING",
+          "status": "SOURCE_IMPLEMENTED_AND_QUALIFIED_REAL_TRAIN_RMS_FIT_REMAINS",
           "evidence": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TASK_SCALE_AUDIT.json",
             "sha256": "97cda80ee2c2cea53015a50f60a5d66bf6af524ae163b7ba8a22c38d34ec2b5d"
@@ -15306,7 +15306,75 @@
             "Existing8specialists+ninthmacro/fullprofiles remain; no newarchitecture/ensemble fromthisaudit."
           ],
           "new_target_scale_fit_authorized": false,
-          "new_native_training_authorized": false
+          "new_native_training_authorized": false,
+          "declared_design": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/DESIGN.json",
+            "sha256": "a4042a68b4b3931a374a7791e2fd87bef9bb7fb2a4184d271b0d90026bd87840"
+          }
+        },
+        "loss_unit_source_stage_110": {
+          "status": "COMPLETE_DECLARED_SOURCE_MECHANICS_NO_REAL_FIT_OR_NATIVE_ADMISSION",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110",
+          "design": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/DESIGN.json",
+            "sha256": "a4042a68b4b3931a374a7791e2fd87bef9bb7fb2a4184d271b0d90026bd87840"
+          },
+          "source_implementation_authorized": true,
+          "real_target_scale_fit_authorized": false,
+          "native_training_authorized": false,
+          "training_enabled": false,
+          "planned_focused_source_test_jobs": 4,
+          "completed_focused_source_test_jobs": 4,
+          "model_forwards": 0,
+          "optimizer_updates": 0,
+          "raw_dataset_reads": 0,
+          "test_data_used": false,
+          "synthetic_fixture_forward_backward_optimizer_checks_allowed": true,
+          "native_model_forwards": 0,
+          "native_optimizer_updates": 0,
+          "native_data_fit_enabled": false,
+          "model_forwards_scope": "No native/publishedrealdata model runs; bounded syntheticfixture checks only inside the declared cappedsourcequalification.",
+          "source_qualification_plan": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_QUALIFICATION_PLAN.json",
+            "sha256": "612c67e47e17bdb499dc6faa08b87af48c4a58ff8e322a663de42528515f7d65"
+          },
+          "source_qualification_result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_QUALIFICATION_RESULT.json",
+            "sha256": "ce52014e8232f0840a05a6c96510efcffb16f43e077ba18fee910bedbc1d393f"
+          },
+          "measured_source_test_failure": "All measuredfixtureavvikresolved; sourceandaffectedregressionsPASS. Productionhashes identicalacross4jobs. Lastjob300PASS/3explicitnonTRAINderivedSKIP. Earlierpassedcasesreused; nocountsummation.",
+          "source_qualification_repair_plan": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_REPAIR_01/SOURCE_QUALIFICATION_PLAN.json",
+            "sha256": "19af683a47a18ae4e7ed2fb9be0f0d8fed70123a497e5b878c2c0e9eedd7de76"
+          },
+          "source_qualification_repair_01_result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_REPAIR_01/SOURCE_QUALIFICATION_RESULT.json",
+            "sha256": "9edc67e605f0223528d2a9e908a2b35f1ae3f544f03f1edc72e71a89c2464160"
+          },
+          "source_qualification_repair_02_plan": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_REPAIR_02/SOURCE_QUALIFICATION_PLAN.json",
+            "sha256": "12e5ecdeec0f3220aefa3d15fd40b049d97642571ca85801efb37a8e851d4e8d"
+          },
+          "source_qualification_repair_02_result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_REPAIR_02/SOURCE_QUALIFICATION_RESULT.json",
+            "sha256": "aa93d9b3b253c83a6b8e58a45477f8cadbc0542b61279d1eee74e2db2bee7d61"
+          },
+          "source_qualification_repair_03_plan": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_REPAIR_03/SOURCE_QUALIFICATION_PLAN.json",
+            "sha256": "6bdf8d91dc722588611bdbcf802a6e7e6767b7c2b97d9d4a55be5087098c6497"
+          },
+          "source_qualification_repair_03_result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_REPAIR_03/SOURCE_QUALIFICATION_RESULT.json",
+            "sha256": "dbe570eeb9eaba847a24d81b6ab29b9e9db9d6829e33c5405c1cc64a876a2820"
+          },
+          "source_qualification_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_QUALIFICATION_REVIEW.json",
+            "sha256": "fc3553669a1a3e5ced7272c2e586395df9a9ce0700df8262c312f0aa064ecf55"
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/TERMINAL.json",
+            "sha256": "015d5a7f00818a93382e0e54ed4e25d3a92bb75ed4c9629bfb8c16f40cf0aa06"
+          }
         }
       },
       "operator_pc_reboot_20261018": {
@@ -18125,5 +18193,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T15:39:05.561990+00:00"
+  "updated_utc": "2026-10-20T15:51:47.035568+00:00"
 }
