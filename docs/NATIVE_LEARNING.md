@@ -323,3 +323,11 @@ kohortens targetcutoff. Per-horisont sensurering og øvrige bindinger beholdes.
 Klargjøringstid, preflight-tid, encoderforward-tid og treningstid rapporteres
 hver for seg. Aktuell status og kvitteringer står bare i NEXT_RUN_POLICY og
 CURRENT_HANDOVER; historikken finnes i Git.
+
+Ved målt ekstraskriving i en kildekaller som bare beholder M5-signal, vurderes
+signal-only retention i eksisterende loader før større cachearkitektur. Hele
+bounded kilde-/verdi-/domenevalideringen og uendret standardrute skal beholdes.
+Per-prosess memmapbygging må skilles fra per-batch arbeid; logiske lesebytes
+beviser ikke host-disktrafikk eller tidsfordeling. Bevar kvalifisert kilde gjennom
+aktuell baseline/mekanikkbølge, og la målt treningsgjennomstrømning styre neste
+minste I/O-rettelse. En uimplementert kandidat åpner ingen ny kjøring.

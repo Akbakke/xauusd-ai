@@ -50,49 +50,37 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - Ferdige datakilder rekonstruerer sekvenser uten ny tett sekvens-memmap:
   faktisk102logg rapporterte123.74GB TRAIN og18.09GB VAL unngått ekspansjon.
   Dette er beregnet unngått materialisering, ikke målt disk-I/O eller GPU-fart.
-- 098s kilde-/syntetiske kvalifisering bestod219caser/3eksakte legacy-SKIP.
-  Faktisk099CPUfresh tok121.070s,0forwards/updates/refits, closure8517…;
-  faktisk100initialmålte256TRAIN+256CONTROL,32Entry-forwards/0updates,
-  1869.792s.101strictsavedstate/RNG bestod på62.220s,0forwards/updates.
-  Disse originale bevisene er bevart;103 endrer trainerclosure og krever ny
-  faktisk kildebundet CPUfresh og videre eksisterende native porter.
+-103rettelsen bestod148fokuserte caser/0skip/0feil. Bare verifisert dynamisk
+Entry-fase hopper over ubundet Exit-epochsetter; legacy forblir strict. Doble
+policykontroller deler et kort hashscope uten å fjerne semantiske vakter.
+-104genuinCPUfresh er COMPLETE/exit0,120.688s,0forwards/updates/refits og ingen
+arvede vekter. ONLINE/anker/EMA-state9c4cf514… og initialblobc62cc1ad… bevart.
+-105faktiskinitial0 er COMPLETE:256TRAIN+256CONTROL,32Entryforwards,0Exit,
+0updates/epoker. Native1864.477s; guard/observer exit0. Original initialtilstand
+9c4cf514… og alle komponent-/horisontmasker er bevart.182kilders SHA/stat og
+11inputidentiteter bestod etterkontroll. Dette er ingen læring.
 
-## Aktuell grense —103 bestått;104 CPUfresh ferdig;105 initial0 skal bindes
+## Aktuell grense —105 initial0 bestått;106 savedstate er neste
 
-102s separate nativekvalifisering stoppet20.10 kl.07:34:11UTC med guard
-child_status1 og eksakt Windows-task LastTaskResult1. Ingen bundne Linux-
-prosesser ved07:45:46; exact102task ble deaktivert07:48:19. Ingen relansering.
-Den kanoniske invokasjonskvitteringen mangler. TERMINAL_RECONCILIATION.json
-skiller faktisk guard/taskstatus fra en ikke innhentet direct-wait-status.
-SHA df368a32819ae339fb12129de0affe938d3aab33388a01d6009296353ac79350.
+105root: `/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_EPOCH_GUARD_20261020_105`.
+ACTUAL_TERMINAL_REVIEW SHA96017e454d2e6a1a49219911d4b216abdb83df23a3e0f988d77c9511d56f8cb0.
+Native receipt dffffae7d1405ed5b3a0fd1ee3be8d5a2b5711ce8a5fc1797588cca0a4241654.
+105er konsumert og Windows-task Disabled/LastResult0; ingen bundne Linuxjobber.
+Aktiv105recipe er **RECIPE_BOUND.json**, SHA3dfe8322…; RECIPE.json og gammelt
+budsjett er bevarte inaktive drafts og skal aldri brukes til neste binding.
 
-Tracebacken når første UNINTERRUPTED-segment etter begge paritetsløkkene.
-Fire parityforwards er dermed dokumentert fra kilde/kontrollflyt; endelige
-numeriske paritetsdiagnoser og full RESULT er ikke publisert. Referansecheckpoint1
-har global_steps0/next_batch_offset0. Før første treningsbatch kalte løkken
-Exit-lifecycle-setteren som dynamisk M5 Entry uttrykkelig ikke har bundet:
-UNIFIED_EXIT_LIFECYCLE_V2_NOT_BOUND.0treningsbatch-forwards/0optimizerupdates;
-varig resume-forløp ble ikke nådd. Ingen lærings- eller selektivitetskonklusjon.
+Aktuell funksjonsclosure dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d
+beholdes gjennom neste mekanikkontroll. Ingen ny modell-/indikatorendring nå.
+106gjenbruker eksisterende CPU-auditeier: fysisk hashing/lasting av104fresh og
+105privat checkpoint, eksakt modell/anker/optimizer/EMA/scheduler og CPU/Python/
+NumPy RNG. Ingen modellbygging/forwards/updates/refit/Exit/TEST; én capped
+audit4G/512M. PLAN/SHA/worker/current clean commit og policy bindes før claim.
 
-182kilders SHA/stat,40statiske artefakter og11inputidentiteter er bevart mot
-prebootsegl; ingen ny rådatastreamhash i etterkontrollen.
-POST_FAILURE_SOURCE_PRESERVATION SHA23de07564c5f3b748edf6cbd28ad29e37771813b5d9e702f3226f4d78402397d.
-Originalclaim, privatstep0checkpoint og alle kvitteringer bevares. Private
-kvalifiseringsvekter får aldri brukes til hovedepoken.
-
-103 retter bare den målte epochkoblingen og konkret metadatadobbeltarbeid:
-verifisert dynamisk M5-prefixfase hopper over Exit-epoch-setteren; øvrige faser
-beholder ekte binding/fail-closed feil. Ett kort eksisterende hashscope omslutter
-policybygger+require; begge semantiske kontroller beholdes og scopet lukkes før
-artifact-/Session-/statearbeid. Ingen annen top-level trainer-AST er endret.
-103s fokuserte capped kvalifisering bestod148unike caser/0skip/0feil på83.270s,
-inkludert alle5nye caser for dynamisk fresh/resume, strict legacy og finite
-metadata-scope. Direct controller exit0; sourcebefore=after. SOURCE_REVIEW.json
-SHA89d506544e9193050b474cc042d66d48d02d4dadd844a1d84c898c6f75929521.
-Ny canonical closure dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d
-har182roller/181filer/7154326B; baretrainer er endret mot102s8517-recipe.
-Fersk CPUstate og videre native porter gjenstår. Rettelsens faktiske I/O-/
-tidsgevinst og native optimizer/resume er fortsatt ikke bevist.
+Deretter kreves ny eksakt native Entry-only paritet/optimizer/resume-kvalifisering
+med disposable private vekter, aktuelle maskinvare-/bootporter og ny engangsplan.
+Disse vektene skal aldri brukes som hovedepokens start.102s Exit-lifecycle-
+feilstopp er bevart og konsumert;103retter feilen, men faktisk current optimizer/
+resume og bestilt full nativeepoke gjenstår. Ingen learned selektivitetskonklusjon.
 
 ## Individuell indikatorrevisjon
 
@@ -107,39 +95,27 @@ Se docs/FEATURE_AUDIT.md for konkrete resterende bevisgrenser.
 
 ## Maskin, effektivitet, neste steg og opprydding
 
-Seneste faktiske separate profilboot er WindowsBoot513/20.10 kl.06:55:31.500UTC;
-102/REBOOT_CONFIRMED.json SHA9d1d33b60cdfe640512f33595f648592973aa90e3e40717eaad9075637b1b5ab.
-Brukerens18.10-omstart er også allerede utført. Ingen av disse bestillingene
-skal gjentas. Ny nativecampaign følger egne gjeldende ferske boot-/hostporter.
-Aktiv102effektgrense var300W og drawstop310W, core85°C/memory80°C/VRAM12288MiB;
-ACTUAL_ACTIVE_HARDWARE_ENVELOPE.json korrigerer eldre generisk160W-prosa.
-Kanonisk hardware-eier og signedguard, ikke dokumenttekst, eier grensene.
+Seneste faktiske boot514/20.10 kl.09:19:51.500UTC er bekreftet i105/REBOOT_CONFIRMED,
+SHAace2823f9e2e667b72fe55cadc70bdfda9bbed2c3589cc621ba1057ab083e09a.
+Denne og18.10-bestillingen er fullført; ingen gjentakelse. Ny nativecampaign
+følger egne ferske boot-/hostporter. Faktisk105profil300W/drawstop310W,
+core85°C/memory80°C/VRAM12288MiB; source/hardware-owner/signedguard eier grensene.
 
-Prioriter effektiv datalesing: gjenbruk ferdige inputs/targets/normalisering;
-skill engangsvalidering, modelloppsett, batch-I/O, GPU-steg og checkpoint.
-En enkelt stack viste sourceverifisering ved coordinatoroppstart, ikke en
-batch-/480løkke. Intermediate rchar er logiske lesebytes; read_bytes er separat
-lagringsregnskap. Ingen TB-per-batch-, farts- eller ETA-påstand er bevist.
-103 samler det konkrete doble policyarbeidet i samme nødvendige kildebølge.
+MTF V4-NPY gjenbrukes read-only; reelle M5-sekvenser rekonstrueres uten tett
+seq-memmap. Oppstart bygger fortsatt midlertidig split- og M5-signalbacking.
+105/EFFICIENCY_SOURCE_REVIEW_002.json dokumenterer at én sekvenskaller bare
+beholder signal, mens felles loader også skriver ctx/cat. Signal-only retention
+er en uimplementert senere I/O-kandidat med alle verdi-/domene-/alias-/maskevakter
+beholdt. Kumulativ rchar er logiske lesinger; Linux storage-I/O er ikke hosttotal
+eller per-fil tidsprofil. Ingen kontrollert fartsgevinst eller trenings-ETA er bevist.
 
-104 er faktisk COMPLETE/exit0/sourceunchanged20.10 kl.08:20:50UTC på120.688s.
-Først bestod hele metadata-prefix252–306 på0.208s, utenclaim/Torch/modellimport.
-Deretter ble genuinCPUfresh publisert:0forwards/updates/refits/Exit, ingen gamle
-vekter.182kilder SHA/stat,11inputidentiteter og71,872,094Binitialblobc62cc1ad…
-er fysisk kontrollert; constructor ONLINE/anker/EMA9c4cf514… er lik099.
-INIT f5a78482f6c85d85301d4e2f10efcb2a7f6e1ad740a1582a7a15f6380852586f,
-MEAS8f3351bda4306808b30afa312be64ceac5664041c2f7b4cf1fe09083c67b5283.
-WorkerIO49.232GBrchar/44.555GBread_bytes er ulike roller, ikke hosttotal eller
-målt nativegevinst.104 er konsumert; originalkvitteringer og state bevares.
-
-105initial0 har ny eksakt PLAN/RECIPE/budget bundet til104/103/dc1c; bare
-campaignklargjøring åpnes. Nytt frosset nativevindu, signert hardware og fysisk
-Windowsboot kreves før32Entryforwards/0updates. training_enabled=false.
-Initial/savedstate/paritet/Entry-onlyoptimizer/resume og bestilt epoke gjenstår. Den bestilte fulle epoken og målt
-LONG/SHORT/FLAT-kvalitet/dekning/sporbarhet gjenstår. Ingen utvidelse til Exit,
-TEST, broker, HPO eller andre modeller. Stabil langkjøring observeres15–30min.
+Gjenbruk ferdige inputs/targets/055normalisering og kvalifisert kilde. Neste er
+106CPU savedstate, deretter ny native Entry-only mekanikk og bestilt full epoke
+etter faktisk admission. Kvalitet/dekning/sporbarhet, individuelt numerisk
+featurebevis, generalisering og økonomisk edge gjenstår. Stabil jobb observeres
+15–30min. Ingen Exit, TEST, broker, HPO eller nye modeller i denne bølgen.
 
 DATA/RUNS ryddes bare av retention-eieren. Ingen Pythonfil er bevist slettbar
 ved full referanse-/import-/CLI-/test-/eierkontroll. Git eier historikken.
-Metode og bruksanvisning: docs/NATIVE_LEARNING.md. Status står bare her og i
+Metode/bruksanvisning: docs/NATIVE_LEARNING.md. Status står bare her og i
 NEXT_RUN_POLICY; regler i GX1_RULES.md, automatisk lesing i gx1_handover.sh.
