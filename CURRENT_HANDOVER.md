@@ -25,7 +25,8 @@ kronologiske OOF-evidens for merverdi.
 TRAIN er [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
 utviklingskontroll [2026-04-01,2026-07-01). Alle26måneder er gjenbrukt utvikling;
 TEST fra juli er forseglet. Den bestilte ene nativeepoken er FULLFØRT i108.
-Ingen gjenværende treningsadgang: training_enabled=false/fullEpoch=false/fullVAL=false.
+Bare117privat teknisk kontroll er bundet: training_enabled=true, maks4updates.
+Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
@@ -207,21 +208,32 @@ SHAebb34a8ce2ac53116bf0d3fbd894503ef7e03a49847e248e3f3d5e8b96a6b7be.
 Den originale canonicalkvitteringen har SHA862abfaa1146145193a54466bd3316c483d29565485238e2977913dd3f61d73f.
 Windows-task er Disabled/Last0. GenericRESUMABLE gir ingen fortsettelsesadgang.
 
-Neste steg116er nå bundet: én capped CPUaudit4G/512M med900sfrist på
-actual114fresh og115initialcheckpoint. Sammenlign ONLINE/anker/optimizer/EMA/
-scheduler og lagret CPU/Python/NumPy-RNG, og bruk eksisterende strict8field-
-audit med aktuell111RMS-identitet. Ingen modellkonstruksjon/forward/update/refit.
+116er faktisk COMPLETE: én capped CPUaudit4G/512M på actual114fresh og115checkpoint.
+Worker/controller0,61,978s/63,027s. ONLINE/anker/optimizer/EMA/scheduler og lagret
+CPU/Python/NumPy-RNG er eksakt bevart. CUDA-RNG ble registrert separat, ikke
+sammenlignet med CPUinitialisering. Ingen modellkonstruksjon/forwards/updates/refit.
 Root `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_INITIAL_STATE_AUDIT_20261020_116`.
-Etter116 kreves NY avgrenset privat Entry-only optimizer/paritet/resume. Ingen gamle planer
+INITIAL_MEASUREMENT_AUDIT.json SHA0b07d4a91234d646d7a40851a8fa48c88b369168a502e02cef6ab8a398857ae2.
+STATE_PRESERVATION_PROOF.json SHA37ad03cb990e9bd72853cce0f1dc018451c5079cf30e93a63384d9594d3b6c7b.
+Eksisterende strict8field-eier aksepterte faktisk111RMS/fitlineage og115resultat.
+
+117er nå bundet som NY privat Entry-only optimizer/paritet/resume-kontroll.
+Root `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117`.
+Samme32TRAIN-rader, fire private updates totalt og fire paritetsforwards;
+to sammenhengende steg sammenlignes med ett steg, varig lagring/load og steg2.
+Training_enabled=true gjelder bare denne eksakte kontrollen, fullEpoch/fullVAL=false.
+Ingen CONTROL-updates eller gjenbruk av privatevekter. Aktuell111RMS følger
+recipe og fullpolicy; strict TECHNICAL_PLAN beholder sitt eksakte feltsett.
+Campaign, signert hardware og neste fysiske Windowsboot må bestå før launch. Ingen gamle planer
 relanseres; beståtte uendrede data-/normaliseringskontroller gjenbrukes.
 108har allerede oppfylt den bestilte ene epoken. Ingen ekstraepoke/fullVAL/Exit/TEST.
 
 VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
 Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.
 Etter endret sourceclosure er105/106/107 historiske funksjonsbevis; aktuell
-CPUfresh/initial er nå kvalifisert; ny paritet/resume gjenstår før eventuell ny trening.
-111targetfit er fullført; nye modellforwards og trening er fortsatt stengt
-inntil egne eksakte bindinger/kvalifiseringer. Ingen gamle kampanjer eller
+CPUfresh/initial og savedstate er kvalifisert;117paritet/resume gjenstår før hovedtrening.
+111targetfit er fullført; bare117tekniske forwards/privateupdates er bundet
+etter egne eksakte campaign-/hardware-/bootkvalifiseringer. Ingen gamle kampanjer eller
 initialmålinger relanseres.
 
 Alle1205GCverdier+masker har kildekart for formel/enhet/domene/warmup;
