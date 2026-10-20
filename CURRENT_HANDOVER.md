@@ -25,7 +25,8 @@ kronologiske OOF-evidens for merverdi.
 TRAIN er [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
 utviklingskontroll [2026-04-01,2026-07-01). Alle26måneder er gjenbrukt utvikling;
 TEST fra juli er forseglet. Den bestilte ene nativeepoken er FULLFØRT i108.
-Bare117privat teknisk kontroll er bundet: training_enabled=true, maks4updates.
+117privat teknisk kontroll er FULLFØRT: fire private updates og fire paritetsforwards.
+training_enabled=false; ingen ny kjøring er åpnet.
 Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
@@ -217,24 +218,31 @@ INITIAL_MEASUREMENT_AUDIT.json SHA0b07d4a91234d646d7a40851a8fa48c88b369168a502e0
 STATE_PRESERVATION_PROOF.json SHA37ad03cb990e9bd72853cce0f1dc018451c5079cf30e93a63384d9594d3b6c7b.
 Eksisterende strict8field-eier aksepterte faktisk111RMS/fitlineage og115resultat.
 
-117er nå bundet som NY privat Entry-only optimizer/paritet/resume-kontroll.
+117 er faktisk COMPLETE: aktuell TRAIN-RMS Entry-only optimizer/paritet/resume bestod.
 Root `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117`.
-Samme32TRAIN-rader, fire private updates totalt og fire paritetsforwards;
-to sammenhengende steg sammenlignes med ett steg, varig lagring/load og steg2.
-Training_enabled=true gjelder bare denne eksakte kontrollen, fullEpoch/fullVAL=false.
-Ingen CONTROL-updates eller gjenbruk av privatevekter. Aktuell111RMS følger
-recipe og fullpolicy; strict TECHNICAL_PLAN beholder sitt eksakte feltsett.
-Campaign, signert hardware og neste fysiske Windowsboot må bestå før launch. Ingen gamle planer
-relanseres; beståtte uendrede data-/normaliseringskontroller gjenbrukes.
-108har allerede oppfylt den bestilte ene epoken. Ingen ekstraepoke/fullVAL/Exit/TEST.
+Canonical20.10kl.20:21:15–21:17:14UTC tok3358,974s;guardPASS/trainer0/observer0.
+Fire private updates: to sammenhengende steg mot ett steg, varig lagring/load og steg2.
+Fire paritetsforwards på16TRAIN+16CONTROL ga outputavvik0 på alle åtte flater.
+Handlinger/ties/masker/RNG/modulmodi og alle åtte resume-state-trær er eksakte.
+Actual111RMS er bundet i begge sessionkontrakter. Ingen CONTROL-updates,
+teacherrefresh, Exit-forwards, fullEpoch/fullVAL ellerTEST. Private vekter er
+bare auditbevis og skal ikke brukes som hovedmodell.117er konsumert; ingen relaunch.
+ACTUAL_TECHNICAL_TERMINAL_REVIEW.json
+SHA41fec9f3352ea68b1d8232342f27b0199ff575117a77c36a1a12a577860f823e.
+TERMINAL.json SHA0d3be0286cd319d93558e43b59db9af328f24c6d172882703a60b2577539a730.
+Canonical receipt SHAaf161c299d38a15d479ccc42338f0462019b6318517559a38bf12a7be5a8c291.
+183kilderoller og14inputstatidentiteter er bevart; ingen stor data-/PT-rehash i sluttkontrollen.
+Windows-task er Disabled/Last0; ingen bundne prosesser eller ACTIVE. Training_enabled=false.
+108har allerede oppfylt den bestilte ene epoken. Endret RMS har ennå ingen ny hovedlæringsrunde;
+teknisk117PASS er ingen ny lærings-, generaliserings- eller økonomiadgang.
 
 VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
 Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.
 Etter endret sourceclosure er105/106/107 historiske funksjonsbevis; aktuell
-CPUfresh/initial og savedstate er kvalifisert;117paritet/resume gjenstår før hovedtrening.
-111targetfit er fullført; bare117tekniske forwards/privateupdates er bundet
-etter egne eksakte campaign-/hardware-/bootkvalifiseringer. Ingen gamle kampanjer eller
-initialmålinger relanseres.
+CPUfresh/initial, savedstate og117paritet/resume er kvalifisert på aktuell RMS-closure.
+111targetfit og117tekniske forwards/privateupdates er fullført. Videre hovedtrening er
+stengt uten ny eksakt læringsplan; gamle kampanjer eller initialmålinger relanseres aldri.
+Neste arbeid er bare konkrete åpne aktive-feature-kontroller og vurdering av målt metadata-I/O.
 
 Alle1205GCverdier+masker har kildekart for formel/enhet/domene/warmup;
 23tekniske formler×5TF har115feltposter. Dette er ikke full uavhengig numerisk
@@ -246,8 +254,10 @@ point-in-time-kvalifisering. TEST er fortsatt forseglet og urørt.
 
 ## Maskin, effektivitet og opprydding
 
-115bekrefter fysisk Windowsboot517/20.10kl.18:45:08.500UTC,
-REBOOT_CONFIRMED.json SHAde36ff5999acec3d6c0226d1f41922d08d87434cdec373ab530ca2c857720f6f.
+117bekrefter fysisk Windowsboot518/20.10kl.20:15:55.500UTC,
+REBOOT_CONFIRMED.json SHAd70664eae657e3614e7be18436ff71aa8fb00926cce79949817017e622d6ffbe.
+117signert monitor omfattet2623prøver; samplet maks55°Ccore/64°Cminne/132,19W/1776MiB.
+Ingen temperatur-/effekt-/minnegrense ble brutt.115boot517 er også allerede bekreftet.
 18.10-omstartbestillingen og108boot516 er også allerede fullført.
 Ingen samme omstart gjentas.115signert monitor omfattet1511prøver med maks
 55°Ccore/64°Cminne/129.59W/738MiB; vaktene bestod. Dette er samplede maksima.
@@ -259,8 +269,12 @@ checkpoint3910.443s, inklusive loader/checkpointarbeid. Ingen ren GPU-benchmark.
 Ferdig MTF-NPY, targets og normalisering ble gjenbrukt. Ingen tett sekvens-
 memmap ble bygget. Sparse prosessmålinger viser små ekstra fysiske lesinger
 under stabil trening; rchar er logiske lesinger, ikke fysisk hosttotal.
-Kontrollert fartsgevinst er ikke målt. Full fysisk flate og historisk warmup
-leses fortsatt ved oppstart. Signal-only retention av unødvendig context/cat-
+Kontrollert fartsgevinst er ikke målt.117setup tok728,938s, og siste tekniske
+kontroll tok55m59s totalt for bare fire private updates og fire paritetsforwards.
+En ikke-blokkerende stakkmåling viste filhashing i kontekst-/cohortvalidering;
+LIVE_STACK_OBSERVATION_001.json SHAa367f834e082166a6c5e04e06a5b581a0a4b570ee412a4e0ba1f9f32990af851.
+Dette er ett observert kallested, ikke attribusjon av hele tidsbruken. Ingen kilde ble endret
+under kjøringen. Full fysisk flate og historisk warmup leses fortsatt ved oppstart. Signal-only retention av unødvendig context/cat-
 backing er en konkret, foreløpig uimplementert I/O-kandidat.
 
 DATA/RUNS ryddes bare av retention-eieren. Ingen Pythonfil er bevist slettbar
