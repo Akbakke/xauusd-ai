@@ -2235,6 +2235,10 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=Fal
     common = ['bar_start_ns','available_ns','contract_index']
     source_columns = common + ['qualified_final_event_count'] + [d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns')]
     if event_book:source_columns=common+list(GC_EVENT_REFERENCE_REDUCERS)+['qualified_covered_ns']
+    if profile:
+        # Immutable124 design: qualify every selected footer before ANY payload.
+        for name,item in files.items():
+            if name.endswith('.parquet'):event_numeric_row_groups(Path(item['path']),start,end,seal)
     if profile or smc:
         m1,m1_groups=(read_profile_numeric_inputs(inputs,start,end,seal) if profile
             else read_smc_numeric_inputs(inputs,start,end,seal))
