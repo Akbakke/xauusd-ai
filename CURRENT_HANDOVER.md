@@ -48,8 +48,10 @@ bar_start_ns/contract_index. Eventfilens egen available_ns-kontroll beholdes; in
 En liten Arrow/Parquet-regresjon uten bokavailable legges til. Produksjonsformler og
 native183closure er uendret. Omfanget er fortsatt350TF-felt+20strikte M5-felt fra samme
 åtte ferdige024filer363237419B; ingen råscan/rebuild/normalisering/modell/Exit.
-Kun én ny capped fokusert121sourcejobb er bundet etter uavhengig lesereview av minste diff.
-Fysisk121launch er stengt til faktisk kildePASS og eksakt binding.
+121sourcequalification er faktisk COMPLETE:34PASS/0fail/error/skip på4,508s med206kilder
+ogpolicy bevart. Ny faktisk Arrow/Parquet-regresjon uten bokavailable og med clock-/
+contractavvisning kjørte;370registry-/eierdekning bestod fortsatt. SOURCE_REVIEW.json binder
+XML og faktisk source-terminal. Fysisk121audit er nå claimet én gang etter dette PASS-et.
 Kildeplan/controller binder begge1800s; source-/fysiskclaim og terminal er separate.
 117mekanikk og118klokkefasit gjenbrukes. Ingen ekstra nativeepoke ellerTEST-adgang.
 
