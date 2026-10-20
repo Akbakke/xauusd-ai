@@ -138,7 +138,7 @@ PUBLISHED_SCALE_REVIEW.json SHA8dbaa6c22a04fc30b5327c5e053071d1412e078500ca28e23
 172kildebindinger og25metadata-inputidentiteter er bevart. Ingen ny featurebuild,
 inputnormalisering,model/forward/optimizer,GPU,VAL-fit ellerTEST.111er konsumert;
 artefaktet gjenbrukes og refittes ikke påVAL. Dette er ikke bedre prediksjon.
-112 ble kontrollert avbrutt for målt metadata-I/O; siste terminal er113.
+112 ble kontrollert avbrutt for målt metadata-I/O; siste terminal er114.
 112root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112`.
 En korrekt bundet CPUfresh-jobb startet17:06:48UTC; integratoren stoppet eksakt
 worker medSIGTERM etter gjentatte inputkontroller før publisert freshstate.
@@ -175,27 +175,33 @@ Rawcheckpoint-hasheieren er uendret. Små faktiske filstrømmer og syntetisk
 TinyModel/state beviser gjenbruk, feilavvisning og grenser; faktisk I/O-gevinst
 er fortsatt umålt. Påkrevde commit-kontrakttester bestod også før113.
 
-NY114CPUfresh er forberedt med113kvalifisert kilde,111TRAIN-RMS og faktisk
-prosess-I/O-/tidsmåling. Root
-`/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114`.
-PLAN.json SHAcd83ca8d4fd15900d8e3838c76808facce6ecd36312266b4e7ec27fdb967ea33
-beholder completed104konfigurasjonsmaler;112delresultater brukes ikke som
-gyldige modellinputs. Eksakte canonicaleiere ga183roller/182filer; alle
-endrede/nye SHA er113kvalifiserte. Closure
-5385ca4c7afdd8b1c779dfcd4406b26f004372faad05ba388c266466b48676b1.
-11inputs,055normalisering, profil, masker og targets gjenbrukes. Selve
-canonicalprodusenten bygger og strictrestorer fersk CPUstate med0markedsforwards/
-updates/refits/Exit. Målingen binder før/etter/delta for rchar/read_bytes/wchar/
-write_bytes samt monotonic tid fra /proc/worker/io. Linux-telleren inkluderer
-worker og ventede barneprosesser; dette er ikke hosttotal eller hele prosesstreet.
-Ingen ytre hashmemo gjennom modell/state.114start krever ren committed kilde,
-eksakt policy/B/snapshot og én engangsclaim. Ingen114jobb er startet ennå.
-PRELAUNCH_IO_SCOPE_ADJUDICATION.json
-SHA4d7290fd8134f141ad2a4237392da065ad91c09c73f1fde87c7b9c474495ae40
-korrigerer tidligere reviewtekst om barne-I/O; tellere og produsentvakter er
-uendret. Endelig renHEAD/policy/B/snapshot kontrolleres ettercommit.
-112/113er konsumert; ingen relaunch. Nye115initial-/paritets-/resumekontroller
-krever senere egne eksakte bindinger. Ingen ny epoke eller markedsforwardadgang.
+114 er faktisk COMPLETE: genuine fersk CPUstate med111TRAIN-RMS publisert.
+Root `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114`.
+Canonical produsent17:53:39,739–17:55:31,432UTC tok111,693s; hele controlleren
+119,491s. Worker/controller0,201kilder ogpolicy bevart,183canonicalroller og
+11inputstatidentiteter uendret. ACTUAL_FRESH_IO_REVIEW.json
+SHA8b56f3b66fb089ddc95fc395c02b9d7a63b9356d6fd3b84e3ff3c34f6518ff84
+binder actualresultat, workerterminal og uavhengig metadatakontroll.
+
+FreshONLINE/target/EMA har samme opprinnelige anker9c4cf514… fra seed20260911,
+optimizer er tom, ingen gamle vekter er arvet. Faktisk staged PT/strictrestore/
+RNG/state-roundtrip bestod i produsenten; review gjentok ikke PT-load. Fysisk
+state er71872670B. Alle111RMS-/055normaliserings-/057populasjons-/059kost-/
+profilbindinger er bevart.0markedsforwards/updates/refits/Exit.
+
+Produsentens /proc/PID/io-delta er read_bytes45632667648 og rchar49271392996;
+worker-totaldelta fram til observasjon er45935248192/49388376822. Telleren
+inkluderer prosess og ventede barn, ikke hosttotal/hele levende prosesstreet
+eller filvis attribusjon. write_bytes72032256 i produsentvinduet.112ble
+avbrutt etter554GB uten publisert state, så ingen kontrollert fartsratio
+påstås. Dette er teknisk initialisering og faktisk I/O, ingen ny læring.
+
+114er konsumert og relanseres aldri. Neste steg er NY115nullstegs initial
+med actual114freshrefene og111RMS. Full chronological_initial_measurement-
+policy må inkludereRMS; recipefeltet har kun de to freshrefene. Eget budsjett,
+campaign og aktuelle hardware-/freshbootgater kreves før noen markedsforward.
+115er ikke forberedt/startet. Nye paritets-/Entry-only optimizer-/resume-
+kontroller krever egne eksakte bindinger. Ingen ny epoke/fullVAL/Exit/TEST.
 
 VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
 Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.

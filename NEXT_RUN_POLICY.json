@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-20T15:51:47.035568+00:00",
-  "status": "114_TRAIN_RMS_CPU_FRESH_IO_MEASUREMENT_PREPARED__NATIVE_TRAINING_CLOSED",
+  "status": "114_GENUINE_TRAIN_RMS_CPU_FRESH_AND_PROCESS_IO_COMPLETE__NEW115_INITIAL_REQUIRED__NATIVE_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute new114exact one-shot capped CPUfresh with113qualified source and111TRAIN_RMS; require genuine immutable freshstate and measuredselfprocess producer IO/time before completion. Preserve11inputs/055normalization/057population/059costs/compactprofile.112/113consumed,never relaunch. Allmodelmarketforwards/updates/Exit/TEST/native/fullEpoch/fullVAL closed. New115initial needs own exact later binding.",
+  "next_action": "Prepare new115zero-update nativeinitial using actual114fresh refs,111RMS/currentclosure andpreserved055/057/059/profile. Bind full policy chronological_initial_measurement includingRMS, recipe twofreshrefs only, exactbudget/campaign/currenthardware-freshboot qualification before anymarketforward.114consumednever relaunch; no extraepoch/fullVAL/Exit/TEST/trading/broker admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -84,7 +84,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "114_TRAIN_RMS_CURRENT_SOURCE_CPU_FRESH_AND_PROCESS_IO_PREPARED",
+    "current_activity": "114_GENUINE_FRESH_AND_IO_COMPLETE__NEW115_ZERO_UPDATE_INITIAL_BINDING_NEXT",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -114,11 +114,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "COMPLETE_FOCUSED_METADATA_IO_SOURCE_QUALIFICATION_NO_REAL_IO_OR_NATIVE_ADMISSION",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_METADATA_IO_SCOPE_REPAIR_20261020_113",
+    "latest_terminal_role": "COMPLETE_CURRENT_SOURCE_TRAIN_RMS_CPU_FRESH_AND_ACTUAL_PROCESS_IO_NO_NATIVE_ADMISSION",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_METADATA_IO_SCOPE_REPAIR_20261020_113/TERMINAL.json",
-      "sha256": "27e407081e77ab14fca66c706e20e9c8b43fb5efc7a69ac2cb1d0c5f892dc680"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/WORKER_TERMINAL.json",
+      "sha256": "c3d5eed283a98d752459727627bb524298220d8b5f6653d0732c860ffa8827db"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -138,7 +138,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual CPUfresh publication/IOtime after113source correction remains unmeasured.114preparedwithgenuine111RMS; zero marketforwards/updates only. Currentinitial/parity/resume and primaryEntryquality/generalization/economy/individualnumericfeatureaudit remain open;108orderedepoch fulfilled andno extraepochauthority.",
+    "current_blocker": "No unresolved114CPUfresh/IO failure. Need ownnew115policy/recipe/campaign/currenthardware+freshboot gates beforemarketforwards;no extraepochauthority. PrimaryM5Entry/LONG-SHORT-FLAT/abstentionqualityandfullfeatureaudit stillnotqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -511,7 +511,7 @@
       "elapsed_seconds": 1016.7850262550019,
       "peak_rss_kib": 16341716
     },
-    "fresh_native_initial_state_complete": false,
+    "fresh_native_initial_state_complete": true,
     "native_initial_measurement_20261009": {
       "status": "COMPLETED_VERIFIED_NO_RELAUNCH",
       "policy_scope": {
@@ -2206,7 +2206,7 @@
       },
       "test_data_used": false
     },
-    "current_generation_initial_baseline_role": "Historical105baseline for consumed108/dc1c closure only. Current110loss-unit source changes require newly bound CPUfresh/initial/parity/resume evidence before newnativeuse; old105/106/107artifacts preserved and not relaunched.",
+    "current_generation_initial_baseline_role": "114published genuine current-source/RMS CPUfresh seedstate,0marketforwards/updates/refits/Exit.115newinitial requires ownpolicy/recipe/campaign/hardware binding; old105/106/107 remain historical.",
     "sampler_capacity_terminal_20261011": {
       "observed": true,
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
@@ -7612,7 +7612,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute new114exact one-shot capped CPUfresh with113qualified source and111TRAIN_RMS; require genuine immutable freshstate and measuredselfprocess producer IO/time before completion. Preserve11inputs/055normalization/057population/059costs/compactprofile.112/113consumed,never relaunch. Allmodelmarketforwards/updates/Exit/TEST/native/fullEpoch/fullVAL closed. New115initial needs own exact later binding.",
+    "next_action": "Prepare new115zero-update nativeinitial using actual114fresh refs,111RMS/currentclosure andpreserved055/057/059/profile. Bind full policy chronological_initial_measurement includingRMS, recipe twofreshrefs only, exactbudget/campaign/currenthardware-freshboot qualification before anymarketforward.114consumednever relaunch; no extraepoch/fullVAL/Exit/TEST/trading/broker admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8741,7 +8741,7 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Real CPUfresh publication and process IO/time after113 source change remain unmeasured; no current fresh/initial/parity/resume evidence."
+      "Current115zero-update initial, actualparity/Entry-only optimizer/resume, per-indicator independentnumeric audit anddecisionquality/generalization/economy remain open."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -15586,7 +15586,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
     },
-    "latest_terminal_evidence_scope": "113one capped sourcejob36.0073s:102passed,0fail/error/skip;8newcases executed.201sourcefiles+policy preserved. WholeproductionAST matches priorafterexacthashalias/call+2withnormalization; rawPThasherunchanged. Smallstreams/TinyModeltests proveboundaries,not actualrealdataIOspeedorlearning.111RMSand108fulfilled epoch preserved.",
+    "latest_terminal_evidence_scope": "114COMPLETEworker/controller0;119.4913stotal,111.6933scanonicalproducer. Producer read_bytes45632667648/rchar49271392996; LinuxPIDcounter includeswaitedchildren,not hosttotal orcontrolledspeedratio.201sources/183roles/11inputstats preserved;111RMSactualidentity/055normalization/104profile+seed20260911 preserved. FreshONLINE/target/EMAanchor9c4cf514equal,emptyoptimizer,no inheritedweights,0forwards/updates/refits/Exit.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -15644,8 +15644,8 @@
         "sha256": "6fad1a14e4658276ae2cf6e30c1a461009cc031405e0474a867f2044f9038e47"
       },
       "latest_actual_cpu_preparation_review": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_COHORT_ATTENTION_20261020_099/ACTUAL_CPU_PREPARATION_REVIEW.json",
-        "sha256": "8ed8344188ca1159466bbc55550c901f56809161517d0e417e4d1f740a1fc99a"
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/ACTUAL_FRESH_IO_REVIEW.json",
+        "sha256": "8b56f3b66fb089ddc95fc395c02b9d7a63b9356d6fd3b84e3ff3c34f6518ff84"
       },
       "remaining_physical_io_scope": "Full physical input/warmup surfaces remain. Sparse worker process read_bytes/logicalrchar are role-specific and are not host or process-tree totals. Training-session-start to finalcheckpoint3910.443s; wholecanonicalreceipt6090.175713s; intervals include loader/checkpoint work, not pureGPUcompute. No controlled speedup or future ETA claim.",
       "actual_completed_epoch_timings": {
@@ -15666,6 +15666,10 @@
       "measured_fresh_preparation_io_112": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/CONTROLLED_STOP_REVIEW.json",
         "sha256": "612fa1ee7c85e8a337f2aa879b862d50187c4d77e9d644e8b62c337242aaaae0"
+      },
+      "measured_actual_process_io_114": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/IO_OBSERVATION.json",
+        "sha256": "4d1eca435f9d1e5adee57b4717454e4f9d48b5d77133575ee5f70f45d47817e7"
       }
     },
     "latest_native_terminal": {
@@ -15696,7 +15700,7 @@
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
       "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
     },
-    "current_generation_acceptance_scope": "Technical oneepoch/fixedfinal completeness only; paired learning mixed and primary Entry quality unqualified; not serving, generalization or economics admission."
+    "current_generation_acceptance_scope": "114qualifies current CPU initialization, actual111RMS binding and measuredIO only.108fulfilledtheorderedoneepochonpriorloss/source;newinitial/parity/resume andprimaryEntryquality/generalization/economy remainunqualified."
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -18450,10 +18454,10 @@
     "real_io_or_speed_gain_measured": false
   },
   "native_m5_train_rms_fresh_114": {
-    "status": "PREPARED_SINGLE_FRESH_CPU_STATE_AND_PROCESS_IO_NO_MARKET_FORWARD_OR_TRAINING",
-    "execution_authorized": true,
+    "status": "COMPLETE_GENUINE_TRAIN_RMS_CPU_FRESH_AND_MEASURED_PROCESS_IO_NO_NATIVE_ADMISSION",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/PLAN.json",
@@ -18506,6 +18510,34 @@
     "prior_prelaunch_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/PRELAUNCH_REVIEW.json",
       "sha256": "db39219d52f9229a34d8907907c21ad47c71d49296d17db8ed4ca387f2455772"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/RESULT.json",
+      "sha256": "4ec1b420e1b01b1bdc7e9ee26301b0ee747cd4087aba3bf13ec9470c5003b79c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/WORKER_TERMINAL.json",
+      "sha256": "c3d5eed283a98d752459727627bb524298220d8b5f6653d0732c860ffa8827db"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/CONTROLLER_TERMINAL.json",
+      "sha256": "173c7d63564082a023bd9a35aa3f0c964a420bcffd94369fc4b9ce871b4e69cd"
+    },
+    "actual_fresh_io_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/ACTUAL_FRESH_IO_REVIEW.json",
+      "sha256": "8b56f3b66fb089ddc95fc395c02b9d7a63b9356d6fd3b84e3ff3c34f6518ff84"
+    },
+    "io_observation": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/IO_OBSERVATION.json",
+      "sha256": "4d1eca435f9d1e5adee57b4717454e4f9d48b5d77133575ee5f70f45d47817e7"
+    },
+    "controller_elapsed_seconds": 119.49129640400133,
+    "canonical_producer_elapsed_seconds": 111.69326720100071,
+    "canonical_producer_io_delta": {
+      "rchar": 49271392996,
+      "read_bytes": 45632667648,
+      "wchar": 72014315,
+      "write_bytes": 72032256
     }
   }
 }
