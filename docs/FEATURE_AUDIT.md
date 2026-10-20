@@ -234,11 +234,13 @@ checkpoints slettes bare gjennom retention-eieren. Ikke opprett nye historikkmap
 
 ## Grenser som gjenstår å bevise
 
-Full individuell numerisk rekonstruksjon av hver formel på den nye fysiske
-populasjonen; alle genuine formler på alleTF; full GC native-innrømmelse;
-hel-TRAIN-normalisering; nye faktiske initial-/paritets-/smokebevis; målrettet
-Transformer-læring, senere generalisering og nettoøkonomi. Nåstatus og nyeste
-konkrete terminal leses fra den ene overleveringen og policyen.
+Individuell numerisk kontroll av alle genuine tekniske formler, resterende14
+GC-basisfelt, oppstrøms råevent→M1 og uavhengig native tilgjengelighet/modellnytte
+gjenstår.051rekonstruksjon,053liveness,055helTRAIN-inputnormalisering og115/117
+initial-/paritets-/resumemekanikk er ferdige bevis med egne grenser.108fullførte
+én nativeepoke med blandet komponentlæring; Entry-kvalitet, generalisering og
+nettoøkonomi er ikke kvalifisert. Gjeldende terminal og adgang leses fra den
+eneste overleveringen og policyen; dette åpner ingen ny trening.
 
 ## Dynamisk M5-hovedmål og fysisk måltilgjengelighet
 
@@ -451,18 +453,34 @@ D1 opprettelser9/7 og retouch1/2 er sparsomt. 135felt har nullavvik;
 fysisk audit31,086s/exit0,206kilder bevart, ingen produksjonsformelendring.
 Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123/ACTUAL_NUMERIC_REVIEW.json`,
 df2f2d9b6dd6e0bfd7287d640e5ad3fed693eaf4a1b41721167e9a26a61fade5.
-Union121/122/123 er779av1205 registrerte GCverdier uten overlapp; dette teller
+Ved123 var union121/122/123779av1205 registrerte GCverdier uten overlapp; dette teller
 felt med tidsramme-/observasjonsvarianter, ikke779 uavhengige indikatorformler.
-123/PENDING_NUMERIC_FIELD_GROUPS.json binder de426 utestede verdiene:
-316 dynamiske profiler,64 histogram,32 footprint og14 basis. Ingen kjøreautoritet.
+123/PENDING_NUMERIC_FIELD_GROUPS.json binder de daværende426 utestede verdiene:
+316 dynamiske profiler,64 histogram,32 footprint og14 basis.124oppdaterer dette
+til14basisfelt nedenfor; den eldre inventaren gir ingen ny kjøreautoritet.
 Råevent→M1, uavhengig tilgjengelighetsprojeksjon og individuell modellnytte
 bevises ikke av denne publisertM1→TF-kontrollen.
 
-Uavhengig numerisk referanse gjenstår for komplette strikte/dynamiske profiler,
-valuearea, avstand/respons og session-/DST-/hull-/roll-domener.123 skiller
-begge SMCsiders bevarte og observed-proxy-semantikk. Basis trenger fortsatt komplett
-alleTF-/hull-/roll-/as-of-alderreferanse og representative aktuelle fysiske verdier.
-Delvise håndberegnede tester og shared-owner-paritet telles hver for seg.
+124 supplerer med412 disjunkte profil-/histogram-/footprintfelt. Alle har
+finitt numerisk dekning;407varierer og fem snapshotaldre er0 ved eksakt M5→TF.
+111felt har nullavvik;301 har avrundingsavvik innen analytiske cellegrenser,
+maks9,094947e-13USD/1,267609e-11ticks.14allNaN strikte hjelpefelt er ikke
+numerisk kvalifisert. StrictH1-footprint har bare3endelige observasjoner/felt.
+Én passering av11285831qualifiedladderrader ga seen=admitted763347M1minutter;
+1139040M1-rader,116kildecaserPASS,368,026s fysisk/exit0 og206kilder bevart.
+NY18/DST, rolling3/12M5, session-/segment-/gap-/roll-domener, sparse70%VA,
+ukjent side og eksakt M5-snapshot uten tilbakefylling er fysisk kontrollert.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/ACTUAL_NUMERIC_REVIEW.json`,
+6ebe32c512ce0820bdcfa8253ffd7a706138db3064024db6564cf5172ad560de.
+124/PUBLISHED_ROW_COUNT_RECONCILIATION.json forklarer at024s11286145 er
+inputteller før incidentfilter, ikke11285831publiserte qualifiedrader.
+Originalt DESIGN og alle receipts/data er bevart; ingen produksjonsformel er endret.
+
+Samlet121–124 er1191av1205 unike GCregistryverdier, uten overlapp. De14
+resterende basisfeltene er bundet i124/PENDING_BASIS_NUMERIC_FIELDS.json.
+Basis trenger komplett alleTF-/hull-/roll-/samme-M1-/kildealderreferanse og
+faktiske verdier. Råevent→M1 og native beslutningsprojeksjon/individuell
+modellnytte er fortsatt egne ubeviste lag; numerisk paritet er ikke læring.
 
 Teknisk rapport beskriver WilderATR/RSI/ADX-seeding, EMA/SMA-seed og slope-lag,
 stack/stateage, quote-volumeVWAP, BBpopulationddof0, enheter og første gyldige

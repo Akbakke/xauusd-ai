@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T23:14:17.807029+00:00",
-  "status": "124_PHYSICAL_PROFILE_FOOTPRINT_REFERENCE_CLAIMED_AFTER_116_SOURCE_PASS",
+  "observed_utc": "2026-10-20T23:25:40.524699+00:00",
+  "status": "124_COMPLETE_412_PROFILE_FIELDS_1191_TOTAL_NUMERIC_REFERENCE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactlyoneclaimed124capped physical412profile/histogram/footprint reference after actual116sourcePASS. Stream restoredM1ladderonce, reuse9finishedfiles306497131B, allselectedfootersbeforepayload, no rawTBscan/model/refit/baseline/nativeepoch/Exit/TEST. Keepbasis14separate andretainactualterminal.",
+  "next_action": "Reuse completed124/1191fieldreferences and117native mechanics. Prepare independent14basisfield reference from finished4GC-M1columns plus3spotcolumns in bound2024/2025/2026partitions, exactsameM1/noffill/sourceclock+age/lastminuteTESTguard. Freshscope/sourcequalification before physicalaudit. Raw-to-M1, independentnativeasof, technicalnumeric/individualuse and Entryquality remain separate gaps. No nativeepoch/fullVAL/Exit/broker/TESTadmission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "124_PUBLISHED_M1_TO_TF_PROFILE_FOOTPRINT_PHYSICAL_REFERENCE",
+    "current_activity": "124_COMPLETE_PENDING14_BASIS_NO_JOB_RUNNING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "124_actual_focused_profile_footprint_reference_source_qualification",
+    "latest_terminal_role": "124_actual_published_M1_to_five_TF_profile_footprint_physical_numeric_reference",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/SOURCE_QUALIFICATION_TERMINAL.json",
-      "sha256": "5c99d714935d7d1d8c823b00501b1a02472056e6948dcf88ed44d3dc3666584e"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/TERMINAL.json",
+      "sha256": "5dafdb4b89b55fbd73ab1b1c893773a727565a2e4bbfca39c6a3353a19939fa5"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual116focused cases PASS/6.401s,206sourcefiles/policy preserved. Physical412active profile/histogram/footprint referencepending; no model/quality verdict.",
+    "current_blocker": "124passed412active fields/368.026s;1191of1205 publishedM1-to-TF GCvalues independentlychecked. Remaining14basisfields; upstreamraw-to-M1/downstreamnativeasof/individualuse/Entryquality remainunqualified. Sourcecount11286145ispreincidentinput; actualqualified11285831/seen763347iscomplete. No trainingauthority.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9465,7 +9465,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "123_SCOPED_NUMERIC_PASS_NATIVE117_MECHANICS_PASS_ENTRY_QUALITY_PENDING",
+      "status": "124_SCOPED_NUMERIC_PASS_NATIVE117_MECHANICS_PASS_ENTRY_QUALITY_PENDING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9504,7 +9504,7 @@
         "Reuse051physical reconstruction/053liveness/055wholeTRAIN inputnormalization and117currentnative mechanics; no audit-only baseline loop.",
         "108fulfilled exactly one full native TRAINepoch. Mixed component learning; h1errors worsened and all512diagnostic candidates selected1minute. No extraepoch authority.",
         "111TRAIN-only RMSunits are physically fit,114fresh/115initial/116savedstate/117parity+resume pass on current183roles/182files. This is mechanics, not evidence that RMSimproves learning.",
-        "779of1205active GCregistry values independently checked on publishedM1-to-TF. Pending426groups bound in inventory; raw-to-M1, independent nativeasof and technical numeric/individualuse remain separate gaps.",
+        "1191of1205active GCregistry values independently checked on publishedM1-to-TF. Pending14basisfields bound in inventory; raw-to-M1, independent nativeasof and technical numeric/individualuse remain separate gaps.",
         "LONG/SHORT/FLAT decisionquality, selected/abstained coverage, chronological generalization and economic edge remain unqualified."
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
@@ -16279,7 +16279,7 @@
       }
     },
     "independent_gc_numeric_reference_coverage": {
-      "qualified_published_M1_to_TF_active_field_union": 779,
+      "qualified_published_M1_to_TF_active_field_union": 1191,
       "registry_value_fields": 1205,
       "field_sets_disjoint": true,
       "evidence": [
@@ -16294,19 +16294,20 @@
         {
           "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123/ACTUAL_NUMERIC_REVIEW.json",
           "sha256": "df2f2d9b6dd6e0bfd7287d640e5ad3fed693eaf4a1b41721167e9a26a61fade5"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/ACTUAL_NUMERIC_REVIEW.json",
+          "sha256": "6ebe32c512ce0820bdcfa8253ffd7a706138db3064024db6564cf5172ad560de"
         }
       ],
       "raw_to_M1_proven": false,
       "native_model_consumption_proven": false,
-      "remaining_active_value_fields": 426,
+      "remaining_active_value_fields": 14,
       "pending_field_inventory": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123/PENDING_NUMERIC_FIELD_GROUPS.json",
-        "sha256": "e6fd9e9778cdd75c373b14658f86eab393a053da4f1bc282d4f89f7f5bfe1949"
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/PENDING_BASIS_NUMERIC_FIELDS.json",
+        "sha256": "9c9dfd1bb6a888fd9b141d0db9852fa01771286f8f7976cc5e87f9b1fcbca7dc"
       },
       "pending_group_counts": {
-        "dynamic_profiles": 316,
-        "native_timeframe_histogram": 64,
-        "footprint": 32,
         "spot_futures_basis": 14
       },
       "native_availability_projection_proven": false
@@ -16361,10 +16362,10 @@
       "elapsed_seconds": 31.08603039800073
     },
     "gc_profile_footprint_numeric_reference_124": {
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_PASS_412_ACTIVE_PROFILE_FOOTPRINT_REFERENCE",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/PLAN.json",
@@ -16387,6 +16388,31 @@
       "source_qualification": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/SOURCE_REVIEW.json",
         "sha256": "22d14582c8b77b4dc4658e047c7448af23944e20665dd0b72088fd5311a2626b"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/TERMINAL.json",
+        "sha256": "5dafdb4b89b55fbd73ab1b1c893773a727565a2e4bbfca39c6a3353a19939fa5"
+      },
+      "actual_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/ACTUAL_NUMERIC_REVIEW.json",
+        "sha256": "6ebe32c512ce0820bdcfa8253ffd7a706138db3064024db6564cf5172ad560de"
+      },
+      "actual_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/GC_PROFILE_NUMERIC_RESULTS/GC_PROFILE_NUMERIC_RESULT.json",
+        "sha256": "19b9f5fa1334f5340e8430479b38b76fbbf2c1197171e0c39416c8cf68909da0"
+      },
+      "actual_launch_terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/ACTUAL_NUMERIC_AUDIT_LAUNCH_TERMINAL.json",
+        "sha256": "6af7d17509e4ad2f6f1f9d481617c7370b9e2cc6c6c738a255b6012d8e91002d"
+      },
+      "actual_active_fields": 412,
+      "nonconstant_fields": 407,
+      "observed_constant_fields": 5,
+      "all_nan_auxiliary_columns_not_numerically_qualified": 14,
+      "elapsed_seconds": 368.02622604499993,
+      "row_count_domain_reconciliation": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/PUBLISHED_ROW_COUNT_RECONCILIATION.json",
+        "sha256": "5a17f9afe67dab7ee45947fd9bf0c76016dc5e7c0369e28e4817e026117a792e"
       }
     }
   },
