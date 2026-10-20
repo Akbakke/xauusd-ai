@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T15:51:47.035568+00:00",
-  "status": "114_GENUINE_TRAIN_RMS_CPU_FRESH_AND_PROCESS_IO_COMPLETE__NEW115_INITIAL_REQUIRED__NATIVE_TRAINING_CLOSED",
+  "observed_utc": "2026-10-20T18:09:41.294009+00:00",
+  "status": "115_ZERO_UPDATE_INITIAL_CAMPAIGN_PREPARATION__114_FRESH_COMPLETE__NATIVE_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Prepare new115zero-update nativeinitial using actual114fresh refs,111RMS/currentclosure andpreserved055/057/059/profile. Bind full policy chronological_initial_measurement includingRMS, recipe twofreshrefs only, exactbudget/campaign/currenthardware-freshboot qualification before anymarketforward.114consumednever relaunch; no extraepoch/fullVAL/Exit/TEST/trading/broker admission.",
+  "next_action": "Materialize exactly one115native initial campaign from actual114 fresh state and111TRAIN RMS; install only after current-source recipe/budget/Windows binding review. Capture current prepared boot, require next physical boot and signed guards before32Entry forwards on unchanged256TRAIN+256CONTROL. No optimizer updates or extra epoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -84,7 +84,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "114_GENUINE_FRESH_AND_IO_COMPLETE__NEW115_ZERO_UPDATE_INITIAL_BINDING_NEXT",
+    "current_activity": "115_ZERO_UPDATE_INITIAL_CAMPAIGN_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -138,7 +138,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No unresolved114CPUfresh/IO failure. Need ownnew115policy/recipe/campaign/currenthardware+freshboot gates beforemarketforwards;no extraepochauthority. PrimaryM5Entry/LONG-SHORT-FLAT/abstentionqualityandfullfeatureaudit stillnotqualified.",
+    "current_blocker": "115exact campaign, signed hardware and next physical Windows boot pending.114fresh successful; no unresolved CPU preparation error. No extra training authority.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -18539,5 +18539,73 @@
       "wchar": 72014315,
       "write_bytes": 72032256
     }
+  },
+  "chronological_initial_measurement": {
+    "initialization_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/FRESH_INITIALIZATION/INITIALIZATION.json",
+      "sha256": "0bf5dc105db481fd323e7fa62177b9a2bab3a70fdc21dd472414bc59fc1c6e16"
+    },
+    "measurement_binding_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_IO_20261020_114/FRESH_INITIALIZATION/MEASUREMENT_BINDING.json",
+      "sha256": "6bbfb8939e18c46458ded62200bd5b6c22062b8f9e3c4861fd4514d1d12e084b"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/DESIGN.json",
+        "sha256": "4e8a027a9b8577bf6876601d0508bd7c376bf3620f6ee260ee4e399cc32568f5"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
+        "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
+      },
+      "native_coordinates": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/COORDINATES/NATIVE_COORDINATES.json",
+        "sha256": "79e0104bffeb457d33672062e28c9df7b428156b191e58fd75f2be4842d3d664"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
+        "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
+      }
+    },
+    "run_id": "NATIVE_M5_TRAIN_RMS_INITIAL_20261020_115",
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_INITIAL_20261020_115/BUNDLE",
+    "source_bindings_sha256": "5385ca4c7afdd8b1c779dfcd4406b26f004372faad05ba388c266466b48676b1",
+    "entry_observed_market": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_EPOCH_GUARD_20261020_104/OBSERVED_MARKET_PLAN.json",
+      "sha256": "25019568903f1e64c09cc80e946dc579babbf8dcbb2b0cdb4b1fbf090681542d"
+    },
+    "entry_m5_path_single_epoch": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/WITNESS.json",
+      "sha256": "19b6b9a6c2167b3eb9795ceb1372a0b398e6fc0b2731a035db78b3e082d7f801"
+    },
+    "dynamic_m5_loss_scales": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/LOSS_SCALES.json",
+      "sha256": "93fa60c423a4adebd888f7a905b31adc61a3094d8e7a04169f4049db540fc88d"
+    },
+    "optimizer_steps": 0,
+    "max_invocations": 1,
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false
+  },
+  "native_m5_train_rms_initial_115": {
+    "status": "PREPARING_EXACT_ZERO_UPDATE_INITIAL_CAMPAIGN",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_INITIAL_20261020_115/PLAN.json",
+      "sha256": "f7b95a75c20ad16f671965f19a61759fb4ba3e99dfac642abac8c50ac6984a46"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_INITIAL_20261020_115",
+    "campaign_preparation_authorized": true,
+    "initial_measurement_authorized_after_exact_campaign_hardware_and_fresh_boot": true,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "optimizer_steps": 0,
+    "max_invocations": 1,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "authority": "Active M5 Entry qualification goal; exactly one new zero-update comparable initial on actual114 fresh state and111TRAIN RMS. No extra native epoch."
   }
 }

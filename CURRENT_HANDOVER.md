@@ -200,8 +200,11 @@ påstås. Dette er teknisk initialisering og faktisk I/O, ingen ny læring.
 med actual114freshrefene og111RMS. Full chronological_initial_measurement-
 policy må inkludereRMS; recipefeltet har kun de to freshrefene. Eget budsjett,
 campaign og aktuelle hardware-/freshbootgater kreves før noen markedsforward.
-115er ikke forberedt/startet. Nye paritets-/Entry-only optimizer-/resume-
-kontroller krever egne eksakte bindinger. Ingen ny epoke/fullVAL/Exit/TEST.
+115PLAN er opprettet og policy binder nøyaktig32Entryforwards på samme
+256TRAIN+256CONTROL,0updates. Campaign/recipe/budsjett og aktuelle
+signerte hardware-/freshbootporter er under forberedelse; ingen nativejobb
+er startet. Nye paritets-/Entry-only optimizer-/resume-kontroller krever egne
+eksakte bindinger. Ingen ny epoke/fullVAL/Exit/TEST.
 
 VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
 Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.
