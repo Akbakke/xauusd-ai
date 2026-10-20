@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —093 testbinding stoppet før modell;091 paritet fortsatt åpen
+## Aktuell grense —094 CPUfresh ferdig;091 paritet fortsatt åpen
 
 091 er FAILED/guardexit1,20.10 kl.00:14:15UTC. Feilen er
 DYNAMIC_M5_TECHNICAL_PARITY_VALUES_CHANGED:dynamic_terminal_net_markout_bps
@@ -104,8 +104,18 @@ med73d-originalen; hele testmodulens AST er identisk når de3nye092kvalifiserte
 casene fjernes.094 er bundet til én4G/7200s CPUfresh, planSHA
 adb632a9abb611ed5b217ee09a0c8a5e122af68057ab7dff58018964cafbd01d.
 055/057/059 gjenbrukes; fremtidig095initial er ingen nativeadgang.
-Ingen GPU-/native-/epokeadgang. Den rene metadataforhåndskontrollen dekket
-ikke publisherens senere retained-profile-kjede; denne grensen er korrigert.
+094 er COMPLETE121.926s/exit0/uendret kilde. Native state/anchor/EMA har
+samme9c4cf514… og initialstate-bytene sammec62cc1ad… som088; optimizer er tom.
+Det er målt0forwards/updates/refits. Worker-I/O49.227GBlogisk/42.337GB
+kernelregistrert disklesing; dette er CPUklargjøring, ikke native throughput.
+ACTUAL_CPU_PREPARATION_REVIEW binder originalterminal/resultat/initial/IO.
+093 er fortsatt feilet/konsumert. Hele den faktiske metadata-/retained-kjeden
+153–205 ble kontrollert før094, med ekte cappedvakter og uten modellprodusent.
+095initial0 er bundet til én32forward-/0update-måling, betinget av nye
+fysiske boot-/maskinvare-/campaignporter. PlanSHA019cc3a112c257f558d3eaa81055dbf97c85ebbf1c12fd527c0bcf15dd92a8ab.
+095 er ennå ikke materialisert/installert/bootgodkjent eller startet. training=false,
+fullEpoch/fullVAL=false.091paritetsårsak og I/O-
+rettelsens faktiske nativegevinst er ennå ikke målt.
 
 088fresh/089initial32forwards/090state-RNG-audit forblir faktiske bevis vedf571.
 Ny full_train-byte krever ny closure/fresh/initial0/stateaudit gjennom eksisterende
