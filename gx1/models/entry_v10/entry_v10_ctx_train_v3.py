@@ -3447,7 +3447,7 @@ def _model_forward_fp32(
 ) -> Dict[str, torch.Tensor]:
     """Run the recipe-owned numerical path and return FP32 outputs."""
 
-    with _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Entry_online" if torch.is_grad_enabled() else "Entry_teacher"):
+    with _training_mha_fastpath_context(model), _training_autocast_context(), _training_model_finite_check_context(), kernel_profile_range("Entry_online" if torch.is_grad_enabled() else "Entry_teacher"):
         out = model(*args, **kwargs)
     if isinstance(out, dict):
         out = {k: (v.float() if hasattr(v, "float") and torch.is_tensor(v) and v.is_floating_point() else v)
@@ -3684,6 +3684,23 @@ def _resolve_device(device_str: str) -> torch.device:
     if device_str == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("[CUDA_NOT_AVAILABLE] requested cuda but torch.cuda.is_available() is False")
     return torch.device(device_str)
+
+
+@contextlib.contextmanager
+def _training_mha_fastpath_context(model):
+    """Use one dynamic FP32 attention route across grad and no-grad forwards."""
+    if (_TRAINING_PRECISION_POLICY != DETERMINISTIC_FP32
+            or getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+        yield
+        return
+    previous = torch.backends.mha.get_fastpath_enabled()
+    try:
+        torch.backends.mha.set_fastpath_enabled(False)
+        if torch.backends.mha.get_fastpath_enabled() is not False:
+            raise RuntimeError("[ENTRY_DYNAMIC_M5_MHA_FASTPATH_DISABLE_REQUIRED]")
+        yield
+    finally:
+        torch.backends.mha.set_fastpath_enabled(previous)
 
 
 def _training_model_finite_check_context():

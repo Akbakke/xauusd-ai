@@ -242,3 +242,204 @@ def test_next_local_experiments_reject_changed_workload(policy, overrides):
     kwargs.update(overrides)
     with pytest.raises(TrainingPrecisionPolicyError):
         require_local_precision_benchmark_geometry(policy, **kwargs)
+
+
+@pytest.fixture
+def _isolated_training_forward():
+    """Run the real numerical owners without importing trainer or any datasets.
+
+    Existing FP32 autocast/finite/profile contexts are neutral; these tests own
+    only the phase-bound MHA policy, not an alternative precision implementation.
+    """
+    import ast
+    import contextlib
+    import random
+    from pathlib import Path
+
+    import numpy as np
+    import torch
+
+    from gx1.contracts.entry_model_native_training_objective_v1 import (
+        ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, JOINT_FITTED_Q_TRAINING_PHASE,
+    )
+
+    path = Path(__file__).resolve().parents[1] / "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
+    tree = ast.parse(path.read_text())
+    names = {"_model_forward_fp32", "_training_mha_fastpath_context"}
+    definitions = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name in names]
+    assert {node.name for node in definitions} == names
+    module = ast.Module(body=[*ast.parse("from __future__ import annotations").body, *definitions], type_ignores=[])
+    namespace = {
+        "torch": torch, "contextlib": contextlib,
+        "DETERMINISTIC_FP32": DETERMINISTIC_FP32,
+        "ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE": ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        "_TRAINING_PRECISION_POLICY": DETERMINISTIC_FP32,
+        "_training_autocast_context": contextlib.nullcontext,
+        "_training_model_finite_check_context": contextlib.nullcontext,
+        "kernel_profile_range": lambda label: contextlib.nullcontext(),
+        "legacy_phase": JOINT_FITTED_Q_TRAINING_PHASE,
+    }
+    exec(compile(ast.fix_missing_locations(module), str(path), "exec"), namespace)
+    set_fastpath = torch.backends.mha.set_fastpath_enabled
+    previous = torch.backends.mha.get_fastpath_enabled()
+    rng, python_rng, numpy_rng = torch.get_rng_state().clone(), random.getstate(), np.random.get_state()
+    try:
+        yield namespace
+    finally:
+        set_fastpath(previous)
+        torch.set_rng_state(rng)
+        random.setstate(python_rng)
+        np.random.set_state(numpy_rng)
+
+
+@pytest.mark.parametrize("kind", ["mha", "encoder"])
+@pytest.mark.parametrize("training", [False, True])
+@pytest.mark.parametrize("previous_fastpath", [False, True])
+def test_dynamic_fp32_attention_uses_same_unfused_routes_across_grad_modes(
+    _isolated_training_forward, kind, training, previous_fastpath,
+):
+    import random
+    import numpy as np
+
+    owner = _isolated_training_forward
+    torch = owner["torch"]
+    torch.manual_seed(619)
+    torch.backends.mha.set_fastpath_enabled(previous_fastpath)
+    sdpa = lambda: (torch.backends.cuda.flash_sdp_enabled(), torch.backends.cuda.mem_efficient_sdp_enabled(), torch.backends.cuda.math_sdp_enabled())
+    sdpa_before = sdpa()
+
+    class TinyAttention(torch.nn.Module):
+        entry_training_phase = owner["ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE"]
+
+        def __init__(self):
+            super().__init__()
+            self.layer = (torch.nn.MultiheadAttention(8, 2, dropout=0.0, batch_first=True) if kind == "mha"
+                          else torch.nn.TransformerEncoderLayer(8, 2, dim_feedforward=16, dropout=0.0, batch_first=True))
+            self.calls = 0
+
+        def forward(self, value):
+            self.calls += 1
+            assert torch.backends.mha.get_fastpath_enabled() is False
+            assert sdpa() == sdpa_before
+            output = self.layer(value, value, value, need_weights=False)[0] if kind == "mha" else self.layer(value)
+            return {"output": output}
+
+    model = TinyAttention().train(training)
+    value = torch.randn(2, 5, 8, requires_grad=True)
+    original_value = value.detach().clone()
+    weights = {name: tensor.detach().clone() for name, tensor in model.state_dict().items()}
+    modes = [module.training for module in model.modules()]
+    requires_grad = [parameter.requires_grad for parameter in model.parameters()]
+    rng, python_rng, numpy_rng = torch.get_rng_state().clone(), random.getstate(), np.random.get_state()
+    outputs, operators = [], []
+    for enabled in (False, True):
+        with torch.set_grad_enabled(enabled):
+            with torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CPU]) as profile:
+                output = owner["_model_forward_fp32"](model, value)["output"]
+            assert output.requires_grad is enabled and output.dtype == torch.float32
+            outputs.append(output.detach().clone())
+            operators.append({event.key for event in profile.key_averages()})
+        assert torch.backends.mha.get_fastpath_enabled() is previous_fastpath
+    assert model.calls == 2
+    for observed in operators:
+        assert "aten::_transformer_encoder_layer_fwd" not in observed
+        assert "aten::_native_multi_head_attention" not in observed
+        assert "aten::scaled_dot_product_attention" in observed
+    torch.testing.assert_close(outputs[0], outputs[1], rtol=0.0, atol=1e-4)
+    assert torch.equal(value.detach(), original_value) and value.requires_grad and value.grad is None
+    assert all(torch.equal(tensor, weights[name]) for name, tensor in model.state_dict().items())
+    assert [module.training for module in model.modules()] == modes
+    assert [parameter.requires_grad for parameter in model.parameters()] == requires_grad
+    assert all(parameter.grad is None for parameter in model.parameters())
+    assert torch.equal(torch.get_rng_state(), rng) and random.getstate() == python_rng
+    current_numpy_rng = np.random.get_state()
+    assert current_numpy_rng[0] == numpy_rng[0] and np.array_equal(current_numpy_rng[1], numpy_rng[1])
+    assert current_numpy_rng[2:] == numpy_rng[2:] and sdpa() == sdpa_before
+
+
+@pytest.mark.parametrize("previous_fastpath", [False, True])
+@pytest.mark.parametrize("fail", [False, True])
+def test_dynamic_fp32_attention_restores_nested_and_exception_lifetimes(
+    _isolated_training_forward, previous_fastpath, fail,
+):
+    owner = _isolated_training_forward
+    torch = owner["torch"]
+    torch.backends.mha.set_fastpath_enabled(previous_fastpath)
+
+    class Probe(torch.nn.Module):
+        entry_training_phase = owner["ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE"]
+
+        def forward(self, value):
+            assert torch.backends.mha.get_fastpath_enabled() is False
+            with owner["_training_mha_fastpath_context"](self):
+                assert torch.backends.mha.get_fastpath_enabled() is False
+                if fail:
+                    raise ValueError("model sentinel")
+            assert torch.backends.mha.get_fastpath_enabled() is False
+            return value * 2
+
+    model = Probe().train()
+    value = torch.ones(1, requires_grad=True)
+    if fail:
+        with pytest.raises(ValueError, match="model sentinel"):
+            owner["_model_forward_fp32"](model, value)
+    else:
+        output = owner["_model_forward_fp32"](model, value)
+        assert torch.equal(output, value * 2) and output.requires_grad
+    assert torch.backends.mha.get_fastpath_enabled() is previous_fastpath
+    assert model.training and value.grad is None
+
+
+@pytest.mark.parametrize("previous_fastpath", [False, True])
+@pytest.mark.parametrize("phase,precision", [
+    ("missing", DETERMINISTIC_FP32), ("legacy", DETERMINISTIC_FP32),
+    ("dynamic", DETERMINISTIC_BF16_HOPPER),
+])
+def test_attention_fastpath_leaves_other_phases_and_precisions_unchanged(
+    _isolated_training_forward, phase, precision, previous_fastpath,
+):
+    owner = _isolated_training_forward
+    torch = owner["torch"]
+    owner["_TRAINING_PRECISION_POLICY"] = precision
+    torch.backends.mha.set_fastpath_enabled(previous_fastpath)
+
+    class Probe(torch.nn.Module):
+        def forward(self, value):
+            assert torch.backends.mha.get_fastpath_enabled() is previous_fastpath
+            return value * 2
+
+    model = Probe()
+    if phase != "missing":
+        model.entry_training_phase = owner["legacy_phase"] if phase == "legacy" else owner["ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE"]
+    value = torch.ones(1, requires_grad=True)
+    output = owner["_model_forward_fp32"](model, value)
+    assert torch.equal(output, value * 2) and output.requires_grad
+    assert torch.backends.mha.get_fastpath_enabled() is previous_fastpath
+
+
+def test_dynamic_fp32_attention_fails_closed_if_public_backend_refuses_disable(
+    _isolated_training_forward, monkeypatch,
+):
+    owner = _isolated_training_forward
+    torch = owner["torch"]
+    torch.backends.mha.set_fastpath_enabled(True)
+    actual_set = torch.backends.mha.set_fastpath_enabled
+    attempts = []
+
+    def refuse_disable(value):
+        attempts.append(value)
+        if value:
+            actual_set(value)
+
+    monkeypatch.setattr(torch.backends.mha, "set_fastpath_enabled", refuse_disable)
+
+    class NeverRun(torch.nn.Module):
+        entry_training_phase = owner["ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE"]
+
+        def forward(self, value):
+            raise AssertionError("model must not execute before the policy is enforced")
+
+    with pytest.raises(RuntimeError, match="ENTRY_DYNAMIC_M5_MHA_FASTPATH_DISABLE_REQUIRED"):
+        owner["_model_forward_fp32"](NeverRun(), torch.ones(1))
+    assert attempts == [False, True]
+    assert torch.backends.mha.get_fastpath_enabled() is True

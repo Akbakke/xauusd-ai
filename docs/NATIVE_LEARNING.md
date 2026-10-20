@@ -57,6 +57,14 @@ med og uten gradientsporing, fire forwards og null updates. Alle480queryer,
 komponenter, forecasts, kandidatretning og ties kontrolleres; toleranse er
 forhåndsvalgt1e-4bps/rtol0. Modell, RNG, optimizer/EMA og originalpointer
 bevares. Batchenes inputs, queries, targets og masker bindes separat.
+Faktisk097 viste ulike fused hostdispatch-veier mellom no_grad og grad
+med samme CUDA/eval/FP32/input/vekter; første komponent overskred låst
+toleranse. Felles _model_forward_fp32 avgrenser nå MHAfastpathFalse til
+dynamisk Entry/deterministiskFP32 rundt selve modellkallet og gjenoppretter
+forrige verdi i finally. SDPAvalg, autograd og andre faser/presisjoner
+beholdes. Faktisk CUDA-paritet skal fortsatt verifiseres på ny kilde. Toleransen beholdes; hostdispatch alene er ikke
+kausalt bevis for rettelsens effekt.
+
 Ved paritetsfeil publiseres PARITY_FAILURE.json atomisk før samme feil kastes
 videre: rolle/kohort, fullførte forwards, faktiske sammenligningstall og
 gjenopprettingsobservasjoner. De samme to forwardene per rolle observeres
@@ -264,7 +272,9 @@ unngås gjennom kontrakteierens eksplisitte `file_verification_scope()`.
 Dette gjelder eksisterende CLI/materializer og handover-/native-window-/
 full_train-preflight, samt avgrenset dynamic-prefix-, initial-, technical-
 og learning/epoch/continuation-metadata. Den sene prefix-sessionbindingen
-har sitt eget korte scope før optimizerkonstruksjon.
+har sitt eget korte scope før optimizerkonstruksjon. Den rene dynamiske
+cohort-eieren har også ett endelig scope, lukket ved retur før modellarbeid;
+hele øvrige kohort-AST og alle SHA/stat-/identitetsvakter beholdes.
 Liveness-fildigest delegerer til samme verifiserte eier. Metadata-scopene
 lukkes før Dataset-/modellkonstruksjon og før initialstate restore; de går
 aldri gjennom modell-, batch- eller checkpointarbeid.

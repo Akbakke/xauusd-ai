@@ -12,6 +12,7 @@ from gx1.contracts.unified_exit_reference_policy_v1 import reference_policy_cont
 from gx1.scripts import run_unified_exit_random_access_val_v1 as val
 from tests.test_native_chronological_control_source import _binding
 from tests.test_chronological_sampled_targets import _sampled_context
+from tests.test_scoped_binding_file_hash_v1 import physical_hash_calls
 
 
 def _write(path, value):
@@ -652,3 +653,95 @@ def test_dynamic_measurement_cannot_be_promoted_to_exit_rollout(dynamic_m5_measu
     value["parent_entry_row_indices"] = value["parent_entry_row_indices"][::-1]
     with pytest.raises(RuntimeError, match="BINDING_MISMATCH"):
         owner.require_bounded_val_cohort(value)
+
+
+@pytest.mark.parametrize("role", ["train", "control"])
+def test_dynamic_measurement_hash_scope_is_operation_local(
+    dynamic_m5_measurement, monkeypatch, physical_hash_calls, role,
+):
+    from gx1.contracts import local_random_access_campaign_v2 as files
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+
+    c = dynamic_m5_measurement
+    dependency = c.artifacts["labels_result"]
+    originals = {name: getattr(campaign, name) for name in (
+        "require_physical_chronological_preprocessing", "require_physical_native_training_coordinates")}
+
+    def with_real_binding_reads(original):
+        def checked(*args, **kwargs):
+            assert files._FILE_VERIFICATION_MEMO.get() is not None
+            files.require_binding(dependency, label="nested cohort first", verify_file=True)
+            files.require_binding(dependency, label="nested cohort again", verify_file=True)
+            return original(*args, **kwargs)
+        return checked
+
+    for name, original in originals.items():
+        monkeypatch.setattr(campaign, name, with_real_binding_reads(original))
+    paths = [Path(c.artifacts[key]["path"]) for key in ("design", "normalization_result", "labels_result")]
+    for _ in range(2):
+        before = {path: physical_hash_calls.count(path) for path in paths}
+        value = owner.build_chronological_measurement_cohort(c.db, c.rb, role=role)
+        assert value["measurement_role"] == role
+        assert all(physical_hash_calls.count(path) == before[path] + 1 for path in paths)
+        # Model/optimizer/forward work belongs to the caller after this return.
+        # No digest survives into that next operation or the next cohort build.
+        assert files._FILE_VERIFICATION_MEMO.get() is None
+        files.require_binding(dependency, label="after cohort execution boundary", verify_file=True)
+        assert physical_hash_calls.count(paths[-1]) == before[paths[-1]] + 2
+
+
+@pytest.mark.parametrize("fault", [
+    "wrong_expected_sha", "same_size_restored_mtime", "replaced_inode", "semantic_failure",
+])
+def test_dynamic_measurement_hash_scope_rechecks_drift_and_cleans_failure(
+    dynamic_m5_measurement, monkeypatch, physical_hash_calls, tmp_path, fault,
+):
+    import os
+    from gx1.contracts import local_random_access_campaign_v2 as files
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+
+    c = dynamic_m5_measurement
+    dependency = c.artifacts["labels_result"]
+    path = Path(dependency["path"])
+    initial_reads = physical_hash_calls.count(path)
+
+    def changed_preprocessing(*args, **kwargs):
+        assert files._FILE_VERIFICATION_MEMO.get() is not None
+        files.require_binding(dependency, label="before cohort fault", verify_file=True)
+        assert physical_hash_calls.count(path) == initial_reads + 1
+        if fault == "semantic_failure":
+            raise RuntimeError("cohort metadata failure")
+        if fault == "wrong_expected_sha":
+            files.require_binding({**dependency, "sha256": "0" * 64},
+                label="wrong cohort SHA", verify_file=True)
+        else:
+            before = path.stat()
+            changed = b"x" * before.st_size
+            if fault == "same_size_restored_mtime":
+                path.write_bytes(changed)
+                os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+                assert path.stat().st_ctime_ns != before.st_ctime_ns
+            else:
+                replacement = tmp_path / "replacement-labels.json"
+                replacement.write_bytes(changed)
+                os.utime(replacement, ns=(before.st_atime_ns, before.st_mtime_ns))
+                os.replace(replacement, path)
+                assert path.stat().st_ino != before.st_ino
+            assert path.stat().st_size == before.st_size
+            assert path.stat().st_mtime_ns == before.st_mtime_ns
+            files.require_binding(dependency, label="stale cohort dependency", verify_file=True)
+        pytest.fail("changed cohort dependency was accepted")
+
+    monkeypatch.setattr(campaign, "require_physical_chronological_preprocessing", changed_preprocessing)
+    expected = RuntimeError if fault == "semantic_failure" else files.RandomAccessCampaignError
+    message = "cohort metadata failure" if fault == "semantic_failure" else "SHA-256 mismatch"
+    with pytest.raises(expected, match=message):
+        owner.build_chronological_measurement_cohort(c.db, c.rb, role="train")
+    assert files._FILE_VERIFICATION_MEMO.get() is None
+    assert physical_hash_calls.count(path) == initial_reads + (
+        2 if fault in {"same_size_restored_mtime", "replaced_inode"} else 1)
+    unchanged = c.artifacts["normalization_result"]
+    unchanged_path = Path(unchanged["path"])
+    before = physical_hash_calls.count(unchanged_path)
+    files.require_binding(unchanged, label="after failed cohort execution boundary", verify_file=True)
+    assert physical_hash_calls.count(unchanged_path) == before + 1
