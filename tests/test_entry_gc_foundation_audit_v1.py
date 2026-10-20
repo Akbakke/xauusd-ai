@@ -219,3 +219,172 @@ def test_event_clock_unobserved_mean_requires_nan_not_infinity(infinity):
     actual['observed_event_matching_clock_mean_ns'][0]=infinity
     with pytest.raises(RuntimeError,match='GC_EVENT_NUMERIC_FINITE_MASK'):
         compare_event_clock_reference(reference,actual)
+
+
+
+def _event_book_fixture(timeframe):
+    from gx1.scripts.audit_entry_gc_foundation_v1 import GC_EVENT_REFERENCE_REDUCERS,GC_BOOK_REFERENCE_ADDITIVE,GC_BOOK_REFERENCE_MEANS,GC_ORDER_REFERENCE_MEANS
+    minutes,selected,events=_event_clock_fixture(timeframe);size=len(minutes)
+    accepted=np.isfinite(events['qualified_final_event_count'])
+    for name in GC_EVENT_REFERENCE_REDUCERS:
+        if name not in events:events[name]=np.where(accepted,0.,np.nan)
+    pinned={'spread_state_min_ticks':[2,1,3],'spread_state_max_ticks':[5,9,4],
+        'spread_change_count':[2,4,0],'spread_expansion_count':[1,2,0],'spread_contraction_count':[1,2,0],
+        'spread_expansion_sum_ticks':[4,3,0],'spread_contraction_sum_ticks':[2,5,0],
+        'spread_max_expansion_ticks':[4,2,0],'spread_max_contraction_ticks':[2,3,0],
+        'receive_interval_count':[2,1,0],'receive_interval_sum_ns':[8,12,0],
+        'receive_interval_min_ns':[3,12,np.nan],'receive_interval_max_ns':[5,12,np.nan],
+        'ts_in_delta_clamped_low_count':[0,1,0],'ts_in_delta_clamped_high_count':[1,0,0],
+        'undefined_event_clock_count':[0,2,1],'negative_send_to_capture_count':[1,0,0],
+        'negative_matching_clock_count':[1,0,0]}
+    for name,values in pinned.items():events[name][:3]=values
+    for domain in ('send_to_capture','receive_minus_event','matching_clock'):
+        for suffix in ('_min_ns','_max_ns'):
+            events[domain+suffix][:3]=np.divide(events[domain+'_sum_ns'][:3],events[domain+'_count'][:3],
+                out=np.full(3,np.nan),where=events[domain+'_count'][:3]>0)
+    events['qualified_covered_ns']=np.where(accepted,0.,np.nan);events['qualified_covered_ns'][:3]=[MINUTE,MINUTE/2,0]
+    book={name:np.zeros(size,bool) for name in ('ofi_valid','bbo_valid','order_count_valid')}
+    book['ofi_valid'][:4]=True;book['bbo_valid'][[0,2,3]]=True;book['order_count_valid'][[0,3]]=True
+    book['covered_ns']=np.zeros(size);book['covered_ns'][:4]=[MINUTE,MINUTE/2,MINUTE,MINUTE]
+    book['order_covered_ns']=np.zeros(size);book['order_covered_ns'][[0,3]]=MINUTE
+    for name,values in zip(GC_BOOK_REFERENCE_ADDITIVE,([7,-3,5,-2],[5,0,4,1],[0,2,1,0],[0,4,0,2],[3,1,0,5],[1,2,1,3])):
+        book[name]=np.full(size,np.nan);book[name][:4]=values
+    for name,values in zip(GC_BOOK_REFERENCE_MEANS,([-.5,.25,1],[2,4,9],[10,20,90],[30,20,10],[-1,.5,2])):
+        book[name]=np.full(size,np.nan);book[name][[0,2,3]]=values
+    for name,values in zip(GC_ORDER_REFERENCE_MEANS,([2,6],[3,9],[-.2,-.2],[5,15],[10,10/9])):
+        book[name]=np.full(size,np.nan);book[name][[0,3]]=values
+    book['opening_mid_tick']=np.full(size,np.nan);book['closing_mid_tick']=np.full(size,np.nan)
+    book['opening_mid_tick'][[0,2,3]]=[100,102,105];book['closing_mid_tick'][[0,2,3]]=[101,104,107]
+    book['mid_response_ticks']=book['closing_mid_tick']-book['opening_mid_tick']
+    return minutes,selected,events,book
+
+
+@pytest.mark.parametrize('timeframe', tuple(_CLOCK_MINUTES))
+def test_event_book_asymmetric_all_five_tf_hand_reference_and_real_aggregate(monkeypatch,timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_order_flow_v1 as owner
+    minutes,selected,events,book=_event_book_fixture(timeframe)
+    event_producer=owner.aggregate_observed_event_diagnostics_v1;book_producer=owner.aggregate_observed_book_v1
+    for name in ('aggregate_observed_event_diagnostics_v1','aggregate_observed_book_v1'):
+        monkeypatch.setattr(owner,name,lambda *a,**k:(_ for _ in ()).throw(AssertionError('oracle delegates to producer')))
+    reference,bounds,units,clock,strict=audit.reference_event_book_aggregates(minutes,selected,events,book,timeframe)
+    assert len(reference)==84 and len(units)==84
+    expected={'observed_event_qualified_final_event_count':12,'observed_event_spread_state_min_ticks':1,
+        'observed_event_spread_state_max_ticks':9,'observed_event_spread_change_count':6,
+        'observed_event_spread_expansion_count':3,'observed_event_spread_contraction_count':3,
+        'observed_event_spread_expansion_sum_ticks':7,'observed_event_spread_contraction_sum_ticks':7,
+        'observed_event_spread_max_expansion_ticks':4,'observed_event_spread_max_contraction_ticks':3,
+        'observed_event_receive_interval_count':3,'observed_event_receive_interval_sum_ns':20,
+        'observed_event_receive_interval_min_ns':3,'observed_event_receive_interval_max_ns':12,
+        'observed_event_receive_interval_mean_ns':20/3,'observed_event_qualified_covered_ns':90*NS,
+        'observed_event_qualified_events_per_observed_second':2/15,
+        'observed_event_coverage_fraction':1.5/_CLOCK_MINUTES[timeframe],
+        'observed_event_ts_in_delta_clamped_low_count':1,'observed_event_ts_in_delta_clamped_high_count':1,
+        'observed_event_undefined_event_clock_count':3,'observed_event_negative_send_to_capture_count':1,
+        'observed_event_negative_matching_clock_count':1,
+        'observed_book_flow_accepted_minutes':4,'observed_book_accepted_minutes':3,'observed_order_accepted_minutes':2,
+        'observed_book_covered_ns':180*NS,'observed_order_covered_ns':120*NS,
+        'observed_book_ofi_contracts':7,'observed_book_bid_refill_contracts':10,'observed_book_ask_refill_contracts':3,
+        'observed_book_bid_depletion_contracts':6,'observed_book_ask_depletion_contracts':9,'observed_book_quote_updates':7,
+        'observed_book_tw_imbalance':.25,'observed_book_tw_spread_ticks':5,'observed_book_tw_bid_contracts':40,
+        'observed_book_tw_ask_contracts':20,'observed_book_tw_microprice_offset_ticks':.5,
+        'observed_order_tw_bid_orders':4,'observed_order_tw_ask_orders':6,
+        'observed_order_tw_order_count_imbalance':-.2,'observed_order_tw_bid_contracts_per_order':10,
+        'observed_order_tw_ask_contracts_per_order':50/9,'observed_book_opening_mid_tick':100,
+        'observed_book_closing_mid_tick':107,'observed_book_mid_response_ticks':7,'observed_book_response_span_minutes':4,
+        'observed_book_first_minute_ns':float(minutes[0]),'observed_book_last_minute_ns':float(minutes[3])}
+    for name,value in expected.items():
+        assert abs(float(reference[name][0])-value)<=float(bounds[name][0]),name
+    assert reference['observed_book_response_contiguous'].tolist()==[False]
+    actual={**book_producer(minutes,selected,book,timeframe),**event_producer(minutes,selected,events,timeframe)}
+    report=audit.compare_event_book_reference(reference,actual,bounds,units)
+    assert all(item['numeric_reference_qualified'] for item in report.values())
+    # A shared BBO denominator would corrupt the order mean: own masks matter.
+    actual['observed_order_tw_bid_orders'][0]=8/3
+    with pytest.raises(RuntimeError,match='GC_EVENT_BOOK_NUMERIC_VALUE:observed_order_tw_bid_orders'):
+        audit.compare_event_book_reference(reference,actual,bounds,units)
+
+
+@pytest.mark.parametrize('timeframe', tuple(_CLOCK_MINUTES))
+def test_event_book_roll_missing_nan_zero_and_partial_own_coverage(timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    minutes,selected,events,book=_event_book_fixture(timeframe)
+    events['receive_interval_count'][:3]=0;events['receive_interval_sum_ns'][:3]=0
+    events['receive_interval_min_ns'][:3]=np.nan;events['receive_interval_max_ns'][:3]=np.nan
+    events['qualified_covered_ns'][:3]=0
+    ref,_,_,_,_=audit.reference_event_book_aggregates(minutes,selected,events,book,timeframe)
+    assert ref['observed_event_valid'].tolist()==[True]
+    assert not ref['observed_event_receive_interval_valid'][0]
+    assert np.isnan(ref['observed_event_receive_interval_mean_ns'][0])
+    assert np.isnan(ref['observed_event_receive_interval_min_ns'][0])
+    assert np.isnan(ref['observed_event_qualified_events_per_observed_second'][0])
+    assert ref['observed_event_coverage_fraction'][0]==0
+    selected[-1]=1
+    rolled=audit.reference_event_book_aggregates(minutes,selected,events,book,timeframe)[0]
+    assert not rolled['observed_book_valid'][0] and not rolled['observed_event_valid'][0]
+    assert rolled['observed_book_accepted_minutes'][0]==3
+    assert np.isnan(rolled['observed_book_tw_bid_contracts'][0])
+    selected[-1]=0;take=np.arange(len(minutes))!=4
+    missing=audit.reference_event_book_aggregates(minutes[take],selected[take],
+        {k:v[take] for k,v in events.items()},{k:v[take] for k,v in book.items()},timeframe)[0]
+    assert not missing['observed_book_valid'][0] and not missing['observed_event_valid'][0]
+    book['covered_ns'][0]=MINUTE/2
+    with pytest.raises(RuntimeError,match='GC_EVENT_BOOK_M1_COVERAGE_OR_MASK_DEPENDENCY'):
+        audit.reference_event_book_aggregates(minutes,selected,events,book,timeframe)
+
+
+def test_event_book_strict_m5_all_five_domain_and_endpoint_response():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.scripts.rebuild_native_gc_inputs_v1 import legacy_strict_m5_surface
+    minutes,selected,events,book=_event_book_fixture('M5')
+    for name in ('ofi_valid','bbo_valid','order_count_valid'):book[name][:]=True
+    book['covered_ns'][:]=MINUTE;book['order_covered_ns'][:]=MINUTE
+    for i,name in enumerate(audit.GC_BOOK_REFERENCE_ADDITIVE):book[name]=np.arange(1,6,dtype=float)*(i+1)
+    for names in (audit.GC_BOOK_REFERENCE_MEANS,audit.GC_ORDER_REFERENCE_MEANS):
+        for i,name in enumerate(names):book[name]=np.arange(2,11,2,dtype=float)*(i+1)
+    book['opening_mid_tick']=np.arange(100,105,dtype=float);book['closing_mid_tick']=np.arange(101,110,2,dtype=float)
+    book['mid_response_ticks']=book['closing_mid_tick']-book['opening_mid_tick']
+    strict,limits,units=audit.reference_event_book_aggregates(minutes,selected,events,book,'M5')[4]
+    assert len(strict)==20 and strict['ofi_valid'].tolist()==[True]
+    for i,name in enumerate(audit.GC_BOOK_REFERENCE_ADDITIVE):assert strict[name][0]==15*(i+1)
+    for names in (audit.GC_BOOK_REFERENCE_MEANS,audit.GC_ORDER_REFERENCE_MEANS):
+        for i,name in enumerate(names):assert strict[name][0]==6*(i+1)
+    assert strict['mid_response_ticks'][0]==9
+    metrics={name:np.ones(5,np.uint64) for name in ('volume','trades','buy','sell','unknown')}
+    actual=legacy_strict_m5_surface(minutes,selected,metrics,{'volume':np.ones(5,bool),'delta':np.ones(5,bool)},
+        np.zeros((5,4)),book,1,{})
+    audit.compare_event_book_reference(strict,{name:actual[name] for name in strict},limits,units)
+    for name in ('ofi_valid','bbo_valid','order_count_valid'):book[name][1]=False
+    ref=audit.reference_event_book_aggregates(minutes,selected,events,book,'M5')
+    assert ref[0]['observed_book_valid'][0]
+    strict=ref[4][0]
+    assert not strict['ofi_valid'][0] and not strict['bbo_valid'][0] and not strict['order_count_valid'][0]
+    assert np.isnan(strict['ofi_contracts'][0]) and np.isnan(strict['mid_response_ticks'][0])
+
+
+def test_event_book_active_370_fields_match_executable_registry_and_formula_owners():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_native_context_v1 as registry,gc_order_flow_v1 as owner
+    declarations=audit.event_book_numeric_active_fields()
+    assert [len(v) for v in declarations.values()]==[70,70,70,70,70,20]
+    expected={name for columns in declarations.values() for name in columns.values()}
+    actual=set()
+    for tf,columns in declarations.items():
+        table='M5_GC_FEATURES.parquet' if tf=='strict_m5' else 'TRADE_FEATURES_'+tf+'.parquet'
+        actual.update(row['name'] for row in registry.REGISTRY['fields'] if row['table']==table and row['column'] in columns)
+    assert len(expected)==370 and actual==expected
+    assert expected<=set(registry.contract()['value_fields'])
+    assert {name:operation for name,(operation,_) in audit.GC_EVENT_REFERENCE_REDUCERS.items()}==owner.EVENT_DIAGNOSTIC_REDUCERS_V1
+    assert tuple(audit.GC_BOOK_REFERENCE_ADDITIVE)==owner.L1_FIELDS_V2[:6]
+    assert tuple(audit.GC_BOOK_REFERENCE_MEANS)==owner.L1_FIELDS_V2[6:11]
+    assert tuple(audit.GC_ORDER_REFERENCE_MEANS)==owner.L1_ORDER_COUNT_FIELDS_V1
+
+
+def test_event_book_unobserved_field_is_not_numeric_qualification_and_infinity_rejected():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    expected={'unobserved':np.array([np.nan])};bounds={'unobserved':np.array([0.])};units={'unobserved':'nanoseconds'}
+    result=audit.compare_event_book_reference(expected,expected,bounds,units)
+    assert result['unobserved']['numeric_reference_qualified'] is False
+    assert result['unobserved']['finite_published_values_compared']==0
+    with pytest.raises(RuntimeError,match='GC_EVENT_BOOK_NUMERIC_MASK'):
+        audit.compare_event_book_reference(expected,{'unobserved':np.array([np.inf])},bounds,units)

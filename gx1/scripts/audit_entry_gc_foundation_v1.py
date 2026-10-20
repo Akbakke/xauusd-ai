@@ -1131,6 +1131,212 @@ def compare_event_clock_reference(reference, actual):
     return report
 
 
+GC_EVENT_BOOK_PLAN_ID = 'NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120'
+GC_EVENT_BOOK_POLICY_KEY = 'gc_event_book_numeric_reference_120'
+# Independent declarations; tests compare these to the actual executable owners.
+GC_EVENT_REFERENCE_REDUCERS = {
+    'qualified_final_event_count': ('sum','event_count'),
+    'spread_state_min_ticks': ('min','ticks'), 'spread_state_max_ticks': ('max','ticks'),
+    **{name:('sum','event_count') for name in ('spread_change_count','spread_expansion_count',
+        'spread_contraction_count','ts_in_delta_clamped_low_count','ts_in_delta_clamped_high_count',
+        'undefined_event_clock_count','negative_send_to_capture_count','negative_matching_clock_count')},
+    **{name:('sum','ticks') for name in ('spread_expansion_sum_ticks','spread_contraction_sum_ticks')},
+    **{name:('max','ticks') for name in ('spread_max_expansion_ticks','spread_max_contraction_ticks')},
+    **{domain+suffix:(operation,unit) for domain in ('receive_interval',)+GC_EVENT_CLOCK_DOMAINS
+        for suffix,operation,unit in (('_count','sum','event_count'),('_sum_ns','sum','nanoseconds'),
+            ('_min_ns','min','nanoseconds'),('_max_ns','max','nanoseconds'))}}
+GC_BOOK_REFERENCE_ADDITIVE = ('ofi_contracts','bid_refill_contracts','ask_refill_contracts',
+    'bid_depletion_contracts','ask_depletion_contracts','quote_updates')
+GC_BOOK_REFERENCE_MEANS = {'tw_imbalance':'imbalance','tw_spread_ticks':'ticks',
+    'tw_bid_contracts':'displayed_contracts','tw_ask_contracts':'displayed_contracts',
+    'tw_microprice_offset_ticks':'ticks'}
+GC_ORDER_REFERENCE_MEANS = {'tw_bid_orders':'displayed_orders','tw_ask_orders':'displayed_orders',
+    'tw_order_count_imbalance':'imbalance','tw_bid_contracts_per_order':'contracts_per_order',
+    'tw_ask_contracts_per_order':'contracts_per_order'}
+GC_EVENT_BOOK_AUXILIARY_COLUMNS = frozenset([
+    'observed_event_'+d+'_sum_ns' for d in ('receive_interval',)+GC_EVENT_CLOCK_DOMAINS] + [
+    'observed_event_qualified_covered_ns','observed_book_clock_minutes','observed_book_expected_clock_minutes',
+    'observed_book_covered_ns','observed_order_covered_ns','observed_book_first_minute_ns','observed_book_last_minute_ns'])
+
+
+def event_book_reference_units():
+    units = {'bar_start_ns':'utc_nanoseconds_metadata','available_ns':'utc_nanoseconds_metadata',
+        'contract_index':'contract_index_metadata','observed_event_valid':'binary',
+        'observed_event_accepted_minutes':'minutes','observed_event_qualified_covered_ns':'nanoseconds',
+        'observed_event_qualified_events_per_observed_second':'events_per_observed_second',
+        'observed_event_coverage_fraction':'fraction'}
+    units.update({'observed_event_'+name:unit for name,(_,unit) in GC_EVENT_REFERENCE_REDUCERS.items()})
+    for d in ('receive_interval',)+GC_EVENT_CLOCK_DOMAINS:
+        units.update({'observed_event_'+d+'_mean_ns':'nanoseconds','observed_event_'+d+'_valid':'binary'})
+    units.update({'observed_book_'+name:'binary' for name in ('contract_valid','flow_valid','valid','response_contiguous')})
+    units['observed_order_valid']='binary'
+    for prefix in ('observed_book_flow_','observed_book_','observed_order_'):
+        units[prefix+'accepted_minutes']='minutes'; units[prefix+'coverage_fraction']='fraction'
+    for name in ('clock_minutes','expected_clock_minutes','response_span_minutes'):
+        units['observed_book_'+name]='minutes'
+    for prefix in ('observed_book_','observed_order_'):units[prefix+'covered_ns']='nanoseconds'
+    units.update({'observed_book_'+name:('state_change_count' if name=='quote_updates' else 'contracts')
+        for name in GC_BOOK_REFERENCE_ADDITIVE})
+    units.update({'observed_book_'+name:unit for name,unit in GC_BOOK_REFERENCE_MEANS.items()})
+    units.update({'observed_order_'+name:unit for name,unit in GC_ORDER_REFERENCE_MEANS.items()})
+    for name in ('opening_mid_tick','closing_mid_tick','mid_response_ticks'):units['observed_book_'+name]='ticks'
+    for name in ('first_minute_ns','last_minute_ns'):units['observed_book_'+name]='utc_nanoseconds_metadata'
+    return units
+
+
+def event_book_numeric_active_fields():
+    columns = set(event_book_reference_units()) - GC_EVENT_BOOK_AUXILIARY_COLUMNS - {
+        'bar_start_ns','available_ns','contract_index'}
+    fields = {tf:{column:'gc_'+tf.lower()+'_'+column for column in sorted(columns)}
+        for tf in ('M5','M15','H1','H4','D1')}
+    strict = ('ofi_valid','bbo_valid','order_count_valid') + GC_BOOK_REFERENCE_ADDITIVE + tuple(
+        GC_BOOK_REFERENCE_MEANS) + ('mid_response_ticks',) + tuple(GC_ORDER_REFERENCE_MEANS)
+    fields['strict_m5'] = {column:'gc_book_'+column for column in strict}
+    return fields
+
+
+def _event_book_sum(values):
+    import math
+    values = list(map(float,values)); total = math.fsum(values)
+    unit = np.finfo(np.float64).eps/2; k = len(values)
+    gamma = max(0,k-1)*unit/(1-max(0,k-1)*unit)
+    return total, gamma*math.fsum(map(abs,values)) + unit*abs(total)
+
+
+def _event_book_ratio(numerator, denominator, numerator_bound=0., denominator_bound=0.):
+    if denominator <= 0:return np.nan, 0.
+    if denominator <= denominator_bound:raise RuntimeError('GC_EVENT_BOOK_UNCERTAIN_DENOMINATOR')
+    value = numerator/denominator; unit=np.finfo(np.float64).eps/2
+    return value, (numerator_bound+abs(value)*denominator_bound)/(denominator-denominator_bound) + 3*unit*abs(value)/(1-3*unit)
+
+
+def reference_event_book_aggregates(minutes, selected, events, book, timeframe):
+    """Own M1-to-TF arithmetic, preserving event/flow/BBO/order/strict domains."""
+    from gx1.features.htf_features import MULTI_TF_SHIFT
+    clock=reference_event_clock_means(minutes,selected,events,timeframe)
+    minutes=np.asarray(minutes,np.int64);selected=np.asarray(selected,np.int64)
+    duration=MULTI_TF_SHIFT[timeframe].value; expected=duration//MINUTE
+    stamps=clock['bar_start_ns']
+    starts=np.searchsorted(minutes,stamps); stops=np.searchsorted(minutes,stamps+duration)
+    units=event_book_reference_units()
+    out={name:np.full(len(stamps),False if unit=='binary' else np.nan,
+        dtype=bool if unit=='binary' else np.float64) for name,unit in units.items()}
+    out['bar_start_ns']=stamps;out['available_ns']=stamps+duration
+    bounds={name:np.zeros(len(stamps)) for name in out}
+    required=('ofi_valid','bbo_valid','order_count_valid','covered_ns','order_covered_ns',
+        'opening_mid_tick','closing_mid_tick')+GC_BOOK_REFERENCE_ADDITIVE+tuple(GC_BOOK_REFERENCE_MEANS)+tuple(GC_ORDER_REFERENCE_MEANS)
+    arrays={name:np.asarray(book[name]) for name in required}
+    if any(v.shape!=minutes.shape for v in arrays.values()):raise RuntimeError('GC_EVENT_BOOK_M1_SHAPE')
+    for name in ('ofi_valid','bbo_valid','order_count_valid'):
+        if not np.isin(arrays[name],(0,1)).all():raise RuntimeError('GC_EVENT_BOOK_M1_MASK')
+    flow=arrays['ofi_valid'].astype(bool); bbo=arrays['bbo_valid'].astype(bool); orders=arrays['order_count_valid'].astype(bool)
+    covered=arrays['covered_ns']; order_covered=arrays['order_covered_ns']
+    if (not np.isfinite(covered).all() or not np.isfinite(order_covered).all()
+            or np.any(covered<0) or np.any(covered>MINUTE) or np.any(order_covered<0)
+            or np.any(order_covered>covered) or np.any(covered!=np.floor(covered))
+            or np.any(order_covered!=np.floor(order_covered)) or np.any(bbo & (covered!=MINUTE))
+            or np.any(orders & (order_covered!=MINUTE)) or np.any(bbo & ~flow) or np.any(orders & ~bbo)):
+        raise RuntimeError('GC_EVENT_BOOK_M1_COVERAGE_OR_MASK_DEPENDENCY')
+    for names,mask in ((GC_BOOK_REFERENCE_ADDITIVE,flow),
+            (tuple(GC_BOOK_REFERENCE_MEANS)+('opening_mid_tick','closing_mid_tick'),bbo),
+            (tuple(GC_ORDER_REFERENCE_MEANS),orders)):
+        if any(not np.isfinite(arrays[name][mask]).all() for name in names):
+            raise RuntimeError('GC_EVENT_BOOK_M1_QUALIFIED_NONFINITE')
+    strict_units={name:('binary' if name.endswith('_valid') else 'ticks' if name=='mid_response_ticks'
+        else units.get('observed_book_'+name,units.get('observed_order_'+name)))
+        for name in event_book_numeric_active_fields()['strict_m5']}
+    strict={name:np.full(len(stamps),False if unit=='binary' else np.nan,
+        dtype=bool if unit=='binary' else np.float64) for name,unit in strict_units.items()} if timeframe=='M5' else None
+    strict_bounds={name:np.zeros(len(stamps)) for name in strict} if strict is not None else None
+    for row,(stamp,start,stop) in enumerate(zip(stamps,starts,stops)):
+        sl=slice(start,stop); size=stop-start; contracts=selected[sl]
+        same=bool(size and np.all(contracts>=0) and np.all(contracts==contracts[0]))
+        full=size==expected and minutes[start]==stamp and minutes[stop-1]==stamp+duration-MINUTE
+        bucket=bool(full and same); ev=bool(clock['observed_event_valid'][row])
+        out['contract_index'][row]=contracts[0]
+        out['observed_event_valid'][row]=ev
+        out['observed_event_accepted_minutes'][row]=clock['observed_event_accepted_minutes'][row]
+        accepted=np.isfinite(events['qualified_final_event_count'][sl]) & (events['qualified_final_event_count'][sl]>0)
+        if ev:
+            for name,(operation,_) in GC_EVENT_REFERENCE_REDUCERS.items():
+                values=np.asarray(events[name][sl]); values=values[accepted & np.isfinite(values)]
+                key='observed_event_'+name
+                if operation=='sum':out[key][row],bounds[key][row]=_event_book_sum(values)
+                elif len(values):out[key][row]=float(min(values) if operation=='min' else max(values))
+            values=np.asarray(events['qualified_covered_ns'][sl])[accepted]
+            if np.isfinite(values).all():
+                total,error=_event_book_sum(values);out['observed_event_qualified_covered_ns'][row]=total
+                bounds['observed_event_qualified_covered_ns'][row]=error
+                key='observed_event_coverage_fraction';out[key][row],bounds[key][row]=_event_book_ratio(total,duration,error)
+                key='observed_event_qualified_events_per_observed_second'
+                nkey='observed_event_qualified_final_event_count'
+                n=out[nkey][row]*NS;nb=bounds[nkey][row]*NS+np.finfo(np.float64).eps/2*abs(n)
+                out[key][row],bounds[key][row]=_event_book_ratio(n,total,nb,error)
+            for domain in ('receive_interval',)+GC_EVENT_CLOCK_DOMAINS:
+                prefix='observed_event_'+domain; count=out[prefix+'_count'][row]
+                out[prefix+'_valid'][row]=count>0
+                out[prefix+'_mean_ns'][row],bounds[prefix+'_mean_ns'][row]=_event_book_ratio(
+                    out[prefix+'_sum_ns'][row],count,bounds[prefix+'_sum_ns'][row],bounds[prefix+'_count'][row])
+        f=flow[sl];b=bbo[sl];o=orders[sl]
+        bt=sum(int(v) for v in covered[sl][b]);ot=sum(int(v) for v in order_covered[sl][o])
+        fv=bucket and bool(f.any());bv=bucket and bt>0;ov=bucket and ot>0
+        for name,value in {'contract_valid':same,'clock_minutes':size,'expected_clock_minutes':expected,
+                'flow_valid':fv,'flow_accepted_minutes':int(f.sum()),'flow_coverage_fraction':float(f.sum())/expected,
+                'valid':bv,'accepted_minutes':int(b.sum()),'covered_ns':bt,'coverage_fraction':bt/duration}.items():
+            out['observed_book_'+name][row]=value
+        for name,value in {'valid':ov,'accepted_minutes':int(o.sum()),'covered_ns':ot,'coverage_fraction':ot/duration}.items():
+            out['observed_order_'+name][row]=value
+        for name in GC_BOOK_REFERENCE_ADDITIVE:
+            if fv:out['observed_book_'+name][row],bounds['observed_book_'+name][row]=_event_book_sum(arrays[name][sl][f])
+        for names,mask,weights,total,valid,prefix in ((GC_BOOK_REFERENCE_MEANS,b,covered[sl],bt,bv,'observed_book_'),
+                (GC_ORDER_REFERENCE_MEANS,o,order_covered[sl],ot,ov,'observed_order_')):
+            if valid:
+                for name in names:
+                    weighted,error=_event_book_sum(float(v)*int(w) for v,w in zip(arrays[name][sl][mask],weights[mask]))
+                    out[prefix+name][row],bounds[prefix+name][row]=_event_book_ratio(weighted,total,error)
+        if bv:
+            indices=np.flatnonzero(b)+start; first,last=int(indices[0]),int(indices[-1])
+            opening=float(arrays['opening_mid_tick'][first]);closing=float(arrays['closing_mid_tick'][last])
+            span=(int(minutes[last])-int(minutes[first]))//MINUTE+1
+            for name,value in {'opening_mid_tick':opening,'closing_mid_tick':closing,'mid_response_ticks':closing-opening,
+                    'response_span_minutes':span,'response_contiguous':int(b.sum())==span,
+                    'first_minute_ns':float(minutes[first]),'last_minute_ns':float(minutes[last])}.items():
+                out['observed_book_'+name][row]=value
+        if strict is not None:
+            sf=bucket and bool(f.all());sb=bucket and bool(b.all());so=bucket and bool(o.all())
+            for name,value in (('ofi_valid',sf),('bbo_valid',sb),('order_count_valid',so)):strict[name][row]=value
+            for name in GC_BOOK_REFERENCE_ADDITIVE:
+                if sf:strict[name][row],strict_bounds[name][row]=_event_book_sum(arrays[name][sl])
+            for names,valid in ((GC_BOOK_REFERENCE_MEANS,sb),(GC_ORDER_REFERENCE_MEANS,so)):
+                if valid:
+                    for name in names:
+                        total,error=_event_book_sum(arrays[name][sl]);strict[name][row],strict_bounds[name][row]=_event_book_ratio(total,expected,error)
+            if sb:strict['mid_response_ticks'][row]=float(arrays['closing_mid_tick'][stop-1])-float(arrays['opening_mid_tick'][start])
+    return out,bounds,units,clock,(strict,strict_bounds,strict_units)
+
+
+def compare_event_book_reference(reference, actual, bounds, units):
+    if set(reference)!=set(actual):raise RuntimeError('GC_EVENT_BOOK_NUMERIC_COLUMNS')
+    report={}
+    for name,expected in reference.items():
+        observed=np.asarray(actual[name]);expected=np.asarray(expected)
+        if (observed.shape!=expected.shape or np.isinf(observed).any()
+                or not np.array_equal(np.isnan(expected),np.isnan(observed))):
+            raise RuntimeError('GC_EVENT_BOOK_NUMERIC_MASK:'+name)
+        finite=np.isfinite(expected);error=np.abs(observed[finite].astype(float)-expected[finite].astype(float))
+        limit=bounds[name][finite]
+        if not np.isfinite(limit).all() or np.any(limit<0) or np.any(error>limit):
+            raise RuntimeError('GC_EVENT_BOOK_NUMERIC_VALUE:'+name)
+        item={'unit':units[name],'finite_published_values_compared':int(finite.sum()),
+            'nan_masked_values_compared':int((~finite).sum()),'numeric_reference_qualified':bool(finite.any())}
+        if finite.any():
+            low,high=float(expected[finite].min()),float(expected[finite].max())
+            item.update(minimum_reference=low,maximum_reference=high,nonconstant_reference=low!=high,
+                maximum_absolute_error=float(error.max()),maximum_forward_roundoff_bound=float(limit.max()))
+        report[name]=item
+    return report
+
+
 def read_event_numeric_columns(path, columns, start, end, seal):
     """Inspect all selected footer boundaries before decoding any payload."""
     parquet = pq.ParquetFile(path); clock = parquet.schema_arrow.names.index('bar_start_ns')
@@ -1156,18 +1362,22 @@ def read_event_numeric_columns(path, columns, start, end, seal):
     return values, groups
 
 
-def run_gc_event_numeric(binding_path):
-    root = GC_EVENT_NUMERIC_ROOT
-    if binding_path != root/'GC_EVENT_NUMERIC_EXECUTION_BINDING.json':
+def run_gc_event_numeric(binding_path, *, event_book=False):
+    plan_id = GC_EVENT_BOOK_PLAN_ID if event_book else GC_EVENT_NUMERIC_PLAN_ID
+    policy_key = GC_EVENT_BOOK_POLICY_KEY if event_book else GC_EVENT_NUMERIC_POLICY_KEY
+    root = Path('/home/andre2/GX1_RUNS')/plan_id
+    prefix = 'GC_EVENT_BOOK_NUMERIC' if event_book else 'GC_EVENT_NUMERIC'
+    schema = 'gx1_gc_event_book_numeric_audit_plan_v1' if event_book else 'gx1_gc_event_numeric_audit_plan_v1'
+    if binding_path != root/(prefix+'_EXECUTION_BINDING.json'):
         raise RuntimeError('GC_EVENT_NUMERIC_BINDING_PATH')
     io.require_regular_file(binding_path, 'GC_EVENT_NUMERIC_BINDING')
     binding = io.read_json(binding_path); plan_path = root/'PLAN.json'
     io.verify_digest(plan_path, binding['plan_sha256'], 'GC_EVENT_NUMERIC_PLAN'); plan = io.read_json(plan_path)
     io.verify_digest(REPO/'NEXT_RUN_POLICY.json', binding['policy_sha256'], 'GC_EVENT_NUMERIC_POLICY')
-    policy = io.read_json(REPO/'NEXT_RUN_POLICY.json'); gate = policy['current_work'][GC_EVENT_NUMERIC_POLICY_KEY]
-    if (plan['schema_version'] != 'gx1_gc_event_numeric_audit_plan_v1'
-            or plan['plan_id'] != GC_EVENT_NUMERIC_PLAN_ID or plan['run_root'] != str(root)
-            or plan['policy_key'] != GC_EVENT_NUMERIC_POLICY_KEY or plan['max_invocations'] != 1
+    policy = io.read_json(REPO/'NEXT_RUN_POLICY.json'); gate = policy['current_work'][policy_key]
+    if (plan['schema_version'] != schema
+            or plan['plan_id'] != plan_id or plan['run_root'] != str(root)
+            or plan['policy_key'] != policy_key or plan['max_invocations'] != 1
             or gate['status'] != 'EXECUTION_CLAIMED' or gate['claimed_invocations'] != 1
             or gate['completed_invocations'] != 0 or gate['execution_authorized'] is not False
             or gate['relaunch_allowed'] is not False
@@ -1179,9 +1389,9 @@ def run_gc_event_numeric(binding_path):
         raise RuntimeError('GC_EVENT_NUMERIC_CODE_INVENTORY')
     for name, digest in binding['code_sha256'].items(): io.verify_digest(REPO/name, digest, 'GC_EVENT_NUMERIC_CODE')
     proof = require_capped_cpu_audit_execution(); proof['lock'] = require_capped_lock_ancestry()
-    io.write_json(root/'GC_EVENT_NUMERIC_CLAIM.json', {'invocation': 1, 'plan_sha256': binding['plan_sha256'],
+    io.write_json(root/(prefix+'_CLAIM.json'), {'invocation': 1, 'plan_sha256': binding['plan_sha256'],
         'source_head': binding['source_head']})
-    staging = root/'.GC_EVENT_NUMERIC_RESULTS.staging'; staging.mkdir(exist_ok=False)
+    staging = root/('.'+prefix+'_RESULTS.staging'); staging.mkdir(exist_ok=False)
     stamps = [pd.Timestamp(plan[name]) for name in ('scan_start_utc','scan_end_utc','TEST_seal_utc')]
     if any(t.tzinfo is None for t in stamps): raise RuntimeError('GC_EVENT_NUMERIC_TIMEZONE')
     start, end, seal = [t.value for t in stamps]
@@ -1196,10 +1406,13 @@ def run_gc_event_numeric(binding_path):
             or publication['source_unchanged'] is not True or publication['test_data_used'] is not False):
         raise RuntimeError('GC_EVENT_NUMERIC_PUBLICATION')
     inputs = plan['inputs']; tfs = ('M5','M15','H1','H4','D1')
-    if set(inputs) != {'m1_events','timeframes'} or set(inputs['timeframes']) != set(tfs):
+    keys = {'m1_events','m1_book','strict_m5_book','timeframes'} if event_book else {'m1_events','timeframes'}
+    if set(inputs) != keys or set(inputs['timeframes']) != set(tfs):
         raise RuntimeError('GC_EVENT_NUMERIC_INPUT_INVENTORY')
     files = {'M1_EVENT_DIAGNOSTICS.parquet': inputs['m1_events']}
     files.update({'TRADE_FEATURES_'+tf+'.parquet': inputs['timeframes'][tf] for tf in tfs})
+    if event_book:
+        files.update({'M1_GC_INPUTS.parquet':inputs['m1_book'],'M5_GC_FEATURES.parquet':inputs['strict_m5_book']})
     identities = {}
     for name, item in files.items():
         path = source_root/name; artifact = publication['artifacts'][name]
@@ -1212,20 +1425,49 @@ def run_gc_event_numeric(binding_path):
         identities[str(path)] = identity(after)
     common = ['bar_start_ns','available_ns','contract_index']
     source_columns = common + ['qualified_final_event_count'] + [d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns')]
+    if event_book:source_columns=common+list(GC_EVENT_REFERENCE_REDUCERS)+['qualified_covered_ns']
     m1, m1_groups = read_event_numeric_columns(Path(inputs['m1_events']['path']),source_columns,start,end,seal)
     if not np.array_equal(m1['available_ns'],m1['bar_start_ns']+MINUTE):
         raise RuntimeError('GC_EVENT_NUMERIC_M1_AVAILABILITY')
-    reports = {}
+    reports = {}; strict_report = None; book_groups = None
+    if event_book:
+        columns = common+['ofi_valid','bbo_valid','order_count_valid','covered_ns','order_covered_ns',
+            'opening_mid_tick','closing_mid_tick']+list(GC_BOOK_REFERENCE_ADDITIVE)+list(GC_BOOK_REFERENCE_MEANS)+list(GC_ORDER_REFERENCE_MEANS)
+        book,book_groups=read_event_numeric_columns(Path(inputs['m1_book']['path']),columns,start,end,seal)
+        if any(not np.array_equal(m1[name],book[name]) for name in common):
+            raise RuntimeError('GC_EVENT_BOOK_SHARED_M1_CLOCK_OR_CONTRACT')
     for tf in tfs:
-        reference = reference_event_clock_means(m1['bar_start_ns'],m1['contract_index'],m1,tf)
+        if event_book:
+            reference,bounds,units,clock,strict=reference_event_book_aggregates(
+                m1['bar_start_ns'],m1['contract_index'],m1,book,tf)
+        else:reference = reference_event_clock_means(m1['bar_start_ns'],m1['contract_index'],m1,tf)
         keep = (reference['bar_start_ns'] >= start) & (reference['available_ns'] <= end)
-        excluded = int((~keep).sum())
+        excluded = int((~keep).sum()); reference_keep=keep
         reference = {name: value[keep] for name,value in reference.items()}
         columns = common[:2] + ['observed_event_valid','observed_event_accepted_minutes'] + [
             'observed_event_'+d+s for d in GC_EVENT_CLOCK_DOMAINS for s in ('_count','_sum_ns','_mean_ns','_valid')]
+        if event_book:columns=list(reference)
         actual, groups = read_event_numeric_columns(Path(inputs['timeframes'][tf]['path']),columns,start,end,seal)
         keep = actual['available_ns'] <= end; actual = {name:value[keep] for name,value in actual.items()}
-        reports[tf] = compare_event_clock_reference(reference,actual)
+        if event_book:
+            bounds={name:value[reference_keep] for name,value in bounds.items()}
+            clock={name:value[reference_keep] for name,value in clock.items()}
+            reports[tf]={'clock_mean_discrimination':compare_event_clock_reference(clock,actual),
+                'fields':compare_event_book_reference(reference,actual,bounds,units)}
+            if tf=='M5':
+                values,limits,strict_units=strict
+                # M5 scan boundaries are checked against the independently built grid.
+                rows=reference_keep
+                values={name:value[rows] for name,value in values.items()}
+                limits={name:value[rows] for name,value in limits.items()}
+                old,old_groups=read_event_numeric_columns(Path(inputs['strict_m5_book']['path']),
+                    common[:2]+list(values),start,end,seal)
+                take=old['available_ns']<=end;old={name:value[take] for name,value in old.items()}
+                if any(not np.array_equal(reference[name],old.pop(name)) for name in common[:2]):
+                    raise RuntimeError('GC_EVENT_BOOK_STRICT_GRID')
+                strict_report={'fields':compare_event_book_reference(values,old,limits,strict_units),
+                    'decoded_row_groups':old_groups}
+        else:reports[tf] = compare_event_clock_reference(reference,actual)
         reports[tf]['decoded_row_groups'] = groups
         reports[tf]['partial_scan_edge_buckets_excluded'] = excluded
     for path, wanted in identities.items():
@@ -1245,20 +1487,29 @@ def run_gc_event_numeric(binding_path):
         'reference_uses_published_float64_M1_sums':True,'raw_to_M1_formula_proven':False,
         'physical_network_latency_calibrated':False,'model_consumption_proven':False,
         'partial_scan_edge_buckets_excluded':True,'test_data_used':False,'model_forwards':0,'optimizer_updates':0}
-    output = staging/'GC_EVENT_NUMERIC_RESULT.json'; io.write_json(output,result)
-    io.write_json(staging/'GC_EVENT_NUMERIC_TERMINAL.json', {'status':'COMPLETE','exit_code':0,
+    if event_book:
+        result.update(status='COMPLETE_SCOPED_EVENT_BOOK_M1_TO_TF_REFERENCE',
+            m1_book_decoded_row_groups=book_groups,strict_m5=strict_report,
+            active_field_names=event_book_numeric_active_fields(),
+            auxiliary_columns=sorted(GC_EVENT_BOOK_AUXILIARY_COLUMNS),
+            native_availability_projection_proven=False,
+            published_ofi_incident_masks_reused_without_raw_reconstruction=True)
+    output = staging/(prefix+'_RESULT.json'); io.write_json(output,result)
+    io.write_json(staging/(prefix+'_TERMINAL.json'), {'status':'COMPLETE','exit_code':0,
         'source_unchanged':True,'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),
         'result_sha256':io.sha256_file(output)})
-    publish_bundle_directory_noreplace(staging,root/'GC_EVENT_NUMERIC_RESULTS')
-    print('GC_EVENT_NUMERIC_REFERENCE_COMPLETE',flush=True)
+    publish_bundle_directory_noreplace(staging,root/(prefix+'_RESULTS'))
+    print(prefix+'_REFERENCE_COMPLETE',flush=True)
 
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--binding',type=Path);group.add_argument('--evaluation-binding',type=Path)
     group.add_argument('--gc-event-numeric-binding',type=Path)
+    group.add_argument('--gc-event-book-numeric-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.gc_event_numeric_binding is not None:run_gc_event_numeric(args.gc_event_numeric_binding)
+    if args.gc_event_book_numeric_binding is not None:run_gc_event_numeric(args.gc_event_book_numeric_binding,event_book=True)
+    elif args.gc_event_numeric_binding is not None:run_gc_event_numeric(args.gc_event_numeric_binding)
     elif args.binding is not None:run(args.binding)
     elif args.evaluation_binding is not None:run_evaluation(args.evaluation_binding)
     elif args.l1_binding is not None:run_l1_quality(args.l1_binding)

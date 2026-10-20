@@ -31,6 +31,21 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
+## Gjeldende arbeid — samlet event-/bok-/ordre-fasit120
+
+120 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_120`.
+Eksisterende auditeier utvides med en uavhengig gruppert referanse fra publiserte024M1-
+event-/bokdata til alle femTF, pluss separate bevarte strikte M5-felt. Deklarert omfang er
+350TF-felt og20strikte M5-felt; tellingen må bekreftes mot eksekverbar kontrakteier.
+BBO og viste ordre beholder egne masker/tidsnevnere; fullgrid/kontrakt og delvis-observed
+holdes atskilt fra all-five-strict. Eventsum/min/max/rate/coverage følger egne domener.
+Ingen rå→M1-/nettverkslatens-/modellkonsumclaim. Åtte ferdige inputfiler er363237419B;
+kun nødvendige kolonner og trygge utviklingsradgrupper skal brukes. Ingen råscan/rebuild.
+Implementasjon og peerreview er ferdig; kun én capped fokusert sourcejobb er bundet.
+Fysisk audit er fortsatt stengt til faktisk PASS. Kildeplan og kontrollskript binder begge1800s. Source- og fysisk claim/terminal har separate navn.
+Én capped fokusert kildejobb skal bestå før én fysisk audit. Ingen ny native baseline,
+epoke, normalisering, Exit ellerTEST.118og117uendrede bevis gjenbrukes.
+
 ## Siste kontroll — GC-klokkefasit118 fullført; øvrige formelgrupper gjenstår
 
 118 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118`.
