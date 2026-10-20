@@ -25,7 +25,8 @@ kronologiske OOF-evidens for merverdi.
 TRAIN er [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
 utviklingskontroll [2026-04-01,2026-07-01). Alle26måneder er gjenbrukt utvikling;
 TEST fra juli er forseglet. Én full nativeepoke er bestilt og gjenstår etter
-faktiske profilbundne porter. training_enabled=false; fullEpoch/fullVAL=false.
+faktiske profilbundne porter. training_enabled=true er kun for107s fire private Entry-oppdateringer;
+fullEpoch/fullVAL=false. Full trening er ikke startet.
 Ingen broker/live/paper/ordre/spending/promotion. De nøyaktig to godkjente
 practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 
@@ -60,7 +61,7 @@ arvede vekter. ONLINE/anker/EMA-state9c4cf514… og initialblobc62cc1ad… bevar
 9c4cf514… og alle komponent-/horisontmasker er bevart.182kilders SHA/stat og
 11inputidentiteter bestod etterkontroll. Dette er ingen læring.
 
-## Aktuell grense —105 initial0 bestått;106 savedstate er neste
+## Aktuell grense —106 savedstate bestått;107 native mekanikk er neste
 
 105root: `/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_EPOCH_GUARD_20261020_105`.
 ACTUAL_TERMINAL_REVIEW SHA96017e454d2e6a1a49219911d4b216abdb83df23a3e0f988d77c9511d56f8cb0.
@@ -69,18 +70,35 @@ Native receipt dffffae7d1405ed5b3a0fd1ee3be8d5a2b5711ce8a5fc1797588cca0a4241654.
 Aktiv105recipe er **RECIPE_BOUND.json**, SHA3dfe8322…; RECIPE.json og gammelt
 budsjett er bevarte inaktive drafts og skal aldri brukes til neste binding.
 
-Aktuell funksjonsclosure dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d
-beholdes gjennom neste mekanikkontroll. Ingen ny modell-/indikatorendring nå.
-106gjenbruker eksisterende CPU-auditeier: fysisk hashing/lasting av104fresh og
-105privat checkpoint, eksakt modell/anker/optimizer/EMA/scheduler og CPU/Python/
-NumPy RNG. Ingen modellbygging/forwards/updates/refit/Exit/TEST; én capped
-audit4G/512M. PLAN/SHA/worker/current clean commit og policy bindes før claim.
+106root: `/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261020_106`.
+Faktisk capped CPU-audit COMPLETE/exit0 på67.647s; direkte controllerwait exit0.
+104fresh og105privat checkpoint er fysisk hash-/CPUload-kontrollert. Modell,
+anker, optimizer, EMA, scheduler og lagret CPU/Python/NumPy RNG er eksakt
+bevart. CUDA-RNG finnes, men sammenlignes ikke mot CPU-initialiseringen.
+Ingen modellbygging/forwards/updates/refit/Exit/TEST. TERMINAL SHA9cb9bedc…,
+INITIAL_MEASUREMENT_AUDIT SHA44cb6ec6…, STATE_PRESERVATION_PROOF SHA54a45a7a….
+106er konsumert; ingen relaunch eller ny stateblob-lesing uten konkret behov.
 
-Deretter kreves ny eksakt native Entry-only paritet/optimizer/resume-kvalifisering
-med disposable private vekter, aktuelle maskinvare-/bootporter og ny engangsplan.
-Disse vektene skal aldri brukes som hovedepokens start.102s Exit-lifecycle-
-feilstopp er bevart og konsumert;103retter feilen, men faktisk current optimizer/
-resume og bestilt full nativeepoke gjenstår. Ingen learned selektivitetskonklusjon.
+Aktuell funksjonsclosure dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d
+beholdes gjennom107. Ingen ny modell-/indikatorendring eller datasett-rebuild.
+107root: `/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_PARITY_RESUME4_EPOCH_GUARD_20261020_107`.
+Ny PLAN og strict31felt TECHNICAL_QUALIFICATION_PLAN binder faktisk104/105/106.
+Oppskrift bygges fra faktisk105RECIPE_BOUND og først etter gjeldende policy-
+commit, slik at source_commit er eksakt.102controller gjenbrukes med kun stagekey
+endret. Ny fysisk boot etter dagens514 og eksisterende signed hardware-porter
+kreves; materialisering er ikke nativeadgang. Ingen claim eller nativejobb ennå.
+
+107skal sammenligne no_grad/grad på16TRAIN+16CONTROL: fire parityforwards.
+Deretter uavbrutt2steg mot fersk restore og1steg+durable reload+1steg:
+fire faktiske private optimizeroppdateringer/fire trainingforwards og logisk
+cursor2. Åtte saved-state-trær skal være eksakt like. CONTROL får ingen
+oppdateringer, Exit/anker kjøres ikke og teacher refresh er av. Private vekter
+skal aldri brukes som hovedepokens start. Full epoke/fullVAL er fortsatt stengt.
+
+102s Exit-lifecycle-feilstopp er bevart og konsumert;103retter feilen.
+104/105/106har kvalifisert oppstart og bevart tilstand, ikke current optimizer/
+resume eller læring. Etter faktisk107PASS gjenstår eksakt admission og den
+bestilte ene fulle nativeepoken. LONG/SHORT/FLAT-kvalitet og selektivitet er ubevist.
 
 ## Individuell indikatorrevisjon
 
@@ -110,7 +128,7 @@ beholdt. Kumulativ rchar er logiske lesinger; Linux storage-I/O er ikke hosttota
 eller per-fil tidsprofil. Ingen kontrollert fartsgevinst eller trenings-ETA er bevist.
 
 Gjenbruk ferdige inputs/targets/055normalisering og kvalifisert kilde. Neste er
-106CPU savedstate, deretter ny native Entry-only mekanikk og bestilt full epoke
+107native Entry-only paritet/optimizer/resume og bestilt full epoke
 etter faktisk admission. Kvalitet/dekning/sporbarhet, individuelt numerisk
 featurebevis, generalisering og økonomisk edge gjenstår. Stabil jobb observeres
 15–30min. Ingen Exit, TEST, broker, HPO eller nye modeller i denne bølgen.
