@@ -25,7 +25,8 @@ krever senere samme kronologiske OOF-evidens for merverdi.
 TRAIN er [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
 utviklingskontroll [2026-04-01,2026-07-01). Alle 26 måneder er gjenbrukt
 utvikling; TEST fra juli er forseglet. Én full nativeepoke er tidligere
-bestilt og gjenstår etter faktiske profilbundne porter. training_enabled=false.
+bestilt og gjenstår etter faktiske profilbundne porter. Bare097teknisk privat
+kvalifisering har nå training_enabled=true; fullEpoch/fullVAL=false.
 Ingen broker/live/paper/ordre/spending/promotion. De nøyaktig to godkjente
 practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 
@@ -59,7 +60,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —095/096 ferdig;097 teknisk plan klargjøres
+## Aktuell grense —095/096 ferdig;097 teknisk diagnose bundet
 
 095 er faktisk ferdig med guardPASS/exit0:256 TRAIN +256 CONTROL-entries,
 16 Entry-forwards per rolle og0optimizersteg. Initialt resultat målte
@@ -109,11 +110,14 @@ med eventuell målt paritetsrettelse for å unngå ekstra kildegenerasjoner.
 Siste observerte prosessrchar02:28 var1.422TBlogisk, kernelregistrert lesing
 25.158GB; dette er ikke totaltall eller1.422TBfysisk disklesing.
 
-Neste:klargjør097teknisk plan fra095recipe/094fresh/096audit, deretter
-ny097teknisk paritetsdiagnose med samme kilde
-og eksakte nye campaign-/boot-/maskinvareporter. Ingen full epoke før faktisk
-paritet/Entry-only optimizer/resume er kvalifisert. training_enabled/fullEpoch/
-fullVAL=false. Den bestilte epoken, full indikatorrevisjon og lærte LONG/SHORT/
+097 teknisk plan er nå faktisk bygget på70.887s uten forwards/updates, fra
+095recipe/094fresh/096audit. Første32native TRAIN-rader og kohort-SHA er
+uendret; plan binder b552. Neste er eksakt ny campaign-/boot-/maskinvare-
+adgang til én teknisk kjøring:4paritetsforwards og maksimalt4faktiske private
+Entry-only-optimizeroppdateringer (2direkte +1+1resume,2logiske steg) etter
+bestått paritet. Kontrolloppdateringer0, private vekter kan ikke gjenbrukes.
+training_enabled=true kun for denne avgrensningen; fullEpoch/fullVAL=false.
+Ingen full epoke før faktisk paritet/Entry-only optimizer/resume er kvalifisert. Den bestilte epoken, full indikatorrevisjon og lærte LONG/SHORT/
 FLAT-kvalitet/dekning/sporbarhet gjenstår. TEST/Exit/broker forblir stengt.
 
 ## PC, opprydding og metode
