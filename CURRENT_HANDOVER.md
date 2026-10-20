@@ -25,7 +25,7 @@ krever senere samme kronologiske OOF-evidens for merverdi.
 TRAIN er [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
 utviklingskontroll [2026-04-01,2026-07-01). Alle 26 måneder er gjenbrukt
 utvikling; TEST fra juli er forseglet. Én full nativeepoke er tidligere
-bestilt og gjenstår etter faktiske profilbundne porter. training_enabled/fullEpoch/fullVAL=false;097teknisk plan er konsumert.
+bestilt og gjenstår etter faktiske profilbundne porter. training_enabled=true gjelder bare102teknisk4; fullEpoch/fullVAL=false.097 er konsumert.
 Ingen broker/live/paper/ordre/spending/promotion. De nøyaktig to godkjente
 practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 
@@ -59,7 +59,7 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —100 initial0 bestått;101 tilstandskontroll klar
+## Aktuell grense —100/101 bestått;102 teknisk4 skal bindes
 
 097 er konsumert FAILED/guardexit1 før optimizer:2TRAIN-forwards/0CONTROL,
 maxterminalavvik0.000135153532bps mot låst1e-4. Original PARITY_FAILURE.json
@@ -103,12 +103,24 @@ Ingen rådatastrøm ble rehashet av sluttkontrollen.100task er deaktivert med
 LastTaskResult0 og ingen bundne prosesser. ACTUAL_TERMINAL_REVIEW.json:
 220a6360d25a3d6e57db92b6bd2ddeaac4ca01efc15f78df0542998fcd065b98.
 
-Ny101 er bare én capped4G/512M CPUkontroll av faktisk099fresh og100lagret
-initialtilstand. Eksakt modell/anker/optimizer/EMA/scheduler og lagret CPU/
-Python/NumPyRNG skal sammenlignes med eksisterende streng eier. Ingen modell-
-forward, update, refit eller nativecampaign. Etter101 kreves en ny eksakt
-native teknisk4-plan for paritet/Entry-onlyoptimizer/resume før bestilt epoke.
-100/095/096/097 er konsumert og skal ikke relanseres.
+101 er faktisk COMPLETE/exit0 på62.219867s,20.10 kl.06:19:31UTC. Den ene
+capped4G/512M CPUkontrollen av099fresh og100lagret initialtilstand beviste
+modell/anker/optimizer/EMA/scheduler og lagret CPU/Python/NumPyRNG eksakt
+bevart. CUDA-RNG ble ikke sammenlignet med CPUinitialiseringen.0forwards/
+updates/refits, kilde/policy uendret. INITIAL_MEASUREMENT_AUDIT.json SHA
+2aad228e28e619e95209ea2341df210f72c3ce1a6fee2d5ac1f9bfc27fc93391.
+
+Ny102 åpner bare én separat teknisk4-kvalifisering:4paritetsforwards,
+2logiske optimizersteg/4private updates i kontroll av lagring/gjenlasting.
+Samme16TRAIN/16CONTROL til paritet og første32rader i057s kanoniske TRAIN-
+ordre; ingen CONTROLupdates, refit eller gjenbruk av privatevekter. Toleranse
+1e-4bps/rtol0, full modell/labels/loss/FP32 og maskinvarevakter beholdes.
+Metadata rebindes fra eksisterende097mal til faktisk100/101/099/8517 uten
+ny frittstående fysisk planscan. Kanonisk materializer/nativeowner skal
+fortsatt fysisk kontrollere alle bindinger, kohorter og ordre før opptak.
+102campaign med fersk boot, signert telemetri og eksakt vindupolicy gjenstår.
+training_enabled=true er avgrenset til102; fullEpoch/fullVAL/TEST/Exit/broker
+og HPO er stengt.100/101/095/096/097 er konsumert, ingen relansering.
 
 Seneste fysiske WindowsBoot512/20.10 kl.05:18:17.500UTC er bekreftet med
 WindowsSSH/Ubuntu,182kilder/39artefakter/11inputidentiteter bevart.
