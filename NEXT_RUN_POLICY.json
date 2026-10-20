@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T15:30:51.803959+00:00",
-  "status": "108_EPOCH_COMPLETE__109_CPU_SAVED_TASK_SCALE_AUDIT_READY_NO_TRAINING",
+  "observed_utc": "2026-10-20T15:39:05.561990+00:00",
+  "status": "109_TASK_SCALES_AND_SHORT_HORIZON_PANEL_COMPLETE__TRAIN_ONLY_LOSS_UNIT_DESIGN_PENDING_NO_TRAINING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactly one109 capped CPU-only audit with bound109script and executionbinding: two savedcheckpoint CPUloads, four ONLINEtaskscalars each, existing pairedJSON residual/group arithmetic. Zero constructors/forwards/updates/GPU/refit/rawdatasetreads. Preserve108training closure and use measured endpoint scales plus fixed horizon/bias panel before attributing h1degradation or proposing a loss change.",
+  "next_action": "Declare and implement the minimal loss-only per-coordinate/horizon TRAIN scale design in existing objective/target/trainer owners, preserving rawbps targets/outputs/reporting, separate masks, compactfeatures/MTF, native model and legacy isolation. Specify TRAIN statistic, mask/count/lineage and zero-scale handling before a new bounded fit; never reuse VAL targetstd or select scales from CONTROL performance. Reuse completed physicalinputs/targets/055inputnormalization. No extraepoch, HPO, Exit, TEST, broker or consumed109/108relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -65,18 +65,26 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
+    "current_evidence_scope": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority. 109measures actual learnedtaskscales and fixedprobe endpointloss imbalance, plus negative mean declaredh1nettargets in selecteddiagnosticSHORTgroups; no primaryquality/generalization/economicadmission.",
     "component_learning_measured": true,
     "component_learning_result": "MIXED_POOLED_IMPROVEMENT_WITH_H1_DEGRADATION",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
       "sha256": "3b360860d7d80ba8de0d8f511c912afc3726570ebba206082a04f79323db4c9d"
+    },
+    "latest_loss_scale_diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TASK_SCALE_AUDIT.json",
+      "sha256": "97cda80ee2c2cea53015a50f60a5d66bf6af524ae163b7ba8a22c38d34ec2b5d"
+    },
+    "latest_fixed_short_horizon_panel": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/PAIRED_SHORT_HORIZON_PANEL.json",
+      "sha256": "ddcc5c186bb1760f5f12f97e894113392f18a2083c616c55c2cabe2a866bbdf2"
     }
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "108_EPOCH_COMPLETE__109_CPU_SAVED_TASK_SCALE_AUDIT_READY_NO_TRAINING",
+    "current_activity": "109_TASK_SCALES_AND_SHORT_HORIZON_PANEL_COMPLETE__TRAIN_ONLY_LOSS_UNIT_DESIGN_PENDING_NO_TRAINING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -106,11 +114,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "ACTUAL_COMPLETED_SINGLE_ORDERED_TRAIN_EPOCH_WITH_FIXED_FINAL_ONLINE_AND_PAIRED_LEARNING_REVIEW",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108",
+    "latest_terminal_role": "COMPLETE_CPU_ONLY_SAVED_TASK_SCALE_AUDIT_NO_MODEL_OR_FIT",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/TERMINAL.json",
-      "sha256": "dde30563cfd245f8d16836e7e49986969978a036c4114ef2e3350f03d38b63ef"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TERMINAL.json",
+      "sha256": "c15b66e74bafe3f7ecce691e050beef6acd0cef70f5e4eeecf22536cf83dfa83"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -130,7 +138,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Primary Entry quality is unqualified after mixed108readout: h1 errors worsen on both fixed probes and all final best-horizon predictions concentrate at1minute. Actual learned taskweight/scale diagnosis and native LONG/SHORT/FLAT quality/coverage qualification remain; no remaining108trainingauthority.",
+    "current_blocker": "Primary Entry quality remains unqualified. Actual109 shows rawbps loss scale imbalance with day support82.10%/93.35%fixedprobe endpointresidual, while allfinal candidate bestH1 and h1 predictionerrors worsen. Need declared TRAIN-only loss unit design and qualification; cause of h1degradation is not established. Native decision quality and full individual numericfeature checks remain; no remainingtrainingauthority.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7604,7 +7612,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one109 capped CPU-only audit with bound109script and executionbinding: two savedcheckpoint CPUloads, four ONLINEtaskscalars each, existing pairedJSON residual/group arithmetic. Zero constructors/forwards/updates/GPU/refit/rawdatasetreads. Preserve108training closure and use measured endpoint scales plus fixed horizon/bias panel before attributing h1degradation or proposing a loss change.",
+    "next_action": "Declare and implement the minimal loss-only per-coordinate/horizon TRAIN scale design in existing objective/target/trainer owners, preserving rawbps targets/outputs/reporting, separate masks, compactfeatures/MTF, native model and legacy isolation. Specify TRAIN statistic, mask/count/lineage and zero-scale handling before a new bounded fit; never reuse VAL targetstd or select scales from CONTROL performance. Reuse completed physicalinputs/targets/055inputnormalization. No extraepoch, HPO, Exit, TEST, broker or consumed109/108relaunch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9451,7 +9459,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "108_SINGLE_FULL_NATIVE_EPOCH_COMPLETE_CONSUMED__MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_UNQUALIFIED",
+      "status": "109_TASK_SCALES_AND_SHORT_HORIZON_PANEL_COMPLETE__TRAIN_ONLY_LOSS_UNIT_DESIGN_PENDING_NO_TRAINING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9489,12 +9497,12 @@
       "native_binding_gaps": [
         "051/049/050/053 physical dataset/source/liveness and055 wholeTRAIN Entry-only normalization passed; actual108 model consumed currentcompact data; reuse without rebuild/refit.",
         "104fresh/105initial0/106savedstate/107Entryparity+optimizer+resume and108oneorderedTRAINepoch+fixedfinalONLINE are COMPLETE currentdc1c; no remaining108trainingauthority.",
-        "Paired105vs108 readout measures mixed component learning and h1 degradation on both256rowprobes; final diagnostic candidates choose1minute on bothsides across512rows. Four actual learned taskweights and scale contributions remain unmeasured.",
+        "109actualfourONLINEtaskscales and cellpooled residual contributions are measured. Finalday support82.0985%TRAIN/93.3483%CONTROL on fixed256rowprobes; h1degradation and candidateh1concentration remain. Minimal TRAIN-only lossunit design/fit and requalification are pending; no parametergradient/causalclaim.",
         "Learned native LONG/SHORT/FLAT decision quality, selected/abstained coverage, independent generalization and economic edge remain unqualified.",
         "All1205GC source formula/unit/warmup maps are complete; independent all-field numeric/current raw references and individual model contribution remain incomplete."
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/TERMINAL.json",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TERMINAL.json",
       "completed_invocations": 1,
       "split_windows": {
         "train": [
@@ -10356,7 +10364,7 @@
         }
       },
       "dynamic_m5_entry_implementation": {
-        "status": "108_SINGLE_FULL_NATIVE_EPOCH_COMPLETE_CONSUMED__MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_UNQUALIFIED",
+        "status": "109_TASK_SCALES_AND_SHORT_HORIZON_PANEL_COMPLETE__TRAIN_ONLY_LOSS_UNIT_DESIGN_PENDING_NO_TRAINING",
         "operator_authority": "18October M5Entry objective and one nativeepoch remain the project direction; the one requested epoch was fulfilled by108. No automatic additional epoch/HPO/Exit/TEST/broker authority.",
         "training_phase": "entry_only_dynamic_m5_path",
         "emission_scope": "m5_dynamic_observed",
@@ -10468,7 +10476,7 @@
           "elapsed_seconds": 138.4885816879978
         },
         "known_remaining_native_source_gaps": [
-          "Paired105vs108 readout measures mixed component learning and h1 degradation on both256rowprobes; final diagnostic candidates choose1minute on bothsides across512rows. Four actual learned taskweights and scale contributions remain unmeasured.",
+          "109actualfourONLINEtaskscales and cellpooled residual contributions are measured. Finalday support82.0985%TRAIN/93.3483%CONTROL on fixed256rowprobes; h1degradation and candidateh1concentration remain. Minimal TRAIN-only lossunit design/fit and requalification are pending; no parametergradient/causalclaim.",
           "Learned native LONG/SHORT/FLAT decision quality, selected/abstained coverage, independent generalization and economic edge remain unqualified.",
           "All1205GC source formula/unit/warmup maps are complete; independent all-field numeric/current raw references and individual model contribution remain incomplete.",
           "No active runtime/source blocker after complete108; quantify actual task weights before attributing short-horizon degradation. No new source design or training launch is authorized by unused108windows.",
@@ -15188,7 +15196,7 @@
           }
         },
         "task_scale_audit_stage_109": {
-          "status": "READY_EXACT_CPU_ONLY_SAVED_CHECKPOINT_TASK_SCALE_AUDIT",
+          "status": "COMPLETE_CONSUMED_ACTUAL_ONLINE_TASK_SCALES_AND_PAIRED_SHORT_HORIZON_DIAGNOSIS",
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109",
           "plan": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/PLAN.json",
@@ -15198,9 +15206,9 @@
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/audit_saved_task_scales_bound.py",
             "sha256": "07658fc0bd50099d0ce049df879f73a1d9cfcd40e0a90e71a031eb0ee246806d"
           },
-          "execution_authorized": true,
+          "execution_authorized": false,
           "planned_invocations": 1,
-          "completed_invocations": 0,
+          "completed_invocations": 1,
           "relaunch_allowed": false,
           "training_enabled": false,
           "full_epoch_training_allowed": false,
@@ -15224,7 +15232,81 @@
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/audit_saved_task_scales.py",
             "sha256": "d1119e1f75049f2e07ec3097b1c4920863dbafbdabd1af872d9a64a8b4c2f70a",
             "execution_authorized": false
-          }
+          },
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TASK_SCALE_AUDIT.json",
+            "sha256": "97cda80ee2c2cea53015a50f60a5d66bf6af524ae163b7ba8a22c38d34ec2b5d"
+          },
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TERMINAL.json",
+            "sha256": "c15b66e74bafe3f7ecce691e050beef6acd0cef70f5e4eeecf22536cf83dfa83"
+          },
+          "controller_terminal": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/CONTROLLER_TERMINAL.json",
+            "sha256": "4d53e446f8680606304fb92c30703ebd56775435b09e66d708638e1404033e4c"
+          },
+          "execution_binding": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/EXECUTION_BINDING.json",
+            "sha256": "3d99601820b3f0f876bf82909fc04f0a3e480748e4f40793301f8a34327ef41c"
+          },
+          "source_preservation": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/POST_AUDIT_PRESERVATION.json",
+            "sha256": "11ed71776beef6711e7313f7feefb10311d289540e32ac23d0dc82998ab5a5d7"
+          },
+          "arithmetic_review": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TASK_SCALE_ARITHMETIC_REVIEW.json",
+            "sha256": "30fa1051f18294737f8e36f33cdafb1bb313e06bae17780f84abcc23d89c25dc"
+          },
+          "paired_short_horizon_panel": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/PAIRED_SHORT_HORIZON_PANEL.json",
+            "sha256": "ddcc5c186bb1760f5f12f97e894113392f18a2083c616c55c2cabe2a866bbdf2"
+          },
+          "elapsed_worker_seconds": 1.9298861320003198,
+          "actual_max_rss_kib": 555504,
+          "actual_final_task_precision": {
+            "dynamic_terminal_net_markout_bps": 0.4780407580193552,
+            "dynamic_mfe_bps": 0.4852995435483055,
+            "dynamic_pre_mfe_mae_upper_bps": 0.4944152642819384,
+            "forecast_return_bps": 0.4780703921253902
+          },
+          "fixed_probe_final_residual_shares": {
+            "control": {
+              "probe_entries": 256,
+              "all_forecast_share_of_pooled_weighted_residual": 0.937528991473924,
+              "day_support_share_of_pooled_weighted_residual": 0.9334828457381892,
+              "base_M5_forecast_share_of_pooled_weighted_residual": 0.004046145735734779
+            },
+            "train": {
+              "probe_entries": 256,
+              "all_forecast_share_of_pooled_weighted_residual": 0.8318808120901038,
+              "day_support_share_of_pooled_weighted_residual": 0.8209845247669062,
+              "base_M5_forecast_share_of_pooled_weighted_residual": 0.010896287323197706
+            }
+          },
+          "causal_explanation_established": false,
+          "primary_entry_quality_qualified": false
+        },
+        "loss_unit_design_gap": {
+          "status": "MEASURED_RAW_BPS_SCALE_IMBALANCE_DESIGN_REQUIRED_BEFORE_FIT_OR_TRAINING",
+          "evidence": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TASK_SCALE_AUDIT.json",
+            "sha256": "97cda80ee2c2cea53015a50f60a5d66bf6af524ae163b7ba8a22c38d34ec2b5d"
+          },
+          "paired_quality_evidence": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/PAIRED_SHORT_HORIZON_PANEL.json",
+            "sha256": "ddcc5c186bb1760f5f12f97e894113392f18a2083c616c55c2cabe2a866bbdf2"
+          },
+          "current_loss": "Four learnedprecisionweighted rawmasked MSE tasks; dynamicqueries and10forecastcoordinates pool before the learnedtaskweight. No active TRAIN-fit targetlossscale exists.",
+          "source_constraints": [
+            "Rawbps targets and prediction/decision units remain unchanged.",
+            "Loss-only scales must be declared and fit only on the exactwholeTRAINtargetpopulation with own masks/counts, never VALdiagnosticstd/CONTROLperformance.",
+            "Per-task scaling alone does not change day/M5 relative scale inside the sameforecasttask. Coordinate/horizon scale roles must be explicit.",
+            "No guessed fixedrelative taskweight, targetimputation, maskunion, featureskip, artificial h1veto or hardholdlimit.",
+            "Current109 measures endpointlossenergy, notsharedencoderg gradients orh1causality.",
+            "Existing8specialists+ninthmacro/fullprofiles remain; no newarchitecture/ensemble fromthisaudit."
+          ],
+          "new_target_scale_fit_authorized": false,
+          "new_native_training_authorized": false
         }
       },
       "operator_pc_reboot_20261018": {
@@ -15249,7 +15331,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Execute exactly one109 capped CPU-only audit with bound109script and executionbinding: two savedcheckpoint CPUloads, four ONLINEtaskscalars each, existing pairedJSON residual/group arithmetic. Zero constructors/forwards/updates/GPU/refit/rawdatasetreads. Preserve108training closure and use measured endpoint scales plus fixed horizon/bias panel before attributing h1degradation or proposing a loss change.",
+      "next_action": "Declare and implement the minimal loss-only per-coordinate/horizon TRAIN scale design in existing objective/target/trainer owners, preserving rawbps targets/outputs/reporting, separate masks, compactfeatures/MTF, native model and legacy isolation. Specify TRAIN statistic, mask/count/lineage and zero-scale handling before a new bounded fit; never reuse VAL targetstd or select scales from CONTROL performance. Reuse completed physicalinputs/targets/055inputnormalization. No extraepoch, HPO, Exit, TEST, broker or consumed109/108relaunch.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 1,
       "full_native_epoch_request_fulfilled": true,
@@ -15373,7 +15455,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
     },
-    "latest_terminal_evidence_scope": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
+    "latest_terminal_evidence_scope": "109CPUauditCOMPLETE1.93s/2trustedcheckpointloads/0constructors/forwards/updates/GPU/refit/rawdata. Actual4taskprecisions0.47804..0.49442 and fixed256TRAIN+256CONTROL countpooled error contributions measured. Day support is82.0985%TRAIN/93.3483%CONTROL of finalweightedresidual; these are endpointobjective values, notparametergradients orcausal proof. Pairedh1/5/15/60/240/480diagnosis andshort/flatgroups saved; allremainingEntryquality/generalization/economy gaps stayopen.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -18043,5 +18125,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T15:30:51.803959+00:00"
+  "updated_utc": "2026-10-20T15:39:05.561990+00:00"
 }

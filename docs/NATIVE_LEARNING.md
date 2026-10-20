@@ -170,8 +170,9 @@ endepunktkontrakter; de er aldri stille substitutter. Lavere og konservativ
 Ingen largest-horizon-/legacy37-/dags-union får redusere primærpopulasjonen.
 Tidligere `m5_primary_observed` med fast19M5-bars-fasit og legacyemisjon
 beholder sine egne historiske kontrakter; de er ingen kjøreautoritet for ny
-fase. Fire M5-forecasts lagrer0 bak false-masker; seks dagsstøttemål har
-uobserverte fysiske NaN-triader og blir0 først i maskert modellbatch.
+fase. Fire aktive M5-forecasts har egne observerte masker på1/5/12/24
+M5-barer; bare uobserverte celler lagrer0 bak false-masker. Seks dagsstøttemål
+har egne masker og uobserverte fysiske NaN-triader som blir0 først i modellbatch.
 Endret populasjon krever ny faktisk TRAINklokke, fersk TRAINregistrytilpasning
 og gjeldende immutable kontraktbindinger før inputadmission.
 
@@ -195,6 +196,39 @@ og train/serve-paritet. Entry-only-fasen må bevise Exit-grad=None og uendrede
 Exit-vekter. Bruk allerede beståtte uendrede kontroller; en ny funksjon krever
 ferske funksjonsbevis. Nøyaktig nåstatus og eventuelt uavklart målvalg finnes
 bare i CURRENT_HANDOVER.md/NEXT_RUN_POLICY.json.
+
+## Sammenligning av læring og loss-enheter
+
+Før/etter-readout bruker samme frosne kohorter, targets, masker og counts.
+Rapporter rå MAE/MSE separat for hver komponent, side og query, sammen med
+valgte/avståtte kandidater og dekning. Samlet forbedring over alle480horisonter
+beviser ikke forbedring ved ett minutt. Prediksjons-MAE er absolutt prognosefeil;
+den må ikke forveksles med targetets adverse excursion før første MFE.
+
+Den gjeldende dynamiske losskilden pooler rawbps-MSE. Inclusive/closed MFE
+deler én task og denominator, tilsvarende for preMAE. Terminalrapportens
+FLAT0 er observert og inngår i denominator; skill dette fra LONG/SHORT alene.
+Fire M5-forecasts og seks dagskoordinater deler forecast-tasken. De fire lærte
+ONLINE-logvariansene må avleses fra samme faktiske checkpoint når effektiv
+vekting vurderes: exp(−s)·råtasktap+s. Cellevektet pooled diagnostikk er ikke
+nødvendigvis lik evaluatorens radvektede gjennomsnitt av batchloss.
+
+Forecast-gruppebidrag beregnes fra gruppens SSE delt på hele forecast-count,
+multiplisert med samme lærte presisjon. Gruppens egen MSE er en annen størrelse.
+Det felles+s-leddet kan ikke entydig fordeles mellom horisontgruppene.
+Store residualandeler beviser ikke parametergradientdominans eller årsak til
+en konkret prognosefeil. En fallende lært presisjon kan redusere vektet tap
+samtidig som rå prognosefeil øker; rapporter begge.
+
+Et nytt loss-enhetsdesign krever en eksplisitt kontrakt før fit. Eventuelle
+skalaer skal tilpasses bare eksakt wholeTRAIN-targetpopulasjon med egne
+koordinat-/horisontmasker, counts og lineage. VAL-targetstd er diagnostikk,
+aldri fitgrunnlag. Ingen skala velges etter CONTROL-prestasjon. Rawbps-targets,
+prediksjoner og beslutningsenheter beholdes ved loss-only skalering; en ny
+fit skal ikke trigge ny feature-/inputnormalisering. Håndtering av nullskala
+og grouping må være deklarert; ingen gjettet epsilon eller relativ taskvekt.
+Ny kode/fit er ikke kvalifisert før faktiske bindinger og nødvendige kontroller
+foreligger. Ingen ny treningsadgang følger av et diagnose- eller designnotat.
 
 ## Bevarte datakrav og økonomi
 

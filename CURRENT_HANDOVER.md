@@ -82,24 +82,41 @@ Private107vekter ble aldri brukt i108.103rettelsen bestod148fokuserte caser.
 182kilderoller/181filer og11inputstatidentiteter er kontrollert bevart.
 Funksjonsclosure dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d.
 
-## Målte utfordringer, neste steg og resterende grenser
+## Målte utfordringer og neste steg
 
-Den rettede attention-dispatchen bruker samme deterministiske rute i trening
-og måling. Dynamisk Entry hopper over ubundet Exit-epochsetter, legacy er
-fortsatt strict. Avgrenset hashgjenbruk fjerner gjentatt kontroll innen sitt
-kvalifiserte scope. Ingen nye modell-/featureendringer ble gjort under108.
+De konkrete attention-/Entry-oppstartsfeilene er rettet og kvalifisert.
+109 er nå COMPLETE: avgrenset CPU-audit på 1,93 sekunder, to lagrede checkpoints,
+fire faktiske ONLINE-taskskalarer hver, ingen modellbygging/forwards/updates,
+GPU, refit eller rådatasettlesing. TRAIN- og CONTROL-probene har256rader hver.
 
-Neste avgrensede diagnose er de fire faktisk lærte task_log_variances i
-105initial- og108sluttcheckpoint, sammen med lagrede feilsummer/tall. Ny eksakt
-CPU-only-plan/policybinding er nå klar i109; ingen modellbygging,
-forwards, updates, refit, GPU eller rådatasettlesing. Kvantifiser bidrag fra
-korte og lange støttehorisonter med hele forecast-nevneren; feilenergi er ikke
-bevis på gradientdominans eller årsaken til ettminuttssvakheten.
-109root: `/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109`. Bare audit_saved_task_scales_bound.py er kjørbar
-etter eksakt commit-/policybinding, capped audit4G/512M/900s, én invokasjon.
-Originalt ubundet scriptutkast er ikke kjøreautoritet.
-Etterpå rettes bare en målt blokkering eller vedtatt designendring. Ingen
-ny treningsrunde følger automatisk av108 eller av dette diagnoseforslaget.
+109root: `/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109`.
+TASK_SCALE_AUDIT.json SHA97cda80ee2c2cea53015a50f60a5d66bf6af524ae163b7ba8a22c38d34ec2b5d.
+PAIRED_SHORT_HORIZON_PANEL.json SHAddcc5c186bb1760f5f12f97e894113392f18a2083c616c55c2cabe2a866bbdf2.
+TASK_SCALE_ARITHMETIC_REVIEW.json SHA30fa1051f18294737f8e36f33cdafb1bb313e06bae17780f84abcc23d89c25dc.
+
+Alle fire lærte presisjoner ligger mellom0,47804 og0,49442. Dagstøtte utgjør
+82,0985%TRAIN/93,3483%CONTROL av fire taskers vektede, cellepoolede residual
+ved sluttmålingen. Dette er målt endpoint-lossverdi, ikke parametergradient
+eller årsak til h1-forverringen. Forecastens felles presisjon endrer ikke
+forholdet mellom M5- og dagskoordinatene innad i forecast-tasken.
+
+Det faste panelet1/5/15/60/240/480minutter gjenbruker lagrede mål/masker og
+feilsummer; forecast har sine egne10koordinater, ingen falsk480akse.
+På CONTROL har de108diagnostiske SHORT-valgene gjennomsnittlig h1-nettotarget
+−6,58996bps; FLAT-gruppens148hypotetiske SHORT har−7,06159bps. Disse er
+lagrede, deklarerte mål og ingen utførte handler eller bekreftet økonomisk edge.
+Kandidaten bruker max_h(terminal(h)−preMAE(h)) for samme h per side; arkitekturen
+tvinger ikke h1, og ingen etterfølgende horisontveto eller filter innføres.
+
+Neste er et eksplisitt, minimalt TRAIN-basert loss-enhetsdesign i eksisterende
+kontrakt-/target-/trenereiere. Rawbps-targets, prognoser, masker og rapportering
+beholdes. Statistikk, koordinat-/horisontroller, maskerte counts og håndtering
+av nullskala må deklareres før ny capped targetstatistikk-fit. VAL-diagnostisk
+targetstd skal aldri gjenbrukes til fit, og CONTROL-resultater velger ingen
+skala eller vekter. En taskskala alene endrer ikke M5/dag-forholdet inni samme
+task. Ingen nye modeller, håndsatte relative vekter eller ekstraepoke nå.
+Ferdige inputs/targets/055inputnormalisering gjenbrukes.109og108er konsumert;
+ny targetfit og eventuell trening krever egne eksakte bindinger/kvalifisering.
 
 Alle1205GCverdier+masker har kildekart for formel/enhet/domene/warmup;
 23tekniske formler×5TF har115feltposter. Dette er ikke full uavhengig numerisk
