@@ -138,19 +138,31 @@ PUBLISHED_SCALE_REVIEW.json SHA8dbaa6c22a04fc30b5327c5e053071d1412e078500ca28e23
 172kildebindinger og25metadata-inputidentiteter er bevart. Ingen ny featurebuild,
 inputnormalisering,model/forward/optimizer,GPU,VAL-fit ellerTEST.111er konsumert;
 artefaktet gjenbrukes og refittes ikke påVAL. Dette er ikke bedre prediksjon.
-Siste terminal er111. NY112CPUfresh er forberedt med denne skalaens recipebinding.
+Siste terminal er112, kontrollert avbrutt for målt metadata-I/O.
 112root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112`.
-PLAN.json SHA1f05df528d28781c40c9db7025dae355b74081fd843b10163cbd82196a0fe106.
-Canonical sourceclosure er rederivert fra eksisterende eiere:182→183roller;
-alle7endrede roller og1ny lossrolle har eksakte110kvalifiserte kilder.
-104recipe/constructormetadata er kun proveniens/mal. Alle11inputs,profil,
-kontroller,targets og055normalisering beholdes; eksisterende canonicalfreshCPU-
-produsent kjøres i en ny engangsjobb,0markedsforwards/updates/refits/Exit. Ingen ytre
-filhashmemo holdes gjennom modell-/statearbeid. Fersk state publiseres atomisk
-og strictloades av eksisterende eier. Nye113initialmetadata kreves etter112;
-ingen ny epoke åpnes. Ingen112jobb er startet før ren source/policy/B er bundet.
-PRELAUNCH_REVIEW.json SHA2fa4663af246dfcb32ca48c3de11e88fbd9ab209daa23346de295489eafdead5
-binder uavhengig statisk kontroll; endelig B/renHEAD/snapshot kontrolleres vedlaunch.
+En korrekt bundet CPUfresh-jobb startet17:06:48UTC; integratoren stoppet eksakt
+worker medSIGTERM etter gjentatte inputkontroller før publisert freshstate.
+Controller avsluttet17:23:20UTC etter992,515s,worker143/FAILED_NO_ADMISSION.
+197kilder ogpolicy er bevart; alle bundne prosesser er borte. Ingen freshstate,
+RESULT eller workerterminal ble publisert. Modell-/TEST-tellere er ukjente
+etter avbruddet; ingen nuller eller ferdigstilling konstrueres.
+CONTROLLED_STOP_REVIEW.json SHA612fa1ee7c85e8a337f2aa879b862d50187c4d77e9d644e8b62c337242aaaae0
+binder kontrollert stopp og opprinnelig controllerkvittering.
+TERMINAL.json SHA6cc9deb27ab09223d06fca0fd6de49da971bd806b63f18fdae4d913b6fcb6180 normaliserer
+controllerens faktiske worker143 til handoverformat; statusFAILED_NO_ADMISSION
+og ukjent TEST-observasjon beholdes. Dette er ingen workercompletion. Prosessens
+read_bytes var554317824832 og rchar564945348985 ved stoprequest; dette er
+Linux-prosesstellere, ikke hosttotal eller bevist mengde duplikatlesing.
+
+Kilderevisjonen fant at publicfresh recipe/prefixadmission mangler samlet
+finite metadata-scope, og _bound_artifact bruker rå checkpoint-hasher i stedet
+for eksisterende common-hasheier. Senere metadata etter state-roundtrip mangler
+eget scope. Minste neste rettelse er common-inputhash pluss separate scopes
+før modellbygging og etter strictstate/RNG. Ingen memo gjennom modell/state;
+råde PT-hasher bevares.112er konsumert og relanseres aldri.111RMS,11inputs,
+profil/targets og055normalisering gjenbrukes etter ny kildekvalifisering og
+ny unik fresh-/initialbinding. Den tidligere113initialstien ble aldri laget.
+Ingen ny epoke åpnes;108har allerede oppfylt den bestilte ene epoken.
 
 VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
 Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.

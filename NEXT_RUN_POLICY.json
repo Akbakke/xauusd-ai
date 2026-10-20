@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-20T15:51:47.035568+00:00",
-  "status": "112_TRAIN_RMS_BOUND_FRESH_CPU_STATE_PREPARED__NATIVE_TRAINING_CLOSED",
+  "status": "112_CONTROLLED_STOP_AFTER_MEASURED_REPEATED_METADATA_IO__MINIMAL_SOURCE_CORRECTION_NEXT__TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute new112exact one-shot CPUfresh publicproducer under capped audit4G/512M with111TRAIN_RMSbinding. Preserve11inputs/055normalization/057population/059costs/compactprofile. Allmodel marketforwards/updates/Exit/TEST/native/fullEpoch/fullVAL remainclosed. Awaitgenuineimmutablefreshstate and112terminal beforepreparing113zero-stepinitial.",
+  "next_action": "Qualify minimal common-input-hasher and finite fresh metadata scopes;112 consumed and never relaunch. Preserve111TRAIN_RMS and all physical inputs/055normalization. New fresh state, initial baseline and parity/resume require new exact bindings; all native training/fullEpoch/fullVAL/TEST/Exit remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -84,7 +84,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "110_TRAIN_RMS_LOSS_UNIT_SOURCE_IMPLEMENTATION__FIT_AND_TRAINING_CLOSED",
+    "current_activity": "112_CONTROLLED_IO_STOP_CLOSED__MINIMAL_METADATA_SCOPE_SOURCE_REPAIR_NEXT",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -114,13 +114,13 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "COMPLETE_CPU_ONLY_SAVED_TASK_SCALE_AUDIT_NO_MODEL_OR_FIT",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109",
+    "latest_terminal_role": "CONTROLLED_CPU_FRESH_STOP_FOR_MEASURED_METADATA_IO_NO_ADMISSION",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/TERMINAL.json",
-      "sha256": "24c4d0063c8cf1738050c127b39c91327d2a88f00a7afc8ee8221a11299874e0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/TERMINAL.json",
+      "sha256": "6cc9deb27ab09223d06fca0fd6de49da971bd806b63f18fdae4d913b6fcb6180"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 143,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -129,7 +129,7 @@
     "physical_native_preprocessing_complete": true,
     "native_training_coordinates_published": true,
     "native_component_preparation_authorized": false,
-    "test_data_used": false,
+    "test_data_used": null,
     "cleanup_report": "CURRENT_HANDOVER.md",
     "repository_cleanup_complete": false,
     "replacement_dataset_acceptance_scope": "HISTORY2009W_FEATURE_REPAIR_20261010: corrected inputs, once-fit whole-TRAIN normalization and fixed-cohort CPU initial baseline only; no native training, sampler, GPU, serving or profitability admission.",
@@ -138,7 +138,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Primary Entry quality remains unqualified. Actual109 shows rawbps loss scale imbalance with day support82.10%/93.35%fixedprobe endpointresidual, while allfinal candidate bestH1 and h1 predictionerrors worsen. Need declared TRAIN-only loss unit design and qualification; cause of h1degradation is not established. Native decision quality and full individual numericfeature checks remain; no remainingtrainingauthority.",
+    "current_blocker": "Measured112metadata IO before fresh publication: process read_bytes554317824832 at controlledstop, duplicate raw/common input-hash gates found.111TRAIN_RMS already fitted. Need minimal current-source finite metadata/hash correction, focused source qualification and new fresh/initial/parity/resume; no remaining native epoch authority.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7612,7 +7612,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Finish exact110source integration and one capped focused qualification of TRAIN-only targetRMS lossunits. Bind declared110DESIGN; preserve rawbps/data/masks/compactprofile/legacy and all108/109receipts. No realfit or newnativeepoch until separateexactqualification/binding.",
+    "next_action": "Qualify minimal common-input-hasher and finite fresh metadata scopes;112 consumed and never relaunch. Preserve111TRAIN_RMS and all physical inputs/055normalization. New fresh state, initial baseline and parity/resume require new exact bindings; all native training/fullEpoch/fullVAL/TEST/Exit remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8740,7 +8740,9 @@
       "native_sequences_or_attention_tested": false,
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
-    "latest_terminal_evidence_gaps": [],
+    "latest_terminal_evidence_gaps": [
+      "112 has no canonical worker completion or fresh model state; new preparation after minimal source correction is required."
+    ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
       "operator_request": "Strategic P0 order flow + dynamic S/R + volatility priority, P1-P5 ablations, reuse purchased MBP-1; audit and freeze baseline first.",
@@ -15564,7 +15566,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
     },
-    "latest_terminal_evidence_scope": "109CPUauditCOMPLETE1.93s/2trustedcheckpointloads/0constructors/forwards/updates/GPU/refit/rawdata. Actual4taskprecisions0.47804..0.49442 and fixed256TRAIN+256CONTROL countpooled error contributions measured. Day support is82.0985%TRAIN/93.3483%CONTROL of finalweightedresidual; these are endpointobjective values, notparametergradients orcausal proof. Pairedh1/5/15/60/240/480diagnosis andshort/flatgroups saved; allremainingEntryquality/generalization/economy gaps stayopen.",
+    "latest_terminal_evidence_scope": "112 CPUfresh stopped by integrator SIGTERM after992.515s; worker143,controllerFAILED_NO_ADMISSION,197 source files andpolicy unchanged. Process read_bytes554317824832/rchar564945348985 at stoprequest. No published fresh state/result/workerterminal; execution counts andTESTuse unknown, not fabricated. Source audit identifies repeated input-hash paths beforemodel.111RMS and108fulfilled epoch remain preserved.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -15640,6 +15642,10 @@
       "actual_epoch_review": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/ACTUAL_SINGLE_EPOCH_TERMINAL_REVIEW.json",
         "sha256": "87cf966c9cbbecd3542cd16e9d374a45fb10b346474f27c9b5caf7bb7693e543"
+      },
+      "measured_fresh_preparation_io_112": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/CONTROLLED_STOP_REVIEW.json",
+        "sha256": "612fa1ee7c85e8a337f2aa879b862d50187c4d77e9d644e8b62c337242aaaae0"
       }
     },
     "latest_native_terminal": {
@@ -18292,10 +18298,10 @@
     "max_rss_kib": 3078268
   },
   "native_m5_train_rms_fresh_112": {
-    "status": "PREPARED_SINGLE_FRESH_CPU_STATE_NO_MARKET_FORWARD_OR_TRAINING",
-    "execution_authorized": true,
+    "status": "ABORTED_CONTROLLED_IO_CORRECTION_NO_ADMISSION",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/PLAN.json",
@@ -18343,6 +18349,24 @@
     "prelaunch_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/PRELAUNCH_REVIEW.json",
       "sha256": "2fa4663af246dfcb32ca48c3de11e88fbd9ab209daa23346de295489eafdead5"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/CONTROLLER_TERMINAL.json",
+      "sha256": "5b36b9c2f97e1321254dc6cb2d68d540c147e37c6f213ec775232fafac3c1a15"
+    },
+    "controlled_stop_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/CONTROLLED_STOP_REVIEW.json",
+      "sha256": "612fa1ee7c85e8a337f2aa879b862d50187c4d77e9d644e8b62c337242aaaae0"
+    },
+    "controlled_stop_request": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/CONTROLLED_STOP_REQUEST.json",
+      "sha256": "0c2047f37c2a4e3bae330d40a62e2696d205c147a51ad910625e7163c7e466cd"
+    },
+    "fresh_state_published": false,
+    "worker_exit_code": 143,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/TERMINAL.json",
+      "sha256": "6cc9deb27ab09223d06fca0fd6de49da971bd806b63f18fdae4d913b6fcb6180"
     }
   }
 }
