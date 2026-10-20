@@ -45,7 +45,7 @@ volum/sidetall og nQ−S². Begge kumulative M1-stier beregnes én gang og reset
 ved UTC-dato/roll/ugyldig forrige M1/hull. Strictsigned-CVD bruker TF-endepunkt;
 knowncum bruker siste observerte M1 og beholder unknown. Ingen22UTC-reset.
 183nativeproduksjonsroller/182filer er kontrollert uendret. Statisk opptelling er
-34beholdte+19nyecaser; faktisk antall/PASS er ennå umålt. Én kildejobb er åpnet
+34beholdte+24nyecaser; faktisk antall/PASS er ennå umålt. Én kildejobb er åpnet
 etter peerreview; fysisk kjøring er IKKE startet eller kvalifisert.
 121/118og117gjenbrukes. Ingen ny nativeepoke er åpnet.
 

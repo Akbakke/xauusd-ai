@@ -599,3 +599,27 @@ def test_trade_numeric_unadmitted_side_quantity_requires_own_record_before_mask(
     stats['buy_trade_records'][2]=0;stats['sell_trade_records'][2]=1
     with pytest.raises(RuntimeError,match='GC_TRADE_REFERENCE_M1_SIDE_VOLUME_WITHOUT_RECORDS'):
         audit.reference_trade_cumulatives(minutes,selected,trade,stats)
+
+
+@pytest.mark.parametrize('timeframe', tuple(_CLOCK_MINUTES))
+def test_trade_numeric_full_unsigned_unknown_keeps_known_contributions_all_tf(timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    size=_CLOCK_MINUTES[timeframe]
+    records={i:[('B',1)] for i in range(size)};records[1]=[('N',3)]
+    minutes,selected,trade,stats=_trade_numeric_fixture(timeframe,records,tuple(range(size)))
+    known,cvd=audit.reference_trade_cumulatives(minutes,selected,trade,stats)
+    out,bounds,_=audit.reference_trade_aggregates(minutes,selected,trade,stats,known,cvd,timeframe)
+    assert out['volume_valid'][0] and not out['signed_valid'][0]
+    assert out['volume'][0]==size+2 and out['trades'][0]==size and out['unknown'][0]==3
+    assert abs(out['known_aggressor_fraction'][0]-(size-1)/(size+2))<=bounds['known_aggressor_fraction'][0]
+    for name in ('buy','sell','delta_contracts')+audit.GC_TRADE_CVD_FIELDS:assert np.isnan(out[name][0]),name
+    assert out['observed_valid'][0] and not out['observed_signed_complete'][0]
+    assert out['observed_buy_known'][0]==size-1 and out['observed_sell_known'][0]==0
+    assert out['observed_unknown'][0]==3 and out['observed_known_delta_contracts'][0]==size-1
+    # H4/D1 cross UTC midnight: cumulative contributions retain their own
+    # reset clock rather than being replaced by the complete TF quantities.
+    buy,unknown,volume,count={'M5':(4,3,7,5),'M15':(14,3,17,15),'H1':(59,3,62,60),
+        'H4':(120,0,120,120),'D1':(1320,0,1320,1320)}[timeframe]
+    for name,value in {'buy_contracts':buy,'sell_contracts':0,'unknown_contracts':unknown,
+            'volume_contracts':volume,'known_delta_contracts':buy,'observed_minutes':count}.items():
+        assert out['observed_known_cumulative_'+name][0]==value,name

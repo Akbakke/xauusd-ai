@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T22:26:59.423323+00:00",
+  "observed_utc": "2026-10-20T22:28:40.718119+00:00",
   "status": "122_TRADE_CUMULATIVE_REFERENCE_ONE_SOURCE_QUALIFICATION_READY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute one exact122 capped focused source qualification on existing audit test module after peer review; expected53cases from staticcount, actual count required. Production183roles preserved; no physical audit before sourcePASS, no new native epoch/Exit/TEST.",
+  "next_action": "Execute one exact122 capped focused source qualification on existing audit test module after peer review; expected58cases from staticcount, actual count required. Production183roles preserved; no physical audit before sourcePASS, no new native epoch/Exit/TEST.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute one exact122 capped focused source qualification on existing audit test module after peer review; expected53cases from staticcount, actual count required. Production183roles preserved; no physical audit before sourcePASS, no new native epoch/Exit/TEST.",
+    "next_action": "Execute one exact122 capped focused source qualification on existing audit test module after peer review; expected58cases from staticcount, actual count required. Production183roles preserved; no physical audit before sourcePASS, no new native epoch/Exit/TEST.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18766,7 +18766,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T22:26:59.423323+00:00",
+  "updated_utc": "2026-10-20T22:28:40.718119+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
