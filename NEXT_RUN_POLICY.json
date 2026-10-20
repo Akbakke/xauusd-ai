@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T23:37:07.309490+00:00",
-  "status": "125_BASIS_SOURCE_READY_164_CASES_PENDING",
+  "observed_utc": "2026-10-20T23:38:28.974684+00:00",
+  "status": "125_PHYSICAL_BASIS_REFERENCE_CLAIMED_AFTER_164_SOURCE_PASS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Complete independent14basisfield audit source/focusedtests; root review then exactlyone source-bound capped qualification. Physical125remainsunclaimeduntilactualsourcePASS/exactbinding. Reuse1191completedfields;4GCcolumns/3spotcolumnsfrombound2024/25/26partitions only. No full17yearscan/rebuild/model/nativeepoch/Exit/TEST/broker.",
+  "next_action": "Execute exactlyoneclaimed125capped physical14basisreference afteractual164sourcePASS. Reuse4GC/3spotcolumns/3boundyearpartitions,all14parquetfootersbeforepayload, exactsameM1/sourceclock+age/strictlastminuteTESTguard. No17yearscan/rawTB/model/refit/baseline/nativeepoch/Exit/TEST/broker. Preserveactualterminal.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "125_BASIS_SOURCE_REVIEW_AND_FOCUSED_QUALIFICATION",
+    "current_activity": "125_PUBLISHED_M1_TO_TF_SPOT_FUTURES_BASIS_PHYSICAL_REFERENCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "124_actual_published_M1_to_five_TF_profile_footprint_physical_numeric_reference",
+    "latest_terminal_role": "125_actual_focused_same_M1_basis_reference_source_qualification",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/TERMINAL.json",
-      "sha256": "5dafdb4b89b55fbd73ab1b1c893773a727565a2e4bbfca39c6a3353a19939fa5"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "6e38c1e0521dc3c1479ffce4a35ee4066920b56b9349c4e0ca0d272d9ce91481"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Independent14fieldbasisoracle implemented. Expected164focused cases=116old+41newfoundation+7existingproducerbasis. NoactualPASSyet. Sourceclosure117183roles/182files unchanged. Physical125unclaimed; no trainingauthority.",
+    "current_blocker": "Actual164focused sourcecases PASS/6.516s,208sourcefiles/policy preserved. Physical14activebasiscomparisonpending;1191GCfieldscomplete. No trainingauthority.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -16416,9 +16416,9 @@
       }
     },
     "gc_basis_numeric_reference_125": {
-      "status": "PLANNED_SOURCE_QUALIFICATION_REQUIRED",
+      "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
-      "claimed_invocations": 0,
+      "claimed_invocations": 1,
       "completed_invocations": 0,
       "relaunch_allowed": false,
       "plan": {
@@ -16438,7 +16438,11 @@
       "test_data_used": false,
       "normalization_fit_enabled": false,
       "exit_evaluation": false,
-      "broker_access_allowed": false
+      "broker_access_allowed": false,
+      "source_qualification": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/SOURCE_REVIEW.json",
+        "sha256": "c39127e5ede6525256ceeed3bce6abe84f27077f5c1eaeffaeede777cba5f2cf"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19547,10 +19551,10 @@
     }
   },
   "gc_basis_source_125": {
-    "status": "SOURCE_READY_EXPECTED_164_FOCUSED_CASES_PENDING",
-    "execution_authorized": true,
+    "status": "COMPLETE_PASS_164_FOCUSED_SOURCE_CASES",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/SOURCE_QUALIFICATION_PLAN.json",
@@ -19567,6 +19571,14 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "6e38c1e0521dc3c1479ffce4a35ee4066920b56b9349c4e0ca0d272d9ce91481"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/SOURCE_REVIEW.json",
+      "sha256": "c39127e5ede6525256ceeed3bce6abe84f27077f5c1eaeffaeede777cba5f2cf"
+    }
   }
 }

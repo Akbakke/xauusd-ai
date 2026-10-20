@@ -41,10 +41,11 @@ partisjonene2024/2025/2026 brukes, med eksakt samme M1 og ingen eldre fallback.
 Produsentens siste-minuttsregel t+1min<TESTgrensen beholdes. Alle14parquet-
 footere må sjekkes før payload;16inputfiler er281027680byte.006/024-manifest-
 proveniens gjenbrukes; full17årsproveniens-/sourcechunklesing er utenfor125.
-Source/test-implementasjon og lesereview er ferdig. Forventet164caser er
-116uendrede+41nye auditcaser+7eksisterende produsentbasiscaser. Faktisk PASS
-gjenstår; én kildekvalifisering kan kjøres etter ren binding. Fysisk125 er
-ikke claimet og krever faktisk PASS. Native117s183roller/182filer er uendret.
+Faktisk kildejobb bestod164caser:116uendrede+41nye auditcaser+7eksisterende
+produsentbasiscaser,0fail/error/skip på6,516s.208kilder ogpolicy er bevart.
+SOURCE_REVIEW.json binder faktisk XML/terminal. Fysisk125 er nå claimet én gang
+etter dette PASS-et; sammenligningen er ennå ukvalifisert. Native117s183roller/
+182filer er uendret.
 Eksisterende1191felt/116audittester/117native-mekanikk beholdes. StrictD1 er
 fysisk hjelpekolonne, ikke en15.aktiv verdi. Ingen modell/normalisering/
 baseline/nyepoke/Exit/TEST eller brokerlesing er åpnet.
