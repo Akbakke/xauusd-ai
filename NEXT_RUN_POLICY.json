@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T22:29:29.043780+00:00",
-  "status": "122_PHYSICAL_TRADE_CUMULATIVE_REFERENCE_CLAIMED_AFTER_58_SOURCE_PASS",
+  "observed_utc": "2026-10-20T22:32:05.034671+00:00",
+  "status": "122_SCOPED_211_TRADE_CUMULATIVE_NUMERIC_REFERENCE_COMPLETE_NATIVE_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactly one claimed122 capped physical trade/size/cumulative reference after actual58sourcePASS. Read9core+10sizeM1columns and53publishedTFcolumns,7finishedfiles253166440B beforeTEST. Verify211active fields; keep inactive strict outputs auxiliary, no rawscan/rebuild/model/normalization/newbaseline/nativeepoch/Exit.",
+  "next_action": "Reuse completed122 independent211trade/size/cumulative and121 independent370event/book/order references:581disjoint active GCfields at published-M1-to-TF stage;118clockproof overlaps121. No rerun of051/053/055/115/117. Next remaining bounded numeric groups: two-sided SMC, basis, profile/footprint, technical formulas and raw-to-M1; separately independent TF-to-decision availability and individual model sensitivity/Entry quality. Bind each concrete next scope; no rawTBrescan/new main epoch/HPO/fullVAL/Exit/TEST/broker.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "122_PUBLISHED_M1_TO_TF_TRADE_CUMULATIVE_PHYSICAL_REFERENCE",
+    "current_activity": "INDEPENDENT_FEATURE_NUMERIC_AUDITS_AFTER_122_COMPLETE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "122_actual_focused_trade_cumulative_reference_source_qualification",
+    "latest_terminal_role": "122_actual_scoped_211_field_trade_size_cumulative_numeric_reference",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/SOURCE_QUALIFICATION_TERMINAL.json",
-      "sha256": "ea0102b9e6520d1f023ef556ba0314ff22e18c34cdccf367cb69bdcd4cea6d4c"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/TERMINAL.json",
+      "sha256": "dfe186336e1933ebb9464908e9e854c07c674f8e3c0a625a8925b2f3ee105d02"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual58focused source cases PASS/5.180s;206source files andpolicy preserved.211active+strictauxiliary physical M1-to-TF comparison pending; no native quality verdict.",
+    "current_blocker": "581disjoint active GCfields now have scoped independent published-M1-to-TF references. Remaining SMC/profile/basis/technical/raw-firstleg numeric groups, independent TF-to-decision availability and individual sensitivity/Entry quality remain unqualified.108ordered epoch consumed;111RMS has no new main-learning round or exact new epoch admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one claimed122 capped physical trade/size/cumulative reference after actual58sourcePASS. Read9core+10sizeM1columns and53publishedTFcolumns,7finishedfiles253166440B beforeTEST. Verify211active fields; keep inactive strict outputs auxiliary, no rawscan/rebuild/model/normalization/newbaseline/nativeepoch/Exit.",
+    "next_action": "Reuse completed122 independent211trade/size/cumulative and121 independent370event/book/order references:581disjoint active GCfields at published-M1-to-TF stage;118clockproof overlaps121. No rerun of051/053/055/115/117. Next remaining bounded numeric groups: two-sided SMC, basis, profile/footprint, technical formulas and raw-to-M1; separately independent TF-to-decision availability and individual model sensitivity/Entry quality. Bind each concrete next scope; no rawTBrescan/new main epoch/HPO/fullVAL/Exit/TEST/broker.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16180,10 +16180,10 @@
       "physical_network_latency_calibrated": false
     },
     "gc_trade_cumulative_numeric_reference_122": {
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_PASS_211_PUBLISHED_TRADE_SIZE_CUMULATIVE_FIELDS",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/PLAN.json",
@@ -16205,7 +16205,95 @@
       "source_qualification": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/SOURCE_REVIEW.json",
         "sha256": "27137e3cc7b93fe65d191a4c2abc313bb2bdf0bc2b2f147b62f418e011fdd888"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/TERMINAL.json",
+        "sha256": "dfe186336e1933ebb9464908e9e854c07c674f8e3c0a625a8925b2f3ee105d02"
+      },
+      "actual_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/ACTUAL_NUMERIC_REVIEW.json",
+        "sha256": "e7e1d56cbbfbbe5b0e7a26738de4a93c4d04516bf7dcf10c4effcb8b5647ef3c"
+      },
+      "actual_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/GC_TRADE_NUMERIC_RESULTS/GC_TRADE_NUMERIC_RESULT.json",
+        "sha256": "38893f9ad146ee492a875dcc75e9c5071b4126bf36f399388f9215bdffe3d382"
+      },
+      "m1_rows": 1139040,
+      "all_m1_size_parity_rows": 1139040,
+      "cumulative_m1_passes": 1,
+      "qualified_active_fields": 211,
+      "nonconstant_fields": 205,
+      "observed_constant_fields": 6,
+      "max_absolute_error": 0.0,
+      "coverage": {
+        "D1": {
+          "active_fields": 34,
+          "qualified_fields": 34,
+          "nonconstant_fields": 32,
+          "finite_cells": 20796,
+          "nan_masked_cells": 6064,
+          "early_known_endpoint_buckets": 384
+        },
+        "H1": {
+          "active_fields": 46,
+          "qualified_fields": 46,
+          "nonconstant_fields": 45,
+          "finite_cells": 576248,
+          "nan_masked_cells": 297016,
+          "early_known_endpoint_buckets": 49
+        },
+        "H4": {
+          "active_fields": 39,
+          "qualified_fields": 39,
+          "nonconstant_fields": 37,
+          "finite_cells": 140591,
+          "nan_masked_cells": 44464,
+          "early_known_endpoint_buckets": 393
+        },
+        "M15": {
+          "active_fields": 46,
+          "qualified_fields": 46,
+          "nonconstant_fields": 45,
+          "finite_cells": 2317021,
+          "nan_masked_cells": 1176035,
+          "early_known_endpoint_buckets": 130
+        },
+        "M5": {
+          "active_fields": 46,
+          "qualified_fields": 46,
+          "nonconstant_fields": 46,
+          "finite_cells": 7051285,
+          "nan_masked_cells": 3427883,
+          "early_known_endpoint_buckets": 354
+        }
+      },
+      "all_nan_auxiliary_columns_not_numerically_qualified": 16,
+      "elapsed_seconds": 31.809612618000756,
+      "raw_to_M1_formula_proven": false,
+      "native_availability_projection_proven": false,
+      "model_consumption_proven": false,
+      "sparse_retained_H1_CVD_finite_buckets": {
+        "cvd_segment_delta_contracts": 3,
+        "cvd_segment_volume_contracts": 3,
+        "cvd_segment_minutes": 3
       }
+    },
+    "independent_gc_numeric_reference_coverage": {
+      "qualified_published_M1_to_TF_active_field_union": 581,
+      "registry_value_fields": 1205,
+      "field_sets_disjoint": true,
+      "evidence": [
+        {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/ACTUAL_NUMERIC_REVIEW.json",
+          "sha256": "27bf991c808cad3018092ea6dca4ceaf76ada6216e6d2cd255aee36a6aa66a80"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/ACTUAL_NUMERIC_REVIEW.json",
+          "sha256": "e7e1d56cbbfbbe5b0e7a26738de4a93c4d04516bf7dcf10c4effcb8b5647ef3c"
+        }
+      ],
+      "raw_to_M1_proven": false,
+      "native_model_consumption_proven": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -18770,7 +18858,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T22:29:29.043780+00:00",
+  "updated_utc": "2026-10-20T22:32:05.034671+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,

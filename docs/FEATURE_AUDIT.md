@@ -417,6 +417,23 @@ bevises ikke av denne kontrollen. Klokkelabel alene beviser ikke kalibrert
 fysisk nettverkslatens. Roll-/reset- og øvrige formelgrupper beholder sine
 separate ubeviste referansegrenser.
 
+122supplerer121med211disjunkte aktive trade-/størrelse-/kumulativfelt:
+34observed×5TF +41retained (12M5/M15/H1,5H4,ingenD1). Alle1139040M1-rader
+ble kontrollert for eksakt volum-/sidetallparitet før publisert volumemaske.
+Pythonheltall bevarer nQ−S², og sidegjennomsnitt bruker egen recordnevner.
+Begge kumulative M1-ledgere beregnes én gang, resetter ved UTC-dato/roll/
+ugyldigM1/hull og projiseres til egne strikte eller siste observerte endepunkter.
+Alle211aktive felt hadde finitt dekning og nullavvik;205varierer,6er konstanter.
+16heltNaNstrikte hjelpekolonner er bare maskekontrollert, ikke formelPASS.
+Strikt H1-CVD har bare3gyldige bøtter; numerisk paritet beviser ikke læringsdekning.
+58kildecaser bestod, fysisk audit tok31,810s/exit0 med206kilder bevart.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/ACTUAL_NUMERIC_REVIEW.json`,
+e7e1d56cbbfbbe5b0e7a26738de4a93c4d04516bf7dcf10c4effcb8b5647ef3c. Samlet581aktive GCfelt er nå kontrollert på
+publisertM1→TF-stadiet, uten dobbeltelling av118. Originalstats er bevisst
+UNMASKED; egne publiserte volumemasker brukes etter all-M1-paritet. Ingen
+råevent→M1-, uavhengig TF→beslutning-, individuell sensitivitet-/nytte- eller
+læringspåstand følger av dette. Ingen produksjonsformel er endret.
+
 SMCrapporten beskriver mekaniske observerte proxyer: trehøyrebarsbekreftede
 pivoter, engangsBOS/sweep, tidligere motsatt candle som OB-opprinnelse og
 senere wick-retouch. Age teller observerte candles. Hull nullstiller soner;

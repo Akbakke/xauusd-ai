@@ -31,24 +31,42 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — trade-/størrelse-/kumulativfasit122
+## Siste kontroll — 211 trade-/størrelse-/kumulativfelt bestod122
 
 122 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122`.
-Design/plan og kilde er klar i eksisterende auditeier/testfil; ingen produksjonsformler er endret.
-Omfanget er211aktive felt:34observed×5TF og41retained (12M5/M15/H1,5H4,ingenD1).
-Uregistrerte strikte alleTF-output kontrolleres separat som støtte, ikke nye aktive felt.
-Bare ni M1-tradekolonner og ti sizekolonner samt fem ferdigeTF-filer skal leses;
-sju filer253166440B komprimert, ingen råscan/OHLC/rebuild/fit/modell/Exit/TEST.
-CoreM1 har bare bar_start_ns/contract_index; bare sizefilen har available_ns.
-UNMASKEDsize avstemmes før egen publisert volumemaske. Pythonheltall bevarer
-volum/sidetall og nQ−S². Begge kumulative M1-stier beregnes én gang og resetter
-ved UTC-dato/roll/ugyldig forrige M1/hull. Strictsigned-CVD bruker TF-endepunkt;
-knowncum bruker siste observerte M1 og beholder unknown. Ingen22UTC-reset.
-183nativeproduksjonsroller/182filer er kontrollert uendret. Faktisk122kildejobb
-bestod58caser (34beholdte+24nye),0fail/error/skip på5,180s.206kilder ogpolicy
-er bevart. SOURCE_REVIEW.json binder XML/resultat/terminal. Fysisk122 er nå
-claimet én gang etter dette PASS-et; sammenligningen er fortsatt ukvalifisert.
-121/118og117gjenbrukes. Ingen ny nativeepoke er åpnet.
+Én capped CPUaudit4G/512M fullførte med exit0 på31,810s inkludert sluttkontroll.
+Alle1139040M1-rader ble avstemt før maskering; begge kumulative M1-stier ble
+beregnet i én pass før alleTF. Ni corekolonner og ti sizekolonner fra to M1-filer
+og53kolonner fra hver ferdigeTF-fil ble brukt; sju filer253166440B komprimert.
+Ingen råscan/rebuild/fit/modell/Exit/TEST.206kilder er bevart.
+
+Alle211aktive felt har finitt dekning og eksakt nullavvik:34observed×5TF og
+41retained (12M5/M15/H1,5H4,ingenD1).205varierer og6er observerte konstanter:
+minsteT-størrelse1 påM15/H1/H4/D1; observed_signed_complete0 påH4/D1.
+16uregistrerte strikte hjelpeoutput er heltNaN og bare maskekontrollert,
+ikke numerisk kvalifisert. Strikt H1-CVD har bare3gyldige bøtter; dette er
+tall-/maskebevis, ingen påstand om god læringsdekning. Felter, masker og
+tidsrammer er ikke nye formler.
+Known-endepunkt før TF-slutt forekom354/130/49/393/384ganger påM5/M15/H1/H4/D1;
+korrekt siste observerte M1 ble brukt fremfor skjult utfylling til TF-slutt.
+UTC-dato/roll/ugyldigM1/hull resetter kumulativer; ingen22UTC-reset.
+Unknown beholdes separat. CoreM1 har ingen available_ns; sizefilens egen
+klokke og felles bar_start_ns/contract_index ble kontrollert eksakt som heltall.
+
+58kildecaser bestod på5,180s; nye håndfasitter dekker vekting, heltallsvarians,
+fullunsigned/unknown, UTC-reset og uaksepterte rader. Produksjonsformlene og
+183nativeproduksjonsroller/182filer er uendret. Ingen ny baseline-/paritetsrunde.
+ACTUAL_NUMERIC_REVIEW.json e7e1d56cbbfbbe5b0e7a26738de4a93c4d04516bf7dcf10c4effcb8b5647ef3c.
+RESULT-SHA38893f9ad146ee492a875dcc75e9c5071b4126bf36f399388f9215bdffe3d382.
+TERMINAL.json dfe186336e1933ebb9464908e9e854c07c674f8e3c0a625a8925b2f3ee105d02.122er konsumert og relanseres aldri.
+
+122og121dekker581disjunkte aktive GCfelt på publisertM1→TF-stadiet. Dette er
+ikke raw→M1-, uavhengig TF→beslutning-, individuell modellfølsomhets-/nytte-,
+lærings- eller økonomibevis.051fysisk seq/snap-rekonstruksjon,053allefelt-/
+maskeliveness,055normalisering og115/117aktuell modellmekanikk gjenbrukes.
+Gjenværende tallgrupper er SMC, basis, profil/footprint, tekniske formler og
+råevent→M1. Full individuell tilgjengelighet/konsum og LONG/SHORT/FLAT-kvalitet,
+dekning/forklaringer gjenstår. Ingen ny hovedtrening er åpnet.
 
 ## Siste kontroll — 370 event-/bok-/ordrefelt bestod fysisk tallreferanse121
 
@@ -85,8 +103,8 @@ ACTUAL_NUMERIC_REVIEW.json SHA639ae6d4e5b8d40a41b39aa7445df66c3b73d2089dec9fdaf2
 Ingen produksjonsformel/native funksjon ble endret; audit-/testfilene ligger utenfor
 117s183produksjonsroller.117mekanikk gjenbrukes uten ny baseline-/paritetsrunde.
 
-Neste tallreferanser grupperes: trade/kumulativer/masker, tosidig SMC, basis og
-profiler/footprint fra genuine prisnivårader; raw→M1 og tekniske formler har egne
+Trade/kumulativer/masker er senere kvalifisert i122 ovenfor. Neste grupper er
+tosidig SMC, basis og profiler/footprint; raw→M1 og tekniske formler har egne
 grenser. Full individuell native tilgjengelighet/konsum og LONG/SHORT/FLAT-kvalitet,
 dekning og forklaringer er fortsatt ukvalifisert. Ingen ny hovedtrening er åpnet.
 
