@@ -398,9 +398,18 @@ Bokrapporten skiller tidsvektet BBO-sizeimbalance/mikropris, vist antall/
 størrelse og eksekverte T-poster. Spreadutvidelse er count/sum/max i ticks,
 ikke en kalibrert shock-zscore. Full uavhengig raw→M1→alleTF-fasit for hele
 OFI/refill/depletion-vektoren og kombinerte reset-/feildomener gjenstår.
-Kildeklokke-/latensmiddel med ulike M1-antall er heller ikke uavhengig dekket;
-den eksisterende navngitte testen bruker like nevnere. Klokkelabel alene
-beviser ikke kalibrert fysisk nettverkslatens.
+Kildeklokkemidlene send_to_capture/receive_minus_event/matching_clock er kontrollert
+uavhengig fra publiserte M1-summer/egne antall til alle femTF i118. Math.fsum-fasiten
+bruker analytisk float64-reduksjons-/divisjonsgrense, fullgrid, samme kontrakt og
+separate gyldighets-/NaN-domener.1139040M1-rader/328263TF-bøtter ga avvik0 for
+alle15middelverdier og tilhørende counts/summer. Alle15har reelle ujevne-count-vitner
+som diskriminerer mot middel-av-midler.20fokuserte caser inkluderer14nye håndfasitter.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/ACTUAL_NUMERIC_REVIEW.json`,
+SHA639ae6d4e5b8d40a41b39aa7445df66c3b73d2089dec9fdaf217160552474275.
+Dette gjenbruker allerede OFI-/incidentmaskerte M1-statistikker og beviser ikke
+råevent→M1 eller individuelt native modellkonsum. Klokkelabel alene beviser ikke
+kalibrert fysisk nettverkslatens. Øvrige event-/bok-/roll-/reset-formler beholder
+sine separate ubeviste referansegrenser.
 
 SMCrapporten beskriver mekaniske observerte proxyer: trehøyrebarsbekreftede
 pivoter, engangsBOS/sweep, tidligere motsatt candle som OB-opprinnelse og

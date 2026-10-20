@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T21:38:28.970162+00:00",
-  "status": "118_GC_CLOCK_PHYSICAL_REFERENCE_CLAIMED_AFTER_119_20_TEST_PASS__TRAINING_CLOSED",
+  "observed_utc": "2026-10-20T21:42:29.066344+00:00",
+  "status": "118_GC_CLOCK_NUMERIC_REFERENCE_PASS__117_MECHANICS_PASS__REMAINING_FEATURE_GROUPS_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactly one118claimed capped CPU reference audit using published024M1events and five TFfiles, after119actual20testPASS. Read projected safe development rowgroups only; no raw MBP replay, rebuild, fit, model, Exit or TEST. No relaunch of118rejected sourceattempt or119consumed sourceplan. Further native training closed.",
+  "next_action": "118published M1-to-five-TF clock means are independently complete; reuse15domain/TF references and119focused20testPASS. Next close remaining independent numeric formula groups efficiently from existing M1/TF/pricegrid: event and book aggregates, trade/cumulative masks, two-sided SMC, basis and volume profiles. Raw event replay only for first-leg evidence not reconstructible from reduced inputs. No production IO patch is justified by117single scoped-hash sample. No further native epoch/fullVAL/Exit/TEST/broker authority.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "118_PUBLISHED_M1_TO_FIVE_TF_CLOCK_NUMERIC_REFERENCE",
+    "current_activity": "118_CLOCK_NUMERIC_REFERENCE_COMPLETE__REMAINING_FEATURE_GROUPS_PENDING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "119_actual_focused_gc_clock_reference_source_qualification",
+    "latest_terminal_role": "118_actual_independent_gc_clock_numeric_reference",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_SOURCE_QUALIFICATION_20261020_119/TERMINAL.json",
-      "sha256": "1e657493a3bd96d8cd8db10e329b4ba950090702b7cf3eba6772c3e9c1a3a42b"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/TERMINAL.json",
+      "sha256": "67704861119813c7e602da1425f4e419e33e1ae04dc428767d0c3fb18252f578"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "118physical unequal-count clockmean reconstruction pending.119focused sourcequalification20PASS/0fail/0skip in4.971s,205sourcefiles/policy preserved. No native model or further main epoch admitted.",
+    "current_blocker": "No current workload.118independent published M1-to-five-TF clock reference PASS:1139040M1/328263buckets/15domain-TFpairs, count/sum/mean errors0, masks/unequal-count witnesses pass. Remaining independent event/book/trade/SMC/basis/profile and raw-to-M1 references, primary Entry quality/generalization/economy unqualified. One main epoch108already complete; no extraepoch authority.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one118claimed capped CPU reference audit using published024M1events and five TFfiles, after119actual20testPASS. Read projected safe development rowgroups only; no raw MBP replay, rebuild, fit, model, Exit or TEST. No relaunch of118rejected sourceattempt or119consumed sourceplan. Further native training closed.",
+    "next_action": "118published M1-to-five-TF clock means are independently complete; reuse15domain/TF references and119focused20testPASS. Next close remaining independent numeric formula groups efficiently from existing M1/TF/pricegrid: event and book aggregates, trade/cumulative masks, two-sided SMC, basis and volume profiles. Raw event replay only for first-leg evidence not reconstructible from reduced inputs. No production IO patch is justified by117single scoped-hash sample. No further native epoch/fullVAL/Exit/TEST/broker authority.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -15867,7 +15867,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
     },
-    "latest_terminal_evidence_scope": "119one capped CPUsourcejob:20PASS including14newclockcases;4.971s,source/policyunchanged. No physical input scan or native model.",
+    "latest_terminal_evidence_scope": "118one capped4G/512M CPUaudit completed35.321s,1139040M1rows beforeJul1TEST,328263TFbuckets. All15means/owncounts/sums/masks and discriminating witnesses pass exactly; no raw MBP, fit, model or TEST.119source20PASS. All plans consumed, no relaunch.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -15990,7 +15990,7 @@
     },
     "current_generation_acceptance_scope": "114genuine fresh,115zero-update initial,116strict savedstate/RNG and117actual Entry-only optimizer/parity/resume PASS with111TRAIN RMS. Private weights nonreusable. No primary Entry quality generalization or economic admission.",
     "gc_clock_numeric_reference_118": {
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_PASS_PUBLISHED_M1_TO_FIVE_TF_CLOCK_REFERENCE",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/PLAN.json",
         "sha256": "f452c59fc194a99bea4c27fb0b09ab699c1c4ab50a9daf3b5727294f8c500b00"
@@ -16001,7 +16001,7 @@
       },
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "training_enabled": false,
       "full_epoch_training_allowed": false,
@@ -16015,7 +16015,27 @@
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_SOURCE_QUALIFICATION_20261020_119/SOURCE_REVIEW.json",
         "sha256": "fdf401f9d0eb3942c016e69e7476d38e899382638bf9fdb6f811d5adf2d4f05a"
       },
-      "physical_audit_timeout_seconds": 1800
+      "physical_audit_timeout_seconds": 1800,
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/TERMINAL.json",
+        "sha256": "67704861119813c7e602da1425f4e419e33e1ae04dc428767d0c3fb18252f578"
+      },
+      "actual_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/ACTUAL_NUMERIC_REVIEW.json",
+        "sha256": "639ae6d4e5b8d40a41b39aa7445df66c3b73d2089dec9fdaf217160552474275"
+      },
+      "actual_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/GC_EVENT_NUMERIC_RESULTS/GC_EVENT_NUMERIC_RESULT.json",
+        "sha256": "d4d6cf9754573939ec6c4818736833810431022041d6a55e8a1e6b0268a1835c"
+      },
+      "m1_rows": 1139040,
+      "tf_buckets": 328263,
+      "clock_domain_timeframe_pairs": 15,
+      "max_absolute_error": 0.0,
+      "elapsed_seconds": 35.320773985000415,
+      "raw_to_M1_formula_proven": false,
+      "model_consumption_proven": false,
+      "physical_network_latency_calibrated": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -18580,7 +18600,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T21:38:28.970162+00:00",
+  "updated_utc": "2026-10-20T21:42:29.066344+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
