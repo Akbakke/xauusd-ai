@@ -1156,3 +1156,254 @@ def test_profile_numeric_large_integer_lower_crossings_and_exact_quantity_bound(
         assert abs(values[name]-actual[name])<=bounds[name],name
     with pytest.raises(RuntimeError,match='GC_PROFILE_REFERENCE_FLOAT_QUANTITY_BOUND'):
         audit.reference_profile_histogram({100:(2**53+1,0,0)},100000000,10**9)
+
+
+def _basis_numeric_fixture(timeframe):
+    n=_CLOCK_MINUTES[timeframe];start=pd.Timestamp('2024-05-01T22:00Z').value
+    clock=start+np.arange(3*n,dtype=np.int64)*MINUTE
+    admitted=np.ones(3*n,bool);admitted[2*n:]=False;admitted[[2*n,2*n+2]]=True
+    close=np.full(3*n,1000,np.int64);close[n-1]=1020;close[2*n:]=0
+    close[2*n]=1050;close[2*n+2]=1080
+    m1={'bar_start_ns':clock,'contract_index':np.zeros(3*n,np.int16),
+        'volume_valid':admitted,'close_tick':close}
+    mid=np.full(3*n,100.);mid[2*n]=90.;mid[2*n+1]=80.;mid[2*n+2]=120.;mid[-1]=200.
+    quotes={'time':clock.copy(),'bid_close':mid-1,'ask_close':mid+1}
+    return m1,quotes
+
+
+@pytest.mark.parametrize('timeframe',tuple(_CLOCK_MINUTES))
+def test_basis_numeric_literal_positive_zero_negative_same_m1_all_five_tf(monkeypatch,tmp_path,timeframe):
+    import pyarrow.parquet as pq
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit,gc_order_flow_features_v1 as owner
+    from gx1.features import gc_order_flow_v1 as formulas
+    m1,quotes=_basis_numeric_fixture(timeframe);n=_CLOCK_MINUTES[timeframe]
+    with monkeypatch.context() as no_delegate:
+        for module,name in ((owner,'add_basis'),(formulas,'timeframe_skeleton')):
+            no_delegate.setattr(module,name,lambda *a,**k:(_ for _ in ()).throw(AssertionError('basis oracle delegates')))
+        spot,report=audit.reference_basis_spot(m1['bar_start_ns'],[quotes],pd.Timestamp('2026-07-01T00:00Z').value)
+        observed,strict,bounds,units=audit.reference_basis_aggregates(m1,spot,timeframe,100000000,10**9)
+    assert len(observed)==7 and len(strict)==6
+    np.testing.assert_array_equal(observed['observed_spot_basis_valid'],[True,True,True])
+    np.testing.assert_allclose(observed['observed_spot_basis_bps'],[200.,0.,-1000.],rtol=0,atol=1e-10)
+    np.testing.assert_allclose(strict['spot_basis_bps'],[200.,0.,np.nan],rtol=0,atol=1e-10,equal_nan=True)
+    np.testing.assert_array_equal(strict['volume_valid'],[True,True,False])
+    np.testing.assert_array_equal(strict['close_usd'],[102.,100.,np.nan])
+    source_clock=m1['bar_start_ns'][[n-1,2*n-1,2*n+2]]+MINUTE
+    np.testing.assert_array_equal(observed['observed_spot_basis_source_available_ns'],source_clock)
+    np.testing.assert_array_equal(observed['observed_spot_basis_age_minutes'],[0.,0.,n-3.])
+    # The unchanged producer is checked separately against hand-built surfaces.
+    surface={'bar_start_ns':m1['bar_start_ns'][[0,n,2*n]].copy(),
+        'available_ns':m1['bar_start_ns'][[0,n,2*n]]+n*MINUTE,
+        'contract_index':np.zeros(3,np.int16),'volume_valid':np.array([True,True,False]),
+        'close_usd':np.array([102.,100.,np.nan]),'observed_valid':np.ones(3,bool),
+        'observed_close_usd':np.array([102.,100.,108.]),
+        'observed_last_minute_ns':m1['bar_start_ns'][[n-1,2*n-1,2*n+2]].astype(np.float64)}
+    part=tmp_path/'spot.parquet';manifest=tmp_path/'manifest.json';manifest.write_text('{}')
+    pq.write_table(pa.table({'time':pa.array(quotes['time'],type=pa.timestamp('ns',tz='UTC')),
+        'bid_close':quotes['bid_close'],'ask_close':quotes['ask_close']}),part)
+    plan={'inputs':{'oanda_manifest':{'path':str(manifest),'sha256':owner.previous.sha256_file(manifest),
+        'partitions':[{'path':str(part),'sha256':owner.previous.sha256_file(part)}]}}}
+    monkeypatch.setattr(owner.timing,'STUDY_START_NS',int(m1['bar_start_ns'][0]))
+    owner.add_basis(plan,{timeframe:surface},m1['bar_start_ns'],include_observed=True)
+    for key,reference in (('observed',observed),('strict',strict)):
+        compared=audit.compare_trade_reference(reference,{name:surface[name] for name in reference},bounds[key],units[key])
+        assert all(item['numeric_reference_qualified'] for item in compared.values())
+
+
+@pytest.mark.parametrize('timeframe',tuple(_CLOCK_MINUTES))
+def test_basis_numeric_missing_exact_spot_never_falls_back_to_old_or_tf_end(timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,quotes=_basis_numeric_fixture(timeframe);n=_CLOCK_MINUTES[timeframe]
+    take=np.ones(3*n,bool);take[[n-1,2*n+2]]=False
+    quotes={name:value[take] for name,value in quotes.items()}
+    spot,_=audit.reference_basis_spot(m1['bar_start_ns'],[quotes],pd.Timestamp('2026-07-01T00:00Z').value)
+    observed,strict,_,_=audit.reference_basis_aggregates(m1,spot,timeframe,100000000,10**9)
+    np.testing.assert_array_equal(strict['volume_valid'],[True,True,False])
+    np.testing.assert_array_equal(observed['observed_spot_basis_valid'],[False,True,False])
+    assert np.isnan(strict['spot_basis_bps'][[0,2]]).all() and strict['spot_basis_bps'][1]==0
+    assert observed['observed_spot_basis_bps'][1]==0
+    for name in ('observed_spot_basis_bps','observed_spot_basis_source_available_ns','observed_spot_basis_age_minutes'):
+        assert np.isnan(observed[name][[0,2]]).all(),name
+
+
+@pytest.mark.parametrize('timeframe',tuple(_CLOCK_MINUTES))
+def test_basis_numeric_roll_including_unadmitted_minute_censors_whole_tf(timeframe):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,quotes=_basis_numeric_fixture(timeframe);n=_CLOCK_MINUTES[timeframe]
+    m1['contract_index'][n//2]=1;m1['contract_index'][2*n+1]=1
+    spot,_=audit.reference_basis_spot(m1['bar_start_ns'],[quotes],pd.Timestamp('2026-07-01T00:00Z').value)
+    observed,strict,_,_=audit.reference_basis_aggregates(m1,spot,timeframe,100000000,10**9)
+    np.testing.assert_array_equal(strict['volume_valid'],[False,True,False])
+    np.testing.assert_array_equal(observed['observed_spot_basis_valid'],[False,True,False])
+    assert observed['observed_spot_basis_bps'][1]==strict['spot_basis_bps'][1]==0
+    for name in ('observed_spot_basis_bps','observed_spot_basis_source_available_ns','observed_spot_basis_age_minutes'):
+        assert np.isnan(observed[name][[0,2]]).all(),name
+    assert np.isnan(strict['close_usd'][[0,2]]).all()
+
+
+@pytest.mark.parametrize('failure',('missing','float_clock','float_contract','mask_dtype','float_close','invalid_close','gap'))
+def test_basis_numeric_m1_schema_rejects_missing_clock_dtype_price_and_gap(failure):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,quotes=_basis_numeric_fixture('M5')
+    spot,_=audit.reference_basis_spot(m1['bar_start_ns'],[quotes],pd.Timestamp('2026-07-01T00:00Z').value)
+    if failure=='missing':del m1['close_tick']
+    elif failure=='float_clock':m1['bar_start_ns']=m1['bar_start_ns'].astype(np.float64)
+    elif failure=='float_contract':m1['contract_index']=m1['contract_index'].astype(np.float64)
+    elif failure=='mask_dtype':m1['volume_valid']=m1['volume_valid'].astype(np.int8)
+    elif failure=='float_close':m1['close_tick']=m1['close_tick'].astype(np.float64)
+    elif failure=='invalid_close':m1['close_tick'][0]=0
+    elif failure=='gap':m1['bar_start_ns'][2]+=MINUTE
+    with pytest.raises(RuntimeError,match='GC_BASIS_REFERENCE_M1_SCHEMA'):
+        audit.reference_basis_aggregates(m1,spot,'M5',100000000,10**9)
+
+
+@pytest.mark.parametrize('failure,error', [
+    ('missing','SPOT_SCHEMA'),('float_clock','SPOT_SCHEMA'),('quote_dtype','SPOT_SCHEMA'),
+    ('zero_bid','SPOT_QUOTES'),('crossed','SPOT_QUOTES'),('nan_bid','SPOT_QUOTES'),
+    ('inf_ask','SPOT_QUOTES'),('offgrid','SPOT_TIME_GRID'),
+])
+def test_basis_numeric_spot_schema_quote_and_minute_grid_rejects(failure,error):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,quotes=_basis_numeric_fixture('M5')
+    if failure=='missing':del quotes['ask_close']
+    elif failure=='float_clock':quotes['time']=quotes['time'].astype(np.float64)
+    elif failure=='quote_dtype':quotes['bid_close']=quotes['bid_close'].astype(np.float32)
+    elif failure=='zero_bid':quotes['bid_close'][0]=0
+    elif failure=='crossed':quotes['ask_close'][0]=quotes['bid_close'][0]-1
+    elif failure=='nan_bid':quotes['bid_close'][0]=np.nan
+    elif failure=='inf_ask':quotes['ask_close'][0]=np.inf
+    elif failure=='offgrid':quotes['time'][0]+=1
+    with pytest.raises(RuntimeError,match='GC_BASIS_REFERENCE_'+error):
+        audit.reference_basis_spot(m1['bar_start_ns'],[quotes],pd.Timestamp('2026-07-01T00:00Z').value)
+
+
+@pytest.mark.parametrize('across_batches',(False,True))
+def test_basis_numeric_duplicate_spot_minute_is_rejected_within_and_across_batches(across_batches):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,quotes=_basis_numeric_fixture('M5')
+    duplicate={name:value[:1] for name,value in quotes.items()}
+    batches=[quotes,duplicate] if across_batches else [{name:np.concatenate((value,value[:1])) for name,value in quotes.items()}]
+    with pytest.raises(RuntimeError,match='GC_BASIS_REFERENCE_SPOT_DUPLICATE'):
+        audit.reference_basis_spot(m1['bar_start_ns'],batches,pd.Timestamp('2026-07-01T00:00Z').value)
+
+
+def test_basis_numeric_last_source_minute_is_excluded_without_backfill_or_test_access():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    seal=pd.Timestamp('2026-07-01T00:00Z').value;clock=seal-np.arange(5,0,-1,dtype=np.int64)*MINUTE
+    m1={'bar_start_ns':clock,'contract_index':np.zeros(5,np.int16),
+        'volume_valid':np.array([True,True,True,True,False]),'close_tick':np.full(5,1000,np.int64)}
+    quotes={'time':clock.copy(),'bid_close':np.full(5,99.),'ask_close':np.full(5,101.)}
+    quotes['bid_close'][-1]=199.;quotes['ask_close'][-1]=201.
+    spot,report=audit.reference_basis_spot(clock,[quotes],seal)
+    assert np.isnan(spot['bid'][-1]) and np.isnan(spot['ask'][-1])
+    assert report['decoded_spot_rows']==5 and report['matched_spot_minutes']==4
+    assert report['missing_spot_minutes']==report['terminal_m1_rows_excluded']==1
+    assert report['spot_passes']==1 and report['older_spot_fallbacks']==0
+    observed,strict,_,_=audit.reference_basis_aggregates(m1,spot,'M5',100000000,10**9)
+    assert observed['observed_spot_basis_valid'].tolist()==[True]
+    assert observed['observed_spot_basis_bps'].tolist()==[0.]
+    assert observed['observed_spot_basis_source_available_ns'].tolist()==[seal-MINUTE]
+    assert observed['observed_spot_basis_age_minutes'].tolist()==[1.]
+    assert not strict['volume_valid'][0] and np.isnan(strict['spot_basis_bps'][0])
+    forbidden={name:value[:1].copy() for name,value in quotes.items()};forbidden['time'][0]=seal
+    with pytest.raises(RuntimeError,match='GC_BASIS_REFERENCE_SPOT_TEST_CLOCK'):
+        audit.reference_basis_spot(clock,[forbidden],seal)
+
+
+def test_basis_numeric_real_four_column_gc_and_three_column_timestamp_spot_readers(monkeypatch):
+    import pyarrow.parquet as pq
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,quotes=_basis_numeric_fixture('M5');readers={}
+    # The physical spot schema can contain other fields; only the declared three
+    # columns are decoded. The physical clock must be timestamp[ns,UTC].
+    spot_table=pa.table({'time':pa.array(quotes['time'],type=pa.timestamp('ns',tz='UTC')),
+        'bid_close':quotes['bid_close'],'ask_close':quotes['ask_close'],'unused':np.ones(len(quotes['time']))})
+    for name,table in (('m1',pa.table(m1)),('spot',spot_table)):
+        stream=pa.BufferOutputStream();pq.write_table(table,stream)
+        readers[name]=pq.ParquetFile(pa.BufferReader(stream.getvalue()))
+    monkeypatch.setattr(audit.pq,'ParquetFile',lambda path:readers[str(path)])
+    start=int(m1['bar_start_ns'][0]);end=int(m1['bar_start_ns'][-1])+MINUTE;seal=end+DAY
+    source,groups=audit.read_basis_numeric_inputs({'m1_basis':{'path':'m1'}},start,end,seal)
+    batches,spot_groups=audit.iter_basis_spot('spot',start,end,seal);decoded=list(batches)
+    assert groups==spot_groups==[0] and len(source)==4 and set(source)==set(audit.GC_BASIS_M1_COLUMNS)
+    assert len(decoded)==1 and set(decoded[0])==set(audit.GC_BASIS_SPOT_COLUMNS)
+    assert decoded[0]['time'].dtype==np.int64 and source['volume_valid'].dtype.kind=='b'
+    assert 'available_ns' not in source and 'unused' not in decoded[0]
+    for name,value in m1.items():np.testing.assert_array_equal(source[name],value)
+    for name,value in quotes.items():np.testing.assert_array_equal(decoded[0][name],value)
+    _,report=audit.reference_basis_spot(source['bar_start_ns'],decoded,seal)
+    assert report['matched_spot_minutes']==report['decoded_spot_rows']==len(quotes['time'])
+    assert report['spot_passes']==1 and report['older_spot_fallbacks']==0
+
+
+def test_basis_numeric_spot_footer_rejects_test_before_decoding_earlier_safe_group(monkeypatch):
+    import pyarrow.parquet as pq
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    seal=pd.Timestamp('2026-07-01T00:00Z').value
+    table=pa.table({'time':pa.array([seal-2*MINUTE,seal],type=pa.timestamp('ns',tz='UTC')),
+        'bid_close':[99.,99.],'ask_close':[101.,101.]})
+    stream=pa.BufferOutputStream();pq.write_table(table,stream,row_group_size=1)
+    reader=pq.ParquetFile(pa.BufferReader(stream.getvalue()))
+    class NoDecode:
+        metadata=reader.metadata
+        schema_arrow=reader.schema_arrow
+        def iter_batches(self,**kwargs):raise AssertionError('decoded payload before all footers admitted')
+    monkeypatch.setattr(audit.pq,'ParquetFile',lambda path:NoDecode())
+    with pytest.raises(RuntimeError,match='GC_EVENT_NUMERIC_ROW_GROUP_INTERSECTS_TEST'):
+        audit.iter_basis_spot('memory',seal-2*MINUTE,seal+MINUTE,seal)
+
+
+def test_basis_numeric_actual_registry_14_completes_1205_and_d1_strict_stays_auxiliary():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_native_context_v1 as registry
+    declared=audit.basis_numeric_active_fields()
+    assert [len(fields) for fields in declared.values()]==[2,2,2,2,2,1,1,1,1]
+    expected={name for columns in declared.values() for name in columns.values()};actual=set()
+    for scope,columns in declared.items():
+        table='BASIS_'+scope.removeprefix('strict_')+'.parquet' if scope.startswith('strict_') else 'TRADE_FEATURES_'+scope+'.parquet'
+        actual.update(field['name'] for field in registry.REGISTRY['fields'] if field['table']==table and field['column'] in columns)
+    assert len(expected)==14 and actual==expected and 'strict_D1' not in declared
+    smc,book=audit.smc_numeric_active_fields()
+    previous={name for scope in (audit.event_book_numeric_active_fields(),audit.trade_numeric_active_fields(),smc,audit.profile_numeric_active_fields())
+        for columns in scope.values() for name in columns.values()}|set(book.values())
+    assert len(previous)==1191 and not previous.intersection(expected)
+    assert previous|expected==set(registry.contract()['value_fields'])
+    # Physical strict D1 is still compared, but an all-NaN value is no proof.
+    m1,quotes=_basis_numeric_fixture('D1');m1['volume_valid'][:]=False
+    spot,_=audit.reference_basis_spot(m1['bar_start_ns'],[quotes],pd.Timestamp('2026-07-01T00:00Z').value)
+    _,strict,bounds,units=audit.reference_basis_aggregates(m1,spot,'D1',100000000,10**9)
+    assert len(strict)==6 and np.isnan(strict['spot_basis_bps']).all()
+    report=audit.compare_trade_reference(strict,{name:value.copy() for name,value in strict.items()},bounds['strict'],units['strict'])
+    assert not report['spot_basis_bps']['numeric_reference_qualified']
+    assert report['spot_basis_bps']['finite_published_values_compared']==0
+
+
+@pytest.mark.parametrize('failure',('naive','milliseconds','timezone'))
+def test_basis_numeric_spot_requires_ns_utc_timestamp_before_any_payload(monkeypatch,failure):
+    import pyarrow.parquet as pq
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    stamp=pd.Timestamp('2024-05-01T22:00Z')
+    kind={'naive':pa.timestamp('ns'),'milliseconds':pa.timestamp('ms',tz='UTC'),
+        'timezone':pa.timestamp('ns',tz='Europe/Oslo')}[failure]
+    value=stamp.tz_localize(None) if failure=='naive' else stamp
+    table=pa.table({'time':pa.array([value],type=kind),'bid_close':[99.],'ask_close':[101.]})
+    stream=pa.BufferOutputStream();pq.write_table(table,stream)
+    reader=pq.ParquetFile(pa.BufferReader(stream.getvalue()))
+    class NoDecode:
+        metadata=reader.metadata
+        schema_arrow=reader.schema_arrow
+        def iter_batches(self,**kwargs):raise AssertionError('decoded non-ns-UTC spot payload')
+    monkeypatch.setattr(audit.pq,'ParquetFile',lambda path:NoDecode())
+    with pytest.raises(RuntimeError,match='GC_BASIS_REFERENCE_SPOT_SCHEMA'):
+        audit.iter_basis_spot('memory',stamp.value-MINUTE,stamp.value+MINUTE,stamp.value+DAY)
+
+
+@pytest.mark.parametrize('domain',('overflow_mid','subnormal_mid'))
+def test_basis_numeric_analytic_bound_rejects_unsupported_float_arithmetic(domain):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    m1,quotes=_basis_numeric_fixture('M5')
+    value=np.finfo(np.float64).max if domain=='overflow_mid' else float.fromhex('0x0.0000000000001p-1022')
+    quotes['bid_close'][:]=value;quotes['ask_close'][:]=value
+    spot,_=audit.reference_basis_spot(m1['bar_start_ns'],[quotes],pd.Timestamp('2026-07-01T00:00Z').value)
+    with pytest.raises(RuntimeError,match='GC_BASIS_REFERENCE_UNSUPPORTED_FLOAT_ARITHMETIC'):
+        audit.reference_basis_aggregates(m1,spot,'M5',100000000,10**9)

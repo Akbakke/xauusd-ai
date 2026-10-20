@@ -31,7 +31,26 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid —1191 av1205 GC-felt kontrollert,14 basisfelt gjenstår
+## Gjeldende arbeid — basisreferanse125 under oppbygging
+
+125 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125`.
+De siste14 aktive GC-verdiene kontrolleres: fire strictbasisbps og observedbps+
+kildealder på femTF. Separate observerte og strikte endepunkter rekonstrueres
+fra fire GC-M1-kolonner. Bare time/bid_close/ask_close fra de tre bundne spot-
+partisjonene2024/2025/2026 brukes, med eksakt samme M1 og ingen eldre fallback.
+Produsentens siste-minuttsregel t+1min<TESTgrensen beholdes. Alle14parquet-
+footere må sjekkes før payload;16inputfiler er281027680byte.006/024-manifest-
+proveniens gjenbrukes; full17årsproveniens-/sourcechunklesing er utenfor125.
+Source/test-implementasjon og lesereview er ferdig. Forventet164caser er
+116uendrede+41nye auditcaser+7eksisterende produsentbasiscaser. Faktisk PASS
+gjenstår; én kildekvalifisering kan kjøres etter ren binding. Fysisk125 er
+ikke claimet og krever faktisk PASS. Native117s183roller/182filer er uendret.
+Eksisterende1191felt/116audittester/117native-mekanikk beholdes. StrictD1 er
+fysisk hjelpekolonne, ikke en15.aktiv verdi. Ingen modell/normalisering/
+baseline/nyepoke/Exit/TEST eller brokerlesing er åpnet.
+
+## Ferdig —1191 av1205 GC-felt kontrollert
+
 
 124 er COMPLETE i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124`.
 Fysisk audit bestod412 aktive profil-/histogram-/footprintfelt på368,026s/exit0.
