@@ -91,10 +91,13 @@ kvalifiserte scope. Ingen nye modell-/featureendringer ble gjort under108.
 
 Neste avgrensede diagnose er de fire faktisk lærte task_log_variances i
 105initial- og108sluttcheckpoint, sammen med lagrede feilsummer/tall. Ny eksakt
-CPU-only-plan/policybinding kreves før denne capped auditen; ingen modellbygging,
+CPU-only-plan/policybinding er nå klar i109; ingen modellbygging,
 forwards, updates, refit, GPU eller rådatasettlesing. Kvantifiser bidrag fra
 korte og lange støttehorisonter med hele forecast-nevneren; feilenergi er ikke
 bevis på gradientdominans eller årsaken til ettminuttssvakheten.
+109root: `/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109`. Bare audit_saved_task_scales_bound.py er kjørbar
+etter eksakt commit-/policybinding, capped audit4G/512M/900s, én invokasjon.
+Originalt ubundet scriptutkast er ikke kjøreautoritet.
 Etterpå rettes bare en målt blokkering eller vedtatt designendring. Ingen
 ny treningsrunde følger automatisk av108 eller av dette diagnoseforslaget.
 

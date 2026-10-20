@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T15:23:09.966130+00:00",
-  "status": "108_SINGLE_FULL_NATIVE_EPOCH_COMPLETE_CONSUMED__MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_UNQUALIFIED",
+  "observed_utc": "2026-10-20T15:30:51.803959+00:00",
+  "status": "108_EPOCH_COMPLETE__109_CPU_SAVED_TASK_SCALE_AUDIT_READY_NO_TRAINING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Prepare a new exact bounded CPU-only saved-checkpoint audit of the four actual ONLINE task_log_variances using105initial and108final plus existing paired JSON sums/counts; zero model construction/forwards/updates/refit/GPU/rawdata reread. Quantify weighted residual contributions without claiming gradient dominance or causality. Resolve measured short-horizon and LONG/SHORT/FLAT quality gaps; preserve completed physical data/normalization and all108weights/receipts. No further training or consumed108window relaunch.",
+  "next_action": "Execute exactly one109 capped CPU-only audit with bound109script and executionbinding: two savedcheckpoint CPUloads, four ONLINEtaskscalars each, existing pairedJSON residual/group arithmetic. Zero constructors/forwards/updates/GPU/refit/rawdatasetreads. Preserve108training closure and use measured endpoint scales plus fixed horizon/bias panel before attributing h1degradation or proposing a loss change.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -76,7 +76,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "108_SINGLE_FULL_NATIVE_EPOCH_COMPLETE_CONSUMED__MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_UNQUALIFIED",
+    "current_activity": "108_EPOCH_COMPLETE__109_CPU_SAVED_TASK_SCALE_AUDIT_READY_NO_TRAINING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7604,7 +7604,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare a new exact bounded CPU-only saved-checkpoint audit of the four actual ONLINE task_log_variances using105initial and108final plus existing paired JSON sums/counts; zero model construction/forwards/updates/refit/GPU/rawdata reread. Quantify weighted residual contributions without claiming gradient dominance or causality. Resolve measured short-horizon and LONG/SHORT/FLAT quality gaps; preserve completed physical data/normalization and all108weights/receipts. No further training or consumed108window relaunch.",
+    "next_action": "Execute exactly one109 capped CPU-only audit with bound109script and executionbinding: two savedcheckpoint CPUloads, four ONLINEtaskscalars each, existing pairedJSON residual/group arithmetic. Zero constructors/forwards/updates/GPU/refit/rawdatasetreads. Preserve108training closure and use measured endpoint scales plus fixed horizon/bias panel before attributing h1degradation or proposing a loss change.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -15186,6 +15186,45 @@
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/TERMINAL.json",
             "sha256": "dde30563cfd245f8d16836e7e49986969978a036c4114ef2e3350f03d38b63ef"
           }
+        },
+        "task_scale_audit_stage_109": {
+          "status": "READY_EXACT_CPU_ONLY_SAVED_CHECKPOINT_TASK_SCALE_AUDIT",
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109",
+          "plan": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/PLAN.json",
+            "sha256": "3c63403700d78f4d576f2c979e8ed401871e7eef7a409b052242ec5cfaa122e3"
+          },
+          "script": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/audit_saved_task_scales_bound.py",
+            "sha256": "07658fc0bd50099d0ce049df879f73a1d9cfcd40e0a90e71a031eb0ee246806d"
+          },
+          "execution_authorized": true,
+          "planned_invocations": 1,
+          "completed_invocations": 0,
+          "relaunch_allowed": false,
+          "training_enabled": false,
+          "full_epoch_training_allowed": false,
+          "full_val_allowed": false,
+          "model_constructions": 0,
+          "model_forwards": 0,
+          "optimizer_updates": 0,
+          "gpu_operations": 0,
+          "normalization_refits": 0,
+          "raw_dataset_reads": 0,
+          "checkpoint_cpu_loads": 2,
+          "capped_class": "audit",
+          "memory_max_bytes": 4294967296,
+          "swap_max_bytes": 536870912,
+          "wall_seconds": 900,
+          "task_scalar_scope": "Exactly4ONLINE model_state task_log_variances from105initial and108final; no target_model_state substitution.",
+          "residual_group_scope": "All4rawtasks; pooledcomponent denominators retained; forecastgroupsbaseM5bars1/5/12/24 and1/5/20tradingdays use wholeforecastN; shared+s notsplit.",
+          "test_data_used": false,
+          "causal_gradient_or_economic_claim_allowed": false,
+          "unexecuted_original_script_draft": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/audit_saved_task_scales.py",
+            "sha256": "d1119e1f75049f2e07ec3097b1c4920863dbafbdabd1af872d9a64a8b4c2f70a",
+            "execution_authorized": false
+          }
         }
       },
       "operator_pc_reboot_20261018": {
@@ -15210,7 +15249,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Prepare a new exact bounded CPU-only saved-checkpoint audit of the four actual ONLINE task_log_variances using105initial and108final plus existing paired JSON sums/counts; zero model construction/forwards/updates/refit/GPU/rawdata reread. Quantify weighted residual contributions without claiming gradient dominance or causality. Resolve measured short-horizon and LONG/SHORT/FLAT quality gaps; preserve completed physical data/normalization and all108weights/receipts. No further training or consumed108window relaunch.",
+      "next_action": "Execute exactly one109 capped CPU-only audit with bound109script and executionbinding: two savedcheckpoint CPUloads, four ONLINEtaskscalars each, existing pairedJSON residual/group arithmetic. Zero constructors/forwards/updates/GPU/refit/rawdatasetreads. Preserve108training closure and use measured endpoint scales plus fixed horizon/bias panel before attributing h1degradation or proposing a loss change.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 1,
       "full_native_epoch_request_fulfilled": true,
@@ -18004,5 +18043,5 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T15:23:09.966130+00:00"
+  "updated_utc": "2026-10-20T15:30:51.803959+00:00"
 }
