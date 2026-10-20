@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-20T15:51:47.035568+00:00",
-  "status": "111_TRAIN_RMS_FIT_COMPLETE__NEW_NATIVE_INITIAL_PARITY_RESUME_REQUIRED",
+  "status": "112_TRAIN_RMS_BOUND_FRESH_CPU_STATE_PREPARED__NATIVE_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Prepare a NEW112source-bound CPUfresh state with exact111dynamic_m5_loss_scales recipebinding and currentclosedtrainingpolicy, then newzero-update initialbaseline and actualparity/Entry-only/resume qualification. Reuse055inputs/normalization/057populations;108epoch and111fit areconsumed, noextraepoch or oldplanrelaunch.",
+  "next_action": "Execute new112exact one-shot CPUfresh publicproducer under capped audit4G/512M with111TRAIN_RMSbinding. Preserve11inputs/055normalization/057population/059costs/compactprofile. Allmodel marketforwards/updates/Exit/TEST/native/fullEpoch/fullVAL remainclosed. Awaitgenuineimmutablefreshstate and112terminal beforepreparing113zero-stepinitial.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -15408,6 +15408,14 @@
           "learnable_coordinates": 4810,
           "source_unchanged": true,
           "verified_metadata_inputs_unchanged": true
+        },
+        "loss_unit_fresh_stage_112": {
+          "policy_stage_key": "native_m5_train_rms_fresh_112",
+          "plan": {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/PLAN.json",
+            "sha256": "1f05df528d28781c40c9db7025dae355b74081fd843b10163cbd82196a0fe106"
+          },
+          "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112"
         }
       },
       "operator_pc_reboot_20261018": {
@@ -18282,5 +18290,59 @@
     "fit_seconds": 129.66304274899994,
     "elapsed_seconds": 212.79313149600057,
     "max_rss_kib": 3078268
+  },
+  "native_m5_train_rms_fresh_112": {
+    "status": "PREPARED_SINGLE_FRESH_CPU_STATE_NO_MARKET_FORWARD_OR_TRAINING",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/PLAN.json",
+      "sha256": "1f05df528d28781c40c9db7025dae355b74081fd843b10163cbd82196a0fe106"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/publish_fresh_preparation.py",
+      "sha256": "13db76d7790756870b34c2770f81e4460fef5f828a4c3909e8921c39d2e84d11"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/run_fresh_entry_preparation.py",
+      "sha256": "dc6270547a06adc4ba51e3fdc3a7739f4089a60324c9a85e8746024d32db7b51"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112",
+    "current_source_closure_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/SOURCE_CLOSURE_REVIEW.json",
+      "sha256": "ac0433c2238a8fbaf4c95bd507afab250e129f3a2cf598b6dec2fc8426b92738"
+    },
+    "prepared_source_head": "a9966c17ba2710f323af1dbb713a9d23bede33cd",
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_SOURCE_20261020_110/SOURCE_QUALIFICATION_REVIEW.json",
+      "sha256": "fc3553669a1a3e5ced7272c2e586395df9a9ce0700df8262c312f0aa064ecf55"
+    },
+    "loss_scales": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/LOSS_SCALES.json",
+      "sha256": "93fa60c423a4adebd888f7a905b31adc61a3094d8e7a04169f4049db540fc88d"
+    },
+    "loss_scale_fit_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/PUBLISHED_SCALE_REVIEW.json",
+      "sha256": "8dbaa6c22a04fc30b5327c5e053071d1412e078500ca28e23c098846b827169d"
+    },
+    "future_initial_measurement_output": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_INITIAL_20261020_113/BUNDLE",
+    "capped_class": "audit",
+    "memory": "4G",
+    "swap": "512M",
+    "max_wall_seconds": 7200,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "normalization_fit_enabled": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "prelaunch_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_FRESH_ENTRY_20261020_112/PRELAUNCH_REVIEW.json",
+      "sha256": "2fa4663af246dfcb32ca48c3de11e88fbd9ab209daa23346de295489eafdead5"
+    }
   }
 }
