@@ -12355,19 +12355,24 @@ def _candidate_training_session_contract(
         or not math.isfinite(float(cross_family_fusion_scale))
     ):
         raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]")
-    checkpoint_policy = checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor,
-        prefix_training_binding=prefix_training_binding)
-    if not dynamic_prefix:
-        checkpoint_policy.update(max_epochs=int(epochs), early_stop_patience=int(early_stopping_patience),
-            minimum_epochs_before_stop=int(minimum_epochs_before_stop), save_top_k=int(save_top_k),
-            early_stop_min_delta=float(early_stopping_min_delta))
-    try:
-        require_checkpoint_policy(
-            checkpoint_policy, context="CANDIDATE_TRAINING_RECIPE",
-            checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_training_binding,
-        )
-    except RuntimeError as exc:
-        raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]") from exc
+    from gx1.contracts.local_random_access_campaign_v2 import file_verification_scope
+
+    # Both semantic checks share hashes only within this metadata operation.
+    # Close the scope before artifacts, Session construction or mutable state.
+    with file_verification_scope():
+        checkpoint_policy = checkpoint_policy_metadata(checkpoint_monitor=checkpoint_monitor,
+            prefix_training_binding=prefix_training_binding)
+        if not dynamic_prefix:
+            checkpoint_policy.update(max_epochs=int(epochs), early_stop_patience=int(early_stopping_patience),
+                minimum_epochs_before_stop=int(minimum_epochs_before_stop), save_top_k=int(save_top_k),
+                early_stop_min_delta=float(early_stopping_min_delta))
+        try:
+            require_checkpoint_policy(
+                checkpoint_policy, context="CANDIDATE_TRAINING_RECIPE",
+                checkpoint_monitor=checkpoint_monitor, prefix_training_binding=prefix_training_binding,
+            )
+        except RuntimeError as exc:
+            raise RuntimeError("[CANDIDATE_TRAINING_RECIPE_INVALID]") from exc
     normalization_sha256 = dict(input_normalization).get("contract_sha256")
     if not isinstance(normalization_sha256, str) or not re.fullmatch(
         r"[0-9a-f]{64}", normalization_sha256
@@ -15836,7 +15841,9 @@ def _run_resumable_candidate_training(
                         reason_override="native_full_val_phase_boundary",
                     )
                 continue
-            train_ds.set_unified_exit_lifecycle_v2_epoch(int(epoch_index))
+            if (prefix_binding is None or prefix_binding.get("entry_training_phase")
+                    != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+                train_ds.set_unified_exit_lifecycle_v2_epoch(int(epoch_index))
             loader_order = epoch_order
             if (candidate_resume_origin is not None and candidate_resume_origin.get("schema_version")
                     == "gx1_candidate_entry_learnability_origin_v1"):

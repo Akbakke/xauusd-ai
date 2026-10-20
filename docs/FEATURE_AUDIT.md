@@ -370,17 +370,22 @@ Produksjonsformlene er uendret.
 
 ## Supplerende formel-, enhets- og warmupbevis
 
-Manifestet i `/home/andre2/GX1_RUNS/NATIVE_M5_READONLY_FORMULA_UNIT_WARMUP_20261020_001/MANIFEST.json`
-binder19aktuelle små kildefiler og fire adjudikasjonsrapporter. SHA er
-b4919b15710a957b34c406d04a9175963272c0748fa35f68f29ebddf93773911.
-060s opprinnelige indeks bevares. Dette er kildeavledet semantikk, ingen
-ny fysisk rådatareplay, modellforward, numerisk fullfasit eller læringsPASS.
+Samlekartet i
+`/home/andre2/GX1_RUNS/NATIVE_M5_READONLY_FORMULA_UNIT_WARMUP_20261020_002/GC_ALL1205_SOURCE_UNIT_WARMUP_COVERAGE.json`
+har SHA2dd5c8c4b1dbe16b959d5ae83e145ef123a28db8a9e808e9575a8c11c21026a5.
+Det binder seks rapporter: tidligere350verdier og det disjunkte855komplementet
+(210bevarte felt,275bok-/event-/ordrefelt og370observerte trade-/profil-/SMCfelt).
+Unionen er nøyaktig alle1205registrerte GCverdier og deres1205separate
+observasjonsmasker, uten overlapp. Kildeformel, enhet, domene, klokke, reset,
+warmup og eksisterende referansers konkrete grenser er nå kartlagt for alle.
+Komplett kildekart er ingen full numerisk formelPASS eller bevis for aktuelle
+fysiske verdier, individuell modellattribusjon, læring eller økonomisk edge.
+Revisjonen gjorde ingen rådatalesing, prosjektimport, testjobb eller modellforward.
 
-De disjunkte GCgruppene er215profil-/T-felt,75BBO-/flowfelt og60SMCfelt:
-350verdier med350separate observasjonsmasker. Kildeformel, enhet, klokke,
-reset, warmup og eksisterende referansers konkrete grenser er dokumentert.
-855øvrige GCverdier er ikke revidert av denne bølgen.23tekniske formler er
-beskrevet på alle femTF:115outputposter, ikke115uavhengige indikatorer.
+060s indeks og001/MANIFEST.json bevares; sistnevntes SHA er
+b4919b15710a957b34c406d04a9175963272c0748fa35f68f29ebddf93773911.
+001s23tekniske formler er fortsatt beskrevet på alle femTF:115outputposter,
+ikke115uavhengige indikatorer. Masker og signal/context-aliaser er ikke nye formler.
 
 Profilrapporten skiller GCkontraktvolumvektet tradeVWAP fra OHLC/tickVWAP;
 15/60minutters profil bruker3/12M5bøtter også ved lukket høyereTF-kontekst.
@@ -393,6 +398,9 @@ Bokrapporten skiller tidsvektet BBO-sizeimbalance/mikropris, vist antall/
 størrelse og eksekverte T-poster. Spreadutvidelse er count/sum/max i ticks,
 ikke en kalibrert shock-zscore. Full uavhengig raw→M1→alleTF-fasit for hele
 OFI/refill/depletion-vektoren og kombinerte reset-/feildomener gjenstår.
+Kildeklokke-/latensmiddel med ulike M1-antall er heller ikke uavhengig dekket;
+den eksisterende navngitte testen bruker like nevnere. Klokkelabel alene
+beviser ikke kalibrert fysisk nettverkslatens.
 
 SMCrapporten beskriver mekaniske observerte proxyer: trehøyrebarsbekreftede
 pivoter, engangsBOS/sweep, tidligere motsatt candle som OB-opprinnelse og
@@ -400,6 +408,13 @@ senere wick-retouch. Age teller observerte candles. Hull nullstiller soner;
 latest-invalid maskeres uten fallback til eldre gyldig signal. H4-klokken
 starter02/06/10/14/18/22UTC og D1 ved22UTC. Volum følger opprinnelsescandlen;
 det er ingen påstand om institusjonsidentitet eller volumterskel for BOS.
+
+Uavhengig numerisk referanse gjenstår for komplette strikte/dynamiske profiler,
+valuearea, avstand/respons og session-/DST-/hull-/roll-domener. Begge SMCsiders
+bekreftelse, opprettelse, retouch, invalidering, alder og sonegrenser må skilles
+mellom bevart og observed-proxy-semantikk. Basis trenger fortsatt komplett
+alleTF-/hull-/roll-/as-of-alderreferanse og representative aktuelle fysiske verdier.
+Delvise håndberegnede tester og shared-owner-paritet telles hver for seg.
 
 Teknisk rapport beskriver WilderATR/RSI/ADX-seeding, EMA/SMA-seed og slope-lag,
 stack/stateage, quote-volumeVWAP, BBpopulationddof0, enheter og første gyldige

@@ -1134,3 +1134,146 @@ def test_dynamic_coordinator_control_guard_rejects_role_split_cutoff_or_plan_tam
     with pytest.raises(RuntimeError, match=None if fault == "design_bytes" else "CANDIDATE_PREFIX_CONTROL_BINDING_MISMATCH"):
         case.run()
     assert case.boundary_calls == []
+
+
+class _CoordinatorTrainEpochReached(Exception):
+    """The actual coordinator reached training; no forward or update is run."""
+
+
+def test_dynamic_coordinator_fresh_and_resumed_epoch_skips_unbound_exit_lifecycle(
+    tmp_path, dynamic_prefix_binding_unit,
+):
+    case = dynamic_prefix_binding_unit
+    data = case.data
+    prefix, _, order = trainer._prefix_candidate_training_binding(**case.args)
+    # Use the genuine fail-closed dataset method, not Rows' permissive setter.
+    data.train._unified_exit_lifecycle_v2 = None
+    data.train.set_unified_exit_lifecycle_v2_epoch = (
+        trainer.EntryV10CtxDataset.set_unified_exit_lifecycle_v2_epoch.__get__(data.train)
+    )
+    context = {
+        "entry_training_phase": prefix["entry_training_phase"],
+        "entry_only_base_normalization": prefix["entry_only_base_normalization"],
+        "base_contract_sha256": prefix["input_normalization_sha256"],
+        "physical_sources": prefix["physical_sources"],
+        "entry_supervision_identity": prefix["entry_observed_market"]["train"]["identity"],
+        "sequence_source_audit": prefix["sequence_source_audits"]["train"],
+        "evaluation_cohort": {"plan": data.value["design"], "measurement_role": "train",
+            "source_split": "train", "reference_cutoff_time_ns": prefix["reference_cutoff_time_ns"]},
+    }
+    harness = PrefixHarness(tmp_path / "epoch-coordinator", data)
+    # The separately tested completed CONTROL owner is the only context boundary;
+    # the coordinator's join, session, order, loader and resume remain real.
+    harness.ns["_native_candidate_val_context_binding"] = lambda value: copy.deepcopy(value)
+    reached = []
+
+    def train_boundary(model, teacher, loader, optimizer, device, **kwargs):
+        assert loader.dataset is data.train
+        assert loader.dataset._unified_exit_lifecycle_v2 is None
+        assert kwargs["session_batch_offset"] == 0
+        assert torch.equal(next(iter(loader)), order[:16])
+        reached.append(True)
+        raise _CoordinatorTrainEpochReached
+
+    harness.ns["train_epoch"] = train_boundary
+    model = case.args["model"]
+    optimizer = torch.optim.AdamW(model.parameters(), lr=.0001, weight_decay=.0001)
+    ema = trainer._WeightEma(model, .5)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=1)
+    output = harness.root / "DYNAMIC"
+    pointer_before_resume = None
+    for resumed in (False, True):
+        expected_pointer = digest(harness.pointer(output)) if resumed else None
+        with pytest.raises(_CoordinatorTrainEpochReached):
+            harness.run_prefix(output, 1, expected_pointer=expected_pointer,
+                model=model, optimizer=optimizer, weight_ema=ema, lr_scheduler=scheduler,
+                epochs=1, save_top_k=0, native_val_context=context,
+                unified_exit_lifecycle_manifest_path=None,
+                checkpoint_monitor=trainer.DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR)
+        pointer = harness.pointer(output).read_bytes()
+        if resumed:
+            assert pointer == pointer_before_resume
+        else:
+            pointer_before_resume = pointer
+    assert reached == [True, True]
+    assert optimizer.state == {}
+
+
+@pytest.mark.parametrize("bound", [True, False], ids=["bound-exit", "unbound-exit"])
+def test_legacy_coordinator_epoch_preserves_required_exit_lifecycle(tmp_path, monkeypatch, bound):
+    from tests import test_candidate_execution_staging as staging
+
+    epochs, reached = [], []
+    adapter = SimpleNamespace(set_epoch_index=epochs.append) if bound else None
+
+    class StrictRows(Rows):
+        set_unified_exit_lifecycle_v2_epoch = trainer.EntryV10CtxDataset.set_unified_exit_lifecycle_v2_epoch
+
+        def __init__(self, count):
+            super().__init__(count)
+            self._unified_exit_lifecycle_v2 = adapter
+
+    monkeypatch.setattr(staging, "Rows", StrictRows)
+    harness = Harness(tmp_path / "legacy-epoch")
+
+    def train_boundary(model, teacher, loader, optimizer, device, **kwargs):
+        assert loader.dataset._unified_exit_lifecycle_v2 is adapter
+        assert epochs == [0]
+        reached.append(True)
+        raise _CoordinatorTrainEpochReached
+
+    harness.ns["train_epoch"] = train_boundary
+    if bound:
+        with pytest.raises(_CoordinatorTrainEpochReached):
+            harness.run(harness.root / "LEGACY", steps=1)
+        assert reached == [True] and epochs == [0]
+    else:
+        with pytest.raises(RuntimeError, match="UNIFIED_EXIT_LIFECYCLE_V2_NOT_BOUND"):
+            harness.run(harness.root / "LEGACY", steps=1)
+        assert reached == [] and epochs == []
+
+
+@pytest.mark.parametrize("corrupt_first", [False, True], ids=["finite-reuse", "failure-closes-scope"])
+def test_dynamic_session_policy_metadata_scope_reuses_only_one_operation(
+    tmp_path, dynamic_prefix_binding_unit, monkeypatch, corrupt_first,
+):
+    from gx1.contracts import entry_candidate_checkpoint_policy_v1 as policy
+    from gx1.contracts import local_random_access_campaign_v2 as common
+    from tests.test_candidate_training_session import _dynamic_session_contract_arguments
+
+    case = dynamic_prefix_binding_unit
+    prefix, _, _ = trainer._prefix_candidate_training_binding(**case.args)
+    args = _dynamic_session_contract_arguments(tmp_path, prefix=prefix,
+        input_normalization=case.args["input_normalization"])
+    selected = Path(prefix["physical_sources"]["train"]["parquet"]["path"]).resolve()
+    actual_hash, actual_metadata = common._file_sha256_uncached, policy.checkpoint_policy_metadata
+    hashes, semantic_calls = [], []
+
+    def counted_hash(path, *, identity, scoped):
+        if path.resolve() == selected:
+            hashes.append(scoped)
+        return actual_hash(path, identity=identity, scoped=scoped)
+
+    def checked_metadata(**kwargs):
+        value = actual_metadata(**kwargs)
+        semantic_calls.append(copy.deepcopy(value))
+        if corrupt_first and len(semantic_calls) == 1:
+            value["save_top_k"] = 1
+        return value
+
+    monkeypatch.setattr(common, "_file_sha256_uncached", counted_hash)
+    monkeypatch.setattr(trainer, "checkpoint_policy_metadata", checked_metadata)
+    monkeypatch.setattr(policy, "checkpoint_policy_metadata", checked_metadata)
+    if corrupt_first:
+        with pytest.raises(RuntimeError, match="CANDIDATE_TRAINING_RECIPE_INVALID"):
+            trainer._candidate_training_session_contract(**args)
+    else:
+        trainer._candidate_training_session_contract(**args)
+    # Both real semantic validations run; their common byte verification shares
+    # this finite operation. Trainer artifact hashing is a separate owner.
+    assert len(semantic_calls) == 2 and hashes == [True]
+    assert common.file_sha256(selected) == prefix["physical_sources"]["train"]["parquet"]["sha256"]
+    assert hashes == [True, False]  # Return or exception closed the scope.
+    contract = trainer._candidate_training_session_contract(**args)
+    assert len(semantic_calls) == 4 and hashes == [True, False, True]
+    assert contract["training"]["checkpoint_policy"]["save_top_k"] == 0

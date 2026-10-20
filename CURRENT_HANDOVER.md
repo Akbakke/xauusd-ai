@@ -12,145 +12,117 @@ M5 Entry skal lære LONG, SHORT og FLAT fra observerbar markedstilstand.
 Retning/netto endepunktsretur, signert MFE og konservativ MAE før første MFE
 måles separat fra ett minutt til åtte timer; dager er støtte. Ingen Exit-
 vurdering eller Exit-trening. Horisonter er ingen maksimal holdetid.
-Behold lukket M5/M15/H1/H4/D1 og de rikeste 26 månedene med GC MBP-1.
+Behold lukket M5/M15/H1/H4/D1 og de rikeste26månedene med GC MBP-1.
 Kvalitet og dekning skal måles for både valgte og avståtte entries.
 
 Første profil er `compact_mbp_smc_ema_atr_clock_macro_entry_v1`: MBP-1,
 SMC/struktur, EMA/ATR og nødvendig klokke-/makrokontekst. Utvalgte candle-/
-chart-pattern- og overlappende felt er parkert. Hele biblioteket og
-fullmodellens åtte familier med niende D1/makrokontekst beholdes. Ingen felt
-er erklært støy uten måling. Separate SMC/MBP-modeller, ensemble og M30
-krever senere samme kronologiske OOF-evidens for merverdi.
+chart-pattern- og overlappende felt er parkert. Hele biblioteket og fullmodellens
+åtte familier med niende D1/makrokontekst beholdes. Ingen felt er erklært støy
+uten måling. Separate SMC/MBP-modeller, ensemble og M30 krever senere samme
+kronologiske OOF-evidens for merverdi.
 
 TRAIN er [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
-utviklingskontroll [2026-04-01,2026-07-01). Alle 26 måneder er gjenbrukt
-utvikling; TEST fra juli er forseglet. Én full nativeepoke er tidligere
-bestilt og gjenstår etter faktiske profilbundne porter. training_enabled=true gjelder bare102teknisk4; fullEpoch/fullVAL=false.097 er konsumert.
+utviklingskontroll [2026-04-01,2026-07-01). Alle26måneder er gjenbrukt utvikling;
+TEST fra juli er forseglet. Én full nativeepoke er bestilt og gjenstår etter
+faktiske profilbundne porter. training_enabled=false; fullEpoch/fullVAL=false.
 Ingen broker/live/paper/ordre/spending/promotion. De nøyaktig to godkjente
 practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 
-## Ferdig — gjenbruk eksisterende inputs og beståtte kontroller
+## Ferdig — gjenbruk data og beståtte kontroller
 
-- 66 GC-råfiler med 892100712 records og 9173893 prisnivårader er bevart.
-  Identiske genuine T-poster dedupliseres ikke. 17 PTP-minutter/18 bok-event-
+- 66 GC-råfiler med892100712 records og9173893 prisnivårader er bevart.
+  Identiske genuine T-poster dedupliseres ikke.17 PTP-minutter/18 bok-event-
   bøtter sensureres. MBP-1 viser BBO/ordercount, ikke skjult dybde/ordreidentitet.
-- 1205 GC-verdier med 1205 separate masker er publisert. Full fysisk flate er
-  signal 2725/ctx-cont 2542/ctx-cat 1 og 253 felt per TF. 051-kilderekonstruksjon
-  og 053-input-liveness bestod på 118249 TRAIN-/17284 VAL-rader. Ingen ny rebuild.
+- 1205 GC-verdier med1205 separate masker er publisert. Full fysisk flate er
+  signal2725/ctx-cont2542/ctx-cat1 og253 felt per TF.051-kilderekonstruksjon
+  og053-input-liveness bestod på118249 TRAIN-/17284 VAL-rader. Ingen ny rebuild.
 - 055 whole-TRAIN Entry-only-normalisering bestod; ingen Exit/VAL/TEST-fit.
-  NORMALIZATION SHA c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62.
+  SHA c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62.
   Hele transformen og domene-/finite-/alias-/maskevakter beholdes før gather.
-- 057 binder faktisk native design, mål, koordinater og frosne 256 TRAIN-/256
-  CONTROL-rader valgt uten utfallsutvalg. 118249 TRAIN-rader gir 7391 batcher,
-  siste batch 9. 059 binder prospektive kostvilkår, ikke historisk kostsannhet.
-- Kompaktprofilen beholder alle 1205 GC-verdier + masker og 61 D1/makrofelt.
-  Aktiv flate er 2622 signal/2525 ctx/139 MTF. Modellen konstruerer og kjører
-  bare aktive ruter: lokale encodere 8→7 og MTF familie×TF-ruter 40→25.
-  Candle-ruten beholder 74 ekte MBP-kanaler. Lokal 96-bar-sekvens, MTF-vinduer
-  16/64/96/96/252 og lagdybde beholdes. Fysisk I/O er fortsatt full flate.
-- 061-profilkvalifisering: 380 unike kilde-/syntetiske caser bestod.
-  065-dynamiske kildekontroller: 707 PASS, tre eksplisitt uaktuelle legacy-
-  kombinasjoner SKIP; alle 71 nye caser bestod. Ingen ekte modelldata-forward.
-- 068 publiserte faktisk CPU-freshstate på 268.828 s mot 066s 1285.314 s:
-  4.781× raskere klargjøring, ikke målt modell-/treningsfart. 182 kildebindinger,
-  tom optimizer og streng CPU-roundtrip bestod; ingen forward/steg/refit.
-  Disse gamle kildebindingene er nå avløst av endret window/full_train-kilde;
-  bevar originalen, men lag ny kildebundet freshstate før ny modellmåling.
-- 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
-  native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
+- 057 binder native design, mål, koordinater og frosne256TRAIN-/256CONTROL-
+  rader valgt uten utfallsutvalg.118249 TRAIN-rader gir7391batcher, siste9.
+  059 binder prospektive kostvilkår, ikke historisk kostsannhet.
+- Kompaktprofilen beholder alle1205GCverdier+masker og61D1/makrofelt.
+  Aktiv flate2622signal/2525ctx/139MTF,7lokale encodere og25familie×TF-ruter;
+  candle-ruten beholder74genuine MBP-kanaler. Lokal96bar-sekvens og MTF-
+  vinduer16/64/96/96/252 beholdes. Fysisk I/O er fortsatt full flate.
+- Ferdige datakilder rekonstruerer sekvenser uten ny tett sekvens-memmap:
+  faktisk102logg rapporterte123.74GB TRAIN og18.09GB VAL unngått ekspansjon.
+  Dette er beregnet unngått materialisering, ikke målt disk-I/O eller GPU-fart.
+- 098s kilde-/syntetiske kvalifisering bestod219caser/3eksakte legacy-SKIP.
+  Faktisk099CPUfresh tok121.070s,0forwards/updates/refits, closure8517…;
+  faktisk100initialmålte256TRAIN+256CONTROL,32Entry-forwards/0updates,
+ 1869.792s.101strictsavedstate/RNG bestod på62.220s,0forwards/updates.
+  Disse originale bevisene er bevart;103 endrer trainerclosure og krever ny
+  faktisk kildebundet CPUfresh og videre eksisterende native porter.
 
-## Aktuell grense —100/101 bestått;102 teknisk4 skal bindes
+## Aktuell grense —102 konsumert FAILED;103 avgrenset rettelse
 
-097 er konsumert FAILED/guardexit1 før optimizer:2TRAIN-forwards/0CONTROL,
-maxterminalavvik0.000135153532bps mot låst1e-4. Original PARITY_FAILURE.json
-og ACTUAL_FAILURE_REVIEW bevares. Ulike no_grad/grad-hostdispatch ble målt;
-ingen toleranse, presisjon, features eller arkitektur endres for å passere.
-097task er deaktivert; ingen relansering eller privatvektgjenbruk.
+102s separate nativekvalifisering stoppet20.10 kl.07:34:11UTC med guard
+child_status1 og eksakt Windows-task LastTaskResult1. Ingen bundne Linux-
+prosesser ved07:45:46; exact102task ble deaktivert07:48:19. Ingen relansering.
+Den kanoniske invokasjonskvitteringen mangler. TERMINAL_RECONCILIATION.json
+skiller faktisk guard/taskstatus fra en ikke innhentet direct-wait-status.
+SHA df368a32819ae339fb12129de0affe938d3aab33388a01d6009296353ac79350.
 
-098 rettet bare de to målte blokkeringene: ett eksisterende finite
-file_verification_scope rundt ren dynamiccohort-metadata, og midlertidig
-MHAfastpathFalse rundt deterministisk dynamisk Entry-forward. Alle gamle
-SHA/stat-/identitetskontroller bevares; scope lukkes før modell/optimizer.
-MHAflagget gjenopprettes i finally; autograd, SDPAvalg, RNG, modellmodus,
-presisjon og øvrig modell-/trainer-AST er uendret. Faktisk219PASS/3eksakte
-kjente legacy-SKIP/0fail/error; alle25nye caser PASS.098 er konsumert.
-Source_reviewSHAe92b41251f30821b8ef18747bc181dc6703cf522edeac728e4fa3d12ca284c22.
-Ny closure8517c075eb74dacc85c21c2441d6e00d23335f0eff02144bc32b5e009e41924f
-har182roller/181filer/7153839B. Bare kohortowner og trainer endret bytes.
+Tracebacken når første UNINTERRUPTED-segment etter begge paritetsløkkene.
+Fire parityforwards er dermed dokumentert fra kilde/kontrollflyt; endelige
+numeriske paritetsdiagnoser og full RESULT er ikke publisert. Referansecheckpoint1
+har global_steps0/next_batch_offset0. Før første treningsbatch kalte løkken
+Exit-lifecycle-setteren som dynamisk M5 Entry uttrykkelig ikke har bundet:
+UNIFIED_EXIT_LIFECYCLE_V2_NOT_BOUND.0treningsbatch-forwards/0optimizerupdates;
+varig resume-forløp ble ikke nådd. Ingen lærings- eller selektivitetskonklusjon.
 
-099 full metadataprecheck206–259 inklusive bestod faktisk capped, inklusive
-sen065kobling, uten falskCLAIM/modellimport. Deretter bestod én faktisk
-4G/512M CPUfresh121.070133s,20.10 kl.04:42:36UTC.0forwards/updates/refits,
-kilde/policy uendret og alle182kilders bytes/stat kontrollert. Hele
-087→092→098kjeden er bevart. Terminal/result og ACTUAL_CPU_PREPARATION_REVIEW
-ligger under NATIVE_M5_COMPACT_FRESH_COHORT_ATTENTION_20261020_099.
-Constructorstate9c4cf514… og72MBinitialstatec62cc1ad… er eksakt lik094;
-ny kilde/beregningsbane krever likevel fersk nativeinitialmåling.099 er
-konsumert; ingen relansering. Worker rchar49.229GB er logiske lesebytes;
-lagringsregnskap44.181GB er separat. Ingen påstand om samlet host-I/O eller
-målt nativehastighetsgevinst. De ferdige datasettene og normaliseringen gjenbrukes.
+182kilders SHA/stat,40statiske artefakter og11inputidentiteter er bevart mot
+prebootsegl; ingen ny rådatastreamhash i etterkontrollen.
+POST_FAILURE_SOURCE_PRESERVATION SHA23de07564c5f3b748edf6cbd28ad29e37771813b5d9e702f3226f4d78402397d.
+Originalclaim, privatstep0checkpoint og alle kvitteringer bevares. Private
+kvalifiseringsvekter får aldri brukes til hovedepoken.
 
-100 er faktisk COMPLETE/guardPASS/exit0, konsumert20.10 kl.05:56:46UTC.
-TRAIN256+CONTROL256 ga16+16Entry-forwards,0optimizersteg og0Exit-forwards.
-Initialmålingen tok1869.792s; kanonisk invokasjon2049.761s. Komponentoppsett
-739.453s og checkpointskriving0.539s. Forrige095initialmåling tok2589.611s;
-dette er observerte rundetider, ikke kontrollert A/B eller treningshastighet.
-Mål/kohorter/seks komponentmasker er bevart mot095; queryaksen er1..480.
-Initiale handlinger TRAIN3LONG/0SHORT/253FLAT, CONTROL256FLAT er ikke lært
-selektivitet. Modell/anker-statehash9c4cf514… er lik099constructor.
-Alle182kilder SHA/stat,39statiske artefakter og11inputidentiteter er bevart.
-Ingen rådatastrøm ble rehashet av sluttkontrollen.100task er deaktivert med
-LastTaskResult0 og ingen bundne prosesser. ACTUAL_TERMINAL_REVIEW.json:
-220a6360d25a3d6e57db92b6bd2ddeaac4ca01efc15f78df0542998fcd065b98.
+103 retter bare den målte epochkoblingen og konkret metadatadobbeltarbeid:
+verifisert dynamisk M5-prefixfase hopper over Exit-epoch-setteren; øvrige faser
+beholder ekte binding/fail-closed feil. Ett kort eksisterende hashscope omslutter
+policybygger+require; begge semantiske kontroller beholdes og scopet lukkes før
+artifact-/Session-/statearbeid. Ingen annen top-level trainer-AST er endret.
+Fokusert kilde-/syntetisk kvalifisering gjenstår; ingen native treningsadgang.
+Rettelsens faktiske I/O-/tidsgevinst og native optimizer/resume er ikke bevist.
 
-101 er faktisk COMPLETE/exit0 på62.219867s,20.10 kl.06:19:31UTC. Den ene
-capped4G/512M CPUkontrollen av099fresh og100lagret initialtilstand beviste
-modell/anker/optimizer/EMA/scheduler og lagret CPU/Python/NumPyRNG eksakt
-bevart. CUDA-RNG ble ikke sammenlignet med CPUinitialiseringen.0forwards/
-updates/refits, kilde/policy uendret. INITIAL_MEASUREMENT_AUDIT.json SHA
-2aad228e28e619e95209ea2341df210f72c3ce1a6fee2d5ac1f9bfc27fc93391.
+## Individuell indikatorrevisjon
 
-Ny102 åpner bare én separat teknisk4-kvalifisering:4paritetsforwards,
-2logiske optimizersteg/4private updates i kontroll av lagring/gjenlasting.
-Samme16TRAIN/16CONTROL til paritet og første32rader i057s kanoniske TRAIN-
-ordre; ingen CONTROLupdates, refit eller gjenbruk av privatevekter. Toleranse
-1e-4bps/rtol0, full modell/labels/loss/FP32 og maskinvarevakter beholdes.
-Metadata rebindes fra eksisterende097mal til faktisk100/101/099/8517 uten
-ny frittstående fysisk planscan. Kanonisk materializer/nativeowner skal
-fortsatt fysisk kontrollere alle bindinger, kohorter og ordre før opptak.
-102campaign med fersk boot, signert telemetri og eksakt vindupolicy gjenstår.
-training_enabled=true er avgrenset til102; fullEpoch/fullVAL/TEST/Exit/broker
-og HPO er stengt.100/101/095/096/097 er konsumert, ingen relansering.
+Alle1205GCverdier og1205separate masker har nå kildekart for formel, enhet,
+domene og warmup: tidligere350 pluss855disjunkte felt.23tekniske formler×5TF
+har115feltposter. Aggregate under NATIVE_M5_READONLY_FORMULA_UNIT_WARMUP_20261020_002:
+GC_ALL1205_SOURCE_UNIT_WARMUP_COVERAGE.json,
+SHA2dd5c8c4b1dbe16b959d5ae83e145ef123a28db8a9e808e9575a8c11c21026a5.
+Dette fullfører kildekartet, ikke uavhengige numeriske bevis for alle felt,
+aktuell rådatareferanse, individuelt modellbidrag, læring eller økonomisk edge.
+Se docs/FEATURE_AUDIT.md for konkrete resterende bevisgrenser.
 
-Seneste fysiske WindowsBoot512/20.10 kl.05:18:17.500UTC er bekreftet med
-WindowsSSH/Ubuntu,182kilder/39artefakter/11inputidentiteter bevart.
-100/REBOOT_CONFIRMED SHA e82a5f3a013a294af02221d755f05c0e398fb153a52f0097c5187005695674bf.
-Dette er gjennomført100profilboot; neste nativecampaign har egne porter.
+## Maskin, effektivitet, neste steg og opprydding
 
-Individuelt formel-/enhets-/warmupbevis er supplert for350GCverdier med350
-separate masker og23tekniske formler×5TF=115feltposter. De tre GCgruppene
-215profil/trade+75bok/flow+60SMC er disjunkte. Manifest under
-NATIVE_M5_READONLY_FORMULA_UNIT_WARMUP_20261020_001 harSHA
-b4919b15710a957b34c406d04a9175963272c0748fa35f68f29ebddf93773911.
-Dette er kildebevis;855andreGCverdier er ikke behandlet i denne bølgen,
-og komplette uavhengige tallreferanser og individuelt modellkonsum gjenstår.
-Bestilt epoke, full indikatorrevisjon og lært kvalitet/dekning/sporbarhet er
-fortsatt uferdig. Ingen lærings-, generaliserings- eller økonomisk edge-konklusjon.
-TEST/Exit/broker er stengt.
+Seneste faktiske separate profilboot er WindowsBoot513/20.10 kl.06:55:31.500UTC;
+102/REBOOT_CONFIRMED.json SHA9d1d33b60cdfe640512f33595f648592973aa90e3e40717eaad9075637b1b5ab.
+Brukerens18.10-omstart er også allerede utført. Ingen av disse bestillingene
+skal gjentas. Ny nativecampaign følger egne gjeldende ferske boot-/hostporter.
+Aktiv102effektgrense var300W og drawstop310W, core85°C/memory80°C/VRAM12288MiB;
+ACTUAL_ACTIVE_HARDWARE_ENVELOPE.json korrigerer eldre generisk160W-prosa.
+Kanonisk hardware-eier og signedguard, ikke dokumenttekst, eier grensene.
 
-## PC, opprydding og metode
+Prioriter effektiv datalesing: gjenbruk ferdige inputs/targets/normalisering;
+skill engangsvalidering, modelloppsett, batch-I/O, GPU-steg og checkpoint.
+En enkelt stack viste sourceverifisering ved coordinatoroppstart, ikke en
+batch-/480løkke. Intermediate rchar er logiske lesebytes; read_bytes er separat
+lagringsregnskap. Ingen TB-per-batch-, farts- eller ETA-påstand er bevist.
+103 samler det konkrete doble policyarbeidet i samme nødvendige kildebølge.
 
-Brukerens18.10-omstart er utført;034/REBOOT_CONFIRMED.json er bindende.
-Ikke utfør samme bestilling igjen. Seneste separate før-native Boot512 er
-bekreftet med kvitteringen og bevaringsomfanget i aktuell grense ovenfor.
-Dette er ingen treningsadgang. Ny campaign følger egne ferske maskinvare-/
-bootkrav. Bruk kanonisk hasheier; campaign-JSON inkluderer avsluttende newline.
+Neste steg: fokuserte103tester, syntaks/stale-path/diffkontroll og eksakt ny
+sourceclosure; deretter eksisterende CPUfresh/nativeinitial/state-/technical-
+porter med nye bundne engangsidentiteter. Den bestilte fulle epoken og målt
+LONG/SHORT/FLAT-kvalitet/dekning/sporbarhet gjenstår. Ingen utvidelse til Exit,
+TEST, broker, HPO eller andre modeller. Stabil langkjøring observeres15–30min.
 
 DATA/RUNS ryddes bare av retention-eieren. Ingen Pythonfil er bevist slettbar
-ved full referanse-/import-/CLI-/test-/eierkontroll. Historikk finnes i Git;
-ingen kvitteringer/data/checkpoints slettes ved denne dokumentoppdateringen.
-Brukerkrav19.10: prioriter effektiv datalesing og trening. Gjenbruk ferdige
-inputs og skill engangsvalidering fra batcharbeid. Mål metadata/setup, batch-I/O,
-GPU-steg og checkpoint separat; rchar er ikke fysisk disklesing. Se bindende
-effektivitetsregel i GX1_RULES.md og training_efficiency_request_20261019 i policy.
-Metode: docs/NATIVE_LEARNING.md. Feltbevis: docs/FEATURE_AUDIT.md.
+ved full referanse-/import-/CLI-/test-/eierkontroll. Git eier historikken.
+Metode og bruksanvisning: docs/NATIVE_LEARNING.md. Status står bare her og i
+NEXT_RUN_POLICY; regler i GX1_RULES.md, automatisk lesing i gx1_handover.sh.

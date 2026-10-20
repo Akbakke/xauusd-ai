@@ -83,6 +83,11 @@ er én serialiseringskontroll, ingen ekstra økonomisk treningsarm eller HPO.
 Kildens faktiske innrømmelse og målte terminalkvitteringer må fortsatt finnes;
 metodebeskrivelsen starter ingen jobb og åpner ingen port.
 
+Den verifiserte dynamiske M5-prefixfasen bruker bare Entry-supervisjon og
+har ingen Exit-lifecycle-adapter. Coordinatoren setter derfor lifecycle-epoch
+bare for øvrige faser. Manglende adapter i en slik øvrig fase skal fortsatt
+feile lukket; adapterfravær alene gir aldri adgang til å hoppe over kontrollen.
+
 ## Omstart, mellomlagring og effektivitet
 
 Operatøren ba 09.10 om hyppige trygge segmentgrenser og mellomlagring. Bruk
@@ -275,6 +280,11 @@ og learning/epoch/continuation-metadata. Den sene prefix-sessionbindingen
 har sitt eget korte scope før optimizerkonstruksjon. Den rene dynamiske
 cohort-eieren har også ett endelig scope, lukket ved retur før modellarbeid;
 hele øvrige kohort-AST og alle SHA/stat-/identitetsvakter beholdes.
+Coordinatorens sammenhengende konstruksjon og kontroll av checkpointpolicy
+har ett kort scope: begge semantiske kontroller kjøres, men samme stabile
+filidentitet hashes én gang av den felles eieren innen operasjonen. Scopet
+lukkes før normaliseringsbinding, separate artifact-hasher og Session/state.
+Dette beviser ingen per-batch-gevinst eller eliminering av øvrige råhasher.
 Liveness-fildigest delegerer til samme verifiserte eier. Metadata-scopene
 lukkes før Dataset-/modellkonstruksjon og før initialstate restore; de går
 aldri gjennom modell-, batch- eller checkpointarbeid.
