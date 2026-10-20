@@ -234,9 +234,9 @@ checkpoints slettes bare gjennom retention-eieren. Ikke opprett nye historikkmap
 
 ## Grenser som gjenstår å bevise
 
-Individuell numerisk kontroll av alle genuine tekniske formler, resterende14
-GC-basisfelt, oppstrøms råevent→M1 og uavhengig native tilgjengelighet/modellnytte
-gjenstår.051rekonstruksjon,053liveness,055helTRAIN-inputnormalisering og115/117
+Individuell numerisk kontroll av alle genuine tekniske formler, uavhengig
+GC TF→lagret M5-context med beslutningsalder/masker, oppstrøms råevent→M1 og
+individuell modellnytte gjenstår.051rekonstruksjon,053liveness,055helTRAIN-inputnormalisering og115/117
 initial-/paritets-/resumemekanikk er ferdige bevis med egne grenser.108fullførte
 én nativeepoke med blandet komponentlæring; Entry-kvalitet, generalisering og
 nettoøkonomi er ikke kvalifisert. Gjeldende terminal og adgang leses fra den
@@ -476,11 +476,24 @@ Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_2
 inputteller før incidentfilter, ikke11285831publiserte qualifiedrader.
 Originalt DESIGN og alle receipts/data er bevart; ingen produksjonsformel er endret.
 
-Samlet121–124 er1191av1205 unike GCregistryverdier, uten overlapp. De14
-resterende basisfeltene er bundet i124/PENDING_BASIS_NUMERIC_FIELDS.json.
-Basis trenger komplett alleTF-/hull-/roll-/samme-M1-/kildealderreferanse og
-faktiske verdier. Råevent→M1 og native beslutningsprojeksjon/individuell
-modellnytte er fortsatt egne ubeviste lag; numerisk paritet er ikke læring.
+125 fullfører de siste14 basisverdiene med uavhengig samme-M1 GC-/spotreferanse
+på alle femTF:657521endelige celler,14varierende, nullavvik i alder/masker/klokker.
+Største bps-avvik3,524292e-12 er innen analytiske cellegrenser. StrictD1close/
+basis er heltNaN hjelpekolonner, ikke kvalifiserte verdier.164kildecaserPASS,
+fysisk21,969s/exit0,208kilder bevart; native117s182filer er uendret.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/ACTUAL_NUMERIC_REVIEW.json`,
+43050645ff1bd3d3be144f5ca325e6c68cb00fda497297a68dee2dfe93821646.
+
+Samlet121–125 er1205av1205 unike GCregistryverdier, uten manglende/fremmede/
+dupliserte felt.125/ALL_1205_PUBLISHED_M1_TF_NUMERIC_INDEX.json binder hver verdi
+med registrynavn, tabell/kolonne/maske, faktisk resultat og statistikkpointer.
+SHA49de00d10d3d861aae53e212bc41e179a99689f400fda06ff415cbcf69ca6406.
+1172varierende/33observerte konstanter;791nullavvik/414analytisk tillatte avrundinger.
+Finitt dekning3–227808 per felt er ikke lik læringsdekning.124s14-felts pending-
+inventar bevares som historisk bevis, ingen gjenværende M1→TF-verdi.
+Råevent→M1, uavhengig TF→lagret M5-beslutningsprojeksjon og individuell modellnytte
+har fortsatt egne ubeviste lag.051rekonstruksjon og055normalisering gjenbrukes;
+ingen ny sekvens-/PT-/råTB-lesing eller baseline er åpnet av dette PASS-et.
 
 Teknisk rapport beskriver WilderATR/RSI/ADX-seeding, EMA/SMA-seed og slope-lag,
 stack/stateage, quote-volumeVWAP, BBpopulationddof0, enheter og første gyldige

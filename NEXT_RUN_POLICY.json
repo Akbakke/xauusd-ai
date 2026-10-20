@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T23:38:28.974684+00:00",
-  "status": "125_PHYSICAL_BASIS_REFERENCE_CLAIMED_AFTER_164_SOURCE_PASS",
+  "observed_utc": "2026-10-20T23:46:22.938221+00:00",
+  "status": "125_COMPLETE_ALL1205_PUBLISHED_M1_TO_TF_NUMERIC_REFERENCES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactlyoneclaimed125capped physical14basisreference afteractual164sourcePASS. Reuse4GC/3spotcolumns/3boundyearpartitions,all14parquetfootersbeforepayload, exactsameM1/sourceclock+age/strictlastminuteTESTguard. No17yearscan/rawTB/model/refit/baseline/nativeepoch/Exit/TEST/broker. Preserveactualterminal.",
+  "next_action": "Close the independent published-M1-to-TF numeric stage at1205/1205. Next bounded scope is independent GC TF-to-stored-M5-context sourceclock/age/mask projection, reusing051 native-history reconstruction and055normalization; then active technical23x5 numeric reference with historical warmup. No rawTB reread, dataset rebuild, baseline/model rerun or nativeepoch is admitted. Preserve108 completed singleepoch and117 mechanical qualification; Entry quality, coverage, explanations and generalization remain separate.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "125_PUBLISHED_M1_TO_TF_SPOT_FUTURES_BASIS_PHYSICAL_REFERENCE",
+    "current_activity": "ALL1205_PUBLISHED_M1_TO_TF_NUMERIC_STAGE_COMPLETE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "125_actual_focused_same_M1_basis_reference_source_qualification",
+    "latest_terminal_role": "125_actual_published_M1_to_TF_basis_numeric_reference",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/SOURCE_QUALIFICATION_TERMINAL.json",
-      "sha256": "6e38c1e0521dc3c1479ffce4a35ee4066920b56b9349c4e0ca0d272d9ce91481"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/TERMINAL.json",
+      "sha256": "7f959e03d36b8a8c95f376db2245a9260bebb3c7e1f974dda37e1dd406e81374"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual164focused sourcecases PASS/6.516s,208sourcefiles/policy preserved. Physical14activebasiscomparisonpending;1191GCfieldscomplete. No trainingauthority.",
+    "current_blocker": "No measured published-M1-to-TF numeric mismatch remains in the1205active registry. Independent native availability/age, technical numeric reference, raw-to-M1 and individual learned use remain unproved scopes.108 fulfilled the ordered epoch; no further training admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one claimed123 capped physical two-sided SMC/price reference after actual77sourcePASS. Read8M1cols,boundROLLtick,65TFcolumns andseparatebookclose from8finishedfiles274659799B beforeTEST. Verify198actualactive fields andpositivewitnesscounts, keepinactiveauxseparate. No rawTBscan/rebuild/model/normalization/newbaseline/nativeepoch/Exit.",
+    "next_action": "Close the independent published-M1-to-TF numeric stage at1205/1205. Next bounded scope is independent GC TF-to-stored-M5-context sourceclock/age/mask projection, reusing051 native-history reconstruction and055normalization; then active technical23x5 numeric reference with historical warmup. No rawTB reread, dataset rebuild, baseline/model rerun or nativeepoch is admitted. Preserve108 completed singleepoch and117 mechanical qualification; Entry quality, coverage, explanations and generalization remain separate.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9465,7 +9465,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "124_SCOPED_NUMERIC_PASS_NATIVE117_MECHANICS_PASS_ENTRY_QUALITY_PENDING",
+      "status": "125_ALL1205_PUBLISHED_M1_TO_TF_NUMERIC_PASS_NATIVE117_MECHANICS_PASS_ENTRY_QUALITY_PENDING",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -15743,7 +15743,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Declare and implement the minimal loss-only per-coordinate/horizon TRAIN scale design in existing objective/target/trainer owners, preserving rawbps targets/outputs/reporting, separate masks, compactfeatures/MTF, native model and legacy isolation. Specify TRAIN statistic, mask/count/lineage and zero-scale handling before a new bounded fit; never reuse VAL targetstd or select scales from CONTROL performance. Reuse completed physicalinputs/targets/055inputnormalization. No extraepoch, HPO, Exit, TEST, broker or consumed109/108relaunch.",
+      "next_action": "Close the independent published-M1-to-TF numeric stage at1205/1205. Next bounded scope is independent GC TF-to-stored-M5-context sourceclock/age/mask projection, reusing051 native-history reconstruction and055normalization; then active technical23x5 numeric reference with historical warmup. No rawTB reread, dataset rebuild, baseline/model rerun or nativeepoch is admitted. Preserve108 completed singleepoch and117 mechanical qualification; Entry quality, coverage, explanations and generalization remain separate.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 1,
       "full_native_epoch_request_fulfilled": true,
@@ -16279,7 +16279,7 @@
       }
     },
     "independent_gc_numeric_reference_coverage": {
-      "qualified_published_M1_to_TF_active_field_union": 1191,
+      "qualified_published_M1_to_TF_active_field_union": 1205,
       "registry_value_fields": 1205,
       "field_sets_disjoint": true,
       "evidence": [
@@ -16298,19 +16298,25 @@
         {
           "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/ACTUAL_NUMERIC_REVIEW.json",
           "sha256": "6ebe32c512ce0820bdcfa8253ffd7a706138db3064024db6564cf5172ad560de"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/ACTUAL_NUMERIC_REVIEW.json",
+          "sha256": "43050645ff1bd3d3be144f5ca325e6c68cb00fda497297a68dee2dfe93821646"
         }
       ],
       "raw_to_M1_proven": false,
       "native_model_consumption_proven": false,
-      "remaining_active_value_fields": 14,
-      "pending_field_inventory": {
+      "remaining_active_value_fields": 0,
+      "pending_group_counts": {},
+      "native_availability_projection_proven": false,
+      "all_fields_index": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/ALL_1205_PUBLISHED_M1_TF_NUMERIC_INDEX.json",
+        "sha256": "49de00d10d3d861aae53e212bc41e179a99689f400fda06ff415cbcf69ca6406"
+      },
+      "consumed_historical_pending_field_inventory": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124/PENDING_BASIS_NUMERIC_FIELDS.json",
         "sha256": "9c9dfd1bb6a888fd9b141d0db9852fa01771286f8f7976cc5e87f9b1fcbca7dc"
-      },
-      "pending_group_counts": {
-        "spot_futures_basis": 14
-      },
-      "native_availability_projection_proven": false
+      }
     },
     "gc_smc_price_numeric_reference_123": {
       "status": "COMPLETE_PASS_198_ACTIVE_SMC_PRICE_REFERENCE",
@@ -16416,10 +16422,10 @@
       }
     },
     "gc_basis_numeric_reference_125": {
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_PASS",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/PLAN.json",
@@ -16442,7 +16448,23 @@
       "source_qualification": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/SOURCE_REVIEW.json",
         "sha256": "c39127e5ede6525256ceeed3bce6abe84f27077f5c1eaeffaeede777cba5f2cf"
-      }
+      },
+      "actual_numeric_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/ACTUAL_NUMERIC_REVIEW.json",
+        "sha256": "43050645ff1bd3d3be144f5ca325e6c68cb00fda497297a68dee2dfe93821646"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/TERMINAL.json",
+        "sha256": "7f959e03d36b8a8c95f376db2245a9260bebb3c7e1f974dda37e1dd406e81374"
+      },
+      "qualified_active_fields": 14,
+      "nonconstant_fields": 14,
+      "finite_cells": 657521,
+      "elapsed_seconds": 21.968983902999753,
+      "maximum_absolute_error_bps": 3.524291969370097e-12,
+      "raw_to_M1_proven": false,
+      "native_availability_projection_proven": false,
+      "individual_model_consumption_proven": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19007,7 +19029,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T22:48:51.810999+00:00",
+  "updated_utc": "2026-10-20T23:46:22.938221+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,

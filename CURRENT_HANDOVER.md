@@ -31,26 +31,35 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — basisreferanse125 under oppbygging
+## Gjeldende arbeid — alle1205 GC-tallreferanser ferdige
 
-125 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125`.
-De siste14 aktive GC-verdiene kontrolleres: fire strictbasisbps og observedbps+
-kildealder på femTF. Separate observerte og strikte endepunkter rekonstrueres
-fra fire GC-M1-kolonner. Bare time/bid_close/ask_close fra de tre bundne spot-
-partisjonene2024/2025/2026 brukes, med eksakt samme M1 og ingen eldre fallback.
-Produsentens siste-minuttsregel t+1min<TESTgrensen beholdes. Alle14parquet-
-footere må sjekkes før payload;16inputfiler er281027680byte.006/024-manifest-
-proveniens gjenbrukes; full17årsproveniens-/sourcechunklesing er utenfor125.
-Faktisk kildejobb bestod164caser:116uendrede+41nye auditcaser+7eksisterende
-produsentbasiscaser,0fail/error/skip på6,516s.208kilder ogpolicy er bevart.
-SOURCE_REVIEW.json binder faktisk XML/terminal. Fysisk125 er nå claimet én gang
-etter dette PASS-et; sammenligningen er ennå ukvalifisert. Native117s183roller/
-182filer er uendret.
-Eksisterende1191felt/116audittester/117native-mekanikk beholdes. StrictD1 er
-fysisk hjelpekolonne, ikke en15.aktiv verdi. Ingen modell/normalisering/
-baseline/nyepoke/Exit/TEST eller brokerlesing er åpnet.
+125 er COMPLETE i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125`.
+De siste14 aktive basisverdiene bestod fysisk kontroll på21,969s/exit0:
+657521 endelige celler, alle14 varierer. Alder/masker/kildeklokker har nullavvik;
+bps-avvik er høyst3,524292e-12 innen analytiske cellegrenser. Eksakt samme
+GC-/spot-M1 brukes uten eldre fallback. Tre ferdige spotpartisjoner ble lest
+én gang; ingen17årsproveniens-/rådatascan. StrictD1 close/basis er heltNaN
+hjelpekolonner og er ikke numerisk kvalifisert.
+164 fokuserte kildecaser bestod på6,516s;208kildefiler/policy ble bevart.
+Native117s183roller/182filer er uendret; ingen ny baseline eller modelljobb.
+ACTUAL_NUMERIC_REVIEW.json SHA43050645ff1bd3d3be144f5ca325e6c68cb00fda497297a68dee2dfe93821646.
+TERMINAL.json SHA7f959e03d36b8a8c95f376db2245a9260bebb3c7e1f974dda37e1dd406e81374.
 
-## Ferdig —1191 av1205 GC-felt kontrollert
+ALL_1205_PUBLISHED_M1_TF_NUMERIC_INDEX.json i125binder alle1205registryverdier
+og deres bevis/statistikker: ingen manglende, fremmede eller dupliserte felt.
+SHA49de00d10d3d861aae53e212bc41e179a99689f400fda06ff415cbcf69ca6406.
+1172varierer og33er observerte konstanter.791har nullavvik,414har avrunding
+innen analytiske grenser. Finitt dekning varierer fra3til227808 per felt;
+sparsom korrekthet er ikke automatisk god læringsdekning.
+
+Neste avgrensede kontroll er GC TF→lagret M5-context: uavhengig siste-tilgjengelig
+kilde, masker og beslutningsalder for1205verdier+masker. Gjenbruk051for videre
+snapshot/historikk og055normalisering. Deretter tekniske23×5outputs med ekte
+historisk warmup. Råevent→M1, individuell modellnytte og Entry-kvalitet/dekning/
+forklaringer har egne åpne grenser. Dette starter ingen råTB-scan, rebuild,
+modell/baseline eller ekstraepoke. Ingen jobb kjører; trening er stengt.
+
+## Ferdig — profil-/histogram-/footprintreferanse124
 
 
 124 er COMPLETE i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_PROFILE_FOOTPRINT_NUMERIC_REFERENCE_20261021_124`.
@@ -79,15 +88,10 @@ kvitteringer i PUBLISHED_ROW_COUNT_RECONCILIATION.json,
 SHA5a17f9afe67dab7ee45947fd9bf0c76016dc5e7c0369e28e4817e026117a792e. Originaler og data er bevart.
 Ingen ny prisnivåopptelling per incident eller rådatascan er foretatt.
 
-Gjenstående14 aktive basisverdier er fire strictbps (M5/M15/H1/H4) og
-observedbps+alder på alle femTF. PENDING_BASIS_NUMERIC_FIELDS.json,
-SHA9c9dfd1bb6a888fd9b141d0db9852fa01771286f8f7976cc5e87f9b1fcbca7dc, binder eksakt komplement.
-Bruk ferdig GC-M1 og bundne spotpartisjoner2024/2025/2026, bare time/bid_close/
-ask_close. Samme M1-intervall, siste admitted GC-minutt uten eldre spotfallback,
-egen kildeklokke og siste-minutts TEST-grense må kontrolleres. Ingen ny brokerlesing.
-124 er konsumert og skal ikke relanseres. Ingen jobb kjører nå; trening er stengt.
+124/PENDING_BASIS_NUMERIC_FIELDS.json bevares som daværende14-feltsinventar;
+alle14 er nå kvalifisert i125 ovenfor.124og125er konsumert og skal ikke relanseres.
 
-## Ferdige tallreferanser —1191 unike aktive registryverdier
+## Ferdige tallreferanser —1205 unike aktive registryverdier
 
 | Kontroll | Aktive felt | Bevisomfang |
 |---|---:|---|
@@ -95,9 +99,10 @@ egen kildeklokke og siste-minutts TEST-grense må kontrolleres. Ingen ny brokerl
 |122|211|Trade/størrelse/kumulativ;205varierende,6konstanter|
 |123|198|SMC/pris;196varierende,2sparsomme D1-activekonstanter|
 |124|412|Profil/histogram/footprint;407varierende,5snapshotaldre0|
+|125|14|Samme-M1 spot/futures-basis og alder;allevarierende|
 
-121/122/123/124 er disjunkte;118klokkefasiten overlapper121 og telles ikke ekstra.
-Registrerte tidsramme-/observasjonsvarianter er felt, ikke1191uavhengige indikatorer.
+121/122/123/124/125 er disjunkte;118klokkefasiten overlapper121 og telles ikke ekstra.
+Registrerte tidsramme-/observasjonsvarianter er felt, ikke1205uavhengige indikatorer.
 123D1 har bare bull/bear9/7opprettelser og1/2retouch;122strictH1-CVD har3bøtter.
 Raw-event→M1, uavhengig native TF→beslutning, tekniske numeriske formler,
 individuell modellsensitivitet/nytte og Entry-kvalitet/dekning/forklaringer har
