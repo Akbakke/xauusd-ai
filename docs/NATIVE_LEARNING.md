@@ -129,6 +129,21 @@ En epoke må omfatte hver kvalifiserte TRAIN-rad nøyaktig én gang, med faktisk
 partial siste batch, varige checkpoints og det eksisterende finite vinduet.
 Ingen automatisk ekstra epoke, HPO eller seleksjon på evalueringsutfall.
 
+Den fulle dynamiske M5-epoken bruker eksisterende `entry_m5_path_single_epoch_run`,
+ikke en kort chronological_learning_run eller native_learning_calibration.
+Bind fysisk population witness, strict audit av faktisk initialmåling og samme
+profil/kildeclosure. TRAIN-taket er7391batcher/118249rader med batch16 og siste9,
+drop_last=false, epochs=1 og endelig ONLINE-modell. Et endelig antall forhåndsbundne
+12000s-vinduer kan gjenoppta samme cursor/epoke; ingen automatisk ekstraepoke.
+Private mekanikkvekter fra uavbrutt2 mot1+reload+1 skal aldri brukes som start.
+Etter durable TRAIN7391 kreves fast sluttmåling og læringsreview; ordinary
+complete=false ved TRAIN-grensen gir ikke adgang til ny epoke. Bevar skillet
+mellom fysisk radkonsum, sluttmåling, læring, generalisering og økonomisk verdi.
+Eksisterende sluttmåling deler invokasjonens tid og har frist11940s, mens vanlig
+train-wallpause er12000s. En delvis sluttmåling gjenopptas ikke automatisk av
+current campaign. Dette er en kjent betinget begrensning; faktiske terminaler og
+bevarte checkpoints styrer håndtering, uten uautorisert relaunch eller grenseendring.
+
 Operatøren valgte18.10 eksplisitt M5-prisforløp og liten MAE før MFE som
 hovedmål, med lengre horisonter som støtte. Entry-target, tap, handling og
 evaluering må bindes til dette før launch. Et h20-terminalmål måler20observerte

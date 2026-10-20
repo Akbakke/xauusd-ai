@@ -24,9 +24,10 @@ kronologiske OOF-evidens for merverdi.
 
 TRAIN er [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
 utviklingskontroll [2026-04-01,2026-07-01). Alle26måneder er gjenbrukt utvikling;
-TEST fra juli er forseglet. Én full nativeepoke er bestilt og gjenstår etter
-faktiske profilbundne porter. training_enabled=true er kun for107s fire private Entry-oppdateringer;
-fullEpoch/fullVAL=false. Full trening er ikke startet.
+TEST fra juli er forseglet. Én full nativeepoke er bestilt og gjenstår. Ny108plan gjelder118249TRAIN-rader,
+7391batcher (siste9), én epoke og ONLINE. training_enabled=true/fullEpoch=true
+åpner bare denne eksakte planen etter nye campaign-/boot-/maskinvareporter;
+fullVAL=false. Full trening er ennå ikke startet.
 Ingen broker/live/paper/ordre/spending/promotion. De nøyaktig to godkjente
 practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 
@@ -61,44 +62,46 @@ arvede vekter. ONLINE/anker/EMA-state9c4cf514… og initialblobc62cc1ad… bevar
 9c4cf514… og alle komponent-/horisontmasker er bevart.182kilders SHA/stat og
 11inputidentiteter bestod etterkontroll. Dette er ingen læring.
 
-## Aktuell grense —106 savedstate bestått;107 native mekanikk er neste
+## Aktuell grense —107 native mekanikk PASS;108 er én hel epoke
 
-105root: `/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_EPOCH_GUARD_20261020_105`.
-ACTUAL_TERMINAL_REVIEW SHA96017e454d2e6a1a49219911d4b216abdb83df23a3e0f988d77c9511d56f8cb0.
-Native receipt dffffae7d1405ed5b3a0fd1ee3be8d5a2b5711ce8a5fc1797588cca0a4241654.
-105er konsumert og Windows-task Disabled/LastResult0; ingen bundne Linuxjobber.
-Aktiv105recipe er **RECIPE_BOUND.json**, SHA3dfe8322…; RECIPE.json og gammelt
-budsjett er bevarte inaktive drafts og skal aldri brukes til neste binding.
-
-106root: `/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_STATE_AUDIT_20261020_106`.
-Faktisk capped CPU-audit COMPLETE/exit0 på67.647s; direkte controllerwait exit0.
-104fresh og105privat checkpoint er fysisk hash-/CPUload-kontrollert. Modell,
-anker, optimizer, EMA, scheduler og lagret CPU/Python/NumPy RNG er eksakt
-bevart. CUDA-RNG finnes, men sammenlignes ikke mot CPU-initialiseringen.
-Ingen modellbygging/forwards/updates/refit/Exit/TEST. TERMINAL SHA9cb9bedc…,
-INITIAL_MEASUREMENT_AUDIT SHA44cb6ec6…, STATE_PRESERVATION_PROOF SHA54a45a7a….
-106er konsumert; ingen relaunch eller ny stateblob-lesing uten konkret behov.
-
-Aktuell funksjonsclosure dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d
-beholdes gjennom107. Ingen ny modell-/indikatorendring eller datasett-rebuild.
 107root: `/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_PARITY_RESUME4_EPOCH_GUARD_20261020_107`.
-Ny PLAN og strict31felt TECHNICAL_QUALIFICATION_PLAN binder faktisk104/105/106.
-Oppskrift bygges fra faktisk105RECIPE_BOUND og først etter gjeldende policy-
-commit, slik at source_commit er eksakt.102controller gjenbrukes med kun stagekey
-endret. Ny fysisk boot etter dagens514 og eksisterende signed hardware-porter
-kreves; materialisering er ikke nativeadgang. Ingen claim eller nativejobb ennå.
+Faktisk RESULT SHA6379acd001a3a79889e518406bbc76b2a64e7bb2642f4652e401fd47633546f5.
+Uavhengig ACTUAL_TECHNICAL_TERMINAL_REVIEW SHA373a730ba3220606209d5cac018bce2cf560ae7a692afcc9fcf08834bed91f5c.
+Canonical receipt SHA275abc113c994a6fe096f4431ce2ed3178158d621dc4121e24c124c015b31492:
+guardPASS/trainer0/observer0. Slutt12:07:58UTC; ingen bundne Linux-/Windowsjobber,
+Windows-task Disabled/LastResult0.107er konsumert og skal aldri relanseres.
 
-107skal sammenligne no_grad/grad på16TRAIN+16CONTROL: fire parityforwards.
-Deretter uavbrutt2steg mot fersk restore og1steg+durable reload+1steg:
-fire faktiske private optimizeroppdateringer/fire trainingforwards og logisk
-cursor2. Åtte saved-state-trær skal være eksakt like. CONTROL får ingen
-oppdateringer, Exit/anker kjøres ikke og teacher refresh er av. Private vekter
-skal aldri brukes som hovedepokens start. Full epoke/fullVAL er fortsatt stengt.
+Fire private Entry-oppdateringer: uavbrutt2 mot1+durable reload+1, logiskcursor2.
+Åtte state-trær er eksaktlike: modell/anker/optimizer/EMA/scheduler/RNG/epochorder/
+trainingprogress.16TRAIN+16CONTROL ga fire parityforwards med åtte outputflater
+per rolle: max/RMS-avvik0 ved beholdt atol1e-4/rtol0; masker/actions/ties er like.
+0Exit/CONTROL-oppdateringer og ingen teacherrefresh. Dette er mekanikk, ikke læring.
+Private107vekter er bare auditbevis og skal aldri brukes i hovedepoken.
 
-102s Exit-lifecycle-feilstopp er bevart og konsumert;103retter feilen.
-104/105/106har kvalifisert oppstart og bevart tilstand, ikke current optimizer/
-resume eller læring. Etter faktisk107PASS gjenstår eksakt admission og den
-bestilte ene fulle nativeepoken. LONG/SHORT/FLAT-kvalitet og selektivitet er ubevist.
+182kilderoller/181filer og11inputstatidentiteter er bevart;26prebootkontroller
+uendret, ett rebootintent konsumert av canonicaleier. POST_NATIVE_SOURCE_PRESERVATION
+SHAd66037f58fc62d819b6ba1ce3f7aa296d10a6fc285c3a9a4101337d5767e05d0.
+Aktuell funksjonsclosure dc1c6b627a2d42a9fea18fcd5dd6bdcfca493a840f32bbf01e1a765a919b785d
+beholdes gjennom første helepoke. Ingen ny modell-/indikatorendring eller rebuild.
+
+108root: `/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108`.
+Bruk eksisterende `entry_m5_path_single_epoch_run`-eier.118249TRAIN-rader brukes
+nøyaktig én gang:7391batcher/batch16/partial9/drop_last=false. Tre forhåndsbundne
+12000s-vinduer innen13800s-guard kan bare fortsette samme epoke/cursor til7391;
+ingen automatisk ekstraepoke, utvidelse, Exit, fullVAL, TEST eller refit.
+Oppskrift bygger på faktisk105/RECIPE_BOUND, ikke det inaktive105draftet.
+Fjern initial0scope; bind strict106audit som chronological_learning_measurement
+og behold057WITNESS.104fresh gjenopprettes via105/106-kjeden. Aktuelle bytes/stat
+og uendret funksjonsclosure gjenbrukes; ingen ny fresh-/initial0runde uten endring.
+
+Etter durable7391 kreves fast ONLINE-sluttmåling mot105baseline på TRAIN/CONTROL
+og læringsreview. `complete=false` ved denne TRAIN-grensen betyr ikke at radenes
+epoke er ufullført; faktisk scope/witness/finalmåling avgjør. Nådd7391åpner aldri
+ny epoke. Kvalitet/dekning/sporbarhet og generalisering er fremdeles ubevist.
+Eksisterende begrensning: sluttmåling må ferdigstilles før invokasjon+11940s;
+train-wallpause er12000s, og en delvis sluttmåling har ingen automatisk resume.
+Dette er en betinget kildebegrensning, ikke observert108feil; ingen forebyggende
+kilde-/baseline-syklus nå. Bevar faktisk terminal/checkpoint ved et eventuelt stopp.
 
 ## Individuell indikatorrevisjon
 
@@ -113,8 +116,8 @@ Se docs/FEATURE_AUDIT.md for konkrete resterende bevisgrenser.
 
 ## Maskin, effektivitet, neste steg og opprydding
 
-Seneste faktiske boot514/20.10 kl.09:19:51.500UTC er bekreftet i105/REBOOT_CONFIRMED,
-SHAace2823f9e2e667b72fe55cadc70bdfda9bbed2c3589cc621ba1057ab083e09a.
+Seneste faktiske boot515/20.10kl.11:06:40.500UTC er bekreftet i107/REBOOT_CONFIRMED,
+SHAf55ee8f5dbb5fa76c1ecff4fec6a36888d0fa489ce5aa2f849523ca2656fd438.
 Denne og18.10-bestillingen er fullført; ingen gjentakelse. Ny nativecampaign
 følger egne ferske boot-/hostporter. Faktisk105profil300W/drawstop310W,
 core85°C/memory80°C/VRAM12288MiB; source/hardware-owner/signedguard eier grensene.
@@ -126,9 +129,11 @@ beholder signal, mens felles loader også skriver ctx/cat. Signal-only retention
 er en uimplementert senere I/O-kandidat med alle verdi-/domene-/alias-/maskevakter
 beholdt. Kumulativ rchar er logiske lesinger; Linux storage-I/O er ikke hosttotal
 eller per-fil tidsprofil. Ingen kontrollert fartsgevinst eller trenings-ETA er bevist.
+107målte første16raders batch til0.719scompute+0.217sloader (warmup). Senere
+1batch-intervaller var0.594/0.727s; ingen full-epochETA utledes av fire oppdateringer.
 
 Gjenbruk ferdige inputs/targets/055normalisering og kvalifisert kilde. Neste er
-107native Entry-only paritet/optimizer/resume og bestilt full epoke
+108eksakt singleepochcampaign, ny boot/maskinvareadgang og den ene hele epoken
 etter faktisk admission. Kvalitet/dekning/sporbarhet, individuelt numerisk
 featurebevis, generalisering og økonomisk edge gjenstår. Stabil jobb observeres
 15–30min. Ingen Exit, TEST, broker, HPO eller nye modeller i denne bølgen.
