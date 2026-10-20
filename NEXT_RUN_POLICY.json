@@ -14139,7 +14139,7 @@
           "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_COHORT_ATTENTION_20261020_100",
           "plan": {
             "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_COHORT_ATTENTION_20261020_100/PLAN.json",
-            "sha256": "321bc1e6ce028be293d0a863d7cf750e627c07b9a49a1cc0f5e6509c781c5595"
+            "sha256": "7a0fe8ba547642f6552cb97240d380e0dc87b493e5b0e690d44cd44109690c1e"
           },
           "campaign_preparation_authorized": true,
           "execution_authorized": true,
@@ -16994,7 +16994,7 @@
         "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
       }
     },
-    "run_id": "NATIVE_M5_COMPACT_INITIAL_ADMISSION_IO_20261020_095",
+    "run_id": "NATIVE_M5_COMPACT_INITIAL_COHORT_ATTENTION_20261020_100",
     "out_bundle_dir": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_INITIAL_COHORT_ATTENTION_20261020_100/BUNDLE",
     "source_bindings_sha256": "8517c075eb74dacc85c21c2441d6e00d23335f0eff02144bc32b5e009e41924f",
     "optimizer_steps": 0,
