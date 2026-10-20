@@ -44,9 +44,10 @@ og mixedgrenser resetter hele replayen. Ingen framskrevne/nullfylte candles.
 skal brukes; åtte filer274659799B komprimert, ingen råscan/OHLCrebuild/modell/Exit/TEST.
 CoreM1 har ingen available_ns. Pris/volum rekonstrueres uavhengig;122sideledger
 på sammeM1SHA gjentas ikke. Bookclose/TFpris har egne floatrekkefølger/grenser.
-183nativeproduksjonsroller/182filer er kontrollert uendret. Statisk opptelling er
-58beholdte+19nyecaser; faktisk antall/PASS er ennå umålt. Én kildejobb er åpnet
-etter peerreview; fysisk kjøring er IKKE startet eller kvalifisert.
+183nativeproduksjonsroller/182filer er kontrollert uendret. Faktisk123kildejobb
+bestod77caser (58beholdte+19nye),0fail/error/skip på5,266s.206kilder ogpolicy
+er bevart. SOURCE_REVIEW.json binder XML/resultat/terminal. Fysisk123 er nå
+claimet én gang etter dette PASS-et; sammenligningen er fortsatt ukvalifisert.
 Ingen ny nativeepoke er åpnet.
 
 ## Ferdig tallreferanse — 581 aktive GCfelt på publisertM1→TF-stadiet
