@@ -26,7 +26,7 @@ TRAIN er [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
 utviklingskontroll [2026-04-01,2026-07-01). Alle26måneder er gjenbrukt utvikling;
 TEST fra juli er forseglet. Den bestilte ene nativeepoken er FULLFØRT i108.
 117privat teknisk kontroll er FULLFØRT: fire private updates og fire paritetsforwards.
-training_enabled=false; ingen ny kjøring er åpnet.
+training_enabled=false; ingen ny native treningskjøring er åpnet.
 Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
@@ -41,8 +41,10 @@ BBO og viste ordre beholder egne masker/tidsnevnere; fullgrid/kontrakt og delvis
 holdes atskilt fra all-five-strict. Eventsum/min/max/rate/coverage følger egne domener.
 Ingen rå→M1-/nettverkslatens-/modellkonsumclaim. Åtte ferdige inputfiler er363237419B;
 kun nødvendige kolonner og trygge utviklingsradgrupper skal brukes. Ingen råscan/rebuild.
-Implementasjon og peerreview er ferdig; kun én capped fokusert sourcejobb er bundet.
-Fysisk audit er fortsatt stengt til faktisk PASS. Kildeplan og kontrollskript binder begge1800s. Source- og fysisk claim/terminal har separate navn.
+Sourcequalification er faktisk COMPLETE:33PASS/0fail/error/skip på4,760s,206kilder ogpolicy
+bevart.13nye hånd-/kontraktcaser kjørte;370feltlisten er matchet mot eksekverbar registry-
+og formelkontrakteier. SOURCE_REVIEW.json binder XML og faktisk source-terminal.
+Fysisk120audit er nå eksakt claimet én gang,4G/512M capped CPU og1800s; kilde/policy fryses. Source- og fysisk claim/terminal har separate navn.
 Én capped fokusert kildejobb skal bestå før én fysisk audit. Ingen ny native baseline,
 epoke, normalisering, Exit ellerTEST.118og117uendrede bevis gjenbrukes.
 
