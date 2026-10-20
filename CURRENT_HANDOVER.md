@@ -59,80 +59,50 @@ practice-leseoppslagene er konsumert; ingen gjenværende brokeradgang.
 - 070: 16 pytest PASS og faktisk Windows-hardening PASS. Metadatafrist 900 s;
   native-/ytre tidsgrense, task, temperatur-, effekt- og minnevakter er uendret.
 
-## Aktuell grense —098 bestått;099 CPUfresh og full metadataprecheck bundet
+## Aktuell grense —099 faktisk ferdig;100 initial0 skal bindes
 
-097 er FAILED/guardexit1,20.10 kl.03:56:24UTC, før optimizer. Faktisk diagnose
-ble atomisk publisert i DYNAMIC_M5_TECHNICAL_QUALIFICATION/PARITY_FAILURE.json,
-SHA bbc5fe4875dc1fcd732a933e1bf13b2f3e131cb3decd8fa59f3a69915f1bd811.
-Det er målt2TRAIN-forwards,0CONTROL og0optimizeroppdateringer. Første felt,
-dynamic_terminal_net_markout_bps, har max0.000135153532bps mot låst1e-4,
-RMS0.000056246411bps og960celler over terskel. Senere felt er ikke kontrollert.
+097 er konsumert FAILED/guardexit1 før optimizer:2TRAIN-forwards/0CONTROL,
+maxterminalavvik0.000135153532bps mot låst1e-4. Original PARITY_FAILURE.json
+og ACTUAL_FAILURE_REVIEW bevares. Ulike no_grad/grad-hostdispatch ble målt;
+ingen toleranse, presisjon, features eller arkitektur endres for å passere.
+097task er deaktivert; ingen relansering eller privatvektgjenbruk.
 
-Begge passeringer brukte CUDA/eval/FP32 uten autocast, samme input/vekter og
-gjenopprettet RNG/modulmodus/gradienttilstand. no_grad registrerte64hver av
-fusedTransformerEncoder/nativeMHA; enable_grad registrerte0av disse. Begge
-registrerte64SDPA-efficient-kall. Dette beviser ulike hostdispatch-veier og
-det konkrete numeriske avviket; en rettelse er ennå ikke nativeverifisert.
-Ingen toleranse, mål, features eller arkitektur skal endres for å passere.
-Originale logger og diagnose bevares. Kanonisk native-terminalkvittering ble
-ikke produsert; ACTUAL_FAILURE_REVIEW er bare etterprøvbar sammenstilling,
-SHA634ff42d1443be2901807dfb72563abf57385e7eac5a06acda4f0f18e7107654.
+098 rettet bare de to målte blokkeringene: ett eksisterende finite
+file_verification_scope rundt ren dynamiccohort-metadata, og midlertidig
+MHAfastpathFalse rundt deterministisk dynamisk Entry-forward. Alle gamle
+SHA/stat-/identitetskontroller bevares; scope lukkes før modell/optimizer.
+MHAflagget gjenopprettes i finally; autograd, SDPAvalg, RNG, modellmodus,
+presisjon og øvrig modell-/trainer-AST er uendret. Faktisk219PASS/3eksakte
+kjente legacy-SKIP/0fail/error; alle25nye caser PASS.098 er konsumert.
+Source_reviewSHAe92b41251f30821b8ef18747bc181dc6703cf522edeac728e4fa3d12ca284c22.
+Ny closure8517c075eb74dacc85c21c2441d6e00d23335f0eff02144bc32b5e009e41924f
+har182roller/181filer/7153839B. Bare kohortowner og trainer endret bytes.
 
-WindowsReady/LastResult1/0bundne prosesser og Linux749 borte er bekreftet;
-kun konsumert097task er deaktivert. Alle182kildebindinger og policy ble
-kontrollert uendret ved b26aeedd/b552 før frysen ble løftet. training=false,
-fullEpoch/fullVAL=false. Ingen097relansering eller gjenbruk av private vekter.
+099 full metadataprecheck206–259 inklusive bestod faktisk capped, inklusive
+sen065kobling, uten falskCLAIM/modellimport. Deretter bestod én faktisk
+4G/512M CPUfresh121.070133s,20.10 kl.04:42:36UTC.0forwards/updates/refits,
+kilde/policy uendret og alle182kilders bytes/stat kontrollert. Hele
+087→092→098kjeden er bevart. Terminal/result og ACTUAL_CPU_PREPARATION_REVIEW
+ligger under NATIVE_M5_COMPACT_FRESH_COHORT_ATTENTION_20261020_099.
+Constructorstate9c4cf514… og72MBinitialstatec62cc1ad… er eksakt lik094;
+ny kilde/beregningsbane krever likevel fersk nativeinitialmåling.099 er
+konsumert; ingen relansering. Worker rchar49.229GB er logiske lesebytes;
+lagringsregnskap44.181GB er separat. Ingen påstand om samlet host-I/O eller
+målt nativehastighetsgevinst. De ferdige datasettene og normaliseringen gjenbrukes.
 
-098 har implementert to målte blokkeringer i én kildegenerasjon: ett eksisterende
-finite file_verification_scope i den rene dynamiccohort-eieren, og minste
-rettelse som gir konsistent støttet MHA-beregningsvei mellom no_grad og grad
-for deterministisk dynamisk Entry-only. Kohortscopet lukkes før modell/
-optimizer/forward; SHA/stat-/identitetskontroller og legacy beholdes.
-Root eier policy/launch/dokumentasjon, mbp_audit kohort+fokustester, og
-paritetsagenten eier trainerens eksisterende _model_forward_fp32/presisjons-
-context og fokustester. MHAfastpathFalse gjelder bare dynamisk Entry/
-deterministiskFP32 rundt modellkallet og gjenoppretter tidligere flagg i finally;
-SDPAvalg, autograd, modellmodus, RNG, presisjon og øvrig trainer-AST er uendret.
-Hele kohort-AST er ellers identisk; eksisterende tester er uendret.098 er
-faktisk COMPLETE225.577s:219PASS/3eksakte kjente legacy-SKIP,0fail/error,
-og alle25nye caser PASS. Source_reviewSHAe92b41251f30821b8ef18747bc181dc6703cf522edeac728e4fa3d12ca284c22.
-Ny closureSHA8517c075eb74dacc85c21c2441d6e00d23335f0eff02144bc32b5e009e41924f
-har182roller/181filer/7153839B; bare kohortowner og trainer har endret bytes.
-Ingen CUDA-/hastighets-PASS er målt på denne kilden.
-098planen er konsumert; ingen relansering. Ingen ekte modelldata-forward
-eller optimizer er autorisert i denne bølgen.
-Nye kildebytes krever ny closure/CPUfresh/faktisk initial0/stateaudit og
-paritet/Entry-only optimizer/resume gjennom eksisterende gater før epoken.
-Ny099CPUfresh må bevare087→092→098-kvalifiseringskjeden med nøyaktig
-de to098produksjonsstiene som overlay og to testfiler separat.087s direkte
-trener-SHA-kontroll og092s after-closure må bindes til korrekt generasjon.
-099-planSHA3b9020f0bac157a056c1286ae22c92c78b80752e5c9c73a46e43f34fc01d3834
-er bundet til én4G/7200s CPUfresh. Eksterne helpers bevarer087→092→098 og
-tillater nøyaktig to nye produksjonsstier/to testfiler. Fem helper-kopier er
-AST-identiske, canonicalproducer-kallet er uendret. Ny099publisher krever
-metadataprecheck206–259 inklusive, stopp før260;065-koblingen er225–232.
-Dette er lesekontroll med ekte cappedguard, uten falskCLAIM eller påstand
-om full admission. Controllerhjelpere alene fanget ikke den faktiske093-feilen.
-Precheck og CPUfresh er ennå ikke kjørt; kilde/policy fryses før dem.100BUNDLE
-er bare fremtidig sti, ikke nativeadgang. TRAIN/VAL/normalisering gjenbrukes.
+Ny100 initial0 er eneste neste modellkjøring: samme frosne256TRAIN+256CONTROL,
+32Entry-forwards/0updates/0refit.100recipe/campaign skal bindes til099s faktiske
+freshartefakter,098closure og nåværende kilde/policy. Ny fysisk Windowsboot
+og signerte maskinvarevakter kreves.100BUNDLE er foreløpig sti, ingen utført
+nativekjøring. Globaltraining/fullEpoch/fullVAL=false. Gjenbruk095/096 som
+historiske b552-bevis, ikke initialbaseline for nye kildebytes. Etter100 kreves
+fersk stateaudit og faktisk paritet/Entry-onlyoptimizer/resume før bestilt epoke.
 
-Gjenbruk095/096 som avgrenset b552-bevis:095 bestod32Entry-forwards,256TRAIN
-+256CONTROL,0updates,2589.611s. Alle registrerte utverdier, valg, mål-/maske-
-digester og aggregater er eksakt lik089; bare to designstier skiftet. Dette
-var8.48%kortere initial-walltime, ingen kontrollert A/B eller treningsfart.
-Komponentoppsett867.906s og checkpoint0.508227s.096 bestod59.802s med eksakt
-model/anchor/optimizer/EMA/scheduler og CPU/Python/NumPyRNG bevart; auditSHA
-aecb65ca1f17eb44803a39f33b3cead32221e8702cf01d466f1a985d68db2986.
-094CPUfresh bestod121.926s/0forwards/updates/refits, med samme constructor-
-state9c4cf514… og initialstate-bytec62cc1ad… som088. Ingen nye rådata bygges.
-
-Fysisk Boot511/20.10 kl.03:24:10.500UTC er bekreftet med WindowsSSH/Ubuntu,
-182kilder,38artefaktpayloads og11inputstatidentiteter bevart. Canonical
-pending→reboot-intent-archive bevarte eksakt payload.097/REBOOT_CONFIRMED SHA
-c16f593ad9e29f036d18f9e9ace92740705c466c5cb775a47b9182b4aa49d4e4.
-Boot alene er ingen ny treningsadgang. Den bestilte epoken, full indikator-
-revisjon og lærte LONG/SHORT/FLAT-kvalitet/dekning/sporbarhet gjenstår. Ingen
-lærings-/generaliserings-/økonomisk edge-konklusjon. TEST/Exit/broker stengt.
+Seneste Boot511/20.10 kl.03:24:10.500UTC er bekreftet med WindowsSSH/Ubuntu;
+097/REBOOT_CONFIRMED SHA c16f593ad9e29f036d18f9e9ace92740705c466c5cb775a47b9182b4aa49d4e4.
+Dette er ingen100adgang. Bestilt epoke, full indikatorrevisjon og lært
+LONG/SHORT/FLAT-kvalitet/dekning/sporbarhet gjenstår. Ingen lærings-,
+generaliserings- eller økonomisk edge-konklusjon. TEST/Exit/broker stengt.
 
 ## PC, opprydding og metode
 
