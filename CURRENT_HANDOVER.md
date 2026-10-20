@@ -44,9 +44,10 @@ UNMASKEDsize avstemmes før egen publisert volumemaske. Pythonheltall bevarer
 volum/sidetall og nQ−S². Begge kumulative M1-stier beregnes én gang og resetter
 ved UTC-dato/roll/ugyldig forrige M1/hull. Strictsigned-CVD bruker TF-endepunkt;
 knowncum bruker siste observerte M1 og beholder unknown. Ingen22UTC-reset.
-183nativeproduksjonsroller/182filer er kontrollert uendret. Statisk opptelling er
-34beholdte+24nyecaser; faktisk antall/PASS er ennå umålt. Én kildejobb er åpnet
-etter peerreview; fysisk kjøring er IKKE startet eller kvalifisert.
+183nativeproduksjonsroller/182filer er kontrollert uendret. Faktisk122kildejobb
+bestod58caser (34beholdte+24nye),0fail/error/skip på5,180s.206kilder ogpolicy
+er bevart. SOURCE_REVIEW.json binder XML/resultat/terminal. Fysisk122 er nå
+claimet én gang etter dette PASS-et; sammenligningen er fortsatt ukvalifisert.
 121/118og117gjenbrukes. Ingen ny nativeepoke er åpnet.
 
 ## Siste kontroll — 370 event-/bok-/ordrefelt bestod fysisk tallreferanse121

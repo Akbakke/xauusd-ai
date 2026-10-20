@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T22:28:40.718119+00:00",
-  "status": "122_TRADE_CUMULATIVE_REFERENCE_ONE_SOURCE_QUALIFICATION_READY",
+  "observed_utc": "2026-10-20T22:29:29.043780+00:00",
+  "status": "122_PHYSICAL_TRADE_CUMULATIVE_REFERENCE_CLAIMED_AFTER_58_SOURCE_PASS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute one exact122 capped focused source qualification on existing audit test module after peer review; expected58cases from staticcount, actual count required. Production183roles preserved; no physical audit before sourcePASS, no new native epoch/Exit/TEST.",
+  "next_action": "Execute exactly one claimed122 capped physical trade/size/cumulative reference after actual58sourcePASS. Read9core+10sizeM1columns and53publishedTFcolumns,7finishedfiles253166440B beforeTEST. Verify211active fields; keep inactive strict outputs auxiliary, no rawscan/rebuild/model/normalization/newbaseline/nativeepoch/Exit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "122_INDEPENDENT_TRADE_SIZE_CUMULATIVE_REFERENCE_SOURCE",
+    "current_activity": "122_PUBLISHED_M1_TO_TF_TRADE_CUMULATIVE_PHYSICAL_REFERENCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "121_actual_scoped_370_field_event_book_order_numeric_reference",
+    "latest_terminal_role": "122_actual_focused_trade_cumulative_reference_source_qualification",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/TERMINAL.json",
-      "sha256": "c7bb23affb8192c006ebfd287d31306310ede658cc1103b9efaa038c372a4d87"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "ea0102b9e6520d1f023ef556ba0314ff22e18c34cdccf367cb69bdcd4cea6d4c"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "122independent reference source implemented; exact uint64 arithmetic, own masks/resets/full origin and int64grid checks await actual focused tests.211active plus auxiliary outputs remain physically unqualified.",
+    "current_blocker": "Actual58focused source cases PASS/5.180s;206source files andpolicy preserved.211active+strictauxiliary physical M1-to-TF comparison pending; no native quality verdict.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute one exact122 capped focused source qualification on existing audit test module after peer review; expected58cases from staticcount, actual count required. Production183roles preserved; no physical audit before sourcePASS, no new native epoch/Exit/TEST.",
+    "next_action": "Execute exactly one claimed122 capped physical trade/size/cumulative reference after actual58sourcePASS. Read9core+10sizeM1columns and53publishedTFcolumns,7finishedfiles253166440B beforeTEST. Verify211active fields; keep inactive strict outputs auxiliary, no rawscan/rebuild/model/normalization/newbaseline/nativeepoch/Exit.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16180,9 +16180,9 @@
       "physical_network_latency_calibrated": false
     },
     "gc_trade_cumulative_numeric_reference_122": {
-      "status": "SOURCE_IMPLEMENTATION_IN_PROGRESS",
+      "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
-      "claimed_invocations": 0,
+      "claimed_invocations": 1,
       "completed_invocations": 0,
       "relaunch_allowed": false,
       "plan": {
@@ -16201,7 +16201,11 @@
       "test_data_used": false,
       "normalization_fit_enabled": false,
       "exit_evaluation": false,
-      "broker_access_allowed": false
+      "broker_access_allowed": false,
+      "source_qualification": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/SOURCE_REVIEW.json",
+        "sha256": "27137e3cc7b93fe65d191a4c2abc313bb2bdf0bc2b2f147b62f418e011fdd888"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -18766,7 +18770,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T22:28:40.718119+00:00",
+  "updated_utc": "2026-10-20T22:29:29.043780+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -19217,10 +19221,10 @@
     "source_unchanged": true
   },
   "gc_trade_source_122": {
-    "status": "ONE_SHOT_SOURCE_QUALIFICATION_READY",
-    "execution_authorized": true,
+    "status": "COMPLETE_PASS_58_FOCUSED_SOURCE_CASES",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/SOURCE_QUALIFICATION_PLAN.json",
@@ -19237,6 +19241,14 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "ea0102b9e6520d1f023ef556ba0314ff22e18c34cdccf367cb69bdcd4cea6d4c"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/SOURCE_REVIEW.json",
+      "sha256": "27137e3cc7b93fe65d191a4c2abc313bb2bdf0bc2b2f147b62f418e011fdd888"
+    }
   }
 }
