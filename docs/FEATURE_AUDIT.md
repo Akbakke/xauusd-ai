@@ -428,7 +428,7 @@ Alle211aktive felt hadde finitt dekning og nullavvik;205varierer,6er konstanter.
 Strikt H1-CVD har bare3gyldige bøtter; numerisk paritet beviser ikke læringsdekning.
 58kildecaser bestod, fysisk audit tok31,810s/exit0 med206kilder bevart.
 Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_TRADE_CUMULATIVE_NUMERIC_REFERENCE_20261020_122/ACTUAL_NUMERIC_REVIEW.json`,
-e7e1d56cbbfbbe5b0e7a26738de4a93c4d04516bf7dcf10c4effcb8b5647ef3c. Samlet581aktive GCfelt er nå kontrollert på
+e7e1d56cbbfbbe5b0e7a26738de4a93c4d04516bf7dcf10c4effcb8b5647ef3c. Samlet121/122kontrollerte581aktive GCfelt på
 publisertM1→TF-stadiet, uten dobbeltelling av118. Originalstats er bevisst
 UNMASKED; egne publiserte volumemasker brukes etter all-M1-paritet. Ingen
 råevent→M1-, uavhengig TF→beslutning-, individuell sensitivitet-/nytte- eller
@@ -441,10 +441,26 @@ latest-invalid maskeres uten fallback til eldre gyldig signal. H4-klokken
 starter02/06/10/14/18/22UTC og D1 ved22UTC. Volum følger opprinnelsescandlen;
 det er ingen påstand om institusjonsidentitet eller volumterskel for BOS.
 
+123 har i tillegg kontrollert198 disjunkte aktive SMC-/prisfelt fra publisert
+M1 til fem tidsrammer:161 SMC og37 OHLC/close. Alle har finitt dekning;
+196 varierer. D1 active=1 har bare15/17 endelige bull/bear-observasjoner.
+Begge sider har positive BOS/sweep/opprettelse/retouch på alle femTF;
+D1 opprettelser9/7 og retouch1/2 er sparsomt. 135felt har nullavvik;
+63 USD-felt har avrunding innen cellevise analytiske grenser, maks9,094947e-13USD.
+44 heltNaN hjelpekolonner er kun maskekontrollert. 77kildecaser bestod;
+fysisk audit31,086s/exit0,206kilder bevart, ingen produksjonsformelendring.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123/ACTUAL_NUMERIC_REVIEW.json`,
+df2f2d9b6dd6e0bfd7287d640e5ad3fed693eaf4a1b41721167e9a26a61fade5.
+Union121/122/123 er779av1205 registrerte GCverdier uten overlapp; dette teller
+felt med tidsramme-/observasjonsvarianter, ikke779 uavhengige indikatorformler.
+123/PENDING_NUMERIC_FIELD_GROUPS.json binder de426 utestede verdiene:
+316 dynamiske profiler,64 histogram,32 footprint og14 basis. Ingen kjøreautoritet.
+Råevent→M1, uavhengig tilgjengelighetsprojeksjon og individuell modellnytte
+bevises ikke av denne publisertM1→TF-kontrollen.
+
 Uavhengig numerisk referanse gjenstår for komplette strikte/dynamiske profiler,
-valuearea, avstand/respons og session-/DST-/hull-/roll-domener. Begge SMCsiders
-bekreftelse, opprettelse, retouch, invalidering, alder og sonegrenser må skilles
-mellom bevart og observed-proxy-semantikk. Basis trenger fortsatt komplett
+valuearea, avstand/respons og session-/DST-/hull-/roll-domener.123 skiller
+begge SMCsiders bevarte og observed-proxy-semantikk. Basis trenger fortsatt komplett
 alleTF-/hull-/roll-/as-of-alderreferanse og representative aktuelle fysiske verdier.
 Delvise håndberegnede tester og shared-owner-paritet telles hver for seg.
 

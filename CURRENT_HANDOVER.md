@@ -31,26 +31,38 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — GC-SMC/prisfasit123
+## Gjeldende arbeid — SMC-/prisreferanse123 bestod
 
 123 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_SMC_PRICE_NUMERIC_REFERENCE_20261020_123`.
-Design/plan og kilde er klar i eksisterende auditeier/testfil; ingen produksjonsformel er endret.
-198nye aktive felt er avklart uten overlapp med581:161SMC og37OHLC/closefelt.
-Begge retninger, strict/observed, right3pivoter/ties, engangsBOS/sweep, tidligere
-motsatt origin, volum, retouch/invalidering/alder og egne zone-/inputmasker inngår.
-Pivotminne over manglende observedTF og zone-/originreset holdes atskilt; kontrakt-
-og mixedgrenser resetter hele replayen. Ingen framskrevne/nullfylte candles.
-Åtte M1-kolonner, bundet tickmetadata, fem ferdigeTF-filer og book-close-alias
-skal brukes; åtte filer274659799B komprimert, ingen råscan/OHLCrebuild/modell/Exit/TEST.
-CoreM1 har ingen available_ns. Pris/volum rekonstrueres uavhengig;122sideledger
-på sammeM1SHA gjentas ikke. Bookclose/TFpris har egne floatrekkefølger/grenser.
-183nativeproduksjonsroller/182filer er kontrollert uendret. Faktisk123kildejobb
-bestod77caser (58beholdte+19nye),0fail/error/skip på5,266s.206kilder ogpolicy
-er bevart. SOURCE_REVIEW.json binder XML/resultat/terminal. Fysisk123 er nå
-claimet én gang etter dette PASS-et; sammenligningen er fortsatt ukvalifisert.
-Ingen ny nativeepoke er åpnet.
+198 nye aktive felt er kontrollert: 161 SMC- og 37 OHLC-/closefelt, uten overlapp med de tidligere 581. Kildejobben bestod 77 caser på 5,266 sekunder;
+den fysiske kontrollen av 1 139 040 M1-rader tok 31,086 sekunder, exit0.
+Alle 198 har finitt dekning; 196 varierer. D1 bull/bear-active er konstant1
+på bare 15/17 endelige observasjoner, resten maskert. Dette er sparsom dekning.
+Begge retninger har faktiske BOS-, sweep-, OB-opprettelses- og retouch-hendelser
+på alle fem tidsrammer. D1 har bare 9/7 opprettelser og 1/2 retouch.
 
-## Ferdig tallreferanse — 581 aktive GCfelt på publisertM1→TF-stadiet
+135 aktive felt har eksakt nullavvik. 63 USD-felt har avrundingsavvik innen
+analytiske cellevise grenser, maksimalt 9,094947e-13 USD. De 44 heltNaN
+hjelpekolonnene (18 H4,26 D1) er bare maskekontrollert, ikke numerisk kvalifisert.
+Pivotbekreftelse, engangsbrudd/sweeps, origin, volum, invalidering/retouch,
+alder, hull/roll og egne zone-/inputmasker inngår i den uavhengige replayen.
+Åtte ferdige inputfiler utgjør 274659799 byte; ingen ny råscan eller modelljobb.
+206 kildefiler er bevart; auditendringene berører ingen av117s 183 native-
+produksjonsroller/182 filer. Ingen produksjonsformel eller ny baseline er endret.
+ACTUAL_NUMERIC_REVIEW.json SHAdf2f2d9b6dd6e0bfd7287d640e5ad3fed693eaf4a1b41721167e9a26a61fade5.
+TERMINAL.json SHA05660c8eb7bccf5387ceb3b7320ba62ae9901ef7fe0de099c5e059101d9f2297.
+123 er konsumert og skal ikke relanseres. Ingen jobb kjører nå.
+
+Neste numeriske omfang er 426 aktive GC-felt: 316 dynamiske profiler,
+64 tidsrammehistogram-,32 footprint- og14 basisfelt. Eksakt komplement og
+feltgrupper står i123/PENDING_NUMERIC_FIELD_GROUPS.json,
+SHAe6fd9e9778cdd75c373b14658f86eab393a053da4f1bc282d4f89f7f5bfe1949. Dette er en inventarliste, ingen kjøreplan.
+Profil/histogram/footprint kan ta utgangspunkt i den ferdige M1-prisnivåfilen;
+ingen ny TB-rålesing er begrunnet. Oppstrøms råevent→M1 og nedstrøms uavhengig
+TF→beslutning, tekniske indikatorer, individuell modellnytte og Entry-kvalitet
+har separate ubeviste grenser. Ingen ny nativeepoke er åpnet.
+
+## Ferdig tallreferanse — 779 aktive GCfelt på publisertM1→TF-stadiet
 
 121event/bok/ordre:370aktive felt,1139040M1-rader,125,441s/exit0.
 350varierer/20nullkonstanter.329felt har eksakt nullavvik;41har små avvik innen
@@ -73,13 +85,13 @@ ACTUAL_NUMERIC_REVIEW.json SHAe7e1d56cbbfbbe5b0e7a26738de4a93c4d04516bf7dcf10c4e
 TERMINAL.json SHAdfe186336e1933ebb9464908e9e854c07c674f8e3c0a625a8925b2f3ee105d02.
 58kildecaser bestod på5,180s;206kilder/policy bevart.121/122er konsumert.
 
-Feltsettene er disjunkte, totalt581av1205registrerte GCverdier. Dette er
+121/122/123-feltsettene er disjunkte, totalt779av1205registrerte GCverdier. Dette er
 ikke råevent→M1-, uavhengig TF→beslutning-, individuell følsomhets-/nytte-,
 lærings- eller økonomibevis. Ingen produksjonsformler er endret;183native-
 produksjonsroller/182filer er bevart.051rekonstruksjon,053felt-/maskeliveness,
 055normalisering og115/117aktuell modellmekanikk gjenbrukes uten ny baseline.
-Gjenstående tallgrupper er123SMC/pris, basis, profil/footprint, tekniske formler
-og råevent→M1; faktisk individuell tilgjengelighet/konsum og Entry-kvalitet,
+Gjenstående GC-tallgrupper er basis, profil/histogram/footprint. Tekniske formler
+og råevent→M1, faktisk individuell tilgjengelighet/konsum og Entry-kvalitet,
 dekning/forklaringer gjenstår. Originalkvitteringer/historikk bevares i policy/Git.
 
 Målrettet lesereview av117-stakken fant eksisterende finite hashscope i
