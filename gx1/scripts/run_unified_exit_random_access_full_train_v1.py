@@ -35,7 +35,9 @@ from gx1.contracts.unified_exit_random_access_val_evaluator_v1 import RESULT_SCH
 from gx1.contracts.entry_candidate_checkpoint_policy_v1 import (
     native_checkpoint_monitor, DYNAMIC_M5_FIXED_ONLINE_CHECKPOINT_MONITOR,
 )
-from gx1.contracts.local_random_access_campaign_v2 import file_verification_scope
+from gx1.contracts.local_random_access_campaign_v2 import (
+    file_sha256 as _verified_file_sha256, file_verification_scope,
+)
 from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
     DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY, dynamic_m5_loss_fit_lineage,
     dynamic_m5_loss_scale_identity, load_dynamic_m5_loss_scales,
@@ -72,7 +74,7 @@ def _bound_artifact(binding: Any) -> Path:
     path = Path(binding["path"])
     if (
         not path.is_absolute() or not path.is_file() or path.is_symlink()
-        or path.resolve() != path or val.file_sha256(path) != binding["sha256"]
+        or path.resolve() != path or _verified_file_sha256(path) != binding["sha256"]
     ):
         raise RuntimeError("NATIVE_FULL_TRAIN_ARTIFACT_BYTES_INVALID")
     return path
@@ -644,38 +646,39 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
     from gx1.contracts.unified_exit_random_access_state_view_v1 import _structured_sha256
     require_capped_cpu_audit_execution()
     require_capped_lock_ancestry()
-    recipe, files, _ = _require_native_full_train_recipe(recipe_path, recipe_file_sha256)
-    phase = trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
-    if (set(files) != _DYNAMIC_M5_DATA_FILES or "chronological_prefix" not in recipe
-            or any(key in recipe for key in ("chronological_initial_measurement", "chronological_learning_measurement", "entry_dynamic_m5_technical_qualification"))):
-        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_RECIPE_REQUIRED")
-    policy = val._read(_bound_artifact(recipe["next_run_policy"]))
-    if policy.get("training_enabled") is not False or policy.get("full_epoch_training_allowed") is not False:
-        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_TRAINING_FORBIDDEN")
-    controls = recipe["trainer_cli"]
-    prefix = _require_prefix_component_bindings(recipe["chronological_prefix"], files=files,
-        seed=controls["seed"], batch_size=controls["batch_size"],
-        learning_rate=controls["learning_rate"], weight_decay=controls["weight_decay"])
-    physical, single = prefix.get("physical_preprocessing", {}), prefix.get("entry_m5_path_single_epoch")
-    if (physical.get("entry_training_phase") != phase or single is None
-            or single["witness"]["training_phase"] != phase
-            or prefix.get("model_functions") != trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
-            or controls["epochs"] != 1 or controls["batch_size"] != 16
-            or single["train_rows"] != len(prefix["eligible_parent_rows"])):
-        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_IDENTITY_INVALID")
-    from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
     with file_verification_scope():
-        loss_scales = load_dynamic_m5_loss_scales(recipe[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY],
-            expected_lineage=dynamic_m5_loss_fit_lineage(require_observed_entry_scope(recipe), single))
-    loss_scale_identity = dynamic_m5_loss_scale_identity(loss_scales)
-    output_dir = Path(output_dir)
-    if (not output_dir.is_absolute() or output_dir != output_dir.resolve()
-            or output_dir.exists() or output_dir.is_symlink()
-            or not output_dir.parent.is_dir() or output_dir.parent != output_dir.parent.resolve()):
-        raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_OUTPUT_INVALID")
-    metadata = val._read(files["source_bundle_metadata"])
-    normalization = val._read(files["entry_only_base_normalization"])["contract"]
-    val._bind_multi_tf_cache_from_source_bundle_metadata(metadata)
+        recipe, files, _ = _require_native_full_train_recipe(recipe_path, recipe_file_sha256)
+        phase = trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        if (set(files) != _DYNAMIC_M5_DATA_FILES or "chronological_prefix" not in recipe
+                or any(key in recipe for key in ("chronological_initial_measurement", "chronological_learning_measurement", "entry_dynamic_m5_technical_qualification"))):
+            raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_RECIPE_REQUIRED")
+        policy = val._read(_bound_artifact(recipe["next_run_policy"]))
+        if policy.get("training_enabled") is not False or policy.get("full_epoch_training_allowed") is not False:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_TRAINING_FORBIDDEN")
+        controls = recipe["trainer_cli"]
+        prefix = _require_prefix_component_bindings(recipe["chronological_prefix"], files=files,
+            seed=controls["seed"], batch_size=controls["batch_size"],
+            learning_rate=controls["learning_rate"], weight_decay=controls["weight_decay"])
+        physical, single = prefix.get("physical_preprocessing", {}), prefix.get("entry_m5_path_single_epoch")
+        if (physical.get("entry_training_phase") != phase or single is None
+                or single["witness"]["training_phase"] != phase
+                or prefix.get("model_functions") != trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
+                or controls["epochs"] != 1 or controls["batch_size"] != 16
+                or single["train_rows"] != len(prefix["eligible_parent_rows"])):
+            raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_IDENTITY_INVALID")
+        from gx1.contracts.entry_observed_market_horizons_v1 import require_observed_entry_scope
+        with file_verification_scope():
+            loss_scales = load_dynamic_m5_loss_scales(recipe[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY],
+                expected_lineage=dynamic_m5_loss_fit_lineage(require_observed_entry_scope(recipe), single))
+        loss_scale_identity = dynamic_m5_loss_scale_identity(loss_scales)
+        output_dir = Path(output_dir)
+        if (not output_dir.is_absolute() or output_dir != output_dir.resolve()
+                or output_dir.exists() or output_dir.is_symlink()
+                or not output_dir.parent.is_dir() or output_dir.parent != output_dir.parent.resolve()):
+            raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_OUTPUT_INVALID")
+        metadata = val._read(files["source_bundle_metadata"])
+        normalization = val._read(files["entry_only_base_normalization"])["contract"]
+        val._bind_multi_tf_cache_from_source_bundle_metadata(metadata)
     device = torch.device("cpu")
     model, seed_binding = _fresh_prefix_model(metadata=metadata, normalization=normalization,
         device=device, seed=controls["seed"], entry_training_phase=phase,
@@ -752,7 +755,8 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
     if (_structured_sha256(rng_identity(trainer._attended_session_rng_state(device=device))) != rng_sha256
             or trainer._model_state_sha256(model) != expected):
         raise RuntimeError("NATIVE_DYNAMIC_M5_FRESH_PREPARATION_ROUNDTRIP_INVALID")
-    _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement)
+    with file_verification_scope():
+        _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement)
     for name, value in (("INITIALIZATION.json", initial), ("MEASUREMENT_BINDING.json", measurement)):
         encoded = (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
         _publish_bytes(stage / name, encoded)

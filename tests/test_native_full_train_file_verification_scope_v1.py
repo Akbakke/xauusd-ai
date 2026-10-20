@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import ast
 from collections import Counter
+from collections.abc import Mapping
 import hashlib
+import os
 from pathlib import Path
 import sys
 import time
@@ -155,3 +157,79 @@ def test_native_preflight_failure_preserves_guards_and_resets_scope(
         assert physical_hash_calls[path] == operation * 3
     assert "before_device_and_model" not in events
     assert not (tmp_path / "unused-output").exists()
+
+
+def _load_bound_artifact():
+    """Use the actual wrapper and source-owned hasher without importing models."""
+    tree = ast.parse(SOURCE.read_text(encoding="utf-8"), filename=str(SOURCE))
+    function = next(node for node in tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_bound_artifact")
+    scope_import = next(node for node in tree.body
+        if isinstance(node, ast.ImportFrom)
+        and node.module == "gx1.contracts.local_random_access_campaign_v2"
+        and any(alias.name == "file_verification_scope" for alias in node.names))
+    isolated = ast.Module(body=[
+        ast.ImportFrom(module="__future__", names=[ast.alias(name="annotations")], level=0),
+        scope_import, function,
+    ], type_ignores=[])
+    ast.fix_missing_locations(isolated)
+    namespace = {"Path": Path, "Mapping": Mapping}
+    exec(compile(isolated, str(SOURCE), "exec"), namespace)
+    return namespace[function.name]
+
+
+def test_bound_artifact_and_common_binding_share_only_one_finite_operation(tmp_path, physical_hash_calls):
+    path = tmp_path / "immutable-input.json"
+    path.write_bytes(b'{"physical":"actual small bytes"}\n')
+    binding = {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    bound = _load_bound_artifact()
+    for operation in (1, 2):
+        with owner.file_verification_scope():
+            assert bound(binding) == path
+            assert owner.require_binding(binding, label="same physical source") == binding
+            assert bound(binding) == path
+            assert physical_hash_calls[path] == 2 * operation - 1
+        assert bound(binding) == path
+        assert physical_hash_calls[path] == 2 * operation
+
+
+@pytest.mark.parametrize("fault", ["wrong_sha", "changed_bytes", "replaced_inode", "symlink"])
+def test_bound_artifact_cannot_reuse_wrong_sha_or_changed_physical_identity(
+    tmp_path, physical_hash_calls, fault
+):
+    path = tmp_path / "immutable-input.json"
+    original = b'{"physical":"A"}\n'
+    changed = b'{"physical":"B"}\n'
+    path.write_bytes(original)
+    binding = {"path": str(path), "sha256": hashlib.sha256(original).hexdigest()}
+    bound = _load_bound_artifact()
+    with owner.file_verification_scope():
+        assert bound(binding) == path
+        assert owner.require_binding(binding, label="repeat before mutation") == binding
+        before = path.stat()
+        failing_binding = binding
+        if fault == "wrong_sha":
+            failing_binding = {**binding, "sha256": "0" * 64}
+        elif fault == "changed_bytes":
+            path.write_bytes(changed)
+            os.utime(path, ns=(before.st_atime_ns, before.st_mtime_ns))
+        elif fault == "replaced_inode":
+            replacement = tmp_path / "replacement.json"
+            replacement.write_bytes(changed)
+            os.utime(replacement, ns=(before.st_atime_ns, before.st_mtime_ns))
+            os.replace(replacement, path)
+        else:
+            target = tmp_path / "symlink-target.json"
+            target.write_bytes(original)
+            path.unlink()
+            path.symlink_to(target)
+        with pytest.raises(RuntimeError, match="NATIVE_FULL_TRAIN_ARTIFACT_BYTES_INVALID"):
+            bound(failing_binding)
+        assert physical_hash_calls[path] == (2 if fault in ("changed_bytes", "replaced_inode") else 1)
+    # A failed check must not leave an operation memo alive outside the context.
+    if path.is_symlink():
+        path.unlink()
+    path.write_bytes(original)
+    reads_before = physical_hash_calls[path]
+    assert bound(binding) == path
+    assert physical_hash_calls[path] == reads_before + 1

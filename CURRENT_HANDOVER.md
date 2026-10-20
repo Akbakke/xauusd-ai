@@ -164,6 +164,16 @@ profil/targets og055normalisering gjenbrukes etter ny kildekvalifisering og
 ny unik fresh-/initialbinding. Den tidligere113initialstien ble aldri laget.
 Ingen ny epoke åpnes;108har allerede oppfylt den bestilte ene epoken.
 
+113 er neste avgrensede kildekvalifisering, ikke modelltrening.
+Root `/home/andre2/GX1_RUNS/NATIVE_M5_METADATA_IO_SCOPE_REPAIR_20261020_113`.
+Kun full_train-eierens inputhash og to finite metadata-scopes endres; rå PT-
+hasher, semanticgater, modell/statearbeid, features og mål bevares. Tre
+fokuserte eksisterende testmoduler binder gjenlesing, SHA/stat/symlinkfeil,
+modell-/stategrense, ny operasjon og exception-lifetime. Syntetiske tester
+beviser kun mekanikk; faktisk I/O-gevinst må måles i ny unik CPUfresh-jobb.
+113PLAN SHAf21d400b6ba17ff96b3efecf0e9dc774470749c9d3f7e7688c2ebac37f0c823e.
+Ingen ekstraepoke eller markedsforwardadgang følger av dette.
+
 VAL-targetstd er aldri fitgrunnlag, og CONTROL-resultater velger ingen skala.
 Ingen ny modell, håndsatt relativ vekt eller ekstraepoke.109og108er konsumert.
 Etter endret sourceclosure er105/106/107 historiske funksjonsbevis; ny aktuell

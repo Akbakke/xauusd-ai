@@ -1064,3 +1064,125 @@ def test_fresh_compact_model_rejects_profile_mismatch_before_optimizer(tmp_path,
     elif fault == "phase": args["entry_training_phase"] = runner.trainer.JOINT_FITTED_Q_TRAINING_PHASE
     with pytest.raises(RuntimeError): runner._fresh_prefix_model(**args)
     assert len(calls) == (1 if fault == "constructed_profile" else 0)
+
+
+def test_dynamic_fresh_metadata_hash_scopes_exclude_model_save_and_restore(
+    dynamic_fresh_preparation, monkeypatch
+):
+    """Exercise the public producer, genuine streams and staged CPU roundtrip."""
+    from gx1.contracts import local_random_access_campaign_v2 as common
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    case = dynamic_fresh_preparation
+    binding = case["recipe"]["files"]["entry_train_parquet"]
+    path = Path(binding["path"])
+    reads, common_pt_reads, raw_pt_reads = [], [], []
+    original_hash = common._file_sha256_uncached
+    original_raw_hash = runner.val.file_sha256
+    def traced_hash(source, *, identity, scoped):
+        if source == path:
+            reads.append(scoped)
+        if source.suffix == ".pt":
+            common_pt_reads.append((source, scoped))
+        return original_hash(source, identity=identity, scoped=scoped)
+    def traced_raw_hash(source):
+        if Path(source).suffix == ".pt":
+            raw_pt_reads.append(Path(source))
+        return original_raw_hash(source)
+    monkeypatch.setattr(common, "_file_sha256_uncached", traced_hash)
+    monkeypatch.setattr(runner.val, "file_sha256", traced_raw_hash)
+
+    def metadata_reads():
+        assert runner._bound_artifact(binding) == path
+        assert common.require_binding(binding, label="same immutable input") == binding
+        assert runner._bound_artifact(binding) == path
+    require_recipe = runner._require_native_full_train_recipe
+    require_prefix = runner._require_prefix_component_bindings
+    make_model = runner._fresh_prefix_model
+    save = torch.save
+    restore = runner._restore_prefix_initial_measurement_state
+    require_initial = campaign._require_dynamic_initial_artifacts
+    def recipe_boundary(*args, **kwargs):
+        metadata_reads()
+        return require_recipe(*args, **kwargs)
+    def prefix_boundary(*args, **kwargs):
+        metadata_reads()
+        return require_prefix(*args, **kwargs)
+    def model_boundary(*args, **kwargs):
+        assert runner._bound_artifact(binding) == path
+        return make_model(*args, **kwargs)
+    def save_boundary(*args, **kwargs):
+        assert runner._bound_artifact(binding) == path
+        return save(*args, **kwargs)
+    def restore_boundary(*args, **kwargs):
+        assert runner._bound_artifact(binding) == path
+        return restore(*args, **kwargs)
+    def post_state_boundary(*args, **kwargs):
+        metadata_reads()
+        result = require_initial(*args, **kwargs)
+        metadata_reads()
+        return result
+    monkeypatch.setattr(runner, "_require_native_full_train_recipe", recipe_boundary)
+    monkeypatch.setattr(runner, "_require_prefix_component_bindings", prefix_boundary)
+    monkeypatch.setattr(runner, "_fresh_prefix_model", model_boundary)
+    monkeypatch.setattr(torch, "save", save_boundary)
+    monkeypatch.setattr(runner, "_restore_prefix_initial_measurement_state", restore_boundary)
+    monkeypatch.setattr(campaign, "_require_dynamic_initial_artifacts", post_state_boundary)
+    preparation = case["seal"]()
+    for operation in (1, 2):
+        output = case["output"].with_name("initial-components-" + str(operation))
+        artifacts = runner.publish_dynamic_m5_fresh_initialization(recipe_path=Path(preparation["path"]),
+            recipe_file_sha256=preparation["sha256"], output_dir=output)
+        assert set(artifacts) == {"initialization_result", "measurement_binding_result"}
+        # One pre-model stream, three independent model/save/restore reads,
+        # then one fresh post-state metadata stream. A new producer invocation
+        # must perform both admissions again rather than keep a lifetime memo.
+        assert reads == [True, False, False, False, True, False] * (operation - 1) + [True, False, False, False, True]
+        assert runner._bound_artifact(binding) == path
+        assert reads == [True, False, False, False, True, False] * operation
+        # The real staged archive is physically hashed by the unchanged raw PT
+        # owner, then again by strict restore outside either metadata scope.
+        assert len(raw_pt_reads) == len(common_pt_reads) == operation
+        assert [item[0] for item in common_pt_reads] == raw_pt_reads
+        assert all(scoped is False for _, scoped in common_pt_reads)
+        assert raw_pt_reads[-1].name == "INITIAL_STATE.pt"
+        assert raw_pt_reads[-1].parent != output
+
+
+@pytest.mark.parametrize("failure_stage", ["pre_model", "post_state"])
+def test_dynamic_fresh_metadata_exceptions_clear_scope_without_publishing(
+    dynamic_fresh_preparation, monkeypatch, failure_stage
+):
+    from gx1.contracts import local_random_access_campaign_v2 as common
+    from gx1.contracts import unified_exit_native_candidate_campaign_v1 as campaign
+    case = dynamic_fresh_preparation
+    binding = case["recipe"]["files"]["entry_train_parquet"]
+    path = Path(binding["path"])
+    reads = []
+    original_hash = common._file_sha256_uncached
+    def traced(source, *, identity, scoped):
+        if source == path:
+            reads.append(scoped)
+        return original_hash(source, identity=identity, scoped=scoped)
+    monkeypatch.setattr(common, "_file_sha256_uncached", traced)
+    require_recipe = runner._require_native_full_train_recipe
+    def recipe_boundary(*args, **kwargs):
+        assert runner._bound_artifact(binding) == path
+        assert common.require_binding(binding, label="repeat metadata admission") == binding
+        if failure_stage == "pre_model":
+            raise RuntimeError("bounded fresh metadata pre_model failure")
+        return require_recipe(*args, **kwargs)
+    def post_state_boundary(*args, **kwargs):
+        assert runner._bound_artifact(binding) == path
+        assert common.require_binding(binding, label="repeat post-state admission") == binding
+        raise RuntimeError("bounded fresh metadata post_state failure")
+    monkeypatch.setattr(runner, "_require_native_full_train_recipe", recipe_boundary)
+    monkeypatch.setattr(campaign, "_require_dynamic_initial_artifacts", post_state_boundary)
+    preparation = case["seal"]()
+    with pytest.raises(RuntimeError, match="bounded fresh metadata " + failure_stage + " failure"):
+        runner.publish_dynamic_m5_fresh_initialization(recipe_path=Path(preparation["path"]),
+            recipe_file_sha256=preparation["sha256"], output_dir=case["output"])
+    assert reads == ([True] if failure_stage == "pre_model" else [True, True])
+    assert runner._bound_artifact(binding) == path
+    assert reads[-1] is False
+    assert not case["output"].exists()
+    assert [event[0] for event in case["events"]] == ([] if failure_stage == "pre_model" else ["model"])
