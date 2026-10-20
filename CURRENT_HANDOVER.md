@@ -31,54 +31,45 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — minste bokskjemarettelse121 etter120-feil
-
-120sourcequalification bestod33caser, inkludert13nye, på4,760s;370feltlisten ble matchet
-mot eksekverbar registry-/formelkontrakteier. Den fysiske120auditen er derimot FAILED:
-exit1 etter3,816s,206kilder ogpolicy uendret. Auditens bokprojeksjon ba om available_ns,
-som ikke finnes i publisert M1_GC_INPUTS. Writer232–240/947–955 bekrefter at bare
-bar_start_ns/contract_index er felles boknøkler; available_ns tilføyes eventfilen separat.
-Ingen formelsammenligning ble godkjent, ingen modulRESULT/terminal publisert. Original
-launchterminal/claim/staging og failure-review bevares;120er konsumert og relanseres aldri.
-Modulens TEST-teller er urapportert i originalkvitteringen; ingen null konstrueres.
+## Siste kontroll — 370 event-/bok-/ordrefelt bestod fysisk tallreferanse121
 
 121 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121`.
-Minste rettelse gjelder bare auditens25faktisk publiserte bokkolonner og join på faktisk
-bar_start_ns/contract_index. Eventfilens egen available_ns-kontroll beholdes; ingen syntese.
-En liten Arrow/Parquet-regresjon uten bokavailable legges til. Produksjonsformler og
-native183closure er uendret. Omfanget er fortsatt350TF-felt+20strikte M5-felt fra samme
-åtte ferdige024filer363237419B; ingen råscan/rebuild/normalisering/modell/Exit.
-121sourcequalification er faktisk COMPLETE:34PASS/0fail/error/skip på4,508s med206kilder
-ogpolicy bevart. Ny faktisk Arrow/Parquet-regresjon uten bokavailable og med clock-/
-contractavvisning kjørte;370registry-/eierdekning bestod fortsatt. SOURCE_REVIEW.json binder
-XML og faktisk source-terminal. Fysisk121audit er nå claimet én gang etter dette PASS-et.
-Kildeplan/controller binder begge1800s; source-/fysiskclaim og terminal er separate.
-117mekanikk og118klokkefasit gjenbrukes. Ingen ekstra nativeepoke ellerTEST-adgang.
+Én capped CPUaudit4G/512M fullførte20.10kl.22:06UTC på125,441s inkludert sluttkontroll.
+1139040M1-rader ble kontrollert fra01.05.2024 til eksklusiv01.07.2026:70aktive
+felt på hver av M5/M15/H1/H4/D1 og20bevarte strikte M5-felt,370til sammen.
+Alle370har ekte finitt dekning;350varierer og20er observerte konstante nulltellere.
+Dette er feltposter, ikke370uavhengige indikatorer. Separate observerte/strikte
+masker, kontrakter, klokker og BBO-/ordretidsvekter er bevart.329felt har eksakt
+nullavvik;41har små avrundingsavvik innen analytisk cellevis float64-grense.
+Største avvik er5,68434e-14ticks i striktM5 tw_spread. Dette er formelkonsistens,
+ikke målt nytte, læring eller økonomi.206kilder er bevart, ingen forwards/updates/TEST.
 
-## Siste kontroll — GC-klokkefasit118 fullført; øvrige formelgrupper gjenstår
+ACTUAL_NUMERIC_REVIEW.json 27bf991c808cad3018092ea6dca4ceaf76ada6216e6d2cd255aee36a6aa66a80.
+RESULT-SHA7eea1045959bca6de9e672d1208e37259570381e1934ef0fb3d2038f7e1cfe5e.
+TERMINAL.json c7bb23affb8192c006ebfd287d31306310ede658cc1103b9efaa038c372a4d87.
+Ferdige024inputs ble gjenbrukt: åtte filer363237419B komprimert, bare nødvendige
+kolonner og trygge utviklingsradgrupper. Ingen rå MBP-scan/rebuild/fit/Exit.
+Beviset gjelder publisert M1→TF, ikke råevent→M1, native tilgjengelighetsprojeksjon,
+individuelt modellkonsum eller kalibrert fysisk nettverkslatens.
 
-118 ligger i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118`.
-Én faktisk capped CPUaudit4G/512M fullførte20.10kl.21:39UTC på35,321s inkludert sluttkontroll.
-1139040M1-rader og328263TF-bøtter fra01.05.2024 til eksklusiv01.07.2026 ble kontrollert.
-Tre signed source-clock-midler×M5/M15/H1/H4/D1: egne counts/summer/midler hadde avvik0,
-med eksakte valid-/NaN-masker og diskriminerende ujevne hendelsesantall på alle15par.
-Observerte clockbøtter per domene M5/M15/H1/H4/D1:153851/51776/13329/3388/601.
-To randbøtter ble ekskludert for H4 og D1. Fullgrid og kontraktsdomener bestod.
+120kildekontroll bestod33caser, men fysisk audit feilet før sammenligningen:
+exit1 etter3,816s fordi auditens bokleser ba om available_ns, som bare eventfilen
+publiserer. Produksjonsformlene var uendret. Minste auditrettelse bruker25faktiske
+bokkolonner og join på bar_start_ns/contract_index; eventfilens egen available_ns-
+kontroll beholdes.121kildekvalifisering bestod34caser på4,508s, inkludert faktisk
+Arrow/Parquet-regresjon uten bokavailable og eksekverbar370felt-eierdekning.
+Original120failure/claim/staging er bevart.120/121er konsumert og relanseres aldri.
+
+118klokkefasiten er beholdt som overlappende delbevis, ikke15nye felt i tillegg
+til370. Root `/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118`;
 ACTUAL_NUMERIC_REVIEW.json SHA639ae6d4e5b8d40a41b39aa7445df66c3b73d2089dec9fdaf217160552474275.
-RESULT-SHA d4d6cf9754573939ec6c4818736833810431022041d6a55e8a1e6b0268a1835c.
-TERMINAL.json SHA67704861119813c7e602da1425f4e419e33e1ae04dc428767d0c3fb18252f578.
+Ingen produksjonsformel/native funksjon ble endret; audit-/testfilene ligger utenfor
+117s183produksjonsroller.117mekanikk gjenbrukes uten ny baseline-/paritetsrunde.
 
-Ferdige024M1-/TF-inputs ble gjenbrukt: seks filer229838465B komprimert, bare nødvendige
-kolonner og trygge utviklingsradgrupper. Ingen rå MBP-scan, rebuild, fit, modellforwards,
-optimizer ellerTEST. Dette beviser publisert M1→TF, ikke råevent→M1, fysisk nettverkslatens
-eller individuelt modellkonsum. Ingen produksjonsformel eller native funksjon ble endret.
-Audit-/testfilene ligger utenfor117s183produksjonsroller;117mekanikk gjenbrukes.
-
-119kildekvalifisering bestod20caser, inkludert14nye, på4,971s med205kilder ogpolicy bevart.
-Første118kildeplan ble avvist før claim/test på ulikt tidsbudsjett; originalavvisningen bevares.
-Alle disse engangsplanene er konsumert. Ingen jobb eller ny hovedtrening er åpnet.
-Neste tallreferanser grupperes: event/bokaggregater, trade/kumulativer/masker, tosidig SMC,
-basis og profiler/footprint fra genuine prisnivårader. Raw→M1 krever egen råeventfasit.
+Neste tallreferanser grupperes: trade/kumulativer/masker, tosidig SMC, basis og
+profiler/footprint fra genuine prisnivårader; raw→M1 og tekniske formler har egne
+grenser. Full individuell native tilgjengelighet/konsum og LONG/SHORT/FLAT-kvalitet,
+dekning og forklaringer er fortsatt ukvalifisert. Ingen ny hovedtrening er åpnet.
 
 Målrettet lesereview av117-stakken fant eksisterende finite hashscope i
 _dynamic_entry_native_context_binding og nested cohortscope. Ingen manglende memo eller

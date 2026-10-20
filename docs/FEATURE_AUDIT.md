@@ -398,18 +398,24 @@ Bokrapporten skiller tidsvektet BBO-sizeimbalance/mikropris, vist antall/
 størrelse og eksekverte T-poster. Spreadutvidelse er count/sum/max i ticks,
 ikke en kalibrert shock-zscore. Full uavhengig raw→M1→alleTF-fasit for hele
 OFI/refill/depletion-vektoren og kombinerte reset-/feildomener gjenstår.
-Kildeklokkemidlene send_to_capture/receive_minus_event/matching_clock er kontrollert
-uavhengig fra publiserte M1-summer/egne antall til alle femTF i118. Math.fsum-fasiten
-bruker analytisk float64-reduksjons-/divisjonsgrense, fullgrid, samme kontrakt og
-separate gyldighets-/NaN-domener.1139040M1-rader/328263TF-bøtter ga avvik0 for
-alle15middelverdier og tilhørende counts/summer. Alle15har reelle ujevne-count-vitner
-som diskriminerer mot middel-av-midler.20fokuserte caser inkluderer14nye håndfasitter.
-Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_CLOCK_NUMERIC_REFERENCE_20261020_118/ACTUAL_NUMERIC_REVIEW.json`,
-SHA639ae6d4e5b8d40a41b39aa7445df66c3b73d2089dec9fdaf217160552474275.
-Dette gjenbruker allerede OFI-/incidentmaskerte M1-statistikker og beviser ikke
-råevent→M1 eller individuelt native modellkonsum. Klokkelabel alene beviser ikke
-kalibrert fysisk nettverkslatens. Øvrige event-/bok-/roll-/reset-formler beholder
-sine separate ubeviste referansegrenser.
+121kontrollerte uavhengig370aktive publiserte event-/bok-/ordrefelt:70per
+M5/M15/H1/H4/D1 og20bevarte strikte M5-felt.1139040M1-rader fra01.05.2024
+til eksklusiv01.07.2026 ga finitt dekning for alle370:350varierende og20
+observerte konstante nulltellere, ingen heltNaN-felt. Feltposter, masker og
+metadata telles ikke som uavhengige indikatorformler. Math.fsum-referansen
+bruker analytiske produkt-/reduksjons-/divisjonsgrenser, fullgrid, samme kontrakt
+og egne observed/strict-/NaN-domener. BBO og ordre beholder egne tidsvekter.
+329felt hadde eksakt nullavvik;41hadde små avrundingsavvik innen de cellevise
+grensene. Største målte avvik var5,68434e-14ticks i striktM5 tw_spread.
+Alle34fokuserte kildecaser bestod, inkludert faktisk bokskjema-regresjon og
+370felt matchet mot eksekvert registry-/formeleier. Produksjonsformler er uendret.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/ACTUAL_NUMERIC_REVIEW.json`,
+27bf991c808cad3018092ea6dca4ceaf76ada6216e6d2cd255aee36a6aa66a80.118s tre klokkemidler×5TF er et overlappende delbevis,
+ikke15ekstra felt. Publiserte OFI-/incidentmaskerte M1-statistikker gjenbrukes;
+råevent→M1, native tilgjengelighetsprojeksjon og individuelt modellkonsum
+bevises ikke av denne kontrollen. Klokkelabel alene beviser ikke kalibrert
+fysisk nettverkslatens. Roll-/reset- og øvrige formelgrupper beholder sine
+separate ubeviste referansegrenser.
 
 SMCrapporten beskriver mekaniske observerte proxyer: trehøyrebarsbekreftede
 pivoter, engangsBOS/sweep, tidligere motsatt candle som OB-opprinnelse og

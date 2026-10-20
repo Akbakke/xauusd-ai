@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-20T22:03:33.979236+00:00",
-  "status": "121_CORRECTED_PHYSICAL_EVENT_BOOK_REFERENCE_CLAIMED_AFTER_34_TEST_PASS",
+  "observed_utc": "2026-10-20T22:13:10.489649+00:00",
+  "status": "121_SCOPED_370_EVENT_BOOK_ORDER_NUMERIC_REFERENCE_COMPLETE_NATIVE_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactly one new121claimed capped physical event/book/order reference after actual34testPASS incl real tinyParquet book-schema regression and executed370fieldcoverage.120failed is consumed, never rerun. Read8publishedfiles projected beforeTEST; no raw/rebuild/model/normalization/nativeepoch/Exit. Keep own observed/strict and sourceclock domains.",
+  "next_action": "Reuse completed121 scoped370field event/book/order M1-to-TF reference,118clock subset and117 native mechanics; no reruns or new main epoch. Remaining bounded independent numeric groups: trade/cumulatives, two-sided SMC, basis, profile/footprint, raw-to-M1 and technical formulas; then actual individual native availability/consumption and LONG/SHORT/FLAT quality/coverage/explanations. Bind each concrete next scope before any capped job. No TEST, Exit, broker, raw TB rescan, HPO or extraepoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "121_CORRECTED_PUBLISHED_M1_TO_TF_EVENT_BOOK_PHYSICAL_REFERENCE",
+    "current_activity": "INDEPENDENT_FEATURE_NUMERIC_AUDITS_AFTER_121_COMPLETE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "121_actual_focused_schema_regression_and_reference_source_qualification",
+    "latest_terminal_role": "121_actual_scoped_370_field_event_book_order_numeric_reference",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/SOURCE_QUALIFICATION_TERMINAL.json",
-      "sha256": "18573028085d8d9d051d2bc07bd03cf7f89fc31b1433e8e9a78fc262d5f76dae"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/TERMINAL.json",
+      "sha256": "c7bb23affb8192c006ebfd287d31306310ede658cc1103b9efaa038c372a4d87"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "121physical comparison pending after minimum projection fix.34focused cases pass in4.508s incl actualParquet missing-availability regression;370executed-fieldcoverage intact.120failure remainsoriginal; no formula/nativequality verdict yet.",
+    "current_blocker": "121passed all370active published M1-to-TF/strictM5 fields. Remaining formula groups, raw-to-M1 firstleg, native availability projection/individual model consumption and primary Entry quality remain unqualified.108ordered epoch is consumed; changed111RMS has no new main learning round or exact new epoch admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one new121claimed capped physical event/book/order reference after actual34testPASS incl real tinyParquet book-schema regression and executed370fieldcoverage.120failed is consumed, never rerun. Read8publishedfiles projected beforeTEST; no raw/rebuild/model/normalization/nativeepoch/Exit. Keep own observed/strict and sourceclock domains.",
+    "next_action": "Reuse completed121 scoped370field event/book/order M1-to-TF reference,118clock subset and117 native mechanics; no reruns or new main epoch. Remaining bounded independent numeric groups: trade/cumulatives, two-sided SMC, basis, profile/footprint, raw-to-M1 and technical formulas; then actual individual native availability/consumption and LONG/SHORT/FLAT quality/coverage/explanations. Bind each concrete next scope before any capped job. No TEST, Exit, broker, raw TB rescan, HPO or extraepoch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16075,10 +16075,10 @@
       "elapsed_seconds": 3.8157750549999037
     },
     "gc_event_book_numeric_reference_121": {
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_PASS_SCOPED_370_PUBLISHED_EVENT_BOOK_ORDER_FIELDS",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/PLAN.json",
@@ -16104,7 +16104,80 @@
       "source_qualification": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/SOURCE_REVIEW.json",
         "sha256": "7246547682b699832fbd4551c74615cdbd4233bcce1c9b40ed0a37709835f888"
-      }
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/TERMINAL.json",
+        "sha256": "c7bb23affb8192c006ebfd287d31306310ede658cc1103b9efaa038c372a4d87"
+      },
+      "actual_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/ACTUAL_NUMERIC_REVIEW.json",
+        "sha256": "27bf991c808cad3018092ea6dca4ceaf76ada6216e6d2cd255aee36a6aa66a80"
+      },
+      "actual_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_EVENT_BOOK_NUMERIC_REFERENCE_20261020_121/GC_EVENT_BOOK_NUMERIC_RESULTS/GC_EVENT_BOOK_NUMERIC_RESULT.json",
+        "sha256": "7eea1045959bca6de9e672d1208e37259570381e1934ef0fb3d2038f7e1cfe5e"
+      },
+      "m1_rows": 1139040,
+      "active_fields": 370,
+      "qualified_active_fields": 370,
+      "nonconstant_fields": 350,
+      "observed_constant_fields": 20,
+      "nonzero_roundoff_fields": 41,
+      "coverage": {
+        "D1": {
+          "active_fields": 70,
+          "qualified_fields": 70,
+          "nonconstant_fields": 66,
+          "nonzero_roundoff_fields": 5,
+          "finite_cells": 45283,
+          "nan_masked_cells": 10017
+        },
+        "H1": {
+          "active_fields": 70,
+          "qualified_fields": 70,
+          "nonconstant_fields": 66,
+          "nonzero_roundoff_fields": 5,
+          "finite_cells": 1029165,
+          "nan_masked_cells": 299715
+        },
+        "H4": {
+          "active_fields": 70,
+          "qualified_fields": 70,
+          "nonconstant_fields": 66,
+          "nonzero_roundoff_fields": 5,
+          "finite_cells": 260229,
+          "nan_masked_cells": 71921
+        },
+        "M15": {
+          "active_fields": 70,
+          "qualified_fields": 70,
+          "nonconstant_fields": 66,
+          "nonzero_roundoff_fields": 6,
+          "finite_cells": 4035040,
+          "nan_masked_cells": 1280480
+        },
+        "M5": {
+          "active_fields": 70,
+          "qualified_fields": 70,
+          "nonconstant_fields": 66,
+          "nonzero_roundoff_fields": 10,
+          "finite_cells": 12026839,
+          "nan_masked_cells": 3919721
+        },
+        "strict_m5": {
+          "active_fields": 20,
+          "qualified_fields": 20,
+          "nonconstant_fields": 20,
+          "nonzero_roundoff_fields": 10,
+          "finite_cells": 3261882,
+          "nan_masked_cells": 1294278
+        }
+      },
+      "elapsed_seconds": 125.44149861400001,
+      "raw_to_M1_formula_proven": false,
+      "native_availability_projection_proven": false,
+      "model_consumption_proven": false,
+      "physical_network_latency_calibrated": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -18669,7 +18742,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T22:03:33.979236+00:00",
+  "updated_utc": "2026-10-20T22:13:10.489649+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
