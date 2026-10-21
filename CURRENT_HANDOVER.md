@@ -80,7 +80,7 @@ rader beholder0/NaN/false;17clock-/18stateexclusions er eksakte. FINAL_JOIN_ACTU
 og FINAL_JOIN_OUTPUT/RESULT SHA88403c0d32dd07bd13b1514a76995dcf1e6b115cccefedd2e937718ed2ed7da6.
 Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134`.
 Source/pilot/bulk/finaljoin-planer er konsumert/stengt; ingen relansering.
-Ingen jobb gjenstår. Uavhengig FINAL_JOIN_ACTUAL_PEER_REVIEW bekrefter
+Ingen134jobb gjenstår. Uavhengig FINAL_JOIN_ACTUAL_PEER_REVIEW bekrefter
 alle157felt/masker/lesepass og ytrevakter; SHA55663fdb21e18fe26a0f0bcf1195f37cdcef9f747062b116e5e9bfb98e4c5ca2.
 
 138 er COMPLETE/exit0 på0,932s,222kilder/policy bevart. Alle512lagrede
@@ -106,9 +106,15 @@ hoder. Eksisterende legacyQ/fullfeature-helper passer ikke denne fasen.
 136/DESIGN.json SHA dd6eb9bed6412e4fc88436267a70d8144e956aa2b52a6ef61b0d68b72e129a9c
 beskriver en audit-onlyadapter:882numeriske ruter,2525jointaliaser,7enum,
 32familie/TF-grupper,13VJP og høyst218forwards etter eksakt caseplan.
-Designet er IKKE implementert/kvalifisert/autorisasjon. Integratorreview,
-kausaleTRAIN-maskvitner, gyldig value↔mask/aliasmanifold, batchparitet,
-state/data/normalisering/cachebinding og fersk maskinvareadgang gjenstår.
+Integratorreview er ferdig med presisering om at hele siste sekvensrad og
+snapshot er samme fysiske markedstilstand. Også ikkealiaser må få summert
+seq+snap-derivat før absoluttverdi; contextaliaser summerer alle tre kopier.
+139s nye audit-onlyadapter og fokuserte CPU-håndtester er skrevet; faktisk
+kildekvalifisering er PENDING til eksakt capped terminal. Ingen produksjons-
+funksjon, dataset, normalisering eller baseline endres av denne auditkoden.
+KausaleTRAIN-maskvitner, eksaktcaseplan, gyldige value↔mask/aliasendringer,
+batchparitet, state/data/normalisering/cachebinding og fersk maskinvareadgang
+gjenstår før faktisk individuell modellpåvirkning. Ingen nativeadgang.
 136s gamle135PENDING-note overstyres av138s faktiske kvitteringer i policy.
 Full480trace, LONG/SHORT/FLAT-kvalitet/dekning forvalgte/avståtte ogsenere
 læring/generalisering er åpne krav. Ingen ny trening er åpnet. Ingen jobb kjører.

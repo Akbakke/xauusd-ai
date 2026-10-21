@@ -335,6 +335,21 @@ bruker samme aktive profilbredder. MBP-felt må aldri droppes fra et familienavn
 Kilde-/syntetiske rutetester beviser beregningsgeometri. Faktisk modellkonsum,
 latency, minne og læringsfart må måles på den bundne ekte datakjeden.
 
+Individuell påvirkning for de dynamiske hodene eies av
+`gx1/contracts/entry_dynamic_compact_input_influence_v1.py`. Hele siste
+sekvensrad og snapshot må endres sammen; contextaliaset følger samme verdi.
+Signer summeres før absoluttverdi, slik at kansellerende delderivater ikke
+blir falsk påvirkning. Historikk og egne observasjonsmasker rapporteres separat.
+Manglende observasjon kan aldri erstattes av et kunstig observert felt.
+
+Kildekvalifisering bruker analytiske CPU-fasiter. Faktisk modellpåvirkning
+krever senere en egen bundet TRAIN-vitne-/caseplan, ONLINE-state, frosne
+normaliseringsdata og maskinvareadgang. Tre kandidatmarginer og fem separate
+komponenter undersøkes med 13 input-VJP; nullrespons er ikke alene død kode.
+Fysiske ruter er ikke uavhengige markedstilstander. Gyldige endringscaser
+pakkes lazily i B16, padding gir ikke bevis, og kildetaket er 218 forwards
+først etter en eksakt plan. Følsomhet beviser ingen læring eller lønnsomhet.
+
 Gjentatt fysisk hashing av samme store fil innen én valideringsoperasjon
 unngås gjennom kontrakteierens eksplisitte `file_verification_scope()`.
 Dette gjelder eksisterende CLI/materializer og handover-/native-window-/
