@@ -37,8 +37,15 @@ uendret etter deklarert query/init-normalisering. Ingen bedre retning er målt.
 kjøringsmanifestet selv om kildefilen var kvalifisert.159 er consumed; koden og
 41beståtte kontroller er uendret.161 innrømmer én4GCPU/7200s fersk publisering
 med alle åtte baseeiere i faktisk manifest og metadata-preflight førclaim.
-Null forwards/optimizersteg/refits; de11 fysiske filreferansene gjenbrukes.
-160baseline og ny trening er fortsatt stengt til sine ferske konkrete porter.
+161 er nå COMPLETE121,641s: faktisk192-filsmanifest/source/policy bevart;
+ONLINE=TARGET=EMA2eaf88..., tomoptimizer/0EMA/0forwards/steg/refits.
+Samme118249TRAIN-populasjon,11filgeometri og111RMS; ingen vektadopsjon.
+160 innrømmer én full480-startmåling på TRAIN256/CONTROL256,32forwards og
+null optimizersteg. Signert tomgang34/42C/22,5W/78MiB ved160W og faktisk
+boot520 er bundet; fire uendrede Windows-eierscript er separat hashkontrollert.
+Kjøring krever først eksaktcampaign, aktuell maskinvare og ny fysisk Windowsboot
+etter maskinvid tomgangskontroll. Kilde/policy fryses før recipeseal til terminal.
+Raw148funksjonsparitet/ferskstate og private4paritet/resume må bestås før ny trening.
 Design, sourcepeer, kontroller og falsifikasjonskriterier er bundet i policy.
 Målet er aktivt; initialparitet, retnings-/forløpskvalitet og senere bevis gjenstår.
 Ingen Exit/TEST/broker/handel åpnes. Målet er aktivt, ikke ferdig kvalifisert.
@@ -149,16 +156,12 @@ Alle32Markdown-filer/4570linjer ved98068b67 er lest, også historiske design;
 lesebevis:154/`MARKDOWN_READ_REVIEW.json`. CLAUDEs foreldede én-agent-setning
 er justert til gjeldende18.10-regel; ingen modell-/treningskode er endret.
 
-Neste steg: avgrens ett nullstegs vitne på en eksisterende fryst TRAIN-batch
-og eksakt slutt-ONLINE-state. Skill horisontgrenens bidrag fra delte oppgavers
-gradienter, med én felles forwardgraf og de allerede faste rapporthorisontene.
-Kilde/state/input/budsjett og eksisterende native lese-/maskinvarevakter må
-bindes før slik ny observasjon; dette er bare et forslag, ingen launchadgang.
-Et lokalt sluttstatevitne beviser ikke årsaken gjennom hele epoken.
-Ingen ny score, terskel, horisontgrense, modellvariant eller trening har adgang.
-Begge epoketillatelser er konsumert. En ny agent starter med
-`bash scripts/gx1_handover.sh --check`, leser reglene og denne overleveringen,
-og bygger på154-beviset. Ingen råMBP-rescan eller relansering av151–154.
+Neste steg eies av160 og øverste aktive bestilling: forsegl fersk initialrecipe,
+materialiser/installér én canonicalcampaign og bruk eksisterende maskinvakter
+og ny tomgangsbundet fysisk boot.156-vitnet og158-designvalget er ferdige;
+ingen av155–159/161 eller eldre epoker skal relanseres. Opprinnelig151-adgang
+er konsumert.160 gir bare den nye nullstegsmålingen; trening krever senere
+eksakt admission etter faktisk full480paritet/state og privat4paritet/resume.
 
 Læring, Entry-kvalitet/dekning, generalisering og økonomisk edge vurderes
 hver for seg. Alle26måneder er gjenbrukt utvikling, også CONTROL/VAL.
