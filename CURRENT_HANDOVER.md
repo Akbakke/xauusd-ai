@@ -86,8 +86,12 @@ alle157felt/masker/lesepass og ytrevakter; SHA55663fdb21e18fe26a0f0bcf1195f37cdc
 Neste er faktisk individuell modellpåvirkning på kompaktprofilens dynamiske
 hoder og beslutningsspor. Eksisterende legacyQ/fullfeature-influencehelper
 passer ikke denne fasen; bind minste audit-onlyadapter til aktive felt/ruter.
-115har512lagredeTRAIN/CONTROLbeslutningsspor som kan oppsummeres uten nye
-forwards. LONG/SHORT/FLAT, kvalitet/dekning forvalgte/avståtte entries og
+135binder én900s/4G/512M-kjøring som reviderer115s512lagredeTRAIN/CONTROL-
+beslutningsspor uten nye forwards.7småJSON+4kilder/6funksjoner er bundet;
+6action-/5F32literalcaser kjøres før analysen.1021singletonscore kan
+kontrolleres eksakt,3sidehorisontties ogfull480argmax er ikke rekonstruerbare
+fra lagrede means. Ingen PT/Parquet/rå-/normaliseringspayload åpnes. Statisk
+uavhengigPASS er bundet; faktisk135resultat mangler fortsatt. LONG/SHORT/FLAT, kvalitet/dekning forvalgte/avståtte entries og
 senere generalisering har fortsatt åpne krav. Ingen ny trening er åpnet.
 121–126/133/134 og produksjonsbaseline/paritet gjenbrukes uten omkjøring.
 

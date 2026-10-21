@@ -630,3 +630,10 @@ korrekt for dynamisk kompaktprofil.115s512lagredebeslutningsspor kan gjenbrukes.
 Entry-kvalitet/dekning, LONG/SHORT/FLAT, sporbarhet, generalisering ogøkonomisk
 edge er fortsatt egne åpne krav. CURRENT_HANDOVER/NEXT_RUN_POLICY eier aktuell
 status; ingen ny trening er åpnet.
+
+135 er klar for én avgrenset receiptanalyse av115s512initialspor, ingen nye
+forwards/fit eller PT/Parquet/rå-/normaliseringspayload.7JSONkvitteringer og
+4kildefiler/6funksjoner er SHA-bundet.1021singletonterminal−MAE-score kan
+kontrolleres med eksaktF32;3sidehorisontties ogfull480argmax forblir eksplisitt
+ikke rekonstruerbare fra means.6action-/5F32literalcaser før analysen; fysisk
+PASS mangler. Dette kvalifiserer ikke individuell featurepåvirkning ellernytte.

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T06:15:27.680493+00:00",
-  "status": "134_RAW66_AND_FINAL_SELECTED_M1_INCIDENT_MASK_JOIN_PASS_MODEL_CONSUMPTION_REMAINS",
+  "observed_utc": "2026-10-21T06:29:36.132482+00:00",
+  "status": "135_INITIAL512_SAVED_DECISION_TRACE_AUDIT_READY_RAW_FINAL134_PASS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Reuse completed raw66/finalselectedM1/121–126/133proofs. Qualify compactactive individualmodelinfluence against currentdynamicheads and reuse115saved512decisiontraces for Entryreadout/coverage. LegacyQ/fullfeature influence helper is incompatible with dynamiccompactphase; first bind minimum audit-onlyadapter. No newrawscan/nativebaseline/training.",
+  "next_action": "Execute exactlyone900s4G capped135savedinitialdecisiontrace receipt audit; no newmodel/PT/Parquet/raw/normalizationread. Reuse115observations; qualifyonlystored512actions/1021singletons andexplicit3horizont-tie/full480limits. Then bind136compactdynamicindividualinfluence audit-onlydesign; no training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "POST134_COMPACT_DYNAMIC_INDIVIDUAL_MODEL_CONSUMPTION_AND_DECISION_TRACE_SCOPE",
+    "current_activity": "135_INITIAL512_SAVED_DECISION_TRACE_RECEIPT_AUDIT_READY",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Raw66/892100712records through finalselectedM1+source/incident/recoverymask join nowPASS; actualcompactindividualdynamicmodelinfluence and Entryquality/depth/coverage/decisiontrace remain. ExistinglegacyQ/fullfeature influence helper doesnotqualify currentdynamiccompactphase. No newtrainingadmission.",
+    "current_blocker": "134databoundaryPASS. Saved115initialtracephysicalreceiptanalysisready; actualcompactdynamicindividualmodelinfluence, fullcurvetrace andEntryquality/coverage remain. LegacyQ/fullfeature influence helper incompatible. No newtrainingadmission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -19522,7 +19522,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T06:15:27.680493+00:00",
+  "updated_utc": "2026-10-21T06:29:36.132482+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20569,5 +20569,40 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_ACTUAL_PEER_REVIEW.json",
       "sha256": "55663fdb21e18fe26a0f0bcf1195f37cdcef9f747062b116e5e9bfb98e4c5ca2"
     }
+  },
+  "initial_decision_trace_receipts_135": {
+    "status": "READY_EXACTLY_ONE_CAPPED_SAVED_INITIAL_TRACE_AUDIT",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_135/TRACE_AUDIT_PLAN.json",
+      "sha256": "954ab5106297091487b298fbb5b6bbbcce65d7c44213ce8888363e2fef6a03e9"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_135/run_initial_decision_trace_receipts.py",
+      "sha256": "078254a73a3df53246e08c6d1d7784bf4db12fa417f5e53c1380ebb234fd2218"
+    },
+    "preexecution_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_135/PREEXECUTION_REVIEW.json",
+      "sha256": "425a44d33f0c08cf76cb1d1ca247c98394f6779a2aeff668514754b8f33d8f74"
+    },
+    "static_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_135/STATIC_PEER_REVIEW.json",
+      "sha256": "6e191a6b79a543a2205792a714af626907c826ce15105420ce626df0e8e06b4c"
+    },
+    "input_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_135/INPUT_SCOPE.json",
+      "sha256": "6d6bd5cf5002816024b4aa8eacd10b382e5234b987307684b716fafdcc2b62da"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }
