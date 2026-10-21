@@ -449,3 +449,7 @@ eller Exit-beregninger følger av dette.146 bestod29fokuserte syntetiske cases
 og målte hele faktiske trainclosure én gang:183roller,3endrede roller i2filer
 mot115. Ingen compatibility-exception er innført; fersk faktisk fullkurve-
 baseline krever korrekt nåbinding før neste treningsforslag kan ferdigstilles.
+147 har nå faktisk publisert ny CPUfresh-tilstand gjennom eksisterende eier:
+0forwards/updates/refits, tom optimizer og identiske ONLINE/target/EMA-digester
+med den utrente starten. Alle183nåroller og10inputreferanser er bevart;
+constructorreferansen er ny. Dette er ikke148fullkurve-baselinen eller læring.

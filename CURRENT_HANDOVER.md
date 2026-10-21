@@ -98,17 +98,29 @@ Neste steg er en genuint ny nullstegs initialmåling med dagens eksakte kilder
 og fulle TRAIN256-/CONTROL256-kurver. Gjenbruk ferdige inputs, targets,
 wholeTRAIN-normalisering og TRAIN-RMS; ikke les rå MBP på nytt. Den nye
 baseline-/campaignbindingen skal følge eksisterende eiere og kildekrav.
-147 er bundet som én eksisterende CPUfresh-publisering (audit4G/512M,
-0forwards/updates/refits, maks7200s), med faktisk146kvalifisert183rolle-kjede.
+147 er COMPLETE/PASS,120,032s: eksisterende CPUfresh-publisering, audit4G/512M,
+0forwards/updates/refits.230kilder/policy ble bevart, faktisk nåbundet183rolle-kjede.
 Planroot: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_FRESH_PREPARATION_20261021_147`.
-Den konstruerer ny utrent tilstand gjennom kanonisk eier;114 er template,
-ikke checkpoint-adopsjon eller relansering.148 har foreløpig bare en tilpasset
+Den konstruerte ny utrent tilstand gjennom kanonisk eier;114 var template,
+ikke checkpoint-adopsjon eller relansering. ONLINE/target/EMA er alle
+9c4cf514cbfd5b6f9366f69065abcc0878ef274117e2b5c7e703656e86a79b4a.
+Initialstate-SHA940283e6132a0339a1d3dd165d74cbdd64527927f5fdb7f1bc95ffe1c32e7232.
+Nyeinitialization/measurementrefs står i147RESULT; kilde-/IO-review er
+`ACTUAL_FRESH_IO_REVIEW.json`, SHAd076bfad9ae574bd2471efd118095a4c49dcee914679567ce377144c4b47e92b.
+Målt canonicalproducer-IO:49.271.677.365rchar/45.800.828.928read_bytes over111,846s,
+kun worker+ventede barn, ikke maskintotal. Ferdige fysiske inputs ble verifisert;
+ingen rå MBP-rebuild eller refit. Uavhengig metadata-peer bestod:
+`ACTUAL_PEER_REVIEW.json`, SHAde93e8236bd344dda4cb5f789d8a9b21a6c9feb280f9d3a7acb94302b406dbc6.
+148 har foreløpig bare en tilpasset
 materialiseringscontroller, ingen binding/campaign/nativeadgang.
+148 skal følge eksisterende nativecampaign, signed guard og fersk fysisk boot.
+Fysisk160W-profil beholdes; native guardens300W er et øvre tak, ingen påkrevd
+effekt eller tillatelse til å endre keeperprofilen. Campaigninstall/clocklauncher
+endrer ikke -pl. Bekreft keeperkonfig og signert telemetri før faktisklaunch.
 
 Deretter kreves ny eksplisitt beslutning om ekstra epoke og eksakt campaign/
 maskinvareadmission. Gjør dette konkrete arbeidet før treningsspørsmålet stilles.
-147 er ennå ikke startet ved dette commitpunktet. Faktiske prosesser/terminaler
-overstyrer dette. Ingen gammel plan skal relanseres.
+147 er terminal og konsumert; ingen jobb kjører nå. Ingen gammel plan relanseres.
 
 ## Bestått — gjenbruk uten omkjøring
 
