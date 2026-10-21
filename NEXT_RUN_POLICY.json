@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T17:04:55.858648+00:00",
-  "status": "151_COMPLETE_152_READY_CAPPED_CPU_PAIRED_ENTRY_REVIEW",
+  "observed_utc": "2026-10-21T17:29:58.955086+00:00",
+  "status": "152_COMPLETE_COMPONENT_LEARNING_MIXED_ENTRY_NOT_QUALIFIED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "151 consumed exactly the explicitly approved additional TRAIN-RMS M5 Entry epoch:118249 unique TRAIN rows/7391updates/last9 and32 fixed final ONLINE forwards. Native guard/trainer/observer PASS/0/0; windows task Disabled. No additional epoch or relaunch authority. Paired learning and Entry-quality review remains separate.",
-  "next_action": "Prepare exactly one capped CPU152paired review of stored148/151forecasts and fixed targets using current canonical validator and four pointer-column projections. No model loading, new forwards, refit, raw MBP scan, extra training, Exit or TEST.",
+  "next_action": "Review already stored152terminal/pre-MFE-MAE component errors and their difference on common observed cells; resolve the measured short-horizon/selection gap before choosing any explicit objective/decision-contract correction. No new score, threshold, horizon floor, native job or additional epoch is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "152_READY_CAPPED_STORED_FORECAST_PAIRED_ENTRY_REVIEW",
+    "current_activity": "152_COMPLETE_PAIRED_REVIEW_NEXT_COMPONENT_DECISION_GAP",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -106,23 +106,22 @@
     },
     "new_capacity_authority_does_not_admit_native_launch": true,
     "hourly_monitor": {
-      "cadence_minutes": 30,
-      "stable_run_policy": "No minute-level model polling; existing hardware guards own frequent telemetry.",
-      "thread_heartbeat_id": "gx1-f-lg-native-trening",
-      "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c"
+      "cadence_minutes": 60,
+      "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
+      "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
     "current_research_id": "GC_ORDER_FLOW_RESEARCH_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_NOT_COMPLETE_FUNCTIONAL_COMPACT_INPUT_CONSUMPTION_PASS_LEARNING_ENTRY_QUALITY_GENERALIZATION_REMAIN",
+    "gc_goal_status": "ACTIVE_NOT_COMPLETE_COMPONENT_LEARNING_MIXED_ENTRY_QUALITY_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "151_ACTUAL_TRAIN_RMS_SINGLE_EPOCH_AND_FIXED_FINAL_ONLINE_MEASUREMENT",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/RUNTIME",
+    "latest_terminal_role": "152_CAPPED_CPU_PAIRED_FULL480_SAVED_OBSERVATION_REVIEW",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/TERMINAL.json",
-      "sha256": "9e59a2620e60c95421dc45735407dfc41f60b8b116a3c1e3716d5e580667c431"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/TERMINAL.json",
+      "sha256": "d6d3a8f99c0e73f4f10c4515e8e19934e60d224f9847801db3667a569fd5d47b"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +141,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No runtime or operator-approval blocker for the already-authorized artifact-only paired review. Training authority is consumed. 152must first qualify same-cohort full480learning and selected/abstained diagnostics.",
+    "current_blocker": "No runtime blocker. Component learning is mixed and Entry quality is not qualified: all predicted side maxima remain at1min and short-horizon terminal error worsened in both fixed probes. Existing diagnostic candidate is terminal minus pre-MFE-MAE; no direct action/ranking loss. Identify the measured component-selection gap from saved152evidence before an explicit design correction or new training proposal.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9465,7 +9464,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "133_ALL_ACTIVE_MTF_CACHE_NUMERIC_PASS_RAW_SOURCE_AND_MODEL_TRACE_REMAIN",
+      "status": "152_COMPLETE_COMPACT_ACTIVE_INPUTS_QUALIFIED_COMPONENT_LEARNING_MIXED_ENTRY_REMAINS",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9501,13 +9500,13 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "Current148/149full480baseline is qualified. Direct user Ja, kjør trening approves150 exactly one TRAIN-RMS M5 Entry epoch now bound to151PLAN; exact151recipe/campaign/freshhardware/physicalboot gates remain before native start. No automatic extra epoch.",
-        "108consumed originalfullnativeepoch; bothsidecandidate future horizons peakedat1minute on512M5proberows. Diagnostic116SHORT/396FLAT/0LONG, no nativeauthority and no M1Entry.111TRAIN-RMSlearning remainsunmeasured.",
-        "121–126qualified1205activeGCvalues/fiveTF/actualM5context;127/128/129/133qualified139activecorefields perTF;134rawMBPparsedonce andjoinpassed;144functionalinputinfluencepassed. Reuse unchangedproofs, no newrawscan or4updateprobe.",
-        "LONG/SHORT/FLAT quality/coverage for selectedandabstained, chronologicalgeneralization andeconomicedge remainunqualified; parkedfull-libraryfields are outsideactivecompactnumeric audit. M5Entryfirst; M1futurepricefasit now, M1Exitlater."
+        "151explicitly approved TRAIN-RMS epoch completed7391steps/118249TRAINrows and32fixed ONLINE measurement forwards; taskDisabled and source preserved. Its approval is consumed, training ports closed.",
+        "152paired full480 saved-observation review completed with0newforwards/updates. TRAIN six raw component MSEs improved; CONTROL four improved but terminal and forecast errors worsened. Diagnostic39LONG/71SHORT/402FLAT and all side maxima at future1min; M5decision cadence unchanged.",
+        "152FORECAST_DOMAIN_CORRECTION supersedes only the original report8/2domain labels/means: actual4M5base+6day-support. All10forecast coordinates, total errors and Entry diagnostics unchanged; original receipts preserved.",
+        "LONG/SHORT/FLAT quality/coverage, chronological generalization and economic edge remain unqualified. Separate terminal/preMAE error on common observed cells before selecting an explicit objective/decision-contract correction; no new training, threshold or horizon floor."
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
-      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_M5_TASK_SCALE_AUDIT_20261020_109/TERMINAL.json",
+      "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/TERMINAL.json",
       "completed_invocations": 1,
       "split_windows": {
         "train": [
@@ -15742,11 +15741,13 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Implement129nativeSMC17+sameownergeometry7×5TF=120outputs(85compactactive35parked),independentcausalpivot/replaywithliteralhandcases. Preservefull2009prefixandprewarmupstate;reuse127ATR/bounds/resample/28filereaderand281oldfoundationcases. Existingtol1e-12isboundsourceconvention,noguessedepsilon. Source/physicalqualificationunstartedclosed;noGC123rewrite/MBP/model/refit/nativeepoch/Exit/TEST/broker.",
+      "next_action": "Review already stored152terminal/pre-MFE-MAE component errors and their difference on common observed cells; resolve the measured short-horizon/selection gap before choosing any explicit objective/decision-contract correction. No new score, threshold, horizon floor, native job or additional epoch is admitted.",
       "native_entry_private_qualification_completed": true,
-      "completed_full_native_epochs": 1,
+      "completed_full_native_epochs": 2,
       "full_native_epoch_request_fulfilled": true,
-      "physical_dataset_qualification_scope": "Physical source reconstruction, full input liveness, wholeTRAIN normalization and actual compact model consumption passed; full independent per-feature numeric/reference/usefulness qualification remains incomplete."
+      "physical_dataset_qualification_scope": "121–126activeGCfive-TF numeric qualification;127/128/129/133activecompactcore numeric qualification;134once-parsed rawMBP reference join;144actual compact model input influence. Parked full-library independent numeric/usefulness qualification remains outside the active compact scope.",
+      "completed_full_native_epoch_scope": "108original epoch and151new explicit TRAIN-RMS epoch are independently completed and consumed; no authority for another epoch.",
+      "compact_active_input_qualification_complete": true
     },
     "native_xau_pair_failure_20261018": {
       "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_XAU_GC_REBUILD_20261018_006/TERMINAL.json",
@@ -19554,7 +19555,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T17:04:55.858648+00:00",
+  "updated_utc": "2026-10-21T17:29:58.955086+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20195,23 +20196,19 @@
     }
   },
   "latest_terminal_receipt": {
-    "elapsed_seconds": 67.25528280299977,
+    "elapsed_seconds": 15.127531005999117,
     "error": null,
     "exit_code": 0,
-    "finished_utc": "2026-10-21T12:57:49.686522+00:00",
-    "initial_measurement_audit": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/INITIAL_MEASUREMENT_AUDIT.json",
-      "sha256": "b88aab0e0758d277b25a1d382060d8380e151d4cefa4bb631ef2494b61fcc573"
+    "finished_utc": "2026-10-21T17:15:41.073446+00:00",
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "relaunch_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/RESULTS.json",
+      "sha256": "1b4fdc6fec7c6e6d698e23f0cd41f829987896ece69ff25131e56725b86ca7c4"
     },
-    "model_forwards": 0,
-    "native_training_admitted": false,
-    "optimizer_steps": 0,
-    "preservation_proof": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/STATE_PRESERVATION_PROOF.json",
-      "sha256": "2b1f61eeec8fbb9f171fd8bd3c71f7196bf529a5c2a281c759bce92a72daafbf"
-    },
-    "schema_version": "gx1_capped_initial_state_audit_terminal_v1",
-    "source_head": "ec707036b0c75da51c7db5d7103cfb0a60de93d4",
+    "schema_version": "gx1_train_rms_paired_entry_review_terminal_v1",
+    "source_head": "652f6224fdda343e438f1603b70d854e58c523a1",
     "source_unchanged": true,
     "status": "COMPLETE",
     "test_data_used": false,
@@ -21801,15 +21798,15 @@
     }
   },
   "dynamic_m5_train_rms_paired_review_152": {
-    "status": "READY_ONE_CPU_STORED_FORECAST_PAIRED_REVIEW",
+    "status": "COMPLETE_CONSUMED_FORECAST_DOMAIN_LABELS_CORRECTED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/PLAN.json",
       "sha256": "c73125595fdc7f608bbbf00591410e28fcf562afcb76c0ee001e5425894d8006"
     },
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152",
-    "execution_authorized": true,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "execution_authorized": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
     "max_wall_seconds": 900,
@@ -21829,6 +21826,66 @@
     "worker": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/paired_entry_review.py",
       "sha256": "b4650269bd4e6b39176f91430f9b61287344763cb83e4ab88f2cec2f23d4c5bf"
+    },
+    "new_training_authorized": false,
+    "entry_quality_qualified": false,
+    "original_forecast_domain_labels_superseded": true,
+    "actual_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/TERMINAL.json",
+      "sha256": "d6d3a8f99c0e73f4f10c4515e8e19934e60d224f9847801db3667a569fd5d47b"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/CONTROLLER_TERMINAL.json",
+      "sha256": "862a045b60185904af7e00f3d901750686c42d2e3f95500d2c27c8b30d85fda8"
+    },
+    "paired_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/RESULTS.json",
+      "sha256": "1b4fdc6fec7c6e6d698e23f0cd41f829987896ece69ff25131e56725b86ca7c4"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/SUMMARY.json",
+      "sha256": "94eb81adeee5c2831d8d366046666a29007ed6becfa6db4503a61cac01c866a2"
+    },
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/ACTUAL_PAIRED_REVIEW_PEER.json",
+      "sha256": "defb019aad8d660f69addf8293efc2afbceb5a7595b9e031a67fb20f4991a6be"
+    },
+    "decision_path_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/DECISION_PATH_SOURCE_REVIEW.json",
+      "sha256": "1fef61310337bbf30e23025a60abbc9df61a5d4dd7b1e0b2fd4ca5a4bcd3a873"
+    },
+    "forecast_layout_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/FORECAST_LAYOUT_SOURCE_REVIEW.json",
+      "sha256": "70b13ebc24516ea30ba056a941f28962b10dcad6090329f3540b733f2bdc08af"
+    },
+    "forecast_domain_correction": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/FORECAST_DOMAIN_CORRECTION.json",
+      "sha256": "a40decaff07f60d39e913a2b93a68cf9cf14841731a097ad1de6e371f0ed1e71"
+    },
+    "forecast_domain_correction_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/FORECAST_DOMAIN_CORRECTION_PEER.json",
+      "sha256": "579fe82fa91f11d06f05bdde1c12cbcfea04153ab9adfe3bd40105fbf0c40ca1"
+    },
+    "measured_outcome": {
+      "paired_train_entries": 256,
+      "paired_control_entries": 256,
+      "final_optimizer_steps": 7391,
+      "train_raw_mse_components_improved": 6,
+      "control_raw_mse_components_improved": 4,
+      "component_count": 6,
+      "final_diagnostic_action_counts": {
+        "LONG": 39,
+        "SHORT": 71,
+        "FLAT": 402
+      },
+      "unique_predicted_best_future_minute_all_entries_and_both_sides": 1,
+      "entry_timeframe": "M5",
+      "short_horizon_terminal_error_worse_in_both_probes": [
+        1,
+        5,
+        15
+      ],
+      "entry_quality_generalization_economic_edge_qualified": false
     }
   }
 }

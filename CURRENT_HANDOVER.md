@@ -25,21 +25,42 @@ Oppgaven er nå Disabled/Last0. Vaktens målte topper:57Ccore/66Cmemory/
 134,68Wdraw/1804MiB; fysisk grense160W. Etterpå signert35/42C/21,97W/78MiB.
 Gammel18.10-omstartsbestilling er oppfylt og skal ikke gjentas.
 
-## Neste autoriserte steg
+## Etterkontroll og neste steg
 
-152 er forberedelse til én CPUaudit4G/512M/maks900s av de allerede lagrede
-148-/151-prognosene og fasiten, uten modell/PT, nye forwards, refit eller ny
-råMBP-lesing. Eksisterende canonical full480-validator gjenbrukes uendret;
-den åpner bare fire eksplisitte `dynamic_entry_m1_row`-kolonneprojeksjoner
-for å bekrefte radkoblingen. TRAIN256/CONTROL256 sammenlignes før/etter,
-med egne masker, alle480horisonter og valgte/avståtte kandidater.
-PLAN/policy eier den endelige adgangsstatusen; ingen konsumerte planer relanseres.
+152 er COMPLETE/consumed:15,64s CPUaudit av lagrede initial-/sluttprognoser,
+null nye modellkall/optimizersteg/refits. Eksisterende full480-validator bestod
+med fire bundne parentpointer-kolonneprojeksjoner. Alle seks rå komponent-MSE
+ble bedre på TRAIN; CONTROL fikk bedre MFE/MAE, men dårligere terminalretning
+og samlet forecast. Korte retningshorisonter1/5/15min ble dårligere i begge prober.
+Dette viser blandet komponentlæring; bedre Entry/selektivitet er ikke kvalifisert.
+
+Diagnostiske valg på512M5-rader:39LONG/71SHORT/402FLAT. Begge sidekandidatenes
+predikerte maksimum ligger ved1minutt for alle radene. Entry-kadensen er M5.
+Valgte LONG-/SHORT-gruppers gjennomsnittlige observerte terminal-minus-preMAE
+var negativt på begge prober; dette er komponentdiagnostikk, ikke handler/P&L.
+Kandidatscoren er predikert terminal-netto minus pre-MFE-MAE, maksimert over
+1–480min. MFE trenes aktivt, men inngår ikke direkte i scoren; ingen direkte
+action-/rankingloss trener kandidatvalget. Årsaken til1min-mønsteret er ikke fastslått.
+
+Root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152`.
+- `TERMINAL.json`:d6d3a8f99c0e73f4f10c4515e8e19934e60d224f9847801db3667a569fd5d47b
+- `SUMMARY.json`:94eb81adeee5c2831d8d366046666a29007ed6becfa6db4503a61cac01c866a2
+- `ACTUAL_PAIRED_REVIEW_PEER.json`:defb019aad8d660f69addf8293efc2afbceb5a7595b9e031a67fb20f4991a6be
+- `DECISION_PATH_SOURCE_REVIEW.json`:1fef61310337bbf30e23025a60abbc9df61a5d4dd7b1e0b2fd4ca5a4bcd3a873
+- `FORECAST_DOMAIN_CORRECTION.json`:a40decaff07f60d39e913a2b93a68cf9cf14841731a097ad1de6e371f0ed1e71
+
+Etterrapportens opprinnelige8/2 forecastdeling er feil; korreksjonen eier4M5-
+basekoordinater/6dagstøttekoordinater og gruppemidlene. Alle10koordinatfeil,
+samlede forecast-tall og Entry-resultater er uendret. Originalbevis bevares.
+Neste arbeid: skill terminal-/preMAE-feil og deres differanse på felles observerte
+celler i allerede lagret152før en konkret mål-/beslutningsrettelse velges.
+Ingen ny score, terskel eller horisontgrense er vedtatt; ingen ny trening er åpnet.
 
 Læring, Entry-kvalitet/dekning, generalisering og økonomisk edge vurderes
-hver for seg. Sluttmålinger og tekniskPASS beviser ikke bedre Entry eller profitt.
-Alle26måneder er gjenbrukt utvikling, også CONTROL/VAL.
+hver for seg. Alle26måneder er gjenbrukt utvikling, også CONTROL/VAL.
 `training_enabled=false`; ekstra epoker/HPO/fullVAL/Exit/broker/live/paper/
 ordre/spending/promotion er stengt. De to practice-leseoppslagene er konsumert.
+Automatisk oppfølging er kort og hver60.minutt; ingen minuttvis modellpolling.
 
 ## Varig mål og definisjoner
 
@@ -79,7 +100,7 @@ TRAIN[2024-05-01,2026-01-01),VAL[2026-01-01,2026-04-01),senereutvikling
   ble endret;117s Entry-only optimizer/paritet/resume-mekanikk er uendret.
 - 108 er historisk fullført epoke,ikke151adgang eller dagens læringsdom.
 
-Aktivt mål er ikke ferdig: beslutningssporbarhet etter læring og
-LONG/SHORT/FLAT-kvalitet/dekning, generalisering og økonomisk edge gjenstår
+Aktivt mål er ikke ferdig: komponentlæring og diagnostisk sporbarhet er målt,
+men LONG/SHORT/FLAT-kvalitet/dekning, generalisering og økonomisk edge gjenstår
 hver for seg. Originaldata,kvitteringer og checkpoints bevares; DATA/RUNS
 ryddes bare via retention-eieren. Tidligere status finnes i Git og originale kvitteringer.
