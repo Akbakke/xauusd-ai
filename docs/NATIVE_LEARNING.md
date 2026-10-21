@@ -163,14 +163,21 @@ MFE og konservativ pre-MFE-MAE separat. Dager er maskert læringsstøtte.
 `q=(h−240.5)/sqrt((480²−1)/12)`, analytisk fra det kjente querygridet.
 Fersk initial queryvekt multipliseres med `σ/480`; bias økes med original
 queryvekt ganger `240.5/480`. Alle andre initialbytes og RNG-trekk beholdes.
-Dette matcher tidligere startfunksjon i eksakt aritmetikk; faktisk F32-paritet
-og kandidat-/action-ties må bestås med fersk current-function baseline før
-trening. Det er en endring av optimizerens koordinater, med samme parametertall,
-funksjonsklasse, mål, masker, TRAIN-RMS, tap og score. Uvektet gridortogonalitet
-er ikke ortogonalitet under reelle masker/RMS. Svak terminalhorisontrespons
-mot MAE er målt i154/156; bedre retning eller treningsårsaken er ikke bevist.
-Policy binder eventuell observasjon og ett sammenlignbart7391stegs-forsøk;
-selve designet gir ingen launch- eller treningsautoritet.
+Dette matcher tidligere startfunksjon i eksakt aritmetikk.158s sterkere krav
+om identiske gamle F32-horizonties ble avvist i163 og forblir avvist.164
+målte alle512rader: komponentmaks5,96e-7bps, forecast identisk, alle actionvalg
+identiske, åtte ulike SHORT-horizonsett på FLAT-rader. Ingen valgt action er
+berørt. Det er ingen målt data-/forwardfeil som krever mer modellkode.
+165 binder derfor et nytt eksplisitt forsøk med162 som selvstendig aktuell
+initialbaseline.163s separat beståtte state/RNG-/canonicalfull480-bevis
+gjenbrukes uten å kalle den kombinerte163-porten bestått. Sammenlign faktisk
+læringsendring fra egeninitial og151s identiske data/budsjett; ikke påstå isolert
+optimizergeometri eller eksakt identisk F32-startfunksjon. Parametertall,
+funksjonsklasse, mål, masker, TRAIN-RMS, tap og score er uendret.166 må først
+bestå faktisk paritet og privat optimizer/resume for den aktuelle funksjonen.
+Uvektet gridortogonalitet er ikke ortogonalitet under reelle masker/RMS.
+Bedre retning og treningsårsaken er fortsatt ubevist. Policy må binde hver
+engangsadmission; ingen designtekst eller konsumert151-adgang gir launch.
 
 Fysisk datasett binder original M1 BID/ASK-kilde én gang og har target-only
 fill-/clock-/censorpointers. Ingen tett entry×480 framtidsbane lagres. Hver
