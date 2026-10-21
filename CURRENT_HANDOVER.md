@@ -33,8 +33,11 @@ Implementasjonen er ferdig:26nye/énendretmodelllinje;41unike syntetiske
 kontroller er kvalifisert etter én minimal skalartensorrettelse i testhelperen.
 Kildedelta er eksakt én av183native innholdsroller; øvrig produksjons-AST er
 uendret etter deklarert query/init-normalisering. Ingen bedre retning er målt.
-159 er konkret innrømmet én4GCPU/7200s fersk initialiseringspublisering,
-null forwards/optimizersteg/refits og gjenbruk av de11 fysiske filreferansene.
+159 stoppet før canonicalpublisher: fit_dynamic_m5_loss_scales_v1.py manglet i
+kjøringsmanifestet selv om kildefilen var kvalifisert.159 er consumed; koden og
+41beståtte kontroller er uendret.161 innrømmer én4GCPU/7200s fersk publisering
+med alle åtte baseeiere i faktisk manifest og metadata-preflight førclaim.
+Null forwards/optimizersteg/refits; de11 fysiske filreferansene gjenbrukes.
 160baseline og ny trening er fortsatt stengt til sine ferske konkrete porter.
 Design, sourcepeer, kontroller og falsifikasjonskriterier er bundet i policy.
 Målet er aktivt; initialparitet, retnings-/forløpskvalitet og senere bevis gjenstår.
