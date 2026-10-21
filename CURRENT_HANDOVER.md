@@ -63,6 +63,13 @@ Ingen bedre retning eller ny treningsadgang følger av162.
 149state-/RNG-/canonicalfull480-kjernen er byteuendret; ny lagret148/162-
 paritet bruker forhåndsbundet1e-4bps/rtol0 og eksakte kandidat-/action-/
 horizonties. Ingen ny globalnativeadgang; bare eksakt163stage.
+163 er consumedFAILED69,24s/0forwards/steg: state/RNG og canonicalfull480
+bestod, men exactcandidate_horizon_ties feilet på TRAINrad24. Originalproofs
+og feilterminal er bevart; funksjonsparitet/158-treningsgate er ikke bestått.
+Ingen grense er endret. Neste164 skal måle hele512raders lagrede148/162-
+forskjeller, F32scorer/ties og actioneffekt før en konkret rettelse velges.
+164 er innrømmet én4GCPU/512M/180s diagnose med fireJSONlesinger,0PT/
+rådata/modellkall/steg. COMPLETE betyr bare utført diagnose, aldri paritetsadgang.
 Raw148funksjonsparitet/ferskstate og private4paritet/resume må bestås før ny trening.
 Design, sourcepeer, kontroller og falsifikasjonskriterier er bundet i policy.
 Målet er aktivt; initialparitet, retnings-/forløpskvalitet og senere bevis gjenstår.
@@ -174,9 +181,10 @@ Alle32Markdown-filer/4570linjer ved98068b67 er lest, også historiske design;
 lesebevis:154/`MARKDOWN_READ_REVIEW.json`. CLAUDEs foreldede én-agent-setning
 er justert til gjeldende18.10-regel; ingen modell-/treningskode er endret.
 
-Neste steg eies av163 og øverste aktive bestilling: cappedCPUaudit av lagret
-162initialstate/RNG/full480 og funksjonsparitet mot lagret148, uten nye
-modellkall.162native er ferdig/consumed;156-vitnet og158-designvalget er ferdige;
+Neste steg eies av164 og øverste aktive bestilling: diagnose av alle lagrede
+148/162forskjeller etter163s strenge horizonparitetsavvisning. State/RNG og
+canonicalfull480 ble bestått i163; dette er ikke samlet funksjonsparitet.
+162native er ferdig/consumed;156-vitnet er ferdig;158s eksaktematch-claim feilet;
 ingen av155–159/161 eller eldre epoker skal relanseres. Opprinnelig151-adgang
 er konsumert.162 gir bare den nye nullstegsmålingen; trening krever senere
 eksakt admission etter faktisk full480paritet/state og privat4paritet/resume.
