@@ -186,20 +186,22 @@ SHA; det ville gitt en hashsyklus. Koden og de lukkede preflight-testene er
 rettet før første kjøring. Opprinnelig uclaimet 142-plan er overstyrt av
 CASE_MANIFEST_PLAN_POSTCOMMIT_BINDING.json, ikke startet eller konsumert.
 
-Én 142 CPU-operasjon er åpnet etter ren kildebinding: 4G/512M, 1800 sekunder.
-Først 65 fokuserte tester (37 helper, 25 dispatch, 3 lukket/consumed-policy),
-deretter eksakt manifest fra 141-pakken én gang og frosset 055 F32-statvisning.
-Alle 3446 eieretiketter beholdes: 882 numeriske, 2525 aliaser, 7 kategoriske,
-32 familie/TF. Vitner velges kun fra genuine inputs/egne masker i fast
-beslutningstid/parentrekkefølge. Familieeligibility følger alle historiske
-koordinater ablasjonen endrer; current-verdi/aliasvalg forblir current.
-Manglende, kildekonstant og ugyldig er separate statuser; ingen retry eller
-prediksjonsstyrt utvalg. Gamle 617 helper-/542 testlinjer er byteidentiske.
-Eksternroot: `/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142`.
-Aktuell plan SHA 2c766fdeb876d3441722257b00e345cc45ed519c3f73461d3f611a9ab92b2d9c.
-Ingen 142-kjøring er ennå startet. Native executor er kun kildeimplementert;
-faktisk forward/paritet/påvirkning krever ferdig CPU-manifest, eksakt separat
-modell-/state-/casebinding og fersk hardwareadgang. Ingen trening er åpnet.
+142 er terminal/stengt etter 10,449 sekunder. Alle 65 fokuserte tester bestod:
+pytest exit0, 65 unike testcase-noder og 0 failures/errors/skipped. Rootdriveren
+forvekslet JUnits 161 rapportenheter (inkludert unittest-subtests) med 65 cases
+og stoppet før inputpakken/055 eller casebygging ble lest. Heleoperasjonen
+har derfor FAILED_NO_ADMISSION, ikke et ferdig case-manifest. Originaler bevares.
+229 kilder/policy ble bevart. SOURCE_TEST_ACTUAL_REVIEW.json kvalifiserer kun
+de faktisk beståtte testene med rå XML/prosesskode og eksakte kildehasher:
+SHA 20f6e2363589324576b9b1502c57ac610dd44dbcb292f4fa704a5639eb6aadd8. Ingen nye tester kreves av uendret kilde.
+
+143 CPU-case-only er nå åpnet etter ren kildebinding: én 4G/512M-kjøring,
+1800 sekunder, som gjenbruker de 65 testene og 141-pakken uten nye testinvokasjoner.
+Aktuell CASE_MANIFEST_PLAN.json SHA ce9c526e8ba40c5917a6925d4c9c4c564d341a3cad559e84f0a42d961837793b.
+142 skal aldri relanseres. Alle 3446 eieretiketter beholdes med egne masker,
+fast vitnerekkefølge og familiehistoriens faktiske observasjoner. Native input-
+audit er kildeimplementert/testet for lukkede guards, men faktiske modellforwards,
+paritet/påvirkning og fersk hardwareadgang gjenstår. Ingen trening er åpnet.
 136s gamle135PENDING-note overstyres av138s faktiske kvitteringer i policy.
 Full480trace, LONG/SHORT/FLAT-kvalitet/dekning forvalgte/avståtte ogsenere
 læring/generalisering er åpne krav. Ingen ny trening er åpnet. Ingen jobb kjører.

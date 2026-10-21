@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T09:16:15.069628+00:00",
-  "status": "142_CPU_SOURCE_AND_CASE_MANIFEST_AUTHORIZED_PENDING_CLEAN_BINDING",
+  "observed_utc": "2026-10-21T09:24:36.310593+00:00",
+  "status": "143_CASE_ONLY_AUTHORIZED_REUSING_65_QUALIFIED_SOURCE_CASES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Commit and bind clean source, then run the single capped 4G CPU operation: 65 focused source tests followed by fixed 3446-owner case manifest construction from the 141 packet. No native model, source dataset, targets, optimizer or training.",
+  "next_action": "Commit and bind clean source, then run the new capped 4G case-only plan once. Reuse 65 successful source tests; no source dataset or native model reads, no 142 relaunch and no training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "142_CPU_SOURCE_AND_CASE_MANIFEST_AUTHORIZED_PENDING_CLEAN_BINDING",
+    "current_activity": "143_CASE_ONLY_AUTHORIZED_PENDING_CLEAN_BINDING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,13 +118,13 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_CURRENT_ALIAS_WITNESSES_COMPLETE_NATIVE_INPUT_INFLUENCE_PRIMARY_ENTRY_QUALITY_AND_GENERALIZATION_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "141_CPU_INPUT_PACKET_PRODUCER",
+    "latest_terminal_role": "142_SOURCE_TEST_REPORT_COUNT_GUARD",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_TERMINAL.json",
-      "sha256": "63853609c001e977d2b212737fc715013286f418e4b11d7ff1f9fd13031eed05"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/CASE_MANIFEST_TERMINAL.json",
+      "sha256": "60c141a0086b29411fae9887500a0f67fab335abde656c44e92148fa7eef87ce"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The new case planner and isolated native adapter require focused source qualification and an actual fixed case manifest. Native model execution remains closed.",
+    "current_blocker": "The external source-test counter stopped case construction despite all 65 test cases passing. Reuse exact tests and run only the still-unexecuted case builder under a fresh plan.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Commit and bind clean source, then run the single capped 4G CPU operation: 65 focused source tests followed by fixed 3446-owner case manifest construction from the 141 packet. No native model, source dataset, targets, optimizer or training.",
+    "next_action": "Commit and bind clean source, then run the new capped 4G case-only plan once. Reuse 65 successful source tests; no source dataset or native model reads, no 142 relaunch and no training.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -21064,7 +21064,7 @@
     "independent_actual_peer_review_pending": false
   },
   "dynamic_compact_input_influence_preparation": {
-    "status": "SOURCE_IMPLEMENTED_NOT_RUNTIME_QUALIFIED",
+    "status": "SOURCE_65_TESTS_QUALIFIED_ACTUAL_CASE_MANIFEST_PENDING",
     "input_packet": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_OUTPUT/INPUT_PACKET.npz",
       "sha256": "6c287b8fbd857a233cd3e3019dea68a1e445099651c942f8cd82fecf8a8ecbe0"
@@ -21104,13 +21104,17 @@
       "sha256": "8b71ef2348cbc5b31b1a09aebc13b9a0990578881b77d268046322da39a28c07"
     },
     "postcommit_execution_binding_required": true,
-    "source_head_in_plan_or_policy_forbidden_to_avoid_hash_cycle": true
+    "source_head_in_plan_or_policy_forbidden_to_avoid_hash_cycle": true,
+    "source_test_actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/SOURCE_TEST_ACTUAL_REVIEW.json",
+      "sha256": "20f6e2363589324576b9b1502c57ac610dd44dbcb292f4fa704a5639eb6aadd8"
+    }
   },
   "dynamic_compact_case_manifest_142": {
-    "status": "AUTHORIZED_ONE_CPU_SOURCE_AND_EXACT_CASE_MANIFEST",
-    "execution_authorized": true,
+    "status": "FAILED_EXTERNAL_JUNIT_COUNT_ONLY_SOURCE65_TESTS_PASS_NO_CASE_PLAN",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/CASE_MANIFEST_PLAN_POSTCOMMIT_BINDING.json",
@@ -21144,6 +21148,65 @@
     "maximum_case_owner_labels": 3446,
     "maximum_future_model_forwards": 218,
     "source_OR_case_PASS_does_not_admit_native_execution": true,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "claimed_invocations": 1,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/CASE_MANIFEST_TERMINAL.json",
+      "sha256": "60c141a0086b29411fae9887500a0f67fab335abde656c44e92148fa7eef87ce"
+    },
+    "actual_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/CASE_MANIFEST_RESULT.json",
+      "sha256": "4a261380cb5b924e33a123d8e9250d7d69203d724e2149a13e6da542317631b7"
+    },
+    "source_test_actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/SOURCE_TEST_ACTUAL_REVIEW.json",
+      "sha256": "20f6e2363589324576b9b1502c57ac610dd44dbcb292f4fa704a5639eb6aadd8"
+    },
+    "source_test_cases_passed": 65,
+    "junit_report_units": 161,
+    "case_manifest_built": false,
+    "elapsed_seconds": 10.448631403000036
+  },
+  "dynamic_compact_case_manifest_143": {
+    "status": "AUTHORIZED_ONE_CPU_CASE_ONLY_REUSE_SOURCE65",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/CASE_MANIFEST_PLAN.json",
+      "sha256": "ce9c526e8ba40c5917a6925d4c9c4c564d341a3cad559e84f0a42d961837793b"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/run_case_manifest.py",
+      "sha256": "d5e3ae37996fbb717e1889427ef13302c1f134510469d1abdafbd1a109207af3"
+    },
+    "input_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/INPUT_SCOPE.json",
+      "sha256": "215fe83faa535dfaa62cacefdeda4a3d55997b5c7ed4e00036ed3d3521f1ffee"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/SOURCE_TEST_ACTUAL_REVIEW.json",
+      "sha256": "20f6e2363589324576b9b1502c57ac610dd44dbcb292f4fa704a5639eb6aadd8"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/DESIGN.json",
+      "sha256": "21413fdc313019c70e8ab175391a303cd0f1b488bcedc52c38fd98660a70db5f"
+    },
+    "preexecution_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/PREEXECUTION_REVIEW.json",
+      "sha256": "87ffd699dd2576737ddf7750f8828ff48eec5aafb332efd6a53f852bc212d2b3"
+    },
+    "reused_source_test_cases": 65,
+    "new_source_test_invocations": 0,
+    "maximum_case_owner_labels": 3446,
     "training_enabled": false,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
