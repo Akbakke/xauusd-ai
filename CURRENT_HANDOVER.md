@@ -16,16 +16,19 @@ faktisk horisontavhengig retning, separat retning/størrelse/MAE/MFE/kost/deknin
 og én målt begrunnet forbedring om gangen på sammenlignbare data og budsjetter.
 Målet og ferdigkriteriene står i policyens
 `current_work.autonomous_direction_qualification_goal_20261021`.
-Start med154-beviset og et presist nullstegs TRAIN-vitne.155 stoppet før
-payloadlesing: CPU-vakten setter ikke CUDA_VISIBLE_DEVICES, mens arbeideren
-krever tom streng.155 er consumed og originalene bevart.157 binder samme
-én8GCPU/900s pakke for første16 fryste TRAIN256-rader, med eksplisitt tom
-CUDA-synlighet; arbeiderens eneste endring er ny ROOT-identitet.
-153fokuserte kilde-/gradient-/CLI-kontroller er bestått; native183kilder er
-byteuendret.156s nye leseadapter er implementert, men ingen modellobservasjon
-er ennå innrømmet eller utført. Gjenbruk beståtte
-uendrede gater. Nye modellobservasjoner eller treningsforsøk krever først sine
-konkrete kilde-/state-/input-/budsjettbindinger og faktiske policyporter.
+154-beviset er bevart.157 er COMPLETE115,846s: første16 fryste TRAIN256-rader,
+null padding, eksakte mål-/maskegjenkoblinger og NPZ-roundtrip; null modellkall,
+PT-/råM1/MBP-lesing eller refits.155s konkrete CPU-miljøfeil er consumed og
+originalene bevart.153fokuserte kilde-/gradient-/CLI-kontroller er bestått;
+de183 native kildebindingene er byteuendret.
+156 er nå konkret innrømmet én gang:20G capped CUDA-producer/900s, samme
+TRAIN16-pakke og151ONLINE7391, én eval-forwardgraf og22 reversekall,
+null optimizersteg. Eksisterende komponenttoleranse og eksakte kandidat-/action-
+ties må passe mot lagrede151prognoser. Signedhardware:34/40C,22,61Wdraw,
+160Wlimit,78MiB; ingen profilendring. Bindinger lages fra ren postcommitHEAD.
+Resultatet kan avklare lokal horisontfølsomhet og oppgavekonflikt, men beviser
+ikke årsaken til hele epoken eller en forbedring. Ingen modell-/lossrettelse eller
+ny trening er valgt. Gjenbruk uendrede beståtte gater.
 Ingen Exit/TEST/broker/handel åpnes. Målet er aktivt, ikke ferdig kvalifisert.
 
 ## Gjort nå

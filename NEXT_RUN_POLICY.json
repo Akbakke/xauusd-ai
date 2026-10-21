@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T19:41:07.016972+00:00",
-  "status": "157_PREPARED_CPU_ENV_CORRECTED_FIXED_TRAIN_WITNESS",
+  "observed_utc": "2026-10-21T19:46:54.255563+00:00",
+  "status": "156_PREPARED_ONE_FIXED_TRAIN_DIRECTION_GRADIENT_WITNESS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "151 consumed exactly the explicitly approved additional TRAIN-RMS M5 Entry epoch:118249 unique TRAIN rows/7391updates/last9 and32 fixed final ONLINE forwards. Native guard/trainer/observer PASS/0/0; windows task Disabled. No additional epoch or relaunch authority. Paired learning and Entry-quality review remains separate.",
-  "next_action": "Execute exactly one1578GCPU/900s fixedTRAIN16 preparation with explicit empty CUDA visibility.155failed before payload reads and is consumed; no relaunch. Then gate one156forward/22reverse zero-update witness; no training correction selected.",
+  "next_action": "Execute once156guardedCUDAproducer20G/900s: exact157TRAIN16packet, final151ONLINEstate7391, one evalforward/22reverse/zero updates. Require savedcomponent/tie/action parity and state/source/policy preservation. Interpret localtask/horizon gradients before choosing one justified direction improvement. No training/Exit/TEST/broker admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -104,7 +104,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "157_FIXED_TRAIN16_PREPARATION_CPU_ENV_CORRECTED",
+    "current_activity": "156_FIXED_TRAIN16_DIRECTION_GRADIENT_WITNESS",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -133,11 +133,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTIONAL_CALIBRATION_ENTRY_QUALITY_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "154_CAPPED_CPU_DIRECTION_HORIZON_DIAGNOSIS",
+    "latest_terminal_role": "157_CAPPED_CPU_TRAIN16_INPUT_TARGET_PREPARATION",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/TERMINAL.json",
-      "sha256": "c0768755cf0f6f974f6f350b8f803488a5bd5cee20e7480cdc378bf7ee1eacea"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/TERMINAL.json",
+      "sha256": "09dd34afd71d205bf761d52863e5492bef9a76da6b30e0342e2ad954a9db33d9"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -8760,8 +8760,8 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Weak horizon response and excessive h1directional variation are measured; why7391updates learned them is unproven. No model/loss/score fix is selected.",
-      "A proposed local fixed-TRAIN zero-update gradient/horizon witness is not admitted or executed. It cannot alone establish whole-epoch causality."
+      "156one-forward22-reverse local final-state TRAIN witness is exactadmitted but not executed; it cannot alone establish whole-epoch causality.",
+      "No model/loss/action correction selected; LONG/SHORT/FLAT quality, later development and economic edge remain unqualified."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -15890,7 +15890,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
     },
-    "latest_terminal_evidence_scope": "154COMPLETE7.028s/4savedcurveJSONs/0newforwards/updates/PT/Parquet/raw/pointerreads. FixedTRAIN256/CONTROL256,1024FINALsidecurves strictlyq-decrease over479adjacentpairs anduniqueh1max. Terminal horizonrange small vs increasingMAE; h1direction spreadtoo large andcovarianceweak. No Entryquality/generalization/edge or trainingcausality qualified.",
+    "latest_terminal_evidence_scope": "157COMPLETE115.846s CPU producer: first16frozenTRAIN256parents, zero padding, exactfull256dynamic/forecasttargetstorage joins, NPZroundtrip, one sourcecacheload/observationread, zero model/PT/provider/rawM1/MBP reads. Source/policy unchanged.155CPUenv preflightfailure consumed.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17045,10 +17045,10 @@
         "No Exit/TEST adaptation, broker, live/paper, orders, spending or promotion."
       ],
       "zero_update_witness_preparation_authorized": true,
-      "new_model_observation_admitted": false,
+      "new_model_observation_admitted": true,
       "new_training_admitted": false,
       "new_model_or_loss_correction_selected": false,
-      "latest_evidence_stage": "155_CPU_ENV_PREFLIGHT_FAILED_CONSUMED_157_PREPARED"
+      "latest_evidence_stage": "157_FIXED_TRAIN16_PREPARATION_COMPLETE_156_LOCAL_WITNESS_ADMITTED"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19613,7 +19613,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T19:41:07.016972+00:00",
+  "updated_utc": "2026-10-21T19:46:54.255563+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -22146,7 +22146,7 @@
     "worker_terminal_created": false
   },
   "dynamic_m5_direction_witness_preparation_157": {
-    "status": "PREPARED_ONE_CAPPED_CPU_FIXED_TRAIN16_PACKET",
+    "status": "COMPLETE_CONSUMED_FIXED_TRAIN16_PACKET_ONLY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/PLAN.json",
       "sha256": "1e65eb90c7f1415a13b36be1b478acbd3700b9fb04868d810084dbc8da1b76c3"
@@ -22156,10 +22156,10 @@
       "sha256": "97b5ecda7b3a8a1fedfb70778a9a47aedc13cdc7f50b0975e4d5245b817d363b"
     },
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
-    "claimed_invocations": 0,
+    "completed_invocations": 1,
+    "claimed_invocations": 1,
     "relaunch_allowed": false,
     "max_wall_seconds": 900,
     "class": "producer",
@@ -22189,6 +22189,94 @@
     },
     "explicit_cpu_launch_environment": {
       "CUDA_VISIBLE_DEVICES": ""
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/TERMINAL.json",
+      "sha256": "09dd34afd71d205bf761d52863e5492bef9a76da6b30e0342e2ad954a9db33d9"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/CONTROLLER_TERMINAL.json",
+      "sha256": "dc0d4db54cbf7274474d3be943997a5aed573e999393171a93540de89173c89c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/WITNESS_OUTPUT/RESULT.json",
+      "sha256": "354be507d14f180d528369d4e1687708f057136a6047fafdcb478db9e35d5c27"
+    },
+    "metadata": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/WITNESS_OUTPUT/METADATA.json",
+      "sha256": "66cda75250232121dbf3c5b6bfb96fe9da1e63a61f8ff6380b46e1bc6f7b852c"
+    },
+    "actual_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/ACTUAL_PREPARATION_PEER_REVIEW.json",
+      "sha256": "4558d6d9e33bad4baffffc1244b584f71a2d199a360cf88f3b6e88a75739be16"
+    }
+  },
+  "dynamic_m5_direction_gradient_witness_156": {
+    "status": "PREPARED_ONE_GUARDED_FIXED_TRAIN16_EVAL_GRAPH",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/PLAN.json",
+      "sha256": "880f9121d3d9ad0be317a7f642bd1e6c63908f041491b82c0d821cd24c5c1922"
+    },
+    "input_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/INPUT_SCOPE.json",
+      "sha256": "1ee887b56535f8eb89cc8187b6183e16d3684a727a103d9660a7b16e60edf91b"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/run_direction_witness_bounded.py",
+      "sha256": "452137b8ebcbce0746ed790b98ff1ba55604b2e5805de5388ace27ab01187b3f"
+    },
+    "executor": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_m5_direction_witness_v1.py",
+      "sha256": "95d0b28b48a0d234bfcec3b2717f1bb646ee0f41a700cbaea3303571fb3e72dc"
+    },
+    "helper": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_compact_input_influence_v1.py",
+      "sha256": "befe311da754e1d9c0a19608ae21ff4e3fc1026b6515380bfb89dadfea5c34fa"
+    },
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "claimed_invocations": 0,
+    "relaunch_allowed": false,
+    "max_wall_seconds": 900,
+    "model_forwards_admitted": 1,
+    "reverse_calls_admitted": 22,
+    "optimizer_updates_admitted": 0,
+    "genuine_rows": 16,
+    "padding_rows": 0,
+    "class": "producer",
+    "memory_bytes": 21474836480,
+    "swap_bytes": 536870912,
+    "hardware_preflight": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/HARDWARE_PREFLIGHT.json",
+      "sha256": "e72bc1551b873307495fa51c54848db3258b81abf93117e9e85853b4f2b05dd8"
+    },
+    "native_closure_reuse": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/NATIVE_SOURCE_CLOSURE_REUSE.json",
+      "sha256": "1d6a0ccfdde6d24dbe823eb7e7065e849940a14c24f6b51f70c6ab26feb4008b"
+    },
+    "source_checks_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/SOURCE_CHECKS_TERMINAL.json",
+      "sha256": "c6afb257ce51fc41e79a49956bf02c21dfc9f479bcaf00fe9365194aa16cec34"
+    },
+    "observation_scope": "One final151ONLINE local eval gradient graph only; cannot establish epoch history, training correction or edge.",
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "controller_budget_correction": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/CONTROLLER_BUDGET_CORRECTION.json",
+      "sha256": "de35a2c7675376fac621f77532e9212babe234c3596e2588d47f4bba3e59bd36"
+    },
+    "termination_grace_seconds": 10,
+    "preexecution_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/PREEXECUTION_PLAN_CONTROLLER_PEER_REVIEW.json",
+      "sha256": "33a8278b6b75732b7fbb2419d82eeaf6997b37524baf2b99979e95634e3aa200"
     }
   }
 }
