@@ -58,16 +58,17 @@ TERMINAL.json SHA48d003d24a55719de00c107a1934c318c043ef81c8c89e54557d66da4692261
 level33,localgenuine24,generic3,crossTF14. Tre kildeutkast-eiere og én integrator
 gjenbruker eksisterendeaudit/leser. Nyebounds forATRz/AVWAP/reaksjonsepisoder
 og eksplisittcrossTF-F32ATR må fryses og håndtestes før noen fysiskadgang.
-Alle kilde-/fysiske kjøringer er fortsatt stengt. Parkerte95felt/TF beholdes.
+Én fysisk130audit er claimet. Parkerte95felt/TF beholdes utenfor dette løpet.
 Root har utvidet eksisterende auditleser med eksplisitt130modus, seksquote-
 kolonner og sekvensiell eierblokk-sammenligning.104øvrigegamlehelpers er
 AST-identiske. Eierfragmentene er ikke alle integrert; ingen test-/fysiskPASS
 er påstått. Kjøringene forblir stengt til fryst boundsdesign og kildepeer.
 Alle94aktive felt/TF og fire nye håndtestklasser er integrert. Tre
 avgrensede kilde-/matematikkpeerreviews bestod; DESIGN/ERROR_SPEC/PLAN er
-fryst i130. Én kildejobb for de fire nye klassene (forventet66caser) er
-åpnet, men ikke fullført.304gamlecaser og104gamlehelpers gjenbrukes.
-Fysisk470outputaudit er fortsatt uclaimet/stengt; ingen faktiskPASSpåstand. Samle delte primitiver og
+fryst i130.66av66håndcaser bestod på4,128s/exit0:reader11,swing18,local12,
+level/cross25.220kilder/policy er bevart.304gamlecaser og104gamlehelpers
+gjenbrukes. Én fysisk470outputaudit er nå claimet, ikke fullført; kilde/policy
+fryses til terminal. SOURCE_REVIEW.json binder faktiskXML, kilde og bounds. Samle delte primitiver og
 leser før ny eksakt plan; ingen ny fysiskjobb er åpnet. RåMBP→M1, andre lokale
 formler, individuell lært nytte og Entry-kvalitet/dekning/forklaringer gjenstår.
 Ingen jobb kjører; training_enabled=false og øvrige vakter består.
