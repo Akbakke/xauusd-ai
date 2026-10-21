@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T07:20:55.450039+00:00",
-  "status": "139_DYNAMIC_COMPACT_INPUT_INFLUENCE_FOCUSED_SOURCE_QUALIFICATION_READY",
+  "observed_utc": "2026-10-21T07:34:45.938440+00:00",
+  "status": "140_INPUT_ONLY_TRAIN_MASK_WITNESS_SCAN_READY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactly one capped139syntheticCPU source qualification (28boundmethods,900s,4G/512M), then inspect actual terminal and preserve source/policy guards. Reuse121-134/138proofs; TRAINwitnesses and actual nativeinfluence remain separately unadmitted; no training.",
+  "next_action": "Execute exactly one capped140input-onlyTRAIN currentaliaswitness scan: one fresh canonicalTRAINhash, then time+ctx_cont only; <=16inputmaskselectedwitnesses, no targets/model/PT/VAL/TEST. Inspect terminal and source/policy/dataidentity before any inputrendering/nativeinfluence; no training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "139_DYNAMIC_COMPACT_INPUT_INFLUENCE_FOCUSED_SOURCE_QUALIFICATION_READY",
+    "current_activity": "140_INPUT_ONLY_TRAIN_MASK_WITNESS_SCAN_READY",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -121,8 +121,8 @@
     "latest_terminal_role": "134_all66_actual_raw_independent_reference_roll_pending_final_mask_join",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_138/TRACE_AUDIT_TERMINAL.json",
-      "sha256": "9689e0055f82396cebf35b88c89d6db6ed54b5808bbe1e8359b7048ee579c64f"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "20fb2cb1c05a937447e4c05d05356e755bca4c9f16ce8d645287f8dcec5c09c1"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "139focusedsourcePASS pending.140TRAINmask-onlywitnesses, exactcaseplan, input-onlyloader/state/normalizer/cache/parity/hardware remain before actual native input influence; no trainingadmission.",
+    "current_blocker": "140actualTRAINwitness/coverage scan pending. Actual inputrendering and individualnativeinfluence, exactcaseplan/state/normalizer/cache/parity/hardware remain unadmitted.139sourcePASS is syntheticmechanics only.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one capped139syntheticCPU source qualification (28boundmethods,900s,4G/512M), then inspect actual terminal and preserve source/policy guards. Reuse121-134/138proofs; TRAINwitnesses and actual nativeinfluence remain separately unadmitted; no training.",
+    "next_action": "Execute exactly one capped140input-onlyTRAIN currentaliaswitness scan: one fresh canonicalTRAINhash, then time+ctx_cont only; <=16inputmaskselectedwitnesses, no targets/model/PT/VAL/TEST. Inspect terminal and source/policy/dataidentity before any inputrendering/nativeinfluence; no training.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20723,7 +20723,7 @@
     "elapsed_seconds": 0.9322708740000962
   },
   "dynamic_compact_input_influence_design_136": {
-    "status": "ADAPTER_SOURCE_IMPLEMENTED_FOCUSED_SOURCE_QUALIFICATION_PENDING",
+    "status": "SOURCE_QUALIFIED_ACTUAL_NATIVE_INPUT_INFLUENCE_PENDING",
     "execution_authorized": false,
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_DESIGN_20261021_136/DESIGN.json",
@@ -20743,7 +20743,6 @@
       "model_forward_ceiling_only_after_exact_case_plan": 218
     },
     "pending": [
-      "focused_source_runtime_qualification",
       "causal_TRAIN_observation_mask_only_witnesses",
       "exact_predeclared_case_plan_and_SHA",
       "same_state_profile_normalization_dataset_cache_bindings",
@@ -20761,13 +20760,17 @@
     "integrator_design_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_DESIGN_20261021_136/INTEGRATOR_DESIGN_REVIEW.json",
       "sha256": "74706d3433f3b280c9f2d3ad5e8f7faa65660f9f7f53f64834d2d73ee9c07dac"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139/ACTUAL_REVIEW.json",
+      "sha256": "36c5926c28dc8ba4d12f7400c4f73e362e8114b8cdcb86186da08bf62178eb75"
     }
   },
   "dynamic_compact_input_influence_source_139": {
-    "status": "READY_FOR_ONE_CAPPED_CPU_SOURCE_QUALIFICATION",
-    "execution_authorized": true,
+    "status": "COMPLETE_PASS_28_FOCUSED_SYNTHETIC_CPU_SOURCE_TESTS",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139/SOURCE_QUALIFICATION_PLAN.json",
@@ -20794,6 +20797,68 @@
       "sha256": "3ffd6c97f3e02754d7e822d3f0fd09fa8dc047c5a5a77ca5cc4caae07c3b756b"
     },
     "expected_test_cases": 28,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "claimed_invocations": 1,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139/ACTUAL_REVIEW.json",
+      "sha256": "36c5926c28dc8ba4d12f7400c4f73e362e8114b8cdcb86186da08bf62178eb75"
+    },
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139/ACTUAL_PEER_REVIEW.json",
+      "sha256": "e1d13c9ebf5835160810ed7424903870ead45159e9692d47f32bd69f0556e59b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "20fb2cb1c05a937447e4c05d05356e755bca4c9f16ce8d645287f8dcec5c09c1"
+    },
+    "actual_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139/SOURCE_QUALIFICATION_RESULT.json",
+      "sha256": "4469c84cadcb79f17e4f9cc2750f937a23abb1458670f1e7868bfb0564fc4b8c"
+    },
+    "elapsed_seconds": 9.391676851999364
+  },
+  "dynamic_compact_train_witnesses_140": {
+    "status": "READY_FOR_ONE_CAPPED_INPUT_ONLY_TRAIN_MASK_WITNESS_SCAN",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/WITNESS_AUDIT_PLAN.json",
+      "sha256": "04e3092156fb7d0cb41825cf07b84e4810ac022c4bf64589f7b54d14aab68caf"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/run_train_mask_witnesses.py",
+      "sha256": "a2056a2c3942788724237d5153307f7f44f8485863588981b8b0eb442675994a"
+    },
+    "input_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/INPUT_SCOPE_FRESH_HASH.json",
+      "sha256": "0fa9b0ef1f51931ba54318da46c9a188f51aea8dc3a7f413a810c1330557afd6"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/DESIGN.json",
+      "sha256": "e52131a82ffa622dc725e6fe50d8ae4323f5cabaf56bdf7856fabd0130ca84b9"
+    },
+    "preexecution_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/PREEXECUTION_REVIEW.json",
+      "sha256": "3e604a27d9f7b1c54461907118a97de4db54905da247504d522ba2df546ffd20"
+    },
+    "driver_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/PREEXECUTION_DRIVER_PEER_REVIEW_FRESH_HASH.json",
+      "sha256": "496676f048da9a602f02f9b4dc2f7e0dcac36ab1b6b0f7c63a7763748f5372f2"
+    },
+    "train_fresh_digest_required": true,
+    "new_TRAIN_full_hash_passes_required": 1,
+    "prior_digest_carry_admitted": false,
+    "maximum_witnesses": 16,
+    "expected_current_alias_owners": 2525,
     "training_enabled": false,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,

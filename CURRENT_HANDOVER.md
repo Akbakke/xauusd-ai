@@ -109,9 +109,18 @@ beskriver en audit-onlyadapter:882numeriske ruter,2525jointaliaser,7enum,
 Integratorreview er ferdig med presisering om at hele siste sekvensrad og
 snapshot er samme fysiske markedstilstand. Også ikkealiaser må få summert
 seq+snap-derivat før absoluttverdi; contextaliaser summerer alle tre kopier.
-139s nye audit-onlyadapter og fokuserte CPU-håndtester er skrevet; faktisk
-kildekvalifisering er PENDING til eksakt capped terminal. Ingen produksjons-
-funksjon, dataset, normalisering eller baseline endres av denne auditkoden.
+139 er COMPLETE/exit0:28eksakte CPU-håndtester bestod på9,392s inkludert
+signert alias-/ikkealias-kansellering,13analytiske derivatfasiter, egne masker,
+enum/familiecaser, F32-overflow og lazyB16/paritet/padding.224kilder/policy
+ble bevart. Ingen produksjonsfunksjon, dataset, normalisering eller baseline
+ble endret;0nativeforwards ogingen PT/Parquet/rå-/normaliseringspayload.
+139ACTUAL_REVIEW SHA36c5926c28dc8ba4d12f7400c4f73e362e8114b8cdcb86186da08bf62178eb75;
+ACTUAL_PEER_REVIEW SHAe1d13c9ebf5835160810ed7424903870ead45159e9692d47f32bd69f0556e59b.
+Bevisroot:`/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139`.
+139planen er konsumert/stengt. Dette er syntetisk mekanikk, ikke faktisk
+modellpåvirkning eller læring.140 velger høyst16ekte TRAIN-maskvitner fra
+kun time/ctx_cont; én fersk TRAIN-hash kreves av GX1_RULES92–96 før decode.
+117s gamle SHA/stat er kun lineage, ingen varig hashcache eller unntak.
 KausaleTRAIN-maskvitner, eksaktcaseplan, gyldige value↔mask/aliasendringer,
 batchparitet, state/data/normalisering/cachebinding og fersk maskinvareadgang
 gjenstår før faktisk individuell modellpåvirkning. Ingen nativeadgang.
