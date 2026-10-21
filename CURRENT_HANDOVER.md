@@ -50,6 +50,19 @@ publiseres på nytt.162 innrømmer én full480-startmåling på TRAIN256/CONTROL
 og fire uendrede Windows-eierscript er bundet. Først kreves peer/canonicalseal,
 eksaktcampaign, aktuell maskinvare og ny maskinvidt tomgangsbundet fysisk boot.
 Kilde/policy fryses før recipeseal til terminal.
+162 er nå COMPLETE/consumed:1989,652s ytre/1731,547s native,32forwards
+på TRAIN256/CONTROL256,0optimizersteg. Guard/trainer/observer PASS/0/0;
+183kilder/HEAD00b7c2e2/policy152e6a79 bevart. Ny fysiskboot521 er bekreftet;
+WindowsTaskReady/Last0 ble deretter eksplisitt deaktivert etter prosjekt-tomgang.
+Målte topper55Ccore/64Cmemory/130,93Wdraw/738MiB; keeper/faktisklimit160W.
+Nativeguardens uendrede terskler er85Ccore/80Cmemory/300Wlimit/310Wdraw/12288MiB,
+og må ikke omtales som160W-stopthreshold. FerskONLINE/TARGET er2eaf88...,
+men full480mask-/state-/RNG-/funksjonsparitet til148 gjenstår i CPUaudit163.
+Ingen bedre retning eller ny treningsadgang følger av162.
+163 er innrømmet én capped4GCPU/512M/900s audit,0modellkall/steg:
+149state-/RNG-/canonicalfull480-kjernen er byteuendret; ny lagret148/162-
+paritet bruker forhåndsbundet1e-4bps/rtol0 og eksakte kandidat-/action-/
+horizonties. Ingen ny globalnativeadgang; bare eksakt163stage.
 Raw148funksjonsparitet/ferskstate og private4paritet/resume må bestås før ny trening.
 Design, sourcepeer, kontroller og falsifikasjonskriterier er bundet i policy.
 Målet er aktivt; initialparitet, retnings-/forløpskvalitet og senere bevis gjenstår.
@@ -161,9 +174,9 @@ Alle32Markdown-filer/4570linjer ved98068b67 er lest, også historiske design;
 lesebevis:154/`MARKDOWN_READ_REVIEW.json`. CLAUDEs foreldede én-agent-setning
 er justert til gjeldende18.10-regel; ingen modell-/treningskode er endret.
 
-Neste steg eies av162 og øverste aktive bestilling: forsegl fersk initialrecipe,
-materialiser/installér én canonicalcampaign og bruk eksisterende maskinvakter
-og ny tomgangsbundet fysisk boot.156-vitnet og158-designvalget er ferdige;
+Neste steg eies av163 og øverste aktive bestilling: cappedCPUaudit av lagret
+162initialstate/RNG/full480 og funksjonsparitet mot lagret148, uten nye
+modellkall.162native er ferdig/consumed;156-vitnet og158-designvalget er ferdige;
 ingen av155–159/161 eller eldre epoker skal relanseres. Opprinnelig151-adgang
 er konsumert.162 gir bare den nye nullstegsmålingen; trening krever senere
 eksakt admission etter faktisk full480paritet/state og privat4paritet/resume.
