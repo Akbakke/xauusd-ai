@@ -350,6 +350,24 @@ Fysiske ruter er ikke uavhengige markedstilstander. Gyldige endringscaser
 pakkes lazily i B16, padding gir ikke bevis, og kildetaket er 218 forwards
 først etter en eksakt plan. Følsomhet beviser ingen læring eller lønnsomhet.
 
+Inputpakken gjenbrukes uten nye TRAIN-/cache-/rådatadekodinger. CPU-planen
+registrerer alle 3446 eieretiketter og velger bare ekte vitner i fast rekkefølge
+etter beslutningstid og parentrad. Den bruker egne kildeobservasjonsmasker;
+padding, utfall, modellprediksjoner og gradienter inngår ikke i vitnevalget.
+F32-visningen av frosne sentre/skalaer gjenspeiler modellbufferne og endrer
+ikke originalnormaliseringen. Manglende, kildekonstant og ugyldig endringscase
+rapporteres separat; ingen automatisk reparasjon eller prediksjonsstyrte skips.
+
+Den eksisterende allowlistede tekniske validatoren får en egen inputmodus med
+`--dynamic-compact-input-influence-plan` og
+`--dynamic-compact-input-influence-plan-sha256`, samt `--device cuda` og absolutt
+`--out-dir`. Modusen krever egen eksakt plan/policy og gjeldende capped CUDA-
+producer-/maskinvarevakter. Den går før legacy VAL-/Exit-parseren og bruker
+ikke legacyvalideringen, Dataset, targets, provider eller optimizer. Checkpoint
+leses gjennom eksisterende read-only session/policy med ferske filkontroller;
+ONLINE `model_state`, normalisering og innmatingspakke bindes hver for seg.
+Dette er en ny auditinngang, ingen trenings- eller serving-adgang.
+
 Gjentatt fysisk hashing av samme store fil innen én valideringsoperasjon
 unngås gjennom kontrakteierens eksplisitte `file_verification_scope()`.
 Dette gjelder eksisterende CLI/materializer og handover-/native-window-/

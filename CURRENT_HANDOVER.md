@@ -174,16 +174,32 @@ model_state fra 115s optimizer0-state med ONLINE-digest, ordinær checkpoint-pol
 teacher. Fersk maskinvareadgang kreves før faktisk modelljobb. Deretter måles
 individuell inputpåvirkning; input-PASS er ingen lærings- eller nyttepåstand.
 
-Neste kildegap er målt: den allowlistede tekniske validatoren har bare legacy
-VAL/Exit-parser og attended ONLINE/TARGET-par; denne ruten skal ikke kjøres.
-Legg minste eksplisitte dynamiske inputmodus før legacyparseren og gjenbruk
-samme capped CUDA-producer/hardwarevakter. Ingen ny launcher eller omvei.
-Eksakt CPU-caseplan må først binde alle 3446 eieretiketter (882 numeriske,
-2525 currentaliaser, 7 kategoriske, 32 familie/TF). Velg bare ekte vitner med
-egen maske i fast tidsrekkefølge; bruk 139s eksisterende lovlige intervensjoner.
-Manglende/konstant/ugyldig er egne statuser. Bevar separate historiske VJP-
-rapporter; current-CF er ingen full historisk finite-difference-påstand.
-Ingen caseplan/adapter eller ny modellkjøring er ennå implementert/admittert.
+142-kilden er implementert og statisk peer-kontrollert. Eksisterende tekniske
+validator har nå en egen streng dynamisk inputmodus før legacyparseren;
+legacy VAL/Exit-kode er bevart. Ny executor bruker eksisterende read-only
+checkpoint-/modell-/normaliseringseiere og samme CUDA-producer-vakter.
+Ingen ny launcher, optimizer, Dataset eller serving-/treningsadgang.
+
+En eksplisitt postcommit-binding utenfor repoet binder den senere nativeplanen
+til ren HEAD, policy-SHA og kilder. PLAN/policy inneholder ikke sin egen commit-
+SHA; det ville gitt en hashsyklus. Koden og de lukkede preflight-testene er
+rettet før første kjøring. Opprinnelig uclaimet 142-plan er overstyrt av
+CASE_MANIFEST_PLAN_POSTCOMMIT_BINDING.json, ikke startet eller konsumert.
+
+Én 142 CPU-operasjon er åpnet etter ren kildebinding: 4G/512M, 1800 sekunder.
+Først 65 fokuserte tester (37 helper, 25 dispatch, 3 lukket/consumed-policy),
+deretter eksakt manifest fra 141-pakken én gang og frosset 055 F32-statvisning.
+Alle 3446 eieretiketter beholdes: 882 numeriske, 2525 aliaser, 7 kategoriske,
+32 familie/TF. Vitner velges kun fra genuine inputs/egne masker i fast
+beslutningstid/parentrekkefølge. Familieeligibility følger alle historiske
+koordinater ablasjonen endrer; current-verdi/aliasvalg forblir current.
+Manglende, kildekonstant og ugyldig er separate statuser; ingen retry eller
+prediksjonsstyrt utvalg. Gamle 617 helper-/542 testlinjer er byteidentiske.
+Eksternroot: `/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142`.
+Aktuell plan SHA 2c766fdeb876d3441722257b00e345cc45ed519c3f73461d3f611a9ab92b2d9c.
+Ingen 142-kjøring er ennå startet. Native executor er kun kildeimplementert;
+faktisk forward/paritet/påvirkning krever ferdig CPU-manifest, eksakt separat
+modell-/state-/casebinding og fersk hardwareadgang. Ingen trening er åpnet.
 136s gamle135PENDING-note overstyres av138s faktiske kvitteringer i policy.
 Full480trace, LONG/SHORT/FLAT-kvalitet/dekning forvalgte/avståtte ogsenere
 læring/generalisering er åpne krav. Ingen ny trening er åpnet. Ingen jobb kjører.

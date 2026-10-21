@@ -1020,6 +1020,39 @@ def run(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    import sys
+
+    supplied = list(sys.argv[1:] if argv is None else argv)
+    dynamic_options = (
+        "--dynamic-compact-input-influence-plan",
+        "--dynamic-compact-input-influence-plan-sha256",
+    )
+    if any(value.partition("=")[0] in dynamic_options for value in supplied):
+        # Input-only ONLINE sensitivity: no Exit, targets, optimizer or training.
+        dynamic_parser = argparse.ArgumentParser(
+            description="Bounded dynamic compact input influence audit only",
+            allow_abbrev=False, add_help=False,
+        )
+        dynamic_parser.add_argument(dynamic_options[0], type=Path, required=True)
+        dynamic_parser.add_argument(dynamic_options[1], required=True)
+        dynamic_parser.add_argument("--device", choices=("cuda",), required=True)
+        dynamic_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*dynamic_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                dynamic_parser.error(f"duplicate flag: {option}")
+        dynamic_args = dynamic_parser.parse_args(supplied)
+        if not dynamic_args.out_dir.is_absolute():
+            dynamic_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.dynamic_compact_input_influence_v1 import run as run_dynamic
+
+        report = run_dynamic(
+            plan_path=dynamic_args.dynamic_compact_input_influence_plan,
+            plan_sha256=str(dynamic_args.dynamic_compact_input_influence_plan_sha256),
+            device="cuda",
+            out_dir=dynamic_args.out_dir,
+        )
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bundle-dir", type=Path, required=True)
     parser.add_argument("--checkpoint-session-dir", type=Path, required=True)

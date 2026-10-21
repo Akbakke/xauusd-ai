@@ -540,3 +540,228 @@ class TestDynamicCompactInputInfluenceV1(unittest.TestCase):
                 else: score = score.float()
                 with self.assertRaisesRegex(RuntimeError, "DYNAMIC_COMPACT_INFLUENCE_"):
                     influence.dynamic_compact_output_response(expected, actual, witness_rows=witnesses, score_mask=score)
+
+
+
+class TestDynamicCompactCaseManifestV1(unittest.TestCase):
+    """Small source-shaped inputs: no native constructor, dataset or forward."""
+
+    lanes = ("seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1")
+
+    def fixture(self, batch=4):
+        signal = ("free", "value", "mask", "binary", "ordinal", "constant")
+        mtf = ("free", "mask", "value", "ordinal", "constant")
+        def domain(names, binary=(), enums=None, pairs=(), constants=None):
+            return {"field_names": names, "binary_indices": binary, "enum_domains": enums or {},
+                    "masking_pairs": pairs, "source_constants": constants or {}}
+        domains = {
+            "seq_x": domain(signal, (2, 3), {4: (-1, 0, 1)}, ((1, 2),), {5: 0}),
+            "snap_x": domain(signal, (2, 3), {4: (-1, 0, 1)}, ((1, 2),), {5: 0}),
+            "ctx_cont": domain(("value", "mask"), (1,), pairs=((0, 1),)),
+            "ctx_cat": domain(("regime",), enums={0: (0, 1, 2)}),
+            **{lane: domain(mtf, (1,), {3: (-1, 0, 1)}, ((2, 1),),
+                            {4: 0} if lane == "seq_d1" else {}) for lane in self.lanes},
+        }
+        numeric = [
+            {"token": "seq.free", "surface": "seq_x", "source_index": 0, "field": "free"},
+            {"token": "snap.free", "surface": "snap_x", "source_index": 0, "field": "free"},
+            {"token": "m5.value", "surface": "seq_m5", "source_index": 2, "field": "value"},
+            {"token": "m5.mask", "surface": "seq_m5", "source_index": 1, "field": "mask"},
+            {"token": "m5.ordinal", "surface": "seq_m5", "source_index": 3, "field": "ordinal"},
+            {"token": "d1.constant", "surface": "seq_d1", "source_index": 4, "field": "constant"},
+            {"token": "seq.binary", "surface": "seq_x", "source_index": 3, "field": "binary"},
+        ]
+        aliases = [
+            {"token": "alias.value", "signal_index": 1, "ctx_cont_index": 0, "ctx_cont_field": "value"},
+            {"token": "alias.mask", "signal_index": 2, "ctx_cont_index": 1, "ctx_cont_field": "mask"},
+        ]
+        categorical = [
+            {"token": "category.ctx", "surface": "ctx_cat", "source_index": 0, "domain": (0, 1, 2)},
+            {"token": "category.signal", "surface": "signal", "source_index": 4, "domain": (-1, 0, 1)},
+        ]
+        families = [
+            {"token": "family.local", "surface": "local", "signal_indices": (0, 1, 2, 3, 4),
+             "ctx_cont_indices": (0, 1), "ctx_cat_indices": (0,)},
+            {"token": "family.m5", "surface": "seq_m5", "source_indices": (0, 1, 2, 3)},
+        ]
+        layout = {"schema_version": influence.SCHEMA_VERSION, "domains": domains,
+                  "numeric": numeric, "aliases": aliases, "physical_aliases": aliases,
+                  "categorical": categorical, "families": families,
+                  "counts": {"numeric": 7, "aliases": 2, "categorical": 2, "families": 2}}
+        inputs = {"seq_x": torch.zeros(batch, 96, 6), "snap_x": torch.zeros(batch, 6),
+                  "ctx_cont": torch.zeros(batch, 2), "ctx_cat": torch.zeros(batch, 1, dtype=torch.int64),
+                  "mtf": {lane: torch.zeros(batch, 3, 5) for lane in self.lanes}}
+        for row in range(batch):
+            inputs["seq_x"][row, :, 0] = row + 1
+            inputs["snap_x"][row, 0] = row + 1
+        for lane in self.lanes:
+            inputs["mtf"][lane][:, :, 3] = 1
+        if batch > 1:
+            self.alias_observed(inputs, 1, True)
+            inputs["mtf"]["seq_m5"][1, -1, 1] = 1  # Legitimate observed value0.
+        normalization = {"surfaces": {}}
+        for surface in ("seq_x", "ctx_cont", *self.lanes):
+            key = "signal" if surface == "seq_x" else "mtf_" + surface[4:] if surface in self.lanes else surface
+            names = domains[surface]["field_names"]
+            normalization["surfaces"][key] = {"field_names": names,
+                "center": torch.zeros(len(names), dtype=torch.float64),
+                "scale": torch.ones(len(names), dtype=torch.float64)}
+        return inputs, layout, normalization
+
+    def alias_observed(self, inputs, row, observed, value=0.0):
+        inputs["seq_x"][row, -1, 1:3] = torch.tensor([value if observed else 0, int(observed)])
+        inputs["snap_x"][row, 1:3] = inputs["seq_x"][row, -1, 1:3]
+        inputs["ctx_cont"][row] = inputs["snap_x"][row, 1:3]
+
+    def build(self, inputs, layout, normalization, *, parents=(100, 200, 50), times=(30, 10, 20)):
+        return influence.build_dynamic_compact_case_manifest(inputs, layout=layout, normalization=normalization,
+            parent_rows=list(parents), decision_times_ns=list(times), genuine_rows=3)
+
+    @staticmethod
+    def indexed(manifest):
+        return {case["token"]: case for case in manifest["cases"]}
+
+    def test_f32_view_matches_model_buffer_rounding_and_never_mutates_source_stats(self):
+        _, layout, normalization = self.fixture()
+        normalization["surfaces"]["signal"]["center"][0] = 0.1
+        view = influence.dynamic_compact_normalization_f32_view(normalization, layout=layout)
+        self.assertEqual(view["surfaces"]["signal"]["center"].dtype, torch.float32)
+        self.assertEqual(int(view["surfaces"]["signal"]["center"][0].view(torch.int32)), 0x3DCCCCCD)
+        view["surfaces"]["signal"]["center"][0] = 99
+        self.assertEqual(normalization["surfaces"]["signal"]["center"].dtype, torch.float64)
+        self.assertEqual(float(normalization["surfaces"]["signal"]["center"][0]), 0.1)
+        normalization["surfaces"]["signal"]["scale"][0] = 1e-300
+        with self.assertRaisesRegex(RuntimeError, "NORMALIZATION_STATS"):
+            influence.dynamic_compact_normalization_f32_view(normalization, layout=layout)
+
+    def test_input_digest_has_a_handframed_golden_and_preserves_signed_zero(self):
+        tiny = {"seq_x": torch.zeros(1, 1, 1), "snap_x": torch.zeros(1, 1),
+                "ctx_cont": torch.zeros(1, 1), "ctx_cat": torch.zeros(1, 1, dtype=torch.int64),
+                "mtf": {lane: torch.zeros(1, 1, 1) for lane in reversed(self.lanes)}}
+        # Independent stdlib struct-packed nine-scalar little-endian hand stream.
+        expected = "db688a330cef890c36db8d38a8a995161e74b517347161799aab1185e8ba0cb4"
+        self.assertEqual(influence.dynamic_compact_input_sha256(tiny), expected)
+        tiny["ctx_cont"][0, 0] = -0.0
+        self.assertNotEqual(influence.dynamic_compact_input_sha256(tiny), expected)
+        tiny["ctx_cat"] = tiny["ctx_cat"].float()
+        with self.assertRaisesRegex(RuntimeError, "BIT_DIGEST_SHAPE"):
+            influence.dynamic_compact_input_sha256(tiny)
+
+    def test_mask_only_witness_order_observed_zero_and_parent_ties(self):
+        inputs, layout, normalization = self.fixture()
+        self.alias_observed(inputs, 1, False)
+        self.alias_observed(inputs, 0, True)
+        self.alias_observed(inputs, 2, True)  # Value0 is genuine; no value!=0 selection.
+        manifest = self.build(inputs, layout, normalization)
+        cases = self.indexed(manifest)
+        self.assertEqual(manifest["witness_order"], [1, 2, 0])
+        self.assertEqual(cases["seq.free"]["witness_row"], 1)
+        self.assertEqual(cases["alias.value"]["witness_row"], 2)
+        self.assertEqual(cases["alias.mask"]["kind"], "mask_drop")
+        self.assertEqual(cases["alias.value"]["status"], "valid")
+        tied = self.build(inputs, layout, normalization, times=(30, 10, 10))
+        self.assertEqual(self.indexed(tied)["seq.free"]["physical_parent_row"], 50)
+
+    def test_padding_never_repairs_missing_and_source_constant_is_distinct(self):
+        inputs, layout, normalization = self.fixture()
+        for row in range(3):
+            self.alias_observed(inputs, row, False)
+        self.alias_observed(inputs, 3, True, 8)  # Padding must never become witness4.
+        cases = self.indexed(self.build(inputs, layout, normalization))
+        for token in ("alias.value", "alias.mask"):
+            self.assertEqual(cases[token]["status"], "not_exercised_missing")
+            self.assertIsNone(cases[token]["witness_row"])
+            self.assertIsNone(cases[token]["input_sha256"])
+        self.assertEqual(cases["d1.constant"]["status"], "source_declared_constant")
+        self.assertEqual(cases["d1.constant"]["witness_row"], 1)
+
+    def test_invalid_recipe_gets_one_attempt_and_no_more_favorable_witness(self):
+        from unittest import mock
+        inputs, layout, normalization = self.fixture()
+        maximum = torch.finfo(torch.float32).max
+        inputs["seq_x"][1, -1, 0] = inputs["snap_x"][1, 0] = maximum
+        normalization["surfaces"]["signal"]["center"][0] = maximum
+        normalization["surfaces"]["signal"]["scale"][0] = maximum
+        original = influence.make_dynamic_compact_counterfactual
+        with mock.patch.object(influence, "make_dynamic_compact_counterfactual", wraps=original) as calls:
+            manifest = self.build(inputs, layout, normalization)
+        case = self.indexed(manifest)["seq.free"]
+        selected = [item for item in calls.call_args_list if item.kwargs["token"] == "seq.free"]
+        self.assertEqual(len(selected), 1)
+        self.assertEqual(selected[0].kwargs["witness_row"], 1)
+        self.assertEqual(case["status"], "invalid_counterfactual")
+        self.assertEqual(case["reason"], "replacement_not_finite_float32")
+        self.assertIsNone(case["input_sha256"])
+
+    def test_valid_case_bits_rebuild_enum_drop_and_family_using_existing_owner(self):
+        inputs, layout, normalization = self.fixture()
+        manifest = self.build(inputs, layout, normalization)
+        view = influence.dynamic_compact_normalization_f32_view(normalization, layout=layout)
+        cases = self.indexed(manifest)
+        for case in manifest["cases"]:
+            if case["status"] != "valid":
+                continue
+            with self.subTest(token=case["token"]):
+                made = influence.make_dynamic_compact_counterfactual(inputs, layout=layout, normalization=view,
+                    token=case["token"], witness_row=case["witness_row"], kind=case["kind"], time_index=case["time_index"])
+                self.assertEqual(influence.dynamic_compact_input_sha256(made["inputs"]), case["input_sha256"])
+        self.assertEqual(cases["m5.ordinal"]["kind"], "category")
+        enum = influence.make_dynamic_compact_counterfactual(inputs, layout=layout, normalization=view,
+            token="m5.ordinal", witness_row=1, kind="category")
+        self.assertEqual(float(enum["inputs"]["mtf"]["seq_m5"][0, -1, 3]), -1)
+        self.assertEqual(float(enum["inputs"]["mtf"]["seq_m5"][0, 0, 3]), 1)
+        self.assertEqual(cases["family.local"]["route"], "family_all_consumed_bars")
+        self.assertEqual(cases["m5.mask"]["kind"], "mask_drop")
+        self.assertEqual(cases["m5.mask"]["status"], "valid")
+
+    def test_manifest_is_serializable_deterministic_bounded_and_baseline_immutable(self):
+        import json
+        inputs, layout, normalization = self.fixture()
+        before = influence.dynamic_compact_input_sha256(inputs)
+        first = self.build(inputs, layout, normalization)
+        second = self.build(inputs, layout, normalization)
+        self.assertEqual(json.dumps(first, sort_keys=True, allow_nan=False),
+                         json.dumps(second, sort_keys=True, allow_nan=False))
+        self.assertEqual(influence.dynamic_compact_input_sha256(inputs), before)
+        self.assertEqual(first["inventory_label_count"], 13)
+        self.assertEqual(first["owner_counts"], layout["counts"])
+        self.assertEqual(sum(first["status_counts"].values()), 13)
+        self.assertEqual(first["valid_case_count"], first["status_counts"]["valid"])
+        self.assertEqual(first["budget"]["forward_calls"], 2 + (first["valid_case_count"] + 15) // 16)
+        self.assertFalse(first["execution_authorized"])
+        cases = self.indexed(first)
+        self.assertEqual(cases["seq.free"]["input_sha256"], cases["snap.free"]["input_sha256"])
+        self.assertTrue(first["physical_route_labels_are_not_independent_current_manifolds"])
+        self.assertIn("no separate historical value-attribution proof", first["history_scope"])
+        self.assertEqual(cases["seq.free"]["time_index"], None)
+        self.assertEqual(cases["seq.free"]["effective_time_index"], -1)
+
+    def test_malformed_identity_layout_and_normalizer_fail_closed(self):
+        inputs, layout, normalization = self.fixture()
+        for parents, times in (((1, 1, 2), (1, 2, 3)), ((1, True, 2), (1, 2, 3)), ((1, 2), (1, 2))):
+            with self.subTest(parents=parents):
+                with self.assertRaisesRegex(RuntimeError, "CASE_WITNESS_IDENTITY"):
+                    self.build(inputs, layout, normalization, parents=parents, times=times)
+        bad_layout = copy.deepcopy(layout)
+        bad_layout["numeric"][1]["token"] = bad_layout["numeric"][0]["token"]
+        with self.assertRaisesRegex(RuntimeError, "CASE_OWNER_INVENTORY"):
+            self.build(inputs, bad_layout, normalization)
+        bad_stats = copy.deepcopy(normalization)
+        bad_stats["surfaces"]["signal"]["field_names"] = tuple(reversed(bad_stats["surfaces"]["signal"]["field_names"]))
+        with self.assertRaisesRegex(RuntimeError, "NORMALIZATION_FIELD_ORDER"):
+            self.build(inputs, layout, bad_stats)
+
+    def test_family_history_observation_is_not_misreported_as_current_missing(self):
+        inputs, layout, normalization = self.fixture()
+        layout["families"][1]["source_indices"] = (1, 2)
+        m5 = inputs["mtf"]["seq_m5"]
+        m5[:, :, 1:3] = 0
+        m5[1, 0, 1:3] = torch.tensor([1.0, 7.0])
+        cases = self.indexed(self.build(inputs, layout, normalization))
+        self.assertEqual(cases["family.m5"]["witness_row"], 1)
+        self.assertEqual(cases["family.m5"]["status"], "valid")
+        self.assertEqual(cases["family.m5"]["route"], "family_all_consumed_bars")
+        self.assertEqual(cases["family.m5"]["replacement_recipe"]["eligibility_scope"],
+                         "all_consumed_family_coordinates")
+        self.assertEqual(cases["m5.value"]["status"], "not_exercised_missing")
+        self.assertEqual(cases["m5.mask"]["status"], "not_exercised_missing")

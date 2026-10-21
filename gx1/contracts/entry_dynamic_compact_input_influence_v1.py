@@ -615,3 +615,204 @@ def dynamic_compact_influence_budget(predeclared_cases, executed_cases):
             "gradient_forward_calls": 1, "parity_forward_calls": 1,
             "counterfactual_forward_calls": counterfactual, "forward_calls": total,
             "reverse_calls": REVERSE_CALLS, "execution_authorized": False}
+
+
+def _dynamic_compact_hash_tensor(digest, name, value):
+    import json
+    import torch
+    if not isinstance(value, torch.Tensor) or value.dtype not in (torch.float32, torch.int64):
+        _fail("BIT_DIGEST_DTYPE:" + name)
+    if not bool(torch.isfinite(value).all()):
+        _fail("BIT_DIGEST_NONFINITE:" + name)
+    array = value.detach().cpu().contiguous().numpy()
+    dtype = "<f4" if value.dtype == torch.float32 else "<i8"
+    raw = array.astype(dtype, copy=False).tobytes(order="C")
+    header = (json.dumps({"name": name, "dtype": dtype, "shape": list(value.shape)},
+                         sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    digest.update(len(header).to_bytes(8, "little"))
+    digest.update(header)
+    digest.update(len(raw).to_bytes(8, "little"))
+    digest.update(raw)
+
+
+def dynamic_compact_input_sha256(inputs):
+    """Frame fixed physical names, dtype, shape and exact little-endian input bits."""
+    import hashlib
+    import torch
+    flat = _flat_inputs(inputs)
+    digest = hashlib.sha256(b"gx1_dynamic_compact_input_bits_v1\n")
+    batch = None
+    for name, value in flat.items():
+        rank = 3 if name == "seq_x" or name in _MTF else 2
+        dtype = torch.int64 if name == "ctx_cat" else torch.float32
+        if (not isinstance(value, torch.Tensor) or value.ndim != rank or value.dtype != dtype
+                or min(value.shape) < 1 or batch is not None and value.shape[0] != batch):
+            _fail("BIT_DIGEST_SHAPE:" + name)
+        batch = value.shape[0]
+        _dynamic_compact_hash_tensor(digest, name, value)
+    return digest.hexdigest()
+
+
+def dynamic_compact_normalization_f32_view(normalization, *, layout):
+    """Clone the seven source-stat surfaces exactly as model float32 buffers."""
+    import torch
+    surfaces = normalization.get("surfaces") if isinstance(normalization, Mapping) else None
+    if not isinstance(surfaces, Mapping):
+        _fail("NORMALIZATION_SURFACES")
+    result = {"surfaces": {}}
+    for surface in ("seq_x", "ctx_cont", *_MTF):
+        key = "signal" if surface == "seq_x" else "mtf_" + surface[4:] if surface in _MTF else surface
+        spec = surfaces.get(key)
+        if (not isinstance(spec, Mapping)
+                or tuple(spec.get("field_names", ())) != tuple(layout["domains"][surface]["field_names"])):
+            _fail("NORMALIZATION_FIELD_ORDER:" + key)
+        center = torch.as_tensor(spec.get("center"), dtype=torch.float32).detach().cpu().clone()
+        scale = torch.as_tensor(spec.get("scale"), dtype=torch.float32).detach().cpu().clone()
+        if (center.ndim != 1 or scale.shape != center.shape or center.numel() != len(spec["field_names"])
+                or not bool(torch.isfinite(center).all() & torch.isfinite(scale).all() & (scale > 0).all())):
+            _fail("NORMALIZATION_STATS:" + key)
+        result["surfaces"][key] = {"field_names": tuple(spec["field_names"]), "center": center, "scale": scale}
+    return result
+
+
+def _dynamic_compact_normalization_sha256(view):
+    import hashlib
+    import json
+    digest = hashlib.sha256(b"gx1_dynamic_compact_normalization_f32_v1\n")
+    for key in ("signal", "ctx_cont", *("mtf_" + lane[4:] for lane in _MTF)):
+        spec = view["surfaces"][key]
+        fields = (json.dumps(list(spec["field_names"]), separators=(",", ":")) + "\n").encode("utf-8")
+        digest.update(len(fields).to_bytes(8, "little"))
+        digest.update(fields)
+        for suffix in ("center", "scale"):
+            _dynamic_compact_hash_tensor(digest, key + "." + suffix, spec[suffix])
+    return digest.hexdigest()
+
+
+def _dynamic_compact_case_source(owner, group, layout):
+    if group == "families":
+        return None, None, None, (), ()
+    alias = group == "aliases"
+    surface = "seq_x" if alias or owner["surface"] == "signal" else owner["surface"]
+    index = owner["signal_index"] if alias else owner["source_index"]
+    spec = layout["domains"][surface]
+    own = tuple(mask for value, mask in spec["masking_pairs"] if value == index)
+    dependents = tuple(value for value, mask in spec["masking_pairs"] if mask == index)
+    domain = ("source_constant" if index in spec["source_constants"] else
+              "observation_mask" if dependents else "source_enum" if index in spec["enum_domains"] else
+              "source_binary" if index in spec["binary_indices"] else "finite_asinh_input")
+    return surface, index, domain, own, dependents
+
+
+def _dynamic_compact_case_eligible(flat, layout, owner, group, row):
+    import torch
+    def coordinate(surface, index, *, all_consumed=False):
+        spec = layout["domains"][surface]
+        array = flat[surface]
+        values = (array[row] if all_consumed else array[row, -1:]) if array.ndim == 3 else array[row:row + 1]
+        own = [mask for source, mask in spec["masking_pairs"] if source == index]
+        eligible = values.new_ones(values.shape[0], dtype=torch.bool)
+        for mask in own:
+            eligible &= values[:, mask] == 1
+        # A mask-drop may not turn absence into a synthetic observation.
+        if any(mask == index for _, mask in spec["masking_pairs"]):
+            eligible &= values[:, index] == 1
+        return bool(eligible.any())
+    if group == "families":
+        if owner["surface"] == "local":
+            routes = (("seq_x", owner["signal_indices"]), ("ctx_cont", owner["ctx_cont_indices"]),
+                      ("ctx_cat", owner["ctx_cat_indices"]))
+        else:
+            routes = ((owner["surface"], owner["source_indices"]),)
+        return any(coordinate(surface, index, all_consumed=True) for surface, indices in routes for index in indices)
+    surface, index, domain, _, _ = _dynamic_compact_case_source(owner, group, layout)
+    return domain == "source_constant" or coordinate(surface, index)
+
+
+def build_dynamic_compact_case_manifest(inputs, *, layout, normalization, parent_rows, decision_times_ns, genuine_rows=3):
+    """Freeze current legal cases using input masks only; construct no model or fit.
+
+    The compiled production layout supplies 3446 physical owner labels. Counts
+    are also checked against the passed layout so small source-shaped hand
+    fixtures can exercise the same algorithm without a full native constructor.
+    Caller admission still requires the exact source-compiled production layout.
+    """
+    import hashlib
+    import json
+    flat = require_dynamic_compact_inputs(inputs, layout=layout)
+    if (type(genuine_rows) is not int or not 1 <= genuine_rows <= flat["seq_x"].shape[0]
+            or not isinstance(parent_rows, (tuple, list)) or not isinstance(decision_times_ns, (tuple, list))
+            or len(parent_rows) != genuine_rows or len(decision_times_ns) != genuine_rows
+            or any(type(value) is not int or value < 0 for value in parent_rows)
+            or any(type(value) is not int for value in decision_times_ns)
+            or len(set(parent_rows)) != genuine_rows):
+        _fail("CASE_WITNESS_IDENTITY")
+    groups = ("numeric", "aliases", "categorical", "families")
+    counts = {key: len(layout[key]) for key in groups}
+    tokens = [owner["token"] for key in groups for owner in layout[key]]
+    if (counts != dict(layout["counts"]) or len(tokens) != len(set(tokens))
+            or any(not isinstance(token, str) for token in tokens) or not 0 < len(tokens) <= MAX_CASES):
+        _fail("CASE_OWNER_INVENTORY")
+    view = dynamic_compact_normalization_f32_view(normalization, layout=layout)
+    norm_sha = _dynamic_compact_normalization_sha256(view)
+    encoded_layout = (json.dumps(layout, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode()
+    order = sorted(range(genuine_rows), key=lambda row: (decision_times_ns[row], parent_rows[row]))
+    cases = []
+    statuses = {name: 0 for name in ("valid", "not_exercised_missing", "source_declared_constant", "invalid_counterfactual")}
+    for group in groups:
+        for owner in layout[group]:
+            surface, index, domain, own, dependent = _dynamic_compact_case_source(owner, group, layout)
+            kind = "family" if group == "families" else "mask_drop" if dependent else "category" if domain == "source_enum" else "value"
+            recipe = ("zero_compiled_family_with_transitive_masks_and_constants" if kind == "family" else
+                      "source_observed_mask_drop_1_to_0_and_dependent_storage_zero" if kind == "mask_drop" else
+                      "next_source_declared_enum_member" if domain == "source_enum" else
+                      "source_binary_1_minus_current" if domain == "source_binary" else
+                      "source_declared_constant_no_intervention" if domain == "source_constant" else
+                      "frozen_F32_center_else_Python_sum_center_plus_scale_then_F32")
+            row = next((row for row in order if _dynamic_compact_case_eligible(flat, layout, owner, group, row)), None)
+            item = {"ordinal": len(cases), "owner_group": group, "token": owner["token"], "kind": kind,
+                    "status": "not_exercised_missing", "reason": "no_genuine_current_eligible_witness",
+                    "witness_row": row, "physical_parent_row": None if row is None else parent_rows[row],
+                    "decision_time_ns": None if row is None else decision_times_ns[row],
+                    "route": "current", "time_index": None, "effective_time_index": None,
+                    "source_surface": surface, "source_index": index,
+                    "source_domain_kind": "family_ablation" if group == "families" else domain,
+                    "own_observation_index": own[0] if own else None, "own_observation_indices": list(own),
+                    "changed_coordinates": [], "input_sha256": None,
+                    "replacement_recipe": {"name": recipe, "normalization_f32_sha256": norm_sha,
+                        "source_enum_domain": [] if surface is None else list(layout["domains"][surface]["enum_domains"].get(index, ())),
+                        "source_constant": None if surface is None else layout["domains"][surface]["source_constants"].get(index),
+                        "selection_uses_only_source_masks_and_fixed_time_parent_order": True,
+                        "eligibility_scope": "all_consumed_family_coordinates" if group == "families" else "current_coordinate",
+                        "retry_allowed": False}}
+            if row is not None:
+                # Exactly one attempt after mask-only selection. Invalid does
+                # not trigger a different witness, recipe or repaired domain.
+                made = make_dynamic_compact_counterfactual(inputs, layout=layout, token=owner["token"],
+                    witness_row=row, kind=kind, normalization=view, time_index=None)
+                if made["status"] not in statuses:
+                    _fail("CASE_STATUS")
+                item.update(status=made["status"], reason=made.get("reason"), route=made["route"],
+                            effective_time_index=made["time_index"],
+                            changed_coordinates=made["changed_coordinates"])
+                if made["status"] == "valid":
+                    item["input_sha256"] = dynamic_compact_input_sha256(made["inputs"])
+                del made
+            statuses[item["status"]] += 1
+            # Normalize tuple descriptors into plain JSON values, retaining no tensors.
+            cases.append(json.loads(json.dumps(item, sort_keys=True, allow_nan=False)))
+    valid = statuses["valid"]
+    result = {"schema_version": "gx1_dynamic_compact_case_manifest_v1",
+        "input_sha256": dynamic_compact_input_sha256(inputs), "normalization_f32_sha256": norm_sha,
+        "layout_sha256": hashlib.sha256(encoded_layout).hexdigest(), "genuine_rows": genuine_rows,
+        "parent_rows": list(parent_rows), "decision_times_ns": list(decision_times_ns), "witness_order": order,
+        "owner_counts": counts, "inventory_label_count": len(cases), "valid_case_count": valid,
+        "status_counts": statuses, "cases": cases,
+        "budget": dynamic_compact_influence_budget(valid, valid),
+        "max_inventory_budget": dynamic_compact_influence_budget(len(cases), len(cases)),
+        "skip_rule": "execute_every_valid_predeclared_case",
+        "history_scope": "Current numeric/alias finite cases only. Local enum/family cases explicitly change their declared histories; no separate historical value-attribution proof.",
+        "physical_route_labels_are_not_independent_current_manifolds": True,
+        "selection_uses_predictions_targets_or_gradients": False, "execution_authorized": False}
+    json.dumps(result, sort_keys=True, allow_nan=False)
+    return result

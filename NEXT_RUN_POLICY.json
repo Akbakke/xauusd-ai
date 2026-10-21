@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T08:43:14.518488+00:00",
-  "status": "141_INPUT_PACKET_COMPLETE_EXACT_CASE_PLAN_AND_ALLOWLISTED_ADAPTER_PENDING",
+  "observed_utc": "2026-10-21T09:16:15.069628+00:00",
+  "status": "142_CPU_SOURCE_AND_CASE_MANIFEST_AUTHORIZED_PENDING_CLEAN_BINDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Build the exact CPU-only 3446-owner counterfactual manifest from the immutable 141 packet and frozen 055 contract without model or source-data reads. Add the smallest explicit dynamic input audit mode before the existing allowlisted technical validator legacy parser; preserve its GPU guards and leave legacy VAL/Exit path closed. Bind 115 ONLINE optimizer0 state and fresh hardware before the bounded actual model check. No launch or training is admitted yet.",
+  "next_action": "Commit and bind clean source, then run the single capped 4G CPU operation: 65 focused source tests followed by fixed 3446-owner case manifest construction from the 141 packet. No native model, source dataset, targets, optimizer or training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "DYNAMIC_INPUT_EXACT_CASE_PLAN_AND_EXISTING_VALIDATOR_ADAPTER_PREPARATION",
+    "current_activity": "142_CPU_SOURCE_AND_CASE_MANIFEST_AUTHORIZED_PENDING_CLEAN_BINDING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The current allowlisted technical validator only exposes legacy VAL/Exit objectives and an attended ONLINE/TARGET pair. The approved dynamic input influence design needs an explicit input-only mode plus exact cases before a guarded model run.",
+    "current_blocker": "The new case planner and isolated native adapter require focused source qualification and an actual fixed case manifest. Native model execution remains closed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Build the exact CPU-only 3446-owner counterfactual manifest from the immutable 141 packet and frozen 055 contract without model or source-data reads. Add the smallest explicit dynamic input audit mode before the existing allowlisted technical validator legacy parser; preserve its GPU guards and leave legacy VAL/Exit path closed. Bind 115 ONLINE optimizer0 state and fresh hardware before the bounded actual model check. No launch or training is admitted yet.",
+    "next_action": "Commit and bind clean source, then run the single capped 4G CPU operation: 65 focused source tests followed by fixed 3446-owner case manifest construction from the 141 packet. No native model, source dataset, targets, optimizer or training.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -21064,7 +21064,7 @@
     "independent_actual_peer_review_pending": false
   },
   "dynamic_compact_input_influence_preparation": {
-    "status": "MEASURED_SOURCE_INTERFACE_GAP_NOT_RUNTIME_ADMITTED",
+    "status": "SOURCE_IMPLEMENTED_NOT_RUNTIME_QUALIFIED",
     "input_packet": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_OUTPUT/INPUT_PACKET.npz",
       "sha256": "6c287b8fbd857a233cd3e3019dea68a1e445099651c942f8cd82fecf8a8ecbe0"
@@ -21085,7 +21085,7 @@
     "frozen_normalization_role": "055 original contract with explicit model-buffer F32 center/scale view for deterministic counterfactual recipe; no fit or replacement of the original input normalization.",
     "history_scope": "Report all consumed historical VJP coordinates with own masks separately; current counterfactual cases do not establish every historical-position finite-difference response.",
     "existing_allowlisted_cuda_module": "gx1.scripts.validate_entry_model_native_technical_checkpoint_v1",
-    "adapter_implemented": false,
+    "adapter_implemented": true,
     "adapter_entry": "Explicit dynamic compact input influence plan and SHA mode before legacy required-argument parser. Reuse existing read-only checkpoint, constructor, normalization and forward owners.",
     "existing_capped_route": "--class producer --cuda-producer; existing signed hardware guards, power/thermal/VRAM limits unchanged",
     "new_launcher_or_hardware_bypass_allowed": false,
@@ -21098,6 +21098,59 @@
     "native_training_admitted": false,
     "execution_authorized": false,
     "test_data_used": false,
-    "exit_evaluation": false
+    "exit_evaluation": false,
+    "native_executor": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_compact_input_influence_v1.py",
+      "sha256": "8b71ef2348cbc5b31b1a09aebc13b9a0990578881b77d268046322da39a28c07"
+    },
+    "postcommit_execution_binding_required": true,
+    "source_head_in_plan_or_policy_forbidden_to_avoid_hash_cycle": true
+  },
+  "dynamic_compact_case_manifest_142": {
+    "status": "AUTHORIZED_ONE_CPU_SOURCE_AND_EXACT_CASE_MANIFEST",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/CASE_MANIFEST_PLAN_POSTCOMMIT_BINDING.json",
+      "sha256": "2c766fdeb876d3441722257b00e345cc45ed519c3f73461d3f611a9ab92b2d9c"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/run_case_manifest.py",
+      "sha256": "b77201a98956179f96588cab60599b6b518bfa7dc30c77fa1cbedcd2c2d2282e"
+    },
+    "input_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/INPUT_SCOPE.json",
+      "sha256": "215fe83faa535dfaa62cacefdeda4a3d55997b5c7ed4e00036ed3d3521f1ffee"
+    },
+    "source_tests": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/SOURCE_TESTS_POSTCOMMIT_BINDING.json",
+      "sha256": "488127f1fb3315014f2a398e0ba649408da4fc43224ac4a23416459fdd92f09f"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/DESIGN_POSTCOMMIT_BINDING.json",
+      "sha256": "83e509d50f14215ea9f2adc9c1cb612667bc241a835c3c7897c0b34cad003f88"
+    },
+    "preexecution_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/PREEXECUTION_REVIEW.json",
+      "sha256": "fce7b81ea112b5c1db5de433c01ce636f42acf665bf98944dd555347e0d70115"
+    },
+    "peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/PREEXECUTION_PEER_REVIEW.json",
+      "sha256": "5d1fd8c4f4931938ef96d78408482b1b56b198ab87bd1833e9edde0d0a967489"
+    },
+    "expected_source_test_count": 65,
+    "maximum_case_owner_labels": 3446,
+    "maximum_future_model_forwards": 218,
+    "source_OR_case_PASS_does_not_admit_native_execution": true,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }
