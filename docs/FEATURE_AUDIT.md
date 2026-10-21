@@ -541,3 +541,15 @@ Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127
 0bd57598d5409f72bf05edc892e311bc978474c84e1d9ec67227fb619d172465.
 Øvrige230cachekolonner perTF (128kompaktaktive), råevent→M1 og andre lokale
 formler er utenfor127. Ingen individuell nytte-, Entry- eller økonomipåstand.
+
+Neste avgrensede referanse er128s17trend/state/kryss/alderfelt på alle femTF,
+85kompaktaktive outputs i cache94:111.127s fullhistoriske EMA20/50/200 og
+resampling gjenbrukes; BB/ADX beregnes ikke på nytt. Verdier/masker er diskrete
+og sammenlignes eksakt. Strictcross krever gyldig nåværende og forrige rad;
+likhet er falsebullstate, og rawage følger booltilstanden uten metning eller
+sesjons-/gapreset. Predeklarerte signgrenser skal avvise uavklart fortegn før
+cachedata avgjør noe. Eksisterende trendeiertest er owner-paritet, ingen fysisk
+uavhengig85feltPASS.128/REMAINING_MTF_SCOPE.json fordeler den øvrige230-
+kolonneflaten i13disjunkte eksisterende formelgrupper med128aktive/102parkerte.
+DESIGN_CACHE_COLUMN_CLARIFICATION.json presiserer arvet127-kolonnetekst og
+111993212logiske valgte17kolonnebyte; samme28guardede hele filer brukes.

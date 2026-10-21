@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T01:02:34.523803+00:00",
-  "status": "127_TECHNICAL_115_NUMERIC_PASS_REMAINING_ACTIVE_FORMULA_SCOPE_PENDING",
+  "observed_utc": "2026-10-21T01:15:16.139836+00:00",
+  "status": "128_TREND_EVENT_SOURCE_QUALIFICATION_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Useexisting060/001formulaandactiveprofileinventories toidentifyremaining230cachecolumnsperTF/128compactactiveperTF andtheirqualifiedsharedowners;declareonesmallnextindependentreferencescopebeforecode/datajob.127115technicaloutputsand126allGCprojectionarecompleteandreused. RawMBP-to-M1andotherlocalformulasremainexplicitgaps. No rawTBrescan/model/baseline/nativeepoch/refit/Exit/TEST/broker.",
+  "next_action": "Run128onesourcequalification:18newtrendstate/cross/agehandcases+oneexistingtrendowner-paritynode. Reuse263oldfoundationcasesafter100helperAST/prefixpreservation. Physical85outputcomparisonunclaimed/closed. No BB/ADXrecompute/MBP/model/nativeepoch/refit/Exit/TEST/broker.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "127_COMPLETE_REMAINING_ACTIVE_FORMULA_SCOPE_REVIEW",
+    "current_activity": "128_TREND_EVENT_SOURCE_QUALIFICATION_BOUND",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "127115technicaloutputsand126GCinputchainpassed;remainingactiveformulas/rawMBP-to-M1/individuallearneduse/Entryqualitynotyetqualified.",
+    "current_blocker": "128sourcepeerPASS;18newcasesandactual85outputsnotyetqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9465,7 +9465,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "127_TECHNICAL_115_NUMERIC_PASS_126_GC_INPUT_PASS_117_MECHANICS_PASS",
+      "status": "128_TREND_EVENT_PENDING_127_TECHNICAL_PASS_126_GC_INPUT_PASS",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -15743,7 +15743,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Useexisting060/001formulaandactiveprofileinventories toidentifyremaining230cachecolumnsperTF/128compactactiveperTF andtheirqualifiedsharedowners;declareonesmallnextindependentreferencescopebeforecode/datajob.127115technicaloutputsand126allGCprojectionarecompleteandreused. RawMBP-to-M1andotherlocalformulasremainexplicitgaps. No rawTBrescan/model/baseline/nativeepoch/refit/Exit/TEST/broker.",
+      "next_action": "Run128onesourcequalification:18newtrendstate/cross/agehandcases+oneexistingtrendowner-paritynode. Reuse263oldfoundationcasesafter100helperAST/prefixpreservation. Physical85outputcomparisonunclaimed/closed. No BB/ADXrecompute/MBP/model/nativeepoch/refit/Exit/TEST/broker.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 1,
       "full_native_epoch_request_fulfilled": true,
@@ -16599,6 +16599,47 @@
       "continuous_roundoff_qualified_outputs": 105,
       "independent_full_history_cache_numeric_reference_proven": true,
       "individual_learned_use_proven": false
+    },
+    "trend_event_numeric_reference_128": {
+      "status": "SOURCE_QUALIFICATION_PENDING",
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/PLAN.json",
+        "sha256": "5c20719c8253a74a661f848e86f06e41a1ba03c764563720d1a658c2abe88410"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/DESIGN.json",
+        "sha256": "3a9121b7809d2cea27e68a59631c28b532ea24c51bd1136e630624d75ceea21d"
+      },
+      "error_spec": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/ERROR_SPEC.json",
+        "sha256": "4a8438c881d82156042d15ad6995170ddbfc6c8ada433ed6d82e95a20a3078d7"
+      },
+      "remaining_scope": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/REMAINING_MTF_SCOPE.json",
+        "sha256": "fcbc3731d084ef097e44ddc3fb6732100692964f4f3403e0e8a606bc16a9879a"
+      },
+      "physical_audit_timeout_seconds": 1800,
+      "declared_formulas": 17,
+      "declared_output_fields": 85,
+      "compact_active_output_fields": 85,
+      "parked_output_fields": 0,
+      "native_production_source_changes_allowed": false,
+      "training_enabled": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "native_training_admitted": false,
+      "test_data_used": false,
+      "normalization_fit_enabled": false,
+      "exit_evaluation": false,
+      "broker_access_allowed": false,
+      "design_cache_column_clarification": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/DESIGN_CACHE_COLUMN_CLARIFICATION.json",
+        "sha256": "528be57ecf37a5c1575d11b618f173209cd59d6c8bd7c0657eb91e049f196a52"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19824,5 +19865,28 @@
     "native_training_admitted": false,
     "completed_invocations": 1,
     "relaunch_allowed": false
+  },
+  "trend_event_numeric_source_128": {
+    "status": "SOURCE_QUALIFICATION_BOUND",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "b6b96468ad6bd8259b5da550e85f7b53572b5e364ca2fd224955bee3b68276ac"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/run_focused_source_qualification.py",
+      "sha256": "e2c4a23d6d578d1863b6591ab54822ba2ad02eee5cd8720980482d2c759bfc9c"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

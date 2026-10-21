@@ -3539,15 +3539,102 @@ def _technical_npy_header(path,shape,dtype):
         raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_NPY_HEADER')
 
 
-def run_technical_numeric(binding_path):
-    prefix='TECHNICAL_NUMERIC';root=Path('/home/andre2/GX1_RUNS')/TECHNICAL_NUMERIC_PLAN_ID
+TREND_EVENT_NUMERIC_PLAN_ID='NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128'
+TREND_EVENT_NUMERIC_POLICY_KEY='trend_event_numeric_reference_128'
+TREND_EVENT_NUMERIC_FIELDS=('ema20_50_bull_state','ema20_50_cross_up','ema20_50_cross_down','ema20_50_state_age_bars',
+    'ema50_200_bull_state','ema50_200_cross_up','ema50_200_cross_down','ema50_200_state_age_bars',
+    'price_x_ema20_cross_up','price_x_ema20_cross_down','price_x_ema50_cross_up','price_x_ema50_cross_down',
+    'price_x_ema200_cross_up','price_x_ema200_cross_down','price_vs_ema20_state_age_bars',
+    'price_vs_ema50_state_age_bars','price_vs_ema200_state_age_bars')
+
+
+def reference_trend_events_from_spread(spread,radius):
+    """Certify three-way signs before independent closed-row events and raw ages."""
+    x=np.asarray(spread);error=np.asarray(radius)
+    if (x.dtype!=np.dtype('float64') or error.dtype!=np.dtype('float64') or x.ndim!=1
+            or error.shape!=x.shape or len(x)>=2**24 or np.isinf(x).any() or np.isinf(error).any()
+            or not np.array_equal(np.isnan(x),np.isnan(error)) or np.any(error[np.isfinite(error)]<0)):
+        raise RuntimeError('TREND_EVENT_NUMERIC_SPREAD_SCHEMA')
+    valid=np.isfinite(x);rows=np.flatnonzero(valid)
+    state=np.full(len(x),np.nan);up=state.copy();down=state.copy();age=state.copy()
+    if not len(rows):return state,up,down,age
+    first=int(rows[0])
+    if not valid[first:].all():raise RuntimeError('TREND_EVENT_NUMERIC_NAN_SUFFIX')
+    center=x[first:];e=error[first:]
+    # Frozen ERROR_SPEC128 requires three-way certification even if a
+    # particular Boolean conjunction alone could admit a weaker proof.
+    with np.errstate(over='ignore',invalid='ignore'):
+        lower=np.where(e==0.,center,np.nextafter(center-e,-np.inf))
+        upper=np.where(e==0.,center,np.nextafter(center+e,np.inf))
+    certified=(lower>0.)|(upper<0.)|((center==0.)&(e==0.))
+    certified &= np.isfinite(lower)&np.isfinite(upper)
+    if not certified.all():
+        local=int(np.flatnonzero(~certified)[0]);row=first+local
+        raise RuntimeError('TREND_EVENT_BRANCH_AMBIGUOUS:row='+str(row)+':center='+repr(float(center[local]))
+            +':radius='+repr(float(e[local]))+':interval='+repr((float(lower[local]),float(upper[local]))))
+    positive=center>0.;state[first:]=positive.astype(np.float64)
+    if len(center)>1:
+        up[first+1:]=((center[1:]>0.)&(center[:-1]<=0.)).astype(np.float64)
+        down[first+1:]=((center[1:]<0.)&(center[:-1]>=0.)).astype(np.float64)
+    # Independent observed-row run starts; no calendar/session reset.
+    positions=np.arange(len(center),dtype=np.int64);changed=np.ones(len(center),dtype=bool)
+    changed[1:]=positive[1:]!=positive[:-1]
+    starts=np.maximum.accumulate(np.where(changed,positions,0))
+    age[first:]=(positions-starts).astype(np.float64)
+    return state,up,down,age
+
+
+def reference_trend_event_block(ohlcv):
+    """Seventeen independent discrete EMA events on one full historical TF axis."""
+    names=('bar_start_ns','open','high','low','close','volume')
+    if set(ohlcv)!=set(names):raise RuntimeError('TREND_EVENT_NUMERIC_SOURCE_SCHEMA')
+    clock=_projection_integer_clock(ohlcv['bar_start_ns'],'TREND_EVENT_NUMERIC_SOURCE_CLOCK')
+    if len(clock)>=2**24:raise RuntimeError('TREND_EVENT_NUMERIC_AGE_STORAGE')
+    for name in names[1:]:
+        a=np.asarray(ohlcv[name]);dtype=np.dtype('int64') if name=='volume' else np.dtype('float64')
+        if a.dtype!=dtype or a.shape!=clock.shape or not np.isfinite(a).all() or np.any(a<=0):
+            raise RuntimeError('TREND_EVENT_NUMERIC_SOURCE_SCHEMA')
+    high,low,close,open_=(ohlcv[key] for key in ('high','low','close','open'))
+    if np.any(high<np.maximum(close,open_)) or np.any(low>np.minimum(close,open_)) or np.any(high<low):
+        raise RuntimeError('TREND_EVENT_NUMERIC_SOURCE_SCHEMA')
+    emas={span:reference_technical_ema(close,span) for span in (20,50,200)}
+    out={}
+    def events(a,b,ea,eb,label):
+        spread,radius=_technical_sub(a,b,ea,eb)
+        try:return reference_trend_events_from_spread(spread,radius)
+        except RuntimeError as exc:raise RuntimeError(str(exc)+':field='+label) from exc
+    for fast,slow in ((20,50),(50,200)):
+        state,up,down,age=events(emas[fast][0],emas[slow][0],emas[fast][1],emas[slow][1],f'ema{fast}_{slow}')
+        base=f'ema{fast}_{slow}_'
+        out[base+'bull_state']=state;out[base+'cross_up']=up;out[base+'cross_down']=down;out[base+'state_age_bars']=age
+    for span in (20,50,200):
+        _,up,down,age=events(close,emas[span][0],0.,emas[span][1],f'price_x_ema{span}')
+        out[f'price_x_ema{span}_cross_up']=up;out[f'price_x_ema{span}_cross_down']=down
+        out[f'price_vs_ema{span}_state_age_bars']=age
+    out={name:out[name] for name in TREND_EVENT_NUMERIC_FIELDS}
+    bounds={name:np.where(np.isfinite(value),0.,np.nan) for name,value in out.items()}
+    first={name:int(np.flatnonzero(np.isfinite(value))[0]) if np.isfinite(value).any() else None for name,value in out.items()}
+    return out,bounds,{'source_rows':len(clock),'first_valid_rows':first,'EMA_spans':[20,50,200],
+        'full_history':True,'gap_or_session_reset':False,'three_way_sign_certification':True,
+        'ambiguous_branches':0,'BB_or_ADX_or_other_technical_formulas_recomputed':False}
+
+
+def run_technical_numeric(binding_path,*,trend_events=False):
+    prefix='TREND_EVENT_NUMERIC' if trend_events else 'TECHNICAL_NUMERIC'
+    plan_id=TREND_EVENT_NUMERIC_PLAN_ID if trend_events else TECHNICAL_NUMERIC_PLAN_ID
+    policy_key=TREND_EVENT_NUMERIC_POLICY_KEY if trend_events else TECHNICAL_NUMERIC_POLICY_KEY
+    schema='gx1_trend_event_numeric_audit_plan_v1' if trend_events else 'gx1_technical_numeric_audit_plan_v1'
+    fields=TREND_EVENT_NUMERIC_FIELDS if trend_events else TECHNICAL_NUMERIC_FIELDS
+    columns=tuple(range(94,111)) if trend_events else tuple(range(23))
+    active_count=17 if trend_events else 11
+    root=Path('/home/andre2/GX1_RUNS')/plan_id
     if binding_path!=root/(prefix+'_EXECUTION_BINDING.json'):raise RuntimeError(prefix+'_BINDING_PATH')
     io.require_regular_file(binding_path,prefix+'_BINDING');binding=io.read_json(binding_path);plan_path=root/'PLAN.json'
     io.verify_digest(plan_path,binding['plan_sha256'],prefix+'_PLAN');plan=io.read_json(plan_path)
     io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],prefix+'_POLICY')
-    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work'][TECHNICAL_NUMERIC_POLICY_KEY]
-    if (plan['schema_version']!='gx1_technical_numeric_audit_plan_v1' or plan['plan_id']!=TECHNICAL_NUMERIC_PLAN_ID
-            or plan['run_root']!=str(root) or plan['policy_key']!=TECHNICAL_NUMERIC_POLICY_KEY or plan['max_invocations']!=1
+    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work'][policy_key]
+    if (plan['schema_version']!=schema or plan['plan_id']!=plan_id
+            or plan['run_root']!=str(root) or plan['policy_key']!=policy_key or plan['max_invocations']!=1
             or gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0
             or gate['execution_authorized'] is not False or gate['relaunch_allowed'] is not False
             or gate['plan']!={'path':str(plan_path),'sha256':binding['plan_sha256']}
@@ -3570,14 +3657,30 @@ def run_technical_numeric(binding_path):
     def metadata(ref):
         path=verified(ref,prefix+'_METADATA');metadata_sha[str(path)]=ref['sha256'];return io.read_json(path)
     design=metadata(plan['design']);spec=metadata(plan['error_spec'])
-    if (design['run_id']!=TECHNICAL_NUMERIC_PLAN_ID or spec['design']!=plan['design']
+    if (design['run_id']!=plan_id or spec['design']!=plan['design']
             or spec['frozen_before_any_cached_numeric_comparison'] is not True or design['references']!=plan['references']
-            or tuple(design['audited_fields'])!=TECHNICAL_NUMERIC_FIELDS):raise RuntimeError(prefix+'_FROZEN_ERROR_SPEC')
+            or tuple(design['audited_fields'])!=fields):raise RuntimeError(prefix+'_FROZEN_ERROR_SPEC')
+    if trend_events:
+        inherited=metadata(spec['inherited_127_arithmetic_spec'])
+        clarification=metadata(gate['design_cache_column_clarification'])
+        if (inherited['frozen_before_any_cached_numeric_comparison'] is not True or clarification['design']!=plan['design']
+                or tuple(clarification['cache_column_indices'])!=columns or tuple(clarification['audited_fields'])!=fields
+                or clarification['bound_whole_data_files']!=28 or clarification['bound_whole_payload_bytes']!=design['known_payload_bytes']['data_total']
+                or clarification['logical_17selected_feature_bytes']!=sum(design['expected_cache_rows'].values())*17*4):
+            raise RuntimeError(prefix+'_INHERITED_SPEC_OR_COLUMN_CLARIFICATION')
     seal_stamp=pd.Timestamp(plan['TEST_seal_utc'])
     from gx1.contracts.gc_source_disposition_v1 import WINDOW_END_NS
     if seal_stamp.tzinfo is None or seal_stamp.value!=WINDOW_END_NS:raise RuntimeError(prefix+'_TEST_SEAL')
     seal=seal_stamp.value;refs=plan['references'];cache=metadata(refs['cache_manifest']);prebuilt=metadata(refs['prebuilt_manifest'])
     native=metadata(refs['native_m5_manifest']);profile=metadata(refs['compact_profile_proposal']);previous=metadata(refs['previous_native_context_review'])
+    if trend_events:
+        prior=metadata(refs['previous_technical_numeric_review'])
+        if (prior['status']!='PASS_SCOPED_115_TECHNICAL_OUTPUTS_ALL5TF' or prior['source_unchanged'] is not True
+                or prior['test_data_used'] is not False or prior['qualified_outputs']!=115
+                or prior['error_spec']!=spec['inherited_127_arithmetic_spec']):
+            raise RuntimeError(prefix+'_PRIMITIVE_REUSE')
+        if tuple(design['cache_column_indices'])!=columns or tuple(cache['feature_names'][j] for j in columns)!=fields:
+            raise RuntimeError(prefix+'_CACHE_FIELD_ORDER')
     runtime=design['runtime_contract']
     for key in ('metadata','window_kernel'):
         path=verified(runtime[key],prefix+'_RUNTIME');runtime_files[str(path)]={'sha256':runtime[key]['sha256'],'bytes':path.stat().st_size}
@@ -3652,22 +3755,28 @@ def run_technical_numeric(binding_path):
     if (decoded!=native['row_count'] or decoded!=design['source_contract']['native_rows']
             or int(m5['bar_start_ns'][0])!=pd.Timestamp(design['source_contract']['native_first_utc']).value):
         raise RuntimeError(prefix+'_FULL_HISTORY_ORIGIN')
-    active={tf:set(profile['active_execution']['per_timeframe_fields'][tf])&set(TECHNICAL_NUMERIC_FIELDS) for tf in design['timeframes']}
-    if any(len(fields)!=11 for fields in active.values()):raise RuntimeError(prefix+'_COMPACT_55_SCOPE')
+    active={tf:set(profile['active_execution']['per_timeframe_fields'][tf])&set(fields) for tf in design['timeframes']}
+    if any(len(names)!=active_count for names in active.values()):
+        raise RuntimeError(prefix+('_COMPACT_85_SCOPE' if trend_events else '_COMPACT_55_SCOPE'))
     reports={};helper_reports={};selected_rows={}
     for tf in design['timeframes']:
-        raw=native_resample_calendar_frame(m5,tf);reference,bounds,helper=reference_technical_block(raw)
+        raw=native_resample_calendar_frame(m5,tf)
+        reference,bounds,helper=reference_trend_event_block(raw) if trend_events else reference_technical_block(raw)
         clock=timestamps[tf];positions=np.searchsorted(raw['bar_start_ns'],clock)
         if (np.any(positions>=len(raw['bar_start_ns'])) or not np.array_equal(raw['bar_start_ns'][positions],clock)
                 or not np.array_equal(raw['bar_start_ns'][(raw['bar_start_ns']>=clock[0])&(raw['bar_start_ns']<=clock[-1])],clock)):
             raise RuntimeError(prefix+'_EXACT_CACHE_TIMESTAMP_MAPPING:'+tf)
         info=cache['tfs'][tf];matrix=np.load(cache_root/info['feats_npy'],mmap_mode='r',allow_pickle=False)
-        target={name:np.asarray(matrix[:,j]) for j,name in enumerate(TECHNICAL_NUMERIC_FIELDS)}
+        target={name:np.asarray(matrix[:,j]) for name,j in zip(fields,columns)}
         ref={name:value[positions] for name,value in reference.items()};radii={name:value[positions] for name,value in bounds.items()}
-        report=compare_technical_reference(ref,target,radii)
+        report=(compare_technical_reference(ref,target,radii,discrete_fields=fields) if trend_events
+            else compare_technical_reference(ref,target,radii))
         for name,stat in report.items():
             if not stat['numeric_reference_qualified']:raise RuntimeError(prefix+'_ACTIVE_LIBRARY_FIELD_UNOBSERVED:'+tf+':'+name)
             stat['compact_profile_active']=name in active[tf]
+            if trend_events:
+                stat['positive_reference_values']=int(np.sum(ref[name]>0.))
+                stat['zero_reference_values']=int(np.sum(ref[name]==0.))
         reports[tf]=report;helper_reports[tf]=helper;selected_rows[tf]=len(clock)
         del raw,reference,bounds,ref,radii,matrix,target
     for path,before in identities.items():
@@ -3678,17 +3787,26 @@ def run_technical_numeric(binding_path):
     io.verify_digest(plan_path,binding['plan_sha256'],prefix+'_POST_PLAN');io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],prefix+'_POST_POLICY')
     if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):
         raise RuntimeError(prefix+'_POST_SOURCE_CHANGED')
-    result={'schema_version':'gx1_technical_numeric_result_v1','status':'COMPLETE_SCOPED_23_TECHNICAL_FORMULAS_ALL5TF',
+    result={'schema_version':'gx1_trend_event_numeric_result_v1' if trend_events else 'gx1_technical_numeric_result_v1',
+        'status':'COMPLETE_SCOPED_17_TREND_EVENT_FORMULAS_ALL5TF' if trend_events else 'COMPLETE_SCOPED_23_TECHNICAL_FORMULAS_ALL5TF',
         'source_head':binding['source_head'],'source_unchanged':True,'plan_sha256':binding['plan_sha256'],'limits':proof,
         'design':plan['design'],'error_spec':plan['error_spec'],'references':refs,'runtime_files':runtime_files,
-        'audited_formulas':23,'timeframes':design['timeframes'],'qualified_output_fields':115,'compact_active_outputs':55,'compact_parked_outputs':60,
+        'audited_formulas':len(fields),'timeframes':design['timeframes'],'qualified_output_fields':len(fields)*len(design['timeframes']),
+        'compact_active_outputs':sum(map(len,active.values())),'compact_parked_outputs':sum(len(fields)-len(names) for names in active.values()),
         'fields':reports,'full_history_reference_reports':helper_reports,'native_rows_decoded':decoded,'native_projected_columns':list(required),
-        'cache_rows_compared':selected_rows,'cache_feature_columns':list(range(23)),'cache_width':253,
+        'cache_rows_compared':selected_rows,'cache_feature_columns':list(columns),'cache_width':253,
         'data_files':data_files,'unique_data_files_hashed_once':28,'bound_payload_bytes':sum(x['bytes'] for x in data_files.values()),
         'physical_disk_io_bytes_measured':False,'prebuilt_payload_read_or_hashed':False,'full_history_origin':design['source_contract']['native_first_utc'],
         'native_sequence_or_PT_or_MBP_payload_read':False,'production_indicators_called_by_oracle':False,'normalization_fit_performed':False,
         'test_data_used':False,'model_forwards':0,'optimizer_updates':0,'learning_qualified':False,'economic_edge_qualified':False,
         'other_technical_families_qualified':False,'individual_learned_use_proven':False}
+    if trend_events:
+        result.update({'inherited_127_arithmetic_spec':spec['inherited_127_arithmetic_spec'],
+            'design_cache_column_clarification':gate['design_cache_column_clarification'],
+            'logical_selected_feature_bytes':clarification['logical_17selected_feature_bytes'],
+            'previous_technical_numeric_review':refs['previous_technical_numeric_review'],
+            'all_outputs_discrete_exact':True,'branch_ambiguity_policy':'fail_before_cache_comparison',
+            'BB_or_ADX_or_other_technical_formulas_recomputed':False})
     output=staging/(prefix+'_RESULT.json');io.write_json(output,result)
     io.write_json(staging/(prefix+'_TERMINAL.json'),{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,
         'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(output)})
@@ -3705,8 +3823,10 @@ if __name__=='__main__':
     group.add_argument('--gc-basis-numeric-binding',type=Path)
     group.add_argument('--gc-native-projection-binding',type=Path)
     group.add_argument('--technical-numeric-binding',type=Path)
+    group.add_argument('--trend-events-numeric-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.technical_numeric_binding is not None:run_technical_numeric(args.technical_numeric_binding)
+    if args.trend_events_numeric_binding is not None:run_technical_numeric(args.trend_events_numeric_binding,trend_events=True)
+    elif args.technical_numeric_binding is not None:run_technical_numeric(args.technical_numeric_binding)
     elif args.gc_native_projection_binding is not None:run_gc_native_projection_numeric(args.gc_native_projection_binding)
     elif args.gc_basis_numeric_binding is not None:run_gc_event_numeric(args.gc_basis_numeric_binding,basis=True)
     elif args.gc_profile_numeric_binding is not None:run_gc_event_numeric(args.gc_profile_numeric_binding,profile=True)

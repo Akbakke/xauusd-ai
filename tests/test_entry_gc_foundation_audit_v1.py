@@ -2201,3 +2201,160 @@ class TestTechnicalReference127:
             radius = Fraction.from_float(float(errors["bb_position"][79]))
             assert centre-radius > 0
             assert (centre-radius)**2 <= Fraction(9, 80) <= (centre+radius)**2
+
+
+
+class TestTrendEventReference128:
+    """Exact event/state witnesses, independent of production event owners."""
+
+    @staticmethod
+    def _owner():
+        return TestTechnicalReference127._owner()
+
+    @staticmethod
+    def _frame(close):
+        return TestTechnicalReference127._frame(close)
+
+    @staticmethod
+    def _fields():
+        return (
+            "ema20_50_bull_state", "ema20_50_cross_up", "ema20_50_cross_down", "ema20_50_state_age_bars",
+            "ema50_200_bull_state", "ema50_200_cross_up", "ema50_200_cross_down", "ema50_200_state_age_bars",
+            "price_x_ema20_cross_up", "price_x_ema20_cross_down",
+            "price_x_ema50_cross_up", "price_x_ema50_cross_down",
+            "price_x_ema200_cross_up", "price_x_ema200_cross_down",
+            "price_vs_ema20_state_age_bars", "price_vs_ema50_state_age_bars", "price_vs_ema200_state_age_bars",
+        )
+
+    @staticmethod
+    def _first_rows():
+        return {
+            "ema20_50_bull_state": 49, "ema20_50_cross_up": 50,
+            "ema20_50_cross_down": 50, "ema20_50_state_age_bars": 49,
+            "ema50_200_bull_state": 199, "ema50_200_cross_up": 200,
+            "ema50_200_cross_down": 200, "ema50_200_state_age_bars": 199,
+            "price_x_ema20_cross_up": 20, "price_x_ema20_cross_down": 20,
+            "price_x_ema50_cross_up": 50, "price_x_ema50_cross_down": 50,
+            "price_x_ema200_cross_up": 200, "price_x_ema200_cross_down": 200,
+            "price_vs_ema20_state_age_bars": 19, "price_vs_ema50_state_age_bars": 49,
+            "price_vs_ema200_state_age_bars": 199,
+        }
+
+    def test_literal_sign_changes_use_strict_crosses_and_boolean_age(self):
+        spread = np.array([-1., 0., 1., 0., -1.], np.float64)
+        state, up, down, age = self._owner().reference_trend_events_from_spread(spread, np.zeros(5))
+        np.testing.assert_array_equal(state, [0., 0., 1., 0., 0.])
+        np.testing.assert_array_equal(up, [np.nan, 0., 1., 0., 0.])
+        np.testing.assert_array_equal(down, [np.nan, 0., 0., 0., 1.])
+        np.testing.assert_array_equal(age, [0., 1., 0., 0., 1.])
+        # +1 ->0 changes the bullish state without a strict down-cross;
+        # 0 ->-1 triggers down-cross while the Boolean false-state ages.
+        assert state[2] != state[3] and down[3] == 0
+        assert state[3] == state[4] and age[4] == 1 and down[4] == 1
+
+    def test_cross_warmup_requires_current_and_previous_observation(self):
+        spread = np.array([np.nan, np.nan, -1., 1., 1.], np.float64)
+        radii = np.array([np.nan, np.nan, 0., 0., 0.], np.float64)
+        state, up, down, age = self._owner().reference_trend_events_from_spread(spread, radii)
+        np.testing.assert_array_equal(state, [np.nan, np.nan, 0., 1., 1.])
+        np.testing.assert_array_equal(up, [np.nan, np.nan, np.nan, 1., 0.])
+        np.testing.assert_array_equal(down, [np.nan, np.nan, np.nan, 0., 0.])
+        np.testing.assert_array_equal(age, [np.nan, np.nan, 0., 0., 1.])
+
+    def test_signed_zero_and_two_hundred_constant_bars_are_exact_ties(self):
+        audit = self._owner()
+        state, up, down, age = audit.reference_trend_events_from_spread(
+            np.array([0., -0., 0., -0.], np.float64), np.zeros(4))
+        np.testing.assert_array_equal(state, [0., 0., 0., 0.])
+        np.testing.assert_array_equal(up, [np.nan, 0., 0., 0.])
+        np.testing.assert_array_equal(down, [np.nan, 0., 0., 0.])
+        np.testing.assert_array_equal(age, [0., 1., 2., 3.])
+        values, bounds, _ = audit.reference_trend_event_block(self._frame(np.full(200, 100.)))
+        for name, first in self._first_rows().items():
+            assert np.isnan(values[name][:first]).all(), name
+            observed = np.isfinite(values[name])
+            if name.endswith("age_bars"):
+                np.testing.assert_array_equal(values[name][first:], np.arange(200-first))
+            else:
+                assert np.all(values[name][observed] == 0), name
+            assert np.all(bounds[name][observed] == 0), name
+        assert values["ema50_200_bull_state"][199] == 0
+        assert values["ema50_200_state_age_bars"][199] == 0
+        assert np.isnan(values["ema50_200_cross_up"]).all()
+
+    @pytest.mark.parametrize("direction", [1, -1])
+    def test_linear_prices_have_hand_known_all_seventeen_states_masks_and_raw_ages(self, direction):
+        audit = self._owner()
+        values, bounds, report = audit.reference_trend_event_block(
+            self._frame(500+direction*np.arange(320, dtype=np.float64)))
+        assert tuple(audit.TREND_EVENT_NUMERIC_FIELDS) == self._fields()
+        assert tuple(values) == self._fields() and tuple(bounds) == self._fields()
+        assert report["first_valid_rows"] == self._first_rows()
+        for name, first in self._first_rows().items():
+            assert values[name].dtype == np.float64 and bounds[name].dtype == np.float64
+            assert np.isnan(values[name][:first]).all(), name
+            assert np.isnan(bounds[name][:first]).all(), name
+            assert np.all(bounds[name][first:] == 0), name
+            if name.endswith("age_bars"):
+                np.testing.assert_array_equal(values[name][first:], np.arange(320-first))
+            elif name.endswith("bull_state"):
+                assert np.all(values[name][first:] == int(direction > 0)), name
+            else:
+                assert np.all(values[name][first:] == 0), name
+
+    def test_calendar_holes_do_not_reset_state_events_or_raw_observed_bar_ages(self):
+        frame = self._frame(100+np.arange(240, dtype=np.float64))
+        gapped = {name: values.copy() for name, values in frame.items()}
+        gapped["bar_start_ns"][120:] += 13*DAY
+        regular, rb, _ = self._owner().reference_trend_event_block(frame)
+        actual, ab, _ = self._owner().reference_trend_event_block(gapped)
+        for name in self._fields():
+            np.testing.assert_array_equal(actual[name], regular[name])
+            np.testing.assert_array_equal(ab[name], rb[name])
+        assert actual["price_vs_ema20_state_age_bars"][-1] == 220
+
+    def test_appending_future_price_changes_leaves_all_seventeen_prefixes_unchanged(self):
+        close = np.concatenate([100+np.arange(240, dtype=np.float64), np.tile([60., 400.], 10)])
+        whole_frame = self._frame(close)
+        prefix_frame = {name: values[:240].copy() for name, values in whole_frame.items()}
+        before, bb, _ = self._owner().reference_trend_event_block(prefix_frame)
+        after, ab, _ = self._owner().reference_trend_event_block(whole_frame)
+        for name in self._fields():
+            np.testing.assert_array_equal(before[name], after[name][:240])
+            np.testing.assert_array_equal(bb[name], ab[name][:240])
+
+    @pytest.mark.parametrize("centre,radius", [(0., 1.), (1., 1.), (-1., 1.), (1., 2.)])
+    def test_uncertified_three_way_sign_branch_is_rejected(self, centre, radius):
+        # Touching zero is insufficient: a positive/negative/tie branch
+        # must each be certified before any cache comparison can occur.
+        with pytest.raises(RuntimeError, match="TREND_EVENT_BRANCH_AMBIGUOUS"):
+            self._owner().reference_trend_events_from_spread(
+                np.array([centre], np.float64), np.array([radius], np.float64))
+
+    def test_nonzero_radius_is_allowed_when_the_sign_is_certified(self):
+        state, up, down, age = self._owner().reference_trend_events_from_spread(
+            np.array([-2., 0., 2.], np.float64), np.array([.25, 0., .25], np.float64))
+        np.testing.assert_array_equal(state, [0., 0., 1.])
+        np.testing.assert_array_equal(up, [np.nan, 0., 1.])
+        np.testing.assert_array_equal(down, [np.nan, 0., 0.])
+        np.testing.assert_array_equal(age, [0., 1., 0.])
+
+    def test_missing_observation_inside_suffix_cannot_be_reset_to_a_fresh_state(self):
+        with pytest.raises(RuntimeError, match="TREND_EVENT_NUMERIC_NAN_SUFFIX"):
+            self._owner().reference_trend_events_from_spread(
+                np.array([-1., np.nan, 1.], np.float64), np.array([0., np.nan, 0.], np.float64))
+
+    @pytest.mark.parametrize("fault", ["missing_observation", "synthetic_observation", "wrong_bit", "wrong_category", "fractional_age"])
+    def test_all_discrete_outputs_reject_mask_bit_category_and_age_changes(self, fault):
+        audit = self._owner()
+        values, bounds, _ = audit.reference_trend_event_block(self._frame(100+np.arange(240, dtype=np.float64)))
+        actual = {name: array.astype(np.float32) for name, array in values.items()}
+        valid = audit.compare_technical_reference(values, actual, bounds, discrete_fields=self._fields())
+        assert all(valid[name]["discrete_exact"] is True for name in self._fields())
+        if fault == "missing_observation": actual["ema20_50_bull_state"][-1] = np.nan
+        elif fault == "synthetic_observation": actual["ema20_50_bull_state"][0] = 0
+        elif fault == "wrong_bit": actual["ema20_50_bull_state"][-1] = 0
+        elif fault == "wrong_category": actual["ema20_50_cross_up"][-1] = 2
+        else: actual["price_vs_ema20_state_age_bars"][-1] += .25
+        with pytest.raises(RuntimeError, match="TECHNICAL_NUMERIC_REFERENCE_(NAN_MASK|DISCRETE_MISMATCH)"):
+            audit.compare_technical_reference(values, actual, bounds, discrete_fields=self._fields())

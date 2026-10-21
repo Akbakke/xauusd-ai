@@ -31,6 +31,26 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
+## Gjeldende arbeid — trend/state/kryss17×5 i128
+
+128design/ERROR_SPEC/plan og resterende feltinventar er publisert i
+`/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128`.
+Resterende230cachekolonner perTF er disjunkt fordelt på13eksisterende grupper:
+128aktive i kompaktprofilen og102parkerte. Neste avgrensede gruppe er17aktive
+EMA-/pris-kryss-, booltilstands- og råalderfelt på alle femTF,85outputs.
+Bruk full2009prefix og127s uendrede EMA-/resample-/feilgrenseeiere. Utvid
+samme28fil-driver med eksplisitt128modus, ingen kopiert reader eller BB-omkjøring.
+Alle85diskrete outputs krever eksakte verdier/masker; uavklart gren feiler
+før cachesammenligning. Likhet er falsebullstate, ikke strictdowncross i seg selv;
+alder teller observerte TF-rader uten sesjons-/gapreset eller metning.
+18nye håndfasiter og én eksisterende trendeiertest er nå kildebundet etter
+kildepeerPASS.263gamle foundationcaser/100hjelpere er bevart og gjenbrukes;
+kun eksisterende128modus i readeren er lagt til. Kildekvalifisering er bundet,
+fysisk128 er fortsatt uclaimet og stengt.
+128s DESIGN_CACHE_COLUMN_CLARIFICATION.json presiserer arvet127tekst:17felt
+i cache94:111 og111993212logiske featurebyte, samme28guardede filer.
+Ingen jobb kjører; ingen modell-/produksjonsendring eller ekstraepoke.
+
 ## Gjeldende grense — teknisk23×5-kontroll127 bestått
 
 127 er COMPLETE i
@@ -56,9 +76,9 @@ TERMINAL.json SHA3ee50b4d2157624bdc22a9b1f55a19984e71987615a6e5c3d5427bfb84834c3
 127 er konsumert, ingen relansering.182native117produksjonsfiler er uendret;
 normalisering, baseline og modell trenger ingen omkjøring av denne auditkoden.
 Ingen jobb kjører. Trening/fullEpoch/fullVAL/Exit/TEST/broker er fortsatt stengt.
-Neste avgrensede arbeid er eksisterende feltinventar for øvrige230cachekolonner
-perTF, hvor128perTF er aktive i kompaktprofilen, og deres tidligere kvalifiserte
-formeleiere. Deklarer ett konkret neste referanseomfang før kilde-/datajobb.
+128s feltinventar har nå avgrenset øvrige230cachekolonner perTF, hvor128perTF
+er aktive i kompaktprofilen, og navngitt deres eksisterende formeleiere.
+Det konkrete17trendfelt-omfanget står øverst og i128s bundne plan.
 Ingen ny råTB-scan eller modellrunde. Råevent→M1, andre lokale formler,
 individuell lært nytte og Entry-kvalitet/dekning/forklaringer har egne åpne grenser.
 
