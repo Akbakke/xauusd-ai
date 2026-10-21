@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T08:37:13.798720+00:00",
-  "status": "141_INPUT_PACKET_COMPLETE_ACTUAL_MODEL_INFLUENCE_BINDING_PENDING",
+  "observed_utc": "2026-10-21T08:43:14.518488+00:00",
+  "status": "141_INPUT_PACKET_COMPLETE_EXACT_CASE_PLAN_AND_ALLOWLISTED_ADAPTER_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Reuse the immutable 1.28 MB input packet. Bind exact native influence cases, 115 ONLINE optimizer0 state, 055 input normalization and 111 loss-only RMS roles, then obtain fresh hardware admission for the bounded actual influence check. Do not reopen raw data, rebuild witnesses, rerun 139/140/141, or start training.",
+  "next_action": "Build the exact CPU-only 3446-owner counterfactual manifest from the immutable 141 packet and frozen 055 contract without model or source-data reads. Add the smallest explicit dynamic input audit mode before the existing allowlisted technical validator legacy parser; preserve its GPU guards and leave legacy VAL/Exit path closed. Bind 115 ONLINE optimizer0 state and fresh hardware before the bounded actual model check. No launch or training is admitted yet.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "141_INPUT_PACKET_COMPLETE_NATIVE_INFLUENCE_BINDING_PENDING",
+    "current_activity": "DYNAMIC_INPUT_EXACT_CASE_PLAN_AND_EXISTING_VALIDATOR_ADAPTER_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Input assembly is qualified. Exact bounded native influence cases, model state/normalization roles and fresh hardware admission remain before actual model influence measurement.",
+    "current_blocker": "The current allowlisted technical validator only exposes legacy VAL/Exit objectives and an attended ONLINE/TARGET pair. The approved dynamic input influence design needs an explicit input-only mode plus exact cases before a guarded model run.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Reuse the immutable 1.28 MB input packet. Bind exact native influence cases, 115 ONLINE optimizer0 state, 055 input normalization and 111 loss-only RMS roles, then obtain fresh hardware admission for the bounded actual influence check. Do not reopen raw data, rebuild witnesses, rerun 139/140/141, or start training.",
+    "next_action": "Build the exact CPU-only 3446-owner counterfactual manifest from the immutable 141 packet and frozen 055 contract without model or source-data reads. Add the smallest explicit dynamic input audit mode before the existing allowlisted technical validator legacy parser; preserve its GPU guards and leave legacy VAL/Exit path closed. Bind 115 ONLINE optimizer0 state and fresh hardware before the bounded actual model check. No launch or training is admitted yet.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -21062,5 +21062,42 @@
       "sha256": "2f4d425b1314177fde257e770e6ec08d2546e29a9af5bb532b087e445cc9014b"
     },
     "independent_actual_peer_review_pending": false
+  },
+  "dynamic_compact_input_influence_preparation": {
+    "status": "MEASURED_SOURCE_INTERFACE_GAP_NOT_RUNTIME_ADMITTED",
+    "input_packet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_OUTPUT/INPUT_PACKET.npz",
+      "sha256": "6c287b8fbd857a233cd3e3019dea68a1e445099651c942f8cd82fecf8a8ecbe0"
+    },
+    "input_packet_metadata": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_OUTPUT/INPUT_PACKET_METADATA.json",
+      "sha256": "1819b343a74a8aacaa7eac2c2130c6bad2ae678a2c81ab7eb2315beda3e2e656"
+    },
+    "case_manifest_built": false,
+    "physical_numeric_route_labels": 882,
+    "current_alias_labels": 2525,
+    "categorical_owner_labels": 7,
+    "family_by_timeframe_groups": 32,
+    "maximum_case_labels": 3446,
+    "maximum_model_forwards": 218,
+    "input_reverse_calls": 13,
+    "witness_selection": "First genuine witness in fixed decision-time/parent order satisfying the own source mask. No padding, predictions, targets, gradients or adaptive repair.",
+    "frozen_normalization_role": "055 original contract with explicit model-buffer F32 center/scale view for deterministic counterfactual recipe; no fit or replacement of the original input normalization.",
+    "history_scope": "Report all consumed historical VJP coordinates with own masks separately; current counterfactual cases do not establish every historical-position finite-difference response.",
+    "existing_allowlisted_cuda_module": "gx1.scripts.validate_entry_model_native_technical_checkpoint_v1",
+    "adapter_implemented": false,
+    "adapter_entry": "Explicit dynamic compact input influence plan and SHA mode before legacy required-argument parser. Reuse existing read-only checkpoint, constructor, normalization and forward owners.",
+    "existing_capped_route": "--class producer --cuda-producer; existing signed hardware guards, power/thermal/VRAM limits unchanged",
+    "new_launcher_or_hardware_bypass_allowed": false,
+    "legacy_VAL_Exit_path_allowed": false,
+    "exact_online_optimizer_steps": 0,
+    "model_state_key": "model_state",
+    "EMA_or_teacher_substitution_allowed": false,
+    "checkpoint_policy_fresh_hash_verification_still_required": true,
+    "training_enabled": false,
+    "native_training_admitted": false,
+    "execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false
   }
 }

@@ -173,6 +173,17 @@ model_state fra 115s optimizer0-state med ONLINE-digest, ordinær checkpoint-pol
 055-inputnormalisering og 111-loss-RMS i sine separate roller. Ingen bypass/EMA/
 teacher. Fersk maskinvareadgang kreves før faktisk modelljobb. Deretter måles
 individuell inputpåvirkning; input-PASS er ingen lærings- eller nyttepåstand.
+
+Neste kildegap er målt: den allowlistede tekniske validatoren har bare legacy
+VAL/Exit-parser og attended ONLINE/TARGET-par; denne ruten skal ikke kjøres.
+Legg minste eksplisitte dynamiske inputmodus før legacyparseren og gjenbruk
+samme capped CUDA-producer/hardwarevakter. Ingen ny launcher eller omvei.
+Eksakt CPU-caseplan må først binde alle 3446 eieretiketter (882 numeriske,
+2525 currentaliaser, 7 kategoriske, 32 familie/TF). Velg bare ekte vitner med
+egen maske i fast tidsrekkefølge; bruk 139s eksisterende lovlige intervensjoner.
+Manglende/konstant/ugyldig er egne statuser. Bevar separate historiske VJP-
+rapporter; current-CF er ingen full historisk finite-difference-påstand.
+Ingen caseplan/adapter eller ny modellkjøring er ennå implementert/admittert.
 136s gamle135PENDING-note overstyres av138s faktiske kvitteringer i policy.
 Full480trace, LONG/SHORT/FLAT-kvalitet/dekning forvalgte/avståtte ogsenere
 læring/generalisering er åpne krav. Ingen ny trening er åpnet. Ingen jobb kjører.
