@@ -427,3 +427,13 @@ Per-prosess memmapbygging må skilles fra per-batch arbeid; logiske lesebytes
 beviser ikke host-disktrafikk eller tidsfordeling. Bevar kvalifisert kilde gjennom
 aktuell baseline/mekanikkbølge, og la målt treningsgjennomstrømning styre neste
 minste I/O-rettelse. En uimplementert kandidat åpner ingen ny kjøring.
+
+## Entry-tidsramme og etterfølgende prisfasit
+
+Entry-beslutninger tas på M5. M1-data gir finere observasjon av prisforløpet
+etter en slik beslutning; prognoser fra 1 til 480 minutter er framtidige
+målehorisonter, ikke M1-entry, Exit-regler eller pålagt holdetid. M1-Exit
+vurderes først i neste bølge etter Entry-edge. Rapportér derfor
+`entry_timeframe=M5` atskilt fra `query_horizon_minutes` og `exit_evaluation=false`.
+Den tidligere108-observasjonen «alle512valgte1minutt» beskriver modellens
+valgte prognosehorisont, ikke at Entry-kadensen ble endret fra M5 til M1.

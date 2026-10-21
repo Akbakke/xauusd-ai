@@ -24,7 +24,14 @@ Entry skal lære faktisk prisretning fra ett minutt til mange timer, sammen
 med signert MFE og liten konservativ MAE før første MFE. Dager er støtte;
 fast95min er ikke hovedfasit. Exit vurderes eller trenes ikke i denne bølgen.
 Dette avløser tidligere primær-h20-/fast95-vedtak, ikke lang kontekst eller
-historiske kildekvitteringer. LONG, SHORT og FLAT skal kontrolleres, også
+historiske kildekvitteringer.
+
+Presisering21.10: Entry tar beslutninger på lukkede M5-barer. M1 brukes i
+denne bølgen til etterfølgende prisfasit og MAE/MFE-oppløsning, ikke M1-Entry.
+En prognose-/observasjonshorisont på ett minutt er ikke Entry-tidsrammen,
+Exit-logikk eller en fast holdetid. M1-Exit hører bare til neste bølge etter
+Entry-edge. Behold separate navn for beslutningstidsramme, framtidig
+målehorisont og senere Exit-tidsramme i dokumentasjon og rapporter. LONG, SHORT og FLAT skal kontrolleres, også
 kvaliteten på muligheter modellen avstår fra. Alltid-FLAT er ingen suksess.
 
 Retningsmarkout og forløpskvalitet får egne observasjonsmasker. Eksakte
