@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "146_COMPLETE_NEXT_FRESH_CURRENT_SOURCE_FULL_CURVE_INITIAL_BASELINE_NOT_TRAINING",
+    "current_activity": "147_PREPARED_CANONICAL_CPU_FRESH_START_FOR_CURRENT_FULL_CURVE_BASELINE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Full per-entry1..480minute traces are implemented and29focused cases passed.146measured183current recipe source roles:3content-changed roles map to2observer/admission files versus115.115cannotadmit exactcurrent source or supply missing full512curvebaseline. Prepare a genuinely new current-bound zero-update baseline; reuse physical inputs/targets/normalization.145remains proposalonly;108fulfilled originalepoch and noextraepoch is admitted.",
+    "current_blocker": "146source tests and exactcurrent closure qualified. Execute147once viaexisting CPUfresh initializer; then prepare148zero-updateTRAIN256+CONTROL256fullcurvebaseline withnew147artifacts/currentrecipe/campaign/hardware. No training admitted;145proposalonly and108originalepochconsumed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -21443,5 +21443,34 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/ACTUAL_PEER_REVIEW.json",
       "sha256": "5ac13d3b5ec76980a6b2f5935812558c1fbc2e1d2c48d94ee1672e7b16e4a900"
     }
+  },
+  "dynamic_m5_full_curve_fresh_147": {
+    "status": "PREPARED_ONE_CANONICAL_CPU_FRESH_INITIALIZER_NO_NATIVE_ADMISSION",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_FRESH_PREPARATION_20261021_147/PLAN.json",
+      "sha256": "8a2fd13d5892d5959feed1fb2d580c12af4a8568f9d4673b2a155917d53d0fb5"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_FRESH_PREPARATION_20261021_147/publish_fresh_preparation.py",
+      "sha256": "e797af11a8bf4fa00244128b874cd6e4cfb64f710f9fbf015401fd8babf51783"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_FRESH_PREPARATION_20261021_147/run_fresh_entry_preparation.py",
+      "sha256": "3aa5b3c7a1d3c4e0954ea091e4639356f923ca9f95ac961ae18d39588f155169"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_FRESH_PREPARATION_20261021_147",
+    "scope": "Existing canonical CPUfresh publisher with146-qualified current183source roles,055inputnormalization,111TRAIN-RMS and finished datasets/targets. Genuine new optimizer0state; no oldPTadoption,0model/Exitforwards,0updates/refits,4G/512M audit7200s. Future148baseline remains separately gated; no extraepoch.",
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "normalization_fit_enabled": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

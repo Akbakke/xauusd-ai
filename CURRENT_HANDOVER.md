@@ -98,9 +98,17 @@ Neste steg er en genuint ny nullstegs initialmåling med dagens eksakte kilder
 og fulle TRAIN256-/CONTROL256-kurver. Gjenbruk ferdige inputs, targets,
 wholeTRAIN-normalisering og TRAIN-RMS; ikke les rå MBP på nytt. Den nye
 baseline-/campaignbindingen skal følge eksisterende eiere og kildekrav.
+147 er bundet som én eksisterende CPUfresh-publisering (audit4G/512M,
+0forwards/updates/refits, maks7200s), med faktisk146kvalifisert183rolle-kjede.
+Planroot: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_FRESH_PREPARATION_20261021_147`.
+Den konstruerer ny utrent tilstand gjennom kanonisk eier;114 er template,
+ikke checkpoint-adopsjon eller relansering.148 har foreløpig bare en tilpasset
+materialiseringscontroller, ingen binding/campaign/nativeadgang.
+
 Deretter kreves ny eksplisitt beslutning om ekstra epoke og eksakt campaign/
 maskinvareadmission. Gjør dette konkrete arbeidet før treningsspørsmålet stilles.
-Ingen jobb kjører nå. Ingen gammel plan skal relanseres.
+147 er ennå ikke startet ved dette commitpunktet. Faktiske prosesser/terminaler
+overstyrer dette. Ingen gammel plan skal relanseres.
 
 ## Bestått — gjenbruk uten omkjøring
 
