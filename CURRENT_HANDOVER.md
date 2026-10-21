@@ -16,19 +16,28 @@ faktisk horisontavhengig retning, separat retning/størrelse/MAE/MFE/kost/deknin
 og én målt begrunnet forbedring om gangen på sammenlignbare data og budsjetter.
 Målet og ferdigkriteriene står i policyens
 `current_work.autonomous_direction_qualification_goal_20261021`.
-154-beviset er bevart.157 er COMPLETE115,846s: første16 fryste TRAIN256-rader,
-null padding, eksakte mål-/maskegjenkoblinger og NPZ-roundtrip; null modellkall,
-PT-/råM1/MBP-lesing eller refits.155s konkrete CPU-miljøfeil er consumed og
-originalene bevart.153fokuserte kilde-/gradient-/CLI-kontroller er bestått;
-de183 native kildebindingene er byteuendret.
-156 er nå konkret innrømmet én gang:20G capped CUDA-producer/900s, samme
-TRAIN16-pakke og151ONLINE7391, én eval-forwardgraf og22 reversekall,
-null optimizersteg. Eksisterende komponenttoleranse og eksakte kandidat-/action-
-ties må passe mot lagrede151prognoser. Signedhardware:34/40C,22,61Wdraw,
-160Wlimit,78MiB; ingen profilendring. Bindinger lages fra ren postcommitHEAD.
-Resultatet kan avklare lokal horisontfølsomhet og oppgavekonflikt, men beviser
-ikke årsaken til hele epoken eller en forbedring. Ingen modell-/lossrettelse eller
-ny trening er valgt. Gjenbruk uendrede beståtte gater.
+157s faste TRAIN16-pakke er bestått.156 er COMPLETE54,654s: én forwardgraf,
+22 reversekall, null optimizersteg, alle84640komponentceller bitlike151 og
+identiske kandidat-/action-ties. Kilde, state, inputs, RNG og vakter er bevart;
+45/46C,128,64Wdraw,1586MiB ved eksisterende160Wlimit. Alle planer er consumed.
+Retnings-/queryruten er aktiv. Lokal terminalhorisontrespons er svak mot MAE;
+d(terminal−MAE)/dh er negativ på alle16×480målepunkter per side. Terminal får
+positivt justert sumtaskgradient på de seks vurderte fellesflatene. Dette beviser
+ikke treningshistorien, kapasitetsmangel eller at støtteoppgaver blokkerer retning.
+158 velger ett minimalt conditioningforsøk: query=(h−240,5)/sqrt((480²−1)/12),
+analytisk fra det faste gridet. Samme funksjonsklasse/parametertall og beholdte
+inputs, mål, tapsformel og score. Fersk initialisering matches algebraisk til
+148 via transformert queryvekt/bias; native paritet må måles med eksisterende
+toleranse og eksakte ties før trening. AdamW-forløpet endres; effekt er ukjent.
+Implementasjonen er ferdig:26nye/énendretmodelllinje;41unike syntetiske
+kontroller er kvalifisert etter én minimal skalartensorrettelse i testhelperen.
+Kildedelta er eksakt én av183native innholdsroller; øvrig produksjons-AST er
+uendret etter deklarert query/init-normalisering. Ingen bedre retning er målt.
+159 er konkret innrømmet én4GCPU/7200s fersk initialiseringspublisering,
+null forwards/optimizersteg/refits og gjenbruk av de11 fysiske filreferansene.
+160baseline og ny trening er fortsatt stengt til sine ferske konkrete porter.
+Design, sourcepeer, kontroller og falsifikasjonskriterier er bundet i policy.
+Målet er aktivt; initialparitet, retnings-/forløpskvalitet og senere bevis gjenstår.
 Ingen Exit/TEST/broker/handel åpnes. Målet er aktivt, ikke ferdig kvalifisert.
 
 ## Gjort nå

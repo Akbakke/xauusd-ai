@@ -159,6 +159,19 @@ og `entry_only_dynamic_m5_path`. Ett minutt til mange timer er primært;
 bruker samme encoder; en liten delt dekoder lærer retningsmarkout, signert
 MFE og konservativ pre-MFE-MAE separat. Dager er maskert læringsstøtte.
 
+158 velger ett kildeavgrenset conditioningforsøk for denne delte dekoderen:
+`q=(h−240.5)/sqrt((480²−1)/12)`, analytisk fra det kjente querygridet.
+Fersk initial queryvekt multipliseres med `σ/480`; bias økes med original
+queryvekt ganger `240.5/480`. Alle andre initialbytes og RNG-trekk beholdes.
+Dette matcher tidligere startfunksjon i eksakt aritmetikk; faktisk F32-paritet
+og kandidat-/action-ties må bestås med fersk current-function baseline før
+trening. Det er en endring av optimizerens koordinater, med samme parametertall,
+funksjonsklasse, mål, masker, TRAIN-RMS, tap og score. Uvektet gridortogonalitet
+er ikke ortogonalitet under reelle masker/RMS. Svak terminalhorisontrespons
+mot MAE er målt i154/156; bedre retning eller treningsårsaken er ikke bevist.
+Policy binder eventuell observasjon og ett sammenlignbart7391stegs-forsøk;
+selve designet gir ingen launch- eller treningsautoritet.
+
 Fysisk datasett binder original M1 BID/ASK-kilde én gang og har target-only
 fill-/clock-/censorpointers. Ingen tett entry×480 framtidsbane lagres. Hver
 komponent og horisont får egen maske. Eksakte endpointquotes kan gi

@@ -814,7 +814,7 @@ class _DirectionWitnessAlgebra(torch.nn.Module):
         hidden = self.entry_q_joint_in(self.entry_q_joint_norm(z))
         queries, curves = [], {}
         for endpoint, endpoint_kind in enumerate(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS):
-            query = (torch.arange(1, 481, dtype=torch.float32) / 480)[None, :, None].expand(len(x), -1, -1)
+            query = ((torch.arange(1, 481, dtype=torch.float32) - 240.5) / ((480**2 - 1) / 12)**0.5)[None, :, None].expand(len(x), -1, -1)
             source = torch.cat((hidden[:, None].expand(-1, 480, -1), query,
                                 torch.full_like(query, endpoint)), dim=-1)
             decoded = self.dynamic_m5_query_projection(source)
@@ -955,7 +955,7 @@ class TestDirectionWitnessGradientArithmetic(unittest.TestCase):
             endpoint = DYNAMIC_M1_PREFIX_ENDPOINT_KINDS.index(endpoint_kind)
             pre = queries[endpoint].detach() @ weight.T + bias
             gelu_derivative = 0.5 * (1 + torch.erf(pre / math.sqrt(2))) + pre * torch.exp(-pre.square() / 2) / math.sqrt(2 * math.pi)
-            expected = (gelu_derivative * weight[:, -2]) @ head.weight.detach().T / 480
+            expected = (gelu_derivative * weight[:, -2]) @ head.weight.detach().T / math.sqrt((480**2 - 1) / 12)
             if positive:
                 logits = torch.nn.functional.gelu(pre) @ head.weight.detach().T + head.bias.detach()
                 expected = expected * torch.sigmoid(logits)
@@ -964,6 +964,9 @@ class TestDirectionWitnessGradientArithmetic(unittest.TestCase):
                 self.assertAlmostEqual(row["all_queries"]["mean"], float(expected[..., side].double().mean()), places=8)
                 self.assertAlmostEqual(row["headline_queries"]["1"]["mean"], float(expected[:, 0, side].double().mean()), places=8)
                 self.assertEqual(row["endpoint_kind"], endpoint_kind)
+                self.assertEqual(row["query_coordinate_units"], "standardized_fixed_query_grid_v1")
+                self.assertEqual(row["query_coordinate_center_minutes"], 240.5)
+                self.assertEqual(row["query_coordinate_scale_minutes"], math.sqrt((480**2 - 1) / 12))
                 self.assertNotEqual(row["endpoint_input_connectivity"][endpoint], "unused")
                 self.assertEqual(row["endpoint_input_connectivity"][1 - endpoint], "unused")
         first = result["query_sensitivity"]["dynamic_mfe_bps.long"]["all_queries"]["mean"]

@@ -932,6 +932,10 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
     from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
         _dynamic_m5_task_loss_surfaces, _joint_task_loss,
     )
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
+        DYNAMIC_M5_QUERY_CENTER_MINUTES, DYNAMIC_M5_QUERY_SCALE_MINUTES,
+        normalize_dynamic_m5_query_minutes,
+    )
 
     if not torch.is_grad_enabled() or model.training:
         _fail("DIRECTION_REQUIRES_EVAL_GRAD_GRAPH")
@@ -952,7 +956,7 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
         _fail("DIRECTION_REPRESENTATION_GRAPH")
     if not isinstance(query_inputs, (tuple, list)) or len(query_inputs) != len(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS):
         _fail("DIRECTION_QUERY_INPUTS")
-    query = torch.tensor(horizons, dtype=hidden.dtype, device=hidden.device) / horizons[-1]
+    query = normalize_dynamic_m5_query_minutes(torch.tensor(horizons, dtype=hidden.dtype, device=hidden.device))
     for endpoint, value in enumerate(query_inputs):
         if (not isinstance(value, torch.Tensor) or value.shape != (size, len(horizons), hidden.shape[1] + 2)
                 or value.dtype != hidden.dtype or value.device != hidden.device or not value.requires_grad
@@ -1037,7 +1041,9 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
                                             create_graph=False, allow_unused=True)
             reverse_calls += 1
             row = {"endpoint_kind": DYNAMIC_M1_PREFIX_ENDPOINT_KINDS[endpoint],
-                   "query_coordinate_units": "horizon_minutes/" + str(horizons[-1]),
+                   "query_coordinate_units": "standardized_fixed_query_grid_v1",
+                   "query_coordinate_center_minutes": DYNAMIC_M5_QUERY_CENTER_MINUTES,
+                   "query_coordinate_scale_minutes": DYNAMIC_M5_QUERY_SCALE_MINUTES,
                    "derivative_units": "bps_per_minute",
                    "endpoint_input_connectivity": ["unused" if g is None else
                        "connected_zero" if not bool(torch.count_nonzero(g)) else "nonzero" for g in gradients]}
@@ -1050,7 +1056,7 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
             else:
                 if not bool(torch.isfinite(gradient).all()):
                     _fail("DIRECTION_NONFINITE_QUERY_GRADIENT")
-                derivative = gradient[..., -2] / horizons[-1]
+                derivative = gradient[..., -2] / DYNAMIC_M5_QUERY_SCALE_MINUTES
                 row.update(status="nonzero" if bool(torch.count_nonzero(derivative)) else "connected_zero",
                     all_queries=_direction_witness_moments(derivative),
                     headline_queries={str(h): _direction_witness_moments(derivative[:, horizons.index(h)])

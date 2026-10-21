@@ -90,6 +90,21 @@ from gx1.models.entry_v10.direction_decision_contract import (
 )
 
 
+# Analytic moments of the contract-owned contiguous 1..480 query grid. These are
+# known coordinates, never feature/target statistics or fitted loss units.
+DYNAMIC_M5_QUERY_CENTER_MINUTES = (
+    DYNAMIC_M1_PREFIX_HORIZON_MINUTES[0] + DYNAMIC_M1_PREFIX_HORIZON_MINUTES[-1]
+) / 2.0
+DYNAMIC_M5_QUERY_SCALE_MINUTES = math.sqrt(
+    (len(DYNAMIC_M1_PREFIX_HORIZON_MINUTES) ** 2 - 1) / 12.0
+)
+
+
+def normalize_dynamic_m5_query_minutes(minutes: torch.Tensor) -> torch.Tensor:
+    """The same fixed coordinate for every query/chunk; no learned or fitted state."""
+    return (minutes - DYNAMIC_M5_QUERY_CENTER_MINUTES) / DYNAMIC_M5_QUERY_SCALE_MINUTES
+
+
 class _InputNormalizedResidualLinear(nn.Linear):
     """Bound residual input scale without new parameters or changed state keys.
 
@@ -1403,6 +1418,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
                           self.head_dynamic_mfe, self.head_dynamic_pre_mfe_mae_upper):
                 nn.init.xavier_uniform_(layer.weight)
                 nn.init.zeros_(layer.bias)
+            # Fresh initialization only: preserve the raw-query initial
+            # function and every RNG draw before training in new coordinates.
+            # Checkpoint loading performs no conversion or warm migration.
+            query_projection = self.dynamic_m5_query_projection[0]
+            with torch.no_grad():
+                old_query_weight = query_projection.weight[:, -2].clone()
+                query_projection.bias.add_(old_query_weight * (
+                    DYNAMIC_M5_QUERY_CENTER_MINUTES / DYNAMIC_M1_PREFIX_HORIZON_MINUTES[-1]))
+                query_projection.weight[:, -2].mul_(
+                    DYNAMIC_M5_QUERY_SCALE_MINUTES / DYNAMIC_M1_PREFIX_HORIZON_MINUTES[-1])
         nn.init.xavier_uniform_(self.entry_decision_token[1].weight)
         nn.init.zeros_(self.entry_decision_token[1].bias)
 
@@ -3923,7 +3948,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         for endpoint_code, endpoint_kind in enumerate(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS):
             terminal_parts, mfe_parts, mae_parts = [], [], []
             for left in range(0, query_count, chunk):
-                query = horizons[left:left + chunk].to(dtype=hidden.dtype) / DYNAMIC_M1_PREFIX_HORIZON_MINUTES[-1]
+                query = normalize_dynamic_m5_query_minutes(horizons[left:left + chunk].to(dtype=hidden.dtype))
                 query = query.view(1, -1, 1).expand(hidden.shape[0], -1, -1)
                 kind = torch.full_like(query, endpoint_code)
                 source = hidden.unsqueeze(1).expand(-1, query.shape[1], -1)
