@@ -816,3 +816,271 @@ def build_dynamic_compact_case_manifest(inputs, *, layout, normalization, parent
         "selection_uses_predictions_targets_or_gradients": False, "execution_authorized": False}
     json.dumps(result, sort_keys=True, allow_nan=False)
     return result
+
+
+def _direction_witness_moments(values):
+    """Reduce a real derivative only; absent connectivity has no zero placeholder."""
+    import torch
+    values = values.detach().cpu().double().reshape(-1)
+    if not values.numel() or not bool(torch.isfinite(values).all()):
+        _fail("DIRECTION_DERIVATIVE_INVALID")
+    return {"count": values.numel(), "mean": float(values.mean()),
+            "mean_absolute": float(values.abs().mean()),
+            "minimum": float(values.min()), "maximum": float(values.max()),
+            "l2_norm": float(torch.linalg.vector_norm(values)),
+            "nonzero_count": int(torch.count_nonzero(values))}
+
+
+def _direction_witness_gradient_groups(named, hidden, forecast_input):
+    """The actual native parameter names; column groups overlap the decoder group."""
+    definitions = {
+        "decoder_projection": ("dynamic_m5_query_projection.",),
+        "entry_joint_projection": ("entry_q_joint_norm.", "entry_q_joint_in."),
+        "shared_mtf_gates": ("family_tf_context_gate.", "family_tf_token_gate."),
+        "terminal_head": ("head_dynamic_terminal_net_markout.",),
+        "mfe_head": ("head_dynamic_mfe.",),
+        "mae_head": ("head_dynamic_pre_mfe_mae_upper.",),
+        "forecast_head": ("head_forecast.",),
+    }
+    groups = {group: [(index, name, "all") for index, (name, _) in enumerate(named)
+                      if name.startswith(prefixes)] for group, prefixes in definitions.items()}
+    weight = next((index for index, (name, _) in enumerate(named)
+                   if name == "dynamic_m5_query_projection.0.weight"), None)
+    if weight is None:
+        _fail("DIRECTION_DECODER_WEIGHT_MISSING")
+    for group, selection in (("decoder_hidden_columns", "hidden"),
+                             ("decoder_query_column", "query"),
+                             ("decoder_endpoint_column", "endpoint")):
+        groups[group] = [(weight, named[weight][0], selection)]
+    groups["entry_joint_hidden"] = [(len(named), "outputs.entry_q_joint_hidden", "all")]
+    groups["shared_forecast_input"] = [(len(named) + 1, "head_forecast.input.z", "all")]
+    return groups, (*[parameter for _, parameter in named], hidden, forecast_input)
+
+
+def _direction_witness_group_vectors(gradients, targets, groups):
+    import torch
+
+    def selected(value, selection):
+        return (value[:, :-2] if selection == "hidden" else value[:, -2] if selection == "query"
+                else value[:, -1] if selection == "endpoint" else value)
+
+    vectors, summaries = {}, {}
+    for group, members in groups.items():
+        parts, connected, zero, unused = [], [], [], []
+        for index, name, selection in members:
+            gradient = gradients[index]
+            if gradient is None:
+                unused.append(name)
+                part = torch.zeros(selected(targets[index].detach(), selection).numel(), dtype=torch.float64)
+            else:
+                part = selected(gradient.detach(), selection).cpu().double().reshape(-1)
+                if not bool(torch.isfinite(part).all()):
+                    _fail("DIRECTION_NONFINITE_GRADIENT:" + group)
+                connected.append(name)
+                if not bool(torch.count_nonzero(part)):
+                    zero.append(name)
+            parts.append(part)
+        vector = torch.cat(parts) if parts else torch.empty(0, dtype=torch.float64)
+        norm = float(torch.linalg.vector_norm(vector)) if connected else None
+        vectors[group] = vector
+        summaries[group] = {
+            "status": "no_parameters" if not members else "unused" if not connected
+                      else "connected_zero" if norm == 0.0 else "nonzero",
+            "l2_norm": norm, "scalar_coordinates": vector.numel(),
+            "connected_parameter_names": connected, "connected_zero_parameter_names": zero,
+            "unused_parameter_names": unused,
+        }
+    return vectors, summaries
+
+
+def _direction_witness_pairs(vectors, summaries, pairs):
+    import torch
+    result = {}
+    for first, second in pairs:
+        row = {}
+        for group in vectors[first]:
+            a, b = summaries[first][group]["l2_norm"], summaries[second][group]["l2_norm"]
+            dot = (float(torch.dot(vectors[first][group], vectors[second][group]))
+                   if a is not None and b is not None else None)
+            row[group] = {"dot": dot, "cosine": dot / (a * b) if a and b else None}
+        result[first + "__" + second] = row
+    return result
+
+
+def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_inputs,
+                                         forecast_input, headline_horizons):
+    """Observe one already-built native eval graph with exactly22 reverse calls.
+
+    The caller owns admission, the sole forward, native FP32 dispatch, frozen
+    TRAIN/state identities and mode/RNG preservation. This function neither calls
+    a model nor mutates its state. Gradients are local eval derivatives, not AdamW
+    updates, historical training attribution, learned value or Entry admission.
+    """
+    import json
+    import torch
+    from gx1.contracts.entry_causal_m1_outcomes_v1 import (
+        DYNAMIC_M1_PREFIX_HORIZON_MINUTES, DYNAMIC_M1_PREFIX_ENDPOINT_KINDS,
+        DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT, DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT,
+    )
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+        DYNAMIC_M5_LOSS_SCALE_BATCH_KEY, dynamic_m5_scaled_square_sum,
+    )
+    from gx1.contracts.entry_observed_market_v1 import (
+        DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
+        DYNAMIC_M5_PATH_VALID_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+    )
+    from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
+        _dynamic_m5_task_loss_surfaces, _joint_task_loss,
+    )
+
+    if not torch.is_grad_enabled() or model.training:
+        _fail("DIRECTION_REQUIRES_EVAL_GRAD_GRAPH")
+    size = int(batch["seq_x"].shape[0])
+    _require_outputs(outputs, size)
+    horizons = tuple(DYNAMIC_M1_PREFIX_HORIZON_MINUTES)
+    if (not isinstance(headline_horizons, (tuple, list)) or len(headline_horizons) != 7
+            or any(type(h) is not int or h not in horizons for h in headline_horizons)
+            or tuple(sorted(set(headline_horizons))) != tuple(headline_horizons)):
+        _fail("DIRECTION_HEADLINE_HORIZONS")
+    hidden = outputs.get("entry_q_joint_hidden")
+    if (not isinstance(hidden, torch.Tensor) or hidden.ndim != 2 or hidden.shape[0] != size
+            or hidden.dtype != torch.float32 or not hidden.requires_grad
+            or not isinstance(forecast_input, torch.Tensor) or forecast_input.shape != hidden.shape
+            or forecast_input.dtype != hidden.dtype or forecast_input.device != hidden.device
+            or not forecast_input.requires_grad or not bool(torch.isfinite(forecast_input).all())
+            or not bool(torch.isfinite(hidden).all())):
+        _fail("DIRECTION_REPRESENTATION_GRAPH")
+    if not isinstance(query_inputs, (tuple, list)) or len(query_inputs) != len(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS):
+        _fail("DIRECTION_QUERY_INPUTS")
+    query = torch.tensor(horizons, dtype=hidden.dtype, device=hidden.device) / horizons[-1]
+    for endpoint, value in enumerate(query_inputs):
+        if (not isinstance(value, torch.Tensor) or value.shape != (size, len(horizons), hidden.shape[1] + 2)
+                or value.dtype != hidden.dtype or value.device != hidden.device or not value.requires_grad
+                or not _same_bits(value[..., :-2], hidden[:, None].expand(-1, len(horizons), -1))
+                or not _same_bits(value[..., -2], query[None].expand(size, -1))
+                or bool((value[..., -1] != endpoint).any())):
+            _fail("DIRECTION_QUERY_ORDER_OR_IDENTITY")
+    if any(parameter.grad is not None for parameter in model.parameters()):
+        _fail("DIRECTION_MODEL_GRAD_PREEXISTS")
+    raw, cells = _dynamic_m5_task_loss_surfaces(outputs, batch, hidden.device)
+    unit, unit_cells = _dynamic_m5_task_loss_surfaces(outputs, batch, hidden.device, loss_units="train_rms")
+    joint_loss, joint_stats = _joint_task_loss(model, unit, loss_units="train_rms")
+    task_names = tuple(model.task_log_variances)
+    if len(task_names) != 4 or set(unit) != set(task_names) or cells != unit_cells:
+        _fail("DIRECTION_TASK_SUPERVISION_OR_DENOMINATOR")
+    prefixes = ("dynamic_m5_query_projection.", "entry_q_joint_norm.", "entry_q_joint_in.",
+                "family_tf_context_gate.", "family_tf_token_gate.",
+                "head_dynamic_terminal_net_markout.", "head_dynamic_mfe.",
+                "head_dynamic_pre_mfe_mae_upper.", "head_forecast.")
+    named = [(name, parameter) for name, parameter in model.named_parameters()
+             if name.startswith(prefixes) and parameter.requires_grad]
+    groups, targets = _direction_witness_gradient_groups(named, hidden, forecast_input)
+    precision = {name: joint_stats["joint_task_effective_precision_" + name] for name in task_names}
+    # The native scalarizer also owns each projection; +s has no derivative on
+    # these parameter/representation targets, which exclude task log variances.
+    projections = {name: _joint_task_loss(model, {name: unit[name]}, loss_units="train_rms")[0]
+                   for name in task_names}
+    terminal_name = _COMPONENTS[0]
+    target = batch[DYNAMIC_M5_MARKOUT_TARGET_KEY].detach().to(hidden.device)
+    valid = batch[DYNAMIC_M5_MARKOUT_VALID_KEY].detach().to(hidden.device)
+    rms = batch[DYNAMIC_M5_LOSS_SCALE_BATCH_KEY]["rms"][terminal_name]
+    selected = set(headline_horizons)
+    partitions, partition_losses = {}, []
+    for name, minutes in [*(('h' + str(h), (h,)) for h in headline_horizons),
+                          ("complement", tuple(h for h in horizons if h not in selected))]:
+        horizon_mask = torch.tensor([h in minutes for h in horizons], dtype=torch.bool, device=hidden.device)
+        partmask = valid & horizon_mask[None, :, None]
+        squared, partition_count = dynamic_m5_scaled_square_sum(
+            outputs[terminal_name], torch.where(partmask, target, torch.zeros_like(target)),
+            partmask, surface=terminal_name, rms=rms)
+        loss = squared / cells[terminal_name]
+        key = "terminal." + name
+        projections[key] = _joint_task_loss(model, {terminal_name: loss}, loss_units="train_rms")[0]
+        partition_losses.append(loss)
+        partitions[key] = {"query_minutes": list(minutes), "observed_side_cells": int(partmask[..., :2].sum()),
+            "partition_observed_cells_including_flat": partition_count,
+            "partition_flat_cells": int(partmask[..., 2].sum()),
+            "analytic_flat_cells_in_native_denominator": int(valid[..., 2].sum()),
+            "native_task_denominator": cells[terminal_name], "unit_loss_contribution": float(loss.detach()),
+            "role": "observed_loss_partition" if bool(partmask.any()) else "unobserved_partition_not_evidence"}
+    vectors, summaries, reverse_calls = {}, {}, 0
+    for name, scalar in projections.items():
+        gradients = torch.autograd.grad(scalar, targets, retain_graph=True, create_graph=False, allow_unused=True)
+        reverse_calls += 1
+        vectors[name], summaries[name] = _direction_witness_group_vectors(gradients, targets, groups)
+        del gradients
+    task_pairs = [(a, b) for index, a in enumerate(task_names) for b in task_names[index + 1:]]
+    terminal_pairs = [(name, terminal_name) for name in partitions]
+    complement_pairs = [(name, "terminal.complement") for name in partitions if name != "terminal.complement"]
+    gradient_pairs = {
+        "tasks": _direction_witness_pairs(vectors, summaries, task_pairs),
+        "terminal_partitions_to_native_terminal": _direction_witness_pairs(vectors, summaries, terminal_pairs),
+        "terminal_headlines_to_complement": _direction_witness_pairs(vectors, summaries, complement_pairs),
+    }
+    query_shares = {}
+    for name in projections:
+        total = summaries[name]["decoder_projection"]["l2_norm"]
+        coordinate = summaries[name]["decoder_query_column"]["l2_norm"]
+        query_shares[name] = (coordinate ** 2 / total ** 2
+                              if coordinate is not None and total else None)
+    sensitivity = {}
+    for component in _COMPONENTS:
+        endpoint_kind = (DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT if component in _COMPONENTS[3:]
+                         else DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT)
+        endpoint = DYNAMIC_M1_PREFIX_ENDPOINT_KINDS.index(endpoint_kind)
+        for side, label in enumerate(("long", "short")):
+            scalar = outputs[component][..., side].sum()
+            if not scalar.requires_grad:
+                _fail("DIRECTION_QUERY_OUTPUT_DISCONNECTED")
+            last = component == _COMPONENTS[-1] and side == 1
+            gradients = torch.autograd.grad(scalar, tuple(query_inputs), retain_graph=not last,
+                                            create_graph=False, allow_unused=True)
+            reverse_calls += 1
+            row = {"endpoint_kind": DYNAMIC_M1_PREFIX_ENDPOINT_KINDS[endpoint],
+                   "query_coordinate_units": "horizon_minutes/" + str(horizons[-1]),
+                   "derivative_units": "bps_per_minute",
+                   "endpoint_input_connectivity": ["unused" if g is None else
+                       "connected_zero" if not bool(torch.count_nonzero(g)) else "nonzero" for g in gradients]}
+            gradient = gradients[endpoint]
+            other = gradients[1 - endpoint]
+            if other is not None and bool(torch.count_nonzero(other)):
+                _fail("DIRECTION_QUERY_ENDPOINT_CROSS_CONNECTION")
+            if gradient is None:
+                row["status"] = "unused"
+            else:
+                if not bool(torch.isfinite(gradient).all()):
+                    _fail("DIRECTION_NONFINITE_QUERY_GRADIENT")
+                derivative = gradient[..., -2] / horizons[-1]
+                row.update(status="nonzero" if bool(torch.count_nonzero(derivative)) else "connected_zero",
+                    all_queries=_direction_witness_moments(derivative),
+                    headline_queries={str(h): _direction_witness_moments(derivative[:, horizons.index(h)])
+                                      for h in headline_horizons})
+            sensitivity[component + "." + label] = row
+            del gradients
+    if reverse_calls != 22 or any(parameter.grad is not None for parameter in model.parameters()):
+        _fail("DIRECTION_REVERSE_BUDGET_OR_GRAD_MUTATION")
+    result = {
+        "schema_version": "gx1_dynamic_m5_direction_witness_gradients_v1",
+        "scope": "local_final_state_eval_derivatives_on_TRAIN_not_epoch_causality_or_AdamW_updates",
+        "forward_calls": 0, "reverse_calls": reverse_calls, "optimizer_updates": 0,
+        "model_training": bool(model.training), "joint_loss": float(joint_loss.detach()),
+        "native_joint_statistics": joint_stats,
+        "task_statistics": {name: {"observed_task_cells": cells[name], "raw_bps_mse": float(raw[name].detach()),
+            "train_rms_mse": float(unit[name].detach()),
+            "log_variance": float(model.task_log_variances[name].detach()),
+            "effective_precision": precision[name]} for name in task_names},
+        "surface_observed_cells": {"terminal_including_flat": int(valid.sum()),
+            "terminal_sides": int(valid[..., :2].sum()), "terminal_flat": int(valid[..., 2].sum()),
+            "inclusive_path": int(batch[DYNAMIC_M5_PATH_VALID_KEY].sum()),
+            "closed_path": int(batch[DYNAMIC_M5_CLOSED_PATH_VALID_KEY].sum())},
+        "headline_horizons": list(headline_horizons), "terminal_partitions": partitions,
+        "terminal_partition_sum_minus_native_unit_loss": float((torch.stack(partition_losses).sum() - unit[terminal_name]).detach()),
+        "parameter_groups": {name: [{"name": label, "selection": selection} for _, label, selection in members]
+                             for name, members in groups.items()},
+        "gradient_summaries": summaries, "gradient_pairs": gradient_pairs,
+        "decoder_query_column_squared_l2_share": query_shares,
+        "query_sensitivity": sensitivity,
+        "interpretation": "Same-coordinate gradient dots are local first-order alignment only. Column groups overlap decoder_projection. No epsilon, fitted threshold, invented task weight, optimizer or model selection.",
+    }
+    json.dumps(result, sort_keys=True, allow_nan=False)
+    return result

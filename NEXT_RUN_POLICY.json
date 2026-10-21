@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T18:41:18.194276+00:00",
-  "status": "154_COMPLETE_DIRECTION_HORIZON_DIAGNOSIS_HANDOVER_READY",
+  "observed_utc": "2026-10-21T19:32:40.500862+00:00",
+  "status": "155_PREPARED_GOAL_ACTIVE_FIXED_TRAIN_WITNESS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "151 consumed exactly the explicitly approved additional TRAIN-RMS M5 Entry epoch:118249 unique TRAIN rows/7391updates/last9 and32 fixed final ONLINE forwards. Native guard/trainer/observer PASS/0/0; windows task Disabled. No additional epoch or relaunch authority. Paired learning and Entry-quality review remains separate.",
-  "next_action": "Use154saved-curve and source/loss evidence to prepare the minimum zero-update fixed-TRAIN witness of horizon-route contribution and shared-task gradients at the final ONLINE state. Bind exact current source/state/input/budget through existing native read-only guards before any model observation. Local gradients cannot establish7391-update causality. No training, loss/model/score change, threshold, horizon floor, Exit or TEST is admitted.",
+  "next_action": "Execute exactly one1558GCPU/900s preparation of first16frozenTRAIN256 inputs and saved151targets/references; no model, PT, provider or rawM1/MBP reads. Then admit only the exact one-forward/22-reverse zero-update156witness after input/source/state/hardware gates. Direction qualification goal remains active; no improvement/model/loss change selected.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -104,7 +104,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "154_COMPLETE_NEXT_FIXED_TRAIN_HORIZON_GRADIENT_WITNESS",
+    "current_activity": "155_FIXED_TRAIN16_INPUT_TARGET_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7631,7 +7631,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Use154saved-curve and source/loss evidence to prepare the minimum zero-update fixed-TRAIN witness of horizon-route contribution and shared-task gradients at the final ONLINE state. Bind exact current source/state/input/budget through existing native read-only guards before any model observation. Local gradients cannot establish7391-update causality. No training, loss/model/score change, threshold, horizon floor, Exit or TEST is admitted.",
+    "next_action": "Execute exactly one1558GCPU/900s preparation of first16frozenTRAIN256 inputs and saved151targets/references; no model, PT, provider or rawM1/MBP reads. Then admit only the exact one-forward/22-reverse zero-update156witness after input/source/state/hardware gates. Direction qualification goal remains active; no improvement/model/loss change selected.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -15757,7 +15757,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Use154saved-curve and source/loss evidence to prepare the minimum zero-update fixed-TRAIN witness of horizon-route contribution and shared-task gradients at the final ONLINE state. Bind exact current source/state/input/budget through existing native read-only guards before any model observation. Local gradients cannot establish7391-update causality. No training, loss/model/score change, threshold, horizon floor, Exit or TEST is admitted.",
+      "next_action": "Execute exactly one1558GCPU/900s preparation of first16frozenTRAIN256 inputs and saved151targets/references; no model, PT, provider or rawM1/MBP reads. Then admit only the exact one-forward/22-reverse zero-update156witness after input/source/state/hardware gates. Direction qualification goal remains active; no improvement/model/loss change selected.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 2,
       "full_native_epoch_request_fulfilled": true,
@@ -17019,7 +17019,37 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/HANDOVER_FOCUSED_CHECKS_TERMINAL.json",
       "sha256": "1ca82463022206a2a83d5cb6fddde8f26589fbf60640261df085911eb9ca37f4"
     },
-    "handover_ready_for_next_agent": true
+    "handover_ready_for_next_agent": false,
+    "autonomous_direction_qualification_goal_20261021": {
+      "status": "ACTIVE_DIAGNOSE_THEN_MEASURE_ONE_JUSTIFIED_IMPROVEMENT",
+      "operator_request_utc": "2026-10-21T19:15:05.466847+00:00",
+      "operator_request_verbatim": "Flott! Lag disse punktene som et mål og jobb kontinuerlig til du er fornøyd med resultatet av bedre kvalifikasjon av retning",
+      "task_goal_thread_id": "01a15fb6-db63-7fc2-b74c-9a104bf14312",
+      "objective": "Better qualified M5 Entry LONG/SHORT/FLAT direction, move magnitude and small MAE before first MFE using shared native model, existing MBP-1/SMC and causal closed M15/H1/H4/D1 context.",
+      "work_packages": [
+        "Learn and qualify observed price response to trade/BBO/liquidity/volume history together with SMC location and closed MTF context. Preserve unknown/missing information and all declared active routes.",
+        "Measure and improve genuine horizon-dependent direction; begin with one fixed-TRAIN zero-update horizon/task-gradient witness from154evidence.",
+        "Evaluate direction, magnitude, declared costs, pathquality and LONG/SHORT/FLAT selected/abstained coverage separately.",
+        "Choose one evidence-bound correction at a time; compare identical declared rows/data/budgets with fresh current-function baseline and actual relevant parity/state/guard gates."
+      ],
+      "completion_criteria": [
+        "A source/target/loss/decision-consistent proposed improvement is actually executed within exact qualified scope, with original receipts/checkpoints preserved.",
+        "Paired directional calibration/contrast and error improve against declared references on TRAIN and chronologically later development, with coverage, time-block uncertainty and period stability reported.",
+        "Selected LONG/SHORT and abstained FLAT opportunities are traceable; constantFLAT, pooled componentimprovement or a technicalPASS alone does not complete the goal.",
+        "State clearly what is proven about technical execution, TRAIN-learning, reused-development comparison, later generalization and economic edge. Missing required quality evidence prevents completion."
+      ],
+      "execution_rules": [
+        "Root integrator owns policy/launch; disjoint read agents, one capped heavy CURRENT job, frozen source during runs.",
+        "Reuse qualified physical inputs, targets, normalization and passed unchanged gates.",
+        "No historical one-shot relaunch, blind extraepoch/HPO or new fitted/serving authority; necessary new experiments require concrete scope and exact policy admission before execution.",
+        "No Exit/TEST adaptation, broker, live/paper, orders, spending or promotion."
+      ],
+      "zero_update_witness_preparation_authorized": true,
+      "new_model_observation_admitted": false,
+      "new_training_admitted": false,
+      "new_model_or_loss_correction_selected": false,
+      "latest_evidence_stage": "dynamic_m5_direction_horizon_diagnosis_154"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -19583,7 +19613,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T18:41:18.194276+00:00",
+  "updated_utc": "2026-10-21T19:32:40.500862+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -22065,5 +22095,44 @@
       "training_cause_established": false,
       "entry_quality_generalization_or_edge_qualified": false
     }
+  },
+  "dynamic_m5_direction_witness_preparation_155": {
+    "status": "PREPARED_ONE_CAPPED_CPU_FIXED_TRAIN16_PACKET",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_155/PLAN.json",
+      "sha256": "70b6dd802e292213940bbc1bc1e966d7ec51502f5463c95df733aaf3536d1e99"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_155/prepare_train_witness.py",
+      "sha256": "6dc21755fd66973635c64e632d073d8ba4fd2d6918afee5389df10947e7692a1"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_155",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "claimed_invocations": 0,
+    "relaunch_allowed": false,
+    "max_wall_seconds": 900,
+    "class": "producer",
+    "memory_bytes": 8589934592,
+    "swap_bytes": 536870912,
+    "model_forwards_admitted": 0,
+    "optimizer_updates_admitted": 0,
+    "preexecution_source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_155/PREEXECUTION_SOURCE_PEER_REVIEW.json",
+      "sha256": "0275d7d281cbb06431abb85324797b491ba93761a98bec4b7c0cbaa0962017c0"
+    },
+    "native_closure_reuse": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/NATIVE_SOURCE_CLOSURE_REUSE.json",
+      "sha256": "1d6a0ccfdde6d24dbe823eb7e7065e849940a14c24f6b51f70c6ab26feb4008b"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

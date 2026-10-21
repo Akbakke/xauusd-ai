@@ -113,3 +113,54 @@ def test_technical_full_val_session_is_hash_bound_and_monotonic(
             elapsed_seconds_completed=13.0,
             complete=False,
         )
+
+
+def test_direction_witness_cli_routes_before_legacy_val_parser(monkeypatch, tmp_path):
+    from gx1.audit import dynamic_m5_direction_witness_v1 as direction
+
+    observed = []
+    monkeypatch.setattr(direction, "run", lambda **kwargs: observed.append(kwargs) or {"status": "source-only-test"})
+    plan = tmp_path / "plan.json"
+    out = (tmp_path / "out").resolve()
+    result = technical_val.main(["--dynamic-m5-direction-witness-plan", str(plan),
+        "--dynamic-m5-direction-witness-plan-sha256", "a" * 64,
+        "--device", "cuda", "--out-dir", str(out)])
+    assert result == 0
+    assert observed == [{"plan_path": plan, "plan_sha256": "a" * 64, "device": "cuda", "out_dir": out}]
+
+
+@pytest.mark.parametrize("extra", [
+    ["--device", "cuda"],
+    ["--dynamic-m5-direction-witness-plan", "another.json"],
+    ["--bundle-dir", "legacy-bundle"],
+    ["--dynamic-compact-input-influence-plan", "another-mode.json"],
+])
+def test_direction_witness_cli_rejects_duplicate_or_mixed_scope(monkeypatch, tmp_path, extra):
+    from gx1.audit import dynamic_m5_direction_witness_v1 as direction
+
+    calls = []
+    monkeypatch.setattr(direction, "run", lambda **kwargs: calls.append(kwargs))
+    with pytest.raises(SystemExit):
+        technical_val.main(["--dynamic-m5-direction-witness-plan", str(tmp_path / "plan.json"),
+            "--dynamic-m5-direction-witness-plan-sha256", "a" * 64,
+            "--device", "cuda", "--out-dir", str((tmp_path / "out").resolve()), *extra])
+    assert calls == []
+
+
+@pytest.mark.parametrize("change", [
+    {"training_enabled": True}, {"exit_evaluation": True}, {"test_data_used": True},
+    {"max_forward_calls": 2}, {"max_reverse_calls": 23},
+    {"headline_horizons": [1, 5, 15, 60, 120, 240, 481]},
+])
+def test_direction_witness_plan_rejects_scope_expansion(change):
+    from gx1.audit import dynamic_m5_direction_witness_v1 as direction
+
+    plan = {"schema_version": direction.PLAN_SCHEMA, "run_id": "fixed-train-witness",
+        "policy_stage_key": "unit-scope", "input_scope": {"path": "/unused.json", "sha256": "a" * 64},
+        "output_directory": "/unused-output", "one_shot_invocations": 1,
+        "max_wall_seconds": 900, "max_forward_calls": 1, "max_reverse_calls": 22,
+        "headline_horizons": [1, 5, 15, 60, 120, 240, 480],
+        **{key: False for key in direction.FLAGS}}
+    direction._require_plan(plan)
+    with pytest.raises(RuntimeError, match="PLAN_BUDGET_OR_AUTHORITY"):
+        direction._require_plan({**plan, **change})

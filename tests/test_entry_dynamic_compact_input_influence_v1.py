@@ -765,3 +765,275 @@ class TestDynamicCompactCaseManifestV1(unittest.TestCase):
                          "all_consumed_family_coordinates")
         self.assertEqual(cases["m5.value"]["status"], "not_exercised_missing")
         self.assertEqual(cases["m5.mask"]["status"], "not_exercised_missing")
+
+
+class _DirectionWitnessAlgebra(torch.nn.Module):
+    """Small pointwise graph with native output/label shapes; no native model."""
+
+    def __init__(self, *, zero_forecast_route=False):
+        super().__init__()
+        from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        from gx1.contracts.entry_model_native_joint_task_weighting_v1 import DYNAMIC_M5_JOINT_TASK_NAMES
+        self.entry_training_phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+        self.family_tf_context_gate = torch.nn.Linear(2, 2)
+        self.family_tf_token_gate = torch.nn.Linear(2, 1)
+        self.entry_q_joint_norm = torch.nn.Identity()
+        self.entry_q_joint_in = torch.nn.Linear(2, 2)
+        self.entry_q_joint_in.register_parameter("unused", torch.nn.Parameter(torch.tensor(3.0)))
+        self.dynamic_m5_query_projection = torch.nn.Sequential(torch.nn.Linear(4, 2), torch.nn.GELU())
+        self.head_dynamic_terminal_net_markout = torch.nn.Linear(2, 2)
+        self.head_dynamic_mfe = torch.nn.Linear(2, 2)
+        self.head_dynamic_pre_mfe_mae_upper = torch.nn.Linear(2, 2)
+        self.head_forecast = torch.nn.Linear(2, 10)
+        self.task_log_variances = torch.nn.ParameterDict({
+            name: torch.nn.Parameter(torch.tensor(float(index) / 4))
+            for index, name in enumerate(DYNAMIC_M5_JOINT_TASK_NAMES)})
+        with torch.no_grad():
+            for layer in (self.family_tf_context_gate, self.entry_q_joint_in):
+                layer.weight.copy_(torch.eye(2))
+                layer.bias.zero_()
+            self.dynamic_m5_query_projection[0].weight.copy_(torch.tensor([[1., 0., 2., 3.], [0., 1., -1., 1.]]))
+            self.dynamic_m5_query_projection[0].bias.fill_(0.25)
+            self.head_dynamic_terminal_net_markout.weight.copy_(torch.tensor([[1., 0.], [0., -2.]]))
+            self.head_dynamic_mfe.weight.copy_(torch.tensor([[0.5, 1.], [1., 0.]]))
+            self.head_dynamic_pre_mfe_mae_upper.weight.copy_(torch.eye(2))
+            for layer in (self.head_dynamic_terminal_net_markout, self.head_dynamic_mfe,
+                          self.head_dynamic_pre_mfe_mae_upper, self.head_forecast):
+                layer.bias.zero_()
+            self.head_forecast.weight.fill_(0. if zero_forecast_route else 0.5)
+        self.calls = 0
+        self.eval()
+
+    def forward(self, x):
+        from gx1.contracts.entry_causal_m1_outcomes_v1 import (
+            DYNAMIC_M1_PREFIX_ENDPOINT_KINDS, DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT,
+            DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT,
+        )
+        self.calls += 1
+        z = self.family_tf_context_gate(x) + 0 * self.family_tf_token_gate(x)
+        hidden = self.entry_q_joint_in(self.entry_q_joint_norm(z))
+        queries, curves = [], {}
+        for endpoint, endpoint_kind in enumerate(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS):
+            query = (torch.arange(1, 481, dtype=torch.float32) / 480)[None, :, None].expand(len(x), -1, -1)
+            source = torch.cat((hidden[:, None].expand(-1, 480, -1), query,
+                                torch.full_like(query, endpoint)), dim=-1)
+            decoded = self.dynamic_m5_query_projection(source)
+            queries.append(source)
+            curves[endpoint_kind] = (self.head_dynamic_terminal_net_markout(decoded), self.head_dynamic_mfe(decoded),
+                                     torch.nn.functional.softplus(self.head_dynamic_pre_mfe_mae_upper(decoded)))
+        terminal, mfe, mae = curves[DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT]
+        _, closed_mfe, closed_mae = curves[DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT]
+        flat = torch.zeros_like(terminal[..., :1])
+        quality = terminal - mae
+        best = quality.max(dim=1).values
+        outputs = {
+            "dynamic_terminal_net_markout_bps": torch.cat((terminal, flat), dim=-1),
+            "dynamic_mfe_bps": mfe, "dynamic_pre_mfe_mae_upper_bps": mae,
+            "dynamic_closed_mfe_bps": closed_mfe, "dynamic_closed_pre_mfe_mae_upper_bps": closed_mae,
+            "dynamic_entry_quality_bps_candidate": torch.cat((quality, flat), dim=-1),
+            "dynamic_entry_action_quality_bps_candidate": torch.cat((best, flat[:, 0]), dim=-1),
+            "dynamic_entry_quality_best_horizon_mask": quality == best[:, None],
+            "dynamic_query_horizon_minutes": torch.arange(1, 481),
+            "entry_q_joint_hidden": hidden, "forecast_pred": self.head_forecast(z),
+        }
+        return outputs, queries, z
+
+
+class TestDirectionWitnessGradientArithmetic(unittest.TestCase):
+    headlines = (1, 5, 15, 60, 120, 240, 480)
+
+    def fixture(self, *, zero_forecast_route=False):
+        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+            DYNAMIC_M5_LOSS_SCALE_BATCH_KEY, dynamic_m5_loss_scale_contract,
+        )
+        from gx1.contracts.entry_observed_market_v1 import (
+            DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
+            DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY,
+            DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+        )
+        from gx1.contracts.entry_observed_market_horizons_v1 import (
+            M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+        )
+        from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_AUX_FORECAST_HORIZONS
+        model = _DirectionWitnessAlgebra(zero_forecast_route=zero_forecast_route)
+        x = torch.tensor([[1., 2.], [-1., 0.5]])
+        outputs, queries, z = model(x)
+        terminal_valid = torch.ones(2, 480, 3, dtype=torch.bool)
+        terminal_valid[0, ::2, 0] = False
+        terminal_valid[1, ::3, 1] = False
+        terminal_valid[..., 2] = terminal_valid[..., 0] & terminal_valid[..., 1]
+        terminal_target = torch.ones(2, 480, 3)
+        terminal_target[..., 1] = -2
+        terminal_target[..., 2] = 0
+        terminal_target[~terminal_valid] = 0
+        inclusive_valid = torch.ones(2, 480, 2, dtype=torch.bool)
+        inclusive_valid[0, ::2, 0] = False
+        closed_valid = torch.ones(2, 480, 2, dtype=torch.bool)
+        closed_valid[:, ::3] = False
+        rms = {name: torch.full(shape, float(index + 2))
+               for index, (name, shape) in enumerate(dynamic_m5_loss_scale_contract()["surface_shapes"].items())}
+        batch = {"seq_x": x[:, None],
+            DYNAMIC_M5_MARKOUT_TARGET_KEY: terminal_target, DYNAMIC_M5_MARKOUT_VALID_KEY: terminal_valid,
+            DYNAMIC_M5_PATH_VALID_KEY: inclusive_valid, DYNAMIC_M5_CLOSED_PATH_VALID_KEY: closed_valid,
+            DYNAMIC_M5_LOSS_SCALE_BATCH_KEY: {"identity": {}, "rms": rms}}
+        for target_key, valid in ((DYNAMIC_M5_MFE_TARGET_KEY, inclusive_valid),
+                                  (DYNAMIC_M5_MAE_TARGET_KEY, inclusive_valid),
+                                  (DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, closed_valid),
+                                  (DYNAMIC_M5_CLOSED_MAE_TARGET_KEY, closed_valid)):
+            batch[target_key] = torch.where(valid, torch.ones(2, 480, 2), torch.zeros(2, 480, 2))
+        base_valid = torch.ones(2, 4, dtype=torch.bool)
+        base_valid[0, 0] = False
+        batch[M5_FORECAST_VALID_BATCH_KEY] = base_valid
+        for index, h in enumerate(MODEL_NATIVE_AUX_FORECAST_HORIZONS):
+            batch["y_forecast_ret_K" + str(h)] = base_valid[:, index].float()
+        support_valid = torch.ones(2, 6, dtype=torch.bool)
+        support_valid[1, 1] = False
+        batch[SUPPORT_FORECAST_VALID_BATCH_KEY] = support_valid
+        batch[SUPPORT_FORECAST_TARGET_BATCH_KEY] = support_valid.float()
+        return model, outputs, batch, queries, z
+
+    def witness(self, fixture):
+        model, outputs, batch, queries, z = fixture
+        return influence.dynamic_m5_direction_witness_gradients(model=model, outputs=outputs, batch=batch,
+            query_inputs=queries, forecast_input=z, headline_horizons=self.headlines)
+
+    def test_native_masks_rms_flat_denominator_and_shared_endpoint_counts(self):
+        from gx1.contracts.entry_observed_market_v1 import (
+            DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
+            DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_MFE_TARGET_KEY,
+            DYNAMIC_M5_PATH_VALID_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+        )
+        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import DYNAMIC_M5_LOSS_SCALE_BATCH_KEY
+        fixture = self.fixture()
+        _, outputs, batch, _, _ = fixture
+        result = self.witness(fixture)
+        name = "dynamic_terminal_net_markout_bps"
+        target, valid = batch[DYNAMIC_M5_MARKOUT_TARGET_KEY], batch[DYNAMIC_M5_MARKOUT_VALID_KEY]
+        scales = batch[DYNAMIC_M5_LOSS_SCALE_BATCH_KEY]["rms"]
+        side_square = ((outputs[name][..., :2] - target[..., :2]) / scales[name]).square()
+        expected = float(side_square[valid[..., :2]].sum() / int(valid.sum()))
+        self.assertEqual(result["task_statistics"][name]["observed_task_cells"], int(valid.sum()))
+        self.assertEqual(result["task_statistics"][name]["train_rms_mse"], expected)
+        self.assertGreater(int(valid.sum()), int(valid[..., :2].sum()))
+        total, count = 0.0, 0
+        for output_key, target_key, valid_key in (("dynamic_mfe_bps", DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY),
+            ("dynamic_closed_mfe_bps", DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY)):
+            mask = batch[valid_key]
+            total += float((((outputs[output_key] - batch[target_key]) / scales[output_key])[mask]).square().sum())
+            count += int(mask.sum())
+        self.assertEqual(result["task_statistics"]["dynamic_mfe_bps"]["observed_task_cells"], count)
+        self.assertAlmostEqual(result["task_statistics"]["dynamic_mfe_bps"]["train_rms_mse"], total / count, places=6)
+        for partition in result["terminal_partitions"].values():
+            self.assertEqual(partition["native_task_denominator"], int(valid.sum()))
+            self.assertEqual(partition["partition_observed_cells_including_flat"],
+                             partition["observed_side_cells"] + partition["partition_flat_cells"])
+        self.assertAlmostEqual(sum(p["unit_loss_contribution"] for p in result["terminal_partitions"].values()), expected, places=6)
+        group = "shared_forecast_input"
+        total_norm = result["gradient_summaries"][name][group]["l2_norm"]
+        partition_dots = result["gradient_pairs"]["terminal_partitions_to_native_terminal"]
+        self.assertAlmostEqual(sum(pair[group]["dot"] for pair in partition_dots.values()), total_norm ** 2, places=6)
+
+    def test_query_derivative_uses_actual_coordinate_and_endpoint_in_bps_per_minute(self):
+        import math
+        from gx1.contracts.entry_causal_m1_outcomes_v1 import (
+            DYNAMIC_M1_PREFIX_ENDPOINT_KINDS, DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT,
+            DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT,
+        )
+        self.assertEqual(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS.index(DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT), 0)
+        self.assertEqual(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS.index(DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT), 1)
+        fixture = self.fixture()
+        model, _, _, queries, _ = fixture
+        result = self.witness(fixture)
+        weight = model.dynamic_m5_query_projection[0].weight.detach()
+        bias = model.dynamic_m5_query_projection[0].bias.detach()
+        for endpoint_kind, component, head, positive in (
+            (DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT, "dynamic_terminal_net_markout_bps", model.head_dynamic_terminal_net_markout, False),
+            (DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT, "dynamic_mfe_bps", model.head_dynamic_mfe, False),
+            (DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT, "dynamic_closed_mfe_bps", model.head_dynamic_mfe, False),
+            (DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT, "dynamic_pre_mfe_mae_upper_bps", model.head_dynamic_pre_mfe_mae_upper, True),
+            (DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT, "dynamic_closed_pre_mfe_mae_upper_bps", model.head_dynamic_pre_mfe_mae_upper, True)):
+            endpoint = DYNAMIC_M1_PREFIX_ENDPOINT_KINDS.index(endpoint_kind)
+            pre = queries[endpoint].detach() @ weight.T + bias
+            gelu_derivative = 0.5 * (1 + torch.erf(pre / math.sqrt(2))) + pre * torch.exp(-pre.square() / 2) / math.sqrt(2 * math.pi)
+            expected = (gelu_derivative * weight[:, -2]) @ head.weight.detach().T / 480
+            if positive:
+                logits = torch.nn.functional.gelu(pre) @ head.weight.detach().T + head.bias.detach()
+                expected = expected * torch.sigmoid(logits)
+            for side, label in enumerate(("long", "short")):
+                row = result["query_sensitivity"][component + "." + label]
+                self.assertAlmostEqual(row["all_queries"]["mean"], float(expected[..., side].double().mean()), places=8)
+                self.assertAlmostEqual(row["headline_queries"]["1"]["mean"], float(expected[:, 0, side].double().mean()), places=8)
+                self.assertEqual(row["endpoint_kind"], endpoint_kind)
+                self.assertNotEqual(row["endpoint_input_connectivity"][endpoint], "unused")
+                self.assertEqual(row["endpoint_input_connectivity"][1 - endpoint], "unused")
+        first = result["query_sensitivity"]["dynamic_mfe_bps.long"]["all_queries"]["mean"]
+        closed = result["query_sensitivity"]["dynamic_closed_mfe_bps.long"]["all_queries"]["mean"]
+        self.assertNotEqual(first, closed)
+
+    def test_shared_forecast_route_unused_and_connected_zero_are_distinct(self):
+        result = self.witness(self.fixture())
+        terminal = result["gradient_summaries"]["dynamic_terminal_net_markout_bps"]
+        forecast = result["gradient_summaries"]["forecast_return_bps"]
+        self.assertEqual(terminal["forecast_head"]["status"], "unused")
+        self.assertIsNone(terminal["forecast_head"]["l2_norm"])
+        self.assertEqual(forecast["entry_joint_hidden"]["status"], "unused")
+        self.assertEqual(forecast["shared_forecast_input"]["status"], "nonzero")
+        self.assertIn("entry_q_joint_in.unused", terminal["entry_joint_projection"]["unused_parameter_names"])
+        self.assertIn("family_tf_token_gate.weight", terminal["shared_mtf_gates"]["connected_zero_parameter_names"])
+        zero = self.witness(self.fixture(zero_forecast_route=True))
+        row = zero["gradient_summaries"]["forecast_return_bps"]["shared_forecast_input"]
+        self.assertEqual(row["status"], "connected_zero")
+        self.assertEqual(row["l2_norm"], 0.0)
+        pair = next(value for key, value in zero["gradient_pairs"]["tasks"].items() if "forecast_return_bps" in key)
+        self.assertIsNone(pair["shared_forecast_input"]["cosine"])
+
+    def test_exact_reverse_budget_native_reuse_no_forward_grad_rng_or_state_mutation(self):
+        import json
+        from unittest import mock
+        from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+        from gx1.contracts import entry_dynamic_m5_loss_scale_v1 as loss_units
+        fixture = self.fixture()
+        model = fixture[0]
+        before = {name: value.clone() for name, value in model.state_dict().items()}
+        rng = torch.get_rng_state().clone()
+        with mock.patch.object(torch.autograd, "grad", wraps=torch.autograd.grad) as reverse, \
+                mock.patch.object(trainer, "_dynamic_m5_task_loss_surfaces", wraps=trainer._dynamic_m5_task_loss_surfaces) as native, \
+                mock.patch.object(trainer, "_joint_task_loss", wraps=trainer._joint_task_loss) as joint, \
+                mock.patch.object(loss_units, "dynamic_m5_scaled_square_sum", wraps=loss_units.dynamic_m5_scaled_square_sum) as squared, \
+                mock.patch.object(model, "forward", side_effect=AssertionError("Unexpected extra forward")):
+            result = self.witness(fixture)
+        self.assertEqual(reverse.call_count, 22)
+        self.assertEqual(native.call_count, 2)
+        self.assertEqual(joint.call_count, 13)  # Full diagnostic plus12 native scalarized projections.
+        self.assertEqual(squared.call_count, 14)  # Six native surfaces plus8 terminal partitions.
+        for call in squared.call_args_list[-8:]:
+            self.assertEqual(call.args[1].shape[-1], 3)
+            self.assertTrue(torch.equal(call.args[1][~call.args[2]], torch.zeros_like(call.args[1][~call.args[2]])))
+        self.assertEqual(model.calls, 1)
+        self.assertEqual(result["forward_calls"], 0)
+        self.assertEqual(result["reverse_calls"], 22)
+        self.assertTrue(all(parameter.grad is None for parameter in model.parameters()))
+        self.assertTrue(all(torch.equal(before[name], value) for name, value in model.state_dict().items()))
+        self.assertTrue(torch.equal(torch.get_rng_state(), rng))
+        json.dumps(result, allow_nan=False)
+
+    def test_unobserved_partition_is_explicit_and_bad_mode_query_or_storage_fail_closed(self):
+        from gx1.contracts.entry_observed_market_v1 import DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY
+        fixture = self.fixture()
+        fixture[2][DYNAMIC_M5_MARKOUT_VALID_KEY][:, 4] = False
+        fixture[2][DYNAMIC_M5_MARKOUT_TARGET_KEY][:, 4] = 0
+        result = self.witness(fixture)
+        self.assertEqual(result["terminal_partitions"]["terminal.h5"]["role"], "unobserved_partition_not_evidence")
+        self.assertEqual(result["terminal_partitions"]["terminal.h5"]["observed_side_cells"], 0)
+        fixture = self.fixture()
+        fixture[0].train()
+        with self.assertRaisesRegex(RuntimeError, "DIRECTION_REQUIRES_EVAL_GRAD_GRAPH"):
+            self.witness(fixture)
+        fixture = self.fixture()
+        fixture[3].reverse()
+        with self.assertRaisesRegex(RuntimeError, "DIRECTION_QUERY_ORDER_OR_IDENTITY"):
+            self.witness(fixture)
+        fixture = self.fixture()
+        fixture[2][DYNAMIC_M5_MARKOUT_TARGET_KEY][0, 0, 0] = 7
+        with self.assertRaisesRegex(RuntimeError, "TARGET_STORAGE_INVALID"):
+            self.witness(fixture)

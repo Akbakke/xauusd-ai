@@ -8,6 +8,23 @@ Originalbestillingen er bevart ordrett i
 Nåværende delmål: kvalifiser M5 Entry LONG/SHORT/FLAT, lav MAE før første MFE,
 kvalitet/dekning og forklarbare valgte/avståtte signaler. Ingen Exit i denne bølgen.
 
+## Aktiv bestilling21.10
+
+Brukeren har bestilt disse fire punktene som et mål og kontinuerlig arbeid til
+bedre retningskvalifikasjon er målt: prisrespons fra MBP-1/SMC/lukketMTF,
+faktisk horisontavhengig retning, separat retning/størrelse/MAE/MFE/kost/dekning,
+og én målt begrunnet forbedring om gangen på sammenlignbare data og budsjetter.
+Målet og ferdigkriteriene står i policyens
+`current_work.autonomous_direction_qualification_goal_20261021`.
+Start med154-beviset og et presist nullstegs TRAIN-vitne.155 er bundet
+til én8GCPU/900s input-/målpakke for første16 fryste TRAIN256-rader.
+153fokuserte kilde-/gradient-/CLI-kontroller er bestått; native183kilder er
+byteuendret.156s nye leseadapter er implementert, men ingen modellobservasjon
+er ennå innrømmet eller utført. Gjenbruk beståtte
+uendrede gater. Nye modellobservasjoner eller treningsforsøk krever først sine
+konkrete kilde-/state-/input-/budsjettbindinger og faktiske policyporter.
+Ingen Exit/TEST/broker/handel åpnes. Målet er aktivt, ikke ferdig kvalifisert.
+
 ## Gjort nå
 
 151 er COMPLETE/consumed: den eksplisitt godkjente TRAIN-RMS-epoken kjørte

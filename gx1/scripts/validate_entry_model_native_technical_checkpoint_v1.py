@@ -1023,6 +1023,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     import sys
 
     supplied = list(sys.argv[1:] if argv is None else argv)
+    direction_options = ("--dynamic-m5-direction-witness-plan", "--dynamic-m5-direction-witness-plan-sha256")
+    if any(value.partition("=")[0] in direction_options for value in supplied):
+        direction_parser = argparse.ArgumentParser(
+            description="One fixed-TRAIN read-only direction/gradient witness", allow_abbrev=False, add_help=False)
+        direction_parser.add_argument(direction_options[0], type=Path, required=True)
+        direction_parser.add_argument(direction_options[1], required=True)
+        direction_parser.add_argument("--device", choices=("cuda",), required=True)
+        direction_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*direction_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                direction_parser.error(f"duplicate flag: {option}")
+        direction_args = direction_parser.parse_args(supplied)
+        if not direction_args.out_dir.is_absolute():
+            direction_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.dynamic_m5_direction_witness_v1 import run as run_direction
+
+        report = run_direction(plan_path=direction_args.dynamic_m5_direction_witness_plan,
+            plan_sha256=str(direction_args.dynamic_m5_direction_witness_plan_sha256),
+            device="cuda", out_dir=direction_args.out_dir)
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     dynamic_options = (
         "--dynamic-compact-input-influence-plan",
         "--dynamic-compact-input-influence-plan-sha256",
