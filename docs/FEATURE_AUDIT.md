@@ -519,3 +519,16 @@ stack/stateage, quote-volumeVWAP, BBpopulationddof0, enheter og første gyldige
 rad perTF. Gyldige nullverdier skilles fra udefinerte normaliserte kvotienter.
 Formel-/warmupbevis alene erstatter ikke uavhengig numerisk kontroll av alle
 felt, faktisk modellkonsum eller etterfølgende kvalifisert læring.
+
+Den uavhengige23×5-referansen i127 omfatter alle115tekniske cacheoutputs,
+55aktive i kompaktprofilen og60parkerte. Den bruker seks kolonner fra ekte
+nativeM5-historikk fra2009 før slicing til eksisterende cacheaksene. Ingen
+reseeding fra allerede trimmet M5_ENRICHED, ingen sesjons-/gapreset eller
+F32priser før indikatorene. H4/D1 bruker02/22UTC-fase og observerte bøtter.
+ERROR_SPEC.json binder fullprefixEMA/Wilder, Kahan-summer og BB20s eksakte
+20punktsmomenter med separat fullhistorisk avrundingsregnskap. Hver positiv
+boundoperasjon avrundes utover; sluttlagringen kontrolleres som F32-intervall.
+Håndfasiter dekker blant annet minst41rader/remove-add, variert→uniformt→variert
+BB-ledger og stor binær prisoffset. Ingen global epsilon eller cachetilpasset
+feilgrense. Faktisk kilde-/fysisk resultat er kun gjeldende NEXT_RUN_POLICY;
+implementasjon og syntetiske fasiter alene kvalifiserer ingen produksjonsverdi.

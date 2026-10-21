@@ -31,7 +31,28 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — GC-inputkjeden kontrollert; teknisk referanse neste
+## Gjeldende arbeid — teknisk23×5-referanse127 under implementasjon
+
+127design, ERROR_SPEC og plan er publisert i
+`/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127`.
+Alle115tekniske outputs kontrolleres;55aktive i kompaktprofilen,60parkerte.
+Ekte fullnativeM5 fra2009 (18årspartisjoner,1215514rader,59202842byte) må
+brukes før cachetrimming. Faktiskprodusentrute beregner før slicing; standalone
+prebuildCLI er ikke denne ruten. Seks kolonner, priserF64/quotevolumI64,
+kalenderobservasjoner med indrepartialer og uten gap-/sesjonsreset.
+28datafiler1739102302byte bindes én gang; tiNPYcacher leses kun23av253felt.
+Ingen M5_ENRICHED-/MBP-/sekvens-/PT-/modellpayload eller ny normalisering.
+Avrundingsreglene er låst førdata: fullprefixEMA/Wilder, KahanVWAP og egen
+BB20Welforddrift/radius rundt uavhengige eksakte vindusmomenter; runtimepandas
+2.3.3/kernelfil er bundet. Ingen globalisclose/markedsepsilon eller tilpasning
+til faktiske cachefeil. Gjenbruk225PASS; kjør bare ny fokusert testklasse og
+relevante små håndfasiter. Kildepeer/AST/diffcheck er bestått; alle79tidligere
+hjelpere og225gamle caser er bevart.38nye caser er nå fryst og én capped
+kildekvalifisering er bundet; fysisk127 er uclaimet og stengt. Ingen jobb er
+startet ved denne kildecommitten.
+Trening og alle tidligere lukkede vakter er fortsatt stengt.
+
+## Ferdig — GC-inputkjeden kontrollert126
 
 126 er COMPLETE i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126`.
 Alle1205GCverdier+1205masker stemmer bit-eksakt fra publiserte024TF-tabeller

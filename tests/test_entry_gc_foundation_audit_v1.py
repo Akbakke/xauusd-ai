@@ -1825,3 +1825,379 @@ def test_native_projection_published_partial_day_tail_is_admitted_but_never_sele
     before_seal, _ = audit.reference_gc_native_projection(
         [_projection_field()], {"T": table}, np.array([seal-60*MINUTE], np.int64))
     np.testing.assert_array_equal(before_seal, np.array([[4., 1.]], np.float32))
+
+
+
+class TestTechnicalReference127:
+    """Small mathematical witnesses; no cache/data/model payload is needed."""
+
+    @staticmethod
+    def _owner():
+        from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+        return audit
+
+    @staticmethod
+    def _frame(close, *, high=None, low=None, volume=None, stamps=None):
+        close = np.asarray(close, dtype=np.float64)
+        n = len(close)
+        if stamps is None:
+            origin = pd.Timestamp("2009-06-01T00:00:00Z").value
+            stamps = origin + np.arange(n, dtype=np.int64)*5*MINUTE
+        return {
+            "bar_start_ns": np.asarray(stamps, dtype=np.int64),
+            "open": close.copy(),
+            "high": close + .5 if high is None else np.asarray(high, dtype=np.float64),
+            "low": close - .5 if low is None else np.asarray(low, dtype=np.float64),
+            "close": close.copy(),
+            "volume": np.ones(n, dtype=np.int64) if volume is None else np.asarray(volume, dtype=np.int64),
+        }
+
+    @staticmethod
+    def _encloses(values, radii, index, numerator, denominator=1):
+        # Fractions compare the stated mathematical value with the returned
+        # binary64 centre/radius without introducing an arbitrary test epsilon.
+        from fractions import Fraction
+        centre = Fraction.from_float(float(values[index]))
+        radius = Fraction.from_float(float(radii[index]))
+        target = Fraction(numerator, denominator)
+        assert radius >= 0
+        assert centre-radius <= target <= centre+radius
+
+    def test_exact_twenty_three_field_contract_and_nonnegative_bounds(self):
+        audit = self._owner()
+        expected = (
+            "atr_bps_14", "rsi14_centered", "mom_5_atr", "mom_20_atr", "close_open_atr",
+            "ema20_dist_atr", "ema50_dist_atr", "ema100_dist_atr", "ema200_dist_atr",
+            "ema20_slope_atr", "ema50_slope_atr", "ema100_slope_atr", "ema200_slope_atr",
+            "ema_stack_aligned_v2", "vwap_rolling5_dist_atr", "vwap20_dist_atr",
+            "vwap96_dist_atr", "vwap_rolling5_slope_atr", "bb_position", "bb_width_atr",
+            "adx14", "di_spread_signed", "trend_state_age_bars",
+        )
+        assert tuple(audit.TECHNICAL_NUMERIC_FIELDS) == expected
+        close = 100 + np.arange(240, dtype=np.float64)
+        frame = self._frame(close, high=close+2, low=close-2)
+        frame["open"] -= 1
+        values, bounds, report = audit.reference_technical_block(frame)
+        assert tuple(values) == expected and tuple(bounds) == expected
+        assert report["source_rows"] == 240
+        for name in expected:
+            assert values[name].dtype == np.float64 and bounds[name].dtype == np.float64
+            observed = np.isfinite(values[name])
+            assert np.array_equal(np.isfinite(bounds[name]), observed)
+            assert np.all(bounds[name][observed] >= 0)
+        # On an arithmetic price progression, the classic EMA's seeded lag
+        # is (span-1)/2 forever; all returns/distances below are in ATR=4.
+        rational = {
+            "atr_bps_14": (40000, 339), "rsi14_centered": (1, 1),
+            "mom_5_atr": (5, 4), "mom_20_atr": (5, 1), "close_open_atr": (1, 4),
+            "ema20_dist_atr": (19, 8), "ema50_dist_atr": (49, 8),
+            "ema100_dist_atr": (99, 8), "ema200_dist_atr": (199, 8),
+            "ema20_slope_atr": (5, 4), "ema50_slope_atr": (5, 4),
+            "ema100_slope_atr": (5, 1), "ema200_slope_atr": (5, 1),
+            "ema_stack_aligned_v2": (1, 1), "vwap_rolling5_dist_atr": (1, 2),
+            "vwap20_dist_atr": (19, 8), "vwap96_dist_atr": (95, 8),
+            "vwap_rolling5_slope_atr": (5, 4), "adx14": (100, 1),
+            "di_spread_signed": (1, 1), "trend_state_age_bars": (40, 1),
+        }
+        for name, (num, den) in rational.items():
+            self._encloses(values[name], bounds[name], 239, num, den)
+        # BB20 population variance is133/4. Squaring the positive exact
+        # interval avoids a guessed epsilon for the irrational square root.
+        from fractions import Fraction
+        for name, offset, target in [("bb_width_atr", 0, Fraction(133, 4)),
+                                     ("bb_position", Fraction(1, 2), Fraction(361, 2128))]:
+            centre = Fraction.from_float(float(values[name][239]))-offset
+            radius = Fraction.from_float(float(bounds[name][239]))
+            assert centre-radius > 0
+            assert (centre-radius)**2 <= target <= (centre+radius)**2
+
+    def test_ema_impulse_has_sma_seed_then_half_weight_recursion(self):
+        values, bounds = self._owner().reference_technical_ema(
+            np.array([1., 1., 4., 1., 1.], np.float64), 3)
+        np.testing.assert_array_equal(values, np.array([np.nan, np.nan, 2., 1.5, 1.25]))
+        for row, numerator, denominator in [(2, 2, 1), (3, 3, 2), (4, 5, 4)]:
+            self._encloses(values, bounds, row, numerator, denominator)
+
+    def test_wilder_primitive_has_mean_seed_and_rational_recurrence(self):
+        values, bounds = self._owner().reference_technical_wilder(
+            np.array([2., 2., 8., 2., 2.], np.float64), 3)
+        assert np.isnan(values[:2]).all()
+        for row, numerator, denominator in [(2, 4, 1), (3, 10, 3), (4, 26, 9)]:
+            self._encloses(values, bounds, row, numerator, denominator)
+
+    def test_atr_gap_uses_previous_close_and_keeps_raw_bps_units(self):
+        close = np.array([100.]*14 + [110., 110.], np.float64)
+        frame = self._frame(close, high=np.array([101.]*14 + [111., 111.]),
+                            low=np.array([99.]*14 + [109., 109.]))
+        values, bounds, _ = self._owner().reference_technical_block(frame)
+        assert np.isnan(values["atr_bps_14"][:13]).all()
+        self._encloses(values["atr_bps_14"], bounds["atr_bps_14"], 13, 200)
+        # ATR14: 2 -> (13*2+11)/14 -> (13*(37/14)+2)/14.
+        self._encloses(values["atr_bps_14"], bounds["atr_bps_14"], 14, 37000, 154)
+        self._encloses(values["atr_bps_14"], bounds["atr_bps_14"], 15, 127250, 539)
+        self._encloses(values["mom_5_atr"], bounds["mom_5_atr"], 14, 140, 37)
+
+    def test_rsi_fourteen_changes_and_centered_scale_have_rational_answer(self):
+        # Seven +1 and seven -1 changes seed equal mean gain/loss.  The
+        # following +1 gives gain15/28, loss13/28 and centred RSI1/14.
+        close = np.array([100.]+[101. if i % 2 else 100. for i in range(1, 15)]+[101.])
+        values, bounds, _ = self._owner().reference_technical_block(self._frame(close))
+        assert np.isnan(values["rsi14_centered"][:14]).all()
+        self._encloses(values["rsi14_centered"], bounds["rsi14_centered"], 14, 0)
+        self._encloses(values["rsi14_centered"], bounds["rsi14_centered"], 15, 1, 14)
+
+    @pytest.mark.parametrize("direction", [1, -1])
+    def test_rsi_and_adx_directional_extremes_have_distinct_warmups(self, direction):
+        close = 200 + direction*np.arange(40, dtype=np.float64)
+        values, bounds, _ = self._owner().reference_technical_block(self._frame(close))
+        assert np.isnan(values["rsi14_centered"][:14]).all()
+        assert np.isnan(values["di_spread_signed"][:14]).all()
+        assert np.isnan(values["adx14"][:27]).all()
+        for row in (14, 39):
+            self._encloses(values["rsi14_centered"], bounds["rsi14_centered"], row, direction)
+            self._encloses(values["di_spread_signed"], bounds["di_spread_signed"], row, direction)
+        for row in (27, 39):
+            self._encloses(values["adx14"], bounds["adx14"], row, 100)
+
+    def test_equal_outside_bar_moves_do_not_create_directional_movement(self):
+        n = 40
+        frame = self._frame(np.full(n, 100.), high=101+np.arange(n), low=99-np.arange(n))
+        values, _, _ = self._owner().reference_technical_block(frame)
+        # UpMove == DownMove: both DM values are zero. DI-sum is zero, so
+        # neither signedDI nor ADX is an observed zero or a synthetic trend.
+        assert np.isnan(values["di_spread_signed"]).all()
+        assert np.isnan(values["adx14"]).all()
+
+    def test_flat_close_preserves_legitimate_zero_and_unavailable_divisors(self):
+        frame = self._frame(np.full(240, 100.), high=np.full(240, 101.), low=np.full(240, 99.))
+        values, _, _ = self._owner().reference_technical_block(frame)
+        assert values["atr_bps_14"][13] == 200
+        assert values["rsi14_centered"][14] == 0
+        assert values["bb_width_atr"][19] == 0
+        assert np.isnan(values["bb_position"]).all()
+        assert np.isnan(values["di_spread_signed"]).all()
+        assert np.isnan(values["adx14"]).all()
+        assert values["ema_stack_aligned_v2"][199] == 0
+        assert values["trend_state_age_bars"][199] == 0
+        assert values["trend_state_age_bars"][239] == 40
+
+    def test_zero_atr_is_valid_bps_zero_but_never_a_division_floor(self):
+        frame = self._frame(np.full(240, 100.), high=np.full(240, 100.), low=np.full(240, 100.))
+        values, _, _ = self._owner().reference_technical_block(frame)
+        assert values["atr_bps_14"][13] == 0
+        for name in ("mom_5_atr", "mom_20_atr", "close_open_atr", "ema20_dist_atr",
+                     "ema200_slope_atr", "vwap96_dist_atr", "bb_width_atr"):
+            assert np.isnan(values[name]).all(), name
+
+    def test_rolling_quote_vwap_has_unequal_weights_and_full_window(self):
+        values, bounds = self._owner().reference_technical_rolling_vwap(
+            np.arange(1, 7, dtype=np.float64), np.array([1, 1, 1, 1, 2, 1], np.int64), 5)
+        assert np.isnan(values[:4]).all()
+        self._encloses(values, bounds, 4, 10, 3)
+        self._encloses(values, bounds, 5, 25, 6)
+
+    def test_vwap_distance_and_lag_five_slope_use_the_same_rolling_operand(self):
+        close = np.arange(100, 120, dtype=np.float64)
+        frame = self._frame(close, high=close+2, low=close-2)
+        values, bounds, _ = self._owner().reference_technical_block(frame)
+        # Unit quote weights: VWAP5[t]=C[t]-2, ATR=4 throughout.  Its
+        # five-observation change is5, irrespective of the clock gaps.
+        self._encloses(values["vwap_rolling5_dist_atr"], bounds["vwap_rolling5_dist_atr"], 19, 1, 2)
+        self._encloses(values["vwap_rolling5_slope_atr"], bounds["vwap_rolling5_slope_atr"], 19, 5, 4)
+        self._encloses(values["vwap20_dist_atr"], bounds["vwap20_dist_atr"], 19, 19, 8)
+
+    def test_bollinger_population_variance_and_atr_units_are_hand_computable(self):
+        close = np.array([9.]*10 + [11.]*10, np.float64)
+        stats, radii, _ = self._owner().reference_technical_bb20(close)
+        for name, expected in [("mean", 10), ("variance", 1), ("std", 1)]:
+            assert np.isnan(stats[name][:19]).all()
+            self._encloses(stats[name], radii[name], 19, expected)
+        frame = self._frame(close, high=np.full(20, 15.), low=np.full(20, 5.))
+        values, bounds, _ = self._owner().reference_technical_block(frame)
+        self._encloses(values["bb_position"], bounds["bb_position"], 19, 3, 4)
+        self._encloses(values["bb_width_atr"], bounds["bb_width_atr"], 19, 2, 5)
+
+    def test_all_twenty_three_fields_have_their_own_honest_warmup(self):
+        values, _, report = self._owner().reference_technical_block(
+            self._frame(100+np.arange(240, dtype=np.float64)))
+        first = {
+            "atr_bps_14": 13, "rsi14_centered": 14, "mom_5_atr": 13, "mom_20_atr": 20,
+            "close_open_atr": 13, "ema20_dist_atr": 19, "ema50_dist_atr": 49,
+            "ema100_dist_atr": 99, "ema200_dist_atr": 199, "ema20_slope_atr": 24,
+            "ema50_slope_atr": 54, "ema100_slope_atr": 119, "ema200_slope_atr": 219,
+            "ema_stack_aligned_v2": 199, "vwap_rolling5_dist_atr": 13,
+            "vwap20_dist_atr": 19, "vwap96_dist_atr": 95, "vwap_rolling5_slope_atr": 13,
+            "bb_position": 19, "bb_width_atr": 19, "adx14": 27,
+            "di_spread_signed": 14, "trend_state_age_bars": 199,
+        }
+        assert set(first) == set(values)
+        assert report["first_valid_rows"] == first
+        for name, row in first.items():
+            assert np.isnan(values[name][:row]).all(), name
+            assert np.isfinite(values[name][row]), name
+
+    def test_stack_ties_direction_changes_and_raw_state_age_are_not_saturated(self):
+        close = np.array([100.]*200 + [101., 99., 100.], np.float64)
+        values, _, _ = self._owner().reference_technical_block(self._frame(close))
+        np.testing.assert_array_equal(values["ema_stack_aligned_v2"][199:], [0, 1, -1, -1])
+        np.testing.assert_array_equal(values["trend_state_age_bars"][199:], [0, 0, 0, 1])
+        flat, _, _ = self._owner().reference_technical_block(self._frame(np.full(520, 100.)))
+        assert flat["trend_state_age_bars"][519] == 320
+
+    def test_calendar_gaps_do_not_reset_any_recurrence_or_rolling_window(self):
+        frame = self._frame(100+np.arange(240, dtype=np.float64))
+        gapped = {name: array.copy() for name, array in frame.items()}
+        gapped["bar_start_ns"][100:] += 17*DAY
+        a, ab, _ = self._owner().reference_technical_block(frame)
+        b, bb, _ = self._owner().reference_technical_block(gapped)
+        for name in a:
+            np.testing.assert_array_equal(a[name], b[name])
+            np.testing.assert_array_equal(ab[name], bb[name])
+
+    def test_full_native_prefix_is_seeded_before_the_cache_is_trimmed(self):
+        close = np.full(400, 100., np.float64)
+        close[20] = 200.
+        frame = self._frame(close)
+        full, _, report = self._owner().reference_technical_block(frame)
+        cut = {name: array[-96:].copy() for name, array in frame.items()}
+        reseeded, _, _ = self._owner().reference_technical_block(cut)
+        assert report["source_rows"] == 400
+        assert np.isfinite(full["ema200_dist_atr"][-96:]).all()
+        assert full["ema200_dist_atr"][-1] < 0
+        assert np.isnan(reseeded["ema200_dist_atr"]).all()
+        assert full["trend_state_age_bars"][-1] >= 1
+
+    @pytest.mark.parametrize("timeframe,minutes,origin", [
+        ("M5", 5, "2009-06-01T00:00:00Z"), ("M15", 15, "2009-06-01T00:00:00Z"),
+        ("H1", 60, "2009-06-01T00:00:00Z"), ("H4", 240, "2009-06-01T02:00:00Z"),
+        ("D1", 1440, "2009-06-01T22:00:00Z"),
+    ])
+    def test_all_native_calendar_phases_and_first_max_min_last_sum(self, timeframe, minutes, origin):
+        n = minutes//5
+        stamp = pd.Timestamp(origin).value
+        close = 100+np.arange(n, dtype=np.float64)
+        frame = self._frame(close, volume=1+np.arange(n),
+                            stamps=stamp+np.arange(n, dtype=np.int64)*5*MINUTE)
+        frame["open"] -= .25
+        result = self._owner().native_resample_calendar_frame(frame, timeframe)
+        assert result["bar_start_ns"].tolist() == [stamp]
+        assert result["open"].tolist() == [99.75]
+        assert result["high"].tolist() == [99.5+n]
+        assert result["low"].tolist() == [99.5]
+        assert result["close"].tolist() == [99.+n]
+        assert result["volume"].tolist() == [n*(n+1)//2]
+
+    def test_resample_drops_only_leading_and_unclosed_trailing_partials(self):
+        origin = pd.Timestamp("2009-06-01T00:00:00Z").value
+        frame = self._frame(np.arange(100, 106, dtype=np.float64),
+                            stamps=origin+np.array([5, 10, 15, 20, 25, 30], np.int64)*MINUTE)
+        result = self._owner().native_resample_calendar_frame(frame, "M15")
+        assert result["bar_start_ns"].tolist() == [origin+15*MINUTE]
+        assert result["open"].tolist() == [102.]
+        assert result["close"].tolist() == [104.]
+        assert result["volume"].tolist() == [3]
+
+    def test_resample_keeps_an_interior_partial_and_skips_empty_buckets(self):
+        origin = pd.Timestamp("2009-06-01T00:00:00Z").value
+        frame = self._frame(np.arange(100, 108, dtype=np.float64),
+                            stamps=origin+np.array([0, 5, 10, 20, 25, 60, 65, 70], np.int64)*MINUTE)
+        result = self._owner().native_resample_calendar_frame(frame, "M15")
+        assert result["bar_start_ns"].tolist() == [origin, origin+15*MINUTE, origin+60*MINUTE]
+        assert result["volume"].tolist() == [3, 2, 3]
+        assert result["close"].tolist() == [102., 104., 107.]
+
+    def test_float64_native_prices_are_not_precast_before_indicators(self):
+        precise = self._frame(10000+np.arange(240, dtype=np.float64)/10000)
+        precise["high"] = precise["close"]+.00005
+        precise["low"] = precise["close"]-.00005
+        rounded = {name: array.copy() for name, array in precise.items()}
+        for name in ("open", "high", "low", "close"):
+            rounded[name] = rounded[name].astype(np.float32).astype(np.float64)
+        native, _, _ = self._owner().reference_technical_block(precise)
+        wrong, _, _ = self._owner().reference_technical_block(rounded)
+        assert np.isfinite(native["atr_bps_14"][13:]).all()
+        assert np.any(native["atr_bps_14"][13:] != wrong["atr_bps_14"][13:])
+
+    def test_shadow_bound_accepts_final_float32_rounding_but_catches_wrong_value(self):
+        audit = self._owner()
+        reference = {"ema20_dist_atr": np.array([1+2.**-25], np.float64)}
+        bounds = {"ema20_dist_atr": np.array([0.], np.float64)}
+        actual = {"ema20_dist_atr": np.array([1.], np.float32)}
+        result = audit.compare_technical_reference(reference, actual, bounds)
+        assert result["ema20_dist_atr"]["numeric_reference_qualified"] is True
+        wrong = {"ema20_dist_atr": np.nextafter(actual["ema20_dist_atr"], np.float32(np.inf))}
+        with pytest.raises(RuntimeError, match="TECHNICAL_NUMERIC_REFERENCE_"):
+            audit.compare_technical_reference(reference, wrong, bounds)
+
+    @pytest.mark.parametrize("fault", ["wrong_value", "missing_observation", "synthetic_observation", "discrete"])
+    def test_comparison_rejects_value_mask_and_discrete_faults(self, fault):
+        audit = self._owner()
+        reference = {"rsi14_centered": np.array([np.nan, 0.], np.float64),
+                     "ema_stack_aligned_v2": np.array([np.nan, 0.], np.float64)}
+        bounds = {name: np.array([np.nan, 0.], np.float64) for name in reference}
+        actual = {name: array.astype(np.float32) for name, array in reference.items()}
+        if fault == "wrong_value": actual["rsi14_centered"][1] = .25
+        elif fault == "missing_observation": actual["rsi14_centered"][1] = np.nan
+        elif fault == "synthetic_observation": actual["rsi14_centered"][0] = 0
+        else:
+            bounds["ema_stack_aligned_v2"][1] = 1000
+            actual["ema_stack_aligned_v2"][1] = 1
+        with pytest.raises(RuntimeError, match="TECHNICAL_NUMERIC_REFERENCE_"):
+            audit.compare_technical_reference(reference, actual, bounds)
+
+    @pytest.mark.parametrize("fault", ["nan_price", "nonpositive_price", "bad_geometry", "zero_volume", "fractional_volume"])
+    def test_invalid_native_input_is_rejected_without_reset_or_synthetic_values(self, fault):
+        frame = self._frame(100+np.arange(240, dtype=np.float64))
+        if fault == "nan_price": frame["close"][100] = np.nan
+        elif fault == "nonpositive_price": frame["close"][100] = 0
+        elif fault == "bad_geometry": frame["high"][100] = frame["low"][100]-1
+        elif fault == "zero_volume": frame["volume"][100] = 0
+        else:
+            frame["volume"] = frame["volume"].astype(np.float64)
+            frame["volume"][100] = 1.5
+        with pytest.raises(RuntimeError, match="TECHNICAL_NUMERIC_REFERENCE_"):
+            self._owner().reference_technical_block(frame)
+
+
+    @pytest.mark.parametrize("case", ["remove_add_41", "uniform_then_variation", "large_binary_offset"])
+    def test_required_full_prefix_bollinger_handchecks(self, case):
+        from fractions import Fraction
+        if case == "remove_add_41":
+            close = np.arange(1, 42, dtype=np.float64)
+            expected = [(row, Fraction(2*row-17, 2), Fraction(133, 4))
+                        for row in range(19, 41)]
+        elif case == "uniform_then_variation":
+            close = np.concatenate([np.arange(1, 21, dtype=np.float64),
+                                    np.full(20, 10.), np.array([9., 11.])])
+            expected = [(39, Fraction(10), Fraction(0)),
+                        (41, Fraction(10), Fraction(1, 10))]
+        else:
+            close = np.array([2.**40+(i % 4)/4 for i in range(80)], np.float64)
+            expected = [(row, Fraction(8*2**40+3, 8), Fraction(5, 64))
+                        for row in range(19, 80)]
+        stats, radii, diagnostics = self._owner().reference_technical_bb20(close)
+        for name in ("mean", "variance", "std"):
+            assert np.isnan(stats[name][:19]).all()
+        for row, mean, variance in expected:
+            self._encloses(stats["mean"], radii["mean"], row, mean.numerator, mean.denominator)
+            self._encloses(stats["variance"], radii["variance"], row,
+                           variance.numerator, variance.denominator)
+            centre = Fraction.from_float(float(stats["std"][row]))
+            radius = Fraction.from_float(float(radii["std"][row]))
+            assert radius >= 0 and centre+radius >= 0
+            assert max(Fraction(0), centre-radius)**2 <= variance <= (centre+radius)**2
+        if case == "uniform_then_variation":
+            assert diagnostics["uniform_shortcuts"] >= 1
+            assert diagnostics["full_prefix_shadow_not_reset_by_uniform_output"] is True
+            block, _, _ = self._owner().reference_technical_block(self._frame(close))
+            assert block["bb_width_atr"][39] == 0
+            assert np.isnan(block["bb_position"][39])
+            assert block["bb_position"][41] > 1  # No clipping at the upper band.
+        elif case == "large_binary_offset":
+            block, errors, _ = self._owner().reference_technical_block(self._frame(close))
+            # Last close is B+3/4, mean B+3/8 and std sqrt(5)/8:
+            # (position-1/2)^2 = (3/(4*sqrt(5)))^2 = 9/80.
+            centre = Fraction.from_float(float(block["bb_position"][79]))-Fraction(1, 2)
+            radius = Fraction.from_float(float(errors["bb_position"][79]))
+            assert centre-radius > 0
+            assert (centre-radius)**2 <= Fraction(9, 80) <= (centre+radius)**2

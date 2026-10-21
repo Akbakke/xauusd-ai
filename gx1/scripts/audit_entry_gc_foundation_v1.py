@@ -3061,6 +3061,639 @@ def run_gc_native_projection_numeric(binding_path):
         'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(output)})
     publish_bundle_directory_noreplace(staging,root/(prefix+'_RESULTS'));print(prefix+'_REFERENCE_COMPLETE',flush=True)
 
+
+TECHNICAL_NUMERIC_PLAN_ID='NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127'
+TECHNICAL_NUMERIC_POLICY_KEY='technical_numeric_reference_127'
+TECHNICAL_NUMERIC_FIELDS=('atr_bps_14','rsi14_centered','mom_5_atr','mom_20_atr','close_open_atr',
+    'ema20_dist_atr','ema50_dist_atr','ema100_dist_atr','ema200_dist_atr',
+    'ema20_slope_atr','ema50_slope_atr','ema100_slope_atr','ema200_slope_atr','ema_stack_aligned_v2',
+    'vwap_rolling5_dist_atr','vwap20_dist_atr','vwap96_dist_atr','vwap_rolling5_slope_atr',
+    'bb_position','bb_width_atr','adx14','di_spread_signed','trend_state_age_bars')
+
+def _technical_up(value):
+    import math
+    if isinstance(value,(float,int,np.floating,np.integer)):
+        out=math.nextafter(float(value),math.inf)
+        if not math.isfinite(out):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_OVERFLOW')
+        return out
+    out=np.nextafter(value,np.inf)
+    if not np.isfinite(out).all():raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_OVERFLOW')
+    return out
+
+def _technical_uadd(*values):
+    # Each named nonnegative radius node rounds outward; not one bump after
+    # a compound expression. These helpers do not evaluate value intervals.
+    out=0.
+    for value in values:out=_technical_up(out+value)
+    return out
+
+def _technical_umul(a,b):return _technical_up(a*b)
+
+def _technical_udiv(a,b):return _technical_up(a/b)
+
+def _technical_rho(value):
+    # ERROR_SPEC: IEEE64 RN residual, with both nodes outward and eta64.
+    if isinstance(value,(float,int,np.floating,np.integer)):
+        a=abs(float(value));u=2.**-53
+        return _technical_udiv(_technical_umul(u,a),1.-u)
+    a=np.abs(value);u=2.**-53
+    return _technical_udiv(_technical_umul(u,a),1.-u)
+
+def _technical_vector(values):
+    a=np.asarray(values)
+    if a.dtype!=np.dtype('float64') or a.ndim!=1 or not np.isfinite(a).all():
+        raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SOURCE')
+    return a
+
+def _technical_seed(values, *, divide=True):
+    from fractions import Fraction
+    import math
+    n=len(values);exact=sum((Fraction.from_float(float(x)) for x in values),Fraction())
+    exact=exact/n if divide else exact;center=float(exact)
+    oracle_error=float(abs(Fraction.from_float(center)-exact))
+    if not oracle_error and all(float(x)==float(values[0]) for x in values):
+        numerator,denominator=float(values[0]).as_integer_ratio()
+        # Every possible partial sum is then exact in binary64, not just the
+        # chosen independent seed. This preserves genuine constant EMA ties.
+        if abs(numerator).bit_length()+(n-1).bit_length()<=53:return center,0.
+    u=2.**-53;gamma=(n-1)*u/(1-(n-1)*u)
+    total=math.fsum(abs(float(x)) for x in values)
+    error=_technical_umul(_technical_up(gamma),_technical_up(total))
+    if divide:error=_technical_uadd(_technical_udiv(error,n),_technical_rho(center))
+    return center,float(_technical_uadd(error,_technical_up(oracle_error)))
+
+def reference_technical_ema(close, span):
+    x=_technical_vector(close)
+    if isinstance(span,bool) or not isinstance(span,int) or span<1:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+    out=np.full(len(x),np.nan);bound=out.copy()
+    if len(x)<span:return out,bound
+    out[span-1],bound[span-1]=_technical_seed(x[:span]);a=2./(span+1.)
+    from fractions import Fraction
+    alpha_error=float(abs(Fraction.from_float(a)-Fraction(2,span+1)))
+    for i in range(span,len(x)):
+        m=float(out[i-1]);e=float(bound[i-1]);d=float(x[i])-m;p=a*d;y=m+p
+        out[i]=y
+        if e==0. and d==0.:bound[i]=0.;continue
+        # The shared alpha is the exact same represented declared constant.
+        # Compare both RN evaluations to the affine map, preserving contraction.
+        rd=_technical_uadd(_technical_rho(_technical_uadd(abs(d),e)),_technical_rho(d))
+        rp=_technical_uadd(_technical_rho(_technical_umul(a,_technical_uadd(abs(d),e,rd))),_technical_rho(p))
+        affine=_technical_uadd(_technical_umul(_technical_up(1-a),e),_technical_umul(a,rd),rp)
+        rm=_technical_uadd(_technical_rho(_technical_uadd(abs(y),affine)),_technical_rho(y))
+        alpha_radius=_technical_umul(2.,_technical_umul(_technical_up(alpha_error),_technical_uadd(abs(d),e))) if alpha_error else 0.
+        bound[i]=_technical_uadd(affine,rm,alpha_radius)
+    return out,bound
+
+def reference_technical_wilder(values, period):
+    x=_technical_vector(values)
+    if isinstance(period,bool) or not isinstance(period,int) or period<1:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+    out=np.full(len(x),np.nan);bound=out.copy()
+    if len(x)<period:return out,bound
+    out[period-1],bound[period-1]=_technical_seed(x[:period]);k=period-1
+    for i in range(period,len(x)):
+        m=float(out[i-1]);e=float(bound[i-1]);product=k*m;total=product+float(x[i]);value=total/period;out[i]=value
+        if e==0. and m==x[i]:
+            from fractions import Fraction
+            exact=Fraction.from_float(m)
+            if Fraction.from_float(product)==k*exact and Fraction.from_float(total)==period*exact and value==m:
+                bound[i]=0.;continue
+        carried=_technical_umul(k,e)
+        ep=_technical_uadd(_technical_rho(_technical_uadd(abs(product),carried)),_technical_rho(product))
+        es=_technical_uadd(_technical_rho(_technical_uadd(abs(total),carried,ep)),_technical_rho(total))
+        affine=_technical_udiv(_technical_uadd(carried,ep,es),period)
+        ed=_technical_uadd(_technical_rho(_technical_uadd(abs(value),affine)),_technical_rho(value))
+        bound[i]=_technical_uadd(affine,ed)
+    return out,bound
+
+def _technical_sub(a,b,ea=0.,eb=0.):
+    a,b,ea,eb=np.broadcast_arrays(a,b,ea,eb);value=a-b
+    valid=np.isfinite(value)&np.isfinite(ea)&np.isfinite(eb);radius=np.full(np.shape(value),np.nan)
+    if np.any(valid):
+        error=_technical_uadd(ea[valid],eb[valid])
+        radius[valid]=_technical_uadd(error,_technical_rho(_technical_uadd(np.abs(value[valid]),error)),_technical_rho(value[valid]))
+        exact=valid&(ea==0)&(eb==0)&((a==b)|(b==0));radius[exact]=0.
+    return value,radius
+
+def _technical_scale(a,ea,factor):
+    a,ea=np.broadcast_arrays(a,ea);value=a*factor;valid=np.isfinite(value)&np.isfinite(ea)
+    radius=np.full(np.shape(value),np.nan)
+    if np.any(valid):
+        error=_technical_umul(ea[valid],abs(factor))
+        radius[valid]=_technical_uadd(error,_technical_rho(_technical_uadd(np.abs(value[valid]),error)),_technical_rho(value[valid]))
+        if factor in (0.,1.,-1.,2.,-2.):radius[valid]=error
+        radius[valid&(a==0)&(ea==0)]=0.
+    return value,radius
+
+def _technical_div(a,b,ea=0.,eb=0.):
+    a,b,ea,eb=np.broadcast_arrays(a,b,ea,eb);out=np.full(a.shape,np.nan);radius=out.copy()
+    finite=np.isfinite(a)&np.isfinite(b)&np.isfinite(ea)&np.isfinite(eb);defined=finite&(b>0)
+    if np.any(defined):
+        av,bv,ae,be=(v[defined] for v in (a,b,ea,eb))
+        lower=np.where(be==0,bv,np.nextafter(bv-be,-np.inf))
+        if np.any(lower<=0):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_AMBIGUOUS_DENOMINATOR')
+        upper=np.where(be==0,bv,np.nextafter(bv+be,np.inf))
+        al=np.where(ae==0,av,np.nextafter(av-ae,-np.inf));ah=np.where(ae==0,av,np.nextafter(av+ae,np.inf))
+        candidates=np.stack((al/lower,al/upper,ah/lower,ah/upper))
+        lo=np.nextafter(candidates.min(axis=0),-np.inf);hi=np.nextafter(candidates.max(axis=0),np.inf)
+        out[defined]=av/bv
+        radius[defined]=_technical_up(np.maximum(out[defined]-lo,hi-out[defined]))
+        exact=defined&(ea==0)&(eb==0)&((a==0)|(a==b)|(b==1));radius[exact]=0.
+    return out,radius
+
+def native_resample_calendar_frame(m5, timeframe):
+    durations={'M5':5*MINUTE,'M15':15*MINUTE,'H1':60*MINUTE,'H4':240*MINUTE,'D1':DAY}
+    if timeframe not in durations:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+    required=('bar_start_ns','open','high','low','close','volume')
+    if set(m5)!=set(required):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+    t=_projection_integer_clock(m5['bar_start_ns'],'TECHNICAL_NUMERIC_REFERENCE_CLOCK',grid=5*MINUTE)
+    if not len(t):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SOURCE')
+    for name in required[1:]:
+        a=np.asarray(m5[name])
+        dtype=np.dtype('int64') if name=='volume' else np.dtype('float64')
+        if a.dtype!=dtype or a.shape!=t.shape or not np.isfinite(a).all() or np.any(a<=0):
+            raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SOURCE')
+    if (np.any(m5['high']<np.maximum(m5['open'],m5['close'])) or np.any(m5['low']>np.minimum(m5['open'],m5['close']))
+            or np.any(m5['high']<m5['low'])):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SOURCE')
+    duration=durations[timeframe];offset=(22*60*MINUTE)%duration
+    labels=((t-offset)//duration)*duration+offset;stamps,first,count=np.unique(labels,return_index=True,return_counts=True)
+    keep=(stamps>=t[0])&(stamps+duration<=int(t[-1])+5*MINUTE)
+    result={'bar_start_ns':stamps[keep],'open':m5['open'][first][keep],
+        'high':np.maximum.reduceat(m5['high'],first)[keep],'low':np.minimum.reduceat(m5['low'],first)[keep],
+        'close':m5['close'][first+count-1][keep]}
+    quantities=[sum(int(v) for v in m5['volume'][row:row+n]) for row,n in zip(first,count)]
+    if any(v>np.iinfo(np.int64).max for v in quantities):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_OVERFLOW')
+    result['volume']=np.asarray(quantities,np.int64)[keep]
+    return result
+
+def _technical_rolling_sum(values,window):
+    """Independent dyadic ring oracle + full-prefix Kahan error-only shadow."""
+    from fractions import Fraction
+    x=_technical_vector(values)
+    if isinstance(window,bool) or not isinstance(window,int) or window<1:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+    out=np.full(len(x),np.nan);bound=out.copy();ring=[];exact=Fraction();s=ca=cr=error=0.;same=0;previous=None
+    for i,value in enumerate(x):
+        v=float(value)
+        if i>=window:
+            old=ring.pop(0);exact-=old;z=-float(old);y=z-cr;t=s+y;d=t-s;new=d-y
+            r1=0. if cr==0. or z==cr else _technical_rho(y)
+            r2=0. if t==s or s==0. else _technical_rho(d)
+            r3=0. if d==y or y==0. else _technical_rho(new)
+            error=_technical_uadd(error,r1,r2,r3);s=t;cr=new
+        q=Fraction.from_float(v);ring.append(q);exact+=q;y=v-ca;t=s+y;d=t-s;new=d-y
+        r1=0. if ca==0. or v==ca else _technical_rho(y)
+        r2=0. if t==s or s==0. else _technical_rho(d)
+        r3=0. if d==y or y==0. else _technical_rho(new)
+        error=_technical_uadd(error,r1,r2,r3);s=t;ca=new
+        same=same+1 if previous==v else 1;previous=v
+        if i+1>=window:
+            center=float(exact);out[i]=center;ref=float(abs(Fraction.from_float(center)-exact))
+            if same>=window:
+                # pandas calc_sum bypasses the running state on a uniform
+                # window; this output shortcut does not reset its state.
+                product=v*window;bound[i]=_technical_uadd(_technical_up(float(abs(Fraction.from_float(product)-exact))),_technical_up(ref))
+                if Fraction.from_float(product)==exact and Fraction.from_float(center)==exact:bound[i]=0.
+            else:bound[i]=_technical_uadd(error,abs(ca),abs(cr),_technical_up(ref))
+    return out,bound
+
+def reference_technical_rolling_vwap(close,volume,window):
+    x=_technical_vector(close);v=np.asarray(volume)
+    if v.shape!=x.shape or v.ndim!=1 or not np.isfinite(v).all() or np.any(v<=0) or np.any(v!=np.floor(v)):
+        raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SOURCE')
+    v=v.astype(np.float64);product=x*v
+    if not np.isfinite(product).all():raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_OVERFLOW')
+    numerator,en=_technical_rolling_sum(product,window);denominator,ed=_technical_rolling_sum(v,window)
+    # The exact same represented products feed producer and independent
+    # window oracle; product RN is shared, never read from the cache.
+    return _technical_div(numerator,denominator,en,ed)
+
+
+def _technical_sqrt_bracket(numerator,denominator):
+    """Bracket the real rational sqrt by binary64 numbers using integer squares."""
+    import math
+    from fractions import Fraction
+    if numerator<0 or denominator<=0:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SOURCE')
+    value=math.sqrt(float(Fraction(numerator,denominator)))
+    if not math.isfinite(value):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_OVERFLOW')
+    def compare(v):
+        p,q=float(v).as_integer_ratio();return p*p*denominator-numerator*q*q
+    lower=upper=value
+    while compare(lower)>0:lower=math.nextafter(lower,-math.inf)
+    while compare(upper)<0:upper=math.nextafter(upper,math.inf)
+    return value,lower,upper
+
+def reference_technical_bb20(close):
+    """Exact ring moments are the value oracle. The vendor mean/compensation
+    shadow is ONLY the full-prefix error ledger (ERROR_SPEC.BB20).
+
+    Z=C+D is exact dyadic: Z_new=Z+s*q, algebraically identical to the
+    declared signed-D recurrence, without growing Fraction denominators.
+    """
+    import math
+    from fractions import Fraction
+    x=_technical_vector(close)
+    if np.any(x<=0):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SOURCE')
+    nrows=len(x);values={k:np.full(nrows,np.nan) for k in ('mean','variance','std')}
+    bounds={k:np.full(nrows,np.nan) for k in values}
+    if not nrows:return values,bounds,{'source_rows':0,'full_prefix_updates':0}
+    # One extra exponent bit includes represented means/prev_mean near the
+    # lowest source value. Every conversion is checked exact below.
+    exponent=math.frexp(float(x.min()))[1]-1;k=max(0,53-exponent);D=1<<k;D2=D*D
+    def integer(v):
+        p,q=float(v).as_integer_ratio()
+        if D%q:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_BB_DYADIC_DOMAIN')
+        return p*(D//q)
+    ring=[];S=Q=Z=0;n=0;mean=ca=cr=R=0.;same=0;previous=None;updates=0;uniform_outputs=0
+    mean_sum,mean_error=_technical_rolling_sum(x,20)
+    mean_values,mean_bounds=_technical_div(mean_sum,np.full(nrows,20.),mean_error,0.)
+    values['mean']=mean_values;bounds['mean']=mean_bounds
+    for row,item in enumerate(x):
+        v=float(item);vi=integer(v)
+        operations=[]
+        if len(ring)==20:operations.append((-1,ring.pop(0)))
+        operations.append((1,vi))
+        for sign,xi in operations:
+            actual=float(Fraction(xi,D));comp=ca if sign==1 else cr
+            prev=mean-comp;y=actual-comp;t=y-mean;new_comp=(t+mean)-y
+            n+=sign
+            if n==0:
+                # The source's genuinely empty-state branch resets M2/state.
+                mean=ca=cr=R=0.;S=Q=Z=0;continue
+            new_mean=mean+t/n if sign==1 else mean-t/n
+            A=xi-integer(prev);B=xi-integer(new_mean);Z+=sign*A*B
+            S+=sign*xi;Q+=sign*xi*xi
+            if sign==1:ca=new_comp
+            else:cr=new_comp
+            mean=new_mean;updates+=1
+            # A/B are exact real differences of represented shadow operands.
+            # Only their two RN subtractions/product/M2 update enter radius.
+            am=0. if A==0 else float(_technical_up(float(Fraction(abs(A),D))))
+            bm=0. if B==0 else float(_technical_up(float(Fraction(abs(B),D))))
+            if A==0 or B==0:local=0.
+            else:
+                ra=float(_technical_rho(am));rb=float(_technical_rho(bm))
+                local=float(_technical_uadd(_technical_umul(am,rb),_technical_umul(bm,ra),_technical_umul(ra,rb),
+                    _technical_rho(_technical_umul(_technical_uadd(am,ra),_technical_uadd(bm,rb)))))
+            zm=0. if Z==0 else float(_technical_up(float(Fraction(abs(Z),D2))))
+            if local or R:
+                total=float(_technical_uadd(R,local));R=float(_technical_uadd(total,_technical_rho(_technical_uadd(zm,total))))
+            if not all(math.isfinite(z) for z in (mean,ca,cr,R)):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_OVERFLOW')
+        ring.append(vi);same=same+1 if previous==v else 1;previous=v
+        if n<20:continue
+        Cnum=n*Q-S*S
+        if Cnum<0:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_BB_EXACT_VARIANCE')
+        exact_mean=float(Fraction(S,n*D));old_mean=values['mean'][row]
+        values['mean'][row]=exact_mean
+        bounds['mean'][row]=_technical_uadd(bounds['mean'][row],_technical_up(abs(old_mean-exact_mean)))
+        variance_exact=Fraction(Cnum,n*n*D2);var=float(variance_exact)
+        # Cnum/n is unnormalised M2; Cnum/n**2 is population variance.
+        # q accumulation Z is M2. D=Z-C has numerator n*Z-Cnum.
+        drift=Fraction(abs(n*Z-Cnum),n*n*D2)
+        drift_upper=0. if not drift else float(_technical_up(float(drift)))
+        ref_error=abs(Fraction.from_float(var)-variance_exact)
+        vr=float(_technical_uadd(drift_upper,_technical_udiv(R,n),
+            _technical_rho(_technical_udiv(_technical_uadd(zm,R),n)),_technical_up(float(ref_error))))
+        values['variance'][row]=var;bounds['variance'][row]=vr
+        std,_,_=_technical_sqrt_bracket(Cnum,n*n*D2);values['std'][row]=std
+        if same>=n:
+            # calc_var uniform shortcut is an OUTPUT only. Z/R are preserved.
+            uniform_outputs+=1;values['variance'][row]=0.;values['std'][row]=0.
+            bounds['variance'][row]=0.;bounds['std'][row]=0.
+            values['mean'][row]=v;bounds['mean'][row]=0.;continue
+        lo=max(0.,math.nextafter(var-vr,-math.inf));hi=max(0.,math.nextafter(var+vr,math.inf))
+        lop,loq=lo.as_integer_ratio();hip,hiq=hi.as_integer_ratio()
+        _,sqrt_lower,_=_technical_sqrt_bracket(lop,loq);_,_,sqrt_upper=_technical_sqrt_bracket(hip,hiq)
+        bounds['std'][row]=_technical_up(max(abs(std-sqrt_lower),abs(sqrt_upper-std)))
+    return values,bounds,{'source_rows':nrows,'full_prefix_updates':updates,'uniform_shortcuts':uniform_outputs,
+        'full_prefix_shadow_not_reset_by_uniform_output':True,'moment_oracle':'exact_dyadic_ring_S_Q','shadow_used_for_values':False}
+
+def reference_technical_block(ohlcv):
+    """Twenty-three independent technical formulas on one full observed TF axis."""
+    names=('bar_start_ns','open','high','low','close','volume')
+    if set(ohlcv)!=set(names):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+    time=_projection_integer_clock(ohlcv['bar_start_ns'],'TECHNICAL_NUMERIC_REFERENCE_CLOCK')
+    n=len(time)
+    for name in names[1:]:
+        a=np.asarray(ohlcv[name]);expected=np.dtype('int64') if name=='volume' else np.dtype('float64')
+        if a.dtype!=expected or a.shape!=time.shape or not np.isfinite(a).all() or np.any(a<=0):
+            raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SOURCE')
+    high,low,close,open_=(ohlcv[k] for k in ('high','low','close','open'))
+    if np.any(high<np.maximum(close,open_)) or np.any(low>np.minimum(close,open_)) or np.any(high<low):
+        raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SOURCE')
+    out={};error={};tr=high-low
+    if n>1:tr[1:]=np.maximum.reduce((tr[1:],np.abs(high[1:]-close[:-1]),np.abs(low[1:]-close[:-1])))
+    atr,ea=reference_technical_wilder(tr,14)
+    out['atr_bps_14'],error['atr_bps_14']=_technical_scale(*_technical_div(atr,close,ea,0.),1e4)
+    def shifted(a,lag):
+        v=np.full(n,np.nan)
+        if n>lag:v[lag:]=a[:-lag]
+        return v
+    for lag in (5,20):
+        numerator,en=_technical_sub(close,shifted(close,lag))
+        out[f'mom_{lag}_atr'],error[f'mom_{lag}_atr']=_technical_div(numerator,atr,en,ea)
+    out['close_open_atr'],error['close_open_atr']=_technical_div(*_technical_sub(close,open_)[:1],atr,
+        _technical_sub(close,open_)[1],ea)
+    changes=np.diff(close);g=np.maximum(changes,0.);l=np.maximum(-changes,0.)
+    gain,eg=reference_technical_wilder(g,14);loss,el=reference_technical_wilder(l,14)
+    rsi=np.full(n,np.nan);er=rsi.copy()
+    for i in range(14,n):
+        j=i-1;G,L=float(gain[j]),float(loss[j]);eG,eL=float(eg[j]),float(el[j])
+        if L==0. and eL==0.:rsi[i]=50. if G==0. else 100.;er[i]=0.;continue
+        if G==0. and eG==0.:rsi[i]=0.;er[i]=0.;continue
+        strength,es=_technical_div(G,L,eG,eL);den=1.+strength;ed=_technical_uadd(es,_technical_rho(_technical_uadd(abs(den),es)),_technical_rho(den))
+        fraction,ef=_technical_div(100.,den,0.,ed);rsi[i]=100.-fraction;er[i]=_technical_uadd(ef,_technical_rho(_technical_uadd(abs(rsi[i]),ef)),_technical_rho(rsi[i]))
+    out['rsi14_centered'],error['rsi14_centered']=_technical_div(*_technical_sub(rsi,50.,er,0.)[:1],50.,
+        _technical_sub(rsi,50.,er,0.)[1],0.)
+    emas={span:reference_technical_ema(close,span) for span in (20,50,100,200)}
+    for span,(ema,ee) in emas.items():
+        gap,ep=_technical_sub(close,ema,0.,ee)
+        out[f'ema{span}_dist_atr'],error[f'ema{span}_dist_atr']=_technical_div(gap,atr,ep,ea)
+        lag=5 if span in (20,50) else 20
+        slope,es=_technical_sub(ema,shifted(ema,lag),ee,shifted(ee,lag))
+        out[f'ema{span}_slope_atr'],error[f'ema{span}_slope_atr']=_technical_div(slope,atr,es,ea)
+    stack=np.full(n,np.nan);age=stack.copy()
+    for i in range(199,n):
+        state=0;comparisons=[]
+        for a,b in ((20,50),(50,100),(100,200)):
+            difference=emas[a][0][i]-emas[b][0][i];uncertainty=0. if emas[a][1][i]==emas[b][1][i]==0. else _technical_uadd(emas[a][1][i],emas[b][1][i])
+            if abs(difference)<=uncertainty and not (difference==0. and uncertainty==0.):
+                raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_AMBIGUOUS_STACK')
+            comparisons.append(np.sign(difference))
+        if all(x>0 for x in comparisons):state=1
+        elif all(x<0 for x in comparisons):state=-1
+        stack[i]=state;age[i]=0. if i==199 or stack[i]!=stack[i-1] else age[i-1]+1
+    out['ema_stack_aligned_v2']=stack;error['ema_stack_aligned_v2']=np.where(np.isfinite(stack),0.,np.nan)
+    out['trend_state_age_bars']=age;error['trend_state_age_bars']=np.where(np.isfinite(age),0.,np.nan)
+    for window,name in ((5,'vwap_rolling5_dist_atr'),(20,'vwap20_dist_atr'),(96,'vwap96_dist_atr')):
+        vwap,ev=reference_technical_rolling_vwap(close,ohlcv['volume'],window)
+        gap,ep=_technical_sub(close,vwap,0.,ev);out[name],error[name]=_technical_div(gap,atr,ep,ea)
+        if window==5:
+            difference,ed=_technical_sub(vwap,shifted(vwap,5),ev,shifted(ev,5))
+            out['vwap_rolling5_slope_atr'],error['vwap_rolling5_slope_atr']=_technical_div(difference,atr,ed,ea)
+    bb,eb,bb_report=reference_technical_bb20(close)
+    two_std,et=_technical_scale(bb['std'],eb['std'],2.)
+    upper,eu=_technical_sub(bb['mean'],-two_std,eb['mean'],et)
+    lower,elo=_technical_sub(bb['mean'],two_std,eb['mean'],et)
+    width,ew=_technical_sub(upper,lower,eu,elo)
+    # Identical uniform bands are an exact zero-width observation, not epsilon.
+    uniform=np.isfinite(bb['std'])&(bb['std']==0)&(eb['std']==0)&(eb['mean']==0)
+    width[uniform]=0.;ew[uniform]=0.
+    numerator,en=_technical_sub(close,lower,0.,elo)
+    out['bb_position'],error['bb_position']=_technical_div(numerator,width,en,ew)
+    out['bb_width_atr'],error['bb_width_atr']=_technical_div(width,atr,ew,ea)
+    # ADX uses rows1..14 (unlike ATR's TR0 seed), independent Wilder sums.
+    plus=np.zeros(n);minus=np.zeros(n)
+    if n>1:
+        up=high[1:]-high[:-1];down=low[:-1]-low[1:]
+        plus[1:]=np.where((up>down)&(up>0),up,0.);minus[1:]=np.where((down>up)&(down>0),down,0.)
+    smooth=[]
+    for source in (tr,plus,minus):
+        values=np.full(n,np.nan);ebound=values.copy()
+        if n>14:
+            values[14],ebound[14]=_technical_seed(source[1:15],divide=False)
+            for i in range(15,n):
+                old=float(values[i-1]);e=float(ebound[i-1]);q=old/14.;difference=old-q;value=difference+source[i];values[i]=value
+                if old==0. and source[i]==0. and e==0.:ebound[i]=0.;continue
+                carried=_technical_umul(_technical_up(13./14.),e)
+                rq=_technical_uadd(_technical_rho(_technical_uadd(abs(q),_technical_udiv(e,14.))),_technical_rho(q))
+                rs=_technical_uadd(_technical_rho(_technical_uadd(abs(difference),carried,rq)),_technical_rho(difference))
+                ra=_technical_uadd(_technical_rho(_technical_uadd(abs(value),carried,rq,rs)),_technical_rho(value))
+                ebound[i]=_technical_uadd(carried,rq,rs,ra)
+        smooth.append((values,ebound))
+    p,ep=_technical_scale(*_technical_div(smooth[1][0],smooth[0][0],smooth[1][1],smooth[0][1]),100.)
+    m,em=_technical_scale(*_technical_div(smooth[2][0],smooth[0][0],smooth[2][1],smooth[0][1]),100.)
+    difference,ed=_technical_sub(p,m,ep,em);total,etotal=_technical_sub(p,-m,ep,em)
+    signed,esigned=_technical_div(difference,total,ed,etotal)
+    out['di_spread_signed']=signed;error['di_spread_signed']=esigned
+    dx,edx=_technical_scale(*_technical_div(np.abs(difference),total,ed,etotal),100.)
+    adx=np.full(n,np.nan);eax=adx.copy()
+    if n>27 and np.isfinite(dx[14:28]).all():
+        end=28
+        while end<n and np.isfinite(dx[end]):end+=1
+        adx_part,part_error=reference_technical_wilder(dx[14:end],14)
+        adx[14:end]=adx_part
+        # Account for uncertainty in every upstream DX, through seed/recurrence.
+        carry=float(np.max(edx[14:28]));eax[27]=_technical_uadd(part_error[13],carry)
+        for i in range(28,end):carry=_technical_udiv(_technical_uadd(_technical_umul(13.,carry),edx[i]),14.);eax[i]=_technical_uadd(part_error[i-14],carry)
+    out['adx14']=adx;error['adx14']=eax
+    out={name:out[name] for name in TECHNICAL_NUMERIC_FIELDS};error={name:error[name] for name in TECHNICAL_NUMERIC_FIELDS}
+    first={name:int(np.flatnonzero(np.isfinite(value))[0]) if np.isfinite(value).any() else None for name,value in out.items()}
+    return out,error,{'source_rows':n,'first_valid_rows':first,'full_history':True,'gap_or_session_reset':False,'BB20':bb_report}
+
+
+def compare_technical_reference(reference,actual,bounds,*,discrete_fields=('ema_stack_aligned_v2','trend_state_age_bars')):
+    if set(reference)!=set(actual) or set(reference)!=set(bounds):raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+    report={}
+    for name,value in reference.items():
+        q=np.asarray(value);a=np.asarray(actual[name]);b=np.asarray(bounds[name])
+        if (q.dtype!=np.dtype('float64') or a.dtype!=np.dtype('float32') or b.dtype!=np.dtype('float64')
+                or q.ndim!=1 or q.shape!=a.shape or q.shape!=b.shape or np.isinf(q).any() or np.isinf(a).any()
+                or np.isinf(b).any() or np.any(b[np.isfinite(b)]<0)):
+            raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA:'+name)
+        finite=np.isfinite(q)
+        if not np.array_equal(np.isnan(q),np.isnan(a)) or not np.array_equal(np.isnan(q),np.isnan(b)):
+            raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_NAN_MASK:'+name)
+        if name in discrete_fields:
+            if not np.array_equal(q[finite],a[finite].astype(np.float64)):
+                raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_DISCRETE_MISMATCH:'+name)
+            total=np.zeros(int(finite.sum()))
+        else:
+            center=q[finite];radius=b[finite]
+            lo=np.where(radius==0.,center,np.nextafter(center-radius,-np.inf))
+            hi=np.where(radius==0.,center,np.nextafter(center+radius,np.inf))
+            with np.errstate(over='ignore',under='ignore',invalid='ignore'):
+                lo32=lo.astype(np.float32);hi32=hi.astype(np.float32)
+            if not np.isfinite(lo32).all() or not np.isfinite(hi32).all():
+                raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_OVERFLOW:'+name)
+            if np.any(a[finite]<lo32) or np.any(a[finite]>hi32):
+                raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_VALUE_MISMATCH:'+name)
+            total=np.maximum(np.abs(center-lo32.astype(np.float64)),np.abs(hi32.astype(np.float64)-center))
+        delta=np.abs(a[finite].astype(np.float64)-q[finite])
+        report[name]={'finite_published_values_compared':int(finite.sum()),'nan_masked_values_compared':int((~finite).sum()),
+            'maximum_absolute_error':float(delta.max()) if len(delta) else 0.,
+            'maximum_forward_roundoff_bound':float(total.max()) if len(total) else 0.,
+            'maximum_float64_radius':float(b[finite].max()) if finite.any() else 0.,
+            'numeric_reference_qualified':bool(finite.any()),'nonconstant_reference':bool(finite.any() and np.ptp(q[finite])>0),
+            'minimum_reference':float(q[finite].min()) if finite.any() else None,'maximum_reference':float(q[finite].max()) if finite.any() else None,
+            'discrete_exact':name in discrete_fields}
+    return report
+
+def _technical_native_footer(path,seal):
+    file=pq.ParquetFile(path);schema=file.schema_arrow
+    expected={'time':pa.timestamp('ns',tz='UTC'),'open':pa.float64(),'high':pa.float64(),'low':pa.float64(),
+        'close':pa.float64(),'volume':pa.int64()}
+    if any(name not in schema.names or schema.field(name).type!=dtype for name,dtype in expected.items()):
+        raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+    for i in range(file.metadata.num_row_groups):
+        row=file.metadata.row_group(i);column=[row.column(j) for j in range(row.num_columns) if row.column(j).path_in_schema=='time']
+        if len(column)!=1:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+        stat=column[0].statistics
+        if stat is None or not stat.has_min_max or stat.null_count!=0:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_SCHEMA')
+        if pd.Timestamp(stat.max).value>=seal:raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_TEST_ROW_GROUP')
+    return file.metadata.num_rows
+
+def _technical_npy_header(path,shape,dtype):
+    with Path(path).open('rb') as handle:
+        version=np.lib.format.read_magic(handle);actual,fortran,observed=np.lib.format._read_array_header(handle,version)
+        offset=handle.tell()
+    if actual!=shape or fortran or observed!=np.dtype(dtype) or Path(path).stat().st_size!=offset+np.prod(shape)*np.dtype(dtype).itemsize:
+        raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_NPY_HEADER')
+
+
+def run_technical_numeric(binding_path):
+    prefix='TECHNICAL_NUMERIC';root=Path('/home/andre2/GX1_RUNS')/TECHNICAL_NUMERIC_PLAN_ID
+    if binding_path!=root/(prefix+'_EXECUTION_BINDING.json'):raise RuntimeError(prefix+'_BINDING_PATH')
+    io.require_regular_file(binding_path,prefix+'_BINDING');binding=io.read_json(binding_path);plan_path=root/'PLAN.json'
+    io.verify_digest(plan_path,binding['plan_sha256'],prefix+'_PLAN');plan=io.read_json(plan_path)
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],prefix+'_POLICY')
+    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work'][TECHNICAL_NUMERIC_POLICY_KEY]
+    if (plan['schema_version']!='gx1_technical_numeric_audit_plan_v1' or plan['plan_id']!=TECHNICAL_NUMERIC_PLAN_ID
+            or plan['run_root']!=str(root) or plan['policy_key']!=TECHNICAL_NUMERIC_POLICY_KEY or plan['max_invocations']!=1
+            or gate['status']!='EXECUTION_CLAIMED' or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0
+            or gate['execution_authorized'] is not False or gate['relaunch_allowed'] is not False
+            or gate['plan']!={'path':str(plan_path),'sha256':binding['plan_sha256']}
+            or policy['training_enabled'] is not False or io.git_head()!=binding['source_head']
+            or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):
+        raise RuntimeError(prefix+'_AUTHORITY')
+    if set(binding['code_sha256'])!=set(plan['code_paths']):raise RuntimeError(prefix+'_CODE_INVENTORY')
+    for name,digest in binding['code_sha256'].items():io.verify_digest(REPO/name,digest,prefix+'_CODE')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry()
+    io.write_json(root/(prefix+'_CLAIM.json'),{'invocation':1,'source_head':binding['source_head'],'plan_sha256':binding['plan_sha256']})
+    staging=root/('.'+prefix+'_RESULTS.staging');staging.mkdir(exist_ok=False)
+    metadata_sha={};identities={};data_files={};runtime_files={}
+    identity=lambda st:(st.st_dev,st.st_ino,st.st_mode,st.st_size,st.st_mtime_ns,st.st_ctime_ns)
+    def verified(ref,label):
+        path=Path(ref['path']);io.require_regular_file(path,label)
+        if not path.is_absolute() or path!=path.resolve():raise RuntimeError(prefix+'_CANONICAL_PATH')
+        before=identity(path.stat());io.verify_digest(path,ref['sha256'],label)
+        if identity(path.stat())!=before:raise RuntimeError(prefix+'_INPUT_CHANGED')
+        identities[str(path)]=before;return path
+    def metadata(ref):
+        path=verified(ref,prefix+'_METADATA');metadata_sha[str(path)]=ref['sha256'];return io.read_json(path)
+    design=metadata(plan['design']);spec=metadata(plan['error_spec'])
+    if (design['run_id']!=TECHNICAL_NUMERIC_PLAN_ID or spec['design']!=plan['design']
+            or spec['frozen_before_any_cached_numeric_comparison'] is not True or design['references']!=plan['references']
+            or tuple(design['audited_fields'])!=TECHNICAL_NUMERIC_FIELDS):raise RuntimeError(prefix+'_FROZEN_ERROR_SPEC')
+    seal_stamp=pd.Timestamp(plan['TEST_seal_utc'])
+    from gx1.contracts.gc_source_disposition_v1 import WINDOW_END_NS
+    if seal_stamp.tzinfo is None or seal_stamp.value!=WINDOW_END_NS:raise RuntimeError(prefix+'_TEST_SEAL')
+    seal=seal_stamp.value;refs=plan['references'];cache=metadata(refs['cache_manifest']);prebuilt=metadata(refs['prebuilt_manifest'])
+    native=metadata(refs['native_m5_manifest']);profile=metadata(refs['compact_profile_proposal']);previous=metadata(refs['previous_native_context_review'])
+    runtime=design['runtime_contract']
+    for key in ('metadata','window_kernel'):
+        path=verified(runtime[key],prefix+'_RUNTIME');runtime_files[str(path)]={'sha256':runtime[key]['sha256'],'bytes':path.stat().st_size}
+    from pandas._libs.window import aggregations as runtime_aggregations
+    actual_package=Path(pd.__file__).resolve().parent;expected_kernel=actual_package/'_libs/window/aggregations.cpython-310-x86_64-linux-gnu.so'
+    if (pd.__version__!=runtime['pandas_version'] or expected_kernel!=Path(runtime['window_kernel']['path'])
+            or Path(runtime_aggregations.__file__).resolve()!=expected_kernel):
+        raise RuntimeError(prefix+'_RUNTIME_MODULE')
+    cache_root=Path(refs['cache_manifest']['path']).parent;source=native['out_root'];lineage=prebuilt['native_m5_source']
+    if (cache['m5_prebuilt_source']!=prebuilt['output_parquet'] or cache['m5_prebuilt_source_sha256']!=prebuilt['output_parquet_sha256']
+            or cache['feature_count']!=253 or cache['feature_names'][:23]!=list(TECHNICAL_NUMERIC_FIELDS)
+            or prebuilt['decision']!='PASS' or prebuilt['timeframe']!='M5'
+            or {k:lineage[k] for k in ('manifest_path','manifest_sha256')}!=
+                {'manifest_path':refs['native_m5_manifest']['path'],'manifest_sha256':refs['native_m5_manifest']['sha256']}
+            or lineage['root']!=source or native['schema_version']!='xau_canonical_native_source_v3'
+            or native['instrument']!='XAU_USD' or native['timeframe']!='M5' or native['prices']!='MBA'
+            or native['completion_field']!='complete' or native['completion_value'] is not True
+            or native['bar_duration_seconds']!=300 or native['decision_available_offset_seconds']!=300
+            or native['timestamp_semantics']!='bar_start_utc' or pd.Timestamp(native['requested_end_utc_exclusive']).value!=seal
+            or previous['source_unchanged'] is not True or previous['test_data_used'] is not False
+            or previous['independent_stored_M5_availability_projection_proven'] is not True):
+        raise RuntimeError(prefix+'_SOURCE_LINEAGE')
+    parts=lineage['part_paths'];years=['year='+str(year) for year in range(2009,2027)]
+    if len(parts)!=18 or set(native['year_sha256'])!=set(years) or set(native['year_rows'])!=set(years):raise RuntimeError(prefix+'_YEAR_INVENTORY')
+    for year,path in zip(years,parts):
+        if path!=str(Path(source)/year/'part-000.parquet') or lineage['part_sha256'][path]!=native['year_sha256'][year]:
+            raise RuntimeError(prefix+'_YEAR_BINDING')
+        data_files[path]={'sha256':native['year_sha256'][year],'kind':'native','year':year}
+    for tf in design['timeframes']:
+        info=cache['tfs'][tf]
+        if info['feature_count']!=253 or info['n_bars']!=design['expected_cache_rows'][tf]:raise RuntimeError(prefix+'_CACHE_DIMENSION')
+        for kind,name,sha,bytekey in (('timestamps','ts_npy','ts_npy_sha256','ts_npy_size_bytes'),
+                ('features','feats_npy','feats_npy_sha256','feats_npy_size_bytes')):
+            path=cache_root/info[name]
+            if path.parent!=cache_root or info[name]!=path.name or str(path) in data_files:raise RuntimeError(prefix+'_CACHE_PATH')
+            data_files[str(path)]={'sha256':info[sha],'bytes':info[bytekey],'kind':kind,'timeframe':tf}
+    if len(data_files)!=28:raise RuntimeError(prefix+'_DATA_INVENTORY')
+    for name,ref in data_files.items():
+        path=verified({'path':name,'sha256':ref['sha256']},prefix+'_DATA')
+        if 'bytes' in ref and path.stat().st_size!=ref['bytes']:raise RuntimeError(prefix+'_DATA_SIZE')
+        ref['bytes']=path.stat().st_size;ref['whole_file_hash_passes']=1
+    if sum(v['bytes'] for v in data_files.values())!=design['known_payload_bytes']['data_total']:
+        raise RuntimeError(prefix+'_DATA_TOTAL_BYTES')
+    # All18 source footers and10 NPY headers precede any numeric payload.
+    rows={path:_technical_native_footer(path,seal) for path in parts}
+    for name,ref in data_files.items():
+        if ref['kind'] in ('features','timestamps'):
+            count=cache['tfs'][ref['timeframe']]['n_bars']
+            _technical_npy_header(name,(count,253) if ref['kind']=='features' else (count,),
+                'float32' if ref['kind']=='features' else 'int64')
+    timestamps={}
+    durations={'M5':5*MINUTE,'M15':15*MINUTE,'H1':60*MINUTE,'H4':240*MINUTE,'D1':DAY}
+    for tf,info in cache['tfs'].items():
+        clock=np.load(cache_root/info['ts_npy'],mmap_mode='r',allow_pickle=False)
+        _projection_integer_clock(clock,prefix+'_CACHE_CLOCK')
+        phase=(22*60*MINUTE)%durations[tf]
+        if (clock[0]!=info['first_ts_ns'] or clock[-1]!=info['last_ts_ns'] or np.any((clock-phase)%durations[tf])
+                or np.any(clock+durations[tf]>seal) or np.any(clock>=seal)):
+            raise RuntimeError(prefix+'_CACHE_CLOSED_CLOCK')
+        timestamps[tf]=clock
+    required=('time','open','high','low','close','volume');chunks={key:[] for key in required};last=None;decoded=0
+    for path in parts:
+        table=pq.ParquetFile(path).read(columns=list(required),use_threads=False)
+        if any(table[key].null_count for key in required):raise RuntimeError(prefix+'_SOURCE_NULL')
+        clock=table['time'].cast(pa.int64()).to_numpy();year=Path(path).parent.name;bounds=native['year_time_bounds'][year]
+        if (len(clock)!=rows[path] or len(clock)!=native['year_rows'][year] or not len(clock)
+                or int(clock[0])!=pd.Timestamp(bounds['time_min_utc']).value or int(clock[-1])!=pd.Timestamp(bounds['time_max_utc']).value
+                or (last is not None and clock[0]<=last)):raise RuntimeError(prefix+'_YEAR_CLOCK')
+        last=int(clock[-1]);chunks['time'].append(clock);decoded+=len(clock)
+        for key in required[1:]:chunks[key].append(table[key].to_numpy())
+    m5={('bar_start_ns' if name=='time' else name):np.concatenate(values) for name,values in chunks.items()};del chunks,table
+    if (decoded!=native['row_count'] or decoded!=design['source_contract']['native_rows']
+            or int(m5['bar_start_ns'][0])!=pd.Timestamp(design['source_contract']['native_first_utc']).value):
+        raise RuntimeError(prefix+'_FULL_HISTORY_ORIGIN')
+    active={tf:set(profile['active_execution']['per_timeframe_fields'][tf])&set(TECHNICAL_NUMERIC_FIELDS) for tf in design['timeframes']}
+    if any(len(fields)!=11 for fields in active.values()):raise RuntimeError(prefix+'_COMPACT_55_SCOPE')
+    reports={};helper_reports={};selected_rows={}
+    for tf in design['timeframes']:
+        raw=native_resample_calendar_frame(m5,tf);reference,bounds,helper=reference_technical_block(raw)
+        clock=timestamps[tf];positions=np.searchsorted(raw['bar_start_ns'],clock)
+        if (np.any(positions>=len(raw['bar_start_ns'])) or not np.array_equal(raw['bar_start_ns'][positions],clock)
+                or not np.array_equal(raw['bar_start_ns'][(raw['bar_start_ns']>=clock[0])&(raw['bar_start_ns']<=clock[-1])],clock)):
+            raise RuntimeError(prefix+'_EXACT_CACHE_TIMESTAMP_MAPPING:'+tf)
+        info=cache['tfs'][tf];matrix=np.load(cache_root/info['feats_npy'],mmap_mode='r',allow_pickle=False)
+        target={name:np.asarray(matrix[:,j]) for j,name in enumerate(TECHNICAL_NUMERIC_FIELDS)}
+        ref={name:value[positions] for name,value in reference.items()};radii={name:value[positions] for name,value in bounds.items()}
+        report=compare_technical_reference(ref,target,radii)
+        for name,stat in report.items():
+            if not stat['numeric_reference_qualified']:raise RuntimeError(prefix+'_ACTIVE_LIBRARY_FIELD_UNOBSERVED:'+tf+':'+name)
+            stat['compact_profile_active']=name in active[tf]
+        reports[tf]=report;helper_reports[tf]=helper;selected_rows[tf]=len(clock)
+        del raw,reference,bounds,ref,radii,matrix,target
+    for path,before in identities.items():
+        if identity(Path(path).stat())!=before:raise RuntimeError(prefix+'_POST_INPUT_CHANGED')
+    for path,digest in metadata_sha.items():io.verify_digest(Path(path),digest,prefix+'_POST_METADATA')
+    for path,ref in runtime_files.items():io.verify_digest(Path(path),ref['sha256'],prefix+'_POST_RUNTIME')
+    for name,digest in binding['code_sha256'].items():io.verify_digest(REPO/name,digest,prefix+'_POST_CODE')
+    io.verify_digest(plan_path,binding['plan_sha256'],prefix+'_POST_PLAN');io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],prefix+'_POST_POLICY')
+    if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):
+        raise RuntimeError(prefix+'_POST_SOURCE_CHANGED')
+    result={'schema_version':'gx1_technical_numeric_result_v1','status':'COMPLETE_SCOPED_23_TECHNICAL_FORMULAS_ALL5TF',
+        'source_head':binding['source_head'],'source_unchanged':True,'plan_sha256':binding['plan_sha256'],'limits':proof,
+        'design':plan['design'],'error_spec':plan['error_spec'],'references':refs,'runtime_files':runtime_files,
+        'audited_formulas':23,'timeframes':design['timeframes'],'qualified_output_fields':115,'compact_active_outputs':55,'compact_parked_outputs':60,
+        'fields':reports,'full_history_reference_reports':helper_reports,'native_rows_decoded':decoded,'native_projected_columns':list(required),
+        'cache_rows_compared':selected_rows,'cache_feature_columns':list(range(23)),'cache_width':253,
+        'data_files':data_files,'unique_data_files_hashed_once':28,'bound_payload_bytes':sum(x['bytes'] for x in data_files.values()),
+        'physical_disk_io_bytes_measured':False,'prebuilt_payload_read_or_hashed':False,'full_history_origin':design['source_contract']['native_first_utc'],
+        'native_sequence_or_PT_or_MBP_payload_read':False,'production_indicators_called_by_oracle':False,'normalization_fit_performed':False,
+        'test_data_used':False,'model_forwards':0,'optimizer_updates':0,'learning_qualified':False,'economic_edge_qualified':False,
+        'other_technical_families_qualified':False,'individual_learned_use_proven':False}
+    output=staging/(prefix+'_RESULT.json');io.write_json(output,result)
+    io.write_json(staging/(prefix+'_TERMINAL.json'),{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,
+        'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(output)})
+    publish_bundle_directory_noreplace(staging,root/(prefix+'_RESULTS'));print(prefix+'_REFERENCE_COMPLETE',flush=True)
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser();group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--binding',type=Path);group.add_argument('--evaluation-binding',type=Path)
@@ -3071,8 +3704,10 @@ if __name__=='__main__':
     group.add_argument('--gc-profile-numeric-binding',type=Path)
     group.add_argument('--gc-basis-numeric-binding',type=Path)
     group.add_argument('--gc-native-projection-binding',type=Path)
+    group.add_argument('--technical-numeric-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.gc_native_projection_binding is not None:run_gc_native_projection_numeric(args.gc_native_projection_binding)
+    if args.technical_numeric_binding is not None:run_technical_numeric(args.technical_numeric_binding)
+    elif args.gc_native_projection_binding is not None:run_gc_native_projection_numeric(args.gc_native_projection_binding)
     elif args.gc_basis_numeric_binding is not None:run_gc_event_numeric(args.gc_basis_numeric_binding,basis=True)
     elif args.gc_profile_numeric_binding is not None:run_gc_event_numeric(args.gc_profile_numeric_binding,profile=True)
     elif args.gc_smc_numeric_binding is not None:run_gc_event_numeric(args.gc_smc_numeric_binding,smc=True)
