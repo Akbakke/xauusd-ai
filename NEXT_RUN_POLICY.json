@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T03:30:24.059439+00:00",
-  "status": "132_AUDIT_WARMUP_FIXED_AND_AVWAP_PREFIX_BIT_PARITY_PASS_FRESH_FULL_NUMERIC_PLAN_REQUIRED",
+  "observed_utc": "2026-10-21T03:41:29.193714+00:00",
+  "status": "133_FRESH_CORE_NUMERIC_PROGRESS_SOURCE_QUALIFICATION_AUTHORIZED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Prepare exactly one fresh source-bound fullhistory470activeoutput numeric plan on repaired auditcode,with durable per-owner progress and existing1800s cap. Reuse prior320qualification,unchangedproduction/normalization/modelmechanics; no130/131/132relaunch or nativeepoch/Exit/TEST/broker. No job currently launched.",
+  "next_action": "Run exactly one new133focused progress-lifecycle qualification:4newcases+1existingmutualexclusivecase,300s/4G/512M; freeze source/policy. Mathematical controls132/130reused. Physical470audit stillclosed pendingthisPASS; no consumedplanrelaunch/newtraining/Exit/TEST/broker.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "NEXT_FRESH_REPAIRED_CORE_NUMERIC_PLAN_PREPARATION",
+    "current_activity": "133_PROGRESS_SOURCE_QUALIFICATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "132source+actual12000prefix bitparity PASS fixes measured auditwarmup/error andscalarcost; fullhistory470cachecomparison remains unqualified. Need exactfresh plan/campaign; no performance extrapolation or nexttrainingadmission.",
+    "current_blocker": "470activefullhistorycacheoutputs remainunqualified. Fresh133identity/progresshook integrated; only5focusedcontrolcases before one newphysicaladmission. No formula/prod/normalization/modelchange.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare exactly one fresh source-bound fullhistory470activeoutput numeric plan on repaired auditcode,with durable per-owner progress and existing1800s cap. Reuse prior320qualification,unchangedproduction/normalization/modelmechanics; no130/131/132relaunch or nativeepoch/Exit/TEST/broker. No job currently launched.",
+    "next_action": "Run exactly one new133focused progress-lifecycle qualification:4newcases+1existingmutualexclusivecase,300s/4G/512M; freeze source/policy. Mathematical controls132/130reused. Physical470audit stillclosed pendingthisPASS; no consumedplanrelaunch/newtraining/Exit/TEST/broker.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16876,6 +16876,43 @@
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/REAL_PREFIX_REPAIR_RESULT.json",
         "sha256": "e43456e7660fd9a6721ebb8cb009d4a54b2b2c3f90e78063b795340a2388627e"
       }
+    },
+    "remaining_active_core_numeric_reference_133": {
+      "status": "SOURCE_QUALIFICATION_PENDING",
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "planned_active_outputs": 470,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/PLAN.json",
+        "sha256": "e165f9ef35ad4f8ff0780d4d85cb30ba4ac1de070c28b6e775aa562e4e11ecaa"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/DESIGN.json",
+        "sha256": "2d5d5bd44c8572892c679dfd6049a3aee81e8b11c4dfe1a22e637da0a3e70399"
+      },
+      "error_spec": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/ERROR_SPEC.json",
+        "sha256": "849bc1b4db26798382cceff89d1edf57739e3d0ccab7750c0580beaa10da060e"
+      },
+      "implementation_scope": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/IMPLEMENTATION_SCOPE.json",
+        "sha256": "3e6b9ef6494a488346cd85eac78fe851dd54af8c4ba7f86b459785354d1c48c8"
+      },
+      "preexecution_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/PREEXECUTION_SOURCE_REVIEW.json",
+        "sha256": "35b280d88f03db7c4473475d141fd2b6d6c0934453157dd4cc3c9460dc8d50bc"
+      },
+      "physical_audit_timeout_seconds": 1800,
+      "training_enabled": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "native_training_admitted": false,
+      "test_data_used": false,
+      "normalization_fit_enabled": false,
+      "exit_evaluation": false,
+      "broker_access_allowed": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19440,7 +19477,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T03:30:24.059439+00:00",
+  "updated_utc": "2026-10-21T03:41:29.193714+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20271,5 +20308,32 @@
     "actual_top_level_testcases": 33,
     "xml_including_successful_subtests": 129,
     "elapsed_seconds": 19.526300296001864
+  },
+  "native_core_progress_source_133": {
+    "status": "AUTHORIZED_ONE_FOCUSED_PROGRESS_QUALIFICATION",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "8c5965004c4907f5578f069e3e4edbe0d197de1268ebe26ea8bc59734750a87b"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/run_focused_source_qualification.py",
+      "sha256": "af8f60c0eacb7a223b8a295f4d7a43bc2304c5806060388945fcee1cef9f0e86"
+    },
+    "preexecution_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/PREEXECUTION_SOURCE_REVIEW.json",
+      "sha256": "35b280d88f03db7c4473475d141fd2b6d6c0934453157dd4cc3c9460dc8d50bc"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

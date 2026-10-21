@@ -3290,3 +3290,100 @@ class TestNativeCoreCrossWarmup132:
         atr[-1]=1e40;radius[-1]=0.
         with pytest.raises(RuntimeError,match='NATIVE_CORE_NUMERIC_F32_INTERVAL_OVERFLOW'):
             a.reference_native_core_cross(frame,atr=atr,atr_radius=radius,raw_m5=frame,timeframe='M5')
+
+class TestNativeCoreProgress133:
+    """Only the progress lifecycle is faked; no full-history formula is run."""
+
+    @staticmethod
+    def _fixture(monkeypatch,tmp_path,*,fail_owner=None):
+        import numpy as np
+        from gx1.scripts import audit_entry_gc_foundation_v1 as a
+        n=4;clock=np.asarray(1714521600000000000+np.arange(n)*5*a.MINUTE,dtype=np.int64)
+        frame={'bar_start_ns':clock,'open':np.full(n,100.),'high':np.full(n,102.),
+            'low':np.full(n,98.),'close':np.full(n,101.),'volume':np.full(n,10,dtype=np.int64)}
+        calls=[];shared=[]
+        def resample(m5,timeframe):shared.append('resample');return frame
+        def atr(raw):shared.append('ATR');return np.full(n,4.),np.zeros(n)
+        def replay(high,low,close):shared.append('raw_n3');return {'ledger':np.zeros(n)}
+        monkeypatch.setattr(a,'native_core_resample_frame',resample)
+        monkeypatch.setattr(a,'_core_reference_atr',atr)
+        monkeypatch.setattr(a,'reference_native_smc_replay',replay)
+        matrix=np.zeros((n,253),dtype=np.float32)
+        columns=dict(zip(a.NATIVE_CORE_NUMERIC_FIELDS,a.NATIVE_CORE_NUMERIC_COLUMNS))
+        owners=(('swing20',a.NATIVE_CORE_SWING_FIELDS,'reference_native_core_swing'),
+            ('local27',a.NATIVE_CORE_LOCAL_FIELDS,'reference_native_core_local'),
+            ('level33',a.NATIVE_CORE_LEVEL_FIELDS,'reference_native_core_level'),
+            ('cross14',a.NATIVE_CORE_CROSS_FIELDS,'reference_native_core_cross'))
+        for owner_index,(owner,names,function) in enumerate(owners):
+            for name in names:matrix[:,columns[name]]=float(owner_index)
+            def compute(*args,_owner=owner,_names=names,_index=owner_index,**kwargs):
+                calls.append(_owner)
+                if _owner==fail_owner:raise RuntimeError('FORCED_LOCAL_PROGRESS_FAILURE')
+                return ({name:np.full(n,float(_index)) for name in _names},
+                    {name:np.zeros(n) for name in _names},{'source_rows':n,'marker':_owner})
+            monkeypatch.setattr(a,function,compute)
+        cache=tmp_path/'cache.npy';np.save(cache,matrix)
+        progress=tmp_path/'progress';progress.mkdir()
+        return a,frame,clock,cache,progress,calls,shared
+
+    @staticmethod
+    def _records(progress):
+        import json
+        return {path.name:json.loads((path/'PROGRESS.json').read_text())
+                for path in progress.iterdir() if not path.name.startswith('.')}
+
+    def test_all_owners_publish_immutable_pending_guard_lifecycle(self,monkeypatch,tmp_path):
+        a,frame,clock,cache,progress,calls,shared=self._fixture(monkeypatch,tmp_path)
+        reports,helpers,count=a._core_compare_owner_blocks(frame,'M5',clock,cache,2721,progress_dir=progress)
+        assert calls==['swing20','local27','level33','cross14']
+        assert shared==['resample','ATR','raw_n3'] and count==4
+        assert set(reports)==set(a.NATIVE_CORE_NUMERIC_FIELDS) and len(reports)==94
+        assert tuple(helpers)==tuple(calls) and all(helpers[owner]['marker']==owner for owner in calls)
+        records=self._records(progress)
+        expected={'M5_shared_STARTED','M5_shared_PREPARED_PENDING_FINAL_GUARDS'}
+        expected.update('M5_'+owner+'_'+phase for owner in calls
+            for phase in ('STARTED','COMPARED_PENDING_FINAL_GUARDS'))
+        assert set(records)==expected and not any(path.name.startswith('.') for path in progress.iterdir())
+        prepared=records['M5_shared_PREPARED_PENDING_FINAL_GUARDS']
+        assert prepared['ATR_computations']==prepared['raw_n3_replays']==1
+        for owner,names in (('swing20',a.NATIVE_CORE_SWING_FIELDS),('local27',a.NATIVE_CORE_LOCAL_FIELDS),
+                           ('level33',a.NATIVE_CORE_LEVEL_FIELDS),('cross14',a.NATIVE_CORE_CROSS_FIELDS)):
+            finished=records['M5_'+owner+'_COMPARED_PENDING_FINAL_GUARDS']
+            assert finished['fields']==list(names) and finished['field_count']==len(names)
+            assert set(finished['field_reports'])==set(names)
+            assert finished['reference_report']==helpers[owner]
+            assert finished['cache_rows']==finished['raw_timeframe_rows']==4
+            assert finished['elapsed_seconds']>=0.
+        for record in records.values():
+            assert record['final_input_guards_passed'] is False
+            assert record['overall_audit_qualified'] is False and record['training_enabled'] is False
+            assert record['status'] in ('STARTED','PREPARED_PENDING_FINAL_GUARDS','COMPARED_PENDING_FINAL_GUARDS')
+
+    def test_forced_local_failure_keeps_only_finished_and_started_evidence(self,monkeypatch,tmp_path):
+        import pytest
+        a,frame,clock,cache,progress,calls,shared=self._fixture(monkeypatch,tmp_path,fail_owner='local27')
+        with pytest.raises(RuntimeError,match='FORCED_LOCAL_PROGRESS_FAILURE'):
+            a._core_compare_owner_blocks(frame,'M5',clock,cache,2721,progress_dir=progress)
+        assert calls==['swing20','local27'] and shared==['resample','ATR','raw_n3']
+        records=self._records(progress)
+        assert set(records)=={'M5_shared_STARTED','M5_shared_PREPARED_PENDING_FINAL_GUARDS',
+            'M5_swing20_STARTED','M5_swing20_COMPARED_PENDING_FINAL_GUARDS','M5_local27_STARTED'}
+        assert all(record['overall_audit_qualified'] is False for record in records.values())
+
+    def test_duplicate_progress_does_not_replace_or_recompute(self,monkeypatch,tmp_path):
+        import pytest
+        a,frame,clock,cache,progress,calls,shared=self._fixture(monkeypatch,tmp_path)
+        a._core_compare_owner_blocks(frame,'M5',clock,cache,2721,progress_dir=progress)
+        before={str(path.relative_to(progress)):path.read_bytes() for path in progress.glob('*/PROGRESS.json')}
+        with pytest.raises(RuntimeError,match='IMMUTABLE_DESTINATION_EXISTS'):
+            a._core_compare_owner_blocks(frame,'M5',clock,cache,2721,progress_dir=progress)
+        assert calls==['swing20','local27','level33','cross14'] and shared==['resample','ATR','raw_n3']
+        for name,contents in before.items():assert (progress/name).read_bytes()==contents
+
+    def test_no_progress_preserves_existing_return_contract(self,monkeypatch,tmp_path):
+        a,frame,clock,cache,progress,calls,shared=self._fixture(monkeypatch,tmp_path)
+        reports,helpers,count=a._core_compare_owner_blocks(frame,'M5',clock,cache,2721)
+        assert count==4 and len(reports)==94 and tuple(helpers)==('swing20','local27','level33','cross14')
+        assert calls==list(helpers) and not list(progress.iterdir())
+        assert all(set(value)=={'source_rows','marker','oracle_and_cache_compare_elapsed_seconds'}
+                   for value in helpers.values())

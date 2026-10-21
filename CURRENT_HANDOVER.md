@@ -29,59 +29,34 @@ De to godkjente practice-leseoppslagene er konsumert.
 
 ## Gjeldende hindring og neste steg
 
-130 er avsluttet FAILED_NO_ADMISSION: den ene fysiske470outputkontrollen
-nådde1800s-grensen og returnerte124 etter1800,384s.220kildefiler/policy
-ble bevart. Ingen modulresultat/-terminal eller eierprogress ble publisert;
-original staging er tom og bevares. Dette lokaliserer ingen formelfeil eller
-beregningsflaskehals. Ingen av470nye outputs regnes som kvalifisert.
-Kjøringen er konsumert og skal ikke relanseres.
+133 er en fersk engangsplan for alle94gjenstående aktive cachefelt/TF,
+470outputs. Samme12genuine sourcekolonner/full2009prefix,28filer/1739102302B
+SHA én gang og94av253cachekolonner. Fire eierblokker: swing20,local27,
+level33,cross14. MatematiskeERROR_SPEC er identisk med130 unntatt designref;
+132s rettede/kvalifiserte formler og alle tidligere320outputs gjenbrukes.
+Ingen bound-/toleranse-/feature-/produksjons-/normaliserings-/modellendring.
 
-130s uavhengige referanser dekker94gjenstående aktive felt/TF: swing20,
-local27,level33,cross14. Tre kilde-/matematikkpeerreviews og66fokuserte
-håndcaser bestod på4,128s: reader11,swing18,local12,level/cross25.
-304gamlecaser og104gamlehelpers gjenbrukes;182nativeproduksjonsfiler er uendret.
-Kilde-PASS er bevart, men erstatter ingen fysisk tallkontroll.
-Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_130`.
-Se ACTUAL_NUMERIC_REVIEW.json og TERMINAL.json; bindinger står i policy.
+Kilden har kun ny133plan-ID/policykey, valgfri progress_dir og én liten
+fremdriftseier. SharedSTARTED/PREPARED og4ownerSTARTED/COMPARED perTF lagres
+som fsyncete atomiske immutable bunter under eksisterende staging.
+Alle delresultater er eksplisitt pendingfinalguards, aldri samletPASS.
+121øvrigehelpers og eksisterende testprefix er uendret. Agentkildepeer bestod.
+Én ny capped kildekontroll er åpnet:4nye lifecycle/avbrudd/no-replace-caser
+og én eksisterende mutualexclusivecase.300s/4G/512M; ingen ny numerisk fullsuite.
+Den fysiske470jobben er fortsatt stengt til faktisk kilde-PASS og eksakt
+binding. Deretter én capped1800s/4G/512M, fryst kilde/policy og sparsom observasjon.
+Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133`.
 
-131 er avsluttet etter35,886s/exit1 med220kilder/policy bevart.
-Tre gyldige eierprofiler ble skrevet: swing20 0,064s,local27 27,757s,
-level33 4,526s; profileringens overhead er inkludert. Cross14 stoppet fordi
-legitim ATR-warmupNaN ble sendt til streng boundmultiplikasjon førfinitemask.
-Dette er en auditmaskeringsfeil, ikke bevist feil i produksjonsindikator/pris.
-AVWAP-hjelperen brukte19,271s kumulativt i lokalprofilen med mange skalare
-sub/div-kall. Dette beviser ikke årsaken til hele130tidsavbruddet eller en
-fullhistorisk hastighetsgevinst.131 er konsumert; ingen relansering.
-Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_CORE_NUMERIC_PERFORMANCE_20261021_131/ACTUAL_PROFILE_REVIEW.json`.
-
-132 er COMPLETE_SCOPED_SOURCE_REPAIR. Bare crossATR-warmupmasken og
-output-onlyAVWAParitmetikken er endret; uendret anker-/Fraction-/M2-replay,
-formler, feilgrenser, klokker, F32-wires og streng overflowavvisning.
-Begge agenters fragmenter er integrert/kryssreviewet.121andre audithelpers og
-182nativeproduksjonsfiler er uendret. Gammel370caseprefix er byteidentisk.
-33faktiske hovedcaser bestod, med96vellykkede unittestsubchecks/129XMLtelling,
-0fail/error/skip. Forventet29 undervurderte fire eksisterende TF-parametriseringer;
-samme eksplisitte metode-/modulliste ble kjørt.20berørte gamlecaser ble kjørt,
-350uberørte beståtte caser gjenbrukt. Én capped132jobb tok19,526s/exit0 med
-220kilder/policy bevart; planen er konsumert, ingen relansering.
-
-Samme12000ekte2009M5-rader ble sammenlignet mot fryst AVWAPoriginal:
-12verdier+12radier,143388finiteceller hver,0bitavvik/NaNmaskeavvik.
-Ett uprofilert gammeltkall12,920s og nyttkall1,743s. Dette er en enkelt måling
-på dette prefikset, ingen fullhistorisk eller treningshastighetsgevinstpåstand.
-Tre4096batcher dekodet12288rader;12000beholdt/288overshoot.2009fil1667359B
-hashet én gang,12kolonner,ingen råMBP/cacheNPY/sekvens/PT/modellpayload.
-Cross bevarte13warmuprader;4pivotoutputs har11738finiteceller hver. Alle10
-extrema er korrekt maskert fordi prefikset mangler fullt60D1vindu; ingen
-finitt ekstremarkvalifisering på disse radene.5TF-håndregresjoner bestod.
-Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/SOURCE_REVIEW.json`.
-
-Neste steg er én ny eksakt fullhistorisk470outputplan på rettet auditkode,
-med varig eierprogress og eksisterende1800s-grense. Ingen konsumert130/131/132-
-plan relanseres. Ingen nye fullhistoriske outputs er ennå kvalifisert;
-129indeksen på320 er gjeldende. Produksjon/normalisering/modellmekanikk er
-uendret og skal gjenbrukes. Ingen ny treningskampanje/fullVAL/Exit er åpnet.
-Ingen jobb kjører ved denne overleveringen.
+130timeout1800s og131partialprofile/crosswarmupfeil er konsumert/bevart.
+132 rettet bare auditens warmupmaske og vektoriserte AVWAPoutput etter
+uendret anker/Fraction/M2replay.33hovedcaser+96subchecks bestod på19,526s;
+220kilder/policy og182nativeproduksjonsfiler bevart. På12000ekteM5rader var
+12AVWAPverdier+12radier/143388finiteceller hver bit-identiske. Ett gammeltkall
+12,920s/nytt1,743s er prefiksmåling, ingen fullhistorisk/modelldrevet fartspåstand.
+Cross13warmup bevares og5TF-regresjoner bestod. Alle10extrema var maskert på
+det korte realprefikset; ingen finitt fullhistorisk470kvalifisering følger.
+132/SOURCE_REVIEW.json SHAfe274e2c6c8109ffeafb6383db9794430064329601209874e0003400a0f57b88.
+Ingen130/131/132plan relanseres. Ingen ny treningskampanje/fullVAL/Exit er åpnet.
 
 ## Bestått — gjenbruk uten omkjøring
 

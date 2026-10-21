@@ -4504,8 +4504,8 @@ def reference_native_core_cross(frame,*,atr,atr_radius,raw_m5,timeframe):
 
 
 
-NATIVE_CORE_NUMERIC_PLAN_ID='NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_130'
-NATIVE_CORE_NUMERIC_POLICY_KEY='remaining_active_core_numeric_reference_130'
+NATIVE_CORE_NUMERIC_PLAN_ID='NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133'
+NATIVE_CORE_NUMERIC_POLICY_KEY='remaining_active_core_numeric_reference_133'
 NATIVE_CORE_NUMERIC_FIELDS=('swing_dist_last_swing_high_atr', 'swing_dist_last_swing_low_atr', 'swing_bars_since_swing_high', 'swing_bars_since_swing_low', 'swing_retracement_from_last_impulse', 'swing_impulse_present', 'swing_high_break_event', 'swing_low_break_event', 'swing_high_break_displacement_atr', 'swing_low_break_displacement_atr', 'bars_since_swing_high_break', 'bars_since_swing_low_break', 'swing_high_sequence_delta_atr', 'swing_low_sequence_delta_atr', 'consecutive_higher_lows_count', 'consecutive_lower_highs_count', 'consecutive_higher_highs_count', 'consecutive_lower_lows_count', 'swing_high_level_intact', 'swing_low_level_intact', 'mtf_level_above_dist_atr', 'mtf_level_above2_dist_atr', 'mtf_level_above2_present', 'mtf_level_above_touch_count', 'mtf_level_above_recurrence_dist_atr', 'mtf_level_above_age_bars', 'mtf_level_above_bars_since_touch', 'mtf_level_above_mean_reaction_atr', 'mtf_level_above_max_reaction_atr', 'mtf_level_above_last_reaction_atr', 'mtf_level_below_dist_atr', 'mtf_level_below_present', 'mtf_level_below2_dist_atr', 'mtf_level_below2_present', 'mtf_level_below_touch_count', 'mtf_level_below_recurrence_dist_atr', 'mtf_level_below_age_bars', 'mtf_level_below_bars_since_touch', 'mtf_level_below_mean_reaction_atr', 'mtf_level_below_max_reaction_atr', 'mtf_level_below_last_reaction_atr', 'mtf_level_break_up_event', 'mtf_level_break_down_event', 'mtf_level_broken_touch_count', 'mtf_level_bars_since_break_signed', 'mtf_level_retest_hold_signed', 'mtf_level_retest_fail_signed', 'mtf_level_above_pending_retest_dist_atr', 'mtf_level_above_pending_retest_age_bars', 'mtf_level_below_pending_retest_dist_atr', 'mtf_level_below_pending_retest_age_bars', 'mtf_level_round_number_dist_50_atr', 'mtf_level_round_number_dist_100_atr', 'atr_z', '_v1_ema3_ema6_spread_atr', 'chart.foundation_bos_up_event_age_bars', 'chart.foundation_bos_down_event_age_bars', 'chart.foundation_choch_event_age_bars', 'smc_choch', 'smc_sweep_up_avwap_age_bars', 'smc_sweep_up_avwap_dist_atr', 'smc_sweep_up_avwap_dispersion_atr', 'smc_sweep_up_avwap_anchor_close_dist_atr', 'smc_sweep_up_avwap_level_dist_atr', 'smc_sweep_up_avwap_mean_activity_ratio', 'smc_sweep_down_avwap_age_bars', 'smc_sweep_down_avwap_dist_atr', 'smc_sweep_down_avwap_dispersion_atr', 'smc_sweep_down_avwap_anchor_close_dist_atr', 'smc_sweep_down_avwap_level_dist_atr', 'smc_sweep_down_avwap_mean_activity_ratio', 'close_distance_from_ema5_bps', 'spread_bps', 'spread_bps_delta_1', 'spread_extremes_sum_bps', 'quote_range_asymmetry_bps', 'session_change_flag', 'mid_ema50_dist_atr', 'ema5_20_spread_atr', 'mid_ema200_dist_atr', 'dist_to_R1_atr', 'dist_to_R2_atr', 'dist_to_S1_atr', 'dist_to_S2_atr', 'dist_to_m5_hi_atr', 'dist_to_m5_lo_atr', 'dist_to_m15_hi_atr', 'dist_to_m15_lo_atr', 'dist_to_h1_hi_atr', 'dist_to_h1_lo_atr', 'dist_to_h4_hi_atr', 'dist_to_h4_lo_atr', 'dist_to_d1_hi_atr', 'dist_to_d1_lo_atr')
 NATIVE_CORE_NUMERIC_COLUMNS=(50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 190, 196, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 223, 224, 225, 226, 227, 229, 233, 235, 237, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252)
 
@@ -4584,9 +4584,34 @@ def _core_reference_atr(frame):
     return reference_technical_wilder(tr,14)
 
 
-def _core_compare_owner_blocks(m5,timeframe,clock,cache_path,expiry_bars):
+def _core_publish_progress(progress_dir,timeframe,owner,phase,record):
+    """Publish one immutable diagnostic; final input guards are still pending."""
+    if progress_dir is None:return
+    import os
+    directory=Path(progress_dir)
+    if (not directory.is_absolute() or directory.is_symlink() or not directory.is_dir()
+            or directory.resolve(strict=True)!=directory):
+        raise RuntimeError('NATIVE_CORE_NUMERIC_PROGRESS_PATH')
+    name=timeframe+'_'+owner+'_'+phase
+    pending=directory/('.'+name+'.staging');destination=directory/name
+    pending.mkdir(exist_ok=False)
+    payload=dict(record,schema_version='gx1_native_core_owner_progress_v1',timeframe=timeframe,
+        owner=owner,status=phase,created_utc=datetime.now(timezone.utc).isoformat(),
+        final_input_guards_passed=False,overall_audit_qualified=False,training_enabled=False)
+    io.write_json(pending/'PROGRESS.json',payload)
+    descriptor=os.open(pending,os.O_RDONLY|os.O_DIRECTORY)
+    try:os.fsync(descriptor)
+    finally:os.close(descriptor)
+    publish_bundle_directory_noreplace(pending,destination)
+
+
+def _core_compare_owner_blocks(m5,timeframe,clock,cache_path,expiry_bars,*,progress_dir=None):
     """Compare one owner at a time; never merge 94 full-history surfaces."""
     from time import monotonic
+    shared_started=monotonic();shared_started_utc=datetime.now(timezone.utc).isoformat()
+    _core_publish_progress(progress_dir,timeframe,'shared','STARTED',{
+        'started_utc':shared_started_utc,'input_M5_rows':len(m5['bar_start_ns']),
+        'cache_rows':len(clock),'cache_first_time_ns':int(clock[0]),'cache_last_time_ns':int(clock[-1])})
     raw=native_core_resample_frame(m5,timeframe)
     positions=np.searchsorted(raw['bar_start_ns'],clock)
     if (np.any(positions>=len(raw['bar_start_ns'])) or not np.array_equal(raw['bar_start_ns'][positions],clock)
@@ -4595,6 +4620,12 @@ def _core_compare_owner_blocks(m5,timeframe,clock,cache_path,expiry_bars):
     atr,atr_radius=_core_reference_atr(raw)
     raw_smc=reference_native_smc_replay(raw['high'],raw['low'],raw['close'])
     for vector in (*raw.values(),*m5.values(),atr,atr_radius,*raw_smc.values()):vector.setflags(write=False)
+    _core_publish_progress(progress_dir,timeframe,'shared','PREPARED_PENDING_FINAL_GUARDS',{
+        'started_utc':shared_started_utc,'finished_utc':datetime.now(timezone.utc).isoformat(),
+        'elapsed_seconds':monotonic()-shared_started,'input_M5_rows':len(m5['bar_start_ns']),
+        'raw_timeframe_rows':len(raw['bar_start_ns']),'raw_first_time_ns':int(raw['bar_start_ns'][0]),
+        'raw_last_time_ns':int(raw['bar_start_ns'][-1]),'cache_rows':len(clock),
+        'ATR_computations':1,'raw_n3_replays':1})
     matrix=np.load(cache_path,mmap_mode='r',allow_pickle=False)
     column_by_name=dict(zip(NATIVE_CORE_NUMERIC_FIELDS,NATIVE_CORE_NUMERIC_COLUMNS));reports={};helpers={}
     blocks=(('swing20',NATIVE_CORE_SWING_FIELDS,NATIVE_CORE_SWING_DISCRETE_FIELDS,
@@ -4606,6 +4637,12 @@ def _core_compare_owner_blocks(m5,timeframe,clock,cache_path,expiry_bars):
         ('cross14',NATIVE_CORE_CROSS_FIELDS,(),
         lambda:reference_native_core_cross(raw,atr=atr,atr_radius=atr_radius,raw_m5=m5,timeframe=timeframe)))
     for owner,names,discrete,compute in blocks:
+        owner_started_utc=datetime.now(timezone.utc).isoformat()
+        _core_publish_progress(progress_dir,timeframe,owner,'STARTED',{
+            'started_utc':owner_started_utc,'fields':list(names),'field_count':len(names),
+            'raw_timeframe_rows':len(raw['bar_start_ns']),'cache_rows':len(clock),
+            'raw_first_time_ns':int(raw['bar_start_ns'][0]),'raw_last_time_ns':int(raw['bar_start_ns'][-1]),
+            'cache_first_time_ns':int(clock[0]),'cache_last_time_ns':int(clock[-1])})
         started=monotonic();reference,bounds,helper=compute()
         if (set(reference)!=set(names) or set(bounds)!=set(names) or any(name in reports for name in names)
                 or any(np.shape(reference[name])!=np.shape(raw['bar_start_ns']) or np.shape(bounds[name])!=np.shape(raw['bar_start_ns']) for name in names)):
@@ -4619,6 +4656,11 @@ def _core_compare_owner_blocks(m5,timeframe,clock,cache_path,expiry_bars):
             stat['compact_profile_active']=True
             stat['positive_reference_values']=int(np.sum(ref[name]>0.));stat['zero_reference_values']=int(np.sum(ref[name]==0.))
         reports.update(report);helpers[owner]=dict(helper,oracle_and_cache_compare_elapsed_seconds=monotonic()-started)
+        _core_publish_progress(progress_dir,timeframe,owner,'COMPARED_PENDING_FINAL_GUARDS',{
+            'started_utc':owner_started_utc,'finished_utc':datetime.now(timezone.utc).isoformat(),
+            'elapsed_seconds':helpers[owner]['oracle_and_cache_compare_elapsed_seconds'],
+            'field_count':len(names),'fields':list(names),'raw_timeframe_rows':len(raw['bar_start_ns']),
+            'cache_rows':len(clock),'field_reports':report,'reference_report':helpers[owner]})
         del reference,bounds,ref,radii,target,report
     if set(reports)!=set(NATIVE_CORE_NUMERIC_FIELDS):raise RuntimeError('NATIVE_CORE_NUMERIC_OWNER_UNION')
     return reports,helpers,len(clock)
@@ -4796,7 +4838,7 @@ def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False,rem
     for tf in design['timeframes']:
         if remaining_core:
             info=cache['tfs'][tf]
-            report,helper,count=_core_compare_owner_blocks(m5,tf,timestamps[tf],cache_root/info['feats_npy'],constants['level_expiry_bars'][tf])
+            report,helper,count=_core_compare_owner_blocks(m5,tf,timestamps[tf],cache_root/info['feats_npy'],constants['level_expiry_bars'][tf],progress_dir=staging)
             reports[tf]=report;helper_reports[tf]=helper;selected_rows[tf]=count
             continue
         raw=native_resample_calendar_frame(m5,tf)
