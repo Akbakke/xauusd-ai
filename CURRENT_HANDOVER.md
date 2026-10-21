@@ -33,18 +33,19 @@ leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
 ## Gjeldende arbeid — nativeSMC17/geometri7 i129
 
-129kilde og smal peerreview er ferdig:24felt perTF/cache70:94,120outputs,
-85kompaktaktive/35parkerte.14diskrete/10kontinuerlige perTF. Kausal pivotn3,
-prewarmup-replay, BOS/CHOCH/sweepidentitet, egne masker og7geometriformler
-har uavhengige håndfasiter. SamtidigBOS på samme pivotindeks er algebraisk
-umulig med gyldig OHLC; ulikeindeksersamtidigBOS har ekte dyadiske håndcaser.
-102av103gamlefunksjoner og281gamlefoundationcaser er uendret.182native117-
-produksjonsfiler er uendret; ingen normalisering/baseline/modell skal omkjøres.
-Én capped kildekvalifisering er nå åpnet:23nye småcaser+eksisterendeCHOCH-node.
-Faktisk testresultat er ennå ikke kjent. Fysisk129 er uclaimet og stengt.
+129kildepeer og24fokuserte caser bestod på3,805s/exit0:23nye håndcaser og
+én eksisterende CHOCH-kontroll.217kilder/policy er uendret.102gamlehelpers,
+281gamlecaser og182native117produksjonsfiler er bevart; ingen ny baseline.
+SOURCE_REVIEW.json i129 binder XML, terminal og kildepeer. Én fysisk129audit
+er nå claimet, ikke fullført:24felt/TF(cache70:94),120outputs/85kompaktaktive
+og35parkerte.14diskrete/10kontinuerlige perTF; pivotn3 bekreftes etter3høyrebarer,
+replay fra full2009prefix før outputwarmup. Bevar BOS/CHOCH/sweepidentitet,
+egneNaNførførsteevent og alle7geometriformler. Sammeindeks samtidigBOS er
+algebraisk umulig med gyldig OHLC; ulikeindekser har ekte dyadiske fasiter.
 Root `/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129`.
-PREEXECUTION_SOURCE_REVIEW.json binder kildepeer og gjenbruk; dette er ingen
-fysisk PASS. Ingen råMBP-/TB-scan, rebuild, nyepoke, Exit eller TEST.
+Samme28guardedefiler/1,739GB, kun seksOHLCVkolonner og24cachekolonner.
+Kilde/policy fryses til faktisk terminal. Ingen råMBP-/TB-scan, rebuild,
+modell/normalisering/nyepoke/Exit/TEST/broker. Training_enabled=false.
 
 ## Gjeldende grense — trend/state/kryss17×5 i128 bestått
 
