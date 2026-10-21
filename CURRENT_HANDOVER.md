@@ -12,7 +12,8 @@ Entry tar beslutninger på lukkede **M5**-barer, med lukket M15/H1/H4/D1.
 M1-data brukes nå bare som finere etterfølgende prisfasit. Prognose-/
 observasjonshorisontene 1–480 minutter er ikke Entry-tidsrammen, Exit-logikk
 eller en fast holdetid. **M1-Exit tilhører neste bølge etter Entry-edge.**
-108s «alle512valgte1minutt» gjelder prognosehorisonten, ikke M1-entry.
+108s512M5-proberader hadde beste prognosescore ved1minutt for begge sidekandidater;
+diagnostiske handlinger var116SHORT/396FLAT/0LONG, ingen native handelsautoritet.
 Reelle141/144-vitner har300sekunders Entry-barer og korrekt lukket tilgjengelighet.
 
 Lær LONG/SHORT/FLAT fra kausale inputs. Retningsretur, signert MFE og
@@ -94,7 +95,7 @@ Root: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATI
 - `ACTUAL_REVIEW.json`:552452c26912c9f40ca06835950036dbb97c6204ea4fc7d22b19a41b183df10a
 - `ACTUAL_PEER_REVIEW.json`:5ac13d3b5ec76980a6b2f5935812558c1fbc2e1d2c48d94ee1672e7b16e4a900
 
-Neste steg er en genuint ny nullstegs initialmåling med dagens eksakte kilder
+148 har nå fullført den nye nullstegs initialmålingen med dagens eksakte kilder
 og fulle TRAIN256-/CONTROL256-kurver. Gjenbruk ferdige inputs, targets,
 wholeTRAIN-normalisering og TRAIN-RMS; ikke les rå MBP på nytt. Den nye
 baseline-/campaignbindingen skal følge eksisterende eiere og kildekrav.
@@ -111,23 +112,38 @@ Målt canonicalproducer-IO:49.271.677.365rchar/45.800.828.928read_bytes over111,
 kun worker+ventede barn, ikke maskintotal. Ferdige fysiske inputs ble verifisert;
 ingen rå MBP-rebuild eller refit. Uavhengig metadata-peer bestod:
 `ACTUAL_PEER_REVIEW.json`, SHAde93e8236bd344dda4cb5f789d8a9b21a6c9feb280f9d3a7acb94302b406dbc6.
-148 er bundet som ett optimizer0-workflow: reseptforsegling, én canonicalcampaign
-og deretter TRAIN256+CONTROL256/32forwards først etter eksakte maskinvare-/bootporter.
-Planroot: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148`.
-PLAN-SHAe06ff8f98d1c48f26b88e1c1c53aaeec41fbe9982ad2bfd6511ae7a4d5fdedac.
-Global training/full_epoch/fullVAL og alle Exit-/TEST-/brokerporter er fortsatt false.
-Kilde/policy fryses fra reseptforsegling gjennom hele terminalen; ingen automatisk
-relansering eller ekstra epoke. 147initial/filer og111skala gjenbrukes uendret.
-Campaign/install/reboot/nativejobb er ikke startet ved dette commitpunktet.
-148 skal følge eksisterende nativecampaign, signed guard og fersk fysisk boot.
-Fysisk160W-profil beholdes; native guardens300W er et øvre tak, ingen påkrevd
-effekt eller tillatelse til å endre keeperprofilen. Campaigninstall/clocklauncher
-endrer ikke -pl. Bekreft keeperkonfig og signert telemetri før faktisklaunch.
+148 er nå terminal og konsumert: native guard/trainer/observer PASS/0/0,
+TRAIN256+CONTROL256,32Entry-forwards og0optimizersteg. Måling1780,868sekunder;
+komponentoppsett731,366sekunder er en egen rapporteringsrolle. Hele jobben
+stoppet som planlagt ved optimizer-ceiling0 (`RESUMABLE`); dette er ikke
+adgang til å fortsette eller en ferdigtrent modell. Windows-oppgaven er Disabled/Last0.
+FysiskBoot519 er bekreftet21.10T12:04:44.500Z. Alle183kildefiler og13bundne
+inputidentiteter samt policy/rules ble bevart gjennom kjøringen.
+Vaktens målte topper var55Ccore/62Cmemory/131,7Wdraw/738MiB, fysisk effektgrense160W.
+Første tidlige signerte etterboot-forespørsel timet ut før controlleren klargjorde
+nettbroen; originalfeilen er bevart. Senere signert35/42C/160W bestod.
+Root: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148`.
+- `ACTUAL_NATIVE_INITIAL_TERMINAL_REVIEW.json`:170ff4311a895815d38e52b92fa3b5edce14b2789fb40ec4d540123211425a87
+- initial_measurement/RESULT.json:a392890405aa9d645f4ed00d8e27bb31282757284194fb1b7d62c3c8d1cbf412
+- native receipt:c249f781129e73322c74e19ffb2a189f703c74dc54124fa4c2de10c097504730
+- `REBOOT_CONFIRMED.json`:f8273cdea6e00319a6014ef79fc2c794ae2a185c971a7bcbc5642f980bf1978b
+- `WINDOWS_TASK_DISABLED.json`:1ead3da8687948a728bd010a15a7de5f181abcf28805e6f596b693a59d1282ab
 
-Deretter kreves ny eksplisitt beslutning om ekstra epoke og eksakt campaign/
-maskinvareadmission. Gjør dette konkrete arbeidet før treningsspørsmålet stilles.
-147 er terminal og konsumert.148 er forberedt, ikke startet ved dette commitpunktet;
-faktiske prosesser/terminaler overstyrer prosa. Ingen gammel plan relanseres.
+149 er neste, én CPUaudit4G/512M/900s med0modellkall/updates:
+sammenlign147fresh mot148initial0checkpoint for modell/target/optimizer/EMA/
+scheduler og lagret CPU/Python/NumPy-RNG; kjør eksisterende obligatoriske
+`require_chronological_learning_measurement` med dagens full480-validator.
+Planroot: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149`.
+Dette er nødvendig baselinekvalifisering, ingen ny treningsrunde eller råscan.
+117s modell/loss/optimizer/paritetsmekanikk er uendret: bare to observerfunksjoner
+i to filer er endret. Reuse-proof er149/UNCHANGED_LEARNING_MECHANICS_REVIEW.json,
+SHA659a93fe87ea756d0b9e78ef0a689c562df714b10503682efaf0b9bb0b3a5b45.
+En ny fireoppdateringsprobe kreves ikke av epokegaten.
+
+Etter bestått149: gjør ny TRAIN-RMS-epoke konkret og reviewbar før ny eksplisitt
+operatørbeslutning. Behold147fresh/148baseline/111skala og tidligere kvalifiserte
+inputs;108/117treningsvekter og den konsumerte148campaignen relanseres aldri.
+Alle training/full_epoch/fullVAL/Exit/TEST/brokerporter forblir false.
 
 ## Bestått — gjenbruk uten omkjøring
 
@@ -151,7 +167,8 @@ inputnormalisering ble ikke refittet av lossendringen.
 paritetsforwards med eksaktresume er bestått.117vekter er ikke maintrain-start.
 - 108:den ene bestilte hele epoken er FULLFØRT,118249rader/7391updates/
 6090,176s. Alle seks pooledTRAINfeil falt, men1minuttfeil ble dårligere på
-begge diagnoser; alle512valgte1minuttprognose og ingenLONG. Delvis læring,
+begge diagnoser; på512M5-proberader toppet begge sidekandidater ved1minutt.
+Diagnostiske valg116SHORT/396FLAT/0LONG. Delvis læring,
 ikke kvalifisert Entry-kvalitet.111RMS-endringens læringsnytte er ubevist.
 
 ## Maskinvare og resterende grenser
@@ -162,10 +179,10 @@ ikke kvalifisert Entry-kvalitet.111RMS-endringens læringsnytte er ubevist.
 eksisterende installer uten nedlasting; bare power_limit_w i konfig endret seg.
 Signert førclaim:33C/40C/160W, guard viste trygg oppstart; dette er ingen påstand
 om målte peaktemperaturer. Profiletterkontroll og originalconfig/logg er bevart.
-Fysisk18.10-omstart er bekreftet, nyere boot20.10T20:15:55.500Z. Ikke gjenta
+Fysisk18.10-omstart er bekreftet, nyeste boot21.10T12:04:44.500Z. Ikke gjenta
 eldre omstartsbestilling. Fremtidig nativejobb følger egne faktiske hardwareporter.
 
-Aktivt mål er ufullført: faktisk fullkurve-baseline og beslutningssporbarhet, TRAIN-RMS-læring,
+Aktivt mål er ufullført:149state-/RNG-/fullkurvebaselinekvalifisering, beslutningssporbarhet og TRAIN-RMS-læring,
 LONG/SHORT/FLAT-kvalitet/dekning for valgte og avståtte, generalisering og
 økonomisk edge gjenstår hver for seg. Ingen observasjon eller tekniskPASS
 åpner TEST, handel eller ny trening. Originaldata/kvitteringer/checkpoints

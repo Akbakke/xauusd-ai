@@ -435,8 +435,9 @@ etter en slik beslutning; prognoser fra 1 til 480 minutter er framtidige
 målehorisonter, ikke M1-entry, Exit-regler eller pålagt holdetid. M1-Exit
 vurderes først i neste bølge etter Entry-edge. Rapportér derfor
 `entry_timeframe=M5` atskilt fra `query_horizon_minutes` og `exit_evaluation=false`.
-Den tidligere108-observasjonen «alle512valgte1minutt» beskriver modellens
-valgte prognosehorisont, ikke at Entry-kadensen ble endret fra M5 til M1.
+108 hadde512M5-proberader hvor begge sidekandidatenes prognosescore toppet
+ved1minutt. Diagnostiske handlinger var116SHORT/396FLAT/0LONG, uten native
+handelsautoritet. Prognosehorisonten endrer ikke Entry-kadensen fra M5 til M1.
 
 Fullkurve-diagnostikk lagrer hver M5-entrys fem allerede beregnede
 1–480minuttkurver med egne observasjonsmasker og `null` for uobserverte mål.
