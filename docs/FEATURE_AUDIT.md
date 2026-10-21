@@ -578,3 +578,10 @@ ACTUAL_NUMERIC_REVIEW.json i129 SHA197f28c8f5a536dde1ac6ad0497e4ac398a7685ace803
 129/QUALIFIED_MTF_NUMERIC_INDEX.json binder320disjunkteoutputs,225aktive og
 95parkerte. Rest189perTF=94aktive+95parkerte; ingen individuell lært nytte,
 Entry-kvalitet/generaliserings-/økonomi- eller råMBP→M1-påstand følger.
+
+130 samler alle94gjenstående kompaktaktive cachefelt/TF:20swing,27local/scalar,
+33level og14crossTF. Delte127/129primitiver, én28filpassering med seks genuine
+quoteekstrakolonner, fire sekvensielle eierblokker uten94×Nvalues/radii-merge.
+DESIGN/ERROR_SPEC binder nye fullprefixATRz/AVWAP/reaksjonsgrenser og F32-wires.
+Tre smale peerreviews bestod; bare ny fokusert kildejobb er åpnet. Ingen fysisk
+470feltPASS, modellrunde, normaliseringsfit eller ny nativeepoke er utført.

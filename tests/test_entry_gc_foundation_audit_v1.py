@@ -2616,3 +2616,618 @@ class TestNativeSMCReference129:
         else: actual["mtf_smc_swing_state"][14] = 7
         with pytest.raises(RuntimeError, match="TECHNICAL_NUMERIC_REFERENCE_(VALUE_MISMATCH|NAN_MASK|DISCRETE_MISMATCH)"):
             audit.compare_technical_reference(values, actual, radii, discrete_fields=audit.NATIVE_SMC_DISCRETE_FIELDS)
+
+
+class TestNativeCoreReader130:
+    @staticmethod
+    def _owner():
+        from gx1.scripts import audit_entry_gc_foundation_v1
+        return audit_entry_gc_foundation_v1
+
+    def test_internal_float32_wire_has_exact_zero_radius_for_exact_binary64_input(self):
+        a=self._owner();v=np.array([0.,1.,-1.,1.+2.**-24],np.float64)
+        out,r=a._core_round32_interval(v,np.zeros(4))
+        np.testing.assert_array_equal(out,np.array([0.,1.,-1.,1.]))
+        np.testing.assert_array_equal(r,np.zeros(4))
+
+    def test_interval_crossing_float32_midpoint_covers_both_tie_neighbours(self):
+        a=self._owner();mid=1.+2.**-24
+        out,r=a._core_round32_interval(np.array([mid,-mid]),np.full(2,2.**-52))
+        assert out.tolist()==[1.,-1.]
+        assert np.all(r>=2.**-23) and np.all(r<2.**-22)
+        for sign in (-1.,1.):
+            actual=np.asarray([mid+sign*2.**-52,-mid+sign*2.**-52],np.float32).astype(np.float64)
+            assert np.all(np.abs(actual-out)<=r)
+
+    def test_internal_float32_wire_preserves_nan_prefix_and_subnormal_interval(self):
+        a=self._owner();out,r=a._core_round32_interval(np.array([np.nan,0.]),np.array([np.nan,2.**-149]))
+        assert np.isnan(out[0]) and np.isnan(r[0]) and out[1]==0. and r[1]>=2.**-149
+
+    @pytest.mark.parametrize('values,radii',[(np.array([np.inf]),np.array([0.])),
+        (np.array([1.]),np.array([-1.])),(np.array([1.]),np.array([np.nan]))])
+    def test_invalid_internal_float32_wire_is_rejected(self,values,radii):
+        with pytest.raises(RuntimeError,match='F32_INTERVAL_DOMAIN'):
+            self._owner()._core_round32_interval(values,radii)
+
+    def test_internal_float32_overflow_is_rejected(self):
+        with pytest.raises(RuntimeError,match='F32_INTERVAL_OVERFLOW'):
+            self._owner()._core_round32_interval(np.array([1.e40]),np.array([0.]))
+
+    @staticmethod
+    def _source():
+        minute=60*10**9
+        t=np.array([0,5,10,15,20,25,35,40,45],np.int64)*minute
+        c=np.array([100.,101.,102.,103.,104.,105.,107.,108.,109.])
+        out={'bar_start_ns':t,'open':c.copy(),'high':c+2.,'low':c-2.,'close':c.copy(),'volume':np.arange(1,10,dtype=np.int64)}
+        for side,offset in [('bid',-0.25),('ask',0.25)]:
+            for part in ['close','high','low']:out[side+'_'+part]=out[part]+offset
+        return out
+
+    def test_quotes_share_native_axis_with_observed_extrema_and_trailing_trim(self):
+        source=self._source();out=self._owner().native_core_resample_frame(source,'M15')
+        np.testing.assert_array_equal(out['bar_start_ns'],np.array([0,15,30],np.int64)*60*10**9)
+        np.testing.assert_array_equal(out['bid_close'],[101.75,104.75,107.75])
+        np.testing.assert_array_equal(out['ask_high'],[104.25,107.25,110.25])
+        np.testing.assert_array_equal(out['bid_low'],[97.75,100.75,104.75])
+        np.testing.assert_array_equal(out['volume'],[6,15,15])
+
+    def test_quote_resampling_preserves_leading_partial_and_empty_bucket_rules(self):
+        source=self._source();source={k:v[1:6] for k,v in source.items()}
+        out=self._owner().native_core_resample_frame(source,'M15')
+        np.testing.assert_array_equal(out['bar_start_ns'],np.array([15],np.int64)*60*10**9)
+        np.testing.assert_array_equal(out['ask_close'],[105.25])
+
+    def test_quote_resampling_rejects_crossed_genuine_quotes(self):
+        source=self._source();source['ask_close']=source['bid_close']-1.
+        with pytest.raises(RuntimeError,match='CROSSED_QUOTE'):
+            self._owner().native_core_resample_frame(source,'M15')
+
+    def test_prior_reference_modes_remain_mutually_exclusive_with_core(self):
+        with pytest.raises(RuntimeError,match='MUTUALLY_EXCLUSIVE_MODES'):
+            self._owner().run_technical_numeric(None,native_smc=True,remaining_core=True)
+
+
+class TestNativeCoreSwing130:
+    """Literal strict-pivot witnesses; no production swing/ATR/age oracle."""
+
+    @staticmethod
+    def _owner():
+        from gx1.scripts import audit_entry_gc_foundation_v1
+        return audit_entry_gc_foundation_v1
+
+    @staticmethod
+    def _frame(close):
+        c=np.asarray(close,dtype=np.float64)
+        return {'bar_start_ns':np.arange(len(c),dtype=np.int64)*5*MINUTE,
+            'high':c+.5,'low':c-.5,'close':c}
+
+    @staticmethod
+    def _atr(frame):
+        from fractions import Fraction
+        h,l,c=(frame[name] for name in ('high','low','close'));tr=[]
+        for i in range(len(c)):
+            candidates=[Fraction.from_float(float(h[i]))-Fraction.from_float(float(l[i]))]
+            if i:
+                candidates.extend((abs(Fraction.from_float(float(h[i]))-Fraction.from_float(float(c[i-1]))),
+                    abs(Fraction.from_float(float(l[i]))-Fraction.from_float(float(c[i-1])))))
+            tr.append(max(candidates))
+        values=np.full(len(c),np.nan);radii=values.copy();exact=None
+        for i in range(13,len(c)):
+            exact=sum(tr[:14],Fraction(0))/14 if i==13 else (13*exact+tr[i])/14
+            value=float(exact);error=abs(Fraction.from_float(value)-exact)
+            values[i]=value;radii[i]=0. if not error else np.nextafter(float(error),np.inf)
+        return values,radii
+
+    @staticmethod
+    def _close():
+        return [100.,101.,103.,101.,100.,100.5,102.,102.5,104.,104.5,105.,104.,103.,103.5,106.,106.5,107.]
+
+    def _calculate(self,frame):
+        atr,radius=self._atr(frame)
+        return self._owner().reference_native_core_swing(frame,atr=atr,atr_radius=radius)
+
+    @pytest.mark.parametrize('mirror',[False,True])
+    def test_literal_twenty_fields_have_exact_rational_formula_witness(self,mirror):
+        from fractions import Fraction as F
+        frame=self._frame(self._close())
+        if mirror:frame.update(high=200.-frame['low'],low=200.-frame['high'],close=200.-frame['close'])
+        values,bounds,report=self._calculate(frame);assert report['source_rows']==17
+        expected={
+            'swing_dist_last_swing_high_atr':-F(98,45) if mirror else F(14,45),
+            'swing_dist_last_swing_low_atr':-F(14,45) if mirror else F(98,45),
+            'swing_bars_since_swing_high':2 if mirror else 4,
+            'swing_bars_since_swing_low':4 if mirror else 2,
+            'swing_retracement_from_last_impulse':F(7,6),'swing_impulse_present':1,
+            'swing_high_break_event':0 if mirror else 1,'swing_low_break_event':1 if mirror else 0,
+            'swing_high_break_displacement_atr':0 if mirror else F(14,45),
+            'swing_low_break_displacement_atr':F(14,45) if mirror else 0,
+            'bars_since_swing_high_break':None if mirror else 0,'bars_since_swing_low_break':0 if mirror else None,
+            'swing_high_sequence_delta_atr':-F(28,15) if mirror else F(56,45),
+            'swing_low_sequence_delta_atr':-F(56,45) if mirror else F(28,15),
+            'consecutive_higher_lows_count':0 if mirror else 1,'consecutive_lower_highs_count':1 if mirror else 0,
+            'consecutive_higher_highs_count':0 if mirror else 1,'consecutive_lower_lows_count':1 if mirror else 0,
+            'swing_high_level_intact':1 if mirror else 0,'swing_low_level_intact':0 if mirror else 1}
+        assert tuple(values)==tuple(expected)==self._owner().NATIVE_CORE_SWING_FIELDS
+        assert len(self._owner().NATIVE_CORE_SWING_DISCRETE_FIELDS)==13
+        for name,truth in expected.items():
+            if truth is None:assert np.isnan(values[name][14]) and np.isnan(bounds[name][14])
+            else:
+                error=abs(F.from_float(float(values[name][14]))-F(truth))
+                assert error<=F.from_float(float(bounds[name][14])),name
+                if name in self._owner().NATIVE_CORE_SWING_DISCRETE_FIELDS:assert values[name][14]==float(truth) and bounds[name][14]==0.
+        assert report['first_valid_rows']['swing_dist_last_swing_high_atr']==13
+        assert report['first_valid_rows']['swing_dist_last_swing_low_atr']==13
+        assert values['swing_retracement_from_last_impulse'][14]>1.
+
+    def test_pre_atr_break_consumes_level_but_has_undefined_displacement(self):
+        values,bounds,_=self._calculate(self._frame(self._close()))
+        assert np.flatnonzero(values['swing_high_break_event']).tolist()==[8,14]
+        assert values['swing_high_level_intact'][8]==0.
+        assert np.isnan(values['swing_high_break_displacement_atr'][:13]).all()
+        assert np.isnan(bounds['swing_high_break_displacement_atr'][:13]).all()
+        np.testing.assert_array_equal(values['bars_since_swing_high_break'][8:],[0.,1.,2.,3.,4.,5.,0.,1.,2.])
+        assert np.isnan(values['bars_since_swing_low_break']).all()
+
+    def test_equal_neighbour_highs_are_rejected_without_tolerance(self):
+        values,_,report=self._calculate(self._frame([100.,101.,103.,103.,101.,100.]))
+        assert report['pivot_counts']['high']==0
+        assert np.isnan(values['swing_bars_since_swing_high']).all()
+        assert np.isnan(values['swing_high_level_intact']).all()
+        assert not values['swing_high_break_event'].any()
+
+    def test_right_two_confirmation_has_no_pseudopivot_or_age_cap(self):
+        close=np.r_[100.,101.,103.,101.,100.,99.95-.05*np.arange(615,dtype=np.float64)]
+        values,_,_=self._calculate(self._frame(close))
+        assert np.isnan(values['swing_bars_since_swing_high'][:4]).all()
+        assert values['swing_bars_since_swing_high'][4]==2.
+        assert values['swing_bars_since_swing_high'][-1]==len(close)-3
+        assert values['swing_bars_since_swing_high'][-1]>500.
+        assert np.isnan(values['swing_bars_since_swing_low']).all()
+
+    def test_same_price_new_pivot_rearms_and_equal_sequence_resets_both_runs(self):
+        close=[100.,101.,103.,101.,100.,101.,104.,104.,104.,101.,100.,103.,101.,100.,101.,104.]
+        values,_,_=self._calculate(self._frame(close))
+        assert np.flatnonzero(values['swing_high_break_event']).tolist()==[6,15]
+        assert values['swing_high_level_intact'][12]==0.
+        assert values['swing_high_level_intact'][13]==1.
+        assert values['swing_high_level_intact'][15]==0.
+        assert values['swing_high_sequence_delta_atr'][13]==0.
+        assert values['consecutive_higher_highs_count'][13]==values['consecutive_lower_highs_count'][13]==0.
+
+    def test_raw_pivot_run_counts_can_exceed_the_retired_ninety_six_cap(self):
+        close=50.+np.tile([0.,1.,3.,1.,0.],130)+np.repeat(np.arange(130,dtype=np.float64),5)*4.
+        values,_,_=self._calculate(self._frame(close))
+        assert values['consecutive_higher_highs_count'][-1]==129.
+        assert values['consecutive_higher_lows_count'][-1]==128.
+        assert values['consecutive_lower_highs_count'][-1]==values['consecutive_lower_lows_count'][-1]==0.
+
+    def test_same_row_opposite_pivots_have_no_defined_impulse(self):
+        frame=self._frame(np.full(16,100.));frame['high'][2]=110.;frame['low'][2]=90.
+        values,_,_=self._calculate(frame)
+        assert values['swing_bars_since_swing_high'][4]==values['swing_bars_since_swing_low'][4]==2.
+        assert not values['swing_impulse_present'].any()
+        assert not values['swing_retracement_from_last_impulse'].any()
+        assert np.isfinite(values['swing_dist_last_swing_high_atr'][13:]).all()
+
+    def test_retracement_can_be_negative_without_atr_or_clip_floor(self):
+        frame=self._frame(self._close());frame['close'][13]=106.;frame['high'][13]=106.5;frame['low'][13]=105.5
+        values,bounds,_=self._calculate(frame)
+        from fractions import Fraction as F
+        assert values['swing_retracement_from_last_impulse'][13]<0.
+        assert abs(F.from_float(float(values['swing_retracement_from_last_impulse'][13]))+F(1,12))<=F.from_float(float(bounds['swing_retracement_from_last_impulse'][13]))
+
+    def test_zero_atr_is_unavailable_without_hiding_observed_zero_flags(self):
+        frame=self._frame(np.full(20,100.));frame['high'][:]=100.;frame['low'][:]=100.
+        values,bounds,_=self._calculate(frame)
+        for name in ('swing_dist_last_swing_high_atr','swing_dist_last_swing_low_atr','swing_high_break_displacement_atr','swing_low_break_displacement_atr'):
+            assert np.isnan(values[name]).all() and np.isnan(bounds[name]).all()
+        for name in ('swing_impulse_present','swing_high_break_event','consecutive_higher_highs_count'):
+            assert np.all(values[name]==0.) and np.all(bounds[name]==0.)
+
+    def test_holes_do_not_reset_and_future_append_cannot_change_prefix(self):
+        frame=self._frame(self._close()+[106.,105.,106.,108.]);prefix={k:v[:15].copy() for k,v in frame.items()}
+        first,fb,_=self._calculate(prefix);whole,wb,_=self._calculate(frame)
+        gap={k:v.copy() for k,v in frame.items()};gap['bar_start_ns'][9:]+=13*DAY
+        gapped,gb,_=self._calculate(gap)
+        for name in first:
+            np.testing.assert_array_equal(first[name],whole[name][:15]);np.testing.assert_array_equal(fb[name],wb[name][:15])
+            np.testing.assert_array_equal(gapped[name],whole[name]);np.testing.assert_array_equal(gb[name],wb[name])
+
+    def test_reference_does_not_delegate_to_production_swing_or_age(self,monkeypatch):
+        from gx1.features import swing_structure_v1,event_age_v1,technical_indicators_v1
+        def forbidden(*args,**kwargs):raise AssertionError('production oracle called')
+        monkeypatch.setattr(swing_structure_v1,'compute_swing_structure_features',forbidden)
+        monkeypatch.setattr(event_age_v1,'raw_event_age_bars',forbidden)
+        monkeypatch.setattr(technical_indicators_v1,'wilder_atr',forbidden)
+        values,_,_=self._calculate(self._frame(self._close()))
+        assert values['swing_high_break_event'][14]==1.
+
+    @pytest.mark.parametrize('fault',['mask','category','continuous'])
+    def test_comparison_rejects_wrong_mask_discrete_and_continuous_values(self,fault):
+        audit=self._owner();values,bounds,_=self._calculate(self._frame(self._close()))
+        actual={name:a.astype(np.float32) for name,a in values.items()}
+        audit.compare_technical_reference(values,actual,bounds,discrete_fields=audit.NATIVE_CORE_SWING_DISCRETE_FIELDS)
+        if fault=='mask':actual['swing_high_break_event'][0]=np.nan
+        elif fault=='category':actual['consecutive_higher_highs_count'][14]=.5
+        else:actual['swing_dist_last_swing_high_atr'][14]=1e6
+        with pytest.raises(RuntimeError,match='TECHNICAL_NUMERIC_REFERENCE_(NAN_MASK|DISCRETE_MISMATCH|VALUE_MISMATCH)'):
+            audit.compare_technical_reference(values,actual,bounds,discrete_fields=audit.NATIVE_CORE_SWING_DISCRETE_FIELDS)
+
+    @pytest.mark.parametrize('fault',['shape','nan_mask','negative_radius'])
+    def test_shared_atr_schema_is_checked_before_interpreting_its_domain(self,fault):
+        frame=self._frame(self._close());a,b=self._atr(frame)
+        if fault=='shape':a=a[:-1]
+        elif fault=='nan_mask':b[0]=0.
+        else:b[14]=-1.
+        with pytest.raises(RuntimeError,match='NATIVE_CORE_SWING_ATR_SCHEMA'):
+            self._owner().reference_native_core_swing(frame,atr=a,atr_radius=b)
+
+
+class TestNativeCoreLocal130:
+    @staticmethod
+    def _owner():
+        return TestTechnicalReference127._owner()
+
+    @staticmethod
+    def _frame(close, *, high=None, low=None, volume=None, stamps=None):
+        c = np.asarray(close,dtype=np.float64)
+        h = c+2 if high is None else np.asarray(high,dtype=np.float64)
+        l = c-2 if low is None else np.asarray(low,dtype=np.float64)
+        f = TestTechnicalReference127._frame(c,high=h,low=l,volume=volume,stamps=stamps)
+        f.update({'bid_close':c-.5,'ask_close':c+.5,'bid_high':h-.5,'bid_low':l-.5,
+                  'ask_high':h+.5,'ask_low':l+.5})
+        return f
+
+    @staticmethod
+    def _raw(n):
+        out = {name:np.zeros(n,np.float64) for name in
+               ('bos_up','bos_down','choch_up','choch_down','sweep_up_event','sweep_down_event')}
+        out['last_high_price'] = np.full(n,np.nan)
+        out['last_low_price'] = np.full(n,np.nan)
+        return out
+
+    @staticmethod
+    def _atr(frame):
+        h,l,c = (frame[k] for k in ('high','low','close'));n = len(c)
+        tr = [float(h[0]-l[0])]
+        tr += [max(float(h[i]-l[i]),abs(float(h[i]-c[i-1])),abs(float(l[i]-c[i-1]))) for i in range(1,n)]
+        values = np.full(n,np.nan)
+        if n >= 14:
+            values[13] = sum(tr[:14])/14
+            for i in range(14,n):values[i] = (13*values[i-1]+tr[i])/14
+        return values,np.where(np.isfinite(values),0.,np.nan)
+
+    @classmethod
+    def _run(cls,frame,*,raw=None,timeframe='M5',atr=None):
+        a,e = cls._atr(frame) if atr is None else (np.asarray(atr,np.float64),np.where(np.isfinite(atr),0.,np.nan))
+        return cls._owner().reference_native_core_local(frame,atr=a,atr_radius=e,
+            raw_smc=cls._raw(len(a)) if raw is None else raw,timeframe=timeframe)
+
+    @staticmethod
+    def _rounded32_fasit(target, *, squared=False):
+        # Prove the expected RN32 cell against exact rational midpoints. This
+        # does not call the owner sqrt/wire helpers or choose an epsilon.
+        import math
+        from fractions import Fraction
+        seed = math.sqrt(float(target)) if squared else float(target)
+        candidate = np.float32(seed)
+        left = Fraction.from_float(float(np.nextafter(candidate,np.float32(-np.inf))))
+        center = Fraction.from_float(float(candidate))
+        right = Fraction.from_float(float(np.nextafter(candidate,np.float32(np.inf))))
+        lower,upper = (left+center)/2,(center+right)/2
+        if squared:
+            assert lower > 0 and lower*lower < target < upper*upper
+        else:
+            assert lower < target < upper  # These declared fasits are not ties.
+        return center
+
+    @classmethod
+    def _rational(cls,v,e,row,num,den=1,*,wire32=False):
+        from fractions import Fraction
+        target = Fraction(num,den)
+        if wire32:target = cls._rounded32_fasit(target)
+        center = Fraction.from_float(float(v[row]));radius = Fraction.from_float(float(e[row]))
+        assert radius >= 0 and center-radius <= target <= center+radius
+
+    @classmethod
+    def _square(cls,v,e,row,target):
+        from fractions import Fraction
+        expected = cls._rounded32_fasit(target,squared=True)
+        center = Fraction.from_float(float(v[row]));radius = Fraction.from_float(float(e[row]))
+        assert radius >= 0 and center-radius <= expected <= center+radius
+
+    def test_active_twenty_seven_contract_warmups_and_price_quote_units(self):
+        audit = self._owner();frame = self._frame(100+np.arange(240,dtype=np.float64))
+        v,e,report = self._run(frame)
+        assert tuple(v) == tuple(audit.NATIVE_CORE_LOCAL_FIELDS) and len(v) == 27
+        assert len(audit.NATIVE_CORE_LOCAL_DISCRETE_FIELDS) == 7
+        first = {'_v1_ema3_ema6_spread_atr':13,'close_distance_from_ema5_bps':4,
+                 'spread_bps':0,'spread_bps_delta_1':1,'spread_extremes_sum_bps':0,
+                 'quote_range_asymmetry_bps':0,'session_change_flag':0,
+                 'mid_ema50_dist_atr':79,'ema5_20_spread_atr':19,'mid_ema200_dist_atr':219}
+        for name,row in first.items():
+            assert report['first_valid_rows'][name] == row
+            assert np.isnan(v[name][:row]).all()
+        expected = {'_v1_ema3_ema6_spread_atr':(3,8),'close_distance_from_ema5_bps':(20000,339),
+                    'spread_bps':(20000,677),'spread_bps_delta_1':(-1600,18279),
+                    'spread_extremes_sum_bps':(20000,339),'quote_range_asymmetry_bps':(0,1),
+                    'mid_ema50_dist_atr':(49,8),'ema5_20_spread_atr':(15,8),'mid_ema200_dist_atr':(199,8)}
+        for name,(num,den) in expected.items():
+            self._rational(v[name],e[name],239,num,den,wire32=name in
+                ('close_distance_from_ema5_bps','spread_bps_delta_1','spread_extremes_sum_bps','quote_range_asymmetry_bps'))
+        assert np.isnan(v['atr_z']).all()  # ConstantTR => unavailable standard deviation.
+        assert all(np.isnan(v[name]).all() for name in v if name.startswith('smc_sweep_'))
+        assert np.isnan(v['chart.foundation_bos_up_event_age_bars']).all()
+        assert np.all(v['smc_choch'] == 0)
+
+    def test_atr_z_double_fifty_sample_variance_has_exact_squared_answer(self):
+        from fractions import Fraction
+        n = 140;close = np.full(n,100.);ranges = 2+np.arange(n,dtype=np.float64)
+        frame = self._frame(close,high=close+ranges/2,low=close-ranges/2)
+        v,e,report = self._run(frame)
+        assert np.isnan(v['atr_z'][:98]).all() and report['first_valid_rows']['atr_z'] == 98
+        # FirstSMA50 grows by1; second samplevariance=425/2, numerator49/2.
+        for row in (98,139):self._square(v['atr_z'],e['atr_z'],row,Fraction(2401,850))
+        assert report['ATR_z']['ddof'] == 1 and report['ATR_z']['full_prefix'] is True
+
+    def test_atr_z_uniform_shortcut_retains_full_prefix_state_and_no_clip(self):
+        from fractions import Fraction
+        ranges = np.array([2.]*60+[4.]*100+[6.]*20);c = np.full(len(ranges),100.)
+        v,e,_ = self._run(self._frame(c,high=c+ranges/2,low=c-ranges/2))
+        assert np.isnan(v['atr_z'][158:160]).all()
+        # At160:49oldATR50=4 andone4.04; samplevar1/31250.
+        self._square(v['atr_z'],e['atr_z'],160,Fraction(2401,50))
+        assert v['atr_z'][160] > 6
+
+    def test_foundation_raw_ages_and_choch_or_have_no_common_pivot_warmup_mask(self):
+        frame = self._frame(np.full(8,100.));raw = self._raw(8)
+        raw['bos_up'][2] = 1;raw['bos_down'][5] = 1;raw['choch_up'][4] = 1
+        v,e,_ = self._run(frame,raw=raw)
+        expected = {'chart.foundation_bos_up_event_age_bars':[np.nan,np.nan,0,1,2,3,4,5],
+                    'chart.foundation_bos_down_event_age_bars':[np.nan,np.nan,np.nan,np.nan,np.nan,0,1,2],
+                    'chart.foundation_choch_event_age_bars':[np.nan,np.nan,np.nan,np.nan,0,1,2,3]}
+        for name,wanted in expected.items():
+            np.testing.assert_array_equal(v[name],wanted)
+            assert np.all(e[name][np.isfinite(e[name])] == 0)
+        np.testing.assert_array_equal(v['smc_choch'],[0,0,0,0,1,0,0,0])
+
+    def test_both_sweep_anchors_have_independent_weighted_moment_fasits(self):
+        from fractions import Fraction
+        c = np.array([100.,102.,101.,103.,98.,105.,104.,103.,99.])
+        weights = np.array([2,7,3,11,5,13,2,17,19],np.int64)
+        frame = self._frame(c,volume=weights);raw = self._raw(9)
+        raw['sweep_up_event'][[1,5]] = 1;raw['sweep_down_event'][[3,5]] = 1
+        raw['last_high_price'][[1,5]] = c[[1,5]]+1
+        raw['last_low_price'][[3,5]] = c[[3,5]]-1
+        atr = np.array([np.nan,np.nan,2.,3.,4.,2.,1.,2.,3.])
+        v,e,_ = self._run(frame,raw=raw,atr=atr)
+        up = 'smc_sweep_up_avwap_';down = 'smc_sweep_down_avwap_'
+        assert v[up+'age_bars'][1] == 0 and v[up+'mean_activity_ratio'][1] == 0
+        assert np.isnan(v[up+'dist_atr'][1])
+        assert all(np.isnan(v[down+suffix][:3]).all() for suffix in
+                   ('age_bars','dist_atr','dispersion_atr','anchor_close_dist_atr','level_dist_atr','mean_activity_ratio'))
+        for suffix,num,den in [('age_bars',2,1),('dist_atr',13,63),('anchor_close_dist_atr',1,3),
+                               ('level_dist_atr',0,1),('mean_activity_ratio',0,1)]:
+            self._rational(v[up+suffix],e[up+suffix],3,num,den,wire32=True)
+        self._square(v[up+'dispersion_atr'],e[up+'dispersion_atr'],3,Fraction(230,3969))
+        assert v[up+'age_bars'][3] == 2 and v[down+'age_bars'][3] == 0
+        for prefix in (up,down):
+            assert v[prefix+'age_bars'][5] == 0
+            self._rational(v[prefix+'dist_atr'],e[prefix+'dist_atr'],6,-13,15,wire32=True)
+            self._square(v[prefix+'dispersion_atr'],e[prefix+'dispersion_atr'],6,Fraction(26,225))
+            self._rational(v[prefix+'mean_activity_ratio'],e[prefix+'mean_activity_ratio'],6,-11,26,wire32=True)
+        self._rational(v[up+'level_dist_atr'],e[up+'level_dist_atr'],5,-1,2,wire32=True)
+        self._rational(v[down+'level_dist_atr'],e[down+'level_dist_atr'],5,1,2,wire32=True)
+
+    @pytest.mark.parametrize('timeframe,labels,expected',[
+        ('M5',['2026-01-01T06:50:00Z','2026-01-01T06:55:00Z','2026-01-01T07:00:00Z'],[0,1,0]),
+        ('H1',['2026-01-01T05:00:00Z','2026-01-01T06:00:00Z','2026-01-01T07:00:00Z'],[0,1,0]),
+        ('D1',['2026-01-01T22:00:00Z','2026-01-02T22:00:00Z','2026-01-03T22:00:00Z'],[0,0,0]),
+    ])
+    def test_session_flag_uses_actual_closed_lane_time(self,timeframe,labels,expected):
+        stamps = np.array([pd.Timestamp(t).value for t in labels],np.int64)
+        v,e,_ = self._run(self._frame(np.full(3,100.),stamps=stamps),timeframe=timeframe)
+        np.testing.assert_array_equal(v['session_change_flag'],expected)
+        np.testing.assert_array_equal(e['session_change_flag'],[0,0,0])
+
+    def test_calendar_gaps_and_appended_future_do_not_rewrite_local_prefix(self):
+        frame = self._frame(100+np.arange(240,dtype=np.float64))
+        gapped = {k:a.copy() for k,a in frame.items()};gapped['bar_start_ns'][120:] += 17*DAY
+        v,e,_ = self._run(frame);g,ge,_ = self._run(gapped)
+        future = self._frame(np.concatenate([frame['close'],[120.,80.,120.,80.,120.]]))
+        later,le,_ = self._run(future)
+        for name in v:
+            np.testing.assert_array_equal(v[name],g[name]);np.testing.assert_array_equal(e[name],ge[name])
+            np.testing.assert_array_equal(v[name],later[name][:240]);np.testing.assert_array_equal(e[name],le[name][:240])
+
+    @pytest.mark.parametrize('fault',['value','mask','category'])
+    def test_local_comparison_rejects_wrong_value_mask_and_discrete_category(self,fault):
+        audit = self._owner();v,e,_ = self._run(self._frame(100+np.arange(240,dtype=np.float64)))
+        actual = {k:a.astype(np.float32) for k,a in v.items()}
+        audit.compare_technical_reference(v,actual,e,discrete_fields=audit.NATIVE_CORE_LOCAL_DISCRETE_FIELDS)
+        if fault == 'value':actual['_v1_ema3_ema6_spread_atr'][-1] += 1
+        elif fault == 'mask':actual['chart.foundation_bos_up_event_age_bars'][0] = 0
+        else:actual['session_change_flag'][-1] = 2
+        with pytest.raises(RuntimeError,match='TECHNICAL_NUMERIC_REFERENCE_'):
+            audit.compare_technical_reference(v,actual,e,discrete_fields=audit.NATIVE_CORE_LOCAL_DISCRETE_FIELDS)
+
+
+class TestNativeCoreLevelCross130:
+    """Component-boundary hand witnesses; ATR wires are explicit test inputs."""
+    @staticmethod
+    def _owner():
+        return TestTechnicalReference127._owner()
+    @staticmethod
+    def _frame(high,low,close,stamps=None):
+        return TestTechnicalReference127._frame(close,high=high,low=low,stamps=stamps)
+    @classmethod
+    def _literal(cls):
+        high,low,close=np.full(15,105.),np.full(15,95.),np.full(15,100.)
+        high[[3,10]]=[110.,112.];low[[4,11]]=[90.,92.]
+        return cls._frame(high,low,close)
+    @classmethod
+    def _extend(cls,frame,high,low,close):
+        return cls._frame(np.r_[frame['high'],high],np.r_[frame['low'],low],np.r_[frame['close'],close])
+    @classmethod
+    def _level(cls,frame,expiry=100,first_atr=13):
+        audit=cls._owner();a=np.ones(len(frame['close']),np.float64);a[:first_atr]=np.nan;e=np.where(np.isfinite(a),0.,np.nan)
+        raw=audit.reference_native_smc_replay(frame['high'],frame['low'],frame['close'])
+        return audit.reference_native_core_level(frame,atr=a,atr_radius=e,raw_smc=raw,timeframe='M5',expiry_bars=expiry)
+    @staticmethod
+    def _encloses(values,radii,row,numerator,denominator=1):
+        TestTechnicalReference127._encloses(values,radii,row,numerator,denominator)
+    @classmethod
+    def _days(cls,days=60):
+        origin=pd.Timestamp('2009-06-01T00:00:00Z').value
+        stamps=np.array([origin+day*DAY+hour*60*MINUTE for day in range(days) for hour in (0,4,8,12)]
+                        +[origin+(days-1)*DAY+22*60*MINUTE],np.int64)
+        return cls._frame(np.full(len(stamps),110.),np.full(len(stamps),90.),np.full(len(stamps),100.),stamps)
+    @classmethod
+    def _cross(cls,raw,frame=None,timeframe='M5',a=None):
+        if frame is None:frame={k:v[-1:] for k,v in raw.items()}
+        if a is None:a=np.full(len(frame['close']),2.,np.float64)
+        e=np.where(np.isfinite(a),0.,np.nan)
+        return cls._owner().reference_native_core_cross(frame,atr=a,atr_radius=e,raw_m5=raw,timeframe=timeframe)
+
+    def test_level_admission_waits_for_ATR_and_has_own_break_nan(self):
+        v,e,proof=self._level(self._literal())
+        assert len(v)==33 and len(self._owner().NATIVE_CORE_LEVEL_DISCRETE_FIELDS)==17
+        assert proof['first_valid_row']==13 and proof['new_immutable_anchors']==2
+        for name in v:assert np.isnan(v[name][:13]).all() and np.isnan(e[name][:13]).all()
+        self._encloses(v['mtf_level_above_dist_atr'],e['mtf_level_above_dist_atr'],13,12)
+        self._encloses(v['mtf_level_below_dist_atr'],e['mtf_level_below_dist_atr'],14,8)
+        assert v['mtf_level_above_age_bars'][13]==0 and v['mtf_level_above_bars_since_touch'][13]==3
+        assert v['mtf_level_below_present'][13]==0 and v['mtf_level_below_present'][14]==1
+        assert np.isnan(v['mtf_level_bars_since_break_signed']).all()
+        # SMC replay retained its earlier pivots; this registry deliberately did not.
+        assert v['mtf_level_above_recurrence_dist_atr'][13]==0
+
+    def test_recurrence_uses_all_immutable_birth_anchors_not_merged_levels(self):
+        frame=self._literal();v,e,proof=self._level(frame,first_atr=0)
+        assert proof['new_immutable_anchors']==4
+        self._encloses(v['mtf_level_below_recurrence_dist_atr'],e['mtf_level_below_recurrence_dist_atr'],14,2)
+        self._encloses(v['mtf_level_above_dist_atr'],e['mtf_level_above_dist_atr'],14,10)
+        self._encloses(v['mtf_level_above2_dist_atr'],e['mtf_level_above2_dist_atr'],14,12)
+        assert v['mtf_level_above2_present'][14]==1
+
+    def test_fixed_expiry_is_inclusive_and_precedes_same_bar_touch(self):
+        frame=self._extend(self._literal(),[105.,115.,105.],[95.,99.,95.],[100.,100.,100.])
+        v,_,proof=self._level(frame,expiry=2)
+        assert v['mtf_level_above_dist_atr'][15]==12  # birth13, age2 still eligible.
+        assert v['mtf_level_above_dist_atr'][16]==0   # age3 expires before its touching range.
+        assert v['mtf_level_below_present'][16]==1 and v['mtf_level_below_present'][17]==0
+        assert proof['eligibility_expiries']==2
+        assert np.isfinite(v['mtf_level_above_age_bars'][17]) and v['mtf_level_above_age_bars'][17]==0
+
+    def test_reactions_complete_at_events_and_preserve_signed_last_mean_max(self):
+        frame=self._extend(self._literal(),[120.,116.,111.,113.],[99.,111.,109.,108.],[115.,114.,109.,110.])
+        v,e,proof=self._level(frame)
+        assert v['mtf_level_break_up_event'][15]==1 and v['mtf_level_retest_hold_signed'][16]==1
+        assert v['mtf_level_break_down_event'][17]==1 and v['mtf_level_retest_hold_signed'][18]==-1
+        # High112: first reaction min(low14:15)=95 =>17; after role flip,
+        # support112 breaks at17 with high111 =>-1. Mean8,max17,last-1.
+        for key,expected in [('mean',8),('max',17),('last',-1)]:
+            name='mtf_level_above_'+key+'_reaction_atr';self._encloses(v[name],e[name],18,expected)
+        assert v['mtf_level_above_touch_count'][18]==3
+        assert v['mtf_level_bars_since_break_signed'][18]==-1 and proof['held_retests']==2
+
+    def test_equal_close_retest_fails_and_pending_excludes_its_break_bar(self):
+        frame=self._extend(self._literal(),[120.,113.],[99.,111.],[115.,112.])
+        v,_,proof=self._level(frame)
+        assert v['mtf_level_above_pending_retest_dist_atr'][15]==0
+        assert v['mtf_level_retest_fail_signed'][16]==1 and v['mtf_level_retest_hold_signed'][16]==0
+        assert proof['failed_retests']==1
+
+    @pytest.mark.parametrize('price,fifty,hundred',[(25.,-25.,25.),(50.,0.,-50.),(75.,-25.,-25.),(125.,-25.,25.)])
+    def test_signed_round_grid_half_ties_choose_upper_grid(self,price,fifty,hundred):
+        frame=self._frame(np.full(20,price+2),np.full(20,price-2),np.full(20,price))
+        v,e,_=self._level(frame)
+        for grid,target in [(50,fifty),(100,hundred)]:
+            key='mtf_level_round_number_dist_'+str(grid)+'_atr';self._encloses(v[key],e[key],19,int(target))
+
+    def test_newborn_same_bar_break_keeps_pending_episode_without_broken_middle_path(self):
+        delta=2.**-42;h=np.full(10,100.);l=np.full(10,99.);c=np.full(10,99.5)
+        h[6]=c[6]=100.+delta
+        h[7:9]=99.;l[7:9]=[98.,97.];c[7:9]=[98.5,98.]
+        h[9]=c[9]=100.+delta/2;l[9]=99.5
+        v,e,_=self._level(self._frame(h,l,c),first_atr=0)
+        assert v['mtf_level_break_up_event'][6]==1 and v['mtf_level_retest_hold_signed'][9]==1
+        key='mtf_level_below_mean_reaction_atr'
+        self._encloses(v[key],e[key],9,1,2)  # low7/8 are broken-state observations, excluded.
+
+    def test_level_calendar_holes_and_future_append_preserve_prefix(self):
+        frame=self._extend(self._literal(),[120.,116.,111.,113.],[99.,111.,109.,108.],[115.,114.,109.,110.])
+        future=self._extend(frame,[150.,151.],[70.,71.],[120.,121.])
+        before,eb,_=self._level(frame);after,ea,_=self._level(future)
+        gapped={k:v.copy() for k,v in frame.items()};gapped['bar_start_ns'][10:]+=7*DAY
+        holes,eh,_=self._level(gapped)
+        for key in before:
+            np.testing.assert_array_equal(before[key],after[key][:len(frame['close'])])
+            np.testing.assert_array_equal(eb[key],ea[key][:len(frame['close'])])
+            np.testing.assert_array_equal(before[key],holes[key]);np.testing.assert_array_equal(eb[key],eh[key])
+
+    def test_thirteen_declared_constants_and_discrete_contract(self):
+        audit=self._owner()
+        assert audit.NATIVE_CORE_LEVEL_EXPIRY=={'M5':2721,'M15':1742,'H1':964,'H4':507,'D1':132}
+        assert audit.NATIVE_CORE_CROSS_WINDOWS=={'M5':240,'M15':192,'H1':168,'H4':168,'D1':60}
+        assert audit.NATIVE_CORE_ROUND_GRIDS==(50.,100.) and audit.NATIVE_CORE_SESSION_OFFSET_NS==22*60*MINUTE
+        assert len(audit.NATIVE_CORE_LEVEL_FIELDS)==33 and len(audit.NATIVE_CORE_CROSS_FIELDS)==14
+        assert len(set(audit.NATIVE_CORE_LEVEL_FIELDS)&set(audit.NATIVE_CORE_CROSS_FIELDS))==0
+
+    def test_cross_four_prior_pivots_and_ten_extrema_have_hand_known_values(self):
+        v,e,proof=self._cross(self._days())
+        expected={'R1':-5,'R2':-10,'S1':5,'S2':10}
+        for level,target in expected.items():
+            name='dist_to_'+level+'_atr';self._encloses(v[name],e[name],0,target)
+        for tf in ('m5','m15','h1','h4','d1'):
+            for side in ('hi','lo'):
+                name='dist_to_'+tf+'_'+side+'_atr';self._encloses(v[name],e[name],0,5)
+        origin=pd.Timestamp('2009-06-01T00:00:00Z').value
+        assert proof['reference_first_labels_ns']['D1']==origin-2*60*MINUTE
+        assert proof['reference_rows']['D1']==61 and proof['leading_partial_reference_bins_retained'] is True
+
+    def test_cross_all_ten_extrema_wait_for_full_D1_population_but_pivots_do_not(self):
+        v,_,proof=self._cross(self._days(59))
+        for name in self._owner().NATIVE_CORE_CROSS_FIELDS:
+            if name.startswith(('dist_to_R','dist_to_S')):assert np.isfinite(v[name][0])
+            else:assert np.isnan(v[name][0]) and proof['first_valid_rows'][name] is None
+
+    @pytest.mark.parametrize('timeframe',['M5','M15','H1','H4','D1'])
+    def test_cross_uses_each_lanes_actual_close_and_fixed_UTC_phase(self,timeframe):
+        raw=self._days(61);audit=self._owner();full=audit.native_resample_calendar_frame(raw,timeframe)
+        frame={k:v[-1:] for k,v in full.items()};v,e,proof=self._cross(raw,frame,timeframe)
+        assert proof['timeframe']==timeframe and proof['session_offset_hours_UTC']==22
+        for tf in ('m5','m15','h1','h4','d1'):
+            self._encloses(v['dist_to_'+tf+'_hi_atr'],e['dist_to_'+tf+'_hi_atr'],0,5)
+
+    def test_pivot_reference_changes_at_UTC22_close_not_midnight(self):
+        raw=self._days();origin=raw['bar_start_ns'][0];day58=origin+58*DAY;day59=origin+59*DAY
+        selected=(raw['bar_start_ns']>=day58)&(raw['bar_start_ns']<day59)
+        raw['high'][selected]=130.;raw['low'][selected]=70.
+        stamps=np.r_[raw['bar_start_ns'][:-1],day59+(21*60+50)*MINUTE,day59+(21*60+55)*MINUTE,raw['bar_start_ns'][-1]]
+        raw=self._frame(np.r_[raw['high'][:-1],110.,110.,110.],np.r_[raw['low'][:-1],90.,90.,90.],np.full(len(stamps),100.),stamps)
+        frame={k:v[-3:] for k,v in raw.items()};v,e,_=self._cross(raw,frame)
+        for row,target in enumerate([-15,-5,-5]):self._encloses(v['dist_to_R1_atr'],e['dist_to_R1_atr'],row,target)
+
+    def test_extrema_fallback_is_signed_and_excludes_forming_D1_bar(self):
+        raw=self._days();raw['high'][:]=99.;raw['low'][:]=90.;raw['close'][:]=raw['open'][:]=95.
+        raw['high'][-1]=raw['close'][-1]=raw['open'][-1]=100.;raw['low'][-1]=99.
+        v,e,_=self._cross(raw)
+        self._encloses(v['dist_to_d1_hi_atr'],e['dist_to_d1_hi_atr'],0,-1,2)
+        assert v['dist_to_m5_hi_atr'][0]==0 and v['dist_to_d1_hi_atr'][0]<0
+
+    def test_cross_internal_float32_bps_wire_is_not_silently_replaced_by_raw_ATR(self):
+        import struct
+        raw=self._days();a=np.array([1.00000003],np.float64);v,_,proof=self._cross(raw,a=a)
+        represented=struct.unpack('f',struct.pack('f',float(a[0])/100.*1e4))[0]/1e4*100.
+        assert v['dist_to_d1_hi_atr'][0]==10./represented
+        assert v['dist_to_d1_hi_atr'][0]!=10./a[0] and proof['hidden_cache_inputs'] is False
+
+    @pytest.mark.parametrize('fault',['age','continuous','mask'])
+    def test_frozen_comparator_rejects_level_value_or_observation_changes(self,fault):
+        frame=self._literal();v,e,_=self._level(frame);actual={k:x.astype(np.float32) for k,x in v.items()}
+        if fault=='age':actual['mtf_level_above_age_bars'][-1]+=.25
+        elif fault=='continuous':actual['mtf_level_above_dist_atr'][-1]+=1.
+        else:actual['mtf_level_above_dist_atr'][0]=0.
+        with pytest.raises(RuntimeError,match='TECHNICAL_NUMERIC_REFERENCE_'):
+            self._owner().compare_technical_reference(v,actual,e,discrete_fields=self._owner().NATIVE_CORE_LEVEL_DISCRETE_FIELDS)

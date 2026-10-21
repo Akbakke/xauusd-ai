@@ -54,8 +54,20 @@ TERMINAL.json SHA48d003d24a55719de00c107a1934c318c043ef81c8c89e54557d66da4692261
 129/QUALIFIED_MTF_NUMERIC_INDEX.json binder127+128+129disjunkt:320outputs,
 64perTF,225aktive+95parkerte og105405376finiteceller. Rest189perTF består av
 94kompaktaktive og95parkerte felt. SHA8d2369460e368d9c5efa53419b3616b40aa27de30b08597bdeb714c3bd2de24b.
-Neste avgrensede arbeid er eksisterende formeleiere for swing20,level33,
-localgenuine24,generic3,crossTF14 aktivefelt perTF. Samle delte primitiver og
+130 IMPLEMENTATION_SCOPE.json avgrenser samlet94aktive felt perTF: swing20,
+level33,localgenuine24,generic3,crossTF14. Tre kildeutkast-eiere og én integrator
+gjenbruker eksisterendeaudit/leser. Nyebounds forATRz/AVWAP/reaksjonsepisoder
+og eksplisittcrossTF-F32ATR må fryses og håndtestes før noen fysiskadgang.
+Alle kilde-/fysiske kjøringer er fortsatt stengt. Parkerte95felt/TF beholdes.
+Root har utvidet eksisterende auditleser med eksplisitt130modus, seksquote-
+kolonner og sekvensiell eierblokk-sammenligning.104øvrigegamlehelpers er
+AST-identiske. Eierfragmentene er ikke alle integrert; ingen test-/fysiskPASS
+er påstått. Kjøringene forblir stengt til fryst boundsdesign og kildepeer.
+Alle94aktive felt/TF og fire nye håndtestklasser er integrert. Tre
+avgrensede kilde-/matematikkpeerreviews bestod; DESIGN/ERROR_SPEC/PLAN er
+fryst i130. Én kildejobb for de fire nye klassene (forventet66caser) er
+åpnet, men ikke fullført.304gamlecaser og104gamlehelpers gjenbrukes.
+Fysisk470outputaudit er fortsatt uclaimet/stengt; ingen faktiskPASSpåstand. Samle delte primitiver og
 leser før ny eksakt plan; ingen ny fysiskjobb er åpnet. RåMBP→M1, andre lokale
 formler, individuell lært nytte og Entry-kvalitet/dekning/forklaringer gjenstår.
 Ingen jobb kjører; training_enabled=false og øvrige vakter består.

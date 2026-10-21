@@ -3774,15 +3774,844 @@ def reference_native_smc_block(ohlcv):
         'BB_or_ADX_or_other_technical_formulas_recomputed':False}
 
 
-def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
-    if trend_events and native_smc:raise RuntimeError('TECHNICAL_NUMERIC_MUTUALLY_EXCLUSIVE_MODES')
-    prefix='NATIVE_SMC_NUMERIC' if native_smc else 'TREND_EVENT_NUMERIC' if trend_events else 'TECHNICAL_NUMERIC'
-    plan_id=NATIVE_SMC_NUMERIC_PLAN_ID if native_smc else TREND_EVENT_NUMERIC_PLAN_ID if trend_events else TECHNICAL_NUMERIC_PLAN_ID
-    policy_key=NATIVE_SMC_NUMERIC_POLICY_KEY if native_smc else TREND_EVENT_NUMERIC_POLICY_KEY if trend_events else TECHNICAL_NUMERIC_POLICY_KEY
-    schema='gx1_native_smc_numeric_audit_plan_v1' if native_smc else 'gx1_trend_event_numeric_audit_plan_v1' if trend_events else 'gx1_technical_numeric_audit_plan_v1'
-    fields=NATIVE_SMC_NUMERIC_FIELDS if native_smc else TREND_EVENT_NUMERIC_FIELDS if trend_events else TECHNICAL_NUMERIC_FIELDS
-    columns=tuple(range(70,94)) if native_smc else tuple(range(94,111)) if trend_events else tuple(range(23))
-    active_count=17 if (trend_events or native_smc) else 11
+NATIVE_CORE_SWING_FIELDS=('swing_dist_last_swing_high_atr', 'swing_dist_last_swing_low_atr', 'swing_bars_since_swing_high', 'swing_bars_since_swing_low', 'swing_retracement_from_last_impulse', 'swing_impulse_present', 'swing_high_break_event', 'swing_low_break_event', 'swing_high_break_displacement_atr', 'swing_low_break_displacement_atr', 'bars_since_swing_high_break', 'bars_since_swing_low_break', 'swing_high_sequence_delta_atr', 'swing_low_sequence_delta_atr', 'consecutive_higher_lows_count', 'consecutive_lower_highs_count', 'consecutive_higher_highs_count', 'consecutive_lower_lows_count', 'swing_high_level_intact', 'swing_low_level_intact')
+NATIVE_CORE_SWING_DISCRETE_FIELDS=('swing_bars_since_swing_high', 'swing_bars_since_swing_low', 'swing_impulse_present', 'swing_high_break_event', 'swing_low_break_event', 'bars_since_swing_high_break', 'bars_since_swing_low_break', 'consecutive_higher_lows_count', 'consecutive_lower_highs_count', 'consecutive_higher_highs_count', 'consecutive_lower_lows_count', 'swing_high_level_intact', 'swing_low_level_intact')
+
+
+def reference_native_core_swing(frame,*,atr,atr_radius):
+    """Strict lookback-two structure, independent of tolerant SMC pivots."""
+    required=('bar_start_ns','high','low','close')
+    if any(name not in frame for name in required):raise RuntimeError('NATIVE_CORE_SWING_SOURCE_SCHEMA')
+    clock=_projection_integer_clock(frame['bar_start_ns'],'NATIVE_CORE_SWING_CLOCK');n=len(clock)
+    h,l,c=(np.asarray(frame[name]) for name in ('high','low','close'))
+    if (n>=2**24 or any(a.dtype!=np.dtype('float64') or a.shape!=clock.shape or not np.isfinite(a).all()
+            or np.any(a<=0.) for a in (h,l,c)) or np.any(h<l) or np.any(h<c) or np.any(l>c)):
+        raise RuntimeError('NATIVE_CORE_SWING_SOURCE_SCHEMA')
+    a=np.asarray(atr);ea=np.asarray(atr_radius)
+    if (a.dtype!=np.dtype('float64') or ea.dtype!=np.dtype('float64') or a.shape!=clock.shape or ea.shape!=clock.shape
+            or np.isinf(a).any() or np.isinf(ea).any() or not np.array_equal(np.isnan(a),np.isnan(ea))
+            or np.any(a[np.isfinite(a)]<0.) or np.any(ea[np.isfinite(ea)]<0.)):
+        raise RuntimeError('NATIVE_CORE_SWING_ATR_SCHEMA')
+    finite=np.isfinite(a);observed=np.flatnonzero(finite)
+    if len(observed) and not finite[int(observed[0]):].all():raise RuntimeError('NATIVE_CORE_SWING_ATR_SUFFIX')
+    positive=finite&(a>0.)
+    lower=np.where(ea==0.,a,np.nextafter(a-ea,-np.inf))
+    if np.any(positive&(lower<=0.)) or np.any(finite&(a==0.)&(ea>0.)):
+        raise RuntimeError('NATIVE_CORE_SWING_ATR_DOMAIN_AMBIGUOUS')
+    denominator=np.where(positive,a,np.nan);edenominator=np.where(positive,ea,np.nan)
+    high_pivot=np.zeros(n,bool);low_pivot=np.zeros(n,bool)
+    if n>=5:
+        for values,pivots,is_high in ((h,high_pivot,True),(l,low_pivot,False)):
+            windows=np.lib.stride_tricks.sliding_window_view(values,5)
+            neighbours=np.column_stack((windows[:,:2],windows[:,3:]))
+            pivots[2:n-2]=(values[2:n-2]>neighbours.max(axis=1) if is_high else values[2:n-2]<neighbours.min(axis=1))
+    latest={side:np.full(n,np.nan) for side in ('high','low')}
+    previous={side:np.full(n,np.nan) for side in ('high','low')}
+    indices={side:np.full(n,-1,np.int64) for side in ('high','low')}
+    out={name:np.zeros(n) for name in NATIVE_CORE_SWING_FIELDS}
+    for side in ('high','low'):
+        out['swing_'+side+'_level_intact'].fill(np.nan)
+        out['bars_since_swing_'+side+'_break'].fill(np.nan)
+    last={'high':None,'low':None};prev={'high':None,'low':None};armed={'high':False,'low':False}
+    last_break={'high':None,'low':None};runs={'higher_highs':0,'lower_highs':0,'higher_lows':0,'lower_lows':0}
+    for row in range(n):
+        candidate=row-2
+        for side,values,pivots in (('high',h,high_pivot),('low',l,low_pivot)):
+            if candidate>=2 and pivots[candidate]:
+                price=float(values[candidate]);old=last[side]
+                if old is not None:
+                    greater='higher_highs' if side=='high' else 'higher_lows';less='lower_highs' if side=='high' else 'lower_lows'
+                    runs[greater]=runs[greater]+1 if price>old[1] else 0
+                    runs[less]=runs[less]+1 if price<old[1] else 0
+                prev[side]=old;last[side]=(candidate,price);armed[side]=True
+            current=last[side]
+            if current is not None:
+                indices[side][row]=current[0];latest[side][row]=current[1]
+                if prev[side] is not None:previous[side][row]=prev[side][1]
+            fired=armed[side] and (c[row]>current[1] if side=='high' else c[row]<current[1])
+            if fired:armed[side]=False;last_break[side]=row
+            out['swing_'+side+'_break_event'][row]=float(fired)
+            if current is not None:out['swing_'+side+'_level_intact'][row]=float(armed[side])
+            if last_break[side] is not None:out['bars_since_swing_'+side+'_break'][row]=row-last_break[side]
+        for key,value in runs.items():out['consecutive_'+key+'_count'][row]=value
+    radii={}
+    for side in ('high','low'):
+        name='swing_dist_last_swing_'+side+'_atr';difference,ed=_technical_sub(c,latest[side])
+        out[name],radii[name]=_technical_div(difference,denominator,ed,edenominator)
+        out['swing_bars_since_swing_'+side]=np.where(indices[side]>=0,np.arange(n)-indices[side],np.nan)
+        name='swing_'+side+'_break_displacement_atr';fired=out['swing_'+side+'_break_event']>0.
+        break_difference,ebreak=(difference,ed) if side=='high' else _technical_sub(latest[side],c)
+        value,error=_technical_div(break_difference,denominator,ebreak,edenominator)
+        out[name]=np.where(positive,0.,np.nan);radii[name]=np.where(positive,0.,np.nan)
+        out[name][fired]=value[fired];radii[name][fired]=error[fired]
+        name='swing_'+side+'_sequence_delta_atr';difference,ed=_technical_sub(latest[side],previous[side])
+        out[name],radii[name]=_technical_div(difference,denominator,ed,edenominator)
+    width,ew=_technical_sub(latest['high'],latest['low']);width=np.abs(width)
+    present=(indices['high']>=0)&(indices['low']>=0)&np.isfinite(width)&(width>0.)&(indices['high']!=indices['low'])
+    out['swing_impulse_present']=present.astype(np.float64)
+    up=present&(indices['high']>indices['low']);down=present&(indices['low']>indices['high'])
+    retracement=np.zeros(n);eretracement=np.zeros(n)
+    for selected,first,second in ((up,latest['high'],c),(down,c,latest['low'])):
+        difference,ed=_technical_sub(first,second)
+        value,error=_technical_div(difference,np.where(selected,width,np.nan),ed,ew)
+        retracement[selected]=value[selected];eretracement[selected]=error[selected]
+    out['swing_retracement_from_last_impulse']=retracement;radii['swing_retracement_from_last_impulse']=eretracement
+    for name in NATIVE_CORE_SWING_DISCRETE_FIELDS:
+        out[name]=np.asarray(out[name],dtype=np.float64);radii[name]=np.where(np.isfinite(out[name]),0.,np.nan)
+    out={name:out[name] for name in NATIVE_CORE_SWING_FIELDS};radii={name:radii[name] for name in NATIVE_CORE_SWING_FIELDS}
+    return out,radii,{'source_rows':n,'lookback':2,'strict_pivots_without_tolerance':True,'gap_or_session_reset':False,
+        'ATR_provided_from_shared_127_reference':True,'ATR_zero_is_unavailable':True,
+        'first_valid_rows':{name:int(np.flatnonzero(np.isfinite(value))[0]) if np.isfinite(value).any() else None for name,value in out.items()},
+        'positive_witnesses':{name:int(np.sum(value>0.)) for name,value in out.items()},
+        'pivot_counts':{'high':int(high_pivot.sum()),'low':int(low_pivot.sum())},
+        'discrete_fields':list(NATIVE_CORE_SWING_DISCRETE_FIELDS),'continuous_fields_per_TF':7}
+
+
+# Integration fragment: uses the qualified127 arithmetic and root RN32 helper.
+NATIVE_CORE_LOCAL_FIELDS = (
+    'atr_z', '_v1_ema3_ema6_spread_atr',
+    'chart.foundation_bos_up_event_age_bars', 'chart.foundation_bos_down_event_age_bars',
+    'chart.foundation_choch_event_age_bars', 'smc_choch',
+    'smc_sweep_up_avwap_age_bars', 'smc_sweep_up_avwap_dist_atr',
+    'smc_sweep_up_avwap_dispersion_atr', 'smc_sweep_up_avwap_anchor_close_dist_atr',
+    'smc_sweep_up_avwap_level_dist_atr', 'smc_sweep_up_avwap_mean_activity_ratio',
+    'smc_sweep_down_avwap_age_bars', 'smc_sweep_down_avwap_dist_atr',
+    'smc_sweep_down_avwap_dispersion_atr', 'smc_sweep_down_avwap_anchor_close_dist_atr',
+    'smc_sweep_down_avwap_level_dist_atr', 'smc_sweep_down_avwap_mean_activity_ratio',
+    'close_distance_from_ema5_bps', 'spread_bps', 'spread_bps_delta_1',
+    'spread_extremes_sum_bps', 'quote_range_asymmetry_bps', 'session_change_flag',
+    'mid_ema50_dist_atr', 'ema5_20_spread_atr', 'mid_ema200_dist_atr',
+)
+NATIVE_CORE_LOCAL_DISCRETE_FIELDS = (
+    'chart.foundation_bos_up_event_age_bars', 'chart.foundation_bos_down_event_age_bars',
+    'chart.foundation_choch_event_age_bars', 'smc_choch',
+    'smc_sweep_up_avwap_age_bars', 'smc_sweep_down_avwap_age_bars', 'session_change_flag',
+)
+
+
+def _local_core_q_up(value):
+    if value < 0:
+        raise RuntimeError('NATIVE_CORE_LOCAL_NEGATIVE_RADIUS')
+    return 0. if value == 0 else float(_technical_up(float(value)))
+
+
+def _local_core_fraction_center(exact, source=None):
+    from fractions import Fraction
+    value = float(exact)
+    radius = _local_core_q_up(abs(Fraction.from_float(value)-exact))
+    if source is not None:
+        radius = _technical_uadd(radius, _local_core_q_up(abs(Fraction.from_float(float(source))-exact)))
+        if Fraction.from_float(value) == exact == Fraction.from_float(float(source)):
+            radius = 0.
+    if not np.isfinite(value) or not np.isfinite(radius):
+        raise RuntimeError('NATIVE_CORE_LOCAL_OVERFLOW')
+    return value, radius
+
+
+def _local_core_kahan_step(state, old, new):
+    # Fixed pandas2.3.3 rolling-mean add/remove compensation states. This
+    # shadow conditions the error ledger only; exact rings own all values.
+    s, ca, cr, same, previous = state
+    if old is not None:
+        y = -old-cr; t = s+y; cr = (t-s)-y; s = t
+    y = new-ca; t = s+y; ca = (t-s)-y; s = t
+    same = same+1 if previous == new else 1
+    return (s, ca, cr, same, new)
+
+
+def _local_core_atr_z(high, low, close):
+    """Two exact50-rings; full-prefix Kahan and sample-Welford error shadow."""
+    import math
+    from fractions import Fraction
+    n = len(close); out = np.full(n, np.nan); error = out.copy()
+    tr = high-low
+    if n > 1:
+        tr[1:] = np.maximum.reduce((tr[1:], np.abs(high[1:]-close[:-1]), np.abs(low[1:]-close[:-1])))
+    if n < 99:
+        return out, error, {'window':50,'ddof':1,'full_prefix':True,'shadow_used_for_values':False}
+    # One shared dyadic unit exactly represents all published binary64 TRs.
+    positive = tr[tr > 0.]
+    exponent = math.frexp(float(positive.min()))[1]-1 if len(positive) else 0
+    denominator = 1 << max(0, 53-exponent)
+    ring1 = []; sum1 = 0; first = (0.,0.,0.,0,None)
+    exact_ring2 = []; wire_ring2 = []; P = Q = 0
+    second = (0.,0.,0.,0,None)
+    count = 0; mean = ca = cr = R = 0.; Z = Fraction(0)
+    variance_uniform_outputs = 0
+    for row, raw in enumerate(tr):
+        v = float(raw); numerator, q = v.as_integer_ratio()
+        if denominator % q:
+            raise RuntimeError('NATIVE_CORE_LOCAL_TR_DYADIC_DOMAIN')
+        xi = numerator*(denominator//q)
+        old1 = ring1.pop(0) if len(ring1) == 50 else None
+        if old1 is not None:
+            sum1 -= old1
+        ring1.append(xi); sum1 += xi
+        first = _local_core_kahan_step(first, None if old1 is None else float(Fraction(old1,denominator)), v)
+        if len(ring1) < 50:
+            continue
+        wire = first[4] if first[3] >= 50 else max(0., first[0]/50.)
+        old_exact = exact_ring2.pop(0) if len(exact_ring2) == 50 else None
+        old_wire = wire_ring2.pop(0) if len(wire_ring2) == 50 else None
+        if old_exact is not None:
+            P -= old_exact; Q -= old_exact*old_exact
+        exact_ring2.append(sum1); wire_ring2.append(wire); P += sum1; Q += sum1*sum1
+        second = _local_core_kahan_step(second, old_wire, wire)
+        operations = ([] if old_wire is None else [(-1, old_wire)])+[(1, wire)]
+        for sign, value in operations:
+            compensation = ca if sign == 1 else cr
+            previous_mean = mean-compensation
+            y = value-compensation; delta = y-mean; new_compensation = (delta+mean)-y
+            count += sign
+            if count == 0:
+                mean = ca = cr = R = 0.; Z = Fraction(0)
+                continue
+            new_mean = mean+delta/count if sign == 1 else mean-delta/count
+            A = Fraction.from_float(value)-Fraction.from_float(previous_mean)
+            B = Fraction.from_float(value)-Fraction.from_float(new_mean)
+            Z += sign*A*B
+            if sign == 1: ca = new_compensation
+            else: cr = new_compensation
+            mean = new_mean
+            if A == 0 or B == 0:
+                local = 0.
+            else:
+                am = _local_core_q_up(abs(A)); bm = _local_core_q_up(abs(B))
+                ra = _technical_rho(am); rb = _technical_rho(bm)
+                local = _technical_uadd(_technical_umul(am,rb), _technical_umul(bm,ra),
+                    _technical_umul(ra,rb), _technical_rho(_technical_umul(_technical_uadd(am,ra),_technical_uadd(bm,rb))))
+            if local or R:
+                total = _technical_uadd(R,local)
+                R = _technical_uadd(total,_technical_rho(_technical_uadd(_local_core_q_up(abs(Z)),total)))
+        if len(exact_ring2) < 50:
+            continue
+        # y_i=sum1/(50D). ddof1 uses49, while the mean still uses50.
+        ideal_num = Fraction(50*sum1-P,2500*denominator)
+        ideal_variance = Fraction(50*Q-P*P,50*49*(50*denominator)**2)
+        if ideal_variance < 0:
+            raise RuntimeError('NATIVE_CORE_LOCAL_SAMPLE_VARIANCE')
+        # Uniform source-wire output is a domain fact, never a ledger reset.
+        if second[3] >= 50:
+            variance_uniform_outputs += 1
+            continue
+        if ideal_variance == 0:
+            raise RuntimeError('NATIVE_CORE_LOCAL_ATR_Z_UNRESOLVED_ZERO_VARIANCE')
+        variance, representation_error = _local_core_fraction_center(ideal_variance)
+        drift = _local_core_q_up(abs(Z/49-ideal_variance))
+        vr = _technical_uadd(drift,_technical_udiv(R,49.),
+            _technical_rho(_technical_udiv(_technical_uadd(_local_core_q_up(abs(Z)),R),49.)),representation_error)
+        lo = math.nextafter(variance-vr,-math.inf) if vr else variance
+        hi = math.nextafter(variance+vr,math.inf) if vr else variance
+        if lo <= 0. or not math.isfinite(hi):
+            raise RuntimeError('NATIVE_CORE_LOCAL_ATR_Z_AMBIGUOUS_DENOMINATOR:row='+str(row))
+        std, std_lo, std_hi = _technical_sqrt_bracket(ideal_variance.numerator,ideal_variance.denominator)
+        lp,lq = lo.as_integer_ratio();hp,hq = hi.as_integer_ratio()
+        _, source_lo, _ = _technical_sqrt_bracket(lp,lq)
+        _, _, source_hi = _technical_sqrt_bracket(hp,hq)
+        std_radius = _technical_uadd(max(abs(std-source_lo),abs(source_hi-std)),
+                                    max(abs(std-std_lo),abs(std_hi-std)))
+        source_mean = second[4] if second[3] >= 50 else max(0.,second[0]/50.)
+        source_numerator = wire-source_mean
+        numerator_value,numerator_radius = _local_core_fraction_center(ideal_num,source_numerator)
+        value,radius = _technical_div(numerator_value,std,numerator_radius,std_radius)
+        out[row] = float(value);error[row] = float(radius)
+    out,error = _core_round32_interval(out,error)
+    return out,error,{'window':50,'ddof':1,'first_possible_row':98,'full_prefix':True,
+        'remove_before_add':True,'uniform_output_does_not_reset_ledger':True,
+        'uniform_variance_outputs':variance_uniform_outputs,'shadow_used_for_values':False,
+        'upstream_SMA50_wire_drift_included':True}
+
+
+def _local_core_sweep_anchors(frame, atr, atr_radius, raw):
+    import math
+    from fractions import Fraction
+    n = len(atr); out = {}; error = {}
+    suffixes = ('age_bars','dist_atr','dispersion_atr','anchor_close_dist_atr','level_dist_atr','mean_activity_ratio')
+    for side in ('up','down'):
+        prefix = 'smc_sweep_'+side+'_avwap_'
+        for suffix in suffixes:
+            out[prefix+suffix] = np.full(n,np.nan);error[prefix+suffix] = np.full(n,np.nan)
+        anchor = None
+        events = raw['sweep_'+side+'_event'];levels = raw['last_'+('high' if side == 'up' else 'low')+'_price']
+        for row in range(n):
+            price = float(frame['close'][row]);weight = int(frame['volume'][row]);x = Fraction.from_float(price)
+            if events[row] == 1.:
+                level = float(levels[row])
+                if not math.isfinite(level) or level <= 0.:
+                    raise RuntimeError('NATIVE_CORE_LOCAL_ANCHOR_LEVEL')
+                anchor = {'row':row,'close':price,'level':level,'w0':weight,'S':weight,
+                    'P':weight*x,'Q':weight*x*x,'wire_S':float(weight),'wire_mean':price,'wire_M2':0.}
+            elif anchor is not None:
+                previous = anchor['wire_S'];total = previous+float(weight)
+                delta = price-anchor['wire_mean']
+                anchor['wire_mean'] = anchor['wire_mean']+(float(weight)/total)*delta
+                anchor['wire_M2'] = anchor['wire_M2']+delta*delta*(previous/total)*float(weight)
+                anchor['wire_S'] = total;anchor['S'] += weight;anchor['P'] += weight*x;anchor['Q'] += weight*x*x
+            if anchor is None:
+                continue
+            age = row-anchor['row'];S = anchor['S']
+            mean_exact = anchor['P']/S
+            variance_exact = (S*anchor['Q']-anchor['P']*anchor['P'])/(S*S)
+            if variance_exact < 0:
+                raise RuntimeError('NATIVE_CORE_LOCAL_ANCHOR_VARIANCE')
+            mean,mean_radius = _local_core_fraction_center(mean_exact,anchor['wire_mean'])
+            std, lower, upper = _technical_sqrt_bracket(variance_exact.numerator,variance_exact.denominator)
+            wire_variance = anchor['wire_M2']/anchor['wire_S']
+            if not math.isfinite(wire_variance) or wire_variance < 0.:
+                raise RuntimeError('NATIVE_CORE_LOCAL_ANCHOR_VARIANCE')
+            wire_std = math.sqrt(wire_variance)
+            std_radius = _technical_uadd(max(abs(std-lower),abs(upper-std)),
+                _local_core_q_up(abs(Fraction.from_float(wire_std)-Fraction.from_float(std))))
+            if variance_exact == 0 and wire_std == 0:
+                std_radius = 0.
+            out[prefix+'age_bars'][row] = age;error[prefix+'age_bars'][row] = 0.
+            ratio_exact = Fraction(S,(age+1)*anchor['w0'])-1
+            ratio_wire = anchor['wire_S']/((age+1)*float(anchor['w0']))-1.
+            value,radius = _local_core_fraction_center(ratio_exact,ratio_wire)
+            out[prefix+'mean_activity_ratio'][row] = value;error[prefix+'mean_activity_ratio'][row] = radius
+            if np.isfinite(atr[row]):
+                scale = float(atr[row]);scale_radius = float(atr_radius[row])
+                differences = {
+                    'dist_atr':_technical_sub(price,mean,0.,mean_radius),
+                    'anchor_close_dist_atr':_technical_sub(price,anchor['close']),
+                    'level_dist_atr':_technical_sub(price,anchor['level']),
+                }
+                for suffix,(numerator,en) in differences.items():
+                    v,e = _technical_div(numerator,scale,en,scale_radius)
+                    out[prefix+suffix][row] = float(v);error[prefix+suffix][row] = float(e)
+                v,e = _technical_div(std,scale,std_radius,scale_radius)
+                out[prefix+'dispersion_atr'][row] = float(v);error[prefix+'dispersion_atr'][row] = float(e)
+        for suffix in suffixes:
+            name = prefix+suffix;out[name],error[name] = _core_round32_interval(out[name],error[name])
+    return out,error
+
+
+def reference_native_core_local(frame, *, atr, atr_radius, raw_smc, timeframe):
+    """Twenty-seven active local/scalar fields; full history, no producer call."""
+    required = ('bar_start_ns','open','high','low','close','volume',
+                'bid_close','ask_close','bid_high','bid_low','ask_high','ask_low')
+    if any(name not in frame for name in required):
+        raise RuntimeError('NATIVE_CORE_LOCAL_SOURCE_SCHEMA')
+    clock = np.asarray(frame['bar_start_ns']);n = len(clock)
+    delays = {'M5':5*MINUTE,'M15':15*MINUTE,'H1':60*MINUTE,'H4':240*MINUTE,'D1':DAY}
+    if timeframe not in delays or clock.dtype != np.dtype('int64') or clock.ndim != 1 or not n or n >= 2**24 or np.any(clock[1:] <= clock[:-1]):
+        raise RuntimeError('NATIVE_CORE_LOCAL_SOURCE_CLOCK')
+    for name in required[1:]:
+        a = np.asarray(frame[name]);dtype = np.dtype('int64') if name == 'volume' else np.dtype('float64')
+        if a.dtype != dtype or a.shape != (n,) or not np.isfinite(a).all() or np.any(a <= 0.):
+            raise RuntimeError('NATIVE_CORE_LOCAL_SOURCE_SCHEMA:'+name)
+    if np.any(frame['volume'] > 2**53):
+        raise RuntimeError('NATIVE_CORE_LOCAL_QUOTE_WEIGHT_PRECISION')
+    h,l,c,o = (frame[name] for name in ('high','low','close','open'))
+    if np.any(h < np.maximum(c,o)) or np.any(l > np.minimum(c,o)) or np.any(h < l):
+        raise RuntimeError('NATIVE_CORE_LOCAL_SOURCE_GEOMETRY')
+    bid,ask,bh,bl,ah,al = (frame[name] for name in ('bid_close','ask_close','bid_high','bid_low','ask_high','ask_low'))
+    if np.any(ask < bid) or np.any(bh < bl) or np.any(ah < al) or np.any(ah < bh) or np.any(al < bl):
+        raise RuntimeError('NATIVE_CORE_LOCAL_QUOTE_GEOMETRY')
+    a,e = np.asarray(atr),np.asarray(atr_radius)
+    if a.dtype != np.dtype('float64') or e.dtype != a.dtype or a.shape != (n,) or e.shape != (n,) or not np.array_equal(np.isnan(a),np.isnan(e)) or np.isinf(a).any() or np.isinf(e).any() or np.any(a[np.isfinite(a)] <= 0.) or np.any(e[np.isfinite(e)] < 0.):
+        raise RuntimeError('NATIVE_CORE_LOCAL_ATR_SCHEMA')
+    finite = np.flatnonzero(np.isfinite(a))
+    if len(finite) and not np.isfinite(a[finite[0]:]).all():
+        raise RuntimeError('NATIVE_CORE_LOCAL_ATR_SUFFIX')
+    for name in ('bos_up','bos_down','choch_up','choch_down','sweep_up_event','sweep_down_event'):
+        if name not in raw_smc or np.asarray(raw_smc[name]).shape != (n,) or not np.isin(raw_smc[name],(0.,1.)).all():
+            raise RuntimeError('NATIVE_CORE_LOCAL_REPLAY_SCHEMA')
+    for name in ('last_high_price','last_low_price'):
+        if name not in raw_smc or np.asarray(raw_smc[name]).shape != (n,):
+            raise RuntimeError('NATIVE_CORE_LOCAL_REPLAY_SCHEMA')
+    values = {};radii = {}
+    values['atr_z'],radii['atr_z'],atr_z_report = _local_core_atr_z(h,l,c)
+    emas = {span:reference_technical_ema(c,span) for span in (3,5,6,20)}
+    def put_ratio(name,num,den,en=0.,ed=0.,round32=False):
+        v,r = _technical_div(num,den,en,ed)
+        if round32:v,r = _core_round32_interval(v,r)
+        values[name] = v;radii[name] = r
+    gap,eg = _technical_sub(emas[3][0],emas[6][0],emas[3][1],emas[6][1])
+    put_ratio('_v1_ema3_ema6_spread_atr',gap,a,eg,e)
+    choch = ((raw_smc['choch_up'] > 0.)|(raw_smc['choch_down'] > 0.)).astype(np.float64)
+    events = (raw_smc['bos_up'],raw_smc['bos_down'],choch)
+    for name,event in zip(('chart.foundation_bos_up_event_age_bars','chart.foundation_bos_down_event_age_bars','chart.foundation_choch_event_age_bars'),events):
+        rows = np.arange(n,dtype=np.int64);last = np.maximum.accumulate(np.where(event == 1.,rows,-1))
+        values[name] = np.where(last >= 0,rows-last,np.nan).astype(np.float64)
+        radii[name] = np.where(np.isfinite(values[name]),0.,np.nan)
+    values['smc_choch'] = choch;radii['smc_choch'] = np.zeros(n)
+    anchored,eb = _local_core_sweep_anchors(frame,a,e,raw_smc);values.update(anchored);radii.update(eb)
+    gap,eg = _technical_sub(c,emas[5][0],0.,emas[5][1]);v,r = _technical_div(gap,c,eg,0.);v,r = _technical_scale(v,r,1e4)
+    values['close_distance_from_ema5_bps'],radii['close_distance_from_ema5_bps'] = _core_round32_interval(v,r)
+    gap,eg = _technical_sub(ask,bid);spread,es = _technical_div(gap,bid,eg,0.);spread,es = _technical_scale(spread,es,1e4)
+    values['spread_bps'] = spread;radii['spread_bps'] = es
+    previous = np.concatenate(([np.nan],spread[:-1]));ep = np.concatenate(([np.nan],es[:-1]))
+    delta,ed = _technical_sub(spread,previous,es,ep)
+    values['spread_bps_delta_1'],radii['spread_bps_delta_1'] = _core_round32_interval(delta,ed)
+    first,ef = _technical_sub(ah,bh);second,es2 = _technical_sub(al,bl)
+    total,et = _technical_sub(first,-second,ef,es2);v,r = _technical_div(total,c,et,0.);v,r = _technical_scale(v,r,1e4)
+    values['spread_extremes_sum_bps'],radii['spread_extremes_sum_bps'] = _core_round32_interval(v,r)
+    first,ef = _technical_sub(ah,al);second,es2 = _technical_sub(bh,bl)
+    difference,ed = _technical_sub(first,second,ef,es2);v,r = _technical_div(difference,c,ed,0.);v,r = _technical_scale(v,r,1e4)
+    values['quote_range_asymmetry_bps'],radii['quote_range_asymmetry_bps'] = _core_round32_interval(v,r)
+    minute = ((clock+delays[timeframe]) % DAY)//MINUTE
+    session = np.where((minute >= 7*60)&(minute < 12*60),1,
+               np.where((minute >= 12*60)&(minute < 16*60),2,
+               np.where((minute >= 16*60)&(minute < 22*60),3,0)))
+    values['session_change_flag'] = np.concatenate(([0.],(session[1:] != session[:-1]).astype(np.float64)))
+    radii['session_change_flag'] = np.zeros(n)
+    total,et = _technical_sub(h,-l);mid,em = _technical_scale(total,et,.5)
+    # The EMA helper accepts exact input observations. Its own recurrence
+    # bounds are enlarged by the maximum pointwise hl2 input uncertainty.
+    for span,floor,name in ((50,79,'mid_ema50_dist_atr'),(200,219,'mid_ema200_dist_atr')):
+        m,er = reference_technical_ema(mid,span)
+        extra = np.maximum.accumulate(em)
+        valid = np.isfinite(er);er[valid] = _technical_uadd(er[valid],extra[valid])
+        gap,eg = _technical_sub(mid,m,em,er);put_ratio(name,gap,a,eg,e)
+        values[name][:floor] = np.nan;radii[name][:floor] = np.nan
+    gap,eg = _technical_sub(emas[5][0],emas[20][0],emas[5][1],emas[20][1])
+    put_ratio('ema5_20_spread_atr',gap,a,eg,e)
+    values = {name:np.asarray(values[name],dtype=np.float64) for name in NATIVE_CORE_LOCAL_FIELDS}
+    radii = {name:np.asarray(radii[name],dtype=np.float64) for name in NATIVE_CORE_LOCAL_FIELDS}
+    first = {name:int(np.flatnonzero(np.isfinite(v))[0]) if np.isfinite(v).any() else None for name,v in values.items()}
+    return values,radii,{'source_rows':n,'first_valid_rows':first,'ATR_z':atr_z_report,
+        'full_history':True,'raw_SMC_before_common_mask':True,'quote_update_volume_not_GC_contract_volume':True,
+        'gap_or_session_reset':False,'mid50_floor':79,'mid200_floor':219,'shadow_used_for_values':False}
+
+
+NATIVE_CORE_LEVEL_FIELDS=('mtf_level_above_dist_atr', 'mtf_level_above2_dist_atr', 'mtf_level_above2_present', 'mtf_level_above_touch_count', 'mtf_level_above_recurrence_dist_atr', 'mtf_level_above_age_bars', 'mtf_level_above_bars_since_touch', 'mtf_level_above_mean_reaction_atr', 'mtf_level_above_max_reaction_atr', 'mtf_level_above_last_reaction_atr', 'mtf_level_below_dist_atr', 'mtf_level_below_present', 'mtf_level_below2_dist_atr', 'mtf_level_below2_present', 'mtf_level_below_touch_count', 'mtf_level_below_recurrence_dist_atr', 'mtf_level_below_age_bars', 'mtf_level_below_bars_since_touch', 'mtf_level_below_mean_reaction_atr', 'mtf_level_below_max_reaction_atr', 'mtf_level_below_last_reaction_atr', 'mtf_level_break_up_event', 'mtf_level_break_down_event', 'mtf_level_broken_touch_count', 'mtf_level_bars_since_break_signed', 'mtf_level_retest_hold_signed', 'mtf_level_retest_fail_signed', 'mtf_level_above_pending_retest_dist_atr', 'mtf_level_above_pending_retest_age_bars', 'mtf_level_below_pending_retest_dist_atr', 'mtf_level_below_pending_retest_age_bars', 'mtf_level_round_number_dist_50_atr', 'mtf_level_round_number_dist_100_atr')
+NATIVE_CORE_LEVEL_DISCRETE_FIELDS=('mtf_level_above2_present', 'mtf_level_above_touch_count', 'mtf_level_above_age_bars', 'mtf_level_above_bars_since_touch', 'mtf_level_below_present', 'mtf_level_below2_present', 'mtf_level_below_touch_count', 'mtf_level_below_age_bars', 'mtf_level_below_bars_since_touch', 'mtf_level_break_up_event', 'mtf_level_break_down_event', 'mtf_level_broken_touch_count', 'mtf_level_bars_since_break_signed', 'mtf_level_retest_hold_signed', 'mtf_level_retest_fail_signed', 'mtf_level_above_pending_retest_age_bars', 'mtf_level_below_pending_retest_age_bars')
+NATIVE_CORE_CROSS_FIELDS=('dist_to_R1_atr', 'dist_to_R2_atr', 'dist_to_S1_atr', 'dist_to_S2_atr', 'dist_to_m5_hi_atr', 'dist_to_m5_lo_atr', 'dist_to_m15_hi_atr', 'dist_to_m15_lo_atr', 'dist_to_h1_hi_atr', 'dist_to_h1_lo_atr', 'dist_to_h4_hi_atr', 'dist_to_h4_lo_atr', 'dist_to_d1_hi_atr', 'dist_to_d1_lo_atr')
+
+NATIVE_CORE_LEVEL_EXPIRY={'M5':2721,'M15':1742,'H1':964,'H4':507,'D1':132}
+NATIVE_CORE_CROSS_WINDOWS={'M5':240,'M15':192,'H1':168,'H4':168,'D1':60}
+NATIVE_CORE_ROUND_GRIDS=(50.,100.)
+NATIVE_CORE_SESSION_OFFSET_NS=22*60*MINUTE
+NATIVE_CORE_LANE_DURATION_NS={'M5':5*MINUTE,'M15':15*MINUTE,'H1':60*MINUTE,'H4':240*MINUTE,'D1':DAY}
+
+
+def _core_level_pair(a,b,ea=0.,eb=0.):
+    value,error=_technical_div(a,b,ea,eb)
+    return float(value),float(error)
+
+
+def _core_level_difference(a,b,ea=0.,eb=0.):
+    value,error=_technical_sub(a,b,ea,eb)
+    return float(value),float(error)
+
+
+def _core_level_validate_frame(frame,atr,atr_radius,timeframe):
+    if timeframe not in NATIVE_CORE_LANE_DURATION_NS:raise RuntimeError('NATIVE_CORE_LEVEL_TIMEFRAME')
+    names=('bar_start_ns','open','high','low','close','volume')
+    if not set(names)<=set(frame):raise RuntimeError('NATIVE_CORE_LEVEL_SOURCE_SCHEMA')
+    clock=_projection_integer_clock(frame['bar_start_ns'],'NATIVE_CORE_LEVEL_SOURCE_CLOCK')
+    if not len(clock) or len(clock)>=2**24:raise RuntimeError('NATIVE_CORE_LEVEL_AGE_STORAGE')
+    duration=NATIVE_CORE_LANE_DURATION_NS[timeframe];phase=NATIVE_CORE_SESSION_OFFSET_NS%duration
+    if np.any((clock-phase)%duration):raise RuntimeError('NATIVE_CORE_LEVEL_SOURCE_PHASE')
+    for name in names[1:]:
+        v=np.asarray(frame[name]);dtype=np.dtype('int64') if name=='volume' else np.dtype('float64')
+        if v.dtype!=dtype or v.shape!=clock.shape or not np.isfinite(v).all() or np.any(v<=0.):
+            raise RuntimeError('NATIVE_CORE_LEVEL_SOURCE_SCHEMA')
+    h,l,c,o=(frame[n] for n in ('high','low','close','open'))
+    if np.any(h<np.maximum(c,o)) or np.any(l>np.minimum(c,o)) or np.any(h<l):
+        raise RuntimeError('NATIVE_CORE_LEVEL_SOURCE_GEOMETRY')
+    a,e=np.asarray(atr),np.asarray(atr_radius)
+    if (a.dtype!=np.dtype('float64') or e.dtype!=np.dtype('float64') or a.shape!=clock.shape or e.shape!=clock.shape
+            or np.isinf(a).any() or np.isinf(e).any() or not np.array_equal(np.isnan(a),np.isnan(e))
+            or np.any(a[np.isfinite(a)]<=0.) or np.any(e[np.isfinite(e)]<0.)):
+        raise RuntimeError('NATIVE_CORE_LEVEL_ATR_DOMAIN')
+    finite=np.flatnonzero(np.isfinite(a))
+    if len(finite) and not np.isfinite(a[finite[0]:]).all():raise RuntimeError('NATIVE_CORE_LEVEL_ATR_SUFFIX')
+    return clock,a,e
+
+
+def reference_native_core_level(frame,*,atr,atr_radius,raw_smc,timeframe,expiry_bars):
+    """Immutable ATR-admitted anchors; independently replay only serving state.
+
+    Historical OHLC slices are read only through the current completion row.
+    This replaces repeated updates of an unexposed open extreme, not any path
+    population. A newborn same-bar break keeps its episode pending: only its
+    eventual resolution bar is observed while broken, exactly as the owner.
+    """
+    from bisect import bisect_left,bisect_right,insort
+    import heapq,math
+    clock,a,ae=_core_level_validate_frame(frame,atr,atr_radius,timeframe);n=len(clock)
+    if isinstance(expiry_bars,bool) or not isinstance(expiry_bars,int) or expiry_bars<1:
+        raise RuntimeError('NATIVE_CORE_LEVEL_EXPIRY_DOMAIN')
+    h,l,c=(frame[k] for k in ('high','low','close'))
+    confirmations={}
+    for side,key in (('high','last_high_idx'),('low','last_low_idx')):
+        v=np.asarray(raw_smc[key])
+        if (v.dtype!=np.dtype('int64') or v.shape!=clock.shape or np.any(v < -1)
+                or np.any((v>=0)&((v<3)|(v>np.arange(n)-3)))):
+            raise RuntimeError('NATIVE_CORE_LEVEL_PIVOT_CLOCK')
+        confirmations[side]=v
+    out={name:np.zeros(n,np.float64) for name in NATIVE_CORE_LEVEL_FIELDS}
+    errors={name:np.zeros(n,np.float64) for name in out}
+    own='mtf_level_bars_since_break_signed';out[own][:]=np.nan;errors[own][:]=np.nan
+    chosen={name:np.full(n,np.nan) for name in ('above','above2','below','below2','pending_above','pending_below')}
+    live={};active=[];origins={'high':[],'low':[]};pending=[]
+    immutable={'high':[],'low':[]};deadlines=[];next_id=0;first=n;last_break=None;last_side=0
+    completed=admitted=expired=held=failed=0;max_live=0;ambiguous_orders=0
+    def remove(index,item):
+        pos=bisect_left(index,item)
+        if pos==len(index) or index[pos]!=item:raise RuntimeError('NATIVE_CORE_LEVEL_INDEX_IDENTITY')
+        index.pop(pos)
+    def insert_active(v):
+        insort(active,(v['price'],v['id']));insort(origins[v['side']],(v['price'],v['id']))
+    def remove_active(v):
+        remove(active,(v['price'],v['id']));remove(origins[v['side']],(v['price'],v['id']))
+    def refresh(v,t):
+        v['refresh']=t;heapq.heappush(deadlines,(t+expiry_bars,v['id'],t))
+    def finish(v,t):
+        nonlocal completed
+        window=v['window']
+        if window is None or t<=window[0]:return
+        start,atr0,eatr0,side0=window
+        # A pending window exists only after birth==break on a tolerance tie.
+        begin=t if v['status']=='pending' else start+1
+        extreme=float(np.max(h[begin:t+1])) if side0=='low' else float(np.min(l[begin:t+1]))
+        diff,ed=(_core_level_difference(extreme,v['price']) if side0=='low'
+                 else _core_level_difference(v['price'],extreme))
+        value,error=_core_level_pair(diff,atr0,ed,eatr0)
+        total,et=_core_level_difference(v['sum'],-value,v['sum_error'],error)
+        v['sum'],v['sum_error']=total,et;v['count']+=1;v['last'],v['last_error']=value,error
+        if v['count']==1:v['max'],v['max_error']=value,error
+        else:
+            old,old_error=v['max'],v['max_error'];center=max(old,value)
+            lower=max(math.nextafter(old-old_error,-math.inf),math.nextafter(value-error,-math.inf))
+            upper=max(math.nextafter(old+old_error,math.inf),math.nextafter(value+error,math.inf))
+            v['max'],v['max_error']=center,_technical_up(max(center-lower,upper-center))
+        v['mean'],v['mean_error']=_core_level_pair(total,float(v['count']),et,0.)
+        v['window']=None;completed+=1
+    def nearest(index,t,above,want):
+        # Price-group traversal retains every duplicate anchor identity, while
+        # avoiding a scan of all equal-price levels on each observed bar.
+        pos=bisect_right(index,(float(c[t]),next_id)) if above else bisect_right(index,(float(c[t]),next_id))-1
+        candidates=[]
+        while 0<=pos<len(index):
+            price=index[pos][0];lo=bisect_left(index,(price,-1));hi=bisect_right(index,(price,next_id))
+            delta=price-float(c[t]);distance=(delta if above else -delta)/float(a[t])
+            if candidates and ae[t]>0.:
+                denominator_lower=math.nextafter(float(a[t])-float(ae[t]),-math.inf)
+                denominator_upper=math.nextafter(float(a[t])+float(ae[t]),math.inf)
+                if denominator_lower<=0.:raise RuntimeError('NATIVE_CORE_LEVEL_SLOT_ATR_AMBIGUOUS')
+                current_delta=abs(delta)
+                for _,previous_id in candidates:
+                    previous_delta=abs(live[previous_id]['price']-float(c[t]))
+                    if current_delta==previous_delta:continue
+                    numerator=math.nextafter(abs(current_delta-previous_delta),-math.inf)
+                    separation=math.nextafter(numerator/denominator_upper,-math.inf)
+                    magnitude=_technical_udiv(max(current_delta,previous_delta),denominator_lower)
+                    if separation<=_technical_umul(2.,_technical_rho(magnitude)):
+                        raise RuntimeError('NATIVE_CORE_LEVEL_SLOT_ORDER_AMBIGUOUS')
+            if len(candidates)>=want:
+                ranked=sorted(candidates);cut=ranked[want-1][0]
+                if distance>cut:break
+            ids=[entry_id for _,entry_id in index[lo:hi]
+                 if index is not pending or live[entry_id]['break_at']<t]
+            for entry_id in ids[:want]:candidates.append((distance,entry_id))
+            pos=hi if above else lo-1
+        return [live[i] for _,i in sorted(candidates)[:want]]
+    def slot(v,side,t):
+        if v is None:return
+        prefix='mtf_level_'+side+'_';chosen[side][t]=v['price']
+        for suffix,value in (('touch_count',v['touches']),('age_bars',t-v['birth']),
+                             ('bars_since_touch',t-v['last_touch'])):out[prefix+suffix][t]=value
+        out[prefix+'recurrence_dist_atr'][t]=v['recurrence'];errors[prefix+'recurrence_dist_atr'][t]=v['recurrence_error']
+        for suffix,ekey in (('mean','mean_error'),('max','max_error'),('last','last_error')):
+            out[prefix+suffix+'_reaction_atr'][t]=v[suffix];errors[prefix+suffix+'_reaction_atr'][t]=v[ekey]
+        if side=='below':out[prefix+'present'][t]=1.
+    for t in range(n):
+        if not np.isfinite(a[t]):continue
+        while deadlines and deadlines[0][0]<t:
+            _,identity,at=heapq.heappop(deadlines);v=live.get(identity)
+            if v is None or v['refresh']!=at:continue
+            if v['status']=='active':finish(v,t);remove_active(v)
+            else:remove(pending,(v['price'],identity))
+            del live[identity];expired+=1
+        fresh=set()
+        for side,prices in (('high',h),('low',l)):
+            j=t-3
+            if j<3 or confirmations[side][t]!=j:continue
+            price=float(prices[j]);prior=immutable[side];p=bisect_left(prior,(price,-1))
+            neighbors=prior[max(0,p-1):min(len(prior),p+1)]
+            if neighbors:
+                candidates=[(abs(price-previous)/float(a[t]),identity,previous) for previous,identity in neighbors]
+                _,_,previous=min(candidates)
+                diff,ed=_core_level_difference(price,previous)
+                recurrence,er=_core_level_pair(abs(diff),float(a[t]),ed,float(ae[t]))
+            else:recurrence=er=0.
+            v={'id':next_id,'price':price,'birth_side':side,'side':side,'birth':t,'last_touch':j,
+               'touches':1,'refresh':t,'status':'active','active_since':t,'break_at':-1,'break_side':0,
+               'recurrence':recurrence,'recurrence_error':er,'sum':0.,'sum_error':0.,'count':0,
+               'mean':0.,'mean_error':0.,'max':0.,'max_error':0.,'last':0.,'last_error':0.,
+               'window':(t,float(a[t]),float(ae[t]),side)}
+            live[next_id]=v;fresh.add(next_id);insort(prior,(price,next_id));insert_active(v);refresh(v,t)
+            next_id+=1;admitted+=1;first=min(first,t)
+        high_break=[identity for _,identity in origins['high'][:bisect_left(origins['high'],(float(c[t]),-1))]]
+        low_break=[identity for _,identity in origins['low'][bisect_right(origins['low'],(float(c[t]),next_id)):]]
+        if high_break and low_break:raise RuntimeError('NATIVE_CORE_LEVEL_SAME_BAR_TWO_SIDED_BREAK')
+        broken=0
+        for ids,side in ((high_break,1),(low_break,-1)):
+            for identity in ids:
+                v=live[identity];finish(v,t);remove_active(v);v['status']='pending';v['break_at']=t;v['break_side']=side
+                insort(pending,(v['price'],identity));broken=max(broken,v['touches']);last_break=t;last_side=side
+        hold_sum=fail_sum=0
+        left=bisect_left(pending,(float(l[t]),-1));right=bisect_right(pending,(float(h[t]),next_id))
+        for _,identity in list(pending[left:right]):
+            v=live[identity]
+            if v['break_at']==t:continue
+            finish(v,t);remove(pending,(v['price'],identity))
+            if (float(c[t])-v['price'])*v['break_side']>0.:
+                hold_sum+=v['break_side'];v['side']='low' if v['side']=='high' else 'high'
+                v['status']='active';v['active_since']=t;insert_active(v);held+=1
+            else:fail_sum+=v['break_side'];del live[identity];failed+=1
+        left=bisect_left(active,(float(l[t]),-1));right=bisect_right(active,(float(h[t]),next_id))
+        for _,identity in list(active[left:right]):
+            if identity in fresh:continue
+            v=live[identity];was=v['active_since']<t and t>0 and float(l[t-1])<=v['price']<=float(h[t-1])
+            if not was:
+                finish(v,t);v['touches']+=1;v['last_touch']=t;refresh(v,t)
+                v['window']=(t,float(a[t]),float(ae[t]),v['side'])
+        max_live=max(max_live,len(live))
+        if first==n:continue
+        for side,is_above in (('above',True),('below',False)):
+            picks=nearest(active,t,is_above,2);slot(picks[0] if picks else None,side,t)
+            if len(picks)>1:chosen[side+'2'][t]=picks[1]['price'];out['mtf_level_'+side+'2_present'][t]=1.
+            waiting=nearest(pending,t,is_above,1)
+            if waiting:
+                v=waiting[0];chosen['pending_'+side][t]=v['price']
+                out['mtf_level_'+side+'_pending_retest_age_bars'][t]=t-v['break_at']
+        out['mtf_level_break_up_event'][t]=bool(high_break);out['mtf_level_break_down_event'][t]=bool(low_break)
+        out['mtf_level_broken_touch_count'][t]=broken
+        if last_break is not None:out[own][t]=last_side*(t-last_break);errors[own][t]=0.
+        out['mtf_level_retest_hold_signed'][t]=int(hold_sum>0)-int(hold_sum<0)
+        out['mtf_level_retest_fail_signed'][t]=int(fail_sum>0)-int(fail_sum<0)
+    for side in ('above','below'):
+        for key,name in ((side,'mtf_level_'+side+'_dist_atr'),(side+'2','mtf_level_'+side+'2_dist_atr'),
+                         ('pending_'+side,'mtf_level_'+side+'_pending_retest_dist_atr')):
+            selected=chosen[key];present=np.isfinite(selected)
+            diff,ed=_technical_sub(selected,c) if side=='above' else _technical_sub(c,selected)
+            value,error=_technical_div(diff,a,ed,ae);out[name]=np.where(present,value,0.);errors[name]=np.where(present,error,0.)
+    for grid in NATIVE_CORE_ROUND_GRIDS:
+        # Canonical RN64 division/addition precedes floor, including half ties.
+        center=grid*np.floor(c/grid+.5)
+        diff,ed=_technical_sub(c,center);value,error=_technical_div(diff,a,ed,ae)
+        out['mtf_level_round_number_dist_'+str(int(grid))+'_atr']=value
+        errors['mtf_level_round_number_dist_'+str(int(grid))+'_atr']=error
+    for name in out:
+        out[name][:first]=np.nan;errors[name][:first]=np.nan
+    return out,errors,{'source_rows':n,'first_valid_row':None if first==n else first,'timeframe':timeframe,
+        'expiry_bars':expiry_bars,'pivots_before_ATR_are_not_admitted':True,'new_immutable_anchors':admitted,
+        'completed_reactions':completed,'eligibility_expiries':expired,'held_retests':held,'failed_retests':failed,
+        'maximum_live_eligible_records':max_live,'ambiguous_slot_orders':ambiguous_orders,
+        'reaction_queries_end_at_current_row':True,'same_bar_birth_break_pending_episode_preserved':True,
+        'gap_or_session_reset':False,'recurrence_threshold_affects_outputs':False}
+
+
+def _core_cross_reference_axes(raw_m5):
+    names=('bar_start_ns','open','high','low','close','volume')
+    clock=np.asarray(raw_m5['bar_start_ns']);t=_projection_integer_clock(clock,'NATIVE_CORE_CROSS_M5_CLOCK',grid=5*MINUTE)
+    if not len(t):raise RuntimeError('NATIVE_CORE_CROSS_M5_EMPTY')
+    for name in names[1:]:
+        v=np.asarray(raw_m5[name]);dtype=np.dtype('int64') if name=='volume' else np.dtype('float64')
+        if v.dtype!=dtype or v.shape!=t.shape or not np.isfinite(v).all() or np.any(v<=0.):raise RuntimeError('NATIVE_CORE_CROSS_M5_DOMAIN')
+    if (np.any(raw_m5['high']<np.maximum(raw_m5['open'],raw_m5['close']))
+            or np.any(raw_m5['low']>np.minimum(raw_m5['open'],raw_m5['close']))
+            or np.any(raw_m5['high']<raw_m5['low'])):raise RuntimeError('NATIVE_CORE_CROSS_M5_GEOMETRY')
+    axes={}
+    for tf,duration in NATIVE_CORE_LANE_DURATION_NS.items():
+        phase=NATIVE_CORE_SESSION_OFFSET_NS%duration;labels=((t-phase)//duration)*duration+phase
+        stamps,first,count=np.unique(labels,return_index=True,return_counts=True)
+        # Unlike the feature-lane axis, the raw context owner retains both
+        # leading and trailing observed partial bins. As-of selection censors
+        # reference bins whose declared close lies after a query's availability.
+        axes[tf]={'bar_start_ns':stamps,'high':np.maximum.reduceat(raw_m5['high'],first),
+            'low':np.minimum.reduceat(raw_m5['low'],first),'close':raw_m5['close'][first+count-1]}
+    return axes
+
+
+def reference_native_core_cross(frame,*,atr,atr_radius,raw_m5,timeframe):
+    """Four strict-prior-session pivots plus ten trailing closed-reference extrema."""
+    from bisect import bisect_left,bisect_right,insort
+    clock,a,ae=_core_level_validate_frame(frame,atr,atr_radius,timeframe);n=len(clock);c=frame['close']
+    axes=_core_cross_reference_axes(raw_m5);duration=NATIVE_CORE_LANE_DURATION_NS[timeframe];availability=clock+duration
+    # The source's intermediate float32 ATR-bps wire is a semantic operation.
+    bps,ebps=_technical_scale(*_technical_div(a,c,ae,0.),1e4)
+    bps,ebps=_core_round32_interval(bps,ebps)
+    scaled,es=_technical_div(bps,np.full(n,1e4),ebps,0.)
+    cross_atr=scaled*c;propagated=_technical_umul(es,np.abs(c));finite=np.isfinite(cross_atr)
+    if np.any(cross_atr[finite]<=0.):raise RuntimeError('NATIVE_CORE_CROSS_ATR_ROUNDTRIP_DOMAIN')
+    ecross=np.full(n,np.nan)
+    ecross[finite]=_technical_uadd(propagated[finite],
+        _technical_rho(_technical_uadd(np.abs(cross_atr[finite]),propagated[finite])),_technical_rho(cross_atr[finite]))
+    out={name:np.full(n,np.nan) for name in NATIVE_CORE_CROSS_FIELDS};radii={name:v.copy() for name,v in out.items()}
+    daily=axes['D1'];H,L,C=(daily[k] for k in ('high','low','close'))
+    total,et=_technical_sub(H,-L);total,et=_technical_sub(total,-C,et,0.)
+    pp,epp=_technical_div(total,np.full(len(H),3.),et,0.);twopp,etwopp=_technical_scale(pp,epp,2.)
+    ran,er=_technical_sub(H,L);levels={}
+    levels['R1']=_technical_sub(twopp,L,etwopp,0.);levels['R2']=_technical_sub(pp,-ran,epp,er)
+    levels['S1']=_technical_sub(twopp,H,etwopp,0.);levels['S2']=_technical_sub(pp,ran,epp,er)
+    session=((availability-NATIVE_CORE_SESSION_OFFSET_NS)//DAY)*DAY+NATIVE_CORE_SESSION_OFFSET_NS
+    prior=np.searchsorted(daily['bar_start_ns'],session,side='left')-1;observed=prior>=0
+    for name,(value,error) in levels.items():
+        selected=np.full(n,np.nan);se=selected.copy();selected[observed]=value[prior[observed]];se[observed]=error[prior[observed]]
+        diff,ed=_technical_sub(c,selected,0.,se);out['dist_to_'+name+'_atr'],radii['dist_to_'+name+'_atr']=_technical_div(diff,cross_atr,ed,ecross)
+    extrema={};full=np.isfinite(cross_atr)
+    for tf,lookback in NATIVE_CORE_CROSS_WINDOWS.items():
+        axis=axes[tf];right=np.searchsorted(axis['bar_start_ns'],availability-NATIVE_CORE_LANE_DURATION_NS[tf],side='right')
+        complete=right>=lookback;full &= complete
+        upper=np.full(n,np.nan);lower=upper.copy();highs=[];lows=[];cursor=0
+        for row,r in enumerate(right):
+            r=int(r)
+            while cursor<r:
+                insort(highs,float(axis['high'][cursor]));insort(lows,float(axis['low'][cursor]));cursor+=1
+                if cursor>lookback:
+                    old=cursor-lookback-1
+                    highs.pop(bisect_left(highs,float(axis['high'][old])));lows.pop(bisect_left(lows,float(axis['low'][old])))
+            if not complete[row]:continue
+            pos=bisect_right(highs,float(c[row]));upper[row]=highs[pos] if pos<len(highs) else highs[-1]
+            pos=bisect_left(lows,float(c[row]));lower[row]=lows[pos-1] if pos else lows[0]
+        extrema[tf]=(upper,lower)
+    for tf,(upper,lower) in extrema.items():
+        for suffix,first,second in (('hi',upper,c),('lo',c,lower)):
+            diff,ed=_technical_sub(first,second);value,error=_technical_div(diff,cross_atr,ed,ecross)
+            name='dist_to_'+tf.lower()+'_'+suffix+'_atr';out[name]=np.where(full,value,np.nan);radii[name]=np.where(full,error,np.nan)
+    first={name:int(np.flatnonzero(np.isfinite(v))[0]) if np.isfinite(v).any() else None for name,v in out.items()}
+    return out,radii,{'source_rows':n,'timeframe':timeframe,'raw_M5_rows':len(raw_m5['bar_start_ns']),
+        'first_valid_rows':first,'ATR_uses_explicit_RN32_bps_roundtrip':True,'hidden_cache_inputs':False,
+        'reference_rows':{tf:len(v['bar_start_ns']) for tf,v in axes.items()},
+        'reference_first_labels_ns':{tf:int(v['bar_start_ns'][0]) for tf,v in axes.items()},
+        'leading_partial_reference_bins_retained':True,'reference_cutoff':'lane_start+lane_duration-reference_duration',
+        'strict_prior_observed_D1_session':True,'session_offset_hours_UTC':22,'all_ten_extrema_share_full_window_mask':True}
+
+
+NATIVE_CORE_NUMERIC_PLAN_ID='NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_130'
+NATIVE_CORE_NUMERIC_POLICY_KEY='remaining_active_core_numeric_reference_130'
+NATIVE_CORE_NUMERIC_FIELDS=('swing_dist_last_swing_high_atr', 'swing_dist_last_swing_low_atr', 'swing_bars_since_swing_high', 'swing_bars_since_swing_low', 'swing_retracement_from_last_impulse', 'swing_impulse_present', 'swing_high_break_event', 'swing_low_break_event', 'swing_high_break_displacement_atr', 'swing_low_break_displacement_atr', 'bars_since_swing_high_break', 'bars_since_swing_low_break', 'swing_high_sequence_delta_atr', 'swing_low_sequence_delta_atr', 'consecutive_higher_lows_count', 'consecutive_lower_highs_count', 'consecutive_higher_highs_count', 'consecutive_lower_lows_count', 'swing_high_level_intact', 'swing_low_level_intact', 'mtf_level_above_dist_atr', 'mtf_level_above2_dist_atr', 'mtf_level_above2_present', 'mtf_level_above_touch_count', 'mtf_level_above_recurrence_dist_atr', 'mtf_level_above_age_bars', 'mtf_level_above_bars_since_touch', 'mtf_level_above_mean_reaction_atr', 'mtf_level_above_max_reaction_atr', 'mtf_level_above_last_reaction_atr', 'mtf_level_below_dist_atr', 'mtf_level_below_present', 'mtf_level_below2_dist_atr', 'mtf_level_below2_present', 'mtf_level_below_touch_count', 'mtf_level_below_recurrence_dist_atr', 'mtf_level_below_age_bars', 'mtf_level_below_bars_since_touch', 'mtf_level_below_mean_reaction_atr', 'mtf_level_below_max_reaction_atr', 'mtf_level_below_last_reaction_atr', 'mtf_level_break_up_event', 'mtf_level_break_down_event', 'mtf_level_broken_touch_count', 'mtf_level_bars_since_break_signed', 'mtf_level_retest_hold_signed', 'mtf_level_retest_fail_signed', 'mtf_level_above_pending_retest_dist_atr', 'mtf_level_above_pending_retest_age_bars', 'mtf_level_below_pending_retest_dist_atr', 'mtf_level_below_pending_retest_age_bars', 'mtf_level_round_number_dist_50_atr', 'mtf_level_round_number_dist_100_atr', 'atr_z', '_v1_ema3_ema6_spread_atr', 'chart.foundation_bos_up_event_age_bars', 'chart.foundation_bos_down_event_age_bars', 'chart.foundation_choch_event_age_bars', 'smc_choch', 'smc_sweep_up_avwap_age_bars', 'smc_sweep_up_avwap_dist_atr', 'smc_sweep_up_avwap_dispersion_atr', 'smc_sweep_up_avwap_anchor_close_dist_atr', 'smc_sweep_up_avwap_level_dist_atr', 'smc_sweep_up_avwap_mean_activity_ratio', 'smc_sweep_down_avwap_age_bars', 'smc_sweep_down_avwap_dist_atr', 'smc_sweep_down_avwap_dispersion_atr', 'smc_sweep_down_avwap_anchor_close_dist_atr', 'smc_sweep_down_avwap_level_dist_atr', 'smc_sweep_down_avwap_mean_activity_ratio', 'close_distance_from_ema5_bps', 'spread_bps', 'spread_bps_delta_1', 'spread_extremes_sum_bps', 'quote_range_asymmetry_bps', 'session_change_flag', 'mid_ema50_dist_atr', 'ema5_20_spread_atr', 'mid_ema200_dist_atr', 'dist_to_R1_atr', 'dist_to_R2_atr', 'dist_to_S1_atr', 'dist_to_S2_atr', 'dist_to_m5_hi_atr', 'dist_to_m5_lo_atr', 'dist_to_m15_hi_atr', 'dist_to_m15_lo_atr', 'dist_to_h1_hi_atr', 'dist_to_h1_lo_atr', 'dist_to_h4_hi_atr', 'dist_to_h4_lo_atr', 'dist_to_d1_hi_atr', 'dist_to_d1_lo_atr')
+NATIVE_CORE_NUMERIC_COLUMNS=(50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 190, 196, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 223, 224, 225, 226, 227, 229, 233, 235, 237, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252)
+
+NATIVE_CORE_QUOTE_FIELDS=('bid_close','ask_close','bid_high','bid_low','ask_high','ask_low')
+
+
+def _core_round32_interval(values,radii):
+    """Propagate an internal RN32 wire without reading the target cache."""
+    value,radius=np.broadcast_arrays(np.asarray(values,dtype=np.float64),np.asarray(radii,dtype=np.float64))
+    valid=np.isfinite(value)
+    if (np.any(np.isinf(value)) or np.any(valid&(~np.isfinite(radius)|(radius<0.)))):
+        raise RuntimeError('NATIVE_CORE_NUMERIC_F32_INTERVAL_DOMAIN')
+    out=np.full(value.shape,np.nan,dtype=np.float64);bound=out.copy()
+    if not np.any(valid):return out,bound
+    v,r=value[valid],radius[valid]
+    # Zero radius means the binary64 input wire is exact. Otherwise both
+    # subtraction/addition endpoints are expanded before the monotone cast.
+    lo=np.where(r==0.,v,np.nextafter(v-r,-np.inf))
+    hi=np.where(r==0.,v,np.nextafter(v+r,np.inf))
+    with np.errstate(over='ignore',invalid='ignore'):
+        center=v.astype(np.float32).astype(np.float64)
+        lower=lo.astype(np.float32).astype(np.float64)
+        upper=hi.astype(np.float32).astype(np.float64)
+    if not (np.isfinite(center).all() and np.isfinite(lower).all() and np.isfinite(upper).all()):
+        raise RuntimeError('NATIVE_CORE_NUMERIC_F32_INTERVAL_OVERFLOW')
+    error=np.maximum(center-lower,upper-center)
+    # Differences of F32 endpoints are enclosed by one outward F64 step.
+    bound[valid]=np.where(error==0.,0.,np.nextafter(error,np.inf));out[valid]=center
+    return out,bound
+
+
+def _core_native_quote_footer(path,seal):
+    rows=_technical_native_footer(path,seal)
+    schema=pq.ParquetFile(path).schema_arrow
+    if any(name not in schema.names or schema.field(name).type!=pa.float64() for name in NATIVE_CORE_QUOTE_FIELDS):
+        raise RuntimeError('NATIVE_CORE_NUMERIC_QUOTE_SCHEMA')
+    return rows
+
+
+def native_core_resample_frame(m5,timeframe):
+    """Use the qualified native axis; aggregate each genuine quote side."""
+    base=('bar_start_ns','open','high','low','close','volume')
+    if set(m5)!=set(base+NATIVE_CORE_QUOTE_FIELDS):
+        raise RuntimeError('NATIVE_CORE_NUMERIC_QUOTE_SOURCE_SCHEMA')
+    result=native_resample_calendar_frame({name:m5[name] for name in base},timeframe)
+    t=m5['bar_start_ns']
+    for name in NATIVE_CORE_QUOTE_FIELDS:
+        a=np.asarray(m5[name])
+        if a.dtype!=np.dtype('float64') or a.shape!=t.shape or not np.isfinite(a).all() or np.any(a<=0.):
+            raise RuntimeError('NATIVE_CORE_NUMERIC_QUOTE_SOURCE_SCHEMA')
+    for side in ('bid','ask'):
+        if (np.any(m5[side+'_high']<m5[side+'_low']) or np.any(m5[side+'_high']<m5[side+'_close'])
+                or np.any(m5[side+'_low']>m5[side+'_close'])):
+            raise RuntimeError('NATIVE_CORE_NUMERIC_QUOTE_GEOMETRY')
+    if any(np.any(m5['ask_'+part]<m5['bid_'+part]) for part in ('close','high','low')):
+        raise RuntimeError('NATIVE_CORE_NUMERIC_CROSSED_QUOTE')
+    durations={'M5':5*MINUTE,'M15':15*MINUTE,'H1':60*MINUTE,'H4':240*MINUTE,'D1':DAY}
+    duration=durations[timeframe];phase=(22*60*MINUTE)%duration
+    labels=((t-phase)//duration)*duration+phase
+    stamps,first,count=np.unique(labels,return_index=True,return_counts=True)
+    pos=np.searchsorted(stamps,result['bar_start_ns'])
+    if not np.array_equal(stamps[pos],result['bar_start_ns']):
+        raise RuntimeError('NATIVE_CORE_NUMERIC_QUOTE_AXIS')
+    for name in NATIVE_CORE_QUOTE_FIELDS:
+        values=m5[name]
+        aggregated=(np.maximum.reduceat(values,first) if name.endswith('_high') else
+            np.minimum.reduceat(values,first) if name.endswith('_low') else values[first+count-1])
+        result[name]=aggregated[pos]
+    return result
+
+
+def _core_reference_atr(frame):
+    high,low,close=(frame[name] for name in ('high','low','close'))
+    tr=high-low
+    if len(tr)>1:tr[1:]=np.maximum.reduce((tr[1:],np.abs(high[1:]-close[:-1]),np.abs(low[1:]-close[:-1])))
+    return reference_technical_wilder(tr,14)
+
+
+def _core_compare_owner_blocks(m5,timeframe,clock,cache_path,expiry_bars):
+    """Compare one owner at a time; never merge 94 full-history surfaces."""
+    from time import monotonic
+    raw=native_core_resample_frame(m5,timeframe)
+    positions=np.searchsorted(raw['bar_start_ns'],clock)
+    if (np.any(positions>=len(raw['bar_start_ns'])) or not np.array_equal(raw['bar_start_ns'][positions],clock)
+            or not np.array_equal(raw['bar_start_ns'][(raw['bar_start_ns']>=clock[0])&(raw['bar_start_ns']<=clock[-1])],clock)):
+        raise RuntimeError('NATIVE_CORE_NUMERIC_EXACT_CACHE_TIMESTAMP_MAPPING:'+timeframe)
+    atr,atr_radius=_core_reference_atr(raw)
+    raw_smc=reference_native_smc_replay(raw['high'],raw['low'],raw['close'])
+    for vector in (*raw.values(),*m5.values(),atr,atr_radius,*raw_smc.values()):vector.setflags(write=False)
+    matrix=np.load(cache_path,mmap_mode='r',allow_pickle=False)
+    column_by_name=dict(zip(NATIVE_CORE_NUMERIC_FIELDS,NATIVE_CORE_NUMERIC_COLUMNS));reports={};helpers={}
+    blocks=(('swing20',NATIVE_CORE_SWING_FIELDS,NATIVE_CORE_SWING_DISCRETE_FIELDS,
+        lambda:reference_native_core_swing(raw,atr=atr,atr_radius=atr_radius)),
+        ('local27',NATIVE_CORE_LOCAL_FIELDS,NATIVE_CORE_LOCAL_DISCRETE_FIELDS,
+        lambda:reference_native_core_local(raw,atr=atr,atr_radius=atr_radius,raw_smc=raw_smc,timeframe=timeframe)),
+        ('level33',NATIVE_CORE_LEVEL_FIELDS,NATIVE_CORE_LEVEL_DISCRETE_FIELDS,
+        lambda:reference_native_core_level(raw,atr=atr,atr_radius=atr_radius,raw_smc=raw_smc,timeframe=timeframe,expiry_bars=expiry_bars)),
+        ('cross14',NATIVE_CORE_CROSS_FIELDS,(),
+        lambda:reference_native_core_cross(raw,atr=atr,atr_radius=atr_radius,raw_m5=m5,timeframe=timeframe)))
+    for owner,names,discrete,compute in blocks:
+        started=monotonic();reference,bounds,helper=compute()
+        if (set(reference)!=set(names) or set(bounds)!=set(names) or any(name in reports for name in names)
+                or any(np.shape(reference[name])!=np.shape(raw['bar_start_ns']) or np.shape(bounds[name])!=np.shape(raw['bar_start_ns']) for name in names)):
+            raise RuntimeError('NATIVE_CORE_NUMERIC_OWNER_SURFACE:'+owner)
+        ref={name:reference[name][positions] for name in names};radii={name:bounds[name][positions] for name in names}
+        target={name:np.asarray(matrix[:,column_by_name[name]]) for name in names}
+        report=compare_technical_reference(ref,target,radii,discrete_fields=discrete)
+        for name,stat in report.items():
+            if not stat['numeric_reference_qualified']:
+                raise RuntimeError('NATIVE_CORE_NUMERIC_ACTIVE_FIELD_UNOBSERVED:'+timeframe+':'+name)
+            stat['compact_profile_active']=True
+            stat['positive_reference_values']=int(np.sum(ref[name]>0.));stat['zero_reference_values']=int(np.sum(ref[name]==0.))
+        reports.update(report);helpers[owner]=dict(helper,oracle_and_cache_compare_elapsed_seconds=monotonic()-started)
+        del reference,bounds,ref,radii,target,report
+    if set(reports)!=set(NATIVE_CORE_NUMERIC_FIELDS):raise RuntimeError('NATIVE_CORE_NUMERIC_OWNER_UNION')
+    return reports,helpers,len(clock)
+
+
+def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False,remaining_core=False):
+    if sum(bool(v) for v in (trend_events,native_smc,remaining_core))>1:raise RuntimeError('TECHNICAL_NUMERIC_MUTUALLY_EXCLUSIVE_MODES')
+    prefix='NATIVE_CORE_NUMERIC' if remaining_core else 'NATIVE_SMC_NUMERIC' if native_smc else 'TREND_EVENT_NUMERIC' if trend_events else 'TECHNICAL_NUMERIC'
+    plan_id=NATIVE_CORE_NUMERIC_PLAN_ID if remaining_core else NATIVE_SMC_NUMERIC_PLAN_ID if native_smc else TREND_EVENT_NUMERIC_PLAN_ID if trend_events else TECHNICAL_NUMERIC_PLAN_ID
+    policy_key=NATIVE_CORE_NUMERIC_POLICY_KEY if remaining_core else NATIVE_SMC_NUMERIC_POLICY_KEY if native_smc else TREND_EVENT_NUMERIC_POLICY_KEY if trend_events else TECHNICAL_NUMERIC_POLICY_KEY
+    schema='gx1_native_core_numeric_audit_plan_v1' if remaining_core else 'gx1_native_smc_numeric_audit_plan_v1' if native_smc else 'gx1_trend_event_numeric_audit_plan_v1' if trend_events else 'gx1_technical_numeric_audit_plan_v1'
+    fields=NATIVE_CORE_NUMERIC_FIELDS if remaining_core else NATIVE_SMC_NUMERIC_FIELDS if native_smc else TREND_EVENT_NUMERIC_FIELDS if trend_events else TECHNICAL_NUMERIC_FIELDS
+    columns=NATIVE_CORE_NUMERIC_COLUMNS if remaining_core else tuple(range(70,94)) if native_smc else tuple(range(94,111)) if trend_events else tuple(range(23))
+    active_count=94 if remaining_core else 17 if (trend_events or native_smc) else 11
     root=Path('/home/andre2/GX1_RUNS')/plan_id
     if binding_path!=root/(prefix+'_EXECUTION_BINDING.json'):raise RuntimeError(prefix+'_BINDING_PATH')
     io.require_regular_file(binding_path,prefix+'_BINDING');binding=io.read_json(binding_path);plan_path=root/'PLAN.json'
@@ -3816,7 +4645,7 @@ def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
     if (design['run_id']!=plan_id or spec['design']!=plan['design']
             or spec['frozen_before_any_cached_numeric_comparison'] is not True or design['references']!=plan['references']
             or tuple(design['audited_fields'])!=fields):raise RuntimeError(prefix+'_FROZEN_ERROR_SPEC')
-    if trend_events or native_smc:
+    if trend_events or native_smc or remaining_core:
         inherited=metadata(spec['inherited_127_arithmetic_spec'])
         if inherited['frozen_before_any_cached_numeric_comparison'] is not True:raise RuntimeError(prefix+'_INHERITED_ERROR_SPEC')
     if trend_events:
@@ -3831,7 +4660,7 @@ def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
     if seal_stamp.tzinfo is None or seal_stamp.value!=WINDOW_END_NS:raise RuntimeError(prefix+'_TEST_SEAL')
     seal=seal_stamp.value;refs=plan['references'];cache=metadata(refs['cache_manifest']);prebuilt=metadata(refs['prebuilt_manifest'])
     native=metadata(refs['native_m5_manifest']);profile=metadata(refs['compact_profile_proposal']);previous=metadata(refs['previous_native_context_review'])
-    if trend_events or native_smc:
+    if trend_events or native_smc or remaining_core:
         prior=metadata(refs['previous_technical_numeric_review'])
         if (prior['status']!='PASS_SCOPED_115_TECHNICAL_OUTPUTS_ALL5TF' or prior['source_unchanged'] is not True
                 or prior['test_data_used'] is not False or prior['qualified_outputs']!=115
@@ -3848,6 +4677,23 @@ def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
                 or tuple(design['discrete_fields'])!=NATIVE_SMC_DISCRETE_FIELDS
                 or design['known_payload_bytes']['logical_24selected_feature_bytes']!=sum(design['expected_cache_rows'].values())*24*4):
             raise RuntimeError(prefix+'_PRIOR_INDEX_OR_FIELD_CONTRACT')
+    if remaining_core:
+        if set(spec['arithmetic_parts'])!={'reader','swing','local','level_cross'}:raise RuntimeError(prefix+'_ARITHMETIC_PART_INVENTORY')
+        arithmetic_parts={name:metadata(ref) for name,ref in spec['arithmetic_parts'].items()}
+        smc=metadata(refs['previous_native_smc_numeric_review']);index=metadata(refs['qualified_mtf_numeric_index'])
+        constants=cache.get('v29_registry_constants',{})
+        expected_expiry={'M5':2721,'M15':1742,'H1':964,'H4':507,'D1':132}
+        discrete=set(NATIVE_CORE_SWING_DISCRETE_FIELDS+NATIVE_CORE_LOCAL_DISCRETE_FIELDS+NATIVE_CORE_LEVEL_DISCRETE_FIELDS)
+        if (smc['status']!='PASS_SCOPED_120_NATIVE_SMC_GEOMETRY_OUTPUTS_ALL5TF' or smc['source_unchanged'] is not True
+                or smc['test_data_used'] is not False or smc['qualified_outputs']!=120
+                or index['cache_manifest']!=refs['cache_manifest'] or index['qualified_output_records']!=320
+                or len(index['rows'])!=320 or any(row['name'] in fields for row in index['rows'])
+                or set(design['discrete_fields'])!=discrete or len(discrete)!=37
+                or constants.get('schema_version')!='htf_v4_v29_registry_constants_v9'
+                or constants.get('contract_sha256')!='a222c3c1ff8d22683d209ef6cc9e7827bdbb5a374518ba1dfe914c7e9121e6a2'
+                or constants.get('level_expiry_bars')!=expected_expiry or design['level_expiry_bars']!=expected_expiry
+                or design['known_payload_bytes']['logical_94selected_feature_bytes']!=sum(design['expected_cache_rows'].values())*94*4):
+            raise RuntimeError(prefix+'_PRIOR_INDEX_OR_CORE_CONTRACT')
     runtime=design['runtime_contract']
     for key in ('metadata','window_kernel'):
         path=verified(runtime[key],prefix+'_RUNTIME');runtime_files[str(path)]={'sha256':runtime[key]['sha256'],'bytes':path.stat().st_size}
@@ -3892,7 +4738,7 @@ def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
     if sum(v['bytes'] for v in data_files.values())!=design['known_payload_bytes']['data_total']:
         raise RuntimeError(prefix+'_DATA_TOTAL_BYTES')
     # All18 source footers and10 NPY headers precede any numeric payload.
-    rows={path:_technical_native_footer(path,seal) for path in parts}
+    rows={path:(_core_native_quote_footer(path,seal) if remaining_core else _technical_native_footer(path,seal)) for path in parts}
     for name,ref in data_files.items():
         if ref['kind'] in ('features','timestamps'):
             count=cache['tfs'][ref['timeframe']]['n_bars']
@@ -3908,7 +4754,7 @@ def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
                 or np.any(clock+durations[tf]>seal) or np.any(clock>=seal)):
             raise RuntimeError(prefix+'_CACHE_CLOSED_CLOCK')
         timestamps[tf]=clock
-    required=('time','open','high','low','close','volume');chunks={key:[] for key in required};last=None;decoded=0
+    required=('time','open','high','low','close','volume')+(NATIVE_CORE_QUOTE_FIELDS if remaining_core else ());chunks={key:[] for key in required};last=None;decoded=0
     for path in parts:
         table=pq.ParquetFile(path).read(columns=list(required),use_threads=False)
         if any(table[key].null_count for key in required):raise RuntimeError(prefix+'_SOURCE_NULL')
@@ -3924,9 +4770,14 @@ def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
         raise RuntimeError(prefix+'_FULL_HISTORY_ORIGIN')
     active={tf:set(profile['active_execution']['per_timeframe_fields'][tf])&set(fields) for tf in design['timeframes']}
     if any(len(names)!=active_count for names in active.values()):
-        raise RuntimeError(prefix+('_COMPACT_85_SCOPE' if trend_events or native_smc else '_COMPACT_55_SCOPE'))
+        raise RuntimeError(prefix+('_COMPACT_470_SCOPE' if remaining_core else '_COMPACT_85_SCOPE' if trend_events or native_smc else '_COMPACT_55_SCOPE'))
     reports={};helper_reports={};selected_rows={}
     for tf in design['timeframes']:
+        if remaining_core:
+            info=cache['tfs'][tf]
+            report,helper,count=_core_compare_owner_blocks(m5,tf,timestamps[tf],cache_root/info['feats_npy'],constants['level_expiry_bars'][tf])
+            reports[tf]=report;helper_reports[tf]=helper;selected_rows[tf]=count
+            continue
         raw=native_resample_calendar_frame(m5,tf)
         reference,bounds,helper=(reference_native_smc_block(raw) if native_smc else
             reference_trend_event_block(raw) if trend_events else reference_technical_block(raw))
@@ -3955,8 +4806,8 @@ def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
     io.verify_digest(plan_path,binding['plan_sha256'],prefix+'_POST_PLAN');io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],prefix+'_POST_POLICY')
     if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):
         raise RuntimeError(prefix+'_POST_SOURCE_CHANGED')
-    result={'schema_version':'gx1_native_smc_numeric_result_v1' if native_smc else 'gx1_trend_event_numeric_result_v1' if trend_events else 'gx1_technical_numeric_result_v1',
-        'status':'COMPLETE_SCOPED_24_NATIVE_SMC_GEOMETRY_FORMULAS_ALL5TF' if native_smc else 'COMPLETE_SCOPED_17_TREND_EVENT_FORMULAS_ALL5TF' if trend_events else 'COMPLETE_SCOPED_23_TECHNICAL_FORMULAS_ALL5TF',
+    result={'schema_version':'gx1_native_core_numeric_result_v1' if remaining_core else 'gx1_native_smc_numeric_result_v1' if native_smc else 'gx1_trend_event_numeric_result_v1' if trend_events else 'gx1_technical_numeric_result_v1',
+        'status':'COMPLETE_SCOPED_94_REMAINING_ACTIVE_CORE_FORMULAS_ALL5TF' if remaining_core else 'COMPLETE_SCOPED_24_NATIVE_SMC_GEOMETRY_FORMULAS_ALL5TF' if native_smc else 'COMPLETE_SCOPED_17_TREND_EVENT_FORMULAS_ALL5TF' if trend_events else 'COMPLETE_SCOPED_23_TECHNICAL_FORMULAS_ALL5TF',
         'source_head':binding['source_head'],'source_unchanged':True,'plan_sha256':binding['plan_sha256'],'limits':proof,
         'design':plan['design'],'error_spec':plan['error_spec'],'references':refs,'runtime_files':runtime_files,
         'audited_formulas':len(fields),'timeframes':design['timeframes'],'qualified_output_fields':len(fields)*len(design['timeframes']),
@@ -3983,6 +4834,17 @@ def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
             'logical_selected_feature_bytes':design['known_payload_bytes']['logical_24selected_feature_bytes'],
             'discrete_fields':list(NATIVE_SMC_DISCRETE_FIELDS),'continuous_fields_per_TF':10,
             'pivot_comparison_tolerance':NATIVE_SMC_PIVOT_TOLERANCE,'BB_or_ADX_or_other_technical_formulas_recomputed':False})
+    if remaining_core:
+        result.update({'inherited_127_arithmetic_spec':spec['inherited_127_arithmetic_spec'],
+            'qualified_mtf_numeric_index':refs['qualified_mtf_numeric_index'],
+            'previous_native_smc_numeric_review':refs['previous_native_smc_numeric_review'],
+            'logical_selected_feature_bytes':design['known_payload_bytes']['logical_94selected_feature_bytes'],
+            'discrete_fields':list(design['discrete_fields']),'continuous_fields_per_TF':57,
+            'level_expiry_bars':constants['level_expiry_bars'],'owner_block_order':['swing20','local27','level33','cross14'],
+            'internal_float32_wires_propagated_without_target_cache_input':True,
+            'owner_blocks_compared_and_released_sequentially':True,
+            'prior_320_cached_output_surfaces_reaudited':False,'BB_or_ADX_output_surfaces_recomputed':False,
+            'qualified_primitives_reused_for_new_formulas':['WilderATR14','EMA','raw_native_SMC_n3_replay','native_calendar_axis']})
     output=staging/(prefix+'_RESULT.json');io.write_json(output,result)
     io.write_json(staging/(prefix+'_TERMINAL.json'),{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,
         'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(output)})
@@ -4001,8 +4863,10 @@ if __name__=='__main__':
     group.add_argument('--technical-numeric-binding',type=Path)
     group.add_argument('--trend-events-numeric-binding',type=Path)
     group.add_argument('--native-smc-numeric-binding',type=Path)
+    group.add_argument('--native-core-numeric-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.native_smc_numeric_binding is not None:run_technical_numeric(args.native_smc_numeric_binding,native_smc=True)
+    if args.native_core_numeric_binding is not None:run_technical_numeric(args.native_core_numeric_binding,remaining_core=True)
+    elif args.native_smc_numeric_binding is not None:run_technical_numeric(args.native_smc_numeric_binding,native_smc=True)
     elif args.trend_events_numeric_binding is not None:run_technical_numeric(args.trend_events_numeric_binding,trend_events=True)
     elif args.technical_numeric_binding is not None:run_technical_numeric(args.technical_numeric_binding)
     elif args.gc_native_projection_binding is not None:run_gc_native_projection_numeric(args.gc_native_projection_binding)
